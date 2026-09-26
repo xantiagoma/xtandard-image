@@ -1,7 +1,7 @@
 // Package fetch downloads originals from configured sources
 // (docs/ARCHITECTURE.md §7). It coalesces concurrent fetches of one key,
 // keeps recently fetched originals in a byte-bounded in-memory LRU of
-// refcounted Buffers, enforces the source byte limit while streaming,
+// refcounted Buffers (optionally backed by a shared cache.Store, store.go), enforces the source byte limit while streaming,
 // bounds every attempt with a timeout and retries transient failures once.
 //
 // The package is pure Go: originals land in Buffers from an injected
@@ -16,6 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/source"
 )
@@ -115,6 +116,9 @@ type Fetcher struct {
 	cache   *originCache
 	flights flightGroup
 	cfg     Config
+
+	store    cache.Store // optional shared origin store (WithStore)
+	storeTTL time.Duration
 }
 
 // New returns a Fetcher over sources that stores originals in buffers from
@@ -247,6 +251,12 @@ func (f *Fetcher) load(ctx context.Context, ck string, src source.Source, key so
 	staleBuf, staleMeta, stale := f.cache.stale(ck)
 	if stale {
 		opt.IfNoneMatch, opt.IfModifiedSince = staleMeta.ETag, staleMeta.LastModified
+	} else if f.store != nil {
+		if buf, meta, ok := f.storeGet(ctx, ck); ok {
+			f.metrics.OnCache(CacheStoreHit)
+			f.cache.put(ck, buf, &meta, time.Now())
+			return buf, meta, true, nil
+		}
 	}
 
 	obj, buf, err := f.fetchWithRetry(ctx, src, key, opt)
@@ -275,6 +285,9 @@ func (f *Fetcher) load(ctx context.Context, ck string, src source.Source, key so
 	meta.Body = nil
 	meta.Size = int64(len(buf.Bytes()))
 	f.cache.put(ck, buf, &meta, time.Now())
+	if f.store != nil {
+		f.storePut(ctx, ck, buf, &meta)
+	}
 	return buf, meta, false, nil
 }
 
