@@ -151,6 +151,15 @@ func (*Image) Ints(MetaField) ([]int, bool) { return nil, false }
 // Blob reports no value.
 func (*Image) Blob(MetaField) ([]byte, bool) { return nil, false }
 
+// Text reports no value.
+func (*Image) Text(MetaField) (string, bool) { return "", false }
+
+// Fields reports no fields.
+func (*Image) Fields() []MetaField { return nil }
+
+// CopyMemory fails.
+func (*Image) CopyMemory(context.Context) (*Image, error) { return nil, ErrUnavailable }
+
 // SetInt fails.
 func (*Image) SetInt(context.Context, MetaField, int) (*Image, error) { return nil, ErrUnavailable }
 
