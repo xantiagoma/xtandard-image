@@ -126,20 +126,13 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `draw_detections` (`dd`) Pro | bool:classes… | `P.DrawDetections` | off | M3 |
 | `crop_objects` (`c_obj`) Pro | scale:classes… | `P.CropObjects` | off | M3 |
 | `colorize` (`col`) Pro | opacity:color:keep_alpha | `P.Colorize` | off | M2 |
-| `gradient` (`gr`) Pro | opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees | `P.Gradient` | 0:000:down:0:1 | M2 |
+| `gradient` (`gr`) Pro | opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees clockwise like imgproxy (0 = top to bottom like `down`, 90 = right to left like `left`) | `P.Gradient` | 0:000:down:0:1 | M2 |
 | `watermark` (`wm`) | opacity:pos:x:y:scale; pos incl. `re` (tile), `ch` (chessboard, Pro) | `P.Watermarks[i]`; `ch` tiles a 2×2 unit (cell, empty, empty, cell) centred on a cell | off | M1 (`re` M1, `ch` M3 WP-77) |
 | `watermark_url` (`wmu`) Pro | base64url URL | `Watermark.Source`: resolved against the source allowlist and fetched through the source fetcher (SSRF policy, `XI_LIMITS_MAX_SRC_BYTES`, origin cache), SVG sanitised; first frame, EXIF orientation applied | config image | M3 (WP-77) |
 | `watermark_text` (`wmt`) Pro | base64url Pango markup | `Watermark.Text` (replaces `watermark_url`); sanitised to a whitelist (b, big, i, s, small, sub, sup, tt, u, span with font/colour/weight/style/decoration attributes), font sizes ≤ 1000 pt, rendered at 72 × DPR DPI with `XI_PROCESSING_WATERMARK_FONT`, wrapped at the frame width and shrunk to fit the frame | — | M3 (WP-78) |
 | `watermark_size` (`wms`) Pro | w:h | `Watermark.Width/Height`: fit into w×h CSS px (DPR applied), enlarging; 0 from the aspect ratio; only when the `wm` scale is 0 | 0:0 | M3 (WP-77) |
 | `watermark_rotate` (`wm_rot`, `wmr`) Pro | degrees | `Watermark.Rotate`: clockwise after sizing, onto the transparent bounding box | 0 | M3 (WP-77) |
 | `watermark_shadow` (`wmsh`) Pro | sigma | `Watermark.Shadow`: the watermark's alpha in black, blurred with sigma (CSS px, DPR applied), under it | off | M3 (WP-77) |
-| `gradient` (`gr`) Pro | opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees clockwise like imgproxy (0 = top to bottom like `down`, 90 = right to left like `left`) | `P.Gradient` | 0:000:down:0:1 | M2 |
-| `watermark` (`wm`) | opacity:pos:x:y:scale; pos incl. `re` (tile), `ch` (chessboard, Pro) | `P.Watermarks[i]` | off | M1 (`re` M1, `ch` M3) |
-| `watermark_url` (`wmu`) Pro | base64url URL | `Watermark.Source` | config image | M3 |
-| `watermark_text` (`wmt`) Pro | base64url Pango markup | `Watermark.Text` (replaces `watermark_url`) | — | M3 |
-| `watermark_size` (`wms`) Pro | w:h | `Watermark.Width/Height` | 0:0 | M3 |
-| `watermark_rotate` (`wm_rot`, `wmr`) Pro | degrees | `Watermark.Rotate` | 0 | M3 |
-| `watermark_shadow` (`wmsh`) Pro | sigma | `Watermark.Shadow` | off | M3 |
 | `style` (`stl`, `st`) Pro | base64url CSS | `P.SVGStyle`: a `<style>` first child of the root of an SVG source, the document sanitised again with it (external references dropped); skipped for other sources | — | M2 (WP-64) |
 | `strip_metadata` (`sm`) | bool | `O.StripMetadata` | config (true) | M1 |
 | `keep_copyright` (`kcr`) | bool | `O.KeepCopyright` | config (true) | M1 |
@@ -418,10 +411,8 @@ Signature: `s--SIG--` right after the delivery type; the signed message is the r
 | `cs_srgb`/`cs_no_cmyk`/`cs_tinysrgb`, `cs_cmyk` | ColorProfile srgb / cmyk | `cs_keep_cmyk`, `cs_icc:` unsupported |
 | `pg_<n>` (1-based) | Page n−1 (WP-62) | Ranges and names unsupported |
 | `t_<name>[.<name>…]` | presets expanded in place (imgproxy option syntax); only-presets mode allows nothing but `t_` | |
-| `d_<public_id>` (`:` = folder) | Fallback (same cloud source) | M2 |
-| `l_<id>` (`:` = folder), `l_fetch:<base64url>`, `l_text:<family>_<size>[_<style>…]:<text>` with `g_`, `x_`, `y_`, `o_`, `a_`, `co_` (text), `w_`/`h_` px, relative `w_` + `fl_relative` (scale), `fl_tiled`; legacy single component or `l_…/…/fl_layer_apply,…` group | Watermark on the current pipeline: `l_<id>` is an image on the cloud's source (the base image's storage), `l_fetch:` a remote URL; `a_` → Rotate (clockwise); a text layer's `w_` is its wrap width (`c_fit`), its `h_` approximated. `l_text`: Font = family + weight/style tokens (`bold`, `italic`, …) + size, `underline`/`strikethrough` → markup, the text (double-escaped commas decoded) escaped for Pango; alignment, `letter_spacing_N`, `line_spacing_N`, `stroke`, antialias and hinting approximated | M3 (WP-77/78); `l_video`, `l_subtitles`, `l_lut`, `l_audio` unsupported; other parameters in a layer group (`co_` on an image layer, `e_`, `b_`, …) approximated |
 | `d_<public_id>` (`:` = folder) | Fallback (same cloud source) | honoured with `XI_FALLBACK_ALLOW_REQUEST_URL` |
-| `l_<id>` (`:` = folder), `l_fetch:<base64url>` with `g_`, `x_`, `y_`, `o_`, `a_`, `w_`/`h_` px, relative `w_` + `fl_relative` (scale), `fl_tiled`; legacy single component or `l_…/…/fl_layer_apply,…` group | Watermark (image / URL) on the current pipeline | M3; `l_text`, `l_video`, `l_subtitles`, `l_lut` unsupported; other parameters in a layer group approximated |
+| `l_<id>` (`:` = folder), `l_fetch:<base64url>`, `l_text:<family>_<size>[_<style>…]:<text>` with `g_`, `x_`, `y_`, `o_`, `a_`, `co_` (text), `w_`/`h_` px, relative `w_` + `fl_relative` (scale), `fl_tiled`; legacy single component or `l_…/…/fl_layer_apply,…` group | Watermark on the current pipeline: `l_<id>` is an image on the cloud's source (the base image's storage), `l_fetch:` a remote URL; `a_` → Rotate (clockwise); a text layer's `w_` is its wrap width (`c_fit`), its `h_` approximated. `l_text`: Font = family + weight/style tokens (`bold`, `italic`, …) + size, `underline`/`strikethrough` → markup, the text (double-escaped commas decoded) escaped for Pango; alignment, `letter_spacing_N`, `line_spacing_N`, `stroke`, antialias and hinting approximated | M3 (WP-77/78); `l_video`, `l_subtitles`, `l_lut`, `l_audio` unsupported; other parameters in a layer group (`co_` on an image layer, `e_`, `b_`, …) approximated |
 | `u_` underlays, `if_` (skips its component, or the block up to `if_end`), `$var`, `fn_`, `dn_`, video/audio `vc_`/`ac_`/`du_`/`so_`/`eo_`/`fps_`/… | Unsupported | |
 
 Fixtures: `internal/dialect/cloudinary/testdata/urlgen/generate.ts` builds the corpus with `@cloudinary/url-gen` 1.22.0 and the `cloudinary` Node SDK 2.11.0 (including signed URLs, i.e. the signature vectors); unpic's `cloudinary.test.ts` URLs are asserted in `compat_test.go`.
