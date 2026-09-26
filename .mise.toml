@@ -1,5 +1,8 @@
 # Pinned developer toolchain. Run `mise install` in any checkout or worktree.
+# Bun runs the TypeScript workspace (packages/*, ADR 0009); keep it equal to
+# "packageManager" in package.json and bun-version in .github/workflows/ts.yml.
 [tools]
+bun = "1.4.2"
 go = "1.27.1"
 golangci-lint = "2.14.0"
 task = "latest"
