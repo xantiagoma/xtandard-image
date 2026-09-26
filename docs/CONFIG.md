@@ -7,7 +7,7 @@ Draft reference. Names are stable once M1 ships; until then they may change in t
 Lowest to highest:
 
 1. Built-in defaults.
-2. YAML file: `--config <path>` or `XI_CONFIG_FILE` (default `/etc/xtandard/config.yaml` if it exists).
+2. Config file (YAML, JSON or TOML, by extension): `--config <path>` or `XI_CONFIG_FILE`. When neither is set, whichever of `/etc/xtandard/config.{yaml,yml,json,toml}` exists is read; finding more than one is an error. `--config /dev/null` reads no file.
 3. `IMGPROXY_*` variables, only when `XI_COMPAT_IMGPROXY_ENV=true` (migration aid; translated to the XI equivalents listed in [imgproxy variables](#imgproxy-variables), e.g. `IMGPROXY_KEY` → `XI_SIGNING_KEYS`).
 4. `XI_*` environment variables.
 5. Per-request security overrides (`max_src_resolution`, …) only when `XI_SECURITY_ALLOW_SECURITY_OPTIONS=true`, and only downward unless `XI_SECURITY_ALLOW_RAISING_LIMITS=true`.
@@ -17,14 +17,14 @@ Rules:
 - **Mapping**: an env var is the YAML path upper-cased, dots → `_`, prefixed `XI_`. `limits.max_src_bytes` ↔ `XI_LIMITS_MAX_SRC_BYTES`; map entries use the key: `sources.assets.bucket` ↔ `XI_SOURCES_ASSETS_BUCKET`. Map keys are lower-case `[a-z0-9-]`; `-` becomes `_` in env names. Named sources are the only dynamic part: the effective sources are the YAML `sources` keys plus the names listed in `XI_SOURCES`. A test in `internal/config` checks this rule for every field and keeps the tables below in sync with the code (names and defaults).
 - **Empty values**: an empty variable (`XI_SERVER_ADDR=`) counts as unset and does not override the file.
 - **Lists**: comma-separated in env; YAML sequences in the file. An env list **replaces** the YAML list (maps such as `XI_PRESETS` and `_HEADERS` replace too). Surrounding spaces are trimmed. Integer allowlists also accept ranges: `640-1080/220`, `5-100/5` (start–end/step).
-- **Secrets**: any variable accepts a `_FILE` suffix (`XI_SIGNING_KEYS_FILE=/run/secrets/xi_keys`) for Docker/Kubernetes secrets, including dynamic ones (`XI_SOURCES_ASSETS_SECRET_ACCESS_KEY_FILE`). The trailing newline is trimmed; setting both `X` and `X_FILE` is an error. Variables whose own name ends in `_FILE` (`XI_CONFIG_FILE`, `XI_PRESETS_FILE`) are ordinary variables. Inside a config file, the equivalent is a `{file: /path}` reference (planned: WP-81, see "Secrets in the file" below). Secret fields print as `[REDACTED]` everywhere (`config print`, logs, errors).
+- **Secrets**: any variable accepts a `_FILE` suffix (`XI_SIGNING_KEYS_FILE=/run/secrets/xi_keys`) for Docker/Kubernetes secrets, including dynamic ones (`XI_SOURCES_ASSETS_SECRET_ACCESS_KEY_FILE`). The trailing newline is trimmed; setting both `X` and `X_FILE` is an error. Variables whose own name ends in `_FILE` (`XI_CONFIG_FILE`, `XI_PRESETS_FILE`) are ordinary variables. Inside a config file, the equivalent is a `{file: /path}` reference (see "Secrets in the file" below). A secret file may be at most 64 KiB. Secret fields print as `[REDACTED]` everywhere (`config print`, logs, errors).
 - **Types**: durations use Go syntax (`5s`, `1m30s`; negative rejected); sizes are bytes or binary suffixes `KiB/MiB/GiB/TiB` (`10MiB`; decimal `MB` is rejected as ambiguous); networks are CIDRs or single addresses (`10.0.0.0/8`, `fd00::1`; host bits must be zero); keys are hex; enums are case-insensitive.
 - **Validation** is strict: unknown YAML keys and unknown `XI_` variables are a startup error (typos should not silently disable security); the error suggests the closest known name. `XI_ALLOW_UNKNOWN_ENV=true` downgrades unknown variables to a startup warning. `Validate` reports every violation at once, each with its YAML path and variable. `xtandard-image config print` shows the effective config with secrets redacted.
 - **Secure by default**: with no sources configured and `XI_DEV_MODE` unset, the server refuses to start.
 
-### Config file formats and schema (planned: WP-81, WP-81b; ADR 0007)
+### Config file formats and schema (ADR 0007)
 
-Today the file is YAML only. WP-81 adds JSON and TOML, chosen by extension (`.yaml`/`.yml`, `.json`, `.toml`). All three have the same keys and the same strictness. Precedence and the env mapping above do not change. A JSON Schema (draft 2020-12) of the file gives editors validation, autocomplete and hover docs, and each hover also shows the matching `XI_*` variable. Planned stable URL, published per release (WP-81b):
+The file is YAML, JSON or TOML, chosen by extension (`.yaml`/`.yml`, `.json`, `.toml`; anything else is a startup error). All three have the same keys and the same strictness: JSON goes through the same strict YAML decoder, and TOML is converted to the same tree first (TOML dates and times are rejected because no key takes one, and errors after the conversion name the dotted key path rather than a TOML line). A top-level `$schema` key is ignored in every format. Precedence and the env mapping above do not change. A JSON Schema (draft 2020-12) of the file gives editors validation, autocomplete and hover docs; each hover shows the CONFIG.md meaning, the matching `XI_*` variable and, for secrets, its `_FILE` form. The schema is generated from the `Config` struct and the tables below (`go test ./internal/config -run TestJSONSchema -update`), committed as `internal/config/config.schema.json`, and a test fails when it is stale. Its `$id` is the URL below. Stable URLs, published per release (planned: WP-81b):
 
 ```
 https://xantiagoma.github.io/xtandard-image/schema/config.schema.json            # latest release
@@ -49,15 +49,15 @@ TOML (Taplo / Even Better TOML, Tombi). Put this directive first:
 #:schema https://xantiagoma.github.io/xtandard-image/schema/config.schema.json
 ```
 
-After the SchemaStore listing, files named `xtandard-image.{yaml,yml,json,toml}` are matched without the line. The schema also ships in the binary, and every copy carries the versioned Pages URL as its `$id`:
+After the SchemaStore listing (planned: WP-81b), files named `xtandard-image.{yaml,yml,json,toml}` are matched without the line. The schema also ships in the binary, and every copy carries the same `$id`; all its `$ref`s are local, so any copy resolves the same way:
 
-- The admin listener serves it at `GET /config.schema.json`, which is always on and never on the public listener. A self-hosted instance can point editors at its own copy, which always matches the running version: `# yaml-language-server: $schema=http://127.0.0.1:9090/config.schema.json` (use `XI_ADMIN_ADDR`'s host and port, or `kubectl port-forward`). The same URL works in `"$schema"` and `#:schema`.
+- The admin listener serves it at `GET /config.schema.json` (`Content-Type: application/schema+json`, strong `ETag`, `304` on `If-None-Match`), which is always on and never on the public listener. A self-hosted instance can point editors at its own copy, which always matches the running version: `# yaml-language-server: $schema=http://127.0.0.1:9090/config.schema.json` (use `XI_ADMIN_ADDR`'s host and port, or `kubectl port-forward`). The same URL works in `"$schema"` and `#:schema`.
 - `xtandard-image config schema > config.schema.json` writes the same bytes to a file, for offline editors.
-- `xtandard-image config validate --config config.yaml` checks a file with the real loader. It exits 1 and lists every violation. `--no-env` ignores the environment.
+- `xtandard-image config validate [--config config.yaml] [--no-env]` checks a file with the real loader (file, then `IMGPROXY_*`/`XI_*`, then `Validate`). It prints `<file>: ok`, or `<file>: invalid` followed by every violation with its key path and variable, and exits 1. `--no-env` ignores `XI_*` and `IMGPROXY_*`, so a config repository's CI can check the file on its own.
 
-The loader, not the schema, is the authority.
+The loader, not the schema, is the authority. The schema is slightly stricter in places an editor benefits from (enum values are lower case, a source must name its `type` in the file); tests keep both in agreement on a corpus of valid and invalid files.
 
-**Secrets in the file** (planned: WP-81). `_FILE` variants are env-only, so the file has no `_file` keys. Instead, any secret-typed value (a `Secret` or hex key, one element of a list of them, or one value of a map of them) may be written as a file reference:
+**Secrets in the file**. `_FILE` variants are env-only, so the file has no `_file` keys. Instead, any secret-typed value (a `Secret` or hex key, one element of a list of them, or one value of a map of them) may be written as a file reference:
 
 ```yaml
 signing:
@@ -75,7 +75,7 @@ sources:
     secret_access_key: { file: /run/secrets/s3_secret }
 ```
 
-A reference means the same as `XI_…_FILE` for that one value: the file is read at startup, one trailing newline is trimmed, and the content is parsed like the literal. The path must be absolute, and the file must exist and be at most 64 KiB, or startup fails with the key path in the error. `XI_…` and `XI_…_FILE` in the environment still win. JSON (`{"file": "/run/secrets/x"}`) and TOML (`{ file = "/run/secrets/x" }`) use the same shape. Nothing else in the file is interpolated, and there is no `${…}` syntax (ADR 0007 decision 7).
+A reference means the same as `XI_…_FILE` for that one value: the file is read at startup, trailing newlines are trimmed, and the content is parsed like the literal (the same function reads both). The path must be absolute, and the file must exist and be at most 64 KiB, or startup fails with the key path in the error. `XI_…` and `XI_…_FILE` in the environment still win. JSON (`{"file": "/run/secrets/x"}`) and TOML (`{ file = "/run/secrets/x" }`) use the same shape. Nothing else in the file is interpolated, and there is no `${…}` syntax (ADR 0007 decision 7).
 
 ## 2. Environment variable reference
 
@@ -83,7 +83,7 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `XI_CONFIG_FILE` | `` | YAML file (`--config` wins); when both are unset, `/etc/xtandard/config.yaml` is read if it exists |
+| `XI_CONFIG_FILE` | `` | Config file, `.yaml`/`.yml`/`.json`/`.toml` (`--config` wins); when both are unset, the one of `/etc/xtandard/config.{yaml,yml,json,toml}` that exists is read |
 | `XI_ALLOW_UNKNOWN_ENV` | `false` | Report unknown `XI_*` variables as warnings instead of failing startup |
 
 ### Core and server
@@ -432,7 +432,7 @@ observability:
   log_level: info
 ```
 
-The file is decoded with `goccy/go-yaml` in strict mode (unknown fields and duplicate keys rejected, one document only); environment variables are then applied on top with `caarlos0/env/v11`. This example is loaded by a test, so it stays valid. No interpolation syntax: put secrets in env or `_FILE` variables, keep the YAML file non-secret so it can live in a ConfigMap.
+The file is decoded with `goccy/go-yaml` in strict mode (unknown fields and duplicate keys rejected, one document only); environment variables are then applied on top with `caarlos0/env/v11`. This example is loaded by a test, so it stays valid. The same example in JSON and TOML is `internal/config/testdata/schema/valid/example.{json,toml}`; a test loads all three to the same `Config` and validates them against the schema. No interpolation syntax: put secrets in env or `_FILE` variables or `{file: …}` references, and keep the file itself non-secret so it can live in a ConfigMap.
 
 ## 4. Dokploy
 

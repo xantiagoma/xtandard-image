@@ -197,7 +197,7 @@ if se, ok := errors.AsType[statusError](err); ok { status, msg = se.HTTPStatus()
   - Rejected: `kelseyhightower/envconfig`, whose last release was v1.4.0 in 2019.
 - Put all settings in one `Config` struct built once in `main` and passed down explicitly. Prefix variables with `XI_`. Never read `os.Getenv` outside `internal/config`. Never use globals or `init()`.
 - Validate with an explicit `func (c Config) Validate() error` that returns `errors.Join` of every violation. Fail fast at startup. Don't use `go-playground/validator`: it is reflection-heavy, uses stringly-typed tags, and our rules are cross-field.
-- If a YAML file is ever added (presets, for example), use `github.com/goccy/go-yaml` v1.19.2 with `yaml.UnmarshalWithOptions(b, &c, yaml.Strict(), yaml.DisallowUnknownField())`. `gopkg.in/yaml.v3` is archived (repo archived April 2025). Its successor `go.yaml.in/yaml/v3` receives security fixes only, and `v4` is still `v4.0.0-rc.6` (https://github.com/yaml/go-yaml). Environment variables stay the source of truth, and they override the file.
+- The optional config file is YAML, JSON or TOML (ADR 0007), with one strict decode path: `github.com/goccy/go-yaml` v1.19.2 with `yaml.UnmarshalWithOptions(b, &c, yaml.Strict(), yaml.DisallowUnknownField())`. JSON is YAML flow syntax and goes through it unchanged; TOML is decoded by `github.com/pelletier/go-toml/v2` into a map and re-encoded as YAML first. Its JSON Schema is generated from `Config` by a test and embedded; the loader stays the authority. `gopkg.in/yaml.v3` is archived (repo archived April 2025). Its successor `go.yaml.in/yaml/v3` receives security fixes only, and `v4` is still `v4.0.0-rc.6` (https://github.com/yaml/go-yaml). Environment variables stay the source of truth, and they override the file.
 
 ## 8. Testing
 
@@ -236,7 +236,9 @@ Use the stdlib first. Every new module needs an ADR line with the reason, its li
 | `github.com/prometheus/client_golang` | v1.24.1 | metrics |
 | `go.opentelemetry.io/otel`, `.../sdk`, contrib `otelhttp`/`autoexport` | v1.46.0 / v0.71.0 | tracing, opt-in |
 | `github.com/caarlos0/env/v11` | v11.4.1 | env config |
-| `github.com/goccy/go-yaml` | v1.19.2 | only if a YAML file is added |
+| `github.com/goccy/go-yaml` | v1.19.2 | the config file decoder (YAML, JSON and, after conversion, TOML) |
+| `github.com/pelletier/go-toml/v2` | v2.4.3 | TOML config files, `internal/config` only (ADR 0007) |
+| `github.com/santhosh-tekuri/jsonschema/v6` | v6.0.3 | test only: validates example configs against the config JSON Schema (ADR 0007) |
 | `github.com/google/go-cmp` | v0.7.0 | test diffs |
 | `golang.org/x/image` | v0.46.0 | test-only decoders (WebP, BMP, TIFF) for the golden harness (ADR 0006) |
 | `github.com/klauspost/compress` | v1.20.1 | only if we gzip or zstd non-image responses |
