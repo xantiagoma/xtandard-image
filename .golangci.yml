@@ -170,7 +170,7 @@ linters:
           files: ["**/internal/config/**"]
           # strict: the allow list is exhaustive, so config imports only internal/errs (ARCHITECTURE §3)
           list-mode: strict
-          allow: [$gostd, github.com/xantiagoma/xtandard-image/internal/errs, github.com/caarlos0/env, github.com/goccy/go-yaml]
+          allow: [$gostd, github.com/xantiagoma/xtandard-image/internal/errs, github.com/caarlos0/env, github.com/goccy/go-yaml, github.com/google/go-cmp]
 
         # ARCHITECTURE §3: security/* → errs only.
         security:
