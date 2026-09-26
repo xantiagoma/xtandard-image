@@ -3,7 +3,9 @@ name: ci
 on:
   push:
     branches: [main]
+    paths-ignore: ['docs/**', '**.md', 'bench/**']
   pull_request:
+    paths-ignore: ['docs/**', '**.md', 'bench/**']
 
 permissions:
   contents: read
@@ -98,6 +100,7 @@ jobs:
     # scripts/smoke.sh (compose: app + static origin). Override the base with
     # the repository variable XI_BASE_RUNTIME_IMAGE (the builder is
     # "<base>-builder").
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci-full')
     name: smoke (${{ matrix.arch }})
     strategy:
       fail-fast: false
@@ -157,6 +160,7 @@ jobs:
     # repository variable XI_ACCEPTANCE_IMAGE (e.g.
     # ghcr.io/xantiagoma/xtandard-image:slim) to run it against a published
     # image instead.
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci-full')
     name: acceptance (${{ matrix.arch }})
     needs: smoke
     strategy:
@@ -202,6 +206,7 @@ jobs:
     # `yaml quickstart-compose` from README.md and runs them as written,
     # including the README's own `docker build` (from the GHCR base tags in the
     # Dockerfile). Needs outbound HTTPS: the README fetches an Unsplash image.
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci-full')
     name: quickstart (README)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
