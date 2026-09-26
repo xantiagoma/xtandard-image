@@ -513,7 +513,7 @@ func TestErrorCacheControl(t *testing.T) {
 	})
 	t.Run("not implemented", func(t *testing.T) {
 		t.Parallel()
-		h := newHarness(t, withRequest(func(r *transform.Request) { r.Kind = transform.KindRaw }))
+		h := newHarness(t, withRequest(func(r *transform.Request) { r.Kind = transform.KindInfo }))
 		rec := h.do(t, http.MethodGet, okPath, nil)
 		if rec.Code != http.StatusNotImplemented || rec.Header().Get("Cache-Control") != "no-store" {
 			t.Errorf("status %d, Cache-Control %q", rec.Code, rec.Header().Get("Cache-Control"))

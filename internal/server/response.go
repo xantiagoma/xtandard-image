@@ -58,6 +58,9 @@ type imageResult struct {
 	// srcLen is the original's size in bytes; meta is zero until the probe.
 	srcLen int
 	meta   SourceMeta
+	// ext is the sniffed file extension (no dot) of an unprocessed raw or
+	// skip-processing body; "" derives it from format (WP-34c).
+	ext string
 }
 
 // respond is stage 14 (ARCHITECTURE §9.1). A 304 carries the headers a 200
@@ -79,7 +82,11 @@ func (s *Server) respond(w http.ResponseWriter, r *http.Request, res *imageResul
 	}
 	h.Set("Content-Type", ct)
 	h.Set("X-Content-Type-Options", "nosniff")
-	h.Set("Content-Disposition", contentDisposition(res.req.Delivery.Filename, res.key.Path, res.format, attachment(&res.req.Delivery)))
+	ext := formatExt(res.format)
+	if res.ext != "" {
+		ext = "." + res.ext
+	}
+	h.Set("Content-Disposition", contentDispositionExt(res.req.Delivery.Filename, res.key.Path, ext, attachment(&res.req.Delivery)))
 	if res.format == transform.FormatSVG || ct == "image/svg+xml" {
 		h.Set("Content-Security-Policy", svgCSP)
 	}
@@ -309,7 +316,13 @@ func attachment(d *transform.Delivery) bool { return d.Attachment != nil && *d.A
 // quoted filename is a printable-ASCII fallback; when it differs from the
 // real name, filename* carries the UTF-8 name (RFC 8187).
 func contentDisposition(filename, sourcePath string, f transform.Format, attach bool) string {
-	ext := formatExt(f)
+	return contentDispositionExt(filename, sourcePath, formatExt(f), attach)
+}
+
+// contentDispositionExt is contentDisposition with the extension given
+// directly (".psd", or "" for none): unprocessed raw and skip-processing
+// bodies may be in a format no encoder writes (WP-34c).
+func contentDispositionExt(filename, sourcePath, ext string, attach bool) string {
 	var stem string
 	if filename != "" {
 		stem = sanitizeFilename(filename)

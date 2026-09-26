@@ -31,8 +31,13 @@ func (s *Server) image(w http.ResponseWriter, r *http.Request) {
 
 	res, err := s.process(ctx, r, info)
 	if err != nil {
-		s.writeError(w, r, classify(ctx, r, err))
-		return
+		// WP-34c hook: an eligible stage 9–12 failure is answered with the
+		// fallback image when one is configured (special.go).
+		if res, err = s.fallback(ctx, r, info, classify(ctx, r, err)); err != nil {
+			s.writeError(w, r, err)
+			return
+		}
+		w = s.fallbackWriter(w)
 	}
 	if res.out != nil {
 		defer res.out.Body.Release()
@@ -80,7 +85,7 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 	case transform.KindInfo:
 		return nil, &notImplementedError{what: "info requests"}
 	case transform.KindRaw:
-		return nil, &notImplementedError{what: "raw requests"}
+		return s.raw(ctx, r, info, req, signed) // special.go: no admission, no decode
 	default:
 	}
 
@@ -108,18 +113,37 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 	}
 	info.source = key.Source
 
+	j := &job{req: req, key: key, lim: lim, hints: hints, signed: signed}
+	info.job = j // failures from here on may be answered with the fallback
+	return s.produce(ctx, r, info, j)
+}
+
+// produce runs stages 9–13 of one job: the requested source, or the
+// fallback image in its place (special.go).
+func (s *Server) produce(ctx context.Context, r *http.Request, info *requestInfo, j *job) (*imageResult, error) {
+	req, lim, hints := j.req, &j.lim, j.hints
+
 	// 9. Fetch, outside the processing semaphore so slow origins never hold
 	// a worker slot.
-	t = s.stage(info, stageFetch)
-	fr, err := s.fetch(ctx, key, source.FetchOptions{MaxBytes: lim.maxSrcBytes, Header: r.Header})
+	t := s.stage(info, stageFetch)
+	fr, err := s.fetch(ctx, j.key, source.FetchOptions{MaxBytes: lim.maxSrcBytes, Header: r.Header})
 	t.done()
 	if err != nil {
 		return nil, err
 	}
 	defer fr.Release()
 
-	res := &imageResult{req: req, key: key, object: fr.Object, hints: hints, signed: signed, srcLen: len(fr.Bytes())}
-	res.object.Body = nil
+	res := newResult(j, fr)
+
+	// skip_processing (XI_FORMATS_SKIP_PROCESSING or the request's list):
+	// a listed sniffed format is streamed without admission or decode.
+	if ok, err := s.skipProcessing(r, info, res, fr); ok {
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	}
+
 	canonical := req.CanonicalKey()
 	decide := func(d negotiate.Decision) bool {
 		res.decision, res.format = d, d.Format
@@ -167,10 +191,16 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 	if err != nil {
 		return nil, err
 	}
-	if d.Passthrough {
-		return nil, &notImplementedError{what: "unprocessed source passthrough"}
-	}
 	res.meta = meta
+	if d.Passthrough {
+		// A skip-processing format only the prober recognised, or SVG
+		// passthrough: stream the (sanitised) source. The negotiated
+		// decision keeps its Vary (SVG passthrough depends on Accept).
+		if err := s.passthrough(r, info, res, src, true, &d); err != nil {
+			return nil, err
+		}
+		return res, nil
+	}
 	if decide(d) {
 		return res, nil
 	}

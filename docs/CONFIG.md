@@ -138,6 +138,8 @@ Rules:
 | `XI_PROCESSING_WATERMARK_OPACITY` | `1` | |
 | `XI_FALLBACK_SOURCE` | `` | Fallback image (source string) |
 | `XI_FALLBACK_STATUS` | `200` | Status used with fallback |
+| `XI_FALLBACK_TTL` | `1m` | `Cache-Control: public, max-age` of a fallback response; `0` sends `no-store` |
+| `XI_FALLBACK_ALLOW_REQUEST_URL` | `false` | Honour a request's own fallback image (imgproxy `fallback_image_url`); it must still pass the source allowlist, otherwise `XI_FALLBACK_SOURCE` is used |
 | `XI_FORMATS_QUALITY` | `80` | Global default |
 | `XI_FORMATS_<FMT>_QUALITY` | avif 60, heic 60, jxl 75, webp 80, jpeg 80 | `<FMT>`: `JPEG`, `WEBP`, `AVIF`, `HEIC`, `JXL`; other formats use `XI_FORMATS_QUALITY` |
 | `XI_FORMATS_<FMT>_EFFORT` | webp 4, avif 4, jxl 5, gif 7 | `<FMT>`: `WEBP` (0–6), `AVIF` (0–9), `JXL` (1–10), `GIF` (1–10); see FORMATS.md |

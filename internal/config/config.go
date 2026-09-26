@@ -266,8 +266,11 @@ type Processing struct {
 
 // Fallback is the image served when the source fails.
 type Fallback struct {
-	Source string `yaml:"source" env:"SOURCE"`
-	Status int    `yaml:"status" env:"STATUS"`
+	Source string        `yaml:"source" env:"SOURCE"`
+	Status int           `yaml:"status" env:"STATUS"`
+	TTL    time.Duration `yaml:"ttl"    env:"TTL"`
+	// AllowRequestURL honours a request's fallback_image_url.
+	AllowRequestURL bool `yaml:"allow_request_url" env:"ALLOW_REQUEST_URL"`
 }
 
 // Formats holds encoder defaults and negotiation switches (docs/FORMATS.md).
@@ -518,7 +521,7 @@ func Defaults() Config {
 			StripColorProfile: true,
 			WatermarkOpacity:  1,
 		},
-		Fallback: Fallback{Status: 200},
+		Fallback: Fallback{Status: 200, TTL: time.Minute},
 		Formats: Formats{
 			Quality:              80,
 			JPEG:                 JPEGFormat{Quality: 80, Progressive: true},
