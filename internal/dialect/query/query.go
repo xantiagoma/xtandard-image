@@ -56,7 +56,6 @@ const (
 const (
 	reasonUnknown        = "unknown option"
 	reasonNotImplemented = "not implemented"
-	reasonM2             = "takes effect in M2"
 	reasonM3             = "takes effect in M3"
 	reasonApproximated   = "approximated"
 )

@@ -17,7 +17,6 @@ import (
 
 // Reasons recorded in Request.Ignored.
 const (
-	reasonM2             = "takes effect in M2"
 	reasonM3             = "takes effect in M3"
 	reasonNotImplemented = "not implemented"
 	reasonUnknown        = "unknown option"
