@@ -1,0 +1,1702 @@
+{
+  "asset_private_video": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported asset type",
+      "status": 400
+    },
+    "path": "/video/upload/dog.mp4"
+  },
+  "asset_raw": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported asset type",
+      "status": 400
+    },
+    "path": "/demo/raw/upload/doc.txt"
+  },
+  "asset_video": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported asset type",
+      "status": 400
+    },
+    "path": "/demo/video/upload/dog.mp4"
+  },
+  "authenticated_unsigned_signed_cfg": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "signature required",
+      "status": 403
+    },
+    "path": "/demo/image/authenticated/w_100/sample.jpg"
+  },
+  "bad_escape": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid path escaping",
+      "status": 400
+    },
+    "path": "/demo/image/upload/%zz.jpg"
+  },
+  "chained": {
+    "path": "/demo/image/upload/c_fill,w_400,h_300/e_blur:200/a_90/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        },
+        {
+          "Blur": 10
+        },
+        {
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "cloud_named_image": {
+    "error": {
+      "kind": "forbidden",
+      "public": "unknown cloud",
+      "status": 403
+    },
+    "path": "/image/image/upload/sample.jpg"
+  },
+  "cloud_nomap": {
+    "config": "nomap",
+    "path": "/anything/image/upload/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "mounted",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "cloud_other": {
+    "path": "/other/image/upload/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "other_assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "cloud_unknown": {
+    "error": {
+      "kind": "forbidden",
+      "public": "unknown cloud",
+      "status": 403
+    },
+    "path": "/nope/image/upload/sample.jpg"
+  },
+  "colon_later_segment": {
+    "path": "/demo/image/upload/folder/a:b.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/a:b.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a:b.jpg"
+  },
+  "control_char": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid source",
+      "status": 400
+    },
+    "path": "/demo/image/upload/a%0Ab.jpg"
+  },
+  "default_preset": {
+    "config": "defpre",
+    "path": "/demo/image/upload/q_80,w_100/sample.jpg",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "default"
+        ]
+      },
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg",
+        "Quality": 80,
+        "StripMetadata": false
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "delivery_sprite": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported delivery type",
+      "status": 400
+    },
+    "path": "/demo/image/sprite/logo.png"
+  },
+  "delivery_unknown": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported delivery type",
+      "status": 400
+    },
+    "path": "/demo/image/nope/logo.png"
+  },
+  "empty": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing cloud name",
+      "status": 400
+    },
+    "path": "/"
+  },
+  "ext_mp4": {
+    "path": "/demo/image/upload/sample.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "extension",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Output": {
+        "Format": "mp4"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.mp4"
+  },
+  "ext_none": {
+    "path": "/demo/image/upload/folder/sample",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample"
+  },
+  "ext_unknown": {
+    "path": "/demo/image/upload/doc.pdf",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "doc.pdf"
+      }
+    },
+    "signature": "unsigned",
+    "source": "doc.pdf"
+  },
+  "ext_uppercase": {
+    "path": "/demo/image/upload/sample.JPG",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.JPG"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.JPG"
+  },
+  "ext_webp": {
+    "path": "/demo/image/upload/w_100/sample.webp",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.webp"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.webp"
+  },
+  "ext_with_f_auto": {
+    "path": "/demo/image/upload/f_auto/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "ext_with_format": {
+    "path": "/demo/image/upload/f_png/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "fetch": {
+    "path": "/demo/image/fetch/w_100/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fetch_collapsed": {
+    "path": "/demo/image/fetch/w_100/https:/example.com/a.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fetch_encoded": {
+    "path": "/demo/image/fetch/f_auto/https%3A%2F%2Fexample.com%2Fa.jpg%3Fv%3D1",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg?v=1"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg?v=1"
+  },
+  "fetch_escaped_query": {
+    "path": "/demo/image/fetch/w_300/https://example.com/a%20b.jpg%3Fx%3D1",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a b.jpg?x=1"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a b.jpg?x=1"
+  },
+  "fetch_ftp": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: fetch source must be an http(s) url",
+      "status": 400
+    },
+    "path": "/demo/image/fetch/ftp://example.com/a.jpg"
+  },
+  "fetch_http": {
+    "path": "/demo/image/fetch/http://example.com/a.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "http://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://example.com/a.jpg"
+  },
+  "fetch_ignores_extension": {
+    "path": "/demo/image/fetch/https://example.com/a.webp",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.webp"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.webp"
+  },
+  "fetch_no_host": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: fetch source must be an http(s) url",
+      "status": 400
+    },
+    "path": "/demo/image/fetch/https:///a.jpg"
+  },
+  "fetch_no_tx": {
+    "path": "/demo/image/fetch/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fetch_private_cdn": {
+    "path": "/image/fetch/w_100/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fetch_relative": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: fetch source must be an http(s) url",
+      "status": 400
+    },
+    "path": "/demo/image/fetch/w_100/sample.jpg"
+  },
+  "fetch_tx_like_path": {
+    "path": "/demo/image/fetch/w_100/https://example.com/w_200/a.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/w_200/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/w_200/a.jpg"
+  },
+  "folder_id_without_version": {
+    "path": "/demo/image/upload/w_100/folder/sub/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sub/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sub/sample.jpg"
+  },
+  "if_block": {
+    "path": "/demo/image/upload/if_w_gt_1000/c_scale,w_1000/e_blur/if_end/e_grayscale/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "if",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "e_grayscale",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "if_component": {
+    "path": "/demo/image/upload/if_w_gt_1000,c_scale,w_1000/e_grayscale/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "if",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "e_grayscale",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "if_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported option",
+      "status": 400
+    },
+    "path": "/demo/image/upload/if_w_gt_1000,w_10/sample.jpg"
+  },
+  "missing_asset": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing asset type",
+      "status": 400
+    },
+    "path": "/demo"
+  },
+  "missing_delivery": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing delivery type",
+      "status": 400
+    },
+    "path": "/demo/image"
+  },
+  "missing_public_id": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing public id",
+      "status": 400
+    },
+    "path": "/demo/image/upload/"
+  },
+  "missing_public_id_after_tx": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing public id",
+      "status": 400
+    },
+    "path": "/demo/image/upload/w_100/"
+  },
+  "missing_public_id_after_version": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing public id",
+      "status": 400
+    },
+    "path": "/demo/image/upload/w_100/v12/"
+  },
+  "named_chained_then_component": {
+    "config": "presets",
+    "path": "/demo/image/upload/t_chained/e_grayscale/sample.jpg",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "chained"
+        ]
+      },
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_grayscale",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 400
+            }
+          }
+        },
+        {
+          "Blur": 3,
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "named_empty": {
+    "config": "presets",
+    "error": {
+      "field": "t",
+      "kind": "invalid_url",
+      "public": "invalid t: expected named transformation",
+      "status": 400
+    },
+    "path": "/demo/image/upload/t_thumb./sample.jpg"
+  },
+  "named_multi": {
+    "config": "presets",
+    "path": "/demo/image/upload/t_thumb.watermarked/sample.jpg",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "thumb",
+          "watermarked"
+        ]
+      },
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Blur": 2,
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 150
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 150
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "named_preset": {
+    "config": "presets",
+    "path": "/demo/image/upload/t_thumb/sample.jpg",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "thumb"
+        ]
+      },
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 150
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 150
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "named_unknown": {
+    "config": "presets",
+    "error": {
+      "field": "preset",
+      "kind": "invalid_url",
+      "public": "invalid preset: expected defined preset",
+      "status": 400
+    },
+    "path": "/demo/image/upload/t_nope/sample.jpg"
+  },
+  "named_with_params": {
+    "config": "presets",
+    "path": "/demo/image/upload/t_thumb,w_200/sample.jpg",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "thumb"
+        ]
+      },
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 150
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "named_without_store": {
+    "path": "/demo/image/upload/t_thumb/sample.jpg",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "thumb"
+        ]
+      },
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "only_presets_ok": {
+    "config": "only",
+    "path": "/demo/image/upload/t_thumb/sample.jpg",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "thumb"
+        ]
+      },
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 150
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 150
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "only_presets_rejects_params": {
+    "config": "only",
+    "error": {
+      "kind": "forbidden",
+      "public": "only presets are allowed",
+      "status": 403
+    },
+    "path": "/demo/image/upload/t_thumb/w_100/sample.jpg"
+  },
+  "private_cdn": {
+    "path": "/image/upload/w_300/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "mounted",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "private_cdn_nomap": {
+    "config": "nomap",
+    "path": "/image/upload/w_300/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "mounted",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "private_signed": {
+    "config": "signed",
+    "path": "/demo/image/private/s--WsGl8cHM--/w_100/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "sample.jpg"
+  },
+  "private_unsigned": {
+    "error": {
+      "kind": "unauthorized",
+      "public": "signature required",
+      "status": 403
+    },
+    "path": "/demo/image/private/w_100/sample.jpg"
+  },
+  "public": {
+    "path": "/demo/image/upload/w_300/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "public_no_tx": {
+    "path": "/demo/image/upload/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "request_level_components_merge": {
+    "path": "/demo/image/upload/c_fill,w_400/q_auto/f_auto/dpr_2.0/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "q_auto",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AutoQuality": {
+          "Method": "dssim",
+          "Target": 0.02
+        }
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "DPR": 2,
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "scheme_id": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid public id",
+      "status": 400
+    },
+    "path": "/demo/image/upload/https:/evil.example/a.jpg"
+  },
+  "scheme_id_s3": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid public id",
+      "status": 400
+    },
+    "path": "/demo/image/upload/s3:bucket/key.jpg"
+  },
+  "sig_absent_required": {
+    "config": "required",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/demo/image/upload/w_100/sample.jpg"
+  },
+  "sig_absent_signed_cfg": {
+    "config": "signed",
+    "path": "/demo/image/upload/w_100/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "sig_bad_segment": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/demo/image/upload/s--AAAAAAAA/w_100/sample.jpg"
+  },
+  "sig_empty_segment": {
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/demo/image/upload/s----/w_100/sample.jpg"
+  },
+  "sig_fetch": {
+    "config": "signed",
+    "path": "/demo/image/fetch/s--kwvOQ3_l--/w_100/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "https://example.com/a.jpg"
+  },
+  "sig_long_longonly": {
+    "config": "longonly",
+    "path": "/demo/image/upload/s--cZdhqNaWCJ0si5VFtFwJPF8Qf3Pl2etw--/c_fill,w_300/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "sample.jpg"
+  },
+  "sig_malformed_chars": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/demo/image/upload/s--AAAA!AAA--/w_100/sample.jpg"
+  },
+  "sig_malformed_length": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/demo/image/upload/s--AAAAAAA--/w_100/sample.jpg"
+  },
+  "sig_mismatch": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/demo/image/upload/s--uS4BpOzM--/c_fill,w_301/sample.jpg"
+  },
+  "sig_private_cdn": {
+    "config": "signed",
+    "path": "/image/upload/s--uS4BpOzM--/c_fill,w_300/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "mounted",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "sample.jpg"
+  },
+  "sig_sha256_short": {
+    "config": "sha256",
+    "path": "/demo/image/upload/s--cZdhqNaW--/c_fill,w_300/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "sample.jpg"
+  },
+  "sig_short_longonly": {
+    "config": "longonly",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/demo/image/upload/s--uS4BpOzM--/c_fill,w_300/sample.jpg"
+  },
+  "sig_unchecked_without_verifier": {
+    "path": "/demo/image/upload/s--AAAAAAAA--/w_100/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "sig_verified": {
+    "config": "signed",
+    "path": "/demo/image/upload/s--uS4BpOzM--/c_fill,w_300/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "sample.jpg"
+  },
+  "sig_verified_with_version": {
+    "config": "signed",
+    "path": "/demo/image/upload/s--uS4BpOzM--/c_fill,w_300/v99/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "sample.jpg"
+  },
+  "too_many_pipelines": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: too many chained pipelines",
+      "status": 400
+    },
+    "path": "/demo/image/upload/e_blur/e_blur/e_blur/e_blur/e_blur/e_blur/e_blur/e_blur/e_blur/e_blur/e_blur/e_blur/e_blur/e_blur/e_blur/e_blur/e_blur/sample.jpg"
+  },
+  "tx_like_id": {
+    "path": "/demo/image/upload/w_100/c_logo.png",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "c_logo.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "c_logo.png"
+  },
+  "underscore_folder": {
+    "path": "/demo/image/upload/w_100/my_folder/pic.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "my_folder/pic.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "my_folder/pic.jpg"
+  },
+  "underscore_id": {
+    "path": "/demo/image/upload/my_photo.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "my_photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "my_photo.jpg"
+  },
+  "unicode_id": {
+    "path": "/demo/image/upload/w_100/v1/caf%C3%A9%20%C3%BC.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "café ü.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "café ü.jpg"
+  },
+  "unknown_key": {
+    "path": "/demo/image/upload/w_100,zz_1/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "zz",
+          "Reason": "unknown option"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "unknown_key_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/demo/image/upload/w_100,zz_1/sample.jpg"
+  },
+  "unsupported_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported option",
+      "status": 400
+    },
+    "path": "/demo/image/upload/e_cartoonify/sample.jpg"
+  },
+  "variables": {
+    "path": "/demo/image/upload/$size_200,c_scale,w_$size/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "$variable",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "w",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit"
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "version": {
+    "path": "/demo/image/upload/v1234/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "version_after_tx": {
+    "path": "/demo/image/upload/c_scale,w_100/v1712345678/folder/sample.png",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.png"
+  },
+  "version_as_id": {
+    "path": "/demo/image/upload/w_100/v1234",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "v1234"
+      }
+    },
+    "signature": "unsigned",
+    "source": "v1234"
+  },
+  "video_param": {
+    "path": "/demo/image/upload/so_2,vc_auto/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "so",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "vc",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "video_param_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported option",
+      "status": 400
+    },
+    "path": "/demo/image/upload/so_2/sample.jpg"
+  }
+}
