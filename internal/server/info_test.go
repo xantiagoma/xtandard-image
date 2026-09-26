@@ -84,7 +84,7 @@ func newInfoHarness(t *testing.T, insp *fakeInspector, mutate func(*harness)) *h
 		in = insp
 	}
 	srv, err := New(&h.cfg, &Deps{
-		Router: h.router, Resolver: h.res, Fetcher: h.f, Admitter: h.a, Prober: h.pr, Processor: h.p,
+		Router: h.router, Resolver: h.res, Fetcher: h.f, Admitter: h.a, Prober: h.pr, Processor: h.p, Sniffer: fakeSniffer{},
 		Inspector: in,
 		Allocator: func(n int) (fetch.Buffer, error) {
 			h.allocs.Add(1)
