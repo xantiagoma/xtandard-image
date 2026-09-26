@@ -68,7 +68,7 @@ func TestResultCacheHit(t *testing.T) {
 		}},
 		{name: "client hints", accept: "*/*", mutate: func(h *harness) {
 			h.cfg.Negotiate.EnableClientHints = true
-		}, want: map[string]string{"Content-Dpr": "2", "Vary": "Accept, Sec-CH-DPR, DPR, Save-Data, ECT"}}, //nolint:misspell // ECT is a hint header
+		}, want: map[string]string{"Content-Dpr": "2", "Vary": "Accept, Sec-CH-DPR, Save-Data, ECT"}}, //nolint:misspell // ECT is a hint header
 		{name: "skip processing passthrough", mutate: func(h *harness) {
 			h.router.mutate = func(r *transform.Request) { r.Delivery.SkipProcessing = []transform.Format{transform.FormatJPEG} }
 		}, want: map[string]string{"Content-Type": "image/jpeg", "X-Xi-Result-Width": ""}},

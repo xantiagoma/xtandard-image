@@ -2,7 +2,6 @@ package server
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/xantiagoma/xtandard-image/internal/dialect/router"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
@@ -54,8 +53,8 @@ func (s *Server) resolveHints(r *http.Request, req *transform.Request, mount *ro
 // a Permissions-Policy delegation (ch-dpr, ch-width, ch-viewport-width) for
 // this origin themselves (docs/CONFIG.md).
 func (s *Server) setHintHeaders(h http.Header, res *imageResult) {
-	if dpr := res.hints.ContentDPR; dpr != 0 && dpr != 1 {
-		h.Set("Content-Dpr", strconv.FormatFloat(dpr, 'f', -1, 64))
+	if v := res.contentDPR(); v != "" {
+		h.Set("Content-Dpr", v)
 	}
 	ch := res.req.ClientHints
 	if !s.cfg.Negotiate.EnableClientHints && !ch.DPR && !ch.Width && !ch.SaveData {
