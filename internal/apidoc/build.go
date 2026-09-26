@@ -574,25 +574,26 @@ func imagekitOperation() *huma.Operation {
 	}
 }
 
-// dialects lists every URL dialect with its default mount and whether this
-// build serves it; the ones without an operation are documented in
-// URL-DIALECTS.
+// dialects lists every URL dialect with its default mount and its
+// URL-DIALECTS section; the ones without an operation are documented only
+// there. Every dialect is served by this build (status "served"); a dialect
+// that is parsed but not mounted would say "planned".
 func dialects() []map[string]any {
-	d := func(name, prefix, status, anchor string) map[string]any {
-		return map[string]any{"name": name, "prefix": prefix, "status": status, "docs": urlDialectsDoc + anchor}
+	d := func(name, prefix, anchor string) map[string]any {
+		return map[string]any{"name": name, "prefix": prefix, "status": "served", "docs": urlDialectsDoc + anchor}
 	}
 	return []map[string]any{
-		d("imgproxy", "/", "served", "#3-imgproxy-canonical"),
-		d("query", "/q/", "served", "#4-query-dialect-native--imaginary"),
-		d("imagekit", "/imagekit/", "served", "#7-imagekit"),
-		d("imgix", "/imgix/", "served", "#5-imgix"),
-		d("cloudinary", "/cloudinary/", "served", "#6-cloudinary"),
-		d("cloudflare", "/cdn-cgi/image/", "served", "#8-cloudflare-images-cdn-cgiimage"),
-		d("cloudflare_images", "/cdn-cgi/imagedelivery/", "served", "#81-cloudflare-images-delivery-cdn-cgiimagedelivery-imagedeliverynet"),
-		d("bunny", "/bunny/", "served", "#9-bunny-optimizer"),
-		d("thumbor", "/thumbor/", "served", "#10-thumbor"),
-		d("wsrv", "/wsrv/", "served", "#11-weserv--wsrvnl"),
-		d("awssih", "/sih/", "served", "#13-aws-serverless-image-handler-dynamic-image-transformation-for-amazon-cloudfront"),
-		d("simple", "provider-native prefixes", "served", "#12-unpic-long-tail-simple-micro-dialects"),
+		d("imgproxy", "/", "#3-imgproxy-canonical"),
+		d("query", "/q/", "#4-query-dialect-native--imaginary"),
+		d("imagekit", "/imagekit/", "#7-imagekit"),
+		d("imgix", "/imgix/", "#5-imgix"),
+		d("cloudinary", "/cloudinary/", "#6-cloudinary"),
+		d("cloudflare", "/cdn-cgi/image/", "#8-cloudflare-images-cdn-cgiimage"),
+		d("cloudflare_images", "/cdn-cgi/imagedelivery/", "#81-cloudflare-images-delivery-cdn-cgiimagedelivery-imagedeliverynet"),
+		d("bunny", "/bunny/", "#9-bunny-optimizer"),
+		d("thumbor", "/thumbor/", "#10-thumbor"),
+		d("wsrv", "/wsrv/", "#11-weserv--wsrvnl"),
+		d("awssih", "/sih/", "#13-aws-serverless-image-handler-dynamic-image-transformation-for-amazon-cloudfront"),
+		d("simple", "provider-native prefixes", "#12-unpic-long-tail-simple-micro-dialects"),
 	}
 }
