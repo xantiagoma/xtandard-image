@@ -2129,13 +2129,13 @@
           "properties": {
             "tonemap": {
               "default": "reinhard",
-              "description": "Env: XI_FORMATS_HDR_TONEMAP",
+              "description": "Operator mapping OpenEXR, Radiance and PFM sources to 8-bit sRGB: reinhard (extended Reinhard, white at the 99th-percentile luminance; identity for sources within [0, 1]), aces (Narkowicz's fitted ACES filmic curve) or clip. Skipped with preserve_hdr for JPEG XL (float) and AVIF (12-bit) outputs; FORMATS.md §1.4\n\nEnv: XI_FORMATS_HDR_TONEMAP",
               "enum": [
                 "reinhard",
                 "aces",
                 "clip"
               ],
-              "markdownDescription": "Env: `XI_FORMATS_HDR_TONEMAP`",
+              "markdownDescription": "Operator mapping OpenEXR, Radiance and PFM sources to 8-bit sRGB: `reinhard` (extended Reinhard, white at the 99th-percentile luminance; identity for sources within [0, 1]), `aces` (Narkowicz's fitted ACES filmic curve) or `clip`. Skipped with `preserve_hdr` for JPEG XL (float) and AVIF (12-bit) outputs; FORMATS.md §1.4\n\nEnv: `XI_FORMATS_HDR_TONEMAP`",
               "title": "XI_FORMATS_HDR_TONEMAP",
               "type": "string"
             }

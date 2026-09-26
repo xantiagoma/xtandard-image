@@ -21,7 +21,7 @@ gen() { go run ./testdata/gen "$@"; }
 rm -rf "$F" testdata/ssim
 mkdir -p "$F"/jpeg "$F"/png "$F"/gif "$F"/webp "$F"/avif "$F"/heic "$F"/jxl \
 	"$F"/tiff "$F"/bmp "$F"/ico "$F"/svg "$F"/jp2 "$F"/uhdr "$F"/watermark \
-	"$F"/pdf "$F"/psd "$F"/dng
+	"$F"/pdf "$F"/psd "$F"/dng "$F"/exr "$F"/hdr "$F"/pfm "$F"/ppm
 
 # Masters (not committed).
 gen photo 320 240 "$T/photo.png"
@@ -121,6 +121,18 @@ gen psd-nocomposite "$F/psd/no-composite.psd"
 # preview; portrait (Orientation 6, stored rotated) with a quarter-size one.
 gen dng 192 128 96 64 1 "$F/dng/landscape.dng"
 gen dng 128 192 48 32 6 "$F/dng/portrait-orientation-6.dng"
+
+# HDR inputs written in Go from the procedural scene in linear light (a sun
+# at 40, ~5% of the pixels above 1.0; `gen hdr-stats W H -` prints the
+# numbers): OpenEXR RGBA half and RGB float (uncompressed scanlines; libvips
+# has no OpenEXR saver), Radiance under both magic lines, a colour PFM, and
+# the photo as an 8-bit binary PPM.
+gen exr-rgba-half 80 60 "$F/exr/rgba-half.exr"
+gen exr-rgb-float 48 32 "$F/exr/rgb-float.exr"
+gen radiance 96 64 "$F/hdr/scene.hdr"
+gen rgbe 48 32 "$F/hdr/rgbe.hdr"
+gen pfm 64 48 "$F/pfm/scene.pfm"
+gen ppm 96 64 "$F/ppm/photo.ppm"
 
 # SSIM reference set for internal/testutil/ssim.
 gen ssim-refs testdata/ssim
