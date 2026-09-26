@@ -14,12 +14,15 @@ import (
 
 // Build metadata, injected at link time:
 //
-//	go build -ldflags "-X main.version=$VERSION -X main.commit=$SHA" ./cmd/xtandard-image
+//	go build -ldflags "-X main.version=$VERSION -X main.commit=$SHA -X main.date=$DATE" ./cmd/xtandard-image
 //
-// When empty, versionInfo falls back to debug.ReadBuildInfo.
+// date is the RFC 3339 commit time (SOURCE_DATE_EPOCH), not the wall clock,
+// so release builds stay reproducible. When empty, versionInfo falls back to
+// debug.ReadBuildInfo.
 var (
 	version string
 	commit  string
+	date    string
 )
 
 func main() {
