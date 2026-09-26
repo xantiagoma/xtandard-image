@@ -8,10 +8,6 @@
         {
           "Option": "alpha:check_transparency",
           "Reason": "not implemented"
-        },
-        {
-          "Option": "a",
-          "Reason": "takes effect in M2"
         }
       ],
       "Info": {
@@ -82,12 +78,6 @@
     "path": "/unsafe/alpha:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "alpha",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Alpha": true,
         "Dimensions": true,
@@ -221,12 +211,6 @@
     "path": "/unsafe/b:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "b",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Bands": true,
         "Dimensions": true,
@@ -253,12 +237,6 @@
     "path": "/unsafe/bands:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "bands",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Bands": true,
         "Dimensions": true,
@@ -1007,12 +985,6 @@
     "path": "/unsafe/colorspace:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "colorspace",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Colorspace": true,
         "Dimensions": true,
@@ -1061,26 +1033,6 @@
         {
           "Option": "cl",
           "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "cs",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "b",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "sf",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "pn",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "a",
-          "Reason": "takes effect in M2"
         },
         {
           "Option": "c",
@@ -1326,12 +1278,6 @@
     "path": "/unsafe/cs:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "cs",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Colorspace": true,
         "Dimensions": true,
@@ -2228,12 +2174,6 @@
     "path": "/unsafe/pages_number:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "pages_number",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2464,12 +2404,6 @@
     "path": "/unsafe/pn:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "pn",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2621,12 +2555,6 @@
     "path": "/unsafe/sample_format:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "sample_format",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2653,12 +2581,6 @@
     "path": "/unsafe/sf:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "sf",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
