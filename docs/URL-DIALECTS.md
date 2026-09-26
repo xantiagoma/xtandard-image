@@ -323,7 +323,7 @@ Grammar: `/<cloud>/<asset_type>/<delivery_type>/[s--SIG--/][<tx>/]*[v<digits>/]<
 | `g_auto`, `g_auto:subject`, `g_auto:classic` | Smart | |
 | `g_face`, `g_faces`, `g_face:center` | Face (M3; fallback Smart) | |
 | `g_<object>` (e.g. `g_cat`) | Object | M3 |
-| `g_xy_center` + `x_`,`y_` | FocusPoint | |
+| `g_xy_center` + `x_`,`y_` | FocusPoint: relative `x_`/`y_` (0..1) → `FocusX/FocusY`; absolute (integer pixels on both axes) → `FocusPx` via `transform.FocusFromPixels(x, y, x, y)` (WP-86a); a relative axis mixed with an absolute one is approximated to the centre | |
 | `ar_16:9` / `ar_1.5` | derive dimension | |
 | `x_`, `y_` | crop offset / gravity offset | |
 | `z_` | FocusZoom / Zoom | |
@@ -518,6 +518,8 @@ Grammar:
 | `convolution`, `noise`, `red_eye`, `curve`, `cover` | Unsupported |
 
 `<image>` resolves like imgproxy plain sources (absolute URL or key relative to the mount source).
+
+Pixel focal points and `meta` (WP-86): `focal(AxB:CxD)` with pixel coordinates (thumbor's norm) and the crop rectangle found by `extract_focal()` become `Gravity{Type: FocusPoint, FocusPx: &FocusRect{A, B, C, D}}` through `transform.FocusFromPixels(A, B, C, D)`; the planner focuses on the rectangle's centre (`A + (C−A)/2`, rounded down like thumbor's `FocalPoint.from_square`) in the displayed source, relative to the manual crop `AxB:CxD` when there is one. Rectangles given in fractions (all ≤ 1) keep `FocusX/FocusY`. `meta` answers thumbor's JSONEngine shape (`server/info_thumbor.go`): `source` (`url` as written, displayed `width`/`height`, `frameCount`), `operations` (`crop` left/top/right/bottom in displayed source pixels, `resize` width/height, shrink-on-load listed as a resize, `flip_horizontally`/`flip_vertically`; rotations, fills and filters are not listed, as in thumbor), `target` (the planned result size) and `focal_points` (the explicit point with `z` = its area, or one `alignment` point). The JSONP `callback` argument is not supported.
 
 ## 11. weserv / wsrv.nl
 
