@@ -186,7 +186,6 @@ Parsed by `imgproxy.Parser.ParseInfo` (the path after `/info`; same signature by
 | `iptc` | bool | `Info.IPTC` | true | M1 |
 | `xmp` | bool | `Info.XMP` | true | M1 |
 | `video_meta` (`vm`) | bool | `Info.VideoMeta`: `video_meta` (container tags plus container, codec, coded size, rotation, duration, fps, bit rate, frames) and `video_streams` for video sources (FORMATS §1.5) | true | M3 (WP-74) |
-| `detect_objects` (`do`) Pro | bool | `Info.DetectObjects` | false | M3 |
 | `classify` (`cl`) Pro | top_k:classes… | `Info.Classify` (top_k/classes: `Ignored`, not in model) | 0 | M3 |
 | `video_meta` (`vm`) | bool | `Info.VideoMeta` | true | M3 |
 | `detect_objects` (`do`) Pro | bool | `Info.DetectObjects` → `"objects": [{class_id, class_name, confidence, left, top, width, height, landmarks}]` (fractions of the oriented image; faces first with five landmarks, then objects; `[]` when none); 422 without the detector | false | M3 (WP-73) |

@@ -1143,14 +1143,6 @@
       "Dialect": "imgproxy",
       "Ignored": [
         {
-          "Option": "vts",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "vtk",
-          "Reason": "takes effect in M3"
-        },
-        {
           "Option": "vtt",
           "Reason": "takes effect in M3"
         },
@@ -2328,12 +2320,6 @@
         ]
       },
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vts",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -2550,12 +2536,6 @@
     "path": "/unsafe/video_thumbnail_keyframes:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "video_thumbnail_keyframes",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Video": {
@@ -2574,12 +2554,6 @@
     "path": "/unsafe/video_thumbnail_second:5/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "video_thumbnail_second",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Video": {
@@ -2699,12 +2673,6 @@
     "path": "/unsafe/vtk:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vtk",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Video": {
@@ -2723,12 +2691,6 @@
     "path": "/unsafe/vts:2.5/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vts",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Video": {
@@ -2744,13 +2706,22 @@
     "source": "https://example.com/a.jpg"
   },
   "vts_negative": {
-    "error": {
-      "field": "video_thumbnail_second",
-      "kind": "invalid_url",
-      "public": "invalid video_thumbnail_second: expected number in range 0 to 2147483647",
-      "status": 400
+    "path": "/unsafe/vts:-1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Video": {
+            "Second": -1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
     },
-    "path": "/unsafe/vts:-1/plain/https://example.com/a.jpg"
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
   },
   "vtt_bad_focus": {
     "error": {
