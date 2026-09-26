@@ -61,6 +61,8 @@ Rules:
 | `XI_ENCRYPTION_KEYS`, `XI_ENCRYPTION_KEY` | `` | Hex AES keys (16/24/32 bytes) for `enc/` sources; the first encrypts, all decrypt (rotation). `XI_ENCRYPTION_KEY` is the deprecated single-key alias (YAML `encryption.key`); setting both is an error |
 | `XI_SECURITY_UNSIGNED_POLICY` | `restricted` | `allow` \| `restricted` \| `deny` for every request that carries no verified signature, in any dialect (including imgproxy URLs when `XI_SIGNING_REQUIRED` is false) |
 | `XI_SECURITY_ALLOWED_WIDTHS` | `16,32,48,64,96,128,256,384,640,750,828,1080,1200,1920,2048,3840` | Restricted-policy widths (Next.js device + image sizes); logged at startup |
+| `XI_SECURITY_ALLOWED_HEIGHTS` | same as `XI_SECURITY_ALLOWED_WIDTHS` | Restricted-policy heights |
+| `XI_SECURITY_ALLOWED_DPRS` | `1` | Restricted-policy device pixel ratios (0 < dpr ≤ 8); unset and `1` are always allowed |
 | `XI_SECURITY_ALLOWED_QUALITIES` | `5-100/5` | Restricted-policy qualities (5, 10, …, 100) |
 | `XI_SECURITY_ALLOW_SECURITY_OPTIONS` | `false` | Honour per-request limit options |
 | `XI_SECURITY_ALLOW_RAISING_LIMITS` | `false` | Let them exceed config |
@@ -79,9 +81,10 @@ Rules:
 | `XI_SOURCES_<NAME>_BUCKETS` / `_BUCKET` | — | s3/gcs/azure: allowed buckets/containers; `_BUCKET` binds a default |
 | `XI_SOURCES_<NAME>_PREFIX` | `` | object key prefix jail (every type except http) |
 | `XI_SOURCES_<NAME>_ENDPOINT`, `_REGION`, `_FORCE_PATH_STYLE`, `_ACCESS_KEY_ID`, `_SECRET_ACCESS_KEY`, `_ROLE_ARN` | — | s3 (R2, MinIO, Spaces, B2 via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); `_ROLE_ARN` assumes a role on top. `_REGION` falls back to the SDK chain, then `us-east-1` when an endpoint is set (R2: `auto`). Checksums are sent/validated only when required, so R2/B2 work |
-| `XI_SOURCES_<NAME>_CREDENTIALS_JSON` | ADC | gcs |
+| `XI_SOURCES_<NAME>_CREDENTIALS_JSON` | ADC | gcs: credentials document (`XI_SOURCES_<NAME>_CREDENTIALS_JSON_FILE` reads it from a mounted file); `XI_SOURCES_<NAME>_ENDPOINT` points at an emulator such as fake-gcs-server |
 | `XI_SOURCES_<NAME>_ACCOUNT`, `_ACCOUNT_KEY`, `_CONNECTION_STRING`, `_SAS_TOKEN`, `_ENDPOINT` | `DefaultAzureCredential` (managed identity) | azure; precedence connection string > account key > SAS > DefaultAzureCredential; `_ENDPOINT` overrides `https://<account>.blob.core.windows.net/` (Azurite: `http://127.0.0.1:10000/devstoreaccount1`) |
 | `XI_SOURCES_<NAME>_ROOT` | — | fs root (jail via `os.Root`) |
+| `XI_SOURCES_<NAME>_FOLLOW_SYMLINKS` | `false` | fs: follow symlinks whose target stays inside the root (links leaving it are always refused) |
 | `XI_SOURCES_<NAME>_HOST`, `_PORT`, `_USER`, `_PASSWORD`, `_PRIVATE_KEY`, `_HOST_KEY`, `_TLS` | — | ftp/sftp (sftp host key mandatory) |
 | `XI_FETCH_TIMEOUT` | `10s` | Per download attempt |
 | `XI_FETCH_RETRY` | `true` | One retry, after a jittered ~100 ms backoff, of a transient failure (origin 5xx, connection error, attempt timeout); never for 4xx |
@@ -229,11 +232,13 @@ The table is checked against the code by a test in `internal/config`.
 | `IMGPROXY_GCS_ALLOWED_BUCKETS` | `XI_SOURCES_GCS_BUCKETS` | As `IMGPROXY_S3_ALLOWED_BUCKETS` |
 | `IMGPROXY_GCS_DENIED_BUCKETS` | — | Rejected at startup, as `IMGPROXY_S3_DENIED_BUCKETS` |
 | `IMGPROXY_GCS_KEY` | `XI_SOURCES_GCS_CREDENTIALS_JSON` | Same service-account JSON |
+| `IMGPROXY_GCS_ENDPOINT` | `XI_SOURCES_GCS_ENDPOINT` | Same |
 | `IMGPROXY_USE_ABS` | `XI_SOURCES`, `XI_SOURCES_ABS_TYPE`, `XI_SOURCES_ABS_BUCKETS` | Creates an azure source named `abs`; container allowlist as for `IMGPROXY_USE_S3` |
 | `IMGPROXY_ABS_ALLOWED_BUCKETS` | `XI_SOURCES_ABS_BUCKETS` | As `IMGPROXY_S3_ALLOWED_BUCKETS` |
 | `IMGPROXY_ABS_DENIED_BUCKETS` | — | Rejected at startup, as `IMGPROXY_S3_DENIED_BUCKETS` |
 | `IMGPROXY_ABS_NAME` | `XI_SOURCES_ABS_ACCOUNT` | Storage account name |
 | `IMGPROXY_ABS_KEY` | `XI_SOURCES_ABS_ACCOUNT_KEY` | Same |
+| `IMGPROXY_ABS_ENDPOINT` | `XI_SOURCES_ABS_ENDPOINT` | Same service URL |
 | `IMGPROXY_LOCAL_FILESYSTEM_ROOT` | `XI_SOURCES`, `XI_SOURCES_LOCAL_TYPE`, `XI_SOURCES_LOCAL_ROOT`, `XI_SOURCES_LOCAL_PREFIX` | Creates an fs source named `local` (jailed with `os.Root`); its prefix comes from `local://` patterns of `IMGPROXY_ALLOWED_SOURCES` |
 | `IMGPROXY_ALLOW_LOOPBACK_SOURCE_ADDRESSES` | `XI_FETCH_ALLOWED_NETWORKS` | `true` adds `127.0.0.0/8`, `::1/128` |
 | `IMGPROXY_ALLOW_LINK_LOCAL_SOURCE_ADDRESSES` | `XI_FETCH_ALLOWED_NETWORKS` | `true` adds `169.254.0.0/16`, `fe80::/10` |

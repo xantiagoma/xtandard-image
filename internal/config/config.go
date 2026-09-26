@@ -93,13 +93,18 @@ type Encryption struct {
 
 // Security holds the unsigned-request policy and per-request overrides.
 type Security struct {
-	UnsignedPolicy           UnsignedPolicy `yaml:"unsigned_policy"            env:"UNSIGNED_POLICY"`
-	AllowedWidths            IntList        `yaml:"allowed_widths"             env:"ALLOWED_WIDTHS"`
-	AllowedQualities         IntList        `yaml:"allowed_qualities"          env:"ALLOWED_QUALITIES"`
-	AllowSecurityOptions     bool           `yaml:"allow_security_options"     env:"ALLOW_SECURITY_OPTIONS"`
-	AllowRaisingLimits       bool           `yaml:"allow_raising_limits"       env:"ALLOW_RAISING_LIMITS"`
-	Secret                   Secret         `yaml:"secret"                     env:"SECRET"`
-	AllowedProcessingOptions []string       `yaml:"allowed_processing_options" env:"ALLOWED_PROCESSING_OPTIONS"`
+	UnsignedPolicy UnsignedPolicy `yaml:"unsigned_policy"            env:"UNSIGNED_POLICY"`
+	AllowedWidths  IntList        `yaml:"allowed_widths"             env:"ALLOWED_WIDTHS"`
+	// AllowedHeights are the restricted-policy heights; empty means
+	// AllowedWidths.
+	AllowedHeights IntList `yaml:"allowed_heights" env:"ALLOWED_HEIGHTS"`
+	// AllowedDPRs are the restricted-policy device pixel ratios.
+	AllowedDPRs              []float64 `yaml:"allowed_dprs"      env:"ALLOWED_DPRS"`
+	AllowedQualities         IntList   `yaml:"allowed_qualities" env:"ALLOWED_QUALITIES"`
+	AllowSecurityOptions     bool      `yaml:"allow_security_options"     env:"ALLOW_SECURITY_OPTIONS"`
+	AllowRaisingLimits       bool      `yaml:"allow_raising_limits"       env:"ALLOW_RAISING_LIMITS"`
+	Secret                   Secret    `yaml:"secret"                     env:"SECRET"`
+	AllowedProcessingOptions []string  `yaml:"allowed_processing_options" env:"ALLOWED_PROCESSING_OPTIONS"`
 }
 
 // Source is one named source. Which fields apply depends on Type; Validate
@@ -118,8 +123,10 @@ type Source struct {
 	// every type except http
 	Prefix string `yaml:"prefix,omitempty" env:"PREFIX"`
 
+	// s3, gcs, azure: service endpoint override (MinIO, fake-gcs, Azurite)
+	Endpoint string `yaml:"endpoint,omitempty" env:"ENDPOINT"`
+
 	// s3
-	Endpoint        string `yaml:"endpoint,omitempty"          env:"ENDPOINT"`
 	Region          string `yaml:"region,omitempty"            env:"REGION"`
 	ForcePathStyle  bool   `yaml:"force_path_style,omitempty"  env:"FORCE_PATH_STYLE"`
 	AccessKeyID     string `yaml:"access_key_id,omitempty"     env:"ACCESS_KEY_ID"`
@@ -133,9 +140,12 @@ type Source struct {
 	Account          string `yaml:"account,omitempty"           env:"ACCOUNT"`
 	AccountKey       Secret `yaml:"account_key,omitempty"       env:"ACCOUNT_KEY"`
 	ConnectionString Secret `yaml:"connection_string,omitempty" env:"CONNECTION_STRING"`
+	SASToken         Secret `yaml:"sas_token,omitempty"         env:"SAS_TOKEN"`
 
 	// fs
 	Root string `yaml:"root,omitempty" env:"ROOT"`
+	// FollowSymlinks allows symlinks whose target stays inside Root.
+	FollowSymlinks bool `yaml:"follow_symlinks,omitempty" env:"FOLLOW_SYMLINKS"`
 
 	// ftp, sftp
 	Host       string `yaml:"host,omitempty"        env:"HOST"`
@@ -149,11 +159,14 @@ type Source struct {
 
 // Fetch configures origin downloads and the SSRF policy.
 type Fetch struct {
-	Timeout              time.Duration `yaml:"timeout"                env:"TIMEOUT"`
-	MaxRedirects         int           `yaml:"max_redirects"          env:"MAX_REDIRECTS"`
-	MaxConcurrent        int           `yaml:"max_concurrent"         env:"MAX_CONCURRENT"`
-	AllowedPorts         []int         `yaml:"allowed_ports"          env:"ALLOWED_PORTS"`
-	AllowPrivateNetworks bool          `yaml:"allow_private_networks" env:"ALLOW_PRIVATE_NETWORKS"`
+	Timeout time.Duration `yaml:"timeout" env:"TIMEOUT"`
+	// Retry retries a transient failure once (5xx, connection error,
+	// attempt timeout); never 4xx.
+	Retry                bool  `yaml:"retry"                  env:"RETRY"`
+	MaxRedirects         int   `yaml:"max_redirects"          env:"MAX_REDIRECTS"`
+	MaxConcurrent        int   `yaml:"max_concurrent"         env:"MAX_CONCURRENT"`
+	AllowedPorts         []int `yaml:"allowed_ports"          env:"ALLOWED_PORTS"`
+	AllowPrivateNetworks bool  `yaml:"allow_private_networks" env:"ALLOW_PRIVATE_NETWORKS"`
 	// AllowedNetworks are exempt from the private-address block (for example
 	// an in-cluster MinIO) without opening every private range.
 	AllowedNetworks []CIDR `yaml:"allowed_networks" env:"ALLOWED_NETWORKS"`
@@ -414,6 +427,8 @@ type S3ResultCache struct {
 type OriginCache struct {
 	MemoryBytes ByteSize      `yaml:"memory_bytes" env:"MEMORY_BYTES"`
 	TTL         time.Duration `yaml:"ttl"          env:"TTL"`
+	// NegativeTTL is how long a source not-found is remembered; 0 disables.
+	NegativeTTL time.Duration `yaml:"negative_ttl" env:"NEGATIVE_TTL"`
 }
 
 // Observability configures logs and debug headers. Metrics live on the
@@ -461,10 +476,12 @@ func Defaults() Config {
 			UnsignedPolicy: UnsignedRestricted,
 			// Next.js deviceSizes + imageSizes.
 			AllowedWidths:    IntList{16, 32, 48, 64, 96, 128, 256, 384, 640, 750, 828, 1080, 1200, 1920, 2048, 3840},
+			AllowedDPRs:      []float64{1},
 			AllowedQualities: qualities,
 		},
 		Fetch: Fetch{
 			Timeout:       10 * time.Second,
+			Retry:         true,
 			MaxRedirects:  5,
 			MaxConcurrent: 256,
 			AllowedPorts:  []int{80, 443},
@@ -525,7 +542,7 @@ func Defaults() Config {
 			Headers:    CacheHeaders{TTL: 31_536_000 * time.Second, ErrorTTL: 10 * time.Second},
 			TagsHeader: "Cache-Tag",
 			Result:     ResultCache{MemoryBytes: 256 << 20, Disk: DiskCache{Bytes: 10 << 30}},
-			Origin:     OriginCache{MemoryBytes: 256 << 20, TTL: 60 * time.Second},
+			Origin:     OriginCache{MemoryBytes: 256 << 20, TTL: 60 * time.Second, NegativeTTL: 5 * time.Second},
 		},
 		Observability: Observability{LogLevel: LogInfo},
 	}

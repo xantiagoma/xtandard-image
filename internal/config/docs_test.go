@@ -166,7 +166,9 @@ func TestDocumentedDefaultsMatchCode(t *testing.T) {
 	checked := 0
 	for _, d := range parseDocVars(t) {
 		f, ok := code[d.name]
-		if !d.hasDef || !ok || f == nil || derived[d.name] != "" {
+		// Source fields cannot be set without a source; their defaults are
+		// the zero value or depend on the type.
+		if !d.hasDef || !ok || f == nil || derived[d.name] != "" || strings.HasPrefix(d.name, envSources+"_<NAME>_") {
 			continue
 		}
 		checked++

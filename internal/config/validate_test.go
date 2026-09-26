@@ -42,6 +42,18 @@ func TestValidate(t *testing.T) {
 		{"empty widths when restricted", func(c *Config) { c.Security.AllowedWidths = nil }, []string{"must not be empty with the restricted policy"}},
 		{"empty widths when allow", func(c *Config) { c.Security.AllowedWidths, c.Security.UnsignedPolicy = nil, UnsignedAllow }, nil},
 		{"quality 0", func(c *Config) { c.Security.AllowedQualities = IntList{0} }, []string{"security.allowed_qualities"}},
+		{"height above max dimension", func(c *Config) { c.Security.AllowedHeights = IntList{9000} }, []string{"security.allowed_heights (XI_SECURITY_ALLOWED_HEIGHTS)"}},
+		{"dpr 0", func(c *Config) { c.Security.AllowedDPRs = []float64{1, 0} }, []string{"security.allowed_dprs (XI_SECURITY_ALLOWED_DPRS)"}},
+		{"dpr 9", func(c *Config) { c.Security.AllowedDPRs = []float64{9} }, []string{"security.allowed_dprs"}},
+		{"dprs ok", func(c *Config) { c.Security.AllowedDPRs = []float64{1, 1.5, 2, 3} }, nil},
+		{"negative ttl", func(c *Config) { c.Cache.Origin.NegativeTTL = -time.Second }, []string{"cache.origin.negative_ttl (XI_CACHE_ORIGIN_NEGATIVE_TTL)"}},
+		{"gcs and azure endpoints", func(c *Config) {
+			c.Sources["g"] = Source{Type: SourceGCS, Bucket: "b", Endpoint: "http://fake-gcs:4443/storage/v1/"}
+			c.Sources["a"] = Source{Type: SourceAzure, Bucket: "b", Endpoint: "http://127.0.0.1:10000/devstoreaccount1", SASToken: "sv=1"}
+		}, nil},
+		{"azure and fs fields elsewhere", func(c *Config) {
+			c.Sources["s"] = Source{Type: SourceS3, Bucket: "b", SASToken: "x", FollowSymlinks: true}
+		}, []string{"sources.s.sas_token (XI_SOURCES_S_SAS_TOKEN): does not apply to type s3", "sources.s.follow_symlinks"}},
 		{"raising limits alone", func(c *Config) { c.Security.AllowRaisingLimits = true }, []string{"security.allow_raising_limits"}},
 		{"source name", func(c *Config) { c.Sources["Bad_Name"] = Source{Type: SourceFS, Root: "/x"} }, []string{"sources.Bad_Name"}},
 		{"source without type", func(c *Config) { c.Sources["x"] = Source{} }, []string{"sources.x.type (XI_SOURCES_X_TYPE): must be set"}},

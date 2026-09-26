@@ -83,6 +83,12 @@ func imgproxyCases() map[string]compatCase {
 		"IMGPROXY_GCS_KEY": {
 			with(gcs, `IMGPROXY_GCS_KEY={"type":"service_account"}`), plus(gcsWant, "XI_SOURCES_GCS_CREDENTIALS_JSON", `{"type":"service_account"}`),
 		},
+		"IMGPROXY_GCS_ENDPOINT": {
+			with(gcs, "IMGPROXY_GCS_ENDPOINT=http://fake-gcs:4443/storage/v1/"), plus(gcsWant, "XI_SOURCES_GCS_ENDPOINT", "http://fake-gcs:4443/storage/v1/"),
+		},
+		"IMGPROXY_ABS_ENDPOINT": {
+			with(abs, "IMGPROXY_ABS_ENDPOINT=http://azurite:10000/devstoreaccount1"), plus(absWant, "XI_SOURCES_ABS_ENDPOINT", "http://azurite:10000/devstoreaccount1"),
+		},
 		"IMGPROXY_USE_ABS":             {abs, absWant},
 		"IMGPROXY_ABS_ALLOWED_BUCKETS": {abs, absWant},
 		"IMGPROXY_ABS_DENIED_BUCKETS":  {with(abs, "IMGPROXY_ABS_DENIED_BUCKETS=x"), nil},
