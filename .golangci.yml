@@ -159,6 +159,14 @@ linters:
             - pkg: github.com/redis/go-redis
               desc: redis belongs in internal/cache/redis
 
+        # ADR 0008: huma is the OpenAPI document builder, confined to
+        # internal/apidoc (no adapter, no router, no huma globals assigned).
+        huma-only-in-apidoc:
+          files: [$all, "!**/internal/apidoc/**"]
+          deny:
+            - pkg: github.com/danielgtaylor/huma
+              desc: huma builds the OpenAPI document in internal/apidoc only (ADR 0008)
+
         # ARCHITECTURE §3: transform and errs are leaves.
         leaves:
           files:

@@ -15,6 +15,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/xantiagoma/xtandard-image/internal/apidoc"
 	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
@@ -233,7 +234,7 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		adminAddr:  cfg.Admin.Addr,
 		public:     srv.HTTPServer,
 		admin: func(ctx context.Context) *http.Server {
-			return adminServer(ctx, logger, adminMux(met, ready, cfg.Admin.Pprof))
+			return adminServer(ctx, logger, adminMux(met, ready, &cfg.Admin))
 		},
 		shutdownDelay:   cfg.Server.ShutdownDelay,
 		shutdownTimeout: cfg.Server.ShutdownTimeout,
@@ -248,8 +249,11 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	return lc.run(ctx)
 }
 
-func adminMux(met *metrics.Metrics, ready *admin.Readiness, pprof bool) http.Handler {
-	return admin.NewMux(&admin.Options{Metrics: met.Handler(), Readiness: ready, Pprof: pprof, ConfigSchema: config.Schema()})
+func adminMux(met *metrics.Metrics, ready *admin.Readiness, cfg *config.Admin) http.Handler {
+	return admin.NewMux(&admin.Options{
+		Metrics: met.Handler(), Readiness: ready, Pprof: cfg.Pprof,
+		ConfigSchema: config.Schema(), OpenAPI: apidoc.Spec(), Docs: cfg.Docs,
+	})
 }
 
 // closeAll closes every source holding connections or file handles.
