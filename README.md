@@ -186,6 +186,22 @@ server:
 
 JSON files use a top-level `"$schema"` key with the same URL, and TOML files a first line `#:schema <url>` (Taplo, Tombi). A running instance also serves the schema for its exact version on the admin listener (`GET /config.schema.json`), `xtandard-image config schema` prints it, and `xtandard-image config validate --config <file>` checks a file with the real loader. The HTTP API is described by an OpenAPI 3.1 document: `xtandard-image openapi`, admin `GET /openapi.json`, or the [published copy](https://xantiagoma.github.io/xtandard-image/schema/v1/openapi.json) with a [browsable reference](https://xantiagoma.github.io/xtandard-image/api/). See [docs/CONFIG.md](docs/CONFIG.md#config-file-formats-and-schema-adr-0007) and [docs/OPENAPI.md](docs/OPENAPI.md).
 
+## TypeScript client
+
+[`@xtandard/image-url`](packages/image-url) builds typed imgproxy-dialect URLs, signs them, encrypts sources and calls `/info` and the health endpoints. It runs on WebCrypto and has no runtime dependencies. Its option types are generated from the server's OpenAPI document, so an unknown option or a wrong argument does not compile. Package versions follow the server's release tags ([RELEASE](docs/RELEASE.md#npm-package)).
+
+```ts
+import { imgproxy } from "@xtandard/image-url";
+
+const img = imgproxy({
+  baseUrl: "https://img.example.com",
+  signing: { key: process.env.XI_SIGNING_KEY!, salt: process.env.XI_SIGNING_SALT! },
+});
+await img.from("https://images.unsplash.com/photo-1506744038136-46273834b3fb")
+  .resize("fill", 1200, 630).gravity("sm").extension("jpg").build();
+// https://img.example.com/<signature>/rs:fill:1200:630/g:sm/aHR0cHM6….jpg
+```
+
 ## Performance
 
 [bench/RESULTS.md](bench/RESULTS.md) compares xtandard-image with imgproxy OSS on the same machine with matched settings (thumbnails to JPEG/WebP/AVIF, PNG with alpha, animated GIF, 1200 px fill, `/info`); the methodology is in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
@@ -196,8 +212,8 @@ JSON files use a top-level `"$schema"` key with the same URL, and TOML files a f
 - [URL dialects](docs/URL-DIALECTS.md): grammar, option mapping and signing for every supported dialect.
 - [Formats](docs/FORMATS.md): decoders, encoders, and the best-format decision matrix.
 - [Configuration](docs/CONFIG.md): environment variables, the YAML/JSON/TOML config file and its JSON Schema, and Dokploy, Coolify and Kubernetes examples.
-- [OpenAPI](docs/OPENAPI.md): the OpenAPI 3.1 document of the HTTP API and where it is published.
-- [Release](docs/RELEASE.md): how the image is built, published and verified.
+- [OpenAPI](docs/OPENAPI.md): the OpenAPI 3.1 document of the HTTP API, where it is published, and the [TypeScript package](packages/image-url/README.md) generated from it.
+- [Release](docs/RELEASE.md): how the image and the npm package are built, published and verified.
 - [Benchmarks](docs/BENCHMARKS.md): methodology and how to reproduce [bench/RESULTS.md](bench/RESULTS.md).
 - [Roadmap](docs/ROADMAP.md): the M1, M2 and M3 work packages.
 - [ADRs](docs/adr/): language and engine, URL dialects, security model, caching, Docker images, license policy.
