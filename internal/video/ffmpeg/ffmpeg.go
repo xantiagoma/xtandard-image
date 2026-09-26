@@ -20,7 +20,10 @@ package ffmpeg
 #cgo nocallback xi_ff_convert
 #cgo nocallback xi_ff_close
 #cgo nocallback xi_ff_abort
+#cgo nocallback xi_ff_aborted
 #cgo nocallback xi_ff_keep
+#cgo noescape xi_ff_keyframe_before
+#cgo nocallback xi_ff_keyframe_before
 #cgo nocallback xi_ff_live
 #cgo nocallback xi_ff_heap_in_use
 #cgo nocallback xi_ff_version
@@ -187,7 +190,7 @@ func (d *decoder) watch(ctx context.Context) func() {
 		mu.Lock()
 		defer mu.Unlock()
 		if armed {
-			C.xi_ff_abort(d.h, 1)
+			d.setAbort(true)
 		}
 	})
 	return func() {
@@ -197,6 +200,13 @@ func (d *decoder) watch(ctx context.Context) func() {
 		armed = false
 	}
 }
+
+// setAbort sets or clears the handle's abort flag: the running call and
+// every later one fail with XI_FF_ERR_ABORTED until it is cleared.
+func (d *decoder) setAbort(on bool) { C.xi_ff_abort(d.h, cbool(on)) }
+
+// aborted reports the handle's abort flag.
+func (d *decoder) aborted() bool { return C.xi_ff_aborted(d.h) != 0 }
 
 func (d *decoder) close() {
 	if d.h == nil {
@@ -321,12 +331,19 @@ func (d *decoder) decodeAt(ctx context.Context, seconds float64, keyframe bool, 
 // best runs best-frame selection: it decodes the keyframe at or before
 // every sample point, scores its luma histogram and keeps the first
 // best-scoring one in the handle's best slot. Samples that land on a
-// keyframe already scored are skipped.
+// keyframe already scored are skipped, before decoding when the demuxer's
+// index tells which keyframe a point falls on.
 func (d *decoder) best(ctx context.Context, req *video.FrameRequest, f *Frame) error {
 	points := video.SamplePoints(d.meta.Duration, req.Span, req.Samples)
-	bestScore, lastTime := -1.0, math.NaN()
+	bestScore, lastTime, lastKey := -1.0, math.NaN(), math.NaN()
 	var firstErr error
 	for _, p := range points {
+		if k, ok := d.keyframeBefore(p); ok {
+			if k == lastKey {
+				continue
+			}
+			lastKey = k
+		}
 		var hist video.Histogram
 		at, key, err := d.decodeAt(ctx, p, true, &hist)
 		if err != nil {
@@ -356,6 +373,17 @@ func (d *decoder) best(ctx context.Context, req *video.FrameRequest, f *Frame) e
 		return errs.New(errs.KindCorrupt, "ffmpeg: no frame decoded")
 	}
 	return nil
+}
+
+// keyframeBefore is the index timestamp of the keyframe the demuxer's
+// index has at or before seconds (decode order: it may be negative); ok is
+// false when the index does not know.
+func (d *decoder) keyframeBefore(seconds float64) (at float64, ok bool) {
+	var c C.double
+	if C.xi_ff_keyframe_before(d.h, C.double(seconds), &c) == 0 {
+		return 0, false
+	}
+	return float64(c), true
 }
 
 // check turns a shim result code into an error: an abort caused by ctx

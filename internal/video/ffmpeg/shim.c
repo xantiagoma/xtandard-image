@@ -134,6 +134,12 @@ xi_ff_abort(XiFF *h, int on)
   atomic_store(&h->abort, on);
 }
 
+int
+xi_ff_aborted(XiFF *h)
+{
+  return atomic_load(&h->abort);
+}
+
 void
 xi_ff_close(XiFF *h)
 {
@@ -565,6 +571,24 @@ xi_ff_decode_at(XiFF *h, double seconds, int keyframe, double *got, int *key, ui
     }
   }
   return XI_FF_OK;
+}
+
+int
+xi_ff_keyframe_before(XiFF *h, double seconds, double *at)
+{
+  AVStream *st = h->fmt->streams[h->vidx];
+  int64_t start = st->start_time == AV_NOPTS_VALUE ? 0 : st->start_time;
+  if (seconds < 0)
+    seconds = 0;
+  int64_t target = start + av_rescale_q(llrint(seconds * AV_TIME_BASE), AV_TIME_BASE_Q, st->time_base);
+  int i = av_index_search_timestamp(st, target, AVSEEK_FLAG_BACKWARD);
+  if (i < 0)
+    return 0;
+  const AVIndexEntry *e = avformat_index_get_entry(st, i);
+  if (!e || !(e->flags & AVINDEX_KEYFRAME))
+    return 0;
+  *at = (e->timestamp - start) * av_q2d(st->time_base);
+  return 1;
 }
 
 void
