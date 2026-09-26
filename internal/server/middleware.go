@@ -111,6 +111,9 @@ func (s *Server) accessLog(r *http.Request, sw *statusWriter, isImage bool, d ti
 		if info.source != "" {
 			attrs = append(attrs, slog.String("source", info.source))
 		}
+		if info.cache != "" {
+			attrs = append(attrs, slog.String("cache", info.cache))
+		}
 		if info.format != "" {
 			attrs = append(attrs,
 				slog.String("format", info.format),
@@ -162,6 +165,7 @@ const (
 	stageRoute     = iota // 2–4: route, parse, authenticate
 	stageNormalize        // 6: client hints, defaults, validate
 	stageResolve          // 5: source allowlist
+	stageCache            // 8: result cache lookup (before the fetch, cache.go)
 	stageFetch            // 9
 	stageAdmission        // 10
 	stageProbe            // 11: SVG sanitise + header probe
@@ -181,6 +185,8 @@ func stageName(i int) string {
 		return "normalize"
 	case stageResolve:
 		return "resolve"
+	case stageCache:
+		return "cache"
 	case stageFetch:
 		return "fetch"
 	case stageAdmission:
@@ -203,8 +209,10 @@ type requestInfo struct {
 	source        string // named source; never the key or URL
 	format        string // output format label
 	width, height int
-	stages        [numStages]time.Duration
-	ran           [numStages]bool
+	cache         string // result cache status: HIT, MISS, BYPASS; "" when off
+
+	stages [numStages]time.Duration
+	ran    [numStages]bool
 	// job is set once the source resolved; a later failure may be
 	// answered with the fallback image (special.go).
 	job *job

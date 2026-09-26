@@ -18,6 +18,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/router"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
@@ -241,11 +242,12 @@ type harness struct {
 	logger  *slog.Logger
 	allocs  atomic.Int32
 	allocFr atomic.Int32
+	cache   cache.Store // result cache; nil: off
 	srv     *Server
 }
 
-func newHarness(t *testing.T, mutate func(*harness)) *harness {
-	t.Helper()
+func newHarness(tb testing.TB, mutate func(*harness)) *harness {
+	tb.Helper()
 	h := &harness{
 		cfg:     DefaultConfig(),
 		router:  &fakeRouter{dialect: "imgproxy"},
@@ -268,20 +270,21 @@ func newHarness(t *testing.T, mutate func(*harness)) *harness {
 			h.allocs.Add(1)
 			return fetch.NewGoBuffer(n, func() { h.allocFr.Add(1) }), nil
 		},
-		Metrics:   h.m,
-		Logger:    h.logger,
-		Readiness: admin.NewReadiness(),
+		Metrics:     h.m,
+		Logger:      h.logger,
+		Readiness:   admin.NewReadiness(),
+		ResultCache: h.cache,
 	})
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	h.srv = srv
 	return h
 }
 
-func (h *harness) do(t *testing.T, method, target string, hdr http.Header) *httptest.ResponseRecorder {
-	t.Helper()
-	req := httptest.NewRequestWithContext(t.Context(), method, target, http.NoBody)
+func (h *harness) do(tb testing.TB, method, target string, hdr http.Header) *httptest.ResponseRecorder {
+	tb.Helper()
+	req := httptest.NewRequestWithContext(tb.Context(), method, target, http.NoBody)
 	maps.Copy(req.Header, hdr)
 	rec := httptest.NewRecorder()
 	h.srv.Handler().ServeHTTP(rec, req)

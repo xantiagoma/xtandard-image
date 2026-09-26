@@ -22,6 +22,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
 
+	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/router"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
@@ -201,6 +202,9 @@ type Config struct {
 	Fallback Fallback
 	// Info configures the /info endpoint (info.go).
 	Info InfoConfig
+	// ResultCache configures the result cache (cache.go); used only when
+	// Deps.ResultCache is set.
+	ResultCache ResultCacheConfig
 }
 
 // CacheHeaders is the Cache-Control policy of ARCHITECTURE §9.1 and §12.
@@ -290,6 +294,9 @@ func (c *Config) Validate() error {
 	if s := c.Fallback.Status; s != 0 && (s < 200 || s > 599) {
 		list = append(list, fmt.Errorf("server: fallback status must be in 200..599, got %d", s))
 	}
+	if c.ResultCache.TTL < 0 {
+		list = append(list, fmt.Errorf("server: result cache ttl must be >= 0, got %s", c.ResultCache.TTL))
+	}
 	if c.Fallback.TTL < 0 {
 		list = append(list, fmt.Errorf("server: fallback ttl must be >= 0, got %s", c.Fallback.TTL))
 	}
@@ -337,9 +344,13 @@ type Deps struct {
 	// Allocator holds sanitised SVG documents (vips.NewBuffer in
 	// production, so libvips never sees Go memory).
 	Allocator fetch.Allocator
-	Logger    *slog.Logger
-	Metrics   Metrics          // nil: no metrics
-	Readiness *admin.Readiness // nil: /readyz is not mounted
+	// ResultCache stores encoded responses (cache.go; a cache.AsyncStore
+	// over the configured tiers in production, so Set never blocks); nil
+	// disables the result cache.
+	ResultCache cache.Store
+	Logger      *slog.Logger
+	Metrics     Metrics          // nil: no metrics
+	Readiness   *admin.Readiness // nil: /readyz is not mounted
 	// Tracer creates the fetch, probe and process spans; nil: no spans.
 	Tracer trace.Tracer
 	// Middleware wraps the whole handler inside panic recovery (OTel
