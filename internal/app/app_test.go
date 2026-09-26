@@ -198,10 +198,19 @@ func TestRunEndToEnd(t *testing.T) {
 		{path: "/insecure/w:10/plain/" + origin.URL + "/bmp/rgb24.bmp", want: http.StatusUnprocessableEntity},
 		{path: "/insecure/w:10/plain/" + origin.URL + "/svg/logo.svg", want: http.StatusOK},
 		{path: "/insecure/w:10/plain/http://169.254.169.254/latest/meta-data", want: http.StatusForbidden},
-		{path: "/insecure/raw:1/plain/" + origin.URL + "/jpeg/baseline.jpg", want: http.StatusNotImplemented},
 	} {
 		if got := get(t, base+tc.path); got.status != tc.want {
 			t.Errorf("GET %s = %d %q, want %d", tc.path, got.status, got.body, tc.want)
 		}
+	}
+
+	// raw streams the original bytes; the Content-Type is sniffed (the
+	// file server's header is not what decides it).
+	want, err := os.ReadFile(golden.ModuleRoot(t) + "/testdata/fixtures/png/rgba8.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := get(t, base+"/insecure/raw:1/plain/"+origin.URL+"/png/rgba8.png"); got.status != http.StatusOK || got.ctype != "image/png" || !bytes.Equal(got.body, want) {
+		t.Errorf("raw: %d %q, %d bytes; want 200 image/png with the %d source bytes", got.status, got.ctype, len(got.body), len(want))
 	}
 }

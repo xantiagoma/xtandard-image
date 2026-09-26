@@ -190,6 +190,8 @@ type Config struct {
 	// CanonicalHeader adds `Link: <source URL>; rel="canonical"` for http
 	// sources (imgproxy IMGPROXY_SET_CANONICAL_HEADER; no XI_ variable yet).
 	CanonicalHeader bool
+	// Fallback is the image served in place of a failed source (XI_FALLBACK_*).
+	Fallback Fallback
 }
 
 // CacheHeaders is the Cache-Control policy of ARCHITECTURE §9.1 and §12.
@@ -202,6 +204,23 @@ type CacheHeaders struct {
 	// Passthrough copies the source's Cache-Control (or its Expires as
 	// max-age) when the URL sets no TTL or expiry.
 	Passthrough bool
+}
+
+// Fallback configures the fallback image (ARCHITECTURE §12, special.go).
+type Fallback struct {
+	// Source is the global fallback image as a source string
+	// (XI_FALLBACK_SOURCE); it must pass the source allowlist. "" = none.
+	Source string
+	// Status is the status of a fallback response (XI_FALLBACK_STATUS);
+	// 0 means 200.
+	Status int
+	// TTL is the max-age of a fallback response (XI_FALLBACK_TTL); 0 sends
+	// no-store.
+	TTL time.Duration
+	// AllowRequestURL honours a request's own fallback image
+	// (imgproxy fallback_image_url; XI_FALLBACK_ALLOW_REQUEST_URL). It still
+	// passes the source allowlist.
+	AllowRequestURL bool
 }
 
 // DefaultConfig returns the documented defaults (docs/CONFIG.md).
@@ -225,6 +244,7 @@ func DefaultConfig() Config {
 		},
 		Cache:           CacheHeaders{TTL: 31_536_000 * time.Second, ErrorTTL: 10 * time.Second},
 		CacheTagsHeader: "Cache-Tag",
+		Fallback:        Fallback{Status: http.StatusOK, TTL: time.Minute},
 	}
 }
 
@@ -257,14 +277,41 @@ func (c *Config) Validate() error {
 	if c.PathPrefix != "" && (!strings.HasPrefix(c.PathPrefix, "/") || c.PathPrefix == "/") {
 		list = append(list, fmt.Errorf("server: path prefix %q must start with / and not be /", c.PathPrefix))
 	}
+	if s := c.Fallback.Status; s != 0 && (s < 200 || s > 599) {
+		list = append(list, fmt.Errorf("server: fallback status must be in 200..599, got %d", s))
+	}
+	if c.Fallback.TTL < 0 {
+		list = append(list, fmt.Errorf("server: fallback ttl must be >= 0, got %s", c.Fallback.TTL))
+	}
 	if err := c.Negotiate.Validate(); err != nil {
 		list = append(list, err)
 	}
 	return errors.Join(list...)
 }
 
+// Sniffed is the magic-byte identity of source bytes (codec.Sniff; WP-07).
+type Sniffed struct {
+	// Format is the matching output format; transform.FormatUnset for
+	// formats that cannot be written (JPEG 2000, PSD, PDF, RAW, …).
+	Format transform.Format
+	// ContentType is the MIME type of the sniffed format. It is the only
+	// source of an unprocessed response's Content-Type; the origin's
+	// header is never trusted.
+	ContentType string
+	// Ext is the file extension without a dot ("jpg"); "" when unknown.
+	Ext string
+}
+
+// Sniffer detects the format of source bytes from magic bytes only (never
+// the extension or the upstream Content-Type). ok is false for
+// unrecognised input. app adapts codec.Sniff to it.
+type Sniffer interface {
+	Sniff(data []byte) (Sniffed, bool)
+}
+
 // Deps are the components the server delegates to. Router, Resolver,
-// Fetcher, Admitter, Prober, Processor, Allocator and Logger are required.
+// Fetcher, Admitter, Prober, Processor, Sniffer, Allocator and Logger are
+// required.
 type Deps struct {
 	Router    Router
 	Resolver  Resolver
@@ -272,6 +319,8 @@ type Deps struct {
 	Admitter  Admitter
 	Prober    Prober
 	Processor Processor
+	// Sniffer identifies the bytes of raw and skip-processing responses.
+	Sniffer Sniffer
 	// Allocator holds sanitised SVG documents (vips.NewBuffer in
 	// production, so libvips never sees Go memory).
 	Allocator fetch.Allocator
@@ -292,6 +341,8 @@ type Server struct {
 	handler http.Handler
 	// now is the clock for expires and Cache-Control; tests replace it.
 	now func() time.Time
+	// fallbackKey is the resolved XI_FALLBACK_SOURCE; nil when unset.
+	fallbackKey *source.Key
 }
 
 // New validates cfg and builds the handler tree.
@@ -303,10 +354,17 @@ func New(cfg *Config, deps *Deps) (*Server, error) {
 		return nil, err
 	}
 	if deps == nil || deps.Router == nil || deps.Resolver == nil || deps.Fetcher == nil || deps.Admitter == nil ||
-		deps.Prober == nil || deps.Processor == nil || deps.Allocator == nil || deps.Logger == nil {
-		return nil, errors.New("server: router, resolver, fetcher, admitter, prober, processor, allocator and logger are required")
+		deps.Prober == nil || deps.Processor == nil || deps.Sniffer == nil || deps.Allocator == nil || deps.Logger == nil {
+		return nil, errors.New("server: router, resolver, fetcher, admitter, prober, processor, sniffer, allocator and logger are required")
 	}
 	s := &Server{cfg: *cfg, deps: *deps, now: time.Now}
+	if cfg.Fallback.Source != "" {
+		key, err := deps.Resolver.Resolve(transform.SourceSpec{Raw: cfg.Fallback.Source})
+		if err != nil {
+			return nil, fmt.Errorf("server: fallback source: %w", err)
+		}
+		s.fallbackKey = &key
+	}
 	if s.deps.Metrics == nil {
 		s.deps.Metrics = nopMetrics{}
 	}
