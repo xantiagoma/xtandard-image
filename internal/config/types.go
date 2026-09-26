@@ -569,6 +569,8 @@ const (
 	FormatTIFF Format = "tiff"
 	FormatBMP  Format = "bmp"
 	FormatICO  Format = "ico"
+	// FormatSVG is only meaningful as a source format (skip_processing).
+	FormatSVG Format = "svg"
 )
 
 // UnmarshalText implements encoding.TextUnmarshaler; "jpg" means jpeg.
@@ -578,7 +580,7 @@ func (f *Format) UnmarshalText(b []byte) error {
 		return nil
 	}
 	return unmarshalEnum(f, b, FormatJPEG, FormatPNG, FormatGIF, FormatWebP, FormatAVIF,
-		FormatHEIC, FormatJXL, FormatTIFF, FormatBMP, FormatICO)
+		FormatHEIC, FormatJXL, FormatTIFF, FormatBMP, FormatICO, FormatSVG)
 }
 
 // DialectName names a URL dialect.

@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"net/netip"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -380,18 +381,20 @@ sources:
 		"XI_SOURCES_OTHER_BUCKET=b",
 		"XI_SOURCES_ASSETS_ACCESS_KEY_ID=AKIA",
 		"XI_SOURCES_MY_FILES_ROOT=/srv",
+		"XI_SOURCES_MY_FILES_FOLLOW_SYMLINKS=true",
+		"XI_SOURCES_OTHER_ENDPOINT=http://fake-gcs:4443/storage/v1/",
 	)
 	want := map[string]Source{
 		"assets": {
 			Type: SourceS3, Endpoint: "https://account.r2.cloudflarestorage.com", Region: "auto",
 			Buckets: []string{"assets"}, AccessKeyID: "AKIA",
 		},
-		"my-files": {Type: SourceFS, Root: "/srv"},
+		"my-files": {Type: SourceFS, Root: "/srv", FollowSymlinks: true},
 		"origin": {
 			Type: SourceHTTP, Allow: []string{"cdn.example.com", "*.example.org/images/"},
 			Headers: map[string]Secret{"Authorization": "Bearer t", "X-Tenant": "a"},
 		},
-		"other": {Type: SourceGCS, Bucket: "b"},
+		"other": {Type: SourceGCS, Bucket: "b", Endpoint: "http://fake-gcs:4443/storage/v1/"},
 	}
 	if d := diff(want, cfg.Sources); d != "" {
 		t.Errorf("sources (-want +got):\n%s", d)
@@ -482,5 +485,24 @@ func TestNoSourcesFailsWithoutDevMode(t *testing.T) {
 	}
 	if _, _, err := Load(opts(nil, "XI_DEV_MODE=true")); err != nil {
 		t.Fatalf("dev mode without sources: %v", err)
+	}
+}
+
+// TestRouterAndFetchEnv covers the restricted-policy DPR/height lists, the
+// fetch retry switch and the negative origin TTL.
+func TestRouterAndFetchEnv(t *testing.T) {
+	t.Parallel()
+	cfg := mustParse(t, nil)
+	if !slices.Equal(cfg.Security.AllowedDPRs, []float64{1}) || cfg.Security.AllowedHeights != nil ||
+		!cfg.Fetch.Retry || cfg.Cache.Origin.NegativeTTL != 5*time.Second {
+		t.Errorf("defaults: dprs %v heights %v retry %v negative ttl %s",
+			cfg.Security.AllowedDPRs, cfg.Security.AllowedHeights, cfg.Fetch.Retry, cfg.Cache.Origin.NegativeTTL)
+	}
+	cfg = mustParse(t, nil, "XI_SECURITY_ALLOWED_DPRS=1, 1.5,2", "XI_SECURITY_ALLOWED_HEIGHTS=100-300/100",
+		"XI_FETCH_RETRY=false", "XI_CACHE_ORIGIN_NEGATIVE_TTL=0s")
+	if !slices.Equal(cfg.Security.AllowedDPRs, []float64{1, 1.5, 2}) || !slices.Equal(cfg.Security.AllowedHeights, IntList{100, 200, 300}) ||
+		cfg.Fetch.Retry || cfg.Cache.Origin.NegativeTTL != 0 {
+		t.Errorf("env: dprs %v heights %v retry %v negative ttl %s",
+			cfg.Security.AllowedDPRs, cfg.Security.AllowedHeights, cfg.Fetch.Retry, cfg.Cache.Origin.NegativeTTL)
 	}
 }

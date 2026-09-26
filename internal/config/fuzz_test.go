@@ -1,6 +1,7 @@
 package config
 
 import (
+	"slices"
 	"strings"
 	"testing"
 )
@@ -121,5 +122,29 @@ func FuzzLoadEnv(f *testing.F) {
 		if err != nil && strings.HasPrefix(key, "SIGNING_KEYS") && len(value) > 8 && strings.Contains(err.Error(), value) {
 			t.Fatalf("error leaks the key value: %v", err)
 		}
+	})
+}
+
+// FuzzImgproxyEnv: translating any value of any mapped IMGPROXY_* variable
+// never panics, and a successful translation only sets declared targets
+// (or XI_SOURCES_* of the compat sources).
+func FuzzImgproxyEnv(f *testing.F) {
+	vars := imgproxyVars()
+	for i, s := range []string{"true", "10", "16.8", "https://*.example.com/img/,s3://b/", "jpeg=80,png=5", "a=b;c*=d", "/data/x.png", "-1", ""} {
+		f.Add(uint(i), s)
+	}
+	f.Fuzz(func(t *testing.T, idx uint, v string) {
+		iv := vars[idx%uint(len(vars))]
+		env := []string{iv.Name + "=" + v, "IMGPROXY_USE_S3=true", "IMGPROXY_LOCAL_FILESYSTEM_ROOT=/data"}
+		c := translateImgproxyEnv(env)
+		if c.err != nil {
+			return
+		}
+		for k := range c.out {
+			if !strings.HasPrefix(k, envSources) && !slices.Contains(iv.Targets, k) {
+				t.Fatalf("%s=%q set undeclared %s", iv.Name, v, k)
+			}
+		}
+		_, _, _ = load(LoadOptions{Environ: append(env, compatOn), ReadFile: files{}.read, GOMAXPROCS: 1})
 	})
 }

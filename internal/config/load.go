@@ -58,6 +58,10 @@ type Meta struct {
 	// UnknownEnv lists unknown XI_* variables tolerated because
 	// XI_ALLOW_UNKNOWN_ENV=true. Callers should log them.
 	UnknownEnv []string
+	// UnmappedImgproxyEnv lists set IMGPROXY_* variables that
+	// XI_COMPAT_IMGPROXY_ENV could not translate. Callers should log them
+	// in one line; they do not fail startup.
+	UnmappedImgproxyEnv []string
 	// Warnings are non-fatal findings to log at startup.
 	Warnings []string
 }
@@ -130,8 +134,20 @@ func load(o LoadOptions) (Config, Meta, error) {
 		errList = append(errList, err)
 	}
 
+	// IMGPROXY_* variables between the file and XI_* (XI_* wins).
+	var alias map[string]string
+	if imgproxyCompatEnabled(&cfg, vars) {
+		c := translateImgproxyEnv(o.Environ)
+		errList = append(errList, c.err)
+		meta.UnmappedImgproxyEnv = c.unmapped
+		meta.Warnings = append(meta.Warnings, c.warnings...)
+		alias = applyImgproxyCompat(vars, origin, &c)
+	} else if n := len(imgproxyEnviron(o.Environ)); n > 0 {
+		meta.Warnings = append(meta.Warnings, fmt.Sprintf("%d IMGPROXY_* variables are set but ignored; set %s=true to translate them", n, envCompatImgproxy))
+	}
+
 	// Environment on top of the file.
-	errList = append(errList, parseEnv(&cfg, vars, envPrefix, static))
+	errList = append(errList, parseEnv(&cfg, vars, envPrefix, static, alias))
 	if cfg.Encryption.Key != nil {
 		if strings.TrimSpace(vars["XI_ENCRYPTION_KEYS"]) != "" {
 			errList = append(errList, fmt.Errorf("%w: set XI_ENCRYPTION_KEYS or its deprecated alias XI_ENCRYPTION_KEY, not both", ErrEnv))
@@ -158,7 +174,7 @@ func load(o LoadOptions) (Config, Meta, error) {
 	for _, name := range slices.Sorted(maps.Keys(cfg.Sources)) {
 		src := cfg.Sources[name]
 		fields := sourceFields(name)
-		errList = append(errList, parseEnv(&src, vars, sourceEnvPrefix(name), fields))
+		errList = append(errList, parseEnv(&src, vars, sourceEnvPrefix(name), fields, alias))
 		cfg.Sources[name] = src
 		for _, f := range fields {
 			known[f.Env] = true
@@ -181,6 +197,18 @@ func load(o LoadOptions) (Config, Meta, error) {
 
 	cfg.resolveDerived(o.GOMAXPROCS)
 	return cfg, meta, errors.Join(errList...)
+}
+
+// imgproxyCompatEnabled reports whether IMGPROXY_* variables are
+// translated: XI_COMPAT_IMGPROXY_ENV when set (a malformed value is reported
+// by parseEnv and counts as off), otherwise compat.imgproxy_env from the
+// file.
+func imgproxyCompatEnabled(cfg *Config, vars map[string]string) bool {
+	if v := strings.TrimSpace(vars[envCompatImgproxy]); v != "" {
+		b, _ := strconv.ParseBool(v)
+		return b
+	}
+	return cfg.Compat.ImgproxyEnv
 }
 
 // resolveEnv returns the XI_* variables with every _FILE indirection
@@ -226,8 +254,9 @@ func resolveEnv(environ []string, staticKeys map[string]bool, readFile func(stri
 
 // parseEnv applies vars onto dst (a *Config or *Source) with caarlos0/env.
 // On failure it re-parses each variable alone so every error names its
-// variable instead of a Go field.
-func parseEnv(dst any, vars map[string]string, prefix string, fields []field) error {
+// variable instead of a Go field, and the IMGPROXY_* variable behind it
+// (alias) when the value was translated.
+func parseEnv(dst any, vars map[string]string, prefix string, fields []field, alias map[string]string) error {
 	opts := env.Options{Environment: vars, Prefix: prefix, FuncMap: funcMap()}
 	err := env.ParseWithOptions(dst, opts)
 	if err == nil {
@@ -242,7 +271,11 @@ func parseEnv(dst any, vars map[string]string, prefix string, fields []field) er
 		scratch := reflect.New(reflect.TypeOf(dst).Elem())
 		one := env.Options{Environment: map[string]string{f.Env: v}, Prefix: prefix, FuncMap: funcMap()}
 		if err := env.ParseWithOptions(scratch.Interface(), one); err != nil {
-			errList = append(errList, fmt.Errorf("%w: %s: %w", ErrEnv, f.Env, innerParseErr(err)))
+			name := f.Env
+			if a := alias[f.Env]; a != "" {
+				name += " (from " + a + ")"
+			}
+			errList = append(errList, fmt.Errorf("%w: %s: %w", ErrEnv, name, innerParseErr(err)))
 		}
 	}
 	if len(errList) == 0 { // not attributable to one variable; report as is

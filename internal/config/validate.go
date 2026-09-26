@@ -14,6 +14,10 @@ import (
 	"time"
 )
 
+// maxDPR is the largest device pixel ratio accepted anywhere (client hints
+// use the same bound).
+const maxDPR = 8
+
 // validator collects violations; every one names its YAML path and variable.
 type validator struct{ errs []error }
 
@@ -116,6 +120,18 @@ func (c *Config) validateSecurity(v *validator) {
 			break
 		}
 	}
+	for _, h := range sec.AllowedHeights {
+		if h < 1 || h > c.Limits.MaxResultDimension {
+			v.add("security.allowed_heights", "%d is outside 1..limits.max_result_dimension (%d)", h, c.Limits.MaxResultDimension)
+			break
+		}
+	}
+	for _, d := range sec.AllowedDPRs {
+		if !(d > 0 && d <= maxDPR) {
+			v.add("security.allowed_dprs", "%g is outside (0, %d]", d, maxDPR)
+			break
+		}
+	}
 	for _, q := range sec.AllowedQualities {
 		if q < 1 || q > 100 {
 			v.add("security.allowed_qualities", "%d is outside 1..100", q)
@@ -146,11 +162,11 @@ func sourceFieldTypes() map[string][]SourceType {
 		"allow": {SourceHTTP}, "base_url": {SourceHTTP}, "headers": {SourceHTTP},
 		"buckets": blob, "bucket": blob,
 		"prefix":   {SourceS3, SourceGCS, SourceAzure, SourceFS, SourceFTP, SourceSFTP},
-		"endpoint": {SourceS3}, "region": {SourceS3}, "force_path_style": {SourceS3},
+		"endpoint": blob, "region": {SourceS3}, "force_path_style": {SourceS3},
 		"access_key_id": {SourceS3}, "secret_access_key": {SourceS3}, "role_arn": {SourceS3},
 		"credentials_json": {SourceGCS},
-		"account":          {SourceAzure}, "account_key": {SourceAzure}, "connection_string": {SourceAzure},
-		"root": {SourceFS},
+		"account":          {SourceAzure}, "account_key": {SourceAzure}, "connection_string": {SourceAzure}, "sas_token": {SourceAzure},
+		"root": {SourceFS}, "follow_symlinks": {SourceFS},
 		"host": remote, "port": remote, "user": remote, "password": remote, "tls": {SourceFTP},
 		"private_key": {SourceSFTP}, "host_key": {SourceSFTP},
 	}
@@ -324,6 +340,7 @@ func (c *Config) validateFormats(v *validator) {
 	v.positive(f.Best.MaxPixels, "formats.best.max_pixels")
 	v.check(f.Best.ComplexityThreshold >= 0, "formats.best.complexity_threshold", "must be >= 0")
 	v.check(len(f.Preferred) > 0, "formats.preferred", "must not be empty")
+	v.check(!slices.Contains(f.Preferred, FormatSVG), "formats.preferred", "svg cannot be an output format")
 	v.between(f.SaveDataQualityDelta, -100, 0, "formats.save_data_quality_delta")
 	aq := f.AutoQuality
 	v.check(aq.Method != "", "formats.autoquality.method", "must be set")
@@ -378,6 +395,7 @@ func (c *Config) validateCache(v *validator) {
 		v.check(r.S3.Bucket != "", "cache.result.s3.bucket", "must be set with the s3 store")
 	}
 	v.nonNegative(int64(ca.Origin.MemoryBytes), "cache.origin.memory_bytes")
+	v.nonNegative(int64(ca.Origin.NegativeTTL), "cache.origin.negative_ttl")
 }
 
 // warnings are startup findings that are not errors.
