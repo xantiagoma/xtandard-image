@@ -21,8 +21,8 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   `m3/wp-77-78-watermarks`, `m3/wp-84-ts-url-builder`, `m3/wp-80-playground`,
   `m3/wp-81b-82b-pages-huma` (**done, adopted: PR #80 is the bottom of the `m3` stack**). `m3/wp-70-full-base` is **done and adopted (PR #81)**; `m3/wp-71-detect` and `m3/wp-74-video`
   were launched from it (branch from `origin/m3/wp-70-full-base`; verify with
-  `xtandard-base:dev-full-builder` and slim). `m3/wp-84-ts-url-builder` is **done and adopted (PR #83)**. `m3/wp-80-playground` is **done and adopted (PR #84)**. Stack: #80 → #81 → #83 → #84. Adopt the
-  rest as they finish (order: 87, 77-78, 71, 74), then launch WP-72/73 (after 71) and WP-75/76 (after 74). After WP-70 lands, launch WP-71 (detect runtime) → WP-72/73, and WP-74 (video) →
+  `xtandard-base:dev-full-builder` and slim). `m3/wp-84-ts-url-builder` is **done and adopted (PR #83)**. `m3/wp-80-playground` is **done and adopted (PR #84)**. `m3/wp-77-78-watermarks` is **done and adopted (PR #85)**. Stack: #80 → #81 → #83 → #84 → #85.
+  Adopt the rest as they finish (order: 87, 71, 74, then 88), then launch WP-72/73 (after 71) and WP-75/76 (after 74). After WP-70 lands, launch WP-71 (detect runtime) → WP-72/73, and WP-74 (video) →
   WP-75/76.
 - **M3 decisions taken by the orchestrator (owner said "resuélvelo con tu mejor approach"):**
   GIF→video = WebM/VP9 + AV1-in-MP4, no H.264 encode (open question 1); detection models = YuNet
@@ -77,6 +77,10 @@ owner has authorised merging PRs without review.
    base image is published by `.github/workflows/base-image.yml` on pushes to `main` (never on PRs).
 
 ## Known gaps and follow-ups
+
+- **imgix dialect is parsed but not mounted**: `internal/dialect/imgix` exists and is tested, but
+  `internal/app/build.go` only warns "enabled but not implemented yet". WP-88 (agent launched
+  2026-09-27) mounts it like the other dialects and adds acceptance cases.
 
 - PNG-alpha → WebP is ~14% slower than imgproxy and peak RSS is 2–5× (see `bench/RESULTS.md`).
 - `internal/server` limiter admission cost is still 0 (planner `Cost` not wired).
