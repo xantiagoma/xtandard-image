@@ -324,6 +324,7 @@ func (c *Config) validateFormats(v *validator) {
 	v.positive(f.Best.MaxPixels, "formats.best.max_pixels")
 	v.check(f.Best.ComplexityThreshold >= 0, "formats.best.complexity_threshold", "must be >= 0")
 	v.check(len(f.Preferred) > 0, "formats.preferred", "must not be empty")
+	v.check(!slices.Contains(f.Preferred, FormatSVG), "formats.preferred", "svg cannot be an output format")
 	v.between(f.SaveDataQualityDelta, -100, 0, "formats.save_data_quality_delta")
 	aq := f.AutoQuality
 	v.check(aq.Method != "", "formats.autoquality.method", "must be set")
