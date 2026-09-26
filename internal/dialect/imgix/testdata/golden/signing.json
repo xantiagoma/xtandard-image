@@ -1,0 +1,410 @@
+{
+  "blueprint_params": {
+    "config": "required",
+    "path": "/users/1.png",
+    "query": "w=400\u0026h=300\u0026s=c7b86f666a832434dd38577e38cf86d1",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "users/1.png"
+      }
+    },
+    "signature": "verified",
+    "source": "users/1.png"
+  },
+  "blueprint_params_sorted": {
+    "config": "required",
+    "path": "/users/1.png",
+    "query": "h=300\u0026w=400\u0026s=1a4e48641614d1109c6a7af51be23d18",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "users/1.png"
+      }
+    },
+    "signature": "verified",
+    "source": "users/1.png"
+  },
+  "blueprint_proxy": {
+    "config": "required",
+    "path": "/http%3A%2F%2Favatars.com%2Fjohn-smith.png",
+    "query": "s=493a52f008c91416351f8b33d4883135",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "http://avatars.com/john-smith.png"
+      }
+    },
+    "signature": "verified",
+    "source": "http://avatars.com/john-smith.png"
+  },
+  "blueprint_proxy_params": {
+    "config": "required",
+    "path": "/http%3A%2F%2Favatars.com%2Fjohn-smith.png",
+    "query": "w=400\u0026h=300\u0026s=61ea1cc7add87653bb0695fe25f2b534",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://avatars.com/john-smith.png"
+      }
+    },
+    "signature": "verified",
+    "source": "http://avatars.com/john-smith.png"
+  },
+  "blueprint_proxy_params_sorted": {
+    "config": "required",
+    "path": "/http%3A%2F%2Favatars.com%2Fjohn-smith.png",
+    "query": "h=300\u0026w=400\u0026s=a201fe1a3caef4944dcb40f6ce99e746",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://avatars.com/john-smith.png"
+      }
+    },
+    "signature": "verified",
+    "source": "http://avatars.com/john-smith.png"
+  },
+  "blueprint_simple": {
+    "config": "required",
+    "path": "/users/1.png",
+    "query": "s=6797c24146142d5b40bde3141fd3600c",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "users/1.png"
+      }
+    },
+    "signature": "verified",
+    "source": "users/1.png"
+  },
+  "blueprint_txt64": {
+    "config": "required",
+    "path": "/users/1.png",
+    "query": "txt64=dGhpcy9zZWVtc-KApiBwcmV0dHkgc2tldGNoeSEg8J-YgQ\u0026s=90f614fddc8ae5b9d5eb2f69b25daed4",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "txt",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 10,
+                "YOffset": 10
+              },
+              "Text": "this/seems… pretty sketchy! 😁"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "users/1.png"
+      }
+    },
+    "signature": "verified",
+    "source": "users/1.png"
+  },
+  "duplicate_s": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/users/1.png",
+    "query": "s=6797c24146142d5b40bde3141fd3600c\u0026s=6797c24146142d5b40bde3141fd3600c"
+  },
+  "expires64": {
+    "config": "required",
+    "error": {
+      "kind": "expired",
+      "public": "url expired",
+      "status": 404
+    },
+    "path": "/photos/a.jpg",
+    "query": "expires64=MTc5MDQyMzk5OQ\u0026s=650ea6e067ef2417838d975b96738ea4"
+  },
+  "expires_future": {
+    "config": "required",
+    "path": "/photos/a.jpg",
+    "query": "w=100\u0026expires=1790424001\u0026s=4328c07e0e98d267207627b70bd705f7",
+    "request": {
+      "Delivery": {
+        "Expires": "2026-09-26T12:00:01Z"
+      },
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/a.jpg"
+  },
+  "expires_invalid": {
+    "error": {
+      "field": "expires",
+      "kind": "invalid_url",
+      "public": "invalid expires: expected unix timestamp",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "expires=tomorrow"
+  },
+  "expires_past": {
+    "config": "required",
+    "error": {
+      "kind": "expired",
+      "public": "url expired",
+      "status": 404
+    },
+    "path": "/photos/a.jpg",
+    "query": "w=100\u0026expires=1790423999\u0026s=a4aac95fd5948b5f21130f6d8616e2d6"
+  },
+  "expires_past_bad_signature": {
+    "config": "required",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/photos/a.jpg",
+    "query": "w=100\u0026expires=1790423999\u0026s=6797c24146142d5b40bde3141fd3600c"
+  },
+  "expires_past_unsigned": {
+    "error": {
+      "kind": "expired",
+      "public": "url expired",
+      "status": 404
+    },
+    "path": "/photos/a.jpg",
+    "query": "expires=1790423999"
+  },
+  "expires_zero_never": {
+    "path": "/photos/a.jpg",
+    "query": "expires=0",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "malformed": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/users/1.png",
+    "query": "s=xyz"
+  },
+  "missing_optional": {
+    "config": "signed",
+    "path": "/users/1.png",
+    "query": "w=400",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "users/1.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "users/1.png"
+  },
+  "missing_required": {
+    "config": "required",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/users/1.png",
+    "query": "w=400"
+  },
+  "reordered_query": {
+    "config": "required",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/users/1.png",
+    "query": "h=300\u0026w=400\u0026s=c7b86f666a832434dd38577e38cf86d1"
+  },
+  "s_not_last": {
+    "config": "required",
+    "path": "/users/1.png",
+    "query": "w=400\u0026s=c7b86f666a832434dd38577e38cf86d1\u0026h=300",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "users/1.png"
+      }
+    },
+    "signature": "verified",
+    "source": "users/1.png"
+  },
+  "tampered_path": {
+    "config": "required",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/users/2.png",
+    "query": "s=6797c24146142d5b40bde3141fd3600c"
+  },
+  "tampered_query": {
+    "config": "required",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/users/1.png",
+    "query": "w=401\u0026h=300\u0026s=c7b86f666a832434dd38577e38cf86d1"
+  },
+  "unsigned_config_ignores_s": {
+    "path": "/users/1.png",
+    "query": "w=1\u0026s=bogus",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "users/1.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "users/1.png"
+  }
+}
