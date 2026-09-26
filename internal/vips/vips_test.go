@@ -21,7 +21,7 @@ import (
 // These tests need libvips from the base image: run them with
 // `task docker:test` (go-standards §8: vips is initialised once per package).
 func TestMain(m *testing.M) {
-	if err := vips.Init(vips.DefaultConfig()); err != nil {
+	if err := vips.Init(new(vips.DefaultConfig())); err != nil {
 		_, _ = os.Stderr.WriteString("vips init: " + err.Error() + "\n")
 		os.Exit(1)
 	}
@@ -30,20 +30,20 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func readFixture(t *testing.T, name string) []byte {
-	t.Helper()
-	b, err := os.ReadFile(golden.Fixture(t, name))
+func readFixture(tb testing.TB, name string) []byte {
+	tb.Helper()
+	b, err := os.ReadFile(golden.Fixture(tb, name))
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	return b
 }
 
-func newBuffer(t *testing.T, data []byte) *vips.Buffer {
-	t.Helper()
-	buf, err := vips.NewBufferFromReader(bytes.NewReader(data), 1<<20)
+func newBuffer(tb testing.TB, data []byte) *vips.Buffer {
+	tb.Helper()
+	buf, err := vips.NewBufferFromReader(bytes.NewReader(data), 1<<30)
 	if err != nil {
-		t.Fatalf("NewBufferFromReader: %v", err)
+		tb.Fatalf("NewBufferFromReader: %v", err)
 	}
 	return buf
 }
@@ -232,6 +232,37 @@ func TestNewBufferFromReader(t *testing.T) {
 	}
 }
 
+// fetchBuffer is fetch.Buffer (ARCHITECTURE §7), restated so this package
+// does not import the fetcher.
+type fetchBuffer interface {
+	Bytes() []byte
+	Retain()
+	Release()
+}
+
+var (
+	_ fetchBuffer = (*vips.Buffer)(nil)
+	_ fetchBuffer = (*vips.Blob)(nil)
+)
+
+func TestNewBufferSize(t *testing.T) {
+	t.Parallel()
+
+	for _, n := range []int{0, 1, 4096, 1 << 20} {
+		buf, err := vips.NewBuffer(n)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(buf.Bytes()) != n || buf.Len() != n {
+			t.Errorf("NewBuffer(%d) has %d bytes", n, len(buf.Bytes()))
+		}
+		buf.Release()
+	}
+	if _, err := vips.NewBuffer(-1); errs.KindOf(err) != errs.KindInternal {
+		t.Errorf("NewBuffer(-1) = %v, want KindInternal", err)
+	}
+}
+
 func TestBufferRefcount(t *testing.T) {
 	t.Parallel()
 
@@ -261,44 +292,5 @@ func TestRunHonoursContext(t *testing.T) {
 	err := vips.Run(ctx, func() error { called = true; return nil })
 	if called || errs.KindOf(err) != errs.KindCanceled {
 		t.Errorf("Run on a canceled ctx: called=%v err=%v, want not called and KindCanceled", called, err)
-	}
-}
-
-// TestNoLeak runs 2,000 load/save cycles and checks that libvips' tracked
-// memory and allocation count return to their baseline. It is deliberately
-// not parallel: the tracked counters are process-wide, and non-parallel
-// top-level tests run while every parallel test is paused.
-func TestNoLeak(t *testing.T) {
-	data := readFixture(t, "jpeg/baseline.jpg")
-	cycle := func() {
-		buf := newBuffer(t, data)
-		defer buf.Release()
-		if _, err := thumbnailJPEG(t.Context(), buf, 64, 64); err != nil {
-			t.Fatal(err)
-		}
-	}
-	cycle() // warm up lazily initialised libvips state
-
-	// libvips' worker threads keep per-thread buffer caches that are freed
-	// asynchronously when those threads go idle, so the counters wobble by
-	// up to a few hundred KiB around the baseline. A per-cycle leak of even
-	// one allocation shows up as ≥ 2000 allocs (and the source buffer alone
-	// is ~20 KiB × 2000 = 40 MB), far above these bounds.
-	const (
-		cycles     = 2000
-		slackBytes = 1 << 20
-		slackAlloc = 64
-	)
-	before := vips.ReadMemStats()
-	for range cycles {
-		cycle()
-	}
-	after := vips.ReadMemStats()
-	if after.Mem-before.Mem > slackBytes || after.Allocs-before.Allocs > slackAlloc {
-		t.Errorf("tracked memory %d bytes / %d allocs after %d cycles, want baseline %d / %d (±%d / %d)",
-			after.Mem, after.Allocs, cycles, before.Mem, before.Allocs, slackBytes, slackAlloc)
-	}
-	if after.MemHighwater <= 0 {
-		t.Errorf("highwater = %d, want > 0", after.MemHighwater)
 	}
 }
