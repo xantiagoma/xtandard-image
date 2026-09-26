@@ -22,9 +22,9 @@ import (
 // never from a file extension or an upstream Content-Type (FORMATS.md).
 type Format uint8
 
-// Formats, one per input row of FORMATS.md §1. PDF, PSD and RAW are
-// recognised so that they fail with a precise error, but they are M2 and
-// Supported reports false for them.
+// Formats, one per input row of FORMATS.md §1. RAW is recognised so that it
+// fails with a precise error, but Supported reports false for it until its
+// work package lands.
 const (
 	FormatUnknown Format = iota
 	FormatJPEG
@@ -101,9 +101,9 @@ func (f Format) info() formatInfo {
 	case FormatUHDR:
 		return formatInfo{"uhdr", "jpg", "image/jpeg", false, false, true}
 	case FormatPDF:
-		return formatInfo{"pdf", "pdf", "application/pdf", false, true, false}
+		return formatInfo{"pdf", "pdf", "application/pdf", false, true, true}
 	case FormatPSD:
-		return formatInfo{"psd", "psd", "image/vnd.adobe.photoshop", false, true, false}
+		return formatInfo{"psd", "psd", "image/vnd.adobe.photoshop", false, true, true}
 	case FormatRAW:
 		return formatInfo{"raw", "", "application/octet-stream", false, false, false}
 	default:
@@ -130,8 +130,8 @@ func (f Format) SupportsAnimation() bool { return f.info().anim }
 // SupportsAlpha reports whether the format can carry transparency.
 func (f Format) SupportsAlpha() bool { return f.info().alpha }
 
-// Supported reports whether the format can be decoded in this milestone.
-// PDF, PSD and RAW are recognised but land in M2; Probe rejects them with
+// Supported reports whether the format can be decoded in this build. RAW is
+// recognised but not decoded yet; Probe rejects it with
 // errs.KindUnsupported.
 func (f Format) Supported() bool { return f.info().supported }
 

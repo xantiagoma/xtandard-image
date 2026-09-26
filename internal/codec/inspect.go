@@ -44,9 +44,9 @@ type EXIFTag struct {
 
 // Inspect probes buf like Probe (same limits and errors) and additionally
 // reads the band layout and the metadata fields libvips attaches to the
-// image header. BMP and ICO (pure-Go loaders) and SVG carry no EXIF, IPTC
-// or XMP; their band layout follows from the probe. Like Probe it must run
-// inside vips.Run.
+// image header. BMP and ICO (pure-Go loaders), SVG and PSD carry no EXIF,
+// IPTC or XMP here; their band layout follows from the probe (the
+// Photoshop header for PSD). Like Probe it must run inside vips.Run.
 func Inspect(ctx context.Context, buf *vips.Buffer, lim Limits, contentType string) (Info, error) {
 	m, err := Probe(ctx, buf, lim, contentType)
 	if err != nil {
@@ -61,6 +61,15 @@ func Inspect(ctx context.Context, buf *vips.Buffer, lim Limits, contentType stri
 		}
 		info.SampleFormat, info.Colorspace = "uchar", "srgb"
 		return info, nil
+	case FormatPSD:
+		// ImageMagick decodes the whole file even for a header: describe
+		// the merged image from the Photoshop header instead.
+		h, err := ParsePSDHeader(buf.Bytes())
+		if err != nil {
+			return Info{}, err
+		}
+		info.Bands, info.SampleFormat, info.Colorspace = psdLayout(&h)
+		return info, nil
 	default:
 	}
 	if err := ctxErr(ctx); err != nil {
@@ -73,6 +82,9 @@ func Inspect(ctx context.Context, buf *vips.Buffer, lim Limits, contentType stri
 	}
 	defer img.Close()
 	info.Bands = img.Bands()
+	if m.Format == FormatPDF && !m.HasAlpha {
+		info.Bands = 3 // PDFium's RGBA, rendered opaque by default (probePDF)
+	}
 	info.SampleFormat = bandFormatName(img.BandFormat())
 	info.Colorspace = interpretationName(img.Interpretation())
 	for _, f := range img.Fields() {
@@ -189,4 +201,36 @@ func InfoFormat(f Format) (name, mime string) {
 	default:
 		return f.String(), f.MIME()
 	}
+}
+
+// psdLayout is the band count, libvips sample format and interpretation
+// the merged image of h loads with.
+func psdLayout(h *PSDHeader) (bands int, sample, colorspace string) {
+	sample = "uchar"
+	switch h.Depth {
+	case 16:
+		sample = "ushort"
+	case 32:
+		sample = "float"
+	default:
+	}
+	switch h.ColorSpace() {
+	case ColorSpaceSRGB:
+		colorspace = "srgb"
+		if h.Depth == 16 {
+			colorspace = "rgb16"
+		}
+	case ColorSpaceGrey:
+		colorspace = "b-w"
+		if h.Depth == 16 {
+			colorspace = "grey16"
+		}
+	case ColorSpaceCMYK:
+		colorspace = "cmyk"
+	case ColorSpaceLab:
+		colorspace = "lab"
+	default:
+		colorspace = "multiband"
+	}
+	return h.Channels, sample, colorspace
 }
