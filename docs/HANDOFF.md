@@ -4,31 +4,18 @@ Read this first when resuming the build with a fresh context. It says where the 
 how work is delivered, and which helper scripts exist. The roadmap with per-package status is
 `docs/ROADMAP.md`; the delivery protocol for coding agents is `docs/AGENT-WORKFLOW.md`.
 
-## State as of 2026-09-27
+## State as of 2026-09-27 (evening)
 
-- **M1 is complete** on `main` (PRs #1–#48, #61): server, every source type, imgproxy + query
-  dialects, signing/encryption, all still formats, executor verified against imgproxy, encoders,
-  `/info`, response semantics, raw/fallback, presets, limiter, observability, slim image, release
-  pipeline, acceptance suite (62 cases on amd64 + arm64), README/quick start/benchmarks.
-  No release tag has been cut yet (`docs/RELEASE.md`).
-- **M2 in progress.** Merged: WP-66 base image r2. Open, stacked on `m2/*` (PRs #50–#67, top
-  `m2/wp-63-info-pro`): imgix, ImageKit, RustFS, chained pipelines, colour adjustments, cache core,
-  pixel focus + thumbor meta, client hints, auto-quality, PDF/PSD, filter extras, geometry extras,
-  disk/S3/Redis cache tiers, config JSON Schema, best format, /info Pro options.
-- **FROZEN top while integrator C rebases onto it** (2026-09-27): the chain
-  `wp-43-79-cloudflare → wp-46-wsrv → wp-45-thumbor → wp-44-bunny → wp-85-aws-sih → wp-41-cloudinary →
-  wp-49-raw → wp-47-48-simple-dialects`, then `wp-64-62-request-extras`. When it reports, adopt each with
-  `gh stack add` + `gh stack sync` + `gh stack submit --auto --open` + `gh pr edit` (they will already be
-  on top; no `--onto` needed).
-- **Nothing else is being implemented.** All M2 work packages are either on the stack or in the chain above.
-- **Remaining M2 after that:** WP-81b (Pages + SchemaStore publishing), WP-82b huma-handler spike,
-  and a stabilisation pass **WP-87** (not yet in ROADMAP): (1) libvips process-wide error buffer race —
-  `xi_load_error` in `internal/vips/load.c` reads the buffer to classify password-protected PDFs and
-  can read another thread's message; fix by detecting `/Encrypt` in the PDF trailer in pure Go before
-  calling pdfload and by never classifying on error text; (2) wall-clock tests (`TestRawPreviewFaster`,
-  `httpsrc TestFetchTimeout/body`) → synctest or ratios with slack; (3) leak-test slack under load
-  (`TestProcessNoLeak`, `TestWatermarkNoLeak`); (4) PNG-alpha→WebP throughput and peak RSS profiling.
-  spike. Then M3 (`docs/ROADMAP.md`).
+- **M1 and M2 are complete on `main`.** M2 landed as one merge commit (#79) of the 27-branch stack
+  (per-package PRs #50–#78 closed with a reference; their descriptions document each package). Final
+  verification of the merged tree in the container: 59 packages green.
+- **Next, in order:** WP-87 stabilisation pass (agent running; see "Known gaps"), WP-81b Pages +
+  SchemaStore publishing (needs GitHub Pages enabled by the owner and workflows re-enabled), WP-82b
+  huma-handler spike, then **M3** per `docs/ROADMAP.md` (full image with FFmpeg + ONNX, face/object
+  detection, video thumbnails, advanced watermarks, GIF→video, playground, TypeScript package WP-84).
+- Stacks start fresh per milestone: `m3/wp-XX-slug` branches, adopt with `scripts/stack/adopt2.sh`.
+  Because GitHub's stack grouping blocked per-PR merges twice, the fallback that worked for M2 is:
+  one PR from the verified chain top merged with `--merge`, then close the per-package PRs.
 
 ## Owner decisions taken (do not reopen)
 
