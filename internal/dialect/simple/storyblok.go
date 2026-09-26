@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/thumbor/filters"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
 
@@ -108,28 +109,17 @@ func storyblokExtract(path, rawQuery string) (*Extracted, error) {
 	return ex, nil
 }
 
-// splitFilters parses "name(args):name(args)" (colons inside parentheses
-// belong to the arguments) into "filters:<name>" parameters.
+// splitFilters parses "name(args):name(args)" with thumbor's filter grammar
+// (thumbor/filters: colons and nested parentheses inside the arguments
+// belong to them) into "filters:<name>" parameters.
 func splitFilters(s string) ([]KV, error) {
-	var out []KV
-	for s != "" {
-		open := strings.IndexByte(s, '(')
-		if open <= 0 {
-			return nil, dialect.InvalidURL("invalid filters")
-		}
-		closing := strings.IndexByte(s[open:], ')')
-		if closing < 0 {
-			return nil, dialect.InvalidURL("invalid filters")
-		}
-		closing += open
-		out = append(out, KV{Key: "filters:" + s[:open], Value: s[open+1 : closing]})
-		s = s[closing+1:]
-		if s != "" {
-			if s[0] != ':' {
-				return nil, dialect.InvalidURL("invalid filters")
-			}
-			s = s[1:]
-		}
+	fs, err := filters.Parse(s)
+	if err != nil {
+		return nil, dialect.InvalidURL("invalid filters")
+	}
+	out := make([]KV, 0, len(fs))
+	for _, f := range fs {
+		out = append(out, KV{Key: "filters:" + f.Name, Value: f.Args})
 	}
 	return out, nil
 }
