@@ -229,6 +229,7 @@ func TestResponseHeaders(t *testing.T) {
 				"X-Xi-Origin-Height":         "480",
 				"X-Xi-Result-Width":          "64",
 				"X-Xi-Result-Height":         "48",
+				"X-Xi-Quality":               "80",
 				"X-Xi-Ignored":               "gif_options, ab",
 			},
 		},

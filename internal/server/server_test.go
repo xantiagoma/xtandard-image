@@ -197,7 +197,7 @@ func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*Process
 	if p.err != nil && (p.errFor == nil || bytes.Equal(p.errFor, in.Source.Bytes())) {
 		return nil, p.err
 	}
-	o := &ProcessOutput{Body: p.out, ContentType: "image/jpeg", Format: transform.FormatJPEG, Width: 64, Height: 48}
+	o := &ProcessOutput{Body: p.out, ContentType: "image/jpeg", Format: transform.FormatJPEG, Width: 64, Height: 48, Quality: 80}
 	if p.outFormat != transform.FormatUnset {
 		o.Format, o.ContentType = p.outFormat, p.outType
 	}

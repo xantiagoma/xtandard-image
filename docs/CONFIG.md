@@ -213,8 +213,11 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_FORMATS_BEST_MAX_PIXELS` | `8000000` | |
 | `XI_FORMATS_BEST_COMPLEXITY_THRESHOLD` | `5.5` | |
 | `XI_FORMATS_SAVE_DATA_QUALITY_DELTA` | `-15` | |
-| `XI_FORMATS_AUTOQUALITY_METHOD` | `none` | `none` \| `size` \| `dssim` |
-| `XI_FORMATS_AUTOQUALITY_TARGET` / `_MIN` / `_MAX` / `_ALLOWED_ERROR` | `0.02` / `60` / `85` / `0.001` | |
+| `XI_FORMATS_AUTOQUALITY_METHOD` | `none` | `none` \| `size` \| `dssim` (imgproxy `IMGPROXY_AUTOQUALITY_METHOD`; `ml` is not implemented). A request's `autoquality` option overrides it; with the method from config, an explicit request quality wins. See FORMATS.md §6.4 |
+| `XI_FORMATS_AUTOQUALITY_TARGET` / `_MIN` / `_MAX` / `_ALLOWED_ERROR` | `0.02` / `60` / `85` / `0.001` | Target: DSSIM (`dssim`) or bytes (`size`, must then be ≥ 1); quality range searched; how far from the DSSIM target a save may land and stop the search (0–1) |
+| `XI_FORMATS_AUTOQUALITY_FORMAT_MIN` | `jpeg=40,webp=40,avif=30` | Per-format minimum quality (imgproxy `IMGPROXY_AUTOQUALITY_FORMAT_MIN`); formats not listed use `_MIN`. Setting the variable replaces the whole default map |
+| `XI_FORMATS_AUTOQUALITY_FORMAT_MAX` | `jpeg=90,webp=90,avif=80` | Per-format maximum quality (`IMGPROXY_AUTOQUALITY_FORMAT_MAX`); as above |
+| `XI_FORMATS_AUTOQUALITY_FORMAT_TARGET` | `` | Per-format target, e.g. `avif=0.015`; formats not listed use `_TARGET` |
 | `XI_LIMITS_MAX_SRC_BYTES` | `50MiB` | |
 | `XI_LIMITS_MAX_SRC_PIXELS` | `50000000` | |
 | `XI_LIMITS_MAX_RESULT_DIMENSION` | `8192` | |

@@ -130,6 +130,10 @@ type ProcessOutput struct {
 	ContentType   string
 	Format        transform.Format
 	Width, Height int
+	// Quality is the encoder quality of Body (0 for formats without one);
+	// with auto-quality, the quality the search chose. Sent as X-Xi-Quality
+	// with debug headers.
+	Quality int
 	// Skipped lists request options the pipeline did not apply yet (later
 	// work packages); the server logs them at debug level.
 	Skipped []string

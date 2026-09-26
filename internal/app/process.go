@@ -135,7 +135,41 @@ func encoderConfig(cfg *config.Config) encode.Config {
 	ec.JXLEffort = f.JXL.Effort
 	ec.GIFEffort = f.GIF.Effort
 	ec.HEICEncode = f.HEIC.Encode
+	ec.AutoQuality = autoQualityConfig(&f.AutoQuality)
 	return ec
+}
+
+// autoQualityConfig maps XI_FORMATS_AUTOQUALITY_* onto the encoder's.
+func autoQualityConfig(aq *config.AutoQuality) encode.AutoQualityConfig {
+	method := map[config.AutoQualityMethod]transform.AutoQualityMethod{
+		config.AutoQualityNone: transform.AutoQualityNone, config.AutoQualitySize: transform.AutoQualitySize,
+		config.AutoQualityDSSIM: transform.AutoQualityDSSIM,
+	}[aq.Method]
+	return encode.AutoQualityConfig{
+		Method:       method,
+		Target:       aq.Target,
+		Min:          aq.Min,
+		Max:          aq.Max,
+		AllowedError: aq.AllowedError,
+		FormatTarget: formatMap(aq.FormatTarget),
+		FormatMin:    formatMap(aq.FormatMin),
+		FormatMax:    formatMap(aq.FormatMax),
+	}
+}
+
+// formatMap re-keys a per-format config map by transform.Format; config
+// validation already rejected formats without a quality.
+func formatMap[V any](in map[config.Format]V) map[transform.Format]V {
+	if in == nil {
+		return nil
+	}
+	out := make(map[transform.Format]V, len(in))
+	for f, v := range in {
+		if tf, err := transform.ParseFormat(string(f)); err == nil {
+			out[tf] = v
+		}
+	}
+	return out
 }
 
 // Process implements server.Processor.
@@ -170,6 +204,7 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		Format:      res.Format,
 		Width:       res.Width,
 		Height:      res.Height,
+		Quality:     res.Quality,
 		Skipped:     res.Skipped,
 	}, nil
 }

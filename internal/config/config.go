@@ -364,13 +364,18 @@ type BestFormat struct {
 	ComplexityThreshold float64 `yaml:"complexity_threshold" env:"COMPLEXITY_THRESHOLD"`
 }
 
-// AutoQuality configures quality search.
+// AutoQuality configures quality search (docs/FORMATS.md "Auto-quality").
+// The per-format maps override Target, Min and Max for their format; a
+// variable replaces the whole default map.
 type AutoQuality struct {
-	Method       AutoQualityMethod `yaml:"method"        env:"METHOD"`
-	Target       float64           `yaml:"target"        env:"TARGET"`
-	Min          int               `yaml:"min"           env:"MIN"`
-	Max          int               `yaml:"max"           env:"MAX"`
-	AllowedError float64           `yaml:"allowed_error" env:"ALLOWED_ERROR"`
+	Method       AutoQualityMethod  `yaml:"method"        env:"METHOD"`
+	Target       float64            `yaml:"target"        env:"TARGET"`
+	Min          int                `yaml:"min"           env:"MIN"`
+	Max          int                `yaml:"max"           env:"MAX"`
+	AllowedError float64            `yaml:"allowed_error" env:"ALLOWED_ERROR"`
+	FormatTarget map[Format]float64 `yaml:"format_target" env:"FORMAT_TARGET" envKeyValSeparator:"="`
+	FormatMin    map[Format]int     `yaml:"format_min"    env:"FORMAT_MIN"    envKeyValSeparator:"="`
+	FormatMax    map[Format]int     `yaml:"format_max"    env:"FORMAT_MAX"    envKeyValSeparator:"="`
 }
 
 // Limits bound the work a single request may cause.
@@ -549,7 +554,11 @@ func Defaults() Config {
 			SVGPassthrough:       true,
 			SaveDataQualityDelta: -15,
 			Best:                 BestFormat{MaxPixels: 8_000_000, ComplexityThreshold: 5.5},
-			AutoQuality:          AutoQuality{Method: AutoQualityNone, Target: 0.02, Min: 60, Max: 85, AllowedError: 0.001},
+			AutoQuality: AutoQuality{
+				Method: AutoQualityNone, Target: 0.02, Min: 60, Max: 85, AllowedError: 0.001,
+				FormatMin: map[Format]int{FormatJPEG: 40, FormatWebP: 40, FormatAVIF: 30},
+				FormatMax: map[Format]int{FormatJPEG: 90, FormatWebP: 90, FormatAVIF: 80},
+			},
 		},
 		Limits: Limits{
 			MaxSrcBytes:             50 << 20,

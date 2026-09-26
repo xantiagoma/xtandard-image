@@ -67,6 +67,11 @@ func TestProcessNoLeak(t *testing.T) {
 		{"jpeg/exif-orientation-6-icc.jpg", "rs:fit:80:80/ex:1/bg:255:0:0", transform.FormatJPEG},
 		{"gif/animated.gif", "rs:fill:32:32", transform.FormatGIF},
 		{"webp/animated.webp", "c:48:48/rs:fit:24:24", transform.FormatWebP},
+		// Auto-quality: several saves and decodes per request (WP-56).
+		{"jpeg/baseline.jpg", "rs:fit:120:120/aq:dssim", transform.FormatJPEG},
+		{"png/rgba8.png", "aq:dssim:0.01", transform.FormatWebP},
+		{"jpeg/baseline.jpg", "rs:fit:120:120/aq:size:2000", transform.FormatWebP},
+		{"gif/animated.gif", "rs:fill:32:32/aq:dssim", transform.FormatWebP},
 	}
 	type prepared struct {
 		data []byte
