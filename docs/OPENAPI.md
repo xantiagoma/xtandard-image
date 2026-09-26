@@ -9,9 +9,8 @@ xtandard-image describes its HTTP surface in an OpenAPI 3.1 document ([ADR 0008]
 | `GET /openapi.json` | admin (`XI_ADMIN_ADDR`) | Always on. Strong `ETag`, `304` on `If-None-Match`. |
 | `GET /docs` | admin | Scalar API reference, only with `XI_ADMIN_DOCS=true`; otherwise `404` with a pointer to `/openapi.json`. |
 | `xtandard-image openapi` | CLI | Prints the same bytes, for codegen without a running instance. |
-| `https://xantiagoma.github.io/xtandard-image/schema/v1/openapi.json` | GitHub Pages | Published by `.github/workflows/pages.yml` (WP-81b) next to the config schema; `schema/latest/openapi.json` is the same file. |
-| `https://xantiagoma.github.io/xtandard-image/api/` | GitHub Pages | Scalar API reference over the published document (same pinned Scalar build and SRI as `/docs`). |
-
+| `https://xantiagoma.github.io/xtandard-image/schema/v1/openapi.json` | GitHub Pages | Published by `.github/workflows/pages.yml` (WP-81b) next to the config schema; `schema/latest/openapi.json` is the same file. Not live yet: the site deploys once the owner enables GitHub Pages and the workflows. |
+| `https://xantiagoma.github.io/xtandard-image/api/` | GitHub Pages | Scalar API reference over the published document (same pinned Scalar build and SRI as `/docs`). Not live yet, like the row above. |
 | `GET /_playground/api/meta`, `POST /_playground/api/sign`, `GET /_playground/api/render` | admin (public too with `XI_PLAYGROUND_PUBLIC=true`) | Playground JSON API, tagged `playground`, only with `XI_PLAYGROUND_ENABLED=true` ([CONFIG.md](CONFIG.md#playground)); the page and its assets are documented too. |
 
 Neither admin route exists on the public listener. The Pages copy follows `main` (the site is rebuilt whenever the committed file changes, see [RELEASE.md](RELEASE.md#schema-and-api-site-github-pages)); `v1` is the config schema's major version, shared by both documents so they are published side by side. `task pages:build` assembles the same site locally in `dist/pages/`. `/docs` is a small HTML page: the browser loads Scalar 1.72.1 from `cdn.jsdelivr.net` (pinned version, Subresource Integrity, a CSP that allows only that script), so the viewer needs internet access. Nothing of Scalar is in the binary. Without a CDN, point any OpenAPI viewer (Redocly, Swagger UI, an IDE plugin) at `/openapi.json`.

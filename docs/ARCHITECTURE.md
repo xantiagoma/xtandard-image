@@ -68,7 +68,7 @@ Implementation order (WP-34a, `server.process`): route+parse+authenticate (2–4
 Go module `github.com/xantiagoma/xtandard-image`. Arrows mean "may import". Anything not listed may not be imported by `internal/transform`.
 
 ```
-cmd/xtandard-image/         main: flags, subcommands (serve, health, sign, config print, version)
+cmd/xtandard-image/         main: flags, subcommands (serve, health, config print|schema|validate, openapi, version); URLs are signed with scripts/sign-url.sh
 internal/
   app/                      composition root: builds every component from config, wires, owns lifecycle
   config/                   one Config struct: optional YAML (goccy/go-yaml, strict) then env via caarlos0/env/v11 (env wins), *_FILE secrets, Validate(), redaction
@@ -79,10 +79,10 @@ internal/
     router/                 host / prefix / default selection
     imgproxy/               canonical dialect (+ /info)
     query/                  native query + imaginary-compatible endpoints
-    imgix/ cloudinary/ imagekit/ cloudflare/ bunny/ thumbor/ wsrv/
+    imgix/ cloudinary/ imagekit/ cloudflare/ bunny/ thumbor/ wsrv/ awssih/
     simple/                 table-driven "micro-dialects" for the unpic long tail (nextjs, netlify, ipx, ...)
   security/
-    sign/                   Verifier interface + imgproxy, imgix, thumbor, cloudinary, imagekit, bunny, xi schemes
+    sign/                   Verifier interface + imgproxy, imaginary, imgix, thumbor, cloudinary, imagekit, bunny, Cloudflare Images, AWS SIH, xi schemes
     crypt/                  AES-CBC source URL encryption/decryption
     ssrf/                   net.Dialer control, IP classification, redirect policy
     svg/                    SVG sanitiser (pure Go, token-stream based)
@@ -722,7 +722,7 @@ compose.smoke.yml              app + static origin, driven by scripts/smoke.sh (
 compose.acceptance.yml         app (env-only config) + app-tiny + nginx origin + RustFS, driven by scripts/acceptance.sh (WP-39, M1 release gate; suite in test/acceptance)
 ```
 
-**Base image** `ghcr.io/xantiagoma/xtandard-image-base:<vips-version>-r<N>-<flavor>` (flavor `slim` | `full`; the `runtime` target) plus `…-<flavor>-builder` (the `builder` target: Go 1.27.1, golangci-lint, go-task, headers and pkg-config files; used for CI, `task docker:test` and the app build stage), built weekly and on `docker/base/**` change, amd64 + arm64 on native runners, cosign-signed, SBOM (syft) attached. See `docker/base/README.md`.
+**Base image** `ghcr.io/xantiagoma/xtandard-image-base:<vips-version>-r<N>-<flavor>` (flavor `slim` | `full`; the `runtime` target) plus `…-<flavor>-builder` (the `builder` target: Go 1.27.1, golangci-lint, go-task, headers and pkg-config files; used for CI, `task docker:test` and the app build stage), built weekly and on `docker/base/**` change, amd64 + arm64 on native runners, cosign-signed, SBOM (syft) attached. See `docker/base/README.md`. Status: `slim` (r2) is published; `full` (r3, WP-70) is in review and so far built and verified locally on linux/arm64 only, because the GitHub workflows are disabled; a third flavour `gpl` (WP-70b: `full` plus FFmpeg `--enable-gpl` with libx264/x265 and its own GPL notice) is in progress and is the only image allowed to contain GPL code.
 
 Contents of `/opt/xtandard`:
 
@@ -735,7 +735,7 @@ Contents of `/opt/xtandard`:
 | `etc/ImageMagick-7/policy.xml` | restrictive policy (§10) |
 | `share/licenses/` | every dependency's license + `SOURCES.md` with source URLs (LGPL compliance) |
 
-All libraries built with `-O3 -fstack-protector-strong -D_FORTIFY_SOURCE=2`, RPATH `$ORIGIN`, stripped. No GPL component: `build-deps.sh` runs a license check that fails the build on GPL/AGPL (see ADR 0006).
+All libraries built with `-O3 -fstack-protector-strong -D_FORTIFY_SOURCE=2`, RPATH `$ORIGIN`, stripped. No GPL component in `slim` or `full`: `build-deps.sh` runs a license check that fails the build on GPL/AGPL (see ADR 0006).
 
 **App image** (`Dockerfile` at the repo root, so the build context is the module; multi-stage; release process in `docs/RELEASE.md`). WP-37 keeps the WP-00 layout: the runtime stage is the base `runtime` target itself (`FROM ${BASE_RUNTIME}`), which already is `ubuntu:noble` + `ca-certificates`/`tzdata` + the runtime subset of `/opt/xtandard` + UID 65532, so copying the libraries into a bare `ubuntu:noble` would rebuild the same layers and lose the base image's verified contents (`verify-image.sh`, license gate) for no size gain (slim measured 63.9 MB compressed on arm64). Both base references are Dockerfile `ARG`s (`BASE_BUILDER`, `BASE_RUNTIME`) whose defaults are the tags derived from `docker/base/versions.sh`; CI and the release workflow resolve them to `@sha256:` digests with `scripts/base-image-ref.sh`, and `--check` fails when the defaults drift from `versions.sh`.
 

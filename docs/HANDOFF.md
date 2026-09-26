@@ -9,10 +9,10 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
 - **M1 and M2 are complete on `main`.** M2 landed as one merge commit (#79) of the 27-branch stack
   (per-package PRs #50–#78 closed with a reference; their descriptions document each package). Final
   verification of the merged tree in the container: 59 packages green.
-- **Next, in order:** WP-87 stabilisation pass (agent running; see "Known gaps"), WP-81b Pages +
-  SchemaStore publishing (needs GitHub Pages enabled by the owner and workflows re-enabled), WP-82b
-  huma-handler spike, then **M3** per `docs/ROADMAP.md` (full image with FFmpeg + ONNX, face/object
-  detection, video thumbnails, advanced watermarks, GIF→video, playground, TypeScript package WP-84).
+- **Next, in order:** WP-87 stabilisation pass (#86), WP-81b Pages + SchemaStore publishing (#80;
+  the deploy needs GitHub Pages enabled by the owner and workflows re-enabled) and the WP-82b
+  huma-handler spike (#80) are all in the `m3` stack now; the rest of **M3** per `docs/ROADMAP.md`
+  (face/object detection options, video thumbnails, GIF→video, `gpl` flavour) is in progress or planned.
 - **Stack `m3` (bottom → top):** #80 WP-81b/82b Pages+SchemaStore → #81 WP-70 full base → #83 WP-84
   TypeScript → #84 WP-80 playground → #85 WP-77/78 watermarks → #86 WP-87 stabilisation → #87 WP-88
   imgix mount → #88 WP-71 detection runtime. All verified green individually in the container.
@@ -90,9 +90,9 @@ owner has authorised merging PRs without review.
 
 ## Known gaps and follow-ups
 
-- **imgix dialect is parsed but not mounted**: `internal/dialect/imgix` exists and is tested, but
-  `internal/app/build.go` only warns "enabled but not implemented yet". WP-88 (agent launched
-  2026-09-27) mounts it like the other dialects and adds acceptance cases.
+- **imgix dialect is parsed but not mounted on `main`**: `internal/dialect/imgix` exists and is
+  tested, but `main`'s `internal/app/build.go` only warns "enabled but not implemented yet". WP-88
+  (#87, in the `m3` stack) mounts it like the other dialects and adds acceptance cases.
 
 - Peak RSS is still above imgproxy's after WP-87's `MALLOC_CONF=narenas:2` (png-alpha 400 px
   WebP at 16 concurrent: ~180–210 MiB vs ~165–180 MiB; it was 2–5×; see `bench/RESULTS.md`). The

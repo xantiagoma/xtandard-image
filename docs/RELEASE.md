@@ -4,6 +4,8 @@ How the app image `ghcr.io/xantiagoma/xtandard-image` is built, published and ve
 npm package `@xtandard/image-url` follows it ([npm package](#npm-package)).
 Design context: `docs/ARCHITECTURE.md` §14, `docs/go-standards.md` §9, ADR 0005, ADR 0009.
 
+**Status (2026-09-27):** no release has been tagged yet, nothing is on npm, and the GitHub Pages site is not deployed. All GitHub workflows (`ci`, `base-image`, `nightly`, `release`, `pages`, `ts`) are disabled by owner decision until further notice, so everything below runs only after they are re-enabled (`gh workflow enable <name>`); until then images are built and verified locally (`task docker:*`).
+
 ## What gets published
 
 A tag `vX.Y.Z` runs `.github/workflows/release.yml`:
@@ -23,7 +25,7 @@ Tags (`X.Y.Z` has no leading `v`):
 | `slim` | yes | no |
 | `latest` | yes | no |
 
-`slim` is the default flavor until `full` exists (M3); then `X.Y.Z`/`latest` keep pointing at slim and `full` gets `X.Y.Z-full`/`full`.
+`slim` is the only app flavor the release workflow builds today. The `full` base image is in review (WP-70, #81) and the `gpl` flavor is in progress (WP-70b); once they ship, `X.Y.Z`/`latest` keep pointing at slim and `full` gets `X.Y.Z-full`/`full`.
 
 Build properties (enforced in the `Dockerfile`):
 
