@@ -633,6 +633,7 @@ const (
 	DialectImagekit         DialectName = "imagekit"
 	DialectBunny            DialectName = "bunny"
 	DialectThumbor          DialectName = "thumbor"
+	DialectAWSSIH           DialectName = "awssih"
 )
 
 // UnmarshalText implements encoding.TextUnmarshaler.
@@ -644,6 +645,6 @@ func (d *DialectName) UnmarshalText(b []byte) error {
 func dialectNames() []DialectName {
 	return []DialectName{
 		DialectImgproxy, DialectQuery, DialectWsrv, DialectCloudflare,
-		DialectCloudflareImages, DialectImgix, DialectCloudinary, DialectImagekit, DialectBunny, DialectThumbor,
+		DialectCloudflareImages, DialectImgix, DialectCloudinary, DialectImagekit, DialectBunny, DialectThumbor, DialectAWSSIH,
 	}
 }

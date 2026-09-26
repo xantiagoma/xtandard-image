@@ -201,6 +201,7 @@ type Dialects struct {
 	Imagekit         Mount                   `yaml:"imagekit"          envPrefix:"IMAGEKIT_"`
 	Bunny            Mount                   `yaml:"bunny"             envPrefix:"BUNNY_"`
 	Thumbor          Mount                   `yaml:"thumbor"           envPrefix:"THUMBOR_"`
+	AWSSIH           AWSSIHDialect           `yaml:"awssih"            envPrefix:"AWSSIH_"`
 	Simple           SimpleDialect           `yaml:"simple"            envPrefix:"SIMPLE_"`
 }
 
@@ -242,6 +243,26 @@ type CloudinaryDialect struct {
 type CloudflareImagesDialect struct {
 	Mount    `yaml:",inline"`
 	Accounts map[string]string `yaml:"accounts" env:"ACCOUNTS" envKeyValSeparator:"="`
+}
+
+// AWSSIHDialect is AWS "Dynamic Image Transformation for Amazon
+// CloudFront" (Serverless Image Handler, docs/URL-DIALECTS.md §13). Keys
+// are the SIH secrets, used verbatim (SIH's SECRETS_MANAGER/SECRET_KEY
+// value).
+type AWSSIHDialect struct {
+	Mount `yaml:",inline"`
+	// Buckets maps SIH bucket names to sources (SIH SOURCE_BUCKETS); a
+	// request without a bucket uses the mount's source.
+	Buckets map[string]string `yaml:"buckets" env:"BUCKETS" envKeyValSeparator:"="`
+	// Thumbor forwards non-JSON paths to the thumbor dialect.
+	Thumbor bool `yaml:"thumbor" env:"THUMBOR"`
+	// QueryParams enables SIH's query-param mapper (format, fit, width, ...).
+	QueryParams bool `yaml:"query_params" env:"QUERY_PARAMS"`
+	// RewriteMatchPattern and RewriteSubstitution are SIH's custom request
+	// type: a "/pattern/flags" regex applied to non-JSON paths before they
+	// are forwarded to thumbor.
+	RewriteMatchPattern string `yaml:"rewrite_match_pattern" env:"REWRITE_MATCH_PATTERN"`
+	RewriteSubstitution string `yaml:"rewrite_substitution"  env:"REWRITE_SUBSTITUTION"`
 }
 
 // SimpleDialect is the table-driven family (nextjs, netlify, ipx, …); each
@@ -580,6 +601,7 @@ func Defaults() Config {
 			Imagekit:         mount("/imagekit/"),
 			Bunny:            mount("/bunny/"),
 			Thumbor:          mount("/thumbor/"),
+			AWSSIH:           AWSSIHDialect{Mount: mount("/sih/"), QueryParams: true},
 		},
 		Processing: Processing{
 			QueueSize:         -1,

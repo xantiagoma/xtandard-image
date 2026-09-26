@@ -241,7 +241,7 @@ func (d *Dialects) mounts() map[string]Mount {
 		"imgproxy": d.Imgproxy.Mount, "query": d.Query, "wsrv": d.Wsrv,
 		"cloudflare": d.Cloudflare, "cloudflare_images": d.CloudflareImages.Mount,
 		"imgix": d.Imgix, "cloudinary": d.Cloudinary.Mount, "imagekit": d.Imagekit,
-		"bunny": d.Bunny, "thumbor": d.Thumbor,
+		"bunny": d.Bunny, "thumbor": d.Thumbor, "awssih": d.AWSSIH.Mount,
 	}
 }
 
@@ -290,6 +290,15 @@ func (c *Config) validateDialects(v *validator) {
 		v.check(hash != "" && !strings.Contains(hash, "/"), "dialects.cloudflare_images.accounts", "bad account hash %q", hash)
 		v.check(c.hasSource(src), "dialects.cloudflare_images.accounts", "account %q maps to unknown source %q", hash, src)
 	}
+	for _, bucket := range sortedKeys(d.AWSSIH.Buckets) {
+		src := d.AWSSIH.Buckets[bucket]
+		v.check(bucket != "", "dialects.awssih.buckets", "bucket name must not be empty")
+		v.check(c.hasSource(src), "dialects.awssih.buckets", "bucket %q maps to unknown source %q", bucket, src)
+	}
+	v.check((d.AWSSIH.RewriteMatchPattern == "") == (d.AWSSIH.RewriteSubstitution == ""),
+		"dialects.awssih.rewrite_match_pattern", "must be set together with rewrite_substitution")
+	v.check(d.AWSSIH.RewriteMatchPattern == "" || strings.HasPrefix(d.AWSSIH.RewriteMatchPattern, "/"),
+		"dialects.awssih.rewrite_match_pattern", "must be a /pattern/flags literal")
 	for i, name := range d.Simple.Enabled {
 		v.check(validName(name), fmt.Sprintf("dialects.simple.enabled[%d]", i), "%q is not a provider name", name)
 	}
