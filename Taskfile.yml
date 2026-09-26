@@ -7,7 +7,7 @@
 #   task docker:base:slim docker:base:slim:check   # build + verify the slim base locally
 #   task docker:base:full docker:base:full:check   # same for the full flavor (WP-70)
 #   task docker:base:gpl docker:base:gpl:check     # same for the gpl flavor (WP-70b, GPL)
-#   XI_BASE_IMAGE=xtandard-base:dev-full-builder task docker:test
+#   XI_BASE_IMAGE=xtandard-base:dev-full-builder task docker:test   # runs with -tags ffmpeg
 #   task test:integration   # starts compose.test.yml services (RustFS, ...) and runs
 #                           # -tags integration tests in the builder on their network
 #   task acceptance         # black-box M1 suite against the app image $XI_IMAGE (WP-39)
@@ -30,6 +30,17 @@ vars:
 env:
   XI_BASE_IMAGE:
     sh: echo "${XI_BASE_IMAGE:-ghcr.io/xantiagoma/xtandard-image-base:slim-builder}"
+  # Image flavor of XI_BASE_IMAGE (slim | full), from its tag unless set:
+  # the full flavor ships FFmpeg, so its builds and tests use -tags ffmpeg
+  # (video thumbnails, ADR 0010). XI_GO_TAGS overrides the tag list.
+  XI_IMAGE_FLAVOR:
+    sh: |
+      if [ -n "${XI_IMAGE_FLAVOR:-}" ]; then echo "$XI_IMAGE_FLAVOR"
+      else case "${XI_BASE_IMAGE:-}" in *full*) echo full ;; *) echo slim ;; esac; fi
+  XI_GO_TAGS:
+    sh: |
+      if [ -n "${XI_GO_TAGS+x}" ]; then echo "$XI_GO_TAGS"
+      else case "${XI_IMAGE_FLAVOR:-${XI_BASE_IMAGE:-}}" in *full*) echo ffmpeg ;; *) echo "" ;; esac; fi
 
 tasks:
   default:
@@ -93,7 +104,7 @@ tasks:
   # ---- release (docs/RELEASE.md) --------------------------------------------
 
   release:build:
-    desc: "Build the release app image $XI_IMAGE (default xtandard-image:dev) for the host arch; XI_APP_BASE=xtandard-base:dev uses a local base (builder = <base>-builder), else the versions.sh base pinned by digest"
+    desc: "Build the release app image $XI_IMAGE (default xtandard-image:dev) for the host arch; XI_APP_BASE=xtandard-base:dev uses a local base (builder = <base>-builder), else the versions.sh base pinned by digest; a full base (XI_APP_BASE=xtandard-base:dev-full) builds with -tags ffmpeg"
     vars:
       EPOCH:
         sh: git log -1 --pretty=%ct 2>/dev/null || echo 0
@@ -106,8 +117,11 @@ tasks:
           builder="$(sh scripts/base-image-ref.sh --digest builder)"
           runtime="$(sh scripts/base-image-ref.sh --digest runtime)"
         fi
+        # A full-flavor base carries FFmpeg: build with -tags ffmpeg (ADR 0010).
+        case "${XI_IMAGE_FLAVOR:-}:$runtime" in full:*|*:*full*) tags=ffmpeg ;; *) tags="" ;; esac
         docker build -t "${XI_IMAGE:-xtandard-image:dev}" \
           --build-arg BASE_BUILDER="$builder" --build-arg BASE_RUNTIME="$runtime" \
+          --build-arg GO_TAGS="$tags" \
           --build-arg VERSION={{.VERSION}} --build-arg COMMIT={{.COMMIT}} \
           --build-arg SOURCE_DATE_EPOCH={{.EPOCH}} .
 

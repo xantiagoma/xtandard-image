@@ -4,6 +4,10 @@
 #   docker compose -f compose.dev.yml run --rm dev task test
 #   XI_BASE_IMAGE=xtandard-base:dev docker compose -f compose.dev.yml run --rm dev sh scripts/lint.sh
 #
+# XI_GO_TAGS becomes -tags in GOFLAGS, so go build/test/vet/list and
+# golangci-lint all see it: the Taskfile sets it to `ffmpeg` when
+# XI_BASE_IMAGE is a full-flavor image (video thumbnails, ADR 0010).
+#
 # The Taskfile's docker:* tasks wrap this service.
 name: xtandard-image-dev
 
@@ -23,7 +27,7 @@ services:
       GOMODCACHE: /gomodcache
       GOTOOLCHAIN: local
       # Worktrees bind-mount a .git file whose target is not in the container.
-      GOFLAGS: -buildvcs=false
+      GOFLAGS: -buildvcs=false -tags=${XI_GO_TAGS:-}
       FUZZTIME: ${FUZZTIME:-60s}
 
 volumes:
