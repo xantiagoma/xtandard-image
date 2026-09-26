@@ -39,6 +39,8 @@ c imagekit-javascript    https://github.com/imagekit-developer/imagekit-javascri
 c imagekit-nodejs        https://github.com/imagekit-developer/imagekit-nodejs
 c bunny-sdk              https://github.com/BunnyWay/BunnySDK
 c thumbor-url            https://github.com/thumbor/thumbor-url  
+c aws-image-handler      https://github.com/aws-solutions/dynamic-image-transformation-for-amazon-cloudfront
+c sharp-docs             https://github.com/lovell/sharp
 # Cloudflare Images docs, sparse checkout only the images section
 if [ ! -d cloudflare-docs ]; then
   git clone -q --depth 1 --filter=blob:none --sparse https://github.com/cloudflare/cloudflare-docs cloudflare-docs \
