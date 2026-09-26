@@ -75,16 +75,14 @@ type processor struct {
 	enc  encode.Config
 }
 
-func newProcessor(cfg *config.Config) (*processor, error) {
+// newProcessor builds the executor and encoder; wm is the configured
+// watermark (nil when none), owned by the caller.
+func newProcessor(cfg *config.Config, wm *exec.Watermark) (*processor, error) {
 	ec := encoderConfig(cfg)
 	enc, err := encode.New(&ec)
 	if err != nil {
 		return nil, err
 	}
-	failOn := map[config.FailOn]vips.FailOn{
-		config.FailOnNone: vips.FailOnNone, config.FailOnTruncated: vips.FailOnTruncated,
-		config.FailOnError: vips.FailOnError, config.FailOnWarning: vips.FailOnWarning,
-	}[cfg.Vips.FailOn]
 	ex, err := exec.New(&exec.Config{
 		Limits: plan.Limits{
 			MaxSrcPixels:            cfg.Limits.MaxSrcPixels,
@@ -94,12 +92,21 @@ func newProcessor(cfg *config.Config) (*processor, error) {
 			MemoryBudget:            int64(cfg.Processing.MemoryBudget),
 			AllowRaisingLimits:      cfg.Security.AllowRaisingLimits,
 		},
-		FailOn: failOn,
+		FailOn:    vipsFailOn(cfg.Vips.FailOn),
+		Watermark: wm,
 	}, enc)
 	if err != nil {
 		return nil, err
 	}
 	return &processor{exec: ex, enc: ec}, nil
+}
+
+// vipsFailOn maps XI_VIPS_FAIL_ON onto the decoder strictness.
+func vipsFailOn(f config.FailOn) vips.FailOn {
+	return map[config.FailOn]vips.FailOn{
+		config.FailOnNone: vips.FailOnNone, config.FailOnTruncated: vips.FailOnTruncated,
+		config.FailOnError: vips.FailOnError, config.FailOnWarning: vips.FailOnWarning,
+	}[f]
 }
 
 // encoderConfig maps config.Formats onto the encoder's options.
