@@ -94,3 +94,26 @@ https://www.apache.org/licenses/LICENSE-2.0
 Modifications (bounds-checked slice parsing, Pascal-string resource names,
 raw IIM input, Photoshop resolution decoding) are described in the file
 headers; the IPTC dataset table is copied with renamed identifiers.
+
+BlurHash
+--------
+internal/imageinfo/blurhash.go is a Go port of the BlurHash reference C
+encoder (C/encode.c, C/common.h), https://github.com/woltapp/blurhash
+Copyright (c) 2018 Wolt Enterprises
+Licensed under the MIT License; the full text is kept in
+internal/imageinfo/LICENSE.blurhash. The test images
+internal/imageinfo/testdata/blurhash/pic*.png and
+internal/imageinfo/testdata/thumbhash/pic*.png (downscaled) come from the
+same repository (Swift/BlurHashTest) under the same licence.
+Modifications: float64 arithmetic and a separable DCT.
+
+ThumbHash
+---------
+internal/imageinfo/thumbhash.go is a Go port of rgbaToThumbHash from the
+ThumbHash reference JavaScript (js/thumbhash.js),
+https://github.com/evanw/thumbhash
+Copyright (c) 2023 Evan Wallace
+Licensed under the MIT License; the full text is kept in
+internal/imageinfo/LICENSE.thumbhash. The test image
+internal/imageinfo/testdata/thumbhash/flower.png is the repository's
+examples/flower.jpg re-encoded as PNG, under the same licence.
