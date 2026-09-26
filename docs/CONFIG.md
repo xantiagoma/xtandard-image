@@ -24,32 +24,34 @@ Rules:
 
 ### Config file formats and schema (ADR 0007)
 
-The file is YAML, JSON or TOML, chosen by extension (`.yaml`/`.yml`, `.json`, `.toml`; anything else is a startup error). All three have the same keys and the same strictness: JSON goes through the same strict YAML decoder, and TOML is converted to the same tree first (TOML dates and times are rejected because no key takes one, and errors after the conversion name the dotted key path rather than a TOML line). A top-level `$schema` key is ignored in every format. Precedence and the env mapping above do not change. A JSON Schema (draft 2020-12) of the file gives editors validation, autocomplete and hover docs; each hover shows the CONFIG.md meaning, the matching `XI_*` variable and, for secrets, its `_FILE` form. The schema is generated from the `Config` struct and the tables below (`go test ./internal/config -run TestJSONSchema -update`), committed as `internal/config/config.schema.json`, and a test fails when it is stale. Its `$id` is the URL below. Stable URLs, published per release (planned: WP-81b):
+The file is YAML, JSON or TOML, chosen by extension (`.yaml`/`.yml`, `.json`, `.toml`; anything else is a startup error). All three have the same keys and the same strictness: JSON goes through the same strict YAML decoder, and TOML is converted to the same tree first (TOML dates and times are rejected because no key takes one, and errors after the conversion name the dotted key path rather than a TOML line). A top-level `$schema` key is ignored in every format. Precedence and the env mapping above do not change. A JSON Schema (draft 2020-12) of the file gives editors validation, autocomplete and hover docs; each hover shows the CONFIG.md meaning, the matching `XI_*` variable and, for secrets, its `_FILE` form. The schema is generated from the `Config` struct and the tables below (`go test ./internal/config -run TestJSONSchema -update`), committed as `internal/config/config.schema.json`, and a test fails when it is stale. Its `$id` is the versioned GitHub Pages URL below, which `.github/workflows/pages.yml` publishes (WP-81b; `task pages:build` assembles the same site locally in `dist/pages/`):
 
 ```
-https://xantiagoma.github.io/xtandard-image/schema/config.schema.json            # latest release
-https://xantiagoma.github.io/xtandard-image/schema/<version>/config.schema.json  # pinned
+https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json      # the $id: schema major version 1
+https://xantiagoma.github.io/xtandard-image/schema/latest/config.schema.json  # alias of the newest major
 ```
+
+`v1` is the schema's major version, not the release. It changes only when a key is removed or renamed, so a modeline keeps working across releases; new keys are added to `v1`. The Pages copy follows the newest published schema, so it can list a key that an older binary does not know yet: to check a file against exactly the version you run, use that instance's admin URL (below) or `config validate`. The OpenAPI document sits next to it (`schema/v1/openapi.json`, [OPENAPI.md](OPENAPI.md)).
 
 YAML (VS Code with the Red Hat YAML extension, JetBrains, Neovim/Helix with yaml-language-server). Paste this as the first line:
 
 ```
-# yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/config.schema.json
+# yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json
 ```
 
 JSON: a top-level `"$schema"` key, which the loader ignores:
 
 ```
-{ "$schema": "https://xantiagoma.github.io/xtandard-image/schema/config.schema.json", "server": { "addr": ":8080" } }
+{ "$schema": "https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json", "server": { "addr": ":8080" } }
 ```
 
 TOML (Taplo / Even Better TOML, Tombi). Put this directive first:
 
 ```
-#:schema https://xantiagoma.github.io/xtandard-image/schema/config.schema.json
+#:schema https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json
 ```
 
-After the SchemaStore listing (planned: WP-81b), files named `xtandard-image.{yaml,yml,json,toml}` are matched without the line. The schema also ships in the binary, and every copy carries the same `$id`; all its `$ref`s are local, so any copy resolves the same way:
+After the SchemaStore listing ([docs/schemastore](schemastore/README.md), pending until Pages is live), files named `xtandard.{yaml,yml,json,toml}`, `xtandard-image.{yaml,yml,json,toml}` and their dot-prefixed forms are matched without the line. The schema also ships in the binary, and every copy carries the same `$id`; all its `$ref`s are local, so any copy resolves the same way:
 
 - The admin listener serves it at `GET /config.schema.json` (`Content-Type: application/schema+json`, strong `ETag`, `304` on `If-None-Match`), which is always on and never on the public listener. A self-hosted instance can point editors at its own copy, which always matches the running version: `# yaml-language-server: $schema=http://127.0.0.1:9090/config.schema.json` (use `XI_ADMIN_ADDR`'s host and port, or `kubectl port-forward`). The same URL works in `"$schema"` and `#:schema`.
 - `xtandard-image config schema > config.schema.json` writes the same bytes to a file, for offline editors.
@@ -396,6 +398,7 @@ In the tables, `X` / `_Y` and `X`, `_Y` are shorthand: `_Y` replaces the last `_
 ## 3. YAML example
 
 ```yaml
+# yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json
 server:
   addr: ":8080"
 signing:

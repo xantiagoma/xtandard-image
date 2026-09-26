@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json
+# Positive SchemaStore sample: must validate against the published schema and
+# load with `xtandard-image config validate --no-env --config xtandard.yaml`
+# (internal/config TestSchemaStoreEntry checks both).
+server:
+  addr: ":8080"
+admin:
+  addr: "127.0.0.1:9090"
+signing:
+  keys: ["00112233445566778899aabbccddeeff"]
+  salts: ["ffeeddccbbaa99887766554433221100"]
+security:
+  unsigned_policy: restricted
+  allowed_widths: 320-1920/320
+fetch:
+  timeout: 10s
+limits:
+  max_src_bytes: 20MiB
+cache:
+  result:
+    stores: [memory]
+sources:
+  origin:
+    type: http
+    allow: [cdn.example.com]
+    headers:
+      User-Agent: xtandard-image
+presets:
+  thumb: rs:fill:200:200/q:80

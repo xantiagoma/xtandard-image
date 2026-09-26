@@ -620,7 +620,7 @@
       ]
     }
   },
-  "$id": "https://xantiagoma.github.io/xtandard-image/schema/config.schema.json",
+  "$id": "https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "description": "Config file of xtandard-image (YAML, JSON or TOML). Every key maps to an XI_* environment variable, which wins over the file. See docs/CONFIG.md.",
