@@ -36,15 +36,16 @@ func (s *Server) image(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(hdrXiCache, info.cache)
 	}
 	if err != nil {
-		cause := classify(ctx, r, err)
-		// Cloudflare onerror=redirect: an eligible failure is answered with
-		// a 302 to the source URL, ahead of the fallback image (special.go).
-		if s.errorRedirect(w, r, info, cause) {
+		err = classify(ctx, r, err)
+		// An eligible stage 9–12 failure of a request that asks for it
+		// (wsrv default=, cloudflare onerror=redirect) is a redirect
+		// (redirect.go).
+		if s.redirectOnError(w, r, info, err) {
 			return
 		}
 		// WP-34c hook: an eligible stage 9–12 failure is answered with the
 		// fallback image when one is configured (special.go).
-		if res, err = s.fallback(ctx, r, info, cause); err != nil {
+		if res, err = s.fallback(ctx, r, info, err); err != nil {
 			s.writeError(w, r, err)
 			return
 		}
