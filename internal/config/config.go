@@ -39,10 +39,12 @@ type Config struct {
 	Processing    Processing    `yaml:"processing"    envPrefix:"PROCESSING_"`
 	Fallback      Fallback      `yaml:"fallback"      envPrefix:"FALLBACK_"`
 	Formats       Formats       `yaml:"formats"       envPrefix:"FORMATS_"`
+	ClientHints   ClientHints   `yaml:"client_hints"  envPrefix:"CLIENT_HINTS_"`
 	Limits        Limits        `yaml:"limits"        envPrefix:"LIMITS_"`
 	Vips          Vips          `yaml:"vips"          envPrefix:"VIPS_"`
 	Cache         Cache         `yaml:"cache"         envPrefix:"CACHE_"`
 	Observability Observability `yaml:"observability" envPrefix:"OBSERVABILITY_"`
+	OTel          OTel          `yaml:"otel"          envPrefix:"OTEL_"`
 	Compat        Compat        `yaml:"compat"        envPrefix:"COMPAT_"`
 }
 
@@ -261,13 +263,22 @@ type Formats struct {
 	Auto    FormatSwitches `yaml:"auto"    envPrefix:"AUTO_"`
 	Enforce FormatSwitches `yaml:"enforce" envPrefix:"ENFORCE_"`
 
-	StrictAccept         bool     `yaml:"strict_accept"           env:"STRICT_ACCEPT"`
-	Preferred            []Format `yaml:"preferred"               env:"PREFERRED"`
-	SVGPassthrough       bool     `yaml:"svg_passthrough"         env:"SVG_PASSTHROUGH"`
+	StrictAccept   bool     `yaml:"strict_accept"           env:"STRICT_ACCEPT"`
+	Preferred      []Format `yaml:"preferred"               env:"PREFERRED"`
+	SVGPassthrough bool     `yaml:"svg_passthrough"         env:"SVG_PASSTHROUGH"`
+	// SkipProcessing lists source formats streamed unmodified.
+	SkipProcessing       []Format `yaml:"skip_processing" env:"SKIP_PROCESSING"`
 	SaveDataQualityDelta int      `yaml:"save_data_quality_delta" env:"SAVE_DATA_QUALITY_DELTA"`
 
 	Best        BestFormat  `yaml:"best"        envPrefix:"BEST_"`
 	AutoQuality AutoQuality `yaml:"autoquality" envPrefix:"AUTOQUALITY_"`
+}
+
+// ClientHints configures server-wide client hints (docs/FORMATS.md).
+type ClientHints struct {
+	// Enabled honours DPR/Width/Viewport-Width/Save-Data on every request
+	// that leaves the value unset (imgproxy IMGPROXY_ENABLE_CLIENT_HINTS).
+	Enabled bool `yaml:"enabled" env:"ENABLED"`
 }
 
 // JPEGFormat holds JPEG encoder defaults.
@@ -410,6 +421,12 @@ type OriginCache struct {
 type Observability struct {
 	LogLevel     LogLevel `yaml:"log_level"     env:"LOG_LEVEL"`
 	DebugHeaders bool     `yaml:"debug_headers" env:"DEBUG_HEADERS"`
+}
+
+// OTel forces tracing on without an OTEL_EXPORTER_OTLP_ENDPOINT; the
+// exporter is still chosen by the standard OTEL_* variables.
+type OTel struct {
+	Enabled bool `yaml:"enabled" env:"ENABLED"`
 }
 
 // Compat holds imgproxy compatibility switches.
