@@ -21,6 +21,7 @@ const state = {
   ids: 0,                 // element id counter
   lastBefore: '',
   objectURLs: { before: '', after: '' },
+  renders: { before: 0, after: 0 }, // per-slot sequence, drops stale previews
 };
 
 // ---- persistence (per-browser convenience only) ---------------------------
@@ -250,7 +251,9 @@ function renderArgs(entry) {
   const form = entry.option.forms[entry.form] ?? { args: [] };
   const add = (arg) => {
     const id = `arg-${++state.ids}`;
-    const bounds = [arg.min !== undefined && `≥ ${arg.min}`, arg.max !== undefined && `≤ ${arg.max}`].filter(Boolean).join(' ');
+    // Bounds at the int32 limit are "unbounded" for a person.
+    const bounds = [arg.min !== undefined && `≥ ${arg.min}`, arg.max !== undefined && arg.max < 1e9 && `≤ ${arg.max}`]
+      .filter(Boolean).join(', ');
     const label = el('label', { for: id, text: `${arg.name}${bounds ? ` (${bounds})` : ''}${arg.optional ? ' (optional)' : ''}` });
     const wrap = el('div', {}, label, argInput(entry, arg, id));
     box.append(wrap);
@@ -285,11 +288,15 @@ function buildRequest() {
     if (!src) return null;
     const sep = m.arguments_separator || ':';
     const short = $('use-alias').checked;
-    const segs = state.selected.map((s) => {
+    const segs = [];
+    for (const s of state.selected) {
       const name = short && s.option.aliases?.length ? s.option.aliases[0] : s.option.name;
       const vals = optionValues(s);
-      return vals.length === 0 ? name : [name, ...vals].join(sep);
-    });
+      // An option whose arguments are all still empty is left out until
+      // it is filled in, so half-typed options do not produce 400s.
+      if (vals.every((v) => v === '') && (s.option.forms[s.form]?.args.length ?? 0) > 0) continue;
+      segs.push(vals.length === 0 ? name : [name, ...vals].join(sep));
+    }
     const ext = $('extension').value;
     const source = $('src-encoding').value === 'base64'
       ? `/${base64url(src)}${ext ? `.${ext}` : ''}`
@@ -301,6 +308,7 @@ function buildRequest() {
     const params = [`url=${encodeURIComponent(src)}`];
     for (const s of state.selected) {
       const v = optionValues(s).join(',');
+      if (v === '') continue;
       params.push(`${encodeURIComponent(s.option.name)}=${encodeURIComponent(v)}`);
     }
     return { mount: m.id, path: '/', query: params.join('&') };
@@ -370,16 +378,20 @@ async function renderInto(which, path) {
   const img = $(`${which}-img`);
   const error = $(`${which}-error`);
   const table = $(`${which}-headers`);
+  const seq = ++state.renders[which];
   const started = performance.now();
   let res;
+  let blob;
   try {
     res = await fetch(`api/render?u=${encodeURIComponent(path)}`, { headers: { Accept: $('accept').value } });
+    blob = await res.blob();
   } catch (err) {
+    if (seq !== state.renders[which]) return;
     error.hidden = false;
     error.textContent = `Request failed: ${err.message}`;
     return;
   }
-  const blob = await res.blob();
+  if (seq !== state.renders[which]) return;
   const elapsed = performance.now() - started;
   const rows = [['status', `${res.status} ${res.statusText}`], ['size', `${blob.size.toLocaleString()} bytes`],
     ['time (browser)', `${elapsed.toFixed(1)} ms`]];
@@ -400,6 +412,7 @@ async function renderInto(which, path) {
     return;
   }
   error.hidden = true;
+  error.textContent = '';
   state.objectURLs[which] = URL.createObjectURL(blob);
   img.onload = () => {
     table.append(el('tr', {}, el('th', { scope: 'row', text: 'dimensions' }), el('td', { text: `${img.naturalWidth} × ${img.naturalHeight}` })));
@@ -416,6 +429,7 @@ async function renderPreview() {
   if (before && key !== state.lastBefore) {
     state.lastBefore = key;
     jobs.push(signRequest(before).then((s) => renderInto('before', s.url)).catch((err) => {
+      state.lastBefore = '';
       $('before-error').hidden = false;
       $('before-error').textContent = err.message;
     }));
