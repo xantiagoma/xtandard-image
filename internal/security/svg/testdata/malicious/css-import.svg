@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <style>@import url("https://evil.example/a.css");@IMPORT 'b.css' screen;rect{fill:red}</style>
+  <style>@imp<!-- split -->ort "https://evil.example/c.css";</style>
+  <style><![CDATA[@import]]> url(https://evil.example/d.css);</style>
+  <style>@\69mport "https://evil.example/e.css"; circle{fill:blue}</style>
+  <rect width="1" height="1"/>
+</svg>

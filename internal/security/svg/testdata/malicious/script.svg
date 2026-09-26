@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" width="10" height="10">
+  <script>alert(1)</script>
+  <rect width="10" height="10"/>
+  <script type="text/javascript"><![CDATA[ alert(2) ]]></script>
+  <SCRIPT>alert(3)</SCRIPT>
+  <h:script>alert(4)</h:script>
+  <script href="https://evil.example/x.js"/>
+  <handler type="application/ecmascript">alert(5)</handler>
+</svg>
