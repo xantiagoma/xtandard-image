@@ -316,8 +316,14 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		return nil, err
 	}
 	meta := planMeta(format, &in.Meta, p.pdfDPI)
-	if meta.Detections, err = p.detect.forRequest(ctx, src, format, plan.NeedsDetection(in.Request)); err != nil {
-		return nil, err
+	// Detections describe one upright picture of the source; a video
+	// sprite or animation (vtt, vta) is assembled from many frames, so it
+	// is not detected: the planner falls back to the smart crop and lists
+	// the detection options as unplanned, like a chained pipeline.
+	if !meta.VideoComposite {
+		if meta.Detections, err = p.detect.forRequest(ctx, src, format, plan.NeedsDetection(in.Request)); err != nil {
+			return nil, err
+		}
 	}
 	job := &exec.Job{
 		Request:    in.Request,
