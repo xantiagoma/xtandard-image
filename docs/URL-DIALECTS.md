@@ -116,9 +116,9 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `blur` (`bl`) | sigma | `P.Blur` | off | M1 |
 | `sharpen` (`sh`) | sigma | `P.Sharpen` | off | M1 |
 | `pixelate` (`pix`) | size | `P.Pixelate` | off | M1 |
-| `unsharp_masking` (`ush`) Pro | mode:weight:divider | `P.Unsharp` | config | M2 |
-| `blur_areas` (`ba`) Pro | sigma:l:t:w:h… | `P.BlurAreas` | off | M2 |
-| `progressive_blur` (`pbl`) Pro | sigma:direction:start:stop; direction as `gradient` | `P.ProgressiveBlur` | off (…:down:0:1) | M2 |
+| `unsharp_masking` (`ush`) Pro | mode:weight:divider (3×3 kernel, ARCHITECTURE §8.1 step 8) | `P.Unsharp` | auto:1:24 when given; off otherwise | M2 (WP-61) |
+| `blur_areas` (`ba`) Pro | sigma:l:t:w:h… (relative to the oriented source; follow rotate/flip/crops) | `P.BlurAreas` | off | M2 (WP-61) |
+| `progressive_blur` (`pbl`) Pro | sigma:direction:start:stop; direction as `gradient` | `P.ProgressiveBlur` | off (…:down:0:1) | M2 (WP-61) |
 | `blur_detections` (`bd`) Pro | sigma:classes… | `P.BlurDetections` | off | M3 |
 | `draw_detections` (`dd`) Pro | bool:classes… | `P.DrawDetections` | off | M3 |
 | `crop_objects` (`c_obj`) Pro | scale:classes… | `P.CropObjects` | off | M3 |
@@ -307,7 +307,7 @@ Grammar: path = object key relative to mount source (escaped, `SourceRelative`, 
 | `blur` (0–2000) | Blur sigma = v/20 | |
 | `px` | Pixelate | |
 | `sharp` (0–100) | Sharpen sigma = 0.5 + v/50 | |
-| `usm` (−100..100), `usmrad` (0–500, default 2.5) | Unsharp{Amount: usm/100, Sigma: usmrad} | M2 |
+| `usm` (−100..100), `usmrad` (0–500, default 2.5) | Unsharp{Amount: usm/100, Sigma: usmrad}: classic unsharp mask v + amount × (v − blur) | M2 (WP-61) |
 | `bri`, `con`, `exp`, `gam`, `sat`, `hue`, `vib` | Adjust: bri → Brightness v·255/100; con, exp, sat, vib → 1 + v/100; gam → 2^(v/100); hue → degrees; 0 = unchanged | M2 |
 | `high`, `shad` | Unsupported | |
 | `sepia`, `monochrome`, `duotone`, `duotone-alpha`, `invert` | Sepia (any amount > 0; partial amounts approximated) / Monochrome (colour alpha = intensity) / Duotone (intensity `duotone-alpha`/100) / Negate | M2 |
@@ -417,7 +417,7 @@ Grammar: the path after the mount is the file path, relative to the mount's boun
 | `dpr` (0.1–5), `dpr-auto` | Resize.DPR / ClientHints.DPR |
 | `bl-<1..100>` (also unpic's `blur-`) | Blur σ = v/2 |
 | `e-sharpen[-n]` | Sharpen σ = 1 (bare) or 0.5 + n/50 (approximation) |
-| `e-usm-<radius>-<sigma>-<amount>-<threshold>` | Unsharp{Sigma, Amount} (M2); radius, threshold dropped |
+| `e-usm-<radius>-<sigma>-<amount>-<threshold>` | Unsharp{Sigma, Amount} (WP-61, classic unsharp mask); radius, threshold dropped |
 | `e-grayscale` | Grayscale (M2) |
 | `e-contrast` (auto contrast stretch) | Equalize (M2) |
 | `r-<n>`, `r-<tl>_<tr>_<br>_<bl>`, `r-max` | Radius (M2) |
