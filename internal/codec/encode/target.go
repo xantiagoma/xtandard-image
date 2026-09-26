@@ -27,6 +27,9 @@ type Target struct {
 	// AutoQuality is the request's autoquality option; nil or zero fields
 	// take Config.AutoQuality.
 	AutoQuality *transform.AutoQuality
+	// DPI replaces the resolution written into the output (imgproxy Pro
+	// `dpi`); 0 keeps the image's.
+	DPI int
 }
 
 // Options are the per-format encoder options of the request
@@ -94,6 +97,7 @@ func NewTarget(out *transform.Output, d *negotiate.Decision, animated bool) Targ
 		Animated:    animated,
 		MaxBytes:    out.MaxBytes,
 		AutoQuality: out.AutoQuality,
+		DPI:         out.DPI,
 	}
 }
 
