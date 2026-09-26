@@ -61,4 +61,4 @@ and never push to `main`.
 - OpenStack Swift: not a source; use its S3 middleware.
 - Unsigned client-generated URLs default to `restricted` with a startup warning listing allowed widths.
 - Detection models: YuNet (faces) + YOLOX-s (objects), user-mountable ONNX.
-- Playground: inside the binary, off by default, admin listener only.
+- Playground (WP-80): inside the binary, off by default (`XI_PLAYGROUND_ENABLED=false`), served on the admin listener at `/_playground/` (`XI_PLAYGROUND_PATH`), and on the public listener only with `XI_PLAYGROUND_PUBLIC=true` (default false). No build step: plain HTML/CSS/JS embedded with `go:embed`, no bundler, no npm, no CDN scripts (works air-gapped; CSP `default-src 'self'`). URLs are signed server-side; keys never reach the browser.

@@ -12,6 +12,8 @@ xtandard-image describes its HTTP surface in an OpenAPI 3.1 document ([ADR 0008]
 | `https://xantiagoma.github.io/xtandard-image/schema/v1/openapi.json` | GitHub Pages | Published by `.github/workflows/pages.yml` (WP-81b) next to the config schema; `schema/latest/openapi.json` is the same file. |
 | `https://xantiagoma.github.io/xtandard-image/api/` | GitHub Pages | Scalar API reference over the published document (same pinned Scalar build and SRI as `/docs`). |
 
+| `GET /_playground/api/meta`, `POST /_playground/api/sign`, `GET /_playground/api/render` | admin (public too with `XI_PLAYGROUND_PUBLIC=true`) | Playground JSON API, tagged `playground`, only with `XI_PLAYGROUND_ENABLED=true` ([CONFIG.md](CONFIG.md#playground)); the page and its assets are documented too. |
+
 Neither admin route exists on the public listener. The Pages copy follows `main` (the site is rebuilt whenever the committed file changes, see [RELEASE.md](RELEASE.md#schema-and-api-site-github-pages)); `v1` is the config schema's major version, shared by both documents so they are published side by side. `task pages:build` assembles the same site locally in `dist/pages/`. `/docs` is a small HTML page: the browser loads Scalar 1.72.1 from `cdn.jsdelivr.net` (pinned version, Subresource Integrity, a CSP that allows only that script), so the viewer needs internet access. Nothing of Scalar is in the binary. Without a CDN, point any OpenAPI viewer (Redocly, Swagger UI, an IDE plugin) at `/openapi.json`.
 
 ## What it covers
@@ -19,6 +21,7 @@ Neither admin route exists on the public listener. The Pages copy follows `main`
 - `/healthz`, `/readyz` (both listeners), and admin `/metrics`, `/openapi.json`, `/config.schema.json`, `/docs`, pprof.
 - **Image URLs, one operation per dialect grammar:** imgproxy `/{signature}/{processingOptions}/{source}`, the query dialect `/q` with its query parameters and imaginary's `/q/{endpoint}`, and ImageKit `/imagekit/{path}`. The root `x-xi-dialects` extension lists every dialect with its default prefix, whether this build serves it, and its [URL-DIALECTS](URL-DIALECTS.md) section.
 - **`/info/{signature}/{options}/{source}`** with the `InfoResponse` body.
+- **Playground** (tag `playground`): the page, its assets, `api/meta` (`PlaygroundMeta`: mounts, option catalogues, preset and source names, signing mode, output formats; never key material), `api/sign` (`PlaygroundSignRequest` → `PlaygroundSignResponse`) and `api/render`. Paths are documented at the default `XI_PLAYGROUND_PATH` (`/_playground`). The catalogues come from `apidoc.Catalogues()`: the same imgproxy option catalogue that generates `ImgproxyProcessingOptions`, plus the query dialect keys.
 - **Errors:** `ErrorResponse` (`{"error":{"kind","message","request_id"}}`, sent when `Accept` lists `application/json`) with the `kind` enum and the status table of [ARCHITECTURE §12](ARCHITECTURE.md#12-failure-modes-and-status-codes).
 
 The imgproxy options and source contain `/`, which OpenAPI path parameters cannot express, so generated HTTP clients are not expected to call the image and `/info` operations. Their contract is in `x-xi-*` extensions:
@@ -39,7 +42,7 @@ Handlers are plain functions on our `ServeMux`es, so tests keep the document hon
 
 - `TestGolden` fails on a stale file. Regenerate with `go test ./internal/apidoc -run TestGolden -update` and commit the result.
 - `TestRouteCoverage` maps every registered public and admin pattern to an operation and back.
-- Contract tests validate real `/info` bodies (`testdata/info`), every error kind's body, `/healthz` and `/readyz` against the schemas.
+- Contract tests validate real `/info` bodies (`testdata/info`), every error kind's body, `/healthz` and `/readyz` against the schemas, and real playground `api/meta`, `api/sign` and error bodies against the `Playground*` schemas.
 - The catalogue tests check the imgproxy option catalogue against the parser's `apply` switches, the URL-DIALECTS §3.2/§3.3 tables and every golden-table URL.
 - CI runs `@redocly/cli lint` (a pinned `bunx` version) on the committed file. The `ts` workflow regenerates the TypeScript types from it with the pinned `openapi-typescript` devDependency of `packages/image-url` and fails on drift (below).
 

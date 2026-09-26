@@ -106,9 +106,10 @@ internal/
     exec/                   Plan → libvips operations
   detect/                   (M3) ONNX Runtime face/object detection, loaded via dlopen (purego) when present
   video/                    (M3, build tag `ffmpeg`) go-astiav frame extraction
-  obs/                      slog setup, Prometheus registry, OpenTelemetry, admin mux (metrics, /openapi.json, /docs, pprof)
+  obs/                      slog setup, Prometheus registry, OpenTelemetry, admin mux (metrics, /openapi.json, /docs, pprof, playground mount)
   server/                   http.Server + http.ServeMux, middleware, handlers (process, info, health), respond, writeError
   apidoc/                   OpenAPI 3.1 document (huma v2 as builder only) + the committed openapi.json it embeds (ADR 0008)
+  playground/               embedded playground UI (go:embed HTML/CSS/JS, no build step) + its JSON API: meta, server-side signing, in-process render (WP-80)
 ```
 
 Dependency rules (enforced by a `depguard`/`go-arch-lint` config in CI):
@@ -121,10 +122,11 @@ Dependency rules (enforced by a `depguard`/`go-arch-lint` config in CI):
 - `pipeline/plan` → `transform`, `errs` (it defines its own `SourceMeta`; the executor maps codec/vips headers onto it).
 - `pipeline/exec`, `codec` loaders/encoders → `vips`.
 - `server` → everything above via interfaces; `app` is the only package that constructs concrete types. Exception: `server` calls the pure-Go `pipeline/plan.Build` directly for the thumbor `meta` response (WP-86b), with the executor's limits passed in `InfoConfig.PlanLimits`, and `plan.InfoCrop` for the imgproxy /info `crop` coordinates (WP-63). `imageinfo` is a pure-Go leaf (stdlib only); `server` and `app` use it.
-- `apidoc` → `server`, `dialect/imgproxy`, `errs` (types and catalogues only); nothing imports `apidoc` except `app`, which passes its bytes to the admin mux. huma is confined to `apidoc` (depguard).
+- `apidoc` → `server`, `dialect/imgproxy`, `playground`, `errs` (types and catalogues only); nothing imports `apidoc` except `app`, which passes its bytes to the admin mux and its option catalogues (`apidoc.Catalogues`) to the playground. huma is confined to `apidoc` (depguard).
+- `playground` → `security/sign` (a `*sign.Signer` per mount, never key bytes), `obs/logging`. It sees the public handler only as an `http.Handler`; `app` builds its metadata from `dialect/router` mounts and config.
 - `config` imports nothing internal except `errs`. Each component declares its own `Options` struct; `app` maps `config.Config` into those options. This keeps component packages testable without the whole config tree.
 
-Routing: `server` registers fixed routes on a stdlib `http.ServeMux` with method patterns (`GET /healthz`, `GET /readyz`, `GET /{path...}` catch-all, which also matches HEAD) and hands the catch-all to `dialect/router`; the admin listener has its own `ServeMux` (`/metrics`, `/config.schema.json` (ADR 0007), `/openapi.json`, `/docs`, pprof). `server.Patterns()` and `admin.Patterns()` list the registered patterns for the OpenAPI route-coverage test ([OPENAPI.md](OPENAPI.md)). No third-party router (go-standards §2).
+Routing: `server` registers fixed routes on a stdlib `http.ServeMux` with method patterns (`GET /healthz`, `GET /readyz`, `GET /{path...}` catch-all, which also matches HEAD) and hands the catch-all to `dialect/router`; the admin listener has its own `ServeMux` (`/metrics`, `/config.schema.json` (ADR 0007), `/openapi.json`, `/docs`, pprof, and the playground under `XI_PLAYGROUND_PATH` when `XI_PLAYGROUND_ENABLED`). On the public listener, `app` puts a plain prefix check (not a `ServeMux`, so image paths are never cleaned) in front of the server handler that reserves `XI_SERVER_PATH_PREFIX + XI_PLAYGROUND_PATH`: the playground when `XI_PLAYGROUND_PUBLIC=true`, a 404 otherwise. `server.Patterns()` and `admin.Patterns()` list the registered patterns for the OpenAPI route-coverage test ([OPENAPI.md](OPENAPI.md)). No third-party router (go-standards §2).
 
 Build tags: `ffmpeg` (video). `server` tests use fakes of its consumer-side interfaces (`server.Processor`, `server.Prober`, fetcher, resolver, router), so they need no tag. ONNX needs no tag (runtime dlopen).
 
@@ -648,6 +650,7 @@ When a fallback image is configured (global or per request), a failure after the
 - Metrics (`/metrics` on the admin listener `XI_ADMIN_ADDR`, default `127.0.0.1:9090`; set `:9090` to scrape from outside the pod), client_golang on a private registry: `xi_requests_total{dialect,status,format}`, `xi_request_duration_seconds{dialect,status,format}`, `xi_requests_in_flight`, `xi_stage_duration_seconds{stage}`, `xi_panics_total`, `xi_source_fetch_duration_seconds{source,type}`, `xi_source_bytes_total{type}`, `xi_fetch_coalesced_total`, `xi_cache_requests_total{store,result}`, `xi_cache_evictions_total{store}`, `xi_cache_bytes{store}`, `xi_cache_entries{store}`, `xi_cache_writes_dropped_total`, `xi_queue_depth`, `xi_workers_busy`, `xi_semaphore_wait_seconds`, `xi_overload_total{reason}`, `xi_raw_decodes_total{path}`, `xi_vips_mem_bytes`, `xi_vips_mem_highwater_bytes`, `xi_vips_allocs`, `xi_build_info{version,commit,goversion}`, Go runtime and process collectors. Implemented in `internal/obs/metrics`; the limiter reports through `metrics.LimiterObserver` and vips through `metrics.VipsCollector`.
 - Tracing: OpenTelemetry OTLP when `OTEL_EXPORTER_OTLP_ENDPOINT` (or `XI_OTEL_ENABLED=true`) is set, otherwise a no-op provider and no middleware; one span per stage, W3C propagation, outbound propagation to sources off by default.
 - `/healthz` (liveness, no vips calls), `/readyz` (vips initialised, sources' static config valid, not draining). pprof (incl. `goroutineleak`) on the admin listener only when `XI_ADMIN_PPROF=true`.
+- Listeners. **Public** (`XI_SERVER_ADDR`): image and `/info` URLs, `/healthz`, `/readyz`, and the playground only with `XI_PLAYGROUND_PUBLIC=true`. **Admin** (`XI_ADMIN_ADDR`, default `127.0.0.1:9090`, empty disables it): `/metrics`, `/healthz`, `/readyz`, `/config.schema.json`, `/openapi.json`, `/docs` (`XI_ADMIN_DOCS`), pprof (`XI_ADMIN_PPROF`) and the playground (`XI_PLAYGROUND_ENABLED`, default off, at `XI_PLAYGROUND_PATH`, default `/_playground`). The playground signs URLs with the server's keys (`api/sign`), so the listener that serves it is a signing oracle for whoever reaches it; its `api/render` runs the public handler in-process, with every public-listener check ([CONFIG.md](CONFIG.md#playground)).
 
 ## 14. Docker and base image build
 
