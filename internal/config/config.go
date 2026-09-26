@@ -23,6 +23,7 @@ type Config struct {
 
 	Server     Server     `yaml:"server"     envPrefix:"SERVER_"`
 	Admin      Admin      `yaml:"admin"      envPrefix:"ADMIN_"`
+	Playground Playground `yaml:"playground" envPrefix:"PLAYGROUND_"`
 	Signing    Signing    `yaml:"signing"    envPrefix:"SIGNING_"`
 	Encryption Encryption `yaml:"encryption" envPrefix:"ENCRYPTION_"`
 	Security   Security   `yaml:"security"   envPrefix:"SECURITY_"`
@@ -76,6 +77,19 @@ type Admin struct {
 	// Docs serves the Scalar API reference at /docs, loaded from a pinned
 	// jsDelivr URL (ADR 0008); /openapi.json is always served.
 	Docs bool `yaml:"docs" env:"DOCS"`
+}
+
+// Playground configures the embedded playground UI (WP-80): off by default,
+// served on the admin listener, and on the public listener only when Public
+// is set.
+type Playground struct {
+	Enabled bool `yaml:"enabled" env:"ENABLED"`
+	// Public also serves the playground on the public listener (under
+	// server.path_prefix); its sign endpoint then signs URLs for anyone.
+	Public bool `yaml:"public" env:"PUBLIC"`
+	// Path is where the playground is mounted: starts with "/", no
+	// trailing "/".
+	Path string `yaml:"path" env:"PATH"`
 }
 
 // Signing configures URL signature verification (imgproxy scheme and xi_sig).
@@ -593,8 +607,9 @@ func Defaults() Config {
 			ShutdownDelay:     5 * time.Second,
 			ShutdownTimeout:   30 * time.Second,
 		},
-		Admin:   Admin{Addr: "127.0.0.1:9090"},
-		Signing: Signing{Size: 32},
+		Admin:      Admin{Addr: "127.0.0.1:9090"},
+		Playground: Playground{Path: "/_playground"},
+		Signing:    Signing{Size: 32},
 		Security: Security{
 			UnsignedPolicy: UnsignedRestricted,
 			// Next.js deviceSizes + imageSizes.

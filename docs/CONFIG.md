@@ -277,6 +277,26 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `OTEL_EXPORTER_OTLP_ENDPOINT` etc. | — | Standard OpenTelemetry vars; tracing on when set |
 | `XI_OTEL_ENABLED` | `false` | Force tracing on without an endpoint variable (exporter still chosen by `OTEL_TRACES_EXPORTER`, e.g. `console`) |
 
+### Playground
+
+The playground (WP-80) is a small web UI embedded in the binary: pick a source and a dialect mount, build options from the option catalogue, get a (signed) URL and compare the source with the result. It is plain HTML, CSS and JavaScript served with `Content-Security-Policy: default-src 'self'` and loads nothing from other origins, so it works air-gapped.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `XI_PLAYGROUND_ENABLED` | `false` | Serve the playground at `XI_PLAYGROUND_PATH` on the admin listener (needs `XI_ADMIN_ADDR` unless `XI_PLAYGROUND_PUBLIC`); off, every playground path answers 404 |
+| `XI_PLAYGROUND_PUBLIC` | `false` | Also serve it on the public listener (under `XI_SERVER_PATH_PREFIX`). Its sign endpoint then signs any URL for anyone who can reach it, which makes signing pointless: only for trusted networks and demos |
+| `XI_PLAYGROUND_PATH` | `/_playground` | Mount path: starts with `/`, no trailing `/`, `[A-Za-z0-9._~/-]` only, and not an admin route |
+
+Endpoints under the mount path: the page (`/`), its assets (`/assets/<version>/…`, immutable), `GET /api/meta` (dialect mounts, option catalogues, preset names, source names and types, signing mode, output formats), `POST /api/sign` and `GET /api/render?u=…` (runs the public handler in-process so the page can show the result and its headers from its own origin). See [OPENAPI.md](OPENAPI.md).
+
+Security:
+
+- **Keys never reach the browser.** `api/meta` reports only the signing mode and each mount's scheme; `api/sign` computes the signature on the server with the configured keys and returns the URL. Source entries list names and types only (no bucket credentials, headers, base URLs or allowlists).
+- **Anyone who can reach the playground can sign URLs.** On the admin listener (default `127.0.0.1:9090`) that is whoever can reach the admin port; keep it private. With `XI_PLAYGROUND_PUBLIC=true` and signing keys set, the public playground is a signing oracle for the whole internet, and the server logs a warning at startup.
+- `POST api/sign` is protected against cross-site requests (`http.CrossOriginProtection`: `Sec-Fetch-Site` / `Origin` checks) and only accepts a small JSON body.
+- `api/render` goes through the public handler with every public-listener check (unsigned policy, source allowlist, SSRF rules, limits); it grants nothing a public request would not get.
+- Every playground response carries `Content-Security-Policy` (`default-src 'self'`, `frame-ancestors 'none'`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`.
+
 ### Compatibility
 
 | Variable | Default | Meaning |
