@@ -171,6 +171,7 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_DIALECTS_IMGPROXY_BASE_URL` | `` | |
 | `XI_DIALECTS_IMGPROXY_URL_REPLACEMENTS` | `` | `regex=replacement;…` (`;`-separated in env) |
 | `XI_DIALECTS_CLOUDINARY_CLOUDS` | `` | `cloud=source,…` |
+| `XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH` | `` | ImageKit URL-endpoint id kept in the path of host-bound mounts (`https://ik.imagekit.io/<id>/…` → `/<id>`), for every ImageKit mount: stripped before parsing, excluded from the source key and the signed message; requests outside it are 400 (URL-DIALECTS §7) |
 | `XI_DIALECTS_CLOUDFLARE_IMAGES_ACCOUNTS` | `` | `account_hash=source,…`: the source each Cloudflare Images account hash reads image ids from; empty = the mount's source for every hash, otherwise an unknown hash is 403. `XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS` are the raw Images signing keys (`sig`/`exp`); variants are presets |
 | `XI_DIALECTS_AWSSIH_BUCKETS` | `` | `bucket=source,…`: SIH `SOURCE_BUCKETS` allowlist; a request without a bucket uses `XI_DIALECTS_AWSSIH_SOURCE` (URL-DIALECTS §13) |
 | `XI_DIALECTS_AWSSIH_QUERY_PARAMS` | `true` | SIH query-param mapper (`format`, `fit`, `width`, `height`, `rotate`, `flip`, `flop`, `grayscale`) |

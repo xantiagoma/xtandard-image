@@ -1317,6 +1317,13 @@
               "title": "XI_DIALECTS_IMAGEKIT_ENABLED",
               "type": "boolean"
             },
+            "endpoint_path": {
+              "default": "",
+              "description": "ImageKit URL-endpoint id kept in the path of host-bound mounts (https://ik.imagekit.io/<id>/… → /<id>), for every ImageKit mount: stripped before parsing, excluded from the source key and the signed message; requests outside it are 400 (URL-DIALECTS §7)\n\nEnv: XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH",
+              "markdownDescription": "ImageKit URL-endpoint id kept in the path of host-bound mounts (`https://ik.imagekit.io/<id>/…` → `/<id>`), for every ImageKit mount: stripped before parsing, excluded from the source key and the signed message; requests outside it are 400 (URL-DIALECTS §7)\n\nEnv: `XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH`",
+              "title": "XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH",
+              "type": "string"
+            },
             "hosts": {
               "description": "Host bindings\n\nEnv: XI_DIALECTS_IMAGEKIT_HOSTS",
               "items": {
