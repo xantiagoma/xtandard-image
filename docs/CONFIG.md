@@ -171,6 +171,7 @@ Rules:
 | `XI_ADMIN_PPROF` | `false` | pprof incl. `goroutineleak` on the admin listener |
 | `XI_OBSERVABILITY_DEBUG_HEADERS` | `false` | `X-Xi-Ignored`, stage timings |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` etc. | — | Standard OpenTelemetry vars; tracing on when set |
+| `XI_OTEL_ENABLED` | `false` | Force tracing on without an endpoint variable (exporter still chosen by `OTEL_TRACES_EXPORTER`, e.g. `console`) |
 
 ## 3. YAML example
 
