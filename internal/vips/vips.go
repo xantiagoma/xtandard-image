@@ -120,6 +120,14 @@ package vips
 #cgo nocallback xi_mix
 #cgo noescape xi_gradient_mask
 #cgo nocallback xi_gradient_mask
+#cgo noescape xi_conv3
+#cgo nocallback xi_conv3
+#cgo noescape xi_unsharp
+#cgo nocallback xi_unsharp
+#cgo noescape xi_insert
+#cgo nocallback xi_insert
+#cgo noescape xi_blend_mask
+#cgo nocallback xi_blend_mask
 #cgo noescape xi_jpegsave
 #cgo nocallback xi_jpegsave
 #cgo noescape xi_pngsave

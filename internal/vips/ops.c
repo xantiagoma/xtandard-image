@@ -766,3 +766,78 @@ fail:
   g_object_unref(base);
   return XI_ERR_OP;
 }
+
+// Filter extras (WP-61). Results keep the input's band format: float
+// intermediates are rounded to nearest, then clamped by the cast.
+
+// xi_conv3 convolves in with the 3×3 row-major matrix m, used as it is
+// (scale 1, offset 0), in float precision. Edges repeat the border pixels
+// (vips_convf embeds with VIPS_EXTEND_COPY), so the size is kept.
+int
+xi_conv3(VipsImage *in, const double *m, VipsImage **out, char **err)
+{
+  VipsImage *base = vips_image_new();
+  VipsImage **t = (VipsImage **) vips_object_local_array(VIPS_OBJECT(base), 2);
+
+  t[0] = vips_image_new_matrix_from_array(3, 3, m, 9);
+  if (!t[0])
+    goto fail;
+  if (vips_conv(in, &t[1], t[0], "precision", VIPS_PRECISION_FLOAT, NULL) ||
+      xi_round_cast_to(t[1], in->BandFmt, out))
+    goto fail;
+  g_object_unref(base);
+  return XI_OK;
+
+fail:
+  *err = xi_error_copy();
+  g_object_unref(base);
+  return XI_ERR_OP;
+}
+
+// xi_unsharp is the classic unsharp mask in + amount × (in − blur), blur
+// being a float-precision gaussian of sigma, computed as
+// (1 + amount) × in − amount × blur.
+int
+xi_unsharp(VipsImage *in, double sigma, double amount, VipsImage **out, char **err)
+{
+  VipsImage *base = vips_image_new();
+  VipsImage **t = (VipsImage **) vips_object_local_array(VIPS_OBJECT(base), 4);
+
+  if (vips_gaussblur(in, &t[0], sigma, "precision", VIPS_PRECISION_FLOAT, NULL) ||
+      vips_linear1(in, &t[1], 1.0 + amount, 0.0, NULL) ||
+      vips_linear1(t[0], &t[2], -amount, 0.0, NULL) || vips_add(t[1], t[2], &t[3], NULL) ||
+      xi_round_cast_to(t[3], in->BandFmt, out)) {
+    *err = xi_error_copy();
+    g_object_unref(base);
+    return XI_ERR_OP;
+  }
+  g_object_unref(base);
+  return XI_OK;
+}
+
+// xi_insert places sub over main with its top-left corner at (x, y),
+// clipped to main (vips_insert without expand).
+int
+xi_insert(VipsImage *main, VipsImage *sub, int x, int y, VipsImage **out, char **err)
+{
+  if (vips_insert(main, sub, out, x, y, NULL))
+    XI_FAIL();
+  return XI_OK;
+}
+
+// xi_blend_mask is a × m/255 + b × (1 − m/255) for the one-band uchar mask
+// m (vips_ifthenelse with blend), in a's band format.
+int
+xi_blend_mask(VipsImage *mask, VipsImage *a, VipsImage *b, VipsImage **out, char **err)
+{
+  VipsImage *t = NULL;
+  int rc;
+
+  if (vips_ifthenelse(mask, a, b, &t, "blend", TRUE, NULL))
+    XI_FAIL();
+  rc = xi_round_cast_to(t, a->BandFmt, out);
+  g_object_unref(t);
+  if (rc)
+    XI_FAIL();
+  return XI_OK;
+}
