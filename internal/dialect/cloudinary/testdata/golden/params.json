@@ -3795,10 +3795,6 @@
         {
           "Option": "l_c_fill",
           "Reason": "approximated"
-        },
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
         }
       ],
       "Output": {
@@ -3849,12 +3845,6 @@
     "path": "/demo/image/upload/l_fetch:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw%3D%3D/fl_layer_apply,g_south/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -3886,12 +3876,6 @@
     "path": "/demo/image/upload/g_center,l_fetch:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -3919,16 +3903,50 @@
     "signature": "unsigned",
     "source": "sample.jpg"
   },
-  "l_layer_apply": {
-    "path": "/demo/image/upload/l_logos:brand/c_scale,w_80/fl_layer_apply,g_north_west,x_10,y_10/sample.jpg",
+  "l_image_co": {
+    "path": "/demo/image/upload/l_logo,co_red,e_colorize/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
       "Ignored": [
         {
-          "Option": "l",
-          "Reason": "takes effect in M3"
+          "Option": "l_co",
+          "Reason": "approximated"
+        },
+        {
+          "Option": "l_e_colorize",
+          "Reason": "approximated"
         }
       ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "logo"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "l_layer_apply": {
+    "path": "/demo/image/upload/l_logos:brand/c_scale,w_80/fl_layer_apply,g_north_west,x_10,y_10/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
       "Output": {
         "Format": "jpeg"
       },
@@ -3965,12 +3983,6 @@
     "path": "/demo/image/upload/fl_relative,g_south_east,l_logo,o_60,w_0.2,x_5,y_5/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -4011,10 +4023,6 @@
         {
           "Option": "l_g",
           "Reason": "approximated"
-        },
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
         }
       ],
       "Output": {
@@ -4057,10 +4065,6 @@
         {
           "Option": "l_w",
           "Reason": "approximated"
-        },
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
         }
       ],
       "Output": {
@@ -4093,12 +4097,6 @@
     "path": "/demo/image/upload/l_s3:bucket/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -4129,17 +4127,114 @@
     "path": "/demo/image/upload/l_text:Arial_40:Hello/fl_layer_apply/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Font": "Arial 40",
+              "Opacity": 1,
+              "Text": "Hello"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "l_text_no_size": {
+    "error": {
+      "field": "l_text",
+      "kind": "invalid_url",
+      "public": "invalid l_text: expected text:\u003cfont family\u003e_\u003csize\u003e[_\u003cstyle\u003e…]:\u003ctext\u003e",
+      "status": 400
+    },
+    "path": "/demo/image/upload/l_text:Arial:Hello/sample.jpg"
+  },
+  "l_text_no_text": {
+    "error": {
+      "field": "l_text",
+      "kind": "invalid_url",
+      "public": "invalid l_text: expected text:\u003cfont family\u003e_\u003csize\u003e[_\u003cstyle\u003e…]:\u003ctext\u003e",
+      "status": 400
+    },
+    "path": "/demo/image/upload/l_text:Arial_20/sample.jpg"
+  },
+  "l_text_spacing": {
+    "path": "/demo/image/upload/l_text:Arial_20_letter_spacing_4:Spaced/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
       "Ignored": [
         {
-          "Option": "l_text",
-          "Reason": "unsupported"
+          "Option": "l_text_letter_spacing",
+          "Reason": "approximated"
         }
       ],
       "Output": {
         "Format": "jpeg"
       },
       "Pipelines": [
-        {}
+        {
+          "Watermarks": [
+            {
+              "Font": "Arial 20",
+              "Opacity": 1,
+              "Text": "Spaced"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "l_text_styled": {
+    "path": "/demo/image/upload/l_text:Open%20Sans_32_bold_italic_underline_center:Hi%20%3Cthere%3E%252C%20you,co_rgb:ff0000,g_south_east,x_10,y_5,o_60,a_-15,w_200/fl_layer_apply/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "l_text_center",
+          "Reason": "approximated"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Color": {
+                "A": 255,
+                "R": 255
+              },
+              "Font": "Open Sans bold italic 32",
+              "Opacity": 0.6,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 10,
+                "YOffset": 5
+              },
+              "Rotate": -15,
+              "Text": "\u003cu\u003eHi \u0026lt;there\u0026gt;, you\u003c/u\u003e",
+              "TextWidth": 200
+            }
+          ]
+        }
       ],
       "Source": {
         "Encoding": "relative",
@@ -4154,12 +4249,6 @@
     "path": "/demo/image/upload/l_logo/fl_layer_apply/c_scale,w_100/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -4199,12 +4288,6 @@
     "path": "/demo/image/upload/l_logo/fl_layer_apply,fl_tiled/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },

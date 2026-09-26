@@ -74,6 +74,8 @@ const (
 	reasonPathWins    = "path transformation takes precedence"
 	reasonNotApplied  = "not applicable here"
 	reasonNoPresets   = "named transformations not configured"
+	// reasonApproximated: applied with a documented difference.
+	reasonApproximated = "approximated"
 )
 
 // Options configures the parser. The zero value is a working unsigned,

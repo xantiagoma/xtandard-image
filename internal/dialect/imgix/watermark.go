@@ -11,11 +11,15 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
 
-// --- watermarks (M3) --------------------------------------------------------
+// --- watermarks (WP-77/78) --------------------------------------------------
 
 // applyWatermarks maps mark (image watermark, source URL or a path on the
-// mount's source) and txt (text watermark) with their placement options.
-// Both take effect in M3; every mark*/txt* parameter is recorded.
+// mount's source, optionally under mark-base) and txt (text watermark) with
+// their placement options. Parameters without an equivalent are recorded:
+// mark-fit other than clip/max, txt-fit (xi wraps at txt-width instead of
+// shrinking), and the typography parameters txt-clip, txt-lead, txt-track,
+// txt-line and txt-line-color. Parameters of an absent mark or txt are
+// recorded as needing it.
 func (st *state) applyWatermarks() error {
 	if err := st.imageWatermark(); err != nil {
 		return err
@@ -23,10 +27,44 @@ func (st *state) applyWatermarks() error {
 	if err := st.textWatermark(); err != nil {
 		return err
 	}
-	for k := range strings.FieldsSeq(markParams + " " + txtParams) {
-		st.ignoreIf(reasonM3, k)
+	if !st.has("mark") {
+		for k := range strings.FieldsSeq(markParams) {
+			st.ignoreIf(reasonNeedsParent, k)
+		}
+	}
+	if !st.has("txt") {
+		for k := range strings.FieldsSeq(txtParams) {
+			st.ignoreIf(reasonNeedsParent, k)
+		}
 	}
 	return nil
+}
+
+// markSource is mark as a source: an absolute http(s) URL, a path on the
+// mount's source, or a path joined to mark-base (an http(s) URL prefix).
+func (st *state) markSource(v string) (*transform.SourceSpec, error) {
+	if v == "" || !imgproxy.PlausibleSource(v) {
+		return nil, dialect.InvalidArgument("mark", v, "image url or path")
+	}
+	if isHTTP(v) {
+		return &transform.SourceSpec{Raw: v, Encoding: transform.SourcePlain}, nil
+	}
+	path := strings.TrimLeft(v, "/")
+	if path == "" {
+		return nil, dialect.InvalidArgument("mark", v, "image url or path")
+	}
+	if base, ok := st.get("mark-base"); ok {
+		if !isHTTP(base) || !imgproxy.PlausibleSource(base) {
+			return nil, dialect.InvalidArgument("mark-base", base, "http(s) url")
+		}
+		return &transform.SourceSpec{Raw: strings.TrimRight(base, "/") + "/" + path, Encoding: transform.SourcePlain}, nil
+	}
+	return &transform.SourceSpec{Raw: path, Encoding: transform.SourceRelative}, nil
+}
+
+func isHTTP(v string) bool {
+	l := strings.ToLower(v)
+	return strings.HasPrefix(l, "http:") || strings.HasPrefix(l, "https:")
 }
 
 func (st *state) imageWatermark() error {
@@ -34,15 +72,9 @@ func (st *state) imageWatermark() error {
 	if !ok {
 		return nil
 	}
-	if v == "" || !imgproxy.PlausibleSource(v) {
-		return dialect.InvalidArgument("mark", v, "image url or path")
-	}
-	src := &transform.SourceSpec{Raw: v, Encoding: transform.SourcePlain}
-	if l := strings.ToLower(v); !strings.HasPrefix(l, "http:") && !strings.HasPrefix(l, "https:") {
-		src.Raw, src.Encoding = strings.TrimLeft(v, "/"), transform.SourceRelative
-		if src.Raw == "" {
-			return dialect.InvalidArgument("mark", v, "image url or path")
-		}
+	src, err := st.markSource(v)
+	if err != nil {
+		return err
 	}
 	w := transform.Watermark{Source: src}
 	if err := st.watermarkCommon(&w, "mark", 5); err != nil {
@@ -99,6 +131,11 @@ func (st *state) imageWatermark() error {
 		}
 		w.Rotate = -deg
 	}
+	if v, ok := st.get("mark-fit"); ok && v != "clip" && v != "max" {
+		// xi always fits inside mark-w×mark-h (clip); crop, fill and scale
+		// have no watermark equivalent.
+		st.b.Ignore("mark-fit", reasonApproximated)
+	}
 	st.pl.Watermarks = append(st.pl.Watermarks, w)
 	return nil
 }
@@ -117,17 +154,28 @@ func (st *state) textWatermark() error {
 		return err
 	}
 	font, _ := st.get("txt-font")
+	font = strings.TrimSpace(strings.ReplaceAll(font, ",", " "))
+	if font == "" {
+		font = "sans"
+	}
+	size := 12 // imgix's default txt-size
 	if v, ok := st.get("txt-size"); ok {
 		n, err := intRange("txt-size", v, 1, 1000)
 		if err != nil {
 			return err
 		}
-		if font == "" {
-			font = "sans"
-		}
-		font += " " + strconv.Itoa(n)
+		size = n
 	}
-	w.Font = font
+	w.Font = font + " " + strconv.Itoa(size)
+	if v, ok := st.get("txt-width"); ok {
+		n, err := intRange("txt-width", v, 1, transform.MaxDimension)
+		if err != nil {
+			return err
+		}
+		w.TextWidth = n
+	}
+	st.ignoreIf(reasonApproximated, "txt-fit")
+	st.ignoreIf(reasonUnsupported, "txt-clip", "txt-lead", "txt-track", "txt-line", "txt-line-color")
 	if v, ok := st.get("txt-color"); ok {
 		c, err := parseColor("txt-color", v)
 		if err != nil {

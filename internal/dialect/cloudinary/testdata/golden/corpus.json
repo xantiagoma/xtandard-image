@@ -2229,12 +2229,6 @@
     "path": "/demo/image/upload/g_center,l_fetch:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2266,12 +2260,6 @@
     "path": "/demo/image/upload/l_logos:brand/c_scale,w_80/fl_layer_apply,g_north_west,x_10,y_10/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2308,12 +2296,6 @@
     "path": "/demo/image/upload/fl_relative,g_south_east,l_logo,o_60,w_0.2,x_5,y_5/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2711,12 +2693,6 @@
     "path": "/demo/image/upload/l_fetch:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw%3D%3D/fl_layer_apply,g_south/v1/folder/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2748,12 +2724,6 @@
     "path": "/demo/image/upload/l_logos:brand/c_scale,w_100/fl_layer_apply,g_north_east,x_10,y_20/v1/folder/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2790,17 +2760,19 @@
     "path": "/demo/image/upload/l_text:Arial_40:Hello/fl_layer_apply/v1/folder/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l_text",
-          "Reason": "unsupported"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
       "Pipelines": [
-        {}
+        {
+          "Watermarks": [
+            {
+              "Font": "Arial 40",
+              "Opacity": 1,
+              "Text": "Hello"
+            }
+          ]
+        }
       ],
       "Source": {
         "Encoding": "relative",
@@ -2815,12 +2787,6 @@
     "path": "/demo/image/upload/l_logo/fl_layer_apply,fl_tiled/v1/folder/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },

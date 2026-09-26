@@ -116,21 +116,22 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 		milestone = reasonM3
 		err = cropObjects(pl, args)
 
-	// Watermark details (the watermark itself is wm).
+	// Watermark details, the watermark itself is wm (applied since
+	// WP-77/78).
 	case "watermark_url", "wmu":
-		milestone = reasonM3
+		milestone = applied
 		err = watermarkURL(firstWatermark(pl), args)
 	case "watermark_text", "wmt":
-		milestone = reasonM3
+		milestone = applied
 		err = watermarkText(firstWatermark(pl), args)
 	case "watermark_size", "wms":
-		milestone = reasonM3
+		milestone = applied
 		err = watermarkSize(firstWatermark(pl), args)
 	case "watermark_rotate", "wm_rot", "wmr":
-		milestone = reasonM3
+		milestone = applied
 		err = watermarkRotate(firstWatermark(pl), args)
 	case "watermark_shadow", "wmsh":
-		milestone = reasonM3
+		milestone = applied
 		err = oneRange("watermark_shadow", args, 0, transform.MaxSigma, &firstWatermark(pl).Shadow)
 	case "style", "stl", "st":
 		milestone = applied // WP-64: SVG sources only (the executor skips it otherwise)

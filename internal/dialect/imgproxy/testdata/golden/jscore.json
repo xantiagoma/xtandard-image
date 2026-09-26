@@ -1422,20 +1422,6 @@
     "path": "/unsafe/wm:0.7:soea/wmsh:2/wms:120:40/wmu:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "wmsh",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "wms",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "wmu",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1466,12 +1452,6 @@
     "path": "/unsafe/wm:1/wmt:PHNwYW4gZm9yZWdyb3VuZD0ncmVkJz7CqSBBQ01FPC9zcGFuPg/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "wmt",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1773,12 +1753,6 @@
     "path": "/unsafe/wm:0.3:ch:4/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "wm:ch",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [

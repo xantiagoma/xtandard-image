@@ -718,7 +718,6 @@ func (b *builder) overlay(raw json.RawMessage) error {
 		return err
 	}
 	b.pre.Watermarks = append(b.pre.Watermarks, wm)
-	b.ignore("overlayWith", reasonM3)
 	return nil
 }
 

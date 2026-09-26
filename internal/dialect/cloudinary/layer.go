@@ -2,6 +2,8 @@ package cloudinary
 
 import (
 	"encoding/base64"
+	"html"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -10,29 +12,42 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
 
-// layer turns an image overlay into a watermark on the current pipeline.
-// comps is the layer group: the l_ component alone (legacy syntax, where
-// placement and layer parameters share the component), or the l_
-// component, the components transforming the layer and the one carrying
-// fl_layer_apply. Watermarks take effect in M3.
+// expTextLayer is the l_text grammar.
+const expTextLayer = "text:<font family>_<size>[_<style>…]:<text>"
+
+// layer turns an image or text overlay into a watermark on the current
+// pipeline. comps is the layer group: the l_ component alone (legacy
+// syntax, where placement and layer parameters share the component), or
+// the l_ component, the components transforming the layer and the one
+// carrying fl_layer_apply.
 //
-// Mapped: g_ → position, x_/y_ → offsets, o_ → opacity, a_ → rotation,
-// w_/h_ in pixels → size, a relative w_ with fl_relative → scale of the
-// base image, fl_tiled → repeat. Other parameters of the group are
-// recorded as approximated. Text, video, subtitle and LUT layers are
+// Mapped: g_ → position, x_/y_ → offsets, o_ → opacity, a_ → rotation
+// (clockwise), w_/h_ in pixels → size (a text layer's w_ is its wrap
+// width), a relative w_ with fl_relative → scale of the base image,
+// fl_tiled → repeat, co_ → text colour. l_<public id> is an image on the
+// mount's source (the same storage as the base image), l_fetch:<base64
+// url> a remote image; l_text:<style>:<text> renders plain text (escaped
+// for Pango) in the style's font. Other parameters of the group are
+// recorded as approximated. Video, subtitle, LUT and audio layers are
 // unsupported.
 func (a *applier) layer(key, v string, comps []*component) error {
 	kind, rest, _ := strings.Cut(v, ":")
-	var src *transform.SourceSpec
+	wm := transform.Watermark{Opacity: 1}
+	text := false
 	switch kind {
-	case "text", "video", "subtitles", "lut", "audio":
+	case "video", "subtitles", "lut", "audio":
 		return a.skip(key+"_"+kind, reasonUnsupported)
+	case "text":
+		if err := a.textLayer(&wm, rest); err != nil {
+			return err
+		}
+		text = true
 	case "fetch":
 		s, err := layerFetch(rest)
 		if err != nil {
 			return err
 		}
-		src = &transform.SourceSpec{Raw: s, Encoding: transform.SourcePlain}
+		wm.Source = &transform.SourceSpec{Raw: s, Encoding: transform.SourcePlain}
 	default:
 		id := v
 		if strings.HasPrefix(v, "image:") {
@@ -42,10 +57,9 @@ func (a *applier) layer(key, v string, comps []*component) error {
 		if checkKey(key) != nil || !imgproxy.PlausibleSource(key) {
 			return dialect.InvalidArgument("l", v, expLayer)
 		}
-		src = &transform.SourceSpec{Raw: key, Encoding: transform.SourceRelative, Mount: a.mount}
+		wm.Source = &transform.SourceSpec{Raw: key, Encoding: transform.SourceRelative, Mount: a.mount}
 	}
 
-	wm := transform.Watermark{Opacity: 1, Source: src}
 	var (
 		w, h     dimArg
 		relative bool
@@ -78,6 +92,15 @@ func (a *applier) layer(key, v string, comps []*component) error {
 					err = a.skip("l_a", reasonApproximated)
 				} else {
 					wm.Rotate = deg
+				}
+			case "co":
+				if !text {
+					err = a.skip("l_co", reasonApproximated)
+					break
+				}
+				var col transform.Color
+				if col, err = parseColor("co", p.value); err == nil {
+					wm.Color = &col
 				}
 			case "w":
 				w, err = a.parseDim("w", p.value)
@@ -124,6 +147,8 @@ func (a *applier) layer(key, v string, comps []*component) error {
 	switch {
 	case w.set && w.dim.Rel > 0 && relative:
 		wm.Scale = w.dim.Rel
+	case w.set && w.dim.Px > 0 && text:
+		wm.TextWidth = w.dim.Px // text wraps at w_ (c_fit)
 	case w.set && w.dim.Px > 0:
 		wm.Width = w.dim.Px
 	case w.set:
@@ -131,7 +156,7 @@ func (a *applier) layer(key, v string, comps []*component) error {
 			return err
 		}
 	}
-	if h.set && h.dim.Px > 0 {
+	if h.set && h.dim.Px > 0 && !text {
 		wm.Height = h.dim.Px
 	} else if h.set {
 		if err := a.skip("l_h", reasonApproximated); err != nil {
@@ -144,7 +169,64 @@ func (a *applier) layer(key, v string, comps []*component) error {
 		return dialect.InvalidURL("too many layers")
 	}
 	pl.Watermarks = append(pl.Watermarks, wm)
-	a.b.Ignore("l", reasonM3)
+	return nil
+}
+
+// textLayer parses l_text:<style>:<text>. The style is
+// <family>_<size>[_<token>…]: bold, italic and the other weights and
+// styles join the font description; underline and strikethrough wrap the
+// text in markup; alignment, stroke, letter and line spacing, antialias and
+// hinting are recorded as approximated. The text was percent-decoded with
+// the component; Cloudinary double-escapes commas and slashes (%252C), so
+// it is decoded once more. It is plain text: markup characters are escaped.
+func (a *applier) textLayer(wm *transform.Watermark, spec string) error {
+	style, text, ok := strings.Cut(spec, ":")
+	if !ok || text == "" {
+		return dialect.InvalidArgument("l_text", spec, expTextLayer)
+	}
+	if t, err := url.PathUnescape(text); err == nil {
+		text = t
+	}
+	tokens := strings.Split(style, "_")
+	if len(tokens) < 2 {
+		return dialect.InvalidArgument("l_text", style, expTextLayer)
+	}
+	family := strings.TrimSpace(tokens[0])
+	size, err := strconv.Atoi(tokens[1])
+	if family == "" || err != nil || size < 1 || size > 1000 {
+		return dialect.InvalidArgument("l_text", style, expTextLayer)
+	}
+	font := []string{family}
+	var open, closeTags string
+	for i := 2; i < len(tokens); i++ {
+		switch t := strings.ToLower(tokens[i]); t {
+		case "bold", "semibold", "light", "thin", "heavy", "black", "medium", "italic", "oblique":
+			font = append(font, t)
+		case "normal":
+		case "underline":
+			open, closeTags = open+"<u>", "</u>"+closeTags
+		case "strikethrough":
+			open, closeTags = open+"<s>", "</s>"+closeTags
+		case "letter", "line":
+			// letter_spacing_<n>, line_spacing_<n>
+			if err := a.skip("l_text_"+t+"_spacing", reasonApproximated); err != nil {
+				return err
+			}
+			i += 2
+		case "antialias", "hinting":
+			if err := a.skip("l_text_"+t, reasonApproximated); err != nil {
+				return err
+			}
+			i++
+		default:
+			// left, center, right, justify, start, end, stroke, font_* …
+			if err := a.skip("l_text_"+truncate(t), reasonApproximated); err != nil {
+				return err
+			}
+		}
+	}
+	wm.Text = open + html.EscapeString(text) + closeTags
+	wm.Font = strings.Join(font, " ") + " " + strconv.Itoa(size)
 	return nil
 }
 

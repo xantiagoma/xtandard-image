@@ -34,6 +34,7 @@ const (
 type iparams struct {
 	width, height, areaWidth, areaHeight, top, left int
 	quality, compression, rotate, factor, textWidth int
+	margin, dpi                                     int
 	opacity, sigma, minAmpl                         float64
 	flip, flop, force, embed, noCrop, noReplicate   bool
 	noRotation, noProfile, stripMeta, interlace     bool
@@ -75,7 +76,11 @@ func (ip *iparams) set(key string, v any) (known bool, err error) {
 		ip.factor, err = coerceInt(key, v)
 	case "textwidth":
 		ip.textWidth, err = coerceInt(key, v)
-	case "margin", "dpi", "speed":
+	case "margin":
+		ip.margin, err = coerceInt(key, v)
+	case "dpi":
+		ip.dpi, err = coerceInt(key, v)
+	case "speed":
 		_, err = coerceInt(key, v)
 	case "opacity":
 		ip.opacity, err = coerceFloat(key, v)
@@ -665,7 +670,12 @@ func opConvert(b *imgproxy.Builder, ip *iparams) error {
 }
 
 // opWatermark adds a replicated text watermark (bimg
-// watermarkImageWithText: opacity 0 means 0.25).
+// watermarkImageWithText): opacity 0 means 0.25, the font defaults to
+// "sans 10" rendered at dpi (default 150), which is its point size scaled
+// by dpi/72 at xi's 72 DPI; text wraps at textwidth and margin spaces the
+// tiles (default textwidth). bimg's default text width, a sixth of the
+// image width, has no pixel equivalent: without textwidth the text wraps
+// at the image width.
 func opWatermark(b *imgproxy.Builder, ip *iparams) error {
 	if ip.text == "" {
 		return missing("text", expRequired)
@@ -673,21 +683,62 @@ func opWatermark(b *imgproxy.Builder, ip *iparams) error {
 	if err := opGeneric(b, ip); err != nil {
 		return err
 	}
+	dpi := ip.dpi
+	if dpi <= 0 {
+		dpi = 150
+	}
+	font, err := scaleFont(ip.font, float64(dpi)/72)
+	if err != nil {
+		return err
+	}
 	w := transform.Watermark{
-		Opacity: watermarkOpacity(ip.opacity, 0.25),
-		Text:    ip.text,
-		Font:    ip.font,
-		Color:   ip.color,
-		Width:   ip.textWidth,
-		Tile:    transform.TileRepeat,
+		Opacity:   watermarkOpacity(ip.opacity, 0.25),
+		Text:      ip.text,
+		Font:      font,
+		Color:     ip.color,
+		TextWidth: max(ip.textWidth, 0),
+		Tile:      transform.TileRepeat,
+	}
+	margin := ip.margin
+	if margin <= 0 {
+		margin = ip.textWidth
+	}
+	if margin > 0 {
+		w.Position.XOffset, w.Position.YOffset = float64(margin), float64(margin)
 	}
 	if ip.noReplicate {
 		w.Tile = transform.TileNone
+		w.Position = transform.Gravity{Type: transform.GravityNorthWest}
+	}
+	if ip.textWidth <= 0 {
+		b.Ignore("watermark:textwidth", reasonApproximated)
 	}
 	pl := b.Pipeline()
 	pl.Watermarks = append(pl.Watermarks, w)
-	b.Ignore("watermark", reasonM3)
 	return nil
+}
+
+// scaleFont multiplies the size of a Pango font description (default
+// bimg's "sans 10") by f.
+func scaleFont(desc string, f float64) (string, error) {
+	if desc == "" {
+		desc = "sans 10"
+	}
+	words := strings.Fields(desc)
+	size := 10.0
+	if n := len(words); n > 0 {
+		if v, err := strconv.ParseFloat(strings.TrimSuffix(words[n-1], "px"), 64); err == nil {
+			if !(v > 0) || v > 1000 {
+				return "", dialect.InvalidArgument("font", desc, "a Pango font description with a size up to 1000")
+			}
+			size = v
+			words = words[:n-1]
+		}
+	}
+	if len(words) == 0 {
+		words = []string{"sans"}
+	}
+	return strings.Join(words, " ") + " " + strconv.FormatFloat(math.Round(size*f*10)/10, 'f', -1, 64), nil
 }
 
 // opWatermarkImage overlays the image at left/top (bimg
@@ -712,7 +763,6 @@ func opWatermarkImage(b *imgproxy.Builder, ip *iparams) error {
 			YOffset: float64(ip.top),
 		},
 	})
-	b.Ignore("watermarkimage", reasonM3)
 	return nil
 }
 

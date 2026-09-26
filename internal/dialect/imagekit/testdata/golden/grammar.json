@@ -325,12 +325,6 @@
     "query": "",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [

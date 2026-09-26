@@ -1661,12 +1661,6 @@
     "query": "",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1698,12 +1692,6 @@
     "query": "tr=l-image,ie-YnJhbmQvbG9nbyAoMSkucG5n,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1735,12 +1723,6 @@
     "query": "",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Resize": {
@@ -1782,12 +1764,6 @@
     "query": "",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1819,12 +1795,6 @@
     "query": "tr=l-image,i-brand@@logos@@logo.png,lfo-bottom_right,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1856,12 +1826,6 @@
     "query": "tr=w-800,l-image,i-logo.png,lx-10,ly-20,w-100,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Resize": {
@@ -1957,12 +1921,6 @@
     "query": "",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1990,12 +1948,6 @@
     "query": "tr=l-text,ie-SGVsbG8sIHdvcmxkOiDDvG7Dr2NvZGU%3D,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -2023,12 +1975,6 @@
     "query": "",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -2061,12 +2007,6 @@
     "query": "tr=l-text,i-Minimal%20Text,fs-20,co-FF0000,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -2846,12 +2786,6 @@
     "query": "ik-s=ebd3dd2163f26a0f4f2e6632d6c000127e17ffc7",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [

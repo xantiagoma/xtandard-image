@@ -3517,12 +3517,6 @@
     "path": "/unsafe/wm:0.5:ch/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "wm:ch",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
