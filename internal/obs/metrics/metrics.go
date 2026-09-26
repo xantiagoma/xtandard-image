@@ -97,6 +97,8 @@ type Metrics struct {
 	overload      *prometheus.CounterVec
 
 	rawDecodes *prometheus.CounterVec
+
+	detectDuration *prometheus.HistogramVec
 }
 
 // New builds the metric set on a fresh private registry, including the Go
@@ -208,6 +210,12 @@ func New(opts Options) (*Metrics, error) {
 			Name:      "raw_decodes_total",
 			Help:      "Camera RAW sources decoded, by path (preview, demosaic, demosaic-half).",
 		}, []string{"path"}),
+		detectDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: Namespace,
+			Name:      "detect_duration_seconds",
+			Help:      "Face and object detection latency (resize, inference, decoding) by model (face, object).",
+			Buckets:   buckets,
+		}, []string{"model"}),
 	}
 
 	buildInfo := prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -223,6 +231,7 @@ func New(opts Options) (*Metrics, error) {
 		m.cacheRequests, m.cacheEvictions, m.cacheBytes, m.cacheEntries, m.cacheWritesDropped, m.cacheSkipped,
 		m.queueDepth, m.workersBusy, m.semaphoreWait, m.overload,
 		m.rawDecodes,
+		m.detectDuration,
 		buildInfo,
 		collectors.NewGoCollector(),
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
@@ -307,6 +316,12 @@ func (m *Metrics) IncPanic() { m.panics.Inc() }
 // ObserveRawDecode counts one camera RAW decode by path. The path comes
 // from a fixed set (pipeline/exec RawPath*), never from request data.
 func (m *Metrics) ObserveRawDecode(path string) { m.rawDecodes.WithLabelValues(path).Inc() }
+
+// ObserveDetect records one detection call of a model ("face" or
+// "object"); it implements detect.Observer.
+func (m *Metrics) ObserveDetect(model string, d time.Duration) {
+	m.detectDuration.WithLabelValues(model).Observe(d.Seconds())
+}
 
 // ObserveFetch records one source fetch by configured source name and
 // backend type (http, s3, gcs, ...), with the number of bytes downloaded.

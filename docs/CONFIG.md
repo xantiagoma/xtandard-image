@@ -250,6 +250,22 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_VIPS_CONCURRENCY` | `1` | libvips threads per image; change only with benchmarks |
 | `XI_VIPS_FAIL_ON` | `warning` | |
 
+### Detection
+
+Face and object detection (WP-71, [ARCHITECTURE.md](ARCHITECTURE.md) "Detection") needs the `full` image: ONNX Runtime and the YuNet and YOLOX-s models ship there, under `/usr/share/xtandard/models` with their licences and a `SHA256SUMS` file. On `slim` the defaults find nothing and the service runs without detection.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `XI_DETECT_ENABLED` | `auto` | `auto` loads detection when the library and the model files are found and runs without it otherwise (logged at startup); `true` fails startup when they are missing; `false` never loads them. Options that need detection answer 422 while it is off |
+| `XI_DETECT_LIBRARY` | `libonnxruntime.so.1` | ONNX Runtime shared library (1.17 or newer): an absolute path or a file name the dynamic linker resolves. Loaded with `dlopen` at startup, never at init (ADR 0010) |
+| `XI_DETECT_MODELS_DIR` | `/usr/share/xtandard/models` | Absolute directory of the model files; mount your own there |
+| `XI_DETECT_FACE_MODEL` | `face_detection_yunet_2023mar.onnx` | YuNet face model, a file name in `XI_DETECT_MODELS_DIR` or an absolute path; empty disables face detection |
+| `XI_DETECT_OBJECT_MODEL` | `yolox_s.onnx` | YOLOX object model (COCO, 80 classes, `[1,N,85]` output); empty disables object detection |
+| `XI_DETECT_THREADS` | `1` | ONNX Runtime intra-op threads per inference; like `XI_VIPS_CONCURRENCY`, parallelism normally comes from concurrent requests (1–64) |
+| `XI_DETECT_WORKERS` | `0` | Inferences running at once (a semaphore; more wait); `0` is GOMAXPROCS / `XI_DETECT_THREADS` |
+| `XI_DETECT_MAX_INPUT` | `640` | Longest side fed to a model whose input size is dynamic (32–4096); the shipped models are fixed at 640×640 |
+| `XI_DETECT_VERIFY_CHECKSUMS` | `false` | Check each model against the `SHA256SUMS` of its directory when it lists the model; a mismatch fails startup |
+
 ### Cache and observability
 
 | Variable | Default | Meaning |

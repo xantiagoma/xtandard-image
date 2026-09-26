@@ -67,6 +67,15 @@ func TestValidate(t *testing.T) {
 		{"raising limits alone", func(c *Config) { c.Security.AllowRaisingLimits = true }, []string{"security.allow_raising_limits"}},
 		{"source name", func(c *Config) { c.Sources["Bad_Name"] = Source{Type: SourceFS, Root: "/x"} }, []string{"sources.Bad_Name"}},
 		{"source without type", func(c *Config) { c.Sources["x"] = Source{} }, []string{"sources.x.type (XI_SOURCES_X_TYPE): must be set"}},
+		{"detect threads", func(c *Config) { c.Detect.Threads = 0 }, []string{"detect.threads (XI_DETECT_THREADS): must be between 1 and 64"}},
+		{"detect max input", func(c *Config) { c.Detect.MaxInput = 8 }, []string{"detect.max_input (XI_DETECT_MAX_INPUT)"}},
+		{"detect model path", func(c *Config) { c.Detect.FaceModel = "sub/face.onnx" }, []string{"detect.face_model (XI_DETECT_FACE_MODEL): must be a file name"}},
+		{"detect relative dir", func(c *Config) { c.Detect.ModelsDir = "models" }, []string{"detect.models_dir (XI_DETECT_MODELS_DIR): must be an absolute path"}},
+		{"detect enabled without models", func(c *Config) { c.Detect.Enabled, c.Detect.FaceModel, c.Detect.ObjectModel = True, "", "" }, []string{"detect.enabled (XI_DETECT_ENABLED)"}},
+		{"detect off skips checks", func(c *Config) { c.Detect.Enabled, c.Detect.Threads, c.Detect.Library = False, 0, "" }, nil},
+		{"detect absolute model", func(c *Config) {
+			c.Detect.ObjectModel, c.Detect.FaceModel, c.Detect.ModelsDir = "/models/x.onnx", "", ""
+		}, nil},
 		{"http without allow", func(c *Config) { c.Sources["web"] = Source{Type: SourceHTTP} }, []string{"sources.web.allow"}},
 		{"http allow with scheme", func(c *Config) { c.Sources["web"] = Source{Type: SourceHTTP, Allow: []string{"https://a.example"}} }, []string{"sources.web.allow[0]"}},
 		{

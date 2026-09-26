@@ -913,6 +913,75 @@
       },
       "type": "object"
     },
+    "detect": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "$ref": "#/$defs/tristate",
+          "default": "auto",
+          "description": "auto loads detection when the library and the model files are found and runs without it otherwise (logged at startup); true fails startup when they are missing; false never loads them. Options that need detection answer 422 while it is off\n\nEnv: XI_DETECT_ENABLED",
+          "markdownDescription": "`auto` loads detection when the library and the model files are found and runs without it otherwise (logged at startup); `true` fails startup when they are missing; `false` never loads them. Options that need detection answer 422 while it is off\n\nEnv: `XI_DETECT_ENABLED`",
+          "title": "XI_DETECT_ENABLED"
+        },
+        "face_model": {
+          "default": "face_detection_yunet_2023mar.onnx",
+          "description": "YuNet face model, a file name in XI_DETECT_MODELS_DIR or an absolute path; empty disables face detection\n\nEnv: XI_DETECT_FACE_MODEL",
+          "markdownDescription": "YuNet face model, a file name in `XI_DETECT_MODELS_DIR` or an absolute path; empty disables face detection\n\nEnv: `XI_DETECT_FACE_MODEL`",
+          "title": "XI_DETECT_FACE_MODEL",
+          "type": "string"
+        },
+        "library": {
+          "default": "libonnxruntime.so.1",
+          "description": "ONNX Runtime shared library (1.17 or newer): an absolute path or a file name the dynamic linker resolves. Loaded with dlopen at startup, never at init (ADR 0010)\n\nEnv: XI_DETECT_LIBRARY",
+          "markdownDescription": "ONNX Runtime shared library (1.17 or newer): an absolute path or a file name the dynamic linker resolves. Loaded with `dlopen` at startup, never at init (ADR 0010)\n\nEnv: `XI_DETECT_LIBRARY`",
+          "title": "XI_DETECT_LIBRARY",
+          "type": "string"
+        },
+        "max_input": {
+          "default": 640,
+          "description": "Longest side fed to a model whose input size is dynamic (32–4096); the shipped models are fixed at 640×640\n\nEnv: XI_DETECT_MAX_INPUT",
+          "markdownDescription": "Longest side fed to a model whose input size is dynamic (32–4096); the shipped models are fixed at 640×640\n\nEnv: `XI_DETECT_MAX_INPUT`",
+          "title": "XI_DETECT_MAX_INPUT",
+          "type": "integer"
+        },
+        "models_dir": {
+          "default": "/usr/share/xtandard/models",
+          "description": "Absolute directory of the model files; mount your own there\n\nEnv: XI_DETECT_MODELS_DIR",
+          "markdownDescription": "Absolute directory of the model files; mount your own there\n\nEnv: `XI_DETECT_MODELS_DIR`",
+          "title": "XI_DETECT_MODELS_DIR",
+          "type": "string"
+        },
+        "object_model": {
+          "default": "yolox_s.onnx",
+          "description": "YOLOX object model (COCO, 80 classes, [1,N,85] output); empty disables object detection\n\nEnv: XI_DETECT_OBJECT_MODEL",
+          "markdownDescription": "YOLOX object model (COCO, 80 classes, `[1,N,85]` output); empty disables object detection\n\nEnv: `XI_DETECT_OBJECT_MODEL`",
+          "title": "XI_DETECT_OBJECT_MODEL",
+          "type": "string"
+        },
+        "threads": {
+          "default": 1,
+          "description": "ONNX Runtime intra-op threads per inference; like XI_VIPS_CONCURRENCY, parallelism normally comes from concurrent requests (1–64)\n\nEnv: XI_DETECT_THREADS",
+          "markdownDescription": "ONNX Runtime intra-op threads per inference; like `XI_VIPS_CONCURRENCY`, parallelism normally comes from concurrent requests (1–64)\n\nEnv: `XI_DETECT_THREADS`",
+          "title": "XI_DETECT_THREADS",
+          "type": "integer"
+        },
+        "verify_checksums": {
+          "default": false,
+          "description": "Check each model against the SHA256SUMS of its directory when it lists the model; a mismatch fails startup\n\nEnv: XI_DETECT_VERIFY_CHECKSUMS",
+          "markdownDescription": "Check each model against the `SHA256SUMS` of its directory when it lists the model; a mismatch fails startup\n\nEnv: `XI_DETECT_VERIFY_CHECKSUMS`",
+          "title": "XI_DETECT_VERIFY_CHECKSUMS",
+          "type": "boolean"
+        },
+        "workers": {
+          "default": 0,
+          "description": "Inferences running at once (a semaphore; more wait); 0 is GOMAXPROCS / XI_DETECT_THREADS\n\nEnv: XI_DETECT_WORKERS",
+          "markdownDescription": "Inferences running at once (a semaphore; more wait); `0` is GOMAXPROCS / `XI_DETECT_THREADS`\n\nEnv: `XI_DETECT_WORKERS`",
+          "title": "XI_DETECT_WORKERS",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
     "dev_mode": {
       "default": false,
       "description": "Allow any http(s) source (SSRF rules still apply), pretty errors, no signature requirement warnings\n\nEnv: XI_DEV_MODE",

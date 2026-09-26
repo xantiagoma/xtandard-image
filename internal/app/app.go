@@ -197,6 +197,19 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	if err != nil {
 		return err
 	}
+	det, err := buildDetector(ctx, cfg, met, logger)
+	if err != nil {
+		return err
+	}
+	// Like the watermark, the sessions are released only once no request
+	// is in flight; otherwise process exit reclaims them.
+	cleanups = append(cleanups, func(context.Context) error {
+		if lim.Stats().InFlight == 0 {
+			det.Close()
+		}
+		return nil
+	})
+	proc.detector = det
 
 	ready := admin.NewReadiness()
 	scfg := serverConfig(cfg)
