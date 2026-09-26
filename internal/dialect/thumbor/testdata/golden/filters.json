@@ -1,0 +1,1397 @@
+{
+  "autojpg_bad": {
+    "error": {
+      "field": "autojpg",
+      "kind": "invalid_url",
+      "public": "invalid autojpg: expected true, false, 1 or 0",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:autojpg(yes)/a.jpg"
+  },
+  "background_color_bad": {
+    "error": {
+      "field": "background_color",
+      "kind": "invalid_url",
+      "public": "invalid background_color: expected a colour name or hex rrggbb",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:background_color(nothex)/a.jpg"
+  },
+  "background_color_transparent": {
+    "path": "/unsafe/300x200/filters:background_color(transparent)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Background": {},
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "bad_escape_in_args": {
+    "error": {
+      "field": "filters",
+      "kind": "invalid_url",
+      "public": "invalid filters: expected valid percent-encoding",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:quality(%zz)/a.jpg"
+  },
+  "blur_sigma": {
+    "path": "/unsafe/300x200/filters:blur(4,2)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Blur": 2,
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "blur_sigma_zero": {
+    "path": "/unsafe/300x200/filters:blur(4,0)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Blur": 4,
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "blur_zero": {
+    "error": {
+      "field": "blur",
+      "kind": "invalid_url",
+      "public": "invalid blur: expected a positive integer",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:blur(0)/a.jpg"
+  },
+  "brightness_clamped": {
+    "path": "/unsafe/300x200/filters:brightness(500)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": 255
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "brightness_float": {
+    "error": {
+      "field": "brightness",
+      "kind": "invalid_url",
+      "public": "invalid brightness: expected an integer",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:brightness(1.5)/a.jpg"
+  },
+  "contrast_minus_100": {
+    "path": "/unsafe/300x200/filters:contrast(-100)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Contrast": 0
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "extract_focal_args": {
+    "error": {
+      "field": "extract_focal",
+      "kind": "invalid_url",
+      "public": "invalid extract_focal: expected no arguments",
+      "status": 400
+    },
+    "path": "/unsafe/filters:extract_focal(1)/a.jpg"
+  },
+  "extract_focal_nested_levels": {
+    "path": "/unsafe/filters:extract_focal()/h.com/unsafe/300x200/i.com/unsafe/1x2:30x40/s3://b/k.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "extract_focal",
+          "Reason": "absolute focal point needs the source size"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "s3://b/k.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "s3://b/k.jpg"
+  },
+  "extract_focal_no_nested": {
+    "path": "/unsafe/filters:extract_focal()/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "extract_focal",
+          "Reason": "no effect"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "fill_bad_color": {
+    "error": {
+      "field": "fill",
+      "kind": "invalid_url",
+      "public": "invalid fill: expected a colour name or hex rrggbb",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:fill(zzz)/a.jpg"
+  },
+  "fill_transparent_arg_bad": {
+    "error": {
+      "field": "fill",
+      "kind": "invalid_url",
+      "public": "invalid fill: expected true, false, 1 or 0",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:fill(red,maybe)/a.jpg"
+  },
+  "focal_fractional": {
+    "path": "/unsafe/300x200/filters:focal(0.1x0.2:0.3x0.6)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusX": 0.2,
+            "FocusY": 0.4,
+            "Type": "focus-point"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "focal_inverted": {
+    "path": "/unsafe/300x200/filters:focal(0.5x0.5:0.1x0.1)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "focal",
+          "Reason": "no effect"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "focal_malformed": {
+    "error": {
+      "field": "focal",
+      "kind": "invalid_url",
+      "public": "invalid focal: expected AxB:CxD",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:focal(1x2)/a.jpg"
+  },
+  "focal_pixels": {
+    "path": "/unsafe/300x200/filters:focal(146x206:279x360)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "focal",
+          "Reason": "absolute focal point needs the source size"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "format_jpg": {
+    "path": "/unsafe/300x200/filters:format(jpg)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "format_quoted": {
+    "path": "/unsafe/300x200/filters:format('png')/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "format_spaces": {
+    "path": "/unsafe/300x200/filters:format( avif )/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "Format": "avif"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "format_upper": {
+    "path": "/unsafe/300x200/filters:format(WEBP)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "grayscale_args": {
+    "error": {
+      "field": "grayscale",
+      "kind": "invalid_url",
+      "public": "invalid grayscale: expected no arguments",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:grayscale(1)/a.jpg"
+  },
+  "later_wins": {
+    "path": "/unsafe/300x200/filters:quality(10):quality(20)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "Quality": 20
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "max_age_huge": {
+    "error": {
+      "field": "max_age",
+      "kind": "invalid_url",
+      "public": "invalid max_age: expected a non-negative integer",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:max_age(999999999999)/a.jpg"
+  },
+  "max_bytes_invalid": {
+    "error": {
+      "field": "max_bytes",
+      "kind": "invalid_url",
+      "public": "invalid max_bytes: expected a non-negative integer",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:max_bytes(-5)/a.jpg"
+  },
+  "no_upscale_then_upscale": {
+    "path": "/unsafe/300x200/filters:no_upscale():upscale()/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "proportion_exponent": {
+    "error": {
+      "field": "proportion",
+      "kind": "invalid_url",
+      "public": "invalid proportion: expected a decimal number",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:proportion(1e-1)/a.jpg"
+  },
+  "proportion_invalid": {
+    "error": {
+      "field": "proportion",
+      "kind": "invalid_url",
+      "public": "invalid proportion: expected a decimal number",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:proportion(abc)/a.jpg"
+  },
+  "proportion_out_of_range": {
+    "path": "/unsafe/300x200/filters:proportion(1.5)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "proportion",
+          "Reason": "no effect"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "quality": {
+    "path": "/unsafe/300x200/filters:quality(80)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "Quality": 80
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "quality_missing": {
+    "error": {
+      "field": "quality",
+      "kind": "invalid_url",
+      "public": "invalid quality: expected an integer from 0 to 100",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:quality()/a.jpg"
+  },
+  "quality_negative": {
+    "error": {
+      "field": "quality",
+      "kind": "invalid_url",
+      "public": "invalid quality: expected an integer from 0 to 100",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:quality(-1)/a.jpg"
+  },
+  "quality_too_high": {
+    "error": {
+      "field": "quality",
+      "kind": "invalid_url",
+      "public": "invalid quality: expected an integer from 0 to 100",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:quality(101)/a.jpg"
+  },
+  "quality_two_args": {
+    "error": {
+      "field": "quality",
+      "kind": "invalid_url",
+      "public": "invalid quality: expected an integer from 0 to 100",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:quality(1,2)/a.jpg"
+  },
+  "quality_zero": {
+    "path": "/unsafe/300x200/filters:quality(0)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "rgb_two_args": {
+    "error": {
+      "field": "rgb",
+      "kind": "invalid_url",
+      "public": "invalid rgb: expected an integer from -100 to 100",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:rgb(1,2)/a.jpg"
+  },
+  "rotate_270": {
+    "path": "/unsafe/300x200/filters:rotate(270)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "rotate_45": {
+    "path": "/unsafe/300x200/filters:rotate(45)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "rotate",
+          "Reason": "no effect"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "rotate_450": {
+    "path": "/unsafe/300x200/filters:rotate(450)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Rotate": 270
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "rotate_negative": {
+    "path": "/unsafe/300x200/filters:rotate(-90)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "round_corner_bad_channel": {
+    "error": {
+      "field": "round_corner",
+      "kind": "invalid_url",
+      "public": "invalid round_corner: expected an integer from 0 to 255",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:round_corner(10,256,0,0)/a.jpg"
+  },
+  "round_corner_bad_radius": {
+    "error": {
+      "field": "round_corner",
+      "kind": "invalid_url",
+      "public": "invalid round_corner: expected N or N|M",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:round_corner(a,0,0,0)/a.jpg"
+  },
+  "round_corner_few_args": {
+    "error": {
+      "field": "round_corner",
+      "kind": "invalid_url",
+      "public": "invalid round_corner: expected radius,r,g,b[,transparent]",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:round_corner(10,0,0)/a.jpg"
+  },
+  "saturation_minus_200": {
+    "path": "/unsafe/300x200/filters:saturation(-200)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Saturation": 0
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "sharpen_bad_bool": {
+    "error": {
+      "field": "sharpen",
+      "kind": "invalid_url",
+      "public": "invalid sharpen: expected true, false, 1 or 0",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:sharpen(1,1,yes)/a.jpg"
+  },
+  "sharpen_few_args": {
+    "error": {
+      "field": "sharpen",
+      "kind": "invalid_url",
+      "public": "invalid sharpen: expected amount,radius,luminance_only",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:sharpen(1,1)/a.jpg"
+  },
+  "sharpen_zero": {
+    "path": "/unsafe/300x200/filters:sharpen(0,1,false)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "sharpen",
+          "Reason": "no effect"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "stretch": {
+    "path": "/unsafe/300x200/filters:stretch()/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "force",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "stretch_with_fit_in": {
+    "path": "/unsafe/fit-in/300x200/filters:stretch()/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "stretch",
+          "Reason": "no effect"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "strip_both": {
+    "path": "/unsafe/300x200/filters:strip_exif():strip_icc()/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "StripColorProfile": true,
+        "StripMetadata": true
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "strip_exif_args": {
+    "error": {
+      "field": "strip_exif",
+      "kind": "invalid_url",
+      "public": "invalid strip_exif: expected no arguments",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:strip_exif(1)/a.jpg"
+  },
+  "unknown": {
+    "path": "/unsafe/300x200/filters:sepia()/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "sepia",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "unsupported_all": {
+    "path": "/unsafe/300x200/filters:colorize(10,20,30,ff0000):curve([(0,0)],[(0,0)],[(0,0)],[(0,0)]):red_eye():frame(f.png)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "colorize",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "curve",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "red_eye",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "frame",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "watermark_bad_alpha": {
+    "error": {
+      "field": "watermark",
+      "kind": "invalid_url",
+      "public": "invalid watermark: expected an integer from 0 to 100",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:watermark(w.png,1,1,101)/a.jpg"
+  },
+  "watermark_bad_pos": {
+    "error": {
+      "field": "watermark",
+      "kind": "invalid_url",
+      "public": "invalid watermark: expected an integer, Np, center or repeat",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:watermark(w.png,left,1,1)/a.jpg"
+  },
+  "watermark_bad_ratio": {
+    "error": {
+      "field": "watermark",
+      "kind": "invalid_url",
+      "public": "invalid watermark: expected an integer or none",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:watermark(w.png,1,1,1,x)/a.jpg"
+  },
+  "watermark_center": {
+    "path": "/unsafe/300x200/filters:watermark(w.png,center,center,0)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Raw": "w.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "watermark_empty_url": {
+    "error": {
+      "field": "watermark",
+      "kind": "invalid_url",
+      "public": "invalid watermark: expected an image url",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:watermark(,1,1,1)/a.jpg"
+  },
+  "watermark_encoded_url": {
+    "path": "/unsafe/300x200/filters:watermark(https%3A%2F%2Fe.com%2Fw.png,10,10,20)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Watermarks": [
+            {
+              "Opacity": 0.8,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 10,
+                "YOffset": 10
+              },
+              "Source": {
+                "Raw": "https://e.com/w.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "watermark_few_args": {
+    "error": {
+      "field": "watermark",
+      "kind": "invalid_url",
+      "public": "invalid watermark: expected url,x,y,alpha[,w_ratio[,h_ratio]]",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/filters:watermark(w.png,1,1)/a.jpg"
+  },
+  "watermark_negative_zero": {
+    "path": "/unsafe/300x200/filters:watermark(w.png,-0,-0,100)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Watermarks": [
+            {
+              "Position": {
+                "Type": "south-east"
+              },
+              "Source": {
+                "Raw": "w.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "watermark_percent_100": {
+    "path": "/unsafe/300x200/filters:watermark(w.png,100p,50p,20)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Watermarks": [
+            {
+              "Opacity": 0.8,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 0.9999,
+                "YOffset": 0.5
+              },
+              "Source": {
+                "Raw": "w.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "watermark_quoted_url_comma": {
+    "path": "/unsafe/300x200/filters:watermark('https://e.com/w,1.png',10,10,20)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Watermarks": [
+            {
+              "Opacity": 0.8,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 10,
+                "YOffset": 10
+              },
+              "Source": {
+                "Raw": "https://e.com/w,1.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "watermark_ratio_both": {
+    "path": "/unsafe/300x200/filters:watermark(w.png,10,10,20,30,40)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "watermark",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Watermarks": [
+            {
+              "Opacity": 0.8,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 10,
+                "YOffset": 10
+              },
+              "Scale": 0.3,
+              "Source": {
+                "Raw": "w.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "watermark_repeat_x": {
+    "path": "/unsafe/300x200/filters:watermark(w.png,repeat,10,20)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "watermark",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Watermarks": [
+            {
+              "Opacity": 0.8,
+              "Position": {
+                "Type": "north",
+                "YOffset": 10
+              },
+              "Source": {
+                "Raw": "w.png"
+              },
+              "Tile": "repeat"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  }
+}

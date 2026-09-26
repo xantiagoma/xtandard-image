@@ -1,0 +1,1009 @@
+{
+  "adaptive_fit_in": {
+    "path": "/unsafe/adaptive-fit-in/300x200/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Adaptive": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "adaptive_full_fit_in": {
+    "path": "/unsafe/adaptive-full-fit-in/300x200/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Adaptive": true,
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "outside",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "align_all": {
+    "path": "/unsafe/300x200/right/bottom/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "south-east"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "align_center_middle": {
+    "path": "/unsafe/300x200/center/middle/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "center"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "align_h_only": {
+    "path": "/unsafe/300x200/left/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "west"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "align_v_only": {
+    "path": "/unsafe/300x200/top/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "north"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "all_segments": {
+    "path": "/unsafe/debug/meta/trim:bottom-right:5/10x20:310x220/adaptive-full-fit-in/-300x-0/right/bottom/smart/filters:quality(50)/s3-key/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "debug",
+          "Reason": "not implemented"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "Format": true,
+        "Schema": "thumbor",
+        "Size": true
+      },
+      "Kind": "info",
+      "Output": {
+        "Quality": 50
+      },
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 10,
+              "YOffset": 20
+            },
+            "Height": {
+              "Px": 200
+            },
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Flip": {
+            "H": true,
+            "V": true
+          },
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Adaptive": true,
+            "Enlarge": true,
+            "Type": "outside",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Trim": {
+            "ColorFromBottomRight": true,
+            "Threshold": 5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "s3-key/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "s3-key/a.jpg"
+  },
+  "crop": {
+    "path": "/unsafe/10x20:310x220/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 10,
+              "YOffset": 20
+            },
+            "Height": {
+              "Px": 200
+            },
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "crop_inverted": {
+    "path": "/unsafe/300x20:10x220/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "crop",
+          "Reason": "no effect"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "crop_too_large": {
+    "error": {
+      "field": "crop.right",
+      "kind": "invalid_url",
+      "public": "invalid crop.right: expected an integer from 0 to 65536",
+      "status": 400
+    },
+    "path": "/unsafe/0x0:99999x10/a.jpg"
+  },
+  "crop_zero": {
+    "path": "/unsafe/0x0:0x0/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "doc_example_trim_crop": {
+    "path": "/unsafe/trim/10x20:310x220/fit-in/-300x0/left/top/filters:blur(3)/s3-key/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Blur": 3,
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 10,
+              "YOffset": 20
+            },
+            "Height": {
+              "Px": 200
+            },
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Flip": {
+            "H": true
+          },
+          "Gravity": {
+            "Type": "north-west"
+          },
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Trim": {}
+        }
+      ],
+      "Source": {
+        "Raw": "s3-key/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "s3-key/a.jpg"
+  },
+  "empty": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing signature or unsafe segment",
+      "status": 400
+    },
+    "path": ""
+  },
+  "filters_as_image": {
+    "path": "/unsafe/filters:quality(80)",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "filters:quality(80)"
+      }
+    },
+    "signature": "unsigned",
+    "source": "filters:quality(80)"
+  },
+  "filters_malformed": {
+    "path": "/unsafe/filters:quality(80):/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "filters:quality(80):/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "filters:quality(80):/a.jpg"
+  },
+  "filters_no_parens_is_image": {
+    "path": "/unsafe/filters:grayscale/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "filters:grayscale/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "filters:grayscale/a.jpg"
+  },
+  "fit_in": {
+    "path": "/unsafe/fit-in/300x200/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "fit_in_without_size": {
+    "path": "/unsafe/fit-in/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "full_fit_in": {
+    "path": "/unsafe/full-fit-in/300x200/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "outside",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "image_absolute_s3": {
+    "path": "/unsafe/s3://bucket/key.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "s3://bucket/key.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "s3://bucket/key.jpg"
+  },
+  "image_bad_escape": {
+    "error": {
+      "field": "image",
+      "kind": "invalid_url",
+      "public": "invalid image: expected valid percent-encoding",
+      "status": 400
+    },
+    "path": "/unsafe/300x200/a%zz.jpg"
+  },
+  "image_control_char": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid source url",
+      "status": 400
+    },
+    "path": "/unsafe/a%00.jpg"
+  },
+  "image_encoded_url": {
+    "path": "/unsafe/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "missing_signature": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing signature or unsafe segment",
+      "status": 400
+    },
+    "path": "/300x200/a.jpg"
+  },
+  "no_leading_slash": {
+    "path": "unsafe/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "only_unsafe": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing signature or unsafe segment",
+      "status": 400
+    },
+    "path": "/unsafe"
+  },
+  "query_ignored": {
+    "path": "/unsafe/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "segment_as_last_is_image": {
+    "path": "/unsafe/smart",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "smart"
+      }
+    },
+    "signature": "unsigned",
+    "source": "smart"
+  },
+  "size_bare_x": {
+    "path": "/unsafe/x/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "size_flip_h": {
+    "path": "/unsafe/-300x200/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "size_flip_v_only": {
+    "path": "/unsafe/x-/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Flip": {
+            "V": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "size_not_a_size": {
+    "path": "/unsafe/300xabc/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "300xabc/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "300xabc/a.jpg"
+  },
+  "size_orig": {
+    "path": "/unsafe/origx300/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Rel": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "size_orig_both": {
+    "path": "/unsafe/origxorig/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Rel": 1
+            },
+            "Type": "fill",
+            "Width": {
+              "Rel": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "size_overflow": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected an integer from 0 to 65536",
+      "status": 400
+    },
+    "path": "/unsafe/99999999999999999999x10/a.jpg"
+  },
+  "size_too_large": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected an integer from 0 to 65536",
+      "status": 400
+    },
+    "path": "/unsafe/70000x10/a.jpg"
+  },
+  "smart_overrides_align": {
+    "path": "/unsafe/300x200/left/top/smart/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "strict_known_ignored_filter": {
+    "config": "strict",
+    "path": "/unsafe/filters:noise(10)/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "noise",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "strict_unknown_filter": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/unsafe/filters:sepia()/a.jpg"
+  },
+  "trim": {
+    "path": "/unsafe/trim/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          },
+          "Trim": {}
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "trim_bad_corner_is_image": {
+    "path": "/unsafe/trim:middle/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "trim:middle/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "trim:middle/a.jpg"
+  },
+  "trim_bottom_right": {
+    "path": "/unsafe/trim:bottom-right/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          },
+          "Trim": {
+            "ColorFromBottomRight": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "trim_tolerance_clamped": {
+    "path": "/unsafe/trim:bottom-right:400/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "trim",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          },
+          "Trim": {
+            "ColorFromBottomRight": true,
+            "Threshold": 255
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "trim_tolerance_only": {
+    "path": "/unsafe/trim:10/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          },
+          "Trim": {
+            "Threshold": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "trim_top_left_tolerance": {
+    "path": "/unsafe/trim:top-left:50/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          },
+          "Trim": {
+            "Threshold": 50
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "unsafe_trailing_slash": {
+    "path": "/unsafe/300x200/",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "300x200/"
+      }
+    },
+    "signature": "unsigned",
+    "source": "300x200/"
+  },
+  "wrong_order_is_image": {
+    "path": "/unsafe/smart/300x200/a.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "300x200/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "300x200/a.jpg"
+  }
+}
