@@ -1,0 +1,14 @@
+#:schema https://xantiagoma.github.io/xtandard-image/schema/config.schema.json
+# The CONFIG.md §5 (Coolify) environment as a TOML file.
+
+[signing]
+keys = ["00112233445566778899aabbccddeeff"]
+salts = ["00112233445566778899aabbccddeeff"]
+
+[sources.origin]
+type = "http"
+allow = ["cdn.example.com"]
+
+[cache.result]
+stores = ["memory", "disk"]
+disk = { path = "/cache" }

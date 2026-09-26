@@ -18,6 +18,8 @@ type docVar struct {
 	name    string // may contain <NAME> or <FMT>
 	def     string // documented default literal
 	hasDef  bool   // def is a single backticked literal
+	defCell string // the whole Default cell
+	meaning string // the Meaning cell
 	rowLine int
 }
 
@@ -67,7 +69,7 @@ func parseDocVars(t *testing.T) []docVar {
 			}
 			names = append(names, n)
 		}
-		defCell := strings.TrimSpace(cells[2])
+		defCell := strings.TrimSpace(strings.ReplaceAll(cells[2], "\x00", "|"))
 		var defs []string
 		literal := strings.HasPrefix(defCell, "`")
 		if literal {
@@ -83,7 +85,10 @@ func parseDocVars(t *testing.T) []docVar {
 			}
 		}
 		for j, n := range names {
-			v := docVar{name: n, rowLine: i, hasDef: literal}
+			v := docVar{
+				name: n, rowLine: i, hasDef: literal, defCell: defCell,
+				meaning: strings.TrimSpace(strings.ReplaceAll(cells[3], "\x00", "|")),
+			}
 			if literal {
 				v.def = defs[min(j, len(defs)-1)]
 			}
@@ -112,7 +117,7 @@ func docPattern(name string) *regexp.Regexp {
 	return regexp.MustCompile("^" + q + "$")
 }
 
-func (d docVar) matches(key string) bool {
+func (d *docVar) matches(key string) bool {
 	if d.name == key {
 		return true
 	}

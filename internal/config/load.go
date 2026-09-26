@@ -3,7 +3,6 @@ package config
 import (
 	"errors"
 	"fmt"
-	"io/fs"
 	"maps"
 	"os"
 	"reflect"
@@ -14,14 +13,11 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v11"
-	"github.com/goccy/go-yaml"
-	"github.com/goccy/go-yaml/ast"
-	"github.com/goccy/go-yaml/parser"
 )
 
-// DefaultConfigFile is read when neither --config nor XI_CONFIG_FILE is
-// set, if it exists.
-const DefaultConfigFile = "/etc/xtandard/config.yaml"
+// DefaultConfigFile is the YAML default config file; see
+// DefaultConfigFiles for every name Load looks for.
+const DefaultConfigFile = defaultConfigDir + "/config.yaml"
 
 // fileSuffix marks a variable whose value is a path to read the value from.
 const fileSuffix = "_FILE"
@@ -115,20 +111,23 @@ func load(o LoadOptions) (Config, Meta, error) {
 		allowUnknown = b
 	}
 
-	path, optional := o.ConfigFile, false
+	path := o.ConfigFile
 	if path == "" {
 		path = strings.TrimSpace(vars[envConfigFile])
 	}
+	var content []byte
 	if path == "" {
-		path, optional = DefaultConfigFile, true
+		path, content, err = findDefaultConfig(readFile)
+		errList = append(errList, err)
+	} else if content, err = readFile(path); err != nil {
+		errList = append(errList, fmt.Errorf("%w %s: %w", ErrFile, path, err))
+		path = ""
 	}
-	if b, err := readFile(path); err == nil {
+	if path != "" {
 		meta.File = path
-		if err := decodeYAML(b, &cfg); err != nil {
+		if err := decodeFile(path, content, &cfg); err != nil {
 			errList = append(errList, fmt.Errorf("%w %s: %w", ErrFile, path, err))
 		}
-	} else if !optional || !errors.Is(err, fs.ErrNotExist) {
-		errList = append(errList, fmt.Errorf("%w %s: %w", ErrFile, path, err))
 	}
 	if err := foldEncryptionKey(&cfg); err != nil {
 		errList = append(errList, err)
@@ -195,6 +194,9 @@ func load(o LoadOptions) (Config, Meta, error) {
 		}
 	}
 
+	// {file: …} references the environment did not replace.
+	errList = append(errList, resolveFileRefs(&cfg, meta.File, readFile))
+
 	cfg.resolveDerived(o.GOMAXPROCS)
 	return cfg, meta, errors.Join(errList...)
 }
@@ -241,13 +243,13 @@ func resolveEnv(environ []string, staticKeys map[string]bool, readFile func(stri
 			continue
 		}
 		origin[base] = base + fileSuffix
-		b, err := readFile(path)
+		v, err := readSecretFile(readFile, path)
 		if err != nil {
 			vars[base] = ""
 			readErrs[base] = fmt.Errorf("%w: %s%s: %w", ErrEnv, base, fileSuffix, err)
 			continue
 		}
-		vars[base] = strings.TrimRight(string(b), "\r\n")
+		vars[base] = v
 	}
 	return vars, origin, readErrs, errors.Join(errList...)
 }
@@ -310,41 +312,6 @@ func funcMap() map[reflect.Type]env.ParserFunc {
 			return strconv.ParseFloat(strings.TrimSpace(v), 64)
 		},
 	}
-}
-
-// decodeYAML decodes one strict YAML document over cfg. An empty document
-// (or one with only comments) leaves cfg untouched.
-func decodeYAML(b []byte, cfg *Config) error {
-	f, err := parser.ParseBytes(b, 0)
-	if err != nil {
-		return err
-	}
-	var docs int
-	for _, d := range f.Docs {
-		if d.Body != nil && d.Body.Type() != ast.CommentType {
-			docs++
-		}
-	}
-	switch docs {
-	case 0:
-		return nil
-	case 1:
-	default:
-		return errors.New("want a single YAML document")
-	}
-	return yaml.UnmarshalWithOptions(b, cfg,
-		yaml.Strict(),
-		yaml.DisallowUnknownField(),
-		yaml.CustomUnmarshaler(func(d *time.Duration, raw []byte) error {
-			var s string
-			if err := yaml.Unmarshal(raw, &s); err != nil {
-				return err
-			}
-			v, err := ParseDuration(s)
-			*d = v
-			return err
-		}),
-	)
 }
 
 // foldEncryptionKey moves the deprecated encryption.key into keys.
