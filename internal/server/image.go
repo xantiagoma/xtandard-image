@@ -364,6 +364,9 @@ func (s *Server) run(ctx context.Context, in *ProcessInput) (*ProcessOutput, err
 		s.deps.Metrics.ObserveRawDecode(out.RawPath)
 		span.SetAttributes(attribute.String("xi.raw_path", out.RawPath))
 	}
+	if out.VideoFrame != "" {
+		span.SetAttributes(attribute.String("xi.video_frame", out.VideoFrame))
+	}
 	return out, nil
 }
 

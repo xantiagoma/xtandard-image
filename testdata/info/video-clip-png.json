@@ -1,0 +1,42 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "exif": {},
+  "format": "mov",
+  "height": 54,
+  "iptc": {},
+  "mime_type": "video/quicktime",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 58010,
+  "video_meta": {
+    "bit_rate": 464080,
+    "codec": "png",
+    "compatible_brands": "qt  ",
+    "container": "mov",
+    "duration": 1,
+    "encoder": "Lavf62.12.103",
+    "fps": 10,
+    "frames": 10,
+    "height": 54,
+    "major_brand": "qt  ",
+    "minor_version": "512",
+    "rotation": 0,
+    "width": 96
+  },
+  "video_streams": [
+    {
+      "bps": 457952,
+      "codec": "png",
+      "duration": 1,
+      "fps": 10,
+      "height": 54,
+      "type": "video",
+      "width": 96
+    }
+  ],
+  "width": 96,
+  "xmp": {}
+}

@@ -17,6 +17,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/source"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
+	"github.com/xantiagoma/xtandard-image/internal/video"
 )
 
 // InfoConfig configures the /info endpoint (Kind == transform.KindInfo).
@@ -73,6 +74,9 @@ type SourceInfo struct {
 	// Pixels holds the pixel-derived fields the request asked for
 	// (Inspect's px); nil when it asked for none.
 	Pixels *imageinfo.Result
+	// Video describes a video source (container, tags, streams); nil for
+	// images.
+	Video *video.Meta
 }
 
 // Inspector reads a source's header and metadata for /info (stage 11 of an
@@ -231,8 +235,8 @@ func orientedSize(m *SourceMeta) (w, h int) {
 // InfoResponse is imgproxy's /info response body (docs.imgproxy.net
 // usage/getting_info). Each section is present exactly when its option is
 // on; requested metadata sections the source lacks are empty objects.
-// Options imgproxy supports but this build does not compute yet (video
-// metadata, detection, classification) are left out; the dialect lists
+// Options imgproxy supports but this build does not compute yet (detection,
+// classification) are left out; the dialect lists
 // them in Request.Ignored (X-Xi-Ignored). The crop, colour and hash fields
 // (WP-63) are InfoProResponse, rendered by info_pro.go.
 //
@@ -256,6 +260,7 @@ type InfoResponse struct {
 	PagesNumber  *int                      `json:"pages_number,omitempty"  doc:"Number of pages, or frames of an animation (info option pages_number)."               minimum:"1"`
 	Alpha        *bool                     `json:"alpha,omitempty"         doc:"Whether the source has an alpha channel (info option alpha)."`
 	InfoProResponse
+	InfoVideoResponse
 	HDR bool `json:"hdr,omitempty" doc:"xtandard-image extension: true for scene-linear sources (OpenEXR, Radiance, PFM), which imgproxy does not read; absent otherwise."`
 }
 
@@ -319,6 +324,7 @@ func infoBody(o *transform.InfoOptions, si *SourceInfo, src []byte) ([]byte, err
 		out.Alpha = &si.Meta.HasAlpha
 	}
 	out.InfoProResponse = infoPro(o, si, src)
+	out.InfoVideoResponse = infoVideo(o, si.Video)
 	out.HDR = si.HDR
 	return json.Marshal(&out)
 }

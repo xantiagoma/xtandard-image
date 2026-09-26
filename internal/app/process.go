@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/security/svg"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
+	"github.com/xantiagoma/xtandard-image/internal/video"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -26,6 +28,8 @@ type codecProber struct {
 	// svg holds the static per-format limits and settings (SVG, PDF, PSD);
 	// the pixel and frame limits come per request.
 	svg codec.Limits
+	// video configures video sources (XI_VIDEO_*).
+	video video.Settings
 }
 
 // formatLimits are the codec limits and probe settings that come from the
@@ -39,6 +43,37 @@ func formatLimits(cfg *config.Config) codec.Limits {
 		PDFDensity:          cfg.Formats.PDF.DPI,
 		PSDRequireComposite: cfg.Formats.PSD.RequireComposite,
 	}
+}
+
+// videoSettings maps XI_VIDEO_* onto the codec's and executor's video
+// settings. auto enables video when this build has FFmpeg; startup already
+// failed for true without it (checkVideo).
+func videoSettings(cfg *config.Config) video.Settings {
+	v := &cfg.Video
+	s := video.Settings{
+		Enabled: v.Enabled != config.False && codec.VideoAvailable(),
+		Limits: video.Limits{
+			MaxBytes:    int64(v.MaxBytes),
+			MaxDuration: v.MaxDuration,
+			MaxPixels:   v.MaxPixels,
+		},
+		Keyframes: v.Thumbnail.Keyframes,
+		Samples:   v.Thumbnail.Samples,
+		Span:      v.Thumbnail.Span,
+	}
+	if sec, ok := v.Thumbnail.Second.Seconds(); ok {
+		s.Second = &sec
+	}
+	return s
+}
+
+// checkVideo fails startup when XI_VIDEO_ENABLED=true asks for video on an
+// image without FFmpeg (slim).
+func checkVideo(cfg *config.Config) error {
+	if cfg.Video.Enabled == config.True && !codec.VideoAvailable() {
+		return errors.New("video.enabled (XI_VIDEO_ENABLED) is true but this image has no FFmpeg; use the full image or set it to auto")
+	}
+	return nil
 }
 
 // Probe implements server.Prober.
@@ -62,7 +97,7 @@ func (p *codecProber) Probe(ctx context.Context, src fetch.Buffer, lim server.Pr
 	var m codec.ImageMeta
 	err = vips.Run(ctx, func() error {
 		var err error
-		m, err = codec.Probe(ctx, vb, l, "")
+		m, err = codec.ProbeMedia(ctx, vb, l, &p.video, "")
 		return err
 	})
 	if err != nil {
@@ -137,6 +172,7 @@ func newProcessor(cfg *config.Config, wm *exec.Watermark, admit func(context.Con
 		},
 		ToneMap: tm,
 		Admit:   admit,
+		Video:   videoSettings(cfg),
 	}, enc)
 	if err != nil {
 		return nil, err
@@ -274,6 +310,7 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		Skipped:     res.Skipped,
 		Best:        res.Best.String(),
 		RawPath:     res.RawPath,
+		VideoFrame:  res.VideoFrame.String(),
 	}, nil
 }
 
@@ -333,5 +370,6 @@ func planMeta(f codec.Format, m *server.SourceMeta, pdfDPI float64) plan.SourceM
 		IsVector:    f == codec.FormatSVG || f == codec.FormatPDF,
 		Density:     density,
 		HDR:         f.HDR(),
+		IsVideo:     f.IsVideo(),
 	}
 }

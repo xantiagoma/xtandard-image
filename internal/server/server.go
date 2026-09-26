@@ -148,6 +148,10 @@ type ProcessOutput struct {
 	// "demosaic" or "demosaic-half"; empty for other formats): counted in
 	// xi_raw_decodes_total and sent as X-Xi-Raw-Path with debug headers.
 	RawPath string
+	// VideoFrame describes the frame a video source was decoded from
+	// (timestamp, keyframe, best-frame selection); sent as
+	// X-Xi-Video-Frame with debug headers. Empty for images.
+	VideoFrame string
 }
 
 // Processor plans, executes and encodes one image (stages 12–13;

@@ -1,0 +1,39 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "exif": {},
+  "format": "avi",
+  "height": 54,
+  "iptc": {},
+  "mime_type": "video/x-msvideo",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 161446,
+  "video_meta": {
+    "bit_rate": 1291568,
+    "codec": "rawvideo",
+    "container": "avi",
+    "duration": 1,
+    "fps": 10,
+    "frames": 10,
+    "height": 54,
+    "rotation": 0,
+    "software": "Lavf61.1.100",
+    "width": 96
+  },
+  "video_streams": [
+    {
+      "bps": 1382400,
+      "codec": "rawvideo",
+      "duration": 1,
+      "fps": 10,
+      "height": 54,
+      "type": "video",
+      "width": 96
+    }
+  ],
+  "width": 96,
+  "xmp": {}
+}

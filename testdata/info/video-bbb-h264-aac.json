@@ -1,0 +1,56 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "exif": {},
+  "format": "mp4",
+  "height": 720,
+  "iptc": {},
+  "mime_type": "video/mp4",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 132313,
+  "video_meta": {
+    "artist": "Blender Foundation 2008, Janus Bager Kristensen 2013",
+    "bit_rate": 1058504,
+    "codec": "h264",
+    "comment": "Creative Commons Attribution 3.0 - http://bbb3d.renderfarming.net",
+    "compatible_brands": "isomiso2avc1mp41",
+    "composer": "Sacha Goedegebure",
+    "container": "mov",
+    "duration": 1,
+    "encoder": "Lavf61.1.100",
+    "fps": 30,
+    "frames": 30,
+    "genre": "Animation",
+    "height": 720,
+    "major_brand": "isom",
+    "minor_version": "512",
+    "rotation": 0,
+    "title": "Big Buck Bunny, Sunflower version",
+    "width": 1280
+  },
+  "video_streams": [
+    {
+      "bps": 1012512,
+      "codec": "h264",
+      "duration": 1,
+      "fps": 30,
+      "height": 720,
+      "type": "video",
+      "width": 1280
+    },
+    {
+      "bps": 25977,
+      "codec": "aac",
+      "duration": 1,
+      "frequency": 16000,
+      "language": "eng",
+      "layout": "mono",
+      "type": "audio"
+    }
+  ],
+  "width": 1280,
+  "xmp": {}
+}
