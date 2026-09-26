@@ -312,8 +312,11 @@ type Source interface {
 }
 
 type Key struct {
-    Source string   // named source
-    Path   string   // object key / path / absolute URL for http sources
+    Source  string // named source, or DevSourceName ("_dev") in dev mode
+    Bucket  string // s3/gcs bucket or azure container; empty otherwise
+    Path    string // canonical absolute URL for http; decoded key without leading "/" (prefix jail included) otherwise
+    Version string // s3 versionId / gcs generation; empty = latest
+    Dev     bool   // matched no allowlist; implicit dev-mode http source (SSRF rules only)
 }
 
 type FetchOptions struct {
@@ -321,6 +324,7 @@ type FetchOptions struct {
     IfNoneMatch     string
     IfModifiedSince time.Time
     Header          http.Header // passthrough headers (allowlisted)
+    CheckRedirect   func(location string) error // fetcher binds Registry.ResolveRedirect; nil = refuse redirects
 }
 
 type Object struct {
@@ -338,9 +342,14 @@ type Object struct {
 type Resolver interface {
     Resolve(spec transform.SourceSpec) (Key, error) // errs.KindForbidden when nothing matches
 }
+
+// Registry (built by app from []Binding{Spec, Source} + dev mode) implements Resolver,
+// Source(name) lookup and ResolveRedirect(from Key, location) for http redirect hops.
+// ParseRef(raw) (Ref, error) is the pure syntax step (fuzzed); Ref.String() is canonical.
+// RedactKey(Key) renders keys for logs with http query strings redacted.
 ```
 
-Source string resolution order: `xi://<name>/<key>` explicit; `s3://bucket/key`, `gs://`, `abs://container/blob`, `local:///path`, `ftp://`, `sftp://` (imgproxy-compatible schemes) matched to a source of that type whose bucket/host list contains the target; absolute `http(s)://` matched against each http source's `allow` patterns (host globs + optional path prefix); relative keys resolved against the dialect mount's bound source. No match → 403 unless dev mode, in which case an implicit unrestricted `http` source is used (SSRF protections still apply).
+Source string resolution order: `xi://<name>/<key>` explicit; `s3://bucket/key`, `gs://`, `abs://container/blob` (alias `az://`), `local:///path` (aliases `local:/path`, `local:path`, `file:///path`), `ftp://`, `sftp://` (imgproxy-compatible schemes; the mount's own source is tried first, then configuration order) matched to a source of that type whose bucket/host list contains the target; absolute `http(s)://` matched against each http source's `allow` patterns (host globs + optional path prefix); relative keys resolved against the dialect mount's bound source. No match → 403 unless dev mode, in which case an implicit unrestricted `http` source is used (SSRF protections still apply).
 
 Backends (under `internal/fetch/`): `httpsrc` (SSRF-safe transport, see §10), `s3src` (aws-sdk-go-v2 with custom endpoint and path-style for R2/MinIO/Spaces/B2), `gcssrc`, `azuresrc`, `fssrc` (uses Go `os.Root` so `..` and symlinks cannot escape the root), `ftpsrc` (jlaffaye/ftp, explicit TLS option), `sftpsrc` (pkg/sftp with pinned host keys; no TOFU).
 
