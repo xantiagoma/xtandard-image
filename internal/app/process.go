@@ -16,9 +16,24 @@ import (
 )
 
 // codecProber is the server.Prober: codec.Probe (magic-byte sniff, header
-// only, BMP/ICO through the Go loaders, SVG limits) inside one vips.Run.
+// only, BMP/ICO/PSD in Go, SVG and PDF limits) inside one vips.Run.
 type codecProber struct {
-	svg codec.Limits // SVG limits; the pixel and frame limits come per request
+	// svg holds the static per-format limits and settings (SVG, PDF, PSD);
+	// the pixel and frame limits come per request.
+	svg codec.Limits
+}
+
+// formatLimits are the codec limits and probe settings that come from the
+// configuration rather than the request.
+func formatLimits(cfg *config.Config) codec.Limits {
+	return codec.Limits{
+		MaxSVGBytes:         int64(cfg.Limits.MaxSVGBytes),
+		MaxSVGDepth:         cfg.Limits.MaxSVGDepth,
+		MaxSVGElements:      cfg.Limits.MaxSVGElements,
+		MaxPDFPages:         cfg.Limits.MaxPDFPages,
+		PDFDensity:          cfg.Formats.PDF.DPI,
+		PSDRequireComposite: cfg.Formats.PSD.RequireComposite,
+	}
 }
 
 // Probe implements server.Prober.
@@ -71,8 +86,9 @@ func unlimited(v int64) int64 {
 // processor is the server.Processor: pipeline/exec (plan, execute) and
 // codec/encode (encode) behind the server's interface.
 type processor struct {
-	exec *exec.Executor
-	enc  encode.Config
+	exec   *exec.Executor
+	enc    encode.Config
+	pdfDPI float64 // XI_FORMATS_PDF_DPI: the density PDF sizes were probed at
 }
 
 // newProcessor builds the executor and encoder; wm is the configured
@@ -92,7 +108,7 @@ func newProcessor(cfg *config.Config, wm *exec.Watermark) (*processor, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &processor{exec: ex, enc: ec}, nil
+	return &processor{exec: ex, enc: ec, pdfDPI: cfg.Formats.PDF.DPI}, nil
 }
 
 // planLimits are the planner limits of the executor, shared with the
@@ -192,7 +208,7 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 	res, err := p.exec.Run(ctx, &exec.Job{
 		Request: in.Request,
 		Source:  src,
-		Meta:    planMeta(format, &in.Meta),
+		Meta:    planMeta(format, &in.Meta, p.pdfDPI),
 		Target:  t,
 	})
 	if err != nil {
@@ -220,10 +236,14 @@ func lossy(f transform.Format) bool {
 
 // planMeta is the planner's view of the probed source. The format name is
 // the sniffed codec format (UltraHDR shrinks on load like JPEG).
-func planMeta(f codec.Format, m *server.SourceMeta) plan.SourceMeta {
+func planMeta(f codec.Format, m *server.SourceMeta, pdfDPI float64) plan.SourceMeta {
 	name := f.String()
 	if f == codec.FormatUHDR {
 		name = "jpeg"
+	}
+	var density float64
+	if f == codec.FormatPDF {
+		density = pdfDPI
 	}
 	// The planner's Frames counts pages too: it bounds `page`.
 	return plan.SourceMeta{
@@ -235,5 +255,6 @@ func planMeta(f codec.Format, m *server.SourceMeta) plan.SourceMeta {
 		IsAnimated:  m.IsAnimated,
 		Format:      name,
 		IsVector:    f == codec.FormatSVG || f == codec.FormatPDF,
+		Density:     density,
 	}
 }

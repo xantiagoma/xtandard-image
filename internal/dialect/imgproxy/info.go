@@ -119,9 +119,17 @@ func (st *state) applyInfo(name string, args []string) error {
 		err = infoCalcHashsums(in, args)
 		on, milestone = len(in.CalcHashsums) > 0, reasonM2
 
+	// /info describes the first page whatever `page` says (codec.Inspect
+	// reads one header).
+	case "page", "pg":
+		if err := st.apply(name, args); err != nil {
+			return err
+		}
+		st.ignore(name, reasonNotImplemented)
+		return nil
+
 	// Processing-like and request options shared with processing URLs.
-	case "page", "pg",
-		"video_thumbnail_second", "vts",
+	case "video_thumbnail_second", "vts",
 		"video_thumbnail_keyframes", "vtk",
 		"cachebuster", "cb",
 		"expires", "exp",

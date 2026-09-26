@@ -82,8 +82,12 @@ func TestInfo(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(synth, "metadata.jpg"), metadataJPEG(t, root), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(synth, "pages-501.pdf"), manyPagesPDF(501), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	base := startInfo(t, synth)
 	t.Run("golden", func(t *testing.T) { infoGolden(t, base, root) })
+	t.Run("pdf and psd", func(t *testing.T) { pdfPSDStatus(t, base) })
 	t.Run("exif names", func(t *testing.T) { infoEXIFNames(t, base) })
 	t.Run("signature", func(t *testing.T) { infoSignature(t, base) })
 }
@@ -116,6 +120,12 @@ func infoGolden(t *testing.T, base, root string) {
 	for name, src := range cases {
 		t.Run(name, func(t *testing.T) {
 			r := get(t, base+"/info/unsafe"+allInfo+"/plain/"+src)
+			if name == "pdf-password" {
+				if r.status != http.StatusUnprocessableEntity {
+					t.Errorf("GET: %d %s, want 422", r.status, r.body)
+				}
+				return
+			}
 			if r.status != http.StatusOK || r.ctype != "application/json" {
 				t.Fatalf("GET: %d %q %s", r.status, r.ctype, r.body)
 			}
@@ -139,6 +149,66 @@ func infoGolden(t *testing.T, base, root string) {
 			}
 		})
 	}
+}
+
+// pdfPSDStatus checks the PDF and PSD answers the goldens do not cover: a
+// password-protected PDF and one over XI_LIMITS_MAX_PDF_PAGES (500) are
+// 422 for /info and processing alike, and a PDF page or PSD layer renders.
+func pdfPSDStatus(t *testing.T, base string) {
+	t.Helper()
+	for _, tc := range []struct {
+		path   string
+		status int
+		ctype  string
+	}{
+		{"/unsafe/rs:fit:100:0/plain/pdf/password.pdf", http.StatusUnprocessableEntity, ""},
+		{"/info/unsafe/plain/pdf/password.pdf", http.StatusUnprocessableEntity, ""},
+		{"/unsafe/rs:fit:100:0/plain/xi://synth/pages-501.pdf", http.StatusUnprocessableEntity, ""},
+		{"/info/unsafe/pn:1/plain/xi://synth/pages-501.pdf", http.StatusUnprocessableEntity, ""},
+		{"/unsafe/pg:1/rs:fit:100:0/plain/pdf/pages.pdf", http.StatusOK, "image/jpeg"},
+		{"/unsafe/pgs:-1/rs:fit:100:0/f:png/plain/pdf/pages.pdf", http.StatusOK, "image/png"},
+		{"/unsafe/rs:fit:48:0/plain/psd/no-composite.psd", http.StatusOK, "image/jpeg"},
+		{"/unsafe/pg:2/plain/psd/layered.psd", http.StatusOK, "image/jpeg"},
+	} {
+		t.Run(tc.path, func(t *testing.T) {
+			r := get(t, base+tc.path)
+			if r.status != tc.status || (tc.ctype != "" && r.ctype != tc.ctype) {
+				t.Errorf("GET: %d %q, want %d %q (%s)", r.status, r.ctype, tc.status, tc.ctype, r.body)
+			}
+		})
+	}
+}
+
+// manyPagesPDF builds a PDF of n blank pages in one page tree.
+func manyPagesPDF(n int) []byte {
+	var b bytes.Buffer
+	b.WriteString("%PDF-1.4\n")
+	var offsets []int
+	obj := func(body string) {
+		offsets = append(offsets, b.Len())
+		b.WriteString(strconv.Itoa(len(offsets)) + " 0 obj\n" + body + "\nendobj\n")
+	}
+	obj("<< /Type /Catalog /Pages 2 0 R >>")
+	kids := make([]string, n)
+	for i := range kids {
+		kids[i] = strconv.Itoa(i+3) + " 0 R"
+	}
+	obj("<< /Type /Pages /Kids [" + strings.Join(kids, " ") + "] /Count " + strconv.Itoa(n) + " /MediaBox [0 0 100 100] >>")
+	for range n {
+		obj("<< /Type /Page /Parent 2 0 R >>")
+	}
+	xref := b.Len()
+	b.WriteString("xref\n0 " + strconv.Itoa(len(offsets)+1) + "\n0000000000 65535 f \n")
+	for _, off := range offsets {
+		b.WriteString(leftPad(strconv.Itoa(off), 10) + " 00000 n \n")
+	}
+	b.WriteString("trailer\n<< /Size " + strconv.Itoa(len(offsets)+1) + " /Root 1 0 R >>\nstartxref\n" +
+		strconv.Itoa(xref) + "\n%EOF\n")
+	return b.Bytes()
+}
+
+func leftPad(s string, n int) string {
+	return strings.Repeat("0", max(n-len(s), 0)) + s
 }
 
 // infoEXIFNames checks the EXIF keys and values of the orientation 6 +

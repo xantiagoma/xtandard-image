@@ -18,7 +18,8 @@ import (
 
 // TestProcessNoLeak sends 500 full requests (probe, plan, execute, encode)
 // through the production Prober and Processor, cycling through JPEG, PNG
-// with alpha, BMP, an EXIF-rotated JPEG and animated GIF/WebP, and checks
+// with alpha, BMP, an EXIF-rotated JPEG, animated GIF/WebP, PDF pages
+// (one, and all stacked) and a PSD without a composite, and checks
 // that libvips' tracked memory, allocations, open files and live objects
 // return to their baseline.
 //
@@ -72,6 +73,9 @@ func TestProcessNoLeak(t *testing.T) {
 		{"png/rgba8.png", "aq:dssim:0.01", transform.FormatWebP},
 		{"jpeg/baseline.jpg", "rs:fit:120:120/aq:size:2000", transform.FormatWebP},
 		{"gif/animated.gif", "rs:fill:32:32/aq:dssim", transform.FormatWebP},
+		{"pdf/pages.pdf", "pg:1/rs:fit:100:0", transform.FormatJPEG},
+		{"pdf/pages.pdf", "pgs:-1/rs:fit:0:200", transform.FormatPNG},
+		{"psd/no-composite.psd", "rs:fit:48:48", transform.FormatPNG},
 	}
 	type prepared struct {
 		data []byte

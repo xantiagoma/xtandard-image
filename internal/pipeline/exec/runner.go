@@ -36,6 +36,9 @@ type runner struct {
 	// attached its profile, which the encoder must then keep.
 	profileEmbedded bool
 	skipped         []string
+	// transparent renders PDF pages on a transparent background
+	// (pdfTransparent); otherwise they are opaque.
+	transparent bool
 }
 
 // last returns the plan whose Output is the response.
@@ -63,6 +66,9 @@ func (r *runner) replan(obs plan.Observed) error {
 }
 
 func (r *runner) execute(ctx context.Context) (*vips.Image, error) {
+	if err := r.measureSelection(ctx); err != nil {
+		return nil, err
+	}
 	img, err := r.loadObserved(ctx)
 	if err != nil {
 		return nil, err
@@ -148,8 +154,9 @@ func (r *runner) loadObserved(ctx context.Context) (*vips.Image, error) {
 			ls = r.plan.Load
 			return r.load(ctx, &ls, nil)
 		}
-	case (w != ls.Width || h != ls.Height) && ls.Page > 0 && ls.ShrinkOnLoad <= 1 && ls.Scale == 0:
-		// The header describes the first page; this one has its own size.
+	case (w != ls.Width || h != ls.Height) && (ls.Page > 0 || ls.NPages > 1) && ls.ShrinkOnLoad <= 1 && ls.Scale == 0:
+		// The header describes the first page; this one (or the stack of
+		// pages) has its own size.
 		if err := r.replanPage(w, h); err != nil {
 			return nil, err
 		}

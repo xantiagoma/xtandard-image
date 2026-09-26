@@ -76,6 +76,8 @@ type source struct {
 	hasData     bool // the encoded source is available: shrink-on-load possible
 	frames      int  // frames processed (1 unless animated)
 	page        int
+	stack       int // pages of a still loaded stacked as one image (≤ 1: one)
+	density     float64
 }
 
 func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observed) (*Plan, error) {
@@ -107,7 +109,7 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 	first := &pipes[0]
 	src := source{
 		w: meta.Width, h: frameH, orientation: meta.Orientation, alpha: meta.HasAlpha,
-		format: format, vector: meta.IsVector, hasData: true, frames: 1,
+		format: format, vector: meta.IsVector, hasData: true, frames: 1, density: meta.Density,
 	}
 	nFrames := max(meta.Frames, 1)
 	if first.Page != nil && *first.Page > 0 {
@@ -124,6 +126,15 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 		if n > 1 {
 			src.frames = n
 			src.hasData = false // frames are processed one by one: no shrink-on-load
+		}
+	}
+	if n := stackedPages(first, meta, &src, nFrames); n > 1 {
+		src.stack = n
+		src.hasData = src.vector // raster pages: no shrink-on-load or embedded thumbnail
+		if !meta.Selection {
+			// Predicted as n pages of the first one's size; the executor
+			// replans on the loaded (or, for vectors, measured) strip.
+			src.h = frameH * n
 		}
 	}
 	if err := checkSource(&src, &lim); err != nil {
@@ -152,6 +163,21 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 		return nil, errs.New(errs.KindLimitExceeded, "plan: estimated memory exceeds the processing budget")
 	}
 	return root, nil
+}
+
+// stackedPages is the number of pages the `pages` option stacks into one
+// image (imgproxy Pro: "the pages will be stacked vertically and
+// left-aligned"): multi-page stills only, from the selected page on. PSD
+// "pages" are layers of their own sizes, never stacked.
+func stackedPages(p *transform.Pipeline, meta *SourceMeta, s *source, nFrames int) int {
+	if s.frames > 1 || meta.IsAnimated || nFrames <= 1 || p.Pages == nil || s.format == "psd" {
+		return 1
+	}
+	n := nFrames - s.page
+	if *p.Pages > 0 {
+		n = min(n, *p.Pages)
+	}
+	return n
 }
 
 // checkSource is imgproxy's security CheckDimensions on the loaded source.
@@ -253,7 +279,10 @@ func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt trans
 	}
 	animated := s.frames > 1
 
-	load := LoadStep{Page: s.page, NPages: s.frames, Width: s.w, Height: s.h}
+	load := LoadStep{Page: s.page, NPages: max(s.frames, s.stack), Width: s.w, Height: s.h}
+	if s.vector {
+		load.Density = s.density
+	}
 	b.size(s.w, s.h)
 	hasData := s.hasData
 

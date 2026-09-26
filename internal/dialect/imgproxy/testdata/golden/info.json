@@ -1072,7 +1072,7 @@
         },
         {
           "Option": "pg",
-          "Reason": "takes effect in M2"
+          "Reason": "not implemented"
         },
         {
           "Option": "vts",
@@ -2144,7 +2144,7 @@
       "Ignored": [
         {
           "Option": "page",
-          "Reason": "takes effect in M2"
+          "Reason": "not implemented"
         }
       ],
       "Info": {

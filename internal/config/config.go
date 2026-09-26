@@ -284,6 +284,8 @@ type Formats struct {
 	HEIC HEICFormat `yaml:"heic" envPrefix:"HEIC_"`
 	JXL  JXLFormat  `yaml:"jxl"  envPrefix:"JXL_"`
 	GIF  GIFFormat  `yaml:"gif"  envPrefix:"GIF_"`
+	PDF  PDFFormat  `yaml:"pdf"  envPrefix:"PDF_"`
+	PSD  PSDFormat  `yaml:"psd"  envPrefix:"PSD_"`
 
 	Auto    FormatSwitches `yaml:"auto"    envPrefix:"AUTO_"`
 	Enforce FormatSwitches `yaml:"enforce" envPrefix:"ENFORCE_"`
@@ -349,6 +351,21 @@ type JXLFormat struct {
 // GIFFormat holds GIF encoder defaults.
 type GIFFormat struct {
 	Effort int `yaml:"effort" env:"EFFORT"`
+}
+
+// PDFFormat configures PDF input (PDFium).
+type PDFFormat struct {
+	// DPI is the resolution of a page's natural size, used when no size is
+	// requested; resized pages render directly at the target size.
+	DPI float64 `yaml:"dpi" env:"DPI"`
+}
+
+// PSDFormat configures Photoshop PSD/PSB input (ImageMagick, PSD only).
+type PSDFormat struct {
+	// RequireComposite refuses files saved without a merged composite
+	// ("Maximize compatibility" off) instead of letting ImageMagick flatten
+	// the layers.
+	RequireComposite bool `yaml:"require_composite" env:"REQUIRE_COMPOSITE"`
 }
 
 // FormatSwitches toggles a behaviour per modern format.
@@ -549,6 +566,7 @@ func Defaults() Config {
 			HEIC:                 HEICFormat{Quality: 60},
 			JXL:                  JXLFormat{Quality: 75, Effort: 5},
 			GIF:                  GIFFormat{Effort: 7},
+			PDF:                  PDFFormat{DPI: 72},
 			Auto:                 FormatSwitches{AVIF: true, WebP: true},
 			Preferred:            []Format{FormatJPEG, FormatPNG, FormatGIF},
 			SVGPassthrough:       true,

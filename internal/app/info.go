@@ -14,10 +14,12 @@ import (
 // vipsInspector is the production server.Inspector: codec.Inspect (probe
 // plus a header-only load) on a locked vips thread, with IPTC and XMP
 // parsed into imgproxy's /info shapes.
-type vipsInspector struct{}
+type vipsInspector struct {
+	formats codec.Limits // static per-format limits and settings (formatLimits)
+}
 
 // Inspect implements server.Inspector.
-func (vipsInspector) Inspect(ctx context.Context, src fetch.Buffer, lim server.ProbeLimits) (*server.SourceInfo, error) {
+func (in vipsInspector) Inspect(ctx context.Context, src fetch.Buffer, lim server.ProbeLimits) (*server.SourceInfo, error) {
 	vb, err := vipsBuffer(src)
 	if err != nil {
 		return nil, err
@@ -26,11 +28,11 @@ func (vipsInspector) Inspect(ctx context.Context, src fetch.Buffer, lim server.P
 	var ci codec.Info
 	err = vips.Run(ctx, func() error {
 		var err error
-		ci, err = codec.Inspect(ctx, vb, codec.Limits{
-			MaxSrcPixels:            lim.MaxPixels,
-			MaxAnimationFrames:      lim.MaxFrames,
-			MaxAnimationFramePixels: lim.MaxFramePixels,
-		}, "")
+		l := in.formats
+		l.MaxSrcPixels = lim.MaxPixels
+		l.MaxAnimationFrames = lim.MaxFrames
+		l.MaxAnimationFramePixels = lim.MaxFramePixels
+		ci, err = codec.Inspect(ctx, vb, l, "")
 		return err
 	})
 	if err != nil {

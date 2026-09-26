@@ -2130,12 +2130,6 @@
     "query": "tr=pg-2",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "page",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Page": 1
@@ -2174,16 +2168,6 @@
     "query": "tr=pg-2_4",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "page",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "pages",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Page": 1,

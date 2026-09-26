@@ -17,6 +17,15 @@ type SourceMeta struct {
 	IsAnimated  bool   // several frames with delays (GIF, WebP, JXL)
 	Format      string // source format name: "jpeg", "png", "webp", "gif", "svg", "pdf", "heic", "avif", ...
 	IsVector    bool   // SVG, PDF: rendered at any scale
+	// Density is the DPI a vector source's Width and Height were measured
+	// at (PDF: XI_FORMATS_PDF_DPI); it is rendered at the same density,
+	// scaled. 0 is the loader default.
+	Density float64
+	// Selection reports that Width and Height describe the page selection
+	// of the request (`page`, and `pages` stacked vertically) as loaded,
+	// not the first page. The executor sets it after measuring a selection
+	// the header could not describe.
+	Selection bool
 }
 
 // Limits are the configured processing limits (XI_LIMITS_*). Zero means
@@ -126,7 +135,10 @@ type LoadStep struct {
 	// Density is the vector rendering DPI; 0 keeps the loader default.
 	Density float64
 	Page    int // first page or frame
-	NPages  int // pages or frames to load (1 = one)
+	// NPages is the number of pages or frames to load (1 = one). Several
+	// pages of a still (the `pages` option) load as one image, stacked
+	// vertically and left-aligned (imgproxy Pro).
+	NPages int
 	// Autorotate is always false: orientation is applied by explicit
 	// RotateStep/FlipStep after resizing, where imgproxy applies it, so the
 	// crop geometry matches. The executor drops the orientation tag.
