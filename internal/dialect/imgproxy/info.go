@@ -171,18 +171,6 @@ func (st *state) applyInfo(name string, args []string) error {
 	return nil
 }
 
-// infoLater parses a boolean info option that takes effect in a later
-// milestone and records it when it is turned on.
-func (st *state) infoLater(name, field string, args []string, dst *bool) error {
-	if err := oneBool(field, args, dst); err != nil {
-		return err
-	}
-	if *dst {
-		st.ignore(name, reasonM3)
-	}
-	return nil
-}
-
 // infoExif is exif:enabled[:canonical_names].
 func (st *state) infoExif(args []string) error {
 	if err := maxArgs("exif", args, 2); err != nil {
