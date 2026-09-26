@@ -41,15 +41,26 @@ func containerOf(f Format) string {
 // display size (sample aspect ratio applied) in the stored orientation;
 // the display matrix becomes the EXIF orientation, so the pipeline rotates
 // the thumbnail like a photo.
-func probeVideo(ctx context.Context, buf *vips.Buffer, f Format, s *video.Settings) (ImageMeta, error) {
+func probeVideo(ctx context.Context, buf *vips.Buffer, f Format, s *video.Settings, keep bool) (ImageMeta, error) {
 	if s == nil || !s.Enabled {
 		return ImageMeta{}, videoDisabled(f)
 	}
-	vm, err := ffmpeg.Probe(ctx, buf, s.Limits)
-	if err != nil {
-		return ImageMeta{}, err
+	var vm video.Meta
+	var sess *VideoSession
+	if keep {
+		fs, err := ffmpeg.Open(ctx, buf, s.Limits)
+		if err != nil {
+			return ImageMeta{}, err
+		}
+		sess, vm = &VideoSession{s: fs}, fs.Meta()
+	} else {
+		var err error
+		if vm, err = ffmpeg.Probe(ctx, buf, s.Limits); err != nil {
+			return ImageMeta{}, err
+		}
 	}
 	if vm.Container != containerOf(f) {
+		sess.Close()
 		return ImageMeta{}, errs.Newf(errs.KindUnsupported, "codec: sniffed %s but FFmpeg read %s", f, vm.Container)
 	}
 	cs := ColorSpaceSRGB
@@ -66,7 +77,30 @@ func probeVideo(ctx context.Context, buf *vips.Buffer, f Format, s *video.Settin
 		Loop:        -1,
 		ColorSpace:  cs,
 		Video:       &vm,
+		Session:     sess,
 	}, nil
+}
+
+// VideoSession is a video's FFmpeg handle kept open from the probe
+// (ProbeSession) to the decode. It is not safe for concurrent use.
+type VideoSession struct {
+	s *ffmpeg.Session
+}
+
+// Close frees the handle. It is nil-safe and idempotent.
+func (v *VideoSession) Close() {
+	if v != nil {
+		v.s.Close()
+	}
+}
+
+// session returns the open handle when it reads buf's memory, else nil
+// (the caller opens buf again).
+func (v *VideoSession) session(buf *vips.Buffer) *ffmpeg.Session {
+	if v == nil || !v.s.Reads(buf) {
+		return nil
+	}
+	return v.s
 }
 
 // VideoFrameInfo describes the frame VideoFrame decoded.
@@ -80,6 +114,9 @@ type VideoFrameInfo struct {
 	BestFrame bool
 	Sampled   int
 	Score     float64
+	// Composite describes a sprite or animation made of several frames
+	// (VideoComposite); the fields above are then zero.
+	Composite *CompositeInfo
 }
 
 // String renders f for the X-Xi-Video-Frame debug header: the timestamp,
@@ -89,6 +126,9 @@ type VideoFrameInfo struct {
 func (f *VideoFrameInfo) String() string {
 	if f == nil {
 		return ""
+	}
+	if c := f.Composite; c != nil {
+		return c.String()
 	}
 	b := strconv.AppendFloat(nil, f.Time, 'f', 3, 64)
 	b = append(b, 's')
@@ -112,10 +152,17 @@ func VideoVersion() string { return ffmpeg.Version() }
 // 8-bit sRGB, RGBA when the stream has alpha, req.Width × req.Height (the
 // display size when 0), in the stored orientation (apply
 // ImageMeta.Orientation to display it). Without the ffmpeg build tag it
-// fails with errs.KindUnsupported. It must run inside vips.Run; the caller
-// closes the image.
-func VideoFrame(ctx context.Context, buf *vips.Buffer, req *video.FrameRequest) (*vips.Image, VideoFrameInfo, error) {
-	fr, err := ffmpeg.Thumbnail(ctx, buf, req)
+// fails with errs.KindUnsupported. sess, when it reads buf (ProbeSession),
+// decodes on the probe's handle instead of opening buf again. It must run
+// inside vips.Run; the caller closes the image.
+func VideoFrame(ctx context.Context, buf *vips.Buffer, sess *VideoSession, req *video.FrameRequest) (*vips.Image, VideoFrameInfo, error) {
+	var fr *ffmpeg.Frame
+	var err error
+	if s := sess.session(buf); s != nil {
+		fr, err = s.Thumbnail(ctx, req)
+	} else {
+		fr, err = ffmpeg.Thumbnail(ctx, buf, req)
+	}
 	if err != nil {
 		return nil, VideoFrameInfo{}, err
 	}
@@ -139,15 +186,18 @@ func sampleVideo(ctx context.Context, buf *vips.Buffer, maxSide int, s *video.Se
 	if s == nil || !s.Enabled {
 		return Raw{}, videoDisabled(FormatMP4)
 	}
-	vm, err := ffmpeg.Probe(ctx, buf, s.Limits)
+	fs, err := ffmpeg.Open(ctx, buf, s.Limits)
 	if err != nil {
 		return Raw{}, err
 	}
+	sess := &VideoSession{s: fs}
+	defer sess.Close()
+	vm := fs.Meta()
 	w, h := fitInside(vm.DisplayWidth, vm.DisplayHeight, maxSide)
 	req := s.Request(nil, nil, w, h)
 	var a vips.Arena
 	defer a.Close()
-	img, _, err := VideoFrame(ctx, buf, &req)
+	img, _, err := VideoFrame(ctx, buf, sess, &req)
 	if err != nil {
 		return Raw{}, fmt.Errorf("codec: sample video: %w", err)
 	}
