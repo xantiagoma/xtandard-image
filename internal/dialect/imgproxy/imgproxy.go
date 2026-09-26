@@ -45,6 +45,7 @@ import (
 	"time"
 
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
+	"github.com/xantiagoma/xtandard-image/internal/preset"
 	"github.com/xantiagoma/xtandard-image/internal/security/crypt"
 	"github.com/xantiagoma/xtandard-image/internal/security/sign"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
@@ -92,6 +93,10 @@ type Options struct {
 	Base64URLIncludesFilename bool
 	// Now is the clock for expires; nil means time.Now.
 	Now func() time.Time
+	// Presets expands preset (pr) references in place, applies the
+	// "default" preset first and enforces only-presets mode. New validates
+	// every preset. nil records preset names in Delivery.Presets unexpanded.
+	Presets *preset.Store
 }
 
 // Parser is the imgproxy dialect. It is safe for concurrent use.
@@ -133,7 +138,11 @@ func New(opts *Options) (*Parser, error) {
 	if o.Now == nil {
 		o.Now = time.Now
 	}
-	return &Parser{o: o, sep: sep, verifier: v}, nil
+	p := &Parser{o: o, sep: sep, verifier: v}
+	if err := p.validatePresets(); err != nil {
+		return nil, err
+	}
+	return p, nil
 }
 
 // Name implements dialect.Dialect.
@@ -249,6 +258,10 @@ func (st *state) pipeline() *transform.Pipeline { return &st.r.Pipelines[st.cur]
 // parse consumes the options and the source of rest (the path after the
 // signature, without a leading slash).
 func (st *state) parse(rest string) error {
+	rest, err := st.presetPrologue(rest)
+	if err != nil {
+		return err
+	}
 	if first, _, _ := strings.Cut(rest, "/"); isResizingType(first) {
 		return dialect.InvalidURL("deprecated basic url format")
 	}
@@ -259,12 +272,10 @@ func (st *state) parse(rest string) error {
 			if !sawOption {
 				return dialect.InvalidURL("empty pipeline")
 			}
-			if len(st.r.Pipelines) >= transform.MaxPipelines {
-				return dialect.InvalidURL("too many chained pipelines")
+			// A preset may already have created the next pipeline.
+			if err := st.selectPipeline(st.cur + 1); err != nil {
+				return err
 			}
-			st.r.Pipelines = append(st.r.Pipelines, transform.Pipeline{})
-			st.bgAlpha = append(st.bgAlpha, -1)
-			st.cur++
 			sawOption, chained = false, true
 			rest = tail
 			continue

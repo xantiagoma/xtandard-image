@@ -245,12 +245,7 @@ func (st *state) apply(name string, args []string) error {
 	case "return_attachment", "att":
 		return oneBoolPtr("return_attachment", args, &st.r.Delivery.Attachment)
 	case "preset", "pr":
-		for _, a := range args {
-			if a == "" {
-				return dialect.InvalidArgument("preset", a, expNonEmpty)
-			}
-			st.r.Delivery.Presets = append(st.r.Delivery.Presets, a)
-		}
+		return st.applyPresets(args)
 
 	// Security (request-wide, only when allowed).
 	case "max_src_resolution", "msr":

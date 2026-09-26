@@ -109,7 +109,7 @@ Rules:
 | `XI_DIALECTS_IMGPROXY_URL_REPLACEMENTS` | `` | `regex=replacement;…` (`;`-separated in env) |
 | `XI_DIALECTS_CLOUDINARY_CLOUDS` | `` | `cloud=source,…` |
 | `XI_PRESETS` | `` | `name=opts,name2=opts` (imgproxy syntax); YAML `presets: {name: opts}` |
-| `XI_PRESETS_FILE` | `` | One preset per line |
+| `XI_PRESETS_FILE` | `` | One `name=options` per line; blank lines and `#` comments skipped; a name also in `XI_PRESETS` is an error |
 | `XI_PRESETS_ONLY` | `false` | Only preset URLs allowed |
 
 ### Processing, formats, limits

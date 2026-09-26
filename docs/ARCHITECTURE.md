@@ -39,7 +39,7 @@ Each stage has a timeout budget taken from the request context (`XI_SERVER_REQUE
 | 3 | Parse: dialect grammar → `transform.Request` (+ `Ignored` list) | `dialect/<name>` | `*transform.Request` | 400 malformed / unknown option (strict) |
 | 4 | Authenticate: dialect signature verifier, expiry | `security/sign` | ok | 403 bad signature, 404 expired (imgproxy-compatible) |
 | 5 | Resolve source: decrypt `enc/`, map source string to named source, apply allowlist | `source`, `security/crypt` | `source.Ref` | 403 not allowed, 400 bad source |
-| 6 | Normalise and validate: presets expanded, defaults filled, limits clamped, `Validate()` | `transform`, `preset` | frozen request | 400, 422 (result dimension limit) |
+| 6 | Normalise and validate: defaults filled, limits clamped, `Validate()` (presets were expanded in place at stage 3, since URL order decides overrides) | `transform` | frozen request | 400, 422 (result dimension limit) |
 | 7 | Negotiate: output format from explicit format, `Accept`, client hints, config | `negotiate` | `OutputFormat`, `Vary` set | 406 (only when `XI_FORMATS_STRICT_ACCEPT`) |
 | 8 | Result cache lookup (optional): key = hash(canonical request, output format, source identity) | `cache` | hit → stage 14 | cache errors are logged, never fatal |
 | 9 | Fetch: singleflight by source identity, origin cache, size limit, conditional request | `fetch` | `*fetch.Original` (bytes + metadata) | 404, 502, 504, 413→422 |
@@ -298,7 +298,7 @@ type Input struct {
 }
 
 type Result struct {
-    Request      *transform.Request // only what the URL says; defaults/presets/Validate come later
+    Request      *transform.Request // what the URL says, presets expanded in place (URL order matters); defaults/Validate come later
     SourceString string             // decoded source (plain/base64/decrypted, base URL applied) == Request.Source.Raw
     Signature    sign.Result        // Unsigned | Verified | Trusted
 }
