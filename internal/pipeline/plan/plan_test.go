@@ -336,7 +336,7 @@ func TestBuildChained(t *testing.T) {
 	}
 	wantFirst := []plan.Step{
 		plan.WatermarkStep{
-			Opacity: 0.5, Position: plan.Gravity{Type: transform.GravityCenter}, Scale: 0.2, DPRScale: 1, Frames: 1, Default: true,
+			Opacity: 0.5, Position: plan.Gravity{Type: transform.GravityCenter}, Scale: 0.2, DPRScale: 1, Frames: 1,
 		},
 	}
 	if diff := cmp.Diff(wantFirst, p.After); diff != "" {

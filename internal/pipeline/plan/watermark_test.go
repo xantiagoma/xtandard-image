@@ -90,29 +90,86 @@ func TestWatermarkTileSpacing(t *testing.T) {
 	}
 }
 
-// TestBuildWatermark checks the step the planner emits for a tiled
-// configured watermark and for one with its own source.
+// TestWatermarkSize checks watermark_size: a Width×Height box (either side
+// derived from the aspect ratio), used only when Scale is 0.
+func TestWatermarkSize(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name  string
+		g     plan.WatermarkGeometry
+		fit   float64
+		ok    bool
+		boxed bool
+	}{
+		{name: "width", g: plan.WatermarkGeometry{Width: 80}, fit: 2},
+		{name: "height", g: plan.WatermarkGeometry{Height: 15}, fit: 0.5},
+		{name: "both, width bound", g: plan.WatermarkGeometry{Width: 20, Height: 300}, fit: 0.5},
+		{name: "both, height bound", g: plan.WatermarkGeometry{Width: 400, Height: 60}, fit: 2},
+		{name: "scale wins", g: plan.WatermarkGeometry{Scale: 0.5, Width: 400}, fit: 2.5},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tc.g.FitScale(200, 150, 40, 30); got != tc.fit {
+				t.Errorf("FitScale = %v, want %v", got, tc.fit)
+			}
+		})
+	}
+}
+
+// TestBuildWatermark checks the steps the planner emits for the configured
+// watermark, a per-request image and a text watermark, with DPR applied to
+// pixel sizes, and the pipeline index of chained watermarks.
 func TestBuildWatermark(t *testing.T) {
 	t.Parallel()
-	r := req(transform.Pipeline{Watermarks: []transform.Watermark{
-		{Opacity: 0.5, Tile: transform.TileRepeat, Position: transform.Gravity{XOffset: 4, YOffset: 6}},
-		{Opacity: 1, Position: transform.Gravity{Type: transform.GravitySouthEast}, Source: &transform.SourceSpec{Raw: "s3://b/k.png"}},
-	}})
+	red := &transform.Color{R: 255, A: 255}
+	r := req(transform.Pipeline{
+		Resize: transform.Resize{Width: px(40), DPR: 2},
+		Watermarks: []transform.Watermark{
+			{Opacity: 0.5, Tile: transform.TileRepeat, Position: transform.Gravity{XOffset: 4, YOffset: 6}},
+			{
+				Opacity: 1, Position: transform.Gravity{Type: transform.GravitySouthEast}, Source: &transform.SourceSpec{Raw: "s3://b/k.png"},
+				Width: 30, Height: 20, Rotate: 45, Shadow: 2,
+			},
+			{
+				Opacity: 0.8, Tile: transform.TileChessboard, Text: "<b>Hi</b>", Font: "sans 20", Color: red, TextWidth: 50,
+				Scale: 0.3, Width: 99,
+			},
+		},
+	})
 	p, err := plan.Build(r, jpeg(100, 80), plan.Limits{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := []plan.Step{
 		plan.WatermarkStep{
-			Opacity: 0.5, Position: plan.Gravity{Type: transform.GravityCenter, X: 4, Y: 6}, Tile: transform.TileRepeat,
-			DPRScale: 1, Frames: 1, Default: true,
+			Opacity: 0.5, Frames: 1,
+			Position: plan.Gravity{Type: transform.GravityCenter, X: 4, Y: 6}, Tile: transform.TileRepeat, DPRScale: 2,
 		},
 		plan.WatermarkStep{
-			Index: 1, Opacity: 1, Position: plan.Gravity{Type: transform.GravitySouthEast}, DPRScale: 1, Frames: 1,
+			Kind: plan.WatermarkImage, Index: 1, Opacity: 1, Frames: 1,
+			Position: plan.Gravity{Type: transform.GravitySouthEast}, DPRScale: 2,
+			Width: 60, Height: 40, Rotate: 45, Shadow: 4,
+		},
+		plan.WatermarkStep{
+			Kind: plan.WatermarkText, Index: 2, Opacity: 0.8, Frames: 1,
+			Position: plan.Gravity{Type: transform.GravityCenter}, Tile: transform.TileChessboard, Scale: 0.3, DPRScale: 2,
+			Text: &plan.TextWatermark{Markup: "<b>Hi</b>", Font: "sans 20", Color: red, Width: 100, DPI: 144},
 		},
 		plan.ColourStep{Stage: plan.ColourToResult},
 	}
 	if diff := cmp.Diff(want, p.After); diff != "" {
 		t.Errorf("After (-want +got):\n%s", diff)
+	}
+
+	chained := req(transform.Pipeline{}, transform.Pipeline{Watermarks: []transform.Watermark{{Opacity: 1, Text: "x"}}})
+	c, err := plan.Build(chained, jpeg(100, 80), plan.Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(c.Chained) != 1 {
+		t.Fatalf("%d chained plans", len(c.Chained))
+	}
+	if st, ok := c.Chained[0].After[0].(plan.WatermarkStep); !ok || st.Pipeline != 1 || st.Index != 0 || st.Kind != plan.WatermarkText {
+		t.Errorf("chained watermark step = %+v", c.Chained[0].After[0])
 	}
 }

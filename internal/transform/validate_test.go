@@ -291,6 +291,17 @@ func TestValidate(t *testing.T) {
 		{"watermark height huge", p0(func(p *Pipeline) { p.Watermarks[0].Height = MaxDimension + 1 }), "pipelines[0].watermarks[0].height"},
 		{"watermark rotate huge", p0(func(p *Pipeline) { p.Watermarks[0].Rotate = 400 }), "pipelines[0].watermarks[0].rotate"},
 		{"watermark shadow negative", p0(func(p *Pipeline) { p.Watermarks[0].Shadow = -1 }), "pipelines[0].watermarks[0].shadow"},
+		{"watermark text too long", p0(func(p *Pipeline) {
+			p.Watermarks[0].Source, p.Watermarks[0].Text = nil, strings.Repeat("x", MaxWatermarkText+1)
+		}), "pipelines[0].watermarks[0].text"},
+		{"watermark text not utf8", p0(func(p *Pipeline) { p.Watermarks[0].Source, p.Watermarks[0].Text = nil, "\xff" }), "pipelines[0].watermarks[0].text"},
+		{"watermark font markup", p0(func(p *Pipeline) {
+			p.Watermarks[0].Source, p.Watermarks[0].Text, p.Watermarks[0].Font = nil, "x", "<b>"
+		}), "pipelines[0].watermarks[0].font"},
+		{"watermark font without text", p0(func(p *Pipeline) { p.Watermarks[0].Font = "sans 12" }), "pipelines[0].watermarks[0].text"},
+		{"watermark text width negative", p0(func(p *Pipeline) {
+			p.Watermarks[0].Source, p.Watermarks[0].Text, p.Watermarks[0].TextWidth = nil, "x", -1
+		}), "pipelines[0].watermarks[0].text_width"},
 
 		// pages and video
 		{"page negative", p0(func(p *Pipeline) { p.Page = new(-1) }), "pipelines[0].page"},
