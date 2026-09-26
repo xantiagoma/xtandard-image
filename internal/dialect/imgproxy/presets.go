@@ -43,7 +43,7 @@ func (p *Parser) validatePresets() error {
 		return fmt.Errorf("imgproxy: presets use separator %q, dialect uses %q", s.Separator(), p.sep)
 	}
 	for _, name := range s.Names() {
-		st := newState(p)
+		st := newState(p, false)
 		if err := st.applyPresets([]string{name}); err != nil {
 			return fmt.Errorf("imgproxy: preset %q: %w", name, err)
 		}
@@ -57,14 +57,15 @@ func (p *Parser) validatePresets() error {
 }
 
 // applyPresets handles the preset (pr) option: each named preset is
-// expanded in place. Without a store (Options.Presets nil) the names are
-// only recorded in Delivery.Presets.
+// expanded in place. Without a store (Options.Presets nil), and in /info
+// URLs (imgproxy resolves those against separate info presets, which we do
+// not have yet), the names are only recorded in Delivery.Presets.
 func (st *state) applyPresets(names []string) error {
 	for _, name := range names {
 		if name == "" {
 			return dialect.InvalidArgument("preset", name, expNonEmpty)
 		}
-		if st.p.o.Presets == nil {
+		if st.p.o.Presets == nil || st.info {
 			st.r.Delivery.Presets = append(st.r.Delivery.Presets, name)
 			continue
 		}

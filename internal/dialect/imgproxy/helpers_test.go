@@ -144,6 +144,7 @@ type testCase struct {
 	name string
 	cfg  string // "" = default
 	path string
+	info bool // parse with ParseInfo (the path after "/info")
 }
 
 // expand resolves the ENC[...] and SIG placeholders of path.
@@ -174,6 +175,9 @@ func (f *fixture) expand(tb testing.TB, path string) string {
 // outcome renders a parse result or error as the golden JSON value.
 func outcome(tc testCase, res *dialect.Result, err error) map[string]any {
 	out := map[string]any{"path": tc.path}
+	if tc.info {
+		out["endpoint"] = "info"
+	}
 	if tc.cfg != "" {
 		out["config"] = tc.cfg
 	}
@@ -301,9 +305,16 @@ func runGolden(t *testing.T, group string, cases []testCase) {
 			if !ok {
 				t.Fatalf("unknown config %q", cfg)
 			}
-			res, err := p.Parse(&dialect.Input{Path: f.expand(t, tc.path)})
+			parse := p.Parse
+			if tc.info {
+				parse = p.ParseInfo
+			}
+			res, err := parse(&dialect.Input{Path: f.expand(t, tc.path)})
 			if err == nil {
 				checkResult(t, res)
+				if isInfo := res.Request.Kind == transform.KindInfo && res.Request.Info != nil; isInfo != tc.info {
+					t.Errorf("info request = %v, want %v", isInfo, tc.info)
+				}
 			}
 			out := outcome(tc, res, err)
 			if *update {

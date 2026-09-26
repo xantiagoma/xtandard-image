@@ -57,7 +57,8 @@ func (st *state) decodeSource(rest string) (string, error) {
 	if !plausibleSource(raw) {
 		return "", dialect.InvalidURL("invalid source url")
 	}
-	st.r.Source = transform.SourceSpec{Raw: raw, Encoding: enc}
+	// Keep a hashsum option parsed before the source.
+	st.r.Source.Raw, st.r.Source.Encoding = raw, enc
 	return ext, nil
 }
 

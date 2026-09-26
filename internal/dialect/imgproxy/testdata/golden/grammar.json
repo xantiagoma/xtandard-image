@@ -708,15 +708,26 @@
       "Ignored": [
         {
           "Option": "a",
-          "Reason": "not implemented"
+          "Reason": "takes effect in M2"
         },
         {
           "Option": "jpgo",
-          "Reason": "not implemented"
+          "Reason": "takes effect in M2"
         }
       ],
+      "Output": {
+        "JPEG": {
+          "Progressive": true
+        }
+      },
       "Pipelines": [
-        {}
+        {
+          "Adjust": {
+            "Brightness": 10,
+            "Contrast": 1,
+            "Saturation": 1
+          }
+        }
       ],
       "Source": {
         "Raw": "https://example.com/a.jpg"

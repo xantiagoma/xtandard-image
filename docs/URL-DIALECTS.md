@@ -73,10 +73,11 @@ bool        = "1" | "t" | "true" | "0" | "f" | "false"
 - Plain source: `%`, `?`, `@` must be percent-encoded; everything after `@` is the extension.
 - `IMGPROXY_BASE_URL`-style prefixing: `XI_DIALECTS_IMGPROXY_BASE_URL` prepended to relative sources. `XI_DIALECTS_IMGPROXY_URL_REPLACEMENTS` supported (regex → replacement) for migrations.
 - Source schemes: `http(s)://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://`, `xi://<source>/`. `swift://` is not supported (open question).
-- Presets (`internal/preset`, expanded by the dialect at parse time): `preset:a:b` expands each preset in place, so later options override it argument by argument and it overrides earlier ones; the `default` preset is applied before the URL's options (in the first pipeline). A preset's first pipeline applies to the pipeline it is referenced from and its chained pipelines merge into the following ones (created when missing); a later URL `-` moves into them and URL options there win (imgproxy chained-pipelines docs example: `width:400/-/preset:test/width:500/-/width:600` with `test=width:300/height:300/-/width:200/height:200/-/width:100/height:200` → `width:400/-/width:500/height:300/-/width:600/height:200/-/width:100/height:200`). Presets may reference other presets; undefined references, cycles, expansions beyond 16 pipelines, bad arguments and unknown option names are startup errors (imgproxy skips recursive references at request time with a warning). An undefined preset in a URL is 400. `XI_PRESETS_ONLY`: the first path segment is a separator-joined preset list (`/thumbnail:blurry:watermarked/plain/…`), further segments containing the separator must also be preset lists or `pr:`/`preset:` options, and anything else (options, unknown names, `-`, no preset at all) is 403 `forbidden`.
+- Presets (`internal/preset`, expanded by the dialect at parse time): `preset:a:b` expands each preset in place, so later options override it argument by argument and it overrides earlier ones; the `default` preset is applied before the URL's options (in the first pipeline). A preset's first pipeline applies to the pipeline it is referenced from and its chained pipelines merge into the following ones (created when missing); a later URL `-` moves into them and URL options there win (imgproxy chained-pipelines docs example: `width:400/-/preset:test/width:500/-/width:600` with `test=width:300/height:300/-/width:200/height:200/-/width:100/height:200` → `width:400/-/width:500/height:300/-/width:600/height:200/-/width:100/height:200`). Presets may reference other presets; undefined references, cycles, expansions beyond 16 pipelines, bad arguments and unknown option names are startup errors (imgproxy skips recursive references at request time with a warning). An undefined preset in a URL is 400. Presets apply to processing URLs only: in `/info` URLs (imgproxy resolves those against separate info presets, not implemented) `preset` is recorded but not expanded, and neither the `default` preset nor only-presets mode applies. `XI_PRESETS_ONLY`: the first path segment is a separator-joined preset list (`/thumbnail:blurry:watermarked/plain/…`), further segments containing the separator must also be preset lists or `pr:`/`preset:` options, and anything else (options, unknown names, `-`, no preset at all) is 403 `forbidden`.
 - Chained pipelines: pipeline-scoped options (geometry, effects, watermark, animation) apply to the pipeline they appear in; request-scoped ones (`O.*`, `D.*`, `TR.Limits`, `raw`) apply to the whole request wherever they appear (imgproxy `options.Main()`). Max 16 pipelines; an empty pipeline is 400.
 - Later occurrences of an option override earlier ones argument by argument (empty arguments keep the previous value); the source extension overrides `format` unless `raw`. An empty boolean is false; any other non-boolean is 400 (imgproxy: false). `sp` is accepted as a `skip_processing` alias because `imgproxy-js-core` emits it.
 - Malformed option arguments → 400. Unknown option names are recorded in `TR.Ignored` and return 400 only with `XI_DIALECTS_STRICT=true` (ADR 0002). imgproxy itself returns 404 for both (`options/parser/errors.go`); see ROADMAP open question 3.
+- Options tagged M2/M3 below are fully parsed and validated into TR and also recorded in `TR.Ignored` (reason "takes effect in M2"/"M3") until the executor implements them, so the server can ignore or 501 them. Strict mode rejects only unknown names.
 
 ### 3.2 Processing options → TR
 
@@ -96,9 +97,9 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `extend` (`ex`) | bool:gravity:x:y | `P.Extend` | false:ce:0:0 | M1 |
 | `extend_aspect_ratio` (`extend_ar`, `exar`) | bool:gravity:x:y | `P.ExtendAR` | false | M1 |
 | `gravity` (`g`) | no,so,ea,we,noea,nowe,soea,sowe,ce[:x:y]; `sm`; `fp:x:y`; `obj:classes…` Pro; `objw:class:weight…` Pro | `P.Gravity` | ce:0:0 | M1 (sm, fp), M3 (obj, objw) |
-| `objects_position` (`obj_pos`, `op`) Pro | type:x:y, `fp:x:y`, `prop` | `P.Gravity` object placement | ce | M3 |
+| `objects_position` (`obj_pos`, `op`) Pro | type:x:y, `fp:x:y`, `prop` | `P.Gravity.ObjectsPosition` (kept when `gravity` changes) | ce | M3 |
 | `crop` (`c`) | w:h[:gravity] (abs ≥1, rel <1) | `P.Crop` | — | M1 |
-| `crop_aspect_ratio` (`crop_ar`, `car`) Pro | ratio:enlarge | `P.Crop.AspectRatio` | 0 | M2 |
+| `crop_aspect_ratio` (`crop_ar`, `car`) Pro | ratio:enlarge | `P.Crop.AspectRatio/AspectEnlarge` (whole image without `crop`) | 0 | M2 |
 | `trim` (`t`) | threshold:color:equal_hor:equal_ver | `P.Trim` | — | M1 |
 | `padding` (`pd`) | t:r:b:l (CSS shorthand) | `P.Padding` | — | M1 |
 | `auto_rotate` (`ar`) | bool | `P.AutoRotate` | config (true) | M1 |
@@ -117,19 +118,19 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `pixelate` (`pix`) | size | `P.Pixelate` | off | M1 |
 | `unsharp_masking` (`ush`) Pro | mode:weight:divider | `P.Unsharp` | config | M2 |
 | `blur_areas` (`ba`) Pro | sigma:l:t:w:h… | `P.BlurAreas` | off | M2 |
-| `progressive_blur` (`pbl`) Pro | sigma:direction:start:stop | `P.ProgressiveBlur` | off | M2 |
+| `progressive_blur` (`pbl`) Pro | sigma:direction:start:stop; direction as `gradient` | `P.ProgressiveBlur` | off (…:down:0:1) | M2 |
 | `blur_detections` (`bd`) Pro | sigma:classes… | `P.BlurDetections` | off | M3 |
 | `draw_detections` (`dd`) Pro | bool:classes… | `P.DrawDetections` | off | M3 |
 | `crop_objects` (`c_obj`) Pro | scale:classes… | `P.CropObjects` | off | M3 |
 | `colorize` (`col`) Pro | opacity:color:keep_alpha | `P.Colorize` | off | M2 |
-| `gradient` (`gr`) Pro | opacity:color:direction:start:stop | `P.Gradient` | off | M2 |
+| `gradient` (`gr`) Pro | opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees | `P.Gradient` | 0:000:down:0:1 | M2 |
 | `watermark` (`wm`) | opacity:pos:x:y:scale; pos incl. `re` (tile), `ch` (chessboard, Pro) | `P.Watermarks[i]` | off | M1 (`re` M1, `ch` M3) |
 | `watermark_url` (`wmu`) Pro | base64url URL | `Watermark.Source` | config image | M3 |
-| `watermark_text` (`wmt`) Pro | base64url Pango markup | `Watermark.Text` | — | M3 |
+| `watermark_text` (`wmt`) Pro | base64url Pango markup | `Watermark.Text` (replaces `watermark_url`) | — | M3 |
 | `watermark_size` (`wms`) Pro | w:h | `Watermark.Width/Height` | 0:0 | M3 |
 | `watermark_rotate` (`wm_rot`, `wmr`) Pro | degrees | `Watermark.Rotate` | 0 | M3 |
 | `watermark_shadow` (`wmsh`) Pro | sigma | `Watermark.Shadow` | off | M3 |
-| `style` (`stl`) Pro | base64url CSS | `P.SVGStyle` | — | M2 |
+| `style` (`stl`, `st`) Pro | base64url CSS | `P.SVGStyle` | — | M2 |
 | `strip_metadata` (`sm`) | bool | `O.StripMetadata` | config (true) | M1 |
 | `keep_copyright` (`kcr`) | bool | `O.KeepCopyright` | config (true) | M1 |
 | `dpi` Pro | int | `O.DPI` | 0 | M2 |
@@ -151,25 +152,52 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `disable_animation` (`da`) Pro | bool | `P.DisableAnimation` | false | M1 |
 | `video_thumbnail_second` (`vts`) Pro | float | `P.Video.Second` | config | M3 |
 | `video_thumbnail_keyframes` (`vtk`) Pro | bool | `P.Video.Keyframes` | config | M3 |
-| `video_thumbnail_tile` (`vtt`) Pro | step:cols:rows:tw:th:extend:trim:fill:fx:fy | `P.Video.Tile` | off | M3 |
-| `video_thumbnail_animation` (`vta`) Pro | step:delay:frames:fw:fh:extend:trim:fill:fx:fy | `P.Video.Animation` | off | M3 |
+| `video_thumbnail_tile` (`vtt`) Pro | step:cols:rows:tw:th:extend:trim:fill:fx:fy; step 0 = off, < 0 = from duration (stored as 0) | `P.Video.Tile` | off | M3 |
+| `video_thumbnail_animation` (`vta`) Pro | step:delay(ms):frames:fw:fh:extend:trim:fill:fx:fy; step as `vtt` | `P.Video.Animation` (delay in seconds) | off | M3 |
 | `fallback_image_url` (`fiu`) Pro | base64url URL | `D.Fallback` | config | M2 |
 | `skip_processing` (`skp`) | ext… | `D.SkipProcessing` | — | M1 |
 | `raw` | bool | `TR.Kind = Raw` | false | M1 |
 | `cachebuster` (`cb`) | string | `D.CacheBuster` | — | M1 |
 | `bypass_cache` (`bc`) Pro | bool | skips result cache (needs `XI_CACHE_ALLOW_BYPASS`) | false | M2 |
-| `cache_tags` (`ct`) Pro | tags… | `Cache-Tag`/`Surrogate-Key` header (`XI_CACHE_TAGS_HEADER`) | — | M2 |
+| `cache_tags` (`ct`) Pro | tags… (visible ASCII, no commas; replaces earlier tags) | `D.CacheTags` → `Cache-Tag`/`Surrogate-Key` header (`XI_CACHE_TAGS_HEADER`) | — | M2 |
 | `expires` (`exp`) | unix ts | `D.Expires` | — | M1 |
 | `filename` (`fn`) | name:encoded | `D.Filename` | source basename | M1 |
 | `return_attachment` (`att`) | bool | `D.Attachment` | config | M1 |
 | `preset` (`pr`) | names… | expanded in place | — | M1 |
-| `hashsum` (`hs`) Pro | type:hex | `TR.Source.Hashsum` | none | M2 |
+| `hashsum` (`hs`) Pro | none, or md5/sha1/sha256/sha512:hex | `TR.Source.Hashsum` (lowercased) | none | M2 |
 | `max_src_resolution` (`msr`), `max_src_file_size` (`msfs`), `max_animation_frames` (`maf`), `max_animation_frame_resolution` (`mafr`), `max_result_dimension` (`mrd`) | int | `TR.Limits` (only if security options allowed) | config | M1 |
 | removed upstream: `gif_options` | — | accepted and ignored for old URLs | — | — |
 
 ### 3.3 Info options
 
-`/info/…` supports: `size` (`s`), `format` (`f`), `dimensions` (`d`), `exif`, `iptc`, `xmp`, `video_meta` (`vm`) in M1/M3; Pro ones `detect_objects` (`do`), `classify` (`cl`) M3; `colorspace` (`cs`), `bands` (`b`), `sample_format` (`sf`), `pages_number` (`pn`), `alpha` (`a`), `crop` (`c`), `objects_position` (`op`), `palette` (`p`), `average` (`avg`), `dominant_colors` (`dc`), `blurhash` (`bh`), `thumbhash` (`th`), `phash` (`ph`), `calc_hashsums` (`chs`) in M2; plus `page`, `vts`, `vtk`, `cachebuster`, `expires`, `preset`, `hashsum`, `max_src_resolution`, `max_src_file_size`. JSON field names match imgproxy's.
+Parsed by `imgproxy.Parser.ParseInfo` (the path after `/info`; same signature bytes as processing URLs) into `TR.Kind = Info` and `TR.Info`. Info options have their own namespace (`s`, `f`, `a`, `c`, `p`, `ph` mean something else in processing URLs); processing options are unknown here (400 in strict mode). Chained pipelines are 400; a source extension is ignored. Options that enable an M2/M3 feature are recorded in `TR.Ignored` with the milestone. JSON field names match imgproxy's.
+
+| Option (aliases) | Args | TR field | Default | Milestone |
+|---|---|---|---|---|
+| `size` (`s`) | bool | `Info.Size` | true | M1 |
+| `format` (`f`) | bool | `Info.Format` | true | M1 |
+| `dimensions` (`d`) | bool | `Info.Dimensions` | true | M1 |
+| `exif` | enabled:canonical_names | `Info.EXIF` (canonical names: `Ignored`, not in model) | true:false | M1 |
+| `iptc` | bool | `Info.IPTC` | true | M1 |
+| `xmp` | bool | `Info.XMP` | true | M1 |
+| `video_meta` (`vm`) | bool | `Info.VideoMeta` | true | M3 |
+| `detect_objects` (`do`) Pro | bool | `Info.DetectObjects` | false | M3 |
+| `classify` (`cl`) Pro | top_k:classes… | `Info.Classify` (top_k/classes: `Ignored`, not in model) | 0 | M3 |
+| `colorspace` (`cs`) | bool | `Info.Colorspace` | false | M2 |
+| `bands` (`b`) | bool | `Info.Bands` | false | M2 |
+| `sample_format` (`sf`) | bool | `Info.SampleFormat` | false | M2 |
+| `pages_number` (`pn`) | bool | `Info.PagesNumber` | false | M2 |
+| `alpha` (`a`) | alpha:check_transparency | `Info.Alpha` (check_transparency: `Ignored`, not in model) | false:false | M2 |
+| `crop` (`c`) | w:h:gravity (as processing `crop`) | `Info.Crop` | — | M2 |
+| `objects_position` (`obj_pos`, `op`) Pro | as processing | `Info.ObjectsPos` + `P.Gravity.ObjectsPosition` | ce:0:0 | M3 |
+| `palette` (`p`) | 0 or 2..256 | `Info.Palette` | 0 | M2 |
+| `average` (`avg`) | enabled:ignore_transparent | `Info.Average` | false:true | M2 |
+| `dominant_colors` (`dc`) | enabled:build_missed | `Info.DominantColors` | false:false | M2 |
+| `blurhash` (`bh`) | x:y (1..9 each, 0:0 off) | `Info.Blurhash` | 0:0 | M2 |
+| `thumbhash` (`thumb_hash`, `th`) | bool | `Info.Thumbhash` | false | M2 |
+| `perceptual_hash` (`phash`, `ph`) | bool | `Info.PHash` | false | M2 |
+| `calc_hashsums` (`chs`) | md5, sha1, sha256, sha512… | `Info.CalcHashsums` | — | M2 |
+| `page` (`pg`), `video_thumbnail_second` (`vts`), `video_thumbnail_keyframes` (`vtk`), `cachebuster` (`cb`), `expires` (`exp`), `preset` (`pr`), `hashsum` (`hs`), `max_src_resolution` (`msr`), `max_src_file_size` (`msfs`), `bypass_cache` (`bc`), `cache_tags` (`ct`) | as in §3.2 | as in §3.2 | as in §3.2 | as in §3.2 |
 
 ### 3.4 Examples
 
@@ -177,7 +205,7 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 /unsafe/rs:fill:300:400:0/g:sm/plain/https://example.com/a.jpg@webp
 /AfrOrF3gWeDA6VOlDG4TzxMv39O7MXnF4CXpKUwGqRM/pr:sharp/rs:fill:300:400:0/g:sm/aHR0cDovL2V4YW1w/bGUuY29tL2ltYWdl/cy9jdXJpb3NpdHku/anBn.png
 /sig/rs:fit:500:500/wm:0.5:nowe/-/wm:0.7:soea/plain/s3://bucket/key.jpg
-/info/unsafe/s/f/d/bh:4:3/plain/https://example.com/a.jpg
+/info/unsafe/s:1/f:1/d:1/bh:4:3/plain/https://example.com/a.jpg
 ```
 
 ## 4. Query dialect (native + imaginary)

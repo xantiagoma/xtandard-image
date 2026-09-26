@@ -412,3 +412,29 @@ func TestBuilderPresetChainMerge(t *testing.T) {
 		})
 	}
 }
+
+// TestInfoIgnoresProcessingPresets: /info URLs never expand processing
+// presets (imgproxy resolves them against separate info presets), so the
+// default preset and only-presets mode do not apply and a pr option is only
+// recorded.
+func TestInfoIgnoresProcessingPresets(t *testing.T) {
+	t.Parallel()
+	defs := map[string]string{"default": "q:80/rs:fit:500:500", "thumb": "rs:fill:100:100", "chain": "w:1/-/w:2"}
+	for _, only := range []bool{false, true} {
+		p := newPresetParser(t, defs, only, &imgproxy.Options{})
+		res, err := p.ParseInfoPath("/unsafe/pr:chain/s:0" + src)
+		if err != nil {
+			t.Fatalf("only=%v: %v", only, err)
+		}
+		r := res.Request
+		if d := cmp.Diff([]string{"chain"}, r.Delivery.Presets); d != "" {
+			t.Errorf("only=%v Delivery.Presets (-want +got):\n%s", only, d)
+		}
+		if d := cmp.Diff([]transform.Pipeline{{}}, r.Pipelines); d != "" {
+			t.Errorf("only=%v Pipelines (-want +got):\n%s", only, d)
+		}
+		if r.Kind != transform.KindInfo || r.Info.Size {
+			t.Errorf("only=%v Kind = %v, Info.Size = %v; want info with size off", only, r.Kind, r.Info.Size)
+		}
+	}
+}
