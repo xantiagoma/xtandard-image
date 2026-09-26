@@ -43,3 +43,17 @@ Licensed under the Apache License, Version 2.0,
 https://www.apache.org/licenses/LICENSE-2.0
 Modifications (reduced operation set, error capture at the failure site,
 refcounted VipsBlob input buffers) are marked in the file headers.
+
+imaginary and bimg
+------------------
+https://github.com/h2non/imaginary
+Copyright (c) 2015-2020 Tomas Aparicio and contributors
+https://github.com/h2non/bimg
+Copyright (c) Tomas Aparicio and contributors
+Both licensed under the MIT License.
+
+internal/dialect/query reimplements imaginary's endpoint and parameter
+semantics (image.go, params.go, options.go) and the bimg resize rules
+they rely on (resizer.go); internal/security/sign/imaginary.go
+reimplements imaginary's URL signature (middleware.go). The code was
+rewritten against xtandard-image's own request model.

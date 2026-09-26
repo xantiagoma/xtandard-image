@@ -1,0 +1,1935 @@
+{
+  "attachment": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026attachment=1",
+    "request": {
+      "Delivery": {
+        "Attachment": true
+      },
+      "Dialect": "query",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bg_hex": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026bg=ff8800",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "G": 136,
+            "R": 255
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bg_invalid": {
+    "error": {
+      "field": "background",
+      "kind": "invalid_url",
+      "public": "invalid background: expected hex color (rgb or rrggbb)",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026bg=zzzzzz"
+  },
+  "bg_rgb": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026bg=255,136,0",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "G": 136,
+            "R": 255
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bg_short_hex": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026bg=f80",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "G": 136,
+            "R": 255
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "blur": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026blur=2.5",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Blur": 2.5
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "blur_invalid": {
+    "error": {
+      "field": "blur",
+      "kind": "invalid_url",
+      "public": "invalid blur: expected number \u003e= 0",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026blur=-1"
+  },
+  "cb": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026cb=v2",
+    "request": {
+      "Delivery": {
+        "CacheBuster": "v2"
+      },
+      "Dialect": "query",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_invalid": {
+    "error": {
+      "field": "crop.width",
+      "kind": "invalid_url",
+      "public": "invalid crop.width: expected number \u003e= 0 below 2^31",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026crop=a,b"
+  },
+  "crop_three_args": {
+    "error": {
+      "field": "crop",
+      "kind": "invalid_url",
+      "public": "invalid crop: expected w,h or w,h,x,y",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026crop=1,2,3"
+  },
+  "crop_w": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026crop=0.5",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Width": {
+              "Rel": 0.5
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_wh": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026crop=100,50",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Px": 50
+            },
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_whxy": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026crop=100,50,10,20",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 10,
+              "YOffset": 20
+            },
+            "Height": {
+              "Px": 50
+            },
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_with_gravity": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026g=sm\u0026crop=100,50",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Px": 50
+            },
+            "Width": {
+              "Px": 100
+            }
+          },
+          "Gravity": {
+            "Type": "smart"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "dpr": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026w=100\u0026dpr=2",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "DPR": 2,
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "dpr_invalid": {
+    "error": {
+      "field": "dpr",
+      "kind": "invalid_url",
+      "public": "invalid dpr: expected number \u003e 0",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026dpr=0"
+  },
+  "enlarge": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026enlarge=1",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "enlarge_invalid": {
+    "error": {
+      "field": "enlarge",
+      "kind": "invalid_url",
+      "public": "invalid enlarge: expected boolean (1, t, true, 0, f, false)",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026enlarge=yes"
+  },
+  "expires_future": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026expires=4102444800",
+    "request": {
+      "Delivery": {
+        "Expires": "2100-01-01T00:00:00Z"
+      },
+      "Dialect": "query",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "expires_invalid": {
+    "error": {
+      "field": "expires",
+      "kind": "invalid_url",
+      "public": "invalid expires: expected unix timestamp",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026expires=soon"
+  },
+  "expires_past": {
+    "error": {
+      "kind": "expired",
+      "public": "url expired",
+      "status": 404
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026expires=1000"
+  },
+  "f": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026f=webp",
+    "request": {
+      "Dialect": "query",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "f_invalid": {
+    "error": {
+      "field": "format",
+      "kind": "invalid_url",
+      "public": "invalid format: expected supported image format",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026f=pdf"
+  },
+  "f_jpg": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026f=jpg",
+    "request": {
+      "Dialect": "query",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "file_rejected": {
+    "error": {
+      "field": "file",
+      "kind": "invalid_url",
+      "public": "invalid file: expected url (local files are served through an fs source)",
+      "status": 400
+    },
+    "path": "/",
+    "query": "file=/etc/passwd"
+  },
+  "filename": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026filename=my:photo",
+    "request": {
+      "Delivery": {
+        "Filename": "my:photo"
+      },
+      "Dialect": "query",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_auto": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026fit=auto",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "auto"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_contain": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026fit=contain",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_cover": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026fit=cover",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_fill": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026fit=fill",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_fill_down": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026fit=fill-down",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fill-down"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_fit": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026fit=fit",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_force": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026fit=force",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "force"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_inside": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026fit=inside",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_invalid": {
+    "error": {
+      "field": "fit",
+      "kind": "invalid_url",
+      "public": "invalid fit: expected fit, contain, inside, fill, cover, fill-down, force, stretch, outside or auto",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026fit=crop"
+  },
+  "fit_outside": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026fit=outside",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "outside"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_stretch": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026fit=stretch",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "force"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "flip_h": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026flip=h",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "flip_hv": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026flip=hv",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true,
+            "V": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "flip_invalid": {
+    "error": {
+      "field": "flip",
+      "kind": "invalid_url",
+      "public": "invalid flip: expected h, v or hv",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026flip=x"
+  },
+  "flip_v": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026flip=v",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Flip": {
+            "V": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "format": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026format=avif",
+    "request": {
+      "Dialect": "query",
+      "Output": {
+        "Format": "avif"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "g_attention": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026g=attention",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "g_entropy": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026g=entropy",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "entropy"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "g_entropy_args": {
+    "error": {
+      "field": "gravity",
+      "kind": "invalid_url",
+      "public": "invalid gravity: expected entropy without arguments",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026g=entropy:1"
+  },
+  "g_fp": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026g=fp:0.25:0.75",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusX": 0.25,
+            "FocusY": 0.75,
+            "Type": "focus-point"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "g_fp_commas": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026g=fp,0.25,0.75",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusX": 0.25,
+            "FocusY": 0.75,
+            "Type": "focus-point"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "g_fp_out_of_range": {
+    "error": {
+      "field": "gravity.x",
+      "kind": "invalid_url",
+      "public": "invalid gravity.x: expected number in range 0-1",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026g=fp:2:0"
+  },
+  "g_imgproxy_code": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026g=nowe",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "north-west"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "g_invalid": {
+    "error": {
+      "field": "gravity.type",
+      "kind": "invalid_url",
+      "public": "invalid gravity.type: expected ce, no, so, ea, we, noea, nowe, soea, sowe, sm, fp, obj or objw",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026g=middle"
+  },
+  "g_north": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026g=north",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "north"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "g_smart": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026g=smart",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "g_southeast_offsets": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026g=southeast:10:20",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "south-east",
+            "XOffset": 10,
+            "YOffset": 20
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "gravity_centre": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026gravity=centre",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "center"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "h": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026h=200",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "h_invalid": {
+    "error": {
+      "field": "height",
+      "kind": "invalid_url",
+      "public": "invalid height: expected integer \u003e= 0",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026h=abc"
+  },
+  "height": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026height=200",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "lossless": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026lossless=true",
+    "request": {
+      "Dialect": "query",
+      "Output": {
+        "Lossless": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "lossless_false": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026lossless=0",
+    "request": {
+      "Dialect": "query",
+      "Output": {
+        "Lossless": false
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "lossless_invalid": {
+    "error": {
+      "field": "lossless",
+      "kind": "invalid_url",
+      "public": "invalid lossless: expected boolean (1, t, true, 0, f, false)",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026lossless=maybe"
+  },
+  "native_then_o_override": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026w=200\u0026o=w:100",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "o_chained": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026o=rs:fit:500:500/-/bl:2\u0026q=70\u0026w=100",
+    "request": {
+      "Dialect": "query",
+      "Output": {
+        "Quality": 70
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 500
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 500
+            }
+          }
+        },
+        {
+          "Blur": 2,
+          "Resize": {
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "o_empty_pipeline": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: empty pipeline",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026o=-/w:1"
+  },
+  "o_empty_segment": {
+    "error": {
+      "field": "o",
+      "kind": "invalid_url",
+      "public": "invalid o: expected imgproxy processing options",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026o=w:1//h:2"
+  },
+  "o_encoded": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026o=rs%3Afill%3A300%3A200%2Fg%3Asm",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "o_invalid_arg": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected integer \u003e= 0",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026o=w:abc"
+  },
+  "o_later_milestone": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026o=sa:1.2",
+    "request": {
+      "Dialect": "query",
+      "Ignored": [
+        {
+          "Option": "sa",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "o_resize": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026o=rs:fill:300:200/g:sm",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "o_security_allowed": {
+    "config": "security",
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026o=mrd:100",
+    "request": {
+      "Dialect": "query",
+      "Limits": {
+        "MaxResultDimension": 100
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "o_security_forbidden": {
+    "error": {
+      "kind": "forbidden",
+      "public": "option not allowed: max_result_dimension",
+      "status": 403
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026o=mrd:100"
+  },
+  "o_separator": {
+    "config": "sep",
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026o=rs,fill,10,20",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 20
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "o_source_rejected": {
+    "error": {
+      "field": "o",
+      "kind": "invalid_url",
+      "public": "invalid o: expected imgproxy processing options",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026o=w:1/plain/https://evil.example/x.jpg"
+  },
+  "o_then_native_override": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026o=w:100/q:50\u0026w=200",
+    "request": {
+      "Dialect": "query",
+      "Output": {
+        "Quality": 50
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "o_unknown_option": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026o=nope:1",
+    "request": {
+      "Dialect": "query",
+      "Ignored": [
+        {
+          "Option": "nope",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "o_unknown_option_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026o=nope:1"
+  },
+  "pad_four": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026pad=1,2,3,4",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Padding": {
+            "Bottom": 3,
+            "Left": 4,
+            "Right": 2,
+            "Top": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "pad_invalid": {
+    "error": {
+      "field": "padding.top",
+      "kind": "invalid_url",
+      "public": "invalid padding.top: expected integer \u003e= 0",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026pad=-1"
+  },
+  "pad_one": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026pad=10",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Padding": {
+            "Bottom": 10,
+            "Left": 10,
+            "Right": 10,
+            "Top": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "page": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026page=2",
+    "request": {
+      "Dialect": "query",
+      "Ignored": [
+        {
+          "Option": "page",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Page": 2
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "page_invalid": {
+    "error": {
+      "field": "page",
+      "kind": "invalid_url",
+      "public": "invalid page: expected integer \u003e= 0",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026page=-2"
+  },
+  "pixelate": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026pixelate=8",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Pixelate": 8
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "pixelate_invalid": {
+    "error": {
+      "field": "pixelate",
+      "kind": "invalid_url",
+      "public": "invalid pixelate: expected integer \u003e= 0",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026pixelate=1.5"
+  },
+  "preset": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026preset=thumb,sharp",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "thumb",
+          "sharp"
+        ]
+      },
+      "Dialect": "query",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "preset_empty": {
+    "error": {
+      "field": "preset",
+      "kind": "invalid_url",
+      "public": "invalid preset: expected non-empty string",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026preset=a,,b"
+  },
+  "progressive": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026progressive=1",
+    "request": {
+      "Dialect": "query",
+      "Output": {
+        "Progressive": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "q": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026q=80",
+    "request": {
+      "Dialect": "query",
+      "Output": {
+        "Quality": 80
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "q_invalid": {
+    "error": {
+      "field": "quality",
+      "kind": "invalid_url",
+      "public": "invalid quality: expected integer in range 0-100",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026q=101"
+  },
+  "quality": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026quality=55",
+    "request": {
+      "Dialect": "query",
+      "Output": {
+        "Quality": 55
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "query_bad_escape": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid query escaping",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026w=%zz"
+  },
+  "rot": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026rot=270",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Rotate": 270
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "rotate": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026rotate=90",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "rotate_invalid": {
+    "error": {
+      "field": "rotate",
+      "kind": "invalid_url",
+      "public": "invalid rotate: expected multiple of 90",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026rotate=45"
+  },
+  "sharpen": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026sharpen=0.7",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Sharpen": 0.7
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "strip": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026strip=1",
+    "request": {
+      "Dialect": "query",
+      "Output": {
+        "StripMetadata": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "strip_false": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026strip=false",
+    "request": {
+      "Dialect": "query",
+      "Output": {
+        "StripMetadata": false
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "trim": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026trim=10",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Trim": {
+            "Threshold": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "trim_color": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026trim=10,ffffff,1,0",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Trim": {
+            "Color": {
+              "A": 255,
+              "B": 255,
+              "G": 255,
+              "R": 255
+            },
+            "EqualHor": true,
+            "Threshold": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "trim_invalid": {
+    "error": {
+      "field": "trim.threshold",
+      "kind": "invalid_url",
+      "public": "invalid trim.threshold: expected number",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026trim=x"
+  },
+  "unknown_key": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026utm_source=x\u0026w=10",
+    "request": {
+      "Dialect": "query",
+      "Ignored": [
+        {
+          "Option": "utm_source",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "unknown_key_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026utm_source=x"
+  },
+  "url_control_char": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid source url",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://e.com/%00"
+  },
+  "url_duplicate": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: multiple source urls",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026url=https://example.com/b.jpg"
+  },
+  "url_empty": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing source url",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=\u0026w=10"
+  },
+  "url_empty_path": {
+    "path": "",
+    "query": "url=https://example.com/a.jpg",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "url_encoded": {
+    "path": "/",
+    "query": "url=https%3A%2F%2Fexample.com%2Fa%20b.jpg%3Fv%3D1",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a b.jpg?v=1"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a b.jpg?v=1"
+  },
+  "url_missing": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing source url",
+      "status": 400
+    },
+    "path": "/",
+    "query": "w=10"
+  },
+  "url_only": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "url_relative": {
+    "path": "/",
+    "query": "url=photos/a.jpg",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "url_s3": {
+    "path": "/",
+    "query": "url=s3://bucket/key.png\u0026w=10",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "s3://bucket/key.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "s3://bucket/key.png"
+  },
+  "w": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026w=300",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "w_empty": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected integer \u003e= 0",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026w="
+  },
+  "w_invalid": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected integer \u003e= 0",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026w=-1"
+  },
+  "w_later_wins": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026w=100\u0026w=200",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "weserv_basics": {
+    "path": "/",
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "example.com/a.jpg"
+  },
+  "width": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026width=300",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  }
+}

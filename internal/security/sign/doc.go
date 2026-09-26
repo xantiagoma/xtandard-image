@@ -42,6 +42,17 @@
 // only when that remainder is non-empty. See [XIMessage] and
 // [NewXIVerifier].
 //
+// # imaginary scheme
+//
+// The query dialect's native scheme is imaginary's sign parameter:
+//
+//	base64url-nopad(HMAC-SHA256(key, path ‖ url.Values.Encode(query without sign)))
+//
+// i.e. the decoded path followed directly by the re-encoded query with keys
+// sorted, no "?" and no truncation. imaginary has no salt, so salts are
+// ignored. See [ImaginaryMessage] and [NewImaginaryVerifier]
+// (imaginary middleware.go validateURLSignature, MIT).
+//
 // # Security
 //
 // Signatures are compared with crypto/subtle. Key material lives in []byte
