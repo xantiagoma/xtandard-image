@@ -10,6 +10,7 @@
 #   task test:integration   # starts compose.test.yml services (RustFS, ...) and runs
 #                           # -tags integration tests in the builder on their network
 #   task acceptance         # black-box M1 suite against the app image $XI_IMAGE (WP-39)
+#   task ts:check           # the TypeScript workspace (packages/*, ADR 0009); host Bun, no Docker
 #
 # The host tasks (lint, test, ...) run the same scripts with the toolchain
 # pinned in .mise.toml (`mise install`); CI and the docker:* tasks are canonical.
@@ -218,3 +219,26 @@ tasks:
       - task: test
       - task: test:nocgo
       - task: build
+      - task: ts:check
+
+  # ---- TypeScript workspace (packages/*, ADR 0009) -------------------------
+  # Needs no libvips, so it runs on the host with the Bun pinned in .mise.toml
+  # (the same steps as .github/workflows/ts.yml).
+
+  ts:check:
+    desc: "TypeScript workspace: frozen install, generated-types drift, typecheck (incl. type tests), bun test, npm licences, pack"
+    cmds:
+      - bun install --frozen-lockfile
+      - bun run generate:check
+      - bun run typecheck
+      - bun run test
+      - bun run licenses
+      - bun run build
+      - cd packages/image-url && bun pm pack --dry-run --quiet
+
+  ts:fixtures:
+    desc: "Regenerate the cross-language builder fixture: Go derives the cases from the golden tables, the TS builder writes the URLs, Go checks them"
+    cmds:
+      - go test ./internal/dialect/imgproxy -run TestBuilderFixture -count=1 -update
+      - cd packages/image-url && XI_UPDATE_FIXTURES=1 bun test src/fixture.test.ts
+      - go test ./internal/dialect/imgproxy -run TestBuilderFixture -count=1

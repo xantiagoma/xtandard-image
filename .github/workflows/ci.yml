@@ -3,9 +3,9 @@ name: ci
 on:
   push:
     branches: [main]
-    paths-ignore: ['docs/**', '**.md', 'bench/**']
+    paths-ignore: ['docs/**', '**.md', 'bench/**', 'packages/**', 'package.json', 'bun.lock', 'tsconfig.base.json']
   pull_request:
-    paths-ignore: ['docs/**', '**.md', 'bench/**']
+    paths-ignore: ['docs/**', '**.md', 'bench/**', 'packages/**', 'package.json', 'bun.lock', 'tsconfig.base.json']
 
 permissions:
   contents: read
@@ -93,19 +93,18 @@ jobs:
           ./bin/xtandard-image version | tee /dev/stderr | grep -q "xtandard-image ci (commit ${GITHUB_SHA}"
 
   openapi:
-    # ADR 0008 decision 2.4: the committed OpenAPI document must generate
-    # TypeScript types and pass Redocly's recommended rules. Staleness
-    # against the Go types is TestGolden in the unit jobs. Versions are
-    # pinned; WP-84 moves openapi-typescript into packages/image-url.
-    name: openapi (openapi-typescript, redocly lint)
+    # ADR 0008 decision 2.4: the committed OpenAPI document must pass
+    # Redocly's recommended rules. Staleness against the Go types is
+    # TestGolden in the unit jobs; generating TypeScript from it (the pinned
+    # openapi-typescript devDependency of packages/image-url, with a drift
+    # check) is the ts workflow (WP-84).
+    name: openapi (redocly lint)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
-      - name: openapi-typescript generates without errors
-        run: bunx openapi-typescript@7.13.0 internal/apidoc/openapi.json -o "$RUNNER_TEMP/openapi.ts"
       - name: redocly lint
         # pprof's index route is /debug/pprof/ (net/http/pprof), hence the
         # skipped trailing-slash rule.

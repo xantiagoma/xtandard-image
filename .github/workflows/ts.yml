@@ -1,0 +1,54 @@
+name: ts
+
+# The TypeScript workspace (ADR 0009 decision 5): packages/* on Bun. It runs
+# when the packages, the workspace manifests, the OpenAPI document they are
+# generated from, or the shared cross-language fixtures change, so a Go PR
+# that changes openapi.json or a golden table also fails here on TS drift.
+#
+# DISABLED: all workflows are off while Actions minutes are exhausted
+# (docs/HANDOFF.md). The job only runs when the repository variable
+# XI_TS_WORKFLOW is "enabled"; skipped jobs use no minutes. Locally the same
+# steps are `task ts:check`.
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - 'packages/**'
+      - 'package.json'
+      - 'bun.lock'
+      - 'tsconfig.base.json'
+      - '.mise.toml'
+      - 'scripts/check-ts-licenses.ts'
+      - 'internal/apidoc/openapi.json'
+      - 'testdata/urls/**'
+      - 'testdata/security/**'
+      - '.github/workflows/ts.yml'
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ts-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    name: bun (generate drift, typecheck, test, licences)
+    if: vars.XI_TS_WORKFLOW == 'enabled'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json # "packageManager", kept equal to the .mise.toml pin
+      - run: bun install --frozen-lockfile
+      - name: generated types are current (openapi.json → src/generated)
+        run: bun run generate:check
+      - run: bun run typecheck
+      - run: bun run test
+      - name: npm licences (ADR 0006 allowlist, no runtime dependencies)
+        run: bun run licenses
+      - name: the package builds and packs
+        run: bun run build && (cd packages/image-url && bun pm pack --dry-run)
