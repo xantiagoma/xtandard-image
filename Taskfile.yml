@@ -4,6 +4,8 @@
 # base image, so every contributor and agent uses the same libvips and Go.
 #   task docker:lint docker:test
 #   XI_BASE_IMAGE=xtandard-base:dev-builder task docker:test   # locally built base (WP-05)
+#   task test:integration   # starts compose.test.yml services (MinIO, ...) and runs
+#                           # -tags integration tests in the builder on their network
 #
 # The host tasks (lint, test, ...) run the same scripts with the toolchain
 # pinned in .mise.toml (`mise install`); CI and the docker:* tasks are canonical.
@@ -40,6 +42,18 @@ tasks:
     cmds:
       - task: docker:run
         vars: { CMD: "{{.GO_TEST}}" }
+
+  test:integration:
+    desc: "Integration tests (-tags integration) in the builder against compose.test.yml services; `task test:integration -- ./internal/fetch/s3src/` narrows"
+    vars:
+      # One compose project per checkout, so concurrent worktrees never share
+      # (or tear down) each other's services. The go caches are shared named
+      # volumes: never `down -v` or `--remove-orphans` here.
+      PROJECT:
+        sh: echo "xi-test-$(basename "$PWD" | tr -c 'a-z0-9_\n-' '-')"
+    cmds:
+      - defer: docker compose -p {{.PROJECT}} -f compose.test.yml down
+      - docker compose -p {{.PROJECT}} -f compose.test.yml run --rm -T test go test -race -shuffle=on -count=1 -tags integration {{.CLI_ARGS | default "./..."}}
 
   docker:build:
     desc: "Build the linux binary into bin/ inside the base image builder"
