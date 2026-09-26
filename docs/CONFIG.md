@@ -168,8 +168,8 @@ The loader, not the schema, is the authority. `_FILE` variants are env-only, so 
 | `XI_PROCESSING_PRESERVE_HDR` | `false` | |
 | `XI_PROCESSING_LINEAR_RESIZE` | `false` | Resize in linear light |
 | `XI_PROCESSING_COLOR_PROFILES_DIR` | `` | Custom ICC files |
-| `XI_PROCESSING_WATERMARK_SOURCE` | `` | Default watermark image (source string) |
-| `XI_PROCESSING_WATERMARK_OPACITY` | `1` | |
+| `XI_PROCESSING_WATERMARK_SOURCE` | `` | Default watermark image (source string, resolved against the sources). Fetched and decoded once at startup, never refreshed; a watermark that cannot be loaded stops startup |
+| `XI_PROCESSING_WATERMARK_OPACITY` | `1` | Multiplies every request's watermark opacity |
 | `XI_FALLBACK_SOURCE` | `` | Fallback image (source string) |
 | `XI_FALLBACK_STATUS` | `200` | Status used with fallback |
 | `XI_FALLBACK_TTL` | `1m` | `Cache-Control: public, max-age` of a fallback response; `0` sends `no-store` |
