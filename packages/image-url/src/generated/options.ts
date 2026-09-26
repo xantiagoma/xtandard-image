@@ -329,7 +329,7 @@ export interface ImgproxyProcessingArgs {
   "gif_options":
     | [value: string | null, ...values: Array<string | null>];
   /**
-   * Gradient overlay. URL: `gradient`, `gr`; arguments opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees; default 0:000:down:0:1.
+   * Gradient overlay. URL: `gradient`, `gr`; arguments opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees clockwise like imgproxy (0 = top to bottom like `down`, 90 = right to left like `left`); default 0:000:down:0:1.
    *
    * URL names: `gradient`, `gr`.
    * milestone M2; scope pipeline; imgproxy Pro option (free here).
@@ -734,52 +734,52 @@ export interface ImgproxyProcessingArgs {
    * Draw the watermark. URL: `watermark`, `wm`; arguments opacity:pos:x:y:scale; pos incl. `re` (tile), `ch` (chessboard, Pro); default off.
    *
    * URL names: `watermark`, `wm`.
-   * milestone M1 (`re` M1, `ch` M3); scope pipeline.
+   * milestone M1 (`re` M1, `ch` M3 WP-77); scope pipeline.
    * @example [0.5,"soea",10,10,0.2]
    */
   "watermark":
     | [opacity: number, position?: "ce" | "no" | "so" | "ea" | "we" | "noea" | "nowe" | "soea" | "sowe" | "re" | "ch" | null, x_offset?: number | null, y_offset?: number | null, scale?: number | null];
   /**
-   * Watermark rotation. URL: `watermark_rotate`, `wm_rot`, `wmr`; arguments degrees; default 0.
+   * Watermark rotation, clockwise. URL: `watermark_rotate`, `wm_rot`, `wmr`; arguments degrees; default 0.
    *
    * URL names: `watermark_rotate`, `wm_rot`, `wmr`.
-   * milestone M3; scope pipeline; imgproxy Pro option (free here).
+   * milestone M3 (WP-77); scope pipeline; imgproxy Pro option (free here).
    * @example [45]
    */
   "watermark_rotate":
     | [angle: number];
   /**
-   * Watermark shadow. URL: `watermark_shadow`, `wmsh`; arguments sigma; default off.
+   * Watermark shadow: its alpha blurred with sigma, in black. URL: `watermark_shadow`, `wmsh`; arguments sigma; default off.
    *
    * URL names: `watermark_shadow`, `wmsh`.
-   * milestone M3; scope pipeline; imgproxy Pro option (free here).
+   * milestone M3 (WP-77); scope pipeline; imgproxy Pro option (free here).
    * @example [2]
    */
   "watermark_shadow":
     | [sigma: number];
   /**
-   * Watermark size in pixels. URL: `watermark_size`, `wms`; arguments w:h; default 0:0.
+   * Watermark size in pixels (fit, enlarging; used when the wm scale is 0). URL: `watermark_size`, `wms`; arguments w:h; default 0:0.
    *
    * URL names: `watermark_size`, `wms`.
-   * milestone M3; scope pipeline; imgproxy Pro option (free here).
+   * milestone M3 (WP-77); scope pipeline; imgproxy Pro option (free here).
    * @example [100,0]
    */
   "watermark_size":
     | [width: number | null, height?: number | null];
   /**
-   * Text watermark (replaces watermark_url). URL: `watermark_text`, `wmt`; arguments base64url Pango markup; default —.
+   * Text watermark (replaces watermark_url); markup is sanitised to a whitelist, font `sans 16` by default. URL: `watermark_text`, `wmt`; arguments base64url Pango markup; default —.
    *
    * URL names: `watermark_text`, `wmt`.
-   * milestone M3; scope pipeline; imgproxy Pro option (free here).
+   * milestone M3 (WP-78); scope pipeline; imgproxy Pro option (free here).
    * @example ["SGVsbG8"]
    */
   "watermark_text":
     | [text: string | null];
   /**
-   * Watermark image source. URL: `watermark_url`, `wmu`; arguments base64url URL; default config image.
+   * Watermark image source, fetched like a source (allowlist, SSRF policy, byte limit, origin cache). URL: `watermark_url`, `wmu`; arguments base64url URL; default config image.
    *
    * URL names: `watermark_url`, `wmu`.
-   * milestone M3; scope pipeline; imgproxy Pro option (free here).
+   * milestone M3 (WP-77); scope pipeline; imgproxy Pro option (free here).
    * @example ["aHR0cHM6Ly9leGFtcGxlLmNvbS93LnBuZw"]
    */
   "watermark_url":

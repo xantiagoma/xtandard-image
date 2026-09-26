@@ -4,6 +4,106 @@
  */
 
 export interface paths {
+    "/_playground/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Playground page
+         * @description The playground UI: plain HTML, CSS and JavaScript embedded in the binary, served with Content-Security-Policy default-src 'self', X-Frame-Options DENY and Cache-Control no-store. 404 unless XI_PLAYGROUND_ENABLED.
+         */
+        get: operations["getPlayground"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_playground/api/meta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What the playground can build
+         * @description Enabled dialect mounts with their signing scheme and grammar, the option catalogues (the imgproxy catalogue behind ImgproxyProcessingOptions and the query keys), preset names, named sources (name and type only), the signing mode and the output formats. Never contains key material. Cache-Control no-store.
+         */
+        get: operations["getPlaygroundMeta"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_playground/api/render": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Render a public URL in-process
+         * @description Runs the public listener's handler on u (a path and query on the public listener) and returns its response unchanged plus Server-Timing, so the page reads the result and its headers from its own origin. Accept and client hints are forwarded; cookies and credentials are not. Every public-listener check applies.
+         */
+        get: operations["getPlaygroundRender"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_playground/api/sign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign a URL with the server's keys
+         * @description Builds the URL of a path (and query) on a mount and signs it with the server's key for that mount's scheme (imgproxy path signature, xi_sig or thumbor), so keys never reach the browser. Without a key the URL is returned unsigned (imgproxy insecure/, thumbor unsafe/). Anyone who can call this endpoint can sign URLs: keep the playground private. Cross-origin requests are rejected; the body is JSON of at most 32 KiB.
+         */
+        post: operations["postPlaygroundSign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_playground/assets/{version}/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Playground script and stylesheet
+         * @description app.js and style.css under a content-hash version, with Cache-Control immutable; another version is a 404.
+         */
+        get: operations["getPlaygroundAsset"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/config.schema.json": {
         parameters: {
             query?: never;
@@ -13,7 +113,7 @@ export interface paths {
         };
         /**
          * Config file JSON Schema
-         * @description JSON Schema (draft 2020-12) of the YAML/JSON/TOML config file, with a strong ETag; always on, admin listener only (ADR 0007 decision 6).
+         * @description JSON Schema (draft 2020-12) of the YAML/JSON/TOML config file, with a strong ETag; always on, admin listener only (ADR 0007 decision 6). Its $id is the published GitHub Pages copy (externalDocs); this route serves the running binary's version.
          */
         get: operations["getConfigSchema"];
         put?: never;
@@ -1062,7 +1162,7 @@ export interface components {
              */
             gif_options?: (string | null)[];
             /**
-             * @description Gradient overlay. URL: `gradient`, `gr`; arguments opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees; default 0:000:down:0:1.
+             * @description Gradient overlay. URL: `gradient`, `gr`; arguments opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees clockwise like imgproxy (0 = top to bottom like `down`, 90 = right to left like `left`); default 0:000:down:0:1.
              * @example [
              *       0.5,
              *       "000000",
@@ -1584,7 +1684,7 @@ export interface components {
                 number | null
             ];
             /**
-             * @description Watermark rotation. URL: `watermark_rotate`, `wm_rot`, `wmr`; arguments degrees; default 0.
+             * @description Watermark rotation, clockwise. URL: `watermark_rotate`, `wm_rot`, `wmr`; arguments degrees; default 0.
              * @example [
              *       45
              *     ]
@@ -1593,7 +1693,7 @@ export interface components {
                 number
             ];
             /**
-             * @description Watermark shadow. URL: `watermark_shadow`, `wmsh`; arguments sigma; default off.
+             * @description Watermark shadow: its alpha blurred with sigma, in black. URL: `watermark_shadow`, `wmsh`; arguments sigma; default off.
              * @example [
              *       2
              *     ]
@@ -1602,7 +1702,7 @@ export interface components {
                 number
             ];
             /**
-             * @description Watermark size in pixels. URL: `watermark_size`, `wms`; arguments w:h; default 0:0.
+             * @description Watermark size in pixels (fit, enlarging; used when the wm scale is 0). URL: `watermark_size`, `wms`; arguments w:h; default 0:0.
              * @example [
              *       100,
              *       0
@@ -1613,7 +1713,7 @@ export interface components {
                 number | null
             ];
             /**
-             * @description Text watermark (replaces watermark_url). URL: `watermark_text`, `wmt`; arguments base64url Pango markup; default —.
+             * @description Text watermark (replaces watermark_url); markup is sanitised to a whitelist, font `sans 16` by default. URL: `watermark_text`, `wmt`; arguments base64url Pango markup; default —.
              * @example [
              *       "SGVsbG8"
              *     ]
@@ -1622,7 +1722,7 @@ export interface components {
                 string | null
             ];
             /**
-             * @description Watermark image source. URL: `watermark_url`, `wmu`; arguments base64url URL; default config image.
+             * @description Watermark image source, fetched like a source (allowlist, SSRF policy, byte limit, origin cache). URL: `watermark_url`, `wmu`; arguments base64url URL; default config image.
              * @example [
              *       "aHR0cHM6Ly9leGFtcGxlLmNvbS93LnBuZw"
              *     ]
@@ -1781,6 +1881,165 @@ export interface components {
                 };
             };
         };
+        PlaygroundArg: {
+            /** @description Description. */
+            doc?: string;
+            /** @description Accepted values of an enum argument. */
+            enum?: string[] | null;
+            /**
+             * Format: double
+             * @description Upper bound of a numeric argument.
+             */
+            max?: number;
+            /**
+             * Format: double
+             * @description Lower bound of a numeric argument.
+             */
+            min?: number;
+            /** @description Argument name. */
+            name: string;
+            /** @description May be left empty. */
+            optional?: boolean;
+            /** @description Regular expression for string arguments. */
+            pattern?: string;
+            /**
+             * @description Argument type.
+             * @enum {string}
+             */
+            type: "string" | "integer" | "number" | "boolean" | "enum" | "color" | "base64" | "direction";
+        };
+        PlaygroundCatalogue: {
+            /**
+             * @description The grammar the options belong to.
+             * @enum {string}
+             */
+            grammar: "imgproxy" | "query";
+            /** @description Options, in documentation order. */
+            options: components["schemas"]["PlaygroundOption"][] | null;
+        };
+        PlaygroundErrorResponse: {
+            /** @description Client-safe message. */
+            error: string;
+        };
+        PlaygroundForm: {
+            /** @description Leading positional arguments; trailing ones may be omitted. */
+            args: components["schemas"]["PlaygroundArg"][] | null;
+            /**
+             * Format: int64
+             * @description Least number of arguments (0 means 1).
+             */
+            min_items?: number;
+            /** @description A group of arguments repeated after args. */
+            rest?: components["schemas"]["PlaygroundArg"][] | null;
+        };
+        PlaygroundMeta: {
+            /** @description Option catalogues (internal/apidoc), one per URL grammar. */
+            catalogues: components["schemas"]["PlaygroundCatalogue"][] | null;
+            /** @description Output formats the server encodes. */
+            formats: string[] | null;
+            /** @description Enabled dialect mounts, in configuration order. */
+            mounts: components["schemas"]["PlaygroundMount"][] | null;
+            /** @description XI_SERVER_PATH_PREFIX; every generated URL starts with it. */
+            path_prefix: string;
+            /** @description Configured preset names. */
+            presets: string[] | null;
+            /** @description XI_PLAYGROUND_PUBLIC: the playground is also served on the public listener. */
+            public: boolean;
+            /** @description XI_SERVER_ADDR (the page derives a default public base URL from its port). */
+            public_addr: string;
+            /** @description Signing mode; keys and salts are never included. */
+            signing: components["schemas"]["PlaygroundSigning"];
+            /** @description Named sources, name and type only (xi://<name>/<key>). */
+            sources: components["schemas"]["PlaygroundSource"][] | null;
+            /** @description Server build version. */
+            version: string;
+        };
+        PlaygroundMount: {
+            /** @description imgproxy argument separator (XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR). */
+            arguments_separator?: string;
+            /** @description Dialect name. */
+            dialect: string;
+            /** @description Example path and query after the prefix (free-form grammar). */
+            example?: string;
+            /**
+             * @description URL grammar: imgproxy options path, query keys, or free-form path.
+             * @enum {string}
+             */
+            grammar: "imgproxy" | "query" | "path";
+            /** @description Host bindings. */
+            hosts?: string[] | null;
+            /** @description Mount name; the mount field of a sign request. */
+            id: string;
+            /** @description The server holds a key for the scheme; false returns unsigned URLs. */
+            keyed: boolean;
+            /** @description Path prefix; empty for host-only mounts. */
+            prefix?: string;
+            /**
+             * @description Signature the sign endpoint computes for this mount.
+             * @enum {string}
+             */
+            scheme: "imgproxy" | "xi_sig" | "thumbor" | "none";
+            /** @description Named source relative keys resolve against. */
+            source?: string;
+            /**
+             * @description Effective unsigned policy.
+             * @enum {string}
+             */
+            unsigned_policy: "allow" | "restricted" | "deny";
+        };
+        PlaygroundOption: {
+            /** @description Accepted short names. */
+            aliases?: string[] | null;
+            /** @description One-line description. */
+            doc?: string;
+            /** @description A valid argument string. */
+            example?: string;
+            /** @description Accepted argument shapes; most options have one. */
+            forms: components["schemas"]["PlaygroundForm"][] | null;
+            /** @description Milestone that implements the option. */
+            milestone?: string;
+            /** @description Canonical name. */
+            name: string;
+            /** @description Needs XI_SECURITY_ALLOW_SECURITY_OPTIONS. */
+            security?: boolean;
+        };
+        PlaygroundSignRequest: {
+            /** @description Mount ID from api/meta (the dialect name for its primary mount). */
+            mount: string;
+            /** @description Escaped path after the mount prefix, starting with /; without the signature segment for imgproxy and thumbor. */
+            path: string;
+            /** @description Raw query without ?; an existing xi_sig is replaced. */
+            query?: string;
+        };
+        PlaygroundSignResponse: {
+            /**
+             * @description The mount's signing scheme.
+             * @enum {string}
+             */
+            scheme: "imgproxy" | "xi_sig" | "thumbor" | "none";
+            /** @description A signature was computed; false when the server has no key for the mount. */
+            signed: boolean;
+            /** @description Path and query on the public listener (prepend the public base URL). */
+            url: string;
+        };
+        PlaygroundSigning: {
+            /**
+             * @description off: no XI_SIGNING_KEYS; optional: keys set, unsigned URLs fall under the unsigned policy; required: XI_SIGNING_REQUIRED.
+             * @enum {string}
+             */
+            mode: "off" | "optional" | "required";
+            /**
+             * @description XI_SECURITY_UNSIGNED_POLICY.
+             * @enum {string}
+             */
+            unsigned_policy: "allow" | "restricted" | "deny";
+        };
+        PlaygroundSource: {
+            /** @description Source name. */
+            name: string;
+            /** @description Source type (http, s3, gcs, azure, fs, ftp, sftp). */
+            type: string;
+        };
     };
     responses: {
         /** @description Bad Request: invalid_url. */
@@ -1911,6 +2170,210 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getPlayground: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description The playground is disabled. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getPlaygroundMeta: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Playground metadata. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundMeta"];
+                };
+            };
+            /** @description The playground is disabled. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getPlaygroundRender: {
+        parameters: {
+            query: {
+                /**
+                 * @description Path and query on the public listener, starting with a single /.
+                 * @example /insecure/rs:fit:300:0/plain/https://example.com/a.jpg
+                 */
+                u: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The processed image; the format follows `format`, the source extension or Accept negotiation. */
+            200: {
+                headers: {
+                    /** @description Time the public handler took to the first header write. */
+                    "Server-Timing"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/*": string;
+                };
+            };
+            400: components["responses"]["Error400"];
+            403: components["responses"]["Error403"];
+            404: components["responses"]["Error404"];
+            406: components["responses"]["Error406"];
+            414: components["responses"]["Error414"];
+            422: components["responses"]["Error422"];
+            429: components["responses"]["Error429"];
+            500: components["responses"]["Error500"];
+            501: components["responses"]["Error501"];
+            502: components["responses"]["Error502"];
+            503: components["responses"]["Error503"];
+            504: components["responses"]["Error504"];
+        };
+    };
+    postPlaygroundSign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaygroundSignRequest"];
+            };
+        };
+        responses: {
+            /** @description The URL, signed with the server's key for the mount when it holds one. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundSignResponse"];
+                };
+            };
+            /** @description Bad Request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Cross-origin request rejected (http.CrossOriginProtection). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The playground is disabled. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request Entity Too Large. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Unsupported Media Type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+        };
+    };
+    getPlaygroundAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Content hash of the assets (from the page).
+                 * @example 0123456789ab
+                 */
+                version: string;
+                /** @description Asset file name. */
+                name: "app.js" | "style.css";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The asset. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/css": string;
+                    "text/javascript": string;
+                };
+            };
+            /** @description Unknown asset or stale version, or the playground is disabled. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getConfigSchema: {
         parameters: {
             query?: never;
