@@ -1,0 +1,91 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  packages: read # pull the base image from GHCR
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# cgo jobs run in the builder stage of the base image (WP-05): libvips,
+# Go 1.27.1 at /usr/local/go and golangci-lint v2.14.0 on PATH. Same image and
+# env as compose.dev.yml / `task docker:*`. Override the image with the
+# repository variable XI_BASE_IMAGE.
+jobs:
+  lint:
+    name: lint (golangci fmt/run, vet, go fix, tidy, cgo placement)
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ vars.XI_BASE_IMAGE || 'ghcr.io/xantiagoma/xtandard-image-base:slim' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        CGO_ENABLED: "1"
+        GOCACHE: /gocache/go-build
+        GOLANGCI_LINT_CACHE: /gocache/golangci-lint
+        GOMODCACHE: /gomodcache
+        GOTOOLCHAIN: local
+        GOFLAGS: -buildvcs=false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
+        with:
+          path: |
+            /gocache
+            /gomodcache
+          key: lint-${{ runner.arch }}-${{ hashFiles('**/go.sum', '.golangci.yml') }}
+          restore-keys: lint-${{ runner.arch }}-
+      - run: sh scripts/lint.sh
+
+  test:
+    name: unit (race, shuffle, cgocheck2)
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ vars.XI_BASE_IMAGE || 'ghcr.io/xantiagoma/xtandard-image-base:slim' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        CGO_ENABLED: "1"
+        GOCACHE: /gocache/go-build
+        GOLANGCI_LINT_CACHE: /gocache/golangci-lint
+        GOMODCACHE: /gomodcache
+        GOTOOLCHAIN: local
+        GOFLAGS: -buildvcs=false
+        GOEXPERIMENT: cgocheck2 # go-standards §4: the race job also runs with cgocheck2
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
+        with:
+          path: |
+            /gocache
+            /gomodcache
+          key: test-${{ runner.arch }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: test-${{ runner.arch }}-
+      - run: go test -race -shuffle=on ./...
+
+  nocgo:
+    name: build + test (CGO_ENABLED=0, plain runner)
+    runs-on: ubuntu-24.04
+    env:
+      CGO_ENABLED: "0"
+      GOTOOLCHAIN: local # setup-go installs the go.mod toolchain directive
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: "**/go.sum"
+      - run: go build -o /dev/null ./...
+      - run: go test -shuffle=on ./...
+      - name: version via -ldflags
+        run: |
+          go build -trimpath -ldflags "-s -w -X main.version=ci -X main.commit=${GITHUB_SHA}" -o bin/xtandard-image ./cmd/xtandard-image
+          ./bin/xtandard-image version | tee /dev/stderr | grep -q "xtandard-image ci (commit ${GITHUB_SHA}"

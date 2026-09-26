@@ -1,0 +1,255 @@
+# golangci-lint v2.14.0 (release binary; never via go get / tool directive).
+# Linter set: docs/go-standards.md §1. Banned deps: §10. Import direction: docs/ARCHITECTURE.md §3.
+version: "2"
+
+run:
+  go: "1.27"
+
+linters:
+  default: standard # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - bodyclose
+    - canonicalheader
+    - containedctx
+    - depguard
+    - durationcheck
+    - errname
+    - errorlint
+    - exhaustive
+    - fatcontext
+    - forcetypeassert
+    - gocheckcompilerdirectives
+    - gochecknoinits
+    - gocritic
+    - gosec
+    - iface
+    - intrange
+    - makezero
+    - misspell
+    - modernize
+    - nilerr
+    - nilnesserr
+    - noctx
+    - nolintlint
+    - perfsprint
+    - prealloc
+    - promlinter
+    - recvcheck
+    - revive
+    - sloglint
+    - spancheck
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+
+  settings:
+    govet:
+      enable-all: true
+      disable: [fieldalignment, shadow]
+    gocritic:
+      enabled-tags: [diagnostic, performance]
+    sloglint:
+      attr-only: true
+      context: scope
+      static-msg: true
+      key-naming-case: snake
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    exhaustive:
+      default-signifies-exhaustive: true
+
+    depguard:
+      rules:
+        # go-standards §10: banned everywhere.
+        main:
+          files: [$all]
+          deny:
+            - pkg: github.com/pkg/errors
+              desc: use stdlib errors and fmt.Errorf with %w
+            - pkg: gopkg.in/yaml.v2
+              desc: use github.com/goccy/go-yaml (go-standards §7)
+            - pkg: gopkg.in/yaml.v3
+              desc: use github.com/goccy/go-yaml (go-standards §7)
+            - pkg: go.yaml.in/yaml
+              desc: use github.com/goccy/go-yaml (go-standards §7)
+            - pkg: github.com/stretchr/testify
+              desc: use stdlib testing plus github.com/google/go-cmp
+            - pkg: github.com/golang/mock
+              desc: write hand fakes against consumer-defined interfaces
+            - pkg: go.uber.org/mock
+              desc: write hand fakes against consumer-defined interfaces
+            - pkg: github.com/onsi/ginkgo
+              desc: use stdlib testing
+            - pkg: github.com/sirupsen/logrus
+              desc: use log/slog
+            - pkg: go.uber.org/zap
+              desc: use log/slog
+            - pkg: github.com/rs/zerolog
+              desc: use log/slog
+            - pkg: io/ioutil
+              desc: deprecated; use io and os
+            - pkg: math/rand$
+              desc: use math/rand/v2
+            - pkg: golang.org/x/exp
+              desc: use the stdlib (slices, maps, iter, ...)
+            - pkg: github.com/gorilla/mux
+              desc: use net/http.ServeMux
+            - pkg: github.com/go-chi/chi
+              desc: use net/http.ServeMux
+            - pkg: github.com/gin-gonic/gin
+              desc: use net/http.ServeMux
+            - pkg: github.com/labstack/echo
+              desc: use net/http.ServeMux
+            - pkg: golang.org/x/net/http2/h2c
+              desc: use http.Server.Protocols with SetUnencryptedHTTP2
+            - pkg: github.com/kelseyhightower/envconfig
+              desc: use github.com/caarlos0/env/v11
+            - pkg: github.com/sethvargo/go-envconfig
+              desc: use github.com/caarlos0/env/v11
+            - pkg: github.com/go-playground/validator
+              desc: write an explicit Config.Validate() (go-standards §7)
+            - pkg: go.uber.org/automaxprocs
+              desc: the runtime honours cgroup limits since Go 1.25
+            - pkg: github.com/google/uuid
+              desc: use the stdlib uuid package (Go 1.27)
+            - pkg: github.com/json-iterator/go
+              desc: encoding/json is backed by v2 in Go 1.27
+            - pkg: github.com/bytedance/sonic
+              desc: encoding/json is backed by v2 in Go 1.27
+            - pkg: github.com/goccy/go-json
+              desc: encoding/json is backed by v2 in Go 1.27
+            - pkg: github.com/h2non/bimg
+              desc: libvips is reached only through internal/vips
+            - pkg: github.com/davidbyttow/govips
+              desc: libvips is reached only through internal/vips
+            - pkg: github.com/testcontainers/testcontainers-go
+              desc: integration tests use docker compose (go-standards §8)
+
+        # CLAUDE.md #3: internal/vips is the only cgo and vipsgen consumer.
+        # depguard cannot see `import "C"` (cgo rewrites it before analysis);
+        # scripts/check-cgo.sh enforces that half in CI.
+        vipsgen-only-in-vips:
+          files: [$all, "!**/internal/vips/**"]
+          deny:
+            - pkg: github.com/cshum/vipsgen
+              desc: only internal/vips may import vipsgen
+
+        # go-standards §10: storage SDKs only inside a fetch backend or cache store.
+        storage-sdks:
+          files:
+            - $all
+            - "!**/internal/fetch/*src/**"
+            - "!**/internal/cache/s3cache/**"
+            - "!**/internal/cache/redis/**"
+          deny:
+            - pkg: github.com/aws/aws-sdk-go-v2
+              desc: storage SDKs belong in internal/fetch/<backend> (ADR required)
+            - pkg: cloud.google.com/go
+              desc: storage SDKs belong in internal/fetch/<backend> (ADR required)
+            - pkg: github.com/Azure/azure-sdk-for-go
+              desc: storage SDKs belong in internal/fetch/<backend> (ADR required)
+            - pkg: github.com/redis/go-redis
+              desc: redis belongs in internal/cache/redis
+
+        # ARCHITECTURE §3: transform and errs are leaves.
+        leaves:
+          files:
+            - "**/internal/transform/**"
+            - "**/internal/errs/**"
+          deny:
+            - pkg: github.com/xantiagoma/xtandard-image/internal
+              desc: transform and errs are leaf packages (ARCHITECTURE §3)
+
+        # ARCHITECTURE §3: config imports nothing internal except errs.
+        config:
+          files: ["**/internal/config/**"]
+          # strict: the allow list is exhaustive, so config imports only internal/errs (ARCHITECTURE §3)
+          list-mode: strict
+          allow: [$gostd, github.com/xantiagoma/xtandard-image/internal/errs, github.com/caarlos0/env, github.com/goccy/go-yaml]
+
+        # ARCHITECTURE §3: security/* → errs only.
+        security:
+          files: ["**/internal/security/**"]
+          # strict: the allow list is exhaustive, so security packages import only internal/errs (ARCHITECTURE §3)
+          list-mode: strict
+          allow: [$gostd, golang.org/x/crypto, golang.org/x/net, github.com/xantiagoma/xtandard-image/internal/errs, github.com/xantiagoma/xtandard-image/internal/security]
+
+        # ARCHITECTURE §3: dialects never touch sources, fetching, vips or the pipeline.
+        dialect:
+          files: ["**/internal/dialect/**"]
+          deny:
+            - pkg: github.com/xantiagoma/xtandard-image/internal/source
+              desc: dialects parse URLs only (ARCHITECTURE §3)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/fetch
+              desc: dialects parse URLs only (ARCHITECTURE §3)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/vips
+              desc: dialects parse URLs only (ARCHITECTURE §3)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/pipeline
+              desc: dialects parse URLs only (ARCHITECTURE §3)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/codec
+              desc: dialects parse URLs only (ARCHITECTURE §3)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/server
+              desc: dialects parse URLs only (ARCHITECTURE §3)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/app
+              desc: only cmd imports the composition root
+
+        # ARCHITECTURE §3: fetch backends know nothing of dialects/transforms.
+        fetch-backends:
+          files: ["**/internal/fetch/*src/**"]
+          deny:
+            - pkg: github.com/xantiagoma/xtandard-image/internal/dialect
+              desc: fetch backends → source, security/ssrf, errs only (ARCHITECTURE §3)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/transform
+              desc: fetch backends → source, security/ssrf, errs only (ARCHITECTURE §3)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/pipeline
+              desc: fetch backends → source, security/ssrf, errs only (ARCHITECTURE §3)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/vips
+              desc: fetch backends → source, security/ssrf, errs only (ARCHITECTURE §3)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/fetch$
+              desc: backends must not import the fetcher (ARCHITECTURE §3)
+
+        # ARCHITECTURE §3: the fetcher never imports its own backends (app constructs them).
+        fetch:
+          files: ["**/internal/fetch/*.go"]
+          deny:
+            - pkg: github.com/xantiagoma/xtandard-image/internal/fetch/
+              desc: app constructs fetch backends, not fetch (ARCHITECTURE §3)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/dialect
+              desc: fetch → source, cache, errs only (ARCHITECTURE §3)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/vips
+              desc: fetch → source, cache, errs only (ARCHITECTURE §3)
+
+        # ARCHITECTURE §3: the planner is pure Go.
+        pipeline-plan:
+          files: ["**/internal/pipeline/plan/**"]
+          deny:
+            - pkg: github.com/xantiagoma/xtandard-image/internal/vips
+              desc: the planner is pure Go (ARCHITECTURE §8.1)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/pipeline/exec
+              desc: the planner is pure Go (ARCHITECTURE §8.1)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/fetch
+              desc: pipeline/plan → transform, codec types, errs (ARCHITECTURE §3)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/server
+              desc: pipeline/plan → transform, codec types, errs (ARCHITECTURE §3)
+
+        # ARCHITECTURE §3: only cmd imports the composition root.
+        app-only-from-cmd:
+          files: ["**/internal/**", "!**/internal/app/**"]
+          deny:
+            - pkg: github.com/xantiagoma/xtandard-image/internal/app
+              desc: only cmd/xtandard-image imports internal/app (ARCHITECTURE §3)
+
+  exclusions:
+    generated: strict
+    presets: [std-error-handling, common-false-positives]
+
+formatters:
+  enable: [gofumpt, goimports]
+  settings:
+    goimports:
+      local-prefixes: [github.com/xantiagoma/xtandard-image]
