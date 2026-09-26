@@ -1,0 +1,110 @@
+{
+  "signed_bad": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "query": "url=example.com/a.jpg\u0026xi_sig=AAAA"
+  },
+  "signed_tampered": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "query": "url=example.com/a.jpg\u0026w=300\u0026xi_sig=YQdE1mPWuYuZcH1kP_DOM6Al0WCzYXlP9rKBNi7UvcQ\u0026h=10"
+  },
+  "signed_valid": {
+    "config": "signed",
+    "query": "url=example.com/a.jpg\u0026w=300\u0026xi_sig=YQdE1mPWuYuZcH1kP_DOM6Al0WCzYXlP9rKBNi7UvcQ",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "https://example.com/a.jpg"
+  },
+  "signed_valid_required": {
+    "config": "required",
+    "query": "url=example.com/a.jpg\u0026w=300\u0026xi_sig=YQdE1mPWuYuZcH1kP_DOM6Al0WCzYXlP9rKBNi7UvcQ",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "https://example.com/a.jpg"
+  },
+  "unsigned_off": {
+    "query": "url=example.com/a.jpg",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "unsigned_optional": {
+    "config": "signed",
+    "query": "url=example.com/a.jpg",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "unsigned_required": {
+    "config": "required",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "query": "url=example.com/a.jpg"
+  }
+}
