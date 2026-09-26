@@ -1,0 +1,107 @@
+{
+  "provider": "nextjs",
+  "unpic": {
+    "provider": "nextjs",
+    "version": "4.2.2"
+  },
+  "mode": "embedded",
+  "fixtures": [
+    {
+      "url": "/_next/image?q=75&url=%2F_next%2Fstatic%2Fmedia%2Fbunny.0e498116.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "_next/static/media/bunny.0e498116.jpg",
+        "quality": 75
+      }
+    },
+    {
+      "url": "/_next/image?w=1200&q=60&url=%2F_next%2Fstatic%2Fmedia%2Fbunny.0e498116.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "_next/static/media/bunny.0e498116.jpg",
+        "width": 1200,
+        "quality": 60
+      }
+    },
+    {
+      "url": "/_next/image?w=400&q=80&url=%2F_next%2Fstatic%2Fmedia%2Fbunny.0e498116.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "_next/static/media/bunny.0e498116.jpg",
+        "width": 400,
+        "quality": 80
+      }
+    },
+    {
+      "url": "/_next/image?w=640&q=75&url=%2F_next%2Fstatic%2Fmedia%2Fbunny.0e498116.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "_next/static/media/bunny.0e498116.jpg",
+        "width": 640,
+        "quality": 75
+      }
+    },
+    {
+      "url": "/_next/image?w=800&q=75&url=%2F_next%2Fstatic%2Fmedia%2Fbunny.0e498116.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "_next/static/media/bunny.0e498116.jpg",
+        "width": 800,
+        "quality": 75
+      }
+    },
+    {
+      "url": "/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fbunny.0e498116.jpg&w=400",
+      "origin": "test",
+      "want": {
+        "source": "_next/static/media/bunny.0e498116.jpg",
+        "width": 400
+      }
+    },
+    {
+      "url": "/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fbunny.0e498116.jpg&w=828&q=75",
+      "origin": "test",
+      "want": {
+        "source": "_next/static/media/bunny.0e498116.jpg",
+        "width": 828,
+        "quality": 75
+      }
+    },
+    {
+      "url": "/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fbunny.0e498116.jpg&w=828&q=80",
+      "origin": "test",
+      "want": {
+        "source": "_next/static/media/bunny.0e498116.jpg",
+        "width": 828,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://unpic-next.netlify.app/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fbunny.0e498116.jpg&w=1200&q=80",
+      "origin": "test",
+      "want": {
+        "source": "_next/static/media/bunny.0e498116.jpg",
+        "width": 1200,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://unpic-next.netlify.app/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fbunny.0e498116.jpg&w=828&q=75",
+      "origin": "test",
+      "want": {
+        "source": "_next/static/media/bunny.0e498116.jpg",
+        "width": 828,
+        "quality": 75
+      }
+    },
+    {
+      "url": "https://unpic-next.netlify.app/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fbunny.0e498116.jpg&w=828&q=80",
+      "origin": "test",
+      "want": {
+        "source": "_next/static/media/bunny.0e498116.jpg",
+        "width": 828,
+        "quality": 80
+      }
+    }
+  ]
+}

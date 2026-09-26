@@ -1,0 +1,134 @@
+{
+  "provider": "directus",
+  "unpic": {
+    "provider": "directus",
+    "version": "4.2.2"
+  },
+  "mode": "path",
+  "fixtures": [
+    {
+      "url": "https://example.com/assets/directus-image.jpg?height=500&format=png&withoutEnlargement=true&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "assets/directus-image.jpg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://example.com/assets/directus-image.jpg?width=1200&format=avif&quality=60&withoutEnlargement=true&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "assets/directus-image.jpg",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://example.com/assets/directus-image.jpg?width=400&height=300&format=webp&quality=80&withoutEnlargement=true&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "assets/directus-image.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://example.com/assets/directus-image.jpg?width=640&format=jpeg&quality=75&withoutEnlargement=true&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "assets/directus-image.jpg",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://example.com/assets/directus-image.jpg?width=800&height=600&withoutEnlargement=true&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "assets/directus-image.jpg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://example.com/assets/directus-image.jpg?width=800&withoutEnlargement=true&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "assets/directus-image.jpg",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://example.com/assets/directus-image.jpg?withoutEnlargement=true&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "assets/directus-image.jpg"
+      }
+    },
+    {
+      "url": "https://example.com/assets/directus-image.jpg",
+      "origin": "test",
+      "want": {
+        "source": "assets/directus-image.jpg"
+      }
+    },
+    {
+      "url": "https://example.com/assets/directus-image.jpg?width=200&fit=cover&withoutEnlargement=true&transforms=%5B%5B%22blur%22%2C45%5D%2C%5B%22tint%22%2C%22rgb(255%2C%200%2C%200)%22%5D%5D",
+      "origin": "test",
+      "want": {
+        "source": "assets/directus-image.jpg",
+        "width": 200
+      }
+    },
+    {
+      "url": "https://example.com/assets/directus-image.jpg?width=200&height=100&fit=contain&quality=80&transforms=[[\"blur\",45],[\"tint\",\"rgb(255, 0, 0)\"]]",
+      "origin": "test",
+      "want": {
+        "source": "assets/directus-image.jpg",
+        "width": 200,
+        "height": 100,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://example.com/assets/directus-image.jpg?width=200&height=100&fit=cover&withoutEnlargement=true",
+      "origin": "test",
+      "want": {
+        "source": "assets/directus-image.jpg",
+        "width": 200,
+        "height": 100
+      }
+    },
+    {
+      "url": "https://example.com/assets/directus-image.jpg?width=300&height=150&fit=contain&withoutEnlargement=true",
+      "origin": "test",
+      "want": {
+        "source": "assets/directus-image.jpg",
+        "width": 300,
+        "height": 150
+      }
+    },
+    {
+      "url": "https://example.com/assets/directus-image.jpg?width=400&format=webp&fit=cover&withoutEnlargement=true",
+      "origin": "test",
+      "want": {
+        "source": "assets/directus-image.jpg",
+        "width": 400,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://example.com/assets/directus-image.jpg?width=800&fit=cover&withoutEnlargement=true&transforms=%5B%5B%22grayscale%22%5D%2C%5B%22blur%22%2C5%5D%2C%5B%22rotate%22%2C45%5D%5D",
+      "origin": "test",
+      "want": {
+        "source": "assets/directus-image.jpg",
+        "width": 800
+      }
+    }
+  ]
+}

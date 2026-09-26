@@ -1576,20 +1576,20 @@
           "additionalProperties": false,
           "properties": {
             "enabled": {
-              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_SIMPLE_ENABLED",
+              "description": "unpic providers of the table-driven family, e.g. nextjs,ipx,contentful (names in URL-DIALECTS §12; an unknown name fails startup). Each is mounted at its native prefixes and /simple/<name>/; no _PREFIX/_KEYS (xi_sig uses XI_SIGNING_*)\n\nEnv: XI_DIALECTS_SIMPLE_ENABLED",
               "items": {
                 "type": "string"
               },
-              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_SIMPLE_ENABLED`",
+              "markdownDescription": "unpic providers of the table-driven family, e.g. `nextjs,ipx,contentful` (names in URL-DIALECTS §12; an unknown name fails startup). Each is mounted at its native prefixes and `/simple/<name>/`; no `_PREFIX`/`_KEYS` (xi_sig uses `XI_SIGNING_*`)\n\nEnv: `XI_DIALECTS_SIMPLE_ENABLED`",
               "title": "XI_DIALECTS_SIMPLE_ENABLED",
               "type": "array"
             },
             "hosts": {
-              "description": "Host bindings\n\nEnv: XI_DIALECTS_SIMPLE_HOSTS",
+              "description": "Hosts bound to the whole family; the provider is picked per request (native prefix, upstream domain, then the first enabled CDN-style provider)\n\nEnv: XI_DIALECTS_SIMPLE_HOSTS",
               "items": {
                 "type": "string"
               },
-              "markdownDescription": "Host bindings\n\nEnv: `XI_DIALECTS_SIMPLE_HOSTS`",
+              "markdownDescription": "Hosts bound to the whole family; the provider is picked per request (native prefix, upstream domain, then the first enabled CDN-style provider)\n\nEnv: `XI_DIALECTS_SIMPLE_HOSTS`",
               "title": "XI_DIALECTS_SIMPLE_HOSTS",
               "type": "array"
             },

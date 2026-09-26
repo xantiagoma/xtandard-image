@@ -1,0 +1,260 @@
+{
+  "provider": "cloudinary",
+  "unpic": {
+    "provider": "cloudinary",
+    "version": "4.2.2"
+  },
+  "mode": "path",
+  "fixtures": [
+    {
+      "url": "https://demo-res.cloudinary.com/image/upload/f_auto,c_lfill/v1/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "image/upload/v1/samples/animals/three-dogs.jpg",
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://demo-res.cloudinary.com/image/upload/h_500,f_png,c_lfill/v1/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "image/upload/v1/samples/animals/three-dogs.jpg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://demo-res.cloudinary.com/image/upload/w_1200,f_avif,q_60,c_lfill/v1/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "image/upload/v1/samples/animals/three-dogs.jpg",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://demo-res.cloudinary.com/image/upload/w_400,h_300,f_webp,q_80,c_lfill/v1/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "image/upload/v1/samples/animals/three-dogs.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://demo-res.cloudinary.com/image/upload/w_640,f_jpeg,q_75,c_lfill/v1/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "image/upload/v1/samples/animals/three-dogs.jpg",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://demo-res.cloudinary.com/image/upload/w_800,f_auto,c_lfill/v1/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "image/upload/v1/samples/animals/three-dogs.jpg",
+        "width": 800,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://demo-res.cloudinary.com/image/upload/w_800,h_600,f_auto,c_lfill/v1/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "image/upload/v1/samples/animals/three-dogs.jpg",
+        "width": 800,
+        "height": 600,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/f_auto,c_lfill/v1/folder/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "demo/image/upload/v1/folder/samples/animals/three-dogs.jpg",
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/f_auto,c_lfill/v1/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "demo/image/upload/v1/samples/animals/three-dogs.jpg",
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/h_500,f_png,c_lfill/v1/folder/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "demo/image/upload/v1/folder/samples/animals/three-dogs.jpg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/h_500,f_png,c_lfill/v1/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "demo/image/upload/v1/samples/animals/three-dogs.jpg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/w_1200,f_avif,q_60,c_lfill/v1/folder/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "demo/image/upload/v1/folder/samples/animals/three-dogs.jpg",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/w_1200,f_avif,q_60,c_lfill/v1/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "demo/image/upload/v1/samples/animals/three-dogs.jpg",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/w_400,h_300,f_webp,q_80,c_lfill/v1/folder/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "demo/image/upload/v1/folder/samples/animals/three-dogs.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/w_400,h_300,f_webp,q_80,c_lfill/v1/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "demo/image/upload/v1/samples/animals/three-dogs.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/w_640,f_jpeg,q_75,c_lfill/v1/folder/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "demo/image/upload/v1/folder/samples/animals/three-dogs.jpg",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/w_640,f_jpeg,q_75,c_lfill/v1/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "demo/image/upload/v1/samples/animals/three-dogs.jpg",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/w_800,f_auto,c_lfill/v1/folder/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "demo/image/upload/v1/folder/samples/animals/three-dogs.jpg",
+        "width": 800,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/w_800,f_auto,c_lfill/v1/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "demo/image/upload/v1/samples/animals/three-dogs.jpg",
+        "width": 800,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/w_800,h_600,f_auto,c_lfill/v1/folder/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "demo/image/upload/v1/folder/samples/animals/three-dogs.jpg",
+        "width": 800,
+        "height": 600,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/w_800,h_600,f_auto,c_lfill/v1/samples/animals/three-dogs.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "demo/image/upload/v1/samples/animals/three-dogs.jpg",
+        "width": 800,
+        "height": 600,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://demo-res.cloudinary.com/image/upload/v1/samples/animals/three-dogs.jpg",
+      "origin": "test",
+      "want": {
+        "source": "image/upload/v1/samples/animals/three-dogs.jpg"
+      }
+    },
+    {
+      "url": "https://demo-res.cloudinary.com/image/upload/w_100,h_100,f_auto,c_lfill/v1/samples/animals/three-dogs.jpg",
+      "origin": "test",
+      "want": {
+        "source": "image/upload/v1/samples/animals/three-dogs.jpg",
+        "width": 100,
+        "height": 100,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/q_80,f_auto,c_lfill/v1/samples/animals/three-dogs.jpg",
+      "origin": "test",
+      "want": {
+        "source": "demo/image/upload/v1/samples/animals/three-dogs.jpg",
+        "quality": 80,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/v1/folder/samples/animals/three-dogs.jpg",
+      "origin": "test",
+      "want": {
+        "source": "demo/image/upload/v1/folder/samples/animals/three-dogs.jpg"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/v1/samples/animals/three-dogs.jpg",
+      "origin": "test",
+      "want": {
+        "source": "demo/image/upload/v1/samples/animals/three-dogs.jpg"
+      }
+    },
+    {
+      "url": "https://res.cloudinary.com/demo/image/upload/w_300,h_200,c_fill/v1/folder/samples/animals/three-dogs.jpg",
+      "origin": "test",
+      "want": {
+        "source": "demo/image/upload/v1/folder/samples/animals/three-dogs.jpg",
+        "width": 300,
+        "height": 200
+      }
+    }
+  ]
+}

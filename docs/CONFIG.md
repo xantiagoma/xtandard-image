@@ -175,6 +175,8 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_DIALECTS_AWSSIH_THUMBOR` | `false` | Forward non-JSON paths to the thumbor dialect (SIH thumbor request type) |
 | `XI_DIALECTS_AWSSIH_REWRITE_MATCH_PATTERN` | `` | SIH `REWRITE_MATCH_PATTERN`: `/regex/flags` applied to non-JSON paths before forwarding |
 | `XI_DIALECTS_AWSSIH_REWRITE_SUBSTITUTION` | `` | SIH `REWRITE_SUBSTITUTION` (`$1`, `$<name>`, `$&`, `$$`) |
+| `XI_DIALECTS_SIMPLE_ENABLED` | `` | unpic providers of the table-driven family, e.g. `nextjs,ipx,contentful` (names in URL-DIALECTS §12; an unknown name fails startup). Each is mounted at its native prefixes and `/simple/<name>/`; no `_PREFIX`/`_KEYS` (xi_sig uses `XI_SIGNING_*`) |
+| `XI_DIALECTS_SIMPLE_HOSTS` | `` | Hosts bound to the whole family; the provider is picked per request (native prefix, upstream domain, then the first enabled CDN-style provider) |
 | `XI_PRESETS` | `` | `name=opts,name2=opts` (imgproxy syntax); YAML `presets: {name: opts}` |
 | `XI_PRESETS_FILE` | `` | One `name=options` per line; blank lines and `#` comments skipped; a name also in `XI_PRESETS` is an error |
 | `XI_PRESETS_ONLY` | `false` | Only preset URLs allowed |

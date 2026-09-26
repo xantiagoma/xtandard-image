@@ -1,0 +1,184 @@
+{
+  "provider": "keycdn",
+  "unpic": {
+    "provider": "keycdn",
+    "version": "4.2.2"
+  },
+  "mode": "path",
+  "fixtures": [
+    {
+      "url": "https://ip.keycdn.com/example.jpg?fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "example.jpg"
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?height=500&format=png&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "example.jpg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?width=1200&format=avif&quality=60&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "example.jpg",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?width=400&height=300&format=webp&quality=80&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "example.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?width=640&format=jpeg&quality=75&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "example.jpg",
+        "width": 640,
+        "quality": 75,
+        "format": "jpg"
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?width=800&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "example.jpg",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?width=800&height=600&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "example.jpg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg",
+      "origin": "test",
+      "want": {
+        "source": "example.jpg"
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?crop=smart&width=400&height=300&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "example.jpg",
+        "width": 400,
+        "height": 300
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?flip=1&negate=0&fit=contain",
+      "origin": "test",
+      "want": {
+        "source": "example.jpg"
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?format=webp&width=400&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "example.jpg",
+        "width": 400,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?negate=1&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "example.jpg"
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?width=200&flip=0&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "example.jpg",
+        "width": 200
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?width=200&flip=1&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "example.jpg",
+        "width": 200
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?width=200&height=100&fit=contain",
+      "origin": "test",
+      "want": {
+        "source": "example.jpg",
+        "width": 200,
+        "height": 100
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?width=200&height=100&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "example.jpg",
+        "width": 200,
+        "height": 100
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?width=200&height=100&format=webp&fit=fill",
+      "origin": "test",
+      "want": {
+        "source": "example.jpg",
+        "width": 200,
+        "height": 100,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?width=201&height=100&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "example.jpg",
+        "width": 201,
+        "height": 100
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?width=300&height=200&fit=fill",
+      "origin": "test",
+      "want": {
+        "source": "example.jpg",
+        "width": 300,
+        "height": 200
+      }
+    },
+    {
+      "url": "https://ip.keycdn.com/example.jpg?width=600&quality=80&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "example.jpg",
+        "width": 600,
+        "quality": 80
+      }
+    }
+  ]
+}

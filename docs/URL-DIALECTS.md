@@ -33,7 +33,7 @@ Default mounts (all dialects other than imgproxy are disabled until enabled in c
 | bunny | `/bunny/<mount>/` | Or host-bound |
 | thumbor | `/thumbor/` | Cannot share `/` with imgproxy (both signature-first) unless host-bound |
 | awssih | `/sih/` | AWS Serverless Image Handler (§13); usually host-bound to the old CloudFront domain |
-| simple:* | provider-native prefixes (`/_next/image`, `/_vercel/image`, `/.netlify/images`, `/_ipx/`, `/_image`, `/storage/v1/render/image/`) | Table-driven, see §12 |
+| simple:* | provider-native prefixes (`/_next/image`, `/_vercel/image`, `/.netlify/images`, `/_ipx/`, `/_image`, `/assets/`, `/storage/v1/render/image/public/`, `/storage/v1/object/public/`, `/is/image/`, `/v1/storage/buckets/`) and `/simple/<name>/` | Table-driven, see §12; `XI_DIALECTS_SIMPLE_HOSTS` binds a per-request dispatcher |
 
 ## 2. Signing schemes at a glance
 
@@ -684,32 +684,45 @@ Under the restricted unsigned policy `default=<url>` (a fallback URL), crops, tr
 
 ## 12. unpic long tail ("simple" micro-dialects)
 
-unpic (https://unpic.pics/providers/, source `ascorbic/unpic/src/providers/*.ts`) supports 28 providers. The ones above are full dialects. The rest only emit width, height, quality, format and a fit/crop hint, so they are implemented as **data**: one `simple` parser engine plus a table per provider (path pattern, source extraction, key map, value maps, defaults). Adding a provider is a table entry and a test file.
+unpic 4.2 (https://unpic.pics/providers/, source `ascorbic/unpic/src/providers/*.ts`) supports 28 providers. Seven are full dialects above; the others only emit width, height, quality, format and a fit/crop hint, so they are implemented as **data** in `internal/dialect/simple`: one parser engine plus a `Spec` table per provider (native prefixes, upstream domains, an extractor that cuts source and parameters out of the URL, and a `Param` per name). Adding a provider is a `<name>.go` table (listed in `Providers()`) plus its fixture file `tools/compat/unpic/<name>.json`.
 
-| Provider | URL shape xi must accept | Keys |
+**Coverage of the 28 unpic providers**
+
+| unpic provider | xi | Fixture file |
 |---|---|---|
-| Next.js / Vercel | `/_next/image?url=&w=&q=`, `/_vercel/image?url=&w=&q=` | w, q (format by Accept) |
-| Netlify | `/.netlify/images?url=&w=&h=&fit=&position=&fm=&q=` | fit contain/cover/fill; fm incl. blurhash |
-| IPX (Nuxt) | `/_ipx/<k_v,…|_>/<src>` | w,h,s=WxH,q,f,fit,pos,b,blur,sharpen,rotate,flip,flop,grayscale,extract |
-| Astro | `/_image?href=&w=&h=&q=&f=&fit=` | |
-| Contentful | `<path>?w=&h=&fm=&q=&fit=pad|fill|scale|crop|thumb&f=<focus>&r=&bg=&fl=progressive|png8` | |
-| Kontent.ai | `?w=&h=&fm=&q=&fit=crop|clip|scale&rect=&fp-x=&fp-y=&dpr=&lossless=&auto=format` | imgix-like |
-| Directus | `/assets/<id>?width=&height=&quality=&format=&fit=cover|contain|inside|outside&withoutEnlargement=` | |
-| WordPress / Jetpack Photon | `?w=&h=&crop=1&resize=w,h&fit=w,h&quality=&strip=all` | |
-| Supabase | `/storage/v1/render/image/public/<bucket>/<path>?width=&height=&quality=&resize=cover|contain|fill&format=origin` | |
-| Storyblok | `<asset>/m/<W>x<H>[/smart]/filters:format(webp):quality(80):focal(…)` | thumbor subset, reuses thumbor filter parser |
-| Uploadcare | `/<uuid>/-/resize/WxH/-/format/webp/-/quality/smart/` | |
-| Adobe Scene7 | `?wid=&hei=&qlt=&fmt=&fit=` | |
-| ImageEngine | `?imgeng=/w_300/h_200/f_webp/cmpr_…/m_cropbox` | |
-| Cloudimage | `?w=&h=&q=&force_format=&func=crop|fit|cropfit|bound|cover|face` | |
-| KeyCDN | `?width=&height=&quality=&format=&fit=` | |
-| Builder.io | `?width=&height=&format=&quality=&fit=` | |
-| Contentstack | `?width=&height=&quality=&format=&auto=webp&disable=upscale&fit=bounds|crop` | |
-| Hygraph | `/<envId>/resize=fit:crop,width:W,height:H/{auto_image\|output=format:webp}/<handle>` (host `<region>.graphassets.com`) | fit crop/clip/scale/max |
-| Appwrite | `/storage/buckets/<b>/files/<f>/preview?width=&height=&quality=&output=&gravity=` | |
-| Shopify | `?width=&height=&crop=center` and legacy `_WxH` / `_crop_center` filename suffixes | |
+| imgix, imagekit | full dialects (§5, §7) | `imgix.json`, `imagekit.json` (run by `simple.TestUnpicDedicated`) |
+| cloudinary, cloudflare, cloudflare_images, bunny, wsrv | full dialects (§6, §8, §9, §11) | `cloudinary.json`, `cloudflare.json`, `cloudflare_images.json`, `bunny.json`, `wsrv.json` (for their packages) |
+| appwrite, astro, builder.io, cloudimage, contentful, contentstack, directus, hygraph, imageengine, ipx, keycdn, kontent.ai, netlify, nextjs, scene7, shopify, storyblok, supabase, uploadcare, vercel | `simple:<name>` (`builder.io` → `builderio`, `kontent.ai` → `kontentai`) | `<name>.json` (run by `simple.TestUnpicFixtures`) |
 
-Because unpic generates these URLs client-side, simple dialects default to `XI_SECURITY_UNSIGNED_POLICY=restricted`.
+**Mounting** (`XI_DIALECTS_SIMPLE_ENABLED=nextjs,ipx,…`): each enabled provider is mounted at its native prefixes (below) and at `/simple/<name>/`, under which the provider-native path follows (`/simple/contentful/<space>/<asset>/<token>/a.jpg?w=400`). The parser puts a stripped native prefix back, so every table matches the URL exactly as unpic writes it. `XI_DIALECTS_SIMPLE_HOSTS` binds the whole family to hosts through one dispatcher that picks, per request, the provider with the longest native prefix matching the path, else the provider whose upstream domain equals the request host, else the first enabled provider without native prefixes (the CDN-style ones: contentful, shopify, …). Dialect names are `simple:<name>` (`simple` for the dispatcher).
+
+**Engine rules.** Parameters apply in URL order (last wins). Unknown parameters go to `TR.Ignored` ("unknown option"), documented-but-unapplied ones as "unsupported"; both are 400 with `XI_DIALECTS_STRICT`. Malformed values are always 400 naming the parameter. Width/height/fit/enlarge are collected and applied last: *cover* → `fill`, *inside* → `fit`, *scale-down* → `fit` without enlarging, *fill* (stretch) → `force`, *outside* → `outside`, *pad* (letterbox) → `fit` + `extend` at the gravity. Formats `auto`/`origin`/`preserve` leave the format to negotiation; formats xi does not encode (blurhash, jp2, …) are ignored. Sources: an embedded absolute http(s) URL is a plain source; an embedded relative path, and the path of a CDN-style URL, is a key relative to `XI_DIALECTS_SIMPLE_SOURCE` (parameters marked "source" stay in its query). No provider signs URLs: xi_sig (§2) is verified over the provider-native path and query; unsigned requests follow `XI_DIALECTS_SIMPLE_UNSIGNED_POLICY` (default: the global policy, `restricted`), which suits client-generated unpic URLs.
+
+**Per provider** (fit default in bold; "enl." = enlarges by default; everything not listed is recorded as unknown):
+
+| Provider | Native prefix / upstream host | Source | Mapping |
+|---|---|---|---|
+| nextjs, vercel | `/_next/image`, `/_vercel/image` | `url` | `w` width, `q` quality; **inside**, no enlarge; format by Accept |
+| netlify | `/.netlify/images` | `url` | `w`, `h`, `q`, `fm` (blurhash ignored), `fit` contain→inside / cover / fill→stretch, `position` gravity; **inside** |
+| astro | `/_image` | `href` | `w`, `h`, `q`, `f`, `fit` cover / contain→inside / fill / inside / outside / none→outside / scale-down, `position`, `background`; **cover**, no enlarge |
+| ipx | `/_ipx/<mods>/<src>` (`_` = none; `k_v,k_v`) | path after modifiers | `w`/`width`, `h`/`height`, `s`/`resize` WxH, `q`, `f`, `fit` (sharp: contain→pad), `pos`/`position`, `b`/`background`, `blur`, `sharpen` (σ), `rotate`, `flip` (vertical), `flop`, `grayscale`, `negate`, `enlarge`; unsupported: extract, crop, trim, extend, kernel, gamma, tint, …; **cover** |
+| directus | `/assets/<id>` | path (+`access_token`) | `width`, `height`, `quality`, `format`, `fit` cover / contain→pad / inside / outside, `withoutEnlargement`, `download`; unsupported: `transforms`, `key`; **cover**, enl. |
+| contentful | `images.ctfassets.net` | path | `w`, `h`, `q`, `fm`, `fit` pad / fill→cover / crop, thumb→cover / scale→stretch, `f` focus (incl. face/faces), `bg`, `fl` progressive/png8; unsupported: `r`; **inside** |
+| builderio | `cdn.builder.io` | path | `width`, `height`, `quality`, `format`, `fit` (sharp), `position`, `sharp` (silent); **cover** |
+| contentstack | `images.contentstack.io`, `*-images.contentstack.com` | path | `width`, `height`, `quality`, `format` (pjpg, webpll…), `fit` bounds→inside / crop→cover, `disable=upscale`, `dpr`, `blur`, `bg-color`; `auto` silent (negotiation); overlays, trim, pad, canvas, colour ops unsupported; **inside**, enl. |
+| keycdn | `ip.keycdn.com`, `*.kxcdn.com` | path | `width`, `height`, `quality`, `format`, `fit` (sharp), `position`, `enlarge`, `crop=smart`, `bg`, `rotate`, `flip`/`flop`, `sharpen`, `blur`, `negate`, `grayscale`, `progressive`, `lossless`, `metadata`; overlays (`ol*`), trim, extend, tone ops unsupported; **cover** |
+| kontentai | `*.kc-usercontent.com` | path | `w`, `h`, `q`, `fm`, `fit` clip→inside / scale→stretch / crop→cover, `fp-x`/`fp-y` focus, `dpr`, `bg` (ARGB), `lossless`, `auto` silent; unsupported: `rect`, `fp-z`; **inside** |
+| scene7 | `/is/image/`, `*.scene7.com` | path | `wid`, `hei`, `qlt` (q[,chroma]), `fmt` (fmt[,…]), `fit` crop→cover / stretch / wrap→outside / fit, constrain, hfit, vfit→inside with `,1` = enlarge, `dpr`, `bgColor`/`bgc`, `rotate`, `flip` lr/ud/lrud, `op_blur`; layers, text, masks, ICC, crop unsupported; **pad** (Image Serving's default), no enlarge |
+| shopify | `cdn.shopify.com` | path without the size suffix | `width`, `height`, `crop` position→cover, `pad_color`→pad, `format`, `quality`; legacy `_WxH`/`_crop_<pos>` file suffix when the query has no size; `v` dropped; **inside** |
+| storyblok | `a.storyblok.com`, `img2.storyblok.com` | `f/<space>/…/<file>` | `/m/[crop/][fit-in/][-W x -H/][smart/][filters:…]` (legacy: before `/f/`): size (minus flips), `fit-in`→inside (+`fill` → pad), `smart`; filters `format`, `quality`, `fill`, `grayscale`, `blur`, `rotate`, `no_upscale`; unsupported: crop rectangle, `focal`, `brightness`, `round_corner`; **cover**, enl. |
+| supabase | `/storage/v1/render/image/public/`, `/storage/v1/object/public/`, `*.supabase.co` | the public object path | `width`, `height`, `quality`, `format` (origin), `resize` cover / contain→inside / fill→stretch; **cover** |
+| uploadcare | `ucarecdn.com` | `<uuid>/` | `/-/<op>/<args>/`: `resize` WxH (both sides stretch), `preview` (inside, no enlarge), `scale_crop` WxH[/pos], `smart_resize`, `format`, `quality` (number or lightest…best), `progressive`, `stretch`, `setfill`, `rotate` (counter-clockwise), `flip`, `mirror`, `grayscale`, `autorotate`, `strip_meta`; crop, border_radius, blur, sharp unsupported; **inside**, enl. |
+| hygraph | `*.graphassets.com` | `<env>/<handle>` | tasks `resize=width:,height:,fit:clip→inside/crop→cover/scale→stretch/max→scale-down,align:`, `output=format:`, `quality=value:`, `blur=amount:`, `sharpen=amount:`, `rotate=deg:`; `auto_image`, `compress` silent; **inside** |
+| imageengine | `*.imgeng.in` | path + other query parameters | `imgeng=/k_v/…`: `w`, `h`, `f`, `cmpr` (quality = 100−cmpr), `quality` (unpic), `m` cropbox→cover / box→inside / letterbox→pad / stretch / outside, `s` sharpen, `r` rotate, `meta`, `dl`; pass, pc, cr, maxdpr unsupported; **inside** |
+| cloudimage | `*.cloudimg.io` | path as `https://` URL (`ci_url_encoded`, `v7/`) | `w`/`width`, `h`/`height`, `q`, `force_format`, `func` crop, cropfit→cover / fit→pad / bound→inside / boundmin→outside / cover→stretch / face, `gravity` (compass, auto, face, `Xp,Yp`), `org_if_sml` (no enlarge), `bg_color`, `r` (counter-clockwise), `flip`, `blur`; pixel crops, trim, radius unsupported; **inside**, enl. |
+| appwrite | `/v1/storage/buckets/` | path (+`project`) | `width`, `height`, `quality`, `output`, `gravity`, `rotation`, `background`; borders, radius, opacity unsupported; **cover** |
+
+Deviation from the original plan: the Storyblok table parses its thumbor-style filter list itself (`name(args):…`, colons inside parentheses kept) instead of reusing `internal/dialect/thumbor/filters`, which is not on this branch yet; switching is a local change to `storyblok.go`.
 
 ## 13. AWS Serverless Image Handler ("Dynamic Image Transformation for Amazon CloudFront")
 

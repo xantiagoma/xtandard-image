@@ -222,6 +222,9 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	if err := addCloudinary(cfg, ipOpts.Presets, required, dialects, opts); err != nil {
 		return nil, nil, err
 	}
+	if err := addSimpleDialects(cfg, qOpts.XIVerifier, dialects, opts); err != nil {
+		return nil, nil, err
+	}
 	// Root "/?url=" (URL-DIALECTS §1): wsrv when enabled, else query.
 	switch {
 	case cfg.Dialects.Wsrv.Enabled:
@@ -242,8 +245,7 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	}
 
 	for name, enabled := range map[string]bool{
-		"imgix":  cfg.Dialects.Imgix.Enabled,
-		"simple": len(cfg.Dialects.Simple.Enabled) > 0,
+		"imgix": cfg.Dialects.Imgix.Enabled,
 	} {
 		if enabled {
 			warnings = append(warnings, "dialect "+name+" is enabled but not implemented yet; its mounts are skipped")

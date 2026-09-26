@@ -1,0 +1,70 @@
+{
+  "provider": "supabase",
+  "unpic": {
+    "provider": "supabase",
+    "version": "4.2.2"
+  },
+  "mode": "path",
+  "fixtures": [
+    {
+      "url": "https://example.supabase.co/storage/v1/render/image/public/images/photo.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "storage/v1/object/public/images/photo.jpg"
+      }
+    },
+    {
+      "url": "https://example.supabase.co/storage/v1/render/image/public/images/photo.jpg?height=500",
+      "origin": "generate",
+      "want": {
+        "source": "storage/v1/object/public/images/photo.jpg",
+        "height": 500
+      }
+    },
+    {
+      "url": "https://example.supabase.co/storage/v1/render/image/public/images/photo.jpg?width=1200&quality=60",
+      "origin": "generate",
+      "want": {
+        "source": "storage/v1/object/public/images/photo.jpg",
+        "width": 1200,
+        "quality": 60
+      }
+    },
+    {
+      "url": "https://example.supabase.co/storage/v1/render/image/public/images/photo.jpg?width=400&height=300&quality=80",
+      "origin": "generate",
+      "want": {
+        "source": "storage/v1/object/public/images/photo.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://example.supabase.co/storage/v1/render/image/public/images/photo.jpg?width=640&quality=75",
+      "origin": "generate",
+      "want": {
+        "source": "storage/v1/object/public/images/photo.jpg",
+        "width": 640,
+        "quality": 75
+      }
+    },
+    {
+      "url": "https://example.supabase.co/storage/v1/render/image/public/images/photo.jpg?width=800",
+      "origin": "generate",
+      "want": {
+        "source": "storage/v1/object/public/images/photo.jpg",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://example.supabase.co/storage/v1/render/image/public/images/photo.jpg?width=800&height=600",
+      "origin": "generate",
+      "want": {
+        "source": "storage/v1/object/public/images/photo.jpg",
+        "width": 800,
+        "height": 600
+      }
+    }
+  ]
+}

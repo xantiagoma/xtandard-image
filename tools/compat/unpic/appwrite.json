@@ -1,0 +1,131 @@
+{
+  "provider": "appwrite",
+  "unpic": {
+    "provider": "appwrite",
+    "version": "4.2.2"
+  },
+  "mode": "path",
+  "fixtures": [
+    {
+      "url": "https://cloud.appwrite.io/v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?height=500&output=png&project=unpic-test",
+      "origin": "generate",
+      "want": {
+        "source": "v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://cloud.appwrite.io/v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?width=1200&quality=60&output=avif&project=unpic-test",
+      "origin": "generate",
+      "want": {
+        "source": "v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://cloud.appwrite.io/v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?width=400&height=300&quality=80&output=webp&project=unpic-test",
+      "origin": "generate",
+      "want": {
+        "source": "v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://cloud.appwrite.io/v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?width=640&quality=75&output=jpeg&project=unpic-test",
+      "origin": "generate",
+      "want": {
+        "source": "v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://cloud.appwrite.io/v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?width=800&height=600&project=unpic-test",
+      "origin": "generate",
+      "want": {
+        "source": "v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://cloud.appwrite.io/v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?width=800&project=unpic-test",
+      "origin": "generate",
+      "want": {
+        "source": "v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://cloud.appwrite.io/v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test",
+      "origin": "test",
+      "want": {
+        "source": "v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test"
+      }
+    },
+    {
+      "url": "https://cloud.appwrite.io/v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test&width=300&height=400",
+      "origin": "test",
+      "want": {
+        "source": "v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test",
+        "width": 300,
+        "height": 400
+      }
+    },
+    {
+      "url": "https://cloud.appwrite.io/v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test&width=800&height=600",
+      "origin": "test",
+      "want": {
+        "source": "v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://cloud.appwrite.io/v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test&width=800&height=600&quality=75&output=webp",
+      "origin": "test",
+      "want": {
+        "source": "v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test",
+        "width": 800,
+        "height": 600,
+        "quality": 75,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://cloud.appwrite.io/v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test&width=800&height=600&quality=80&output=webp",
+      "origin": "test",
+      "want": {
+        "source": "v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test",
+        "width": 800,
+        "height": 600,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://cloud.appwrite.io/v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test&width=800&quality=75&output=webp",
+      "origin": "test",
+      "want": {
+        "source": "v1/storage/buckets/unpic/files/679d127100131f67b6d8/preview?project=unpic-test",
+        "width": 800,
+        "quality": 75,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://cloud.appwrite.io/v1/storage/buckets/unpic/files/679d127100131f67b6d8/view?project=unpic-test",
+      "origin": "test",
+      "want": {
+        "source": "v1/storage/buckets/unpic/files/679d127100131f67b6d8/view?project=unpic-test"
+      }
+    }
+  ]
+}

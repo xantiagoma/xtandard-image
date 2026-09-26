@@ -1,0 +1,176 @@
+{
+  "provider": "wsrv",
+  "unpic": {
+    "provider": "wsrv",
+    "version": "4.2.2"
+  },
+  "mode": "embedded",
+  "fixtures": [
+    {
+      "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/image.jpg"
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&h=500&output=png&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&w=1200&output=avif&q=60&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&w=400&h=300&output=webp&q=80&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&w=640&output=jpeg&q=75&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&w=800&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&w=800&h=600&fit=cover",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com/image.jpg",
+      "origin": "test",
+      "want": {
+        "source": "https://example.com/image.jpg"
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com/image.jpg&w=200&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "width": 200
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com/image.jpg&w=200&h=100&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "width": 200,
+        "height": 100
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com/image.jpg&w=300",
+      "origin": "test",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "width": 300
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com/image.jpg&w=300&dpr=2&blur=5&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "width": 300
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com/image.jpg&w=300&fit=contain",
+      "origin": "test",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "width": 300
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com/image.jpg&w=300&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "width": 300
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com/image.jpg&w=300&fit=inside",
+      "origin": "test",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "width": 300
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com/image.jpg&w=300&h=200&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "width": 300,
+        "height": 200
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com/image.jpg&w=300&h=200&q=85&output=webp&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "width": 300,
+        "height": 200,
+        "quality": 85,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com/image.jpg&w=400&output=webp&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "width": 400,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://wsrv.nl/?url=example.com/image.jpg&w=600&q=80&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "https://example.com/image.jpg",
+        "width": 600,
+        "quality": 80
+      }
+    }
+  ]
+}

@@ -1,0 +1,239 @@
+{
+  "provider": "storyblok",
+  "unpic": {
+    "provider": "storyblok",
+    "version": "4.2.2"
+  },
+  "mode": "path",
+  "fixtures": [
+    {
+      "url": "https://a.storyblok.com/f/39898/1000x600/d962430746/demo-image-human.jpeg/m/0x0",
+      "origin": "generate",
+      "want": {
+        "source": "f/39898/1000x600/d962430746/demo-image-human.jpeg"
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/1000x600/d962430746/demo-image-human.jpeg/m/0x500/filters:format(png)",
+      "origin": "generate",
+      "want": {
+        "source": "f/39898/1000x600/d962430746/demo-image-human.jpeg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/1000x600/d962430746/demo-image-human.jpeg/m/1200x0/filters:format(avif)",
+      "origin": "generate",
+      "want": {
+        "source": "f/39898/1000x600/d962430746/demo-image-human.jpeg",
+        "width": 1200,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/1000x600/d962430746/demo-image-human.jpeg/m/640x0/filters:format(jpeg)",
+      "origin": "generate",
+      "want": {
+        "source": "f/39898/1000x600/d962430746/demo-image-human.jpeg",
+        "width": 640,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/1000x600/d962430746/demo-image-human.jpeg/m/800x0",
+      "origin": "generate",
+      "want": {
+        "source": "f/39898/1000x600/d962430746/demo-image-human.jpeg",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/1000x600/d962430746/demo-image-human.jpeg/m/800x600",
+      "origin": "generate",
+      "want": {
+        "source": "f/39898/1000x600/d962430746/demo-image-human.jpeg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/3310x2192/e4ec08624e/demo-image.jpeg/m/0x0",
+      "origin": "generate",
+      "want": {
+        "source": "f/39898/3310x2192/e4ec08624e/demo-image.jpeg"
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/3310x2192/e4ec08624e/demo-image.jpeg/m/0x500/filters:format(png)",
+      "origin": "generate",
+      "want": {
+        "source": "f/39898/3310x2192/e4ec08624e/demo-image.jpeg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/3310x2192/e4ec08624e/demo-image.jpeg/m/1200x0/filters:format(avif)",
+      "origin": "generate",
+      "want": {
+        "source": "f/39898/3310x2192/e4ec08624e/demo-image.jpeg",
+        "width": 1200,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/3310x2192/e4ec08624e/demo-image.jpeg/m/400x300/filters:format(webp)",
+      "origin": "generate",
+      "want": {
+        "source": "f/39898/3310x2192/e4ec08624e/demo-image.jpeg",
+        "width": 400,
+        "height": 300,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/3310x2192/e4ec08624e/demo-image.jpeg/m/640x0/filters:format(jpeg)",
+      "origin": "generate",
+      "want": {
+        "source": "f/39898/3310x2192/e4ec08624e/demo-image.jpeg",
+        "width": 640,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/3310x2192/e4ec08624e/demo-image.jpeg/m/800x0",
+      "origin": "generate",
+      "want": {
+        "source": "f/39898/3310x2192/e4ec08624e/demo-image.jpeg",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/3310x2192/e4ec08624e/demo-image.jpeg/m/800x600",
+      "origin": "generate",
+      "want": {
+        "source": "f/39898/3310x2192/e4ec08624e/demo-image.jpeg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/1000x600/d962430746/demo-image-human.jpeg",
+      "origin": "test",
+      "want": {
+        "source": "f/39898/1000x600/d962430746/demo-image-human.jpeg"
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/1000x600/d962430746/demo-image-human.jpeg/m/-400x-300",
+      "origin": "test",
+      "want": {
+        "source": "f/39898/1000x600/d962430746/demo-image-human.jpeg",
+        "width": 400,
+        "height": 300
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/1000x600/d962430746/demo-image-human.jpeg/m/300x200/filters:format(jpg)",
+      "origin": "test",
+      "want": {
+        "source": "f/39898/1000x600/d962430746/demo-image-human.jpeg",
+        "width": 300,
+        "height": 200,
+        "format": "jpg"
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/1000x600/d962430746/demo-image-human.jpeg/m/400x200/filters:format(webp)",
+      "origin": "test",
+      "want": {
+        "source": "f/39898/1000x600/d962430746/demo-image-human.jpeg",
+        "width": 400,
+        "height": 200,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/1000x600/d962430746/demo-image-human.jpeg/m/400x300",
+      "origin": "test",
+      "want": {
+        "source": "f/39898/1000x600/d962430746/demo-image-human.jpeg",
+        "width": 400,
+        "height": 300
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/1000x600/d962430746/demo-image-human.jpeg/m/400x300/filters:focal(150x150:250x250)",
+      "origin": "test",
+      "want": {
+        "source": "f/39898/1000x600/d962430746/demo-image-human.jpeg",
+        "width": 400,
+        "height": 300
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/1000x600/d962430746/demo-image-human.jpeg/m/400x300/filters:format(webp)",
+      "origin": "test",
+      "want": {
+        "source": "f/39898/1000x600/d962430746/demo-image-human.jpeg",
+        "width": 400,
+        "height": 300,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/1000x600/d962430746/demo-image-human.jpeg/m/400x300/filters:format(webp):focal(150x100:250x200)",
+      "origin": "test",
+      "want": {
+        "source": "f/39898/1000x600/d962430746/demo-image-human.jpeg",
+        "width": 400,
+        "height": 300,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/1000x600/d962430746/demo-image-human.jpeg/m/500x400/filters:focal(150x150:250x250):format(webp)",
+      "origin": "test",
+      "want": {
+        "source": "f/39898/1000x600/d962430746/demo-image-human.jpeg",
+        "width": 500,
+        "height": 400,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/3310x2192/e4ec08624e/demo-image.jpeg",
+      "origin": "test",
+      "want": {
+        "source": "f/39898/3310x2192/e4ec08624e/demo-image.jpeg"
+      }
+    },
+    {
+      "url": "https://a.storyblok.com/f/39898/3310x2192/e4ec08624e/demo-image.jpeg/m/600x500/filters:format(png)",
+      "origin": "test",
+      "want": {
+        "source": "f/39898/3310x2192/e4ec08624e/demo-image.jpeg",
+        "width": 600,
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://img2.storyblok.com/200x0/filters:rotate(90):format(png)/f/39898/3310x2192/e4ec08624e/demo-image.jpeg",
+      "origin": "test",
+      "want": {
+        "source": "f/39898/3310x2192/e4ec08624e/demo-image.jpeg",
+        "width": 200,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://img2.storyblok.com/f/39898/3310x2192/e4ec08624e/demo-image.jpeg",
+      "origin": "test",
+      "want": {
+        "source": "f/39898/3310x2192/e4ec08624e/demo-image.jpeg"
+      }
+    }
+  ]
+}

@@ -1,0 +1,194 @@
+{
+  "provider": "cloudflare",
+  "unpic": {
+    "provider": "cloudflare",
+    "version": "4.2.2"
+  },
+  "mode": "embedded",
+  "fixtures": [
+    {
+      "url": "/cdn-cgi/image/f=auto,fit=cover/https://example.com/uploads/generic/avatar-sample.jpeg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/uploads/generic/avatar-sample.jpeg",
+        "format": "auto"
+      }
+    },
+    {
+      "url": "/cdn-cgi/image/f=auto,fit=cover/uploads/generic/avatar-sample.jpeg",
+      "origin": "generate",
+      "want": {
+        "source": "uploads/generic/avatar-sample.jpeg",
+        "format": "auto"
+      }
+    },
+    {
+      "url": "/cdn-cgi/image/height=500,f=png,fit=cover/https://example.com/uploads/generic/avatar-sample.jpeg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/uploads/generic/avatar-sample.jpeg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "/cdn-cgi/image/height=500,f=png,fit=cover/uploads/generic/avatar-sample.jpeg",
+      "origin": "generate",
+      "want": {
+        "source": "uploads/generic/avatar-sample.jpeg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "/cdn-cgi/image/width=1200,quality=60,f=avif,fit=cover/https://example.com/uploads/generic/avatar-sample.jpeg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/uploads/generic/avatar-sample.jpeg",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "/cdn-cgi/image/width=1200,quality=60,f=avif,fit=cover/uploads/generic/avatar-sample.jpeg",
+      "origin": "generate",
+      "want": {
+        "source": "uploads/generic/avatar-sample.jpeg",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "/cdn-cgi/image/width=400,height=300,quality=80,f=webp,fit=cover/https://example.com/uploads/generic/avatar-sample.jpeg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/uploads/generic/avatar-sample.jpeg",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "/cdn-cgi/image/width=400,height=300,quality=80,f=webp,fit=cover/uploads/generic/avatar-sample.jpeg",
+      "origin": "generate",
+      "want": {
+        "source": "uploads/generic/avatar-sample.jpeg",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "/cdn-cgi/image/width=640,quality=75,f=jpeg,fit=cover/https://example.com/uploads/generic/avatar-sample.jpeg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/uploads/generic/avatar-sample.jpeg",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "/cdn-cgi/image/width=640,quality=75,f=jpeg,fit=cover/uploads/generic/avatar-sample.jpeg",
+      "origin": "generate",
+      "want": {
+        "source": "uploads/generic/avatar-sample.jpeg",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "/cdn-cgi/image/width=800,f=auto,fit=cover/https://example.com/uploads/generic/avatar-sample.jpeg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/uploads/generic/avatar-sample.jpeg",
+        "width": 800,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "/cdn-cgi/image/width=800,f=auto,fit=cover/uploads/generic/avatar-sample.jpeg",
+      "origin": "generate",
+      "want": {
+        "source": "uploads/generic/avatar-sample.jpeg",
+        "width": 800,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "/cdn-cgi/image/width=800,height=600,f=auto,fit=cover/https://example.com/uploads/generic/avatar-sample.jpeg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/uploads/generic/avatar-sample.jpeg",
+        "width": 800,
+        "height": 600,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "/cdn-cgi/image/width=800,height=600,f=auto,fit=cover/uploads/generic/avatar-sample.jpeg",
+      "origin": "generate",
+      "want": {
+        "source": "uploads/generic/avatar-sample.jpeg",
+        "width": 800,
+        "height": 600,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "/cdn-cgi/image/width=200,height=100,f=webp,fit=cover/uploads/generic/avatar-sample.jpeg",
+      "origin": "test",
+      "want": {
+        "source": "uploads/generic/avatar-sample.jpeg",
+        "width": 200,
+        "height": 100,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://assets.brevity.io/cdn-cgi/image/background=red,width=100,height=200,f=auto,fit=cover/uploads/generic/avatar-sample.jpeg",
+      "origin": "test",
+      "want": {
+        "source": "uploads/generic/avatar-sample.jpeg",
+        "width": 100,
+        "height": 200,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://assets.brevity.io/cdn-cgi/image/background=red,width=128,height=128,f=auto/uploads/generic/avatar-sample.jpeg",
+      "origin": "test",
+      "want": {
+        "source": "uploads/generic/avatar-sample.jpeg",
+        "width": 128,
+        "height": 128,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://assets.brevity.io/cdn-cgi/image/width=200,height=100,f=webp,fit=cover/https://example.com/uploads/generic/avatar-sample.jpeg",
+      "origin": "test",
+      "want": {
+        "source": "https://example.com/uploads/generic/avatar-sample.jpeg",
+        "width": 200,
+        "height": 100,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://assets.brevity.io/cdn-cgi/image/width=200,height=100,f=webp,fit=cover/uploads/generic/avatar-sample.jpeg",
+      "origin": "test",
+      "want": {
+        "source": "uploads/generic/avatar-sample.jpeg",
+        "width": 200,
+        "height": 100,
+        "format": "webp"
+      }
+    }
+  ]
+}

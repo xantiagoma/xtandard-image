@@ -1,0 +1,127 @@
+{
+  "provider": "contentstack",
+  "unpic": {
+    "provider": "contentstack",
+    "version": "4.2.2"
+  },
+  "mode": "path",
+  "fixtures": [
+    {
+      "url": "https://images.contentstack.io/v3/assets/example-asset-uid/example-image.jpg?height=500&format=png&auto=webp&disable=upscale",
+      "origin": "generate",
+      "want": {
+        "source": "v3/assets/example-asset-uid/example-image.jpg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://images.contentstack.io/v3/assets/example-asset-uid/example-image.jpg?width=1200&format=avif&quality=60&auto=webp&disable=upscale",
+      "origin": "generate",
+      "want": {
+        "source": "v3/assets/example-asset-uid/example-image.jpg",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://images.contentstack.io/v3/assets/example-asset-uid/example-image.jpg?width=400&height=300&format=webp&quality=80&fit=crop&auto=webp&disable=upscale",
+      "origin": "generate",
+      "want": {
+        "source": "v3/assets/example-asset-uid/example-image.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://images.contentstack.io/v3/assets/example-asset-uid/example-image.jpg?width=640&format=jpeg&quality=75&auto=webp&disable=upscale",
+      "origin": "generate",
+      "want": {
+        "source": "v3/assets/example-asset-uid/example-image.jpg",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://images.contentstack.io/v3/assets/example-asset-uid/example-image.jpg?width=800&auto=webp&disable=upscale",
+      "origin": "generate",
+      "want": {
+        "source": "v3/assets/example-asset-uid/example-image.jpg",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://images.contentstack.io/v3/assets/example-asset-uid/example-image.jpg?width=800&height=600&fit=crop&auto=webp&disable=upscale",
+      "origin": "generate",
+      "want": {
+        "source": "v3/assets/example-asset-uid/example-image.jpg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://images.contentstack.io/v3/assets/example-asset-uid/example-image.jpg",
+      "origin": "test",
+      "want": {
+        "source": "v3/assets/example-asset-uid/example-image.jpg"
+      }
+    },
+    {
+      "url": "https://images.contentstack.io/v3/assets/example-asset-uid/example-image.jpg?auto=webp&disable=upscale",
+      "origin": "test",
+      "want": {
+        "source": "v3/assets/example-asset-uid/example-image.jpg"
+      }
+    },
+    {
+      "url": "https://images.contentstack.io/v3/assets/example-asset-uid/example-image.jpg?auto=webp&format=pjpg&disable=upscale",
+      "origin": "test",
+      "want": {
+        "source": "v3/assets/example-asset-uid/example-image.jpg",
+        "format": "pjpg"
+      }
+    },
+    {
+      "url": "https://images.contentstack.io/v3/assets/example-asset-uid/example-image.jpg?auto=webp&width=300&height=200&quality=85&format=webpll&fit=bounds&trim=10,20,30,40&orient=3&blur=5&saturation=120&contrast=110&brightness=90&filter=lanczos3&canvas=300x200&disable=upscale",
+      "origin": "test",
+      "want": {
+        "source": "v3/assets/example-asset-uid/example-image.jpg",
+        "width": 300,
+        "height": 200,
+        "quality": 85,
+        "format": "webpll"
+      }
+    },
+    {
+      "url": "https://images.contentstack.io/v3/assets/example-asset-uid/example-image.jpg?overlay=overlay-image.png&overlay-align=top,left&auto=webp&disable=upscale",
+      "origin": "test",
+      "want": {
+        "source": "v3/assets/example-asset-uid/example-image.jpg"
+      }
+    },
+    {
+      "url": "https://images.contentstack.io/v3/assets/example-asset-uid/example-image.jpg?width=200&height=100&fit=bounds&auto=avif&disable=false",
+      "origin": "test",
+      "want": {
+        "source": "v3/assets/example-asset-uid/example-image.jpg",
+        "width": 200,
+        "height": 100
+      }
+    },
+    {
+      "url": "https://images.contentstack.io/v3/assets/example-asset-uid/example-image.jpg?width=200&height=100&format=webp&quality=80&fit=bounds",
+      "origin": "test",
+      "want": {
+        "source": "v3/assets/example-asset-uid/example-image.jpg",
+        "width": 200,
+        "height": 100,
+        "quality": 80,
+        "format": "webp"
+      }
+    }
+  ]
+}
