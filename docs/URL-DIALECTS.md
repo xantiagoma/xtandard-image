@@ -74,6 +74,8 @@ bool        = "1" | "t" | "true" | "0" | "f" | "false"
 - `IMGPROXY_BASE_URL`-style prefixing: `XI_DIALECTS_IMGPROXY_BASE_URL` prepended to relative sources. `XI_DIALECTS_IMGPROXY_URL_REPLACEMENTS` supported (regex → replacement) for migrations.
 - Source schemes: `http(s)://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://`, `xi://<source>/`. `swift://` is not supported (open question).
 - Presets: `preset:a:b`; `default` preset applied first; `XI_PRESETS_ONLY` restricts URLs to presets; presets may contain chained pipelines, merged per imgproxy rules.
+- Chained pipelines: pipeline-scoped options (geometry, effects, watermark, animation) apply to the pipeline they appear in; request-scoped ones (`O.*`, `D.*`, `TR.Limits`, `raw`) apply to the whole request wherever they appear (imgproxy `options.Main()`). Max 16 pipelines; an empty pipeline is 400.
+- Later occurrences of an option override earlier ones argument by argument (empty arguments keep the previous value); the source extension overrides `format` unless `raw`. An empty boolean is false; any other non-boolean is 400 (imgproxy: false). `sp` is accepted as a `skip_processing` alias because `imgproxy-js-core` emits it.
 - Malformed option arguments → 400. Unknown option names are recorded in `TR.Ignored` and return 400 only with `XI_DIALECTS_STRICT=true` (ADR 0002). imgproxy itself returns 404 for both (`options/parser/errors.go`); see ROADMAP open question 3.
 
 ### 3.2 Processing options → TR
