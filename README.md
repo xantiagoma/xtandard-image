@@ -1,6 +1,6 @@
 # xtandard-image
 
-> **Status: alpha.** Milestone M1 is complete on `main`: the imgproxy and query dialects work end to end from every source type, with the core processing set, every still format, signing, encryption, `/info`, metrics and the release pipeline (the M1 acceptance suite, WP-39, is in review). No release has been tagged yet, so you build the image yourself (below), and configuration and URL options may still change before 1.0.
+> **Status: alpha.** Milestone M1 is complete on `main`: the imgproxy and query dialects work end to end from every source type, with the core processing set, every still format, signing, encryption, `/info`, metrics, the release pipeline and the M1 acceptance suite that gates releases. No release has been tagged yet, so you build the image yourself (below), and configuration and URL options may still change before 1.0.
 
 A self-hosted image processing proxy in Go and libvips. The goal is to offer every imgproxy Pro processing feature for free under the MIT license, support more input formats than anything else in the category, and accept many URL dialects: imgproxy, imgix, Cloudinary, ImageKit, Cloudflare, Bunny, Thumbor, wsrv/weserv and the rest of the [unpic](https://unpic.pics/providers/) provider list. It ships as a ready-to-run Docker image for Dokploy, Coolify and Kubernetes, with no build step.
 
@@ -39,8 +39,8 @@ The xtandard-image column is the state of `main` as of 2026-09-26: **done (M1)**
 | JPEG XL, JPEG 2000, UltraHDR input | done (M1) | partial (JPEG XL) | — | — | — | — |
 | AVIF / WebP / JXL output + Accept negotiation | done (M1) | yes | yes | partial | partial | partial |
 | Animated GIF / WebP (resize every frame) | done (M1) | yes | yes | — | — | — |
-| Camera RAW input | M2 | no | paid (loading only, v4.0) | no | no | no |
-| PDF / PSD thumbnails | M2 | no | paid | no | partial (PDF) | partial (PDF) |
+| Camera RAW input | M2 (libraries in the base image; loader planned) | no | paid (loading only, v4.0) | no | no | no |
+| PDF / PSD thumbnails | M2 (libraries in the base image; loaders planned) | no | paid | no | partial (PDF) | partial (PDF) |
 | Best-format and auto-quality (DSSIM) | M2 | no | paid | no | no | no |
 | Video thumbnails, GIF → MP4/WebM | M3 (full image) | no | paid | partial (ffmpeg engine) | no | no |
 | **Processing** | | | | | | |
