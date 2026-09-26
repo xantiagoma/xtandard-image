@@ -1,7 +1,7 @@
 // Generates corpus.json: wsrv.nl URLs built by unpic's wsrv provider
 // (MIT, src/providers/wsrv.ts) from operation objects, including every
 // case of its wsrv.test.ts, for the parser's compatibility tests
-// (docs/URL-DIALECTS.md §13).
+// (docs/URL-DIALECTS.md §14).
 //
 //   bun internal/dialect/wsrv/testdata/unpic/generate.ts \
 //     > internal/dialect/wsrv/testdata/unpic/corpus.json

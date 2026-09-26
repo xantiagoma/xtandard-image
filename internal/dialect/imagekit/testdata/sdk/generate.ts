@@ -1,6 +1,6 @@
 // Generates corpus.json: ImageKit URLs built by the official SDKs from
 // transformation objects, for the parser's compatibility tests
-// (docs/URL-DIALECTS.md §13).
+// (docs/URL-DIALECTS.md §14).
 //
 //   - unsigned URLs: @imagekit/javascript buildSrc (imagekit-javascript,
 //     src/url.ts, MIT);

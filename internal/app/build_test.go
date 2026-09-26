@@ -300,3 +300,60 @@ dialects:
 		t.Error("wrong signature accepted")
 	}
 }
+
+// TestAWSSIHThumborForwarding: SIH thumbor paths are forwarded to a thumbor
+// parser that accepts "/unsafe/", even when the registered thumbor dialect
+// has keys and signing is required (WP-85 on top of WP-45).
+func TestAWSSIHThumborForwarding(t *testing.T) {
+	t.Parallel()
+	yml := `sources:
+  fixtures:
+    type: fs
+    root: ` + strconv.Quote(t.TempDir()) + `
+signing:
+  keys: ["736563726574"]
+  salts: ["68656c6c6f"]
+  required: true
+dialects:
+  thumbor:
+    enabled: true
+    source: fixtures
+    keys: ["ACME-SEC"]
+  awssih:
+    enabled: true
+    source: fixtures
+    keys: ["secret"]
+    thumbor: true
+`
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(path, []byte(yml), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, _, err := config.Load(config.LoadOptions{ConfigFile: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rt, warnings, err := buildRouter(&cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slices.ContainsFunc(warnings, func(w string) bool { return strings.Contains(w, "awssih") }) {
+		t.Errorf("warnings = %q, want no awssih warning", warnings)
+	}
+	const p = "/fit-in/100x80/a.jpg"
+	h := hmac.New(sha256.New, []byte("secret"))
+	h.Write([]byte(p))
+	r := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/sih"+p+"?signature="+hex.EncodeToString(h.Sum(nil)), http.NoBody)
+	res, m, err := rt.Route(r)
+	if err != nil {
+		t.Fatalf("forwarded thumbor path: %v", err)
+	}
+	if m.Dialect != "awssih" || res.Request.Dialect != "awssih" || res.Signature != sign.Verified || res.SourceString != "a.jpg" {
+		t.Errorf("route = mount %q dialect %q sig %v source %q", m.Dialect, res.Request.Dialect, res.Signature, res.SourceString)
+	}
+	// The registered thumbor dialect still rejects unsafe URLs.
+	unsafe := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/thumbor/unsafe/a.jpg", http.NoBody)
+	if _, _, err := rt.Route(unsafe); err == nil {
+		t.Error("thumbor accepted an unsafe URL with signing required")
+	}
+}

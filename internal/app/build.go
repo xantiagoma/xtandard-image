@@ -164,7 +164,7 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		imgproxy.Name: ip, infoDialect: infoParser{ip}, query.Name: q, cloudflare.Name: cf, wsrv.Name: ws, thumbor.Name: th,
 	}
 	if sih := &cfg.Dialects.AWSSIH; sih.Enabled {
-		p, warn, err := buildAWSSIH(cfg, dialects)
+		p, warn, err := buildAWSSIH(cfg)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -423,10 +423,10 @@ func addBunnyMounts(cfg *config.Config, presets *preset.Store, dialects map[stri
 
 // buildAWSSIH builds the AWS Serverless Image Handler dialect
 // (XI_DIALECTS_AWSSIH_*). Its keys are the SIH secrets, used verbatim; the
-// primary mount's keys apply to every SIH mount. Thumbor forwarding uses
-// the "thumbor" dialect when one is available (WP-45 registers it; it must
-// accept "/unsafe/" paths, since SIH signs with its own parameter).
-func buildAWSSIH(cfg *config.Config, dialects map[string]dialect.Dialect) (*awssih.Parser, []string, error) {
+// primary mount's keys apply to every SIH mount. Thumbor forwarding
+// (XI_DIALECTS_AWSSIH_THUMBOR) parses with a keyless thumbor dialect (WP-45)
+// that accepts the "/unsafe/" paths SIH forwards.
+func buildAWSSIH(cfg *config.Config) (*awssih.Parser, []string, error) {
 	sih := &cfg.Dialects.AWSSIH
 	opts := awssih.Options{
 		Buckets:     sih.Buckets,
@@ -461,11 +461,15 @@ func buildAWSSIH(cfg *config.Config, dialects map[string]dialect.Dialect) (*awss
 		opts.Rewrite = rw
 	}
 	if sih.Thumbor {
-		if th, ok := dialects[string(config.DialectThumbor)]; ok {
-			opts.Thumbor = th
-		} else {
-			warnings = append(warnings, "dialect awssih: thumbor forwarding needs the thumbor dialect; non-JSON paths answer 400")
+		// A keyless thumbor parser of its own: the registered "thumbor"
+		// dialect verifies with XI_DIALECTS_THUMBOR_KEYS and, when signing
+		// is required, rejects the "/unsafe/" paths SIH forwards (SIH
+		// signs with its own parameter, checked before forwarding).
+		th, err := newThumbor(nil, cfg.Dialects.Strict, false)
+		if err != nil {
+			return nil, nil, err
 		}
+		opts.Thumbor = th
 	}
 	p, err := awssih.New(&opts)
 	if err != nil {
