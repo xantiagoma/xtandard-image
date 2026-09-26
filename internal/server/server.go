@@ -179,6 +179,29 @@ type Config struct {
 	SVG       svg.Options // sanitiser limits (XI_LIMITS_MAX_SVG_*)
 	// ETagBuster is mixed into every ETag (XI_CACHE_ETAG_BUSTER).
 	ETagBuster string
+	// Cache is the Cache-Control policy (XI_CACHE_HEADERS_*).
+	Cache CacheHeaders
+	// CacheTagsHeader names the response header carrying the cache_tags
+	// option (XI_CACHE_TAGS_HEADER); empty disables it.
+	CacheTagsHeader string
+	// DebugHeaders adds X-Xi-Origin-*, X-Xi-Result-* and X-Xi-Ignored
+	// (XI_OBSERVABILITY_DEBUG_HEADERS).
+	DebugHeaders bool
+	// CanonicalHeader adds `Link: <source URL>; rel="canonical"` for http
+	// sources (imgproxy IMGPROXY_SET_CANONICAL_HEADER; no XI_ variable yet).
+	CanonicalHeader bool
+}
+
+// CacheHeaders is the Cache-Control policy of ARCHITECTURE §9.1 and §12.
+type CacheHeaders struct {
+	// TTL is max-age for successes; 0 answers no-cache.
+	TTL time.Duration
+	// ErrorTTL is max-age for source and image failures (§12 "error TTL");
+	// 0 answers no-store.
+	ErrorTTL time.Duration
+	// Passthrough copies the source's Cache-Control (or its Expires as
+	// max-age) when the URL sets no TTL or expiry.
+	Passthrough bool
 }
 
 // DefaultConfig returns the documented defaults (docs/CONFIG.md).
@@ -200,6 +223,8 @@ func DefaultConfig() Config {
 			MaxAnimationFramePixels: 16_000_000,
 			MaxResultDimension:      8192,
 		},
+		Cache:           CacheHeaders{TTL: 31_536_000 * time.Second, ErrorTTL: 10 * time.Second},
+		CacheTagsHeader: "Cache-Tag",
 	}
 }
 
@@ -219,6 +244,12 @@ func (c *Config) Validate() error {
 		if f.d <= 0 {
 			list = append(list, fmt.Errorf("server: %s must be > 0, got %s", f.name, f.d))
 		}
+	}
+	if c.Cache.TTL < 0 || c.Cache.ErrorTTL < 0 {
+		list = append(list, fmt.Errorf("server: cache ttls must be >= 0, got %s and %s", c.Cache.TTL, c.Cache.ErrorTTL))
+	}
+	if c.CacheTagsHeader != "" && !validHeaderName(c.CacheTagsHeader) {
+		list = append(list, fmt.Errorf("server: cache tags header %q is not a valid header name", c.CacheTagsHeader))
 	}
 	if c.MaxHeaderBytes <= 0 {
 		list = append(list, fmt.Errorf("server: max header bytes must be > 0, got %d", c.MaxHeaderBytes))
@@ -259,6 +290,8 @@ type Server struct {
 	cfg     Config
 	deps    Deps
 	handler http.Handler
+	// now is the clock for expires and Cache-Control; tests replace it.
+	now func() time.Time
 }
 
 // New validates cfg and builds the handler tree.
@@ -273,7 +306,7 @@ func New(cfg *Config, deps *Deps) (*Server, error) {
 		deps.Prober == nil || deps.Processor == nil || deps.Allocator == nil || deps.Logger == nil {
 		return nil, errors.New("server: router, resolver, fetcher, admitter, prober, processor, allocator and logger are required")
 	}
-	s := &Server{cfg: *cfg, deps: *deps}
+	s := &Server{cfg: *cfg, deps: *deps, now: time.Now}
 	if s.deps.Metrics == nil {
 		s.deps.Metrics = nopMetrics{}
 	}
@@ -313,6 +346,17 @@ func (s *Server) HTTPServer(ctx context.Context) *http.Server {
 		BaseContext:       func(net.Listener) context.Context { return ctx },
 		ErrorLog:          slog.NewLogLogger(s.deps.Logger.Handler(), slog.LevelWarn),
 	}
+}
+
+// validHeaderName reports an RFC 9110 token.
+func validHeaderName(s string) bool {
+	for i := range len(s) {
+		c := s[i]
+		if c <= 0x20 || c >= 0x7f || strings.IndexByte(`"(),/:;<=>?@[\]{}`, c) >= 0 {
+			return false
+		}
+	}
+	return s != ""
 }
 
 type nopMetrics struct{}

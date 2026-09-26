@@ -25,6 +25,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/obs/admin"
 	"github.com/xantiagoma/xtandard-image/internal/obs/logging"
 	"github.com/xantiagoma/xtandard-image/internal/obs/metrics"
+	"github.com/xantiagoma/xtandard-image/internal/security/sign"
 	"github.com/xantiagoma/xtandard-image/internal/source"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
@@ -35,6 +36,7 @@ type fakeRouter struct {
 	err     error
 	mutate  func(*transform.Request)
 	dialect string
+	sig     sign.Result
 }
 
 func (f *fakeRouter) Route(*http.Request) (*dialect.Result, *router.Mount, error) {
@@ -49,7 +51,7 @@ func (f *fakeRouter) Route(*http.Request) (*dialect.Result, *router.Mount, error
 	if f.mutate != nil {
 		f.mutate(req)
 	}
-	return &dialect.Result{Request: req, SourceString: req.Source.Raw}, m, nil
+	return &dialect.Result{Request: req, SourceString: req.Source.Raw, Signature: f.sig}, m, nil
 }
 
 type fakeResolver struct {
@@ -102,13 +104,15 @@ func (a *fakeAdmitter) Acquire(context.Context, int64) (func(), error) {
 }
 
 type fakeProber struct {
-	meta SourceMeta
-	err  error
-	mu   sync.Mutex
-	seen []byte
+	meta  SourceMeta
+	err   error
+	calls atomic.Int32
+	mu    sync.Mutex
+	seen  []byte
 }
 
 func (p *fakeProber) Probe(_ context.Context, src fetch.Buffer, _ ProbeLimits) (SourceMeta, error) {
+	p.calls.Add(1)
 	p.mu.Lock()
 	p.seen = bytes.Clone(src.Bytes())
 	p.mu.Unlock()
@@ -127,6 +131,9 @@ type fakeProcessor struct {
 	out *fakeBlob
 	err error
 	fn  func(ctx context.Context) error
+	// outFormat and outType override the JPEG output when set.
+	outFormat transform.Format
+	outType   string
 
 	mu     sync.Mutex
 	calls  int
@@ -150,7 +157,11 @@ func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*Process
 	if p.err != nil {
 		return nil, p.err
 	}
-	return &ProcessOutput{Body: p.out, ContentType: "image/jpeg", Format: transform.FormatJPEG, Width: 64, Height: 48}, nil
+	o := &ProcessOutput{Body: p.out, ContentType: "image/jpeg", Format: transform.FormatJPEG, Width: 64, Height: 48}
+	if p.outFormat != transform.FormatUnset {
+		o.Format, o.ContentType = p.outFormat, p.outType
+	}
+	return o, nil
 }
 
 type fakeMetrics struct {
@@ -307,15 +318,6 @@ func TestImageSuccess(t *testing.T) {
 	h.f.obj.ETag = `"v2"`
 	if changed := h.do(t, http.MethodGet, okPath, nil).Header().Get("ETag"); changed == etag {
 		t.Error("ETag did not change with the source ETag")
-	}
-}
-
-func TestImageHead(t *testing.T) {
-	t.Parallel()
-	h := newHarness(t, nil)
-	rec := h.do(t, http.MethodHead, okPath, nil)
-	if rec.Code != http.StatusOK || rec.Body.Len() != 0 || rec.Header().Get("Content-Length") != "12" {
-		t.Errorf("HEAD: status %d, %d body bytes, Content-Length %q", rec.Code, rec.Body.Len(), rec.Header().Get("Content-Length"))
 	}
 }
 

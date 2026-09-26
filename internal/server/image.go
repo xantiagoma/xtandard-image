@@ -15,21 +15,11 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
+	"github.com/xantiagoma/xtandard-image/internal/security/sign"
 	"github.com/xantiagoma/xtandard-image/internal/security/svg"
 	"github.com/xantiagoma/xtandard-image/internal/source"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
-
-// imageResult is a processed image ready to be written, plus what the
-// response headers are derived from.
-type imageResult struct {
-	out      *ProcessOutput
-	etag     string
-	object   source.Object // origin metadata (Body nil), for WP-34b headers
-	decision negotiate.Decision
-	hints    negotiate.HintResult
-	req      *transform.Request
-}
 
 // image serves every non-fixed GET/HEAD path: the request lifecycle of
 // ARCHITECTURE §2 under one request budget. Every failure goes through
@@ -44,7 +34,9 @@ func (s *Server) image(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, classify(ctx, r, err))
 		return
 	}
-	defer res.out.Body.Release()
+	if res.out != nil {
+		defer res.out.Body.Release()
+	}
 
 	t := s.stage(info, stageRespond)
 	s.respond(w, r, res)
@@ -54,6 +46,13 @@ func (s *Server) image(w http.ResponseWriter, r *http.Request) {
 // process runs stages 2–13. Everything it acquires (source buffer,
 // admission permit, sanitised SVG) is released before it returns; only the
 // encoded output outlives it.
+//
+// Conditional requests and HEAD never reach the processor (ARCHITECTURE
+// §9.1): the ETag depends only on the canonical request, the negotiated
+// format and the source validator, so it is known right after the fetch
+// (which revalidates cached originals with the origin itself). When the URL
+// fixes the output format the 304 is answered before admission; otherwise
+// after the header probe and negotiation. HEAD stops after negotiation.
 func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo) (*imageResult, error) {
 	// 2–4. Route, parse (presets are expanded by the dialect), authenticate
 	// and apply the unsigned policy.
@@ -72,6 +71,11 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 		return nil, err
 	}
 	req := parsed.Request
+	signed := parsed.Signature != sign.Unsigned
+	// Defence in depth: dialects reject expired URLs at authentication.
+	if e := req.Delivery.Expires; !e.IsZero() && !s.now().Before(e) {
+		return nil, errs.New(errs.KindExpired, "server: url expired")
+	}
 	switch req.Kind {
 	case transform.KindInfo:
 		return nil, &notImplementedError{what: "info requests"}
@@ -114,6 +118,22 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 	}
 	defer fr.Release()
 
+	res := &imageResult{req: req, key: key, object: fr.Object, hints: hints, signed: signed, srcLen: len(fr.Bytes())}
+	res.object.Body = nil
+	canonical := req.CanonicalKey()
+	decide := func(d negotiate.Decision) bool {
+		res.decision, res.format = d, d.Format
+		res.etag = etag(canonical, d.Format, hints.QualityDelta, &fr.Object, fr.Bytes(), s.cfg.ETagBuster)
+		res.notModified = notModified(r, res.etag, fr.Object.LastModified)
+		if res.notModified {
+			info.format = d.Format.String()
+		}
+		return res.notModified
+	}
+	if d, ok := fixedDecision(req, &s.cfg.Negotiate); ok && decide(d) {
+		return res, nil
+	}
+
 	// 10. Admission: fail fast when the queue is full.
 	t = s.stage(info, stageAdmission)
 	release, err := s.deps.Admitter.Acquire(ctx, 0) // cost: planner estimate once WP-25 lands
@@ -150,6 +170,14 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 	if d.Passthrough {
 		return nil, &notImplementedError{what: "unprocessed source passthrough"}
 	}
+	res.meta = meta
+	if decide(d) {
+		return res, nil
+	}
+	if r.Method == http.MethodHead {
+		info.format = d.Format.String()
+		return res, nil
+	}
 
 	// 12–13. Plan, execute, encode.
 	if err := ctx.Err(); err != nil {
@@ -169,15 +197,22 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 	}
 	info.format = out.Format.String()
 	info.width, info.height = out.Width, out.Height
+	res.out = out
+	return res, nil
+}
 
-	return &imageResult{
-		out:      out,
-		etag:     etag(req.CanonicalKey(), out.Format, hints.QualityDelta, &fr.Object, fr.Bytes(), s.cfg.ETagBuster),
-		object:   fr.Object,
-		decision: d,
-		hints:    hints,
-		req:      req,
-	}, nil
+// fixedDecision returns the negotiation outcome when the URL alone decides
+// it: an explicit concrete format and no skip-processing list that could
+// turn the request into a passthrough depending on the source format. It
+// mirrors negotiate.Decide's explicit branch, so the ETag computed from it
+// equals the one computed after the probe.
+func fixedDecision(req *transform.Request, cfg *negotiate.Config) (negotiate.Decision, bool) {
+	f := req.Output.Format
+	if req.Kind != transform.KindProcess || f == transform.FormatUnset || f == transform.FormatBest ||
+		len(cfg.SkipProcessing) > 0 || len(req.Delivery.SkipProcessing) > 0 {
+		return negotiate.Decision{}, false
+	}
+	return negotiate.Decision{Format: f, Reason: negotiate.ReasonExplicit}, true
 }
 
 // stripPathPrefix removes XI_SERVER_PATH_PREFIX; ok is false when the path
