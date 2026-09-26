@@ -7,6 +7,7 @@ import "C"
 
 import (
 	"context"
+	"strings"
 	"sync/atomic"
 	"unsafe"
 
@@ -200,6 +201,33 @@ func (img *Image) SetInts(ctx context.Context, field MetaField, v []int) (*Image
 	var cerr *C.char
 	rc := C.xi_meta_set_array_int(img.p, cptr(name), p, C.int(len(cv)), &out, &cerr)
 	if err := opError(rc, "set_ints", cerr, img.src); err != nil {
+		return nil, err
+	}
+	return img.derive(out), nil
+}
+
+// SetTexts returns a copy of img with the string metadata fields set, in
+// order, in one step (for example the "exif-ifdN-Tag" fields libvips turns
+// into an EXIF block on save). Names and values must not contain NUL.
+func (img *Image) SetTexts(ctx context.Context, fields ...TextField) (*Image, error) {
+	if err := ctxError(ctx, "vips: set metadata"); err != nil {
+		return nil, err
+	}
+	var names, values []byte
+	for _, f := range fields {
+		if strings.IndexByte(string(f.Field), 0) >= 0 || strings.IndexByte(f.Value, 0) >= 0 {
+			return nil, errs.Newf(errs.KindInternal, "vips: metadata field %q contains NUL", f.Field)
+		}
+		names = append(append(names, f.Field...), 0)
+		values = append(append(values, f.Value...), 0)
+	}
+	if len(fields) == 0 {
+		names, values = []byte{0}, []byte{0}
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_meta_set_strings(img.p, cptr(names), cptr(values), C.int(len(fields)), &out, &cerr)
+	if err := opError(rc, "set_texts", cerr, img.src); err != nil {
 		return nil, err
 	}
 	return img.derive(out), nil

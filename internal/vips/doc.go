@@ -33,7 +33,8 @@
 //   - Bytes: [Buffer] (source bytes, implements fetch.Buffer; [NewBuffer] is
 //     the fetch.Allocator) and [Blob] (encoded output, same interface).
 //   - Decode: [Probe] and [ProbeDensity] (header only), [Load], [Thumbnail], [Black],
-//     [NewFromMemory].
+//     [NewFromMemory]; camera RAW through LibRaw (raw.c, pkg-config
+//     libraw_r): [ProbeRaw] (header only) and [RawLoad] (demosaic).
 //   - Process: methods on [Image] that return new lazy images; [Arena]
 //     closes all of a request's images in one place.
 //   - Encode: [Image.Save] with [SaveOptions].
