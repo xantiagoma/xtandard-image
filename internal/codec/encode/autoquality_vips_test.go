@@ -29,7 +29,7 @@ type corpusImage struct {
 // comparison cap (compared at full size) and one above it (compared on the
 // 512 px copy).
 func aqCorpus() []corpusImage {
-	var out []corpusImage
+	out := make([]corpusImage, 0, 6)
 	for _, w := range []int{256, 1024} {
 		out = append(out,
 			corpusImage{name: "photo", file: "jpeg/baseline.jpg", width: w},
@@ -104,7 +104,7 @@ func rgbImage(p []byte, w, h int) *image.RGBA {
 
 // fullDSSIM is the DSSIM between the pre-encode pixels and the decoded
 // output at full size, both composited onto white.
-func fullDSSIM(tb testing.TB, out aqOutput) float64 {
+func fullDSSIM(tb testing.TB, out *aqOutput) float64 {
 	tb.Helper()
 	got := decode(tb, out.data)
 	if got.header.Width != out.refW || got.header.Height != out.refH {
@@ -169,7 +169,7 @@ func checkDSSIMCorpus(t *testing.T, e *encode.Encoder, in corpusImage, f transfo
 	case !r.AutoQuality.Met && r.Quality != hi:
 		t.Errorf("unmet at quality %d, want the top %d", r.Quality, hi)
 	}
-	full := fullDSSIM(t, out)
+	full := fullDSSIM(t, &out)
 	t.Logf("q%d in %d saves, %d bytes: DSSIM %.5f (compared), %.5f (full size), met %v",
 		r.Quality, r.Attempts, len(out.data), r.AutoQuality.Metric, full, r.AutoQuality.Met)
 	if in.width <= encode.CompareMaxDimension {
