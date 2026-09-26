@@ -308,6 +308,13 @@ int xi_jxlsave(VipsImage *in, const XiJxlOptions *o, int keep, void **buf, size_
 int xi_tiffsave(VipsImage *in, const XiTiffOptions *o, int keep, void **buf, size_t *len,
     char **err);
 
+// ---- EXIF tag titles (libexif, exif.c) ----------------------------------------
+
+// Returns libexif's static human-readable title of the tag that libvips
+// names `name` in IFD `ifd` (the "exif-ifd<ifd>-<name>" fields), or NULL
+// when libexif does not know that tag in that IFD.
+const char *xi_exif_title(const char *name, int ifd);
+
 // ---- internal helpers shared by the .c files ------------------------------
 
 char *xi_error_copy(void);
