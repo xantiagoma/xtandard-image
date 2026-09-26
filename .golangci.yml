@@ -62,6 +62,9 @@ linters:
       require-specific: true
     exhaustive:
       default-signifies-exhaustive: true
+    misspell:
+      # imgproxy's gravity code for north-west (URL-DIALECTS §3.2).
+      ignore-rules: [nowe]
 
     depguard:
       rules:
