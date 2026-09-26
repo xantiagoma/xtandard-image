@@ -1,0 +1,117 @@
+{
+  "unpic": "4.2.2",
+  "providers": [
+    {
+      "unpic": "appwrite",
+      "xi": "appwrite"
+    },
+    {
+      "unpic": "astro",
+      "xi": "astro"
+    },
+    {
+      "unpic": "builder.io",
+      "xi": "builderio"
+    },
+    {
+      "unpic": "bunny",
+      "xi": "bunny"
+    },
+    {
+      "unpic": "cloudflare",
+      "xi": "cloudflare"
+    },
+    {
+      "unpic": "cloudflare_images",
+      "xi": "cloudflare_images"
+    },
+    {
+      "unpic": "cloudimage",
+      "xi": "cloudimage"
+    },
+    {
+      "unpic": "cloudinary",
+      "xi": "cloudinary"
+    },
+    {
+      "unpic": "contentful",
+      "xi": "contentful"
+    },
+    {
+      "unpic": "contentstack",
+      "xi": "contentstack"
+    },
+    {
+      "unpic": "directus",
+      "xi": "directus"
+    },
+    {
+      "unpic": "hygraph",
+      "xi": "hygraph"
+    },
+    {
+      "unpic": "imageengine",
+      "xi": "imageengine"
+    },
+    {
+      "unpic": "imagekit",
+      "xi": "imagekit"
+    },
+    {
+      "unpic": "imgix",
+      "xi": "imgix"
+    },
+    {
+      "unpic": "ipx",
+      "xi": "ipx"
+    },
+    {
+      "unpic": "keycdn",
+      "xi": "keycdn"
+    },
+    {
+      "unpic": "kontent.ai",
+      "xi": "kontentai"
+    },
+    {
+      "unpic": "netlify",
+      "xi": "netlify"
+    },
+    {
+      "unpic": "nextjs",
+      "xi": "nextjs"
+    },
+    {
+      "unpic": "scene7",
+      "xi": "scene7"
+    },
+    {
+      "unpic": "shopify",
+      "xi": "shopify"
+    },
+    {
+      "unpic": "storyblok",
+      "xi": "storyblok"
+    },
+    {
+      "unpic": "supabase",
+      "xi": "supabase"
+    },
+    {
+      "unpic": "uploadcare",
+      "xi": "uploadcare"
+    },
+    {
+      "unpic": "vercel",
+      "xi": "vercel"
+    },
+    {
+      "unpic": "wordpress",
+      "xi": "wordpress"
+    },
+    {
+      "unpic": "wsrv",
+      "xi": "wsrv"
+    }
+  ]
+}

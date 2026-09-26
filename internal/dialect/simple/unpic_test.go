@@ -49,6 +49,9 @@ func loadFixtures(tb testing.TB) map[string]*fixtureFile {
 	}
 	out := make(map[string]*fixtureFile, len(paths))
 	for _, p := range paths {
+		if strings.HasPrefix(filepath.Base(p), "_") {
+			continue
+		}
 		data, err := os.ReadFile(p)
 		if err != nil {
 			tb.Fatal(err)
@@ -233,6 +236,57 @@ func TestUnpicDetection(t *testing.T) {
 			if got, want := res.Request.Dialect, simple.Name+":"+f.Provider; got != want {
 				t.Errorf("%s: routed to %s, want %s", fx.URL, got, want)
 			}
+		}
+	}
+}
+
+// dedicatedProviders are the unpic providers xi implements as full
+// dialects (URL-DIALECTS §5-11); every other one is a simple provider.
+func dedicatedProviders() []string {
+	return []string{"bunny", "cloudflare", "cloudflare_images", "cloudinary", "imagekit", "imgix", "wsrv"}
+}
+
+// TestUnpicCoverage checks that every provider unpic supports
+// (tools/compat/unpic/_index.json, from unpic's SupportedProviders) has a
+// fixture file, and that each fixture file belongs to a full dialect or a
+// simple provider.
+func TestUnpicCoverage(t *testing.T) {
+	t.Parallel()
+	data, err := os.ReadFile(filepath.Join(fixtureDir, "_index.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var index struct {
+		Providers []struct {
+			Unpic string  `json:"unpic"`
+			XI    *string `json:"xi"`
+		} `json:"providers"`
+	}
+	if err := json.Unmarshal(data, &index); err != nil {
+		t.Fatal(err)
+	}
+	files := loadFixtures(t)
+	if len(index.Providers) != 28 {
+		t.Errorf("unpic lists %d providers, URL-DIALECTS §12 counts 28", len(index.Providers))
+	}
+	for _, p := range index.Providers {
+		if p.XI == nil {
+			t.Errorf("unpic provider %s has no fixture file", p.Unpic)
+			continue
+		}
+		if _, ok := files[*p.XI]; !ok {
+			t.Errorf("unpic provider %s: missing %s.json", p.Unpic, *p.XI)
+		}
+	}
+	dedicated := dedicatedProviders()
+	for name := range files {
+		if !slices.Contains(dedicated, name) && simple.Lookup(name) == nil {
+			t.Errorf("fixture file %s.json has neither a full dialect nor a simple provider", name)
+		}
+	}
+	for _, name := range dedicated {
+		if simple.Lookup(name) != nil {
+			t.Errorf("%s is both a full dialect and a simple provider", name)
 		}
 	}
 }
