@@ -101,7 +101,6 @@ func (st *state) apply(name string, args []string) error {
 			return err
 		}
 		st.bgAlpha[st.cur] = a
-		st.ignore(name, reasonM2)
 
 	// Effects.
 	case "blur", "bl":

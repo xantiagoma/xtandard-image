@@ -47,6 +47,10 @@ var (
 	colorMonochrome = transform.Color{R: 0xb3, G: 0xb3, B: 0xb3, A: 255}
 )
 
+// applied marks a later option the executor implements: it is not recorded
+// in Request.Ignored.
+const applied = ""
+
 // applyLater parses the options of docs/URL-DIALECTS.md §3.2 scheduled for
 // M2 and M3 into the request and records each in Request.Ignored with its
 // milestone, so the server can reject or skip them until the executor
@@ -64,22 +68,30 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 		milestone = reasonM3
 		err = objectsPosition(&pl.Gravity, args)
 
-	// Colour.
+	// Colour (applied since WP-59).
 	case "adjust", "a":
+		milestone = applied
 		err = adjust(&pl.Adjust, args)
 	case "brightness", "br":
+		milestone = applied
 		err = oneRangePtr("brightness", args, -transform.MaxBrightness, transform.MaxBrightness, &pl.Adjust.Brightness)
 	case "contrast", "co":
+		milestone = applied
 		err = oneRangePtr("contrast", args, 0, transform.MaxFactor, &pl.Adjust.Contrast)
 	case "saturation", "sa":
+		milestone = applied
 		err = oneRangePtr("saturation", args, 0, transform.MaxFactor, &pl.Adjust.Saturation)
 	case "monochrome", "mc":
+		milestone = applied
 		err = monochrome(pl, args)
 	case "duotone", "dt":
+		milestone = applied
 		err = duotone(pl, args)
 	case "colorize", "col":
+		milestone = applied
 		err = colorize(pl, args)
 	case "gradient", "gr":
+		milestone = applied
 		err = gradient(pl, args)
 
 	// Blur and sharpening.
@@ -122,6 +134,7 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 	case "dpi":
 		err = oneIntRange("dpi", args, 0, transform.MaxDPI, &st.r.Output.DPI)
 	case "color_profile", "cp", "icc":
+		milestone = applied
 		err = colorProfile(&st.r.Output, args)
 	case "autoquality", "aq":
 		err = autoquality(&st.r.Output, args)
@@ -167,7 +180,9 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 	if err != nil {
 		return true, err
 	}
-	st.ignore(name, milestone)
+	if milestone != applied {
+		st.ignore(name, milestone)
+	}
 	return true, nil
 }
 

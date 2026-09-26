@@ -1135,19 +1135,19 @@
   },
   "o_later_milestone": {
     "path": "/",
-    "query": "url=https://example.com/a.jpg\u0026o=sa:1.2",
+    "query": "url=https://example.com/a.jpg\u0026o=ush:always",
     "request": {
       "Dialect": "query",
       "Ignored": [
         {
-          "Option": "sa",
+          "Option": "ush",
           "Reason": "takes effect in M2"
         }
       ],
       "Pipelines": [
         {
-          "Adjust": {
-            "Saturation": 1.2
+          "Unsharp": {
+            "Mode": "always"
           }
         }
       ],

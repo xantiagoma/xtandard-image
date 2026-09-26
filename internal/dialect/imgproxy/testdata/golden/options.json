@@ -52,12 +52,6 @@
     "path": "/unsafe/bg:ffffff/background_alpha:0.5/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "background_alpha",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Background": {
@@ -188,12 +182,6 @@
     "path": "/unsafe/bga:0.25/bg:000/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "bga",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Background": {
@@ -221,12 +209,6 @@
     "path": "/unsafe/bga:0.5/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "bga",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {}
       ],

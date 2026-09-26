@@ -241,12 +241,6 @@
     "path": "/unsafe/bg:ff0000/bga:0.5/-/bg:00ff00/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "bga",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Background": {
@@ -706,10 +700,6 @@
     "request": {
       "Dialect": "imgproxy",
       "Ignored": [
-        {
-          "Option": "a",
-          "Reason": "takes effect in M2"
-        },
         {
           "Option": "jpgo",
           "Reason": "takes effect in M2"
