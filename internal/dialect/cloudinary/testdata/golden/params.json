@@ -878,12 +878,6 @@
     "path": "/demo/image/upload/c_crop,g_face,w_100,h_100,z_1.5/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "g_face",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -891,6 +885,7 @@
         {
           "Crop": {
             "Gravity": {
+              "FaceIndex": 0,
               "FocusZoom": 1.5,
               "Type": "face"
             },
@@ -1125,18 +1120,13 @@
     "path": "/demo/image/upload/c_fill,g_face,w_300,h_200/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "g_face",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
       "Pipelines": [
         {
           "Gravity": {
+            "FaceIndex": 0,
             "Type": "face"
           },
           "Resize": {
@@ -1164,12 +1154,6 @@
     "path": "/demo/image/upload/c_fill,g_faces:center,w_300,h_200/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "g_faces",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -1203,12 +1187,6 @@
     "path": "/demo/image/upload/c_fill,g_dog,w_300,h_200/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "g_dog",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -1782,19 +1760,14 @@
     "path": "/demo/image/upload/c_thumb,g_face,w_150,h_150,z_0.7/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "g_face",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
       "Pipelines": [
         {
           "Gravity": {
-            "FocusZoom": 0.7,
+            "FaceIndex": 0,
+            "FacePad": 2.142857142857143,
             "Type": "face"
           },
           "Resize": {
@@ -2237,12 +2210,6 @@
     "path": "/demo/image/upload/e_blur_faces:600/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_blur_faces",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2651,12 +2618,6 @@
     "path": "/demo/image/upload/e_pixelate_faces:12/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_pixelate_faces",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },

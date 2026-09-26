@@ -163,7 +163,7 @@ func (st *state) applyEffects() error {
 // faceFilters maps face-blur (0–100 → blur sigma v/5 on detected faces)
 // and face-pixel (0–100 → pixelate block size) onto BlurDetections of the
 // "face" class; face-pixel wins when both are set, as the later filter
-// hides the blurred faces anyway. Detection takes effect in M3 (WP-73).
+// hides the blurred faces anyway (WP-73; 422 without the detector).
 func (st *state) faceFilters() error {
 	blur, err := st.optNum("face-blur", 0, 100, 0)
 	if err != nil {
@@ -178,11 +178,9 @@ func (st *state) faceFilters() error {
 	switch {
 	case px > 0:
 		st.pl.BlurDetections = &transform.DetectionFilter{Pixelate: px, Classes: []string{"face"}}
-		st.b.Ignore("face-pixel", reasonDetectFilter)
 		st.ignoreIf(reasonApproximated, "face-blur")
 	case blur > 0:
 		st.pl.BlurDetections = &transform.DetectionFilter{Sigma: blur / 5, Classes: []string{"face"}}
-		st.b.Ignore("face-blur", reasonDetectFilter)
 	}
 	return nil
 }

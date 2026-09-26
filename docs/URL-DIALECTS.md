@@ -101,8 +101,8 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `enlarge` (`el`) | bool | `P.Resize.Enlarge` | false | M1 |
 | `extend` (`ex`) | bool:gravity:x:y | `P.Extend` | false:ce:0:0 | M1 |
 | `extend_aspect_ratio` (`extend_ar`, `exar`) | bool:gravity:x:y | `P.ExtendAR` | false | M1 |
-| `gravity` (`g`) | no,so,ea,we,noea,nowe,soea,sowe,ce[:x:y]; `sm`; `fp:x:y`; `obj:classes…` Pro; `objw:class:weight…` Pro | `P.Gravity` | ce:0:0 | M1 (sm, fp), M3 (obj, objw) |
-| `objects_position` (`obj_pos`, `op`) Pro | type:x:y, `fp:x:y`, `prop` | `P.Gravity.ObjectsPosition` (kept when `gravity` changes) | ce | M3 |
+| `gravity` (`g`) | no,so,ea,we,noea,nowe,soea,sowe,ce[:x:y]; `sm`; `fp:x:y`; `obj:classes…` Pro; `objw:class:weight…` Pro | `P.Gravity`; `obj`: the crop centres on the union box of the detections of the classes (`face` = YuNet faces, COCO class names with `_` for spaces or supercategories such as `vehicle`, none = every class of both models; unknown class → 400); `objw`: on their weighted centre (weight × box area); nothing found → `sm`; without the detector (slim) → 422. `sm` crops on the union of the detected faces when the face model is loaded and finds some (`XI_DETECT_SMART_FACES`), else libvips attention | ce:0:0 | M1 (sm, fp), M3 (obj, objw: WP-72) |
+| `objects_position` (`obj_pos`, `op`) Pro | type:x:y, `fp:x:y`, `prop` | `P.Gravity.ObjectsPosition` (kept when `gravity` changes): where the detections' box lands in the crop of `obj`/`objw` (and face) gravity: a compass type puts it against that edge, the offsets moving it away from the edge (pixels × DPR, or fractions < 1; for `ce` right/down); `fp:x:y` puts its centre at x, y of the crop; `prop` keeps its relative position (crop left = centre × (width − crop width)) | ce | M3 (WP-72) |
 | `crop` (`c`) | w:h[:gravity] (abs ≥1, rel <1) | `P.Crop` | — | M1 |
 | `crop_aspect_ratio` (`crop_ar`, `car`) Pro | ratio:enlarge | `P.Crop.AspectRatio/AspectEnlarge` (whole image without `crop`) | 0 | M2 |
 | `trim` (`t`) | threshold:color:equal_hor:equal_ver | `P.Trim` | — | M1 |
@@ -124,9 +124,9 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `unsharp_masking` (`ush`) Pro | mode:weight:divider (3×3 kernel, ARCHITECTURE §8.1 step 8) | `P.Unsharp` | auto:1:24 when given; off otherwise | M2 (WP-61) |
 | `blur_areas` (`ba`) Pro | sigma:l:t:w:h… (relative to the oriented source; follow rotate/flip/crops) | `P.BlurAreas` | off | M2 (WP-61) |
 | `progressive_blur` (`pbl`) Pro | sigma:direction:start:stop; direction as `gradient` | `P.ProgressiveBlur` | off (…:down:0:1) | M2 (WP-61) |
-| `blur_detections` (`bd`) Pro | sigma:classes… | `P.BlurDetections` | off | M3 |
-| `draw_detections` (`dd`) Pro | bool:classes… | `P.DrawDetections` | off | M3 |
-| `crop_objects` (`c_obj`) Pro | scale:classes… | `P.CropObjects` | off | M3 |
+| `blur_detections` (`bd`) Pro | sigma:classes… | `P.BlurDetections`: Gaussian blur of each detection box (mapped through crops, rotations and flips like `blur_areas`), last among the filters | off | M3 (WP-73) |
+| `draw_detections` (`dd`) Pro | bool:classes… | `P.DrawDetections`: each box outlined in its class colour (line ≈ 1/200 of the shorter side, ≥ 2 px) with a `class NN%` label, after the colour adjustments | off | M3 (WP-73) |
+| `crop_objects` (`c_obj`) Pro | scale:classes… | `P.CropObjects`: pre-crop to the union box of the detections scaled by `scale` around its centre (kept inside the image), grown to the result's aspect ratio for fill/fill-down; takes precedence over `crop`; nothing detected → no crop | off | M3 (WP-72) |
 | `colorize` (`col`) Pro | opacity:color:keep_alpha | `P.Colorize` | off | M2 |
 | `gradient` (`gr`) Pro | opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees clockwise like imgproxy (0 = top to bottom like `down`, 90 = right to left like `left`) | `P.Gradient` | 0:000:down:0:1 | M2 |
 | `watermark` (`wm`) | opacity:pos:x:y:scale; pos incl. `re` (tile), `ch` (chessboard, Pro) | `P.Watermarks[i]`; `ch` tiles a 2×2 unit (cell, empty, empty, cell) centred on a cell | off | M1 (`re` M1, `ch` M3 WP-77) |
@@ -188,13 +188,16 @@ Parsed by `imgproxy.Parser.ParseInfo` (the path after `/info`; same signature by
 | `video_meta` (`vm`) | bool | `Info.VideoMeta`: `video_meta` (container tags plus container, codec, coded size, rotation, duration, fps, bit rate, frames) and `video_streams` for video sources (FORMATS §1.5) | true | M3 (WP-74) |
 | `detect_objects` (`do`) Pro | bool | `Info.DetectObjects` | false | M3 |
 | `classify` (`cl`) Pro | top_k:classes… | `Info.Classify` (top_k/classes: `Ignored`, not in model) | 0 | M3 |
+| `video_meta` (`vm`) | bool | `Info.VideoMeta` | true | M3 |
+| `detect_objects` (`do`) Pro | bool | `Info.DetectObjects` → `"objects": [{class_id, class_name, confidence, left, top, width, height, landmarks}]` (fractions of the oriented image; faces first with five landmarks, then objects; `[]` when none); 422 without the detector | false | M3 (WP-73) |
+| `classify` (`cl`) Pro | top_k:classes… | `Info.Classify`, recorded in `Ignored`: no classification model is shipped (top_k/classes not in the model) | 0 | not implemented |
 | `colorspace` (`cs`) | bool | `Info.Colorspace` | false | M1 |
 | `bands` (`b`) | bool | `Info.Bands` | false | M1 |
 | `sample_format` (`sf`) | bool | `Info.SampleFormat` | false | M1 |
 | `pages_number` (`pn`) | bool | `Info.PagesNumber` | false | M1 |
 | `alpha` (`a`) | alpha:check_transparency | `Info.Alpha` (check_transparency: `Ignored`, not in model) | false:false | M1 |
 | `crop` (`c`) | w:h:gravity (as processing `crop`) | `Info.Crop` | — | M2 |
-| `objects_position` (`obj_pos`, `op`) Pro | as processing | `Info.ObjectsPos` + `P.Gravity.ObjectsPosition` | ce:0:0 | M3 |
+| `objects_position` (`obj_pos`, `op`) Pro | as processing | `Info.ObjectsPos` + `P.Gravity.ObjectsPosition`: places an info `crop` with face or object gravity on the detections | ce:0:0 | M3 (WP-73) |
 | `palette` (`p`) | 0 or 2..256 | `Info.Palette` | 0 | M2 |
 | `average` (`avg`) | enabled:ignore_transparent | `Info.Average` | false:true | M2 |
 | `dominant_colors` (`dc`) | enabled:build_missed | `Info.DominantColors` | false:false | M2 |
@@ -316,13 +319,13 @@ Mount (WP-88): `XI_DIALECTS_IMGIX_ENABLED=true` mounts it under `XI_DIALECTS_IMG
 | `fit=scale` | Force + Enlarge | |
 | `fit=fill`, `fill=solid|blur|gen|generative|gradient`, `fill-color` | Fit + Enlarge + Extend; `fill-color` → Background (wins over `bg`); `fill=blur` → Extend.Mode Blur (M3); `fill=gen|generative|gradient` unsupported (solid), `fill-gradient-*` unsupported | `fill`/`fill-color` only with `fit=fill|fillmax` |
 | `fit=fillmax` | as `fill` without Enlarge | |
-| `fit=facearea`, `facepad`, `faceindex` | Fill + Enlarge, Gravity Face with FacePad, FaceIndex (1-based → 0-based) | M3 (WP-72, needs detection; smart crop until then) |
+| `fit=facearea`, `facepad`, `faceindex` | Fill + Enlarge, Gravity Face with FacePad (default 1), FaceIndex (1-based → 0-based, best score first): the source is cut to the faces' box × facepad (grown to the output's aspect ratio) and filled into w×h (WP-72) | no face (or `faceindex` past the faces) → smart crop; slim → 422 |
 | `fit=clamp` | Fit + Enlarge + Extend with edge replication (Extend.Mode Copy, vips `embed extend=copy`) | |
 | `crop=top,bottom,left,right` | compass Gravity | combinations → corner |
 | `crop` fallback chain | the first detector listed wins (imgix falls back left to right); compass values only apply without a detector | |
-| `crop=faces` | Face gravity (M3, WP-72; falls back to Smart) | |
+| `crop=faces` | Face gravity: the crop centres on the faces' union box (WP-72); no face → Smart | slim → 422 |
 | `crop=entropy` / `edges` / `auto` | Entropy / Smart (attention) / Smart | |
-| `crop=<object class>` (COCO class or supercategory, e.g. `car,vehicle`) | Gravity Object with Classes | M3 (WP-72) |
+| `crop=<object class>` (COCO class or supercategory, e.g. `car,vehicle`) | Gravity Object with Classes (WP-72); none found → Smart | a class the COCO model does not know → 400 (`transform.ResolveClass`); slim → 422 |
 | `crop=focalpoint`, `fp-x`, `fp-y`, `fp-z` | FocusPoint (fractions, default 0.5, 0.5; not WP-86a pixel focus) + FocusZoom (1–100) | `fp-*` only with `crop=focalpoint`; `fp-z` > 1 not implemented (no planner zoom) |
 | `ar=16:9` (also `1.5:1`, `2`) | Resize.AspectRatio | only with `fit=crop|smart-crop`, else ignored as in imgix |
 | `rect=x,y,w,h` | Crop (pre-resize, px or relative (0,1)), anchored north-west with offsets x, y | |
@@ -351,7 +354,8 @@ Mount (WP-88): `XI_DIALECTS_IMGIX_ENABLED=true` mounts it under `XI_DIALECTS_IMG
 | `bri`, `con`, `exp`, `gam`, `sat`, `hue`, `vib` | Adjust: bri → Brightness v·255/100; con, exp, sat, vib → 1 + v/100; gam → 2^(v/100); hue → degrees; 0 = unchanged | M2; `vib` not implemented (no planner step) |
 | `high`, `shad` | Unsupported | |
 | `sepia`, `monochrome`, `duotone`, `duotone-alpha`, `invert` | Sepia (any amount > 0; partial amounts approximated) / Monochrome (colour alpha = intensity) / Duotone (intensity `duotone-alpha`/100) / Negate | M2 |
-| `face-blur`, `face-pixel` (0–100) | BlurDetections on class `face`: Sigma = v/5 / Pixelate = v (`face-pixel` wins) | M3 (WP-73, needs detection) |
+| `face-blur`, `face-pixel` (0–100) | BlurDetections on class `face`: Sigma = v/5 / Pixelate = v px blocks inside each face box (`face-pixel` wins) (WP-73) | slim → 422 |
+| `faces=1` (with `fm=json`) | Info DetectObjects on class `face`: `"objects"` with the faces' boxes and landmarks (imgproxy's shape, not imgix's `Faces` JSON) (WP-73) | without `fm=json`: `Ignored` |
 | `orient` (1–8, 90, 180, 270) | AutoRotate off + the Rotate/Flip of that EXIF orientation; 90/180/270 = EXIF 6/3/8 | overrides the EXIF orientation |
 | `rot` (0–359, counter-clockwise), `rot-type=pivot|straighten` | RotateAny = −rot (multiples of 90 fold into Rotate); `rot-type` approximated | imgix `straighten` (default) zooms to hide the corners; xi fills them with Background for both types. M2 |
 | `flip=h|v|hv` | Flip (combined with `orient`) | |
@@ -365,7 +369,7 @@ Mount (WP-88): `XI_DIALECTS_IMGIX_ENABLED=true` mounts it under `XI_DIALECTS_IMG
 | `ch=Width,DPR,Save-Data` | enable client hints for this URL | |
 | `expires` | Expires (unix seconds; 0 = never); checked after the signature, 404 once passed | |
 | `s` | signature: hex(MD5(token ‖ path ‖ "?" ‖ query-without-s)), path = the escaped path after the mount prefix; `s` may appear anywhere, the message is built without it | tokens per mount (`XI_DIALECTS_IMGIX_KEYS`) |
-| AI/ML: `bg-remove*`, `bg-replace*`, `object-removal-*`, `upscale`, `nr`, `nrs`, `fill=gen`, `fill-gen-*`, `lp-blur`, `palette`, `colorquant`, `faces` debug, `fp-debug`, `htn` halftone | Unsupported | |
+| AI/ML: `bg-remove*`, `bg-replace*`, `object-removal-*`, `upscale`, `nr`, `nrs`, `fill=gen`, `fill-gen-*`, `lp-blur`, `palette`, `colorquant`, `fp-debug`, `htn` halftone | Unsupported | |
 | `video-*`, `border-stroke-*`, `svg-sanitize`, `rasterize-bypass`, `pdf-annotation` | Unsupported (xi always sanitizes SVG and never bypasses processing through a URL parameter) | |
 | `s` | signature: hex(MD5(token ‖ path ‖ "?" ‖ query-without-s)); `s` may appear anywhere, the message is built without it | |
 | AI/ML: `bg-remove`, `bg-replace`, `upscale`, `nr`, `nrs`, `fill=gen`, `palette`, `colorquant`, `faces` debug, `fp-debug`, `htn` halftone | Unsupported | |
@@ -398,13 +402,14 @@ Signature: `s--SIG--` right after the delivery type; the signed message is the r
 | `c_fill_pad` | Fill + gravity + Extend | approximated |
 | `c_pad` / `c_lpad` / `c_mpad` | Fit+Enlarge+Extend / Fit+Extend / Fit+Extend | `c_mpad` approximated (never scales upstream); extend anchor = compass `g_` else centre |
 | `c_crop` | Crop (w, h, `ar_`), no scaling; `x_`/`y_` without `g_` = top-left corner (NorthWest + offsets); `g_xy_center` = FocusPoint (relative `x_`/`y_`, or integer source pixels → `FocusPx`, WP-86) | a relative axis mixed with an absolute one is approximated (centre) |
-| `c_thumb` | Fill + gravity, `z_` → FocusZoom | faces M3 |
+| `c_thumb` | Fill + gravity; with face gravity the faces' box × 1.5/`z_` (default z 1) is cut first (FacePad), with object gravity the objects' box (CropObjects), so the thumbnail frames them (WP-72); other gravities keep `z_` as FocusZoom (not applied) | the 1.5 margin approximates Cloudinary's head-and-shoulders thumb |
 | `c_auto`, `c_auto_pad` | Fill + Smart / Fit + Enlarge + Extend | |
 | `c_imagga_*` | recorded unsupported, applied as `c_scale` | |
 | `g_` compass (`north_east`…), `center` | Gravity | |
-| `g_auto`, `g_auto:<anything>` | Smart | |
-| `g_face`, `g_faces`, `g_face(s):…`, `g_adv_*` | Face (M3; fallback Smart) | |
-| `g_<object>` (e.g. `g_dog`) | Object | M3 |
+| `g_auto`, `g_auto:subject`, `g_auto:classic`, `g_auto:no_faces`, `g_auto:<x>_avoid` | Smart (faces first, `XI_DETECT_SMART_FACES`) | |
+| `g_auto:face(s)`, `g_auto:<object>` (`_<weight>` suffix dropped) | Face / Object gravity: priority to the detections, Smart when none (WP-72) | an object the COCO model does not know → Smart |
+| `g_face`, `g_adv_face`, `g_adv_eyes` / `g_faces`, `g_adv_faces` (`:…` modifiers dropped) | Face gravity on the best-scoring face (FaceIndex 0; Cloudinary: the largest) / on every face (WP-72); no face → Smart | slim → 422 |
+| `g_<object>` (e.g. `g_dog`, `g_traffic_light`, `g_vehicle`) | Object gravity with the COCO class or supercategory (WP-72); none found → Smart | a category the COCO model does not know → Smart, `Ignored` "unsupported object"; slim → 422 |
 | `g_xy_center` + `x_`,`y_` | FocusPoint: relative `x_`/`y_` (0..1) → `FocusX/FocusY`; absolute (integer pixels on both axes) → `FocusPx` via `transform.FocusFromPixels(x, y, x, y)` (WP-86a); a relative axis mixed with an absolute one is approximated to the centre | |
 | `g_custom`, `g_body`, `g_ocr_text`, `g_liquid`, … | unsupported (centre) | |
 | `ar_16:9` / `ar_1.5` | Resize.AspectRatio (Crop.AspectRatio with `c_crop`) | |
@@ -426,7 +431,7 @@ Signature: `s--SIG--` right after the delivery type; the signed message is the r
 | `e_contrast`, `e_saturation`, `e_gamma`, `e_vibrance`, `e_red`/`e_green`/`e_blue` | multiplier 1 + n/100 | `e_vibrance` is recorded "not implemented" (no planner step, `plan.Unplanned`) |
 | `e_colorize[:0-100]` + `co_<color>` | Colorize (opacity n/100, default grey) | |
 | `e_trim[:tolerance[:color]]` | Trim (threshold = tolerance, default 10) | |
-| `e_blur_faces[:n]`, `e_pixelate_faces[:n]` | BlurDetections(face) σ n/20 / pixelate n | M3 |
+| `e_blur_faces[:n]`, `e_pixelate_faces[:n]` | BlurDetections(face) σ n/20 (default 500 → 25) / pixelate n px blocks (default 10) inside each face box (WP-73) | slim → 422 |
 | `e_blur_region[:n]` + relative `x_`,`y_`,`w_`,`h_` | BlurAreas (no region: whole-image blur) | pixel regions approximated |
 | other `e_*` (AI, artistic, `background_removal`, `gen_*`, `upscale`, `vectorize`, …) | Unsupported | |
 | `fl_lossy`, `fl_progressive[:none]`, `fl_strip_profile`, `fl_keep_iptc`, `fl_keep_attribution`, `fl_force_strip`, `fl_attachment[:name]`, `fl_immutable_cache`, `fl_png8`, `fl_getinfo` | Lossless=false, Progressive, StripColorProfile, StripMetadata=false, KeepCopyright, StripMetadata, Attachment/Filename, Immutable, PNG quantize 256, Kind=Info (size, format, dimensions) | `fl_animated`, `fl_awebp`, `fl_apng`, `fl_preserve_transparency`, `fl_any_format` are the default behaviour; `fl_rasterize`, `fl_clip`, … unsupported |
@@ -471,10 +476,10 @@ Grammar: the path after the mount is the file path, relative to the mount's boun
 | `cm-pad_extract` | Crop + Fit (no enlarge) + Extend to w×h |
 | `fo-center|top|left|bottom|right|top_left|top_right|bottom_left|bottom_right` | compass Gravity |
 | `fo-auto`, `fo-auto-custom_override` | Smart |
-| `fo-face`, `fo-faces` | Face (M3) |
-| `fo-<object>` (`car`, `truck_car_train`) | Object, Classes = [value] (M3) |
+| `fo-face`, `fo-faces` | Face gravity (WP-72); no face → Smart; slim → 422 |
+| `fo-<object>` (`car`, `traffic_light`, `truck_car_train`) | Object gravity: one class with `_` for spaces, or several joined by `_` (WP-72); none found → Smart; an object the COCO model does not know → Smart, `Ignored` "unsupported object" |
 | `fo-custom` | Unsupported (per-file crop area stored in ImageKit) |
-| `z` (with face/object focus) | FocusZoom |
+| `z` (with `fo-face` / `fo-<object>`) | Zoom on the detections: their box × 1/z is cut before the resize (FacePad / CropObjects, WP-72); other focus: `Ignored` |
 | `q` (1–100) | Quality |
 | `f-auto`, `f-orig` | Format unset (negotiated / source) |
 | `f-jpg|jpeg|png|webp|avif|gif|jxl` | Format; `f-mp4|webm` M3; `f-svg` unsupported |
@@ -529,8 +534,8 @@ Grammar: `/cdn-cgi/image/<k=v(,k=v)*>/<source>`. Keys are case-insensitive; comm
 | `width=auto` | `ClientHints.Width`; `wbreakpoints`/`wmobile`/`wdesktop` → Ignored |
 | `fit=scale-down` (default) / `contain` / `cover` / `crop` / `pad` / `squeeze` | Fit / Fit+Enlarge / Fill+Enlarge / FillDown / Fit+Extend+Enlarge / Force+Enlarge |
 | `fit=scale-up` / `aspect-crop` | Fit+Enlarge / Fill (both Ignored "approximated": no "never downscale" or "crop without scaling" field) |
-| `gravity`/`g` = `auto` / `face` / `left` / `right` / `top` / `bottom` / `XxY` (0–1) | Smart / Face (M3) / West / East / North / South / FocusPoint |
-| `zoom`/`face-zoom` (0–1) | Gravity.FocusZoom (M3) |
+| `gravity`/`g` = `auto` / `face` / `left` / `right` / `top` / `bottom` / `XxY` (0–1) | Smart (faces first) / Face (WP-72; no face → Smart; slim → 422) / West / East / North / South / FocusPoint |
+| `zoom`/`face-zoom` (0–1) with `gravity=face` | How closely the crop frames the faces: 0 (default) = face gravity only places the crop, z > 0 cuts the faces' box × 1/z first (FacePad, WP-72); without `gravity=face` → `Ignored` |
 | `quality`/`q` = 1–100 or `high` / `medium-high` / `medium-low` / `low` | Quality (90 / 80 / 65 / 50) |
 | `slow-connection-quality`/`scq` (same values) | SlowConnectionQuality + `ClientHints.SaveData` (used when Save-Data/ECT hints say slow) |
 | `format`/`f` = `auto` / `avif` / `webp` / `jpeg` / `baseline-jpeg` / `png` / `gif` | negotiate (FormatUnset) / Format / JPEG+Progressive / JPEG+Progressive=false / … |
@@ -594,7 +599,7 @@ The path after the mount is the source, a key relative to the mount's bound sour
 | `crop=w,h` / `crop=w,h,x,y` (px, x,y = top-left) | Crop with gravity from `crop_gravity` / Crop at north-west + offsets |
 | `crop_gravity=center|north|south|east|west|northeast|northwest|southeast|southwest` (+ unpic aliases `top|bottom|left|right|top_left|…`) | Gravity |
 | `focus_crop=w,h,x,y` | Crop w×h: relative x,y (0–1 with a decimal point) → focus-point gravity; pixel x,y → north-west offsets (x−w/2, y−h/2), clamped by the planner |
-| `face_crop=true` / `face_crop=w,h` | Face (M3); until then ignored / a centred w×h crop |
+| `face_crop=true` / `face_crop=w,h` | Face gravity for the resize crop / a w×h crop of the source centred on the faces (WP-72); no face → Smart | slim → 422 |
 | `quality` (0–100) | Quality |
 | `format` / `output` = `webp|jpeg|png|gif|avif` | Format |
 | `auto_optimize=low|medium|high` | Quality 85/75/65 unless `quality` is set (format negotiation is the default) |
@@ -659,7 +664,7 @@ Grammar (libthumbor `Url.regex`; every segment optional except the first and the
 | `AxB:CxD` | Crop (pre-resize, px): width C−A, height D−B, gravity north-west with offsets A, B; all zero = none; C ≤ A or D ≤ B = none (`Ignored`) |
 | `trim[:corner][:tol]` | Trim (`ColorFromBottomRight`, `Threshold` = tolerance clamped to 255); `trim:N` is tolerance N (thumbor reads a lone number as the corner name and ends up with top-left, 0) |
 | halign/valign | Gravity compass (either alone pairs with center/middle); both absent = unset (centre) |
-| `smart` | Gravity Smart (overrides halign/valign; M3: faces first) |
+| `smart` | Gravity Smart (overrides halign/valign): the union of the detected faces when the face model finds some (WP-72, `XI_DETECT_SMART_FACES`), else libvips attention (thumbor's feature detector is not reproduced); `meta` lists the faces as `Face Detection` focal points |
 | `meta` | `Kind` Info, `Info{Schema: thumbor, Size, Format, Dimensions}`; the pipeline keeps the operations so the info path can report the target |
 | `debug` | `Ignored` (not implemented) |
 | `quality(n)` | Quality (0–100) |
@@ -837,7 +842,7 @@ Edits (sharp operations; `D` = discarded silently, `I` = recorded in `Ignored`; 
 | `toFormat` | `O.Format` (wins over `outputFormat`, as in SIH) |
 | `jpeg`, `png`, `webp`, `avif`, `heif`, `gif`, `tiff: {…}` | select the output format like sharp (unless `force: false`); `quality` → `O.FormatQuality[fmt]`; jpeg `progressive`, `chromaSubsampling`, `mozjpeg` (= trellis + overshoot + optimise scans + table 3), `trellisQuantisation`, `overshootDeringing`, `optimiseScans`, `quantisationTable` → `O.JPEG`; png `progressive` (interlace), `compressionLevel`, `adaptiveFiltering`, `palette`, `colours` → `O.PNG`; webp `lossless`, `nearLossless`, `smartSubsample`, `preset` → `O.WebP`/`O.Lossless`; avif/heif `chromaSubsampling` → `O.AVIF`; `lossless` and `effort` (native 0–6 / 0–9 / 1–10, normalised to 1–9) apply only when that format is the output; other options I |
 | `overlayWith: {bucket, key, wRatio, hRatio, alpha, options: {left, top, gravity}}` | `P.Watermarks` with a per-request `Source` (bucket must be listed, else 403), `Opacity` = 1 − alpha/100, `Scale` = wRatio/100 (`hRatio` I), position from `gravity` or `left`/`top` (px or `"<n>p"`; negative = from the right/bottom edge) (WP-77) |
-| `smartCrop: true \| {faceIndex, padding}` | `Gravity` face + `FaceIndex` — M3 (I); `padding` > 0 I |
+| `smartCrop: true \| {faceIndex, padding}` | `CropObjects` on class face: face `faceIndex` (default 0, best score first like Rekognition's confidence order) + `padding` px on every side, cut from the source (WP-72) | with `resize` SIH cuts from the resized image, xi before resizing: the result has the requested size (I "approximated"); `faceIndex` past the faces → uncut (SIH 400); slim → 422 |
 | `roundCrop: true \| {top, left, rx, ry}` | `P.Mask` circle with trim (SIH's default ellipse is a centred circle then `trim()`); explicit centre/radii approximated (ellipse when rx ≠ ry, I) |
 | `animated: bool` | `true` → `Pages = -1`; `false` → `DisableAnimation` |
 | `stripExif`, `stripIcc: true` | `O.StripMetadata`, `O.StripColorProfile` |

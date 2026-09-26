@@ -801,7 +801,7 @@
         "sigma": 8,
         "class_names": [
           "face",
-          "license_plate"
+          "car"
         ]
       },
       "draw_detections": {
@@ -817,7 +817,7 @@
         ]
       }
     },
-    "path": "/bd:8:face:license_plate/c_obj:1.2:dog/dd:t:cat/plain/https://example.com/images/cat.jpg"
+    "path": "/bd:8:face:car/c_obj:1.2:dog/dd:t:cat/plain/https://example.com/images/cat.jpg"
   },
   {
     "name": "pro_watermark",

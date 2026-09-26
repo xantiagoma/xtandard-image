@@ -22,6 +22,9 @@ func (st *state) applyOutput() error {
 	if err := st.format(autoFormat); err != nil {
 		return err
 	}
+	if st.r.Kind != transform.KindInfo {
+		st.ignoreIf(reasonFacesJSON, "faces")
+	}
 	if v, ok := st.get("q"); ok {
 		q, err := intRange("q", v, 0, 100)
 		if err != nil {
@@ -124,6 +127,23 @@ func (st *state) auto() (format, compress bool, err error) {
 	return format, compress, nil
 }
 
+// facesJSON maps faces=1 of fm=json: the detected faces in the info JSON
+// (imgproxy's objects shape, class face; WP-73).
+func (st *state) facesJSON() error {
+	v, ok := st.get("faces")
+	if !ok {
+		return nil
+	}
+	on, err := imgproxy.ParseBool("faces", v)
+	if err != nil {
+		return err
+	}
+	if on {
+		st.r.Info.DetectObjects, st.r.Info.DetectClasses = true, []string{transform.FaceClass}
+	}
+	return nil
+}
+
 // format maps fm. With auto=format imgix negotiates AVIF/WebP and uses fm
 // only as the fallback for clients without them; xi negotiates and records
 // fm as ignored (the fallback is the negotiation default). json, blurhash,
@@ -139,7 +159,7 @@ func (st *state) format(autoFormat bool) error {
 	case "json":
 		st.r.Kind = transform.KindInfo
 		st.r.Info = &transform.InfoOptions{Size: true, Format: true, Dimensions: true, EXIF: true, IPTC: true, XMP: true}
-		return nil
+		return st.facesJSON()
 	case "blurhash":
 		// imgix answers the bare blurhash string; xi answers info JSON with
 		// a blurhash field.

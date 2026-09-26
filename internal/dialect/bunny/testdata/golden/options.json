@@ -1238,14 +1238,12 @@
     "query": "face_crop=true",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "face_crop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
-        {}
+        {
+          "Gravity": {
+            "Type": "face"
+          }
+        }
       ],
       "Source": {
         "Mount": "zone",
@@ -1260,17 +1258,11 @@
     "query": "face_crop=600,600",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "face_crop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Crop": {
             "Gravity": {
-              "Type": "center"
+              "Type": "face"
             },
             "Height": {
               "Px": 600

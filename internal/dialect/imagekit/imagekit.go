@@ -25,7 +25,8 @@
 //   - cm-pad_resize is fit+extend (fo- places the image), cm-extract a
 //     pre-resize crop (fo-, x/y top-left or xc/yc centre), cm-pad_extract
 //     the crop extended to the requested size.
-//   - fo-auto is smart gravity; fo-face and fo-<object> are recorded for M3.
+//   - fo-auto is smart gravity; fo-face and fo-<object> are face and object
+//     gravity, with z- zooming on them (WP-72).
 //   - l-image overlays become basic watermarks from the mount's source and
 //     l-text overlays text watermarks, both taking effect in M3.
 //   - n-<name> named transformations expand the preset <name>.
@@ -82,6 +83,9 @@ const (
 	reasonNoPresets      = "named transformations not configured"
 	// reasonApproximated: applied with a documented difference.
 	reasonApproximated = "approximated"
+	// reasonUnsupportedObject: an fo- object the COCO object model does
+	// not detect (the smart crop is used).
+	reasonUnsupportedObject = "unsupported object (smart crop)"
 )
 
 // Options configures the parser. The zero value is a working unsigned,

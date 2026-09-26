@@ -60,7 +60,6 @@ const (
 	reasonUnknown      = "unknown option"
 	reasonUnsupported  = "not supported"
 	reasonApproximated = "approximated"
-	reasonM3           = "takes effect in M3"
 	reasonHeader       = "response header not supported"
 	reasonHeaderDenied = "header denied"
 	reasonPartial      = "partially applied"
@@ -408,6 +407,9 @@ var keyEscaper = strings.NewReplacer("%", "%25", "?", "%3F", "#", "%23", ":", "%
 // finishPipelines moves the canvas extension after a post-resize extract:
 // sharp extends after extracting.
 func (b *builder) finishPipelines() {
+	if b.pre.CropObjects != nil && b.resizeSeen {
+		b.ignore("smartCrop", reasonApproximated) // cut before the resize (smartCrop)
+	}
 	if b.post == nil {
 		return
 	}

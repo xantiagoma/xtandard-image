@@ -717,20 +717,10 @@
     "path": "/face-zoom=0.1,g=face/uploads/a.jpg",
     "request": {
       "Dialect": "cloudflare",
-      "Ignored": [
-        {
-          "Option": "face-zoom",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "gravity=face",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
-            "FocusZoom": 0.1,
+            "FacePad": 10,
             "Type": "face"
           }
         }
@@ -1312,12 +1302,6 @@
     "path": "/gravity=face/uploads/a.jpg",
     "request": {
       "Dialect": "cloudflare",
-      "Ignored": [
-        {
-          "Option": "gravity=face",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1336,20 +1320,10 @@
     "path": "/gravity=face,zoom=0.5/uploads/a.jpg",
     "request": {
       "Dialect": "cloudflare",
-      "Ignored": [
-        {
-          "Option": "gravity=face",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "zoom",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
-            "FocusZoom": 0.5,
+            "FacePad": 2,
             "Type": "face"
           }
         }

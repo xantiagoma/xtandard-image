@@ -1780,12 +1780,6 @@
     "path": "/demo/image/upload/e_blur_faces:600/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_blur_faces",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -1843,12 +1837,6 @@
     "path": "/demo/image/upload/e_pixelate_faces:12/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_pixelate_faces",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2479,19 +2467,13 @@
     "path": "/demo/image/upload/c_thumb,g_faces,h_200,w_200,z_1.5/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "g_faces",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
       "Pipelines": [
         {
           "Gravity": {
-            "FocusZoom": 1.5,
+            "FacePad": 1,
             "Type": "face"
           },
           "Resize": {
@@ -3167,7 +3149,10 @@
       "Pipelines": [
         {
           "Gravity": {
-            "Type": "smart"
+            "Classes": [
+              "cat"
+            ],
+            "Type": "object"
           },
           "Resize": {
             "Enlarge": true,
@@ -3227,18 +3212,13 @@
     "path": "/demo/image/upload/c_fill,g_face,h_200,w_300/v1/folder/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "g_face",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
       "Pipelines": [
         {
           "Gravity": {
+            "FaceIndex": 0,
             "Type": "face"
           },
           "Resize": {
@@ -3266,12 +3246,6 @@
     "path": "/demo/image/upload/c_fill,g_faces,h_200,w_300/v1/folder/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "g_faces",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -3305,12 +3279,6 @@
     "path": "/demo/image/upload/c_fill,g_dog,h_200,w_300/v1/folder/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "g_dog",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -3855,19 +3823,14 @@
     "path": "/demo/image/upload/c_thumb,g_face,h_150,w_150,z_0.7/v1/folder/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "g_face",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
       "Pipelines": [
         {
           "Gravity": {
-            "FocusZoom": 0.7,
+            "FaceIndex": 0,
+            "FacePad": 2.142857142857143,
             "Type": "face"
           },
           "Resize": {

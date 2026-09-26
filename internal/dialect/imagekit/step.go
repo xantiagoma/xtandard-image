@@ -412,11 +412,15 @@ func (ps *parseState) finishStep(st *step) error {
 		ps.b.Ignore("x", reasonNotApplied)
 	}
 	if st.zoom > 0 {
+		// z- zooms on the faces or objects of fo-face / fo-<object>: their
+		// box scaled by 1/z is cropped before the resize (WP-72).
 		switch {
-		case st.fo.g.Type.IsDetection() && pl.Crop != nil:
-			pl.Crop.Gravity.FocusZoom = st.zoom
-		case st.fo.g.Type.IsDetection():
-			pl.Gravity.FocusZoom = st.zoom
+		case pl.Crop != nil || !st.fo.set:
+			ps.b.Ignore("z", reasonNotApplied)
+		case pl.Gravity.Type == transform.GravityFace:
+			pl.Gravity.FacePad = 1 / st.zoom
+		case pl.Gravity.Type == transform.GravityObject:
+			pl.CropObjects = &transform.CropObjects{Scale: 1 / st.zoom, Classes: pl.Gravity.Classes}
 		default:
 			ps.b.Ignore("z", reasonNotApplied)
 		}
@@ -526,7 +530,6 @@ func (ps *parseState) focus(st *step, v string) error {
 		st.fo = focus{set: true, g: transform.Gravity{Type: transform.GravitySmart}}
 	case "face", "faces":
 		st.fo = focus{set: true, g: transform.Gravity{Type: transform.GravityFace}}
-		ps.b.Ignore("fo-face", reasonM3)
 	case "custom":
 		// A per-file custom crop area stored in the ImageKit media library.
 		return ps.unsupportedAs("fo-custom", reasonUnsupported)
@@ -534,8 +537,15 @@ func (ps *parseState) focus(st *step, v string) error {
 		if !isObjectName(v) {
 			return dialect.InvalidArgument("fo", v, expFocus)
 		}
-		st.fo = focus{set: true, g: transform.Gravity{Type: transform.GravityObject, Classes: []string{v}}}
-		ps.b.Ignore("fo-object", reasonM3)
+		cs, ok := objectClasses(v)
+		if !ok {
+			// ImageKit detects more object types than the COCO classes of
+			// the object model: the smart crop stands in.
+			st.fo = focus{set: true, g: transform.Gravity{Type: transform.GravitySmart}}
+			ps.b.Ignore("fo-"+v, reasonUnsupportedObject)
+			return nil
+		}
+		st.fo = focus{set: true, g: transform.Gravity{Type: transform.GravityObject, Classes: cs}}
 	}
 	return nil
 }
@@ -845,6 +855,17 @@ func isExpression(v string) bool {
 		return false
 	}
 	return strings.Contains(v, "_")
+}
+
+// objectClasses resolves fo-<object>: one class name with underscores for
+// spaces ("traffic_light") or several joined by underscores
+// ("truck_car_train"); ok is false when a name is not a class or
+// supercategory the object model knows.
+func objectClasses(v string) ([]string, bool) {
+	if cs, ok := transform.ResolveClass(v); ok {
+		return cs, true
+	}
+	return transform.ResolveClasses(strings.Split(v, "_"))
 }
 
 // isObjectName reports whether v looks like an object class list

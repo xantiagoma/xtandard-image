@@ -18,6 +18,11 @@ const reasonNotApplicable = "not applicable to info"
 // the centre.
 const reasonCentred = "approximated by the centre"
 
+// reasonNoClassifier marks classify: imgproxy Pro classifies with a model
+// of its own, and no classification model is shipped (WP-73 detects
+// objects only).
+const reasonNoClassifier = "not implemented (no classification model)"
+
 // ParseInfo parses an imgproxy /info request (docs/URL-DIALECTS.md §3.3).
 // in.Path is the escaped path after the "/info" prefix:
 //
@@ -81,10 +86,10 @@ func (st *state) applyInfo(name string, args []string) error {
 
 	// Disabled by default.
 	case "detect_objects", "do":
-		return st.infoFlag(name, "detect_objects", args, &in.DetectObjects, reasonM3)
+		return oneBool("detect_objects", args, &in.DetectObjects) // WP-73
 	case "classify", "cl":
 		on, err = st.infoClassify(args)
-		milestone = reasonM3
+		milestone = reasonNoClassifier
 	// Header-only values, reported in M1 (WP-35).
 	case "colorspace", "cs":
 		return oneBool("colorspace", args, &in.Colorspace)
@@ -99,19 +104,21 @@ func (st *state) applyInfo(name string, args []string) error {
 	// Pixel-derived and hash options (WP-63).
 	case "crop", "c":
 		tmp := transform.Pipeline{Crop: in.Crop}
-		if err := st.crop(&tmp, name, args); err != nil {
+		if err := st.crop(&tmp, args); err != nil {
 			return err
 		}
 		in.Crop = tmp.Crop
-		if c := in.Crop; c != nil && c.Gravity.Type.IsDetection() {
-			// The info crop is computed from the header: content-aware
-			// gravities are placed at the centre.
+		if c := in.Crop; c != nil && (c.Gravity.Type == transform.GravitySmart || c.Gravity.Type == transform.GravityEntropy) {
+			// The info crop needs no pixels but the detections: entropy
+			// (and smart without faces) is placed at the centre. Face and
+			// object gravities are placed on the detections (WP-73).
 			st.ignore("crop:gravity", reasonCentred)
 		}
 		return nil
 	case "objects_position", "obj_pos", "op":
+		// Places a crop with face or object gravity (WP-73).
 		err = objectsPosition(&st.pipeline().Gravity, args)
-		in.ObjectsPos, on, milestone = true, true, reasonM3
+		in.ObjectsPos = true
 	case "palette", "p":
 		return infoPalette(in, args)
 	case "average", "avg":
@@ -164,14 +171,14 @@ func (st *state) applyInfo(name string, args []string) error {
 	return nil
 }
 
-// infoFlag parses a boolean info option and records its milestone when
-// it is turned on.
-func (st *state) infoFlag(name, field string, args []string, dst *bool, milestone string) error {
+// infoLater parses a boolean info option that takes effect in a later
+// milestone and records it when it is turned on.
+func (st *state) infoLater(name, field string, args []string, dst *bool) error {
 	if err := oneBool(field, args, dst); err != nil {
 		return err
 	}
 	if *dst {
-		st.ignore(name, milestone)
+		st.ignore(name, reasonM3)
 	}
 	return nil
 }

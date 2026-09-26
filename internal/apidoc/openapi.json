@@ -516,14 +516,14 @@
             "x-xi-syntax": "md5, sha1, sha256, sha512…"
           },
           "classify": {
-            "description": "Classify the image. URL: `classify`, `cl`; arguments top_k:classes…; default 0.",
+            "description": "Classify the image (no classification model is shipped). URL: `classify`, `cl`; arguments top_k:classes…; default 0.",
             "examples": [
               [
                 3
               ]
             ],
             "items": {
-              "description": "object class name",
+              "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
               "pattern": "^.+$",
               "title": "class",
               "type": "string"
@@ -543,7 +543,7 @@
               "cl"
             ],
             "x-xi-default": "0",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "not implemented",
             "x-xi-pro": true,
             "x-xi-scope": "request",
             "x-xi-syntax": "top_k:classes…"
@@ -708,7 +708,7 @@
               },
               {
                 "items": {
-                  "description": "object class name",
+                  "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
                   "pattern": "^.+$",
                   "title": "class",
                   "type": "string"
@@ -743,7 +743,7 @@
                 "items": {
                   "anyOf": [
                     {
-                      "description": "object class name",
+                      "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
                       "pattern": "^.+$",
                       "title": "class",
                       "type": "string"
@@ -802,7 +802,7 @@
             "x-xi-syntax": "w:h:gravity (as processing `crop`)"
           },
           "detect_objects": {
-            "description": "Report detected objects. URL: `detect_objects`, `do`; arguments bool; default false.",
+            "description": "Report detected faces and objects. URL: `detect_objects`, `do`; arguments bool; default false.",
             "examples": [
               [
                 true
@@ -812,7 +812,7 @@
             "minItems": 1,
             "prefixItems": [
               {
-                "description": "Report detected objects.",
+                "description": "Report detected faces and objects.",
                 "title": "detect_objects",
                 "type": [
                   "boolean",
@@ -825,7 +825,7 @@
               "do"
             ],
             "x-xi-default": "false",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-73)",
             "x-xi-pro": true,
             "x-xi-scope": "request",
             "x-xi-syntax": "bool"
@@ -1225,7 +1225,7 @@
               "op"
             ],
             "x-xi-default": "ce:0:0",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-73)",
             "x-xi-pro": true,
             "x-xi-scope": "request",
             "x-xi-syntax": "as processing"
@@ -1960,7 +1960,7 @@
               ]
             ],
             "items": {
-              "description": "object class name",
+              "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
               "pattern": "^.+$",
               "title": "class",
               "type": "string"
@@ -1980,7 +1980,7 @@
               "bd"
             ],
             "x-xi-default": "off",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-73)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "sigma:classes…"
@@ -2338,7 +2338,7 @@
               },
               {
                 "items": {
-                  "description": "object class name",
+                  "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
                   "pattern": "^.+$",
                   "title": "class",
                   "type": "string"
@@ -2373,7 +2373,7 @@
                 "items": {
                   "anyOf": [
                     {
-                      "description": "object class name",
+                      "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
                       "pattern": "^.+$",
                       "title": "class",
                       "type": "string"
@@ -2473,7 +2473,7 @@
             "x-xi-syntax": "ratio:enlarge"
           },
           "crop_objects": {
-            "description": "Crop to detected objects. URL: `crop_objects`, `c_obj`; arguments scale:classes…; default off.",
+            "description": "Crop to detected objects before resizing. URL: `crop_objects`, `c_obj`; arguments scale:classes…; default off.",
             "examples": [
               [
                 1.2,
@@ -2481,7 +2481,7 @@
               ]
             ],
             "items": {
-              "description": "object class name",
+              "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
               "pattern": "^.+$",
               "title": "class",
               "type": "string"
@@ -2501,7 +2501,7 @@
               "c_obj"
             ],
             "x-xi-default": "off",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-72)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "scale:classes…"
@@ -2587,7 +2587,7 @@
             "x-xi-syntax": "float"
           },
           "draw_detections": {
-            "description": "Draw boxes around detected objects. URL: `draw_detections`, `dd`; arguments bool:classes…; default off.",
+            "description": "Draw boxes and labels around detected objects. URL: `draw_detections`, `dd`; arguments bool:classes…; default off.",
             "examples": [
               [
                 true,
@@ -2595,7 +2595,7 @@
               ]
             ],
             "items": {
-              "description": "object class name",
+              "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
               "pattern": "^.+$",
               "title": "class",
               "type": "string"
@@ -2616,7 +2616,7 @@
               "dd"
             ],
             "x-xi-default": "off",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-73)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "bool:classes…"
@@ -3292,7 +3292,7 @@
               },
               {
                 "items": {
-                  "description": "object class name",
+                  "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
                   "pattern": "^.+$",
                   "title": "class",
                   "type": "string"
@@ -3313,7 +3313,7 @@
                 "items": {
                   "anyOf": [
                     {
-                      "description": "object class name",
+                      "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
                       "pattern": "^.+$",
                       "title": "class",
                       "type": "string"
@@ -3339,7 +3339,7 @@
                 "type": "array"
               }
             ],
-            "description": "Where to crop from when the aspect ratio changes. URL: `gravity`, `g`; arguments no,so,ea,we,noea,nowe,soea,sowe,ce[:x:y]; `sm`; `fp:x:y`; `obj:classes…` Pro; `objw:class:weight…` Pro; default ce:0:0.",
+            "description": "Where to crop from when the aspect ratio changes; `sm` crops on faces when there are some (XI_DETECT_SMART_FACES). URL: `gravity`, `g`; arguments no,so,ea,we,noea,nowe,soea,sowe,ce[:x:y]; `sm`; `fp:x:y`; `obj:classes…` Pro; `objw:class:weight…` Pro; default ce:0:0.",
             "examples": [
               [
                 "fp",
@@ -3352,7 +3352,7 @@
               "g"
             ],
             "x-xi-default": "ce:0:0",
-            "x-xi-milestone": "M1 (sm, fp), M3 (obj, objw)",
+            "x-xi-milestone": "M1 (sm, fp), M3 (obj, objw: WP-72)",
             "x-xi-pro": false,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "no,so,ea,we,noea,nowe,soea,sowe,ce[:x:y]; `sm`; `fp:x:y`; `obj:classes…` Pro; `objw:class:weight…` Pro"
@@ -3899,7 +3899,7 @@
                 "type": "array"
               }
             ],
-            "description": "Position of detected objects in the result (with obj gravity). URL: `objects_position`, `obj_pos`, `op`; arguments type:x:y, `fp:x:y`, `prop`; default ce.",
+            "description": "Position of the detected objects' box in the crop (face, obj and objw gravity). URL: `objects_position`, `obj_pos`, `op`; arguments type:x:y, `fp:x:y`, `prop`; default ce.",
             "examples": [
               [
                 "prop"
@@ -3911,7 +3911,7 @@
               "op"
             ],
             "x-xi-default": "ce",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-72)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "type:x:y, `fp:x:y`, `prop`"
@@ -5627,6 +5627,76 @@
         },
         "type": "object"
       },
+      "InfoObject": {
+        "additionalProperties": false,
+        "properties": {
+          "class_id": {
+            "description": "0 for faces (the face model's only class), the COCO class index for objects.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "class_name": {
+            "description": "face, or a COCO class name (person, car, dog, traffic light, ...).",
+            "type": "string"
+          },
+          "confidence": {
+            "description": "Detection score, 0-1.",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "height": {
+            "description": "Box height, as a fraction of the image height.",
+            "format": "double",
+            "type": "number"
+          },
+          "landmarks": {
+            "description": "Face landmarks [x, y] as fractions of the image: right eye, left eye, nose tip, right and left mouth corners (faces only; an extension over imgproxy).",
+            "items": {
+              "items": {
+                "format": "double",
+                "type": "number"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "left": {
+            "description": "Left edge of the box, as a fraction of the oriented image width.",
+            "format": "double",
+            "type": "number"
+          },
+          "top": {
+            "description": "Top edge of the box, as a fraction of the oriented image height.",
+            "format": "double",
+            "type": "number"
+          },
+          "width": {
+            "description": "Box width, as a fraction of the image width.",
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "class_id",
+          "class_name",
+          "confidence",
+          "left",
+          "top",
+          "width",
+          "height"
+        ],
+        "type": "object"
+      },
       "InfoRGB": {
         "additionalProperties": false,
         "properties": {
@@ -5753,6 +5823,16 @@
           "mime_type": {
             "description": "Source media type, e.g. image/jpeg; HEIC is image/heif (info option format).",
             "type": "string"
+          },
+          "objects": {
+            "description": "Detected faces and objects, best first within each model (faces first), with boxes as fractions of the oriented image; [] when none were found (info option detect_objects).",
+            "items": {
+              "$ref": "#/components/schemas/InfoObject"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "orientation": {
             "description": "EXIF orientation 1-8, 1 when absent (info option dimensions).",

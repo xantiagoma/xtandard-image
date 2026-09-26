@@ -26,19 +26,21 @@ import (
 //     pad → fit + enlarge + extend; lpad → fit + extend; mpad → fit + extend
 //     (approximated: never scales in Cloudinary); crop → pre-resize crop
 //     (x_/y_ = top-left corner, or with g_xy_center the centre); thumb →
-//     fill with z_ as focus zoom; auto → fill + smart; auto_pad → fit +
+//     fill, with face or object gravity cropped to the detections × 1.5/z_
+//     first (thumbZoom); auto → fill + smart; auto_pad → fit +
 //     enlarge + extend; imagga_* → recorded unsupported, applied as scale.
-//   - g_: compass, center, auto[:…] → smart, face(s)[:…] → face (M3),
-//     xy_center → focus point (x_/y_ relative, or integer source pixels →
-//     FocusPx, WP-86), a single object name → object
-//     (M3); x_/y_ offset the gravity.
+//   - g_: compass, center, auto → smart, auto:<face|object> → face or
+//     object (smart without them), face → the best face, faces → every
+//     face (WP-72), xy_center → focus point (x_/y_ relative, or integer
+//     source pixels → FocusPx, WP-86), a COCO object name or supercategory
+//     → object (others: smart, recorded); x_/y_ offset the gravity.
 //   - ar_: w:h or a decimal; z_: zoom for crop and thumb.
 //   - e_: blur[:1..2000] σ = n/20 (like imgix blur), sharpen σ = n/100,
 //     unsharp_mask amount n/100, pixelate[:n] (default 10),
 //     grayscale/blackwhite/sepia/negate, brightness n × 2.55,
 //     contrast/saturation/gamma/red/green/blue 1 + n/100, hue n × 1.8°,
 //     colorize[:n] with co_, trim[:tolerance[:color]], blur_faces/
-//     pixelate_faces (M3), blur_region with relative x_/y_/w_/h_;
+//     pixelate_faces (WP-73), blur_region with relative x_/y_/w_/h_;
 //     vibrance 1 + n/100 is parsed but not implemented (the planner has no
 //     vibrance step); other known effects are unsupported.
 //   - a_: degrees clockwise (multiples of 90 → Rotate, others →
@@ -58,12 +60,15 @@ import (
 
 // Reasons recorded in Request.Ignored.
 const (
-	expStartOffset       = "seconds (a non-negative number), a percentage or auto"
-	reasonUnknown        = "unknown option"
-	reasonUnsupported    = "unsupported"
-	reasonApproximated   = "approximated"
-	reasonNotImplemented = "not implemented"
-	reasonM3             = "takes effect in M3"
+	expStartOffset     = "seconds (a non-negative number), a percentage or auto"
+	reasonUnknown      = "unknown option"
+	reasonUnsupported  = "unsupported"
+	reasonApproximated = "approximated"
+	// reasonUnsupportedObject: a g_ object category the COCO object model
+	// does not detect (the smart crop is used).
+	reasonUnsupportedObject = "unsupported object (smart crop)"
+	reasonNotImplemented    = "not implemented"
+	reasonM3                = "takes effect in M3"
 )
 
 // ErrUnsupportedOption is the cause of the strict-mode 400 for a known
@@ -627,10 +632,21 @@ func (a *applier) gravity(g *geo) (gr transform.Gravity, err error) {
 	case "south_west":
 		gr.Type = transform.GravitySouthWest
 	case "auto":
+		// g_auto[:<focus>][:<modifier>]: a face or object focus gives
+		// priority to it (face or object gravity, which fall back to the
+		// smart crop when nothing is found, like Cloudinary's); subject,
+		// classic, no_faces and unknown objects are the smart crop.
 		gr.Type = transform.GravitySmart
-	case "face", "faces", "adv_face", "adv_faces", "adv_eyes":
+		if _, focus, ok := strings.Cut(v, ":"); ok {
+			if cs, ok := autoFocus(focus); ok {
+				gr = objectGravity(cs)
+			}
+		}
+	case "face", "adv_face", "adv_eyes":
+		// The largest face in Cloudinary; the best-scoring face here.
+		gr.Type, gr.FaceIndex = transform.GravityFace, new(0)
+	case "faces", "adv_faces":
 		gr.Type = transform.GravityFace
-		a.b.Ignore("g_"+name, reasonM3)
 	case "xy_center":
 		if !g.hasX && !g.hasY {
 			gr.Type = transform.GravityCenter
@@ -657,12 +673,41 @@ func (a *applier) gravity(g *geo) (gr transform.Gravity, err error) {
 		if !isObjectName(v) {
 			return gr, dialect.InvalidArgument("g", v, expGravity)
 		}
-		gr.Type = transform.GravityObject
-		gr.Classes = []string{v}
-		a.b.Ignore("g_"+truncate(v), reasonM3)
+		cs, ok := transform.ResolveClass(v)
+		if !ok {
+			// Cloudinary knows more categories than the COCO classes of
+			// the object model: the smart crop stands in.
+			gr.Type = transform.GravitySmart
+			return gr, a.skip("g_"+truncate(v), reasonUnsupportedObject)
+		}
+		gr = objectGravity(cs)
 	}
 	gr.XOffset, gr.YOffset = g.x, g.y
 	return gr, nil
+}
+
+// autoFocus reads the focus of g_auto:<focus>[_<weight>|_avoid][:…]: the
+// classes to give priority to; ok is false for subject, classic, no_faces,
+// an avoided focus and categories the object model does not know.
+func autoFocus(s string) ([]string, bool) {
+	s, _, _ = strings.Cut(s, ":")
+	if cs, ok := transform.ResolveClass(s); ok {
+		return cs, true
+	}
+	base, mod, ok := strings.CutLast(s, "_")
+	if !ok || mod == "avoid" {
+		return nil, false
+	}
+	return transform.ResolveClass(base)
+}
+
+// objectGravity is face gravity for the face class, object gravity for
+// the others.
+func objectGravity(classes []string) transform.Gravity {
+	if len(classes) == 1 && classes[0] == transform.FaceClass {
+		return transform.Gravity{Type: transform.GravityFace}
+	}
+	return transform.Gravity{Type: transform.GravityObject, Classes: classes}
 }
 
 func isObjectName(v string) bool {
@@ -752,10 +797,10 @@ func (a *applier) geometry(c *component, pl *transform.Pipeline) error {
 		if mode == "auto" && gr.Type == transform.GravityUnset {
 			gr.Type = transform.GravitySmart
 		}
-		if g.zoom > 0 {
-			if mode == "thumb" {
-				gr.FocusZoom = g.zoom
-			} else if err := a.skip("z", reasonApproximated); err != nil {
+		if mode == "thumb" {
+			thumbZoom(pl, &gr, g.zoom)
+		} else if g.zoom > 0 {
+			if err := a.skip("z", reasonApproximated); err != nil {
 				return err
 			}
 		}
@@ -779,6 +824,30 @@ func (a *applier) geometry(c *component, pl *transform.Pipeline) error {
 		return dialect.InvalidArgument("c", mode, expCrop)
 	}
 	return nil
+}
+
+// thumbFacePad is the face or object box scale of c_thumb at z_1: the
+// thumbnail shows the detection with half its size around it (head and
+// shoulders for a face). z_ zooms in (> 1) or out (< 1).
+const thumbFacePad = 1.5
+
+// thumbZoom maps c_thumb's zoom on a detection gravity: the faces (face
+// gravity with a face pad) or the objects (crop_objects) are cropped with
+// a margin before the fill (WP-72). Other gravities keep z_ as FocusZoom,
+// which the planner does not apply.
+func thumbZoom(pl *transform.Pipeline, gr *transform.Gravity, zoom float64) {
+	scale := thumbFacePad
+	if zoom > 0 {
+		scale /= zoom
+	}
+	switch gr.Type {
+	case transform.GravityFace:
+		gr.FacePad = scale
+	case transform.GravityObject:
+		pl.CropObjects = &transform.CropObjects{Scale: scale, Classes: gr.Classes}
+	default:
+		gr.FocusZoom = zoom
+	}
 }
 
 func setDims(rs *transform.Resize, g *geo) {
@@ -952,13 +1021,11 @@ func (a *applier) effect(c *component, pl *transform.Pipeline, v string) error {
 		var n int
 		if n, err = effectArg(field, v, 500, 1, 2000); err == nil {
 			pl.BlurDetections = &transform.DetectionFilter{Sigma: float64(n) / 20, Classes: []string{"face"}}
-			a.b.Ignore(field, reasonM3)
 		}
 	case "pixelate_faces":
 		var n int
 		if n, err = effectArg(field, v, 10, 1, 200); err == nil {
 			pl.BlurDetections = &transform.DetectionFilter{Pixelate: n, Classes: []string{"face"}}
-			a.b.Ignore(field, reasonM3)
 		}
 	case "blur_region":
 		err = a.blurRegion(c, pl, v)

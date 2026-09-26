@@ -17,8 +17,7 @@ const (
 	reasonNotImplemented = "not implemented"
 	reasonApproximated   = "approximated"
 	reasonM3             = "takes effect in M3"
-	reasonDetectGravity  = "takes effect in M3 (WP-72, needs face/object detection)"
-	reasonDetectFilter   = "takes effect in M3 (WP-73, needs face detection)"
+	reasonFacesJSON      = "only with fm=json"
 	reasonCropFit        = "only with fit=crop, fit=min, fit=smart-crop or fit=facearea"
 	reasonFocalPoint     = "only with crop=focalpoint"
 	reasonFillFit        = "only with fit=fill or fit=fillmax"
@@ -69,7 +68,7 @@ const (
 var paramKinds = func() map[string]paramKind {
 	m := map[string]paramKind{"ixlib": kindSilent, "ixid": kindSilent, "ixjsv": kindSilent}
 	for k := range strings.FieldsSeq(`
-		w h ar dpr max-w max-h min-w min-h fit crop fp-x fp-y fp-z rect fill fill-color facepad faceindex
+		w h ar dpr max-w max-h min-w min-h fit crop fp-x fp-y fp-z rect fill fill-color facepad faceindex faces
 		fm q auto lossless chromasub cs dpi dl ch expires jpg-progressive iptc
 		orient rot rot-type flip
 		bri con exp gam sat hue vib sharp usm usmrad blur px sepia monochrome duotone duotone-alpha invert
@@ -83,7 +82,7 @@ var paramKinds = func() map[string]paramKind {
 	for k := range strings.FieldsSeq(`
 		blend blend-mode blend-alpha blend-align blend-color blend-crop blend-fit blend-h blend-w blend-x blend-y
 		blend-pad blend-size bg-remove bg-remove-fallback bg-replace bg-replace-fallback bg-replace-neg-prompt
-		upscale upscale-fallback nr nrs palette colorquant colors prefix faces fp-debug htn high shad
+		upscale upscale-fallback nr nrs palette colorquant colors prefix fp-debug htn high shad
 		fill-gen-fallback fill-gen-neg-prompt fill-gen-pos fill-gen-prompt fill-gen-seed
 		bg-remove-fg-type bg-remove-semi-transparency bg-remove-transparency-threshold
 		object-removal-negative-prompt object-removal-prompt object-removal-rect object-removal-seed

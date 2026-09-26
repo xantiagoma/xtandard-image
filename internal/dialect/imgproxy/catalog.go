@@ -151,7 +151,7 @@ func base64Arg(name, doc string) Arg {
 func strArg(name, doc string) Arg { return Arg{Name: name, Type: TypeString, Doc: doc} }
 
 func classArg() Arg {
-	return Arg{Name: "class", Type: TypeString, Pattern: `^.+$`, Doc: "object class name"}
+	return Arg{Name: "class", Type: TypeString, Pattern: `^.+$`, Doc: "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)"}
 }
 
 func unitArg(name, doc string) Arg { return numArg(name, 0, 1, doc) }
@@ -336,13 +336,13 @@ func ProcessingOptions() []Option {
 			Name: "gravity", Aliases: []string{"g"}, Scope: ScopePipeline, Forms: gravityForms(),
 			Syntax:    "no,so,ea,we,noea,nowe,soea,sowe,ce[:x:y]; `sm`; `fp:x:y`; `obj:classes…` Pro; `objw:class:weight…` Pro",
 			Default:   "ce:0:0",
-			Milestone: "M1 (sm, fp), M3 (obj, objw)",
-			Doc:       "Where to crop from when the aspect ratio changes.", Example: "fp:0.5:0.3",
+			Milestone: "M1 (sm, fp), M3 (obj, objw: WP-72)",
+			Doc:       "Where to crop from when the aspect ratio changes; `sm` crops on faces when there are some (XI_DETECT_SMART_FACES).", Example: "fp:0.5:0.3",
 		},
 		{
 			Name: "objects_position", Aliases: []string{"obj_pos", "op"}, Scope: ScopePipeline, Pro: true,
-			Forms: objectsPositionForms(), Syntax: "type:x:y, `fp:x:y`, `prop`", Default: "ce", Milestone: "M3",
-			Doc: "Position of detected objects in the result (with obj gravity).", Example: "prop",
+			Forms: objectsPositionForms(), Syntax: "type:x:y, `fp:x:y`, `prop`", Default: "ce", Milestone: "M3 (WP-72)",
+			Doc: "Position of the detected objects' box in the crop (face, obj and objw gravity).", Example: "prop",
 		},
 		{
 			Name: "crop", Aliases: []string{"c"}, Scope: ScopePipeline, Forms: cropForms(),
@@ -480,17 +480,17 @@ func ProcessingOptions() []Option {
 		{
 			Name: "blur_detections", Aliases: []string{"bd"}, Scope: ScopePipeline, Pro: true,
 			Forms:  []Form{{Args: []Arg{numArg("sigma", 0, transform.MaxSigma, "blur sigma; 0 = off")}, Rest: []Arg{classArg()}}},
-			Syntax: "sigma:classes…", Default: "off", Milestone: "M3", Doc: "Blur detected objects.", Example: "10:face",
+			Syntax: "sigma:classes…", Default: "off", Milestone: "M3 (WP-73)", Doc: "Blur detected objects.", Example: "10:face",
 		},
 		{
 			Name: "draw_detections", Aliases: []string{"dd"}, Scope: ScopePipeline, Pro: true,
 			Forms:  []Form{{Args: []Arg{boolArg("draw", "draw boxes")}, Rest: []Arg{classArg()}}},
-			Syntax: "bool:classes…", Default: "off", Milestone: "M3", Doc: "Draw boxes around detected objects.", Example: "1:face",
+			Syntax: "bool:classes…", Default: "off", Milestone: "M3 (WP-73)", Doc: "Draw boxes and labels around detected objects.", Example: "1:face",
 		},
 		{
 			Name: "crop_objects", Aliases: []string{"c_obj"}, Scope: ScopePipeline, Pro: true,
 			Forms:  []Form{{Args: []Arg{numArg("scale", 0, transform.MaxFactor, "scale factor of the object box; 0 = off")}, Rest: []Arg{classArg()}}},
-			Syntax: "scale:classes…", Default: "off", Milestone: "M3", Doc: "Crop to detected objects.", Example: "1.2:face",
+			Syntax: "scale:classes…", Default: "off", Milestone: "M3 (WP-72)", Doc: "Crop to detected objects before resizing.", Example: "1.2:face",
 		},
 		{
 			Name: "colorize", Aliases: []string{"col"}, Scope: ScopePipeline, Pro: true,
@@ -778,11 +778,11 @@ func InfoOptions() []Option {
 		flag("iptc", nil, "true", "M1", "Report IPTC datasets (and Photoshop resolution)."),
 		flag("xmp", nil, "true", "M1", "Report XMP properties."),
 		flag("video_meta", []string{"vm"}, "true", "M3 (WP-74)", "Report video metadata."),
-		pro(flag("detect_objects", []string{"do"}, "false", "M3", "Report detected objects.")),
+		pro(flag("detect_objects", []string{"do"}, "false", "M3 (WP-73)", "Report detected faces and objects.")),
 		{
 			Name: "classify", Aliases: []string{"cl"}, Scope: ScopeRequest, Pro: true,
 			Forms:  []Form{{Args: []Arg{intArg("top_k", 0, transform.MaxListLen, "number of classes; 0 = off")}, Rest: []Arg{classArg()}}},
-			Syntax: "top_k:classes…", Default: "0", Milestone: "M3", Doc: "Classify the image.", Example: "3",
+			Syntax: "top_k:classes…", Default: "0", Milestone: "not implemented", Doc: "Classify the image (no classification model is shipped).", Example: "3",
 		},
 		flag("colorspace", []string{"cs"}, "false", "M1", "Report the libvips interpretation."),
 		flag("bands", []string{"b"}, "false", "M1", "Report the number of bands."),
@@ -799,7 +799,7 @@ func InfoOptions() []Option {
 		},
 		{
 			Name: "objects_position", Aliases: []string{"obj_pos", "op"}, Scope: ScopeRequest, Pro: true, Forms: objectsPositionForms(),
-			Syntax: "as processing", Default: "ce:0:0", Milestone: "M3", Doc: "Objects position for the reported crop.", Example: "prop",
+			Syntax: "as processing", Default: "ce:0:0", Milestone: "M3 (WP-73)", Doc: "Objects position for the reported crop.", Example: "prop",
 		},
 		{
 			Name: "palette", Aliases: []string{"p"}, Scope: ScopeRequest,

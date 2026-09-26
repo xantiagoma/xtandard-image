@@ -67,7 +67,7 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 		milestone = applied
 		err = cropAspectRatio(pl, args)
 	case "objects_position", "obj_pos", "op":
-		milestone = reasonM3
+		milestone = applied // WP-72
 		err = objectsPosition(&pl.Gravity, args)
 
 	// Colour (applied since WP-59).
@@ -106,14 +106,15 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 	case "progressive_blur", "pbl":
 		milestone = applied
 		err = progressiveBlur(pl, args)
+	// Detection (applied since WP-72/73; 422 without the detector).
 	case "blur_detections", "bd":
-		milestone = reasonM3
+		milestone = applied
 		err = blurDetections(pl, args)
 	case "draw_detections", "dd":
-		milestone = reasonM3
+		milestone = applied
 		err = drawDetections(pl, args)
 	case "crop_objects", "c_obj":
-		milestone = reasonM3
+		milestone = applied
 		err = cropObjects(pl, args)
 
 	// Watermark details, the watermark itself is wm (applied since

@@ -92,7 +92,7 @@ func TestLaterOptions(t *testing.T) {
 		opt("pbl_bad_sigma", "pbl:x"),
 		// blur_detections / bd, draw_detections / dd, crop_objects / c_obj (M3)
 		opt("blur_detections", "blur_detections:10"),
-		opt("bd_classes", "bd:5:face:license_plate"),
+		opt("bd_classes", "bd:5:face:car"),
 		opt("bd_zero_off", "bd:5:face/bd:0"),
 		opt("bd_empty_class", "bd:5::face"),
 		opt("draw_detections", "draw_detections:1"),

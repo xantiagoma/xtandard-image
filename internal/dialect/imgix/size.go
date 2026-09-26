@@ -198,8 +198,10 @@ func (st *state) applyAR(apply bool) error {
 // cropGravity maps the crop fallback chain. The first detector in the list
 // wins (focalpoint, faces, entropy, edges, auto or object classes, which
 // all fall back to the others in imgix); without one, top/bottom/left/right
-// combine into a compass point. faces and object classes need detection
-// (WP-72, M3); until then the planner falls back to smart (attention).
+// combine into a compass point. faces and object classes are face and
+// object gravity (WP-72): without faces or objects of the classes the
+// planner uses the smart crop, like imgix's fallback; without the detector
+// (the slim image) they answer 422.
 func (st *state) cropGravity(def transform.GravityType) (transform.Gravity, error) {
 	v, ok := st.get("crop")
 	if !ok {
@@ -240,14 +242,12 @@ func (st *state) cropGravity(def transform.GravityType) (transform.Gravity, erro
 	case "focalpoint":
 		return st.focalPoint()
 	case "faces":
-		st.b.Ignore("crop", reasonDetectGravity)
 		return transform.Gravity{Type: transform.GravityFace}, nil
 	case "entropy":
 		return transform.Gravity{Type: transform.GravityEntropy}, nil
 	case "edges", "auto":
 		return transform.Gravity{Type: transform.GravitySmart}, nil
 	case "object":
-		st.b.Ignore("crop", reasonDetectGravity)
 		return transform.Gravity{Type: transform.GravityObject, Classes: classes}, nil
 	}
 	if hor == 0 && ver == 0 {
@@ -318,12 +318,13 @@ func (st *state) checkFocal(used bool) error {
 	return nil
 }
 
-// faceGravity maps fit=facearea with facepad (>= 0, imgix default 1) and
-// faceindex (1-based). Face detection takes effect in M3 (WP-72); until
-// then the planner crops with smart (attention) gravity.
+// faceGravity maps fit=facearea with facepad (> 0, imgix default 1) and
+// faceindex (1-based): face gravity with a face pad, which pre-crops to
+// the faces' box scaled by facepad before the fill (WP-72). Without faces
+// the planner crops with the smart crop.
 func (st *state) faceGravity() (transform.Gravity, error) {
 	g := transform.Gravity{Type: transform.GravityFace}
-	pad, err := st.optNum("facepad", 0, transform.MaxFactor, 0)
+	pad, err := st.optNum("facepad", 0, transform.MaxFactor, 1)
 	if err != nil {
 		return g, err
 	}
@@ -336,7 +337,6 @@ func (st *state) faceGravity() (transform.Gravity, error) {
 		i--
 		g.FaceIndex = &i
 	}
-	st.b.Ignore("fit", reasonDetectGravity)
 	return g, nil
 }
 
