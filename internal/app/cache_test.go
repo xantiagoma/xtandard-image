@@ -56,8 +56,7 @@ func TestResultCacheEndToEnd(t *testing.T) {
 		"XI_SECURITY_UNSIGNED_POLICY=allow",
 		"XI_OBSERVABILITY_DEBUG_HEADERS=true",
 		"XI_CACHE_ORIGIN_MEMORY_BYTES=0", // every miss reaches the origin
-		"XI_CACHE_RESULT_STORES=memory,disk",
-		"XI_CACHE_RESULT_DISK_PATH=/nonexistent", // not implemented yet: skipped with a warning
+		"XI_CACHE_RESULT_STORES=memory",
 		"XI_CACHE_RESULT_MEMORY_BYTES=8MiB",
 	}, ConfigFile: os.DevNull})
 	if err != nil {
@@ -139,6 +138,125 @@ func TestResultCacheEndToEnd(t *testing.T) {
 		`xi_stage_duration_seconds_count{stage="process"} 1`,
 		`xi_stage_duration_seconds_count{stage="cache"} 2`,
 		"xi_cache_writes_dropped_total 0",
+	} {
+		if !strings.Contains(metricsBody, want) {
+			t.Errorf("/metrics lacks %s", want)
+		}
+	}
+}
+
+// TestTieredMemoryDiskEndToEnd runs memory,disk result tiers plus the disk
+// origin store across a restart: the first process fills the disk; the
+// second finds the result on disk (memory miss), promotes it to memory
+// (the next lookup stops there), and serves a new transformation of the
+// same image from the original on disk, so the origin is contacted once
+// over both processes.
+func TestTieredMemoryDiskEndToEnd(t *testing.T) {
+	t.Parallel()
+
+	var originHits atomic.Int32
+	files := http.FileServer(http.Dir(golden.ModuleRoot(t) + "/testdata/fixtures"))
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		originHits.Add(1)
+		files.ServeHTTP(w, r)
+	}))
+	t.Cleanup(origin.Close)
+	ou, err := url.Parse(origin.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	port, err := strconv.ParseUint(ou.Port(), 10, 16)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, _, err := config.Load(config.LoadOptions{Environ: []string{
+		"XI_DEV_MODE=true",
+		"XI_SERVER_ADDR=127.0.0.1:0",
+		"XI_ADMIN_ADDR=127.0.0.2:0",
+		"XI_SERVER_SHUTDOWN_DELAY=0s",
+		"XI_SECURITY_UNSIGNED_POLICY=allow",
+		"XI_OBSERVABILITY_DEBUG_HEADERS=true",
+		"XI_CACHE_ORIGIN_MEMORY_BYTES=0", // only the shared store keeps originals
+		"XI_CACHE_ORIGIN_STORES=disk",
+		"XI_CACHE_RESULT_STORES=memory,disk",
+		"XI_CACHE_RESULT_DISK_PATH=" + t.TempDir(),
+		"XI_CACHE_RESULT_DISK_BYTES=64MiB",
+		"XI_CACHE_RESULT_MEMORY_BYTES=8MiB",
+	}, ConfigFile: os.DevNull})
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy := &ssrf.Policy{
+		AllowCIDRs: []netip.Prefix{netip.MustParsePrefix("127.0.0.1/32")},
+		Ports:      []uint16{uint16(port)},
+	}
+	type proc struct {
+		a              addrs
+		stop           func()
+		result, origin *cache.AsyncStore
+	}
+	boot := func() *proc {
+		t.Helper()
+		p := &proc{}
+		p.a, p.stop = startStoppable(t, &cfg, hooks{
+			policy:      policy,
+			resultCache: func(s *cache.AsyncStore) { p.result = s },
+			originCache: func(s *cache.AsyncStore) { p.origin = s },
+		})
+		if p.result == nil || p.origin == nil {
+			t.Fatal("caches not built")
+		}
+		return p
+	}
+	request := func(p *proc, opts string) (status int, cacheHdr string, body []byte) {
+		t.Helper()
+		u := "http://" + p.a.public.String() + "/insecure/" + opts + "/q:80/plain/" + origin.URL + "/jpeg/baseline.jpg@webp"
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, u, http.NoBody)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		body, err = io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return resp.StatusCode, resp.Header.Get("X-Xi-Cache"), body
+	}
+
+	first := boot()
+	status, hdr, missBody := request(first, "rs:fit:300:300")
+	if status != http.StatusOK || hdr != "MISS" {
+		t.Fatalf("first process: %d %s", status, hdr)
+	}
+	first.result.Wait()
+	first.origin.Wait()
+	first.stop()
+
+	second := boot()
+	status, hdr, diskBody := request(second, "rs:fit:300:300")
+	if status != http.StatusOK || hdr != "HIT" || !bytes.Equal(diskBody, missBody) {
+		t.Fatalf("after restart: %d %s, %d bytes (want the first body, %d bytes)", status, hdr, len(diskBody), len(missBody))
+	}
+	if status, hdr, _ := request(second, "rs:fit:300:300"); status != http.StatusOK || hdr != "HIT" {
+		t.Fatalf("promoted: %d %s", status, hdr)
+	}
+	if status, hdr, _ := request(second, "rs:fit:120:120"); status != http.StatusOK || hdr != "MISS" {
+		t.Fatalf("new size: %d %s", status, hdr)
+	}
+	if n := originHits.Load(); n != 1 {
+		t.Errorf("origin hit %d times over both processes, want 1", n)
+	}
+
+	metricsBody := string(get(t, "http://"+second.a.admin.String()+"/metrics").body)
+	for _, want := range []string{
+		`xi_cache_requests_total{result="miss",store="memory"} 2`, // restart lookup, new size
+		`xi_cache_requests_total{result="hit",store="memory"} 1`,  // promoted by the disk hit
+		`xi_cache_requests_total{result="hit",store="disk"} 2`,    // res/ after restart, orig/ for the new size
+		`xi_cache_requests_total{result="miss",store="disk"} 1`,   // res/ of the new size
 	} {
 		if !strings.Contains(metricsBody, want) {
 			t.Errorf("/metrics lacks %s", want)

@@ -103,6 +103,13 @@ func TestValidate(t *testing.T) {
 		{"duplicate store", func(c *Config) { c.Cache.Result.Stores = []StoreKind{StoreMemory, StoreMemory} }, []string{"memory listed twice"}},
 		{"disk store without path", func(c *Config) { c.Cache.Result.Stores = []StoreKind{StoreDisk} }, []string{"cache.result.disk.path (XI_CACHE_RESULT_DISK_PATH)"}},
 		{"redis store without url", func(c *Config) { c.Cache.Result.Stores = []StoreKind{StoreRedis} }, []string{"cache.result.redis.url"}},
+		{"origin store without backend config", func(c *Config) { c.Cache.Origin.Stores = []StoreKind{StoreDisk, StoreRedis} }, []string{"cache.result.disk.path", "cache.result.redis.url"}},
+		{"origin memory store", func(c *Config) { c.Cache.Origin.Stores = []StoreKind{StoreMemory} }, []string{"cache.origin.stores (XI_CACHE_ORIGIN_STORES): memory is the built-in origin LRU"}},
+		{"origin store ttl", func(c *Config) {
+			c.Cache.Origin.Stores = []StoreKind{StoreRedis}
+			c.Cache.Result.Redis.URL = "redis://r:6379"
+			c.Cache.Origin.StoreTTL = 0
+		}, []string{"cache.origin.store_ttl (XI_CACHE_ORIGIN_STORE_TTL): must be > 0"}},
 		{"s3 store on http source", func(c *Config) {
 			c.Cache.Result.Stores = []StoreKind{StoreS3}
 			c.Cache.Result.S3 = S3ResultCache{Source: "origin", Bucket: "b"}

@@ -243,16 +243,20 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_CACHE_ETAG_BUSTER` | `` | Global ETag salt |
 | `XI_CACHE_TAGS_HEADER` | `Cache-Tag` | For `cache_tags` |
 | `XI_CACHE_ALLOW_BYPASS` | `false` | Honour `bypass_cache` (the request skips the result cache: no lookup, no store) |
-| `XI_CACHE_RESULT_STORES` | `` | Ordered tiers, fastest first: `memory,disk,redis,s3`; empty disables the result cache. `memory` is implemented; `disk`, `redis` and `s3` are skipped with a startup warning until WP-53/54/55 |
+| `XI_CACHE_RESULT_STORES` | `` | Ordered tiers, fastest first, e.g. `memory,disk` or `memory,redis,s3`; empty disables the result cache. A hit in a slower tier is copied into the faster ones (ARCHITECTURE §9.2) |
 | `XI_CACHE_RESULT_MEMORY_BYTES` | `256MiB` | In-memory LRU tier bound (bodies, stored headers and keys) |
 | `XI_CACHE_RESULT_TTL` | `24h` | How long a result is served from the cache without contacting the source (the key holds the source identity, not its validators); a per-request `ttl`/`expires` shortens it. Use a `cachebuster` or `XI_CACHE_ETAG_BUSTER` to invalidate earlier |
 | `XI_CACHE_RESULT_WRITE_QUEUE` | `64` | Asynchronous cache writes in flight; more are dropped and counted in `xi_cache_writes_dropped_total`, never blocking the response |
-| `XI_CACHE_RESULT_DISK_PATH` / `_BYTES` | `` / `10GiB` | |
-| `XI_CACHE_RESULT_REDIS_URL` | `` | Secret (may carry a password) |
-| `XI_CACHE_RESULT_S3_SOURCE`, `_BUCKET`, `_PREFIX` | `` | Name of an s3 source definition to reuse credentials, bucket and key prefix |
+| `XI_CACHE_RESULT_DISK_PATH` / `_BYTES` | `` / `10GiB` | Absolute directory of the `disk` store and its size bound (entry files; a janitor evicts least recently used entries down to 90 % once a write goes over). The image's root file system is read-only: mount a volume there. The directory must be dedicated to one process; the index is rebuilt from it at start, so entries survive restarts. No fsync: a file torn by a crash fails its checksum and is dropped |
+| `XI_CACHE_RESULT_REDIS_URL` | `` | Secret (may carry a password). `redis://[user:pass@]host:port/db`, `rediss://` for TLS, go-redis query options (`dial_timeout`, `pool_size`, …). Any RESP server: Redis, Valkey, KeyDB, managed services |
+| `XI_CACHE_RESULT_REDIS_PREFIX` | `xi:` | Prepended to every key, so deployments can share a server |
+| `XI_CACHE_RESULT_REDIS_MAX_VALUE_BYTES` | `1MiB` | Larger entries are not stored in Redis (counted in `xi_cache_skipped_total{reason="too_large"}`) |
+| `XI_CACHE_RESULT_S3_SOURCE`, `_BUCKET`, `_PREFIX` | `` | `SOURCE` names an s3 source whose endpoint, region, path style and credentials the `s3` store reuses; `BUCKET` (required, must exist) and `PREFIX` (prepended verbatim, e.g. `cache/`) place the objects. Expiry is checked from object metadata on read, so no lifecycle rule is needed for correctness; add one on the prefix to reclaim space |
 | `XI_CACHE_ORIGIN_MEMORY_BYTES` | `256MiB` | Original-bytes LRU |
 | `XI_CACHE_ORIGIN_TTL` | `60s` | After it, entries with an ETag/Last-Modified are revalidated with a conditional request (304 refreshes the TTL) |
 | `XI_CACHE_ORIGIN_NEGATIVE_TTL` | `5s` | How long a source not-found is remembered; `0` disables |
+| `XI_CACHE_ORIGIN_STORES` | `` | Shared stores behind the origin LRU (`disk`, `redis`, `s3`, fastest first; configured by the `XI_CACHE_RESULT_*` variables of the same store, which the result cache shares under another namespace): a replica that misses its LRU reads the original from them before downloading, and downloads are written to them. Empty: originals stay in-process |
+| `XI_CACHE_ORIGIN_STORE_TTL` | `10m` | How long an original is served from `XI_CACHE_ORIGIN_STORES` without contacting the source (no revalidation) |
 | `XI_OBSERVABILITY_LOG_LEVEL` | `info` | |
 | `XI_ADMIN_ADDR` | `127.0.0.1:9090` | Admin listener: `/metrics`, pprof; set `:9090` for in-cluster scraping; empty disables |
 | `XI_ADMIN_PPROF` | `false` | pprof incl. `goroutineleak` on the admin listener |

@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/config"
@@ -31,23 +32,37 @@ type addrs struct{ public, admin net.Addr }
 // addresses.
 func start(t *testing.T, cfg *config.Config, h hooks) addrs {
 	t.Helper()
+	a, _ := startStoppable(t, cfg, h)
+	return a
+}
+
+// startStoppable is start plus a stop function that shuts the service
+// down and waits for run to return (idempotent; the test's cleanup calls
+// it too).
+func startStoppable(t *testing.T, cfg *config.Config, h hooks) (addrs, func()) {
+	t.Helper()
 	bound := make(chan addrs, 1)
 	h.listening = func(p, a net.Addr) { bound <- addrs{p, a} }
 	ctx, cancel := context.WithCancelCause(context.WithoutCancel(t.Context()))
 	done := make(chan error, 1)
 	go func() { done <- run(ctx, cfg, slog.New(slog.DiscardHandler), Options{Version: "test"}, h) }()
-	t.Cleanup(func() {
-		cancel(errors.New("test shutdown"))
-		if err := <-done; err != nil {
-			t.Errorf("run after shutdown: %v", err)
-		}
-	})
+	var once sync.Once
+	stop := func() {
+		once.Do(func() {
+			cancel(errors.New("test shutdown"))
+			if err := <-done; err != nil {
+				t.Errorf("run after shutdown: %v", err)
+			}
+		})
+	}
+	t.Cleanup(stop)
 	select {
 	case a := <-bound:
-		return a
+		return a, stop
 	case err := <-done:
+		once.Do(func() {})
 		t.Fatalf("run exited early: %v", err)
-		return addrs{}
+		return addrs{}, nil
 	}
 }
 

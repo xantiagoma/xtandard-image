@@ -12,7 +12,10 @@
 // internal/app maps Config into each component's own Options.
 package config
 
-import "time"
+import (
+	"slices"
+	"time"
+)
 
 // Config is the whole service configuration. Build it with Load.
 type Config struct {
@@ -461,6 +464,11 @@ type DiskCache struct {
 // RedisCache configures the redis tier.
 type RedisCache struct {
 	URL Secret `yaml:"url" env:"URL"` // may carry a password
+	// Prefix namespaces every key on a shared server.
+	Prefix string `yaml:"prefix" env:"PREFIX"`
+	// MaxValueBytes is the largest value stored; larger entries are
+	// skipped and counted.
+	MaxValueBytes ByteSize `yaml:"max_value_bytes" env:"MAX_VALUE_BYTES"`
 }
 
 // S3ResultCache configures the s3 tier; Source names an s3 source whose
@@ -471,12 +479,32 @@ type S3ResultCache struct {
 	Prefix string `yaml:"prefix" env:"PREFIX"`
 }
 
-// OriginCache configures the in-memory original-bytes LRU.
+// OriginCache configures the in-memory original-bytes LRU and the
+// optional shared stores behind it.
 type OriginCache struct {
 	MemoryBytes ByteSize      `yaml:"memory_bytes" env:"MEMORY_BYTES"`
 	TTL         time.Duration `yaml:"ttl"          env:"TTL"`
 	// NegativeTTL is how long a source not-found is remembered; 0 disables.
 	NegativeTTL time.Duration `yaml:"negative_ttl" env:"NEGATIVE_TTL"`
+	// Stores are shared tiers (disk, redis, s3; configured under
+	// cache.result) backing the LRU under the orig/ namespace, so
+	// replicas and restarts share originals. Empty disables them.
+	Stores []StoreKind `yaml:"stores" env:"STORES"`
+	// StoreTTL is how long an original is served from the shared stores
+	// without contacting the source.
+	StoreTTL time.Duration `yaml:"store_ttl" env:"STORE_TTL"`
+}
+
+// SharedStores reports every store kind the result or origin cache uses,
+// each once, result order first.
+func (c *Cache) SharedStores() []StoreKind {
+	var out []StoreKind
+	for _, k := range append(append([]StoreKind(nil), c.Result.Stores...), c.Origin.Stores...) {
+		if !slices.Contains(out, k) {
+			out = append(out, k)
+		}
+	}
+	return out
 }
 
 // Observability configures logs and debug headers. Metrics live on the
@@ -594,8 +622,12 @@ func Defaults() Config {
 		Cache: Cache{
 			Headers:    CacheHeaders{TTL: 31_536_000 * time.Second, ErrorTTL: 10 * time.Second},
 			TagsHeader: "Cache-Tag",
-			Result:     ResultCache{MemoryBytes: 256 << 20, TTL: 24 * time.Hour, WriteQueue: 64, Disk: DiskCache{Bytes: 10 << 30}},
-			Origin:     OriginCache{MemoryBytes: 256 << 20, TTL: 60 * time.Second, NegativeTTL: 5 * time.Second},
+			Result: ResultCache{
+				MemoryBytes: 256 << 20, TTL: 24 * time.Hour, WriteQueue: 64,
+				Disk:  DiskCache{Bytes: 10 << 30},
+				Redis: RedisCache{Prefix: "xi:", MaxValueBytes: 1 << 20},
+			},
+			Origin: OriginCache{MemoryBytes: 256 << 20, TTL: 60 * time.Second, NegativeTTL: 5 * time.Second, StoreTTL: 10 * time.Minute},
 		},
 		Observability: Observability{LogLevel: LogInfo},
 	}
