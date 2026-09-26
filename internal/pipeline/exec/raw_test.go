@@ -5,7 +5,6 @@ package exec_test
 import (
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/encode"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
@@ -210,14 +209,16 @@ func TestRawCameraGolden(t *testing.T) {
 }
 
 // TestRawPreviewFaster proves the point of the preview path on a real
-// 16 MP DNG: for the same 320 px output, decoding the embedded JPEG is far
-// cheaper than the half-size demosaic the planner would pick without it.
-// Only Executor.Run is timed (best of three); BenchmarkRaw has the numbers.
+// 16 MP DNG: for the same 320 px output, the embedded JPEG (after
+// shrink-on-load) is a small fraction of the pixels the half-size demosaic
+// the planner would pick without it has to produce, and no demosaic runs at
+// all. It asserts on the decoded size, not on elapsed time, so machine load
+// cannot flip it; BenchmarkRaw has the timings.
 func TestRawPreviewFaster(t *testing.T) {
 	t.Parallel()
 	f := rawfixtures.Files()[4] // pentax-k-50.dng
 	data := rawfixtures.Read(t, &f)
-	best := func(ratio float64, path string) time.Duration {
+	run := func(ratio float64, path string) *exec.Result {
 		lim := testLimits
 		lim.RawPreviewMinRatio = ratio
 		ec := encode.DefaultConfig()
@@ -231,24 +232,30 @@ func TestRawPreviewFaster(t *testing.T) {
 		}
 		j, buf := job(t, data, parse(t, "rs:fit:320:320"), transform.FormatJPEG)
 		defer buf.Release()
-		d := time.Duration(1 << 62)
-		for range 3 {
-			start := time.Now()
-			res, err := e.Run(t.Context(), j)
-			if err != nil {
-				t.Fatal(err)
-			}
-			d = min(d, time.Since(start))
-			res.Body.Release()
-			if res.RawPath != path {
-				t.Fatalf("path %q, want %q", res.RawPath, path)
-			}
+		res, err := e.Run(t.Context(), j)
+		if err != nil {
+			t.Fatal(err)
 		}
-		return d
+		res.Body.Release()
+		if res.RawPath != path {
+			t.Fatalf("path %q, want %q", res.RawPath, path)
+		}
+		return res
 	}
-	preview, demosaic := best(0, exec.RawPathPreview), best(1000, exec.RawPathDemosaicHalf)
-	t.Logf("320 px from %s: preview %v, half-size demosaic %v (%.1f×)", f.Name, preview, demosaic, float64(demosaic)/float64(preview))
-	if preview*3 > demosaic {
-		t.Errorf("preview %v is not much faster than the half-size demosaic %v", preview, demosaic)
+	preview, demosaic := run(0, exec.RawPathPreview), run(1000, exec.RawPathDemosaicHalf)
+	if preview.Width != demosaic.Width || preview.Height != demosaic.Height {
+		t.Errorf("outputs differ: preview %dx%d, demosaic %dx%d",
+			preview.Width, preview.Height, demosaic.Width, demosaic.Height)
+	}
+	pp := preview.RawDecoded.X * preview.RawDecoded.Y
+	dp := demosaic.RawDecoded.X * demosaic.RawDecoded.Y
+	t.Logf("320 px from %s: preview decodes %v, half-size demosaic %v (%.1f× the pixels)",
+		f.Name, preview.RawDecoded, demosaic.RawDecoded, float64(dp)/float64(pp))
+	if pp <= 0 || pp*3 > dp {
+		t.Errorf("preview decodes %v, not much less than the half-size demosaic %v",
+			preview.RawDecoded, demosaic.RawDecoded)
+	}
+	if min(preview.RawDecoded.X, preview.RawDecoded.Y) < min(preview.Width, preview.Height) {
+		t.Errorf("preview decoded at %v, below the %dx%d output", preview.RawDecoded, preview.Width, preview.Height)
 	}
 }
