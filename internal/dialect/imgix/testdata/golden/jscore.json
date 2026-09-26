@@ -456,7 +456,7 @@
       "Ignored": [
         {
           "Option": "crop",
-          "Reason": "takes effect in M3"
+          "Reason": "takes effect in M3 (WP-72, needs face/object detection)"
         }
       ],
       "Pipelines": [
@@ -490,6 +490,12 @@
     "query": "ixlib=js-3.8.0\u0026w=600\u0026ar=16%3A9\u0026fit=crop\u0026crop=focalpoint\u0026fp-x=0.3\u0026fp-y=0.6\u0026fp-z=2\u0026s=1d3fc89e1212ed4276e2377ccf6e9104",
     "request": {
       "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "fp-z",
+          "Reason": "not implemented"
+        }
+      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -525,7 +531,7 @@
       "Ignored": [
         {
           "Option": "fit",
-          "Reason": "takes effect in M3"
+          "Reason": "takes effect in M3 (WP-72, needs face/object detection)"
         }
       ],
       "Pipelines": [

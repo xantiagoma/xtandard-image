@@ -11,8 +11,8 @@ import (
 
 // --- output (https://docs.imgix.com/apis/rendering/format) ----------------
 
-// applyOutput maps fm, q, auto, lossless, chromasub, cs, dpi, dl, ch and
-// expires.
+// applyOutput maps fm, q, auto, jpg-progressive, iptc, lossless,
+// chromasub, cs, dpi, dl, ch and expires.
 func (st *state) applyOutput() error {
 	o := &st.r.Output
 	autoFormat, compress, err := st.auto()
@@ -41,6 +41,20 @@ func (st *state) applyOutput() error {
 		if o.Format == transform.FormatUnset && !autoFormat && st.r.Kind == transform.KindProcess {
 			o.PreferJPEGIfOpaque = true
 		}
+	}
+	if v, ok := st.get("jpg-progressive"); ok {
+		on, err := imgproxy.ParseBool("jpg-progressive", v)
+		if err != nil {
+			return err
+		}
+		o.Progressive = &on
+	}
+	if v, ok := st.get("iptc"); ok {
+		if v != "allow" && v != "block" {
+			return dialect.InvalidArgument("iptc", v, expIPTC)
+		}
+		// xi keeps or strips metadata as a whole (StripMetadata).
+		st.b.Ignore("iptc", reasonNotImplemented)
 	}
 	if v, ok := st.get("lossless"); ok {
 		on, err := imgproxy.ParseBool("lossless", v)
@@ -141,7 +155,7 @@ func (st *state) format(autoFormat bool) error {
 		o.Format = transform.FormatWebM
 		st.b.Ignore("fm", reasonM3)
 		return nil
-	case "jp2", "jxr", "pdf":
+	case "jp2", "jxr", "pdf", "spritesheet":
 		return &errs.Error{Kind: errs.KindUnsupported, Msg: "imgix fm " + v, Public: "unsupported output format"}
 	}
 	var (

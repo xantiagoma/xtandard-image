@@ -131,7 +131,9 @@ func radius(field, v string) (*transform.Radius, error) {
 
 // trim maps trim=auto (threshold trim-md, default 11; trim-sd is not
 // modelled) and trim=color (trim-color, default the corner pixel;
-// threshold trim-tol, default 0). trim-pad is not implemented.
+// threshold trim-tol, default 0); colorunlessalpha is color (imgix trims
+// transparent images by alpha instead). trim=alpha (+ trim-alpha) and
+// trim-pad are not implemented.
 func (st *state) trim() error {
 	v, ok := st.get("trim")
 	md, err := st.optNum("trim-md", 0, 255, 11)
@@ -145,6 +147,9 @@ func (st *state) trim() error {
 	if _, err := st.optNum("trim-sd", 0, 255, 0); err != nil {
 		return err
 	}
+	if _, err := st.optNum("trim-alpha", 0, 255, 0); err != nil {
+		return err
+	}
 	var col *transform.Color
 	if c, ok := st.get("trim-color"); ok {
 		x, err := parseColor("trim-color", c)
@@ -154,17 +159,27 @@ func (st *state) trim() error {
 		col = &x
 	}
 	if !ok {
-		st.ignoreIf(reasonNeedsParent, "trim-color", "trim-tol", "trim-md", "trim-sd", "trim-pad")
+		st.ignoreIf(reasonNeedsParent, "trim-color", "trim-tol", "trim-md", "trim-sd", "trim-pad", "trim-alpha")
 		return nil
 	}
 	switch v {
 	case "auto":
 		st.pl.Trim = &transform.Trim{Threshold: md}
 		st.ignoreIf(reasonApproximated, "trim-sd")
-		st.ignoreIf(reasonNeedsParent, "trim-color", "trim-tol")
-	case "color":
+		st.ignoreIf(reasonNeedsParent, "trim-color", "trim-tol", "trim-alpha")
+	case "color", "colorunlessalpha":
 		st.pl.Trim = &transform.Trim{Threshold: tol, Color: col}
-		st.ignoreIf(reasonNeedsParent, "trim-md", "trim-sd")
+		st.ignoreIf(reasonNeedsParent, "trim-md", "trim-sd", "trim-alpha")
+		if v == "colorunlessalpha" {
+			// imgix trims transparent images by alpha instead.
+			st.b.Ignore("trim", reasonApproximated)
+		}
+	case "alpha":
+		// Trimming by transparency has no Trim equivalent (xi trims by a
+		// colour); the image is left untrimmed.
+		st.b.Ignore("trim", reasonNotImplemented)
+		st.ignoreIf(reasonNotImplemented, "trim-alpha")
+		st.ignoreIf(reasonNeedsParent, "trim-color", "trim-tol", "trim-md", "trim-sd")
 	default:
 		return dialect.InvalidArgument("trim", v, expTrim)
 	}

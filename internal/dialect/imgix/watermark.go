@@ -100,23 +100,8 @@ func (st *state) imageWatermark() error {
 			*d.dst = x.Px
 		}
 	}
-	if v, ok := st.get("mark-x"); ok {
-		x, err := offset("mark-x", v)
-		if err != nil {
-			return err
-		}
-		w.Position = transform.Gravity{Type: transform.GravityNorthWest, XOffset: x, YOffset: w.Position.YOffset}
-	}
-	if v, ok := st.get("mark-y"); ok {
-		y, err := offset("mark-y", v)
-		if err != nil {
-			return err
-		}
-		x := w.Position.XOffset
-		if !st.has("mark-x") {
-			x = 0
-		}
-		w.Position = transform.Gravity{Type: transform.GravityNorthWest, XOffset: x, YOffset: y}
+	if err := st.watermarkXY(&w, "mark"); err != nil {
+		return err
 	}
 	if v, ok := st.get("mark-tile"); ok {
 		if v != "grid" {
@@ -130,6 +115,16 @@ func (st *state) imageWatermark() error {
 			return err
 		}
 		w.Rotate = -deg
+	}
+	for _, k := range []string{"mark-if-min-width", "mark-if-min-height"} {
+		if v, ok := st.get(k); ok {
+			if _, err := intRange(k, v, 0, transform.MaxDimension); err != nil {
+				return err
+			}
+			// A watermark shown only on large enough results: xi always
+			// draws it.
+			st.b.Ignore(k, reasonNotImplemented)
+		}
 	}
 	if v, ok := st.get("mark-fit"); ok && v != "clip" && v != "max" {
 		// xi always fits inside mark-w×mark-h (clip); crop, fill and scale
@@ -151,6 +146,9 @@ func (st *state) textWatermark() error {
 	// imgix txt is plain text; Watermark.Text is Pango markup.
 	w := transform.Watermark{Text: html.EscapeString(v)}
 	if err := st.watermarkCommon(&w, "txt", 10); err != nil {
+		return err
+	}
+	if err := st.watermarkXY(&w, "txt"); err != nil {
 		return err
 	}
 	font, _ := st.get("txt-font")
@@ -189,6 +187,31 @@ func (st *state) textWatermark() error {
 	}
 	w.Shadow = shadow
 	st.pl.Watermarks = append(st.pl.Watermarks, w)
+	return nil
+}
+
+// watermarkXY maps <prefix>-x and <prefix>-y (offsets from the top-left
+// corner, >= 1 pixels, < 1 fractions): either one replaces the -align/-pad
+// placement with a north-west position.
+func (st *state) watermarkXY(w *transform.Watermark, prefix string) error {
+	vx, hasX := st.get(prefix + "-x")
+	vy, hasY := st.get(prefix + "-y")
+	if !hasX && !hasY {
+		return nil
+	}
+	var x, y float64
+	var err error
+	if hasX {
+		if x, err = offset(prefix+"-x", vx); err != nil {
+			return err
+		}
+	}
+	if hasY {
+		if y, err = offset(prefix+"-y", vy); err != nil {
+			return err
+		}
+	}
+	w.Position = transform.Gravity{Type: transform.GravityNorthWest, XOffset: x, YOffset: y}
 	return nil
 }
 

@@ -56,6 +56,18 @@ func (st *state) applyOrientation() error {
 			pl.RotateAny = -deg
 		}
 	}
+	if v, ok := st.get("rot-type"); ok {
+		if v != "pivot" && v != "straighten" {
+			return dialect.InvalidArgument("rot-type", v, expRotType)
+		}
+		// xi rotates onto an enlarged canvas with background corners for
+		// both types (imgix straighten zooms in, pivot keeps the size).
+		if st.has("rot") {
+			st.b.Ignore("rot-type", reasonApproximated)
+		} else {
+			st.b.Ignore("rot-type", reasonNeedsParent)
+		}
+	}
 	if v, ok := st.get("flip"); ok {
 		var h, vert bool
 		switch v {
@@ -142,7 +154,37 @@ func (st *state) applyEffects() error {
 	if err := st.unsharp(); err != nil {
 		return err
 	}
+	if err := st.faceFilters(); err != nil {
+		return err
+	}
 	return st.colourEffects()
+}
+
+// faceFilters maps face-blur (0–100 → blur sigma v/5 on detected faces)
+// and face-pixel (0–100 → pixelate block size) onto BlurDetections of the
+// "face" class; face-pixel wins when both are set, as the later filter
+// hides the blurred faces anyway. Detection takes effect in M3 (WP-73).
+func (st *state) faceFilters() error {
+	blur, err := st.optNum("face-blur", 0, 100, 0)
+	if err != nil {
+		return err
+	}
+	px := 0
+	if v, ok := st.get("face-pixel"); ok {
+		if px, err = intRange("face-pixel", v, 0, 100); err != nil {
+			return err
+		}
+	}
+	switch {
+	case px > 0:
+		st.pl.BlurDetections = &transform.DetectionFilter{Pixelate: px, Classes: []string{"face"}}
+		st.b.Ignore("face-pixel", reasonDetectFilter)
+		st.ignoreIf(reasonApproximated, "face-blur")
+	case blur > 0:
+		st.pl.BlurDetections = &transform.DetectionFilter{Sigma: blur / 5, Classes: []string{"face"}}
+		st.b.Ignore("face-blur", reasonDetectFilter)
+	}
+	return nil
 }
 
 func linear(v float64) float64 { return 1 + v/100 }

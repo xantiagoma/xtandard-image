@@ -17,6 +17,8 @@ const (
 	reasonNotImplemented = "not implemented"
 	reasonApproximated   = "approximated"
 	reasonM3             = "takes effect in M3"
+	reasonDetectGravity  = "takes effect in M3 (WP-72, needs face/object detection)"
+	reasonDetectFilter   = "takes effect in M3 (WP-73, needs face detection)"
 	reasonCropFit        = "only with fit=crop, fit=min, fit=smart-crop or fit=facearea"
 	reasonFocalPoint     = "only with crop=focalpoint"
 	reasonFillFit        = "only with fit=fill or fit=fillmax"
@@ -36,13 +38,15 @@ const (
 	expDim     = "number > 0 (below 1 = fraction of the source)"
 	expAR      = "w:h with positive numbers"
 	expRect    = "x,y,w,h"
-	expFill    = "solid, blur or gen"
+	expFill    = "solid, blur, gen, generative or gradient"
 	expSub     = "420, 422 or 444"
 	expCS      = "srgb, tinysrgb, adobergb1998, strip or origin"
 	expCH      = "Width, DPR or Save-Data"
 	expOrient  = "1-8, 90, 180 or 270"
 	expFlip    = "h, v or hv"
-	expTrim    = "auto or color"
+	expRotType = "pivot or straighten"
+	expIPTC    = "allow or block"
+	expTrim    = "auto, color, alpha or colorunlessalpha"
 	expBorder  = "width,color"
 	expRadius  = "r or tl,tr,br,bl"
 	expDuotone = "color,color"
@@ -58,6 +62,7 @@ const (
 	kindKnown
 	kindSilent      // accepted and dropped without a trace (SDK tags)
 	kindUnsupported // imgix feature xi deliberately does not offer
+	kindLater       // imgix feature xi does not implement yet (no model field)
 )
 
 // paramKinds lists every parameter name the dialect understands.
@@ -65,12 +70,13 @@ var paramKinds = func() map[string]paramKind {
 	m := map[string]paramKind{"ixlib": kindSilent, "ixid": kindSilent, "ixjsv": kindSilent}
 	for k := range strings.FieldsSeq(`
 		w h ar dpr max-w max-h min-w min-h fit crop fp-x fp-y fp-z rect fill fill-color facepad faceindex
-		fm q auto lossless chromasub cs dpi dl ch expires
-		orient rot flip
+		fm q auto lossless chromasub cs dpi dl ch expires jpg-progressive iptc
+		orient rot rot-type flip
 		bri con exp gam sat hue vib sharp usm usmrad blur px sepia monochrome duotone duotone-alpha invert
+		face-blur face-pixel
 		bg pad pad-top pad-right pad-bottom pad-left
 		border border-top border-right border-bottom border-left border-radius border-radius-inner
-		trim trim-color trim-tol trim-md trim-sd trim-pad mask mask-bg corner-radius page frame` +
+		trim trim-color trim-tol trim-md trim-sd trim-pad trim-alpha mask mask-bg corner-radius page frame` +
 		" " + markParams + " " + txtParams) {
 		m[k] = kindKnown
 	}
@@ -78,26 +84,61 @@ var paramKinds = func() map[string]paramKind {
 		blend blend-mode blend-alpha blend-align blend-color blend-crop blend-fit blend-h blend-w blend-x blend-y
 		blend-pad blend-size bg-remove bg-remove-fallback bg-replace bg-replace-fallback bg-replace-neg-prompt
 		upscale upscale-fallback nr nrs palette colorquant colors prefix faces fp-debug htn high shad
-		fill-gen-fallback fill-gen-neg-prompt fill-gen-pos fill-gen-prompt fill-gen-seed`) {
+		fill-gen-fallback fill-gen-neg-prompt fill-gen-pos fill-gen-prompt fill-gen-seed
+		bg-remove-fg-type bg-remove-semi-transparency bg-remove-transparency-threshold
+		object-removal-negative-prompt object-removal-prompt object-removal-rect object-removal-seed
+		fill-gradient-cs fill-gradient-linear fill-gradient-linear-direction fill-gradient-radial
+		fill-gradient-radial-radius fill-gradient-radial-x fill-gradient-radial-y fill-gradient-type
+		border-stroke-color border-stroke-size lp-blur pdf-annotation rasterize-bypass svg-sanitize`) {
 		m[k] = kindUnsupported
+	}
+	// Animation frame controls and the transparency grid: no model field
+	// yet.
+	for k := range strings.FieldsSeq(`loop reverse fps skip interval transparency grid-colors grid-size`) {
+		m[k] = kindLater
 	}
 	return m
 }()
 
 const (
-	markParams = "mark mark-alpha mark-align mark-pad mark-scale mark-w mark-h mark-x mark-y mark-fit mark-tile mark-rot mark-base"
-	txtParams  = "txt txt-font txt-size txt-color txt-align txt-pad txt-shad txt-width txt-fit txt-clip txt-lead txt-track txt-line txt-line-color"
+	markParams = "mark mark-alpha mark-align mark-pad mark-scale mark-w mark-h mark-x mark-y mark-fit mark-tile mark-rot mark-base" +
+		" mark-if-min-width mark-if-min-height"
+	txtParams = "txt txt-font txt-size txt-color txt-align txt-pad txt-shad txt-width txt-fit txt-clip txt-lead txt-track txt-line" +
+		" txt-line-color txt-x txt-y"
 )
 
-// aliases maps legacy imgix parameter spellings to the current names.
+// aliases maps legacy and short imgix parameter spellings to the current
+// names (imgix-url-params 11.36 parameters.json "aliases").
 var aliases = map[string]string{
-	"markalign": "mark-align", "markalpha": "mark-alpha", "markpad": "mark-pad", "markscale": "mark-scale",
-	"markfit": "mark-fit", "marktile": "mark-tile", "markw": "mark-w", "markh": "mark-h", "markx": "mark-x",
-	"marky": "mark-y", "markbase": "mark-base", "txtfont": "txt-font", "txtclr": "txt-color", "txtcolor": "txt-color",
-	"txtsize": "txt-size", "txtalign": "txt-align", "txtpad": "txt-pad", "txtshad": "txt-shad", "txtclip": "txt-clip",
-	"txtfit": "txt-fit", "txtwidth": "txt-width", "txtlead": "txt-lead", "txttrack": "txt-track",
-	"txtline": "txt-line", "txtlineclr": "txt-line-color", "trimcolor": "trim-color", "trimtol": "trim-tol",
-	"trimmd": "trim-md", "trimsd": "trim-sd",
+	"f": "fit", "width": "w", "height": "h", "max-width": "max-w", "max-height": "max-h",
+	"min-width": "min-w", "min-height": "min-h", "fillcolor": "fill-color", "inv": "invert", "mono": "monochrome",
+	"or": "orient", "rottype": "rot-type", "rott": "rot-type", "jpeg-progressive": "jpg-progressive",
+	"maskbg": "mask-bg", "face-pixelate": "face-pixel",
+	"m": "mark", "markalign": "mark-align", "ma": "mark-align", "markalpha": "mark-alpha", "malph": "mark-alpha",
+	"markpad": "mark-pad", "mp": "mark-pad", "markscale": "mark-scale", "ms": "mark-scale", "markfit": "mark-fit",
+	"mf": "mark-fit", "marktile": "mark-tile", "mtile": "mark-tile", "markw": "mark-w", "mw": "mark-w",
+	"markh": "mark-h", "mh": "mark-h", "markx": "mark-x", "mx": "mark-x", "marky": "mark-y", "my": "mark-y",
+	"markbase": "mark-base", "mb": "mark-base",
+	"t": "txt", "txtfont": "txt-font", "tf": "txt-font", "txtclr": "txt-color", "txtcolor": "txt-color",
+	"txt-clr": "txt-color", "tc": "txt-color", "txtsize": "txt-size", "tsz": "txt-size", "txtalign": "txt-align",
+	"ta": "txt-align", "txtpad": "txt-pad", "tp": "txt-pad", "txtshad": "txt-shad", "tsh": "txt-shad",
+	"txtclip": "txt-clip", "tcl": "txt-clip", "txtfit": "txt-fit", "txtwidth": "txt-width", "txtlead": "txt-lead",
+	"txttrack": "txt-track", "tt": "txt-track", "txtline": "txt-line", "tl": "txt-line",
+	"txtlineclr": "txt-line-color", "txtlinecolor": "txt-line-color", "txt-line-clr": "txt-line-color",
+	"txtx": "txt-x", "txty": "txt-y",
+	"trimcolor": "trim-color", "trimtol": "trim-tol", "trimmd": "trim-md", "trimsd": "trim-sd", "trimpad": "trim-pad",
+	"b": "blend", "blendalign": "blend-align", "ba": "blend-align", "blendalpha": "blend-alpha", "balph": "blend-alpha",
+	"blendcolor": "blend-color", "blend-clr": "blend-color", "blendclr": "blend-color", "blendcrop": "blend-crop",
+	"bc": "blend-crop", "blendfit": "blend-fit", "bf": "blend-fit", "blendh": "blend-h", "bh": "blend-h",
+	"blendmode": "blend-mode", "bm": "blend-mode", "blendpad": "blend-pad", "bp": "blend-pad",
+	"blendsize": "blend-size", "bs": "blend-size", "blendw": "blend-w", "bw": "blend-w", "blendx": "blend-x",
+	"bx": "blend-x", "blendy": "blend-y", "by": "blend-y",
+	"background-remove": "bg-remove", "background-replace": "bg-replace",
+	"background-replace-negative-prompt":   "bg-replace-neg-prompt",
+	"background-removal-semi-transparency": "bg-remove-semi-transparency",
+	"fill-generative-fallback":             "fill-gen-fallback", "fill-generative-negative-prompt": "fill-gen-neg-prompt",
+	"fill-generative-position": "fill-gen-pos", "fill-generative-prompt": "fill-gen-prompt",
+	"fill-generative-seed": "fill-gen-seed", "license-plate-blur": "lp-blur", "annotation": "pdf-annotation",
 }
 
 // state is the per-request parse state.
@@ -117,15 +158,23 @@ func (st *state) collect(ps []param) error {
 		if a, ok := aliases[key]; ok {
 			key = a
 		}
-		switch paramKinds[key] {
+		kind := paramKinds[key]
+		if kind == kindUnknown && strings.HasPrefix(key, "video-") {
+			kind = kindUnsupported // video encoding and spritesheets
+		}
+		switch kind {
 		case kindKnown:
 			st.vals[key] = kv.value
 		case kindSilent:
-		case kindUnsupported:
+		case kindUnsupported, kindLater:
 			if st.p.o.Strict {
 				return dialect.UnknownOption(key)
 			}
-			st.b.Ignore(key, reasonUnsupported)
+			if kind == kindLater {
+				st.b.Ignore(key, reasonNotImplemented)
+			} else {
+				st.b.Ignore(key, reasonUnsupported)
+			}
 		default:
 			if st.p.o.Strict {
 				return dialect.UnknownOption(key)
