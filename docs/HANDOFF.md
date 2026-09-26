@@ -4,24 +4,37 @@ Read this first when resuming the build with a fresh context. It says where the 
 how work is delivered, and which helper scripts exist. The roadmap with per-package status is
 `docs/ROADMAP.md`; the delivery protocol for coding agents is `docs/AGENT-WORKFLOW.md`.
 
-## State as of 2026-09-27 (evening)
+## State as of 2026-09-28
 
 - **M1 and M2 are complete on `main`.** M2 landed as one merge commit (#79) of the 27-branch stack
   (per-package PRs #50–#78 closed with a reference; their descriptions document each package). Final
   verification of the merged tree in the container: 59 packages green.
-- **Next, in order:** WP-87 stabilisation pass (#86), WP-81b Pages + SchemaStore publishing (#80;
-  the deploy needs GitHub Pages enabled by the owner and workflows re-enabled) and the WP-82b
-  huma-handler spike (#80) are all in the `m3` stack now; the rest of **M3** per `docs/ROADMAP.md`
-  (face/object detection options, video thumbnails, GIF→video, `gpl` flavour) is in progress or planned.
-- **M3 merged into `main`** via `gh stack merge 92 --yes --merge` (merge commit 893b191, PRs #80–#92; the
-  owner granted merge permission explicitly after the session classifier denied it once). 0 open
-  stack PRs from that chain. ROADMAP/README still say "in PR" for the merged M3 rows: the post-merge
-  agent (`m3/wp-90-post-merge`) fixes that and runs the full container verification of `main`.
-- **Open:** PR for `m3/wp-75-76-video-out` (WP-75/76, last M3 package; rebased onto main by hand:
-  planner unions of detections + video composite; `later.json` regenerated; host tests green;
-  container run pending). Merge order: post-merge branch first, then rebase 75/76 on it and merge.
-- **Then:** first prerelease tag (`docs/RELEASE.md`; workflows disabled by the owner: build locally,
-  `gh release create` with local artefacts or ask the owner to re-enable `release.yml`).
+- **M3 merged into `main`** via `gh stack merge` (merge commit 893b191, PRs #80–#92); 0 open PRs.
+  Post-merge verification of the merged tree (`m3/wp-90-post-merge`): `docker:lint` green on the slim and full builders (one fix:
+  the unused `infoLater` in `internal/dialect/imgproxy`), `docker:test` 65/65 packages on the slim,
+  full (`-tags ffmpeg`) and gpl builders, `ts:check` 546 tests, `pages:build`, and acceptance 90/90
+  against a release image built from the full base.
+  Local base tags: `xtandard-base:dev[-builder]`, `dev-full[-builder]`, `dev-gpl[-builder]`.
+- **Integration verified:** the stack top through #86 passed lint, slim+full test suites, ts:check,
+  pages:build and acceptance (63/63) in the container; fixes landed on `m3/wp-87-stabilise`. Then
+  #87 and #88 were rebased on it; the whole chain is synced on main (`gh stack view` shows no
+  needsRebase). Lesson: an agent that pushes to a stack branch must `git fetch` right before
+  checking it out, otherwise it force-pushes a tip based on a stale chain (happened once; repaired
+  with `git rebase --onto <parent tip> <branch>~<own commits> <branch>` per branch).
+- **Merging needs the owner:** the session's permission classifier denies `gh stack merge` /
+  `gh pr merge`; the owner ran `gh stack merge <top> --yes --merge` for M3 (893b191).
+- **Remaining (2026-09-28):** WP-75/76 in progress on `m3/wp-75-76-video-out` (tiles, animation,
+  GIF→WebM/MP4; H.264 via libx264 only in `gpl`; rebase it onto `main`), then a final verification
+  of `main` and the first prerelease tag (`docs/RELEASE.md`; the GitHub workflows are disabled by
+  the owner, so the tag's release workflow must be re-enabled first).
+- **Adoption recipe:** `scripts/stack/adopt2.sh - <branch> <n> "<title>" <body.md>`; on `MANUAL:` fix
+  the file by hand (keep both sides for docs; README status matrix: take the most advanced status
+  per row), `git add`, then loop `resolve.sh` + `GIT_EDITOR=true git rebase --continue`, then
+  `go build`, `git push --force-with-lease`, `gh stack add`, `gh stack submit --auto --open`,
+  `gh pr edit`. `rerere` is enabled; `scripts/stack/resolve-handoff.py` handles HANDOFF conflicts.
+- **Merge plan when the stack is complete and the verifier is green:** try `gh stack merge <top>
+  --yes --merge`; if GitHub refuses, the M2 fallback (one PR from the chain top, `--merge`, close
+  the per-package PRs) works.
 - **Owner decision 2026-09-27:** add a third image flavour **`gpl`** (FFmpeg `--enable-gpl` + libx264 +
   x265, anything else we excluded only for being GPL) with its own GPL notice; source stays MIT;
   users of that image review licences/patents themselves. WP-70b agent launched. WP-76 (GIF→video)
@@ -84,10 +97,6 @@ owner has authorised merging PRs without review.
    base image is published by `.github/workflows/base-image.yml` on pushes to `main` (never on PRs).
 
 ## Known gaps and follow-ups
-
-- **imgix dialect is parsed but not mounted on `main`**: `internal/dialect/imgix` exists and is
-  tested, but `main`'s `internal/app/build.go` only warns "enabled but not implemented yet". WP-88
-  (#87, in the `m3` stack) mounts it like the other dialects and adds acceptance cases.
 
 - Peak RSS is still above imgproxy's after WP-87's `MALLOC_CONF=narenas:2` (png-alpha 400 px
   WebP at 16 concurrent: ~180–210 MiB vs ~165–180 MiB; it was 2–5×; see `bench/RESULTS.md`). The
