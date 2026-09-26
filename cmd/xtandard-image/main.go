@@ -24,7 +24,7 @@ var (
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	err := run(ctx, os.Args[1:], os.Getenv, os.Stdout)
+	err := run(ctx, os.Args[1:], os.Environ(), os.Stdout)
 	stop()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "xtandard-image: %v\n", err)

@@ -53,6 +53,8 @@ Special paths bypass stages: `raw:1` / `skip_processing` streams source bytes af
 
 Stages 1–8 are pure Go and must complete in well under 1 ms for cache hits. Fetch happens **outside** the processing semaphore so slow origins never hold CPU slots.
 
+Implementation order (WP-34a, `server.process`): route+parse+authenticate (2–4) → normalise (6: `ApplyClientHints`, `ApplyDefaults`, `Validate`, result-dimension limit) → resolve (5) → fetch (9) → admission (10) → probe (11: SVG sanitised by magic-byte sniff *before* the header probe, then limits re-checked on the probed meta) → negotiate (7, after the probe because `negotiate.Decide` needs source meta) → process (12–13) → respond (14). Every stage records `xi_stage_duration_seconds{stage}` and an access-log timing; fetch, probe and process get spans. The server sees stages 11–13 only through `server.Prober` and `server.Processor` (`internal/server/server.go`); `app` adapts codec (WP-07) and pipeline/encode (WP-25/26a/30) to them. Until WP-34c, raw and info requests and passthrough decisions answer 501 (`KindUnsupported` underneath).
+
 ## 3. Package layout
 
 Go module `github.com/xantiagoma/xtandard-image`. Arrows mean "may import". Anything not listed may not be imported by `internal/transform`.
@@ -112,7 +114,7 @@ Dependency rules (enforced by a `depguard`/`go-arch-lint` config in CI):
 
 Routing: `server` registers fixed routes on a stdlib `http.ServeMux` with method patterns (`GET /healthz`, `GET /readyz`, `GET /{path...}` catch-all, which also matches HEAD) and hands the catch-all to `dialect/router`; the admin listener has its own `ServeMux` (`/metrics`, pprof). No third-party router (go-standards §2).
 
-Build tags: `ffmpeg` (video). `server` tests use a fake `exec.Executor`, so they need no tag. ONNX needs no tag (runtime dlopen).
+Build tags: `ffmpeg` (video). `server` tests use fakes of its consumer-side interfaces (`server.Processor`, `server.Prober`, fetcher, resolver, router), so they need no tag. ONNX needs no tag (runtime dlopen).
 
 ## 4. The TransformRequest model
 
