@@ -229,6 +229,7 @@ func (b *builder) oriented(g *geo, rotate, w, h int) (int, int) {
 }
 
 func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt transform.Format, obs *Observed, last bool) (*Plan, error) {
+	p = pixelFocus(p, s)
 	o := newOpts(p, lim.resultDim)
 	b := &builder{
 		pl:     &Plan{Steps: make([]Step, 0, 12)},
