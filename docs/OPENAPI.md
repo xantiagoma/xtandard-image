@@ -41,11 +41,20 @@ Handlers are plain functions on our `ServeMux`es, so tests keep the document hon
 - `TestRouteCoverage` maps every registered public and admin pattern to an operation and back.
 - Contract tests validate real `/info` bodies (`testdata/info`), every error kind's body, `/healthz` and `/readyz` against the schemas.
 - The catalogue tests check the imgproxy option catalogue against the parser's `apply` switches, the URL-DIALECTS §3.2/§3.3 tables and every golden-table URL.
-- CI runs `openapi-typescript` and `@redocly/cli lint` (pinned `bunx` versions) on the committed file.
+- CI runs `@redocly/cli lint` (a pinned `bunx` version) on the committed file. The `ts` workflow regenerates the TypeScript types from it with the pinned `openapi-typescript` devDependency of `packages/image-url` and fails on drift (below).
 
-To reproduce the CI step locally:
+To reproduce the CI steps locally:
 
 ```sh
-bunx openapi-typescript@7.13.0 internal/apidoc/openapi.json -o /tmp/openapi.ts
 bunx @redocly/cli@2.54.3 lint --skip-rule=no-path-trailing-slash internal/apidoc/openapi.json
+bun install && bun run generate:check   # or: task ts:check
 ```
+
+## TypeScript
+
+[`@xtandard/image-url`](../packages/image-url/README.md) (WP-84, [ADR 0009](adr/0009-typescript-monorepo.md)) is generated from this document by `bun run generate`:
+
+- `packages/image-url/src/generated/openapi.ts` is the `openapi-typescript` output (`paths`, `components`, `operations`). The package's client (`@xtandard/image-url/client`) takes `InfoResponse`, `ErrorResponse` and the `ErrorBody.kind` enum from it.
+- `packages/image-url/src/generated/options.ts` holds the imgproxy option catalogue, taken from `ImgproxyProcessingOptions` and `ImgproxyInfoOptions`. It has one argument-tuple type per option and form, with trailing arguments optional after `minItems`, `items` as a rest element and `title` as the element label, and the `x-xi-aliases` tables. openapi-typescript alone renders `prefixItems` as fixed-length tuples and drops the extensions. The URL builder is typed by these, so a changed catalogue changes the TypeScript types in the same PR.
+
+Both files are committed. `bun run generate:check` fails when they are stale, so a Go change to the catalogue or the document has to regenerate them.
