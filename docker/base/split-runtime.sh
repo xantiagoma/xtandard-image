@@ -4,7 +4,9 @@
 # the plain (non thread-safe) libraw and every program except the named ones are left out.
 #
 # Usage: split-runtime.sh <program>...   e.g. `vips vipsheader` (slim),
-#                                          `vips vipsheader ffmpeg ffprobe` (full)
+#                                          `vips vipsheader ffmpeg ffprobe` (full, gpl)
+#
+# XI_ALLOW_GPL=<versions-gpl.sh> runs the gate in its gpl mode (gpl flavor only).
 
 set -euo pipefail
 
@@ -26,4 +28,8 @@ for program in "$@"; do
 done
 find "$dst/bin" -type f "${keep[@]}" -delete
 
-"$my_dir/check-licenses.sh" "$dst/lib"
+gate_args=()
+if [ -n "${XI_ALLOW_GPL:-}" ]; then
+  gate_args=(--allow-gpl "$XI_ALLOW_GPL")
+fi
+"$my_dir/check-licenses.sh" ${gate_args[@]+"${gate_args[@]}"} "$dst/lib"
