@@ -230,11 +230,49 @@ type RotateStep struct{ Angle int }
 // FlipStep mirrors the image.
 type FlipStep struct{ Horizontal, Vertical bool }
 
-// FilterStep applies imgproxy's filters in one pass.
+// FilterStep applies the filters of a pipeline in one pass, per frame, in
+// this order: Blur, Sharpen, Unsharp, Pixelate, BlurAreas, ProgressiveBlur
+// (imgproxy applies blur, sharpen and pixelate in one pass; the Pro filters
+// follow on the result, before colour adjustments, the canvas and
+// watermarks).
 type FilterStep struct {
 	Blur     float64 // Gaussian sigma; 0 = off
 	Sharpen  float64 // sigma; 0 = off
 	Pixelate int     // block size; ≤ 1 = off
+	// Unsharp is the resolved unsharp mask; nil = off (mode none, or auto
+	// without a downscale or with Sharpen set).
+	Unsharp *UnsharpMask
+	// BlurAreas are rectangles relative to the frame at this step; nil or
+	// no areas = off.
+	BlurAreas *BlurAreas
+	// ProgressiveBlur blends a blurred copy in along a linear ramp; nil =
+	// off.
+	ProgressiveBlur *transform.ProgressiveBlur
+}
+
+// UnsharpMask is a resolved transform.Unsharp. With Sigma > 0 it is the
+// classic mask img + Amount × (img − gaussblur(img, Sigma)) (imgix usm,
+// ImageKit e-usm); otherwise it is imgproxy's unsharp_masking kernel, the
+// 3×3 convolution
+//
+//	−w      −w      −w
+//	−w   d + 8w     −w   ÷ d
+//	−w      −w      −w
+//
+// with w = Weight and d = Divider: img + 8w/d × (img − mean of the 8
+// neighbours).
+type UnsharpMask struct {
+	Weight, Divider float64
+	Sigma, Amount   float64
+}
+
+// BlurAreas blurs rectangles of the frame with a Gaussian of Sigma. The
+// areas are fractions of the frame at the FilterStep (the planner maps the
+// request's source-relative areas through crops, rotations and flips) and
+// lie within 0..1.
+type BlurAreas struct {
+	Sigma float64
+	Areas []transform.Area
 }
 
 // ColourAdjustStep applies the colour adjustments and effects of a pipeline
