@@ -2429,6 +2429,13 @@
           "markdownDescription": "SVG sanitiser element limit\n\nEnv: `XI_LIMITS_MAX_SVG_ELEMENTS`",
           "title": "XI_LIMITS_MAX_SVG_ELEMENTS",
           "type": "integer"
+        },
+        "max_watermark_text_pixels": {
+          "default": 16777216,
+          "description": "Area a text watermark is rendered on (the frame, or the text width × the frame height, scaled down to this); text that does not fit is shrunk until it does\n\nEnv: XI_LIMITS_MAX_WATERMARK_TEXT_PIXELS",
+          "markdownDescription": "Area a text watermark is rendered on (the frame, or the text width × the frame height, scaled down to this); text that does not fit is shrunk until it does\n\nEnv: `XI_LIMITS_MAX_WATERMARK_TEXT_PIXELS`",
+          "title": "XI_LIMITS_MAX_WATERMARK_TEXT_PIXELS",
+          "type": "integer"
         }
       },
       "type": "object"
@@ -2606,10 +2613,24 @@
           "title": "XI_PROCESSING_STRIP_METADATA",
           "type": "boolean"
         },
+        "watermark_font": {
+          "default": "sans 16",
+          "description": "Pango font description of text watermarks (imgproxy's default); a request's font takes the family or size it lacks from it. The image ships DejaVu Sans and DejaVu Sans Mono (sans, monospace) through fontconfig\n\nEnv: XI_PROCESSING_WATERMARK_FONT",
+          "markdownDescription": "Pango font description of text watermarks (imgproxy's default); a request's font takes the family or size it lacks from it. The image ships DejaVu Sans and DejaVu Sans Mono (`sans`, `monospace`) through fontconfig\n\nEnv: `XI_PROCESSING_WATERMARK_FONT`",
+          "title": "XI_PROCESSING_WATERMARK_FONT",
+          "type": "string"
+        },
+        "watermark_font_file": {
+          "default": "",
+          "description": "Absolute path of a font file (TTF/OTF) registered with fontconfig for text watermarks, in addition to the fonts under /opt/xtandard/share/fonts; requests select it by family name\n\nEnv: XI_PROCESSING_WATERMARK_FONT_FILE",
+          "markdownDescription": "Absolute path of a font file (TTF/OTF) registered with fontconfig for text watermarks, in addition to the fonts under `/opt/xtandard/share/fonts`; requests select it by family name\n\nEnv: `XI_PROCESSING_WATERMARK_FONT_FILE`",
+          "title": "XI_PROCESSING_WATERMARK_FONT_FILE",
+          "type": "string"
+        },
         "watermark_opacity": {
           "default": 1,
-          "description": "Multiplies every request's watermark opacity\n\nEnv: XI_PROCESSING_WATERMARK_OPACITY",
-          "markdownDescription": "Multiplies every request's watermark opacity\n\nEnv: `XI_PROCESSING_WATERMARK_OPACITY`",
+          "description": "Multiplies every request's watermark opacity (configured image, per-request image and text)\n\nEnv: XI_PROCESSING_WATERMARK_OPACITY",
+          "markdownDescription": "Multiplies every request's watermark opacity (configured image, per-request image and text)\n\nEnv: `XI_PROCESSING_WATERMARK_OPACITY`",
           "title": "XI_PROCESSING_WATERMARK_OPACITY",
           "type": "number"
         },

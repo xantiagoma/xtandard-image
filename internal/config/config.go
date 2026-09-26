@@ -309,6 +309,12 @@ type Processing struct {
 	ColorProfilesDir  string        `yaml:"color_profiles_dir"  env:"COLOR_PROFILES_DIR"`
 	WatermarkSource   string        `yaml:"watermark_source"    env:"WATERMARK_SOURCE"`
 	WatermarkOpacity  float64       `yaml:"watermark_opacity"   env:"WATERMARK_OPACITY"`
+	// WatermarkFont is the Pango font description of text watermarks; a
+	// request's font takes its missing family or size from it.
+	WatermarkFont string `yaml:"watermark_font" env:"WATERMARK_FONT"`
+	// WatermarkFontFile is a font file registered for text watermarks
+	// besides the image's fontconfig fonts.
+	WatermarkFontFile string `yaml:"watermark_font_file" env:"WATERMARK_FONT_FILE"`
 }
 
 // Fallback is the image served when the source fails.
@@ -471,6 +477,9 @@ type Limits struct {
 	MaxSVGDepth             int      `yaml:"max_svg_depth"              env:"MAX_SVG_DEPTH"`
 	MaxSVGElements          int      `yaml:"max_svg_elements"           env:"MAX_SVG_ELEMENTS"`
 	MaxPDFPages             int      `yaml:"max_pdf_pages"              env:"MAX_PDF_PAGES"`
+	// MaxWatermarkTextPixels bounds the area a text watermark is rendered
+	// on: larger text is shrunk to fit.
+	MaxWatermarkTextPixels int64 `yaml:"max_watermark_text_pixels" env:"MAX_WATERMARK_TEXT_PIXELS"`
 }
 
 // Vips configures libvips.
@@ -647,6 +656,7 @@ func Defaults() Config {
 			KeepCopyright:     true,
 			StripColorProfile: true,
 			WatermarkOpacity:  1,
+			WatermarkFont:     "sans 16",
 		},
 		Fallback: Fallback{Status: 200, TTL: time.Minute},
 		Formats: Formats{
@@ -682,6 +692,7 @@ func Defaults() Config {
 			MaxSVGDepth:             256,
 			MaxSVGElements:          200_000,
 			MaxPDFPages:             500,
+			MaxWatermarkTextPixels:  16_777_216,
 		},
 		Vips: Vips{Concurrency: 1, FailOn: FailOnWarning},
 		Cache: Cache{

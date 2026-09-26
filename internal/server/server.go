@@ -115,6 +115,9 @@ type ProcessInput struct {
 	// QualityDelta lowers the effective quality for Save-Data / slow
 	// connection hints (negotiate.HintResult.QualityDelta); 0 = none.
 	QualityDelta int
+	// Watermarks are the request's own watermark images, fetched and
+	// sanitised like Source and owned by the server the same way.
+	Watermarks []WatermarkInput
 }
 
 // Blob is encoded output with an explicit owner (a vips blob in

@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/codec/encode"
@@ -105,10 +107,22 @@ func newProcessor(cfg *config.Config, wm *exec.Watermark) (*processor, error) {
 	if err != nil {
 		return nil, err
 	}
+	if f := cfg.Processing.WatermarkFontFile; f != "" {
+		if st, err := os.Stat(f); err != nil || !st.Mode().IsRegular() {
+			return nil, fmt.Errorf("processing.watermark_font_file %q: not a readable file", f)
+		}
+	}
+	opacity := cfg.Processing.WatermarkOpacity
 	ex, err := exec.New(&exec.Config{
-		Limits:           planLimits(cfg),
-		FailOn:           vipsFailOn(cfg.Vips.FailOn),
-		Watermark:        wm,
+		Limits:    planLimits(cfg),
+		FailOn:    vipsFailOn(cfg.Vips.FailOn),
+		Watermark: wm,
+		Watermarks: exec.WatermarkConfig{
+			Opacity:       &opacity,
+			Font:          cfg.Processing.WatermarkFont,
+			FontFile:      cfg.Processing.WatermarkFontFile,
+			MaxTextPixels: cfg.Limits.MaxWatermarkTextPixels,
+		},
 		ColorProfilesDir: cfg.Processing.ColorProfilesDir,
 		SVG: svg.Options{
 			MaxBytes:    int64(cfg.Limits.MaxSVGBytes),
@@ -220,11 +234,21 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		q := p.enc.ResolveQuality(t.Format, t.Quality, t.FormatQuality)
 		t.Quality = min(max(q+in.QualityDelta, 1), 100)
 	}
+	marks, err := watermarkImages(in.Watermarks)
+	defer func() {
+		for _, m := range marks {
+			m.Source.Release()
+		}
+	}()
+	if err != nil {
+		return nil, err
+	}
 	job := &exec.Job{
-		Request: in.Request,
-		Source:  src,
-		Meta:    planMeta(format, &in.Meta, p.pdfDPI),
-		Target:  t,
+		Request:    in.Request,
+		Source:     src,
+		Meta:       planMeta(format, &in.Meta, p.pdfDPI),
+		Target:     t,
+		Watermarks: marks,
 	}
 	if in.Decision.Reason == negotiate.ReasonBest {
 		job.Best = &in.Decision
@@ -244,6 +268,30 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		Best:        res.Best.String(),
 		RawPath:     res.RawPath,
 	}, nil
+}
+
+// watermarkImages hands the request's watermark images to the executor:
+// C memory and the sniffed format. The caller releases every returned
+// Source, also on error.
+func watermarkImages(in []server.WatermarkInput) ([]exec.WatermarkImage, error) {
+	out := make([]exec.WatermarkImage, 0, len(in))
+	for _, w := range in {
+		f, ok := codec.Sniff(w.Source.Bytes())
+		if !ok {
+			return out, errs.WithPublic(errs.New(errs.KindUnsupported, "app: unrecognised watermark format"),
+				"unsupported watermark image format")
+		}
+		vb, err := vipsBuffer(w.Source)
+		if err != nil {
+			return out, err
+		}
+		name := f.String()
+		if f == codec.FormatUHDR {
+			name = "jpeg"
+		}
+		out = append(out, exec.WatermarkImage{Pipeline: w.Pipeline, Index: w.Index, Source: vb, Format: name})
+	}
+	return out, nil
 }
 
 func lossy(f transform.Format) bool {

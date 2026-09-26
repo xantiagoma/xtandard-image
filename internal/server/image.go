@@ -201,6 +201,14 @@ func (s *Server) produce(ctx context.Context, r *http.Request, info *requestInfo
 		return res, nil
 	}
 
+	// 9b. The request's own watermark images, fetched like the source and
+	// still outside the processing semaphore (each has its fetch span).
+	marks, err := s.fetchWatermarks(ctx, req, lim.maxSrcBytes)
+	if err != nil {
+		return nil, err
+	}
+	defer releaseWatermarks(marks)
+
 	// 10. Admission: fail fast when the queue is full.
 	t = s.stage(info, stageAdmission)
 	release, err := s.deps.Admitter.Acquire(ctx, 0) // cost: planner estimate once WP-25 lands
@@ -263,6 +271,7 @@ func (s *Server) produce(ctx context.Context, r *http.Request, info *requestInfo
 		Meta:         meta,
 		Decision:     d,
 		QualityDelta: hints.QualityDelta,
+		Watermarks:   marks,
 	})
 	t.done()
 	if err != nil {
