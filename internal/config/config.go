@@ -45,6 +45,7 @@ type Config struct {
 	Formats       Formats       `yaml:"formats"       envPrefix:"FORMATS_"`
 	ClientHints   ClientHints   `yaml:"client_hints"  envPrefix:"CLIENT_HINTS_"`
 	Limits        Limits        `yaml:"limits"        envPrefix:"LIMITS_"`
+	Video         Video         `yaml:"video"         envPrefix:"VIDEO_"`
 	Vips          Vips          `yaml:"vips"          envPrefix:"VIPS_"`
 	Detect        Detect        `yaml:"detect"        envPrefix:"DETECT_"`
 	Cache         Cache         `yaml:"cache"         envPrefix:"CACHE_"`
@@ -493,6 +494,44 @@ type Limits struct {
 	MaxWatermarkTextPixels int64 `yaml:"max_watermark_text_pixels" env:"MAX_WATERMARK_TEXT_PIXELS"`
 }
 
+// Video configures video sources: a frame of an MP4, MOV, WebM, MKV or AVI
+// file becomes the image (docs/FORMATS.md §1.5). Only the full image
+// decodes video (FFmpeg, build tag ffmpeg; ADR 0010).
+type Video struct {
+	// Enabled: auto decodes video when the build has FFmpeg (the full
+	// image) and refuses it otherwise; true fails startup without FFmpeg;
+	// false refuses video sources (422) in every image. Unlike the other
+	// Tristates it stays auto after Load: the application resolves it
+	// against the build.
+	Enabled Tristate `yaml:"enabled" env:"ENABLED"`
+	// MaxBytes caps a video source; limits.max_src_bytes applies first, at
+	// fetch.
+	MaxBytes ByteSize `yaml:"max_bytes" env:"MAX_BYTES"`
+	// MaxDuration caps the container duration.
+	MaxDuration time.Duration `yaml:"max_duration" env:"MAX_DURATION"`
+	// MaxPixels caps the width × height of the video stream (the decoder
+	// refuses larger frames too).
+	MaxPixels int64 `yaml:"max_pixels" env:"MAX_PIXELS"`
+
+	Thumbnail VideoThumbnail `yaml:"thumbnail" envPrefix:"THUMBNAIL_"`
+}
+
+// VideoThumbnail holds the frame-selection defaults of video thumbnails.
+type VideoThumbnail struct {
+	// Second is the frame taken when a request sets no
+	// video_thumbnail_second: a timestamp in seconds (negative counts
+	// from the end), or auto for best-frame selection.
+	Second VideoSecond `yaml:"second" env:"SECOND"`
+	// Keyframes takes the keyframe at or before the timestamp instead of
+	// the exact frame (imgproxy IMGPROXY_VIDEO_THUMBNAIL_KEYFRAMES).
+	Keyframes bool `yaml:"keyframes" env:"KEYFRAMES"`
+	// Samples is the number of keyframes best-frame selection compares.
+	Samples int `yaml:"samples" env:"SAMPLES"`
+	// Span is how much of the start of a video best-frame selection
+	// samples.
+	Span time.Duration `yaml:"span" env:"SPAN"`
+}
+
 // Vips configures libvips.
 type Vips struct {
 	Concurrency int    `yaml:"concurrency" env:"CONCURRENCY"`
@@ -729,6 +768,12 @@ func Defaults() Config {
 			MaxSVGElements:          200_000,
 			MaxPDFPages:             500,
 			MaxWatermarkTextPixels:  16_777_216,
+		},
+		Video: Video{
+			MaxBytes:    100 << 20,
+			MaxDuration: time.Hour,
+			MaxPixels:   7680 * 4320, // 8K UHD
+			Thumbnail:   VideoThumbnail{Second: VideoSecondAuto, Samples: 5, Span: 10 * time.Second},
 		},
 		Vips: Vips{Concurrency: 1, FailOn: FailOnWarning},
 		Detect: Detect{

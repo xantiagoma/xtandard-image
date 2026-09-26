@@ -618,6 +618,23 @@
           "const": "auto"
         }
       ]
+    },
+    "videoSecond": {
+      "description": "A timestamp in seconds (negative counts from the end of the video), or auto for best-frame selection.",
+      "examples": [
+        "auto",
+        1,
+        -2.5
+      ],
+      "oneOf": [
+        {
+          "type": "number"
+        },
+        {
+          "pattern": "^\\s*([Aa][Uu][Tt][Oo]|[-+]?([0-9]+\\.?[0-9]*|\\.[0-9]+)([eE][-+]?[0-9]+)?)\\s*$",
+          "type": "string"
+        }
+      ]
     }
   },
   "$id": "https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json",
@@ -2994,6 +3011,74 @@
       "patternProperties": {
         "^[a-z0-9][a-z0-9-]*$": {
           "$ref": "#/$defs/source"
+        }
+      },
+      "type": "object"
+    },
+    "video": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "$ref": "#/$defs/tristate",
+          "default": "auto",
+          "description": "Video sources (MP4, MOV, WebM, MKV, AVI; FORMATS.md §1.5): auto decodes them when the image has FFmpeg (the full flavor) and answers 422 otherwise; true fails startup without FFmpeg; false answers 422 in every image\n\nEnv: XI_VIDEO_ENABLED",
+          "markdownDescription": "Video sources (MP4, MOV, WebM, MKV, AVI; FORMATS.md §1.5): `auto` decodes them when the image has FFmpeg (the `full` flavor) and answers 422 otherwise; `true` fails startup without FFmpeg; `false` answers 422 in every image\n\nEnv: `XI_VIDEO_ENABLED`",
+          "title": "XI_VIDEO_ENABLED"
+        },
+        "max_bytes": {
+          "$ref": "#/$defs/byteSize",
+          "default": "100MiB",
+          "description": "Largest video source; XI_LIMITS_MAX_SRC_BYTES applies first, at fetch, so raise both for large videos (422)\n\nEnv: XI_VIDEO_MAX_BYTES",
+          "markdownDescription": "Largest video source; `XI_LIMITS_MAX_SRC_BYTES` applies first, at fetch, so raise both for large videos (422)\n\nEnv: `XI_VIDEO_MAX_BYTES`",
+          "title": "XI_VIDEO_MAX_BYTES"
+        },
+        "max_duration": {
+          "$ref": "#/$defs/duration",
+          "default": "1h0m0s",
+          "description": "Longest video, from the container header, before any frame is decoded (422)\n\nEnv: XI_VIDEO_MAX_DURATION",
+          "markdownDescription": "Longest video, from the container header, before any frame is decoded (422)\n\nEnv: `XI_VIDEO_MAX_DURATION`",
+          "title": "XI_VIDEO_MAX_DURATION"
+        },
+        "max_pixels": {
+          "default": 33177600,
+          "description": "Width × height of the video stream (8K UHD); the decoder refuses larger frames too (422). XI_LIMITS_MAX_SRC_PIXELS applies to the frame as well\n\nEnv: XI_VIDEO_MAX_PIXELS",
+          "markdownDescription": "Width × height of the video stream (8K UHD); the decoder refuses larger frames too (422). `XI_LIMITS_MAX_SRC_PIXELS` applies to the frame as well\n\nEnv: `XI_VIDEO_MAX_PIXELS`",
+          "title": "XI_VIDEO_MAX_PIXELS",
+          "type": "integer"
+        },
+        "thumbnail": {
+          "additionalProperties": false,
+          "properties": {
+            "keyframes": {
+              "default": false,
+              "description": "Take the keyframe at or before the timestamp instead of the exact frame (faster, less precise; imgproxy IMGPROXY_VIDEO_THUMBNAIL_KEYFRAMES); a request's video_thumbnail_keyframes overrides it\n\nEnv: XI_VIDEO_THUMBNAIL_KEYFRAMES",
+              "markdownDescription": "Take the keyframe at or before the timestamp instead of the exact frame (faster, less precise; imgproxy `IMGPROXY_VIDEO_THUMBNAIL_KEYFRAMES`); a request's `video_thumbnail_keyframes` overrides it\n\nEnv: `XI_VIDEO_THUMBNAIL_KEYFRAMES`",
+              "title": "XI_VIDEO_THUMBNAIL_KEYFRAMES",
+              "type": "boolean"
+            },
+            "samples": {
+              "default": 5,
+              "description": "Keyframes best-frame selection compares (1–32)\n\nEnv: XI_VIDEO_THUMBNAIL_SAMPLES",
+              "markdownDescription": "Keyframes best-frame selection compares (1–32)\n\nEnv: `XI_VIDEO_THUMBNAIL_SAMPLES`",
+              "title": "XI_VIDEO_THUMBNAIL_SAMPLES",
+              "type": "integer"
+            },
+            "second": {
+              "$ref": "#/$defs/videoSecond",
+              "default": "auto",
+              "description": "Frame taken when a request sets no video_thumbnail_second: seconds (negative counts from the end; clamped to the video), or auto for best-frame selection (imgproxy IMGPROXY_VIDEO_THUMBNAIL_SECOND, whose default is 1)\n\nEnv: XI_VIDEO_THUMBNAIL_SECOND",
+              "markdownDescription": "Frame taken when a request sets no `video_thumbnail_second`: seconds (negative counts from the end; clamped to the video), or `auto` for best-frame selection (imgproxy `IMGPROXY_VIDEO_THUMBNAIL_SECOND`, whose default is 1)\n\nEnv: `XI_VIDEO_THUMBNAIL_SECOND`",
+              "title": "XI_VIDEO_THUMBNAIL_SECOND"
+            },
+            "span": {
+              "$ref": "#/$defs/duration",
+              "default": "10s",
+              "description": "How much of the start of a video best-frame selection samples\n\nEnv: XI_VIDEO_THUMBNAIL_SPAN",
+              "markdownDescription": "How much of the start of a video best-frame selection samples\n\nEnv: `XI_VIDEO_THUMBNAIL_SPAN`",
+              "title": "XI_VIDEO_THUMBNAIL_SPAN"
+            }
+          },
+          "type": "object"
         }
       },
       "type": "object"

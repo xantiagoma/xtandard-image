@@ -121,6 +121,8 @@ func TestValidate(t *testing.T) {
 		{"autoquality per-format lossless", func(c *Config) { c.Formats.AutoQuality.FormatMax = map[Format]int{FormatPNG: 80} }, []string{`formats.autoquality.format_max (XI_FORMATS_AUTOQUALITY_FORMAT_MAX): "png" is not a lossy`}},
 		{"autoquality per-format target", func(c *Config) { c.Formats.AutoQuality.FormatTarget = map[Format]float64{FormatJXL: 0} }, []string{"formats.autoquality.format_target"}},
 		{"limits", func(c *Config) { c.Limits.MaxSVGBytes = 0 }, []string{"limits.max_svg_bytes (XI_LIMITS_MAX_SVG_BYTES): must be > 0"}},
+		{"video limits", func(c *Config) { c.Video.MaxDuration, c.Video.Thumbnail.Samples = 0, 33 }, []string{"video.max_duration (XI_VIDEO_MAX_DURATION): must be > 0", "video.thumbnail.samples"}},
+		{"video second", func(c *Config) { c.Video.Thumbnail.Second = "soon" }, []string{`video.thumbnail.second (XI_VIDEO_THUMBNAIL_SECOND): "soon" is not a number`}},
 		{"duplicate store", func(c *Config) { c.Cache.Result.Stores = []StoreKind{StoreMemory, StoreMemory} }, []string{"memory listed twice"}},
 		{"disk store without path", func(c *Config) { c.Cache.Result.Stores = []StoreKind{StoreDisk} }, []string{"cache.result.disk.path (XI_CACHE_RESULT_DISK_PATH)"}},
 		{"redis store without url", func(c *Config) { c.Cache.Result.Stores = []StoreKind{StoreRedis} }, []string{"cache.result.redis.url"}},

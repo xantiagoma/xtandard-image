@@ -57,6 +57,7 @@ func (c *Config) Validate() error {
 	c.validateProcessing(&v)
 	c.validateFormats(&v)
 	c.validateLimits(&v)
+	c.validateVideo(&v)
 	c.validateCache(&v)
 	c.validateDetect(&v)
 	return errors.Join(v.errs...)
@@ -467,6 +468,18 @@ func (c *Config) validateLimits(v *validator) {
 	} {
 		v.positive(n.v, n.path)
 	}
+}
+
+func (c *Config) validateVideo(v *validator) {
+	vd := c.Video
+	v.positive(int64(vd.MaxBytes), "video.max_bytes")
+	v.positive(int64(vd.MaxDuration), "video.max_duration")
+	v.positive(vd.MaxPixels, "video.max_pixels")
+	v.between(vd.Thumbnail.Samples, 1, 32, "video.thumbnail.samples")
+	v.positive(int64(vd.Thumbnail.Span), "video.thumbnail.span")
+	_, isNumber := vd.Thumbnail.Second.Seconds()
+	v.check(isNumber || vd.Thumbnail.Second == VideoSecondAuto || vd.Thumbnail.Second == "",
+		"video.thumbnail.second", "%q is not a number of seconds or auto", vd.Thumbnail.Second)
 }
 
 func (c *Config) validateCache(v *validator) {

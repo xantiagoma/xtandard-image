@@ -123,6 +123,11 @@ func imgproxyVars() []imgproxyVar {
 		{"IMGPROXY_MAX_ANIMATION_FRAME_RESOLUTION", ts("XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS"), "Megapixels (float) → pixels; `0` (off) keeps the default", megapixels},
 		{"IMGPROXY_MAX_RESULT_DIMENSION", ts("XI_LIMITS_MAX_RESULT_DIMENSION"), "`0` (unlimited) keeps the default", positiveOrDefault},
 
+		// Video thumbnails (imgproxy Pro).
+		{"IMGPROXY_ENABLE_VIDEO_THUMBNAILS", ts("XI_VIDEO_ENABLED"), "Same; `true` fails startup on an image without FFmpeg (slim)", direct},
+		{"IMGPROXY_VIDEO_THUMBNAIL_SECOND", ts("XI_VIDEO_THUMBNAIL_SECOND"), "Same seconds; imgproxy's default is 1, xtandard-image's is best-frame selection (`auto`)", direct},
+		{"IMGPROXY_VIDEO_THUMBNAIL_KEYFRAMES", ts("XI_VIDEO_THUMBNAIL_KEYFRAMES"), "Same", direct},
+
 		// Cache headers.
 		{"IMGPROXY_TTL", ts("XI_CACHE_HEADERS_TTL"), "Integer seconds → duration", seconds},
 		{"IMGPROXY_CACHE_CONTROL_PASSTHROUGH", ts("XI_CACHE_HEADERS_PASSTHROUGH"), "Same", direct},
