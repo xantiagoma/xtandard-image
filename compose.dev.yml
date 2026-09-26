@@ -2,14 +2,14 @@
 # which carries libvips, Go 1.27.1 (/usr/local/go) and golangci-lint.
 #
 #   docker compose -f compose.dev.yml run --rm dev task test
-#   XI_BASE_IMAGE=xtandard-base:dev docker compose -f compose.dev.yml run --rm dev sh scripts/lint.sh
+#   XI_BASE_IMAGE=xtandard-base:dev-builder docker compose -f compose.dev.yml run --rm dev sh scripts/lint.sh
 #
 # The Taskfile's docker:* tasks wrap this service.
 name: xtandard-image-dev
 
 services:
   dev:
-    image: ${XI_BASE_IMAGE:-ghcr.io/xantiagoma/xtandard-image-base:slim}
+    image: ${XI_BASE_IMAGE:-ghcr.io/xantiagoma/xtandard-image-base:slim-builder}
     working_dir: /src
     volumes:
       - .:/src

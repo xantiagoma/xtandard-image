@@ -9,6 +9,8 @@ import (
 	"runtime/debug"
 	"strings"
 	"testing"
+
+	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
 func noEnv(string) string { return "" }
@@ -48,8 +50,17 @@ func TestServeStopsOnCancel(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(t.Context())
 	cancel(errors.New("test shutdown"))
 
+	env := map[string]string{
+		"XI_SERVER_ADDR":           "127.0.0.1:0",
+		"XI_ADMIN_ADDR":            "off",
+		"XI_SERVER_SHUTDOWN_DELAY": "0s",
+	}
 	var out bytes.Buffer
-	if err := run(ctx, nil, noEnv, &out); err != nil {
+	err := run(ctx, nil, func(k string) string { return env[k] }, &out)
+	if errors.Is(err, vips.ErrUnavailable) {
+		t.Skip("libvips not linked (CGO_ENABLED=0); run with task docker:test")
+	}
+	if err != nil {
 		t.Fatalf("run(serve) error = %v", err)
 	}
 	if !strings.Contains(out.String(), `"cause":"test shutdown"`) {

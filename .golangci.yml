@@ -250,6 +250,14 @@ linters:
   exclusions:
     generated: strict
     presets: [std-error-handling, common-false-positives]
+    rules:
+      # cgo rewrites every C.xxx call into generated code, and gocritic reports
+      # dupSubExpr / uncheckedInlineErr at positions inside that rewrite
+      # (github.com/go-critic/go-critic issues on cgo). internal/vips is the
+      # only cgo package (CLAUDE.md #3), so the exclusion is scoped to it.
+      - path: internal/vips/
+        linters: [gocritic]
+        text: "dupSubExpr|uncheckedInlineErr"
 
 formatters:
   enable: [gofumpt, goimports]
