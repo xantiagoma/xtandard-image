@@ -4,9 +4,10 @@
 #
 # Forked from imgproxy-docker-base (MIT, Copyright (c) 2017 Sergey Alexandrovich);
 # see LICENSE.imgproxy-docker-base. Changes: /opt/xtandard prefix; added libspng,
-# OpenJPEG, libultrahdr and jemalloc; explicit feature switches so optional GPL
-# codecs (jbig, x265) can never be picked up by auto-detection; license bundle and
-# SOURCES.md; license gate.
+# OpenJPEG, libultrahdr and jemalloc (WP-05) and LibRaw, Imath, OpenEXR,
+# ImageMagick (PSD only) and prebuilt PDFium (WP-66); explicit feature switches so
+# optional GPL codecs (jbig, x265, poppler) can never be picked up by
+# auto-detection; license bundle and SOURCES.md; license gate.
 
 set -euo pipefail
 
@@ -544,12 +545,152 @@ make install_lib_shared install_lib_pc install_include
 strip --strip-unneeded "$TARGET_PATH"/lib/libjemalloc.so.2
 add_sbom jemalloc "$JEMALLOC_VERSION" "cpe:2.3:a:jemalloc:jemalloc:$JEMALLOC_VERSION:*:*:*:*:*:*:*"
 
+# --- Base extras (WP-66): LibRaw, Imath + OpenEXR, ImageMagick (PSD only), PDFium ---
+
+print_build_stage libraw "$LIBRAW_VERSION"
+cd "$DEPS_SRC/libraw"
+# OpenMP off: libvips runs one thread per image and the runtime has no libgomp.
+CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" ./configure \
+  --prefix="$TARGET_PATH" \
+  --enable-shared \
+  --disable-static \
+  --disable-dependency-tracking \
+  --disable-openmp \
+  --disable-examples \
+  --enable-jpeg \
+  --enable-zlib \
+  --enable-lcms
+make install-strip -j"$(nproc)"
+add_sbom libraw "$LIBRAW_VERSION" "cpe:2.3:a:libraw:libraw:$LIBRAW_VERSION:*:*:*:*:*:*:*"
+
+print_build_stage imath "$IMATH_VERSION"
+cd "$DEPS_SRC/imath"
+CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -B _build "${CMAKE_ARGS[@]}" \
+  -DBUILD_SHARED_LIBS=ON \
+  -DBUILD_TESTING=OFF \
+  -DPYTHON=OFF \
+  -DPYBIND11=OFF \
+  -DBUILD_WEBSITE=OFF
+ninja -C _build install/strip
+add_sbom imath "$IMATH_VERSION" "cpe:2.3:a:openexr:imath:$IMATH_VERSION:*:*:*:*:*:*:*"
+
+print_build_stage openexr "$OPENEXR_VERSION"
+cd "$DEPS_SRC/openexr"
+# libdeflate (MIT) and OpenJPH (BSD-2-Clause) are the copies vendored in the release
+# tarball; nothing is downloaded at build time.
+CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -B _build "${CMAKE_ARGS[@]}" \
+  -DBUILD_SHARED_LIBS=ON \
+  -DBUILD_TESTING=OFF \
+  -DOPENEXR_BUILD_TOOLS=OFF \
+  -DOPENEXR_INSTALL_TOOLS=OFF \
+  -DOPENEXR_BUILD_EXAMPLES=OFF \
+  -DOPENEXR_BUILD_PYTHON=OFF \
+  -DOPENEXR_INSTALL_DOCS=OFF \
+  -DOPENEXR_FORCE_INTERNAL_DEFLATE=ON \
+  -DOPENEXR_FORCE_INTERNAL_OPENJPH=ON \
+  -DOPENEXR_FORCE_INTERNAL_IMATH=OFF \
+  -DOPENEXR_USE_TBB=OFF
+ninja -C _build install/strip
+add_sbom openexr "$OPENEXR_VERSION" "cpe:2.3:a:openexr:openexr:$OPENEXR_VERSION:*:*:*:*:*:*:*"
+
+print_build_stage imagemagick "$IMAGEMAGICK_VERSION"
+cd "$DEPS_SRC/imagemagick"
+# ImageMagick exists only for libvips' magickload of PSD/PSB (docs/FORMATS.md). Every
+# delegate library is switched off explicitly (the PSD coder needs zlib only), there
+# are no utilities, no C++/Perl bindings, no OpenMP/OpenCL, and coders are built in
+# (no loadable modules). magick-policy.xml then denies every coder except PSD/PSB.
+./configure \
+  --prefix="$TARGET_PATH" \
+  --enable-shared \
+  --disable-static \
+  --disable-dependency-tracking \
+  --disable-docs \
+  --disable-deprecated \
+  --disable-openmp \
+  --disable-opencl \
+  --disable-dpc \
+  --disable-cipher \
+  --enable-hdri \
+  --with-quantum-depth=16 \
+  --without-modules \
+  --without-utilities \
+  --without-magick-plus-plus \
+  --without-perl \
+  --without-x \
+  --with-zlib \
+  --without-bzlib \
+  --without-zip \
+  --without-zstd \
+  --without-lzma \
+  --without-autotrace \
+  --without-dps \
+  --without-fftw \
+  --without-flif \
+  --without-fpx \
+  --without-djvu \
+  --without-fontconfig \
+  --without-freetype \
+  --without-raqm \
+  --without-gslib \
+  --without-gvc \
+  --without-dmr \
+  --without-heic \
+  --without-jbig \
+  --without-jpeg \
+  --without-jxl \
+  --without-lcms \
+  --without-openjp2 \
+  --without-lqr \
+  --without-openexr \
+  --without-pango \
+  --without-png \
+  --without-raw \
+  --without-rsvg \
+  --without-tiff \
+  --without-uhdr \
+  --without-webp \
+  --without-wmf \
+  --without-xml \
+  --without-jemalloc \
+  --without-tcmalloc \
+  --without-umem
+make install-strip -j"$(nproc)"
+# libvips links MagickCore only; MagickWand is not needed.
+rm -rf "$TARGET_PATH"/lib/libMagickWand-7.* "$TARGET_PATH"/lib/pkgconfig/MagickWand*.pc \
+  "$TARGET_PATH"/include/ImageMagick-7/MagickWand
+install -m 0644 "$my_dir/magick-policy.xml" "$TARGET_PATH/etc/ImageMagick-7/policy.xml"
+add_sbom imagemagick "$IMAGEMAGICK_VERSION" "cpe:2.3:a:imagemagick:imagemagick:$IMAGEMAGICK_VERSION:*:*:*:*:*:*:*"
+
+print_build_stage pdfium "$PDFIUM_VERSION"
+cd "$DEPS_SRC/pdfium"
+# Prebuilt by bblanchon/pdfium-binaries (no V8, no XFA). It ships no pkg-config file,
+# so write the one libvips' `dependency('pdfium')` looks for.
+install -m 0755 lib/libpdfium.so "$TARGET_PATH/lib/libpdfium.so"
+mkdir -p "$TARGET_PATH/include/pdfium" "$TARGET_PATH/lib/pkgconfig"
+cp -r include/. "$TARGET_PATH/include/pdfium/"
+cat > "$TARGET_PATH/lib/pkgconfig/pdfium.pc" << EOF
+prefix=$TARGET_PATH
+libdir=\${prefix}/lib
+includedir=\${prefix}/include/pdfium
+
+Name: pdfium
+Description: PDFium (bblanchon/pdfium-binaries chromium/$PDFIUM_VERSION)
+Version: $PDFIUM_VERSION
+Libs: -L\${libdir} -lpdfium
+Cflags: -I\${includedir}
+EOF
+add_sbom pdfium "$PDFIUM_VERSION" "cpe:2.3:a:google:pdfium:$PDFIUM_VERSION:*:*:*:*:*:*:*"
+
 print_build_stage vips "$VIPS_VERSION"
 cd "$DEPS_SRC/vips"
 # Every loader is required (build fails if a dependency is missing); every GPL or
-# out-of-scope loader is disabled (LibRaw, PDFium, ImageMagick and OpenEXR are WP-66).
+# out-of-scope loader is disabled. PDF goes through PDFium; poppler stays disabled.
 # libvips 8.18 uses libspng only when libpng is not a dependency, so png is disabled
 # here (libpng is still built for cairo and librsvg); docs/FORMATS.md requires spng.
+# Modules are enabled for magick only: vips-magick.so in lib/vips-modules-8.18 is the
+# one libvips object that links ImageMagick, so deleting that file removes magick.
+# Every other loader stays built in (the heif/jxl module options are disabled).
+# Magick is load-only (no magicksave).
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" \
 meson setup _build "${MESON_ARGS[@]}" \
   -Ddocs=false \
@@ -558,7 +699,11 @@ meson setup _build "${MESON_ARGS[@]}" \
   -Dcplusplus=false \
   -Dintrospection=disabled \
   -Dvapi=false \
-  -Dmodules=disabled \
+  -Dmodules=enabled \
+  -Dheif-module=disabled \
+  -Djpeg-xl-module=disabled \
+  -Dopenslide-module=disabled \
+  -Dpoppler-module=disabled \
   -Djpeg=enabled \
   -Duhdr=enabled \
   -Dpng=disabled \
@@ -580,10 +725,13 @@ meson setup _build "${MESON_ARGS[@]}" \
   -Dzlib=enabled \
   -Dnsgif=true \
   -Dpoppler=disabled \
-  -Dpdfium=disabled \
-  -Dmagick=disabled \
-  -Draw=disabled \
-  -Dopenexr=disabled \
+  -Dpdfium=enabled \
+  -Dmagick=enabled \
+  -Dmagick-package=MagickCore \
+  -Dmagick-module=enabled \
+  -Dmagick-features=load \
+  -Draw=enabled \
+  -Dopenexr=enabled \
   -Dopenslide=disabled \
   -Dmatio=disabled \
   -Dnifti=disabled \
@@ -615,6 +763,15 @@ for dir in "$DEPS_SRC"/*/; do
   # REUSE-style projects (glib, libexif) keep their license texts in LICENSES/.
   if [ -d "$dir/LICENSES" ]; then
     cp -r "$dir/LICENSES" "$LICENSES/$name/"
+  fi
+  # PDFium's prebuilt archive lists its bundled third-party code under licenses/.
+  if [ -d "$dir/licenses" ]; then
+    cp -r "$dir/licenses" "$LICENSES/$name/"
+  fi
+  # OpenEXR compiles in its vendored libdeflate (MIT) and OpenJPH (BSD-2-Clause).
+  if [ "$name" = openexr ]; then
+    cp "$dir/external/deflate/COPYING" "$LICENSES/$name/COPYING.libdeflate"
+    cp "$dir/external/OpenJPH/LICENSE" "$LICENSES/$name/LICENSE.OpenJPH"
   fi
   if [ -z "$(ls -A "$LICENSES/$name")" ]; then
     echo "No license file found for $name" >&2

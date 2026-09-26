@@ -72,7 +72,7 @@ RUN . ./versions.sh \
     "cmake==${CMAKE_VERSION}" \
     "packaging==${PY_PACKAGING_VERSION}"
 
-COPY build-deps.sh check-licenses.sh ./
+COPY build-deps.sh check-licenses.sh magick-policy.xml ./
 COPY --from=deps-src /root/deps /root/deps
 
 # The flags depend on `uname -m`, so they come from a bash profile instead of ENV.
@@ -82,13 +82,16 @@ ENV BASH_ENV=/root/.bashrc
 RUN ./build-deps.sh
 
 # Split the prefix into what the runtime needs and what only the builder needs.
+# The runtime keeps the vips and vipsheader CLIs (diagnostics, verify-image.sh) and only
+# the thread-safe libraw_r that libvips links (not the plain libraw).
 RUN mkdir -p /runtime/opt/xtandard \
   && cp -a /opt/xtandard/lib /opt/xtandard/bin /opt/xtandard/etc /opt/xtandard/share /runtime/opt/xtandard/ \
   && rm -rf /runtime/opt/xtandard/lib/pkgconfig /runtime/opt/xtandard/lib/cmake \
     /runtime/opt/xtandard/lib/glib-2.0 /runtime/opt/xtandard/share/pkgconfig \
     /runtime/opt/xtandard/share/aclocal /runtime/opt/xtandard/share/gettext \
     /runtime/opt/xtandard/share/glib-2.0 \
-  && find /runtime/opt/xtandard/bin -type f ! -name vips -delete \
+  && rm -f /runtime/opt/xtandard/lib/libraw.so* \
+  && find /runtime/opt/xtandard/bin -type f ! -name vips ! -name vipsheader -delete \
   && ./check-licenses.sh /runtime/opt/xtandard/lib
 
 # ==============================================================================

@@ -60,6 +60,28 @@ dir="$(new_fixture pc-requires)"
 printf 'Name: heif\nRequires.private: x265 libde265\n' > "$dir/lib/pkgconfig/libheif.pc"
 expect 1 pc-requires "$dir"
 
+# WP-66 extras (LibRaw, PDFium, ImageMagick, OpenEXR) are allowed...
+dir="$(new_fixture extras-clean)"
+printf '\x7fELF NEEDED libraw_r.so.24 libpdfium.so libOpenEXR-3_4.so.33\n' > "$dir/lib/libvips.so.42"
+mkdir -p "$dir/lib/vips-modules-8.18"
+printf '\x7fELF NEEDED libMagickCore-7.Q16HDRI.so.10\n' > "$dir/lib/vips-modules-8.18/vips-magick.so"
+printf '\x7fELF\n' > "$dir/lib/libMagickCore-7.Q16HDRI.so.10"
+printf 'export LIBRAW_VERSION=0.22.2\nexport PDFIUM_VERSION=8066\nexport IMAGEMAGICK_VERSION=7.1.2-31\n' >> "$dir/versions.sh"
+expect 0 extras-clean "$dir"
+
+# ...but not ImageMagick built with GPL delegates, or LibRaw's GPL demosaic packs.
+dir="$(new_fixture magick-fftw)"
+printf '\x7fELF NEEDED libfftw3.so.3\n' > "$dir/lib/libMagickCore-7.Q16HDRI.so.10"
+expect 1 magick-fftw "$dir"
+
+dir="$(new_fixture magick-djvu)"
+printf '\x7fELF ddjvu_document_create_by_filename\n' > "$dir/lib/libMagickCore-7.Q16HDRI.so.10"
+expect 1 magick-djvu "$dir"
+
+dir="$(new_fixture versions-demosaic-gpl)"
+printf 'export LIBRAW_DEMOSAIC_PACK_GPL3_VERSION=0.18.8\n' >> "$dir/versions.sh"
+expect 1 versions-demosaic-gpl "$dir"
+
 # An injected GPL tarball pinned in versions.sh.
 dir="$(new_fixture versions-x265)"
 printf 'export X265_VERSION=4.1\nexport X265_SHA256=deadbeef\n' >> "$dir/versions.sh"
