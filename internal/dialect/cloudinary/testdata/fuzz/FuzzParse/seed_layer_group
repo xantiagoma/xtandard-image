@@ -1,0 +1,2 @@
+go test fuzz v1
+string("/demo/image/upload/l_fetch:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw%3D%3D/c_scale,w_0.5/fl_layer_apply,fl_relative.tiled,g_auto/v1/a:b/c.jpg")
