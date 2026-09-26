@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"math/bits"
 
-	"github.com/xantiagoma/xtandard-image/internal/codec"
+	"github.com/xantiagoma/xtandard-image/internal/codec/raster"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 )
 
@@ -23,10 +23,10 @@ var (
 // BI_PNG/BI_JPEG bitmap, the Embedded stream. Malformed input fails with
 // errs.KindCorrupt, an image over Options.MaxPixels with
 // errs.KindLimitExceeded; Decode never panics.
-func Decode(data []byte, o Options) (codec.Decoded, error) {
+func Decode(data []byte, o Options) (raster.Decoded, error) {
 	h, err := parseFile(data)
 	if err != nil {
-		return codec.Decoded{}, err
+		return raster.Decoded{}, err
 	}
 	return decode(data, h, o, false)
 }
@@ -34,23 +34,23 @@ func Decode(data []byte, o Options) (codec.Decoded, error) {
 // DecodeIcon decodes the DIB of an ICO/CUR entry: no file header, a doubled
 // height, and a 1-bit AND mask after the pixels that becomes the alpha channel
 // unless the bitmap carries its own (non-zero) 32-bit alpha.
-func DecodeIcon(dib []byte, o Options) (codec.Decoded, error) {
+func DecodeIcon(dib []byte, o Options) (raster.Decoded, error) {
 	h, err := parseDIB(dib, 0, -1, true)
 	if err != nil {
-		return codec.Decoded{}, err
+		return raster.Decoded{}, err
 	}
 	return decode(dib, h, o, true)
 }
 
-func decode(b []byte, h *header, o Options, icon bool) (codec.Decoded, error) {
+func decode(b []byte, h *header, o Options, icon bool) (raster.Decoded, error) {
 	if limit := o.maxPixels(); int64(h.width)*int64(h.height) > limit {
-		return codec.Decoded{}, errs.Newf(errs.KindLimitExceeded,
+		return raster.Decoded{}, errs.Newf(errs.KindLimitExceeded,
 			"bmp: %dx%d exceeds %d pixels", h.width, h.height, limit)
 	}
 	if h.embedded {
 		return decodeEmbedded(b, h)
 	}
-	raw := &codec.Raw{
+	raw := &raster.Raw{
 		Width:  h.width,
 		Height: h.height,
 		XRes:   ppmToPerMM(h.xppm),
@@ -63,12 +63,12 @@ func decode(b []byte, h *header, o Options, icon bool) (codec.Decoded, error) {
 		err = decodeUncompressed(b, h, raw, icon)
 	}
 	if err != nil {
-		return codec.Decoded{}, err
+		return raster.Decoded{}, err
 	}
-	return codec.Decoded{Raw: raw}, nil
+	return raster.Decoded{Raw: raw}, nil
 }
 
-func decodeEmbedded(b []byte, h *header) (codec.Decoded, error) {
+func decodeEmbedded(b []byte, h *header) (raster.Decoded, error) {
 	p := b[h.pixOff:]
 	if n := int(h.imageSize); n > 0 && n <= len(p) {
 		p = p[:n]
@@ -78,9 +78,9 @@ func decodeEmbedded(b []byte, h *header) (codec.Decoded, error) {
 		sig = jpegSignature
 	}
 	if !bytes.HasPrefix(p, sig) {
-		return codec.Decoded{}, corrupt("embedded stream does not match its compression")
+		return raster.Decoded{}, corrupt("embedded stream does not match its compression")
 	}
-	return codec.Decoded{Embedded: p}, nil
+	return raster.Decoded{Embedded: p}, nil
 }
 
 func rleEnd(b []byte, h *header) int {
@@ -98,7 +98,7 @@ func ppmToPerMM(ppm int64) float64 {
 	return float64(ppm) / 1000
 }
 
-func decodeUncompressed(b []byte, h *header, raw *codec.Raw, icon bool) error {
+func decodeUncompressed(b []byte, h *header, raw *raster.Raw, icon bool) error {
 	w, ht := h.width, h.height
 	stride64 := (int64(w)*int64(h.bpp) + 31) / 32 * 4
 	if int64(h.pixOff)+stride64*int64(ht) > int64(len(b)) {

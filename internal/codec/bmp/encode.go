@@ -1,7 +1,7 @@
 // Portions derived from imgproxy's vips/bmpsave.c,
 // https://github.com/imgproxy/imgproxy, Copyright (c) 2017 Sergey
 // Alexandrovich, licensed under the Apache License, Version 2.0 (see /NOTICE).
-// Modifications: rewritten in pure Go over codec.Raw; RGB is written with a
+// Modifications: rewritten in pure Go over raster.Raw; RGB is written with a
 // BITMAPINFOHEADER and RGBA with a BITMAPV4HEADER (instead of V5) using
 // bottom-up rows for the widest reader compatibility; resolution is kept.
 
@@ -11,7 +11,7 @@ import (
 	"encoding/binary"
 	"math"
 
-	"github.com/xantiagoma/xtandard-image/internal/codec"
+	"github.com/xantiagoma/xtandard-image/internal/codec/raster"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 )
 
@@ -21,7 +21,7 @@ const lcsSRGB = 0x73524742
 // Encode writes r as an uncompressed BMP: 24-bit BI_RGB with a
 // BITMAPINFOHEADER for 3 bands, 32-bit BI_BITFIELDS (BGRA masks) with a
 // BITMAPV4HEADER for 4 bands so that readers honour the alpha channel.
-func Encode(r *codec.Raw) ([]byte, error) {
+func Encode(r *raster.Raw) ([]byte, error) {
 	if err := r.Validate(); err != nil {
 		return nil, err
 	}
