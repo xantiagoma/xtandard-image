@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -24,7 +25,8 @@ const imgproxyTolerance = 0.015
 // DSSIM. It is skipped unless XI_IMGPROXY_URL is set:
 //
 //	docker run -d -p 18080:8080 -v "$PWD/testdata/fixtures:/fixtures:ro" \
-//	  -e IMGPROXY_LOCAL_FILESYSTEM_ROOT=/fixtures darthsim/imgproxy:latest
+//	  -e IMGPROXY_LOCAL_FILESYSTEM_ROOT=/fixtures \
+//	  -e IMGPROXY_MAX_ANIMATION_FRAMES=256 darthsim/imgproxy:latest
 //	XI_IMGPROXY_URL=http://host.docker.internal:18080 go test -tags integration \
 //	  -run TestAgainstImgproxy -v ./internal/pipeline/exec/
 func TestAgainstImgproxy(t *testing.T) {
@@ -33,7 +35,7 @@ func TestAgainstImgproxy(t *testing.T) {
 	if base == "" {
 		t.Skip("XI_IMGPROXY_URL is not set")
 	}
-	for _, tc := range goldenCases {
+	for _, tc := range slices.Concat(goldenCases, filterCases) {
 		if tc.noImgproxy {
 			continue
 		}
