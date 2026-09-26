@@ -93,6 +93,9 @@ type source struct {
 	// request enforces the embedded thumbnail.
 	previewW, previewH int
 	enforceThumb       bool
+	// thumbnail: enforce_thumbnail on a HEIF/AVIF still: the embedded
+	// thumbnail replaces the image whatever its size (imgproxy Pro).
+	thumbnail bool
 }
 
 func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observed) (*Plan, error) {
@@ -145,7 +148,7 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 			src.hasData = false // frames are processed one by one: no shrink-on-load
 		}
 	}
-	if n := stackedPages(first, meta, &src, nFrames); n > 1 {
+	if n := stackedPages(first, &src, nFrames); n > 1 {
 		src.stack = n
 		src.hasData = src.vector // raster pages: no shrink-on-load or embedded thumbnail
 		if !meta.Selection {
@@ -154,6 +157,8 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 			src.h = frameH * n
 		}
 	}
+	src.thumbnail = src.hasData && src.frames <= 1 && src.stack <= 1 && heifFormat(format) &&
+		req.Output.EnforceThumbnail != nil && *req.Output.EnforceThumbnail
 	if err := checkSource(&src, &lim); err != nil {
 		return nil, err
 	}
@@ -184,10 +189,13 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 
 // stackedPages is the number of pages the `pages` option stacks into one
 // image (imgproxy Pro: "the pages will be stacked vertically and
-// left-aligned"): multi-page stills only, from the selected page on. PSD
-// "pages" are layers of their own sizes, never stacked.
-func stackedPages(p *transform.Pipeline, meta *SourceMeta, s *source, nFrames int) int {
-	if s.frames > 1 || meta.IsAnimated || nFrames <= 1 || p.Pages == nil || s.format == "psd" {
+// left-aligned"), from the selected page on: the pages of a multi-page
+// still, and the frames of an animation that is not processed as one
+// (output format without animation, disable_animation, a frame limit of
+// 1). An animation that stays one takes `pages` as its frame count
+// instead. PSD "pages" are layers of their own sizes, never stacked.
+func stackedPages(p *transform.Pipeline, s *source, nFrames int) int {
+	if s.frames > 1 || nFrames <= 1 || p.Pages == nil || s.format == "psd" {
 		return 1
 	}
 	n := nFrames - s.page
@@ -213,6 +221,12 @@ func checkSource(s *source, lim *effLimits) error {
 		return errs.New(errs.KindLimitExceeded, "plan: source resolution exceeds limits")
 	}
 	return nil
+}
+
+// heifFormat reports the HEIF-based formats whose loader can return the
+// embedded thumbnail.
+func heifFormat(format string) bool {
+	return format == "heic" || format == "heif" || format == "avif"
 }
 
 func animationFormat(f transform.Format) bool {
@@ -311,6 +325,17 @@ func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt trans
 	}
 	b.size(s.w, s.h)
 	hasData := s.hasData
+	if s.thumbnail {
+		// enforce_thumbnail: the embedded thumbnail is the source; the
+		// executor reports its size (a file without one loads the image).
+		load.Thumbnail = true
+		hasData = false
+		if obs != nil && obs.Thumbnail {
+			load.Width, load.Height = obs.Width, obs.Height
+			b.peak = 0
+			b.size(obs.Width, obs.Height)
+		}
+	}
 
 	// Vector guard: render oversized vectors at the resolution limit.
 	if hasData && s.vector && lim.srcPixels > 0 {
@@ -402,7 +427,7 @@ func scaleOnLoad(g *geo, o *opts, s *source, lim *effLimits, obs *Observed, load
 	}
 	jpeg := s.format == "jpeg" || s.format == "jpg"
 	webp := s.format == "webp"
-	thumb := s.format == "heic" || s.format == "heif" || s.format == "avif"
+	thumb := heifFormat(s.format)
 	if !s.vector && (lim.noShrinkOnLoad || pre <= 1 || (!jpeg && !webp && !thumb)) {
 		return nil
 	}

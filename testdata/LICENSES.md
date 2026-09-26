@@ -31,6 +31,7 @@ generated from the public-domain X11 "fixed" font).
 | `fixtures/webp/lossy.webp`, `lossless.webp`, `animated.webp` | libvips `webpsave` (libwebp, BSD-3) | CC0 |
 | `fixtures/avif/photo.avif` | libvips `heifsave` AV1 (libheif + libaom, BSD-2) | CC0 |
 | `fixtures/heic/photo.heic` | macOS `sips` (Apple HEVC encoder; no x265/GPL encoder involved) | CC0 |
+| `fixtures/heic/thumbnail.heic`, `fixtures/avif/thumbnail.avif` | `gen/heifthumb/heifthumb.c` (ours, CC0) against libheif with kvazaar (HEVC, BSD-3) and libaom (AV1, BSD-2) in the base builder image | CC0 |
 | `fixtures/jxl/photo.jxl` | libvips `jxlsave` (libjxl, BSD-3) | CC0 |
 | `fixtures/jp2/photo.jp2` | libvips `jp2ksave` (OpenJPEG, BSD-2) | CC0 |
 | `fixtures/tiff/multipage.tif` | ImageMagick 7 (ImageMagick licence), 2 pages, deflate | CC0 |

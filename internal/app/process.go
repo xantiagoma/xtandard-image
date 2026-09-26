@@ -11,6 +11,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/exec"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
+	"github.com/xantiagoma/xtandard-image/internal/security/svg"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
@@ -105,6 +106,11 @@ func newProcessor(cfg *config.Config, wm *exec.Watermark) (*processor, error) {
 		FailOn:           vipsFailOn(cfg.Vips.FailOn),
 		Watermark:        wm,
 		ColorProfilesDir: cfg.Processing.ColorProfilesDir,
+		SVG: svg.Options{
+			MaxBytes:    int64(cfg.Limits.MaxSVGBytes),
+			MaxDepth:    cfg.Limits.MaxSVGDepth,
+			MaxElements: cfg.Limits.MaxSVGElements,
+		},
 	}, enc)
 	if err != nil {
 		return nil, err

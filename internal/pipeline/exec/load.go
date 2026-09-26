@@ -22,6 +22,13 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 		img, err = r.loadGo(ctx)
 	case formatRAW:
 		img, err = r.loadRaw(ctx, ls)
+	case "tiff", "heic", "heif", "avif", "jp2", "jxl":
+		if anim == nil && ls.NPages > 1 {
+			// Stacked pages of a multi-page still may differ in size.
+			img, err = r.loadStack(ctx, ls)
+			break
+		}
+		img, err = r.a.Add(vips.Load(ctx, r.j.Source, r.loadOptions(ls, anim)))
 	default:
 		img, err = r.a.Add(vips.Load(ctx, r.j.Source, r.loadOptions(ls, anim)))
 	}

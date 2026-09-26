@@ -14,6 +14,7 @@ import (
 func fixtureFormats() map[string]codec.Format {
 	return map[string]codec.Format{
 		"avif/photo.avif":                 codec.FormatAVIF,
+		"avif/thumbnail.avif":             codec.FormatAVIF,
 		"bmp/rgb24.bmp":                   codec.FormatBMP,
 		"bmp/rle8.bmp":                    codec.FormatBMP,
 		"gif/animated.gif":                codec.FormatGIF,
@@ -21,6 +22,7 @@ func fixtureFormats() map[string]codec.Format {
 		"dng/portrait-orientation-6.dng":  codec.FormatRAW,
 		"gif/static.gif":                  codec.FormatGIF,
 		"heic/photo.heic":                 codec.FormatHEIC,
+		"heic/thumbnail.heic":             codec.FormatHEIC,
 		"ico/bmp-entry.ico":               codec.FormatICO,
 		"ico/png-entry.ico":               codec.FormatICO,
 		"jp2/photo.jp2":                   codec.FormatJP2,

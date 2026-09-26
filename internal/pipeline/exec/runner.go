@@ -47,6 +47,9 @@ type runner struct {
 	// rawPath how it was decoded.
 	rawHdr  *raw.Header
 	rawPath string
+	// stackAlpha is set when loadStack gave stacked pages an alpha band the
+	// source header did not announce.
+	stackAlpha bool
 }
 
 // last returns the plan whose Output is the response.
@@ -162,7 +165,7 @@ func (r *runner) loadObserved(ctx context.Context) (*vips.Image, error) {
 			ls = r.plan.Load
 			return r.load(ctx, &ls, nil)
 		}
-	case (w != ls.Width || h != ls.Height) && (ls.Page > 0 || ls.NPages > 1) && ls.ShrinkOnLoad <= 1 && ls.Scale == 0:
+	case (w != ls.Width || h != ls.Height || r.stackAlpha) && (ls.Page > 0 || ls.NPages > 1) && ls.ShrinkOnLoad <= 1 && ls.Scale == 0:
 		// The header describes the first page; this one (or the stack of
 		// pages) has its own size.
 		if err := r.replanPage(w, h); err != nil {
