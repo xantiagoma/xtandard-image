@@ -40,7 +40,7 @@ Default mounts (all dialects other than imgproxy are disabled until enabled in c
 |---|---|---|---|
 | imgproxy | HMAC-SHA256(key, salt ‖ path-after-signature, starting with `/`), keys and salts hex-decoded, URL-safe base64 without padding, optionally truncated to `signature_size` bytes; multiple key/salt pairs; trusted signatures list | first path segment | https://docs.imgproxy.net/usage/signing_url |
 | query | imaginary-compatible `sign` = base64url-nopad(HMAC-SHA256(key, path ‖ url.Values.Encode() of the query without `sign`)), i.e. keys sorted, no `?` separator | query | imaginary `middleware.go` `validateURLSignature` |
-| imgix | `s` = hex(MD5(token ‖ path ‖ ("?" ‖ query-without-s if any))), must be last; optional `expires` (unix) | query | https://github.com/imgix/imgix-blueprint#securing-urls |
+| imgix | `s` = hex(MD5(token ‖ path ‖ ("?" ‖ query-without-s if any))), token used verbatim; imgix puts `s` last, xi accepts it anywhere (same signed bytes); optional `expires` (unix) | query | https://github.com/imgix/imgix-blueprint#securing-urls |
 | cloudinary | `s--XXXXXXXX--` = first 8 chars of base64url(SHA-1(transformations/…/public_id ‖ api_secret)); 32 chars with SHA-256 "long" signatures | path segment | https://cloudinary.com/documentation/delivery_url_signatures |
 | imagekit | `ik-s` = hex(HMAC-SHA1(private_key, url-relative-to-endpoint ‖ ik-t)), `ik-t` = expiry unix seconds (9999999999 = never) | query | https://imagekit.io/docs/media-delivery-basic-security |
 | thumbor | HMAC-SHA1(SECURITY_KEY, path-after-signature **without** the leading `/`), URL-safe base64 **with** padding (28 chars, Python `urlsafe_b64encode`); `unsafe` when disabled | first path segment | https://thumbor.readthedocs.io/en/latest/security.html |
@@ -237,57 +237,62 @@ https://images.example.com/photos/a.jpg?w=400&h=300&fit=crop&crop=faces,entropy&
 /imgix/<mount>/https%3A%2F%2Forigin.com%2Fa.jpg?w=400  (web-proxy source, must be signed upstream; here: allowlist + policy)
 ```
 
-Grammar: path = object key relative to mount source; query params; any param may be base64url-encoded by appending `64` (`txt64`, `mark64`).
+Grammar: path = object key relative to mount source (escaped, `SourceRelative`, `Source.Mount` = the mount's source); a path whose decoded form starts with `http:`/`https:` is a web proxy source (plain absolute URL, subject to the allowlist and the unsigned policy). Query params are applied by name, the last occurrence wins; any param may be base64url-encoded (padding optional) by appending `64` (`txt64`, `mark64`, `bg64`, …). Legacy spellings (`markalign`, `txtclr`, `trimcolor`, …) are aliases. `ixlib`/`ixid`/`ixjsv` (SDK and analytics tags) are accepted silently, also in strict mode. Unknown params and the "Unsupported" rows below are recorded in `Ignored` (strict → 400); unsupported *values* of known params (`auto=enhance|redeye|true`, `fill=gen`, `cs=adobergb1998`, image masks) are recorded in `Ignored` in both modes. Implemented in `internal/dialect/imgix` (WP-40).
 
 | imgix | TR | Notes |
 |---|---|---|
-| `w`, `h` | Resize.Width/Height (value in (0,1) → relative) | M1-level semantics in M2 |
-| `max-w`, `max-h`, `min-w`, `min-h` | clamp before planning | |
-| `fit=clip` (default) | Fit + Enlarge | imgix clip does upscale when both dims set |
-| `fit=max` / `fit=min` | Fit, no enlarge / Fill-down | `min` = crop without upscaling |
-| `fit=crop` | Fill; gravity from `crop` | |
-| `fit=scale` | Force | |
-| `fit=fill`, `fill=solid|blur`, `fill-color` | Fit + Extend + Background; `fill=blur` M3 | |
-| `fit=fillmax` | Fit no enlarge + Extend | |
-| `fit=facearea`, `facepad`, `faceindex` | M3 face crop | |
-| `fit=clamp` | Partial: Fit + Extend with edge replication (vips `embed extend=copy`) | |
+| `w`, `h` | Resize.Width/Height (value in (0,1) → relative; fractions of a pixel rounded) | M1-level semantics in M2 |
+| `max-w`, `max-h`, `min-w`, `min-h` | Resize.MaxWidth/MaxHeight/MinWidth/MinHeight | |
+| `fit=clip` (default once `w` or `h` is set) | Fit + Enlarge | imgix clip upscales; `fit=max` does not |
+| `fit=max` / `fit=min` | Fit, no enlarge / FillDown (gravity from `crop`) | `min` = crop without upscaling |
+| `fit=crop` | Fill + Enlarge; gravity from `crop` | |
+| `fit=smart-crop` | as `fit=crop` with `crop=auto` (Smart) unless `crop` is set | |
+| `fit=scale` | Force + Enlarge | |
+| `fit=fill`, `fill=solid|blur|gen`, `fill-color` | Fit + Enlarge + Extend; `fill-color` → Background (wins over `bg`); `fill=blur` → Extend.Mode Blur (M3); `fill=gen` unsupported (solid) | `fill`/`fill-color` only with `fit=fill|fillmax` |
+| `fit=fillmax` | as `fill` without Enlarge | |
+| `fit=facearea`, `facepad`, `faceindex` | Fill + Enlarge, Gravity Face with FacePad, FaceIndex (1-based → 0-based) | M3 |
+| `fit=clamp` | Fit + Enlarge + Extend with edge replication (Extend.Mode Copy, vips `embed extend=copy`) | |
 | `crop=top,bottom,left,right` | compass Gravity | combinations → corner |
+| `crop` fallback chain | the first detector listed wins (imgix falls back left to right); compass values only apply without a detector | |
 | `crop=faces` | Face gravity (M3; falls back to Smart) | |
-| `crop=entropy` / `edges` | Entropy / Smart (attention) | |
-| `crop=focalpoint`, `fp-x`, `fp-y`, `fp-z` | FocusPoint (+ FocusZoom) | |
-| `ar=16:9` | derive missing dimension (with fit=crop) | |
-| `rect=x,y,w,h` | Crop (pre-resize, px or relative) | |
-| `dpr` | Resize.DPR | |
-| `q` | Quality | |
-| `fm=jpg|pjpg|png|png8|png32|webp|avif|jxl|gif|json|blurhash|mp4|webm` | Format; `pjpg` → Progressive; `png8` → PNG quantize 256; `json` → Info; `blurhash` → Info blurhash (text); `mp4/webm` M3 | `jp2`, `jxr` unsupported → 422 |
-| `auto=format` | negotiate (Accept) | |
-| `auto=compress` | Quality default 45 when `q` absent; PNG → quantize | |
-| `auto=enhance`, `auto=redeye` | Unsupported | |
+| `crop=entropy` / `edges` / `auto` | Entropy / Smart (attention) / Smart | |
+| `crop=<object class>` (COCO class or supercategory, e.g. `car,vehicle`) | Gravity Object with Classes | M3 |
+| `crop=focalpoint`, `fp-x`, `fp-y`, `fp-z` | FocusPoint (default 0.5, 0.5) + FocusZoom (1–100) | `fp-*` only with `crop=focalpoint` |
+| `ar=16:9` (also `1.5:1`, `2`) | Resize.AspectRatio | only with `fit=crop|smart-crop`, else ignored as in imgix |
+| `rect=x,y,w,h` | Crop (pre-resize, px or relative (0,1)), anchored north-west with offsets x, y | |
+| `dpr` | Resize.DPR (0 < dpr ≤ 10) | |
+| `q` | Quality (`q=0` → 1) | |
+| `fm=jpg|pjpg|png|png8|png32|webp|avif|jxl|gif|json|blurhash|mp4|webm` | Format; `pjpg` → Progressive; `png8` → PNG quantize 256; `json` → Info; `blurhash` → Info blurhash (JSON, not imgix's bare string: approximated, M2); `mp4/webm` M3 | `jp2`, `jxr`, `pdf` unsupported → 422 |
+| `auto=format` | negotiate (Accept); wins over `fm` except `json`, `blurhash`, `mp4`, `webm` (imgix uses `fm` only as the fallback; xi records `fm` as ignored) | |
+| `auto=compress` | Quality 45 when `q` absent; StripMetadata; PreferJPEGIfOpaque when neither `fm` nor `auto=format` decides the format (imgix: PNG if transparent, else JPEG) | |
+| `auto=enhance`, `auto=redeye`, `auto=true` | Unsupported | recorded in `Ignored` even in strict mode |
 | `lossless` | Lossless | |
 | `chromasub=420|422|444` | ChromaSubsampling | |
-| `cs=srgb|strip|tinysrgb|adobergb1998` | ColorProfile / StripColorProfile; `tinysrgb` → srgb | |
-| `dpi` | DPI | |
-| `bg` (RGB, ARGB, RRGGBB, AARRGGBB, named) | Background | |
+| `cs=srgb|tinysrgb|strip|origin|adobergb1998` | ColorProfile `srgb` (M2) / StripColorProfile true / false; `adobergb1998` not implemented | |
+| `dpi` | DPI | M2 |
+| `bg` (RGB, ARGB, RRGGBB, AARRGGBB (alpha first), `#` optional, CSS named, `transparent`) | Background | |
 | `pad`, `pad-top/right/bottom/left` | Padding | |
-| `border=w,color`, `border-radius`, `border-radius-inner` | Border, Radius | M2 |
+| `border=w,color`, `border-top/right/bottom/left`, `border-radius` (`r` or `tl,tr,br,bl`), `border-radius-inner` | Border, Radius; `border-radius-inner` not implemented | M2 |
 | `blur` (0–2000) | Blur sigma = v/20 | |
 | `px` | Pixelate | |
 | `sharp` (0–100) | Sharpen sigma = 0.5 + v/50 | |
-| `usm`, `usmrad` | Unsharp | M2 |
-| `bri`, `con`, `exp`, `gam`, `sat`, `hue`, `vib`, `high`, `shad` | Adjust (−100..100 → multipliers); `high`/`shad` unsupported | M2 |
-| `sepia`, `monochrome`, `duotone`, `duotone-alpha`, `invert` | Sepia/Monochrome/Duotone/Negate | M2 |
-| `orient` (1–8, 90, 180, 270) | Rotate/Flip | |
-| `rot` (any) | RotateAny | |
-| `flip=h|v|hv` | Flip | |
-| `trim=auto|color`, `trim-color`, `trim-tol`, `trim-md`, `trim-sd` | Trim (tolerance mapped to threshold) | |
-| `mark`, `mark-alpha`, `mark-align`, `mark-pad`, `mark-scale`, `mark-w`, `mark-h`, `mark-x`, `mark-y`, `mark-fit`, `mark-tile` | Watermark from URL | M3 |
-| `txt`, `txt-font`, `txt-size`, `txt-color`, `txt-align`, `txt-pad`, `txt-shad` | Text watermark (Pango) | M3 |
+| `usm` (−100..100), `usmrad` (0–500, default 2.5) | Unsharp{Amount: usm/100, Sigma: usmrad} | M2 |
+| `bri`, `con`, `exp`, `gam`, `sat`, `hue`, `vib` | Adjust: bri → Brightness v·255/100; con, exp, sat, vib → 1 + v/100; gam → 2^(v/100); hue → degrees; 0 = unchanged | M2 |
+| `high`, `shad` | Unsupported | |
+| `sepia`, `monochrome`, `duotone`, `duotone-alpha`, `invert` | Sepia (any amount > 0; partial amounts approximated) / Monochrome (colour alpha = intensity) / Duotone (intensity `duotone-alpha`/100) / Negate | M2 |
+| `orient` (1–8, 90, 180, 270) | AutoRotate off + the Rotate/Flip of that EXIF orientation; 90/180/270 = EXIF 6/3/8 | overrides the EXIF orientation |
+| `rot` (0–359, counter-clockwise) | RotateAny = −rot (multiples of 90 fold into Rotate) | imgix zooms to hide the corners; xi fills them with Background. M2 |
+| `flip=h|v|hv` | Flip (combined with `orient`) | |
+| `trim=auto|color`, `trim-color`, `trim-tol`, `trim-md`, `trim-sd`, `trim-pad` | Trim: `auto` → Threshold `trim-md` (default 11), `trim-sd` approximated; `color` → Color `trim-color` (default corner pixel), Threshold `trim-tol` (default 0); `trim-pad` not implemented | |
+| `mask=ellipse|corners`, `mask-bg`, `corner-radius` | Mask ellipse (+ Background) / Radius; image masks (a URL) unsupported | M2 |
+| `mark`, `mark-alpha`, `mark-align` (default bottom,right), `mark-pad` (default 5), `mark-scale`, `mark-w`, `mark-h`, `mark-x`, `mark-y`, `mark-tile=grid`, `mark-rot`, `mark-fit`, `mark-base` | Watermark from URL (or a path on the mount's source) | M3 |
+| `txt`, `txt-font`, `txt-size`, `txt-color`, `txt-align`, `txt-pad` (default 10), `txt-shad`, other `txt-*` | Text watermark (Pango; `txt` is escaped, not markup) | M3 |
 | `blend*` | Unsupported (only `blend-mode=normal` via watermark) | |
-| `page`, `frame` | Page | M2 |
+| `page`, `frame` (1-based) | Page; `frame` also Pages = 1 | M2 |
 | `dl` | Filename + Attachment | |
 | `ch=Width,DPR,Save-Data` | enable client hints for this URL | |
-| `expires` | Expires | |
-| `s` | signature | |
+| `expires` | Expires (unix seconds; 0 = never); checked after the signature, 404 once passed | |
+| `s` | signature: hex(MD5(token ‖ path ‖ "?" ‖ query-without-s)); `s` may appear anywhere, the message is built without it | |
 | AI/ML: `bg-remove`, `bg-replace`, `upscale`, `nr`, `nrs`, `fill=gen`, `palette`, `colorquant`, `faces` debug, `fp-debug`, `htn` halftone | Unsupported | |
 
 ## 6. Cloudinary

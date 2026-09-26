@@ -1,0 +1,1637 @@
+{
+  "adjust": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026bri=20\u0026con=-10\u0026exp=5\u0026gam=50\u0026sat=-100\u0026hue=180\u0026vib=30\u0026s=0a3049a88f9be8229924b24729d05edc",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "bri",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "con",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "exp",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "gam",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "sat",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "vib",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "hue",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": 51,
+            "Contrast": 0.9,
+            "Exposure": 1.05,
+            "Gamma": 1.414213562373095,
+            "Hue": 180,
+            "Saturation": 0,
+            "Vibrance": 1.3
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "auto_compress": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026auto=compress\u0026s=f87465a7e5c3074ca649a8e1d561ec27",
+    "request": {
+      "Dialect": "imgix",
+      "Output": {
+        "PreferJPEGIfOpaque": true,
+        "Quality": 45,
+        "StripMetadata": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "auto_enhance": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026auto=enhance%2Credeye\u0026s=8309a50347c58e4c9a1bf5b43a11fbee",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "auto",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "auto_format_compress": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=800\u0026auto=format%2Ccompress\u0026s=d6d7f1295e527a66fbe4eada776fe2d4",
+    "request": {
+      "Dialect": "imgix",
+      "Output": {
+        "Quality": 45,
+        "StripMetadata": true
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 800
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "bg64": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026bg64=ZmYwMGZm\u0026w=50\u0026s=e7cc082bf581dddf7e3fa74106737699",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 255,
+            "R": 255
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 50
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "bg_pad": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026bg=red\u0026pad=10\u0026pad-left=20\u0026s=9f51eafceca41d1e5e4bd144172a283b",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "R": 255
+          },
+          "Padding": {
+            "Bottom": 10,
+            "Left": 20,
+            "Right": 10,
+            "Top": 10
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "border": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026border=5%2C000000\u0026border-top=10\u0026border-radius=8%2C8%2C0%2C0\u0026s=88083865a58a76f954e0e3b46033666e",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "border",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "border-radius",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Border": {
+            "Bottom": 5,
+            "Color": {
+              "A": 255
+            },
+            "Left": 5,
+            "Right": 5,
+            "Top": 10
+          },
+          "Radius": {
+            "TopLeft": 8,
+            "TopRight": 8
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "chromasub_cs_dpi": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026chromasub=444\u0026cs=tinysrgb\u0026dpi=300\u0026s=e6083b12b5d11d143c8b596dc795d90a",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "cs",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "dpi",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "ChromaSubsampling": "4:4:4",
+        "ColorProfile": "srgb",
+        "DPI": 300
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "client_hints": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026ch=Width%2CDPR%2CSave-Data\u0026w=300\u0026s=86057ee447282faa67103d82d4f573ca",
+    "request": {
+      "ClientHints": {
+        "DPR": true,
+        "SaveData": true,
+        "Width": true
+      },
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "download": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026dl=cat%20photo.jpg\u0026s=7f5ba217f0e885cc2436a159e9872e60",
+    "request": {
+      "Delivery": {
+        "Attachment": true,
+        "Filename": "cat photo.jpg"
+      },
+      "Dialect": "imgix",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "dpr_quality": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=320\u0026dpr=2\u0026q=60\u0026s=adb6cabd16e22782ebd02e10334c8a8a",
+    "request": {
+      "Dialect": "imgix",
+      "Output": {
+        "Quality": 60
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "DPR": 2,
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 320
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "expires": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=100\u0026expires=1893456000\u0026s=331cd6d74e8eb955b062cedf71e2f143",
+    "request": {
+      "Delivery": {
+        "Expires": "2030-01-01T00:00:00Z"
+      },
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fit_clamp": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=500\u0026h=500\u0026fit=clamp\u0026s=e5ced4aec6520a5dbe2b506073a3e3a5",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true,
+            "Mode": "copy"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 500
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 500
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fit_clip": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=640\u0026h=480\u0026fit=clip\u0026s=1c3635ec95fb4f61b86c3ef1c5e96184",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 480
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 640
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fit_crop_compass": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=400\u0026h=300\u0026fit=crop\u0026crop=top%2Cleft\u0026s=4b7c0e8d635844fa34bba65177e3c50e",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "north-west"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fit_crop_edges": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=300\u0026h=300\u0026fit=crop\u0026crop=edges\u0026s=2fc723c10a4516fd6e4156e4cf9df549",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fit_crop_faces": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=400\u0026h=300\u0026fit=crop\u0026crop=faces%2Centropy\u0026s=7ceb140db6b82e30c91cd576ec8a60e1",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "crop",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "face"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fit_crop_focalpoint": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=600\u0026ar=16%3A9\u0026fit=crop\u0026crop=focalpoint\u0026fp-x=0.3\u0026fp-y=0.6\u0026fp-z=2\u0026s=1d3fc89e1212ed4276e2377ccf6e9104",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusX": 0.3,
+            "FocusY": 0.6,
+            "FocusZoom": 2,
+            "Type": "focus-point"
+          },
+          "Resize": {
+            "AspectRatio": 1.7777777777777777,
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 600
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fit_facearea": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=200\u0026h=200\u0026fit=facearea\u0026facepad=1.5\u0026faceindex=2\u0026s=9961cecaf961226cffa3e7cf2597640e",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "fit",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FaceIndex": 1,
+            "FacePad": 1.5,
+            "Type": "face"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fit_fill": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=500\u0026h=500\u0026fit=fill\u0026fill-color=ff0000\u0026s=ecde9d1aaae3e25dedf3d1b4109f2bfc",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "R": 255
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 500
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 500
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fit_fill_blur": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=500\u0026h=300\u0026fit=fill\u0026fill=blur\u0026s=a3c95e17a21dcc9622222d9b6f80228b",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "fill",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true,
+            "Mode": "blur"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 500
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fit_fillmax": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=500\u0026h=500\u0026fit=fillmax\u0026bg=80ffffff\u0026s=58d98c54d4194356b1506ca37016cf05",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 128,
+            "B": 255,
+            "G": 255,
+            "R": 255
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Height": {
+              "Px": 500
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 500
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fit_max": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=2000\u0026fit=max\u0026s=50fd134422a225b0feac92260591e054",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 2000
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fit_min": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=200\u0026h=100\u0026fit=min\u0026auto=format\u0026s=f67918a97267708d7d5ccfdf643beb3d",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 100
+            },
+            "Type": "fill-down",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fit_scale": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=100\u0026h=400\u0026fit=scale\u0026s=12c0423a8e3e4113b20d5525a9e22b84",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 400
+            },
+            "Type": "force",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fm_avif_lossless": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026fm=avif\u0026lossless=1\u0026s=7ca5af960716b85ca59e0e7e757c3d94",
+    "request": {
+      "Dialect": "imgix",
+      "Output": {
+        "Format": "avif",
+        "Lossless": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fm_blurhash": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026fm=blurhash\u0026w=32\u0026s=33b4d3ef13660ccf7c0695f6618f84d2",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "fm",
+          "Reason": "approximated"
+        },
+        {
+          "Option": "fm",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Blurhash": {
+          "XComponents": 4,
+          "YComponents": 3
+        }
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 32
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fm_json": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026fm=json\u0026s=e4d1a0c028c11ee8be4ab5b283475bcb",
+    "request": {
+      "Dialect": "imgix",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fm_mp4": {
+    "config": "required",
+    "path": "/videos/clip.gif",
+    "query": "ixlib=js-3.8.0\u0026fm=mp4\u0026s=4f44a36f7226d351b6b82c28b9f65e36",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "fm",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Output": {
+        "Format": "mp4"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "videos/clip.gif"
+      }
+    },
+    "signature": "verified",
+    "source": "videos/clip.gif"
+  },
+  "fm_pjpg": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026fm=pjpg\u0026s=62484b5fabf3fb1281a8070128d0e297",
+    "request": {
+      "Dialect": "imgix",
+      "Output": {
+        "Format": "jpeg",
+        "Progressive": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fm_png8": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026fm=png8\u0026s=8dc0dcee590885937cc8c874de7afa39",
+    "request": {
+      "Dialect": "imgix",
+      "Output": {
+        "Format": "png",
+        "PNG": {
+          "QuantizationColors": 256,
+          "Quantize": true
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "fm_webp": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=200\u0026fm=webp\u0026q=75\u0026s=392b15251c1f9217a7d004786d8f6a2d",
+    "request": {
+      "Dialect": "imgix",
+      "Output": {
+        "Format": "webp",
+        "Quality": 75
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "frame": {
+    "config": "required",
+    "path": "/anim/loop.gif",
+    "query": "ixlib=js-3.8.0\u0026frame=2\u0026s=c7427c9b8b724fc54272922a8aba19d3",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Page": 1,
+          "Pages": 1
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "anim/loop.gif"
+      }
+    },
+    "signature": "verified",
+    "source": "anim/loop.gif"
+  },
+  "invert": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026invert=true\u0026s=4a7a6f2e5dfffc1e591dbd5724f82f39",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "invert",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Negate": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "mark64": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026mark64=aHR0cHM6Ly9hc3NldHMuaW1naXgubmV0L2xvZ28ucG5n\u0026mark-align=top%2Cleft\u0026mark-alpha=60\u0026mark-scale=20\u0026mark-pad=8\u0026s=10ea0e716d387d327483b9bca015057d",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "mark",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "mark-alpha",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "mark-align",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "mark-pad",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "mark-scale",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 0.6,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 8,
+                "YOffset": 8
+              },
+              "Scale": 0.2,
+              "Source": {
+                "Raw": "https://assets.imgix.net/logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "mask_corners": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026mask=corners\u0026corner-radius=16\u0026s=3d606babff7837b375b3017aaee5dab8",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "mask",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Radius": {
+            "BottomLeft": 16,
+            "BottomRight": 16,
+            "TopLeft": 16,
+            "TopRight": 16
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "mask_ellipse": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026mask=ellipse\u0026mask-bg=00ff00\u0026s=e55d966bc6433b50ac2b5783c623fc62",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "mask",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Mask": {
+            "Background": {
+              "A": 255,
+              "G": 255
+            },
+            "Shape": "ellipse"
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "monochrome_duotone": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026monochrome=c0ff0000\u0026duotone=000080%2Cffff00\u0026duotone-alpha=50\u0026s=083d2edbcd35d205a877d5427a7f86f6",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "monochrome",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "duotone",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Duotone": {
+            "Highlight": {
+              "A": 255,
+              "G": 255,
+              "R": 255
+            },
+            "Intensity": 0.5,
+            "Shadow": {
+              "A": 255,
+              "B": 128
+            }
+          },
+          "Monochrome": {
+            "Color": {
+              "A": 255,
+              "R": 255
+            },
+            "Intensity": 0.7529411764705882
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "orient_exif": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026orient=5\u0026s=df12fd745e12b235f24d097d381f2892",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "AutoRotate": false,
+          "Flip": {
+            "H": true
+          },
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "orient_rot_flip": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026orient=90\u0026rot=45\u0026flip=hv\u0026s=f0ae03ffee01c2505733e1898ca2345a",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "rot",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "AutoRotate": false,
+          "Flip": {
+            "H": true,
+            "V": true
+          },
+          "Rotate": 90,
+          "RotateAny": -45
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "page_frame": {
+    "config": "required",
+    "path": "/docs/manual.pdf",
+    "query": "ixlib=js-3.8.0\u0026page=3\u0026s=f70f8580542a68e84788d2b00164d0da",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Page": 2
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "docs/manual.pdf"
+      }
+    },
+    "signature": "verified",
+    "source": "docs/manual.pdf"
+  },
+  "path_special_chars": {
+    "config": "required",
+    "path": "/photos/a%2Bb%23c%3Fd%3Ae.jpg",
+    "query": "ixlib=js-3.8.0\u0026s=0cf001ebf877459a340a16738d2ec8f6",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a%2Bb%23c%3Fd%3Ae.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/a%2Bb%23c%3Fd%3Ae.jpg"
+  },
+  "plain": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026s=af32f9066f2eec42d4aa7625002c6479",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "rect_max_min": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026rect=10%2C20%2C300%2C200\u0026max-w=800\u0026max-h=600\u0026min-w=50\u0026min-h=50\u0026s=ae9a5766afa14cad4a0309e0d7c6d58b",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 10,
+              "YOffset": 20
+            },
+            "Height": {
+              "Px": 200
+            },
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Resize": {
+            "MaxHeight": 600,
+            "MaxWidth": 800,
+            "MinHeight": 50,
+            "MinWidth": 50
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "relative_width": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=0.5\u0026s=1cfcda59073c82ef73400f5452b77824",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Rel": 0.5
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "size": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=400\u0026h=300\u0026s=5413dbaa8bf792a9db44649db4078e2e",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "stylize": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026blur=200\u0026px=10\u0026sharp=25\u0026usm=40\u0026usmrad=3\u0026sepia=80\u0026s=8485d129ffcfe9943300021d59addb38",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "usm",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "sepia",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "sepia",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Blur": 10,
+          "Pixelate": 10,
+          "Sepia": true,
+          "Sharpen": 1,
+          "Unsharp": {
+            "Amount": 0.4,
+            "Sigma": 3
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "trim_auto": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026trim=auto\u0026trim-md=20\u0026s=641f7411176bce01b16094275397991f",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Trim": {
+            "Threshold": 20
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "trim_color": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026trim=color\u0026trim-color=fff\u0026trim-tol=12\u0026s=d2f3535ef71093500cbf9acef5b3f379",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Trim": {
+            "Color": {
+              "A": 255,
+              "B": 255,
+              "G": 255,
+              "R": 255
+            },
+            "Threshold": 12
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "txt64": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026txt64=SGVsbG8sIFdvcmxkISA8Yj4\u0026txt-font=Avenir%20Next%20Demi%2CBold\u0026txt-size=32\u0026txt-color=ffffff\u0026txt-align=bottom%2Ccenter\u0026txt-shad=5\u0026s=08c702b8cbc2a6afd4e08f4374a4e654",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "txt",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "txt-font",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "txt-size",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "txt-color",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "txt-align",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "txt-shad",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Color": {
+                "A": 255,
+                "B": 255,
+                "G": 255,
+                "R": 255
+              },
+              "Font": "Avenir Next Demi,Bold 32",
+              "Opacity": 1,
+              "Position": {
+                "Type": "south",
+                "YOffset": 10
+              },
+              "Shadow": 5,
+              "Text": "Hello, World! \u0026lt;b\u0026gt;"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "unicode_path": {
+    "config": "required",
+    "path": "/photos/caf%C3%A9%20au%20lait.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=100\u0026s=7af7e3b7d03e68effefb56609a808fa0",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/caf%C3%A9%20au%20lait.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/caf%C3%A9%20au%20lait.jpg"
+  },
+  "unknown_and_unsupported": {
+    "config": "required",
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0\u0026w=10\u0026bg-remove=true\u0026blend=ff0000\u0026foo=bar\u0026s=a1cc8c6aeacbb067ea6b001ea3342816",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "bg-remove",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "blend",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "foo",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "photos/cat.jpg"
+  },
+  "web_proxy": {
+    "config": "required",
+    "path": "/https%3A%2F%2Fexample.com%2Fimages%2Fdog.png%3Fv%3D2",
+    "query": "ixlib=js-3.8.0\u0026w=400\u0026fit=crop\u0026s=31908cff7f8fbafe6e9319613d20be6d",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/dog.png?v=2"
+      }
+    },
+    "signature": "verified",
+    "source": "https://example.com/images/dog.png?v=2"
+  },
+  "web_proxy_plain": {
+    "config": "required",
+    "path": "/http%3A%2F%2Favatars.com%2Fjohn-smith.png",
+    "query": "ixlib=js-3.8.0\u0026s=40efa1087e99f30267b4c46e42c00ae6",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "http://avatars.com/john-smith.png"
+      }
+    },
+    "signature": "verified",
+    "source": "http://avatars.com/john-smith.png"
+  }
+}
