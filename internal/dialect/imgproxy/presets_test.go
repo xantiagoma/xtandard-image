@@ -372,3 +372,43 @@ func TestDocsChainedMergeValues(t *testing.T) {
 		t.Errorf("(-want +got):\n%s", d)
 	}
 }
+
+// TestBuilderPresetChainMerge: the Builder shares the path parser's chain
+// rules, so a "-" after a chained preset moves into the pipeline the preset
+// created (URL options there win) instead of appending an empty one.
+func TestBuilderPresetChainMerge(t *testing.T) {
+	t.Parallel()
+	p := newPresetParser(t, docsPresets, false, &imgproxy.Options{})
+	type wh struct{ W, H int }
+	for _, tt := range []struct {
+		name  string
+		build func(b *imgproxy.Builder) error
+	}{
+		{"apply path", func(b *imgproxy.Builder) error {
+			return b.ApplyPath("o", "width:400/-/preset:test/width:500/-/width:600")
+		}},
+		{"new pipeline", func(b *imgproxy.Builder) error {
+			return errors.Join(b.Apply("w", "400"), b.NewPipeline(), b.Apply("pr", "test"),
+				b.Apply("w", "500"), b.NewPipeline(), b.Apply("w", "600"))
+		}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			b := p.NewBuilder("query")
+			if err := tt.build(b); err != nil {
+				t.Fatal(err)
+			}
+			if err := b.Finish(); err != nil {
+				t.Fatal(err)
+			}
+			pls := b.Request().Pipelines
+			got := make([]wh, 0, len(pls))
+			for _, pl := range pls {
+				got = append(got, wh{pl.Resize.Width.Px, pl.Resize.Height.Px})
+			}
+			if d := cmp.Diff([]wh{{400, 0}, {500, 300}, {600, 200}, {100, 200}}, got); d != "" {
+				t.Errorf("(-want +got):\n%s", d)
+			}
+		})
+	}
+}
