@@ -47,6 +47,14 @@ type SourceMeta struct {
 	// those gravities fall back to the smart crop and the filters do
 	// nothing. The caller runs detection when NeedsDetection asks for it.
 	Detections *Detections
+
+	// VideoComposite marks a sprite (video_thumbnail_tile) or animation
+	// (video_thumbnail_animation) assembled from a video's frames (WP-75):
+	// Width, Height and Frames describe it, upright (Orientation 1), and it
+	// is not scaled on load. The decoder memory is that of a StreamWidth ×
+	// StreamHeight stream.
+	VideoComposite            bool
+	StreamWidth, StreamHeight int
 }
 
 // DefaultRawPreviewMinRatio is the RawPreviewMinRatio used when the limit

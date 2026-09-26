@@ -88,6 +88,9 @@ type ImageMeta struct {
 	// are then its display size (sample aspect ratio applied, before
 	// rotation) and Orientation its display matrix; nil for images.
 	Video *video.Meta
+	// Session is the video's open FFmpeg handle when ProbeSession probed
+	// it; nil otherwise. The caller closes it.
+	Session *VideoSession
 }
 
 // Pixels returns Width × Height × Frames, the pixels a full decode of every

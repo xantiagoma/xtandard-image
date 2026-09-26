@@ -52,6 +52,11 @@ struct XiFF {
   atomic_int abort;
   int vidx;
   int64_t max_pixels;
+  // The decoder continues right after frame (an exact decode that found
+  // its frame): a later timestamp with no keyframe in between is reached by
+  // decoding forward instead of seeking back to that keyframe.
+  int forward;
+  int64_t last_pts; // best_effort_timestamp of frame when forward is set
 };
 
 static atomic_int xi_ff_live_handles;
@@ -65,7 +70,13 @@ xi_ff_init(void)
   av_log_set_level(AV_LOG_QUIET);
 }
 
-static void
+void
+xi_ff_setup(void)
+{
+  pthread_once(&xi_ff_once, xi_ff_init);
+}
+
+void
 xi_ff_set_err(char *err, size_t errlen, const char *what, int averr)
 {
   if (!err || errlen == 0)
@@ -211,7 +222,7 @@ xi_ff_has_alpha(enum AVPixelFormat f)
 XiFF *
 xi_ff_new(const uint8_t *data, size_t size, int64_t max_pixels)
 {
-  pthread_once(&xi_ff_once, xi_ff_init);
+  xi_ff_setup();
   XiFF *h = av_mallocz(sizeof(*h));
   if (!h)
     return NULL;
@@ -474,18 +485,33 @@ xi_ff_decode_at(XiFF *h, double seconds, int keyframe, double *got, int *key, ui
 
   if (atomic_load(&h->abort))
     return XI_FF_ERR_ABORTED;
-  av_frame_unref(h->frame);
-  av_frame_unref(h->prev);
-  // Seek to the keyframe at or before the target; streams without an index
-  // (some AVI files) fall back to the start and decode forward.
-  ret = av_seek_frame(h->fmt, h->vidx, target, AVSEEK_FLAG_BACKWARD);
-  if (ret < 0)
-    ret = avformat_seek_file(h->fmt, h->vidx, INT64_MIN, start, start, 0);
-  if (ret < 0) {
-    xi_ff_set_err(err, errlen, "seek", ret);
-    return xi_ff_code(h, ret);
+  // Forward: the previous exact decode stopped before the target and no
+  // keyframe lies between them (by the demuxer's index), so decoding on is
+  // cheaper than seeking back. Otherwise seek.
+  int forward = 0;
+  if (!keyframe && h->forward && target > h->last_pts) {
+    int i = av_index_search_timestamp(st, target, AVSEEK_FLAG_BACKWARD);
+    const AVIndexEntry *e = i >= 0 ? avformat_index_get_entry(st, i) : NULL;
+    forward = !e || e->timestamp <= h->last_pts;
   }
-  avcodec_flush_buffers(h->dec);
+  h->forward = 0;
+  av_frame_unref(h->prev);
+  if (forward) // the last frame answers a timestamp past the end
+    av_frame_move_ref(h->prev, h->frame);
+  else
+    av_frame_unref(h->frame);
+  if (!forward) {
+    // Seek to the keyframe at or before the target; streams without an
+    // index (some AVI files) fall back to the start and decode forward.
+    ret = av_seek_frame(h->fmt, h->vidx, target, AVSEEK_FLAG_BACKWARD);
+    if (ret < 0)
+      ret = avformat_seek_file(h->fmt, h->vidx, INT64_MIN, start, start, 0);
+    if (ret < 0) {
+      xi_ff_set_err(err, errlen, "seek", ret);
+      return xi_ff_code(h, ret);
+    }
+    avcodec_flush_buffers(h->dec);
+  }
   h->dec->skip_frame = keyframe ? AVDISCARD_NONKEY : AVDISCARD_DEFAULT;
 
   int draining = 0, bad = 0, found = 0;
@@ -561,6 +587,8 @@ xi_ff_decode_at(XiFF *h, double seconds, int keyframe, double *got, int *key, ui
     return XI_FF_ERR_LIMIT;
   }
   int64_t pts = h->frame->best_effort_timestamp;
+  h->forward = found && !keyframe && !draining && pts != AV_NOPTS_VALUE;
+  h->last_pts = pts;
   *got = pts == AV_NOPTS_VALUE ? seconds : (pts - start) * av_q2d(st->time_base);
   *key = (h->frame->flags & AV_FRAME_FLAG_KEY) != 0;
   if (hist) {

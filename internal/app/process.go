@@ -56,14 +56,36 @@ func videoSettings(cfg *config.Config) video.Settings {
 			MaxDuration: v.MaxDuration,
 			MaxPixels:   v.MaxPixels,
 		},
-		Keyframes: v.Thumbnail.Keyframes,
-		Samples:   v.Thumbnail.Samples,
-		Span:      v.Thumbnail.Span,
+		Keyframes:          v.Thumbnail.Keyframes,
+		Samples:            v.Thumbnail.Samples,
+		Span:               v.Thumbnail.Span,
+		MaxCompositeFrames: v.MaxAnimationFrames,
 	}
 	if sec, ok := v.Thumbnail.Second.Seconds(); ok {
 		s.Second = &sec
 	}
 	return s
+}
+
+// videoEncodeConfig maps XI_VIDEO_ENCODE_* and the build's encoders onto
+// the encoder's video output settings (WP-76).
+func videoEncodeConfig(cfg *config.Config) encode.VideoConfig {
+	e := &cfg.Video.Encode
+	return encode.VideoConfig{
+		Enabled:  videoSettings(cfg).Enabled,
+		Encoders: codec.VideoEncoders(),
+		Settings: video.EncodeSettings{
+			CRF: map[video.Codec]int{
+				video.CodecVP9: e.VP9CRF, video.CodecAV1: e.AV1CRF,
+				video.CodecH264: e.H264CRF, video.CodecHEVC: e.HEVCCRF,
+			},
+			Speed:       map[video.Codec]int{video.CodecVP9: e.VP9Speed, video.CodecAV1: e.AV1Speed},
+			Preset:      map[video.Codec]string{video.CodecH264: e.H264Preset, video.CodecHEVC: e.HEVCPreset},
+			MaxFrames:   e.MaxFrames,
+			MaxDuration: e.MaxDuration,
+			MaxPixels:   e.MaxPixels,
+		},
+	}
 }
 
 // checkVideo fails startup when XI_VIDEO_ENABLED=true asks for video on an
@@ -96,14 +118,16 @@ func (p *codecProber) Probe(ctx context.Context, src fetch.Buffer, lim server.Pr
 	var m codec.ImageMeta
 	err = vips.Run(ctx, func() error {
 		var err error
-		m, err = codec.ProbeMedia(ctx, vb, l, &p.video, "")
+		// A video's FFmpeg handle stays open for the processor (the
+		// server closes it): its frames are not probed twice.
+		m, err = codec.ProbeSession(ctx, vb, l, &p.video, "")
 		return err
 	})
 	if err != nil {
 		return server.SourceMeta{}, err
 	}
 	f, _ := m.Format.Output()
-	return server.SourceMeta{
+	out := server.SourceMeta{
 		Format:      f,
 		Width:       m.Width,
 		Height:      m.Height,
@@ -112,7 +136,12 @@ func (p *codecProber) Probe(ctx context.Context, src fetch.Buffer, lim server.Pr
 		HasAlpha:    m.HasAlpha,
 		IsAnimated:  m.IsAnimated,
 		Orientation: m.Orientation,
-	}, nil
+		Video:       m.Video,
+	}
+	if m.Session != nil {
+		out.Session = m.Session
+	}
+	return out, nil
 }
 
 func unlimited(v int64) int64 {
@@ -223,6 +252,7 @@ func encoderConfig(cfg *config.Config) encode.Config {
 	ec.HEICEncode = f.HEIC.Encode
 	ec.AutoQuality = autoQualityConfig(&f.AutoQuality)
 	ec.Best = encode.BestConfig{MaxPixels: f.Best.MaxPixels, ComplexityThreshold: f.Best.ComplexityThreshold}
+	ec.Video = videoEncodeConfig(cfg)
 	return ec
 }
 
@@ -286,8 +316,14 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		return nil, err
 	}
 	meta := planMeta(format, &in.Meta, p.pdfDPI)
-	if meta.Detections, err = p.detect.forRequest(ctx, src, format, plan.NeedsDetection(in.Request)); err != nil {
-		return nil, err
+	// Detections describe one upright picture of the source; a video
+	// sprite or animation (vtt, vta) is assembled from many frames, so it
+	// is not detected: the planner falls back to the smart crop and lists
+	// the detection options as unplanned, like a chained pipeline.
+	if !meta.VideoComposite {
+		if meta.Detections, err = p.detect.forRequest(ctx, src, format, plan.NeedsDetection(in.Request)); err != nil {
+			return nil, err
+		}
 	}
 	job := &exec.Job{
 		Request:    in.Request,
@@ -295,6 +331,9 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		Meta:       meta,
 		Target:     t,
 		Watermarks: marks,
+	}
+	if vs, ok := in.Meta.Session.(*codec.VideoSession); ok {
+		job.Video = vs // owned by the server, which closes it
 	}
 	if in.Decision.Reason == negotiate.ReasonBest {
 		job.Best = &in.Decision
@@ -314,6 +353,7 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		Best:        res.Best.String(),
 		RawPath:     res.RawPath,
 		VideoFrame:  res.VideoFrame.String(),
+		VideoCodec:  res.VideoCodec,
 	}, nil
 }
 
@@ -362,7 +402,7 @@ func planMeta(f codec.Format, m *server.SourceMeta, pdfDPI float64) plan.SourceM
 		density = pdfDPI
 	}
 	// The planner's Frames counts pages too: it bounds `page`.
-	return plan.SourceMeta{
+	pm := plan.SourceMeta{
 		Width:       m.Width,
 		Height:      m.Height,
 		Frames:      max(m.Frames, m.Pages),
@@ -375,4 +415,11 @@ func planMeta(f codec.Format, m *server.SourceMeta, pdfDPI float64) plan.SourceM
 		HDR:         f.HDR(),
 		IsVideo:     f.IsVideo(),
 	}
+	if m.Composite && m.Video != nil {
+		// A sprite or animation of video frames (the server resized m to
+		// it): upright, not scaled on load, decoded from the stream.
+		pm.VideoComposite = true
+		pm.StreamWidth, pm.StreamHeight = m.Video.DisplayWidth, m.Video.DisplayHeight
+	}
+	return pm
 }

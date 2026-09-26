@@ -56,7 +56,7 @@ For dialects without a native scheme xi offers the optional **xi scheme**: query
 
 ## 3. imgproxy (canonical)
 
-**Status:** on `main` (M1, M2, M3): every option below is parsed and applied, except video tiles and animation (`vtt`, `vta`), which are recorded in `Ignored` until WP-75 lands (in progress). Detection options (WP-72/73) and video thumbnails (WP-74) need the `full` image; the slim image answers 422. The advanced watermark options (`wmu`, `wmt`, `wms`, `wmr`, `wmsh`, `ch`) are on `main` (WP-77/78).
+**Status:** on `main` (M1, M2, M3): every option below is parsed and applied. Detection options (WP-72/73), video thumbnails (WP-74) and video sprites and animations (`vtt`, `vta`, WP-75) need the `full` image; the slim image answers 422. The advanced watermark options (`wmu`, `wmt`, `wms`, `wmr`, `wmsh`, `ch`) are on `main` (WP-77/78).
 
 Reference: https://docs.imgproxy.net/usage/processing (imgproxy v4.0.x docs, source `imgproxy/imgproxy-docs` `docs/usage/processing.mdx`), https://docs.imgproxy.net/usage/getting_info, https://docs.imgproxy.net/usage/encrypting_source_url, https://docs.imgproxy.net/features/chained_pipelines.
 
@@ -151,14 +151,14 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `png_options` (`pngo`) Pro | interlaced:quantize:quantization_colors | `O.PNG` | config | M2 (WP-64) |
 | `webp_options` (`webpo`) Pro | compression:smart_subsample:preset | `O.WebP` | config | M2 (WP-64) |
 | `avif_options` (`avifo`) Pro | subsample | `O.AVIF` | config | M2 (WP-64) |
-| `format` (`f`, `ext`) | extension or `best` Pro | `O.Format` | source/negotiated | M1 (`best` M2) |
+| `format` (`f`, `ext`) | extension or `best` Pro | `O.Format` | source/negotiated | M1 (`best` M2, `mp4`/`webm`/`hevc` M3 WP-76) |
 | `page` (`pg`) Pro | int | `P.Page`: page of a multi-page still, first frame of a kept animation, the frame of one that is not (FORMATS §1.2, §3) | 0 | M2 (WP-50, WP-62) |
 | `pages` (`pgs`) Pro | int | `P.Pages`: pages or frames stacked vertically; the frame count of a kept animation; `-1` = to the end | 1 | M2 (WP-50, WP-62) |
 | `disable_animation` (`da`) Pro | bool | `P.DisableAnimation` | false | M1 |
 | `video_thumbnail_second` (`vts`) Pro | float | `P.Video.Second`: the frame of a video source (FORMATS §1.5); negative counts from the end, clamped to the video; unset = `XI_VIDEO_THUMBNAIL_SECOND` (default `auto`: best-frame selection); ignored for images | config | M3 (WP-74) |
 | `video_thumbnail_keyframes` (`vtk`) Pro | bool | `P.Video.Keyframes`: the keyframe at or before `vts` | config | M3 (WP-74) |
-| `video_thumbnail_tile` (`vtt`) Pro | step:cols:rows:tw:th:extend:trim:fill:fx:fy; step 0 = off, < 0 = from duration (stored as 0) | `P.Video.Tile` | off | M3 |
-| `video_thumbnail_animation` (`vta`) Pro | step:delay(ms):frames:fw:fh:extend:trim:fill:fx:fy; step as `vtt` | `P.Video.Animation` (delay in seconds) | off | M3 |
+| `video_thumbnail_tile` (`vtt`) Pro | step:cols:rows:tw:th:extend:trim:fill:fx:fy; step 0 = off, < 0 = from duration (stored as 0) | `P.Video.Tile` | off | M3 (WP-75) |
+| `video_thumbnail_animation` (`vta`) Pro | step:delay(ms):frames:fw:fh:extend:trim:fill:fx:fy; step as `vtt` | `P.Video.Animation` (delay in seconds) | off | M3 (WP-75) |
 | `fallback_image_url` (`fiu`) Pro | base64url URL | `D.Fallback`; honoured only with `XI_FALLBACK_ALLOW_REQUEST_URL` and when the source allowlist accepts it | config | M1 (WP-34c) |
 | `skip_processing` (`skp`, `sp`) | ext… | `D.SkipProcessing` | — | M1 |
 | `raw` | bool | `TR.Kind = Raw` | false | M1 |
@@ -328,7 +328,7 @@ Mount (WP-88): `XI_DIALECTS_IMGIX_ENABLED=true` mounts it under `XI_DIALECTS_IMG
 | `rect=x,y,w,h` | Crop (pre-resize, px or relative (0,1)), anchored north-west with offsets x, y | |
 | `dpr` | Resize.DPR (0 < dpr ≤ 10) | |
 | `q` | Quality (`q=0` → 1) | |
-| `fm=jpg|pjpg|png|png8|png32|webp|avif|jxl|gif|json|blurhash|mp4|webm` | Format; `pjpg` → Progressive; `png8` → PNG quantize 256; `json` → Info; `blurhash` → Info blurhash 4:3 (JSON, not imgix's bare string: approximated; WP-63); `mp4/webm` M3 | `jp2`, `jxr`, `pdf`, `spritesheet` unsupported → 422 |
+| `fm=jpg|pjpg|png|png8|png32|webp|avif|jxl|gif|json|blurhash|mp4|webm` | Format; `pjpg` → Progressive; `png8` → PNG quantize 256; `json` → Info; `blurhash` → Info blurhash 4:3 (JSON, not imgix's bare string: approximated; WP-63); `mp4`/`webm` → video output of an animated source (imgix's GIF-to-video; FORMATS §5.1: VP9 WebM, MP4 with H.264 in the gpl image or AV1 in full; WP-76) | `jp2`, `jxr`, `pdf`, `spritesheet` unsupported → 422 |
 | `jpg-progressive` | Progressive (wins over `fm=pjpg`) | |
 | `iptc=allow|block` | not implemented (xi strips or keeps metadata as a whole) | |
 | `auto=format` | negotiate (Accept); wins over `fm` except `json`, `blurhash`, `mp4`, `webm` (imgix uses `fm` only as the fallback; xi records `fm` as ignored) | |
@@ -413,7 +413,7 @@ Signature: `s--SIG--` right after the delivery type; the signed message is the r
 | `x_`, `y_` | gravity offsets | |
 | `z_` | FocusZoom (`c_thumb`, `c_crop`) | other modes approximated |
 | `q_<1-100>[:420\|422\|444]`, `q_auto[:best\|good\|eco\|low]` | Quality (+ChromaSubsampling) / AutoQuality DSSIM targets 0.005 / 0.02 / 0.035 / 0.05 (`q_auto` = good) | `q_jpegmini` unsupported |
-| `f_auto[:…]`, `f_<fmt>` (jpg/jpeg/jpe, png, webp, avif, jxl, gif, heic/heif, tif/tiff, bmp, ico, svg, mp4, webm) | Format unset (negotiated) / Format | mp4/webm M3; other formats (pdf, jp2, …) 400 |
+| `f_auto[:…]`, `f_<fmt>` (jpg/jpeg/jpe, png, webp, avif, jxl, gif, heic/heif, tif/tiff, bmp, ico, svg, mp4, webm) | Format unset (negotiated) / Format | `mp4`/`webm` (and the `.mp4`/`.webm` extension) on the `image` asset type encode an animated source as video (FORMATS §5.1, WP-76; `fl_animated` is the default); other formats (pdf, jp2, …) 400 |
 | `dpr_<float>`, `dpr_auto` | DPR of the current pipeline / `ClientHints.DPR` | the hint resolves into the first pipeline (§3.5) |
 | `a_<deg>` (`.`-joined list), `a_hflip`, `a_vflip`, `a_exif`, `a_ignore` | Rotate (multiples of 90) / RotateAny / Flip / AutoRotate | `a_auto_right`, `a_auto_left` unsupported |
 | `b_<color>` (`rgb:` 3/4/6/8 hex digits, `%23` hex, CSS names, `transparent`) | Background | `b_auto`, `b_blurred`, `b_gen_fill` unsupported |
@@ -479,7 +479,8 @@ Grammar: the path after the mount is the file path, relative to the mount's boun
 | `z` (with `fo-face` / `fo-<object>`) | Zoom on the detections: their box × 1/z is cut before the resize (FacePad / CropObjects, WP-72); other focus: `Ignored` |
 | `q` (1–100) | Quality |
 | `f-auto`, `f-orig` | Format unset (negotiated / source) |
-| `f-jpg|jpeg|png|webp|avif|gif|jxl` | Format; `f-mp4|webm` M3; `f-svg` unsupported |
+| `f-jpg|jpeg|png|webp|avif|gif|jxl` | Format; `f-mp4|webm` video output of an animated source (FORMATS §5.1, WP-76); `f-svg` unsupported |
+| `<gif>/ik-gif-video.mp4` | The animated image `<gif>` as MP4 (ImageKit's GIF-to-video; Format = mp4, WP-76) |
 | `pr-true|false`, `lo-true|false` | Progressive, Lossless |
 | `md-true|false` | StripMetadata = false / true (keep metadata) |
 | `cp-true|false` | StripColorProfile = false / true (colour profile; not copyright) |
@@ -535,7 +536,7 @@ Grammar: `/cdn-cgi/image/<k=v(,k=v)*>/<source>`. Keys are case-insensitive; comm
 | `zoom`/`face-zoom` (0–1) with `gravity=face` | How closely the crop frames the faces: 0 (default) = face gravity only places the crop, z > 0 cuts the faces' box × 1/z first (FacePad, WP-72); without `gravity=face` → `Ignored` |
 | `quality`/`q` = 1–100 or `high` / `medium-high` / `medium-low` / `low` | Quality (90 / 80 / 65 / 50) |
 | `slow-connection-quality`/`scq` (same values) | SlowConnectionQuality + `ClientHints.SaveData` (used when Save-Data/ECT hints say slow) |
-| `format`/`f` = `auto` / `avif` / `webp` / `jpeg` / `baseline-jpeg` / `png` / `gif` | negotiate (FormatUnset) / Format / JPEG+Progressive / JPEG+Progressive=false / … |
+| `format`/`f` = `auto` / `avif` / `webp` / `jpeg` / `baseline-jpeg` / `png` / `gif` | negotiate (FormatUnset) / Format / JPEG+Progressive / JPEG+Progressive=false / … (Cloudflare Images has no video output value; video is its separate Media Transformations product, not mapped) |
 | `format=json` | Ignored "not implemented" (Cloudflare's JSON is not the /info schema; the image is served) |
 | `dpr` (> 0) | DPR |
 | `anim=false` / `true` | DisableAnimation |
@@ -730,7 +731,7 @@ Grammar (upstream semantics xi keeps): the **first** occurrence of a key wins (u
 | `tint` | Tint (M2) |
 | `filt=greyscale|sepia|duotone|negate|none`, `start`, `stop` (duotone colours, default `#C83658`/`#D8E74F`) | Grayscale / Sepia / Duotone (intensity 1) / Negate (M2) |
 | colours | CSS names, or hex `RGB`/`ARGB`/`RRGGBB`/`AARRGGBB` with optional `#` — alpha comes **first** |
-| `output=jpg|png|gif|tiff|webp|avif|jxl|origin|json` | Format (origin = unset) / Info (imgproxy info schema, recorded as ignored) |
+| `output=jpg|png|gif|tiff|webp|avif|jxl|origin|json` | Format (origin = unset) / Info (imgproxy info schema, recorded as ignored); weserv has no video output value (`output=mp4` is 400, like upstream) |
 | `q` (1–100), `l` (zlib 0–9), `ll`, `af`, `il` | Quality, PNG compression, Lossless, PNG adaptive filter, Progressive |
 | `n` (−1 all, ≥ 1), `page` (≥ 0; −1 largest / −2 smallest recorded as not implemented) | Pages, Page (M2) |
 | `loop`, `delay`, `fsol` | Ignored (not implemented / not applicable) |

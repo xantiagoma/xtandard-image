@@ -58,7 +58,20 @@ func ProbeMedia(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Sett
 	return probe(ctx, buf, lim, v, contentType)
 }
 
+// ProbeSession is ProbeMedia that keeps a video's FFmpeg handle open in
+// ImageMeta.Session, so the frames the request needs are decoded without
+// opening and probing the file again (VideoFrame, VideoFrames). The caller
+// closes the session (nil for images).
+func ProbeSession(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Settings, contentType string) (ImageMeta, error) {
+	return probeKeep(ctx, buf, lim, v, contentType, true)
+}
+
 func probe(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Settings, contentType string) (ImageMeta, error) {
+	return probeKeep(ctx, buf, lim, v, contentType, false)
+}
+
+// probeKeep probes buf; keep leaves a video's handle open in m.Session.
+func probeKeep(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Settings, contentType string, keep bool) (ImageMeta, error) {
 	if err := ctxErr(ctx); err != nil {
 		return ImageMeta{}, err
 	}
@@ -94,7 +107,7 @@ func probe(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Settings,
 	case FormatRadiance:
 		m, err = probeRadiance(ctx, buf)
 	case FormatMP4, FormatMOV, FormatWebM, FormatMKV, FormatAVI:
-		m, err = probeVideo(ctx, buf, f, v)
+		m, err = probeVideo(ctx, buf, f, v, keep)
 	default:
 		m, err = probeVips(ctx, buf, f, 0)
 	}
@@ -102,6 +115,7 @@ func probe(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Settings,
 		return ImageMeta{}, fmt.Errorf("codec: probe %s: %w", f, err)
 	}
 	if err := lim.Check(&m); err != nil {
+		m.Session.Close()
 		return ImageMeta{}, err
 	}
 	m.HDR = m.Format.HDR()

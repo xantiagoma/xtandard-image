@@ -1336,12 +1336,6 @@
     "query": "tr=f-mp4",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "f-mp4",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "mp4"
       },

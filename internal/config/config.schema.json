@@ -3039,6 +3039,96 @@
           "markdownDescription": "Video sources (MP4, MOV, WebM, MKV, AVI; FORMATS.md §1.5): `auto` decodes them when the image has FFmpeg (the `full` flavor) and answers 422 otherwise; `true` fails startup without FFmpeg; `false` answers 422 in every image\n\nEnv: `XI_VIDEO_ENABLED`",
           "title": "XI_VIDEO_ENABLED"
         },
+        "encode": {
+          "additionalProperties": false,
+          "properties": {
+            "av1_crf": {
+              "default": 36,
+              "description": "CRF of AV1-in-MP4 output (libaom, the full image) (0–63)\n\nEnv: XI_VIDEO_ENCODE_AV1_CRF",
+              "markdownDescription": "CRF of AV1-in-MP4 output (libaom, the `full` image) (0–63)\n\nEnv: `XI_VIDEO_ENCODE_AV1_CRF`",
+              "title": "XI_VIDEO_ENCODE_AV1_CRF",
+              "type": "integer"
+            },
+            "av1_speed": {
+              "default": 8,
+              "description": "libaom cpu-used in its realtime mode (0–10; higher is faster and larger)\n\nEnv: XI_VIDEO_ENCODE_AV1_SPEED",
+              "markdownDescription": "libaom `cpu-used` in its realtime mode (0–10; higher is faster and larger)\n\nEnv: `XI_VIDEO_ENCODE_AV1_SPEED`",
+              "title": "XI_VIDEO_ENCODE_AV1_SPEED",
+              "type": "integer"
+            },
+            "h264_crf": {
+              "default": 25,
+              "description": "CRF of H.264 MP4 output (libx264, the gpl image) (0–51)\n\nEnv: XI_VIDEO_ENCODE_H264_CRF",
+              "markdownDescription": "CRF of H.264 MP4 output (libx264, the `gpl` image) (0–51)\n\nEnv: `XI_VIDEO_ENCODE_H264_CRF`",
+              "title": "XI_VIDEO_ENCODE_H264_CRF",
+              "type": "integer"
+            },
+            "h264_preset": {
+              "default": "veryfast",
+              "description": "x264 preset (ultrafast … placebo)\n\nEnv: XI_VIDEO_ENCODE_H264_PRESET",
+              "markdownDescription": "x264 preset (`ultrafast` … `placebo`)\n\nEnv: `XI_VIDEO_ENCODE_H264_PRESET`",
+              "title": "XI_VIDEO_ENCODE_H264_PRESET",
+              "type": "string"
+            },
+            "hevc_crf": {
+              "default": 28,
+              "description": "CRF of HEVC output (libx265, the gpl image) (0–51)\n\nEnv: XI_VIDEO_ENCODE_HEVC_CRF",
+              "markdownDescription": "CRF of HEVC output (libx265, the `gpl` image) (0–51)\n\nEnv: `XI_VIDEO_ENCODE_HEVC_CRF`",
+              "title": "XI_VIDEO_ENCODE_HEVC_CRF",
+              "type": "integer"
+            },
+            "hevc_preset": {
+              "default": "veryfast",
+              "description": "x265 preset (ultrafast … placebo)\n\nEnv: XI_VIDEO_ENCODE_HEVC_PRESET",
+              "markdownDescription": "x265 preset (`ultrafast` … `placebo`)\n\nEnv: `XI_VIDEO_ENCODE_HEVC_PRESET`",
+              "title": "XI_VIDEO_ENCODE_HEVC_PRESET",
+              "type": "string"
+            },
+            "max_duration": {
+              "$ref": "#/$defs/duration",
+              "default": "1m0s",
+              "description": "Longest video output, the sum of the frame delays (422)\n\nEnv: XI_VIDEO_ENCODE_MAX_DURATION",
+              "markdownDescription": "Longest video output, the sum of the frame delays (422)\n\nEnv: `XI_VIDEO_ENCODE_MAX_DURATION`",
+              "title": "XI_VIDEO_ENCODE_MAX_DURATION"
+            },
+            "max_frames": {
+              "default": 1000,
+              "description": "Most frames a video output may have (422)\n\nEnv: XI_VIDEO_ENCODE_MAX_FRAMES",
+              "markdownDescription": "Most frames a video output may have (422)\n\nEnv: `XI_VIDEO_ENCODE_MAX_FRAMES`",
+              "title": "XI_VIDEO_ENCODE_MAX_FRAMES",
+              "type": "integer"
+            },
+            "max_pixels": {
+              "default": 8294400,
+              "description": "Largest frame of a video output, width × height (4K UHD) (422)\n\nEnv: XI_VIDEO_ENCODE_MAX_PIXELS",
+              "markdownDescription": "Largest frame of a video output, width × height (4K UHD) (422)\n\nEnv: `XI_VIDEO_ENCODE_MAX_PIXELS`",
+              "title": "XI_VIDEO_ENCODE_MAX_PIXELS",
+              "type": "integer"
+            },
+            "vp9_crf": {
+              "default": 36,
+              "description": "CRF of WebM (VP9, libvpx) output when the request sets no quality (0–63). A request quality maps onto the scale around it: 80 is this CRF, 100 a quarter of it, 1 the worst (FORMATS.md §5.1)\n\nEnv: XI_VIDEO_ENCODE_VP9_CRF",
+              "markdownDescription": "CRF of WebM (VP9, libvpx) output when the request sets no quality (0–63). A request quality maps onto the scale around it: 80 is this CRF, 100 a quarter of it, 1 the worst (FORMATS.md §5.1)\n\nEnv: `XI_VIDEO_ENCODE_VP9_CRF`",
+              "title": "XI_VIDEO_ENCODE_VP9_CRF",
+              "type": "integer"
+            },
+            "vp9_speed": {
+              "default": 8,
+              "description": "libvpx cpu-used in its realtime mode (0–9; higher is faster and larger)\n\nEnv: XI_VIDEO_ENCODE_VP9_SPEED",
+              "markdownDescription": "libvpx `cpu-used` in its realtime mode (0–9; higher is faster and larger)\n\nEnv: `XI_VIDEO_ENCODE_VP9_SPEED`",
+              "title": "XI_VIDEO_ENCODE_VP9_SPEED",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "max_animation_frames": {
+          "default": 100,
+          "description": "Frames a video_thumbnail_tile sprite or a video_thumbnail_animation decodes (1–10000); larger grids keep their columns and lose rows, longer animations are cut. XI_LIMITS_MAX_ANIMATION_FRAMES and the pixel limits still apply to the result (422)\n\nEnv: XI_VIDEO_MAX_ANIMATION_FRAMES",
+          "markdownDescription": "Frames a `video_thumbnail_tile` sprite or a `video_thumbnail_animation` decodes (1–10000); larger grids keep their columns and lose rows, longer animations are cut. `XI_LIMITS_MAX_ANIMATION_FRAMES` and the pixel limits still apply to the result (422)\n\nEnv: `XI_VIDEO_MAX_ANIMATION_FRAMES`",
+          "title": "XI_VIDEO_MAX_ANIMATION_FRAMES",
+          "type": "integer"
+        },
         "max_bytes": {
           "$ref": "#/$defs/byteSize",
           "default": "100MiB",

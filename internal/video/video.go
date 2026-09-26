@@ -3,10 +3,13 @@
 // frame request (FrameRequest) and its limits, the timestamp rules of
 // imgproxy's video_thumbnail_second (Seek), the sample points and the
 // score of best-frame selection (SamplePoints, Score) and the display
-// matrix → EXIF orientation mapping (Orientation).
+// matrix → EXIF orientation mapping (Orientation); the layout of sprites
+// and animations of frames (Layout, WP-75); and the video output contract
+// (EncoderSet.Resolve, CRF, FrameDelay, WP-76).
 //
-// Decoding lives in internal/video/ffmpeg, which is built against FFmpeg
-// only with the `ffmpeg` build tag (the full image); without it that
+// Decoding and encoding live in internal/video/ffmpeg, which is built
+// against FFmpeg only with the `ffmpeg` build tag (the full and gpl
+// images); without it that
 // package reports every video as unsupported. This package builds and
 // tests with CGO_ENABLED=0.
 package video
@@ -269,6 +272,10 @@ type Settings struct {
 	// Samples and Span configure best-frame selection.
 	Samples int
 	Span    time.Duration
+	// MaxCompositeFrames caps the frames a sprite (video_thumbnail_tile)
+	// or an animation (video_thumbnail_animation) decodes
+	// (XI_VIDEO_MAX_ANIMATION_FRAMES); ≤ 0 is DefaultMaxCompositeFrames.
+	MaxCompositeFrames int
 }
 
 // Request returns the FrameRequest for a request's video options (nil
@@ -290,4 +297,20 @@ func (s *Settings) Request(second *float64, keyframes *bool, width, height int) 
 		r.Keyframes = *keyframes
 	}
 	return r
+}
+
+// FramesRequest selects several frames of one video, decoded on one open
+// handle (sprites and animations, WP-75).
+type FramesRequest struct {
+	// Times are the timestamps in seconds, in increasing order; each is
+	// clamped to the stream like Seek. Consecutive timestamps without a
+	// keyframe between them are decoded forward, without seeking.
+	Times []float64
+	// Keyframes decodes the keyframe at or before each timestamp.
+	Keyframes bool
+	// Width and Height are the size every frame is scaled to, as stored
+	// (before rotation); 0 decodes at the display size.
+	Width, Height int
+	// Limits are checked again before decoding.
+	Limits Limits
 }

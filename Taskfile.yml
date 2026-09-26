@@ -30,17 +30,17 @@ vars:
 env:
   XI_BASE_IMAGE:
     sh: echo "${XI_BASE_IMAGE:-ghcr.io/xantiagoma/xtandard-image-base:slim-builder}"
-  # Image flavor of XI_BASE_IMAGE (slim | full), from its tag unless set:
-  # the full flavor ships FFmpeg, so its builds and tests use -tags ffmpeg
-  # (video thumbnails, ADR 0010). XI_GO_TAGS overrides the tag list.
+  # Image flavor of XI_BASE_IMAGE (slim | full | gpl), from its tag unless
+  # set: the full and gpl flavors ship FFmpeg, so their builds and tests use
+  # -tags ffmpeg (video, ADR 0010). XI_GO_TAGS overrides the tag list.
   XI_IMAGE_FLAVOR:
     sh: |
       if [ -n "${XI_IMAGE_FLAVOR:-}" ]; then echo "$XI_IMAGE_FLAVOR"
-      else case "${XI_BASE_IMAGE:-}" in *full*) echo full ;; *) echo slim ;; esac; fi
+      else case "${XI_BASE_IMAGE:-}" in *full*) echo full ;; *gpl*) echo gpl ;; *) echo slim ;; esac; fi
   XI_GO_TAGS:
     sh: |
       if [ -n "${XI_GO_TAGS+x}" ]; then echo "$XI_GO_TAGS"
-      else case "${XI_IMAGE_FLAVOR:-${XI_BASE_IMAGE:-}}" in *full*) echo ffmpeg ;; *) echo "" ;; esac; fi
+      else case "${XI_IMAGE_FLAVOR:-${XI_BASE_IMAGE:-}}" in *full*|*gpl*) echo ffmpeg ;; *) echo "" ;; esac; fi
 
 tasks:
   default:
@@ -117,8 +117,8 @@ tasks:
           builder="$(sh scripts/base-image-ref.sh --digest builder)"
           runtime="$(sh scripts/base-image-ref.sh --digest runtime)"
         fi
-        # A full-flavor base carries FFmpeg: build with -tags ffmpeg (ADR 0010).
-        case "${XI_IMAGE_FLAVOR:-}:$runtime" in full:*|*:*full*) tags=ffmpeg ;; *) tags="" ;; esac
+        # A full- or gpl-flavor base carries FFmpeg: build with -tags ffmpeg (ADR 0010).
+        case "${XI_IMAGE_FLAVOR:-}:$runtime" in full:*|gpl:*|*:*full*|*:*gpl*) tags=ffmpeg ;; *) tags="" ;; esac
         docker build -t "${XI_IMAGE:-xtandard-image:dev}" \
           --build-arg BASE_BUILDER="$builder" --build-arg BASE_RUNTIME="$runtime" \
           --build-arg GO_TAGS="$tags" \

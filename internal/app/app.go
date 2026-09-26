@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/xantiagoma/xtandard-image/internal/apidoc"
@@ -200,8 +201,9 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	if err := checkVideo(cfg); err != nil {
 		return err
 	}
-	logger.LogAttrs(ctx, slog.LevelInfo, "video thumbnails",
-		slog.Bool("enabled", videoSettings(cfg).Enabled), slog.String("ffmpeg", codec.VideoVersion()))
+	logger.LogAttrs(ctx, slog.LevelInfo, "video",
+		slog.Bool("enabled", videoSettings(cfg).Enabled), slog.String("ffmpeg", codec.VideoVersion()),
+		slog.String("encoders", strings.Join(codec.VideoEncoders().Names(), ",")))
 	proc, err := newProcessor(cfg, wm, lim.Reserve)
 	if err != nil {
 		return err

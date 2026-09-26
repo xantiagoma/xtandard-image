@@ -1,0 +1,65 @@
+goos: linux
+goarch: arm64
+pkg: github.com/xantiagoma/xtandard-image/internal/video/ffmpeg
+BenchmarkFrames/h264/session-8         	      10	  53773022 ns/op	    9444 B/op	      90 allocs/op
+BenchmarkFrames/h264/session-8         	      10	  57178807 ns/op	    9446 B/op	      90 allocs/op
+BenchmarkFrames/h264/session-8         	      10	  56222315 ns/op	    9446 B/op	      90 allocs/op
+BenchmarkFrames/h264/session-8         	      10	  51695773 ns/op	    9444 B/op	      90 allocs/op
+BenchmarkFrames/h264/session-8         	      10	  51408104 ns/op	    9444 B/op	      90 allocs/op
+BenchmarkFrames/h264/session-8         	      10	  53644620 ns/op	    9444 B/op	      90 allocs/op
+BenchmarkFrames/h264/session-8         	      10	  51056068 ns/op	    9444 B/op	      90 allocs/op
+BenchmarkFrames/h264/session-8         	      10	  54188084 ns/op	    9444 B/op	      90 allocs/op
+BenchmarkFrames/h264/session-8         	      10	  51043955 ns/op	    9446 B/op	      90 allocs/op
+BenchmarkFrames/h264/session-8         	      10	  51061401 ns/op	    9444 B/op	      90 allocs/op
+BenchmarkFrames/h264/thumbnails-8      	      10	 324748765 ns/op	   34840 B/op	     460 allocs/op
+BenchmarkFrames/h264/thumbnails-8      	      10	 321486656 ns/op	   34840 B/op	     460 allocs/op
+BenchmarkFrames/h264/thumbnails-8      	      10	 322322260 ns/op	   34840 B/op	     460 allocs/op
+BenchmarkFrames/h264/thumbnails-8      	      10	 332142296 ns/op	   34841 B/op	     460 allocs/op
+BenchmarkFrames/h264/thumbnails-8      	      10	 325150869 ns/op	   34838 B/op	     460 allocs/op
+BenchmarkFrames/h264/thumbnails-8      	      10	 324129072 ns/op	   34840 B/op	     460 allocs/op
+BenchmarkFrames/h264/thumbnails-8      	      10	 323977454 ns/op	   34840 B/op	     460 allocs/op
+BenchmarkFrames/h264/thumbnails-8      	      10	 326503252 ns/op	   34840 B/op	     460 allocs/op
+BenchmarkFrames/h264/thumbnails-8      	      10	 326710288 ns/op	   34840 B/op	     460 allocs/op
+BenchmarkFrames/h264/thumbnails-8      	      10	 324323570 ns/op	   34838 B/op	     460 allocs/op
+BenchmarkFrames/vp9/session-8          	      10	  17382905 ns/op	    8068 B/op	      66 allocs/op
+BenchmarkFrames/vp9/session-8          	      10	  18389339 ns/op	    8070 B/op	      66 allocs/op
+BenchmarkFrames/vp9/session-8          	      10	  17489439 ns/op	    8068 B/op	      66 allocs/op
+BenchmarkFrames/vp9/session-8          	      10	  18128533 ns/op	    8070 B/op	      66 allocs/op
+BenchmarkFrames/vp9/session-8          	      10	  17468377 ns/op	    8068 B/op	      66 allocs/op
+BenchmarkFrames/vp9/session-8          	      10	  17240237 ns/op	    8070 B/op	      66 allocs/op
+BenchmarkFrames/vp9/session-8          	      10	  17181045 ns/op	    8070 B/op	      66 allocs/op
+BenchmarkFrames/vp9/session-8          	      10	  17229608 ns/op	    8068 B/op	      66 allocs/op
+BenchmarkFrames/vp9/session-8          	      10	  17649578 ns/op	    8068 B/op	      66 allocs/op
+BenchmarkFrames/vp9/session-8          	      10	  17160445 ns/op	    8068 B/op	      66 allocs/op
+BenchmarkFrames/vp9/thumbnails-8       	      10	  43777855 ns/op	   21076 B/op	     220 allocs/op
+BenchmarkFrames/vp9/thumbnails-8       	      10	  46382925 ns/op	   21076 B/op	     220 allocs/op
+BenchmarkFrames/vp9/thumbnails-8       	      10	  44249472 ns/op	   21078 B/op	     220 allocs/op
+BenchmarkFrames/vp9/thumbnails-8       	      10	  44739901 ns/op	   21078 B/op	     220 allocs/op
+BenchmarkFrames/vp9/thumbnails-8       	      10	  44698605 ns/op	   21076 B/op	     220 allocs/op
+BenchmarkFrames/vp9/thumbnails-8       	      10	  44165954 ns/op	   21078 B/op	     220 allocs/op
+BenchmarkFrames/vp9/thumbnails-8       	      10	  44869832 ns/op	   21076 B/op	     220 allocs/op
+BenchmarkFrames/vp9/thumbnails-8       	      10	  44849519 ns/op	   21076 B/op	     220 allocs/op
+BenchmarkFrames/vp9/thumbnails-8       	      10	  44324181 ns/op	   21078 B/op	     220 allocs/op
+BenchmarkFrames/vp9/thumbnails-8       	      10	  43990474 ns/op	   21078 B/op	     220 allocs/op
+BenchmarkFrames/av1/session-8          	      10	  41219623 ns/op	    8136 B/op	      72 allocs/op
+BenchmarkFrames/av1/session-8          	      10	  40513654 ns/op	    8134 B/op	      72 allocs/op
+BenchmarkFrames/av1/session-8          	      10	  41383196 ns/op	    8136 B/op	      72 allocs/op
+BenchmarkFrames/av1/session-8          	      10	  41637769 ns/op	    8134 B/op	      72 allocs/op
+BenchmarkFrames/av1/session-8          	      10	  41966922 ns/op	    8136 B/op	      72 allocs/op
+BenchmarkFrames/av1/session-8          	      10	  41248232 ns/op	    8134 B/op	      72 allocs/op
+BenchmarkFrames/av1/session-8          	      10	  41063722 ns/op	    8136 B/op	      72 allocs/op
+BenchmarkFrames/av1/session-8          	      10	  41694294 ns/op	    8134 B/op	      72 allocs/op
+BenchmarkFrames/av1/session-8          	      10	  40867858 ns/op	    8136 B/op	      72 allocs/op
+BenchmarkFrames/av1/session-8          	      10	  41622827 ns/op	    8134 B/op	      72 allocs/op
+BenchmarkFrames/av1/thumbnails-8       	      10	 130579792 ns/op	   21720 B/op	     280 allocs/op
+BenchmarkFrames/av1/thumbnails-8       	      10	 131609222 ns/op	   21721 B/op	     280 allocs/op
+BenchmarkFrames/av1/thumbnails-8       	      10	 130474436 ns/op	   21720 B/op	     280 allocs/op
+BenchmarkFrames/av1/thumbnails-8       	      10	 130382244 ns/op	   21720 B/op	     280 allocs/op
+BenchmarkFrames/av1/thumbnails-8       	      10	 129355697 ns/op	   21720 B/op	     280 allocs/op
+BenchmarkFrames/av1/thumbnails-8       	      10	 131164759 ns/op	   21723 B/op	     280 allocs/op
+BenchmarkFrames/av1/thumbnails-8       	      10	 129994065 ns/op	   21720 B/op	     280 allocs/op
+BenchmarkFrames/av1/thumbnails-8       	      10	 131326590 ns/op	   21721 B/op	     280 allocs/op
+BenchmarkFrames/av1/thumbnails-8       	      10	 133641615 ns/op	   21720 B/op	     280 allocs/op
+BenchmarkFrames/av1/thumbnails-8       	      10	 140336964 ns/op	   21723 B/op	     280 allocs/op
+PASS
+ok  	github.com/xantiagoma/xtandard-image/internal/video/ffmpeg	61.556s

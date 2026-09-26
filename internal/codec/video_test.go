@@ -198,7 +198,7 @@ func TestVideoFrameCanceled(t *testing.T) {
 	err := vips.Run(ctx, func() error {
 		cancel()
 		req := video.FrameRequest{Second: new(1.0)}
-		img, _, err := codec.VideoFrame(ctx, buf, &req)
+		img, _, err := codec.VideoFrame(ctx, buf, nil, &req)
 		img.Close()
 		return err
 	})

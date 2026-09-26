@@ -257,6 +257,18 @@ This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS`
 | `XI_VIDEO_THUMBNAIL_KEYFRAMES` | `false` | Take the keyframe at or before the timestamp instead of the exact frame (faster, less precise; imgproxy `IMGPROXY_VIDEO_THUMBNAIL_KEYFRAMES`); a request's `video_thumbnail_keyframes` overrides it |
 | `XI_VIDEO_THUMBNAIL_SAMPLES` | `5` | Keyframes best-frame selection compares (1–32) |
 | `XI_VIDEO_THUMBNAIL_SPAN` | `10s` | How much of the start of a video best-frame selection samples |
+| `XI_VIDEO_MAX_ANIMATION_FRAMES` | `100` | Frames a `video_thumbnail_tile` sprite or a `video_thumbnail_animation` decodes (1–10000); larger grids keep their columns and lose rows, longer animations are cut. `XI_LIMITS_MAX_ANIMATION_FRAMES` and the pixel limits still apply to the result (422) |
+| `XI_VIDEO_ENCODE_VP9_CRF` | `36` | CRF of WebM (VP9, libvpx) output when the request sets no quality (0–63). A request quality maps onto the scale around it: 80 is this CRF, 100 a quarter of it, 1 the worst (FORMATS.md §5.1) |
+| `XI_VIDEO_ENCODE_AV1_CRF` | `36` | CRF of AV1-in-MP4 output (libaom, the `full` image) (0–63) |
+| `XI_VIDEO_ENCODE_H264_CRF` | `25` | CRF of H.264 MP4 output (libx264, the `gpl` image) (0–51) |
+| `XI_VIDEO_ENCODE_HEVC_CRF` | `28` | CRF of HEVC output (libx265, the `gpl` image) (0–51) |
+| `XI_VIDEO_ENCODE_VP9_SPEED` | `8` | libvpx `cpu-used` in its realtime mode (0–9; higher is faster and larger) |
+| `XI_VIDEO_ENCODE_AV1_SPEED` | `8` | libaom `cpu-used` in its realtime mode (0–10; higher is faster and larger) |
+| `XI_VIDEO_ENCODE_H264_PRESET` | `veryfast` | x264 preset (`ultrafast` … `placebo`) |
+| `XI_VIDEO_ENCODE_HEVC_PRESET` | `veryfast` | x265 preset (`ultrafast` … `placebo`) |
+| `XI_VIDEO_ENCODE_MAX_FRAMES` | `1000` | Most frames a video output may have (422) |
+| `XI_VIDEO_ENCODE_MAX_DURATION` | `1m` | Longest video output, the sum of the frame delays (422) |
+| `XI_VIDEO_ENCODE_MAX_PIXELS` | `8294400` | Largest frame of a video output, width × height (4K UHD) (422) |
 | `XI_VIPS_CONCURRENCY` | `1` | libvips threads per image; change only with benchmarks |
 | `XI_VIPS_FAIL_ON` | `warning` | |
 

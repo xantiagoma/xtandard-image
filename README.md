@@ -1,6 +1,6 @@
 # xtandard-image
 
-> **Status: alpha.** Milestones **M1, M2 and M3 are on `main`** (M3 except video tiles/animation and GIF → video, which are in progress): every URL dialect below is served end to end from every source type, with the imgproxy processing set apart from detection, video and the advanced watermarks (chained pipelines, colour adjustments, geometry and filter extras, best format and auto-quality), camera RAW, PDF, PSD and HDR inputs, a memory/disk/S3/Redis result cache, `/info` with the Pro fields, client hints, signing, encryption, a JSON Schema for the config file and an OpenAPI document. M3 (merged in #80–#92) added the `full` image with FFmpeg and ONNX Runtime, face/object detection with detection-based crops and filters, video thumbnails, the imgix mount, advanced and text watermarks, the playground, the TypeScript package, the Pages/SchemaStore site build, the `gpl` image flavour and a stabilisation pass. In progress: video tiles/animation and GIF → video. No release has been tagged yet, so you build the image yourself (below), and configuration and URL options may still change before 1.0.
+> **Status: alpha.** Milestones **M1, M2 and M3 are on `main`**: every URL dialect below is served end to end from every source type, with the imgproxy processing set apart from detection, video and the advanced watermarks (chained pipelines, colour adjustments, geometry and filter extras, best format and auto-quality), camera RAW, PDF, PSD and HDR inputs, a memory/disk/S3/Redis result cache, `/info` with the Pro fields, client hints, signing, encryption, a JSON Schema for the config file and an OpenAPI document. M3 (merged in #80–#92) added the `full` image with FFmpeg and ONNX Runtime, face/object detection with detection-based crops and filters, video thumbnails, the imgix mount, advanced and text watermarks, the playground, the TypeScript package, the Pages/SchemaStore site build, the `gpl` image flavour and a stabilisation pass. In progress: video tiles/animation and GIF → video. No release has been tagged yet, so you build the image yourself (below), and configuration and URL options may still change before 1.0.
 
 A self-hosted image processing proxy in Go and libvips. The goal is to offer every imgproxy Pro processing feature for free under the MIT license, support more input formats than anything else in the category, and accept many URL dialects: imgproxy, imgix, Cloudinary, ImageKit, Cloudflare, Bunny, Thumbor, wsrv/weserv, AWS Serverless Image Handler and the rest of the [unpic](https://unpic.pics/providers/) provider list. It ships as a ready-to-run Docker image for Dokploy, Coolify and Kubernetes, with no build step.
 
@@ -45,8 +45,9 @@ The xtandard-image column is the state as of 2026-09-28: **done (M1)** / **done 
 | PDF (PDFium) / PSD thumbnails | done (M2) | no | paid | no | partial (PDF) | partial (PDF) |
 | HDR input (OpenEXR, Radiance, PPM/PFM; tone-mapped or `preserve_hdr`) | done (M2) | — | — | — | — | — |
 | Best-format and auto-quality (DSSIM) | done (M2) | no | paid | no | no | no |
-| Video thumbnails (frame at a time, keyframe, best frame; `/info` video metadata) | done (M3, full image) | no | paid | partial (ffmpeg engine) | no | no |
-| GIF → MP4/WebM, video tiles and animation | in progress (WP-75/76, `full`/`gpl` images) | no | paid | partial (ffmpeg engine) | no | no |
+| Video thumbnails (frame at a time, keyframe, best frame; `/info` video metadata) | done (M3, `full` image) | no | paid | partial (ffmpeg engine) | no | no |
+| Video sprites and animations (`vtt`, `vta`) | done (M3, `full` image) | no | paid | no | no | no |
+| GIF → MP4/WebM | done (M3: WebM/VP9 and AV1-in-MP4 in `full`, H.264 MP4 and HEVC in `gpl`) | no | paid (MP4) | no | no | no |
 | **Processing** | | | | | | |
 | Resize, crop, gravity, smart crop, focus point (fractions or source pixels) | done (M1, M2) | yes | yes | yes | yes | yes |
 | Extend, padding, trim | done (M1) | yes | yes | — | — | — |

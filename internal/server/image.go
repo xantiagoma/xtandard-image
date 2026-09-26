@@ -223,12 +223,13 @@ func (s *Server) produce(ctx context.Context, r *http.Request, info *requestInfo
 
 	// 11. Probe: sanitise SVG, read the header, enforce input limits.
 	t = s.stage(info, stageProbe)
-	src, meta, err := s.probe(ctx, fr.Buffer, &lim.probe)
+	src, meta, err := s.probe(ctx, req, fr.Buffer, &lim.probe)
 	t.done()
 	if err != nil {
 		return nil, err
 	}
 	defer src.Release()
+	defer meta.closeSession()
 
 	// 7. Negotiate the output format (needs the source meta).
 	t = s.stage(info, stageNegotiate)
@@ -374,7 +375,7 @@ func (s *Server) run(ctx context.Context, in *ProcessInput) (*ProcessOutput, err
 // new buffer before anything parses it, so neither the probe nor librsvg
 // ever sees scripts, external references or entities (ARCHITECTURE §10).
 // The returned buffer holds one reference owned by the caller.
-func (s *Server) probe(ctx context.Context, buf fetch.Buffer, lim *ProbeLimits) (fetch.Buffer, SourceMeta, error) {
+func (s *Server) probe(ctx context.Context, req *transform.Request, buf fetch.Buffer, lim *ProbeLimits) (fetch.Buffer, SourceMeta, error) {
 	ctx, span := s.deps.Tracer.Start(ctx, "probe")
 	defer span.End()
 
@@ -390,9 +391,12 @@ func (s *Server) probe(ctx context.Context, buf fetch.Buffer, lim *ProbeLimits) 
 		err = errs.New(errs.KindUnsupported, "server: prober found svg the sniffer missed")
 	}
 	if err == nil {
+		// A video sprite or animation is checked as what is assembled.
+		videoComposite(req, &meta, s.cfg.Limits.MaxVideoCompositeFrames)
 		err = checkMeta(&meta, lim)
 	}
 	if err != nil {
+		meta.closeSession()
 		src.Release()
 		span.SetStatus(codes.Error, errs.KindOf(err).String())
 		return nil, SourceMeta{}, err

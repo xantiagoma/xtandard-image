@@ -52,6 +52,9 @@ func (e *Encoder) encode(ctx context.Context, img *vips.Image, t *Target) (*Resu
 	if err := ctx.Err(); err != nil {
 		return nil, errs.Wrap(errs.KindOf(err), context.Cause(ctx))
 	}
+	if t.Format.IsVideo() {
+		return e.encodeVideo(ctx, img, t)
+	}
 	if t.Format == transform.FormatHEIC && !e.cfg.HEICEncode {
 		return nil, errs.New(errs.KindUnsupported, "encode: heic output is disabled (XI_FORMATS_HEIC_ENCODE)")
 	}
