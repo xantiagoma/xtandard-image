@@ -4,7 +4,7 @@
 # base image, so every contributor and agent uses the same libvips and Go.
 #   task docker:lint docker:test
 #   XI_BASE_IMAGE=xtandard-base:dev-builder task docker:test   # locally built base (WP-05)
-#   task test:integration   # starts compose.test.yml services (MinIO, ...) and runs
+#   task test:integration   # starts compose.test.yml services (RustFS, ...) and runs
 #                           # -tags integration tests in the builder on their network
 #   task acceptance         # black-box M1 suite against the app image $XI_IMAGE (WP-39)
 #

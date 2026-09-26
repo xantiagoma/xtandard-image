@@ -1,0 +1,3 @@
+go test fuzz v1
+string("/bcdn_token=HS256-&token_path=%2F&expires=9999999999&token_ignore_params=true/a:b/c.jpg")
+string("class=x&aspect_ratio=0.001:1000&width=1&height=1000000&focus_crop=1,1,1.0,0.")

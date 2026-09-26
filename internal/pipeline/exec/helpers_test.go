@@ -134,10 +134,19 @@ func jobMeta(tb testing.TB, header, data []byte, req *transform.Request, out tra
 		Meta: plan.SourceMeta{
 			Width: m.Width, Height: m.Height, Frames: max(m.Frames, m.Pages), HasAlpha: m.HasAlpha,
 			Orientation: m.Orientation, IsAnimated: m.IsAnimated, Format: name,
-			IsVector: m.Format == codec.FormatSVG,
+			IsVector: m.Format == codec.FormatSVG || m.Format == codec.FormatPDF, Density: density(m.Format),
+			HDR: m.HDR,
 		},
 		Target: encode.NewTarget(&req.Output, &d, m.IsAnimated),
 	}, buf
+}
+
+// density is the probe density of vector formats (XI_FORMATS_PDF_DPI).
+func density(f codec.Format) float64 {
+	if f == codec.FormatPDF {
+		return 72
+	}
+	return 0
 }
 
 // output is a processed image decoded back to pixels.

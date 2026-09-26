@@ -2,9 +2,11 @@ package exec
 
 import (
 	"context"
+	"fmt"
 	"image"
 	"slices"
 
+	"github.com/xantiagoma/xtandard-image/internal/codec/raw"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
@@ -22,19 +24,40 @@ type runner struct {
 	req  *transform.Request // j.Request planned for the output format
 	a    *vips.Arena
 	plan *plan.Plan // root plan; replaced by plan.Continue
+	// cur is the plan of the pipeline that ran last (the root, or a
+	// chained plan from plan.Chain): its Output is the response's.
+	cur *plan.Plan
 	// meta is j.Meta, with the size of the loaded page when a page other
 	// than the first has its own size (multi-page TIFF).
 	meta plan.SourceMeta
 	// iccImported is set once the source profile was converted to sRGB, so
 	// the output colour step drops the (now wrong) embedded profile.
 	iccImported bool
-	skipped     []string
+	// hdrDone is set once a scene-linear source went through fromHDR.
+	hdrDone bool
+	// profileEmbedded is set when color_profile converted the result and
+	// attached its profile, which the encoder must then keep.
+	profileEmbedded bool
+	skipped         []string
+	// transparent renders PDF pages on a transparent background
+	// (pdfTransparent); otherwise they are opaque.
+	transparent bool
+	// coverage caches the rasterised mask and radius outlines per frame
+	// size (geometry_extras.go).
+	coverage map[coverageKey][]byte
+	// rawHdr is the LibRaw header of a camera RAW source (planRaw), and
+	// rawPath how it was decoded.
+	rawHdr  *raw.Header
+	rawPath string
+	// stackAlpha is set when loadStack gave stacked pages an alpha band the
+	// source header did not announce.
+	stackAlpha bool
 }
 
 // last returns the plan whose Output is the response.
 func (r *runner) last() *plan.Plan {
-	if n := len(r.plan.Chained); n > 0 {
-		return r.plan.Chained[n-1]
+	if r.cur != nil {
+		return r.cur
 	}
 	return r.plan
 }
@@ -56,6 +79,9 @@ func (r *runner) replan(obs plan.Observed) error {
 }
 
 func (r *runner) execute(ctx context.Context) (*vips.Image, error) {
+	if err := r.measureSelection(ctx); err != nil {
+		return nil, err
+	}
 	img, err := r.loadObserved(ctx)
 	if err != nil {
 		return nil, err
@@ -63,24 +89,64 @@ func (r *runner) execute(ctx context.Context) (*vips.Image, error) {
 	for _, u := range r.plan.Unplanned {
 		r.skip(u)
 	}
-	img, err = r.pipeline(ctx, img, true)
-	if err != nil {
-		return nil, err
+	if !r.hdrPending() && r.req.Output.PreserveHDR != nil && *r.req.Output.PreserveHDR {
+		// Only scene-linear sources keep more than 8 bits so far (fromHDR).
+		r.skip("preserve_hdr")
 	}
-	// Chained pipelines run on the materialised result of the previous one
-	// (r.plan may have been replaced while the root ran).
-	for _, c := range r.plan.Chained {
-		for _, u := range c.Unplanned {
-			r.skip(u)
-		}
-		if img, err = r.a.Add(img.CopyMemory(ctx)); err != nil {
-			return nil, err
-		}
-		if img, err = r.run(ctx, img, c, 0, false); err != nil {
-			return nil, err
+	img, err = r.pipeline(ctx, img)
+	if err != nil {
+		return nil, pipelineErr(0, len(r.plan.Chained), err)
+	}
+	r.cur = r.plan
+	// r.plan may have been replaced while the root ran; its Chained are
+	// only the prediction.
+	n := len(r.plan.Chained)
+	for i := 1; i <= n; i++ {
+		if img, err = r.chained(ctx, img, i); err != nil {
+			return nil, pipelineErr(i, n, err)
 		}
 	}
 	return img, nil
+}
+
+// pipelineErr attributes err to pipeline i when the request chains several.
+func pipelineErr(i, chained int, err error) error {
+	if chained == 0 {
+		return err
+	}
+	return fmt.Errorf("exec: pipeline %d: %w", i, err)
+}
+
+// chained plans pipeline i on the observed result of pipeline i−1 (img) and
+// runs it (imgproxy Pro chained pipelines): the geometry sees the real size,
+// frame count and alpha, never the prediction.
+func (r *runner) chained(ctx context.Context, img *vips.Image, i int) (*vips.Image, error) {
+	if err := ctxErr(ctx); err != nil {
+		return nil, err
+	}
+	in := plan.Input{Width: img.Width(), Height: img.PageHeight(), Frames: img.Pages(), Alpha: img.HasAlpha()}
+	p, err := plan.Chain(r.req, r.meta, r.e.cfg.Limits, i, in, nil)
+	if err != nil {
+		return nil, err
+	}
+	r.cur = p
+	for _, u := range p.Unplanned {
+		r.skip(u)
+	}
+	if p.Materialize {
+		if img, err = r.a.Add(img.CopyMemory(ctx)); err != nil {
+			return nil, err
+		}
+	}
+	trimmed := func(w, h int) (*plan.Plan, error) {
+		np, err := plan.Chain(r.req, r.meta, r.e.cfg.Limits, i, in, &plan.Observed{Width: w, Height: h, Trimmed: true})
+		if err != nil {
+			return nil, err
+		}
+		r.cur = np
+		return np, nil
+	}
+	return r.run(ctx, img, p, 0, trimmed)
 }
 
 // loadObserved loads the source and reports the loaded size to the planner
@@ -105,8 +171,9 @@ func (r *runner) loadObserved(ctx context.Context) (*vips.Image, error) {
 			ls = r.plan.Load
 			return r.load(ctx, &ls, nil)
 		}
-	case (w != ls.Width || h != ls.Height) && ls.Page > 0 && ls.ShrinkOnLoad <= 1 && ls.Scale == 0:
-		// The header describes the first page; this one has its own size.
+	case (w != ls.Width || h != ls.Height || r.stackAlpha) && (ls.Page > 0 || ls.NPages > 1) && ls.ShrinkOnLoad <= 1 && ls.Scale == 0:
+		// The header describes the first page; this one (or the stack of
+		// pages) has its own size.
 		if err := r.replanPage(w, h); err != nil {
 			return nil, err
 		}
@@ -118,19 +185,31 @@ func (r *runner) loadObserved(ctx context.Context) (*vips.Image, error) {
 	return img, nil
 }
 
+// replanFunc returns the plan to continue with after a TrimStep left a w×h
+// image; nil means the plan is kept.
+type replanFunc func(w, h int) (*plan.Plan, error)
+
 // pipeline runs the root plan on img: Steps (per frame for animations), then
-// After. root allows trim to replan.
-func (r *runner) pipeline(ctx context.Context, img *vips.Image, root bool) (*vips.Image, error) {
-	return r.run(ctx, img, r.plan, 0, root)
+// After. A trim replans the root with the trimmed size.
+func (r *runner) pipeline(ctx context.Context, img *vips.Image) (*vips.Image, error) {
+	return r.run(ctx, img, r.plan, 0, r.replanTrimmed)
+}
+
+// replanTrimmed continues the root plan after its trim.
+func (r *runner) replanTrimmed(w, h int) (*plan.Plan, error) {
+	if err := r.replan(plan.Observed{Width: w, Height: h, Trimmed: true}); err != nil {
+		return nil, err
+	}
+	return r.plan, nil
 }
 
 // run executes p from step start, then p's After steps on the whole image.
-func (r *runner) run(ctx context.Context, img *vips.Image, p *plan.Plan, start int, root bool) (*vips.Image, error) {
+func (r *runner) run(ctx context.Context, img *vips.Image, p *plan.Plan, start int, trimmed replanFunc) (*vips.Image, error) {
 	var err error
 	if p.Animation != nil && img.Pages() > 1 {
 		img, err = r.frames(ctx, img, p, start)
 	} else {
-		img, p, err = r.steps(ctx, img, p, start, root)
+		img, p, err = r.steps(ctx, img, p, start, trimmed)
 	}
 	if err != nil {
 		return nil, err
@@ -167,7 +246,7 @@ func (r *runner) frames(ctx context.Context, img *vips.Image, p *plan.Plan, star
 		if f, err = r.a.Add(f.RemoveMetadata(ctx, vips.FieldPageHeight, vips.FieldNPages)); err != nil {
 			return nil, err
 		}
-		if f, _, err = r.steps(ctx, f, p, start, false); err != nil {
+		if f, _, err = r.steps(ctx, f, p, start, nil); err != nil {
 			return nil, err
 		}
 		out = append(out, f)
@@ -198,10 +277,10 @@ func (r *runner) frames(ctx context.Context, img *vips.Image, p *plan.Plan, star
 	return r.a.Add(joined.SetInt(ctx, vips.FieldLoop, loop))
 }
 
-// steps runs p.Steps[start:] on a single image. A trim on the root plan
-// replans with the trimmed size and continues on the new plan, which is
-// returned.
-func (r *runner) steps(ctx context.Context, img *vips.Image, p *plan.Plan, start int, root bool) (*vips.Image, *plan.Plan, error) {
+// steps runs p.Steps[start:] on a single image. A trim replans with the
+// trimmed size through trimmed (when set) and continues on the new plan,
+// which is returned.
+func (r *runner) steps(ctx context.Context, img *vips.Image, p *plan.Plan, start int, trimmed replanFunc) (*vips.Image, *plan.Plan, error) {
 	var err error
 	for i := start; i < len(p.Steps); i++ {
 		if err := ctxErr(ctx); err != nil {
@@ -212,13 +291,12 @@ func (r *runner) steps(ctx context.Context, img *vips.Image, p *plan.Plan, start
 			if img, err = r.trim(ctx, img, &t); err != nil {
 				return nil, nil, err
 			}
-			if !root {
+			if trimmed == nil {
 				continue
 			}
-			if err := r.replan(plan.Observed{Width: img.Width(), Height: img.Height(), Trimmed: true}); err != nil {
+			if p, err = trimmed(img.Width(), img.Height()); err != nil {
 				return nil, nil, err
 			}
-			p = r.plan
 			i = trimIndex(p.Steps)
 			if i < 0 {
 				return nil, nil, errs.New(errs.KindInternal, "exec: replanned trim lost its step")

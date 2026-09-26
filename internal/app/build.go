@@ -12,9 +12,16 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/awssih"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/bunny"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/cloudflare"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/cloudinary"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/imagekit"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/query"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/router"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/thumbor"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/wsrv"
 	"github.com/xantiagoma/xtandard-image/internal/fetch/azuresrc"
 	"github.com/xantiagoma/xtandard-image/internal/fetch/fssrc"
 	"github.com/xantiagoma/xtandard-image/internal/fetch/ftpsrc"
@@ -45,8 +52,9 @@ func (p infoParser) Name() string { return infoDialect }
 func (p infoParser) Parse(in *dialect.Input) (*dialect.Result, error) { return p.ParseInfo(in) }
 
 // buildRouter builds the signing verifiers, presets, the available dialects
-// (imgproxy and query in M1) and the router. warnings lists enabled dialects
-// that are not implemented yet; their mounts are skipped.
+// (imgproxy, query, imagekit, cloudflare, cloudflare_images, wsrv, thumbor,
+// bunny, awssih and cloudinary) and the router. warnings lists enabled dialects that are not implemented yet; their
+// mounts are skipped.
 func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err error) {
 	keys := make([]sign.Key, 0, len(cfg.Signing.Keys))
 	for i, k := range cfg.Signing.Keys {
@@ -131,7 +139,39 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		return nil, nil, fmt.Errorf("query dialect: %w", err)
 	}
 
-	dialects := map[string]dialect.Dialect{imgproxy.Name: ip, infoDialect: infoParser{ip}, query.Name: q}
+	cfOpts := cloudflare.Options{Strict: cfg.Dialects.Strict, XIVerifier: qOpts.XIVerifier}
+	cf, err := cloudflare.New(&cfOpts)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cloudflare dialect: %w", err)
+	}
+
+	wsOpts := wsrv.Options{Strict: cfg.Dialects.Strict}
+	if ring != nil || len(trusted) > 0 {
+		if wsOpts.XIVerifier, err = sign.NewXIVerifier(sign.XIOptions{Keys: ring, Size: cfg.Signing.Size, Trusted: trusted, Required: required}); err != nil {
+			return nil, nil, fmt.Errorf("wsrv xi_sig verifier: %w", err)
+		}
+	}
+	ws, err := wsrv.New(&wsOpts)
+	if err != nil {
+		return nil, nil, fmt.Errorf("wsrv dialect: %w", err)
+	}
+
+	th, err := newThumbor(cfg.Dialects.Thumbor.Keys, cfg.Dialects.Strict, required)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	dialects := map[string]dialect.Dialect{
+		imgproxy.Name: ip, infoDialect: infoParser{ip}, query.Name: q, cloudflare.Name: cf, wsrv.Name: ws, thumbor.Name: th,
+	}
+	if sih := &cfg.Dialects.AWSSIH; sih.Enabled {
+		p, warn, err := buildAWSSIH(cfg)
+		if err != nil {
+			return nil, nil, err
+		}
+		dialects[awssih.Name] = p
+		warnings = append(warnings, warn...)
+	}
 	opts := &router.Options{
 		Policy: router.Policy(cfg.Security.UnsignedPolicy),
 		Restrictions: router.Restrictions{
@@ -164,7 +204,35 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	}
 	addMounts(imgproxy.Name, &cfg.Dialects.Imgproxy.Mount)
 	addMounts(query.Name, &cfg.Dialects.Query)
-	if cfg.Dialects.Query.Enabled {
+	if err := addImageKit(cfg, ipOpts.Presets, required, dialects, opts); err != nil {
+		return nil, nil, err
+	}
+	addMounts(cloudflare.Name, &cfg.Dialects.Cloudflare)
+	if err := addCloudflareImages(cfg, opts, dialects, ipOpts.Presets); err != nil {
+		return nil, nil, err
+	}
+	addMounts(wsrv.Name, &cfg.Dialects.Wsrv)
+	if err := addThumborMounts(cfg, required, dialects, opts); err != nil {
+		return nil, nil, err
+	}
+	if err := addBunnyMounts(cfg, ipOpts.Presets, dialects, opts); err != nil {
+		return nil, nil, err
+	}
+	addMounts(awssih.Name, &cfg.Dialects.AWSSIH.Mount)
+	if err := addCloudinary(cfg, ipOpts.Presets, required, dialects, opts); err != nil {
+		return nil, nil, err
+	}
+	if err := addSimpleDialects(cfg, qOpts.XIVerifier, dialects, opts); err != nil {
+		return nil, nil, err
+	}
+	// Root "/?url=" (URL-DIALECTS §1): wsrv when enabled, else query.
+	switch {
+	case cfg.Dialects.Wsrv.Enabled:
+		opts.RootURL = &router.Mount{
+			Name: "wsrv/?url", Dialect: wsrv.Name, Source: cfg.Dialects.Wsrv.Source,
+			Policy: router.Policy(cfg.Dialects.Wsrv.UnsignedPolicy),
+		}
+	case cfg.Dialects.Query.Enabled:
 		opts.RootURL = &router.Mount{
 			Name: "query/?url", Dialect: query.Name, Source: cfg.Dialects.Query.Source,
 			Policy: router.Policy(cfg.Dialects.Query.UnsignedPolicy),
@@ -177,11 +245,7 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	}
 
 	for name, enabled := range map[string]bool{
-		"wsrv": cfg.Dialects.Wsrv.Enabled, "cloudflare": cfg.Dialects.Cloudflare.Enabled,
-		"cloudflare_images": cfg.Dialects.CloudflareImages.Enabled, "imgix": cfg.Dialects.Imgix.Enabled,
-		"cloudinary": cfg.Dialects.Cloudinary.Enabled, "imagekit": cfg.Dialects.Imagekit.Enabled,
-		"bunny": cfg.Dialects.Bunny.Enabled, "thumbor": cfg.Dialects.Thumbor.Enabled,
-		"simple": len(cfg.Dialects.Simple.Enabled) > 0,
+		"imgix": cfg.Dialects.Imgix.Enabled,
 	} {
 		if enabled {
 			warnings = append(warnings, "dialect "+name+" is enabled but not implemented yet; its mounts are skipped")
@@ -194,6 +258,273 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		return nil, nil, err
 	}
 	return rt, warnings, nil
+}
+
+// addImageKit registers one ImageKit parser per enabled mount, each
+// verifying ik-s with that mount's private keys (XI_DIALECTS_IMAGEKIT_KEYS,
+// raw strings), and its router mount. Mount i > 0 is keyed "imagekit[i]".
+func addImageKit(cfg *config.Config, presets *preset.Store, required bool, dialects map[string]dialect.Dialect, opts *router.Options) error {
+	m := &cfg.Dialects.Imagekit
+	if !m.Enabled {
+		return nil
+	}
+	for i, mo := range append([]config.MountOptions{m.MountOptions}, m.Mounts...) {
+		key := imagekit.Name
+		if i > 0 {
+			key = fmt.Sprintf("%s[%d]", imagekit.Name, i)
+		}
+		o := imagekit.Options{Strict: cfg.Dialects.Strict, Presets: presets}
+		if len(mo.Keys) > 0 {
+			keys := make([]sign.Key, 0, len(mo.Keys))
+			for _, k := range mo.Keys {
+				keys = append(keys, sign.NewKey([]byte(k.Reveal()), nil))
+			}
+			v, err := sign.NewImageKitVerifier(sign.ImageKitOptions{Keys: sign.NewKeyring(keys...), Required: required})
+			if err != nil {
+				return fmt.Errorf("%s verifier: %w", key, err)
+			}
+			o.Verifier = v
+		}
+		p, err := imagekit.New(&o)
+		if err != nil {
+			return fmt.Errorf("%s dialect: %w", key, err)
+		}
+		dialects[key] = p
+		opts.Mounts = append(opts.Mounts, router.Mount{
+			Name: key, Dialect: key, Prefix: mo.Prefix, Hosts: mo.Hosts,
+			Source: mo.Source, Policy: router.Policy(mo.UnsignedPolicy),
+		})
+	}
+	return nil
+}
+
+// addCloudflareImages registers one Cloudflare Images dialect per enabled
+// mount, since each mount has its own signing keys, and the mounts. Variants
+// are the presets.
+func addCloudflareImages(cfg *config.Config, opts *router.Options, dialects map[string]dialect.Dialect, presets *preset.Store) error {
+	ci := &cfg.Dialects.CloudflareImages
+	if !ci.Enabled {
+		return nil
+	}
+	for i, mo := range append([]config.MountOptions{ci.MountOptions}, ci.Mounts...) {
+		name := cloudflare.ImagesName
+		if i > 0 {
+			name = fmt.Sprintf("%s[%d]", cloudflare.ImagesName, i)
+		}
+		o := cloudflare.ImagesOptions{Accounts: ci.Accounts, Presets: presets, Strict: cfg.Dialects.Strict}
+		if len(mo.Keys) > 0 {
+			keys := make([]sign.Key, 0, len(mo.Keys))
+			for _, k := range mo.Keys {
+				keys = append(keys, sign.NewKey([]byte(k.Reveal()), nil))
+			}
+			// Unsigned (public) images are governed by the mount's unsigned
+			// policy, not XI_SIGNING_REQUIRED, which is about XI_SIGNING_KEYS.
+			v, err := sign.NewCloudflareVerifier(sign.CloudflareOptions{Keys: sign.NewKeyring(keys...)})
+			if err != nil {
+				return fmt.Errorf("%s verifier: %w", name, err)
+			}
+			o.Verifier = v
+		}
+		d, err := cloudflare.NewImages(&o)
+		if err != nil {
+			return fmt.Errorf("%s dialect: %w", name, err)
+		}
+		dialects[name] = d
+		opts.Mounts = append(opts.Mounts, router.Mount{
+			Name: name, Dialect: name, Prefix: mo.Prefix, Hosts: mo.Hosts,
+			Source: mo.Source, Policy: router.Policy(mo.UnsignedPolicy),
+		})
+	}
+	return nil
+}
+
+// newThumbor builds a thumbor parser verifying with keys (thumbor
+// SECURITY_KEY strings, not hex; XI_DIALECTS_THUMBOR_KEYS). Without keys
+// signing is off and every URL is unsigned.
+func newThumbor(keys []config.Secret, strict, required bool) (*thumbor.Parser, error) {
+	o := thumbor.Options{Strict: strict}
+	if len(keys) > 0 {
+		ks := make([]sign.Key, 0, len(keys))
+		for _, k := range keys {
+			ks = append(ks, sign.NewKey([]byte(k.Reveal()), nil))
+		}
+		v, err := sign.NewThumborVerifier(sign.ThumborOptions{Keys: sign.NewKeyring(ks...), Required: required})
+		if err != nil {
+			return nil, fmt.Errorf("thumbor verifier: %w", err)
+		}
+		o.Verifier = v
+	}
+	return thumbor.New(&o), nil
+}
+
+// addThumborMounts mounts the thumbor dialect. Each extra mount verifies
+// with its own keys (falling back to the primary mount's), so it gets its
+// own parser under the dialect key "thumbor[i]".
+func addThumborMounts(cfg *config.Config, required bool, dialects map[string]dialect.Dialect, opts *router.Options) error {
+	m := &cfg.Dialects.Thumbor
+	if !m.Enabled {
+		return nil
+	}
+	for i, mo := range append([]config.MountOptions{m.MountOptions}, m.Mounts...) {
+		key := thumbor.Name
+		if i > 0 {
+			key = fmt.Sprintf("%s[%d]", thumbor.Name, i)
+			keys := mo.Keys
+			if len(keys) == 0 {
+				keys = m.Keys
+			}
+			p, err := newThumbor(keys, cfg.Dialects.Strict, required)
+			if err != nil {
+				return fmt.Errorf("%s: %w", key, err)
+			}
+			dialects[key] = p
+		}
+		opts.Mounts = append(opts.Mounts, router.Mount{
+			Name: key, Dialect: key, Prefix: mo.Prefix, Hosts: mo.Hosts,
+			Source: mo.Source, Policy: router.Policy(mo.UnsignedPolicy),
+		})
+	}
+	return nil
+}
+
+// addBunnyMounts registers one bunny parser per enabled mount, because
+// each mount (pull zone) has its own token authentication keys
+// (dialects.bunny[.mounts[]].keys, raw strings). The primary mount's
+// parser is registered as "bunny", extra mounts as "bunny[i]".
+func addBunnyMounts(cfg *config.Config, presets *preset.Store, dialects map[string]dialect.Dialect, opts *router.Options) error {
+	m := &cfg.Dialects.Bunny
+	if !m.Enabled {
+		return nil
+	}
+	for i, mo := range append([]config.MountOptions{m.MountOptions}, m.Mounts...) {
+		label := bunny.Name
+		if i > 0 {
+			label = fmt.Sprintf("%s[%d]", bunny.Name, i)
+		}
+		keys := make([]sign.Key, 0, len(mo.Keys))
+		for _, k := range mo.Keys {
+			keys = append(keys, sign.NewKey([]byte(k.Reveal()), nil))
+		}
+		v, err := sign.NewBunnyVerifier(sign.BunnyOptions{Keys: sign.NewKeyring(keys...), Required: cfg.Signing.Required.Bool() && len(keys) > 0})
+		if err != nil {
+			return fmt.Errorf("%s verifier: %w", label, err)
+		}
+		p, err := bunny.New(&bunny.Options{
+			Verifier:           v,
+			Presets:            presets,
+			ArgumentsSeparator: cfg.Dialects.Imgproxy.ArgumentsSeparator,
+			Strict:             cfg.Dialects.Strict,
+		})
+		if err != nil {
+			return fmt.Errorf("%s dialect: %w", label, err)
+		}
+		dialects[label] = p
+		opts.Mounts = append(opts.Mounts, router.Mount{
+			Name: label, Dialect: label, Prefix: mo.Prefix, Hosts: mo.Hosts,
+			Source: mo.Source, Policy: router.Policy(mo.UnsignedPolicy),
+		})
+	}
+	return nil
+}
+
+// buildAWSSIH builds the AWS Serverless Image Handler dialect
+// (XI_DIALECTS_AWSSIH_*). Its keys are the SIH secrets, used verbatim; the
+// primary mount's keys apply to every SIH mount. Thumbor forwarding
+// (XI_DIALECTS_AWSSIH_THUMBOR) parses with a keyless thumbor dialect (WP-45)
+// that accepts the "/unsafe/" paths SIH forwards.
+func buildAWSSIH(cfg *config.Config) (*awssih.Parser, []string, error) {
+	sih := &cfg.Dialects.AWSSIH
+	opts := awssih.Options{
+		Buckets:     sih.Buckets,
+		Strict:      cfg.Dialects.Strict,
+		QueryParams: sih.QueryParams,
+	}
+	var warnings []string
+	if len(sih.Keys) > 0 {
+		keys := make([]sign.Key, 0, len(sih.Keys))
+		for _, k := range sih.Keys {
+			keys = append(keys, sign.NewKey([]byte(k.Reveal()), nil))
+		}
+		trusted := make([]string, 0, len(cfg.Signing.Trusted))
+		for _, t := range cfg.Signing.Trusted {
+			trusted = append(trusted, t.Reveal())
+		}
+		v, err := sign.NewAWSSIHVerifier(sign.AWSSIHOptions{
+			Keys: sign.NewKeyring(keys...), Trusted: trusted, Required: cfg.Signing.Required.Bool(),
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("awssih verifier: %w", err)
+		}
+		opts.Verifier = v
+	} else if cfg.Signing.Required.Bool() {
+		warnings = append(warnings, "dialect awssih has no keys: signing.required does not apply to it; unsigned requests follow its unsigned policy")
+	}
+	if sih.RewriteMatchPattern != "" {
+		rw, err := awssih.ParseRewrite(sih.RewriteMatchPattern, sih.RewriteSubstitution)
+		if err != nil {
+			return nil, nil, err
+		}
+		opts.Rewrite = rw
+	}
+	if sih.Thumbor {
+		// A keyless thumbor parser of its own: the registered "thumbor"
+		// dialect verifies with XI_DIALECTS_THUMBOR_KEYS and, when signing
+		// is required, rejects the "/unsafe/" paths SIH forwards (SIH
+		// signs with its own parameter, checked before forwarding).
+		th, err := newThumbor(nil, cfg.Dialects.Strict, false)
+		if err != nil {
+			return nil, nil, err
+		}
+		opts.Thumbor = th
+	}
+	p, err := awssih.New(&opts)
+	if err != nil {
+		return nil, nil, fmt.Errorf("awssih dialect: %w", err)
+	}
+	return p, warnings, nil
+}
+
+// addCloudinary registers one Cloudinary parser per enabled mount: each
+// mount's keys are its api secrets (dialects.cloudinary.keys), so mounts
+// cannot share a parser. The dialect key is the mount label.
+func addCloudinary(cfg *config.Config, presets *preset.Store, required bool, dialects map[string]dialect.Dialect, opts *router.Options) error {
+	c := &cfg.Dialects.Cloudinary
+	if !c.Enabled {
+		return nil
+	}
+	for i, mo := range append([]config.MountOptions{c.MountOptions}, c.Mounts...) {
+		label := cloudinary.Name
+		if i > 0 {
+			label = fmt.Sprintf("%s[%d]", cloudinary.Name, i)
+		}
+		o := cloudinary.Options{
+			Clouds:             c.Clouds,
+			Strict:             cfg.Dialects.Strict,
+			Presets:            presets,
+			ArgumentsSeparator: cfg.Dialects.Imgproxy.ArgumentsSeparator,
+		}
+		if len(mo.Keys) > 0 {
+			keys := make([]sign.Key, 0, len(mo.Keys))
+			for _, k := range mo.Keys {
+				keys = append(keys, sign.NewKey([]byte(k.Reveal()), nil))
+			}
+			v, err := sign.NewCloudinaryVerifier(sign.CloudinaryOptions{Keys: sign.NewKeyring(keys...), Required: required})
+			if err != nil {
+				return fmt.Errorf("%s verifier: %w", label, err)
+			}
+			o.Verifier = v
+		}
+		p, err := cloudinary.New(&o)
+		if err != nil {
+			return fmt.Errorf("%s dialect: %w", label, err)
+		}
+		dialects[label] = p
+		opts.Mounts = append(opts.Mounts, router.Mount{
+			Name: label, Dialect: label, Prefix: mo.Prefix, Hosts: mo.Hosts,
+			Source: mo.Source, Policy: router.Policy(mo.UnsignedPolicy),
+		})
+	}
+	return nil
 }
 
 // ssrfPolicy maps XI_FETCH_* onto the SSRF policy.
@@ -266,6 +597,15 @@ func sourceSpec(name string, s *config.Source) source.Spec {
 	}
 }
 
+// s3Config maps an s3 source definition; the s3 cache store reuses it
+// (XI_CACHE_RESULT_S3_SOURCE).
+func s3Config(name string, s *config.Source) *s3src.Config {
+	return &s3src.Config{
+		Name: name, Endpoint: s.Endpoint, Region: s.Region, ForcePathStyle: s.ForcePathStyle,
+		AccessKeyID: s.AccessKeyID, SecretAccessKey: s.SecretAccessKey.Reveal(), RoleARN: s.RoleARN,
+	}
+}
+
 func newSource(ctx context.Context, name string, s *config.Source, cfg *config.Config, client *http.Client, userAgent string) (source.Source, error) {
 	switch s.Type {
 	case config.SourceHTTP:
@@ -275,10 +615,7 @@ func newSource(ctx context.Context, name string, s *config.Source, cfg *config.C
 		}
 		return httpsrc.New(httpsrc.Config{Name: name, Client: client, Timeout: cfg.Fetch.Timeout, Headers: h})
 	case config.SourceS3:
-		return s3src.New(ctx, &s3src.Config{
-			Name: name, Endpoint: s.Endpoint, Region: s.Region, ForcePathStyle: s.ForcePathStyle,
-			AccessKeyID: s.AccessKeyID, SecretAccessKey: s.SecretAccessKey.Reveal(), RoleARN: s.RoleARN,
-		})
+		return s3src.New(ctx, s3Config(name, s))
 	case config.SourceGCS:
 		return gcssrc.New(ctx, &gcssrc.Config{
 			Name: name, CredentialsJSON: []byte(s.CredentialsJSON.Reveal()), Endpoint: s.Endpoint, UserAgent: userAgent,
@@ -347,6 +684,7 @@ func serverConfig(cfg *config.Config) server.Config {
 			EnableClientHints:    cfg.ClientHints.Enabled,
 			SaveDataQualityDelta: cfg.Formats.SaveDataQualityDelta,
 		},
+		ClientHints: server.ClientHintHeaders{CriticalCH: cfg.ClientHints.CriticalCH},
 		Limits: server.Limits{
 			MaxSrcBytes:             int64(cfg.Limits.MaxSrcBytes),
 			MaxSrcPixels:            cfg.Limits.MaxSrcPixels,
@@ -377,6 +715,11 @@ func serverConfig(cfg *config.Config) server.Config {
 		Info: server.InfoConfig{
 			CacheTTL:     cfg.Cache.Headers.TTL,
 			DebugHeaders: cfg.Observability.DebugHeaders,
+			PlanLimits:   planLimits(cfg),
+		},
+		ResultCache: server.ResultCacheConfig{
+			TTL:         cfg.Cache.Result.TTL,
+			AllowBypass: cfg.Cache.AllowBypass,
 		},
 	}
 }

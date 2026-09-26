@@ -78,6 +78,7 @@ func TestNativeKeys(t *testing.T) {
 		{name: "f", path: "/", query: src + "&f=webp"},
 		{name: "format", path: "/", query: src + "&format=avif"},
 		{name: "f_jpg", path: "/", query: src + "&f=jpg"},
+		{name: "f_best", path: "/", query: src + "&f=best"},
 		{name: "f_invalid", path: "/", query: src + "&f=pdf"},
 		{name: "q", path: "/", query: src + "&q=80"},
 		{name: "quality", path: "/", query: src + "&quality=55"},
@@ -113,6 +114,9 @@ func TestNativeKeys(t *testing.T) {
 		{name: "pad_invalid", path: "/", query: src + "&pad=-1"},
 		{name: "page", path: "/", query: src + "&page=2"},
 		{name: "page_invalid", path: "/", query: src + "&page=-2"},
+		{name: "pages", path: "/", query: src + "&page=1&pages=2"},
+		{name: "pages_all", path: "/", query: src + "&pages=-1"},
+		{name: "pages_invalid", path: "/", query: src + "&pages=0"},
 		// Delivery.
 		{name: "preset", path: "/", query: src + "&preset=thumb,sharp"},
 		{name: "preset_empty", path: "/", query: src + "&preset=a,,b"},
@@ -136,7 +140,7 @@ func TestNativeKeys(t *testing.T) {
 		{name: "o_security_forbidden", path: "/", query: src + "&o=mrd:100"},
 		{name: "o_security_allowed", cfg: "security", path: "/", query: src + "&o=mrd:100"},
 		{name: "o_separator", cfg: "sep", path: "/", query: src + "&o=rs,fill,10,20"},
-		{name: "o_later_milestone", path: "/", query: src + "&o=sa:1.2"},
+		{name: "o_later_milestone", path: "/", query: src + "&o=ush:always"},
 		{name: "o_empty_pipeline", path: "/", query: src + "&o=-/w:1"},
 		// Unknown keys.
 		{name: "unknown_key", path: "/", query: src + "&utm_source=x&w=10"},

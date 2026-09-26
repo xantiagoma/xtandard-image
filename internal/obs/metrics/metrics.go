@@ -84,12 +84,19 @@ type Metrics struct {
 	sourceBytes    *prometheus.CounterVec
 	fetchCoalesced prometheus.Counter
 
-	cacheRequests *prometheus.CounterVec
+	cacheRequests      *prometheus.CounterVec
+	cacheEvictions     *prometheus.CounterVec
+	cacheBytes         *prometheus.GaugeVec
+	cacheEntries       *prometheus.GaugeVec
+	cacheWritesDropped prometheus.Counter
+	cacheSkipped       *prometheus.CounterVec
 
 	queueDepth    prometheus.Gauge
 	workersBusy   prometheus.Gauge
 	semaphoreWait prometheus.Histogram
 	overload      *prometheus.CounterVec
+
+	rawDecodes *prometheus.CounterVec
 }
 
 // New builds the metric set on a fresh private registry, including the Go
@@ -150,6 +157,31 @@ func New(opts Options) (*Metrics, error) {
 			Name:      "cache_requests_total",
 			Help:      "Cache lookups by store and result (hit or miss).",
 		}, []string{"store", "result"}),
+		cacheEvictions: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: Namespace,
+			Name:      "cache_evictions_total",
+			Help:      "Entries evicted from a bounded cache store to make room.",
+		}, []string{"store"}),
+		cacheBytes: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "cache_bytes",
+			Help:      "Bytes held by a bounded cache store.",
+		}, []string{"store"}),
+		cacheEntries: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "cache_entries",
+			Help:      "Entries held by a bounded cache store.",
+		}, []string{"store"}),
+		cacheWritesDropped: prometheus.NewCounter(prometheus.CounterOpts{
+			Namespace: Namespace,
+			Name:      "cache_writes_dropped_total",
+			Help:      "Result cache writes dropped because the write queue was full.",
+		}),
+		cacheSkipped: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: Namespace,
+			Name:      "cache_skipped_total",
+			Help:      "Cache entries a store skipped by store and reason (too_large on write, corrupt on read).",
+		}, []string{"store", "reason"}),
 		queueDepth: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: Namespace,
 			Name:      "queue_depth",
@@ -171,6 +203,11 @@ func New(opts Options) (*Metrics, error) {
 			Name:      "overload_total",
 			Help:      "Requests rejected by admission control by reason.",
 		}, []string{"reason"}),
+		rawDecodes: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: Namespace,
+			Name:      "raw_decodes_total",
+			Help:      "Camera RAW sources decoded, by path (preview, demosaic, demosaic-half).",
+		}, []string{"path"}),
 	}
 
 	buildInfo := prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -183,8 +220,9 @@ func New(opts Options) (*Metrics, error) {
 	cs := []prometheus.Collector{
 		m.requests, m.requestDuration, m.inFlight, m.stageDuration, m.panics,
 		m.fetchDuration, m.sourceBytes, m.fetchCoalesced,
-		m.cacheRequests,
+		m.cacheRequests, m.cacheEvictions, m.cacheBytes, m.cacheEntries, m.cacheWritesDropped, m.cacheSkipped,
 		m.queueDepth, m.workersBusy, m.semaphoreWait, m.overload,
+		m.rawDecodes,
 		buildInfo,
 		collectors.NewGoCollector(),
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
@@ -266,6 +304,10 @@ func (m *Metrics) ObserveStage(stage string, d time.Duration) {
 // IncPanic counts one recovered handler panic.
 func (m *Metrics) IncPanic() { m.panics.Inc() }
 
+// ObserveRawDecode counts one camera RAW decode by path. The path comes
+// from a fixed set (pipeline/exec RawPath*), never from request data.
+func (m *Metrics) ObserveRawDecode(path string) { m.rawDecodes.WithLabelValues(path).Inc() }
+
 // ObserveFetch records one source fetch by configured source name and
 // backend type (http, s3, gcs, ...), with the number of bytes downloaded.
 func (m *Metrics) ObserveFetch(source, backend string, d time.Duration, bytes int64) {
@@ -286,4 +328,25 @@ func (m *Metrics) ObserveCache(store string, hit bool) {
 		result = CacheHit
 	}
 	m.cacheRequests.WithLabelValues(store, result).Inc()
+}
+
+// ObserveCacheEvictions counts n entries evicted from store.
+func (m *Metrics) ObserveCacheEvictions(store string, n int) {
+	m.cacheEvictions.WithLabelValues(store).Add(float64(n))
+}
+
+// SetCacheSize reports the bytes and entries currently held by store.
+func (m *Metrics) SetCacheSize(store string, bytes int64, entries int) {
+	m.cacheBytes.WithLabelValues(store).Set(float64(bytes))
+	m.cacheEntries.WithLabelValues(store).Set(float64(entries))
+}
+
+// IncCacheWriteDropped counts one result cache write dropped by a full
+// write queue.
+func (m *Metrics) IncCacheWriteDropped() { m.cacheWritesDropped.Inc() }
+
+// ObserveCacheSkip counts one entry store skipped for reason (a bounded
+// set: cache.SkipTooLarge, cache.SkipCorrupt).
+func (m *Metrics) ObserveCacheSkip(store, reason string) {
+	m.cacheSkipped.WithLabelValues(store, reason).Inc()
 }

@@ -71,3 +71,21 @@ func BenchmarkRun(b *testing.B) {
 		benchRun(b, readFixture(b, gifAnim), "rs:fill:48:48", transform.FormatGIF)
 	})
 }
+
+// BenchmarkChained compares one pipeline with a three-stage chain doing the
+// same work (the extra stages are no-ops or move a step to a later
+// pipeline): "lazy" chains extend the libvips graph, "materialised" ones
+// copy the previous result into memory before a random-access step (blur).
+func BenchmarkChained(b *testing.B) {
+	src := largeJPEG(b)
+	for _, bc := range []struct{ name, options string }{
+		{"lazy/single", "rs:fit:400:400"},
+		{"lazy/chain3", "rs:fit:400:400/-/rs:fit:400:400/-/rs:fit:400:400"},
+		{"materialised/single", "rs:fill:300:300/bl:2"},
+		{"materialised/chain3", "rs:fill:300:300/-/c:300:300/-/bl:2"},
+	} {
+		b.Run(bc.name, func(b *testing.B) {
+			benchRun(b, src, bc.options, transform.FormatJPEG)
+		})
+	}
+}

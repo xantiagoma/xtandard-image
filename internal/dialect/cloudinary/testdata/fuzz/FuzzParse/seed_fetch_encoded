@@ -1,0 +1,2 @@
+go test fuzz v1
+string("/image/fetch/s--AAAAAAAA--/w_auto:50:9999,dpr_1000/https%3A%2F%2Fexample.com%2Fa.jpg%3Fq%3Dv1")

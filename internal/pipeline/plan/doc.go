@@ -28,6 +28,12 @@
 //     a plan that loads the full image;
 //   - the size after TrimStep.
 //
+// Chained pipelines (transform.Request.Pipelines[1:]) are predicted by Build
+// from the previous prediction, for the cost estimate. The executor plans
+// each again with Chain on the observed result of the previous pipeline
+// (size, frames, alpha; orientation already applied), and after a TrimStep
+// in a chained pipeline calls Chain again with the trimmed size.
+//
 // Crop and extend steps carry their gravity, so the executor places them on
 // the real image size with Rect; the X/Y/W/H fields are the prediction.
 package plan

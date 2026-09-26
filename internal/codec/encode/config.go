@@ -40,6 +40,64 @@ type Config struct {
 	// HEIC target fails with errs.KindUnsupported. vips.Config.HEICEncode must
 	// match.
 	HEICEncode bool
+
+	// AutoQuality is the configured auto-quality (XI_FORMATS_AUTOQUALITY_*).
+	AutoQuality AutoQualityConfig
+
+	// Best configures format=best (XI_FORMATS_BEST_*, EncodeBest).
+	Best BestConfig
+}
+
+// BestConfig configures the best-format selection (FORMATS §6.3).
+type BestConfig struct {
+	// MaxPixels skips the selection above this many output pixels (all
+	// frames): the negotiated format is encoded instead
+	// (XI_FORMATS_BEST_MAX_PIXELS). 0 = no cap.
+	MaxPixels int64
+	// ComplexityThreshold separates graphics from photos
+	// (negotiate.Analyze; XI_FORMATS_BEST_COMPLEXITY_THRESHOLD). 0 skips
+	// the analysis: every image is tried as a photo.
+	ComplexityThreshold float64
+}
+
+// AutoQualityConfig is the configured quality search (imgproxy
+// IMGPROXY_AUTOQUALITY_*). A request's autoquality option overrides each
+// field it sets.
+type AutoQualityConfig struct {
+	// Method is AutoQualityNone (the zero AutoQualityUnset means the same),
+	// AutoQualitySize or AutoQualityDSSIM. ML is not implemented.
+	Method transform.AutoQualityMethod
+	// Target is the DSSIM target of the dssim method, or the byte budget of
+	// the size method.
+	Target float64
+	// Min and Max bound the searched quality.
+	Min, Max int
+	// AllowedError is how far from Target a DSSIM may land and still stop
+	// the search.
+	AllowedError float64
+	// FormatTarget, FormatMin and FormatMax override Target, Min and Max per
+	// output format (XI_FORMATS_AUTOQUALITY_FORMAT_*).
+	FormatTarget         map[transform.Format]float64
+	FormatMin, FormatMax map[transform.Format]int
+}
+
+// DefaultAutoQuality returns the documented auto-quality defaults (CONFIG.md):
+// off, DSSIM target 0.02 ± 0.001, quality 60–85, with JPEG and WebP searched
+// in 40–90 and AVIF in 30–80.
+func DefaultAutoQuality() AutoQualityConfig {
+	return AutoQualityConfig{
+		Method:       transform.AutoQualityNone,
+		Target:       0.02,
+		Min:          60,
+		Max:          85,
+		AllowedError: 0.001,
+		FormatMin: map[transform.Format]int{
+			transform.FormatJPEG: 40, transform.FormatWebP: 40, transform.FormatAVIF: 30,
+		},
+		FormatMax: map[transform.Format]int{
+			transform.FormatJPEG: 90, transform.FormatWebP: 90, transform.FormatAVIF: 80,
+		},
+	}
 }
 
 // DefaultConfig returns the documented defaults (CONFIG.md, FORMATS §5).
@@ -60,6 +118,8 @@ func DefaultConfig() Config {
 		GIFEffort:       7,
 		AVIFLargePixels: 4_000_000,
 		AVIFLargeEffort: 2,
+		AutoQuality:     DefaultAutoQuality(),
+		Best:            BestConfig{MaxPixels: 8_000_000, ComplexityThreshold: 5.5},
 	}
 }
 
@@ -91,5 +151,58 @@ func (c *Config) Validate() error {
 	if c.AVIFLargePixels < 0 {
 		errList = append(errList, errors.New("encode: avif large-image pixels must not be negative"))
 	}
+	if c.Best.MaxPixels < 0 {
+		errList = append(errList, errors.New("encode: best max pixels must not be negative"))
+	}
+	if !(c.Best.ComplexityThreshold >= 0) {
+		errList = append(errList, fmt.Errorf("encode: best complexity threshold %v must be >= 0", c.Best.ComplexityThreshold))
+	}
+	errList = append(errList, c.AutoQuality.validate()...)
 	return errors.Join(errList...)
+}
+
+func (c *AutoQualityConfig) validate() []error {
+	var errList []error
+	switch c.Method {
+	case transform.AutoQualityUnset, transform.AutoQualityNone, transform.AutoQualitySize, transform.AutoQualityDSSIM:
+	default:
+		errList = append(errList, fmt.Errorf("encode: autoquality method %q is not supported", c.Method.String()))
+	}
+	if !(c.Target > 0) {
+		errList = append(errList, fmt.Errorf("encode: autoquality target %v must be > 0", c.Target))
+	}
+	if c.Method == transform.AutoQualitySize && c.Target < 1 {
+		errList = append(errList, fmt.Errorf("encode: autoquality size target %v must be a byte count >= 1", c.Target))
+	}
+	if !(c.AllowedError >= 0 && c.AllowedError <= 1) {
+		errList = append(errList, fmt.Errorf("encode: autoquality allowed error %v is not in 0..1", c.AllowedError))
+	}
+	bounds := func(name string, lo, hi int) {
+		if lo < 1 || lo > 100 || hi < 1 || hi > 100 || lo > hi {
+			errList = append(errList, fmt.Errorf("encode: autoquality %s bounds %d..%d are not ordered within 1..100", name, lo, hi))
+		}
+	}
+	bounds("global", c.Min, c.Max)
+	formats := slices.Sorted(maps.Keys(c.FormatMin))
+	for _, f := range slices.Sorted(maps.Keys(c.FormatMax)) {
+		if !slices.Contains(formats, f) {
+			formats = append(formats, f)
+		}
+	}
+	for _, f := range formats {
+		lo, hi := c.Min, c.Max
+		if v := c.FormatMin[f]; v > 0 {
+			lo = v
+		}
+		if v := c.FormatMax[f]; v > 0 {
+			hi = v
+		}
+		bounds(f.String(), lo, hi)
+	}
+	for _, f := range slices.Sorted(maps.Keys(c.FormatTarget)) {
+		if !(c.FormatTarget[f] > 0) {
+			errList = append(errList, fmt.Errorf("encode: autoquality %s target %v must be > 0", f, c.FormatTarget[f]))
+		}
+	}
+	return errList
 }

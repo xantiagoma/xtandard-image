@@ -1,0 +1,1688 @@
+{
+  "animated_not_bool": {
+    "error": {
+      "field": "animated",
+      "kind": "invalid_url",
+      "public": "invalid animated: expected a boolean",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImFuaW1hdGVkIjoieWVzIn19",
+    "query": ""
+  },
+  "avif_options": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImF2aWYiOnsicXVhbGl0eSI6NTAsImxvc3NsZXNzIjpmYWxzZSwiZWZmb3J0Ijo5LCJjaHJvbWFTdWJzYW1wbGluZyI6IjQ6MjowIn19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "AVIF": {
+          "Subsample": "4:2:0"
+        },
+        "Effort": 9,
+        "Format": "avif",
+        "FormatQuality": {
+          "avif": 50
+        },
+        "Lossless": false
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "blur_mild": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImJsdXIiOnRydWV9fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "blur",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Blur": 0.8
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "blur_object": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImJsdXIiOnsic2lnbWEiOjMsInByZWNpc2lvbiI6ImZsb2F0In19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "blur",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Blur": 3
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "blur_sigma": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImJsdXIiOjV9fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Blur": 5
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "blur_too_small": {
+    "error": {
+      "field": "blur",
+      "kind": "invalid_url",
+      "public": "invalid blur: expected a number between 0.3 and 1000",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImJsdXIiOjAuMX19",
+    "query": ""
+  },
+  "bucket_number": {
+    "error": {
+      "field": "bucket",
+      "kind": "invalid_url",
+      "public": "invalid bucket: expected a string",
+      "status": 400
+    },
+    "path": "/eyJidWNrZXQiOjUsImtleSI6ImEuanBnIn0=",
+    "query": ""
+  },
+  "edits_not_object": {
+    "error": {
+      "field": "edits",
+      "kind": "invalid_url",
+      "public": "invalid edits: expected an object",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJhLmpwZyIsImVkaXRzIjpbMV19",
+    "query": ""
+  },
+  "edits_null": {
+    "path": "/eyJrZXkiOiJhLmpwZyIsImVkaXRzIjpudWxsLCJvdXRwdXRGb3JtYXQiOm51bGx9",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "extend_object": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImV4dGVuZCI6eyJ0b3AiOjEsInJpZ2h0IjoyLCJib3R0b20iOjMsImxlZnQiOjQsImJhY2tncm91bmQiOiIjMDBmZjAwODAiLCJleHRlbmRXaXRoIjoibWlycm9yIn19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "extend.extendWith",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 128,
+            "G": 255
+          },
+          "Padding": {
+            "Bottom": 3,
+            "Left": 4,
+            "Right": 2,
+            "Top": 1
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "extend_zero_number": {
+    "error": {
+      "field": "extend",
+      "kind": "invalid_url",
+      "public": "invalid extend: expected an integer between 1 and 65536",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImV4dGVuZCI6MH19",
+    "query": ""
+  },
+  "extract_after_resize": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6NDAwfSwiZXh0cmFjdCI6eyJsZWZ0IjoxMCwidG9wIjoyMCwid2lkdGgiOjEwMCwiaGVpZ2h0Ijo1MH0sImV4dGVuZCI6NX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        },
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 10,
+              "YOffset": 20
+            },
+            "Height": {
+              "Px": 50
+            },
+            "Width": {
+              "Px": 100
+            }
+          },
+          "Padding": {
+            "Bottom": 5,
+            "Left": 5,
+            "Right": 5,
+            "Top": 5
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "extract_before_resize": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImV4dHJhY3QiOnsibGVmdCI6MTAsInRvcCI6MjAsIndpZHRoIjoxMDAsImhlaWdodCI6NTB9LCJyZXNpemUiOnsid2lkdGgiOjQwfX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 10,
+              "YOffset": 20
+            },
+            "Height": {
+              "Px": 50
+            },
+            "Width": {
+              "Px": 100
+            }
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 40
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "extract_negative": {
+    "error": {
+      "field": "extract.left",
+      "kind": "invalid_url",
+      "public": "invalid extract.left: expected an integer between 0 and 65536",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImV4dHJhY3QiOnsibGVmdCI6LTEsInRvcCI6MCwid2lkdGgiOjEsImhlaWdodCI6MX19fQ==",
+    "query": ""
+  },
+  "flatten_background": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImZsYXR0ZW4iOnsiYmFja2dyb3VuZCI6InJnYigxMCwgMjAsIDMwKSJ9fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 30,
+            "G": 20,
+            "R": 10
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "flatten_default": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImZsYXR0ZW4iOnRydWV9fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "flip_flop_false": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImZsaXAiOmZhbHNlLCJmbG9wIjoibm8ifX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "format_edit_force_false": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7IndlYnAiOnsicXVhbGl0eSI6NzAsImZvcmNlIjpmYWxzZX19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "FormatQuality": {
+          "webp": 70
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "format_edit_then_to_format": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7IndlYnAiOnsicXVhbGl0eSI6NzAsImxvc3NsZXNzIjp0cnVlfSwidG9Gb3JtYXQiOiJwbmcifX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "png",
+        "FormatQuality": {
+          "webp": 70
+        },
+        "WebP": {
+          "Compression": "lossless"
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "gif_tiff": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImdpZiI6eyJlZmZvcnQiOjEwfSwidGlmZiI6eyJxdWFsaXR5Ijo5MH19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "tiff",
+        "FormatQuality": {
+          "tiff": 90
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "greyscale_later_wins": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImdyZXlzY2FsZSI6dHJ1ZSwiZ3JheXNjYWxlIjpmYWxzZX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "headers_cache_control_partial": {
+    "path": "/eyJrZXkiOiJhLmpwZyIsImhlYWRlcnMiOnsiY2FjaGUtY29udHJvbCI6InByaXZhdGUsIG1heC1hZ2U9NjAifX0=",
+    "query": "",
+    "request": {
+      "Delivery": {
+        "TTL": 60000000000
+      },
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "headers.cache-control",
+          "Reason": "partially applied"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "headers_full": {
+    "path": "/eyJrZXkiOiJhLmpwZyIsImhlYWRlcnMiOnsiQ2FjaGUtQ29udHJvbCI6InB1YmxpYywgbWF4LWFnZT02MDAsIGltbXV0YWJsZSIsIkNhY2hlLVRhZyI6ImEsIGIgYyIsIlgtQ3VzdG9tIjoidiIsIkNvbnRlbnQtRGlzcG9zaXRpb24iOiJhdHRhY2htZW50IiwiRXhwaXJlcyI6IngifX0=",
+    "query": "",
+    "request": {
+      "Delivery": {
+        "CacheTags": [
+          "a",
+          "b",
+          "c"
+        ],
+        "Immutable": true,
+        "TTL": 600000000000
+      },
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "headers.X-Custom",
+          "Reason": "response header not supported"
+        },
+        {
+          "Option": "headers.Content-Disposition",
+          "Reason": "header denied"
+        },
+        {
+          "Option": "headers.Expires",
+          "Reason": "response header not supported"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "heif_options": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImhlaWYiOnsicXVhbGl0eSI6NTAsImNvbXByZXNzaW9uIjoiaGV2YyJ9fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "heif.compression",
+          "Reason": "not supported"
+        }
+      ],
+      "Output": {
+        "Format": "heic",
+        "FormatQuality": {
+          "heic": 50
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "jpeg_options": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImpwZWciOnsicXVhbGl0eSI6ODAsInByb2dyZXNzaXZlIjp0cnVlLCJjaHJvbWFTdWJzYW1wbGluZyI6IjQ6NDo0IiwibW96anBlZyI6dHJ1ZX19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "jpeg",
+        "FormatQuality": {
+          "jpeg": 80
+        },
+        "JPEG": {
+          "NoSubsample": true,
+          "OptimizeScans": true,
+          "OvershootDeringing": true,
+          "Progressive": true,
+          "QuantTable": 3,
+          "TrellisQuant": true
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "jpeg_options_individual": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImpwZWciOnsidHJlbGxpc1F1YW50aXNhdGlvbiI6dHJ1ZSwib3ZlcnNob290RGVyaW5naW5nIjpmYWxzZSwib3B0aW1pc2VTY2FucyI6dHJ1ZSwicXVhbnRpc2F0aW9uVGFibGUiOjJ9fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "jpeg",
+        "JPEG": {
+          "OptimizeScans": true,
+          "OvershootDeringing": false,
+          "QuantTable": 2,
+          "TrellisQuant": true
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "jpeg_quality_out_of_range": {
+    "error": {
+      "field": "jpeg.quality",
+      "kind": "invalid_url",
+      "public": "invalid jpeg.quality: expected an integer between 1 and 100",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7ImpwZWciOnsicXVhbGl0eSI6MH19fQ==",
+    "query": ""
+  },
+  "json_array_is_not_default": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: path is not a base64-encoded JSON request",
+      "status": 400
+    },
+    "path": "/W3sia2V5IjoiYS5qcGcifV0=",
+    "query": ""
+  },
+  "json_duplicate_key_last_wins": {
+    "path": "/eyJrZXkiOiJhLmpwZyIsImVkaXRzIjp7ImJsdXIiOjUsInJvdGF0ZSI6OTAsImJsdXIiOjd9fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Blur": 7,
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "key_control": {
+    "error": {
+      "field": "key",
+      "kind": "invalid_url",
+      "public": "invalid key: expected an object key",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJhXG5iLmpwZyJ9",
+    "query": ""
+  },
+  "key_empty": {
+    "error": {
+      "field": "key",
+      "kind": "invalid_url",
+      "public": "invalid key: expected a non-empty string",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiIifQ==",
+    "query": ""
+  },
+  "key_escaped": {
+    "path": "/eyJrZXkiOiJodHRwczovL2V2aWwuZXhhbXBsZS94LmpwZz95PTEjeiU0MSJ9",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "https%3A//evil.example/x.jpg%3Fy=1%23z%2541"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https%3A//evil.example/x.jpg%3Fy=1%23z%2541"
+  },
+  "key_number": {
+    "error": {
+      "field": "key",
+      "kind": "invalid_url",
+      "public": "invalid key: expected a non-empty string",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOjV9",
+    "query": ""
+  },
+  "modulate": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7Im1vZHVsYXRlIjp7ImJyaWdodG5lc3MiOjEuMiwic2F0dXJhdGlvbiI6MC41LCJodWUiOjQwMCwibGlnaHRuZXNzIjoxMH19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "modulate.lightness",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": 25.5,
+            "Exposure": 1.2,
+            "Hue": 40,
+            "Saturation": 0.5
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "negate_normalise": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7Im5lZ2F0ZSI6eyJhbHBoYSI6ZmFsc2V9LCJub3JtYWxpc2UiOnsibG93ZXIiOjEsInVwcGVyIjo5OX19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "normalise",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Equalize": true,
+          "Negate": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "output_format_heic_raw": {
+    "error": {
+      "field": "outputFormat",
+      "kind": "invalid_url",
+      "public": "invalid outputFormat: expected jpeg, jpg, png, webp, avif, gif, tiff, heif or jxl",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJhLmpwZyIsIm91dHB1dEZvcm1hdCI6InJhdyJ9",
+    "query": ""
+  },
+  "output_format_overrides_edit_format": {
+    "path": "/eyJrZXkiOiJhLmpwZyIsImVkaXRzIjp7InBuZyI6eyJxdWFsaXR5Ijo3MH19LCJvdXRwdXRGb3JtYXQiOiJhdmlmIn0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "avif",
+        "FormatQuality": {
+          "png": 70
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "png_options": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InBuZyI6eyJxdWFsaXR5Ijo2MCwiY29tcHJlc3Npb25MZXZlbCI6OSwiYWRhcHRpdmVGaWx0ZXJpbmciOnRydWUsInBhbGV0dGUiOnRydWUsImNvbG91cnMiOjY0LCJwcm9ncmVzc2l2ZSI6dHJ1ZSwiZWZmb3J0Ijo3fX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Effort": 6,
+        "Format": "png",
+        "FormatQuality": {
+          "png": 60
+        },
+        "PNG": {
+          "AdaptiveFilter": true,
+          "Compression": 9,
+          "Interlaced": true,
+          "QuantizationColors": 64,
+          "Quantize": true
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "resize_bad_fit": {
+    "error": {
+      "field": "resize.fit",
+      "kind": "invalid_url",
+      "public": "invalid resize.fit: expected cover, contain, fill, inside or outside",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MzAwLCJmaXQiOiJzdHJldGNoIn19fQ==",
+    "query": ""
+  },
+  "resize_bad_position": {
+    "error": {
+      "field": "resize.position",
+      "kind": "invalid_url",
+      "public": "invalid resize.position: expected a sharp position, gravity or strategy (centre, top, right top, north, entropy, attention, ...)",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MzAwLCJoZWlnaHQiOjIwMCwicG9zaXRpb24iOiJtaWRkbGUifX19",
+    "query": ""
+  },
+  "resize_contain_background": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MzAwLCJoZWlnaHQiOjIwMCwiZml0IjoiY29udGFpbiIsImJhY2tncm91bmQiOnsiciI6MjU1LCJnIjowLCJiIjowLCJhbHBoYSI6MC41fSwicG9zaXRpb24iOiJub3J0aCJ9fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 128,
+            "R": 255
+          },
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "north"
+            }
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "resize_contain_default_black": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MzAwLCJoZWlnaHQiOjIwMCwiZml0IjoiY29udGFpbiJ9fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "resize_cover_attention": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MzAwLCJoZWlnaHQiOjIwMCwiZml0IjoiY292ZXIiLCJwb3NpdGlvbiI6ImF0dGVudGlvbiJ9fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "resize_cover_entropy_numeric": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MzAwLCJoZWlnaHQiOjIwMCwicG9zaXRpb24iOjE2fX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "entropy"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "resize_cover_right_top": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MzAwLCJoZWlnaHQiOjIwMCwicG9zaXRpb24iOiJyaWdodCB0b3AifX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "north-east"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "resize_fill": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MzAwLCJoZWlnaHQiOjIwMCwiZml0IjoiZmlsbCJ9fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "force",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "resize_inside_without_enlargement": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MzAwLCJmaXQiOiJpbnNpZGUiLCJ3aXRob3V0RW5sYXJnZW1lbnQiOnRydWUsImtlcm5lbCI6Im5lYXJlc3QifX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Algorithm": "nearest",
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "resize_mks_kernel_unknown_field": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MTAsImtlcm5lbCI6Im1rczIwMjEiLCJmYXN0U2hyaW5rT25Mb2FkIjpmYWxzZSwiZm9vIjoxfX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "resize.kernel",
+          "Reason": "approximated"
+        },
+        {
+          "Option": "resize.fastShrinkOnLoad",
+          "Reason": "not supported"
+        },
+        {
+          "Option": "resize.foo",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "resize_negative": {
+    "error": {
+      "field": "resize.width",
+      "kind": "invalid_url",
+      "public": "invalid resize.width: expected a positive number or null",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6LTV9fX0=",
+    "query": ""
+  },
+  "resize_not_number": {
+    "error": {
+      "field": "resize.width",
+      "kind": "invalid_url",
+      "public": "invalid resize.width: expected a positive number or null",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6ImFiYyJ9fX0=",
+    "query": ""
+  },
+  "resize_outside": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MzAwLCJoZWlnaHQiOjIwMCwiZml0Ijoib3V0c2lkZSJ9fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "outside",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "resize_ratio_both": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MzAwLCJoZWlnaHQiOjIwMCwicmF0aW8iOjAuNX19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 100
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 150
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "resize_ratio_source": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJyYXRpbyI6MC4yNX19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "ZoomX": 0.25,
+            "ZoomY": 0.25
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "resize_too_large": {
+    "error": {
+      "field": "resize",
+      "kind": "invalid_url",
+      "public": "invalid resize: expected width and height at most 65536",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MTAwMDAwfX19",
+    "query": ""
+  },
+  "rotate_450": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJvdGF0ZSI6NDUwfX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "rotate_90": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJvdGF0ZSI6OTB9fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "rotate_any": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJvdGF0ZSI6MjAwLjV9fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "RotateAny": -159.5
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "rotate_minus_90": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJvdGF0ZSI6LTkwfX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Rotate": 270
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "rotate_string": {
+    "error": {
+      "field": "rotate",
+      "kind": "invalid_url",
+      "public": "invalid rotate: expected an angle in degrees or null",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJvdGF0ZSI6IngifX0=",
+    "query": ""
+  },
+  "sharpen_mild": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InNoYXJwZW4iOnRydWV9fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "sharpen",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Sharpen": 0.5
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "sharpen_out_of_range": {
+    "error": {
+      "field": "sharpen.sigma",
+      "kind": "invalid_url",
+      "public": "invalid sharpen.sigma: expected a number between 1e-06 and 10",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InNoYXJwZW4iOnsic2lnbWEiOjExfX19",
+    "query": ""
+  },
+  "sharpen_sigma": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InNoYXJwZW4iOnsic2lnbWEiOjJ9fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Sharpen": 2
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "sharpen_sigma_extras": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InNoYXJwZW4iOnsic2lnbWEiOjEuNSwibTEiOjEsIm0yIjoyfX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "sharpen",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Sharpen": 1.5
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "tint_bad": {
+    "error": {
+      "field": "tint",
+      "kind": "invalid_url",
+      "public": "invalid tint: expected a colour: {r,g,b,alpha} object, #hex, rgb()/rgba() or a CSS colour name",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InRpbnQiOiJjaGFydHJldXNlLWlzaCJ9fQ==",
+    "query": ""
+  },
+  "tint_hex": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InRpbnQiOiIjYWJjIn19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Tint": {
+            "A": 255,
+            "B": 204,
+            "G": 187,
+            "R": 170
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "tint_object": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InRpbnQiOnsiciI6MSwiZyI6MiwiYiI6M319fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Tint": {
+            "A": 255,
+            "B": 3,
+            "G": 2,
+            "R": 1
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "to_format_jpg_alias": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InRvRm9ybWF0IjoianBnIn19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "to_format_overrides_output_format": {
+    "path": "/eyJrZXkiOiJhLmpwZyIsImVkaXRzIjp7InRvRm9ybWF0IjoiZ2lmIn0sIm91dHB1dEZvcm1hdCI6ImF2aWYifQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "gif"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "to_format_raw": {
+    "error": {
+      "field": "toFormat",
+      "kind": "invalid_url",
+      "public": "invalid toFormat: expected jpeg, jpg, png, webp, avif, gif, tiff, heif or jxl",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InRvRm9ybWF0IjoicmF3In19",
+    "query": ""
+  },
+  "too_deep": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: request json nested too deeply",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJhLmpwZyIsImVkaXRzIjp7IngiOltbW1tbW1tbW1tbW1tbW1tbWzFdXV1dXV1dXV1dXV1dXV1dXV19fQ==",
+    "query": ""
+  },
+  "trim_false": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InRyaW0iOmZhbHNlfX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "trim_number": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InRyaW0iOjI1fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Trim": {
+            "Threshold": 25
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "trim_object": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InRyaW0iOnsiYmFja2dyb3VuZCI6IndoaXRlIiwidGhyZXNob2xkIjo1LCJsaW5lQXJ0Ijp0cnVlfX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "trim.lineArt",
+          "Reason": "not supported"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Trim": {
+            "Color": {
+              "A": 255,
+              "B": 255,
+              "G": 255,
+              "R": 255
+            },
+            "Threshold": 5
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "trim_true": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InRyaW0iOnRydWV9fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Trim": {
+            "Threshold": 10
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "unsupported_ignored": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7Im1lZGlhbiI6MywidGhyZXNob2xkIjoxMjgsImdhbW1hIjoyLjIsImNsYWhlIjp7IndpZHRoIjozLCJoZWlnaHQiOjN9fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "median",
+          "Reason": "not supported"
+        },
+        {
+          "Option": "threshold",
+          "Reason": "not supported"
+        },
+        {
+          "Option": "gamma",
+          "Reason": "not supported"
+        },
+        {
+          "Option": "clahe",
+          "Reason": "not supported"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "unsupported_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7Im1lZGlhbiI6M319",
+    "query": ""
+  },
+  "url_safe_unpadded": {
+    "path": "/eyJrZXkiOiJhPz8_Pj4-LmpwZyJ9",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a%3F%3F%3F\u003e\u003e\u003e.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a%3F%3F%3F\u003e\u003e\u003e.jpg"
+  },
+  "webp_near_lossless": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7IndlYnAiOnsibmVhckxvc3NsZXNzIjp0cnVlfX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "webp",
+        "WebP": {
+          "Compression": "near_lossless"
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  },
+  "webp_options": {
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7IndlYnAiOnsicXVhbGl0eSI6NzAsImxvc3NsZXNzIjp0cnVlLCJzbWFydFN1YnNhbXBsZSI6dHJ1ZSwicHJlc2V0IjoicGhvdG8iLCJlZmZvcnQiOjYsImFscGhhUXVhbGl0eSI6ODB9fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "webp.alphaQuality",
+          "Reason": "not supported"
+        }
+      ],
+      "Output": {
+        "Effort": 9,
+        "Format": "webp",
+        "FormatQuality": {
+          "webp": 70
+        },
+        "Lossless": true,
+        "WebP": {
+          "Compression": "lossless",
+          "Preset": "photo",
+          "SmartSubsample": true
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "photos/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/cat.jpg"
+  }
+}

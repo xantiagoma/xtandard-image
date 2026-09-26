@@ -3,8 +3,8 @@
 #
 # Requirements (tools only; nothing they ship ends up in the fixtures except
 # the pixels we feed them): Go 1.27, libvips >= 8.18 with heif/jxl/jp2k/uhdr
-# savers, ImageMagick 7 (`magick`), and macOS `sips` for HEIC (Apple's HEVC
-# encoder, so no x265/GPL encoder is involved).
+# savers, ImageMagick 7 (`magick`), qpdf (PDF encryption), and macOS `sips`
+# for HEIC (Apple's HEVC encoder, so no x265/GPL encoder is involved).
 #
 #   sh testdata/gen/gen.sh
 #
@@ -20,7 +20,8 @@ gen() { go run ./testdata/gen "$@"; }
 
 rm -rf "$F" testdata/ssim
 mkdir -p "$F"/jpeg "$F"/png "$F"/gif "$F"/webp "$F"/avif "$F"/heic "$F"/jxl \
-	"$F"/tiff "$F"/bmp "$F"/ico "$F"/svg "$F"/jp2 "$F"/uhdr "$F"/watermark
+	"$F"/tiff "$F"/bmp "$F"/ico "$F"/svg "$F"/jp2 "$F"/uhdr "$F"/watermark \
+	"$F"/pdf "$F"/psd "$F"/dng "$F"/exr "$F"/hdr "$F"/pfm "$F"/ppm
 
 # Masters (not committed).
 gen photo 320 240 "$T/photo.png"
@@ -68,6 +69,22 @@ sips -s format heic -s formatOptions 60 "$T/photo.png" --out "$F/heic/photo.heic
 vips jxlsave "$T/photo.png" "$F/jxl/photo.jxl" --Q 75
 vips jp2ksave "$T/photo-small.png" "$F/jp2/photo.jp2" --Q 60
 
+# HEIC and AVIF with an embedded 80x60 thumbnail of a different picture
+# (enforce_thumbnail). vips cannot write HEIF thumbnails: a small libheif
+# program does, with kvazaar (HEVC) and libaom (AV1). Run in the base
+# builder image, which has the libheif headers:
+#   docker compose -f compose.dev.yml run --rm dev sh testdata/gen/gen.sh
+if pkg-config --exists libheif 2>/dev/null; then
+	cc -O2 -o "$T/heifthumb" testdata/gen/heifthumb/heifthumb.c $(pkg-config --cflags --libs libheif)
+	gen graphic 160 120 "$T/graphic-thumb.png"
+	vips rawsave "$T/photo.png" "$T/photo.raw"
+	vips rawsave "$T/graphic-thumb.png" "$T/graphic-thumb.raw"
+	"$T/heifthumb" hevc "$T/photo.raw" 320 240 "$T/graphic-thumb.raw" 160 120 80 "$F/heic/thumbnail.heic"
+	"$T/heifthumb" av1 "$T/photo.raw" 320 240 "$T/graphic-thumb.raw" 160 120 80 "$F/avif/thumbnail.avif"
+else
+	echo "libheif development files missing: heic/thumbnail.heic and avif/thumbnail.avif not regenerated" >&2
+fi
+
 # TIFF: two pages, deflate.
 magick "$T/photo-small.png" "$T/graphic.png" -compress zip "$F/tiff/multipage.tif"
 
@@ -86,6 +103,36 @@ cp testdata/gen/logo.svg "$F/svg/logo.svg"
 vips colourspace "$T/photo.png" "$T/lin.v" scrgb
 vips linear "$T/lin.v" "$T/hdr.v" 2.5 0
 vips uhdrsave "$T/hdr.v" "$F/uhdr/photo-ultrahdr.jpg" --Q 80
+
+# PDF: three pages written by hand (vector, embedded photo, vector), and the
+# same file encrypted with a user password by qpdf (Apache-2.0).
+gen pdf "$F/pdf/pages.pdf"
+qpdf --encrypt --user-password=secret --owner-password=owner --bits=256 -- \
+	"$F/pdf/pages.pdf" "$F/pdf/password.pdf"
+
+# PSD/PSB written by hand: two layers with the merged composite, PSB, and
+# the PSD saved without a composite ("Maximize compatibility" off).
+gen psd "$F/psd/layered.psd"
+gen psb "$F/psd/psb-layered.psb"
+gen psd-nocomposite "$F/psd/no-composite.psd"
+
+# Camera RAW: synthetic DNGs (16-bit RGGB mosaic + JPEG preview in IFD0,
+# linear-sRGB colour matrix, camera metadata). Landscape with a half-size
+# preview; portrait (Orientation 6, stored rotated) with a quarter-size one.
+gen dng 192 128 96 64 1 "$F/dng/landscape.dng"
+gen dng 128 192 48 32 6 "$F/dng/portrait-orientation-6.dng"
+
+# HDR inputs written in Go from the procedural scene in linear light (a sun
+# at 40, ~5% of the pixels above 1.0; `gen hdr-stats W H -` prints the
+# numbers): OpenEXR RGBA half and RGB float (uncompressed scanlines; libvips
+# has no OpenEXR saver), Radiance under both magic lines, a colour PFM, and
+# the photo as an 8-bit binary PPM.
+gen exr-rgba-half 80 60 "$F/exr/rgba-half.exr"
+gen exr-rgb-float 48 32 "$F/exr/rgb-float.exr"
+gen radiance 96 64 "$F/hdr/scene.hdr"
+gen rgbe 48 32 "$F/hdr/rgbe.hdr"
+gen pfm 64 48 "$F/pfm/scene.pfm"
+gen ppm 96 64 "$F/ppm/photo.ppm"
 
 # SSIM reference set for internal/testutil/ssim.
 gen ssim-refs testdata/ssim

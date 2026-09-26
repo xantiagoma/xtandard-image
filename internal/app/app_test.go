@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/config"
@@ -31,23 +32,37 @@ type addrs struct{ public, admin net.Addr }
 // addresses.
 func start(t *testing.T, cfg *config.Config, h hooks) addrs {
 	t.Helper()
+	a, _ := startStoppable(t, cfg, h)
+	return a
+}
+
+// startStoppable is start plus a stop function that shuts the service
+// down and waits for run to return (idempotent; the test's cleanup calls
+// it too).
+func startStoppable(t *testing.T, cfg *config.Config, h hooks) (addrs, func()) {
+	t.Helper()
 	bound := make(chan addrs, 1)
 	h.listening = func(p, a net.Addr) { bound <- addrs{p, a} }
 	ctx, cancel := context.WithCancelCause(context.WithoutCancel(t.Context()))
 	done := make(chan error, 1)
 	go func() { done <- run(ctx, cfg, slog.New(slog.DiscardHandler), Options{Version: "test"}, h) }()
-	t.Cleanup(func() {
-		cancel(errors.New("test shutdown"))
-		if err := <-done; err != nil {
-			t.Errorf("run after shutdown: %v", err)
-		}
-	})
+	var once sync.Once
+	stop := func() {
+		once.Do(func() {
+			cancel(errors.New("test shutdown"))
+			if err := <-done; err != nil {
+				t.Errorf("run after shutdown: %v", err)
+			}
+		})
+	}
+	t.Cleanup(stop)
 	select {
 	case a := <-bound:
-		return a
+		return a, stop
 	case err := <-done:
+		once.Do(func() {})
 		t.Fatalf("run exited early: %v", err)
-		return addrs{}
+		return addrs{}, nil
 	}
 }
 
@@ -55,6 +70,7 @@ type response struct {
 	status int
 	ctype  string
 	body   []byte
+	header http.Header
 }
 
 func get(t *testing.T, u string) response {
@@ -72,7 +88,7 @@ func get(t *testing.T, u string) response {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return response{status: resp.StatusCode, ctype: resp.Header.Get("Content-Type"), body: body}
+	return response{status: resp.StatusCode, ctype: resp.Header.Get("Content-Type"), body: body, header: resp.Header}
 }
 
 func checkJPEG(t *testing.T, r response, maxW, maxH int) {
@@ -147,6 +163,14 @@ func TestConfigDrivenFSSource(t *testing.T) {
 		if got := get(t, base+tc.path); got.status != tc.want {
 			t.Errorf("GET %s = %d %q, want %d", tc.path, got.status, got.body, tc.want)
 		}
+	}
+
+	// The config schema lives on the admin listener only (ADR 0007).
+	if got := get(t, "http://"+a.admin.String()+"/config.schema.json"); got.status != http.StatusOK || !bytes.Equal(got.body, config.Schema()) {
+		t.Errorf("admin /config.schema.json = %d, want 200 with config.Schema()", got.status)
+	}
+	if got := get(t, base+"/config.schema.json"); got.status == http.StatusOK || bytes.Contains(got.body, []byte(config.SchemaID)) {
+		t.Errorf("public /config.schema.json = %d: the schema must not be served there", got.status)
 	}
 
 	metricsBody := string(get(t, "http://"+a.admin.String()+"/metrics").body)

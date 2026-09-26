@@ -1,0 +1,11 @@
+{
+  "$schema": "https://xantiagoma.github.io/xtandard-image/schema/config.schema.json",
+  "signing": {
+    "keys": ["00112233445566778899aabbccddeeff"],
+    "salts": ["00112233445566778899aabbccddeeff"]
+  },
+  "sources": {
+    "origin": { "type": "http", "allow": ["cdn.example.com"] }
+  },
+  "processing": { "memory_budget": "1GiB" }
+}

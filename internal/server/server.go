@@ -22,6 +22,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
 
+	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/router"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
@@ -129,9 +130,21 @@ type ProcessOutput struct {
 	ContentType   string
 	Format        transform.Format
 	Width, Height int
+	// Quality is the encoder quality of Body (0 for formats without one);
+	// with auto-quality, the quality the search chose. Sent as X-Xi-Quality
+	// with debug headers.
+	Quality int
 	// Skipped lists request options the pipeline did not apply yet (later
 	// work packages); the server logs them at debug level.
 	Skipped []string
+	// Best summarises the best-format selection of a format=best request
+	// (content class, every candidate tried and its size); sent as X-Xi-Best
+	// with debug headers. Empty otherwise.
+	Best string
+	// RawPath is how a camera RAW source was decoded ("preview",
+	// "demosaic" or "demosaic-half"; empty for other formats): counted in
+	// xi_raw_decodes_total and sent as X-Xi-Raw-Path with debug headers.
+	RawPath string
 }
 
 // Processor plans, executes and encodes one image (stages 12–13;
@@ -148,6 +161,9 @@ type Metrics interface {
 	RequestStarted() (done func())
 	ObserveStage(stage string, d time.Duration)
 	IncPanic()
+	// ObserveRawDecode counts one camera RAW decode by path
+	// (ProcessOutput.RawPath).
+	ObserveRawDecode(path string)
 }
 
 // Limits are the configured input and output limits (XI_LIMITS_*).
@@ -182,8 +198,11 @@ type Config struct {
 
 	Defaults  transform.Defaults
 	Negotiate negotiate.Config
-	Limits    Limits
-	SVG       svg.Options // sanitiser limits (XI_LIMITS_MAX_SVG_*)
+	// ClientHints configures the Accept-CH / Critical-CH response headers
+	// (hints.go); Negotiate.EnableClientHints is the server-wide switch.
+	ClientHints ClientHintHeaders
+	Limits      Limits
+	SVG         svg.Options // sanitiser limits (XI_LIMITS_MAX_SVG_*)
 	// ETagBuster is mixed into every ETag (XI_CACHE_ETAG_BUSTER).
 	ETagBuster string
 	// Cache is the Cache-Control policy (XI_CACHE_HEADERS_*).
@@ -201,6 +220,9 @@ type Config struct {
 	Fallback Fallback
 	// Info configures the /info endpoint (info.go).
 	Info InfoConfig
+	// ResultCache configures the result cache (cache.go); used only when
+	// Deps.ResultCache is set.
+	ResultCache ResultCacheConfig
 }
 
 // CacheHeaders is the Cache-Control policy of ARCHITECTURE §9.1 and §12.
@@ -290,6 +312,9 @@ func (c *Config) Validate() error {
 	if s := c.Fallback.Status; s != 0 && (s < 200 || s > 599) {
 		list = append(list, fmt.Errorf("server: fallback status must be in 200..599, got %d", s))
 	}
+	if c.ResultCache.TTL < 0 {
+		list = append(list, fmt.Errorf("server: result cache ttl must be >= 0, got %s", c.ResultCache.TTL))
+	}
 	if c.Fallback.TTL < 0 {
 		list = append(list, fmt.Errorf("server: fallback ttl must be >= 0, got %s", c.Fallback.TTL))
 	}
@@ -337,15 +362,32 @@ type Deps struct {
 	// Allocator holds sanitised SVG documents (vips.NewBuffer in
 	// production, so libvips never sees Go memory).
 	Allocator fetch.Allocator
-	Logger    *slog.Logger
-	Metrics   Metrics          // nil: no metrics
-	Readiness *admin.Readiness // nil: /readyz is not mounted
+	// ResultCache stores encoded responses (cache.go; a cache.AsyncStore
+	// over the configured tiers in production, so Set never blocks); nil
+	// disables the result cache.
+	ResultCache cache.Store
+	Logger      *slog.Logger
+	Metrics     Metrics          // nil: no metrics
+	Readiness   *admin.Readiness // nil: /readyz is not mounted
 	// Tracer creates the fetch, probe and process spans; nil: no spans.
 	Tracer trace.Tracer
 	// Middleware wraps the whole handler inside panic recovery (OTel
 	// otelhttp when tracing is on); nil: none.
 	Middleware func(http.Handler) http.Handler
 }
+
+// Public listener ServeMux patterns. Every image dialect and /info is
+// reached through PatternImage (dialect/router picks the mount).
+const (
+	PatternHealthz = "GET /healthz"
+	PatternReadyz  = "GET /readyz" // only when Deps.Readiness is set
+	PatternImage   = "GET /{path...}"
+)
+
+// Patterns returns every pattern New can register on the public ServeMux.
+// The OpenAPI route-coverage test (internal/apidoc) maps each to a
+// documented operation.
+func Patterns() []string { return []string{PatternHealthz, PatternReadyz, PatternImage} }
 
 // Server is the public listener's handler tree.
 type Server struct {
@@ -386,11 +428,11 @@ func New(cfg *Config, deps *Deps) (*Server, error) {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", admin.Healthz)
+	mux.HandleFunc(PatternHealthz, admin.Healthz)
 	if s.deps.Readiness != nil {
-		mux.Handle("GET /readyz", s.deps.Readiness)
+		mux.Handle(PatternReadyz, s.deps.Readiness)
 	}
-	mux.HandleFunc("GET /{path...}", s.image)
+	mux.HandleFunc(PatternImage, s.image)
 	h := s.ingress(mux)
 	if s.deps.Middleware != nil {
 		h = s.deps.Middleware(h)
@@ -436,3 +478,4 @@ func (nopMetrics) ObserveRequest(string, int, string, time.Duration) {}
 func (nopMetrics) RequestStarted() func()                            { return func() {} }
 func (nopMetrics) ObserveStage(string, time.Duration)                {}
 func (nopMetrics) IncPanic()                                         {}
+func (nopMetrics) ObserveRawDecode(string)                           {}

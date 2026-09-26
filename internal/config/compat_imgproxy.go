@@ -167,6 +167,8 @@ func imgproxyVars() []imgproxyVar {
 		{"IMGPROXY_ENFORCE_JXL", ts("XI_FORMATS_ENFORCE_JXL"), "Same", direct},
 		{"IMGPROXY_PREFERRED_FORMATS", ts("XI_FORMATS_PREFERRED"), "Same format names", direct},
 		{"IMGPROXY_SKIP_PROCESSING_FORMATS", ts("XI_FORMATS_SKIP_PROCESSING"), "Same format names", direct},
+		{"IMGPROXY_BEST_FORMAT_MAX_RESOLUTION", ts("XI_FORMATS_BEST_MAX_PIXELS"), "Megapixels (float) → pixels; `0` (no cap in imgproxy) keeps the default", megapixels},
+		{"IMGPROXY_BEST_FORMAT_COMPLEXITY_THRESHOLD", ts("XI_FORMATS_BEST_COMPLEXITY_THRESHOLD"), "Same meaning (below: lossless; `0` skips the analysis), but the score is our own (FORMATS.md §6.3), so tune it on your images", direct},
 		{"IMGPROXY_ALWAYS_RASTERIZE_SVG", ts("XI_FORMATS_SVG_PASSTHROUGH"), "Inverted", inverted},
 		{"IMGPROXY_ENABLE_CLIENT_HINTS", ts("XI_CLIENT_HINTS_ENABLED"), "Same", direct},
 

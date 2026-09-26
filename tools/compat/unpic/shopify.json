@@ -1,0 +1,796 @@
+{
+  "provider": "shopify",
+  "unpic": {
+    "provider": "shopify",
+    "version": "4.2.2"
+  },
+  "mode": "path",
+  "fixtures": [
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.avif",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.avif"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.avif?height=500",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.avif",
+        "height": 500
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.avif?width=1200&quality=60",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.avif",
+        "width": 1200,
+        "quality": 60
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.avif?width=400&height=300&quality=80",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.avif",
+        "width": 400,
+        "height": 300,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.avif?width=640&quality=75",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.avif",
+        "width": 640,
+        "quality": 75
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.avif?width=800",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.avif",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.avif?width=800&height=600",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.avif",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.jpg"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.jpg?height=500",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.jpg",
+        "height": 500
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.jpg?width=1200&quality=60",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.jpg",
+        "width": 1200,
+        "quality": 60
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.jpg?width=400&height=300&quality=80",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.jpg?width=640&quality=75",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.jpg",
+        "width": 640,
+        "quality": 75
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.jpg?width=800",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.jpg",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.jpg?width=800&height=600",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.jpg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.png",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.png"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.png?height=500",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.png",
+        "height": 500
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.png?width=1200&quality=60",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.png",
+        "width": 1200,
+        "quality": 60
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.png?width=400&height=300&quality=80",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.png",
+        "width": 400,
+        "height": 300,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.png?width=640&quality=75",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.png",
+        "width": 640,
+        "quality": 75
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.png?width=800",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.png",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.png?width=800&height=600",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.png",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.webp",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.webp"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.webp?height=500",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.webp",
+        "height": 500
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.webp?width=1200&quality=60",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.webp",
+        "width": 1200,
+        "quality": 60
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.webp?width=400&height=300&quality=80",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.webp",
+        "width": 400,
+        "height": 300,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.webp?width=640&quality=75",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.webp",
+        "width": 640,
+        "quality": 75
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.webp?width=800",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.webp",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.webp?width=800&height=600",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.webp",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.avif",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.avif"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.avif?height=500",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.avif",
+        "height": 500
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.avif?width=1200&quality=60",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.avif",
+        "width": 1200,
+        "quality": 60
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.avif?width=400&height=300&quality=80",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.avif",
+        "width": 400,
+        "height": 300,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.avif?width=640&quality=75",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.avif",
+        "width": 640,
+        "quality": 75
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.avif?width=800",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.avif",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.avif?width=800&height=600",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.avif",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.jpg"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.jpg?height=500",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.jpg",
+        "height": 500
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.jpg?width=1200&quality=60",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.jpg",
+        "width": 1200,
+        "quality": 60
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.jpg?width=400&height=300&quality=80",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.jpg?width=640&quality=75",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.jpg",
+        "width": 640,
+        "quality": 75
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.jpg?width=800",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.jpg",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.jpg?width=800&height=600",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.jpg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.png",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.png"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.png?height=500",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.png",
+        "height": 500
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.png?width=1200&quality=60",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.png",
+        "width": 1200,
+        "quality": 60
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.png?width=400&height=300&quality=80",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.png",
+        "width": 400,
+        "height": 300,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.png?width=640&quality=75",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.png",
+        "width": 640,
+        "quality": 75
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.png?width=800",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.png",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.png?width=800&height=600",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.png",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.webp",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.webp"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.webp?height=500",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.webp",
+        "height": 500
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.webp?width=1200&quality=60",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.webp",
+        "width": 1200,
+        "quality": 60
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.webp?width=400&height=300&quality=80",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.webp",
+        "width": 400,
+        "height": 300,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.webp?width=640&quality=75",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.webp",
+        "width": 640,
+        "quality": 75
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.webp?width=800",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.webp",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.webp?width=800&height=600",
+      "origin": "generate",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.webp",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images?height=500",
+      "origin": "generate",
+      "want": {
+        "source": "static/sample-images",
+        "height": 500
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images?width=1200&quality=60",
+      "origin": "generate",
+      "want": {
+        "source": "static/sample-images",
+        "width": 1200,
+        "quality": 60
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images?width=400&height=300&quality=80",
+      "origin": "generate",
+      "want": {
+        "source": "static/sample-images",
+        "width": 400,
+        "height": 300,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images?width=640&quality=75",
+      "origin": "generate",
+      "want": {
+        "source": "static/sample-images",
+        "width": 640,
+        "quality": 75
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images?width=800",
+      "origin": "generate",
+      "want": {
+        "source": "static/sample-images",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images?width=800&height=600",
+      "origin": "generate",
+      "want": {
+        "source": "static/sample-images",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images/garnished.jpeg?height=500",
+      "origin": "generate",
+      "want": {
+        "source": "static/sample-images/garnished.jpeg",
+        "height": 500
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images/garnished.jpeg?width=1200&quality=60",
+      "origin": "generate",
+      "want": {
+        "source": "static/sample-images/garnished.jpeg",
+        "width": 1200,
+        "quality": 60
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images/garnished.jpeg?width=400&height=300&quality=80",
+      "origin": "generate",
+      "want": {
+        "source": "static/sample-images/garnished.jpeg",
+        "width": 400,
+        "height": 300,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images/garnished.jpeg?width=640&quality=75",
+      "origin": "generate",
+      "want": {
+        "source": "static/sample-images/garnished.jpeg",
+        "width": 640,
+        "quality": 75
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images/garnished.jpeg?width=800",
+      "origin": "generate",
+      "want": {
+        "source": "static/sample-images/garnished.jpeg",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage_200x300.jpg?v=2",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.jpg",
+        "width": 200,
+        "height": 300
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage_icon.png?v=1",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.png"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage_large_crop_bottom.avif?v=4",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.avif"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage_medium_crop_top.webp?v=3",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.webp"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.avif?v=4",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.avif"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.jpg?v=2",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.jpg"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.jpg?v=5",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.jpg"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.png?v=1",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.png"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage.webp?v=3",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage.webp"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2_200x300.jpg.webp?v=7",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.jpg",
+        "width": 200,
+        "height": 300
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2_icon.png.jpg?v=6",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.png"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2_large_crop_bottom.avif.png?v=9",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.avif"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2_medium_crop_top.webp.avif?v=8",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.webp"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.avif?v=9",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.avif"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.jpg?v=7",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.jpg"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.png?v=6",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.png"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/2345/6789/products/myimage2.webp?v=8",
+      "origin": "test",
+      "want": {
+        "source": "s/files/1/2345/6789/products/myimage2.webp"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images",
+      "origin": "test",
+      "want": {
+        "source": "static/sample-images"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images/garnished_800x600_crop_center.jpeg",
+      "origin": "test",
+      "want": {
+        "source": "static/sample-images/garnished.jpeg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images/garnished_800x600_crop_center.jpeg?width=800&height=600&crop=center",
+      "origin": "test",
+      "want": {
+        "source": "static/sample-images/garnished.jpeg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images/garnished_800x600.jpeg",
+      "origin": "test",
+      "want": {
+        "source": "static/sample-images/garnished.jpeg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images/garnished.jpeg",
+      "origin": "test",
+      "want": {
+        "source": "static/sample-images/garnished.jpeg"
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images/garnished.jpeg?width=400&height=300&crop=center",
+      "origin": "test",
+      "want": {
+        "source": "static/sample-images/garnished.jpeg",
+        "width": 400,
+        "height": 300
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images/garnished.jpeg?width=400&height=300&pad_color=FFFFFF",
+      "origin": "test",
+      "want": {
+        "source": "static/sample-images/garnished.jpeg",
+        "width": 400,
+        "height": 300
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images/garnished.jpeg?width=800&height=600",
+      "origin": "test",
+      "want": {
+        "source": "static/sample-images/garnished.jpeg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images/garnished.jpeg?width=800&height=600&crop=center",
+      "origin": "test",
+      "want": {
+        "source": "static/sample-images/garnished.jpeg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://cdn.shopify.com/static/sample-images/garnished.jpeg?width=800&height=600&crop=center&pad_color=000000",
+      "origin": "test",
+      "want": {
+        "source": "static/sample-images/garnished.jpeg",
+        "width": 800,
+        "height": 600
+      }
+    }
+  ]
+}

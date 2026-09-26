@@ -1,0 +1,2739 @@
+{
+  "all_options": {
+    "path": "/width=400,height=300,fit=cover,gravity=0.5x0.2,quality=80,format=webp,dpr=2,anim=false,background=%23ffffff,blur=10,sharpen=1,brightness=1.1,contrast=1.2,gamma=0.9,saturation=1.3,rotate=90,flip=h,trim=border,metadata=none,onerror=redirect,compression=fast,scq=40/uploads/a.jpg",
+    "request": {
+      "ClientHints": {
+        "SaveData": true
+      },
+      "Delivery": {
+        "OnErrorRedirect": true
+      },
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "brightness",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "contrast",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "gamma",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "saturation",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Effort": 1,
+        "Format": "webp",
+        "KeepCopyright": false,
+        "Quality": 80,
+        "SlowConnectionQuality": 40,
+        "StripMetadata": true
+      },
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Contrast": 1.2,
+            "Exposure": 1.1,
+            "Gamma": 0.9,
+            "Saturation": 1.3
+          },
+          "Background": {
+            "A": 255,
+            "B": 255,
+            "G": 255,
+            "R": 255
+          },
+          "Blur": 5,
+          "DisableAnimation": true,
+          "Flip": {
+            "H": true
+          },
+          "Gravity": {
+            "FocusX": 0.5,
+            "FocusY": 0.2,
+            "Type": "focus-point"
+          },
+          "Resize": {
+            "DPR": 2,
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          },
+          "Rotate": 90,
+          "Sharpen": 0.25,
+          "Trim": {
+            "Threshold": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "anim_false": {
+    "path": "/anim=false/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "DisableAnimation": true
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "anim_invalid": {
+    "error": {
+      "field": "anim",
+      "kind": "invalid_url",
+      "public": "invalid anim: expected true or false",
+      "status": 400
+    },
+    "path": "/anim=no/uploads/a.jpg"
+  },
+  "anim_true": {
+    "path": "/anim=true/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "background_grey": {
+    "path": "/background=lightgrey/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 211,
+            "G": 211,
+            "R": 211
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "background_hex": {
+    "path": "/background=%23ff0000/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "R": 255
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "background_hex_alpha": {
+    "path": "/background=%23ff000080/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 128,
+            "R": 255
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "background_hex_short": {
+    "path": "/background=%23f00/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "R": 255
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "background_invalid_hex": {
+    "error": {
+      "field": "background",
+      "kind": "invalid_url",
+      "public": "invalid background: expected css color: #rgb, #rrggbb, #rrggbbaa, a css name, rgb() or rgba()",
+      "status": 400
+    },
+    "path": "/background=%23ggg/uploads/a.jpg"
+  },
+  "background_invalid_name": {
+    "error": {
+      "field": "background",
+      "kind": "invalid_url",
+      "public": "invalid background: expected css color: #rgb, #rrggbb, #rrggbbaa, a css name, rgb() or rgba()",
+      "status": 400
+    },
+    "path": "/background=notacolor/uploads/a.jpg"
+  },
+  "background_invalid_rgb": {
+    "error": {
+      "field": "background",
+      "kind": "invalid_url",
+      "public": "invalid background: expected css color: #rgb, #rrggbb, #rrggbbaa, a css name, rgb() or rgba()",
+      "status": 400
+    },
+    "path": "/background=rgb(300,0,0)/uploads/a.jpg"
+  },
+  "background_name": {
+    "path": "/background=red/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "R": 255
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "background_name_case": {
+    "path": "/background=CornflowerBlue/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 237,
+            "G": 149,
+            "R": 100
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "background_rgb_encoded": {
+    "path": "/background=rgb%28240%2C40%2C145%29/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 145,
+            "G": 40,
+            "R": 240
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "background_rgb_percent": {
+    "path": "/background=rgb(100%25,0%25,50%25)/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 127,
+            "R": 255
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "background_rgb_raw_commas": {
+    "path": "/background=rgb(240,40,145),w=10/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 145,
+            "G": 40,
+            "R": 240
+          },
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "background_rgb_space": {
+    "path": "/background=rgb(10%2020%2030%20%2F%2050%25)/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 127,
+            "B": 30,
+            "G": 20,
+            "R": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "background_rgba": {
+    "path": "/background=rgba(250,40,145,0.5)/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 128,
+            "B": 145,
+            "G": 40,
+            "R": 250
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "background_transparent": {
+    "path": "/background=transparent/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Background": {}
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "blur": {
+    "path": "/blur=50/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Blur": 25
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "blur_max": {
+    "path": "/blur=250/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Blur": 125
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "blur_over": {
+    "error": {
+      "field": "blur",
+      "kind": "invalid_url",
+      "public": "invalid blur: expected number in 0..250",
+      "status": 400
+    },
+    "path": "/blur=251/uploads/a.jpg"
+  },
+  "border": {
+    "path": "/border=red;5/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "border",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Border": {
+            "Bottom": 5,
+            "Color": {
+              "A": 255,
+              "R": 255
+            },
+            "Left": 5,
+            "Right": 5,
+            "Top": 5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "border_dotted": {
+    "path": "/border.color=blue,border.width=2,border.left=8/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "border",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Border": {
+            "Bottom": 2,
+            "Color": {
+              "A": 255,
+              "B": 255
+            },
+            "Left": 8,
+            "Right": 2,
+            "Top": 2
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "border_invalid": {
+    "error": {
+      "field": "border",
+      "kind": "invalid_url",
+      "public": "invalid border: expected color;width or color;top;right;bottom;left",
+      "status": 400
+    },
+    "path": "/border=red/uploads/a.jpg"
+  },
+  "border_sides": {
+    "path": "/border=%23000;1;2;3;4/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "border",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Border": {
+            "Bottom": 3,
+            "Color": {
+              "A": 255
+            },
+            "Left": 4,
+            "Right": 2,
+            "Top": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "border_width_invalid": {
+    "error": {
+      "field": "border.top",
+      "kind": "invalid_url",
+      "public": "invalid border.top: expected non-negative integer",
+      "status": 400
+    },
+    "path": "/border.top=-1/uploads/a.jpg"
+  },
+  "brightness": {
+    "path": "/brightness=0.5/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "brightness",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Exposure": 0.5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "brightness_one": {
+    "path": "/brightness=1/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "brightness",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Exposure": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "case_insensitive_keys": {
+    "path": "/Width=10,FIT=cover/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "compression_fast": {
+    "path": "/compression=fast/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "Effort": 1
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "compression_invalid": {
+    "error": {
+      "field": "compression",
+      "kind": "invalid_url",
+      "public": "invalid compression: expected fast",
+      "status": 400
+    },
+    "path": "/compression=slow/uploads/a.jpg"
+  },
+  "contrast": {
+    "path": "/contrast=1.5/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "contrast",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Contrast": 1.5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "contrast_invalid": {
+    "error": {
+      "field": "contrast",
+      "kind": "invalid_url",
+      "public": "invalid contrast: expected non-negative number",
+      "status": 400
+    },
+    "path": "/contrast=abc/uploads/a.jpg"
+  },
+  "dpr": {
+    "path": "/w=100,dpr=2/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "DPR": 2,
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "dpr_fraction": {
+    "path": "/dpr=1.5/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "DPR": 1.5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "dpr_nan": {
+    "error": {
+      "field": "dpr",
+      "kind": "invalid_url",
+      "public": "invalid dpr: expected positive number",
+      "status": 400
+    },
+    "path": "/dpr=NaN/uploads/a.jpg"
+  },
+  "dpr_zero": {
+    "error": {
+      "field": "dpr",
+      "kind": "invalid_url",
+      "public": "invalid dpr: expected positive number",
+      "status": 400
+    },
+    "path": "/dpr=0/uploads/a.jpg"
+  },
+  "empty_items": {
+    "path": "/w=10,,h=5,/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 5
+            },
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "f_auto": {
+    "path": "/f=auto/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "face_zoom_alias": {
+    "path": "/face-zoom=0.1,g=face/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "face-zoom",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "gravity=face",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusZoom": 0.1,
+            "Type": "face"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "fit_aspect_crop": {
+    "path": "/w=400,h=300,fit=aspect-crop/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "fit=aspect-crop",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "fit_contain": {
+    "path": "/w=400,h=300,fit=contain/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "fit_cover": {
+    "path": "/w=400,h=300,fit=cover/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "fit_crop": {
+    "path": "/w=400,h=300,fit=crop/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill-down",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "fit_invalid": {
+    "error": {
+      "field": "fit",
+      "kind": "invalid_url",
+      "public": "invalid fit: expected scale-down, contain, cover, crop, pad, squeeze, scale-up or aspect-crop",
+      "status": 400
+    },
+    "path": "/fit=fill/uploads/a.jpg"
+  },
+  "fit_pad": {
+    "path": "/w=400,h=300,fit=pad,background=white/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 255,
+            "G": 255,
+            "R": 255
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "fit_pad_then_cover": {
+    "path": "/fit=pad,fit=cover/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "fit_scale_down": {
+    "path": "/w=400,h=300,fit=scale-down/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "fit_scale_up": {
+    "path": "/w=400,fit=scale-up/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "fit=scale-up",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "fit_squeeze": {
+    "path": "/w=400,h=300,fit=squeeze/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "force",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "flip_h": {
+    "path": "/flip=h/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "flip_hv": {
+    "path": "/flip=hv/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true,
+            "V": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "flip_invalid": {
+    "error": {
+      "field": "flip",
+      "kind": "invalid_url",
+      "public": "invalid flip: expected h, v or hv",
+      "status": 400
+    },
+    "path": "/flip=x/uploads/a.jpg"
+  },
+  "flip_v": {
+    "path": "/flip=v/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Flip": {
+            "V": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "format_auto": {
+    "path": "/format=auto/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "format_avif": {
+    "path": "/format=avif/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "Format": "avif"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "format_baseline_jpeg": {
+    "path": "/format=baseline-jpeg/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "Format": "jpeg",
+        "Progressive": false
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "format_gif": {
+    "path": "/format=gif/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "Format": "gif"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "format_invalid": {
+    "error": {
+      "field": "format",
+      "kind": "invalid_url",
+      "public": "invalid format: expected auto, avif, webp, jpeg, baseline-jpeg, png, gif or json",
+      "status": 400
+    },
+    "path": "/format=tiff/uploads/a.jpg"
+  },
+  "format_jpeg": {
+    "path": "/f=jpeg/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "Format": "jpeg",
+        "Progressive": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "format_jpg": {
+    "path": "/f=jpg/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "Format": "jpeg",
+        "Progressive": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "format_json": {
+    "path": "/format=json/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "format=json",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "format_png": {
+    "path": "/format=png/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "format_webp": {
+    "path": "/f=webp/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "g_auto": {
+    "path": "/fit=cover,g=auto/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "gamma": {
+    "path": "/gamma=0.5/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "gamma",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Gamma": 0.5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "gamma_zero": {
+    "path": "/gamma=0/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "gravity_auto": {
+    "path": "/fit=cover,gravity=auto/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "gravity_bottom": {
+    "path": "/gravity=bottom/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "south"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "gravity_face": {
+    "path": "/gravity=face/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "gravity=face",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "face"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "gravity_face_zoom": {
+    "path": "/gravity=face,zoom=0.5/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "gravity=face",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "zoom",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusZoom": 0.5,
+            "Type": "face"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "gravity_invalid": {
+    "error": {
+      "field": "gravity",
+      "kind": "invalid_url",
+      "public": "invalid gravity: expected auto, face, left, right, top, bottom or XxY with X and Y in 0..1",
+      "status": 400
+    },
+    "path": "/gravity=center/uploads/a.jpg"
+  },
+  "gravity_left": {
+    "path": "/gravity=left/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "west"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "gravity_point": {
+    "path": "/gravity=0.5x0.2/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusX": 0.5,
+            "FocusY": 0.2,
+            "Type": "focus-point"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "gravity_point_edges": {
+    "path": "/g=0x1/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusY": 1,
+            "Type": "focus-point"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "gravity_point_malformed": {
+    "error": {
+      "field": "gravity",
+      "kind": "invalid_url",
+      "public": "invalid gravity: expected auto, face, left, right, top, bottom or XxY with X and Y in 0..1",
+      "status": 400
+    },
+    "path": "/g=0.5/uploads/a.jpg"
+  },
+  "gravity_point_out_of_range": {
+    "error": {
+      "field": "gravity",
+      "kind": "invalid_url",
+      "public": "invalid gravity: expected auto, face, left, right, top, bottom or XxY with X and Y in 0..1",
+      "status": 400
+    },
+    "path": "/g=1.5x0.5/uploads/a.jpg"
+  },
+  "gravity_right": {
+    "path": "/gravity=right/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "east"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "gravity_top": {
+    "path": "/gravity=top/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "north"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "h": {
+    "path": "/h=300/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "height": {
+    "path": "/height=300/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "height_auto": {
+    "error": {
+      "field": "height",
+      "kind": "invalid_url",
+      "public": "invalid height: expected positive integer",
+      "status": 400
+    },
+    "path": "/height=auto/uploads/a.jpg"
+  },
+  "item_bad_escape": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid option escaping",
+      "status": 400
+    },
+    "path": "/w=%zz/uploads/a.jpg"
+  },
+  "item_without_value": {
+    "error": {
+      "field": "cover",
+      "kind": "invalid_url",
+      "public": "invalid cover: expected key=value",
+      "status": 400
+    },
+    "path": "/w=10,cover/uploads/a.jpg"
+  },
+  "known_strict": {
+    "config": "strict",
+    "path": "/w=10,fit=cover,f=auto/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "later_wins": {
+    "path": "/w=100,w=200/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "metadata_copyright": {
+    "path": "/metadata=copyright/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "KeepCopyright": true,
+        "StripMetadata": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "metadata_invalid": {
+    "error": {
+      "field": "metadata",
+      "kind": "invalid_url",
+      "public": "invalid metadata: expected keep, copyright or none",
+      "status": 400
+    },
+    "path": "/metadata=all/uploads/a.jpg"
+  },
+  "metadata_keep": {
+    "path": "/metadata=keep/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "KeepCopyright": false,
+        "StripMetadata": false
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "metadata_none": {
+    "path": "/metadata=none/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "KeepCopyright": false,
+        "StripMetadata": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "onerror_invalid": {
+    "error": {
+      "field": "onerror",
+      "kind": "invalid_url",
+      "public": "invalid onerror: expected redirect",
+      "status": 400
+    },
+    "path": "/onerror=fallback/uploads/a.jpg"
+  },
+  "onerror_redirect": {
+    "path": "/onerror=redirect/uploads/a.jpg",
+    "request": {
+      "Delivery": {
+        "OnErrorRedirect": true
+      },
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "q": {
+    "path": "/q=75/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "Quality": 75
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "quality": {
+    "path": "/quality=75/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "Quality": 75
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "quality_101": {
+    "error": {
+      "field": "quality",
+      "kind": "invalid_url",
+      "public": "invalid quality: expected integer 1..100, high, medium-high, medium-low or low",
+      "status": 400
+    },
+    "path": "/q=101/uploads/a.jpg"
+  },
+  "quality_high": {
+    "path": "/quality=high/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "Quality": 90
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "quality_low": {
+    "path": "/q=low/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "Quality": 50
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "quality_medium_high": {
+    "path": "/quality=medium-high/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "Quality": 80
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "quality_medium_low": {
+    "path": "/quality=medium-low/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Output": {
+        "Quality": 65
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "quality_zero": {
+    "error": {
+      "field": "quality",
+      "kind": "invalid_url",
+      "public": "invalid quality: expected integer 1..100, high, medium-high, medium-low or low",
+      "status": 400
+    },
+    "path": "/q=0/uploads/a.jpg"
+  },
+  "rotate_0": {
+    "path": "/rotate=0/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "rotate_180": {
+    "path": "/rotate=180/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Rotate": 180
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "rotate_270": {
+    "path": "/rotate=270/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Rotate": 270
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "rotate_45": {
+    "error": {
+      "field": "rotate",
+      "kind": "invalid_url",
+      "public": "invalid rotate: expected 0, 90, 180 or 270",
+      "status": 400
+    },
+    "path": "/rotate=45/uploads/a.jpg"
+  },
+  "rotate_90": {
+    "path": "/rotate=90/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "saturation": {
+    "path": "/saturation=0/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "saturation",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Saturation": 0
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "saturation_negative": {
+    "error": {
+      "field": "saturation",
+      "kind": "invalid_url",
+      "public": "invalid saturation: expected non-negative number",
+      "status": 400
+    },
+    "path": "/saturation=-1/uploads/a.jpg"
+  },
+  "scq": {
+    "path": "/scq=50/uploads/a.jpg",
+    "request": {
+      "ClientHints": {
+        "SaveData": true
+      },
+      "Dialect": "cloudflare",
+      "Output": {
+        "SlowConnectionQuality": 50
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "scq_invalid": {
+    "error": {
+      "field": "slow-connection-quality",
+      "kind": "invalid_url",
+      "public": "invalid slow-connection-quality: expected integer 1..100, high, medium-high, medium-low or low",
+      "status": 400
+    },
+    "path": "/scq=fast/uploads/a.jpg"
+  },
+  "segment": {
+    "path": "/segment=foreground/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "segment",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "segment_invalid": {
+    "error": {
+      "field": "segment",
+      "kind": "invalid_url",
+      "public": "invalid segment: expected foreground",
+      "status": 400
+    },
+    "path": "/segment=background/uploads/a.jpg"
+  },
+  "segment_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/segment=foreground/uploads/a.jpg"
+  },
+  "sharpen": {
+    "path": "/sharpen=2/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Sharpen": 0.5
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "sharpen_fraction": {
+    "path": "/sharpen=0.5/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Sharpen": 0.125
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "sharpen_over": {
+    "error": {
+      "field": "sharpen",
+      "kind": "invalid_url",
+      "public": "invalid sharpen: expected number in 0..10",
+      "status": 400
+    },
+    "path": "/sharpen=11/uploads/a.jpg"
+  },
+  "slow_connection_quality": {
+    "path": "/slow-connection-quality=low/uploads/a.jpg",
+    "request": {
+      "ClientHints": {
+        "SaveData": true
+      },
+      "Dialect": "cloudflare",
+      "Output": {
+        "SlowConnectionQuality": 50
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "trim_border": {
+    "path": "/trim=border/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Trim": {
+            "Threshold": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "trim_border_color": {
+    "path": "/trim=border,trim.border.color=%23ffffff/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Trim": {
+            "Color": {
+              "A": 255,
+              "B": 255,
+              "G": 255,
+              "R": 255
+            },
+            "Threshold": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "trim_border_false": {
+    "path": "/trim=border,trim.border=false/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "trim_border_keep": {
+    "path": "/trim=border,trim.border.keep=5/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "trim.border.keep",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Trim": {
+            "Threshold": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "trim_border_tolerance": {
+    "path": "/trim.border.tolerance=200/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Trim": {
+            "Threshold": 55
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "trim_border_tolerance_invalid": {
+    "error": {
+      "field": "trim.border.tolerance",
+      "kind": "invalid_url",
+      "public": "invalid trim.border.tolerance: expected integer 0..255",
+      "status": 400
+    },
+    "path": "/trim.border.tolerance=300/uploads/a.jpg"
+  },
+  "trim_bottom_px": {
+    "path": "/trim.bottom=10/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "trim.bottom",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "trim_height": {
+    "path": "/trim.height=800/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west"
+            },
+            "Height": {
+              "Px": 800
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "trim_invalid": {
+    "error": {
+      "field": "trim",
+      "kind": "invalid_url",
+      "public": "invalid trim: expected border or top;right;bottom;left",
+      "status": 400
+    },
+    "path": "/trim=edges/uploads/a.jpg"
+  },
+  "trim_left_px": {
+    "path": "/trim.left=800/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 800
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "trim_right_fraction": {
+    "path": "/trim.right=0.1/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west"
+            },
+            "Width": {
+              "Rel": 0.9
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "trim_side_invalid": {
+    "error": {
+      "field": "trim.top",
+      "kind": "invalid_url",
+      "public": "invalid trim.top: expected non-negative integer (pixels) or a fraction below 1",
+      "status": 400
+    },
+    "path": "/trim.top=1.5/uploads/a.jpg"
+  },
+  "trim_sides_count": {
+    "error": {
+      "field": "trim",
+      "kind": "invalid_url",
+      "public": "invalid trim: expected border or top;right;bottom;left",
+      "status": 400
+    },
+    "path": "/trim=1;2;3/uploads/a.jpg"
+  },
+  "trim_sides_fraction": {
+    "path": "/trim=0.1;0.2;0.1;0.2/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 0.2,
+              "YOffset": 0.1
+            },
+            "Height": {
+              "Rel": 0.8
+            },
+            "Width": {
+              "Rel": 0.6
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "trim_sides_mixed": {
+    "path": "/trim=0.1;20;0;0.2/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "trim.right",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 0.2,
+              "YOffset": 0.1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "trim_sides_px": {
+    "path": "/trim=10;20;30;40/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "trim.right",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "trim.bottom",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 40,
+              "YOffset": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "trim_sides_too_much": {
+    "error": {
+      "field": "trim.right",
+      "kind": "invalid_url",
+      "public": "invalid trim.right: expected trims that leave part of the image",
+      "status": 400
+    },
+    "path": "/trim=0.5;0.5;0.5;0.5/uploads/a.jpg"
+  },
+  "trim_top": {
+    "path": "/trim.top=0.25/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "YOffset": 0.25
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "trim_width_fraction": {
+    "path": "/trim.width=0.5,trim.left=0.25/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 0.25
+            },
+            "Width": {
+              "Rel": 0.5
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "trim_width_zero": {
+    "error": {
+      "field": "trim.width",
+      "kind": "invalid_url",
+      "public": "invalid trim.width: expected positive size",
+      "status": 400
+    },
+    "path": "/trim.width=0/uploads/a.jpg"
+  },
+  "trim_zero": {
+    "path": "/trim=0;0;0;0/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "unknown": {
+    "path": "/w=10,origin-auth=share-publicly/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "origin-auth",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "unknown_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/w=10,origin-auth=share-publicly/uploads/a.jpg"
+  },
+  "upscale_generate": {
+    "path": "/upscale=generate/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "upscale",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "upscale_generate_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/upscale=generate/uploads/a.jpg"
+  },
+  "upscale_interpolate": {
+    "path": "/upscale=interpolate/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "upscale_invalid": {
+    "error": {
+      "field": "upscale",
+      "kind": "invalid_url",
+      "public": "invalid upscale: expected interpolate or generate",
+      "status": 400
+    },
+    "path": "/upscale=ai/uploads/a.jpg"
+  },
+  "w": {
+    "path": "/w=400/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "wbreakpoints": {
+    "path": "/width=auto,wbreakpoints=320;768/uploads/a.jpg",
+    "request": {
+      "ClientHints": {
+        "Width": true
+      },
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "wbreakpoints",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "width": {
+    "path": "/width=400/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "width_auto": {
+    "path": "/width=auto/uploads/a.jpg",
+    "request": {
+      "ClientHints": {
+        "Width": true
+      },
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "width_auto_then_px": {
+    "path": "/width=auto,w=300/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "width_float": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected positive integer or auto",
+      "status": 400
+    },
+    "path": "/width=1.5/uploads/a.jpg"
+  },
+  "width_huge": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected positive integer or auto",
+      "status": 400
+    },
+    "path": "/width=99999999/uploads/a.jpg"
+  },
+  "width_negative": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected positive integer or auto",
+      "status": 400
+    },
+    "path": "/width=-5/uploads/a.jpg"
+  },
+  "width_zero": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected positive integer or auto",
+      "status": 400
+    },
+    "path": "/width=0/uploads/a.jpg"
+  },
+  "wmobile_wdesktop": {
+    "path": "/width=auto,wmobile=768,wdesktop=1200/uploads/a.jpg",
+    "request": {
+      "ClientHints": {
+        "Width": true
+      },
+      "Dialect": "cloudflare",
+      "Ignored": [
+        {
+          "Option": "wmobile",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "wdesktop",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "zoom_invalid": {
+    "error": {
+      "field": "zoom",
+      "kind": "invalid_url",
+      "public": "invalid zoom: expected number in 0..1",
+      "status": 400
+    },
+    "path": "/zoom=2/uploads/a.jpg"
+  }
+}

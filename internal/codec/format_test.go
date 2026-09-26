@@ -13,7 +13,8 @@ func allFormats() []codec.Format {
 		codec.FormatUnknown, codec.FormatJPEG, codec.FormatPNG, codec.FormatGIF, codec.FormatWebP,
 		codec.FormatAVIF, codec.FormatHEIC, codec.FormatHEIF, codec.FormatJXL, codec.FormatTIFF,
 		codec.FormatBMP, codec.FormatICO, codec.FormatSVG, codec.FormatJP2, codec.FormatUHDR,
-		codec.FormatPDF, codec.FormatPSD, codec.FormatRAW,
+		codec.FormatPDF, codec.FormatPSD, codec.FormatEXR, codec.FormatRadiance, codec.FormatPPM,
+		codec.FormatPFM, codec.FormatRAW,
 	}
 }
 
@@ -43,9 +44,13 @@ func TestFormatFacts(t *testing.T) {
 		{codec.FormatSVG, "svg", "svg", "image/svg+xml", false, true, true, transform.FormatSVG},
 		{codec.FormatJP2, "jp2", "jp2", "image/jp2", false, true, true, transform.FormatUnset},
 		{codec.FormatUHDR, "uhdr", "jpg", "image/jpeg", false, false, true, transform.FormatJPEG},
-		{codec.FormatPDF, "pdf", "pdf", "application/pdf", false, true, false, transform.FormatUnset},
-		{codec.FormatPSD, "psd", "psd", "image/vnd.adobe.photoshop", false, true, false, transform.FormatUnset},
-		{codec.FormatRAW, "raw", "", "application/octet-stream", false, false, false, transform.FormatUnset},
+		{codec.FormatPDF, "pdf", "pdf", "application/pdf", false, true, true, transform.FormatUnset},
+		{codec.FormatPSD, "psd", "psd", "image/vnd.adobe.photoshop", false, true, true, transform.FormatUnset},
+		{codec.FormatEXR, "exr", "exr", "image/x-exr", false, true, true, transform.FormatUnset},
+		{codec.FormatRadiance, "radiance", "hdr", "image/vnd.radiance", false, false, true, transform.FormatUnset},
+		{codec.FormatPPM, "ppm", "ppm", "image/x-portable-pixmap", false, false, true, transform.FormatUnset},
+		{codec.FormatPFM, "pfm", "pfm", "image/x-portable-floatmap", false, false, true, transform.FormatUnset},
+		{codec.FormatRAW, "raw", "", "application/octet-stream", false, false, true, transform.FormatUnset},
 	}
 	if len(tests) != len(allFormats()) {
 		t.Fatalf("table covers %d formats, want %d", len(tests), len(allFormats()))

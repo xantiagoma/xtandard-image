@@ -80,10 +80,10 @@ func TestRunErrors(t *testing.T) {
 
 func TestSkippedOptions(t *testing.T) {
 	t.Parallel()
-	o := process(t, jpegPhoto, "rs:fit:64:64/bl:2/sh:1/ba:2:0:0:0.5:0.5", transform.FormatJPEG)
-	want := []string{"blur_areas"}
+	// blur, sharpen and crop_aspect_ratio (WP-60) are all applied.
+	o := process(t, jpegPhoto, "rs:fit:64:64/bl:2/sh:1/car:1.5", transform.FormatJPEG)
 	got := slices.Sorted(slices.Values(o.res.Skipped))
-	if diff := cmp.Diff(want, got); diff != "" {
+	if diff := cmp.Diff([]string(nil), got); diff != "" {
 		t.Errorf("Skipped (-want +got):\n%s", diff)
 	}
 }

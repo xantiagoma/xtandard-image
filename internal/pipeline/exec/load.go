@@ -20,11 +20,27 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 	switch r.j.Meta.Format {
 	case "bmp", "ico":
 		img, err = r.loadGo(ctx)
+	case formatRAW:
+		img, err = r.loadRaw(ctx, ls)
+	case "tiff", "heic", "heif", "avif", "jp2", "jxl":
+		if anim == nil && ls.NPages > 1 {
+			// Stacked pages of a multi-page still may differ in size.
+			img, err = r.loadStack(ctx, ls)
+			break
+		}
+		img, err = r.a.Add(vips.Load(ctx, r.j.Source, r.loadOptions(ls, anim)))
 	default:
 		img, err = r.a.Add(vips.Load(ctx, r.j.Source, r.loadOptions(ls, anim)))
 	}
 	if err != nil {
 		return nil, err
+	}
+	if r.j.Meta.Format == "pdf" && !r.transparent && img.HasAlpha() {
+		// Rendered onto opaque white. Only the gaps PDFium leaves beside a
+		// narrower page of a stack are transparent: fill them with white too.
+		if img, err = r.a.Add(img.Flatten(ctx, []float64{255, 255, 255})); err != nil {
+			return nil, err
+		}
 	}
 	if img.Orientation() != 1 {
 		if img, err = r.a.Add(img.RemoveOrientation(ctx)); err != nil {
@@ -54,6 +70,9 @@ func (r *runner) loadOptions(ls *plan.LoadStep, anim *plan.AnimationStep) *vips.
 	}
 	if anim != nil {
 		o.NPages = anim.Frames
+	}
+	if r.j.Meta.Format == "pdf" {
+		o.Background = r.pdfBackground()
 	}
 	if ls.Access == plan.AccessRandom {
 		o.Access = vips.AccessRandom

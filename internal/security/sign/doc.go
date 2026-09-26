@@ -53,6 +53,64 @@
 // ignored. See [ImaginaryMessage] and [NewImaginaryVerifier]
 // (imaginary middleware.go validateURLSignature, MIT).
 //
+// # imgix scheme
+//
+// The imgix dialect's s parameter (imgix-blueprint "Securing URLs"):
+//
+//	lowercase-hex(MD5(token ‖ path [‖ "?" ‖ query]))
+//
+// token is the key's secret used verbatim (build it with NewKey, not
+// ParseHexKeyring), path is the escaped path with its leading "/", and query
+// is the raw query without s in its original order and encoding; the "?" is
+// present only when that remainder is non-empty. Salts are ignored. See
+// [ImgixMessage] and [NewImgixVerifier].
+//
+// # ImageKit scheme
+//
+// The ImageKit dialect's native scheme (imagekit-nodejs helper.ts
+// getSignature, Apache-2.0):
+//
+//	ik-s = hex(HMAC-SHA1(private_key, path ["?" query] expiry))
+//
+// path is the escaped URL path relative to the URL endpoint, query the
+// raw query without ik-s and ik-t, and expiry the ik-t value (unix
+// seconds) or 9999999999 when the URL has no ik-t. The private key is used
+// as written. See [ImageKitMessage] and [NewImageKitVerifier].
+//
+// # Cloudflare Images scheme
+//
+// Cloudflare Images signed delivery URLs carry sig and exp query
+// parameters:
+//
+//	sig = hex(HMAC-SHA256(key, path ‖ "?" ‖ query without sig))
+//
+// with the raw (not hex-decoded) signing key, no salt and no truncation;
+// for the usual URL the message is "/<account_hash>/<image_id>/<variant>?exp=<unix>".
+// The dialect checks exp after the signature. See [CloudflareMessage] and
+// [NewCloudflareVerifier] (developers.cloudflare.com, "Serve private
+// images").
+//
+// # thumbor scheme
+//
+//	base64url-padded(HMAC-SHA1(key, path))
+//
+// where path is the escaped request path after "/<signature>/" (no leading
+// "/"), keys are thumbor SECURITY_KEY strings (raw bytes, no salt) and the
+// first path segment "unsafe" marks a deliberately unsigned URL. See
+// [NewThumborVerifier] (libthumbor url_signers/base64_hmac_sha1.py, MIT).
+//
+// # Cloudinary scheme
+//
+// The Cloudinary dialect's s--SIG-- path segment:
+//
+//	SIG = base64url(H(message ‖ api_secret))[:8]   H = SHA-1 (or SHA-256)
+//	SIG = base64url(SHA-256(message ‖ api_secret))[:32]   long signatures
+//
+// a plain hash, not an HMAC; the secret is raw bytes and salts are
+// ignored. [CloudinaryVerifier] dispatches on the signature length. See
+// cloudinary.go and [NewCloudinaryVerifier] (cloudinary-npm utils.url,
+// MIT).
+//
 // # Security
 //
 // Signatures are compared with crypto/subtle. Key material lives in []byte

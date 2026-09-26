@@ -13,6 +13,8 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
+	"github.com/xantiagoma/xtandard-image/internal/imageinfo"
+	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/source"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
@@ -25,6 +27,10 @@ type InfoConfig struct {
 	// DebugHeaders adds X-Xi-Ignored, the options that were parsed but not
 	// applied (XI_OBSERVABILITY_DEBUG_HEADERS).
 	DebugHeaders bool
+	// PlanLimits are the executor's planner limits: the thumbor meta
+	// response (InfoSchemaThumbor) plans the request to report its target
+	// size and operations.
+	PlanLimits plan.Limits
 }
 
 // EXIFEntry is one EXIF tag of a source.
@@ -53,6 +59,9 @@ type SourceInfo struct {
 	Bands        int
 	SampleFormat string
 	Colorspace   string
+	// HDR reports a scene-linear source (OpenEXR, Radiance, PFM); /info
+	// then answers "hdr": true.
+	HDR bool
 	// EXIF is in file order.
 	EXIF []EXIFEntry
 	// IPTC maps dataset titles to values, Photoshop holds
@@ -61,15 +70,20 @@ type SourceInfo struct {
 	IPTC      map[string]any
 	Photoshop map[string]any
 	XMP       map[string]map[string]any
+	// Pixels holds the pixel-derived fields the request asked for
+	// (Inspect's px); nil when it asked for none.
+	Pixels *imageinfo.Result
 }
 
 // Inspector reads a source's header and metadata for /info (stage 11 of an
 // info request). Like Prober it returns errs.KindUnsupported for unknown or
 // disabled formats, KindCorrupt for unreadable headers and
 // KindLimitExceeded when a limit is exceeded, and must not retain src.
-// app implements it with codec.Inspect.
+// When px asks for pixel-derived fields (px.Any()), it also decodes the
+// first page and fills SourceInfo.Pixels (WP-63). app implements it with
+// codec.Inspect, codec.Sample and imageinfo.Analyze in one vips.Run.
 type Inspector interface {
-	Inspect(ctx context.Context, src fetch.Buffer, lim ProbeLimits) (*SourceInfo, error)
+	Inspect(ctx context.Context, src fetch.Buffer, lim ProbeLimits, px *imageinfo.Options) (*SourceInfo, error)
 }
 
 // infoContentType is the media type of info responses.
@@ -114,7 +128,7 @@ func (s *Server) inspect(ctx context.Context, r *http.Request, req *transform.Re
 	// 9. Fetch (coalesced with concurrent processing requests for the same
 	// source).
 	t = s.stage(info, stageFetch)
-	fr, err := s.fetch(ctx, key, source.FetchOptions{MaxBytes: lim.maxSrcBytes, Header: r.Header})
+	fr, err := s.fetch(ctx, key, source.FetchOptions{MaxBytes: lim.maxSrcBytes, Header: r.Header}, req.Source.Hashsum)
 	t.done()
 	if err != nil {
 		return nil, err
@@ -130,17 +144,18 @@ func (s *Server) inspect(ctx context.Context, r *http.Request, req *transform.Re
 	}
 	defer release()
 
-	// 11. Header and metadata.
+	// 11. Header and metadata, plus the pixel-derived fields when asked
+	// for (decoded in the same vips.Run).
 	t = s.stage(info, stageProbe)
-	si, err := s.inspectSource(ctx, fr.Buffer, &lim.probe)
+	si, err := s.inspectSource(ctx, fr.Buffer, &lim.probe, pixelOptions(req.Info))
 	t.done()
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := infoBody(req.Info, si, len(fr.Bytes()))
+	body, err := s.infoResponse(req, si, fr.Bytes())
 	if err != nil {
-		return nil, errs.Wrapf(errs.KindInternal, err, "server: encode info")
+		return nil, err
 	}
 	info.format = "json"
 	info.width, info.height = orientedSize(&si.Meta)
@@ -158,9 +173,23 @@ func (s *Server) inspect(ctx context.Context, r *http.Request, req *transform.Re
 	}, nil
 }
 
+// infoResponse renders the info JSON in the schema the request asks for.
+// src is the source as fetched: size and hashsums cover these bytes, not
+// the sanitised SVG.
+func (s *Server) infoResponse(req *transform.Request, si *SourceInfo, src []byte) ([]byte, error) {
+	if req.Info.Schema == transform.InfoSchemaThumbor {
+		return s.thumborMetaBody(req, si)
+	}
+	body, err := infoBody(req.Info, si, src)
+	if err != nil {
+		return nil, errs.Wrapf(errs.KindInternal, err, "server: encode info")
+	}
+	return body, nil
+}
+
 // inspectSource is probe for info requests: SVG is sanitised before
 // anything parses it, and the input limits are re-checked on the result.
-func (s *Server) inspectSource(ctx context.Context, buf fetch.Buffer, lim *ProbeLimits) (*SourceInfo, error) {
+func (s *Server) inspectSource(ctx context.Context, buf fetch.Buffer, lim *ProbeLimits, px *imageinfo.Options) (*SourceInfo, error) {
 	ctx, span := s.deps.Tracer.Start(ctx, "probe")
 	defer span.End()
 
@@ -170,11 +199,13 @@ func (s *Server) inspectSource(ctx context.Context, buf fetch.Buffer, lim *Probe
 		return nil, err
 	}
 	defer src.Release()
-	si, err := s.deps.Inspector.Inspect(ctx, src, *lim)
+	si, err := s.deps.Inspector.Inspect(ctx, src, *lim, px)
 	switch {
 	case err != nil:
 	case si == nil:
 		err = errs.New(errs.KindInternal, "server: inspector returned no info")
+	case px.Any() && si.Pixels == nil:
+		err = errs.New(errs.KindInternal, "server: inspector returned no pixel info")
 	case si.Meta.Format == transform.FormatSVG && !sanitised:
 		err = errs.New(errs.KindUnsupported, "server: inspector found svg the sniffer missed")
 	default:
@@ -197,34 +228,43 @@ func orientedSize(m *SourceMeta) (w, h int) {
 	return m.Width, m.Height
 }
 
-// infoJSON is imgproxy's /info response (docs.imgproxy.net
+// InfoResponse is imgproxy's /info response body (docs.imgproxy.net
 // usage/getting_info). Each section is present exactly when its option is
 // on; requested metadata sections the source lacks are empty objects.
 // Options imgproxy supports but this build does not compute yet (video
-// metadata, crop, palette, colours, hashes, detection) are left out; the
-// dialect lists them in Request.Ignored (X-Xi-Ignored).
-type infoJSON struct {
-	Size         *int                      `json:"size,omitempty"`
-	Format       string                    `json:"format,omitempty"`
-	MIMEType     string                    `json:"mime_type,omitempty"`
-	Width        *int                      `json:"width,omitempty"`
-	Height       *int                      `json:"height,omitempty"`
-	Orientation  *int                      `json:"orientation,omitempty"`
-	EXIF         map[string]string         `json:"exif,omitzero"`
-	IPTC         map[string]any            `json:"iptc,omitzero"`
-	Photoshop    map[string]any            `json:"photoshop,omitzero"`
-	XMP          map[string]map[string]any `json:"xmp,omitzero"`
-	Colorspace   string                    `json:"colorspace,omitempty"`
-	Bands        *int                      `json:"bands,omitempty"`
-	SampleFormat string                    `json:"sample_format,omitempty"`
-	PagesNumber  *int                      `json:"pages_number,omitempty"`
-	Alpha        *bool                     `json:"alpha,omitempty"`
+// metadata, detection, classification) are left out; the dialect lists
+// them in Request.Ignored (X-Xi-Ignored). The crop, colour and hash fields
+// (WP-63) are InfoProResponse, rendered by info_pro.go.
+//
+// It is public API: internal/apidoc reflects it into the OpenAPI document
+// (ADR 0008), so renaming a field or its JSON name is a breaking change.
+// The doc, minimum and maximum tags become schema keywords.
+type InfoResponse struct {
+	Size         *int                      `json:"size,omitempty"          doc:"Source size in bytes (info option size)."`
+	Format       string                    `json:"format,omitempty"        doc:"Source format in imgproxy's names: jpeg (UltraHDR too), png, webp, avif, heic, jxl, gif, tiff, bmp, ico, svg, pdf, psd, ... (info option format)."`
+	MIMEType     string                    `json:"mime_type,omitempty"     doc:"Source media type, e.g. image/jpeg; HEIC is image/heif (info option format)."`
+	Width        *int                      `json:"width,omitempty"         doc:"Width of one page or frame in pixels, EXIF orientation applied (info option dimensions)."`
+	Height       *int                      `json:"height,omitempty"        doc:"Height of one page or frame in pixels, EXIF orientation applied (info option dimensions)."`
+	Orientation  *int                      `json:"orientation,omitempty"   doc:"EXIF orientation 1-8, 1 when absent (info option dimensions)."                            maximum:"8" minimum:"1"`
+	EXIF         map[string]string         `json:"exif,omitzero"           doc:"EXIF tags keyed by libexif title, with libexif's human-readable values; {} when the source has none (info option exif)."`
+	IPTC         map[string]any            `json:"iptc,omitzero"           doc:"IPTC IIM datasets keyed by title, repeatable datasets as arrays; {} when the source has none (info option iptc)."`
+	Photoshop    map[string]any            `json:"photoshop,omitzero"      doc:"Photoshop image resources, e.g. resolution, when present (info option iptc)."`
+	XMP          map[string]map[string]any `json:"xmp,omitzero"            doc:"XMP properties grouped by namespace prefix; {} when the source has none (info option xmp)."`
+	Colorspace   string                    `json:"colorspace,omitempty"    doc:"libvips interpretation name: srgb, b-w, rgb16, cmyk, ... (info option colorspace)."`
+	Bands        *int                      `json:"bands,omitempty"         doc:"Number of bands (channels), alpha included (info option bands)."`
+	SampleFormat string                    `json:"sample_format,omitempty" doc:"libvips band format name: uchar, ushort, float, ... (info option sample_format)."`
+	PagesNumber  *int                      `json:"pages_number,omitempty"  doc:"Number of pages, or frames of an animation (info option pages_number)."               minimum:"1"`
+	Alpha        *bool                     `json:"alpha,omitempty"         doc:"Whether the source has an alpha channel (info option alpha)."`
+	InfoProResponse
+	HDR bool `json:"hdr,omitempty" doc:"xtandard-image extension: true for scene-linear sources (OpenEXR, Radiance, PFM), which imgproxy does not read; absent otherwise."`
 }
 
-// infoBody renders the response for the options in o.
-func infoBody(o *transform.InfoOptions, si *SourceInfo, size int) ([]byte, error) {
-	var out infoJSON
+// infoBody renders the response for the options in o; src is the source
+// as fetched.
+func infoBody(o *transform.InfoOptions, si *SourceInfo, src []byte) ([]byte, error) {
+	var out InfoResponse
 	if o.Size {
+		size := len(src)
 		out.Size = &size
 	}
 	if o.Format {
@@ -278,6 +318,8 @@ func infoBody(o *transform.InfoOptions, si *SourceInfo, size int) ([]byte, error
 	if o.Alpha {
 		out.Alpha = &si.Meta.HasAlpha
 	}
+	out.InfoProResponse = infoPro(o, si, src)
+	out.HDR = si.HDR
 	return json.Marshal(&out)
 }
 

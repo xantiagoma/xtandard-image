@@ -6,6 +6,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/bmp"
 	"github.com/xantiagoma/xtandard-image/internal/codec/ico"
+	"github.com/xantiagoma/xtandard-image/internal/codec/raw"
 	"github.com/xantiagoma/xtandard-image/internal/security/svg"
 )
 
@@ -21,12 +22,13 @@ const (
 	magicJXLBox  = "\x00\x00\x00\x0cJXL \r\n\x87\n"
 	magicJP2Box  = "\x00\x00\x00\x0cjP  \r\n\x87\n"
 	magicJ2K     = "\xff\x4f\xff\x51"
-	magicCRW     = "HEAPCCDR"
-	magicRAF     = "FUJIFILMCCD-RAW"
 	jpegMPF      = "MPF\x00"
 	jpegISOGain  = "urn:iso:std:iso:ts:21496:-1\x00"
 	jpegXMP      = "http://ns.adobe.com/xap/1.0/\x00"
 	jpegHDRGMXMP = "hdrgm:Version"
+	magicEXR     = "v/1\x01"
+	magicRad     = "#?RADIANCE"
+	magicRGBE    = "#?RGBE"
 )
 
 // has reports whether b starts with s, without allocating.
@@ -66,16 +68,24 @@ func sniff(b []byte) Format {
 		return FormatPDF
 	case len(b) >= 6 && string(b[:4]) == "8BPS" && b[4] == 0 && (b[5] == 1 || b[5] == 2):
 		return FormatPSD
+	case has(b, magicEXR):
+		return FormatEXR
+	case isLine(b, magicRad), isLine(b, magicRGBE):
+		return FormatRadiance
+	case len(b) >= 3 && b[0] == 'P' && isPNMSpace(b[2]) && (b[1] == '5' || b[1] == '6'):
+		return FormatPPM
+	case len(b) >= 3 && b[0] == 'P' && isPNMSpace(b[2]) && (b[1] == 'F' || b[1] == 'f'):
+		return FormatPFM
 	case len(b) >= 4 && (string(b[:4]) == "II*\x00" || string(b[:4]) == "MM\x00*" ||
 		string(b[:4]) == "II+\x00" || string(b[:4]) == "MM\x00+"):
-		// CR2 is a TIFF with "CR" at offset 8.
-		if len(b) >= 10 && b[0] == 'I' && b[8] == 'C' && b[9] == 'R' {
+		// TIFF-shaped RAWs: CR2, and NEF, ARW, DNG, PEF, ... by IFD0.
+		if _, ok := raw.Sniff(b); ok {
 			return FormatRAW
 		}
 		return FormatTIFF
 	case len(b) >= 8 && string(b[4:8]) == "ftyp":
 		return sniffISOBMFF(b)
-	case isOtherRAW(b):
+	case isRAW(b):
 		return FormatRAW
 	case bmp.Sniff(b):
 		return FormatBMP
@@ -87,22 +97,21 @@ func sniff(b []byte) Format {
 	return FormatUnknown
 }
 
-// isOtherRAW recognises camera RAW formats that are not TIFF-shaped
-// containers or carry their own signature.
-func isOtherRAW(b []byte) bool {
-	switch {
-	case has(b, magicRAF):
-		return true
-	case len(b) >= 4 && (string(b[:4]) == "IIRO" || string(b[:4]) == "IIRS" || string(b[:4]) == "MMOR"):
-		return true // Olympus ORF
-	case len(b) >= 4 && string(b[:4]) == "IIU\x00":
-		return true // Panasonic RW2
-	case len(b) >= 4 && (string(b[:4]) == "FOVb" || string(b[:4]) == "\x00MRM"):
-		return true // Sigma X3F, Minolta MRW
-	case len(b) >= 14 && string(b[:2]) == "II" && string(b[6:14]) == magicCRW:
-		return true // Canon CRW (CIFF)
-	}
-	return false
+// isLine reports whether b starts with the line s (ended by LF or CR).
+func isLine(b []byte, s string) bool {
+	return len(b) > len(s) && has(b, s) && (b[len(s)] == '\n' || b[len(s)] == '\r')
+}
+
+// isPNMSpace is the whitespace that ends a Netpbm magic number. Only the
+// binary variants are recognised: PGM/PPM (P5, P6) and PFM (PF, Pf); ASCII
+// (P1-P3) and bitmap (P4) files are not images this service decodes.
+func isPNMSpace(c byte) bool { return c == ' ' || c == '\t' || c == '\n' || c == '\r' }
+
+// isRAW recognises camera RAW formats with their own signature (RAF, ORF,
+// RW2, X3F, MRW, CRW, IIQ); see raw.Sniff.
+func isRAW(b []byte) bool {
+	_, ok := raw.Sniff(b)
+	return ok
 }
 
 // sniffISOBMFF classifies an ISO base media file by the brands of its

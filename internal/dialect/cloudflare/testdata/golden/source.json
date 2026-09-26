@@ -1,0 +1,399 @@
+{
+  "absolute_bad_escape": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid source escaping",
+      "status": 400
+    },
+    "path": "/w=10/https%3A%2F%2Fexample.com%zz"
+  },
+  "absolute_collapsed": {
+    "path": "/w=10/https:/other.example.com/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://other.example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://other.example.com/a.jpg"
+  },
+  "absolute_encoded": {
+    "path": "/w=10/https%3A%2F%2Fexample.com%2Fa.jpg%3Fx%3D1",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg?x=1"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg?x=1"
+  },
+  "absolute_encoded_plus_query": {
+    "path": "/w=10/https%3A%2F%2Fexample.com%2Fa.jpg%3Fx%3D1",
+    "query": "y=2",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg?x=1\u0026y=2"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg?x=1\u0026y=2"
+  },
+  "absolute_http": {
+    "path": "/w=10/http://other.example.com/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://other.example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://other.example.com/a.jpg"
+  },
+  "absolute_https": {
+    "path": "/w=10/https://other.example.com/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://other.example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://other.example.com/a.jpg"
+  },
+  "absolute_query": {
+    "path": "/w=10/https://example.com/a.jpg",
+    "query": "x=1\u0026y=2",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg?x=1\u0026y=2"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg?x=1\u0026y=2"
+  },
+  "absolute_upper_scheme": {
+    "path": "/w=10/HTTPS://other.example.com/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "HTTPS://other.example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "HTTPS://other.example.com/a.jpg"
+  },
+  "control_char": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid source url",
+      "status": 400
+    },
+    "path": "/w=10/a%00.jpg"
+  },
+  "empty_path": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing options",
+      "status": 400
+    },
+    "path": ""
+  },
+  "empty_source": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing source",
+      "status": 400
+    },
+    "path": "/w=10/"
+  },
+  "missing_options": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing options",
+      "status": 400
+    },
+    "path": "//uploads/a.jpg"
+  },
+  "missing_source": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing source",
+      "status": 400
+    },
+    "path": "/w=10"
+  },
+  "native_prefix": {
+    "path": "/cdn-cgi/image/w=10/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "relative": {
+    "path": "/w=10/uploads/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a.jpg"
+  },
+  "relative_colon": {
+    "path": "/w=10/s3:/bucket/key.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/s3:/bucket/key.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/s3:/bucket/key.jpg"
+  },
+  "relative_escaped": {
+    "path": "/w=10/uploads/a%20b.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/uploads/a%20b.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/uploads/a%20b.jpg"
+  },
+  "relative_query": {
+    "path": "/w=10/a.jpg",
+    "query": "v=2",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/a.jpg?v=2"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/a.jpg?v=2"
+  },
+  "xi_bad": {
+    "config": "xi",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/w=10/a.jpg",
+    "query": "xi_sig=AAAA"
+  },
+  "xi_ignored_without_verifier": {
+    "path": "/w=10/a.jpg",
+    "query": "xi_sig=AAAA\u0026v=1",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/a.jpg?v=1"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/a.jpg?v=1"
+  },
+  "xi_signed": {
+    "config": "xi",
+    "path": "/w=10/a.jpg",
+    "query": "xi_sig=VKDYA3hGvgK0Ide3gWCNcVk4FqshAh4EKtOdLZQ4O5k",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/a.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "/a.jpg"
+  },
+  "xi_signed_query": {
+    "config": "xi",
+    "path": "/w=10/https://e.com/a.jpg",
+    "query": "v=1\u0026xi_sig=3f7xqrUM0govzrfgxdcmXw9HP8ArohD6-8CHQFES_iM",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://e.com/a.jpg?v=1"
+      }
+    },
+    "signature": "verified",
+    "source": "https://e.com/a.jpg?v=1"
+  },
+  "xi_tampered": {
+    "config": "xi",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/w=20/a.jpg",
+    "query": "xi_sig=VKDYA3hGvgK0Ide3gWCNcVk4FqshAh4EKtOdLZQ4O5k"
+  },
+  "xi_unsigned": {
+    "config": "xi",
+    "path": "/w=10/a.jpg",
+    "request": {
+      "Dialect": "cloudflare",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/a.jpg"
+  }
+}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/bmp"
 	"github.com/xantiagoma/xtandard-image/internal/codec/ico"
+	"github.com/xantiagoma/xtandard-image/internal/codec/raw"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/security/svg"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
@@ -17,10 +18,17 @@ import (
 // Probe sniffs buf, reads only its headers and enforces lim before anything
 // is decoded (ARCHITECTURE §2 stage 11):
 //
-//   - unrecognised input and formats of a later milestone (PDF, PSD, RAW)
-//     fail with errs.KindUnsupported, without reaching a decoder;
+//   - unrecognised input fails with errs.KindUnsupported, without reaching
+//     a decoder;
+//   - camera RAW headers are read by LibRaw without unpacking (codec/raw);
 //   - BMP and ICO headers are parsed by the pure-Go loaders' config
-//     functions, never by libvips;
+//     functions, and PSD/PSB headers by ParsePSDHeader, never by libvips
+//     (ImageMagick decodes a whole PSD even for its header);
+//   - OpenEXR headers are parsed by ParseEXRHeader, so the pixel limits hold
+//     before OpenEXR sizes anything from the data window;
+//   - PDF pages are counted by PDFium's header read (nothing is rendered)
+//     and more than Limits.MaxPDFPages fail with errs.KindLimitExceeded; a
+//     PDF that needs a password fails with errs.KindUnsupported;
 //   - SVG over Limits.MaxSVGBytes fails with errs.KindLimitExceeded, and any
 //     other SVG is sanitised (security/svg, with the SVG depth and element
 //     limits) before librsvg parses the sanitised copy's header;
@@ -59,8 +67,18 @@ func Probe(ctx context.Context, buf *vips.Buffer, lim Limits, contentType string
 		m, err = probeICO(data)
 	case FormatSVG:
 		m, err = probeSVG(ctx, data, lim)
+	case FormatPSD:
+		m, err = probePSD(data, lim)
+	case FormatPDF:
+		m, err = probePDF(ctx, buf, lim)
+	case FormatRAW:
+		m, err = probeRaw(ctx, buf)
+	case FormatEXR:
+		m, err = probeEXR(data)
+	case FormatRadiance:
+		m, err = probeRadiance(ctx, buf)
 	default:
-		m, err = probeVips(ctx, buf, f)
+		m, err = probeVips(ctx, buf, f, 0)
 	}
 	if err != nil {
 		return ImageMeta{}, fmt.Errorf("codec: probe %s: %w", f, err)
@@ -68,6 +86,7 @@ func Probe(ctx context.Context, buf *vips.Buffer, lim Limits, contentType string
 	if err := lim.Check(&m); err != nil {
 		return ImageMeta{}, err
 	}
+	m.HDR = m.Format.HDR()
 	m.ContentTypeMismatch = !m.Format.MatchesContentType(contentType)
 	return m, nil
 }
@@ -83,6 +102,32 @@ func ctxErr(ctx context.Context) error {
 	default:
 		return errs.Wrap(errs.KindCanceled, err)
 	}
+}
+
+// probeRaw describes the demosaiced image: its size in the stored
+// orientation and LibRaw's orientation. Pixels are 8-bit sRGB (grey for
+// monochrome sensors) whichever path the executor takes.
+func probeRaw(ctx context.Context, buf *vips.Buffer) (ImageMeta, error) {
+	h, err := raw.Probe(ctx, buf)
+	if err != nil {
+		return ImageMeta{}, err
+	}
+	cs := ColorSpaceSRGB
+	if h.Colors == 1 {
+		cs = ColorSpaceGrey
+	}
+	return ImageMeta{
+		Format:      FormatRAW,
+		Width:       h.Width,
+		Height:      h.Height,
+		Frames:      1,
+		Pages:       1,
+		PageHeight:  h.Height,
+		Orientation: h.Orientation,
+		BitDepth:    8,
+		Loop:        -1,
+		ColorSpace:  cs,
+	}, nil
 }
 
 func probeBMP(data []byte) (ImageMeta, error) {
@@ -142,7 +187,99 @@ func probeSVG(ctx context.Context, data []byte, lim Limits) (ImageMeta, error) {
 	}
 	defer sbuf.Release()
 	copy(sbuf.Bytes(), clean)
-	return probeVips(ctx, sbuf, FormatSVG)
+	return probeVips(ctx, sbuf, FormatSVG, 0)
+}
+
+// probePSD reads the header in Go. The size is the canvas, pages are the
+// merged image plus one per layer (the `page` option selects a layer the
+// way ImageMagick numbers them), and files without a merged composite are
+// refused when lim.PSDRequireComposite is set.
+func probePSD(data []byte, lim Limits) (ImageMeta, error) {
+	h, err := ParsePSDHeader(data)
+	if err != nil {
+		return ImageMeta{}, err
+	}
+	if !h.Composite && lim.PSDRequireComposite {
+		return ImageMeta{}, errs.WithPublic(
+			errs.New(errs.KindUnsupported, "codec: psd without a merged composite"),
+			"photoshop file saved without a composite image is not supported")
+	}
+	bits := max(h.Depth, 8) // 1-bit bitmaps load as 8-bit grey
+	return ImageMeta{
+		Format:      FormatPSD,
+		Width:       h.Width,
+		Height:      h.Height,
+		Frames:      1,
+		Pages:       1 + h.Layers,
+		PageHeight:  h.Height,
+		HasAlpha:    h.HasAlpha(),
+		Orientation: 1,
+		BitDepth:    bits,
+		Loop:        -1,
+		HasICC:      h.ICC,
+		ColorSpace:  h.ColorSpace(),
+	}, nil
+}
+
+// probePDF measures the first page at lim.PDFDensity and counts the pages
+// (PDFium reads the page tree, nothing is rendered). Pages render onto an
+// opaque white background unless a request asks for transparency, so the
+// source has no alpha.
+func probePDF(ctx context.Context, buf *vips.Buffer, lim Limits) (ImageMeta, error) {
+	m, err := probeVips(ctx, buf, FormatPDF, lim.PDFDensity)
+	if err != nil {
+		return ImageMeta{}, err
+	}
+	if m.Pages > lim.MaxPDFPages {
+		return ImageMeta{}, errs.Newf(errs.KindLimitExceeded, "codec: pdf of %d pages exceeds the limit of %d",
+			m.Pages, lim.MaxPDFPages)
+	}
+	m.HasAlpha = false
+	m.BitDepth = 8
+	return m, nil
+}
+
+// probeEXR reads the header in Go. libvips loads every OpenEXR image as
+// four float bands (RGBA, A = 1 when the file has none); the probe reports
+// the alpha the file really has.
+func probeEXR(data []byte) (ImageMeta, error) {
+	h, err := ParseEXRHeader(data)
+	if err != nil {
+		return ImageMeta{}, err
+	}
+	bits := 16
+	if h.Float {
+		bits = 32
+	}
+	return ImageMeta{
+		Format:      FormatEXR,
+		Width:       h.Width,
+		Height:      h.Height,
+		Frames:      1,
+		Pages:       1,
+		PageHeight:  h.Height,
+		HasAlpha:    h.HasAlpha(),
+		Orientation: 1,
+		BitDepth:    bits,
+		Loop:        -1,
+		ColorSpace:  ColorSpaceScRGB,
+	}, nil
+}
+
+// probeRadiance reads the Radiance header through libvips (text lines and
+// the resolution string; nothing is decoded). The loader reports four
+// RGBE-coded uchar bands; they decode to three float bands without alpha.
+func probeRadiance(ctx context.Context, buf *vips.Buffer) (ImageMeta, error) {
+	m, err := probeVips(ctx, buf, FormatRadiance, 0)
+	if err != nil {
+		return ImageMeta{}, err
+	}
+	// libvips guesses sRGB for any RGBE-coded image; the pixels are linear
+	// (XYZE files too, converted to scRGB when decoded).
+	m.HasAlpha = false
+	m.BitDepth = 32
+	m.ColorSpace = ColorSpaceScRGB
+	return m, nil
 }
 
 // SanitizeSVG checks an SVG document against lim's SVG limits and returns
@@ -172,8 +309,8 @@ func SanitizeSVG(data []byte, lim Limits) ([]byte, error) {
 	}
 }
 
-func probeVips(ctx context.Context, buf *vips.Buffer, sniffed Format) (ImageMeta, error) {
-	h, err := vips.Probe(ctx, buf)
+func probeVips(ctx context.Context, buf *vips.Buffer, sniffed Format, dpi float64) (ImageMeta, error) {
+	h, err := vips.ProbeDensity(ctx, buf, dpi)
 	if err != nil {
 		return ImageMeta{}, err
 	}
@@ -237,6 +374,19 @@ func reconcile(sniffed Format, h *vips.Header) (Format, error) {
 		got = FormatSVG
 	case vips.FormatJP2K:
 		got = FormatJP2
+	case vips.FormatPDF:
+		got = FormatPDF
+	case vips.FormatPSD:
+		got = FormatPSD
+	case vips.FormatEXR:
+		got = FormatEXR
+	case vips.FormatRadiance:
+		got = FormatRadiance
+	case vips.FormatPPM:
+		got = FormatPPM
+		if h.BandFormat == vips.BandFormatFloat {
+			got = FormatPFM
+		}
 	default:
 		got = FormatUnknown
 	}
@@ -253,6 +403,8 @@ func family(f Format) Format {
 		return FormatJPEG
 	case FormatAVIF, FormatHEIC:
 		return FormatHEIF
+	case FormatPFM:
+		return FormatPPM
 	default:
 		return f
 	}
@@ -279,7 +431,9 @@ func colorSpaceOf(i vips.Interpretation) ColorSpace {
 
 // VipsFormat returns the libvips format of f, for the formats libvips loads
 // itself (every supported format except BMP and ICO, which the Go loaders
-// decode). UltraHDR is vips.FormatJPEG and HEIC/HEIF vips.FormatHEIF.
+// decode). UltraHDR is vips.FormatJPEG and HEIC/HEIF vips.FormatHEIF; PSD
+// is loaded by ImageMagick (vips.FormatPSD), PPM and PFM by ppmload
+// (vips.FormatPPM).
 func (f Format) VipsFormat() (vips.Format, bool) {
 	switch f {
 	case FormatJPEG, FormatUHDR:
@@ -302,6 +456,16 @@ func (f Format) VipsFormat() (vips.Format, bool) {
 		return vips.FormatSVG, true
 	case FormatJP2:
 		return vips.FormatJP2K, true
+	case FormatPDF:
+		return vips.FormatPDF, true
+	case FormatPSD:
+		return vips.FormatPSD, true
+	case FormatEXR:
+		return vips.FormatEXR, true
+	case FormatRadiance:
+		return vips.FormatRadiance, true
+	case FormatPPM, FormatPFM:
+		return vips.FormatPPM, true
 	default:
 		return vips.FormatUnknown, false
 	}

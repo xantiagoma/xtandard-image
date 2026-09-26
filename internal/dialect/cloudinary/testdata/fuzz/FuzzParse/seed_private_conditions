@@ -1,0 +1,2 @@
+go test fuzz v1
+string("/demo/image/private/if_ar_gt_1/$w_10,w_$w/if_end/t_thumb.chained/e_blur_region:9,x_0.9,w_0.9/x.JPEG")

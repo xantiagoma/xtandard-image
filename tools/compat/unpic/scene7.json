@@ -1,0 +1,154 @@
+{
+  "provider": "scene7",
+  "unpic": {
+    "provider": "scene7",
+    "version": "4.2.2"
+  },
+  "mode": "path",
+  "fixtures": [
+    {
+      "url": "https://s7d1.scene7.com/is/image/sample/s9?fit=crop%2C0",
+      "origin": "generate",
+      "want": {
+        "source": "is/image/sample/s9"
+      }
+    },
+    {
+      "url": "https://s7d1.scene7.com/is/image/sample/s9?hei=500&fmt=png&fit=crop%2C0",
+      "origin": "generate",
+      "want": {
+        "source": "is/image/sample/s9",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://s7d1.scene7.com/is/image/sample/s9?wid=1200&qlt=60&fmt=avif&fit=crop%2C0",
+      "origin": "generate",
+      "want": {
+        "source": "is/image/sample/s9",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://s7d1.scene7.com/is/image/sample/s9?wid=400&hei=300&qlt=80&fmt=webp&fit=crop%2C0",
+      "origin": "generate",
+      "want": {
+        "source": "is/image/sample/s9",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://s7d1.scene7.com/is/image/sample/s9?wid=640&qlt=75&fmt=jpeg&fit=crop%2C0",
+      "origin": "generate",
+      "want": {
+        "source": "is/image/sample/s9",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://s7d1.scene7.com/is/image/sample/s9?wid=800&fit=crop%2C0",
+      "origin": "generate",
+      "want": {
+        "source": "is/image/sample/s9",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://s7d1.scene7.com/is/image/sample/s9?wid=800&hei=600&fit=crop%2C0",
+      "origin": "generate",
+      "want": {
+        "source": "is/image/sample/s9",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://s7d1.scene7.com/is/image/sample/s9",
+      "origin": "test",
+      "want": {
+        "source": "is/image/sample/s9"
+      }
+    },
+    {
+      "url": "https://s7d1.scene7.com/is/image/sample/s9?wid=1200&hei=600&qlt=75&fmt=jpg&op_blur=10&fit=crop,0",
+      "origin": "test",
+      "want": {
+        "source": "is/image/sample/s9",
+        "width": 1200,
+        "height": 600,
+        "quality": 75,
+        "format": "jpg"
+      }
+    },
+    {
+      "url": "https://s7d1.scene7.com/is/image/sample/s9?wid=400&hei=300",
+      "origin": "test",
+      "want": {
+        "source": "is/image/sample/s9",
+        "width": 400,
+        "height": 300
+      }
+    },
+    {
+      "url": "https://s7d1.scene7.com/is/image/sample/s9?wid=400&hei=300&qlt=75&fmt=jpg&fit=crop,0",
+      "origin": "test",
+      "want": {
+        "source": "is/image/sample/s9",
+        "width": 400,
+        "height": 300,
+        "quality": 75,
+        "format": "jpg"
+      }
+    },
+    {
+      "url": "https://s7d1.scene7.com/is/image/sample/s9?wid=800&hei=600&fit=crop,0",
+      "origin": "test",
+      "want": {
+        "source": "is/image/sample/s9",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://s7d1.scene7.com/is/image/sample/s9?wid=800&hei=600&qlt=75&fmt=jpg&fit=crop,0",
+      "origin": "test",
+      "want": {
+        "source": "is/image/sample/s9",
+        "width": 800,
+        "height": 600,
+        "quality": 75,
+        "format": "jpg"
+      }
+    },
+    {
+      "url": "https://s7d1.scene7.com/is/image/sample/s9?wid=800&hei=600&qlt=75&fmt=jpg&op_blur=5",
+      "origin": "test",
+      "want": {
+        "source": "is/image/sample/s9",
+        "width": 800,
+        "height": 600,
+        "quality": 75,
+        "format": "jpg"
+      }
+    },
+    {
+      "url": "https://s7d1.scene7.com/is/image/sample/s9?wid=800&hei=600&qlt=75&fmt=jpg&op_blur=5&fit=crop,0",
+      "origin": "test",
+      "want": {
+        "source": "is/image/sample/s9",
+        "width": 800,
+        "height": 600,
+        "quality": 75,
+        "format": "jpg"
+      }
+    }
+  ]
+}

@@ -28,6 +28,7 @@ enum {
   XI_ERR_INTERNAL = 4,    // failure not attributable to the input
   XI_ERR_LIMIT = 5,       // the header exceeds a configured limit
   XI_ERR_OP = 6,          // a processing operation failed
+  XI_ERR_ENCRYPTED = 7,   // the document needs a password (pdfload)
 };
 
 // ---- lifecycle (shim.c) ------------------------------------------------
@@ -74,7 +75,7 @@ int xi_blob_failed(VipsBlob *blob);
 typedef struct {
   int shrink;            // jpeg/uhdr shrink-on-load; <= 1 is off
   double scale;          // webp/svg scale; <= 0 is off
-  double dpi;            // svg dpi; <= 0 is the loader default
+  double dpi;            // svg/pdf dpi; <= 0 is the loader default
   int page;              // first page/frame
   int n;                 // number of pages; -1 all, 0 loader default (1)
   int access;            // VipsAccess
@@ -83,6 +84,8 @@ typedef struct {
   int heif_thumbnail;    // heif: load the embedded thumbnail
   long long max_pixels;  // > 0: width × total height limit
   int max_frames;        // > 0: loaded frame limit
+  double background[4];  // pdf page background (0..255 per band)
+  int n_background;      // bands in background; 0 is the loader default
 } XiLoadOptions;
 
 typedef struct {
@@ -91,7 +94,7 @@ typedef struct {
   int bands;
   int band_format;  // VipsBandFormat
   int interpretation;
-  int n_pages;      // pages in the file (n-pages, or 1)
+  int n_pages;      // pages in the file (raw n-pages, or 1)
   int orientation;  // 1..8
   int has_alpha;
   int has_icc;
@@ -116,14 +119,74 @@ typedef struct {
   int n;             // -1 all, 0 loader default
 } XiThumbnailOptions;
 
-int xi_probe(VipsBlob *blob, XiHeader *h, char **err);
+// dpi > 0 measures vector pages (svg, pdf) at that resolution.
+int xi_probe(VipsBlob *blob, double dpi, XiHeader *h, char **err);
 int xi_load(VipsBlob *blob, const XiLoadOptions *o, VipsImage **out, char **err);
+// xi_load_with is xi_load with the loader named instead of detected (a type
+// name such as "VipsForeignLoadMagick7Buffer"); a blocked loader still fails,
+// but the PSD-only restriction of ImageMagick is skipped. Tests use it to
+// check ImageMagick's policy.xml behind that restriction.
+int xi_load_with(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsImage **out,
+    char **err);
 // import_profile and export_profile may be NULL (none); they are copied.
 int xi_thumbnail(VipsBlob *blob, const XiThumbnailOptions *o, const char *import_profile,
     const char *export_profile, VipsImage **out, char **err);
+// xi_spool_source returns the source blob data of a live OpenEXR spool path
+// (load.c), or NULL; the invalidate hook (shim.c) attributes decode
+// failures with it.
+const void *xi_spool_source(const char *path);
 int xi_black(int width, int height, int bands, VipsImage **out, char **err);
 int xi_new_from_memory(const void *data, size_t size, int width, int height, int bands,
     int band_format, VipsImage **out, char **err);
+
+// ---- camera RAW (raw.c, LibRaw) ------------------------------------------
+
+#define XI_RAW_MAX_THUMBS 8
+
+typedef struct {
+  int jpeg;             // LibRaw classifies it as a JPEG stream
+  int width;            // as LibRaw's header parse reports it; may be 0
+  int height;
+  unsigned length;      // bytes at offset in the source buffer
+  long long offset;
+} XiRawThumb;
+
+typedef struct {
+  int width;            // demosaiced size (half_size off), stored orientation
+  int height;
+  int raw_width;        // sensor data size
+  int raw_height;
+  int flip;             // LibRaw sizes.flip (dcraw convention)
+  int colors;           // colours of the sensor filter (1 = monochrome)
+  int dng;
+  float iso;
+  float shutter;        // seconds
+  float aperture;       // f-number
+  float focal_len;      // mm
+  int year, month, day, hour, minute, second; // capture time; year 0 = unknown
+  char make[64];
+  char model[64];
+  char software[64];
+  char lens[128];
+  int n_thumbs;
+  XiRawThumb thumbs[XI_RAW_MAX_THUMBS];
+} XiRawHeader;
+
+typedef struct {
+  int half_size;        // LibRaw half-size demosaic (each side halved)
+  long long max_pixels; // > 0: sensor width × height limit
+  int *cancel;          // C memory, set to non-zero by xi_raw_cancel; may be NULL
+} XiRawOptions;
+
+// Opens the buffer with libraw_open_buffer and reads the header and the
+// thumbnail list; nothing is unpacked.
+int xi_raw_probe(VipsBlob *blob, XiRawHeader *h, char **err);
+// Unpacks and demosaics to an 8-bit sRGB (or grey) image that owns LibRaw's
+// output buffer.
+int xi_raw_load(VipsBlob *blob, const XiRawOptions *o, VipsImage **out, char **err);
+void xi_raw_cancel(int *flag);
+// Live LibRaw handles plus live demosaiced buffers (leak tests).
+int xi_raw_live(void);
 
 // ---- image accessors and metadata (image.c) ------------------------------
 
@@ -149,6 +212,10 @@ int xi_meta_set_int(VipsImage *in, const char *name, int v, VipsImage **out, cha
 int xi_meta_set_blob(VipsImage *in, const char *name, const void *data, size_t len,
     VipsImage **out, char **err);
 int xi_meta_set_array_int(VipsImage *in, const char *name, const int *v, int n,
+    VipsImage **out, char **err);
+// names and values each hold n NUL-terminated strings back to back; every
+// value is copied.
+int xi_meta_set_strings(VipsImage *in, const char *names, const char *values, int n,
     VipsImage **out, char **err);
 // names holds n NUL-terminated names back to back.
 int xi_meta_remove(VipsImage *in, const char *names, int n, VipsImage **out, char **err);
@@ -226,6 +293,29 @@ int xi_similarity(VipsImage *in, double scale, double angle, const double *bg, i
 int xi_affine(VipsImage *in, double a, double b, double c, double d, const double *bg,
     int nbg, VipsImage **out, char **err); // per frame
 
+// Colour operations (WP-59). Results keep the input's band format: float
+// intermediates are rounded to nearest, then clamped by the cast.
+int xi_cast_round(VipsImage *in, int band_format, VipsImage **out, char **err);
+int xi_maplut(VipsImage *in, VipsImage *lut, VipsImage **out, char **err);
+int xi_recomb(VipsImage *in, const double *m, int rows, int cols, VipsImage **out,
+    char **err);
+int xi_mix(VipsImage *a, VipsImage *b, double t, VipsImage **out, char **err);
+int xi_gradient_mask(int width, int height, double ax, double ay, double b, double opacity,
+    VipsImage **out, char **err);
+
+// Filter extras (WP-61), in the input's band format.
+int xi_conv3(VipsImage *in, const double *m, VipsImage **out, char **err);
+int xi_unsharp(VipsImage *in, double sigma, double amount, VipsImage **out, char **err);
+int xi_insert(VipsImage *main, VipsImage *sub, int x, int y, VipsImage **out, char **err);
+int xi_blend_mask(VipsImage *mask, VipsImage *a, VipsImage *b, VipsImage **out,
+    char **err);
+
+// HDR operations (WP-67): float arithmetic for tone mapping.
+int xi_decode(VipsImage *in, VipsImage **out, char **err); // Radiance/LabQ coding → float
+int xi_clamp(VipsImage *in, double min, double max, VipsImage **out, char **err);
+int xi_multiply(VipsImage *a, VipsImage *b, VipsImage **out, char **err);
+int xi_divide(VipsImage *a, VipsImage *b, VipsImage **out, char **err);
+
 // ---- save (save.c) -----------------------------------------------------
 //
 // Every saver writes to a g_malloc'd buffer that the caller releases with
@@ -238,6 +328,12 @@ typedef struct {
   int optimize_coding;
   int subsample; // VipsForeignSubsample
   int restart_interval;
+  // mozjpeg extensions: libvips ignores them (with a warning, only when
+  // set) when built against libjpeg-turbo.
+  int trellis_quant;
+  int overshoot_deringing;
+  int optimize_scans;
+  int quant_table; // 0..8
 } XiJpegOptions;
 
 typedef struct {

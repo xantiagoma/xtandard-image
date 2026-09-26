@@ -7,7 +7,7 @@ Draft reference. Names are stable once M1 ships; until then they may change in t
 Lowest to highest:
 
 1. Built-in defaults.
-2. YAML file: `--config <path>` or `XI_CONFIG_FILE` (default `/etc/xtandard/config.yaml` if it exists).
+2. Config file (YAML, JSON or TOML, by extension): `--config <path>` or `XI_CONFIG_FILE`. When neither is set, whichever of `/etc/xtandard/config.{yaml,yml,json,toml}` exists is read; finding more than one is an error. `--config /dev/null` reads no file.
 3. `IMGPROXY_*` variables, only when `XI_COMPAT_IMGPROXY_ENV=true` (migration aid; translated to the XI equivalents listed in [imgproxy variables](#imgproxy-variables), e.g. `IMGPROXY_KEY` → `XI_SIGNING_KEYS`).
 4. `XI_*` environment variables.
 5. Per-request security overrides (`max_src_resolution`, …) only when `XI_SECURITY_ALLOW_SECURITY_OPTIONS=true`, and only downward unless `XI_SECURITY_ALLOW_RAISING_LIMITS=true`.
@@ -17,14 +17,14 @@ Rules:
 - **Mapping**: an env var is the YAML path upper-cased, dots → `_`, prefixed `XI_`. `limits.max_src_bytes` ↔ `XI_LIMITS_MAX_SRC_BYTES`; map entries use the key: `sources.assets.bucket` ↔ `XI_SOURCES_ASSETS_BUCKET`. Map keys are lower-case `[a-z0-9-]`; `-` becomes `_` in env names. Named sources are the only dynamic part: the effective sources are the YAML `sources` keys plus the names listed in `XI_SOURCES`. A test in `internal/config` checks this rule for every field and keeps the tables below in sync with the code (names and defaults).
 - **Empty values**: an empty variable (`XI_SERVER_ADDR=`) counts as unset and does not override the file.
 - **Lists**: comma-separated in env; YAML sequences in the file. An env list **replaces** the YAML list (maps such as `XI_PRESETS` and `_HEADERS` replace too). Surrounding spaces are trimmed. Integer allowlists also accept ranges: `640-1080/220`, `5-100/5` (start–end/step).
-- **Secrets**: any variable accepts a `_FILE` suffix (`XI_SIGNING_KEYS_FILE=/run/secrets/xi_keys`) for Docker/Kubernetes secrets, including dynamic ones (`XI_SOURCES_ASSETS_SECRET_ACCESS_KEY_FILE`). The trailing newline is trimmed; setting both `X` and `X_FILE` is an error. Variables whose own name ends in `_FILE` (`XI_CONFIG_FILE`, `XI_PRESETS_FILE`) are ordinary variables. Inside a config file, the equivalent is a `{file: /path}` reference (planned: WP-81, see "Secrets in the file" below). Secret fields print as `[REDACTED]` everywhere (`config print`, logs, errors).
+- **Secrets**: any variable accepts a `_FILE` suffix (`XI_SIGNING_KEYS_FILE=/run/secrets/xi_keys`) for Docker/Kubernetes secrets, including dynamic ones (`XI_SOURCES_ASSETS_SECRET_ACCESS_KEY_FILE`). The trailing newline is trimmed; setting both `X` and `X_FILE` is an error. Variables whose own name ends in `_FILE` (`XI_CONFIG_FILE`, `XI_PRESETS_FILE`) are ordinary variables. Inside a config file, the equivalent is a `{file: /path}` reference (see "Secrets in the file" below). A secret file may be at most 64 KiB. Secret fields print as `[REDACTED]` everywhere (`config print`, logs, errors).
 - **Types**: durations use Go syntax (`5s`, `1m30s`; negative rejected); sizes are bytes or binary suffixes `KiB/MiB/GiB/TiB` (`10MiB`; decimal `MB` is rejected as ambiguous); networks are CIDRs or single addresses (`10.0.0.0/8`, `fd00::1`; host bits must be zero); keys are hex; enums are case-insensitive.
 - **Validation** is strict: unknown YAML keys and unknown `XI_` variables are a startup error (typos should not silently disable security); the error suggests the closest known name. `XI_ALLOW_UNKNOWN_ENV=true` downgrades unknown variables to a startup warning. `Validate` reports every violation at once, each with its YAML path and variable. `xtandard-image config print` shows the effective config with secrets redacted.
 - **Secure by default**: with no sources configured and `XI_DEV_MODE` unset, the server refuses to start.
 
-### Config file formats and schema (planned: WP-81, WP-81b; ADR 0007)
+### Config file formats and schema (ADR 0007)
 
-Today the file is YAML only. WP-81 adds JSON and TOML, chosen by extension (`.yaml`/`.yml`, `.json`, `.toml`). All three have the same keys and the same strictness. Precedence and the env mapping above do not change. A JSON Schema (draft 2020-12) of the file gives editors validation, autocomplete and hover docs, and each hover also shows the matching `XI_*` variable. Planned stable URL, published per release (WP-81b):
+The file is YAML, JSON or TOML, chosen by extension (`.yaml`/`.yml`, `.json`, `.toml`; anything else is a startup error). All three have the same keys and the same strictness: JSON goes through the same strict YAML decoder, and TOML is converted to the same tree first (TOML dates and times are rejected because no key takes one, and errors after the conversion name the dotted key path rather than a TOML line). A top-level `$schema` key is ignored in every format. Precedence and the env mapping above do not change. A JSON Schema (draft 2020-12) of the file gives editors validation, autocomplete and hover docs; each hover shows the CONFIG.md meaning, the matching `XI_*` variable and, for secrets, its `_FILE` form. The schema is generated from the `Config` struct and the tables below (`go test ./internal/config -run TestJSONSchema -update`), committed as `internal/config/config.schema.json`, and a test fails when it is stale. Its `$id` is the URL below. Stable URLs, published per release (planned: WP-81b):
 
 ```
 https://xantiagoma.github.io/xtandard-image/schema/config.schema.json            # latest release
@@ -49,15 +49,15 @@ TOML (Taplo / Even Better TOML, Tombi). Put this directive first:
 #:schema https://xantiagoma.github.io/xtandard-image/schema/config.schema.json
 ```
 
-After the SchemaStore listing, files named `xtandard-image.{yaml,yml,json,toml}` are matched without the line. The schema also ships in the binary, and every copy carries the versioned Pages URL as its `$id`:
+After the SchemaStore listing (planned: WP-81b), files named `xtandard-image.{yaml,yml,json,toml}` are matched without the line. The schema also ships in the binary, and every copy carries the same `$id`; all its `$ref`s are local, so any copy resolves the same way:
 
-- The admin listener serves it at `GET /config.schema.json`, which is always on and never on the public listener. A self-hosted instance can point editors at its own copy, which always matches the running version: `# yaml-language-server: $schema=http://127.0.0.1:9090/config.schema.json` (use `XI_ADMIN_ADDR`'s host and port, or `kubectl port-forward`). The same URL works in `"$schema"` and `#:schema`.
+- The admin listener serves it at `GET /config.schema.json` (`Content-Type: application/schema+json`, strong `ETag`, `304` on `If-None-Match`), which is always on and never on the public listener. A self-hosted instance can point editors at its own copy, which always matches the running version: `# yaml-language-server: $schema=http://127.0.0.1:9090/config.schema.json` (use `XI_ADMIN_ADDR`'s host and port, or `kubectl port-forward`). The same URL works in `"$schema"` and `#:schema`.
 - `xtandard-image config schema > config.schema.json` writes the same bytes to a file, for offline editors.
-- `xtandard-image config validate --config config.yaml` checks a file with the real loader. It exits 1 and lists every violation. `--no-env` ignores the environment.
+- `xtandard-image config validate [--config config.yaml] [--no-env]` checks a file with the real loader (file, then `IMGPROXY_*`/`XI_*`, then `Validate`). It prints `<file>: ok`, or `<file>: invalid` followed by every violation with its key path and variable, and exits 1. `--no-env` ignores `XI_*` and `IMGPROXY_*`, so a config repository's CI can check the file on its own.
 
-The loader, not the schema, is the authority.
+The loader, not the schema, is the authority. The schema is slightly stricter in places an editor benefits from (enum values are lower case, a source must name its `type` in the file); tests keep both in agreement on a corpus of valid and invalid files.
 
-**Secrets in the file** (planned: WP-81). `_FILE` variants are env-only, so the file has no `_file` keys. Instead, any secret-typed value (a `Secret` or hex key, one element of a list of them, or one value of a map of them) may be written as a file reference:
+**Secrets in the file**. `_FILE` variants are env-only, so the file has no `_file` keys. Instead, any secret-typed value (a `Secret` or hex key, one element of a list of them, or one value of a map of them) may be written as a file reference:
 
 ```yaml
 signing:
@@ -75,7 +75,7 @@ sources:
     secret_access_key: { file: /run/secrets/s3_secret }
 ```
 
-A reference means the same as `XI_…_FILE` for that one value: the file is read at startup, one trailing newline is trimmed, and the content is parsed like the literal. The path must be absolute, and the file must exist and be at most 64 KiB, or startup fails with the key path in the error. `XI_…` and `XI_…_FILE` in the environment still win. JSON (`{"file": "/run/secrets/x"}`) and TOML (`{ file = "/run/secrets/x" }`) use the same shape. Nothing else in the file is interpolated, and there is no `${…}` syntax (ADR 0007 decision 7).
+A reference means the same as `XI_…_FILE` for that one value: the file is read at startup, trailing newlines are trimmed, and the content is parsed like the literal (the same function reads both). The path must be absolute, and the file must exist and be at most 64 KiB, or startup fails with the key path in the error. `XI_…` and `XI_…_FILE` in the environment still win. JSON (`{"file": "/run/secrets/x"}`) and TOML (`{ file = "/run/secrets/x" }`) use the same shape. Nothing else in the file is interpolated, and there is no `${…}` syntax (ADR 0007 decision 7).
 
 ## 2. Environment variable reference
 
@@ -83,7 +83,7 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `XI_CONFIG_FILE` | `` | YAML file (`--config` wins); when both are unset, `/etc/xtandard/config.yaml` is read if it exists |
+| `XI_CONFIG_FILE` | `` | Config file, `.yaml`/`.yml`/`.json`/`.toml` (`--config` wins); when both are unset, the one of `/etc/xtandard/config.{yaml,yml,json,toml}` that exists is read |
 | `XI_ALLOW_UNKNOWN_ENV` | `false` | Report unknown `XI_*` variables as warnings instead of failing startup |
 
 ### Core and server
@@ -135,7 +135,7 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_SOURCES_<NAME>_HEADERS` | — | http: extra request headers (`Authorization=…`) |
 | `XI_SOURCES_<NAME>_BUCKETS` / `_BUCKET` | — | s3/gcs/azure: allowed buckets/containers; `_BUCKET` binds a default |
 | `XI_SOURCES_<NAME>_PREFIX` | `` | object key prefix jail (every type except http) |
-| `XI_SOURCES_<NAME>_ENDPOINT`, `_REGION`, `_FORCE_PATH_STYLE`, `_ACCESS_KEY_ID`, `_SECRET_ACCESS_KEY`, `_ROLE_ARN` | — | s3 (R2, MinIO, Spaces, B2 via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); `_ROLE_ARN` assumes a role on top. `_REGION` falls back to the SDK chain, then `us-east-1` when an endpoint is set (R2: `auto`). Checksums are sent/validated only when required, so R2/B2 work |
+| `XI_SOURCES_<NAME>_ENDPOINT`, `_REGION`, `_FORCE_PATH_STYLE`, `_ACCESS_KEY_ID`, `_SECRET_ACCESS_KEY`, `_ROLE_ARN` | — | s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); `_ROLE_ARN` assumes a role on top. `_REGION` falls back to the SDK chain, then `us-east-1` when an endpoint is set (R2: `auto`). Checksums are sent/validated only when required, so R2/B2 work |
 | `XI_SOURCES_<NAME>_CREDENTIALS_JSON` | ADC | gcs: credentials document (`XI_SOURCES_<NAME>_CREDENTIALS_JSON_FILE` reads it from a mounted file); `XI_SOURCES_<NAME>_ENDPOINT` points at an emulator such as fake-gcs-server |
 | `XI_SOURCES_<NAME>_ACCOUNT`, `_ACCOUNT_KEY`, `_CONNECTION_STRING`, `_SAS_TOKEN`, `_ENDPOINT` | `DefaultAzureCredential` (managed identity) | azure; precedence connection string > account key > SAS > DefaultAzureCredential; `_ENDPOINT` overrides `https://<account>.blob.core.windows.net/` (Azurite: `http://127.0.0.1:10000/devstoreaccount1`) |
 | `XI_SOURCES_<NAME>_ROOT` | — | fs root (jail via `os.Root`); ftp/sftp: server directory keys are relative to (default `/`) |
@@ -150,7 +150,7 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_FETCH_MAX_CONCURRENT` | `256` | Concurrent origin fetches |
 | `XI_FETCH_ALLOWED_PORTS` | `80,443` | SSRF port allowlist |
 | `XI_FETCH_ALLOW_PRIVATE_NETWORKS` | `false` | Explicit opt-in to every private range |
-| `XI_FETCH_ALLOWED_NETWORKS` | `` | CIDRs exempt from the private-address block without opening every range (e.g. `10.20.0.0/16` for in-cluster MinIO) |
+| `XI_FETCH_ALLOWED_NETWORKS` | `` | CIDRs exempt from the private-address block without opening every range (e.g. `10.20.0.0/16` for an in-cluster object store) |
 | `XI_FETCH_USER_AGENT` | `` (`xtandard-image/<version>`) | |
 
 ### Dialects and presets
@@ -159,16 +159,24 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 |---|---|---|
 | `XI_DIALECTS_DEFAULT` | `imgproxy` | Fallback dialect |
 | `XI_DIALECTS_STRICT` | `false` | 400 on unknown/unsupported options |
-| `XI_DIALECTS_<NAME>_ENABLED` | imgproxy `true`, others `false` | `<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]` |
+| `XI_DIALECTS_<NAME>_ENABLED` | imgproxy `true`, others `false` | `<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]` |
 | `XI_DIALECTS_<NAME>_PREFIX` | see URL-DIALECTS.md | Mount prefix |
 | `XI_DIALECTS_<NAME>_HOSTS` | `` | Host bindings |
 | `XI_DIALECTS_<NAME>_SOURCE` | `` | Bound source for relative paths |
-| `XI_DIALECTS_<NAME>_KEYS` | `` | Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key) |
+| `XI_DIALECTS_<NAME>_KEYS` | `` | Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim) |
 | `XI_DIALECTS_<NAME>_UNSIGNED_POLICY` | global | Per-dialect override |
 | `XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR` | `:` | |
 | `XI_DIALECTS_IMGPROXY_BASE_URL` | `` | |
 | `XI_DIALECTS_IMGPROXY_URL_REPLACEMENTS` | `` | `regex=replacement;…` (`;`-separated in env) |
 | `XI_DIALECTS_CLOUDINARY_CLOUDS` | `` | `cloud=source,…` |
+| `XI_DIALECTS_CLOUDFLARE_IMAGES_ACCOUNTS` | `` | `account_hash=source,…`: the source each Cloudflare Images account hash reads image ids from; empty = the mount's source for every hash, otherwise an unknown hash is 403. `XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS` are the raw Images signing keys (`sig`/`exp`); variants are presets |
+| `XI_DIALECTS_AWSSIH_BUCKETS` | `` | `bucket=source,…`: SIH `SOURCE_BUCKETS` allowlist; a request without a bucket uses `XI_DIALECTS_AWSSIH_SOURCE` (URL-DIALECTS §13) |
+| `XI_DIALECTS_AWSSIH_QUERY_PARAMS` | `true` | SIH query-param mapper (`format`, `fit`, `width`, `height`, `rotate`, `flip`, `flop`, `grayscale`) |
+| `XI_DIALECTS_AWSSIH_THUMBOR` | `false` | Forward non-JSON paths to the thumbor dialect (SIH thumbor request type) |
+| `XI_DIALECTS_AWSSIH_REWRITE_MATCH_PATTERN` | `` | SIH `REWRITE_MATCH_PATTERN`: `/regex/flags` applied to non-JSON paths before forwarding |
+| `XI_DIALECTS_AWSSIH_REWRITE_SUBSTITUTION` | `` | SIH `REWRITE_SUBSTITUTION` (`$1`, `$<name>`, `$&`, `$$`) |
+| `XI_DIALECTS_SIMPLE_ENABLED` | `` | unpic providers of the table-driven family, e.g. `nextjs,ipx,contentful` (names in URL-DIALECTS §12; an unknown name fails startup). Each is mounted at its native prefixes and `/simple/<name>/`; no `_PREFIX`/`_KEYS` (xi_sig uses `XI_SIGNING_*`) |
+| `XI_DIALECTS_SIMPLE_HOSTS` | `` | Hosts bound to the whole family; the provider is picked per request (native prefix, upstream domain, then the first enabled CDN-style provider) |
 | `XI_PRESETS` | `` | `name=opts,name2=opts` (imgproxy syntax); YAML `presets: {name: opts}` |
 | `XI_PRESETS_FILE` | `` | One `name=options` per line; blank lines and `#` comments skipped; a name also in `XI_PRESETS` is an error |
 | `XI_PRESETS_ONLY` | `false` | Only preset URLs allowed |
@@ -206,24 +214,32 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_FORMATS_STRICT_ACCEPT` | `false` | 406 when nothing acceptable |
 | `XI_FORMATS_PREFERRED` | `jpeg,png,gif` | Fallback order for unencodable sources |
 | `XI_FORMATS_SVG_PASSTHROUGH` | `true` | |
+| `XI_FORMATS_PDF_DPI` | `72` | Resolution of a PDF page's natural size (1–1200; 72 = one pixel per point). Resized pages render directly at the target size |
+| `XI_FORMATS_PSD_REQUIRE_COMPOSITE` | `false` | Refuse (422) PSD/PSB files saved without a merged composite ("Maximize compatibility" off) instead of letting ImageMagick flatten the layers |
+| `XI_FORMATS_HDR_TONEMAP` | `reinhard` | Operator mapping OpenEXR, Radiance and PFM sources to 8-bit sRGB: `reinhard` (extended Reinhard, white at the 99th-percentile luminance; identity for sources within [0, 1]), `aces` (Narkowicz's fitted ACES filmic curve) or `clip`. Skipped with `preserve_hdr` for JPEG XL (float) and AVIF (12-bit) outputs; FORMATS.md §1.4 |
 | `XI_FORMATS_SKIP_PROCESSING` | `` | Source formats streamed unmodified (imgproxy `IMGPROXY_SKIP_PROCESSING_FORMATS`) |
-| `XI_CLIENT_HINTS_ENABLED` | `false` | Honour DPR/Width/Viewport-Width/Save-Data hints on every request when the URL leaves the value unset (imgproxy `IMGPROXY_ENABLE_CLIENT_HINTS`); URL opt-ins (`ch=`, `w_auto`, `width=auto`) work regardless |
+| `XI_CLIENT_HINTS_ENABLED` | `false` | Honour DPR/Width/Viewport-Width/Save-Data hints on every request when the URL leaves the value unset (imgproxy `IMGPROXY_ENABLE_CLIENT_HINTS`); URL opt-ins (`ch=`, `w_auto`, `width=auto`) work regardless. Image responses then carry `Accept-CH: Sec-CH-DPR, Sec-CH-Width, Sec-CH-Viewport-Width, ECT` and a `Vary` listing only the hint names that decided the result. Unsigned requests on a `restricted` mount get only Save-Data (a hinted width/DPR would bypass the allowlists). Semantics and imgproxy parity: URL-DIALECTS.md §3.5 |
+| `XI_CLIENT_HINTS_CRITICAL_CH` | `false` | Also send `Critical-CH: Sec-CH-DPR, Sec-CH-Width, Sec-CH-Viewport-Width` (browsers honour it on navigations only) |
 | `XI_FORMATS_AVIF_MAX_PIXELS` | `16000000` | |
-| `XI_FORMATS_BEST_MAX_PIXELS` | `8000000` | |
-| `XI_FORMATS_BEST_COMPLEXITY_THRESHOLD` | `5.5` | |
+| `XI_FORMATS_BEST_MAX_PIXELS` | `8000000` | `format=best` (imgproxy `f:best`, query `f=best`) is skipped above this many output pixels (all frames): the negotiated format is encoded once instead (FORMATS.md §6.3) |
+| `XI_FORMATS_BEST_COMPLEXITY_THRESHOLD` | `5.5` | Content score below which `best` tries lossless formats only, above which lossy only; within ±0.75 of it both. `0` skips the analysis (every image is tried as a photo). Photos score ≈ 7–8, flat graphics and text ≈ 1–4.5 (FORMATS.md §6.3) |
+| `XI_FORMATS_RAW_PREVIEW_MIN_RATIO` | `1` | Camera RAW: decode the embedded JPEG preview instead of demosaicing when it is at least this many times the size the image is scaled to, on both axes (FORMATS.md §2); `0 < ratio ≤ 100` |
 | `XI_FORMATS_SAVE_DATA_QUALITY_DELTA` | `-15` | |
-| `XI_FORMATS_AUTOQUALITY_METHOD` | `none` | `none` \| `size` \| `dssim` |
-| `XI_FORMATS_AUTOQUALITY_TARGET` / `_MIN` / `_MAX` / `_ALLOWED_ERROR` | `0.02` / `60` / `85` / `0.001` | |
+| `XI_FORMATS_AUTOQUALITY_METHOD` | `none` | `none` \| `size` \| `dssim` (imgproxy `IMGPROXY_AUTOQUALITY_METHOD`; `ml` is not implemented). A request's `autoquality` option overrides it; with the method from config, an explicit request quality wins. See FORMATS.md §6.4 |
+| `XI_FORMATS_AUTOQUALITY_TARGET` / `_MIN` / `_MAX` / `_ALLOWED_ERROR` | `0.02` / `60` / `85` / `0.001` | Target: DSSIM (`dssim`) or bytes (`size`, must then be ≥ 1); quality range searched; how far from the DSSIM target a save may land and stop the search (0–1) |
+| `XI_FORMATS_AUTOQUALITY_FORMAT_MIN` | `jpeg=40,webp=40,avif=30` | Per-format minimum quality (imgproxy `IMGPROXY_AUTOQUALITY_FORMAT_MIN`); formats not listed use `_MIN`. Setting the variable replaces the whole default map |
+| `XI_FORMATS_AUTOQUALITY_FORMAT_MAX` | `jpeg=90,webp=90,avif=80` | Per-format maximum quality (`IMGPROXY_AUTOQUALITY_FORMAT_MAX`); as above |
+| `XI_FORMATS_AUTOQUALITY_FORMAT_TARGET` | `` | Per-format target, e.g. `avif=0.015`; formats not listed use `_TARGET` |
 | `XI_LIMITS_MAX_SRC_BYTES` | `50MiB` | |
 | `XI_LIMITS_MAX_SRC_PIXELS` | `50000000` | |
 | `XI_LIMITS_MAX_RESULT_DIMENSION` | `8192` | |
 | `XI_LIMITS_MAX_ANIMATION_FRAMES` | `256` | |
 | `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS` | `16000000` | |
-| `XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS` | `60000000` | |
+| `XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS` | `60000000` | Sensor width × height a camera RAW may be demosaiced at; the embedded-preview path is not affected |
 | `XI_LIMITS_MAX_SVG_BYTES` | `5MiB` | |
 | `XI_LIMITS_MAX_SVG_DEPTH` | `256` | SVG sanitiser nesting limit |
 | `XI_LIMITS_MAX_SVG_ELEMENTS` | `200000` | SVG sanitiser element limit |
-| `XI_LIMITS_MAX_PDF_PAGES` | `500` | |
+| `XI_LIMITS_MAX_PDF_PAGES` | `500` | Pages a PDF may have; checked when the header is read, before any page renders (422) |
 | `XI_VIPS_CONCURRENCY` | `1` | libvips threads per image; change only with benchmarks |
 | `XI_VIPS_FAIL_ON` | `warning` | |
 
@@ -236,18 +252,25 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_CACHE_HEADERS_PASSTHROUGH` | `false` | Use source Cache-Control/Expires |
 | `XI_CACHE_ETAG_BUSTER` | `` | Global ETag salt |
 | `XI_CACHE_TAGS_HEADER` | `Cache-Tag` | For `cache_tags` |
-| `XI_CACHE_ALLOW_BYPASS` | `false` | Honour `bypass_cache` |
-| `XI_CACHE_RESULT_STORES` | `` | Ordered tiers: `memory,disk,redis,s3` |
-| `XI_CACHE_RESULT_MEMORY_BYTES` | `256MiB` | |
-| `XI_CACHE_RESULT_DISK_PATH` / `_BYTES` | `` / `10GiB` | |
-| `XI_CACHE_RESULT_REDIS_URL` | `` | Secret (may carry a password) |
-| `XI_CACHE_RESULT_S3_SOURCE`, `_BUCKET`, `_PREFIX` | `` | Name of an s3 source definition to reuse credentials, bucket and key prefix |
+| `XI_CACHE_ALLOW_BYPASS` | `false` | Honour `bypass_cache` (the request skips the result cache: no lookup, no store) |
+| `XI_CACHE_RESULT_STORES` | `` | Ordered tiers, fastest first, e.g. `memory,disk` or `memory,redis,s3`; empty disables the result cache. A hit in a slower tier is copied into the faster ones (ARCHITECTURE §9.2) |
+| `XI_CACHE_RESULT_MEMORY_BYTES` | `256MiB` | In-memory LRU tier bound (bodies, stored headers and keys) |
+| `XI_CACHE_RESULT_TTL` | `24h` | How long a result is served from the cache without contacting the source (the key holds the source identity, not its validators); a per-request `ttl`/`expires` shortens it. Use a `cachebuster` or `XI_CACHE_ETAG_BUSTER` to invalidate earlier |
+| `XI_CACHE_RESULT_WRITE_QUEUE` | `64` | Asynchronous cache writes in flight; more are dropped and counted in `xi_cache_writes_dropped_total`, never blocking the response |
+| `XI_CACHE_RESULT_DISK_PATH` / `_BYTES` | `` / `10GiB` | Absolute directory of the `disk` store and its size bound (entry files; a janitor evicts least recently used entries down to 90 % once a write goes over). The image's root file system is read-only: mount a volume there. The directory must be dedicated to one process; the index is rebuilt from it at start, so entries survive restarts. No fsync: a file torn by a crash fails its checksum and is dropped |
+| `XI_CACHE_RESULT_REDIS_URL` | `` | Secret (may carry a password). `redis://[user:pass@]host:port/db`, `rediss://` for TLS, go-redis query options (`dial_timeout`, `pool_size`, …). Any RESP server: Redis, Valkey, KeyDB, managed services |
+| `XI_CACHE_RESULT_REDIS_PREFIX` | `xi:` | Prepended to every key, so deployments can share a server |
+| `XI_CACHE_RESULT_REDIS_MAX_VALUE_BYTES` | `1MiB` | Larger entries are not stored in Redis (counted in `xi_cache_skipped_total{reason="too_large"}`) |
+| `XI_CACHE_RESULT_S3_SOURCE`, `_BUCKET`, `_PREFIX` | `` | `SOURCE` names an s3 source whose endpoint, region, path style and credentials the `s3` store reuses; `BUCKET` (required, must exist) and `PREFIX` (prepended verbatim, e.g. `cache/`) place the objects. Expiry is checked from object metadata on read, so no lifecycle rule is needed for correctness; add one on the prefix to reclaim space |
 | `XI_CACHE_ORIGIN_MEMORY_BYTES` | `256MiB` | Original-bytes LRU |
 | `XI_CACHE_ORIGIN_TTL` | `60s` | After it, entries with an ETag/Last-Modified are revalidated with a conditional request (304 refreshes the TTL) |
 | `XI_CACHE_ORIGIN_NEGATIVE_TTL` | `5s` | How long a source not-found is remembered; `0` disables |
+| `XI_CACHE_ORIGIN_STORES` | `` | Shared stores behind the origin LRU (`disk`, `redis`, `s3`, fastest first; configured by the `XI_CACHE_RESULT_*` variables of the same store, which the result cache shares under another namespace): a replica that misses its LRU reads the original from them before downloading, and downloads are written to them. Empty: originals stay in-process |
+| `XI_CACHE_ORIGIN_STORE_TTL` | `10m` | How long an original is served from `XI_CACHE_ORIGIN_STORES` without contacting the source (no revalidation) |
 | `XI_OBSERVABILITY_LOG_LEVEL` | `info` | |
-| `XI_ADMIN_ADDR` | `127.0.0.1:9090` | Admin listener: `/metrics`, pprof; set `:9090` for in-cluster scraping; empty disables |
+| `XI_ADMIN_ADDR` | `127.0.0.1:9090` | Admin listener: `/metrics`, `/openapi.json`, pprof; set `:9090` for in-cluster scraping; empty disables |
 | `XI_ADMIN_PPROF` | `false` | pprof incl. `goroutineleak` on the admin listener |
+| `XI_ADMIN_DOCS` | `false` | Scalar API reference at admin `/docs`, loaded by the browser from a pinned `cdn.jsdelivr.net` URL (SRI, strict CSP); off answers 404 and points at `/openapi.json` ([OPENAPI.md](OPENAPI.md)) |
 | `XI_OBSERVABILITY_DEBUG_HEADERS` | `false` | `X-Xi-Ignored`, `X-Xi-Origin-Content-Length`, `X-Xi-Origin-Width/-Height`, `X-Xi-Result-Width/-Height` (ARCHITECTURE §9.1) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` etc. | — | Standard OpenTelemetry vars; tracing on when set |
 | `XI_OTEL_ENABLED` | `false` | Force tracing on without an endpoint variable (exporter still chosen by `OTEL_TRACES_EXPORTER`, e.g. `console`) |
@@ -359,6 +382,8 @@ The table is checked against the code by a test in `internal/config`.
 | `IMGPROXY_ENFORCE_JXL` | `XI_FORMATS_ENFORCE_JXL` | Same |
 | `IMGPROXY_PREFERRED_FORMATS` | `XI_FORMATS_PREFERRED` | Same format names |
 | `IMGPROXY_SKIP_PROCESSING_FORMATS` | `XI_FORMATS_SKIP_PROCESSING` | Same format names |
+| `IMGPROXY_BEST_FORMAT_MAX_RESOLUTION` | `XI_FORMATS_BEST_MAX_PIXELS` | Megapixels (float) → pixels; `0` (no cap in imgproxy) keeps the default |
+| `IMGPROXY_BEST_FORMAT_COMPLEXITY_THRESHOLD` | `XI_FORMATS_BEST_COMPLEXITY_THRESHOLD` | Same meaning (below: lossless; `0` skips the analysis), but the score is our own (FORMATS.md §6.3), so tune it on your images |
 | `IMGPROXY_ALWAYS_RASTERIZE_SVG` | `XI_FORMATS_SVG_PASSTHROUGH` | Inverted |
 | `IMGPROXY_ENABLE_CLIENT_HINTS` | `XI_CLIENT_HINTS_ENABLED` | Same |
 | `IMGPROXY_LOG_LEVEL` | `XI_OBSERVABILITY_LOG_LEVEL` | Same levels |
@@ -420,7 +445,7 @@ observability:
   log_level: info
 ```
 
-The file is decoded with `goccy/go-yaml` in strict mode (unknown fields and duplicate keys rejected, one document only); environment variables are then applied on top with `caarlos0/env/v11`. This example is loaded by a test, so it stays valid. No interpolation syntax: put secrets in env or `_FILE` variables, keep the YAML file non-secret so it can live in a ConfigMap.
+The file is decoded with `goccy/go-yaml` in strict mode (unknown fields and duplicate keys rejected, one document only); environment variables are then applied on top with `caarlos0/env/v11`. This example is loaded by a test, so it stays valid. The same example in JSON and TOML is `internal/config/testdata/schema/valid/example.{json,toml}`; a test loads all three to the same `Config` and validates them against the schema. No interpolation syntax: put secrets in env or `_FILE` variables or `{file: …}` references, and keep the file itself non-secret so it can live in a ConfigMap.
 
 ## 4. Dokploy
 

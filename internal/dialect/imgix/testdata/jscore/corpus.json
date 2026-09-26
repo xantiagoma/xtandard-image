@@ -1,0 +1,574 @@
+[
+  {
+    "name": "plain",
+    "params": {},
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&s=af32f9066f2eec42d4aa7625002c6479",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "size",
+    "params": {
+      "w": 400,
+      "h": 300
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=400&h=300&s=5413dbaa8bf792a9db44649db4078e2e",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "relative_width",
+    "params": {
+      "w": 0.5
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=0.5&s=1cfcda59073c82ef73400f5452b77824",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fit_crop_faces",
+    "params": {
+      "w": 400,
+      "h": 300,
+      "fit": "crop",
+      "crop": "faces,entropy"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=400&h=300&fit=crop&crop=faces%2Centropy&s=7ceb140db6b82e30c91cd576ec8a60e1",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fit_crop_compass",
+    "params": {
+      "w": 400,
+      "h": 300,
+      "fit": "crop",
+      "crop": "top,left"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=400&h=300&fit=crop&crop=top%2Cleft&s=4b7c0e8d635844fa34bba65177e3c50e",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fit_crop_edges",
+    "params": {
+      "w": 300,
+      "h": 300,
+      "fit": "crop",
+      "crop": "edges"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=300&h=300&fit=crop&crop=edges&s=2fc723c10a4516fd6e4156e4cf9df549",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fit_crop_focalpoint",
+    "params": {
+      "w": 600,
+      "ar": "16:9",
+      "fit": "crop",
+      "crop": "focalpoint",
+      "fp-x": 0.3,
+      "fp-y": 0.6,
+      "fp-z": 2
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=600&ar=16%3A9&fit=crop&crop=focalpoint&fp-x=0.3&fp-y=0.6&fp-z=2&s=1d3fc89e1212ed4276e2377ccf6e9104",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fit_min",
+    "params": {
+      "w": 200,
+      "h": 100,
+      "fit": "min",
+      "auto": "format"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=200&h=100&fit=min&auto=format&s=f67918a97267708d7d5ccfdf643beb3d",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fit_max",
+    "params": {
+      "w": 2000,
+      "fit": "max"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=2000&fit=max&s=50fd134422a225b0feac92260591e054",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fit_clip",
+    "params": {
+      "w": 640,
+      "h": 480,
+      "fit": "clip"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=640&h=480&fit=clip&s=1c3635ec95fb4f61b86c3ef1c5e96184",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fit_scale",
+    "params": {
+      "w": 100,
+      "h": 400,
+      "fit": "scale"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=100&h=400&fit=scale&s=12c0423a8e3e4113b20d5525a9e22b84",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fit_fill",
+    "params": {
+      "w": 500,
+      "h": 500,
+      "fit": "fill",
+      "fill-color": "ff0000"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=500&h=500&fit=fill&fill-color=ff0000&s=ecde9d1aaae3e25dedf3d1b4109f2bfc",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fit_fill_blur",
+    "params": {
+      "w": 500,
+      "h": 300,
+      "fit": "fill",
+      "fill": "blur"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=500&h=300&fit=fill&fill=blur&s=a3c95e17a21dcc9622222d9b6f80228b",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fit_fillmax",
+    "params": {
+      "w": 500,
+      "h": 500,
+      "fit": "fillmax",
+      "bg": "80ffffff"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=500&h=500&fit=fillmax&bg=80ffffff&s=58d98c54d4194356b1506ca37016cf05",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fit_clamp",
+    "params": {
+      "w": 500,
+      "h": 500,
+      "fit": "clamp"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=500&h=500&fit=clamp&s=e5ced4aec6520a5dbe2b506073a3e3a5",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fit_facearea",
+    "params": {
+      "w": 200,
+      "h": 200,
+      "fit": "facearea",
+      "facepad": 1.5,
+      "faceindex": 2
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=200&h=200&fit=facearea&facepad=1.5&faceindex=2&s=9961cecaf961226cffa3e7cf2597640e",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "dpr_quality",
+    "params": {
+      "w": 320,
+      "dpr": 2,
+      "q": 60
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=320&dpr=2&q=60&s=adb6cabd16e22782ebd02e10334c8a8a",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "auto_format_compress",
+    "params": {
+      "w": 800,
+      "auto": "format,compress"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=800&auto=format%2Ccompress&s=d6d7f1295e527a66fbe4eada776fe2d4",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "auto_compress",
+    "params": {
+      "auto": "compress"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&auto=compress&s=f87465a7e5c3074ca649a8e1d561ec27",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "auto_enhance",
+    "params": {
+      "auto": "enhance,redeye"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&auto=enhance%2Credeye&s=8309a50347c58e4c9a1bf5b43a11fbee",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fm_webp",
+    "params": {
+      "w": 200,
+      "fm": "webp",
+      "q": 75
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=200&fm=webp&q=75&s=392b15251c1f9217a7d004786d8f6a2d",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fm_avif_lossless",
+    "params": {
+      "fm": "avif",
+      "lossless": 1
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&fm=avif&lossless=1&s=7ca5af960716b85ca59e0e7e757c3d94",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fm_pjpg",
+    "params": {
+      "fm": "pjpg"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&fm=pjpg&s=62484b5fabf3fb1281a8070128d0e297",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fm_png8",
+    "params": {
+      "fm": "png8"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&fm=png8&s=8dc0dcee590885937cc8c874de7afa39",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fm_json",
+    "params": {
+      "fm": "json"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&fm=json&s=e4d1a0c028c11ee8be4ab5b283475bcb",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fm_blurhash",
+    "params": {
+      "fm": "blurhash",
+      "w": 32
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&fm=blurhash&w=32&s=33b4d3ef13660ccf7c0695f6618f84d2",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "fm_mp4",
+    "params": {
+      "fm": "mp4"
+    },
+    "path": "/videos/clip.gif",
+    "query": "ixlib=js-3.8.0&fm=mp4&s=4f44a36f7226d351b6b82c28b9f65e36",
+    "source": "videos/clip.gif"
+  },
+  {
+    "name": "chromasub_cs_dpi",
+    "params": {
+      "chromasub": 444,
+      "cs": "tinysrgb",
+      "dpi": 300
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&chromasub=444&cs=tinysrgb&dpi=300&s=e6083b12b5d11d143c8b596dc795d90a",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "rect_max_min",
+    "params": {
+      "rect": "10,20,300,200",
+      "max-w": 800,
+      "max-h": 600,
+      "min-w": 50,
+      "min-h": 50
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&rect=10%2C20%2C300%2C200&max-w=800&max-h=600&min-w=50&min-h=50&s=ae9a5766afa14cad4a0309e0d7c6d58b",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "orient_rot_flip",
+    "params": {
+      "orient": 90,
+      "rot": 45,
+      "flip": "hv"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&orient=90&rot=45&flip=hv&s=f0ae03ffee01c2505733e1898ca2345a",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "orient_exif",
+    "params": {
+      "orient": 5
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&orient=5&s=df12fd745e12b235f24d097d381f2892",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "adjust",
+    "params": {
+      "bri": 20,
+      "con": -10,
+      "exp": 5,
+      "gam": 50,
+      "sat": -100,
+      "hue": 180,
+      "vib": 30
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&bri=20&con=-10&exp=5&gam=50&sat=-100&hue=180&vib=30&s=0a3049a88f9be8229924b24729d05edc",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "stylize",
+    "params": {
+      "blur": 200,
+      "px": 10,
+      "sharp": 25,
+      "usm": 40,
+      "usmrad": 3,
+      "sepia": 80
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&blur=200&px=10&sharp=25&usm=40&usmrad=3&sepia=80&s=8485d129ffcfe9943300021d59addb38",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "monochrome_duotone",
+    "params": {
+      "monochrome": "c0ff0000",
+      "duotone": "000080,ffff00",
+      "duotone-alpha": 50
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&monochrome=c0ff0000&duotone=000080%2Cffff00&duotone-alpha=50&s=083d2edbcd35d205a877d5427a7f86f6",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "invert",
+    "params": {
+      "invert": true
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&invert=true&s=4a7a6f2e5dfffc1e591dbd5724f82f39",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "bg_pad",
+    "params": {
+      "bg": "red",
+      "pad": 10,
+      "pad-left": 20
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&bg=red&pad=10&pad-left=20&s=9f51eafceca41d1e5e4bd144172a283b",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "border",
+    "params": {
+      "border": "5,000000",
+      "border-top": 10,
+      "border-radius": "8,8,0,0"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&border=5%2C000000&border-top=10&border-radius=8%2C8%2C0%2C0&s=88083865a58a76f954e0e3b46033666e",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "trim_auto",
+    "params": {
+      "trim": "auto",
+      "trim-md": 20
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&trim=auto&trim-md=20&s=641f7411176bce01b16094275397991f",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "trim_color",
+    "params": {
+      "trim": "color",
+      "trim-color": "fff",
+      "trim-tol": 12
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&trim=color&trim-color=fff&trim-tol=12&s=d2f3535ef71093500cbf9acef5b3f379",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "mask_ellipse",
+    "params": {
+      "mask": "ellipse",
+      "mask-bg": "00ff00"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&mask=ellipse&mask-bg=00ff00&s=e55d966bc6433b50ac2b5783c623fc62",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "mask_corners",
+    "params": {
+      "mask": "corners",
+      "corner-radius": 16
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&mask=corners&corner-radius=16&s=3d606babff7837b375b3017aaee5dab8",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "page_frame",
+    "params": {
+      "page": 3
+    },
+    "path": "/docs/manual.pdf",
+    "query": "ixlib=js-3.8.0&page=3&s=f70f8580542a68e84788d2b00164d0da",
+    "source": "docs/manual.pdf"
+  },
+  {
+    "name": "frame",
+    "params": {
+      "frame": 2
+    },
+    "path": "/anim/loop.gif",
+    "query": "ixlib=js-3.8.0&frame=2&s=c7427c9b8b724fc54272922a8aba19d3",
+    "source": "anim/loop.gif"
+  },
+  {
+    "name": "download",
+    "params": {
+      "dl": "cat photo.jpg"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&dl=cat%20photo.jpg&s=7f5ba217f0e885cc2436a159e9872e60",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "client_hints",
+    "params": {
+      "ch": "Width,DPR,Save-Data",
+      "w": 300
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&ch=Width%2CDPR%2CSave-Data&w=300&s=86057ee447282faa67103d82d4f573ca",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "expires",
+    "params": {
+      "w": 100,
+      "expires": 1893456000
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=100&expires=1893456000&s=331cd6d74e8eb955b062cedf71e2f143",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "mark64",
+    "params": {
+      "mark64": "https://assets.imgix.net/logo.png",
+      "mark-align": "top,left",
+      "mark-alpha": 60,
+      "mark-scale": 20,
+      "mark-pad": 8
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&mark64=aHR0cHM6Ly9hc3NldHMuaW1naXgubmV0L2xvZ28ucG5n&mark-align=top%2Cleft&mark-alpha=60&mark-scale=20&mark-pad=8&s=10ea0e716d387d327483b9bca015057d",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "txt64",
+    "params": {
+      "txt64": "Hello, World! <b>",
+      "txt-font": "Avenir Next Demi,Bold",
+      "txt-size": 32,
+      "txt-color": "ffffff",
+      "txt-align": "bottom,center",
+      "txt-shad": 5
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&txt64=SGVsbG8sIFdvcmxkISA8Yj4&txt-font=Avenir%20Next%20Demi%2CBold&txt-size=32&txt-color=ffffff&txt-align=bottom%2Ccenter&txt-shad=5&s=08c702b8cbc2a6afd4e08f4374a4e654",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "bg64",
+    "params": {
+      "bg64": "ff00ff",
+      "w": 50
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&bg64=ZmYwMGZm&w=50&s=e7cc082bf581dddf7e3fa74106737699",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "unknown_and_unsupported",
+    "params": {
+      "w": 10,
+      "bg-remove": true,
+      "blend": "ff0000",
+      "foo": "bar"
+    },
+    "path": "/photos/cat.jpg",
+    "query": "ixlib=js-3.8.0&w=10&bg-remove=true&blend=ff0000&foo=bar&s=a1cc8c6aeacbb067ea6b001ea3342816",
+    "source": "photos/cat.jpg"
+  },
+  {
+    "name": "unicode_path",
+    "params": {
+      "w": 100
+    },
+    "path": "/photos/caf%C3%A9%20au%20lait.jpg",
+    "query": "ixlib=js-3.8.0&w=100&s=7af7e3b7d03e68effefb56609a808fa0",
+    "source": "photos/caf%C3%A9%20au%20lait.jpg"
+  },
+  {
+    "name": "path_special_chars",
+    "params": {},
+    "path": "/photos/a%2Bb%23c%3Fd%3Ae.jpg",
+    "query": "ixlib=js-3.8.0&s=0cf001ebf877459a340a16738d2ec8f6",
+    "source": "photos/a%2Bb%23c%3Fd%3Ae.jpg"
+  },
+  {
+    "name": "web_proxy",
+    "params": {
+      "w": 400,
+      "fit": "crop"
+    },
+    "path": "/https%3A%2F%2Fexample.com%2Fimages%2Fdog.png%3Fv%3D2",
+    "query": "ixlib=js-3.8.0&w=400&fit=crop&s=31908cff7f8fbafe6e9319613d20be6d",
+    "source": "https://example.com/images/dog.png?v=2"
+  },
+  {
+    "name": "web_proxy_plain",
+    "params": {},
+    "path": "/http%3A%2F%2Favatars.com%2Fjohn-smith.png",
+    "query": "ixlib=js-3.8.0&s=40efa1087e99f30267b4c46e42c00ae6",
+    "source": "http://avatars.com/john-smith.png"
+  }
+]

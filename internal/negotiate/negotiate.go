@@ -5,7 +5,7 @@
 // It is pure Go and imports only transform and errs. The server calls, in
 // order:
 //
-//	hints := negotiate.ApplyClientHints(req, negotiate.ParseClientHints(r.Header), &cfg)
+//	hints := negotiate.ApplyClientHints(req, negotiate.ParseClientHints(r.Header), &cfg, negotiate.HintsAll)
 //	req.ApplyDefaults(...)                    // then Validate
 //	accept := negotiate.ParseAcceptHeader(r.Header)
 //	d, err := negotiate.Decide(req, accept, &cfg, meta) // after probe
@@ -23,11 +23,13 @@
 //     enforce flag, then Accept q-value, then the matrix column order; then
 //     the first compatible entry of Config.Preferred.
 //
-// The M2 best-format analysis plugs in through two typed hooks: the probe's
-// content analysis fills SourceMeta.Class (ContentUnknown is treated as a
-// photo until then), and a FormatBest request gets Decision.Candidates (at
-// most three, matrix order) with ReasonBest; the M2 encoder tries them and
-// keeps the smallest, the M1 encoder uses Decision.Format (the first one).
+// Best format (FORMATS §6.3): a FormatBest request gets ReasonBest and the
+// candidate lists of both still-image rows (photo and graphic) or of the
+// animated row, because the content class is only known once the image is
+// processed. The encoder analyses the processed image (Analyze), asks
+// Decision.BestCandidates for its class, encodes each candidate and keeps
+// the smallest; Decision.Format (the first candidate of the SourceMeta
+// class) is what is encoded when the analysis is skipped.
 package negotiate
 
 import (
@@ -106,13 +108,15 @@ func (c *Config) Validate() error {
 // ContentClass is the content-analysis verdict (FORMATS §6.1 point 3).
 type ContentClass uint8
 
-// ContentClass values. ContentUnknown is what M1 probes produce; Decide treats
-// it as ContentPhoto. The M2 analysis (Sobel complexity + unique colours)
-// fills ContentPhoto or ContentGraphic.
+// ContentClass values. ContentUnknown is what probes produce; Decide treats
+// it as ContentPhoto. Analyze fills ContentPhoto, ContentGraphic or, close to
+// the threshold, ContentMixed (Decide treats it as a photo; BestCandidates
+// mixes lossy and lossless candidates).
 const (
 	ContentUnknown ContentClass = iota
 	ContentPhoto
 	ContentGraphic
+	ContentMixed
 )
 
 // String returns the class name for logs.
@@ -124,6 +128,8 @@ func (c ContentClass) String() string {
 		return "photo"
 	case ContentGraphic:
 		return "graphic"
+	case ContentMixed:
+		return "mixed"
 	}
 	return "ContentClass(" + strconv.Itoa(int(c)) + ")"
 }
@@ -162,7 +168,7 @@ const (
 	ReasonSVGPassthrough               // SVG source served as SVG
 	ReasonAccept                       // modern format chosen from Accept and auto flags
 	ReasonEnforced                     // modern format chosen by an enforce flag
-	ReasonBest                         // FormatBest: Candidates set, Format is the first (M2 hook)
+	ReasonBest                         // FormatBest: candidate lists set, Format is the first of the SourceMeta class
 )
 
 // String returns the reason name for logs.
@@ -205,6 +211,42 @@ type Decision struct {
 
 	candidates [maxCandidates]transform.Format
 	nCand      uint8
+
+	// Best-format lists (ReasonBest only): the photo and graphic rows of a
+	// still image, or the animated row in lossy.
+	lossy, lossless candList
+	animated        bool
+}
+
+// Candidate is one best-format candidate: a format and how to encode it.
+type Candidate struct {
+	Format transform.Format
+	// Lossless asks for a lossless save (graphics rows); it is the
+	// encoder's PreferLossless hint.
+	Lossless bool
+	// Quantize asks for a palette PNG (≤ 256 colours).
+	Quantize bool
+}
+
+// candList is a fixed-capacity candidate list.
+type candList struct {
+	c [maxCandidates]Candidate
+	n uint8
+}
+
+func (l *candList) slice() []Candidate { return l.c[:l.n] }
+
+func (l *candList) push(c Candidate) {
+	if int(l.n) == len(l.c) {
+		return
+	}
+	for _, have := range l.c[:l.n] {
+		if have.Format == c.Format && have.Lossless == c.Lossless {
+			return
+		}
+	}
+	l.c[l.n] = c
+	l.n++
 }
 
 // ContentType returns the Content-Type of the decided format.
@@ -217,6 +259,87 @@ func (d *Decision) Candidates() []transform.Format {
 		return nil
 	}
 	return d.candidates[:d.nCand]
+}
+
+// BestKey fingerprints the best-format candidate lists ("" unless Reason is
+// ReasonBest), e.g. "avif,webp,jpeg|webp~,png~" (~ marks lossless, a
+// leading "a:" an animation). Two decisions with equal keys pick the same
+// output for the same image, so the key belongs in anything that identifies
+// the response before it is encoded (the ETag).
+func (d *Decision) BestKey() string {
+	if d.Reason != ReasonBest {
+		return ""
+	}
+	b := make([]byte, 0, 48)
+	if d.animated {
+		b = append(b, "a:"...)
+	}
+	for i, l := range [2]*candList{&d.lossy, &d.lossless} {
+		if i > 0 {
+			b = append(b, '|')
+		}
+		for j, c := range l.slice() {
+			if j > 0 {
+				b = append(b, ',')
+			}
+			b = append(b, c.Format.String()...)
+			if c.Lossless {
+				b = append(b, '~')
+			}
+		}
+	}
+	return string(b)
+}
+
+// BestCandidates returns the formats to try for a processed image of the
+// given class (FORMATS §6.3), at most three, in preference order: the
+// lossless graphic row for ContentGraphic, the lossy photo row for photos
+// (and ContentUnknown), and both interleaved for ContentMixed. A PNG
+// candidate for an image of 1..256 colours is quantised. For an animation
+// the candidates are the animated row's (animated formats only), saved
+// lossless for graphics. It is nil unless Reason is ReasonBest.
+func (d *Decision) BestCandidates(class ContentClass, colors int) []Candidate {
+	if d.Reason != ReasonBest {
+		return nil
+	}
+	lossy, lossless := d.lossy, d.lossless
+	if d.animated {
+		lossless = candList{}
+		for _, c := range lossy.slice() {
+			c.Lossless = supportsLossless(c.Format)
+			lossless.push(c)
+		}
+	}
+	var out candList
+	switch class {
+	case ContentGraphic:
+		out = lossless
+		if out.n == 0 {
+			out = lossy
+		}
+	case ContentMixed:
+		for i := range maxCandidates {
+			if i < int(lossy.n) {
+				out.push(lossy.c[i])
+			}
+			if i < int(lossless.n) {
+				out.push(lossless.c[i])
+			}
+		}
+	default:
+		out = lossy
+		if out.n == 0 {
+			out = lossless
+		}
+	}
+	cands := make([]Candidate, out.n)
+	copy(cands, out.slice())
+	for i := range cands {
+		if cands[i].Format == transform.FormatPNG && cands[i].Lossless && colors > 0 && colors <= 256 {
+			cands[i].Quantize = true
+		}
+	}
+	return cands
 }
 
 // Decide negotiates the output format. It returns an error of kind
@@ -240,18 +363,57 @@ func Decide(req *transform.Request, accept AcceptList, cfg *Config, meta SourceM
 		return Decision{Format: transform.FormatSVG, Passthrough: true, Vary: n.vary, Reason: ReasonSVGPassthrough}, nil
 	}
 
-	n.content = classify(req, &meta)
-	n.addModern(&meta)
-	n.addFallbacks()
-
-	d, ok := n.pick(req.Output.Format == transform.FormatBest)
-	if !ok {
+	content := classify(req, &meta)
+	cands := n.row(content, &meta)
+	if len(cands) == 0 {
 		return Decision{Vary: n.vary}, errs.New(errs.KindNotAcceptable, "negotiate: no acceptable output format")
 	}
-	if d.Format == transform.FormatPNG && n.content == rowGraphic && meta.Colors > 0 && meta.Colors <= 256 {
+	d := decision(cands)
+	if d.Format == transform.FormatPNG && content == rowGraphic && meta.Colors > 0 && meta.Colors <= 256 {
 		d.Quantize = true
 	}
+	if req.Output.Format == transform.FormatBest {
+		d.Reason = ReasonBest
+		for _, c := range cands[:min(len(cands), maxCandidates)] {
+			d.candidates[d.nCand] = c.format
+			d.nCand++
+		}
+		primary := bestList(cands, content == rowAnimated)
+		switch content {
+		case rowAnimated:
+			d.lossy, d.animated = primary, true
+		case rowGraphic:
+			d.lossless = primary
+			d.lossy = bestList(n.row(photoRow(&meta), &meta), false)
+		default:
+			d.lossy = primary
+			d.lossless = bestList(n.row(rowGraphic, &meta), false)
+		}
+	}
+	d.Vary = n.vary
 	return d, nil
+}
+
+// bestList converts the first maxCandidates candidates. GIF is dropped from
+// still rows (a 256-colour palette is no candidate for a still photo, and
+// graphics have lossless formats); PNG is always a lossless save.
+func bestList(cands []candidate, animated bool) candList {
+	var l candList
+	for _, c := range cands {
+		if c.format == transform.FormatGIF && !animated {
+			continue
+		}
+		l.push(Candidate{Format: c.format, Lossless: c.lossless || c.format == transform.FormatPNG})
+	}
+	return l
+}
+
+// photoRow is the photo row of a still image.
+func photoRow(meta *SourceMeta) row {
+	if meta.HasAlpha {
+		return rowPhotoAlpha
+	}
+	return rowPhotoOpaque
 }
 
 // row is the FORMATS §6.2 matrix row.
@@ -419,7 +581,13 @@ func (n *negotiation) addFallbacks() {
 	}
 }
 
-func (n *negotiation) pick(best bool) (Decision, bool) {
+// row builds the ordered, Accept-filtered candidate list of one matrix row.
+// The result aliases n's buffer until the next call.
+func (n *negotiation) row(content row, meta *SourceMeta) []candidate {
+	n.n = 0
+	n.content = content
+	n.addModern(meta)
+	n.addFallbacks()
 	cands := n.cands[:n.n]
 	if n.cfg.StrictAccept {
 		kept := cands[:0]
@@ -431,23 +599,18 @@ func (n *negotiation) pick(best bool) (Decision, bool) {
 		}
 		cands = kept
 	}
-	if len(cands) == 0 {
-		return Decision{}, false
-	}
+	return cands
+}
+
+// decision is the Decision for the first of a non-empty candidate list.
+func decision(cands []candidate) Decision {
 	first := cands[0]
-	d := Decision{Format: first.format, Lossless: first.lossless, Vary: n.vary, Reason: ReasonFallback}
+	d := Decision{Format: first.format, Lossless: first.lossless, Reason: ReasonFallback}
 	switch {
 	case first.enforced:
 		d.Reason = ReasonEnforced
 	case first.modern:
 		d.Reason = ReasonAccept
 	}
-	if best {
-		d.Reason = ReasonBest
-		for _, c := range cands[:min(len(cands), maxCandidates)] {
-			d.candidates[d.nCand] = c.format
-			d.nCand++
-		}
-	}
-	return d, true
+	return d
 }

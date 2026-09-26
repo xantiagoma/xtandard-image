@@ -158,7 +158,7 @@ img := C.xi_load_owned(p, C.size_t(n))           // shim wraps vips_blob_new(fre
 - Free resources deterministically with `defer img.Close()`. Treat `runtime.AddCleanup` (1.24) as a leak backstop that logs and counts, never as the release mechanism. Never use `runtime.SetFinalizer`.
 - Leave `GODEBUG=cgocheck=1` (the default) on in all environments. The `-race` CI job also builds with `GOEXPERIMENT=cgocheck2` (https://pkg.go.dev/cmd/cgo).
 
-**Build flags:** use `#cgo pkg-config: vips` only. Never hard-code `-I`/`-L`. Set `PKG_CONFIG_PATH` for `/opt/app/lib` builds, as imagor's Dockerfile does. On macOS, vipsgen needs `CGO_CFLAGS_ALLOW=-Xpreprocessor`.
+**Build flags:** use `#cgo pkg-config:` only (`vips`, plus `libexif` and `libraw_r` for the EXIF titles and the RAW shim). Never hard-code `-I`/`-L`. Homebrew's `libraw_r.pc` puts `-Xpreprocessor -fopenmp` in its libs, so host builds on macOS also need `CGO_LDFLAGS_ALLOW='-Xpreprocessor|-fopenmp'`. Set `PKG_CONFIG_PATH` for `/opt/app/lib` builds, as imagor's Dockerfile does. On macOS, vipsgen needs `CGO_CFLAGS_ALLOW=-Xpreprocessor`.
 
 **Process memory tuning (runtime image):**
 - Preload jemalloc with `LD_PRELOAD=libjemalloc.so.2` and set `MALLOC_ARENA_MAX=2` as a glibc fallback. Both imgproxy (`docker/Dockerfile`, `entrypoint.sh`) and imagor (`Dockerfile`) ship this. glibc arena fragmentation under many threads is the main cause of apparent memory leaks. When running on glibc without jemalloc, periodically call `debug.FreeOSMemory()` followed by `malloc_trim(0)` (imgproxy `memory/free_linux.go`).
@@ -197,7 +197,7 @@ if se, ok := errors.AsType[statusError](err); ok { status, msg = se.HTTPStatus()
   - Rejected: `kelseyhightower/envconfig`, whose last release was v1.4.0 in 2019.
 - Put all settings in one `Config` struct built once in `main` and passed down explicitly. Prefix variables with `XI_`. Never read `os.Getenv` outside `internal/config`. Never use globals or `init()`.
 - Validate with an explicit `func (c Config) Validate() error` that returns `errors.Join` of every violation. Fail fast at startup. Don't use `go-playground/validator`: it is reflection-heavy, uses stringly-typed tags, and our rules are cross-field.
-- If a YAML file is ever added (presets, for example), use `github.com/goccy/go-yaml` v1.19.2 with `yaml.UnmarshalWithOptions(b, &c, yaml.Strict(), yaml.DisallowUnknownField())`. `gopkg.in/yaml.v3` is archived (repo archived April 2025). Its successor `go.yaml.in/yaml/v3` receives security fixes only, and `v4` is still `v4.0.0-rc.6` (https://github.com/yaml/go-yaml). Environment variables stay the source of truth, and they override the file.
+- The optional config file is YAML, JSON or TOML (ADR 0007), with one strict decode path: `github.com/goccy/go-yaml` v1.19.2 with `yaml.UnmarshalWithOptions(b, &c, yaml.Strict(), yaml.DisallowUnknownField())`. JSON is YAML flow syntax and goes through it unchanged; TOML is decoded by `github.com/pelletier/go-toml/v2` into a map and re-encoded as YAML first. Its JSON Schema is generated from `Config` by a test and embedded; the loader stays the authority. `gopkg.in/yaml.v3` is archived (repo archived April 2025). Its successor `go.yaml.in/yaml/v3` receives security fixes only, and `v4` is still `v4.0.0-rc.6` (https://github.com/yaml/go-yaml). Environment variables stay the source of truth, and they override the file.
 
 ## 8. Testing
 
@@ -207,7 +207,7 @@ if se, ok := errors.AsType[statusError](err); ok { status, msg = se.HTTPStatus()
 - **Golden images:** store them under `testdata/golden/` and regenerate with `-update`. **Never compare encoded bytes**, which change with encoder versions. Decode both images and assert that dimensions, band count and format match and that the perceptual distance is below a tolerance (DSSIM/SSIMULACRA2, the same metric used for auto-quality).
 - **Fuzzing:** every parser that takes attacker input (URL options, signatures, base64 source, range and accept headers) has a `FuzzXxx` with a seed corpus in `testdata/fuzz/`. Fuzz tests run for 60 s per target nightly, and any crash they find is committed to the corpus.
 - **Race:** `go test -race` runs in CI. It does not see races inside C, which is why we lock threads and use `cgocheck2`.
-- **Integration:** mark integration tests with `//go:build integration` and run them against `docker compose` services (minio, a slow HTTP origin). Tests read their endpoints from the environment and call `t.Skip` when an endpoint is unset. We choose compose over testcontainers-go (v0.44.0) to keep Docker client dependencies out of `go.mod`.
+- **Integration:** mark integration tests with `//go:build integration` and run them against `docker compose` services (RustFS, a slow HTTP origin). Tests read their endpoints from the environment and call `t.Skip` when an endpoint is unset. We choose compose over testcontainers-go (v0.44.0) to keep Docker client dependencies out of `go.mod`.
 - **Benchmarks:** write every hot-path change with `for b.Loop()` (1.24; since 1.26 it no longer blocks inlining, https://go.dev/doc/go1.26), call `b.ReportAllocs()`, and use real images from `testdata/`. Compare with `go test -run='^$' -bench=. -count=10 -benchmem > new.txt` against main, then run `benchstat old.txt new.txt` (`golang.org/x/perf/cmd/benchstat`). A PR claiming a speed-up must paste the benchstat output. Anything under p<0.05 counts as noise.
 
 ## 9. Build and release
@@ -236,12 +236,16 @@ Use the stdlib first. Every new module needs an ADR line with the reason, its li
 | `github.com/prometheus/client_golang` | v1.24.1 | metrics |
 | `go.opentelemetry.io/otel`, `.../sdk`, contrib `otelhttp`/`autoexport` | v1.46.0 / v0.71.0 | tracing, opt-in |
 | `github.com/caarlos0/env/v11` | v11.4.1 | env config |
-| `github.com/goccy/go-yaml` | v1.19.2 | only if a YAML file is added |
+| `github.com/goccy/go-yaml` | v1.19.2 | the config file decoder (YAML, JSON and, after conversion, TOML) |
+| `github.com/pelletier/go-toml/v2` | v2.4.3 | TOML config files, `internal/config` only (ADR 0007) |
+| `github.com/santhosh-tekuri/jsonschema/v6` | v6.0.3 | test only: validates example configs against the config JSON Schema (ADR 0007) |
 | `github.com/google/go-cmp` | v0.7.0 | test diffs |
 | `golang.org/x/image` | v0.46.0 | test-only decoders (WebP, BMP, TIFF) for the golden harness (ADR 0006) |
 | `github.com/klauspost/compress` | v1.20.1 | only if we gzip or zstd non-image responses |
+| `github.com/danielgtaylor/huma/v2` | v2.39.1 | OpenAPI document builder, `internal/apidoc` only; never a router or adapter, never assign its package variables (ADR 0008) |
+| `github.com/santhosh-tekuri/jsonschema/v6` | v6.0.3 | test-only JSON Schema 2020-12 validator (ADR 0007, ADR 0008) |
 
-Storage SDKs such as AWS SDK v2 and GCS are allowed only inside `internal/fetch/<provider>` and require an ADR.
+Storage SDKs such as AWS SDK v2 and GCS are allowed only inside `internal/fetch/<provider>` and the cache backends `internal/cache/s3cache` and `internal/cache/redis` (go-redis v9), and require an ADR.
 
 **Banned (enforced with depguard):**
 - `github.com/pkg/errors`

@@ -12,7 +12,10 @@
 // internal/app maps Config into each component's own Options.
 package config
 
-import "time"
+import (
+	"slices"
+	"time"
+)
 
 // Config is the whole service configuration. Build it with Load.
 type Config struct {
@@ -66,10 +69,13 @@ type Server struct {
 	CORSOrigins         []string      `yaml:"cors_origins"          env:"CORS_ORIGINS"`
 }
 
-// Admin configures the private listener (/metrics, pprof).
+// Admin configures the private listener (/metrics, /openapi.json, pprof).
 type Admin struct {
 	Addr  string `yaml:"addr"  env:"ADDR"` // empty disables the listener
 	Pprof bool   `yaml:"pprof" env:"PPROF"`
+	// Docs serves the Scalar API reference at /docs, loaded from a pinned
+	// jsDelivr URL (ADR 0008); /openapi.json is always served.
+	Docs bool `yaml:"docs" env:"DOCS"`
 }
 
 // Signing configures URL signature verification (imgproxy scheme and xi_sig).
@@ -123,7 +129,7 @@ type Source struct {
 	// every type except http
 	Prefix string `yaml:"prefix,omitempty" env:"PREFIX"`
 
-	// s3, gcs, azure: service endpoint override (MinIO, fake-gcs, Azurite)
+	// s3, gcs, azure: service endpoint override (RustFS, fake-gcs, Azurite)
 	Endpoint string `yaml:"endpoint,omitempty" env:"ENDPOINT"`
 
 	// s3
@@ -177,7 +183,7 @@ type Fetch struct {
 	AllowedPorts         []int `yaml:"allowed_ports"          env:"ALLOWED_PORTS"`
 	AllowPrivateNetworks bool  `yaml:"allow_private_networks" env:"ALLOW_PRIVATE_NETWORKS"`
 	// AllowedNetworks are exempt from the private-address block (for example
-	// an in-cluster MinIO) without opening every private range.
+	// an in-cluster object store) without opening every private range.
 	AllowedNetworks []CIDR `yaml:"allowed_networks" env:"ALLOWED_NETWORKS"`
 	// UserAgent defaults to xtandard-image/<version> when empty.
 	UserAgent string `yaml:"user_agent" env:"USER_AGENT"`
@@ -188,17 +194,18 @@ type Dialects struct {
 	Default DialectName `yaml:"default" env:"DEFAULT"`
 	Strict  bool        `yaml:"strict"  env:"STRICT"`
 
-	Imgproxy         ImgproxyDialect   `yaml:"imgproxy"          envPrefix:"IMGPROXY_"`
-	Query            Mount             `yaml:"query"             envPrefix:"QUERY_"`
-	Wsrv             Mount             `yaml:"wsrv"              envPrefix:"WSRV_"`
-	Cloudflare       Mount             `yaml:"cloudflare"        envPrefix:"CLOUDFLARE_"`
-	CloudflareImages Mount             `yaml:"cloudflare_images" envPrefix:"CLOUDFLARE_IMAGES_"`
-	Imgix            Mount             `yaml:"imgix"             envPrefix:"IMGIX_"`
-	Cloudinary       CloudinaryDialect `yaml:"cloudinary"        envPrefix:"CLOUDINARY_"`
-	Imagekit         Mount             `yaml:"imagekit"          envPrefix:"IMAGEKIT_"`
-	Bunny            Mount             `yaml:"bunny"             envPrefix:"BUNNY_"`
-	Thumbor          Mount             `yaml:"thumbor"           envPrefix:"THUMBOR_"`
-	Simple           SimpleDialect     `yaml:"simple"            envPrefix:"SIMPLE_"`
+	Imgproxy         ImgproxyDialect         `yaml:"imgproxy"          envPrefix:"IMGPROXY_"`
+	Query            Mount                   `yaml:"query"             envPrefix:"QUERY_"`
+	Wsrv             Mount                   `yaml:"wsrv"              envPrefix:"WSRV_"`
+	Cloudflare       Mount                   `yaml:"cloudflare"        envPrefix:"CLOUDFLARE_"`
+	CloudflareImages CloudflareImagesDialect `yaml:"cloudflare_images" envPrefix:"CLOUDFLARE_IMAGES_"`
+	Imgix            Mount                   `yaml:"imgix"             envPrefix:"IMGIX_"`
+	Cloudinary       CloudinaryDialect       `yaml:"cloudinary"        envPrefix:"CLOUDINARY_"`
+	Imagekit         Mount                   `yaml:"imagekit"          envPrefix:"IMAGEKIT_"`
+	Bunny            Mount                   `yaml:"bunny"             envPrefix:"BUNNY_"`
+	Thumbor          Mount                   `yaml:"thumbor"           envPrefix:"THUMBOR_"`
+	AWSSIH           AWSSIHDialect           `yaml:"awssih"            envPrefix:"AWSSIH_"`
+	Simple           SimpleDialect           `yaml:"simple"            envPrefix:"SIMPLE_"`
 }
 
 // MountOptions are the per-mount settings of a dialect.
@@ -233,6 +240,32 @@ type ImgproxyDialect struct {
 type CloudinaryDialect struct {
 	Mount  `yaml:",inline"`
 	Clouds map[string]string `yaml:"clouds" env:"CLOUDS" envKeyValSeparator:"="`
+}
+
+// CloudflareImagesDialect adds the account hash → source map.
+type CloudflareImagesDialect struct {
+	Mount    `yaml:",inline"`
+	Accounts map[string]string `yaml:"accounts" env:"ACCOUNTS" envKeyValSeparator:"="`
+}
+
+// AWSSIHDialect is AWS "Dynamic Image Transformation for Amazon
+// CloudFront" (Serverless Image Handler, docs/URL-DIALECTS.md §13). Keys
+// are the SIH secrets, used verbatim (SIH's SECRETS_MANAGER/SECRET_KEY
+// value).
+type AWSSIHDialect struct {
+	Mount `yaml:",inline"`
+	// Buckets maps SIH bucket names to sources (SIH SOURCE_BUCKETS); a
+	// request without a bucket uses the mount's source.
+	Buckets map[string]string `yaml:"buckets" env:"BUCKETS" envKeyValSeparator:"="`
+	// Thumbor forwards non-JSON paths to the thumbor dialect.
+	Thumbor bool `yaml:"thumbor" env:"THUMBOR"`
+	// QueryParams enables SIH's query-param mapper (format, fit, width, ...).
+	QueryParams bool `yaml:"query_params" env:"QUERY_PARAMS"`
+	// RewriteMatchPattern and RewriteSubstitution are SIH's custom request
+	// type: a "/pattern/flags" regex applied to non-JSON paths before they
+	// are forwarded to thumbor.
+	RewriteMatchPattern string `yaml:"rewrite_match_pattern" env:"REWRITE_MATCH_PATTERN"`
+	RewriteSubstitution string `yaml:"rewrite_substitution"  env:"REWRITE_SUBSTITUTION"`
 }
 
 // SimpleDialect is the table-driven family (nextjs, netlify, ipx, …); each
@@ -284,6 +317,10 @@ type Formats struct {
 	HEIC HEICFormat `yaml:"heic" envPrefix:"HEIC_"`
 	JXL  JXLFormat  `yaml:"jxl"  envPrefix:"JXL_"`
 	GIF  GIFFormat  `yaml:"gif"  envPrefix:"GIF_"`
+	PDF  PDFFormat  `yaml:"pdf"  envPrefix:"PDF_"`
+	PSD  PSDFormat  `yaml:"psd"  envPrefix:"PSD_"`
+	RAW  RAWFormat  `yaml:"raw"  envPrefix:"RAW_"`
+	HDR  HDRFormat  `yaml:"hdr"  envPrefix:"HDR_"`
 
 	Auto    FormatSwitches `yaml:"auto"    envPrefix:"AUTO_"`
 	Enforce FormatSwitches `yaml:"enforce" envPrefix:"ENFORCE_"`
@@ -304,12 +341,23 @@ type ClientHints struct {
 	// Enabled honours DPR/Width/Viewport-Width/Save-Data on every request
 	// that leaves the value unset (imgproxy IMGPROXY_ENABLE_CLIENT_HINTS).
 	Enabled bool `yaml:"enabled" env:"ENABLED"`
+	// CriticalCH adds Critical-CH (Sec-CH-DPR, Sec-CH-Width,
+	// Sec-CH-Viewport-Width) next to Accept-CH on image responses.
+	CriticalCH bool `yaml:"critical_ch" env:"CRITICAL_CH"`
 }
 
 // JPEGFormat holds JPEG encoder defaults.
 type JPEGFormat struct {
 	Quality     int  `yaml:"quality"     env:"QUALITY"`
 	Progressive bool `yaml:"progressive" env:"PROGRESSIVE"`
+}
+
+// RAWFormat configures camera RAW decoding (FORMATS.md §2).
+type RAWFormat struct {
+	// PreviewMinRatio: the embedded JPEG preview is decoded instead of
+	// demosaicing when it is at least this many times the size the image
+	// is scaled to, on both axes.
+	PreviewMinRatio float64 `yaml:"preview_min_ratio" env:"PREVIEW_MIN_RATIO"`
 }
 
 // PNGFormat holds PNG encoder defaults.
@@ -348,6 +396,28 @@ type GIFFormat struct {
 	Effort int `yaml:"effort" env:"EFFORT"`
 }
 
+// PDFFormat configures PDF input (PDFium).
+type PDFFormat struct {
+	// DPI is the resolution of a page's natural size, used when no size is
+	// requested; resized pages render directly at the target size.
+	DPI float64 `yaml:"dpi" env:"DPI"`
+}
+
+// HDRFormat configures scene-linear inputs (OpenEXR, Radiance, PFM).
+type HDRFormat struct {
+	// ToneMap is the operator that maps them to 8-bit sRGB unless
+	// preserve_hdr keeps them (docs/FORMATS.md §1.4).
+	ToneMap ToneMap `yaml:"tonemap" env:"TONEMAP"`
+}
+
+// PSDFormat configures Photoshop PSD/PSB input (ImageMagick, PSD only).
+type PSDFormat struct {
+	// RequireComposite refuses files saved without a merged composite
+	// ("Maximize compatibility" off) instead of letting ImageMagick flatten
+	// the layers.
+	RequireComposite bool `yaml:"require_composite" env:"REQUIRE_COMPOSITE"`
+}
+
 // FormatSwitches toggles a behaviour per modern format.
 type FormatSwitches struct {
 	AVIF bool `yaml:"avif" env:"AVIF"`
@@ -361,13 +431,18 @@ type BestFormat struct {
 	ComplexityThreshold float64 `yaml:"complexity_threshold" env:"COMPLEXITY_THRESHOLD"`
 }
 
-// AutoQuality configures quality search.
+// AutoQuality configures quality search (docs/FORMATS.md "Auto-quality").
+// The per-format maps override Target, Min and Max for their format; a
+// variable replaces the whole default map.
 type AutoQuality struct {
-	Method       AutoQualityMethod `yaml:"method"        env:"METHOD"`
-	Target       float64           `yaml:"target"        env:"TARGET"`
-	Min          int               `yaml:"min"           env:"MIN"`
-	Max          int               `yaml:"max"           env:"MAX"`
-	AllowedError float64           `yaml:"allowed_error" env:"ALLOWED_ERROR"`
+	Method       AutoQualityMethod  `yaml:"method"        env:"METHOD"`
+	Target       float64            `yaml:"target"        env:"TARGET"`
+	Min          int                `yaml:"min"           env:"MIN"`
+	Max          int                `yaml:"max"           env:"MAX"`
+	AllowedError float64            `yaml:"allowed_error" env:"ALLOWED_ERROR"`
+	FormatTarget map[Format]float64 `yaml:"format_target" env:"FORMAT_TARGET" envKeyValSeparator:"="`
+	FormatMin    map[Format]int     `yaml:"format_min"    env:"FORMAT_MIN"    envKeyValSeparator:"="`
+	FormatMax    map[Format]int     `yaml:"format_max"    env:"FORMAT_MAX"    envKeyValSeparator:"="`
 }
 
 // Limits bound the work a single request may cause.
@@ -407,14 +482,25 @@ type CacheHeaders struct {
 	Passthrough bool          `yaml:"passthrough" env:"PASSTHROUGH"`
 }
 
-// ResultCache configures the tiered result cache.
+// ResultCache configures the tiered result cache. It is on when Stores is
+// not empty (Enabled).
 type ResultCache struct {
-	Stores      []StoreKind   `yaml:"stores"       env:"STORES"`
-	MemoryBytes ByteSize      `yaml:"memory_bytes" env:"MEMORY_BYTES"`
-	Disk        DiskCache     `yaml:"disk"         envPrefix:"DISK_"`
-	Redis       RedisCache    `yaml:"redis"        envPrefix:"REDIS_"`
-	S3          S3ResultCache `yaml:"s3"           envPrefix:"S3_"`
+	Stores      []StoreKind `yaml:"stores"       env:"STORES"`
+	MemoryBytes ByteSize    `yaml:"memory_bytes" env:"MEMORY_BYTES"`
+	// TTL is how long a result is served from the cache without
+	// contacting the source.
+	TTL time.Duration `yaml:"ttl" env:"TTL"`
+	// WriteQueue is the most asynchronous cache writes in flight; more
+	// are dropped (xi_cache_writes_dropped_total).
+	WriteQueue int `yaml:"write_queue" env:"WRITE_QUEUE"`
+
+	Disk  DiskCache     `yaml:"disk"  envPrefix:"DISK_"`
+	Redis RedisCache    `yaml:"redis" envPrefix:"REDIS_"`
+	S3    S3ResultCache `yaml:"s3"    envPrefix:"S3_"`
 }
+
+// Enabled reports whether any result cache tier is configured.
+func (r *ResultCache) Enabled() bool { return len(r.Stores) > 0 }
 
 // DiskCache configures the disk tier.
 type DiskCache struct {
@@ -425,6 +511,11 @@ type DiskCache struct {
 // RedisCache configures the redis tier.
 type RedisCache struct {
 	URL Secret `yaml:"url" env:"URL"` // may carry a password
+	// Prefix namespaces every key on a shared server.
+	Prefix string `yaml:"prefix" env:"PREFIX"`
+	// MaxValueBytes is the largest value stored; larger entries are
+	// skipped and counted.
+	MaxValueBytes ByteSize `yaml:"max_value_bytes" env:"MAX_VALUE_BYTES"`
 }
 
 // S3ResultCache configures the s3 tier; Source names an s3 source whose
@@ -435,12 +526,32 @@ type S3ResultCache struct {
 	Prefix string `yaml:"prefix" env:"PREFIX"`
 }
 
-// OriginCache configures the in-memory original-bytes LRU.
+// OriginCache configures the in-memory original-bytes LRU and the
+// optional shared stores behind it.
 type OriginCache struct {
 	MemoryBytes ByteSize      `yaml:"memory_bytes" env:"MEMORY_BYTES"`
 	TTL         time.Duration `yaml:"ttl"          env:"TTL"`
 	// NegativeTTL is how long a source not-found is remembered; 0 disables.
 	NegativeTTL time.Duration `yaml:"negative_ttl" env:"NEGATIVE_TTL"`
+	// Stores are shared tiers (disk, redis, s3; configured under
+	// cache.result) backing the LRU under the orig/ namespace, so
+	// replicas and restarts share originals. Empty disables them.
+	Stores []StoreKind `yaml:"stores" env:"STORES"`
+	// StoreTTL is how long an original is served from the shared stores
+	// without contacting the source.
+	StoreTTL time.Duration `yaml:"store_ttl" env:"STORE_TTL"`
+}
+
+// SharedStores reports every store kind the result or origin cache uses,
+// each once, result order first.
+func (c *Cache) SharedStores() []StoreKind {
+	var out []StoreKind
+	for _, k := range append(append([]StoreKind(nil), c.Result.Stores...), c.Origin.Stores...) {
+		if !slices.Contains(out, k) {
+			out = append(out, k)
+		}
+	}
+	return out
 }
 
 // Observability configures logs and debug headers. Metrics live on the
@@ -504,12 +615,13 @@ func Defaults() Config {
 			Query:            mount("/q/"),
 			Wsrv:             mount("/wsrv/"),
 			Cloudflare:       mount("/cdn-cgi/image/"),
-			CloudflareImages: mount("/cdn-cgi/imagedelivery/"),
+			CloudflareImages: CloudflareImagesDialect{Mount: mount("/cdn-cgi/imagedelivery/")},
 			Imgix:            mount("/imgix/"),
 			Cloudinary:       CloudinaryDialect{Mount: mount("/cloudinary/")},
 			Imagekit:         mount("/imagekit/"),
 			Bunny:            mount("/bunny/"),
 			Thumbor:          mount("/thumbor/"),
+			AWSSIH:           AWSSIHDialect{Mount: mount("/sih/"), QueryParams: true},
 		},
 		Processing: Processing{
 			QueueSize:         -1,
@@ -530,12 +642,19 @@ func Defaults() Config {
 			HEIC:                 HEICFormat{Quality: 60},
 			JXL:                  JXLFormat{Quality: 75, Effort: 5},
 			GIF:                  GIFFormat{Effort: 7},
+			PDF:                  PDFFormat{DPI: 72},
+			RAW:                  RAWFormat{PreviewMinRatio: 1},
+			HDR:                  HDRFormat{ToneMap: ToneMapReinhard},
 			Auto:                 FormatSwitches{AVIF: true, WebP: true},
 			Preferred:            []Format{FormatJPEG, FormatPNG, FormatGIF},
 			SVGPassthrough:       true,
 			SaveDataQualityDelta: -15,
 			Best:                 BestFormat{MaxPixels: 8_000_000, ComplexityThreshold: 5.5},
-			AutoQuality:          AutoQuality{Method: AutoQualityNone, Target: 0.02, Min: 60, Max: 85, AllowedError: 0.001},
+			AutoQuality: AutoQuality{
+				Method: AutoQualityNone, Target: 0.02, Min: 60, Max: 85, AllowedError: 0.001,
+				FormatMin: map[Format]int{FormatJPEG: 40, FormatWebP: 40, FormatAVIF: 30},
+				FormatMax: map[Format]int{FormatJPEG: 90, FormatWebP: 90, FormatAVIF: 80},
+			},
 		},
 		Limits: Limits{
 			MaxSrcBytes:             50 << 20,
@@ -553,8 +672,12 @@ func Defaults() Config {
 		Cache: Cache{
 			Headers:    CacheHeaders{TTL: 31_536_000 * time.Second, ErrorTTL: 10 * time.Second},
 			TagsHeader: "Cache-Tag",
-			Result:     ResultCache{MemoryBytes: 256 << 20, Disk: DiskCache{Bytes: 10 << 30}},
-			Origin:     OriginCache{MemoryBytes: 256 << 20, TTL: 60 * time.Second, NegativeTTL: 5 * time.Second},
+			Result: ResultCache{
+				MemoryBytes: 256 << 20, TTL: 24 * time.Hour, WriteQueue: 64,
+				Disk:  DiskCache{Bytes: 10 << 30},
+				Redis: RedisCache{Prefix: "xi:", MaxValueBytes: 1 << 20},
+			},
+			Origin: OriginCache{MemoryBytes: 256 << 20, TTL: 60 * time.Second, NegativeTTL: 5 * time.Second, StoreTTL: 10 * time.Minute},
 		},
 		Observability: Observability{LogLevel: LogInfo},
 	}

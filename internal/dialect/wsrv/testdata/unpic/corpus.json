@@ -1,0 +1,187 @@
+[
+  {
+    "name": "extract_basic",
+    "url": "https://wsrv.nl/?url=example.com/image.jpg",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "extract_operations",
+    "url": "https://wsrv.nl/?url=example.com/image.jpg&w=300&h=200&q=85&output=webp&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "generate_width_height",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&w=300&h=200&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "generate_width_only",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&w=300&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "generate_quality",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&w=600&q=80&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "generate_format",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&w=400&output=webp&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "generate_fit_contain",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&fit=contain&w=300",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "generate_provider_ops",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&dpr=2&blur=5&w=300&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "transform_width_height",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&w=200&h=100&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "transform_width_only",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&w=200&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "transform_defaults",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&w=300&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "transform_override",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&fit=contain&w=300",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_aliases",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&w=320&h=240&output=png&q=70&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_fit_inside_we",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&fit=inside&we=true&w=300&h=300",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_fit_outside",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&fit=outside&w=300&h=300",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_fit_fill",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&fit=fill&w=300&h=300",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_contain_cbg",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&fit=contain&cbg=black&w=300&h=300",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_align_attention",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&a=attention&w=300&h=300&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_align_entropy",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&a=entropy&w=300&h=300&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_align_bottom_right",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&a=bottom-right&w=300&h=300&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_crop",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&crop=100%2C100%2C720%2C530&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_trim",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&trim=10&w=300&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_mask",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&mask=circle&mbg=red&w=300&h=300&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_flip_flop",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&flip=true&flop=true&w=300&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_rotate",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&ro=90&w=300&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_bg",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&bg=white&w=300&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_adjust",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&con=25&sat=2&hue=90&sharp=3&tint=red&w=300&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_filters",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&filt=greyscale&w=300&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_duotone",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&filt=duotone&w=300&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_png",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&l=9&il=true&w=300&output=png&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_webp_lossless",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&ll=true&w=300&output=webp&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_gif_pages",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&n=-1&h=300&output=gif&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_formats_avif",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&w=640&output=avif&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_formats_jpeg",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&w=640&output=jpeg&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_formats_tiff",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&w=640&output=tiff&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_formats_json",
+    "url": "https://wsrv.nl/?url=example.com%2Fimage.jpg&output=json&fit=cover",
+    "source": "https://example.com/image.jpg"
+  },
+  {
+    "name": "ops_http_source",
+    "url": "https://wsrv.nl/?url=example.com%2Fa%2Fb.png%3Fv%3D2&w=128&fit=cover",
+    "source": "https://example.com/a/b.png?v=2"
+  }
+]

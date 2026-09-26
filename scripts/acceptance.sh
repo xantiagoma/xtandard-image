@@ -5,7 +5,7 @@
 #
 #   1. scripts/check-readonly.sh: docker run --read-only --tmpfs /tmp
 #      --cap-drop ALL, HEALTHCHECK healthy, `health`, rootfs read-only
-#   2. compose.acceptance.yml: nginx origin, MinIO seeded with
+#   2. compose.acceptance.yml: nginx origin, RustFS seeded with
 #      testdata/fixtures, the app configured through env only (fresh signing
 #      and encryption keys per run) and a one-worker app-tiny
 #   3. go test -tags acceptance ./test/acceptance/ on the host against the
@@ -71,10 +71,10 @@ sh scripts/check-readonly.sh "$XI_IMAGE" || fail "read-only rootfs check"
 # 2. stack ------------------------------------------------------------------------
 echo "== compose.acceptance.yml"
 quiet() { "$@" >"$tmp/compose.log" 2>&1 || { cat "$tmp/compose.log" >&2; fail "$*"; }; }
-quiet compose up -d --wait --wait-timeout 120 fixtures minio
-quiet compose --profile seed run --rm -T minio-seed
+quiet compose up -d --wait --wait-timeout 120 fixtures rustfs
+quiet compose --profile seed run --rm -T s3-seed
 quiet compose up -d --wait --wait-timeout 120 app app-tiny
-echo "fixtures, minio (seeded), app and app-tiny healthy"
+echo "fixtures, rustfs (seeded), app and app-tiny healthy"
 
 XI_ACC_APP="$(compose port app 8080)"
 XI_ACC_ADMIN="$(compose port app 9090)"

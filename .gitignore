@@ -20,3 +20,6 @@ coverage.*
 .env.*
 !.env.example
 /.refs/
+
+# Downloaded test inputs (internal/testutil/rawfixtures)
+/testdata/cache/

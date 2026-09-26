@@ -90,6 +90,9 @@ func (g *geo) calcParams(o *opts) {
 	if p.Crop != nil {
 		g.cropW = cropSize(g.srcW, p.Crop.Width)
 		g.cropH = cropSize(g.srcH, p.Crop.Height)
+		if ar := p.Crop.AspectRatio; ar > 0 && !math.IsInf(ar, 0) {
+			g.cropW, g.cropH = cropAspect(g.cropW, g.cropH, g.srcW, g.srcH, ar, p.Crop.AspectEnlarge)
+		}
 	}
 	wts := minNonZero(g.cropW, g.srcW)
 	hts := minNonZero(g.cropH, g.srcH)

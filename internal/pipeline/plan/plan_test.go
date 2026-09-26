@@ -21,6 +21,14 @@ func jpeg(w, h int) plan.SourceMeta { return plan.SourceMeta{Width: w, Height: h
 
 func px(n int) transform.Dim { return transform.Dim{Px: n} }
 
+// pdfMeta is a 3-page PDF 200 pt wide measured at 72 DPI; selection marks
+// a height the executor measured for the request's pages.
+func pdfMeta(h int, selection bool) plan.SourceMeta {
+	return plan.SourceMeta{
+		Width: 200, Height: h, Frames: 3, Format: "pdf", IsVector: true, Density: 72, Selection: selection,
+	}
+}
+
 // size is the output size of the last chained plan.
 func size(p *plan.Plan) [2]int {
 	if n := len(p.Chained); n > 0 {
@@ -100,6 +108,15 @@ func TestBuildLoad(t *testing.T) {
 		{"svg_vector_guard", transform.Pipeline{}, plan.SourceMeta{Width: 3000, Height: 2000, Format: "svg", IsVector: true}, plan.Limits{MaxSrcPixels: 600_000}, plan.LoadStep{Scale: 1 / 3.1622776601683795, NPages: 1, Width: 949, Height: 632}},
 		{"page_selects_frame", transform.Pipeline{Page: new(2)}, plan.SourceMeta{Width: 10, Height: 10, Frames: 4, Format: "tiff"}, plan.Limits{}, plan.LoadStep{Page: 2, NPages: 1, Width: 10, Height: 10}},
 		{"rotate_needs_random_access", transform.Pipeline{Rotate: 90}, jpeg(100, 100), plan.Limits{}, plan.LoadStep{NPages: 1, Width: 100, Height: 100, Access: plan.AccessRandom}},
+		// PDF: rendered at the target size (scale on load, at the probe's
+		// density), never upscaled from the natural size.
+		{"pdf_density_and_scale", fit(400), pdfMeta(150, false), plan.Limits{}, plan.LoadStep{Scale: 2, Density: 72, NPages: 1, Width: 400, Height: 300}},
+		{"pdf_natural_size", transform.Pipeline{}, pdfMeta(150, false), plan.Limits{}, plan.LoadStep{Density: 72, NPages: 1, Width: 200, Height: 150}},
+		{"pdf_pages_predicted", transform.Pipeline{Pages: new(2)}, pdfMeta(150, false), plan.Limits{}, plan.LoadStep{Density: 72, NPages: 2, Width: 200, Height: 300}},
+		{"pdf_pages_all_from_page", transform.Pipeline{Page: new(1), Pages: new(-1)}, pdfMeta(150, false), plan.Limits{}, plan.LoadStep{Density: 72, Page: 1, NPages: 2, Width: 200, Height: 300}},
+		{"pdf_pages_measured", transform.Pipeline{Page: new(1), Pages: new(5), Resize: transform.Resize{Width: px(100)}}, pdfMeta(310, true), plan.Limits{}, plan.LoadStep{Scale: 0.5, Density: 72, Page: 1, NPages: 2, Width: 100, Height: 155}},
+		{"tiff_pages_stack", transform.Pipeline{Pages: new(2)}, plan.SourceMeta{Width: 10, Height: 10, Frames: 2, Format: "tiff"}, plan.Limits{}, plan.LoadStep{NPages: 2, Width: 10, Height: 20}},
+		{"psd_layers_never_stack", transform.Pipeline{Pages: new(2)}, plan.SourceMeta{Width: 10, Height: 10, Frames: 3, Format: "psd"}, plan.Limits{}, plan.LoadStep{NPages: 1, Width: 10, Height: 10}},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -434,17 +451,26 @@ func TestCost(t *testing.T) {
 	if p.Cost.Pixels != 200*150*5 {
 		t.Errorf("animated Cost.Pixels = %d", p.Cost.Pixels)
 	}
+	// Scene-linear sources: float samples (×4), read twice (random access).
+	p, err = plan.Build(req(transform.Pipeline{}), plan.SourceMeta{Width: 100, Height: 50, Format: "exr", HDR: true}, plan.Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := (plan.Cost{Pixels: 5000, EstimatedBytes: 5000 * 3 * 4 * 2}); p.Cost != want || p.Load.Access != plan.AccessRandom {
+		t.Errorf("HDR Cost = %+v, access %v; want %+v, random", p.Cost, p.Load.Access, want)
+	}
 }
 
 func TestUnplanned(t *testing.T) {
 	t.Parallel()
 	p, err := plan.Build(req(transform.Pipeline{
-		Border: &transform.Border{Top: 1}, Adjust: transform.Adjust{Contrast: new(1.5)}, Sepia: true, RotateAny: 12,
+		Border: &transform.Border{Top: 1}, Adjust: transform.Adjust{Contrast: new(1.5), Vibrance: new(1.2)}, Sepia: true,
+		RotateAny: 12, Equalize: true,
 	}), jpeg(10, 10), plan.Limits{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"rotate_any", "border", "adjust", "colour_effects"}
+	want := []string{"vibrance", "equalize"}
 	if !slices.Equal(p.Unplanned, want) {
 		t.Errorf("Unplanned = %v, want %v", p.Unplanned, want)
 	}

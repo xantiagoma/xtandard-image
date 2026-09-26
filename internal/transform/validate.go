@@ -11,22 +11,25 @@ import (
 // planner; these only reject values no config could make meaningful and keep
 // integer arithmetic downstream far from overflow.
 const (
-	MaxDimension   = 1 << 16 // px, any width/height/offset/padding/border
-	MaxRelative    = 16.0    // relative dimension, 1600 %
-	MaxFactor      = 1000.0  // zoom, DPR, aspect ratio, focus zoom, watermark scale
-	MaxSigma       = 1000.0  // blur, sharpen and shadow sigma (wsrv's maximum)
-	MaxPipelines   = 16
-	MaxWatermarks  = 16
-	MaxBlurAreas   = 64
-	MaxListLen     = 64 // classes, cache tags, skip formats, hashsums
-	MaxEffort      = 9
-	MaxQuality     = 100
-	MaxBrightness  = 255.0
-	MaxDPI         = 10000
-	MaxPaletteSize = 256
-	MaxBlurhashDim = 9
-	MaxJPEGQuant   = 8
-	MaxPNGLevel    = 9
+	MaxDimension = 1 << 16 // px, any width/height/offset/padding/border
+	MaxRelative  = 16.0    // relative dimension, 1600 %
+	MaxFactor    = 1000.0  // zoom, DPR, aspect ratio, focus zoom, watermark scale
+	// MaxAutoQualityTarget bounds the autoquality target, which is a byte
+	// count for the size method (imgproxy aq:size:10240).
+	MaxAutoQualityTarget = 1 << 30
+	MaxSigma             = 1000.0 // blur, sharpen and shadow sigma (wsrv's maximum)
+	MaxPipelines         = 16
+	MaxWatermarks        = 16
+	MaxBlurAreas         = 64
+	MaxListLen           = 64 // classes, cache tags, skip formats, hashsums
+	MaxEffort            = 9
+	MaxQuality           = 100
+	MaxBrightness        = 255.0
+	MaxDPI               = 10000
+	MaxPaletteSize       = 256
+	MaxBlurhashDim       = 9
+	MaxJPEGQuant         = 8
+	MaxPNGLevel          = 9
 )
 
 // ValidationError reports one invalid field. Validate joins several with
@@ -173,12 +176,18 @@ func (v *validator) dim(field string, d Dim) {
 	}
 }
 
-func (v *validator) gravity(field string, g *Gravity, allowDetection bool) {
+// gravity checks g. crop is set for the gravities that place a crop
+// (Pipeline.Gravity, Crop.Gravity): only they accept content-aware types
+// and a pixel focus.
+func (v *validator) gravity(field string, g *Gravity, crop bool) {
 	switch {
 	case !validEnum(g.Type, numGravityTypes):
 		v.fail(field+".type", "unknown value")
-	case !allowDetection && g.Type.IsDetection():
+	case !crop && g.Type.IsDetection():
 		v.fail(field+".type", "content-aware gravity not allowed here")
+	}
+	if r := g.FocusPx; r != nil {
+		v.focusPx(field+".focus_px", g, r, crop)
 	}
 	v.floatRange(field+".x_offset", g.XOffset, -MaxDimension, MaxDimension)
 	v.floatRange(field+".y_offset", g.YOffset, -MaxDimension, MaxDimension)
@@ -203,6 +212,21 @@ func (v *validator) gravity(field string, g *Gravity, allowDetection bool) {
 		v.floatRange(field+".objects_position.x", op.X, -MaxDimension, MaxDimension)
 		v.floatRange(field+".objects_position.y", op.Y, -MaxDimension, MaxDimension)
 	}
+}
+
+func (v *validator) focusPx(field string, g *Gravity, r *FocusRect, crop bool) {
+	switch {
+	case !crop:
+		v.fail(field, "pixel focus not allowed here")
+	case g.Type != GravityFocusPoint:
+		v.fail(field, "requires focus-point gravity")
+	case g.FocusX != 0 || g.FocusY != 0:
+		v.fail(field, "focus_x and focus_y must be 0 with a pixel focus")
+	}
+	v.intRange(field+".x1", r.X1, 0, MaxSourceCoord)
+	v.intRange(field+".y1", r.Y1, 0, MaxSourceCoord)
+	v.intRange(field+".x2", r.X2, r.X1, MaxSourceCoord)
+	v.intRange(field+".y2", r.Y2, r.Y1, MaxSourceCoord)
 }
 
 func (v *validator) crop(f string, c *Crop) {
@@ -426,7 +450,7 @@ func (o *Output) validate(v *validator, f string) {
 	v.intRange(f+".slow_connection_quality", o.SlowConnectionQuality, 0, MaxQuality)
 	if aq := o.AutoQuality; aq != nil {
 		v.enum(f+".auto_quality.method", validEnum(aq.Method, numAutoQualityMethods))
-		v.floatRange(f+".auto_quality.target", aq.Target, 0, MaxFactor)
+		v.floatRange(f+".auto_quality.target", aq.Target, 0, MaxAutoQualityTarget)
 		v.intRange(f+".auto_quality.min", aq.Min, 0, MaxQuality)
 		v.intRange(f+".auto_quality.max", aq.Max, 0, MaxQuality)
 		if aq.Min != 0 && aq.Max != 0 && aq.Min > aq.Max {

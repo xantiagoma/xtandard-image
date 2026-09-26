@@ -44,11 +44,15 @@ func (img *Image) Save(ctx context.Context, format Format, o *SaveOptions) (*Blo
 	case FormatJPEG:
 		op = "jpegsave"
 		c := C.XiJpegOptions{
-			quality:          C.int(quality(o.JPEG.Quality)),
-			interlace:        cbool(o.JPEG.Interlace),
-			optimize_coding:  cbool(o.JPEG.OptimizeCoding),
-			subsample:        C.int(o.JPEG.Subsample),
-			restart_interval: C.int(max(o.JPEG.RestartInterval, 0)),
+			quality:             C.int(quality(o.JPEG.Quality)),
+			interlace:           cbool(o.JPEG.Interlace),
+			optimize_coding:     cbool(o.JPEG.OptimizeCoding),
+			subsample:           C.int(o.JPEG.Subsample),
+			restart_interval:    C.int(max(o.JPEG.RestartInterval, 0)),
+			trellis_quant:       cbool(o.JPEG.TrellisQuant),
+			overshoot_deringing: cbool(o.JPEG.OvershootDeringing),
+			optimize_scans:      cbool(o.JPEG.OptimizeScans),
+			quant_table:         C.int(min(max(o.JPEG.QuantTable, 0), 8)),
 		}
 		rc = C.xi_jpegsave(img.p, &c, keep, &p, &n, &cerr)
 	case FormatPNG:

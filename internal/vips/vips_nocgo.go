@@ -76,6 +76,11 @@ type Image struct{}
 // Probe fails.
 func Probe(context.Context, *Buffer) (Header, error) { return Header{}, ErrUnavailable }
 
+// ProbeDensity returns ErrUnavailable.
+func ProbeDensity(context.Context, *Buffer, float64) (Header, error) {
+	return Header{}, ErrUnavailable
+}
+
 // Load fails.
 func Load(context.Context, *Buffer, *LoadOptions) (*Image, error) { return nil, ErrUnavailable }
 
@@ -168,6 +173,11 @@ func (*Image) SetInt(context.Context, MetaField, int) (*Image, error) { return n
 
 // SetInts fails.
 func (*Image) SetInts(context.Context, MetaField, []int) (*Image, error) {
+	return nil, ErrUnavailable
+}
+
+// SetTexts fails.
+func (*Image) SetTexts(context.Context, ...TextField) (*Image, error) {
 	return nil, ErrUnavailable
 }
 
@@ -321,6 +331,53 @@ func (*Image) Linear(context.Context, []float64, []float64) (*Image, error) {
 // Invert fails.
 func (*Image) Invert(context.Context) (*Image, error) { return nil, ErrUnavailable }
 
+// CastRound fails.
+func (*Image) CastRound(context.Context, BandFormat) (*Image, error) { return nil, ErrUnavailable }
+
+// MapLUT fails.
+func (*Image) MapLUT(context.Context, *Image) (*Image, error) { return nil, ErrUnavailable }
+
+// Recomb fails.
+func (*Image) Recomb(context.Context, []float64, int) (*Image, error) { return nil, ErrUnavailable }
+
+// Mix fails.
+func (*Image) Mix(context.Context, *Image, float64) (*Image, error) { return nil, ErrUnavailable }
+
+// Decode fails.
+func (*Image) Decode(context.Context) (*Image, error) { return nil, ErrUnavailable }
+
+// Clamp fails.
+func (*Image) Clamp(context.Context, float64, float64) (*Image, error) { return nil, ErrUnavailable }
+
+// Multiply fails.
+func (*Image) Multiply(context.Context, *Image) (*Image, error) { return nil, ErrUnavailable }
+
+// Divide fails.
+func (*Image) Divide(context.Context, *Image) (*Image, error) { return nil, ErrUnavailable }
+
+// GradientMask fails.
+func GradientMask(context.Context, int, int, float64, float64, float64, float64) (*Image, error) {
+	return nil, ErrUnavailable
+}
+
+// Conv3 fails.
+func (*Image) Conv3(context.Context, *[9]float64) (*Image, error) { return nil, ErrUnavailable }
+
+// Unsharp fails.
+func (*Image) Unsharp(context.Context, float64, float64) (*Image, error) {
+	return nil, ErrUnavailable
+}
+
+// Insert fails.
+func (*Image) Insert(context.Context, *Image, int, int) (*Image, error) {
+	return nil, ErrUnavailable
+}
+
+// BlendMask fails.
+func (*Image) BlendMask(context.Context, *Image, *Image) (*Image, error) {
+	return nil, ErrUnavailable
+}
+
 // BandjoinConst fails.
 func (*Image) BandjoinConst(context.Context, []float64) (*Image, error) {
 	return nil, ErrUnavailable
@@ -359,3 +416,9 @@ func (*Image) Save(context.Context, Format, *SaveOptions) (*Blob, error) {
 
 // SaveJPEG fails.
 func (*Image) SaveJPEG(context.Context, int) (*Blob, error) { return nil, ErrUnavailable }
+
+// ProbeRaw fails.
+func ProbeRaw(context.Context, *Buffer) (RawHeader, error) { return RawHeader{}, ErrUnavailable }
+
+// RawLoad fails.
+func RawLoad(context.Context, *Buffer, *RawOptions) (*Image, error) { return nil, ErrUnavailable }

@@ -1,0 +1,1019 @@
+{
+  "extract_basic": {
+    "path": "/",
+    "query": "url=example.com/image.jpg",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "extract_operations": {
+    "path": "/",
+    "query": "url=example.com/image.jpg\u0026w=300\u0026h=200\u0026q=85\u0026output=webp\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "webp",
+        "Quality": 85
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "generate_fit_contain": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026fit=contain\u0026w=300",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "generate_format": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026w=400\u0026output=webp\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "generate_provider_ops": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026dpr=2\u0026blur=5\u0026w=300\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Blur": 5,
+          "Resize": {
+            "DPR": 2,
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "generate_quality": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026w=600\u0026q=80\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Quality": 80
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 600
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "generate_width_height": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026w=300\u0026h=200\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "generate_width_only": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026w=300\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_adjust": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026con=25\u0026sat=2\u0026hue=90\u0026sharp=3\u0026tint=red\u0026w=300\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "con",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Contrast": 1.25,
+            "Hue": 90,
+            "Saturation": 2
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Sharpen": 3,
+          "Tint": {
+            "A": 255,
+            "R": 255
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_aliases": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026w=320\u0026h=240\u0026output=png\u0026q=70\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "png",
+        "Quality": 70
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 240
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 320
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_align_attention": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026a=attention\u0026w=300\u0026h=300\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_align_bottom_right": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026a=bottom-right\u0026w=300\u0026h=300\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "south-east"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_align_entropy": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026a=entropy\u0026w=300\u0026h=300\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "entropy"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_bg": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026bg=white\u0026w=300\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 255,
+            "G": 255,
+            "R": 255
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_contain_cbg": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026fit=contain\u0026cbg=black\u0026w=300\u0026h=300",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_crop": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026crop=100%2C100%2C720%2C530\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        },
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 720,
+              "YOffset": 530
+            },
+            "Height": {
+              "Px": 100
+            },
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_duotone": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026filt=duotone\u0026w=300\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Duotone": {
+            "Highlight": {
+              "A": 255,
+              "B": 79,
+              "G": 231,
+              "R": 216
+            },
+            "Intensity": 1,
+            "Shadow": {
+              "A": 255,
+              "B": 88,
+              "G": 54,
+              "R": 200
+            }
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_filters": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026filt=greyscale\u0026w=300\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Grayscale": true,
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_fit_fill": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026fit=fill\u0026w=300\u0026h=300",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "force",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_fit_inside_we": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026fit=inside\u0026we=true\u0026w=300\u0026h=300",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_fit_outside": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026fit=outside\u0026w=300\u0026h=300",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "outside",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_flip_flop": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026flip=true\u0026flop=true\u0026w=300\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true,
+            "V": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_formats_avif": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026w=640\u0026output=avif\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "avif"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 640
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_formats_jpeg": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026w=640\u0026output=jpeg\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 640
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_formats_json": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026output=json\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "output:json",
+          "Reason": "imgproxy info schema"
+        }
+      ],
+      "Info": {
+        "Alpha": true,
+        "Bands": true,
+        "Colorspace": true,
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "PagesNumber": true,
+        "Size": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_formats_tiff": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026w=640\u0026output=tiff\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "tiff"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 640
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_gif_pages": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026n=-1\u0026h=300\u0026output=gif\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "gif"
+      },
+      "Pipelines": [
+        {
+          "Pages": -1,
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_http_source": {
+    "path": "/",
+    "query": "url=example.com%2Fa%2Fb.png%3Fv%3D2\u0026w=128\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 128
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a/b.png?v=2"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a/b.png?v=2"
+  },
+  "ops_mask": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026mask=circle\u0026mbg=red\u0026w=300\u0026h=300\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Mask": {
+            "Background": {
+              "A": 255,
+              "R": 255
+            },
+            "Shape": "circle"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_png": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026l=9\u0026il=true\u0026w=300\u0026output=png\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "png",
+        "PNG": {
+          "Compression": 9
+        },
+        "Progressive": true
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_rotate": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026ro=90\u0026w=300\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_trim": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026trim=10\u0026w=300\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Trim": {
+            "Threshold": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "ops_webp_lossless": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026ll=true\u0026w=300\u0026output=webp\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "webp",
+        "Lossless": true
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "transform_defaults": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026w=300\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "transform_override": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026fit=contain\u0026w=300",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "transform_width_height": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026w=200\u0026h=100\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 100
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  },
+  "transform_width_only": {
+    "path": "/",
+    "query": "url=example.com%2Fimage.jpg\u0026w=200\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/image.jpg"
+  }
+}
