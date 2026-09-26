@@ -32,11 +32,12 @@ fi
 # Component names that must never appear (case-insensitive):
 #   x265, x264 (GPL encoders), poppler (GPL PDF), exiv2 (GPL metadata),
 #   libimagequant (GPL-3 since 2.12; use quantizr), jbig-kit (GPL),
-#   Ghostscript (AGPL), GPL FFmpeg builds.
-name_pattern='x265|x264|poppler|exiv2|imagequant|jbig|ghostscript|libgs\.so|ffmpeg-gpl'
+#   Ghostscript (AGPL), GPL FFmpeg builds, and the GPL delegates ImageMagick or LibRaw
+#   could pick up (WP-66): FFTW, DjVuLibre, AutoTrace, LibRaw's GPL demosaic packs.
+name_pattern='x265|x264|poppler|exiv2|imagequant|jbig|ghostscript|libgs\.so|ffmpeg-gpl|fftw|djvulibre|autotrace|demosaic[-_]pack[-_]gpl'
 
 # Strings that only exist inside binaries built from or linked against those components.
-content_pattern='libx265\.so|x265_encoder_open|libx264\.so|x264_encoder_open|libpoppler|poppler_document_new|libexiv2|Exiv2::|libimagequant\.so|libjbig|jbg_enc_init|libgs\.so|gsapi_new_instance|--enable-gpl|--enable-libx26[45]'
+content_pattern='libx265\.so|x265_encoder_open|libx264\.so|x264_encoder_open|libpoppler|poppler_document_new|libexiv2|Exiv2::|libimagequant\.so|libjbig|jbg_enc_init|libgs\.so|gsapi_new_instance|--enable-gpl|--enable-libx26[45]|libfftw3|fftw_plan_dft|libdjvulibre|ddjvu_document_create|libautotrace|at_splines_new'
 
 failures=0
 

@@ -4,7 +4,8 @@
 # Forked from imgproxy-docker-base (MIT, Copyright (c) 2017 Sergey Alexandrovich);
 # see LICENSE.imgproxy-docker-base. Changes: SHA256 verification of every tarball,
 # release tarballs instead of git clones, SOURCES.md generation, and the additional
-# libraries libspng, OpenJPEG, libultrahdr and jemalloc.
+# libraries libspng, OpenJPEG, libultrahdr and jemalloc (WP-05), LibRaw, Imath,
+# OpenEXR, ImageMagick and prebuilt PDFium (WP-66).
 #
 # Environment:
 #   DEPS_SRC          where sources are unpacked (default /root/deps)
@@ -37,13 +38,15 @@ sha256() {
   fi
 }
 
-# fetch VAR dir url
-#   VAR  prefix of the VAR_VERSION / VAR_SHA256 variables in versions.sh
-#   dir  directory name under $DEPS_SRC
-#   url  source tarball URL
+# fetch VAR dir url [sha-var] [strip]
+#   VAR      prefix of the VAR_VERSION / VAR_SHA256 variables in versions.sh
+#   dir      directory name under $DEPS_SRC
+#   url      source tarball URL
+#   sha-var  checksum variable (default VAR_SHA256; per-architecture binaries)
+#   strip    leading path components to strip (default 1; 0 for flat archives)
 fetch() {
   local var=$1 dir=$2 url=$3
-  local version_var="${var}_VERSION" sha_var="${var}_SHA256"
+  local version_var="${var}_VERSION" sha_var="${4:-${var}_SHA256}" strip=${5:-1}
   local version=${!version_var} expected=${!sha_var:-}
   local archive
   archive="$(mktemp "${TMPDIR:-/tmp}/xi-dep.XXXXXX")"
@@ -68,7 +71,7 @@ fetch() {
 
   rm -rf "${DEPS_SRC:?}/$dir"
   mkdir -p "$DEPS_SRC/$dir"
-  tar -xf "$archive" -C "$DEPS_SRC/$dir" --strip-components=1
+  tar -xf "$archive" -C "$DEPS_SRC/$dir" --strip-components="$strip"
   rm -f "$archive"
   echo "| $dir | $version | $url | \`$actual\` |" >> "$DEPS_SRC/SOURCES.rows"
 }
@@ -145,5 +148,29 @@ fetch LIBRSVG librsvg \
   "https://download.gnome.org/sources/librsvg/$(minor_version "$LIBRSVG_VERSION")/librsvg-${LIBRSVG_VERSION}.tar.xz"
 fetch JEMALLOC jemalloc \
   "https://github.com/jemalloc/jemalloc/releases/download/${JEMALLOC_VERSION}/jemalloc-${JEMALLOC_VERSION}.tar.bz2"
+fetch LIBRAW libraw \
+  "https://www.libraw.org/data/LibRaw-${LIBRAW_VERSION}.tar.gz"
+fetch IMATH imath \
+  "https://github.com/AcademySoftwareFoundation/Imath/archive/refs/tags/v${IMATH_VERSION}.tar.gz"
+fetch OPENEXR openexr \
+  "https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v${OPENEXR_VERSION}.tar.gz"
+fetch IMAGEMAGICK imagemagick \
+  "https://github.com/ImageMagick/ImageMagick/archive/refs/tags/${IMAGEMAGICK_VERSION}.tar.gz"
+
+# PDFium is a prebuilt shared library per architecture (flat archive, no top directory).
+pdfium_url() {
+  echo "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F${PDFIUM_VERSION}/pdfium-linux-$1.tgz"
+}
+if [ "$PRINT_CHECKSUMS" = "1" ]; then
+  fetch PDFIUM pdfium "$(pdfium_url x64)" PDFIUM_SHA256_AMD64 0
+  fetch PDFIUM pdfium "$(pdfium_url arm64)" PDFIUM_SHA256_ARM64 0
+else
+  case "$(uname -m)" in
+    x86_64) fetch PDFIUM pdfium "$(pdfium_url x64)" PDFIUM_SHA256_AMD64 0 ;;
+    aarch64) fetch PDFIUM pdfium "$(pdfium_url arm64)" PDFIUM_SHA256_ARM64 0 ;;
+    *) echo "No prebuilt PDFium for $(uname -m)" >&2; exit 1 ;;
+  esac
+fi
+
 fetch VIPS vips \
   "https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.xz"
