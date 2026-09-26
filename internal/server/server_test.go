@@ -8,6 +8,7 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -55,12 +56,16 @@ func (f *fakeRouter) Route(*http.Request) (*dialect.Result, *router.Mount, error
 }
 
 type fakeResolver struct {
-	err error
+	err  error
+	deny map[string]bool // source strings refused with KindForbidden
 }
 
 func (f *fakeResolver) Resolve(spec transform.SourceSpec) (source.Key, error) {
 	if f.err != nil {
 		return source.Key{}, f.err
+	}
+	if f.deny[spec.Raw] {
+		return source.Key{}, errs.New(errs.KindForbidden, "source: not allowed")
 	}
 	return source.Key{Source: "origin", Path: spec.Raw}, nil
 }
@@ -72,21 +77,45 @@ type fakeFetcher struct {
 	fn    func(ctx context.Context) error
 	freed atomic.Int32
 	calls atomic.Int32
+	// other answers every path but the request's (fallback images);
+	// nil: same as the request's.
+	other *fakeReply
+
+	mu    sync.Mutex
+	paths []string
 }
 
-func (f *fakeFetcher) Fetch(ctx context.Context, _ source.Key, _ source.FetchOptions) (*fetch.Result, error) {
+type fakeReply struct {
+	data []byte
+	err  error
+}
+
+func (f *fakeFetcher) Fetch(ctx context.Context, key source.Key, _ source.FetchOptions) (*fetch.Result, error) {
+	f.mu.Lock()
+	f.paths = append(f.paths, key.Path)
+	f.mu.Unlock()
 	if f.fn != nil {
 		if err := f.fn(ctx); err != nil {
 			return nil, err
 		}
 	}
-	if f.err != nil {
-		return nil, f.err
+	data, err := f.data, f.err
+	if f.other != nil && key.Path != "http://origin/a.jpg" {
+		data, err = f.other.data, f.other.err
+	}
+	if err != nil {
+		return nil, err
 	}
 	f.calls.Add(1)
-	b := fetch.NewGoBuffer(len(f.data), func() { f.freed.Add(1) })
-	copy(b.Bytes(), f.data)
+	b := fetch.NewGoBuffer(len(data), func() { f.freed.Add(1) })
+	copy(b.Bytes(), data)
 	return &fetch.Result{Buffer: b, Object: f.obj}, nil
+}
+
+func (f *fakeFetcher) fetched() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.paths)
 }
 
 type fakeAdmitter struct {
@@ -104,11 +133,14 @@ func (a *fakeAdmitter) Acquire(context.Context, int64) (func(), error) {
 }
 
 type fakeProber struct {
-	meta  SourceMeta
-	err   error
-	calls atomic.Int32
-	mu    sync.Mutex
-	seen  []byte
+	meta SourceMeta
+	err  error
+	// errFor fails only for the given source bytes (the request's, not
+	// the fallback's).
+	errFor []byte
+	calls  atomic.Int32
+	mu     sync.Mutex
+	seen   []byte
 }
 
 func (p *fakeProber) Probe(_ context.Context, src fetch.Buffer, _ ProbeLimits) (SourceMeta, error) {
@@ -116,6 +148,9 @@ func (p *fakeProber) Probe(_ context.Context, src fetch.Buffer, _ ProbeLimits) (
 	p.mu.Lock()
 	p.seen = bytes.Clone(src.Bytes())
 	p.mu.Unlock()
+	if p.errFor != nil && !bytes.Equal(p.errFor, src.Bytes()) {
+		return p.meta, nil
+	}
 	return p.meta, p.err
 }
 
@@ -128,9 +163,10 @@ func (f *fakeBlob) Bytes() []byte { return f.b }
 func (f *fakeBlob) Release()      { f.released.Add(1) }
 
 type fakeProcessor struct {
-	out *fakeBlob
-	err error
-	fn  func(ctx context.Context) error
+	out    *fakeBlob
+	err    error
+	errFor []byte // err only for these source bytes; nil: always
+	fn     func(ctx context.Context) error
 	// outFormat and outType override the JPEG output when set.
 	outFormat transform.Format
 	outType   string
@@ -154,7 +190,7 @@ func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*Process
 			return nil, err
 		}
 	}
-	if p.err != nil {
+	if p.err != nil && (p.errFor == nil || bytes.Equal(p.errFor, in.Source.Bytes())) {
 		return nil, p.err
 	}
 	o := &ProcessOutput{Body: p.out, ContentType: "image/jpeg", Format: transform.FormatJPEG, Width: 64, Height: 48}
@@ -199,6 +235,7 @@ type harness struct {
 	a       *fakeAdmitter
 	pr      *fakeProber
 	p       *fakeProcessor
+	sniffer Sniffer
 	m       Metrics
 	fm      *fakeMetrics
 	logger  *slog.Logger
@@ -210,22 +247,23 @@ type harness struct {
 func newHarness(t *testing.T, mutate func(*harness)) *harness {
 	t.Helper()
 	h := &harness{
-		cfg:    DefaultConfig(),
-		router: &fakeRouter{dialect: "imgproxy"},
-		res:    &fakeResolver{},
-		f:      &fakeFetcher{data: jpegSource},
-		a:      &fakeAdmitter{},
-		pr:     &fakeProber{meta: SourceMeta{Format: transform.FormatJPEG, Width: 640, Height: 480, Frames: 1}},
-		p:      &fakeProcessor{out: &fakeBlob{b: jpegOut}},
-		fm:     &fakeMetrics{},
-		logger: slog.New(slog.DiscardHandler),
+		cfg:     DefaultConfig(),
+		router:  &fakeRouter{dialect: "imgproxy"},
+		res:     &fakeResolver{},
+		f:       &fakeFetcher{data: jpegSource},
+		a:       &fakeAdmitter{},
+		pr:      &fakeProber{meta: SourceMeta{Format: transform.FormatJPEG, Width: 640, Height: 480, Frames: 1}},
+		p:       &fakeProcessor{out: &fakeBlob{b: jpegOut}},
+		sniffer: fakeSniffer{},
+		fm:      &fakeMetrics{},
+		logger:  slog.New(slog.DiscardHandler),
 	}
 	h.m = h.fm
 	if mutate != nil {
 		mutate(h)
 	}
 	srv, err := New(&h.cfg, &Deps{
-		Router: h.router, Resolver: h.res, Fetcher: h.f, Admitter: h.a, Prober: h.pr, Processor: h.p,
+		Router: h.router, Resolver: h.res, Fetcher: h.f, Admitter: h.a, Prober: h.pr, Processor: h.p, Sniffer: h.sniffer,
 		Allocator: func(n int) (fetch.Buffer, error) {
 			h.allocs.Add(1)
 			return fetch.NewGoBuffer(n, func() { h.allocFr.Add(1) }), nil
@@ -361,7 +399,10 @@ func TestStageFailures(t *testing.T) {
 		{name: "authenticate/expired", mutate: route(dialect.Expired()), wantStatus: 404},
 		{name: "authenticate/unsigned policy", mutate: route(&errs.Error{Kind: errs.KindForbidden, Public: "unsigned request not allowed", Err: router.ErrUnsignedNotAllowed}), wantStatus: 403},
 		{name: "route/info not implemented", mutate: req(func(r *transform.Request) { r.Kind = transform.KindInfo }), wantStatus: 501},
-		{name: "route/raw not implemented", mutate: req(func(r *transform.Request) { r.Kind = transform.KindRaw }), wantStatus: 501},
+		{name: "route/raw not an image", mutate: func(h *harness) {
+			h.router.mutate = func(r *transform.Request) { r.Kind = transform.KindRaw }
+			h.f.data = []byte("%PDF-1.7")
+		}, wantStatus: 422},
 		{name: "normalize/validation", mutate: req(func(r *transform.Request) { r.Output.Quality = 101 }), wantStatus: 400},
 		{name: "normalize/result dimension", mutate: req(func(r *transform.Request) { r.Pipelines[0].Resize.Width.Px = 9000 }), wantStatus: 422},
 		{name: "resolve/not allowed", mutate: func(h *harness) { h.res.err = errs.New(errs.KindForbidden, "source: no match for 10.0.0.1") }, wantStatus: 403, wantBody: "forbidden\n"},
@@ -382,7 +423,6 @@ func TestStageFailures(t *testing.T) {
 		{name: "probe/svg malformed", mutate: func(h *harness) { h.f.data = []byte(`<svg xmlns="http://www.w3.org/2000/svg"><g>`) }, wantStatus: 422},
 		{name: "probe/svg missed by sniffer", mutate: meta(SourceMeta{Format: transform.FormatSVG, Width: 10, Height: 10, Frames: 1}), wantStatus: 422},
 		{name: "negotiate/strict accept", header: http.Header{"Accept": {"text/html"}}, mutate: func(h *harness) { h.cfg.Negotiate.StrictAccept = true }, wantStatus: 406},
-		{name: "negotiate/passthrough not implemented", mutate: func(h *harness) { h.cfg.Negotiate.SkipProcessing = []transform.Format{transform.FormatJPEG} }, wantStatus: 501},
 		{name: "process/corrupt", mutate: procErr(errs.New(errs.KindCorrupt, "VipsJpeg: premature end")), wantStatus: 422, wantBody: "image cannot be decoded\n"},
 		{name: "process/limit", mutate: procErr(errs.New(errs.KindLimitExceeded, "result too big")), wantStatus: 422},
 		{name: "process/internal hides text", mutate: procErr(errors.New("secret internal detail")), wantStatus: 500, wantBody: "internal server error\n"},
