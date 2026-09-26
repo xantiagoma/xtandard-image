@@ -11,22 +11,25 @@ import (
 // planner; these only reject values no config could make meaningful and keep
 // integer arithmetic downstream far from overflow.
 const (
-	MaxDimension   = 1 << 16 // px, any width/height/offset/padding/border
-	MaxRelative    = 16.0    // relative dimension, 1600 %
-	MaxFactor      = 1000.0  // zoom, DPR, aspect ratio, focus zoom, watermark scale
-	MaxSigma       = 1000.0  // blur, sharpen and shadow sigma (wsrv's maximum)
-	MaxPipelines   = 16
-	MaxWatermarks  = 16
-	MaxBlurAreas   = 64
-	MaxListLen     = 64 // classes, cache tags, skip formats, hashsums
-	MaxEffort      = 9
-	MaxQuality     = 100
-	MaxBrightness  = 255.0
-	MaxDPI         = 10000
-	MaxPaletteSize = 256
-	MaxBlurhashDim = 9
-	MaxJPEGQuant   = 8
-	MaxPNGLevel    = 9
+	MaxDimension = 1 << 16 // px, any width/height/offset/padding/border
+	MaxRelative  = 16.0    // relative dimension, 1600 %
+	MaxFactor    = 1000.0  // zoom, DPR, aspect ratio, focus zoom, watermark scale
+	// MaxAutoQualityTarget bounds the autoquality target, which is a byte
+	// count for the size method (imgproxy aq:size:10240).
+	MaxAutoQualityTarget = 1 << 30
+	MaxSigma             = 1000.0 // blur, sharpen and shadow sigma (wsrv's maximum)
+	MaxPipelines         = 16
+	MaxWatermarks        = 16
+	MaxBlurAreas         = 64
+	MaxListLen           = 64 // classes, cache tags, skip formats, hashsums
+	MaxEffort            = 9
+	MaxQuality           = 100
+	MaxBrightness        = 255.0
+	MaxDPI               = 10000
+	MaxPaletteSize       = 256
+	MaxBlurhashDim       = 9
+	MaxJPEGQuant         = 8
+	MaxPNGLevel          = 9
 )
 
 // ValidationError reports one invalid field. Validate joins several with
@@ -447,7 +450,7 @@ func (o *Output) validate(v *validator, f string) {
 	v.intRange(f+".slow_connection_quality", o.SlowConnectionQuality, 0, MaxQuality)
 	if aq := o.AutoQuality; aq != nil {
 		v.enum(f+".auto_quality.method", validEnum(aq.Method, numAutoQualityMethods))
-		v.floatRange(f+".auto_quality.target", aq.Target, 0, MaxFactor)
+		v.floatRange(f+".auto_quality.target", aq.Target, 0, MaxAutoQualityTarget)
 		v.intRange(f+".auto_quality.min", aq.Min, 0, MaxQuality)
 		v.intRange(f+".auto_quality.max", aq.Max, 0, MaxQuality)
 		if aq.Min != 0 && aq.Max != 0 && aq.Min > aq.Max {

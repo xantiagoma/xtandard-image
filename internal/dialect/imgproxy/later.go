@@ -54,7 +54,8 @@ const applied = ""
 // applyLater parses the options of docs/URL-DIALECTS.md §3.2 scheduled for
 // M2 and M3 into the request and records each in Request.Ignored with its
 // milestone, so the server can reject or skip them until the executor
-// implements them. It reports whether name is one of them.
+// implements them (options already implemented, such as autoquality, are not
+// recorded). It reports whether name is one of them.
 //
 //nolint:gocyclo // one flat switch over the option table is the clearest form
 func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) (bool, error) {
@@ -137,6 +138,7 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 		milestone = applied
 		err = colorProfile(&st.r.Output, args)
 	case "autoquality", "aq":
+		milestone = applied // WP-56
 		err = autoquality(&st.r.Output, args)
 	case "jpeg_options", "jpgo":
 		err = jpegOptions(&st.r.Output, args)
@@ -859,7 +861,7 @@ func autoquality(o *transform.Output, args []string) error {
 	}
 	var err error
 	if s := arg(args, 1); s != "" {
-		if aq.Target, err = parseRange("autoquality.target", s, 0, transform.MaxFactor); err != nil {
+		if aq.Target, err = parseRange("autoquality.target", s, 0, transform.MaxAutoQualityTarget); err != nil {
 			return err
 		}
 	}

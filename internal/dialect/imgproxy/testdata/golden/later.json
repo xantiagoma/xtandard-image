@@ -98,12 +98,6 @@
     "path": "/unsafe/aq:none/aq:ml/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "aq",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "AutoQuality": {
           "Method": "ml"
@@ -123,12 +117,6 @@
     "path": "/unsafe/aq:dssim:0.02/aq:::50:80/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "aq",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "AutoQuality": {
           "Max": 80,
@@ -151,12 +139,6 @@
     "path": "/unsafe/aq:size/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "aq",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "AutoQuality": {
           "Method": "size"
@@ -181,16 +163,41 @@
     },
     "path": "/unsafe/aq:size::90:60/plain/https://example.com/a.jpg"
   },
+  "aq_size_bytes": {
+    "path": "/unsafe/aq:size:10240:10:80/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Output": {
+        "AutoQuality": {
+          "Max": 80,
+          "Method": "size",
+          "Min": 10,
+          "Target": 10240
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "aq_size_too_large": {
+    "error": {
+      "field": "autoquality.target",
+      "kind": "invalid_url",
+      "public": "invalid autoquality.target: expected number in range 0 to 1073741824",
+      "status": 400
+    },
+    "path": "/unsafe/aq:size:2000000000/plain/https://example.com/a.jpg"
+  },
   "autoquality_full": {
     "path": "/unsafe/autoquality:dssim:0.02:60:90:0.001/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "autoquality",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "AutoQuality": {
           "AllowedError": 0.001,
@@ -1497,10 +1504,6 @@
           "Reason": "takes effect in M2"
         },
         {
-          "Option": "aq",
-          "Reason": "takes effect in M2"
-        },
-        {
           "Option": "jpgo",
           "Reason": "takes effect in M2"
         },
@@ -1624,10 +1627,6 @@
       "Ignored": [
         {
           "Option": "format:best",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "aq",
           "Reason": "takes effect in M2"
         }
       ],
