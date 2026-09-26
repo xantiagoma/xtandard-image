@@ -11,21 +11,24 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   `/info`, response semantics, raw/fallback, presets, limiter, observability, slim image, release
   pipeline, acceptance suite (62 cases on amd64 + arm64), README/quick start/benchmarks.
   No release tag has been cut yet (`docs/RELEASE.md`).
-- **M2 in progress.** Merged: WP-66 base image r2 (LibRaw, PDFium, OpenEXR, PSD-only ImageMagick).
-  Open, stacked with `gh stack` on branches `m2/*`: see `gh stack view --json` from a checkout
-  of any `m2/` branch. Stack order at handoff time:
-  `wp-40-imgix#50 <- wp-42-imagekit#52 <- rustfs-test-services#53 <- wp-58-chained#54 <-
-  wp-59-colour#55 <- wp-52-cache-core#56 <- wp-86-pixel-focus-and-meta#57 <- wp-65-client-hints#58
-  <- wp-56-autoquality#59 <- wp-50-51-pdf-psd#60`.
-- **Integrated and waiting to be added to the stack** (an integration agent rebases them onto the
-  stack top, in this order, then they are adopted): `m2/wp-43-79-cloudflare`, `m2/wp-46-wsrv`,
-  `m2/wp-45-thumbor`, `m2/wp-44-bunny`, `m2/wp-85-aws-sih`, `m2/wp-41-cloudinary`, `m2/wp-49-raw`,
-  `m2/wp-47-48-simple-dialects`.
-- **Being implemented** (branches will appear on origin as `m2/wp-…`): WP-53/54/55 cache tiers
-  (`m2/wp-53-55-cache-tiers`, Valkey for the Redis tests), WP-57 best format, WP-60 geometry
-  extras, WP-61 filter extras, WP-63 info Pro options, WP-67 HDR, WP-64+62 request extras and
-  pages/frames, WP-81 config JSON Schema + formats, WP-82/83 OpenAPI + option catalogue.
-- **Remaining M2 after that:** WP-81b (Pages + SchemaStore publishing), WP-82b huma-handler
+- **M2 in progress.** Merged: WP-66 base image r2. Open, stacked on `m2/*` (PRs #50–#67, top
+  `m2/wp-63-info-pro`): imgix, ImageKit, RustFS, chained pipelines, colour adjustments, cache core,
+  pixel focus + thumbor meta, client hints, auto-quality, PDF/PSD, filter extras, geometry extras,
+  disk/S3/Redis cache tiers, config JSON Schema, best format, /info Pro options.
+- **FROZEN top while integrator C rebases onto it** (2026-09-27): the chain
+  `wp-43-79-cloudflare → wp-46-wsrv → wp-45-thumbor → wp-44-bunny → wp-85-aws-sih → wp-41-cloudinary →
+  wp-49-raw → wp-47-48-simple-dialects`, then `wp-64-62-request-extras`. When it reports, adopt each with
+  `gh stack add` + `gh stack sync` + `gh stack submit --auto --open` + `gh pr edit` (they will already be
+  on top; no `--onto` needed).
+- **Still being implemented:** WP-67 HDR (`m2/wp-67-hdr`), WP-82/83 OpenAPI (`m2/wp-82-83-openapi`).
+  Adopt them after the chain with `scripts/stack/adopt2.sh`.
+- **Remaining M2 after that:** WP-81b (Pages + SchemaStore publishing), WP-82b huma-handler spike,
+  and a stabilisation pass **WP-87** (not yet in ROADMAP): (1) libvips process-wide error buffer race —
+  `xi_load_error` in `internal/vips/load.c` reads the buffer to classify password-protected PDFs and
+  can read another thread's message; fix by detecting `/Encrypt` in the PDF trailer in pure Go before
+  calling pdfload and by never classifying on error text; (2) wall-clock tests (`TestRawPreviewFaster`,
+  `httpsrc TestFetchTimeout/body`) → synctest or ratios with slack; (3) leak-test slack under load
+  (`TestProcessNoLeak`, `TestWatermarkNoLeak`); (4) PNG-alpha→WebP throughput and peak RSS profiling.
   spike. Then M3 (`docs/ROADMAP.md`).
 
 ## Owner decisions taken (do not reopen)
