@@ -111,6 +111,17 @@ var _ source.Source = (*Source)(nil)
 // (which may read AWS_* variables and ~/.aws files) but makes no network
 // call: credentials are resolved lazily on the first fetch.
 func New(ctx context.Context, cfg *Config) (source.Source, error) {
+	client, err := NewClient(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &Source{name: cfg.Name, client: client}, nil
+}
+
+// NewClient validates cfg and builds its S3 client, the one New wraps. The
+// s3 result cache (internal/cache/s3cache, XI_CACHE_RESULT_S3_SOURCE)
+// reuses a named source's endpoint and credentials through it.
+func NewClient(ctx context.Context, cfg *Config) (*s3.Client, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("%w: nil config", ErrInvalidConfig)
 	}
@@ -157,13 +168,12 @@ func New(ctx context.Context, cfg *Config) (source.Source, error) {
 		awsCfg.Credentials = aws.NewCredentialsCache(stscreds.NewAssumeRoleProvider(stsClient, cfg.RoleARN,
 			func(o *stscreds.AssumeRoleOptions) { o.RoleSessionName = session }))
 	}
-	client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
+	return s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 		if cfg.Endpoint != "" {
 			o.BaseEndpoint = aws.String(cfg.Endpoint)
 		}
 		o.UsePathStyle = cfg.ForcePathStyle
-	})
-	return &Source{name: cfg.Name, client: client}, nil
+	}), nil
 }
 
 // Name implements source.Source.
