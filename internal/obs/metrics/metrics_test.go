@@ -86,6 +86,9 @@ func TestMetricNamesAndLint(t *testing.T) {
 	m.ObserveStage("fetch", time.Millisecond)
 	m.ObserveFetch("default", "http", time.Millisecond, 1024)
 	m.ObserveCache("memory", true)
+	m.ObserveCacheEvictions("memory", 1)
+	m.SetCacheSize("memory", 10, 1)
+	m.IncCacheWriteDropped()
 	m.Limiter().Rejected(OverloadQueueFull)
 
 	mfs, err := m.Registry().Gather()
@@ -100,7 +103,11 @@ func TestMetricNamesAndLint(t *testing.T) {
 	}
 	want := []string{
 		"xi_build_info",
+		"xi_cache_bytes",
+		"xi_cache_entries",
+		"xi_cache_evictions_total",
 		"xi_cache_requests_total",
+		"xi_cache_writes_dropped_total",
 		"xi_fetch_coalesced_total",
 		"xi_overload_total",
 		"xi_panics_total",
@@ -165,6 +172,11 @@ func TestObservations(t *testing.T) {
 	m.ObserveCache("disk", false)
 	m.ObserveCache("disk", true)
 	m.ObserveCache("disk", true)
+	m.ObserveCacheEvictions("memory", 3)
+	m.ObserveCacheEvictions("memory", 2)
+	m.SetCacheSize("memory", 4096, 7)
+	m.SetCacheSize("memory", 2048, 3)
+	m.IncCacheWriteDropped()
 	lim := m.Limiter()
 	lim.QueueDepth(5)
 	lim.WorkersBusy(3)
@@ -185,6 +197,10 @@ func TestObservations(t *testing.T) {
 		{"panics_total", value(t, m.panics), 1},
 		{"cache miss", value(t, m.cacheRequests.WithLabelValues("disk", CacheMiss)), 1},
 		{"cache hit", value(t, m.cacheRequests.WithLabelValues("disk", CacheHit)), 2},
+		{"cache evictions", value(t, m.cacheEvictions.WithLabelValues("memory")), 5},
+		{"cache bytes", value(t, m.cacheBytes.WithLabelValues("memory")), 2048},
+		{"cache entries", value(t, m.cacheEntries.WithLabelValues("memory")), 3},
+		{"cache writes dropped", value(t, m.cacheWritesDropped), 1},
 		{"queue_depth", value(t, m.queueDepth), 5},
 		{"workers_busy", value(t, m.workersBusy), 3},
 		{"overload wait_timeout", value(t, m.overload.WithLabelValues(OverloadWaitTimeout)), 1},
