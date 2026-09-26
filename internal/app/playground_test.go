@@ -134,7 +134,8 @@ func TestPlaygroundListeners(t *testing.T) {
 // the playground's signers and routes it through the real router: the
 // dialect must report it Verified. This pins each dialect's signed message
 // (imgproxy path, xi_sig over the path after the mount or "/" for wsrv,
-// thumbor path) to what the dialects verify.
+// thumbor path, imgix s over the path and query) to what the dialects
+// verify.
 func TestPlaygroundSignsForEveryScheme(t *testing.T) {
 	t.Parallel()
 	cfg, _, err := config.Load(config.LoadOptions{Environ: []string{
@@ -148,6 +149,8 @@ func TestPlaygroundSignsForEveryScheme(t *testing.T) {
 		"XI_DIALECTS_THUMBOR_ENABLED=true",
 		"XI_DIALECTS_THUMBOR_KEYS=ACME-SEC",
 		"XI_DIALECTS_IMAGEKIT_ENABLED=true",
+		"XI_DIALECTS_IMGIX_ENABLED=true",
+		"XI_DIALECTS_IMGIX_KEYS=FOO123bar",
 		"XI_PRESETS=thumb=rs:fill:100:100",
 		"XI_PLAYGROUND_ENABLED=true",
 	}, ConfigFile: os.DevNull})
@@ -171,6 +174,7 @@ func TestPlaygroundSignsForEveryScheme(t *testing.T) {
 		"wsrv":       {"/", "url=example.com/a.jpg&w=300"},
 		"cloudflare": {"/width=300,fit=cover/https://example.com/a.jpg", ""},
 		"thumbor":    {"/300x200/smart/example.com/a.jpg", ""},
+		"imgix":      {"/photos/a.jpg", "w=300&h=200&fit=crop"},
 	}
 	seen := map[string]bool{}
 	for i := range meta.Mounts {

@@ -5882,7 +5882,8 @@
             "description": "The grammar the options belong to.",
             "enum": [
               "imgproxy",
-              "query"
+              "query",
+              "imgix"
             ],
             "type": "string"
           },
@@ -6058,6 +6059,7 @@
             "enum": [
               "imgproxy",
               "query",
+              "imgix",
               "path"
             ],
             "type": "string"
@@ -6090,6 +6092,7 @@
               "imgproxy",
               "xi_sig",
               "thumbor",
+              "imgix",
               "none"
             ],
             "type": "string"
@@ -6202,6 +6205,7 @@
               "imgproxy",
               "xi_sig",
               "thumbor",
+              "imgix",
               "none"
             ],
             "type": "string"
@@ -6969,6 +6973,785 @@
           "image"
         ],
         "x-xi-dialect": "imagekit",
+        "x-xi-listener": "public"
+      }
+    },
+    "/imgix/{path}": {
+      "get": {
+        "description": "imgix Rendering API URL under its mount (XI_DIALECTS_IMGIX_ENABLED, prefix /imgix/ or host-bound). Parameters apply by name, the last occurrence wins; any parameter may be base64url-encoded under its name plus 64 (txt64, mark64, ...). Unknown and unsupported parameters are ignored (400 with XI_DIALECTS_STRICT).",
+        "externalDocs": {
+          "url": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#5-imgix"
+        },
+        "operationId": "getImgixImage",
+        "parameters": [
+          {
+            "description": "Object key on the mount's source, or a percent-encoded http(s) URL (web proxy source).",
+            "example": "photos/a.jpg",
+            "in": "path",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Width: pixels, or a fraction of the source below 1.",
+            "in": "query",
+            "name": "w",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Height: pixels, or a fraction of the source below 1.",
+            "in": "query",
+            "name": "h",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Resize mode (default clip once w or h is set).",
+            "in": "query",
+            "name": "fit",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "With fit=crop/min: top, bottom, left, right, faces, focalpoint, entropy, edges or object classes, comma-separated.",
+            "in": "query",
+            "name": "crop",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Aspect ratio w:h (with fit=crop).",
+            "in": "query",
+            "name": "ar",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Device pixel ratio (0 \u003c dpr \u003c= 10).",
+            "in": "query",
+            "name": "dpr",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Maximum width.",
+            "in": "query",
+            "name": "max-w",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Maximum height.",
+            "in": "query",
+            "name": "max-h",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Minimum width.",
+            "in": "query",
+            "name": "min-w",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Minimum height.",
+            "in": "query",
+            "name": "min-h",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Source crop x,y,w,h before resizing (pixels, or fractions below 1).",
+            "in": "query",
+            "name": "rect",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Focal point x, 0..1 (crop=focalpoint).",
+            "in": "query",
+            "name": "fp-x",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Focal point y, 0..1 (crop=focalpoint).",
+            "in": "query",
+            "name": "fp-y",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "With fit=fill/fillmax: how the extra space is filled.",
+            "in": "query",
+            "name": "fill",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Fill colour for fit=fill.",
+            "in": "query",
+            "name": "fill-color",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Padding around the face for fit=facearea.",
+            "in": "query",
+            "name": "facepad",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based face for fit=facearea.",
+            "in": "query",
+            "name": "faceindex",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Output format; json answers image info.",
+            "in": "query",
+            "name": "fm",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "format (negotiate from Accept) and/or compress (quality 45, strip metadata), comma-separated.",
+            "in": "query",
+            "name": "auto",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Quality 0..100.",
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Lossless encoding.",
+            "in": "query",
+            "name": "lossless",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Progressive JPEG.",
+            "in": "query",
+            "name": "jpg-progressive",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Chroma subsampling.",
+            "in": "query",
+            "name": "chromasub",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Colour space.",
+            "in": "query",
+            "name": "cs",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Output resolution metadata.",
+            "in": "query",
+            "name": "dpi",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Download as an attachment with this file name.",
+            "in": "query",
+            "name": "dl",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Client hints to honour: Width, DPR, Save-Data.",
+            "in": "query",
+            "name": "ch",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "EXIF orientation override.",
+            "in": "query",
+            "name": "orient",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Counter-clockwise rotation, 0..359 degrees.",
+            "in": "query",
+            "name": "rot",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Mirror.",
+            "in": "query",
+            "name": "flip",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Brightness -100..100.",
+            "in": "query",
+            "name": "bri",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Contrast -100..100.",
+            "in": "query",
+            "name": "con",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Exposure -100..100.",
+            "in": "query",
+            "name": "exp",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Gamma -100..100.",
+            "in": "query",
+            "name": "gam",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Saturation -100..100.",
+            "in": "query",
+            "name": "sat",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Hue shift in degrees.",
+            "in": "query",
+            "name": "hue",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sharpen 0..100.",
+            "in": "query",
+            "name": "sharp",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Unsharp mask amount -100..100.",
+            "in": "query",
+            "name": "usm",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Unsharp mask radius (default 2.5).",
+            "in": "query",
+            "name": "usmrad",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Blur 0..2000.",
+            "in": "query",
+            "name": "blur",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Pixelate 0..100.",
+            "in": "query",
+            "name": "px",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sepia 0..100.",
+            "in": "query",
+            "name": "sepia",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Monochrome tint (alpha = intensity).",
+            "in": "query",
+            "name": "monochrome",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Two colours: shadow,highlight.",
+            "in": "query",
+            "name": "duotone",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Duotone intensity 0..100.",
+            "in": "query",
+            "name": "duotone-alpha",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Invert colours.",
+            "in": "query",
+            "name": "invert",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Blur detected faces 0..100.",
+            "in": "query",
+            "name": "face-blur",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Pixelate detected faces 0..100.",
+            "in": "query",
+            "name": "face-pixel",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Background colour.",
+            "in": "query",
+            "name": "bg",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Padding on every side.",
+            "in": "query",
+            "name": "pad",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Border width,color.",
+            "in": "query",
+            "name": "border",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Corner radius r or tl,tr,br,bl.",
+            "in": "query",
+            "name": "border-radius",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Trim borders.",
+            "in": "query",
+            "name": "trim",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Trim colour (trim=color).",
+            "in": "query",
+            "name": "trim-color",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Trim tolerance (trim=color).",
+            "in": "query",
+            "name": "trim-tol",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Trim mean difference (trim=auto, default 11).",
+            "in": "query",
+            "name": "trim-md",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Mask shape.",
+            "in": "query",
+            "name": "mask",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Background outside an ellipse mask.",
+            "in": "query",
+            "name": "mask-bg",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Corner radius for mask=corners.",
+            "in": "query",
+            "name": "corner-radius",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based page of a PDF.",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based frame of an animation.",
+            "in": "query",
+            "name": "frame",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark image: http(s) URL or a path on the mount's source.",
+            "in": "query",
+            "name": "mark",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark alignment: top, middle, bottom, left, center, right.",
+            "in": "query",
+            "name": "mark-align",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark opacity 0..100.",
+            "in": "query",
+            "name": "mark-alpha",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark padding (default 5).",
+            "in": "query",
+            "name": "mark-pad",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark size as a percentage of the image.",
+            "in": "query",
+            "name": "mark-scale",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark width.",
+            "in": "query",
+            "name": "mark-w",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark height.",
+            "in": "query",
+            "name": "mark-h",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark x from the left edge.",
+            "in": "query",
+            "name": "mark-x",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark y from the top edge.",
+            "in": "query",
+            "name": "mark-y",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Repeat the watermark.",
+            "in": "query",
+            "name": "mark-tile",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark rotation, counter-clockwise degrees.",
+            "in": "query",
+            "name": "mark-rot",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "http(s) URL prefix for mark paths.",
+            "in": "query",
+            "name": "mark-base",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text watermark (plain text).",
+            "in": "query",
+            "name": "txt",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Font family and style, comma-separated.",
+            "in": "query",
+            "name": "txt-font",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text size (default 12).",
+            "in": "query",
+            "name": "txt-size",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text colour.",
+            "in": "query",
+            "name": "txt-color",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text alignment: top, middle, bottom, left, center, right.",
+            "in": "query",
+            "name": "txt-align",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text padding (default 10).",
+            "in": "query",
+            "name": "txt-pad",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text shadow 0..10.",
+            "in": "query",
+            "name": "txt-shad",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text wrap width.",
+            "in": "query",
+            "name": "txt-width",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text x from the left edge.",
+            "in": "query",
+            "name": "txt-x",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text y from the top edge.",
+            "in": "query",
+            "name": "txt-y",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Expiry, unix seconds; 404 once passed (checked after the signature).",
+            "in": "query",
+            "name": "expires",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Signature: hex MD5 of the mount's token, the path and ? plus the query without s.",
+            "in": "query",
+            "name": "s",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/*": {
+                "schema": {
+                  "contentEncoding": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The processed image; the format follows `format`, the source extension or Accept negotiation.",
+            "headers": {
+              "Cache-Control": {
+                "description": "XI_CACHE_HEADERS_* policy, or the URL's expires.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Strong entity tag of the result.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "description": "Accept and the client hints that decided the result.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified: If-None-Match matched the ETag."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "406": {
+            "$ref": "#/components/responses/Error406"
+          },
+          "414": {
+            "$ref": "#/components/responses/Error414"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "501": {
+            "$ref": "#/components/responses/Error501"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          }
+        },
+        "summary": "Process an image (imgix dialect)",
+        "tags": [
+          "image"
+        ],
+        "x-xi-dialect": "imgix",
         "x-xi-listener": "public"
       }
     },
@@ -8238,7 +9021,7 @@
       "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#5-imgix",
       "name": "imgix",
       "prefix": "/imgix/",
-      "status": "planned"
+      "status": "served"
     },
     {
       "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#6-cloudinary",

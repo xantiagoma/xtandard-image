@@ -50,6 +50,8 @@ func testMeta() *Meta {
 			{ID: "thumbor", Dialect: "thumbor", Prefix: "/thumbor/", Scheme: SchemeThumbor, Keyed: true, Grammar: GrammarPath, UnsignedPolicy: "restricted"},
 			{ID: "imgproxy-open", Dialect: "imgproxy", Prefix: "/open/", Scheme: SchemeImgproxy, Grammar: GrammarImgproxy, UnsignedPolicy: "allow"},
 			{ID: "imagekit", Dialect: "imagekit", Prefix: "/imagekit/", Scheme: SchemeNone, Grammar: GrammarPath, UnsignedPolicy: "allow"},
+			{ID: "imgix", Dialect: "imgix", Prefix: "/imgix/", Scheme: SchemeImgix, Keyed: true, Grammar: GrammarImgix, UnsignedPolicy: "restricted"},
+			{ID: "imgix[1]", Dialect: "imgix[1]", Prefix: "/imgix-open/", Scheme: SchemeImgix, Grammar: GrammarImgix, UnsignedPolicy: "allow"},
 		},
 		Catalogues: []Catalogue{{Grammar: GrammarImgproxy, Options: []Option{{Name: "resize", Aliases: []string{"rs"}, Forms: []Form{{Args: []Arg{{Name: "type", Type: "enum", Enum: []string{"fit"}}}}}}}}},
 		Presets:    []string{"thumb"},
@@ -94,6 +96,7 @@ func newFixture(t *testing.T) *fixture {
 			"query":    testSigner(t, xi, ring),
 			"wsrv":     testSigner(t, xi, ring),
 			"thumbor":  testSigner(t, sign.NewThumborScheme(), thumborRing),
+			"imgix":    testSigner(t, sign.NewImgixScheme(), sign.NewKeyring(sign.NewKey([]byte("FOO123bar"), nil))),
 		},
 		Image:  img,
 		Logger: slog.New(slog.DiscardHandler),
@@ -321,6 +324,29 @@ func TestSign(t *testing.T) {
 		}
 		if r, err := thv.Verify(sig, rest); err != nil || r != sign.Verified {
 			t.Errorf("Verify = %v, %v", r, err)
+		}
+	})
+	t.Run("imgix", func(t *testing.T) {
+		t.Parallel()
+		v, err := sign.NewImgixVerifier(sign.ImgixOptions{Keys: sign.NewKeyring(sign.NewKey([]byte("FOO123bar"), nil)), Required: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := signed(t, `{"mount":"imgix","path":"/photos/a.jpg","query":"w=300&s=stale&fit=crop"}`)
+		path, query, _ := strings.Cut(strings.TrimPrefix(out.URL, "/img/imgix"), "?")
+		if path != "/photos/a.jpg" || !out.Signed || out.Scheme != SchemeImgix || !strings.HasPrefix(query, "w=300&fit=crop&s=") {
+			t.Fatalf("response %+v", out)
+		}
+		sig, msg, err := sign.ImgixMessage(path, query)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if r, err := v.Verify(sig, msg); err != nil || r != sign.Verified {
+			t.Errorf("Verify = %v, %v", r, err)
+		}
+		out = signed(t, `{"mount":"imgix[1]","path":"/a.jpg","query":"w=1"}`)
+		if out.URL != "/img/imgix-open/a.jpg?w=1" || out.Signed || out.Scheme != SchemeImgix {
+			t.Errorf("unkeyed imgix response %+v", out)
 		}
 	})
 	t.Run("no key", func(t *testing.T) {

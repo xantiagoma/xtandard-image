@@ -76,6 +76,15 @@ function plainSource(src) {
   return encodeURIComponent(src).replaceAll('%3A', ':').replaceAll('%2F', '/');
 }
 
+// imgixSource is the imgix path for src: an object key when src is on the
+// mount's own source (xi://<source>/<key>), else the percent-encoded URL
+// (imgix web proxy source).
+function imgixSource(m, src) {
+  const own = m.source ? `xi://${m.source}/` : '';
+  if (own && src.startsWith(own)) return src.slice(own.length).split('/').map(encodeURIComponent).join('/');
+  return encodeURIComponent(src);
+}
+
 function currentMount() {
   return state.meta.mounts.find((m) => m.id === $('mount').value);
 }
@@ -312,6 +321,16 @@ function buildRequest() {
       params.push(`${encodeURIComponent(s.option.name)}=${encodeURIComponent(v)}`);
     }
     return { mount: m.id, path: '/', query: params.join('&') };
+  }
+  if (m.grammar === 'imgix') {
+    if (!src) return null;
+    const params = [];
+    for (const s of state.selected) {
+      const v = optionValues(s).join(',');
+      if (v === '') continue;
+      params.push(`${encodeURIComponent(s.option.name)}=${encodeURIComponent(v)}`);
+    }
+    return { mount: m.id, path: `/${imgixSource(m, src)}`, query: params.join('&') };
   }
   const fill = (s) => s.replaceAll('{src}', encodeURI(src));
   const path = fill($('free-path').value.trim() || '/');

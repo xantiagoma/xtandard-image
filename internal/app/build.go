@@ -17,6 +17,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/dialect/cloudflare"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/cloudinary"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imagekit"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/imgix"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/query"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/router"
@@ -51,10 +52,10 @@ func (p infoParser) Name() string { return infoDialect }
 
 func (p infoParser) Parse(in *dialect.Input) (*dialect.Result, error) { return p.ParseInfo(in) }
 
-// buildRouter builds the signing verifiers, presets, the available dialects
-// (imgproxy, query, imagekit, cloudflare, cloudflare_images, wsrv, thumbor,
-// bunny, awssih and cloudinary) and the router. warnings lists enabled dialects that are not implemented yet; their
-// mounts are skipped.
+// buildRouter builds the signing verifiers, presets, the dialects
+// (imgproxy, query, imgix, imagekit, cloudflare, cloudflare_images, wsrv,
+// thumbor, bunny, awssih, cloudinary and the simple family) and the router.
+// warnings are configuration notes logged at startup.
 func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err error) {
 	keys := make([]sign.Key, 0, len(cfg.Signing.Keys))
 	for i, k := range cfg.Signing.Keys {
@@ -204,6 +205,9 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	}
 	addMounts(imgproxy.Name, &cfg.Dialects.Imgproxy.Mount)
 	addMounts(query.Name, &cfg.Dialects.Query)
+	if err := addImgix(cfg, required, dialects, opts); err != nil {
+		return nil, nil, err
+	}
 	if err := addImageKit(cfg, ipOpts.Presets, required, dialects, opts); err != nil {
 		return nil, nil, err
 	}
@@ -240,16 +244,13 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	}
 	if _, ok := dialects[string(cfg.Dialects.Default)]; ok && cfg.Dialects.Default != "" {
 		opts.Default = router.Mount{Name: "default", Dialect: string(cfg.Dialects.Default)}
+		if mo := primaryMount(cfg, cfg.Dialects.Default); mo != nil {
+			// Unmatched requests resolve like the dialect's primary mount:
+			// its bound source (imgix object keys, ...) and unsigned policy.
+			opts.Default.Source, opts.Default.Policy = mo.Source, router.Policy(mo.UnsignedPolicy)
+		}
 	} else if cfg.Dialects.Default != "" {
 		warnings = append(warnings, fmt.Sprintf("default dialect %q is not implemented yet; unmatched requests answer 404", cfg.Dialects.Default))
-	}
-
-	for name, enabled := range map[string]bool{
-		"imgix": cfg.Dialects.Imgix.Enabled,
-	} {
-		if enabled {
-			warnings = append(warnings, "dialect "+name+" is enabled but not implemented yet; its mounts are skipped")
-		}
 	}
 	slices.Sort(warnings)
 
@@ -258,6 +259,72 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		return nil, nil, err
 	}
 	return rt, warnings, nil
+}
+
+// primaryMount is the primary mount configuration of a dialect whose
+// primary parser is registered under its plain name; nil for the others
+// (imgproxy's own mount is "/", the simple family has no single mount).
+func primaryMount(cfg *config.Config, name config.DialectName) *config.MountOptions {
+	d := &cfg.Dialects
+	switch name {
+	case config.DialectImgix:
+		return &d.Imgix.MountOptions
+	case config.DialectImagekit:
+		return &d.Imagekit.MountOptions
+	case config.DialectCloudinary:
+		return &d.Cloudinary.MountOptions
+	case config.DialectBunny:
+		return &d.Bunny.MountOptions
+	case config.DialectThumbor:
+		return &d.Thumbor.MountOptions
+	case config.DialectAWSSIH:
+		return &d.AWSSIH.MountOptions
+	case config.DialectCloudflareImages:
+		return &d.CloudflareImages.MountOptions
+	default:
+		return nil
+	}
+}
+
+// addImgix registers one imgix parser per enabled mount (an imgix
+// "source"), each verifying s with that mount's secure URL tokens
+// (XI_DIALECTS_IMGIX_KEYS, raw strings; several allow rotation), and its
+// router mount. Mount i > 0 is keyed "imgix[i]". A mount without tokens
+// does not verify s: every URL is unsigned and follows the mount's
+// unsigned policy.
+func addImgix(cfg *config.Config, required bool, dialects map[string]dialect.Dialect, opts *router.Options) error {
+	m := &cfg.Dialects.Imgix
+	if !m.Enabled {
+		return nil
+	}
+	for i, mo := range append([]config.MountOptions{m.MountOptions}, m.Mounts...) {
+		key := imgix.Name
+		if i > 0 {
+			key = fmt.Sprintf("%s[%d]", imgix.Name, i)
+		}
+		o := imgix.Options{Strict: cfg.Dialects.Strict}
+		if len(mo.Keys) > 0 {
+			keys := make([]sign.Key, 0, len(mo.Keys))
+			for _, k := range mo.Keys {
+				keys = append(keys, sign.NewKey([]byte(k.Reveal()), nil))
+			}
+			v, err := sign.NewImgixVerifier(sign.ImgixOptions{Keys: sign.NewKeyring(keys...), Required: required})
+			if err != nil {
+				return fmt.Errorf("%s verifier: %w", key, err)
+			}
+			o.Verifier = v
+		}
+		p, err := imgix.New(&o)
+		if err != nil {
+			return fmt.Errorf("%s dialect: %w", key, err)
+		}
+		dialects[key] = p
+		opts.Mounts = append(opts.Mounts, router.Mount{
+			Name: key, Dialect: key, Prefix: mo.Prefix, Hosts: mo.Hosts,
+			Source: mo.Source, Policy: router.Policy(mo.UnsignedPolicy),
+		})
+	}
+	return nil
 }
 
 // addImageKit registers one ImageKit parser per enabled mount, each

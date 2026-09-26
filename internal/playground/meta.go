@@ -9,6 +9,9 @@ const (
 	SchemeXI = "xi_sig"
 	// SchemeThumbor is the thumbor path signature (dialect keys).
 	SchemeThumbor = "thumbor"
+	// SchemeImgix is imgix's s query parameter (the mount's secure URL
+	// token, XI_DIALECTS_IMGIX_KEYS).
+	SchemeImgix = "imgix"
 	// SchemeNone means the playground cannot sign URLs of the mount: its
 	// dialect is unsigned or uses provider keys the playground does not
 	// hold. URLs are returned as entered.
@@ -24,6 +27,10 @@ const (
 	// GrammarQuery is ?url=<source>&key=value, keys from the query
 	// catalogue.
 	GrammarQuery = "query"
+	// GrammarImgix is /<source>?key=value, keys from the imgix
+	// catalogue; the source is an object key on the mount's source or a
+	// percent-encoded http(s) URL.
+	GrammarImgix = "imgix"
 	// GrammarPath is free-form: the page takes the path and query after
 	// the mount prefix as typed (the other dialects).
 	GrammarPath = "path"
@@ -85,12 +92,12 @@ type Mount struct {
 	// UnsignedPolicy is the effective unsigned policy of the mount.
 	UnsignedPolicy string `json:"unsigned_policy" enum:"allow,restricted,deny" doc:"Effective unsigned policy."`
 	// Scheme is the signature the sign endpoint computes (Scheme*).
-	Scheme string `json:"scheme" enum:"imgproxy,xi_sig,thumbor,none" doc:"Signature the sign endpoint computes for this mount."`
+	Scheme string `json:"scheme" enum:"imgproxy,xi_sig,thumbor,imgix,none" doc:"Signature the sign endpoint computes for this mount."`
 	// Keyed reports whether the server holds a key for Scheme: when false,
 	// URLs are returned unsigned (with the scheme's placeholder).
 	Keyed bool `json:"keyed" doc:"The server holds a key for the scheme; false returns unsigned URLs."`
 	// Grammar is how the page builds URLs (Grammar*).
-	Grammar string `json:"grammar" enum:"imgproxy,query,path" doc:"URL grammar: imgproxy options path, query keys, or free-form path."`
+	Grammar string `json:"grammar" enum:"imgproxy,query,imgix,path" doc:"URL grammar: imgproxy options path, query keys, or free-form path."`
 	// ArgumentsSeparator separates imgproxy option arguments (":").
 	ArgumentsSeparator string `json:"arguments_separator,omitempty" doc:"imgproxy argument separator (XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR)."`
 	// Example is a path (and query) after the prefix, for the free-form
@@ -106,7 +113,7 @@ type Source struct {
 
 // Catalogue is the option catalogue of one URL grammar.
 type Catalogue struct {
-	Grammar string   `json:"grammar" enum:"imgproxy,query" doc:"The grammar the options belong to."`
+	Grammar string   `json:"grammar" enum:"imgproxy,query,imgix" doc:"The grammar the options belong to."`
 	Options []Option `json:"options" doc:"Options, in documentation order."`
 }
 
@@ -160,7 +167,7 @@ type SignResponse struct {
 	// Signed reports whether a signature was computed.
 	Signed bool `json:"signed" doc:"A signature was computed; false when the server has no key for the mount."`
 	// Scheme is the mount's scheme.
-	Scheme string `json:"scheme" enum:"imgproxy,xi_sig,thumbor,none" doc:"The mount's signing scheme."`
+	Scheme string `json:"scheme" enum:"imgproxy,xi_sig,thumbor,imgix,none" doc:"The mount's signing scheme."`
 }
 
 // ErrorResponse is the body of a failed playground API request.

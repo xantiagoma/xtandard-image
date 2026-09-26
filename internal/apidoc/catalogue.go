@@ -10,11 +10,12 @@ import (
 // Catalogues returns the option catalogues the playground's option builder
 // uses (GET /_playground/api/meta): the imgproxy processing options from
 // the declarative catalogue behind the ImgproxyProcessingOptions schema,
-// and the query dialect's native keys documented on getQueryImage. Removed
+// the query dialect's native keys documented on getQueryImage, and the
+// imgix parameters documented on getImgixImage. Removed
 // imgproxy options are left out; the query keys the page sets itself (url
 // and the signatures) too.
 func Catalogues() []playground.Catalogue {
-	return []playground.Catalogue{imgproxyCatalogue(), queryCatalogue()}
+	return []playground.Catalogue{imgproxyCatalogue(), queryCatalogue(), imgixCatalogue()}
 }
 
 func imgproxyCatalogue() playground.Catalogue {
