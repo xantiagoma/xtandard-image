@@ -262,7 +262,8 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 
 // addImageKit registers one ImageKit parser per enabled mount, each
 // verifying ik-s with that mount's private keys (XI_DIALECTS_IMAGEKIT_KEYS,
-// raw strings), and its router mount. Mount i > 0 is keyed "imagekit[i]".
+// raw strings) and stripping XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH, and its
+// router mount. Mount i > 0 is keyed "imagekit[i]".
 func addImageKit(cfg *config.Config, presets *preset.Store, required bool, dialects map[string]dialect.Dialect, opts *router.Options) error {
 	m := &cfg.Dialects.Imagekit
 	if !m.Enabled {
@@ -273,7 +274,7 @@ func addImageKit(cfg *config.Config, presets *preset.Store, required bool, diale
 		if i > 0 {
 			key = fmt.Sprintf("%s[%d]", imagekit.Name, i)
 		}
-		o := imagekit.Options{Strict: cfg.Dialects.Strict, Presets: presets}
+		o := imagekit.Options{Strict: cfg.Dialects.Strict, Presets: presets, EndpointPath: m.EndpointPath}
 		if len(mo.Keys) > 0 {
 			keys := make([]sign.Key, 0, len(mo.Keys))
 			for _, k := range mo.Keys {

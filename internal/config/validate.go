@@ -259,7 +259,7 @@ func (d *Dialects) mounts() map[string]Mount {
 	return map[string]Mount{
 		"imgproxy": d.Imgproxy.Mount, "query": d.Query, "wsrv": d.Wsrv,
 		"cloudflare": d.Cloudflare, "cloudflare_images": d.CloudflareImages.Mount,
-		"imgix": d.Imgix, "cloudinary": d.Cloudinary.Mount, "imagekit": d.Imagekit,
+		"imgix": d.Imgix, "cloudinary": d.Cloudinary.Mount, "imagekit": d.Imagekit.Mount,
 		"bunny": d.Bunny, "thumbor": d.Thumbor, "awssih": d.AWSSIH.Mount,
 	}
 }
@@ -300,6 +300,9 @@ func (c *Config) validateDialects(v *validator) {
 			v.add(p, "bad regex: %v", err)
 		}
 	}
+	ep := d.Imagekit.EndpointPath
+	v.check(!strings.ContainsAny(ep, "?#") && !strings.Contains(strings.Trim(ep, "/"), "//"),
+		"dialects.imagekit.endpoint_path", "must be a plain path")
 	for _, cloud := range sortedKeys(d.Cloudinary.Clouds) {
 		src := d.Cloudinary.Clouds[cloud]
 		v.check(c.hasSource(src), "dialects.cloudinary.clouds", "cloud %q maps to unknown source %q", cloud, src)

@@ -96,6 +96,7 @@ func TestValidate(t *testing.T) {
 		{"extra mount", func(c *Config) { c.Dialects.Imgix.Mounts = []MountOptions{{Source: "origin"}} }, []string{"dialects.imgix.mounts[0]"}},
 		{"host with scheme", func(c *Config) { c.Dialects.Imgix.Hosts = []string{"https://x"} }, []string{"dialects.imgix.hosts[0]"}},
 		{"bad replacement regex", func(c *Config) { c.Dialects.Imgproxy.URLReplacements = []string{"(=x"} }, []string{"dialects.imgproxy.url_replacements[0]"}},
+		{"imagekit endpoint path", func(c *Config) { c.Dialects.Imagekit.EndpointPath = "/demo?x" }, []string{"dialects.imagekit.endpoint_path (XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH): must be a plain path"}},
 		{"cloud source", func(c *Config) { c.Dialects.Cloudinary.Clouds = map[string]string{"demo": "nope"} }, []string{"dialects.cloudinary.clouds"}},
 		{"presets only without presets", func(c *Config) { c.PresetsOnly = true }, []string{"presets_only (XI_PRESETS_ONLY)"}},
 		{"workers", func(c *Config) { c.Processing.Workers = 0 }, []string{"processing.workers"}},

@@ -215,7 +215,7 @@ type Dialects struct {
 	CloudflareImages CloudflareImagesDialect `yaml:"cloudflare_images" envPrefix:"CLOUDFLARE_IMAGES_"`
 	Imgix            Mount                   `yaml:"imgix"             envPrefix:"IMGIX_"`
 	Cloudinary       CloudinaryDialect       `yaml:"cloudinary"        envPrefix:"CLOUDINARY_"`
-	Imagekit         Mount                   `yaml:"imagekit"          envPrefix:"IMAGEKIT_"`
+	Imagekit         ImagekitDialect         `yaml:"imagekit"          envPrefix:"IMAGEKIT_"`
 	Bunny            Mount                   `yaml:"bunny"             envPrefix:"BUNNY_"`
 	Thumbor          Mount                   `yaml:"thumbor"           envPrefix:"THUMBOR_"`
 	AWSSIH           AWSSIHDialect           `yaml:"awssih"            envPrefix:"AWSSIH_"`
@@ -254,6 +254,16 @@ type ImgproxyDialect struct {
 type CloudinaryDialect struct {
 	Mount  `yaml:",inline"`
 	Clouds map[string]string `yaml:"clouds" env:"CLOUDS" envKeyValSeparator:"="`
+}
+
+// ImagekitDialect adds the URL-endpoint path of host-bound mounts.
+type ImagekitDialect struct {
+	Mount `yaml:",inline"`
+	// EndpointPath is the ImageKit URL-endpoint id kept in the path of every
+	// mount of the dialect (https://ik.imagekit.io/<id>/…): "/<id>". It is
+	// stripped before parsing, excluded from the source key and from the
+	// signed message; requests outside it are 400. Empty: none.
+	EndpointPath string `yaml:"endpoint_path" env:"ENDPOINT_PATH"`
 }
 
 // CloudflareImagesDialect adds the account hash → source map.
@@ -642,7 +652,7 @@ func Defaults() Config {
 			CloudflareImages: CloudflareImagesDialect{Mount: mount("/cdn-cgi/imagedelivery/")},
 			Imgix:            mount("/imgix/"),
 			Cloudinary:       CloudinaryDialect{Mount: mount("/cloudinary/")},
-			Imagekit:         mount("/imagekit/"),
+			Imagekit:         ImagekitDialect{Mount: mount("/imagekit/")},
 			Bunny:            mount("/bunny/"),
 			Thumbor:          mount("/thumbor/"),
 			AWSSIH:           AWSSIHDialect{Mount: mount("/sih/"), QueryParams: true},
