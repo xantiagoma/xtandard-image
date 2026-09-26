@@ -1,0 +1,5 @@
+# Pinned developer toolchain. Run `mise install` in any checkout or worktree.
+[tools]
+go = "1.27.1"
+golangci-lint = "2.14.0"
+task = "latest"
