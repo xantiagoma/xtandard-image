@@ -15,6 +15,8 @@ package vips
 #cgo noescape xi_black
 #cgo nocallback xi_black
 #cgo noescape xi_new_from_memory
+#cgo noescape xi_new_from_blob
+#cgo nocallback xi_new_from_blob
 #cgo nocallback xi_new_from_memory
 #cgo noescape xi_meta_get_int
 #cgo nocallback xi_meta_get_int

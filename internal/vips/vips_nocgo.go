@@ -103,6 +103,11 @@ func LoadThumbnail(context.Context, *Buffer, int, int) (*Image, error) {
 // Black fails.
 func Black(context.Context, int, int, int) (*Image, error) { return nil, ErrUnavailable }
 
+// NewFromBuffer fails.
+func NewFromBuffer(context.Context, *Buffer, int, int, int, BandFormat) (*Image, error) {
+	return nil, ErrUnavailable
+}
+
 // NewFromMemory fails.
 func NewFromMemory(context.Context, []byte, int, int, int, BandFormat) (*Image, error) {
 	return nil, ErrUnavailable

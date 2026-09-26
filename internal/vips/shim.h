@@ -139,6 +139,10 @@ const void *xi_spool_source(const char *path);
 int xi_black(int width, int height, int bands, VipsImage **out, char **err);
 int xi_new_from_memory(const void *data, size_t size, int width, int height, int bands,
     int band_format, VipsImage **out, char **err);
+// xi_new_from_blob wraps the blob's pixels without copying; the image keeps
+// a reference to the blob until it closes.
+int xi_new_from_blob(VipsBlob *blob, int width, int height, int bands, int band_format,
+    VipsImage **out, char **err);
 
 // ---- camera RAW (raw.c, LibRaw) ------------------------------------------
 

@@ -554,3 +554,32 @@ xi_new_from_memory(const void *data, size_t size, int width, int height, int ban
     (*out)->Type = bands >= 3 ? VIPS_INTERPRETATION_sRGB : VIPS_INTERPRETATION_B_W;
   return XI_OK;
 }
+
+static void
+xi_blob_image_close(VipsImage *img, gpointer blob)
+{
+  (void) img;
+  vips_area_unref(VIPS_AREA(blob));
+}
+
+int
+xi_new_from_blob(VipsBlob *blob, int width, int height, int bands, int band_format,
+    VipsImage **out, char **err)
+{
+  VipsArea *area = VIPS_AREA(blob);
+
+  // No copy: the image reads the blob's memory and holds a reference to the
+  // blob until it closes (the pixels outlive every Go handle).
+  if (!(*out = vips_image_new_from_memory(area->data, area->length, width, height, bands,
+            band_format))) {
+    *err = xi_error_copy();
+    return XI_ERR_OP;
+  }
+  vips_area_copy(area);
+  g_signal_connect(*out, "close", G_CALLBACK(xi_blob_image_close), blob);
+  if (band_format == VIPS_FORMAT_USHORT)
+    (*out)->Type = bands >= 3 ? VIPS_INTERPRETATION_RGB16 : VIPS_INTERPRETATION_GREY16;
+  else
+    (*out)->Type = bands >= 3 ? VIPS_INTERPRETATION_sRGB : VIPS_INTERPRETATION_B_W;
+  return XI_OK;
+}
