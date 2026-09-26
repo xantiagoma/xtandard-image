@@ -85,3 +85,12 @@ before vips_find_trim) and per-frame processing of animated images.
 Modifications (one fixed-arity function per operation, options as plain
 structs, error capture at the failure site, refcounted VipsBlob input
 buffers with decode-failure attribution) are marked in the file headers.
+internal/codec/imagemeta (iptc.go, iptc_tags.go) is derived from imgproxy's
+imagemeta/iptc/iptc.go, imagemeta/iptc/tags.go and
+imagemeta/photoshop/photoshop.go, https://github.com/imgproxy/imgproxy
+Copyright (c) 2017 Sergey Alexandrovich
+Licensed under the Apache License, Version 2.0,
+https://www.apache.org/licenses/LICENSE-2.0
+Modifications (bounds-checked slice parsing, Pascal-string resource names,
+raw IIM input, Photoshop resolution decoding) are described in the file
+headers; the IPTC dataset table is copied with renamed identifiers.
