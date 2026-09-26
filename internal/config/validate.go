@@ -166,9 +166,10 @@ func sourceFieldTypes() map[string][]SourceType {
 		"access_key_id": {SourceS3}, "secret_access_key": {SourceS3}, "role_arn": {SourceS3},
 		"credentials_json": {SourceGCS},
 		"account":          {SourceAzure}, "account_key": {SourceAzure}, "connection_string": {SourceAzure}, "sas_token": {SourceAzure},
-		"root": {SourceFS}, "follow_symlinks": {SourceFS},
+		"root": {SourceFS, SourceFTP, SourceSFTP}, "follow_symlinks": {SourceFS},
 		"host": remote, "port": remote, "user": remote, "password": remote, "tls": {SourceFTP},
-		"private_key": {SourceSFTP}, "host_key": {SourceSFTP},
+		"private_key": {SourceSFTP}, "private_key_passphrase": {SourceSFTP}, "host_key": {SourceSFTP},
+		"pool_size": remote, "dial_timeout": remote, "idle_timeout": remote,
 	}
 }
 
@@ -207,6 +208,10 @@ func (c *Config) validateSources(v *validator) {
 			v.check(s.Host != "", p+".host", "must be set")
 			v.between(s.Port, 0, 65535, p+".port")
 			v.check(s.Type != SourceSFTP || s.HostKey != "", p+".host_key", "is mandatory for sftp (no trust on first use)")
+			v.check(s.PoolSize >= 0, p+".pool_size", "must not be negative")
+			v.check(s.DialTimeout >= 0, p+".dial_timeout", "must not be negative")
+			v.check(s.IdleTimeout >= 0, p+".idle_timeout", "must not be negative")
+			v.check(s.PrivateKeyPassphrase == "" || s.PrivateKey != "", p+".private_key_passphrase", "needs private_key")
 		}
 	}
 }

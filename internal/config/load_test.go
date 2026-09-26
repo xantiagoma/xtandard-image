@@ -384,6 +384,27 @@ sources:
 		"XI_SOURCES_MY_FILES_FOLLOW_SYMLINKS=true",
 		"XI_SOURCES_OTHER_ENDPOINT=http://fake-gcs:4443/storage/v1/",
 	)
+	remote := mustParse(t, nil,
+		"XI_SOURCES=box",
+		"XI_SOURCES_BOX_TYPE=sftp",
+		"XI_SOURCES_BOX_HOST=sftp.example.com",
+		"XI_SOURCES_BOX_HOST_KEY=ssh-ed25519 AAAA",
+		"XI_SOURCES_BOX_USER=xi",
+		"XI_SOURCES_BOX_PRIVATE_KEY=pem",
+		"XI_SOURCES_BOX_PRIVATE_KEY_PASSPHRASE=pass",
+		"XI_SOURCES_BOX_ROOT=/home/xi",
+		"XI_SOURCES_BOX_POOL_SIZE=8",
+		"XI_SOURCES_BOX_DIAL_TIMEOUT=5s",
+		"XI_SOURCES_BOX_IDLE_TIMEOUT=2m",
+	)
+	wantBox := Source{
+		Type: SourceSFTP, Host: "sftp.example.com", HostKey: "ssh-ed25519 AAAA", User: "xi",
+		PrivateKey: "pem", PrivateKeyPassphrase: "pass", Root: "/home/xi",
+		PoolSize: 8, DialTimeout: 5 * time.Second, IdleTimeout: 2 * time.Minute,
+	}
+	if d := diff(map[string]Source{"box": wantBox}, remote.Sources); d != "" {
+		t.Errorf("remote sources (-want +got):\n%s", d)
+	}
 	want := map[string]Source{
 		"assets": {
 			Type: SourceS3, Endpoint: "https://account.r2.cloudflarestorage.com", Region: "auto",

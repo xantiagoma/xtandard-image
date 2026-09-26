@@ -142,7 +142,8 @@ type Source struct {
 	ConnectionString Secret `yaml:"connection_string,omitempty" env:"CONNECTION_STRING"`
 	SASToken         Secret `yaml:"sas_token,omitempty"         env:"SAS_TOKEN"`
 
-	// fs
+	// fs: the jail root; ftp, sftp: the server directory keys are relative
+	// to ("" means "/").
 	Root string `yaml:"root,omitempty" env:"ROOT"`
 	// FollowSymlinks allows symlinks whose target stays inside Root.
 	FollowSymlinks bool `yaml:"follow_symlinks,omitempty" env:"FOLLOW_SYMLINKS"`
@@ -153,8 +154,16 @@ type Source struct {
 	User       string `yaml:"user,omitempty"        env:"USER"`
 	Password   Secret `yaml:"password,omitempty"    env:"PASSWORD"`
 	PrivateKey Secret `yaml:"private_key,omitempty" env:"PRIVATE_KEY"`
-	HostKey    string `yaml:"host_key,omitempty"    env:"HOST_KEY"`
-	TLS        bool   `yaml:"tls,omitempty"         env:"TLS"`
+	// PrivateKeyPassphrase decrypts an encrypted PrivateKey.
+	PrivateKeyPassphrase Secret `yaml:"private_key_passphrase,omitempty" env:"PRIVATE_KEY_PASSPHRASE"`
+	HostKey              string `yaml:"host_key,omitempty"               env:"HOST_KEY"`
+	TLS                  bool   `yaml:"tls,omitempty"                    env:"TLS"`
+	// PoolSize bounds open connections to the server (0 = backend default, 4).
+	PoolSize int `yaml:"pool_size,omitempty" env:"POOL_SIZE"`
+	// DialTimeout bounds connect, TLS/SSH handshake and login (0 = 10s).
+	DialTimeout time.Duration `yaml:"dial_timeout,omitempty" env:"DIAL_TIMEOUT"`
+	// IdleTimeout closes pooled connections idle for longer (0 = 1m).
+	IdleTimeout time.Duration `yaml:"idle_timeout,omitempty" env:"IDLE_TIMEOUT"`
 }
 
 // Fetch configures origin downloads and the SSRF policy.
