@@ -238,6 +238,7 @@ Use the stdlib first. Every new module needs an ADR line with the reason, its li
 | `github.com/caarlos0/env/v11` | v11.4.1 | env config |
 | `github.com/goccy/go-yaml` | v1.19.2 | only if a YAML file is added |
 | `github.com/google/go-cmp` | v0.7.0 | test diffs |
+| `golang.org/x/image` | v0.46.0 | test-only decoders (WebP, BMP, TIFF) for the golden harness (ADR 0006) |
 | `github.com/klauspost/compress` | v1.20.1 | only if we gzip or zstd non-image responses |
 
 Storage SDKs such as AWS SDK v2 and GCS are allowed only inside `internal/fetch/<provider>` and require an ADR.
