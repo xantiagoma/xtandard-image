@@ -361,5 +361,12 @@ func serverConfig(cfg *config.Config) server.Config {
 			MaxElements: cfg.Limits.MaxSVGElements,
 		},
 		ETagBuster: cfg.Cache.ETagBuster.Reveal(),
+		Cache: server.CacheHeaders{
+			TTL:         cfg.Cache.Headers.TTL,
+			ErrorTTL:    cfg.Cache.Headers.ErrorTTL,
+			Passthrough: cfg.Cache.Headers.Passthrough,
+		},
+		CacheTagsHeader: cfg.Cache.TagsHeader,
+		DebugHeaders:    cfg.Observability.DebugHeaders,
 	}
 }

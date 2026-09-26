@@ -2,10 +2,12 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
@@ -80,10 +82,8 @@ func classify(budget context.Context, r *http.Request, err error) error {
 // errors), else 500. Internal text is logged, never sent. A client
 // disconnect (499) is logged and recorded but not written. Overload errors
 // carry Retry-After. With XI_COMPAT_IMGPROXY_STATUS, 400 and KindForbidden
-// answer 404 like imgproxy.
-//
-// WP-34b hook: error Cache-Control (no-store vs XI_CACHE_HEADERS_ERROR_TTL
-// per kind) and JSON bodies for Accept: application/json are decided here.
+// answer 404 like imgproxy. Cache-Control follows the ARCHITECTURE §12
+// column (errorCacheControl).
 func (s *Server) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	kind := errs.KindOf(err)
 	status, msg := errs.Status(kind), errs.PublicMessage(kind)
@@ -113,14 +113,51 @@ func (s *Server) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	h := w.Header()
 	h.Del("Content-Length")
 	h.Del("ETag")
-	h.Set("Content-Type", "text/plain; charset=utf-8")
-	h.Set("Cache-Control", "no-store")
+	body := []byte(msg + "\n")
+	if wantsJSON(r) {
+		h.Set("Content-Type", "application/json")
+		body = errorJSON(kind, msg, logging.RequestID(r.Context()))
+	} else {
+		h.Set("Content-Type", "text/plain; charset=utf-8")
+	}
+	h.Set("Cache-Control", s.errorCacheControl(kind, status))
+	h.Add("Vary", "Accept")
 	h.Set("X-Content-Type-Options", "nosniff")
 	if oe, ok := errors.AsType[*limiter.OverloadError](err); ok {
 		h.Set("Retry-After", strconv.Itoa(int(max(oe.RetryAfter, time.Second)/time.Second)))
 	}
 	w.WriteHeader(status)
 	if r.Method != http.MethodHead {
-		_, _ = w.Write([]byte(msg + "\n"))
+		_, _ = w.Write(body)
 	}
+}
+
+// wantsJSON reports an Accept header that lists application/json
+// (ARCHITECTURE §12: JSON error bodies on request).
+func wantsJSON(r *http.Request) bool {
+	for _, v := range r.Header.Values("Accept") {
+		for part := range strings.SplitSeq(v, ",") {
+			mt, _, _ := strings.Cut(part, ";")
+			if strings.EqualFold(strings.TrimSpace(mt), "application/json") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// errorJSON renders {"error":{"kind":…,"message":…,"request_id":…}}.
+func errorJSON(kind errs.Kind, msg, requestID string) []byte {
+	type body struct {
+		Kind      string `json:"kind"`
+		Message   string `json:"message"`
+		RequestID string `json:"request_id,omitempty"`
+	}
+	b, err := json.Marshal(struct {
+		Error body `json:"error"`
+	}{body{Kind: kind.String(), Message: msg, RequestID: requestID}})
+	if err != nil { // unreachable: only strings
+		return []byte(`{"error":{"kind":"internal","message":"internal server error"}}`)
+	}
+	return append(b, '\n')
 }
