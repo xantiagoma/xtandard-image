@@ -19,13 +19,15 @@ import (
 // and resampling rounding.
 const imgproxyTolerance = 0.015
 
-// TestAgainstImgproxy renders every golden case with a running imgproxy
-// (darthsim/imgproxy with IMGPROXY_LOCAL_FILESYSTEM_ROOT on
-// testdata/fixtures) and compares both outputs by size, frame count and
-// DSSIM. It is skipped unless XI_IMGPROXY_URL is set:
+// TestAgainstImgproxy renders every golden and watermark case with a
+// running imgproxy (darthsim/imgproxy with IMGPROXY_LOCAL_FILESYSTEM_ROOT on
+// testdata/fixtures and IMGPROXY_WATERMARK_PATH on the watermark fixture)
+// and compares both outputs by size, frame count and DSSIM. It is skipped
+// unless XI_IMGPROXY_URL is set:
 //
 //	docker run -d -p 18080:8080 -v "$PWD/testdata/fixtures:/fixtures:ro" \
 //	  -e IMGPROXY_LOCAL_FILESYSTEM_ROOT=/fixtures \
+//	  -e IMGPROXY_WATERMARK_PATH=/fixtures/watermark/logo.png \
 //	  -e IMGPROXY_MAX_ANIMATION_FRAMES=256 darthsim/imgproxy:latest
 //	XI_IMGPROXY_URL=http://host.docker.internal:18080 go test -tags integration \
 //	  -run TestAgainstImgproxy -v ./internal/pipeline/exec/
@@ -35,13 +37,14 @@ func TestAgainstImgproxy(t *testing.T) {
 	if base == "" {
 		t.Skip("XI_IMGPROXY_URL is not set")
 	}
-	for _, tc := range slices.Concat(goldenCases, filterCases) {
+	e := newWatermarkExecutor(t, newWatermark(t, watermarkLogo, "png", 1))
+	for _, tc := range slices.Concat(goldenCases, filterCases, watermarkCases) {
 		if tc.noImgproxy {
 			continue
 		}
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			ours := process(t, tc.fixture, tc.options, tc.out)
+			ours := processWith(t, e, tc.fixture, tc.options, tc.out)
 			ref := fetchImgproxy(t, base, &tc)
 			theirs, frames := decode(t, ref)
 			if frames != ours.frames {
