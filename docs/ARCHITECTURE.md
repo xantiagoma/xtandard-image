@@ -121,7 +121,7 @@ Dependency rules (enforced by a `depguard`/`go-arch-lint` config in CI):
 - `server` → everything above via interfaces; `app` is the only package that constructs concrete types. Exception: `server` calls the pure-Go `pipeline/plan.Build` directly for the thumbor `meta` response (WP-86b), with the executor's limits passed in `InfoConfig.PlanLimits`.
 - `config` imports nothing internal except `errs`. Each component declares its own `Options` struct; `app` maps `config.Config` into those options. This keeps component packages testable without the whole config tree.
 
-Routing: `server` registers fixed routes on a stdlib `http.ServeMux` with method patterns (`GET /healthz`, `GET /readyz`, `GET /{path...}` catch-all, which also matches HEAD) and hands the catch-all to `dialect/router`; the admin listener has its own `ServeMux` (`/metrics`, pprof). No third-party router (go-standards §2).
+Routing: `server` registers fixed routes on a stdlib `http.ServeMux` with method patterns (`GET /healthz`, `GET /readyz`, `GET /{path...}` catch-all, which also matches HEAD) and hands the catch-all to `dialect/router`; the admin listener has its own `ServeMux` (`/metrics`, `/config.schema.json` (ADR 0007), pprof). No third-party router (go-standards §2).
 
 Build tags: `ffmpeg` (video). `server` tests use fakes of its consumer-side interfaces (`server.Processor`, `server.Prober`, fetcher, resolver, router), so they need no tag. ONNX needs no tag (runtime dlopen).
 
