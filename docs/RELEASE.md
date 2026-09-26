@@ -35,7 +35,8 @@ Build properties (enforced in the `Dockerfile`):
 
 1. Make sure `main` is green (CI `smoke` builds and verifies the image and `acceptance` runs the M1 suite against it, on both architectures) and that the base image for the current `docker/base/versions.sh` pin is published (`base-image` workflow on `main`).
 2. Refresh the PGO profile if the hot path changed since the last release (below) and merge it.
-3. Tag and push:
+3. Check the user-facing docs: the README quick start must pass (CI `quickstart` runs it on every PR; locally `task quickstart`). For a minor or major release, rerun the benchmark against the release candidate (`task release:build && bench/run.sh`, [BENCHMARKS.md](BENCHMARKS.md)) and update `bench/RESULTS.md` when the numbers moved.
+4. Tag and push:
 
    ```sh
    git switch main && git pull --ff-only
@@ -43,8 +44,8 @@ Build properties (enforced in the `Dockerfile`):
    git push origin v0.1.0
    ```
 
-4. Watch `release` in Actions. Nothing is tagged until both architectures have passed `verify-app-image.sh` and `acceptance.sh`; a failure leaves only untagged digests behind (GHCR retention cleans them up).
-5. Verify the published image (below) and edit the generated release notes if needed.
+5. Watch `release` in Actions. Nothing is tagged until both architectures have passed `verify-app-image.sh` and `acceptance.sh`; a failure leaves only untagged digests behind (GHCR retention cleans them up).
+6. Verify the published image (below) and edit the generated release notes if needed. After the first release, switch the README quick start from building to the published image: the `sh quickstart-build` block becomes `docker pull ghcr.io/xantiagoma/xtandard-image:slim && docker tag ghcr.io/xantiagoma/xtandard-image:slim xtandard-image`, or the later blocks use the GHCR name directly.
 
 **Dry run**: Actions → `release` → *Run workflow* with `dry_run` checked (the default) builds and verifies both architectures from the selected branch without pushing. With `dry_run` unchecked, `version` must be an existing tag; it is checked out and published like a tag push, but no GitHub release is created.
 

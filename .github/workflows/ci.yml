@@ -195,3 +195,24 @@ jobs:
         run: scripts/acceptance.sh
         env:
           XI_IMAGE: ${{ env.XI_ACCEPTANCE_IMAGE || 'xtandard-image:ci' }}
+
+  quickstart:
+    # README quick start run verbatim (WP-38): scripts/quickstart.sh extracts
+    # the fenced blocks tagged `sh quickstart-build`, `sh quickstart` and
+    # `yaml quickstart-compose` from README.md and runs them as written,
+    # including the README's own `docker build` (from the GHCR base tags in the
+    # Dockerfile). Needs outbound HTTPS: the README fetches an Unsplash image.
+    name: quickstart (README)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run the README quick start
+        env:
+          XI_QUICKSTART_BUILD: "1"
+        run: scripts/quickstart.sh
