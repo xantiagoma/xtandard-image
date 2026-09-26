@@ -241,7 +241,7 @@ Use the stdlib first. Every new module needs an ADR line with the reason, its li
 | `golang.org/x/image` | v0.46.0 | test-only decoders (WebP, BMP, TIFF) for the golden harness (ADR 0006) |
 | `github.com/klauspost/compress` | v1.20.1 | only if we gzip or zstd non-image responses |
 
-Storage SDKs such as AWS SDK v2 and GCS are allowed only inside `internal/fetch/<provider>` and require an ADR.
+Storage SDKs such as AWS SDK v2 and GCS are allowed only inside `internal/fetch/<provider>` and the cache backends `internal/cache/s3cache` and `internal/cache/redis` (go-redis v9), and require an ADR.
 
 **Banned (enforced with depguard):**
 - `github.com/pkg/errors`
