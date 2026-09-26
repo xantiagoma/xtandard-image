@@ -193,7 +193,6 @@ func (st *state) trimSize(sizeField, farField string, size, near, far side) (tra
 func (st *state) applyBorder(key, v string) error {
 	if st.border == nil {
 		st.border = &transform.Border{Color: transform.Color{A: 255}}
-		st.b.Ignore("border", reasonM2)
 	}
 	b := st.border
 	switch key {

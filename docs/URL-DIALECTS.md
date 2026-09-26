@@ -511,12 +511,12 @@ Grammar: `/cdn-cgi/image/<k=v(,k=v)*>/<source>`. Keys are case-insensitive; comm
 | `background` (`%23RGB[A]`, `%23RRGGBB[AA]`, CSS names, `transparent`, `rgb()`/`rgba()` with commas or spaces and `/ alpha`) | Background |
 | `blur` (0–250) | Blur σ = v/2 |
 | `sharpen` (0–10) | Sharpen σ = v/4 |
-| `brightness` (multiplier) | Adjust.Exposure (Adjust.Brightness is additive) (M2) |
-| `contrast`, `saturation` (multipliers), `gamma` (0 and 1 = unchanged) | Adjust (M2) |
+| `brightness` (multiplier) | Adjust.Exposure (Adjust.Brightness is additive) |
+| `contrast`, `saturation` (multipliers), `gamma` (0 and 1 = unchanged) | Adjust |
 | `rotate=0|90|180|270`, `flip=h|v|hv` | Rotate, Flip |
 | `trim=border`, `trim.border.color`, `trim.border.tolerance` (0–255, 255 = exact) | Trim (Threshold = 255 − tolerance, default 10); `trim.border.keep` → Ignored |
 | `trim=top;right;bottom;left`, `trim.top/right/bottom/left/width/height` (px, or a fraction < 1) | Crop anchored north-west: left/top are gravity offsets, width/height the size; right/bottom fractions fold into a relative size when left/top are fractions, right/bottom pixels → Ignored "not implemented" |
-| `border=color;width`, `border=color;top;right;bottom;left`, `border.color/width/top/right/bottom/left` (Workers-only upstream) | Border (M2) |
+| `border=color;width`, `border=color;top;right;bottom;left`, `border.color/width/top/right/bottom/left` (Workers-only upstream) | Border |
 | `metadata=keep` / `copyright` / `none` | StripMetadata=false / StripMetadata+KeepCopyright / StripMetadata, KeepCopyright=false |
 | `onerror=redirect` | Delivery.OnErrorRedirect: when the fetch or decode fails with a fallback-eligible error, the server answers 302 to the source URL (http sources only; ahead of the fallback image; the error Cache-Control; same path as wsrv `default=`, ARCHITECTURE §12) |
 | `compression=fast` | Output.Effort = 1 (the format is not forced to JPEG) |
