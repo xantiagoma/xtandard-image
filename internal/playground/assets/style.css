@@ -77,7 +77,8 @@ input[type="text"], input[type="url"], input[type="number"], input:not([type]), 
   font: inherit;
 }
 textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; resize: vertical; }
-.row select, .row input { width: auto; flex: 1 1 8rem; }
+.row select, .row input:not([type="checkbox"]) { width: auto; flex: 1 1 8rem; }
+.row label.inline { white-space: nowrap; }
 
 button {
   padding: .4rem .8rem;
