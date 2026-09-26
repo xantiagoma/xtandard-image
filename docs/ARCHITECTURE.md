@@ -47,13 +47,13 @@ Each stage has a timeout budget taken from the request context (`XI_SERVER_REQUE
 | 11 | Probe: magic-byte sniff, header-only decode, pixel/frame limits, SVG sanitise | `codec` | `ImageMeta` | 415→422 unsupported, 422 limits |
 | 12 | Plan + execute: planner builds steps, executor chains libvips ops lazily, pixels computed on save | `pipeline/plan`, `pipeline/exec` | `*vips.Image` graph | 422 corrupt, 500 |
 | 13 | Encode: format saver, quality/auto-quality/max-bytes loop | `codec/encode` | vips-owned output buffer + content type | 500 |
-| 14 | Respond: headers (Cache-Control, ETag, Last-Modified, Vary, Content-DPR, Content-Disposition), 304 handling, HEAD, write body; store in result cache async | `server/respond` | bytes on the wire | 499 client gone (logged) |
+| 14 | Respond: headers (Cache-Control, ETag, Last-Modified, Vary, Content-DPR, Content-Disposition), write body; 304 and HEAD are answered earlier without processing (§9.1); store in result cache async | `server/response.go` | bytes on the wire | 499 client gone (logged) |
 
 Special paths bypass stages: `raw:1` / `skip_processing` streams source bytes after stage 9 (no admission, no decode, still size-limited and content-type-checked against an allowlist of image MIME types); `/info` stops after stage 11 and returns JSON; `fallback_image` replaces a failed stage 9–12 with a configured image and `XI_FALLBACK_STATUS`.
 
 Stages 1–8 are pure Go and must complete in well under 1 ms for cache hits. Fetch happens **outside** the processing semaphore so slow origins never hold CPU slots.
 
-Implementation order (WP-34a, `server.process`): route+parse+authenticate (2–4) → normalise (6: `ApplyClientHints`, `ApplyDefaults`, `Validate`, result-dimension limit) → resolve (5) → fetch (9) → admission (10) → probe (11: SVG sanitised by magic-byte sniff *before* the header probe, then limits re-checked on the probed meta) → negotiate (7, after the probe because `negotiate.Decide` needs source meta) → process (12–13) → respond (14). Every stage records `xi_stage_duration_seconds{stage}` and an access-log timing; fetch, probe and process get spans. The server sees stages 11–13 only through `server.Prober` and `server.Processor` (`internal/server/server.go`); `app` adapts codec (WP-07) and pipeline/encode (WP-25/26a/30) to them. Until WP-34c, raw and info requests and passthrough decisions answer 501 (`KindUnsupported` underneath).
+Implementation order (WP-34a, `server.process`): route+parse+authenticate (2–4) → normalise (6: `ApplyClientHints`, `ApplyDefaults`, `Validate`, result-dimension limit) → resolve (5) → fetch (9) → admission (10) → probe (11: SVG sanitised by magic-byte sniff *before* the header probe, then limits re-checked on the probed meta) → negotiate (7, after the probe because `negotiate.Decide` needs source meta) → process (12–13) → respond (14). Conditional requests short-circuit to 304 right after the fetch when the URL fixes the format, else after negotiation; HEAD stops after negotiation; the processor never runs for either (§9.1). Every stage records `xi_stage_duration_seconds{stage}` and an access-log timing; fetch, probe and process get spans. The server sees stages 11–13 only through `server.Prober` and `server.Processor` (`internal/server/server.go`); `app` adapts codec (WP-07) and pipeline/encode (WP-25/26a/30) to them. Until WP-34c, raw and info requests and passthrough decisions answer 501 (`KindUnsupported` underneath).
 
 ## 3. Package layout
 
@@ -488,18 +488,26 @@ Rules the executor relies on:
 
 ### 9.1 HTTP semantics (always on)
 
+Implemented in `internal/server/response.go` (WP-34b).
+
 | Header | Rule |
 |---|---|
-| `Cache-Control` | Success: `public, max-age=<TTL>, stale-while-revalidate=<TTL/10>`; add `immutable` when the URL is signed and carries a cache buster or content hash. Source `Cache-Control` passthrough optional (`XI_CACHE_HEADERS_PASSTHROUGH`). Errors: `no-store` (4xx signature/validation) or `public, max-age=XI_CACHE_HEADERS_ERROR_TTL` (default 10 s) for upstream failures. |
-| `ETag` | Strong: `"xi1-" + base64url(sha256(canonicalKey ‖ outputFormat ‖ sourceValidator ‖ XI_CACHE_ETAG_BUSTER))[:22]`. `sourceValidator` is source ETag, else Last-Modified, else SHA-256 of source bytes. |
+| `Cache-Control` | Success: `public, max-age=<TTL>, stale-while-revalidate=<TTL/10>` (`XI_CACHE_HEADERS_TTL`; `0` → `no-cache`); add `immutable` for the `immutable` option (cloudinary `fl_immutable_cache`) or when the URL is signed (verified or trusted) and carries a cache buster or a `hashsum`. A per-request TTL is clamped by the config TTL. `expires` shortens max-age to the time left and drops `stale-while-revalidate` and `immutable`. Source passthrough (`XI_CACHE_HEADERS_PASSTHROUGH`): source `Cache-Control` verbatim, else source `Expires` as `public, max-age=N`; a per-request TTL or `expires` beats passthrough. Errors: the Cache-Control column of §12 — `public, max-age=XI_CACHE_HEADERS_ERROR_TTL` (default 10 s; `0` → `no-store`) for source/image failures, `no-store` for everything else (501 included); `Retry-After` stays on 429/503. |
+| `ETag` | Strong: `"xi1-" + base64url(sha256(F(canonicalKey) F(outputFormat) F(qualityDelta) F(sourceValidator) F(XI_CACHE_ETAG_BUSTER)))[:22]` with `F(x) = decimal byte length of x ‖ ":" ‖ x`. `outputFormat` is the negotiated format name (`jpeg`, `webp`, …), `qualityDelta` the decimal Save-Data delta (not part of the canonical key). `sourceValidator` is `"e" ‖ source ETag`, else `"m" ‖ source Last-Modified as an HTTP date`, else `"h" ‖ raw SHA-256 of the source bytes`. Pinned by `TestETagGolden`; changing the encoding means bumping `xi1`. The cache buster is part of the canonical key, so it changes the ETag but never the pixels. |
 | `Last-Modified` | Source Last-Modified when known. |
-| `Vary` | `Accept` only when format was negotiated (format not fixed by URL). Add each consulted client-hint group with both names (`Sec-CH-DPR, DPR`; `Sec-CH-Width, Width, Sec-CH-Viewport-Width, Viewport-Width`; `Save-Data, ECT`) when client hints were consulted. Never `Vary: *`. |
-| `Content-DPR` | Set when DPR ≠ 1 was applied. |
-| `Content-Disposition` | `inline` (or `attachment`) with RFC 6266 `filename*` from `filename` option or source basename + new extension. |
-| `Content-Type`, `Content-Length`, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox` for SVG output. |
-| `X-Xi-Ignored` | Debug only (`XI_OBSERVABILITY_DEBUG_HEADERS`): options parsed but not applied. |
+| `Vary` | `Accept` only when format was negotiated (format not fixed by URL). Add each consulted client-hint group with both names (`Sec-CH-DPR, DPR`; `Sec-CH-Width, Width, Sec-CH-Viewport-Width, Viewport-Width`; `Save-Data, ECT`) when client hints were consulted (`negotiate.Decision.Vary | HintResult.Vary`). Never `Vary: *`. Error responses add `Vary: Accept` (JSON vs text body). |
+| `Content-DPR` | Set when a DPR ≠ 1 taken from a client hint was applied (`HintResult.ContentDPR`); a DPR fixed by the URL does not set it. |
+| `Content-Disposition` | `inline`, or `attachment` with the `return_attachment` option. `filename="<stem><ext>"`: stem from the `filename` option (an extension equal to the output's is not doubled), else the source path's base name (query and fragment dropped, percent-decoded) without its extension, else `image`; ext from the output format (`.jpg`, `.png`, `.webp`, …). Sanitised: last path segment only (`/` and `\`), control characters and invalid UTF-8 dropped, leading dots trimmed, capped at 200 bytes. The quoted value is printable ASCII with `"`, `\`, `%` and non-ASCII replaced by `_`; whenever that differs from the real name, RFC 8187 `filename*=UTF-8''…` follows. |
+| `Content-Type`, `Content-Length`, `X-Content-Type-Options: nosniff`; `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox` for SVG output. |
+| `Link` | `<source URL>; rel="canonical"` for http sources when `server.Config.CanonicalHeader` is on (imgproxy `IMGPROXY_SET_CANONICAL_HEADER`; no `XI_` variable yet, off). |
+| `Cache-Tag` | `cache_tags` values joined by `,` under the header named by `XI_CACHE_TAGS_HEADER`. |
+| `X-Xi-*` | Debug only (`XI_OBSERVABILITY_DEBUG_HEADERS`): `X-Xi-Origin-Content-Length`, `X-Xi-Origin-Width/-Height` (probe), `X-Xi-Result-Width/-Height` (encoder), `X-Xi-Ignored` (options parsed but not applied). |
 
-`If-None-Match` / `If-Modified-Since` → 304 before processing whenever the ETag is computable without processing (source validator known).
+**Conditional requests.** `If-None-Match` (weak comparison, lists, `*`) and, only without it, `If-Modified-Since` against the source Last-Modified, answer 304 with the headers a 200 would carry except the representation headers (Content-Type/-Length/-Disposition). The processor never runs for a 304. The ETag needs only the canonical key, the negotiated format and the source validator, so it is computed right after the fetch; the fetcher owns origin revalidation (it sends the cached original's validators to the origin, §7), because the client's `If-None-Match` is our hash and cannot be translated to an origin validator. When the URL fixes the output format (and no skip-processing list could turn the request into a passthrough) the 304 is answered before admission and probe; otherwise after probe and negotiation, with the admission permit and buffers released before the response is written.
+
+**HEAD** runs the lifecycle up to negotiation and answers the GET's headers without processing; `Content-Length` is omitted because it is only known after encoding.
+
+**`expires`**: a URL whose `expires` timestamp is not in the future answers 404 (`KindExpired`, `no-store`) before the fetch; dialects check it at authentication too.
 
 ### 9.2 Pluggable stores (M2)
 
