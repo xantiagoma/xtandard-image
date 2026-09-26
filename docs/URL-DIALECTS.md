@@ -43,7 +43,7 @@ Default mounts (all dialects other than imgproxy are disabled until enabled in c
 | imgix | `s` = hex(MD5(token ‖ path ‖ ("?" ‖ query-without-s if any))), token used verbatim; imgix puts `s` last, xi accepts it anywhere (same signed bytes); optional `expires` (unix) | query | https://github.com/imgix/imgix-blueprint#securing-urls |
 | cloudinary | `s--XXXXXXXX--` = first 8 chars of base64url(SHA-1(transformations/…/public_id ‖ api_secret)); 32 chars with SHA-256 "long" signatures | path segment | https://cloudinary.com/documentation/delivery_url_signatures |
 | imagekit | `ik-s` = hex(HMAC-SHA1(private_key, url-relative-to-endpoint (path ["?" query without ik-s/ik-t]) ‖ ik-t)), `ik-t` = expiry unix seconds; absent = 9999999999, which is signed but not written | query | https://imagekit.io/docs/media-delivery-basic-security |
-| thumbor | HMAC-SHA1(SECURITY_KEY, path-after-signature **without** the leading `/`), URL-safe base64 **with** padding (28 chars, Python `urlsafe_b64encode`); `unsafe` when disabled | first path segment | https://thumbor.readthedocs.io/en/latest/security.html |
+| thumbor | HMAC-SHA1(SECURITY_KEY, escaped path-after-signature **without** the leading `/`), URL-safe base64 **with** padding (28 chars, Python `urlsafe_b64encode`); keys are raw strings, not hex; `unsafe` = unsigned (§10) | first path segment | https://thumbor.readthedocs.io/en/latest/security.html |
 | bunny | token auth: `token` + `expires`; basic = MD5, advanced = SHA-256 of key ‖ path ‖ expires (‖ optional params), base64url | query | https://bunny.net/docs/cdn/security/token-authentication (exact byte layout to be verified against Bunny SDK code in the WP) |
 | cloudflare `/cdn-cgi/image` | none upstream | — | https://developers.cloudflare.com/images/transform-images/transform-via-url/ |
 | cloudflare-images | `sig` = hex(HMAC-SHA256(key, path ‖ "?" ‖ query-without-sig)), i.e. `path?exp=<unix>` for Cloudflare's own URLs; raw key; `exp` checked after the signature (expired → 404) | query | https://developers.cloudflare.com/images/optimization/hosted-images/serve-private-images/ |
@@ -532,48 +532,65 @@ https://cdn.example.com/a.jpg?width=400&aspect_ratio=16:9&quality=80&output=webp
 
 ## 10. Thumbor
 
-Reference: https://thumbor.readthedocs.io/en/latest/usage.html, https://thumbor.readthedocs.io/en/latest/filters.html, security page above.
+Reference: https://thumbor.readthedocs.io/en/latest/usage.html, https://thumbor.readthedocs.io/en/latest/filters.html, security page above; code: libthumbor `url.py` (`Url.regex`), thumbor `context.py` (`RequestParameters`), `transformer.py`, `filters/*.py`, `ext/filters/*.c`, `handlers/imaging.py` (signature check). Implementation: `internal/dialect/thumbor` (grammar, mapping) and `internal/dialect/thumbor/filters` (filter-list syntax, reused by Storyblok §12).
 
 ```
-/thumbor/unsafe/300x200/smart/filters:format(webp):quality(80)/https://example.com/a.jpg
+/thumbor/unsafe/300x200/smart/filters:format(webp):quality(80)/https%3A%2F%2Fexample.com%2Fa.jpg
 /thumbor/<hmac>/trim/10x20:310x220/fit-in/-300x0/left/top/filters:blur(3)/s3-key/a.jpg
 ```
 
-Grammar:
+Grammar (libthumbor `Url.regex`; every segment optional except the first and the image):
 
 ```
-/<hmac|unsafe>/[meta/][trim[:top-left|:bottom-right][:tolerance]/][AxB:CxD/]
-  [fit-in/|full-fit-in/|adaptive-fit-in/|adaptive-full-fit-in/][-][W|orig]x[-][H|orig]/
+/<hmac|unsafe>/[debug/][meta/][trim[:top-left|:bottom-right][:tolerance]/][AxB:CxD/]
+  [adaptive-][full-]fit-in/][-][W|orig]x[-][H|orig]/
   [left|center|right/][top|middle|bottom/][smart/][filters:name(args)[:name(args)…]/]<image>
 ```
 
+- **Matching.** Segments are matched on the escaped path in this order; a segment is taken only when something follows it (the regex backtracks otherwise), so `/unsafe/smart` is the image `smart` and a segment out of order (`/unsafe/smart/300x200/a.jpg`) starts the image. Matched parts are percent-decoded afterwards, as Tornado does for thumbor's path arguments, so `https%3A%2F%2Fe.com%2Fa.jpg` is one segment and the image `https://e.com/a.jpg`. The query string is ignored.
+- **Signature.** The first segment is `unsafe` or a signature (thumbor's `[^/]{28,}`: at least 28 characters); anything else is a 400 ("URL does not have hash or unsafe"). signature = base64url-**padded**(HMAC-SHA1(key, escaped path after `/<signature>/`)), keys are thumbor `SECURITY_KEY` strings used as raw bytes (`XI_DIALECTS_THUMBOR_KEYS`, per mount; extra mounts fall back to the primary mount's keys), no salt. A percent-encoded signature (`%3D`) is decoded first. Comparison is constant-time on the decoded MAC, so only the canonical padded spelling verifies (as in thumbor, which compares strings). `unsafe` is Unsigned and the mount's unsigned policy decides (thumbor `ALLOW_UNSAFE_URL`); with `XI_SIGNING_REQUIRED` and keys it is a 403. Vectors: thumbor `tests/test_url_composer.py` and `tests/handlers/test_base_handler*.py`.
+- **Image.** A key relative to the mount's source or an absolute URL (`http(s)://…`, `s3://…`); the source resolver applies the allowlist. thumbor's HTTP loader treats a scheme-less `host/path` as an HTTP URL; here it is a relative key.
+- **Invalid values are 400.** A known filter with malformed arguments is a 400 naming the filter (thumbor silently drops it); sizes, crop coordinates and trim tolerance above 65536 are 400s. Unknown filters are recorded in `Ignored` (400 with `XI_DIALECTS_STRICT`).
+
 | Thumbor | TR |
 |---|---|
-| `WxH` (default) | Fill + Enlarge |
-| `fit-in` / `full-fit-in` | Fit / Outside |
-| `adaptive-*` | swap W/H when orientation differs |
-| `-W`, `-H` | Flip H / V |
-| `0`, `orig` | auto / source dimension |
-| `AxB:CxD` | Crop (pre-resize, px) |
-| `trim[:corner][:tol]` | Trim (color from corner, threshold) |
-| halign/valign | Gravity compass |
-| `smart` | Smart (M3: faces first) |
-| `meta` | Info (thumbor JSON shape adapter) |
-| `quality(n)`, `format(webp|jpeg|png|gif|avif|heic)` | Quality, Format |
-| `blur(r[,σ])`, `sharpen(amount,radius,luma_only)` | Blur σ, Unsharp |
-| `brightness(n)`, `contrast(n)`, `saturation(f)`, `rgb(r,g,b)`, `grayscale()`, `equalize()` | Adjust / Grayscale; `rgb`, `equalize` partial (M2) |
-| `rotate(deg)` | Rotate/RotateAny |
-| `round_corner(r[|r2],r,g,b[,transparent])` | Radius (M2) |
-| `background_color(hex)`, `fill(color|auto|blur|transparent[,fill_transparent])` | Background / Extend; `auto`, `blur` M3 |
-| `no_upscale()`, `upscale()`, `stretch()`, `proportion(f)` | Enlarge=false, Enlarge, Force, Zoom |
+| `WxH` (default) | Resize Fill + Enlarge (thumbor crops to fill and upscales) |
+| `fit-in` / `full-fit-in` | Fit (no enlarge) / Outside + Enlarge |
+| `adaptive-*` | `Resize.Adaptive` (swap W/H when orientation differs) |
+| `-W`, `-H` | Flip H / V (`-0x-0` flips without resizing) |
+| `0` or empty, `orig` | auto / `Dim{Rel: 1}` (source dimension) |
+| `AxB:CxD` | Crop (pre-resize, px): width C−A, height D−B, gravity north-west with offsets A, B; all zero = none; C ≤ A or D ≤ B = none (`Ignored`) |
+| `trim[:corner][:tol]` | Trim (`ColorFromBottomRight`, `Threshold` = tolerance clamped to 255); `trim:N` is tolerance N (thumbor reads a lone number as the corner name and ends up with top-left, 0) |
+| halign/valign | Gravity compass (either alone pairs with center/middle); both absent = unset (centre) |
+| `smart` | Gravity Smart (overrides halign/valign; M3: faces first) |
+| `meta` | `Kind` Info, `Info{Schema: thumbor, Size, Format, Dimensions}`; the pipeline keeps the operations so the info path can report the target |
+| `debug` | `Ignored` (not implemented) |
+| `quality(n)` | Quality (0–100) |
+| `format(png\|jpeg\|jpg\|gif\|webp\|avif\|heic\|heif)` | Format (case-insensitive; heif = HEIC) |
+| `max_bytes(n)`, `max_age(s)` | MaxBytes, Delivery.TTL |
+| `autojpg([bool])` | `Output.PreferJPEGIfOpaque` |
 | `strip_exif()`, `strip_icc()` | StripMetadata, StripColorProfile |
-| `max_bytes(n)`, `max_age(s)` | MaxBytes, TTL |
-| `focal(AxB:CxD)`, `extract_focal()` | FocusPoint (rect centre) |
-| `watermark(url,x,y,alpha[,w_ratio,h_ratio])` | Watermark from URL (M3) |
-| `autojpg()` | Format JPEG when no alpha |
-| `convolution`, `noise`, `red_eye`, `curve`, `cover` | Unsupported |
+| `no_upscale()`, `upscale()` | Enlarge false / true |
+| `stretch()` | Resize Force (no effect with fit-in, as in thumbor) |
+| `proportion(f)` | ZoomX = ZoomY = f for 0 < f ≤ 1, else no effect |
+| `rotate(n)` | Rotate: thumbor rotates counter-clockwise, so Rotate = (360 − n mod 360) mod 360; non-multiples of 90 have no effect (thumbor ignores them) |
+| `brightness(n)` | Adjust.Brightness = n·255/100 (n clamped to ±100; `_brightness.c`) |
+| `contrast(n)` | Adjust.Contrast = ((100+n)/100)² (`_contrast.c`) |
+| `saturation(n)` | Adjust.Saturation = max(0, 1 + n/100) (the documented percentage) |
+| `rgb(r,g,b)` | Adjust.Red/Green/Blue = max(0, 1 + n/100); thumbor adds n% of 255, so recorded as approximated |
+| `grayscale()`, `equalize()` | Grayscale, Equalize |
+| `blur(radius[,sigma])` | Blur σ = sigma, or radius when sigma is 0/absent |
+| `sharpen(amount,radius,luma_only)` | Unsharp{Amount, Sigma = radius}; luma_only is validated, not applied |
+| `background_color(color)` | Background |
+| `fill(color\|auto\|blur\|transparent[,fill_transparent])` | Extend (background) + Background; `blur` → Extend blur (M3), `auto` (median colour) M3 |
+| `round_corner(a[\|b],r,g,b[,transparent])` | Radius a on every corner (b ≠ a approximated) + Background rgb unless transparent |
+| `focal(AxB:CxD)` | Gravity FocusPoint at the rectangle centre when given in fractions (all ≤ 1); **pixel rectangles, thumbor's norm, are recorded in `Ignored`: the model's focus point is relative and the dialect does not know the source size (model gap)** |
+| `extract_focal()` | when the image is itself a thumbor URL (up to 10 levels), the innermost original image replaces it; the crop rectangle is a pixel focal point (same gap) |
+| `watermark(url,x,y,alpha[,w_ratio[,h_ratio]])` | Watermark: Source url, Opacity = (100 − alpha)/100, position x/y px from left/top, negative from right/bottom, `Np` fraction, `center`; `repeat` → Tile repeat (both axes); Scale = w_ratio/100; h_ratio approximated |
+| `colorize`, `convolution`, `curve`, `noise`, `red_eye` | `Ignored` (unsupported) |
+| `gifv`, `cover`, `frame` | `Ignored` (M3) |
 
-`<image>` resolves like imgproxy plain sources (absolute URL or key relative to the mount source).
+Filter-list syntax (`filters` sub-package): `name(args)` separated by `:`, names `[A-Za-z0-9_]+`, arguments split on `,` outside parentheses and single quotes, trimmed, one pair of single quotes removed (thumbor `BaseFilter.String`); parentheses nest, so the list ends at the first `)/` at depth 0 (thumbor's lazy `.+?\)/` is the fallback when they do not balance). At most 64 filters. Colours: Pillow's 148 CSS3 keywords, `transparent`, hex `rgb`/`rgba`/`rrggbb`/`rrggbbaa` with optional `#`.
 
 Pixel focal points and `meta` (WP-86): `focal(AxB:CxD)` with pixel coordinates (thumbor's norm) and the crop rectangle found by `extract_focal()` become `Gravity{Type: FocusPoint, FocusPx: &FocusRect{A, B, C, D}}` through `transform.FocusFromPixels(A, B, C, D)`; the planner focuses on the rectangle's centre (`A + (C−A)/2`, rounded down like thumbor's `FocalPoint.from_square`) in the displayed source, relative to the manual crop `AxB:CxD` when there is one. Rectangles given in fractions (all ≤ 1) keep `FocusX/FocusY`. `meta` answers thumbor's JSONEngine shape (`server/info_thumbor.go`): `source` (`url` as written, displayed `width`/`height`, `frameCount`), `operations` (`crop` left/top/right/bottom in displayed source pixels, `resize` width/height, shrink-on-load listed as a resize, `flip_horizontally`/`flip_vertically`; rotations, fills and filters are not listed, as in thumbor), `target` (the planned result size) and `focal_points` (the explicit point with `z` = its area, or one `alignment` point). The JSONP `callback` argument is not supported.
 
