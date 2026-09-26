@@ -73,6 +73,12 @@ func (*Blob) Release() {}
 // Image is unavailable without cgo.
 type Image struct{}
 
+// WritePixels fails.
+func (*Image) WritePixels(context.Context) (*Blob, error) { return nil, ErrUnavailable }
+
+// ToRGB8 fails.
+func (*Image) ToRGB8(context.Context) (*Blob, error) { return nil, ErrUnavailable }
+
 // Probe fails.
 func Probe(context.Context, *Buffer) (Header, error) { return Header{}, ErrUnavailable }
 

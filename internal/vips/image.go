@@ -309,6 +309,73 @@ func (img *Image) WriteToMemory(ctx context.Context) ([]byte, error) {
 	return C.GoBytes(p, C.int(n)), nil
 }
 
+// WritePixels computes the whole image and returns its pixels
+// (band-interleaved, BandFormat samples, row by row) as a Blob of C memory,
+// without copying them into Go. It is a sink: ctx cancellation kills it.
+func (img *Image) WritePixels(ctx context.Context) (*Blob, error) {
+	if err := ctxError(ctx, "vips: write pixels"); err != nil {
+		return nil, err
+	}
+	stop := KillOnCancel(ctx, img)
+	defer stop()
+	var p unsafe.Pointer
+	var n C.size_t
+	var cerr *C.char
+	rc := C.xi_write_to_memory(img.p, &p, &n, &cerr)
+	if err := stepError(ctx, rc, "write_pixels", cerr, img.src); err != nil {
+		return nil, err
+	}
+	return newBlob(p, int(n)), nil
+}
+
+// ToRGB8 renders img as 8-bit sRGB with exactly three bands and returns the
+// band-interleaved pixels (HWC, R G B) as a Blob of C memory: the input of
+// the detection models (internal/detect). Alpha is flattened onto white;
+// known colour spaces (grey, 16-bit, CMYK, Lab, ...) are converted to sRGB
+// without ICC; one- and two-band images are replicated to grey RGB and
+// extra bands are dropped.
+func (img *Image) ToRGB8(ctx context.Context) (*Blob, error) {
+	var a Arena
+	defer a.Close()
+	cur := img
+	var err error
+	if cur.HasAlpha() {
+		if cur, err = a.Add(cur.Flatten(ctx, []float64{255, 255, 255})); err != nil {
+			return nil, err
+		}
+	}
+	switch cur.Interpretation() {
+	case InterpretationSRGB, InterpretationRGB, InterpretationMultiband, InterpretationHistogram,
+		InterpretationFourier, InterpretationMatrix, InterpretationError:
+		// sRGB already, or no colour space libvips could convert from.
+	default:
+		if cur, err = a.Add(cur.Colourspace(ctx, InterpretationSRGB)); err != nil {
+			return nil, err
+		}
+	}
+	if cur.BandFormat() != BandFormatUchar {
+		if cur, err = a.Add(cur.Cast(ctx, BandFormatUchar)); err != nil {
+			return nil, err
+		}
+	}
+	switch bands := cur.Bands(); {
+	case bands == 2:
+		if cur, err = a.Add(cur.ExtractBand(ctx, 0, 1)); err != nil {
+			return nil, err
+		}
+		fallthrough
+	case bands == 1 || bands == 2:
+		if cur, err = a.Add(Bandjoin(ctx, []*Image{cur, cur, cur})); err != nil {
+			return nil, err
+		}
+	case bands > 3:
+		if cur, err = a.Add(cur.ExtractBand(ctx, 0, 3)); err != nil {
+			return nil, err
+		}
+	}
+	return cur.WritePixels(ctx)
+}
+
 // CopyMemory computes the whole image into memory and returns it as a new
 // image with random access and the same metadata (vips_image_copy_memory).
 // Use it before saving the same pipeline several times (the max_bytes
