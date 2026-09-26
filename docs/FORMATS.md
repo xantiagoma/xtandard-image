@@ -88,6 +88,14 @@ When the chosen format depends on `Accept`, the response carries `Vary: Accept`.
 | SVG source, no raster ops, SVG acceptable (`XI_FORMATS_SVG_PASSTHROUGH`) | SVG | SVG | SVG | SVG |
 | Source format not encodable (PDF, PSD, RAW, HEIC to non-Safari, BMP, TIFF) | apply rows above | | | JPEG or PNG by alpha |
 
+Resolution rules (`internal/negotiate`, WP-31):
+
+- Order: info → JSON; raw request or source format in `XI_FORMATS_SKIP_PROCESSING` / `skip_processing` → passthrough (before the explicit format, like imgproxy); explicit URL format; SVG row; content row.
+- A modern format is a candidate only when `Accept` names it exactly with q > 0 (`image/*` and `*/*` never imply it), its auto or enforce flag is on, the row allows it and the cost guard passes. Candidates are ordered by enforce flag, then Accept q-value, then the column order above (AVIF, WebP, JXL). Enforce never overrides an explicit URL format (imgproxy's `ENFORCE_*` does; we follow §6.1.1).
+- The "else" column is the first entry of `XI_FORMATS_PREFERRED` compatible with the row (alpha, animation, lossless for graphics); if none is, JPEG / PNG / GIF. The source format is never kept implicitly.
+- Until M2 content analysis exists every still image is classed as a photo.
+- `Vary: Accept` is set whenever Accept was consulted (any enabled, applicable modern format, SVG passthrough check, or strict Accept), including when the fallback won; never when the format is explicit or the source is passed through.
+
 `Save-Data: on` or `ECT: slow-2g|2g` lowers the quality by `XI_FORMATS_SAVE_DATA_QUALITY_DELTA` (default −15) when the URL did not fix quality.
 
 ### 6.3 `best` (M2)
