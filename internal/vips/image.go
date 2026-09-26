@@ -431,6 +431,28 @@ func NewFromMemory(ctx context.Context, pix []byte, width, height, bands int, fo
 	return newImage(out, nil), nil
 }
 
+// NewFromBuffer wraps band-interleaved pixels held in buf as a libvips
+// image without copying (internal/video/ffmpeg decodes frames straight into
+// a Buffer). buf must hold at least width × height × bands × the sample
+// size of format bytes; it may be longer. The image keeps its own
+// reference to buf's memory until libvips closes it, so the caller may
+// Release buf right away.
+func NewFromBuffer(ctx context.Context, buf *Buffer, width, height, bands int, format BandFormat) (*Image, error) {
+	if err := ctxError(ctx, "vips: new from buffer"); err != nil {
+		return nil, err
+	}
+	if buf == nil || buf.blob == nil || width <= 0 || height <= 0 || bands <= 0 {
+		return nil, errs.Newf(errs.KindInternal, "vips: new from buffer: %dx%dx%d", width, height, bands)
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_new_from_blob(buf.blob, C.int(width), C.int(height), C.int(bands), C.int(format), &out, &cerr)
+	if err := opError(rc, "new_from_buffer", cerr, nil); err != nil {
+		return nil, err
+	}
+	return newImage(out, nil), nil
+}
+
 // Blob is encoded output in C memory allocated by libvips. Bytes exposes it
 // without copying, so it can be written straight to the response. It is
 // reference counted like Buffer (and satisfies the same interface): Retain
