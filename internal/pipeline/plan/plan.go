@@ -15,7 +15,7 @@ type SourceMeta struct {
 	HasAlpha    bool
 	Orientation int    // EXIF orientation 1..8; 0 is treated as 1
 	IsAnimated  bool   // several frames with delays (GIF, WebP, JXL)
-	Format      string // source format name: "jpeg", "png", "webp", "gif", "svg", "pdf", "heic", "avif", ...
+	Format      string // source format name: "jpeg", "png", "webp", "gif", "svg", "pdf", "heic", "avif", "raw", ...
 	IsVector    bool   // SVG, PDF: rendered at any scale
 	// Density is the DPI a vector source's Width and Height were measured
 	// at (PDF: XI_FORMATS_PDF_DPI); it is rendered at the same density,
@@ -26,7 +26,16 @@ type SourceMeta struct {
 	// not the first page. The executor sets it after measuring a selection
 	// the header could not describe.
 	Selection bool
+	// PreviewWidth and PreviewHeight are the size of a camera RAW's
+	// embedded JPEG preview in the stored orientation (the RAW's
+	// Orientation applies to it); 0 when there is none. Width and Height
+	// are the demosaiced size.
+	PreviewWidth, PreviewHeight int
 }
+
+// DefaultRawPreviewMinRatio is the RawPreviewMinRatio used when the limit
+// is zero: the preview must be at least the size the source is scaled to.
+const DefaultRawPreviewMinRatio = 1.0
 
 // Limits are the configured processing limits (XI_LIMITS_*). Zero means
 // unlimited unless stated otherwise.
@@ -41,8 +50,18 @@ type Limits struct {
 	// AllowRaisingLimits lets transform.Request.Limits raise the values
 	// above; otherwise overrides may only lower them.
 	AllowRaisingLimits bool
-	// DisableShrinkOnLoad turns off shrink-on-load for raster formats.
+	// DisableShrinkOnLoad turns off shrink-on-load for raster formats (and
+	// the half-size RAW demosaic).
 	DisableShrinkOnLoad bool
+	// MaxRawDemosaicPixels caps the sensor width × height of a camera RAW
+	// that is demosaiced (XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS); 0 is
+	// unlimited. The embedded-preview path is not affected.
+	MaxRawDemosaicPixels int64
+	// RawPreviewMinRatio: a camera RAW is decoded from its embedded JPEG
+	// preview when the preview is at least this many times the size the
+	// source is scaled to, on both axes (XI_FORMATS_RAW_PREVIEW_MIN_RATIO);
+	// 0 means DefaultRawPreviewMinRatio.
+	RawPreviewMinRatio float64
 }
 
 // Observed is what the executor saw after a step whose outcome a header
@@ -129,7 +148,13 @@ type Step interface{ step() }
 // LoadStep decodes the source.
 type LoadStep struct {
 	// ShrinkOnLoad is the JPEG shrink factor: 2, 4 or 8; 0 or 1 is off.
+	// For a camera RAW it applies to the embedded preview (Preview).
 	ShrinkOnLoad int
+	// Preview decodes a camera RAW from its embedded JPEG preview
+	// (SourceMeta.PreviewWidth × PreviewHeight) instead of demosaicing it.
+	Preview bool
+	// HalfSize demosaics a camera RAW at half its width and height.
+	HalfSize bool
 	// Scale is the WebP/SVG/PDF scale-on-load factor; 0 is off.
 	Scale float64
 	// Density is the vector rendering DPI; 0 keeps the loader default.

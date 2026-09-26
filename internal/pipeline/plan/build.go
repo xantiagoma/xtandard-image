@@ -40,6 +40,8 @@ type effLimits struct {
 	frames, resultDim      int
 	memory                 int64
 	noShrinkOnLoad         bool
+	rawDemosaicPixels      int64
+	rawPreviewRatio        float64
 }
 
 func override(cfg, req int64, raise bool) int64 {
@@ -57,13 +59,22 @@ func resolveLimits(l *Limits, o *transform.LimitOverrides) effLimits {
 		return int64(f * 1e6)
 	}
 	return effLimits{
-		srcPixels:      override(l.MaxSrcPixels, mp(o.MaxSrcResolution), l.AllowRaisingLimits),
-		framePixels:    override(l.MaxAnimationFramePixels, mp(o.MaxAnimationFrameResolution), l.AllowRaisingLimits),
-		frames:         int(override(int64(l.MaxAnimationFrames), int64(o.MaxAnimationFrames), l.AllowRaisingLimits)),
-		resultDim:      int(override(int64(l.MaxResultDimension), int64(o.MaxResultDimension), l.AllowRaisingLimits)),
-		memory:         l.MemoryBudget,
-		noShrinkOnLoad: l.DisableShrinkOnLoad,
+		srcPixels:         override(l.MaxSrcPixels, mp(o.MaxSrcResolution), l.AllowRaisingLimits),
+		framePixels:       override(l.MaxAnimationFramePixels, mp(o.MaxAnimationFrameResolution), l.AllowRaisingLimits),
+		frames:            int(override(int64(l.MaxAnimationFrames), int64(o.MaxAnimationFrames), l.AllowRaisingLimits)),
+		resultDim:         int(override(int64(l.MaxResultDimension), int64(o.MaxResultDimension), l.AllowRaisingLimits)),
+		memory:            l.MemoryBudget,
+		noShrinkOnLoad:    l.DisableShrinkOnLoad,
+		rawDemosaicPixels: l.MaxRawDemosaicPixels,
+		rawPreviewRatio:   rawPreviewRatio(l.RawPreviewMinRatio),
 	}
+}
+
+func rawPreviewRatio(r float64) float64 {
+	if !(r > 0) || math.IsInf(r, 0) {
+		return DefaultRawPreviewMinRatio
+	}
+	return r
 }
 
 // source is the input of one pipeline.
@@ -78,6 +89,10 @@ type source struct {
 	page        int
 	stack       int // pages of a still loaded stacked as one image (≤ 1: one)
 	density     float64
+	// Camera RAW: the embedded preview size (0 = none) and whether the
+	// request enforces the embedded thumbnail.
+	previewW, previewH int
+	enforceThumb       bool
 }
 
 func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observed) (*Plan, error) {
@@ -110,6 +125,8 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 	src := source{
 		w: meta.Width, h: frameH, orientation: meta.Orientation, alpha: meta.HasAlpha,
 		format: format, vector: meta.IsVector, hasData: true, frames: 1, density: meta.Density,
+		previewW: meta.PreviewWidth, previewH: meta.PreviewHeight,
+		enforceThumb: req.Output.EnforceThumbnail != nil && *req.Output.EnforceThumbnail,
 	}
 	nFrames := max(meta.Frames, 1)
 	if first.Page != nil && *first.Page > 0 {
@@ -239,6 +256,9 @@ type builder struct {
 	geoFrom, geoW, geoH int
 	exifAngle           int
 	exifFlip            bool
+	// rawBytes is the working memory of a RAW demosaic (LibRaw's sensor
+	// buffer and its four 16-bit samples per output pixel).
+	rawBytes int64
 }
 
 func (b *builder) add(s Step) { b.pl.Steps = append(b.pl.Steps, s) }
@@ -371,6 +391,9 @@ func scaleOnLoad(g *geo, o *opts, s *source, lim *effLimits, obs *Observed, load
 	wshrink := float64(g.srcW) / float64(max(1, scaleDim(g.srcW, g.wScale)))
 	hshrink := float64(g.srcH) / float64(max(1, scaleDim(g.srcH, g.hScale)))
 	pre := min(wshrink, hshrink)
+	if s.format == formatRAW {
+		return rawOnLoad(g, o, s, lim, obs, load, b, pre)
+	}
 	if s.vector {
 		pre *= g.vectorBaseShrink
 	}
@@ -412,6 +435,58 @@ func scaleOnLoad(g *geo, o *opts, s *source, lim *effLimits, obs *Observed, load
 		load.Scale = 1 / pre
 		nw, nh = shrinkDimEven(s.w, pre), shrinkDimEven(s.h, pre)
 	}
+	return rebaseOnLoad(g, o, obs, load, b, nw, nh)
+}
+
+// formatRAW is the SourceMeta.Format of camera RAW files.
+const formatRAW = "raw"
+
+// rawOnLoad decides how a camera RAW is decoded (FORMATS.md §2): from its
+// embedded JPEG preview when the preview is at least rawPreviewRatio × the
+// size the source is scaled to on both axes (or enforce_thumbnail asks for
+// it), with JPEG shrink-on-load down to that size; otherwise by demosaicing,
+// at half size when the source is scaled to half its size or less.
+func rawOnLoad(g *geo, o *opts, s *source, lim *effLimits, obs *Observed, load *LoadStep, b *builder, pre float64) error {
+	if !(pre > 0) || math.IsInf(pre, 0) {
+		pre = 1
+	}
+	nw, nh := s.w, s.h
+	if s.previewW > 0 && s.previewH > 0 {
+		// The size the source is scaled to, and the preview, as displayed.
+		tw, th := scaleDim(g.srcW, g.wScale), scaleDim(g.srcH, g.hScale)
+		pw, ph := b.oriented(g, o.rotate, s.previewW, s.previewH)
+		r := lim.rawPreviewRatio
+		if s.enforceThumb || (float64(pw)+0.5 >= r*float64(tw) && float64(ph)+0.5 >= r*float64(th)) {
+			load.Preview = true
+			nw, nh = s.previewW, s.previewH
+			fit := min(float64(pw)/float64(max(tw, 1)), float64(ph)/float64(max(th, 1)))
+			if sh := jpegShrink(fit); sh > 1 && !lim.noShrinkOnLoad {
+				load.ShrinkOnLoad = sh
+				nw, nh = max(1, nw/sh), max(1, nh/sh)
+			}
+		}
+	}
+	if !load.Preview {
+		px := int64(s.w) * int64(s.h)
+		if lim.rawDemosaicPixels > 0 && px > lim.rawDemosaicPixels {
+			return errs.New(errs.KindLimitExceeded, "plan: raw sensor resolution exceeds the demosaic limit")
+		}
+		if pre >= 2 && !lim.noShrinkOnLoad {
+			load.HalfSize = true
+			nw, nh = (s.w+1)/2, (s.h+1)/2
+		}
+		b.rawBytes = px*2 + int64(nw)*int64(nh)*8
+	}
+	if (obs == nil || !obs.Loaded) && nw == s.w && nh == s.h {
+		return nil // loaded at the header's size: the scales stand
+	}
+	return rebaseOnLoad(g, o, obs, load, b, nw, nh)
+}
+
+// rebaseOnLoad records that the loader produces nw×nh (as stored) instead of
+// the source size, or the size the executor observed, and rebases the
+// scales and crop on it.
+func rebaseOnLoad(g *geo, o *opts, obs *Observed, load *LoadStep, b *builder, nw, nh int) error {
 	if obs != nil && obs.Loaded {
 		nw, nh = obs.Width, obs.Height
 	}
@@ -644,7 +719,7 @@ func cost(b *builder) Cost {
 	if b.random {
 		bytes *= 2
 	}
-	return Cost{Pixels: b.peak, EstimatedBytes: bytes}
+	return Cost{Pixels: b.peak, EstimatedBytes: bytes + b.rawBytes}
 }
 
 // unplanned lists options later work packages turn into steps.
