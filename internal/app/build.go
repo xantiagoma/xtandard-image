@@ -12,6 +12,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/bunny"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/cloudflare"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imagekit"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
@@ -49,8 +50,8 @@ func (p infoParser) Name() string { return infoDialect }
 func (p infoParser) Parse(in *dialect.Input) (*dialect.Result, error) { return p.ParseInfo(in) }
 
 // buildRouter builds the signing verifiers, presets, the available dialects
-// (imgproxy, query, imagekit, cloudflare, cloudflare_images, wsrv and
-// thumbor) and the router. warnings lists enabled dialects that are not implemented yet; their
+// (imgproxy, query, imagekit, cloudflare, cloudflare_images, wsrv, thumbor
+// and bunny) and the router. warnings lists enabled dialects that are not implemented yet; their
 // mounts are skipped.
 func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err error) {
 	keys := make([]sign.Key, 0, len(cfg.Signing.Keys))
@@ -204,6 +205,9 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	if err := addThumborMounts(cfg, required, dialects, opts); err != nil {
 		return nil, nil, err
 	}
+	if err := addBunnyMounts(cfg, ipOpts.Presets, dialects, opts); err != nil {
+		return nil, nil, err
+	}
 	// Root "/?url=" (URL-DIALECTS §1): wsrv when enabled, else query.
 	switch {
 	case cfg.Dialects.Wsrv.Enabled:
@@ -225,7 +229,6 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 
 	for name, enabled := range map[string]bool{
 		"imgix": cfg.Dialects.Imgix.Enabled, "cloudinary": cfg.Dialects.Cloudinary.Enabled,
-		"bunny":  cfg.Dialects.Bunny.Enabled,
 		"simple": len(cfg.Dialects.Simple.Enabled) > 0,
 	} {
 		if enabled {
@@ -362,6 +365,46 @@ func addThumborMounts(cfg *config.Config, required bool, dialects map[string]dia
 		}
 		opts.Mounts = append(opts.Mounts, router.Mount{
 			Name: key, Dialect: key, Prefix: mo.Prefix, Hosts: mo.Hosts,
+			Source: mo.Source, Policy: router.Policy(mo.UnsignedPolicy),
+		})
+	}
+	return nil
+}
+
+// addBunnyMounts registers one bunny parser per enabled mount, because
+// each mount (pull zone) has its own token authentication keys
+// (dialects.bunny[.mounts[]].keys, raw strings). The primary mount's
+// parser is registered as "bunny", extra mounts as "bunny[i]".
+func addBunnyMounts(cfg *config.Config, presets *preset.Store, dialects map[string]dialect.Dialect, opts *router.Options) error {
+	m := &cfg.Dialects.Bunny
+	if !m.Enabled {
+		return nil
+	}
+	for i, mo := range append([]config.MountOptions{m.MountOptions}, m.Mounts...) {
+		label := bunny.Name
+		if i > 0 {
+			label = fmt.Sprintf("%s[%d]", bunny.Name, i)
+		}
+		keys := make([]sign.Key, 0, len(mo.Keys))
+		for _, k := range mo.Keys {
+			keys = append(keys, sign.NewKey([]byte(k.Reveal()), nil))
+		}
+		v, err := sign.NewBunnyVerifier(sign.BunnyOptions{Keys: sign.NewKeyring(keys...), Required: cfg.Signing.Required.Bool() && len(keys) > 0})
+		if err != nil {
+			return fmt.Errorf("%s verifier: %w", label, err)
+		}
+		p, err := bunny.New(&bunny.Options{
+			Verifier:           v,
+			Presets:            presets,
+			ArgumentsSeparator: cfg.Dialects.Imgproxy.ArgumentsSeparator,
+			Strict:             cfg.Dialects.Strict,
+		})
+		if err != nil {
+			return fmt.Errorf("%s dialect: %w", label, err)
+		}
+		dialects[label] = p
+		opts.Mounts = append(opts.Mounts, router.Mount{
+			Name: label, Dialect: label, Prefix: mo.Prefix, Hosts: mo.Hosts,
 			Source: mo.Source, Policy: router.Policy(mo.UnsignedPolicy),
 		})
 	}

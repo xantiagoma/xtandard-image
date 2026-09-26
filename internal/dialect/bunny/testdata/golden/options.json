@@ -1,0 +1,2519 @@
+{
+  "aspect_ratio": {
+    "path": "/a.jpg",
+    "query": "aspect_ratio=16:9",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "aspect_ratio",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Crop": {
+            "AspectRatio": 1.7777777777777777
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "aspect_ratio_auto": {
+    "path": "/a.jpg",
+    "query": "aspect_ratio=auto",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "aspect_ratio_decimal": {
+    "path": "/a.jpg",
+    "query": "aspect_ratio=1.5:1",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "aspect_ratio",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Crop": {
+            "AspectRatio": 1.5
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "aspect_ratio_differs_from_box": {
+    "path": "/a.jpg",
+    "query": "width=200\u0026height=100\u0026aspect_ratio=1:1",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "aspect_ratio",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Crop": {
+            "AspectRatio": 1
+          },
+          "Resize": {
+            "Height": {
+              "Px": 100
+            },
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "aspect_ratio_extreme": {
+    "error": {
+      "field": "aspect_ratio",
+      "kind": "invalid_url",
+      "public": "invalid aspect_ratio: expected width:height with positive numbers, or auto",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "aspect_ratio=100000:1"
+  },
+  "aspect_ratio_gravity": {
+    "path": "/a.jpg",
+    "query": "aspect_ratio=1:1\u0026crop_gravity=west",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "aspect_ratio",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Crop": {
+            "AspectRatio": 1
+          },
+          "Gravity": {
+            "Type": "west"
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "aspect_ratio_matches_box": {
+    "path": "/a.jpg",
+    "query": "width=200\u0026height=100\u0026aspect_ratio=200:100\u0026crop_gravity=north",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "north"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 100
+            },
+            "Type": "fill-down",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "aspect_ratio_matches_box_upscaling": {
+    "path": "/a.jpg",
+    "query": "width=200\u0026height=100\u0026aspect_ratio=2:1\u0026upscaling=resampling",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 100
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "aspect_ratio_no_colon": {
+    "error": {
+      "field": "aspect_ratio",
+      "kind": "invalid_url",
+      "public": "invalid aspect_ratio: expected width:height with positive numbers, or auto",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "aspect_ratio=16"
+  },
+  "aspect_ratio_width": {
+    "path": "/a.jpg",
+    "query": "aspect_ratio=16:9\u0026width=256",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "aspect_ratio",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Crop": {
+            "AspectRatio": 1.7777777777777777
+          },
+          "Resize": {
+            "Width": {
+              "Px": 256
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "aspect_ratio_with_crop": {
+    "path": "/a.jpg",
+    "query": "crop=800,600\u0026aspect_ratio=1:1",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "aspect_ratio",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Crop": {
+            "AspectRatio": 1,
+            "Height": {
+              "Px": 600
+            },
+            "Width": {
+              "Px": 800
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "aspect_ratio_zero": {
+    "error": {
+      "field": "aspect_ratio",
+      "kind": "invalid_url",
+      "public": "invalid aspect_ratio: expected width:height with positive numbers, or auto",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "aspect_ratio=0:9"
+  },
+  "auto_optimize_explicit_quality": {
+    "path": "/a.jpg",
+    "query": "auto_optimize=high\u0026quality=90",
+    "request": {
+      "Dialect": "bunny",
+      "Output": {
+        "Quality": 90
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "auto_optimize_high": {
+    "path": "/a.jpg",
+    "query": "auto_optimize=high",
+    "request": {
+      "Dialect": "bunny",
+      "Output": {
+        "Quality": 65
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "auto_optimize_invalid": {
+    "error": {
+      "field": "auto_optimize",
+      "kind": "invalid_url",
+      "public": "invalid auto_optimize: expected low, medium or high",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "auto_optimize=max"
+  },
+  "auto_optimize_low": {
+    "path": "/a.jpg",
+    "query": "auto_optimize=low",
+    "request": {
+      "Dialect": "bunny",
+      "Output": {
+        "Quality": 85
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "auto_optimize_medium": {
+    "path": "/a.jpg",
+    "query": "auto_optimize=medium",
+    "request": {
+      "Dialect": "bunny",
+      "Output": {
+        "Quality": 75
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "bad_path_escape": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid path escaping",
+      "status": 400
+    },
+    "path": "/a%zz.jpg",
+    "query": ""
+  },
+  "bad_query_escape": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid query escaping",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "width=%zz"
+  },
+  "blur": {
+    "path": "/a.jpg",
+    "query": "blur=25",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Blur": 6.25
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "blur_out_of_range": {
+    "error": {
+      "field": "blur",
+      "kind": "invalid_url",
+      "public": "invalid blur: expected number 0 to 100",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "blur=101"
+  },
+  "blur_zero": {
+    "path": "/a.jpg",
+    "query": "blur=0",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "brightness": {
+    "path": "/a.jpg",
+    "query": "brightness=30",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "brightness",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": 76.5
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "brightness_negative": {
+    "path": "/a.jpg",
+    "query": "brightness=-30",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "brightness",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": -76.5
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "brightness_out_of_range": {
+    "error": {
+      "field": "brightness",
+      "kind": "invalid_url",
+      "public": "invalid brightness: expected number -100 to 100",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "brightness=101"
+  },
+  "brightness_zero": {
+    "path": "/a.jpg",
+    "query": "brightness=0",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "class": {
+    "config": "presets",
+    "path": "/a.jpg",
+    "query": "class=thumbnail",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "thumbnail"
+        ]
+      },
+      "Dialect": "bunny",
+      "Output": {
+        "Quality": 85
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Sharpen": 1
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "class_default_preset": {
+    "config": "default_pre",
+    "path": "/a.jpg",
+    "query": "class=hero",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "default",
+          "hero"
+        ]
+      },
+      "Dialect": "bunny",
+      "Output": {
+        "Quality": 70
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 1200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "class_empty": {
+    "config": "presets",
+    "error": {
+      "field": "preset",
+      "kind": "invalid_url",
+      "public": "invalid preset: expected non-empty string",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "class="
+  },
+  "class_only": {
+    "config": "only_presets",
+    "path": "/a.jpg",
+    "query": "class=hero",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "hero"
+        ]
+      },
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 1200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "class_only_extra_option": {
+    "config": "only_presets",
+    "error": {
+      "kind": "forbidden",
+      "public": "only image classes are allowed",
+      "status": 403
+    },
+    "path": "/a.jpg",
+    "query": "class=hero\u0026width=10"
+  },
+  "class_override": {
+    "config": "presets",
+    "path": "/a.jpg",
+    "query": "class=thumbnail\u0026quality=50\u0026width=100",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "thumbnail"
+        ]
+      },
+      "Dialect": "bunny",
+      "Output": {
+        "Quality": 50
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          },
+          "Sharpen": 1
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "class_unexpanded": {
+    "path": "/a.jpg",
+    "query": "class=thumbnail",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "thumbnail"
+        ]
+      },
+      "Dialect": "bunny",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "class_unknown": {
+    "config": "presets",
+    "error": {
+      "field": "preset",
+      "kind": "invalid_url",
+      "public": "invalid preset: expected defined preset",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "class=nope"
+  },
+  "combined": {
+    "path": "/a.jpg",
+    "query": "width=800\u0026crop=600,400\u0026brightness=5\u0026sharpen=true\u0026quality=80",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "brightness",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Quality": 80
+      },
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": 12.75
+          },
+          "Crop": {
+            "Height": {
+              "Px": 400
+            },
+            "Width": {
+              "Px": 600
+            }
+          },
+          "Resize": {
+            "Width": {
+              "Px": 800
+            }
+          },
+          "Sharpen": 1
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "combined_docs": {
+    "path": "/a.jpg",
+    "query": "aspect_ratio=16:9\u0026gamma=10\u0026saturation=10\u0026format=webp",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "gamma",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "saturation",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "aspect_ratio",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Gamma": 1.0717734625362931,
+            "Saturation": 1.1
+          },
+          "Crop": {
+            "AspectRatio": 1.7777777777777777
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "contrast": {
+    "path": "/a.jpg",
+    "query": "contrast=15",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "contrast",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Contrast": 1.15
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "contrast_minimum": {
+    "path": "/a.jpg",
+    "query": "contrast=-100",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "contrast",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Contrast": 0
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "control_char": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid source",
+      "status": 400
+    },
+    "path": "/a%00.jpg",
+    "query": ""
+  },
+  "crop_gravity_bottom": {
+    "path": "/a.jpg",
+    "query": "crop=400,300\u0026crop_gravity=bottom",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 400
+            }
+          },
+          "Gravity": {
+            "Type": "south"
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "crop_gravity_center": {
+    "path": "/a.jpg",
+    "query": "crop=400,300\u0026crop_gravity=center",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 400
+            }
+          },
+          "Gravity": {
+            "Type": "center"
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "crop_gravity_east": {
+    "path": "/a.jpg",
+    "query": "crop=400,300\u0026crop_gravity=east",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 400
+            }
+          },
+          "Gravity": {
+            "Type": "east"
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "crop_gravity_invalid": {
+    "error": {
+      "field": "crop_gravity",
+      "kind": "invalid_url",
+      "public": "invalid crop_gravity: expected center, north, south, east, west, northeast, northwest, southeast, southwest",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "crop_gravity=middle"
+  },
+  "crop_gravity_northeast": {
+    "path": "/a.jpg",
+    "query": "crop=400,300\u0026crop_gravity=northeast",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 400
+            }
+          },
+          "Gravity": {
+            "Type": "north-east"
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "crop_gravity_northwest": {
+    "path": "/a.jpg",
+    "query": "crop=400,300\u0026crop_gravity=northwest",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 400
+            }
+          },
+          "Gravity": {
+            "Type": "north-west"
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "crop_gravity_south": {
+    "path": "/a.jpg",
+    "query": "crop=400,300\u0026crop_gravity=south",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 400
+            }
+          },
+          "Gravity": {
+            "Type": "south"
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "crop_gravity_southeast": {
+    "path": "/a.jpg",
+    "query": "crop=400,300\u0026crop_gravity=southeast",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 400
+            }
+          },
+          "Gravity": {
+            "Type": "south-east"
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "crop_gravity_southwest": {
+    "path": "/a.jpg",
+    "query": "crop=400,300\u0026crop_gravity=southwest",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 400
+            }
+          },
+          "Gravity": {
+            "Type": "south-west"
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "crop_gravity_top_left": {
+    "path": "/a.jpg",
+    "query": "crop=400,300\u0026crop_gravity=top_left",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 400
+            }
+          },
+          "Gravity": {
+            "Type": "north-west"
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "crop_gravity_west": {
+    "path": "/a.jpg",
+    "query": "crop=400,300\u0026crop_gravity=west",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 400
+            }
+          },
+          "Gravity": {
+            "Type": "west"
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "crop_invalid": {
+    "error": {
+      "field": "crop",
+      "kind": "invalid_url",
+      "public": "invalid crop: expected width,height or width,height,x,y in pixels",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "crop=a,b"
+  },
+  "crop_relative_rejected": {
+    "error": {
+      "field": "crop",
+      "kind": "invalid_url",
+      "public": "invalid crop: expected width,height or width,height,x,y in pixels",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "crop=0.5,0.5"
+  },
+  "crop_then_resize": {
+    "path": "/a.jpg",
+    "query": "crop=800,600\u0026width=400",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Px": 600
+            },
+            "Width": {
+              "Px": 800
+            }
+          },
+          "Resize": {
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "crop_three_args": {
+    "error": {
+      "field": "crop",
+      "kind": "invalid_url",
+      "public": "invalid crop: expected width,height or width,height,x,y in pixels",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "crop=1,2,3"
+  },
+  "crop_wh": {
+    "path": "/a.jpg",
+    "query": "crop=800,600",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Px": 600
+            },
+            "Width": {
+              "Px": 800
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "crop_wh_gravity": {
+    "path": "/a.jpg",
+    "query": "crop=400,300\u0026crop_gravity=north",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 400
+            }
+          },
+          "Gravity": {
+            "Type": "north"
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "crop_whxy": {
+    "path": "/a.jpg",
+    "query": "crop=400,300,200,150",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 200,
+              "YOffset": 150
+            },
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "crop_zero": {
+    "error": {
+      "field": "crop",
+      "kind": "invalid_url",
+      "public": "invalid crop: expected width,height or width,height,x,y in pixels",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "crop=0,10"
+  },
+  "empty_path": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing source",
+      "status": 400
+    },
+    "path": "/",
+    "query": ""
+  },
+  "face_crop_false": {
+    "path": "/a.jpg",
+    "query": "face_crop=false",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "face_crop_invalid": {
+    "error": {
+      "field": "face_crop",
+      "kind": "invalid_url",
+      "public": "invalid face_crop: expected true, false or width,height",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "face_crop=big"
+  },
+  "face_crop_true": {
+    "path": "/a.jpg",
+    "query": "face_crop=true",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "face_crop",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "face_crop_wh": {
+    "path": "/a.jpg",
+    "query": "face_crop=600,600",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "face_crop",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "center"
+            },
+            "Height": {
+              "Px": 600
+            },
+            "Width": {
+              "Px": 600
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "flip": {
+    "path": "/a.jpg",
+    "query": "flip=true",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Flip": {
+            "V": true
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "flip_false": {
+    "path": "/a.jpg",
+    "query": "flip=false",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "flip_flop": {
+    "path": "/a.jpg",
+    "query": "flip=true\u0026flop=1",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true,
+            "V": true
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "flip_invalid": {
+    "error": {
+      "field": "flip",
+      "kind": "invalid_url",
+      "public": "invalid flip: expected true or false",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "flip=yes"
+  },
+  "flop": {
+    "path": "/a.jpg",
+    "query": "flop=true",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "focus_crop_absolute": {
+    "path": "/a.jpg",
+    "query": "focus_crop=400,300,500,400",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 300,
+              "YOffset": 250
+            },
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "focus_crop_absolute_edge": {
+    "path": "/a.jpg",
+    "query": "focus_crop=400,300,10,10",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west"
+            },
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "focus_crop_invalid": {
+    "error": {
+      "field": "focus_crop",
+      "kind": "invalid_url",
+      "public": "invalid focus_crop: expected width,height,x,y with pixel or 0-1 relative x,y",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "focus_crop=400,300"
+  },
+  "focus_crop_relative": {
+    "path": "/a.jpg",
+    "query": "focus_crop=400,300,0.5,0.5",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "FocusX": 0.5,
+              "FocusY": 0.5,
+              "Type": "focus-point"
+            },
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "focus_crop_relative_out_of_range": {
+    "error": {
+      "field": "focus_crop",
+      "kind": "invalid_url",
+      "public": "invalid focus_crop: expected width,height,x,y with pixel or 0-1 relative x,y",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "focus_crop=400,300,1.5,0.5"
+  },
+  "format_avif": {
+    "path": "/a.jpg",
+    "query": "format=avif",
+    "request": {
+      "Dialect": "bunny",
+      "Output": {
+        "Format": "avif"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "format_gif": {
+    "path": "/a.jpg",
+    "query": "format=gif",
+    "request": {
+      "Dialect": "bunny",
+      "Output": {
+        "Format": "gif"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "format_invalid": {
+    "error": {
+      "field": "format",
+      "kind": "invalid_url",
+      "public": "invalid format: expected webp, jpeg, png, gif or avif",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "format=tiff"
+  },
+  "format_jpeg": {
+    "path": "/a.jpg",
+    "query": "format=jpeg",
+    "request": {
+      "Dialect": "bunny",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "format_png": {
+    "path": "/a.jpg",
+    "query": "format=png",
+    "request": {
+      "Dialect": "bunny",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "format_upper": {
+    "path": "/a.jpg",
+    "query": "format=WEBP",
+    "request": {
+      "Dialect": "bunny",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "format_webp": {
+    "path": "/a.jpg",
+    "query": "format=webp",
+    "request": {
+      "Dialect": "bunny",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "gamma": {
+    "path": "/a.jpg",
+    "query": "gamma=40",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "gamma",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Gamma": 1.3195079107728942
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "gamma_negative": {
+    "path": "/a.jpg",
+    "query": "gamma=-100",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "gamma",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Gamma": 0.5
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "height": {
+    "path": "/a.jpg",
+    "query": "height=300",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "height_invalid": {
+    "error": {
+      "field": "height",
+      "kind": "invalid_url",
+      "public": "invalid height: expected integer 0-65536",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "height=abc"
+  },
+  "hue": {
+    "path": "/a.jpg",
+    "query": "hue=33",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "hue",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Hue": 118.8
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "hue_negative": {
+    "error": {
+      "field": "hue",
+      "kind": "invalid_url",
+      "public": "invalid hue: expected number 0 to 100",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "hue=-1"
+  },
+  "nested_path": {
+    "path": "/img/2024/a%20b.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "img/2024/a%20b.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "img/2024/a%20b.jpg"
+  },
+  "no_path": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing source",
+      "status": 400
+    },
+    "path": "",
+    "query": ""
+  },
+  "not_enforced": {
+    "path": "/a.jpg",
+    "query": "token_countries=US\u0026token_countries_blocked=CN\u0026limit=100",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "token_countries",
+          "Reason": "not enforced"
+        },
+        {
+          "Option": "token_countries_blocked",
+          "Reason": "not enforced"
+        },
+        {
+          "Option": "limit",
+          "Reason": "not enforced"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "optimizer": {
+    "path": "/a.jpg",
+    "query": "optimizer=image\u0026width=10",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "output_webp": {
+    "path": "/a.jpg",
+    "query": "output=webp",
+    "request": {
+      "Dialect": "bunny",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "plain": {
+    "path": "/a.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "quality": {
+    "path": "/a.jpg",
+    "query": "quality=75",
+    "request": {
+      "Dialect": "bunny",
+      "Output": {
+        "Quality": 75
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "quality_invalid": {
+    "error": {
+      "field": "quality",
+      "kind": "invalid_url",
+      "public": "invalid quality: expected integer 0-100",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "quality=101"
+  },
+  "quality_zero": {
+    "path": "/a.jpg",
+    "query": "quality=0",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "rotate_270": {
+    "path": "/a.jpg",
+    "query": "rotate=270",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Rotate": 270
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "rotate_90": {
+    "path": "/a.jpg",
+    "query": "rotate=90",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "rotate_invalid": {
+    "error": {
+      "field": "rotate",
+      "kind": "invalid_url",
+      "public": "invalid rotate: expected -270, -180, -90, 0, 90, 180 or 270",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "rotate=45"
+  },
+  "rotate_minus_270": {
+    "path": "/a.jpg",
+    "query": "rotate=-270",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "rotate_minus_90": {
+    "path": "/a.jpg",
+    "query": "rotate=-90",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Rotate": 270
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "rotate_too_big": {
+    "error": {
+      "field": "rotate",
+      "kind": "invalid_url",
+      "public": "invalid rotate: expected -270, -180, -90, 0, 90, 180 or 270",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "rotate=360"
+  },
+  "saturation": {
+    "path": "/a.jpg",
+    "query": "saturation=15",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "saturation",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Saturation": 1.15
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "saturation_grayscale": {
+    "path": "/a.jpg",
+    "query": "saturation=-100",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "saturation",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Saturation": 0
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "saturation_invalid": {
+    "error": {
+      "field": "saturation",
+      "kind": "invalid_url",
+      "public": "invalid saturation: expected number -100 to 100",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "saturation=x"
+  },
+  "scheme_like_key": {
+    "path": "/https:/evil.example.com/a.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "https%3A/evil.example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https%3A/evil.example.com/a.jpg"
+  },
+  "sepia": {
+    "path": "/a.jpg",
+    "query": "sepia=75",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "sepia",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Sepia": true
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "sepia_invalid": {
+    "error": {
+      "field": "sepia",
+      "kind": "invalid_url",
+      "public": "invalid sepia: expected number 0 to 100",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "sepia=200"
+  },
+  "sepia_zero": {
+    "path": "/a.jpg",
+    "query": "sepia=0",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "sharpen_false": {
+    "path": "/a.jpg",
+    "query": "sharpen=false",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "sharpen_invalid": {
+    "error": {
+      "field": "sharpen",
+      "kind": "invalid_url",
+      "public": "invalid sharpen: expected true or false",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "sharpen=very"
+  },
+  "sharpen_numeric": {
+    "path": "/a.jpg",
+    "query": "sharpen=3",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "sharpen",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Sharpen": 1
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "sharpen_true": {
+    "path": "/a.jpg",
+    "query": "sharpen=true",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Sharpen": 1
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "tint": {
+    "path": "/a.jpg",
+    "query": "tint=aaffff",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "tint",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Tint": {
+            "A": 255,
+            "B": 255,
+            "G": 255,
+            "R": 170
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "tint_invalid": {
+    "error": {
+      "field": "tint",
+      "kind": "invalid_url",
+      "public": "invalid tint: expected hex color rrggbb",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "tint=blue"
+  },
+  "tint_white": {
+    "path": "/a.jpg",
+    "query": "tint=ffffff",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "unknown": {
+    "path": "/a.jpg",
+    "query": "utm_source=x\u0026width=10",
+    "request": {
+      "Dialect": "bunny",
+      "Ignored": [
+        {
+          "Option": "utm_source",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "unknown_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "utm_source=x"
+  },
+  "upscaling_invalid": {
+    "error": {
+      "field": "upscaling",
+      "kind": "invalid_url",
+      "public": "invalid upscaling: expected off or resampling",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "upscaling=on"
+  },
+  "upscaling_off": {
+    "path": "/a.jpg",
+    "query": "width=2048\u0026upscaling=off",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 2048
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "upscaling_resampling": {
+    "path": "/a.jpg",
+    "query": "width=2048\u0026upscaling=resampling",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 2048
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "width": {
+    "path": "/a.jpg",
+    "query": "width=400",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "width_float": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected integer 0-65536",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "width=1.5"
+  },
+  "width_height": {
+    "path": "/a.jpg",
+    "query": "width=100\u0026height=75",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 75
+            },
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "width_huge": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected integer 0-65536",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "width=99999999"
+  },
+  "width_last_wins": {
+    "path": "/a.jpg",
+    "query": "width=100\u0026width=200",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "width_negative": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected integer 0-65536",
+      "status": 400
+    },
+    "path": "/a.jpg",
+    "query": "width=-1"
+  },
+  "width_zero": {
+    "path": "/a.jpg",
+    "query": "width=0",
+    "request": {
+      "Dialect": "bunny",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "zone",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  }
+}
