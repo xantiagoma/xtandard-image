@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // maxDPR is the largest device pixel ratio accepted anywhere (client hints
@@ -353,6 +354,8 @@ func (c *Config) validateProcessing(v *validator) {
 	v.check(p.GoMemoryFraction > 0 && p.GoMemoryFraction <= 1, "processing.go_memory_fraction", "must be in (0, 1], got %g", p.GoMemoryFraction)
 	v.check(p.WatermarkOpacity >= 0 && p.WatermarkOpacity <= 1, "processing.watermark_opacity", "must be in [0, 1], got %g", p.WatermarkOpacity)
 	v.check(p.ColorProfilesDir == "" || filepath.IsAbs(p.ColorProfilesDir), "processing.color_profiles_dir", "must be an absolute path")
+	v.check(validFont(p.WatermarkFont), "processing.watermark_font", "must be a Pango font description (letters, digits, spaces and \",-_.\", at most 128 bytes)")
+	v.check(p.WatermarkFontFile == "" || filepath.IsAbs(p.WatermarkFontFile), "processing.watermark_font_file", "must be an absolute path")
 	v.between(c.Fallback.Status, 200, 599, "fallback.status")
 	v.nonNegative(int64(c.Fallback.TTL), "fallback.ttl")
 	v.positive(int64(c.Vips.Concurrency), "vips.concurrency")
@@ -433,6 +436,7 @@ func (c *Config) validateLimits(v *validator) {
 		{"limits.max_svg_depth", int64(l.MaxSVGDepth)},
 		{"limits.max_svg_elements", int64(l.MaxSVGElements)},
 		{"limits.max_pdf_pages", int64(l.MaxPDFPages)},
+		{"limits.max_watermark_text_pixels", l.MaxWatermarkTextPixels},
 	} {
 		v.positive(n.v, n.path)
 	}
@@ -514,4 +518,18 @@ func sortedKeys[K cmp.Ordered, V any](m map[K]V) []K {
 type named[T any] struct {
 	path string
 	v    T
+}
+
+// validFont reports whether s is a plausible Pango font description: the
+// executor parses it again with the same character set.
+func validFont(s string) bool {
+	if strings.TrimSpace(s) == "" || len(s) > 128 {
+		return false
+	}
+	for _, r := range s {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && !strings.ContainsRune(" ,-_.", r) {
+			return false
+		}
+	}
+	return true
 }

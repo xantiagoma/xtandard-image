@@ -200,7 +200,9 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_PROCESSING_LINEAR_RESIZE` | `false` | Resize in linear light |
 | `XI_PROCESSING_COLOR_PROFILES_DIR` | `` | Custom ICC files |
 | `XI_PROCESSING_WATERMARK_SOURCE` | `` | Default watermark image (source string, resolved against the sources). Fetched and decoded once at startup, never refreshed; a watermark that cannot be loaded stops startup |
-| `XI_PROCESSING_WATERMARK_OPACITY` | `1` | Multiplies every request's watermark opacity |
+| `XI_PROCESSING_WATERMARK_OPACITY` | `1` | Multiplies every request's watermark opacity (configured image, per-request image and text) |
+| `XI_PROCESSING_WATERMARK_FONT` | `sans 16` | Pango font description of text watermarks (imgproxy's default); a request's font takes the family or size it lacks from it. The image ships DejaVu Sans and DejaVu Sans Mono (`sans`, `monospace`) through fontconfig |
+| `XI_PROCESSING_WATERMARK_FONT_FILE` | `` | Absolute path of a font file (TTF/OTF) registered with fontconfig for text watermarks, in addition to the fonts under `/opt/xtandard/share/fonts`; requests select it by family name |
 | `XI_FALLBACK_SOURCE` | `` | Fallback image (source string) |
 | `XI_FALLBACK_STATUS` | `200` | Status used with fallback |
 | `XI_FALLBACK_TTL` | `1m` | `Cache-Control: public, max-age` of a fallback response; `0` sends `no-store` |
@@ -242,6 +244,7 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_LIMITS_MAX_SVG_DEPTH` | `256` | SVG sanitiser nesting limit |
 | `XI_LIMITS_MAX_SVG_ELEMENTS` | `200000` | SVG sanitiser element limit |
 | `XI_LIMITS_MAX_PDF_PAGES` | `500` | Pages a PDF may have; checked when the header is read, before any page renders (422) |
+| `XI_LIMITS_MAX_WATERMARK_TEXT_PIXELS` | `16777216` | Area a text watermark is rendered on (the frame, or the text width × the frame height, scaled down to this); text that does not fit is shrunk until it does |
 | `XI_VIPS_CONCURRENCY` | `1` | libvips threads per image; change only with benchmarks |
 | `XI_VIPS_FAIL_ON` | `warning` | |
 
