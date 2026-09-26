@@ -15,6 +15,37 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "aliases_size": {
+    "path": "/photos/a.jpg",
+    "query": "width=300\u0026height=200\u0026max-width=250\u0026min-height=10\u0026or=6",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "AutoRotate": false,
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "MaxWidth": 250,
+            "MinHeight": 10,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "ar_crop": {
     "path": "/photos/a.jpg",
     "query": "w=400\u0026fit=crop\u0026ar=16:9",
@@ -363,16 +394,11 @@
     "query": "txt64=YT9iPmM=",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "txt",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
             {
+              "Font": "sans 12",
               "Opacity": 1,
               "Position": {
                 "Type": "south-east",
@@ -588,6 +614,36 @@
         {
           "Background": {}
         }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "blend_short_aliases": {
+    "path": "/photos/a.jpg",
+    "query": "b=ff0000\u0026bm=multiply\u0026balph=50",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "blend",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "blend-mode",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "blend-alpha",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {}
       ],
       "Source": {
         "Encoding": "relative",
@@ -873,12 +929,6 @@
     "query": "bri=50",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "bri",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -1027,12 +1077,6 @@
     "query": "con=-50",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "con",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -1173,12 +1217,6 @@
     "query": "w=1\u0026h=1\u0026fit=crop\u0026crop=faces",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "crop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1209,12 +1247,6 @@
     "query": "w=1\u0026h=1\u0026fit=crop\u0026crop=faces,entropy",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "crop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1245,6 +1277,12 @@
     "query": "w=1\u0026h=1\u0026fit=crop\u0026crop=focalpoint\u0026fp-x=0.2\u0026fp-y=0.8\u0026fp-z=3",
     "request": {
       "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "fp-z",
+          "Reason": "not implemented"
+        }
+      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1315,6 +1353,38 @@
     "path": "/photos/a.jpg",
     "query": "w=1\u0026h=1\u0026fit=crop\u0026crop=focalpoint\u0026fp-x=1.5"
   },
+  "crop_focalpoint_zoom_one": {
+    "path": "/photos/a.jpg",
+    "query": "w=1\u0026h=1\u0026fit=crop\u0026crop=focalpoint\u0026fp-z=1",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusX": 0.5,
+            "FocusY": 0.5,
+            "Type": "focus-point"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 1
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "crop_invalid": {
     "error": {
       "field": "crop",
@@ -1360,12 +1430,6 @@
     "query": "w=1\u0026h=1\u0026fit=crop\u0026crop=car,vehicle,auto",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "crop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1573,12 +1637,6 @@
     "query": "cs=srgb",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "cs",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "ColorProfile": "srgb"
       },
@@ -1617,12 +1675,6 @@
     "query": "cs=tinysrgb",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "cs",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "ColorProfile": "srgb"
       },
@@ -1746,12 +1798,6 @@
     "query": "duotone=000080,ffff00",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "duotone",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Duotone": {
@@ -1781,12 +1827,6 @@
     "query": "duotone=000080,ffff00\u0026duotone-alpha=40",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "duotone",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Duotone": {
@@ -1848,18 +1888,61 @@
     "query": "exp=100",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "exp",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
             "Exposure": 2
           }
         }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "face_blur": {
+    "path": "/photos/a.jpg",
+    "query": "face-blur=50",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "BlurDetections": {
+            "Classes": [
+              "face"
+            ],
+            "Sigma": 10
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "face_blur_invalid": {
+    "error": {
+      "field": "face-blur",
+      "kind": "invalid_url",
+      "public": "invalid face-blur: expected number in range 0 to 100",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "face-blur=101"
+  },
+  "face_blur_zero": {
+    "path": "/photos/a.jpg",
+    "query": "face-blur=0",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {}
       ],
       "Source": {
         "Encoding": "relative",
@@ -1899,6 +1982,35 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "face_pixel": {
+    "path": "/photos/a.jpg",
+    "query": "face-pixelate=20\u0026face-blur=10",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "face-blur",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "BlurDetections": {
+            "Classes": [
+              "face"
+            ],
+            "Pixelate": 20
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "fill_without_fill_fit": {
     "path": "/photos/a.jpg",
     "query": "w=10\u0026fill=blur\u0026fill-color=red",
@@ -1921,6 +2033,33 @@
             "Type": "fit",
             "Width": {
               "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "fit_alias_f": {
+    "path": "/photos/a.jpg",
+    "query": "w=400\u0026h=300\u0026f=crop",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 400
             }
           }
         }
@@ -2050,12 +2189,6 @@
     "query": "w=200\u0026h=200\u0026fit=facearea\u0026facepad=2\u0026faceindex=1",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "fit",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -2270,11 +2403,87 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "fit_fill_generative": {
+    "path": "/photos/a.jpg",
+    "query": "w=400\u0026h=300\u0026fit=fill\u0026fill=generative",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "fill",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "fit_fill_gradient": {
+    "path": "/photos/a.jpg",
+    "query": "w=400\u0026h=300\u0026fit=fill\u0026fill=gradient\u0026fill-gradient-type=radial",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "fill-gradient-type",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "fill",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "fit_fill_invalid": {
     "error": {
       "field": "fill",
       "kind": "invalid_url",
-      "public": "invalid fill: expected solid, blur or gen",
+      "public": "invalid fill: expected solid, blur, gen, generative or gradient",
       "status": 400
     },
     "path": "/photos/a.jpg",
@@ -2787,6 +2996,15 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "fm_spritesheet_unsupported": {
+    "error": {
+      "kind": "unsupported",
+      "public": "unsupported output format",
+      "status": 422
+    },
+    "path": "/photos/a.jpg",
+    "query": "fm=spritesheet"
+  },
   "fm_webm": {
     "path": "/photos/a.jpg",
     "query": "fm=webm\u0026auto=format",
@@ -2908,12 +3126,6 @@
     "query": "gam=-100",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "gam",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -3018,12 +3230,6 @@
     "query": "hue=-90",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "hue",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -3044,14 +3250,33 @@
     "query": "invert=true",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "invert",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
+          "Negate": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "invert_alias": {
+    "path": "/photos/a.jpg",
+    "query": "inv=1\u0026mono=ff0000",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Monochrome": {
+            "Color": {
+              "A": 255,
+              "R": 255
+            },
+            "Intensity": 1
+          },
           "Negate": true
         }
       ],
@@ -3088,6 +3313,88 @@
     },
     "path": "/photos/a.jpg",
     "query": "invert=maybe"
+  },
+  "iptc": {
+    "path": "/photos/a.jpg",
+    "query": "iptc=allow",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "iptc",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "iptc_invalid": {
+    "error": {
+      "field": "iptc",
+      "kind": "invalid_url",
+      "public": "invalid iptc: expected allow or block",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "iptc=keep"
+  },
+  "jpg_progressive": {
+    "path": "/photos/a.jpg",
+    "query": "fm=jpg\u0026jpg-progressive=true",
+    "request": {
+      "Dialect": "imgix",
+      "Output": {
+        "Format": "jpeg",
+        "Progressive": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "jpg_progressive_invalid": {
+    "error": {
+      "field": "jpg-progressive",
+      "kind": "invalid_url",
+      "public": "invalid jpg-progressive: expected boolean (1, t, true, 0, f, false)",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "jpg-progressive=maybe"
+  },
+  "jpg_progressive_off_pjpg": {
+    "path": "/photos/a.jpg",
+    "query": "fm=pjpg\u0026jpeg-progressive=false",
+    "request": {
+      "Dialect": "imgix",
+      "Output": {
+        "Format": "jpeg",
+        "Progressive": false
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
   },
   "lossless": {
     "path": "/photos/a.jpg",
@@ -3138,17 +3445,33 @@
     "path": "/photos/a.jpg",
     "query": "lossless=yes"
   },
+  "lp_blur_unsupported": {
+    "path": "/photos/a.jpg",
+    "query": "lp-blur=50",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "lp-blur",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "mark64": {
     "path": "/photos/a.jpg",
     "query": "mark64=aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZz94PTEmeT0y",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "mark",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3179,20 +3502,6 @@
     "query": "mark=https://example.com/l.png\u0026markalpha=10\u0026markalign=middle,center",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "mark",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-alpha",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-align",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3226,6 +3535,46 @@
     "path": "/photos/a.jpg",
     "query": "mark=https://example.com/l.png\u0026mark-align=up"
   },
+  "mark_base": {
+    "path": "/photos/a.jpg",
+    "query": "mark=logos/l.png\u0026mark-base=https://assets.example.com/brand/",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 5,
+                "YOffset": 5
+              },
+              "Source": {
+                "Raw": "https://assets.example.com/brand/logos/l.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "mark_base_invalid": {
+    "error": {
+      "field": "mark-base",
+      "kind": "invalid_url",
+      "public": "invalid mark-base: expected http(s) url",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "mark=l.png\u0026mark-base=ftp://x/"
+  },
   "mark_empty": {
     "error": {
       "field": "mark",
@@ -3236,6 +3585,44 @@
     "path": "/photos/a.jpg",
     "query": "mark="
   },
+  "mark_fit_crop": {
+    "path": "/photos/a.jpg",
+    "query": "mark=https://example.com/l.png\u0026mark-w=40\u0026mark-h=40\u0026mark-fit=crop",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "mark-fit",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Height": 40,
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 5,
+                "YOffset": 5
+              },
+              "Source": {
+                "Raw": "https://example.com/l.png"
+              },
+              "Width": 40
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "mark_full": {
     "path": "/photos/a.jpg",
     "query": "mark=https://example.com/l.png\u0026mark-alpha=50\u0026mark-align=top,left\u0026mark-pad=4\u0026mark-scale=25\u0026mark-w=100\u0026mark-h=0.5\u0026mark-tile=grid\u0026mark-rot=30\u0026mark-fit=clip",
@@ -3245,46 +3632,6 @@
         {
           "Option": "mark-h",
           "Reason": "approximated"
-        },
-        {
-          "Option": "mark",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-alpha",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-align",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-pad",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-scale",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-w",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-h",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-fit",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-tile",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-rot",
-          "Reason": "takes effect in M3"
         }
       ],
       "Pipelines": [
@@ -3316,6 +3663,78 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "mark_if_min": {
+    "path": "/photos/a.jpg",
+    "query": "mark=https://example.com/l.png\u0026mark-if-min-width=500\u0026mark-if-min-height=400",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "mark-if-min-width",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "mark-if-min-height",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 5,
+                "YOffset": 5
+              },
+              "Source": {
+                "Raw": "https://example.com/l.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "mark_if_min_alone": {
+    "path": "/photos/a.jpg",
+    "query": "mark-if-min-width=500",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "mark-if-min-width",
+          "Reason": "only with its base parameter"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "mark_if_min_invalid": {
+    "error": {
+      "field": "mark-if-min-width",
+      "kind": "invalid_url",
+      "public": "invalid mark-if-min-width: expected number in range 0 to 65536",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "mark=https://example.com/l.png\u0026mark-if-min-width=-1"
+  },
   "mark_params_alone": {
     "path": "/photos/a.jpg",
     "query": "mark-alpha=50",
@@ -3324,7 +3743,7 @@
       "Ignored": [
         {
           "Option": "mark-alpha",
-          "Reason": "takes effect in M3"
+          "Reason": "only with its base parameter"
         }
       ],
       "Pipelines": [
@@ -3343,12 +3762,6 @@
     "query": "mark=/logos/logo.png",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "mark",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3362,6 +3775,36 @@
               "Source": {
                 "Encoding": "relative",
                 "Raw": "logos/logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "mark_short_aliases": {
+    "path": "/photos/a.jpg",
+    "query": "m=https://example.com/l.png\u0026ma=top\u0026malph=50\u0026ms=20\u0026mp=3",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 0.5,
+              "Position": {
+                "Type": "north",
+                "YOffset": 3
+              },
+              "Scale": 0.2,
+              "Source": {
+                "Raw": "https://example.com/l.png"
               }
             }
           ]
@@ -3390,12 +3833,6 @@
     "query": "mark=https://example.com/logo.png",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "mark",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3421,25 +3858,40 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "mark_x_only": {
+    "path": "/photos/a.jpg",
+    "query": "mark=https://example.com/l.png\u0026mark-x=10",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 10
+              },
+              "Source": {
+                "Raw": "https://example.com/l.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "mark_xy": {
     "path": "/photos/a.jpg",
     "query": "mark=https://example.com/l.png\u0026mark-x=10\u0026mark-y=20",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "mark",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-x",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-y",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3665,12 +4117,6 @@
     "query": "monochrome=ff0000",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "monochrome",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Monochrome": {
@@ -3695,12 +4141,6 @@
     "query": "monochrome=80ff0000",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "monochrome",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Monochrome": {
@@ -3729,6 +4169,60 @@
     },
     "path": "/photos/a.jpg",
     "query": "monochrome=zzz"
+  },
+  "not_implemented": {
+    "path": "/photos/a.jpg",
+    "query": "w=10\u0026loop=2\u0026reverse=true\u0026fps=12\u0026skip=2\u0026interval=3\u0026transparency=grid\u0026grid-size=8",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "loop",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "reverse",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "fps",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "skip",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "interval",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "transparency",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "grid-size",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
   },
   "orient_1": {
     "path": "/photos/a.jpg",
@@ -4318,6 +4812,62 @@
     "path": "/photos/a.jpg",
     "query": "rot=360"
   },
+  "rot_type": {
+    "path": "/photos/a.jpg",
+    "query": "rot=10\u0026rot-type=pivot",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "rot-type",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "RotateAny": -10
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "rot_type_invalid": {
+    "error": {
+      "field": "rot-type",
+      "kind": "invalid_url",
+      "public": "invalid rot-type: expected pivot or straighten",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "rot=10\u0026rot-type=spin"
+  },
+  "rot_type_without_rot": {
+    "path": "/photos/a.jpg",
+    "query": "rottype=straighten",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "rot-type",
+          "Reason": "only with its base parameter"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "rot_zero": {
     "path": "/photos/a.jpg",
     "query": "rot=0",
@@ -4339,12 +4889,6 @@
     "query": "sat=-100",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "sat",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -4365,12 +4909,6 @@
     "query": "sepia=100",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "sepia",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Sepia": true
@@ -4390,10 +4928,6 @@
     "request": {
       "Dialect": "imgix",
       "Ignored": [
-        {
-          "Option": "sepia",
-          "Reason": "takes effect in M2"
-        },
         {
           "Option": "sepia",
           "Reason": "approximated"
@@ -4676,12 +5210,6 @@
     "query": "w=10\u0026h=20\u0026fit=crop\u0026crop=faces",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "crop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -4706,6 +5234,16 @@
     },
     "signature": "unsigned",
     "source": "photos/a.jpg"
+  },
+  "strict_not_implemented": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "w=10\u0026loop=2"
   },
   "strict_silent_tags": {
     "config": "strict",
@@ -4752,6 +5290,16 @@
     "path": "/photos/a.jpg",
     "query": "w=10\u0026bg-remove=true"
   },
+  "strict_video": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "w=10\u0026video-thumbnail=1"
+  },
   "trim_alias": {
     "path": "/photos/a.jpg",
     "query": "trim=color\u0026trimcolor=000",
@@ -4773,6 +5321,42 @@
     },
     "signature": "unsigned",
     "source": "photos/a.jpg"
+  },
+  "trim_alpha": {
+    "path": "/photos/a.jpg",
+    "query": "trim=alpha\u0026trim-alpha=10",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "trim",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "trim-alpha",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "trim_alpha_invalid": {
+    "error": {
+      "field": "trim-alpha",
+      "kind": "invalid_url",
+      "public": "invalid trim-alpha: expected number in range 0 to 255",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "trim=alpha\u0026trim-alpha=300"
   },
   "trim_auto": {
     "path": "/photos/a.jpg",
@@ -4864,11 +5448,37 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "trim_colorunlessalpha": {
+    "path": "/photos/a.jpg",
+    "query": "trim=colorunlessalpha\u0026trim-tol=5",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "trim",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Trim": {
+            "Threshold": 5
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "trim_invalid": {
     "error": {
       "field": "trim",
       "kind": "invalid_url",
-      "public": "invalid trim: expected auto or color",
+      "public": "invalid trim: expected auto, color, alpha or colorunlessalpha",
       "status": 400
     },
     "path": "/photos/a.jpg",
@@ -4927,16 +5537,11 @@
     "query": "txt=Hello+%3Cworld%3E",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "txt",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
             {
+              "Font": "sans 12",
               "Opacity": 1,
               "Position": {
                 "Type": "south-east",
@@ -4961,16 +5566,11 @@
     "query": "txt64=SGVsbG8sIFdvcmxkISDwn5iB",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "txt",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
             {
+              "Font": "sans 12",
               "Opacity": 1,
               "Position": {
                 "Type": "south-east",
@@ -5010,6 +5610,35 @@
     "path": "/photos/a.jpg",
     "query": "txt="
   },
+  "txt_font_list": {
+    "path": "/photos/a.jpg",
+    "query": "txt=Hi\u0026txt-font=DejaVu%20Sans,Bold",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Font": "DejaVu Sans Bold 12",
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 10,
+                "YOffset": 10
+              },
+              "Text": "Hi"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "txt_full": {
     "path": "/photos/a.jpg",
     "query": "txt=Hi\u0026txt-font=Avenir%20Next\u0026txt-size=40\u0026txt-color=80ffffff\u0026txt-align=middle,center\u0026txt-pad=20\u0026txt-shad=3\u0026txt-width=200\u0026txt-fit=max",
@@ -5017,40 +5646,8 @@
       "Dialect": "imgix",
       "Ignored": [
         {
-          "Option": "txt",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-font",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-size",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-color",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-align",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-pad",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-shad",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-width",
-          "Reason": "takes effect in M3"
-        },
-        {
           "Option": "txt-fit",
-          "Reason": "takes effect in M3"
+          "Reason": "approximated"
         }
       ],
       "Pipelines": [
@@ -5069,6 +5666,40 @@
                 "Type": "center"
               },
               "Shadow": 3,
+              "Text": "Hi",
+              "TextWidth": 200
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "txt_short_aliases": {
+    "path": "/photos/a.jpg",
+    "query": "t=Hi\u0026tsz=30\u0026tc=ff0000\u0026ta=top,left",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Color": {
+                "A": 255,
+                "R": 255
+              },
+              "Font": "sans 30",
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 10,
+                "YOffset": 10
+              },
               "Text": "Hi"
             }
           ]
@@ -5087,14 +5718,55 @@
     "query": "txt=Hi\u0026txt-size=12",
     "request": {
       "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Font": "sans 12",
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 10,
+                "YOffset": 10
+              },
+              "Text": "Hi"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "txt_typography": {
+    "path": "/photos/a.jpg",
+    "query": "txt=Hi\u0026txt-clip=ellipsis\u0026txt-lead=4\u0026txt-track=2\u0026txt-line=1\u0026txt-line-color=fff",
+    "request": {
+      "Dialect": "imgix",
       "Ignored": [
         {
-          "Option": "txt",
-          "Reason": "takes effect in M3"
+          "Option": "txt-clip",
+          "Reason": "unsupported"
         },
         {
-          "Option": "txt-size",
-          "Reason": "takes effect in M3"
+          "Option": "txt-lead",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "txt-track",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "txt-line",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "txt-line-color",
+          "Reason": "unsupported"
         }
       ],
       "Pipelines": [
@@ -5112,6 +5784,57 @@
             }
           ]
         }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "txt_xy": {
+    "path": "/photos/a.jpg",
+    "query": "txt=Hi\u0026txt-x=12\u0026txt-y=0.25",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Font": "sans 12",
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 12,
+                "YOffset": 0.25
+              },
+              "Text": "Hi"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "txt_xy_alone": {
+    "path": "/photos/a.jpg",
+    "query": "txt-x=12",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "txt-x",
+          "Reason": "only with its base parameter"
+        }
+      ],
+      "Pipelines": [
+        {}
       ],
       "Source": {
         "Encoding": "relative",
@@ -5171,6 +5894,48 @@
         },
         {
           "Option": "fp-debug",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "unsupported_video_and_svg": {
+    "path": "/photos/a.jpg",
+    "query": "w=10\u0026video-codec=h264\u0026svg-sanitize=false\u0026rasterize-bypass=true\u0026pdf-annotation=false",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "video-codec",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "svg-sanitize",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "rasterize-bypass",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "pdf-annotation",
           "Reason": "unsupported"
         }
       ],
@@ -5275,7 +6040,7 @@
       "Ignored": [
         {
           "Option": "vib",
-          "Reason": "takes effect in M2"
+          "Reason": "not implemented"
         }
       ],
       "Pipelines": [

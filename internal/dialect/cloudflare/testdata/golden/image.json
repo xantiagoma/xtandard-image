@@ -9,24 +9,6 @@
         "OnErrorRedirect": true
       },
       "Dialect": "cloudflare",
-      "Ignored": [
-        {
-          "Option": "brightness",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "contrast",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "gamma",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "saturation",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Effort": 1,
         "Format": "webp",
@@ -438,12 +420,6 @@
     "path": "/border=red;5/uploads/a.jpg",
     "request": {
       "Dialect": "cloudflare",
-      "Ignored": [
-        {
-          "Option": "border",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Border": {
@@ -469,12 +445,6 @@
     "path": "/border.color=blue,border.width=2,border.left=8/uploads/a.jpg",
     "request": {
       "Dialect": "cloudflare",
-      "Ignored": [
-        {
-          "Option": "border",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Border": {
@@ -509,12 +479,6 @@
     "path": "/border=%23000;1;2;3;4/uploads/a.jpg",
     "request": {
       "Dialect": "cloudflare",
-      "Ignored": [
-        {
-          "Option": "border",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Border": {
@@ -548,12 +512,6 @@
     "path": "/brightness=0.5/uploads/a.jpg",
     "request": {
       "Dialect": "cloudflare",
-      "Ignored": [
-        {
-          "Option": "brightness",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -572,12 +530,6 @@
     "path": "/brightness=1/uploads/a.jpg",
     "request": {
       "Dialect": "cloudflare",
-      "Ignored": [
-        {
-          "Option": "brightness",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -644,12 +596,6 @@
     "path": "/contrast=1.5/uploads/a.jpg",
     "request": {
       "Dialect": "cloudflare",
-      "Ignored": [
-        {
-          "Option": "contrast",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -771,20 +717,10 @@
     "path": "/face-zoom=0.1,g=face/uploads/a.jpg",
     "request": {
       "Dialect": "cloudflare",
-      "Ignored": [
-        {
-          "Option": "face-zoom",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "gravity=face",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
-            "FocusZoom": 0.1,
+            "FacePad": 10,
             "Type": "face"
           }
         }
@@ -1294,12 +1230,6 @@
     "path": "/gamma=0.5/uploads/a.jpg",
     "request": {
       "Dialect": "cloudflare",
-      "Ignored": [
-        {
-          "Option": "gamma",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -1372,12 +1302,6 @@
     "path": "/gravity=face/uploads/a.jpg",
     "request": {
       "Dialect": "cloudflare",
-      "Ignored": [
-        {
-          "Option": "gravity=face",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1396,20 +1320,10 @@
     "path": "/gravity=face,zoom=0.5/uploads/a.jpg",
     "request": {
       "Dialect": "cloudflare",
-      "Ignored": [
-        {
-          "Option": "gravity=face",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "zoom",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
-            "FocusZoom": 0.5,
+            "FacePad": 2,
             "Type": "face"
           }
         }
@@ -1934,12 +1848,6 @@
     "path": "/saturation=0/uploads/a.jpg",
     "request": {
       "Dialect": "cloudflare",
-      "Ignored": [
-        {
-          "Option": "saturation",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {

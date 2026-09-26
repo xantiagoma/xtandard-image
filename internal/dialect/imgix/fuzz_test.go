@@ -27,6 +27,8 @@ func FuzzParse(f *testing.F) {
 		{"", ""},
 		{"/", "&&&"},
 		{img, "txt64=***&foo=bar&bg-remove=1"},
+		{img, "m=l.png&mark-x=3&mark-if-min-width=9&t=hi&txt-x=0.5&txt-y=4&face-pixel=10&face-blur=5"},
+		{img, "trim=alpha&trim-alpha=9&rot=5&rot-type=pivot&jpg-progressive=1&iptc=allow&loop=0&video-codec=x"},
 	} {
 		f.Add(s[0], s[1])
 	}

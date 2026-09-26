@@ -618,9 +618,26 @@
           "const": "auto"
         }
       ]
+    },
+    "videoSecond": {
+      "description": "A timestamp in seconds (negative counts from the end of the video), or auto for best-frame selection.",
+      "examples": [
+        "auto",
+        1,
+        -2.5
+      ],
+      "oneOf": [
+        {
+          "type": "number"
+        },
+        {
+          "pattern": "^\\s*([Aa][Uu][Tt][Oo]|[-+]?([0-9]+\\.?[0-9]*|\\.[0-9]+)([eE][-+]?[0-9]+)?)\\s*$",
+          "type": "string"
+        }
+      ]
     }
   },
-  "$id": "https://xantiagoma.github.io/xtandard-image/schema/config.schema.json",
+  "$id": "https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "description": "Config file of xtandard-image (YAML, JSON or TOML). Every key maps to an XI_* environment variable, which wins over the file. See docs/CONFIG.md.",
@@ -909,6 +926,89 @@
           "markdownDescription": "Invalid URL and disallowed source answer 404 like imgproxy (instead of 400 / 403)\n\nEnv: `XI_COMPAT_IMGPROXY_STATUS`",
           "title": "XI_COMPAT_IMGPROXY_STATUS",
           "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "detect": {
+      "additionalProperties": false,
+      "properties": {
+        "cache_size": {
+          "default": 512,
+          "description": "Detection results kept in memory, least recently used first out: one entry per model and source (keyed by the SHA-256 of the source bytes), shared by processing and /info (0–1000000; 0 disables the cache)\n\nEnv: XI_DETECT_CACHE_SIZE",
+          "markdownDescription": "Detection results kept in memory, least recently used first out: one entry per model and source (keyed by the SHA-256 of the source bytes), shared by processing and `/info` (0–1000000; `0` disables the cache)\n\nEnv: `XI_DETECT_CACHE_SIZE`",
+          "title": "XI_DETECT_CACHE_SIZE",
+          "type": "integer"
+        },
+        "enabled": {
+          "$ref": "#/$defs/tristate",
+          "default": "auto",
+          "description": "auto loads detection when the library and the model files are found and runs without it otherwise (logged at startup); true fails startup when they are missing; false never loads them. Options that need detection answer 422 while it is off\n\nEnv: XI_DETECT_ENABLED",
+          "markdownDescription": "`auto` loads detection when the library and the model files are found and runs without it otherwise (logged at startup); `true` fails startup when they are missing; `false` never loads them. Options that need detection answer 422 while it is off\n\nEnv: `XI_DETECT_ENABLED`",
+          "title": "XI_DETECT_ENABLED"
+        },
+        "face_model": {
+          "default": "face_detection_yunet_2023mar.onnx",
+          "description": "YuNet face model, a file name in XI_DETECT_MODELS_DIR or an absolute path; empty disables face detection\n\nEnv: XI_DETECT_FACE_MODEL",
+          "markdownDescription": "YuNet face model, a file name in `XI_DETECT_MODELS_DIR` or an absolute path; empty disables face detection\n\nEnv: `XI_DETECT_FACE_MODEL`",
+          "title": "XI_DETECT_FACE_MODEL",
+          "type": "string"
+        },
+        "library": {
+          "default": "libonnxruntime.so.1",
+          "description": "ONNX Runtime shared library (1.17 or newer): an absolute path or a file name the dynamic linker resolves. Loaded with dlopen at startup, never at init (ADR 0010)\n\nEnv: XI_DETECT_LIBRARY",
+          "markdownDescription": "ONNX Runtime shared library (1.17 or newer): an absolute path or a file name the dynamic linker resolves. Loaded with `dlopen` at startup, never at init (ADR 0010)\n\nEnv: `XI_DETECT_LIBRARY`",
+          "title": "XI_DETECT_LIBRARY",
+          "type": "string"
+        },
+        "max_input": {
+          "default": 640,
+          "description": "Longest side fed to a model whose input size is dynamic (32–4096); the shipped models are fixed at 640×640\n\nEnv: XI_DETECT_MAX_INPUT",
+          "markdownDescription": "Longest side fed to a model whose input size is dynamic (32–4096); the shipped models are fixed at 640×640\n\nEnv: `XI_DETECT_MAX_INPUT`",
+          "title": "XI_DETECT_MAX_INPUT",
+          "type": "integer"
+        },
+        "models_dir": {
+          "default": "/usr/share/xtandard/models",
+          "description": "Absolute directory of the model files; mount your own there\n\nEnv: XI_DETECT_MODELS_DIR",
+          "markdownDescription": "Absolute directory of the model files; mount your own there\n\nEnv: `XI_DETECT_MODELS_DIR`",
+          "title": "XI_DETECT_MODELS_DIR",
+          "type": "string"
+        },
+        "object_model": {
+          "default": "yolox_s.onnx",
+          "description": "YOLOX object model (COCO, 80 classes, [1,N,85] output); empty disables object detection\n\nEnv: XI_DETECT_OBJECT_MODEL",
+          "markdownDescription": "YOLOX object model (COCO, 80 classes, `[1,N,85]` output); empty disables object detection\n\nEnv: `XI_DETECT_OBJECT_MODEL`",
+          "title": "XI_DETECT_OBJECT_MODEL",
+          "type": "string"
+        },
+        "smart_faces": {
+          "default": true,
+          "description": "Smart gravity (imgproxy sm, imgix crop=edges, Cloudinary g_auto, thumbor smart, …) crops on the detected faces when there are some and falls back to libvips attention otherwise; false always uses attention. Without the face model (slim) smart gravity is attention\n\nEnv: XI_DETECT_SMART_FACES",
+          "markdownDescription": "Smart gravity (imgproxy `sm`, imgix `crop=edges`, Cloudinary `g_auto`, thumbor `smart`, …) crops on the detected faces when there are some and falls back to libvips attention otherwise; `false` always uses attention. Without the face model (slim) smart gravity is attention\n\nEnv: `XI_DETECT_SMART_FACES`",
+          "title": "XI_DETECT_SMART_FACES",
+          "type": "boolean"
+        },
+        "threads": {
+          "default": 1,
+          "description": "ONNX Runtime intra-op threads per inference; like XI_VIPS_CONCURRENCY, parallelism normally comes from concurrent requests (1–64)\n\nEnv: XI_DETECT_THREADS",
+          "markdownDescription": "ONNX Runtime intra-op threads per inference; like `XI_VIPS_CONCURRENCY`, parallelism normally comes from concurrent requests (1–64)\n\nEnv: `XI_DETECT_THREADS`",
+          "title": "XI_DETECT_THREADS",
+          "type": "integer"
+        },
+        "verify_checksums": {
+          "default": false,
+          "description": "Check each model against the SHA256SUMS of its directory when it lists the model; a mismatch fails startup\n\nEnv: XI_DETECT_VERIFY_CHECKSUMS",
+          "markdownDescription": "Check each model against the `SHA256SUMS` of its directory when it lists the model; a mismatch fails startup\n\nEnv: `XI_DETECT_VERIFY_CHECKSUMS`",
+          "title": "XI_DETECT_VERIFY_CHECKSUMS",
+          "type": "boolean"
+        },
+        "workers": {
+          "default": 0,
+          "description": "Inferences running at once (a semaphore; more wait); 0 is GOMAXPROCS / XI_DETECT_THREADS\n\nEnv: XI_DETECT_WORKERS",
+          "markdownDescription": "Inferences running at once (a semaphore; more wait); `0` is GOMAXPROCS / `XI_DETECT_THREADS`\n\nEnv: `XI_DETECT_WORKERS`",
+          "title": "XI_DETECT_WORKERS",
+          "type": "integer"
         }
       },
       "type": "object"
@@ -1290,7 +1390,7 @@
         },
         "default": {
           "default": "imgproxy",
-          "description": "Fallback dialect\n\nEnv: XI_DIALECTS_DEFAULT",
+          "description": "Fallback dialect for paths no mount matches (it must be enabled); a dialect other than imgproxy serves them with its primary mount's source and unsigned policy\n\nEnv: XI_DIALECTS_DEFAULT",
           "enum": [
             "imgproxy",
             "query",
@@ -1304,7 +1404,7 @@
             "thumbor",
             "awssih"
           ],
-          "markdownDescription": "Fallback dialect\n\nEnv: `XI_DIALECTS_DEFAULT`",
+          "markdownDescription": "Fallback dialect for paths no mount matches (it must be enabled); a dialect other than imgproxy serves them with its primary mount's source and unsigned policy\n\nEnv: `XI_DIALECTS_DEFAULT`",
           "title": "XI_DIALECTS_DEFAULT",
           "type": "string"
         },
@@ -1316,6 +1416,13 @@
               "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_IMAGEKIT_ENABLED`",
               "title": "XI_DIALECTS_IMAGEKIT_ENABLED",
               "type": "boolean"
+            },
+            "endpoint_path": {
+              "default": "",
+              "description": "ImageKit URL-endpoint id kept in the path of host-bound mounts (https://ik.imagekit.io/<id>/… → /<id>), for every ImageKit mount: stripped before parsing, excluded from the source key and the signed message; requests outside it are 400 (URL-DIALECTS §7)\n\nEnv: XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH",
+              "markdownDescription": "ImageKit URL-endpoint id kept in the path of host-bound mounts (`https://ik.imagekit.io/<id>/…` → `/<id>`), for every ImageKit mount: stripped before parsing, excluded from the source key and the signed message; requests outside it are 400 (URL-DIALECTS §7)\n\nEnv: `XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH`",
+              "title": "XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH",
+              "type": "string"
             },
             "hosts": {
               "description": "Host bindings\n\nEnv: XI_DIALECTS_IMAGEKIT_HOSTS",
@@ -1389,11 +1496,11 @@
               "type": "array"
             },
             "keys": {
-              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_IMGIX_KEYS (or XI_DIALECTS_IMGIX_KEYS_FILE)",
+              "description": "imgix secure URL tokens, used verbatim (,-separated for rotation: any verifies, the first signs in the playground). With tokens, s = hex(MD5(token ‖ path ‖ ? ‖ query without s)) is verified and expires enforced; without, s is not checked and every URL follows the mount's unsigned policy. XI_SIGNING_REQUIRED=true rejects unsigned imgix URLs on mounts with tokens. Prefix default /imgix/; host-bind (XI_DIALECTS_IMGIX_HOSTS) for unpic's imgix provider; XI_DIALECTS_IMGIX_SOURCE resolves object keys (URL-DIALECTS §5)\n\nEnv: XI_DIALECTS_IMGIX_KEYS (or XI_DIALECTS_IMGIX_KEYS_FILE)",
               "items": {
                 "$ref": "#/$defs/secret"
               },
-              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_IMGIX_KEYS` (or `XI_DIALECTS_IMGIX_KEYS_FILE`)",
+              "markdownDescription": "imgix secure URL tokens, used verbatim (`,`-separated for rotation: any verifies, the first signs in the playground). With tokens, `s` = hex(MD5(token ‖ path ‖ `?` ‖ query without `s`)) is verified and `expires` enforced; without, `s` is not checked and every URL follows the mount's unsigned policy. `XI_SIGNING_REQUIRED=true` rejects unsigned imgix URLs on mounts with tokens. Prefix default `/imgix/`; host-bind (`XI_DIALECTS_IMGIX_HOSTS`) for unpic's imgix provider; `XI_DIALECTS_IMGIX_SOURCE` resolves object keys (URL-DIALECTS §5)\n\nEnv: `XI_DIALECTS_IMGIX_KEYS` (or `XI_DIALECTS_IMGIX_KEYS_FILE`)",
               "title": "XI_DIALECTS_IMGIX_KEYS",
               "type": "array"
             },
@@ -2429,6 +2536,13 @@
           "markdownDescription": "SVG sanitiser element limit\n\nEnv: `XI_LIMITS_MAX_SVG_ELEMENTS`",
           "title": "XI_LIMITS_MAX_SVG_ELEMENTS",
           "type": "integer"
+        },
+        "max_watermark_text_pixels": {
+          "default": 16777216,
+          "description": "Area a text watermark is rendered on (the frame, or the text width × the frame height, scaled down to this); text that does not fit is shrunk until it does\n\nEnv: XI_LIMITS_MAX_WATERMARK_TEXT_PIXELS",
+          "markdownDescription": "Area a text watermark is rendered on (the frame, or the text width × the frame height, scaled down to this); text that does not fit is shrunk until it does\n\nEnv: `XI_LIMITS_MAX_WATERMARK_TEXT_PIXELS`",
+          "title": "XI_LIMITS_MAX_WATERMARK_TEXT_PIXELS",
+          "type": "integer"
         }
       },
       "type": "object"
@@ -2467,6 +2581,33 @@
           "description": "Force tracing on without an endpoint variable (exporter still chosen by OTEL_TRACES_EXPORTER, e.g. console)\n\nEnv: XI_OTEL_ENABLED",
           "markdownDescription": "Force tracing on without an endpoint variable (exporter still chosen by `OTEL_TRACES_EXPORTER`, e.g. `console`)\n\nEnv: `XI_OTEL_ENABLED`",
           "title": "XI_OTEL_ENABLED",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "playground": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": false,
+          "description": "Serve the playground at XI_PLAYGROUND_PATH on the admin listener (needs XI_ADMIN_ADDR unless XI_PLAYGROUND_PUBLIC); off, every playground path answers 404\n\nEnv: XI_PLAYGROUND_ENABLED",
+          "markdownDescription": "Serve the playground at `XI_PLAYGROUND_PATH` on the admin listener (needs `XI_ADMIN_ADDR` unless `XI_PLAYGROUND_PUBLIC`); off, every playground path answers 404\n\nEnv: `XI_PLAYGROUND_ENABLED`",
+          "title": "XI_PLAYGROUND_ENABLED",
+          "type": "boolean"
+        },
+        "path": {
+          "default": "/_playground",
+          "description": "Mount path: starts with /, no trailing /, [A-Za-z0-9._~/-] only, and not an admin route\n\nEnv: XI_PLAYGROUND_PATH",
+          "markdownDescription": "Mount path: starts with `/`, no trailing `/`, `[A-Za-z0-9._~/-]` only, and not an admin route\n\nEnv: `XI_PLAYGROUND_PATH`",
+          "title": "XI_PLAYGROUND_PATH",
+          "type": "string"
+        },
+        "public": {
+          "default": false,
+          "description": "Also serve it on the public listener (under XI_SERVER_PATH_PREFIX). Its sign endpoint then signs any URL for anyone who can reach it, which makes signing pointless: only for trusted networks and demos\n\nEnv: XI_PLAYGROUND_PUBLIC",
+          "markdownDescription": "Also serve it on the public listener (under `XI_SERVER_PATH_PREFIX`). Its sign endpoint then signs any URL for anyone who can reach it, which makes signing pointless: only for trusted networks and demos\n\nEnv: `XI_PLAYGROUND_PUBLIC`",
+          "title": "XI_PLAYGROUND_PUBLIC",
           "type": "boolean"
         }
       },
@@ -2579,10 +2720,24 @@
           "title": "XI_PROCESSING_STRIP_METADATA",
           "type": "boolean"
         },
+        "watermark_font": {
+          "default": "sans 16",
+          "description": "Pango font description of text watermarks (imgproxy's default); a request's font takes the family or size it lacks from it. The image ships DejaVu Sans and DejaVu Sans Mono (sans, monospace) through fontconfig\n\nEnv: XI_PROCESSING_WATERMARK_FONT",
+          "markdownDescription": "Pango font description of text watermarks (imgproxy's default); a request's font takes the family or size it lacks from it. The image ships DejaVu Sans and DejaVu Sans Mono (`sans`, `monospace`) through fontconfig\n\nEnv: `XI_PROCESSING_WATERMARK_FONT`",
+          "title": "XI_PROCESSING_WATERMARK_FONT",
+          "type": "string"
+        },
+        "watermark_font_file": {
+          "default": "",
+          "description": "Absolute path of a font file (TTF/OTF) registered with fontconfig for text watermarks, in addition to the fonts under /opt/xtandard/share/fonts; requests select it by family name\n\nEnv: XI_PROCESSING_WATERMARK_FONT_FILE",
+          "markdownDescription": "Absolute path of a font file (TTF/OTF) registered with fontconfig for text watermarks, in addition to the fonts under `/opt/xtandard/share/fonts`; requests select it by family name\n\nEnv: `XI_PROCESSING_WATERMARK_FONT_FILE`",
+          "title": "XI_PROCESSING_WATERMARK_FONT_FILE",
+          "type": "string"
+        },
         "watermark_opacity": {
           "default": 1,
-          "description": "Multiplies every request's watermark opacity\n\nEnv: XI_PROCESSING_WATERMARK_OPACITY",
-          "markdownDescription": "Multiplies every request's watermark opacity\n\nEnv: `XI_PROCESSING_WATERMARK_OPACITY`",
+          "description": "Multiplies every request's watermark opacity (configured image, per-request image and text)\n\nEnv: XI_PROCESSING_WATERMARK_OPACITY",
+          "markdownDescription": "Multiplies every request's watermark opacity (configured image, per-request image and text)\n\nEnv: `XI_PROCESSING_WATERMARK_OPACITY`",
           "title": "XI_PROCESSING_WATERMARK_OPACITY",
           "type": "number"
         },
@@ -2870,6 +3025,74 @@
       "patternProperties": {
         "^[a-z0-9][a-z0-9-]*$": {
           "$ref": "#/$defs/source"
+        }
+      },
+      "type": "object"
+    },
+    "video": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "$ref": "#/$defs/tristate",
+          "default": "auto",
+          "description": "Video sources (MP4, MOV, WebM, MKV, AVI; FORMATS.md §1.5): auto decodes them when the image has FFmpeg (the full flavor) and answers 422 otherwise; true fails startup without FFmpeg; false answers 422 in every image\n\nEnv: XI_VIDEO_ENABLED",
+          "markdownDescription": "Video sources (MP4, MOV, WebM, MKV, AVI; FORMATS.md §1.5): `auto` decodes them when the image has FFmpeg (the `full` flavor) and answers 422 otherwise; `true` fails startup without FFmpeg; `false` answers 422 in every image\n\nEnv: `XI_VIDEO_ENABLED`",
+          "title": "XI_VIDEO_ENABLED"
+        },
+        "max_bytes": {
+          "$ref": "#/$defs/byteSize",
+          "default": "100MiB",
+          "description": "Largest video source; XI_LIMITS_MAX_SRC_BYTES applies first, at fetch, so raise both for large videos (422)\n\nEnv: XI_VIDEO_MAX_BYTES",
+          "markdownDescription": "Largest video source; `XI_LIMITS_MAX_SRC_BYTES` applies first, at fetch, so raise both for large videos (422)\n\nEnv: `XI_VIDEO_MAX_BYTES`",
+          "title": "XI_VIDEO_MAX_BYTES"
+        },
+        "max_duration": {
+          "$ref": "#/$defs/duration",
+          "default": "1h0m0s",
+          "description": "Longest video, from the container header, before any frame is decoded (422)\n\nEnv: XI_VIDEO_MAX_DURATION",
+          "markdownDescription": "Longest video, from the container header, before any frame is decoded (422)\n\nEnv: `XI_VIDEO_MAX_DURATION`",
+          "title": "XI_VIDEO_MAX_DURATION"
+        },
+        "max_pixels": {
+          "default": 33177600,
+          "description": "Width × height of the video stream (8K UHD); the decoder refuses larger frames too (422). XI_LIMITS_MAX_SRC_PIXELS applies to the frame as well\n\nEnv: XI_VIDEO_MAX_PIXELS",
+          "markdownDescription": "Width × height of the video stream (8K UHD); the decoder refuses larger frames too (422). `XI_LIMITS_MAX_SRC_PIXELS` applies to the frame as well\n\nEnv: `XI_VIDEO_MAX_PIXELS`",
+          "title": "XI_VIDEO_MAX_PIXELS",
+          "type": "integer"
+        },
+        "thumbnail": {
+          "additionalProperties": false,
+          "properties": {
+            "keyframes": {
+              "default": false,
+              "description": "Take the keyframe at or before the timestamp instead of the exact frame (faster, less precise; imgproxy IMGPROXY_VIDEO_THUMBNAIL_KEYFRAMES); a request's video_thumbnail_keyframes overrides it\n\nEnv: XI_VIDEO_THUMBNAIL_KEYFRAMES",
+              "markdownDescription": "Take the keyframe at or before the timestamp instead of the exact frame (faster, less precise; imgproxy `IMGPROXY_VIDEO_THUMBNAIL_KEYFRAMES`); a request's `video_thumbnail_keyframes` overrides it\n\nEnv: `XI_VIDEO_THUMBNAIL_KEYFRAMES`",
+              "title": "XI_VIDEO_THUMBNAIL_KEYFRAMES",
+              "type": "boolean"
+            },
+            "samples": {
+              "default": 5,
+              "description": "Keyframes best-frame selection compares (1–32)\n\nEnv: XI_VIDEO_THUMBNAIL_SAMPLES",
+              "markdownDescription": "Keyframes best-frame selection compares (1–32)\n\nEnv: `XI_VIDEO_THUMBNAIL_SAMPLES`",
+              "title": "XI_VIDEO_THUMBNAIL_SAMPLES",
+              "type": "integer"
+            },
+            "second": {
+              "$ref": "#/$defs/videoSecond",
+              "default": "auto",
+              "description": "Frame taken when a request sets no video_thumbnail_second: seconds (negative counts from the end; clamped to the video), or auto for best-frame selection (imgproxy IMGPROXY_VIDEO_THUMBNAIL_SECOND, whose default is 1)\n\nEnv: XI_VIDEO_THUMBNAIL_SECOND",
+              "markdownDescription": "Frame taken when a request sets no `video_thumbnail_second`: seconds (negative counts from the end; clamped to the video), or `auto` for best-frame selection (imgproxy `IMGPROXY_VIDEO_THUMBNAIL_SECOND`, whose default is 1)\n\nEnv: `XI_VIDEO_THUMBNAIL_SECOND`",
+              "title": "XI_VIDEO_THUMBNAIL_SECOND"
+            },
+            "span": {
+              "$ref": "#/$defs/duration",
+              "default": "10s",
+              "description": "How much of the start of a video best-frame selection samples\n\nEnv: XI_VIDEO_THUMBNAIL_SPAN",
+              "markdownDescription": "How much of the start of a video best-frame selection samples\n\nEnv: `XI_VIDEO_THUMBNAIL_SPAN`",
+              "title": "XI_VIDEO_THUMBNAIL_SPAN"
+            }
+          },
+          "type": "object"
         }
       },
       "type": "object"

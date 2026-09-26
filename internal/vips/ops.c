@@ -273,8 +273,8 @@ xi_smartcrop(VipsImage *in, int width, int height, int interesting, VipsImage **
     char **err)
 {
   if (xi_frames(in, NULL) > 1) {
-    vips_error("xi_smartcrop", "smartcrop needs a single-frame image");
-    XI_FAIL();
+    *err = xi_error_new("xi_smartcrop", "smartcrop needs a single-frame image");
+    return XI_ERR_OP;
   }
   if (vips_smartcrop(in, out, width, height, "interesting", interesting, NULL))
     XI_FAIL();
@@ -565,8 +565,8 @@ xi_find_trim(VipsImage *in, double threshold, const double *bg, int nbg, int lin
 
   if (xi_frames(in, NULL) > 1) {
     g_object_unref(base);
-    vips_error("xi_find_trim", "trim needs a single-frame image");
-    XI_FAIL();
+    *err = xi_error_new("xi_find_trim", "trim needs a single-frame image");
+    return XI_ERR_OP;
   }
   // imgproxy vips_trim: compare in sRGB with transparency flattened onto a
   // colour that cannot be mistaken for image content.
@@ -874,5 +874,43 @@ xi_divide(VipsImage *a, VipsImage *b, VipsImage **out, char **err)
 {
   if (vips_divide(a, b, out, NULL))
     XI_FAIL();
+  return XI_OK;
+}
+
+// Text (WP-78).
+
+// xi_text renders Pango markup with vips_text as 4-band sRGB (rgba), built
+// through the operation API because the optional arguments vary.
+int
+xi_text(const char *text, const char *font, const char *fontfile, int width, int height,
+    int dpi, VipsImage **out, int *fit_dpi, char **err)
+{
+  VipsOperation *op = vips_operation_new("text");
+
+  if (!op)
+    XI_FAIL();
+  g_object_set(op, "text", text, "rgba", TRUE, "wrap", VIPS_TEXT_WRAP_WORD_CHAR, NULL);
+  if (font)
+    g_object_set(op, "font", font, NULL);
+  if (fontfile)
+    g_object_set(op, "fontfile", fontfile, NULL);
+  if (width > 0)
+    g_object_set(op, "width", width, NULL);
+  if (height > 0)
+    g_object_set(op, "height", height, NULL);
+  else if (dpi > 0)
+    g_object_set(op, "dpi", dpi, NULL);
+  if (vips_cache_operation_buildp(&op)) {
+    vips_object_unref_outputs(VIPS_OBJECT(op));
+    g_object_unref(op);
+    XI_FAIL();
+  }
+  g_object_get(op, "out", out, NULL);
+  if (height > 0)
+    g_object_get(op, "autofit_dpi", fit_dpi, NULL);
+  else
+    *fit_dpi = dpi;
+  vips_object_unref_outputs(VIPS_OBJECT(op));
+  g_object_unref(op);
   return XI_OK;
 }

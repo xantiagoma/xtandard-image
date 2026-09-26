@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/hex"
+	"math"
 	"strings"
 
 	"github.com/xantiagoma/xtandard-image/internal/imageinfo"
@@ -14,8 +15,9 @@ import (
 // usage/getting_info): relative crop coordinates, an RGBA palette and
 // average, the six dominant colour classes (RGB), the BlurHash, the
 // ThumbHash as upper-case hex, the perceptual hash as 16 lower-case hex
-// digits, and hex hashsums of the source bytes. It is embedded in
-// InfoResponse and, like it, public API (ADR 0008).
+// digits, hex hashsums of the source bytes, and the detected objects
+// (WP-73). It is embedded in InfoResponse and, like it, public API (ADR
+// 0008).
 type InfoProResponse struct {
 	Crop           *infoCrop         `json:"crop,omitempty"            doc:"Crop rectangle as fractions of the oriented image (info option crop)."`
 	Palette        []infoRGBA        `json:"palette,omitempty"         doc:"Up to the requested number of RGBA colours (info option palette)."`
@@ -25,6 +27,21 @@ type InfoProResponse struct {
 	ThumbHash      string            `json:"thumb_hash,omitempty"      doc:"ThumbHash as upper-case hex (info option thumbhash)."`
 	PerceptualHash string            `json:"perceptual_hash,omitempty" doc:"Perceptual hash as 16 lower-case hex digits (info option phash)."`
 	Hashsums       map[string]string `json:"hashsums,omitempty"        doc:"Hex digests of the source bytes by algorithm: md5, sha1, sha256, sha512 (info option calc_hashsums)."`
+	Objects        []InfoObject      `json:"objects,omitzero"          doc:"Detected faces and objects, best first within each model (faces first), with boxes as fractions of the oriented image; [] when none were found (info option detect_objects)."`
+}
+
+// InfoObject is one detected face or object, imgproxy Pro's
+// detect_objects shape (internal/detect.NewInfo) plus face landmarks.
+type InfoObject struct {
+	ClassID    int     `json:"class_id"    doc:"0 for faces (the face model's only class), the COCO class index for objects."`
+	ClassName  string  `json:"class_name"  doc:"face, or a COCO class name (person, car, dog, traffic light, ...)."`
+	Confidence float64 `json:"confidence"  doc:"Detection score, 0-1."                                                     maximum:"1" minimum:"0"`
+	Left       float64 `json:"left"        doc:"Left edge of the box, as a fraction of the oriented image width."`
+	Top        float64 `json:"top"         doc:"Top edge of the box, as a fraction of the oriented image height."`
+	Width      float64 `json:"width"       doc:"Box width, as a fraction of the image width."`
+	Height     float64 `json:"height"      doc:"Box height, as a fraction of the image height."`
+	// Landmarks is an extension over imgproxy's shape.
+	Landmarks [][2]float64 `json:"landmarks,omitempty" doc:"Face landmarks [x, y] as fractions of the image: right eye, left eye, nose tip, right and left mouth corners (faces only; an extension over imgproxy)."`
 }
 
 // infoCrop is the crop rectangle as fractions of the (oriented) image.
@@ -81,12 +98,17 @@ func pixelOptions(o *transform.InfoOptions) *imageinfo.Options {
 	return px
 }
 
-// infoPro renders the WP-63 fields for o. si.Pixels holds what the
-// inspector computed for pixelOptions(o); src is the source as fetched.
-func infoPro(o *transform.InfoOptions, si *SourceInfo, src []byte) InfoProResponse {
+// infoPro renders the WP-63 and WP-73 fields for o. si.Pixels holds what
+// the inspector computed for pixelOptions(o) and si.Detections what it
+// detected for infoDetection; op places a crop on detections; src is the
+// source as fetched.
+func infoPro(o *transform.InfoOptions, op *transform.ObjectsPosition, si *SourceInfo, src []byte) InfoProResponse {
 	var out InfoProResponse
 	if c := o.Crop; c != nil && (!c.Width.IsZero() || !c.Height.IsZero()) {
-		out.Crop = cropCoordinates(c, &si.Meta)
+		out.Crop = cropCoordinates(c, op, si)
+	}
+	if o.DetectObjects {
+		out.Objects = infoObjects(si.Detections.Select(o.DetectClasses))
 	}
 	if len(o.CalcHashsums) > 0 {
 		out.Hashsums = make(map[string]string, len(o.CalcHashsums))
@@ -134,13 +156,57 @@ func rgb(c *imageinfo.RGB) *infoRGB {
 
 // cropCoordinates is imgproxy's relative crop: where crop c lands on the
 // image as displayed (EXIF orientation applied), as fractions of its
-// width and height.
-func cropCoordinates(c *transform.Crop, m *SourceMeta) *infoCrop {
-	w, h := orientedSize(m)
+// width and height; face and object gravities are placed on the
+// detections with objects position op.
+func cropCoordinates(c *transform.Crop, op *transform.ObjectsPosition, si *SourceInfo) *infoCrop {
+	w, h := orientedSize(&si.Meta)
 	if w <= 0 || h <= 0 {
 		return &infoCrop{Width: 1, Height: 1}
 	}
-	x, y, cw, ch, _ := plan.InfoCrop(c, w, h)
+	x, y, cw, ch, _ := plan.InfoCrop(c, op, w, h, si.Detections)
 	fw, fh := float64(w), float64(h)
 	return &infoCrop{Left: float64(x) / fw, Top: float64(y) / fh, Width: float64(cw) / fw, Height: float64(ch) / fh}
 }
+
+// infoDetection is what an info request needs from detection. The thumbor
+// schema plans the request's pipeline: its smart gravity crops on faces
+// when they can be found (optional, like processing).
+func infoDetection(req *transform.Request) plan.DetectionNeeds {
+	if req.Info != nil && req.Info.Schema == transform.InfoSchemaThumbor {
+		n := plan.NeedsDetection(&transform.Request{Pipelines: req.Pipelines})
+		return plan.DetectionNeeds{SmartFaces: n.Any()}
+	}
+	return plan.NeedsDetection(req)
+}
+
+// objectsPositionOf is the objects position of req's first pipeline (the
+// imgproxy info option objects_position sets it there).
+func objectsPositionOf(req *transform.Request) *transform.ObjectsPosition {
+	if len(req.Pipelines) == 0 {
+		return nil
+	}
+	return req.Pipelines[0].Gravity.ObjectsPosition
+}
+
+// infoObjects converts detections to the /info shape (detect.NewInfo's),
+// rounded to 6 decimals; never nil, so an empty result is [].
+func infoObjects(dets []plan.Detected) []InfoObject {
+	out := make([]InfoObject, 0, len(dets))
+	for _, d := range dets {
+		id := transform.ObjectClassID(d.Class)
+		if d.Class == transform.FaceClass {
+			id = 0
+		}
+		o := InfoObject{
+			ClassID: id, ClassName: d.Class, Confidence: round6(d.Score),
+			Left: round6(d.Box.Left), Top: round6(d.Box.Top), Width: round6(d.Box.Width), Height: round6(d.Box.Height),
+		}
+		for _, p := range d.Landmarks {
+			o.Landmarks = append(o.Landmarks, [2]float64{round6(p[0]), round6(p[1])})
+		}
+		out = append(out, o)
+	}
+	return out
+}
+
+func round6(v float64) float64 { return math.Round(v*1e6) / 1e6 }

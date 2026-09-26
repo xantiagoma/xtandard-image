@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -341,51 +342,78 @@ func TestFetchOversize(t *testing.T) {
 	})
 }
 
+// TestFetchTimeout runs on synctest's fake clock against an in-memory test
+// server whose handler blocks until the client gives up, so the outcome
+// never depends on how fast the machine is: the per-attempt timeout (or the
+// caller's deadline) fires after exactly its duration of bubble time, and
+// the stalled body is reached before it because no time passes while the
+// headers travel.
 func TestFetchTimeout(t *testing.T) {
 	t.Parallel()
-	release := make(chan struct{})
-	srv, s := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+	const timeout = 50 * time.Millisecond
+	stall := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/stall-body" {
 			w.Header().Set("Content-Length", "10")
 			_, _ = io.WriteString(w, "12345")
 			_ = http.NewResponseController(w).Flush()
 		}
-		select { // hold the response until the client gives up
-		case <-r.Context().Done():
-		case <-release:
-		}
-	}, func(c *Config) { c.Timeout = 50 * time.Millisecond })
-	t.Cleanup(func() { close(release) })
-
-	t.Run("headers", func(t *testing.T) {
-		t.Parallel()
-		_, err := s.Fetch(t.Context(), key(srv.URL+"/stall"), source.FetchOptions{})
-		wantKind(t, err, errs.KindUpstreamTimeout)
-	})
-	t.Run("body", func(t *testing.T) {
-		t.Parallel()
-		obj, err := s.Fetch(t.Context(), key(srv.URL+"/stall-body"), source.FetchOptions{})
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer func() { _ = obj.Body.Close() }()
-		_, err = io.ReadAll(obj.Body)
-		wantKind(t, err, errs.KindUpstreamTimeout)
-	})
-	t.Run("caller deadline", func(t *testing.T) {
-		t.Parallel()
-		ctx, cancel := context.WithTimeout(t.Context(), 20*time.Millisecond)
-		defer cancel()
-		_, err := s.Fetch(ctx, key(srv.URL+"/stall"), source.FetchOptions{})
-		wantKind(t, err, errs.KindUpstreamTimeout)
-	})
-	t.Run("caller canceled", func(t *testing.T) {
-		t.Parallel()
-		ctx, cancel := context.WithCancel(t.Context())
-		cancel()
-		_, err := s.Fetch(ctx, key(srv.URL+"/stall"), source.FetchOptions{})
-		wantKind(t, err, errs.KindCanceled)
-	})
+		<-r.Context().Done() // hold the response until the client gives up
+	}
+	tests := []struct {
+		name     string
+		path     string
+		ctx      func(context.Context) (context.Context, context.CancelFunc)
+		body     bool // the headers arrive; the timeout hits the body read
+		want     errs.Kind
+		wantTime time.Duration
+	}{
+		{name: "headers", path: "/stall", want: errs.KindUpstreamTimeout, wantTime: timeout},
+		{name: "body", path: "/stall-body", body: true, want: errs.KindUpstreamTimeout, wantTime: timeout},
+		{
+			name: "caller deadline", path: "/stall", want: errs.KindUpstreamTimeout, wantTime: 20 * time.Millisecond,
+			ctx: func(ctx context.Context) (context.Context, context.CancelFunc) {
+				return context.WithTimeout(ctx, 20*time.Millisecond)
+			},
+		},
+		{
+			name: "caller canceled", path: "/stall", want: errs.KindCanceled,
+			ctx: func(ctx context.Context) (context.Context, context.CancelFunc) {
+				ctx, cancel := context.WithCancel(ctx)
+				cancel()
+				return ctx, cancel
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			synctest.Test(t, func(t *testing.T) {
+				srv := httptest.NewTestServer(t, http.HandlerFunc(stall))
+				s, err := New(Config{Name: "origin", Client: srv.Client(), Timeout: timeout})
+				if err != nil {
+					t.Fatal(err)
+				}
+				ctx, cancel := t.Context(), context.CancelFunc(func() {})
+				if tc.ctx != nil {
+					ctx, cancel = tc.ctx(ctx)
+				}
+				defer cancel()
+				start := time.Now()
+				obj, err := s.Fetch(ctx, key(srv.URL+tc.path), source.FetchOptions{})
+				if tc.body {
+					if err != nil {
+						t.Fatalf("headers: %v", err)
+					}
+					defer func() { _ = obj.Body.Close() }()
+					_, err = io.ReadAll(obj.Body)
+				}
+				wantKind(t, err, tc.want)
+				if got := time.Since(start); got != tc.wantTime {
+					t.Errorf("gave up after %v, want %v", got, tc.wantTime)
+				}
+			})
+		})
+	}
 }
 
 func TestFetchHeaders(t *testing.T) {

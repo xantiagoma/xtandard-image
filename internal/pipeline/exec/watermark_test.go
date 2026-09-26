@@ -14,6 +14,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/exec"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/leakcheck"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/ssim"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
@@ -81,12 +82,18 @@ func newWatermark(tb testing.TB, fixture, format string, opacity float64) *exec.
 
 func newWatermarkExecutor(tb testing.TB, wm *exec.Watermark) *exec.Executor {
 	tb.Helper()
+	return newExecutorWith(tb, &exec.Config{Limits: testLimits, Watermark: wm})
+}
+
+// newExecutorWith builds an executor from cfg with the default encoder.
+func newExecutorWith(tb testing.TB, cfg *exec.Config) *exec.Executor {
+	tb.Helper()
 	ec := encode.DefaultConfig()
 	enc, err := encode.New(&ec)
 	if err != nil {
 		tb.Fatal(err)
 	}
-	e, err := exec.New(&exec.Config{Limits: testLimits, Watermark: wm}, enc)
+	e, err := exec.New(cfg, enc)
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -183,7 +190,8 @@ func TestWatermarkConfiguredOpacity(t *testing.T) {
 }
 
 // TestWatermarkSkipped covers the watermarks that are not applied: none
-// configured, chessboard tiling and watermark sources of their own (M3).
+// configured, zero opacity, and a watermark source of its own whose image
+// the caller did not supply.
 func TestWatermarkSkipped(t *testing.T) {
 	t.Parallel()
 	with := newWatermarkExecutor(t, newWatermark(t, watermarkLogo, "png", 1))
@@ -198,7 +206,6 @@ func TestWatermarkSkipped(t *testing.T) {
 		skipped []string
 	}{
 		{name: "none configured", e: without, options: "rs:fit:120:120/wm:1:ce", skipped: []string{"watermark"}},
-		{name: "chessboard", e: with, options: "rs:fit:120:120/wm:1:ch", skipped: []string{"watermark_chessboard"}},
 		{name: "zero opacity", e: with, options: "rs:fit:120:120", req: func(r *transform.Request) {
 			r.Pipelines[0].Watermarks = []transform.Watermark{{Opacity: 0, Position: transform.Gravity{Type: transform.GravityCenter}}}
 		}},
@@ -293,28 +300,30 @@ func TestNewWatermarkErrors(t *testing.T) {
 }
 
 // TestWatermarkNoLeak runs watermarked jobs (placed, scaled, tiled,
-// animated) and checks that libvips' memory, allocations and live objects
+// chessboard, animated; the configured image, per-request images and text,
+// sized, rotated and shadowed) and checks that libvips' memory, allocations and live objects
 // return to their baseline, and that closing the watermark releases it.
 //
 // Not parallel: the counters are process-wide.
 func TestWatermarkNoLeak(t *testing.T) {
-	const (
-		requests    = 300
-		slackBytes  = 1 << 20
-		slackAllocs = 64
-		slackObjs   = 16
-	)
+	const requests = 300
 	type prepared struct {
 		data []byte
 		req  *transform.Request
 		out  transform.Format
 	}
-	in := make([]prepared, 0, 4)
+	in := make([]prepared, 0, 10)
 	for _, c := range []struct{ fixture, options string }{
 		{jpegPhoto, "rs:fit:120:120/wm:0.5:soea:4:4:0.3"},
 		{pngAlpha, "rs:fit:64:64/wm:0.7:re:4:4:0.2"},
 		{gifAnim, "rs:fill:48:48/wm:1:nowe:2:2:0.5"},
 		{gifAnim, "rs:fill:48:48/wm:0.6:re"},
+		{jpegPhoto, "rs:fit:120:120/wm:0.8:ch:2:2:0.2"},
+		{jpegPhoto, "rs:fit:120:120/wm:0.8:soea:2:2/" + wmu + "/wms:30:0/wmr:20/wmsh:2"},
+		{pngAlpha, "rs:fit:64:64/wm:0.7:ch/" + wmu + "/wms:16:0"},
+		{gifAnim, "rs:fill:48:48/wm:1:ce/" + wmu + "/wmr:45"},
+		{jpegPhoto, "rs:fit:120:120/wm:1:ce/" + wmt("<b>leak</b> test") + "/wmsh:1/wmr:10"},
+		{jpegPhoto, "rs:fit:120:120/wm:0.5:re:4:4/" + wmt(`<span size="30pt">shrunk to fit the frame</span>`)},
 	} {
 		out := transform.FormatPNG
 		if c.fixture == gifAnim {
@@ -331,10 +340,13 @@ func TestWatermarkNoLeak(t *testing.T) {
 		t.Fatal(err)
 	}
 	e := newWatermarkExecutor(t, wm)
+	badge := newBuffer(t, readFixture(t, watermarkBadge))
+	defer badge.Release()
 	request := func(i int) {
 		p := &in[i%len(in)]
 		j, buf := job(t, p.data, p.req, p.out)
 		defer buf.Release()
+		j.Watermarks = []exec.WatermarkImage{{Source: badge, Format: "png"}}
 		res, err := e.Run(t.Context(), j)
 		if err != nil {
 			t.Fatalf("request %d: %v", i, err)
@@ -344,21 +356,15 @@ func TestWatermarkNoLeak(t *testing.T) {
 	for i := range 2 * len(in) {
 		request(i) // warm up lazily initialised libvips state
 	}
-	before, objects := vips.ReadMemStats(), vips.LiveObjects()
+	before := leakcheck.Take()
 	for i := range requests {
 		request(i)
 	}
-	after, objectsAfter := vips.ReadMemStats(), vips.LiveObjects()
-	if after.Mem-before.Mem > slackBytes || after.Allocs-before.Allocs > slackAllocs ||
-		after.Files != before.Files || objectsAfter-objects > slackObjs {
-		t.Errorf("after %d requests: mem %d → %d B, allocs %d → %d, files %d → %d, objects %d → %d",
-			requests, before.Mem, after.Mem, before.Allocs, after.Allocs, before.Files, after.Files,
-			objects, objectsAfter)
-	}
+	after := leakcheck.Check(t, before, leakcheck.Default, "requests")
 	wm.Close()
-	if n := vips.LiveObjects(); n-baseObjects > slackObjs {
+	if n := vips.LiveObjects(); n-baseObjects > leakcheck.Default.Objects {
 		t.Errorf("after Close: %d live objects, %d before NewWatermark", n, baseObjects)
 	}
 	t.Logf("after %d requests: mem %+d B, allocs %+d, objects %+d", requests,
-		after.Mem-before.Mem, after.Allocs-before.Allocs, objectsAfter-objects)
+		after.Mem-before.Mem, after.Allocs-before.Allocs, after.Objects-before.Objects)
 }

@@ -27,8 +27,9 @@ func filterStep(p *transform.Pipeline, b *builder) (FilterStep, bool) {
 		c := *pb
 		fs.ProgressiveBlur = &c
 	}
+	fs.Detections = detectionBlur(p, b)
 	ok := fs.Blur > 0 || fs.Sharpen > 0 || fs.Pixelate > 1 || fs.Unsharp != nil || fs.BlurAreas != nil ||
-		fs.ProgressiveBlur != nil
+		fs.ProgressiveBlur != nil || fs.Detections != nil
 	return fs, ok
 }
 
@@ -136,36 +137,44 @@ func (r relRect) crop(w, h, x, y, cw, ch int) relRect {
 func mapAreas(areas []transform.Area, b *builder) []transform.Area {
 	out := make([]transform.Area, 0, len(areas))
 	for _, a := range areas {
-		r := relRect{a.Left, a.Top, a.Left + a.Width, a.Top + a.Height}
-		// Oriented → stored: the executor rotates by angle, then flips.
-		r = r.flip(b.exifFlip, false).rot(-b.exifAngle)
-		w, h := b.geoW, b.geoH
-		for _, s := range b.pl.Steps[b.geoFrom:] {
-			switch s := s.(type) {
-			case PreCropStep:
-				r = r.crop(w, h, s.X, s.Y, s.W, s.H)
-				w, h = s.W, s.H
-			case CropStep:
-				r = r.crop(w, h, s.X, s.Y, s.W, s.H)
-				w, h = s.W, s.H
-			case ResizeStep:
-				w, h = s.W, s.H
-			case RotateStep:
-				r = r.rot(s.Angle)
-				if s.Angle%180 != 0 {
-					w, h = h, w
-				}
-			case FlipStep:
-				r = r.flip(s.Horizontal, s.Vertical)
-			default:
-			}
+		if m, ok := mapArea(a, b); ok {
+			out = append(out, m)
 		}
-		r.x0, r.y0 = max(r.x0, 0), max(r.y0, 0)
-		r.x1, r.y1 = min(r.x1, 1), min(r.y1, 1)
-		if r.x1 <= r.x0 || r.y1 <= r.y0 {
-			continue
-		}
-		out = append(out, transform.Area{Left: r.x0, Top: r.y0, Width: r.x1 - r.x0, Height: r.y1 - r.y0})
 	}
 	return out
+}
+
+// mapArea maps one source-relative area like mapAreas; ok is false when it
+// ends up outside the image.
+func mapArea(a transform.Area, b *builder) (transform.Area, bool) {
+	r := relRect{a.Left, a.Top, a.Left + a.Width, a.Top + a.Height}
+	// Oriented → stored: the executor rotates by angle, then flips.
+	r = r.flip(b.exifFlip, false).rot(-b.exifAngle)
+	w, h := b.geoW, b.geoH
+	for _, s := range b.pl.Steps[b.geoFrom:] {
+		switch s := s.(type) {
+		case PreCropStep:
+			r = r.crop(w, h, s.X, s.Y, s.W, s.H)
+			w, h = s.W, s.H
+		case CropStep:
+			r = r.crop(w, h, s.X, s.Y, s.W, s.H)
+			w, h = s.W, s.H
+		case ResizeStep:
+			w, h = s.W, s.H
+		case RotateStep:
+			r = r.rot(s.Angle)
+			if s.Angle%180 != 0 {
+				w, h = h, w
+			}
+		case FlipStep:
+			r = r.flip(s.Horizontal, s.Vertical)
+		default:
+		}
+	}
+	r.x0, r.y0 = max(r.x0, 0), max(r.y0, 0)
+	r.x1, r.y1 = min(r.x1, 1), min(r.y1, 1)
+	if r.x1 <= r.x0 || r.y1 <= r.y0 {
+		return transform.Area{}, false
+	}
+	return transform.Area{Left: r.x0, Top: r.y0, Width: r.x1 - r.x0, Height: r.y1 - r.y0}, true
 }

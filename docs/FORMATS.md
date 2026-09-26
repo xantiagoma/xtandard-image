@@ -22,10 +22,10 @@ libvips 8.18.x is the engine; library choices and licenses are in `docs/research
 | Camera RAW (CR2, CR3, CRW, NEF, NRW, ARW, SRF, SR2, DNG, ORF, RW2, RAF, PEF, SRW, X3F, 3FR, IIQ, …) | LibRaw 0.22.x | — | embedded preview | EXIF from LibRaw | see §2 | M2 |
 | JPEG 2000 | OpenJPEG (`jp2kload`; added to the base image by WP-05, not in imgproxy-docker-base) | — | `page` pyramid level | — | | M1 |
 | OpenEXR, Radiance HDR, PPM/PFM | OpenEXR 3.4 (`openexrload`, the buffer spooled to a memfd) / libvips `radload_buffer`, `ppmload_buffer` (binary P5/P6/PF/Pf only) | — | — | — | see §1.4: tone-mapped to 8-bit sRGB (`XI_FORMATS_HDR_TONEMAP`) unless `preserve_hdr` and a JPEG XL or AVIF output; `/info` reports `"hdr": true` and `sample_format: "float"` | M2 |
-| Video (MP4, MOV, WebM, MKV, animated MP4 GIF-likes) | FFmpeg 8 LGPL via go-astiav (`full` image only) | frames | decoder scaling | duration, streams (`/info` `vm`) | frame at `vts` or best frame by histogram variance among keyframes | M3 |
+| Video (MP4, MOV, WebM, MKV, AVI, animated MP4 GIF-likes) | FFmpeg 8.1 LGPL through our own shim `internal/video/ffmpeg` (build tag `ffmpeg`, `full` and `gpl` images, ADR 0010; decoders h264, hevc, vp8, vp9, AV1 via dav1d, mpeg4, mjpeg, png, rawvideo) | one frame becomes the image (tiles and animations: WP-75) | libswscale scales the frame to 2× the target | container tags and streams (`/info` `video_meta`, `video_streams`); display matrix → orientation | frame at `vts` (negative from the end, `vtk` keyframe), else best frame among keyframes (luma entropy and spread, fades penalised); see §1.5 | M3 (WP-74) |
 | Blocked | FITS, Matlab, NIfTI, Analyze, CSV/matrix, raw pixels, ASCII/bitmap PNM (P1–P4), magick for anything except PSD/PSB | | | | `vips_block_untrusted_set(TRUE)` and operation block list | — |
 
-**Base image availability (WP-66, base `8.18.6-r2-slim`).** The slim base image now ships the M2 loaders: `dcrawload` (LibRaw 0.22.x, `libraw_r`, headers in the builder for `codec/raw`), `pdfload` (PDFium, never poppler), `openexrload` (OpenEXR 3.4 + Imath) and `magickload` (ImageMagick 7, load only, as the `vips-magick.so` module). ImageMagick's `/opt/xtandard/etc/ImageMagick-7/policy.xml` registers and allows only the PSD module (PSD/PSB read) and caps each magick image at 10 s, 256 MiB memory/map, no disk cache, 64 MP area, 16K width/height (`docker/base/README.md`). Because libvips' generic loader dispatch now considers `magickload`, any file that reaches libvips without a native loader (for example BMP or ICO bytes passed straight to `vips_image_new_from_buffer`) fails in `magickload` with a policy error instead of "not a known format"; the app still routes BMP/ICO to its own loaders and gates M2 formats in `codec.Sniff`. `dcrawload`, `openexrload` and `magickload` are libvips `UNTRUSTED` operations: the WP that enables `vips_block_untrusted_set(TRUE)` must unblock them by name (WP-51 does so for `magickload_buffer`, WP-50 adds `pdfload_buffer`, WP-67 `openexrload`, `radload_buffer` and `ppmload_buffer`).
+**Base image availability (WP-66, base `8.18.6-r2-slim`).** The slim base image now ships the M2 loaders: `dcrawload` (LibRaw 0.22.x, `libraw_r`, headers in the builder for `codec/raw`), `pdfload` (PDFium, never poppler), `openexrload` (OpenEXR 3.4 + Imath) and `magickload` (ImageMagick 7, load only, as the `vips-magick.so` module). ImageMagick's `/opt/xtandard/etc/ImageMagick-7/policy.xml` registers and allows only the PSD module (PSD/PSB read) and caps each magick image at 10 s, 256 MiB memory/map, no disk cache, 64 MP area, 16K width/height (`docker/base/README.md`). Because libvips' generic loader dispatch now considers `magickload`, any file that reaches libvips without a native loader (for example BMP or ICO bytes passed straight to `vips_image_new_from_buffer`) fails in `magickload` with a policy error instead of "not a known format"; the app still routes BMP/ICO to its own loaders and picks every loader from the `codec.Sniff` result. `dcrawload`, `openexrload` and `magickload` are libvips `UNTRUSTED` operations; with `vips_block_untrusted_set(TRUE)` the app unblocks only the ones it uses, by name: `magickload_buffer` (WP-51), `pdfload_buffer` (WP-50), `openexrload`, `radload_buffer` and `ppmload_buffer` (WP-67). Camera RAW goes through the app's own LibRaw shim, so `dcrawload` stays blocked (§2).
 
 ### 1.1 Detection and probe (`codec.Sniff`, `codec.Probe`)
 
@@ -38,6 +38,31 @@ libvips 8.18.x is the engine; library choices and licenses are in `docs/research
 - PDF pages: more than `XI_LIMITS_MAX_PDF_PAGES` (500) fail at probe with `limit_exceeded` (422) before any page renders. The raw `n-pages` is read, not `vips_image_get_n_pages`, which reports 1 for 10 000 pages or more.
 - Limits before decode: frames ≤ `MAX_ANIMATION_FRAMES` (a limit of 1, from config or `max_animation_frames:1`, disables animation instead: the first frame is processed, as in imgproxy), animated frame pixels ≤ `MAX_ANIMATION_FRAME_PIXELS`, width × height × frames ≤ `MAX_SRC_PIXELS` (multi-page stills count one page), SVG bytes ≤ `MAX_SVG_BYTES` and the SVG is sanitised before librsvg reads even its header. Frame counts use the header's delay array as well as `n-pages`, because `vips_image_get_n_pages` reports 1 for 10 000 pages or more.
 - The declared upstream `Content-Type` never drives detection; a disagreement only sets `ImageMeta.ContentTypeMismatch`.
+- Video containers (WP-74): an ISOBMFF `ftyp` box without an image brand is MP4 (`isom`, `mp41`, `mp42`, `avc1`, `av01`, `dash`, `3gp*`, `M4V `, …) or MOV (`qt  `); a QuickTime file without `ftyp` starts with a `moov`, `mdat`, `wide`, `free`, `skip` or `pnot` atom; EBML (`1A 45 DF A3`) is WebM when its DocType is `webm`, else MKV; `RIFF….AVI ` is AVI. They are input-only formats (`video/mp4`, `video/quicktime`, `video/webm`, `video/x-matroska`, `video/x-msvideo`) and the FFmpeg demuxer that reads them must match the sniff (`mov`, `matroska`, `avi`), like the libvips loader for images.
+
+### 1.5 Video thumbnails (WP-74)
+
+A frame of a video becomes the image, which the pipeline then processes like any still (imgproxy Pro's video thumbnails). Only the `full` image decodes video; the design is ADR 0010.
+
+- **Availability.** `internal/video/ffmpeg` is built against FFmpeg with the build tag `ffmpeg` (the full image, `-tags ffmpeg`); without it the same API answers `Unsupported`. `XI_VIDEO_ENABLED=auto` (default) decodes video when the build can; `true` fails startup without FFmpeg; `false` refuses video everywhere. A video on the slim image, or with video off, is 422 `unsupported` with the public message "video sources are not supported by this image" (or "… are disabled"), never a crash or "unrecognised format".
+- **Reading the source.** The bytes stay in the C memory of the fetched buffer and FFmpeg reads them through a custom `AVIOContext` (no temporary file, no protocol: QuickTime references and playlists cannot open anything). Demuxers are limited to `mov`, `matroska` and `avi`, decoders to `h264`, `hevc`, `vp8`, `vp9`, `libdav1d` (AV1), `mpeg4`, `mjpeg`, `png` and `rawvideo`. Every decoder runs single-threaded (parallelism comes from the worker semaphore) with `max_pixels` = `XI_VIDEO_MAX_PIXELS`.
+- **Probe.** Container and stream headers (`avformat_find_stream_info`): the best video stream (`av_find_best_stream`), its codec, coded size, sample aspect ratio (the frame is shown, and decoded, at the display width: anamorphic video comes out undistorted), average frame rate, frame count (from the container, or duration × fps), container duration and bit rate, the display matrix and every stream. The probe reports the display size and turns the display matrix into the EXIF orientation that shows the frame the same way (90° clockwise → 6, 180° → 3, 270° → 8, mirrored → 2, 7, 4, 5), which the planner applies after the resize like a photo's. `XI_VIDEO_MAX_BYTES`, `XI_VIDEO_MAX_DURATION` and `XI_VIDEO_MAX_PIXELS` (also from the container headers, before any decode) are checked here, and `XI_LIMITS_MAX_SRC_PIXELS` applies to the frame like to any image; all are 422 `limit_exceeded`. `XI_LIMITS_MAX_SRC_BYTES` still caps the download itself.
+- **Frame selection.** `video_thumbnail_second` (`vts`, seconds, float) picks the first frame whose timestamp reaches it (FFmpeg's accurate seek: the keyframe before it is decoded and the frames in between are dropped); a negative value counts from the end (`vts:-1`: one second before the end) and the time is clamped to the video, the last frame answering a time past the end. `video_thumbnail_keyframes` (`vtk:1`) takes the keyframe at or before the time instead: faster (non-key frames are skipped by the decoder), less precise. Without `vts`, `XI_VIDEO_THUMBNAIL_SECOND` applies; its default `auto` is **best-frame selection**: `XI_VIDEO_THUMBNAIL_SAMPLES` (5) timestamps spread over the interior of the first `XI_VIDEO_THUMBNAIL_SPAN` (10 s) of the video (points (i+1)/(n+1), never the first frame, often black, or the last), the keyframe at or before each, and the best-scoring one wins: the Shannon entropy of a 64 px wide grey copy's luma histogram plus its standard deviation / 64, times (1 − share of pixels darker than 24 or brighter than 232)², quartered when the mean luma is below 32 or above 224 (fades, black or white title cards, flashes). Deterministic; a tie keeps the earlier frame. The debug header `X-Xi-Video-Frame` reports the frame (`0.480s key best 4 7.65`: time, keyframe, best-frame selection over 4 distinct keyframes with that score).
+- **Decode and conversion.** The chosen frame is converted by libswscale into 8-bit RGB (RGBA for pixel formats with alpha, e.g. PNG or rawvideo RGBA; VP8/VP9 alpha side data is not decoded) straight into a libvips-owned buffer that becomes the image without a copy. The YUV → RGB matrix and range are the stream's (BT.709, BT.601, BT.2020, full or limited range; unspecified is BT.601 like FFmpeg). High bit depth and HDR (PQ/HLG) video is converted to 8 bits without tone mapping. **Shrink on load:** when the result is at least 2× smaller than the frame, libswscale scales the frame to twice the target (area averaging) and libvips does the last 2× with its kernel, like JPEG shrink-on-load; smaller reductions decode at the display size (`plan.LoadStep.Scale`; `plan.Limits.DisableShrinkOnLoad` turns it off, as for JPEG). `TestVideoPreShrink` checks the pre-shrunk result against a full-size decode (DSSIM ≤ 0.01); the timings are below.
+- **Cancellation and memory.** A `context.AfterFunc` watcher sets an atomic abort flag that FFmpeg's I/O interrupt callback and the decode loop poll: a request that times out or whose client leaves stops at the next packet with its context's kind. Nothing in C points to Go memory; every FFmpeg object is freed before the call returns (`TestVideoNoLeak`: 200 thumbnails, no libvips object, tracked byte or FFmpeg handle left behind). The planner adds 8 bytes per stream pixel for the decoder (frame, references, scaler) to the memory-budget estimate.
+- **Output.** Any image format, negotiated like any source (a video has no output format of its own: the §6.2 "not encodable" row); `Content-Type` follows the result. Video output (MP4/WebM) is GIF→video, WP-76.
+- **Dialects.** imgproxy `vts`/`video_thumbnail_second`, `vtk`/`video_thumbnail_keyframes` (also in /info URLs); Cloudinary `so_<seconds>` on the `video` asset type with an image format (`/video/upload/so_2,f_jpg/dog.mp4`; `so_auto` keeps the configured selection, percentages are unsupported); ImageKit `<video>/ik-thumbnail.jpg` with `so-<seconds>`; imgix has no equivalent. URL-DIALECTS.md lists them.
+- **`/info`.** `video_meta` (`vm`, on by default): the container tags (strings, as imgproxy) plus `container`, `codec`, `width`/`height` (coded), `rotation`, `duration`, `fps`, `bit_rate`, `frames`; `video_streams`: one entry per stream with imgproxy's `type`, `codec`, `bps`, `fps`, `duration`, `language`, `frequency`, `layout`, plus `width`, `height`, `rotation` for video. `width`/`height`/`orientation` describe the frame as shown; the pixel options (`average`, `blurhash`, …) sample the default frame.
+
+Measured on the full builder (arm64 Docker on Apple silicon, one thread, `-count=10`, benchstat medians; raw output in `internal/video/ffmpeg/testdata/bench-thumbnail.txt`), 1280×720 fixtures:
+
+| Codec (720p fixture) | exact frame at 0.9 s, 720p | exact, scaled to 320×180 on load | keyframe (`vtk`), 320×180 | best frame (5 samples), 320×180 | probe (headers) | `ffmpeg` CLI, exact 320×180 (process per request) | full pipeline to a 320×180 JPEG: shrink on load / full-size decode |
+|---|---|---|---|---|---|---|---|
+| H.264 High (Big Buck Bunny, B-frames, one keyframe) | 74.9 ms | 66.2 ms | 22.4 ms | 19.8 ms | 10.1 ms | 140 ms | 84.0 ms / 87.3 ms |
+| VP9 (keyframe every 0.48 s) | 12.3 ms | 7.4 ms | 2.7 ms | 7.3 ms | 0.18 ms | 42 ms | 11.7 ms / 15.8 ms |
+| AV1 (dav1d, keyframe every 0.48 s) | 20.3 ms | 17.8 ms | 8.3 ms | 24.2 ms | 0.08 ms | 74 ms | 19.7 ms / 24.5 ms |
+
+Every thumbnail call opens the file again (the probe stage opened it once before), so the probe time is included; H.264's is high because `avformat_find_stream_info` decodes a frame to learn the pixel format. An exact H.264 frame decodes every frame since the previous keyframe (27 here), which is what `vtk:1` avoids. Shrink on load saves 20–25% end to end for VP9 and AV1 and is within noise for H.264, whose decode dominates; the pre-shrunk result matches the full-size decode (`TestVideoPreShrink`), so it stays on. The in-process decoder is 2–6× faster than spawning the CLI, before counting the temporary file the CLI would need for MP4s with the `moov` box at the end. Go allocations are 2–4.5 KiB and 30–60 allocations per thumbnail (the frame lives in C memory). Raw outputs: `internal/video/ffmpeg/testdata/bench-thumbnail.txt`, `internal/pipeline/exec/testdata/bench-video.txt`.
 
 ### 1.2 PDF (WP-50)
 
@@ -86,7 +111,7 @@ Measured on the builder image (arm64 Docker on Apple silicon, 1024 px JPEG outpu
 - Output keeps animation when source is animated, output format supports animation (GIF, WebP, AVIF sequences when libvips supports saving them, JXL when supported, MP4/WebM in M3) and `disable_animation` is false. Otherwise frame `page` (default 0) is used.
 - Frame selection (WP-62; every dialect maps its page/frame parameters onto `page`/`pages`, URL-DIALECTS): when the animation is kept, `page` is its first frame and `pages` its frame count (imgproxy ignores both then; imgix `frame=` relies on it to pick one frame). When it is not kept (still output, `disable_animation`, a frame limit of 1), `page` selects one frame and `pages` stacks that many frames vertically into one image (imgproxy Pro), exactly like the pages of a multi-page still. `page` past the last frame clamps to it; `pages:-1` runs to the end.
 - Frame delays and loop count preserved; per-frame geometric ops use `arrayjoin` over frames.
-- `fm=mp4|webm` / `f_mp4` / `.mp4` extension on an animated source → GIF→video (M3, `full` image).
+- `fm=mp4|webm` / `f_mp4` / `.mp4` extension on an animated source → GIF→video (M3, `full` and `gpl` images; codec per [5.1](#51-video-output-wp-76)).
 
 ## 4. Metadata policy
 
@@ -109,7 +134,7 @@ Defaults are config values (`XI_FORMATS_<FMT>_*`) and can be overridden per requ
 | BMP | own encoder (24/32-bit) | — | yes | — | — | — | — | 32-bit |
 | ICO | own encoder (PNG-in-ICO, sizes ≤ 256) | — | yes | — | — | — | — | yes |
 | SVG | passthrough of sanitised source only | — | — | — | — | — | — | — |
-| MP4 / WebM | FFmpeg: VP9 (libvpx, BSD) for WebM; AV1 (libaom) in MP4; H.264 pending license decision | CRF mapped from quality | — | — | 4:2:0 | — | yes (M3) | WebM VP9 alpha |
+| MP4 / WebM | FFmpeg (`full` and `gpl` images): VP9 (libvpx, BSD) for WebM (VP8 also built); MP4 is AV1 (libaom) in `full` and H.264 (libx264) in `gpl`; HEVC (libx265) only in `gpl`. See [Video output](#51-video-output-wp-76) | CRF mapped from quality | — | — | 4:2:0 | — | yes (M3) | WebM VP9 alpha |
 | JSON | info endpoint / `fm=json` / `f=json` / `output=json` | | | | | | | |
 
 `*_options` (WP-64 audit): `jpeg_options` (progressive, no_subsample, the mozjpeg arguments above), `png_options` (interlaced, quantize, quantization_colors → palette bit depth, as imgproxy's `vips_pngsave_go`), `webp_options` (compression lossy/near_lossless/lossless, smart_subsample, preset) and `avif_options` (subsample auto/on/off) are applied; tests inspect the output bytes (SOF0/SOF2 and the luma sampling factors, the PNG IHDR colour type and interlace flag and the PLTE size, the WebP VP8/VP8L chunk, the AVIF `av1C` subsampling bits). imgproxy defines no `jxl_options` or `tiff_options`, and `gif_options` was removed upstream (still accepted and ignored for old URLs).
@@ -119,6 +144,36 @@ Defaults are config values (`XI_FORMATS_<FMT>_*`) and can be overridden per requ
 `enforce_thumbnail` (WP-64): a HEIF/AVIF still is always decoded from its embedded thumbnail when it has one, whatever the target size (imgproxy Pro; without the option the thumbnail is used only when it is large enough, like imgproxy's shrink-on-load). As an extension, a JPEG is decoded from its Exif (IFD1) JPEG thumbnail when the option is on, the thumbnail has the image's aspect ratio (±1%, which refuses letterboxed 160×120 camera thumbnails), and planning on it gives the same result size without enlarging anything; otherwise from the image. The Exif thumbnail carries no ICC profile. The executor reports it in `Result.Thumbnail`.
 
 Not produced: PDF, PSD, RAW, JPEG 2000, EXR (open question if anyone needs JP2 output for Safari legacy; no).
+
+### 5.1 Video output (WP-76)
+
+The contract WP-76 (GIF → video) and the video packages implement. Which encoders exist depends on
+the image flavor (`docker/base/README.md`, ADR 0005, ADR 0006 amendment 2026-09-27):
+
+| Requested output | `slim` | `full` | `gpl` |
+|---|---|---|---|
+| `webm` | `Unsupported` | VP9 (`libvpx-vp9`) | VP9 (`libvpx-vp9`) |
+| `mp4` | `Unsupported` | AV1 in MP4 (`libaom-av1`) | H.264 in MP4 (`libx264`, High, yuv420p, `+faststart`) |
+| `hevc` / `h265` (MP4, `hvc1` tag) | `Unsupported` | `Unsupported` | HEVC in MP4 (`libx265`, Main) |
+
+- **Detection, not configuration.** At startup the Go side probes the linked FFmpeg with
+  `avcodec_find_encoder_by_name` for `libx264`, `libx265`, `libaom-av1` and `libvpx-vp9`
+  (through go-astiav's `FindEncoderByName` in `internal/video`, build tag `ffmpeg`; never by
+  parsing `ffmpeg -encoders`)
+  and builds the table above from what it finds. The same binary therefore serves `full` and
+  `gpl`; nothing reads the image label. Slim builds (no `ffmpeg` build tag) report every video
+  output as `Unsupported`.
+- `mp4` means "the best MP4 this image can write": `libx264` when present, otherwise
+  `libaom-av1`. No config switch picks AV1 over H.264 in a gpl image in M3; if one is needed later
+  it is `XI_FORMATS_MP4_CODEC=auto|h264|av1` (default `auto`).
+- `hevc`/`h265` is a separate, explicit output (dialect values that name HEVC); it is never
+  chosen by `format=auto` or `best`, and it is `Unsupported` (the usual 4xx for an unavailable
+  format) without `libx265`.
+- `webm` is VP9 in every video-capable image.
+- The startup log line and `/info` capability output list the detected video encoders, so an
+  operator can see which flavor is running.
+- The `gpl` flavor exists for these encoders only. Its licensing and patent caveats are in
+  `docker/base/README.md` and the image's `/opt/xtandard/share/licenses/LICENSE-GPL.md`.
 
 ## 6. Format negotiation and best-format
 

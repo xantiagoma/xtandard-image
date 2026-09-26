@@ -90,6 +90,7 @@ func TestMetricNamesAndLint(t *testing.T) {
 	m.SetCacheSize("memory", 10, 1)
 	m.IncCacheWriteDropped()
 	m.ObserveCacheSkip("disk", "corrupt")
+	m.ObserveDetect("face", 20*time.Millisecond)
 	m.Limiter().Rejected(OverloadQueueFull)
 
 	mfs, err := m.Registry().Gather()
@@ -110,6 +111,7 @@ func TestMetricNamesAndLint(t *testing.T) {
 		"xi_cache_requests_total",
 		"xi_cache_skipped_total",
 		"xi_cache_writes_dropped_total",
+		"xi_detect_duration_seconds",
 		"xi_fetch_coalesced_total",
 		"xi_overload_total",
 		"xi_panics_total",
@@ -186,6 +188,7 @@ func TestObservations(t *testing.T) {
 	lim.Waited(time.Second)
 	lim.Rejected(OverloadWaitTimeout)
 	lim.Rejected("https://attacker.example/unbounded")
+	m.ObserveDetect("object", 300*time.Millisecond)
 
 	tests := []struct {
 		name string
@@ -211,6 +214,7 @@ func TestObservations(t *testing.T) {
 		{"overload other", value(t, m.overload.WithLabelValues("other")), 1},
 		{"semaphore_wait count", value(t, m.semaphoreWait), 1},
 		{"fetch observations", value(t, m.fetchDuration), 2},
+		{"detect observations", value(t, m.detectDuration), 1},
 	}
 	for _, tc := range tests {
 		if tc.got != tc.want {

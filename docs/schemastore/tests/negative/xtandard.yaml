@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json
+# Negative SchemaStore sample: every block below is an error the schema must
+# report, and the loader rejects the file too (internal/config
+# TestSchemaStoreEntry checks both).
+server:
+  adr: ":8080" # typo: addr
+security:
+  unsigned_policy: maybe # not an enum value
+fetch:
+  timeout: 5 # a duration needs a unit
+sources:
+  origin:
+    type: http
+    allow: [cdn.example.com]
+    bucket: images # s3-only field on an http source

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/leakcheck"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
@@ -353,12 +354,7 @@ func TestShapeMask(t *testing.T) {
 // with libvips leak checking on (tolerances as TestChainedNoLeak). Not
 // parallel: the counters are global.
 func TestGeometryExtrasNoLeak(t *testing.T) {
-	const (
-		cycles      = 120
-		slackBytes  = 1 << 20
-		slackAllocs = 64
-		slackObjs   = 16
-	)
+	const cycles = 120
 	vips.SetLeakCheck(true)
 	defer vips.SetLeakCheck(false)
 	e := newExecutor(t)
@@ -393,14 +389,9 @@ func TestGeometryExtrasNoLeak(t *testing.T) {
 	for i := range 2 * len(jobs) {
 		cycle(i)
 	}
-	before, objects := vips.ReadMemStats(), vips.LiveObjects()
+	before := leakcheck.Take()
 	for i := range cycles {
 		cycle(i)
 	}
-	after, objectsAfter := vips.ReadMemStats(), vips.LiveObjects()
-	if after.Mem-before.Mem > slackBytes || after.Allocs-before.Allocs > slackAllocs ||
-		after.Files != before.Files || objectsAfter-objects > slackObjs {
-		t.Errorf("after %d runs: mem %d → %d B, allocs %d → %d, files %d → %d, objects %d → %d",
-			cycles, before.Mem, after.Mem, before.Allocs, after.Allocs, before.Files, after.Files, objects, objectsAfter)
-	}
+	leakcheck.Check(t, before, leakcheck.Default, "runs")
 }

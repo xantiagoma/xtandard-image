@@ -1,6 +1,6 @@
-#:schema https://xantiagoma.github.io/xtandard-image/schema/config.schema.json
+#:schema https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json
 # The CONFIG.md §3 example in TOML.
-"$schema" = "https://xantiagoma.github.io/xtandard-image/schema/config.schema.json"
+"$schema" = "https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json"
 presets = { default = "strip_metadata:1/quality:80", thumb = "rs:fill:200:200/g:sm" }
 
 [server]

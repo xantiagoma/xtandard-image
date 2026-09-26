@@ -1,0 +1,218 @@
+//go:build cgo
+
+package app
+
+import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"os"
+	"strings"
+	"testing"
+
+	"github.com/xantiagoma/xtandard-image/internal/config"
+	"github.com/xantiagoma/xtandard-image/internal/playground"
+	"github.com/xantiagoma/xtandard-image/internal/security/sign"
+)
+
+const (
+	pgKeyHex  = "943b421c9eb07c830af81030552c86009268de4e532ba2ee2eab8247c6da0881"
+	pgSaltHex = "520f986b998545b4785e0defbc4f3c1203f22de2374a3d53cb7a7fe9fea309c5"
+)
+
+func hexKey(t *testing.T, s string) config.HexKey {
+	t.Helper()
+	var k config.HexKey
+	if err := k.UnmarshalText([]byte(s)); err != nil {
+		t.Fatal(err)
+	}
+	return k
+}
+
+func postJSON(t *testing.T, u, body string) response {
+	t.Helper()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, u, strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return response{status: resp.StatusCode, ctype: resp.Header.Get("Content-Type"), body: b, header: resp.Header}
+}
+
+// TestPlaygroundListeners: the playground is a 404 on both listeners when
+// disabled, served on the admin listener only when enabled, and on the
+// public one too with XI_PLAYGROUND_PUBLIC; on the admin listener it signs
+// a URL that the public listener serves, and api/meta never carries the
+// key or the salt.
+func TestPlaygroundListeners(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name            string
+		enabled, public bool
+		wantAdmin       int
+		wantPublic      int
+	}{
+		{"disabled", false, false, http.StatusNotFound, http.StatusNotFound},
+		{"enabled", true, false, http.StatusOK, http.StatusNotFound},
+		{"public", true, true, http.StatusOK, http.StatusOK},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			cfg := fixturesConfig(t)
+			cfg.Playground.Enabled, cfg.Playground.Public = tc.enabled, tc.public
+			cfg.Signing.Keys = []config.HexKey{hexKey(t, pgKeyHex)}
+			cfg.Signing.Salts = []config.HexKey{hexKey(t, pgSaltHex)}
+			cfg.Signing.Required = config.True
+			a := start(t, &cfg, hooks{})
+			admin, public := "http://"+a.admin.String(), "http://"+a.public.String()
+
+			for _, c := range []struct {
+				base string
+				want int
+			}{{admin, tc.wantAdmin}, {public, tc.wantPublic}} {
+				for _, path := range []string{"/_playground/", "/_playground/api/meta"} {
+					got := get(t, c.base+path)
+					if got.status != c.want {
+						t.Errorf("GET %s%s = %d, want %d", c.base, path, got.status, c.want)
+					}
+					if got.status == http.StatusOK && !strings.Contains(got.header.Get("Content-Security-Policy"), "default-src 'self'") {
+						t.Errorf("GET %s%s: CSP %q", c.base, path, got.header.Get("Content-Security-Policy"))
+					}
+				}
+			}
+			if !tc.enabled {
+				return
+			}
+
+			meta := get(t, admin+"/_playground/api/meta")
+			for _, secret := range []string{pgKeyHex, pgSaltHex, strings.ToUpper(pgKeyHex), strings.ToUpper(pgSaltHex)} {
+				if bytes.Contains(meta.body, []byte(secret)) {
+					t.Fatalf("api/meta contains key material")
+				}
+			}
+			var m playground.Meta
+			if err := json.Unmarshal(meta.body, &m); err != nil {
+				t.Fatal(err)
+			}
+			if m.Signing.Mode != playground.SigningRequired || len(m.Mounts) == 0 || m.Mounts[0].ID != "imgproxy" || !m.Mounts[0].Keyed ||
+				len(m.Catalogues) != 3 || len(m.Sources) != 1 || m.Sources[0].Name != "fixtures" {
+				t.Errorf("meta %+v", m)
+			}
+
+			signed := postJSON(t, admin+"/_playground/api/sign", `{"mount":"imgproxy","path":"/rs:fit:64:64/plain/jpeg/baseline.jpg"}`)
+			var sr playground.SignResponse
+			if err := json.Unmarshal(signed.body, &sr); err != nil || signed.status != http.StatusOK || !sr.Signed {
+				t.Fatalf("sign: %d %s (%v)", signed.status, signed.body, err)
+			}
+			checkJPEG(t, get(t, public+sr.URL), 64, 64)
+			rendered := get(t, admin+"/_playground/api/render?u="+url.QueryEscape(sr.URL))
+			checkJPEG(t, rendered, 64, 64)
+			if rendered.header.Get("Server-Timing") == "" {
+				t.Error("api/render has no Server-Timing")
+			}
+			// Signing is required: the unsigned form is rejected.
+			if got := get(t, public+"/insecure/rs:fit:64:64/plain/jpeg/baseline.jpg"); got.status != http.StatusForbidden {
+				t.Errorf("unsigned URL: %d, want 403", got.status)
+			}
+		})
+	}
+}
+
+// TestPlaygroundSignsForEveryScheme signs one URL per signable mount with
+// the playground's signers and routes it through the real router: the
+// dialect must report it Verified. This pins each dialect's signed message
+// (imgproxy path, xi_sig over the path after the mount or "/" for wsrv,
+// thumbor path, imgix s over the path and query) to what the dialects
+// verify.
+func TestPlaygroundSignsForEveryScheme(t *testing.T) {
+	t.Parallel()
+	cfg, _, err := config.Load(config.LoadOptions{Environ: []string{
+		"XI_DEV_MODE=true",
+		"XI_SIGNING_KEYS=" + pgKeyHex,
+		"XI_SIGNING_SALTS=" + pgSaltHex,
+		"XI_SIGNING_REQUIRED=true",
+		"XI_DIALECTS_QUERY_ENABLED=true",
+		"XI_DIALECTS_WSRV_ENABLED=true",
+		"XI_DIALECTS_CLOUDFLARE_ENABLED=true",
+		"XI_DIALECTS_THUMBOR_ENABLED=true",
+		"XI_DIALECTS_THUMBOR_KEYS=ACME-SEC",
+		"XI_DIALECTS_IMAGEKIT_ENABLED=true",
+		"XI_DIALECTS_IMGIX_ENABLED=true",
+		"XI_DIALECTS_IMGIX_KEYS=FOO123bar",
+		"XI_PRESETS=thumb=rs:fill:100:100",
+		"XI_PLAYGROUND_ENABLED=true",
+	}, ConfigFile: os.DevNull})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rt, _, err := buildRouter(&cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	meta, signers, err := playgroundMeta(&cfg, rt, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(meta.Presets) != 1 || meta.Presets[0] != "thumb" {
+		t.Errorf("presets %v", meta.Presets)
+	}
+	req := map[string][2]string{
+		"imgproxy":   {"/rs:fit:300:0/plain/https://example.com/a.jpg", ""},
+		"query":      {"/", "url=https%3A%2F%2Fexample.com%2Fa.jpg&w=300"},
+		"wsrv":       {"/", "url=example.com/a.jpg&w=300"},
+		"cloudflare": {"/width=300,fit=cover/https://example.com/a.jpg", ""},
+		"thumbor":    {"/300x200/smart/example.com/a.jpg", ""},
+		"imgix":      {"/photos/a.jpg", "w=300&h=200&fit=crop"},
+	}
+	seen := map[string]bool{}
+	for i := range meta.Mounts {
+		m := &meta.Mounts[i]
+		in, ok := req[m.ID]
+		if !ok {
+			if m.Scheme != playground.SchemeNone && m.ID != "imagekit" {
+				t.Errorf("mount %s (%s) has no case", m.ID, m.Scheme)
+			}
+			continue
+		}
+		seen[m.ID] = true
+		if signers[m.ID] == nil || !m.Keyed {
+			t.Errorf("%s: no signer", m.ID)
+			continue
+		}
+		out, err := playground.SignURL(m, signers[m.ID], in[0], in[1])
+		if err != nil || !out.Signed {
+			t.Fatalf("%s: %+v, %v", m.ID, out, err)
+		}
+		r := httptest.NewRequestWithContext(t.Context(), http.MethodGet, out.URL, http.NoBody)
+		res, rm, err := rt.Route(r)
+		if err != nil {
+			t.Errorf("%s: route %s: %v", m.ID, out.URL, err)
+			continue
+		}
+		if rm.Name != m.ID || res.Signature != sign.Verified {
+			t.Errorf("%s: %s routed to %s with %v, want Verified", m.ID, out.URL, rm.Name, res.Signature)
+		}
+	}
+	for id := range req {
+		if !seen[id] {
+			t.Errorf("mount %s missing from meta", id)
+		}
+	}
+	for _, m := range meta.Mounts {
+		if m.ID == "imagekit" && (m.Scheme != playground.SchemeNone || m.Keyed) {
+			t.Errorf("imagekit mount %+v: the playground holds no ImageKit keys", m)
+		}
+	}
+}

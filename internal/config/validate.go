@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // maxDPR is the largest device pixel ratio accepted anywhere (client hints
@@ -56,7 +57,9 @@ func (c *Config) Validate() error {
 	c.validateProcessing(&v)
 	c.validateFormats(&v)
 	c.validateLimits(&v)
+	c.validateVideo(&v)
 	c.validateCache(&v)
+	c.validateDetect(&v)
 	return errors.Join(v.errs...)
 }
 
@@ -85,7 +88,24 @@ func (c *Config) validateServer(v *validator) {
 	v.check(!c.Admin.Pprof || c.Admin.Addr != "", "admin.pprof", "needs admin.addr")
 	v.check(!c.Admin.Docs || c.Admin.Addr != "", "admin.docs", "needs admin.addr")
 	v.check(c.Admin.Addr == "" || c.Admin.Addr != s.Addr, "admin.addr", "must differ from server.addr")
+	c.validatePlayground(v)
 	v.check(c.Observability.LogLevel != "", "observability.log_level", "must be set")
+}
+
+func (c *Config) validatePlayground(v *validator) {
+	p := c.Playground
+	v.check(!p.Public || p.Enabled, "playground.public", "needs playground.enabled")
+	v.check(!p.Enabled || p.Public || c.Admin.Addr != "", "playground.enabled", "needs admin.addr (or playground.public)")
+	ok := len(p.Path) > 1 && p.Path[0] == '/' && !strings.HasSuffix(p.Path, "/") && !strings.Contains(p.Path, "//")
+	for _, r := range p.Path {
+		ok = ok && (r == '/' || r == '-' || r == '_' || r == '.' || r == '~' ||
+			('a' <= r && r <= 'z') || ('A' <= r && r <= 'Z') || ('0' <= r && r <= '9'))
+	}
+	v.check(ok, "playground.path", "%q must start with /, not end with /, and use only [A-Za-z0-9._~/-]", p.Path)
+	// Admin routes the playground path must not shadow.
+	for _, r := range []string{"/healthz", "/readyz", "/metrics", "/openapi.json", "/docs", "/debug", "/config.schema.json"} {
+		v.check(p.Path != r && !strings.HasPrefix(p.Path, r+"/"), "playground.path", "%q shadows the admin route %s", p.Path, r)
+	}
 }
 
 func validOrigin(o string) bool {
@@ -241,7 +261,7 @@ func (d *Dialects) mounts() map[string]Mount {
 	return map[string]Mount{
 		"imgproxy": d.Imgproxy.Mount, "query": d.Query, "wsrv": d.Wsrv,
 		"cloudflare": d.Cloudflare, "cloudflare_images": d.CloudflareImages.Mount,
-		"imgix": d.Imgix, "cloudinary": d.Cloudinary.Mount, "imagekit": d.Imagekit,
+		"imgix": d.Imgix, "cloudinary": d.Cloudinary.Mount, "imagekit": d.Imagekit.Mount,
 		"bunny": d.Bunny, "thumbor": d.Thumbor, "awssih": d.AWSSIH.Mount,
 	}
 }
@@ -282,6 +302,9 @@ func (c *Config) validateDialects(v *validator) {
 			v.add(p, "bad regex: %v", err)
 		}
 	}
+	ep := d.Imagekit.EndpointPath
+	v.check(!strings.ContainsAny(ep, "?#") && !strings.Contains(strings.Trim(ep, "/"), "//"),
+		"dialects.imagekit.endpoint_path", "must be a plain path")
 	for _, cloud := range sortedKeys(d.Cloudinary.Clouds) {
 		src := d.Cloudinary.Clouds[cloud]
 		v.check(c.hasSource(src), "dialects.cloudinary.clouds", "cloud %q maps to unknown source %q", cloud, src)
@@ -336,10 +359,36 @@ func (c *Config) validateProcessing(v *validator) {
 	v.check(p.GoMemoryFraction > 0 && p.GoMemoryFraction <= 1, "processing.go_memory_fraction", "must be in (0, 1], got %g", p.GoMemoryFraction)
 	v.check(p.WatermarkOpacity >= 0 && p.WatermarkOpacity <= 1, "processing.watermark_opacity", "must be in [0, 1], got %g", p.WatermarkOpacity)
 	v.check(p.ColorProfilesDir == "" || filepath.IsAbs(p.ColorProfilesDir), "processing.color_profiles_dir", "must be an absolute path")
+	v.check(validFont(p.WatermarkFont), "processing.watermark_font", "must be a Pango font description (letters, digits, spaces and \",-_.\", at most 128 bytes)")
+	v.check(p.WatermarkFontFile == "" || filepath.IsAbs(p.WatermarkFontFile), "processing.watermark_font_file", "must be an absolute path")
 	v.between(c.Fallback.Status, 200, 599, "fallback.status")
 	v.nonNegative(int64(c.Fallback.TTL), "fallback.ttl")
 	v.positive(int64(c.Vips.Concurrency), "vips.concurrency")
 	v.check(c.Vips.FailOn != "", "vips.fail_on", "must be set")
+}
+
+func (c *Config) validateDetect(v *validator) {
+	d := c.Detect
+	if d.Enabled == False {
+		return
+	}
+	v.check(d.Library != "", "detect.library", "must not be empty")
+	v.between(d.Threads, 1, 64, "detect.threads")
+	v.nonNegative(int64(d.Workers), "detect.workers")
+	v.between(d.MaxInput, 32, 4096, "detect.max_input")
+	v.between(d.CacheSize, 0, 1_000_000, "detect.cache_size")
+	v.check(d.ModelsDir == "" || filepath.IsAbs(d.ModelsDir), "detect.models_dir", "must be an absolute path")
+	for _, m := range []named[string]{{"detect.face_model", d.FaceModel}, {"detect.object_model", d.ObjectModel}} {
+		switch {
+		case m.v == "" || filepath.IsAbs(m.v):
+		case strings.ContainsRune(m.v, '/') || m.v == "." || m.v == "..":
+			v.add(m.path, "must be a file name in detect.models_dir or an absolute path, got %q", m.v)
+		default:
+			v.check(d.ModelsDir != "", m.path, "needs detect.models_dir for the relative name %q", m.v)
+		}
+	}
+	v.check(d.Enabled != True || d.FaceModel != "" || d.ObjectModel != "", "detect.enabled",
+		"true needs detect.face_model or detect.object_model")
 }
 
 func (c *Config) validateFormats(v *validator) {
@@ -416,9 +465,22 @@ func (c *Config) validateLimits(v *validator) {
 		{"limits.max_svg_depth", int64(l.MaxSVGDepth)},
 		{"limits.max_svg_elements", int64(l.MaxSVGElements)},
 		{"limits.max_pdf_pages", int64(l.MaxPDFPages)},
+		{"limits.max_watermark_text_pixels", l.MaxWatermarkTextPixels},
 	} {
 		v.positive(n.v, n.path)
 	}
+}
+
+func (c *Config) validateVideo(v *validator) {
+	vd := c.Video
+	v.positive(int64(vd.MaxBytes), "video.max_bytes")
+	v.positive(int64(vd.MaxDuration), "video.max_duration")
+	v.positive(vd.MaxPixels, "video.max_pixels")
+	v.between(vd.Thumbnail.Samples, 1, 32, "video.thumbnail.samples")
+	v.positive(int64(vd.Thumbnail.Span), "video.thumbnail.span")
+	_, isNumber := vd.Thumbnail.Second.Seconds()
+	v.check(isNumber || vd.Thumbnail.Second == VideoSecondAuto || vd.Thumbnail.Second == "",
+		"video.thumbnail.second", "%q is not a number of seconds or auto", vd.Thumbnail.Second)
 }
 
 func (c *Config) validateCache(v *validator) {
@@ -497,4 +559,18 @@ func sortedKeys[K cmp.Ordered, V any](m map[K]V) []K {
 type named[T any] struct {
 	path string
 	v    T
+}
+
+// validFont reports whether s is a plausible Pango font description: the
+// executor parses it again with the same character set.
+func validFont(s string) bool {
+	if strings.TrimSpace(s) == "" || len(s) > 128 {
+		return false
+	}
+	for _, r := range s {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && !strings.ContainsRune(" ,-_.", r) {
+			return false
+		}
+	}
+	return true
 }

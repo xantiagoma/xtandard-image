@@ -135,6 +135,7 @@ type Router struct {
 	root     *Mount // prefix "/" mount
 	rootURL  *Mount
 	def      *Mount
+	all      []*Mount // opts.Mounts in order, effective policy filled in
 	dialects map[string]dialect.Dialect
 	restrict *restrictions
 }
@@ -196,6 +197,7 @@ func New(opts *Options, dialects map[string]dialect.Dialect) (*Router, error) {
 		if m.Prefix == "" && len(m.Hosts) == 0 {
 			return nil, fmt.Errorf("router: %s: needs a prefix or hosts", what)
 		}
+		rt.all = append(rt.all, m)
 		if err := rt.addHosts(m, what); err != nil {
 			return nil, err
 		}
@@ -238,6 +240,19 @@ func New(opts *Options, dialects map[string]dialect.Dialect) (*Router, error) {
 		rt.rootURL = m
 	}
 	return rt, nil
+}
+
+// Mounts returns copies of the prefix and host mounts in configuration
+// order, with the effective unsigned policy filled in. The default and
+// root ?url= mounts are not included. The playground lists them.
+func (rt *Router) Mounts() []Mount {
+	out := make([]Mount, 0, len(rt.all))
+	for _, m := range rt.all {
+		c := *m
+		c.Hosts = slices.Clone(m.Hosts)
+		out = append(out, c)
+	}
+	return out
 }
 
 func validPolicy(p Policy) bool {

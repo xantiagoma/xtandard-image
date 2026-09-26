@@ -6,6 +6,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/imagemeta"
 	"github.com/xantiagoma/xtandard-image/internal/codec/raw"
+	"github.com/xantiagoma/xtandard-image/internal/video"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -31,6 +32,8 @@ type Info struct {
 	XMP []byte
 	// HDR mirrors Meta.HDR: scene-linear samples (OpenEXR, Radiance, PFM).
 	HDR bool
+	// Video mirrors Meta.Video: the container, its tags and streams.
+	Video *video.Meta
 }
 
 // EXIFTag is one EXIF tag as libexif (through libvips) reads it.
@@ -52,7 +55,18 @@ type EXIFTag struct {
 // Photoshop header for PSD). Camera RAW reports the camera metadata LibRaw
 // reads as EXIF (codec/raw.EXIF). Like Probe it must run inside vips.Run.
 func Inspect(ctx context.Context, buf *vips.Buffer, lim Limits, contentType string) (Info, error) {
-	m, err := Probe(ctx, buf, lim, contentType)
+	return inspect(ctx, buf, lim, nil, contentType)
+}
+
+// InspectMedia is Inspect for images and, when v enables them, video
+// sources (ProbeMedia): a video reports its frame's band layout and its
+// container metadata (Info.Video).
+func InspectMedia(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Settings, contentType string) (Info, error) {
+	return inspect(ctx, buf, lim, v, contentType)
+}
+
+func inspect(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Settings, contentType string) (Info, error) {
+	m, err := probe(ctx, buf, lim, v, contentType)
 	if err != nil {
 		return Info{}, err
 	}
@@ -79,6 +93,16 @@ func Inspect(ctx context.Context, buf *vips.Buffer, lim Limits, contentType stri
 			return Info{}, err
 		}
 		info.Bands, info.SampleFormat, info.Colorspace = psdLayout(&h)
+		return info, nil
+	case FormatMP4, FormatMOV, FormatWebM, FormatMKV, FormatAVI:
+		// A frame decodes to 8-bit sRGB, RGBA when the pixel format has
+		// alpha.
+		info.Bands = 3
+		if m.HasAlpha {
+			info.Bands = 4
+		}
+		info.SampleFormat, info.Colorspace = "uchar", "srgb"
+		info.Video = m.Video
 		return info, nil
 	case FormatEXR:
 		// Described from the Go header: loading would spool the file for

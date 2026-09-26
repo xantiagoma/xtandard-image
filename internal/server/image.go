@@ -201,9 +201,20 @@ func (s *Server) produce(ctx context.Context, r *http.Request, info *requestInfo
 		return res, nil
 	}
 
+	// 9b. The request's own watermark images, fetched like the source and
+	// still outside the processing semaphore (each has its fetch span).
+	marks, err := s.fetchWatermarks(ctx, req, lim.maxSrcBytes)
+	if err != nil {
+		return nil, err
+	}
+	defer releaseWatermarks(marks)
+
 	// 10. Admission: fail fast when the queue is full.
 	t = s.stage(info, stageAdmission)
-	release, err := s.deps.Admitter.Acquire(ctx, 0) // cost: planner estimate once WP-25 lands
+	// The planner's memory estimate needs the probe below: the executor
+	// charges it (limiter.Reserve through exec.Config.Admit) once the plan
+	// exists, before decoding.
+	release, err := s.deps.Admitter.Acquire(ctx, 0)
 	t.done()
 	if err != nil {
 		return nil, err
@@ -263,6 +274,7 @@ func (s *Server) produce(ctx context.Context, r *http.Request, info *requestInfo
 		Meta:         meta,
 		Decision:     d,
 		QualityDelta: hints.QualityDelta,
+		Watermarks:   marks,
 	})
 	t.done()
 	if err != nil {
@@ -351,6 +363,9 @@ func (s *Server) run(ctx context.Context, in *ProcessInput) (*ProcessOutput, err
 	if out.RawPath != "" {
 		s.deps.Metrics.ObserveRawDecode(out.RawPath)
 		span.SetAttributes(attribute.String("xi.raw_path", out.RawPath))
+	}
+	if out.VideoFrame != "" {
+		span.SetAttributes(attribute.String("xi.video_frame", out.VideoFrame))
 	}
 	return out, nil
 }

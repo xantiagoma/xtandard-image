@@ -7,10 +7,14 @@
 //     timeout (errs.KindUnavailable, 503 + Retry-After);
 //   - an optional memory-weighted semaphore: each job declares its estimated
 //     peak bytes and a job larger than the whole budget is rejected up front
-//     (errs.KindLimitExceeded, 422) instead of deadlocking.
+//     (errs.KindLimitExceeded, 422) instead of deadlocking. The estimate
+//     comes from the planner, which needs the probed header, so a job that
+//     was admitted with Acquire(ctx, 0) charges it with Reserve once its plan
+//     exists and before any pixel is decoded.
 //
-// Every successful Acquire returns a release func that is idempotent and
-// returns all permits, whether or not the request context was cancelled.
+// Every successful Acquire or Reserve returns a release func that is
+// idempotent and returns all its permits, whether or not the request
+// context was cancelled.
 package limiter
 
 import (
@@ -236,6 +240,57 @@ func (l *Limiter) Acquire(ctx context.Context, cost int64) (release func(), err 
 	l.metrics.OnAdmitted(now.Sub(start))
 	p := &permit{l: l, cost: cost, start: now}
 	return p.release, nil
+}
+
+// noRelease is Reserve's release when nothing was reserved: a package-level
+// func value, so the common case (no memory budget) does not allocate.
+var noRelease = func() {}
+
+// Reserve charges cost bytes (a plan's estimated peak memory) against the
+// memory budget for a job already admitted by Acquire, waiting for other
+// jobs to release theirs for at most QueueTimeout. Without a budget, or
+// with cost ≤ 0, it returns at once without allocating. Call it on an
+// admitted job only: a job never waits for memory while it has none of
+// its own reserved, so the wait cannot deadlock.
+//
+// Errors: KindLimitExceeded (cost above the whole budget, 422),
+// *OverloadError wrapping KindUnavailable (QueueTimeout passed, 503), and
+// KindCanceled / KindTimeout when ctx ends first.
+func (l *Limiter) Reserve(ctx context.Context, cost int64) (release func(), err error) {
+	if l.memory == nil || cost <= 0 {
+		return noRelease, nil
+	}
+	if cost > l.cfg.MemoryBudget {
+		l.metrics.OnRejected(ReasonMemoryTooLarge)
+		return nil, errs.Newf(errs.KindLimitExceeded,
+			"limiter: estimated memory %d bytes exceeds budget %d", cost, l.cfg.MemoryBudget)
+	}
+	if !l.memory.TryAcquire(cost) {
+		waitCtx := ctx
+		if l.cfg.QueueTimeout > 0 {
+			var cancel context.CancelFunc
+			waitCtx, cancel = context.WithTimeoutCause(ctx, l.cfg.QueueTimeout, errQueueTimeout)
+			defer cancel()
+		}
+		if err := l.memory.Acquire(waitCtx, cost); err != nil {
+			return nil, l.waitError(ctx)
+		}
+	}
+	r := &reservation{l: l, cost: cost}
+	return r.release, nil
+}
+
+// reservation is one Reserve.
+type reservation struct {
+	l    *Limiter
+	cost int64
+	done atomic.Bool
+}
+
+func (r *reservation) release() {
+	if r.done.CompareAndSwap(false, true) {
+		r.l.memory.Release(r.cost)
+	}
 }
 
 // wait takes a worker and then the memory weight, both within QueueTimeout.

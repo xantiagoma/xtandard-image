@@ -4,12 +4,6 @@
     "query": "aspect_ratio=16:9",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "aspect_ratio",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Crop": {
@@ -46,12 +40,6 @@
     "query": "aspect_ratio=1.5:1",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "aspect_ratio",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Crop": {
@@ -72,12 +60,6 @@
     "query": "width=200\u0026height=100\u0026aspect_ratio=1:1",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "aspect_ratio",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Crop": {
@@ -116,12 +98,6 @@
     "query": "aspect_ratio=1:1\u0026crop_gravity=west",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "aspect_ratio",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Crop": {
@@ -211,12 +187,6 @@
     "query": "aspect_ratio=16:9\u0026width=256",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "aspect_ratio",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Crop": {
@@ -242,12 +212,6 @@
     "query": "crop=800,600\u0026aspect_ratio=1:1",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "aspect_ratio",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Crop": {
@@ -432,12 +396,6 @@
     "query": "brightness=30",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "brightness",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -458,12 +416,6 @@
     "query": "brightness=-30",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "brightness",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -695,12 +647,6 @@
     "query": "width=800\u0026crop=600,400\u0026brightness=5\u0026sharpen=true\u0026quality=80",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "brightness",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Quality": 80
       },
@@ -738,20 +684,6 @@
     "query": "aspect_ratio=16:9\u0026gamma=10\u0026saturation=10\u0026format=webp",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "gamma",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "saturation",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "aspect_ratio",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "webp"
       },
@@ -779,12 +711,6 @@
     "query": "contrast=15",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "contrast",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -805,12 +731,6 @@
     "query": "contrast=-100",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "contrast",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -1318,14 +1238,12 @@
     "query": "face_crop=true",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "face_crop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
-        {}
+        {
+          "Gravity": {
+            "Type": "face"
+          }
+        }
       ],
       "Source": {
         "Mount": "zone",
@@ -1340,17 +1258,11 @@
     "query": "face_crop=600,600",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "face_crop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Crop": {
             "Gravity": {
-              "Type": "center"
+              "Type": "face"
             },
             "Height": {
               "Px": 600
@@ -1693,12 +1605,6 @@
     "query": "gamma=40",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "gamma",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -1719,12 +1625,6 @@
     "query": "gamma=-100",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "gamma",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -1777,12 +1677,6 @@
     "query": "hue=33",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "hue",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -2062,12 +1956,6 @@
     "query": "saturation=15",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "saturation",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -2088,12 +1976,6 @@
     "query": "saturation=-100",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "saturation",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -2140,12 +2022,6 @@
     "query": "sepia=75",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "sepia",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Sepia": true
@@ -2258,12 +2134,6 @@
     "query": "tint=aaffff",
     "request": {
       "Dialect": "bunny",
-      "Ignored": [
-        {
-          "Option": "tint",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Tint": {

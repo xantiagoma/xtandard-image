@@ -23,6 +23,8 @@ type jsonObj = map[string]any
 const (
 	// ParseDuration: Go duration syntax, never negative.
 	durationPattern = `^\s*\+?(0|(([0-9]+(\.[0-9]*)?|\.[0-9]+)(ns|us|µs|μs|ms|s|m|h))+)\s*$`
+	// VideoSecond.UnmarshalText: auto (any case) or a decimal number.
+	videoSecondPattern = `^\s*([Aa][Uu][Tt][Oo]|[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][-+]?[0-9]+)?)\s*$`
 	// ParseByteSize: an integer with an optional binary suffix, any case.
 	byteSizePattern = `^\s*[0-9]+ *([KkMmGgTt][Ii][Bb]|[Bb])?\s*$`
 	// HexKey.UnmarshalText: hex, whole bytes.
@@ -109,6 +111,11 @@ func (g *schemaGen) defs() jsonObj {
 				}}},
 			},
 			"examples": []any{"640-1080/220", []int{16, 32, 64}},
+		},
+		"videoSecond": jsonObj{
+			"description": "A timestamp in seconds (negative counts from the end of the video), or auto for best-frame selection.",
+			"oneOf":       []any{jsonObj{"type": "number"}, jsonObj{"type": "string", "pattern": videoSecondPattern}},
+			"examples":    []any{"auto", 1, -2.5},
 		},
 		"tristate": jsonObj{
 			"description": "true, false, or auto (derived from other settings).",
@@ -287,6 +294,8 @@ func (g *schemaGen) typeSchema(t reflect.Type, path string, def reflect.Value) j
 		return jsonObj{"$ref": "#/$defs/intList"}
 	case reflect.TypeFor[Tristate]():
 		return jsonObj{"$ref": "#/$defs/tristate"}
+	case reflect.TypeFor[VideoSecond]():
+		return jsonObj{"$ref": "#/$defs/videoSecond"}
 	case reflect.TypeFor[CIDR]():
 		return jsonObj{"$ref": "#/$defs/cidr"}
 	case reflect.TypeFor[Secret]():

@@ -56,6 +56,18 @@ func (st *state) applyOrientation() error {
 			pl.RotateAny = -deg
 		}
 	}
+	if v, ok := st.get("rot-type"); ok {
+		if v != "pivot" && v != "straighten" {
+			return dialect.InvalidArgument("rot-type", v, expRotType)
+		}
+		// xi rotates onto an enlarged canvas with background corners for
+		// both types (imgix straighten zooms in, pivot keeps the size).
+		if st.has("rot") {
+			st.b.Ignore("rot-type", reasonApproximated)
+		} else {
+			st.b.Ignore("rot-type", reasonNeedsParent)
+		}
+	}
 	if v, ok := st.get("flip"); ok {
 		var h, vert bool
 		switch v {
@@ -74,7 +86,7 @@ func (st *state) applyOrientation() error {
 	return nil
 }
 
-// --- adjustments and stylize (M2 except blur, px and sharp) ---------------
+// --- adjustments and stylize (vib is not implemented) ----------------------
 
 // applyEffects maps the adjustment and stylize parameters. imgix's
 // -100..100 scales become: bri → additive brightness v*255/100; con, sat,
@@ -108,7 +120,11 @@ func (st *state) applyEffects() error {
 			}
 			x := c.conv(f)
 			*c.dst = &x
-			st.b.Ignore(c.key, reasonM2)
+			if c.key == "vib" {
+				// Kept for the cache key; the planner has no vibrance step
+				// (plan.Unplanned).
+				st.b.Ignore(c.key, reasonNotImplemented)
+			}
 		}
 	}
 
@@ -138,7 +154,35 @@ func (st *state) applyEffects() error {
 	if err := st.unsharp(); err != nil {
 		return err
 	}
+	if err := st.faceFilters(); err != nil {
+		return err
+	}
 	return st.colourEffects()
+}
+
+// faceFilters maps face-blur (0–100 → blur sigma v/5 on detected faces)
+// and face-pixel (0–100 → pixelate block size) onto BlurDetections of the
+// "face" class; face-pixel wins when both are set, as the later filter
+// hides the blurred faces anyway (WP-73; 422 without the detector).
+func (st *state) faceFilters() error {
+	blur, err := st.optNum("face-blur", 0, 100, 0)
+	if err != nil {
+		return err
+	}
+	px := 0
+	if v, ok := st.get("face-pixel"); ok {
+		if px, err = intRange("face-pixel", v, 0, 100); err != nil {
+			return err
+		}
+	}
+	switch {
+	case px > 0:
+		st.pl.BlurDetections = &transform.DetectionFilter{Pixelate: px, Classes: []string{"face"}}
+		st.ignoreIf(reasonApproximated, "face-blur")
+	case blur > 0:
+		st.pl.BlurDetections = &transform.DetectionFilter{Sigma: blur / 5, Classes: []string{"face"}}
+	}
+	return nil
 }
 
 func linear(v float64) float64 { return 1 + v/100 }
@@ -176,7 +220,6 @@ func (st *state) colourEffects() error {
 		}
 		if f > 0 {
 			pl.Sepia = true
-			st.b.Ignore("sepia", reasonM2)
 			if f < 100 {
 				st.b.Ignore("sepia", reasonApproximated)
 			}
@@ -188,7 +231,6 @@ func (st *state) colourEffects() error {
 			return err
 		}
 		pl.Monochrome = &transform.Monochrome{Intensity: float64(c.A) / 255, Color: opaque(c)}
-		st.b.Ignore("monochrome", reasonM2)
 	}
 	alpha, err := st.optNum("duotone-alpha", 0, 100, 100)
 	if err != nil {
@@ -208,7 +250,6 @@ func (st *state) colourEffects() error {
 			return err
 		}
 		pl.Duotone = &transform.Duotone{Intensity: alpha / 100, Shadow: opaque(shadow), Highlight: opaque(highlight)}
-		st.b.Ignore("duotone", reasonM2)
 	} else {
 		st.ignoreIf(reasonNeedsParent, "duotone-alpha")
 	}
@@ -219,7 +260,6 @@ func (st *state) colourEffects() error {
 		}
 		if on {
 			pl.Negate = true
-			st.b.Ignore("invert", reasonM2)
 		}
 	}
 	return nil

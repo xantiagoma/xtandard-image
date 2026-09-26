@@ -1,0 +1,65 @@
+goos: linux
+goarch: arm64
+pkg: github.com/xantiagoma/xtandard-image/internal/pipeline/exec
+BenchmarkVideoPipeline/h264/preshrink-8         	      20	  74849992 ns/op	    5743 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/preshrink-8         	      20	  86101056 ns/op	    5743 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/preshrink-8         	      20	  80014888 ns/op	    5743 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/preshrink-8         	      20	  79551505 ns/op	    5742 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/preshrink-8         	      20	  74985822 ns/op	    5743 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/preshrink-8         	      20	  88879110 ns/op	    5744 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/preshrink-8         	      20	 107555921 ns/op	    5744 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/preshrink-8         	      20	  84464881 ns/op	    5744 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/preshrink-8         	      20	  83504586 ns/op	    5743 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/preshrink-8         	      20	  98525227 ns/op	    5744 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/full-decode-8       	      20	  97008208 ns/op	    5744 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/full-decode-8       	      20	  94623991 ns/op	    5744 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/full-decode-8       	      20	  92070855 ns/op	    5744 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/full-decode-8       	      20	  81415617 ns/op	    5744 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/full-decode-8       	      20	  73590321 ns/op	    5743 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/full-decode-8       	      20	  83717192 ns/op	    5744 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/full-decode-8       	      20	  78820548 ns/op	    5744 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/full-decode-8       	      20	  87044389 ns/op	    5744 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/full-decode-8       	      20	  88118357 ns/op	    5744 B/op	      79 allocs/op
+BenchmarkVideoPipeline/h264/full-decode-8       	      20	  87632815 ns/op	    5744 B/op	      79 allocs/op
+BenchmarkVideoPipeline/vp9/preshrink-8          	      20	  14084936 ns/op	    4361 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/preshrink-8          	      20	  14280348 ns/op	    4360 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/preshrink-8          	      20	  10188076 ns/op	    4361 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/preshrink-8          	      20	  12821231 ns/op	    4361 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/preshrink-8          	      20	  12505740 ns/op	    4361 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/preshrink-8          	      20	  12306034 ns/op	    4360 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/preshrink-8          	      20	  10270434 ns/op	    4361 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/preshrink-8          	      20	  10507625 ns/op	    4362 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/preshrink-8          	      20	  10914368 ns/op	    4360 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/preshrink-8          	      20	  11117078 ns/op	    4360 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/full-decode-8        	      20	  15618922 ns/op	    4360 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/full-decode-8        	      20	  15763783 ns/op	    4362 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/full-decode-8        	      20	  15373836 ns/op	    4361 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/full-decode-8        	      20	  15987699 ns/op	    4360 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/full-decode-8        	      20	  17411237 ns/op	    4362 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/full-decode-8        	      20	  15193321 ns/op	    4362 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/full-decode-8        	      20	  15537467 ns/op	    4361 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/full-decode-8        	      20	  15769797 ns/op	    4360 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/full-decode-8        	      20	  16526474 ns/op	    4361 B/op	      55 allocs/op
+BenchmarkVideoPipeline/vp9/full-decode-8        	      20	  16165807 ns/op	    4361 B/op	      55 allocs/op
+BenchmarkVideoPipeline/av1/preshrink-8          	      20	  19431683 ns/op	    4433 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/preshrink-8          	      20	  19852436 ns/op	    4433 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/preshrink-8          	      20	  18658772 ns/op	    4435 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/preshrink-8          	      20	  18523118 ns/op	    4433 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/preshrink-8          	      20	  18706821 ns/op	    4433 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/preshrink-8          	      20	  23201211 ns/op	    4433 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/preshrink-8          	      20	  21386354 ns/op	    4433 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/preshrink-8          	      20	  19594882 ns/op	    4432 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/preshrink-8          	      20	  21099568 ns/op	    4434 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/preshrink-8          	      20	  20077569 ns/op	    4434 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/full-decode-8        	      20	  25693629 ns/op	    4432 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/full-decode-8        	      20	  24499044 ns/op	    4433 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/full-decode-8        	      20	  25092766 ns/op	    4435 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/full-decode-8        	      20	  24176878 ns/op	    4432 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/full-decode-8        	      20	  27503255 ns/op	    4435 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/full-decode-8        	      20	  23668767 ns/op	    4433 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/full-decode-8        	      20	  23100894 ns/op	    4433 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/full-decode-8        	      20	  23673156 ns/op	    4433 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/full-decode-8        	      20	  24423412 ns/op	    4434 B/op	      61 allocs/op
+BenchmarkVideoPipeline/av1/full-decode-8        	      20	  26474197 ns/op	    4434 B/op	      61 allocs/op
+PASS
+ok  	github.com/xantiagoma/xtandard-image/internal/pipeline/exec	49.767s

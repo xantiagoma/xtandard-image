@@ -12,32 +12,33 @@ import (
 
 // Expectation phrases (client-safe, static).
 const (
-	expDim       = "positive integer, fraction below 1 or auto"
-	expDimNoAuto = "positive integer or fraction below 1"
-	expAR        = "<width>-<height> with positive numbers"
-	expCrop      = "maintain_ratio, maintain_ratio_no_enlarge, force, at_max, at_max_enlarge or at_least"
-	expCropMode  = "pad_resize, pad_resize_no_enlarge, extract or pad_extract"
-	expFocus     = "compass position, auto, face, custom or an object name"
-	expPosition  = "center, top, left, bottom, right, top_left, top_right, bottom_left or bottom_right"
-	expCoord     = "non-negative number"
-	expPositive  = "positive number"
-	expQuality   = "integer 1-100"
-	expFormat    = "auto, orig, jpg, jpeg, png, webp, avif, gif, jxl, svg, mp4 or webm"
-	expDPR       = "number 0.1-5 or auto"
-	expBlur      = "number 1-100"
-	expSharpen   = "non-negative number"
-	expUSM       = "<radius>-<sigma>-<amount>-<threshold> with non-negative numbers"
-	expRadius    = "max, <n> or <tl>_<tr>_<br>_<bl> with non-negative integers"
-	expBorder    = "<width>_<color>"
-	expColor     = "RRGGBB, RRGGBBAA or a color name"
-	expRotate    = "degrees, N<degrees> or auto"
-	expFlip      = "h, v or h_v"
-	expTrim      = "true, false or integer 1-99"
-	expOpacity   = "number 0-100"
-	expPath      = "non-empty path"
-	expPage      = "<n> or <from>_<to> with positive integers"
-	expOffset    = "integer, N<integer> for negative"
-	expLayerSize = "positive integer"
+	expDim         = "positive integer, fraction below 1 or auto"
+	expStartOffset = "seconds (a non-negative number)"
+	expDimNoAuto   = "positive integer or fraction below 1"
+	expAR          = "<width>-<height> with positive numbers"
+	expCrop        = "maintain_ratio, maintain_ratio_no_enlarge, force, at_max, at_max_enlarge or at_least"
+	expCropMode    = "pad_resize, pad_resize_no_enlarge, extract or pad_extract"
+	expFocus       = "compass position, auto, face, custom or an object name"
+	expPosition    = "center, top, left, bottom, right, top_left, top_right, bottom_left or bottom_right"
+	expCoord       = "non-negative number"
+	expPositive    = "positive number"
+	expQuality     = "integer 1-100"
+	expFormat      = "auto, orig, jpg, jpeg, png, webp, avif, gif, jxl, svg, mp4 or webm"
+	expDPR         = "number 0.1-5 or auto"
+	expBlur        = "number 1-100"
+	expSharpen     = "non-negative number"
+	expUSM         = "<radius>-<sigma>-<amount>-<threshold> with non-negative numbers"
+	expRadius      = "max, <n> or <tl>_<tr>_<br>_<bl> with non-negative integers"
+	expBorder      = "<width>_<color>"
+	expColor       = "RRGGBB, RRGGBBAA or a color name"
+	expRotate      = "degrees, N<degrees> or auto"
+	expFlip        = "h, v or h_v"
+	expTrim        = "true, false or integer 1-99"
+	expOpacity     = "number 0-100"
+	expPath        = "non-empty path"
+	expPage        = "<n> or <from>_<to> with positive integers"
+	expOffset      = "integer, N<integer> for negative"
+	expLayerSize   = "positive integer"
 )
 
 // Crop strategies (c-) and modes (cm-).
@@ -297,10 +298,11 @@ func (ps *parseState) param(st *step, key, v string) error {
 		return ps.unsharp(pl, v)
 	case "e-grayscale":
 		pl.Grayscale = true
-		ps.b.Ignore(key, reasonM2)
 	case "e-contrast":
+		// Kept for the cache key; the planner has no equalize step
+		// (plan.Unplanned).
 		pl.Equalize = true
-		ps.b.Ignore(key, reasonM2)
+		ps.b.Ignore(key, reasonNotImplemented)
 	case "r":
 		pl.Radius, err = parseRadius(v)
 	case "b":
@@ -327,7 +329,6 @@ func (ps *parseState) param(st *step, key, v string) error {
 		}
 		op := f / 100
 		pl.Adjust.Opacity = &op
-		ps.b.Ignore(key, reasonM2)
 
 	// Delivery and presets.
 	case "n":
@@ -340,9 +341,11 @@ func (ps *parseState) param(st *step, key, v string) error {
 		r.Delivery.Fallback = &transform.SourceSpec{Raw: relativeKey(path), Encoding: transform.SourceRelative, Mount: ps.mountSource}
 	case "pg":
 		return ps.page(v)
+	case "so":
+		return ps.startOffset(v)
 
 	// Video, AI and other features without an equivalent.
-	case "vc", "ac", "so", "eo", "du", "sr", "cr", "dn", "e-bgremove", "e-removedotbg", "e-upscale",
+	case "vc", "ac", "eo", "du", "sr", "cr", "dn", "e-bgremove", "e-removedotbg", "e-upscale",
 		"e-retouch", "e-genvar", "e-dropshadow", "e-shadow", "e-gradient", "e-changebg", "e-edit",
 		"e-distort", "e-colorize":
 		return ps.unsupported(key)
@@ -409,11 +412,15 @@ func (ps *parseState) finishStep(st *step) error {
 		ps.b.Ignore("x", reasonNotApplied)
 	}
 	if st.zoom > 0 {
+		// z- zooms on the faces or objects of fo-face / fo-<object>: their
+		// box scaled by 1/z is cropped before the resize (WP-72).
 		switch {
-		case st.fo.g.Type.IsDetection() && pl.Crop != nil:
-			pl.Crop.Gravity.FocusZoom = st.zoom
-		case st.fo.g.Type.IsDetection():
-			pl.Gravity.FocusZoom = st.zoom
+		case pl.Crop != nil || !st.fo.set:
+			ps.b.Ignore("z", reasonNotApplied)
+		case pl.Gravity.Type == transform.GravityFace:
+			pl.Gravity.FacePad = 1 / st.zoom
+		case pl.Gravity.Type == transform.GravityObject:
+			pl.CropObjects = &transform.CropObjects{Scale: 1 / st.zoom, Classes: pl.Gravity.Classes}
 		default:
 			ps.b.Ignore("z", reasonNotApplied)
 		}
@@ -523,7 +530,6 @@ func (ps *parseState) focus(st *step, v string) error {
 		st.fo = focus{set: true, g: transform.Gravity{Type: transform.GravitySmart}}
 	case "face", "faces":
 		st.fo = focus{set: true, g: transform.Gravity{Type: transform.GravityFace}}
-		ps.b.Ignore("fo-face", reasonM3)
 	case "custom":
 		// A per-file custom crop area stored in the ImageKit media library.
 		return ps.unsupportedAs("fo-custom", reasonUnsupported)
@@ -531,8 +537,15 @@ func (ps *parseState) focus(st *step, v string) error {
 		if !isObjectName(v) {
 			return dialect.InvalidArgument("fo", v, expFocus)
 		}
-		st.fo = focus{set: true, g: transform.Gravity{Type: transform.GravityObject, Classes: []string{v}}}
-		ps.b.Ignore("fo-object", reasonM3)
+		cs, ok := objectClasses(v)
+		if !ok {
+			// ImageKit detects more object types than the COCO classes of
+			// the object model: the smart crop stands in.
+			st.fo = focus{set: true, g: transform.Gravity{Type: transform.GravitySmart}}
+			ps.b.Ignore("fo-"+v, reasonUnsupportedObject)
+			return nil
+		}
+		st.fo = focus{set: true, g: transform.Gravity{Type: transform.GravityObject, Classes: cs}}
 	}
 	return nil
 }
@@ -661,6 +674,23 @@ func (ps *parseState) page(v string) error {
 		return dialect.InvalidArgument("pg", v, expPage)
 	}
 	return ps.b.Apply("pages", strconv.Itoa(z-a+1))
+}
+
+// startOffset is so-<seconds>: the frame of a video source a thumbnail
+// (/ik-thumbnail.jpg) is taken from, imgproxy video_thumbnail_second.
+// Arithmetic expressions have no equivalent.
+func (ps *parseState) startOffset(v string) error {
+	sec, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		if strings.ContainsAny(v, "_") {
+			return ps.unsupportedAs("so", reasonUnsupported)
+		}
+		return dialect.InvalidArgument("so", v, expStartOffset)
+	}
+	if sec < 0 {
+		return dialect.InvalidArgument("so", v, expStartOffset)
+	}
+	return ps.b.Apply("video_thumbnail_second", strconv.FormatFloat(sec, 'f', -1, 64))
 }
 
 // unknown handles a parameter the dialect does not know.
@@ -825,6 +855,17 @@ func isExpression(v string) bool {
 		return false
 	}
 	return strings.Contains(v, "_")
+}
+
+// objectClasses resolves fo-<object>: one class name with underscores for
+// spaces ("traffic_light") or several joined by underscores
+// ("truck_car_train"); ok is false when a name is not a class or
+// supercategory the object model knows.
+func objectClasses(v string) ([]string, bool) {
+	if cs, ok := transform.ResolveClass(v); ok {
+		return cs, true
+	}
+	return transform.ResolveClasses(strings.Split(v, "_"))
 }
 
 // isObjectName reports whether v looks like an object class list

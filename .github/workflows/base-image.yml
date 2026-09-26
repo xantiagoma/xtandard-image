@@ -1,12 +1,23 @@
 name: base-image
 
-# Builds docker/base natively on amd64 and arm64 runners, pushes each architecture by
-# digest, then assembles multi-arch manifests:
+# Builds docker/base natively on amd64 and arm64 runners, for all three flavors, pushes each
+# architecture by digest, then assembles multi-arch manifests:
 #   ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<N>-slim          (runtime)
 #   ghcr.io/xantiagoma/xtandard-image-base:slim
 #   ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<N>-slim-builder  (Go + libvips dev)
 #   ghcr.io/xantiagoma/xtandard-image-base:slim-builder
-# Pull requests build and verify both architectures without pushing.
+#   ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<M>-full          (+ FFmpeg LGPL, ONNX Runtime, models)
+#   ghcr.io/xantiagoma/xtandard-image-base:full
+#   ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<M>-full-builder
+#   ghcr.io/xantiagoma/xtandard-image-base:full-builder
+#   ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<G>-gpl           (full + GPL FFmpeg, x264, x265)
+#   ghcr.io/xantiagoma/xtandard-image-base:gpl
+#   ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<G>-gpl-builder
+#   ghcr.io/xantiagoma/xtandard-image-base:gpl-builder
+# N is XI_BASE_REVISION (versions.sh), M is XI_BASE_FULL_REVISION (versions-full.sh),
+# G is XI_BASE_GPL_REVISION (versions-gpl.sh). The gpl images contain GPL software and
+# are labelled GPL-2.0-or-later AND MIT (ADR 0006); slim and full stay MIT-only.
+# Pull requests build and verify both architectures and all flavors without pushing.
 
 on:
   push:
@@ -48,8 +59,9 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       vips: ${{ steps.meta.outputs.vips }}
-      tag: ${{ steps.meta.outputs.tag }}
-      flavor: ${{ steps.meta.outputs.flavor }}
+      slim-tag: ${{ steps.meta.outputs.slim-tag }}
+      full-tag: ${{ steps.meta.outputs.full-tag }}
+      gpl-tag: ${{ steps.meta.outputs.gpl-tag }}
       epoch: ${{ steps.meta.outputs.epoch }}
     steps:
       - uses: actions/checkout@v7
@@ -58,10 +70,13 @@ jobs:
       - id: meta
         run: |
           source docker/base/versions.sh
+          source docker/base/versions-full.sh
+          source docker/base/versions-gpl.sh
           {
             echo "vips=${VIPS_VERSION}"
-            echo "flavor=${XI_BASE_FLAVOR}"
-            echo "tag=${VIPS_VERSION}-r${XI_BASE_REVISION}-${XI_BASE_FLAVOR}"
+            echo "slim-tag=${VIPS_VERSION}-r${XI_BASE_REVISION}-slim"
+            echo "full-tag=${VIPS_VERSION}-r${XI_BASE_FULL_REVISION}-full"
+            echo "gpl-tag=${VIPS_VERSION}-r${XI_BASE_GPL_REVISION}-gpl"
             echo "epoch=$(git log -1 --pretty=%ct)"
           } >> "$GITHUB_OUTPUT"
 
@@ -70,13 +85,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        arch: [amd64, arm64]
+        flavor: [slim, full, gpl]
         include:
-          - platform: linux/amd64
+          - arch: amd64
+            platform: linux/amd64
             runner: ubuntu-24.04
-            arch: amd64
-          - platform: linux/arm64
+          - arch: arm64
+            platform: linux/arm64
             runner: ubuntu-24.04-arm
-            arch: arm64
+          - flavor: slim
+            runtime-target: runtime
+            builder-target: builder
+          - flavor: full
+            runtime-target: runtime-full
+            builder-target: builder-full
+          - flavor: gpl
+            runtime-target: runtime-gpl
+            builder-target: builder-gpl
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 150
     permissions:
@@ -84,6 +110,7 @@ jobs:
       packages: write
     env:
       SOURCE_DATE_EPOCH: ${{ needs.meta.outputs.epoch }}
+      TAG: ${{ matrix.flavor == 'gpl' && needs.meta.outputs.gpl-tag || matrix.flavor == 'full' && needs.meta.outputs.full-tag || needs.meta.outputs.slim-tag }}
     steps:
       - uses: actions/checkout@v7
 
@@ -102,36 +129,42 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: docker/base
-          target: runtime
+          target: ${{ matrix.runtime-target }}
           platforms: ${{ matrix.platform }}
           build-args: VIPS_VERSION=${{ needs.meta.outputs.vips }}
-          labels: org.opencontainers.image.version=${{ needs.meta.outputs.tag }}
+          labels: org.opencontainers.image.version=${{ env.TAG }}
+          # The full stages start from the slim deps stage and the gpl stages from full-deps,
+          # so full and gpl also read the slim and full caches.
           cache-from: |
-            type=gha,scope=base-${{ needs.meta.outputs.flavor }}-${{ matrix.arch }}-runtime
-            type=gha,scope=base-${{ needs.meta.outputs.flavor }}-${{ matrix.arch }}-builder
-          cache-to: type=gha,mode=max,scope=base-${{ needs.meta.outputs.flavor }}-${{ matrix.arch }}-runtime
+            type=gha,scope=base-${{ matrix.flavor }}-${{ matrix.arch }}-runtime
+            type=gha,scope=base-${{ matrix.flavor }}-${{ matrix.arch }}-builder
+            type=gha,scope=base-slim-${{ matrix.arch }}-builder
+            type=gha,scope=base-full-${{ matrix.arch }}-builder
+          cache-to: type=gha,mode=max,scope=base-${{ matrix.flavor }}-${{ matrix.arch }}-runtime
           outputs: >-
             ${{ env.PUSH == 'true'
               && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', env.IMAGE)
-              || 'type=docker,name=xtandard-base:ci' }}
+              || format('type=docker,name=xtandard-base:ci-{0}', matrix.flavor) }}
 
       - name: Build builder
         id: builder
         uses: docker/build-push-action@v7
         with:
           context: docker/base
-          target: builder
+          target: ${{ matrix.builder-target }}
           platforms: ${{ matrix.platform }}
           build-args: VIPS_VERSION=${{ needs.meta.outputs.vips }}
-          labels: org.opencontainers.image.version=${{ needs.meta.outputs.tag }}-builder
+          labels: org.opencontainers.image.version=${{ env.TAG }}-builder
           cache-from: |
-            type=gha,scope=base-${{ needs.meta.outputs.flavor }}-${{ matrix.arch }}-builder
-            type=gha,scope=base-${{ needs.meta.outputs.flavor }}-${{ matrix.arch }}-runtime
-          cache-to: type=gha,mode=max,scope=base-${{ needs.meta.outputs.flavor }}-${{ matrix.arch }}-builder
+            type=gha,scope=base-${{ matrix.flavor }}-${{ matrix.arch }}-builder
+            type=gha,scope=base-${{ matrix.flavor }}-${{ matrix.arch }}-runtime
+            type=gha,scope=base-slim-${{ matrix.arch }}-builder
+            type=gha,scope=base-full-${{ matrix.arch }}-builder
+          cache-to: type=gha,mode=max,scope=base-${{ matrix.flavor }}-${{ matrix.arch }}-builder
           outputs: >-
             ${{ env.PUSH == 'true'
               && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', env.IMAGE)
-              || 'type=docker,name=xtandard-base:ci-builder' }}
+              || format('type=docker,name=xtandard-base:ci-{0}-builder', matrix.flavor) }}
 
       - name: Verify images
         env:
@@ -139,9 +172,10 @@ jobs:
           BUILDER_DIGEST: ${{ steps.builder.outputs.digest }}
         run: |
           if [ "$PUSH" = "true" ]; then
-            docker/base/verify-image.sh "$IMAGE@$RUNTIME_DIGEST" "$IMAGE@$BUILDER_DIGEST"
+            docker/base/verify-image.sh --flavor "${{ matrix.flavor }}" "$IMAGE@$RUNTIME_DIGEST" "$IMAGE@$BUILDER_DIGEST"
           else
-            docker/base/verify-image.sh xtandard-base:ci xtandard-base:ci-builder
+            docker/base/verify-image.sh --flavor "${{ matrix.flavor }}" \
+              "xtandard-base:ci-${{ matrix.flavor }}" "xtandard-base:ci-${{ matrix.flavor }}-builder"
           fi
 
       - name: Export digests
@@ -158,7 +192,7 @@ jobs:
         if: env.PUSH == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: digests-${{ matrix.arch }}
+          name: digests-${{ matrix.flavor }}-${{ matrix.arch }}
           path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -166,6 +200,9 @@ jobs:
   merge:
     if: github.event_name != 'pull_request'
     needs: [meta, build]
+    strategy:
+      matrix:
+        flavor: [slim, full, gpl]
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -174,7 +211,7 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           path: ${{ runner.temp }}/digests
-          pattern: digests-*
+          pattern: digests-${{ matrix.flavor }}-*
           merge-multiple: true
 
       - uses: docker/setup-buildx-action@v4
@@ -187,8 +224,8 @@ jobs:
 
       - name: Create multi-arch manifests
         env:
-          TAG: ${{ needs.meta.outputs.tag }}
-          FLAVOR: ${{ needs.meta.outputs.flavor }}
+          TAG: ${{ matrix.flavor == 'gpl' && needs.meta.outputs.gpl-tag || matrix.flavor == 'full' && needs.meta.outputs.full-tag || needs.meta.outputs.slim-tag }}
+          FLAVOR: ${{ matrix.flavor }}
         working-directory: ${{ runner.temp }}/digests
         run: |
           # shellcheck disable=SC2046
@@ -204,7 +241,7 @@ jobs:
 
       - name: Inspect
         env:
-          TAG: ${{ needs.meta.outputs.tag }}
+          TAG: ${{ matrix.flavor == 'gpl' && needs.meta.outputs.gpl-tag || matrix.flavor == 'full' && needs.meta.outputs.full-tag || needs.meta.outputs.slim-tag }}
         run: |
           docker buildx imagetools inspect "$IMAGE:$TAG"
           docker buildx imagetools inspect "$IMAGE:$TAG-builder"

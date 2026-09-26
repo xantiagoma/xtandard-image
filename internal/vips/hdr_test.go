@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/leakcheck"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -158,12 +159,7 @@ func openFDs() int {
 // PFM, decoded and encoded to JPEG. Not parallel: the counters are
 // process-wide.
 func TestNoLeakHDR(t *testing.T) {
-	const (
-		cycles      = 600
-		slackBytes  = 1 << 20
-		slackAllocs = 64
-		slackObjs   = 16
-	)
+	const cycles = 600
 	vips.SetLeakCheck(true)
 	defer vips.SetLeakCheck(false)
 
@@ -196,17 +192,14 @@ func TestNoLeakHDR(t *testing.T) {
 	for i := range 6 {
 		cycle(i)
 	}
-	before, objects, fds := vips.ReadMemStats(), vips.LiveObjects(), openFDs()
+	before, fds := leakcheck.Take(), openFDs()
 	for i := range cycles {
 		cycle(i)
 	}
-	after, objectsAfter, fdsAfter := vips.ReadMemStats(), vips.LiveObjects(), openFDs()
-	if after.Mem-before.Mem > slackBytes || after.Allocs-before.Allocs > slackAllocs ||
-		after.Files != before.Files || objectsAfter-objects > slackObjs || fdsAfter != fds {
-		t.Errorf("after %d cycles: mem %d → %d B, allocs %d → %d, files %d → %d, objects %d → %d, fds %d → %d",
-			cycles, before.Mem, after.Mem, before.Allocs, after.Allocs, before.Files, after.Files,
-			objects, objectsAfter, fds, fdsAfter)
+	after := leakcheck.Check(t, before, leakcheck.Default, "cycles")
+	if fdsAfter := openFDs(); fdsAfter != fds {
+		t.Errorf("after %d cycles: fds %d → %d", cycles, fds, fdsAfter)
 	}
-	t.Logf("after %d cycles: mem %+d B, allocs %+d, objects %+d, fds %d",
-		cycles, after.Mem-before.Mem, after.Allocs-before.Allocs, objectsAfter-objects, fdsAfter)
+	t.Logf("after %d cycles: mem %+d B, allocs %+d, objects %+d",
+		cycles, after.Mem-before.Mem, after.Allocs-before.Allocs, after.Objects-before.Objects)
 }

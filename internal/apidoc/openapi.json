@@ -516,14 +516,14 @@
             "x-xi-syntax": "md5, sha1, sha256, sha512…"
           },
           "classify": {
-            "description": "Classify the image. URL: `classify`, `cl`; arguments top_k:classes…; default 0.",
+            "description": "Classify the image (no classification model is shipped). URL: `classify`, `cl`; arguments top_k:classes…; default 0.",
             "examples": [
               [
                 3
               ]
             ],
             "items": {
-              "description": "object class name",
+              "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
               "pattern": "^.+$",
               "title": "class",
               "type": "string"
@@ -543,7 +543,7 @@
               "cl"
             ],
             "x-xi-default": "0",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "not implemented",
             "x-xi-pro": true,
             "x-xi-scope": "request",
             "x-xi-syntax": "top_k:classes…"
@@ -708,7 +708,7 @@
               },
               {
                 "items": {
-                  "description": "object class name",
+                  "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
                   "pattern": "^.+$",
                   "title": "class",
                   "type": "string"
@@ -743,7 +743,7 @@
                 "items": {
                   "anyOf": [
                     {
-                      "description": "object class name",
+                      "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
                       "pattern": "^.+$",
                       "title": "class",
                       "type": "string"
@@ -802,7 +802,7 @@
             "x-xi-syntax": "w:h:gravity (as processing `crop`)"
           },
           "detect_objects": {
-            "description": "Report detected objects. URL: `detect_objects`, `do`; arguments bool; default false.",
+            "description": "Report detected faces and objects. URL: `detect_objects`, `do`; arguments bool; default false.",
             "examples": [
               [
                 true
@@ -812,7 +812,7 @@
             "minItems": 1,
             "prefixItems": [
               {
-                "description": "Report detected objects.",
+                "description": "Report detected faces and objects.",
                 "title": "detect_objects",
                 "type": [
                   "boolean",
@@ -825,7 +825,7 @@
               "do"
             ],
             "x-xi-default": "false",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-73)",
             "x-xi-pro": true,
             "x-xi-scope": "request",
             "x-xi-syntax": "bool"
@@ -1225,7 +1225,7 @@
               "op"
             ],
             "x-xi-default": "ce:0:0",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-73)",
             "x-xi-pro": true,
             "x-xi-scope": "request",
             "x-xi-syntax": "as processing"
@@ -1481,7 +1481,7 @@
               "vm"
             ],
             "x-xi-default": "true",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-74)",
             "x-xi-pro": false,
             "x-xi-scope": "request",
             "x-xi-syntax": "bool"
@@ -1510,13 +1510,13 @@
               "vtk"
             ],
             "x-xi-default": "config",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-74)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "bool"
           },
           "video_thumbnail_second": {
-            "description": "Video frame to use as the image. URL: `video_thumbnail_second`, `vts`; arguments float; default config.",
+            "description": "Video frame to use as the image (negative: from the end; unset: the configured second or the best frame). URL: `video_thumbnail_second`, `vts`; arguments float; default config.",
             "examples": [
               [
                 5
@@ -1526,9 +1526,9 @@
             "minItems": 1,
             "prefixItems": [
               {
-                "description": "timestamp in seconds",
+                "description": "timestamp in seconds; negative counts from the end",
                 "maximum": 2147483647,
-                "minimum": 0,
+                "minimum": -2147483647,
                 "title": "second",
                 "type": "number"
               }
@@ -1538,7 +1538,7 @@
               "vts"
             ],
             "x-xi-default": "config",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-74)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "float"
@@ -1960,7 +1960,7 @@
               ]
             ],
             "items": {
-              "description": "object class name",
+              "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
               "pattern": "^.+$",
               "title": "class",
               "type": "string"
@@ -1980,7 +1980,7 @@
               "bd"
             ],
             "x-xi-default": "off",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-73)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "sigma:classes…"
@@ -2338,7 +2338,7 @@
               },
               {
                 "items": {
-                  "description": "object class name",
+                  "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
                   "pattern": "^.+$",
                   "title": "class",
                   "type": "string"
@@ -2373,7 +2373,7 @@
                 "items": {
                   "anyOf": [
                     {
-                      "description": "object class name",
+                      "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
                       "pattern": "^.+$",
                       "title": "class",
                       "type": "string"
@@ -2473,7 +2473,7 @@
             "x-xi-syntax": "ratio:enlarge"
           },
           "crop_objects": {
-            "description": "Crop to detected objects. URL: `crop_objects`, `c_obj`; arguments scale:classes…; default off.",
+            "description": "Crop to detected objects before resizing. URL: `crop_objects`, `c_obj`; arguments scale:classes…; default off.",
             "examples": [
               [
                 1.2,
@@ -2481,7 +2481,7 @@
               ]
             ],
             "items": {
-              "description": "object class name",
+              "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
               "pattern": "^.+$",
               "title": "class",
               "type": "string"
@@ -2501,7 +2501,7 @@
               "c_obj"
             ],
             "x-xi-default": "off",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-72)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "scale:classes…"
@@ -2587,7 +2587,7 @@
             "x-xi-syntax": "float"
           },
           "draw_detections": {
-            "description": "Draw boxes around detected objects. URL: `draw_detections`, `dd`; arguments bool:classes…; default off.",
+            "description": "Draw boxes and labels around detected objects. URL: `draw_detections`, `dd`; arguments bool:classes…; default off.",
             "examples": [
               [
                 true,
@@ -2595,7 +2595,7 @@
               ]
             ],
             "items": {
-              "description": "object class name",
+              "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
               "pattern": "^.+$",
               "title": "class",
               "type": "string"
@@ -2616,7 +2616,7 @@
               "dd"
             ],
             "x-xi-default": "off",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-73)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "bool:classes…"
@@ -3117,7 +3117,7 @@
             "x-xi-syntax": "—"
           },
           "gradient": {
-            "description": "Gradient overlay. URL: `gradient`, `gr`; arguments opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees; default 0:000:down:0:1.",
+            "description": "Gradient overlay. URL: `gradient`, `gr`; arguments opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees clockwise like imgproxy (0 = top to bottom like `down`, 90 = right to left like `left`); default 0:000:down:0:1.",
             "examples": [
               [
                 0.5,
@@ -3169,7 +3169,7 @@
                     "type": "null"
                   }
                 ],
-                "description": "down, up, left, right or degrees",
+                "description": "down, up, left, right or degrees clockwise (0 = down, 90 = left)",
                 "title": "direction"
               },
               {
@@ -3201,7 +3201,7 @@
             "x-xi-milestone": "M2",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
-            "x-xi-syntax": "opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees"
+            "x-xi-syntax": "opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees clockwise like imgproxy (0 = top to bottom like `down`, 90 = right to left like `left`)"
           },
           "gravity": {
             "anyOf": [
@@ -3292,7 +3292,7 @@
               },
               {
                 "items": {
-                  "description": "object class name",
+                  "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
                   "pattern": "^.+$",
                   "title": "class",
                   "type": "string"
@@ -3313,7 +3313,7 @@
                 "items": {
                   "anyOf": [
                     {
-                      "description": "object class name",
+                      "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
                       "pattern": "^.+$",
                       "title": "class",
                       "type": "string"
@@ -3339,7 +3339,7 @@
                 "type": "array"
               }
             ],
-            "description": "Where to crop from when the aspect ratio changes. URL: `gravity`, `g`; arguments no,so,ea,we,noea,nowe,soea,sowe,ce[:x:y]; `sm`; `fp:x:y`; `obj:classes…` Pro; `objw:class:weight…` Pro; default ce:0:0.",
+            "description": "Where to crop from when the aspect ratio changes; `sm` crops on faces when there are some (XI_DETECT_SMART_FACES). URL: `gravity`, `g`; arguments no,so,ea,we,noea,nowe,soea,sowe,ce[:x:y]; `sm`; `fp:x:y`; `obj:classes…` Pro; `objw:class:weight…` Pro; default ce:0:0.",
             "examples": [
               [
                 "fp",
@@ -3352,7 +3352,7 @@
               "g"
             ],
             "x-xi-default": "ce:0:0",
-            "x-xi-milestone": "M1 (sm, fp), M3 (obj, objw)",
+            "x-xi-milestone": "M1 (sm, fp), M3 (obj, objw: WP-72)",
             "x-xi-pro": false,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "no,so,ea,we,noea,nowe,soea,sowe,ce[:x:y]; `sm`; `fp:x:y`; `obj:classes…` Pro; `objw:class:weight…` Pro"
@@ -3899,7 +3899,7 @@
                 "type": "array"
               }
             ],
-            "description": "Position of detected objects in the result (with obj gravity). URL: `objects_position`, `obj_pos`, `op`; arguments type:x:y, `fp:x:y`, `prop`; default ce.",
+            "description": "Position of the detected objects' box in the crop (face, obj and objw gravity). URL: `objects_position`, `obj_pos`, `op`; arguments type:x:y, `fp:x:y`, `prop`; default ce.",
             "examples": [
               [
                 "prop"
@@ -3911,7 +3911,7 @@
               "op"
             ],
             "x-xi-default": "ce",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-72)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "type:x:y, `fp:x:y`, `prop`"
@@ -4207,7 +4207,7 @@
                     "type": "null"
                   }
                 ],
-                "description": "down, up, left, right or degrees",
+                "description": "down, up, left, right or degrees clockwise (0 = down, 90 = left)",
                 "title": "direction"
               },
               {
@@ -5063,13 +5063,13 @@
               "vtk"
             ],
             "x-xi-default": "config",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-74)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "bool"
           },
           "video_thumbnail_second": {
-            "description": "Video frame to use as the image. URL: `video_thumbnail_second`, `vts`; arguments float; default config.",
+            "description": "Video frame to use as the image (negative: from the end; unset: the configured second or the best frame). URL: `video_thumbnail_second`, `vts`; arguments float; default config.",
             "examples": [
               [
                 5
@@ -5079,9 +5079,9 @@
             "minItems": 1,
             "prefixItems": [
               {
-                "description": "timestamp in seconds",
+                "description": "timestamp in seconds; negative counts from the end",
                 "maximum": 2147483647,
-                "minimum": 0,
+                "minimum": -2147483647,
                 "title": "second",
                 "type": "number"
               }
@@ -5091,7 +5091,7 @@
               "vts"
             ],
             "x-xi-default": "config",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-74)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "float"
@@ -5286,13 +5286,13 @@
               "wm"
             ],
             "x-xi-default": "off",
-            "x-xi-milestone": "M1 (`re` M1, `ch` M3)",
+            "x-xi-milestone": "M1 (`re` M1, `ch` M3 WP-77)",
             "x-xi-pro": false,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "opacity:pos:x:y:scale; pos incl. `re` (tile), `ch` (chessboard, Pro)"
           },
           "watermark_rotate": {
-            "description": "Watermark rotation. URL: `watermark_rotate`, `wm_rot`, `wmr`; arguments degrees; default 0.",
+            "description": "Watermark rotation, clockwise. URL: `watermark_rotate`, `wm_rot`, `wmr`; arguments degrees; default 0.",
             "examples": [
               [
                 45
@@ -5313,13 +5313,13 @@
               "wmr"
             ],
             "x-xi-default": "0",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-77)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "degrees"
           },
           "watermark_shadow": {
-            "description": "Watermark shadow. URL: `watermark_shadow`, `wmsh`; arguments sigma; default off.",
+            "description": "Watermark shadow: its alpha blurred with sigma, in black. URL: `watermark_shadow`, `wmsh`; arguments sigma; default off.",
             "examples": [
               [
                 2
@@ -5341,13 +5341,13 @@
               "wmsh"
             ],
             "x-xi-default": "off",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-77)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "sigma"
           },
           "watermark_size": {
-            "description": "Watermark size in pixels. URL: `watermark_size`, `wms`; arguments w:h; default 0:0.",
+            "description": "Watermark size in pixels (fit, enlarging; used when the wm scale is 0). URL: `watermark_size`, `wms`; arguments w:h; default 0:0.",
             "examples": [
               [
                 100,
@@ -5383,13 +5383,13 @@
               "wms"
             ],
             "x-xi-default": "0:0",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-77)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "w:h"
           },
           "watermark_text": {
-            "description": "Text watermark (replaces watermark_url). URL: `watermark_text`, `wmt`; arguments base64url Pango markup; default —.",
+            "description": "Text watermark (replaces watermark_url); markup is sanitised to a whitelist, font `sans 16` by default. URL: `watermark_text`, `wmt`; arguments base64url Pango markup; default —.",
             "examples": [
               [
                 "SGVsbG8"
@@ -5413,13 +5413,13 @@
               "wmt"
             ],
             "x-xi-default": "—",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-78)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "base64url Pango markup"
           },
           "watermark_url": {
-            "description": "Watermark image source. URL: `watermark_url`, `wmu`; arguments base64url URL; default config image.",
+            "description": "Watermark image source, fetched like a source (allowlist, SSRF policy, byte limit, origin cache). URL: `watermark_url`, `wmu`; arguments base64url URL; default config image.",
             "examples": [
               [
                 "aHR0cHM6Ly9leGFtcGxlLmNvbS93LnBuZw"
@@ -5443,7 +5443,7 @@
               "wmu"
             ],
             "x-xi-default": "config image",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-77)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "base64url URL"
@@ -5627,6 +5627,76 @@
         },
         "type": "object"
       },
+      "InfoObject": {
+        "additionalProperties": false,
+        "properties": {
+          "class_id": {
+            "description": "0 for faces (the face model's only class), the COCO class index for objects.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "class_name": {
+            "description": "face, or a COCO class name (person, car, dog, traffic light, ...).",
+            "type": "string"
+          },
+          "confidence": {
+            "description": "Detection score, 0-1.",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "height": {
+            "description": "Box height, as a fraction of the image height.",
+            "format": "double",
+            "type": "number"
+          },
+          "landmarks": {
+            "description": "Face landmarks [x, y] as fractions of the image: right eye, left eye, nose tip, right and left mouth corners (faces only; an extension over imgproxy).",
+            "items": {
+              "items": {
+                "format": "double",
+                "type": "number"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "left": {
+            "description": "Left edge of the box, as a fraction of the oriented image width.",
+            "format": "double",
+            "type": "number"
+          },
+          "top": {
+            "description": "Top edge of the box, as a fraction of the oriented image height.",
+            "format": "double",
+            "type": "number"
+          },
+          "width": {
+            "description": "Box width, as a fraction of the image width.",
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "class_id",
+          "class_name",
+          "confidence",
+          "left",
+          "top",
+          "width",
+          "height"
+        ],
+        "type": "object"
+      },
       "InfoRGB": {
         "additionalProperties": false,
         "properties": {
@@ -5754,6 +5824,16 @@
             "description": "Source media type, e.g. image/jpeg; HEIC is image/heif (info option format).",
             "type": "string"
           },
+          "objects": {
+            "description": "Detected faces and objects, best first within each model (faces first), with boxes as fractions of the oriented image; [] when none were found (info option detect_objects).",
+            "items": {
+              "$ref": "#/components/schemas/InfoObject"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "orientation": {
             "description": "EXIF orientation 1-8, 1 when absent (info option dimensions).",
             "format": "int64",
@@ -5799,6 +5879,21 @@
             "description": "ThumbHash as upper-case hex (info option thumbhash).",
             "type": "string"
           },
+          "video_meta": {
+            "additionalProperties": {},
+            "description": "Container metadata of a video source (info option video_meta): the container tags as strings (major_brand, creation_time, encoder, ...), like imgproxy, plus container (mov, matroska, avi), codec, duration (s), fps, bit_rate (bit/s), frames, width and height (coded size) and rotation (clockwise degrees) of the video stream thumbnails are taken from.",
+            "type": "object"
+          },
+          "video_streams": {
+            "description": "Every stream of a video source in file order (info option video_meta), in imgproxy's shape.",
+            "items": {
+              "$ref": "#/components/schemas/InfoVideoStream"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "width": {
             "description": "Width of one page or frame in pixels, EXIF orientation applied (info option dimensions).",
             "format": "int64",
@@ -5813,6 +5908,524 @@
             "type": "object"
           }
         },
+        "type": "object"
+      },
+      "InfoVideoStream": {
+        "additionalProperties": false,
+        "properties": {
+          "bps": {
+            "description": "Bit rate in bits per second, when known.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "codec": {
+            "description": "FFmpeg codec name: h264, hevc, vp9, av1, aac, ...",
+            "type": "string"
+          },
+          "duration": {
+            "description": "Duration in seconds, when known.",
+            "format": "double",
+            "type": "number"
+          },
+          "fps": {
+            "description": "Average frame rate of a video stream.",
+            "format": "double",
+            "type": "number"
+          },
+          "frequency": {
+            "description": "Sample rate of an audio stream in Hz.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "height": {
+            "description": "xtandard-image extension: coded height of a video stream.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "language": {
+            "description": "ISO 639-2 language tag, when set.",
+            "type": "string"
+          },
+          "layout": {
+            "description": "Channel layout of an audio stream: mono, stereo, 5.1(side), ...",
+            "type": "string"
+          },
+          "rotation": {
+            "description": "xtandard-image extension: clockwise display rotation of a video stream (0, 90, 180, 270).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": {
+            "description": "video, audio, subtitle, data or attachment.",
+            "type": "string"
+          },
+          "width": {
+            "description": "xtandard-image extension: coded width of a video stream.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "type",
+          "codec"
+        ],
+        "type": "object"
+      },
+      "PlaygroundArg": {
+        "additionalProperties": false,
+        "properties": {
+          "doc": {
+            "description": "Description.",
+            "type": "string"
+          },
+          "enum": {
+            "description": "Accepted values of an enum argument.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "max": {
+            "description": "Upper bound of a numeric argument.",
+            "format": "double",
+            "type": "number"
+          },
+          "min": {
+            "description": "Lower bound of a numeric argument.",
+            "format": "double",
+            "type": "number"
+          },
+          "name": {
+            "description": "Argument name.",
+            "type": "string"
+          },
+          "optional": {
+            "description": "May be left empty.",
+            "type": "boolean"
+          },
+          "pattern": {
+            "description": "Regular expression for string arguments.",
+            "type": "string"
+          },
+          "type": {
+            "description": "Argument type.",
+            "enum": [
+              "string",
+              "integer",
+              "number",
+              "boolean",
+              "enum",
+              "color",
+              "base64",
+              "direction"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ],
+        "type": "object"
+      },
+      "PlaygroundCatalogue": {
+        "additionalProperties": false,
+        "properties": {
+          "grammar": {
+            "description": "The grammar the options belong to.",
+            "enum": [
+              "imgproxy",
+              "query",
+              "imgix"
+            ],
+            "type": "string"
+          },
+          "options": {
+            "description": "Options, in documentation order.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundOption"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "grammar",
+          "options"
+        ],
+        "type": "object"
+      },
+      "PlaygroundErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "description": "Client-safe message.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "PlaygroundForm": {
+        "additionalProperties": false,
+        "properties": {
+          "args": {
+            "description": "Leading positional arguments; trailing ones may be omitted.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundArg"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "min_items": {
+            "description": "Least number of arguments (0 means 1).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "rest": {
+            "description": "A group of arguments repeated after args.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundArg"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "args"
+        ],
+        "type": "object"
+      },
+      "PlaygroundMeta": {
+        "additionalProperties": false,
+        "properties": {
+          "catalogues": {
+            "description": "Option catalogues (internal/apidoc), one per URL grammar.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundCatalogue"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "formats": {
+            "description": "Output formats the server encodes.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "mounts": {
+            "description": "Enabled dialect mounts, in configuration order.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundMount"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "path_prefix": {
+            "description": "XI_SERVER_PATH_PREFIX; every generated URL starts with it.",
+            "type": "string"
+          },
+          "presets": {
+            "description": "Configured preset names.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "public": {
+            "description": "XI_PLAYGROUND_PUBLIC: the playground is also served on the public listener.",
+            "type": "boolean"
+          },
+          "public_addr": {
+            "description": "XI_SERVER_ADDR (the page derives a default public base URL from its port).",
+            "type": "string"
+          },
+          "signing": {
+            "$ref": "#/components/schemas/PlaygroundSigning",
+            "description": "Signing mode; keys and salts are never included."
+          },
+          "sources": {
+            "description": "Named sources, name and type only (xi://\u003cname\u003e/\u003ckey\u003e).",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundSource"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "version": {
+            "description": "Server build version.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "path_prefix",
+          "public_addr",
+          "public",
+          "signing",
+          "mounts",
+          "catalogues",
+          "presets",
+          "sources",
+          "formats"
+        ],
+        "type": "object"
+      },
+      "PlaygroundMount": {
+        "additionalProperties": false,
+        "properties": {
+          "arguments_separator": {
+            "description": "imgproxy argument separator (XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR).",
+            "type": "string"
+          },
+          "dialect": {
+            "description": "Dialect name.",
+            "type": "string"
+          },
+          "example": {
+            "description": "Example path and query after the prefix (free-form grammar).",
+            "type": "string"
+          },
+          "grammar": {
+            "description": "URL grammar: imgproxy options path, query keys, or free-form path.",
+            "enum": [
+              "imgproxy",
+              "query",
+              "imgix",
+              "path"
+            ],
+            "type": "string"
+          },
+          "hosts": {
+            "description": "Host bindings.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "id": {
+            "description": "Mount name; the mount field of a sign request.",
+            "type": "string"
+          },
+          "keyed": {
+            "description": "The server holds a key for the scheme; false returns unsigned URLs.",
+            "type": "boolean"
+          },
+          "prefix": {
+            "description": "Path prefix; empty for host-only mounts.",
+            "type": "string"
+          },
+          "scheme": {
+            "description": "Signature the sign endpoint computes for this mount.",
+            "enum": [
+              "imgproxy",
+              "xi_sig",
+              "thumbor",
+              "imgix",
+              "none"
+            ],
+            "type": "string"
+          },
+          "source": {
+            "description": "Named source relative keys resolve against.",
+            "type": "string"
+          },
+          "unsigned_policy": {
+            "description": "Effective unsigned policy.",
+            "enum": [
+              "allow",
+              "restricted",
+              "deny"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "dialect",
+          "unsigned_policy",
+          "scheme",
+          "keyed",
+          "grammar"
+        ],
+        "type": "object"
+      },
+      "PlaygroundOption": {
+        "additionalProperties": false,
+        "properties": {
+          "aliases": {
+            "description": "Accepted short names.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "doc": {
+            "description": "One-line description.",
+            "type": "string"
+          },
+          "example": {
+            "description": "A valid argument string.",
+            "type": "string"
+          },
+          "forms": {
+            "description": "Accepted argument shapes; most options have one.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundForm"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "milestone": {
+            "description": "Milestone that implements the option.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Canonical name.",
+            "type": "string"
+          },
+          "security": {
+            "description": "Needs XI_SECURITY_ALLOW_SECURITY_OPTIONS.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "forms"
+        ],
+        "type": "object"
+      },
+      "PlaygroundSignRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "mount": {
+            "description": "Mount ID from api/meta (the dialect name for its primary mount).",
+            "type": "string"
+          },
+          "path": {
+            "description": "Escaped path after the mount prefix, starting with /; without the signature segment for imgproxy and thumbor.",
+            "maxLength": 8192,
+            "minLength": 1,
+            "type": "string"
+          },
+          "query": {
+            "description": "Raw query without ?; an existing xi_sig is replaced.",
+            "maxLength": 8192,
+            "type": "string"
+          }
+        },
+        "required": [
+          "mount",
+          "path"
+        ],
+        "type": "object"
+      },
+      "PlaygroundSignResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "scheme": {
+            "description": "The mount's signing scheme.",
+            "enum": [
+              "imgproxy",
+              "xi_sig",
+              "thumbor",
+              "imgix",
+              "none"
+            ],
+            "type": "string"
+          },
+          "signed": {
+            "description": "A signature was computed; false when the server has no key for the mount.",
+            "type": "boolean"
+          },
+          "url": {
+            "description": "Path and query on the public listener (prepend the public base URL).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "signed",
+          "scheme"
+        ],
+        "type": "object"
+      },
+      "PlaygroundSigning": {
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "description": "off: no XI_SIGNING_KEYS; optional: keys set, unsigned URLs fall under the unsigned policy; required: XI_SIGNING_REQUIRED.",
+            "enum": [
+              "off",
+              "optional",
+              "required"
+            ],
+            "type": "string"
+          },
+          "unsigned_policy": {
+            "description": "XI_SECURITY_UNSIGNED_POLICY.",
+            "enum": [
+              "allow",
+              "restricted",
+              "deny"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "unsigned_policy"
+        ],
+        "type": "object"
+      },
+      "PlaygroundSource": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Source name.",
+            "type": "string"
+          },
+          "type": {
+            "description": "Source type (http, s3, gcs, azure, fs, ftp, sftp).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ],
         "type": "object"
       }
     }
@@ -5832,9 +6445,319 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/_playground/": {
+      "get": {
+        "description": "The playground UI: plain HTML, CSS and JavaScript embedded in the binary, served with Content-Security-Policy default-src 'self', X-Frame-Options DENY and Cache-Control no-store. 404 unless XI_PLAYGROUND_ENABLED.",
+        "operationId": "getPlayground",
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "description": "HTML page.",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The page."
+          },
+          "404": {
+            "description": "The playground is disabled."
+          }
+        },
+        "servers": [
+          {
+            "description": "Admin listener (XI_ADMIN_ADDR).",
+            "url": "http://127.0.0.1:9090"
+          }
+        ],
+        "summary": "Playground page",
+        "tags": [
+          "playground"
+        ],
+        "x-xi-config": "XI_PLAYGROUND_ENABLED; also on the public listener with XI_PLAYGROUND_PUBLIC; path XI_PLAYGROUND_PATH",
+        "x-xi-listener": "admin"
+      }
+    },
+    "/_playground/api/meta": {
+      "get": {
+        "description": "Enabled dialect mounts with their signing scheme and grammar, the option catalogues (the imgproxy catalogue behind ImgproxyProcessingOptions and the query keys), preset names, named sources (name and type only), the signing mode and the output formats. Never contains key material. Cache-Control no-store.",
+        "operationId": "getPlaygroundMeta",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundMeta"
+                }
+              }
+            },
+            "description": "Playground metadata."
+          },
+          "404": {
+            "description": "The playground is disabled."
+          }
+        },
+        "servers": [
+          {
+            "description": "Admin listener (XI_ADMIN_ADDR).",
+            "url": "http://127.0.0.1:9090"
+          }
+        ],
+        "summary": "What the playground can build",
+        "tags": [
+          "playground"
+        ],
+        "x-xi-config": "XI_PLAYGROUND_ENABLED; also on the public listener with XI_PLAYGROUND_PUBLIC; path XI_PLAYGROUND_PATH",
+        "x-xi-listener": "admin"
+      }
+    },
+    "/_playground/api/render": {
+      "get": {
+        "description": "Runs the public listener's handler on u (a path and query on the public listener) and returns its response unchanged plus Server-Timing, so the page reads the result and its headers from its own origin. Accept and client hints are forwarded; cookies and credentials are not. Every public-listener check applies.",
+        "operationId": "getPlaygroundRender",
+        "parameters": [
+          {
+            "description": "Path and query on the public listener, starting with a single /.",
+            "example": "/insecure/rs:fit:300:0/plain/https://example.com/a.jpg",
+            "in": "query",
+            "name": "u",
+            "required": true,
+            "schema": {
+              "maxLength": 16384,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/*": {
+                "schema": {
+                  "contentEncoding": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The processed image; the format follows `format`, the source extension or Accept negotiation.",
+            "headers": {
+              "Server-Timing": {
+                "description": "Time the public handler took to the first header write.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "406": {
+            "$ref": "#/components/responses/Error406"
+          },
+          "414": {
+            "$ref": "#/components/responses/Error414"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "501": {
+            "$ref": "#/components/responses/Error501"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          }
+        },
+        "servers": [
+          {
+            "description": "Admin listener (XI_ADMIN_ADDR).",
+            "url": "http://127.0.0.1:9090"
+          }
+        ],
+        "summary": "Render a public URL in-process",
+        "tags": [
+          "playground"
+        ],
+        "x-xi-config": "XI_PLAYGROUND_ENABLED; also on the public listener with XI_PLAYGROUND_PUBLIC; path XI_PLAYGROUND_PATH",
+        "x-xi-listener": "admin"
+      }
+    },
+    "/_playground/api/sign": {
+      "post": {
+        "description": "Builds the URL of a path (and query) on a mount and signs it with the server's key for that mount's scheme (imgproxy path signature, xi_sig or thumbor), so keys never reach the browser. Without a key the URL is returned unsigned (imgproxy insecure/, thumbor unsafe/). Anyone who can call this endpoint can sign URLs: keep the playground private. Cross-origin requests are rejected; the body is JSON of at most 32 KiB.",
+        "operationId": "postPlaygroundSign",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaygroundSignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundSignResponse"
+                }
+              }
+            },
+            "description": "The URL, signed with the server's key for the mount when it holds one."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request."
+          },
+          "403": {
+            "description": "Cross-origin request rejected (http.CrossOriginProtection)."
+          },
+          "404": {
+            "description": "The playground is disabled."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large."
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Unsupported Media Type."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error."
+          }
+        },
+        "servers": [
+          {
+            "description": "Admin listener (XI_ADMIN_ADDR).",
+            "url": "http://127.0.0.1:9090"
+          }
+        ],
+        "summary": "Sign a URL with the server's keys",
+        "tags": [
+          "playground"
+        ],
+        "x-xi-config": "XI_PLAYGROUND_ENABLED; also on the public listener with XI_PLAYGROUND_PUBLIC; path XI_PLAYGROUND_PATH",
+        "x-xi-listener": "admin"
+      }
+    },
+    "/_playground/assets/{version}/{name}": {
+      "get": {
+        "description": "app.js and style.css under a content-hash version, with Cache-Control immutable; another version is a 404.",
+        "operationId": "getPlaygroundAsset",
+        "parameters": [
+          {
+            "description": "Content hash of the assets (from the page).",
+            "example": "0123456789ab",
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Asset file name.",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "enum": [
+                "app.js",
+                "style.css"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/css": {
+                "schema": {
+                  "description": "Stylesheet.",
+                  "type": "string"
+                }
+              },
+              "text/javascript": {
+                "schema": {
+                  "description": "ES module.",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The asset."
+          },
+          "404": {
+            "description": "Unknown asset or stale version, or the playground is disabled."
+          }
+        },
+        "servers": [
+          {
+            "description": "Admin listener (XI_ADMIN_ADDR).",
+            "url": "http://127.0.0.1:9090"
+          }
+        ],
+        "summary": "Playground script and stylesheet",
+        "tags": [
+          "playground"
+        ],
+        "x-xi-config": "XI_PLAYGROUND_ENABLED; also on the public listener with XI_PLAYGROUND_PUBLIC; path XI_PLAYGROUND_PATH",
+        "x-xi-listener": "admin"
+      }
+    },
     "/config.schema.json": {
       "get": {
-        "description": "JSON Schema (draft 2020-12) of the YAML/JSON/TOML config file, with a strong ETag; always on, admin listener only (ADR 0007 decision 6).",
+        "description": "JSON Schema (draft 2020-12) of the YAML/JSON/TOML config file, with a strong ETag; always on, admin listener only (ADR 0007 decision 6). Its $id is the published GitHub Pages copy (externalDocs); this route serves the running binary's version.",
+        "externalDocs": {
+          "description": "Published copy (the schema's $id)",
+          "url": "https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json"
+        },
         "operationId": "getConfigSchema",
         "responses": {
           "200": {
@@ -6206,6 +7129,785 @@
           "image"
         ],
         "x-xi-dialect": "imagekit",
+        "x-xi-listener": "public"
+      }
+    },
+    "/imgix/{path}": {
+      "get": {
+        "description": "imgix Rendering API URL under its mount (XI_DIALECTS_IMGIX_ENABLED, prefix /imgix/ or host-bound). Parameters apply by name, the last occurrence wins; any parameter may be base64url-encoded under its name plus 64 (txt64, mark64, ...). Unknown and unsupported parameters are ignored (400 with XI_DIALECTS_STRICT).",
+        "externalDocs": {
+          "url": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#5-imgix"
+        },
+        "operationId": "getImgixImage",
+        "parameters": [
+          {
+            "description": "Object key on the mount's source, or a percent-encoded http(s) URL (web proxy source).",
+            "example": "photos/a.jpg",
+            "in": "path",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Width: pixels, or a fraction of the source below 1.",
+            "in": "query",
+            "name": "w",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Height: pixels, or a fraction of the source below 1.",
+            "in": "query",
+            "name": "h",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Resize mode (default clip once w or h is set).",
+            "in": "query",
+            "name": "fit",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "With fit=crop/min: top, bottom, left, right, faces, focalpoint, entropy, edges or object classes, comma-separated.",
+            "in": "query",
+            "name": "crop",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Aspect ratio w:h (with fit=crop).",
+            "in": "query",
+            "name": "ar",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Device pixel ratio (0 \u003c dpr \u003c= 10).",
+            "in": "query",
+            "name": "dpr",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Maximum width.",
+            "in": "query",
+            "name": "max-w",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Maximum height.",
+            "in": "query",
+            "name": "max-h",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Minimum width.",
+            "in": "query",
+            "name": "min-w",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Minimum height.",
+            "in": "query",
+            "name": "min-h",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Source crop x,y,w,h before resizing (pixels, or fractions below 1).",
+            "in": "query",
+            "name": "rect",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Focal point x, 0..1 (crop=focalpoint).",
+            "in": "query",
+            "name": "fp-x",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Focal point y, 0..1 (crop=focalpoint).",
+            "in": "query",
+            "name": "fp-y",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "With fit=fill/fillmax: how the extra space is filled.",
+            "in": "query",
+            "name": "fill",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Fill colour for fit=fill.",
+            "in": "query",
+            "name": "fill-color",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Padding around the face for fit=facearea.",
+            "in": "query",
+            "name": "facepad",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based face for fit=facearea.",
+            "in": "query",
+            "name": "faceindex",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Output format; json answers image info.",
+            "in": "query",
+            "name": "fm",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "format (negotiate from Accept) and/or compress (quality 45, strip metadata), comma-separated.",
+            "in": "query",
+            "name": "auto",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Quality 0..100.",
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Lossless encoding.",
+            "in": "query",
+            "name": "lossless",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Progressive JPEG.",
+            "in": "query",
+            "name": "jpg-progressive",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Chroma subsampling.",
+            "in": "query",
+            "name": "chromasub",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Colour space.",
+            "in": "query",
+            "name": "cs",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Output resolution metadata.",
+            "in": "query",
+            "name": "dpi",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Download as an attachment with this file name.",
+            "in": "query",
+            "name": "dl",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Client hints to honour: Width, DPR, Save-Data.",
+            "in": "query",
+            "name": "ch",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "EXIF orientation override.",
+            "in": "query",
+            "name": "orient",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Counter-clockwise rotation, 0..359 degrees.",
+            "in": "query",
+            "name": "rot",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Mirror.",
+            "in": "query",
+            "name": "flip",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Brightness -100..100.",
+            "in": "query",
+            "name": "bri",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Contrast -100..100.",
+            "in": "query",
+            "name": "con",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Exposure -100..100.",
+            "in": "query",
+            "name": "exp",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Gamma -100..100.",
+            "in": "query",
+            "name": "gam",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Saturation -100..100.",
+            "in": "query",
+            "name": "sat",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Hue shift in degrees.",
+            "in": "query",
+            "name": "hue",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sharpen 0..100.",
+            "in": "query",
+            "name": "sharp",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Unsharp mask amount -100..100.",
+            "in": "query",
+            "name": "usm",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Unsharp mask radius (default 2.5).",
+            "in": "query",
+            "name": "usmrad",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Blur 0..2000.",
+            "in": "query",
+            "name": "blur",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Pixelate 0..100.",
+            "in": "query",
+            "name": "px",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sepia 0..100.",
+            "in": "query",
+            "name": "sepia",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Monochrome tint (alpha = intensity).",
+            "in": "query",
+            "name": "monochrome",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Two colours: shadow,highlight.",
+            "in": "query",
+            "name": "duotone",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Duotone intensity 0..100.",
+            "in": "query",
+            "name": "duotone-alpha",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Invert colours.",
+            "in": "query",
+            "name": "invert",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Blur detected faces 0..100.",
+            "in": "query",
+            "name": "face-blur",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Pixelate detected faces 0..100.",
+            "in": "query",
+            "name": "face-pixel",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Background colour.",
+            "in": "query",
+            "name": "bg",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Padding on every side.",
+            "in": "query",
+            "name": "pad",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Border width,color.",
+            "in": "query",
+            "name": "border",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Corner radius r or tl,tr,br,bl.",
+            "in": "query",
+            "name": "border-radius",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Trim borders.",
+            "in": "query",
+            "name": "trim",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Trim colour (trim=color).",
+            "in": "query",
+            "name": "trim-color",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Trim tolerance (trim=color).",
+            "in": "query",
+            "name": "trim-tol",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Trim mean difference (trim=auto, default 11).",
+            "in": "query",
+            "name": "trim-md",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Mask shape.",
+            "in": "query",
+            "name": "mask",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Background outside an ellipse mask.",
+            "in": "query",
+            "name": "mask-bg",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Corner radius for mask=corners.",
+            "in": "query",
+            "name": "corner-radius",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based page of a PDF.",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based frame of an animation.",
+            "in": "query",
+            "name": "frame",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark image: http(s) URL or a path on the mount's source.",
+            "in": "query",
+            "name": "mark",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark alignment: top, middle, bottom, left, center, right.",
+            "in": "query",
+            "name": "mark-align",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark opacity 0..100.",
+            "in": "query",
+            "name": "mark-alpha",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark padding (default 5).",
+            "in": "query",
+            "name": "mark-pad",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark size as a percentage of the image.",
+            "in": "query",
+            "name": "mark-scale",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark width.",
+            "in": "query",
+            "name": "mark-w",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark height.",
+            "in": "query",
+            "name": "mark-h",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark x from the left edge.",
+            "in": "query",
+            "name": "mark-x",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark y from the top edge.",
+            "in": "query",
+            "name": "mark-y",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Repeat the watermark.",
+            "in": "query",
+            "name": "mark-tile",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Watermark rotation, counter-clockwise degrees.",
+            "in": "query",
+            "name": "mark-rot",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "http(s) URL prefix for mark paths.",
+            "in": "query",
+            "name": "mark-base",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text watermark (plain text).",
+            "in": "query",
+            "name": "txt",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Font family and style, comma-separated.",
+            "in": "query",
+            "name": "txt-font",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text size (default 12).",
+            "in": "query",
+            "name": "txt-size",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text colour.",
+            "in": "query",
+            "name": "txt-color",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text alignment: top, middle, bottom, left, center, right.",
+            "in": "query",
+            "name": "txt-align",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text padding (default 10).",
+            "in": "query",
+            "name": "txt-pad",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text shadow 0..10.",
+            "in": "query",
+            "name": "txt-shad",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text wrap width.",
+            "in": "query",
+            "name": "txt-width",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text x from the left edge.",
+            "in": "query",
+            "name": "txt-x",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Text y from the top edge.",
+            "in": "query",
+            "name": "txt-y",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Expiry, unix seconds; 404 once passed (checked after the signature).",
+            "in": "query",
+            "name": "expires",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Signature: hex MD5 of the mount's token, the path and ? plus the query without s.",
+            "in": "query",
+            "name": "s",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/*": {
+                "schema": {
+                  "contentEncoding": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The processed image; the format follows `format`, the source extension or Accept negotiation.",
+            "headers": {
+              "Cache-Control": {
+                "description": "XI_CACHE_HEADERS_* policy, or the URL's expires.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Strong entity tag of the result.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "description": "Accept and the client hints that decided the result.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified: If-None-Match matched the ETag."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "406": {
+            "$ref": "#/components/responses/Error406"
+          },
+          "414": {
+            "$ref": "#/components/responses/Error414"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "501": {
+            "$ref": "#/components/responses/Error501"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          }
+        },
+        "summary": "Process an image (imgix dialect)",
+        "tags": [
+          "image"
+        ],
+        "x-xi-dialect": "imgix",
         "x-xi-listener": "public"
       }
     },
@@ -7446,6 +9148,10 @@
     {
       "description": "Admin listener only: metrics, documents, profiling.",
       "name": "admin"
+    },
+    {
+      "description": "Playground UI and its JSON API (XI_PLAYGROUND_ENABLED, off by default): admin listener, and the public listener only with XI_PLAYGROUND_PUBLIC. Paths are under XI_PLAYGROUND_PATH (default /_playground).",
+      "name": "playground"
     }
   ],
   "x-xi-dialects": [
@@ -7471,49 +9177,55 @@
       "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#5-imgix",
       "name": "imgix",
       "prefix": "/imgix/",
-      "status": "planned"
+      "status": "served"
     },
     {
       "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#6-cloudinary",
       "name": "cloudinary",
       "prefix": "/cloudinary/",
-      "status": "planned"
+      "status": "served"
     },
     {
       "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#8-cloudflare-images-cdn-cgiimage",
       "name": "cloudflare",
       "prefix": "/cdn-cgi/image/",
-      "status": "planned"
+      "status": "served"
     },
     {
-      "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#8-cloudflare-images-cdn-cgiimage",
+      "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#81-cloudflare-images-delivery-cdn-cgiimagedelivery-imagedeliverynet",
       "name": "cloudflare_images",
       "prefix": "/cdn-cgi/imagedelivery/",
-      "status": "planned"
+      "status": "served"
     },
     {
       "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#9-bunny-optimizer",
       "name": "bunny",
       "prefix": "/bunny/",
-      "status": "planned"
+      "status": "served"
     },
     {
       "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#10-thumbor",
       "name": "thumbor",
       "prefix": "/thumbor/",
-      "status": "planned"
+      "status": "served"
     },
     {
       "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#11-weserv--wsrvnl",
       "name": "wsrv",
       "prefix": "/wsrv/",
-      "status": "planned"
+      "status": "served"
+    },
+    {
+      "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#13-aws-serverless-image-handler-dynamic-image-transformation-for-amazon-cloudfront",
+      "name": "awssih",
+      "prefix": "/sih/",
+      "status": "served"
     },
     {
       "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#12-unpic-long-tail-simple-micro-dialects",
       "name": "simple",
       "prefix": "provider-native prefixes",
-      "status": "planned"
+      "status": "served"
     }
   ]
 }

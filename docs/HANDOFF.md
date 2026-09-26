@@ -9,10 +9,10 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
 - **M1 and M2 are complete on `main`.** M2 landed as one merge commit (#79) of the 27-branch stack
   (per-package PRs #50–#78 closed with a reference; their descriptions document each package). Final
   verification of the merged tree in the container: 59 packages green.
-- **Next, in order:** WP-87 stabilisation pass (agent running; see "Known gaps"), WP-81b Pages +
-  SchemaStore publishing (needs GitHub Pages enabled by the owner and workflows re-enabled), WP-82b
-  huma-handler spike, then **M3** per `docs/ROADMAP.md` (full image with FFmpeg + ONNX, face/object
-  detection, video thumbnails, advanced watermarks, GIF→video, playground, TypeScript package WP-84).
+- **Next, in order:** WP-87 stabilisation pass (#86), WP-81b Pages + SchemaStore publishing (#80;
+  the deploy needs GitHub Pages enabled by the owner and workflows re-enabled) and the WP-82b
+  huma-handler spike (#80) are all in the `m3` stack now; the rest of **M3** per `docs/ROADMAP.md`
+  (face/object detection options, video thumbnails, GIF→video, `gpl` flavour) is in progress or planned.
 - **Stack `m3` (bottom → top):** #80 WP-81b/82b Pages+SchemaStore → #81 WP-70 full base → #83 WP-84
   TypeScript → #84 WP-80 playground → #85 WP-77/78 watermarks → #86 WP-87 stabilisation → #87 WP-88
   imgix mount → #88 WP-71 detection runtime → #89 WP-70b `gpl` image → #90 WP-74 video thumbnails
@@ -47,7 +47,9 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   users of that image review licences/patents themselves. WP-70b agent launched. WP-76 (GIF→video)
   must pick the H.264 encoder at runtime when present (gpl image) and fall back to VP9/AV1.
 - **M3 decisions taken by the orchestrator (owner said "resuélvelo con tu mejor approach"):**
-  GIF→video = WebM/VP9 + AV1-in-MP4, no H.264 encode (open question 1); detection models = YuNet
+  GIF→video = WebM/VP9 + AV1-in-MP4, no H.264 encode (open question 1; **superseded by the owner
+  2026-09-27**: H.264/HEVC encode ship in the opt-in `gpl` flavor, WP-70b `m3/wp-70b-gpl-base`,
+  ADR 0006 amendment, FORMATS 5.1); detection models = YuNet
   (MIT) + YOLOX-s (Apache-2.0) (question 7); playground inside the binary, admin listener, off by
   default (question 8).
 - Stacks start fresh per milestone: `m3/wp-XX-slug` branches, adopt with `scripts/stack/adopt2.sh`.
@@ -103,12 +105,24 @@ owner has authorised merging PRs without review.
 
 ## Known gaps and follow-ups
 
-- **imgix dialect is parsed but not mounted**: `internal/dialect/imgix` exists and is tested, but
-  `internal/app/build.go` only warns "enabled but not implemented yet". WP-88 (agent launched
-  2026-09-27) mounts it like the other dialects and adds acceptance cases.
+- **imgix dialect is parsed but not mounted on `main`**: `internal/dialect/imgix` exists and is
+  tested, but `main`'s `internal/app/build.go` only warns "enabled but not implemented yet". WP-88
+  (#87, in the `m3` stack) mounts it like the other dialects and adds acceptance cases.
 
-- PNG-alpha → WebP is ~14% slower than imgproxy and peak RSS is 2–5× (see `bench/RESULTS.md`).
-- `internal/server` limiter admission cost is still 0 (planner `Cost` not wired).
-- Cloudinary `w_auto`/`dpr_auto` and Cloudflare `width=auto` do not set `transform.ClientHints`.
-- `XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH` config key missing.
-- First release tag pending (`docs/RELEASE.md`); Pages publishing of the config schema (WP-81b).
+- Peak RSS is still above imgproxy's after WP-87's `MALLOC_CONF=narenas:2` (png-alpha 400 px
+  WebP at 16 concurrent: ~180–210 MiB vs ~165–180 MiB; it was 2–5×; see `bench/RESULTS.md`). The
+  app image sets it; the base runtime image (`docker/base/Dockerfile`) does not yet, so images
+  built directly on the base keep jemalloc's 4 arenas per CPU until the next base release.
+- The PNG-alpha → WebP "14 % slower" gap did not reproduce under profiling (WP-87): the executor
+  equals the bare libvips pipeline and libwebp is ~60 % of the CPU. Rerun the full bench on a quiet
+  Linux host before quoting capacity.
+- Client hints (`w_auto`, `dpr_auto`, `width=auto`, imgix/ImageKit auto) resolve into pipeline 0
+  only: an auto width in a later chained component still resizes the first pipeline.
+- Parsed but not applied (recorded as "not implemented"): Cloudinary `e_vibrance`, imgix `vib`,
+  ImageKit `e-contrast` (the planner has no vibrance/equalize step); thumbor `equalize()` and AWS
+  SIH `normalise` set `Equalize` without recording anything.
+- The memory budget (`XI_PROCESSING_MEMORY_BUDGET`) is charged after the probe and plan
+  (`limiter.Reserve` through `exec.Config.Admit`): a job waiting for memory holds its worker slot
+  for up to `XI_PROCESSING_QUEUE_TIMEOUT`.
+- First release tag pending (`docs/RELEASE.md`); the WP-81b Pages site is built (`task pages:build`)
+  but not deployed until the owner enables GitHub Pages and the workflows.

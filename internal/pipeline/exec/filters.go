@@ -33,6 +33,9 @@ type filterParams struct {
 	Unsharp         *plan.UnsharpMask
 	BlurAreas       *plan.BlurAreas
 	ProgressiveBlur *transform.ProgressiveBlur
+	// Detections blurs or pixelates detected objects (detections.go); nil
+	// = off.
+	Detections *plan.DetectionBlur
 }
 
 func newFilterParams(s *plan.FilterStep, w, h int, alpha bool) filterParams {
@@ -45,6 +48,9 @@ func newFilterParams(s *plan.FilterStep, w, h int, alpha bool) filterParams {
 	}
 	if p.ProgressiveBlur != nil && !(p.ProgressiveBlur.Sigma > 0) {
 		p.ProgressiveBlur = nil
+	}
+	if d := s.Detections; d != nil && len(d.Areas) > 0 && (d.Pixelate > 1 || d.Sigma > 0) {
+		p.Detections = d
 	}
 	p.Premultiply = alpha && (p.Blur > 0 || p.Sharpen > 0 || p.extras())
 	if n := min(s.Pixelate, max(w, h)); n > 1 {
@@ -60,15 +66,15 @@ func (p *filterParams) active() bool {
 }
 
 // extras reports whether a Pro filter (unsharp, blur areas, progressive
-// blur) is on.
+// blur, detections) is on.
 func (p *filterParams) extras() bool {
-	return p.Unsharp != nil || p.BlurAreas != nil || p.ProgressiveBlur != nil
+	return p.Unsharp != nil || p.BlurAreas != nil || p.ProgressiveBlur != nil || p.Detections != nil
 }
 
 func ceilMultiple(v, n int) int { return (v + n - 1) / n * n }
 
-// filter applies blur, sharpen, unsharp masking, pixelate, blur areas and
-// progressive blur, in that order, in sRGB (premultiplied when the image
+// filter applies blur, sharpen, unsharp masking, pixelate, blur areas,
+// progressive blur and the detection blur, in that order, in sRGB (premultiplied when the image
 // has alpha) and converts the result back to img's interpretation and band
 // format (imgproxy applyFilters, then the Pro filters). Animations reach it
 // once per frame.
@@ -122,6 +128,11 @@ func (r *runner) filter(ctx context.Context, img *vips.Image, s *plan.FilterStep
 	}
 	if p.ProgressiveBlur != nil {
 		if img, err = r.progressiveBlur(ctx, img, p.ProgressiveBlur); err != nil {
+			return nil, err
+		}
+	}
+	if p.Detections != nil {
+		if img, err = r.detectionBlur(ctx, img, p.Detections); err != nil {
 			return nil, err
 		}
 	}

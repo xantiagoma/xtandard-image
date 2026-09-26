@@ -1235,16 +1235,10 @@
     "query": "",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "fo-face",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
-            "FocusZoom": 0.8,
+            "FacePad": 1.25,
             "Type": "face"
           },
           "Resize": {
@@ -1273,16 +1267,10 @@
     "query": "tr=w-300,h-300,fo-face,z-0.8",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "fo-face",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
-            "FocusZoom": 0.8,
+            "FacePad": 1.25,
             "Type": "face"
           },
           "Resize": {
@@ -1311,12 +1299,6 @@
     "query": "",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "fo-object",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1351,12 +1333,6 @@
     "query": "tr=w-300,h-300,fo-car",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "fo-object",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1443,12 +1419,8 @@
       "Dialect": "imagekit",
       "Ignored": [
         {
-          "Option": "e-grayscale",
-          "Reason": "takes effect in M2"
-        },
-        {
           "Option": "e-contrast",
-          "Reason": "takes effect in M2"
+          "Reason": "not implemented"
         }
       ],
       "Pipelines": [
@@ -1473,12 +1445,8 @@
       "Dialect": "imagekit",
       "Ignored": [
         {
-          "Option": "e-grayscale",
-          "Reason": "takes effect in M2"
-        },
-        {
           "Option": "e-contrast",
-          "Reason": "takes effect in M2"
+          "Reason": "not implemented"
         }
       ],
       "Pipelines": [
@@ -1571,12 +1539,6 @@
     "query": "",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "o",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -1598,12 +1560,6 @@
     "query": "tr=o-50",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "o",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -1661,12 +1617,6 @@
     "query": "",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1698,12 +1648,6 @@
     "query": "tr=l-image,ie-YnJhbmQvbG9nbyAoMSkucG5n,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1735,12 +1679,6 @@
     "query": "",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Resize": {
@@ -1782,12 +1720,6 @@
     "query": "",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1819,12 +1751,6 @@
     "query": "tr=l-image,i-brand@@logos@@logo.png,lfo-bottom_right,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1856,12 +1782,6 @@
     "query": "tr=w-800,l-image,i-logo.png,lx-10,ly-20,w-100,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Resize": {
@@ -1957,12 +1877,6 @@
     "query": "",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1990,12 +1904,6 @@
     "query": "tr=l-text,ie-SGVsbG8sIHdvcmxkOiDDvG7Dr2NvZGU%3D,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -2023,12 +1931,6 @@
     "query": "",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -2061,12 +1963,6 @@
     "query": "tr=l-text,i-Minimal%20Text,fs-20,co-FF0000,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -2846,12 +2742,6 @@
     "query": "ik-s=ebd3dd2163f26a0f4f2e6632d6c000127e17ffc7",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [

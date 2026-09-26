@@ -389,6 +389,117 @@ func TestMemoryWeightedAdmission(t *testing.T) {
 	})
 }
 
+// TestReserve covers the two-phase admission of the server: Acquire(ctx, 0)
+// for the worker, then Reserve with the planner's estimate.
+func TestReserve(t *testing.T) {
+	t.Parallel()
+	const timeout = 5 * time.Second
+	cfg := Config{Workers: 4, QueueSize: 4, QueueTimeout: timeout, MemoryBudget: 100}
+
+	t.Run("oversize is 422", func(t *testing.T) {
+		t.Parallel()
+		l, rec := newLimiter(t, cfg)
+		_, err := l.Reserve(t.Context(), 101)
+		wantKind(t, err, errs.KindLimitExceeded, http.StatusUnprocessableEntity)
+		if diff := cmp.Diff([]Reason{ReasonMemoryTooLarge}, rec.rejections()); diff != "" {
+			t.Fatalf("rejections (-want +got):\n%s", diff)
+		}
+		assertIdle(t, l, rec)
+	})
+	t.Run("no budget or no cost", func(t *testing.T) {
+		t.Parallel()
+		unbounded, rec := newLimiter(t, Config{Workers: 1})
+		bounded, brec := newLimiter(t, cfg)
+		for _, c := range []struct {
+			l    *Limiter
+			cost int64
+		}{{unbounded, 1 << 40}, {bounded, 0}, {bounded, -1}} {
+			release, err := c.l.Reserve(t.Context(), c.cost)
+			if err != nil {
+				t.Fatalf("Reserve(%d): %v", c.cost, err)
+			}
+			release()
+			release()
+		}
+		assertIdle(t, unbounded, rec)
+		assertIdle(t, bounded, brec)
+	})
+	t.Run("waits for memory, then times out with 503", func(t *testing.T) {
+		t.Parallel()
+		synctest.Test(t, func(t *testing.T) {
+			l, rec := newLimiter(t, cfg)
+			held, err := l.Reserve(t.Context(), 60)
+			if err != nil {
+				t.Fatalf("Reserve(60): %v", err)
+			}
+			start := time.Now()
+			_, err = l.Reserve(t.Context(), 60)
+			if waited := time.Since(start); waited != timeout {
+				t.Fatalf("waited %s, want %s", waited, timeout)
+			}
+			wantKind(t, err, errs.KindUnavailable, http.StatusServiceUnavailable)
+			if oe, ok := errors.AsType[*OverloadError](err); !ok || oe.Reason != ReasonQueueTimeout {
+				t.Fatalf("err = %v, want an *OverloadError for the queue timeout", err)
+			}
+
+			// A 40-byte reservation fits beside it; a waiting 60-byte one is
+			// granted once the first is released, exactly then.
+			small, err := l.Reserve(t.Context(), 40)
+			if err != nil {
+				t.Fatalf("Reserve(40): %v", err)
+			}
+			granted := make(chan time.Duration, 1)
+			go func() {
+				start := time.Now()
+				r, err := l.Reserve(t.Context(), 60)
+				if err != nil {
+					t.Errorf("queued Reserve(60): %v", err)
+					granted <- 0
+					return
+				}
+				r()
+				granted <- time.Since(start)
+			}()
+			synctest.Wait()
+			synctest.Sleep(time.Second)
+			held()
+			held() // idempotent
+			if d := <-granted; d != time.Second {
+				t.Fatalf("queued Reserve granted after %s, want 1s", d)
+			}
+			small()
+			if diff := cmp.Diff([]Reason{ReasonQueueTimeout}, rec.rejections()); diff != "" {
+				t.Fatalf("rejections (-want +got):\n%s", diff)
+			}
+			assertIdle(t, l, rec)
+		})
+	})
+	t.Run("caller canceled", func(t *testing.T) {
+		t.Parallel()
+		synctest.Test(t, func(t *testing.T) {
+			l, rec := newLimiter(t, cfg)
+			held, err := l.Reserve(t.Context(), 100)
+			if err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithCancel(t.Context())
+			go func() {
+				synctest.Sleep(time.Second)
+				cancel()
+			}()
+			_, err = l.Reserve(ctx, 1)
+			if errs.KindOf(err) != errs.KindCanceled {
+				t.Fatalf("err = %v, want canceled", err)
+			}
+			held()
+			if diff := cmp.Diff([]Reason{ReasonCanceled}, rec.rejections()); diff != "" {
+				t.Fatalf("rejections (-want +got):\n%s", diff)
+			}
+			assertIdle(t, l, rec)
+		})
+	})
+}
+
 func TestWorkersNeverExceeded(t *testing.T) {
 	t.Parallel()
 	synctest.Test(t, func(t *testing.T) {

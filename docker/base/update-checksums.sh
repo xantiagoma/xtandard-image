@@ -1,6 +1,6 @@
 #!/bin/bash
-# Recomputes every *_SHA256 value in versions.sh from the pinned versions.
-# Run after bumping a version; review the diff before committing.
+# Recomputes every *_SHA256 value in versions.sh, versions-full.sh and versions-gpl.sh from the
+# pinned versions. Run after bumping a version; review the diff before committing.
 #
 # Usage: docker/base/update-checksums.sh
 
@@ -38,14 +38,20 @@ trap 'rm -f "$sums"' EXIT
   echo "RUSTUP_SHA256_ARM64=$(sha256_url "https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/aarch64-unknown-linux-gnu/rustup-init")"
 } > "$sums"
 
-awk -F= '
-  NR == FNR { sum[$1] = $2; next }
-  /^export [A-Z0-9_]+_SHA256[A-Z0-9_]*=/ {
-    name = substr($1, 8)
-    if (name in sum) { print "export " name "=" sum[name]; next }
-  }
-  { print }
-' "$sums" "$versions_file" > "$versions_file.new"
-mv "$versions_file.new" "$versions_file"
+# Full flavor (WP-70): FFmpeg, libvpx, ONNX Runtime (both architectures) and models.
+PRINT_CHECKSUMS=1 FULL_DEPS_SRC="$(mktemp -d)" "$my_dir/download-full-deps.sh" >> "$sums"
+# gpl flavor (WP-70b): x264, x265.
+PRINT_CHECKSUMS=1 GPL_DEPS_SRC="$(mktemp -d)" "$my_dir/download-gpl-deps.sh" >> "$sums"
 
-echo "Updated checksums in $versions_file"
+for file in "$versions_file" "$my_dir/versions-full.sh" "$my_dir/versions-gpl.sh"; do
+  awk -F= '
+    NR == FNR { sum[$1] = $2; next }
+    /^export [A-Z0-9_]+_SHA256[A-Z0-9_]*=/ {
+      name = substr($1, 8)
+      if (name in sum) { print "export " name "=" sum[name]; next }
+    }
+    { print }
+  ' "$sums" "$file" > "$file.new"
+  mv "$file.new" "$file"
+  echo "Updated checksums in $file"
+done

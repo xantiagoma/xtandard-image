@@ -62,6 +62,19 @@ const (
 	// RAF, ORF, RW2, PEF, SRW, X3F, 3FR, IIQ, ERF, MEF, MOS, DCR, MRW),
 	// decoded by LibRaw: embedded preview or demosaic.
 	FormatRAW
+	// FormatMP4 is an ISO base media file with a video brand (isom, mp41,
+	// mp42, avc1, av01, dash, 3gp, M4V, ...): MP4, M4V, 3GP. Video formats
+	// are input-only: a frame becomes the image (FORMATS.md §1.5).
+	FormatMP4
+	// FormatMOV is QuickTime: the "qt  " brand, or a file starting with a
+	// moov/mdat/wide/free/skip atom.
+	FormatMOV
+	// FormatWebM is Matroska with the "webm" DocType.
+	FormatWebM
+	// FormatMKV is Matroska with the "matroska" DocType.
+	FormatMKV
+	// FormatAVI is RIFF AVI.
+	FormatAVI
 
 	numFormats
 )
@@ -121,6 +134,16 @@ func (f Format) info() formatInfo {
 		return formatInfo{"pfm", "pfm", "image/x-portable-floatmap", false, false, true}
 	case FormatRAW:
 		return formatInfo{"raw", "", "application/octet-stream", false, false, true}
+	case FormatMP4:
+		return formatInfo{"mp4", "mp4", "video/mp4", false, false, true}
+	case FormatMOV:
+		return formatInfo{"mov", "mov", "video/quicktime", false, false, true}
+	case FormatWebM:
+		return formatInfo{"webm", "webm", "video/webm", false, false, true}
+	case FormatMKV:
+		return formatInfo{"mkv", "mkv", "video/x-matroska", false, false, true}
+	case FormatAVI:
+		return formatInfo{"avi", "avi", "video/x-msvideo", false, false, true}
 	default:
 		return formatInfo{"unknown", "", "application/octet-stream", false, false, false}
 	}
@@ -152,6 +175,18 @@ func (f Format) SupportsAlpha() bool { return f.info().alpha }
 // not HDR here.
 func (f Format) HDR() bool {
 	return f == FormatEXR || f == FormatRadiance || f == FormatPFM
+}
+
+// IsVideo reports a video container (MP4, MOV, WebM, MKV, AVI): decoded by
+// FFmpeg in the full image only (internal/video/ffmpeg), one frame becoming
+// the image.
+func (f Format) IsVideo() bool {
+	switch f {
+	case FormatMP4, FormatMOV, FormatWebM, FormatMKV, FormatAVI:
+		return true
+	default:
+		return false
+	}
 }
 
 // Supported reports whether the format can be decoded in this build.
@@ -212,6 +247,16 @@ func ParseFormat(s string) (Format, error) {
 		return FormatPFM, nil
 	case "raw":
 		return FormatRAW, nil
+	case "mp4", "m4v", "3gp", "3g2":
+		return FormatMP4, nil
+	case "mov", "qt", "quicktime":
+		return FormatMOV, nil
+	case "webm":
+		return FormatWebM, nil
+	case "mkv", "matroska":
+		return FormatMKV, nil
+	case "avi":
+		return FormatAVI, nil
 	}
 	return FormatUnknown, errs.Newf(errs.KindUnsupported, "codec: unknown format %q", s)
 }
@@ -298,6 +343,16 @@ func (f Format) MatchesContentType(contentType string) bool {
 		return mt == "image/x-portable-anymap" || mt == "image/x-pfm"
 	case FormatRAW:
 		return strings.HasPrefix(mt, "image/x-")
+	case FormatMP4:
+		return mt == "video/x-m4v" || mt == "application/mp4" || mt == "video/3gpp" || mt == "video/3gpp2" || mt == "video/quicktime"
+	case FormatMOV:
+		return mt == "video/mp4"
+	case FormatWebM:
+		return mt == "video/x-matroska" || mt == "audio/webm"
+	case FormatMKV:
+		return mt == "video/matroska" || mt == "video/webm"
+	case FormatAVI:
+		return mt == "video/avi" || mt == "video/msvideo" || mt == "video/vnd.avi"
 	default:
 		return false
 	}

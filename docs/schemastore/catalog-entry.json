@@ -1,0 +1,23 @@
+{
+  "name": "xtandard-image",
+  "description": "Config file of the xtandard-image image processing proxy (YAML, JSON or TOML)",
+  "fileMatch": [
+    "xtandard.json",
+    "xtandard.yaml",
+    "xtandard.yml",
+    "xtandard.toml",
+    ".xtandard.json",
+    ".xtandard.yaml",
+    ".xtandard.yml",
+    ".xtandard.toml",
+    "xtandard-image.json",
+    "xtandard-image.yaml",
+    "xtandard-image.yml",
+    "xtandard-image.toml",
+    ".xtandard-image.json",
+    ".xtandard-image.yaml",
+    ".xtandard-image.yml",
+    ".xtandard-image.toml"
+  ],
+  "url": "https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json"
+}

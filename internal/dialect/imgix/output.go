@@ -11,8 +11,8 @@ import (
 
 // --- output (https://docs.imgix.com/apis/rendering/format) ----------------
 
-// applyOutput maps fm, q, auto, lossless, chromasub, cs, dpi, dl, ch and
-// expires.
+// applyOutput maps fm, q, auto, jpg-progressive, iptc, lossless,
+// chromasub, cs, dpi, dl, ch and expires.
 func (st *state) applyOutput() error {
 	o := &st.r.Output
 	autoFormat, compress, err := st.auto()
@@ -21,6 +21,9 @@ func (st *state) applyOutput() error {
 	}
 	if err := st.format(autoFormat); err != nil {
 		return err
+	}
+	if st.r.Kind != transform.KindInfo {
+		st.ignoreIf(reasonFacesJSON, "faces")
 	}
 	if v, ok := st.get("q"); ok {
 		q, err := intRange("q", v, 0, 100)
@@ -41,6 +44,20 @@ func (st *state) applyOutput() error {
 		if o.Format == transform.FormatUnset && !autoFormat && st.r.Kind == transform.KindProcess {
 			o.PreferJPEGIfOpaque = true
 		}
+	}
+	if v, ok := st.get("jpg-progressive"); ok {
+		on, err := imgproxy.ParseBool("jpg-progressive", v)
+		if err != nil {
+			return err
+		}
+		o.Progressive = &on
+	}
+	if v, ok := st.get("iptc"); ok {
+		if v != "allow" && v != "block" {
+			return dialect.InvalidArgument("iptc", v, expIPTC)
+		}
+		// xi keeps or strips metadata as a whole (StripMetadata).
+		st.b.Ignore("iptc", reasonNotImplemented)
 	}
 	if v, ok := st.get("lossless"); ok {
 		on, err := imgproxy.ParseBool("lossless", v)
@@ -110,6 +127,23 @@ func (st *state) auto() (format, compress bool, err error) {
 	return format, compress, nil
 }
 
+// facesJSON maps faces=1 of fm=json: the detected faces in the info JSON
+// (imgproxy's objects shape, class face; WP-73).
+func (st *state) facesJSON() error {
+	v, ok := st.get("faces")
+	if !ok {
+		return nil
+	}
+	on, err := imgproxy.ParseBool("faces", v)
+	if err != nil {
+		return err
+	}
+	if on {
+		st.r.Info.DetectObjects, st.r.Info.DetectClasses = true, []string{transform.FaceClass}
+	}
+	return nil
+}
+
 // format maps fm. With auto=format imgix negotiates AVIF/WebP and uses fm
 // only as the fallback for clients without them; xi negotiates and records
 // fm as ignored (the fallback is the negotiation default). json, blurhash,
@@ -125,7 +159,7 @@ func (st *state) format(autoFormat bool) error {
 	case "json":
 		st.r.Kind = transform.KindInfo
 		st.r.Info = &transform.InfoOptions{Size: true, Format: true, Dimensions: true, EXIF: true, IPTC: true, XMP: true}
-		return nil
+		return st.facesJSON()
 	case "blurhash":
 		// imgix answers the bare blurhash string; xi answers info JSON with
 		// a blurhash field.
@@ -141,7 +175,7 @@ func (st *state) format(autoFormat bool) error {
 		o.Format = transform.FormatWebM
 		st.b.Ignore("fm", reasonM3)
 		return nil
-	case "jp2", "jxr", "pdf":
+	case "jp2", "jxr", "pdf", "spritesheet":
 		return &errs.Error{Kind: errs.KindUnsupported, Msg: "imgix fm " + v, Public: "unsupported output format"}
 	}
 	var (
@@ -179,7 +213,7 @@ func (st *state) format(autoFormat bool) error {
 	return nil
 }
 
-// colorSpace maps cs: srgb and tinysrgb convert to sRGB (M2), strip drops
+// colorSpace maps cs: srgb and tinysrgb convert to sRGB, strip drops
 // the profile, origin keeps it; adobergb1998 is not implemented.
 func (st *state) colorSpace() error {
 	v, ok := st.get("cs")
@@ -190,7 +224,6 @@ func (st *state) colorSpace() error {
 	switch v {
 	case "srgb", "tinysrgb":
 		o.ColorProfile = "srgb"
-		st.b.Ignore("cs", reasonM2)
 	case "strip", "origin":
 		on := v == "strip"
 		o.StripColorProfile = &on

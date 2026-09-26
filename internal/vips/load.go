@@ -7,6 +7,7 @@ import "C"
 
 import (
 	"context"
+	"errors"
 	"unsafe"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
@@ -18,6 +19,25 @@ func sourceBlob(buf *Buffer) (*C.VipsBlob, error) {
 		return nil, errs.New(errs.KindUnsupported, "vips: empty source")
 	}
 	return buf.blob, nil
+}
+
+// loadError is opError for a loader run over buf: a load failure on a PDF
+// whose trailer carries /Encrypt is reported as a password-protected
+// document. PDFium failing is the confirmation (an owner-password-only file
+// opens with the empty user password and never gets here); the trailer check
+// replaces matching PDFium's text in libvips' process-global error buffer,
+// which concurrent requests share.
+func loadError(rc C.int, op string, cerr *C.char, src *C.VipsBlob, buf *Buffer) error {
+	err := opError(rc, op, cerr, src)
+	if rc != C.XI_ERR_LOAD || !pdfEncrypted(buf.Bytes()) {
+		return err
+	}
+	var msg string
+	if oe, ok := errors.AsType[*OpError](err); ok {
+		msg = oe.Msg
+	}
+	return errs.WithPublic(errs.Wrap(errs.KindUnsupported, &OpError{Op: op, Msg: msg}),
+		"password-protected documents are not supported")
 }
 
 // Probe reads the header of buf without decoding pixels: the loader runs
@@ -42,7 +62,7 @@ func ProbeDensity(ctx context.Context, buf *Buffer, dpi float64) (Header, error)
 	var h C.XiHeader
 	var cerr *C.char
 	rc := C.xi_probe(blob, C.double(dpi), &h, &cerr)
-	if err := opError(rc, "probe", cerr, nil); err != nil {
+	if err := loadError(rc, "probe", cerr, nil, buf); err != nil {
 		return Header{}, err
 	}
 	out := Header{
@@ -93,7 +113,7 @@ func Load(ctx context.Context, buf *Buffer, opts *LoadOptions) (*Image, error) {
 	var out *C.VipsImage
 	var cerr *C.char
 	rc := C.xi_load(blob, &o, &out, &cerr)
-	if err := opError(rc, "load", cerr, blob); err != nil {
+	if err := loadError(rc, "load", cerr, blob, buf); err != nil {
 		return nil, err
 	}
 	return newImage(out, blob), nil
@@ -122,7 +142,7 @@ func loadWith(ctx context.Context, loader string, buf *Buffer, opts *LoadOptions
 	var out *C.VipsImage
 	var cerr *C.char
 	rc := C.xi_load_with(cptr(name), blob, &o, &out, &cerr)
-	if err := opError(rc, "load", cerr, blob); err != nil {
+	if err := loadError(rc, "load", cerr, blob, buf); err != nil {
 		return nil, err
 	}
 	return newImage(out, blob), nil
@@ -191,7 +211,7 @@ func Thumbnail(ctx context.Context, buf *Buffer, opts *ThumbnailOptions) (*Image
 	var out *C.VipsImage
 	var cerr *C.char
 	rc := C.xi_thumbnail(blob, &o, cptr(in), cptr(exp), &out, &cerr)
-	if err := opError(rc, "thumbnail", cerr, blob); err != nil {
+	if err := loadError(rc, "thumbnail", cerr, blob, buf); err != nil {
 		return nil, err
 	}
 	return newImage(out, blob), nil

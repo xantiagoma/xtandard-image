@@ -91,17 +91,19 @@
 //
 // # Errors
 //
-// Errors are copied from the global vips error buffer at the failure site
-// in C, and the errs kind comes from which operation failed, never from the
-// text: no enabled loader → Unsupported; a loader failure → Corrupt; a
-// header over a configured limit → LimitExceeded; a saver or operation
-// failure → Internal, unless the source's decoder signalled "invalidate"
-// while the pipeline ran (lazy decode of a truncated file), which the shim
-// records per source buffer → Corrupt. The one exception is a PDF that needs
-// a password: PDFium reports it only as pdfload's error text, so the shim
-// matches that message and the error is Unsupported with a public message.
-// A context that ended wins over all of
-// them (Canceled/Timeout). The libvips text is kept in [OpError] for logs.
+// libvips' error buffer is process-global and shared by every thread, so its
+// text is never used to classify anything. The shim writes its own failures
+// straight into a per-call message (xi_error_new) and copies libvips' text,
+// clearing it, at the failure site (xi_error_copy); that text is kept in
+// [OpError] for logs only. The errs kind comes from which operation failed:
+// no enabled loader → Unsupported; a loader failure → Corrupt; a header over
+// a configured limit → LimitExceeded; a saver or operation failure →
+// Internal, unless the source's decoder signalled "invalidate" while the
+// pipeline ran (lazy decode of a truncated file), which the shim records per
+// source buffer → Corrupt. A loader failure on a PDF whose trailer carries
+// /Encrypt is a password-protected document: Unsupported with a public
+// message (the trailer is parsed in Go; PDFium's text is not matched). A
+// context that ended wins over all of them (Canceled/Timeout).
 //
 // Without cgo (CGO_ENABLED=0) the package builds with stubs that return
 // [ErrUnavailable], so pure-Go builds of the whole module keep working.

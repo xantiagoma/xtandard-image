@@ -125,9 +125,8 @@ func TestResultCacheEndToEnd(t *testing.T) {
 	if diff := cmp.Diff(strip(miss.header), strip(hit.header)); diff != "" {
 		t.Errorf("hit headers differ (-miss +hit):\n%s", diff)
 	}
-	if hit.took >= miss.took {
-		t.Errorf("hit took %s, miss %s: the hit should skip fetch and libvips", hit.took, miss.took)
-	}
+	// The origin count above proves the hit skipped the fetch; timings are
+	// logged only, since machine load decides them.
 	t.Logf("miss %s, hit %s", miss.took, hit.took)
 
 	metricsBody := string(get(t, "http://"+a.admin.String()+"/metrics").body)

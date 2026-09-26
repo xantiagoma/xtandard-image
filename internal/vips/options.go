@@ -213,3 +213,25 @@ func DefaultSaveOptions() SaveOptions {
 }
 
 const maxInt32 = 1<<31 - 1
+
+// TextOptions configure Text.
+type TextOptions struct {
+	// Markup is Pango markup. libvips rejects malformed markup; callers
+	// sanitise untrusted markup first (internal/security/pango).
+	Markup string
+	// Font is a Pango font description ("sans 16"); empty is libvips'
+	// "sans 12".
+	Font string
+	// FontFile is registered with fontconfig before rendering (once per
+	// process, like libvips does); empty registers nothing.
+	FontFile string
+	// Width wraps lines at this many pixels, on word and then character
+	// boundaries; 0 does not wrap.
+	Width int
+	// Height > 0 autofits: the DPI is chosen so the text fits
+	// Width×Height (Width must be set) and DPI is ignored.
+	Height int
+	// DPI is the resolution the font sizes (points) are rendered at; 0 is
+	// libvips' 72, where one point is one pixel.
+	DPI int
+}

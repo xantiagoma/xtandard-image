@@ -50,6 +50,9 @@ ARG SOURCE_DATE_EPOCH=0
 # auto uses cmd/xtandard-image/default.pgo; `off` only for bootstrapping a new
 # profile from scratch (docs/RELEASE.md, "Refreshing the PGO profile").
 ARG PGO=auto
+# Build tags: `ffmpeg` on a full-flavor base (video thumbnails, ADR 0010;
+# task release:build sets it from the base image), empty for slim.
+ARG GO_TAGS=
 
 # With PGO=auto, `go version -m` must report -pgo=…/default.pgo: fail the
 # build if the profile is not picked up.
@@ -58,7 +61,7 @@ RUN --mount=type=cache,target=/root/go/pkg/mod \
   set -eu; \
   if [ "${TARGETARCH:-$(go env GOARCH)}" = amd64 ]; then export GOAMD64=v2; fi; \
   date="$(date -u -d "@${SOURCE_DATE_EPOCH}" +%Y-%m-%dT%H:%M:%SZ)"; \
-  CGO_ENABLED=1 go build -trimpath -buildvcs=false -pgo="${PGO}" \
+  CGO_ENABLED=1 go build -trimpath -buildvcs=false -pgo="${PGO}" -tags="${GO_TAGS}" \
     -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${date}" \
     -o /out/xtandard-image ./cmd/xtandard-image; \
   go version -m /out/xtandard-image | grep -E '(-pgo=|GOAMD64|GOARM64|CGO_ENABLED)' || true; \
@@ -73,13 +76,16 @@ ARG VERSION=dev
 ARG COMMIT=unknown
 ARG SOURCE_DATE_EPOCH=0
 ARG PGO=auto
+# Build tags: `ffmpeg` on a full-flavor base (video thumbnails, ADR 0010;
+# task release:build sets it from the base image), empty for slim.
+ARG GO_TAGS=
 
 RUN --mount=type=cache,target=/root/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
   set -eu; \
   if [ "${TARGETARCH:-$(go env GOARCH)}" = amd64 ]; then export GOAMD64=v2; fi; \
   date="$(date -u -d "@${SOURCE_DATE_EPOCH}" +%Y-%m-%dT%H:%M:%SZ)"; \
-  CGO_ENABLED=1 go build -trimpath -buildvcs=false -pgo="${PGO}" \
+  CGO_ENABLED=1 go build -trimpath -buildvcs=false -pgo="${PGO}" -tags="${GO_TAGS}" \
     -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${date}" \
     -o "/out/xtandard-image-${VERSION}-linux-${TARGETARCH:-$(go env GOARCH)}.debug" ./cmd/xtandard-image
 
@@ -107,9 +113,14 @@ LABEL org.opencontainers.image.title="xtandard-image" \
 # are repeated so the app image contract does not depend on the base's ENV.
 # /tmp is the only path the process may write (fontconfig cache, optional
 # disk cache): run read-only with a tmpfs there (docs/RELEASE.md).
+# MALLOC_CONF=narenas:2 is jemalloc's equivalent of MALLOC_ARENA_MAX=2 (which
+# only glibc reads): jemalloc's default of 4 arenas per CPU kept freed pages
+# of every busy thread and more than doubled peak RSS under load, with no
+# throughput gain (WP-87, bench/RESULTS.md).
 ENV LD_LIBRARY_PATH=/opt/xtandard/lib \
     LD_PRELOAD=/opt/xtandard/lib/libjemalloc.so.2 \
     MALLOC_ARENA_MAX=2 \
+    MALLOC_CONF=narenas:2 \
     MAGICK_CONFIGURE_PATH=/opt/xtandard/etc/ImageMagick-7 \
     FONTCONFIG_PATH=/opt/xtandard/etc/fonts \
     VIPS_BLOCK_UNTRUSTED=1 \

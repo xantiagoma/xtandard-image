@@ -17,6 +17,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/apidoc"
 	"github.com/xantiagoma/xtandard-image/internal/cache"
+	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/limiter"
@@ -51,6 +52,9 @@ type hooks struct {
 	// keepVips skips vips.Shutdown: libvips cannot be used again after it,
 	// and a test binary starts several services one after the other.
 	keepVips bool
+	// detector replaces the detector built from XI_DETECT_* (tests inject
+	// fakes; the detection cache and XI_DETECT_SMART_FACES still apply).
+	detector faceObjectDetector
 }
 
 // Run starts the service and blocks until ctx is cancelled (SIGINT/SIGTERM
@@ -193,10 +197,33 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		}
 		return nil
 	})
-	proc, err := newProcessor(cfg, wm)
+	if err := checkVideo(cfg); err != nil {
+		return err
+	}
+	logger.LogAttrs(ctx, slog.LevelInfo, "video thumbnails",
+		slog.Bool("enabled", videoSettings(cfg).Enabled), slog.String("ffmpeg", codec.VideoVersion()))
+	proc, err := newProcessor(cfg, wm, lim.Reserve)
 	if err != nil {
 		return err
 	}
+	det, err := buildDetector(ctx, cfg, met, logger)
+	if err != nil {
+		return err
+	}
+	// Like the watermark, the sessions are released only once no request
+	// is in flight; otherwise process exit reclaims them.
+	cleanups = append(cleanups, func(context.Context) error {
+		if lim.Stats().InFlight == 0 {
+			det.Close()
+		}
+		return nil
+	})
+	var fod faceObjectDetector = det
+	if h.detector != nil {
+		fod = h.detector
+	}
+	dets := newDetections(fod, cfg.Detect.CacheSize, cfg.Detect.SmartFaces, formatLimits(cfg), logger)
+	proc.detect = dets
 
 	ready := admin.NewReadiness()
 	scfg := serverConfig(cfg)
@@ -206,9 +233,9 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		Resolver:  reg,
 		Fetcher:   fetcher,
 		Admitter:  lim,
-		Prober:    &codecProber{svg: formatLimits(cfg)},
+		Prober:    &codecProber{svg: formatLimits(cfg), video: videoSettings(cfg)},
 		Sniffer:   codecSniffer{},
-		Inspector: vipsInspector{formats: formatLimits(cfg)},
+		Inspector: &vipsInspector{formats: formatLimits(cfg), video: videoSettings(cfg), detect: dets},
 		Processor: proc,
 		Allocator: vipsAllocator,
 		Logger:    logger,
@@ -226,15 +253,23 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	if err != nil {
 		return err
 	}
+	pg, err := buildPlayground(ctx, cfg, rt, srv.Handler(), opts.Version, logger)
+	if err != nil {
+		return err
+	}
 
 	lc := &lifecycle{
 		logger:     logger,
 		ready:      ready,
 		publicAddr: cfg.Server.Addr,
 		adminAddr:  cfg.Admin.Addr,
-		public:     srv.HTTPServer,
+		public: func(ctx context.Context) *http.Server {
+			hs := srv.HTTPServer(ctx)
+			hs.Handler = withPlayground(hs.Handler, pg.public, pg.publicPath)
+			return hs
+		},
 		admin: func(ctx context.Context) *http.Server {
-			return adminServer(ctx, logger, adminMux(met, ready, &cfg.Admin))
+			return adminServer(ctx, logger, adminMux(met, ready, &cfg.Admin, pg.admin, cfg.Playground.Path))
 		},
 		shutdownDelay:   cfg.Server.ShutdownDelay,
 		shutdownTimeout: cfg.Server.ShutdownTimeout,
@@ -249,10 +284,13 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	return lc.run(ctx)
 }
 
-func adminMux(met *metrics.Metrics, ready *admin.Readiness, cfg *config.Admin) http.Handler {
+// adminMux is the admin listener's mux; playground is nil unless
+// XI_PLAYGROUND_ENABLED.
+func adminMux(met *metrics.Metrics, ready *admin.Readiness, cfg *config.Admin, playground http.Handler, playgroundPath string) http.Handler {
 	return admin.NewMux(&admin.Options{
 		Metrics: met.Handler(), Readiness: ready, Pprof: cfg.Pprof,
 		ConfigSchema: config.Schema(), OpenAPI: apidoc.Spec(), Docs: cfg.Docs,
+		Playground: playground, PlaygroundPath: playgroundPath,
 	})
 }
 

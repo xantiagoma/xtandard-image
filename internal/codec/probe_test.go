@@ -75,8 +75,11 @@ func TestProbeFixtures(t *testing.T) {
 		"jpeg/metadata-p3.jpg": with(still(codec.FormatJPEG, 120, 160), func(m *codec.ImageMeta) {
 			m.Orientation, m.HasICC = 6, true
 		}),
-		"png/bordered.png":  still(codec.FormatPNG, 80, 60),
-		"dng/landscape.dng": still(codec.FormatRAW, 192, 128),
+		"png/bordered.png":          still(codec.FormatPNG, 80, 60),
+		"detect/apollo11-crew.jpg":  still(codec.FormatJPEG, 640, 503),
+		"detect/astronaut-dogs.jpg": still(codec.FormatJPEG, 640, 512),
+		"detect/cat-laptop.jpg":     still(codec.FormatJPEG, 640, 419),
+		"dng/landscape.dng":         still(codec.FormatRAW, 192, 128),
 		"dng/portrait-orientation-6.dng": with(still(codec.FormatRAW, 192, 128), func(m *codec.ImageMeta) {
 			m.Orientation = 6
 		}),
@@ -85,6 +88,7 @@ func TestProbeFixtures(t *testing.T) {
 		"png/rgb16.png":           with(still(codec.FormatPNG, 96, 72), func(m *codec.ImageMeta) { m.BitDepth = 16 }),
 		"png/palette.png":         still(codec.FormatPNG, 96, 72),
 		"watermark/logo.png":      with(still(codec.FormatPNG, 48, 32), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"watermark/badge.png":     with(still(codec.FormatPNG, 40, 40), func(m *codec.ImageMeta) { m.HasAlpha = true }),
 		"gif/static.gif": with(still(codec.FormatGIF, 96, 72), func(m *codec.ImageMeta) {
 			m.Delays, m.Loop = []int{100}, 1
 		}),
@@ -132,8 +136,15 @@ func TestProbeFixtures(t *testing.T) {
 		}),
 		"ppm/photo.ppm": still(codec.FormatPPM, 96, 64),
 	}
-	// password.pdf fails by design (TestProbeErrors).
-	if len(tests) != len(fixtureFormats())-1 {
+	// password.pdf fails by design (TestProbeErrors); videos are probed by
+	// TestProbeVideo.
+	videos := 0
+	for _, f := range fixtureFormats() {
+		if f.IsVideo() {
+			videos++
+		}
+	}
+	if len(tests) != len(fixtureFormats())-1-videos {
 		t.Fatalf("probe table has %d fixtures, sniff table %d", len(tests), len(fixtureFormats()))
 	}
 	for name, want := range tests {

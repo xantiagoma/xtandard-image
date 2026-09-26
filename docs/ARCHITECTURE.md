@@ -23,7 +23,7 @@ xtandard-image ("xi") is a stateless HTTP service that turns `GET <url>` into a 
 Design principles:
 
 1. **One canonical model.** Every URL dialect parses into the same `transform.Request`. Everything downstream (security, caching, planning, encoding) is dialect-agnostic. Two URLs in different dialects that ask for the same thing share one cache entry.
-2. **Pure Go by default, cgo at the edge.** `internal/vips` is the only package that imports `"C"` (CLAUDE.md rule 3); `internal/pipeline/exec`, the `codec` encode/load files and `codec/raw` call its Go API and therefore need a cgo build, but never see a C type. Parsers, planner, config, security, sources, fetcher and caches build and test with `CGO_ENABLED=0`. This lets many agents work in parallel without a libvips toolchain.
+2. **Pure Go by default, cgo at the edge.** `internal/vips` is the only package that imports `"C"` (CLAUDE.md rule 3), with one exception: `internal/video/ffmpeg`, only under the build tag `ffmpeg` (the full image; ADR 0010); `internal/pipeline/exec`, the `codec` encode/load files and `codec/raw` call its Go API and therefore need a cgo build, but never see a C type. Parsers, planner, config, security, sources, fetcher and caches build and test with `CGO_ENABLED=0`. This lets many agents work in parallel without a libvips toolchain.
 3. **Plan, then execute.** A pure planner turns request + source metadata into a declarative `Plan`. The executor maps plan steps onto lazy libvips operations. Planner tests are table tests over data; only executor tests need libvips.
 4. **Secure unless told otherwise.** No source allowlist means the server refuses to start unless `XI_DEV_MODE=true`.
 5. **Fail closed, fail fast, fail with the right status code.**
@@ -68,7 +68,7 @@ Implementation order (WP-34a, `server.process`): route+parse+authenticate (2–4
 Go module `github.com/xantiagoma/xtandard-image`. Arrows mean "may import". Anything not listed may not be imported by `internal/transform`.
 
 ```
-cmd/xtandard-image/         main: flags, subcommands (serve, health, sign, config print, version)
+cmd/xtandard-image/         main: flags, subcommands (serve, health, config print|schema|validate, openapi, version); URLs are signed with scripts/sign-url.sh
 internal/
   app/                      composition root: builds every component from config, wires, owns lifecycle
   config/                   one Config struct: optional YAML (goccy/go-yaml, strict) then env via caarlos0/env/v11 (env wins), *_FILE secrets, Validate(), redaction
@@ -79,13 +79,14 @@ internal/
     router/                 host / prefix / default selection
     imgproxy/               canonical dialect (+ /info)
     query/                  native query + imaginary-compatible endpoints
-    imgix/ cloudinary/ imagekit/ cloudflare/ bunny/ thumbor/ wsrv/
+    imgix/ cloudinary/ imagekit/ cloudflare/ bunny/ thumbor/ wsrv/ awssih/
     simple/                 table-driven "micro-dialects" for the unpic long tail (nextjs, netlify, ipx, ...)
   security/
-    sign/                   Verifier interface + imgproxy, imgix, thumbor, cloudinary, imagekit, bunny, xi schemes
+    sign/                   Verifier interface + imgproxy, imaginary, imgix, thumbor, cloudinary, imagekit, bunny, Cloudflare Images, AWS SIH, xi schemes
     crypt/                  AES-CBC source URL encryption/decryption
     ssrf/                   net.Dialer control, IP classification, redirect policy
     svg/                    SVG sanitiser (pure Go, token-stream based)
+    pango/                  Pango markup and font-description sanitiser for text watermarks (pure Go, WP-78)
   source/                   Source interface, Ref, Registry, resolver (source string → Ref), allowlist
   fetch/                    Fetcher: singleflight, origin cache, byte limits, timeouts, retries
     httpsrc/ s3src/ gcssrc/ azuresrc/ fssrc/ ftpsrc/ sftpsrc/   source backends; the only place storage SDKs may be imported (go-standards §10)
@@ -104,11 +105,14 @@ internal/
   pipeline/
     plan/                   pure Go: (transform.Request, plan.SourceMeta) → Plan
     exec/                   Plan → libvips operations
-  detect/                   (M3) ONNX Runtime face/object detection, loaded via dlopen (purego) when present
-  video/                    (M3, build tag `ffmpeg`) go-astiav frame extraction
-  obs/                      slog setup, Prometheus registry, OpenTelemetry, admin mux (metrics, /openapi.json, /docs, pprof)
+  detect/                   face/object detection (WP-71, §8.5): model registry, letterbox, YuNet/YOLOX decoding, NMS
+    ort/                    ONNX Runtime C API loaded with purego dlopen (ADR 0010); the only purego user
+  video/                    (M3, WP-74) cgo-free video rules: Meta/Stream, limits, FrameRequest, Seek (vts), best-frame SamplePoints/Score, display matrix → EXIF orientation
+    ffmpeg/                 hand-written C shim over libavformat/libavcodec/libswscale, build tag `ffmpeg` (ADR 0010): Probe, Thumbnail (frame into a vips.Buffer); a stub answering Unsupported otherwise
+  obs/                      slog setup, Prometheus registry, OpenTelemetry, admin mux (metrics, /openapi.json, /docs, pprof, playground mount)
   server/                   http.Server + http.ServeMux, middleware, handlers (process, info, health), respond, writeError
   apidoc/                   OpenAPI 3.1 document (huma v2 as builder only) + the committed openapi.json it embeds (ADR 0008)
+  playground/               embedded playground UI (go:embed HTML/CSS/JS, no build step) + its JSON API: meta, server-side signing, in-process render (WP-80)
 ```
 
 Dependency rules (enforced by a `depguard`/`go-arch-lint` config in CI):
@@ -120,13 +124,15 @@ Dependency rules (enforced by a `depguard`/`go-arch-lint` config in CI):
 - `fetch` → `source`, `cache`, `errs` (never its own backend subpackages; `app` constructs them).
 - `pipeline/plan` → `transform`, `errs` (it defines its own `SourceMeta`; the executor maps codec/vips headers onto it).
 - `pipeline/exec`, `codec` loaders/encoders → `vips`.
+- `detect` → `detect/ort`, `vips`, `errs`; `detect/ort` imports nothing internal and is the only importer of purego (depguard, ADR 0010).
 - `server` → everything above via interfaces; `app` is the only package that constructs concrete types. Exception: `server` calls the pure-Go `pipeline/plan.Build` directly for the thumbor `meta` response (WP-86b), with the executor's limits passed in `InfoConfig.PlanLimits`, and `plan.InfoCrop` for the imgproxy /info `crop` coordinates (WP-63). `imageinfo` is a pure-Go leaf (stdlib only); `server` and `app` use it.
-- `apidoc` → `server`, `dialect/imgproxy`, `errs` (types and catalogues only); nothing imports `apidoc` except `app`, which passes its bytes to the admin mux. huma is confined to `apidoc` (depguard).
+- `apidoc` → `server`, `dialect/imgproxy`, `playground`, `errs` (types and catalogues only); nothing imports `apidoc` except `app`, which passes its bytes to the admin mux and its option catalogues (`apidoc.Catalogues`) to the playground. huma is confined to `apidoc` (depguard).
+- `playground` → `security/sign` (a `*sign.Signer` per mount, never key bytes), `obs/logging`. It sees the public handler only as an `http.Handler`; `app` builds its metadata from `dialect/router` mounts and config.
 - `config` imports nothing internal except `errs`. Each component declares its own `Options` struct; `app` maps `config.Config` into those options. This keeps component packages testable without the whole config tree.
 
-Routing: `server` registers fixed routes on a stdlib `http.ServeMux` with method patterns (`GET /healthz`, `GET /readyz`, `GET /{path...}` catch-all, which also matches HEAD) and hands the catch-all to `dialect/router`; the admin listener has its own `ServeMux` (`/metrics`, `/config.schema.json` (ADR 0007), `/openapi.json`, `/docs`, pprof). `server.Patterns()` and `admin.Patterns()` list the registered patterns for the OpenAPI route-coverage test ([OPENAPI.md](OPENAPI.md)). No third-party router (go-standards §2).
+Routing: `server` registers fixed routes on a stdlib `http.ServeMux` with method patterns (`GET /healthz`, `GET /readyz`, `GET /{path...}` catch-all, which also matches HEAD) and hands the catch-all to `dialect/router`; the admin listener has its own `ServeMux` (`/metrics`, `/config.schema.json` (ADR 0007), `/openapi.json`, `/docs`, pprof, and the playground under `XI_PLAYGROUND_PATH` when `XI_PLAYGROUND_ENABLED`). On the public listener, `app` puts a plain prefix check (not a `ServeMux`, so image paths are never cleaned) in front of the server handler that reserves `XI_SERVER_PATH_PREFIX + XI_PLAYGROUND_PATH`: the playground when `XI_PLAYGROUND_PUBLIC=true`, a 404 otherwise. `server.Patterns()` and `admin.Patterns()` list the registered patterns for the OpenAPI route-coverage test ([OPENAPI.md](OPENAPI.md)). No third-party router (go-standards §2).
 
-Build tags: `ffmpeg` (video). `server` tests use fakes of its consumer-side interfaces (`server.Processor`, `server.Prober`, fetcher, resolver, router), so they need no tag. ONNX needs no tag (runtime dlopen).
+Build tags: `ffmpeg` (video, ADR 0010: the full image builds and tests with `-tags ffmpeg`; `task docker:test` sets it from `XI_BASE_IMAGE`). `codec` imports `video/ffmpeg` to probe and decode video sources (`codec.ProbeMedia`, `InspectMedia`, `SampleMedia`, `VideoFrame`); `server` imports only the pure `video` types. `server` tests use fakes of its consumer-side interfaces (`server.Processor`, `server.Prober`, fetcher, resolver, router), so they need no tag. ONNX needs no tag (runtime dlopen).
 
 ## 4. The TransformRequest model
 
@@ -165,7 +171,7 @@ type Pipeline struct {
     Resize      Resize
     Gravity     Gravity
     Crop        *Crop        // pre-resize crop in source space; unset gravity inherits Pipeline.Gravity
-    CropObjects *CropObjects // M3 {Scale, Classes}
+    CropObjects *CropObjects // {Scale, Classes, Index *int, Padding} pre-crop to detections (WP-72)
     Trim        *Trim        // {Threshold, Color *Color (nil = auto), ColorFromBottomRight, EqualHor, EqualVer}
     Rotate      int          // 0/90/180/270 after ApplyDefaults
     RotateAny   float64      // (−180, 180] degrees with Background fill (imgix rot, wsrv ro, cloudinary a)
@@ -191,9 +197,9 @@ type Pipeline struct {
     Pixelate    int
     BlurAreas   *BlurAreas   // {Sigma, Areas []Area} relative source coords
     ProgressiveBlur *ProgressiveBlur // {Sigma, Direction, Angle, Start, Stop}
-    BlurDetections  *DetectionFilter // M3 {Sigma, Pixelate, Classes}
-    DrawDetections  *DetectionFilter // M3
-    Watermarks  []Watermark  // {Opacity, Position Gravity, Tile none|repeat|chessboard, Scale, Source *SourceSpec, Text, Font, Color, Width, Height, Rotate, Shadow}
+    BlurDetections  *DetectionFilter // {Sigma, Pixelate, Classes} (WP-73)
+    DrawDetections  *DetectionFilter // (WP-73)
+    Watermarks  []Watermark  // {Opacity, Position Gravity, Tile none|repeat|chessboard, Scale, Source *SourceSpec, Text, Font, Color, TextWidth, Width, Height, Rotate, Shadow}
     SVGStyle    string       // CSS injected into SVG sources
     Page        *int         // start page/frame
     Pages       *int         // number of pages/frames (-1 = all)
@@ -224,11 +230,11 @@ type Gravity struct {
     FocusX, FocusY   float64 // FocusPoint, 0..1
     FocusPx          *FocusRect // FocusPoint in source pixels (thumbor focal, cloudinary x_/y_); planner converts (WP-86a)
     FocusZoom        float64 // imgix fp-z, cloudinary z
-    Classes          []string
-    Weights          []float64
-    FaceIndex        *int    // imgix faceindex (M3)
-    FacePad          float64 // imgix facepad (M3)
-    ObjectsPosition  *ObjectsPosition // imgproxy objects_position {Type compass|FocusPoint, X, Y, Proportional} (M3)
+    Classes          []string  // face, COCO classes, supercategories (transform.ResolveClass; unknown → 400)
+    Weights          []float64 // ObjectWeighted, parallel to Classes
+    FaceIndex        *int    // one face, best first (imgix faceindex) (WP-72)
+    FacePad          float64 // > 0: pre-crop to the faces' box × FacePad (imgix facepad, cloudinary c_thumb) (WP-72)
+    ObjectsPosition  *ObjectsPosition // imgproxy objects_position {Type compass|FocusPoint, X, Y, Proportional} (WP-72)
 }
 
 type Crop struct { Width, Height Dim; Gravity Gravity; AspectRatio float64; AspectEnlarge bool }
@@ -432,14 +438,14 @@ type Plan struct {
 
 Fixed step order within one pipeline (imgproxy's `mainPipeline`, chosen for sequential access):
 
-1. **Load** with shrink-on-load: JPEG `shrink` 2/4/8, WebP `scale`, HEIF/AVIF embedded thumbnail, SVG/PDF `scale` (vector guard at `max_src_resolution`). The shrink comes from the size the computed scales give, not the scales, so one-sided targets do not overshrink; the remaining scale is rebased on the loaded size. Animated sources and trimmed images never shrink on load. RAW embedded preview: see FORMATS.md.
+1. **Load** with shrink-on-load: JPEG `shrink` 2/4/8, WebP `scale`, HEIF/AVIF embedded thumbnail, SVG/PDF `scale` (vector guard at `max_src_resolution`), video `scale` (libswscale to twice the target, WP-74; the frame is chosen by `vts`/`vtk` or best-frame selection, FORMATS §1.5). The shrink comes from the size the computed scales give, not the scales, so one-sided targets do not overshrink; the remaining scale is rebased on the loaded size. Animated sources and trimmed images never shrink on load. RAW embedded preview: see FORMATS.md.
 2. **Colour to working space**: import ICC, convert to sRGB. Scene-linear sources (OpenEXR, Radiance, PFM) are tone-mapped to 8-bit sRGB here, or kept as float (JPEG XL) or 16-bit (AVIF) with `preserve_hdr` (FORMATS.md §1.4).
 3. **Trim** (forces random access; disables shrink-on-load; not on animations).
 4. **Pre-crop** (`crop`, thumbor `AxB:CxD`, imgix `rect`) in stored (un-rotated) coordinates: the gravity is mapped back through the user rotate/flip and the EXIF orientation. `crop_aspect_ratio` (imgproxy Pro, WP-60) corrects the crop area (the whole image without `crop`) to the ratio before it is placed: it shrinks the area to match, or with `enlarge` grows it and shrinks it back, keeping the ratio, when it no longer fits; the gravity is not corrected (imgproxy docs).
 5. **Resize** remainder (premultiplied when the image has alpha, linear light optional via `XI_PROCESSING_LINEAR_RESIZE`).
 6. **Orientation**: EXIF rotate, EXIF flip, then `rotate`, then `flip` (the loader does not autorotate).
 7. **Target crop** by gravity (compass + offsets scaled by DPR, focus point, smart = `vips_smartcrop` attention/entropy, face/object fall back to attention until M3; animations fall back to centre).
-8. **Filters** (`FilterStep`, per frame, in sRGB, premultiplied when there is alpha): blur, sharpen, pixelate (one pass, as imgproxy), with the Pro filters of WP-61 in between and after, in this order: blur, sharpen, **unsharp masking**, pixelate, **blur areas**, **progressive blur**. Unsharp masking (`Unsharp`): imgproxy's `unsharp_masking` is the 3×3 kernel −w around a centre of d + 8w, divided by d (w = weight, default 1; d = divider, default 24), i.e. v + 8w/d × (v − mean of the 8 neighbours), so a step edge's delta grows by 1 + 6w/d; mode `auto` (the default, also when only weight/divider are given) applies it only when the pipeline downscaled (shrink-on-load, a scaled load or a resize below 1) and `sharpen` is not set, `always` always, `none` never. The classic parameters (imgix `usm`/`usmrad`, ImageKit `e-usm`: `Sigma`, `Amount`) are a true unsharp mask v + amount × (v − gaussblur(v, σ)) and default to `always` (σ 1 when unset; amount 0 is off). Blur areas (`BlurAreas`): rectangles relative to the source after EXIF orientation and before `rotate`/`flip` (imgproxy docs), mapped by the planner through pre-crop, resize, orientation, rotate, flip and the result crop onto the frame (clipped; areas left outside are dropped; a smart crop's runtime position is not known to the planner), each blurred from the unfiltered frame with a 3σ+1 margin and inserted back, so pixels outside the areas are unchanged. Progressive blur (`ProgressiveBlur`): the frame blended with a copy blurred at σ through the gradient ramp of `gradient` (same directions and angles, 0 at `start`, full blur at `stop`). imgproxy's Pro filters are closed source; this follows its documented semantics. Detection blur/draw come with M3. Then **colour adjustments** (`ColourAdjustStep`, WP-59, per frame, before the canvas grows so backgrounds keep their exact colour), in this order on 8-bit sRGB: tone curves (brightness `v+b`, contrast `(v−128)·k+128`, gamma `255·(v/255)^(1/g)`, exposure ×e in linear light, red/green/blue ×m) as one lookup table; saturation and hue as CSS `saturate()`/`hue-rotate()` matrices (Rec. 709 luma), grayscale (luma matrix) and sepia (weserv matrix) merged into one `vips_recomb`; tint (sharp: CIELAB a\*b\* of the colour, weighted to the midtones), monochrome (the colour's a\*b\* at full strength at its own lightness, fading to neutral at black and white; b3b3b3 is plain greyscale) and duotone (CIELAB ramp shadow→highlight) as palettes indexed by the luma and mixed by intensity; negate; colorize (a table, or composited "over" when the image has alpha and `keep_alpha` is off); gradient (a `vips_xyz` ramp, CSS angles: 0 up, 90 right, 180 down, composited over); then `Adjust.Opacity` on the alpha band. The alpha band is never touched by the colour maths. imgproxy's colour options are Pro-only and closed source, so their maths follows the documented semantics and the other dialects' public definitions; vibrance and equalize remain unplanned. Then **colour adjustments** (`ColourAdjustStep`, WP-59, per frame, before the canvas grows so backgrounds keep their exact colour), in this order on 8-bit sRGB: tone curves (brightness `v+b`, contrast `(v−128)·k+128`, gamma `255·(v/255)^(1/g)`, exposure ×e in linear light, red/green/blue ×m) as one lookup table; saturation and hue as CSS `saturate()`/`hue-rotate()` matrices (Rec. 709 luma), grayscale (luma matrix) and sepia (weserv matrix) merged into one `vips_recomb`; tint (sharp: CIELAB a\*b\* of the colour, weighted to the midtones), monochrome (the colour's a\*b\* at full strength at its own lightness, fading to neutral at black and white; b3b3b3 is plain greyscale) and duotone (CIELAB ramp shadow→highlight) as palettes indexed by the luma and mixed by intensity; negate; colorize (a table, or composited "over" when the image has alpha and `keep_alpha` is off); gradient (a `vips_xyz` ramp, CSS angles: 0 up, 90 right, 180 down, composited over); then `Adjust.Opacity` on the alpha band. The alpha band is never touched by the colour maths. imgproxy's colour options are Pro-only and closed source, so their maths follows the documented semantics and the other dialects' public definitions; vibrance and equalize remain unplanned.
+8. **Filters** (`FilterStep`, per frame, in sRGB, premultiplied when there is alpha): blur, sharpen, pixelate (one pass, as imgproxy), with the Pro filters of WP-61 in between and after, in this order: blur, sharpen, **unsharp masking**, pixelate, **blur areas**, **progressive blur**. Unsharp masking (`Unsharp`): imgproxy's `unsharp_masking` is the 3×3 kernel −w around a centre of d + 8w, divided by d (w = weight, default 1; d = divider, default 24), i.e. v + 8w/d × (v − mean of the 8 neighbours), so a step edge's delta grows by 1 + 6w/d; mode `auto` (the default, also when only weight/divider are given) applies it only when the pipeline downscaled (shrink-on-load, a scaled load or a resize below 1) and `sharpen` is not set, `always` always, `none` never. The classic parameters (imgix `usm`/`usmrad`, ImageKit `e-usm`: `Sigma`, `Amount`) are a true unsharp mask v + amount × (v − gaussblur(v, σ)) and default to `always` (σ 1 when unset; amount 0 is off). Blur areas (`BlurAreas`): rectangles relative to the source after EXIF orientation and before `rotate`/`flip` (imgproxy docs), mapped by the planner through pre-crop, resize, orientation, rotate, flip and the result crop onto the frame (clipped; areas left outside are dropped; a smart crop's runtime position is not known to the planner), each blurred from the unfiltered frame with a 3σ+1 margin and inserted back, so pixels outside the areas are unchanged. Progressive blur (`ProgressiveBlur`): the frame blended with a copy blurred at σ through the gradient ramp of `gradient` (same directions and angles, 0 at `start`, full blur at `stop`). imgproxy's Pro filters are closed source; this follows its documented semantics. Last, the **detection blur** (`FilterStep.Detections`, WP-73): each detection box mapped like the blur areas, blurred like them or pixelated inside the box (blocks aligned on its corner). After the colour adjustments, `DrawDetectionsStep` outlines each box in its class colour with a `class NN%` label (§8.5). Then **colour adjustments** (`ColourAdjustStep`, WP-59, per frame, before the canvas grows so backgrounds keep their exact colour), in this order on 8-bit sRGB: tone curves (brightness `v+b`, contrast `(v−128)·k+128`, gamma `255·(v/255)^(1/g)`, exposure ×e in linear light, red/green/blue ×m) as one lookup table; saturation and hue as CSS `saturate()`/`hue-rotate()` matrices (Rec. 709 luma), grayscale (luma matrix) and sepia (weserv matrix) merged into one `vips_recomb`; tint (sharp: CIELAB a\*b\* of the colour, weighted to the midtones), monochrome (the colour's a\*b\* at full strength at its own lightness, fading to neutral at black and white; b3b3b3 is plain greyscale) and duotone (CIELAB ramp shadow→highlight) as palettes indexed by the luma and mixed by intensity; negate; colorize (a table, or composited "over" when the image has alpha and `keep_alpha` is off); gradient (a `vips_xyz` ramp, CSS angles: 0 up, 90 right, 180 down, composited over); then `Adjust.Opacity` on the alpha band. The alpha band is never touched by the colour maths. imgproxy's colour options are Pro-only and closed source, so their maths follows the documented semantics and the other dialects' public definitions; vibrance and equalize remain unplanned. Then **colour adjustments** (`ColourAdjustStep`, WP-59, per frame, before the canvas grows so backgrounds keep their exact colour), in this order on 8-bit sRGB: tone curves (brightness `v+b`, contrast `(v−128)·k+128`, gamma `255·(v/255)^(1/g)`, exposure ×e in linear light, red/green/blue ×m) as one lookup table; saturation and hue as CSS `saturate()`/`hue-rotate()` matrices (Rec. 709 luma), grayscale (luma matrix) and sepia (weserv matrix) merged into one `vips_recomb`; tint (sharp: CIELAB a\*b\* of the colour, weighted to the midtones), monochrome (the colour's a\*b\* at full strength at its own lightness, fading to neutral at black and white; b3b3b3 is plain greyscale) and duotone (CIELAB ramp shadow→highlight) as palettes indexed by the luma and mixed by intensity; negate; colorize (a table, or composited "over" when the image has alpha and `keep_alpha` is off); gradient (a `vips_xyz` ramp, CSS angles: 0 up, 90 right, 180 down, composited over); then `Adjust.Opacity` on the alpha band. The alpha band is never touched by the colour maths. imgproxy's colour options are Pro-only and closed source, so their maths follows the documented semantics and the other dialects' public definitions; vibrance and equalize remain unplanned.
 9. **Geometry fill** (WP-60 extras in `plan/geometry_extras.go`, `exec/geometry_extras.go`, per frame): **arbitrary rotate** (`RotateAnyStep`, imgix `rot`, ImageKit `rt`, Cloudinary `a_`, wsrv `ro`) with `vips_similarity` (bilinear, premultiplied when the image has alpha): the canvas grows to the rotated bounding box (`plan.RotatedSize` reproduces libvips' rounding, 100×50 at 45° is 106×106) and the corners are filled with the background, or transparent without one; it runs after the colour adjustments, so the fill keeps its exact colour, and before extend and padding, which then grow the rotated canvas. Then extend, extend-aspect-ratio, padding (scaled by DPR). Then the canvas is shaped: **mask** (`MaskStep`, wsrv `mask`/`mtrim`/`mbg`, imgix `mask=ellipse`; wsrv's shapes and fitting, the alpha multiplied by the shape, the background laid over the outside, `mtrim` crops to the shape's box), **border** (`BorderStep`, per-side widths × DPR, `vips_embed` with the colour, alpha included), **radius** (`RadiusStep`, per-corner radii × DPR scaled down together like CSS when they do not fit, `max` = an ellipse, a circle when square, like Cloudinary `r_max`); border before radius, so the corners round the border too. Mask and radius outlines are flattened into polygons (curve segments of about one pixel) and rasterised in Go (`exec/raster.go`) into an 8-bit alpha mask by area coverage (64 sub-scanlines per row, exact horizontal span coverage: edges anti-aliased at any DPR, interior exactly opaque; libvips' `vips_draw_*` do not anti-alias), handed to libvips with `vips_image_new_from_memory` and applied with `bandjoin` (no alpha yet) or a `dest-in` composite; the mask is cached per frame size, so an animation rasterises it once. The result gains alpha; step 10 flattens it onto the background (white by default) for formats without alpha or when `background` is set.
 10. **Encoder size limits** (WebP 16383, AVIF/HEIC 16384, GIF, ICO 256), then **flatten** when the output lacks alpha or a background is set. A translucent background (`background_alpha` < 1) is composited under the image and keeps the alpha band, in formats that have one.
 11. **Watermarks** in order (`After`: once on the joined strip for animations).
@@ -481,11 +487,13 @@ type Result struct {
     Frames        int
     DPR           float64
     Quality       int
-    Skipped       []string    // options without an implementation yet (M3 watermark sources/text, chessboard, plan.Unplanned)
+    Skipped       []string    // options not applied (a watermark without its image, blank text, plan.Unplanned)
 }
 ```
 
 Run plans for `Target.Format` (not the source format: alpha, flatten, animation and encoder size limits depend on it), then, in one `vips.Run` with one `Arena`: load (shrink/scale/density/page/frames/HEIF thumbnail; EXIF orientation tag dropped, page-height dropped from single images), `plan.Continue` on a loaded size that differs from the prediction, on the HEIF thumbnail (reloading the full image when the planner declines it) and after trim; steps with imgproxy's semantics (ICC import unless the profile is sRGB IEC61966-2.1, then 8-bit sRGB or grey; premultiplied resize; crops and extends placed with `Rect`; smart crop on a memory copy; extend and padding embed on a transparent canvas that `FlattenStep` fills). Animations: every frame is extracted by page-height, runs `Steps` alone, and the frames are joined with `vips.Arrayjoin`; page-height, `n-pages`, delays (40 ms when absent) and loop count are set on the strip before `After`. Chained pipelines are replanned with `plan.Chain` on the observed previous result and run on it lazily, or on its `CopyMemory` when the plan sets `Materialize`; the source ICC profile is imported once (a chained pipeline sees sRGB pixels); errors name the pipeline index; `TestChainedGolden`, `TestChainedEqualsSequential` (a chain equals its pipelines run as separate requests), `TestChainedObservedSize`, `TestChainedAnimationTiming`, `TestChainedICCOnce` and `TestChainedNoLeak` cover WP-58. The ICC import goes through the profile's own PCS (XYZ or Lab, as imgproxy). The output colour step drops the source ICC profile after an import (the pixels are sRGB; re-exporting to the source profile is not done) and, with `strip_color_profile=false`, tags the result with libvips' built-in sRGB (sGrey) profile (`vips.ProfileLoad`); a profile that was not imported (sRGB IEC61966-2.1) is kept or dropped by the encoder per the flag. A `page` of a multi-page still whose size differs from the header's (first page) is planned again from its loaded size (`server.SourceMeta.Pages` carries the page count to the planner). `pages` on a multi-page still loads the pages stacked vertically (left-aligned) as one image; the loaded strip replans the same way (`SourceMeta.Selection`). For a vector source (PDF) the page or stack is measured first with a header-only load, so the render scale is chosen for its real size; PDF pages render at the probe density (`SourceMeta.Density`, `XI_FORMATS_PDF_DPI`) times the plan's scale, onto opaque white unless the request asks for transparency (FORMATS.md §1.2). WP-62: `pages` on a raster multi-page still loads the pages one at a time and joins them (tiffload refuses a strip of pages that differ in size), with an alpha band when widths differ so the gaps are transparent and flattened like any alpha; frames of an animation that is not kept stack the same way (`TestPagesFrames`, `plan.TestBuildPagesMatrix`). WP-64: `style` injects a `<style>` into the sanitised SVG and sanitises the document again (`exec/style.go`, `svg.Options` in `exec.Config`); `enforce_thumbnail` loads the HEIF/AVIF embedded thumbnail whatever its size (planner) or, for JPEG, the Exif thumbnail when planning on it gives the same result without enlarging (`exec/thumbnail.go`, `codec.FindEXIFThumbnail`); `dpi` is set by the encoder (`encode/dpi.go`). WP-50/51 goldens: `TestGoldenPDFPSD`, `TestPDFCrisp`, `TestPDFTransparency`, `TestPSDCompositeStrategies`. WP-26b/29 (trim incl. bottom-right colour and equal cuts, extend, extend_aspect_ratio, per-frame padding, `disable_animation`, `max_animation_frames`, delays and loop read back, ICC, orientation reset, the metadata matrix through `app` `Process`) are covered by `TestGoldenFill`, `TestTrimBottomRight`, `TestAnimationTiming`, `TestMaxAnimationFrames`, `TestICCToSRGB`, `TestOrientationReset` and `internal/app` `TestProcessMetadata`. `testdata/golden/exec` holds the goldens; `TestAgainstImgproxy` and `TestAgainstImgproxyFill` (`-tags integration`, `XI_IMGPROXY_URL`, imgproxy with `IMGPROXY_MAX_ANIMATION_FRAMES` > 1) compare every case with darthsim/imgproxy.
+
+Video sources (WP-74, `exec/video.go`): `SourceMeta.IsVideo` sources are loaded by `codec.VideoFrame` (FFmpeg, `internal/video/ffmpeg`) with the root pipeline's `Video.Second`/`Keyframes` or the configured defaults (`exec.Config.Video`), at the plan's `LoadStep.Scale` size; the frame (8-bit sRGB in a `vips.Buffer`, wrapped by `vips.NewFromBuffer` without a copy) then runs the plan like a still, its display matrix applied as the EXIF orientation. `Result.VideoFrame` reports the frame (`X-Xi-Video-Frame` with debug headers).
 
 Watermarks (WP-28, `exec/watermark.go`): `app` fetches `XI_PROCESSING_WATERMARK_SOURCE` once at startup through the source registry and fetcher (SVG sanitised), and `exec.NewWatermark` decodes it (first frame, EXIF orientation applied, sRGB/grey working space) into a `vips.Shared` memory image kept for the process lifetime; any failure stops startup. Per request, `plan.WatermarkStep` (After, on the whole strip) reproduces imgproxy's `prepareWatermark`/`applyWatermark`: fit into `Scale` × one frame (enlarging allowed, premultiplied resize), place by gravity with DPR-scaled or fractional offsets and overflow allowed (`WatermarkGeometry.Place`), or tile (`re`) with the offsets as spacing and a centred odd grid; alpha × request opacity × `XI_PROCESSING_WATERMARK_OPACITY`; composite over, back to the base band format, alpha dropped when the base had none. Animations get one frame-sized overlay replicated down the strip (clipped per frame) and a single composite. Watermarks with their own source or text and chessboard tiling (M3) are skipped and reported in `Skipped`.
 
@@ -503,9 +511,10 @@ API (WP-30): `encode.New(Config)` → `(*Encoder).Encode(ctx, img, Target) (*Res
 |---|---|
 | Lifecycle | `Init(*Config)` (reference-counted, see the lifecycle invariant below; concurrency 1, cache 0, loader + saver allowlists after `vips_block_untrusted_set`, `HEICEncode`), `Shutdown`, `Run(ctx, fn)`, `ReadMemStats` (mem, highwater, allocs, files), `LiveObjects`, `SetLeakCheck`, `KillOnCancel(ctx, img) (stop)` |
 | Bytes | `Buffer` (`NewBuffer(n)`, `NewBufferFromReader`, refcounted C memory, implements `fetch.Buffer`), `Blob` (encoded output, zero-copy, refcounted) |
-| Decode | `Probe(ctx, buf) Header` (header only, sequential, never decodes), `Load(ctx, buf, *LoadOptions)` (shrink, scale, density, page, n, access, fail_on, autorotate, heif thumbnail, max pixels/frames → `LimitExceeded`), `Thumbnail(ctx, buf, *ThumbnailOptions)`, `Black`, `NewFromMemory` (Go decoders → vips) |
+| Decode | `Probe(ctx, buf) Header` (header only, sequential, never decodes), `Load(ctx, buf, *LoadOptions)` (shrink, scale, density, page, n, access, fail_on, autorotate, heif thumbnail, max pixels/frames → `LimitExceeded`), `Thumbnail(ctx, buf, *ThumbnailOptions)`, `Black`, `NewFromMemory` (Go decoders → vips, copied), `NewFromBuffer` (C-owned pixels in a `Buffer`, e.g. a video frame, wrapped without a copy; the image references the blob until it closes) |
 | Process | `(*Image)` methods returning new lazy images: `Resize`, `ExtractArea`, `Crop`, `Embed`, `Gravity`, `Flip`, `Rot`, `Autorot`, `SmartCrop`, `Flatten`, `Premultiply`, `Unpremultiply`, `Colourspace`, `ICCImport/Export/Transform`, package func `ProfileLoad` (built-in or file ICC profile), `Cast`, `Copy`, `Gaussblur`, `Sharpen`, `Shrink`, `Composite2`, `Replicate`, `Join`, `Linear`, `Invert`, `BandjoinConst`, `ExtractBand`, `AddAlpha`, `FindTrim`/`Trim`, `Similarity`, `Affine`; package funcs `Arrayjoin`, `Bandjoin`; metadata `Int/Ints/Blob/Text` getters, `Fields` (every field name; EXIF tags are `exif-ifdN-Tag` fields the savers rebuild EXIF from) and copy-on-write `SetInt/SetInts/SetBlob/RemoveMetadata/SetOrientation/RemoveOrientation/SetPageHeight`; `Arena` closes a request's images |
 | Shared | `Share(ctx, img)` renders a metadata-free root memory image many Runs read at once (the watermark); `(*Shared).Image()` hands a Run its own handle; `Close` after the last Run |
+| Pixels | `(*Image).WritePixels(ctx)` computes the image into a C-owned `Blob` (band-interleaved); `(*Image).ToRGB8(ctx)` renders 8-bit sRGB with three bands (alpha flattened onto white) for detection (WP-71) |
 | Encode | `(*Image).CopyMemory(ctx)` renders once before repeated saves (max_bytes); `(*Image).Save(ctx, Format, *SaveOptions)` for JPEG, PNG, WebP, GIF, AVIF, HEIF (HEVC only with `HEICEncode`), JXL, TIFF; `DefaultSaveOptions()` mirrors the libvips defaults; `Keep` maps to `VipsForeignKeep` |
 
 Rules the executor relies on:
@@ -515,6 +524,69 @@ Rules the executor relies on:
 - Error kinds come from the failing operation (§8.2). Lazy decode failures are attributed through a libvips `invalidate` emission hook that marks the source buffer, so a truncated JPEG found during `Save` is `Corrupt`, not `Internal`.
 - `Image` is not goroutine-safe and lives inside one `Run`. `Buffer` and `Blob` reference counts are safe for concurrent use.
 - **Lifecycle invariant.** libvips is process-global and `vips_shutdown` is final (it frees the operation cache table, which is created once by a `GOnce`, and stops the thread pool; a later `vips_init` is a no-op). `Init`/`Shutdown` are therefore reference-counted in the C shim: every `Init` takes a reference (serialised; only the first applies its settings, and a nested `Init` with different settings fails, because re-applying the loader allowlist briefly blocks every loader under running jobs), every `Shutdown` releases one, `Run` registers itself for its whole duration and fails without a reference, and the `Shutdown` that releases the last reference refuses new `Run`s, waits for the running ones and then calls `vips_shutdown` exactly once; `Init` and `Run` fail afterwards. Several `app.Run` instances in one process (parallel tests) nest safely; test packages that start the service repeatedly hold a reference in `TestMain`. Every image or operation call happens inside `Run`; never call `Shutdown` inside `Run`. (Before this rule, one instance's shutdown tore libvips down under another's jobs: `g_hash_table_lookup: assertion 'hash_table != NULL'` in `xi_jpegsave`/`xi_probe`, SIGSEGV in `vips_sink_disc`.)
+
+### 8.5 Detection (WP-71)
+
+`internal/detect` finds faces and objects for face/object gravity (WP-72) and the detection
+filters and `/info` options (WP-73). It needs the `full` image; on slim it reports
+`detect.ErrUnavailable` (kind `Unsupported`, 422) and the service runs without it.
+
+- **Runtime.** `internal/detect/ort` loads ONNX Runtime (MIT) at startup with purego `dlopen`
+  of `XI_DETECT_LIBRARY` and the C API function table (`OrtGetApiBase()->GetApi(17)`), not cgo:
+  `internal/vips` stays the only cgo package ([ADR 0010](adr/0010-onnx-runtime-via-purego.md)).
+  `internal/app` calls `detect.New` explicitly (`buildDetector`); nothing is loaded at init.
+  `XI_DETECT_ENABLED=auto` runs without detection when the library or the models are missing,
+  `true` fails startup, `false` loads nothing. A nil `*detect.Detector` is valid and reports
+  `ErrUnavailable`, so consumers need no slim special case.
+- **Models** (`XI_DETECT_MODELS_DIR`, default `/usr/share/xtandard/models`, shipped by WP-70):
+  YuNet `face_detection_yunet_2023mar.onnx` (MIT) and YOLOX-s `yolox_s.onnx` (Apache-2.0, COCO
+  80 classes), both fixed at a 640×640 BGR float32 NCHW input with raw 0–255 values. Sessions
+  are created once (intra-op threads `XI_DETECT_THREADS`, default 1 like libvips; no CPU arena,
+  so memory returns after each run) and shared: ORT sessions are safe for concurrent `Run`,
+  which a weighted semaphore (`XI_DETECT_WORKERS`) bounds. `New` checks each model's input and
+  output shapes, so a wrong file fails startup; `XI_DETECT_VERIFY_CHECKSUMS` checks it against
+  the directory's `SHA256SUMS`.
+- **Pre-processing.** Inside the caller's `vips.Run`: first page of multi-page images; letterbox
+  (scale to fit 640×640, up or down, top-left, as YOLOX's `preproc`; dynamic-size models are
+  scaled down to `XI_DETECT_MAX_INPUT` and padded to a multiple of 32) with `vips.Resize`
+  (linear); `vips.Image.ToRGB8` renders 8-bit sRGB (alpha flattened onto white, grey and 16-bit
+  converted) into a C-owned `Blob`; Go packs it into a `vips.Buffer` as planar BGR float32,
+  padding 114 (YOLOX) or 0 (YuNet, as OpenCV pads it). ORT reads that C memory in place.
+- **Post-processing** in pure Go. YuNet (OpenCV `FaceDetectorYN`): per stride 8/16/32 the
+  `cls/obj/bbox/kps` outputs give score `sqrt(cls·obj)`, centre `(col+dx, row+dy)·stride`, size
+  `exp(dw, dh)·stride` and five landmarks; threshold 0.6, NMS 0.3. YOLOX (official
+  `demo/ONNXRuntime/onnx_inference.py`): grids over strides 8/16/32, `xy·stride`,
+  `exp(wh)·stride`, score `obj·cls`, class-aware NMS 0.45, threshold 0.3. At most 100 detections
+  per call.
+- **API.** `Detector.Faces(ctx, img)` and `Detector.Objects(ctx, img, classes)` return
+  `[]Detection{Box image.Rectangle, Score, Class, Landmarks}` best first, in the pixel space of
+  `img`. The pipeline passes the image upright (EXIF orientation applied at load), so the boxes
+  line up with the crop geometry. Unknown class names are `InvalidURL`. `detect.NewInfo` builds
+  the `/info` JSON (`{"objects":[{"class_id","class_name","confidence","left","top","width","height","landmarks"}]}`,
+  coordinates relative to the image, imgproxy Pro's `detect_objects` shape) for WP-73.
+- **Observability.** `xi_detect_duration_seconds{model="face"|"object"}`; a debug log line per
+  call; the startup log names the ONNX Runtime version and each model's path, input size and
+  checksum status.
+- **In the pipeline (WP-72/73).** Detection is not a plan step: the plan depends on it
+  (`crop_objects` changes the pre-crop and so the shrink-on-load). `plan.NeedsDetection(req)`
+  says which models the first pipeline (or, for `/info`, `detect_objects` and a detection-placed
+  `crop`) needs; smart gravity asks for faces as an option (`XI_DETECT_SMART_FACES`). `app`
+  (`detections.go`) runs them before planning, inside the request's worker slot, on an upright
+  thumbnail of the source (`codec.SampleImage`, 1024 px, shrink-on-load, copied to memory so both
+  models read it) and hands `plan.SourceMeta.Detections` to the executor (boxes as fractions of the
+  image as displayed, first page) and `server.SourceInfo.Detections` to `/info`. A required model
+  the deployment lacks is `Unsupported` (422, public message "face detection is not
+  available"); optional smart faces never fail a request. Results are cached per model and source
+  in a bounded LRU (`XI_DETECT_CACHE_SIZE` entries, default 512) keyed by the SHA-256 of the source
+  bytes (an origin that changes behind the same URL is detected again), shared by processing and
+  `/info`. The planner (`plan/detect.go`) turns face, object and weighted-object gravity (and smart
+  gravity with faces) into a `GravityObject` placement: the point, the anchor in the crop and the
+  offsets of `objects_position`, mapped through EXIF orientation, rotate/flip and a pre-crop;
+  `crop_objects` and face pads become a pre-crop; blur/draw boxes are mapped like `blur_areas` into
+  `FilterStep.Detections` and `DrawDetectionsStep`. Without detections (none found, or a chained
+  pipeline: detections describe the source) the gravities are the attention smart crop and the
+  filters do nothing. Class names are validated in `transform` (`ResolveClass`), so an unknown class
+  is 400 before the fetch.
 
 ## 9. Caching
 
@@ -602,16 +674,19 @@ requests ─► [http.Server, all timeouts set; HTTP/2 MaxConcurrentStreams size
                 ├─ queue.TryAcquire(1)      capacity = workers + XI_PROCESSING_QUEUE_SIZE → fail fast: 429 + Retry-After
                 ├─ workers.Acquire(ctx, 1)  capacity = XI_PROCESSING_WORKERS (default GOMAXPROCS);
                 │                           waits at most XI_PROCESSING_QUEUE_TIMEOUT (5 s) → 503 + Retry-After
-                └─ memory.Acquire(ctx, est) optional weighted semaphore, off unless XI_PROCESSING_MEMORY_BUDGET is set
+          ─► probe, plan
+          ─► limiter.Reserve(ctx, plan.Cost.EstimatedBytes)   (exec.Config.Admit, before any decode)
+                └─ memory.Acquire(ctx, est) optional weighted semaphore, off unless XI_PROCESSING_MEMORY_BUDGET is set;
+                                            waits at most XI_PROCESSING_QUEUE_TIMEOUT → 503 + Retry-After
           ─► one locked OS thread per job; vips_concurrency_set(1)
 ```
 
 - Both semaphores are `golang.org/x/sync/semaphore`; no channel worker pools. GOMAXPROCS follows the container CPU limit natively (Go ≥ 1.25), so workers scale with `resources.limits.cpu`. imgproxy defaults to 2× cores; we start at 1× and change it only with benchmark evidence.
 - `XI_VIPS_CONCURRENCY` exists (default 1) for a latency-tier experiment (fewer workers, more threads per image); changing it requires benchmarks per go-standards §8.
-- Optional memory budget: when set, each job acquires its planner estimate of peak decoded bytes (shrunk-on-load width × height × bands × bytes-per-sample × frames, ×2 for random-access steps). A single job above the whole budget is rejected with 422 instead of deadlocking.
+- Optional memory budget: when set, each job acquires its planner estimate of peak decoded bytes (shrunk-on-load width × height × bands × bytes-per-sample × frames, ×2 for random-access steps, chained pipelines included). The estimate needs the probed header, so admission is two-phase: `limiter.Acquire(ctx, 0)` takes the queue and worker permits before the probe, and the executor charges the plan's estimate with `limiter.Reserve` once the plan exists and before decoding (a job waiting for memory already holds a worker but no memory, so the wait cannot deadlock). A single job above the whole budget is rejected with 422 (by the planner, which checks the same budget per plan, or by `Reserve`).
 - Metrics: `xi_queue_depth`, `xi_semaphore_wait_seconds`, `xi_workers_busy`, `xi_overload_total{reason}`.
 - libvips operation cache disabled (`vips_cache_set_max(0)`, `vips_cache_set_max_mem(0)`): we cache results, not operations.
-- Memory: C memory is bounded by header-checked input limits × worker count. jemalloc via `LD_PRELOAD` (`MALLOC_ARENA_MAX=2` as glibc fallback; without jemalloc, periodic `debug.FreeOSMemory()` + `malloc_trim(0)`). `GOMEMLIMIT` set at startup to 30% of cgroup `memory.max` (`XI_PROCESSING_GO_MEMORY_FRACTION`), never to the full limit. `vips_tracked_get_mem`/`_highwater` exported as gauges.
+- Memory: C memory is bounded by header-checked input limits × worker count. jemalloc via `LD_PRELOAD` limited to two arenas (`MALLOC_CONF=narenas:2`; its default of 4 per CPU more than doubled peak RSS under load), `MALLOC_ARENA_MAX=2` as glibc fallback; without jemalloc, periodic `debug.FreeOSMemory()` + `malloc_trim(0)`). `GOMEMLIMIT` set at startup to 30% of cgroup `memory.max` (`XI_PROCESSING_GO_MEMORY_FRACTION`), never to the full limit. `vips_tracked_get_mem`/`_highwater` exported as gauges.
 - `/readyz` turns 503 when draining; optional `XI_SERVER_READY_QUEUE_THRESHOLD` makes it 503 when the queue is more than N% full (off by default to avoid flapping).
 - Graceful shutdown via `signal.NotifyContext`: SIGTERM → readyz 503 → wait `XI_SERVER_SHUTDOWN_DELAY` (5 s) → `srv.Shutdown` drains for up to `XI_SERVER_SHUTDOWN_TIMEOUT` (30 s) → `vips_shutdown()`.
 - A C crash (SIGSEGV) kills the process and the orchestrator restarts it; the recover middleware only catches Go panics (→ 500, counted).
@@ -645,9 +720,10 @@ When a fallback image is configured (global or per request), a failure after the
 ## 13. Observability
 
 - Logs: `log/slog` JSON to stdout; one access line per request (`request_id`, dialect, source name, status, bytes, stage timings, cache status, output format, dimensions). Source URLs are logged with query strings stripped; signatures never logged.
-- Metrics (`/metrics` on the admin listener `XI_ADMIN_ADDR`, default `127.0.0.1:9090`; set `:9090` to scrape from outside the pod), client_golang on a private registry: `xi_requests_total{dialect,status,format}`, `xi_request_duration_seconds{dialect,status,format}`, `xi_requests_in_flight`, `xi_stage_duration_seconds{stage}`, `xi_panics_total`, `xi_source_fetch_duration_seconds{source,type}`, `xi_source_bytes_total{type}`, `xi_fetch_coalesced_total`, `xi_cache_requests_total{store,result}`, `xi_cache_evictions_total{store}`, `xi_cache_bytes{store}`, `xi_cache_entries{store}`, `xi_cache_writes_dropped_total`, `xi_queue_depth`, `xi_workers_busy`, `xi_semaphore_wait_seconds`, `xi_overload_total{reason}`, `xi_raw_decodes_total{path}`, `xi_vips_mem_bytes`, `xi_vips_mem_highwater_bytes`, `xi_vips_allocs`, `xi_build_info{version,commit,goversion}`, Go runtime and process collectors. Implemented in `internal/obs/metrics`; the limiter reports through `metrics.LimiterObserver` and vips through `metrics.VipsCollector`.
+- Metrics (`/metrics` on the admin listener `XI_ADMIN_ADDR`, default `127.0.0.1:9090`; set `:9090` to scrape from outside the pod), client_golang on a private registry: `xi_requests_total{dialect,status,format}`, `xi_request_duration_seconds{dialect,status,format}`, `xi_requests_in_flight`, `xi_stage_duration_seconds{stage}`, `xi_panics_total`, `xi_source_fetch_duration_seconds{source,type}`, `xi_source_bytes_total{type}`, `xi_fetch_coalesced_total`, `xi_cache_requests_total{store,result}`, `xi_cache_evictions_total{store}`, `xi_cache_bytes{store}`, `xi_cache_entries{store}`, `xi_cache_writes_dropped_total`, `xi_queue_depth`, `xi_workers_busy`, `xi_semaphore_wait_seconds`, `xi_overload_total{reason}`, `xi_raw_decodes_total{path}`, `xi_detect_duration_seconds{model}`, `xi_vips_mem_bytes`, `xi_vips_mem_highwater_bytes`, `xi_vips_allocs`, `xi_build_info{version,commit,goversion}`, Go runtime and process collectors. Implemented in `internal/obs/metrics`; the limiter reports through `metrics.LimiterObserver` and vips through `metrics.VipsCollector`.
 - Tracing: OpenTelemetry OTLP when `OTEL_EXPORTER_OTLP_ENDPOINT` (or `XI_OTEL_ENABLED=true`) is set, otherwise a no-op provider and no middleware; one span per stage, W3C propagation, outbound propagation to sources off by default.
 - `/healthz` (liveness, no vips calls), `/readyz` (vips initialised, sources' static config valid, not draining). pprof (incl. `goroutineleak`) on the admin listener only when `XI_ADMIN_PPROF=true`.
+- Listeners. **Public** (`XI_SERVER_ADDR`): image and `/info` URLs, `/healthz`, `/readyz`, and the playground only with `XI_PLAYGROUND_PUBLIC=true`. **Admin** (`XI_ADMIN_ADDR`, default `127.0.0.1:9090`, empty disables it): `/metrics`, `/healthz`, `/readyz`, `/config.schema.json`, `/openapi.json`, `/docs` (`XI_ADMIN_DOCS`), pprof (`XI_ADMIN_PPROF`) and the playground (`XI_PLAYGROUND_ENABLED`, default off, at `XI_PLAYGROUND_PATH`, default `/_playground`). The playground signs URLs with the server's keys (`api/sign`), so the listener that serves it is a signing oracle for whoever reaches it; its `api/render` runs the public handler in-process, with every public-listener check ([CONFIG.md](CONFIG.md#playground)).
 
 ## 14. Docker and base image build
 
@@ -666,26 +742,26 @@ compose.smoke.yml              app + static origin, driven by scripts/smoke.sh (
 compose.acceptance.yml         app (env-only config) + app-tiny + nginx origin + RustFS, driven by scripts/acceptance.sh (WP-39, M1 release gate; suite in test/acceptance)
 ```
 
-**Base image** `ghcr.io/xantiagoma/xtandard-image-base:<vips-version>-r<N>-<flavor>` (flavor `slim` | `full`; the `runtime` target) plus `…-<flavor>-builder` (the `builder` target: Go 1.27.1, golangci-lint, go-task, headers and pkg-config files; used for CI, `task docker:test` and the app build stage), built weekly and on `docker/base/**` change, amd64 + arm64 on native runners, cosign-signed, SBOM (syft) attached. See `docker/base/README.md`.
+**Base image** `ghcr.io/xantiagoma/xtandard-image-base:<vips-version>-r<N>-<flavor>` (flavor `slim` | `full`; the `runtime` target) plus `…-<flavor>-builder` (the `builder` target: Go 1.27.1, golangci-lint, go-task, headers and pkg-config files; used for CI, `task docker:test` and the app build stage), built weekly and on `docker/base/**` change, amd64 + arm64 on native runners, cosign-signed, SBOM (syft) attached. See `docker/base/README.md`. Status: `slim` (r2) is published; `full` (r3, WP-70) is in review and so far built and verified locally on linux/arm64 only, because the GitHub workflows are disabled; a third flavour `gpl` (WP-70b: `full` plus FFmpeg `--enable-gpl` with libx264/x265 and its own GPL notice) is in progress and is the only image allowed to contain GPL code.
 
 Contents of `/opt/xtandard`:
 
 | Path | Contents |
 |---|---|
-| `lib/` | (slim, M1) libvips 8.18.x, glib/gobject/gio (minimal), expat, libjpeg-turbo (+ optional mozjpeg), libspng, libpng, zlib-ng, cgif, quantizr, libwebp, libheif + libde265 + dav1d + aom + kvazaar, libjxl + highway + brotli, libtiff, lcms2, libexif, librsvg + cairo + pango + harfbuzz + freetype + fontconfig + fribidi, OpenJPEG, libultrahdr, jemalloc; added in M2 (WP-66): OpenEXR/Imath, LibRaw 0.22.x, PDFium (prebuilt, BSD-3-Clause), ImageMagick 7 (PSD coder only, no delegates; loaded through the `vips-magick.so` module). `full` adds FFmpeg 8 LGPL (`libavformat`, `libavcodec`, `libavutil`, `libswscale`; decoders h264/hevc/vp8/vp9/av1 via dav1d, demuxers mp4/mov/matroska/webm/gif; encoders only libvpx-vp9 and libaom-av1 for GIF→video, see open questions) and ONNX Runtime 1.30 CPU. |
+| `lib/` | (slim, M1) libvips 8.18.x, glib/gobject/gio (minimal), expat, libjpeg-turbo (+ optional mozjpeg), libspng, libpng, zlib-ng, cgif, quantizr, libwebp, libheif + libde265 + dav1d + aom + kvazaar, libjxl + highway + brotli, libtiff, lcms2, libexif, librsvg + cairo + pango + harfbuzz + freetype + fontconfig + fribidi, OpenJPEG, libultrahdr, jemalloc; added in M2 (WP-66): OpenEXR/Imath, LibRaw 0.22.x, PDFium (prebuilt, BSD-3-Clause), ImageMagick 7 (PSD coder only, no delegates; loaded through the `vips-magick.so` module). `full` (WP-70, revision r3) adds FFmpeg 8.1 LGPL-2.1+ built with `--disable-gpl --disable-nonfree` (`libavformat`, `libavcodec`, `libavutil`, `libswscale`, `libavfilter`, plus the `ffmpeg`/`ffprobe` CLIs; demuxers mov/mp4, matroska/webm, avi, gif, ivf; decoders h264/hevc/vp8/vp9, AV1 via dav1d; encoders only libvpx VP8/VP9 and libaom AV1 for GIF→video, no H.264/HEVC encoder, no audio) and libvpx 1.17. `gpl` (WP-70b, revision r3) is full with FFmpeg rebuilt with `--enable-gpl` plus x264 and x265 (`libx264`, `libx265` encoders), so its FFmpeg is GPL-2.0-or-later (ADR 0006 amendment 2026-09-27; `share/licenses/LICENSE-GPL.md`). ONNX Runtime 1.30 (prebuilt, CPU provider only) lives in `/usr/local/lib` (registered with `ldconfig`) and its headers in `/usr/local/include/onnxruntime` (builder only). |
 | `lib/pkgconfig`, `include/` | build stage only; stripped from runtime |
-| `share/fonts/` | Noto Sans + DejaVu (OFL / Bitstream-Vera licenses) for text watermarks |
-| `share/models/` | `full`: YuNet face model (MIT), YOLOX-s object model (Apache-2.0), with LICENSE files |
+| `share/fonts/` | DejaVu Sans and DejaVu Sans Mono (Bitstream Vera licence, public-domain changes; `share/licenses/fonts-dejavu.copyright`) for SVG text and text watermarks (`sans`, `monospace`); more fonts through `XI_PROCESSING_WATERMARK_FONT_FILE` |
+| `/usr/share/xtandard/models/` (outside the prefix) | `full`: `face_detection_yunet_2023mar.onnx` (YuNet, MIT) and `yolox_s.onnx` (YOLOX-s, Apache-2.0), each next to its `<name>.LICENSE`, plus `MODELS.md` and `SHA256SUMS`; users may mount their own models over it |
 | `etc/ImageMagick-7/policy.xml` | restrictive policy (§10) |
 | `share/licenses/` | every dependency's license + `SOURCES.md` with source URLs (LGPL compliance) |
 
-All libraries built with `-O3 -fstack-protector-strong -D_FORTIFY_SOURCE=2`, RPATH `$ORIGIN`, stripped. No GPL component: `build-deps.sh` runs a license check that fails the build on GPL/AGPL (see ADR 0006).
+All libraries built with `-O3 -fstack-protector-strong -D_FORTIFY_SOURCE=2`, RPATH `$ORIGIN`, stripped. No GPL component in `slim` or `full`: `build-deps.sh` runs a license check that fails the build on GPL/AGPL (see ADR 0006).
 
 **App image** (`Dockerfile` at the repo root, so the build context is the module; multi-stage; release process in `docs/RELEASE.md`). WP-37 keeps the WP-00 layout: the runtime stage is the base `runtime` target itself (`FROM ${BASE_RUNTIME}`), which already is `ubuntu:noble` + `ca-certificates`/`tzdata` + the runtime subset of `/opt/xtandard` + UID 65532, so copying the libraries into a bare `ubuntu:noble` would rebuild the same layers and lose the base image's verified contents (`verify-image.sh`, license gate) for no size gain (slim measured 63.9 MB compressed on arm64). Both base references are Dockerfile `ARG`s (`BASE_BUILDER`, `BASE_RUNTIME`) whose defaults are the tags derived from `docker/base/versions.sh`; CI and the release workflow resolve them to `@sha256:` digests with `scripts/base-image-ref.sh`, and `--check` fails when the defaults drift from `versions.sh`.
 
 1. `FROM ${BASE_BUILDER} AS build` (`ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<N>-<flavor>-builder`, Go 1.27.1 included); `CGO_ENABLED=1 go build -trimpath -buildvcs=false -pgo=auto -ldflags "-s -w -X main.version=… -X main.commit=… -X main.date=…" [-tags ffmpeg]` with `GOAMD64=v2` on amd64 (GOARM64 default v8.0) and `main.date` from `SOURCE_DATE_EPOCH`; the build fails unless `go version -m` reports `-pgo=default.pgo`. The unstripped artefact comes from the `debug` target (`docker build --target debug --output type=local,dest=dist .`) and is attached to the GitHub release.
 2. `FROM ${BASE_RUNTIME} AS runtime` (`…-base:<vips>-r<N>-<flavor>`), binary to `/usr/local/bin/xtandard-image`; OCI labels `source`, `version`, `revision`, `licenses=MIT`, `description`, `base.name` (`created` set by the release workflow).
-3. `ENV LD_LIBRARY_PATH=/opt/xtandard/lib LD_PRELOAD=/opt/xtandard/lib/libjemalloc.so.2 MALLOC_ARENA_MAX=2 MAGICK_CONFIGURE_PATH=/opt/xtandard/etc/ImageMagick-7 FONTCONFIG_PATH=/opt/xtandard/etc/fonts VIPS_BLOCK_UNTRUSTED=1` (repeated in the app image even where the base sets them), plus `VIPS_WARNING=0 TMPDIR=/tmp XDG_CACHE_HOME=/tmp/.cache XI_SERVER_ADDR=:8080`.
+3. `ENV LD_LIBRARY_PATH=/opt/xtandard/lib LD_PRELOAD=/opt/xtandard/lib/libjemalloc.so.2 MALLOC_ARENA_MAX=2 MALLOC_CONF=narenas:2 MAGICK_CONFIGURE_PATH=/opt/xtandard/etc/ImageMagick-7 FONTCONFIG_PATH=/opt/xtandard/etc/fonts VIPS_BLOCK_UNTRUSTED=1` (repeated in the app image even where the base sets them), plus `VIPS_WARNING=0 TMPDIR=/tmp XDG_CACHE_HOME=/tmp/.cache XI_SERVER_ADDR=:8080`.
 4. `USER 65532:65532` (user `xtandard`, no shell needed), read-only root filesystem compatible: run with `--read-only --tmpfs /tmp` (compose `read_only: true` + `tmpfs: [/tmp]`; Kubernetes `readOnlyRootFilesystem: true` + an `emptyDir` at `/tmp`). `/tmp` receives the fontconfig cache and, if enabled at a path there, the disk cache; `scripts/verify-app-image.sh` checks that the rootfs rejects writes.
 5. `EXPOSE 8080 9090` (the admin listener defaults to `127.0.0.1:9090`; set `XI_ADMIN_ADDR=:9090` to scrape it); `HEALTHCHECK --interval=10s --start-interval=1s CMD ["/usr/local/bin/xtandard-image","health","--url","http://127.0.0.1:8080/healthz"]` (no curl in the image).
 6. `ENTRYPOINT ["/usr/local/bin/xtandard-image"]`, `CMD ["serve"]`.

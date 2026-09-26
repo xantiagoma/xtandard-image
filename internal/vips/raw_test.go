@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/leakcheck"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/rawfixtures"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
@@ -240,9 +241,8 @@ func TestProbeRawHeaderOnly(t *testing.T) {
 		t.Errorf("probe: tracked mem %d → %d B, allocs %d → %d, LibRaw handles %d → %d",
 			before.Mem, after.Mem, before.Allocs, after.Allocs, live, vips.RawLive())
 	}
-	if per > 50*time.Millisecond {
-		t.Errorf("probe takes %v per call: is it unpacking?", per)
-	}
+	// Header only is asserted by the unchanged counters above, not by the
+	// time per call (machine load decides it; BenchmarkProbeRaw has it).
 	t.Logf("ProbeRaw %s: %v per call", f.Name, per)
 }
 
@@ -250,11 +250,7 @@ func TestProbeRawHeaderOnly(t *testing.T) {
 // tracked memory and objects and the LibRaw handles and buffers the shim
 // counts return to their baseline. Not parallel: the counters are global.
 func TestRawNoLeak(t *testing.T) {
-	const (
-		cycles     = 200
-		slackBytes = 1 << 20
-		slackObjs  = 16
-	)
+	const cycles = 200
 	dng := readFixture(t, "dng/landscape.dng")
 	cycle := func(i int) {
 		buf := newBuffer(t, dng)
@@ -283,14 +279,16 @@ func TestRawNoLeak(t *testing.T) {
 	for i := range 4 {
 		cycle(i)
 	}
-	before, objects, live := vips.ReadMemStats(), vips.LiveObjects(), vips.RawLive()
+	before, live := leakcheck.Take(), vips.RawLive()
 	for i := range cycles {
 		cycle(i)
 	}
-	after, objectsAfter, liveAfter := vips.ReadMemStats(), vips.LiveObjects(), vips.RawLive()
-	if after.Mem-before.Mem > slackBytes || objectsAfter-objects > slackObjs || liveAfter != live {
-		t.Errorf("after %d cycles: mem %d → %d B, objects %d → %d, LibRaw handles+buffers %d → %d",
-			cycles, before.Mem, after.Mem, objects, objectsAfter, live, liveAfter)
+	leakcheck.Check(t, before, leakcheck.Limits{
+		Bytes: leakcheck.Default.Bytes, Allocs: -1,
+		Objects: leakcheck.Default.Objects,
+	}, "cycles")
+	if liveAfter := vips.RawLive(); liveAfter != live {
+		t.Errorf("after %d cycles: LibRaw handles+buffers %d → %d", cycles, live, liveAfter)
 	}
 }
 

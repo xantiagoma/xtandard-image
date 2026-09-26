@@ -24,32 +24,34 @@ Rules:
 
 ### Config file formats and schema (ADR 0007)
 
-The file is YAML, JSON or TOML, chosen by extension (`.yaml`/`.yml`, `.json`, `.toml`; anything else is a startup error). All three have the same keys and the same strictness: JSON goes through the same strict YAML decoder, and TOML is converted to the same tree first (TOML dates and times are rejected because no key takes one, and errors after the conversion name the dotted key path rather than a TOML line). A top-level `$schema` key is ignored in every format. Precedence and the env mapping above do not change. A JSON Schema (draft 2020-12) of the file gives editors validation, autocomplete and hover docs; each hover shows the CONFIG.md meaning, the matching `XI_*` variable and, for secrets, its `_FILE` form. The schema is generated from the `Config` struct and the tables below (`go test ./internal/config -run TestJSONSchema -update`), committed as `internal/config/config.schema.json`, and a test fails when it is stale. Its `$id` is the URL below. Stable URLs, published per release (planned: WP-81b):
+The file is YAML, JSON or TOML, chosen by extension (`.yaml`/`.yml`, `.json`, `.toml`; anything else is a startup error). All three have the same keys and the same strictness: JSON goes through the same strict YAML decoder, and TOML is converted to the same tree first (TOML dates and times are rejected because no key takes one, and errors after the conversion name the dotted key path rather than a TOML line). A top-level `$schema` key is ignored in every format. Precedence and the env mapping above do not change. A JSON Schema (draft 2020-12) of the file gives editors validation, autocomplete and hover docs; each hover shows the CONFIG.md meaning, the matching `XI_*` variable and, for secrets, its `_FILE` form. The schema is generated from the `Config` struct and the tables below (`go test ./internal/config -run TestJSONSchema -update`), committed as `internal/config/config.schema.json`, and a test fails when it is stale. Its `$id` is the versioned GitHub Pages URL below, which `.github/workflows/pages.yml` publishes (WP-81b; `task pages:build` assembles the same site locally in `dist/pages/`):
 
 ```
-https://xantiagoma.github.io/xtandard-image/schema/config.schema.json            # latest release
-https://xantiagoma.github.io/xtandard-image/schema/<version>/config.schema.json  # pinned
+https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json      # the $id: schema major version 1
+https://xantiagoma.github.io/xtandard-image/schema/latest/config.schema.json  # alias of the newest major
 ```
+
+`v1` is the schema's major version, not the release. It changes only when a key is removed or renamed, so a modeline keeps working across releases; new keys are added to `v1`. The Pages copy follows the newest published schema, so it can list a key that an older binary does not know yet: to check a file against exactly the version you run, use that instance's admin URL (below) or `config validate`. The OpenAPI document sits next to it (`schema/v1/openapi.json`, [OPENAPI.md](OPENAPI.md)).
 
 YAML (VS Code with the Red Hat YAML extension, JetBrains, Neovim/Helix with yaml-language-server). Paste this as the first line:
 
 ```
-# yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/config.schema.json
+# yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json
 ```
 
 JSON: a top-level `"$schema"` key, which the loader ignores:
 
 ```
-{ "$schema": "https://xantiagoma.github.io/xtandard-image/schema/config.schema.json", "server": { "addr": ":8080" } }
+{ "$schema": "https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json", "server": { "addr": ":8080" } }
 ```
 
 TOML (Taplo / Even Better TOML, Tombi). Put this directive first:
 
 ```
-#:schema https://xantiagoma.github.io/xtandard-image/schema/config.schema.json
+#:schema https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json
 ```
 
-After the SchemaStore listing (planned: WP-81b), files named `xtandard-image.{yaml,yml,json,toml}` are matched without the line. The schema also ships in the binary, and every copy carries the same `$id`; all its `$ref`s are local, so any copy resolves the same way:
+After the SchemaStore listing ([docs/schemastore](schemastore/README.md), pending until Pages is live), files named `xtandard.{yaml,yml,json,toml}`, `xtandard-image.{yaml,yml,json,toml}` and their dot-prefixed forms are matched without the line. The schema also ships in the binary, and every copy carries the same `$id`; all its `$ref`s are local, so any copy resolves the same way:
 
 - The admin listener serves it at `GET /config.schema.json` (`Content-Type: application/schema+json`, strong `ETag`, `304` on `If-None-Match`), which is always on and never on the public listener. A self-hosted instance can point editors at its own copy, which always matches the running version: `# yaml-language-server: $schema=http://127.0.0.1:9090/config.schema.json` (use `XI_ADMIN_ADDR`'s host and port, or `kubectl port-forward`). The same URL works in `"$schema"` and `#:schema`.
 - `xtandard-image config schema > config.schema.json` writes the same bytes to a file, for offline editors.
@@ -78,6 +80,8 @@ sources:
 A reference means the same as `XI_…_FILE` for that one value: the file is read at startup, trailing newlines are trimmed, and the content is parsed like the literal (the same function reads both). The path must be absolute, and the file must exist and be at most 64 KiB, or startup fails with the key path in the error. `XI_…` and `XI_…_FILE` in the environment still win. JSON (`{"file": "/run/secrets/x"}`) and TOML (`{ file = "/run/secrets/x" }`) use the same shape. Nothing else in the file is interpolated, and there is no `${…}` syntax (ADR 0007 decision 7).
 
 ## 2. Environment variable reference
+
+This reference matches the code of the `m3` stack. Variables from packages still in review, not on `main` yet: `XI_DIALECTS_IMGIX_KEYS` and the imgix mount (#87), `XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH` (#86), the text-watermark settings `XI_PROCESSING_WATERMARK_FONT`, `XI_PROCESSING_WATERMARK_FONT_FILE` and `XI_LIMITS_MAX_WATERMARK_TEXT_PIXELS` (#85), `XI_PLAYGROUND_*` (#84) and `XI_DETECT_*` (#88).
 
 ### Loader
 
@@ -157,7 +161,7 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `XI_DIALECTS_DEFAULT` | `imgproxy` | Fallback dialect |
+| `XI_DIALECTS_DEFAULT` | `imgproxy` | Fallback dialect for paths no mount matches (it must be enabled); a dialect other than imgproxy serves them with its primary mount's source and unsigned policy |
 | `XI_DIALECTS_STRICT` | `false` | 400 on unknown/unsupported options |
 | `XI_DIALECTS_<NAME>_ENABLED` | imgproxy `true`, others `false` | `<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]` |
 | `XI_DIALECTS_<NAME>_PREFIX` | see URL-DIALECTS.md | Mount prefix |
@@ -168,7 +172,9 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR` | `:` | |
 | `XI_DIALECTS_IMGPROXY_BASE_URL` | `` | |
 | `XI_DIALECTS_IMGPROXY_URL_REPLACEMENTS` | `` | `regex=replacement;…` (`;`-separated in env) |
+| `XI_DIALECTS_IMGIX_KEYS` | `` | imgix secure URL tokens, used verbatim (`,`-separated for rotation: any verifies, the first signs in the playground). With tokens, `s` = hex(MD5(token ‖ path ‖ `?` ‖ query without `s`)) is verified and `expires` enforced; without, `s` is not checked and every URL follows the mount's unsigned policy. `XI_SIGNING_REQUIRED=true` rejects unsigned imgix URLs on mounts with tokens. Prefix default `/imgix/`; host-bind (`XI_DIALECTS_IMGIX_HOSTS`) for unpic's imgix provider; `XI_DIALECTS_IMGIX_SOURCE` resolves object keys (URL-DIALECTS §5) |
 | `XI_DIALECTS_CLOUDINARY_CLOUDS` | `` | `cloud=source,…` |
+| `XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH` | `` | ImageKit URL-endpoint id kept in the path of host-bound mounts (`https://ik.imagekit.io/<id>/…` → `/<id>`), for every ImageKit mount: stripped before parsing, excluded from the source key and the signed message; requests outside it are 400 (URL-DIALECTS §7) |
 | `XI_DIALECTS_CLOUDFLARE_IMAGES_ACCOUNTS` | `` | `account_hash=source,…`: the source each Cloudflare Images account hash reads image ids from; empty = the mount's source for every hash, otherwise an unknown hash is 403. `XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS` are the raw Images signing keys (`sig`/`exp`); variants are presets |
 | `XI_DIALECTS_AWSSIH_BUCKETS` | `` | `bucket=source,…`: SIH `SOURCE_BUCKETS` allowlist; a request without a bucket uses `XI_DIALECTS_AWSSIH_SOURCE` (URL-DIALECTS §13) |
 | `XI_DIALECTS_AWSSIH_QUERY_PARAMS` | `true` | SIH query-param mapper (`format`, `fit`, `width`, `height`, `rotate`, `flip`, `flop`, `grayscale`) |
@@ -198,7 +204,9 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_PROCESSING_LINEAR_RESIZE` | `false` | Resize in linear light |
 | `XI_PROCESSING_COLOR_PROFILES_DIR` | `` | Custom ICC files |
 | `XI_PROCESSING_WATERMARK_SOURCE` | `` | Default watermark image (source string, resolved against the sources). Fetched and decoded once at startup, never refreshed; a watermark that cannot be loaded stops startup |
-| `XI_PROCESSING_WATERMARK_OPACITY` | `1` | Multiplies every request's watermark opacity |
+| `XI_PROCESSING_WATERMARK_OPACITY` | `1` | Multiplies every request's watermark opacity (configured image, per-request image and text) |
+| `XI_PROCESSING_WATERMARK_FONT` | `sans 16` | Pango font description of text watermarks (imgproxy's default); a request's font takes the family or size it lacks from it. The image ships DejaVu Sans and DejaVu Sans Mono (`sans`, `monospace`) through fontconfig |
+| `XI_PROCESSING_WATERMARK_FONT_FILE` | `` | Absolute path of a font file (TTF/OTF) registered with fontconfig for text watermarks, in addition to the fonts under `/opt/xtandard/share/fonts`; requests select it by family name |
 | `XI_FALLBACK_SOURCE` | `` | Fallback image (source string) |
 | `XI_FALLBACK_STATUS` | `200` | Status used with fallback |
 | `XI_FALLBACK_TTL` | `1m` | `Cache-Control: public, max-age` of a fallback response; `0` sends `no-store` |
@@ -240,8 +248,35 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_LIMITS_MAX_SVG_DEPTH` | `256` | SVG sanitiser nesting limit |
 | `XI_LIMITS_MAX_SVG_ELEMENTS` | `200000` | SVG sanitiser element limit |
 | `XI_LIMITS_MAX_PDF_PAGES` | `500` | Pages a PDF may have; checked when the header is read, before any page renders (422) |
+| `XI_LIMITS_MAX_WATERMARK_TEXT_PIXELS` | `16777216` | Area a text watermark is rendered on (the frame, or the text width × the frame height, scaled down to this); text that does not fit is shrunk until it does |
+| `XI_VIDEO_ENABLED` | `auto` | Video sources (MP4, MOV, WebM, MKV, AVI; FORMATS.md §1.5): `auto` decodes them when the image has FFmpeg (the `full` flavor) and answers 422 otherwise; `true` fails startup without FFmpeg; `false` answers 422 in every image |
+| `XI_VIDEO_MAX_BYTES` | `100MiB` | Largest video source; `XI_LIMITS_MAX_SRC_BYTES` applies first, at fetch, so raise both for large videos (422) |
+| `XI_VIDEO_MAX_DURATION` | `1h` | Longest video, from the container header, before any frame is decoded (422) |
+| `XI_VIDEO_MAX_PIXELS` | `33177600` | Width × height of the video stream (8K UHD); the decoder refuses larger frames too (422). `XI_LIMITS_MAX_SRC_PIXELS` applies to the frame as well |
+| `XI_VIDEO_THUMBNAIL_SECOND` | `auto` | Frame taken when a request sets no `video_thumbnail_second`: seconds (negative counts from the end; clamped to the video), or `auto` for best-frame selection (imgproxy `IMGPROXY_VIDEO_THUMBNAIL_SECOND`, whose default is 1) |
+| `XI_VIDEO_THUMBNAIL_KEYFRAMES` | `false` | Take the keyframe at or before the timestamp instead of the exact frame (faster, less precise; imgproxy `IMGPROXY_VIDEO_THUMBNAIL_KEYFRAMES`); a request's `video_thumbnail_keyframes` overrides it |
+| `XI_VIDEO_THUMBNAIL_SAMPLES` | `5` | Keyframes best-frame selection compares (1–32) |
+| `XI_VIDEO_THUMBNAIL_SPAN` | `10s` | How much of the start of a video best-frame selection samples |
 | `XI_VIPS_CONCURRENCY` | `1` | libvips threads per image; change only with benchmarks |
 | `XI_VIPS_FAIL_ON` | `warning` | |
+
+### Detection
+
+Face and object detection (WP-71, [ARCHITECTURE.md](ARCHITECTURE.md) "Detection") needs the `full` image: ONNX Runtime and the YuNet and YOLOX-s models ship there, under `/usr/share/xtandard/models` with their licences and a `SHA256SUMS` file. On `slim` the defaults find nothing and the service runs without detection.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `XI_DETECT_ENABLED` | `auto` | `auto` loads detection when the library and the model files are found and runs without it otherwise (logged at startup); `true` fails startup when they are missing; `false` never loads them. Options that need detection answer 422 while it is off |
+| `XI_DETECT_LIBRARY` | `libonnxruntime.so.1` | ONNX Runtime shared library (1.17 or newer): an absolute path or a file name the dynamic linker resolves. Loaded with `dlopen` at startup, never at init (ADR 0010) |
+| `XI_DETECT_MODELS_DIR` | `/usr/share/xtandard/models` | Absolute directory of the model files; mount your own there |
+| `XI_DETECT_FACE_MODEL` | `face_detection_yunet_2023mar.onnx` | YuNet face model, a file name in `XI_DETECT_MODELS_DIR` or an absolute path; empty disables face detection |
+| `XI_DETECT_OBJECT_MODEL` | `yolox_s.onnx` | YOLOX object model (COCO, 80 classes, `[1,N,85]` output); empty disables object detection |
+| `XI_DETECT_THREADS` | `1` | ONNX Runtime intra-op threads per inference; like `XI_VIPS_CONCURRENCY`, parallelism normally comes from concurrent requests (1–64) |
+| `XI_DETECT_WORKERS` | `0` | Inferences running at once (a semaphore; more wait); `0` is GOMAXPROCS / `XI_DETECT_THREADS` |
+| `XI_DETECT_MAX_INPUT` | `640` | Longest side fed to a model whose input size is dynamic (32–4096); the shipped models are fixed at 640×640 |
+| `XI_DETECT_VERIFY_CHECKSUMS` | `false` | Check each model against the `SHA256SUMS` of its directory when it lists the model; a mismatch fails startup |
+| `XI_DETECT_CACHE_SIZE` | `512` | Detection results kept in memory, least recently used first out: one entry per model and source (keyed by the SHA-256 of the source bytes), shared by processing and `/info` (0–1000000; `0` disables the cache) |
+| `XI_DETECT_SMART_FACES` | `true` | Smart gravity (imgproxy `sm`, imgix `crop=edges`, Cloudinary `g_auto`, thumbor `smart`, …) crops on the detected faces when there are some and falls back to libvips attention otherwise; `false` always uses attention. Without the face model (slim) smart gravity is attention |
 
 ### Cache and observability
 
@@ -274,6 +309,29 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_OBSERVABILITY_DEBUG_HEADERS` | `false` | `X-Xi-Ignored`, `X-Xi-Origin-Content-Length`, `X-Xi-Origin-Width/-Height`, `X-Xi-Result-Width/-Height` (ARCHITECTURE §9.1) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` etc. | — | Standard OpenTelemetry vars; tracing on when set |
 | `XI_OTEL_ENABLED` | `false` | Force tracing on without an endpoint variable (exporter still chosen by `OTEL_TRACES_EXPORTER`, e.g. `console`) |
+
+### Playground
+
+The playground (WP-80) is a small web UI embedded in the binary: pick a source and a dialect mount, build options from the option catalogue, get a (signed) URL and compare the source with the result. It is plain HTML, CSS and JavaScript served with `Content-Security-Policy: default-src 'self'` and loads nothing from other origins, so it works air-gapped.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `XI_PLAYGROUND_ENABLED` | `false` | Serve the playground at `XI_PLAYGROUND_PATH` on the admin listener (needs `XI_ADMIN_ADDR` unless `XI_PLAYGROUND_PUBLIC`); off, every playground path answers 404 |
+| `XI_PLAYGROUND_PUBLIC` | `false` | Also serve it on the public listener (under `XI_SERVER_PATH_PREFIX`). Its sign endpoint then signs any URL for anyone who can reach it, which makes signing pointless: only for trusted networks and demos |
+| `XI_PLAYGROUND_PATH` | `/_playground` | Mount path: starts with `/`, no trailing `/`, `[A-Za-z0-9._~/-]` only, and not an admin route |
+
+Signing per mount: imgproxy mounts get the imgproxy path signature and the query, wsrv and cloudflare mounts `xi_sig` (both from `XI_SIGNING_KEYS`), thumbor mounts the thumbor signature (`XI_DIALECTS_THUMBOR_KEYS` or the mount's `keys`). Without a key the URL is returned unsigned (`insecure/`, `unsafe/`). The other dialects (ImageKit, Cloudinary, Cloudflare Images, bunny, AWS SIH, the simple family) are built free-form and returned unsigned: the playground does not hold their provider keys.
+
+Endpoints under the mount path: the page (`/`), its assets (`/assets/<version>/…`, immutable), `GET /api/meta` (dialect mounts, option catalogues, preset names, source names and types, signing mode, output formats), `POST /api/sign` and `GET /api/render?u=…` (runs the public handler in-process so the page can show the result and its headers from its own origin). See [OPENAPI.md](OPENAPI.md).
+
+Security:
+
+- **Keys never reach the browser.** `api/meta` reports only the signing mode and each mount's scheme; `api/sign` computes the signature on the server with the configured keys and returns the URL. Source entries list names and types only (no bucket credentials, headers, base URLs or allowlists).
+- **Anyone who can reach the playground can sign URLs.** On the admin listener (default `127.0.0.1:9090`) that is whoever can reach the admin port; keep it private. With `XI_PLAYGROUND_PUBLIC=true` and signing keys set, the public playground is a signing oracle for the whole internet, and the server logs a warning at startup.
+- `POST api/sign` is protected against cross-site requests (`http.CrossOriginProtection`: `Sec-Fetch-Site` / `Origin` checks) and only accepts a small JSON body.
+- On the public listener the playground path (`XI_SERVER_PATH_PREFIX` + `XI_PLAYGROUND_PATH`) is always reserved: it answers 404 unless `XI_PLAYGROUND_PUBLIC=true`, so it never reaches a dialect mounted at `/`.
+- `api/render` goes through the public handler with every public-listener check (unsigned policy, source allowlist, SSRF rules, limits); it grants nothing a public request would not get.
+- Every playground response carries `Content-Security-Policy` (`default-src 'self'`, `frame-ancestors 'none'`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`.
 
 ### Compatibility
 
@@ -345,6 +403,9 @@ The table is checked against the code by a test in `internal/config`.
 | `IMGPROXY_MAX_ANIMATION_FRAMES` | `XI_LIMITS_MAX_ANIMATION_FRAMES` | Same |
 | `IMGPROXY_MAX_ANIMATION_FRAME_RESOLUTION` | `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS` | Megapixels (float) → pixels; `0` (off) keeps the default |
 | `IMGPROXY_MAX_RESULT_DIMENSION` | `XI_LIMITS_MAX_RESULT_DIMENSION` | `0` (unlimited) keeps the default |
+| `IMGPROXY_ENABLE_VIDEO_THUMBNAILS` | `XI_VIDEO_ENABLED` | Same; `true` fails startup on an image without FFmpeg (slim) |
+| `IMGPROXY_VIDEO_THUMBNAIL_SECOND` | `XI_VIDEO_THUMBNAIL_SECOND` | Same seconds; imgproxy's default is 1, xtandard-image's is best-frame selection (`auto`) |
+| `IMGPROXY_VIDEO_THUMBNAIL_KEYFRAMES` | `XI_VIDEO_THUMBNAIL_KEYFRAMES` | Same |
 | `IMGPROXY_TTL` | `XI_CACHE_HEADERS_TTL` | Integer seconds → duration |
 | `IMGPROXY_CACHE_CONTROL_PASSTHROUGH` | `XI_CACHE_HEADERS_PASSTHROUGH` | Same |
 | `IMGPROXY_ETAG_BUSTER` | `XI_CACHE_ETAG_BUSTER` | Same |
@@ -396,6 +457,7 @@ In the tables, `X` / `_Y` and `X`, `_Y` are shorthand: `_Y` replaces the last `_
 ## 3. YAML example
 
 ```yaml
+# yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json
 server:
   addr: ":8080"
 signing:

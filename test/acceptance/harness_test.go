@@ -51,13 +51,18 @@ type response struct {
 var client = &http.Client{Timeout: requestTimeout}
 
 // fetch sends a request with the given method and headers and reads the
-// body. Safe to call from any goroutine.
+// body; a Host header becomes the request's Host (host-bound mounts). Safe
+// to call from any goroutine.
 func fetch(ctx context.Context, method, url string, header http.Header) (*response, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, http.NoBody)
 	if err != nil {
 		return nil, err
 	}
 	for k, vs := range header {
+		if http.CanonicalHeaderKey(k) == "Host" {
+			req.Host = vs[0]
+			continue
+		}
 		for _, v := range vs {
 			req.Header.Add(k, v)
 		}

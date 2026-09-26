@@ -5,6 +5,8 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
+	"unicode/utf8"
 )
 
 // Sanity bounds. Config limits (XI_LIMITS_*) are enforced later by the
@@ -30,6 +32,10 @@ const (
 	MaxBlurhashDim       = 9
 	MaxJPEGQuant         = 8
 	MaxPNGLevel          = 9
+	// MaxWatermarkText bounds a text watermark's markup in bytes, and
+	// MaxFontDescription its font description.
+	MaxWatermarkText   = 4096
+	MaxFontDescription = 128
 )
 
 // ValidationError reports one invalid field. Validate joins several with
@@ -141,6 +147,20 @@ func (v *validator) strings(field string, ss []string) {
 	}
 }
 
+// classes checks a detection class list: bounded, and every name a class
+// ResolveClass knows.
+func (v *validator) classes(field string, ss []string) {
+	v.list(field, len(ss))
+	for i, s := range ss {
+		if i >= MaxListLen {
+			break
+		}
+		if _, ok := ResolveClass(s); !ok {
+			v.fail(field+"["+strconv.Itoa(i)+"]", "unknown class (face, a COCO class or supercategory)")
+		}
+	}
+}
+
 func (v *validator) source(field string, s *SourceSpec, required bool) {
 	if required && s.Raw == "" {
 		v.fail(field+".raw", "must not be empty")
@@ -194,7 +214,7 @@ func (v *validator) gravity(field string, g *Gravity, crop bool) {
 	v.floatRange(field+".focus_x", g.FocusX, 0, 1)
 	v.floatRange(field+".focus_y", g.FocusY, 0, 1)
 	v.floatRange(field+".focus_zoom", g.FocusZoom, 0, MaxFactor)
-	v.strings(field+".classes", g.Classes)
+	v.classes(field+".classes", g.Classes)
 	if len(g.Weights) > 0 && len(g.Weights) != len(g.Classes) {
 		v.fail(field+".weights", "must have one weight per class")
 	}
@@ -262,7 +282,11 @@ func (p *Pipeline) validate(v *validator, f string) {
 	}
 	if c := p.CropObjects; c != nil {
 		v.floatRange(f+".crop_objects.scale", c.Scale, 0, MaxFactor)
-		v.strings(f+".crop_objects.classes", c.Classes)
+		v.classes(f+".crop_objects.classes", c.Classes)
+		if c.Index != nil {
+			v.intRange(f+".crop_objects.index", *c.Index, 0, MaxListLen)
+		}
+		v.intRange(f+".crop_objects.padding", c.Padding, 0, MaxDimension)
 	}
 	if t := p.Trim; t != nil {
 		v.floatRange(f+".trim.threshold", t.Threshold, 0, 255)
@@ -393,7 +417,7 @@ func (d *DetectionFilter) validate(v *validator, f string) {
 	}
 	v.floatRange(f+".sigma", d.Sigma, 0, MaxSigma)
 	v.intRange(f+".pixelate", d.Pixelate, 0, MaxDimension)
-	v.strings(f+".classes", d.Classes)
+	v.classes(f+".classes", d.Classes)
 }
 
 func (w *Watermark) validate(v *validator, f string) {
@@ -407,6 +431,18 @@ func (w *Watermark) validate(v *validator, f string) {
 			v.fail(f+".text", "source and text are mutually exclusive")
 		}
 	}
+	if len(w.Text) > MaxWatermarkText {
+		v.fail(f+".text", "at most "+strconv.Itoa(MaxWatermarkText)+" bytes")
+	} else if !utf8.ValidString(w.Text) {
+		v.fail(f+".text", "must be UTF-8")
+	}
+	if len(w.Font) > MaxFontDescription || !utf8.ValidString(w.Font) || strings.ContainsAny(w.Font, "<>&\"\x00") {
+		v.fail(f+".font", "must be a font description of at most "+strconv.Itoa(MaxFontDescription)+" bytes")
+	}
+	if w.Text == "" && (w.Font != "" || w.Color != nil || w.TextWidth != 0) {
+		v.fail(f+".text", "font, color and text width need a text")
+	}
+	v.intRange(f+".text_width", w.TextWidth, 0, MaxDimension)
 	v.intRange(f+".width", w.Width, 0, MaxDimension)
 	v.intRange(f+".height", w.Height, 0, MaxDimension)
 	v.floatRange(f+".rotate", w.Rotate, -360, 360)
@@ -415,7 +451,7 @@ func (w *Watermark) validate(v *validator, f string) {
 
 func (vo *VideoOptions) validate(v *validator, f string) {
 	if vo.Second != nil {
-		v.floatRange(f+".second", *vo.Second, 0, math.MaxInt32)
+		v.floatRange(f+".second", *vo.Second, -math.MaxInt32, math.MaxInt32)
 	}
 	if t := vo.Tile; t != nil {
 		v.floatRange(f+".tile.step", t.Step, 0, math.MaxInt32)
@@ -519,6 +555,7 @@ func (in *InfoOptions) validate(v *validator, f string) {
 		v.intRange(f+".blurhash.x_components", b.XComponents, 1, MaxBlurhashDim)
 		v.intRange(f+".blurhash.y_components", b.YComponents, 1, MaxBlurhashDim)
 	}
+	v.classes(f+".detect_classes", in.DetectClasses)
 	v.list(f+".calc_hashsums", len(in.CalcHashsums))
 	for i, h := range in.CalcHashsums {
 		v.enum(f+".calc_hashsums["+strconv.Itoa(i)+"]", h != HashUnset && validEnum(h, numHashAlgorithms))

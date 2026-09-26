@@ -262,6 +262,22 @@
     "path": "/demox/a.jpg",
     "query": ""
   },
+  "ik_thumbnail_alone": {
+    "path": "/ik-thumbnail.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "ik-thumbnail.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "ik-thumbnail.jpg"
+  },
   "missing_source": {
     "error": {
       "kind": "invalid_url",
@@ -325,12 +341,6 @@
     "query": "",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -599,5 +609,112 @@
     },
     "path": "/folder/a.jpg",
     "query": "tr=e-bgremove"
+  },
+  "video_thumbnail": {
+    "path": "/videos/dog.mp4/ik-thumbnail.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "videos/dog.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "videos/dog.mp4"
+  },
+  "video_thumbnail_bad_offset": {
+    "error": {
+      "field": "so",
+      "kind": "invalid_url",
+      "public": "invalid so: expected seconds (a non-negative number)",
+      "status": 400
+    },
+    "path": "/videos/dog.mp4/ik-thumbnail.jpg",
+    "query": "tr=so--2"
+  },
+  "video_thumbnail_expression": {
+    "path": "/videos/dog.mp4/ik-thumbnail.jpg",
+    "query": "tr=so-duration_mul_0.5",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "so",
+          "Reason": "not supported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "videos/dog.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "videos/dog.mp4"
+  },
+  "video_thumbnail_format": {
+    "path": "/tr:so-1,f-webp/videos/dog.mp4/ik-thumbnail.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {
+          "Video": {
+            "Second": 1
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "videos/dog.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "videos/dog.mp4"
+  },
+  "video_thumbnail_offset": {
+    "path": "/videos/dog.mp4/ik-thumbnail.jpg",
+    "query": "tr=so-2.5,w-300",
+    "request": {
+      "Dialect": "imagekit",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Video": {
+            "Second": 2.5
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "videos/dog.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "videos/dog.mp4"
   }
 }

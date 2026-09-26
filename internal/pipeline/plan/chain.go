@@ -56,6 +56,12 @@ func planChained(pipes []transform.Pipeline, i int, in *Input, lim *effLimits, o
 	if err != nil {
 		return nil, err
 	}
+	for j, st := range pl.After {
+		if wm, ok := st.(WatermarkStep); ok {
+			wm.Pipeline = i
+			pl.After[j] = wm
+		}
+	}
 	// The input of a chained pipeline is the previous result, a lazy libvips
 	// graph. It is computed into memory first only when a step reads it out
 	// of order: a sequential source cannot be read twice, and a random

@@ -8,18 +8,30 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/codec/ico"
 	"github.com/xantiagoma/xtandard-image/internal/codec/raster"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/video"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
 // Sample decodes the first page or frame of buf (format f, as probed) to
 // 8-bit sRGB RGBA with straight alpha, upright (EXIF orientation applied)
 // and fitted inside maxSide×maxSide: the input of the pixel-derived /info
-// fields (WP-63). libvips formats go through vips_thumbnail, so JPEG and
+// fields (WP-63). A video is sampled from the frame its default selection
+// picks (XI_VIDEO_THUMBNAIL_*), decoded at the sample size. libvips formats go through vips_thumbnail, so JPEG and
 // WebP shrink on load and nothing larger than the result is kept in
 // memory; the pure-Go BMP and ICO loaders return their pixels at full size
 // (bounded by lim.MaxSrcPixels) and the caller fits them. Like Inspect it
 // must run inside vips.Run.
 func Sample(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Limits) (Raw, error) {
+	return sample(ctx, buf, f, maxSide, lim, nil)
+}
+
+// SampleMedia is Sample for images and, when v enables them, video
+// sources, sampled from the frame v's default selection picks.
+func SampleMedia(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Limits, v *video.Settings) (Raw, error) {
+	return sample(ctx, buf, f, maxSide, lim, v)
+}
+
+func sample(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Limits, v *video.Settings) (Raw, error) {
 	if maxSide <= 0 {
 		return Raw{}, errs.Newf(errs.KindInternal, "codec: sample size %d", maxSide)
 	}
@@ -39,6 +51,8 @@ func Sample(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Li
 		defer emb.Release()
 		copy(emb.Bytes(), d.Embedded)
 		return sampleVips(ctx, emb, maxSide)
+	case FormatMP4, FormatMOV, FormatWebM, FormatMKV, FormatAVI:
+		return sampleVideo(ctx, buf, maxSide, v)
 	default:
 		return sampleVips(ctx, buf, maxSide)
 	}

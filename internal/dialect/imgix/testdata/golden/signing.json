@@ -148,16 +148,11 @@
     "query": "txt64=dGhpcy9zZWVtc-KApiBwcmV0dHkgc2tldGNoeSEg8J-YgQ\u0026s=90f614fddc8ae5b9d5eb2f69b25daed4",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "txt",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
             {
+              "Font": "sans 12",
               "Opacity": 1,
               "Position": {
                 "Type": "south-east",

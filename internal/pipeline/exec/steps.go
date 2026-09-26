@@ -51,6 +51,8 @@ func (r *runner) step(ctx context.Context, img *vips.Image, s plan.Step) (*vips.
 		return r.border(ctx, img, &s)
 	case plan.RadiusStep:
 		return r.radius(ctx, img, &s)
+	case plan.DrawDetectionsStep:
+		return r.drawDetections(ctx, img, &s)
 	default:
 		return nil, errs.Newf(errs.KindInternal, "exec: unknown step %T", s)
 	}

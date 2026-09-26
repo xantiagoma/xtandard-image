@@ -35,6 +35,18 @@ type SourceMeta struct {
 	// loaded with random access (the tone mapper measures it first) and
 	// costs 4 bytes per sample until it is mapped to 8 bits.
 	HDR bool
+	// IsVideo marks a video source (MP4, MOV, WebM, MKV, AVI): one frame is
+	// decoded by FFmpeg and scaled on load by libswscale (LoadStep.Scale),
+	// leaving the last 2× of a reduction to libvips. Width and Height are
+	// the display size, Orientation the display matrix.
+	IsVideo bool
+
+	// Detections are the faces and objects detected in the source, for
+	// the detection gravities, crop_objects and the detection filters of
+	// the first pipeline (detect.go). nil means detection did not run:
+	// those gravities fall back to the smart crop and the filters do
+	// nothing. The caller runs detection when NeedsDetection asks for it.
+	Detections *Detections
 }
 
 // DefaultRawPreviewMinRatio is the RawPreviewMinRatio used when the limit
@@ -159,7 +171,7 @@ type LoadStep struct {
 	Preview bool
 	// HalfSize demosaics a camera RAW at half its width and height.
 	HalfSize bool
-	// Scale is the WebP/SVG/PDF scale-on-load factor; 0 is off.
+	// Scale is the WebP/SVG/PDF/video scale-on-load factor; 0 is off.
 	Scale float64
 	// Density is the vector rendering DPI; 0 keeps the loader default.
 	Density float64
@@ -211,9 +223,15 @@ type TrimStep struct {
 // Gravity is a resolved placement: for GravityFocusPoint, X and Y are the
 // focus point (0..1); otherwise offsets (|v| ≥ 1 pixels, scaled by the
 // step's OffsetScale; |v| < 1 relative to the outer size).
+//
+// GravityObject is the placement of detected objects (WP-72): the point
+// X, Y of the image (fractions) lands at AX, AY of the crop (fractions of
+// the crop), shifted by OX, OY (|v| ≥ 1 pixels scaled by OffsetScale, < 1
+// fractions of the image; positive moves the content right and down).
 type Gravity struct {
-	Type transform.GravityType
-	X, Y float64
+	Type           transform.GravityType
+	X, Y           float64
+	AX, AY, OX, OY float64
 }
 
 // Interesting selects the smart-crop strategy.
@@ -260,7 +278,8 @@ type RotateStep struct{ Angle int }
 type FlipStep struct{ Horizontal, Vertical bool }
 
 // FilterStep applies the filters of a pipeline in one pass, per frame, in
-// this order: Blur, Sharpen, Unsharp, Pixelate, BlurAreas, ProgressiveBlur
+// this order: Blur, Sharpen, Unsharp, Pixelate, BlurAreas, ProgressiveBlur,
+// Detections
 // (imgproxy applies blur, sharpen and pixelate in one pass; the Pro filters
 // follow on the result, before colour adjustments, the canvas and
 // watermarks).
@@ -277,6 +296,8 @@ type FilterStep struct {
 	// ProgressiveBlur blends a blurred copy in along a linear ramp; nil =
 	// off.
 	ProgressiveBlur *transform.ProgressiveBlur
+	// Detections blurs or pixelates detected objects, last; nil = off.
+	Detections *DetectionBlur
 }
 
 // UnsharpMask is a resolved transform.Unsharp. With Sigma > 0 it is the
@@ -356,12 +377,41 @@ type FlattenStep struct{ Background transform.Color }
 // animation (imgproxy applyWatermark).
 type WatermarkStep struct {
 	WatermarkGeometry
-	Index   int     // index into the pipeline's Watermarks
-	Opacity float64 // the request's opacity (0..1), before the configured one
-	Frames  int     // frames of the strip it is applied to
-	// Default is set when the watermark is the configured image
+	Kind WatermarkKind
+	// Pipeline and Index identify the watermark in the request
+	// (Pipelines[Pipeline].Watermarks[Index]): the executor finds a
+	// per-request image by them.
+	Pipeline int
+	Index    int
+	Opacity  float64 // the request's opacity (0..1), before the configured one
+	Frames   int     // frames of the strip it is applied to
+	// Text is set when Kind is WatermarkText.
+	Text *TextWatermark
+}
+
+// WatermarkKind is what a watermark draws.
+type WatermarkKind uint8
+
+// WatermarkKind values.
+const (
+	// WatermarkDefault is the configured image
 	// (XI_PROCESSING_WATERMARK_SOURCE): no source or text of its own.
-	Default bool
+	WatermarkDefault WatermarkKind = iota
+	// WatermarkImage is the request's own image (imgproxy watermark_url),
+	// fetched by the server like a source.
+	WatermarkImage
+	// WatermarkText is rendered Pango markup (imgproxy watermark_text).
+	WatermarkText
+)
+
+// TextWatermark is a text watermark to render. Markup and Font come from
+// the request unsanitised; the executor sanitises them.
+type TextWatermark struct {
+	Markup string
+	Font   string           // "" = the configured font
+	Color  *transform.Color // nil = the markup's (black by default)
+	Width  int              // wrap width in pixels (DPR applied); 0 = the frame width
+	DPI    int              // 72 × DPR: one point per CSS pixel
 }
 
 // WatermarkGeometry sizes and places a watermark. Its methods reproduce
@@ -372,6 +422,12 @@ type WatermarkGeometry struct {
 	Tile     transform.TileMode
 	Scale    float64 // fraction of the frame to fit the watermark into; 0 = natural size
 	DPRScale float64 // scales pixel offsets
+	// Width and Height (pixels, DPR applied) are the box the watermark is
+	// fitted into, enlarging, when Scale is 0 (imgproxy watermark_size);
+	// 0 is derived from the other side and the aspect ratio.
+	Width, Height int
+	Rotate        float64 // degrees clockwise, after sizing
+	Shadow        float64 // drop-shadow sigma in pixels (DPR applied); 0 = none
 }
 
 func (LoadStep) step()         {}
@@ -400,14 +456,26 @@ func (w *WatermarkGeometry) Box(frameW, frameH int) (bw, bh int, ok bool) {
 	return max(scaleDimEven(frameW, w.Scale), 1), max(scaleDimEven(frameH, w.Scale), 1), true
 }
 
-// FitScale is the resize factor that fits a wmW×wmH watermark into Box
-// (1 when there is no box).
+// FitScale is the resize factor that fits a wmW×wmH watermark into Box,
+// or into Width×Height when there is no box (1 when there is neither).
 func (w *WatermarkGeometry) FitScale(frameW, frameH, wmW, wmH int) float64 {
-	bw, bh, ok := w.Box(frameW, frameH)
-	if !ok || wmW <= 0 || wmH <= 0 {
+	if wmW <= 0 || wmH <= 0 {
 		return 1
 	}
-	return 1 / max(float64(wmW)/float64(bw), float64(wmH)/float64(bh))
+	if bw, bh, ok := w.Box(frameW, frameH); ok {
+		return 1 / max(float64(wmW)/float64(bw), float64(wmH)/float64(bh))
+	}
+	sx, sy := float64(w.Width)/float64(wmW), float64(w.Height)/float64(wmH)
+	switch {
+	case w.Width > 0 && w.Height > 0:
+		return min(sx, sy)
+	case w.Width > 0:
+		return sx
+	case w.Height > 0:
+		return sy
+	default:
+		return 1
+	}
 }
 
 // TileSpacing is the padding added around a tiled watermark (imgproxy

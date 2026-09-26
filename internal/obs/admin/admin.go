@@ -1,6 +1,7 @@
 // Package admin builds the admin listener's ServeMux (ARCHITECTURE §13):
 // /metrics, /healthz, /readyz, /config.schema.json, /openapi.json, /docs
-// (only when enabled) and, only when enabled, pprof. app serves it on its
+// (only when enabled), the playground (only when enabled) and, only when
+// enabled, pprof. app serves it on its
 // own http.Server bound to XI_ADMIN_ADDR; it is never mounted on the public
 // listener, and http.DefaultServeMux is never served.
 package admin
@@ -111,6 +112,10 @@ type Options struct {
 	// Docs serves the Scalar API reference at /docs (XI_ADMIN_DOCS). Off by
 	// default: /docs then answers 404 and points at /openapi.json.
 	Docs bool
+	// Playground serves every path under PlaygroundPath (XI_PLAYGROUND_*,
+	// internal/playground). Nil leaves them unregistered (404).
+	Playground     http.Handler
+	PlaygroundPath string // "/_playground": starts with /, no trailing /
 }
 
 type muxRoute struct {
@@ -144,6 +149,11 @@ func routes(opts *Options) []muxRoute {
 	}
 	if opts.Pprof {
 		rs = append(rs, pprofRoutes()...)
+	}
+	if opts.Playground != nil && opts.PlaygroundPath != "" {
+		// Every method: the playground has its own method patterns
+		// (GET pages, POST api/sign) and answers 405 itself.
+		rs = append(rs, muxRoute{opts.PlaygroundPath + "/", opts.Playground})
 	}
 	return rs
 }

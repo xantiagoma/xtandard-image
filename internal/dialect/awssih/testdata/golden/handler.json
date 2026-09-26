@@ -231,12 +231,6 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "overlayWith",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -270,12 +264,6 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "overlayWith",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -318,12 +306,6 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "overlayWith",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -357,12 +339,6 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "overlayWith",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -396,12 +372,6 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "overlayWith",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -433,12 +403,6 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "overlayWith",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -476,10 +440,6 @@
         {
           "Option": "overlayWith.hRatio",
           "Reason": "approximated"
-        },
-        {
-          "Option": "overlayWith",
-          "Reason": "takes effect in M3"
         }
       ],
       "Pipelines": [
@@ -514,12 +474,6 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "overlayWith",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Resize": {
@@ -738,17 +692,14 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "smartCrop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
-          "Gravity": {
-            "FaceIndex": 0,
-            "Type": "face"
+          "CropObjects": {
+            "Classes": [
+              "face"
+            ],
+            "Index": 0,
+            "Scale": 1
           }
         }
       ],
@@ -766,17 +717,14 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "smartCrop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
-          "Gravity": {
-            "FaceIndex": 10,
-            "Type": "face"
+          "CropObjects": {
+            "Classes": [
+              "face"
+            ],
+            "Index": 10,
+            "Scale": 1
           }
         }
       ],
@@ -794,16 +742,14 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "smartCrop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
-          "Gravity": {
-            "Type": "face"
+          "CropObjects": {
+            "Classes": [
+              "face"
+            ],
+            "Index": 0,
+            "Scale": 1
           }
         }
       ],
@@ -821,23 +767,18 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "smartCrop.padding",
-          "Reason": "approximated"
-        },
-        {
-          "Option": "smartCrop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "webp"
       },
       "Pipelines": [
         {
-          "Gravity": {
-            "Type": "face"
+          "CropObjects": {
+            "Classes": [
+              "face"
+            ],
+            "Index": 0,
+            "Padding": 60,
+            "Scale": 1
           }
         }
       ],

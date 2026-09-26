@@ -198,8 +198,10 @@ func (st *state) applyAR(apply bool) error {
 // cropGravity maps the crop fallback chain. The first detector in the list
 // wins (focalpoint, faces, entropy, edges, auto or object classes, which
 // all fall back to the others in imgix); without one, top/bottom/left/right
-// combine into a compass point. faces and object classes take effect in M3
-// (until then the executor falls back to smart).
+// combine into a compass point. faces and object classes are face and
+// object gravity (WP-72): without faces or objects of the classes the
+// planner uses the smart crop, like imgix's fallback; without the detector
+// (the slim image) they answer 422.
 func (st *state) cropGravity(def transform.GravityType) (transform.Gravity, error) {
 	v, ok := st.get("crop")
 	if !ok {
@@ -240,14 +242,12 @@ func (st *state) cropGravity(def transform.GravityType) (transform.Gravity, erro
 	case "focalpoint":
 		return st.focalPoint()
 	case "faces":
-		st.b.Ignore("crop", reasonM3)
 		return transform.Gravity{Type: transform.GravityFace}, nil
 	case "entropy":
 		return transform.Gravity{Type: transform.GravityEntropy}, nil
 	case "edges", "auto":
 		return transform.Gravity{Type: transform.GravitySmart}, nil
 	case "object":
-		st.b.Ignore("crop", reasonM3)
 		return transform.Gravity{Type: transform.GravityObject, Classes: classes}, nil
 	}
 	if hor == 0 && ver == 0 {
@@ -280,7 +280,10 @@ func compass(hor, ver int) transform.GravityType {
 	}[ver+1][hor+1]
 }
 
-// focalPoint maps fp-x, fp-y (0..1, default 0.5) and fp-z (1..100).
+// focalPoint maps fp-x, fp-y (0..1, default 0.5, fractions of the source
+// as imgix defines them, not WP-86a pixel focus points) and fp-z (1..100).
+// The planner does not zoom on the focal point yet: fp-z > 1 is parsed into
+// FocusZoom and recorded as not implemented by checkFocal.
 func (st *state) focalPoint() (transform.Gravity, error) {
 	x, err := st.optNum("fp-x", 0, 1, 0.5)
 	if err != nil {
@@ -303,6 +306,9 @@ func (st *state) focalPoint() (transform.Gravity, error) {
 // checkFocal validates fp-* and records them as ignored unless used.
 func (st *state) checkFocal(used bool) error {
 	if used {
+		if st.pl.Gravity.FocusZoom > 0 {
+			st.b.Ignore("fp-z", reasonNotImplemented)
+		}
 		return nil
 	}
 	if _, err := st.focalPoint(); err != nil {
@@ -312,11 +318,13 @@ func (st *state) checkFocal(used bool) error {
 	return nil
 }
 
-// faceGravity maps fit=facearea with facepad (>= 0, imgix default 1) and
-// faceindex (1-based). Face detection takes effect in M3.
+// faceGravity maps fit=facearea with facepad (> 0, imgix default 1) and
+// faceindex (1-based): face gravity with a face pad, which pre-crops to
+// the faces' box scaled by facepad before the fill (WP-72). Without faces
+// the planner crops with the smart crop.
 func (st *state) faceGravity() (transform.Gravity, error) {
 	g := transform.Gravity{Type: transform.GravityFace}
-	pad, err := st.optNum("facepad", 0, transform.MaxFactor, 0)
+	pad, err := st.optNum("facepad", 0, transform.MaxFactor, 1)
 	if err != nil {
 		return g, err
 	}
@@ -329,14 +337,14 @@ func (st *state) faceGravity() (transform.Gravity, error) {
 		i--
 		g.FaceIndex = &i
 	}
-	st.b.Ignore("fit", reasonM3)
 	return g, nil
 }
 
 // applyFill maps fill=solid|blur|gen and fill-color for fit=fill and
 // fit=fillmax: the canvas is extended to the box and filled with
 // fill-color (which takes precedence over bg) or, for blur, a blurred copy
-// of the image (M3). Generative fill is unsupported and falls back to solid.
+// of the image (M3). Generative and gradient fills are unsupported and fall
+// back to solid.
 func (st *state) applyFill() error {
 	st.pl.Extend = transform.Extend{Enabled: true}
 	switch v, _ := st.get("fill"); v {
@@ -344,7 +352,7 @@ func (st *state) applyFill() error {
 	case "blur":
 		st.pl.Extend.Mode = transform.ExtendBlur
 		st.b.Ignore("fill", reasonM3)
-	case "gen":
+	case "gen", "generative", "gradient":
 		st.b.Ignore("fill", reasonUnsupported)
 	default:
 		return dialect.InvalidArgument("fill", v, expFill)
