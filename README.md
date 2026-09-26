@@ -53,7 +53,7 @@ The xtandard-image column is the state of `main` as of 2026-09-26: **done (M1)**
 | Metadata policy (strip, keep copyright, ICC → sRGB) | done (M1) | yes | yes | — | — | — |
 | Colour adjustments, duotone, gradients | M2 | no | paid | yes | no | yes |
 | Chained pipelines | M2 | no | paid | no | yes (`/pipeline`) | no |
-| Face and object detection (crop, blur) | M3 (full image) | no | paid | partial (OpenCV faces) | no | no |
+| Face and object detection (crop, blur) | runtime ready (WP-71, full image); options in M3 (WP-72/73) | no | paid | partial (OpenCV faces) | no | no |
 | Watermarks (text, per-request URL, size, shadow, rotation, chessboard) | done (M3) | no | paid | partial | partial (text) | no |
 | **Serving and operations** | | | | | | |
 | `/info` endpoint (dimensions, EXIF, IPTC, XMP) | done (M1) | no | paid | partial (`/meta`) | yes | partial (`output=json`) |
@@ -90,7 +90,7 @@ Image variants (both on the same `ubuntu:noble` + libvips 8.18 base, built from 
 | Variant | Contents | Status |
 |---|---|---|
 | `slim` | every still format: JPEG, PNG, GIF, WebP, AVIF, HEIC (decode), JPEG XL, TIFF, JPEG 2000, UltraHDR, SVG, PDF (PDFium), RAW (LibRaw), OpenEXR, PSD | default |
-| `full` | slim + FFmpeg 8.1 (LGPL only: video decode, VP8/VP9 and AV1 encode, no H.264/HEVC encode) + ONNX Runtime 1.30 (CPU) + the YuNet (MIT) face and YOLOX-s (Apache-2.0) object models | base image ready (`task docker:base:full`); the video and detection features using it land in M3 |
+| `full` | slim + FFmpeg 8.1 (LGPL only: video decode, VP8/VP9 and AV1 encode, no H.264/HEVC encode) + ONNX Runtime 1.30 (CPU) + the YuNet (MIT) face and YOLOX-s (Apache-2.0) object models | base image ready (`task docker:base:full`); the detection runtime loads its ONNX Runtime and models at startup (WP-71, `XI_DETECT_*`); the detection options and video land in M3 |
 
 No variant contains GPL code; every image carries its licences in `/opt/xtandard/share/licenses/` ([ADR 0006](docs/adr/0006-license-policy.md)).
 
