@@ -37,6 +37,8 @@ func (r *runner) step(ctx context.Context, img *vips.Image, s plan.Step) (*vips.
 		return r.flatten(ctx, img, s.Background)
 	case plan.FilterStep:
 		return r.filter(ctx, img, &s)
+	case plan.ColourAdjustStep:
+		return r.colourAdjust(ctx, img, &s)
 	case plan.WatermarkStep:
 		return r.watermark(ctx, img, &s)
 	case plan.TrimStep:
@@ -189,10 +191,15 @@ func (r *runner) embed(ctx context.Context, img *vips.Image, x, y, w, h int) (*v
 }
 
 // flatten blends the alpha band onto bg (imgproxy vips_flatten_go): a grey
-// image is converted to colour first when bg is not grey.
+// image is converted to colour first when bg is not grey. A translucent bg
+// (imgproxy background_alpha) is composited under the image instead, which
+// keeps an alpha band.
 func (r *runner) flatten(ctx context.Context, img *vips.Image, bg transform.Color) (*vips.Image, error) {
 	if !img.HasAlpha() {
 		return img, nil
+	}
+	if bg.A < 255 {
+		return r.translucentBackground(ctx, img, bg)
 	}
 	grey := bg.R == bg.G && bg.G == bg.B
 	var err error
@@ -216,6 +223,30 @@ func (r *runner) flatten(ctx context.Context, img *vips.Image, bg transform.Colo
 		vals = vals[:1]
 	}
 	return r.a.Add(img.Flatten(ctx, vals))
+}
+
+// translucentBackground composites img over a w×h background of bg, alpha
+// included: the result is opaque where either is.
+func (r *runner) translucentBackground(ctx context.Context, img *vips.Image, bg transform.Color) (*vips.Image, error) {
+	if bg.A == 0 {
+		return img, nil
+	}
+	var err error
+	if img.Interpretation() != vips.InterpretationSRGB {
+		if img, err = r.a.Add(img.Colourspace(ctx, vips.InterpretationSRGB)); err != nil {
+			return nil, err
+		}
+	}
+	if img.BandFormat() != vips.BandFormatUchar {
+		if img, err = r.a.Add(img.CastRound(ctx, vips.BandFormatUchar)); err != nil {
+			return nil, err
+		}
+	}
+	base, err := r.solid(ctx, img.Width(), img.Height(), []float64{float64(bg.R), float64(bg.G), float64(bg.B), float64(bg.A)})
+	if err != nil {
+		return nil, err
+	}
+	return r.over(ctx, base, img)
 }
 
 // trim removes a uniform border (imgproxy vips_trim) and renders the result:

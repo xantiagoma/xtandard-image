@@ -444,7 +444,7 @@ func TestUnplanned(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"rotate_any", "border", "adjust", "colour_effects"}
+	want := []string{"rotate_any", "border"}
 	if !slices.Equal(p.Unplanned, want) {
 		t.Errorf("Unplanned = %v, want %v", p.Unplanned, want)
 	}

@@ -3,7 +3,12 @@ package exec
 import (
 	"bytes"
 	"context"
+	"os"
+	"path/filepath"
+	"strings"
 
+	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -108,7 +113,21 @@ func (r *runner) importICC(ctx context.Context, img *vips.Image, target vips.Int
 // describes them: it is dropped, and with strip_color_profile=false
 // replaced by libvips' built-in sRGB (sGrey) profile. Converting back to the
 // source profile, as imgproxy does, is not done.
+//
+// color_profile (imgproxy Pro) then converts the pixels to the requested
+// profile and embeds it (colorProfile).
 func (r *runner) toResult(ctx context.Context, img *vips.Image) (*vips.Image, error) {
+	img, err := r.resultSpace(ctx, img)
+	if err != nil {
+		return nil, err
+	}
+	if name := r.req.Output.ColorProfile; name != "" {
+		return r.colorProfile(ctx, img, name)
+	}
+	return img, nil
+}
+
+func (r *runner) resultSpace(ctx context.Context, img *vips.Image) (*vips.Image, error) {
 	if !r.iccImported {
 		return img, nil
 	}
@@ -130,4 +149,39 @@ func (r *runner) toResult(ctx context.Context, img *vips.Image) (*vips.Image, er
 		return r.a.Add(img.RemoveMetadata(ctx, vips.FieldICC))
 	}
 	return r.a.Add(img.SetBlob(ctx, vips.FieldICC, icc))
+}
+
+// colorProfile converts img to the ICC profile name, "srgb", "cmyk" or a
+// file in Config.ColorProfilesDir, and embeds it (imgproxy Pro
+// color_profile). CMYK is only produced for JPEG and TIFF, the formats that
+// hold it; elsewhere, and for a file name without a configured directory,
+// the option is skipped.
+func (r *runner) colorProfile(ctx context.Context, img *vips.Image, name string) (*vips.Image, error) {
+	var profile string
+	switch strings.ToLower(name) {
+	case "srgb":
+		profile = "srgb"
+	case "cmyk":
+		if f := r.j.Target.Format; f != transform.FormatJPEG && f != transform.FormatTIFF {
+			r.skip("color_profile")
+			return img, nil
+		}
+		profile = "cmyk"
+	default:
+		dir := r.e.cfg.ColorProfilesDir
+		if dir == "" || name != filepath.Base(name) {
+			r.skip("color_profile")
+			return img, nil
+		}
+		profile = filepath.Join(dir, name)
+		if st, err := os.Stat(profile); err != nil || !st.Mode().IsRegular() {
+			return nil, errs.New(errs.KindInvalidURL, "exec: unknown color profile")
+		}
+	}
+	out, err := r.a.Add(img.ICCTransform(ctx, profile, vips.IntentRelative, true, 8))
+	if err != nil {
+		return nil, err
+	}
+	r.profileEmbedded = true
+	return out, nil
 }

@@ -92,8 +92,9 @@ func newProcessor(cfg *config.Config, wm *exec.Watermark) (*processor, error) {
 			MemoryBudget:            int64(cfg.Processing.MemoryBudget),
 			AllowRaisingLimits:      cfg.Security.AllowRaisingLimits,
 		},
-		FailOn:    vipsFailOn(cfg.Vips.FailOn),
-		Watermark: wm,
+		FailOn:           vipsFailOn(cfg.Vips.FailOn),
+		Watermark:        wm,
+		ColorProfilesDir: cfg.Processing.ColorProfilesDir,
 	}, enc)
 	if err != nil {
 		return nil, err
