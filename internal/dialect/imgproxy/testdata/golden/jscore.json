@@ -1,0 +1,1125 @@
+{
+  "all_aliases_short": {
+    "path": "/unsafe/ex:f/fn:x/g:ce/pr:a/rs:auto:10/plain/s3://bucket/path/to/key.png",
+    "request": {
+      "Delivery": {
+        "Filename": "x",
+        "Presets": [
+          "a"
+        ]
+      },
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "center"
+          },
+          "Resize": {
+            "Type": "auto",
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "s3://bucket/path/to/key.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "s3://bucket/path/to/key.png"
+  },
+  "auto_rotate_rotate_flip": {
+    "path": "/unsafe/ar:f/fl:t:f/rot:270/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "AutoRotate": false,
+          "Flip": {
+            "H": true
+          },
+          "Rotate": 270
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "background_alpha": {
+    "path": "/unsafe/bg:fff/background_alpha:0.5/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "background_alpha",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 128,
+            "B": 255,
+            "G": 255,
+            "R": 255
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "background_hex": {
+    "path": "/unsafe/bg:ff0080/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 128,
+            "R": 255
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "background_rgb": {
+    "path": "/unsafe/bg:10:20:30/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 30,
+            "G": 20,
+            "R": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "base64_ext": {
+    "path": "/unsafe/h:120/sm:t/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw.png",
+    "request": {
+      "Dialect": "imgproxy",
+      "Output": {
+        "Format": "png",
+        "StripMetadata": true
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 120
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "base64",
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "base64_s3": {
+    "path": "/unsafe/h:100/rt:fill-down/w:100/czM6Ly9idWNrZXQvcGF0aC90by9rZXkucG5n",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 100
+            },
+            "Type": "fill-down",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "base64",
+        "Raw": "s3://bucket/path/to/key.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "s3://bucket/path/to/key.png"
+  },
+  "crop_abs_gravity": {
+    "path": "/unsafe/c:100:200:noea:3/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-east",
+              "XOffset": 3
+            },
+            "Height": {
+              "Px": 200
+            },
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "crop_rel": {
+    "path": "/unsafe/c:0.5:0.25/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Rel": 0.25
+            },
+            "Width": {
+              "Rel": 0.5
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "base64",
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "delivery": {
+    "path": "/unsafe/cb:v42/exp:4102444800/fn:my-cat:f/att:t/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Delivery": {
+        "Attachment": true,
+        "CacheBuster": "v42",
+        "Expires": "2100-01-01T00:00:00Z",
+        "Filename": "my-cat"
+      },
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "disable_animation_pages": {
+    "path": "/unsafe/da:t/pg:2/pgs:3/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "pg",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "pgs",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "DisableAnimation": true,
+          "Page": 2,
+          "Pages": 3
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "dpr_enlarge": {
+    "path": "/unsafe/dpr:2/el:t/w:300/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "DPR": 2,
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "effects": {
+    "path": "/unsafe/bl:2.5/pix:8/sh:0.7/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Blur": 2.5,
+          "Pixelate": 8,
+          "Sharpen": 0.7
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "extend_ar_fp": {
+    "path": "/unsafe/exar:t:fp:0.25:0.75/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "ExtendAR": {
+            "Enabled": true,
+            "Gravity": {
+              "FocusX": 0.25,
+              "FocusY": 0.75,
+              "Type": "focus-point"
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "extend_gravity": {
+    "path": "/unsafe/ex:t:soea:10:20/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "south-east",
+              "XOffset": 10,
+              "YOffset": 20
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "filename_encoded": {
+    "path": "/unsafe/fn:Y2hhdCByw6lzdW3DqS5qcGc:t/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Delivery": {
+        "Filename": "chat résumé.jpg"
+      },
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "format_jpg_base64": {
+    "path": "/unsafe/f:jpg/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw",
+    "request": {
+      "Dialect": "imgproxy",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "base64",
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "gravity_compass_offsets": {
+    "path": "/unsafe/g:we:5:0.1/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "west",
+            "XOffset": 5,
+            "YOffset": 0.1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "gravity_fp": {
+    "path": "/unsafe/g:fp:0.5:0.3/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusX": 0.5,
+            "FocusY": 0.3,
+            "Type": "focus-point"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "gravity_obj": {
+    "path": "/unsafe/g:obj:face:cat/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "g:obj",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Classes": [
+              "face",
+              "cat"
+            ],
+            "Type": "object"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "gravity_objw": {
+    "path": "/unsafe/g:objw:face:2:dog:0.5/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "g:objw",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Classes": [
+              "face",
+              "dog"
+            ],
+            "Type": "object-weighted",
+            "Weights": [
+              2,
+              0.5
+            ]
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "gravity_smart": {
+    "path": "/unsafe/g:sm/rs:fill:300:300/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "later_options": {
+    "path": "/unsafe/a:10:1.2:0.8/dpi:300/jpgo:true/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "a",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "dpi",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "jpgo",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "max_bytes_format": {
+    "path": "/unsafe/f:avif/mb:100000/plain/s3://bucket/path/to/key.png",
+    "request": {
+      "Dialect": "imgproxy",
+      "Output": {
+        "Format": "avif",
+        "MaxBytes": 100000
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "s3://bucket/path/to/key.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "s3://bucket/path/to/key.png"
+  },
+  "metadata_flags": {
+    "path": "/unsafe/eth:t/kcr:t/ph:t/scp:f/sm:f/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "eth",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "ph",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "EnforceThumbnail": true,
+        "KeepCopyright": true,
+        "PreserveHDR": true,
+        "StripColorProfile": false,
+        "StripMetadata": false
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "min_dims": {
+    "path": "/unsafe/mh:100/mw:200/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "MinHeight": 100,
+            "MinWidth": 200
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "padding_number": {
+    "path": "/unsafe/pd:10/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Padding": {
+            "Bottom": 10,
+            "Left": 10,
+            "Right": 10,
+            "Top": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "padding_object": {
+    "path": "/unsafe/pd:1:2:3:4/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Padding": {
+            "Bottom": 3,
+            "Left": 4,
+            "Right": 2,
+            "Top": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "padding_partial": {
+    "path": "/unsafe/pd:5:6/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Padding": {
+            "Bottom": 5,
+            "Left": 6,
+            "Right": 6,
+            "Top": 5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "plain_ext": {
+    "path": "/unsafe/f:png/w:200/plain/https://example.com/images/cat.jpg@webp",
+    "request": {
+      "Dialect": "imgproxy",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "presets": {
+    "path": "/unsafe/pr:sharp:thumbnail/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "sharp",
+          "thumbnail"
+        ]
+      },
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "quality_format_quality": {
+    "path": "/unsafe/fq:jpeg:80:webp:70:avif:50/q:75/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Output": {
+        "FormatQuality": {
+          "avif": 50,
+          "jpeg": 80,
+          "webp": 70
+        },
+        "Quality": 75
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "raw": {
+    "path": "/unsafe/raw:t/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "raw",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "readme_example": {
+    "path": "/unsafe/bl:5/el:t/ex:t:nowe::5/f:webp/h:150/q:80/w:150/z:1.5/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Output": {
+        "Format": "webp",
+        "Quality": 80
+      },
+      "Pipelines": [
+        {
+          "Blur": 5,
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "north-west",
+              "YOffset": 5
+            }
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 150
+            },
+            "Width": {
+              "Px": 150
+            },
+            "ZoomX": 1.5,
+            "ZoomY": 1.5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "resize_full": {
+    "path": "/unsafe/rs:fill:300:400:t:t:so/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "south"
+            }
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 400
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "resize_type_only": {
+    "path": "/unsafe/rs:fit/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "resizing_algorithm": {
+    "path": "/unsafe/ra:lanczos2/w:100/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Algorithm": "lanczos2",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "resizing_type_force": {
+    "path": "/unsafe/rt:force/w:50/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "force",
+            "Width": {
+              "Px": 50
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "size_enlarge_extend": {
+    "path": "/unsafe/s:640:480:t:t/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 480
+            },
+            "Width": {
+              "Px": 640
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "base64",
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "size_wh": {
+    "path": "/unsafe/s:640:480/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 480
+            },
+            "Width": {
+              "Px": 640
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "base64",
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "skip_processing": {
+    "path": "/unsafe/sp:svg:gif/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Delivery": {
+        "SkipProcessing": [
+          "svg",
+          "gif"
+        ]
+      },
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "trim_full": {
+    "path": "/unsafe/t:10:ffaa00:t:f/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Trim": {
+            "Color": {
+              "A": 255,
+              "G": 170,
+              "R": 255
+            },
+            "EqualHor": true,
+            "Threshold": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "trim_threshold": {
+    "path": "/unsafe/t:2.5/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Trim": {
+            "Threshold": 2.5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "watermark_chessboard": {
+    "path": "/unsafe/wm:0.3:ch:4/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "wm:ch",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 0.3,
+              "Position": {
+                "XOffset": 4
+              },
+              "Tile": "chessboard"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "watermark_full": {
+    "path": "/unsafe/wm:0.5:soea:10:12:0.2/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 0.5,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 10,
+                "YOffset": 12
+              },
+              "Scale": 0.2
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "watermark_replicate": {
+    "path": "/unsafe/wm:1:re/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Tile": "repeat"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "wild_options": {
+    "path": "/unsafe/rs:fit:10:10/custom:a:b/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "custom",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 10
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "zoom_xy": {
+    "path": "/unsafe/z:0.5:2/plain/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "ZoomX": 0.5,
+            "ZoomY": 2
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  }
+}
