@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>xtandard-image playground</title>
+<link rel="stylesheet" href="__ASSETS__/style.css">
+<script type="module" src="__ASSETS__/app.js"></script>
+</head>
+<body>
+<header class="top">
+  <h1>xtandard-image playground</h1>
+  <p class="meta"><span id="version">loading…</span> · signing <span id="signing-mode" class="badge">…</span></p>
+</header>
+
+<aside class="notice" aria-label="Security notice">
+  <p><strong>Signing happens on the server.</strong> Keys and salts never reach this page: it sends the path you build to
+  <code>api/sign</code> and gets the signed URL back. Anyone who can open this page can sign URLs, so keep the playground
+  on the private admin listener (<code>XI_PLAYGROUND_PUBLIC=false</code>, the default).</p>
+</aside>
+
+<main class="layout">
+  <section class="panel" aria-labelledby="build-title">
+    <h2 id="build-title">Build</h2>
+
+    <fieldset>
+      <legend>Server</legend>
+      <label for="base-url">Public base URL</label>
+      <input id="base-url" type="url" autocomplete="off" spellcheck="false" placeholder="http://localhost:8080">
+      <label for="accept">Accept header for the preview</label>
+      <select id="accept">
+        <option value="image/avif,image/webp,image/apng,image/*,*/*;q=0.8">Modern browser (AVIF, WebP)</option>
+        <option value="image/webp,image/*,*/*;q=0.8">WebP only</option>
+        <option value="image/jpeg,image/png,image/*;q=0.8">Legacy (JPEG, PNG)</option>
+        <option value="*/*">*/*</option>
+      </select>
+    </fieldset>
+
+    <fieldset>
+      <legend>Source</legend>
+      <label for="source-kind">Source</label>
+      <select id="source-kind"></select>
+      <div id="sample-row" hidden>
+        <label for="sample">Sample image</label>
+        <select id="sample"></select>
+        <p class="hint">Samples are public URLs: the server must reach them and an <code>http</code> source must allow their host.</p>
+      </div>
+      <label for="source-input" id="source-label">Source URL</label>
+      <input id="source-input" type="text" autocomplete="off" spellcheck="false" placeholder="https://example.com/photo.jpg">
+    </fieldset>
+
+    <fieldset>
+      <legend>Dialect</legend>
+      <label for="mount">Mount</label>
+      <select id="mount"></select>
+      <p class="hint" id="mount-info"></p>
+    </fieldset>
+
+    <fieldset id="builder">
+      <legend>Options</legend>
+      <div id="catalogue-builder">
+        <label for="option-search">Add option</label>
+        <div class="row">
+          <input id="option-search" list="option-list" autocomplete="off" spellcheck="false" placeholder="Name or alias, e.g. resize or rs">
+          <button type="button" id="add-option">Add</button>
+        </div>
+        <datalist id="option-list"></datalist>
+        <p class="hint" id="option-hint" aria-live="polite"></p>
+        <ol id="options" class="options" aria-label="Selected options"></ol>
+        <div id="imgproxy-extra" class="row wrap">
+          <label class="inline"><input type="checkbox" id="use-alias"> Short names</label>
+          <label class="inline" for="src-encoding">Source encoding</label>
+          <select id="src-encoding">
+            <option value="plain">plain/</option>
+            <option value="base64">base64</option>
+          </select>
+          <label class="inline" for="extension">Extension</label>
+          <select id="extension"><option value="">(none)</option></select>
+        </div>
+      </div>
+      <div id="free-builder" hidden>
+        <p class="hint">This dialect is built by hand. <code>{src}</code> is replaced by the source.</p>
+        <label for="free-path">Path after the mount prefix</label>
+        <input id="free-path" type="text" autocomplete="off" spellcheck="false">
+        <label for="free-query">Query (without ?)</label>
+        <input id="free-query" type="text" autocomplete="off" spellcheck="false">
+      </div>
+    </fieldset>
+  </section>
+
+  <section class="panel" aria-labelledby="url-title">
+    <h2 id="url-title">URL</h2>
+    <label for="url-out">Generated URL</label>
+    <textarea id="url-out" rows="3" readonly spellcheck="false"></textarea>
+    <div class="row">
+      <button type="button" id="copy">Copy</button>
+      <button type="button" id="render">Render</button>
+      <label class="inline"><input type="checkbox" id="auto-render" checked> Render on change</label>
+      <span id="signed" class="badge"></span>
+    </div>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+
+    <div class="compare">
+      <figure>
+        <figcaption>Source <span class="hint">(no options)</span></figcaption>
+        <div class="frame"><img id="before-img" alt="Source image"></div>
+        <p class="error" id="before-error" hidden></p>
+        <table class="headers" aria-label="Source response headers"><tbody id="before-headers"></tbody></table>
+      </figure>
+      <figure>
+        <figcaption>Result</figcaption>
+        <div class="frame"><img id="after-img" alt="Result image"></div>
+        <p class="error" id="after-error" hidden></p>
+        <table class="headers" aria-label="Result response headers"><tbody id="after-headers"></tbody></table>
+      </figure>
+    </div>
+  </section>
+</main>
+
+<template id="option-template">
+  <li class="option">
+    <div class="option-head">
+      <strong class="option-name"></strong>
+      <span class="option-aliases"></span>
+      <button type="button" class="remove">Remove</button>
+    </div>
+    <p class="option-doc hint"></p>
+    <div class="form-choice"></div>
+    <div class="args"></div>
+  </li>
+</template>
+</body>
+</html>
