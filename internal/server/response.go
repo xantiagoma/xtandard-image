@@ -112,6 +112,10 @@ func (s *Server) respond(w http.ResponseWriter, r *http.Request, res *imageResul
 	}
 
 	ct := res.contentType()
+	if res.req.Delivery.Encoding == transform.ResponseDataURL {
+		s.respondDataURL(w, r, res, ct)
+		return
+	}
 	h.Set("Content-Type", ct)
 	h.Set("X-Content-Type-Options", "nosniff")
 	ext := formatExt(res.format)
@@ -134,6 +138,37 @@ func (s *Server) respond(w http.ResponseWriter, r *http.Request, res *imageResul
 	w.WriteHeader(http.StatusOK)
 	if r.Method != http.MethodHead {
 		_, _ = w.Write(body) //nolint:gosec // G705: encoded image bytes with an explicit image Content-Type and nosniff
+	}
+}
+
+// respondDataURL writes the encoded image as a "data:<type>;base64,..."
+// text body (wsrv encoding=base64, weserv src/nginx/util.cpp
+// output_chain_to_base64): Content-Type text/plain and no
+// Content-Disposition. The cache headers are those of the image; the
+// canonical key includes the encoding, so the ETag differs from the
+// binary response's.
+func (s *Server) respondDataURL(w http.ResponseWriter, r *http.Request, res *imageResult, ct string) {
+	h := w.Header()
+	h.Set("Content-Type", "text/plain; charset=utf-8")
+	h.Set("X-Content-Type-Options", "nosniff")
+	if s.cfg.DebugHeaders {
+		setDebugHeaders(h, res)
+	}
+	if res.out == nil {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	img := res.out.Body.Bytes()
+	const prefix, sep = "data:", ";base64,"
+	body := make([]byte, 0, len(prefix)+len(ct)+len(sep)+base64.StdEncoding.EncodedLen(len(img)))
+	body = append(body, prefix...)
+	body = append(body, ct...)
+	body = append(body, sep...)
+	body = base64.StdEncoding.AppendEncode(body, img)
+	h.Set("Content-Length", strconv.Itoa(len(body)))
+	w.WriteHeader(http.StatusOK)
+	if r.Method != http.MethodHead {
+		_, _ = w.Write(body) //nolint:gosec // G705: base64 text of the encoded image, text/plain with nosniff
 	}
 }
 
