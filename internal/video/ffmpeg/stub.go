@@ -36,3 +36,52 @@ func Thumbnail(context.Context, *vips.Buffer, *video.FrameRequest) (*Frame, erro
 
 // ReadStats returns zero counters.
 func ReadStats() Stats { return Stats{} }
+
+// Session is never opened without FFmpeg.
+type Session struct{}
+
+// Open reports errs.KindUnsupported: this build has no FFmpeg.
+func Open(context.Context, *vips.Buffer, video.Limits) (*Session, error) {
+	return nil, errUnavailable()
+}
+
+// Meta is empty.
+func (*Session) Meta() video.Meta { return video.Meta{} }
+
+// Reads is false.
+func (*Session) Reads(*vips.Buffer) bool { return false }
+
+// Close does nothing.
+func (*Session) Close() {}
+
+// Thumbnail reports errs.KindUnsupported.
+func (*Session) Thumbnail(context.Context, *video.FrameRequest) (*Frame, error) {
+	return nil, errUnavailable()
+}
+
+// Frames reports errs.KindUnsupported.
+func (*Session) Frames(context.Context, *video.FramesRequest) ([]*Frame, error) {
+	return nil, errUnavailable()
+}
+
+// Encoders is empty: this build writes no video.
+func Encoders() video.EncoderSet { return video.EncoderSet{} }
+
+// Encoder is never opened without FFmpeg.
+type Encoder struct{}
+
+// NewEncoder reports errs.KindUnsupported: this build has no FFmpeg.
+func NewEncoder(context.Context, *video.EncodeParams) (*Encoder, error) {
+	return nil, errs.WithPublic(
+		errs.New(errs.KindUnsupported, "ffmpeg: this build has no video support (build tag ffmpeg)"),
+		"video output is not supported by this image")
+}
+
+// Frame reports errs.KindUnsupported.
+func (*Encoder) Frame(context.Context, []byte, int64, int64) error { return errUnavailable() }
+
+// Finish reports errs.KindUnsupported.
+func (*Encoder) Finish(context.Context) (*vips.Buffer, error) { return nil, errUnavailable() }
+
+// Close does nothing.
+func (*Encoder) Close() {}

@@ -36,8 +36,10 @@ func (f *Frame) Release() {
 
 // Stats are the shim's counters, for leak tests.
 type Stats struct {
-	// Handles is the number of open decoder handles.
+	// Handles is the number of open decoder handles (sessions included).
 	Handles int
+	// Encoders is the number of open video encoders.
+	Encoders int
 	// HeapInUse is glibc's in-use heap in bytes (mallinfo2), 0 where it is
 	// not available.
 	HeapInUse int64

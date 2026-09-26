@@ -113,4 +113,64 @@ size_t xi_ff_heap_in_use(void);
 // xi_ff_version is FFmpeg's version string ("8.1.3").
 const char *xi_ff_version(void);
 
+// ---------------------------------------------------------------------------
+// Encoding (encode.c, WP-76): RGB(A) frames → VP9, AV1, H.264 or HEVC, muxed
+// into WebM or MP4 in a buffer the handle owns. No temporary file: the
+// muxer writes and seeks in that buffer through a custom AVIOContext, and
+// MP4's faststart pass reads it back through the context's io_open.
+
+// Encoders (bit mask of xi_ff_encoders) and containers.
+enum {
+  XI_FF_ENC_VP9 = 1,
+  XI_FF_ENC_AV1 = 2,
+  XI_FF_ENC_H264 = 4,
+  XI_FF_ENC_HEVC = 8,
+};
+enum {
+  XI_FF_MUX_MP4 = 1,
+  XI_FF_MUX_WEBM = 2,
+};
+
+typedef struct {
+  int codec;         // one XI_FF_ENC_* value
+  int container;     // XI_FF_MUX_*
+  int width, height; // even
+  int alpha;         // yuva420p (VP9 in WebM)
+  int bands;         // 3 (RGB) or 4 (RGBA) input frames
+  int crf;
+  int speed;         // cpu-used (VP9, AV1)
+  char preset[16];   // x264/x265 preset
+  double fps;        // average frame rate: a rate-control hint
+  int64_t max_bytes; // the muxed output may not grow past it; 0 = unlimited
+} XiFFEncParams;
+
+typedef struct XiFFEnc XiFFEnc;
+
+// xi_ff_encoders probes the linked FFmpeg (avcodec_find_encoder_by_name, and
+// the muxer each codec goes into) and returns the XI_FF_ENC_* it can use.
+int xi_ff_encoders(void);
+// xi_ff_enc_new opens the encoder and the muxer and writes the container
+// header. NULL on failure, with *code an XI_FF_* result and err a message.
+XiFFEnc *xi_ff_enc_new(const XiFFEncParams *p, int *code, char *err, size_t errlen);
+// xi_ff_enc_frame encodes one frame: width × height × bands packed bytes at
+// pix (C memory, read during the call only), shown at pts_ms for
+// duration_ms. Timestamps must increase.
+int xi_ff_enc_frame(
+    XiFFEnc *e, const uint8_t *pix, int64_t pts_ms, int64_t duration_ms, char *err, size_t errlen);
+// xi_ff_enc_finish flushes the encoder and writes the trailer; the output is
+// then xi_ff_enc_size bytes, copied out by xi_ff_enc_copy.
+int xi_ff_enc_finish(XiFFEnc *e, char *err, size_t errlen);
+size_t xi_ff_enc_size(XiFFEnc *e);
+void xi_ff_enc_copy(XiFFEnc *e, uint8_t *dst);
+// xi_ff_enc_abort makes the running and later calls fail with
+// XI_FF_ERR_ABORTED (checked per frame, per packet and by the muxer's I/O).
+void xi_ff_enc_abort(XiFFEnc *e, int on);
+void xi_ff_enc_free(XiFFEnc *e);
+// xi_ff_live_encoders counts open encoders (leak tests).
+int xi_ff_live_encoders(void);
+
+// Shared by shim.c and encode.c.
+void xi_ff_setup(void);
+void xi_ff_set_err(char *err, size_t errlen, const char *what, int averr);
+
 #endif
