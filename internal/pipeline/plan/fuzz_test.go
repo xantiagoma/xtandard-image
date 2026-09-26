@@ -168,7 +168,8 @@ func BenchmarkBuild(b *testing.B) {
 		}), plan.SourceMeta{Width: 4000, Height: 3000, Orientation: 6, Format: "jpeg"}},
 		{"animated_gif", req(transform.Pipeline{Resize: transform.Resize{Width: px(100)}}), gifMeta(50)},
 	}
-	for _, c := range cases {
+	for i := range cases {
+		c := &cases[i]
 		b.Run(c.name, func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
