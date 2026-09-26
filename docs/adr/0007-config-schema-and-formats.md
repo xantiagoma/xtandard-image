@@ -2,6 +2,7 @@
 
 - Status: accepted (implementation: WP-81, publishing: WP-81b)
 - Date: 2026-09-26
+- Amended: 2026-09-26, with the owner's answers to ROADMAP open questions 9 (schema URL and self-serving) and 11 (secret file references)
 
 ## Context
 
@@ -9,7 +10,7 @@ The config file (`--config` / `XI_CONFIG_FILE`, CONFIG.md §1) is YAML only toda
 
 - `Config` has only `yaml` and `env` tags. About 15 fields use `encoding.TextUnmarshaler` types that a generic reflector models wrongly. `time.Duration` is an `int64` but is written `5s`. `HexKey` is a `[]byte`, so a reflector sees an array or base64. `ByteSize` takes `10MiB` or a plain integer, and `IntList` takes `640-1080/220` or a list. `Tristate`, `Secret` and the enum types (`UnsignedPolicy`, `SourceType`, `Format`, `DialectName`, …) have their own rules too.
 - There are two dynamic maps. `sources.<name>` has keys `[a-z0-9-]` and fields that depend on `type`. `presets.<name>` is a string. Some maps take free keys, such as `sources.<name>.headers`.
-- `_FILE` secrets exist only in the environment (`XI_SIGNING_KEYS_FILE`). The file has no `_file` keys, so the file schema does not need them. It does document them, see below.
+- `_FILE` secrets exist only in the environment (`XI_SIGNING_KEYS_FILE`). The file has no `_file` keys. Before this ADR, a secret written in a file could only be a plain value; decision 7 adds a `{file: …}` reference.
 - `internal/config` already has a tested field walker (`fields.go`, `fieldsOf`/`staticFields`/`sourceFields`), and `TestFieldWalkerMatchesLibrary` checks it against caarlos0/env. `docs_test.go` already parses every CONFIG.md §2 row (name, default, meaning) and checks it against the code.
 - Env precedence must not change: defaults → file → `IMGPROXY_*` compat → `XI_*`.
 
@@ -40,6 +41,14 @@ The config file (`--config` / `XI_CONFIG_FILE`, CONFIG.md §1) is YAML only toda
 | **GitHub Pages** `https://xantiagoma.github.io/xtandard-image/schema/…` | Layout-independent and versioned per release. Needs one workflow. |
 | **SchemaStore catalog entry** | Self-hosted schemas are allowed: the catalog `url` points at our URL. Generic `fileMatch` values such as `config.yaml` are refused ("avoid adding generic patterns", SchemaStore CONTRIBUTING.md). Once listed, VS Code, JetBrains, yaml-language-server, Taplo and Tombi match files without a modeline. |
 
+### Secrets inside the file (open question 11)
+
+| Option | Precedent | Verdict |
+|---|---|---|
+| Status quo: plain values in the file, `_FILE` only in the env | Mounting the whole config file as a Docker/Kubernetes secret already works. | Rejected as the only answer. A config file usually lives in version control or a ConfigMap, so a single secret forces the whole file into a secret store. |
+| String reference `${file:/path}` inside any string | Grafana's `$__file{/path}` in `grafana.ini`, an INI file with no structured values. | Rejected. It is a magic string that collides with interpolation: Docker Compose interpolates `${…}` in `compose.yaml` and in inline `configs.content`, and rejects `${file:/x}` as invalid unless the user writes `$${…}`. It also makes a literal secret that starts with `${file:` impossible to write, and the expansion would hide inside `UnmarshalText`, which the env path uses too. |
+| **Object reference `{file: /path}` on secret-typed values** | Docker Compose's own `secrets: <name>: file: <path>` shape, and Kubernetes-style `valueFrom` indirection. Unlike INI, all three of our formats have objects. | **Chosen.** It is explicit and unambiguous and needs no escaping. The schema can model it exactly (`oneOf` a string or a closed `{file}` object), so editors complete the `file` key. |
+
 ### Editor directives (verified)
 
 - YAML: `# yaml-language-server: $schema=<url>`. yaml-language-server supports drafts 04, 07, 2019-09 and 2020-12 (README).
@@ -52,7 +61,7 @@ The config file (`--config` / `XI_CONFIG_FILE`, CONFIG.md §1) is YAML only toda
    - Every object is closed with `additionalProperties: false`, like the strict loader.
    - The root also allows `"$schema": {"type": "string"}` so JSON (and TOML `$schema` keys) validate.
    - `sources` is `patternProperties: {"^[a-z0-9-]+$": {"$ref": "#/$defs/source"}}` with `additionalProperties: false`. `source` is a `oneOf` of one closed schema per `type` (`"type": {"const": "s3"}` plus only that type's fields), so completion offers only the fields that apply, which mirrors `Validate`. `presets` uses the same name pattern with string values. `headers` uses `additionalProperties: {"type": "string"}`.
-   - Per-type mapping: durations and sizes are string patterns (sizes also accept a non-negative integer), with the same grammar as `ParseDuration`/`ByteSize`. `HexKey` is a hex pattern. `IntList` is a range-string pattern or an array of integers. `CIDR` is a string. `Tristate` is a boolean or `"auto"`. Enum types list their values from the same tables their `UnmarshalText` uses. `Secret`/`HexKey` get `"writeOnly": true`.
+   - Per-type mapping: durations and sizes are string patterns (sizes also accept a non-negative integer), with the same grammar as `ParseDuration`/`ByteSize`. `HexKey` is a hex pattern. `IntList` is a range-string pattern or an array of integers. `CIDR` is a string. `Tristate` is a boolean or `"auto"`. Enum types list their values from the same tables their `UnmarshalText` uses. `Secret`/`HexKey` get `"writeOnly": true`. Each secret-typed value is also a `oneOf` of its string schema and `#/$defs/fileRef` (a closed `{"file": <absolute path>}` object), see decision 7.
    - Each property's `description` is the CONFIG.md meaning, followed by ``Env: `XI_…` `` and, for secrets, ``(or `XI_…_FILE`)``. This way `_FILE` shows up in the editor without inventing file-side `_file` keys. `default` comes from the default `Config`.
 2. **One committed artefact, embedded.** `internal/config/config.schema.json` is generated by `TestJSONSchema` (`go test ./internal/config -run TestJSONSchema -update`, the same `-update` flow as the golden harness). The test fails when the committed file differs from the generated one. It also compiles the schema and checks it:
    - every CONFIG.md §3 example and every file in `internal/config/testdata` validates;
@@ -64,16 +73,25 @@ The config file (`--config` / `XI_CONFIG_FILE`, CONFIG.md §1) is YAML only toda
    - TOML is decoded by go-toml/v2 into `map[string]any`, re-marshalled with goccy/go-yaml, and then goes through the same strict decoder. There is one set of struct tags (`yaml`) and one strictness and error path. TOML date/time values are rejected, because no field takes one. Errors name the dotted key path (`sources.assets.bucket`), which is the same in every format.
    - A top-level `$schema` key is removed before the strict decode in every format. YAML and TOML modelines are comments and need nothing.
    - Default discovery becomes `/etc/xtandard/config.{yaml,yml,json,toml}`. Finding more than one is an error.
-   - Precedence, `_FILE`, list replacement and unknown-key errors stay as they are.
+   - Precedence, `_FILE`, list replacement and unknown-key errors stay as they are. The only addition is the secret file reference in decision 7.
 5. **CLI** (`cmd/xtandard-image/run.go`):
-   - `config schema` prints the embedded schema.
+   - `config schema` prints the embedded schema. Its output is byte-for-byte the same file the admin listener serves at `GET /config.schema.json` (decision 6).
    - `config validate [--config PATH] [--no-env]` runs `Load` + `Validate` and prints every violation with its path and variable, or `ok`. It exits 1 on any error. `--no-env` ignores `XI_*`/`IMGPROXY_*`, so a config repo's CI can check a file on its own.
    - `config print` is unchanged.
-6. **Publishing** (WP-81b, with the release pipeline):
-   - Pages serves `https://xantiagoma.github.io/xtandard-image/schema/config.schema.json` (latest *release*, never `main`) and `…/schema/<version>/config.schema.json`, where `<version>` is the release tag without `v`.
-   - `$id` is the versioned URL.
+6. **Publishing and self-serving** (open question 9, resolved: GitHub Pages, no custom domain):
+   - **The server serves its own schema** (WP-81). The admin listener (`XI_ADMIN_ADDR`, default `127.0.0.1:9090`) answers `GET /config.schema.json` with the embedded bytes, `Content-Type: application/schema+json` and a strong ETag. Like `/openapi.json` (ADR 0008 decision 3), the route is always on and never exists on the public listener. What it serves always matches the running binary's loader, which a Pages URL cannot promise for an older deployment.
+   - **Pages** (WP-81b, with the release pipeline) serves `https://xantiagoma.github.io/xtandard-image/schema/config.schema.json` (latest *release*, never `main`) and `…/schema/<version>/config.schema.json`, where `<version>` is the release tag without `v`.
+   - **`$id` is the versioned Pages URL** in every copy: embedded, served, printed and published. `$id` identifies the schema and is not where it is fetched from. Every `$ref` in the schema is a local `#/$defs/…` fragment, so a copy fetched from the admin listener or from a local file resolves exactly like the Pages copy.
+   - **A self-hosted instance can point editors at its own admin URL** instead of Pages: `# yaml-language-server: $schema=http://127.0.0.1:9090/config.schema.json`, or the same URL in `"$schema"` or `#:schema`, reached directly or through `kubectl port-forward`. The editor then validates against exactly the version that will load the file. Offline editors use `config schema > config.schema.json` and a relative path.
    - After the first release, open a SchemaStore PR with a catalog entry that has `url` (latest), `versions`, and `fileMatch` limited to project-specific names: `xtandard-image.{yaml,yml,json,toml}`, `.xtandard-image.{yaml,yml,json,toml}`, and `**/xtandard/config.{yaml,yml,json,toml}` if reviewers accept it.
    - The raw tag URL `https://raw.githubusercontent.com/xantiagoma/xtandard-image/<tag>/internal/config/config.schema.json` stays documented as a fallback.
+7. **Secret file references** (open question 11, WP-81). In every format, a secret-typed value may be written as `{file: /absolute/path}` instead of a literal.
+   - It is allowed only where the value is a `Secret` or a `HexKey`: the field itself, one element of a list of them (`signing: {keys: [{file: /run/secrets/key_a}, {file: /run/secrets/key_b}]}` during a rotation), or one value of a map of them (`sources.<name>.headers.Authorization`). Anywhere else it is a type error, as today.
+   - It means the same as `XI_…_FILE` for one value. After the strict decode, the loader reads the file, trims one trailing newline and parses the content with the same `UnmarshalText`. Both paths share one function.
+   - The path must be absolute, so it never depends on the working directory. A missing or unreadable file, a file over 64 KiB, or content that does not parse is a startup error that names the key path and never the content.
+   - Precedence does not change. The reference is a file-level value, so `XI_…` or `XI_…_FILE` in the environment still wins. `config print` shows the resolved value as `[REDACTED]`.
+   - Decoding: `Secret` and `HexKey` get a goccy `BytesUnmarshaler` that accepts either a scalar or the closed `{file}` mapping. JSON and TOML reach it through the same decoder (decision 4).
+   - Nothing in the file is interpolated. There is no `${…}` syntax.
 
 ## Consequences
 
@@ -81,4 +99,6 @@ The config file (`--config` / `XI_CONFIG_FILE`, CONFIG.md §1) is YAML only toda
 - Adding a config field needs three things: the struct field, its CONFIG.md row (already required by `docs_test.go`), and `-update` for the schema. CI fails if any of the three is missing.
 - TOML errors lose line numbers, because they are reported after the map pivot. go-toml's own syntax errors keep their position.
 - Only `$schema` and CONFIG.md are user-visible. The file format does not change, so existing YAML files stay valid.
-- A published `$id` is forever. Moving to a custom domain later means publishing at both URLs (owner decision, see ROADMAP open questions).
+- A published `$id` is forever. The owner accepted the GitHub Pages URL (open question 9). Moving to a custom domain later means publishing at both URLs and keeping the old `$id` resolvable.
+- The admin listener gains one always-on route, `/config.schema.json`. ADR 0008's route-coverage test must include it.
+- With `{file: …}` references, a config file can live in version control or a ConfigMap while its secrets stay in Docker or Kubernetes secret mounts.
