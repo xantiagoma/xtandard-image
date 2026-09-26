@@ -52,7 +52,7 @@ type Observed struct {
 }
 
 // Plan is the processing of one pipeline. Chained pipelines run on the
-// materialised result of the previous plan.
+// result of the previous plan (materialised when Materialize is set).
 type Plan struct {
 	Load LoadStep
 	// Animation is set when the image is processed as an animation: Steps
@@ -63,12 +63,21 @@ type Plan struct {
 	// After runs on the whole image once Steps are done (and frames are
 	// joined): watermarks and, on the last plan, the output colour.
 	After []Step
-	// Chained plans follow this one; their Load is zero.
+	// Chained plans follow this one; their Load is zero. Build predicts
+	// them from the previous prediction; the executor replans each on the
+	// observed result of the previous pipeline with Chain.
 	Chained []*Plan
+	// Materialize is set on chained plans whose input must be computed into
+	// memory before they run (a step reads it out of order: trim, smart
+	// crop, rotate, flip, filters). Otherwise the chained plan extends the
+	// previous pipeline's lazy graph.
+	Materialize bool
 	// Output is the result of this plan (the last chained plan's is the
 	// response).
 	Output Output
-	// Cost is the peak memory estimate of this plan and its chained plans.
+	// Cost is the peak memory estimate of this plan and its chained plans
+	// (on the root: the worst pipeline plus the materialised results held
+	// while it runs).
 	Cost Cost
 	// Unplanned lists request options this planner does not turn into
 	// steps yet (later work packages), for the debug header.
