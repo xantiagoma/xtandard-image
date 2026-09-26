@@ -77,6 +77,19 @@
 // seconds) or 9999999999 when the URL has no ik-t. The private key is used
 // as written. See [ImageKitMessage] and [NewImageKitVerifier].
 //
+// # Cloudflare Images scheme
+//
+// Cloudflare Images signed delivery URLs carry sig and exp query
+// parameters:
+//
+//	sig = hex(HMAC-SHA256(key, path ‖ "?" ‖ query without sig))
+//
+// with the raw (not hex-decoded) signing key, no salt and no truncation;
+// for the usual URL the message is "/<account_hash>/<image_id>/<variant>?exp=<unix>".
+// The dialect checks exp after the signature. See [CloudflareMessage] and
+// [NewCloudflareVerifier] (developers.cloudflare.com, "Serve private
+// images").
+//
 // # Security
 //
 // Signatures are compared with crypto/subtle. Key material lives in []byte
