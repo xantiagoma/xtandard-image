@@ -95,6 +95,8 @@ type Metrics struct {
 	workersBusy   prometheus.Gauge
 	semaphoreWait prometheus.Histogram
 	overload      *prometheus.CounterVec
+
+	rawDecodes *prometheus.CounterVec
 }
 
 // New builds the metric set on a fresh private registry, including the Go
@@ -201,6 +203,11 @@ func New(opts Options) (*Metrics, error) {
 			Name:      "overload_total",
 			Help:      "Requests rejected by admission control by reason.",
 		}, []string{"reason"}),
+		rawDecodes: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: Namespace,
+			Name:      "raw_decodes_total",
+			Help:      "Camera RAW sources decoded, by path (preview, demosaic, demosaic-half).",
+		}, []string{"path"}),
 	}
 
 	buildInfo := prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -215,6 +222,7 @@ func New(opts Options) (*Metrics, error) {
 		m.fetchDuration, m.sourceBytes, m.fetchCoalesced,
 		m.cacheRequests, m.cacheEvictions, m.cacheBytes, m.cacheEntries, m.cacheWritesDropped, m.cacheSkipped,
 		m.queueDepth, m.workersBusy, m.semaphoreWait, m.overload,
+		m.rawDecodes,
 		buildInfo,
 		collectors.NewGoCollector(),
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
@@ -295,6 +303,10 @@ func (m *Metrics) ObserveStage(stage string, d time.Duration) {
 
 // IncPanic counts one recovered handler panic.
 func (m *Metrics) IncPanic() { m.panics.Inc() }
+
+// ObserveRawDecode counts one camera RAW decode by path. The path comes
+// from a fixed set (pipeline/exec RawPath*), never from request data.
+func (m *Metrics) ObserveRawDecode(path string) { m.rawDecodes.WithLabelValues(path).Inc() }
 
 // ObserveFetch records one source fetch by configured source name and
 // backend type (http, s3, gcs, ...), with the number of bytes downloaded.

@@ -35,7 +35,7 @@ const (
 // startInfo runs the service with the fixtures bound to the imgproxy mount,
 // a second fs source "synth" at synthDir, signing keys (not required),
 // unsigned requests allowed and debug headers on.
-func startInfo(t *testing.T, synthDir string) string {
+func startInfo(t *testing.T, synthDir string) addrs {
 	t.Helper()
 	fixtures := filepath.Join(golden.ModuleRoot(t), "testdata", "fixtures")
 	yml := `server:
@@ -70,7 +70,7 @@ dialects:
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	return "http://" + start(t, &cfg, hooks{}).public.String()
+	return start(t, &cfg, hooks{})
 }
 
 // TestInfo runs the /info checks against one service, serially and not in
@@ -88,13 +88,47 @@ func TestInfo(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(synth, "pages-501.pdf"), manyPagesPDF(501), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	base := startInfo(t, synth)
+	a := startInfo(t, synth)
+	base := "http://" + a.public.String()
 	t.Run("golden", func(t *testing.T) { infoGolden(t, base, root) })
 	t.Run("pro golden", func(t *testing.T) { infoProGolden(t, base, root) })
 	t.Run("hashsums", func(t *testing.T) { infoHashsums(t, base, root) })
 	t.Run("pdf and psd", func(t *testing.T) { pdfPSDStatus(t, base) })
 	t.Run("exif names", func(t *testing.T) { infoEXIFNames(t, base) })
 	t.Run("signature", func(t *testing.T) { infoSignature(t, base) })
+	t.Run("raw decode path", func(t *testing.T) { rawDecodePath(t, base, "http://"+a.admin.String()) })
+}
+
+// rawDecodePath: a camera RAW is decoded from its embedded preview when the
+// preview is large enough and demosaiced otherwise; the path is reported in
+// X-Xi-Raw-Path (debug headers) and counted in xi_raw_decodes_total.
+func rawDecodePath(t *testing.T, base, admin string) {
+	t.Helper()
+	for _, tc := range []struct{ options, path string }{
+		{"rs:fit:96:96", "preview"},      // 96×64 preview
+		{"rs:fit:160:160", "demosaic"},   // larger than the preview, < 2× smaller than the sensor
+		{"rs:fit:48:48/ar:0", "preview"}, // shrink-on-load on the preview
+	} {
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet,
+			base+"/unsafe/"+tc.options+"/plain/dng/landscape.dng@png", http.NoBody)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusOK || resp.Header.Get("X-Xi-Raw-Path") != tc.path {
+			t.Errorf("%s: %d, X-Xi-Raw-Path %q, want 200 %q", tc.options, resp.StatusCode, resp.Header.Get("X-Xi-Raw-Path"), tc.path)
+		}
+	}
+	metrics := string(get(t, admin+"/metrics").body)
+	for _, want := range []string{`xi_raw_decodes_total{path="preview"} 2`, `xi_raw_decodes_total{path="demosaic"} 1`} {
+		if !strings.Contains(metrics, want) {
+			t.Errorf("/metrics lacks %s", want)
+		}
+	}
 }
 
 // infoGolden answers /info for every fixture of every M1 format plus a

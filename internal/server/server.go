@@ -141,6 +141,10 @@ type ProcessOutput struct {
 	// (content class, every candidate tried and its size); sent as X-Xi-Best
 	// with debug headers. Empty otherwise.
 	Best string
+	// RawPath is how a camera RAW source was decoded ("preview",
+	// "demosaic" or "demosaic-half"; empty for other formats): counted in
+	// xi_raw_decodes_total and sent as X-Xi-Raw-Path with debug headers.
+	RawPath string
 }
 
 // Processor plans, executes and encodes one image (stages 12–13;
@@ -157,6 +161,9 @@ type Metrics interface {
 	RequestStarted() (done func())
 	ObserveStage(stage string, d time.Duration)
 	IncPanic()
+	// ObserveRawDecode counts one camera RAW decode by path
+	// (ProcessOutput.RawPath).
+	ObserveRawDecode(path string)
 }
 
 // Limits are the configured input and output limits (XI_LIMITS_*).
@@ -458,3 +465,4 @@ func (nopMetrics) ObserveRequest(string, int, string, time.Duration) {}
 func (nopMetrics) RequestStarted() func()                            { return func() {} }
 func (nopMetrics) ObserveStage(string, time.Duration)                {}
 func (nopMetrics) IncPanic()                                         {}
+func (nopMetrics) ObserveRawDecode(string)                           {}

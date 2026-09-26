@@ -221,8 +221,9 @@ func (m *fakeMetrics) ObserveRequest(_ string, status int, _ string, _ time.Dura
 	m.requests.Add(1)
 	m.lastCode.Store(int64(status))
 }
-func (m *fakeMetrics) RequestStarted() func() { return func() {} }
-func (m *fakeMetrics) IncPanic()              { m.panics.Add(1) }
+func (m *fakeMetrics) RequestStarted() func()  { return func() {} }
+func (m *fakeMetrics) IncPanic()               { m.panics.Add(1) }
+func (m *fakeMetrics) ObserveRawDecode(string) {}
 func (m *fakeMetrics) ObserveStage(stage string, _ time.Duration) {
 	m.mu.Lock()
 	m.stages = append(m.stages, stage)

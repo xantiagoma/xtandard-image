@@ -572,6 +572,9 @@ func setDebugHeaders(h http.Header, res *imageResult) {
 	if res.out != nil && res.out.Best != "" {
 		h.Set(hdrBest, res.out.Best)
 	}
+	if res.out != nil && res.out.RawPath != "" {
+		h.Set("X-Xi-Raw-Path", res.out.RawPath)
+	}
 	if len(res.req.Ignored) > 0 {
 		var b strings.Builder
 		for _, ig := range res.req.Ignored {

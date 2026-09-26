@@ -360,6 +360,7 @@ func (c *Config) validateFormats(v *validator) {
 	v.check(f.PDF.DPI >= 1 && f.PDF.DPI <= 1200, "formats.pdf.dpi", "must be in [1, 1200], got %g", f.PDF.DPI)
 	v.positive(f.AVIF.MaxPixels, "formats.avif.max_pixels")
 	v.positive(f.Best.MaxPixels, "formats.best.max_pixels")
+	v.check(f.RAW.PreviewMinRatio > 0 && f.RAW.PreviewMinRatio <= 100, "formats.raw.preview_min_ratio", "must be > 0 and <= 100")
 	v.check(f.Best.ComplexityThreshold >= 0, "formats.best.complexity_threshold", "must be >= 0")
 	v.check(len(f.Preferred) > 0, "formats.preferred", "must not be empty")
 	v.check(!slices.Contains(f.Preferred, FormatSVG), "formats.preferred", "svg cannot be an output format")
