@@ -46,7 +46,8 @@ Default mounts (all dialects other than imgproxy are disabled until enabled in c
 | thumbor | HMAC-SHA1(SECURITY_KEY, path-after-signature **without** the leading `/`), URL-safe base64 **with** padding (28 chars, Python `urlsafe_b64encode`); `unsafe` when disabled | first path segment | https://thumbor.readthedocs.io/en/latest/security.html |
 | bunny | token auth: `token` + `expires`; basic = MD5, advanced = SHA-256 of key ‖ path ‖ expires (‖ optional params), base64url | query | https://bunny.net/docs/cdn/security/token-authentication (exact byte layout to be verified against Bunny SDK code in the WP) |
 | cloudflare `/cdn-cgi/image` | none upstream | — | https://developers.cloudflare.com/images/transform-images/transform-via-url/ |
-| cloudflare-images | `sig` = hex(HMAC-SHA256(key, path ‖ "?exp=" ‖ exp)), `exp` | query | M2 (WP-79) |
+| cloudflare-images | `sig` = hex(HMAC-SHA256(key, path ‖ "?" ‖ query-without-sig)), i.e. `path?exp=<unix>` for Cloudflare's own URLs; raw key; `exp` checked after the signature (expired → 404) | query | https://developers.cloudflare.com/images/optimization/hosted-images/serve-private-images/ |
+| cloudflare `/cdn-cgi/image` (xi) | optional `xi_sig` | query | — |
 | wsrv, simple:* | none upstream | — | — |
 
 For dialects without a native scheme xi offers the optional **xi scheme**: query param `xi_sig` = base64url(HMAC-SHA256(key, salt ‖ path ‖ "?" ‖ query-without-xi_sig)) using the imgproxy key/salt pairs. Unsigned traffic is governed by `XI_SECURITY_UNSIGNED_POLICY` (`allow` | `restricted` | `deny`), settable per mount. `restricted` is the recommended production setting for client-generated URLs (unpic): only widths in `XI_SECURITY_ALLOWED_WIDTHS` (default the Next.js device+image sizes: 16,32,48,64,96,128,256,384,640,750,828,1080,1200,1920,2048,3840), heights derived from width and aspect ratio or in the same list, qualities in `XI_SECURITY_ALLOWED_QUALITIES` (default 1–100 step 5 plus named levels), and no watermark URLs, security options or `raw`. The exact restricted option set (an allowlist that fails closed on new fields; it also admits DPRs from a router-level list and rejects info requests, chained pipelines, effects, crops, fallback URLs, cache busters and width/DPR client hints) is documented on `router.Restrictions` in `internal/dialect/router`.
@@ -444,40 +445,62 @@ Signing (imagekit-nodejs `getSignature`): `ik-s` = hex(HMAC-SHA1(private key, pa
 
 ## 8. Cloudflare Images (`/cdn-cgi/image/`)
 
-Reference: https://developers.cloudflare.com/images/transform-images/transform-via-url/; unpic `cloudflare.ts` (defaults `f=auto,fit=cover`).
+Reference: https://developers.cloudflare.com/images/optimization/features/ (one page per option, `src/content/partials/images/*.mdx` in cloudflare-docs); unpic `cloudflare.ts` (defaults `f=auto,fit=cover`) and `cloudflare_images.ts`. Implementation: `internal/dialect/cloudflare` (WP-43, WP-79).
 
 ```
 /cdn-cgi/image/width=400,height=300,fit=cover,f=auto,q=75/uploads/a.jpg
-/cdn-cgi/image/w=400,g=face,onerror=redirect/https://other.example.com/a.jpg
+/cdn-cgi/image/w=400,g=0.5x0.2,onerror=redirect/https://other.example.com/a.jpg
+/cdn-cgi/image/w=400/https%3A%2F%2Fother.example.com%2Fa.jpg%3Fv%3D1
 ```
 
-Grammar: `/cdn-cgi/image/<k=v(,k=v)*>/<source>`; source is a path relative to the mount source (default: the request host's configured origin) or an absolute (percent-encoded if it has `?`) URL subject to the allowlist.
+Grammar: `/cdn-cgi/image/<k=v(,k=v)*>/<source>`. Keys are case-insensitive; commas inside parentheses (`rgb(1,2,3)`) do not split; keys and values are percent-decoded; later options override earlier ones. The source is a path on the mount's bound source (kept with its leading `/`, so it always resolves as a relative key) or an absolute `http(s)` URL subject to the allowlist; an absolute URL may be percent-encoded as a whole (unpic does this when it has a `?`), and `https:/host` collapsed by path cleaning is repaired. The request query belongs to the source and is appended to it. A host-bound mount also accepts the full `/cdn-cgi/image/…` path. There is no upstream signature; the optional `xi_sig` (§2) authenticates URLs.
 
 | Cloudflare | TR |
 |---|---|
-| `width`/`w`, `height`/`h` (`width=auto` → client hints) | Width/Height |
-| `fit=scale-down` / `contain` / `cover` / `crop` / `pad` / `squeeze` / `scale-up` | Fit / Fit+Enlarge / Fill+Enlarge / FillDown / Fit+Extend+Enlarge / Force / Fit+Enlarge only-if-smaller |
-| `fit=aspect-crop` | Fill (crop to aspect, no scale) — partial |
-| `gravity`/`g` = `auto` / `face` / `left|right|top|bottom` / `0.5x0.3` | Smart / Face (M3) / compass / FocusPoint |
-| `zoom` (face-zoom) | FocusZoom (M3) |
-| `quality`/`q` = 1–100 or `high|medium-high|medium-low|low` | Quality (90/80/65/50) |
-| `format`/`f` = `auto|avif|webp|jpeg|baseline-jpeg|png|gif|json` | negotiate / Format / Progressive=false / Info |
-| `dpr` | DPR |
-| `anim=false` | DisableAnimation |
-| `background` (`%23RRGGBB`, CSS names, `rgb()`, `rgba()`) | Background |
-| `blur` (1–250) | Blur σ = v/2 |
-| `sharpen` (0–10) | Sharpen σ = v/4 (M1) |
-| `brightness`, `contrast`, `gamma`, `saturation` (multipliers) | Adjust (M2) |
-| `rotate=90|180|270`, `flip=h|v|hv` | Rotate, Flip |
-| `trim=border` or `trim.top/right/bottom/left/width/height` | Trim / Crop |
-| `border=color;width` (and per side) | Border (M2) |
-| `metadata=keep|copyright|none` | StripMetadata / KeepCopyright |
-| `onerror=redirect` | OnErrorRedirect (302 to source) |
-| `compression=fast` | lower encoder effort |
-| `slow-connection-quality`/`scq` | Quality when `Save-Data`/`ECT` hints indicate slow network (M2) |
-| `segment=foreground`, `upscale=generate` | Unsupported |
+| `width`/`w`, `height`/`h` (positive px) | Width/Height |
+| `width=auto` | `ClientHints.Width`; `wbreakpoints`/`wmobile`/`wdesktop` → Ignored |
+| `fit=scale-down` (default) / `contain` / `cover` / `crop` / `pad` / `squeeze` | Fit / Fit+Enlarge / Fill+Enlarge / FillDown / Fit+Extend+Enlarge / Force+Enlarge |
+| `fit=scale-up` / `aspect-crop` | Fit+Enlarge / Fill (both Ignored "approximated": no "never downscale" or "crop without scaling" field) |
+| `gravity`/`g` = `auto` / `face` / `left` / `right` / `top` / `bottom` / `XxY` (0–1) | Smart / Face (M3) / West / East / North / South / FocusPoint |
+| `zoom`/`face-zoom` (0–1) | Gravity.FocusZoom (M3) |
+| `quality`/`q` = 1–100 or `high` / `medium-high` / `medium-low` / `low` | Quality (90 / 80 / 65 / 50) |
+| `slow-connection-quality`/`scq` (same values) | SlowConnectionQuality + `ClientHints.SaveData` (used when Save-Data/ECT hints say slow) |
+| `format`/`f` = `auto` / `avif` / `webp` / `jpeg` / `baseline-jpeg` / `png` / `gif` | negotiate (FormatUnset) / Format / JPEG+Progressive / JPEG+Progressive=false / … |
+| `format=json` | Ignored "not implemented" (Cloudflare's JSON is not the /info schema; the image is served) |
+| `dpr` (> 0) | DPR |
+| `anim=false` / `true` | DisableAnimation |
+| `background` (`%23RGB[A]`, `%23RRGGBB[AA]`, CSS names, `transparent`, `rgb()`/`rgba()` with commas or spaces and `/ alpha`) | Background |
+| `blur` (0–250) | Blur σ = v/2 |
+| `sharpen` (0–10) | Sharpen σ = v/4 |
+| `brightness` (multiplier) | Adjust.Exposure (Adjust.Brightness is additive) (M2) |
+| `contrast`, `saturation` (multipliers), `gamma` (0 and 1 = unchanged) | Adjust (M2) |
+| `rotate=0|90|180|270`, `flip=h|v|hv` | Rotate, Flip |
+| `trim=border`, `trim.border.color`, `trim.border.tolerance` (0–255, 255 = exact) | Trim (Threshold = 255 − tolerance, default 10); `trim.border.keep` → Ignored |
+| `trim=top;right;bottom;left`, `trim.top/right/bottom/left/width/height` (px, or a fraction < 1) | Crop anchored north-west: left/top are gravity offsets, width/height the size; right/bottom fractions fold into a relative size when left/top are fractions, right/bottom pixels → Ignored "not implemented" |
+| `border=color;width`, `border=color;top;right;bottom;left`, `border.color/width/top/right/bottom/left` (Workers-only upstream) | Border (M2) |
+| `metadata=keep` / `copyright` / `none` | StripMetadata=false / StripMetadata+KeepCopyright / StripMetadata, KeepCopyright=false |
+| `onerror=redirect` | Delivery.OnErrorRedirect: when the fetch or decode fails with a fallback-eligible error, the server answers 302 to the source URL (http sources only; ahead of the fallback image) |
+| `compression=fast` | Output.Effort = 1 (the format is not forced to JPEG) |
+| `segment=foreground`, `upscale=generate` | Ignored "unsupported" (400 in strict mode); `upscale=interpolate` is the default |
+| anything else | Ignored "unknown option" (400 in strict mode) |
 
-Cloudflare Images delivery URLs (`/cdn-cgi/imagedelivery/<account_hash>/<image_id>/<variant|k=v,…>`, `imagedelivery.net`): M2 (WP-79, needed for the unpic `cloudflare_images` provider), `variant` → preset, `image_id` → key in a bound source, `sig`/`exp` signing.
+### 8.1 Cloudflare Images delivery (`/cdn-cgi/imagedelivery/`, `imagedelivery.net`)
+
+Reference: https://developers.cloudflare.com/images/optimization/hosted-images/ (serve-uploaded-images, create-variants, enable-flexible-variants, serve-private-images).
+
+```
+/cdn-cgi/imagedelivery/<account_hash>/<image_id>/<variant>
+/cdn-cgi/imagedelivery/<account_hash>/<image_id>/w=400,sharpen=3        (flexible variant)
+https://imagedelivery.net/<account_hash>/<image_id>/<variant>?exp=<unix>&sig=<hex>
+```
+
+Dialect `cloudflare_images`, mounted at `/cdn-cgi/imagedelivery/`; bind the host `imagedelivery.net` (`XI_DIALECTS_CLOUDFLARE_IMAGES_HOSTS`) to serve the bare shape. A host-bound mount also strips a leading `/cdn-cgi/imagedelivery`.
+
+- `<account_hash>` → source: `XI_DIALECTS_CLOUDFLARE_IMAGES_ACCOUNTS` (`hash=source,…`); empty means every hash uses the mount's source, otherwise an unknown hash is 403.
+- `<image_id>` → the object key in that source (custom ids may contain `/`: everything between the hash and the last segment).
+- Last segment containing `=` → flexible variant, parsed with the §8 option table (`onerror` is Ignored: not supported for hosted images); 403 in only-presets mode (`XI_PRESETS_ONLY`, Cloudflare "flexible variants" off).
+- Otherwise → a named variant, expanded as the preset of that name (imgproxy syntax, `XI_PRESETS`). `public`, or no last segment, without a preset of that name serves the image unchanged; any other unknown variant is 400.
+- Signing: `sig` = hex(HMAC-SHA256(key, path ‖ "?" ‖ query without `sig`)) over the path after the prefix (`/<hash>/<id>/<variant>`, as for imagedelivery.net), keys from `XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS` used raw. Then `exp` (unix seconds) must be in the future, else 404 (`KindExpired`). Unsigned requests follow the mount's unsigned policy.
 
 ## 9. Bunny Optimizer
 
