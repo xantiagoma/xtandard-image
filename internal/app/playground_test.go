@@ -107,7 +107,7 @@ func TestPlaygroundListeners(t *testing.T) {
 				t.Fatal(err)
 			}
 			if m.Signing.Mode != playground.SigningRequired || len(m.Mounts) == 0 || m.Mounts[0].ID != "imgproxy" || !m.Mounts[0].Keyed ||
-				len(m.Catalogues) != 2 || len(m.Sources) != 1 || m.Sources[0].Name != "fixtures" {
+				len(m.Catalogues) != 3 || len(m.Sources) != 1 || m.Sources[0].Name != "fixtures" {
 				t.Errorf("meta %+v", m)
 			}
 
