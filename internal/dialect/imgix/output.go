@@ -168,12 +168,11 @@ func (st *state) format(autoFormat bool) error {
 		st.b.Ignore("fm", reasonApproximated)
 		return nil
 	case "mp4":
+		// An animated GIF as MP4 (H.264 in the gpl image, AV1 in full).
 		o.Format = transform.FormatMP4
-		st.b.Ignore("fm", reasonM3)
 		return nil
 	case "webm":
 		o.Format = transform.FormatWebM
-		st.b.Ignore("fm", reasonM3)
 		return nil
 	case "jp2", "jxr", "pdf", "spritesheet":
 		return &errs.Error{Kind: errs.KindUnsupported, Msg: "imgix fm " + v, Public: "unsupported output format"}

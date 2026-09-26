@@ -173,10 +173,10 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 		milestone = applied // WP-74
 		err = oneBoolPtr("video_thumbnail_keyframes", args, &video(pl).Keyframes)
 	case "video_thumbnail_tile", "vtt":
-		milestone = reasonM3
+		milestone = applied // WP-75
 		err = videoTile(video(pl), args)
 	case "video_thumbnail_animation", "vta":
-		milestone = reasonM3
+		milestone = applied // WP-75
 		err = videoAnimation(video(pl), args)
 
 	// Delivery and source (request-wide).

@@ -221,12 +221,6 @@
     "path": "/demo/image/upload/sample.mp4",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "extension",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "mp4"
       },

@@ -1272,9 +1272,6 @@ func (a *applier) format(v string) error {
 	if !ok {
 		return dialect.InvalidArgument("f", v, expFormat)
 	}
-	if f == transform.FormatMP4 || f == transform.FormatWebM {
-		a.b.Ignore("f_"+v, reasonM3)
-	}
 	a.r.Output.Format = f
 	return nil
 }
@@ -1294,9 +1291,6 @@ func (a *applier) extension(key string) {
 func (a *applier) finishFormat() {
 	if !a.explicitFormat && a.extFormat != transform.FormatUnset {
 		a.r.Output.Format = a.extFormat
-		if a.extFormat == transform.FormatMP4 || a.extFormat == transform.FormatWebM {
-			a.b.Ignore("extension", reasonM3)
-		}
 	}
 }
 

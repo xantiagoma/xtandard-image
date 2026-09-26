@@ -578,11 +578,9 @@ func (ps *parseState) format(v string) error {
 		return ps.unsupportedAs("f-svg", reasonUnsupported)
 	case "mp4":
 		o.Format = transform.FormatMP4
-		ps.b.Ignore("f-mp4", reasonM3)
 		return nil
 	case "webm":
 		o.Format = transform.FormatWebM
-		ps.b.Ignore("f-webm", reasonM3)
 		return nil
 	case "jpg", "jpeg", "png", "webp", "avif", "gif", "jxl":
 		f, err := imgproxy.ParseFormat("f", v)

@@ -828,12 +828,6 @@
     "query": "ixlib=js-3.8.0\u0026fm=mp4\u0026s=4f44a36f7226d351b6b82c28b9f65e36",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "fm",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "mp4"
       },
