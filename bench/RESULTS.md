@@ -13,7 +13,36 @@ single-run spread is large, especially at p99 (see the p99 range column). Treat 
 about 20 % as noise. A quiet dedicated Linux host would give tighter numbers; rerun there before
 quoting absolute capacity.
 
-## Headline
+## WP-87 rerun (2026-09-26, after `MALLOC_CONF=narenas:2`)
+
+WP-87 profiled the PNG-alpha path and reran four cases (closed loop only, 16 concurrent requests,
+8 workers, median of 3 interleaved runs; host load median 14.4, range 7.4 to 22.5). Raw data:
+[results-2026-09-26-wp87-m1pro.jsonl](results-2026-09-26-wp87-m1pro.jsonl).
+
+- **PNG with alpha to WebP is not slower.** In the container the executor costs the same as the
+  bare libvips pipeline (load, premultiply, resize, unpremultiply, webpsave: 54.4 ms vs 55.6 ms
+  per 1280x960 image, `BenchmarkRun/thumbnail400/png-alpha-webp`). CPU is ~60 % libwebp, ~25 %
+  PNG inflate (zlib-ng) and ~13 % libvips, with no extra copy, format round trip or second
+  decode. Sequentially both servers take ~58 ms per request. The −14 % of the first run was noise
+  on a host with a load average of up to 127.
+- **Peak memory was jemalloc's arenas.** `MALLOC_ARENA_MAX=2` only configures glibc; jemalloc
+  kept its default of 4 arenas per CPU (32 here), each holding the freed pages of the threads that
+  used it. The app image now sets `MALLOC_CONF=narenas:2`. In A/B runs at 16 concurrent requests
+  the png-alpha peak dropped from 506–521 MiB to 183–211 MiB and the JPEG 400 px peak from
+  252–256 MiB to 121–142 MiB, with throughput unchanged.
+
+| Case | xtandard-image (req/s) | imgproxy OSS (req/s) | xtandard peak (MiB) | imgproxy peak (MiB) | xtandard peak, first run (MiB) |
+|---|---:|---:|---:|---:|---:|
+| 400 px fit, PNG with alpha → WebP | 96.2 | 76.6 | 260 | 237 | 581 |
+| 400 px fit, JPEG → JPEG | 358.9 | 262.1 | 173 | 134 | 309 |
+| 240 px fit, animated GIF → WebP | 35.4 | 26.8 | 331 | 160 | 749 |
+| 1200x1200 fill, JPEG → JPEG | 85.9 | 48.7 | 359 | 381 | 692 |
+
+p99 (ms), xtandard vs imgproxy: 277.6 vs 341.6 (PNG alpha), 66.6 vs 87.3 (JPEG 400), 726.4 vs
+927.1 (GIF), 391.5 vs 713.3 (JPEG 1200). The animated GIF case still peaks at about twice
+imgproxy's memory; the sections below are the first run and are kept for reference.
+
+## Headline (first run)
 
 Throughput ceiling (closed loop, 16 concurrent requests, 8 workers each, median of 3 runs):
 
@@ -55,11 +84,11 @@ Where xtandard-image is ahead:
 Where xtandard-image is behind:
 
 - **PNG with alpha to WebP: 14 % lower ceiling and a worse tail** (p99 541 ms vs 373 ms in the
-  closed loop; 477 ms vs 352 ms at 30 req/s). This is the main performance gap found. The PNG
-  decode path (libspng in our base image), alpha premultiplication around the resize and the
-  alpha-channel WebP encode are the candidates. It has not been profiled yet.
+  closed loop; 477 ms vs 352 ms at 30 req/s). WP-87 profiled it and could not reproduce the gap
+  (see the rerun above).
 - **Memory.** Peak container memory is 2 to 5 times imgproxy's in every case (749 MiB for the
-  animated GIF). Likely contributors: jemalloc with
+  animated GIF). WP-87 traced most of it to jemalloc's per-CPU arenas (fixed with
+  `MALLOC_CONF=narenas:2`, see the rerun above). The first run listed as likely contributors: jemalloc with
   `MALLOC_ARENA_MAX=2` holding freed pages, the Go heap (GOMEMLIMIT is only set from a cgroup
   limit, and there was none here) and the per-request vips arenas for animated sources. For
   memory-limited containers this is the number to watch. `XI_PROCESSING_MEMORY_BUDGET` and a
