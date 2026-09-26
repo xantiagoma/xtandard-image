@@ -90,6 +90,15 @@
 // [NewCloudflareVerifier] (developers.cloudflare.com, "Serve private
 // images").
 //
+// # thumbor scheme
+//
+//	base64url-padded(HMAC-SHA1(key, path))
+//
+// where path is the escaped request path after "/<signature>/" (no leading
+// "/"), keys are thumbor SECURITY_KEY strings (raw bytes, no salt) and the
+// first path segment "unsafe" marks a deliberately unsigned URL. See
+// [NewThumborVerifier] (libthumbor url_signers/base64_hmac_sha1.py, MIT).
+//
 // # Security
 //
 // Signatures are compared with crypto/subtle. Key material lives in []byte
