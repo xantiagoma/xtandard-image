@@ -265,36 +265,10 @@ func (st *state) parse(rest string) error {
 	if first, _, _ := strings.Cut(rest, "/"); isResizingType(first) {
 		return dialect.InvalidURL("deprecated basic url format")
 	}
-	sawOption, chained := false, false
-	for rest != "" {
-		seg, tail, _ := strings.Cut(rest, "/")
-		if seg == "-" {
-			if !sawOption {
-				return dialect.InvalidURL("empty pipeline")
-			}
-			// A preset may already have created the next pipeline.
-			if err := st.selectPipeline(st.cur + 1); err != nil {
-				return err
-			}
-			sawOption, chained = false, true
-			rest = tail
-			continue
-		}
-		name, argStr, isOption := strings.Cut(seg, st.p.sep)
-		if !isOption {
-			break
-		}
-		st.args = splitArgs(st.args[:0], argStr, st.p.sep)
-		if err := st.apply(name, st.args); err != nil {
-			return err
-		}
-		sawOption = true
-		rest = tail
+	rest, err = st.parseOptions(rest)
+	if err != nil {
+		return err
 	}
-	if chained && !sawOption {
-		return dialect.InvalidURL("empty pipeline")
-	}
-
 	ext, err := st.decodeSource(rest)
 	if err != nil {
 		return err
@@ -306,6 +280,46 @@ func (st *state) parse(rest string) error {
 	}
 	return st.finish()
 }
+
+// parseOptions consumes the leading "/"-separated option segments of rest
+// ("-" starts a chained pipeline) and returns the remainder, which starts
+// at the first segment that is not an option.
+func (st *state) parseOptions(rest string) (string, error) {
+	sawOption, chained := false, false
+	for rest != "" {
+		seg, tail, _ := strings.Cut(rest, "/")
+		if seg == "-" {
+			if !sawOption {
+				return "", dialect.InvalidURL("empty pipeline")
+			}
+			if err := st.newPipeline(); err != nil {
+				return "", err
+			}
+			sawOption, chained = false, true
+			rest = tail
+			continue
+		}
+		name, argStr, isOption := strings.Cut(seg, st.p.sep)
+		if !isOption {
+			break
+		}
+		st.args = splitArgs(st.args[:0], argStr, st.p.sep)
+		if err := st.apply(name, st.args); err != nil {
+			return "", err
+		}
+		sawOption = true
+		rest = tail
+	}
+	if chained && !sawOption {
+		return "", dialect.InvalidURL("empty pipeline")
+	}
+	return rest, nil
+}
+
+// newPipeline moves to the next chained pipeline; later options apply to
+// it. A preset may already have created that pipeline, in which case the
+// options that follow add to (and override) the preset's.
+func (st *state) newPipeline() error { return st.selectPipeline(st.cur + 1) }
 
 // splitArgs appends the sep-separated fields of s to dst.
 func splitArgs(dst []string, s, sep string) []string {
