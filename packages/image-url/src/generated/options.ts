@@ -302,14 +302,14 @@ export interface ImgproxyProcessingArgs {
   "flip":
     | [horizontal: boolean | null, vertical?: boolean | null];
   /**
-   * Output format. URL: `format`, `f`, `ext`; arguments extension or `best` Pro; default source/negotiated.
+   * Output format. `mp4` (Pro), `webm` and `hevc` encode the (animated) result as video: VP9 WebM, MP4 with H.264 in the gpl image or AV1 in full, HEVC only in gpl. URL: `format`, `f`, `ext`; arguments extension or `best` Pro; default source/negotiated.
    *
    * URL names: `format`, `f`, `ext`.
-   * milestone M1 (`best` M2); scope request.
+   * milestone M1 (`best` M2, `mp4`/`webm`/`hevc` M3 WP-76); scope request.
    * @example ["webp"]
    */
   "format":
-    | [format: "jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | "best"];
+    | [format: "jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | "mp4" | "webm" | "hevc" | "h265" | "best"];
   /**
    * Quality per output format. URL: `format_quality`, `fq`; arguments fmt:q…; default —.
    *
@@ -318,7 +318,7 @@ export interface ImgproxyProcessingArgs {
    * @example ["webp",70,"avif",50]
    */
   "format_quality":
-    | [format_or_quality: "jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | number, format_or_quality_2: "jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | number, ...format_or_qualitys: Array<"jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | number>];
+    | [format_or_quality: "jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | "mp4" | "webm" | "hevc" | "h265" | number, format_or_quality_2: "jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | "mp4" | "webm" | "hevc" | "h265" | number, ...format_or_qualitys: Array<"jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | "mp4" | "webm" | "hevc" | "h265" | number>];
   /**
    * Removed upstream; accepted and ignored for old URLs. URL: `gif_options`, `gifo`; arguments —; default —.
    *
@@ -648,7 +648,7 @@ export interface ImgproxyProcessingArgs {
    * @example ["svg","gif"]
    */
   "skip_processing":
-    | [format: "jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg", ...formats: Array<"jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg">];
+    | [format: "jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | "mp4" | "webm" | "hevc" | "h265", ...formats: Array<"jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | "mp4" | "webm" | "hevc" | "h265">];
   /**
    * Convert to sRGB and drop the ICC profile. URL: `strip_color_profile`, `scp`; arguments bool; default config (true).
    *
@@ -698,7 +698,7 @@ export interface ImgproxyProcessingArgs {
    * Animation of video frames. URL: `video_thumbnail_animation`, `vta`; arguments step:delay(ms):frames:fw:fh:extend:trim:fill:fx:fy; step as `vtt`; default off.
    *
    * URL names: `video_thumbnail_animation`, `vta`.
-   * milestone M3; scope pipeline; imgproxy Pro option (free here).
+   * milestone M3 (WP-75); scope pipeline; imgproxy Pro option (free here).
    * @example [1,100,10,320,180]
    */
   "video_thumbnail_animation":
@@ -725,7 +725,7 @@ export interface ImgproxyProcessingArgs {
    * Sprite sheet of video frames. URL: `video_thumbnail_tile`, `vtt`; arguments step:cols:rows:tw:th:extend:trim:fill:fx:fy; step 0 = off, < 0 = from duration (stored as 0); default off.
    *
    * URL names: `video_thumbnail_tile`, `vtt`.
-   * milestone M3; scope pipeline; imgproxy Pro option (free here).
+   * milestone M3 (WP-75); scope pipeline; imgproxy Pro option (free here).
    * @example [1,4,4,160,90]
    */
   "video_thumbnail_tile":

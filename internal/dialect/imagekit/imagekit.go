@@ -33,6 +33,8 @@
 //   - <video>/ik-thumbnail.jpg is a thumbnail of the video <video> (a JPEG
 //     unless f- says otherwise); so-<seconds> picks the frame (imgproxy
 //     video_thumbnail_second), else the configured selection applies.
+//   - <gif>/ik-gif-video.mp4 is the animated image <gif> as an MP4 video
+//     (WP-76; H.264 in the gpl image, AV1 in full), like f-mp4.
 //
 // Signing: ik-s = hex(HMAC-SHA1(private key, url-relative-to-endpoint ‖
 // ik-t)) as in imagekit-nodejs (sign.ImageKitMessage). An ik-t in the past
@@ -69,6 +71,9 @@ const (
 	// videoThumbnail is the path suffix that asks for a video's thumbnail
 	// (<video>/ik-thumbnail.jpg; so- picks the frame).
 	videoThumbnail = "ik-thumbnail.jpg"
+	// gifVideo is the path suffix that asks for an animated image as an
+	// MP4 video (<gif>/ik-gif-video.mp4).
+	gifVideo = "ik-gif-video.mp4"
 )
 
 // Reasons recorded in Request.Ignored.
@@ -214,7 +219,8 @@ func (p *Parser) parse(path, rawQuery, mountSource string) (*dialect.Result, err
 	}
 
 	thumb := len(segs) > 1 && segs[len(segs)-1] == videoThumbnail
-	if thumb {
+	gif := len(segs) > 1 && segs[len(segs)-1] == gifVideo
+	if thumb || gif {
 		segs = segs[:len(segs)-1]
 	}
 	key, err := sourceKey(segs)
@@ -225,6 +231,9 @@ func (p *Parser) parse(path, rawQuery, mountSource string) (*dialect.Result, err
 	if thumb && r.Output.Format == transform.FormatUnset {
 		// A video's thumbnail is a JPEG unless f- says otherwise.
 		r.Output.Format = transform.FormatJPEG
+	}
+	if gif {
+		r.Output.Format = transform.FormatMP4
 	}
 	if err := applyQuery(r, &q, expires); err != nil {
 		return nil, err

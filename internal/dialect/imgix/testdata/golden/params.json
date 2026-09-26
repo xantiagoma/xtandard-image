@@ -2895,12 +2895,6 @@
     "query": "fm=mp4",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "fm",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "mp4"
       },
@@ -3010,12 +3004,6 @@
     "query": "fm=webm\u0026auto=format",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "fm",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "webm"
       },

@@ -181,7 +181,7 @@ func compassNames() []string {
 
 // formatNames are the parseFormat names; best only where allowed.
 func formatNames(best bool) []string {
-	fs := []string{"jpeg", "jpg", "png", "webp", "avif", "jxl", "heic", "gif", "tiff", "bmp", "ico", "svg"}
+	fs := []string{"jpeg", "jpg", "png", "webp", "avif", "jxl", "heic", "gif", "tiff", "bmp", "ico", "svg", "mp4", "webm", "hevc", "h265"}
 	if best {
 		fs = append(fs, "best")
 	}
@@ -641,7 +641,7 @@ func ProcessingOptions() []Option {
 		{
 			Name: "format", Aliases: []string{"f", "ext"}, Scope: ScopeRequest,
 			Forms:  single(enumArg("format", formatNames(true), "output format; best picks the smallest (Pro)")),
-			Syntax: "extension or `best` Pro", Default: "source/negotiated", Milestone: "M1 (`best` M2)", Doc: "Output format.", Example: "webp",
+			Syntax: "extension or `best` Pro", Default: "source/negotiated", Milestone: "M1 (`best` M2, `mp4`/`webm`/`hevc` M3 WP-76)", Doc: "Output format. `mp4` (Pro), `webm` and `hevc` encode the (animated) result as video: VP9 WebM, MP4 with H.264 in the gpl image or AV1 in full, HEVC only in gpl.", Example: "webp",
 		},
 		{
 			Name: "page", Aliases: []string{"pg"}, Scope: ScopePipeline, Pro: true, Forms: single(intArg("page", 0, maxInt32, "first page, from 0")),
@@ -670,7 +670,7 @@ func ProcessingOptions() []Option {
 				intArg("columns", 0, transform.MaxDimension, "columns").opt(), intArg("rows", 0, transform.MaxDimension, "rows").opt(),
 				intArg("tile_width", 0, transform.MaxDimension, "tile width").opt(), intArg("tile_height", 0, transform.MaxDimension, "tile height").opt(),
 			}, videoTileArgs("tile")...)...)},
-			Syntax: "step:cols:rows:tw:th:extend:trim:fill:fx:fy; step 0 = off, < 0 = from duration (stored as 0)", Default: "off", Milestone: "M3",
+			Syntax: "step:cols:rows:tw:th:extend:trim:fill:fx:fy; step 0 = off, < 0 = from duration (stored as 0)", Default: "off", Milestone: "M3 (WP-75)",
 			Doc: "Sprite sheet of video frames.", Example: "1:4:4:160:90",
 		},
 		{
@@ -681,7 +681,7 @@ func ProcessingOptions() []Option {
 				intArg("frames", 0, transform.MaxDimension, "number of frames").opt(),
 				intArg("frame_width", 0, transform.MaxDimension, "frame width").opt(), intArg("frame_height", 0, transform.MaxDimension, "frame height").opt(),
 			}, videoTileArgs("frame")...)...)},
-			Syntax: "step:delay(ms):frames:fw:fh:extend:trim:fill:fx:fy; step as `vtt`", Default: "off", Milestone: "M3",
+			Syntax: "step:delay(ms):frames:fw:fh:extend:trim:fill:fx:fy; step as `vtt`", Default: "off", Milestone: "M3 (WP-75)",
 			Doc: "Animation of video frames.", Example: "1:100:10:320:180",
 		},
 		{

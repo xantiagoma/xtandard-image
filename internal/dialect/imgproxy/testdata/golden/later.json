@@ -360,15 +360,21 @@
     "source": "https://example.com/a.jpg"
   },
   "bd_classes": {
-    "path": "/unsafe/bd:5:face:car/plain/https://example.com/a.jpg",
+    "path": "/unsafe/bd:5:face:license_plate/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "bd",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "BlurDetections": {
             "Classes": [
               "face",
-              "car"
+              "license_plate"
             ],
             "Sigma": 5
           }
@@ -394,6 +400,12 @@
     "path": "/unsafe/bd:5:face/bd:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "bd",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {}
       ],
@@ -432,6 +444,12 @@
     "path": "/unsafe/blur_detections:10/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "blur_detections",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "BlurDetections": {
@@ -512,6 +530,12 @@
     "path": "/unsafe/c_obj:1:face/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "c_obj",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "CropObjects": {
@@ -542,6 +566,12 @@
     "path": "/unsafe/c_obj:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "c_obj",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {}
       ],
@@ -858,6 +888,12 @@
     "path": "/unsafe/crop_objects:1.2/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "crop_objects",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "CropObjects": {
@@ -945,6 +981,12 @@
     "path": "/unsafe/dd:t:cat:dog/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "dd",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "DrawDetections": {
@@ -966,6 +1008,12 @@
     "path": "/unsafe/dd:1/dd:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "dd",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {}
       ],
@@ -1029,6 +1077,12 @@
     "path": "/unsafe/draw_detections:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "draw_detections",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "DrawDetections": {}
@@ -1143,11 +1197,19 @@
       "Dialect": "imgproxy",
       "Ignored": [
         {
-          "Option": "vtt",
+          "Option": "op",
           "Reason": "takes effect in M3"
         },
         {
-          "Option": "vta",
+          "Option": "bd",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "dd",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "c_obj",
           "Reason": "takes effect in M3"
         }
       ],
@@ -1908,6 +1970,12 @@
     "path": "/unsafe/obj_pos:fp:0.2:0.8/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "obj_pos",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1930,6 +1998,12 @@
     "path": "/unsafe/objects_position:soea:10:0.2/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "objects_position",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1961,6 +2035,12 @@
     "path": "/unsafe/op:fp/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "op",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1992,6 +2072,12 @@
     "path": "/unsafe/op:no/g:sm/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "op",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -2013,6 +2099,12 @@
     "path": "/unsafe/op:prop/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "op",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -2504,12 +2596,6 @@
     "path": "/unsafe/video_thumbnail_animation:1:100:10:320:240/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "video_thumbnail_animation",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Video": {
@@ -2572,12 +2658,6 @@
     "path": "/unsafe/video_thumbnail_tile:1:3:2:100:50/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "video_thumbnail_tile",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Video": {
@@ -2613,12 +2693,6 @@
     "path": "/unsafe/vta:-1:40:25:0:0:1:0:1:0.5:0.1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vta",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Video": {
@@ -2653,12 +2727,6 @@
     "path": "/unsafe/vta:0:100:10/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vta",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {}
       ],
@@ -2736,12 +2804,6 @@
     "path": "/unsafe/vtt:2:4:4:0:0:1:1:1:0.25:0.75/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vtt",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Video": {
@@ -2778,12 +2840,6 @@
     "path": "/unsafe/vtt:-1:2:2:0:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vtt",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Video": {
@@ -2816,12 +2872,6 @@
     "path": "/unsafe/vtt:1:2:2:0:0/vtt:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vtt",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {}
       ],
