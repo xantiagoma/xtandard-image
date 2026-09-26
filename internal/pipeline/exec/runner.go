@@ -1,0 +1,232 @@
+package exec
+
+import (
+	"context"
+	"image"
+	"slices"
+
+	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
+	"github.com/xantiagoma/xtandard-image/internal/transform"
+	"github.com/xantiagoma/xtandard-image/internal/vips"
+)
+
+// defaultDelay is the frame delay of animations that carry none (imgproxy:
+// 40 ms, 25 fps).
+const defaultDelay = 40
+
+// runner is the state of one Run. It lives on the Run's locked thread.
+type runner struct {
+	e    *Executor
+	j    *Job
+	req  *transform.Request // j.Request planned for the output format
+	a    *vips.Arena
+	plan *plan.Plan // root plan; replaced by plan.Continue
+	// iccImported is set once the source profile was converted to sRGB, so
+	// the output colour step drops the (now wrong) embedded profile.
+	iccImported bool
+	skipped     []string
+}
+
+// last returns the plan whose Output is the response.
+func (r *runner) last() *plan.Plan {
+	if n := len(r.plan.Chained); n > 0 {
+		return r.plan.Chained[n-1]
+	}
+	return r.plan
+}
+
+func (r *runner) skip(what string) {
+	if !slices.Contains(r.skipped, what) {
+		r.skipped = append(r.skipped, what)
+	}
+}
+
+// replan asks the planner again with what was observed.
+func (r *runner) replan(obs plan.Observed) error {
+	p, err := plan.Continue(r.req, r.j.Meta, r.e.cfg.Limits, obs)
+	if err != nil {
+		return err
+	}
+	r.plan = p
+	return nil
+}
+
+func (r *runner) execute(ctx context.Context) (*vips.Image, error) {
+	img, err := r.loadObserved(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, u := range r.plan.Unplanned {
+		r.skip(u)
+	}
+	img, err = r.pipeline(ctx, img, true)
+	if err != nil {
+		return nil, err
+	}
+	// Chained pipelines run on the materialised result of the previous one
+	// (r.plan may have been replaced while the root ran).
+	for _, c := range r.plan.Chained {
+		for _, u := range c.Unplanned {
+			r.skip(u)
+		}
+		if img, err = r.a.Add(img.CopyMemory(ctx)); err != nil {
+			return nil, err
+		}
+		if img, err = r.run(ctx, img, c, 0, false); err != nil {
+			return nil, err
+		}
+	}
+	return img, nil
+}
+
+// loadObserved loads the source and reports the loaded size to the planner
+// when a header could not predict it (loader rounding, embedded thumbnail).
+func (r *runner) loadObserved(ctx context.Context) (*vips.Image, error) {
+	ls := r.plan.Load
+	img, err := r.load(ctx, &ls, r.plan.Animation)
+	if err != nil {
+		return nil, err
+	}
+	if r.plan.Animation != nil {
+		return img, nil
+	}
+	w, h := img.Width(), img.PageHeight()
+	switch {
+	case ls.Thumbnail:
+		if err := r.replan(plan.Observed{Width: w, Height: h, Thumbnail: true}); err != nil {
+			return nil, err
+		}
+		if !r.plan.Load.Thumbnail {
+			// Not worth it: load the full image instead.
+			ls = r.plan.Load
+			return r.load(ctx, &ls, nil)
+		}
+	case w != ls.Width || h != ls.Height:
+		if err := r.replan(plan.Observed{Width: w, Height: h, Loaded: true}); err != nil {
+			return nil, err
+		}
+	}
+	return img, nil
+}
+
+// pipeline runs the root plan on img: Steps (per frame for animations), then
+// After. root allows trim to replan.
+func (r *runner) pipeline(ctx context.Context, img *vips.Image, root bool) (*vips.Image, error) {
+	return r.run(ctx, img, r.plan, 0, root)
+}
+
+// run executes p from step start, then p's After steps on the whole image.
+func (r *runner) run(ctx context.Context, img *vips.Image, p *plan.Plan, start int, root bool) (*vips.Image, error) {
+	var err error
+	if p.Animation != nil && img.Pages() > 1 {
+		img, err = r.frames(ctx, img, p, start)
+	} else {
+		img, p, err = r.steps(ctx, img, p, start, root)
+	}
+	if err != nil {
+		return nil, err
+	}
+	for _, s := range p.After {
+		if err := ctxErr(ctx); err != nil {
+			return nil, err
+		}
+		if img, err = r.after(ctx, img, s); err != nil {
+			return nil, err
+		}
+	}
+	return img, nil
+}
+
+// frames runs p.Steps on every frame of an animation strip and joins the
+// frames back, restoring page-height, delays and loop count.
+func (r *runner) frames(ctx context.Context, img *vips.Image, p *plan.Plan, start int) (*vips.Image, error) {
+	n, ph, w := img.Pages(), img.PageHeight(), img.Width()
+	delay, _ := img.Ints(vips.FieldDelay)
+	loop, hasLoop := img.Int(vips.FieldLoop)
+
+	out := make([]*vips.Image, 0, n)
+	for i := range n {
+		if err := ctxErr(ctx); err != nil {
+			return nil, err
+		}
+		f, err := r.a.Add(img.ExtractArea(ctx, image.Rect(0, i*ph, w, (i+1)*ph)))
+		if err != nil {
+			return nil, err
+		}
+		// A frame is a single image now: without this, an operation that
+		// doubles its height would see two frames.
+		if f, err = r.a.Add(f.RemoveMetadata(ctx, vips.FieldPageHeight, vips.FieldNPages)); err != nil {
+			return nil, err
+		}
+		if f, _, err = r.steps(ctx, f, p, start, false); err != nil {
+			return nil, err
+		}
+		out = append(out, f)
+	}
+	joined, err := r.a.Add(vips.Arrayjoin(ctx, out, 1))
+	if err != nil {
+		return nil, err
+	}
+	if joined, err = r.a.Add(joined.SetPageHeight(ctx, out[0].Height())); err != nil {
+		return nil, err
+	}
+	if joined, err = r.a.Add(joined.SetInt(ctx, vips.FieldNPages, n)); err != nil {
+		return nil, err
+	}
+	switch {
+	case len(delay) == 0:
+		delay = slices.Repeat([]int{defaultDelay}, n)
+	case len(delay) > n:
+		delay = delay[:n]
+	default:
+	}
+	if joined, err = r.a.Add(joined.SetInts(ctx, vips.FieldDelay, delay)); err != nil {
+		return nil, err
+	}
+	if !hasLoop {
+		loop = 0
+	}
+	return r.a.Add(joined.SetInt(ctx, vips.FieldLoop, loop))
+}
+
+// steps runs p.Steps[start:] on a single image. A trim on the root plan
+// replans with the trimmed size and continues on the new plan, which is
+// returned.
+func (r *runner) steps(ctx context.Context, img *vips.Image, p *plan.Plan, start int, root bool) (*vips.Image, *plan.Plan, error) {
+	var err error
+	for i := start; i < len(p.Steps); i++ {
+		if err := ctxErr(ctx); err != nil {
+			return nil, nil, err
+		}
+		s := p.Steps[i]
+		if t, ok := s.(plan.TrimStep); ok {
+			if img, err = r.trim(ctx, img, &t); err != nil {
+				return nil, nil, err
+			}
+			if !root {
+				continue
+			}
+			if err := r.replan(plan.Observed{Width: img.Width(), Height: img.Height(), Trimmed: true}); err != nil {
+				return nil, nil, err
+			}
+			p = r.plan
+			i = trimIndex(p.Steps)
+			if i < 0 {
+				return nil, nil, errs.New(errs.KindInternal, "exec: replanned trim lost its step")
+			}
+			continue
+		}
+		if img, err = r.step(ctx, img, s); err != nil {
+			return nil, nil, err
+		}
+	}
+	return img, p, nil
+}
+
+func trimIndex(steps []plan.Step) int {
+	return slices.IndexFunc(steps, func(s plan.Step) bool {
+		_, ok := s.(plan.TrimStep)
+		return ok
+	})
+}
