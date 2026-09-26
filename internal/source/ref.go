@@ -39,6 +39,10 @@ const (
 	SchemeLocal                  // local:///path, aliases local:/path, local:path, file:///path
 	SchemeFTP                    // ftp://host[:port]/path
 	SchemeSFTP                   // sftp://host[:port]/path
+	// SchemePlayground is playground://<area>/<key>: a file in the
+	// playground's in-memory store (WP-94), resolvable only when
+	// Options.Playground is set.
+	SchemePlayground
 )
 
 // String returns the canonical scheme name ("" for relative keys).
@@ -64,6 +68,8 @@ func (s Scheme) String() string {
 		return "ftp"
 	case SchemeSFTP:
 		return "sftp"
+	case SchemePlayground:
+		return "playground"
 	default:
 		return "Scheme(" + strconv.Itoa(int(s)) + ")"
 	}
@@ -211,6 +217,8 @@ func ParseRef(raw string) (Ref, error) {
 		return parseBucket(SchemeXI, rest)
 	case "local", "file":
 		return parseLocal(rest)
+	case "playground":
+		return parseBucket(SchemePlayground, rest)
 	default:
 		return Ref{}, invalid("unsupported source scheme")
 	}
@@ -219,7 +227,7 @@ func ParseRef(raw string) (Ref, error) {
 // knownSchemes lists the scheme names ParseRef understands.
 func knownScheme(s string) bool {
 	switch s {
-	case "http", "https", "ftp", "sftp", "s3", "gs", "abs", "az", "xi", "local", "file":
+	case "http", "https", "ftp", "sftp", "s3", "gs", "abs", "az", "xi", "local", "file", "playground":
 		return true
 	default:
 		return false
@@ -388,7 +396,7 @@ func parseBucket(scheme Scheme, rest string) (Ref, error) {
 	if i := strings.IndexAny(bucket, "?#"); i >= 0 {
 		bucket, tail = bucket[:i], ""
 	}
-	if scheme == SchemeXI {
+	if scheme == SchemeXI || scheme == SchemePlayground {
 		bucket = strings.ToLower(bucket)
 		if !validName(bucket) {
 			return Ref{}, invalid("bad source name")

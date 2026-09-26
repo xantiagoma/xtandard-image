@@ -62,6 +62,10 @@ type Options struct {
 	// Dev is the implicit http backend used in dev mode (Type() == "http").
 	// app builds it like any http source, SSRF-safe client included.
 	Dev Source
+	// Playground serves playground://<area>/<key> under
+	// PlaygroundSourceName (WP-94); nil rejects the scheme. It never
+	// counts as a configured source for the empty-allowlist check.
+	Playground Source
 }
 
 type entry struct {
@@ -79,8 +83,9 @@ type entry struct {
 type Registry struct {
 	byName  map[string]*entry
 	order   []*entry
-	devMode bool
-	dev     Source
+	devMode    bool
+	dev        Source
+	playground Source
 }
 
 var _ Resolver = (*Registry)(nil)
@@ -88,7 +93,9 @@ var _ Resolver = (*Registry)(nil)
 // NewRegistry validates and compiles the sources. With no sources and dev
 // mode off it fails: the allowlist would be empty (ARCHITECTURE §10).
 func NewRegistry(opts Options) (*Registry, error) {
-	r := &Registry{byName: make(map[string]*entry, len(opts.Sources)), devMode: opts.DevMode, dev: opts.Dev}
+	r := &Registry{
+		byName: make(map[string]*entry, len(opts.Sources)), devMode: opts.DevMode, dev: opts.Dev, playground: opts.Playground,
+	}
 	var problems []error
 	if len(opts.Sources) == 0 && !opts.DevMode {
 		problems = append(problems, fmt.Errorf("%w: no sources configured and dev mode off", ErrInvalidSpec))
@@ -203,8 +210,11 @@ func compileEntry(b *Binding) (*entry, error) {
 // Source returns the backend registered under name (DevSourceName in dev
 // mode included).
 func (r *Registry) Source(name string) (Source, bool) {
-	if name == DevSourceName {
+	switch name {
+	case DevSourceName:
 		return r.dev, r.devMode && r.dev != nil
+	case PlaygroundSourceName:
+		return r.playground, r.playground != nil
 	}
 	e, ok := r.byName[name]
 	if !ok {
@@ -237,6 +247,7 @@ func redactRef(ref *Ref) string {
 //  3. http(s)://: the first http source whose allow patterns (or base url)
 //     match; otherwise the implicit dev source in dev mode.
 //  4. a relative key: resolved against spec.Mount's source.
+//  5. playground://<area>/<key>: the playground store, when configured.
 //
 // Nothing matching is KindForbidden (ErrNotAllowed); a malformed string is
 // KindInvalidURL (ErrInvalidSource); ".." is KindForbidden (ErrTraversal).
@@ -273,6 +284,11 @@ func (r *Registry) Resolve(spec transform.SourceSpec) (Key, error) {
 			return Key{Source: DevSourceName, Path: ref.String(), Dev: true}, nil
 		}
 		return Key{}, notAllowed(&ref, "no http source allows url")
+	case SchemePlayground:
+		if r.playground == nil {
+			return Key{}, notAllowed(&ref, "playground store disabled")
+		}
+		return Key{Source: PlaygroundSourceName, Path: ref.Host + "/" + ref.Path}, nil
 	default:
 		for e := range r.candidates(mount, ref.Scheme.sourceType()) {
 			if k, ok := e.absolute(&ref); ok {
