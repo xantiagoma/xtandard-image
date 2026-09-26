@@ -26,8 +26,8 @@
 //
 // # API
 //
-//   - Lifecycle: [Init] (cache off, concurrency 1, loader and saver
-//     allowlists, HEIC encode switch), [Shutdown], [Run] (locked OS thread,
+//   - Lifecycle: [Init] (reference-counted; cache off, concurrency 1, loader
+//     and saver allowlists, HEIC encode switch), [Shutdown], [Run] (locked OS thread,
 //     vips_thread_shutdown), [ReadMemStats], [LiveObjects], [SetLeakCheck],
 //     [KillOnCancel].
 //   - Bytes: [Buffer] (source bytes, implements fetch.Buffer; [NewBuffer] is
@@ -50,6 +50,32 @@
 //   - Every image job runs inside [Run], which locks the OS thread and calls
 //     vips_error_clear + vips_thread_shutdown on it before unlocking. [Image]
 //     values are not goroutine-safe and never cross Runs.
+//
+// # Lifecycle invariant
+//
+// libvips is process-global and vips_shutdown is final: it frees the
+// operation cache table (created by a GOnce, so every later operation hits
+// g_hash_table_lookup(NULL)), stops the thread pool, and a later vips_init
+// does nothing. [Init] and [Shutdown] are therefore reference-counted in the
+// C shim, next to that state:
+//
+//   - each Init takes a reference (Inits are serialised) and each Shutdown
+//     releases one; nested and concurrent pairs, such as one app.Run per
+//     parallel test, never tear libvips down under each other;
+//   - only the first Init applies its settings; a nested Init must ask for
+//     the same ones or it fails (re-applying the loader allowlist blocks
+//     every loader for a moment, failing concurrent loads);
+//   - [Run] registers itself for its whole duration and fails when no
+//     reference is held;
+//   - the Shutdown that releases the last reference refuses new Runs, waits
+//     for the running ones, and only then calls vips_shutdown, once. After
+//     that Init and Run fail: libvips cannot be restarted in the process.
+//
+// Test packages that start the service more than once (or with -count=N)
+// hold a reference in TestMain so the last one is only released at exit.
+// Every vips call that touches images or operations must happen inside
+// Run; only Buffer/Blob reference counting and the statistics readers may
+// run outside it. Never call Shutdown inside Run.
 //   - libvips concurrency is 1 and the operation cache is off by default;
 //     parallelism comes from the request semaphore (internal/limiter).
 //   - Loaders and savers are allowlists: vips_block_untrusted_set(TRUE),

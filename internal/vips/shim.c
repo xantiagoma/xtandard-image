@@ -102,9 +102,121 @@ xi_invalidate_hook(GSignalInvocationHint *ihint, guint n_param_values,
 }
 
 // ---- lifecycle -----------------------------------------------------------
+//
+// libvips is process-global and vips_shutdown is final: it drops the
+// operation cache table (vips__cache_init is a GOnce, so every later
+// vips_cache_operation_buildp hits g_hash_table_lookup(NULL)), stops the
+// thread pool and the render threads, and a later vips_init is a no-op.
+// Several owners (app.run instances, TestMains) may share the process, so
+// the lifecycle is reference-counted here, next to the state it guards:
+//
+//   - xi_init takes a reference (serialised: concurrent Inits never race in
+//     vips_init). Only the first one applies the settings: re-applying the
+//     loader allowlist blocks every loader for a moment, and a concurrent
+//     job would fail with "loader ... is blocked". A nested Init must ask for
+//     the same settings (compared as a canonical string) or it fails;
+//   - xi_run_begin/xi_run_end bracket every vips.Run and refuse to start
+//     once the last reference is gone;
+//   - xi_shutdown drops a reference; the last one waits for every running
+//     Run to finish, then calls vips_shutdown exactly once.
+//
+// After that, xi_init and xi_run_begin fail: libvips cannot be restarted.
+
+static GMutex xi_life_lock;
+static GCond xi_life_idle;
+static int xi_refs = 0;     // Init references not yet released
+static int xi_running = 0;  // Runs between xi_run_begin and xi_run_end
+static int xi_finished = 0; // vips_shutdown has run (or is running)
+static char *xi_settings = NULL; // canonical settings of the first Init
+
+int
+xi_run_begin(void)
+{
+  int rc = XI_OK;
+
+  g_mutex_lock(&xi_life_lock);
+  if (xi_refs == 0 || xi_finished)
+    rc = XI_ERR_INTERNAL;
+  else
+    xi_running++;
+  g_mutex_unlock(&xi_life_lock);
+  return rc;
+}
+
+void
+xi_run_end(void)
+{
+  g_mutex_lock(&xi_life_lock);
+  if (--xi_running == 0)
+    g_cond_broadcast(&xi_life_idle);
+  g_mutex_unlock(&xi_life_lock);
+}
+
+static int xi_init_locked(const char *argv0, int concurrency, int cache_max,
+    size_t cache_max_mem, int cache_max_files, const char **allowed_loaders,
+    int n_loaders, const char **allowed_savers, int n_savers, int heic_encode,
+    char **err);
 
 int
 xi_init(const char *argv0, int concurrency, int cache_max, size_t cache_max_mem,
+    int cache_max_files, const char **allowed_loaders, int n_loaders,
+    const char **allowed_savers, int n_savers, int heic_encode, const char *settings,
+    char **err)
+{
+  int rc = XI_OK;
+
+  g_mutex_lock(&xi_life_lock);
+  if (xi_finished) {
+    *err = g_strdup("libvips was shut down and cannot be restarted");
+    rc = XI_ERR_INTERNAL;
+  }
+  else if (xi_refs > 0) {
+    if (g_strcmp0(xi_settings, settings) != 0) {
+      *err = g_strdup_printf("libvips is already initialised with different settings "
+                             "(%s, want %s)", xi_settings, settings);
+      rc = XI_ERR_INTERNAL;
+    }
+  }
+  else {
+    rc = xi_init_locked(argv0, concurrency, cache_max, cache_max_mem,
+        cache_max_files, allowed_loaders, n_loaders, allowed_savers, n_savers,
+        heic_encode, err);
+    if (rc == XI_OK) {
+      g_free(xi_settings);
+      xi_settings = g_strdup(settings);
+    }
+  }
+  if (rc == XI_OK)
+    xi_refs++;
+  g_mutex_unlock(&xi_life_lock);
+  return rc;
+}
+
+int
+xi_shutdown(void)
+{
+  g_mutex_lock(&xi_life_lock);
+  if (xi_refs == 0) {
+    // Unbalanced Shutdown: nothing to release.
+    g_mutex_unlock(&xi_life_lock);
+    return 0;
+  }
+  if (--xi_refs > 0) {
+    g_mutex_unlock(&xi_life_lock);
+    return 0;
+  }
+  // Last reference: refuse new Runs, wait for the running ones.
+  xi_finished = 1;
+  while (xi_running > 0)
+    g_cond_wait(&xi_life_idle, &xi_life_lock);
+  g_mutex_unlock(&xi_life_lock);
+
+  vips_shutdown();
+  return 1;
+}
+
+static int
+xi_init_locked(const char *argv0, int concurrency, int cache_max, size_t cache_max_mem,
     int cache_max_files, const char **allowed_loaders, int n_loaders,
     const char **allowed_savers, int n_savers, int heic_encode, char **err)
 {
@@ -145,12 +257,6 @@ xi_init(const char *argv0, int concurrency, int cache_max, size_t cache_max_mem,
   }
 
   return XI_OK;
-}
-
-void
-xi_shutdown(void)
-{
-  vips_shutdown();
 }
 
 void

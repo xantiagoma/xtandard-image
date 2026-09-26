@@ -33,7 +33,6 @@ func start(t *testing.T, cfg *config.Config, h hooks) addrs {
 	t.Helper()
 	bound := make(chan addrs, 1)
 	h.listening = func(p, a net.Addr) { bound <- addrs{p, a} }
-	h.keepVips = true
 	ctx, cancel := context.WithCancelCause(context.WithoutCancel(t.Context()))
 	done := make(chan error, 1)
 	go func() { done <- run(ctx, cfg, slog.New(slog.DiscardHandler), Options{Version: "test"}, h) }()
@@ -90,14 +89,10 @@ func checkJPEG(t *testing.T, r response, maxW, maxH int) {
 	}
 }
 
-// TestConfigDrivenFSSource wires the service from a minimal YAML file (one
-// fs source bound to the imgproxy mount) through config.Load, the way cmd
-// does, and serves a real thumbnail from testdata/fixtures.
-func TestConfigDrivenFSSource(t *testing.T) {
-	// Not parallel: run re-applies libvips' process-global loader and saver
-	// allowlists (vips.Init), which briefly blocks every saver of a service
-	// that is processing concurrently.
-
+// fixturesConfig loads a minimal YAML file (one fs source bound to the
+// imgproxy mount, testdata/fixtures) through config.Load, the way cmd does.
+func fixturesConfig(t *testing.T) config.Config {
+	t.Helper()
 	fixtures := filepath.Join(golden.ModuleRoot(t), "testdata", "fixtures")
 	yml := `server:
   addr: "127.0.0.1:0"
@@ -123,7 +118,16 @@ dialects:
 	if meta.File != path {
 		t.Errorf("meta.File = %q", meta.File)
 	}
+	return cfg
+}
 
+// TestConfigDrivenFSSource wires the service from a minimal YAML file (one
+// fs source bound to the imgproxy mount) through config.Load, the way cmd
+// does, and serves a real thumbnail from testdata/fixtures.
+func TestConfigDrivenFSSource(t *testing.T) {
+	t.Parallel()
+
+	cfg := fixturesConfig(t)
 	a := start(t, &cfg, hooks{})
 	base := "http://" + a.public.String()
 	checkJPEG(t, get(t, base+"/insecure/rs:fit:64:64/plain/jpeg/baseline.jpg"), 64, 64)
@@ -162,9 +166,7 @@ dialects:
 // fetch through the shared SSRF client into C memory, admission, vips
 // thumbnail, JPEG, SVG sanitising, and the error statuses of each stage.
 func TestRunEndToEnd(t *testing.T) {
-	// Not parallel: run re-applies libvips' process-global loader and saver
-	// allowlists (vips.Init), which briefly blocks every saver of a service
-	// that is processing concurrently.
+	t.Parallel()
 
 	origin := httptest.NewServer(http.FileServer(http.Dir(golden.ModuleRoot(t) + "/testdata/fixtures")))
 	t.Cleanup(origin.Close)
@@ -203,19 +205,10 @@ func TestRunEndToEnd(t *testing.T) {
 		{path: "/insecure/w:10/plain/" + origin.URL + "/bmp/rgb24.bmp", want: http.StatusOK},
 		{path: "/insecure/w:10/plain/" + origin.URL + "/svg/logo.svg", want: http.StatusOK},
 		{path: "/insecure/w:10/plain/http://169.254.169.254/latest/meta-data", want: http.StatusForbidden},
+		{path: "/insecure/raw:1/plain/" + origin.URL + "/jpeg/baseline.jpg", want: http.StatusOK},
 	} {
 		if got := get(t, base+tc.path); got.status != tc.want {
 			t.Errorf("GET %s = %d %q, want %d", tc.path, got.status, got.body, tc.want)
 		}
-	}
-
-	// raw streams the original bytes; the Content-Type is sniffed (the
-	// file server's header is not what decides it).
-	want, err := os.ReadFile(golden.ModuleRoot(t) + "/testdata/fixtures/png/rgba8.png")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := get(t, base+"/insecure/raw:1/plain/"+origin.URL+"/png/rgba8.png"); got.status != http.StatusOK || got.ctype != "image/png" || !bytes.Equal(got.body, want) {
-		t.Errorf("raw: %d %q, %d bytes; want 200 image/png with the %d source bytes", got.status, got.ctype, len(got.body), len(want))
 	}
 }

@@ -34,8 +34,11 @@ enum {
 
 int xi_init(const char *argv0, int concurrency, int cache_max, size_t cache_max_mem,
     int cache_max_files, const char **allowed_loaders, int n_loaders,
-    const char **allowed_savers, int n_savers, int heic_encode, char **err);
-void xi_shutdown(void);
+    const char **allowed_savers, int n_savers, int heic_encode, const char *settings,
+    char **err);
+int xi_shutdown(void);
+int xi_run_begin(void);
+void xi_run_end(void);
 void xi_thread_cleanup(void);
 void xi_leak_set(int leak);
 
