@@ -310,6 +310,13 @@ int xi_insert(VipsImage *main, VipsImage *sub, int x, int y, VipsImage **out, ch
 int xi_blend_mask(VipsImage *mask, VipsImage *a, VipsImage *b, VipsImage **out,
     char **err);
 
+// Text (WP-78): vips_text with RGBA output, wrapped at width (word, then
+// character boundaries). height > 0 autofits: the DPI is searched so the
+// text fits width×height (*fit_dpi reports it) and dpi is ignored.
+// fontfile, when non-NULL, is registered with fontconfig first.
+int xi_text(const char *text, const char *font, const char *fontfile, int width, int height,
+    int dpi, VipsImage **out, int *fit_dpi, char **err);
+
 // HDR operations (WP-67): float arithmetic for tone mapping.
 int xi_decode(VipsImage *in, VipsImage **out, char **err); // Radiance/LabQ coding → float
 int xi_clamp(VipsImage *in, double min, double max, VipsImage **out, char **err);

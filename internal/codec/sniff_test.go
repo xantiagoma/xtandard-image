@@ -50,6 +50,7 @@ func fixtureFormats() map[string]codec.Format {
 		"tiff/multipage.tif":              codec.FormatTIFF,
 		"uhdr/photo-ultrahdr.jpg":         codec.FormatUHDR,
 		"watermark/logo.png":              codec.FormatPNG,
+		"watermark/badge.png":             codec.FormatPNG,
 		"webp/animated.webp":              codec.FormatWebP,
 		"webp/lossless.webp":              codec.FormatWebP,
 		"webp/lossy.webp":                 codec.FormatWebP,

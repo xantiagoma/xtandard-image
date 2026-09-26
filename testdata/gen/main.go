@@ -45,7 +45,7 @@ func main() {
 
 func run(args []string) error {
 	if len(args) < 2 {
-		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|gif|gif-anim|ico-png|ico-bmp|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb|exr-rgba-half|exr-rgb-float|radiance|rgbe|pfm|ppm|hdr-stats|dng> args...")
+		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|watermark-badge|gif|gif-anim|ico-png|ico-bmp|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb|exr-rgba-half|exr-rgb-float|radiance|rgbe|pfm|ppm|hdr-stats|dng> args...")
 	}
 	sizeArgs := func() (int, int, string, error) {
 		if len(args) != 4 {
@@ -77,6 +77,8 @@ func run(args []string) error {
 		return writePNG(out, img)
 	case "watermark":
 		return writePNG(args[1], watermark())
+	case "watermark-badge":
+		return writePNG(args[1], badge())
 	case "gif":
 		return writeGIF(args[1], false)
 	case "gif-anim":
@@ -346,6 +348,33 @@ func watermark() *image.NRGBA {
 				c = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
 			default:
 				c = color.NRGBA{R: 230, G: 90, B: 20, A: 220}
+			}
+			img.SetNRGBA(x, y, c)
+		}
+	}
+	return img
+}
+
+// badge is a 40x40 RGBA per-request watermark (imgproxy watermark_url in
+// tests), unlike the configured logo: an opaque teal disc with a
+// transparent surround and a white "L" whose foot points right, so a
+// rotation or a mirror shows.
+func badge() *image.NRGBA {
+	const n = 40
+	img := image.NewNRGBA(image.Rect(0, 0, n, n))
+	for y := range n {
+		for x := range n {
+			dx, dy := float64(x)-19.5, float64(y)-19.5
+			d := math.Sqrt(dx*dx + dy*dy)
+			if d > 18 {
+				continue
+			}
+			c := color.NRGBA{R: 0, G: 140, B: 150, A: 255}
+			if d > 17 {
+				c.A = uint8(255 * (18 - d))
+			}
+			if (x >= 12 && x < 18 && y >= 9 && y < 31) || (x >= 12 && x < 29 && y >= 25 && y < 31) {
+				c = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
 			}
 			img.SetNRGBA(x, y, c)
 		}
