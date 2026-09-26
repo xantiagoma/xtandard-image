@@ -293,7 +293,9 @@ https://images.example.com/photos/a.jpg?w=400&h=300&fit=crop&crop=faces,entropy&
 /imgix/<mount>/https%3A%2F%2Forigin.com%2Fa.jpg?w=400  (web-proxy source, must be signed upstream; here: allowlist + policy)
 ```
 
-Grammar: path = object key relative to mount source (escaped, `SourceRelative`, `Source.Mount` = the mount's source); a path whose decoded form starts with `http:`/`https:` is a web proxy source (plain absolute URL, subject to the allowlist and the unsigned policy). Query params are applied by name, the last occurrence wins; any param may be base64url-encoded (padding optional) by appending `64` (`txt64`, `mark64`, `bg64`, …). Legacy spellings (`markalign`, `txtclr`, `trimcolor`, …) are aliases. `ixlib`/`ixid`/`ixjsv` (SDK and analytics tags) are accepted silently, also in strict mode. Unknown params and the "Unsupported" rows below are recorded in `Ignored` (strict → 400); unsupported *values* of known params (`auto=enhance|redeye|true`, `fill=gen`, `cs=adobergb1998`, image masks) are recorded in `Ignored` in both modes. Implemented in `internal/dialect/imgix` (WP-40).
+Grammar: path = object key relative to mount source (escaped, `SourceRelative`, `Source.Mount` = the mount's source); a path whose decoded form starts with `http:`/`https:` is a web proxy source (plain absolute URL, subject to the allowlist and the unsigned policy). Query params are applied by name, the last occurrence wins; any param may be base64url-encoded (padding optional) by appending `64` (`txt64`, `mark64`, `bg64`, …). Every alias of imgix's parameter list (imgix-url-params 11.36 `parameters.json`: legacy `markalign`, `txtclr`, `trimcolor`, … and short `f`, `m`, `t`, `ma`, `tsz`, `inv`, `mono`, `or`, `width`, …) is accepted. `ixlib`/`ixid`/`ixjsv` (SDK and analytics tags) are accepted silently, also in strict mode. Unknown params, the "Unsupported" rows below and the not implemented params (`loop`, `reverse`, `fps`, `skip`, `interval`, `transparency`, `grid-colors`, `grid-size`) are recorded in `Ignored` (strict → 400); unsupported *values* of known params (`auto=enhance|redeye|true`, `fill=gen|generative|gradient`, `cs=adobergb1998`, `trim=alpha`, image masks) are recorded in `Ignored` in both modes. Parser in `internal/dialect/imgix` (WP-40).
+
+Mount (WP-88): `XI_DIALECTS_IMGIX_ENABLED=true` mounts it under `XI_DIALECTS_IMGIX_PREFIX` (default `/imgix/`) and on `XI_DIALECTS_IMGIX_HOSTS` (with an empty prefix, the unpic setup), with `XI_DIALECTS_IMGIX_SOURCE` resolving object keys; extra mounts (another imgix "source") are `dialects.imgix.mounts[]` in YAML, each with its own prefix, hosts, source, tokens and unsigned policy (dialect key `imgix[i]`). `XI_DIALECTS_IMGIX_KEYS` are the secure URL tokens: with tokens `s` is verified (any token matches; `XI_SIGNING_REQUIRED` makes it mandatory) and a verified URL bypasses the unsigned policy; without tokens `s` is not checked and every URL follows the mount's unsigned policy (`restricted` by default: unpic's `w` from the allowlist, `auto=format,compress`, `fit`, but no effects, watermarks or info). `XI_DIALECTS_DEFAULT=imgix` serves unmatched paths with the primary mount's source and policy. The playground signs imgix URLs (scheme `imgix`) with the mount's first token and builds them from its imgix catalogue; OpenAPI documents the parameters on `getImgixImage`.
 
 | imgix | TR | Notes |
 |---|---|---|
@@ -304,21 +306,23 @@ Grammar: path = object key relative to mount source (escaped, `SourceRelative`, 
 | `fit=crop` | Fill + Enlarge; gravity from `crop` | |
 | `fit=smart-crop` | as `fit=crop` with `crop=auto` (Smart) unless `crop` is set | |
 | `fit=scale` | Force + Enlarge | |
-| `fit=fill`, `fill=solid|blur|gen`, `fill-color` | Fit + Enlarge + Extend; `fill-color` → Background (wins over `bg`); `fill=blur` → Extend.Mode Blur (M3); `fill=gen` unsupported (solid) | `fill`/`fill-color` only with `fit=fill|fillmax` |
+| `fit=fill`, `fill=solid|blur|gen|generative|gradient`, `fill-color` | Fit + Enlarge + Extend; `fill-color` → Background (wins over `bg`); `fill=blur` → Extend.Mode Blur (M3); `fill=gen|generative|gradient` unsupported (solid), `fill-gradient-*` unsupported | `fill`/`fill-color` only with `fit=fill|fillmax` |
 | `fit=fillmax` | as `fill` without Enlarge | |
-| `fit=facearea`, `facepad`, `faceindex` | Fill + Enlarge, Gravity Face with FacePad, FaceIndex (1-based → 0-based) | M3 |
+| `fit=facearea`, `facepad`, `faceindex` | Fill + Enlarge, Gravity Face with FacePad, FaceIndex (1-based → 0-based) | M3 (WP-72, needs detection; smart crop until then) |
 | `fit=clamp` | Fit + Enlarge + Extend with edge replication (Extend.Mode Copy, vips `embed extend=copy`) | |
 | `crop=top,bottom,left,right` | compass Gravity | combinations → corner |
 | `crop` fallback chain | the first detector listed wins (imgix falls back left to right); compass values only apply without a detector | |
-| `crop=faces` | Face gravity (M3; falls back to Smart) | |
+| `crop=faces` | Face gravity (M3, WP-72; falls back to Smart) | |
 | `crop=entropy` / `edges` / `auto` | Entropy / Smart (attention) / Smart | |
-| `crop=<object class>` (COCO class or supercategory, e.g. `car,vehicle`) | Gravity Object with Classes | M3 |
-| `crop=focalpoint`, `fp-x`, `fp-y`, `fp-z` | FocusPoint (default 0.5, 0.5) + FocusZoom (1–100) | `fp-*` only with `crop=focalpoint` |
+| `crop=<object class>` (COCO class or supercategory, e.g. `car,vehicle`) | Gravity Object with Classes | M3 (WP-72) |
+| `crop=focalpoint`, `fp-x`, `fp-y`, `fp-z` | FocusPoint (fractions, default 0.5, 0.5; not WP-86a pixel focus) + FocusZoom (1–100) | `fp-*` only with `crop=focalpoint`; `fp-z` > 1 not implemented (no planner zoom) |
 | `ar=16:9` (also `1.5:1`, `2`) | Resize.AspectRatio | only with `fit=crop|smart-crop`, else ignored as in imgix |
 | `rect=x,y,w,h` | Crop (pre-resize, px or relative (0,1)), anchored north-west with offsets x, y | |
 | `dpr` | Resize.DPR (0 < dpr ≤ 10) | |
 | `q` | Quality (`q=0` → 1) | |
-| `fm=jpg|pjpg|png|png8|png32|webp|avif|jxl|gif|json|blurhash|mp4|webm` | Format; `pjpg` → Progressive; `png8` → PNG quantize 256; `json` → Info; `blurhash` → Info blurhash 4:3 (JSON, not imgix's bare string: approximated; WP-63); `mp4/webm` M3 | `jp2`, `jxr`, `pdf` unsupported → 422 |
+| `fm=jpg|pjpg|png|png8|png32|webp|avif|jxl|gif|json|blurhash|mp4|webm` | Format; `pjpg` → Progressive; `png8` → PNG quantize 256; `json` → Info; `blurhash` → Info blurhash 4:3 (JSON, not imgix's bare string: approximated; WP-63); `mp4/webm` M3 | `jp2`, `jxr`, `pdf`, `spritesheet` unsupported → 422 |
+| `jpg-progressive` | Progressive (wins over `fm=pjpg`) | |
+| `iptc=allow|block` | not implemented (xi strips or keeps metadata as a whole) | |
 | `auto=format` | negotiate (Accept); wins over `fm` except `json`, `blurhash`, `mp4`, `webm` (imgix uses `fm` only as the fallback; xi records `fm` as ignored) | |
 | `auto=compress` | Quality 45 when `q` absent; StripMetadata; PreferJPEGIfOpaque when neither `fm` nor `auto=format` decides the format (imgix: PNG if transparent, else JPEG) | |
 | `auto=enhance`, `auto=redeye`, `auto=true` | Unsupported | recorded in `Ignored` even in strict mode |
@@ -336,20 +340,25 @@ Grammar: path = object key relative to mount source (escaped, `SourceRelative`, 
 | `bri`, `con`, `exp`, `gam`, `sat`, `hue`, `vib` | Adjust: bri → Brightness v·255/100; con, exp, sat, vib → 1 + v/100; gam → 2^(v/100); hue → degrees; 0 = unchanged | `vib` is recorded "not implemented" (no planner step, `plan.Unplanned`) |
 | `high`, `shad` | Unsupported | |
 | `sepia`, `monochrome`, `duotone`, `duotone-alpha`, `invert` | Sepia (any amount > 0; partial amounts approximated) / Monochrome (colour alpha = intensity) / Duotone (intensity `duotone-alpha`/100) / Negate | |
+| `bri`, `con`, `exp`, `gam`, `sat`, `hue`, `vib` | Adjust: bri → Brightness v·255/100; con, exp, sat, vib → 1 + v/100; gam → 2^(v/100); hue → degrees; 0 = unchanged | M2; `vib` not implemented (no planner step) |
+| `high`, `shad` | Unsupported | |
+| `sepia`, `monochrome`, `duotone`, `duotone-alpha`, `invert` | Sepia (any amount > 0; partial amounts approximated) / Monochrome (colour alpha = intensity) / Duotone (intensity `duotone-alpha`/100) / Negate | M2 |
+| `face-blur`, `face-pixel` (0–100) | BlurDetections on class `face`: Sigma = v/5 / Pixelate = v (`face-pixel` wins) | M3 (WP-73, needs detection) |
 | `orient` (1–8, 90, 180, 270) | AutoRotate off + the Rotate/Flip of that EXIF orientation; 90/180/270 = EXIF 6/3/8 | overrides the EXIF orientation |
-| `rot` (0–359, counter-clockwise) | RotateAny = −rot (multiples of 90 fold into Rotate) | imgix zooms to hide the corners; xi fills them with Background. M2 |
+| `rot` (0–359, counter-clockwise), `rot-type=pivot|straighten` | RotateAny = −rot (multiples of 90 fold into Rotate); `rot-type` approximated | imgix `straighten` (default) zooms to hide the corners; xi fills them with Background for both types. M2 |
 | `flip=h|v|hv` | Flip (combined with `orient`) | |
-| `trim=auto|color`, `trim-color`, `trim-tol`, `trim-md`, `trim-sd`, `trim-pad` | Trim: `auto` → Threshold `trim-md` (default 11), `trim-sd` approximated; `color` → Color `trim-color` (default corner pixel), Threshold `trim-tol` (default 0); `trim-pad` not implemented | |
+| `trim=auto|color|colorunlessalpha|alpha`, `trim-color`, `trim-tol`, `trim-md`, `trim-sd`, `trim-pad`, `trim-alpha` | Trim: `auto` → Threshold `trim-md` (default 11), `trim-sd` approximated; `color` → Color `trim-color` (default corner pixel), Threshold `trim-tol` (default 0); `colorunlessalpha` → as `color` (approximated: imgix trims transparent images by alpha); `alpha`/`trim-alpha` and `trim-pad` not implemented | |
 | `mask=ellipse|corners`, `mask-bg`, `corner-radius` | Mask ellipse (+ Background) / Radius; image masks (a URL) unsupported | M2 |
-| `mark`, `mark-alpha`, `mark-align` (default bottom,right), `mark-pad` (default 5), `mark-scale`, `mark-w`, `mark-h`, `mark-x`, `mark-y`, `mark-tile=grid`, `mark-rot`, `mark-fit`, `mark-base` | Watermark Source: an http(s) URL, a path on the mount's source, or `mark-base` + path; Opacity = alpha/100; `mark-align`/`mark-pad` → compass + offsets; `mark-x`/`mark-y` → north-west offsets; Scale = `mark-scale`/100 (fit into that fraction of the image, both sides); `mark-w`/`mark-h` px → Width/Height (fractions approximated); `mark-tile=grid` → repeat; `mark-rot` → Rotate = −rot (counter-clockwise); `mark-fit` other than `clip`/`max` approximated. Parameters without `mark` are recorded ("only with its base parameter") | M3 (WP-77) |
-| `txt`, `txt-font`, `txt-size` (default 12), `txt-color`, `txt-align`, `txt-pad` (default 10), `txt-shad`, `txt-width`, `txt-fit`, `txt-clip`, `txt-lead`, `txt-track`, `txt-line`, `txt-line-color` | Text watermark: `txt` is plain text (escaped for Pango); Font = `txt-font` (commas become spaces: `Avenir Next,Bold` → `Avenir Next Bold`) + size; Color; Shadow = `txt-shad` sigma; TextWidth = `txt-width` (wrap width). `txt-fit` approximated (xi wraps, it does not shrink to `txt-width`); `txt-clip`, `txt-lead`, `txt-track`, `txt-line`, `txt-line-color` unsupported | M3 (WP-78) |
+| `mark`, `mark-alpha`, `mark-align` (default bottom,right), `mark-pad` (default 5), `mark-scale`, `mark-w`, `mark-h`, `mark-x`, `mark-y`, `mark-tile=grid`, `mark-rot`, `mark-fit`, `mark-base` | Watermark Source: an http(s) URL, a path on the mount's source, or `mark-base` + path; Opacity = alpha/100; `mark-align`/`mark-pad` → compass + offsets; `mark-x`/`mark-y` → north-west offsets; Scale = `mark-scale`/100 (fit into that fraction of the image, both sides); `mark-w`/`mark-h` px → Width/Height (fractions approximated); `mark-tile=grid` → repeat; `mark-rot` → Rotate = −rot (counter-clockwise); `mark-fit` other than `clip`/`max` approximated; `mark-if-min-width`/`-height` not implemented (the watermark is always drawn). Parameters without `mark` are recorded ("only with its base parameter") | M3 (WP-77) |
+| `txt`, `txt-font`, `txt-size` (default 12), `txt-color`, `txt-align`, `txt-pad` (default 10), `txt-x`, `txt-y`, `txt-shad`, `txt-width`, `txt-fit`, `txt-clip`, `txt-lead`, `txt-track`, `txt-line`, `txt-line-color` | Text watermark: `txt` is plain text (escaped for Pango); Font = `txt-font` (commas become spaces: `Avenir Next,Bold` → `Avenir Next Bold`) + size; Color; `txt-x`/`txt-y` → north-west offsets (like `mark-x`/`mark-y`); Shadow = `txt-shad` sigma; TextWidth = `txt-width` (wrap width). `txt-fit` approximated (xi wraps, it does not shrink to `txt-width`); `txt-clip`, `txt-lead`, `txt-track`, `txt-line`, `txt-line-color` unsupported | M3 (WP-78) |
 | `blend*` | Unsupported (only `blend-mode=normal` via watermark) | |
 | `page`, `frame` (1-based) | Page; `frame` also Pages = 1 (one frame of an animation) | M2 (WP-62) |
 | `dl` | Filename + Attachment | |
 | `ch=Width,DPR,Save-Data` | enable client hints for this URL | |
 | `expires` | Expires (unix seconds; 0 = never); checked after the signature, 404 once passed | |
-| `s` | signature: hex(MD5(token ‖ path ‖ "?" ‖ query-without-s)); `s` may appear anywhere, the message is built without it | |
-| AI/ML: `bg-remove`, `bg-replace`, `upscale`, `nr`, `nrs`, `fill=gen`, `palette`, `colorquant`, `faces` debug, `fp-debug`, `htn` halftone | Unsupported | |
+| `s` | signature: hex(MD5(token ‖ path ‖ "?" ‖ query-without-s)), path = the escaped path after the mount prefix; `s` may appear anywhere, the message is built without it | tokens per mount (`XI_DIALECTS_IMGIX_KEYS`) |
+| AI/ML: `bg-remove*`, `bg-replace*`, `object-removal-*`, `upscale`, `nr`, `nrs`, `fill=gen`, `fill-gen-*`, `lp-blur`, `palette`, `colorquant`, `faces` debug, `fp-debug`, `htn` halftone | Unsupported | |
+| `video-*`, `border-stroke-*`, `svg-sanitize`, `rasterize-bypass`, `pdf-annotation` | Unsupported (xi always sanitizes SVG and never bypasses processing through a URL parameter) | |
 
 ## 6. Cloudinary
 

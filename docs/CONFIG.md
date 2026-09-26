@@ -159,7 +159,7 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `XI_DIALECTS_DEFAULT` | `imgproxy` | Fallback dialect |
+| `XI_DIALECTS_DEFAULT` | `imgproxy` | Fallback dialect for paths no mount matches (it must be enabled); a dialect other than imgproxy serves them with its primary mount's source and unsigned policy |
 | `XI_DIALECTS_STRICT` | `false` | 400 on unknown/unsupported options |
 | `XI_DIALECTS_<NAME>_ENABLED` | imgproxy `true`, others `false` | `<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]` |
 | `XI_DIALECTS_<NAME>_PREFIX` | see URL-DIALECTS.md | Mount prefix |
@@ -170,6 +170,7 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR` | `:` | |
 | `XI_DIALECTS_IMGPROXY_BASE_URL` | `` | |
 | `XI_DIALECTS_IMGPROXY_URL_REPLACEMENTS` | `` | `regex=replacement;…` (`;`-separated in env) |
+| `XI_DIALECTS_IMGIX_KEYS` | `` | imgix secure URL tokens, used verbatim (`,`-separated for rotation: any verifies, the first signs in the playground). With tokens, `s` = hex(MD5(token ‖ path ‖ `?` ‖ query without `s`)) is verified and `expires` enforced; without, `s` is not checked and every URL follows the mount's unsigned policy. `XI_SIGNING_REQUIRED=true` rejects unsigned imgix URLs on mounts with tokens. Prefix default `/imgix/`; host-bind (`XI_DIALECTS_IMGIX_HOSTS`) for unpic's imgix provider; `XI_DIALECTS_IMGIX_SOURCE` resolves object keys (URL-DIALECTS §5) |
 | `XI_DIALECTS_CLOUDINARY_CLOUDS` | `` | `cloud=source,…` |
 | `XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH` | `` | ImageKit URL-endpoint id kept in the path of host-bound mounts (`https://ik.imagekit.io/<id>/…` → `/<id>`), for every ImageKit mount: stripped before parsing, excluded from the source key and the signed message; requests outside it are 400 (URL-DIALECTS §7) |
 | `XI_DIALECTS_CLOUDFLARE_IMAGES_ACCOUNTS` | `` | `account_hash=source,…`: the source each Cloudflare Images account hash reads image ids from; empty = the mount's source for every hash, otherwise an unknown hash is 403. `XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS` are the raw Images signing keys (`sig`/`exp`); variants are presets |
