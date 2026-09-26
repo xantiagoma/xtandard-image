@@ -88,13 +88,13 @@ func Compare(a, b image.Image) (Result, error) {
 
 	luma(la, a, white)
 	luma(lb, b, white)
-	res := comparePlanes(la, lb, w, h)
+	res := comparePlanes(la, lb, w, h, true)
 	if opaque(a) && opaque(b) {
 		return res, nil
 	}
 	luma(la, a, black)
 	luma(lb, b, black)
-	if onBlack := comparePlanes(la, lb, w, h); onBlack.SSIM < res.SSIM {
+	if onBlack := comparePlanes(la, lb, w, h, true); onBlack.SSIM < res.SSIM {
 		res = onBlack
 	}
 	return res, nil
@@ -194,8 +194,9 @@ func local(mux, muy, exx, eyy, exy float64) float64 {
 	return ((2*mux*muy + c1) * (2*sxy + c2)) / ((mux*mux + muy*muy + c1) * (sxx + syy + c2))
 }
 
-// comparePlanes computes SSIM on two w x h luma planes.
-func comparePlanes(x, y []float64, w, h int) Result {
+// comparePlanes computes SSIM on two w x h luma planes; keepMap fills
+// Result.Map (Reference skips it: auto-quality only needs the mean).
+func comparePlanes(x, y []float64, w, h int, keepMap bool) Result {
 	if w < windowSize || h < windowSize {
 		return global(x, y)
 	}
@@ -227,7 +228,10 @@ func comparePlanes(x, y []float64, w, h int) Result {
 		}
 	}
 
-	res := Result{Map: make([]float32, mw*mh), MapWidth: mw, MapHeight: mh, Offset: radius}
+	res := Result{MapWidth: mw, MapHeight: mh, Offset: radius}
+	if keepMap {
+		res.Map = make([]float32, mw*mh)
+	}
 	for row := range windowSize - 1 {
 		hfilter(row)
 	}
@@ -241,10 +245,15 @@ func comparePlanes(x, y []float64, w, h int) Result {
 				acc[i] += kj * v
 			}
 		}
-		out := res.Map[oy*mw : (oy+1)*mw]
+		var out []float32
+		if keepMap {
+			out = res.Map[oy*mw : (oy+1)*mw]
+		}
 		for i := range mw {
 			s := local(acc[i], acc[mw+i], acc[2*mw+i], acc[3*mw+i], acc[4*mw+i])
-			out[i] = float32(s)
+			if keepMap {
+				out[i] = float32(s)
+			}
 			total += s
 		}
 	}
