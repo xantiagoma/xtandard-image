@@ -65,7 +65,7 @@ libvips has **no native loader for BMP, ICO or PSD**: magick, or own loaders lik
 - **ONNX Runtime 1.30 has official Go bindings**; YOLO-style face model runs 10–30 ms on CPU at 640 px. `onnxruntime-purego` avoids cgo. https://github.com/microsoft/onnxruntime/releases https://github.com/shota3506/onnxruntime-purego
 - Ultralytics YOLO weights are AGPL → ship YuNet (OpenCV Zoo) or permissive SCRFD/RetinaFace; let users mount their own.
 
-**imgproxy Pro paid features** ($49/mo): advanced smart crop (faces), object-oriented crop/blur/draw, auto-quality by DSSIM and by file size, best-format, GIF→MP4, video thumbnails, PDF/PSD thumbnails, advanced watermarks (per-request URL, text, shadow, rotation), chained pipelines, colour adjustments, advanced compression. RAW is not offered at all. https://imgproxy.net/features/
+**imgproxy Pro paid features** ($49/mo): advanced smart crop (faces), object-oriented crop/blur/draw, auto-quality by DSSIM and by file size, best-format, GIF→MP4, video thumbnails, PDF/PSD thumbnails, advanced watermarks (per-request URL, text, shadow, rotation), chained pipelines, colour adjustments, advanced compression, and (since v4.0.0, 2026-05-13) camera RAW loading behind `IMGPROXY_ENABLE_RAW_FORMATS` plus an internal result cache. https://imgproxy.net/features/ (verified in `.refs/imgproxy/CHANGELOG.md` and `imagetype/raw.go`)
 
 ## 5. Reusable base images
 
@@ -89,7 +89,7 @@ libvips has **no native loader for BMP, ICO or PSD**: magick, or own loaders lik
 
 - **Language:** Go 1.27 (1.27.1 current as of 2026-09-26; pin `go 1.27.0`, `toolchain go1.27.1`), `CGO_ENABLED=1`, buildx matrix, native arm64 runners preferred.
 - **Binding:** vipsgen-generated bindings + own small cgo shim for hot paths (load from buffer/source, thumbnail, save to target, libraw thumbnail loader). Pin libvips 8.18.x. `VIPS_CONCURRENCY`, request semaphore sized to cores, `vips_cache_set_max(0)`, `MALLOC_ARENA_MAX=2` + jemalloc.
-- **Base image:** in-house deps on `ubuntu:noble` → `/opt/app/lib`, multi-stage copy to slim runtime. Publish `ghcr.io/<org>/xtandard-image-base:vips8.18.6-rN`.
+- **Base image:** in-house deps on `ubuntu:noble` → `/opt/xtandard/lib`, multi-stage copy to slim runtime. Publish `ghcr.io/xantiagoma/xtandard-image-base:vips8.18.6-<flavor>-rN`.
 - **License policy:** LGPL/BSD/MIT/Apache only. No x265, poppler, exiv2, GPL ffmpeg, AGPL weights.
 
 | Format | Library |

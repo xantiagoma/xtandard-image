@@ -59,13 +59,18 @@ Dev tools other than golangci go in a separate `tools/go.mod` with `tool` direct
 ```
 cmd/xtandard-image/main.go    # wiring only: config, signals, run(); default.pgo lives here
 internal/vips/                # the ONLY package that imports "C" (plus *.c/*.h shim)
+internal/transform/           # normalised Request model (pure Go)
+internal/dialect/<name>/      # URL parsers per dialect: imgproxy, query, imgix, ... (fuzzed)
+internal/security/            # sign (HMAC per dialect), enc (AES source URLs), ssrf, svg
+internal/fetch/<backend>/     # sources: http, s3, gcs, azure, fs, ftp; singleflight fetcher
+internal/codec/               # sniff/probe, BMP/ICO loaders, format decision
 internal/pipeline/            # operation graph over internal/vips; pure Go
-internal/options/             # URL/path parsing + signing (fuzzed)
-internal/fetch/               # upstream HTTP/S3/file sources
-internal/server/              # handlers, middleware, error→status mapping
-internal/config/  internal/obs/ (slog, metrics, tracing)
+internal/server/              # ServeMux handlers, middleware, error→status mapping
+internal/config/  internal/errs/  internal/obs/ (slog, metrics, tracing)
 testdata/                     # golden images, fuzz corpora
 ```
+
+`docs/ARCHITECTURE.md` §3 is authoritative for package names and dependency direction; this list is a summary.
 
 Everything lives under `internal/`. Add `pkg/` only when an external consumer really exists, and write an ADR first. Keep one package per concept. Never create `util`, `common` or `helpers` packages. `main` stays under 100 lines and calls `run(ctx, args, getenv, stdout) error`.
 
@@ -75,8 +80,9 @@ Use stdlib `net/http` and `ServeMux` with method and wildcard patterns (Go 1.22+
 
 ```go
 mux := http.NewServeMux()
-mux.HandleFunc("GET /health", s.health)
-mux.HandleFunc("GET /{sig}/{path...}", s.image) // path parsed by internal/options, not the mux
+mux.HandleFunc("GET /healthz", s.health)
+mux.HandleFunc("GET /readyz", s.ready)
+mux.HandleFunc("GET /{sig}/{path...}", s.image) // path parsed by internal/dialect, not the mux
 ```
 
 Always set every timeout on `http.Server`. Never call `http.ListenAndServe`.

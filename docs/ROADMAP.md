@@ -1,0 +1,123 @@
+# Roadmap
+
+Each work package (WP) becomes one GitHub issue and one PR. WPs are sized for one coding agent (roughly ≤ 1,500 lines including tests), own a directory, and talk to other WPs only through the interfaces in `ARCHITECTURE.md`. A WP may start as soon as its dependencies' **interfaces** are merged (every foundational WP lands its interface file first as a tiny PR), so most of a milestone runs in parallel.
+
+**IDs are stable.** A WP keeps its ID forever. A split adds a letter suffix (`WP-21b`); new work takes an unused number; a WP moved between milestones keeps its number. Never renumber.
+
+Universal done criteria (not repeated below): code follows `docs/go-standards.md`; `go test -race ./...` and every CI gate in `CLAUDE.md` pass; pure-Go packages pass with `CGO_ENABLED=0`; exported API documented; fuzz target for every parser/decoder; docs (`CONFIG.md`, `URL-DIALECTS.md`, `FORMATS.md`) updated when behaviour or config changes; integration tests use `//go:build integration` against `docker compose` services (go-standards §8), never testcontainers.
+
+## M1: core
+
+Goal: a runnable, multi-arch `slim` image on GHCR that serves the imgproxy dialect end to end (plus the query dialect) from all source types, with the core processing set, all still formats except RAW/PDF/PSD (M2), signing, encryption, mandatory allowlist, SSRF protection, admission control, metrics and health endpoints.
+
+Critical path: WP-01 → WP-05 → **WP-00 (walking skeleton)** → WP-06 → WP-26a → WP-34a → WP-37 → WP-39. WP-00 retires the integration risk (cgo + libvips + Docker + multi-arch) before anything else is built on top of it.
+
+| ID | Package | Scope | Done when | Depends |
+|---|---|---|---|---|
+| WP-01 | Scaffold | `go.mod` (`go 1.27.0`, `toolchain go1.27.1`), `cmd/xtandard-image` (`run(ctx, args, getenv, stdout) error`, `serve`/`version`/`health` stubs), `.golangci.yml` with depguard rules from ARCHITECTURE §3 and go-standards §10, `tools/go.mod`, CI workflow (lint, vet, `go fix -diff`, tidy, unit, `CGO_ENABLED=0` job, nightly fuzz + govulncheck). | CI is green on an empty `internal/`; a deliberate depguard violation fails CI. | — |
+| WP-05 | Base image (slim) | `docker/base`: fork of imgproxy-docker-base (MIT, attribution kept) at libvips 8.18.x, plus libspng, OpenJPEG, libultrahdr, jemalloc; `versions.sh` with SHA256s; license gate that fails on GPL/AGPL; amd64 + arm64 on native runners; publish `xtandard-image-base:<vips>-r<N>-slim` to GHCR. LibRaw/PDFium/ImageMagick are **not** here (WP-66). | `vips --vips-config` in both arch images lists jpeg, png (spng), gif, webp, heif (aom+dav1d+de265+kvazaar), jxl, tiff, svg, jp2k, uhdr; license gate rejects an injected GPL tarball in a test run. | — |
+| WP-00 | Walking skeleton | Thinnest end-to-end slice: `internal/app` composition root, `internal/server` on `http.ServeMux` with all `http.Server` timeouts and `signal.NotifyContext` shutdown, `GET /healthz`, a minimal `internal/vips` (init with concurrency 1 + cache off, load from C-owned buffer, `thumbnail`, JPEG save to blob, locked thread + `vips_thread_shutdown`), a hard-coded parser for `/unsafe/rs:fit:W:H/plain/<http-url>` only, a plain `net/http` fetch from one allowlisted host, and `docker/Dockerfile` (build on WP-05 base, run on `ubuntu:noble`, UID 65532). Later WPs replace each piece; nothing here is throwaway-by-design except the hard-coded parser. | CI builds the image for amd64 and arm64, starts it with compose next to a static origin, and `GET /unsafe/rs:fit:300:300/plain/http://origin/a.jpg` returns a ≤ 300 px `image/jpeg`; `/healthz` returns 200; SIGTERM exits 0. | 01, 05 |
+| WP-02 | `errs` | `Kind` enum, wrap helpers, `Status(kind)` table from ARCHITECTURE §12, `HTTPStatus()`/`PublicMessage()` so `server.writeError` resolves via `errors.AsType` (go-standards §6). | Table test covers every row of ARCHITECTURE §12; wrapped errors map correctly through `fmt.Errorf("%w")`. | 01 |
+| WP-03 | `transform` model | All types of ARCHITECTURE §4, `ApplyDefaults`, `Validate`, `CanonicalKey`. | Golden-hash test pins `CanonicalKey` for 30+ requests; fields excluded from the key (`Dialect`, `Ignored`, `Presets`) proven not to change it. | 01 |
+| WP-04 | `config` | One `Config` struct: optional YAML (goccy/go-yaml strict) then `XI_*` env via caarlos0/env/v11 (env wins), `_FILE` secrets, `Validate()` with `errors.Join`, `config print` redaction, unknown-key/unknown-`XI_` errors. Covers every M1 variable in CONFIG.md; later WPs add their own. | Precedence, `_FILE`, list-replacement and redaction are table-tested; a typo in `XI_*` fails startup; no sources + no dev mode fails `Validate`. | 02 |
+| WP-04b | `IMGPROXY_*` compat | Map `IMGPROXY_*` variables to `XI_*` when `XI_COMPAT_IMGPROXY_ENV=true`. | Mapping table in CONFIG.md; test per mapped variable; unmapped `IMGPROXY_*` logged once at startup. | 04 |
+| WP-06 | `vips` core | Grows WP-00's package: vipsgen pinned, block-untrusted + re-enable list, refcounted C-owned `Buffer`, `Image` handle + per-request arena, locked-thread job runner, `vips_error_buffer_copy` capture at failure site with op-based error kind, kill helper bound to ctx, `vips_tracked_*` stats. The only package importing `"C"`. | Tests (in the base image) prove: no leak over 10k load/save cycles (`vips_tracked_get_mem` returns to baseline), kill aborts a long save within one tile, a load failure maps to `Corrupt` and a save failure to `Internal`; `cgocheck2` race job green. | 00 |
+| WP-07 | `codec` sniff/probe | Magic sniffing for every format in FORMATS.md, header-only probe → `ImageMeta` (dims, frames, pages, alpha, orientation, bit depth), limit enforcement before decode. `Format`/`ImageMeta` types in a cgo-free file set. | Fixture per format sniffs correctly; oversize pixel/frame fixtures rejected with `LimitExceeded` without full decode; sniffer fuzzed. | 03, 06 |
+| WP-08 | BMP/ICO | Pure-Go loaders/savers in `codec/bmp`, `codec/ico`, reimplemented from imgproxy's C loaders (`vips/bmpload.c`, `icoload.c`; **Apache-2.0**): keep the upstream copyright header in each derived file and add the imgproxy notice to `NOTICE`. | 1/4/8/16/24/32-bit, RLE4/8, bitfields and PNG-in-ICO fixtures decode; fuzzers run 60 s clean; `NOTICE` entry present. | 06 |
+| WP-09 | SVG sanitiser | `security/svg` token-stream sanitiser, pure Go. | Malicious corpus (script, event handlers, `foreignObject`, external `href`, `@import`, XXE, billion laughs) all neutralised; fuzzer clean. | 01 |
+| WP-10 | SSRF client | `security/ssrf`: `net.Dialer.Control` on the connected IP, IP classes, port allowlist, redirect policy, no HTTPS→HTTP downgrade. | Rebinding test with a fake resolver blocked; every address class in ARCHITECTURE §10 has a test. | 02 |
+| WP-11 | Source core | `source` interface, `Key`, `Object`, registry, resolver = allowlist (all schemes of ARCHITECTURE §6), dev-mode behaviour. | Resolution-order table test for every scheme; unmatched source → `Forbidden`; dev mode yields implicit http source that still uses SSRF rules. | 02, 03 |
+| WP-12 | http source | `fetch/httpsrc` over the SSRF client, conditional requests, header passthrough allowlist. | `httptest` suite: 200/304/404/5xx/redirect/oversize mapped to the right `Kind`; `bodyclose`/`noctx` lint clean. | 10, 11 |
+| WP-13 | s3 source | `fetch/s3src`, aws-sdk-go-v2, custom endpoint, path-style. ADR line for the SDK. | Integration test against compose MinIO: get, 404, bucket not allowed, prefix jail. | 11 |
+| WP-14 | gcs source | `fetch/gcssrc`. ADR line for the SDK. | Integration test against compose fake-gcs-server. | 11 |
+| WP-15 | azure source | `fetch/azuresrc`. ADR line for the SDK. | Integration test against compose Azurite. | 11 |
+| WP-16 | fs source | `fetch/fssrc` on `os.Root`. | `..`, absolute and symlink escapes all rejected; `t.TempDir` tests. | 11 |
+| WP-17 | ftp/sftp sources | `fetch/ftpsrc` (explicit TLS option), `fetch/sftpsrc` (pinned host key, no TOFU). | Integration tests against compose FTP and SFTP servers; unknown host key rejected. | 11 |
+| WP-18 | Fetcher | `fetch.Fetcher`: singleflight, in-memory origin LRU over refcounted `Buffer`s (allocator injected), byte limits, timeouts, one retry. | Test proves 10 concurrent sizes → 1 origin hit; last `Release` frees; `synctest` covers timeout and retry. | 11 |
+| WP-19 | Signing core + imgproxy scheme | `sign.Verifier`, multi-key, `signature_size`, trusted signatures, `xi_sig` scheme. | Vectors from imgproxy docs and `.refs/imgproxy/security/signature_test.go` pass; constant-time compare; fuzzed. | 02 |
+| WP-20 | Encryption | `security/crypt` AES-CBC, PKCS#7, IV prefix, unpadded base64url (imgproxy spec). | Round-trips with `.refs/imgproxy/examples/encrypted_source_url.go` output; bad padding → `Unauthorized`; fuzzed. | 02 |
+| WP-21a | imgproxy dialect: grammar + M1 options | `dialect/imgproxy`: path grammar, `plain/`, base64 and `enc/` sources, extension, argument separator, `-` chained-pipeline syntax, every option marked M1 in URL-DIALECTS §3.2. | 150+ table cases URL → TR JSON, including URLs generated by `imgproxy-js-core`; fuzzed. | 03, 19, 20 |
+| WP-21b | imgproxy dialect: later options + `/info` | Parse every M2/M3 option in URL-DIALECTS §3.2 into TR (recorded in `Ignored` until implemented) and the `/info` option grammar of §3.3. | Every option row of §3.2/§3.3 has at least one table case; strict mode returns 400 for unknown options. | 21a |
+| WP-22 | Presets | `preset` store, `default` preset, only-presets, env/file loading, chained-pipeline merge rules. | imgproxy preset examples reproduce identical TRs; only-presets rejects non-preset URLs with 403. | 21a |
+| WP-23 | query dialect | Native keys, `o=` passthrough, imaginary endpoints and `sign`. | Table tests per key and endpoint; imaginary signature vector computed with the algorithm in `.refs/imaginary/middleware.go` passes. | 03, 19, 21a |
+| WP-24 | Router | Host / longest-prefix / default selection, mounts, source binding, unsigned policy enforcement. | Precedence table test; wsrv `?url=` at `/` beats imgproxy fallback; `restricted` rejects non-allowlisted widths with 403. | 21a |
+| WP-25 | Planner | `pipeline/plan`, pure Go: step order, shrink-on-load math, gravity/crop/extend/padding geometry, DPR, animation, cost estimate. | Exhaustive table tests (request + meta → plan) including DPR and animated inputs; no cgo. | 03, 07 (types only) |
+| WP-26a | Executor: core geometry | `pipeline/exec`: load with shrink-on-load, resize (premultiplied), pre-crop, gravity crop incl. smart and focus point, EXIF orientation/rotate/flip, background flatten, colour to sRGB. | Golden cases (WP-36 harness) for each step and for fit/fill/fill-down/force/auto on JPEG, PNG with alpha, WebP. | 06, 25, 36 |
+| WP-26b | Executor: extend, trim, animation | trim, extend, extend_aspect_ratio, padding, per-frame ops on animated images (`page-height`, `arrayjoin`), `disable_animation`. | Golden cases for each; animated GIF/WebP keep frame count, delays and loop count. | 26a |
+| WP-27 | Executor: filters | blur, sharpen, pixelate. | Golden cases; sigma conversions match URL-DIALECTS notes. | 26a |
+| WP-28 | Watermark (basic) | Config watermark image: opacity, position, offsets, scale, `re` tiling. | Golden cases for every position and tiling. | 26a |
+| WP-29 | Metadata & colour | Strip metadata, keep copyright, GPS always stripped, ICC → sRGB, strip profile, orientation reset. | Output EXIF/ICC inspected in tests for each flag combination. | 26a |
+| WP-30 | Encoders | `codec/encode`: every M1 output format of FORMATS §5, quality precedence, `format_quality`, `max_bytes` loop (≤ 6 saves). | Each format round-trips through its loader; `max_bytes` meets the limit or returns the smallest attempt; benchmark committed. | 06, 08 |
+| WP-31 | Negotiation | `negotiate`: Accept q-values, auto/enforce flags, decision matrix (without `best`), `Vary` set. | Table test covering every row of FORMATS §6.2; fuzzed Accept parser. | 03 |
+| WP-32 | Limiter | Two semaphores (queue `TryAcquire` → 429, workers `Acquire` with timeout → 503, both `Retry-After`), optional memory-weighted semaphore, metrics hooks. | `synctest` tests for 429, 503, release on cancel, and oversize memory request → 422. | 02 |
+| WP-33 | Observability | `obs`: slog JSON handler with request/trace IDs, private Prometheus registry and metric set, opt-in OTel, admin mux with `/metrics` and gated pprof, `/readyz` state. | `promlinter`/`sloglint` clean; admin mux never serves pprof unless enabled (test); tracing off without `OTEL_EXPORTER_OTLP_ENDPOINT`. | 02 |
+| WP-34a | Server orchestration | Replace WP-00's handler: full lifecycle of ARCHITECTURE §2 wired in `app`, `server.writeError` single mapping point, request budget via `context.WithTimeoutCause`, readiness drain, graceful shutdown order of go-standards §2. | Handler tests with fake executor/fetcher cover every stage failure → status; shutdown test drains in-flight requests. | 02, 11, 18, 19, 20, 22, 24, 25, 30, 31, 32, 33 |
+| WP-34b | Response semantics | Cache-Control, ETag, Last-Modified, Vary, Content-DPR, Content-Disposition, `expires`, 304 before processing, HEAD, SVG CSP. | Header table test per ARCHITECTURE §9.1 row; 304 path never touches the executor. | 34a |
+| WP-34c | Special paths | `raw` / `skip_processing` streaming, global fallback image (`XI_FALLBACK_SOURCE`), `filename` / `return_attachment`. | `raw` bypasses admission (test); fallback served with `XI_FALLBACK_STATUS` for each eligible `Kind`. | 34a |
+| WP-35 | Info endpoint (basic) | `/info`: size, format, dimensions, exif, iptc, xmp; imgproxy JSON field names. | JSON matches imgproxy field names for fixtures of every M1 format. | 07, 21b, 34a |
+| WP-36 | Golden harness | Pure-Go SSIM/DSSIM metric (no AGPL `dssim`), `testdata/golden` layout, `-update` flow, fixture corpus of all M1 formats with licences in `testdata/LICENSES.md`. Executor WPs add their own cases. | Metric validated against published SSIM reference values; identical images score 0; a 1 px shift exceeds default tolerance. | 01 |
+| WP-37 | Release pipeline | Promote WP-00's Dockerfile to the full slim app image (runtime lib subset, env from ARCHITECTURE §14, `HEALTHCHECK`, read-only rootfs), per-arch build by digest + `imagetools` merge, cosign, SBOM, GHCR tags `slim`, `<ver>-slim`, `latest`. | Tagged push publishes a signed multi-arch manifest; image ≤ 110 MB compressed; `docker run … health` exits 0. | 00, 34a |
+| WP-39 | M1 acceptance | Compose-based end-to-end suite run in CI against the **published** slim image on amd64 and arm64: signed and unsigned imgproxy URLs, `enc/` source, http + S3 (MinIO) + fs sources, every M1 output format, Accept negotiation, `/info`, 304, 429 under load, `/metrics`, `/readyz` drain on SIGTERM. | Suite green on both arches; it is the M1 release gate. | 34b, 34c, 35, 37 |
+| WP-38 | M1 docs & benchmarks | README quick start verified verbatim, `bench/` k6 scenario vs imgproxy OSS, results published. | Quick start commands run in CI; benchmark report committed with hardware notes. | 39 |
+
+## M2: breadth
+
+Goal: every URL dialect (including all 28 unpic providers), RAW/PDF/PSD/HDR inputs, result cache, auto-quality, best format, chained pipelines, colour adjustments and the remaining imgproxy Pro processing options.
+
+| ID | Package | Scope | Done when | Depends |
+|---|---|---|---|---|
+| WP-40 | imgix dialect | URL-DIALECTS §5 incl. `s`/`expires` signing, `64` params. | Fixtures from `@imgix/js-core` and unpic `imgix` parse; blueprint signature vectors pass. | 24 |
+| WP-41 | Cloudinary dialect | §6 incl. upload/fetch, private-CDN/custom-domain form, chained components, `s--…--` SHA-1/SHA-256, cloud → source map. | Fixtures from `cloudinary-url-gen` and unpic `cloudinary` (both public and private regex shapes) parse; signature vectors pass. | 24 |
+| WP-42 | ImageKit dialect | §7 incl. path/query `tr`, chains, `ik-s`/`ik-t`. | Fixtures from `imagekit-javascript` and unpic `imagekit` parse; signature vectors pass. | 24 |
+| WP-43 | Cloudflare dialect | §8 `/cdn-cgi/image/`, `onerror=redirect`. | Unpic `cloudflare` fixtures parse; `onerror=redirect` returns 302 on origin failure. | 24 |
+| WP-79 | Cloudflare Images delivery | `/cdn-cgi/imagedelivery/` and `imagedelivery.net` shapes, variant → preset, `sig`/`exp`. (Moved from M3: it is an unpic provider.) | Unpic `cloudflare_images` fixtures parse; signature vector passes. | 22, 43 |
+| WP-44 | Bunny dialect | §9 incl. token auth; byte layout verified against Bunny's published SDK code before implementation. | Unpic `bunny` fixtures parse; token vectors from Bunny docs pass. | 24 |
+| WP-45 | Thumbor dialect | §10 grammar, filters parser (reused by Storyblok), HMAC-SHA1, `meta`. | URLs from thumbor's docs and test suite parse; HMAC vectors pass. | 24 |
+| WP-46 | wsrv dialect | §11 incl. `default` redirect, `maxage`, `encoding=base64`. | Unpic `wsrv` fixtures and wsrv docs examples parse. | 24 |
+| WP-47 | Simple dialects engine | Table-driven parser + first 6 providers (nextjs, vercel, netlify, ipx, astro, directus). | Each provider's unpic fixtures parse; adding a provider needs only a table + test file. | 24 |
+| WP-48 | Simple dialects batch 2 | Remaining unpic providers of §12. | All 28 unpic providers have a passing fixture file (`tools/compat/`). | 45, 47 |
+| WP-66 | Base image extras | Add LibRaw 0.22.x, PDFium (prebuilt), ImageMagick 7 (PSD coder only, restrictive `policy.xml`), OpenEXR/Imath to `docker/base` slim. | `vips --vips-config` lists dcrawload, pdfload (pdfium), magickload, openexrload; magick refuses every non-PSD coder in a test. | 05 |
+| WP-49 | RAW | `codec/raw` + shim loader: LibRaw embedded preview, `dcrawload` fallback, RAW orientation, EXIF. | CR3/NEF/ARW/DNG/RAF fixtures render; preview path used when large enough (asserted via metric); golden cases. | 07, 26a, 66 |
+| WP-50 | PDF | PDFium page/pages, dpi-at-target rendering, page limit, password → 422. | Golden cases for page 0 and page N; `XI_LIMITS_MAX_PDF_PAGES` enforced at probe. | 07, 26a, 66 |
+| WP-51 | PSD | magick PSD-only path, composite strategy. | Fixtures with and without "Maximize compatibility" render; `policy.xml` tests pass. | 07, 26a, 66 |
+| WP-67 | HDR inputs | OpenEXR, Radiance HDR, PPM/PFM sniffing and tone-mapping to 8-bit sRGB unless `preserve_hdr`. | Golden cases per format. | 07, 26a, 66 |
+| WP-52 | Cache core + memory | `cache.Store`, tiering, async bounded writes with drop metric, result-key derivation, server integration, `bypass_cache`. | Second identical request served from cache without fetch (test); full write queue drops and counts. | 34b |
+| WP-53 | Disk cache | Sharded dirs, atomic rename, size-bounded LRU janitor. | Survives restart; janitor keeps usage under `XI_CACHE_RESULT_DISK_BYTES` (`synctest`). | 52 |
+| WP-54 | S3 cache | S3-compatible store reusing a named s3 source's credentials. | Integration test against compose MinIO. | 13, 52 |
+| WP-55 | Redis cache | `SET PX`, values over 1 MiB skipped. | Integration test against compose Redis; oversize values skipped and counted. | 52 |
+| WP-56 | Auto-quality | size + dssim methods, binary search, per-format min/max. | For the fixture corpus, chosen quality meets the target within tolerance in ≤ 6 saves. | 30, 36 |
+| WP-57 | Best format | Complexity score, candidate encodes, `best` in all dialects. | Photo fixtures pick lossy, graphic fixtures pick lossless; skipped above `XI_FORMATS_BEST_MAX_PIXELS`. | 31, 56 |
+| WP-58 | Chained pipelines exec | Materialise between pipelines, preset merge semantics. | imgproxy chained-pipeline doc examples produce expected golden output. | 22, 26a |
+| WP-59 | Colour adjustments | brightness, contrast, saturation, gamma, hue, monochrome, duotone, colorize, gradient, tint, sepia, negate, background alpha, `color_profile`. | Golden case per option. | 26a |
+| WP-60 | Geometry extras | `crop_aspect_ratio`, border, radius, masks, arbitrary rotate. | Golden case per option. | 26b |
+| WP-61 | Filter extras | unsharp masking, blur areas, progressive blur. | Golden case per option. | 27 |
+| WP-62 | Pages & frames | `page`/`pages`, frame selection in all dialects. | Multi-page TIFF and animated fixtures select the requested page/frame. | 26b |
+| WP-63 | Info Pro options | colorspace, bands, sample_format, pages_number, alpha, crop, palette, average, dominant colours, blurhash, thumbhash, phash, hashsums. | JSON field names match imgproxy; hash outputs match reference implementations on fixtures. | 35 |
+| WP-64 | Request extras | `hashsum` check, per-request `fallback_image_url`, `style`, `enforce_thumbnail`, `dpi`, `preserve_hdr`, encoder `*_options`, `cache_tags`. | Table + golden tests per option. | 34c |
+| WP-65 | Client hints | `Sec-CH-DPR`/`Width`/`Viewport-Width`, `Save-Data`, `Accept-CH` response, `Vary`. | Header table tests; `Vary` only lists hints that changed the result. | 31, 34b |
+
+## M3: intelligence, video, polish
+
+| ID | Package | Scope | Done when | Depends |
+|---|---|---|---|---|
+| WP-70 | `full` base image | FFmpeg 8 LGPL (decoders + libvpx/libaom encoders per the GIF→video decision), ONNX Runtime 1.30, permissively licensed models with licence files; license gate. | `full` base published multi-arch; license gate green; `ffmpeg -buildconf` shows no `--enable-gpl`. | 66 |
+| WP-71 | Detection runtime | `detect`: purego ONNX loading, model registry, pre/post-processing, NMS; disabled cleanly on slim. | Face and object fixtures detected with expected boxes (IoU ≥ 0.5); slim build returns `Unsupported` without crashing. | 70 |
+| WP-72 | Face/object gravity | `g:obj`, `objw`, `objects_position`, face gravity in all dialects, `sm` uses faces when available. | Golden cases for each dialect's face-crop option. | 26a, 71 |
+| WP-73 | Detection filters | blur/draw detections, `crop_objects`, `detect_objects`/`classify` info. | Golden and JSON tests per option. | 71 |
+| WP-74 | Video thumbnails | `video` (build tag `ffmpeg`), `vts`/`vtk`, best-frame selection, `/info` `vm`. | MP4/MOV/WebM fixtures produce thumbnails; slim returns `Unsupported`. | 70 |
+| WP-75 | Video tiles & animation | `vtt`, `vta`. | Golden cases. | 74 |
+| WP-76 | GIF → video | Encode animated sources to the codec chosen in open question 1; dialect mappings (`fm=mp4`, `f_mp4`). | Animated fixture → playable file (ffprobe check); size smaller than the source GIF. | 70 |
+| WP-77 | Watermark URL & size | Per-request `wmu`, `wms`, rotate, shadow, chessboard; dialect overlays (imgix `mark`, cloudinary `l_`, imagekit `l-image`). | Golden case per option and dialect. | 28 |
+| WP-78 | Text watermarks | Pango text, bundled fonts, imgix `txt*`, cloudinary `l_text`, imagekit `l-text`. | Golden cases (perceptual tolerance covers font hinting). | 77 |
+| WP-80 | Playground UI | Static page under `/_playground` (off by default): source picker, option builder per dialect, signed URL generator, before/after. | Served only when enabled; e2e smoke test loads the page and renders one image. | 34a |
+
+## Open questions for the owner
+
+1. **H.264 for GIF→MP4 (WP-76).** libx264 is GPL. The options are openh264 (BSD, but Cisco's patent coverage only applies to Cisco's own binaries, which would be downloaded at runtime), AV1-in-MP4, or WebM/VP9 only. Proposal: WebM/VP9 and AV1-in-MP4 at first; decide on openh264 later.
+2. **HEVC patents.** Shipping libde265 (decode) and kvazaar (encode) is fine for copyright, but HEVC patent pools exist. Proposal: keep HEIC decode, and keep HEIC encode behind `XI_FORMATS_HEIC_ENCODE` (default off).
+3. **Invalid-URL status.** imgproxy answers 404 for malformed or unknown options. We plan 400. Proposal: 400, with an `XI_DIALECTS_IMGPROXY_STRICT_COMPAT` switch that restores 404.
+4. **Upload/POST processing** (imaginary `POST /resize`, multipart). Out of scope so far. Should it be in M2?
+5. **OpenStack Swift source.** imgproxy supports it. Is it needed?
+6. **Default for unsigned foreign dialects.** `restricted` is safe but surprises users who expect arbitrary sizes. Should the default stay `restricted`?
+7. **Object-detection model.** Proposal: YOLOX-s (Apache-2.0) plus YuNet (MIT). The alternative is RT-DETR/D-FINE (Apache-2.0), which is more accurate but slower.
+8. **Playground (WP-80).** Should it ship inside the server binary (off by default), or as a separate static site?
