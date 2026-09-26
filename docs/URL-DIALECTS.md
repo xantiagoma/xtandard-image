@@ -154,7 +154,7 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `video_thumbnail_keyframes` (`vtk`) Pro | bool | `P.Video.Keyframes` | config | M3 |
 | `video_thumbnail_tile` (`vtt`) Pro | step:cols:rows:tw:th:extend:trim:fill:fx:fy; step 0 = off, < 0 = from duration (stored as 0) | `P.Video.Tile` | off | M3 |
 | `video_thumbnail_animation` (`vta`) Pro | step:delay(ms):frames:fw:fh:extend:trim:fill:fx:fy; step as `vtt` | `P.Video.Animation` (delay in seconds) | off | M3 |
-| `fallback_image_url` (`fiu`) Pro | base64url URL | `D.Fallback` | config | M2 |
+| `fallback_image_url` (`fiu`) Pro | base64url URL | `D.Fallback`; honoured only with `XI_FALLBACK_ALLOW_REQUEST_URL` and when the source allowlist accepts it | config | M1 (WP-34c) |
 | `skip_processing` (`skp`) | ext… | `D.SkipProcessing` | — | M1 |
 | `raw` | bool | `TR.Kind = Raw` | false | M1 |
 | `cachebuster` (`cb`) | string | `D.CacheBuster` | — | M1 |
