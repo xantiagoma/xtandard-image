@@ -376,6 +376,19 @@ type Deps struct {
 	Middleware func(http.Handler) http.Handler
 }
 
+// Public listener ServeMux patterns. Every image dialect and /info is
+// reached through PatternImage (dialect/router picks the mount).
+const (
+	PatternHealthz = "GET /healthz"
+	PatternReadyz  = "GET /readyz" // only when Deps.Readiness is set
+	PatternImage   = "GET /{path...}"
+)
+
+// Patterns returns every pattern New can register on the public ServeMux.
+// The OpenAPI route-coverage test (internal/apidoc) maps each to a
+// documented operation.
+func Patterns() []string { return []string{PatternHealthz, PatternReadyz, PatternImage} }
+
 // Server is the public listener's handler tree.
 type Server struct {
 	cfg     Config
@@ -415,11 +428,11 @@ func New(cfg *Config, deps *Deps) (*Server, error) {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", admin.Healthz)
+	mux.HandleFunc(PatternHealthz, admin.Healthz)
 	if s.deps.Readiness != nil {
-		mux.Handle("GET /readyz", s.deps.Readiness)
+		mux.Handle(PatternReadyz, s.deps.Readiness)
 	}
-	mux.HandleFunc("GET /{path...}", s.image)
+	mux.HandleFunc(PatternImage, s.image)
 	h := s.ingress(mux)
 	if s.deps.Middleware != nil {
 		h = s.deps.Middleware(h)

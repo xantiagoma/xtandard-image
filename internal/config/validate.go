@@ -83,6 +83,7 @@ func (c *Config) validateServer(v *validator) {
 		v.check(o == "*" || validOrigin(o), fmt.Sprintf("server.cors_origins[%d]", i), "%q is not * or scheme://host[:port]", o)
 	}
 	v.check(!c.Admin.Pprof || c.Admin.Addr != "", "admin.pprof", "needs admin.addr")
+	v.check(!c.Admin.Docs || c.Admin.Addr != "", "admin.docs", "needs admin.addr")
 	v.check(c.Admin.Addr == "" || c.Admin.Addr != s.Addr, "admin.addr", "must differ from server.addr")
 	v.check(c.Observability.LogLevel != "", "observability.log_level", "must be set")
 }

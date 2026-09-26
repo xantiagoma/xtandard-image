@@ -16,7 +16,7 @@ func TestConfigSchemaRoute(t *testing.T) {
 	t.Parallel()
 
 	schema := config.Schema()
-	mux := NewMux(Options{ConfigSchema: schema})
+	mux := NewMux(&Options{ConfigSchema: schema})
 
 	rec := serve(t, mux, http.MethodGet, ConfigSchemaPath)
 	if rec.Code != http.StatusOK {
@@ -33,7 +33,7 @@ func TestConfigSchemaRoute(t *testing.T) {
 		t.Fatalf("ETag %q is not a strong entity tag", etag)
 	}
 	// The same bytes always carry the same tag.
-	if again := serve(t, NewMux(Options{ConfigSchema: config.Schema()}), http.MethodGet, ConfigSchemaPath); again.Header().Get("ETag") != etag {
+	if again := serve(t, NewMux(&Options{ConfigSchema: config.Schema()}), http.MethodGet, ConfigSchemaPath); again.Header().Get("ETag") != etag {
 		t.Errorf("ETag changed between muxes: %q vs %q", etag, again.Header().Get("ETag"))
 	}
 
@@ -72,7 +72,7 @@ func TestConfigSchemaRoute(t *testing.T) {
 
 	t.Run("unregistered without a schema", func(t *testing.T) {
 		t.Parallel()
-		if rec := serve(t, NewMux(Options{}), http.MethodGet, ConfigSchemaPath); rec.Code != http.StatusNotFound {
+		if rec := serve(t, NewMux(&Options{}), http.MethodGet, ConfigSchemaPath); rec.Code != http.StatusNotFound {
 			t.Errorf("status %d, want 404", rec.Code)
 		}
 	})

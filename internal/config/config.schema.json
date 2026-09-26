@@ -639,6 +639,13 @@
           "title": "XI_ADMIN_ADDR",
           "type": "string"
         },
+        "docs": {
+          "default": false,
+          "description": "Env: XI_ADMIN_DOCS",
+          "markdownDescription": "Env: `XI_ADMIN_DOCS`",
+          "title": "XI_ADMIN_DOCS",
+          "type": "boolean"
+        },
         "pprof": {
           "default": false,
           "description": "pprof incl. goroutineleak on the admin listener\n\nEnv: XI_ADMIN_PPROF",

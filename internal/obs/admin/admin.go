@@ -1,8 +1,8 @@
 // Package admin builds the admin listener's ServeMux (ARCHITECTURE §13):
-// /metrics, /healthz, /readyz, /config.schema.json and, only when enabled,
-// pprof. app serves it on its own http.Server bound to XI_ADMIN_ADDR; it is
-// never mounted on the public listener, and http.DefaultServeMux is never
-// served.
+// /metrics, /healthz, /readyz, /config.schema.json, /openapi.json, /docs
+// (only when enabled) and, only when enabled, pprof. app serves it on its
+// own http.Server bound to XI_ADMIN_ADDR; it is never mounted on the public
+// listener, and http.DefaultServeMux is never served.
 package admin
 
 import (
@@ -104,25 +104,66 @@ type Options struct {
 	// ConfigSchema is served at /config.schema.json (config.Schema(), ADR
 	// 0007 decision 6). Nil leaves the route unregistered.
 	ConfigSchema []byte
+	// OpenAPI is the OpenAPI document served at /openapi.json with a strong
+	// ETag (internal/apidoc.Spec, ADR 0008). Nil leaves /openapi.json and
+	// /docs unregistered (404).
+	OpenAPI []byte
+	// Docs serves the Scalar API reference at /docs (XI_ADMIN_DOCS). Off by
+	// default: /docs then answers 404 and points at /openapi.json.
+	Docs bool
 }
 
-// NewMux returns the admin ServeMux.
-func NewMux(opts Options) *http.ServeMux {
-	mux := http.NewServeMux()
+type muxRoute struct {
+	pattern string
+	h       http.Handler
+}
+
+// routes is the admin route table for opts: NewMux registers it and
+// Patterns lists it, so the OpenAPI route-coverage test sees exactly what
+// is served.
+func routes(opts *Options) []muxRoute {
 	ready := opts.Readiness
 	if ready == nil {
 		ready = NewReadiness()
 	}
-	mux.HandleFunc("GET /healthz", Healthz)
-	mux.Handle("GET /readyz", ready)
-	if opts.Metrics != nil {
-		mux.Handle("GET /metrics", opts.Metrics)
+	rs := []muxRoute{
+		{PatternHealthz, http.HandlerFunc(Healthz)},
+		{PatternReadyz, ready},
 	}
-	if opts.Pprof {
-		registerPprof(mux)
+	if opts.Metrics != nil {
+		rs = append(rs, muxRoute{PatternMetrics, opts.Metrics})
 	}
 	if opts.ConfigSchema != nil {
-		mux.Handle("GET "+ConfigSchemaPath, schemaHandler(opts.ConfigSchema))
+		rs = append(rs, muxRoute{PatternConfigSchema, schemaHandler(opts.ConfigSchema)})
+	}
+	if opts.OpenAPI != nil {
+		rs = append(rs,
+			muxRoute{PatternOpenAPI, newStatic(opts.OpenAPI, openAPIContentType)},
+			muxRoute{PatternDocs, newDocs(opts.Docs)},
+		)
+	}
+	if opts.Pprof {
+		rs = append(rs, pprofRoutes()...)
+	}
+	return rs
+}
+
+// Admin ServeMux patterns (see routes).
+const (
+	PatternHealthz = "GET /healthz"
+	PatternReadyz  = "GET /readyz"
+	PatternMetrics = "GET /metrics"
+	PatternOpenAPI = "GET /openapi.json"
+	PatternDocs    = "GET /docs"
+	// PatternConfigSchema serves the config file JSON Schema (WP-81).
+	PatternConfigSchema = "GET " + ConfigSchemaPath
+)
+
+// NewMux returns the admin ServeMux.
+func NewMux(opts *Options) *http.ServeMux {
+	mux := http.NewServeMux()
+	for _, r := range routes(opts) {
+		mux.Handle(r.pattern, r.h)
 	}
 	return mux
 }
@@ -146,14 +187,26 @@ func schemaHandler(schema []byte) http.Handler {
 	})
 }
 
-// registerPprof registers the pprof handlers explicitly on mux (never on
-// http.DefaultServeMux). pprof.Index also serves every named profile under
-// /debug/pprof/{name}, including goroutineleak (Go 1.27).
-func registerPprof(mux *http.ServeMux) {
-	mux.HandleFunc("GET /debug/pprof/", pprof.Index)
-	mux.HandleFunc("GET /debug/pprof/cmdline", pprof.Cmdline)
-	mux.HandleFunc("GET /debug/pprof/profile", pprof.Profile)
-	mux.HandleFunc("GET /debug/pprof/symbol", pprof.Symbol)
-	mux.HandleFunc("POST /debug/pprof/symbol", pprof.Symbol)
-	mux.HandleFunc("GET /debug/pprof/trace", pprof.Trace)
+// Patterns returns the patterns NewMux registers for opts.
+func Patterns(opts *Options) []string {
+	rs := routes(opts)
+	ps := make([]string, len(rs))
+	for i, r := range rs {
+		ps[i] = r.pattern
+	}
+	return ps
+}
+
+// pprofRoutes are the pprof handlers, registered explicitly on the admin
+// mux (never on http.DefaultServeMux). pprof.Index also serves every named
+// profile under /debug/pprof/{name}, including goroutineleak (Go 1.27).
+func pprofRoutes() []muxRoute {
+	return []muxRoute{
+		{"GET /debug/pprof/", http.HandlerFunc(pprof.Index)},
+		{"GET /debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline)},
+		{"GET /debug/pprof/profile", http.HandlerFunc(pprof.Profile)},
+		{"GET /debug/pprof/symbol", http.HandlerFunc(pprof.Symbol)},
+		{"POST /debug/pprof/symbol", http.HandlerFunc(pprof.Symbol)},
+		{"GET /debug/pprof/trace", http.HandlerFunc(pprof.Trace)},
+	}
 }
