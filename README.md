@@ -45,8 +45,9 @@ The xtandard-image column is the state as of 2026-09-28: **done (M1)** / **done 
 | PDF (PDFium) / PSD thumbnails | done (M2) | no | paid | no | partial (PDF) | partial (PDF) |
 | HDR input (OpenEXR, Radiance, PPM/PFM; tone-mapped or `preserve_hdr`) | done (M2) | — | — | — | — | — |
 | Best-format and auto-quality (DSSIM) | done (M2) | no | paid | no | no | no |
-| Video thumbnails (frame at a time, keyframe, best frame; `/info` video metadata) | done (M3, full image) | no | paid | partial (ffmpeg engine) | no | no |
-| GIF → MP4/WebM, video tiles and animation | in progress (WP-75/76, `full`/`gpl` images) | no | paid | partial (ffmpeg engine) | no | no |
+| Video thumbnails (frame at a time, keyframe, best frame; `/info` video metadata) | done (M3, `full` image) | no | paid | partial (ffmpeg engine) | no | no |
+| Video sprites and animations (`vtt`, `vta`) | done (M3, `full` image) | no | paid | no | no | no |
+| GIF → MP4/WebM | done (M3: WebM/VP9 and AV1-in-MP4 in `full`, H.264 MP4 and HEVC in `gpl`) | no | paid (MP4) | no | no | no |
 | **Processing** | | | | | | |
 | Resize, crop, gravity, smart crop, focus point (fractions or source pixels) | done (M1, M2) | yes | yes | yes | yes | yes |
 | Extend, padding, trim | done (M1) | yes | yes | — | — | — |
