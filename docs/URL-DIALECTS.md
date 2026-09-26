@@ -557,7 +557,7 @@ The path after the mount is the source, a key relative to the mount's bound sour
 |---|---|
 | `width`, `height` (px) | Width/Height, Fit (Bunny keeps the aspect ratio with both, picking the smaller result), no enlarge |
 | `upscaling=off|resampling` | Enlarge |
-| `aspect_ratio=w:h` (`auto` = none) | Crop.AspectRatio anchored by `crop_gravity` (M2). With `width`+`height` of the same ratio (what unpic emits) it is Resize fill-down (fill with `upscaling=resampling`), which takes effect now |
+| `aspect_ratio=w:h` (`auto` = none) | Crop.AspectRatio anchored by `crop_gravity`. With `width`+`height` of the same ratio (what unpic emits) it is Resize fill-down (fill with `upscaling=resampling`) instead |
 | `crop=w,h` / `crop=w,h,x,y` (px, x,y = top-left) | Crop with gravity from `crop_gravity` / Crop at north-west + offsets |
 | `crop_gravity=center|north|south|east|west|northeast|northwest|southeast|southwest` (+ unpic aliases `top|bottom|left|right|top_left|…`) | Gravity |
 | `focus_crop=w,h,x,y` | Crop w×h: relative x,y (0–1 with a decimal point) → focus-point gravity; pixel x,y → north-west offsets (x−w/2, y−h/2), clamped by the planner |
@@ -569,12 +569,12 @@ The path after the mount is the source, a key relative to the mount's bound sour
 | `blur` (0–100) | Blur σ = v/4 |
 | `flip`, `flop` | Flip V / H |
 | `rotate` (−270…270, multiples of 90) | Rotate (normalised to 0/90/180/270) |
-| `brightness` (−100..100) | Adjust.Brightness = v × 2.55 (M2) |
-| `contrast`, `saturation` (−100..100) | multiplier 1 + v/100 (M2); `saturation=-100` is grayscale |
-| `gamma` (−100..100) | multiplier 2^(v/100) (M2) |
-| `hue` (0–100, 33 ≈ one primary) | Adjust.Hue = v × 3.6° (M2) |
-| `tint=rrggbb` (`ffffff` = none) | Tint (M2) |
-| `sepia` (0–100) | Sepia on when > 0 (M2; intensity not modelled) |
+| `brightness` (−100..100) | Adjust.Brightness = v × 2.55 |
+| `contrast`, `saturation` (−100..100) | multiplier 1 + v/100; `saturation=-100` is grayscale |
+| `gamma` (−100..100) | multiplier 2^(v/100) |
+| `hue` (0–100, 33 ≈ one primary) | Adjust.Hue = v × 3.6° |
+| `tint=rrggbb` (`ffffff` = none) | Tint |
+| `sepia` (0–100) | Sepia on when > 0 (intensity not modelled) |
 | `class=<name>` | preset (the mount shares `XI_PRESETS`); with `XI_PRESETS_ONLY` ("forced transformation classes") any other option is 403 |
 | `optimizer=image` | ignored (meaning is implicit) |
 | `token`/`bcdn_token`, `expires`, `token_path`, `token_ignore_params` | signature (below) |
