@@ -14,6 +14,7 @@ The product must match imgproxy Pro features, support the widest format list in 
 - A small hand-written C shim inside `internal/vips` (imgproxy-style fixed-arity functions, one boundary crossing per step) for hot or missing paths: load-from-buffer with `fail_on`, LibRaw embedded-preview loader, save-to-buffer, progress/kill hook bound to request contexts.
 - Parsers, planner, security, sources, fetcher and caches are pure Go and must build with `CGO_ENABLED=0`.
 - libvips concurrency 1 with request-level semaphores (imgproxy/imagor pattern), operation cache disabled, jemalloc preloaded, `MALLOC_ARENA_MAX=2`, source bytes held in C memory owned by vips.
+- Request-level semaphores use `golang.org/x/sync/semaphore` (`golang.org/x/sync` v0.23.0, BSD-3-Clause, released 2026-08-31), imported by `internal/limiter`.
 
 ## Consequences
 
