@@ -10,6 +10,7 @@ testdata/
   fixtures/<format>/…   one small file per M1 input format and variant (inputs; never rewritten by tests)
   golden/<case>.png     expected outputs, compared perceptually by internal/testutil/golden
   info/<case>.json      expected /info responses (internal/app TestInfo; GOLDEN_UPDATE=1 rewrites, review the diff)
+  info/pro/<fixture>-<option>.json  expected /info Pro option responses (WP-63) for jpeg/baseline, png/rgba8 and gif/animated
   ssim/                 greyscale reference + distortions validating internal/testutil/ssim
   gen/                  generator: main.go (Go), gen.sh (driver), logo.svg
   LICENSES.md           origin and licence of every file

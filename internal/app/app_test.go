@@ -70,6 +70,7 @@ type response struct {
 	status int
 	ctype  string
 	body   []byte
+	header http.Header
 }
 
 func get(t *testing.T, u string) response {
@@ -87,7 +88,7 @@ func get(t *testing.T, u string) response {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return response{status: resp.StatusCode, ctype: resp.Header.Get("Content-Type"), body: body}
+	return response{status: resp.StatusCode, ctype: resp.Header.Get("Content-Type"), body: body, header: resp.Header}
 }
 
 func checkJPEG(t *testing.T, r response, maxW, maxH int) {

@@ -13,6 +13,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
+	"github.com/xantiagoma/xtandard-image/internal/imageinfo"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/source"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
@@ -66,15 +67,20 @@ type SourceInfo struct {
 	IPTC      map[string]any
 	Photoshop map[string]any
 	XMP       map[string]map[string]any
+	// Pixels holds the pixel-derived fields the request asked for
+	// (Inspect's px); nil when it asked for none.
+	Pixels *imageinfo.Result
 }
 
 // Inspector reads a source's header and metadata for /info (stage 11 of an
 // info request). Like Prober it returns errs.KindUnsupported for unknown or
 // disabled formats, KindCorrupt for unreadable headers and
 // KindLimitExceeded when a limit is exceeded, and must not retain src.
-// app implements it with codec.Inspect.
+// When px asks for pixel-derived fields (px.Any()), it also decodes the
+// first page and fills SourceInfo.Pixels (WP-63). app implements it with
+// codec.Inspect, codec.Sample and imageinfo.Analyze in one vips.Run.
 type Inspector interface {
-	Inspect(ctx context.Context, src fetch.Buffer, lim ProbeLimits) (*SourceInfo, error)
+	Inspect(ctx context.Context, src fetch.Buffer, lim ProbeLimits, px *imageinfo.Options) (*SourceInfo, error)
 }
 
 // infoContentType is the media type of info responses.
@@ -135,15 +141,16 @@ func (s *Server) inspect(ctx context.Context, r *http.Request, req *transform.Re
 	}
 	defer release()
 
-	// 11. Header and metadata.
+	// 11. Header and metadata, plus the pixel-derived fields when asked
+	// for (decoded in the same vips.Run).
 	t = s.stage(info, stageProbe)
-	si, err := s.inspectSource(ctx, fr.Buffer, &lim.probe)
+	si, err := s.inspectSource(ctx, fr.Buffer, &lim.probe, pixelOptions(req.Info))
 	t.done()
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := s.infoResponse(req, si, len(fr.Bytes()))
+	body, err := s.infoResponse(req, si, fr.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -164,11 +171,13 @@ func (s *Server) inspect(ctx context.Context, r *http.Request, req *transform.Re
 }
 
 // infoResponse renders the info JSON in the schema the request asks for.
-func (s *Server) infoResponse(req *transform.Request, si *SourceInfo, size int) ([]byte, error) {
+// src is the source as fetched: size and hashsums cover these bytes, not
+// the sanitised SVG.
+func (s *Server) infoResponse(req *transform.Request, si *SourceInfo, src []byte) ([]byte, error) {
 	if req.Info.Schema == transform.InfoSchemaThumbor {
 		return s.thumborMetaBody(req, si)
 	}
-	body, err := infoBody(req.Info, si, size)
+	body, err := infoBody(req.Info, si, src)
 	if err != nil {
 		return nil, errs.Wrapf(errs.KindInternal, err, "server: encode info")
 	}
@@ -177,7 +186,7 @@ func (s *Server) infoResponse(req *transform.Request, si *SourceInfo, size int) 
 
 // inspectSource is probe for info requests: SVG is sanitised before
 // anything parses it, and the input limits are re-checked on the result.
-func (s *Server) inspectSource(ctx context.Context, buf fetch.Buffer, lim *ProbeLimits) (*SourceInfo, error) {
+func (s *Server) inspectSource(ctx context.Context, buf fetch.Buffer, lim *ProbeLimits, px *imageinfo.Options) (*SourceInfo, error) {
 	ctx, span := s.deps.Tracer.Start(ctx, "probe")
 	defer span.End()
 
@@ -187,11 +196,13 @@ func (s *Server) inspectSource(ctx context.Context, buf fetch.Buffer, lim *Probe
 		return nil, err
 	}
 	defer src.Release()
-	si, err := s.deps.Inspector.Inspect(ctx, src, *lim)
+	si, err := s.deps.Inspector.Inspect(ctx, src, *lim, px)
 	switch {
 	case err != nil:
 	case si == nil:
 		err = errs.New(errs.KindInternal, "server: inspector returned no info")
+	case px.Any() && si.Pixels == nil:
+		err = errs.New(errs.KindInternal, "server: inspector returned no pixel info")
 	case si.Meta.Format == transform.FormatSVG && !sanitised:
 		err = errs.New(errs.KindUnsupported, "server: inspector found svg the sniffer missed")
 	default:
@@ -218,8 +229,9 @@ func orientedSize(m *SourceMeta) (w, h int) {
 // usage/getting_info). Each section is present exactly when its option is
 // on; requested metadata sections the source lacks are empty objects.
 // Options imgproxy supports but this build does not compute yet (video
-// metadata, crop, palette, colours, hashes, detection) are left out; the
-// dialect lists them in Request.Ignored (X-Xi-Ignored).
+// metadata, detection, classification) are left out; the dialect lists
+// them in Request.Ignored (X-Xi-Ignored). The crop, colour and hash
+// fields (WP-63) are rendered by info_pro.go.
 type infoJSON struct {
 	Size         *int                      `json:"size,omitempty"`
 	Format       string                    `json:"format,omitempty"`
@@ -236,12 +248,15 @@ type infoJSON struct {
 	SampleFormat string                    `json:"sample_format,omitempty"`
 	PagesNumber  *int                      `json:"pages_number,omitempty"`
 	Alpha        *bool                     `json:"alpha,omitempty"`
+	infoProJSON
 }
 
-// infoBody renders the response for the options in o.
-func infoBody(o *transform.InfoOptions, si *SourceInfo, size int) ([]byte, error) {
+// infoBody renders the response for the options in o; src is the source
+// as fetched.
+func infoBody(o *transform.InfoOptions, si *SourceInfo, src []byte) ([]byte, error) {
 	var out infoJSON
 	if o.Size {
+		size := len(src)
 		out.Size = &size
 	}
 	if o.Format {
@@ -295,6 +310,7 @@ func infoBody(o *transform.InfoOptions, si *SourceInfo, size int) ([]byte, error
 	if o.Alpha {
 		out.Alpha = &si.Meta.HasAlpha
 	}
+	out.infoProJSON = infoPro(o, si, src)
 	return json.Marshal(&out)
 }
 

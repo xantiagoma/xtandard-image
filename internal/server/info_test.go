@@ -2,6 +2,9 @@ package server
 
 import (
 	"context"
+	"crypto/md5" //nolint:gosec // G501: the test checks the md5 hashsum imgproxy reports
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -15,6 +18,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
+	"github.com/xantiagoma/xtandard-image/internal/imageinfo"
 	"github.com/xantiagoma/xtandard-image/internal/limiter"
 	"github.com/xantiagoma/xtandard-image/internal/obs/admin"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
@@ -24,14 +28,54 @@ type fakeInspector struct {
 	info  *SourceInfo
 	err   error
 	calls atomic.Int32
+	// px is the pixel request of the last call; pixels answers it
+	// (cannedPixels when nil).
+	px     atomic.Pointer[imageinfo.Options]
+	pixels *imageinfo.Result
+	// noPixels ignores px (a broken inspector).
+	noPixels bool
 }
 
-func (f *fakeInspector) Inspect(_ context.Context, _ fetch.Buffer, _ ProbeLimits) (*SourceInfo, error) {
+func (f *fakeInspector) Inspect(_ context.Context, _ fetch.Buffer, _ ProbeLimits, px *imageinfo.Options) (*SourceInfo, error) {
 	f.calls.Add(1)
+	f.px.Store(px)
 	if f.err != nil {
 		return nil, f.err
 	}
-	return f.info, nil
+	if !px.Any() || f.info == nil || f.noPixels {
+		return f.info, nil
+	}
+	si := *f.info
+	si.Pixels = f.pixels
+	if si.Pixels == nil {
+		si.Pixels = cannedPixels(px)
+	}
+	return &si, nil
+}
+
+// cannedPixels answers every field px asks for with fixed values.
+func cannedPixels(px *imageinfo.Options) *imageinfo.Result {
+	r := &imageinfo.Result{}
+	if px.Palette > 0 {
+		r.Palette = []imageinfo.Color{{R: 189, G: 178, B: 169, A: 255}, {R: 83, G: 79, B: 67, A: 255}}
+	}
+	if px.Average {
+		r.Average = &imageinfo.Color{R: 139, G: 132, B: 121, A: 255}
+	}
+	if px.Dominant {
+		r.Dominant = &imageinfo.DominantColors{Vibrant: &imageinfo.RGB{R: 172, G: 146, B: 83}, DarkMuted: &imageinfo.RGB{R: 75, G: 70, B: 57}}
+	}
+	if px.BlurhashX > 0 {
+		r.Blurhash = "LLH-}fox0fRQ%Do}9as9_3%2M{S2"
+	}
+	if px.Thumbhash {
+		r.Thumbhash = []byte{0x0b, 0xe7, 0x81, 0x0c, 0x80}
+	}
+	if px.PerceptualHash {
+		h := uint64(0x9797306d694b4e94)
+		r.PerceptualHash = &h
+	}
+	return r
 }
 
 // photoInfo is a 4000x3000 JPEG stored rotated (orientation 6) with EXIF
@@ -155,11 +199,63 @@ func TestInfoOptionFlags(t *testing.T) {
 			want: `{"pages_number":6,"alpha":true}`,
 		},
 		{name: "not implemented options add nothing", set: only(func(o *transform.InfoOptions) {
-			o.VideoMeta, o.DetectObjects, o.Classify, o.Thumbhash, o.PHash, o.ObjectsPos = true, true, true, true, true, true
-			o.Palette, o.Average, o.Blurhash = 16, &transform.InfoAverage{}, &transform.InfoBlurhash{XComponents: 4, YComponents: 3}
-			o.DominantColors, o.Crop = &transform.InfoDominantColors{}, &transform.Crop{Width: transform.Dim{Px: 10}, Height: transform.Dim{Px: 10}}
-			o.CalcHashsums = []transform.HashAlgorithm{transform.HashSHA256}
+			o.VideoMeta, o.DetectObjects, o.Classify, o.ObjectsPos = true, true, true, true
 		}), want: `{}`},
+		{
+			name: "palette", set: only(func(o *transform.InfoOptions) { o.Palette = 2 }),
+			want: `{"palette":[{"R":189,"G":178,"B":169,"A":255},{"R":83,"G":79,"B":67,"A":255}]}`,
+		},
+		{
+			name: "average", set: only(func(o *transform.InfoOptions) { o.Average = &transform.InfoAverage{IgnoreTransparent: true} }),
+			want: `{"average":{"R":139,"G":132,"B":121,"A":255}}`,
+		},
+		{
+			name: "dominant colours", set: only(func(o *transform.InfoOptions) { o.DominantColors = &transform.InfoDominantColors{} }),
+			want: `{"dominant_colors":{"dark_muted":{"R":75,"G":70,"B":57},"vibrant":{"R":172,"G":146,"B":83}}}`,
+		},
+		{
+			name: "blurhash", set: only(func(o *transform.InfoOptions) { o.Blurhash = &transform.InfoBlurhash{XComponents: 4, YComponents: 3} }),
+			want: `{"blurhash":"LLH-}fox0fRQ%Do}9as9_3%2M{S2"}`,
+		},
+		{
+			name: "thumbhash upper-case hex", set: only(func(o *transform.InfoOptions) { o.Thumbhash = true }),
+			want: `{"thumb_hash":"0BE7810C80"}`,
+		},
+		{
+			name: "perceptual hash", set: only(func(o *transform.InfoOptions) { o.PHash = true }),
+			want: `{"perceptual_hash":"9797306d694b4e94"}`,
+		},
+		{
+			// Hashes of jpegSource, the 9 fetched bytes.
+			name: "hashsums", set: only(func(o *transform.InfoOptions) {
+				o.CalcHashsums = []transform.HashAlgorithm{transform.HashSHA256, transform.HashMD5}
+			}),
+			want: `{"hashsums":{"md5":"` + md5Hex(jpegSource) + `","sha256":"` + sha256Hex(jpegSource) + `"}}`,
+		},
+		{
+			// 4000x3000 stored with orientation 6: the crop is placed on
+			// the upright 3000x4000 image; 1500x1000 at the centre.
+			name: "crop centre", set: only(func(o *transform.InfoOptions) {
+				o.Crop = &transform.Crop{Width: transform.Dim{Px: 1500}, Height: transform.Dim{Px: 1000}}
+			}),
+			want: `{"crop":{"left":0.25,"top":0.375,"width":0.5,"height":0.25}}`,
+		},
+		{
+			name: "crop south-east, relative size", set: only(func(o *transform.InfoOptions) {
+				o.Crop = &transform.Crop{Width: transform.Dim{Rel: 0.5}, Height: transform.Dim{Rel: 0.5}, Gravity: transform.Gravity{Type: transform.GravitySouthEast}}
+			}),
+			want: `{"crop":{"left":0.5,"top":0.5,"width":0.5,"height":0.5}}`,
+		},
+		{
+			name: "crop larger than the image", set: only(func(o *transform.InfoOptions) {
+				o.Crop = &transform.Crop{Width: transform.Dim{Px: 9000}, Height: transform.Dim{Px: 9000}}
+			}),
+			want: `{"crop":{"left":0,"top":0,"width":1,"height":1}}`,
+		},
+		{
+			name: "crop 0:0 adds nothing", set: only(func(o *transform.InfoOptions) { o.Crop = &transform.Crop{} }),
+			want: `{}`,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -360,4 +456,74 @@ func TestIgnoredHeaderBounded(t *testing.T) {
 	if got := ignoredHeader(list); len(got) != maxIgnoredHeader {
 		t.Errorf("len = %d, want %d", len(got), maxIgnoredHeader)
 	}
+}
+
+func md5Hex(b []byte) string {
+	s := md5.Sum(b) //nolint:gosec // G401: see the import
+	return hex.EncodeToString(s[:])
+}
+
+func sha256Hex(b []byte) string {
+	s := sha256.Sum256(b)
+	return hex.EncodeToString(s[:])
+}
+
+// TestInfoPixelOptions checks what the server asks the inspector for:
+// nothing without pixel options (so no decode), exactly the requested
+// fields otherwise, and a 500 when the inspector ignores the request.
+func TestInfoPixelOptions(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name string
+		set  func(*transform.InfoOptions)
+		want *imageinfo.Options
+	}{
+		{name: "defaults decode nothing"},
+		{name: "hashsums and crop decode nothing", set: func(o *transform.InfoOptions) {
+			o.CalcHashsums = []transform.HashAlgorithm{transform.HashSHA1}
+			o.Crop = &transform.Crop{Width: transform.Dim{Px: 10}}
+		}},
+		{
+			name: "every pixel field",
+			set: func(o *transform.InfoOptions) {
+				o.Palette, o.Thumbhash, o.PHash = 8, true, true
+				o.Average = &transform.InfoAverage{IgnoreTransparent: true}
+				o.DominantColors = &transform.InfoDominantColors{BuildMissed: true}
+				o.Blurhash = &transform.InfoBlurhash{XComponents: 5, YComponents: 2}
+			},
+			want: &imageinfo.Options{
+				Palette: 8, Average: true, AverageIgnoreTransparent: true, Dominant: true, DominantBuildMissed: true,
+				BlurhashX: 5, BlurhashY: 2, Thumbhash: true, PerceptualHash: true,
+			},
+		},
+		{
+			name: "average keeping transparent pixels",
+			set:  func(o *transform.InfoOptions) { o.Average = &transform.InfoAverage{} },
+			want: &imageinfo.Options{Average: true},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			insp := &fakeInspector{info: photoInfo()}
+			h := newInfoHarness(t, insp, func(h *harness) { h.router.mutate = infoRequest(tc.set) })
+			if rec := h.do(t, http.MethodGet, infoPath, nil); rec.Code != http.StatusOK {
+				t.Fatalf("status %d, body %q", rec.Code, rec.Body.String())
+			}
+			if diff := cmp.Diff(tc.want, insp.px.Load()); diff != "" {
+				t.Errorf("pixel options (-want +got):\n%s", diff)
+			}
+		})
+	}
+
+	t.Run("inspector without pixels", func(t *testing.T) {
+		t.Parallel()
+		insp := &fakeInspector{info: photoInfo(), noPixels: true}
+		h := newInfoHarness(t, insp, func(h *harness) {
+			h.router.mutate = infoRequest(func(o *transform.InfoOptions) { o.Thumbhash = true })
+		})
+		if rec := h.do(t, http.MethodGet, infoPath, nil); rec.Code != http.StatusInternalServerError {
+			t.Errorf("status %d, want 500", rec.Code)
+		}
+		h.checkReleased(t)
+	})
 }
