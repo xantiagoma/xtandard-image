@@ -15,6 +15,37 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "aliases_size": {
+    "path": "/photos/a.jpg",
+    "query": "width=300\u0026height=200\u0026max-width=250\u0026min-height=10\u0026or=6",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "AutoRotate": false,
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "MaxWidth": 250,
+            "MinHeight": 10,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "ar_crop": {
     "path": "/photos/a.jpg",
     "query": "w=400\u0026fit=crop\u0026ar=16:9",
@@ -592,6 +623,36 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "blend_short_aliases": {
+    "path": "/photos/a.jpg",
+    "query": "b=ff0000\u0026bm=multiply\u0026balph=50",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "blend",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "blend-mode",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "blend-alpha",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "blend_unsupported": {
     "path": "/photos/a.jpg",
     "query": "blend=ff0000\u0026blend-mode=multiply",
@@ -1159,7 +1220,7 @@
       "Ignored": [
         {
           "Option": "crop",
-          "Reason": "takes effect in M3"
+          "Reason": "takes effect in M3 (WP-72, needs face/object detection)"
         }
       ],
       "Pipelines": [
@@ -1195,7 +1256,7 @@
       "Ignored": [
         {
           "Option": "crop",
-          "Reason": "takes effect in M3"
+          "Reason": "takes effect in M3 (WP-72, needs face/object detection)"
         }
       ],
       "Pipelines": [
@@ -1228,6 +1289,12 @@
     "query": "w=1\u0026h=1\u0026fit=crop\u0026crop=focalpoint\u0026fp-x=0.2\u0026fp-y=0.8\u0026fp-z=3",
     "request": {
       "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "fp-z",
+          "Reason": "not implemented"
+        }
+      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1298,6 +1365,38 @@
     "path": "/photos/a.jpg",
     "query": "w=1\u0026h=1\u0026fit=crop\u0026crop=focalpoint\u0026fp-x=1.5"
   },
+  "crop_focalpoint_zoom_one": {
+    "path": "/photos/a.jpg",
+    "query": "w=1\u0026h=1\u0026fit=crop\u0026crop=focalpoint\u0026fp-z=1",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusX": 0.5,
+            "FocusY": 0.5,
+            "Type": "focus-point"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 1
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "crop_invalid": {
     "error": {
       "field": "crop",
@@ -1346,7 +1445,7 @@
       "Ignored": [
         {
           "Option": "crop",
-          "Reason": "takes effect in M3"
+          "Reason": "takes effect in M3 (WP-72, needs face/object detection)"
         }
       ],
       "Pipelines": [
@@ -1822,6 +1921,61 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "face_blur": {
+    "path": "/photos/a.jpg",
+    "query": "face-blur=50",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "face-blur",
+          "Reason": "takes effect in M3 (WP-73, needs face detection)"
+        }
+      ],
+      "Pipelines": [
+        {
+          "BlurDetections": {
+            "Classes": [
+              "face"
+            ],
+            "Sigma": 10
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "face_blur_invalid": {
+    "error": {
+      "field": "face-blur",
+      "kind": "invalid_url",
+      "public": "invalid face-blur: expected number in range 0 to 100",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "face-blur=101"
+  },
+  "face_blur_zero": {
+    "path": "/photos/a.jpg",
+    "query": "face-blur=0",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "face_params_without_facearea": {
     "path": "/photos/a.jpg",
     "query": "w=10\u0026facepad=2",
@@ -1841,6 +1995,39 @@
             "Width": {
               "Px": 10
             }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "face_pixel": {
+    "path": "/photos/a.jpg",
+    "query": "face-pixelate=20\u0026face-blur=10",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "face-pixel",
+          "Reason": "takes effect in M3 (WP-73, needs face detection)"
+        },
+        {
+          "Option": "face-blur",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "BlurDetections": {
+            "Classes": [
+              "face"
+            ],
+            "Pixelate": 20
           }
         }
       ],
@@ -1874,6 +2061,33 @@
             "Type": "fit",
             "Width": {
               "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "fit_alias_f": {
+    "path": "/photos/a.jpg",
+    "query": "w=400\u0026h=300\u0026f=crop",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 400
             }
           }
         }
@@ -2006,7 +2220,7 @@
       "Ignored": [
         {
           "Option": "fit",
-          "Reason": "takes effect in M3"
+          "Reason": "takes effect in M3 (WP-72, needs face/object detection)"
         }
       ],
       "Pipelines": [
@@ -2223,11 +2437,87 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "fit_fill_generative": {
+    "path": "/photos/a.jpg",
+    "query": "w=400\u0026h=300\u0026fit=fill\u0026fill=generative",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "fill",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "fit_fill_gradient": {
+    "path": "/photos/a.jpg",
+    "query": "w=400\u0026h=300\u0026fit=fill\u0026fill=gradient\u0026fill-gradient-type=radial",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "fill-gradient-type",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "fill",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "fit_fill_invalid": {
     "error": {
       "field": "fill",
       "kind": "invalid_url",
-      "public": "invalid fill: expected solid, blur or gen",
+      "public": "invalid fill: expected solid, blur, gen, generative or gradient",
       "status": 400
     },
     "path": "/photos/a.jpg",
@@ -2740,6 +3030,15 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "fm_spritesheet_unsupported": {
+    "error": {
+      "kind": "unsupported",
+      "public": "unsupported output format",
+      "status": 422
+    },
+    "path": "/photos/a.jpg",
+    "query": "fm=spritesheet"
+  },
   "fm_webm": {
     "path": "/photos/a.jpg",
     "query": "fm=webm\u0026auto=format",
@@ -2998,6 +3297,31 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "invert_alias": {
+    "path": "/photos/a.jpg",
+    "query": "inv=1\u0026mono=ff0000",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Monochrome": {
+            "Color": {
+              "A": 255,
+              "R": 255
+            },
+            "Intensity": 1
+          },
+          "Negate": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "invert_false": {
     "path": "/photos/a.jpg",
     "query": "invert=0",
@@ -3023,6 +3347,88 @@
     },
     "path": "/photos/a.jpg",
     "query": "invert=maybe"
+  },
+  "iptc": {
+    "path": "/photos/a.jpg",
+    "query": "iptc=allow",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "iptc",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "iptc_invalid": {
+    "error": {
+      "field": "iptc",
+      "kind": "invalid_url",
+      "public": "invalid iptc: expected allow or block",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "iptc=keep"
+  },
+  "jpg_progressive": {
+    "path": "/photos/a.jpg",
+    "query": "fm=jpg\u0026jpg-progressive=true",
+    "request": {
+      "Dialect": "imgix",
+      "Output": {
+        "Format": "jpeg",
+        "Progressive": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "jpg_progressive_invalid": {
+    "error": {
+      "field": "jpg-progressive",
+      "kind": "invalid_url",
+      "public": "invalid jpg-progressive: expected boolean (1, t, true, 0, f, false)",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "jpg-progressive=maybe"
+  },
+  "jpg_progressive_off_pjpg": {
+    "path": "/photos/a.jpg",
+    "query": "fm=pjpg\u0026jpeg-progressive=false",
+    "request": {
+      "Dialect": "imgix",
+      "Output": {
+        "Format": "jpeg",
+        "Progressive": false
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
   },
   "lossless": {
     "path": "/photos/a.jpg",
@@ -3072,6 +3478,28 @@
     },
     "path": "/photos/a.jpg",
     "query": "lossless=yes"
+  },
+  "lp_blur_unsupported": {
+    "path": "/photos/a.jpg",
+    "query": "lp-blur=50",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "lp-blur",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
   },
   "mark64": {
     "path": "/photos/a.jpg",
@@ -3269,6 +3697,78 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "mark_if_min": {
+    "path": "/photos/a.jpg",
+    "query": "mark=https://example.com/l.png\u0026mark-if-min-width=500\u0026mark-if-min-height=400",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "mark-if-min-width",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "mark-if-min-height",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 5,
+                "YOffset": 5
+              },
+              "Source": {
+                "Raw": "https://example.com/l.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "mark_if_min_alone": {
+    "path": "/photos/a.jpg",
+    "query": "mark-if-min-width=500",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "mark-if-min-width",
+          "Reason": "only with its base parameter"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "mark_if_min_invalid": {
+    "error": {
+      "field": "mark-if-min-width",
+      "kind": "invalid_url",
+      "public": "invalid mark-if-min-width: expected number in range 0 to 65536",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "mark=https://example.com/l.png\u0026mark-if-min-width=-1"
+  },
   "mark_params_alone": {
     "path": "/photos/a.jpg",
     "query": "mark-alpha=50",
@@ -3322,6 +3822,36 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "mark_short_aliases": {
+    "path": "/photos/a.jpg",
+    "query": "m=https://example.com/l.png\u0026ma=top\u0026malph=50\u0026ms=20\u0026mp=3",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 0.5,
+              "Position": {
+                "Type": "north",
+                "YOffset": 3
+              },
+              "Scale": 0.2,
+              "Source": {
+                "Raw": "https://example.com/l.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "mark_tile_invalid": {
     "error": {
       "field": "mark-tile",
@@ -3349,6 +3879,35 @@
               },
               "Source": {
                 "Raw": "https://example.com/logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "mark_x_only": {
+    "path": "/photos/a.jpg",
+    "query": "mark=https://example.com/l.png\u0026mark-x=10",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 10
+              },
+              "Source": {
+                "Raw": "https://example.com/l.png"
               }
             }
           ]
@@ -3644,6 +4203,60 @@
     },
     "path": "/photos/a.jpg",
     "query": "monochrome=zzz"
+  },
+  "not_implemented": {
+    "path": "/photos/a.jpg",
+    "query": "w=10\u0026loop=2\u0026reverse=true\u0026fps=12\u0026skip=2\u0026interval=3\u0026transparency=grid\u0026grid-size=8",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "loop",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "reverse",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "fps",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "skip",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "interval",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "transparency",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "grid-size",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
   },
   "orient_1": {
     "path": "/photos/a.jpg",
@@ -4233,6 +4846,62 @@
     "path": "/photos/a.jpg",
     "query": "rot=360"
   },
+  "rot_type": {
+    "path": "/photos/a.jpg",
+    "query": "rot=10\u0026rot-type=pivot",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "rot-type",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "RotateAny": -10
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "rot_type_invalid": {
+    "error": {
+      "field": "rot-type",
+      "kind": "invalid_url",
+      "public": "invalid rot-type: expected pivot or straighten",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "rot=10\u0026rot-type=spin"
+  },
+  "rot_type_without_rot": {
+    "path": "/photos/a.jpg",
+    "query": "rottype=straighten",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "rot-type",
+          "Reason": "only with its base parameter"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "rot_zero": {
     "path": "/photos/a.jpg",
     "query": "rot=0",
@@ -4578,7 +5247,7 @@
       "Ignored": [
         {
           "Option": "crop",
-          "Reason": "takes effect in M3"
+          "Reason": "takes effect in M3 (WP-72, needs face/object detection)"
         }
       ],
       "Pipelines": [
@@ -4605,6 +5274,16 @@
     },
     "signature": "unsigned",
     "source": "photos/a.jpg"
+  },
+  "strict_not_implemented": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "w=10\u0026loop=2"
   },
   "strict_silent_tags": {
     "config": "strict",
@@ -4651,6 +5330,16 @@
     "path": "/photos/a.jpg",
     "query": "w=10\u0026bg-remove=true"
   },
+  "strict_video": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "w=10\u0026video-thumbnail=1"
+  },
   "trim_alias": {
     "path": "/photos/a.jpg",
     "query": "trim=color\u0026trimcolor=000",
@@ -4672,6 +5361,42 @@
     },
     "signature": "unsigned",
     "source": "photos/a.jpg"
+  },
+  "trim_alpha": {
+    "path": "/photos/a.jpg",
+    "query": "trim=alpha\u0026trim-alpha=10",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "trim",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "trim-alpha",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "trim_alpha_invalid": {
+    "error": {
+      "field": "trim-alpha",
+      "kind": "invalid_url",
+      "public": "invalid trim-alpha: expected number in range 0 to 255",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "trim=alpha\u0026trim-alpha=300"
   },
   "trim_auto": {
     "path": "/photos/a.jpg",
@@ -4763,11 +5488,37 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "trim_colorunlessalpha": {
+    "path": "/photos/a.jpg",
+    "query": "trim=colorunlessalpha\u0026trim-tol=5",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "trim",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Trim": {
+            "Threshold": 5
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "trim_invalid": {
     "error": {
       "field": "trim",
       "kind": "invalid_url",
-      "public": "invalid trim: expected auto or color",
+      "public": "invalid trim: expected auto, color, alpha or colorunlessalpha",
       "status": 400
     },
     "path": "/photos/a.jpg",
@@ -4969,6 +5720,39 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "txt_short_aliases": {
+    "path": "/photos/a.jpg",
+    "query": "t=Hi\u0026tsz=30\u0026tc=ff0000\u0026ta=top,left",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Color": {
+                "A": 255,
+                "R": 255
+              },
+              "Font": "sans 30",
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 10,
+                "YOffset": 10
+              },
+              "Text": "Hi"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "txt_size_only": {
     "path": "/photos/a.jpg",
     "query": "txt=Hi\u0026txt-size=12",
@@ -5049,6 +5833,57 @@
     "signature": "unsigned",
     "source": "photos/a.jpg"
   },
+  "txt_xy": {
+    "path": "/photos/a.jpg",
+    "query": "txt=Hi\u0026txt-x=12\u0026txt-y=0.25",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Font": "sans 12",
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 12,
+                "YOffset": 0.25
+              },
+              "Text": "Hi"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "txt_xy_alone": {
+    "path": "/photos/a.jpg",
+    "query": "txt-x=12",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "txt-x",
+          "Reason": "only with its base parameter"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "unknown": {
     "path": "/photos/a.jpg",
     "query": "w=10\u0026foo=bar",
@@ -5099,6 +5934,48 @@
         },
         {
           "Option": "fp-debug",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "unsupported_video_and_svg": {
+    "path": "/photos/a.jpg",
+    "query": "w=10\u0026video-codec=h264\u0026svg-sanitize=false\u0026rasterize-bypass=true\u0026pdf-annotation=false",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "video-codec",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "svg-sanitize",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "rasterize-bypass",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "pdf-annotation",
           "Reason": "unsupported"
         }
       ],
