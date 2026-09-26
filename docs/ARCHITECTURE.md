@@ -92,7 +92,7 @@ internal/
     bmp/ ico/               own pure-Go loaders/savers, reimplemented from imgproxy's C loaders (Apache-2.0: keep upstream header, add NOTICE entry)
     raw/                    RAW strategy (calls vips.LoadRawThumbnail / vips.DcrawLoad)
   pipeline/
-    plan/                   pure Go: (transform.Request, codec.ImageMeta) → Plan
+    plan/                   pure Go: (transform.Request, plan.SourceMeta) → Plan
     exec/                   Plan → libvips operations
   detect/                   (M3) ONNX Runtime face/object detection, loaded via dlopen (purego) when present
   video/                    (M3, build tag `ffmpeg`) go-astiav frame extraction
@@ -107,7 +107,7 @@ Dependency rules (enforced by a `depguard`/`go-arch-lint` config in CI):
 - `security/*` → `errs` only (and stdlib/x/crypto).
 - `fetch/<backend>` → `source` (interface types), `security/ssrf`, `errs`. Backends never know about dialects or transforms.
 - `fetch` → `source`, `cache`, `errs` (never its own backend subpackages; `app` constructs them).
-- `pipeline/plan` → `transform`, `codec` (types only: `Format`, `ImageMeta`; these live in a cgo-free file set), `errs`.
+- `pipeline/plan` → `transform`, `errs` (it defines its own `SourceMeta`; the executor maps codec/vips headers onto it).
 - `pipeline/exec`, `codec` loaders/encoders → `vips`.
 - `server` → everything above via interfaces; `app` is the only package that constructs concrete types.
 - `config` imports nothing internal except `errs`. Each component declares its own `Options` struct; `app` maps `config.Config` into those options. This keeps component packages testable without the whole config tree.
@@ -393,41 +393,43 @@ type Allocator func(n int) (Buffer, error) // new Buffer of exactly n bytes hold
 
 ### 8.1 Planner (pure Go)
 
+Implemented in WP-25; the full type list is in `internal/pipeline/plan/plan.go`.
+
 ```go
 package plan
 
+func Build(req *transform.Request, meta SourceMeta, limits Limits) (*Plan, error)
+func Continue(req *transform.Request, meta SourceMeta, limits Limits, obs Observed) (*Plan, error)
+
 type Plan struct {
-    Load     LoadSpec   // loader, shrink-on-load factor, page, n, access (Sequential|Random), fail_on
-    Steps    []Step     // ordered, typed descriptors
-    Output   EncodeSpec
-    Chained  []*Plan    // subsequent pipelines operate on the materialised result
-    Estimate Cost       // peak pixel bytes, used by limiter
+    Load      LoadStep       // shrink-on-load (JPEG 2/4/8), scale (WebP/SVG/PDF), page, n, access, HEIF thumbnail, predicted size
+    Animation *AnimationStep // {Frames, PageHeight}: Steps run per frame, After on the joined strip
+    Steps     []Step         // ordered, typed descriptors (sealed sum type)
+    After     []Step         // watermarks; output colour on the last plan
+    Chained   []*Plan        // subsequent pipelines operate on the materialised result
+    Output    Output         // {Width, Height, Frames, Format hint, Alpha, DPRScale}
+    Cost      Cost           // {Pixels, EstimatedBytes}: peak, used by the memory-weighted limiter
+    Unplanned []string       // options later WPs turn into steps
 }
-
-type Step interface{ step() }      // sealed sum type
-type ResizeStep  struct{ ScaleX, ScaleY float64; Kernel Kernel; Premultiply bool }
-type CropStep    struct{ Rect image.Rectangle }
-type SmartCropStep struct{ W, H int; Interesting Interesting }
-type RotateStep  struct{ Angle int }
-// … one struct per operation
-
-func Build(req *transform.Request, meta codec.ImageMeta, d Defaults) (*Plan, error)
 ```
 
-Fixed step order within one pipeline (imgproxy-compatible, chosen for sequential access):
+`SourceMeta` is the planner's own header struct (the executor maps `codec`/`vips` header data onto it), so `pipeline/plan` imports only `transform` and `errs`. The geometry reproduces imgproxy's exactly (`calcScale`, `calcSizes`, `limitScale`, `scaleOnLoad`, `calcPosition`, `RotateAndFlip`, `extend`, `padding`, `fixSize`); `testdata/imgproxy_corpus.json` pins 127 cases recorded by running imgproxy's own pipeline. What a header cannot predict (loader rounding, the embedded HEIF thumbnail, the size after trim) the executor reports through `Continue`, which returns the complete plan with the geometry recomputed. Crop and extend steps carry their gravity and a `Rect(imgW, imgH)` method, so they are placed on the real size.
 
-1. **Load** with shrink-on-load: JPEG `shrink` 2/4/8, WebP/HEIF/AVIF `scale`/thumbnail, SVG/PDF `scale`/`dpi`, RAW embedded preview (see FORMATS.md). The planner computes the final scale from header dimensions, then picks the largest integer shrink that keeps the image ≥ target.
-2. **Trim** (forces random access; planner flips `Load.Access`).
-3. **Pre-crop** (`crop`, thumbor `AxB:CxD`, imgix `rect`) in source coordinates, EXIF-orientation-aware.
-4. **Resize** remainder with Lanczos3 (premultiplied alpha, linear light optional via `XI_PROCESSING_LINEAR_RESIZE`).
-5. **Colour to working space**: import ICC, convert to sRGB (or keep 16-bit when preserving HDR).
-6. **Orientation**: EXIF auto-rotate, then `rotate`, then `flip`.
-7. **Target crop** by gravity (compass + offsets, focus point, smart = `vips_smartcrop` attention/entropy, face/object in M3).
-8. **Geometry fill**: extend / extend-aspect-ratio / padding / arbitrary rotate / border / radius / mask; background flatten when output lacks alpha or background set.
-9. **Filters**: adjust (brightness, contrast, saturation, gamma, hue), monochrome, duotone, colorize, tint, sepia/negate/grayscale, blur, sharpen/unsharp, pixelate, blur areas, progressive blur, gradient, detection blur/draw.
-10. **Watermarks** in order.
-11. **Output colour**: ICC transform/embedding, strip metadata (keep copyright if asked), DPI, orientation tag reset.
-12. **Encode** (see §8.3).
+Fixed step order within one pipeline (imgproxy's `mainPipeline`, chosen for sequential access):
+
+1. **Load** with shrink-on-load: JPEG `shrink` 2/4/8, WebP `scale`, HEIF/AVIF embedded thumbnail, SVG/PDF `scale` (vector guard at `max_src_resolution`). The shrink comes from the size the computed scales give, not the scales, so one-sided targets do not overshrink; the remaining scale is rebased on the loaded size. Animated sources and trimmed images never shrink on load. RAW embedded preview: see FORMATS.md.
+2. **Colour to working space**: import ICC, convert to sRGB (or keep 16-bit when preserving HDR).
+3. **Trim** (forces random access; disables shrink-on-load; not on animations).
+4. **Pre-crop** (`crop`, thumbor `AxB:CxD`, imgix `rect`) in stored (un-rotated) coordinates: the gravity is mapped back through the user rotate/flip and the EXIF orientation.
+5. **Resize** remainder (premultiplied when the image has alpha, linear light optional via `XI_PROCESSING_LINEAR_RESIZE`).
+6. **Orientation**: EXIF rotate, EXIF flip, then `rotate`, then `flip` (the loader does not autorotate).
+7. **Target crop** by gravity (compass + offsets scaled by DPR, focus point, smart = `vips_smartcrop` attention/entropy, face/object fall back to attention until M3; animations fall back to centre).
+8. **Filters**: blur, sharpen, pixelate (one pass, as imgproxy); later WPs add adjust, monochrome, duotone, colorize, tint, sepia/negate/grayscale, unsharp, blur areas, progressive blur, gradient, detection blur/draw.
+9. **Geometry fill**: extend, extend-aspect-ratio, padding (scaled by DPR); later: arbitrary rotate, border, radius, mask.
+10. **Encoder size limits** (WebP 16383, AVIF/HEIC 16384, GIF, ICO 256), then **flatten** when the output lacks alpha or a background is set.
+11. **Watermarks** in order (`After`: once on the joined strip for animations).
+12. **Output colour** (`After` of the last plan): ICC transform/embedding, strip metadata (keep copyright if asked), DPI, orientation tag reset.
+13. **Encode** (see §8.3).
 
 Animated images carry all frames as one tall "toilet roll" image with `page-height`; every geometric step is applied per page by the executor (libvips handles most ops natively with `page-height`; crop/extend/rotate are done with `vips_arrayjoin` per frame). Frame limits are checked at probe time.
 

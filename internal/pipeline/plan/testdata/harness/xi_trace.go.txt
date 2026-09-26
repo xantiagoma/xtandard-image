@@ -1,0 +1,108 @@
+package vips
+
+import (
+	"fmt"
+
+	"github.com/imgproxy/imgproxy/v4/imagedata"
+	"github.com/imgproxy/imgproxy/v4/vips/color"
+)
+
+// Trace records every geometry-relevant libvips call made by the pipeline
+// (xtandard-image WP-25 cross-check harness; throwaway).
+var Trace []string
+
+func tr(img *Image, format string, args ...any) {
+	Trace = append(Trace, fmt.Sprintf(format, args...)+fmt.Sprintf(" -> %dx%d", img.Width(), img.Height()))
+}
+
+func (img *Image) Load(imgdata imagedata.ImageData, shrink float64, page, pages int) error {
+	if err := img.origLoad(imgdata, shrink, page, pages); err != nil {
+		return err
+	}
+	tr(img, "load shrink=%.10g page=%d n=%d", shrink, page, pages)
+	return nil
+}
+
+func (img *Image) LoadThumbnail(imgdata imagedata.ImageData) error {
+	if err := img.origLoadThumbnail(imgdata); err != nil {
+		return err
+	}
+	tr(img, "thumbnail")
+	return nil
+}
+
+func (img *Image) Resize(w, h float64) error {
+	if err := img.origResize(w, h); err != nil {
+		return err
+	}
+	tr(img, "resize %.10g %.10g", w, h)
+	return nil
+}
+
+func (img *Image) Rotate(a int) error {
+	if err := img.origRotate(a); err != nil {
+		return err
+	}
+	if a%360 != 0 {
+		tr(img, "rotate %d", a)
+	}
+	return nil
+}
+
+func (img *Image) Flip(h, v bool) error {
+	if err := img.origFlip(h, v); err != nil {
+		return err
+	}
+	if h || v {
+		tr(img, "flip %t %t", h, v)
+	}
+	return nil
+}
+
+func (img *Image) Crop(l, t, w, h int) error {
+	if err := img.origCrop(l, t, w, h); err != nil {
+		return err
+	}
+	tr(img, "crop %d %d %d %d", l, t, w, h)
+	return nil
+}
+
+func (img *Image) SmartCrop(w, h int) error {
+	if err := img.origSmartCrop(w, h); err != nil {
+		return err
+	}
+	tr(img, "smartcrop %d %d", w, h)
+	return nil
+}
+
+func (img *Image) Trim(threshold float64, smart bool, c color.RGB, eh, ev bool) error {
+	if err := img.origTrim(threshold, smart, c, eh, ev); err != nil {
+		return err
+	}
+	tr(img, "trim")
+	return nil
+}
+
+func (img *Image) Flatten(bg color.RGB) error {
+	if err := img.origFlatten(bg); err != nil {
+		return err
+	}
+	tr(img, "flatten")
+	return nil
+}
+
+func (img *Image) Embed(w, h, x, y int) error {
+	if err := img.origEmbed(w, h, x, y); err != nil {
+		return err
+	}
+	tr(img, "embed %d %d %d %d", w, h, x, y)
+	return nil
+}
+
+func (img *Image) ApplyFilters(b, s float64, p int) error {
+	if err := img.origApplyFilters(b, s, p); err != nil {
+		return err
+	}
+	tr(img, "filters %g %g %d", b, s, p)
+	return nil
+}
