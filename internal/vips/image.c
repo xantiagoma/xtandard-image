@@ -78,6 +78,12 @@ xi_image_unref(VipsImage *img)
 }
 
 void
+xi_image_ref(VipsImage *img)
+{
+  g_object_ref(img);
+}
+
+void
 xi_image_set_kill(VipsImage *img, int kill)
 {
   // A plain flag that the pipeline polls per region (region.c
@@ -221,6 +227,28 @@ xi_copy_memory(VipsImage *in, VipsImage **out, char **err)
     *err = xi_error_copy();
     return XI_ERR_SAVE;
   }
+  return XI_OK;
+}
+
+int
+xi_share(VipsImage *in, VipsImage **out, char **err)
+{
+  size_t len;
+  void *data = vips_image_write_to_memory(in, &len);
+  if (!data) {
+    *err = xi_error_copy();
+    return XI_ERR_SAVE;
+  }
+  // A new root image: no upstream links (so no progress or kill signal is
+  // shared with the pipeline that produced it) and no metadata fields.
+  *out = vips_image_new_from_memory_copy(data, len, in->Xsize, in->Ysize, in->Bands,
+      in->BandFmt);
+  g_free(data);
+  if (!*out) {
+    *err = xi_error_copy();
+    return XI_ERR_SAVE;
+  }
+  (*out)->Type = in->Type;
   return XI_OK;
 }
 

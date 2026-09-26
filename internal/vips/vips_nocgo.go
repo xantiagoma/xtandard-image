@@ -193,6 +193,30 @@ func (*Image) SetPageHeight(context.Context, int) (*Image, error) { return nil, 
 // WriteToMemory fails.
 func (*Image) WriteToMemory(context.Context) ([]byte, error) { return nil, ErrUnavailable }
 
+// Shared is unavailable without cgo.
+type Shared struct{}
+
+// Share fails.
+func Share(context.Context, *Image) (*Shared, error) { return nil, ErrUnavailable }
+
+// Image returns nil.
+func (*Shared) Image() *Image { return nil }
+
+// Width returns 0.
+func (*Shared) Width() int { return 0 }
+
+// Height returns 0.
+func (*Shared) Height() int { return 0 }
+
+// Bands returns 0.
+func (*Shared) Bands() int { return 0 }
+
+// HasAlpha returns false.
+func (*Shared) HasAlpha() bool { return false }
+
+// Close does nothing.
+func (*Shared) Close() {}
+
 // Resize fails.
 func (*Image) Resize(context.Context, float64, float64, Kernel) (*Image, error) {
 	return nil, ErrUnavailable

@@ -139,6 +139,7 @@ double xi_image_xres(VipsImage *img);
 double xi_image_yres(VipsImage *img);
 size_t xi_image_sizeof(VipsImage *img);
 void xi_image_unref(VipsImage *img);
+void xi_image_ref(VipsImage *img);
 void xi_image_set_kill(VipsImage *img, int kill);
 
 int xi_meta_get_int(VipsImage *img, const char *name, int *out);
@@ -161,6 +162,10 @@ int xi_write_to_memory(VipsImage *in, void **data, size_t *len, char **err);
 // Renders in to a memory image (vips_image_copy_memory); XI_ERR_SAVE on
 // failure, like the other sinks.
 int xi_copy_memory(VipsImage *in, VipsImage **out, char **err);
+// Renders in to a fresh memory image with in's size, bands, format and
+// interpretation but no metadata and no link to in's pipeline (vips.Share);
+// XI_ERR_SAVE when rendering fails.
+int xi_share(VipsImage *in, VipsImage **out, char **err);
 
 // ---- operations (ops.c) ------------------------------------------------
 //
