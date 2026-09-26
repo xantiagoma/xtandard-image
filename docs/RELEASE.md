@@ -25,7 +25,7 @@ Tags (`X.Y.Z` has no leading `v`):
 | `slim` | yes | no |
 | `latest` | yes | no |
 
-`slim` is the only app flavor the release workflow builds today. The `full` base image is in review (WP-70, #81) and the `gpl` flavor is in progress (WP-70b); once they ship, `X.Y.Z`/`latest` keep pointing at slim and `full` gets `X.Y.Z-full`/`full`.
+`slim` is the only app flavor the release workflow builds today. The `full` (WP-70) and `gpl` (WP-70b) base images are on `main`, built and verified locally (`task docker:base:full`, `task docker:base:gpl`); their multi-arch publish waits for GitHub Actions to be re-enabled. Once the workflow builds them, `X.Y.Z`/`latest` keep pointing at slim and `full` gets `X.Y.Z-full`/`full`.
 
 Build properties (enforced in the `Dockerfile`):
 
