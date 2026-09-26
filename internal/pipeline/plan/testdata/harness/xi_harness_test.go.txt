@@ -1,0 +1,209 @@
+package processing_test
+
+// Throwaway cross-check harness for xtandard-image WP-25 (internal/pipeline/plan).
+// It runs imgproxy's real processing pipeline (with vips calls traced by
+// vips/xi_trace.go) on synthetic sources and writes every geometry call to
+// $XI_HARNESS_OUT as JSON.
+
+import (
+	"bytes"
+	"context"
+	"encoding/binary"
+	"encoding/json"
+	"fmt"
+	"image"
+	"image/color"
+	"image/gif"
+	"image/jpeg"
+	"image/png"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"testing"
+
+	"github.com/imgproxy/imgproxy/v4/clientfeatures"
+	"github.com/imgproxy/imgproxy/v4/imagedata"
+	"github.com/imgproxy/imgproxy/v4/imagetype"
+	parser "github.com/imgproxy/imgproxy/v4/options/parser"
+	"github.com/imgproxy/imgproxy/v4/processing"
+	"github.com/imgproxy/imgproxy/v4/security"
+	"github.com/imgproxy/imgproxy/v4/vips"
+)
+
+type xiSrc struct {
+	Format      string `json:"format"`
+	Width       int    `json:"width"`
+	Height      int    `json:"height"`
+	Orientation int    `json:"orientation,omitempty"`
+	Alpha       bool   `json:"alpha,omitempty"`
+	Frames      int    `json:"frames,omitempty"`
+	// Trim: a uniform white border around an inner black rectangle.
+	Inner []int `json:"inner,omitempty"` // l,t,w,h
+}
+
+type xiCase struct {
+	Name  string   `json:"name"`
+	Src   xiSrc    `json:"src"`
+	URL   string   `json:"url"`
+	Trace []string `json:"trace"`
+	W     int      `json:"width"`
+	H     int      `json:"height"`
+	Err   string   `json:"error,omitempty"`
+}
+
+func exifJPEG(b []byte, o int) []byte {
+	if o <= 1 {
+		return b
+	}
+	var t bytes.Buffer
+	t.WriteString("II*\x00")
+	binary.Write(&t, binary.LittleEndian, uint32(8))
+	binary.Write(&t, binary.LittleEndian, uint16(1))
+	binary.Write(&t, binary.LittleEndian, uint16(0x0112))
+	binary.Write(&t, binary.LittleEndian, uint16(3))
+	binary.Write(&t, binary.LittleEndian, uint32(1))
+	binary.Write(&t, binary.LittleEndian, uint16(o))
+	binary.Write(&t, binary.LittleEndian, uint16(0))
+	binary.Write(&t, binary.LittleEndian, uint32(0))
+	payload := append([]byte("Exif\x00\x00"), t.Bytes()...)
+	seg := []byte{0xFF, 0xE1, byte((len(payload) + 2) >> 8), byte(len(payload) + 2)}
+	out := append([]byte{}, b[:2]...)
+	out = append(out, seg...)
+	out = append(out, payload...)
+	return append(out, b[2:]...)
+}
+
+func xiPattern(w, h int, alpha bool, inner []int) image.Image {
+	img := image.NewNRGBA(image.Rect(0, 0, w, h))
+	for y := range h {
+		for x := range w {
+			c := color.NRGBA{uint8(x * 255 / w), uint8(y * 255 / h), 128, 255}
+			if alpha && (x+y)%3 == 0 {
+				c.A = 100
+			}
+			if inner != nil {
+				c = color.NRGBA{255, 255, 255, 255}
+				if x >= inner[0] && x < inner[0]+inner[2] && y >= inner[1] && y < inner[1]+inner[3] {
+					c = color.NRGBA{0, 0, 0, 255}
+				}
+			}
+			img.Set(x, y, c)
+		}
+	}
+	return img
+}
+
+func xiMake(t *testing.T, s xiSrc) imagedata.ImageData {
+	img := xiPattern(s.Width, s.Height, s.Alpha, s.Inner)
+	var buf bytes.Buffer
+	switch s.Format {
+	case "jpeg":
+		if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 70}); err != nil {
+			t.Fatal(err)
+		}
+		return imagedata.NewFromBytesWithFormat(imagetype.JPEG, exifJPEG(buf.Bytes(), s.Orientation))
+	case "png", "webp":
+		if err := png.Encode(&buf, img); err != nil {
+			t.Fatal(err)
+		}
+		if s.Format == "png" {
+			return imagedata.NewFromBytesWithFormat(imagetype.PNG, buf.Bytes())
+		}
+		dir := t.TempDir()
+		in, out := filepath.Join(dir, "a.png"), filepath.Join(dir, "a.webp")
+		os.WriteFile(in, buf.Bytes(), 0o644)
+		if b, err := exec.Command("vips", "copy", in, out).CombinedOutput(); err != nil {
+			t.Fatal(string(b))
+		}
+		b, _ := os.ReadFile(out)
+		return imagedata.NewFromBytesWithFormat(imagetype.WEBP, b)
+	case "gif":
+		g := &gif.GIF{}
+		pal := color.Palette{color.Black, color.White, color.RGBA{255, 0, 0, 255}, color.RGBA{0, 0, 255, 255}}
+		for i := range s.Frames {
+			p := image.NewPaletted(image.Rect(0, 0, s.Width, s.Height), pal)
+			for y := range s.Height {
+				for x := range s.Width {
+					p.SetColorIndex(x, y, uint8((x/10+y/10+i)%4))
+				}
+			}
+			g.Image = append(g.Image, p)
+			g.Delay = append(g.Delay, 10)
+		}
+		if err := gif.EncodeAll(&buf, g); err != nil {
+			t.Fatal(err)
+		}
+		return imagedata.NewFromBytesWithFormat(imagetype.GIF, buf.Bytes())
+	case "svg":
+		fmt.Fprintf(&buf, `<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d"><rect width="%d" height="%d" fill="red"/></svg>`, s.Width, s.Height, s.Width/2, s.Height/2)
+		return imagedata.NewFromBytesWithFormat(imagetype.SVG, buf.Bytes())
+	}
+	t.Fatalf("format %s", s.Format)
+	return nil
+}
+
+func TestXIHarness(t *testing.T) {
+	in := os.Getenv("XI_HARNESS_IN")
+	out := os.Getenv("XI_HARNESS_OUT")
+	if in == "" {
+		t.Skip("no XI_HARNESS_IN")
+	}
+	raw, err := os.ReadFile(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cases []xiCase
+	if err := json.Unmarshal(raw, &cases); err != nil {
+		t.Fatal(err)
+	}
+
+	vc := vips.NewDefaultConfig()
+	if err := vips.Init(&vc); err != nil {
+		t.Fatal(err)
+	}
+	pc := processing.NewDefaultConfig()
+	pc.AlwaysRasterizeSvg = true
+	sc := security.NewDefaultConfig()
+	sc.MaxAnimationFrames = 256
+	chk, err := security.New(&sc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	proc, err := processing.New(&pc, chk, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oc := parser.NewDefaultConfig()
+	oc.AllowSecurityOptions = true
+	prs, err := parser.New(context.Background(), &oc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	srcs := map[string]imagedata.ImageData{}
+	for i := range cases {
+		c := &cases[i]
+		key := fmt.Sprintf("%+v", c.Src)
+		data, ok := srcs[key]
+		if !ok {
+			data = xiMake(t, c.Src)
+			srcs[key] = data
+		}
+		o, _, err := prs.ParsePath(context.Background(), "/"+c.URL+"/plain/local:///x", &clientfeatures.Features{})
+		if err != nil {
+			t.Fatalf("%s: %v", c.Name, err)
+		}
+		vips.Trace = nil
+		res, err := proc.ProcessImage(context.Background(), data, o)
+		c.Trace = vips.Trace
+		if err != nil {
+			c.Err = err.Error()
+			continue
+		}
+		c.W, c.H = res.ResultWidth, res.ResultHeight
+	}
+	b, _ := json.MarshalIndent(cases, "", "  ")
+	if err := os.WriteFile(out, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
