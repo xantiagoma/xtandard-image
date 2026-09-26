@@ -605,7 +605,6 @@ func (ps *parseState) unsharp(pl *transform.Pipeline, v string) error {
 		return dialect.InvalidArgument("e-usm", v, expUSM)
 	}
 	pl.Unsharp = &transform.Unsharp{Sigma: args[1], Amount: args[2]}
-	ps.b.Ignore("e-usm", reasonM2)
 	return nil
 }
 

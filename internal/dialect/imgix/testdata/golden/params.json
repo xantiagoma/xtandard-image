@@ -5272,12 +5272,6 @@
     "query": "usm=50\u0026usmrad=10",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "usm",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Unsharp": {
@@ -5299,12 +5293,6 @@
     "query": "usm=-20",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "usm",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Unsharp": {

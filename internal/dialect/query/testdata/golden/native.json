@@ -1138,12 +1138,6 @@
     "query": "url=https://example.com/a.jpg\u0026o=ush:always",
     "request": {
       "Dialect": "query",
-      "Ignored": [
-        {
-          "Option": "ush",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Unsharp": {
