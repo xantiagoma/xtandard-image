@@ -580,10 +580,6 @@
         {
           "Option": "if",
           "Reason": "unsupported"
-        },
-        {
-          "Option": "e_grayscale",
-          "Reason": "takes effect in M2"
         }
       ],
       "Output": {
@@ -611,10 +607,6 @@
         {
           "Option": "if",
           "Reason": "unsupported"
-        },
-        {
-          "Option": "e_grayscale",
-          "Reason": "takes effect in M2"
         }
       ],
       "Output": {
@@ -693,12 +685,6 @@
         ]
       },
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_grayscale",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -1069,12 +1055,6 @@
     "path": "/demo/image/upload/c_fill,w_400/q_auto/f_auto/dpr_2.0/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "q_auto",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "AutoQuality": {
           "Method": "dssim",

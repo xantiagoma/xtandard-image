@@ -385,34 +385,36 @@ Signature: `s--SIG--` right after the delivery type; the signed message is the r
 | `g_<object>` (e.g. `g_dog`) | Object | M3 |
 | `g_xy_center` + `x_`,`y_` | FocusPoint: relative `x_`/`y_` (0..1) → `FocusX/FocusY`; absolute (integer pixels on both axes) → `FocusPx` via `transform.FocusFromPixels(x, y, x, y)` (WP-86a); a relative axis mixed with an absolute one is approximated to the centre | |
 | `g_custom`, `g_body`, `g_ocr_text`, `g_liquid`, … | unsupported (centre) | |
-| `ar_16:9` / `ar_1.5` | Resize.AspectRatio (Crop.AspectRatio with `c_crop`, M2) | |
+| `ar_16:9` / `ar_1.5` | Resize.AspectRatio (Crop.AspectRatio with `c_crop`) | |
 | `x_`, `y_` | gravity offsets | |
 | `z_` | FocusZoom (`c_thumb`, `c_crop`) | other modes approximated |
-| `q_<1-100>[:420\|422\|444]`, `q_auto[:best\|good\|eco\|low]` | Quality (+ChromaSubsampling) / AutoQuality DSSIM targets 0.005 / 0.02 / 0.035 / 0.05 (`q_auto` = good) | M2; `q_jpegmini` unsupported |
+| `q_<1-100>[:420\|422\|444]`, `q_auto[:best\|good\|eco\|low]` | Quality (+ChromaSubsampling) / AutoQuality DSSIM targets 0.005 / 0.02 / 0.035 / 0.05 (`q_auto` = good) | `q_jpegmini` unsupported |
 | `f_auto[:…]`, `f_<fmt>` (jpg/jpeg/jpe, png, webp, avif, jxl, gif, heic/heif, tif/tiff, bmp, ico, svg, mp4, webm) | Format unset (negotiated) / Format | mp4/webm M3; other formats (pdf, jp2, …) 400 |
 | `dpr_<float>`, `dpr_auto` | DPR of the current pipeline / client hint | |
-| `a_<deg>` (`.`-joined list), `a_hflip`, `a_vflip`, `a_exif`, `a_ignore` | Rotate (multiples of 90) / RotateAny (M2) / Flip / AutoRotate | `a_auto_right`, `a_auto_left` unsupported |
+| `a_<deg>` (`.`-joined list), `a_hflip`, `a_vflip`, `a_exif`, `a_ignore` | Rotate (multiples of 90) / RotateAny / Flip / AutoRotate | `a_auto_right`, `a_auto_left` unsupported |
 | `b_<color>` (`rgb:` 3/4/6/8 hex digits, `%23` hex, CSS names, `transparent`) | Background | `b_auto`, `b_blurred`, `b_gen_fill` unsupported |
-| `bo_<n>px_solid_<color>` | Border | M2 |
-| `r_<n>[:<n>…]` (1–4 values, Cloudinary corner order), `r_max` | Radius | M2 |
-| `o_<0-100>` | Adjust.Opacity | M2 |
+| `bo_<n>px_solid_<color>` | Border | |
+| `r_<n>[:<n>…]` (1–4 values, Cloudinary corner order), `r_max` | Radius | |
+| `o_<0-100>` | Adjust.Opacity | |
 | `e_blur[:1-2000]` | Blur σ = n/20 (default 100 → 5, like imgix `blur`) | |
-| `e_sharpen[:1-2000]`, `e_unsharp_mask[:1-2000]` | Sharpen σ = n/100 / Unsharp σ 1, amount n/100 (M2) | |
+| `e_sharpen[:1-2000]`, `e_unsharp_mask[:1-2000]` | Sharpen σ = n/100 / Unsharp σ 1, amount n/100 | |
 | `e_pixelate[:1-200]` | Pixelate (default 10) | |
-| `e_grayscale`, `e_blackwhite` (approximated), `e_sepia`, `e_negate` | corresponding Pipeline fields | M2 |
-| `e_brightness[:-99..100]` (default 80), `e_hue[:-100..100]` (80) | Brightness n × 2.55 / Hue n × 1.8° | M2 |
-| `e_contrast`, `e_saturation`, `e_gamma`, `e_vibrance`, `e_red`/`e_green`/`e_blue` | multiplier 1 + n/100 | M2 |
-| `e_colorize[:0-100]` + `co_<color>` | Colorize (opacity n/100, default grey) | M2 |
+| `e_grayscale`, `e_blackwhite` (approximated), `e_sepia`, `e_negate` | corresponding Pipeline fields | |
+| `e_brightness[:-99..100]` (default 80), `e_hue[:-100..100]` (80) | Brightness n × 2.55 / Hue n × 1.8° | |
+| `e_contrast`, `e_saturation`, `e_gamma`, `e_vibrance`, `e_red`/`e_green`/`e_blue` | multiplier 1 + n/100 | `e_vibrance` is recorded "not implemented" (no planner step, `plan.Unplanned`) |
+| `e_colorize[:0-100]` + `co_<color>` | Colorize (opacity n/100, default grey) | |
 | `e_trim[:tolerance[:color]]` | Trim (threshold = tolerance, default 10) | |
 | `e_blur_faces[:n]`, `e_pixelate_faces[:n]` | BlurDetections(face) σ n/20 / pixelate n | M3 |
-| `e_blur_region[:n]` + relative `x_`,`y_`,`w_`,`h_` | BlurAreas (no region: whole-image blur) | M2; pixel regions approximated |
+| `e_blur_region[:n]` + relative `x_`,`y_`,`w_`,`h_` | BlurAreas (no region: whole-image blur) | pixel regions approximated |
 | other `e_*` (AI, artistic, `background_removal`, `gen_*`, `upscale`, `vectorize`, …) | Unsupported | |
-| `fl_lossy`, `fl_progressive[:none]`, `fl_strip_profile`, `fl_keep_iptc`, `fl_keep_attribution`, `fl_force_strip`, `fl_attachment[:name]`, `fl_immutable_cache`, `fl_png8` (M2), `fl_getinfo` | Lossless=false, Progressive, StripColorProfile, StripMetadata=false, KeepCopyright, StripMetadata, Attachment/Filename, Immutable, PNG quantize 256, Kind=Info (size, format, dimensions) | `fl_animated`, `fl_awebp`, `fl_apng`, `fl_preserve_transparency`, `fl_any_format` are the default behaviour; `fl_rasterize`, `fl_clip`, … unsupported |
-| `cs_srgb`/`cs_no_cmyk`/`cs_tinysrgb`, `cs_cmyk` | ColorProfile srgb / cmyk | M2; `cs_keep_cmyk`, `cs_icc:` unsupported |
+| `fl_lossy`, `fl_progressive[:none]`, `fl_strip_profile`, `fl_keep_iptc`, `fl_keep_attribution`, `fl_force_strip`, `fl_attachment[:name]`, `fl_immutable_cache`, `fl_png8`, `fl_getinfo` | Lossless=false, Progressive, StripColorProfile, StripMetadata=false, KeepCopyright, StripMetadata, Attachment/Filename, Immutable, PNG quantize 256, Kind=Info (size, format, dimensions) | `fl_animated`, `fl_awebp`, `fl_apng`, `fl_preserve_transparency`, `fl_any_format` are the default behaviour; `fl_rasterize`, `fl_clip`, … unsupported |
+| `cs_srgb`/`cs_no_cmyk`/`cs_tinysrgb`, `cs_cmyk` | ColorProfile srgb / cmyk | `cs_keep_cmyk`, `cs_icc:` unsupported |
 | `pg_<n>` (1-based) | Page n−1 (WP-62) | Ranges and names unsupported |
 | `t_<name>[.<name>…]` | presets expanded in place (imgproxy option syntax); only-presets mode allows nothing but `t_` | |
 | `d_<public_id>` (`:` = folder) | Fallback (same cloud source) | M2 |
 | `l_<id>` (`:` = folder), `l_fetch:<base64url>`, `l_text:<family>_<size>[_<style>…]:<text>` with `g_`, `x_`, `y_`, `o_`, `a_`, `co_` (text), `w_`/`h_` px, relative `w_` + `fl_relative` (scale), `fl_tiled`; legacy single component or `l_…/…/fl_layer_apply,…` group | Watermark on the current pipeline: `l_<id>` is an image on the cloud's source (the base image's storage), `l_fetch:` a remote URL; `a_` → Rotate (clockwise); a text layer's `w_` is its wrap width (`c_fit`), its `h_` approximated. `l_text`: Font = family + weight/style tokens (`bold`, `italic`, …) + size, `underline`/`strikethrough` → markup, the text (double-escaped commas decoded) escaped for Pango; alignment, `letter_spacing_N`, `line_spacing_N`, `stroke`, antialias and hinting approximated | M3 (WP-77/78); `l_video`, `l_subtitles`, `l_lut`, `l_audio` unsupported; other parameters in a layer group (`co_` on an image layer, `e_`, `b_`, …) approximated |
+| `d_<public_id>` (`:` = folder) | Fallback (same cloud source) | honoured with `XI_FALLBACK_ALLOW_REQUEST_URL` |
+| `l_<id>` (`:` = folder), `l_fetch:<base64url>` with `g_`, `x_`, `y_`, `o_`, `a_`, `w_`/`h_` px, relative `w_` + `fl_relative` (scale), `fl_tiled`; legacy single component or `l_…/…/fl_layer_apply,…` group | Watermark (image / URL) on the current pipeline | M3; `l_text`, `l_video`, `l_subtitles`, `l_lut` unsupported; other parameters in a layer group approximated |
 | `u_` underlays, `if_` (skips its component, or the block up to `if_end`), `$var`, `fn_`, `dn_`, video/audio `vc_`/`ac_`/`du_`/`so_`/`eo_`/`fps_`/… | Unsupported | |
 
 Fixtures: `internal/dialect/cloudinary/testdata/urlgen/generate.ts` builds the corpus with `@cloudinary/url-gen` 1.22.0 and the `cloudinary` Node SDK 2.11.0 (including signed URLs, i.e. the signature vectors); unpic's `cloudinary.test.ts` URLs are asserted in `compat_test.go`.
