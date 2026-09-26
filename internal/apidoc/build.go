@@ -12,6 +12,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/server"
@@ -309,7 +310,9 @@ func operations() []*huma.Operation {
 		{
 			OperationID: "getConfigSchema", Method: http.MethodGet, Path: "/config.schema.json", Tags: []string{"admin"}, Servers: adminServers(),
 			Summary:     "Config file JSON Schema",
-			Description: "JSON Schema (draft 2020-12) of the YAML/JSON/TOML config file, with a strong ETag; always on, admin listener only (ADR 0007 decision 6).",
+			Description: "JSON Schema (draft 2020-12) of the YAML/JSON/TOML config file, with a strong ETag; always on, admin listener only (ADR 0007 decision 6). " +
+				"Its $id is the published GitHub Pages copy (externalDocs); this route serves the running binary's version.",
+			ExternalDocs: &huma.ExternalDocs{Description: "Published copy (the schema's $id)", URL: config.SchemaID},
 			Responses: map[string]*huma.Response{
 				"200": {
 					Description: "The config schema.",

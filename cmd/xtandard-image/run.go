@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/xantiagoma/xtandard-image/internal/apidoc"
 	"github.com/xantiagoma/xtandard-image/internal/app"
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/obs/logging"
@@ -34,6 +35,7 @@ commands:
   config print     print the effective configuration (secrets redacted)
   config validate  check a config file (and the environment) with the real loader
   config schema    print the config file JSON Schema
+  openapi          print the OpenAPI 3.1 document of the HTTP API
   health           probe a running instance's health endpoint
   version          print version information
 `
@@ -51,6 +53,8 @@ func run(ctx context.Context, args []string, environ []string, stdout io.Writer)
 		return serve(ctx, args, environ, stdout)
 	case "config":
 		return configCommand(args, environ, stdout)
+	case "openapi":
+		return printOpenAPI(args, stdout)
 	case "health":
 		return health(ctx, args, stdout)
 	case "version":
@@ -178,6 +182,20 @@ func configSchema(args []string, stdout io.Writer) error {
 		return ignoreHelp(err)
 	}
 	_, err := stdout.Write(config.Schema())
+	return err
+}
+
+// printOpenAPI prints the embedded OpenAPI document: the same bytes the
+// admin listener serves at /openapi.json and Pages publishes (WP-81b).
+func printOpenAPI(args []string, stdout io.Writer) error {
+	fs := newFlagSet("openapi", stdout)
+	if err := fs.Parse(args); err != nil {
+		return ignoreHelp(err)
+	}
+	if fs.NArg() > 0 {
+		return fmt.Errorf("openapi: unexpected argument %q", fs.Arg(0))
+	}
+	_, err := stdout.Write(apidoc.Spec())
 	return err
 }
 
