@@ -44,7 +44,11 @@ func (s *Server) image(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t := s.stage(info, stageRespond)
-	s.respond(w, r, res)
+	if res.req.Kind == transform.KindInfo {
+		s.respondInfo(w, r, res)
+	} else {
+		s.respond(w, r, res)
+	}
 	t.done()
 }
 
@@ -83,7 +87,7 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 	}
 	switch req.Kind {
 	case transform.KindInfo:
-		return nil, &notImplementedError{what: "info requests"}
+		return s.inspect(ctx, r, req, info)
 	case transform.KindRaw:
 		return s.raw(ctx, r, info, req, signed) // special.go: no admission, no decode
 	default:
