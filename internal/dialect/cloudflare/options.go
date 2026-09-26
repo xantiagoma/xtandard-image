@@ -17,7 +17,6 @@ const (
 	reasonUnsupported    = "unsupported"
 	reasonNotImplemented = "not implemented"
 	reasonApproximated   = "approximated"
-	reasonM2             = "takes effect in M2"
 	reasonM3             = "takes effect in M3"
 	reasonHosted         = "not supported for hosted images"
 )
@@ -407,14 +406,13 @@ func (st *state) format(v string) error {
 }
 
 // factor parses a non-negative multiplier into dst (brightness, contrast,
-// saturation), applied by the M2 adjust stage.
+// saturation).
 func (st *state) factor(field, v string, dst **float64) error {
 	f, err := parseFloat(v)
 	if err != nil || f < 0 || f > transform.MaxFactor {
 		return dialect.InvalidArgument(field, v, expFactor)
 	}
 	*dst = &f
-	st.b.Ignore(field, reasonM2)
 	return nil
 }
 
@@ -430,7 +428,6 @@ func (st *state) gamma(v string) error {
 		return nil
 	}
 	a.Gamma = &f
-	st.b.Ignore("gamma", reasonM2)
 	return nil
 }
 
