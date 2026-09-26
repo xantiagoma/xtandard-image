@@ -1,0 +1,110 @@
+// Hand-written C shim over FFmpeg (libavformat, libavcodec, libavutil,
+// libswscale) for video thumbnails. It is compiled only with the `ffmpeg`
+// build tag (ffmpeg.go) and is the only C that talks to FFmpeg; no FFmpeg
+// type crosses into Go. ADR 0010.
+//
+// Memory: the source bytes and the output pixels are C memory owned by
+// libvips (internal/vips Buffer); the shim reads the source through a custom
+// AVIOContext and writes the pixels in place, and keeps neither pointer past
+// xi_ff_close. Nothing here calls back into Go: cancellation is an atomic
+// flag (xi_ff_abort) that the AVIO interrupt callback and the decode loop
+// poll.
+#ifndef XI_FF_SHIM_H
+#define XI_FF_SHIM_H
+
+#include <stddef.h>
+#include <stdint.h>
+
+// Result codes. The Go side maps each to an errs kind.
+enum {
+  XI_FF_OK = 0,
+  XI_FF_ERR_UNSUPPORTED = 1, // no demuxer, no video stream or no decoder
+  XI_FF_ERR_CORRUPT = 2,     // demuxing or decoding failed
+  XI_FF_ERR_LIMIT = 3,       // frame larger than max_pixels
+  XI_FF_ERR_ABORTED = 4,     // xi_ff_abort was called
+  XI_FF_ERR_NOMEM = 5,
+  XI_FF_ERR_NOFRAME = 6, // the stream ended before any frame was decoded
+  XI_FF_ERR_INTERNAL = 7,
+};
+
+typedef struct XiFF XiFF;
+
+// XiFFInfo describes the container and the chosen video stream.
+typedef struct {
+  char container[32]; // first name of the demuxer: "mov", "matroska", "avi"
+  double duration;    // seconds; < 0 when unknown
+  int64_t bit_rate;
+  int nb_streams;
+  int video_index; // index of the chosen video stream
+  char codec[32];
+  int width, height;                 // coded size
+  int display_width, display_height; // sample aspect ratio applied
+  double fps;                        // average frame rate; 0 when unknown
+  int64_t frames;                    // container frame count; 0 when unknown
+  int rotation;                      // clockwise degrees, after hflip
+  int hflip;
+  int alpha;
+} XiFFInfo;
+
+// XiFFStream describes one stream (imgproxy's video_streams entries).
+typedef struct {
+  int type; // AVMediaType: 0 video, 1 audio, 2 data, 3 subtitle, 4 attachment
+  char codec[32];
+  int64_t bit_rate;
+  double fps;
+  double duration; // seconds; < 0 when unknown
+  char language[16];
+  int width, height;
+  int rotation;
+  int hflip;
+  int sample_rate;
+  char layout[64];
+} XiFFStream;
+
+// xi_ff_new allocates a handle over data[0..size) (C memory that must
+// outlive the handle); max_pixels > 0 refuses larger frames with
+// XI_FF_ERR_LIMIT. NULL when out of memory. Close it with xi_ff_close
+// whatever xi_ff_open returns.
+XiFF *xi_ff_new(const uint8_t *data, size_t size, int64_t max_pixels);
+// xi_ff_open demuxes the data, reads the stream parameters
+// (avformat_find_stream_info, one decoder thread per stream), picks the best
+// video stream and opens its decoder with one thread. On failure err
+// receives a message (errlen bytes, NUL-terminated).
+int xi_ff_open(XiFF *h, char *err, size_t errlen);
+void xi_ff_close(XiFF *h);
+void xi_ff_info(XiFF *h, XiFFInfo *info);
+int xi_ff_stream(XiFF *h, int i, XiFFStream *out);
+// xi_ff_tag returns the i-th container tag (0 when i is out of range).
+// The strings belong to the handle.
+int xi_ff_tag(XiFF *h, int i, const char **key, const char **value);
+
+// xi_ff_abort makes the running and every later call on h fail with
+// XI_FF_ERR_ABORTED (the AVIO interrupt callback and the decode loop poll
+// the flag). Safe from any thread; clear restores the handle.
+void xi_ff_abort(XiFF *h, int on);
+
+// xi_ff_decode_at seeks to seconds (from the stream start) and decodes the
+// keyframe at or before it (keyframe != 0) or the first frame whose
+// timestamp reaches it; past the end, the last frame. The frame is kept in
+// the handle; *got receives its timestamp in seconds and *key whether it is
+// a keyframe. With hist != NULL, hist[256] receives the luma histogram of
+// a copy at most 64 pixels wide.
+int xi_ff_decode_at(XiFF *h, double seconds, int keyframe, double *got, int *key, uint32_t *hist,
+    char *err, size_t errlen);
+// xi_ff_keep moves the decoded frame into the handle's "best" slot.
+void xi_ff_keep(XiFF *h);
+// xi_ff_convert scales the decoded frame (best != 0: the best slot) to
+// width × height and writes it as packed RGB (bands 3) or RGBA (bands 4)
+// into dst (at least width × height × bands bytes; C memory).
+int xi_ff_convert(XiFF *h, int best, uint8_t *dst, int width, int height, int bands, char *err,
+    size_t errlen);
+
+// xi_ff_live counts open handles (leak tests).
+int xi_ff_live(void);
+// xi_ff_heap_in_use is glibc's in-use heap (mallinfo2 uordblks), or 0
+// where it is unavailable (another libc, jemalloc preloaded).
+size_t xi_ff_heap_in_use(void);
+// xi_ff_version is FFmpeg's version string ("8.1.3").
+const char *xi_ff_version(void);
+
+#endif

@@ -270,6 +270,14 @@ linters:
             - pkg: github.com/xantiagoma/xtandard-image/internal/server
               desc: pipeline/plan → transform, codec types, errs (ARCHITECTURE §3)
 
+        # ADR 0010: internal/video is the cgo-free half of video thumbnails;
+        # decoding (and libvips) belong to internal/video/ffmpeg.
+        video:
+          files: ["**/internal/video/*.go"]
+          deny:
+            - pkg: github.com/xantiagoma/xtandard-image/internal/vips
+              desc: internal/video is pure Go; decoding lives in internal/video/ffmpeg (ADR 0010)
+
         # ARCHITECTURE §3: only cmd imports the composition root.
         app-only-from-cmd:
           files: ["**/internal/**", "!**/internal/app/**"]
@@ -283,9 +291,10 @@ linters:
     rules:
       # cgo rewrites every C.xxx call into generated code, and gocritic reports
       # dupSubExpr / uncheckedInlineErr at positions inside that rewrite
-      # (github.com/go-critic/go-critic issues on cgo). internal/vips is the
-      # only cgo package (CLAUDE.md #3), so the exclusion is scoped to it.
-      - path: internal/vips/
+      # (github.com/go-critic/go-critic issues on cgo). internal/vips and,
+      # under the ffmpeg build tag, internal/video/ffmpeg are the only cgo
+      # packages (CLAUDE.md #3, ADR 0010), so the exclusion is scoped to them.
+      - path: internal/(vips|video/ffmpeg)/
         linters: [gocritic]
         text: "dupSubExpr|uncheckedInlineErr"
 
