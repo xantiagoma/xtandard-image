@@ -355,7 +355,7 @@ Signature: `s--SIG--` right after the delivery type; the signed message is the r
 | `c_fill` / `c_lfill` | Fill+Enlarge / FillDown | |
 | `c_fill_pad` | Fill + gravity + Extend | approximated |
 | `c_pad` / `c_lpad` / `c_mpad` | Fit+Enlarge+Extend / Fit+Extend / Fit+Extend | `c_mpad` approximated (never scales upstream); extend anchor = compass `g_` else centre |
-| `c_crop` | Crop (w, h, `ar_`), no scaling; `x_`/`y_` without `g_` = top-left corner (NorthWest + offsets); `g_xy_center` = FocusPoint with relative `x_`/`y_` | absolute `xy_center` approximated (centre) |
+| `c_crop` | Crop (w, h, `ar_`), no scaling; `x_`/`y_` without `g_` = top-left corner (NorthWest + offsets); `g_xy_center` = FocusPoint (relative `x_`/`y_`, or integer source pixels → `FocusPx`, WP-86) | a relative axis mixed with an absolute one is approximated (centre) |
 | `c_thumb` | Fill + gravity, `z_` → FocusZoom | faces M3 |
 | `c_auto`, `c_auto_pad` | Fill + Smart / Fit + Enlarge + Extend | |
 | `c_imagga_*` | recorded unsupported, applied as `c_scale` | |

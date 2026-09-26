@@ -865,12 +865,6 @@
     "path": "/demo/image/upload/c_crop,g_xy_center,w_100,h_100,x_250,y_300/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "g_xy_center",
-          "Reason": "approximated"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -878,7 +872,13 @@
         {
           "Crop": {
             "Gravity": {
-              "Type": "center"
+              "FocusPx": {
+                "X1": 250,
+                "X2": 250,
+                "Y1": 300,
+                "Y2": 300
+              },
+              "Type": "focus-point"
             },
             "Height": {
               "Px": 100

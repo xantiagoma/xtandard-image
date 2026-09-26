@@ -28,7 +28,8 @@ import (
 //     fill with z_ as focus zoom; auto → fill + smart; auto_pad → fit +
 //     enlarge + extend; imagga_* → recorded unsupported, applied as scale.
 //   - g_: compass, center, auto[:…] → smart, face(s)[:…] → face (M3),
-//     xy_center → focus point (x_/y_ relative), a single object name → object
+//     xy_center → focus point (x_/y_ relative, or integer source pixels →
+//     FocusPx, WP-86), a single object name → object
 //     (M3); x_/y_ offset the gravity.
 //   - ar_: w:h or a decimal; z_: zoom for crop and thumb.
 //   - e_: blur[:1..2000] σ = n/20 (like imgix blur), sharpen σ = n/100,
@@ -630,14 +631,20 @@ func (a *applier) gravity(g *geo) (gr transform.Gravity, err error) {
 			gr.Type = transform.GravityCenter
 			break
 		}
-		if g.x < 0 || g.x > 1 || g.y < 0 || g.y > 1 || (g.x == 1 && g.y == 1) {
-			// Absolute centre coordinates need the source size.
-			gr.Type = transform.GravityCenter
-			return gr, a.skip("g_xy_center", reasonApproximated)
+		if g.x >= 0 && g.x <= 1 && g.y >= 0 && g.y <= 1 && (g.x != 1 || g.y != 1) {
+			gr.Type = transform.GravityFocusPoint
+			gr.FocusX, gr.FocusY = g.x, g.y
+			return gr, nil
 		}
-		gr.Type = transform.GravityFocusPoint
-		gr.FocusX, gr.FocusY = g.x, g.y
-		return gr, nil
+		if g.x >= 0 && g.y >= 0 && g.x <= transform.MaxSourceCoord && g.y <= transform.MaxSourceCoord &&
+			g.x == float64(int(g.x)) && g.y == float64(int(g.y)) {
+			x, y := int(g.x), int(g.y)
+			pg, _ := transform.FocusFromPixels(x, y, x, y)
+			gr.Type, gr.FocusPx = pg.Type, pg.FocusPx
+			return gr, nil
+		}
+		gr.Type = transform.GravityCenter
+		return gr, a.skip("g_xy_center", reasonApproximated) // relative axis mixed with an absolute one
 	case "custom", "body", "ocr_text", "liquid", "clip_region", "region", "track_person":
 		gr.Type = transform.GravityCenter
 		return gr, a.skip("g_"+name, reasonUnsupported)
