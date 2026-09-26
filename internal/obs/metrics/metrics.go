@@ -84,7 +84,11 @@ type Metrics struct {
 	sourceBytes    *prometheus.CounterVec
 	fetchCoalesced prometheus.Counter
 
-	cacheRequests *prometheus.CounterVec
+	cacheRequests      *prometheus.CounterVec
+	cacheEvictions     *prometheus.CounterVec
+	cacheBytes         *prometheus.GaugeVec
+	cacheEntries       *prometheus.GaugeVec
+	cacheWritesDropped prometheus.Counter
 
 	queueDepth    prometheus.Gauge
 	workersBusy   prometheus.Gauge
@@ -150,6 +154,26 @@ func New(opts Options) (*Metrics, error) {
 			Name:      "cache_requests_total",
 			Help:      "Cache lookups by store and result (hit or miss).",
 		}, []string{"store", "result"}),
+		cacheEvictions: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: Namespace,
+			Name:      "cache_evictions_total",
+			Help:      "Entries evicted from a bounded cache store to make room.",
+		}, []string{"store"}),
+		cacheBytes: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "cache_bytes",
+			Help:      "Bytes held by a bounded cache store.",
+		}, []string{"store"}),
+		cacheEntries: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "cache_entries",
+			Help:      "Entries held by a bounded cache store.",
+		}, []string{"store"}),
+		cacheWritesDropped: prometheus.NewCounter(prometheus.CounterOpts{
+			Namespace: Namespace,
+			Name:      "cache_writes_dropped_total",
+			Help:      "Result cache writes dropped because the write queue was full.",
+		}),
 		queueDepth: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: Namespace,
 			Name:      "queue_depth",
@@ -183,7 +207,7 @@ func New(opts Options) (*Metrics, error) {
 	cs := []prometheus.Collector{
 		m.requests, m.requestDuration, m.inFlight, m.stageDuration, m.panics,
 		m.fetchDuration, m.sourceBytes, m.fetchCoalesced,
-		m.cacheRequests,
+		m.cacheRequests, m.cacheEvictions, m.cacheBytes, m.cacheEntries, m.cacheWritesDropped,
 		m.queueDepth, m.workersBusy, m.semaphoreWait, m.overload,
 		buildInfo,
 		collectors.NewGoCollector(),
@@ -287,3 +311,18 @@ func (m *Metrics) ObserveCache(store string, hit bool) {
 	}
 	m.cacheRequests.WithLabelValues(store, result).Inc()
 }
+
+// ObserveCacheEvictions counts n entries evicted from store.
+func (m *Metrics) ObserveCacheEvictions(store string, n int) {
+	m.cacheEvictions.WithLabelValues(store).Add(float64(n))
+}
+
+// SetCacheSize reports the bytes and entries currently held by store.
+func (m *Metrics) SetCacheSize(store string, bytes int64, entries int) {
+	m.cacheBytes.WithLabelValues(store).Set(float64(bytes))
+	m.cacheEntries.WithLabelValues(store).Set(float64(entries))
+}
+
+// IncCacheWriteDropped counts one result cache write dropped by a full
+// write queue.
+func (m *Metrics) IncCacheWriteDropped() { m.cacheWritesDropped.Inc() }
