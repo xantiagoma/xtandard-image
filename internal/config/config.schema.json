@@ -1290,7 +1290,7 @@
         },
         "default": {
           "default": "imgproxy",
-          "description": "Fallback dialect\n\nEnv: XI_DIALECTS_DEFAULT",
+          "description": "Fallback dialect for paths no mount matches (it must be enabled); a dialect other than imgproxy serves them with its primary mount's source and unsigned policy\n\nEnv: XI_DIALECTS_DEFAULT",
           "enum": [
             "imgproxy",
             "query",
@@ -1304,7 +1304,7 @@
             "thumbor",
             "awssih"
           ],
-          "markdownDescription": "Fallback dialect\n\nEnv: `XI_DIALECTS_DEFAULT`",
+          "markdownDescription": "Fallback dialect for paths no mount matches (it must be enabled); a dialect other than imgproxy serves them with its primary mount's source and unsigned policy\n\nEnv: `XI_DIALECTS_DEFAULT`",
           "title": "XI_DIALECTS_DEFAULT",
           "type": "string"
         },
@@ -1396,11 +1396,11 @@
               "type": "array"
             },
             "keys": {
-              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_IMGIX_KEYS (or XI_DIALECTS_IMGIX_KEYS_FILE)",
+              "description": "imgix secure URL tokens, used verbatim (,-separated for rotation: any verifies, the first signs in the playground). With tokens, s = hex(MD5(token ‖ path ‖ ? ‖ query without s)) is verified and expires enforced; without, s is not checked and every URL follows the mount's unsigned policy. XI_SIGNING_REQUIRED=true rejects unsigned imgix URLs on mounts with tokens. Prefix default /imgix/; host-bind (XI_DIALECTS_IMGIX_HOSTS) for unpic's imgix provider; XI_DIALECTS_IMGIX_SOURCE resolves object keys (URL-DIALECTS §5)\n\nEnv: XI_DIALECTS_IMGIX_KEYS (or XI_DIALECTS_IMGIX_KEYS_FILE)",
               "items": {
                 "$ref": "#/$defs/secret"
               },
-              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_IMGIX_KEYS` (or `XI_DIALECTS_IMGIX_KEYS_FILE`)",
+              "markdownDescription": "imgix secure URL tokens, used verbatim (`,`-separated for rotation: any verifies, the first signs in the playground). With tokens, `s` = hex(MD5(token ‖ path ‖ `?` ‖ query without `s`)) is verified and `expires` enforced; without, `s` is not checked and every URL follows the mount's unsigned policy. `XI_SIGNING_REQUIRED=true` rejects unsigned imgix URLs on mounts with tokens. Prefix default `/imgix/`; host-bind (`XI_DIALECTS_IMGIX_HOSTS`) for unpic's imgix provider; `XI_DIALECTS_IMGIX_SOURCE` resolves object keys (URL-DIALECTS §5)\n\nEnv: `XI_DIALECTS_IMGIX_KEYS` (or `XI_DIALECTS_IMGIX_KEYS_FILE`)",
               "title": "XI_DIALECTS_IMGIX_KEYS",
               "type": "array"
             },

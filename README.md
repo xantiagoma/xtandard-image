@@ -27,7 +27,8 @@ The xtandard-image column is the state of `main` as of 2026-09-26: **done (M1)**
 | Signed URLs (imgproxy HMAC, `xi_sig`, imaginary `sign`) | done (M1) | yes | yes | yes | yes | no |
 | Encrypted source URLs (`enc/`) | done (M1) | no | paid | no | no | no |
 | Mandatory source allowlist, SSRF protection incl. DNS rebinding | done (M1) | partial (optional allowlist) | partial (optional allowlist) | — | — | — |
-| imgix / Cloudinary / ImageKit / Cloudflare / Bunny / Thumbor / wsrv URLs | M2 (in progress) | no | no | Thumbor only | no | wsrv only |
+| imgix URLs (host or prefix mount, `s`/`expires` signing, `64` parameters, watermarks) | done (M2, WP-40/88) | no | no | no | no | no |
+| Cloudinary / ImageKit / Cloudflare / Bunny / Thumbor / wsrv URLs | M2 (in progress) | no | no | Thumbor only | no | wsrv only |
 | Other unpic providers (Next.js, Netlify, Vercel, …) | M2 | no | no | no | no | no |
 | **Sources** | | | | | | |
 | http(s), S3, GCS, Azure Blob, local filesystem | done (M1) | yes | yes | partial (plugins) | partial (local) | partial (http) |
