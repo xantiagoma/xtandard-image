@@ -455,12 +455,6 @@
         "BypassCache": true
       },
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "bc",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -631,12 +625,6 @@
         ]
       },
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "ct",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -989,14 +977,6 @@
         {
           "Option": "vtk",
           "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "bc",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "ct",
-          "Reason": "takes effect in M2"
         }
       ],
       "Info": {
@@ -1647,12 +1627,6 @@
     "path": "/unsafe/hashsum:sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "hashsum",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,

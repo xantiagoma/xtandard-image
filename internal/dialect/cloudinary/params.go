@@ -46,7 +46,7 @@ import (
 //   - q_<1..100>[:420|422|444], q_auto[:best|good|eco|low] (DSSIM targets
 //     0.005/0.02/0.035/0.05, M2); f_auto (negotiate) or f_<format>;
 //     dpr_<n>|auto; fl_ output/delivery flags; cs_ colour space (M2);
-//     d_ default image (M2); pg_ page (1-based, M2); t_ named
+//     d_ default image (M2); pg_ page (1-based); t_ named
 //     transformations (presets); l_ image overlays → watermarks (M3).
 //   - Unsupported (recorded, or 400 in strict mode): video and audio
 //     parameters, conditions (if_ skips its component or block), variables,
@@ -1391,6 +1391,5 @@ func (a *applier) page(v string) error {
 	}
 	page := n - 1
 	a.r.Pipelines[0].Page = &page
-	a.b.Ignore("pg", reasonM2)
 	return nil
 }

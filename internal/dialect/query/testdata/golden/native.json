@@ -1398,6 +1398,51 @@
     "path": "/",
     "query": "url=https://example.com/a.jpg\u0026page=-2"
   },
+  "pages": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026page=1\u0026pages=2",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Page": 1,
+          "Pages": 2
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "pages_all": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026pages=-1",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Pages": -1
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "pages_invalid": {
+    "error": {
+      "field": "pages",
+      "kind": "invalid_url",
+      "public": "invalid pages: expected integer \u003e 0 or -1",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026pages=0"
+  },
   "pixelate": {
     "path": "/",
     "query": "url=https://example.com/a.jpg\u0026pixelate=8",

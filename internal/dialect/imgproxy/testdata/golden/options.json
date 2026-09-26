@@ -799,12 +799,6 @@
     "path": "/unsafe/enforce_thumbnail:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "enforce_thumbnail",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "EnforceThumbnail": true
       },
@@ -840,12 +834,6 @@
     "path": "/unsafe/eth:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "eth",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "EnforceThumbnail": false
       },

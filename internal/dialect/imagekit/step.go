@@ -338,7 +338,6 @@ func (ps *parseState) param(st *step, key, v string) error {
 			return dialect.InvalidArgument("di", v, expPath)
 		}
 		r.Delivery.Fallback = &transform.SourceSpec{Raw: relativeKey(path), Encoding: transform.SourceRelative, Mount: ps.mountSource}
-		ps.b.Ignore(key, reasonM2)
 	case "pg":
 		return ps.page(v)
 

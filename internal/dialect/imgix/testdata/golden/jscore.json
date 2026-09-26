@@ -229,10 +229,6 @@
         {
           "Option": "cs",
           "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "dpi",
-          "Reason": "takes effect in M2"
         }
       ],
       "Output": {

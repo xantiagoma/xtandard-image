@@ -1042,12 +1042,6 @@
         }
       },
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "di",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {}
       ],
