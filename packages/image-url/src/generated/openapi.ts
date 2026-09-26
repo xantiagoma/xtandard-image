@@ -1182,7 +1182,7 @@ export interface components {
              */
             gif_options?: (string | null)[];
             /**
-             * @description Gradient overlay. URL: `gradient`, `gr`; arguments opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees; default 0:000:down:0:1.
+             * @description Gradient overlay. URL: `gradient`, `gr`; arguments opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees clockwise like imgproxy (0 = top to bottom like `down`, 90 = right to left like `left`); default 0:000:down:0:1.
              * @example [
              *       0.5,
              *       "000000",
