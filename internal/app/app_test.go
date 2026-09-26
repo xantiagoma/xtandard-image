@@ -33,6 +33,7 @@ func start(t *testing.T, cfg *config.Config, h hooks) addrs {
 	t.Helper()
 	bound := make(chan addrs, 1)
 	h.listening = func(p, a net.Addr) { bound <- addrs{p, a} }
+	h.keepVips = true
 	ctx, cancel := context.WithCancelCause(context.WithoutCancel(t.Context()))
 	done := make(chan error, 1)
 	go func() { done <- run(ctx, cfg, slog.New(slog.DiscardHandler), Options{Version: "test"}, h) }()
@@ -93,7 +94,9 @@ func checkJPEG(t *testing.T, r response, maxW, maxH int) {
 // fs source bound to the imgproxy mount) through config.Load, the way cmd
 // does, and serves a real thumbnail from testdata/fixtures.
 func TestConfigDrivenFSSource(t *testing.T) {
-	t.Parallel()
+	// Not parallel: run re-applies libvips' process-global loader and saver
+	// allowlists (vips.Init), which briefly blocks every saver of a service
+	// that is processing concurrently.
 
 	fixtures := filepath.Join(golden.ModuleRoot(t), "testdata", "fixtures")
 	yml := `server:
@@ -159,7 +162,9 @@ dialects:
 // fetch through the shared SSRF client into C memory, admission, vips
 // thumbnail, JPEG, SVG sanitising, and the error statuses of each stage.
 func TestRunEndToEnd(t *testing.T) {
-	t.Parallel()
+	// Not parallel: run re-applies libvips' process-global loader and saver
+	// allowlists (vips.Init), which briefly blocks every saver of a service
+	// that is processing concurrently.
 
 	origin := httptest.NewServer(http.FileServer(http.Dir(golden.ModuleRoot(t) + "/testdata/fixtures")))
 	t.Cleanup(origin.Close)
@@ -195,7 +200,7 @@ func TestRunEndToEnd(t *testing.T) {
 		want int
 	}{
 		{path: "/insecure/w:10/plain/" + origin.URL + "/missing.jpg", want: http.StatusNotFound},
-		{path: "/insecure/w:10/plain/" + origin.URL + "/bmp/rgb24.bmp", want: http.StatusUnprocessableEntity},
+		{path: "/insecure/w:10/plain/" + origin.URL + "/bmp/rgb24.bmp", want: http.StatusOK},
 		{path: "/insecure/w:10/plain/" + origin.URL + "/svg/logo.svg", want: http.StatusOK},
 		{path: "/insecure/w:10/plain/http://169.254.169.254/latest/meta-data", want: http.StatusForbidden},
 	} {

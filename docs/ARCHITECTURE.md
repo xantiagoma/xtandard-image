@@ -61,7 +61,7 @@ Special paths as implemented (WP-34c, `internal/server/special.go`):
 
 Stages 1–8 are pure Go and must complete in well under 1 ms for cache hits. Fetch happens **outside** the processing semaphore so slow origins never hold CPU slots.
 
-Implementation order (WP-34a, `server.process`): route+parse+authenticate (2–4) → normalise (6: `ApplyClientHints`, `ApplyDefaults`, `Validate`, result-dimension limit) → resolve (5) → fetch (9) → admission (10) → probe (11: SVG sanitised by magic-byte sniff *before* the header probe, then limits re-checked on the probed meta) → negotiate (7, after the probe because `negotiate.Decide` needs source meta) → process (12–13) → respond (14). Conditional requests short-circuit to 304 right after the fetch when the URL fixes the format, else after negotiation; HEAD stops after negotiation; the processor never runs for either (§9.1). Every stage records `xi_stage_duration_seconds{stage}` and an access-log timing; fetch, probe and process get spans. The server sees stages 11–13 only through `server.Prober` and `server.Processor` (`internal/server/server.go`); `app` adapts codec (WP-07) and pipeline/encode (WP-25/26a/30) to them. Stages 9–13 live in `server.produce`, so the fallback can re-run them on another source. Info requests (WP-35, `server/info.go`; the router sends `<mount>/info/...` to dialects implementing `router.InfoParser`) run normalise → resolve → fetch → admission → `server.Inspector` (stage 11: SVG sanitised first, limits re-checked; `app` adapts `codec.Inspect`, a probe plus a header-only load that reads EXIF fields, libexif tag titles, `iptc-data` and `xmp-data`, parsed by the pure-Go `codec/imagemeta`) → `respondInfo` (JSON with imgproxy field names, the processing ETag scheme, `Cache-Control: max-age=XI_CACHE_HEADERS_TTL, public`, 304 on `If-None-Match`, `X-Xi-Ignored` with debug headers). Info options not computed yet are parsed, answered without their field and listed in `X-Xi-Ignored`; they never cause a 501.
+Implementation order (WP-34a, `server.process`): route+parse+authenticate (2–4) → normalise (6: `ApplyClientHints`, `ApplyDefaults`, `Validate`, result-dimension limit) → resolve (5) → fetch (9) → admission (10) → probe (11: SVG sanitised by magic-byte sniff *before* the header probe, then limits re-checked on the probed meta) → negotiate (7, after the probe because `negotiate.Decide` needs source meta) → process (12–13) → respond (14). Conditional requests short-circuit to 304 right after the fetch when the URL fixes the format, else after negotiation; HEAD stops after negotiation; the processor never runs for either (§9.1). Every stage records `xi_stage_duration_seconds{stage}` and an access-log timing; fetch, probe and process get spans. The server sees stages 11–13 only through `server.Prober` and `server.Processor` (`internal/server/server.go`); `app` adapts codec (WP-07: `codec.Probe`) and pipeline/encode (WP-25/26a/30: `exec.Executor` with an `encode.Encoder`) to them; `ProcessOutput. Stages 9–13 live in `server.produce`, so the fallback can re-run them on another source. Info requests (WP-35, `server/info.go`; the router sends `<mount>/info/...` to dialects implementing `router.InfoParser`) run normalise → resolve → fetch → admission → `server.Inspector` (stage 11: SVG sanitised first, limits re-checked; `app` adapts `codec.Inspect`, a probe plus a header-only load that reads EXIF fields, libexif tag titles, `iptc-data` and `xmp-data`, parsed by the pure-Go `codec/imagemeta`) → `respondInfo` (JSON with imgproxy field names, the processing ETag scheme, `Cache-Control: max-age=XI_CACHE_HEADERS_TTL, public`, 304 on `If-None-Match`, `X-Xi-Ignored` with debug headers). Info options not computed yet are parsed, answered without their field and listed in `X-Xi-Ignored`; they never cause a 501.
 
 ## 3. Package layout
 
@@ -452,20 +452,33 @@ libvips is demand-driven: each call (`resize`, `crop`, `embed`, …) returns a n
 - Captures errors with `vips_error_buffer_copy()` at the failure site in the shim; the HTTP status comes from *which* operation failed (load → 422 `Corrupt`, save → 500), never from message text.
 - Uses `fail_on=warning` for untrusted sources (configurable `none|truncated|error|warning`).
 
+Implemented in WP-26a (`internal/pipeline/exec`). The executor plans and encodes too, so one call is stages 12–13; `app` adapts it to `server.Processor` (`exec` does not import `server`, §3):
+
 ```go
 package exec
 
-type Executor interface {
-    Run(ctx context.Context, p *plan.Plan, src vips.Buffer) (*Result, error)
+func New(cfg *Config, enc *encode.Encoder) (*Executor, error) // Config{Limits plan.Limits, FailOn vips.FailOn}
+func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error)
+
+type Job struct {
+    Request *transform.Request // after ApplyDefaults + Validate
+    Source  *vips.Buffer       // caller keeps its reference
+    Meta    plan.SourceMeta    // Format is the sniffed codec name ("bmp"/"ico" decode in Go)
+    Target  encode.Target      // encode.NewTarget(&req.Output, &decision, animated)
 }
 type Result struct {
-    Body        vips.Buffer   // encoded bytes, written zero-copy then Released
-    Format      codec.Format
-    Width, Height int
-    DPR         float64
-    ContentType string
+    Body          encode.Body // vips blob (or Go bytes for BMP/ICO), written zero-copy then Released
+    Format        transform.Format
+    ContentType   string
+    Width, Height int         // one frame
+    Frames        int
+    DPR           float64
+    Quality       int
+    Skipped       []string    // filters, watermark and plan.Unplanned: not applied yet (debug)
 }
 ```
+
+Run plans for `Target.Format` (not the source format: alpha, flatten, animation and encoder size limits depend on it), then, in one `vips.Run` with one `Arena`: load (shrink/scale/density/page/frames/HEIF thumbnail; EXIF orientation tag dropped, page-height dropped from single images), `plan.Continue` on a loaded size that differs from the prediction, on the HEIF thumbnail (reloading the full image when the planner declines it) and after trim; steps with imgproxy's semantics (ICC import unless the profile is sRGB IEC61966-2.1, then 8-bit sRGB or grey; premultiplied resize; crops and extends placed with `Rect`; smart crop on a memory copy; extend and padding embed on a transparent canvas that `FlattenStep` fills). Animations: every frame is extracted by page-height, runs `Steps` alone, and the frames are joined with `vips.Arrayjoin`; page-height, `n-pages`, delays (40 ms when absent) and loop count are set on the strip before `After`. Chained plans run on `CopyMemory` of the previous result. The output colour step drops the source ICC profile after an import (the pixels are sRGB; re-exporting to the source profile is not done). `testdata/golden/exec` holds the goldens; `TestAgainstImgproxy` (`-tags integration`, `XI_IMGPROXY_URL`) compares every case with darthsim/imgproxy.
 
 ### 8.3 Encoding and quality loops
 
