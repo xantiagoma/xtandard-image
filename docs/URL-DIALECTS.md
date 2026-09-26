@@ -140,7 +140,7 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `enforce_thumbnail` (`eth`) | bool | `O.EnforceThumbnail` | config | M2 |
 | `quality` (`q`) | 0..100 | `O.Quality` | 0 (config) | M1 |
 | `format_quality` (`fq`) | fmt:q… | `O.FormatQuality` | — | M1 |
-| `autoquality` (`aq`) Pro | method:target:min:max:allowed_error | `O.AutoQuality` | config | M2 |
+| `autoquality` (`aq`) Pro | method:target:min:max:allowed_error; method `none`/`size`/`dssim`/`ml` (`ml` parsed, run as no auto-quality and reported skipped); `size` target in bytes (≤ 2³⁰) | `O.AutoQuality` | config | M2 (WP-56, FORMATS §6.4) |
 | `max_bytes` (`mb`) | int | `O.MaxBytes` | 0 | M1 |
 | `jpeg_options` (`jpgo`) Pro | progressive:no_subsample:trellis_quant:overshoot_deringing:optimize_scans:quant_table | `O.JPEG` | config | M2 |
 | `png_options` (`pngo`) Pro | interlaced:quantize:quantization_colors | `O.PNG` | config | M2 |
