@@ -6,11 +6,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"runtime"
 	"runtime/debug"
 	"time"
+
+	"github.com/xantiagoma/xtandard-image/internal/app"
+	"github.com/xantiagoma/xtandard-image/internal/obs/logging"
 )
 
 var errUnknownCommand = errors.New("unknown command")
@@ -45,23 +47,20 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout 
 	}
 }
 
-// serve is a stub until the server and app packages land (WP-00). It logs
-// and blocks until ctx is cancelled (SIGINT/SIGTERM), then exits cleanly.
+// serve runs the image proxy until ctx is cancelled (SIGINT/SIGTERM).
 func serve(ctx context.Context, args []string, getenv func(string) string, stdout io.Writer) error {
 	fs := newFlagSet("serve", stdout)
 	if err := fs.Parse(args); err != nil {
 		return ignoreHelp(err)
 	}
-	_ = getenv // handed to internal/config once it exists (WP-03)
-
-	logger := slog.New(slog.NewJSONHandler(stdout, nil))
+	cfg, err := app.ConfigFromEnv(getenv)
+	if err != nil {
+		return fmt.Errorf("config: %w", err)
+	}
 	info := versionInfo(version, commit)
-	logger.LogAttrs(ctx, slog.LevelWarn, "serve is a stub; waiting for shutdown signal",
-		slog.String("version", info.Version), slog.String("commit", info.Commit))
-	<-ctx.Done()
-	logger.LogAttrs(ctx, slog.LevelInfo, "shutting down",
-		slog.String("cause", context.Cause(ctx).Error()))
-	return nil
+	cfg.Build = app.Build{Version: info.Version, Commit: info.Commit}
+	logger := logging.New(stdout, logging.Options{Level: cfg.LogLevel})
+	return app.Run(ctx, &cfg, logger)
 }
 
 // health performs a GET against a running instance and fails unless it
