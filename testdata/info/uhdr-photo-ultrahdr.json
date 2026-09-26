@@ -1,0 +1,28 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "exif": {
+    "Color Space": "Uncalibrated",
+    "Components Configuration": "Y Cb Cr -",
+    "Exif Version": "Exif Version 2.1",
+    "FlashPixVersion": "FlashPix Version 1.0",
+    "Orientation": "Top-left",
+    "Pixel X Dimension": "320",
+    "Pixel Y Dimension": "240",
+    "Resolution Unit": "Inch",
+    "X-Resolution": "71.983",
+    "Y-Resolution": "71.983",
+    "YCbCr Positioning": "Centered"
+  },
+  "format": "jpeg",
+  "height": 240,
+  "iptc": {},
+  "mime_type": "image/jpeg",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 15877,
+  "width": 320,
+  "xmp": {}
+}

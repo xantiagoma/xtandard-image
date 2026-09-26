@@ -192,6 +192,8 @@ type Config struct {
 	CanonicalHeader bool
 	// Fallback is the image served in place of a failed source (XI_FALLBACK_*).
 	Fallback Fallback
+	// Info configures the /info endpoint (info.go).
+	Info InfoConfig
 }
 
 // CacheHeaders is the Cache-Control policy of ARCHITECTURE §9.1 and §12.
@@ -245,6 +247,7 @@ func DefaultConfig() Config {
 		Cache:           CacheHeaders{TTL: 31_536_000 * time.Second, ErrorTTL: 10 * time.Second},
 		CacheTagsHeader: "Cache-Tag",
 		Fallback:        Fallback{Status: http.StatusOK, TTL: time.Minute},
+		Info:            InfoConfig{CacheTTL: 365 * 24 * time.Hour},
 	}
 }
 
@@ -321,6 +324,9 @@ type Deps struct {
 	Processor Processor
 	// Sniffer identifies the bytes of raw and skip-processing responses.
 	Sniffer Sniffer
+	// Inspector reads source metadata for /info requests; nil: they answer
+	// 501.
+	Inspector Inspector
 	// Allocator holds sanitised SVG documents (vips.NewBuffer in
 	// production, so libvips never sees Go memory).
 	Allocator fetch.Allocator

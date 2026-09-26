@@ -183,11 +183,11 @@ Parsed by `imgproxy.Parser.ParseInfo` (the path after `/info`; same signature by
 | `video_meta` (`vm`) | bool | `Info.VideoMeta` | true | M3 |
 | `detect_objects` (`do`) Pro | bool | `Info.DetectObjects` | false | M3 |
 | `classify` (`cl`) Pro | top_k:classes… | `Info.Classify` (top_k/classes: `Ignored`, not in model) | 0 | M3 |
-| `colorspace` (`cs`) | bool | `Info.Colorspace` | false | M2 |
-| `bands` (`b`) | bool | `Info.Bands` | false | M2 |
-| `sample_format` (`sf`) | bool | `Info.SampleFormat` | false | M2 |
-| `pages_number` (`pn`) | bool | `Info.PagesNumber` | false | M2 |
-| `alpha` (`a`) | alpha:check_transparency | `Info.Alpha` (check_transparency: `Ignored`, not in model) | false:false | M2 |
+| `colorspace` (`cs`) | bool | `Info.Colorspace` | false | M1 |
+| `bands` (`b`) | bool | `Info.Bands` | false | M1 |
+| `sample_format` (`sf`) | bool | `Info.SampleFormat` | false | M1 |
+| `pages_number` (`pn`) | bool | `Info.PagesNumber` | false | M1 |
+| `alpha` (`a`) | alpha:check_transparency | `Info.Alpha` (check_transparency: `Ignored`, not in model) | false:false | M1 |
 | `crop` (`c`) | w:h:gravity (as processing `crop`) | `Info.Crop` | — | M2 |
 | `objects_position` (`obj_pos`, `op`) Pro | as processing | `Info.ObjectsPos` + `P.Gravity.ObjectsPosition` | ce:0:0 | M3 |
 | `palette` (`p`) | 0 or 2..256 | `Info.Palette` | 0 | M2 |
@@ -198,6 +198,8 @@ Parsed by `imgproxy.Parser.ParseInfo` (the path after `/info`; same signature by
 | `perceptual_hash` (`phash`, `ph`) | bool | `Info.PHash` | false | M2 |
 | `calc_hashsums` (`chs`) | md5, sha1, sha256, sha512… | `Info.CalcHashsums` | — | M2 |
 | `page` (`pg`), `video_thumbnail_second` (`vts`), `video_thumbnail_keyframes` (`vtk`), `cachebuster` (`cb`), `expires` (`exp`), `preset` (`pr`), `hashsum` (`hs`), `max_src_resolution` (`msr`), `max_src_file_size` (`msfs`), `bypass_cache` (`bc`), `cache_tags` (`ct`) | as in §3.2 | as in §3.2 | as in §3.2 | as in §3.2 |
+
+Response (WP-35; golden files per fixture in `testdata/info/`): `size` (source bytes), `format` + `mime_type` (imgproxy names: UltraHDR is `jpeg`, HEIC is `image/heif`), `width`/`height` (one page, EXIF orientation applied) + `orientation` (1–8), `exif` (libexif titles as keys, e.g. `Date and Time (Original)`, and libexif's human-readable values, as imgproxy; `exif:1:1` canonical names are not in the model yet and are listed in `Ignored`), `iptc` (IIM dataset titles, repeatable datasets as arrays, plus imgproxy's `Name`/`Caption` aliases) and `photoshop.resolution` when present, `xmp` (properties grouped by namespace prefix; `rdf:Seq`/`rdf:Bag` → arrays, `rdf:Alt` → first item, structs → objects), `colorspace`/`bands`/`sample_format` (libvips names: `srgb`, `b-w`, `rgb16`, `uchar`, `ushort`, …), `pages_number` (pages, or frames of an animation), `alpha` (boolean). A requested `exif`/`iptc`/`xmp` section is `{}` when the source has none. `video_meta` and the M2/M3 options produce no field until implemented.
 
 ### 3.4 Examples
 
