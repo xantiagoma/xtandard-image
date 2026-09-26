@@ -23,6 +23,10 @@ type Config struct {
 	// XI_PROCESSING_WATERMARK_SOURCE is unset, and watermark options are
 	// then skipped. The Executor does not close it.
 	Watermark *Watermark
+	// ColorProfilesDir holds the ICC files color_profile may name
+	// (XI_PROCESSING_COLOR_PROFILES_DIR); empty allows only the built-in
+	// srgb and cmyk.
+	ColorProfilesDir string
 }
 
 // Executor plans, executes and encodes images. It holds no per-request state
@@ -113,6 +117,9 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 		}
 		t := j.Target
 		t.Animated = img.Pages() > 1
+		if r.profileEmbedded {
+			t.Metadata.StripColorProfile = false // color_profile embeds it
+		}
 		out, err := e.enc.Encode(ctx, img, &t)
 		if err != nil {
 			return err

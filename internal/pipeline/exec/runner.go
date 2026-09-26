@@ -32,7 +32,10 @@ type runner struct {
 	// iccImported is set once the source profile was converted to sRGB, so
 	// the output colour step drops the (now wrong) embedded profile.
 	iccImported bool
-	skipped     []string
+	// profileEmbedded is set when color_profile converted the result and
+	// attached its profile, which the encoder must then keep.
+	profileEmbedded bool
+	skipped         []string
 }
 
 // last returns the plan whose Output is the response.

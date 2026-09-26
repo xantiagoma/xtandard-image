@@ -488,12 +488,16 @@ func emitGeometry(p *transform.Pipeline, g *geo, o *opts, b *builder, cropSmart 
 	}
 }
 
-// emitFinish emits filters, extend, padding, output size fixes, flatten,
+// emitFinish emits filters, colour adjustments, extend, padding, output size fixes, flatten,
 // watermarks and the output colour.
 func emitFinish(p *transform.Pipeline, g *geo, b *builder, outFmt transform.Format, frames int, last bool) {
 	if p.Blur != 0 || p.Sharpen != 0 || p.Pixelate > 1 {
 		b.add(FilterStep{Blur: p.Blur, Sharpen: p.Sharpen, Pixelate: p.Pixelate})
 		b.random = true
+	}
+	if st, ok := colourAdjust(p); ok {
+		b.add(st)
+		b.alpha = b.alpha || st.Adjust.Opacity != nil
 	}
 
 	extend := func(e *transform.Extend, w, h int, ar bool) {
@@ -540,8 +544,15 @@ func emitFinish(p *transform.Pipeline, g *geo, b *builder, outFmt transform.Form
 		if p.Background != nil {
 			bg = *p.Background
 		}
-		b.add(FlattenStep{Background: bg})
-		b.alpha = false
+		// A translucent background (imgproxy background_alpha) keeps the
+		// alpha band, unless the format cannot hold one.
+		if bg.A < 255 && alphaFormat(outFmt) {
+			b.add(FlattenStep{Background: bg})
+		} else {
+			bg.A = 255
+			b.add(FlattenStep{Background: bg})
+			b.alpha = false
+		}
 	}
 
 	for i := range p.Watermarks {
@@ -604,19 +615,12 @@ func unplanned(p *transform.Pipeline) []string {
 			out = append(out, name)
 		}
 	}
-	a := &p.Adjust
 	add(p.RotateAny != 0, "rotate_any")
 	add(p.Border != nil, "border")
 	add(p.Radius != nil, "radius")
 	add(p.Mask != nil, "mask")
-	add(a.Brightness != nil || a.Contrast != nil || a.Saturation != nil || a.Gamma != nil || a.Hue != nil ||
-		a.Exposure != nil || a.Vibrance != nil || a.Red != nil || a.Green != nil || a.Blue != nil || a.Opacity != nil, "adjust")
-	add(p.Monochrome != nil, "monochrome")
-	add(p.Duotone != nil, "duotone")
-	add(p.Colorize != nil, "colorize")
-	add(p.Gradient != nil, "gradient")
-	add(p.Tint != nil, "tint")
-	add(p.Negate || p.Sepia || p.Grayscale || p.Equalize, "colour_effects")
+	add(p.Adjust.Vibrance != nil, "vibrance")
+	add(p.Equalize, "equalize")
 	add(p.Unsharp != nil, "unsharp")
 	add(p.BlurAreas != nil, "blur_areas")
 	add(p.ProgressiveBlur != nil, "progressive_blur")
@@ -624,4 +628,20 @@ func unplanned(p *transform.Pipeline) []string {
 	add(p.Crop != nil && p.Crop.AspectRatio != 0, "crop_aspect_ratio")
 	add(p.Video != nil, "video")
 	return out
+}
+
+// colourAdjust is the ColourAdjustStep of p; ok is false when p has no
+// colour adjustment or effect to apply.
+func colourAdjust(p *transform.Pipeline) (ColourAdjustStep, bool) {
+	a := p.Adjust
+	a.Vibrance = nil // not applied: listed in Unplanned
+	st := ColourAdjustStep{
+		Adjust: a, Grayscale: p.Grayscale, Sepia: p.Sepia, Negate: p.Negate, Tint: p.Tint,
+		Monochrome: p.Monochrome, Duotone: p.Duotone, Colorize: p.Colorize, Gradient: p.Gradient,
+	}
+	ok := a.Brightness != nil || a.Contrast != nil || a.Saturation != nil || a.Gamma != nil || a.Hue != nil ||
+		a.Exposure != nil || a.Red != nil || a.Green != nil || a.Blue != nil || a.Opacity != nil ||
+		st.Grayscale || st.Sepia || st.Negate || st.Tint != nil || st.Monochrome != nil || st.Duotone != nil ||
+		st.Colorize != nil || st.Gradient != nil
+	return st, ok
 }

@@ -225,6 +225,25 @@ type FilterStep struct {
 	Pixelate int     // block size; ≤ 1 = off
 }
 
+// ColourAdjustStep applies the colour adjustments and effects of a pipeline
+// in one pass, per frame, right after FilterStep: before the canvas grows,
+// so extend and padding backgrounds keep their exact colour. The executor
+// applies them in this order: Adjust tone curves (brightness, contrast,
+// gamma, exposure, red/green/blue), Adjust saturation and hue, Grayscale,
+// Sepia, Tint, Monochrome, Duotone, Negate, Colorize, Gradient, then
+// Adjust.Opacity. Adjust.Vibrance is not applied (Plan.Unplanned).
+type ColourAdjustStep struct {
+	Adjust     transform.Adjust
+	Grayscale  bool
+	Sepia      bool
+	Negate     bool
+	Tint       *transform.Color
+	Monochrome *transform.Monochrome
+	Duotone    *transform.Duotone
+	Colorize   *transform.Colorize
+	Gradient   *transform.Gradient
+}
+
 // ExtendGeometry grows the canvas to Width×Height (0 = keep that axis),
 // placing the image by gravity.
 type ExtendGeometry struct {
@@ -249,7 +268,9 @@ type PaddingStep struct {
 	Background               *transform.Color
 }
 
-// FlattenStep removes alpha over a background colour.
+// FlattenStep removes alpha over a background colour. A translucent
+// Background (A < 255, imgproxy background_alpha) keeps the alpha band: the
+// image is composited over the background instead.
 type FlattenStep struct{ Background transform.Color }
 
 // WatermarkStep overlays a watermark on the whole image, every frame of an
@@ -274,19 +295,20 @@ type WatermarkGeometry struct {
 	DPRScale float64 // scales pixel offsets
 }
 
-func (LoadStep) step()      {}
-func (ColourStep) step()    {}
-func (TrimStep) step()      {}
-func (PreCropStep) step()   {}
-func (CropStep) step()      {}
-func (ResizeStep) step()    {}
-func (RotateStep) step()    {}
-func (FlipStep) step()      {}
-func (FilterStep) step()    {}
-func (ExtendStep) step()    {}
-func (PaddingStep) step()   {}
-func (FlattenStep) step()   {}
-func (WatermarkStep) step() {}
+func (LoadStep) step()         {}
+func (ColourStep) step()       {}
+func (TrimStep) step()         {}
+func (PreCropStep) step()      {}
+func (CropStep) step()         {}
+func (ResizeStep) step()       {}
+func (RotateStep) step()       {}
+func (FlipStep) step()         {}
+func (FilterStep) step()       {}
+func (ColourAdjustStep) step() {}
+func (ExtendStep) step()       {}
+func (PaddingStep) step()      {}
+func (FlattenStep) step()      {}
+func (WatermarkStep) step()    {}
 
 // Box is the box a scaled watermark is fitted into (imgproxy
 // prepareWatermark: fit, enlarge allowed, relative to one frame): each side
