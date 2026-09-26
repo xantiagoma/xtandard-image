@@ -106,8 +106,9 @@ internal/
     exec/                   Plan → libvips operations
   detect/                   (M3) ONNX Runtime face/object detection, loaded via dlopen (purego) when present
   video/                    (M3, build tag `ffmpeg`) go-astiav frame extraction
-  obs/                      slog setup, Prometheus registry, OpenTelemetry, admin mux (metrics, pprof)
+  obs/                      slog setup, Prometheus registry, OpenTelemetry, admin mux (metrics, /openapi.json, /docs, pprof)
   server/                   http.Server + http.ServeMux, middleware, handlers (process, info, health), respond, writeError
+  apidoc/                   OpenAPI 3.1 document (huma v2 as builder only) + the committed openapi.json it embeds (ADR 0008)
 ```
 
 Dependency rules (enforced by a `depguard`/`go-arch-lint` config in CI):
@@ -120,9 +121,10 @@ Dependency rules (enforced by a `depguard`/`go-arch-lint` config in CI):
 - `pipeline/plan` → `transform`, `errs` (it defines its own `SourceMeta`; the executor maps codec/vips headers onto it).
 - `pipeline/exec`, `codec` loaders/encoders → `vips`.
 - `server` → everything above via interfaces; `app` is the only package that constructs concrete types. Exception: `server` calls the pure-Go `pipeline/plan.Build` directly for the thumbor `meta` response (WP-86b), with the executor's limits passed in `InfoConfig.PlanLimits`, and `plan.InfoCrop` for the imgproxy /info `crop` coordinates (WP-63). `imageinfo` is a pure-Go leaf (stdlib only); `server` and `app` use it.
+- `apidoc` → `server`, `dialect/imgproxy`, `errs` (types and catalogues only); nothing imports `apidoc` except `app`, which passes its bytes to the admin mux. huma is confined to `apidoc` (depguard).
 - `config` imports nothing internal except `errs`. Each component declares its own `Options` struct; `app` maps `config.Config` into those options. This keeps component packages testable without the whole config tree.
 
-Routing: `server` registers fixed routes on a stdlib `http.ServeMux` with method patterns (`GET /healthz`, `GET /readyz`, `GET /{path...}` catch-all, which also matches HEAD) and hands the catch-all to `dialect/router`; the admin listener has its own `ServeMux` (`/metrics`, `/config.schema.json` (ADR 0007), pprof). No third-party router (go-standards §2).
+Routing: `server` registers fixed routes on a stdlib `http.ServeMux` with method patterns (`GET /healthz`, `GET /readyz`, `GET /{path...}` catch-all, which also matches HEAD) and hands the catch-all to `dialect/router`; the admin listener has its own `ServeMux` (`/metrics`, `/config.schema.json` (ADR 0007), `/openapi.json`, `/docs`, pprof). `server.Patterns()` and `admin.Patterns()` list the registered patterns for the OpenAPI route-coverage test ([OPENAPI.md](OPENAPI.md)). No third-party router (go-standards §2).
 
 Build tags: `ffmpeg` (video). `server` tests use fakes of its consumer-side interfaces (`server.Processor`, `server.Prober`, fetcher, resolver, router), so they need no tag. ONNX needs no tag (runtime dlopen).
 

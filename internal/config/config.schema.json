@@ -634,15 +634,15 @@
       "properties": {
         "addr": {
           "default": "127.0.0.1:9090",
-          "description": "Admin listener: /metrics, pprof; set :9090 for in-cluster scraping; empty disables\n\nEnv: XI_ADMIN_ADDR",
-          "markdownDescription": "Admin listener: `/metrics`, pprof; set `:9090` for in-cluster scraping; empty disables\n\nEnv: `XI_ADMIN_ADDR`",
+          "description": "Admin listener: /metrics, /openapi.json, pprof; set :9090 for in-cluster scraping; empty disables\n\nEnv: XI_ADMIN_ADDR",
+          "markdownDescription": "Admin listener: `/metrics`, `/openapi.json`, pprof; set `:9090` for in-cluster scraping; empty disables\n\nEnv: `XI_ADMIN_ADDR`",
           "title": "XI_ADMIN_ADDR",
           "type": "string"
         },
         "docs": {
           "default": false,
-          "description": "Env: XI_ADMIN_DOCS",
-          "markdownDescription": "Env: `XI_ADMIN_DOCS`",
+          "description": "Scalar API reference at admin /docs, loaded by the browser from a pinned cdn.jsdelivr.net URL (SRI, strict CSP); off answers 404 and points at /openapi.json ([OPENAPI.md](OPENAPI.md))\n\nEnv: XI_ADMIN_DOCS",
+          "markdownDescription": "Scalar API reference at admin `/docs`, loaded by the browser from a pinned `cdn.jsdelivr.net` URL (SRI, strict CSP); off answers 404 and points at `/openapi.json` ([OPENAPI.md](OPENAPI.md))\n\nEnv: `XI_ADMIN_DOCS`",
           "title": "XI_ADMIN_DOCS",
           "type": "boolean"
         },

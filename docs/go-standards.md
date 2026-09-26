@@ -242,6 +242,8 @@ Use the stdlib first. Every new module needs an ADR line with the reason, its li
 | `github.com/google/go-cmp` | v0.7.0 | test diffs |
 | `golang.org/x/image` | v0.46.0 | test-only decoders (WebP, BMP, TIFF) for the golden harness (ADR 0006) |
 | `github.com/klauspost/compress` | v1.20.1 | only if we gzip or zstd non-image responses |
+| `github.com/danielgtaylor/huma/v2` | v2.39.1 | OpenAPI document builder, `internal/apidoc` only; never a router or adapter, never assign its package variables (ADR 0008) |
+| `github.com/santhosh-tekuri/jsonschema/v6` | v6.0.3 | test-only JSON Schema 2020-12 validator (ADR 0007, ADR 0008) |
 
 Storage SDKs such as AWS SDK v2 and GCS are allowed only inside `internal/fetch/<provider>` and the cache backends `internal/cache/s3cache` and `internal/cache/redis` (go-redis v9), and require an ADR.
 
