@@ -57,14 +57,15 @@ func (p *Parser) validatePresets() error {
 }
 
 // applyPresets handles the preset (pr) option: each named preset is
-// expanded in place. Without a store (Options.Presets nil) the names are
-// only recorded in Delivery.Presets.
+// expanded in place. Without a store (Options.Presets nil), and in /info
+// URLs (imgproxy resolves those against separate info presets, which we do
+// not have yet), the names are only recorded in Delivery.Presets.
 func (st *state) applyPresets(names []string) error {
 	for _, name := range names {
 		if name == "" {
 			return dialect.InvalidArgument("preset", name, expNonEmpty)
 		}
-		if st.p.o.Presets == nil {
+		if st.p.o.Presets == nil || st.info {
 			st.r.Delivery.Presets = append(st.r.Delivery.Presets, name)
 			continue
 		}
