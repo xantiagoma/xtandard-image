@@ -105,7 +105,8 @@ internal/
   pipeline/
     plan/                   pure Go: (transform.Request, plan.SourceMeta) → Plan
     exec/                   Plan → libvips operations
-  detect/                   (M3) ONNX Runtime face/object detection, loaded via dlopen (purego) when present
+  detect/                   face/object detection (WP-71, §8.5): model registry, letterbox, YuNet/YOLOX decoding, NMS
+    ort/                    ONNX Runtime C API loaded with purego dlopen (ADR 0010); the only purego user
   video/                    (M3, build tag `ffmpeg`) go-astiav frame extraction
   obs/                      slog setup, Prometheus registry, OpenTelemetry, admin mux (metrics, /openapi.json, /docs, pprof, playground mount)
   server/                   http.Server + http.ServeMux, middleware, handlers (process, info, health), respond, writeError
@@ -122,6 +123,7 @@ Dependency rules (enforced by a `depguard`/`go-arch-lint` config in CI):
 - `fetch` → `source`, `cache`, `errs` (never its own backend subpackages; `app` constructs them).
 - `pipeline/plan` → `transform`, `errs` (it defines its own `SourceMeta`; the executor maps codec/vips headers onto it).
 - `pipeline/exec`, `codec` loaders/encoders → `vips`.
+- `detect` → `detect/ort`, `vips`, `errs`; `detect/ort` imports nothing internal and is the only importer of purego (depguard, ADR 0010).
 - `server` → everything above via interfaces; `app` is the only package that constructs concrete types. Exception: `server` calls the pure-Go `pipeline/plan.Build` directly for the thumbor `meta` response (WP-86b), with the executor's limits passed in `InfoConfig.PlanLimits`, and `plan.InfoCrop` for the imgproxy /info `crop` coordinates (WP-63). `imageinfo` is a pure-Go leaf (stdlib only); `server` and `app` use it.
 - `apidoc` → `server`, `dialect/imgproxy`, `playground`, `errs` (types and catalogues only); nothing imports `apidoc` except `app`, which passes its bytes to the admin mux and its option catalogues (`apidoc.Catalogues`) to the playground. huma is confined to `apidoc` (depguard).
 - `playground` → `security/sign` (a `*sign.Signer` per mount, never key bytes), `obs/logging`. It sees the public handler only as an `http.Handler`; `app` builds its metadata from `dialect/router` mounts and config.
@@ -509,6 +511,7 @@ API (WP-30): `encode.New(Config)` → `(*Encoder).Encode(ctx, img, Target) (*Res
 | Decode | `Probe(ctx, buf) Header` (header only, sequential, never decodes), `Load(ctx, buf, *LoadOptions)` (shrink, scale, density, page, n, access, fail_on, autorotate, heif thumbnail, max pixels/frames → `LimitExceeded`), `Thumbnail(ctx, buf, *ThumbnailOptions)`, `Black`, `NewFromMemory` (Go decoders → vips) |
 | Process | `(*Image)` methods returning new lazy images: `Resize`, `ExtractArea`, `Crop`, `Embed`, `Gravity`, `Flip`, `Rot`, `Autorot`, `SmartCrop`, `Flatten`, `Premultiply`, `Unpremultiply`, `Colourspace`, `ICCImport/Export/Transform`, package func `ProfileLoad` (built-in or file ICC profile), `Cast`, `Copy`, `Gaussblur`, `Sharpen`, `Shrink`, `Composite2`, `Replicate`, `Join`, `Linear`, `Invert`, `BandjoinConst`, `ExtractBand`, `AddAlpha`, `FindTrim`/`Trim`, `Similarity`, `Affine`; package funcs `Arrayjoin`, `Bandjoin`; metadata `Int/Ints/Blob/Text` getters, `Fields` (every field name; EXIF tags are `exif-ifdN-Tag` fields the savers rebuild EXIF from) and copy-on-write `SetInt/SetInts/SetBlob/RemoveMetadata/SetOrientation/RemoveOrientation/SetPageHeight`; `Arena` closes a request's images |
 | Shared | `Share(ctx, img)` renders a metadata-free root memory image many Runs read at once (the watermark); `(*Shared).Image()` hands a Run its own handle; `Close` after the last Run |
+| Pixels | `(*Image).WritePixels(ctx)` computes the image into a C-owned `Blob` (band-interleaved); `(*Image).ToRGB8(ctx)` renders 8-bit sRGB with three bands (alpha flattened onto white) for detection (WP-71) |
 | Encode | `(*Image).CopyMemory(ctx)` renders once before repeated saves (max_bytes); `(*Image).Save(ctx, Format, *SaveOptions)` for JPEG, PNG, WebP, GIF, AVIF, HEIF (HEVC only with `HEICEncode`), JXL, TIFF; `DefaultSaveOptions()` mirrors the libvips defaults; `Keep` maps to `VipsForeignKeep` |
 
 Rules the executor relies on:
@@ -518,6 +521,49 @@ Rules the executor relies on:
 - Error kinds come from the failing operation (§8.2). Lazy decode failures are attributed through a libvips `invalidate` emission hook that marks the source buffer, so a truncated JPEG found during `Save` is `Corrupt`, not `Internal`.
 - `Image` is not goroutine-safe and lives inside one `Run`. `Buffer` and `Blob` reference counts are safe for concurrent use.
 - **Lifecycle invariant.** libvips is process-global and `vips_shutdown` is final (it frees the operation cache table, which is created once by a `GOnce`, and stops the thread pool; a later `vips_init` is a no-op). `Init`/`Shutdown` are therefore reference-counted in the C shim: every `Init` takes a reference (serialised; only the first applies its settings, and a nested `Init` with different settings fails, because re-applying the loader allowlist briefly blocks every loader under running jobs), every `Shutdown` releases one, `Run` registers itself for its whole duration and fails without a reference, and the `Shutdown` that releases the last reference refuses new `Run`s, waits for the running ones and then calls `vips_shutdown` exactly once; `Init` and `Run` fail afterwards. Several `app.Run` instances in one process (parallel tests) nest safely; test packages that start the service repeatedly hold a reference in `TestMain`. Every image or operation call happens inside `Run`; never call `Shutdown` inside `Run`. (Before this rule, one instance's shutdown tore libvips down under another's jobs: `g_hash_table_lookup: assertion 'hash_table != NULL'` in `xi_jpegsave`/`xi_probe`, SIGSEGV in `vips_sink_disc`.)
+
+### 8.5 Detection (WP-71)
+
+`internal/detect` finds faces and objects for face/object gravity (WP-72) and the detection
+filters and `/info` options (WP-73). It needs the `full` image; on slim it reports
+`detect.ErrUnavailable` (kind `Unsupported`, 422) and the service runs without it.
+
+- **Runtime.** `internal/detect/ort` loads ONNX Runtime (MIT) at startup with purego `dlopen`
+  of `XI_DETECT_LIBRARY` and the C API function table (`OrtGetApiBase()->GetApi(17)`), not cgo:
+  `internal/vips` stays the only cgo package ([ADR 0010](adr/0010-onnx-runtime-via-purego.md)).
+  `internal/app` calls `detect.New` explicitly (`buildDetector`); nothing is loaded at init.
+  `XI_DETECT_ENABLED=auto` runs without detection when the library or the models are missing,
+  `true` fails startup, `false` loads nothing. A nil `*detect.Detector` is valid and reports
+  `ErrUnavailable`, so consumers need no slim special case.
+- **Models** (`XI_DETECT_MODELS_DIR`, default `/usr/share/xtandard/models`, shipped by WP-70):
+  YuNet `face_detection_yunet_2023mar.onnx` (MIT) and YOLOX-s `yolox_s.onnx` (Apache-2.0, COCO
+  80 classes), both fixed at a 640×640 BGR float32 NCHW input with raw 0–255 values. Sessions
+  are created once (intra-op threads `XI_DETECT_THREADS`, default 1 like libvips; no CPU arena,
+  so memory returns after each run) and shared: ORT sessions are safe for concurrent `Run`,
+  which a weighted semaphore (`XI_DETECT_WORKERS`) bounds. `New` checks each model's input and
+  output shapes, so a wrong file fails startup; `XI_DETECT_VERIFY_CHECKSUMS` checks it against
+  the directory's `SHA256SUMS`.
+- **Pre-processing.** Inside the caller's `vips.Run`: first page of multi-page images; letterbox
+  (scale to fit 640×640, up or down, top-left, as YOLOX's `preproc`; dynamic-size models are
+  scaled down to `XI_DETECT_MAX_INPUT` and padded to a multiple of 32) with `vips.Resize`
+  (linear); `vips.Image.ToRGB8` renders 8-bit sRGB (alpha flattened onto white, grey and 16-bit
+  converted) into a C-owned `Blob`; Go packs it into a `vips.Buffer` as planar BGR float32,
+  padding 114 (YOLOX) or 0 (YuNet, as OpenCV pads it). ORT reads that C memory in place.
+- **Post-processing** in pure Go. YuNet (OpenCV `FaceDetectorYN`): per stride 8/16/32 the
+  `cls/obj/bbox/kps` outputs give score `sqrt(cls·obj)`, centre `(col+dx, row+dy)·stride`, size
+  `exp(dw, dh)·stride` and five landmarks; threshold 0.6, NMS 0.3. YOLOX (official
+  `demo/ONNXRuntime/onnx_inference.py`): grids over strides 8/16/32, `xy·stride`,
+  `exp(wh)·stride`, score `obj·cls`, class-aware NMS 0.45, threshold 0.3. At most 100 detections
+  per call.
+- **API.** `Detector.Faces(ctx, img)` and `Detector.Objects(ctx, img, classes)` return
+  `[]Detection{Box image.Rectangle, Score, Class, Landmarks}` best first, in the pixel space of
+  `img`. The pipeline passes the image upright (EXIF orientation applied at load), so the boxes
+  line up with the crop geometry. Unknown class names are `InvalidURL`. `detect.NewInfo` builds
+  the `/info` JSON (`{"objects":[{"class_id","class_name","confidence","left","top","width","height","landmarks"}]}`,
+  coordinates relative to the image, imgproxy Pro's `detect_objects` shape) for WP-73.
+- **Observability.** `xi_detect_duration_seconds{model="face"|"object"}`; a debug log line per
+  call; the startup log names the ONNX Runtime version and each model's path, input size and
+  checksum status. Results are not cached yet (a per-source LRU is a later WP).
 
 ## 9. Caching
 
@@ -651,7 +697,7 @@ When a fallback image is configured (global or per request), a failure after the
 ## 13. Observability
 
 - Logs: `log/slog` JSON to stdout; one access line per request (`request_id`, dialect, source name, status, bytes, stage timings, cache status, output format, dimensions). Source URLs are logged with query strings stripped; signatures never logged.
-- Metrics (`/metrics` on the admin listener `XI_ADMIN_ADDR`, default `127.0.0.1:9090`; set `:9090` to scrape from outside the pod), client_golang on a private registry: `xi_requests_total{dialect,status,format}`, `xi_request_duration_seconds{dialect,status,format}`, `xi_requests_in_flight`, `xi_stage_duration_seconds{stage}`, `xi_panics_total`, `xi_source_fetch_duration_seconds{source,type}`, `xi_source_bytes_total{type}`, `xi_fetch_coalesced_total`, `xi_cache_requests_total{store,result}`, `xi_cache_evictions_total{store}`, `xi_cache_bytes{store}`, `xi_cache_entries{store}`, `xi_cache_writes_dropped_total`, `xi_queue_depth`, `xi_workers_busy`, `xi_semaphore_wait_seconds`, `xi_overload_total{reason}`, `xi_raw_decodes_total{path}`, `xi_vips_mem_bytes`, `xi_vips_mem_highwater_bytes`, `xi_vips_allocs`, `xi_build_info{version,commit,goversion}`, Go runtime and process collectors. Implemented in `internal/obs/metrics`; the limiter reports through `metrics.LimiterObserver` and vips through `metrics.VipsCollector`.
+- Metrics (`/metrics` on the admin listener `XI_ADMIN_ADDR`, default `127.0.0.1:9090`; set `:9090` to scrape from outside the pod), client_golang on a private registry: `xi_requests_total{dialect,status,format}`, `xi_request_duration_seconds{dialect,status,format}`, `xi_requests_in_flight`, `xi_stage_duration_seconds{stage}`, `xi_panics_total`, `xi_source_fetch_duration_seconds{source,type}`, `xi_source_bytes_total{type}`, `xi_fetch_coalesced_total`, `xi_cache_requests_total{store,result}`, `xi_cache_evictions_total{store}`, `xi_cache_bytes{store}`, `xi_cache_entries{store}`, `xi_cache_writes_dropped_total`, `xi_queue_depth`, `xi_workers_busy`, `xi_semaphore_wait_seconds`, `xi_overload_total{reason}`, `xi_raw_decodes_total{path}`, `xi_detect_duration_seconds{model}`, `xi_vips_mem_bytes`, `xi_vips_mem_highwater_bytes`, `xi_vips_allocs`, `xi_build_info{version,commit,goversion}`, Go runtime and process collectors. Implemented in `internal/obs/metrics`; the limiter reports through `metrics.LimiterObserver` and vips through `metrics.VipsCollector`.
 - Tracing: OpenTelemetry OTLP when `OTEL_EXPORTER_OTLP_ENDPOINT` (or `XI_OTEL_ENABLED=true`) is set, otherwise a no-op provider and no middleware; one span per stage, W3C propagation, outbound propagation to sources off by default.
 - `/healthz` (liveness, no vips calls), `/readyz` (vips initialised, sources' static config valid, not draining). pprof (incl. `goroutineleak`) on the admin listener only when `XI_ADMIN_PPROF=true`.
 - Listeners. **Public** (`XI_SERVER_ADDR`): image and `/info` URLs, `/healthz`, `/readyz`, and the playground only with `XI_PLAYGROUND_PUBLIC=true`. **Admin** (`XI_ADMIN_ADDR`, default `127.0.0.1:9090`, empty disables it): `/metrics`, `/healthz`, `/readyz`, `/config.schema.json`, `/openapi.json`, `/docs` (`XI_ADMIN_DOCS`), pprof (`XI_ADMIN_PPROF`) and the playground (`XI_PLAYGROUND_ENABLED`, default off, at `XI_PLAYGROUND_PATH`, default `/_playground`). The playground signs URLs with the server's keys (`api/sign`), so the listener that serves it is a signing oracle for whoever reaches it; its `api/render` runs the public handler in-process, with every public-listener check ([CONFIG.md](CONFIG.md#playground)).
