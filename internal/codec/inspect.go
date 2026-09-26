@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/imagemeta"
+	"github.com/xantiagoma/xtandard-image/internal/codec/raw"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -46,13 +47,20 @@ type EXIFTag struct {
 // reads the band layout and the metadata fields libvips attaches to the
 // image header. BMP and ICO (pure-Go loaders), SVG and PSD carry no EXIF,
 // IPTC or XMP here; their band layout follows from the probe (the
-// Photoshop header for PSD). Like Probe it must run inside vips.Run.
+// Photoshop header for PSD). Camera RAW reports the camera metadata LibRaw
+// reads as EXIF (codec/raw.EXIF). Like Probe it must run inside vips.Run.
 func Inspect(ctx context.Context, buf *vips.Buffer, lim Limits, contentType string) (Info, error) {
 	m, err := Probe(ctx, buf, lim, contentType)
 	if err != nil {
 		return Info{}, err
 	}
 	info := Info{Meta: m}
+	if m.Format == FormatRAW {
+		if err := inspectRaw(ctx, buf, &info); err != nil {
+			return Info{}, err
+		}
+		return info, nil
+	}
 	switch m.Format {
 	case FormatBMP, FormatICO, FormatSVG:
 		info.Bands = 3
@@ -109,6 +117,27 @@ func Inspect(ctx context.Context, buf *vips.Buffer, lim Limits, contentType stri
 		info.XMP = b
 	}
 	return info, nil
+}
+
+// inspectRaw describes a RAW file from its LibRaw header (nothing is
+// unpacked): 8-bit sRGB or grey output and the camera metadata as EXIF.
+func inspectRaw(ctx context.Context, buf *vips.Buffer, info *Info) error {
+	h, err := raw.Probe(ctx, buf)
+	if err != nil {
+		return fmt.Errorf("codec: inspect raw: %w", err)
+	}
+	info.Bands, info.SampleFormat, info.Colorspace = 3, "uchar", "srgb"
+	if h.Colors == 1 {
+		info.Bands, info.Colorspace = 1, "b-w"
+	}
+	for _, t := range raw.EXIF(&h.RawHeader) {
+		title, ok := vips.EXIFTitle(t.IFD, t.Name)
+		if !ok {
+			title = t.Name
+		}
+		info.EXIF = append(info.EXIF, EXIFTag{IFD: t.IFD, Name: t.Name, Title: title, Value: t.Value})
+	}
+	return nil
 }
 
 // bandFormatName is the libvips nickname of f (VipsBandFormat).
