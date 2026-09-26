@@ -48,7 +48,7 @@ func TestVerifyHashsum(t *testing.T) {
 				t.Errorf("mismatch: err = %v (kind %v), want hash_mismatch", err, errs.KindOf(err))
 			}
 			// A digest of another algorithm never matches (different length).
-			wrong := sums[hashAlgorithms[(int(a))%len(hashAlgorithms)]]
+			wrong := sums[hashAlgorithms[int(a)%len(hashAlgorithms)]]
 			if err := verifyHashsum(&transform.Hashsum{Algorithm: a, Digest: wrong}, data); errs.KindOf(err) != errs.KindHashMismatch {
 				t.Errorf("other algorithm's digest: err = %v", err)
 			}
