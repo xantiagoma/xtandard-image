@@ -19,7 +19,7 @@ testdata/
                         from the imgproxy golden tables, URLs built by packages/image-url, parsed
                         back by internal/dialect/imgproxy (task ts:fixtures regenerates it)
   detect/               expected detections on fixtures/detect (expected.json) and the script that made them
-  gen/                  generator: main.go (Go), gen.sh (driver), logo.svg
+  gen/                  generator: main.go (Go), gen.sh (driver), logo.svg; video.go + video.sh (video fixtures, full base builder)
   LICENSES.md           origin and licence of every file
 ```
 

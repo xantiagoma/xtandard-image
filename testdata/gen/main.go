@@ -45,7 +45,7 @@ func main() {
 
 func run(args []string) error {
 	if len(args) < 2 {
-		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|watermark-badge|gif|gif-anim|ico-png|ico-bmp|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb|exr-rgba-half|exr-rgb-float|radiance|rgbe|pfm|ppm|hdr-stats|dng> args...")
+		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|watermark-badge|gif|gif-anim|ico-png|ico-bmp|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb|exr-rgba-half|exr-rgb-float|radiance|rgbe|pfm|ppm|hdr-stats|dng|video-frames> args...")
 	}
 	sizeArgs := func() (int, int, string, error) {
 		if len(args) != 4 {
@@ -152,6 +152,19 @@ func run(args []string) error {
 		default:
 			return writePPM(out, w, h)
 		}
+	case "video-frames":
+		if len(args) != 6 {
+			return errors.New("video-frames: want W H FPS FRAMES out.rgb")
+		}
+		var v [4]int
+		for i := range v {
+			n, err := strconv.Atoi(args[i+1])
+			if err != nil {
+				return err
+			}
+			v[i] = n
+		}
+		return videoFrames(args[5], v[0], v[1], v[2], v[3])
 	case "hdr-stats":
 		w, h, _, err := sizeArgs()
 		if err != nil {

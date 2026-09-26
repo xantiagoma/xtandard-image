@@ -6,7 +6,14 @@ repository except the `golden/exec/raw-{cr2,cr3,nef,arw,dng,raf}*.png` goldens, 
 downscaled renders of the CC0 camera samples listed at the end (third-party photographs, public
 domain), the three detection photos in `fixtures/detect/` (public domain or CC0, listed in
 "Detection photos") and the YOLOX functions copied into `detect/reference.py` (Apache-2.0).
-There is no attribution or share-alike obligation (ADR 0006: no GPL or CC-BY-SA fixtures).
+There is no share-alike obligation anywhere (ADR 0006: no GPL or CC-BY-SA fixtures), and one
+attribution exception below.
+
+**Exception (attribution required):** `fixtures/video/bbb-h264-aac.mp4` carries one second of
+*Big Buck Bunny* © 2008 Blender Foundation, www.bigbuckbunny.org, under
+[CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/), and the goldens rendered from it
+(`golden/exec/video-h264*.png`) are adaptations under the same licence. Source, changes and the
+other video fixtures: `fixtures/video/README.md`.
 
 The pixels come from `testdata/gen/main.go` (procedural landscape "photo" with value-noise
 terrain, clouds, a sun, lake reflection, Gaussian sensor noise and a caption, plus a flat-colour
@@ -51,6 +58,8 @@ generated from the public-domain X11 "fixed" font).
 | `fixtures/ppm/photo.ppm` | `gen ppm`: the procedural photo as a binary 8-bit PPM (P6), written in Go | CC0 |
 | `ssim/*.png` | `gen ssim-refs` (Go only: greyscale photo plus mean shift, contrast stretch, impulse noise, Gaussian blur σ 1.5, stdlib JPEG q15) | CC0 |
 | `fixtures/dng/landscape.dng`, `fixtures/dng/portrait-orientation-6.dng` | `gen dng` (own DNG writer; the preview is Go `image/jpeg` q85 of the photo, the mosaic is the photo sampled as linear RGGB) | CC0 |
+| `fixtures/video/clip-*.{webm,mkv,mp4,mov,avi}` | `gen video-frames` (Go) encoded by `gen/video.sh` with the LGPL FFmpeg of the full base builder (libvpx VP8/VP9, libaom AV1, PNG) and the host ffmpeg's LGPL rawvideo/AVI muxer; details in `fixtures/video/README.md` | CC0 |
+| `fixtures/video/bbb-h264-aac.mp4` | stream copy of Big Buck Bunny (see the exception above) plus an AAC tone (FFmpeg native encoder, LGPL) | CC-BY 3.0 (video), CC0 (audio) |
 | `golden/**` | written by tests with `GOLDEN_UPDATE=1` from the fixtures above and the RAW samples below | CC0 |
 | `detect/expected.json`, `info/detect-*.json` | written by `detect/reference.py` and by tests from the detection photos below | CC0 |
 | `detect/reference.py` | ours, plus the YOLOX demo pre/post-processing functions copied from Megvii's YOLOX (Apache-2.0, see NOTICE) | CC0 / Apache-2.0 |
