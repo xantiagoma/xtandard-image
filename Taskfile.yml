@@ -3,7 +3,7 @@
 # Verification runs inside Docker (docker:* tasks) on the builder stage of the
 # base image, so every contributor and agent uses the same libvips and Go.
 #   task docker:lint docker:test
-#   XI_BASE_IMAGE=xtandard-base:dev task docker:test   # locally built base (WP-05)
+#   XI_BASE_IMAGE=xtandard-base:dev-builder task docker:test   # locally built base (WP-05)
 #
 # The host tasks (lint, test, ...) run the same scripts with the toolchain
 # pinned in .mise.toml (`mise install`); CI and the docker:* tasks are canonical.
@@ -21,7 +21,7 @@ vars:
 
 env:
   XI_BASE_IMAGE:
-    sh: echo "${XI_BASE_IMAGE:-ghcr.io/xantiagoma/xtandard-image-base:slim}"
+    sh: echo "${XI_BASE_IMAGE:-ghcr.io/xantiagoma/xtandard-image-base:slim-builder}"
 
 tasks:
   default:

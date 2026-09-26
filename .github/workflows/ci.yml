@@ -22,7 +22,7 @@ jobs:
     name: lint (golangci fmt/run, vet, go fix, tidy, cgo placement)
     runs-on: ubuntu-24.04
     container:
-      image: ${{ vars.XI_BASE_IMAGE || 'ghcr.io/xantiagoma/xtandard-image-base:slim' }}
+      image: ${{ vars.XI_BASE_IMAGE || 'ghcr.io/xantiagoma/xtandard-image-base:slim-builder' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -48,7 +48,7 @@ jobs:
     name: unit (race, shuffle, cgocheck2)
     runs-on: ubuntu-24.04
     container:
-      image: ${{ vars.XI_BASE_IMAGE || 'ghcr.io/xantiagoma/xtandard-image-base:slim' }}
+      image: ${{ vars.XI_BASE_IMAGE || 'ghcr.io/xantiagoma/xtandard-image-base:slim-builder' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
