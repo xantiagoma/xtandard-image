@@ -119,7 +119,7 @@ func TestFormatsLoadIdentically(t *testing.T) {
 // rejects it anywhere else.
 func TestSchemaKeyIgnored(t *testing.T) {
 	t.Parallel()
-	const url = "https://xantiagoma.github.io/xtandard-image/schema/config.schema.json"
+	const url = "https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json"
 	for _, tc := range []struct{ path, content string }{
 		{"/c.json", `{"$schema": "` + url + `", "server": {"addr": ":1"}}`},
 		{"/c.toml", "\"$schema\" = \"" + url + "\"\n[server]\naddr = \":1\"\n"},

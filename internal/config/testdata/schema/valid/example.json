@@ -1,5 +1,5 @@
 {
-  "$schema": "https://xantiagoma.github.io/xtandard-image/schema/config.schema.json",
+  "$schema": "https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json",
   "server": { "addr": ":8080" },
   "signing": {
     "keys": ["943b421c9eb07c830af81030552c86009268de4e532ba2ee2eab8247c6da0881"],

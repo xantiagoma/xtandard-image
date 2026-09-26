@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/config.schema.json
+# yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json
 # The CONFIG.md §6 (Kubernetes) settings as the xi-config ConfigMap, with the
 # signing Secret mounted under /run/secrets and referenced with {file: …}.
 admin:
