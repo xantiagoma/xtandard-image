@@ -92,8 +92,19 @@ owner has authorised merging PRs without review.
   `internal/app/build.go` only warns "enabled but not implemented yet". WP-88 (agent launched
   2026-09-27) mounts it like the other dialects and adds acceptance cases.
 
-- PNG-alpha → WebP is ~14% slower than imgproxy and peak RSS is 2–5× (see `bench/RESULTS.md`).
-- `internal/server` limiter admission cost is still 0 (planner `Cost` not wired).
-- Cloudinary `w_auto`/`dpr_auto` and Cloudflare `width=auto` do not set `transform.ClientHints`.
-- `XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH` config key missing.
+- Peak RSS is still above imgproxy's after WP-87's `MALLOC_CONF=narenas:2` (png-alpha 400 px
+  WebP at 16 concurrent: ~180–210 MiB vs ~165–180 MiB; it was 2–5×; see `bench/RESULTS.md`). The
+  app image sets it; the base runtime image (`docker/base/Dockerfile`) does not yet, so images
+  built directly on the base keep jemalloc's 4 arenas per CPU until the next base release.
+- The PNG-alpha → WebP "14 % slower" gap did not reproduce under profiling (WP-87): the executor
+  equals the bare libvips pipeline and libwebp is ~60 % of the CPU. Rerun the full bench on a quiet
+  Linux host before quoting capacity.
+- Client hints (`w_auto`, `dpr_auto`, `width=auto`, imgix/ImageKit auto) resolve into pipeline 0
+  only: an auto width in a later chained component still resizes the first pipeline.
+- Parsed but not applied (recorded as "not implemented"): Cloudinary `e_vibrance`, imgix `vib`,
+  ImageKit `e-contrast` (the planner has no vibrance/equalize step); thumbor `equalize()` and AWS
+  SIH `normalise` set `Equalize` without recording anything.
+- The memory budget (`XI_PROCESSING_MEMORY_BUDGET`) is charged after the probe and plan
+  (`limiter.Reserve` through `exec.Config.Admit`): a job waiting for memory holds its worker slot
+  for up to `XI_PROCESSING_QUEUE_TIMEOUT`.
 - First release tag pending (`docs/RELEASE.md`); Pages publishing of the config schema (WP-81b).
