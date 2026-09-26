@@ -53,7 +53,7 @@ The xtandard-image column is the state of `main` as of 2026-09-26: **done (M1)**
 | Colour adjustments, duotone, gradients | M2 | no | paid | yes | no | yes |
 | Chained pipelines | M2 | no | paid | no | yes (`/pipeline`) | no |
 | Face and object detection (crop, blur) | M3 (full image) | no | paid | partial (OpenCV faces) | no | no |
-| Watermarks (text, per-request URL, shadow, rotation) | M3 | no | paid | partial | partial (text) | no |
+| Watermarks (text, per-request URL, size, shadow, rotation, chessboard) | done (M3) | no | paid | partial | partial (text) | no |
 | **Serving and operations** | | | | | | |
 | `/info` endpoint (dimensions, EXIF, IPTC, XMP) | done (M1) | no | paid | partial (`/meta`) | yes | partial (`output=json`) |
 | ETag, 304, HEAD, `Cache-Control`, `Vary`, `Content-DPR` | done (M1) | yes | yes | — | — | — |
