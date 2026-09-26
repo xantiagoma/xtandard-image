@@ -17,7 +17,9 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   TypeScript → #84 WP-80 playground → #85 WP-77/78 watermarks → #86 WP-87 stabilisation → #87 WP-88
   imgix mount → #88 WP-71 detection runtime → #89 WP-70b `gpl` image → #90 WP-74 video thumbnails
   (integrated and verified: 65 packages on full and slim, acceptance 81/81, H.264 → JPEG served by the
-  release image) → #91 WP-89 docs status audit. All verified green individually
+  release image) → #91 WP-89 docs status audit → #92 WP-72/73 detection options (rebased by hand: planner/app/server
+  unions of video + detection; goldens and builder fixture regenerated; dialect/apidoc/server/plan tests
+  green on the host; full container run still pending on the top). All verified green individually
   in the container. Local base tags: `xtandard-base:dev[-builder]`, `dev-full[-builder]`, `dev-gpl[-builder]`.
 - **Integration verified:** the stack top through #86 passed lint, slim+full test suites, ts:check,
   pages:build and acceptance (63/63) in the container; fixes landed on `m3/wp-87-stabilise`. Then
@@ -25,8 +27,11 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   needsRebase). Lesson: an agent that pushes to a stack branch must `git fetch` right before
   checking it out, otherwise it force-pushes a tip based on a stale chain (happened once; repaired
   with `git rebase --onto <parent tip> <branch>~<own commits> <branch>` per branch).
+- **Merge is blocked on the owner:** the session's permission classifier denies `gh stack merge` /
+  `gh pr merge`. The owner was asked to run `gh stack merge <top> --yes --merge` (or `gh pr edit <top>
+  --base main && gh pr merge <top> --merge`). Until then `main`'s README/ROADMAP are stale (fixed in #91).
 - **In flight (2026-09-28):** `m3/wp-75-76-video-out` (tiles, animation, GIF→WebM/MP4; from
-  `origin/m3/wp-74-video`; adopt with `--onto` onto #91); `m3/wp-74-video` (video thumbnails, from `origin/m3/wp-70-full-base`);
+  `origin/m3/wp-74-video`; adopt with `--onto` onto #92); `m3/wp-74-video` (video thumbnails, from `origin/m3/wp-70-full-base`);
   `m3/wp-72-73-detect-options` (face/object gravity + filters, from `origin/m3/wp-71-detect`). After
   WP-74: launch WP-75 (tiles/animation) and WP-76 (GIF→video; H.264 via libx264 only in `gpl`).
 - **Adoption recipe:** `scripts/stack/adopt2.sh - <branch> <n> "<title>" <body.md>`; on `MANUAL:` fix
