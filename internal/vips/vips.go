@@ -347,9 +347,6 @@ func opError(rc C.int, op string, cerr *C.char, src *C.VipsBlob) error {
 		kind = errs.KindCorrupt
 	case C.XI_ERR_LIMIT:
 		kind = errs.KindLimitExceeded
-	case C.XI_ERR_ENCRYPTED:
-		return errs.WithPublic(errs.Wrap(errs.KindUnsupported, &OpError{Op: op, Msg: msg}),
-			"password-protected documents are not supported")
 	case C.XI_ERR_SAVE, C.XI_ERR_OP:
 		if C.xi_blob_failed(src) != 0 {
 			kind = errs.KindCorrupt

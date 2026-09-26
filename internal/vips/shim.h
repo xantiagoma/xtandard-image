@@ -18,8 +18,10 @@
 #include <vips/vips.h>
 
 // Result codes of the xi_* functions. Anything but XI_OK sets *err to a
-// g_malloc'd copy of the vips error buffer (possibly NULL) that the caller
-// frees with xi_free.
+// g_malloc'd message (possibly NULL) that the caller frees with xi_free:
+// the shim's own text (xi_error_new), or libvips' error buffer copied and
+// cleared at the failure site (xi_error_copy). The text is a log attribute
+// only; callers classify failures by the result code, never by the text.
 enum {
   XI_OK = 0,
   XI_ERR_UNSUPPORTED = 1, // no loader matches, or the matching loader is blocked
@@ -28,7 +30,6 @@ enum {
   XI_ERR_INTERNAL = 4,    // failure not attributable to the input
   XI_ERR_LIMIT = 5,       // the header exceeds a configured limit
   XI_ERR_OP = 6,          // a processing operation failed
-  XI_ERR_ENCRYPTED = 7,   // the document needs a password (pdfload)
 };
 
 // ---- lifecycle (shim.c) ------------------------------------------------
@@ -432,6 +433,7 @@ const char *xi_exif_title(const char *name, int ifd);
 // ---- internal helpers shared by the .c files ------------------------------
 
 char *xi_error_copy(void);
+char *xi_error_new(const char *domain, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
 int xi_heic_encode_enabled(void);
 
 #endif // XI_VIPS_SHIM_H
