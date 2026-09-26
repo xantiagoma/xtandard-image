@@ -43,9 +43,10 @@ type Options struct {
 type hooks struct {
 	listening func(public, admin net.Addr) // called once both listeners are bound
 	policy    *ssrf.Policy                 // replaces the SSRF policy derived from Config
-	// resultCache receives the result cache once built (nil when off), so
-	// tests can wait for its asynchronous writes.
+	// resultCache and originCache receive the caches once built (nil when
+	// off), so tests can wait for their asynchronous writes.
 	resultCache func(*cache.AsyncStore)
+	originCache func(*cache.AsyncStore)
 	// keepVips skips vips.Shutdown: libvips cannot be used again after it,
 	// and a test binary starts several services one after the other.
 	keepVips bool
@@ -141,6 +142,24 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		types[name] = string(cfg.Sources[name].Type)
 	}
 	types["_dev"] = "http"
+
+	// The caches may hold vips blobs and buffers: they are closed (after
+	// the drain) before libvips shuts down, since cleanups run in reverse.
+	cs, err := buildCaches(ctx, cfg, met, logger)
+	if err != nil {
+		return fmt.Errorf("cache: %w", err)
+	}
+	cleanups = append(cleanups, func(context.Context) error { return cs.Close() })
+	if h.resultCache != nil {
+		h.resultCache(cs.result)
+	}
+	if h.originCache != nil {
+		h.originCache(cs.origin)
+	}
+	fetchOpts := []fetch.Option{fetch.WithMetrics(&fetchMetrics{m: met, types: types})}
+	if cs.origin != nil {
+		fetchOpts = append(fetchOpts, fetch.WithStore(cs.origin, cfg.Cache.Origin.StoreTTL))
+	}
 	fetcher, err := fetch.New(reg, vipsAllocator, fetch.Config{
 		Timeout:     cfg.Fetch.Timeout,
 		MaxBytes:    int64(cfg.Limits.MaxSrcBytes),
@@ -148,7 +167,7 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		CacheTTL:    cfg.Cache.Origin.TTL,
 		NegativeTTL: cfg.Cache.Origin.NegativeTTL,
 		Retry:       cfg.Fetch.Retry,
-	}, fetch.WithMetrics(&fetchMetrics{m: met, types: types}))
+	}, fetchOpts...)
 	if err != nil {
 		return err
 	}
@@ -178,16 +197,6 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		return err
 	}
 
-	// The result cache may hold vips output blobs: it is closed (after the
-	// drain) before libvips shuts down, since cleanups run in reverse.
-	rc, err := buildResultCache(ctx, cfg, met, logger)
-	if err != nil {
-		return fmt.Errorf("result cache: %w", err)
-	}
-	if h.resultCache != nil {
-		h.resultCache(rc)
-	}
-
 	ready := admin.NewReadiness()
 	scfg := serverConfig(cfg)
 	scfg.ResultCache.Build = opts.Version
@@ -209,9 +218,8 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 			return tp.Middleware(next, "image")
 		},
 	}
-	if rc != nil {
-		deps.ResultCache = rc
-		cleanups = append(cleanups, func(context.Context) error { return rc.Close() })
+	if cs.result != nil {
+		deps.ResultCache = cs.result
 	}
 	srv, err := server.New(&scfg, deps)
 	if err != nil {

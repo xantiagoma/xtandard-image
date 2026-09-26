@@ -420,12 +420,27 @@ func (c *Config) validateCache(v *validator) {
 	if seen[StoreMemory] {
 		v.positive(int64(r.MemoryBytes), "cache.result.memory_bytes")
 	}
+	o := ca.Origin
+	seenOrigin := map[StoreKind]bool{}
+	for _, s := range o.Stores {
+		v.check(!seenOrigin[s], "cache.origin.stores", "%s listed twice", s)
+		v.check(s != StoreMemory, "cache.origin.stores", "memory is the built-in origin LRU (cache.origin.memory_bytes); list disk, redis or s3")
+		seenOrigin[s] = true
+	}
+	if len(o.Stores) > 0 {
+		v.positive(int64(o.StoreTTL), "cache.origin.store_ttl")
+	}
+	// Backends are shared by the result and the origin cache.
+	for s := range seenOrigin {
+		seen[s] = true
+	}
 	if seen[StoreDisk] {
 		v.check(filepath.IsAbs(r.Disk.Path), "cache.result.disk.path", "must be an absolute path with the disk store")
 		v.positive(int64(r.Disk.Bytes), "cache.result.disk.bytes")
 	}
 	if seen[StoreRedis] {
 		v.check(r.Redis.URL != "", "cache.result.redis.url", "must be set with the redis store")
+		v.positive(int64(r.Redis.MaxValueBytes), "cache.result.redis.max_value_bytes")
 	}
 	if seen[StoreS3] {
 		src, ok := c.Sources[r.S3.Source]

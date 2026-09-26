@@ -308,6 +308,15 @@ func sourceSpec(name string, s *config.Source) source.Spec {
 	}
 }
 
+// s3Config maps an s3 source definition; the s3 cache store reuses it
+// (XI_CACHE_RESULT_S3_SOURCE).
+func s3Config(name string, s *config.Source) *s3src.Config {
+	return &s3src.Config{
+		Name: name, Endpoint: s.Endpoint, Region: s.Region, ForcePathStyle: s.ForcePathStyle,
+		AccessKeyID: s.AccessKeyID, SecretAccessKey: s.SecretAccessKey.Reveal(), RoleARN: s.RoleARN,
+	}
+}
+
 func newSource(ctx context.Context, name string, s *config.Source, cfg *config.Config, client *http.Client, userAgent string) (source.Source, error) {
 	switch s.Type {
 	case config.SourceHTTP:
@@ -317,10 +326,7 @@ func newSource(ctx context.Context, name string, s *config.Source, cfg *config.C
 		}
 		return httpsrc.New(httpsrc.Config{Name: name, Client: client, Timeout: cfg.Fetch.Timeout, Headers: h})
 	case config.SourceS3:
-		return s3src.New(ctx, &s3src.Config{
-			Name: name, Endpoint: s.Endpoint, Region: s.Region, ForcePathStyle: s.ForcePathStyle,
-			AccessKeyID: s.AccessKeyID, SecretAccessKey: s.SecretAccessKey.Reveal(), RoleARN: s.RoleARN,
-		})
+		return s3src.New(ctx, s3Config(name, s))
 	case config.SourceGCS:
 		return gcssrc.New(ctx, &gcssrc.Config{
 			Name: name, CredentialsJSON: []byte(s.CredentialsJSON.Reveal()), Endpoint: s.Endpoint, UserAgent: userAgent,
