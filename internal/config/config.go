@@ -512,8 +512,38 @@ type Video struct {
 	// MaxPixels caps the width × height of the video stream (the decoder
 	// refuses larger frames too).
 	MaxPixels int64 `yaml:"max_pixels" env:"MAX_PIXELS"`
+	// MaxAnimationFrames caps the frames a video_thumbnail_tile sprite or a
+	// video_thumbnail_animation decodes; larger grids and animations are
+	// cut to it (limits.max_animation_frames still applies to the result).
+	MaxAnimationFrames int `yaml:"max_animation_frames" env:"MAX_ANIMATION_FRAMES"`
 
 	Thumbnail VideoThumbnail `yaml:"thumbnail" envPrefix:"THUMBNAIL_"`
+	Encode    VideoEncode    `yaml:"encode"    envPrefix:"ENCODE_"`
+}
+
+// VideoEncode configures MP4, WebM and HEVC output (docs/FORMATS.md §5.1):
+// the codec is the build's (VP9 for WebM; H.264 for MP4 in the gpl image,
+// AV1 in the full image; HEVC only in gpl), these are its settings.
+type VideoEncode struct {
+	// CRF of each codec when the request sets no quality; a request
+	// quality maps onto the codec's scale around it (80 is the CRF, 100 a
+	// quarter of it, 1 the worst).
+	VP9CRF  int `yaml:"vp9_crf"  env:"VP9_CRF"`
+	AV1CRF  int `yaml:"av1_crf"  env:"AV1_CRF"`
+	H264CRF int `yaml:"h264_crf" env:"H264_CRF"`
+	HEVCCRF int `yaml:"hevc_crf" env:"HEVC_CRF"`
+	// VP9Speed and AV1Speed are libvpx's and libaom's cpu-used in their
+	// realtime modes (higher is faster and larger).
+	VP9Speed int `yaml:"vp9_speed" env:"VP9_SPEED"`
+	AV1Speed int `yaml:"av1_speed" env:"AV1_SPEED"`
+	// H264Preset and HEVCPreset are the x264 and x265 presets.
+	H264Preset string `yaml:"h264_preset" env:"H264_PRESET"`
+	HEVCPreset string `yaml:"hevc_preset" env:"HEVC_PRESET"`
+	// MaxFrames, MaxDuration and MaxPixels (per frame) bound what is
+	// encoded; more is 422 limit_exceeded.
+	MaxFrames   int           `yaml:"max_frames"   env:"MAX_FRAMES"`
+	MaxDuration time.Duration `yaml:"max_duration" env:"MAX_DURATION"`
+	MaxPixels   int64         `yaml:"max_pixels"   env:"MAX_PIXELS"`
 }
 
 // VideoThumbnail holds the frame-selection defaults of video thumbnails.
@@ -776,10 +806,16 @@ func Defaults() Config {
 			MaxWatermarkTextPixels:  16_777_216,
 		},
 		Video: Video{
-			MaxBytes:    100 << 20,
-			MaxDuration: time.Hour,
-			MaxPixels:   7680 * 4320, // 8K UHD
-			Thumbnail:   VideoThumbnail{Second: VideoSecondAuto, Samples: 5, Span: 10 * time.Second},
+			MaxBytes:           100 << 20,
+			MaxDuration:        time.Hour,
+			MaxPixels:          7680 * 4320, // 8K UHD
+			MaxAnimationFrames: 100,
+			Thumbnail:          VideoThumbnail{Second: VideoSecondAuto, Samples: 5, Span: 10 * time.Second},
+			Encode: VideoEncode{
+				VP9CRF: 36, AV1CRF: 36, H264CRF: 25, HEVCCRF: 28,
+				VP9Speed: 8, AV1Speed: 8, H264Preset: "veryfast", HEVCPreset: "veryfast",
+				MaxFrames: 1000, MaxDuration: time.Minute, MaxPixels: 3840 * 2160,
+			},
 		},
 		Vips: Vips{Concurrency: 1, FailOn: FailOnWarning},
 		Detect: Detect{
