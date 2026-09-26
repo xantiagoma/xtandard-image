@@ -42,7 +42,7 @@ Default mounts (all dialects other than imgproxy are disabled until enabled in c
 | imgproxy | HMAC-SHA256(key, salt ‖ path-after-signature, starting with `/`), keys and salts hex-decoded, URL-safe base64 without padding, optionally truncated to `signature_size` bytes; multiple key/salt pairs; trusted signatures list | first path segment | https://docs.imgproxy.net/usage/signing_url |
 | query | imaginary-compatible `sign` = base64url-nopad(HMAC-SHA256(key, path ‖ url.Values.Encode() of the query without `sign`)), i.e. keys sorted, no `?` separator | query | imaginary `middleware.go` `validateURLSignature` |
 | imgix | `s` = hex(MD5(token ‖ path ‖ ("?" ‖ query-without-s if any))), token used verbatim; imgix puts `s` last, xi accepts it anywhere (same signed bytes); optional `expires` (unix) | query | https://github.com/imgix/imgix-blueprint#securing-urls |
-| cloudinary | `s--XXXXXXXX--` = first 8 chars of base64url(SHA-1(transformations/…/public_id ‖ api_secret)); 32 chars with SHA-256 "long" signatures | path segment | https://cloudinary.com/documentation/delivery_url_signatures |
+| cloudinary | `s--XXXXXXXX--` = first 8 chars of base64url(SHA-1(transformations/…/public_id.ext ‖ api_secret)), version segment excluded (SHA-256 for sha256 accounts); 32 chars of base64url(SHA-256(…)) for "long" signatures; plain hash, not HMAC (§6) | path segment | https://cloudinary.com/documentation/delivery_url_signatures |
 | imagekit | `ik-s` = hex(HMAC-SHA1(private_key, url-relative-to-endpoint (path ["?" query without ik-s/ik-t]) ‖ ik-t)), `ik-t` = expiry unix seconds; absent = 9999999999, which is signed but not written | query | https://imagekit.io/docs/media-delivery-basic-security |
 | thumbor | HMAC-SHA1(SECURITY_KEY, escaped path-after-signature **without** the leading `/`), URL-safe base64 **with** padding (28 chars, Python `urlsafe_b64encode`); keys are raw strings, not hex; `unsafe` = unsigned (§10) | first path segment | https://thumbor.readthedocs.io/en/latest/security.html |
 | bunny | token auth: `token` (or path segment `bcdn_token=`) + `expires`; basic = b64url(MD5(key ‖ path ‖ expires)); legacy advanced = b64url(SHA-256(key ‖ path ‖ expires ‖ data)); current advanced = `HS256-` b64url(HMAC-SHA256(key, path ‖ expires ‖ data)); path = decoded path or `token_path`, data = other params sorted `k=v&…`; b64url unpadded | query or first path segment | https://bunny.net/docs/cdn/security/token-authentication; layout verified against `BunnyWay/BunnyCDN.TokenAuthentication` (see §9) |
@@ -341,46 +341,61 @@ Reference: https://cloudinary.com/documentation/transformation_reference, https:
 /<cloud>/image/fetch/w_400,f_auto/https://example.com/a.jpg
 ```
 
-Grammar: `/<cloud>/<asset_type>/<delivery_type>/[s--SIG--/][<tx>/]*[v<digits>/]<public_id>[.<ext>]`. When host-bound as a private CDN or custom domain (`<cloud>-res.cloudinary.com`-style, unpic `privateRegex`), the `<cloud>/` segment is absent and the cloud comes from the mount. `asset_type` = `image` (M1/M2) or `video` (thumbnails M3). `delivery_type` = `upload` (key under the cloud's bound source) or `fetch` (absolute URL, allowlisted); `private`/`authenticated` treated as `upload` requiring a signature. Each `<tx>` component is `key_value(,key_value)*` → one Pipeline; multiple components → chained pipelines. `<cloud>` maps to a named source via `dialects.cloudinary.clouds`. Extension sets `O.Format` unless `f_` given.
+Grammar: `/<cloud>/<asset_type>/<delivery_type>/[s--SIG--/][<tx>/]*[v<digits>/]<public_id>[.<ext>]`. When host-bound as a private CDN or custom domain (`<cloud>-res.cloudinary.com`-style, unpic `privateRegex`), the `<cloud>/` segment is absent and the source comes from the mount: the first segment is read as the asset type when it is `image`/`video`/`raw` and the second is a delivery type, otherwise it is the cloud name. `asset_type` = `image`; `video` and `raw` are 400 until video thumbnails (M3). `delivery_type` = `upload` (public ID = key under the cloud's source, extension included, as written) or `fetch` (absolute http(s) URL, percent-decoded, a proxy-collapsed `https:/` repaired; the source allowlist applies); `private`/`authenticated` are `upload` that require a verified signature (403 `signature required` otherwise, also when signing is off); other delivery types are 400. `<cloud>` maps to a named source via `dialects.cloudinary.clouds`; with a non-empty map an unmapped cloud is 403, with an empty map the mount's source applies to every cloud. Public IDs, layer IDs and `d_` IDs whose first segment contains `:` (`https:`, `s3:`) are 400, so an `upload` URL can never name an absolute source. The query string (SDK `_a=` analytics) is ignored.
+
+Components: a path segment is a transformation component when every comma-separated part is `key_value` with a lower-case key (or `$variable`) and at least one key is a Cloudinary parameter; the first segment that is not, or a `v<digits>` segment, starts the public ID (the SDKs add `v1` to foldered IDs for exactly this ambiguity). Components apply in URL order. A component with pipeline parameters (`w h c g x y ar z a bo e o r t`) starts a chained pipeline once the current one holds anything; components with only `f_`, `q_`, `fl_`, `dpr_`, `b_`, `cs_`, `d_`, `pg_` modify the current pipeline / the request, so `c_fill,w_400/q_auto/f_auto` is one pipeline and `c_fill,w_400/e_blur` two. The extension sets `O.Format` unless `f_` is given. In `XI_DIALECTS_STRICT` mode unknown and unsupported parameters are 400.
+
+Signature: `s--SIG--` right after the delivery type; the signed message is the rest of the path with the version segment removed (`<tx>/…/<public_id>.<ext>`, or `<tx>/…/<escaped fetch URL>`), exactly as the SDKs build `to_sign` (cloudinary-npm `utils.url`). 8 characters = SHA-1 (SHA-256 for accounts whose signature algorithm is sha256, `sign.CloudinaryOptions.ShortSHA256`), 32 characters = SHA-256 (`long_url_signature`); both are accepted, `LongOnly` rejects the 48-bit short form. Keys are the api secrets of the mount (`dialects.cloudinary.keys`); with no keys the segment is skipped unchecked. Unsigned requests fall to the router's unsigned policy.
 
 | Cloudinary | TR | Notes |
 |---|---|---|
-| `w_`, `h_` (int, float ≤1.0 relative, `w_auto[:step]` client hints) | Width/Height | |
-| `c_scale` | Force if both dims else Fit + Enlarge | |
-| `c_fit` / `c_limit` / `c_mfit` | Fit+Enlarge / Fit / Outside (min) | |
+| `w_`, `h_` (int px; a decimal is relative: `w_0.5`, `w_1.0`; `w_auto[:step[:fallback]]` client hint) | Width/Height | expressions (`iw_div_2`), `$vars` unsupported |
+| `c_scale` (default when `w_`/`h_`/`ar_` without `c_`) | Force if both dims or `ar_`, else Fit + Enlarge | after a `t_` preset that set a mode, the preset's mode is kept |
+| `c_fit` / `c_limit` / `c_mfit` | Fit+Enlarge / Fit / Outside+Enlarge | |
 | `c_fill` / `c_lfill` | Fill+Enlarge / FillDown | |
-| `c_fill_pad` | Fill with Smart gravity, Extend if needed | partial |
-| `c_pad` / `c_lpad` / `c_mpad` | Fit+Extend(+Enlarge) / no enlarge / no scale | |
-| `c_crop` | Crop region (x,y,w,h or gravity), no scaling | |
-| `c_thumb` | Fill + Face gravity + zoom `z_` | faces M3 |
-| `c_auto`, `c_auto_pad` | Fill + Smart / Fit + Extend | |
-| `c_imagga_*` | Unsupported | |
+| `c_fill_pad` | Fill + gravity + Extend | approximated |
+| `c_pad` / `c_lpad` / `c_mpad` | Fit+Enlarge+Extend / Fit+Extend / Fit+Extend | `c_mpad` approximated (never scales upstream); extend anchor = compass `g_` else centre |
+| `c_crop` | Crop (w, h, `ar_`), no scaling; `x_`/`y_` without `g_` = top-left corner (NorthWest + offsets); `g_xy_center` = FocusPoint with relative `x_`/`y_` | absolute `xy_center` approximated (centre) |
+| `c_thumb` | Fill + gravity, `z_` → FocusZoom | faces M3 |
+| `c_auto`, `c_auto_pad` | Fill + Smart / Fit + Enlarge + Extend | |
+| `c_imagga_*` | recorded unsupported, applied as `c_scale` | |
 | `g_` compass (`north_east`…), `center` | Gravity | |
-| `g_auto`, `g_auto:subject`, `g_auto:classic` | Smart | |
-| `g_face`, `g_faces`, `g_face:center` | Face (M3; fallback Smart) | |
-| `g_<object>` (e.g. `g_cat`) | Object | M3 |
+| `g_auto`, `g_auto:<anything>` | Smart | |
+| `g_face`, `g_faces`, `g_face(s):…`, `g_adv_*` | Face (M3; fallback Smart) | |
+| `g_<object>` (e.g. `g_dog`) | Object | M3 |
 | `g_xy_center` + `x_`,`y_` | FocusPoint: relative `x_`/`y_` (0..1) → `FocusX/FocusY`; absolute (integer pixels on both axes) → `FocusPx` via `transform.FocusFromPixels(x, y, x, y)` (WP-86a); a relative axis mixed with an absolute one is approximated to the centre | |
-| `ar_16:9` / `ar_1.5` | derive dimension | |
-| `x_`, `y_` | crop offset / gravity offset | |
-| `z_` | FocusZoom / Zoom | |
-| `q_<n>`, `q_auto[:best|good|eco|low]` | Quality / AutoQuality presets (dssim targets) | M2 |
-| `f_auto`, `f_<fmt>` (jpg, png, webp, avif, jxl, gif, heic, tiff, bmp, ico, mp4, webm) | Format / negotiate | video out M3 |
-| `dpr_<float>`, `dpr_auto` | DPR / client hints | |
-| `a_<deg>`, `a_auto`, `a_hflip`, `a_vflip`, `a_ignore` | Rotate/RotateAny/Flip/AutoRotate=false | |
-| `b_<color>` (`rgb:ff0000`, named) | Background | `b_auto`, `b_blurred`, `b_gen_fill` unsupported |
-| `bo_4px_solid_rgb:000` | Border | M2 |
-| `r_<n>`, `r_max` | Radius | M2 |
-| `o_<0-100>` | image opacity (alpha multiply) | M2 |
-| `e_blur[:n]`, `e_pixelate[:n]`, `e_sharpen[:n]`, `e_unsharp_mask[:n]` | Blur (n/100×σ scale), Pixelate, Sharpen, Unsharp | |
-| `e_grayscale`, `e_sepia`, `e_negate`, `e_brightness:n`, `e_contrast:n`, `e_saturation:n`, `e_gamma:n`, `e_hue:n`, `e_colorize:n,co_<color>`, `e_trim[:tol]` | corresponding Pipeline fields | M2 |
-| `e_blur_faces`, `e_pixelate_faces`, `e_blur_region` | BlurDetections(face) / BlurAreas | M3/M2 |
-| other `e_*` (AI, artistic, `background_removal`, `gen_*`, `upscale`, `vectorize`) | Unsupported | |
-| `fl_progressive`, `fl_lossy`, `fl_attachment[:name]`, `fl_keep_iptc`, `fl_keep_attribution`, `fl_force_strip`, `fl_strip_profile`, `fl_animated`, `fl_awebp`, `fl_apng`, `fl_png8`, `fl_immutable_cache`, `fl_getinfo` | Output/Delivery flags; `fl_getinfo` → Info | |
-| `pg_<n>` | Page | M2 |
-| `t_<name>` | preset `<name>` | |
-| `d_<public_id>` | Fallback (same cloud source) | M2 |
-| `l_<id>`, `l_fetch:<b64url>`, `l_text:<font>:<text>` + `fl_layer_apply`, `g_`, `x_`, `y_`, `o_` | Watermark (image / URL / text) | M3 |
-| `u_` underlays, `if_`, `$var`, `fn_`, `vc_`/`du_`/`so_`/`eo_` video params | Unsupported (video `so_` → Video.Second in M3) | |
+| `g_custom`, `g_body`, `g_ocr_text`, `g_liquid`, … | unsupported (centre) | |
+| `ar_16:9` / `ar_1.5` | Resize.AspectRatio (Crop.AspectRatio with `c_crop`, M2) | |
+| `x_`, `y_` | gravity offsets | |
+| `z_` | FocusZoom (`c_thumb`, `c_crop`) | other modes approximated |
+| `q_<1-100>[:420\|422\|444]`, `q_auto[:best\|good\|eco\|low]` | Quality (+ChromaSubsampling) / AutoQuality DSSIM targets 0.005 / 0.02 / 0.035 / 0.05 (`q_auto` = good) | M2; `q_jpegmini` unsupported |
+| `f_auto[:…]`, `f_<fmt>` (jpg/jpeg/jpe, png, webp, avif, jxl, gif, heic/heif, tif/tiff, bmp, ico, svg, mp4, webm) | Format unset (negotiated) / Format | mp4/webm M3; other formats (pdf, jp2, …) 400 |
+| `dpr_<float>`, `dpr_auto` | DPR of the current pipeline / client hint | |
+| `a_<deg>` (`.`-joined list), `a_hflip`, `a_vflip`, `a_exif`, `a_ignore` | Rotate (multiples of 90) / RotateAny (M2) / Flip / AutoRotate | `a_auto_right`, `a_auto_left` unsupported |
+| `b_<color>` (`rgb:` 3/4/6/8 hex digits, `%23` hex, CSS names, `transparent`) | Background | `b_auto`, `b_blurred`, `b_gen_fill` unsupported |
+| `bo_<n>px_solid_<color>` | Border | M2 |
+| `r_<n>[:<n>…]` (1–4 values, Cloudinary corner order), `r_max` | Radius | M2 |
+| `o_<0-100>` | Adjust.Opacity | M2 |
+| `e_blur[:1-2000]` | Blur σ = n/20 (default 100 → 5, like imgix `blur`) | |
+| `e_sharpen[:1-2000]`, `e_unsharp_mask[:1-2000]` | Sharpen σ = n/100 / Unsharp σ 1, amount n/100 (M2) | |
+| `e_pixelate[:1-200]` | Pixelate (default 10) | |
+| `e_grayscale`, `e_blackwhite` (approximated), `e_sepia`, `e_negate` | corresponding Pipeline fields | M2 |
+| `e_brightness[:-99..100]` (default 80), `e_hue[:-100..100]` (80) | Brightness n × 2.55 / Hue n × 1.8° | M2 |
+| `e_contrast`, `e_saturation`, `e_gamma`, `e_vibrance`, `e_red`/`e_green`/`e_blue` | multiplier 1 + n/100 | M2 |
+| `e_colorize[:0-100]` + `co_<color>` | Colorize (opacity n/100, default grey) | M2 |
+| `e_trim[:tolerance[:color]]` | Trim (threshold = tolerance, default 10) | |
+| `e_blur_faces[:n]`, `e_pixelate_faces[:n]` | BlurDetections(face) σ n/20 / pixelate n | M3 |
+| `e_blur_region[:n]` + relative `x_`,`y_`,`w_`,`h_` | BlurAreas (no region: whole-image blur) | M2; pixel regions approximated |
+| other `e_*` (AI, artistic, `background_removal`, `gen_*`, `upscale`, `vectorize`, …) | Unsupported | |
+| `fl_lossy`, `fl_progressive[:none]`, `fl_strip_profile`, `fl_keep_iptc`, `fl_keep_attribution`, `fl_force_strip`, `fl_attachment[:name]`, `fl_immutable_cache`, `fl_png8` (M2), `fl_getinfo` | Lossless=false, Progressive, StripColorProfile, StripMetadata=false, KeepCopyright, StripMetadata, Attachment/Filename, Immutable, PNG quantize 256, Kind=Info (size, format, dimensions) | `fl_animated`, `fl_awebp`, `fl_apng`, `fl_preserve_transparency`, `fl_any_format` are the default behaviour; `fl_rasterize`, `fl_clip`, … unsupported |
+| `cs_srgb`/`cs_no_cmyk`/`cs_tinysrgb`, `cs_cmyk` | ColorProfile srgb / cmyk | M2; `cs_keep_cmyk`, `cs_icc:` unsupported |
+| `pg_<n>` (1-based) | Page n−1 | M2; ranges and names unsupported |
+| `t_<name>[.<name>…]` | presets expanded in place (imgproxy option syntax); only-presets mode allows nothing but `t_` | |
+| `d_<public_id>` (`:` = folder) | Fallback (same cloud source) | M2 |
+| `l_<id>` (`:` = folder), `l_fetch:<base64url>` with `g_`, `x_`, `y_`, `o_`, `a_`, `w_`/`h_` px, relative `w_` + `fl_relative` (scale), `fl_tiled`; legacy single component or `l_…/…/fl_layer_apply,…` group | Watermark (image / URL) on the current pipeline | M3; `l_text`, `l_video`, `l_subtitles`, `l_lut` unsupported; other parameters in a layer group approximated |
+| `u_` underlays, `if_` (skips its component, or the block up to `if_end`), `$var`, `fn_`, `dn_`, video/audio `vc_`/`ac_`/`du_`/`so_`/`eo_`/`fps_`/… | Unsupported | |
+
+Fixtures: `internal/dialect/cloudinary/testdata/urlgen/generate.ts` builds the corpus with `@cloudinary/url-gen` 1.22.0 and the `cloudinary` Node SDK 2.11.0 (including signed URLs, i.e. the signature vectors); unpic's `cloudinary.test.ts` URLs are asserted in `compat_test.go`.
 
 ## 7. ImageKit
 

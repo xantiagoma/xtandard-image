@@ -15,6 +15,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/dialect/awssih"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/bunny"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/cloudflare"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/cloudinary"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imagekit"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/query"
@@ -52,7 +53,7 @@ func (p infoParser) Parse(in *dialect.Input) (*dialect.Result, error) { return p
 
 // buildRouter builds the signing verifiers, presets, the available dialects
 // (imgproxy, query, imagekit, cloudflare, cloudflare_images, wsrv, thumbor,
-// bunny and awssih) and the router. warnings lists enabled dialects that are not implemented yet; their
+// bunny, awssih and cloudinary) and the router. warnings lists enabled dialects that are not implemented yet; their
 // mounts are skipped.
 func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err error) {
 	keys := make([]sign.Key, 0, len(cfg.Signing.Keys))
@@ -218,6 +219,9 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		return nil, nil, err
 	}
 	addMounts(awssih.Name, &cfg.Dialects.AWSSIH.Mount)
+	if err := addCloudinary(cfg, ipOpts.Presets, required, dialects, opts); err != nil {
+		return nil, nil, err
+	}
 	// Root "/?url=" (URL-DIALECTS §1): wsrv when enabled, else query.
 	switch {
 	case cfg.Dialects.Wsrv.Enabled:
@@ -238,7 +242,7 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	}
 
 	for name, enabled := range map[string]bool{
-		"imgix": cfg.Dialects.Imgix.Enabled, "cloudinary": cfg.Dialects.Cloudinary.Enabled,
+		"imgix":  cfg.Dialects.Imgix.Enabled,
 		"simple": len(cfg.Dialects.Simple.Enabled) > 0,
 	} {
 		if enabled {
@@ -476,6 +480,49 @@ func buildAWSSIH(cfg *config.Config) (*awssih.Parser, []string, error) {
 		return nil, nil, fmt.Errorf("awssih dialect: %w", err)
 	}
 	return p, warnings, nil
+}
+
+// addCloudinary registers one Cloudinary parser per enabled mount: each
+// mount's keys are its api secrets (dialects.cloudinary.keys), so mounts
+// cannot share a parser. The dialect key is the mount label.
+func addCloudinary(cfg *config.Config, presets *preset.Store, required bool, dialects map[string]dialect.Dialect, opts *router.Options) error {
+	c := &cfg.Dialects.Cloudinary
+	if !c.Enabled {
+		return nil
+	}
+	for i, mo := range append([]config.MountOptions{c.MountOptions}, c.Mounts...) {
+		label := cloudinary.Name
+		if i > 0 {
+			label = fmt.Sprintf("%s[%d]", cloudinary.Name, i)
+		}
+		o := cloudinary.Options{
+			Clouds:             c.Clouds,
+			Strict:             cfg.Dialects.Strict,
+			Presets:            presets,
+			ArgumentsSeparator: cfg.Dialects.Imgproxy.ArgumentsSeparator,
+		}
+		if len(mo.Keys) > 0 {
+			keys := make([]sign.Key, 0, len(mo.Keys))
+			for _, k := range mo.Keys {
+				keys = append(keys, sign.NewKey([]byte(k.Reveal()), nil))
+			}
+			v, err := sign.NewCloudinaryVerifier(sign.CloudinaryOptions{Keys: sign.NewKeyring(keys...), Required: required})
+			if err != nil {
+				return fmt.Errorf("%s verifier: %w", label, err)
+			}
+			o.Verifier = v
+		}
+		p, err := cloudinary.New(&o)
+		if err != nil {
+			return fmt.Errorf("%s dialect: %w", label, err)
+		}
+		dialects[label] = p
+		opts.Mounts = append(opts.Mounts, router.Mount{
+			Name: label, Dialect: label, Prefix: mo.Prefix, Hosts: mo.Hosts,
+			Source: mo.Source, Policy: router.Policy(mo.UnsignedPolicy),
+		})
+	}
+	return nil
 }
 
 // ssrfPolicy maps XI_FETCH_* onto the SSRF policy.
