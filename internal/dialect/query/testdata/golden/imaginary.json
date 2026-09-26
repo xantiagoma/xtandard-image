@@ -1,0 +1,1554 @@
+{
+  "autorotate": {
+    "path": "/autorotate",
+    "query": "url=https://example.com/a.jpg\u0026width=100\u0026type=png",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "AutoRotate": true
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "blur": {
+    "path": "/blur",
+    "query": "url=https://example.com/a.jpg\u0026sigma=5",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Blur": 5
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "blur_minampl": {
+    "path": "/blur",
+    "query": "url=https://example.com/a.jpg\u0026sigma=5\u0026minampl=0.5",
+    "request": {
+      "Dialect": "query",
+      "Ignored": [
+        {
+          "Option": "minampl",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Blur": 5
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "blur_missing": {
+    "error": {
+      "field": "sigma",
+      "kind": "invalid_url",
+      "public": "invalid sigma: expected sigma or minampl",
+      "status": 400
+    },
+    "path": "/blur",
+    "query": "url=https://example.com/a.jpg"
+  },
+  "common_background_invalid": {
+    "error": {
+      "field": "background",
+      "kind": "invalid_url",
+      "public": "invalid background: expected r,g,b with each 0-255",
+      "status": 400
+    },
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=100\u0026background=1,2"
+  },
+  "common_background_range": {
+    "error": {
+      "field": "background",
+      "kind": "invalid_url",
+      "public": "invalid background: expected r,g,b with each 0-255",
+      "status": 400
+    },
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=100\u0026background=1,2,300"
+  },
+  "common_blur": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=100\u0026sigma=1.5",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Blur": 1.5,
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "common_bool_invalid": {
+    "error": {
+      "field": "force",
+      "kind": "invalid_url",
+      "public": "invalid force: expected boolean (1, t, true, 0, f, false)",
+      "status": 400
+    },
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=100\u0026force=sure"
+  },
+  "common_colorspace_bw": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=100\u0026colorspace=bw",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Grayscale": true,
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "common_colorspace_invalid": {
+    "error": {
+      "field": "colorspace",
+      "kind": "invalid_url",
+      "public": "invalid colorspace: expected srgb or bw",
+      "status": 400
+    },
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=100\u0026colorspace=cmyk"
+  },
+  "common_compression_invalid": {
+    "error": {
+      "field": "compression",
+      "kind": "invalid_url",
+      "public": "invalid compression: expected integer in range 0-9",
+      "status": 400
+    },
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=100\u0026compression=10"
+  },
+  "common_field_ignored": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=100\u0026field=file",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "common_output": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=100\u0026type=png\u0026quality=90\u0026compression=9\u0026palette=true\u0026interlace=true\u0026stripmeta=true\u0026noprofile=true\u0026norotation=true",
+    "request": {
+      "Dialect": "query",
+      "Output": {
+        "Format": "png",
+        "PNG": {
+          "Compression": 9,
+          "Quantize": true
+        },
+        "Progressive": true,
+        "Quality": 90,
+        "StripColorProfile": true,
+        "StripMetadata": true
+      },
+      "Pipelines": [
+        {
+          "AutoRotate": false,
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "common_quality_invalid": {
+    "error": {
+      "field": "quality",
+      "kind": "invalid_url",
+      "public": "invalid quality: expected integer in range 0-100",
+      "status": 400
+    },
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=100\u0026quality=150"
+  },
+  "common_speed_ignored": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=100\u0026speed=4",
+    "request": {
+      "Dialect": "query",
+      "Ignored": [
+        {
+          "Option": "speed",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "convert": {
+    "path": "/convert",
+    "query": "url=https://example.com/a.jpg\u0026type=webp\u0026quality=70",
+    "request": {
+      "Dialect": "query",
+      "Output": {
+        "Format": "webp",
+        "Quality": 70
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "convert_auto": {
+    "path": "/convert",
+    "query": "url=https://example.com/a.jpg\u0026type=auto",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "convert_invalid": {
+    "error": {
+      "field": "type",
+      "kind": "invalid_url",
+      "public": "invalid type: expected supported image format",
+      "status": 400
+    },
+    "path": "/convert",
+    "query": "url=https://example.com/a.jpg\u0026type=bmpx"
+  },
+  "convert_missing": {
+    "error": {
+      "field": "type",
+      "kind": "invalid_url",
+      "public": "invalid type: expected required by this endpoint",
+      "status": 400
+    },
+    "path": "/convert",
+    "query": "url=https://example.com/a.jpg"
+  },
+  "crop_both": {
+    "path": "/crop",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026height=200",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_gravity": {
+    "path": "/crop",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026height=200\u0026gravity=north",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "north"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_gravity_invalid": {
+    "error": {
+      "field": "gravity",
+      "kind": "invalid_url",
+      "public": "invalid gravity: expected north, south, east, west, centre or smart",
+      "status": 400
+    },
+    "path": "/crop",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026gravity=up"
+  },
+  "crop_missing": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected width or height",
+      "status": 400
+    },
+    "path": "/crop",
+    "query": "url=https://example.com/a.jpg\u0026gravity=north"
+  },
+  "crop_width_only": {
+    "path": "/crop",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026gravity=east",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Gravity": {
+            "Type": "east"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "enlarge": {
+    "path": "/enlarge",
+    "query": "url=https://example.com/a.jpg\u0026width=3000\u0026height=2000",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 2000
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 3000
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "enlarge_missing": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected required by this endpoint",
+      "status": 400
+    },
+    "path": "/enlarge",
+    "query": "url=https://example.com/a.jpg\u0026height=2000"
+  },
+  "enlarge_nocrop": {
+    "path": "/enlarge",
+    "query": "url=https://example.com/a.jpg\u0026width=3000\u0026height=2000\u0026nocrop=true",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 2000
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 3000
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "extract": {
+    "path": "/extract",
+    "query": "url=https://example.com/a.jpg\u0026top=10\u0026left=20\u0026areawidth=300\u0026areaheight=200",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 20,
+              "YOffset": 10
+            },
+            "Height": {
+              "Px": 200
+            },
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "extract_missing_area": {
+    "error": {
+      "field": "areaheight",
+      "kind": "invalid_url",
+      "public": "invalid areaheight: expected required by this endpoint",
+      "status": 400
+    },
+    "path": "/extract",
+    "query": "url=https://example.com/a.jpg\u0026top=10\u0026areawidth=300"
+  },
+  "extract_resize": {
+    "path": "/extract",
+    "query": "url=https://example.com/a.jpg\u0026top=10\u0026left=20\u0026areawidth=300\u0026areaheight=200\u0026width=100",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 20,
+              "YOffset": 10
+            },
+            "Height": {
+              "Px": 200
+            },
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "force",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "file_rejected": {
+    "error": {
+      "field": "file",
+      "kind": "invalid_url",
+      "public": "invalid file: expected url (local files are served through an fs source)",
+      "status": 400
+    },
+    "path": "/resize",
+    "query": "file=image.jpg\u0026width=100"
+  },
+  "fit": {
+    "path": "/fit",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026height=200",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_missing_height": {
+    "error": {
+      "field": "height",
+      "kind": "invalid_url",
+      "public": "invalid height: expected required by this endpoint",
+      "status": 400
+    },
+    "path": "/fit",
+    "query": "url=https://example.com/a.jpg\u0026width=300"
+  },
+  "flip": {
+    "path": "/flip",
+    "query": "url=https://example.com/a.jpg",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "flip_and_flop_param": {
+    "path": "/flip",
+    "query": "url=https://example.com/a.jpg\u0026flop=true",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true,
+            "V": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "flop": {
+    "path": "/flop",
+    "query": "url=https://example.com/a.jpg",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Flip": {
+            "V": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "info": {
+    "path": "/info",
+    "query": "url=https://example.com/a.jpg",
+    "request": {
+      "Dialect": "query",
+      "Ignored": [
+        {
+          "Option": "info:schema",
+          "Reason": "not implemented"
+        }
+      ],
+      "Info": {
+        "Alpha": true,
+        "Bands": true,
+        "Colorspace": true,
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "nested_endpoint": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown endpoint",
+      "status": 400
+    },
+    "path": "/resize/x",
+    "query": "url=https://example.com/a.jpg"
+  },
+  "resize_aspectratio": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026aspectratio=16:9",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "AspectRatio": 1.7777777777777777,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "resize_aspectratio_both_dims": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026height=100\u0026aspectratio=16:9",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "center"
+            },
+            "Mode": "copy"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 100
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "resize_aspectratio_invalid": {
+    "error": {
+      "field": "aspectratio",
+      "kind": "invalid_url",
+      "public": "invalid aspectratio: expected w:h with positive integers",
+      "status": 400
+    },
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026aspectratio=wide"
+  },
+  "resize_both_embed": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026height=200",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "center"
+            },
+            "Mode": "copy"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "resize_extend_background": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026height=200\u0026extend=background\u0026background=250,20,10",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 10,
+            "G": 20,
+            "R": 250
+          },
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "center"
+            }
+          },
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "resize_extend_black": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026height=200\u0026extend=black",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255
+          },
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "center"
+            }
+          },
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "resize_extend_invalid": {
+    "error": {
+      "field": "extend",
+      "kind": "invalid_url",
+      "public": "invalid extend: expected black, white, copy, mirror, lastpixel or background",
+      "status": 400
+    },
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026height=200\u0026extend=wrap"
+  },
+  "resize_extend_mirror": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026height=200\u0026extend=mirror",
+    "request": {
+      "Dialect": "query",
+      "Ignored": [
+        {
+          "Option": "extend:mirror",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "center"
+            },
+            "Mode": "copy"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "resize_extend_white": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026height=200\u0026extend=white",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 255,
+            "G": 255,
+            "R": 255
+          },
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "center"
+            }
+          },
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "resize_float_width": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=299.5",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "resize_force": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026height=200\u0026force=true",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "force",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "resize_missing_dims": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected width or height",
+      "status": 400
+    },
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg"
+  },
+  "resize_negative": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected number \u003e= 0",
+      "status": 400
+    },
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=-300"
+  },
+  "resize_nocrop_false": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026height=200\u0026nocrop=false",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "resize_width": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=300",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "rotate": {
+    "path": "/rotate",
+    "query": "url=https://example.com/a.jpg\u0026rotate=90",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "rotate_full_turn": {
+    "path": "/rotate",
+    "query": "url=https://example.com/a.jpg\u0026rotate=450",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "rotate_missing": {
+    "error": {
+      "field": "rotate",
+      "kind": "invalid_url",
+      "public": "invalid rotate: expected required by this endpoint",
+      "status": 400
+    },
+    "path": "/rotate",
+    "query": "url=https://example.com/a.jpg"
+  },
+  "rotate_rounded": {
+    "path": "/rotate",
+    "query": "url=https://example.com/a.jpg\u0026rotate=200",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Rotate": 180
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "rotate_with_width": {
+    "path": "/rotate",
+    "query": "url=https://example.com/a.jpg\u0026rotate=180\u0026width=100",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          },
+          "Rotate": 180
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "smartcrop": {
+    "path": "/smartcrop",
+    "query": "url=https://example.com/a.jpg\u0026width=300\u0026height=300",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "smartcrop_height_only": {
+    "path": "/smartcrop",
+    "query": "url=https://example.com/a.jpg\u0026height=300",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Px": 300
+            }
+          },
+          "Gravity": {
+            "Type": "smart"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "thumbnail": {
+    "path": "/thumbnail",
+    "query": "url=https://example.com/a.jpg\u0026width=100",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "force",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "thumbnail_both": {
+    "path": "/thumbnail",
+    "query": "url=https://example.com/a.jpg\u0026width=100\u0026height=100",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 100
+            },
+            "Type": "force",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "thumbnail_embed": {
+    "path": "/thumbnail",
+    "query": "url=https://example.com/a.jpg\u0026width=100\u0026height=100\u0026embed=true",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "center"
+            },
+            "Mode": "copy"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 100
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "thumbnail_missing": {
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected width or height",
+      "status": 400
+    },
+    "path": "/thumbnail",
+    "query": "url=https://example.com/a.jpg"
+  },
+  "trailing_slash": {
+    "path": "/resize/",
+    "query": "url=https://example.com/a.jpg\u0026width=300",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "unknown_endpoint": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown endpoint",
+      "status": 400
+    },
+    "path": "/nope",
+    "query": "url=https://example.com/a.jpg"
+  },
+  "unknown_param": {
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=100\u0026w=5",
+    "request": {
+      "Dialect": "query",
+      "Ignored": [
+        {
+          "Option": "w",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "unknown_param_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/resize",
+    "query": "url=https://example.com/a.jpg\u0026width=100\u0026w=5"
+  },
+  "watermark": {
+    "path": "/watermark",
+    "query": "url=https://example.com/a.jpg\u0026text=hello\u0026font=sans%2012\u0026opacity=0.5\u0026textwidth=200\u0026color=255,200,150\u0026margin=10\u0026dpi=150",
+    "request": {
+      "Dialect": "query",
+      "Ignored": [
+        {
+          "Option": "watermark",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Color": {
+                "A": 255,
+                "B": 150,
+                "G": 200,
+                "R": 255
+              },
+              "Font": "sans 12",
+              "Opacity": 0.5,
+              "Text": "hello",
+              "Tile": "repeat",
+              "Width": 200
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "watermark_defaults": {
+    "path": "/watermark",
+    "query": "url=https://example.com/a.jpg\u0026text=hello\u0026noreplicate=true",
+    "request": {
+      "Dialect": "query",
+      "Ignored": [
+        {
+          "Option": "watermark",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 0.25,
+              "Text": "hello"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "watermark_missing": {
+    "error": {
+      "field": "text",
+      "kind": "invalid_url",
+      "public": "invalid text: expected required by this endpoint",
+      "status": 400
+    },
+    "path": "/watermark",
+    "query": "url=https://example.com/a.jpg"
+  },
+  "watermarkimage": {
+    "path": "/watermarkimage",
+    "query": "url=https://example.com/a.jpg\u0026image=https://example.com/logo.png\u0026top=10\u0026left=20\u0026opacity=2",
+    "request": {
+      "Dialect": "query",
+      "Ignored": [
+        {
+          "Option": "watermarkimage",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 20,
+                "YOffset": 10
+              },
+              "Source": {
+                "Raw": "https://example.com/logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "watermarkimage_missing": {
+    "error": {
+      "field": "image",
+      "kind": "invalid_url",
+      "public": "invalid image: expected required by this endpoint",
+      "status": 400
+    },
+    "path": "/watermarkimage",
+    "query": "url=https://example.com/a.jpg"
+  },
+  "zoom": {
+    "path": "/zoom",
+    "query": "url=https://example.com/a.jpg\u0026factor=2",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "ZoomX": 3,
+            "ZoomY": 3
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "zoom_area": {
+    "path": "/zoom",
+    "query": "url=https://example.com/a.jpg\u0026factor=1\u0026top=100\u0026left=50\u0026areawidth=300\u0026areaheight=200",
+    "request": {
+      "Dialect": "query",
+      "Ignored": [
+        {
+          "Option": "zoom:area",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 25,
+              "YOffset": 50
+            },
+            "Height": {
+              "Px": 100
+            },
+            "Width": {
+              "Px": 150
+            }
+          },
+          "Resize": {
+            "Enlarge": true,
+            "ZoomX": 2,
+            "ZoomY": 2
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "zoom_area_missing": {
+    "error": {
+      "field": "areawidth",
+      "kind": "invalid_url",
+      "public": "invalid areawidth: expected required by this endpoint",
+      "status": 400
+    },
+    "path": "/zoom",
+    "query": "url=https://example.com/a.jpg\u0026factor=1\u0026top=100"
+  },
+  "zoom_missing": {
+    "error": {
+      "field": "factor",
+      "kind": "invalid_url",
+      "public": "invalid factor: expected required by this endpoint",
+      "status": 400
+    },
+    "path": "/zoom",
+    "query": "url=https://example.com/a.jpg"
+  }
+}
