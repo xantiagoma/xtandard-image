@@ -460,17 +460,17 @@ Grammar: the path after the mount is the file path, relative to the mount's boun
 | `bl-<1..100>` (also unpic's `blur-`) | Blur σ = v/2 |
 | `e-sharpen[-n]` | Sharpen σ = 1 (bare) or 0.5 + n/50 (approximation) |
 | `e-usm-<radius>-<sigma>-<amount>-<threshold>` | Unsharp{Sigma, Amount} (WP-61, classic unsharp mask); radius, threshold dropped |
-| `e-grayscale` | Grayscale (M2) |
-| `e-contrast` (auto contrast stretch) | Equalize (M2) |
-| `r-<n>`, `r-<tl>_<tr>_<br>_<bl>`, `r-max` | Radius (M2) |
-| `b-<w>_<color>` | Border (M2) |
+| `e-grayscale` | Grayscale |
+| `e-contrast` (auto contrast stretch) | Equalize; recorded "not implemented" (no planner step, `plan.Unplanned`) |
+| `r-<n>`, `r-<tl>_<tr>_<br>_<bl>`, `r-max` | Radius |
+| `b-<w>_<color>` | Border |
 | `bg-<RRGGBB|RRGGBBAA|RGB|css name>` | Background |
 | `bg-blurred[_…]` | Extend.Mode = blur (M3); `bg-dominant`, `bg-gradient…`, `bg-genfill…` unsupported |
-| `rt-<deg>`, `rt-N<deg>` | Rotate (multiples of 90), else RotateAny (M2) |
+| `rt-<deg>`, `rt-N<deg>` | Rotate (multiples of 90), else RotateAny |
 | `rt-auto` | AutoRotate |
 | `fl-h|v|h_v` | Flip |
 | `t-true|<1..99>` | Trim threshold 10 / n |
-| `o-<0..100>` | Adjust.Opacity (M2) |
+| `o-<0..100>` | Adjust.Opacity |
 | `n-<name>` | preset `<name>` expanded in place (named transformation) |
 | `di-<path>` (`@@` = `/`) | Fallback, relative to the mount source (served with `XI_FALLBACK_ALLOW_REQUEST_URL`, WP-34c) |
 | `pg-<n>`, `pg-<a>_<b>` | Page (1-based) / Pages (WP-62) |

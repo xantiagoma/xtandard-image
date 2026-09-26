@@ -297,10 +297,11 @@ func (ps *parseState) param(st *step, key, v string) error {
 		return ps.unsharp(pl, v)
 	case "e-grayscale":
 		pl.Grayscale = true
-		ps.b.Ignore(key, reasonM2)
 	case "e-contrast":
+		// Kept for the cache key; the planner has no equalize step
+		// (plan.Unplanned).
 		pl.Equalize = true
-		ps.b.Ignore(key, reasonM2)
+		ps.b.Ignore(key, reasonNotImplemented)
 	case "r":
 		pl.Radius, err = parseRadius(v)
 	case "b":
@@ -327,7 +328,6 @@ func (ps *parseState) param(st *step, key, v string) error {
 		}
 		op := f / 100
 		pl.Adjust.Opacity = &op
-		ps.b.Ignore(key, reasonM2)
 
 	// Delivery and presets.
 	case "n":

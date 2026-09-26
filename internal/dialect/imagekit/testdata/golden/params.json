@@ -1125,7 +1125,7 @@
       "Ignored": [
         {
           "Option": "e-contrast",
-          "Reason": "takes effect in M2"
+          "Reason": "not implemented"
         }
       ],
       "Pipelines": [
@@ -1146,12 +1146,6 @@
     "query": "tr=e-grayscale",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "e-grayscale",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Grayscale": true
@@ -2023,12 +2017,6 @@
     "query": "tr=o-50",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "o",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {

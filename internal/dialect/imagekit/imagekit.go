@@ -66,14 +66,14 @@ const (
 
 // Reasons recorded in Request.Ignored.
 const (
-	reasonUnknown     = "unknown option"
-	reasonUnsupported = "not supported"
-	reasonM2          = "takes effect in M2"
-	reasonM3          = "takes effect in M3"
-	reasonExpression  = "arithmetic expressions not supported"
-	reasonPathWins    = "path transformation takes precedence"
-	reasonNotApplied  = "not applicable here"
-	reasonNoPresets   = "named transformations not configured"
+	reasonUnknown        = "unknown option"
+	reasonUnsupported    = "not supported"
+	reasonNotImplemented = "not implemented"
+	reasonM3             = "takes effect in M3"
+	reasonExpression     = "arithmetic expressions not supported"
+	reasonPathWins       = "path transformation takes precedence"
+	reasonNotApplied     = "not applicable here"
+	reasonNoPresets      = "named transformations not configured"
 	// reasonApproximated: applied with a documented difference.
 	reasonApproximated = "approximated"
 )

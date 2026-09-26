@@ -1443,12 +1443,8 @@
       "Dialect": "imagekit",
       "Ignored": [
         {
-          "Option": "e-grayscale",
-          "Reason": "takes effect in M2"
-        },
-        {
           "Option": "e-contrast",
-          "Reason": "takes effect in M2"
+          "Reason": "not implemented"
         }
       ],
       "Pipelines": [
@@ -1473,12 +1469,8 @@
       "Dialect": "imagekit",
       "Ignored": [
         {
-          "Option": "e-grayscale",
-          "Reason": "takes effect in M2"
-        },
-        {
           "Option": "e-contrast",
-          "Reason": "takes effect in M2"
+          "Reason": "not implemented"
         }
       ],
       "Pipelines": [
@@ -1571,12 +1563,6 @@
     "query": "",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "o",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -1598,12 +1584,6 @@
     "query": "tr=o-50",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "o",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
