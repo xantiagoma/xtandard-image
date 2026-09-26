@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <style>
+    rect { fill: url(https://evil.example/p.svg#p); stroke: URL( "#ok" ) }
+    circle { background: -webkit-image-set("https://evil.example/x.png" 1x) }
+    @font-face { font-family: f; src: url(https://evil.example/f.woff2) format("woff2") }
+    path { mask: url(data:image/png;base64,AAAA) }
+  </style>
+  <rect style="filter:url(http://evil.example/f.svg#f);fill:blue" width="1" height="1"/>
+  <circle fill="url('//evil.example/x#p')" stroke="url(#ok)" r="1"/>
+  <path mask="\75rl(http://evil.example/m)" d="M0 0h1"/>
+  <path clip-path="u&#114;l(https://evil.example/c)" d="M0 0h1"/>
+</svg>
