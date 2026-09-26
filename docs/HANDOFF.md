@@ -107,4 +107,5 @@ owner has authorised merging PRs without review.
 - The memory budget (`XI_PROCESSING_MEMORY_BUDGET`) is charged after the probe and plan
   (`limiter.Reserve` through `exec.Config.Admit`): a job waiting for memory holds its worker slot
   for up to `XI_PROCESSING_QUEUE_TIMEOUT`.
-- First release tag pending (`docs/RELEASE.md`); Pages publishing of the config schema (WP-81b).
+- First release tag pending (`docs/RELEASE.md`); the WP-81b Pages site is built (`task pages:build`)
+  but not deployed until the owner enables GitHub Pages and the workflows.
