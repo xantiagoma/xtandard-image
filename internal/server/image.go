@@ -1,106 +1,381 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"errors"
-	"hash/fnv"
 	"net/http"
-	"strconv"
+	"net/url"
 	"strings"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/fetch"
+	"github.com/xantiagoma/xtandard-image/internal/negotiate"
+	"github.com/xantiagoma/xtandard-image/internal/security/svg"
+	"github.com/xantiagoma/xtandard-image/internal/source"
+	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
 
-// errRequestTimeout is the cause of the per-request budget, so our own
-// deadline is told apart from the client's (go-standards §2).
-var errRequestTimeout = errors.New("server: request timeout")
+// imageResult is a processed image ready to be written, plus what the
+// response headers are derived from.
+type imageResult struct {
+	out      *ProcessOutput
+	etag     string
+	object   source.Object // origin metadata (Body nil), for WP-34b headers
+	decision negotiate.Decision
+	hints    negotiate.HintResult
+	req      *transform.Request
+}
 
-// image serves GET/HEAD /{sig}/{options}/plain/{url}: parse, source policy,
-// fetch (outside the semaphore), admission, process, respond.
+// image serves every non-fixed GET/HEAD path: the request lifecycle of
+// ARCHITECTURE §2 under one request budget. Every failure goes through
+// writeError; nothing below writes an error itself.
 func (s *Server) image(w http.ResponseWriter, r *http.Request) {
-	req, err := parseImagePath(r.URL.Path)
-	if err != nil {
-		s.writeError(w, r, err)
-		return
-	}
-	if !s.cfg.DevMode {
-		s.writeError(w, r, errs.New(errs.KindForbidden,
-			"no source allowlist is configured; set XI_DEV_MODE=true to allow any http(s) source"))
-		return
-	}
-
+	info := infoOf(w)
 	ctx, cancel := context.WithTimeoutCause(r.Context(), s.cfg.RequestTimeout, errRequestTimeout)
 	defer cancel()
 
-	res, err := s.process(ctx, req)
+	res, err := s.process(ctx, r, info)
 	if err != nil {
-		s.writeError(w, r, err)
+		s.writeError(w, r, classify(ctx, r, err))
 		return
 	}
-	defer res.Body.Release()
-	respond(w, r, res)
+	defer res.out.Body.Release()
+
+	t := s.stage(info, stageRespond)
+	s.respond(w, r, res)
+	t.done()
 }
 
-func (s *Server) process(ctx context.Context, req imageRequest) (*Result, error) {
-	src, err := s.deps.Fetcher.Fetch(ctx, req.Source)
+// process runs stages 2–13. Everything it acquires (source buffer,
+// admission permit, sanitised SVG) is released before it returns; only the
+// encoded output outlives it.
+func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo) (*imageResult, error) {
+	// 2–4. Route, parse (presets are expanded by the dialect), authenticate
+	// and apply the unsigned policy.
+	t := s.stage(info, stageRoute)
+	rr, ok := s.stripPathPrefix(r)
+	if !ok {
+		t.done()
+		return nil, &errs.Error{Kind: errs.KindNotFound, Public: "not found", Msg: "server: outside path prefix"}
+	}
+	parsed, mount, err := s.deps.Router.Route(rr)
+	if mount != nil {
+		info.dialect = mount.Dialect
+	}
+	t.done()
 	if err != nil {
 		return nil, err
 	}
-	defer src.Release()
+	req := parsed.Request
+	switch req.Kind {
+	case transform.KindInfo:
+		return nil, &notImplementedError{what: "info requests"}
+	case transform.KindRaw:
+		return nil, &notImplementedError{what: "raw requests"}
+	default:
+	}
 
-	release, err := s.deps.Admitter.Acquire(ctx, 0)
+	// 6. Normalise: client hints become concrete values, then defaults,
+	// then validation, so the canonical key only holds effective values.
+	t = s.stage(info, stageNormalize)
+	hints := negotiate.ApplyClientHints(req, negotiate.ParseClientHints(r.Header), &s.cfg.Negotiate)
+	req.ApplyDefaults(s.cfg.Defaults)
+	err = req.Validate()
+	lim := s.limits(&req.Limits)
+	if err == nil {
+		err = checkResultDimension(req, lim.maxResultDimension)
+	}
+	t.done()
+	if err != nil {
+		return nil, err
+	}
+
+	// 5. Resolve the source against the allowlist.
+	t = s.stage(info, stageResolve)
+	key, err := s.deps.Resolver.Resolve(req.Source)
+	t.done()
+	if err != nil {
+		return nil, err
+	}
+	info.source = key.Source
+
+	// 9. Fetch, outside the processing semaphore so slow origins never hold
+	// a worker slot.
+	t = s.stage(info, stageFetch)
+	fr, err := s.fetch(ctx, key, source.FetchOptions{MaxBytes: lim.maxSrcBytes, Header: r.Header})
+	t.done()
+	if err != nil {
+		return nil, err
+	}
+	defer fr.Release()
+
+	// 10. Admission: fail fast when the queue is full.
+	t = s.stage(info, stageAdmission)
+	release, err := s.deps.Admitter.Acquire(ctx, 0) // cost: planner estimate once WP-25 lands
+	t.done()
 	if err != nil {
 		return nil, err
 	}
 	defer release()
 
-	return s.deps.Processor.Thumbnail(ctx, src, req.Width, req.Height)
+	// 11. Probe: sanitise SVG, read the header, enforce input limits.
+	t = s.stage(info, stageProbe)
+	src, meta, err := s.probe(ctx, fr.Buffer, &lim.probe)
+	t.done()
+	if err != nil {
+		return nil, err
+	}
+	defer src.Release()
+
+	// 7. Negotiate the output format (needs the source meta).
+	t = s.stage(info, stageNegotiate)
+	d, err := negotiate.Decide(req, negotiate.ParseAcceptHeader(r.Header), &s.cfg.Negotiate, negotiate.SourceMeta{
+		Format:     meta.Format,
+		HasAlpha:   meta.HasAlpha,
+		IsAnimated: meta.IsAnimated,
+		FrameCount: meta.Frames,
+		// Until the planner (WP-25) reports whether any raster operation
+		// applies, SVG is always rasterised, never passed through.
+		NeedsRaster: true,
+	})
+	t.done()
+	if err != nil {
+		return nil, err
+	}
+	if d.Passthrough {
+		return nil, &notImplementedError{what: "unprocessed source passthrough"}
+	}
+
+	// 12–13. Plan, execute, encode.
+	if err := ctx.Err(); err != nil {
+		return nil, errs.Wrap(errs.KindOf(err), context.Cause(ctx))
+	}
+	t = s.stage(info, stageProcess)
+	out, err := s.run(ctx, &ProcessInput{
+		Request:      req,
+		Source:       src,
+		Meta:         meta,
+		Decision:     d,
+		QualityDelta: hints.QualityDelta,
+	})
+	t.done()
+	if err != nil {
+		return nil, err
+	}
+	info.format = out.Format.String()
+	info.width, info.height = out.Width, out.Height
+
+	return &imageResult{
+		out:      out,
+		etag:     etag(req.CanonicalKey(), out.Format, hints.QualityDelta, &fr.Object, fr.Bytes(), s.cfg.ETagBuster),
+		object:   fr.Object,
+		decision: d,
+		hints:    hints,
+		req:      req,
+	}, nil
 }
 
-// respond writes the encoded image zero-copy in one Write, with
-// Content-Length and a strong ETag over the bytes; If-None-Match → 304.
-func respond(w http.ResponseWriter, r *http.Request, res *Result) {
-	body := res.Body.Bytes()
-	etag := etagOf(body)
-	if sw, ok := w.(*statusWriter); ok {
-		sw.format = res.Format
+// stripPathPrefix removes XI_SERVER_PATH_PREFIX; ok is false when the path
+// is outside it.
+func (s *Server) stripPathPrefix(r *http.Request) (*http.Request, bool) {
+	p := s.cfg.PathPrefix
+	if p == "" {
+		return r, true
 	}
-	h := w.Header()
-	h.Set("Content-Type", res.ContentType)
-	h.Set("ETag", etag)
-	h.Set("X-Content-Type-Options", "nosniff")
-	if etagMatches(r.Header.Get("If-None-Match"), etag) {
-		w.WriteHeader(http.StatusNotModified)
-		return
+	p = strings.TrimSuffix(p, "/")
+	path, ok := strings.CutPrefix(r.URL.Path, p)
+	if !ok || (path != "" && path[0] != '/') {
+		return nil, false
 	}
-	h.Set("Content-Length", strconv.Itoa(len(body)))
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_, _ = w.Write(body) //nolint:gosec // G705: encoded image bytes with an explicit image Content-Type and nosniff
+	raw, _ := strings.CutPrefix(r.URL.RawPath, p)
+	r2 := new(http.Request)
+	*r2 = *r
+	r2.URL = new(url.URL)
+	*r2.URL = *r.URL
+	r2.URL.Path, r2.URL.RawPath = path, raw
+	return r2, true
+}
+
+func (s *Server) fetch(ctx context.Context, key source.Key, opt source.FetchOptions) (*fetch.Result, error) {
+	ctx, span := s.deps.Tracer.Start(ctx, "fetch", trace.WithAttributes(attribute.String("xi.source", key.Source)))
+	defer span.End()
+	fr, err := s.deps.Fetcher.Fetch(ctx, key, opt)
+	if err != nil {
+		span.SetStatus(codes.Error, errs.KindOf(err).String())
+		return nil, err
+	}
+	if fr == nil || fr.Buffer == nil {
+		return nil, errs.New(errs.KindInternal, "server: fetcher returned no buffer")
+	}
+	span.SetAttributes(attribute.Int("xi.source_bytes", len(fr.Bytes())))
+	return fr, nil
+}
+
+func (s *Server) run(ctx context.Context, in *ProcessInput) (*ProcessOutput, error) {
+	ctx, span := s.deps.Tracer.Start(ctx, "process", trace.WithAttributes(attribute.String("xi.format", in.Decision.Format.String())))
+	defer span.End()
+	out, err := s.deps.Processor.Process(ctx, in)
+	if err != nil {
+		span.SetStatus(codes.Error, errs.KindOf(err).String())
+		return nil, err
+	}
+	if out == nil || out.Body == nil {
+		return nil, errs.New(errs.KindInternal, "server: processor returned no output")
+	}
+	return out, nil
+}
+
+// probe is stage 11. An SVG document (magic-byte sniff) is sanitised into a
+// new buffer before anything parses it, so neither the probe nor librsvg
+// ever sees scripts, external references or entities (ARCHITECTURE §10).
+// The returned buffer holds one reference owned by the caller.
+func (s *Server) probe(ctx context.Context, buf fetch.Buffer, lim *ProbeLimits) (fetch.Buffer, SourceMeta, error) {
+	ctx, span := s.deps.Tracer.Start(ctx, "probe")
+	defer span.End()
+
+	src, sanitised, err := s.sanitize(buf)
+	if err != nil {
+		span.SetStatus(codes.Error, errs.KindOf(err).String())
+		return nil, SourceMeta{}, err
+	}
+	meta, err := s.deps.Prober.Probe(ctx, src, *lim)
+	if err == nil && meta.Format == transform.FormatSVG && !sanitised {
+		// The sniffer and the prober disagree: never hand an unsanitised
+		// SVG to librsvg.
+		err = errs.New(errs.KindUnsupported, "server: prober found svg the sniffer missed")
+	}
+	if err == nil {
+		err = checkMeta(&meta, lim)
+	}
+	if err != nil {
+		src.Release()
+		span.SetStatus(codes.Error, errs.KindOf(err).String())
+		return nil, SourceMeta{}, err
+	}
+	span.SetAttributes(attribute.String("xi.source_format", meta.Format.String()))
+	return src, meta, nil
+}
+
+// sanitize returns buf with one extra reference, or a sanitised copy when
+// buf is an SVG document.
+func (s *Server) sanitize(buf fetch.Buffer) (fetch.Buffer, bool, error) {
+	data := buf.Bytes()
+	if !svg.IsSVG(data) {
+		buf.Retain()
+		return buf, false, nil
+	}
+	// Cold path, bounded by XI_LIMITS_MAX_SVG_BYTES: sanitise into Go
+	// memory, then copy into an allocator buffer (C memory in production).
+	var clean bytes.Buffer
+	clean.Grow(len(data))
+	if err := svg.Sanitize(&clean, bytes.NewReader(data), s.cfg.SVG); err != nil {
+		return nil, false, svgError(err)
+	}
+	out, err := s.deps.Allocator(clean.Len())
+	if err != nil {
+		return nil, false, errs.Wrapf(errs.KindInternal, err, "server: allocate sanitised svg")
+	}
+	copy(out.Bytes(), clean.Bytes())
+	return out, true, nil
+}
+
+// svgError classifies a sanitiser failure: limits are 422 LimitExceeded,
+// everything else (malformed, DTD, not an svg root) 422 Corrupt.
+func svgError(err error) error {
+	if errs.KindOf(err) != errs.KindInternal {
+		return err
+	}
+	switch {
+	case errorsIsAny(err, svg.ErrTooLarge, svg.ErrTooDeep, svg.ErrTooManyElements):
+		return errs.Wrapf(errs.KindLimitExceeded, err, "server: sanitise svg")
+	default:
+		return errs.Wrapf(errs.KindCorrupt, err, "server: sanitise svg")
 	}
 }
 
-// etagOf returns a quoted strong ETag: FNV-1a 64 of the encoded bytes, stable
-// across processes and replicas.
-func etagOf(body []byte) string {
-	h := fnv.New64a()
-	_, _ = h.Write(body)
-	b := make([]byte, 0, 18)
-	b = append(b, '"')
-	b = strconv.AppendUint(b, h.Sum64(), 16)
-	b = append(b, '"')
-	return string(b)
+// checkMeta enforces the input limits on the probed header, independent of
+// whether the prober already did (defence in depth, and fakes in tests).
+func checkMeta(m *SourceMeta, lim *ProbeLimits) error {
+	frames := int64(max(m.Frames, 1))
+	framePixels := int64(m.Width) * int64(m.Height)
+	switch {
+	case m.Width <= 0 || m.Height <= 0:
+		return errs.Newf(errs.KindCorrupt, "server: probe returned %dx%d", m.Width, m.Height)
+	case lim.MaxPixels > 0 && framePixels*frames > lim.MaxPixels:
+		return errs.Newf(errs.KindLimitExceeded, "server: source has %d pixels, limit %d", framePixels*frames, lim.MaxPixels)
+	case lim.MaxFrames > 0 && frames > int64(lim.MaxFrames):
+		return errs.Newf(errs.KindLimitExceeded, "server: source has %d frames, limit %d", frames, lim.MaxFrames)
+	case frames > 1 && lim.MaxFramePixels > 0 && framePixels > lim.MaxFramePixels:
+		return errs.Newf(errs.KindLimitExceeded, "server: frame has %d pixels, limit %d", framePixels, lim.MaxFramePixels)
+	}
+	return nil
 }
 
-// etagMatches implements the weak comparison of If-None-Match (RFC 9110
-// §13.1.2).
-func etagMatches(header, etag string) bool {
-	if header == "" {
-		return false
+// checkResultDimension rejects requests whose explicit target size exceeds
+// XI_LIMITS_MAX_RESULT_DIMENSION (stage 6: 422). Sizes derived from the
+// source are checked again by the planner.
+func checkResultDimension(req *transform.Request, maxDim int) error {
+	if maxDim <= 0 {
+		return nil
 	}
-	for tag := range strings.SplitSeq(header, ",") {
-		tag = strings.TrimSpace(tag)
-		if tag == "*" || strings.TrimPrefix(tag, "W/") == etag {
+	for i := range req.Pipelines {
+		rs := &req.Pipelines[i].Resize
+		dpr := max(rs.DPR, 1)
+		for _, px := range []int{rs.Width.Px, rs.Height.Px, rs.MinWidth, rs.MinHeight} {
+			if float64(px)*dpr > float64(maxDim) {
+				return errs.Newf(errs.KindLimitExceeded, "server: requested dimension %d at dpr %g exceeds %d", px, dpr, maxDim)
+			}
+		}
+	}
+	return nil
+}
+
+// requestLimits are the effective limits of one request.
+type requestLimits struct {
+	maxSrcBytes        int64
+	maxResultDimension int
+	probe              ProbeLimits
+}
+
+// limits merges the request's security options into the configured
+// limits: an override may lower a limit, and raise it only with
+// AllowRaising. The dialect already refused the options unless
+// XI_SECURITY_ALLOW_SECURITY_OPTIONS is on.
+func (s *Server) limits(o *transform.LimitOverrides) requestLimits {
+	c := &s.cfg.Limits
+	mp := func(v float64) int64 { return int64(v * 1e6) }
+	return requestLimits{
+		maxSrcBytes:        override(c.MaxSrcBytes, o.MaxSrcFileSize, c.AllowRaising),
+		maxResultDimension: override(c.MaxResultDimension, o.MaxResultDimension, c.AllowRaising),
+		probe: ProbeLimits{
+			MaxPixels:      override(c.MaxSrcPixels, mp(o.MaxSrcResolution), c.AllowRaising),
+			MaxFrames:      override(c.MaxAnimationFrames, o.MaxAnimationFrames, c.AllowRaising),
+			MaxFramePixels: override(c.MaxAnimationFramePixels, mp(o.MaxAnimationFrameResolution), c.AllowRaising),
+		},
+	}
+}
+
+// override applies a per-request limit v (0 = unset) to the configured
+// limit c (0 = unlimited).
+func override[T int | int64](c, v T, allowRaising bool) T {
+	switch {
+	case v <= 0:
+		return c
+	case allowRaising || c <= 0: // raising, or lowering "unlimited"
+		return v
+	default:
+		return min(c, v)
+	}
+}
+
+func errorsIsAny(err error, targets ...error) bool {
+	for _, t := range targets {
+		if errors.Is(err, t) {
 			return true
 		}
 	}
