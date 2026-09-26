@@ -24,11 +24,17 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
 - **Merging:** the session's permission classifier denied `gh stack merge` once; the owner then
   granted merge permission explicitly in chat and the orchestrator ran `gh stack merge 92 --yes
   --merge` (893b191) and `gh pr merge` for later PRs.
-- **Remaining (2026-09-28):** PR #93 (`m3/wp-75-76-video-out`: tiles, animation, GIF→WebM/MP4/HEVC;
-  already rebased onto `main` by hand, host tests green) needs a container verification on top of
-  the post-merge PR (#94) and then the merge; then the first prerelease tag (`docs/RELEASE.md`; the
-  GitHub workflows are disabled by the owner: build locally and `gh release create`, or ask the
-  owner to re-enable `release.yml`).
+- **M3 is complete on `main`** (PR #93 merged, 4e8dc70; 0 open PRs). Every milestone package is
+  merged and verified in the container (slim/full/gpl: 65 packages; acceptance 90/90).
+- **Next: first prerelease tag.** `docs/RELEASE.md` needs the `release` and `base-image` workflows
+  (multi-arch GHCR push, cosign, SBOM; the r3 `full`/`gpl` base tags are not on GHCR yet). Both are
+  disabled by the owner and the Actions minutes were exhausted until 2026-10-01. Ask the owner to
+  re-enable `base-image` (push to main publishes r3 full/gpl), then `release`, then tag `v0.1.0-rc.1`.
+  A local-only tag without images on GHCR is not useful for a Docker-target project.
+- **Backlog after M3 (WP-91+):** face/object gravity on a single-frame video answers 422 (detection
+  hands the container bytes to libvips; fix = detect on the decoded frame; composites already skip
+  detection); `classify` has no model; detections are not used in chained pipelines; `MALLOC_CONF`
+  in the base runtime image at the next base release; `/info` capability listing (encoders).
 - **Adoption recipe:** `scripts/stack/adopt2.sh - <branch> <n> "<title>" <body.md>`; on `MANUAL:` fix
   the file by hand (keep both sides for docs; README status matrix: take the most advanced status
   per row), `git add`, then loop `resolve.sh` + `GIT_EDITOR=true git rebase --continue`, then
