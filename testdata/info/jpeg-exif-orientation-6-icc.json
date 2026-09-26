@@ -1,0 +1,24 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "exif": {
+    "Color Space": "Uncalibrated",
+    "Exif Version": "Exif Version 2.1",
+    "FlashPixVersion": "FlashPix Version 1.0",
+    "Orientation": "Right-top",
+    "Resolution Unit": "Inch",
+    "X-Resolution": "72",
+    "Y-Resolution": "72"
+  },
+  "format": "jpeg",
+  "height": 240,
+  "iptc": {},
+  "mime_type": "image/jpeg",
+  "orientation": 6,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 14512,
+  "width": 320,
+  "xmp": {}
+}
