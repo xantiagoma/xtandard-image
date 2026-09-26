@@ -43,6 +43,14 @@ func (r *runner) step(ctx context.Context, img *vips.Image, s plan.Step) (*vips.
 		return r.watermark(ctx, img, &s)
 	case plan.TrimStep:
 		return r.trim(ctx, img, &s)
+	case plan.RotateAnyStep:
+		return r.rotateAny(ctx, img, &s)
+	case plan.MaskStep:
+		return r.mask(ctx, img, &s)
+	case plan.BorderStep:
+		return r.border(ctx, img, &s)
+	case plan.RadiusStep:
+		return r.radius(ctx, img, &s)
 	default:
 		return nil, errs.Newf(errs.KindInternal, "exec: unknown step %T", s)
 	}

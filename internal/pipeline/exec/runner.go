@@ -39,6 +39,9 @@ type runner struct {
 	// transparent renders PDF pages on a transparent background
 	// (pdfTransparent); otherwise they are opaque.
 	transparent bool
+	// coverage caches the rasterised mask and radius outlines per frame
+	// size (geometry_extras.go).
+	coverage map[coverageKey][]byte
 }
 
 // last returns the plan whose Output is the response.
