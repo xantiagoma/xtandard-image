@@ -471,7 +471,7 @@ func ProcessingOptions() []Option {
 			Name: "progressive_blur", Aliases: []string{"pbl"}, Scope: ScopePipeline, Pro: true,
 			Forms: []Form{form(
 				numArg("sigma", 0, transform.MaxSigma, "blur sigma; 0 = off").opt(),
-				Arg{Name: "direction", Type: TypeDirection, Optional: true, Doc: "down, up, left, right or degrees"},
+				Arg{Name: "direction", Type: TypeDirection, Optional: true, Doc: "down, up, left, right or degrees clockwise (0 = down, 90 = left)"},
 				unitOpt("start", "start of the ramp (0..1)"), unitOpt("stop", "end of the ramp (0..1)"),
 			)},
 			Syntax: "sigma:direction:start:stop; direction as `gradient`", Default: "off (…:down:0:1)", Milestone: "M2 (WP-61)",
@@ -501,10 +501,10 @@ func ProcessingOptions() []Option {
 			Name: "gradient", Aliases: []string{"gr"}, Scope: ScopePipeline, Pro: true,
 			Forms: []Form{form(
 				unitOpt("opacity", "gradient opacity (0..1)"), colorArg("color", "gradient colour").opt(),
-				Arg{Name: "direction", Type: TypeDirection, Optional: true, Doc: "down, up, left, right or degrees"},
+				Arg{Name: "direction", Type: TypeDirection, Optional: true, Doc: "down, up, left, right or degrees clockwise (0 = down, 90 = left)"},
 				unitOpt("start", "start (0..1)"), unitOpt("stop", "stop (0..1)"),
 			)},
-			Syntax: "opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees", Default: "0:000:down:0:1", Milestone: "M2",
+			Syntax: "opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees clockwise like imgproxy (0 = top to bottom like `down`, 90 = right to left like `left`)", Default: "0:000:down:0:1", Milestone: "M2",
 			Doc: "Gradient overlay.", Example: "0.5:000000:down:0.5:1",
 		},
 		{

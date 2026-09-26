@@ -133,6 +133,13 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `watermark_size` (`wms`) Pro | w:h | `Watermark.Width/Height`: fit into w×h CSS px (DPR applied), enlarging; 0 from the aspect ratio; only when the `wm` scale is 0 | 0:0 | M3 (WP-77) |
 | `watermark_rotate` (`wm_rot`, `wmr`) Pro | degrees | `Watermark.Rotate`: clockwise after sizing, onto the transparent bounding box | 0 | M3 (WP-77) |
 | `watermark_shadow` (`wmsh`) Pro | sigma | `Watermark.Shadow`: the watermark's alpha in black, blurred with sigma (CSS px, DPR applied), under it | off | M3 (WP-77) |
+| `gradient` (`gr`) Pro | opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees clockwise like imgproxy (0 = top to bottom like `down`, 90 = right to left like `left`) | `P.Gradient` | 0:000:down:0:1 | M2 |
+| `watermark` (`wm`) | opacity:pos:x:y:scale; pos incl. `re` (tile), `ch` (chessboard, Pro) | `P.Watermarks[i]` | off | M1 (`re` M1, `ch` M3) |
+| `watermark_url` (`wmu`) Pro | base64url URL | `Watermark.Source` | config image | M3 |
+| `watermark_text` (`wmt`) Pro | base64url Pango markup | `Watermark.Text` (replaces `watermark_url`) | — | M3 |
+| `watermark_size` (`wms`) Pro | w:h | `Watermark.Width/Height` | 0:0 | M3 |
+| `watermark_rotate` (`wm_rot`, `wmr`) Pro | degrees | `Watermark.Rotate` | 0 | M3 |
+| `watermark_shadow` (`wmsh`) Pro | sigma | `Watermark.Shadow` | off | M3 |
 | `style` (`stl`, `st`) Pro | base64url CSS | `P.SVGStyle`: a `<style>` first child of the root of an SVG source, the document sanitised again with it (external references dropped); skipped for other sources | — | M2 (WP-64) |
 | `strip_metadata` (`sm`) | bool | `O.StripMetadata` | config (true) | M1 |
 | `keep_copyright` (`kcr`) | bool | `O.KeepCopyright` | config (true) | M1 |
