@@ -1,12 +1,30 @@
 // Hand-written C shim for internal/vips: probe, load, thumbnail and
 // synthetic images. See shim.h for the licence notice.
 
+// memfd_create (Linux): the OpenEXR spool lives in memory, not in /tmp.
+#define _GNU_SOURCE
+
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#ifdef __linux__
+#include <sys/mman.h>
+#endif
+
+#include <glib/gstdio.h>
 
 #include "shim.h"
 
 #define XI_SRC_BLOB_KEY "xi-src-blob"
+#define XI_SPOOL_KEY "xi-spool"
+
+// OpenEXR has only a file loader (openexrload): the buffer is spooled to a
+// file it can open. Radiance files headed "#?RGBE" instead of "#?RADIANCE"
+// are loaded by radload_buffer named directly, whose header parser skips
+// that line either way (libvips' sniffer insists on "#?RADIANCE").
+#define XI_EXR_LOADER "VipsForeignLoadOpenexr"
+#define XI_RAD_LOADER "VipsForeignLoadRadBuffer"
 
 static gboolean
 xi_loader_blocked(const char *loader)
@@ -31,9 +49,28 @@ xi_is_magick(const char *loader)
   return g_str_has_prefix(loader, "VipsForeignLoadMagick");
 }
 
-// xi_check_loader refuses a blocked loader, and ImageMagick for anything but
-// PSD/PSB: ImageMagick is in the image for Photoshop files only
-// (FORMATS.md), and its policy.xml denies every other coder as well.
+// xi_is_binary_pnm reports whether d starts with a binary PGM/PPM (P5, P6)
+// or PFM (PF, Pf) header: the only portable anymap variants enabled
+// (FORMATS.md §1.4). ASCII (P1-P3) and bitmap (P4) files are refused.
+static gboolean
+xi_is_binary_pnm(const unsigned char *d, size_t n)
+{
+  return n >= 3 && d[0] == 'P' &&
+      (d[1] == '5' || d[1] == '6' || d[1] == 'F' || d[1] == 'f') &&
+      (d[2] == ' ' || d[2] == '\t' || d[2] == '\n' || d[2] == '\r');
+}
+
+// xi_is_rgbe reports a Radiance file whose first line is "#?RGBE".
+static gboolean
+xi_is_rgbe(const unsigned char *d, size_t n)
+{
+  return n >= 7 && memcmp(d, "#?RGBE", 6) == 0 && (d[6] == '\n' || d[6] == '\r');
+}
+
+// xi_check_loader refuses a blocked loader, ImageMagick for anything but
+// PSD/PSB (ImageMagick is in the image for Photoshop files only,
+// FORMATS.md, and its policy.xml denies every other coder as well) and the
+// PPM loader for anything but binary PGM/PPM/PFM.
 static int
 xi_check_loader(const char *loader, VipsBlob *blob, char **err)
 {
@@ -49,6 +86,12 @@ xi_check_loader(const char *loader, VipsBlob *blob, char **err)
   if (xi_is_magick(loader) &&
       (area->length < 4 || memcmp(area->data, "8BPS", 4) != 0)) {
     vips_error("xi_load", "%s is restricted to PSD/PSB", loader);
+    *err = xi_error_copy();
+    return XI_ERR_UNSUPPORTED;
+  }
+  if (g_str_has_prefix(loader, "VipsForeignLoadPpm") &&
+      !xi_is_binary_pnm(area->data, area->length)) {
+    vips_error("xi_load", "%s is restricted to binary PGM/PPM/PFM", loader);
     *err = xi_error_copy();
     return XI_ERR_UNSUPPORTED;
   }
@@ -79,11 +122,112 @@ xi_find_loader(VipsBlob *blob, const char **loader, char **err)
 {
   VipsArea *area = VIPS_AREA(blob);
 
-  if (!(*loader = vips_foreign_find_load_buffer(area->data, area->length))) {
+  // The buffer sniffer never considers openexrload (a file loader) and
+  // wants "#?RADIANCE" for Radiance: both are recognised here first.
+  if (area->length >= 4 && memcmp(area->data, "v/1\x01", 4) == 0)
+    *loader = XI_EXR_LOADER;
+  else if (xi_is_rgbe(area->data, area->length))
+    *loader = XI_RAD_LOADER;
+  else if (!(*loader = vips_foreign_find_load_buffer(area->data, area->length))) {
     *err = xi_error_copy();
     return XI_ERR_UNSUPPORTED;
   }
   return xi_check_loader(*loader, blob, err);
+}
+
+// ---- OpenEXR spool ---------------------------------------------------------
+//
+// openexrload reads a file by name, lazily: the file must outlive every
+// image derived from the load. The spool is attached to the loaded image and
+// closed (a temporary file also unlinked) when that image is finalised. On
+// Linux it is a memfd opened through /proc/self/fd, so nothing touches the
+// filesystem; elsewhere a file in g_get_tmp_dir().
+//
+// The registry maps a spool's path to the source blob's data pointer, so a
+// decode failure (the invalidate hook sees the loader's "filename", not a
+// "buffer") is attributed to the source like any buffer load.
+
+typedef struct {
+  int fd;
+  char *path;
+  gboolean temp;    // a named temporary file: unlink when done
+  const void *data; // the source blob's data (registry value)
+} XiSpool;
+
+static GMutex xi_spools_lock;
+static GHashTable *xi_spools = NULL; // path -> source data pointer
+
+static void
+xi_spool_free(XiSpool *s)
+{
+  g_mutex_lock(&xi_spools_lock);
+  if (xi_spools && s->path)
+    g_hash_table_remove(xi_spools, s->path);
+  g_mutex_unlock(&xi_spools_lock);
+  if (s->fd >= 0)
+    close(s->fd);
+  if (s->temp && s->path)
+    g_unlink(s->path);
+  g_free(s->path);
+  g_free(s);
+}
+
+static XiSpool *
+xi_spool_new(VipsBlob *blob)
+{
+  VipsArea *area = VIPS_AREA(blob);
+  const char *p = area->data;
+  size_t left = area->length;
+  XiSpool *s = g_new0(XiSpool, 1);
+
+  s->fd = -1;
+  s->data = area->data;
+#ifdef __linux__
+  if ((s->fd = memfd_create("xi-exr", MFD_CLOEXEC)) >= 0)
+    s->path = g_strdup_printf("/proc/self/fd/%d", s->fd);
+#endif
+  if (s->fd < 0) {
+    GError *gerr = NULL;
+
+    if ((s->fd = g_file_open_tmp("xi-XXXXXX.exr", &s->path, &gerr)) < 0) {
+      vips_error("xi_load", "spool: %s", gerr ? gerr->message : "cannot create");
+      g_clear_error(&gerr);
+      xi_spool_free(s);
+      return NULL;
+    }
+    s->temp = TRUE;
+  }
+  while (left > 0) {
+    ssize_t n = write(s->fd, p, left);
+
+    if (n < 0 && errno == EINTR)
+      continue;
+    if (n <= 0) {
+      vips_error_system(errno, "xi_load", "spool write");
+      xi_spool_free(s);
+      return NULL;
+    }
+    p += n;
+    left -= (size_t) n;
+  }
+  g_mutex_lock(&xi_spools_lock);
+  if (!xi_spools)
+    xi_spools = g_hash_table_new(g_str_hash, g_str_equal);
+  g_hash_table_insert(xi_spools, s->path, (gpointer) s->data);
+  g_mutex_unlock(&xi_spools_lock);
+  return s;
+}
+
+const void *
+xi_spool_source(const char *path)
+{
+  const void *data = NULL;
+
+  g_mutex_lock(&xi_spools_lock);
+  if (xi_spools && path)
+    data = g_hash_table_lookup(xi_spools, path);
+  g_mutex_unlock(&xi_spools_lock);
+  return data;
 }
 
 static gboolean
@@ -139,10 +283,18 @@ static int
 xi_run_loader(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsImage **out)
 {
   VipsOperation *op;
+  XiSpool *spool = NULL;
 
   if (!(op = vips_operation_new(loader)))
     return -1;
-  g_object_set(op, "buffer", blob, NULL);
+  if (strcmp(loader, XI_EXR_LOADER) == 0) {
+    if (!(spool = xi_spool_new(blob))) {
+      g_object_unref(op);
+      return -1;
+    }
+    g_object_set(op, "filename", spool->path, NULL);
+  } else
+    g_object_set(op, "buffer", blob, NULL);
   g_object_set(op, "access", o->access, "fail_on", o->fail_on, NULL);
   // Always limited: never lift the libraries' own safety limits.
   if (xi_has_prop(op, "unlimited"))
@@ -165,7 +317,15 @@ xi_run_loader(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsIm
     g_object_set(op, "background", bg, NULL);
     vips_area_unref(VIPS_AREA(bg));
   }
-  return xi_build(op, out);
+  if (xi_build(op, out)) {
+    if (spool)
+      xi_spool_free(spool);
+    return -1;
+  }
+  if (spool)
+    g_object_set_data_full(G_OBJECT(*out), XI_SPOOL_KEY, spool,
+        (GDestroyNotify) xi_spool_free);
+  return 0;
 }
 
 static int
@@ -325,6 +485,11 @@ xi_thumbnail(VipsBlob *blob, const XiThumbnailOptions *o, const char *import_pro
   *out = NULL;
   if ((rc = xi_find_loader(blob, &loader, err)))
     return rc;
+  if (strcmp(loader, XI_EXR_LOADER) == 0) {
+    vips_error("xi_thumbnail", "OpenEXR has no buffer loader");
+    *err = xi_error_copy();
+    return XI_ERR_UNSUPPORTED;
+  }
 
   // Loader options travel in option_string; only pass what this loader has,
   // since unknown keys are an error.

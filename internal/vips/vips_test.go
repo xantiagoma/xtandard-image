@@ -137,14 +137,16 @@ func TestThumbnailErrors(t *testing.T) {
 		{name: "bmp has no enabled loader", data: readFixture(t, "bmp/rgb24.bmp"), want: errs.KindUnsupported},
 		{name: "ico has no enabled loader", data: readFixture(t, "ico/png-entry.ico"), want: errs.KindUnsupported},
 		{name: "garbage", data: []byte("definitely not an image"), want: errs.KindUnsupported},
-		// ppmload_buffer is compiled in but not on the allowlist. Blocked
+		// ppmload_buffer is enabled for binary PGM/PPM/PFM only (WP-67): the
+		// shim refuses the ASCII and bitmap variants.
+		{name: "ascii pgm is refused", data: []byte("P2\n2 2\n255\n0 0 0 0\n"), want: errs.KindUnsupported, wantMsg: "restricted to binary"},
+		{name: "pbm bitmap is refused", data: []byte("P4\n8 1\n\x00"), want: errs.KindUnsupported, wantMsg: "restricted to binary"},
+		// matrixload is compiled in, untrusted and not on the allowlist. Blocked
 		// loaders are skipped by the libvips sniffer (foreign.c
 		// file_add_class), so the input reads as an unknown format, or, where
 		// ImageMagick is built in, matches its lowest-priority loader, which
 		// the shim refuses for anything but PSD.
-		{name: "ppm loader is blocked", data: []byte("P6\n2 2\n255\n" + string(make([]byte, 12))), want: errs.KindUnsupported, wantMsg: unknownFormat},
-		// radload_buffer is compiled in, untrusted and not on the allowlist.
-		{name: "radiance loader is blocked", data: []byte("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 1 +X 1\n\x00\x00\x00\x00"), want: errs.KindUnsupported, wantMsg: unknownFormat},
+		{name: "matrix loader is blocked", data: []byte("2 2\n0 0\n0 0\n"), want: errs.KindUnsupported, wantMsg: unknownFormat},
 		{name: "jpeg header only", data: baseline[:24], want: errs.KindCorrupt},
 	}
 	for _, tc := range tests {

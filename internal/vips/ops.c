@@ -841,3 +841,38 @@ xi_blend_mask(VipsImage *mask, VipsImage *a, VipsImage *b, VipsImage **out, char
     XI_FAIL();
   return XI_OK;
 }
+
+// ---- HDR (WP-67) -----------------------------------------------------------
+
+int
+xi_decode(VipsImage *in, VipsImage **out, char **err)
+{
+  // Radiance RGBE (and LabQ) to float; any other image is passed through.
+  if (vips_image_decode(in, out))
+    XI_FAIL();
+  return XI_OK;
+}
+
+int
+xi_clamp(VipsImage *in, double min, double max, VipsImage **out, char **err)
+{
+  if (vips_clamp(in, out, "min", min, "max", max, NULL))
+    XI_FAIL();
+  return XI_OK;
+}
+
+int
+xi_multiply(VipsImage *a, VipsImage *b, VipsImage **out, char **err)
+{
+  if (vips_multiply(a, b, out, NULL))
+    XI_FAIL();
+  return XI_OK;
+}
+
+int
+xi_divide(VipsImage *a, VipsImage *b, VipsImage **out, char **err)
+{
+  if (vips_divide(a, b, out, NULL))
+    XI_FAIL();
+  return XI_OK;
+}
