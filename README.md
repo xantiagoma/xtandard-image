@@ -1,35 +1,36 @@
 # xtandard-image
 
-> **Status: alpha.** Milestone M1 is complete on `main`: the imgproxy and query dialects work end to end from every source type, with the core processing set, every still format, signing, encryption, `/info`, metrics, the release pipeline and the M1 acceptance suite that gates releases. No release has been tagged yet, so you build the image yourself (below), and configuration and URL options may still change before 1.0.
+> **Status: alpha.** Milestones **M1 and M2 are complete on `main`**: every URL dialect below except imgix is served end to end from every source type, with the imgproxy processing set apart from detection, video and the advanced watermarks (chained pipelines, colour adjustments, geometry and filter extras, best format and auto-quality), camera RAW, PDF, PSD and HDR inputs, a memory/disk/S3/Redis result cache, `/info` with the Pro fields, client hints, signing, encryption, a JSON Schema for the config file and an OpenAPI document. **M3 is in progress.** In review in the open `m3` stack (#80–#88), not on `main` yet: the `full` image with FFmpeg and ONNX Runtime, the face/object detection runtime, the imgix mount, advanced and text watermarks, the playground, the TypeScript package, Pages/SchemaStore publishing and a stabilisation pass. Being built: detection-based crops and filters, video thumbnails and the `gpl` image flavour. Planned: video tiles/animation and GIF → video. No release has been tagged yet, so you build the image yourself (below), and configuration and URL options may still change before 1.0.
 
-A self-hosted image processing proxy in Go and libvips. The goal is to offer every imgproxy Pro processing feature for free under the MIT license, support more input formats than anything else in the category, and accept many URL dialects: imgproxy, imgix, Cloudinary, ImageKit, Cloudflare, Bunny, Thumbor, wsrv/weserv and the rest of the [unpic](https://unpic.pics/providers/) provider list. It ships as a ready-to-run Docker image for Dokploy, Coolify and Kubernetes, with no build step.
+A self-hosted image processing proxy in Go and libvips. The goal is to offer every imgproxy Pro processing feature for free under the MIT license, support more input formats than anything else in the category, and accept many URL dialects: imgproxy, imgix, Cloudinary, ImageKit, Cloudflare, Bunny, Thumbor, wsrv/weserv, AWS Serverless Image Handler and the rest of the [unpic](https://unpic.pics/providers/) provider list. It ships as a ready-to-run Docker image for Dokploy, Coolify and Kubernetes, with no build step.
 
 ## Why
 
-- **imgproxy URLs work unchanged.** Signing, `enc/` sources, presets, `/info` and the OSS processing options work today; chained pipelines and the remaining Pro options arrive in M2 and M3.
-- **Point your front end at it and keep your code** (M2, in progress). An unpic `<Image>` configured for imgix, Cloudinary, ImageKit, Cloudflare, Bunny, Netlify, Next.js and others can target xtandard-image as if it were that provider.
-- **Wide format support.** Inputs today: JPEG, PNG, GIF (animated), WebP (animated), AVIF, HEIC, JPEG XL, TIFF, BMP, ICO, SVG, JPEG 2000 and UltraHDR. Outputs: JPEG, PNG, GIF, WebP, AVIF, JPEG XL, TIFF, BMP, ICO (HEIC opt-in). Planned: camera RAW (CR3, NEF, ARW, DNG and more, embedded preview first), PDF and PSD in M2. Video thumbnails (MP4, MOV, WebM, MKV, AVI: H.264, HEVC, VP8, VP9, AV1, …) in the `full` image.
+- **imgproxy URLs work unchanged.** Signing, `enc/` sources, presets, chained pipelines, `/info` and the processing options, Pro ones included, work on `main`. Options that need detection or video (`g:obj`, `crop_objects`, `vts`, …) are parsed and reported in `X-Xi-Ignored` until M3 lands them; the advanced watermark options (`wmu`, `wmt`, `wms`, `wmr`, `wmsh`, chessboard) are in review (#85).
+- **Point your front end at it and keep your code.** An unpic `<Image>` configured for Cloudinary, ImageKit, Cloudflare, Bunny, wsrv, Netlify, Next.js or any of the other unpic providers can target xtandard-image as if it were that provider (on `main`); imgix URLs are parsed on `main` and served once the imgix mount (#87) is merged. Thumbor and AWS Serverless Image Handler URLs work too.
+- **Wide format support.** Inputs: JPEG, PNG, GIF (animated), WebP (animated), AVIF, HEIC, JPEG XL, TIFF, BMP, ICO, SVG, JPEG 2000, UltraHDR, camera RAW (CR3, NEF, ARW, DNG and more, embedded preview first), PDF, PSD/PSB, OpenEXR, Radiance HDR and PPM/PFM. Outputs: JPEG, PNG, GIF, WebP, AVIF, JPEG XL, TIFF, BMP, ICO (HEIC opt-in). Video input and GIF → video output are M3 work for the `full` image.
 - **Secure by default.** It refuses to start without a source allowlist. It also protects against SSRF (including DNS rebinding), enforces decompression-bomb and pixel limits, and sanitises SVG.
-- **CDN-friendly and stateless.** Responses carry correct `Cache-Control`, `ETag`, `Vary: Accept`, `Content-DPR` and `Content-Disposition` headers, with 304 before any processing. Requests for the same original are coalesced. Result caching (memory, disk, S3, Redis) is optional (M2).
-- **No GPL anywhere.** Only LGPL, BSD, MIT and Apache dependencies are used (see [ADR 0006](docs/adr/0006-license-policy.md)).
+- **CDN-friendly and stateless.** Responses carry correct `Cache-Control`, `ETag`, `Vary`, `Content-DPR` and `Content-Disposition` headers, with 304 before any processing. Requests for the same original are coalesced. An optional result cache (memory, disk, S3, Redis tiers) is built in.
+- **No GPL in the default images.** `slim` and `full` use only LGPL, BSD, MIT and Apache dependencies (see [ADR 0006](docs/adr/0006-license-policy.md)). An opt-in `gpl` flavour with H.264/HEVC encoders is being built as a separate image.
 
 ## Status and comparison
 
-The xtandard-image column is the state of `main` as of 2026-09-26: **done (M1)** means merged and working in the image you build today; otherwise the planned milestone from the [roadmap](docs/ROADMAP.md), which tracks every work package with its status. Competitor legend: **yes**, **paid** (paid tier only), **partial**, **no**, **—** (not compared yet). Competitor data comes from their public docs and source as of September 2026.
+The xtandard-image column is the state as of 2026-09-27: **done (M1)** / **done (M2)** means merged on `main` and working in the image you build today; **in review (#N)** means implemented in open pull request N of the `m3` stack, not on `main` yet; **in progress** and **planned** follow the [roadmap](docs/ROADMAP.md), which tracks every work package with its status. Competitor legend: **yes**, **paid** (paid tier only), **partial**, **no**, **—** (not compared yet). Competitor data comes from their public docs and source as of September 2026.
 
 | Feature | xtandard-image | imgproxy OSS | imgproxy Pro | thumbor | imaginary | weserv |
 |---|---|---|---|---|---|---|
 | License | MIT | Apache-2.0 | commercial | MIT | MIT | BSD-3 |
 | **URLs and security** | | | | | | |
-| imgproxy URL dialect (M1 option set; later options parsed and listed in `X-Xi-Ignored`) | done (M1) | yes | yes | no | no | no |
+| imgproxy URL dialect (every option parsed; detection and video options listed in `X-Xi-Ignored` until M3) | done (M1, M2) | yes | yes | no | no | no |
 | Query-string dialect (`?url=…&w=…`, imaginary endpoints) | done (M1) | no | no | no | yes | partial (own parameters) |
 | Presets, only-presets mode | done (M1) | yes | yes | — | — | — |
 | Signed URLs (imgproxy HMAC, `xi_sig`, imaginary `sign`) | done (M1) | yes | yes | yes | yes | no |
 | Encrypted source URLs (`enc/`) | done (M1) | no | paid | no | no | no |
 | Mandatory source allowlist, SSRF protection incl. DNS rebinding | done (M1) | partial (optional allowlist) | partial (optional allowlist) | — | — | — |
-| imgix URLs (host or prefix mount, `s`/`expires` signing, `64` parameters, watermarks) | done (M2, WP-40/88) | no | no | no | no | no |
-| Cloudinary / ImageKit / Cloudflare / Bunny / Thumbor / wsrv URLs | M2 (in progress) | no | no | Thumbor only | no | wsrv only |
-| Other unpic providers (Next.js, Netlify, Vercel, …) | M2 | no | no | no | no | no |
+| imgix URLs (host or prefix mount, `s`/`expires` signing, `64` parameters, watermarks) | parser done (M2); mount in review (#87) | no | no | no | no | no |
+| Cloudinary / ImageKit / Cloudflare (incl. Images delivery) / Bunny / Thumbor / wsrv URLs, with their signing schemes | done (M2) | no | no | Thumbor only | no | wsrv only |
+| AWS Serverless Image Handler URLs (base64 JSON, thumbor and query forms) | done (M2) | — | — | — | — | — |
+| Other unpic providers (Next.js, Netlify, Vercel, Contentful, Shopify, … 21 in all) | done (M2) | no | no | no | no | no |
 | **Sources** | | | | | | |
 | http(s), S3, GCS, Azure Blob, local filesystem | done (M1) | yes | yes | partial (plugins) | partial (local) | partial (http) |
 | FTP / FTPS / SFTP | done (M1) | no | no | no | no | no |
@@ -39,31 +40,39 @@ The xtandard-image column is the state of `main` as of 2026-09-26: **done (M1)**
 | HEIC input | done (M1) | yes | yes | partial (plugin) | yes | yes |
 | JPEG XL, JPEG 2000, UltraHDR input | done (M1) | partial (JPEG XL) | — | — | — | — |
 | AVIF / WebP / JXL output + Accept negotiation | done (M1) | yes | yes | partial | partial | partial |
-| Animated GIF / WebP (resize every frame) | done (M1) | yes | yes | — | — | — |
-| Camera RAW input | M2 (libraries in the base image; loader planned) | no | paid (loading only, v4.0) | no | no | no |
-| PDF / PSD thumbnails | M2 (libraries in the base image; loaders planned) | no | paid | no | partial (PDF) | partial (PDF) |
-| Best-format and auto-quality (DSSIM) | M2 | no | paid | no | no | no |
-| Video thumbnails (frame at a time, keyframe, best frame; `/info` video metadata) | done (M3, full image) | no | paid | partial (ffmpeg engine) | no | no |
-| GIF → MP4/WebM | M3 (full image) | no | paid | no | no | no |
+| Animated GIF / WebP (resize every frame), page and frame selection | done (M1, M2) | yes | yes | — | — | — |
+| Camera RAW input (embedded preview or LibRaw demosaic) | done (M2) | no | paid (loading only, v4.0) | no | no | no |
+| PDF (PDFium) / PSD thumbnails | done (M2) | no | paid | no | partial (PDF) | partial (PDF) |
+| HDR input (OpenEXR, Radiance, PPM/PFM; tone-mapped or `preserve_hdr`) | done (M2) | — | — | — | — | — |
+| Best-format and auto-quality (DSSIM) | done (M2) | no | paid | no | no | no |
+| Video thumbnails (frame at a time, keyframe, best frame; `/info` video metadata) | in review (#90, `full` image) | no | paid | partial (ffmpeg engine) | no | no |
+| GIF → MP4/WebM, video tiles and animation | in progress (WP-75/76, `full`/`gpl` images) | no | paid | partial (ffmpeg engine) | no | no |
 | **Processing** | | | | | | |
-| Resize, crop, gravity, smart crop, focus point | done (M1) | yes | yes | yes | yes | yes |
+| Resize, crop, gravity, smart crop, focus point (fractions or source pixels) | done (M1, M2) | yes | yes | yes | yes | yes |
 | Extend, padding, trim | done (M1) | yes | yes | — | — | — |
-| Rotate, flip, EXIF auto-orientation | done (M1) | yes | yes | yes | yes | yes |
+| Rotate (any angle), flip, EXIF auto-orientation | done (M1, M2) | yes | yes | yes | yes | yes |
 | Blur, sharpen, pixelate | done (M1) | yes | yes | partial (no pixelate) | partial | partial |
+| Unsharp masking, blur areas, progressive blur | done (M2) | no | paid | — | — | — |
+| Crop aspect ratio, border, rounded corners, shape masks | done (M2) | — | — | — | — | — |
 | Watermark (image: position, offsets, scale, opacity, tiling) | done (M1) | yes | yes | yes | yes | no |
-| Metadata policy (strip, keep copyright, ICC → sRGB) | done (M1) | yes | yes | — | — | — |
-| Colour adjustments, duotone, gradients | M2 | no | paid | yes | no | yes |
-| Chained pipelines | M2 | no | paid | no | yes (`/pipeline`) | no |
-| Face and object detection (crop, blur) | runtime ready (WP-71, full image); options in M3 (WP-72/73) | no | paid | partial (OpenCV faces) | no | no |
-| Watermarks (text, per-request URL, size, shadow, rotation, chessboard) | done (M3) | no | paid | partial | partial (text) | no |
+| Metadata policy (strip, keep copyright, ICC → sRGB, `color_profile`) | done (M1, M2) | yes | yes | — | — | — |
+| Colour adjustments, duotone, gradients | done (M2) | no | paid | yes | no | yes |
+| Chained pipelines | done (M2) | no | paid | no | yes (`/pipeline`) | no |
+| Face and object detection (crop, blur) | runtime in review (#88, `full` image); options in progress (WP-72/73) | no | paid | partial (OpenCV faces) | no | no |
+| Watermarks (text, per-request URL, size, shadow, rotation, chessboard) | in review (#85) | no | paid | partial | partial (text) | no |
 | **Serving and operations** | | | | | | |
 | `/info` endpoint (dimensions, EXIF, IPTC, XMP) | done (M1) | no | paid | partial (`/meta`) | yes | partial (`output=json`) |
+| `/info` Pro fields (palette, dominant colours, blurhash, thumbhash, perceptual hash, hashsums) | done (M2) | no | paid | — | — | — |
 | ETag, 304, HEAD, `Cache-Control`, `Vary`, `Content-DPR` | done (M1) | yes | yes | — | — | — |
+| Client hints (`Sec-CH-DPR`, `Sec-CH-Width`, `Save-Data`, `Accept-CH`) | done (M2) | — | — | — | — | — |
 | `raw` / `skip_processing` passthrough, fallback image | done (M1) | yes | yes | — | — | — |
 | Admission control (queue → 429, worker timeout → 503) | done (M1) | yes | yes | — | — | — |
 | Prometheus metrics, OpenTelemetry, health and readiness | done (M1) | yes | yes | partial | partial | no |
 | Multi-arch Docker image (cosign-signed, SBOM, provenance) | done (M1; first tag pending) | yes | yes | — | — | — |
-| Built-in result cache | M2 (optional) | no | paid (v4) | yes | no | partial (nginx) |
+| Built-in result cache (memory, disk, S3, Redis) | done (M2, optional) | no | paid (v4) | yes | no | partial (nginx) |
+| Config file (YAML, JSON, TOML) with a JSON Schema; OpenAPI 3.1 document | done (M2) | — | — | — | — | — |
+| Playground web UI | in review (#84) | — | — | — | — | — |
+| TypeScript URL builder and client (`@xtandard/image-url`) | in review (#83) | — | — | — | — | — |
 
 Sources: https://imgproxy.net/features/, https://docs.imgproxy.net/, https://thumbor.readthedocs.io/, https://github.com/h2non/imaginary, https://wsrv.nl/docs/. Corrections are welcome.
 
@@ -179,7 +188,7 @@ The image declares a Docker `HEALTHCHECK` (`/healthz`); Prometheus metrics are o
 
 ## Editor support
 
-The config file (YAML, JSON or TOML) has a JSON Schema, so editors validate it, complete keys and show each key's meaning and its `XI_*` variable on hover. Point the file at the published schema:
+The config file (YAML, JSON or TOML) has a JSON Schema (on `main`), so editors validate it, complete keys and show each key's meaning and its `XI_*` variable on hover. Point the file at the schema URL below. It is the schema's `$id`; the GitHub Pages site that serves it is in review (#80) and goes live once Pages is enabled, so until then use a running instance's admin URL or a local copy from `xtandard-image config schema`:
 
 ```yaml
 # yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json
@@ -187,11 +196,11 @@ server:
   addr: ":8080"
 ```
 
-JSON files use a top-level `"$schema"` key with the same URL, and TOML files a first line `#:schema <url>` (Taplo, Tombi). A running instance also serves the schema for its exact version on the admin listener (`GET /config.schema.json`), `xtandard-image config schema` prints it, and `xtandard-image config validate --config <file>` checks a file with the real loader. The HTTP API is described by an OpenAPI 3.1 document: `xtandard-image openapi`, admin `GET /openapi.json`, or the [published copy](https://xantiagoma.github.io/xtandard-image/schema/v1/openapi.json) with a [browsable reference](https://xantiagoma.github.io/xtandard-image/api/). See [docs/CONFIG.md](docs/CONFIG.md#config-file-formats-and-schema-adr-0007) and [docs/OPENAPI.md](docs/OPENAPI.md).
+JSON files use a top-level `"$schema"` key with the same URL, and TOML files a first line `#:schema <url>` (Taplo, Tombi). A running instance also serves the schema for its exact version on the admin listener (`GET /config.schema.json`), `xtandard-image config schema` prints it, and `xtandard-image config validate --config <file>` checks a file with the real loader. The HTTP API is described by an OpenAPI 3.1 document (on `main`): admin `GET /openapi.json` and, with `XI_ADMIN_DOCS=true`, a browsable reference at admin `/docs`. The `xtandard-image openapi` subcommand and the [published copy](https://xantiagoma.github.io/xtandard-image/schema/v1/openapi.json) with its [browsable reference](https://xantiagoma.github.io/xtandard-image/api/) come with the Pages work in review (#80). See [docs/CONFIG.md](docs/CONFIG.md#config-file-formats-and-schema-adr-0007) and [docs/OPENAPI.md](docs/OPENAPI.md).
 
 ## TypeScript client
 
-[`@xtandard/image-url`](packages/image-url) builds typed imgproxy-dialect URLs, signs them, encrypts sources and calls `/info` and the health endpoints. It runs on WebCrypto and has no runtime dependencies. Its option types are generated from the server's OpenAPI document, so an unknown option or a wrong argument does not compile. Package versions follow the server's release tags ([RELEASE](docs/RELEASE.md#npm-package)).
+In review (#83), not on `main` or npm yet. [`@xtandard/image-url`](packages/image-url) builds typed imgproxy-dialect URLs, signs them, encrypts sources and calls `/info` and the health endpoints. It runs on WebCrypto and has no runtime dependencies. Its option types are generated from the server's OpenAPI document, so an unknown option or a wrong argument does not compile. Package versions will follow the server's release tags; nothing is published until the first release ([RELEASE](docs/RELEASE.md#npm-package)).
 
 ```ts
 import { imgproxy } from "@xtandard/image-url";
@@ -207,12 +216,12 @@ await img.from("https://images.unsplash.com/photo-1506744038136-46273834b3fb")
 
 ## Playground
 
-A small web UI ships inside the binary, **off by default**. Turn it on and open it on the admin listener:
+In review (#84), not on `main` yet. A small web UI ships inside the binary, **off by default**. Turn it on and open it on the admin listener (with an image built from a branch that contains it):
 
 ```sh
 docker run --rm -p 127.0.0.1:8080:8080 -p 127.0.0.1:9090:9090 \
   -e XI_DEV_MODE=true -e XI_ADMIN_ADDR=:9090 -e XI_PLAYGROUND_ENABLED=true \
-  ghcr.io/xantiagoma/xtandard-image:slim
+  xtandard-image
 # then open http://127.0.0.1:9090/_playground/
 ```
 
@@ -236,7 +245,7 @@ URLs are signed on the server (`POST /_playground/api/sign`), so keys never reac
 - [Release](docs/RELEASE.md): how the image and the npm package are built, published and verified.
 - [Benchmarks](docs/BENCHMARKS.md): methodology and how to reproduce [bench/RESULTS.md](bench/RESULTS.md).
 - [Roadmap](docs/ROADMAP.md): the M1, M2 and M3 work packages.
-- [ADRs](docs/adr/): language and engine, URL dialects, security model, caching, Docker images, license policy.
+- [ADRs](docs/adr/): language and engine, URL dialects, security model, caching, Docker images, license policy, config schema and file formats, OpenAPI, the TypeScript workspace, and ONNX Runtime via purego.
 - [Go standards](docs/go-standards.md) and [stack research](docs/research/stack.md).
 
 ## Contributing
