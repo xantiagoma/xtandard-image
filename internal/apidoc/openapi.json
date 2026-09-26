@@ -5286,13 +5286,13 @@
               "wm"
             ],
             "x-xi-default": "off",
-            "x-xi-milestone": "M1 (`re` M1, `ch` M3)",
+            "x-xi-milestone": "M1 (`re` M1, `ch` M3 WP-77)",
             "x-xi-pro": false,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "opacity:pos:x:y:scale; pos incl. `re` (tile), `ch` (chessboard, Pro)"
           },
           "watermark_rotate": {
-            "description": "Watermark rotation. URL: `watermark_rotate`, `wm_rot`, `wmr`; arguments degrees; default 0.",
+            "description": "Watermark rotation, clockwise. URL: `watermark_rotate`, `wm_rot`, `wmr`; arguments degrees; default 0.",
             "examples": [
               [
                 45
@@ -5313,13 +5313,13 @@
               "wmr"
             ],
             "x-xi-default": "0",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-77)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "degrees"
           },
           "watermark_shadow": {
-            "description": "Watermark shadow. URL: `watermark_shadow`, `wmsh`; arguments sigma; default off.",
+            "description": "Watermark shadow: its alpha blurred with sigma, in black. URL: `watermark_shadow`, `wmsh`; arguments sigma; default off.",
             "examples": [
               [
                 2
@@ -5341,13 +5341,13 @@
               "wmsh"
             ],
             "x-xi-default": "off",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-77)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "sigma"
           },
           "watermark_size": {
-            "description": "Watermark size in pixels. URL: `watermark_size`, `wms`; arguments w:h; default 0:0.",
+            "description": "Watermark size in pixels (fit, enlarging; used when the wm scale is 0). URL: `watermark_size`, `wms`; arguments w:h; default 0:0.",
             "examples": [
               [
                 100,
@@ -5383,13 +5383,13 @@
               "wms"
             ],
             "x-xi-default": "0:0",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-77)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "w:h"
           },
           "watermark_text": {
-            "description": "Text watermark (replaces watermark_url). URL: `watermark_text`, `wmt`; arguments base64url Pango markup; default —.",
+            "description": "Text watermark (replaces watermark_url); markup is sanitised to a whitelist, font `sans 16` by default. URL: `watermark_text`, `wmt`; arguments base64url Pango markup; default —.",
             "examples": [
               [
                 "SGVsbG8"
@@ -5413,13 +5413,13 @@
               "wmt"
             ],
             "x-xi-default": "—",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-78)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "base64url Pango markup"
           },
           "watermark_url": {
-            "description": "Watermark image source. URL: `watermark_url`, `wmu`; arguments base64url URL; default config image.",
+            "description": "Watermark image source, fetched like a source (allowlist, SSRF policy, byte limit, origin cache). URL: `watermark_url`, `wmu`; arguments base64url URL; default config image.",
             "examples": [
               [
                 "aHR0cHM6Ly9leGFtcGxlLmNvbS93LnBuZw"
@@ -5443,7 +5443,7 @@
               "wmu"
             ],
             "x-xi-default": "config image",
-            "x-xi-milestone": "M3",
+            "x-xi-milestone": "M3 (WP-77)",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "base64url URL"

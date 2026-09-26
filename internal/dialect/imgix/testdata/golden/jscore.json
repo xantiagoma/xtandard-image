@@ -1009,28 +1009,6 @@
     "query": "ixlib=js-3.8.0\u0026mark64=aHR0cHM6Ly9hc3NldHMuaW1naXgubmV0L2xvZ28ucG5n\u0026mark-align=top%2Cleft\u0026mark-alpha=60\u0026mark-scale=20\u0026mark-pad=8\u0026s=10ea0e716d387d327483b9bca015057d",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "mark",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-alpha",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-align",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-pad",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-scale",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1434,32 +1412,6 @@
     "query": "ixlib=js-3.8.0\u0026txt64=SGVsbG8sIFdvcmxkISA8Yj4\u0026txt-font=Avenir%20Next%20Demi%2CBold\u0026txt-size=32\u0026txt-color=ffffff\u0026txt-align=bottom%2Ccenter\u0026txt-shad=5\u0026s=08c702b8cbc2a6afd4e08f4374a4e654",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "txt",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-font",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-size",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-color",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-align",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-shad",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1470,7 +1422,7 @@
                 "G": 255,
                 "R": 255
               },
-              "Font": "Avenir Next Demi,Bold 32",
+              "Font": "Avenir Next Demi Bold 32",
               "Opacity": 1,
               "Position": {
                 "Type": "south",

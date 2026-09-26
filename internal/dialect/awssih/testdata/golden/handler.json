@@ -231,12 +231,6 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "overlayWith",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -270,12 +264,6 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "overlayWith",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -318,12 +306,6 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "overlayWith",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -357,12 +339,6 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "overlayWith",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -396,12 +372,6 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "overlayWith",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -433,12 +403,6 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "overlayWith",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -476,10 +440,6 @@
         {
           "Option": "overlayWith.hRatio",
           "Reason": "approximated"
-        },
-        {
-          "Option": "overlayWith",
-          "Reason": "takes effect in M3"
         }
       ],
       "Pipelines": [
@@ -514,12 +474,6 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "overlayWith",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Resize": {

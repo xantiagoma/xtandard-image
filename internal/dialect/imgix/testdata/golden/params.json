@@ -363,16 +363,11 @@
     "query": "txt64=YT9iPmM=",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "txt",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
             {
+              "Font": "sans 12",
               "Opacity": 1,
               "Position": {
                 "Type": "south-east",
@@ -3143,12 +3138,6 @@
     "query": "mark64=aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZz94PTEmeT0y",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "mark",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3179,20 +3168,6 @@
     "query": "mark=https://example.com/l.png\u0026markalpha=10\u0026markalign=middle,center",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "mark",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-alpha",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-align",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3226,6 +3201,46 @@
     "path": "/photos/a.jpg",
     "query": "mark=https://example.com/l.png\u0026mark-align=up"
   },
+  "mark_base": {
+    "path": "/photos/a.jpg",
+    "query": "mark=logos/l.png\u0026mark-base=https://assets.example.com/brand/",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 5,
+                "YOffset": 5
+              },
+              "Source": {
+                "Raw": "https://assets.example.com/brand/logos/l.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "mark_base_invalid": {
+    "error": {
+      "field": "mark-base",
+      "kind": "invalid_url",
+      "public": "invalid mark-base: expected http(s) url",
+      "status": 400
+    },
+    "path": "/photos/a.jpg",
+    "query": "mark=l.png\u0026mark-base=ftp://x/"
+  },
   "mark_empty": {
     "error": {
       "field": "mark",
@@ -3236,6 +3251,44 @@
     "path": "/photos/a.jpg",
     "query": "mark="
   },
+  "mark_fit_crop": {
+    "path": "/photos/a.jpg",
+    "query": "mark=https://example.com/l.png\u0026mark-w=40\u0026mark-h=40\u0026mark-fit=crop",
+    "request": {
+      "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "mark-fit",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Height": 40,
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 5,
+                "YOffset": 5
+              },
+              "Source": {
+                "Raw": "https://example.com/l.png"
+              },
+              "Width": 40
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "mark_full": {
     "path": "/photos/a.jpg",
     "query": "mark=https://example.com/l.png\u0026mark-alpha=50\u0026mark-align=top,left\u0026mark-pad=4\u0026mark-scale=25\u0026mark-w=100\u0026mark-h=0.5\u0026mark-tile=grid\u0026mark-rot=30\u0026mark-fit=clip",
@@ -3245,46 +3298,6 @@
         {
           "Option": "mark-h",
           "Reason": "approximated"
-        },
-        {
-          "Option": "mark",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-alpha",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-align",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-pad",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-scale",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-w",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-h",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-fit",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-tile",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-rot",
-          "Reason": "takes effect in M3"
         }
       ],
       "Pipelines": [
@@ -3324,7 +3337,7 @@
       "Ignored": [
         {
           "Option": "mark-alpha",
-          "Reason": "takes effect in M3"
+          "Reason": "only with its base parameter"
         }
       ],
       "Pipelines": [
@@ -3343,12 +3356,6 @@
     "query": "mark=/logos/logo.png",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "mark",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3390,12 +3397,6 @@
     "query": "mark=https://example.com/logo.png",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "mark",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3426,20 +3427,6 @@
     "query": "mark=https://example.com/l.png\u0026mark-x=10\u0026mark-y=20",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "mark",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-x",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-y",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -4927,16 +4914,11 @@
     "query": "txt=Hello+%3Cworld%3E",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "txt",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
             {
+              "Font": "sans 12",
               "Opacity": 1,
               "Position": {
                 "Type": "south-east",
@@ -4961,16 +4943,11 @@
     "query": "txt64=SGVsbG8sIFdvcmxkISDwn5iB",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "txt",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
             {
+              "Font": "sans 12",
               "Opacity": 1,
               "Position": {
                 "Type": "south-east",
@@ -5010,6 +4987,35 @@
     "path": "/photos/a.jpg",
     "query": "txt="
   },
+  "txt_font_list": {
+    "path": "/photos/a.jpg",
+    "query": "txt=Hi\u0026txt-font=DejaVu%20Sans,Bold",
+    "request": {
+      "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Font": "DejaVu Sans Bold 12",
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 10,
+                "YOffset": 10
+              },
+              "Text": "Hi"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
   "txt_full": {
     "path": "/photos/a.jpg",
     "query": "txt=Hi\u0026txt-font=Avenir%20Next\u0026txt-size=40\u0026txt-color=80ffffff\u0026txt-align=middle,center\u0026txt-pad=20\u0026txt-shad=3\u0026txt-width=200\u0026txt-fit=max",
@@ -5017,40 +5023,8 @@
       "Dialect": "imgix",
       "Ignored": [
         {
-          "Option": "txt",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-font",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-size",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-color",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-align",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-pad",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-shad",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-width",
-          "Reason": "takes effect in M3"
-        },
-        {
           "Option": "txt-fit",
-          "Reason": "takes effect in M3"
+          "Reason": "approximated"
         }
       ],
       "Pipelines": [
@@ -5069,7 +5043,8 @@
                 "Type": "center"
               },
               "Shadow": 3,
-              "Text": "Hi"
+              "Text": "Hi",
+              "TextWidth": 200
             }
           ]
         }
@@ -5087,14 +5062,55 @@
     "query": "txt=Hi\u0026txt-size=12",
     "request": {
       "Dialect": "imgix",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Font": "sans 12",
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 10,
+                "YOffset": 10
+              },
+              "Text": "Hi"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "txt_typography": {
+    "path": "/photos/a.jpg",
+    "query": "txt=Hi\u0026txt-clip=ellipsis\u0026txt-lead=4\u0026txt-track=2\u0026txt-line=1\u0026txt-line-color=fff",
+    "request": {
+      "Dialect": "imgix",
       "Ignored": [
         {
-          "Option": "txt",
-          "Reason": "takes effect in M3"
+          "Option": "txt-clip",
+          "Reason": "unsupported"
         },
         {
-          "Option": "txt-size",
-          "Reason": "takes effect in M3"
+          "Option": "txt-lead",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "txt-track",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "txt-line",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "txt-line-color",
+          "Reason": "unsupported"
         }
       ],
       "Pipelines": [

@@ -110,7 +110,7 @@ func (st *state) apply(name string, args []string) error {
 	case "pixelate", "pix":
 		return oneNonNegInt("pixelate", args, &pl.Pixelate)
 	case "watermark", "wm":
-		return st.watermark(pl, name, args)
+		return st.watermark(pl, args)
 
 	// Animation and pages.
 	case "disable_animation", "da":
@@ -580,7 +580,7 @@ func background(pl *transform.Pipeline, args []string) error {
 
 // watermark is wm:opacity[:position:x:y:scale]. One watermark per
 // pipeline; later wm options update it argument by argument.
-func (st *state) watermark(pl *transform.Pipeline, name string, args []string) error {
+func (st *state) watermark(pl *transform.Pipeline, args []string) error {
 	if err := maxArgs("watermark", args, 7); err != nil {
 		return err
 	}
@@ -601,7 +601,6 @@ func (st *state) watermark(pl *transform.Pipeline, name string, args []string) e
 		case "ch":
 			w.Tile = transform.TileChessboard
 			w.Position.Type = transform.GravityUnset
-			st.ignore(name+":ch", reasonM3)
 		default:
 			gt, ok := compass[pos]
 			if !ok {

@@ -17,6 +17,10 @@ const (
 	expLayerText  = "i-<text> or ie-<base64 text>"
 	expFontSize   = "positive integer"
 	expBase64     = "base64"
+	// Layer rotation, typography and text alpha.
+	expLayerRotation = "degrees 0-360, N prefix for counter-clockwise"
+	expTypography    = "b, i, strikethrough joined by _"
+	expTextAlpha     = "integer 1-9"
 )
 
 // canvasInput is the solid-colour layer input ("l-image,i-ik_canvas,bg-…").
@@ -33,11 +37,18 @@ type layerSpec struct {
 	fontSize int
 	font     string
 	color    *transform.Color
+	rotate   float64
+	bold     bool
+	italic   bool
+	strike   bool
 }
 
 // layer applies one overlay (params are those between l-<kind> and its
-// l-end). l-image and l-text become basic watermarks (M3); other layer
-// kinds and in-layer transformations have no equivalent.
+// l-end). l-image and l-text become watermarks: position (lx, ly, lfo),
+// size (w, h; a text layer's w is its wrap width), opacity (o; al for
+// text), rotation (rt, "N" prefix counter-clockwise), and for text the
+// font (ff, fs, tg) and colour (co). Other layer kinds, nested layers and
+// the remaining in-layer transformations have no equivalent.
 func (ps *parseState) layer(kind string, params []string) error {
 	var text bool
 	switch kind {
@@ -78,16 +89,24 @@ func (ps *parseState) layer(kind string, params []string) error {
 	if len(pl.Watermarks) >= transform.MaxWatermarks {
 		return dialect.InvalidURL("too many layers")
 	}
-	wm := transform.Watermark{Opacity: spec.opacity, Position: spec.position(), Width: spec.w, Height: spec.h}
+	wm := transform.Watermark{Opacity: spec.opacity, Position: spec.position(), Rotate: spec.rotate}
 	if text {
-		wm.Text = html.EscapeString(spec.input)
+		t := html.EscapeString(spec.input)
+		if spec.strike {
+			t = "<s>" + t + "</s>"
+		}
+		wm.Text = t
 		wm.Font = spec.fontDescription()
 		wm.Color = spec.color
+		wm.TextWidth = spec.w
+		if spec.h > 0 {
+			ps.b.Ignore(kind+":h", reasonApproximated) // text is as tall as its lines
+		}
 	} else {
+		wm.Width, wm.Height = spec.w, spec.h
 		wm.Source = &transform.SourceSpec{Raw: relativeKey(spec.input), Encoding: transform.SourceRelative, Mount: ps.mountSource}
 	}
 	pl.Watermarks = append(pl.Watermarks, wm)
-	ps.b.Ignore(kind, reasonM3)
 	return nil
 }
 
@@ -159,7 +178,14 @@ func (ps *parseState) layerParam(spec *layerSpec, kind string, text bool, key, v
 		if !text {
 			return ps.unsupportedAs(kind+":"+key, reasonUnsupported)
 		}
-		spec.font = decodeLayerPath(v)
+		f := decodeLayerPath(v)
+		if strings.ContainsAny(f, "/.") {
+			// A custom font file on the media library: not fetched; the
+			// configured font is used.
+			ps.b.Ignore(kind+":ff", reasonApproximated)
+			break
+		}
+		spec.font = f
 	case "co":
 		if !text {
 			return ps.unsupportedAs(kind+":"+key, reasonUnsupported)
@@ -169,6 +195,44 @@ func (ps *parseState) layerParam(spec *layerSpec, kind string, text bool, key, v
 			return dialect.InvalidArgument(kind+".co", v, expColor)
 		}
 		spec.color = &c
+	case "rt":
+		body, neg := strings.CutPrefix(v, "N")
+		f, ok := parseFloatIn(body, 0, 360)
+		if !ok {
+			if isExpression(v) {
+				return ps.unsupportedAs(kind+":"+key, reasonExpression)
+			}
+			return dialect.InvalidArgument(kind+".rt", v, expLayerRotation)
+		}
+		if neg {
+			f = -f
+		}
+		spec.rotate = f
+	case "tg":
+		if !text {
+			return ps.unsupportedAs(kind+":"+key, reasonUnsupported)
+		}
+		for t := range strings.SplitSeq(v, "_") {
+			switch t {
+			case "b":
+				spec.bold = true
+			case "i":
+				spec.italic = true
+			case "strikethrough":
+				spec.strike = true
+			default:
+				return dialect.InvalidArgument(kind+".tg", v, expTypography)
+			}
+		}
+	case "al":
+		if !text {
+			return ps.unsupportedAs(kind+":"+key, reasonUnsupported)
+		}
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > 9 {
+			return dialect.InvalidArgument(kind+".al", v, expTextAlpha)
+		}
+		spec.opacity = float64(n) / 10
 	default:
 		// Positioning variants (lxc, lyc, lap), layer modes, timing,
 		// typography and in-layer transformations.
@@ -202,15 +266,25 @@ func (spec *layerSpec) position() transform.Gravity {
 	return transform.Gravity{Type: gt, XOffset: math.Abs(spec.lx.v), YOffset: math.Abs(spec.ly.v)}
 }
 
-// fontDescription renders ff/fs as a Pango font description.
+// fontDescription renders ff/tg/fs as a Pango font description.
 func (spec *layerSpec) fontDescription() string {
-	switch {
-	case spec.fontSize == 0:
-		return spec.font
-	case spec.font == "":
-		return strconv.Itoa(spec.fontSize)
+	words := make([]string, 0, 4)
+	if spec.font != "" {
+		words = append(words, spec.font)
 	}
-	return spec.font + " " + strconv.Itoa(spec.fontSize)
+	if spec.bold {
+		words = append(words, "bold")
+	}
+	if spec.italic {
+		words = append(words, "italic")
+	}
+	if (spec.bold || spec.italic) && spec.font == "" {
+		words = append([]string{"sans"}, words...)
+	}
+	if spec.fontSize > 0 {
+		words = append(words, strconv.Itoa(spec.fontSize))
+	}
+	return strings.Join(words, " ")
 }
 
 // decodeLayerPath turns an ImageKit path value ("folder@@file.png") into
