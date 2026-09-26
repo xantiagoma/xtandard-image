@@ -1,0 +1,304 @@
+//go:build cgo
+
+package vips_test
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"image/jpeg"
+	"io"
+	"os"
+	"strings"
+	"testing"
+	"testing/iotest"
+
+	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
+	"github.com/xantiagoma/xtandard-image/internal/vips"
+)
+
+// These tests need libvips from the base image: run them with
+// `task docker:test` (go-standards §8: vips is initialised once per package).
+func TestMain(m *testing.M) {
+	if err := vips.Init(vips.DefaultConfig()); err != nil {
+		_, _ = os.Stderr.WriteString("vips init: " + err.Error() + "\n")
+		os.Exit(1)
+	}
+	code := m.Run()
+	vips.Shutdown()
+	os.Exit(code)
+}
+
+func readFixture(t *testing.T, name string) []byte {
+	t.Helper()
+	b, err := os.ReadFile(golden.Fixture(t, name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
+}
+
+func newBuffer(t *testing.T, data []byte) *vips.Buffer {
+	t.Helper()
+	buf, err := vips.NewBufferFromReader(bytes.NewReader(data), 1<<20)
+	if err != nil {
+		t.Fatalf("NewBufferFromReader: %v", err)
+	}
+	return buf
+}
+
+// thumbnailJPEG runs one full job and returns the encoded bytes (copied, so
+// the blob can be released inside the job).
+func thumbnailJPEG(ctx context.Context, buf *vips.Buffer, w, h int) ([]byte, error) {
+	var out []byte
+	err := vips.Run(ctx, func() error {
+		img, err := vips.LoadThumbnail(ctx, buf, w, h)
+		if err != nil {
+			return err
+		}
+		defer img.Close()
+		blob, err := img.SaveJPEG(ctx, 80)
+		if err != nil {
+			return err
+		}
+		defer blob.Release()
+		out = bytes.Clone(blob.Bytes())
+		return nil
+	})
+	return out, err
+}
+
+func TestThumbnailFixtures(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		fixture      string
+		w, h         int
+		wantW, wantH int
+	}{
+		{fixture: "jpeg/baseline.jpg", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "jpeg/progressive.jpg", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "jpeg/exif-orientation-6-icc.jpg", w: 64, h: 64, wantW: 64, wantH: 48}, // autorotated upright
+		{fixture: "uhdr/photo-ultrahdr.jpg", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "png/rgba8.png", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "png/rgb16.png", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "png/palette.png", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "gif/static.gif", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "gif/animated.gif", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "webp/lossy.webp", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "webp/lossless.webp", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "webp/animated.webp", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "avif/photo.avif", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "heic/photo.heic", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "jxl/photo.jxl", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "jp2/photo.jp2", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "tiff/multipage.tif", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "svg/logo.svg", w: 64, h: 64, wantW: 64, wantH: 48},
+		{fixture: "jpeg/baseline.jpg", w: 32, wantW: 32, wantH: 24},          // width only
+		{fixture: "jpeg/baseline.jpg", h: 60, wantW: 80, wantH: 60},          // height only
+		{fixture: "jpeg/baseline.jpg", wantW: 320, wantH: 240},               // no bounds
+		{fixture: "png/palette.png", w: 1000, h: 1000, wantW: 96, wantH: 72}, // never enlarges
+	}
+	for _, tc := range tests {
+		t.Run(tc.fixture, func(t *testing.T) {
+			t.Parallel()
+			buf := newBuffer(t, readFixture(t, tc.fixture))
+			defer buf.Release()
+
+			out, err := thumbnailJPEG(t.Context(), buf, tc.w, tc.h)
+			if err != nil {
+				t.Fatalf("thumbnail %dx%d: %v", tc.w, tc.h, err)
+			}
+			cfg, err := jpeg.DecodeConfig(bytes.NewReader(out))
+			if err != nil {
+				t.Fatalf("output is not a JPEG: %v", err)
+			}
+			if cfg.Width != tc.wantW || cfg.Height != tc.wantH {
+				t.Errorf("output %dx%d, want %dx%d", cfg.Width, cfg.Height, tc.wantW, tc.wantH)
+			}
+		})
+	}
+}
+
+func TestThumbnailErrors(t *testing.T) {
+	t.Parallel()
+
+	baseline := readFixture(t, "jpeg/baseline.jpg")
+	tests := []struct {
+		name    string
+		data    []byte
+		want    errs.Kind
+		wantMsg string // substring of the logged vips text, when it matters
+	}{
+		{name: "bmp has no enabled loader", data: readFixture(t, "bmp/rgb24.bmp"), want: errs.KindUnsupported},
+		{name: "ico has no enabled loader", data: readFixture(t, "ico/png-entry.ico"), want: errs.KindUnsupported},
+		{name: "garbage", data: []byte("definitely not an image"), want: errs.KindUnsupported},
+		// ppmload_buffer is compiled in but not on the allowlist. Blocked
+		// loaders are skipped by the libvips sniffer (foreign.c
+		// file_add_class), so the input reads as an unknown format.
+		{name: "ppm loader is blocked", data: []byte("P6\n2 2\n255\n" + string(make([]byte, 12))), want: errs.KindUnsupported, wantMsg: "not in a known format"},
+		// radload_buffer is compiled in, untrusted and not on the allowlist.
+		{name: "radiance loader is blocked", data: []byte("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 1 +X 1\n\x00\x00\x00\x00"), want: errs.KindUnsupported, wantMsg: "not in a known format"},
+		{name: "jpeg header only", data: baseline[:24], want: errs.KindCorrupt},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			buf := newBuffer(t, tc.data)
+			defer buf.Release()
+
+			_, err := thumbnailJPEG(t.Context(), buf, 64, 64)
+			if got := errs.KindOf(err); got != tc.want {
+				t.Fatalf("error kind = %v (%v), want %v", got, err, tc.want)
+			}
+			opErr, ok := errors.AsType[*vips.OpError](err)
+			if !ok {
+				t.Fatalf("error %v does not carry *vips.OpError", err)
+			}
+			if !strings.Contains(opErr.Msg, tc.wantMsg) {
+				t.Errorf("vips message %q does not mention %q", opErr.Msg, tc.wantMsg)
+			}
+		})
+	}
+}
+
+func TestBufferOutlivesRelease(t *testing.T) {
+	t.Parallel()
+
+	buf := newBuffer(t, readFixture(t, "jpeg/baseline.jpg"))
+	ctx := t.Context()
+	err := vips.Run(ctx, func() error {
+		img, err := vips.LoadThumbnail(ctx, buf, 64, 64)
+		// The image owns a C-side reference: the pixels are decoded lazily
+		// on save, after the Go reference is gone.
+		buf.Release()
+		if err != nil {
+			return err
+		}
+		defer img.Close()
+		blob, err := img.SaveJPEG(ctx, 80)
+		if err != nil {
+			return err
+		}
+		defer blob.Release()
+		if b := blob.Bytes(); len(b) < 4 || b[0] != 0xFF || b[1] != 0xD8 || b[len(b)-2] != 0xFF || b[len(b)-1] != 0xD9 {
+			t.Errorf("output lacks JPEG SOI/EOI markers")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestNewBufferFromReader(t *testing.T) {
+	t.Parallel()
+
+	data := bytes.Repeat([]byte("0123456789abcdef"), 20_000) // 320 000 bytes, several doublings
+	readErr := errs.New(errs.KindUpstreamError, "boom")
+	tests := []struct {
+		name    string
+		r       io.Reader
+		limit   int64
+		want    int
+		wantErr errs.Kind
+	}{
+		{name: "grows", r: bytes.NewReader(data), limit: 1 << 20, want: len(data)},
+		{name: "one byte reads", r: iotest.OneByteReader(bytes.NewReader(data[:1000])), limit: 1 << 20, want: 1000},
+		{name: "exactly the limit", r: bytes.NewReader(data), limit: int64(len(data)), want: len(data)},
+		{name: "over the limit", r: bytes.NewReader(data), limit: int64(len(data)) - 1, wantErr: errs.KindSourceTooLarge},
+		{name: "empty", r: bytes.NewReader(nil), limit: 10, want: 0},
+		{name: "reader error keeps kind", r: iotest.ErrReader(readErr), limit: 10, wantErr: errs.KindUpstreamError},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			buf, err := vips.NewBufferFromReader(tc.r, tc.limit)
+			if tc.wantErr != errs.KindUnknown {
+				if got := errs.KindOf(err); got != tc.wantErr {
+					t.Fatalf("error kind = %v (%v), want %v", got, err, tc.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer buf.Release()
+			if buf.Len() != tc.want || !bytes.Equal(buf.Bytes(), data[:tc.want]) {
+				t.Errorf("buffer has %d bytes, want %d matching the input", buf.Len(), tc.want)
+			}
+		})
+	}
+}
+
+func TestBufferRefcount(t *testing.T) {
+	t.Parallel()
+
+	buf, err := vips.NewBuffer(16)
+	if err != nil {
+		t.Fatal(err)
+	}
+	copy(buf.Bytes(), "0123456789abcdef")
+	buf.Retain()
+	buf.Release()
+	if string(buf.Bytes()) != "0123456789abcdef" {
+		t.Fatalf("bytes changed while a reference is held")
+	}
+	buf.Release()
+	if buf.Bytes() != nil {
+		t.Errorf("Bytes() after the final Release = non-nil")
+	}
+	buf.Release() // extra releases are no-ops
+}
+
+func TestRunHonoursContext(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	called := false
+	err := vips.Run(ctx, func() error { called = true; return nil })
+	if called || errs.KindOf(err) != errs.KindCanceled {
+		t.Errorf("Run on a canceled ctx: called=%v err=%v, want not called and KindCanceled", called, err)
+	}
+}
+
+// TestNoLeak runs 2,000 load/save cycles and checks that libvips' tracked
+// memory and allocation count return to their baseline. It is deliberately
+// not parallel: the tracked counters are process-wide, and non-parallel
+// top-level tests run while every parallel test is paused.
+func TestNoLeak(t *testing.T) {
+	data := readFixture(t, "jpeg/baseline.jpg")
+	cycle := func() {
+		buf := newBuffer(t, data)
+		defer buf.Release()
+		if _, err := thumbnailJPEG(t.Context(), buf, 64, 64); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cycle() // warm up lazily initialised libvips state
+
+	// libvips' worker threads keep per-thread buffer caches that are freed
+	// asynchronously when those threads go idle, so the counters wobble by
+	// up to a few hundred KiB around the baseline. A per-cycle leak of even
+	// one allocation shows up as ≥ 2000 allocs (and the source buffer alone
+	// is ~20 KiB × 2000 = 40 MB), far above these bounds.
+	const (
+		cycles     = 2000
+		slackBytes = 1 << 20
+		slackAlloc = 64
+	)
+	before := vips.ReadMemStats()
+	for range cycles {
+		cycle()
+	}
+	after := vips.ReadMemStats()
+	if after.Mem-before.Mem > slackBytes || after.Allocs-before.Allocs > slackAlloc {
+		t.Errorf("tracked memory %d bytes / %d allocs after %d cycles, want baseline %d / %d (±%d / %d)",
+			after.Mem, after.Allocs, cycles, before.Mem, before.Allocs, slackBytes, slackAlloc)
+	}
+	if after.MemHighwater <= 0 {
+		t.Errorf("highwater = %d, want > 0", after.MemHighwater)
+	}
+}
