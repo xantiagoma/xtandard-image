@@ -552,14 +552,15 @@ Two repositories of artefacts, one Git repo:
 ```
 docker/
   base/                        forked from imgproxy-docker-base (MIT; imgproxy itself is Apache-2.0), attribution kept
-    versions.sh                pinned versions + SHA256 of every tarball
-    build-deps.sh              builds into /opt/xtandard (prefix)
-    Dockerfile                 ubuntu:noble builder → FROM scratch export stage
+    versions.sh                pinned versions + SHA256 of every tarball and toolchain
+    build-deps.sh              builds into /opt/xtandard (prefix), license bundle, license gate
+    check-licenses.sh          GPL/AGPL gate (ADR 0006)
+    Dockerfile                 ubuntu:noble deps → `builder` (Go + libvips dev) and `runtime` (libs only) targets
   Dockerfile                   app: FROM base → go build → runtime
   imagemagick-policy.xml
 ```
 
-**Base image** `ghcr.io/xantiagoma/xtandard-image-base:<vips-version>-r<N>-<flavor>` (flavor `slim` | `full`), built weekly and on `versions.sh` change, amd64 + arm64 on native runners, cosign-signed, SBOM (syft) attached.
+**Base image** `ghcr.io/xantiagoma/xtandard-image-base:<vips-version>-r<N>-<flavor>` (flavor `slim` | `full`; the `runtime` target) plus `…-<flavor>-builder` (the `builder` target: Go 1.27.1, golangci-lint, go-task, headers and pkg-config files; used for CI, `task docker:test` and the app build stage), built weekly and on `docker/base/**` change, amd64 + arm64 on native runners, cosign-signed, SBOM (syft) attached. See `docker/base/README.md`.
 
 Contents of `/opt/xtandard`:
 
@@ -576,7 +577,7 @@ All libraries built with `-O3 -fstack-protector-strong -D_FORTIFY_SOURCE=2`, RPA
 
 **App image** (`docker/Dockerfile`, multi-stage):
 
-1. `FROM ghcr.io/xantiagoma/xtandard-image-base:<pin>-<flavor> AS build` with Go 1.27.1 copied in; `CGO_ENABLED=1 go build -trimpath -buildvcs=false -ldflags "-s -w -X main.version=… -X main.commit=…" [-tags ffmpeg]` (unstripped artefact kept for symbolication; `default.pgo` picked up automatically).
+1. `FROM ghcr.io/xantiagoma/xtandard-image-base:<pin>-<flavor>-builder AS build` (Go 1.27.1 included); `CGO_ENABLED=1 go build -trimpath -buildvcs=false -ldflags "-s -w -X main.version=… -X main.commit=…" [-tags ffmpeg]` (unstripped artefact kept for symbolication; `default.pgo` picked up automatically).
 2. `FROM ubuntu:noble` runtime (glibc required; `ca-certificates`, `tzdata` only), `COPY --from=build /opt/xtandard/lib /opt/xtandard/lib` (runtime subset), binary to `/usr/local/bin/xtandard-image`.
 3. `ENV LD_LIBRARY_PATH=/opt/xtandard/lib LD_PRELOAD=/opt/xtandard/lib/libjemalloc.so.2 MALLOC_ARENA_MAX=2 MAGICK_CONFIGURE_PATH=/opt/xtandard/etc/ImageMagick-7 FONTCONFIG_PATH=/opt/xtandard/etc/fonts VIPS_BLOCK_UNTRUSTED=1`.
 4. `USER 65532:65532` (user `xtandard`, no shell needed), read-only root filesystem compatible (writes only to `/tmp` if disk cache is enabled at a configured path).

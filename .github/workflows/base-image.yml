@@ -1,0 +1,210 @@
+name: base-image
+
+# Builds docker/base natively on amd64 and arm64 runners, pushes each architecture by
+# digest, then assembles multi-arch manifests:
+#   ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<N>-slim          (runtime)
+#   ghcr.io/xantiagoma/xtandard-image-base:slim
+#   ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<N>-slim-builder  (Go + libvips dev)
+#   ghcr.io/xantiagoma/xtandard-image-base:slim-builder
+# Pull requests build and verify both architectures without pushing.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docker/base/**
+      - .github/workflows/base-image.yml
+  pull_request:
+    paths:
+      - docker/base/**
+      - .github/workflows/base-image.yml
+  workflow_dispatch:
+  schedule:
+    # Weekly rebuild picks up Ubuntu security updates (ADR 0005).
+    - cron: "17 4 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: base-image-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  IMAGE: ghcr.io/xantiagoma/xtandard-image-base
+  PUSH: ${{ github.event_name != 'pull_request' }}
+
+jobs:
+  license-gate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Lint shell scripts
+        run: shellcheck -x -P docker/base docker/base/*.sh
+      - name: License gate self-test
+        run: docker/base/test-check-licenses.sh
+
+  meta:
+    runs-on: ubuntu-24.04
+    outputs:
+      vips: ${{ steps.meta.outputs.vips }}
+      tag: ${{ steps.meta.outputs.tag }}
+      flavor: ${{ steps.meta.outputs.flavor }}
+      epoch: ${{ steps.meta.outputs.epoch }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+      - id: meta
+        run: |
+          source docker/base/versions.sh
+          {
+            echo "vips=${VIPS_VERSION}"
+            echo "flavor=${XI_BASE_FLAVOR}"
+            echo "tag=${VIPS_VERSION}-r${XI_BASE_REVISION}-${XI_BASE_FLAVOR}"
+            echo "epoch=$(git log -1 --pretty=%ct)"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: [license-gate, meta]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+            arch: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 150
+    permissions:
+      contents: read
+      packages: write
+    env:
+      SOURCE_DATE_EPOCH: ${{ needs.meta.outputs.epoch }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        if: env.PUSH == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build runtime
+        id: runtime
+        uses: docker/build-push-action@v7
+        with:
+          context: docker/base
+          target: runtime
+          platforms: ${{ matrix.platform }}
+          build-args: VIPS_VERSION=${{ needs.meta.outputs.vips }}
+          labels: org.opencontainers.image.version=${{ needs.meta.outputs.tag }}
+          cache-from: |
+            type=gha,scope=base-${{ needs.meta.outputs.flavor }}-${{ matrix.arch }}-runtime
+            type=gha,scope=base-${{ needs.meta.outputs.flavor }}-${{ matrix.arch }}-builder
+          cache-to: type=gha,mode=max,scope=base-${{ needs.meta.outputs.flavor }}-${{ matrix.arch }}-runtime
+          outputs: >-
+            ${{ env.PUSH == 'true'
+              && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', env.IMAGE)
+              || 'type=docker,name=xtandard-base:ci' }}
+
+      - name: Build builder
+        id: builder
+        uses: docker/build-push-action@v7
+        with:
+          context: docker/base
+          target: builder
+          platforms: ${{ matrix.platform }}
+          build-args: VIPS_VERSION=${{ needs.meta.outputs.vips }}
+          labels: org.opencontainers.image.version=${{ needs.meta.outputs.tag }}-builder
+          cache-from: |
+            type=gha,scope=base-${{ needs.meta.outputs.flavor }}-${{ matrix.arch }}-builder
+            type=gha,scope=base-${{ needs.meta.outputs.flavor }}-${{ matrix.arch }}-runtime
+          cache-to: type=gha,mode=max,scope=base-${{ needs.meta.outputs.flavor }}-${{ matrix.arch }}-builder
+          outputs: >-
+            ${{ env.PUSH == 'true'
+              && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', env.IMAGE)
+              || 'type=docker,name=xtandard-base:ci-builder' }}
+
+      - name: Verify images
+        env:
+          RUNTIME_DIGEST: ${{ steps.runtime.outputs.digest }}
+          BUILDER_DIGEST: ${{ steps.builder.outputs.digest }}
+        run: |
+          if [ "$PUSH" = "true" ]; then
+            docker/base/verify-image.sh "$IMAGE@$RUNTIME_DIGEST" "$IMAGE@$BUILDER_DIGEST"
+          else
+            docker/base/verify-image.sh xtandard-base:ci xtandard-base:ci-builder
+          fi
+
+      - name: Export digests
+        if: env.PUSH == 'true'
+        env:
+          RUNTIME_DIGEST: ${{ steps.runtime.outputs.digest }}
+          BUILDER_DIGEST: ${{ steps.builder.outputs.digest }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests/runtime" "$RUNNER_TEMP/digests/builder"
+          touch "$RUNNER_TEMP/digests/runtime/${RUNTIME_DIGEST#sha256:}"
+          touch "$RUNNER_TEMP/digests/builder/${BUILDER_DIGEST#sha256:}"
+
+      - name: Upload digests
+        if: env.PUSH == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    if: github.event_name != 'pull_request'
+    needs: [meta, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create multi-arch manifests
+        env:
+          TAG: ${{ needs.meta.outputs.tag }}
+          FLAVOR: ${{ needs.meta.outputs.flavor }}
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          # shellcheck disable=SC2046
+          docker buildx imagetools create \
+            -t "$IMAGE:$TAG" \
+            -t "$IMAGE:$FLAVOR" \
+            $(printf "$IMAGE@sha256:%s " $(ls runtime))
+          # shellcheck disable=SC2046
+          docker buildx imagetools create \
+            -t "$IMAGE:$TAG-builder" \
+            -t "$IMAGE:$FLAVOR-builder" \
+            $(printf "$IMAGE@sha256:%s " $(ls builder))
+
+      - name: Inspect
+        env:
+          TAG: ${{ needs.meta.outputs.tag }}
+        run: |
+          docker buildx imagetools inspect "$IMAGE:$TAG"
+          docker buildx imagetools inspect "$IMAGE:$TAG-builder"
