@@ -44,7 +44,7 @@ func TestProcessNoLeak(t *testing.T) {
 		}
 		t.Fatal(err)
 	}
-	proc, err := newProcessor(&cfg, nil)
+	proc, err := newProcessor(&cfg, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

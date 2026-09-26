@@ -38,7 +38,7 @@ func newPipeline(t *testing.T) *pipeline {
 	if err := vips.Init(&vcfg); err != nil {
 		t.Fatal(err)
 	}
-	proc, err := newProcessor(&cfg, nil)
+	proc, err := newProcessor(&cfg, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -605,13 +605,16 @@ requests ─► [http.Server, all timeouts set; HTTP/2 MaxConcurrentStreams size
                 ├─ queue.TryAcquire(1)      capacity = workers + XI_PROCESSING_QUEUE_SIZE → fail fast: 429 + Retry-After
                 ├─ workers.Acquire(ctx, 1)  capacity = XI_PROCESSING_WORKERS (default GOMAXPROCS);
                 │                           waits at most XI_PROCESSING_QUEUE_TIMEOUT (5 s) → 503 + Retry-After
-                └─ memory.Acquire(ctx, est) optional weighted semaphore, off unless XI_PROCESSING_MEMORY_BUDGET is set
+          ─► probe, plan
+          ─► limiter.Reserve(ctx, plan.Cost.EstimatedBytes)   (exec.Config.Admit, before any decode)
+                └─ memory.Acquire(ctx, est) optional weighted semaphore, off unless XI_PROCESSING_MEMORY_BUDGET is set;
+                                            waits at most XI_PROCESSING_QUEUE_TIMEOUT → 503 + Retry-After
           ─► one locked OS thread per job; vips_concurrency_set(1)
 ```
 
 - Both semaphores are `golang.org/x/sync/semaphore`; no channel worker pools. GOMAXPROCS follows the container CPU limit natively (Go ≥ 1.25), so workers scale with `resources.limits.cpu`. imgproxy defaults to 2× cores; we start at 1× and change it only with benchmark evidence.
 - `XI_VIPS_CONCURRENCY` exists (default 1) for a latency-tier experiment (fewer workers, more threads per image); changing it requires benchmarks per go-standards §8.
-- Optional memory budget: when set, each job acquires its planner estimate of peak decoded bytes (shrunk-on-load width × height × bands × bytes-per-sample × frames, ×2 for random-access steps). A single job above the whole budget is rejected with 422 instead of deadlocking.
+- Optional memory budget: when set, each job acquires its planner estimate of peak decoded bytes (shrunk-on-load width × height × bands × bytes-per-sample × frames, ×2 for random-access steps, chained pipelines included). The estimate needs the probed header, so admission is two-phase: `limiter.Acquire(ctx, 0)` takes the queue and worker permits before the probe, and the executor charges the plan's estimate with `limiter.Reserve` once the plan exists and before decoding (a job waiting for memory already holds a worker but no memory, so the wait cannot deadlock). A single job above the whole budget is rejected with 422 (by the planner, which checks the same budget per plan, or by `Reserve`).
 - Metrics: `xi_queue_depth`, `xi_semaphore_wait_seconds`, `xi_workers_busy`, `xi_overload_total{reason}`.
 - libvips operation cache disabled (`vips_cache_set_max(0)`, `vips_cache_set_max_mem(0)`): we cache results, not operations.
 - Memory: C memory is bounded by header-checked input limits × worker count. jemalloc via `LD_PRELOAD` (`MALLOC_ARENA_MAX=2` as glibc fallback; without jemalloc, periodic `debug.FreeOSMemory()` + `malloc_trim(0)`). `GOMEMLIMIT` set at startup to 30% of cgroup `memory.max` (`XI_PROCESSING_GO_MEMORY_FRACTION`), never to the full limit. `vips_tracked_get_mem`/`_highwater` exported as gauges.
