@@ -36,6 +36,16 @@ redenormalisation), options/parser/url.go (source URL decoding),
 options/parser/parse.go and options/parser/apply.go (option argument
 rules). The code was rewritten against xtandard-image's own request model
 and modified as described in the package documentation.
+internal/pipeline/plan reimplements imgproxy's processing geometry from
+processing/prepare.go (calcScale, calcSizes, limitScale, CalcCropSize,
+angleFlip), processing/scale_on_load.go, processing/crop.go,
+processing/calc_position.go, processing/gravity.go (RotateAndFlip),
+processing/extend.go, processing/padding.go, processing/fix_size.go,
+processing/vector_guard_scale.go, security/checker.go (CheckDimensions)
+and imath/. The code was rewritten as a pure planner over xtandard-image's
+request model (typed steps instead of in-place libvips calls) and extended
+with relative sizes, aspect ratio, adaptive, outside and max-width/height
+resizing, as described in the package documentation.
 internal/vips/shim.h, shim.c, load.c, image.c, ops.c and save.c contain
 portions derived from imgproxy's vips/vips.c,
 https://github.com/imgproxy/imgproxy
