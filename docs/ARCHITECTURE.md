@@ -83,7 +83,7 @@ internal/
     memory/ disk/ s3cache/ redis/
   negotiate/                Accept / client-hint parsing, format decision matrix, best-format analysis hooks
   limiter/                  worker slots, memory-weighted semaphore, queue with timeout
-  vips/                     ONLY package that imports "C" and vipsgen; Image handle, Buffer (C-owned bytes), init, errors, thread lifecycle
+  vips/                     ONLY package that imports "C" (hand-written shim, §8.4); Image handle, Buffer (C-owned bytes), init, errors, thread lifecycle
     (shim .c/.h files)      hand-written C in the same package: owned-buffer load w/ fail_on, libraw thumbnail loader, save-to-blob, progress/kill hook
   codec/                    Format enum, magic sniffing, probe, loader selection, encoder options
     bmp/ ico/               own pure-Go loaders/savers, reimplemented from imgproxy's C loaders (Apache-2.0: keep upstream header, add NOTICE entry)
@@ -371,7 +371,7 @@ Backends (under `internal/fetch/`): `httpsrc` (SSRF-safe transport, see §10), `
 - **Coalescing**: a singleflight-style group keyed by `source + "\x00" + bucket + "\x00" + path + "\x00" + version`. Ten concurrent requests for ten sizes of one original download it once and share one `Buffer` (one reference per caller). It is a small in-package group rather than `x/sync/singleflight` because the call must hold its own buffer reference until every joined caller has either retained it or given up, which singleflight cannot count. The shared fetch runs on `context.WithoutCancel(leaderCtx)` bounded by the per-attempt timeout, so a caller whose context ends stops waiting without aborting the download for the others (or for the cache).
 - **Original cache**: optional `cache.Store` namespace `orig/`. Default is an in-memory byte-bounded LRU (`XI_CACHE_ORIGIN_MEMORY_BYTES`, default 256 MiB, TTL 60 s) because most size bursts are close in time. Can be pointed at disk/redis/S3 for multi-replica setups. The in-memory LRU holds one buffer reference per entry, caches not-found for `XI_CACHE_ORIGIN_NEGATIVE_TTL` (5 s), and after the TTL revalidates entries that carry an ETag/Last-Modified with `If-None-Match`/`If-Modified-Since` (304 → TTL refreshed, same buffer served).
 - **Limits**: `Content-Length` checked before reading; body wrapped in a counting reader that aborts at `XI_LIMITS_MAX_SRC_BYTES` (default 50 MiB). Download timeout per attempt (`XI_FETCH_TIMEOUT`, 10 s, via `context.WithTimeoutCause` → `UpstreamTimeout`). Exactly one retry (`XI_FETCH_RETRY`) of `UpstreamError`/`UpstreamTimeout` after a backoff jittered in [50, 150) ms; 4xx kinds are never retried. With `Content-Length` the buffer is allocated once; without it, it grows in doubling chunks from 64 KiB via the allocator and is copied into an exact-size buffer at the end, so `Bytes()` is always exactly the original.
-- **Buffering** (go-standards §4): originals are read straight into C-allocated memory that vips will own (`vips.NewBuffer(n)` + `io.ReadFull`), never into pooled Go slices. The fetcher only sees the small interface below, so it stays pure Go and tests inject a Go-memory implementation. Buffers are reference-counted so coalesced requests and the origin cache share one allocation; the last `Release` frees it (production: `vips.Buffer`, which implements `fetch.Buffer` and unrefs its `vips_blob`; `app` injects `vips.NewBuffer` as the `Allocator`).
+- **Buffering** (go-standards §4): originals are read straight into C-allocated memory that vips will own (`vips.NewBuffer(n)` + `io.ReadFull`), never into pooled Go slices. The fetcher only sees the small interface below, so it stays pure Go and tests inject a Go-memory implementation. Buffers are reference-counted so coalesced requests and the origin cache share one allocation; the last `Release` frees it (production: `*vips.Buffer`, which implements `fetch.Buffer` and unrefs its `vips_blob`; `app` injects `func(n int) (fetch.Buffer, error) { return vips.NewBuffer(n) }` as the `Allocator`, adapting the concrete return type and never returning a typed nil; `Retain`/`Release` are atomic and extra `Release`s are no-ops).
 
 ```go
 type Buffer interface {
@@ -435,7 +435,7 @@ libvips is demand-driven: each call (`resize`, `crop`, `embed`, …) returns a n
 - Wraps every node in `vips.Image` (a Go handle with explicit `Close()`; nodes are tracked in a per-request arena and all unref'd in one `defer arena.Close()` so error paths never leak).
 - Never calls `copy_memory` unless a step needs random access on a sequential source (trim, smartcrop, arbitrary rotate of a non-random loader, chained pipeline boundary). The planner decides this, not the executor.
 - Runs the whole job on one locked OS thread (`runtime.LockOSThread`), and calls `vips_error_clear(); vips_thread_shutdown()` before unlocking (go-standards §4).
-- Checks `ctx.Err()` between steps. cgo calls cannot be interrupted, so for the long sink (save) a watcher tied to `ctx` sets the image's kill flag (`vips_image_set_kill`) through a `vips.Kill` helper; libvips aborts at the next tile.
+- Checks `ctx.Err()` between steps. cgo calls cannot be interrupted, so for the long sink (save) a watcher tied to `ctx` sets the image's kill flag (`vips_image_set_kill`) through `vips.KillOnCancel` (armed by every sink); libvips aborts at the next tile.
 - Captures errors with `vips_error_buffer_copy()` at the failure site in the shim; the HTTP status comes from *which* operation failed (load → 422 `Corrupt`, save → 500), never from message text.
 - Uses `fail_on=warning` for untrusted sources (configurable `none|truncated|error|warning`).
 
@@ -457,6 +457,25 @@ type Result struct {
 ### 8.3 Encoding and quality loops
 
 `codec/encode` owns per-format savers (options in FORMATS.md). Quality selection precedence: `Output.Quality` → `FormatQuality[f]` → config per-format default → global default (80). `max_bytes` and auto-quality run a bounded binary search (≤ 6 saves) over quality; auto-quality by DSSIM uses an in-house SSIM implementation on a downscaled luma copy (the `dssim` CLI is AGPL and is not used). Best-format (M2) encodes candidate formats from the decision matrix and picks the smallest that meets the quality target, skipped above `XI_FORMATS_BEST_MAX_PIXELS`.
+
+### 8.4 The `vips` package (WP-06)
+
+`internal/vips` is a hand-written C shim (`shim.h` + `shim.c`, `load.c`, `image.c`, `ops.c`, `save.c`) with thin Go wrappers: one fixed-arity C function per operation, options passed as plain C structs, `#cgo noescape/nocallback` on every entry point, no varargs from Go. vipsgen is **not** pinned (deviation from the WP-06 row, reasons in `internal/vips/doc.go`: it imports `"C"` itself and owns process-global vips state); it and imagor stay the reference for option names.
+
+| Group | API |
+|---|---|
+| Lifecycle | `Init(*Config)` (concurrency 1, cache 0, loader + saver allowlists after `vips_block_untrusted_set`, `HEICEncode`), `Shutdown`, `Run(ctx, fn)`, `ReadMemStats` (mem, highwater, allocs, files), `LiveObjects`, `SetLeakCheck`, `KillOnCancel(ctx, img) (stop)` |
+| Bytes | `Buffer` (`NewBuffer(n)`, `NewBufferFromReader`, refcounted C memory, implements `fetch.Buffer`), `Blob` (encoded output, zero-copy, refcounted) |
+| Decode | `Probe(ctx, buf) Header` (header only, sequential, never decodes), `Load(ctx, buf, *LoadOptions)` (shrink, scale, density, page, n, access, fail_on, autorotate, heif thumbnail, max pixels/frames → `LimitExceeded`), `Thumbnail(ctx, buf, *ThumbnailOptions)`, `Black`, `NewFromMemory` (Go decoders → vips) |
+| Process | `(*Image)` methods returning new lazy images: `Resize`, `ExtractArea`, `Crop`, `Embed`, `Gravity`, `Flip`, `Rot`, `Autorot`, `SmartCrop`, `Flatten`, `Premultiply`, `Unpremultiply`, `Colourspace`, `ICCImport/Export/Transform`, `Cast`, `Copy`, `Gaussblur`, `Sharpen`, `Composite2`, `Replicate`, `Join`, `Linear`, `Invert`, `BandjoinConst`, `ExtractBand`, `AddAlpha`, `FindTrim`/`Trim`, `Similarity`, `Affine`; package funcs `Arrayjoin`, `Bandjoin`; metadata `Int/Ints/Blob` getters and copy-on-write `SetInt/SetInts/SetBlob/RemoveMetadata/SetOrientation/RemoveOrientation/SetPageHeight`; `Arena` closes a request's images |
+| Encode | `(*Image).Save(ctx, Format, *SaveOptions)` for JPEG, PNG, WebP, GIF, AVIF, HEIF (HEVC only with `HEICEncode`), JXL, TIFF; `DefaultSaveOptions()` mirrors the libvips defaults; `Keep` maps to `VipsForeignKeep` |
+
+Rules the executor relies on:
+
+- Every call takes `ctx` first and returns `Canceled`/`Timeout` without crossing into C when it is done. Sinks (`Save`, `WriteToMemory`) and computing ops (`SmartCrop`, `FindTrim`) arm `KillOnCancel`; a killed call reports the context's kind.
+- Animated images are strips with `page-height`. `Crop`, `Embed`, `Gravity`, vertical `Flip`, `Rot`, `Autorot`, `Similarity`, `Affine` work per frame (extract + `arrayjoin`) and fix `page-height`; `Resize` rounds the frame height to whole rows and keeps the strip an exact multiple; `SmartCrop` and `Trim` refuse multi-frame input (the planner falls back to gravity).
+- Error kinds come from the failing operation (§8.2). Lazy decode failures are attributed through a libvips `invalidate` emission hook that marks the source buffer, so a truncated JPEG found during `Save` is `Corrupt`, not `Internal`.
+- `Image` is not goroutine-safe and lives inside one `Run`. `Buffer` and `Blob` reference counts are safe for concurrent use.
 
 ## 9. Caching
 

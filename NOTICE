@@ -36,8 +36,9 @@ redenormalisation), options/parser/url.go (source URL decoding),
 options/parser/parse.go and options/parser/apply.go (option argument
 rules). The code was rewritten against xtandard-image's own request model
 and modified as described in the package documentation.
-internal/vips/shim.c and internal/vips/shim.h contain portions derived from
-imgproxy's vips/vips.c, https://github.com/imgproxy/imgproxy
+internal/vips/shim.h, shim.c, load.c, image.c, ops.c and save.c contain
+portions derived from imgproxy's vips/vips.c,
+https://github.com/imgproxy/imgproxy
 Copyright (c) 2017 Sergey Alexandrovich
 Licensed under the Apache License, Version 2.0,
 https://www.apache.org/licenses/LICENSE-2.0
@@ -67,3 +68,10 @@ https://www.apache.org/licenses/LICENSE-2.0
 Modifications (OS/2 and V2/V3 headers, arbitrary bitfields, embedded
 PNG/JPEG, ICO AND masks, multi-entry ICO output with DIB entries up to
 48 px, bounds and pixel-limit checks) are described in the file headers.
+The derived portions are the init sequence, cache and concurrency setup,
+per-thread cleanup, the save-to-buffer pattern, flatten background scaling
+for 16-bit images, trim preparation (sRGB conversion and alpha flattening
+before vips_find_trim) and per-frame processing of animated images.
+Modifications (one fixed-arity function per operation, options as plain
+structs, error capture at the failure site, refcounted VipsBlob input
+buffers with decode-failure attribution) are marked in the file headers.
