@@ -40,6 +40,13 @@ type SourceMeta struct {
 	// leaving the last 2× of a reduction to libvips. Width and Height are
 	// the display size, Orientation the display matrix.
 	IsVideo bool
+
+	// Detections are the faces and objects detected in the source, for
+	// the detection gravities, crop_objects and the detection filters of
+	// the first pipeline (detect.go). nil means detection did not run:
+	// those gravities fall back to the smart crop and the filters do
+	// nothing. The caller runs detection when NeedsDetection asks for it.
+	Detections *Detections
 }
 
 // DefaultRawPreviewMinRatio is the RawPreviewMinRatio used when the limit
@@ -216,9 +223,15 @@ type TrimStep struct {
 // Gravity is a resolved placement: for GravityFocusPoint, X and Y are the
 // focus point (0..1); otherwise offsets (|v| ≥ 1 pixels, scaled by the
 // step's OffsetScale; |v| < 1 relative to the outer size).
+//
+// GravityObject is the placement of detected objects (WP-72): the point
+// X, Y of the image (fractions) lands at AX, AY of the crop (fractions of
+// the crop), shifted by OX, OY (|v| ≥ 1 pixels scaled by OffsetScale, < 1
+// fractions of the image; positive moves the content right and down).
 type Gravity struct {
-	Type transform.GravityType
-	X, Y float64
+	Type           transform.GravityType
+	X, Y           float64
+	AX, AY, OX, OY float64
 }
 
 // Interesting selects the smart-crop strategy.
@@ -265,7 +278,8 @@ type RotateStep struct{ Angle int }
 type FlipStep struct{ Horizontal, Vertical bool }
 
 // FilterStep applies the filters of a pipeline in one pass, per frame, in
-// this order: Blur, Sharpen, Unsharp, Pixelate, BlurAreas, ProgressiveBlur
+// this order: Blur, Sharpen, Unsharp, Pixelate, BlurAreas, ProgressiveBlur,
+// Detections
 // (imgproxy applies blur, sharpen and pixelate in one pass; the Pro filters
 // follow on the result, before colour adjustments, the canvas and
 // watermarks).
@@ -282,6 +296,8 @@ type FilterStep struct {
 	// ProgressiveBlur blends a blurred copy in along a linear ramp; nil =
 	// off.
 	ProgressiveBlur *transform.ProgressiveBlur
+	// Detections blurs or pixelates detected objects, last; nil = off.
+	Detections *DetectionBlur
 }
 
 // UnsharpMask is a resolved transform.Unsharp. With Sigma > 0 it is the

@@ -74,10 +74,14 @@ func positionOverflow(width, height, innerW, innerH int, g Gravity, dpr float64)
 
 // place is the unclamped part of imgproxy's calcPosition.
 func place(width, height, innerW, innerH int, g Gravity, dpr float64) (left, top int) {
-	if g.Type == transform.GravityFocusPoint {
+	switch g.Type {
+	case transform.GravityFocusPoint:
 		left = scaleDimEven(width, g.X) - innerW/2
 		top = scaleDimEven(height, g.Y) - innerH/2
-	} else {
+	case transform.GravityObject:
+		left = scaleDimEven(width, g.X) - anchor(innerW, g.AX) - offset(width, g.OX, dpr)
+		top = scaleDimEven(height, g.Y) - anchor(innerH, g.AY) - offset(height, g.OY, dpr)
+	default:
 		offX := offset(width, g.X, dpr)
 		offY := offset(height, g.Y, dpr)
 
@@ -100,6 +104,16 @@ func place(width, height, innerW, innerH int, g Gravity, dpr float64) (left, top
 		}
 	}
 	return left, top
+}
+
+// anchor is the pixel of an inner box at fraction a of its size; the
+// centre rounds like a focus point's, so a centred object placement is
+// exactly the focus point at the objects' centre.
+func anchor(inner int, a float64) int {
+	if a == 0.5 {
+		return inner / 2
+	}
+	return scaleDimEven(inner, a)
 }
 
 // offset resolves an imgproxy gravity offset: |v| ≥ 1 is pixels scaled by
@@ -182,6 +196,10 @@ func flipGravityY(t transform.GravityType) transform.GravityType {
 // (imgproxy GravityOptions.RotateAndFlip).
 func (g *Gravity) undoRotateFlip(angle int, flipX, flipY bool) {
 	angle %= 360
+	if g.Type == transform.GravityObject {
+		g.undoRotateFlipObject(angle, flipX, flipY)
+		return
+	}
 	if flipX {
 		g.Type = flipGravityX(g.Type)
 		switch g.Type {
@@ -240,9 +258,35 @@ func (g *Gravity) undoRotateFlip(angle int, flipX, flipY bool) {
 	}
 }
 
+// undoRotateFlipObject is undoRotateFlip for a GravityObject placement:
+// the image point and the crop anchor move like focus points, the offsets
+// like vectors.
+func (g *Gravity) undoRotateFlipObject(angle int, flipX, flipY bool) {
+	if flipX {
+		g.X, g.AX, g.OX = 1-g.X, 1-g.AX, -g.OX
+	}
+	if flipY {
+		g.Y, g.AY, g.OY = 1-g.Y, 1-g.AY, -g.OY
+	}
+	switch angle {
+	case 90:
+		g.X, g.Y = g.Y, 1-g.X
+		g.AX, g.AY = g.AY, 1-g.AX
+		g.OX, g.OY = g.OY, -g.OX
+	case 180:
+		g.X, g.Y = 1-g.X, 1-g.Y
+		g.AX, g.AY = 1-g.AX, 1-g.AY
+		g.OX, g.OY = -g.OX, -g.OY
+	case 270:
+		g.X, g.Y = 1-g.Y, g.X
+		g.AX, g.AY = 1-g.AY, g.AX
+		g.OX, g.OY = -g.OY, g.OX
+	}
+}
+
 // resolveGravity converts a request gravity. Content-aware types report a
-// smart-crop strategy; face and object detection (M3) fall back to
-// attention.
+// smart-crop strategy; face and object gravities without detections fall
+// back to attention (detect.go resolves them when there are some).
 func resolveGravity(g *transform.Gravity) (Gravity, Interesting) {
 	switch g.Type {
 	case transform.GravityFocusPoint:

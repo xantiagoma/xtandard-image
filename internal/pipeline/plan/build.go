@@ -98,6 +98,8 @@ type source struct {
 	thumbnail bool
 	hdr       bool // scene-linear float source: tone-mapped after load
 	video     bool // a frame decoded by FFmpeg, scaled on load by libswscale
+	// dets are the source's detections (first pipeline only).
+	dets *Detections
 }
 
 func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observed) (*Plan, error) {
@@ -134,6 +136,7 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 		enforceThumb: req.Output.EnforceThumbnail != nil && *req.Output.EnforceThumbnail,
 		hdr:          meta.HDR,
 		video:        meta.IsVideo,
+		dets:         meta.Detections,
 	}
 	nFrames := max(meta.Frames, 1)
 	if first.Page != nil && *first.Page > 0 {
@@ -279,6 +282,8 @@ type builder struct {
 	// buffer and its four 16-bit samples per output pixel), or of a video
 	// decoder (videoDecodeBytes).
 	rawBytes int64
+	// dets are the source's detections, for the detection filters.
+	dets *Detections
 }
 
 // videoDecodeBytes is the decoder memory a video frame costs beyond the
@@ -308,6 +313,7 @@ func (b *builder) oriented(g *geo, rotate, w, h int) (int, int) {
 
 func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt transform.Format, obs *Observed, last bool) (*Plan, error) {
 	p = pixelFocus(p, s)
+	p, dg := detectGeometry(p, s)
 	o := newOpts(p, lim.resultDim)
 	b := &builder{
 		pl:     &Plan{Steps: make([]Step, 0, 12)},
@@ -316,24 +322,20 @@ func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt trans
 		// The tone mapper measures the source before mapping it: two reads.
 		random: s.hdr,
 		hdr:    s.hdr,
+		dets:   s.dets,
 	}
 	if s.video {
 		b.rawBytes = videoDecodeBytes(s.w, s.h)
 	}
 	g := geo{vectorBaseShrink: 1}
 	g.angle, g.flip = orientation(s.orientation, o.autoRotate)
-	if p.Crop != nil && p.Crop.Gravity.Type != transform.GravityUnset {
-		g.cropGravity, _ = resolveGravity(&p.Crop.Gravity)
-	} else {
-		g.cropGravity, _ = resolveGravity(&p.Gravity)
+	var cropSmart Interesting
+	g.cropGravity, cropSmart = resolveGravity(cropGravityOf(p))
+	if dg.crop != nil {
+		g.cropGravity, cropSmart = *dg.crop, InterestingNone
 	}
-	cropSmart := InterestingNone
-	if p.Crop != nil {
-		cg := p.Crop.Gravity
-		if cg.Type == transform.GravityUnset {
-			cg = p.Gravity
-		}
-		_, cropSmart = resolveGravity(&cg)
+	if p.Crop == nil {
+		cropSmart = InterestingNone
 	}
 	animated := s.frames > 1
 
@@ -393,7 +395,7 @@ func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt trans
 
 	b.geoFrom, b.geoW, b.geoH = len(b.pl.Steps), b.curW, b.curH
 	b.exifAngle, b.exifFlip = g.angle, g.flip
-	emitGeometry(p, &g, &o, b, cropSmart, animated)
+	emitGeometry(p, &g, &o, b, cropSmart, animated, dg.result)
 	emitFinish(p, &g, b, outFmt, s.frames, last)
 
 	if b.tooLarge {
@@ -411,7 +413,7 @@ func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt trans
 	b.pl.Output.Alpha = b.alpha
 	b.pl.Output.DPRScale = g.dprScale
 	b.pl.Cost = cost(b)
-	b.pl.Unplanned = unplanned(p)
+	b.pl.Unplanned = unplanned(p, s.dets != nil)
 	return b.pl, nil
 }
 
@@ -572,7 +574,14 @@ func rebaseOnLoad(g *geo, o *opts, obs *Observed, load *LoadStep, b *builder, nw
 	}
 	// Absolute crop offsets follow the preshrink; relative ones and focus
 	// points do not.
-	if g.cropGravity.Type != transform.GravityFocusPoint {
+	if cg := &g.cropGravity; cg.Type == transform.GravityObject {
+		if math.Abs(cg.OX) >= 1 {
+			cg.OX = math.RoundToEven(cg.OX / wp)
+		}
+		if math.Abs(cg.OY) >= 1 {
+			cg.OY = math.RoundToEven(cg.OY / hp)
+		}
+	} else if cg.Type != transform.GravityFocusPoint {
 		if math.Abs(g.cropGravity.X) >= 1 {
 			g.cropGravity.X = math.RoundToEven(g.cropGravity.X / wp)
 		}
@@ -584,7 +593,9 @@ func rebaseOnLoad(g *geo, o *opts, obs *Observed, load *LoadStep, b *builder, nw
 }
 
 // emitGeometry emits pre-crop, resize, orientation and the result crop.
-func emitGeometry(p *transform.Pipeline, g *geo, o *opts, b *builder, cropSmart Interesting, animated bool) {
+// detected is the result crop's placement on detected objects (nil: the
+// pipeline gravity).
+func emitGeometry(p *transform.Pipeline, g *geo, o *opts, b *builder, cropSmart Interesting, animated bool, detected *Gravity) {
 	if animated {
 		// libvips smart crop cannot run on a strip; the executor would have
 		// to crop every frame differently. Fall back to the centre.
@@ -643,6 +654,9 @@ func emitGeometry(p *transform.Pipeline, g *geo, o *opts, b *builder, cropSmart 
 	}
 
 	rg, smart := resolveGravity(&p.Gravity)
+	if detected != nil {
+		rg, smart = *detected, InterestingNone
+	}
 	if animated {
 		smart = InterestingNone
 	}
@@ -665,6 +679,9 @@ func emitFinish(p *transform.Pipeline, g *geo, b *builder, outFmt transform.Form
 	if st, ok := colourAdjust(p); ok {
 		b.add(st)
 		b.alpha = b.alpha || st.Adjust.Opacity != nil
+	}
+	if st, ok := drawDetections(p, b); ok {
+		b.add(st)
 	}
 	emitRotateAny(p, b)
 
@@ -801,8 +818,10 @@ func cost(b *builder) Cost {
 	return Cost{Pixels: b.peak, EstimatedBytes: bytes + b.rawBytes}
 }
 
-// unplanned lists options later work packages turn into steps.
-func unplanned(p *transform.Pipeline) []string {
+// unplanned lists options later work packages turn into steps, and the
+// detection options of a pipeline planned without detections (a chained
+// pipeline, or no detector).
+func unplanned(p *transform.Pipeline, detected bool) []string {
 	var out []string
 	add := func(set bool, name string) {
 		if set {
@@ -811,7 +830,7 @@ func unplanned(p *transform.Pipeline) []string {
 	}
 	add(p.Adjust.Vibrance != nil, "vibrance")
 	add(p.Equalize, "equalize")
-	add(p.BlurDetections != nil || p.DrawDetections != nil || p.CropObjects != nil, "detections")
+	add(!detected && (p.BlurDetections != nil || p.DrawDetections != nil || p.CropObjects != nil), "detections")
 	// video_thumbnail_second and _keyframes select the frame of a video
 	// source when it is loaded (no step; ignored for images, like
 	// imgproxy); tiles and animations are WP-75.
