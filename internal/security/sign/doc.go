@@ -53,6 +53,18 @@
 // ignored. See [ImaginaryMessage] and [NewImaginaryVerifier]
 // (imaginary middleware.go validateURLSignature, MIT).
 //
+// # imgix scheme
+//
+// The imgix dialect's s parameter (imgix-blueprint "Securing URLs"):
+//
+//	lowercase-hex(MD5(token ‖ path [‖ "?" ‖ query]))
+//
+// token is the key's secret used verbatim (build it with NewKey, not
+// ParseHexKeyring), path is the escaped path with its leading "/", and query
+// is the raw query without s in its original order and encoding; the "?" is
+// present only when that remainder is non-empty. Salts are ignored. See
+// [ImgixMessage] and [NewImgixVerifier].
+//
 // # Security
 //
 // Signatures are compared with crypto/subtle. Key material lives in []byte
