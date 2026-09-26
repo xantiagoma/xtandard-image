@@ -112,8 +112,12 @@ cd "$GPL_DEPS_SRC/ffmpeg"
 # --disable-gpl swapped for --enable-gpl and the two GPL encoders added. Everything
 # else (demuxers, decoders, filters, no audio, no network, no nonfree, no version3)
 # stays identical to full by construction.
+# `-buildconf` shell-quotes values with commas (--enable-demuxer=''\''mov,...'\''');
+# no switch value contains a quote or a backslash, so both are stripped.
 full_conf=()
 while IFS= read -r flag; do
+  flag=${flag//\'/}
+  flag=${flag//\\/}
   case "$flag" in
     --disable-gpl) full_conf+=(--enable-gpl) ;;
     --*) full_conf+=("$flag") ;;
@@ -128,6 +132,22 @@ fi
   --enable-libx265 \
   --enable-encoder=libx264,libx265
 make -j"$(nproc)"
+# Same component lists as full: every name is a plain identifier (no quoting left over)
+# and every decoder, demuxer, muxer, parser, bsf, protocol and encoder of the full build
+# is still enabled (filters have no CONFIG_ macro for the built-in buffer/buffersink).
+for kind in decoder demuxer muxer parser filter bsf protocol encoder; do
+  for name in $(printf '%s\n' "${full_conf[@]}" | sed -n "s/^--enable-$kind=//p" | tr ',' ' '); do
+    if [[ ! $name =~ ^[a-z0-9_]+$ ]]; then
+      echo "FFmpeg gpl build: unexpected $kind name '$name' read from BUILDCONF.txt" >&2
+      exit 1
+    fi
+    [ "$kind" = filter ] && continue
+    if ! grep -qE "^#define CONFIG_${name^^}_${kind^^} 1" config.h config_components.h 2>/dev/null; then
+      echo "FFmpeg gpl build lost $kind $name from the full configuration" >&2
+      exit 1
+    fi
+  done
+done
 make install
 add_sbom ffmpeg "$FFMPEG_VERSION" "cpe:2.3:a:ffmpeg:ffmpeg:$FFMPEG_VERSION:*:*:*:*:*:*:*" GPL-2.0-or-later
 
