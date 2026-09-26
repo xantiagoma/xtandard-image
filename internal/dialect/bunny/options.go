@@ -17,7 +17,6 @@ import (
 // Reasons recorded in Request.Ignored.
 const (
 	reasonUnknown      = "unknown option"
-	reasonM3           = "takes effect in M3"
 	reasonNotEnforced  = "not enforced"
 	reasonApproximated = "approximated"
 )
@@ -322,12 +321,15 @@ func focusCrop(b *imgproxy.Builder, v string) error {
 	return b.Apply("crop", args[0], args[1], "nowe", strconv.Itoa(max(0, x-w/2)), strconv.Itoa(max(0, y-h/2)))
 }
 
-// faceCrop is face_crop=true|false or face_crop=w,h. Face detection is M3;
-// until then w,h is a centre crop and true is ignored.
+// faceCrop is face_crop=true|false or face_crop=w,h (Bunny Optimizer):
+// true crops the requested size on the faces (face gravity, WP-72), w,h
+// crops a w×h area of the source centred on the faces before resizing.
+// Without faces the smart crop places it; without the detector (slim) it
+// answers 422.
 func faceCrop(b *imgproxy.Builder, v string) error {
 	if on, err := strconv.ParseBool(v); err == nil {
 		if on {
-			b.Ignore("face_crop", reasonM3)
+			b.Pipeline().Gravity = transform.Gravity{Type: transform.GravityFace}
 		}
 		return nil
 	}
@@ -337,8 +339,11 @@ func faceCrop(b *imgproxy.Builder, v string) error {
 	if !ok || werr != nil || herr != nil || wi <= 0 || hi <= 0 || wi > transform.MaxDimension || hi > transform.MaxDimension {
 		return dialect.InvalidArgument("face_crop", v, expFaceCrop)
 	}
-	b.Ignore("face_crop", reasonM3)
-	return b.Apply("crop", w, h, "ce")
+	if err := b.Apply("crop", w, h, "ce"); err != nil {
+		return err
+	}
+	b.Pipeline().Crop.Gravity = transform.Gravity{Type: transform.GravityFace}
+	return nil
 }
 
 // aspectRatio is aspect_ratio=w:h, a crop of the source (or of crop=) to

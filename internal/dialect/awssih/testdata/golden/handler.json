@@ -692,17 +692,14 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "smartCrop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
-          "Gravity": {
-            "FaceIndex": 0,
-            "Type": "face"
+          "CropObjects": {
+            "Classes": [
+              "face"
+            ],
+            "Index": 0,
+            "Scale": 1
           }
         }
       ],
@@ -720,17 +717,14 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "smartCrop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
-          "Gravity": {
-            "FaceIndex": 10,
-            "Type": "face"
+          "CropObjects": {
+            "Classes": [
+              "face"
+            ],
+            "Index": 10,
+            "Scale": 1
           }
         }
       ],
@@ -748,16 +742,14 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "smartCrop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
-          "Gravity": {
-            "Type": "face"
+          "CropObjects": {
+            "Classes": [
+              "face"
+            ],
+            "Index": 0,
+            "Scale": 1
           }
         }
       ],
@@ -775,23 +767,18 @@
     "query": "",
     "request": {
       "Dialect": "awssih",
-      "Ignored": [
-        {
-          "Option": "smartCrop.padding",
-          "Reason": "approximated"
-        },
-        {
-          "Option": "smartCrop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "webp"
       },
       "Pipelines": [
         {
-          "Gravity": {
-            "Type": "face"
+          "CropObjects": {
+            "Classes": [
+              "face"
+            ],
+            "Index": 0,
+            "Padding": 60,
+            "Scale": 1
           }
         }
       ],

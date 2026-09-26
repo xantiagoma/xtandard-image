@@ -415,12 +415,6 @@
     "path": "/unsafe/g:obj:face:cat/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "g:obj",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -443,12 +437,6 @@
     "path": "/unsafe/g:objw:face:2:dog:0.5/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "g:objw",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -625,15 +613,11 @@
         },
         {
           "Option": "cl",
-          "Reason": "takes effect in M3"
+          "Reason": "not implemented (no classification model)"
         },
         {
           "Option": "crop:gravity",
           "Reason": "approximated by the centre"
-        },
-        {
-          "Option": "do",
-          "Reason": "takes effect in M3"
         }
       ],
       "Info": {
@@ -1071,12 +1055,6 @@
     "path": "/unsafe/c:100:100/crop_ar:1.5:t/op:soea:5:6/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "op",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Crop": {
@@ -1131,29 +1109,15 @@
     "source": "https://example.com/images/cat.jpg"
   },
   "pro_detections": {
-    "path": "/unsafe/bd:8:face:license_plate/c_obj:1.2:dog/dd:t:cat/plain/https://example.com/images/cat.jpg",
+    "path": "/unsafe/bd:8:face:car/c_obj:1.2:dog/dd:t:cat/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "bd",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "c_obj",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "dd",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "BlurDetections": {
             "Classes": [
               "face",
-              "license_plate"
+              "car"
             ],
             "Sigma": 8
           },
@@ -1222,12 +1186,6 @@
     "path": "/unsafe/op:fp:0.2:0.4/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "op",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1250,12 +1208,6 @@
     "path": "/unsafe/op:prop/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "op",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {

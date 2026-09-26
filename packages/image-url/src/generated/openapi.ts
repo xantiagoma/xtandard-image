@@ -527,7 +527,7 @@ export interface components {
              */
             calc_hashsums?: ("md5" | "sha1" | "sha256" | "sha512" | null)[];
             /**
-             * @description Classify the image. URL: `classify`, `cl`; arguments top_k:classes…; default 0.
+             * @description Classify the image (no classification model is shipped). URL: `classify`, `cl`; arguments top_k:classes…; default 0.
              * @example [
              *       3
              *     ]
@@ -578,7 +578,7 @@ export interface components {
                 "objw"
             ];
             /**
-             * @description Report detected objects. URL: `detect_objects`, `do`; arguments bool; default false.
+             * @description Report detected faces and objects. URL: `detect_objects`, `do`; arguments bool; default false.
              * @example [
              *       true
              *     ]
@@ -1012,7 +1012,7 @@ export interface components {
                 boolean | null
             ];
             /**
-             * @description Crop to detected objects. URL: `crop_objects`, `c_obj`; arguments scale:classes…; default off.
+             * @description Crop to detected objects before resizing. URL: `crop_objects`, `c_obj`; arguments scale:classes…; default off.
              * @example [
              *       1.2,
              *       "face"
@@ -1049,7 +1049,7 @@ export interface components {
                 number
             ];
             /**
-             * @description Draw boxes around detected objects. URL: `draw_detections`, `dd`; arguments bool:classes…; default off.
+             * @description Draw boxes and labels around detected objects. URL: `draw_detections`, `dd`; arguments bool:classes…; default off.
              * @example [
              *       true,
              *       "face"
@@ -1199,7 +1199,7 @@ export interface components {
                 number | null
             ];
             /**
-             * @description Where to crop from when the aspect ratio changes. URL: `gravity`, `g`; arguments no,so,ea,we,noea,nowe,soea,sowe,ce[:x:y]; `sm`; `fp:x:y`; `obj:classes…` Pro; `objw:class:weight…` Pro; default ce:0:0.
+             * @description Where to crop from when the aspect ratio changes; `sm` crops on faces when there are some (XI_DETECT_SMART_FACES). URL: `gravity`, `g`; arguments no,so,ea,we,noea,nowe,soea,sowe,ce[:x:y]; `sm`; `fp:x:y`; `obj:classes…` Pro; `objw:class:weight…` Pro; default ce:0:0.
              * @example [
              *       "fp",
              *       0.5,
@@ -1353,7 +1353,7 @@ export interface components {
                 string | null
             ];
             /**
-             * @description Position of detected objects in the result (with obj gravity). URL: `objects_position`, `obj_pos`, `op`; arguments type:x:y, `fp:x:y`, `prop`; default ce.
+             * @description Position of the detected objects' box in the crop (face, obj and objw gravity). URL: `objects_position`, `obj_pos`, `op`; arguments type:x:y, `fp:x:y`, `prop`; default ce.
              * @example [
              *       "prop"
              *     ]
@@ -1802,6 +1802,42 @@ export interface components {
             muted?: components["schemas"]["InfoRGB"];
             vibrant?: components["schemas"]["InfoRGB"];
         };
+        InfoObject: {
+            /**
+             * Format: int64
+             * @description 0 for faces (the face model's only class), the COCO class index for objects.
+             */
+            class_id: number;
+            /** @description face, or a COCO class name (person, car, dog, traffic light, ...). */
+            class_name: string;
+            /**
+             * Format: double
+             * @description Detection score, 0-1.
+             */
+            confidence: number;
+            /**
+             * Format: double
+             * @description Box height, as a fraction of the image height.
+             */
+            height: number;
+            /** @description Face landmarks [x, y] as fractions of the image: right eye, left eye, nose tip, right and left mouth corners (faces only; an extension over imgproxy). */
+            landmarks?: (number[] | null)[] | null;
+            /**
+             * Format: double
+             * @description Left edge of the box, as a fraction of the oriented image width.
+             */
+            left: number;
+            /**
+             * Format: double
+             * @description Top edge of the box, as a fraction of the oriented image height.
+             */
+            top: number;
+            /**
+             * Format: double
+             * @description Box width, as a fraction of the image width.
+             */
+            width: number;
+        };
         InfoRGB: {
             /** Format: int32 */
             B: number;
@@ -1862,6 +1898,8 @@ export interface components {
             };
             /** @description Source media type, e.g. image/jpeg; HEIC is image/heif (info option format). */
             mime_type?: string;
+            /** @description Detected faces and objects, best first within each model (faces first), with boxes as fractions of the oriented image; [] when none were found (info option detect_objects). */
+            objects?: components["schemas"]["InfoObject"][] | null;
             /**
              * Format: int64
              * @description EXIF orientation 1-8, 1 when absent (info option dimensions).

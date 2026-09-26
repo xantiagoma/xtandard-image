@@ -1217,12 +1217,6 @@
     "query": "w=1\u0026h=1\u0026fit=crop\u0026crop=faces",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "crop",
-          "Reason": "takes effect in M3 (WP-72, needs face/object detection)"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1253,12 +1247,6 @@
     "query": "w=1\u0026h=1\u0026fit=crop\u0026crop=faces,entropy",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "crop",
-          "Reason": "takes effect in M3 (WP-72, needs face/object detection)"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1442,12 +1430,6 @@
     "query": "w=1\u0026h=1\u0026fit=crop\u0026crop=car,vehicle,auto",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "crop",
-          "Reason": "takes effect in M3 (WP-72, needs face/object detection)"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1926,12 +1908,6 @@
     "query": "face-blur=50",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "face-blur",
-          "Reason": "takes effect in M3 (WP-73, needs face detection)"
-        }
-      ],
       "Pipelines": [
         {
           "BlurDetections": {
@@ -2012,10 +1988,6 @@
     "request": {
       "Dialect": "imgix",
       "Ignored": [
-        {
-          "Option": "face-pixel",
-          "Reason": "takes effect in M3 (WP-73, needs face detection)"
-        },
         {
           "Option": "face-blur",
           "Reason": "approximated"
@@ -2217,12 +2189,6 @@
     "query": "w=200\u0026h=200\u0026fit=facearea\u0026facepad=2\u0026faceindex=1",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "fit",
-          "Reason": "takes effect in M3 (WP-72, needs face/object detection)"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -5244,12 +5210,6 @@
     "query": "w=10\u0026h=20\u0026fit=crop\u0026crop=faces",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "crop",
-          "Reason": "takes effect in M3 (WP-72, needs face/object detection)"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {

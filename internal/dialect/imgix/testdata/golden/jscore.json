@@ -453,12 +453,6 @@
     "query": "ixlib=js-3.8.0\u0026w=400\u0026h=300\u0026fit=crop\u0026crop=faces%2Centropy\u0026s=7ceb140db6b82e30c91cd576ec8a60e1",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "crop",
-          "Reason": "takes effect in M3 (WP-72, needs face/object detection)"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -528,12 +522,6 @@
     "query": "ixlib=js-3.8.0\u0026w=200\u0026h=200\u0026fit=facearea\u0026facepad=1.5\u0026faceindex=2\u0026s=9961cecaf961226cffa3e7cf2597640e",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "fit",
-          "Reason": "takes effect in M3 (WP-72, needs face/object detection)"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {

@@ -85,7 +85,7 @@ export interface ImgproxyProcessingArgs {
    * Blur detected objects. URL: `blur_detections`, `bd`; arguments sigma:classes…; default off.
    *
    * URL names: `blur_detections`, `bd`.
-   * milestone M3; scope pipeline; imgproxy Pro option (free here).
+   * milestone M3 (WP-73); scope pipeline; imgproxy Pro option (free here).
    * @example [10,"face"]
    */
   "blur_detections":
@@ -176,10 +176,10 @@ export interface ImgproxyProcessingArgs {
   "crop_aspect_ratio":
     | [aspect_ratio: number | null, enlarge?: boolean | null];
   /**
-   * Crop to detected objects. URL: `crop_objects`, `c_obj`; arguments scale:classes…; default off.
+   * Crop to detected objects before resizing. URL: `crop_objects`, `c_obj`; arguments scale:classes…; default off.
    *
    * URL names: `crop_objects`, `c_obj`.
-   * milestone M3; scope pipeline; imgproxy Pro option (free here).
+   * milestone M3 (WP-72); scope pipeline; imgproxy Pro option (free here).
    * @example [1.2,"face"]
    */
   "crop_objects":
@@ -212,10 +212,10 @@ export interface ImgproxyProcessingArgs {
   "dpr":
     | [dpr: number];
   /**
-   * Draw boxes around detected objects. URL: `draw_detections`, `dd`; arguments bool:classes…; default off.
+   * Draw boxes and labels around detected objects. URL: `draw_detections`, `dd`; arguments bool:classes…; default off.
    *
    * URL names: `draw_detections`, `dd`.
-   * milestone M3; scope pipeline; imgproxy Pro option (free here).
+   * milestone M3 (WP-73); scope pipeline; imgproxy Pro option (free here).
    * @example [true,"face"]
    */
   "draw_detections":
@@ -338,10 +338,10 @@ export interface ImgproxyProcessingArgs {
   "gradient":
     | [opacity: number | null, color?: string | null, direction?: "down" | "up" | "left" | "right" | number | null, start?: number | null, stop?: number | null];
   /**
-   * Where to crop from when the aspect ratio changes. URL: `gravity`, `g`; arguments no,so,ea,we,noea,nowe,soea,sowe,ce[:x:y]; `sm`; `fp:x:y`; `obj:classes…` Pro; `objw:class:weight…` Pro; default ce:0:0.
+   * Where to crop from when the aspect ratio changes; `sm` crops on faces when there are some (XI_DETECT_SMART_FACES). URL: `gravity`, `g`; arguments no,so,ea,we,noea,nowe,soea,sowe,ce[:x:y]; `sm`; `fp:x:y`; `obj:classes…` Pro; `objw:class:weight…` Pro; default ce:0:0.
    *
    * URL names: `gravity`, `g`.
-   * milestone M1 (sm, fp), M3 (obj, objw); scope pipeline.
+   * milestone M1 (sm, fp), M3 (obj, objw: WP-72); scope pipeline.
    * @example ["fp",0.5,0.3]
    */
   "gravity":
@@ -468,10 +468,10 @@ export interface ImgproxyProcessingArgs {
   "monochrome":
     | [intensity: number | null, color?: string | null];
   /**
-   * Position of detected objects in the result (with obj gravity). URL: `objects_position`, `obj_pos`, `op`; arguments type:x:y, `fp:x:y`, `prop`; default ce.
+   * Position of the detected objects' box in the crop (face, obj and objw gravity). URL: `objects_position`, `obj_pos`, `op`; arguments type:x:y, `fp:x:y`, `prop`; default ce.
    *
    * URL names: `objects_position`, `obj_pos`, `op`.
-   * milestone M3; scope pipeline; imgproxy Pro option (free here).
+   * milestone M3 (WP-72); scope pipeline; imgproxy Pro option (free here).
    * @example ["prop"]
    */
   "objects_position":
@@ -1081,10 +1081,10 @@ export interface ImgproxyInfoArgs {
   "calc_hashsums":
     | [type: "md5" | "sha1" | "sha256" | "sha512" | null, ...types: Array<"md5" | "sha1" | "sha256" | "sha512" | null>];
   /**
-   * Classify the image. URL: `classify`, `cl`; arguments top_k:classes…; default 0.
+   * Classify the image (no classification model is shipped). URL: `classify`, `cl`; arguments top_k:classes…; default 0.
    *
    * URL names: `classify`, `cl`.
-   * milestone M3; scope request; imgproxy Pro option (free here).
+   * milestone not implemented; scope request; imgproxy Pro option (free here).
    * @example [3]
    */
   "classify":
@@ -1112,10 +1112,10 @@ export interface ImgproxyInfoArgs {
     | [width: number, height?: number, type?: "obj", ...classes: Array<string>]
     | [width: number, height: number, type: "objw", class_or_weight: string | number, class_or_weight_2: string | number, ...class_or_weights: Array<string | number>];
   /**
-   * Report detected objects. URL: `detect_objects`, `do`; arguments bool; default false.
+   * Report detected faces and objects. URL: `detect_objects`, `do`; arguments bool; default false.
    *
    * URL names: `detect_objects`, `do`.
-   * milestone M3; scope request; imgproxy Pro option (free here).
+   * milestone M3 (WP-73); scope request; imgproxy Pro option (free here).
    * @example [true]
    */
   "detect_objects":
@@ -1205,7 +1205,7 @@ export interface ImgproxyInfoArgs {
    * Objects position for the reported crop. URL: `objects_position`, `obj_pos`, `op`; arguments as processing; default ce:0:0.
    *
    * URL names: `objects_position`, `obj_pos`, `op`.
-   * milestone M3; scope request; imgproxy Pro option (free here).
+   * milestone M3 (WP-73); scope request; imgproxy Pro option (free here).
    * @example ["prop"]
    */
   "objects_position":

@@ -5009,7 +5009,7 @@
             "bd": [
               8,
               "face",
-              "license_plate"
+              "car"
             ]
           },
           {
@@ -5026,8 +5026,8 @@
           }
         ]
       ],
-      "url": "/unsafe/bd:8:face:license_plate/c_obj:1.2:dog/dd:1:cat/plain/https://example.com/images/cat.jpg",
-      "url_short": "/unsafe/bd:8:face:license_plate/c_obj:1.2:dog/dd:1:cat/plain/https://example.com/images/cat.jpg"
+      "url": "/unsafe/bd:8:face:car/c_obj:1.2:dog/dd:1:cat/plain/https://example.com/images/cat.jpg",
+      "url_short": "/unsafe/bd:8:face:car/c_obj:1.2:dog/dd:1:cat/plain/https://example.com/images/cat.jpg"
     },
     {
       "name": "jscore/pro_format_best",
@@ -5898,13 +5898,13 @@
             "bd": [
               5,
               "face",
-              "license_plate"
+              "car"
             ]
           }
         ]
       ],
-      "url": "/unsafe/bd:5:face:license_plate/plain/https://example.com/a.jpg",
-      "url_short": "/unsafe/bd:5:face:license_plate/plain/https://example.com/a.jpg"
+      "url": "/unsafe/bd:5:face:car/plain/https://example.com/a.jpg",
+      "url_short": "/unsafe/bd:5:face:car/plain/https://example.com/a.jpg"
     },
     {
       "name": "later/bd_zero_off",

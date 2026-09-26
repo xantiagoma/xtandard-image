@@ -101,7 +101,7 @@ const cases: Case[] = [
     blur_areas: { sigma: 10, areas: [{ left: 0, top: 0, width: 0.5, height: 0.5 }, { left: 0.5, top: 0.5, width: 0.25, height: 0.25 }] },
     progressive_blur: { sigma: 5, direction: "left", start: 0.2, stop: 0.8 } } },
   { name: "pro_detections", source: src, type: "plain", options: {
-    blur_detections: { sigma: 8, class_names: ["face", "license_plate"] },
+    blur_detections: { sigma: 8, class_names: ["face", "car"] },
     draw_detections: { draw: true, class_names: ["cat"] }, crop_objects: { scale_factor: 1.2, class_names: ["dog"] } } },
   { name: "pro_watermark", source: src, type: "plain", options: {
     watermark: { opacity: 0.7, position: "soea" }, watermark_url: b64("https://example.com/logo.png"),

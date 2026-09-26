@@ -17,8 +17,8 @@ const (
 	reasonUnsupported    = "unsupported"
 	reasonNotImplemented = "not implemented"
 	reasonApproximated   = "approximated"
-	reasonM3             = "takes effect in M3"
 	reasonHosted         = "not supported for hosted images"
+	reasonZoomFace       = "only with gravity=face"
 )
 
 // Expectation phrases (client-safe, static).
@@ -70,6 +70,8 @@ type state struct {
 	hosted bool // Cloudflare Images delivery: onerror is not supported
 	trim   trimSides
 	border *transform.Border
+	// zoomKey is the spelling of zoom (face-zoom) when it was given.
+	zoomKey string
 }
 
 func newState(b *imgproxy.Builder, strict, hosted bool) *state {
@@ -153,7 +155,7 @@ func (st *state) apply(key, v string) error {
 			return err
 		}
 		pl.Gravity.FocusZoom = z
-		st.b.Ignore(key, reasonM3)
+		st.zoomKey = key
 	case "quality", "q":
 		return quality("quality", v, &r.Output.Quality)
 	case "slow-connection-quality", "scq":
@@ -333,7 +335,6 @@ func (st *state) gravity(v string) error {
 		*g = transform.Gravity{Type: transform.GravitySmart}
 	case "face":
 		*g = transform.Gravity{Type: transform.GravityFace}
-		st.b.Ignore("gravity=face", reasonM3)
 	case "left":
 		*g = transform.Gravity{Type: transform.GravityWest}
 	case "right":
@@ -353,6 +354,26 @@ func (st *state) gravity(v string) error {
 	}
 	g.FocusZoom = zoom
 	return nil
+}
+
+// finishZoom maps zoom (0–1) with gravity=face: how closely the crop
+// frames the faces, from as much background as possible (0, the default:
+// face gravity only places the crop) to the faces' box (1). The faces'
+// box is scaled by 1/zoom and cropped before the fit (Gravity.FacePad,
+// WP-72). Without face gravity zoom does nothing (recorded).
+func (st *state) finishZoom() {
+	g := &st.pl().Gravity
+	if st.zoomKey == "" {
+		return
+	}
+	if g.Type != transform.GravityFace {
+		st.b.Ignore(st.zoomKey, reasonZoomFace)
+		return
+	}
+	if g.FocusZoom > 0 {
+		g.FacePad = 1 / g.FocusZoom
+	}
+	g.FocusZoom = 0
 }
 
 func quality(field, v string, dst *int) error {
