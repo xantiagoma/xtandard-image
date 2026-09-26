@@ -101,6 +101,7 @@ const providers: Record<string, Provider> = {
     },
   },
   vercel: { unpic: "vercel", mode: "embedded", accept: prefixed("/_vercel/image"), bases: ["/image.jpg", "https://example.net/image.jpg"] },
+  wordpress: { unpic: "wordpress", mode: "path", bases: ["https://i0.wp.com/example.com/wp-content/uploads/photo.jpg"] },
 
   // Full dialects (not the simple engine).
   bunny: { unpic: "bunny", mode: "path" },

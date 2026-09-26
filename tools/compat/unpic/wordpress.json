@@ -1,0 +1,74 @@
+{
+  "provider": "wordpress",
+  "unpic": {
+    "provider": "wordpress",
+    "version": "4.2.2"
+  },
+  "mode": "path",
+  "fixtures": [
+    {
+      "url": "https://i0.wp.com/example.com/wp-content/uploads/photo.jpg?crop=1",
+      "origin": "generate",
+      "want": {
+        "source": "example.com/wp-content/uploads/photo.jpg"
+      }
+    },
+    {
+      "url": "https://i0.wp.com/example.com/wp-content/uploads/photo.jpg?format=avif&quality=60&w=1200&crop=1",
+      "origin": "generate",
+      "want": {
+        "source": "example.com/wp-content/uploads/photo.jpg",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://i0.wp.com/example.com/wp-content/uploads/photo.jpg?format=jpeg&quality=75&w=640&crop=1",
+      "origin": "generate",
+      "want": {
+        "source": "example.com/wp-content/uploads/photo.jpg",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://i0.wp.com/example.com/wp-content/uploads/photo.jpg?format=png&h=500&crop=1",
+      "origin": "generate",
+      "want": {
+        "source": "example.com/wp-content/uploads/photo.jpg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://i0.wp.com/example.com/wp-content/uploads/photo.jpg?format=webp&quality=80&w=400&h=300&crop=1",
+      "origin": "generate",
+      "want": {
+        "source": "example.com/wp-content/uploads/photo.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://i0.wp.com/example.com/wp-content/uploads/photo.jpg?w=800&crop=1",
+      "origin": "generate",
+      "want": {
+        "source": "example.com/wp-content/uploads/photo.jpg",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://i0.wp.com/example.com/wp-content/uploads/photo.jpg?w=800&h=600&crop=1",
+      "origin": "generate",
+      "want": {
+        "source": "example.com/wp-content/uploads/photo.jpg",
+        "width": 800,
+        "height": 600
+      }
+    }
+  ]
+}

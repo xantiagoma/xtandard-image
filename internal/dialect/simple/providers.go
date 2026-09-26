@@ -29,6 +29,7 @@ func Providers() []*Spec {
 		supabase(),
 		uploadcare(),
 		vercel(),
+		wordpress(),
 	}
 	slices.SortFunc(specs, func(a, b *Spec) int { return strings.Compare(a.Name, b.Name) })
 	return specs
