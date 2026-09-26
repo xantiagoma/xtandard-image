@@ -2,9 +2,10 @@
 // later, the shared original cache (docs/ARCHITECTURE.md §9.2, ADR 0004).
 //
 // A Store keeps Entries (a refcounted body plus a small header subset)
-// under a namespace and a key. Backends live in subpackages (memory; disk,
-// s3cache and redis in WP-53/54/55); this package holds the interface, the
-// refcounted Buffer, result-key derivation (key.go), the Tiered composition
+// under a namespace and a key. Backends live in subpackages (memory, disk,
+// s3cache, redis); this package holds the interface, the refcounted
+// Buffer, result-key derivation (key.go), the persisted entry metadata the
+// out-of-process backends share (meta.go), the Tiered composition
 // (tiered.go) and the non-blocking write queue (async.go).
 //
 // Cache failures are never fatal: callers log them and treat the lookup as a
@@ -27,8 +28,8 @@ type Namespace string
 const (
 	// NSResult holds encoded responses (server result cache, WP-52).
 	NSResult Namespace = "res/"
-	// NSOrigin is reserved for original bytes once fetch's in-memory LRU
-	// can be backed by a shared Store (ARCHITECTURE §7; WP-53/54).
+	// NSOrigin holds original bytes when fetch's in-memory LRU is backed
+	// by a shared Store (XI_CACHE_ORIGIN_STORES, ARCHITECTURE §7).
 	NSOrigin Namespace = "orig/"
 )
 
@@ -128,15 +129,29 @@ type Store interface {
 	Close() error
 }
 
+// Reasons of Metrics.ObserveCacheSkip (the "reason" label of
+// xi_cache_skipped_total).
+const (
+	// SkipTooLarge: Set did not store an entry over the store's size
+	// limit (the memory budget, redis' value limit, s3's metadata limit).
+	SkipTooLarge = "too_large"
+	// SkipCorrupt: Get found an entry it could not decode (truncated
+	// file, checksum mismatch, foreign object) and served a miss.
+	SkipCorrupt = "corrupt"
+)
+
 // Metrics receives cache observations; *metrics.Metrics implements it
 // (xi_cache_requests_total, xi_cache_evictions_total, xi_cache_bytes,
-// xi_cache_entries, xi_cache_writes_dropped_total). store is the tier name
-// (memory, disk, redis, s3), a bounded label.
+// xi_cache_entries, xi_cache_writes_dropped_total, xi_cache_skipped_total).
+// store is the tier name (memory, disk, redis, s3), a bounded label.
 type Metrics interface {
 	ObserveCache(store string, hit bool)
 	ObserveCacheEvictions(store string, n int)
 	SetCacheSize(store string, bytes int64, entries int)
 	IncCacheWriteDropped()
+	// ObserveCacheSkip counts one entry skipped for reason (SkipTooLarge,
+	// SkipCorrupt).
+	ObserveCacheSkip(store, reason string)
 }
 
 // NopMetrics discards every observation.
@@ -153,6 +168,9 @@ func (NopMetrics) SetCacheSize(string, int64, int) {}
 
 // IncCacheWriteDropped implements Metrics.
 func (NopMetrics) IncCacheWriteDropped() {}
+
+// ObserveCacheSkip implements Metrics.
+func (NopMetrics) ObserveCacheSkip(string, string) {}
 
 // refBuffer is the Buffer returned by NewBuffer.
 type refBuffer struct {

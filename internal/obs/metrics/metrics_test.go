@@ -89,6 +89,7 @@ func TestMetricNamesAndLint(t *testing.T) {
 	m.ObserveCacheEvictions("memory", 1)
 	m.SetCacheSize("memory", 10, 1)
 	m.IncCacheWriteDropped()
+	m.ObserveCacheSkip("disk", "corrupt")
 	m.Limiter().Rejected(OverloadQueueFull)
 
 	mfs, err := m.Registry().Gather()
@@ -107,6 +108,7 @@ func TestMetricNamesAndLint(t *testing.T) {
 		"xi_cache_entries",
 		"xi_cache_evictions_total",
 		"xi_cache_requests_total",
+		"xi_cache_skipped_total",
 		"xi_cache_writes_dropped_total",
 		"xi_fetch_coalesced_total",
 		"xi_overload_total",
@@ -177,6 +179,7 @@ func TestObservations(t *testing.T) {
 	m.SetCacheSize("memory", 4096, 7)
 	m.SetCacheSize("memory", 2048, 3)
 	m.IncCacheWriteDropped()
+	m.ObserveCacheSkip("redis", "too_large")
 	lim := m.Limiter()
 	lim.QueueDepth(5)
 	lim.WorkersBusy(3)
@@ -201,6 +204,7 @@ func TestObservations(t *testing.T) {
 		{"cache bytes", value(t, m.cacheBytes.WithLabelValues("memory")), 2048},
 		{"cache entries", value(t, m.cacheEntries.WithLabelValues("memory")), 3},
 		{"cache writes dropped", value(t, m.cacheWritesDropped), 1},
+		{"cache skipped", value(t, m.cacheSkipped.WithLabelValues("redis", "too_large")), 1},
 		{"queue_depth", value(t, m.queueDepth), 5},
 		{"workers_busy", value(t, m.workersBusy), 3},
 		{"overload wait_timeout", value(t, m.overload.WithLabelValues(OverloadWaitTimeout)), 1},

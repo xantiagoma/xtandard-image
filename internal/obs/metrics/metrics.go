@@ -89,6 +89,7 @@ type Metrics struct {
 	cacheBytes         *prometheus.GaugeVec
 	cacheEntries       *prometheus.GaugeVec
 	cacheWritesDropped prometheus.Counter
+	cacheSkipped       *prometheus.CounterVec
 
 	queueDepth    prometheus.Gauge
 	workersBusy   prometheus.Gauge
@@ -174,6 +175,11 @@ func New(opts Options) (*Metrics, error) {
 			Name:      "cache_writes_dropped_total",
 			Help:      "Result cache writes dropped because the write queue was full.",
 		}),
+		cacheSkipped: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: Namespace,
+			Name:      "cache_skipped_total",
+			Help:      "Cache entries a store skipped by store and reason (too_large on write, corrupt on read).",
+		}, []string{"store", "reason"}),
 		queueDepth: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: Namespace,
 			Name:      "queue_depth",
@@ -207,7 +213,7 @@ func New(opts Options) (*Metrics, error) {
 	cs := []prometheus.Collector{
 		m.requests, m.requestDuration, m.inFlight, m.stageDuration, m.panics,
 		m.fetchDuration, m.sourceBytes, m.fetchCoalesced,
-		m.cacheRequests, m.cacheEvictions, m.cacheBytes, m.cacheEntries, m.cacheWritesDropped,
+		m.cacheRequests, m.cacheEvictions, m.cacheBytes, m.cacheEntries, m.cacheWritesDropped, m.cacheSkipped,
 		m.queueDepth, m.workersBusy, m.semaphoreWait, m.overload,
 		buildInfo,
 		collectors.NewGoCollector(),
@@ -326,3 +332,9 @@ func (m *Metrics) SetCacheSize(store string, bytes int64, entries int) {
 // IncCacheWriteDropped counts one result cache write dropped by a full
 // write queue.
 func (m *Metrics) IncCacheWriteDropped() { m.cacheWritesDropped.Inc() }
+
+// ObserveCacheSkip counts one entry store skipped for reason (a bounded
+// set: cache.SkipTooLarge, cache.SkipCorrupt).
+func (m *Metrics) ObserveCacheSkip(store, reason string) {
+	m.cacheSkipped.WithLabelValues(store, reason).Inc()
+}
