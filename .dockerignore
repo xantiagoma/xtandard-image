@@ -20,3 +20,7 @@ coverage.*
 *.pprof
 docs
 **/testdata/fuzz
+# The app image only needs go.mod, go.sum, cmd/ and internal/.
+testdata
+tools
+compose*.yml

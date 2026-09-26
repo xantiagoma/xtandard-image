@@ -574,8 +574,9 @@ docker/
     build-deps.sh              builds into /opt/xtandard (prefix), license bundle, license gate
     check-licenses.sh          GPL/AGPL gate (ADR 0006)
     Dockerfile                 ubuntu:noble deps → `builder` (Go + libvips dev) and `runtime` (libs only) targets
-  Dockerfile                   app: FROM base → go build → runtime
   imagemagick-policy.xml
+Dockerfile                     app (repo root): FROM <base>-builder → go build → FROM <base> runtime
+compose.smoke.yml              app + static origin, driven by scripts/smoke.sh (WP-00)
 ```
 
 **Base image** `ghcr.io/xantiagoma/xtandard-image-base:<vips-version>-r<N>-<flavor>` (flavor `slim` | `full`; the `runtime` target) plus `…-<flavor>-builder` (the `builder` target: Go 1.27.1, golangci-lint, go-task, headers and pkg-config files; used for CI, `task docker:test` and the app build stage), built weekly and on `docker/base/**` change, amd64 + arm64 on native runners, cosign-signed, SBOM (syft) attached. See `docker/base/README.md`.
@@ -593,7 +594,7 @@ Contents of `/opt/xtandard`:
 
 All libraries built with `-O3 -fstack-protector-strong -D_FORTIFY_SOURCE=2`, RPATH `$ORIGIN`, stripped. No GPL component: `build-deps.sh` runs a license check that fails the build on GPL/AGPL (see ADR 0006).
 
-**App image** (`docker/Dockerfile`, multi-stage):
+**App image** (`Dockerfile` at the repo root, so the build context is the module; multi-stage). WP-00 runs stage 2 directly on the base `runtime` target (`FROM ${BASE}`), which already is `ubuntu:noble` + the runtime subset of `/opt/xtandard` + the env of step 3 + UID 65532; WP-37 decides whether to keep that or copy the libs into a bare `ubuntu:noble` as below:
 
 1. `FROM ghcr.io/xantiagoma/xtandard-image-base:<pin>-<flavor>-builder AS build` (Go 1.27.1 included); `CGO_ENABLED=1 go build -trimpath -buildvcs=false -ldflags "-s -w -X main.version=… -X main.commit=…" [-tags ffmpeg]` (unstripped artefact kept for symbolication; `default.pgo` picked up automatically).
 2. `FROM ubuntu:noble` runtime (glibc required; `ca-certificates`, `tzdata` only), `COPY --from=build /opt/xtandard/lib /opt/xtandard/lib` (runtime subset), binary to `/usr/local/bin/xtandard-image`.

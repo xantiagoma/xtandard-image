@@ -89,3 +89,38 @@ jobs:
         run: |
           go build -trimpath -ldflags "-s -w -X main.version=ci -X main.commit=${GITHUB_SHA}" -o bin/xtandard-image ./cmd/xtandard-image
           ./bin/xtandard-image version | tee /dev/stderr | grep -q "xtandard-image ci (commit ${GITHUB_SHA}"
+
+  smoke:
+    # WP-00 walking skeleton: build the app image natively on each
+    # architecture from the published base image and run scripts/smoke.sh
+    # (compose: app + static origin). Override the base with the repository
+    # variable XI_BASE_RUNTIME_IMAGE (the builder is "<base>-builder").
+    name: smoke (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build app image
+        run: |
+          docker build -t xtandard-image:ci \
+            --build-arg BASE="${{ vars.XI_BASE_RUNTIME_IMAGE || 'ghcr.io/xantiagoma/xtandard-image-base:slim' }}" \
+            --build-arg VERSION=ci \
+            --build-arg COMMIT="${GITHUB_SHA}" \
+            .
+          docker image inspect -f 'image size: {{.Size}} bytes' xtandard-image:ci
+      - name: Smoke test
+        run: scripts/smoke.sh
+        env:
+          XI_IMAGE: xtandard-image:ci
