@@ -1,0 +1,3172 @@
+{
+  "a_check_transparency": {
+    "endpoint": "info",
+    "path": "/unsafe/a:1:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "alpha:check_transparency",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "a",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Alpha": true,
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_off": {
+    "endpoint": "info",
+    "path": "/unsafe/a:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "all_default_off": {
+    "endpoint": "info",
+    "path": "/unsafe/s:0/f:0/d:0/exif:0/iptc:0/xmp:0/vm:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {},
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "alpha": {
+    "endpoint": "info",
+    "path": "/unsafe/alpha:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "alpha",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Alpha": true,
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "average": {
+    "endpoint": "info",
+    "path": "/unsafe/average:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "average",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Average": {
+          "IgnoreTransparent": true
+        },
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "avg_bad": {
+    "endpoint": "info",
+    "error": {
+      "field": "average",
+      "kind": "invalid_url",
+      "public": "invalid average: expected boolean (1, t, true, 0, f, false)",
+      "status": 400
+    },
+    "path": "/unsafe/avg:x/plain/https://example.com/a.jpg"
+  },
+  "avg_keep_transparent": {
+    "endpoint": "info",
+    "path": "/unsafe/avg:1:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "avg",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Average": {},
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "avg_off": {
+    "endpoint": "info",
+    "path": "/unsafe/avg:1/avg:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "avg",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "b": {
+    "endpoint": "info",
+    "path": "/unsafe/b:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "b",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Bands": true,
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bands": {
+    "endpoint": "info",
+    "path": "/unsafe/bands:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "bands",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Bands": true,
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bare_names_are_not_options": {
+    "endpoint": "info",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: multiple extensions",
+      "status": 400
+    },
+    "path": "/unsafe/s/f/d/bh:4:3/plain/https://example.com/a.jpg"
+  },
+  "base64_extension_ignored": {
+    "endpoint": "info",
+    "path": "/unsafe/aHR0cHM6Ly9leGFtcGxlLmNvbS9hLmpwZw.webp",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "extension",
+          "Reason": "not applicable to info"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "base64",
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "base64_filename": {
+    "config": "filename",
+    "endpoint": "info",
+    "path": "/unsafe/s:1/aHR0cHM6Ly9leGFtcGxlLmNvbS9hLmpwZw/pic.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "base64",
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "base64_source": {
+    "endpoint": "info",
+    "path": "/unsafe/s:1/aHR0cHM6Ly9leGFtcGxlLmNvbS9hLmpwZw",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "base64",
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bh_max": {
+    "endpoint": "info",
+    "path": "/unsafe/bh:9:9/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "bh",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Blurhash": {
+          "XComponents": 9,
+          "YComponents": 9
+        },
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bh_off": {
+    "endpoint": "info",
+    "path": "/unsafe/bh:4:3/bh:0:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "bh",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bh_one_zero": {
+    "endpoint": "info",
+    "error": {
+      "field": "blurhash.x_components",
+      "kind": "invalid_url",
+      "public": "invalid blurhash.x_components: expected integer in range 1 to 9",
+      "status": 400
+    },
+    "path": "/unsafe/bh:0:3/plain/https://example.com/a.jpg"
+  },
+  "bh_single_arg": {
+    "endpoint": "info",
+    "error": {
+      "field": "blurhash",
+      "kind": "invalid_url",
+      "public": "invalid blurhash: expected x_components:y_components",
+      "status": 400
+    },
+    "path": "/unsafe/bh:4/plain/https://example.com/a.jpg"
+  },
+  "bh_too_large": {
+    "endpoint": "info",
+    "error": {
+      "field": "blurhash.x_components",
+      "kind": "invalid_url",
+      "public": "invalid blurhash.x_components: expected integer in range 0 to 9",
+      "status": 400
+    },
+    "path": "/unsafe/bh:10:1/plain/https://example.com/a.jpg"
+  },
+  "blurhash": {
+    "endpoint": "info",
+    "path": "/unsafe/blurhash:4:3/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "blurhash",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Blurhash": {
+          "XComponents": 4,
+          "YComponents": 3
+        },
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bypass_cache": {
+    "endpoint": "info",
+    "path": "/unsafe/bc:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Delivery": {
+        "BypassCache": true
+      },
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "bc",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "c_bad": {
+    "endpoint": "info",
+    "error": {
+      "field": "crop.width",
+      "kind": "invalid_url",
+      "public": "invalid crop.width: expected number \u003e= 0 below 2^31",
+      "status": 400
+    },
+    "path": "/unsafe/c:-5/plain/https://example.com/a.jpg"
+  },
+  "c_fp": {
+    "endpoint": "info",
+    "path": "/unsafe/c:100:100:fp:0.2:0.3/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "c",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Crop": {
+          "Gravity": {
+            "FocusX": 0.2,
+            "FocusY": 0.3,
+            "Type": "focus-point"
+          },
+          "Height": {
+            "Px": 100
+          },
+          "Width": {
+            "Px": 100
+          }
+        },
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "c_gravity": {
+    "endpoint": "info",
+    "path": "/unsafe/c:0.5:0.5:sm/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "c",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Crop": {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Height": {
+            "Rel": 0.5
+          },
+          "Width": {
+            "Rel": 0.5
+          }
+        },
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "c_obj_gravity": {
+    "endpoint": "info",
+    "path": "/unsafe/c:100:100:obj:face/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "c:obj",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "c",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Crop": {
+          "Gravity": {
+            "Classes": [
+              "face"
+            ],
+            "Type": "object"
+          },
+          "Height": {
+            "Px": 100
+          },
+          "Width": {
+            "Px": 100
+          }
+        },
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "cache_tags": {
+    "endpoint": "info",
+    "path": "/unsafe/ct:a:b/plain/https://example.com/a.jpg",
+    "request": {
+      "Delivery": {
+        "CacheTags": [
+          "a",
+          "b"
+        ]
+      },
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "ct",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "cachebuster": {
+    "endpoint": "info",
+    "path": "/unsafe/cachebuster:v1/plain/https://example.com/a.jpg",
+    "request": {
+      "Delivery": {
+        "CacheBuster": "v1"
+      },
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "calc_hashsums": {
+    "endpoint": "info",
+    "path": "/unsafe/calc_hashsums:md5:sha256/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "calc_hashsums",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "CalcHashsums": [
+          "md5",
+          "sha256"
+        ],
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "cb": {
+    "endpoint": "info",
+    "path": "/unsafe/cb:abc/plain/https://example.com/a.jpg",
+    "request": {
+      "Delivery": {
+        "CacheBuster": "abc"
+      },
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "chained_rejected": {
+    "endpoint": "info",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: chained pipelines in info url",
+      "status": 400
+    },
+    "path": "/unsafe/s:1/-/f:1/plain/https://example.com/a.jpg"
+  },
+  "chs_all_dedup": {
+    "endpoint": "info",
+    "path": "/unsafe/chs:md5:sha1:sha256:sha512:md5/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "chs",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "CalcHashsums": [
+          "md5",
+          "sha1",
+          "sha256",
+          "sha512"
+        ],
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "chs_bad": {
+    "endpoint": "info",
+    "error": {
+      "field": "calc_hashsums",
+      "kind": "invalid_url",
+      "public": "invalid calc_hashsums: expected md5, sha1, sha256 or sha512",
+      "status": 400
+    },
+    "path": "/unsafe/chs:crc32/plain/https://example.com/a.jpg"
+  },
+  "chs_cleared": {
+    "endpoint": "info",
+    "path": "/unsafe/chs:md5/chs:/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "chs",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "cl_empty_class": {
+    "endpoint": "info",
+    "error": {
+      "field": "classify.classes",
+      "kind": "invalid_url",
+      "public": "invalid classify.classes: expected non-empty string",
+      "status": 400
+    },
+    "path": "/unsafe/cl:2::dog/plain/https://example.com/a.jpg"
+  },
+  "cl_off": {
+    "endpoint": "info",
+    "path": "/unsafe/cl:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "cl_top1": {
+    "endpoint": "info",
+    "path": "/unsafe/cl:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "cl",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Info": {
+        "Classify": true,
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "classify": {
+    "endpoint": "info",
+    "path": "/unsafe/classify:3:cat:dog/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "classify:top_k",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "classify",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Info": {
+        "Classify": true,
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "colorspace": {
+    "endpoint": "info",
+    "path": "/unsafe/colorspace:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "colorspace",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Colorspace": true,
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "combo_everything": {
+    "endpoint": "info",
+    "path": "/unsafe/s:1/f:1/d:1/exif:1/iptc:1/xmp:1/vm:1/do:1/cl:1/cs:1/b:1/sf:1/pn:1/a:1/c:10:10/op:ce/p:8/avg:1/dc:1/bh:3:3/th:1/ph:1/chs:sha256/pg:1/vts:1/vtk:0/cb:x/pr:p/bc:1/ct:t/plain/https://example.com/a.jpg",
+    "request": {
+      "Delivery": {
+        "BypassCache": true,
+        "CacheBuster": "x",
+        "CacheTags": [
+          "t"
+        ],
+        "Presets": [
+          "p"
+        ]
+      },
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "vm",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "do",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "cl",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "cs",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "b",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "sf",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "pn",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "a",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "c",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "op",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "p",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "avg",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "dc",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "bh",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "th",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "ph",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "chs",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "pg",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "vts",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "vtk",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "bc",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "ct",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Alpha": true,
+        "Average": {
+          "IgnoreTransparent": true
+        },
+        "Bands": true,
+        "Blurhash": {
+          "XComponents": 3,
+          "YComponents": 3
+        },
+        "CalcHashsums": [
+          "sha256"
+        ],
+        "Classify": true,
+        "Colorspace": true,
+        "Crop": {
+          "Height": {
+            "Px": 10
+          },
+          "Width": {
+            "Px": 10
+          }
+        },
+        "DetectObjects": true,
+        "Dimensions": true,
+        "DominantColors": {},
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "ObjectsPos": true,
+        "PHash": true,
+        "PagesNumber": true,
+        "Palette": 8,
+        "SampleFormat": true,
+        "Size": true,
+        "Thumbhash": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "ObjectsPosition": {
+              "Type": "center"
+            }
+          },
+          "Page": 1,
+          "Video": {
+            "Keyframes": false,
+            "Second": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "combo_later_wins": {
+    "endpoint": "info",
+    "path": "/unsafe/p:8/p:16/c:10:10/c:20/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "p",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "c",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Crop": {
+          "Height": {
+            "Px": 10
+          },
+          "Width": {
+            "Px": 20
+          }
+        },
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Palette": 16,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "combo_only_hashes": {
+    "endpoint": "info",
+    "path": "/unsafe/s:0/f:0/d:0/exif:0/iptc:0/xmp:0/vm:0/th:1/ph:1/bh:4:4/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "th",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "ph",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "bh",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Blurhash": {
+          "XComponents": 4,
+          "YComponents": 4
+        },
+        "PHash": true,
+        "Thumbhash": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop": {
+    "endpoint": "info",
+    "path": "/unsafe/crop:100:200/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "crop",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Crop": {
+          "Height": {
+            "Px": 200
+          },
+          "Width": {
+            "Px": 100
+          }
+        },
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "cs": {
+    "endpoint": "info",
+    "path": "/unsafe/cs:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "cs",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Colorspace": true,
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "d_off": {
+    "endpoint": "info",
+    "path": "/unsafe/d:f/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "dc_build_missed": {
+    "endpoint": "info",
+    "path": "/unsafe/dc:1:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "dc",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "DominantColors": {
+          "BuildMissed": true
+        },
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "dc_off": {
+    "endpoint": "info",
+    "path": "/unsafe/dc:0:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "defaults": {
+    "endpoint": "info",
+    "path": "/unsafe/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "detect_objects": {
+    "endpoint": "info",
+    "path": "/unsafe/detect_objects:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "detect_objects",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Info": {
+        "DetectObjects": true,
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "dimensions_off": {
+    "endpoint": "info",
+    "path": "/unsafe/dimensions:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "do": {
+    "endpoint": "info",
+    "path": "/unsafe/do:t/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "do",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Info": {
+        "DetectObjects": true,
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "docs_example": {
+    "endpoint": "info",
+    "path": "/unsafe/s:1/f:1/d:1/bh:4:3/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "bh",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Blurhash": {
+          "XComponents": 4,
+          "YComponents": 3
+        },
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "dominant_colors": {
+    "endpoint": "info",
+    "path": "/unsafe/dominant_colors:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "dominant_colors",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "DominantColors": {},
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "empty_bool_is_false": {
+    "endpoint": "info",
+    "path": "/unsafe/s:/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "empty_path": {
+    "endpoint": "info",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing signature or path",
+      "status": 400
+    },
+    "path": ""
+  },
+  "enc_source": {
+    "config": "enc",
+    "endpoint": "info",
+    "path": "/unsafe/d:1/enc/MDEyMzQ1Njc4OWFiY2RlZj206ZwwVKiBydg5ip7OI2oVBFCdcMXXGze1K8CjwiQuFTiJkTDmRJeJccTs0wH06w",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "encrypted",
+        "Raw": "http://img.example.com/pretty/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://img.example.com/pretty/image.jpg"
+  },
+  "exif_bad": {
+    "endpoint": "info",
+    "error": {
+      "field": "exif",
+      "kind": "invalid_url",
+      "public": "invalid exif: expected boolean (1, t, true, 0, f, false)",
+      "status": 400
+    },
+    "path": "/unsafe/exif:yes/plain/https://example.com/a.jpg"
+  },
+  "exif_canonical": {
+    "endpoint": "info",
+    "path": "/unsafe/exif:1:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "exif:canonical_names",
+          "Reason": "not implemented"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "exif_off": {
+    "endpoint": "info",
+    "path": "/unsafe/exif:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "exif_too_many_args": {
+    "endpoint": "info",
+    "error": {
+      "field": "exif",
+      "kind": "invalid_url",
+      "public": "invalid exif: expected at most 2 arguments",
+      "status": 400
+    },
+    "path": "/unsafe/exif:1:1:1/plain/https://example.com/a.jpg"
+  },
+  "exp_past": {
+    "endpoint": "info",
+    "error": {
+      "kind": "expired",
+      "public": "url expired",
+      "status": 404
+    },
+    "path": "/unsafe/exp:1000/plain/https://example.com/a.jpg"
+  },
+  "expires_future": {
+    "endpoint": "info",
+    "path": "/unsafe/expires:4102444800/plain/https://example.com/a.jpg",
+    "request": {
+      "Delivery": {
+        "Expires": "2100-01-01T00:00:00Z"
+      },
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "f_off": {
+    "endpoint": "info",
+    "path": "/unsafe/f:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "format_off": {
+    "endpoint": "info",
+    "path": "/unsafe/format:false/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "hashsum": {
+    "endpoint": "info",
+    "path": "/unsafe/hashsum:sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "hashsum",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Hashsum": {
+          "Algorithm": "sha1",
+          "Digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "hs_bad": {
+    "endpoint": "info",
+    "error": {
+      "field": "hashsum.hashsum",
+      "kind": "invalid_url",
+      "public": "invalid hashsum.hashsum: expected hex digest of the hashsum type",
+      "status": 400
+    },
+    "path": "/unsafe/hs:sha1:00/plain/https://example.com/a.jpg"
+  },
+  "iptc_off": {
+    "endpoint": "info",
+    "path": "/unsafe/iptc:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "max_src_resolution": {
+    "config": "security",
+    "endpoint": "info",
+    "path": "/unsafe/max_src_resolution:50/msfs:1024/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Limits": {
+        "MaxSrcFileSize": 1024,
+        "MaxSrcResolution": 50
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "missing_source": {
+    "endpoint": "info",
+    "path": "/unsafe/s:1/p:4/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "p",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Palette": 4,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "msfs_not_allowed": {
+    "endpoint": "info",
+    "error": {
+      "kind": "forbidden",
+      "public": "option not allowed: max_src_file_size",
+      "status": 403
+    },
+    "path": "/unsafe/msfs:10/plain/https://example.com/a.jpg"
+  },
+  "msr_not_allowed": {
+    "endpoint": "info",
+    "error": {
+      "kind": "forbidden",
+      "public": "option not allowed: max_src_resolution",
+      "status": 403
+    },
+    "path": "/unsafe/msr:10/plain/https://example.com/a.jpg"
+  },
+  "obj_pos_prop": {
+    "endpoint": "info",
+    "path": "/unsafe/obj_pos:prop/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "obj_pos",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "ObjectsPos": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "ObjectsPosition": {
+              "Proportional": true
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "objects_position": {
+    "endpoint": "info",
+    "path": "/unsafe/objects_position:no:5:5/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "objects_position",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "ObjectsPos": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "ObjectsPosition": {
+              "Type": "north",
+              "X": 5,
+              "Y": 5
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "op_bad": {
+    "endpoint": "info",
+    "error": {
+      "field": "objects_position.type",
+      "kind": "invalid_url",
+      "public": "invalid objects_position.type: expected ce, no, so, ea, we, noea, nowe, soea, sowe, fp or prop",
+      "status": 400
+    },
+    "path": "/unsafe/op:xx/plain/https://example.com/a.jpg"
+  },
+  "op_fp": {
+    "endpoint": "info",
+    "path": "/unsafe/op:fp:0.1:0.9/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "op",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "ObjectsPos": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "ObjectsPosition": {
+              "Type": "focus-point",
+              "X": 0.1,
+              "Y": 0.9
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "p_max": {
+    "endpoint": "info",
+    "path": "/unsafe/p:256/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "p",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Palette": 256,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "p_off": {
+    "endpoint": "info",
+    "path": "/unsafe/p:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "p_one": {
+    "endpoint": "info",
+    "error": {
+      "field": "palette",
+      "kind": "invalid_url",
+      "public": "invalid palette: expected 0 or an integer in range 2-256",
+      "status": 400
+    },
+    "path": "/unsafe/p:1/plain/https://example.com/a.jpg"
+  },
+  "p_too_many": {
+    "endpoint": "info",
+    "error": {
+      "field": "palette",
+      "kind": "invalid_url",
+      "public": "invalid palette: expected 0 or an integer in range 2-256",
+      "status": 400
+    },
+    "path": "/unsafe/p:257/plain/https://example.com/a.jpg"
+  },
+  "page": {
+    "endpoint": "info",
+    "path": "/unsafe/page:3/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "page",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {
+          "Page": 3
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "pages_number": {
+    "endpoint": "info",
+    "path": "/unsafe/pages_number:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "pages_number",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "PagesNumber": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "palette": {
+    "endpoint": "info",
+    "path": "/unsafe/palette:16/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "palette",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Palette": 16,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "percent_encoded_colon": {
+    "endpoint": "info",
+    "path": "/unsafe/bh%3A4%3A3/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "bh",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Blurhash": {
+          "XComponents": 4,
+          "YComponents": 3
+        },
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "perceptual_hash": {
+    "endpoint": "info",
+    "path": "/unsafe/perceptual_hash:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "perceptual_hash",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "PHash": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "pg_negative": {
+    "endpoint": "info",
+    "error": {
+      "field": "page",
+      "kind": "invalid_url",
+      "public": "invalid page: expected integer \u003e= 0",
+      "status": 400
+    },
+    "path": "/unsafe/pg:-1/plain/https://example.com/a.jpg"
+  },
+  "ph": {
+    "endpoint": "info",
+    "path": "/unsafe/ph:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "ph",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "PHash": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "phash": {
+    "endpoint": "info",
+    "path": "/unsafe/phash:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "phash",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "PHash": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "plain_extension_ignored": {
+    "endpoint": "info",
+    "path": "/unsafe/s:1/plain/https://example.com/a.jpg@png",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "extension",
+          "Reason": "not applicable to info"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "pn": {
+    "endpoint": "info",
+    "path": "/unsafe/pn:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "pn",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "PagesNumber": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "pr_many": {
+    "endpoint": "info",
+    "path": "/unsafe/pr:a:b/plain/https://example.com/a.jpg",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "a",
+          "b"
+        ]
+      },
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "preset": {
+    "endpoint": "info",
+    "path": "/unsafe/preset:meta/plain/https://example.com/a.jpg",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "meta"
+        ]
+      },
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "processing_option_unknown": {
+    "endpoint": "info",
+    "path": "/unsafe/rs:fit:100:100/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "rs",
+          "Reason": "unknown option"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "resizing_type_first_segment": {
+    "endpoint": "info",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: multiple extensions",
+      "status": 400
+    },
+    "path": "/unsafe/fit/plain/https://example.com/a.jpg"
+  },
+  "s_off": {
+    "endpoint": "info",
+    "path": "/unsafe/s:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "sample_format": {
+    "endpoint": "info",
+    "path": "/unsafe/sample_format:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "sample_format",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "SampleFormat": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "sf": {
+    "endpoint": "info",
+    "path": "/unsafe/sf:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "sf",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "SampleFormat": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "signed_processing_vector": {
+    "config": "signed8",
+    "endpoint": "info",
+    "path": "/m3k5QADfcKM/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "rs",
+          "Reason": "unknown option"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "http://img.example.com/pretty/image.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "http://img.example.com/pretty/image.jpg"
+  },
+  "signed_required_valid": {
+    "config": "required",
+    "endpoint": "info",
+    "path": "/SIG/p:8/enc/MDEyMzQ1Njc4OWFiY2RlZj206ZwwVKiBydg5ip7OI2oVBFCdcMXXGze1K8CjwiQuFTiJkTDmRJeJccTs0wH06w",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "p",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Palette": 8,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "encrypted",
+        "Raw": "http://img.example.com/pretty/image.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "http://img.example.com/pretty/image.jpg"
+  },
+  "signed_tampered": {
+    "config": "signed8",
+    "endpoint": "info",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/m3k5QADfcKM/s:1/plain/http://img.example.com/pretty/image.jpg"
+  },
+  "signed_trusted": {
+    "config": "signed",
+    "endpoint": "info",
+    "path": "/trusted-signature/p:4/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "p",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Palette": 4,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "trusted",
+    "source": "https://example.com/a.jpg"
+  },
+  "signed_unsafe_rejected": {
+    "config": "required",
+    "endpoint": "info",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/unsafe/s:1/plain/https://example.com/a.jpg"
+  },
+  "signed_valid": {
+    "config": "signed",
+    "endpoint": "info",
+    "path": "/SIG/s:1/bh:4:3/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "bh",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Blurhash": {
+          "XComponents": 4,
+          "YComponents": 3
+        },
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "https://example.com/a.jpg"
+  },
+  "size_off": {
+    "endpoint": "info",
+    "path": "/unsafe/size:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "strict_known": {
+    "config": "strict",
+    "endpoint": "info",
+    "path": "/unsafe/s:1/p:4/chs:md5/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "p",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "chs",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "CalcHashsums": [
+          "md5"
+        ],
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Palette": 4,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "strict_processing_alias_rejected": {
+    "config": "strict",
+    "endpoint": "info",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/unsafe/q:80/plain/https://example.com/a.jpg"
+  },
+  "strict_unknown": {
+    "config": "strict",
+    "endpoint": "info",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/unsafe/rs:fit:1:1/plain/https://example.com/a.jpg"
+  },
+  "th": {
+    "endpoint": "info",
+    "path": "/unsafe/th:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "th",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "Thumbhash": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "thumb_hash": {
+    "endpoint": "info",
+    "path": "/unsafe/thumb_hash:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "thumb_hash",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "Thumbhash": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "thumbhash": {
+    "endpoint": "info",
+    "path": "/unsafe/thumbhash:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "thumbhash",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "Thumbhash": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "video_meta_off": {
+    "endpoint": "info",
+    "path": "/unsafe/video_meta:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "video_thumbnail_second": {
+    "endpoint": "info",
+    "path": "/unsafe/video_thumbnail_second:10/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "video_thumbnail_second",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {
+          "Video": {
+            "Second": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "vm_on": {
+    "endpoint": "info",
+    "path": "/unsafe/vm:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "vm",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "vts_vtk": {
+    "endpoint": "info",
+    "path": "/unsafe/vts:2.5/vtk:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "vts",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "vtk",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true,
+        "XMP": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {
+          "Video": {
+            "Keyframes": true,
+            "Second": 2.5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "xmp_off": {
+    "endpoint": "info",
+    "path": "/unsafe/xmp:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Info": {
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "IPTC": true,
+        "Size": true,
+        "VideoMeta": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  }
+}

@@ -13,6 +13,7 @@ type jsCoreEntry struct {
 	Name    string         `json:"name"`
 	Source  string         `json:"source"`
 	Type    string         `json:"type"`
+	Kind    string         `json:"kind"` // "info" for generateImageInfoUrl
 	Options map[string]any `json:"options"`
 	Path    string         `json:"path"`
 }
@@ -40,14 +41,18 @@ func TestJSCoreCorpus(t *testing.T) {
 	}
 	cases := make([]testCase, 0, len(corpus))
 	for _, e := range corpus {
-		cases = append(cases, testCase{name: e.Name, path: "/unsafe" + e.Path})
+		cases = append(cases, testCase{name: e.Name, path: "/unsafe" + e.Path, info: e.Kind == "info"})
 	}
 	runGolden(t, "jscore", cases)
 
 	// Every generated URL must round-trip its source exactly.
 	p := getFixture(t).parsers["default"]
 	for _, e := range corpus {
-		res, err := p.ParsePath("/unsafe" + e.Path)
+		parse := p.ParsePath
+		if e.Kind == "info" {
+			parse = p.ParseInfoPath
+		}
+		res, err := parse("/unsafe" + e.Path)
 		if err != nil {
 			t.Errorf("%s: %v", e.Name, err)
 			continue

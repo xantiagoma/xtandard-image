@@ -285,16 +285,9 @@ func TestOptions(t *testing.T) {
 		secOpt("mrd", "mrd:100"),
 		opt("msr_not_allowed", "msr:1"),
 		opt("mrd_not_allowed", "mrd:100"),
-		// removed, later-milestone and unknown options
+		// removed and unknown options (later milestones: later_test.go)
 		opt("gif_options_removed", "gif_options:1:1"),
 		opt("gifo_removed", "gifo:1"),
-		opt("later_options_recorded", "a:10:1.2:0.8/br:10/co:1/sa:1/mc:0.5/dt:0.5/ush:auto/ba:1:0:0:1:1/pbl:5/bd:5/dd:1/c_obj:1/col:0.5/gr:0.5"),
-		opt("later_watermark_options", "wmu:"+b64("https://e.com/w.png")+"/wmt:dGV4dA/wms:10:10/wm_rot:45/wmr:45/wmsh:2/stl:Y3Nz"),
-		opt("later_output_options", "dpi:300/cp:srgb/icc:srgb/aq:dssim/jpgo:1/pngo:1/webpo:lossy/avifo:on"),
-		opt("later_misc_options", "vts:5/vtk:1/vtt:1:2:2/vta:1:1:10/fiu:eA/bc:1/ct:a:b/hs:md5:00/op:ce/obj_pos:ce/car:1.5/crop_ar:1/crop_aspect_ratio:1/objects_position:ce"),
-		opt("later_long_names", "adjust:1/brightness:1/contrast:1/saturation:1/monochrome:1/duotone:1/unsharp_masking:auto/blur_areas:1/progressive_blur:1/blur_detections:1/draw_detections:1/crop_objects:1/colorize:1/gradient:1"),
-		opt("later_long_names_2", "watermark_url:x/watermark_text:x/watermark_size:1/watermark_rotate:1/watermark_shadow:1/style:x/color_profile:x/autoquality:x/jpeg_options:x/png_options:x/webp_options:x/avif_options:x"),
-		opt("later_long_names_3", "video_thumbnail_second:1/video_thumbnail_keyframes:1/video_thumbnail_tile:1/video_thumbnail_animation:1/fallback_image_url:x/bypass_cache:1/cache_tags:x/hashsum:x"),
 		opt("unknown_option", "nonsense:1:2"),
 		// long option chains in one pipeline
 		opt("combined_typical", "rs:fill:800:600:1/g:sm/q:82/f:webp/sm:1/dpr:2/sh:0.3"),

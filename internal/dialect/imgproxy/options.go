@@ -24,49 +24,6 @@ const (
 	reasonRemoved        = "removed upstream"
 )
 
-// laterOptions are imgproxy options (with aliases) that later work packages
-// parse into the request (docs/URL-DIALECTS.md §3.2, M2/M3). Until then they
-// are recorded as not implemented and never rejected, even in strict mode.
-var laterOptions = map[string]bool{
-	"crop_aspect_ratio": true, "crop_ar": true, "car": true,
-	"objects_position": true, "obj_pos": true, "op": true,
-	"adjust": true, "a": true,
-	"brightness": true, "br": true,
-	"contrast": true, "co": true,
-	"saturation": true, "sa": true,
-	"monochrome": true, "mc": true,
-	"duotone": true, "dt": true,
-	"unsharp_masking": true, "ush": true,
-	"blur_areas": true, "ba": true,
-	"progressive_blur": true, "pbl": true,
-	"blur_detections": true, "bd": true,
-	"draw_detections": true, "dd": true,
-	"crop_objects": true, "c_obj": true,
-	"colorize": true, "col": true,
-	"gradient": true, "gr": true,
-	"watermark_url": true, "wmu": true,
-	"watermark_text": true, "wmt": true,
-	"watermark_size": true, "wms": true,
-	"watermark_rotate": true, "wm_rot": true, "wmr": true,
-	"watermark_shadow": true, "wmsh": true,
-	"style": true, "stl": true,
-	"dpi":           true,
-	"color_profile": true, "cp": true, "icc": true,
-	"autoquality": true, "aq": true,
-	"jpeg_options": true, "jpgo": true,
-	"png_options": true, "pngo": true,
-	"webp_options": true, "webpo": true,
-	"avif_options": true, "avifo": true,
-	"video_thumbnail_second": true, "vts": true,
-	"video_thumbnail_keyframes": true, "vtk": true,
-	"video_thumbnail_tile": true, "vtt": true,
-	"video_thumbnail_animation": true, "vta": true,
-	"fallback_image_url": true, "fiu": true,
-	"bypass_cache": true, "bc": true,
-	"cache_tags": true, "ct": true,
-	"hashsum": true, "hs": true,
-}
-
 // apply applies one option. args has at least one element.
 //
 //nolint:gocyclo // one flat switch over the option table is the clearest form
@@ -288,9 +245,8 @@ func (st *state) apply(name string, args []string) error {
 	case "gif_options", "gifo":
 		st.ignore(name, reasonRemoved)
 	default:
-		if laterOptions[name] {
-			st.ignore(name, reasonNotImplemented)
-			return nil
+		if ok, err := st.applyLater(pl, name, args); ok {
+			return err
 		}
 		if st.p.o.Strict {
 			return dialect.UnknownOption(name)
