@@ -779,7 +779,7 @@ export interface components {
                 boolean | null
             ];
             /**
-             * @description Video frame to use as the image. URL: `video_thumbnail_second`, `vts`; arguments float; default config.
+             * @description Video frame to use as the image (negative: from the end; unset: the configured second or the best frame). URL: `video_thumbnail_second`, `vts`; arguments float; default config.
              * @example [
              *       5
              *     ]
@@ -1656,7 +1656,7 @@ export interface components {
                 boolean | null
             ];
             /**
-             * @description Video frame to use as the image. URL: `video_thumbnail_second`, `vts`; arguments float; default config.
+             * @description Video frame to use as the image (negative: from the end; unset: the configured second or the best frame). URL: `video_thumbnail_second`, `vts`; arguments float; default config.
              * @example [
              *       5
              *     ]
@@ -1889,6 +1889,12 @@ export interface components {
             size?: number;
             /** @description ThumbHash as upper-case hex (info option thumbhash). */
             thumb_hash?: string;
+            /** @description Container metadata of a video source (info option video_meta): the container tags as strings (major_brand, creation_time, encoder, ...), like imgproxy, plus container (mov, matroska, avi), codec, duration (s), fps, bit_rate (bit/s), frames, width and height (coded size) and rotation (clockwise degrees) of the video stream thumbnails are taken from. */
+            video_meta?: {
+                [key: string]: unknown;
+            };
+            /** @description Every stream of a video source in file order (info option video_meta), in imgproxy's shape. */
+            video_streams?: components["schemas"]["InfoVideoStream"][] | null;
             /**
              * Format: int64
              * @description Width of one page or frame in pixels, EXIF orientation applied (info option dimensions).
@@ -1900,6 +1906,51 @@ export interface components {
                     [key: string]: unknown;
                 };
             };
+        };
+        InfoVideoStream: {
+            /**
+             * Format: int64
+             * @description Bit rate in bits per second, when known.
+             */
+            bps?: number;
+            /** @description FFmpeg codec name: h264, hevc, vp9, av1, aac, ... */
+            codec: string;
+            /**
+             * Format: double
+             * @description Duration in seconds, when known.
+             */
+            duration?: number;
+            /**
+             * Format: double
+             * @description Average frame rate of a video stream.
+             */
+            fps?: number;
+            /**
+             * Format: int64
+             * @description Sample rate of an audio stream in Hz.
+             */
+            frequency?: number;
+            /**
+             * Format: int64
+             * @description xtandard-image extension: coded height of a video stream.
+             */
+            height?: number;
+            /** @description ISO 639-2 language tag, when set. */
+            language?: string;
+            /** @description Channel layout of an audio stream: mono, stereo, 5.1(side), ... */
+            layout?: string;
+            /**
+             * Format: int64
+             * @description xtandard-image extension: clockwise display rotation of a video stream (0, 90, 180, 270).
+             */
+            rotation?: number;
+            /** @description video, audio, subtitle, data or attachment. */
+            type: string;
+            /**
+             * Format: int64
+             * @description xtandard-image extension: coded width of a video stream.
+             */
+            width?: number;
         };
         PlaygroundArg: {
             /** @description Description. */
