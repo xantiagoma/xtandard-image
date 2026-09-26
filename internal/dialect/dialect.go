@@ -61,8 +61,9 @@ type Mount struct {
 
 // Result is a parsed, authenticated URL.
 type Result struct {
-	// Request holds only what the URL says; the server applies defaults and
-	// presets, then validates.
+	// Request holds what the URL says, with presets expanded in place by
+	// the dialect (URL order decides overrides); the server applies
+	// defaults, then validates.
 	Request *transform.Request
 	// SourceString is the source reference after all URL-level decoding
 	// (percent-decoding, base64, decryption, base URL, replacements). It
