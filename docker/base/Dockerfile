@@ -1,17 +1,25 @@
 # syntax=docker/dockerfile:1.7
 #
-# xtandard-image base image (flavor: slim).
+# xtandard-image base image (flavors: slim, full).
 #
 # Forked from imgproxy-docker-base (MIT, Copyright (c) 2017 Sergey Alexandrovich);
 # see LICENSE.imgproxy-docker-base and docker/base/README.md.
 #
 # Targets:
-#   builder  complete Go + libvips development environment (published as *-slim-builder)
-#   runtime  shared libraries only, non-root, jemalloc preloaded (published as *-slim; default)
+#   builder       complete Go + libvips development environment (published as *-slim-builder)
+#   runtime       shared libraries only, non-root, jemalloc preloaded (published as *-slim; default)
+#   builder-full  builder + FFmpeg (LGPL) + ONNX Runtime headers/libs + models (*-full-builder)
+#   runtime-full  runtime + FFmpeg (LGPL) libs/CLIs + ONNX Runtime + models (*-full)
+#
+# The full stages reuse the slim ones: full-deps starts from the finished slim `deps`
+# stage, so slim and full share every slim layer and the slim image does not change
+# when a full-only component (versions-full.sh) moves.
 #
 # Build natively per architecture (no cross compilation):
 #   docker buildx build --platform linux/arm64 --target builder -t xtandard-base:dev-builder docker/base
 #   docker buildx build --platform linux/arm64 -t xtandard-base:dev docker/base
+#   docker buildx build --platform linux/arm64 --target builder-full -t xtandard-base:dev-full-builder docker/base
+#   docker buildx build --platform linux/arm64 --target runtime-full -t xtandard-base:dev-full docker/base
 
 ARG UBUNTU_IMAGE=ubuntu:noble
 
@@ -84,25 +92,31 @@ RUN ./build-deps.sh
 # Split the prefix into what the runtime needs and what only the builder needs.
 # The runtime keeps the vips and vipsheader CLIs (diagnostics, verify-image.sh) and only
 # the thread-safe libraw_r that libvips links (not the plain libraw).
-RUN mkdir -p /runtime/opt/xtandard \
-  && cp -a /opt/xtandard/lib /opt/xtandard/bin /opt/xtandard/etc /opt/xtandard/share /runtime/opt/xtandard/ \
-  && rm -rf /runtime/opt/xtandard/lib/pkgconfig /runtime/opt/xtandard/lib/cmake \
-    /runtime/opt/xtandard/lib/glib-2.0 /runtime/opt/xtandard/share/pkgconfig \
-    /runtime/opt/xtandard/share/aclocal /runtime/opt/xtandard/share/gettext \
-    /runtime/opt/xtandard/share/glib-2.0 \
-  && rm -f /runtime/opt/xtandard/lib/libraw.so* \
-  && find /runtime/opt/xtandard/bin -type f ! -name vips ! -name vipsheader -delete \
-  && ./check-licenses.sh /runtime/opt/xtandard/lib
+COPY split-runtime.sh ./
+RUN ./split-runtime.sh vips vipsheader
 
 # ==============================================================================
-FROM ${UBUNTU_IMAGE} AS builder
+# full flavor (WP-70): FFmpeg (LGPL, video only) + libvpx, ONNX Runtime, models.
+FROM base AS full-deps-src
 
-ARG VIPS_VERSION
-LABEL org.opencontainers.image.title="xtandard-image-base (builder)" \
-      org.opencontainers.image.description="Go 1.27 + libvips 8.18 development image for xtandard-image" \
-      org.opencontainers.image.source="https://github.com/xantiagoma/xtandard-image" \
-      org.opencontainers.image.licenses="MIT" \
-      dev.xtandard.vips.version="${VIPS_VERSION}"
+COPY versions-full.sh download-full-deps.sh ./
+RUN ./download-full-deps.sh
+
+# ==============================================================================
+FROM deps AS full-deps
+
+COPY versions-full.sh build-full-deps.sh ./
+COPY --from=full-deps-src /root/full-deps /root/full-deps
+
+RUN ./build-full-deps.sh
+
+# Same split as slim plus the ffmpeg/ffprobe CLIs. ONNX Runtime and the models live
+# outside /opt/xtandard; build-full-deps.sh stages them (with their symlinks) under
+# /full-extra/{runtime,builder} for the final stages.
+RUN ./split-runtime.sh vips vipsheader ffmpeg ffprobe
+
+# ==============================================================================
+FROM ${UBUNTU_IMAGE} AS builder-base
 
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -122,8 +136,6 @@ RUN apt-get update \
 COPY versions.sh install-tools.sh /usr/local/share/xtandard/
 RUN /usr/local/share/xtandard/install-tools.sh
 
-COPY --from=deps /opt/xtandard /opt/xtandard
-
 ENV PATH=/usr/local/go/bin:/root/go/bin:/opt/xtandard/bin:$PATH \
     GOTOOLCHAIN=local \
     GOFLAGS=-buildvcs=false \
@@ -140,14 +152,7 @@ WORKDIR /src
 CMD ["bash"]
 
 # ==============================================================================
-FROM ${UBUNTU_IMAGE} AS runtime
-
-ARG VIPS_VERSION
-LABEL org.opencontainers.image.title="xtandard-image-base" \
-      org.opencontainers.image.description="libvips 8.18 runtime libraries for xtandard-image (slim)" \
-      org.opencontainers.image.source="https://github.com/xantiagoma/xtandard-image" \
-      org.opencontainers.image.licenses="MIT" \
-      dev.xtandard.vips.version="${VIPS_VERSION}"
+FROM ${UBUNTU_IMAGE} AS runtime-base
 
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -158,8 +163,6 @@ RUN apt-get update \
   && useradd --system --uid 65532 --gid 65532 --no-create-home --home-dir /nonexistent \
     --shell /usr/sbin/nologin xtandard
 
-COPY --from=deps /runtime/opt/xtandard /opt/xtandard
-
 ENV PATH=/opt/xtandard/bin:$PATH \
     LD_LIBRARY_PATH=/opt/xtandard/lib \
     LD_PRELOAD=/opt/xtandard/lib/libjemalloc.so.2 \
@@ -167,5 +170,67 @@ ENV PATH=/opt/xtandard/bin:$PATH \
     FONTCONFIG_PATH=/opt/xtandard/etc/fonts \
     VIPS_WARNING=0
 
-USER 65532:65532
 WORKDIR /tmp
+
+# ==============================================================================
+FROM builder-base AS builder
+
+ARG VIPS_VERSION
+LABEL org.opencontainers.image.title="xtandard-image-base (builder)" \
+      org.opencontainers.image.description="Go 1.27 + libvips 8.18 development image for xtandard-image" \
+      org.opencontainers.image.source="https://github.com/xantiagoma/xtandard-image" \
+      org.opencontainers.image.licenses="MIT" \
+      dev.xtandard.vips.version="${VIPS_VERSION}" \
+      dev.xtandard.base.flavor="slim"
+
+COPY --from=deps /opt/xtandard /opt/xtandard
+
+# ==============================================================================
+FROM builder-base AS builder-full
+
+ARG VIPS_VERSION
+LABEL org.opencontainers.image.title="xtandard-image-base (full builder)" \
+      org.opencontainers.image.description="Go 1.27 + libvips 8.18 + FFmpeg 8 (LGPL) + ONNX Runtime development image for xtandard-image" \
+      org.opencontainers.image.source="https://github.com/xantiagoma/xtandard-image" \
+      org.opencontainers.image.licenses="MIT" \
+      dev.xtandard.vips.version="${VIPS_VERSION}" \
+      dev.xtandard.base.flavor="full"
+
+COPY --from=full-deps /opt/xtandard /opt/xtandard
+# ONNX Runtime (lib, symlinks, headers, pkg-config) in /usr/local, models in /usr/share.
+COPY --from=full-deps /full-extra/builder/ /
+RUN ldconfig
+
+# ==============================================================================
+FROM runtime-base AS runtime-full
+
+ARG VIPS_VERSION
+LABEL org.opencontainers.image.title="xtandard-image-base" \
+      org.opencontainers.image.description="libvips 8.18 + FFmpeg 8 (LGPL) + ONNX Runtime runtime libraries for xtandard-image (full)" \
+      org.opencontainers.image.source="https://github.com/xantiagoma/xtandard-image" \
+      org.opencontainers.image.licenses="MIT" \
+      dev.xtandard.vips.version="${VIPS_VERSION}" \
+      dev.xtandard.base.flavor="full"
+
+COPY --from=full-deps /runtime/opt/xtandard /opt/xtandard
+# ONNX Runtime (lib + symlinks) in /usr/local/lib, models in /usr/share/xtandard/models.
+COPY --from=full-deps /full-extra/runtime/ /
+RUN ldconfig
+
+USER 65532:65532
+
+# ==============================================================================
+# Last stage = default target: the slim runtime.
+FROM runtime-base AS runtime
+
+ARG VIPS_VERSION
+LABEL org.opencontainers.image.title="xtandard-image-base" \
+      org.opencontainers.image.description="libvips 8.18 runtime libraries for xtandard-image (slim)" \
+      org.opencontainers.image.source="https://github.com/xantiagoma/xtandard-image" \
+      org.opencontainers.image.licenses="MIT" \
+      dev.xtandard.vips.version="${VIPS_VERSION}" \
+      dev.xtandard.base.flavor="slim"
+
+COPY --from=deps /runtime/opt/xtandard /opt/xtandard
+
+USER 65532:65532
