@@ -40,6 +40,40 @@ func largeJPEG(b *testing.B) []byte {
 	return out
 }
 
+// largeAlphaPNG upscales the graded-alpha PNG to 1280x960, the size of the
+// bench/ png-alpha-400-webp fixture, so that a 400 px WebP thumbnail
+// exercises the full PNG decode, the premultiplied resize and the alpha
+// WebP encode (no shrink-on-load for PNG).
+func largeAlphaPNG(b *testing.B) []byte {
+	b.Helper()
+	src := newBuffer(b, readFixture(b, pngAlpha))
+	defer src.Release()
+	var out []byte
+	err := vips.Run(b.Context(), func() error {
+		var a vips.Arena
+		defer a.Close()
+		img, err := a.Add(vips.Load(b.Context(), src, nil))
+		if err != nil {
+			return err
+		}
+		if img, err = a.Add(img.Resize(b.Context(), 10, 0, vips.KernelLanczos3)); err != nil {
+			return err
+		}
+		so := vips.DefaultSaveOptions()
+		blob, err := img.Save(b.Context(), vips.FormatPNG, &so)
+		if err != nil {
+			return err
+		}
+		defer blob.Release()
+		out = append([]byte(nil), blob.Bytes()...)
+		return nil
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+	return out
+}
+
 func benchRun(b *testing.B, data []byte, options string, out transform.Format) {
 	b.Helper()
 	e := newExecutor(b)
@@ -66,6 +100,12 @@ func BenchmarkRun(b *testing.B) {
 	})
 	b.Run("thumbnail400/jpeg-webp", func(b *testing.B) {
 		benchRun(b, largeJPEG(b), "rs:fit:400:400", transform.FormatWebP)
+	})
+	// WP-87: the executor adds nothing measurable over the bare libvips
+	// pipeline here (load, premultiply, resize, unpremultiply, webpsave);
+	// libwebp is ~60 % of the CPU and the PNG inflate ~25 %.
+	b.Run("thumbnail400/png-alpha-webp", func(b *testing.B) {
+		benchRun(b, largeAlphaPNG(b), "rs:fit:400:400", transform.FormatWebP)
 	})
 	b.Run("animated/gif-fill", func(b *testing.B) {
 		benchRun(b, readFixture(b, gifAnim), "rs:fill:48:48", transform.FormatGIF)

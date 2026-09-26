@@ -52,7 +52,7 @@ done
 [ "$(inspect '{{index .Config.Labels "org.opencontainers.image.licenses"}}')" = MIT ] || fail "licenses label is not MIT"
 env="$(inspect '{{range .Config.Env}}{{println .}}{{end}}')"
 for kv in LD_LIBRARY_PATH=/opt/xtandard/lib LD_PRELOAD=/opt/xtandard/lib/libjemalloc.so.2 \
-  MALLOC_ARENA_MAX=2 MAGICK_CONFIGURE_PATH=/opt/xtandard/etc/ImageMagick-7 \
+  MALLOC_ARENA_MAX=2 MALLOC_CONF=narenas:2 MAGICK_CONFIGURE_PATH=/opt/xtandard/etc/ImageMagick-7 \
   FONTCONFIG_PATH=/opt/xtandard/etc/fonts VIPS_BLOCK_UNTRUSTED=1 XI_SERVER_ADDR=:8080; do
   echo "$env" | grep -qxF "$kv" || fail "ENV $kv missing"
 done

@@ -107,9 +107,14 @@ LABEL org.opencontainers.image.title="xtandard-image" \
 # are repeated so the app image contract does not depend on the base's ENV.
 # /tmp is the only path the process may write (fontconfig cache, optional
 # disk cache): run read-only with a tmpfs there (docs/RELEASE.md).
+# MALLOC_CONF=narenas:2 is jemalloc's equivalent of MALLOC_ARENA_MAX=2 (which
+# only glibc reads): jemalloc's default of 4 arenas per CPU kept freed pages
+# of every busy thread and more than doubled peak RSS under load, with no
+# throughput gain (WP-87, bench/RESULTS.md).
 ENV LD_LIBRARY_PATH=/opt/xtandard/lib \
     LD_PRELOAD=/opt/xtandard/lib/libjemalloc.so.2 \
     MALLOC_ARENA_MAX=2 \
+    MALLOC_CONF=narenas:2 \
     MAGICK_CONFIGURE_PATH=/opt/xtandard/etc/ImageMagick-7 \
     FONTCONFIG_PATH=/opt/xtandard/etc/fonts \
     VIPS_BLOCK_UNTRUSTED=1 \
