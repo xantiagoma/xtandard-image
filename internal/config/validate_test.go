@@ -70,6 +70,15 @@ func TestValidate(t *testing.T) {
 		{"s3 endpoint", func(c *Config) { c.Sources["s"] = Source{Type: SourceS3, Bucket: "b", Endpoint: "minio:9000"} }, []string{"sources.s.endpoint"}},
 		{"fs relative root", func(c *Config) { c.Sources["f"] = Source{Type: SourceFS, Root: "data"} }, []string{"sources.f.root"}},
 		{"sftp host key", func(c *Config) { c.Sources["f"] = Source{Type: SourceSFTP, Host: "h"} }, []string{"sources.f.host_key (XI_SOURCES_F_HOST_KEY): is mandatory"}},
+		{"ftp pool and timeouts", func(c *Config) {
+			c.Sources["f"] = Source{Type: SourceFTP, Host: "h", Root: "/pub", PoolSize: -1, DialTimeout: -time.Second, IdleTimeout: -time.Second}
+		}, []string{"sources.f.pool_size (XI_SOURCES_F_POOL_SIZE)", "sources.f.dial_timeout", "sources.f.idle_timeout"}},
+		{"passphrase without key", func(c *Config) {
+			c.Sources["f"] = Source{Type: SourceSFTP, Host: "h", HostKey: "k", Password: "p", PrivateKeyPassphrase: "x"}
+		}, []string{"sources.f.private_key_passphrase (XI_SOURCES_F_PRIVATE_KEY_PASSPHRASE): needs private_key"}},
+		{"passphrase on ftp", func(c *Config) {
+			c.Sources["f"] = Source{Type: SourceFTP, Host: "h", PrivateKey: "k", PrivateKeyPassphrase: "x"}
+		}, []string{"sources.f.private_key_passphrase (XI_SOURCES_F_PRIVATE_KEY_PASSPHRASE): does not apply to type ftp"}},
 		{"ports", func(c *Config) { c.Fetch.AllowedPorts = []int{0} }, []string{"fetch.allowed_ports"}},
 		{"default dialect disabled", func(c *Config) { c.Dialects.Default = DialectImgix }, []string{"dialects.default (XI_DIALECTS_DEFAULT): dialect imgix is not enabled"}},
 		{"mount source missing", func(c *Config) { c.Dialects.Imgix.Source = "nope" }, []string{`dialects.imgix.source (XI_DIALECTS_IMGIX_SOURCE): source "nope" is not configured`}},
