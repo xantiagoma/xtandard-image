@@ -226,6 +226,16 @@ int xi_similarity(VipsImage *in, double scale, double angle, const double *bg, i
 int xi_affine(VipsImage *in, double a, double b, double c, double d, const double *bg,
     int nbg, VipsImage **out, char **err); // per frame
 
+// Colour operations (WP-59). Results keep the input's band format: float
+// intermediates are rounded to nearest, then clamped by the cast.
+int xi_cast_round(VipsImage *in, int band_format, VipsImage **out, char **err);
+int xi_maplut(VipsImage *in, VipsImage *lut, VipsImage **out, char **err);
+int xi_recomb(VipsImage *in, const double *m, int rows, int cols, VipsImage **out,
+    char **err);
+int xi_mix(VipsImage *a, VipsImage *b, double t, VipsImage **out, char **err);
+int xi_gradient_mask(int width, int height, double ax, double ay, double b, double opacity,
+    VipsImage **out, char **err);
+
 // ---- save (save.c) -----------------------------------------------------
 //
 // Every saver writes to a g_malloc'd buffer that the caller releases with
