@@ -1,9 +1,16 @@
 package app
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -236,5 +243,60 @@ func TestBuildRouterBunny(t *testing.T) {
 	res, _, err := rt.Route(httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/bunny/a.jpg?width=640", http.NoBody))
 	if err != nil || res.Request.Dialect != "bunny" || res.SourceString != "a.jpg" {
 		t.Errorf("unsigned: %v, %v", res, err)
+	}
+}
+
+// TestAWSSIHRegistration: an enabled awssih mount is routed with its
+// bucket map and verbatim keys (WP-85).
+func TestAWSSIHRegistration(t *testing.T) {
+	t.Parallel()
+	yml := `sources:
+  fixtures:
+    type: fs
+    root: ` + strconv.Quote(t.TempDir()) + `
+dialects:
+  awssih:
+    enabled: true
+    source: fixtures
+    keys: ["secret"]
+    thumbor: true
+    buckets:
+      my-bucket: fixtures
+`
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(path, []byte(yml), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, _, err := config.Load(config.LoadOptions{ConfigFile: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rt, warnings, err := buildRouter(&cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The thumbor dialect is always registered (WP-45), so forwarding
+	// resolves and there is no forwarding warning.
+	if slices.ContainsFunc(warnings, func(w string) bool { return strings.Contains(w, "awssih") }) {
+		t.Errorf("warnings = %q, want no awssih warning", warnings)
+	}
+	// setup.spec.ts signature fixture shape, with the bucket renamed.
+	body := `{"bucket":"my-bucket","key":"validKey","edits":{"toFormat":"png"}}`
+	p := "/" + base64.StdEncoding.EncodeToString([]byte(body))
+	h := hmac.New(sha256.New, []byte("secret"))
+	h.Write([]byte(p))
+	r := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/sih"+p+"?signature="+hex.EncodeToString(h.Sum(nil)), nil)
+	res, m, err := rt.Route(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Dialect != "awssih" || res.Request.Dialect != "awssih" || res.Signature != sign.Verified ||
+		res.Request.Source.Mount != "fixtures" || res.SourceString != "validKey" {
+		t.Errorf("route = mount %q dialect %q sig %v source %q/%q",
+			m.Dialect, res.Request.Dialect, res.Signature, res.Request.Source.Mount, res.SourceString)
+	}
+	wrong := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/sih"+p+"?signature="+strings.Repeat("0", 64), nil)
+	if _, _, err := rt.Route(wrong); err == nil {
+		t.Error("wrong signature accepted")
 	}
 }

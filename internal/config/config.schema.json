@@ -109,11 +109,11 @@
           "type": "array"
         },
         "keys": {
-          "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)",
+          "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)",
           "items": {
             "$ref": "#/$defs/secret"
           },
-          "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)",
+          "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)",
           "type": "array"
         },
         "prefix": {
@@ -916,12 +916,111 @@
     "dialects": {
       "additionalProperties": false,
       "properties": {
+        "awssih": {
+          "additionalProperties": false,
+          "properties": {
+            "buckets": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "bucket=source,…: SIH SOURCE_BUCKETS allowlist; a request without a bucket uses XI_DIALECTS_AWSSIH_SOURCE (URL-DIALECTS §13)\n\nEnv: XI_DIALECTS_AWSSIH_BUCKETS",
+              "markdownDescription": "`bucket=source,…`: SIH `SOURCE_BUCKETS` allowlist; a request without a bucket uses `XI_DIALECTS_AWSSIH_SOURCE` (URL-DIALECTS §13)\n\nEnv: `XI_DIALECTS_AWSSIH_BUCKETS`",
+              "title": "XI_DIALECTS_AWSSIH_BUCKETS",
+              "type": "object"
+            },
+            "enabled": {
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_AWSSIH_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_AWSSIH_ENABLED`",
+              "title": "XI_DIALECTS_AWSSIH_ENABLED",
+              "type": "boolean"
+            },
+            "hosts": {
+              "description": "Host bindings\n\nEnv: XI_DIALECTS_AWSSIH_HOSTS",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Host bindings\n\nEnv: `XI_DIALECTS_AWSSIH_HOSTS`",
+              "title": "XI_DIALECTS_AWSSIH_HOSTS",
+              "type": "array"
+            },
+            "keys": {
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_AWSSIH_KEYS (or XI_DIALECTS_AWSSIH_KEYS_FILE)",
+              "items": {
+                "$ref": "#/$defs/secret"
+              },
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_AWSSIH_KEYS` (or `XI_DIALECTS_AWSSIH_KEYS_FILE`)",
+              "title": "XI_DIALECTS_AWSSIH_KEYS",
+              "type": "array"
+            },
+            "mounts": {
+              "description": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "items": {
+                "$ref": "#/$defs/mount"
+              },
+              "markdownDescription": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "type": "array"
+            },
+            "prefix": {
+              "description": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: XI_DIALECTS_AWSSIH_PREFIX",
+              "markdownDescription": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: `XI_DIALECTS_AWSSIH_PREFIX`",
+              "title": "XI_DIALECTS_AWSSIH_PREFIX",
+              "type": "string"
+            },
+            "query_params": {
+              "default": true,
+              "description": "SIH query-param mapper (format, fit, width, height, rotate, flip, flop, grayscale)\n\nEnv: XI_DIALECTS_AWSSIH_QUERY_PARAMS",
+              "markdownDescription": "SIH query-param mapper (`format`, `fit`, `width`, `height`, `rotate`, `flip`, `flop`, `grayscale`)\n\nEnv: `XI_DIALECTS_AWSSIH_QUERY_PARAMS`",
+              "title": "XI_DIALECTS_AWSSIH_QUERY_PARAMS",
+              "type": "boolean"
+            },
+            "rewrite_match_pattern": {
+              "default": "",
+              "description": "SIH REWRITE_MATCH_PATTERN: /regex/flags applied to non-JSON paths before forwarding\n\nEnv: XI_DIALECTS_AWSSIH_REWRITE_MATCH_PATTERN",
+              "markdownDescription": "SIH `REWRITE_MATCH_PATTERN`: `/regex/flags` applied to non-JSON paths before forwarding\n\nEnv: `XI_DIALECTS_AWSSIH_REWRITE_MATCH_PATTERN`",
+              "title": "XI_DIALECTS_AWSSIH_REWRITE_MATCH_PATTERN",
+              "type": "string"
+            },
+            "rewrite_substitution": {
+              "default": "",
+              "description": "SIH REWRITE_SUBSTITUTION ($1, $<name>, $&, $$)\n\nEnv: XI_DIALECTS_AWSSIH_REWRITE_SUBSTITUTION",
+              "markdownDescription": "SIH `REWRITE_SUBSTITUTION` (`$1`, `$<name>`, `$&`, `$$`)\n\nEnv: `XI_DIALECTS_AWSSIH_REWRITE_SUBSTITUTION`",
+              "title": "XI_DIALECTS_AWSSIH_REWRITE_SUBSTITUTION",
+              "type": "string"
+            },
+            "source": {
+              "default": "",
+              "description": "Bound source for relative paths\n\nEnv: XI_DIALECTS_AWSSIH_SOURCE",
+              "markdownDescription": "Bound source for relative paths\n\nEnv: `XI_DIALECTS_AWSSIH_SOURCE`",
+              "title": "XI_DIALECTS_AWSSIH_SOURCE",
+              "type": "string"
+            },
+            "thumbor": {
+              "default": false,
+              "description": "Forward non-JSON paths to the thumbor dialect (SIH thumbor request type)\n\nEnv: XI_DIALECTS_AWSSIH_THUMBOR",
+              "markdownDescription": "Forward non-JSON paths to the thumbor dialect (SIH thumbor request type)\n\nEnv: `XI_DIALECTS_AWSSIH_THUMBOR`",
+              "title": "XI_DIALECTS_AWSSIH_THUMBOR",
+              "type": "boolean"
+            },
+            "unsigned_policy": {
+              "description": "Per-dialect override\n\nDefault: global\n\nEnv: XI_DIALECTS_AWSSIH_UNSIGNED_POLICY",
+              "enum": [
+                "allow",
+                "restricted",
+                "deny"
+              ],
+              "markdownDescription": "Per-dialect override\n\nDefault: global\n\nEnv: `XI_DIALECTS_AWSSIH_UNSIGNED_POLICY`",
+              "title": "XI_DIALECTS_AWSSIH_UNSIGNED_POLICY",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
         "bunny": {
           "additionalProperties": false,
           "properties": {
             "enabled": {
-              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_BUNNY_ENABLED",
-              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_BUNNY_ENABLED`",
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_BUNNY_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_BUNNY_ENABLED`",
               "title": "XI_DIALECTS_BUNNY_ENABLED",
               "type": "boolean"
             },
@@ -935,11 +1034,11 @@
               "type": "array"
             },
             "keys": {
-              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: XI_DIALECTS_BUNNY_KEYS (or XI_DIALECTS_BUNNY_KEYS_FILE)",
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_BUNNY_KEYS (or XI_DIALECTS_BUNNY_KEYS_FILE)",
               "items": {
                 "$ref": "#/$defs/secret"
               },
-              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: `XI_DIALECTS_BUNNY_KEYS` (or `XI_DIALECTS_BUNNY_KEYS_FILE`)",
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_BUNNY_KEYS` (or `XI_DIALECTS_BUNNY_KEYS_FILE`)",
               "title": "XI_DIALECTS_BUNNY_KEYS",
               "type": "array"
             },
@@ -982,8 +1081,8 @@
           "additionalProperties": false,
           "properties": {
             "enabled": {
-              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_CLOUDFLARE_ENABLED",
-              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_CLOUDFLARE_ENABLED`",
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_CLOUDFLARE_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_CLOUDFLARE_ENABLED`",
               "title": "XI_DIALECTS_CLOUDFLARE_ENABLED",
               "type": "boolean"
             },
@@ -997,11 +1096,11 @@
               "type": "array"
             },
             "keys": {
-              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: XI_DIALECTS_CLOUDFLARE_KEYS (or XI_DIALECTS_CLOUDFLARE_KEYS_FILE)",
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_CLOUDFLARE_KEYS (or XI_DIALECTS_CLOUDFLARE_KEYS_FILE)",
               "items": {
                 "$ref": "#/$defs/secret"
               },
-              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: `XI_DIALECTS_CLOUDFLARE_KEYS` (or `XI_DIALECTS_CLOUDFLARE_KEYS_FILE`)",
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_CLOUDFLARE_KEYS` (or `XI_DIALECTS_CLOUDFLARE_KEYS_FILE`)",
               "title": "XI_DIALECTS_CLOUDFLARE_KEYS",
               "type": "array"
             },
@@ -1053,8 +1152,8 @@
               "type": "object"
             },
             "enabled": {
-              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_CLOUDFLARE_IMAGES_ENABLED",
-              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_CLOUDFLARE_IMAGES_ENABLED`",
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_CLOUDFLARE_IMAGES_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_CLOUDFLARE_IMAGES_ENABLED`",
               "title": "XI_DIALECTS_CLOUDFLARE_IMAGES_ENABLED",
               "type": "boolean"
             },
@@ -1068,11 +1167,11 @@
               "type": "array"
             },
             "keys": {
-              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS (or XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS_FILE)",
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS (or XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS_FILE)",
               "items": {
                 "$ref": "#/$defs/secret"
               },
-              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: `XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS` (or `XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS_FILE`)",
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS` (or `XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS_FILE`)",
               "title": "XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS",
               "type": "array"
             },
@@ -1124,8 +1223,8 @@
               "type": "object"
             },
             "enabled": {
-              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_CLOUDINARY_ENABLED",
-              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_CLOUDINARY_ENABLED`",
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_CLOUDINARY_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_CLOUDINARY_ENABLED`",
               "title": "XI_DIALECTS_CLOUDINARY_ENABLED",
               "type": "boolean"
             },
@@ -1139,11 +1238,11 @@
               "type": "array"
             },
             "keys": {
-              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: XI_DIALECTS_CLOUDINARY_KEYS (or XI_DIALECTS_CLOUDINARY_KEYS_FILE)",
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_CLOUDINARY_KEYS (or XI_DIALECTS_CLOUDINARY_KEYS_FILE)",
               "items": {
                 "$ref": "#/$defs/secret"
               },
-              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: `XI_DIALECTS_CLOUDINARY_KEYS` (or `XI_DIALECTS_CLOUDINARY_KEYS_FILE`)",
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_CLOUDINARY_KEYS` (or `XI_DIALECTS_CLOUDINARY_KEYS_FILE`)",
               "title": "XI_DIALECTS_CLOUDINARY_KEYS",
               "type": "array"
             },
@@ -1195,7 +1294,8 @@
             "cloudinary",
             "imagekit",
             "bunny",
-            "thumbor"
+            "thumbor",
+            "awssih"
           ],
           "markdownDescription": "Fallback dialect\n\nEnv: `XI_DIALECTS_DEFAULT`",
           "title": "XI_DIALECTS_DEFAULT",
@@ -1205,8 +1305,8 @@
           "additionalProperties": false,
           "properties": {
             "enabled": {
-              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_IMAGEKIT_ENABLED",
-              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_IMAGEKIT_ENABLED`",
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_IMAGEKIT_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_IMAGEKIT_ENABLED`",
               "title": "XI_DIALECTS_IMAGEKIT_ENABLED",
               "type": "boolean"
             },
@@ -1220,11 +1320,11 @@
               "type": "array"
             },
             "keys": {
-              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: XI_DIALECTS_IMAGEKIT_KEYS (or XI_DIALECTS_IMAGEKIT_KEYS_FILE)",
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_IMAGEKIT_KEYS (or XI_DIALECTS_IMAGEKIT_KEYS_FILE)",
               "items": {
                 "$ref": "#/$defs/secret"
               },
-              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: `XI_DIALECTS_IMAGEKIT_KEYS` (or `XI_DIALECTS_IMAGEKIT_KEYS_FILE`)",
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_IMAGEKIT_KEYS` (or `XI_DIALECTS_IMAGEKIT_KEYS_FILE`)",
               "title": "XI_DIALECTS_IMAGEKIT_KEYS",
               "type": "array"
             },
@@ -1267,8 +1367,8 @@
           "additionalProperties": false,
           "properties": {
             "enabled": {
-              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_IMGIX_ENABLED",
-              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_IMGIX_ENABLED`",
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_IMGIX_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_IMGIX_ENABLED`",
               "title": "XI_DIALECTS_IMGIX_ENABLED",
               "type": "boolean"
             },
@@ -1282,11 +1382,11 @@
               "type": "array"
             },
             "keys": {
-              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: XI_DIALECTS_IMGIX_KEYS (or XI_DIALECTS_IMGIX_KEYS_FILE)",
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_IMGIX_KEYS (or XI_DIALECTS_IMGIX_KEYS_FILE)",
               "items": {
                 "$ref": "#/$defs/secret"
               },
-              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: `XI_DIALECTS_IMGIX_KEYS` (or `XI_DIALECTS_IMGIX_KEYS_FILE`)",
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_IMGIX_KEYS` (or `XI_DIALECTS_IMGIX_KEYS_FILE`)",
               "title": "XI_DIALECTS_IMGIX_KEYS",
               "type": "array"
             },
@@ -1343,8 +1443,8 @@
               "type": "string"
             },
             "enabled": {
-              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_IMGPROXY_ENABLED",
-              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_IMGPROXY_ENABLED`",
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_IMGPROXY_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_IMGPROXY_ENABLED`",
               "title": "XI_DIALECTS_IMGPROXY_ENABLED",
               "type": "boolean"
             },
@@ -1358,11 +1458,11 @@
               "type": "array"
             },
             "keys": {
-              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: XI_DIALECTS_IMGPROXY_KEYS (or XI_DIALECTS_IMGPROXY_KEYS_FILE)",
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_IMGPROXY_KEYS (or XI_DIALECTS_IMGPROXY_KEYS_FILE)",
               "items": {
                 "$ref": "#/$defs/secret"
               },
-              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: `XI_DIALECTS_IMGPROXY_KEYS` (or `XI_DIALECTS_IMGPROXY_KEYS_FILE`)",
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_IMGPROXY_KEYS` (or `XI_DIALECTS_IMGPROXY_KEYS_FILE`)",
               "title": "XI_DIALECTS_IMGPROXY_KEYS",
               "type": "array"
             },
@@ -1414,8 +1514,8 @@
           "additionalProperties": false,
           "properties": {
             "enabled": {
-              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_QUERY_ENABLED",
-              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_QUERY_ENABLED`",
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_QUERY_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_QUERY_ENABLED`",
               "title": "XI_DIALECTS_QUERY_ENABLED",
               "type": "boolean"
             },
@@ -1429,11 +1529,11 @@
               "type": "array"
             },
             "keys": {
-              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: XI_DIALECTS_QUERY_KEYS (or XI_DIALECTS_QUERY_KEYS_FILE)",
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_QUERY_KEYS (or XI_DIALECTS_QUERY_KEYS_FILE)",
               "items": {
                 "$ref": "#/$defs/secret"
               },
-              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: `XI_DIALECTS_QUERY_KEYS` (or `XI_DIALECTS_QUERY_KEYS_FILE`)",
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_QUERY_KEYS` (or `XI_DIALECTS_QUERY_KEYS_FILE`)",
               "title": "XI_DIALECTS_QUERY_KEYS",
               "type": "array"
             },
@@ -1476,11 +1576,11 @@
           "additionalProperties": false,
           "properties": {
             "enabled": {
-              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_SIMPLE_ENABLED",
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_SIMPLE_ENABLED",
               "items": {
                 "type": "string"
               },
-              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_SIMPLE_ENABLED`",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_SIMPLE_ENABLED`",
               "title": "XI_DIALECTS_SIMPLE_ENABLED",
               "type": "array"
             },
@@ -1525,8 +1625,8 @@
           "additionalProperties": false,
           "properties": {
             "enabled": {
-              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_THUMBOR_ENABLED",
-              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_THUMBOR_ENABLED`",
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_THUMBOR_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_THUMBOR_ENABLED`",
               "title": "XI_DIALECTS_THUMBOR_ENABLED",
               "type": "boolean"
             },
@@ -1540,11 +1640,11 @@
               "type": "array"
             },
             "keys": {
-              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: XI_DIALECTS_THUMBOR_KEYS (or XI_DIALECTS_THUMBOR_KEYS_FILE)",
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_THUMBOR_KEYS (or XI_DIALECTS_THUMBOR_KEYS_FILE)",
               "items": {
                 "$ref": "#/$defs/secret"
               },
-              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: `XI_DIALECTS_THUMBOR_KEYS` (or `XI_DIALECTS_THUMBOR_KEYS_FILE`)",
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_THUMBOR_KEYS` (or `XI_DIALECTS_THUMBOR_KEYS_FILE`)",
               "title": "XI_DIALECTS_THUMBOR_KEYS",
               "type": "array"
             },
@@ -1587,8 +1687,8 @@
           "additionalProperties": false,
           "properties": {
             "enabled": {
-              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_WSRV_ENABLED",
-              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_WSRV_ENABLED`",
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_WSRV_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_WSRV_ENABLED`",
               "title": "XI_DIALECTS_WSRV_ENABLED",
               "type": "boolean"
             },
@@ -1602,11 +1702,11 @@
               "type": "array"
             },
             "keys": {
-              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: XI_DIALECTS_WSRV_KEYS (or XI_DIALECTS_WSRV_KEYS_FILE)",
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_WSRV_KEYS (or XI_DIALECTS_WSRV_KEYS_FILE)",
               "items": {
                 "$ref": "#/$defs/secret"
               },
-              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key)\n\nEnv: `XI_DIALECTS_WSRV_KEYS` (or `XI_DIALECTS_WSRV_KEYS_FILE`)",
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_WSRV_KEYS` (or `XI_DIALECTS_WSRV_KEYS_FILE`)",
               "title": "XI_DIALECTS_WSRV_KEYS",
               "type": "array"
             },

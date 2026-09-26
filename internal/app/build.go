@@ -12,6 +12,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/awssih"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/bunny"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/cloudflare"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imagekit"
@@ -50,8 +51,8 @@ func (p infoParser) Name() string { return infoDialect }
 func (p infoParser) Parse(in *dialect.Input) (*dialect.Result, error) { return p.ParseInfo(in) }
 
 // buildRouter builds the signing verifiers, presets, the available dialects
-// (imgproxy, query, imagekit, cloudflare, cloudflare_images, wsrv, thumbor
-// and bunny) and the router. warnings lists enabled dialects that are not implemented yet; their
+// (imgproxy, query, imagekit, cloudflare, cloudflare_images, wsrv, thumbor,
+// bunny and awssih) and the router. warnings lists enabled dialects that are not implemented yet; their
 // mounts are skipped.
 func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err error) {
 	keys := make([]sign.Key, 0, len(cfg.Signing.Keys))
@@ -162,6 +163,14 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	dialects := map[string]dialect.Dialect{
 		imgproxy.Name: ip, infoDialect: infoParser{ip}, query.Name: q, cloudflare.Name: cf, wsrv.Name: ws, thumbor.Name: th,
 	}
+	if sih := &cfg.Dialects.AWSSIH; sih.Enabled {
+		p, warn, err := buildAWSSIH(cfg, dialects)
+		if err != nil {
+			return nil, nil, err
+		}
+		dialects[awssih.Name] = p
+		warnings = append(warnings, warn...)
+	}
 	opts := &router.Options{
 		Policy: router.Policy(cfg.Security.UnsignedPolicy),
 		Restrictions: router.Restrictions{
@@ -208,6 +217,7 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	if err := addBunnyMounts(cfg, ipOpts.Presets, dialects, opts); err != nil {
 		return nil, nil, err
 	}
+	addMounts(awssih.Name, &cfg.Dialects.AWSSIH.Mount)
 	// Root "/?url=" (URL-DIALECTS §1): wsrv when enabled, else query.
 	switch {
 	case cfg.Dialects.Wsrv.Enabled:
@@ -409,6 +419,59 @@ func addBunnyMounts(cfg *config.Config, presets *preset.Store, dialects map[stri
 		})
 	}
 	return nil
+}
+
+// buildAWSSIH builds the AWS Serverless Image Handler dialect
+// (XI_DIALECTS_AWSSIH_*). Its keys are the SIH secrets, used verbatim; the
+// primary mount's keys apply to every SIH mount. Thumbor forwarding uses
+// the "thumbor" dialect when one is available (WP-45 registers it; it must
+// accept "/unsafe/" paths, since SIH signs with its own parameter).
+func buildAWSSIH(cfg *config.Config, dialects map[string]dialect.Dialect) (*awssih.Parser, []string, error) {
+	sih := &cfg.Dialects.AWSSIH
+	opts := awssih.Options{
+		Buckets:     sih.Buckets,
+		Strict:      cfg.Dialects.Strict,
+		QueryParams: sih.QueryParams,
+	}
+	var warnings []string
+	if len(sih.Keys) > 0 {
+		keys := make([]sign.Key, 0, len(sih.Keys))
+		for _, k := range sih.Keys {
+			keys = append(keys, sign.NewKey([]byte(k.Reveal()), nil))
+		}
+		trusted := make([]string, 0, len(cfg.Signing.Trusted))
+		for _, t := range cfg.Signing.Trusted {
+			trusted = append(trusted, t.Reveal())
+		}
+		v, err := sign.NewAWSSIHVerifier(sign.AWSSIHOptions{
+			Keys: sign.NewKeyring(keys...), Trusted: trusted, Required: cfg.Signing.Required.Bool(),
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("awssih verifier: %w", err)
+		}
+		opts.Verifier = v
+	} else if cfg.Signing.Required.Bool() {
+		warnings = append(warnings, "dialect awssih has no keys: signing.required does not apply to it; unsigned requests follow its unsigned policy")
+	}
+	if sih.RewriteMatchPattern != "" {
+		rw, err := awssih.ParseRewrite(sih.RewriteMatchPattern, sih.RewriteSubstitution)
+		if err != nil {
+			return nil, nil, err
+		}
+		opts.Rewrite = rw
+	}
+	if sih.Thumbor {
+		if th, ok := dialects[string(config.DialectThumbor)]; ok {
+			opts.Thumbor = th
+		} else {
+			warnings = append(warnings, "dialect awssih: thumbor forwarding needs the thumbor dialect; non-JSON paths answer 400")
+		}
+	}
+	p, err := awssih.New(&opts)
+	if err != nil {
+		return nil, nil, fmt.Errorf("awssih dialect: %w", err)
+	}
+	return p, warnings, nil
 }
 
 // ssrfPolicy maps XI_FETCH_* onto the SSRF policy.

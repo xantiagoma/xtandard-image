@@ -159,17 +159,22 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 |---|---|---|
 | `XI_DIALECTS_DEFAULT` | `imgproxy` | Fallback dialect |
 | `XI_DIALECTS_STRICT` | `false` | 400 on unknown/unsupported options |
-| `XI_DIALECTS_<NAME>_ENABLED` | imgproxy `true`, others `false` | `<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]` |
+| `XI_DIALECTS_<NAME>_ENABLED` | imgproxy `true`, others `false` | `<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]` |
 | `XI_DIALECTS_<NAME>_PREFIX` | see URL-DIALECTS.md | Mount prefix |
 | `XI_DIALECTS_<NAME>_HOSTS` | `` | Host bindings |
 | `XI_DIALECTS_<NAME>_SOURCE` | `` | Bound source for relative paths |
-| `XI_DIALECTS_<NAME>_KEYS` | `` | Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key) |
+| `XI_DIALECTS_<NAME>_KEYS` | `` | Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim) |
 | `XI_DIALECTS_<NAME>_UNSIGNED_POLICY` | global | Per-dialect override |
 | `XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR` | `:` | |
 | `XI_DIALECTS_IMGPROXY_BASE_URL` | `` | |
 | `XI_DIALECTS_IMGPROXY_URL_REPLACEMENTS` | `` | `regex=replacement;…` (`;`-separated in env) |
 | `XI_DIALECTS_CLOUDINARY_CLOUDS` | `` | `cloud=source,…` |
 | `XI_DIALECTS_CLOUDFLARE_IMAGES_ACCOUNTS` | `` | `account_hash=source,…`: the source each Cloudflare Images account hash reads image ids from; empty = the mount's source for every hash, otherwise an unknown hash is 403. `XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS` are the raw Images signing keys (`sig`/`exp`); variants are presets |
+| `XI_DIALECTS_AWSSIH_BUCKETS` | `` | `bucket=source,…`: SIH `SOURCE_BUCKETS` allowlist; a request without a bucket uses `XI_DIALECTS_AWSSIH_SOURCE` (URL-DIALECTS §13) |
+| `XI_DIALECTS_AWSSIH_QUERY_PARAMS` | `true` | SIH query-param mapper (`format`, `fit`, `width`, `height`, `rotate`, `flip`, `flop`, `grayscale`) |
+| `XI_DIALECTS_AWSSIH_THUMBOR` | `false` | Forward non-JSON paths to the thumbor dialect (SIH thumbor request type) |
+| `XI_DIALECTS_AWSSIH_REWRITE_MATCH_PATTERN` | `` | SIH `REWRITE_MATCH_PATTERN`: `/regex/flags` applied to non-JSON paths before forwarding |
+| `XI_DIALECTS_AWSSIH_REWRITE_SUBSTITUTION` | `` | SIH `REWRITE_SUBSTITUTION` (`$1`, `$<name>`, `$&`, `$$`) |
 | `XI_PRESETS` | `` | `name=opts,name2=opts` (imgproxy syntax); YAML `presets: {name: opts}` |
 | `XI_PRESETS_FILE` | `` | One `name=options` per line; blank lines and `#` comments skipped; a name also in `XI_PRESETS` is an error |
 | `XI_PRESETS_ONLY` | `false` | Only preset URLs allowed |
