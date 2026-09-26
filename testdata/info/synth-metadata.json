@@ -1,0 +1,66 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "exif": {
+    "Color Space": "Uncalibrated",
+    "Date and Time (Original)": "2016:09:11 22:15:03",
+    "Exif Version": "Exif Version 2.1",
+    "FlashPixVersion": "FlashPix Version 1.0",
+    "Model": "NIKON D810",
+    "Orientation": "Top-left",
+    "Resolution Unit": "Inch",
+    "X-Resolution": "72",
+    "Y-Resolution": "72"
+  },
+  "format": "jpeg",
+  "height": 240,
+  "iptc": {
+    "Caption": "Spider-Man swings on the web",
+    "Caption/Abstract": "Spider-Man swings on the web",
+    "Copyright Notice": "Daily Bugle",
+    "Keywords": [
+      "spider-man",
+      "menance",
+      "offender"
+    ],
+    "Name": "Spider-Man",
+    "Object Name": "Spider-Man"
+  },
+  "mime_type": "image/jpeg",
+  "orientation": 1,
+  "pages_number": 1,
+  "photoshop": {
+    "resolution": {
+      "HeightUnit": "inches",
+      "WidthUnit": "inches",
+      "XResolution": 240,
+      "XResolutionUnit": "inches",
+      "YResolution": 240,
+      "YResolutionUnit": "inches"
+    }
+  },
+  "sample_format": "uchar",
+  "size": 21901,
+  "width": 320,
+  "xmp": {
+    "aux": {
+      "Lens": "16.0-35.0 mm f/4.0",
+      "SerialNumber": "12345678"
+    },
+    "dc": {
+      "creator": [
+        "Peter B. Parker"
+      ],
+      "format": "image/jpeg",
+      "subject": [
+        "spider-man",
+        "menance",
+        "offender"
+      ]
+    },
+    "photoshop": {
+      "DateCreated": "2016-09-11T18:44:50.003"
+    }
+  }
+}

@@ -9,6 +9,7 @@ Shared test inputs and golden outputs for the whole module. Go tooling ignores d
 testdata/
   fixtures/<format>/…   one small file per M1 input format and variant (inputs; never rewritten by tests)
   golden/<case>.png     expected outputs, compared perceptually by internal/testutil/golden
+  info/<case>.json      expected /info responses (internal/app TestInfo; GOLDEN_UPDATE=1 rewrites, review the diff)
   ssim/                 greyscale reference + distortions validating internal/testutil/ssim
   gen/                  generator: main.go (Go), gen.sh (driver), logo.svg
   LICENSES.md           origin and licence of every file
