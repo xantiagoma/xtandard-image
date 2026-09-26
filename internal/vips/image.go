@@ -129,6 +129,42 @@ func (img *Image) Blob(field MetaField) ([]byte, bool) {
 	return C.GoBytes(p, C.int(n)), true
 }
 
+// Text returns a string metadata field, such as an "exif-ifd0-Copyright"
+// tag that a loader parsed from EXIF (libvips renders it as
+// "value (description, n components, m bytes)").
+func (img *Image) Text(field MetaField) (string, bool) {
+	name := cstr(string(field))
+	var s *C.char
+	if C.xi_meta_get_string(img.p, cptr(name), &s) != 0 {
+		return "", false
+	}
+	return C.GoString(s), true
+}
+
+// Fields returns the names of every metadata field on img, in libvips order.
+// Loaders expand EXIF into one "exif-ifdN-Tag" string field per tag next to
+// the "exif-data" blob; savers rebuild the blob from those fields, so
+// removing a tag means removing its field (see RemoveMetadata).
+func (img *Image) Fields() []MetaField {
+	var n C.size_t
+	p := C.xi_meta_fields(img.p, &n)
+	if p == nil {
+		return nil
+	}
+	defer C.xi_free(unsafe.Pointer(p))
+	raw := unsafe.Slice((*byte)(unsafe.Pointer(p)), int(n))
+	var out []MetaField
+	for len(raw) > 0 {
+		i := 0
+		for raw[i] != 0 {
+			i++
+		}
+		out = append(out, MetaField(raw[:i]))
+		raw = raw[i+1:]
+	}
+	return out
+}
+
 // SetInt returns a copy of img with an integer metadata field set. The
 // input is never modified: other nodes may share it.
 func (img *Image) SetInt(ctx context.Context, field MetaField, v int) (*Image, error) {
@@ -243,6 +279,26 @@ func (img *Image) WriteToMemory(ctx context.Context) ([]byte, error) {
 	}
 	defer C.xi_free(p)
 	return C.GoBytes(p, C.int(n)), nil
+}
+
+// CopyMemory computes the whole image into memory and returns it as a new
+// image with random access and the same metadata (vips_image_copy_memory).
+// Use it before saving the same pipeline several times (the max_bytes
+// quality search): each later save then only encodes. It is a sink: ctx
+// cancellation kills it.
+func (img *Image) CopyMemory(ctx context.Context) (*Image, error) {
+	if err := ctxError(ctx, "vips: copy memory"); err != nil {
+		return nil, err
+	}
+	stop := KillOnCancel(ctx, img)
+	defer stop()
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_copy_memory(img.p, &out, &cerr)
+	if err := stepError(ctx, rc, "copy_memory", cerr, img.src); err != nil {
+		return nil, err
+	}
+	return img.derive(out), nil
 }
 
 // Black returns a width×height image of bands zero (black) uchar bands.

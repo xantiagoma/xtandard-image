@@ -178,6 +178,53 @@ xi_meta_remove(VipsImage *in, const char *names, int n, VipsImage **out, char **
 }
 
 int
+xi_meta_get_string(VipsImage *img, const char *name, const char **out)
+{
+  if (!vips_image_get_typeof(img, name))
+    return -1;
+  if (vips_image_get_string(img, name, out)) {
+    vips_error_clear();
+    return -1;
+  }
+  return 0;
+}
+
+char *
+xi_meta_fields(VipsImage *img, size_t *len)
+{
+  gchar **fields = vips_image_get_fields(img);
+  size_t n = 0;
+  char *buf, *p;
+
+  for (int i = 0; fields[i]; i++)
+    n += strlen(fields[i]) + 1;
+  *len = n;
+  if (n == 0) {
+    g_strfreev(fields);
+    return NULL;
+  }
+  buf = g_malloc(n);
+  p = buf;
+  for (int i = 0; fields[i]; i++) {
+    size_t l = strlen(fields[i]) + 1;
+    memcpy(p, fields[i], l);
+    p += l;
+  }
+  g_strfreev(fields);
+  return buf;
+}
+
+int
+xi_copy_memory(VipsImage *in, VipsImage **out, char **err)
+{
+  if (!(*out = vips_image_copy_memory(in))) {
+    *err = xi_error_copy();
+    return XI_ERR_SAVE;
+  }
+  return XI_OK;
+}
+
+int
 xi_write_to_memory(VipsImage *in, void **data, size_t *len, char **err)
 {
   if (!(*data = vips_image_write_to_memory(in, len))) {

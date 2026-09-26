@@ -149,7 +149,15 @@ int xi_meta_set_array_int(VipsImage *in, const char *name, const int *v, int n,
 // names holds n NUL-terminated names back to back.
 int xi_meta_remove(VipsImage *in, const char *names, int n, VipsImage **out, char **err);
 
+int xi_meta_get_string(VipsImage *img, const char *name, const char **out);
+// Field names back to back, each NUL-terminated, in a g_malloc'd buffer of
+// *len bytes (NULL and 0 when the image has none); free with xi_free.
+char *xi_meta_fields(VipsImage *img, size_t *len);
+
 int xi_write_to_memory(VipsImage *in, void **data, size_t *len, char **err);
+// Renders in to a memory image (vips_image_copy_memory); XI_ERR_SAVE on
+// failure, like the other sinks.
+int xi_copy_memory(VipsImage *in, VipsImage **out, char **err);
 
 // ---- operations (ops.c) ------------------------------------------------
 //
