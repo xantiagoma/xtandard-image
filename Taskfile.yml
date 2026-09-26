@@ -75,6 +75,16 @@ tasks:
     desc: "M1 acceptance suite (compose.acceptance.yml + test/acceptance, WP-39) against $XI_IMAGE (default xtandard-image:dev, build it with release:build; a registry ref is pulled); XI_ACC_RUN narrows"
     cmds: [sh scripts/acceptance.sh]
 
+  quickstart:
+    desc: "Run the README quick start verbatim (scripts/quickstart.sh) against a fresh build tagged xtandard-image; XI_APP_BASE=xtandard-base:dev locally"
+    cmds:
+      - XI_IMAGE=xtandard-image task release:build
+      - sh scripts/quickstart.sh
+
+  bench:
+    desc: "Benchmark $XI_IMAGE (default xtandard-image:dev) against imgproxy OSS (bench/run.sh, docs/BENCHMARKS.md)"
+    cmds: [sh bench/run.sh]
+
   # ---- release (docs/RELEASE.md) --------------------------------------------
 
   release:build:
