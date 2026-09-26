@@ -96,16 +96,7 @@ func newWatermarkExecutor(tb testing.TB, wm *exec.Watermark) *exec.Executor {
 // processWith runs options on a fixture with e and decodes the result.
 func processWith(tb testing.TB, e *exec.Executor, fixture, options string, out transform.Format) output {
 	tb.Helper()
-	j, buf := job(tb, readFixture(tb, fixture), parse(tb, options), out)
-	defer buf.Release()
-	res, err := e.Run(tb.Context(), j)
-	if err != nil {
-		tb.Fatalf("run %q: %v", options, err)
-	}
-	defer res.Body.Release()
-	enc := bytes.Clone(res.Body.Bytes())
-	img, frames := decode(tb, enc)
-	return output{res: res, img: img, frames: frames, bytes: enc}
+	return processDataWith(tb, e, readFixture(tb, fixture), options, out)
 }
 
 func TestWatermarkGolden(t *testing.T) {

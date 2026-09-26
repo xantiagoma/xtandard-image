@@ -24,7 +24,12 @@
 //     page-height; Steps run on every frame, the frames are joined back with
 //     vips.Arrayjoin and page-height, delays and loop count are restored before
 //     the After steps run on the strip.
-//  4. Chained plans run on the materialised result of the previous one.
+//  4. Chained pipelines are planned again with plan.Chain on the observed
+//     result of the previous one (size, frames, alpha; orientation already
+//     applied), after a trim of their own with the trimmed size too. The
+//     result is computed into memory first only when the plan says so
+//     (Materialize: a step reads it out of order); otherwise the chained
+//     steps extend the lazy graph. Errors name the pipeline index.
 //  5. codec/encode encodes the final image.
 //
 // The step semantics follow imgproxy's processing package (Apache-2.0):
