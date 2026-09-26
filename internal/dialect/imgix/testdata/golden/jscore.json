@@ -1388,10 +1388,6 @@
       "Dialect": "imgix",
       "Ignored": [
         {
-          "Option": "usm",
-          "Reason": "takes effect in M2"
-        },
-        {
           "Option": "sepia",
           "Reason": "takes effect in M2"
         },

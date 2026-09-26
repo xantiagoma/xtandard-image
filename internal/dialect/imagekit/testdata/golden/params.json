@@ -1270,12 +1270,6 @@
     "query": "tr=e-usm-2-2-0.8-0.024",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "e-usm",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Unsharp": {

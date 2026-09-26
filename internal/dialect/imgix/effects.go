@@ -163,7 +163,6 @@ func (st *state) unsharp() error {
 	}
 	if amount != 0 {
 		st.pl.Unsharp = &transform.Unsharp{Sigma: radius, Amount: amount / 100}
-		st.b.Ignore("usm", reasonM2)
 	}
 	return nil
 }

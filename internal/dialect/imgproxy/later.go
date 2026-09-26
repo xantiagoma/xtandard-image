@@ -95,12 +95,15 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 		milestone = applied
 		err = gradient(pl, args)
 
-	// Blur and sharpening.
+	// Blur and sharpening (applied since WP-61).
 	case "unsharp_masking", "ush":
+		milestone = applied
 		err = unsharpMasking(pl, args)
 	case "blur_areas", "ba":
+		milestone = applied
 		err = blurAreas(pl, args)
 	case "progressive_blur", "pbl":
+		milestone = applied
 		err = progressiveBlur(pl, args)
 	case "blur_detections", "bd":
 		milestone = reasonM3

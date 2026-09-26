@@ -321,12 +321,6 @@
     "path": "/unsafe/ba:10:0.1:0.1:0.2:0.2:0.5:0.5:0.25:0.25/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "ba",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "BlurAreas": {
@@ -359,12 +353,6 @@
     "path": "/unsafe/ba:5:0:0:1:1/ba:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "ba",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {}
       ],
@@ -456,12 +444,6 @@
     "path": "/unsafe/blur_areas:5:0:0:0.5:0.5/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "blur_areas",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "BlurAreas": {
@@ -1307,18 +1289,6 @@
           "Reason": "takes effect in M3"
         },
         {
-          "Option": "ush",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "ba",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "pbl",
-          "Reason": "takes effect in M2"
-        },
-        {
           "Option": "bd",
           "Reason": "takes effect in M3"
         },
@@ -2120,14 +2090,6 @@
       "Dialect": "imgproxy",
       "Ignored": [
         {
-          "Option": "ush",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "pbl",
-          "Reason": "takes effect in M2"
-        },
-        {
           "Option": "ct",
           "Reason": "takes effect in M2"
         },
@@ -2432,12 +2394,6 @@
     "path": "/unsafe/pbl:5:-30/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "pbl",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "ProgressiveBlur": {
@@ -2468,12 +2424,6 @@
     "path": "/unsafe/pbl:5:right:0.1:0.6/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "pbl",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "ProgressiveBlur": {
@@ -2495,12 +2445,6 @@
     "path": "/unsafe/pbl:5/pbl:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "pbl",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {}
       ],
@@ -2585,12 +2529,6 @@
     "path": "/unsafe/progressive_blur:10/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "progressive_blur",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "ProgressiveBlur": {
@@ -2877,12 +2815,6 @@
     "path": "/unsafe/unsharp_masking:always:2:20/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "unsharp_masking",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Unsharp": {
@@ -2912,12 +2844,6 @@
     "path": "/unsafe/ush:/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "ush",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Unsharp": {}
@@ -2934,12 +2860,6 @@
     "path": "/unsafe/ush:auto:1/ush::3/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "ush",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Unsharp": {
@@ -2959,12 +2879,6 @@
     "path": "/unsafe/ush:none/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "ush",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Unsharp": {
