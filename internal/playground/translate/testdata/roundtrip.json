@@ -1,0 +1,1791 @@
+[
+  {
+    "case": "fit width",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/width=300,fit=scale-down/https://example.com/photos/a.jpg"
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/w_300,c_limit/https://example.com/photos/a.jpg"
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?w=300\u0026fit=max"
+      },
+      "imgproxy": {
+        "url": "/rs::300/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026w=300"
+      },
+      "thumbor": {
+        "url": "/fit-in/300x0/https://example.com/photos/a.jpg"
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026w=300\u0026fit=inside\u0026we="
+      }
+    }
+  },
+  {
+    "case": "fit width",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiaW5zaWRlIiwid2lkdGgiOjMwMCwid2l0aG91dEVubGFyZ2VtZW50Ijp0cnVlfX0sImtleSI6InBob3Rvcy9hLmpwZyJ9"
+      },
+      "bunny": {
+        "url": "/photos/a.jpg?width=300"
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/w_300,c_limit/f_auto/photos/a.jpg"
+      },
+      "imagekit": {
+        "url": "/tr:w-300,c-at_max/photos/a.jpg"
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?w=300\u0026fit=max"
+      },
+      "imgproxy": {
+        "url": "/rs::300/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026w=300"
+      },
+      "thumbor": {
+        "url": "/fit-in/300x0/xi://local/photos/a.jpg"
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026w=300\u0026fit=inside\u0026we="
+      }
+    }
+  },
+  {
+    "case": "fill with smart gravity",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/width=300,height=200,fit=cover,gravity=auto/https://example.com/photos/a.jpg"
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/w_300,h_200,c_fill,g_auto/https://example.com/photos/a.jpg"
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?w=300\u0026h=200\u0026fit=crop\u0026crop=edges"
+      },
+      "imgproxy": {
+        "url": "/rs:fill:300:200:1/g:sm/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026fit=fill\u0026w=300\u0026h=200\u0026enlarge=1\u0026o=g%3Asm"
+      },
+      "thumbor": {
+        "url": "/300x200/smart/https://example.com/photos/a.jpg"
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026w=300\u0026h=200\u0026fit=cover\u0026a=attention"
+      }
+    }
+  },
+  {
+    "case": "fill with smart gravity",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJlZGl0cyI6eyJyZXNpemUiOnsiaGVpZ2h0IjoyMDAsInBvc2l0aW9uIjoiYXR0ZW50aW9uIiwid2lkdGgiOjMwMH19LCJrZXkiOiJwaG90b3MvYS5qcGcifQ=="
+      },
+      "bunny": {
+        "url": "/photos/a.jpg?width=300\u0026height=200\u0026aspect_ratio=300%3A200\u0026upscaling=resampling",
+        "approximated": [
+          "gravity.type"
+        ]
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/w_300,h_200,c_fill,g_auto/f_auto/photos/a.jpg"
+      },
+      "imagekit": {
+        "url": "/tr:w-300,h-200,fo-auto/photos/a.jpg"
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?w=300\u0026h=200\u0026fit=crop\u0026crop=edges"
+      },
+      "imgproxy": {
+        "url": "/rs:fill:300:200:1/g:sm/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026fit=fill\u0026w=300\u0026h=200\u0026enlarge=1\u0026o=g%3Asm"
+      },
+      "thumbor": {
+        "url": "/300x200/smart/xi://local/photos/a.jpg"
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026w=300\u0026h=200\u0026fit=cover\u0026a=attention"
+      }
+    }
+  },
+  {
+    "case": "fill with face gravity",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/width=300,height=200,fit=cover,gravity=face/https://example.com/photos/a.jpg"
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/w_300,h_200,c_fill,g_faces/https://example.com/photos/a.jpg"
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?w=300\u0026h=200\u0026fit=crop\u0026crop=faces"
+      },
+      "imgproxy": {
+        "url": "/rs:fill:300:200:1/g:obj:face/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026fit=fill\u0026w=300\u0026h=200\u0026enlarge=1\u0026o=g%3Aobj%3Aface"
+      },
+      "thumbor": {
+        "url": "/300x200/https://example.com/photos/a.jpg",
+        "approximated": [
+          "gravity.type"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026w=300\u0026h=200\u0026fit=cover",
+        "approximated": [
+          "gravity.type"
+        ]
+      }
+    }
+  },
+  {
+    "case": "fill with face gravity",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJlZGl0cyI6eyJyZXNpemUiOnsiaGVpZ2h0IjoyMDAsIndpZHRoIjozMDB9fSwia2V5IjoicGhvdG9zL2EuanBnIn0=",
+        "approximated": [
+          "gravity.type"
+        ]
+      },
+      "bunny": {
+        "url": "/photos/a.jpg?width=300\u0026height=200\u0026aspect_ratio=300%3A200\u0026upscaling=resampling\u0026face_crop=true"
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/w_300,h_200,c_fill,g_faces/f_auto/photos/a.jpg"
+      },
+      "imagekit": {
+        "url": "/tr:w-300,h-200,fo-face/photos/a.jpg"
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?w=300\u0026h=200\u0026fit=crop\u0026crop=faces"
+      },
+      "imgproxy": {
+        "url": "/rs:fill:300:200:1/g:obj:face/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026fit=fill\u0026w=300\u0026h=200\u0026enlarge=1\u0026o=g%3Aobj%3Aface"
+      },
+      "thumbor": {
+        "url": "/300x200/xi://local/photos/a.jpg",
+        "approximated": [
+          "gravity.type"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026w=300\u0026h=200\u0026fit=cover",
+        "approximated": [
+          "gravity.type"
+        ]
+      }
+    }
+  },
+  {
+    "case": "fill with object classes",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/width=300,height=200,fit=cover/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "gravity.classes"
+        ],
+        "approximated": [
+          "gravity.type"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/w_300,h_200,c_fill,g_dog/https://example.com/photos/a.jpg"
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?w=300\u0026h=200\u0026fit=crop\u0026crop=dog"
+      },
+      "imgproxy": {
+        "url": "/rs:fill:300:200:1/g:obj:dog/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026fit=fill\u0026w=300\u0026h=200\u0026enlarge=1\u0026o=g%3Aobj%3Adog"
+      },
+      "thumbor": {
+        "url": "/300x200/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "gravity.classes"
+        ],
+        "approximated": [
+          "gravity.type"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026w=300\u0026h=200\u0026fit=cover",
+        "unsupported": [
+          "gravity.classes"
+        ],
+        "approximated": [
+          "gravity.type"
+        ]
+      }
+    }
+  },
+  {
+    "case": "fill with object classes",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJlZGl0cyI6eyJyZXNpemUiOnsiaGVpZ2h0IjoyMDAsIndpZHRoIjozMDB9fSwia2V5IjoicGhvdG9zL2EuanBnIn0=",
+        "unsupported": [
+          "gravity.classes"
+        ],
+        "approximated": [
+          "gravity.type"
+        ]
+      },
+      "bunny": {
+        "url": "/photos/a.jpg?width=300\u0026height=200\u0026aspect_ratio=300%3A200\u0026upscaling=resampling",
+        "unsupported": [
+          "gravity.classes"
+        ],
+        "approximated": [
+          "gravity.type"
+        ]
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/w_300,h_200,c_fill,g_dog/f_auto/photos/a.jpg"
+      },
+      "imagekit": {
+        "url": "/tr:w-300,h-200,fo-dog/photos/a.jpg"
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?w=300\u0026h=200\u0026fit=crop\u0026crop=dog"
+      },
+      "imgproxy": {
+        "url": "/rs:fill:300:200:1/g:obj:dog/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026fit=fill\u0026w=300\u0026h=200\u0026enlarge=1\u0026o=g%3Aobj%3Adog"
+      },
+      "thumbor": {
+        "url": "/300x200/xi://local/photos/a.jpg",
+        "unsupported": [
+          "gravity.classes"
+        ],
+        "approximated": [
+          "gravity.type"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026w=300\u0026h=200\u0026fit=cover",
+        "unsupported": [
+          "gravity.classes"
+        ],
+        "approximated": [
+          "gravity.type"
+        ]
+      }
+    }
+  },
+  {
+    "case": "focus point",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/width=300,height=200,fit=cover,gravity=0.3x0.7/https://example.com/photos/a.jpg"
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/w_300,h_200,c_fill,g_xy_center,x_0.3,y_0.7/https://example.com/photos/a.jpg"
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?w=300\u0026h=200\u0026fit=crop\u0026crop=focalpoint\u0026fp-x=0.3\u0026fp-y=0.7"
+      },
+      "imgproxy": {
+        "url": "/rs:fill:300:200:1/g:fp:0.3:0.7/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026fit=fill\u0026w=300\u0026h=200\u0026enlarge=1\u0026o=g%3Afp%3A0.3%3A0.7"
+      },
+      "thumbor": {
+        "url": "/300x200/filters:focal(0.3x0.7:0.3x0.7)/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "gravity.focus_x",
+          "gravity.focus_y"
+        ],
+        "approximated": [
+          "gravity.type"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026w=300\u0026h=200\u0026fit=cover\u0026a=focal\u0026fpx=0.3\u0026fpy=0.7"
+      }
+    }
+  },
+  {
+    "case": "focus point",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJlZGl0cyI6eyJyZXNpemUiOnsiaGVpZ2h0IjoyMDAsIndpZHRoIjozMDB9fSwia2V5IjoicGhvdG9zL2EuanBnIn0=",
+        "unsupported": [
+          "gravity.focus_x",
+          "gravity.focus_y"
+        ],
+        "approximated": [
+          "gravity.type"
+        ]
+      },
+      "bunny": {
+        "url": "/photos/a.jpg?width=300\u0026height=200\u0026aspect_ratio=300%3A200\u0026upscaling=resampling",
+        "unsupported": [
+          "gravity.focus_x",
+          "gravity.focus_y"
+        ],
+        "approximated": [
+          "gravity.type"
+        ]
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/w_300,h_200,c_fill,g_xy_center,x_0.3,y_0.7/f_auto/photos/a.jpg"
+      },
+      "imagekit": {
+        "url": "/tr:w-300,h-200/photos/a.jpg",
+        "unsupported": [
+          "gravity.focus_x",
+          "gravity.focus_y"
+        ],
+        "approximated": [
+          "gravity.type"
+        ]
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?w=300\u0026h=200\u0026fit=crop\u0026crop=focalpoint\u0026fp-x=0.3\u0026fp-y=0.7"
+      },
+      "imgproxy": {
+        "url": "/rs:fill:300:200:1/g:fp:0.3:0.7/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026fit=fill\u0026w=300\u0026h=200\u0026enlarge=1\u0026o=g%3Afp%3A0.3%3A0.7"
+      },
+      "thumbor": {
+        "url": "/300x200/filters:focal(0.3x0.7:0.3x0.7)/xi://local/photos/a.jpg",
+        "unsupported": [
+          "gravity.focus_x",
+          "gravity.focus_y"
+        ],
+        "approximated": [
+          "gravity.type"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026w=300\u0026h=200\u0026fit=cover\u0026a=focal\u0026fpx=0.3\u0026fpy=0.7"
+      }
+    }
+  },
+  {
+    "case": "compass gravity",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/width=300,height=200,fit=cover/https://example.com/photos/a.jpg",
+        "approximated": [
+          "gravity.type"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/w_300,h_200,c_fill,g_north_west/https://example.com/photos/a.jpg"
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?w=300\u0026h=200\u0026fit=crop\u0026crop=top%2Cleft"
+      },
+      "imgproxy": {
+        "url": "/rs:fill:300:200:1/g:nowe/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026fit=fill\u0026w=300\u0026h=200\u0026enlarge=1\u0026o=g%3Anowe"
+      },
+      "thumbor": {
+        "url": "/300x200/left/top/https://example.com/photos/a.jpg"
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026w=300\u0026h=200\u0026fit=cover\u0026a=top-left"
+      }
+    }
+  },
+  {
+    "case": "compass gravity",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJlZGl0cyI6eyJyZXNpemUiOnsiaGVpZ2h0IjoyMDAsInBvc2l0aW9uIjoibm9ydGh3ZXN0Iiwid2lkdGgiOjMwMH19LCJrZXkiOiJwaG90b3MvYS5qcGcifQ=="
+      },
+      "bunny": {
+        "url": "/photos/a.jpg?width=300\u0026height=200\u0026aspect_ratio=300%3A200\u0026upscaling=resampling\u0026crop_gravity=northwest"
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/w_300,h_200,c_fill,g_north_west/f_auto/photos/a.jpg"
+      },
+      "imagekit": {
+        "url": "/tr:w-300,h-200,fo-top_left/photos/a.jpg"
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?w=300\u0026h=200\u0026fit=crop\u0026crop=top%2Cleft"
+      },
+      "imgproxy": {
+        "url": "/rs:fill:300:200:1/g:nowe/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026fit=fill\u0026w=300\u0026h=200\u0026enlarge=1\u0026o=g%3Anowe"
+      },
+      "thumbor": {
+        "url": "/300x200/left/top/xi://local/photos/a.jpg"
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026w=300\u0026h=200\u0026fit=cover\u0026a=top-left"
+      }
+    }
+  },
+  {
+    "case": "format and quality",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/format=webp,quality=70/https://example.com/photos/a.jpg"
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/f_webp,q_70/https://example.com/photos/a.jpg"
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026fm=webp\u0026q=70"
+      },
+      "imgproxy": {
+        "url": "/f:webp/q:70/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026f=webp\u0026q=70"
+      },
+      "thumbor": {
+        "url": "/filters:format(webp):quality(70)/https://example.com/photos/a.jpg"
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026output=webp\u0026q=70"
+      }
+    }
+  },
+  {
+    "case": "format and quality",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJlZGl0cyI6eyJ0b0Zvcm1hdCI6IndlYnAiLCJ3ZWJwIjp7InF1YWxpdHkiOjcwfX0sImtleSI6InBob3Rvcy9hLmpwZyJ9",
+        "unsupported": [
+          "output.quality"
+        ],
+        "approximated": [
+          "output.format_quality"
+        ]
+      },
+      "bunny": {
+        "url": "/photos/a.jpg?format=webp\u0026quality=70"
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/f_webp,q_70/photos/a.jpg"
+      },
+      "imagekit": {
+        "url": "/tr:f-webp,q-70/photos/a.jpg"
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?fit=clip\u0026fm=webp\u0026q=70"
+      },
+      "imgproxy": {
+        "url": "/f:webp/q:70/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026f=webp\u0026q=70"
+      },
+      "thumbor": {
+        "url": "/filters:format(webp):quality(70)/xi://local/photos/a.jpg"
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026output=webp\u0026q=70"
+      }
+    }
+  },
+  {
+    "case": "blur and sharpen",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/blur=4,sharpen=4/https://example.com/photos/a.jpg"
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/e_blur:40,e_sharpen:100/https://example.com/photos/a.jpg"
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026blur=40\u0026sharp=25"
+      },
+      "imgproxy": {
+        "url": "/bl:2/sh:1/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026blur=2\u0026sharpen=1"
+      },
+      "thumbor": {
+        "url": "/filters:blur(2,2)/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "sharpen"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026sharp=1\u0026blur=2"
+      }
+    }
+  },
+  {
+    "case": "blur and sharpen",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJlZGl0cyI6eyJibHVyIjoyLCJzaGFycGVuIjp7InNpZ21hIjoxfX0sImtleSI6InBob3Rvcy9hLmpwZyJ9"
+      },
+      "bunny": {
+        "url": "/photos/a.jpg?blur=8\u0026sharpen=true"
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/e_blur:40,e_sharpen:100/f_auto/photos/a.jpg"
+      },
+      "imagekit": {
+        "url": "/tr:bl-4,e-sharpen/photos/a.jpg"
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?fit=clip\u0026blur=40\u0026sharp=25"
+      },
+      "imgproxy": {
+        "url": "/bl:2/sh:1/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026blur=2\u0026sharpen=1"
+      },
+      "thumbor": {
+        "url": "/filters:blur(2,2)/xi://local/photos/a.jpg",
+        "unsupported": [
+          "sharpen"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026sharp=1\u0026blur=2"
+      }
+    }
+  },
+  {
+    "case": "rotate and flip",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/rotate=90,flip=h/https://example.com/photos/a.jpg"
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/a_90.hflip/https://example.com/photos/a.jpg"
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026rot=270\u0026flip=h"
+      },
+      "imgproxy": {
+        "url": "/rot:90/fl:1:0/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026rotate=90\u0026o=fl%3A1%3A0"
+      },
+      "thumbor": {
+        "url": "/-0x0/filters:rotate(270)/https://example.com/photos/a.jpg"
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026flop=\u0026ro=90"
+      }
+    }
+  },
+  {
+    "case": "rotate and flip",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJlZGl0cyI6eyJmbG9wIjp0cnVlLCJyb3RhdGUiOjkwfSwia2V5IjoicGhvdG9zL2EuanBnIn0="
+      },
+      "bunny": {
+        "url": "/photos/a.jpg?flop=true\u0026rotate=90"
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/a_90.hflip/f_auto/photos/a.jpg"
+      },
+      "imagekit": {
+        "url": "/tr:rt-90,fl-h/photos/a.jpg"
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?fit=clip\u0026rot=270\u0026flip=h"
+      },
+      "imgproxy": {
+        "url": "/rot:90/fl:1:0/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026rotate=90\u0026o=fl%3A1%3A0"
+      },
+      "thumbor": {
+        "url": "/-0x0/filters:rotate(270)/xi://local/photos/a.jpg"
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026flop=\u0026ro=90"
+      }
+    }
+  },
+  {
+    "case": "background and padding",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/background=%23ff0000/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "padding"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/b_rgb:ff0000/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "padding"
+        ]
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026bg=ff0000\u0026pad=10"
+      },
+      "imgproxy": {
+        "url": "/pd:10:10:10:10/bg:ff0000/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026o=pd%3A10%3A10%3A10%3A10%2Fbg%3Aff0000"
+      },
+      "thumbor": {
+        "url": "/filters:background_color(ff0000)/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "padding"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026bg=ff0000",
+        "unsupported": [
+          "padding"
+        ]
+      }
+    }
+  },
+  {
+    "case": "background and padding",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJlZGl0cyI6eyJleHRlbmQiOnsiYmFja2dyb3VuZCI6eyJhbHBoYSI6MSwiYiI6MCwiZyI6MCwiciI6MjU1fSwiYm90dG9tIjoxMCwibGVmdCI6MTAsInJpZ2h0IjoxMCwidG9wIjoxMH19LCJrZXkiOiJwaG90b3MvYS5qcGcifQ=="
+      },
+      "bunny": {
+        "url": "/photos/a.jpg",
+        "unsupported": [
+          "padding",
+          "background"
+        ]
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/b_rgb:ff0000/f_auto/photos/a.jpg",
+        "unsupported": [
+          "padding"
+        ]
+      },
+      "imagekit": {
+        "url": "/tr:bg-FF0000/photos/a.jpg",
+        "unsupported": [
+          "padding"
+        ]
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?fit=clip\u0026bg=ff0000\u0026pad=10"
+      },
+      "imgproxy": {
+        "url": "/pd:10:10:10:10/bg:ff0000/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026o=pd%3A10%3A10%3A10%3A10%2Fbg%3Aff0000"
+      },
+      "thumbor": {
+        "url": "/filters:background_color(ff0000)/xi://local/photos/a.jpg",
+        "unsupported": [
+          "padding"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026bg=ff0000",
+        "unsupported": [
+          "padding"
+        ]
+      }
+    }
+  },
+  {
+    "case": "colour adjustments",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/contrast=1.2,saturation=0.8/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "adjust.brightness"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/e_brightness:20,e_contrast:20,e_saturation:-20/https://example.com/photos/a.jpg"
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026bri=20\u0026con=20\u0026sat=-20"
+      },
+      "imgproxy": {
+        "url": "/br:51/co:1.2/sa:0.8/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026o=br%3A51%2Fco%3A1.2%2Fsa%3A0.8"
+      },
+      "thumbor": {
+        "url": "/filters:brightness(20):contrast(10):saturation(-20)/https://example.com/photos/a.jpg",
+        "approximated": [
+          "adjust.contrast"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026sat=0.8\u0026con=20",
+        "unsupported": [
+          "adjust.brightness"
+        ]
+      }
+    }
+  },
+  {
+    "case": "colour adjustments",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJlZGl0cyI6eyJtb2R1bGF0ZSI6eyJzYXR1cmF0aW9uIjowLjh9fSwia2V5IjoicGhvdG9zL2EuanBnIn0=",
+        "unsupported": [
+          "adjust.brightness",
+          "adjust.contrast"
+        ]
+      },
+      "bunny": {
+        "url": "/photos/a.jpg?brightness=20\u0026contrast=20\u0026saturation=-20"
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/e_brightness:20,e_contrast:20,e_saturation:-20/f_auto/photos/a.jpg"
+      },
+      "imagekit": {
+        "url": "/photos/a.jpg",
+        "unsupported": [
+          "adjust.brightness",
+          "adjust.contrast",
+          "adjust.saturation"
+        ]
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?fit=clip\u0026bri=20\u0026con=20\u0026sat=-20"
+      },
+      "imgproxy": {
+        "url": "/br:51/co:1.2/sa:0.8/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026o=br%3A51%2Fco%3A1.2%2Fsa%3A0.8"
+      },
+      "thumbor": {
+        "url": "/filters:brightness(20):contrast(10):saturation(-20)/xi://local/photos/a.jpg",
+        "approximated": [
+          "adjust.contrast"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026sat=0.8\u0026con=20",
+        "unsupported": [
+          "adjust.brightness"
+        ]
+      }
+    }
+  },
+  {
+    "case": "pixelate",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/fit=scale-down/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "pixelate"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/e_pixelate:8/https://example.com/photos/a.jpg"
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026px=8"
+      },
+      "imgproxy": {
+        "url": "/pix:8/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026pixelate=8"
+      },
+      "thumbor": {
+        "url": "/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "pixelate"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg",
+        "unsupported": [
+          "pixelate"
+        ]
+      }
+    }
+  },
+  {
+    "case": "pixelate",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJrZXkiOiJwaG90b3MvYS5qcGcifQ==",
+        "unsupported": [
+          "pixelate"
+        ]
+      },
+      "bunny": {
+        "url": "/photos/a.jpg",
+        "unsupported": [
+          "pixelate"
+        ]
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/e_pixelate:8/f_auto/photos/a.jpg"
+      },
+      "imagekit": {
+        "url": "/photos/a.jpg",
+        "unsupported": [
+          "pixelate"
+        ]
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?fit=clip\u0026px=8"
+      },
+      "imgproxy": {
+        "url": "/pix:8/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026pixelate=8"
+      },
+      "thumbor": {
+        "url": "/xi://local/photos/a.jpg",
+        "unsupported": [
+          "pixelate"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg",
+        "unsupported": [
+          "pixelate"
+        ]
+      }
+    }
+  },
+  {
+    "case": "blur faces",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/fit=scale-down/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "blur_detections.sigma",
+          "blur_detections.classes"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/e_blur_faces:100/https://example.com/photos/a.jpg"
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026face-blur=25"
+      },
+      "imgproxy": {
+        "url": "/bd:5:face/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026o=bd%3A5%3Aface"
+      },
+      "thumbor": {
+        "url": "/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "blur_detections.sigma",
+          "blur_detections.classes"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg",
+        "unsupported": [
+          "blur_detections.sigma",
+          "blur_detections.classes"
+        ]
+      }
+    }
+  },
+  {
+    "case": "blur faces",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJrZXkiOiJwaG90b3MvYS5qcGcifQ==",
+        "unsupported": [
+          "blur_detections.sigma",
+          "blur_detections.classes"
+        ]
+      },
+      "bunny": {
+        "url": "/photos/a.jpg",
+        "unsupported": [
+          "blur_detections.sigma",
+          "blur_detections.classes"
+        ]
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/e_blur_faces:100/f_auto/photos/a.jpg"
+      },
+      "imagekit": {
+        "url": "/photos/a.jpg",
+        "unsupported": [
+          "blur_detections.sigma",
+          "blur_detections.classes"
+        ]
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?fit=clip\u0026face-blur=25"
+      },
+      "imgproxy": {
+        "url": "/bd:5:face/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026o=bd%3A5%3Aface"
+      },
+      "thumbor": {
+        "url": "/xi://local/photos/a.jpg",
+        "unsupported": [
+          "blur_detections.sigma",
+          "blur_detections.classes"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg",
+        "unsupported": [
+          "blur_detections.sigma",
+          "blur_detections.classes"
+        ]
+      }
+    }
+  },
+  {
+    "case": "text watermark",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/fit=scale-down/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "watermarks[0].opacity",
+          "watermarks[0].position",
+          "watermarks[0].text"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "watermarks[0].opacity",
+          "watermarks[0].position",
+          "watermarks[0].text"
+        ]
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026txt=Hello\u0026txt-align=bottom%2Cright\u0026txt-pad=10",
+        "approximated": [
+          "watermarks[0].opacity",
+          "watermarks[0].font"
+        ]
+      },
+      "imgproxy": {
+        "url": "/wm:0.8:soea:10:10/wmt:SGVsbG8/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026o=wm%3A0.8%3Asoea%3A10%3A10%2Fwmt%3ASGVsbG8"
+      },
+      "thumbor": {
+        "url": "/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "watermarks[0].opacity",
+          "watermarks[0].position",
+          "watermarks[0].text"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg",
+        "unsupported": [
+          "watermarks[0].opacity",
+          "watermarks[0].position",
+          "watermarks[0].text"
+        ]
+      }
+    }
+  },
+  {
+    "case": "text watermark",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJrZXkiOiJwaG90b3MvYS5qcGcifQ==",
+        "unsupported": [
+          "watermarks[0].opacity",
+          "watermarks[0].position",
+          "watermarks[0].text"
+        ]
+      },
+      "bunny": {
+        "url": "/photos/a.jpg",
+        "unsupported": [
+          "watermarks[0].opacity",
+          "watermarks[0].position",
+          "watermarks[0].text"
+        ]
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/f_auto/photos/a.jpg",
+        "unsupported": [
+          "watermarks[0].opacity",
+          "watermarks[0].position",
+          "watermarks[0].text"
+        ]
+      },
+      "imagekit": {
+        "url": "/photos/a.jpg",
+        "unsupported": [
+          "watermarks[0].opacity",
+          "watermarks[0].position",
+          "watermarks[0].text"
+        ]
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?fit=clip\u0026txt=Hello\u0026txt-align=bottom%2Cright\u0026txt-pad=10",
+        "approximated": [
+          "watermarks[0].opacity",
+          "watermarks[0].font"
+        ]
+      },
+      "imgproxy": {
+        "url": "/wm:0.8:soea:10:10/wmt:SGVsbG8/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026o=wm%3A0.8%3Asoea%3A10%3A10%2Fwmt%3ASGVsbG8"
+      },
+      "thumbor": {
+        "url": "/xi://local/photos/a.jpg",
+        "unsupported": [
+          "watermarks[0].opacity",
+          "watermarks[0].position",
+          "watermarks[0].text"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg",
+        "unsupported": [
+          "watermarks[0].opacity",
+          "watermarks[0].position",
+          "watermarks[0].text"
+        ]
+      }
+    }
+  },
+  {
+    "case": "page",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/fit=scale-down/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "page"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/pg_2/https://example.com/photos/a.jpg"
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026page=2"
+      },
+      "imgproxy": {
+        "url": "/pg:1/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026page=1"
+      },
+      "thumbor": {
+        "url": "/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "page"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026page=1"
+      }
+    }
+  },
+  {
+    "case": "page",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJrZXkiOiJwaG90b3MvYS5qcGcifQ==",
+        "unsupported": [
+          "page"
+        ]
+      },
+      "bunny": {
+        "url": "/photos/a.jpg",
+        "unsupported": [
+          "page"
+        ]
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/f_auto,pg_2/photos/a.jpg"
+      },
+      "imagekit": {
+        "url": "/tr:pg-2/photos/a.jpg"
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?fit=clip\u0026page=2"
+      },
+      "imgproxy": {
+        "url": "/pg:1/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026page=1"
+      },
+      "thumbor": {
+        "url": "/xi://local/photos/a.jpg",
+        "unsupported": [
+          "page"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026page=1"
+      }
+    }
+  },
+  {
+    "case": "video second",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/fit=scale-down/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "video.second"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/so_1.5/https://example.com/photos/a.jpg"
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip",
+        "unsupported": [
+          "video.second"
+        ]
+      },
+      "imgproxy": {
+        "url": "/vts:1.5/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026vts=1.5"
+      },
+      "thumbor": {
+        "url": "/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "video.second"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg",
+        "unsupported": [
+          "video.second"
+        ]
+      }
+    }
+  },
+  {
+    "case": "video second",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJrZXkiOiJwaG90b3MvYS5qcGcifQ==",
+        "unsupported": [
+          "video.second"
+        ]
+      },
+      "bunny": {
+        "url": "/photos/a.jpg",
+        "unsupported": [
+          "video.second"
+        ]
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/f_auto,so_1.5/photos/a.jpg"
+      },
+      "imagekit": {
+        "url": "/tr:so-1.5/photos/a.jpg"
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?fit=clip",
+        "unsupported": [
+          "video.second"
+        ]
+      },
+      "imgproxy": {
+        "url": "/vts:1.5/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026vts=1.5"
+      },
+      "thumbor": {
+        "url": "/xi://local/photos/a.jpg",
+        "unsupported": [
+          "video.second"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg",
+        "unsupported": [
+          "video.second"
+        ]
+      }
+    }
+  },
+  {
+    "case": "filename",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/fit=scale-down/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "delivery.filename",
+          "delivery.attachment"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/fl_attachment:photo/https://example.com/photos/a.jpg",
+        "approximated": [
+          "delivery.filename"
+        ]
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026dl=photo.jpg"
+      },
+      "imgproxy": {
+        "url": "/fn:photo.jpg/att:1/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026o=fn%3Aphoto.jpg%2Fatt%3A1"
+      },
+      "thumbor": {
+        "url": "/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "delivery.filename",
+          "delivery.attachment"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026filename=photo.jpg",
+        "unsupported": [
+          "delivery.attachment"
+        ]
+      }
+    }
+  },
+  {
+    "case": "filename",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJrZXkiOiJwaG90b3MvYS5qcGcifQ==",
+        "unsupported": [
+          "delivery.filename",
+          "delivery.attachment"
+        ]
+      },
+      "bunny": {
+        "url": "/photos/a.jpg",
+        "unsupported": [
+          "delivery.filename",
+          "delivery.attachment"
+        ]
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/f_auto,fl_attachment:photo/photos/a.jpg",
+        "approximated": [
+          "delivery.filename"
+        ]
+      },
+      "imagekit": {
+        "url": "/photos/a.jpg",
+        "unsupported": [
+          "delivery.filename",
+          "delivery.attachment"
+        ]
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?fit=clip\u0026dl=photo.jpg"
+      },
+      "imgproxy": {
+        "url": "/fn:photo.jpg/att:1/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026o=fn%3Aphoto.jpg%2Fatt%3A1"
+      },
+      "thumbor": {
+        "url": "/xi://local/photos/a.jpg",
+        "unsupported": [
+          "delivery.filename",
+          "delivery.attachment"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026filename=photo.jpg",
+        "unsupported": [
+          "delivery.attachment"
+        ]
+      }
+    }
+  },
+  {
+    "case": "chained pipelines",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/width=500,height=500,fit=scale-down/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "pipelines[1]"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/w_500,h_500,c_limit/e_blur:40/https://example.com/photos/a.jpg"
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?w=500\u0026h=500\u0026fit=max",
+        "unsupported": [
+          "pipelines[1]"
+        ]
+      },
+      "imgproxy": {
+        "url": "/rs::500:500/-/bl:2/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026o=rs%3A%3A500%3A500%2F-%2Fbl%3A2"
+      },
+      "thumbor": {
+        "url": "/fit-in/500x500/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "pipelines[1]"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026w=500\u0026h=500\u0026fit=inside\u0026we=",
+        "unsupported": [
+          "pipelines[1]"
+        ]
+      }
+    }
+  },
+  {
+    "case": "chained pipelines",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiaW5zaWRlIiwiaGVpZ2h0Ijo1MDAsIndpZHRoIjo1MDAsIndpdGhvdXRFbmxhcmdlbWVudCI6dHJ1ZX19LCJrZXkiOiJwaG90b3MvYS5qcGcifQ==",
+        "unsupported": [
+          "pipelines[1]"
+        ]
+      },
+      "bunny": {
+        "url": "/photos/a.jpg?width=500\u0026height=500",
+        "unsupported": [
+          "pipelines[1]"
+        ]
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/w_500,h_500,c_limit/e_blur:40/f_auto/photos/a.jpg"
+      },
+      "imagekit": {
+        "url": "/tr:w-500,h-500,c-at_max:bl-4/photos/a.jpg"
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?w=500\u0026h=500\u0026fit=max",
+        "unsupported": [
+          "pipelines[1]"
+        ]
+      },
+      "imgproxy": {
+        "url": "/rs::500:500/-/bl:2/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026o=rs%3A%3A500%3A500%2F-%2Fbl%3A2"
+      },
+      "thumbor": {
+        "url": "/fit-in/500x500/xi://local/photos/a.jpg",
+        "unsupported": [
+          "pipelines[1]"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026w=500\u0026h=500\u0026fit=inside\u0026we=",
+        "unsupported": [
+          "pipelines[1]"
+        ]
+      }
+    }
+  },
+  {
+    "case": "duotone",
+    "source": "https://example.com/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+      },
+      "cloudflare": {
+        "url": "/cdn-cgi/image/fit=scale-down/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "duotone.intensity",
+          "duotone.shadow",
+          "duotone.highlight"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/image/fetch/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "duotone.intensity",
+          "duotone.shadow",
+          "duotone.highlight"
+        ]
+      },
+      "imagekit": {
+        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+      },
+      "imgix": {
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026duotone=000000%2Cffffff"
+      },
+      "imgproxy": {
+        "url": "/dt:1:000000:ffffff/plain/https://example.com/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026o=dt%3A1%3A000000%3Affffff"
+      },
+      "thumbor": {
+        "url": "/https://example.com/photos/a.jpg",
+        "unsupported": [
+          "duotone.intensity",
+          "duotone.shadow",
+          "duotone.highlight"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=https%3A%2F%2Fexample.com%2Fphotos%2Fa.jpg\u0026filt=duotone\u0026start=000000\u0026stop=ffffff"
+      }
+    }
+  },
+  {
+    "case": "duotone",
+    "source": "xi://local/photos/a.jpg",
+    "targets": {
+      "awssih": {
+        "url": "/eyJrZXkiOiJwaG90b3MvYS5qcGcifQ==",
+        "unsupported": [
+          "duotone.intensity",
+          "duotone.shadow",
+          "duotone.highlight"
+        ]
+      },
+      "bunny": {
+        "url": "/photos/a.jpg",
+        "unsupported": [
+          "duotone.intensity",
+          "duotone.shadow",
+          "duotone.highlight"
+        ]
+      },
+      "cloudflare": {
+        "error": "Cloudflare takes an http(s) URL or a path on the mount's source"
+      },
+      "cloudinary": {
+        "url": "/xi/image/upload/f_auto/photos/a.jpg",
+        "unsupported": [
+          "duotone.intensity",
+          "duotone.shadow",
+          "duotone.highlight"
+        ]
+      },
+      "imagekit": {
+        "url": "/photos/a.jpg",
+        "unsupported": [
+          "duotone.intensity",
+          "duotone.shadow",
+          "duotone.highlight"
+        ]
+      },
+      "imgix": {
+        "url": "/photos/a.jpg?fit=clip\u0026duotone=000000%2Cffffff"
+      },
+      "imgproxy": {
+        "url": "/dt:1:000000:ffffff/plain/xi://local/photos/a.jpg"
+      },
+      "query": {
+        "url": "/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026o=dt%3A1%3A000000%3Affffff"
+      },
+      "thumbor": {
+        "url": "/xi://local/photos/a.jpg",
+        "unsupported": [
+          "duotone.intensity",
+          "duotone.shadow",
+          "duotone.highlight"
+        ]
+      },
+      "wsrv": {
+        "url": "/wsrv/?url=xi%3A%2F%2Flocal%2Fphotos%2Fa.jpg\u0026filt=duotone\u0026start=000000\u0026stop=ffffff"
+      }
+    }
+  }
+]
