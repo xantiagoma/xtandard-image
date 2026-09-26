@@ -1,6 +1,6 @@
 // Generates corpus.json: imgix URLs built by the official URL builder
 // @imgix/js-core (BSD-2-Clause) from parameter objects, for the parser's
-// compatibility tests (docs/URL-DIALECTS.md §13). Every URL is signed with
+// compatibility tests (docs/URL-DIALECTS.md §14). Every URL is signed with
 // the imgix-blueprint token "FOO123bar" and carries js-core's ixlib tag.
 //
 //   (cd $IMGIX_JS_CORE && npm install --omit=dev --no-save)   # js-base64, md5, ufo
