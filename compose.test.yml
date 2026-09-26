@@ -15,6 +15,13 @@
 #     go test -tags integration ./internal/fetch/s3src/
 #   docker compose -p xi-test-host -f compose.test.yml down
 #
+# FTP/SFTP on the host: sftp works through its ephemeral port
+# (XI_TEST_SFTP_ADDR=127.0.0.1:$(... port sftp 22 | cut -d: -f2)), but ftp/ftps
+# passive data ports are only reachable on the compose network, so run the
+# ftpsrc tests through the task: `task test:integration -- ./internal/fetch/ftpsrc/`.
+# The keys and certificate under internal/fetch/*/testdata are throwaway test
+# credentials, committed on purpose.
+#
 # Host ports are ephemeral (127.0.0.1::9000) for the same reason. Never use
 # `down -v` (the go caches are named volumes shared with compose.dev.yml).
 name: xtandard-image-test
@@ -53,6 +60,72 @@ services:
     ports:
       - "127.0.0.1::10000"
 
+  # ftpsrc (WP-17): vsftpd, plain FTP, user xi/xipass, testdata/fixtures
+  # read-only under /home/xi/fixtures. The client dials the control host for
+  # passive data, so the test runner reaches ftp:21000-21009 on the compose
+  # network; those ports are not published (fixed host ports would collide
+  # between worktrees).
+  ftp:
+    image: delfer/alpine-ftp-server:latest
+    environment:
+      USERS: "xi|xipass|/home/xi|1000"
+    # The image's own launcher backgrounds vsftpd and races on its pid; run
+    # it in the foreground instead (the entrypoint still creates the users).
+    command: >-
+      vsftpd /etc/vsftpd/vsftpd.conf -obackground=NO
+      -opasv_min_port=21000 -opasv_max_port=21009
+    ports:
+      - "127.0.0.1::21"
+    volumes:
+      - ./testdata/fixtures:/home/xi/fixtures:ro
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 21"]
+      interval: 1s
+      timeout: 2s
+      retries: 30
+
+  # ftpsrc (WP-17): vsftpd with explicit TLS required (AUTH TLS, PROT P).
+  ftps:
+    image: delfer/alpine-ftp-server:latest
+    environment:
+      USERS: "xi|xipass|/home/xi|1000"
+    command: >-
+      vsftpd /etc/vsftpd/vsftpd.conf -obackground=NO
+      -opasv_min_port=21010 -opasv_max_port=21019
+      -ossl_enable=YES -orsa_cert_file=/certs/ftps.crt -orsa_private_key_file=/certs/ftps.key
+      -oforce_local_logins_ssl=YES -oforce_local_data_ssl=YES
+      -ossl_tlsv1=NO -ossl_sslv2=NO -ossl_sslv3=NO
+    ports:
+      - "127.0.0.1::21"
+    volumes:
+      - ./testdata/fixtures:/home/xi/fixtures:ro
+      - ./internal/fetch/ftpsrc/testdata/ftps.crt:/certs/ftps.crt:ro
+      - ./internal/fetch/ftpsrc/testdata/ftps.key:/certs/ftps.key:ro
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 21"]
+      interval: 1s
+      timeout: 2s
+      retries: 30
+
+  # sftpsrc (WP-17): OpenSSH, user xi (password xipass or the committed
+  # client key), chrooted to /home/xi, pinned host key from testdata.
+  sftp:
+    image: atmoz/sftp:alpine
+    command: "xi:xipass:1001"
+    ports:
+      - "127.0.0.1::22"
+    volumes:
+      - ./testdata/fixtures:/home/xi/fixtures:ro
+      - ./internal/fetch/sftpsrc/testdata/ssh_host_ed25519_key:/keys/ssh_host_ed25519_key:ro
+      - ./internal/fetch/sftpsrc/testdata/ssh_host_ed25519_key.pub:/keys/ssh_host_ed25519_key.pub:ro
+      - ./internal/fetch/sftpsrc/testdata/install-host-key.sh:/etc/sftp.d/install-host-key.sh:ro
+      - ./internal/fetch/sftpsrc/testdata/id_ed25519.pub:/home/xi/.ssh/keys/id_ed25519.pub:ro
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 22"]
+      interval: 1s
+      timeout: 2s
+      retries: 30
+
   test:
     image: ${XI_BASE_IMAGE:-ghcr.io/xantiagoma/xtandard-image-base:slim}
     working_dir: /src
@@ -72,6 +145,9 @@ services:
       XI_TEST_S3_SECRET_ACCESS_KEY: minioadmin
       XI_TEST_GCS_ENDPOINT: http://fake-gcs:4443/storage/v1/
       XI_TEST_AZURITE_ENDPOINT: http://azurite:10000/devstoreaccount1
+      XI_TEST_FTP_ADDR: ftp:21
+      XI_TEST_FTPS_ADDR: ftps:21
+      XI_TEST_SFTP_ADDR: sftp:22
     depends_on:
       minio:
         condition: service_healthy
@@ -79,6 +155,12 @@ services:
         condition: service_started
       azurite:
         condition: service_started
+      ftp:
+        condition: service_healthy
+      ftps:
+        condition: service_healthy
+      sftp:
+        condition: service_healthy
 
 # Shared with compose.dev.yml so builds stay warm.
 volumes:

@@ -83,9 +83,12 @@ Rules:
 | `XI_SOURCES_<NAME>_ENDPOINT`, `_REGION`, `_FORCE_PATH_STYLE`, `_ACCESS_KEY_ID`, `_SECRET_ACCESS_KEY`, `_ROLE_ARN` | — | s3 (R2, MinIO, Spaces, B2 via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); `_ROLE_ARN` assumes a role on top. `_REGION` falls back to the SDK chain, then `us-east-1` when an endpoint is set (R2: `auto`). Checksums are sent/validated only when required, so R2/B2 work |
 | `XI_SOURCES_<NAME>_CREDENTIALS_JSON` | ADC | gcs: credentials document (`XI_SOURCES_<NAME>_CREDENTIALS_JSON_FILE` reads it from a mounted file); `XI_SOURCES_<NAME>_ENDPOINT` points at an emulator such as fake-gcs-server |
 | `XI_SOURCES_<NAME>_ACCOUNT`, `_ACCOUNT_KEY`, `_CONNECTION_STRING`, `_SAS_TOKEN`, `_ENDPOINT` | `DefaultAzureCredential` (managed identity) | azure; precedence connection string > account key > SAS > DefaultAzureCredential; `_ENDPOINT` overrides `https://<account>.blob.core.windows.net/` (Azurite: `http://127.0.0.1:10000/devstoreaccount1`) |
-| `XI_SOURCES_<NAME>_ROOT` | — | fs root (jail via `os.Root`) |
+| `XI_SOURCES_<NAME>_ROOT` | — | fs root (jail via `os.Root`); ftp/sftp: server directory keys are relative to (default `/`) |
 | `XI_SOURCES_<NAME>_FOLLOW_SYMLINKS` | `false` | fs: follow symlinks whose target stays inside the root (links leaving it are always refused) |
-| `XI_SOURCES_<NAME>_HOST`, `_PORT`, `_USER`, `_PASSWORD`, `_PRIVATE_KEY`, `_HOST_KEY`, `_TLS` | — | ftp/sftp (sftp host key mandatory) |
+| `XI_SOURCES_<NAME>_HOST`, `_PORT`, `_USER`, `_PASSWORD`, `_PRIVATE_KEY`, `_PRIVATE_KEY_PASSPHRASE`, `_HOST_KEY`, `_TLS` | — | ftp/sftp. ftp: empty `_USER` logs in as `anonymous`; `_TLS=true` is explicit TLS (`AUTH TLS`, `PROT P`), passive mode only. sftp: `_USER` plus `_PASSWORD` and/or `_PRIVATE_KEY` (PEM/OpenSSH); `_HOST_KEY` is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use) |
+| `XI_SOURCES_<NAME>_POOL_SIZE` | `4` | ftp/sftp: max open connections to the server |
+| `XI_SOURCES_<NAME>_DIAL_TIMEOUT` | `10s` | ftp/sftp: connect + TLS/SSH handshake + login |
+| `XI_SOURCES_<NAME>_IDLE_TIMEOUT` | `1m` | ftp/sftp: pooled connections idle longer are closed |
 | `XI_FETCH_TIMEOUT` | `10s` | Per download attempt |
 | `XI_FETCH_RETRY` | `true` | One retry, after a jittered ~100 ms backoff, of a transient failure (origin 5xx, connection error, attempt timeout); never for 4xx |
 | `XI_FETCH_MAX_REDIRECTS` | `5` | |
