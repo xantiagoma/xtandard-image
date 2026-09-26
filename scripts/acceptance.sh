@@ -15,6 +15,9 @@
 #
 # Usage: scripts/acceptance.sh            (image from $XI_IMAGE, default xtandard-image:dev)
 #   XI_IMAGE=ghcr.io/xantiagoma/xtandard-image:slim scripts/acceptance.sh
+#   XI_APP_BASE=xtandard-base:dev-full XI_IMAGE=xtandard-image:full task release:build &&
+#     XI_IMAGE=xtandard-image:full scripts/acceptance.sh   (the full flavor: TestDetection
+#     then runs the models; against slim it checks every detection option is 422)
 #   XI_ACC_RUN=TestSources scripts/acceptance.sh     (go test -run filter)
 # Needs docker (compose), od and Go (go.mod toolchain; the suite is pure Go)
 # on the host. A missing image is pulled.
