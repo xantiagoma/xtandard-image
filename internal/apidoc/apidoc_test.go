@@ -20,6 +20,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/obs/admin"
+	"github.com/xantiagoma/xtandard-image/internal/playground"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 )
 
@@ -145,7 +146,10 @@ func TestRouteCoverage(t *testing.T) {
 	for _, p := range server.Patterns() {
 		public.Handle(p, noop)
 	}
-	adminOpts := admin.Options{Metrics: noop, ConfigSchema: []byte("{}"), OpenAPI: []byte("{}"), Docs: true, Pprof: true}
+	adminOpts := admin.Options{
+		Metrics: noop, ConfigSchema: []byte("{}"), OpenAPI: []byte("{}"), Docs: true, Pprof: true,
+		Playground: noop, PlaygroundPath: playground.DefaultPath,
+	}
 	adminMux := admin.NewMux(&adminOpts)
 	muxes := map[string]*http.ServeMux{ListenerPublic: public, ListenerAdmin: adminMux}
 	hit := map[string]map[string]bool{ListenerPublic: {}, ListenerAdmin: {}}

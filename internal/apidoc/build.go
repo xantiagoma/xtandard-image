@@ -15,6 +15,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/playground"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 )
 
@@ -64,9 +65,13 @@ func textBody(pattern, example, desc string) map[string]*huma.MediaType {
 // Build returns the OpenAPI document. It is deterministic: Marshal of two
 // Builds is byte-identical.
 func Build() (*huma.OpenAPI, error) {
-	reg := huma.NewMapRegistry(schemaRefPrefix, huma.DefaultSchemaNamer)
+	reg := huma.NewMapRegistry(schemaRefPrefix, schemaNamer)
 	reg.Schema(reflect.TypeFor[server.InfoResponse](), true, schemaInfoResponse)
 	reg.Schema(reflect.TypeFor[server.ErrorResponse](), true, schemaErrorResponse)
+	reg.Schema(reflect.TypeFor[playground.Meta](), true, "")
+	reg.Schema(reflect.TypeFor[playground.SignRequest](), true, "")
+	reg.Schema(reflect.TypeFor[playground.SignResponse](), true, "")
+	reg.Schema(reflect.TypeFor[playground.ErrorResponse](), true, "")
 	schemas := reg.Map()
 	body, ok := schemas[schemaErrorBody]
 	if !ok || body.Properties["kind"] == nil {
@@ -105,6 +110,8 @@ func Build() (*huma.OpenAPI, error) {
 			{Name: "info", Description: "Source metadata (imgproxy /info)."},
 			{Name: "health", Description: "Liveness and readiness, on both listeners."},
 			{Name: "admin", Description: "Admin listener only: metrics, documents, profiling."},
+			{Name: "playground", Description: "Playground UI and its JSON API (XI_PLAYGROUND_ENABLED, off by default): admin listener, " +
+				"and the public listener only with XI_PLAYGROUND_PUBLIC. Paths are under XI_PLAYGROUND_PATH (default /_playground)."},
 		},
 		ExternalDocs: &huma.ExternalDocs{Description: "Documentation", URL: docsBase + "OPENAPI.md"},
 		// No HTTP authentication: image URLs carry their signature in the
@@ -375,6 +382,11 @@ func operations() []*huma.Operation {
 		},
 		infoOperation(),
 		imgproxyOperation(),
+		playgroundPageOperation(),
+		playgroundAssetOperation(),
+		playgroundMetaOperation(),
+		playgroundSignOperation(),
+		playgroundRenderOperation(),
 		queryOperation(),
 		imaginaryOperation(),
 		imagekitOperation(),
