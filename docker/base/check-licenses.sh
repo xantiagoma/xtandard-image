@@ -4,7 +4,8 @@
 # configuration, in the resolved shared-library dependencies, or when a shipped model
 # lacks a permissive licence.
 #
-# Usage: check-licenses.sh [--ffmpeg <ffmpeg>] [--ldd] [--models <dir>] <lib-dir> [versions.sh ...]
+# Usage: check-licenses.sh [--allow-gpl <versions-gpl.sh>] [--licenses <dir>]
+#          [--ffmpeg <ffmpeg>] [--ldd] [--models <dir>] <lib-dir> [versions.sh ...]
 #
 # Checks:
 #   1. file names under <lib-dir> (libx265.so*, poppler, exiv2, libimagequant, ...)
@@ -22,20 +23,38 @@
 #                   Apache-2.0, BSD or ISC and not GPL/AGPL/SSPL/non-commercial;
 #                   SHA256SUMS in <dir>, when present, must verify
 #
+# gpl flavor only (WP-70b, ADR 0006 amendment 2026-09-27):
+#   --allow-gpl <versions-gpl.sh>
+#                   the components listed in its XI_GPL_COMPONENTS (component=SPDX;
+#                   only x264, x265 and ffmpeg, only under GPL-2.0/GPL-3.0) stop being
+#                   forbidden: their names, symbols and pins pass, and --ffmpeg then
+#                   requires --enable-gpl and `-L` reporting the GNU General Public
+#                   License (and no --enable-version3 for a GPL-2.0 entry). Everything
+#                   else stays forbidden: nonfree, AGPL, poppler, exiv2, libpostproc, ...
+#   --licenses <dir>
+#                   (needs --allow-gpl) every entry of the licence bundle <dir> has a
+#                   licence in XI_COMPONENT_LICENSES made only of known identifiers (no
+#                   AGPL, SSPL or unknown ones), and <dir>/LICENSE-GPL.md exists and
+#                   declares the combined GPL-2.0-or-later licence
+#
 # Exit status: 0 when clean, 1 when a forbidden component is found, 2 on usage error.
 
 set -uo pipefail
 
 usage() {
-  echo "usage: $0 [--ffmpeg <ffmpeg>] [--ldd] [--models <dir>] <lib-dir> [versions.sh ...]" >&2
+  echo "usage: $0 [--allow-gpl <versions-gpl.sh>] [--licenses <dir>] [--ffmpeg <ffmpeg>] [--ldd] [--models <dir>] <lib-dir> [versions.sh ...]" >&2
   exit 2
 }
 
 ffmpeg_bin=
 use_ldd=0
 models_dir=
+gpl_file=
+licenses_dir=
 while [ $# -gt 0 ]; do
   case "$1" in
+    --allow-gpl) [ $# -ge 2 ] || usage; gpl_file=$2; shift 2 ;;
+    --licenses) [ $# -ge 2 ] || usage; licenses_dir=$2; shift 2 ;;
     --ffmpeg) [ $# -ge 2 ] || usage; ffmpeg_bin=$2; shift 2 ;;
     --ldd) use_ldd=1; shift ;;
     --models) [ $# -ge 2 ] || usage; models_dir=$2; shift 2 ;;
@@ -54,6 +73,10 @@ if [ ! -d "$lib_dir" ]; then
   echo "check-licenses: $lib_dir is not a directory" >&2
   exit 2
 fi
+if [ -n "$licenses_dir" ] && [ -z "$gpl_file" ]; then
+  echo "check-licenses: --licenses needs --allow-gpl" >&2
+  exit 2
+fi
 
 # Component names that must never appear (case-insensitive):
 #   x265, x264 (GPL encoders), poppler (GPL PDF), exiv2 (GPL metadata),
@@ -61,10 +84,39 @@ fi
 #   Ghostscript (AGPL), GPL FFmpeg builds and libpostproc (GPL-only FFmpeg library),
 #   xvid (GPL MPEG-4 encoder), and the GPL delegates ImageMagick or LibRaw
 #   could pick up (WP-66): FFTW, DjVuLibre, AutoTrace, LibRaw's GPL demosaic packs.
-name_pattern='x265|x264|poppler|exiv2|imagequant|jbig|ghostscript|libgs\.so|ffmpeg-gpl|postproc|xvidcore|fftw|djvulibre|autotrace|demosaic[-_]pack[-_]gpl'
+# Each item is `regex` or `regex=component`; a component allowed by --allow-gpl drops
+# its items from the patterns (and only those).
+name_items=(x265=x265 x264=x264 poppler exiv2 imagequant jbig ghostscript 'libgs\.so'
+  ffmpeg-gpl=ffmpeg postproc xvidcore fftw djvulibre autotrace 'demosaic[-_]pack[-_]gpl')
 
 # Strings that only exist inside binaries built from or linked against those components.
-content_pattern='libx265\.so|x265_encoder_open|libx264\.so|x264_encoder_open|libpoppler|poppler_document_new|libexiv2|Exiv2::|libimagequant\.so|libjbig|jbg_enc_init|libgs\.so|gsapi_new_instance|--enable-gpl|--enable-nonfree|--enable-libx26[45]|libpostproc\.so|libxvidcore\.so|libfftw3|fftw_plan_dft|libdjvulibre|ddjvu_document_create|libautotrace|at_splines_new'
+content_items=('libx265\.so=x265' x265_encoder_open=x265 'libx264\.so=x264'
+  x264_encoder_open=x264 libpoppler poppler_document_new libexiv2 'Exiv2::'
+  'libimagequant\.so' libjbig jbg_enc_init 'libgs\.so' gsapi_new_instance
+  --enable-gpl=ffmpeg --enable-nonfree --enable-libx264=x264 --enable-libx265=x265
+  'libpostproc\.so' 'libxvidcore\.so' libfftw3 fftw_plan_dft libdjvulibre
+  ddjvu_document_create libautotrace at_splines_new)
+
+# Extra strings refused in a versions file (besides the component names).
+versions_items=(enable-gpl=ffmpeg enable-nonfree)
+
+# FFmpeg configure switches refused in `ffmpeg -buildconf` (as --enable-<item>).
+buildconf_items=(gpl=ffmpeg nonfree libx264=x264 libx265=x265 libxvid frei0r librubberband
+  libvidstab libzvbi libcdio libdavs2 'libxavs2?')
+
+# The GPL components --allow-gpl can allow, and the licences it accepts for them.
+gpl_allowable_components=' x264 x265 ffmpeg '
+gpl_allowable_licenses=' GPL-2.0-only GPL-2.0-or-later GPL-3.0-only GPL-3.0-or-later '
+
+# Identifiers an XI_COMPONENT_LICENSES expression may use (--licenses). GPL-* ids are
+# accepted there too (--licenses only runs in gpl mode); AGPL, SSPL and anything not
+# listed fail.
+known_license_ids=' MIT MIT-Modern-Variant BSD-2-Clause BSD-3-Clause Apache-2.0 ISC Zlib
+  libpng-2.0 IJG libtiff FTL HPND-sell-variant Bitstream-Vera OFL-1.1 ImageMagick MPL-1.1
+  MPL-2.0 CDDL-1.0 LGPL-2.0-or-later LGPL-2.1-only LGPL-2.1-or-later LGPL-3.0-only
+  LGPL-3.0-or-later PCRE2-exception GPL-2.0-only GPL-2.0-or-later GPL-3.0-only
+  GPL-3.0-or-later '
+known_license_ids=${known_license_ids//$'\n'/ }
 
 failures=0
 
@@ -76,6 +128,66 @@ report() {
 is_elf() {
   [ -f "$1" ] && [ "$(LC_ALL=C head -c 4 "$1" 2>/dev/null)" = $'\177ELF' ]
 }
+
+# 0. GPL allowlist (gpl flavor).
+allowed_gpl=' '
+allowed_gpl_entries=
+component_licenses=
+if [ -n "$gpl_file" ]; then
+  if [ ! -f "$gpl_file" ]; then
+    echo "check-licenses: $gpl_file not found" >&2
+    exit 2
+  fi
+  # `source name` would search PATH first.
+  case "$gpl_file" in */*) ;; *) gpl_file=./$gpl_file ;; esac
+  # shellcheck disable=SC1090
+  gpl_list="$(source "$gpl_file" && echo "${XI_GPL_COMPONENTS:-}")"
+  # shellcheck disable=SC1090
+  component_licenses="$(source "$gpl_file" && echo "${XI_COMPONENT_LICENSES:-}")"
+  if [ -z "$gpl_list" ]; then
+    report "--allow-gpl $gpl_file lists no XI_GPL_COMPONENTS"
+  fi
+  for entry in $gpl_list; do
+    component=${entry%%=*} license=${entry#*=}
+    if [ "$component" = "$entry" ] || [ -z "$license" ]; then
+      report "GPL allowlist entry '$entry' in $gpl_file is not component=SPDX"
+    elif [[ $gpl_allowable_components != *" $component "* ]]; then
+      report "GPL allowlist entry '$entry' in $gpl_file: only x264, x265 and ffmpeg can be allowed"
+    elif [[ $gpl_allowable_licenses != *" $license "* ]]; then
+      report "GPL allowlist entry '$entry' in $gpl_file: licence $license is not GPL-2.0/GPL-3.0"
+    else
+      allowed_gpl+="$component "
+      allowed_gpl_entries+=" $entry"
+    fi
+  done
+fi
+
+# gpl_license component: the licence --allow-gpl allowed the component under.
+gpl_license() {
+  local entry
+  for entry in $allowed_gpl_entries; do
+    [ "${entry%%=*}" = "$1" ] && echo "${entry#*=}"
+  done
+}
+
+# join_items item...: the items whose component is not allowed, joined with `|`.
+join_items() {
+  local item regex component out=
+  for item in "$@"; do
+    regex=${item%=*} component=
+    [ "$regex" != "$item" ] && component=${item##*=}
+    if [ -n "$component" ] && [[ $allowed_gpl == *" $component "* ]]; then
+      continue
+    fi
+    out+="${out:+|}$regex"
+  done
+  echo "$out"
+}
+
+name_pattern="$(join_items "${name_items[@]}")"
+content_pattern="$(join_items "${content_items[@]}")"
+versions_pattern="$name_pattern|$(join_items "${versions_items[@]}")"
+buildconf_pattern="--enable-($(join_items "${buildconf_items[@]}"))"
 
 # 1. File names (relative to <lib-dir>, so the directory's own location never matches).
 while IFS= read -r path; do
@@ -102,20 +214,31 @@ for versions_file in ${versions_files[@]+"${versions_files[@]}"}; do
   fi
   while IFS= read -r line; do
     report "pinned in $versions_file: $line"
-  done < <(grep -inE -- "$name_pattern|enable-gpl|enable-nonfree" "$versions_file")
+  done < <(grep -inE -- "$versions_pattern" "$versions_file")
 done
 
-# 5. FFmpeg build configuration and licence (full flavor).
+# 5. FFmpeg build configuration and licence (full and gpl flavors).
 if [ -n "$ffmpeg_bin" ]; then
   if ! buildconf="$("$ffmpeg_bin" -hide_banner -buildconf 2>&1)"; then
     report "$ffmpeg_bin -buildconf failed: $buildconf"
   else
     while IFS= read -r flag; do
       report "ffmpeg configured with $flag"
-    done < <(grep -oE -- '--enable-(gpl|nonfree|libx26[45]|libxvid|frei0r|librubberband|libvidstab|libzvbi|libcdio|libdavs2|libxavs2?)' <<< "$buildconf" | sort -u)
+    done < <(grep -oE -- "$buildconf_pattern" <<< "$buildconf" | sort -u)
   fi
   ffmpeg_license="$("$ffmpeg_bin" -hide_banner -L 2>&1)"
-  if ! grep -q 'GNU Lesser General Public' <<< "$ffmpeg_license"; then
+  if [[ $allowed_gpl == *" ffmpeg "* ]]; then
+    # gpl flavor: the build must really be the GPL one the notice declares.
+    if ! grep -qE -- '--enable-gpl( |$)' <<< "${buildconf:-}"; then
+      report "ffmpeg is allowed as $(gpl_license ffmpeg) but $ffmpeg_bin was not configured with --enable-gpl"
+    fi
+    if [[ $(gpl_license ffmpeg) == GPL-2.0* ]] && grep -qE -- '--enable-version3( |$)' <<< "${buildconf:-}"; then
+      report "ffmpeg is allowed as $(gpl_license ffmpeg) but configured with --enable-version3 (GPL-3.0)"
+    fi
+    if ! grep -q 'GNU General Public License' <<< "$ffmpeg_license" || grep -q 'Lesser' <<< "$ffmpeg_license"; then
+      report "$ffmpeg_bin -L does not report the GNU General Public License"
+    fi
+  elif ! grep -q 'GNU Lesser General Public' <<< "$ffmpeg_license"; then
     report "$ffmpeg_bin -L does not report the GNU Lesser General Public License"
   fi
 fi
@@ -178,13 +301,57 @@ if [ -n "$models_dir" ]; then
   echo "check-licenses: $models model(s) with permissive licences in $models_dir"
 fi
 
+# 8. Licence of every component in the bundle (gpl flavor).
+if [ -n "$licenses_dir" ]; then
+  if [ ! -d "$licenses_dir" ]; then
+    echo "check-licenses: $licenses_dir is not a directory" >&2
+    exit 2
+  fi
+  listed=' '
+  while read -r component expression; do
+    [ -n "$component" ] || continue
+    listed+="$component "
+    if [ -z "$expression" ]; then
+      report "component $component has no licence in XI_COMPONENT_LICENSES"
+      continue
+    fi
+    for id in $expression; do
+      id=${id//[()]/}
+      case "$id" in
+        AND | OR | WITH | '') ;;
+        *) [[ $known_license_ids == *" $id "* ]] || report "component $component: licence $id is not allowed (AGPL, SSPL and unknown licences are refused)" ;;
+      esac
+    done
+  done <<< "$component_licenses"
+  components=0
+  while IFS= read -r entry; do
+    entry=${entry##*/}
+    case "$entry" in SOURCES.md | LICENSE-GPL.md) continue ;; esac
+    components=$((components + 1))
+    if [[ $listed != *" $entry "* ]]; then
+      report "licence bundle entry $entry has no licence in XI_COMPONENT_LICENSES (unknown licence)"
+    fi
+  done < <(find "$licenses_dir" -mindepth 1 -maxdepth 1 | sort)
+  notice="$licenses_dir/LICENSE-GPL.md"
+  if [ ! -s "$notice" ]; then
+    report "$notice is missing"
+  elif ! grep -q 'GPL-2.0-or-later' "$notice"; then
+    report "$notice does not declare GPL-2.0-or-later"
+  fi
+  echo "check-licenses: $components component(s) in $licenses_dir with known licences"
+fi
+
 if [ "$failures" -gt 0 ]; then
   echo "check-licenses: $failures forbidden component(s) found; see docs/adr/0006-license-policy.md" >&2
   exit 1
 fi
 
 extras=""
-[ -n "$ffmpeg_bin" ] && extras+=", ffmpeg LGPL"
+if [ -n "$ffmpeg_bin" ]; then
+  if [[ $allowed_gpl == *" ffmpeg "* ]]; then extras+=", ffmpeg GPL"; else extras+=", ffmpeg LGPL"; fi
+fi
 [ "$use_ldd" = "1" ] && extras+=", ldd"
 [ -n "$models_dir" ] && extras+=", models"
+[ -n "$licenses_dir" ] && extras+=", licence bundle"
+[ -n "$gpl_file" ] && extras+=", GPL allowed:${allowed_gpl% }"
 echo "check-licenses: OK ($lib_dir${versions_files[*]+, ${versions_files[*]}}$extras)"
