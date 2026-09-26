@@ -20,7 +20,7 @@ jobs:
     name: fuzz (every FuzzXxx target)
     runs-on: ubuntu-24.04
     container:
-      image: ${{ vars.XI_BASE_IMAGE || 'ghcr.io/xantiagoma/xtandard-image-base:slim' }}
+      image: ${{ vars.XI_BASE_IMAGE || 'ghcr.io/xantiagoma/xtandard-image-base:slim-builder' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -44,7 +44,7 @@ jobs:
   govulncheck:
     runs-on: ubuntu-24.04
     container:
-      image: ${{ vars.XI_BASE_IMAGE || 'ghcr.io/xantiagoma/xtandard-image-base:slim' }}
+      image: ${{ vars.XI_BASE_IMAGE || 'ghcr.io/xantiagoma/xtandard-image-base:slim-builder' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}

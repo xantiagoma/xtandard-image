@@ -1,0 +1,95 @@
+package vips
+
+import (
+	"errors"
+	"fmt"
+
+	"github.com/xantiagoma/xtandard-image/internal/errs"
+)
+
+// ErrUnavailable is returned by every operation of a build without cgo.
+var ErrUnavailable = errs.New(errs.KindInternal, "vips: built without cgo")
+
+// Config configures Init. The zero value is not valid; start from
+// DefaultConfig.
+type Config struct {
+	// Concurrency is vips_concurrency_set (XI_VIPS_CONCURRENCY). Keep it at 1:
+	// parallelism comes from the request semaphore (ARCHITECTURE §11).
+	Concurrency int
+	// CacheMax, CacheMaxMem and CacheMaxFiles size the libvips operation
+	// cache. All 0 (off) by default: we cache results, not operations.
+	CacheMax      int
+	CacheMaxMem   int64
+	CacheMaxFiles int
+	// Loaders lists the libvips loader base classes that stay enabled after
+	// every loader is blocked. Nil means DefaultLoaders.
+	Loaders []string
+}
+
+// DefaultConfig returns concurrency 1, cache off and the M1 loader set.
+func DefaultConfig() Config {
+	return Config{Concurrency: 1, Loaders: DefaultLoaders()}
+}
+
+// DefaultLoaders returns the loader classes of the M1 formats (FORMATS.md):
+// jpeg, png (spng), gif (nsgif), webp, heif/avif, jxl, tiff, svg, jp2k and
+// UltraHDR. Everything else, including untrusted loaders such as matload,
+// fits or csv, stays blocked.
+func DefaultLoaders() []string {
+	return []string{
+		"VipsForeignLoadJpeg",
+		"VipsForeignLoadPng",
+		"VipsForeignLoadNsgif",
+		"VipsForeignLoadWebp",
+		"VipsForeignLoadHeif",
+		"VipsForeignLoadJxl",
+		"VipsForeignLoadTiff",
+		"VipsForeignLoadSvg",
+		"VipsForeignLoadJp2k",
+		"VipsForeignLoadUhdr",
+	}
+}
+
+// Validate reports every invalid field.
+func (c Config) Validate() error {
+	var list []error
+	if c.Concurrency < 1 {
+		list = append(list, fmt.Errorf("vips: concurrency must be >= 1, got %d", c.Concurrency))
+	}
+	if c.CacheMax < 0 || c.CacheMaxMem < 0 || c.CacheMaxFiles < 0 {
+		list = append(list, errors.New("vips: cache limits must be >= 0"))
+	}
+	return errors.Join(list...)
+}
+
+// MemStats is a snapshot of libvips' tracked allocations.
+type MemStats struct {
+	Mem          int64 // vips_tracked_get_mem
+	MemHighwater int64 // vips_tracked_get_mem_highwater
+	Allocs       int64 // vips_tracked_get_allocs
+}
+
+// OpError carries the libvips error text of one failed operation. It is
+// always wrapped in an *errs.Error whose kind was chosen from Op; Msg is for
+// logs only and never reaches clients.
+type OpError struct {
+	Op  string // "init", "thumbnail", "jpegsave", "alloc"
+	Msg string // copy of the vips error buffer at the failure site
+}
+
+func (e *OpError) Error() string {
+	if e.Msg == "" {
+		return "vips " + e.Op + " failed"
+	}
+	return "vips " + e.Op + ": " + e.Msg
+}
+
+// Quality bounds of SaveJPEG.
+const (
+	MinQuality = 1
+	MaxQuality = 100
+)
+
+// maxDimension stands in for "unbounded" in thumbnail width or height
+// (VIPS_MAX_COORD).
+const maxDimension = 10_000_000

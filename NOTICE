@@ -36,3 +36,10 @@ redenormalisation), options/parser/url.go (source URL decoding),
 options/parser/parse.go and options/parser/apply.go (option argument
 rules). The code was rewritten against xtandard-image's own request model
 and modified as described in the package documentation.
+internal/vips/shim.c and internal/vips/shim.h contain portions derived from
+imgproxy's vips/vips.c, https://github.com/imgproxy/imgproxy
+Copyright (c) 2017 Sergey Alexandrovich
+Licensed under the Apache License, Version 2.0,
+https://www.apache.org/licenses/LICENSE-2.0
+Modifications (reduced operation set, error capture at the failure site,
+refcounted VipsBlob input buffers) are marked in the file headers.
