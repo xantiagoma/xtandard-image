@@ -2,107 +2,182 @@ package app
 
 import (
 	"context"
-	"math"
 
+	"github.com/xantiagoma/xtandard-image/internal/codec"
+	"github.com/xantiagoma/xtandard-image/internal/codec/encode"
+	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
-	"github.com/xantiagoma/xtandard-image/internal/negotiate"
+	"github.com/xantiagoma/xtandard-image/internal/fetch"
+	"github.com/xantiagoma/xtandard-image/internal/pipeline/exec"
+	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
-// qualities are the per-format default qualities (XI_FORMATS_*_QUALITY).
-type qualities struct {
-	def, jpeg, webp, avif, heic, jxl int
+// codecProber is the server.Prober: codec.Probe (magic-byte sniff, header
+// only, BMP/ICO through the Go loaders, SVG limits) inside one vips.Run.
+type codecProber struct {
+	svg codec.Limits // SVG limits; the pixel and frame limits come per request
 }
 
-// vipsProcessor is the temporary server.Processor carried over from the
-// walking skeleton: one shrink-on-load thumbnail fitting the first
-// pipeline's width×height (× DPR) and a save in the negotiated format, all
-// in one vips.Run. WP-25/26a (planner + executor) and WP-30 (encoders)
-// replace it; every other option is ignored until then.
-type vipsProcessor struct {
-	q qualities
+// Probe implements server.Prober.
+func (p *codecProber) Probe(ctx context.Context, src fetch.Buffer, lim server.ProbeLimits) (server.SourceMeta, error) {
+	vb, err := vipsBuffer(src)
+	if err != nil {
+		return server.SourceMeta{}, err
+	}
+	defer vb.Release()
+	l := p.svg
+	// codec.Limits treats zero as its default; the server's zero is
+	// "unlimited" (the server re-checks the result against lim anyway).
+	l.MaxSrcPixels = unlimited(lim.MaxPixels)
+	l.MaxAnimationFrames = int(unlimited(int64(lim.MaxFrames)))
+	l.MaxAnimationFramePixels = unlimited(lim.MaxFramePixels)
+	var m codec.ImageMeta
+	err = vips.Run(ctx, func() error {
+		var err error
+		m, err = codec.Probe(ctx, vb, l, "")
+		return err
+	})
+	if err != nil {
+		return server.SourceMeta{}, err
+	}
+	f, _ := m.Format.Output()
+	return server.SourceMeta{
+		Format:      f,
+		Width:       m.Width,
+		Height:      m.Height,
+		Frames:      max(m.Frames, 1),
+		HasAlpha:    m.HasAlpha,
+		IsAnimated:  m.IsAnimated,
+		Orientation: m.Orientation,
+	}, nil
+}
+
+func unlimited(v int64) int64 {
+	if v <= 0 {
+		return 1 << 50
+	}
+	return v
+}
+
+// processor is the server.Processor: pipeline/exec (plan, execute) and
+// codec/encode (encode) behind the server's interface.
+type processor struct {
+	exec *exec.Executor
+	enc  encode.Config
+}
+
+func newProcessor(cfg *config.Config) (*processor, error) {
+	ec := encoderConfig(cfg)
+	enc, err := encode.New(&ec)
+	if err != nil {
+		return nil, err
+	}
+	failOn := map[config.FailOn]vips.FailOn{
+		config.FailOnNone: vips.FailOnNone, config.FailOnTruncated: vips.FailOnTruncated,
+		config.FailOnError: vips.FailOnError, config.FailOnWarning: vips.FailOnWarning,
+	}[cfg.Vips.FailOn]
+	ex, err := exec.New(&exec.Config{
+		Limits: plan.Limits{
+			MaxSrcPixels:            cfg.Limits.MaxSrcPixels,
+			MaxResultDimension:      cfg.Limits.MaxResultDimension,
+			MaxAnimationFrames:      cfg.Limits.MaxAnimationFrames,
+			MaxAnimationFramePixels: cfg.Limits.MaxAnimationFramePixels,
+			MemoryBudget:            int64(cfg.Processing.MemoryBudget),
+			AllowRaisingLimits:      cfg.Security.AllowRaisingLimits,
+		},
+		FailOn: failOn,
+	}, enc)
+	if err != nil {
+		return nil, err
+	}
+	return &processor{exec: ex, enc: ec}, nil
+}
+
+// encoderConfig maps config.Formats onto the encoder's options.
+func encoderConfig(cfg *config.Config) encode.Config {
+	f := &cfg.Formats
+	ec := encode.DefaultConfig()
+	ec.Quality = f.Quality
+	ec.FormatQuality = map[transform.Format]int{
+		transform.FormatJPEG: f.JPEG.Quality,
+		transform.FormatWebP: f.WebP.Quality,
+		transform.FormatAVIF: f.AVIF.Quality,
+		transform.FormatHEIC: f.HEIC.Quality,
+		transform.FormatJXL:  f.JXL.Quality,
+	}
+	ec.JPEGProgressive = f.JPEG.Progressive
+	ec.PNGQuantize = f.PNG.Quantize
+	ec.WebPEffort = f.WebP.Effort
+	ec.AVIFEffort = f.AVIF.Effort
+	ec.JXLEffort = f.JXL.Effort
+	ec.GIFEffort = f.GIF.Effort
+	ec.HEICEncode = f.HEIC.Encode
+	return ec
 }
 
 // Process implements server.Processor.
-func (p *vipsProcessor) Process(ctx context.Context, in *server.ProcessInput) (*server.ProcessOutput, error) {
-	format, ok := vipsFormat(in.Decision.Format)
-	if !ok {
-		return nil, errs.Newf(errs.KindUnsupported, "app: cannot encode %s yet", in.Decision.Format)
-	}
+func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*server.ProcessOutput, error) {
 	src, err := vipsBuffer(in.Source)
 	if err != nil {
 		return nil, err
 	}
 	defer src.Release()
 
-	var w, h int
-	if len(in.Request.Pipelines) > 0 {
-		rs := &in.Request.Pipelines[0].Resize
-		dpr := max(rs.DPR, 1)
-		w = int(math.Round(float64(rs.Width.Px) * dpr))
-		h = int(math.Round(float64(rs.Height.Px) * dpr))
+	format, ok := codec.Sniff(src.Bytes())
+	if !ok {
+		return nil, errs.New(errs.KindUnsupported, "app: unrecognised source format")
 	}
-	opts := vips.DefaultSaveOptions()
-	q := p.quality(in.Request, in.Decision.Format, in.QualityDelta)
-	opts.JPEG.Quality, opts.WebP.Quality, opts.HEIF.Quality, opts.JXL.Quality = q, q, q, q
-	opts.JPEG.Interlace = true
-
-	var out *server.ProcessOutput
-	err = vips.Run(ctx, func() error {
-		img, err := vips.LoadThumbnail(ctx, src, w, h)
-		if err != nil {
-			return err
-		}
-		defer img.Close()
-		if err := ctx.Err(); err != nil {
-			return errs.Wrap(errs.KindOf(err), context.Cause(ctx))
-		}
-		blob, err := img.Save(ctx, format, &opts)
-		if err != nil {
-			return err
-		}
-		out = &server.ProcessOutput{
-			Body:        blob,
-			ContentType: negotiate.ContentType(in.Decision.Format),
-			Format:      in.Decision.Format,
-			Width:       img.Width(),
-			Height:      img.Height(),
-		}
-		return nil
+	t := encode.NewTarget(&in.Request.Output, &in.Decision, in.Meta.IsAnimated)
+	if in.QualityDelta != 0 && lossy(t.Format) {
+		q := p.enc.ResolveQuality(t.Format, t.Quality, t.FormatQuality)
+		t.Quality = min(max(q+in.QualityDelta, 1), 100)
+	}
+	res, err := p.exec.Run(ctx, &exec.Job{
+		Request: in.Request,
+		Source:  src,
+		Meta:    planMeta(format, &in.Meta),
+		Target:  t,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	return &server.ProcessOutput{
+		Body:        res.Body,
+		ContentType: res.ContentType,
+		Format:      res.Format,
+		Width:       res.Width,
+		Height:      res.Height,
+		Skipped:     res.Skipped,
+	}, nil
 }
 
-// quality follows the precedence of ARCHITECTURE §8.3 (URL quality, then
-// per-format URL quality, then config per format, then global), lowered by
-// the Save-Data delta.
-func (p *vipsProcessor) quality(req *transform.Request, f transform.Format, delta int) int {
-	q := req.Output.Quality
-	if q == 0 {
-		q = req.Output.FormatQuality[f]
+func lossy(f transform.Format) bool {
+	switch f {
+	case transform.FormatJPEG, transform.FormatWebP, transform.FormatAVIF, transform.FormatHEIC, transform.FormatJXL:
+		return true
+	default:
+		return false
 	}
-	if q == 0 {
-		switch f {
-		case transform.FormatJPEG:
-			q = p.q.jpeg
-		case transform.FormatWebP:
-			q = p.q.webp
-		case transform.FormatAVIF:
-			q = p.q.avif
-		case transform.FormatHEIC:
-			q = p.q.heic
-		case transform.FormatJXL:
-			q = p.q.jxl
-		default:
-		}
+}
+
+// planMeta is the planner's view of the probed source. The format name is
+// the sniffed codec format (UltraHDR shrinks on load like JPEG).
+func planMeta(f codec.Format, m *server.SourceMeta) plan.SourceMeta {
+	name := f.String()
+	if f == codec.FormatUHDR {
+		name = "jpeg"
 	}
-	if q == 0 {
-		q = p.q.def
+	return plan.SourceMeta{
+		Width:       m.Width,
+		Height:      m.Height,
+		Frames:      m.Frames,
+		HasAlpha:    m.HasAlpha,
+		Orientation: m.Orientation,
+		IsAnimated:  m.IsAnimated,
+		Format:      name,
+		IsVector:    f == codec.FormatSVG || f == codec.FormatPDF,
 	}
-	return min(max(q+delta, 1), 100)
 }

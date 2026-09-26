@@ -125,6 +125,9 @@ type ProcessOutput struct {
 	ContentType   string
 	Format        transform.Format
 	Width, Height int
+	// Skipped lists request options the pipeline did not apply yet (later
+	// work packages); the server logs them at debug level.
+	Skipped []string
 }
 
 // Processor plans, executes and encodes one image (stages 12–13;

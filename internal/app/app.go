@@ -15,6 +15,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/limiter"
@@ -42,6 +43,9 @@ type Options struct {
 type hooks struct {
 	listening func(public, admin net.Addr) // called once both listeners are bound
 	policy    *ssrf.Policy                 // replaces the SSRF policy derived from Config
+	// keepVips skips vips.Shutdown: libvips cannot be used again after it,
+	// and a test binary starts several services one after the other.
+	keepVips bool
 }
 
 // Run starts the service and blocks until ctx is cancelled (SIGINT/SIGTERM
@@ -71,7 +75,12 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 			err = errors.Join(err, cleanup(ctx))
 		}
 	}()
-	cleanups = append(cleanups, func(context.Context) error { vips.Shutdown(); return nil })
+	shutdownVips := func() {
+		if !h.keepVips {
+			vips.Shutdown()
+		}
+	}
+	cleanups = append(cleanups, func(context.Context) error { shutdownVips(); return nil })
 
 	met, err := metrics.New(metrics.Options{Version: opts.Version, Commit: opts.Commit, Vips: vipsStats{}})
 	if err != nil {
@@ -94,7 +103,7 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 			logger.LogAttrs(ctx, slog.LevelWarn, "skipping vips shutdown with jobs in flight", slog.Int64("in_flight", n))
 			return nil
 		}
-		vips.Shutdown()
+		shutdownVips()
 		return nil
 	}
 
@@ -146,17 +155,26 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		logger.LogAttrs(ctx, slog.LevelWarn, "config warning", slog.String("warning", w))
 	}
 
+	proc, err := newProcessor(cfg)
+	if err != nil {
+		return err
+	}
+
 	ready := admin.NewReadiness()
 	scfg := serverConfig(cfg)
 	srv, err := server.New(&scfg, &server.Deps{
-		Router:    rt,
-		Resolver:  reg,
-		Fetcher:   fetcher,
-		Admitter:  lim,
-		Prober:    vipsProber{},
+		Router:   rt,
+		Resolver: reg,
+		Fetcher:  fetcher,
+		Admitter: lim,
+		Prober: &codecProber{svg: codec.Limits{
+			MaxSVGBytes:    int64(cfg.Limits.MaxSVGBytes),
+			MaxSVGDepth:    cfg.Limits.MaxSVGDepth,
+			MaxSVGElements: cfg.Limits.MaxSVGElements,
+		}},
 		Sniffer:   codecSniffer{},
 		Inspector: vipsInspector{},
-		Processor: &vipsProcessor{q: qualities{def: cfg.Formats.Quality, jpeg: cfg.Formats.JPEG.Quality, webp: cfg.Formats.WebP.Quality, avif: cfg.Formats.AVIF.Quality, heic: cfg.Formats.HEIC.Quality, jxl: cfg.Formats.JXL.Quality}},
+		Processor: proc,
 		Allocator: vipsAllocator,
 		Logger:    logger,
 		Metrics:   met,
