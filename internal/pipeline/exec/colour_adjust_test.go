@@ -56,6 +56,12 @@ func solidPNG(tb testing.TB, w, h int, c color.NRGBA) []byte {
 			img.SetNRGBA(x, y, c)
 		}
 	}
+	return encodePNG(tb, img)
+}
+
+// encodePNG encodes img as PNG (opaque images without an alpha channel).
+func encodePNG(tb testing.TB, img image.Image) []byte {
+	tb.Helper()
 	var b bytes.Buffer
 	if err := png.Encode(&b, img); err != nil {
 		tb.Fatal(err)
