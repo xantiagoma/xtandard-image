@@ -176,6 +176,11 @@ func (*Image) SetInts(context.Context, MetaField, []int) (*Image, error) {
 	return nil, ErrUnavailable
 }
 
+// SetTexts fails.
+func (*Image) SetTexts(context.Context, ...TextField) (*Image, error) {
+	return nil, ErrUnavailable
+}
+
 // SetBlob fails.
 func (*Image) SetBlob(context.Context, MetaField, []byte) (*Image, error) {
 	return nil, ErrUnavailable
@@ -399,3 +404,9 @@ func (*Image) Save(context.Context, Format, *SaveOptions) (*Blob, error) {
 
 // SaveJPEG fails.
 func (*Image) SaveJPEG(context.Context, int) (*Blob, error) { return nil, ErrUnavailable }
+
+// ProbeRaw fails.
+func ProbeRaw(context.Context, *Buffer) (RawHeader, error) { return RawHeader{}, ErrUnavailable }
+
+// RawLoad fails.
+func RawLoad(context.Context, *Buffer, *RawOptions) (*Image, error) { return nil, ErrUnavailable }

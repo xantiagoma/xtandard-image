@@ -135,6 +135,55 @@ int xi_black(int width, int height, int bands, VipsImage **out, char **err);
 int xi_new_from_memory(const void *data, size_t size, int width, int height, int bands,
     int band_format, VipsImage **out, char **err);
 
+// ---- camera RAW (raw.c, LibRaw) ------------------------------------------
+
+#define XI_RAW_MAX_THUMBS 8
+
+typedef struct {
+  int jpeg;             // LibRaw classifies it as a JPEG stream
+  int width;            // as LibRaw's header parse reports it; may be 0
+  int height;
+  unsigned length;      // bytes at offset in the source buffer
+  long long offset;
+} XiRawThumb;
+
+typedef struct {
+  int width;            // demosaiced size (half_size off), stored orientation
+  int height;
+  int raw_width;        // sensor data size
+  int raw_height;
+  int flip;             // LibRaw sizes.flip (dcraw convention)
+  int colors;           // colours of the sensor filter (1 = monochrome)
+  int dng;
+  float iso;
+  float shutter;        // seconds
+  float aperture;       // f-number
+  float focal_len;      // mm
+  int year, month, day, hour, minute, second; // capture time; year 0 = unknown
+  char make[64];
+  char model[64];
+  char software[64];
+  char lens[128];
+  int n_thumbs;
+  XiRawThumb thumbs[XI_RAW_MAX_THUMBS];
+} XiRawHeader;
+
+typedef struct {
+  int half_size;        // LibRaw half-size demosaic (each side halved)
+  long long max_pixels; // > 0: sensor width × height limit
+  int *cancel;          // C memory, set to non-zero by xi_raw_cancel; may be NULL
+} XiRawOptions;
+
+// Opens the buffer with libraw_open_buffer and reads the header and the
+// thumbnail list; nothing is unpacked.
+int xi_raw_probe(VipsBlob *blob, XiRawHeader *h, char **err);
+// Unpacks and demosaics to an 8-bit sRGB (or grey) image that owns LibRaw's
+// output buffer.
+int xi_raw_load(VipsBlob *blob, const XiRawOptions *o, VipsImage **out, char **err);
+void xi_raw_cancel(int *flag);
+// Live LibRaw handles plus live demosaiced buffers (leak tests).
+int xi_raw_live(void);
+
 // ---- image accessors and metadata (image.c) ------------------------------
 
 int xi_image_width(VipsImage *img);
@@ -159,6 +208,10 @@ int xi_meta_set_int(VipsImage *in, const char *name, int v, VipsImage **out, cha
 int xi_meta_set_blob(VipsImage *in, const char *name, const void *data, size_t len,
     VipsImage **out, char **err);
 int xi_meta_set_array_int(VipsImage *in, const char *name, const int *v, int n,
+    VipsImage **out, char **err);
+// names and values each hold n NUL-terminated strings back to back; every
+// value is copied.
+int xi_meta_set_strings(VipsImage *in, const char *names, const char *values, int n,
     VipsImage **out, char **err);
 // names holds n NUL-terminated names back to back.
 int xi_meta_remove(VipsImage *in, const char *names, int n, VipsImage **out, char **err);

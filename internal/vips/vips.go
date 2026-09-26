@@ -28,6 +28,8 @@ package vips
 #cgo nocallback xi_meta_set_blob
 #cgo noescape xi_meta_set_array_int
 #cgo nocallback xi_meta_set_array_int
+#cgo noescape xi_meta_set_strings
+#cgo nocallback xi_meta_set_strings
 #cgo noescape xi_meta_remove
 #cgo nocallback xi_meta_remove
 #cgo noescape xi_meta_get_string

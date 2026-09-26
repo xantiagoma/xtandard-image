@@ -172,6 +172,20 @@ xi_meta_set_array_int(VipsImage *in, const char *name, const int *v, int n,
 }
 
 int
+xi_meta_set_strings(VipsImage *in, const char *names, const char *values, int n,
+    VipsImage **out, char **err)
+{
+  if (xi_fresh_copy(in, out, err))
+    return XI_ERR_OP;
+  for (int i = 0; i < n; i++) {
+    vips_image_set_string(*out, names, values);
+    names += strlen(names) + 1;
+    values += strlen(values) + 1;
+  }
+  return XI_OK;
+}
+
+int
 xi_meta_remove(VipsImage *in, const char *names, int n, VipsImage **out, char **err)
 {
   if (xi_fresh_copy(in, out, err))
