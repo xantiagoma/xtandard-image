@@ -108,6 +108,16 @@ package vips
 #cgo nocallback xi_similarity
 #cgo noescape xi_affine
 #cgo nocallback xi_affine
+#cgo noescape xi_cast_round
+#cgo nocallback xi_cast_round
+#cgo noescape xi_maplut
+#cgo nocallback xi_maplut
+#cgo noescape xi_recomb
+#cgo nocallback xi_recomb
+#cgo noescape xi_mix
+#cgo nocallback xi_mix
+#cgo noescape xi_gradient_mask
+#cgo nocallback xi_gradient_mask
 #cgo noescape xi_jpegsave
 #cgo nocallback xi_jpegsave
 #cgo noescape xi_pngsave

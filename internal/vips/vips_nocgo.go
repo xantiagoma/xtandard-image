@@ -321,6 +321,23 @@ func (*Image) Linear(context.Context, []float64, []float64) (*Image, error) {
 // Invert fails.
 func (*Image) Invert(context.Context) (*Image, error) { return nil, ErrUnavailable }
 
+// CastRound fails.
+func (*Image) CastRound(context.Context, BandFormat) (*Image, error) { return nil, ErrUnavailable }
+
+// MapLUT fails.
+func (*Image) MapLUT(context.Context, *Image) (*Image, error) { return nil, ErrUnavailable }
+
+// Recomb fails.
+func (*Image) Recomb(context.Context, []float64, int) (*Image, error) { return nil, ErrUnavailable }
+
+// Mix fails.
+func (*Image) Mix(context.Context, *Image, float64) (*Image, error) { return nil, ErrUnavailable }
+
+// GradientMask fails.
+func GradientMask(context.Context, int, int, float64, float64, float64, float64) (*Image, error) {
+	return nil, ErrUnavailable
+}
+
 // BandjoinConst fails.
 func (*Image) BandjoinConst(context.Context, []float64) (*Image, error) {
 	return nil, ErrUnavailable

@@ -392,6 +392,50 @@ func TestPixelValues(t *testing.T) {
 		{"bandjoin const", []byte{7}, 1, 1, func(ctx context.Context, _ *vips.Arena, img *vips.Image) (*vips.Image, error) {
 			return img.BandjoinConst(ctx, []float64{9, 11})
 		}, []byte{7, 9, 11}},
+		{"cast round", []byte{10, 20, 254}, 1, 3, func(ctx context.Context, a *vips.Arena, img *vips.Image) (*vips.Image, error) {
+			l, err := a.Add(img.Linear(ctx, []float64{1, 1, 1}, []float64{0.6, 0.4, 3}))
+			if err != nil {
+				return nil, err
+			}
+			return l.CastRound(ctx, vips.BandFormatUchar)
+		}, []byte{11, 20, 255}},
+		{"maplut per band", []byte{0, 10, 200, 7}, 1, 4, func(ctx context.Context, a *vips.Arena, img *vips.Image) (*vips.Image, error) {
+			lut := make([]byte, 256*4)
+			for i := range 256 {
+				lut[4*i], lut[4*i+1], lut[4*i+2], lut[4*i+3] = byte(255-i), byte(i/2), byte(i), byte(i)
+			}
+			l, err := a.Add(vips.NewFromMemory(ctx, lut, 256, 1, 4, vips.BandFormatUchar))
+			if err != nil {
+				return nil, err
+			}
+			return img.MapLUT(ctx, l)
+		}, []byte{255, 5, 200, 7}},
+		{"maplut grey to colour", []byte{0, 100}, 2, 1, func(ctx context.Context, a *vips.Arena, img *vips.Image) (*vips.Image, error) {
+			lut := make([]byte, 256*3)
+			for i := range 256 {
+				lut[3*i], lut[3*i+1], lut[3*i+2] = byte(i), 7, byte(255-i)
+			}
+			l, err := a.Add(vips.NewFromMemory(ctx, lut, 256, 1, 3, vips.BandFormatUchar))
+			if err != nil {
+				return nil, err
+			}
+			return img.MapLUT(ctx, l)
+		}, []byte{0, 7, 255, 100, 7, 155}},
+		{"recomb rounds and clamps", []byte{100, 150, 200}, 1, 3, func(ctx context.Context, _ *vips.Arena, img *vips.Image) (*vips.Image, error) {
+			return img.Recomb(ctx, []float64{
+				0.5, 0.5, 0, // 125
+				0.2126, 0.7152, 0.0722, // 142.9 → 143
+				1, 1, 0, // 250
+				2, 0, 0, // clamped
+			}, 4)
+		}, []byte{125, 143, 250, 200}},
+		{"mix", []byte{0, 100, 255}, 1, 3, func(ctx context.Context, a *vips.Arena, img *vips.Image) (*vips.Image, error) {
+			other, err := a.Add(vips.NewFromMemory(ctx, []byte{200, 0, 255}, 1, 1, 3, vips.BandFormatUchar))
+			if err != nil {
+				return nil, err
+			}
+			return img.Mix(ctx, other, 0.25)
+		}, []byte{50, 75, 255}},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -565,4 +609,40 @@ func TestArena(t *testing.T) {
 		}
 		return nil
 	})
+}
+
+func TestGradientMask(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name               string
+		w, h               int
+		ax, ay, b, opacity float64
+		want               []byte
+	}{
+		{"horizontal", 4, 1, 85, 0, 0, 1, []byte{0, 85, 170, 255}},
+		{"opacity", 4, 1, 85, 0, 0, 0.4, []byte{0, 34, 68, 102}},
+		{"clamped", 4, 1, 85, 0, -100, 1, []byte{0, 0, 70, 155}},
+		{"vertical reversed", 1, 3, 0, -200, 300, 1, []byte{255, 100, 0}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			job(t, func(ctx context.Context, a *vips.Arena) error {
+				m, err := a.Add(vips.GradientMask(ctx, tc.w, tc.h, tc.ax, tc.ay, tc.b, tc.opacity))
+				if err != nil {
+					return err
+				}
+				if m.Bands() != 1 || m.BandFormat() != vips.BandFormatUchar {
+					t.Errorf("mask has %d bands of %v", m.Bands(), m.BandFormat())
+				}
+				got, err := m.WriteToMemory(ctx)
+				if err != nil {
+					return err
+				}
+				if diff := cmp.Diff(tc.want, got); diff != "" {
+					t.Errorf("pixels (-want +got):\n%s", diff)
+				}
+				return nil
+			})
+		})
+	}
 }

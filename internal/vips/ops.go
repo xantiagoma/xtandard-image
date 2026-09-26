@@ -512,6 +512,85 @@ func (img *Image) Affine(ctx context.Context, a, b, c, d float64, background []f
 	return img.op(ctx, "affine", rc, out, cerr)
 }
 
+// Colour operations. They keep the input's band format: float intermediate
+// results are rounded to nearest and clamped to the format's range.
+
+// CastRound converts img to format, rounding float pixels to nearest (Cast
+// truncates) and clamping to the format's range.
+func (img *Image) CastRound(ctx context.Context, format BandFormat) (*Image, error) {
+	if err := ctxError(ctx, "vips: cast_round"); err != nil {
+		return nil, err
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_cast_round(img.p, C.int(format), &out, &cerr)
+	return img.op(ctx, "cast_round", rc, out, cerr)
+}
+
+// MapLUT maps every pixel of img through lut, a 256×1 uchar image
+// (vips_maplut). A one-band lut maps every band the same way, a lut with as
+// many bands as img maps each band through its own, and a one-band img
+// mapped through an n-band lut gives n bands.
+func (img *Image) MapLUT(ctx context.Context, lut *Image) (*Image, error) {
+	if err := ctxError(ctx, "vips: maplut"); err != nil {
+		return nil, err
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_maplut(img.p, lut.p, &out, &cerr)
+	return img.op(ctx, "maplut", rc, out, cerr)
+}
+
+// Recomb multiplies every pixel, as a column vector of img's bands, by the
+// matrix m of rows rows and Bands() columns in row-major order
+// (vips_recomb). The result has rows bands in img's band format.
+func (img *Image) Recomb(ctx context.Context, m []float64, rows int) (*Image, error) {
+	if err := ctxError(ctx, "vips: recomb"); err != nil {
+		return nil, err
+	}
+	cols := img.Bands()
+	if rows <= 0 || len(m) != rows*cols {
+		return nil, errs.Newf(errs.KindInternal, "vips: recomb needs a %d×%d matrix, got %d values",
+			rows, cols, len(m))
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_recomb(img.p, cdoubles(m), C.int(rows), C.int(cols), &out, &cerr)
+	return img.op(ctx, "recomb", rc, out, cerr)
+}
+
+// Mix blends img towards other, img × (1 − t) + other × t per band, in
+// img's band format. Both images have the same size and bands.
+func (img *Image) Mix(ctx context.Context, other *Image, t float64) (*Image, error) {
+	if err := ctxError(ctx, "vips: mix"); err != nil {
+		return nil, err
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_mix(img.p, other.p, C.double(t), &out, &cerr)
+	return img.op(ctx, "mix", rc, out, cerr)
+}
+
+// GradientMask returns a one-band uchar width×height image whose pixel
+// (x, y) is round(opacity × clamp(ax·x + ay·y + b, 0, 255)): a linear ramp
+// for gradient overlays.
+func GradientMask(ctx context.Context, width, height int, ax, ay, b, opacity float64) (*Image, error) {
+	if err := ctxError(ctx, "vips: gradient_mask"); err != nil {
+		return nil, err
+	}
+	if width <= 0 || height <= 0 {
+		return nil, errs.Newf(errs.KindInternal, "vips: gradient mask of %dx%d", width, height)
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_gradient_mask(C.int(width), C.int(height), C.double(ax), C.double(ay), C.double(b),
+		C.double(opacity), &out, &cerr)
+	if err := opError(rc, "gradient_mask", cerr, nil); err != nil {
+		return nil, err
+	}
+	return newImage(out, nil), nil
+}
+
 // imagePointers returns the C handles of imgs. The slice is Go memory
 // holding C pointers only, which cgo may pass.
 func imagePointers(imgs []*Image) []*C.VipsImage {

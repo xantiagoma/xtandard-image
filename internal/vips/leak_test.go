@@ -53,6 +53,11 @@ func TestNoLeak(t *testing.T) {
 			if err != nil {
 				return err
 			}
+			if i%4 == 1 {
+				if small, err = colourChain(ctx, a, small); err != nil {
+					return err
+				}
+			}
 			f := vips.FormatJPEG
 			if i%3 == 0 {
 				f = vips.FormatWebP
@@ -86,4 +91,37 @@ func TestNoLeak(t *testing.T) {
 	}
 	t.Logf("after %d cycles: mem %+d B, allocs %+d, objects %+d, highwater %d B",
 		cycles, after.Mem-before.Mem, after.Allocs-before.Allocs, objectsAfter-objects, after.MemHighwater)
+}
+
+// colourChain runs the colour operations (WP-59) on a three-band image:
+// a LUT, a matrix, a mix and a gradient mask whose pixels are read back.
+func colourChain(ctx context.Context, a *vips.Arena, img *vips.Image) (*vips.Image, error) {
+	table := make([]byte, 256)
+	for i := range table {
+		table[i] = byte(255 - i)
+	}
+	lut, err := a.Add(vips.NewFromMemory(ctx, table, 256, 1, 1, vips.BandFormatUchar))
+	if err != nil {
+		return nil, err
+	}
+	mapped, err := a.Add(img.MapLUT(ctx, lut))
+	if err != nil {
+		return nil, err
+	}
+	sepia, err := a.Add(mapped.Recomb(ctx, []float64{
+		0.3588, 0.7044, 0.1368,
+		0.2990, 0.5870, 0.1140,
+		0.2392, 0.4696, 0.0912,
+	}, 3))
+	if err != nil {
+		return nil, err
+	}
+	mask, err := a.Add(vips.GradientMask(ctx, img.Width(), img.Height(), 0, 1, -10, 0.5))
+	if err != nil {
+		return nil, err
+	}
+	if _, err := mask.WriteToMemory(ctx); err != nil {
+		return nil, err
+	}
+	return a.Add(img.Mix(ctx, sepia, 0.5))
 }
