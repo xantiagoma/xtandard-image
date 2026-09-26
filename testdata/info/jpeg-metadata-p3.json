@@ -1,0 +1,44 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "exif": {
+    "Artist": "Jane Artist",
+    "Color Space": "Uncalibrated",
+    "Copyright": "(c) Jane ",
+    "Date and Time (Original)": "2024:01:02 03:04:05",
+    "East or West Longitude": "E",
+    "Exif Version": "Exif Version 2.1",
+    "FlashPixVersion": "FlashPix Version 1.0",
+    "GPS Tag Version": "2.2.0.0",
+    "Latitude": "52, 31,  0",
+    "Longitude": "13, 24,  0",
+    "Manufacturer": "TestMake",
+    "Model": "TestModel",
+    "North or South Latitude": "N",
+    "Orientation": "Right-top",
+    "Resolution Unit": "Inch",
+    "X-Resolution": "72",
+    "Y-Resolution": "72"
+  },
+  "format": "jpeg",
+  "height": 120,
+  "iptc": {
+    "Copyright Notice": "(c) Jane"
+  },
+  "mime_type": "image/jpeg",
+  "orientation": 6,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 6714,
+  "width": 160,
+  "xmp": {
+    "dc": {
+      "rights": "(c) Jane"
+    },
+    "exif": {
+      "GPSLatitude": "52,31.0N",
+      "GPSLongitude": "13,24.0E"
+    }
+  }
+}

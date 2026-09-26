@@ -45,7 +45,7 @@ func main() {
 
 func run(args []string) error {
 	if len(args) < 2 {
-		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|gif|gif-anim|ico-png|ico-bmp|exif6|ssim-refs> args...")
+		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|gif|gif-anim|ico-png|ico-bmp|exif6|metadata|bordered|ssim-refs> args...")
 	}
 	sizeArgs := func() (int, int, string, error) {
 		if len(args) != 4 {
@@ -88,6 +88,24 @@ func run(args []string) error {
 			return errors.New("exif6: want in.jpg out.jpg")
 		}
 		return injectOrientation(args[1], args[2], 6)
+	case "metadata":
+		if len(args) != 3 {
+			return errors.New("metadata: want in.jpg out.jpg")
+		}
+		return injectMetadata(args[1], args[2])
+	case "bordered":
+		if len(args) != 8 {
+			return errors.New("bordered: want W H top right bottom left out")
+		}
+		var v [6]int
+		for i := range v {
+			n, err := strconv.Atoi(args[i+1])
+			if err != nil {
+				return err
+			}
+			v[i] = n
+		}
+		return writePNG(args[7], bordered(v[0], v[1], v[2], v[3], v[4], v[5]))
 	case "ssim-refs":
 		return ssimRefs(args[1])
 	default:

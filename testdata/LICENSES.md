@@ -17,9 +17,11 @@ generated from the public-domain X11 "fixed" font).
 | File | Made with | Licence |
 |---|---|---|
 | `fixtures/jpeg/exif-orientation-6-icc.jpg` | libvips `jpegsave` Q85 of the photo rotated 90° CCW, embedded ICC = libvips built-in `srgb` profile (Clinton Ingram's compact-icc-profiles, CC0), then `gen exif6` adds an Exif APP1 with Orientation = 6 | CC0 |
+| `fixtures/jpeg/metadata-p3.jpg` | libvips `icc_transform` of the small photo (rotated 90° CCW) to the built-in `p3` profile (Clinton Ingram's compact-icc-profiles, CC0) and `jpegsave` Q85, then `gen metadata` adds Exif (orientation 6, Artist, Copyright, GPS), XMP (with GPS) and IPTC segments written by hand | CC0 |
 | `fixtures/jpeg/progressive.jpg` | libvips `jpegsave` Q80 `interlace` | CC0 |
 | `fixtures/jpeg/baseline.jpg` | libvips `jpegsave` Q90 | CC0 |
 | `fixtures/png/rgba8.png` | `gen photo-alpha` (Go `image/png`) | CC0 |
+| `fixtures/png/bordered.png` | `gen bordered` (Go `image/png`: the photo on white with 6/20/12/4 px margins) | CC0 |
 | `fixtures/png/rgb16.png` | `gen photo16` (Go `image/png`, 16-bit) | CC0 |
 | `fixtures/png/palette.png` | `gen palette` (Go `image/png`, Plan 9 palette) | CC0 |
 | `fixtures/gif/static.gif`, `fixtures/gif/animated.gif` | `gen gif`, `gen gif-anim` (Go `image/gif`, 6 frames) | CC0 |

@@ -20,9 +20,11 @@ testdata/
 | Path | Format | What it exercises |
 |---|---|---|
 | `jpeg/exif-orientation-6-icc.jpg` | JPEG 240x320 | Exif Orientation 6 (stored rotated; upright after autorot 320x240), embedded sRGB ICC |
+| `jpeg/metadata-p3.jpg` | JPEG 120x160 | Display P3 ICC, Exif (orientation 6, Make/Model, Artist, Copyright, DateTimeOriginal, GPS IFD), XMP with `exif:GPS*`, IPTC copyright: the metadata policy matrix |
 | `jpeg/progressive.jpg` | JPEG 320x240 | progressive (interlaced) scans |
 | `jpeg/baseline.jpg` | JPEG 320x240 | plain baseline photo, the default "photo" input |
 | `png/rgba8.png` | PNG 128x96 | 8-bit RGBA with graded alpha |
+| `png/bordered.png` | PNG 80x60 | 56x42 photo on white, margins top 6, right 20, bottom 12, left 4 (trim, equal_hor/equal_ver) |
 | `png/rgb16.png` | PNG 96x72 | 16 bits per channel |
 | `png/palette.png` | PNG 96x72 | 8-bit palette (PLTE) |
 | `gif/static.gif`, `gif/animated.gif` | GIF 96x72 | single frame; 6 frames, 100 ms, infinite loop |
