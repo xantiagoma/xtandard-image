@@ -57,3 +57,13 @@ semantics (image.go, params.go, options.go) and the bimg resize rules
 they rely on (resizer.go); internal/security/sign/imaginary.go
 reimplements imaginary's URL signature (middleware.go). The code was
 rewritten against xtandard-image's own request model.
+internal/codec/bmp and internal/codec/ico reimplement in pure Go the BMP and
+ICO loaders and savers of imgproxy's vips/bmp.h, vips/bmpload.c,
+vips/bmpsave.c, vips/ico.h, vips/icoload.c and vips/icosave.c,
+https://github.com/imgproxy/imgproxy
+Copyright (c) 2017 Sergey Alexandrovich
+Licensed under the Apache License, Version 2.0,
+https://www.apache.org/licenses/LICENSE-2.0
+Modifications (OS/2 and V2/V3 headers, arbitrary bitfields, embedded
+PNG/JPEG, ICO AND masks, multi-entry ICO output with DIB entries up to
+48 px, bounds and pixel-limit checks) are described in the file headers.
