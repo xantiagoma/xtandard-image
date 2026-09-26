@@ -34,6 +34,7 @@ testdata/
 | `webp/lossy.webp`, `webp/lossless.webp`, `webp/animated.webp` | WebP | VP8, VP8L, animated (6 frames, alpha) |
 | `avif/photo.avif` | AVIF 320x240 | 8-bit AV1 still |
 | `heic/photo.heic` | HEIC 320x240 | HEVC Main still |
+| `heic/thumbnail.heic`, `avif/thumbnail.avif` | HEIC / AVIF 320x240 | the photo with an embedded 80x60 thumbnail of a *different* image (the graphic), so tests can tell which one was decoded (`enforce_thumbnail`) |
 | `jxl/photo.jxl` | JPEG XL 320x240 | container, lossy |
 | `jp2/photo.jp2` | JPEG 2000 160x120 | JP2 container |
 | `tiff/multipage.tif` | TIFF | 2 pages (160x120 photo, 96x72 graphic), deflate |

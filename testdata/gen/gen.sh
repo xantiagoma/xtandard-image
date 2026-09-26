@@ -69,6 +69,22 @@ sips -s format heic -s formatOptions 60 "$T/photo.png" --out "$F/heic/photo.heic
 vips jxlsave "$T/photo.png" "$F/jxl/photo.jxl" --Q 75
 vips jp2ksave "$T/photo-small.png" "$F/jp2/photo.jp2" --Q 60
 
+# HEIC and AVIF with an embedded 80x60 thumbnail of a different picture
+# (enforce_thumbnail). vips cannot write HEIF thumbnails: a small libheif
+# program does, with kvazaar (HEVC) and libaom (AV1). Run in the base
+# builder image, which has the libheif headers:
+#   docker compose -f compose.dev.yml run --rm dev sh testdata/gen/gen.sh
+if pkg-config --exists libheif 2>/dev/null; then
+	cc -O2 -o "$T/heifthumb" testdata/gen/heifthumb/heifthumb.c $(pkg-config --cflags --libs libheif)
+	gen graphic 160 120 "$T/graphic-thumb.png"
+	vips rawsave "$T/photo.png" "$T/photo.raw"
+	vips rawsave "$T/graphic-thumb.png" "$T/graphic-thumb.raw"
+	"$T/heifthumb" hevc "$T/photo.raw" 320 240 "$T/graphic-thumb.raw" 160 120 80 "$F/heic/thumbnail.heic"
+	"$T/heifthumb" av1 "$T/photo.raw" 320 240 "$T/graphic-thumb.raw" 160 120 80 "$F/avif/thumbnail.avif"
+else
+	echo "libheif development files missing: heic/thumbnail.heic and avif/thumbnail.avif not regenerated" >&2
+fi
+
 # TIFF: two pages, deflate.
 magick "$T/photo-small.png" "$T/graphic.png" -compress zip "$F/tiff/multipage.tif"
 

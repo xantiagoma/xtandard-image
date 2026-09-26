@@ -8,6 +8,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
+	"github.com/xantiagoma/xtandard-image/internal/security/svg"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
@@ -28,6 +29,9 @@ type Config struct {
 	// (XI_PROCESSING_COLOR_PROFILES_DIR); empty allows only the built-in
 	// srgb and cmyk.
 	ColorProfilesDir string
+	// SVG is the sanitiser policy (XI_LIMITS_MAX_SVG_*) the document is
+	// sanitised with again after `style` injected its CSS.
+	SVG svg.Options
 }
 
 // Executor plans, executes and encodes images. It holds no per-request state
@@ -94,6 +98,10 @@ type Result struct {
 	Skipped []string
 	// Best reports the best-format selection (Job.Best); nil otherwise.
 	Best *encode.BestResult
+	// Thumbnail reports that the image was decoded from the thumbnail
+	// embedded in the source (HEIF/AVIF, or a JPEG's Exif thumbnail with
+	// enforce_thumbnail) rather than from the full image.
+	Thumbnail bool
 }
 
 // Run plans j.Request for j.Meta, executes the plan on j.Source and encodes
@@ -120,8 +128,23 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 	if transparent {
 		meta.HasAlpha = true
 	}
+	var skipped []string
+	if css := firstStyle(req); css != "" {
+		styled, err := e.styledSource(j, css)
+		if err != nil {
+			return nil, err
+		}
+		if styled == nil {
+			skipped = append(skipped, skippedStyle) // not an SVG source
+		} else {
+			defer styled.Release()
+			sj := *j
+			sj.Source = styled
+			j = &sj
+		}
+	}
 	// A camera RAW is planned inside the Run: the preview size comes from
-	// its LibRaw header.
+	// its LibRaw header (planRaw), which also picks its embedded preview.
 	isRaw := j.Meta.Format == formatRAW
 	var p *plan.Plan
 	var err error
@@ -130,11 +153,20 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 			return nil, err
 		}
 	}
+	fromThumb := false
+	if !isRaw {
+		if buf, tm, tp, ok := e.exifThumbnail(j, req, &meta, p); ok {
+			defer buf.Release()
+			tj := *j
+			tj.Source, tj.Meta = buf, tm
+			j, meta, p, fromThumb = &tj, tm, tp, true
+		}
+	}
 	var res *Result
 	err = vips.Run(ctx, func() error {
 		var a vips.Arena
 		defer a.Close()
-		r := &runner{e: e, j: j, req: req, a: &a, plan: p, meta: meta, transparent: transparent}
+		r := &runner{e: e, j: j, req: req, a: &a, plan: p, meta: meta, transparent: transparent, skipped: skipped}
 		if isRaw {
 			if err := r.planRaw(ctx); err != nil {
 				return err
@@ -181,6 +213,7 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 			Skipped:     r.skipped,
 			Best:        out.Best,
 			RawPath:     r.rawPath,
+			Thumbnail:   fromThumb || r.plan.Load.Thumbnail,
 		}
 		if t.Animated && animatable(out.Format) {
 			res.Frames = img.Pages()

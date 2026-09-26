@@ -16,12 +16,77 @@ import (
 func (r *runner) replanPage(w, h int) error {
 	meta := r.meta
 	meta.Width, meta.Height, meta.PageHeight, meta.Selection = w, h, 0, true
+	if r.stackAlpha {
+		meta.HasAlpha = true // transparent gaps beside narrower pages
+	}
 	p, err := plan.Build(r.req, meta, r.e.cfg.Limits)
 	if err != nil {
 		return err
 	}
 	r.meta, r.plan = meta, p
 	return nil
+}
+
+// loadStack loads ls.NPages pages from ls.Page on one at a time and stacks
+// them vertically, left-aligned (imgproxy Pro `pages`). Raster loaders
+// refuse to load pages of different sizes as one strip (tiffload: "page 1
+// differs from page 0"), so the pages are joined here. When the pages differ
+// in width, band count or alpha they are brought to a common shape first:
+// sRGB when the band counts differ, and an alpha band on every page when the
+// widths differ or any page has alpha, so the gaps beside narrower pages are
+// transparent and the plan flattens them like any alpha (stackAlpha).
+func (r *runner) loadStack(ctx context.Context, ls *plan.LoadStep) (*vips.Image, error) {
+	one := *ls
+	one.NPages = 1
+	pages := make([]*vips.Image, 0, ls.NPages)
+	for i := range ls.NPages {
+		if err := ctxErr(ctx); err != nil {
+			return nil, err
+		}
+		one.Page = ls.Page + i
+		p, err := r.a.Add(vips.Load(ctx, r.j.Source, r.loadOptions(&one, nil)))
+		if err != nil {
+			return nil, err
+		}
+		pages = append(pages, p)
+	}
+	w, bands := 0, pages[0].Bands()
+	var varying, mixed, alpha bool
+	for _, p := range pages {
+		varying = varying || (w > 0 && p.Width() != w)
+		w = max(w, p.Width())
+		mixed = mixed || p.Bands() != bands
+		alpha = alpha || p.HasAlpha()
+	}
+	var out *vips.Image
+	for _, p := range pages {
+		var err error
+		if mixed && p.Interpretation() != vips.InterpretationSRGB {
+			if p, err = r.a.Add(p.Colourspace(ctx, vips.InterpretationSRGB)); err != nil {
+				return nil, err
+			}
+		}
+		if (varying || alpha) && !p.HasAlpha() {
+			if p, err = r.a.Add(p.AddAlpha(ctx)); err != nil {
+				return nil, err
+			}
+		}
+		if p.Width() < w {
+			// Transparent on the right: the alpha band is 0 there.
+			if p, err = r.a.Add(p.Embed(ctx, 0, 0, w, p.Height(), vips.ExtendBlack, nil)); err != nil {
+				return nil, err
+			}
+		}
+		// vips_arrayjoin would give every page the tallest page's height:
+		// join the equally wide pages one below the other instead.
+		if out == nil {
+			out = p
+		} else if out, err = r.a.Add(out.Join(ctx, p, vips.DirectionVertical)); err != nil {
+			return nil, err
+		}
+	}
+	r.stackAlpha = (varying || alpha) && !r.meta.HasAlpha
+	return out, nil
 }
 
 // measureSelection sizes the page selection of a vector source before it is
