@@ -4,8 +4,9 @@ Every file under `testdata/` is dedicated to the public domain under
 [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). All of it is original to this
 repository except the `golden/exec/raw-{cr2,cr3,nef,arw,dng,raf}*.png` goldens, which are
 downscaled renders of the CC0 camera samples listed at the end (third-party photographs, public
-domain). There is no attribution or share-alike obligation (ADR 0006: no GPL or CC-BY-SA
-fixtures).
+domain), the three detection photos in `fixtures/detect/` (public domain or CC0, listed in
+"Detection photos") and the YOLOX functions copied into `detect/reference.py` (Apache-2.0).
+There is no attribution or share-alike obligation (ADR 0006: no GPL or CC-BY-SA fixtures).
 
 The pixels come from `testdata/gen/main.go` (procedural landscape "photo" with value-noise
 terrain, clouds, a sun, lake reflection, Gaussian sensor noise and a caption, plus a flat-colour
@@ -51,6 +52,22 @@ generated from the public-domain X11 "fixed" font).
 | `ssim/*.png` | `gen ssim-refs` (Go only: greyscale photo plus mean shift, contrast stretch, impulse noise, Gaussian blur σ 1.5, stdlib JPEG q15) | CC0 |
 | `fixtures/dng/landscape.dng`, `fixtures/dng/portrait-orientation-6.dng` | `gen dng` (own DNG writer; the preview is Go `image/jpeg` q85 of the photo, the mosaic is the photo sampled as linear RGGB) | CC0 |
 | `golden/**` | written by tests with `GOLDEN_UPDATE=1` from the fixtures above and the RAW samples below | CC0 |
+| `detect/expected.json`, `info/detect-*.json` | written by `detect/reference.py` and by tests from the detection photos below | CC0 |
+| `detect/reference.py` | ours, plus the YOLOX demo pre/post-processing functions copied from Megvii's YOLOX (Apache-2.0, see NOTICE) | CC0 / Apache-2.0 |
+
+## Detection photos (committed, third-party, public domain)
+
+Face and object detection (WP-71) needs real photographs: synthetic scenes do not exercise a
+trained detector. These three come from Wikimedia Commons, where each is marked public domain
+(US federal government work) or CC0; they were downloaded as the 960 px Commons thumbnails on
+2026-09-26 and re-encoded by `vips thumbnail 640` + `jpegsave Q82 --keep none` (no metadata).
+No attribution is required; the authors are listed as a courtesy.
+
+| File | Source | Author | Licence | SHA-256 |
+|---|---|---|---|---|
+| `fixtures/detect/apollo11-crew.jpg` | [File:Apollo 11 Crew.jpg](https://commons.wikimedia.org/wiki/File:Apollo_11_Crew.jpg) (NASA, 1969) | NASA | Public domain (NASA) | `f95f2b8dcbbd79d4635a823a7e4425511036fc34f68902eea2ac068b20b51965` |
+| `fixtures/detect/astronaut-dogs.jpg` | [File:NASA astronaut Leland D. Melvin with his dogs Jake and Scout.jpg](https://commons.wikimedia.org/wiki/File:NASA_astronaut_Leland_D._Melvin_with_his_dogs_Jake_and_Scout.jpg) (2009) | Robert Markowitz, NASA | Public domain (NASA) | `5d02c6afa3e401bb8a6e1fa677e47e38645a5c1923717a6212b55fa297000551` |
+| `fixtures/detect/cat-laptop.jpg` | [File:Cat on laptop yawning.jpg](https://commons.wikimedia.org/wiki/File:Cat_on_laptop_yawning.jpg) (from Pixabay, 2014) | acebrand | CC0 1.0 | `256422d01e8bbd8e91650cb0015bfec79043a8c9eb3f3ce386a67fe31ce23a71` |
 
 ## Downloaded camera RAW samples (not committed)
 

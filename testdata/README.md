@@ -18,6 +18,7 @@ testdata/
   urls/imgproxy-builder.json  cross-language fixture of the TypeScript URL builder: cases derived
                         from the imgproxy golden tables, URLs built by packages/image-url, parsed
                         back by internal/dialect/imgproxy (task ts:fixtures regenerates it)
+  detect/               expected detections on fixtures/detect (expected.json) and the script that made them
   gen/                  generator: main.go (Go), gen.sh (driver), logo.svg
   LICENSES.md           origin and licence of every file
 ```
@@ -54,6 +55,26 @@ testdata/
 | `hdr/scene.hdr`, `hdr/rgbe.hdr` | Radiance 96x64, 48x32 | the same scene as RGBE, `#?RADIANCE` and `#?RGBE` headers |
 | `pfm/scene.pfm` | PFM 64x48 | the same scene as float RGB |
 | `ppm/photo.ppm` | PPM 96x64 | 8-bit binary P6 photo (not HDR) |
+| `detect/apollo11-crew.jpg`, `detect/astronaut-dogs.jpg`, `detect/cat-laptop.jpg` | JPEG 640 px wide | real photographs (public domain / CC0, `LICENSES.md` "Detection photos") for face and object detection (WP-71): three faces and three people; a face, a person and two dogs; a cat on a laptop. Expected boxes: `detect/expected.json` |
+
+### Detection expectations
+
+`detect/expected.json` holds the detections of the reference implementations on the
+`fixtures/detect/` photos: OpenCV's `cv2.FaceDetectorYN` (YuNet, score ≥ 0.6, NMS 0.3) and the
+official YOLOX ONNXRuntime demo post-processing (class-aware NMS 0.45; objects with score ≥ 0.5
+kept). `internal/detect` must find each of them with IoU ≥ 0.5 (ROADMAP WP-71). Regenerate it
+with `detect/reference.py` after changing a photo or a model (it prints the raw JSON; the
+committed file keeps the objects with score ≥ 0.5):
+
+```sh
+docker run --rm -v "$PWD:/w" -w /w python:3.12-slim sh -c \
+  'pip install -q onnxruntime==1.23.2 opencv-python-headless numpy &&
+   python testdata/detect/reference.py <yunet.onnx> <yolox_s.onnx> testdata/fixtures/detect/*.jpg'
+```
+
+The models are the ones in the `full` base image (`/usr/share/xtandard/models`). The last run
+used onnxruntime 1.23.2, OpenCV 5.0.0 and NumPy 2.5.3. The left dog in `astronaut-dogs.jpg` is
+reported as a horse by YOLOX-s; the expectation records what the model says.
 
 ### Camera RAW samples (downloaded)
 

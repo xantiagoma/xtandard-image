@@ -75,8 +75,11 @@ func TestProbeFixtures(t *testing.T) {
 		"jpeg/metadata-p3.jpg": with(still(codec.FormatJPEG, 120, 160), func(m *codec.ImageMeta) {
 			m.Orientation, m.HasICC = 6, true
 		}),
-		"png/bordered.png":  still(codec.FormatPNG, 80, 60),
-		"dng/landscape.dng": still(codec.FormatRAW, 192, 128),
+		"png/bordered.png":          still(codec.FormatPNG, 80, 60),
+		"detect/apollo11-crew.jpg":  still(codec.FormatJPEG, 640, 503),
+		"detect/astronaut-dogs.jpg": still(codec.FormatJPEG, 640, 512),
+		"detect/cat-laptop.jpg":     still(codec.FormatJPEG, 640, 419),
+		"dng/landscape.dng":         still(codec.FormatRAW, 192, 128),
 		"dng/portrait-orientation-6.dng": with(still(codec.FormatRAW, 192, 128), func(m *codec.ImageMeta) {
 			m.Orientation = 6
 		}),
