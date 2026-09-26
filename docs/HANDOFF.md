@@ -21,12 +21,14 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   needsRebase). Lesson: an agent that pushes to a stack branch must `git fetch` right before
   checking it out, otherwise it force-pushes a tip based on a stale chain (happened once; repaired
   with `git rebase --onto <parent tip> <branch>~<own commits> <branch>` per branch).
-- **Merging needs the owner:** the session's permission classifier denies `gh stack merge` /
-  `gh pr merge`; the owner ran `gh stack merge <top> --yes --merge` for M3 (893b191).
-- **Remaining (2026-09-28):** WP-75/76 in progress on `m3/wp-75-76-video-out` (tiles, animation,
-  GIF→WebM/MP4; H.264 via libx264 only in `gpl`; rebase it onto `main`), then a final verification
-  of `main` and the first prerelease tag (`docs/RELEASE.md`; the GitHub workflows are disabled by
-  the owner, so the tag's release workflow must be re-enabled first).
+- **Merging:** the session's permission classifier denied `gh stack merge` once; the owner then
+  granted merge permission explicitly in chat and the orchestrator ran `gh stack merge 92 --yes
+  --merge` (893b191) and `gh pr merge` for later PRs.
+- **Remaining (2026-09-28):** PR #93 (`m3/wp-75-76-video-out`: tiles, animation, GIF→WebM/MP4/HEVC;
+  already rebased onto `main` by hand, host tests green) needs a container verification on top of
+  the post-merge PR (#94) and then the merge; then the first prerelease tag (`docs/RELEASE.md`; the
+  GitHub workflows are disabled by the owner: build locally and `gh release create`, or ask the
+  owner to re-enable `release.yml`).
 - **Adoption recipe:** `scripts/stack/adopt2.sh - <branch> <n> "<title>" <body.md>`; on `MANUAL:` fix
   the file by hand (keep both sides for docs; README status matrix: take the most advanced status
   per row), `git add`, then loop `resolve.sh` + `GIT_EDITOR=true git rebase --continue`, then
