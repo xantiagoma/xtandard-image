@@ -143,3 +143,21 @@ func TestOrientation(t *testing.T) {
 		t.Errorf("Meta.Orientation() = %d, want 6", m.Orientation())
 	}
 }
+
+func TestSettingsRequest(t *testing.T) {
+	t.Parallel()
+	s := video.Settings{Enabled: true, Second: new(1.0), Keyframes: true, Samples: 3, Span: time.Second, Limits: video.Limits{MaxPixels: 9}}
+	got := s.Request(nil, nil, 10, 20)
+	want := video.FrameRequest{Second: new(1.0), Keyframes: true, Samples: 3, Span: time.Second, Width: 10, Height: 20, Limits: video.Limits{MaxPixels: 9}}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("defaults (-want +got):\n%s", diff)
+	}
+	got = s.Request(new(-2.0), new(false), 0, 0)
+	if *got.Second != -2 || got.Keyframes || got.Width != 0 {
+		t.Errorf("overrides: %+v", got)
+	}
+	best := video.Settings{}
+	if r := best.Request(nil, nil, 0, 0); r.Second != nil {
+		t.Errorf("best frame: %+v", r)
+	}
+}

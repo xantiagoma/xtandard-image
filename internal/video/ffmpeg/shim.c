@@ -254,9 +254,19 @@ xi_ff_open(XiFF *h, char *err, size_t errlen)
     return xi_ff_code(h, ret);
   }
 
+  // Container headers (MP4 track headers, Matroska PixelWidth) usually
+  // carry the frame size: refuse oversized streams before decoding anything.
+  unsigned n = h->fmt->nb_streams;
+  for (unsigned i = 0; max_pixels > 0 && i < n; i++) {
+    const AVCodecParameters *par = h->fmt->streams[i]->codecpar;
+    if (par->codec_type == AVMEDIA_TYPE_VIDEO && (int64_t)par->width * par->height > max_pixels) {
+      xi_ff_set_err(err, errlen, "frame exceeds the pixel limit", 0);
+      return XI_FF_ERR_LIMIT;
+    }
+  }
+
   // Stream parameters: every decoder the probe opens runs single-threaded
   // and refuses frames over the pixel limit.
-  unsigned n = h->fmt->nb_streams;
   AVDictionary **sopts = n ? av_calloc(n, sizeof(*sopts)) : NULL;
   if (n && !sopts) {
     return XI_FF_ERR_NOMEM;

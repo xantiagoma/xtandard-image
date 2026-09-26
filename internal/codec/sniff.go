@@ -29,6 +29,7 @@ const (
 	magicEXR     = "v/1\x01"
 	magicRad     = "#?RADIANCE"
 	magicRGBE    = "#?RGBE"
+	magicEBML    = "\x1a\x45\xdf\xa3"
 )
 
 // has reports whether b starts with s, without allocating.
@@ -85,6 +86,12 @@ func sniff(b []byte) Format {
 		return FormatTIFF
 	case len(b) >= 8 && string(b[4:8]) == "ftyp":
 		return sniffISOBMFF(b)
+	case len(b) >= 12 && string(b[:4]) == "RIFF" && string(b[8:12]) == "AVI ":
+		return FormatAVI
+	case has(b, magicEBML):
+		return sniffMatroska(b)
+	case isQuickTime(b):
+		return FormatMOV
 	case isRAW(b):
 		return FormatRAW
 	case bmp.Sniff(b):
@@ -146,7 +153,47 @@ func sniffISOBMFF(b []byte) Format {
 	if generic {
 		return FormatHEIF
 	}
-	return FormatUnknown
+	// No image brand: an MP4-family video (isom, mp41, mp42, avc1, av01,
+	// dash, 3gp*, M4V, ...), or QuickTime.
+	if string(b[8:12]) == "qt  " {
+		return FormatMOV
+	}
+	return FormatMP4
+}
+
+// isQuickTime recognises a QuickTime movie without an ftyp box (older
+// files): a leading moov, mdat, wide, free, skip or pnot atom with a
+// plausible size (8 bytes or more, or 0/1 for "to the end"/64-bit).
+func isQuickTime(b []byte) bool {
+	if len(b) < 8 {
+		return false
+	}
+	switch string(b[4:8]) {
+	case "moov", "mdat", "wide", "free", "skip", "pnot":
+	default:
+		return false
+	}
+	size := binary.BigEndian.Uint32(b)
+	return size == 0 || size == 1 || size >= 8
+}
+
+// sniffMatroska tells WebM from other Matroska files by the DocType
+// element (ID 0x4282) of the EBML header that starts b. Only the header's
+// first 64 bytes are read.
+func sniffMatroska(b []byte) Format {
+	head := b[:min(len(b), 64)]
+	i := bytes.Index(head, []byte{0x42, 0x82})
+	if i < 0 || i+3 > len(head) {
+		return FormatMKV
+	}
+	n := int(head[i+2] &^ 0x80) // a one-byte EBML size (0x80 | length)
+	if head[i+2]&0x80 == 0 || i+3+n > len(head) {
+		return FormatMKV
+	}
+	if string(head[i+3:i+3+n]) == "webm" {
+		return FormatWebM
+	}
+	return FormatMKV
 }
 
 func isGenericHEIFBrand(br string) bool {

@@ -2,6 +2,7 @@ package codec
 
 import (
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/video"
 )
 
 // ColorSpace is the colour space of the decoded pixels as the loader reports
@@ -82,6 +83,11 @@ type ImageMeta struct {
 	// origin disagrees with the sniffed format. It is only a warning: the
 	// declared type is never trusted for detection.
 	ContentTypeMismatch bool
+	// Video describes a video source (Format.IsVideo): container, streams
+	// and the video stream thumbnails are decoded from. Width and Height
+	// are then its display size (sample aspect ratio applied, before
+	// rotation) and Orientation its display matrix; nil for images.
+	Video *video.Meta
 }
 
 // Pixels returns Width × Height × Frames, the pixels a full decode of every
@@ -123,6 +129,9 @@ type Limits struct {
 	// instead of letting ImageMagick flatten the layers
 	// (XI_FORMATS_PSD_REQUIRE_COMPOSITE, off by default).
 	PSDRequireComposite bool
+	// Video configures video sources (XI_VIDEO_*): disabled in the zero
+	// value, so video sources are refused unless the caller enables them.
+	Video video.Settings
 }
 
 // DefaultLimits returns the XI_LIMITS_* defaults of docs/CONFIG.md.
