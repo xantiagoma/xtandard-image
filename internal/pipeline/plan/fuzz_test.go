@@ -22,6 +22,7 @@ func FuzzBuild(f *testing.F) {
 	f.Add(200, 150, 5, 1, uint8(3), true, uint8(3), 120, 120, 0.5, uint8(10), 0.3, 0.7, 1.5, 0.5, 2.0, false, true, false, 5, 0, 270, 2, 0, uint8(1), 100)
 	f.Add(300, 200, 1, 8, uint8(4), false, uint8(4), 0, 90, 0.25, uint8(12), 0.9, 0.1, 3.0, 2.0, 0.5, true, false, true, 0, 0, 180, 1, 0, uint8(2), 50)
 	f.Add(1, 1, 1, 5, uint8(1), false, uint8(5), 1, 1, 1.0, uint8(8), -1e9, 1e9, 1e-9, 1e9, 1e300, true, true, true, 1<<20, 1<<30, 90, 3, 1, uint8(0), 1)
+	f.Add(1000, 600, 1, 6, uint8(0), false, uint8(2), 200, 200, 400.0, uint8(10), 800.0, 150.0, 1.0, 1.0, 1.0, false, false, false, 7, 3, 90, 1, 0, uint8(2), 0)
 	f.Fuzz(func(t *testing.T, w, h, frames, orient int, format uint8, animated bool, rt uint8, rw, rh int,
 		crop float64, grav uint8, gx, gy, dpr, zoomX, zoomY float64, enlarge, extend, exar bool,
 		pad, minW, rotate, flip, mrd int, trim uint8, budget int,
@@ -54,6 +55,16 @@ func FuzzBuild(f *testing.F) {
 		}
 		if trim%3 == 1 {
 			p.Trim = &transform.Trim{Threshold: 10}
+		}
+		if trim%3 == 2 {
+			// A pixel focus anywhere, even outside the source.
+			x, y := int(min(math.Abs(gx), 1e7)), int(min(math.Abs(gy), 1e7))
+			if g, ok := transform.FocusFromPixels(x, y, x+pad%100, y+minW%100); ok {
+				p.Gravity = g
+				if p.Crop != nil {
+					p.Crop.Gravity = g
+				}
+			}
 		}
 		r := req(p)
 		r.Limits.MaxResultDimension = mrd

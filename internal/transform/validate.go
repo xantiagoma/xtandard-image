@@ -173,12 +173,18 @@ func (v *validator) dim(field string, d Dim) {
 	}
 }
 
-func (v *validator) gravity(field string, g *Gravity, allowDetection bool) {
+// gravity checks g. crop is set for the gravities that place a crop
+// (Pipeline.Gravity, Crop.Gravity): only they accept content-aware types
+// and a pixel focus.
+func (v *validator) gravity(field string, g *Gravity, crop bool) {
 	switch {
 	case !validEnum(g.Type, numGravityTypes):
 		v.fail(field+".type", "unknown value")
-	case !allowDetection && g.Type.IsDetection():
+	case !crop && g.Type.IsDetection():
 		v.fail(field+".type", "content-aware gravity not allowed here")
+	}
+	if r := g.FocusPx; r != nil {
+		v.focusPx(field+".focus_px", g, r, crop)
 	}
 	v.floatRange(field+".x_offset", g.XOffset, -MaxDimension, MaxDimension)
 	v.floatRange(field+".y_offset", g.YOffset, -MaxDimension, MaxDimension)
@@ -203,6 +209,21 @@ func (v *validator) gravity(field string, g *Gravity, allowDetection bool) {
 		v.floatRange(field+".objects_position.x", op.X, -MaxDimension, MaxDimension)
 		v.floatRange(field+".objects_position.y", op.Y, -MaxDimension, MaxDimension)
 	}
+}
+
+func (v *validator) focusPx(field string, g *Gravity, r *FocusRect, crop bool) {
+	switch {
+	case !crop:
+		v.fail(field, "pixel focus not allowed here")
+	case g.Type != GravityFocusPoint:
+		v.fail(field, "requires focus-point gravity")
+	case g.FocusX != 0 || g.FocusY != 0:
+		v.fail(field, "focus_x and focus_y must be 0 with a pixel focus")
+	}
+	v.intRange(field+".x1", r.X1, 0, MaxSourceCoord)
+	v.intRange(field+".y1", r.Y1, 0, MaxSourceCoord)
+	v.intRange(field+".x2", r.X2, r.X1, MaxSourceCoord)
+	v.intRange(field+".y2", r.Y2, r.Y1, MaxSourceCoord)
 }
 
 func (v *validator) crop(f string, c *Crop) {

@@ -75,11 +75,16 @@ func (d Dim) IsZero() bool { return d.Px == 0 && d.Rel == 0 }
 
 // Gravity anchors crops, extends and watermarks.
 type Gravity struct {
-	Type      GravityType
-	XOffset   float64 // ≥ 1 absolute px, < 1 relative (imgproxy semantics)
-	YOffset   float64
-	FocusX    float64 // GravityFocusPoint, 0..1
-	FocusY    float64
+	Type    GravityType
+	XOffset float64 // ≥ 1 absolute px, < 1 relative (imgproxy semantics)
+	YOffset float64
+	FocusX  float64 // GravityFocusPoint, 0..1
+	FocusY  float64
+	// FocusPx is a GravityFocusPoint given in source pixels (thumbor
+	// focal, Cloudinary g_xy_center with x_/y_) instead of FocusX/FocusY,
+	// which must then be 0. The planner converts it to fractions of the
+	// source as displayed; see FocusRect and FocusFromPixels.
+	FocusPx   *FocusRect
 	FocusZoom float64 // imgix fp-z, cloudinary z; 0 = none
 	Classes   []string
 	Weights   []float64 // GravityObjectWeighted, parallel to Classes

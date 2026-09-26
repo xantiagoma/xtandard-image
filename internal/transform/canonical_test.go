@@ -69,6 +69,16 @@ func goldenCases() []goldenCase {
 				Gravity: Gravity{Type: GravityFocusPoint, FocusX: 0.25, FocusY: 0.75, FocusZoom: 2},
 			})}
 		}},
+		// WP-86 added Gravity.FocusPx. A nil pointer is a zero field and is
+		// omitted from the encoding, so every key above is unchanged (the
+		// golden file only gained this entry); a pixel focus gets its own
+		// key, distinct from the fractional one at the same place.
+		{"focus_point_pixels", func() Request {
+			return Request{Source: src(img), Pipelines: one(&Pipeline{
+				Resize:  Resize{Type: ResizeFill, Width: Dim{Px: 500}, Height: Dim{Px: 500}},
+				Gravity: Gravity{Type: GravityFocusPoint, FocusPx: &FocusRect{X1: 146, Y1: 206, X2: 279, Y2: 360}},
+			})}
+		}},
 		{"compass_offsets", func() Request {
 			return Request{Source: src(img), Pipelines: one(&Pipeline{
 				Resize:  Resize{Type: ResizeFill, Width: Dim{Px: 100}, Height: Dim{Px: 100}},
