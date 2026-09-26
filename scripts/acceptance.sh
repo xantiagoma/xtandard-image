@@ -53,7 +53,8 @@ hex() { od -An -tx1 -N"$1" /dev/urandom | tr -d ' \n'; }
 XI_ACC_SIGNING_KEY="$(hex 32)"
 XI_ACC_SIGNING_SALT="$(hex 16)"
 XI_ACC_ENCRYPTION_KEY="$(hex 32)"
-export XI_ACC_SIGNING_KEY XI_ACC_SIGNING_SALT XI_ACC_ENCRYPTION_KEY
+XI_ACC_IMGIX_TOKEN="$(hex 16)"
+export XI_ACC_SIGNING_KEY XI_ACC_SIGNING_SALT XI_ACC_ENCRYPTION_KEY XI_ACC_IMGIX_TOKEN
 
 # 0. image ----------------------------------------------------------------------
 if ! docker image inspect "$XI_IMAGE" >/dev/null 2>&1; then
