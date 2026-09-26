@@ -33,20 +33,23 @@ import (
 //     (M3); x_/y_ offset the gravity.
 //   - ar_: w:h or a decimal; z_: zoom for crop and thumb.
 //   - e_: blur[:1..2000] σ = n/20 (like imgix blur), sharpen σ = n/100,
-//     unsharp_mask amount n/100 (M2), pixelate[:n] (default 10),
-//     grayscale/blackwhite/sepia/negate (M2), brightness n × 2.55,
-//     contrast/saturation/gamma/vibrance/red/green/blue 1 + n/100, hue
-//     n × 1.8° (all M2), colorize[:n] with co_ (M2), trim[:tolerance[:color]],
-//     blur_faces/pixelate_faces (M3), blur_region with relative x_/y_/w_/h_
-//     (M2); other known effects are unsupported.
-//   - a_: degrees clockwise (multiples of 90 → Rotate, others → RotateAny,
-//     M2), hflip, vflip, exif, ignore; auto_right/auto_left unsupported.
-//   - b_ background, bo_<n>px_solid_<color> border (M2), r_ radius incl.
-//     max (M2), o_ opacity (M2), co_ colour for colorize.
+//     unsharp_mask amount n/100, pixelate[:n] (default 10),
+//     grayscale/blackwhite/sepia/negate, brightness n × 2.55,
+//     contrast/saturation/gamma/red/green/blue 1 + n/100, hue n × 1.8°,
+//     colorize[:n] with co_, trim[:tolerance[:color]], blur_faces/
+//     pixelate_faces (M3), blur_region with relative x_/y_/w_/h_;
+//     vibrance 1 + n/100 is parsed but not implemented (the planner has no
+//     vibrance step); other known effects are unsupported.
+//   - a_: degrees clockwise (multiples of 90 → Rotate, others →
+//     RotateAny), hflip, vflip, exif, ignore; auto_right/auto_left
+//     unsupported.
+//   - b_ background, bo_<n>px_solid_<color> border, r_ radius incl. max,
+//     o_ opacity, co_ colour for colorize.
 //   - q_<1..100>[:420|422|444], q_auto[:best|good|eco|low] (DSSIM targets
-//     0.005/0.02/0.035/0.05, M2); f_auto (negotiate) or f_<format>;
-//     dpr_<n>|auto; fl_ output/delivery flags; cs_ colour space (M2);
-//     d_ default image (M2); pg_ page (1-based); t_ named
+//     0.005/0.02/0.035/0.05); f_auto (negotiate) or f_<format>;
+//     dpr_<n>, dpr_auto (DPR client hint); fl_ output/delivery flags; cs_
+//     colour profile; d_ default image (Delivery.Fallback, honoured with
+//     XI_FALLBACK_ALLOW_REQUEST_URL); pg_ page (1-based); t_ named
 //     transformations (presets); l_ image overlays → watermarks (M3).
 //   - Unsupported (recorded, or 400 in strict mode): video and audio
 //     parameters, conditions (if_ skips its component or block), variables,
@@ -54,11 +57,11 @@ import (
 
 // Reasons recorded in Request.Ignored.
 const (
-	reasonUnknown      = "unknown option"
-	reasonUnsupported  = "unsupported"
-	reasonApproximated = "approximated"
-	reasonM2           = "takes effect in M2"
-	reasonM3           = "takes effect in M3"
+	reasonUnknown        = "unknown option"
+	reasonUnsupported    = "unsupported"
+	reasonApproximated   = "approximated"
+	reasonNotImplemented = "not implemented"
+	reasonM3             = "takes effect in M3"
 )
 
 // ErrUnsupportedOption is the cause of the strict-mode 400 for a known
@@ -406,9 +409,7 @@ func (a *applier) base(c *component) error {
 		case "r":
 			err = a.radius(pl, p.value)
 		case "o":
-			if err = opacity(&pl.Adjust.Opacity, p.value); err == nil {
-				a.b.Ignore("o", reasonM2)
-			}
+			err = opacity(&pl.Adjust.Opacity, p.value)
 		case "dpr":
 			err = a.dpr(pl, p.value)
 		case "f":
@@ -811,7 +812,6 @@ func (a *applier) crop(pl *transform.Pipeline, g *geo, gr *transform.Gravity) er
 	}
 	if g.ar > 0 {
 		cr.AspectRatio = g.ar
-		a.b.Ignore("ar", reasonM2)
 	}
 	if g.zoom > 0 {
 		cr.Gravity.FocusZoom = g.zoom
@@ -869,7 +869,6 @@ func (a *applier) effect(c *component, pl *transform.Pipeline, v string) error {
 	field := "e_" + name
 	adj := &pl.Adjust
 	var err error
-	m2 := func() { a.b.Ignore(field, reasonM2) }
 	switch name {
 	case "blur":
 		var n int
@@ -885,7 +884,6 @@ func (a *applier) effect(c *component, pl *transform.Pipeline, v string) error {
 		var n int
 		if n, err = effectArg(field, v, 100, 1, 2000); err == nil {
 			pl.Unsharp = &transform.Unsharp{Sigma: 1, Amount: float64(n) / 100}
-			m2()
 		}
 	case "pixelate":
 		var n int
@@ -894,25 +892,20 @@ func (a *applier) effect(c *component, pl *transform.Pipeline, v string) error {
 		}
 	case "grayscale":
 		pl.Grayscale = true
-		m2()
 	case "blackwhite":
 		pl.Grayscale = true
-		m2()
 		err = a.skip(field, reasonApproximated)
 	case "sepia":
 		pl.Sepia = true
-		m2()
 		if strings.Contains(v, ":") {
 			err = a.skip(field, reasonApproximated)
 		}
 	case "negate":
 		pl.Negate = true
-		m2()
 	case "brightness":
 		var n int
 		if n, err = effectArg(field, v, 80, -99, 100); err == nil {
 			adj.Brightness = new(float64(n) * 2.55)
-			m2()
 		}
 	case "contrast":
 		err = a.multiplier(&adj.Contrast, field, v, 0, -100, 100)
@@ -921,7 +914,11 @@ func (a *applier) effect(c *component, pl *transform.Pipeline, v string) error {
 	case "gamma":
 		err = a.multiplier(&adj.Gamma, field, v, 0, -50, 150)
 	case "vibrance":
-		err = a.multiplier(&adj.Vibrance, field, v, 20, -100, 100)
+		// Parsed so the value reaches the cache key, but the planner has no
+		// vibrance step (plan.Unplanned).
+		if err = a.multiplier(&adj.Vibrance, field, v, 20, -100, 100); err == nil {
+			a.b.Ignore(field, reasonNotImplemented)
+		}
 	case "red":
 		err = a.multiplier(&adj.Red, field, v, 0, -100, 100)
 	case "green":
@@ -932,7 +929,6 @@ func (a *applier) effect(c *component, pl *transform.Pipeline, v string) error {
 		var n int
 		if n, err = effectArg(field, v, 80, -100, 100); err == nil {
 			adj.Hue = new(float64(n) * 1.8)
-			m2()
 		}
 	case "colorize":
 		var n int
@@ -946,7 +942,6 @@ func (a *applier) effect(c *component, pl *transform.Pipeline, v string) error {
 			}
 		}
 		pl.Colorize = &transform.Colorize{Opacity: float64(n) / 100, Color: col}
-		m2()
 	case "trim":
 		err = a.trim(pl, v)
 	case "blur_faces":
@@ -980,7 +975,6 @@ func (a *applier) multiplier(dst **float64, field, v string, def, lo, hi int) er
 		return err
 	}
 	*dst = new(1 + float64(n)/100)
-	a.b.Ignore(field, reasonM2)
 	return nil
 }
 
@@ -1035,7 +1029,6 @@ func (a *applier) blurRegion(c *component, pl *transform.Pipeline, v string) err
 	}
 	area := transform.Area{Left: vals[0], Top: vals[1], Width: min(vals[2], 1-vals[0]), Height: min(vals[3], 1-vals[1])}
 	pl.BlurAreas = &transform.BlurAreas{Sigma: sigma, Areas: []transform.Area{area}}
-	a.b.Ignore("e_blur_region", reasonM2)
 	return nil
 }
 
@@ -1069,7 +1062,6 @@ func (a *applier) angle(pl *transform.Pipeline, v string) error {
 				continue
 			}
 			pl.RotateAny += deg
-			a.b.Ignore("a", reasonM2)
 		}
 	}
 	return nil
@@ -1103,14 +1095,12 @@ func (a *applier) border(pl *transform.Pipeline, v string) error {
 		return err
 	}
 	pl.Border = &transform.Border{Top: n, Right: n, Bottom: n, Left: n, Color: c}
-	a.b.Ignore("bo", reasonM2)
 	return nil
 }
 
 // radius is r_<n>, r_<tl/br>:<tr/bl>, r_<tl>:<tr/bl>:<br>, r_<tl>:<tr>:<br>:<bl>
 // or r_max.
 func (a *applier) radius(pl *transform.Pipeline, v string) error {
-	a.b.Ignore("r", reasonM2)
 	if v == "max" {
 		pl.Radius = &transform.Radius{Max: true}
 		return nil
@@ -1260,7 +1250,6 @@ func (a *applier) quality(v string) error {
 		}
 		o.Quality = 0
 		o.AutoQuality = &transform.AutoQuality{Method: transform.AutoQualityDSSIM, Target: t}
-		a.b.Ignore("q_auto", reasonM2)
 		return nil
 	}
 	if strings.HasPrefix(v, "jpegmini") {
@@ -1317,7 +1306,6 @@ func (a *applier) flags(v string) error {
 			d.Immutable = true
 		case "png8":
 			o.PNG = &transform.PNGOptions{Quantize: new(true), QuantizationColors: 256}
-			a.b.Ignore("fl_png8", reasonM2)
 		case "getinfo":
 			a.r.Kind = transform.KindInfo
 			a.r.Info = &transform.InfoOptions{Size: true, Format: true, Dimensions: true}
@@ -1358,7 +1346,6 @@ func (a *applier) colorSpace(v string) error {
 	default:
 		return a.skip(optionName("cs", v), reasonUnsupported)
 	}
-	a.b.Ignore("cs", reasonM2)
 	return nil
 }
 
@@ -1373,7 +1360,6 @@ func (a *applier) defaultImage(v string) error {
 		return dialect.InvalidArgument("d", v, "public id")
 	}
 	a.r.Delivery.Fallback = &transform.SourceSpec{Raw: key, Encoding: transform.SourceRelative, Mount: a.mount}
-	a.b.Ignore("d", reasonM2)
 	return nil
 }
 
