@@ -1,7 +1,10 @@
 package app
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -84,5 +87,50 @@ func TestEncoderConfigAutoQuality(t *testing.T) {
 	}
 	if err := ec.Validate(); err != nil {
 		t.Errorf("mapped config invalid: %v", err)
+	}
+}
+
+// TestBuildRouterRootURL: "/?url=" goes to wsrv when it is enabled, else to
+// query (URL-DIALECTS §1); /wsrv/ is wsrv's own mount (WP-46).
+func TestBuildRouterRootURL(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name   string
+		env    []string
+		target string
+		want   string
+	}{
+		{"wsrv root", []string{"XI_DIALECTS_WSRV_ENABLED=true", "XI_DIALECTS_QUERY_ENABLED=true"}, "/?url=example.com/a.jpg&w=16", "wsrv"},
+		{"wsrv prefix", []string{"XI_DIALECTS_WSRV_ENABLED=true"}, "/wsrv/?url=example.com/a.jpg&w=16", "wsrv"},
+		{"query root", []string{"XI_DIALECTS_QUERY_ENABLED=true"}, "/?url=https://example.com/a.jpg&w=16", "query"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			cfg, _, err := config.Load(config.LoadOptions{
+				Environ:    append([]string{"XI_DEV_MODE=true", "XI_SECURITY_UNSIGNED_POLICY=allow"}, tc.env...),
+				ConfigFile: os.DevNull,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			rt, warnings, err := buildRouter(&cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, w := range warnings {
+				if strings.Contains(w, "wsrv") {
+					t.Errorf("warning %q", w)
+				}
+			}
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, tc.target, http.NoBody)
+			res, m, err := rt.Route(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if m.Dialect != tc.want || res.Request.Dialect != tc.want {
+				t.Errorf("dialect = %q / %q, want %q", m.Dialect, res.Request.Dialect, tc.want)
+			}
+		})
 	}
 }
