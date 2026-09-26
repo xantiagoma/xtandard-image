@@ -42,7 +42,7 @@ Default mounts (all dialects other than imgproxy are disabled until enabled in c
 | query | imaginary-compatible `sign` = base64url-nopad(HMAC-SHA256(key, path ‖ url.Values.Encode() of the query without `sign`)), i.e. keys sorted, no `?` separator | query | imaginary `middleware.go` `validateURLSignature` |
 | imgix | `s` = hex(MD5(token ‖ path ‖ ("?" ‖ query-without-s if any))), token used verbatim; imgix puts `s` last, xi accepts it anywhere (same signed bytes); optional `expires` (unix) | query | https://github.com/imgix/imgix-blueprint#securing-urls |
 | cloudinary | `s--XXXXXXXX--` = first 8 chars of base64url(SHA-1(transformations/…/public_id ‖ api_secret)); 32 chars with SHA-256 "long" signatures | path segment | https://cloudinary.com/documentation/delivery_url_signatures |
-| imagekit | `ik-s` = hex(HMAC-SHA1(private_key, url-relative-to-endpoint ‖ ik-t)), `ik-t` = expiry unix seconds (9999999999 = never) | query | https://imagekit.io/docs/media-delivery-basic-security |
+| imagekit | `ik-s` = hex(HMAC-SHA1(private_key, url-relative-to-endpoint (path ["?" query without ik-s/ik-t]) ‖ ik-t)), `ik-t` = expiry unix seconds; absent = 9999999999, which is signed but not written | query | https://imagekit.io/docs/media-delivery-basic-security |
 | thumbor | HMAC-SHA1(SECURITY_KEY, path-after-signature **without** the leading `/`), URL-safe base64 **with** padding (28 chars, Python `urlsafe_b64encode`); `unsafe` when disabled | first path segment | https://thumbor.readthedocs.io/en/latest/security.html |
 | bunny | token auth: `token` + `expires`; basic = MD5, advanced = SHA-256 of key ‖ path ‖ expires (‖ optional params), base64url | query | https://bunny.net/docs/cdn/security/token-authentication (exact byte layout to be verified against Bunny SDK code in the WP) |
 | cloudflare `/cdn-cgi/image` | none upstream | — | https://developers.cloudflare.com/images/transform-images/transform-via-url/ |
@@ -348,45 +348,66 @@ Grammar: `/<cloud>/<asset_type>/<delivery_type>/[s--SIG--/][<tx>/]*[v<digits>/]<
 
 ## 7. ImageKit
 
-Reference: https://imagekit.io/docs/transformations, https://imagekit.io/docs/media-delivery-basic-security; unpic `imagekit.ts` (defaults `c-maintain_ratio,fo-auto`).
+Reference: https://imagekit.io/docs/transformations, https://imagekit.io/docs/image-resize-and-crop, https://imagekit.io/docs/effects-and-enhancements, https://imagekit.io/docs/media-delivery-basic-security; SDKs `imagekit-javascript` `src/url.ts` (URL builder) and `imagekit-nodejs` `src/resources/helper.ts` (signing); unpic `imagekit.ts` (defaults `c-maintain_ratio,fo-auto`). Implemented in `internal/dialect/imagekit` (WP-42).
 
 ```
 https://ik.example.com/tr:w-400,h-300,fo-auto/path/a.jpg
+https://ik.example.com/path/tr:w-400/a.jpg
 https://ik.example.com/path/a.jpg?tr=w-400,h-300:rt-90&ik-t=1767225600&ik-s=…
 /imagekit/<mount>/tr:w-400/path/a.jpg
 ```
 
-Grammar: `key-value` params, `,` separated; `:` chains steps (→ chained pipelines); `tr:` path segment anywhere before the file, or `tr` query param. `n-<name>` named transform → preset.
+Grammar: the path after the mount is the file path, relative to the mount's bound source. When a host-bound mount keeps the ImageKit URL-endpoint id in the path (`https://ik.imagekit.io/<id>/…`), `imagekit.Options.EndpointPath` (`/<id>`) is stripped first (not yet a config key). Transformations: a `tr:` path segment anywhere before the file name (`:` may be written `%3A`; the segment is percent-decoded), or the `tr` query parameter (query-decoded, so unpic's `%2C` works). Both present: the path wins and the query is recorded in `TR.Ignored` (400 in strict mode); the SDKs never emit both and ImageKit documents no order. More than one `tr:` segment or `tr` parameter is 400. `:` separates chained steps (→ chained pipelines, max 16), `,` separates `key-value` parameters (split on the first `-`; `e-<effect>[-value]` and `l-<layer>` keep their two-part names). Empty steps and parameters are skipped. Request-scoped parameters (`q`, `f`, `pr`, `lo`, `md`, `cp`, `orig`) apply to the whole request, the last occurrence winning. Other query parameters (SDK `queryParameters`, e.g. `?v=2`) become `D.CacheBuster`; `ik-attachment=true` → `D.Attachment`. ImageKit arithmetic expressions (`w-iw_div_2`, `lx-bw_mul_0.5`) are recorded as ignored (strict: 400).
 
 | ImageKit | TR |
 |---|---|
-| `w`, `h` (px, `<1` relative, `auto` client hints) | Width/Height |
-| `ar-4-3` | aspect ratio |
-| `c-maintain_ratio` (default) | Fill + Enlarge |
-| `c-force` / `c-at_max` / `c-at_max_enlarge` / `c-at_least` | Force / Fit / Fit+Enlarge / Outside |
-| `cm-pad_resize` (+ `bg`) | Fit + Extend + Background |
-| `cm-extract` / `cm-pad_extract` | Crop region (no scale) / + Extend |
-| `fo-center|top|left|bottom|right|top_left|…` | Gravity |
-| `fo-auto` | Smart |
-| `fo-face`, `fo-<object>` | Face/Object (M3) |
-| `x`, `y`, `xc`, `yc` | crop offsets / focus point |
-| `z` | FocusZoom |
-| `q` | Quality |
-| `f-auto|jpg|png|webp|avif|gif|jxl` | Format |
-| `lo-true`, `pr-true`, `md-true`, `cp-true` | Lossless, Progressive, keep metadata, keep copyright |
-| `bl-<1..100>` | Blur σ = v/2 |
-| `e-sharpen[-n]`, `e-usm-…`, `e-grayscale`, `e-contrast`, `e-gradient` | Sharpen, Unsharp, Grayscale, Adjust, Gradient (M2) |
-| `rt-<deg>|auto`, `fl-h|v|h_v` | Rotate/RotateAny, Flip |
-| `r-<n>|max` | Radius (M2) |
-| `bg-<hex>` | Background (`bg-blurred`, `bg-dominant` unsupported) |
+| `w`, `h` (integer px, fraction in (0,1) relative) | Resize.Width/Height |
+| `w-auto` | ClientHints.Width (`h-auto` is 400) |
+| `ar-<w>-<h>` (also `_`) | Resize.AspectRatio (ignored with `cm-extract`) |
+| `c-maintain_ratio` (default whenever a size is given) | Fill + Enlarge |
+| `c-maintain_ratio_no_enlarge` | Fill |
+| `c-force` / `c-at_max` / `c-at_max_enlarge` / `c-at_least` | Force+Enlarge / Fit / Fit+Enlarge / Outside+Enlarge |
+| `cm-pad_resize` / `cm-pad_resize_no_enlarge` (+ `bg`) | Fit (+Enlarge) + Extend; `fo-left` etc. place the image (Extend gravity), default centre |
+| `cm-extract` | Crop w×h, no resize; position from `x`,`y` (top-left, px), `xc`,`yc` (centre, px; needs px w and h), else `fo`, else centre |
+| `cm-pad_extract` | Crop + Fit (no enlarge) + Extend to w×h |
+| `fo-center|top|left|bottom|right|top_left|top_right|bottom_left|bottom_right` | compass Gravity |
+| `fo-auto`, `fo-auto-custom_override` | Smart |
+| `fo-face`, `fo-faces` | Face (M3) |
+| `fo-<object>` (`car`, `truck_car_train`) | Object, Classes = [value] (M3) |
+| `fo-custom` | Unsupported (per-file crop area stored in ImageKit) |
+| `z` (with face/object focus) | FocusZoom |
+| `q` (1–100) | Quality |
+| `f-auto`, `f-orig` | Format unset (negotiated / source) |
+| `f-jpg|jpeg|png|webp|avif|gif|jxl` | Format; `f-mp4|webm` M3; `f-svg` unsupported |
+| `pr-true|false`, `lo-true|false` | Progressive, Lossless |
+| `md-true|false` | StripMetadata = false / true (keep metadata) |
+| `cp-true|false` | StripColorProfile = false / true (colour profile; not copyright) |
+| `orig-true` | Kind raw |
+| `dpr` (0.1–5), `dpr-auto` | Resize.DPR / ClientHints.DPR |
+| `bl-<1..100>` (also unpic's `blur-`) | Blur σ = v/2 |
+| `e-sharpen[-n]` | Sharpen σ = 1 (bare) or 0.5 + n/50 (approximation) |
+| `e-usm-<radius>-<sigma>-<amount>-<threshold>` | Unsharp{Sigma, Amount} (M2); radius, threshold dropped |
+| `e-grayscale` | Grayscale (M2) |
+| `e-contrast` (auto contrast stretch) | Equalize (M2) |
+| `r-<n>`, `r-<tl>_<tr>_<br>_<bl>`, `r-max` | Radius (M2) |
 | `b-<w>_<color>` | Border (M2) |
-| `dpr` | DPR |
-| `t-true|<threshold>` | Trim |
-| `di-<path>` | Fallback |
-| `orig-true` | Raw |
-| `l-image`, `l-text`, `i-`, `lx`, `ly`, `lfo`, `l-end` | Watermarks (M3) |
-| `e-bgremove`, `e-removedotbg`, `e-upscale`, `e-genvar`, `e-dropshadow`, `e-shadow`, `e-retouch`, `l-video`, `lm-*` | Unsupported |
+| `bg-<RRGGBB|RRGGBBAA|RGB|css name>` | Background |
+| `bg-blurred[_…]` | Extend.Mode = blur (M3); `bg-dominant`, `bg-gradient…`, `bg-genfill…` unsupported |
+| `rt-<deg>`, `rt-N<deg>` | Rotate (multiples of 90), else RotateAny (M2) |
+| `rt-auto` | AutoRotate |
+| `fl-h|v|h_v` | Flip |
+| `t-true|<1..99>` | Trim threshold 10 / n |
+| `o-<0..100>` | Adjust.Opacity (M2) |
+| `n-<name>` | preset `<name>` expanded in place (named transformation) |
+| `di-<path>` (`@@` = `/`) | Fallback, relative to the mount source (M2) |
+| `pg-<n>`, `pg-<a>_<b>` | Page (1-based) / Pages (M2) |
+| `l-image,i-<path>|ie-<b64>,lx,ly,lfo,w,h,o,…,l-end` | Watermark from the mount source: `lx`/`ly` offsets from top-left (`N` = from right/bottom), else `lfo` compass, else centre; `w`/`h` px size; `o` opacity (M3) |
+| `l-text,i-<text>|ie-<b64>,fs,ff,co,…,l-end` | Text watermark (escaped for Pango), Font = `ff fs`, Color (M3) |
+| `l-image,i-ik_canvas`, `l-video`, `l-subtitles`, nested layers, in-layer transformations, `lxc`, `lyc`, `lap`, `lm` | Unsupported |
+| `e-bgremove`, `e-removedotbg`, `e-upscale`, `e-retouch`, `e-genvar`, `e-dropshadow`, `e-shadow`, `e-gradient`, `e-changebg`, `e-edit`, `e-distort`, `e-colorize`, `cr`, `dn`, video `vc`,`ac`,`so`,`eo`,`du`,`sr` | Unsupported |
 | `ik-s`, `ik-t` | signature, Expires |
+
+Signing (imagekit-nodejs `getSignature`): `ik-s` = hex(HMAC-SHA1(private key, path-relative-to-endpoint ‖ ["?" query without `ik-s`/`ik-t`] ‖ expiry)), expiry = the `ik-t` value or `9999999999` when absent (the SDK signs but does not write it). The private key is used as written (`XI_DIALECTS_IMAGEKIT_KEYS`, one list per mount). An `ik-t` in the past is 404 (`KindExpired`), checked after the signature.
 
 ## 8. Cloudflare Images (`/cdn-cgi/image/`)
 
