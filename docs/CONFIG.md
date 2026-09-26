@@ -206,6 +206,8 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_FORMATS_STRICT_ACCEPT` | `false` | 406 when nothing acceptable |
 | `XI_FORMATS_PREFERRED` | `jpeg,png,gif` | Fallback order for unencodable sources |
 | `XI_FORMATS_SVG_PASSTHROUGH` | `true` | |
+| `XI_FORMATS_PDF_DPI` | `72` | Resolution of a PDF page's natural size (1–1200; 72 = one pixel per point). Resized pages render directly at the target size |
+| `XI_FORMATS_PSD_REQUIRE_COMPOSITE` | `false` | Refuse (422) PSD/PSB files saved without a merged composite ("Maximize compatibility" off) instead of letting ImageMagick flatten the layers |
 | `XI_FORMATS_SKIP_PROCESSING` | `` | Source formats streamed unmodified (imgproxy `IMGPROXY_SKIP_PROCESSING_FORMATS`) |
 | `XI_CLIENT_HINTS_ENABLED` | `false` | Honour DPR/Width/Viewport-Width/Save-Data hints on every request when the URL leaves the value unset (imgproxy `IMGPROXY_ENABLE_CLIENT_HINTS`); URL opt-ins (`ch=`, `w_auto`, `width=auto`) work regardless. Image responses then carry `Accept-CH: Sec-CH-DPR, Sec-CH-Width, Sec-CH-Viewport-Width, ECT` and a `Vary` listing only the hint names that decided the result. Unsigned requests on a `restricted` mount get only Save-Data (a hinted width/DPR would bypass the allowlists). Semantics and imgproxy parity: URL-DIALECTS.md §3.5 |
 | `XI_CLIENT_HINTS_CRITICAL_CH` | `false` | Also send `Critical-CH: Sec-CH-DPR, Sec-CH-Width, Sec-CH-Viewport-Width` (browsers honour it on navigations only) |
@@ -227,7 +229,7 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_LIMITS_MAX_SVG_BYTES` | `5MiB` | |
 | `XI_LIMITS_MAX_SVG_DEPTH` | `256` | SVG sanitiser nesting limit |
 | `XI_LIMITS_MAX_SVG_ELEMENTS` | `200000` | SVG sanitiser element limit |
-| `XI_LIMITS_MAX_PDF_PAGES` | `500` | |
+| `XI_LIMITS_MAX_PDF_PAGES` | `500` | Pages a PDF may have; checked when the header is read, before any page renders (422) |
 | `XI_VIPS_CONCURRENCY` | `1` | libvips threads per image; change only with benchmarks |
 | `XI_VIPS_FAIL_ON` | `warning` | |
 

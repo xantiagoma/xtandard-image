@@ -3,8 +3,8 @@
 #
 # Requirements (tools only; nothing they ship ends up in the fixtures except
 # the pixels we feed them): Go 1.27, libvips >= 8.18 with heif/jxl/jp2k/uhdr
-# savers, ImageMagick 7 (`magick`), and macOS `sips` for HEIC (Apple's HEVC
-# encoder, so no x265/GPL encoder is involved).
+# savers, ImageMagick 7 (`magick`), qpdf (PDF encryption), and macOS `sips`
+# for HEIC (Apple's HEVC encoder, so no x265/GPL encoder is involved).
 #
 #   sh testdata/gen/gen.sh
 #
@@ -20,7 +20,8 @@ gen() { go run ./testdata/gen "$@"; }
 
 rm -rf "$F" testdata/ssim
 mkdir -p "$F"/jpeg "$F"/png "$F"/gif "$F"/webp "$F"/avif "$F"/heic "$F"/jxl \
-	"$F"/tiff "$F"/bmp "$F"/ico "$F"/svg "$F"/jp2 "$F"/uhdr "$F"/watermark
+	"$F"/tiff "$F"/bmp "$F"/ico "$F"/svg "$F"/jp2 "$F"/uhdr "$F"/watermark \
+	"$F"/pdf "$F"/psd
 
 # Masters (not committed).
 gen photo 320 240 "$T/photo.png"
@@ -86,6 +87,18 @@ cp testdata/gen/logo.svg "$F/svg/logo.svg"
 vips colourspace "$T/photo.png" "$T/lin.v" scrgb
 vips linear "$T/lin.v" "$T/hdr.v" 2.5 0
 vips uhdrsave "$T/hdr.v" "$F/uhdr/photo-ultrahdr.jpg" --Q 80
+
+# PDF: three pages written by hand (vector, embedded photo, vector), and the
+# same file encrypted with a user password by qpdf (Apache-2.0).
+gen pdf "$F/pdf/pages.pdf"
+qpdf --encrypt --user-password=secret --owner-password=owner --bits=256 -- \
+	"$F/pdf/pages.pdf" "$F/pdf/password.pdf"
+
+# PSD/PSB written by hand: two layers with the merged composite, PSB, and
+# the PSD saved without a composite ("Maximize compatibility" off).
+gen psd "$F/psd/layered.psd"
+gen psb "$F/psd/psb-layered.psb"
+gen psd-nocomposite "$F/psd/no-composite.psd"
 
 # SSIM reference set for internal/testutil/ssim.
 gen ssim-refs testdata/ssim

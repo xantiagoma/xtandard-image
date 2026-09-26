@@ -45,7 +45,7 @@ func main() {
 
 func run(args []string) error {
 	if len(args) < 2 {
-		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|gif|gif-anim|ico-png|ico-bmp|exif6|metadata|bordered|ssim-refs> args...")
+		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|gif|gif-anim|ico-png|ico-bmp|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb> args...")
 	}
 	sizeArgs := func() (int, int, string, error) {
 		if len(args) != 4 {
@@ -110,6 +110,14 @@ func run(args []string) error {
 		return writePNG(args[7], bordered(v[0], v[1], v[2], v[3], v[4], v[5]))
 	case "ssim-refs":
 		return ssimRefs(args[1])
+	case "pdf":
+		return writePDF(args[1])
+	case "psd":
+		return writePSD(args[1], false, true)
+	case "psd-nocomposite":
+		return writePSD(args[1], false, false)
+	case "psb":
+		return writePSD(args[1], true, true)
 	default:
 		return fmt.Errorf("unknown subcommand %q", args[0])
 	}
