@@ -33,6 +33,13 @@ gen graphic 96 72 "$T/graphic.png"
 vips rot "$T/photo.png" "$T/photo-rot.png" d270
 vips jpegsave "$T/photo-rot.png" "$T/rot.jpg" --Q 85 --keep icc --profile srgb
 gen exif6 "$T/rot.jpg" "$F/jpeg/exif-orientation-6-icc.jpg"
+# JPEG with every metadata kind for the metadata policy tests: Display P3 ICC
+# (libvips' built-in CC0 compact profile), Exif with orientation 6 (pixels
+# stored rotated), Artist, Copyright and GPS, XMP with GPS, IPTC copyright.
+vips rot "$T/photo-small.png" "$T/small-rot.png" d270
+vips icc_transform "$T/small-rot.png" "$T/p3.v" p3 --input-profile srgb
+vips jpegsave "$T/p3.v" "$T/p3.jpg" --Q 85 --keep icc
+gen metadata "$T/p3.jpg" "$F/jpeg/metadata-p3.jpg"
 vips jpegsave "$T/photo.png" "$F/jpeg/progressive.jpg" --Q 80 --interlace --keep none
 vips jpegsave "$T/photo.png" "$F/jpeg/baseline.jpg" --Q 90 --keep none
 
@@ -40,6 +47,8 @@ vips jpegsave "$T/photo.png" "$F/jpeg/baseline.jpg" --Q 90 --keep none
 gen photo-alpha 128 96 "$F/png/rgba8.png"
 gen photo16 96 72 "$F/png/rgb16.png"
 gen palette 96 72 "$F/png/palette.png"
+# PNG: the small photo on white with four different margins (trim).
+gen bordered 56 42 6 20 12 4 "$F/png/bordered.png"
 
 # GIF: static and animated (6 frames).
 gen gif "$F/gif/static.gif"
