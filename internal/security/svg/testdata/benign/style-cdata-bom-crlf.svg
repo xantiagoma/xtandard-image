@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <style type="text/css"><![CDATA[
+    .a { fill: #f00; stroke: url(#p) }
+    .b > .c:hover { opacity: .5 } /* a < b && c */
+    @media (min-width: 10px) { .a { fill: rgba(0,0,0,0.5) } }
+  ]]></style>
+  <defs><pattern id="p" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M0 0L4 4" stroke="#000"/></pattern></defs>
+  <g class="a"><rect width="50" height="50"/><title>Box &amp; line</title></g>
+  <text x="0" y="90" xml:space="preserve">  spaced   <tspan font-weight="bold">bold</tspan> </text>
+</svg>

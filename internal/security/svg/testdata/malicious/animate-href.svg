@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <a href="#x">
+    <set attributeName="href" to="javascript:alert(1)"/>
+    <animate attributeName="xlink:href" values="javascript:alert(2)"/>
+    <animate attributeName=" onclick " to="alert(3)"/>
+    <set attributeName="fill" to="url(https://evil.example/p#p)"/>
+    <animate attributeName="opacity" from="0" to="1" dur="1s"/>
+    <text>x</text>
+  </a>
+</svg>

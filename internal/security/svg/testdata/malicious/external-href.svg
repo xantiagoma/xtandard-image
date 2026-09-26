@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:base="https://evil.example/">
+  <defs><linearGradient id="g"><stop offset="0" stop-color="red"/></linearGradient></defs>
+  <a href="javascript:alert(1)"><text>click</text></a>
+  <a xlink:href=" JavaScript:alert(2)"><text>click</text></a>
+  <image xlink:href="https://evil.example/track.png" width="1" height="1"/>
+  <image href="//evil.example/track.png" width="1" height="1"/>
+  <image href="file:///etc/passwd" width="1" height="1"/>
+  <image href="data:image/png;base64,iVBORw0KGgo=" width="1" height="1"/>
+  <image href="data:image/svg+xml;base64,PHN2Zy8+" width="1" height="1"/>
+  <feImage xlink:href="#g"/>
+  <rect fill="url(#g)" width="1" height="1"/>
+</svg>
