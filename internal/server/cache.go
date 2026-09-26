@@ -161,6 +161,7 @@ func (s *Server) resultFromEntry(r *http.Request, info *requestInfo, j *job, e *
 		Format:      f,
 		Width:       atoiHeader(h, "X-Xi-Result-Width"),
 		Height:      atoiHeader(h, "X-Xi-Result-Height"),
+		Quality:     atoiHeader(h, "X-Xi-Quality"),
 	}
 	info.width, info.height = res.out.Width, res.out.Height
 	return res, nil
@@ -230,6 +231,9 @@ func (s *Server) entryHeader(res *imageResult) http.Header {
 	if res.out.Width > 0 {
 		h.Set("X-Xi-Result-Width", strconv.Itoa(res.out.Width))
 		h.Set("X-Xi-Result-Height", strconv.Itoa(res.out.Height))
+	}
+	if res.out.Quality > 0 {
+		h.Set("X-Xi-Quality", strconv.Itoa(res.out.Quality))
 	}
 	return h
 }
