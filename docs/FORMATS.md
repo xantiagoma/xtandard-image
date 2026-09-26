@@ -108,10 +108,10 @@ Measured on the builder image (arm64 Docker on Apple silicon, 1024 px JPEG outpu
 ## 3. Animation handling
 
 - Loaded as a vertical strip with `page-height`. `XI_LIMITS_MAX_ANIMATION_FRAMES` (default 256) and `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS` (default 16 MP; total pixel limit applies to frames × frame pixels).
-- Output keeps animation when source is animated, output format supports animation (GIF, WebP, AVIF sequences when libvips supports saving them, JXL when supported, MP4/WebM in M3) and `disable_animation` is false. Otherwise frame `page` (default 0) is used.
+- Output keeps animation when source is animated, output format supports animation (GIF, WebP, AVIF sequences when libvips supports saving them, JXL when supported, MP4/WebM with WP-76, in progress) and `disable_animation` is false. Otherwise frame `page` (default 0) is used.
 - Frame selection (WP-62; every dialect maps its page/frame parameters onto `page`/`pages`, URL-DIALECTS): when the animation is kept, `page` is its first frame and `pages` its frame count (imgproxy ignores both then; imgix `frame=` relies on it to pick one frame). When it is not kept (still output, `disable_animation`, a frame limit of 1), `page` selects one frame and `pages` stacks that many frames vertically into one image (imgproxy Pro), exactly like the pages of a multi-page still. `page` past the last frame clamps to it; `pages:-1` runs to the end.
 - Frame delays and loop count preserved; per-frame geometric ops use `arrayjoin` over frames.
-- `fm=mp4|webm` / `f_mp4` / `.mp4` extension on an animated source → GIF→video (M3, `full` and `gpl` images; codec per [5.1](#51-video-output-wp-76)).
+- `fm=mp4|webm` / `f_mp4` / `.mp4` extension on an animated source → GIF→video (M3, WP-76 in progress, `full` and `gpl` images; codec per [5.1](#51-video-output-wp-76)).
 
 ## 4. Metadata policy
 

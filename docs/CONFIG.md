@@ -81,7 +81,7 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 
 ## 2. Environment variable reference
 
-This reference matches the code of the `m3` stack. Variables from packages still in review, not on `main` yet: `XI_DIALECTS_IMGIX_KEYS` and the imgix mount (#87), `XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH` (#86), the text-watermark settings `XI_PROCESSING_WATERMARK_FONT`, `XI_PROCESSING_WATERMARK_FONT_FILE` and `XI_LIMITS_MAX_WATERMARK_TEXT_PIXELS` (#85), `XI_PLAYGROUND_*` (#84) and `XI_DETECT_*` (#88).
+This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS` and the imgix mount, `XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH`, the text-watermark settings, `XI_PLAYGROUND_*`, `XI_DETECT_*` and `XI_VIDEO_*`).
 
 ### Loader
 
