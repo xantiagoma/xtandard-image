@@ -17,7 +17,7 @@ Rules:
 - **Mapping**: an env var is the YAML path upper-cased, dots → `_`, prefixed `XI_`. `limits.max_src_bytes` ↔ `XI_LIMITS_MAX_SRC_BYTES`; map entries use the key: `sources.assets.bucket` ↔ `XI_SOURCES_ASSETS_BUCKET`. Map keys are lower-case `[a-z0-9-]`; `-` becomes `_` in env names. Named sources are the only dynamic part: the effective sources are the YAML `sources` keys plus the names listed in `XI_SOURCES`. A test in `internal/config` checks this rule for every field and keeps the tables below in sync with the code (names and defaults).
 - **Empty values**: an empty variable (`XI_SERVER_ADDR=`) counts as unset and does not override the file.
 - **Lists**: comma-separated in env; YAML sequences in the file. An env list **replaces** the YAML list (maps such as `XI_PRESETS` and `_HEADERS` replace too). Surrounding spaces are trimmed. Integer allowlists also accept ranges: `640-1080/220`, `5-100/5` (start–end/step).
-- **Secrets**: any variable accepts a `_FILE` suffix (`XI_SIGNING_KEYS_FILE=/run/secrets/xi_keys`) for Docker/Kubernetes secrets, including dynamic ones (`XI_SOURCES_ASSETS_SECRET_ACCESS_KEY_FILE`). The trailing newline is trimmed; setting both `X` and `X_FILE` is an error. Variables whose own name ends in `_FILE` (`XI_CONFIG_FILE`, `XI_PRESETS_FILE`) are ordinary variables. Secret fields print as `[REDACTED]` everywhere (`config print`, logs, errors).
+- **Secrets**: any variable accepts a `_FILE` suffix (`XI_SIGNING_KEYS_FILE=/run/secrets/xi_keys`) for Docker/Kubernetes secrets, including dynamic ones (`XI_SOURCES_ASSETS_SECRET_ACCESS_KEY_FILE`). The trailing newline is trimmed; setting both `X` and `X_FILE` is an error. Variables whose own name ends in `_FILE` (`XI_CONFIG_FILE`, `XI_PRESETS_FILE`) are ordinary variables. Inside a config file, the equivalent is a `{file: /path}` reference (planned: WP-81, see "Secrets in the file" below). Secret fields print as `[REDACTED]` everywhere (`config print`, logs, errors).
 - **Types**: durations use Go syntax (`5s`, `1m30s`; negative rejected); sizes are bytes or binary suffixes `KiB/MiB/GiB/TiB` (`10MiB`; decimal `MB` is rejected as ambiguous); networks are CIDRs or single addresses (`10.0.0.0/8`, `fd00::1`; host bits must be zero); keys are hex; enums are case-insensitive.
 - **Validation** is strict: unknown YAML keys and unknown `XI_` variables are a startup error (typos should not silently disable security); the error suggests the closest known name. `XI_ALLOW_UNKNOWN_ENV=true` downgrades unknown variables to a startup warning. `Validate` reports every violation at once, each with its YAML path and variable. `xtandard-image config print` shows the effective config with secrets redacted.
 - **Secure by default**: with no sources configured and `XI_DEV_MODE` unset, the server refuses to start.
@@ -49,12 +49,33 @@ TOML (Taplo / Even Better TOML, Tombi). Put this directive first:
 #:schema https://xantiagoma.github.io/xtandard-image/schema/config.schema.json
 ```
 
-After the SchemaStore listing, files named `xtandard-image.{yaml,yml,json,toml}` are matched without the line. The schema also ships in the binary:
+After the SchemaStore listing, files named `xtandard-image.{yaml,yml,json,toml}` are matched without the line. The schema also ships in the binary, and every copy carries the versioned Pages URL as its `$id`:
 
-- `xtandard-image config schema > config.schema.json` writes it out, for offline editors.
+- The admin listener serves it at `GET /config.schema.json`, which is always on and never on the public listener. A self-hosted instance can point editors at its own copy, which always matches the running version: `# yaml-language-server: $schema=http://127.0.0.1:9090/config.schema.json` (use `XI_ADMIN_ADDR`'s host and port, or `kubectl port-forward`). The same URL works in `"$schema"` and `#:schema`.
+- `xtandard-image config schema > config.schema.json` writes the same bytes to a file, for offline editors.
 - `xtandard-image config validate --config config.yaml` checks a file with the real loader. It exits 1 and lists every violation. `--no-env` ignores the environment.
 
-The loader, not the schema, is the authority. `_FILE` variants are env-only, so the file has no `_file` keys.
+The loader, not the schema, is the authority.
+
+**Secrets in the file** (planned: WP-81). `_FILE` variants are env-only, so the file has no `_file` keys. Instead, any secret-typed value (a `Secret` or hex key, one element of a list of them, or one value of a map of them) may be written as a file reference:
+
+```yaml
+signing:
+  keys:
+    - { file: /run/secrets/xi_key_current }
+    - { file: /run/secrets/xi_key_previous }
+  salts:
+    - { file: /run/secrets/xi_salt_current }
+    - { file: /run/secrets/xi_salt_previous }
+sources:
+  assets:
+    type: s3
+    bucket: my-assets
+    access_key_id: AKIAEXAMPLE
+    secret_access_key: { file: /run/secrets/s3_secret }
+```
+
+A reference means the same as `XI_…_FILE` for that one value: the file is read at startup, one trailing newline is trimmed, and the content is parsed like the literal. The path must be absolute, and the file must exist and be at most 64 KiB, or startup fails with the key path in the error. `XI_…` and `XI_…_FILE` in the environment still win. JSON (`{"file": "/run/secrets/x"}`) and TOML (`{ file = "/run/secrets/x" }`) use the same shape. Nothing else in the file is interpolated, and there is no `${…}` syntax (ADR 0007 decision 7).
 
 ## 2. Environment variable reference
 
