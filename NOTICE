@@ -117,3 +117,20 @@ Licensed under the MIT License; the full text is kept in
 internal/imageinfo/LICENSE.thumbhash. The test image
 internal/imageinfo/testdata/thumbhash/flower.png is the repository's
 examples/flower.jpg re-encoded as PNG, under the same licence.
+
+Dynamic Image Transformation for Amazon CloudFront (Serverless Image Handler)
+-------------------------------------------------------------------------------
+https://github.com/aws-solutions/dynamic-image-transformation-for-amazon-cloudfront
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+Licensed under the Apache License, Version 2.0,
+https://www.apache.org/licenses/LICENSE-2.0
+internal/dialect/awssih reimplements the solution's request formats from
+source/image-handler/image-request.ts, image-handler.ts,
+query-param-mapper.ts, thumbor-mapper.ts and lib/constants.ts (edit
+allowlist, response header deny list), rewritten against xtandard-image's
+own request model; internal/security/sign/awssih.go reimplements its URL
+signature (validateRequestSignature, recreateQueryString). The golden test
+tables in internal/dialect/awssih copy request paths and edit objects from
+the solution's test suite (source/image-handler/test/), and
+internal/security/sign/testdata/awssih/generate.ts contains
+recreateQueryString and the signature computation verbatim.
