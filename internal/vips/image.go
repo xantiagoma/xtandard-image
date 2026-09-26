@@ -444,6 +444,13 @@ func NewFromBuffer(ctx context.Context, buf *Buffer, width, height, bands int, f
 	if buf == nil || buf.blob == nil || width <= 0 || height <= 0 || bands <= 0 {
 		return nil, errs.Newf(errs.KindInternal, "vips: new from buffer: %dx%dx%d", width, height, bands)
 	}
+	// Checked here rather than by libvips, whose error buffer is
+	// process-global.
+	sample := map[BandFormat]int{BandFormatUchar: 1, BandFormatChar: 1, BandFormatUshort: 2, BandFormatFloat: 4}[format]
+	if need := int64(width) * int64(height) * int64(bands) * int64(sample); sample == 0 || int64(buf.Len()) < need {
+		return nil, errs.Newf(errs.KindInternal, "vips: new from buffer: %d bytes for %dx%dx%d (format %d)",
+			buf.Len(), width, height, bands, format)
+	}
 	var out *C.VipsImage
 	var cerr *C.char
 	rc := C.xi_new_from_blob(buf.blob, C.int(width), C.int(height), C.int(bands), C.int(format), &out, &cerr)
