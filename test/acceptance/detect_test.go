@@ -59,7 +59,7 @@ func TestDetection(t *testing.T) {
 		}
 		return 422, "", props{}
 	}
-	var cases []imageCase
+	cases := make([]imageCase, 0, 8)
 	for _, c := range []struct {
 		name, path string
 		props      props
@@ -76,19 +76,20 @@ func TestDetection(t *testing.T) {
 	// crop_objects: the cat's box (about 414x328 in the reference) fitted
 	// into 200x200; its height depends on the detected box.
 	status, ctype, _ := detected(props{})
-	cases = append(cases, imageCase{
-		name: "crop objects", path: "/unsafe/c_obj:1:cat/rs:fit:200:200" + cat + "@png", status: status, ctype: ctype,
-		check: func(t *testing.T, r *response) {
-			if !full {
-				return
-			}
-			p, err := decodeProps(r.Body)
-			if err != nil || p.Format != "png" || p.Width != 200 || p.Height < 145 || p.Height > 170 {
-				t.Errorf("crop objects: %+v, %v; want a png 200 wide and about 158 high", p, err)
-			}
-		},
-	})
 	cases = append(cases,
+		imageCase{
+			name: "crop objects", path: "/unsafe/c_obj:1:cat/rs:fit:200:200" + cat + "@png", status: status, ctype: ctype,
+			check: func(t *testing.T, r *response) {
+				t.Helper()
+				if !full {
+					return
+				}
+				p, err := decodeProps(r.Body)
+				if err != nil || p.Format != "png" || p.Width != 200 || p.Height < 145 || p.Height > 170 {
+					t.Errorf("crop objects: %+v, %v; want a png 200 wide and about 158 high", p, err)
+				}
+			},
+		},
 		// Smart gravity: faces on the full image, attention on slim.
 		imageCase{name: "smart", path: "/unsafe/rs:fill:120:240/g:sm" + crew + "@png", status: 200, ctype: "image/png", props: props{Format: "png", Width: 120, Height: 240}},
 		// An unknown class is a client error on every image.
