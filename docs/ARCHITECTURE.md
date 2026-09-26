@@ -614,7 +614,7 @@ docker/
     Dockerfile                 ubuntu:noble deps → `builder` (Go + libvips dev) and `runtime` (libs only) targets
   imagemagick-policy.xml
 Dockerfile                     app (repo root): FROM <base>-builder → go build → FROM <base> runtime
-compose.smoke.yml              app + static origin, driven by scripts/smoke.sh (WP-00)
+compose.smoke.yml              app + static origin, driven by scripts/smoke.sh (WP-00) and scripts/verify-app-image.sh (WP-37)
 ```
 
 **Base image** `ghcr.io/xantiagoma/xtandard-image-base:<vips-version>-r<N>-<flavor>` (flavor `slim` | `full`; the `runtime` target) plus `…-<flavor>-builder` (the `builder` target: Go 1.27.1, golangci-lint, go-task, headers and pkg-config files; used for CI, `task docker:test` and the app build stage), built weekly and on `docker/base/**` change, amd64 + arm64 on native runners, cosign-signed, SBOM (syft) attached. See `docker/base/README.md`.
@@ -632,16 +632,16 @@ Contents of `/opt/xtandard`:
 
 All libraries built with `-O3 -fstack-protector-strong -D_FORTIFY_SOURCE=2`, RPATH `$ORIGIN`, stripped. No GPL component: `build-deps.sh` runs a license check that fails the build on GPL/AGPL (see ADR 0006).
 
-**App image** (`Dockerfile` at the repo root, so the build context is the module; multi-stage). WP-00 runs stage 2 directly on the base `runtime` target (`FROM ${BASE}`), which already is `ubuntu:noble` + the runtime subset of `/opt/xtandard` + the env of step 3 + UID 65532; WP-37 decides whether to keep that or copy the libs into a bare `ubuntu:noble` as below:
+**App image** (`Dockerfile` at the repo root, so the build context is the module; multi-stage; release process in `docs/RELEASE.md`). WP-37 keeps the WP-00 layout: the runtime stage is the base `runtime` target itself (`FROM ${BASE_RUNTIME}`), which already is `ubuntu:noble` + `ca-certificates`/`tzdata` + the runtime subset of `/opt/xtandard` + UID 65532, so copying the libraries into a bare `ubuntu:noble` would rebuild the same layers and lose the base image's verified contents (`verify-image.sh`, license gate) for no size gain (slim measured 63.9 MB compressed on arm64). Both base references are Dockerfile `ARG`s (`BASE_BUILDER`, `BASE_RUNTIME`) whose defaults are the tags derived from `docker/base/versions.sh`; CI and the release workflow resolve them to `@sha256:` digests with `scripts/base-image-ref.sh`, and `--check` fails when the defaults drift from `versions.sh`.
 
-1. `FROM ghcr.io/xantiagoma/xtandard-image-base:<pin>-<flavor>-builder AS build` (Go 1.27.1 included); `CGO_ENABLED=1 go build -trimpath -buildvcs=false -ldflags "-s -w -X main.version=… -X main.commit=…" [-tags ffmpeg]` (unstripped artefact kept for symbolication; `default.pgo` picked up automatically).
-2. `FROM ubuntu:noble` runtime (glibc required; `ca-certificates`, `tzdata` only), `COPY --from=build /opt/xtandard/lib /opt/xtandard/lib` (runtime subset), binary to `/usr/local/bin/xtandard-image`.
-3. `ENV LD_LIBRARY_PATH=/opt/xtandard/lib LD_PRELOAD=/opt/xtandard/lib/libjemalloc.so.2 MALLOC_ARENA_MAX=2 MAGICK_CONFIGURE_PATH=/opt/xtandard/etc/ImageMagick-7 FONTCONFIG_PATH=/opt/xtandard/etc/fonts VIPS_BLOCK_UNTRUSTED=1`.
-4. `USER 65532:65532` (user `xtandard`, no shell needed), read-only root filesystem compatible (writes only to `/tmp` if disk cache is enabled at a configured path).
-5. `EXPOSE 8080 9090`; `HEALTHCHECK CMD ["/usr/local/bin/xtandard-image","health","--url","http://127.0.0.1:8080/healthz"]` (no curl in the image).
+1. `FROM ${BASE_BUILDER} AS build` (`ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<N>-<flavor>-builder`, Go 1.27.1 included); `CGO_ENABLED=1 go build -trimpath -buildvcs=false -pgo=auto -ldflags "-s -w -X main.version=… -X main.commit=… -X main.date=…" [-tags ffmpeg]` with `GOAMD64=v2` on amd64 (GOARM64 default v8.0) and `main.date` from `SOURCE_DATE_EPOCH`; the build fails unless `go version -m` reports `-pgo=default.pgo`. The unstripped artefact comes from the `debug` target (`docker build --target debug --output type=local,dest=dist .`) and is attached to the GitHub release.
+2. `FROM ${BASE_RUNTIME} AS runtime` (`…-base:<vips>-r<N>-<flavor>`), binary to `/usr/local/bin/xtandard-image`; OCI labels `source`, `version`, `revision`, `licenses=MIT`, `description`, `base.name` (`created` set by the release workflow).
+3. `ENV LD_LIBRARY_PATH=/opt/xtandard/lib LD_PRELOAD=/opt/xtandard/lib/libjemalloc.so.2 MALLOC_ARENA_MAX=2 MAGICK_CONFIGURE_PATH=/opt/xtandard/etc/ImageMagick-7 FONTCONFIG_PATH=/opt/xtandard/etc/fonts VIPS_BLOCK_UNTRUSTED=1` (repeated in the app image even where the base sets them), plus `VIPS_WARNING=0 TMPDIR=/tmp XDG_CACHE_HOME=/tmp/.cache XI_SERVER_ADDR=:8080`.
+4. `USER 65532:65532` (user `xtandard`, no shell needed), read-only root filesystem compatible: run with `--read-only --tmpfs /tmp` (compose `read_only: true` + `tmpfs: [/tmp]`; Kubernetes `readOnlyRootFilesystem: true` + an `emptyDir` at `/tmp`). `/tmp` receives the fontconfig cache and, if enabled at a path there, the disk cache; `scripts/verify-app-image.sh` checks that the rootfs rejects writes.
+5. `EXPOSE 8080 9090` (the admin listener defaults to `127.0.0.1:9090`; set `XI_ADMIN_ADDR=:9090` to scrape it); `HEALTHCHECK --interval=10s --start-interval=1s CMD ["/usr/local/bin/xtandard-image","health","--url","http://127.0.0.1:8080/healthz"]` (no curl in the image).
 6. `ENTRYPOINT ["/usr/local/bin/xtandard-image"]`, `CMD ["serve"]`.
 
-Tags: `ghcr.io/xantiagoma/xtandard-image:{latest,slim,<ver>,<ver>-slim}` and `:{full,<ver>-full}`. Size targets: slim ≤ 110 MB compressed, full ≤ 170 MB. CI integration test boots each final image with `docker compose` (plus MinIO and a static origin; go-standards §8, no testcontainers) and runs the golden corpus over HTTP for both architectures (arm64 on native runners).
+Tags: `ghcr.io/xantiagoma/xtandard-image:{latest,slim,<ver>,<ver>-slim}` and `:{full,<ver>-full}` (`<ver>` without the leading `v`; `latest` and `<ver>` point at slim until `full` exists; prereleases get only `<ver>` and `<ver>-slim`). Published by `.github/workflows/release.yml` on `v*` tags: per-arch native builds pushed by digest, `imagetools create`, cosign keyless signature, syft SBOM attestation and SLSA provenance (`docs/RELEASE.md`). Size targets: slim ≤ 110 MB compressed, full ≤ 170 MB. CI integration test boots each final image with `docker compose` (plus MinIO and a static origin; go-standards §8, no testcontainers) and runs the golden corpus over HTTP for both architectures (arm64 on native runners).
 
 ## 15. Testing architecture
 
