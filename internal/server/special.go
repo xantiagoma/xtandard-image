@@ -38,6 +38,14 @@ type job struct {
 	lim    requestLimits
 	hints  negotiate.HintResult
 	signed bool // verified or trusted signature (immutable eligibility)
+	// hashsum is the digest the fetched bytes must have (the request's
+	// source hashsum, hashsum.go); nil for the fallback image, which is
+	// another file.
+	hashsum *transform.Hashsum
+	// cacheKey is the result-cache key when the lookup missed and the
+	// response may be stored (cache.go); process copies it to the result,
+	// never the fallback.
+	cacheKey string
 }
 
 // newResult starts the result of j from its fetched source: what the
@@ -69,7 +77,7 @@ func (s *Server) raw(ctx context.Context, r *http.Request, info *requestInfo, re
 	info.source = key.Source
 
 	t = s.stage(info, stageFetch)
-	fr, err := s.fetch(ctx, key, source.FetchOptions{MaxBytes: lim.maxSrcBytes, Header: r.Header})
+	fr, err := s.fetch(ctx, key, source.FetchOptions{MaxBytes: lim.maxSrcBytes, Header: r.Header}, req.Source.Hashsum)
 	t.done()
 	if err != nil {
 		return nil, err
@@ -173,7 +181,7 @@ func (s *Server) fallback(ctx context.Context, r *http.Request, info *requestInf
 		return nil, cause
 	}
 	fj := *j
-	fj.key = key
+	fj.key, fj.hashsum = key, nil
 	res, err := s.produce(ctx, unconditional(r), info, &fj)
 	if err != nil {
 		s.deps.Logger.LogAttrs(r.Context(), slog.LevelWarn, "fallback image failed",

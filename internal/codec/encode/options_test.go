@@ -92,6 +92,22 @@ func TestPlanFor(t *testing.T) {
 			},
 		},
 		{
+			name: "jpeg mozjpeg options", info: photo, format: vips.FormatJPEG, quality: 80,
+			t: Target{Format: transform.FormatJPEG, Options: Options{JPEG: &transform.JPEGOptions{
+				TrellisQuant: new(true), OvershootDeringing: new(true), OptimizeScans: new(true), QuantTable: new(3),
+			}}},
+			check: func(t *testing.T, o *vips.SaveOptions) {
+				t.Helper()
+				want := vips.JPEGOptions{
+					Quality: 80, Interlace: true, OptimizeCoding: true, Subsample: vips.SubsampleAuto,
+					TrellisQuant: true, OvershootDeringing: true, OptimizeScans: true, QuantTable: 3,
+				}
+				if diff := cmp.Diff(want, o.JPEG); diff != "" {
+					t.Error(diff)
+				}
+			},
+		},
+		{
 			name: "png plain", t: Target{Format: transform.FormatPNG}, info: photo, format: vips.FormatPNG,
 			check: func(t *testing.T, o *vips.SaveOptions) {
 				t.Helper()

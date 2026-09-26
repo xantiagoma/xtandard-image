@@ -18,11 +18,13 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/router"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/limiter"
+	"github.com/xantiagoma/xtandard-image/internal/negotiate"
 	"github.com/xantiagoma/xtandard-image/internal/obs/admin"
 	"github.com/xantiagoma/xtandard-image/internal/obs/logging"
 	"github.com/xantiagoma/xtandard-image/internal/obs/metrics"
@@ -38,10 +40,11 @@ type fakeRouter struct {
 	mutate  func(*transform.Request)
 	dialect string
 	sig     sign.Result
+	policy  router.Policy // the mount's unsigned policy
 }
 
 func (f *fakeRouter) Route(*http.Request) (*dialect.Result, *router.Mount, error) {
-	m := &router.Mount{Dialect: f.dialect}
+	m := &router.Mount{Dialect: f.dialect, Policy: f.policy}
 	if f.err != nil {
 		return nil, m, f.err
 	}
@@ -170,12 +173,15 @@ type fakeProcessor struct {
 	// outFormat and outType override the JPEG output when set.
 	outFormat transform.Format
 	outType   string
+	outBest   string // ProcessOutput.Best
 
-	mu     sync.Mutex
-	calls  int
-	source []byte
-	req    *transform.Request
-	format transform.Format
+	mu       sync.Mutex
+	calls    int
+	source   []byte
+	req      *transform.Request
+	format   transform.Format
+	decision negotiate.Decision
+	delta    int // ProcessInput.QualityDelta
 }
 
 func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*ProcessOutput, error) {
@@ -184,6 +190,8 @@ func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*Process
 	p.source = bytes.Clone(in.Source.Bytes())
 	p.req = in.Request
 	p.format = in.Decision.Format
+	p.decision = in.Decision
+	p.delta = in.QualityDelta
 	p.mu.Unlock()
 	if p.fn != nil {
 		if err := p.fn(ctx); err != nil {
@@ -193,10 +201,11 @@ func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*Process
 	if p.err != nil && (p.errFor == nil || bytes.Equal(p.errFor, in.Source.Bytes())) {
 		return nil, p.err
 	}
-	o := &ProcessOutput{Body: p.out, ContentType: "image/jpeg", Format: transform.FormatJPEG, Width: 64, Height: 48}
+	o := &ProcessOutput{Body: p.out, ContentType: "image/jpeg", Format: transform.FormatJPEG, Width: 64, Height: 48, Quality: 80}
 	if p.outFormat != transform.FormatUnset {
 		o.Format, o.ContentType = p.outFormat, p.outType
 	}
+	o.Best = p.outBest
 	return o, nil
 }
 
@@ -212,8 +221,9 @@ func (m *fakeMetrics) ObserveRequest(_ string, status int, _ string, _ time.Dura
 	m.requests.Add(1)
 	m.lastCode.Store(int64(status))
 }
-func (m *fakeMetrics) RequestStarted() func() { return func() {} }
-func (m *fakeMetrics) IncPanic()              { m.panics.Add(1) }
+func (m *fakeMetrics) RequestStarted() func()  { return func() {} }
+func (m *fakeMetrics) IncPanic()               { m.panics.Add(1) }
+func (m *fakeMetrics) ObserveRawDecode(string) {}
 func (m *fakeMetrics) ObserveStage(stage string, _ time.Duration) {
 	m.mu.Lock()
 	m.stages = append(m.stages, stage)
@@ -241,14 +251,15 @@ type harness struct {
 	logger  *slog.Logger
 	allocs  atomic.Int32
 	allocFr atomic.Int32
+	cache   cache.Store // result cache; nil: off
 	srv     *Server
 }
 
-func newHarness(t *testing.T, mutate func(*harness)) *harness {
-	t.Helper()
+func newHarness(tb testing.TB, mutate func(*harness)) *harness {
+	tb.Helper()
 	h := &harness{
 		cfg:     DefaultConfig(),
-		router:  &fakeRouter{dialect: "imgproxy"},
+		router:  &fakeRouter{dialect: "imgproxy", policy: router.PolicyAllow},
 		res:     &fakeResolver{},
 		f:       &fakeFetcher{data: jpegSource},
 		a:       &fakeAdmitter{},
@@ -268,20 +279,21 @@ func newHarness(t *testing.T, mutate func(*harness)) *harness {
 			h.allocs.Add(1)
 			return fetch.NewGoBuffer(n, func() { h.allocFr.Add(1) }), nil
 		},
-		Metrics:   h.m,
-		Logger:    h.logger,
-		Readiness: admin.NewReadiness(),
+		Metrics:     h.m,
+		Logger:      h.logger,
+		Readiness:   admin.NewReadiness(),
+		ResultCache: h.cache,
 	})
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	h.srv = srv
 	return h
 }
 
-func (h *harness) do(t *testing.T, method, target string, hdr http.Header) *httptest.ResponseRecorder {
-	t.Helper()
-	req := httptest.NewRequestWithContext(t.Context(), method, target, http.NoBody)
+func (h *harness) do(tb testing.TB, method, target string, hdr http.Header) *httptest.ResponseRecorder {
+	tb.Helper()
+	req := httptest.NewRequestWithContext(tb.Context(), method, target, http.NoBody)
 	maps.Copy(req.Header, hdr)
 	rec := httptest.NewRecorder()
 	h.srv.Handler().ServeHTTP(rec, req)

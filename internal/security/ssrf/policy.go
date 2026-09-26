@@ -35,7 +35,7 @@ type Policy struct {
 	// Multicast, unspecified and broadcast are never permitted.
 	Allow Class
 	// AllowCIDRs permits addresses in these prefixes whatever their class
-	// (for intentional internal fetches such as an in-cluster MinIO).
+	// (for intentional internal fetches such as an in-cluster object store).
 	// DenyCIDRs and the never-permitted classes still win.
 	AllowCIDRs []netip.Prefix
 	// DenyCIDRs blocks addresses in these prefixes even when public.

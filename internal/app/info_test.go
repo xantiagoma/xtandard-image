@@ -4,7 +4,10 @@ package app
 
 import (
 	"bytes"
+	"crypto/md5" //nolint:gosec // G501: the md5 hashsum imgproxy reports
+	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -32,7 +35,7 @@ const (
 // startInfo runs the service with the fixtures bound to the imgproxy mount,
 // a second fs source "synth" at synthDir, signing keys (not required),
 // unsigned requests allowed and debug headers on.
-func startInfo(t *testing.T, synthDir string) string {
+func startInfo(t *testing.T, synthDir string) addrs {
 	t.Helper()
 	fixtures := filepath.Join(golden.ModuleRoot(t), "testdata", "fixtures")
 	yml := `server:
@@ -67,7 +70,7 @@ dialects:
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	return "http://" + start(t, &cfg, hooks{}).public.String()
+	return start(t, &cfg, hooks{})
 }
 
 // TestInfo runs the /info checks against one service, serially and not in
@@ -82,10 +85,50 @@ func TestInfo(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(synth, "metadata.jpg"), metadataJPEG(t, root), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	base := startInfo(t, synth)
+	if err := os.WriteFile(filepath.Join(synth, "pages-501.pdf"), manyPagesPDF(501), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	a := startInfo(t, synth)
+	base := "http://" + a.public.String()
 	t.Run("golden", func(t *testing.T) { infoGolden(t, base, root) })
+	t.Run("pro golden", func(t *testing.T) { infoProGolden(t, base, root) })
+	t.Run("hashsums", func(t *testing.T) { infoHashsums(t, base, root) })
+	t.Run("pdf and psd", func(t *testing.T) { pdfPSDStatus(t, base) })
 	t.Run("exif names", func(t *testing.T) { infoEXIFNames(t, base) })
 	t.Run("signature", func(t *testing.T) { infoSignature(t, base) })
+	t.Run("raw decode path", func(t *testing.T) { rawDecodePath(t, base, "http://"+a.admin.String()) })
+}
+
+// rawDecodePath: a camera RAW is decoded from its embedded preview when the
+// preview is large enough and demosaiced otherwise; the path is reported in
+// X-Xi-Raw-Path (debug headers) and counted in xi_raw_decodes_total.
+func rawDecodePath(t *testing.T, base, admin string) {
+	t.Helper()
+	for _, tc := range []struct{ options, path string }{
+		{"rs:fit:96:96", "preview"},      // 96×64 preview
+		{"rs:fit:160:160", "demosaic"},   // larger than the preview, < 2× smaller than the sensor
+		{"rs:fit:48:48/ar:0", "preview"}, // shrink-on-load on the preview
+	} {
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet,
+			base+"/unsafe/"+tc.options+"/plain/dng/landscape.dng@png", http.NoBody)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusOK || resp.Header.Get("X-Xi-Raw-Path") != tc.path {
+			t.Errorf("%s: %d, X-Xi-Raw-Path %q, want 200 %q", tc.options, resp.StatusCode, resp.Header.Get("X-Xi-Raw-Path"), tc.path)
+		}
+	}
+	metrics := string(get(t, admin+"/metrics").body)
+	for _, want := range []string{`xi_raw_decodes_total{path="preview"} 2`, `xi_raw_decodes_total{path="demosaic"} 1`} {
+		if !strings.Contains(metrics, want) {
+			t.Errorf("/metrics lacks %s", want)
+		}
+	}
 }
 
 // infoGolden answers /info for every fixture of every M1 format plus a
@@ -116,6 +159,12 @@ func infoGolden(t *testing.T, base, root string) {
 	for name, src := range cases {
 		t.Run(name, func(t *testing.T) {
 			r := get(t, base+"/info/unsafe"+allInfo+"/plain/"+src)
+			if name == "pdf-password" {
+				if r.status != http.StatusUnprocessableEntity {
+					t.Errorf("GET: %d %s, want 422", r.status, r.body)
+				}
+				return
+			}
 			if r.status != http.StatusOK || r.ctype != "application/json" {
 				t.Fatalf("GET: %d %q %s", r.status, r.ctype, r.body)
 			}
@@ -139,6 +188,165 @@ func infoGolden(t *testing.T, base, root string) {
 			}
 		})
 	}
+}
+
+// noDefaults turns off imgproxy's default info fields, so a URL reports
+// only the option under test.
+const noDefaults = "/s:0/f:0/d:0/exif:0/iptc:0/xmp:0/vm:0"
+
+// infoProGolden answers each WP-63 option for a photo, an alpha PNG and an
+// animated GIF (first frame) and compares the JSON with
+// testdata/info/pro/<fixture>-<option>.json (GOLDEN_UPDATE=1 rewrites
+// them). The values come from libvips' decode and resize in the base
+// image; the algorithms are pinned by internal/imageinfo's tests.
+func infoProGolden(t *testing.T, base, root string) {
+	t.Helper()
+	fixtures := map[string]string{
+		"photo":    "jpeg/baseline.jpg",
+		"alpha":    "png/rgba8.png",
+		"animated": "gif/animated.gif",
+	}
+	options := map[string]string{
+		"crop":            "/c:60:40:soea",
+		"palette":         "/p:8",
+		"average":         "/avg:1",
+		"average-alpha":   "/avg:1:0",
+		"dominant-colors": "/dc:1",
+		"dominant-build":  "/dc:1:1",
+		"blurhash":        "/bh:4:3",
+		"thumbhash":       "/th:1",
+		"perceptual-hash": "/ph:1",
+		"hashsums":        "/chs:md5:sha1:sha256:sha512",
+	}
+	update := os.Getenv("GOLDEN_UPDATE") != ""
+	for fx, src := range fixtures {
+		for opt, path := range options {
+			name := fx + "-" + opt
+			t.Run(name, func(t *testing.T) {
+				r := get(t, base+"/info/unsafe"+noDefaults+path+"/plain/"+src)
+				if r.status != http.StatusOK {
+					t.Fatalf("GET: %d %s", r.status, r.body)
+				}
+				if ig := r.header.Get("X-Xi-Ignored"); ig != "" {
+					t.Errorf("X-Xi-Ignored = %q, want none", ig)
+				}
+				got := indentJSON(t, r.body)
+				file := filepath.Join(root, "testdata", "info", "pro", name+".json")
+				if update {
+					if err := os.MkdirAll(filepath.Dir(file), 0o750); err != nil {
+						t.Fatal(err)
+					}
+					if err := os.WriteFile(file, got, 0o600); err != nil {
+						t.Fatal(err)
+					}
+					return
+				}
+				want, err := os.ReadFile(file)
+				if err != nil {
+					t.Fatalf("read golden (run with GOLDEN_UPDATE=1): %v", err)
+				}
+				if diff := cmp.Diff(string(want), string(got)); diff != "" {
+					t.Errorf("%s (-golden +got):\n%s", file, diff)
+				}
+			})
+		}
+	}
+}
+
+// infoHashsums checks calc_hashsums against digests of the fixture bytes
+// as stored (what `sha256sum testdata/fixtures/...` prints), for a raster
+// fixture and for an SVG, which is sanitised before inspection but hashed
+// as fetched.
+func infoHashsums(t *testing.T, base, root string) {
+	t.Helper()
+	for _, src := range []string{"jpeg/baseline.jpg", "svg/logo.svg", "gif/animated.gif"} {
+		data, err := os.ReadFile(filepath.Join(root, "testdata", "fixtures", src))
+		if err != nil {
+			t.Fatal(err)
+		}
+		r := get(t, base+"/info/unsafe"+noDefaults+"/chs:sha256:md5/plain/"+src)
+		if r.status != http.StatusOK {
+			t.Fatalf("GET %s: %d %s", src, r.status, r.body)
+		}
+		var got struct {
+			Hashsums map[string]string `json:"hashsums"`
+		}
+		if err := json.Unmarshal(r.body, &got); err != nil {
+			t.Fatal(err)
+		}
+		sha := sha256.Sum256(data)
+		sum := md5.Sum(data) //nolint:gosec // G401: the md5 hashsum imgproxy reports
+		want := map[string]string{"sha256": hex.EncodeToString(sha[:]), "md5": hex.EncodeToString(sum[:])}
+		if diff := cmp.Diff(want, got.Hashsums); diff != "" {
+			t.Errorf("%s hashsums (-want +got):\n%s", src, diff)
+		}
+	}
+}
+
+// pdfPSDStatus checks the PDF, PSD and HDR answers the goldens do not cover: a
+// password-protected PDF and one over XI_LIMITS_MAX_PDF_PAGES (500) are
+// 422 for /info and processing alike, a PDF page or PSD layer renders, and
+// OpenEXR, Radiance and PFM sources render through the configured wiring.
+func pdfPSDStatus(t *testing.T, base string) {
+	t.Helper()
+	for _, tc := range []struct {
+		path   string
+		status int
+		ctype  string
+	}{
+		{"/unsafe/rs:fit:100:0/plain/pdf/password.pdf", http.StatusUnprocessableEntity, ""},
+		{"/info/unsafe/plain/pdf/password.pdf", http.StatusUnprocessableEntity, ""},
+		{"/unsafe/rs:fit:100:0/plain/xi://synth/pages-501.pdf", http.StatusUnprocessableEntity, ""},
+		{"/info/unsafe/pn:1/plain/xi://synth/pages-501.pdf", http.StatusUnprocessableEntity, ""},
+		{"/unsafe/pg:1/rs:fit:100:0/plain/pdf/pages.pdf", http.StatusOK, "image/jpeg"},
+		{"/unsafe/pgs:-1/rs:fit:100:0/f:png/plain/pdf/pages.pdf", http.StatusOK, "image/png"},
+		{"/unsafe/rs:fit:48:0/plain/psd/no-composite.psd", http.StatusOK, "image/jpeg"},
+		{"/unsafe/pg:2/plain/psd/layered.psd", http.StatusOK, "image/jpeg"},
+		// HDR inputs (WP-67): tone-mapped, alpha kept, preserve_hdr to JXL.
+		{"/unsafe/rs:fit:32:0/plain/exr/rgba-half.exr", http.StatusOK, "image/png"},
+		{"/unsafe/rs:fit:32:0/plain/hdr/scene.hdr", http.StatusOK, "image/jpeg"},
+		{"/unsafe/plain/pfm/scene.pfm", http.StatusOK, "image/jpeg"},
+		{"/unsafe/ph:1/f:jxl/plain/exr/rgb-float.exr", http.StatusOK, "image/jxl"},
+	} {
+		t.Run(tc.path, func(t *testing.T) {
+			r := get(t, base+tc.path)
+			if r.status != tc.status || (tc.ctype != "" && r.ctype != tc.ctype) {
+				t.Errorf("GET: %d %q, want %d %q (%s)", r.status, r.ctype, tc.status, tc.ctype, r.body)
+			}
+		})
+	}
+}
+
+// manyPagesPDF builds a PDF of n blank pages in one page tree.
+func manyPagesPDF(n int) []byte {
+	var b bytes.Buffer
+	b.WriteString("%PDF-1.4\n")
+	var offsets []int
+	obj := func(body string) {
+		offsets = append(offsets, b.Len())
+		b.WriteString(strconv.Itoa(len(offsets)) + " 0 obj\n" + body + "\nendobj\n")
+	}
+	obj("<< /Type /Catalog /Pages 2 0 R >>")
+	kids := make([]string, n)
+	for i := range kids {
+		kids[i] = strconv.Itoa(i+3) + " 0 R"
+	}
+	obj("<< /Type /Pages /Kids [" + strings.Join(kids, " ") + "] /Count " + strconv.Itoa(n) + " /MediaBox [0 0 100 100] >>")
+	for range n {
+		obj("<< /Type /Page /Parent 2 0 R >>")
+	}
+	xref := b.Len()
+	b.WriteString("xref\n0 " + strconv.Itoa(len(offsets)+1) + "\n0000000000 65535 f \n")
+	for _, off := range offsets {
+		b.WriteString(leftPad(strconv.Itoa(off), 10) + " 00000 n \n")
+	}
+	b.WriteString("trailer\n<< /Size " + strconv.Itoa(len(offsets)+1) + " /Root 1 0 R >>\nstartxref\n" +
+		strconv.Itoa(xref) + "\n%EOF\n")
+	return b.Bytes()
+}
+
+func leftPad(s string, n int) string {
+	return strings.Repeat("0", max(n-len(s), 0)) + s
 }
 
 // infoEXIFNames checks the EXIF keys and values of the orientation 6 +

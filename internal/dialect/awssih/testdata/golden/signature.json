@@ -1,0 +1,136 @@
+{
+  "checked_before_decoding": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/not-base64!",
+    "query": ""
+  },
+  "last_char_differs": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=",
+    "query": "signature=4d41311006641a56de7bca8abdbda91af254506107a2c7b338a13ca2fa95eac4"
+  },
+  "mismatch": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=",
+    "query": "signature=invalid"
+  },
+  "missing": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=",
+    "query": ""
+  },
+  "optional_missing": {
+    "config": "optional",
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "optional_wrong": {
+    "config": "optional",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=",
+    "query": "signature=4d41311006641a56de7bca8abdbda91af254506107a2c7b338a13ca2fa95eac0"
+  },
+  "query_covered": {
+    "config": "signed",
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=",
+    "query": "width=300\u0026expires=20270101T000000Z\u0026signature=3ab9ee4cc29a8a077426d663b98b9ce4593d6e72e91a05d9b60910280d025bfc",
+    "request": {
+      "Delivery": {
+        "Expires": "2027-01-01T00:00:00Z"
+      },
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "verified",
+    "source": "validKey"
+  },
+  "query_tampered": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=",
+    "query": "width=300\u0026expires=20270101T000000Z\u0026signature=3ab9ee4cc29a8a077426d663b98b9ce4593d6e72e91a05d9b60910280d025bfc\u0026height=10"
+  },
+  "valid": {
+    "config": "signed",
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=",
+    "query": "signature=4d41311006641a56de7bca8abdbda91af254506107a2c7b338a13ca2fa95eac3",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "verified",
+    "source": "validKey"
+  }
+}

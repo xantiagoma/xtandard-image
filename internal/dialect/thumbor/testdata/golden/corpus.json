@@ -1,0 +1,2468 @@
+{
+  "docs_autojpg": {
+    "path": "/unsafe/300x300/filters:autojpg()/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "PreferJPEGIfOpaque": true
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_background_color_hex": {
+    "path": "/unsafe/fit-in/300x300/filters:background_color(add8e6)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 230,
+            "G": 216,
+            "R": 173
+          },
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_background_color_name": {
+    "path": "/unsafe/fit-in/300x300/filters:background_color(blue)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 255
+          },
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_background_color_short": {
+    "path": "/unsafe/fit-in/300x300/filters:background_color(f00)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "R": 255
+          },
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_blur": {
+    "path": "/unsafe/filters:blur(7)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Blur": 7,
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_brightness": {
+    "path": "/unsafe/filters:brightness(40)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": 102
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_brightness_contrast": {
+    "path": "/unsafe/filters:brightness(10):contrast(30)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": 25.5,
+            "Contrast": 1.69
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_contrast": {
+    "path": "/unsafe/filters:contrast(40)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Contrast": 1.96
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_contrast_negative": {
+    "path": "/unsafe/filters:contrast(-40)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Contrast": 0.36
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_convolution_blur": {
+    "path": "/unsafe/filters:convolution(1;2;1;2;4;2;1;2;1,3,true)/http://upload.wikimedia.org/wikipedia/commons/5/50/Vd-Orig.png",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "convolution",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://upload.wikimedia.org/wikipedia/commons/5/50/Vd-Orig.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://upload.wikimedia.org/wikipedia/commons/5/50/Vd-Orig.png"
+  },
+  "docs_convolution_edge": {
+    "path": "/unsafe/filters:convolution(-1;-1;-1;-1;8;-1;-1;-1;-1,3,false)/http://upload.wikimedia.org/wikipedia/commons/5/50/Vd-Orig.png",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "convolution",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://upload.wikimedia.org/wikipedia/commons/5/50/Vd-Orig.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://upload.wikimedia.org/wikipedia/commons/5/50/Vd-Orig.png"
+  },
+  "docs_cover": {
+    "path": "/unsafe/filters:cover()/http://server.my/animated_static.gif",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "cover",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://server.my/animated_static.gif"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://server.my/animated_static.gif"
+  },
+  "docs_debug": {
+    "path": "/unsafe/debug/200x400/smart/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "debug",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 400
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_equalize": {
+    "path": "/unsafe/filters:equalize()/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Equalize": true,
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_extract_focal": {
+    "path": "/unsafe/300x100/filters:extract_focal()/localhost:8888/unsafe/240x220:480x260/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusPx": {
+              "X1": 240,
+              "X2": 480,
+              "Y1": 220,
+              "Y2": 260
+            },
+            "Type": "focus-point"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 100
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_fill_auto": {
+    "path": "/unsafe/fit-in/300x300/filters:fill(auto)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "fill",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_fill_auto_true": {
+    "path": "/unsafe/fit-in/300x225/filters:fill(auto,true)/https://github.com/thumbor/thumbor/wiki/dice_transparent_background.png",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "fill",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Height": {
+              "Px": 225
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/wiki/dice_transparent_background.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/wiki/dice_transparent_background.png"
+  },
+  "docs_fill_blur": {
+    "path": "/unsafe/fit-in/300x300/filters:fill(blur)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "fill",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true,
+            "Mode": "blur"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_fill_blur_true": {
+    "path": "/unsafe/fit-in/300x225/filters:fill(blur,true)/https://github.com/thumbor/thumbor/wiki/dice_transparent_background.png",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "fill",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true,
+            "Mode": "blur"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 225
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/wiki/dice_transparent_background.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/wiki/dice_transparent_background.png"
+  },
+  "docs_fill_hex": {
+    "path": "/unsafe/fit-in/300x300/filters:fill(add8e6)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 230,
+            "G": 216,
+            "R": 173
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_fill_name_1": {
+    "path": "/unsafe/fit-in/300x225/filters:fill(blue,1)/https://github.com/thumbor/thumbor/wiki/dice_transparent_background.png",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 255
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Height": {
+              "Px": 225
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/wiki/dice_transparent_background.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/wiki/dice_transparent_background.png"
+  },
+  "docs_fill_short_true": {
+    "path": "/unsafe/fit-in/300x225/filters:fill(f00,true)/https://github.com/thumbor/thumbor/wiki/dice_transparent_background.png",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "R": 255
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Height": {
+              "Px": 225
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/wiki/dice_transparent_background.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/wiki/dice_transparent_background.png"
+  },
+  "docs_fill_transparent_hex": {
+    "path": "/unsafe/fit-in/300x225/filters:fill(add8e6,1)/https://github.com/thumbor/thumbor/wiki/dice_transparent_background.png",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 230,
+            "G": 216,
+            "R": 173
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Height": {
+              "Px": 225
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/wiki/dice_transparent_background.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/wiki/dice_transparent_background.png"
+  },
+  "docs_flip_auto": {
+    "path": "/unsafe/-0x-0/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true,
+            "V": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_focal": {
+    "path": "/unsafe/400x100/filters:focal(146x206:279x360)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusPx": {
+              "X1": 146,
+              "X2": 279,
+              "Y1": 206,
+              "Y2": 360
+            },
+            "Type": "focus-point"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 100
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_format_webp": {
+    "path": "/unsafe/filters:format(webp)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_gifv": {
+    "path": "/unsafe/filters:gifv()/http://localhost/livingroom.gif",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "gifv",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://localhost/livingroom.gif"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://localhost/livingroom.gif"
+  },
+  "docs_gifv_background_hex": {
+    "path": "/unsafe/filters:gifv():background_color(ff00ff)/http://localhost/livingroom.gif",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "gifv",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 255,
+            "R": 255
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://localhost/livingroom.gif"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://localhost/livingroom.gif"
+  },
+  "docs_gifv_background_name": {
+    "path": "/unsafe/filters:gifv():background_color(magenta)/http://localhost/livingroom.gif",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "gifv",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 255,
+            "R": 255
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://localhost/livingroom.gif"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://localhost/livingroom.gif"
+  },
+  "docs_gifv_background_short": {
+    "path": "/unsafe/filters:gifv():background_color(f0f)/http://localhost/livingroom.gif",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "gifv",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 255,
+            "R": 255
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://localhost/livingroom.gif"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://localhost/livingroom.gif"
+  },
+  "docs_gifv_mp4": {
+    "path": "/unsafe/filters:gifv(mp4)/http://localhost/livingroom.gif",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "gifv",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://localhost/livingroom.gif"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://localhost/livingroom.gif"
+  },
+  "docs_gifv_webm": {
+    "path": "/unsafe/filters:gifv(webm)/http://localhost/livingroom.gif",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "gifv",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://localhost/livingroom.gif"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://localhost/livingroom.gif"
+  },
+  "docs_grayscale": {
+    "path": "/unsafe/filters:grayscale()/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Grayscale": true,
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_horizontal_align_filter": {
+    "path": "/unsafe/400x600/filters:horizontal_align(center)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "horizontal_align",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 600
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_huge": {
+    "path": "/unsafe/9999x9999/smart/path/to/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 9999
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 9999
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "path/to/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "path/to/image.jpg"
+  },
+  "docs_manual_crop": {
+    "path": "/unsafe/240x220:480x260/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 240,
+              "YOffset": 220
+            },
+            "Height": {
+              "Px": 40
+            },
+            "Width": {
+              "Px": 240
+            }
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_max_bytes": {
+    "path": "/unsafe/filters:max_bytes(7500)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "MaxBytes": 7500
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_nested_thumbor_image": {
+    "path": "/unsafe/300x100/localhost:8888/unsafe/240x220:480x260/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 100
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "localhost:8888/unsafe/240x220:480x260/https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "localhost:8888/unsafe/240x220:480x260/https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_no_upscale": {
+    "path": "/unsafe/filters:no_upscale()/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_noise": {
+    "path": "/unsafe/filters:noise(40)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "noise",
+          "Reason": "unsupported"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_proportion": {
+    "path": "/unsafe/filters:proportion(0.5)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "ZoomX": 0.5,
+            "ZoomY": 0.5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_quality": {
+    "path": "/unsafe/filters:quality(40)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "Quality": 40
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_rgb": {
+    "path": "/unsafe/filters:rgb(20,-20,40)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "rgb",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Blue": 1.4,
+            "Green": 0.8,
+            "Red": 1.2
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_rotate": {
+    "path": "/unsafe/filters:rotate(90)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          },
+          "Rotate": 270
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_round_corner": {
+    "path": "/unsafe/filters:round_corner(20,255,255,255)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 255,
+            "G": 255,
+            "R": 255
+          },
+          "Radius": {
+            "BottomLeft": 20,
+            "BottomRight": 20,
+            "TopLeft": 20,
+            "TopRight": 20
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_round_corner_elliptic": {
+    "path": "/unsafe/filters:round_corner(20|40,0,0,0)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "round_corner",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255
+          },
+          "Radius": {
+            "BottomLeft": 20,
+            "BottomRight": 20,
+            "TopLeft": 20,
+            "TopRight": 20
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_round_corner_transparent": {
+    "path": "/unsafe/filters:round_corner(30,0,0,0,1)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Radius": {
+            "BottomLeft": 30,
+            "BottomRight": 30,
+            "TopLeft": 30,
+            "TopRight": 30
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_saturation": {
+    "path": "/unsafe/filters:saturation(40)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Saturation": 1.4
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_saturation_negative": {
+    "path": "/unsafe/filters:saturation(-40)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Saturation": 0.6
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_sharpen": {
+    "path": "/unsafe/filters:sharpen(2,1.0,true)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          },
+          "Unsharp": {
+            "Amount": 2,
+            "Sigma": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_smart_200x400": {
+    "path": "/unsafe/200x400/smart/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 400
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_smart_key": {
+    "path": "/unsafe/300x200/smart/path/to/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "path/to/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "path/to/image.jpg"
+  },
+  "docs_square": {
+    "path": "/unsafe/300x300/smart/path/to/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "path/to/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "path/to/image.jpg"
+  },
+  "docs_stretch": {
+    "path": "/unsafe/200x100/filters:stretch()/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 100
+            },
+            "Type": "force",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_strip_exif": {
+    "path": "/unsafe/filters:strip_exif()/http://www.arte.tv/static-epgapi/057460-011-A.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "StripMetadata": true
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://www.arte.tv/static-epgapi/057460-011-A.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://www.arte.tv/static-epgapi/057460-011-A.jpg"
+  },
+  "docs_strip_icc": {
+    "path": "/unsafe/filters:strip_icc()/http://videoprocessing.ucsd.edu/~stanleychan/research/pix/Blurred_foreman_0005.png",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "StripColorProfile": true
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://videoprocessing.ucsd.edu/~stanleychan/research/pix/Blurred_foreman_0005.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://videoprocessing.ucsd.edu/~stanleychan/research/pix/Blurred_foreman_0005.png"
+  },
+  "docs_upscale": {
+    "path": "/unsafe/fit-in/600x500/filters:upscale()/https://raw.githubusercontent.com/thumbor/thumbor/e86324e49d7e53acc2a8057e43f3fdd2ca5cea75/docs/images/dice_transparent_background.png",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 500
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 600
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://raw.githubusercontent.com/thumbor/thumbor/e86324e49d7e53acc2a8057e43f3fdd2ca5cea75/docs/images/dice_transparent_background.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://raw.githubusercontent.com/thumbor/thumbor/e86324e49d7e53acc2a8057e43f3fdd2ca5cea75/docs/images/dice_transparent_background.png"
+  },
+  "docs_usage_encoded_image": {
+    "path": "/unsafe/300x200/smart/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_usage_flip_align_smart": {
+    "path": "/unsafe/-300x-200/left/top/smart/path/to/my/nice/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true,
+            "V": true
+          },
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "path/to/my/nice/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "path/to/my/nice/image.jpg"
+  },
+  "docs_usage_http_image": {
+    "path": "/unsafe/300x200/http://s.glbimg.com/jo/g1/f/original/2012/03/16/supersonic-skydiver_fran.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://s.glbimg.com/jo/g1/f/original/2012/03/16/supersonic-skydiver_fran.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://s.glbimg.com/jo/g1/f/original/2012/03/16/supersonic-skydiver_fran.jpg"
+  },
+  "docs_usage_meta": {
+    "path": "/unsafe/meta/-300x-200/left/top/smart/path/to/my/nice/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Info": {
+        "Dimensions": true,
+        "Format": true,
+        "Schema": "thumbor",
+        "Size": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true,
+            "V": true
+          },
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "path/to/my/nice/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "path/to/my/nice/image.jpg"
+  },
+  "docs_vertical_align_filter": {
+    "path": "/unsafe/300x300/filters:vertical_align(middle)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "vertical_align",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_watermark": {
+    "path": "/unsafe/filters:watermark(http://example.com/watermark.png,-10,-10,50)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          },
+          "Watermarks": [
+            {
+              "Opacity": 0.5,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 10,
+                "YOffset": 10
+              },
+              "Source": {
+                "Raw": "http://example.com/watermark.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_watermark_percent": {
+    "path": "/unsafe/filters:watermark(http://example.com/watermark.png,-10p,center,50,none,30)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "watermark",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          },
+          "Watermarks": [
+            {
+              "Opacity": 0.5,
+              "Position": {
+                "Type": "east",
+                "XOffset": 0.1
+              },
+              "Source": {
+                "Raw": "http://example.com/watermark.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_watermark_repeat_ratio": {
+    "path": "/unsafe/filters:watermark(http://example.com/watermark.png,repeat,repeat,50,20,none)/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          },
+          "Watermarks": [
+            {
+              "Opacity": 0.5,
+              "Position": {
+                "Type": "center"
+              },
+              "Scale": 0.2,
+              "Source": {
+                "Raw": "http://example.com/watermark.png"
+              },
+              "Tile": "repeat"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "docs_width_only": {
+    "path": "/unsafe/300x0/https%3A%2F%2Fgithub.com%2Fthumbor%2Fthumbor%2Fraw%2Fmaster%2Fexample.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://github.com/thumbor/thumbor/raw/master/example.jpg"
+  },
+  "tests_200x200": {
+    "path": "/unsafe/200x200/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image.jpg"
+  },
+  "tests_autojpg_false": {
+    "path": "/unsafe/filters:autojpg(false)/image.png",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image.png"
+  },
+  "tests_autojpg_true": {
+    "path": "/unsafe/filters:autojpg(true)/image.png",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "PreferJPEGIfOpaque": true
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image.png"
+  },
+  "tests_background_gifv": {
+    "path": "/unsafe/filters:gifv(mp4):background_color(ff00ff)/animated.gif",
+    "request": {
+      "Dialect": "thumbor",
+      "Ignored": [
+        {
+          "Option": "gifv",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 255,
+            "R": 255
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "animated.gif"
+      }
+    },
+    "signature": "unsigned",
+    "source": "animated.gif"
+  },
+  "tests_comma": {
+    "path": "/unsafe/Giunchedi%2C_Filippo_January_2015_01.png",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "Giunchedi,_Filippo_January_2015_01.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "Giunchedi,_Filippo_January_2015_01.png"
+  },
+  "tests_crop_1x": {
+    "path": "/unsafe/0x0:1681x596/1x/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west"
+            },
+            "Height": {
+              "Px": 596
+            },
+            "Width": {
+              "Px": 1681
+            }
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image.jpg"
+  },
+  "tests_empty": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing image",
+      "status": 400
+    },
+    "path": "/unsafe/"
+  },
+  "tests_fit_in": {
+    "path": "/unsafe/fit-in/134x134/940x2.png",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 134
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 134
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "940x2.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "940x2.png"
+  },
+  "tests_fit_in_equalize": {
+    "path": "/unsafe/fit-in/134x134/filters:equalize()/940x2.png",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Equalize": true,
+          "Resize": {
+            "Height": {
+              "Px": 134
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 134
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "940x2.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "940x2.png"
+  },
+  "tests_fit_in_width": {
+    "path": "/unsafe/fit-in/100x/Commons-logo.svg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "Commons-logo.svg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "Commons-logo.svg"
+  },
+  "tests_format_avif": {
+    "path": "/unsafe/filters:format(avif)/1x1.png",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "Format": "avif"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "1x1.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "1x1.png"
+  },
+  "tests_format_gif": {
+    "path": "/unsafe/filters:format(gif)/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "Format": "gif"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image.jpg"
+  },
+  "tests_format_heic": {
+    "path": "/unsafe/filters:format(heic)/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "Format": "heic"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image.jpg"
+  },
+  "tests_format_heif": {
+    "path": "/unsafe/filters:format(heif)/1x1.png",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "Format": "heic"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "1x1.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "1x1.png"
+  },
+  "tests_format_invalid": {
+    "error": {
+      "field": "format",
+      "kind": "invalid_url",
+      "public": "invalid format: expected png, jpeg, jpg, gif, webp, avif, heic or heif",
+      "status": 400
+    },
+    "path": "/unsafe/filters:format(asdf)/image.jpg"
+  },
+  "tests_format_jpeg": {
+    "path": "/unsafe/filters:format(jpeg)/20x20.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "20x20.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "20x20.jpg"
+  },
+  "tests_format_png": {
+    "path": "/unsafe/filters:format(png)/cmyk.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "cmyk.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "cmyk.jpg"
+  },
+  "tests_fragment_in_key": {
+    "path": "/unsafe/smart/image.jpg%23something",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image.jpg#something"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image.jpg#something"
+  },
+  "tests_image_that_looks_like_size": {
+    "path": "/unsafe/20x20.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "20x20.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "20x20.jpg"
+  },
+  "tests_max_age": {
+    "path": "/unsafe/filters:max_age(30)/image.jpg",
+    "request": {
+      "Delivery": {
+        "TTL": 30000000000
+      },
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image.jpg"
+  },
+  "tests_max_bytes": {
+    "path": "/unsafe/filters:max_bytes(35000)/Giunchedi%2C_Filippo_January_2015_01.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Output": {
+        "MaxBytes": 35000
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "Giunchedi,_Filippo_January_2015_01.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "Giunchedi,_Filippo_January_2015_01.jpg"
+  },
+  "tests_meta_gif": {
+    "path": "/unsafe/meta/animated.gif",
+    "request": {
+      "Dialect": "thumbor",
+      "Info": {
+        "Dimensions": true,
+        "Format": true,
+        "Schema": "thumbor",
+        "Size": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "animated.gif"
+      }
+    },
+    "signature": "unsigned",
+    "source": "animated.gif"
+  },
+  "tests_meta_size": {
+    "path": "/unsafe/meta/200x300/alabama1_ap620%C3%A9.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Info": {
+        "Dimensions": true,
+        "Format": true,
+        "Schema": "thumbor",
+        "Size": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "alabama1_ap620é.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "alabama1_ap620é.jpg"
+  },
+  "tests_meta_zero": {
+    "path": "/unsafe/meta/0x0/Giunchedi%2C_Filippo_January_2015_01-cmyk.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Info": {
+        "Dimensions": true,
+        "Format": true,
+        "Schema": "thumbor",
+        "Size": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "Giunchedi,_Filippo_January_2015_01-cmyk.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "Giunchedi,_Filippo_January_2015_01-cmyk.jpg"
+  },
+  "tests_plain": {
+    "path": "/unsafe/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image.jpg"
+  },
+  "tests_query_in_key": {
+    "path": "/unsafe/smart/image.jpg%3Fts%3D1",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image.jpg?ts=1"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image.jpg?ts=1"
+  },
+  "tests_smart": {
+    "path": "/unsafe/smart/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image.jpg"
+  },
+  "tests_space": {
+    "path": "/unsafe/image%20space.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image space.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image space.jpg"
+  },
+  "tests_utf8_http": {
+    "path": "/unsafe/http://test.com/maracujá.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://test.com/maracujá.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://test.com/maracujá.jpg"
+  },
+  "tests_watermark_zero": {
+    "path": "/unsafe/filters:watermark(boom.jpg,0,0,0)/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          },
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west"
+              },
+              "Source": {
+                "Raw": "boom.jpg"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image.jpg"
+  }
+}

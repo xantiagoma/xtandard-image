@@ -90,9 +90,21 @@ xi_invalidate_hook(GSignalInvocationHint *ihint, guint n_param_values,
   if (n_param_values < 1)
     return TRUE;
   op = g_value_get_object(&param_values[0]);
-  if (!op || !VIPS_IS_FOREIGN_LOAD(op) ||
-      !g_object_class_find_property(G_OBJECT_GET_CLASS(op), "buffer"))
+  if (!op || !VIPS_IS_FOREIGN_LOAD(op))
     return TRUE;
+  if (!g_object_class_find_property(G_OBJECT_GET_CLASS(op), "buffer")) {
+    // A spooled OpenEXR load: its file maps back to the source.
+    char *filename = NULL;
+    const void *src;
+
+    if (!g_object_class_find_property(G_OBJECT_GET_CLASS(op), "filename"))
+      return TRUE;
+    g_object_get(op, "filename", &filename, NULL);
+    if ((src = xi_spool_source(filename)))
+      xi_sources_mark_failed(src);
+    g_free(filename);
+    return TRUE;
+  }
   g_object_get(op, "buffer", &blob, NULL);
   if (blob) {
     xi_sources_mark_failed(VIPS_AREA(blob)->data);

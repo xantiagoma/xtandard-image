@@ -150,6 +150,8 @@ func TestLaterOptions(t *testing.T) {
 		opt("aq_bad_method", "aq:fast"),
 		opt("aq_min_over_max", "aq:size::90:60"),
 		opt("aq_bad_allowed_error", "aq:dssim::::2"),
+		opt("aq_size_bytes", "aq:size:10240:10:80"),
+		opt("aq_size_too_large", "aq:size:2000000000"),
 		// jpeg_options / jpgo (M2)
 		opt("jpeg_options_full", "jpeg_options:1:0:1:1:1:3"),
 		opt("jpgo_progressive", "jpgo:t"),
@@ -175,7 +177,7 @@ func TestLaterOptions(t *testing.T) {
 		opt("avifo_bad", "avifo:444"),
 		// format best (M2)
 		opt("format_best", "f:best/aq:dssim"),
-		// preserve_hdr / ph, enforce_thumbnail / eth, page / pg, pages / pgs (M2)
+		// preserve_hdr / ph, enforce_thumbnail / eth (M2), page / pg, pages / pgs
 		opt("hdr_thumbnail_pages", "ph:1/eth:1/pg:1/pgs:2"),
 		// video_thumbnail_second / vts, video_thumbnail_keyframes / vtk (M3)
 		opt("video_thumbnail_second", "video_thumbnail_second:5"),

@@ -37,7 +37,9 @@ var ErrUnsignedNotAllowed = errors.New("router: unsigned request not allowed")
 //
 // Everything else is rejected: info and raw requests, chained pipelines,
 // security limit overrides, width/DPR client hints (the hinted value would
-// bypass the allowlist), crops, trims, effects, watermarks, fallback image
+// bypass the allowlist; for the same reason the server applies only the
+// Save-Data hint of XI_CLIENT_HINTS_ENABLED to restricted unsigned
+// requests, see server.resolveHints), crops, trims, effects, watermarks, fallback image
 // URLs, cache busters and cache bypass, auto quality, max bytes and encoder
 // tuning. The check is an allowlist: fields added to transform later are
 // rejected until they are listed here.

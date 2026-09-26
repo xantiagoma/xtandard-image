@@ -1,0 +1,4706 @@
+{
+  "adjust_auto_color": {
+    "path": "/demo/image/upload/e_auto_color/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_auto_color",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "adjust_brightness": {
+    "path": "/demo/image/upload/e_brightness:30/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_brightness",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": 76.5
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "adjust_contrast": {
+    "path": "/demo/image/upload/e_contrast:-20/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_contrast",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Contrast": 0.8
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "adjust_gamma": {
+    "path": "/demo/image/upload/e_gamma:40/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_gamma",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Gamma": 1.4
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "adjust_hue": {
+    "path": "/demo/image/upload/e_hue:50/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_hue",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Hue": 90
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "adjust_opacity": {
+    "path": "/demo/image/upload/o_60/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "o",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Opacity": 0.6
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "adjust_red": {
+    "path": "/demo/image/upload/e_red:50/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_red",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Red": 1.5
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "adjust_saturation": {
+    "path": "/demo/image/upload/e_saturation:50/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_saturation",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Saturation": 1.5
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "adjust_sharpen": {
+    "path": "/demo/image/upload/e_sharpen:150/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Sharpen": 1.5
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "adjust_unsharp": {
+    "path": "/demo/image/upload/e_unsharp_mask:200/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_unsharp_mask",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Unsharp": {
+            "Amount": 2,
+            "Sigma": 1
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "adjust_vibrance": {
+    "path": "/demo/image/upload/e_vibrance:70/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_vibrance",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Vibrance": 1.7
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "authenticated_type": {
+    "error": {
+      "kind": "unauthorized",
+      "public": "signature required",
+      "status": 403
+    },
+    "path": "/demo/image/authenticated/c_scale,w_100/v1/folder/sample.jpg"
+  },
+  "background_hex": {
+    "path": "/demo/image/upload/c_pad,h_300,w_300/b_rgb:00ff0080/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 128,
+            "G": 255
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "background_named": {
+    "path": "/demo/image/upload/c_pad,h_300,w_300/b_lightblue/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 230,
+            "G": 216,
+            "R": 173
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "border_rgb": {
+    "path": "/demo/image/upload/bo_10px_solid_rgb:ff0080/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "bo",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Border": {
+            "Bottom": 10,
+            "Color": {
+              "A": 255,
+              "B": 128,
+              "R": 255
+            },
+            "Left": 10,
+            "Right": 10,
+            "Top": 10
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "border_solid": {
+    "path": "/demo/image/upload/bo_4px_solid_black/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "bo",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Border": {
+            "Bottom": 4,
+            "Color": {
+              "A": 255
+            },
+            "Left": 4,
+            "Right": 4,
+            "Top": 4
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "chain_resize_effect_format": {
+    "path": "/demo/image/upload/c_fill,g_auto,h_300,w_400/e_blur:200/a_90/f_auto/q_auto/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "q_auto",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AutoQuality": {
+          "Method": "dssim",
+          "Target": 0.02
+        }
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        },
+        {
+          "Blur": 10
+        },
+        {
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "colorspace_cmyk": {
+    "path": "/demo/image/upload/cs_cmyk/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "cs",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "ColorProfile": "cmyk",
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "colorspace_srgb": {
+    "path": "/demo/image/upload/cs_srgb/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "cs",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "ColorProfile": "srgb",
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "custom_domain": {
+    "path": "/demo/image/upload/c_fill,h_200,w_200/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "default_image": {
+    "path": "/demo/image/upload/d_avatar.png/v1/folder/sample.jpg",
+    "request": {
+      "Delivery": {
+        "Fallback": {
+          "Encoding": "relative",
+          "Mount": "assets",
+          "Raw": "avatar.png"
+        }
+      },
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "d",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "density": {
+    "path": "/demo/image/upload/dn_150/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "dn",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "dpr_2": {
+    "path": "/demo/image/upload/c_scale,w_300/dpr_2.0/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "DPR": 2,
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "dpr_auto": {
+    "path": "/demo/image/upload/c_scale,w_300/dpr_auto/v1/folder/sample.jpg",
+    "request": {
+      "ClientHints": {
+        "DPR": true
+      },
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "effect_background_removal": {
+    "path": "/demo/image/upload/e_background_removal/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_background_removal",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "effect_blackwhite": {
+    "path": "/demo/image/upload/e_blackwhite/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_blackwhite",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "e_blackwhite",
+          "Reason": "approximated"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "effect_blur": {
+    "path": "/demo/image/upload/e_blur/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Blur": 5
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "effect_blur_300": {
+    "path": "/demo/image/upload/e_blur:300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Blur": 15
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "effect_cartoonify": {
+    "path": "/demo/image/upload/e_cartoonify/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_cartoonify",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "effect_colorize": {
+    "path": "/demo/image/upload/co_red,e_colorize:40/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_colorize",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Colorize": {
+            "Color": {
+              "A": 255,
+              "R": 255
+            },
+            "Opacity": 0.4
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "effect_grayscale": {
+    "path": "/demo/image/upload/e_grayscale/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_grayscale",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "effect_negate": {
+    "path": "/demo/image/upload/e_negate/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_negate",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Negate": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "effect_pixelate": {
+    "path": "/demo/image/upload/e_pixelate:20/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Pixelate": 20
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "effect_sepia": {
+    "path": "/demo/image/upload/e_sepia/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_sepia",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Sepia": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "effect_vignette": {
+    "path": "/demo/image/upload/e_vignette/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_vignette",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "fetch_plain": {
+    "path": "/demo/image/fetch/c_scale,w_300/https://example.com/images/cat.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/images/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/images/cat.jpg"
+  },
+  "fetch_query": {
+    "path": "/demo/image/fetch/f_auto/https://example.com/a%20b.jpg%3Fx%3D1\u0026y%3D2",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a b.jpg?x=1\u0026y=2"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a b.jpg?x=1\u0026y=2"
+  },
+  "flag_animated": {
+    "path": "/demo/image/upload/fl_animated/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "flag_any_format": {
+    "path": "/demo/image/upload/fl_any_format/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "flag_apng": {
+    "path": "/demo/image/upload/fl_apng/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "flag_attachment": {
+    "path": "/demo/image/upload/fl_attachment:my_photo/v1/folder/sample.jpg",
+    "request": {
+      "Delivery": {
+        "Attachment": true,
+        "Filename": "my_photo"
+      },
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "flag_attachment_plain": {
+    "path": "/demo/image/upload/fl_attachment/v1/folder/sample.jpg",
+    "request": {
+      "Delivery": {
+        "Attachment": true
+      },
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "flag_awebp": {
+    "path": "/demo/image/upload/fl_awebp/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "flag_force_strip": {
+    "path": "/demo/image/upload/fl_force_strip/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg",
+        "StripMetadata": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "flag_getinfo": {
+    "path": "/demo/image/upload/fl_getinfo/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Info": {
+        "Dimensions": true,
+        "Format": true,
+        "Size": true
+      },
+      "Kind": "info",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "flag_immutable_cache": {
+    "path": "/demo/image/upload/fl_immutable_cache/v1/folder/sample.jpg",
+    "request": {
+      "Delivery": {
+        "Immutable": true
+      },
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "flag_keep_attribution": {
+    "path": "/demo/image/upload/fl_keep_attribution/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg",
+        "KeepCopyright": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "flag_keep_iptc": {
+    "path": "/demo/image/upload/fl_keep_iptc/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg",
+        "StripMetadata": false
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "flag_lossy": {
+    "path": "/demo/image/upload/fl_lossy/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg",
+        "Lossless": false
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "flag_png8": {
+    "path": "/demo/image/upload/fl_png8/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "fl_png8",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg",
+        "PNG": {
+          "QuantizationColors": 256,
+          "Quantize": true
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "flag_preserve_transparency": {
+    "path": "/demo/image/upload/fl_preserve_transparency/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "flag_progressive": {
+    "path": "/demo/image/upload/fl_progressive/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg",
+        "Progressive": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "flag_rasterize": {
+    "path": "/demo/image/upload/fl_rasterize/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "fl_rasterize",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "flag_strip_profile": {
+    "path": "/demo/image/upload/fl_strip_profile/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg",
+        "StripColorProfile": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "format_auto": {
+    "path": "/demo/image/upload/f_auto/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "format_avif": {
+    "path": "/demo/image/upload/f_avif/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "avif"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "format_gif": {
+    "path": "/demo/image/upload/f_gif/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "gif"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "format_heif": {
+    "path": "/demo/image/upload/f_heif/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "heic"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "format_jpeg": {
+    "path": "/demo/image/upload/f_jpeg/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "format_pdf": {
+    "error": {
+      "field": "f",
+      "kind": "invalid_url",
+      "public": "invalid f: expected auto, jpg, png, webp, avif, jxl, gif, heic, tiff, bmp, ico, svg, mp4 or webm",
+      "status": 400
+    },
+    "path": "/demo/image/upload/f_pdf/v1/folder/sample.jpg"
+  },
+  "format_png": {
+    "path": "/demo/image/upload/f_png/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "format_tiff": {
+    "path": "/demo/image/upload/f_tiff/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "tiff"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "format_webp": {
+    "path": "/demo/image/upload/f_webp/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "id_no_ext": {
+    "path": "/demo/image/upload/c_scale,w_100/v1/folder/sample",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample"
+  },
+  "id_unicode": {
+    "path": "/demo/image/upload/c_scale,w_100/v1/folder/caf%C3%A9%20%C3%BC.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/café ü.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/café ü.jpg"
+  },
+  "id_version": {
+    "path": "/demo/image/upload/c_scale,w_100/v1712345678/sample.png",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.png"
+  },
+  "named_transformation": {
+    "path": "/demo/image/upload/t_thumb/v1/folder/sample.jpg",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "thumb"
+        ]
+      },
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "npm_angle_list": {
+    "path": "/demo/image/upload/a_auto_right.hflip/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "a_auto_right",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_background_rgb": {
+    "path": "/demo/image/upload/b_rgb:ff000080,c_pad,h_300,w_300/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 128,
+            "R": 255
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_basic": {
+    "path": "/demo/image/upload/c_fill,g_auto,h_200,w_300/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_border_obj": {
+    "path": "/demo/image/upload/bo_3px_solid_rgb:00f/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "bo",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Border": {
+            "Bottom": 3,
+            "Color": {
+              "A": 255,
+              "B": 255
+            },
+            "Left": 3,
+            "Right": 3,
+            "Top": 3
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_chain": {
+    "path": "/demo/image/upload/c_scale,w_300/e_sharpen:200/a_-30/f_auto,q_auto:eco/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "a",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "q_auto",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AutoQuality": {
+          "Method": "dssim",
+          "Target": 0.035
+        }
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        },
+        {
+          "Sharpen": 2
+        },
+        {
+          "RotateAny": -30
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "npm_cname": {
+    "path": "/demo/image/upload/w_100/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "npm_default_image_folder": {
+    "path": "/demo/image/upload/d_fallbacks:avatar.png/sample.jpg",
+    "request": {
+      "Delivery": {
+        "Fallback": {
+          "Encoding": "relative",
+          "Mount": "assets",
+          "Raw": "fallbacks/avatar.png"
+        }
+      },
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "d",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_dpr_float": {
+    "path": "/demo/image/upload/c_scale,dpr_1.5,w_100/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "DPR": 1.5,
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_effect_blur_faces": {
+    "path": "/demo/image/upload/e_blur_faces:600/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_blur_faces",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "BlurDetections": {
+            "Classes": [
+              "face"
+            ],
+            "Sigma": 30
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_effect_blur_region": {
+    "path": "/demo/image/upload/e_blur_region:800,h_0.4,w_0.3,x_0.1,y_0.2/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_blur_region",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "BlurAreas": {
+            "Areas": [
+              {
+                "Height": 0.4,
+                "Left": 0.1,
+                "Top": 0.2,
+                "Width": 0.3
+              }
+            ],
+            "Sigma": 40
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_effect_pixelate_faces": {
+    "path": "/demo/image/upload/e_pixelate_faces:12/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_pixelate_faces",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "BlurDetections": {
+            "Classes": [
+              "face"
+            ],
+            "Pixelate": 12
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_effect_trim": {
+    "path": "/demo/image/upload/e_trim:15/sample.png",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {
+          "Trim": {
+            "Threshold": 15
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.png"
+  },
+  "npm_effect_unknown": {
+    "path": "/demo/image/upload/e_oil_paint:40/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_oil_paint",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_effects": {
+    "path": "/demo/image/upload/e_brightness:-40/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_brightness",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": -102
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_fetch": {
+    "path": "/demo/image/fetch/c_fill,f_auto,w_150/https://example.com/img/cat.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 150
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/img/cat.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/img/cat.jpg"
+  },
+  "npm_flags_multi": {
+    "path": "/demo/image/upload/fl_progressive.strip_profile.immutable_cache/sample.jpg",
+    "request": {
+      "Delivery": {
+        "Immutable": true
+      },
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg",
+        "Progressive": true,
+        "StripColorProfile": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_if": {
+    "path": "/demo/image/upload/if_w_gt_1000,c_scale,w_1000/e_grayscale/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "if",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "e_grayscale",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_named_multi": {
+    "path": "/demo/image/upload/t_thumb.watermarked/sample.jpg",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "thumb",
+          "watermarked"
+        ]
+      },
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_opacity": {
+    "path": "/demo/image/upload/o_50/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "o",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Opacity": 0.5
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_overlay_fetch": {
+    "path": "/demo/image/upload/g_center,l_fetch:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "l",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Raw": "https://example.com/logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_overlay_layer_apply": {
+    "path": "/demo/image/upload/l_logos:brand/c_scale,w_80/fl_layer_apply,g_north_west,x_10,y_10/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "l",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 10,
+                "YOffset": 10
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "logos/brand"
+              },
+              "Width": 80
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_overlay_legacy": {
+    "path": "/demo/image/upload/fl_relative,g_south_east,l_logo,o_60,w_0.2,x_5,y_5/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "l",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 0.6,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 5,
+                "YOffset": 5
+              },
+              "Scale": 0.2,
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "logo"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_page": {
+    "path": "/demo/image/upload/f_png,pg_3/doc.pdf",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {
+          "Page": 2
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "doc.pdf"
+      }
+    },
+    "signature": "unsigned",
+    "source": "doc.pdf"
+  },
+  "npm_private_cdn": {
+    "path": "/image/upload/w_100/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "mounted",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_radius_list": {
+    "path": "/demo/image/upload/r_10:20/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "r",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Radius": {
+            "BottomLeft": 20,
+            "BottomRight": 10,
+            "TopLeft": 10,
+            "TopRight": 20
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_radius_three": {
+    "path": "/demo/image/upload/r_10:20:30/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "r",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Radius": {
+            "BottomLeft": 20,
+            "BottomRight": 30,
+            "TopLeft": 10,
+            "TopRight": 20
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_raw_transformation": {
+    "path": "/demo/image/upload/w_100,zz_1/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "zz",
+          "Reason": "unknown option"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_size": {
+    "path": "/demo/image/upload/c_fit,h_200,w_300/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_underlay": {
+    "path": "/demo/image/upload/u_paper/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "u",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_variables": {
+    "path": "/demo/image/upload/$size_200,c_scale,w_$size/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "$variable",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "w",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit"
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_version": {
+    "path": "/demo/image/upload/w_100/v1234/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "npm_video_params": {
+    "path": "/demo/image/upload/so_2,vc_auto/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "so",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "vc",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_w_auto": {
+    "path": "/demo/image/upload/c_scale,w_auto:100:400/sample.jpg",
+    "request": {
+      "ClientHints": {
+        "Width": true,
+        "WidthStep": 100
+      },
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "npm_zoom": {
+    "path": "/demo/image/upload/c_thumb,g_faces,h_200,w_200,z_1.5/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "g_faces",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusZoom": 1.5,
+            "Type": "face"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "overlay_fetch": {
+    "path": "/demo/image/upload/l_fetch:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw%3D%3D/fl_layer_apply,g_south/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "l",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south"
+              },
+              "Source": {
+                "Raw": "https://example.com/logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "overlay_image": {
+    "path": "/demo/image/upload/l_logos:brand/c_scale,w_100/fl_layer_apply,g_north_east,x_10,y_20/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "l",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-east",
+                "XOffset": 10,
+                "YOffset": 20
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "logos/brand"
+              },
+              "Width": 100
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "overlay_text": {
+    "path": "/demo/image/upload/l_text:Arial_40:Hello/fl_layer_apply/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "l_text",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "overlay_tiled": {
+    "path": "/demo/image/upload/l_logo/fl_layer_apply,fl_tiled/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "l",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "logo"
+              },
+              "Tile": "repeat"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "page": {
+    "path": "/demo/image/upload/pg_2/doc.pdf",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {
+          "Page": 1
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "doc.pdf"
+      }
+    },
+    "signature": "unsigned",
+    "source": "doc.pdf"
+  },
+  "private_cdn": {
+    "path": "/image/upload/c_fill,h_200,w_200/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "mounted",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "private_type": {
+    "error": {
+      "kind": "unauthorized",
+      "public": "signature required",
+      "status": 403
+    },
+    "path": "/demo/image/private/c_scale,w_100/v1/folder/sample.jpg"
+  },
+  "quality_80": {
+    "path": "/demo/image/upload/q_80/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg",
+        "Quality": 80
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "quality_auto": {
+    "path": "/demo/image/upload/q_auto/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "q_auto",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AutoQuality": {
+          "Method": "dssim",
+          "Target": 0.02
+        },
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "quality_auto_best": {
+    "path": "/demo/image/upload/q_auto:best/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "q_auto",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AutoQuality": {
+          "Method": "dssim",
+          "Target": 0.005
+        },
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "quality_auto_eco": {
+    "path": "/demo/image/upload/q_auto:eco/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "q_auto",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AutoQuality": {
+          "Method": "dssim",
+          "Target": 0.035
+        },
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "quality_auto_good": {
+    "path": "/demo/image/upload/q_auto:good/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "q_auto",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AutoQuality": {
+          "Method": "dssim",
+          "Target": 0.02
+        },
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "quality_auto_low": {
+    "path": "/demo/image/upload/q_auto:low/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "q_auto",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AutoQuality": {
+          "Method": "dssim",
+          "Target": 0.05
+        },
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "quality_chroma": {
+    "path": "/demo/image/upload/q_70:420/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "ChromaSubsampling": "4:2:0",
+        "Format": "jpeg",
+        "Quality": 70
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "quality_jpegmini": {
+    "path": "/demo/image/upload/q_jpegmini/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "q_jpegmini",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_auto": {
+    "path": "/demo/image/upload/c_auto,h_300,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_auto_pad": {
+    "path": "/demo/image/upload/c_auto_pad,g_auto,h_300,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_crop_ar": {
+    "path": "/demo/image/upload/ar_4:3,c_crop,g_auto/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "ar",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Crop": {
+            "AspectRatio": 1.3333333333333333,
+            "Gravity": {
+              "Type": "smart"
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_crop_gravity": {
+    "path": "/demo/image/upload/c_crop,g_south_west,h_100,w_150/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "south-west"
+            },
+            "Height": {
+              "Px": 100
+            },
+            "Width": {
+              "Px": 150
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_crop_rel": {
+    "path": "/demo/image/upload/c_crop,h_0.25,w_0.5/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Crop": {
+            "Height": {
+              "Rel": 0.25
+            },
+            "Width": {
+              "Rel": 0.5
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_crop_xy": {
+    "path": "/demo/image/upload/c_crop,h_100,w_150,x_20,y_30/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 20,
+              "YOffset": 30
+            },
+            "Height": {
+              "Px": 100
+            },
+            "Width": {
+              "Px": 150
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_crop_xy_center": {
+    "path": "/demo/image/upload/c_crop,g_xy_center,h_0.5,w_0.5,x_0.25,y_0.75/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "FocusX": 0.25,
+              "FocusY": 0.75,
+              "Type": "focus-point"
+            },
+            "Height": {
+              "Rel": 0.5
+            },
+            "Width": {
+              "Rel": 0.5
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_fill": {
+    "path": "/demo/image/upload/c_fill,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_fill_gravity_auto": {
+    "path": "/demo/image/upload/c_fill,g_auto,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_fill_gravity_auto_subject": {
+    "path": "/demo/image/upload/c_fill,g_auto:cat,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_fill_gravity_compass": {
+    "path": "/demo/image/upload/c_fill,g_north_east,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "north-east"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_fill_gravity_face": {
+    "path": "/demo/image/upload/c_fill,g_face,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "g_face",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "face"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_fill_gravity_faces": {
+    "path": "/demo/image/upload/c_fill,g_faces,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "g_faces",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "face"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_fill_gravity_object": {
+    "path": "/demo/image/upload/c_fill,g_dog,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "g_dog",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Classes": [
+              "dog"
+            ],
+            "Type": "object"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_fill_pad": {
+    "path": "/demo/image/upload/c_fill_pad,g_auto,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "c_fill_pad",
+          "Reason": "approximated"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_fit": {
+    "path": "/demo/image/upload/c_fit,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_imagga_crop": {
+    "path": "/demo/image/upload/c_imagga_crop,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "c_imagga_crop",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "force",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_imagga_scale": {
+    "path": "/demo/image/upload/c_imagga_scale,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "c_imagga_scale",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_lfill": {
+    "path": "/demo/image/upload/c_lfill,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill-down",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_limit": {
+    "path": "/demo/image/upload/c_limit,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_lpad": {
+    "path": "/demo/image/upload/c_lpad,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_mfit": {
+    "path": "/demo/image/upload/c_mfit,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "outside",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_mpad": {
+    "path": "/demo/image/upload/c_mpad,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "c_mpad",
+          "Reason": "approximated"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_pad": {
+    "path": "/demo/image/upload/c_pad,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_pad_gravity": {
+    "path": "/demo/image/upload/c_pad,g_south,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "south"
+            }
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_scale_ar": {
+    "path": "/demo/image/upload/ar_16:9,c_scale,w_400/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "AspectRatio": 1.7777777777777777,
+            "Enlarge": true,
+            "Type": "force",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_scale_ar_float": {
+    "path": "/demo/image/upload/ar_1.5,c_scale,w_400/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "AspectRatio": 1.5,
+            "Enlarge": true,
+            "Type": "force",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_scale_rel": {
+    "path": "/demo/image/upload/c_scale,w_0.5/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Rel": 0.5
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_scale_w": {
+    "path": "/demo/image/upload/c_scale,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_scale_wh": {
+    "path": "/demo/image/upload/c_scale,h_200,w_300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "force",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "resize_thumb_face_zoom": {
+    "path": "/demo/image/upload/c_thumb,g_face,h_150,w_150,z_0.7/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "g_face",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusZoom": 0.7,
+            "Type": "face"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 150
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 150
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "rotate_45": {
+    "path": "/demo/image/upload/a_45/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "a",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "RotateAny": 45
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "rotate_90": {
+    "path": "/demo/image/upload/a_90/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "rotate_auto_right": {
+    "path": "/demo/image/upload/a_auto_right/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "a_auto_right",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "rotate_hflip": {
+    "path": "/demo/image/upload/a_hflip/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "rotate_ignore": {
+    "path": "/demo/image/upload/a_ignore/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "AutoRotate": false
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "rotate_vflip": {
+    "path": "/demo/image/upload/a_vflip/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Flip": {
+            "V": true
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "round_20": {
+    "path": "/demo/image/upload/r_20/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "r",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Radius": {
+            "BottomLeft": 20,
+            "BottomRight": 20,
+            "TopLeft": 20,
+            "TopRight": 20
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "round_4": {
+    "path": "/demo/image/upload/r_10:20:30:40/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "r",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Radius": {
+            "BottomLeft": 40,
+            "BottomRight": 30,
+            "TopLeft": 10,
+            "TopRight": 20
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "round_max": {
+    "path": "/demo/image/upload/r_max/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "r",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Radius": {
+            "Max": true
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  },
+  "sig_sha1_basic": {
+    "config": "signed",
+    "path": "/demo/image/upload/s--Bh1c0rqb--/c_fill,h_200,w_300/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "sample.jpg"
+  },
+  "sig_sha1_chain": {
+    "config": "signed",
+    "path": "/demo/image/upload/s--8Z_FnhqD--/c_fill,w_300/e_grayscale/f_webp/sample.png",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_grayscale",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        },
+        {
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.png"
+      }
+    },
+    "signature": "verified",
+    "source": "sample.png"
+  },
+  "sig_sha1_fetch": {
+    "config": "signed",
+    "path": "/demo/image/fetch/s--MRUGV-qq--/w_300/https://example.com/a%20b.jpg%3Fx%3D1",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a b.jpg?x=1"
+      }
+    },
+    "signature": "verified",
+    "source": "https://example.com/a b.jpg?x=1"
+  },
+  "sig_sha1_no_tx": {
+    "config": "signed",
+    "path": "/demo/image/upload/s--Mh0W0keP--/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "folder/sample.jpg"
+  },
+  "sig_sha1_private": {
+    "config": "signed",
+    "path": "/demo/image/private/s--iXuySGRt--/w_100/v1/secret/photo.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "secret/photo.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "secret/photo.jpg"
+  },
+  "sig_sha1_private_cdn": {
+    "config": "signed",
+    "path": "/image/upload/s--WsGl8cHM--/w_100/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "mounted",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "sample.jpg"
+  },
+  "sig_sha1_unicode": {
+    "config": "signed",
+    "path": "/demo/image/upload/s--CEleCxpI--/w_100/v1/folder/caf%C3%A9.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/café.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "folder/café.jpg"
+  },
+  "sig_sha1_version": {
+    "config": "signed",
+    "path": "/demo/image/upload/s--XjKdrQzI--/c_scale,w_100/v1234/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "folder/sample.jpg"
+  },
+  "sig_sha256_long": {
+    "config": "signed",
+    "path": "/demo/image/upload/s--i46GHAbs1Ed66mEYIrj83I6Y10E7Nu43--/c_scale,w_300/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "sample.jpg"
+  },
+  "sig_sha256_long_chain": {
+    "config": "signed",
+    "path": "/demo/image/upload/s--RqauDDM-ekMKLY4XWtVkLInFGVKsiE27--/c_fill,w_300/e_blur:300/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        },
+        {
+          "Blur": 15
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "folder/sample.jpg"
+  },
+  "sig_sha256_short": {
+    "config": "sha256",
+    "path": "/demo/image/upload/s--i46GHAbs--/c_scale,w_300/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "sample.jpg"
+  },
+  "underlay_image": {
+    "path": "/demo/image/upload/u_paper/fl_layer_apply/v1/folder/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "u",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/sample.jpg"
+  }
+}

@@ -52,12 +52,6 @@
     "path": "/unsafe/bg:ffffff/background_alpha:0.5/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "background_alpha",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Background": {
@@ -188,12 +182,6 @@
     "path": "/unsafe/bga:0.25/bg:000/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "bga",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Background": {
@@ -221,12 +209,6 @@
     "path": "/unsafe/bga:0.5/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "bga",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {}
       ],
@@ -817,12 +799,6 @@
     "path": "/unsafe/enforce_thumbnail:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "enforce_thumbnail",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "EnforceThumbnail": true
       },
@@ -858,12 +834,6 @@
     "path": "/unsafe/eth:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "eth",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "EnforceThumbnail": false
       },
@@ -1148,12 +1118,6 @@
     "path": "/unsafe/f:best/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "format:best",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "best"
       },
@@ -2229,12 +2193,6 @@
     "path": "/unsafe/page:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "page",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Page": 0
@@ -2251,12 +2209,6 @@
     "path": "/unsafe/pages:3/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "pages",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Pages": 3
@@ -2387,12 +2339,6 @@
     "path": "/unsafe/pg:2/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "pg",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Page": 2
@@ -2418,12 +2364,6 @@
     "path": "/unsafe/pgs:-1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "pgs",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Pages": -1
@@ -2449,12 +2389,6 @@
     "path": "/unsafe/ph:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "ph",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "PreserveHDR": false
       },
@@ -2543,12 +2477,6 @@
     "path": "/unsafe/preserve_hdr:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "preserve_hdr",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "PreserveHDR": true
       },

@@ -657,3 +657,222 @@ xi_affine(VipsImage *in, double a, double b, double c, double d, const double *b
     XI_FAIL();
   return XI_OK;
 }
+
+// xi_round_cast_to rounds float pixels to nearest before casting to format,
+// since vips_cast truncates. Integer inputs are cast directly.
+static int
+xi_round_cast_to(VipsImage *in, VipsBandFormat format, VipsImage **out)
+{
+  VipsImage *r = NULL;
+  int rc;
+
+  if (!vips_band_format_isfloat(in->BandFmt) && !vips_band_format_iscomplex(in->BandFmt))
+    return vips_cast(in, out, format, NULL);
+  if (vips_rint(in, &r, NULL))
+    return -1;
+  rc = vips_cast(r, out, format, NULL);
+  g_object_unref(r);
+  return rc;
+}
+
+int
+xi_cast_round(VipsImage *in, int band_format, VipsImage **out, char **err)
+{
+  if (xi_round_cast_to(in, band_format, out))
+    XI_FAIL();
+  return XI_OK;
+}
+
+int
+xi_maplut(VipsImage *in, VipsImage *lut, VipsImage **out, char **err)
+{
+  if (vips_maplut(in, out, lut, NULL))
+    XI_FAIL();
+  return XI_OK;
+}
+
+// xi_recomb multiplies every pixel (a column of cols bands) by the rows×cols
+// matrix m, giving rows bands in the input's band format.
+int
+xi_recomb(VipsImage *in, const double *m, int rows, int cols, VipsImage **out, char **err)
+{
+  VipsImage *base = vips_image_new();
+  VipsImage **t = (VipsImage **) vips_object_local_array(VIPS_OBJECT(base), 2);
+
+  t[0] = vips_image_new_matrix_from_array(cols, rows, m, rows * cols);
+  if (!t[0])
+    goto fail;
+  if (vips_recomb(in, &t[1], t[0], NULL))
+    goto fail;
+  if (xi_round_cast_to(t[1], in->BandFmt, out))
+    goto fail;
+  g_object_unref(base);
+  return XI_OK;
+
+fail:
+  *err = xi_error_copy();
+  g_object_unref(base);
+  return XI_ERR_OP;
+}
+
+// xi_mix is a × (1 − t) + b × t in a's band format.
+int
+xi_mix(VipsImage *a, VipsImage *b, double t, VipsImage **out, char **err)
+{
+  VipsImage *base = vips_image_new();
+  VipsImage **l = (VipsImage **) vips_object_local_array(VIPS_OBJECT(base), 3);
+
+  if (vips_linear1(a, &l[0], 1.0 - t, 0.0, NULL) || vips_linear1(b, &l[1], t, 0.0, NULL) ||
+      vips_add(l[0], l[1], &l[2], NULL) || xi_round_cast_to(l[2], a->BandFmt, out)) {
+    *err = xi_error_copy();
+    g_object_unref(base);
+    return XI_ERR_OP;
+  }
+  g_object_unref(base);
+  return XI_OK;
+}
+
+// xi_gradient_mask makes a one-band uchar width×height image whose pixel
+// (x, y) is round(opacity × clamp(ax·x + ay·y + b, 0, 255)): a linear ramp
+// along (ax, ay), clamped by the uchar cast.
+int
+xi_gradient_mask(int width, int height, double ax, double ay, double b, double opacity,
+    VipsImage **out, char **err)
+{
+  VipsImage *base = vips_image_new();
+  VipsImage **t = (VipsImage **) vips_object_local_array(VIPS_OBJECT(base), 6);
+  double m[2] = { ax, ay };
+
+  if (vips_xyz(&t[0], width, height, NULL))
+    goto fail;
+  t[1] = vips_image_new_matrix_from_array(2, 1, m, 2);
+  if (!t[1])
+    goto fail;
+  if (vips_recomb(t[0], &t[2], t[1], NULL) || vips_linear1(t[2], &t[3], 1.0, b, NULL) ||
+      xi_round_cast_to(t[3], VIPS_FORMAT_UCHAR, &t[4]))
+    goto fail;
+  if (opacity < 1.0) {
+    if (vips_linear1(t[4], &t[5], opacity, 0.0, NULL) ||
+        xi_round_cast_to(t[5], VIPS_FORMAT_UCHAR, out))
+      goto fail;
+  }
+  else if (vips_copy(t[4], out, "interpretation", VIPS_INTERPRETATION_B_W, NULL))
+    goto fail;
+  g_object_unref(base);
+  return XI_OK;
+
+fail:
+  *err = xi_error_copy();
+  g_object_unref(base);
+  return XI_ERR_OP;
+}
+
+// Filter extras (WP-61). Results keep the input's band format: float
+// intermediates are rounded to nearest, then clamped by the cast.
+
+// xi_conv3 convolves in with the 3×3 row-major matrix m, used as it is
+// (scale 1, offset 0), in float precision. Edges repeat the border pixels
+// (vips_convf embeds with VIPS_EXTEND_COPY), so the size is kept.
+int
+xi_conv3(VipsImage *in, const double *m, VipsImage **out, char **err)
+{
+  VipsImage *base = vips_image_new();
+  VipsImage **t = (VipsImage **) vips_object_local_array(VIPS_OBJECT(base), 2);
+
+  t[0] = vips_image_new_matrix_from_array(3, 3, m, 9);
+  if (!t[0])
+    goto fail;
+  if (vips_conv(in, &t[1], t[0], "precision", VIPS_PRECISION_FLOAT, NULL) ||
+      xi_round_cast_to(t[1], in->BandFmt, out))
+    goto fail;
+  g_object_unref(base);
+  return XI_OK;
+
+fail:
+  *err = xi_error_copy();
+  g_object_unref(base);
+  return XI_ERR_OP;
+}
+
+// xi_unsharp is the classic unsharp mask in + amount × (in − blur), blur
+// being a float-precision gaussian of sigma, computed as
+// (1 + amount) × in − amount × blur.
+int
+xi_unsharp(VipsImage *in, double sigma, double amount, VipsImage **out, char **err)
+{
+  VipsImage *base = vips_image_new();
+  VipsImage **t = (VipsImage **) vips_object_local_array(VIPS_OBJECT(base), 4);
+
+  if (vips_gaussblur(in, &t[0], sigma, "precision", VIPS_PRECISION_FLOAT, NULL) ||
+      vips_linear1(in, &t[1], 1.0 + amount, 0.0, NULL) ||
+      vips_linear1(t[0], &t[2], -amount, 0.0, NULL) || vips_add(t[1], t[2], &t[3], NULL) ||
+      xi_round_cast_to(t[3], in->BandFmt, out)) {
+    *err = xi_error_copy();
+    g_object_unref(base);
+    return XI_ERR_OP;
+  }
+  g_object_unref(base);
+  return XI_OK;
+}
+
+// xi_insert places sub over main with its top-left corner at (x, y),
+// clipped to main (vips_insert without expand).
+int
+xi_insert(VipsImage *main, VipsImage *sub, int x, int y, VipsImage **out, char **err)
+{
+  if (vips_insert(main, sub, out, x, y, NULL))
+    XI_FAIL();
+  return XI_OK;
+}
+
+// xi_blend_mask is a × m/255 + b × (1 − m/255) for the one-band uchar mask
+// m (vips_ifthenelse with blend), in a's band format.
+int
+xi_blend_mask(VipsImage *mask, VipsImage *a, VipsImage *b, VipsImage **out, char **err)
+{
+  VipsImage *t = NULL;
+  int rc;
+
+  if (vips_ifthenelse(mask, a, b, &t, "blend", TRUE, NULL))
+    XI_FAIL();
+  rc = xi_round_cast_to(t, a->BandFmt, out);
+  g_object_unref(t);
+  if (rc)
+    XI_FAIL();
+  return XI_OK;
+}
+
+// ---- HDR (WP-67) -----------------------------------------------------------
+
+int
+xi_decode(VipsImage *in, VipsImage **out, char **err)
+{
+  // Radiance RGBE (and LabQ) to float; any other image is passed through.
+  if (vips_image_decode(in, out))
+    XI_FAIL();
+  return XI_OK;
+}
+
+int
+xi_clamp(VipsImage *in, double min, double max, VipsImage **out, char **err)
+{
+  if (vips_clamp(in, out, "min", min, "max", max, NULL))
+    XI_FAIL();
+  return XI_OK;
+}
+
+int
+xi_multiply(VipsImage *a, VipsImage *b, VipsImage **out, char **err)
+{
+  if (vips_multiply(a, b, out, NULL))
+    XI_FAIL();
+  return XI_OK;
+}
+
+int
+xi_divide(VipsImage *a, VipsImage *b, VipsImage **out, char **err)
+{
+  if (vips_divide(a, b, out, NULL))
+    XI_FAIL();
+  return XI_OK;
+}

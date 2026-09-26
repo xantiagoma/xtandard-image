@@ -372,6 +372,24 @@
     "signature": "unsigned",
     "source": "https://example.com/a.jpg"
   },
+  "f_best": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026f=best",
+    "request": {
+      "Dialect": "query",
+      "Output": {
+        "Format": "best"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
   "f_invalid": {
     "error": {
       "field": "format",
@@ -1135,19 +1153,13 @@
   },
   "o_later_milestone": {
     "path": "/",
-    "query": "url=https://example.com/a.jpg\u0026o=sa:1.2",
+    "query": "url=https://example.com/a.jpg\u0026o=ush:always",
     "request": {
       "Dialect": "query",
-      "Ignored": [
-        {
-          "Option": "sa",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
-          "Adjust": {
-            "Saturation": 1.2
+          "Unsharp": {
+            "Mode": "always"
           }
         }
       ],
@@ -1364,12 +1376,6 @@
     "query": "url=https://example.com/a.jpg\u0026page=2",
     "request": {
       "Dialect": "query",
-      "Ignored": [
-        {
-          "Option": "page",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Page": 2
@@ -1391,6 +1397,51 @@
     },
     "path": "/",
     "query": "url=https://example.com/a.jpg\u0026page=-2"
+  },
+  "pages": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026page=1\u0026pages=2",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Page": 1,
+          "Pages": 2
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "pages_all": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026pages=-1",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Pages": -1
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "pages_invalid": {
+    "error": {
+      "field": "pages",
+      "kind": "invalid_url",
+      "public": "invalid pages: expected integer \u003e 0 or -1",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026pages=0"
   },
   "pixelate": {
     "path": "/",

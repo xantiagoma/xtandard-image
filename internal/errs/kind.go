@@ -118,3 +118,16 @@ func PublicMessage(k Kind) string {
 	ki, _ := k.info()
 	return ki.public
 }
+
+// Kinds returns every defined kind in declaration order, KindUnknown
+// first. It is the source of the kind enum in the OpenAPI error schema
+// (ADR 0008).
+func Kinds() []Kind {
+	var ks []Kind
+	for k := KindUnknown; ; k++ {
+		if _, ok := k.info(); !ok {
+			return ks
+		}
+		ks = append(ks, k)
+	}
+}

@@ -1,0 +1,999 @@
+{
+  "bg": {
+    "query": "url=wsrv.nl/transparency_demo.png\u0026w=400\u0026bg=black",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/transparency_demo.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/transparency_demo.png"
+  },
+  "blur": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026blur=5",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Blur": 5,
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "con": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026con=25",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "con",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Contrast": 1.25
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "crop_a_top": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026h=300\u0026fit=cover\u0026a=top",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "north"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "crop_attention": {
+    "query": "url=wsrv.nl/puppy.jpg\u0026w=300\u0026h=300\u0026fit=cover\u0026a=attention",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/puppy.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/puppy.jpg"
+  },
+  "crop_focal": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026h=300\u0026fit=cover\u0026a=focal\u0026fpy=0.45",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusX": 0.5,
+            "FocusY": 0.45,
+            "Type": "focus-point"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "crop_rect": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026cx=680\u0026cy=500\u0026cw=300\u0026ch=300",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        },
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 680,
+              "YOffset": 500
+            },
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "default": {
+    "query": "url=example.org/noimage.jpg\u0026default=wsrv.nl/placeholder.svg",
+    "request": {
+      "Delivery": {
+        "Fallback": {
+          "Raw": "https://wsrv.nl/placeholder.svg"
+        },
+        "OnErrorRedirect": true
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.org/noimage.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.org/noimage.jpg"
+  },
+  "duotone": {
+    "query": "url=wsrv.nl/zebra.jpg\u0026w=300\u0026h=300\u0026fit=cover\u0026a=focal\u0026fpx=0.6\u0026filt=duotone",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Duotone": {
+            "Highlight": {
+              "A": 255,
+              "B": 79,
+              "G": 231,
+              "R": 216
+            },
+            "Intensity": 1,
+            "Shadow": {
+              "A": 255,
+              "B": 88,
+              "G": 54,
+              "R": 200
+            }
+          },
+          "Gravity": {
+            "FocusX": 0.6,
+            "FocusY": 0.5,
+            "Type": "focus-point"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/zebra.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/zebra.jpg"
+  },
+  "encoding": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026crop=100,100,720,530\u0026encoding=base64",
+    "request": {
+      "Delivery": {
+        "Encoding": "data-url"
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        },
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 720,
+              "YOffset": 530
+            },
+            "Height": {
+              "Px": 100
+            },
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "fit_contain": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026h=300\u0026fit=contain\u0026cbg=black",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "fit_cover": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026h=300\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "fit_fill": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026h=300\u0026fit=fill",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "force",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "fit_inside": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026h=300\u0026fit=inside",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "fit_outside": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026h=300\u0026fit=outside",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "outside",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "fit_we": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026h=300\u0026fit=inside\u0026we",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "flip": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026h=300\u0026flip",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Flip": {
+            "V": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "flop": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026h=300\u0026flop",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "gam": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026gam=3",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Gamma": 3
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "hue": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026hue=90",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Hue": 90
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "il": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026il",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Progressive": true
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "intro": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026h=300",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "mask_circle": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026h=300\u0026fit=cover\u0026mask=circle",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Mask": {
+            "Shape": "circle"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "mask_heart": {
+    "query": "url=wsrv.nl/transparency_demo.png\u0026w=400\u0026bg=black\u0026mask=heart\u0026mbg=red",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255
+          },
+          "Mask": {
+            "Background": {
+              "A": 255,
+              "R": 255
+            },
+            "Shape": "heart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/transparency_demo.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/transparency_demo.png"
+  },
+  "mask_mtrim": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026h=900\u0026fit=cover\u0026a=crop-22-0\u0026mask=circle\u0026mtrim",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusX": 0.22,
+            "Type": "focus-point"
+          },
+          "Mask": {
+            "Shape": "circle",
+            "Trim": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 900
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "maxage": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=100\u0026maxage=31d",
+    "request": {
+      "Delivery": {
+        "TTL": 2678400000000000
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "mod": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026mod=2",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Exposure": 2
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "n": {
+    "query": "url=wsrv.nl/banana.webp\u0026h=300\u0026output=gif\u0026n=-1",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "gif"
+      },
+      "Pipelines": [
+        {
+          "Pages": -1,
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/banana.webp"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/banana.webp"
+  },
+  "output": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026output=webp",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "q": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026q=20",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Quality": 20
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "ro_rbg": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026h=300\u0026ro=45\u0026rbg=red",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "R": 255
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            }
+          },
+          "RotateAny": 45
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "sat": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026sat=0.5",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Saturation": 0.5
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "sharp": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026sharp=3",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Sharpen": 3
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "size_dpr": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026h=144\u0026dpr=2",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "DPR": 2,
+            "Enlarge": true,
+            "Height": {
+              "Px": 144
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "size_h": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026h=300",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "size_w": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "tint": {
+    "query": "url=wsrv.nl/lichtenstein.jpg\u0026w=300\u0026tint=red",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Tint": {
+            "A": 255,
+            "R": 255
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/lichtenstein.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/lichtenstein.jpg"
+  },
+  "trim": {
+    "query": "url=wsrv.nl/transparency_demo.png\u0026w=300\u0026trim=10",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Trim": {
+            "Threshold": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://wsrv.nl/transparency_demo.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://wsrv.nl/transparency_demo.png"
+  }
+}

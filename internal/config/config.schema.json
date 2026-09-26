@@ -1,0 +1,2906 @@
+{
+  "$defs": {
+    "byteSize": {
+      "description": "Size in bytes: an integer, or a string with a binary suffix B, KiB, MiB, GiB or TiB (decimal MB is rejected).",
+      "examples": [
+        "10MiB",
+        "512KiB",
+        1048576
+      ],
+      "oneOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "pattern": "^\\s*[0-9]+ *([KkMmGgTt][Ii][Bb]|[Bb])?\\s*$",
+          "type": "string"
+        }
+      ]
+    },
+    "cidr": {
+      "description": "A network in CIDR notation or a single address; host bits must be zero.",
+      "examples": [
+        "10.0.0.0/8",
+        "fd00::1"
+      ],
+      "type": "string"
+    },
+    "duration": {
+      "description": "Go duration (5s, 1m30s, 24h); negative values are rejected.",
+      "examples": [
+        "5s",
+        "1m30s",
+        "24h"
+      ],
+      "pattern": "^\\s*\\+?(0|(([0-9]+(\\.[0-9]*)?|\\.[0-9]+)(ns|us|µs|μs|ms|s|m|h))+)\\s*$",
+      "type": "string"
+    },
+    "fileRef": {
+      "additionalProperties": false,
+      "description": "Reads the value from a file (like XI_…_FILE): at most 64 KiB, trailing newline trimmed.",
+      "properties": {
+        "file": {
+          "description": "Absolute path of the file holding the value.",
+          "pattern": "^/",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file"
+      ],
+      "type": "object"
+    },
+    "hexKey": {
+      "description": "Hex-encoded key material, or {file: /absolute/path} holding it. Printed as [REDACTED].",
+      "oneOf": [
+        {
+          "pattern": "^\\s*([0-9a-fA-F]{2})+\\s*$",
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/fileRef"
+        }
+      ],
+      "writeOnly": true
+    },
+    "intList": {
+      "description": "Integers: a string of comma-separated items, each a number, a range a-b or a stepped range a-b/step (5-100/5), or a list of such items.",
+      "examples": [
+        "640-1080/220",
+        [
+          16,
+          32,
+          64
+        ]
+      ],
+      "oneOf": [
+        {
+          "pattern": "^\\s*[0-9]+\\s*(-\\s*[0-9]+\\s*(/\\s*[0-9]+\\s*)?)?(,\\s*[0-9]+\\s*(-\\s*[0-9]+\\s*(/\\s*[0-9]+\\s*)?)?)*$",
+          "type": "string"
+        },
+        {
+          "items": {
+            "oneOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "pattern": "^\\s*[0-9]+\\s*(-\\s*[0-9]+\\s*(/\\s*[0-9]+\\s*)?)?$",
+                "type": "string"
+              }
+            ]
+          },
+          "type": "array"
+        }
+      ]
+    },
+    "mount": {
+      "additionalProperties": false,
+      "description": "An extra mount of the dialect (file only; no environment variable).",
+      "properties": {
+        "hosts": {
+          "description": "Host bindings",
+          "items": {
+            "type": "string"
+          },
+          "markdownDescription": "Host bindings",
+          "type": "array"
+        },
+        "keys": {
+          "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)",
+          "items": {
+            "$ref": "#/$defs/secret"
+          },
+          "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)",
+          "type": "array"
+        },
+        "prefix": {
+          "description": "Mount prefix\n\nDefault: see URL-DIALECTS.md",
+          "markdownDescription": "Mount prefix\n\nDefault: see URL-DIALECTS.md",
+          "type": "string"
+        },
+        "source": {
+          "description": "Bound source for relative paths",
+          "markdownDescription": "Bound source for relative paths",
+          "type": "string"
+        },
+        "unsigned_policy": {
+          "description": "Per-dialect override\n\nDefault: global",
+          "enum": [
+            "allow",
+            "restricted",
+            "deny"
+          ],
+          "markdownDescription": "Per-dialect override\n\nDefault: global",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "secret": {
+      "description": "A secret: a literal string or {file: /absolute/path}. Printed as [REDACTED].",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/fileRef"
+        }
+      ],
+      "writeOnly": true
+    },
+    "source": {
+      "description": "A named source; the fields that apply depend on type.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/source_http"
+        },
+        {
+          "$ref": "#/$defs/source_s3"
+        },
+        {
+          "$ref": "#/$defs/source_gcs"
+        },
+        {
+          "$ref": "#/$defs/source_azure"
+        },
+        {
+          "$ref": "#/$defs/source_fs"
+        },
+        {
+          "$ref": "#/$defs/source_ftp"
+        },
+        {
+          "$ref": "#/$defs/source_sftp"
+        }
+      ],
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    "source_azure": {
+      "additionalProperties": false,
+      "properties": {
+        "account": {
+          "description": "azure; precedence connection string > account key > SAS > DefaultAzureCredential; _ENDPOINT overrides https://<account>.blob.core.windows.net/ (Azurite: http://127.0.0.1:10000/devstoreaccount1)\n\nEnv: XI_SOURCES_<NAME>_ACCOUNT",
+          "markdownDescription": "azure; precedence connection string > account key > SAS > DefaultAzureCredential; `_ENDPOINT` overrides `https://<account>.blob.core.windows.net/` (Azurite: `http://127.0.0.1:10000/devstoreaccount1`)\n\nEnv: `XI_SOURCES_<NAME>_ACCOUNT`",
+          "title": "XI_SOURCES_<NAME>_ACCOUNT",
+          "type": "string"
+        },
+        "account_key": {
+          "$ref": "#/$defs/secret",
+          "description": "azure; precedence connection string > account key > SAS > DefaultAzureCredential; _ENDPOINT overrides https://<account>.blob.core.windows.net/ (Azurite: http://127.0.0.1:10000/devstoreaccount1)\n\nEnv: XI_SOURCES_<NAME>_ACCOUNT_KEY (or XI_SOURCES_<NAME>_ACCOUNT_KEY_FILE)",
+          "markdownDescription": "azure; precedence connection string > account key > SAS > DefaultAzureCredential; `_ENDPOINT` overrides `https://<account>.blob.core.windows.net/` (Azurite: `http://127.0.0.1:10000/devstoreaccount1`)\n\nEnv: `XI_SOURCES_<NAME>_ACCOUNT_KEY` (or `XI_SOURCES_<NAME>_ACCOUNT_KEY_FILE`)",
+          "title": "XI_SOURCES_<NAME>_ACCOUNT_KEY"
+        },
+        "bucket": {
+          "description": "s3/gcs/azure: allowed buckets/containers; _BUCKET binds a default\n\nEnv: XI_SOURCES_<NAME>_BUCKET",
+          "markdownDescription": "s3/gcs/azure: allowed buckets/containers; `_BUCKET` binds a default\n\nEnv: `XI_SOURCES_<NAME>_BUCKET`",
+          "title": "XI_SOURCES_<NAME>_BUCKET",
+          "type": "string"
+        },
+        "buckets": {
+          "description": "s3/gcs/azure: allowed buckets/containers; _BUCKET binds a default\n\nEnv: XI_SOURCES_<NAME>_BUCKETS",
+          "items": {
+            "type": "string"
+          },
+          "markdownDescription": "s3/gcs/azure: allowed buckets/containers; `_BUCKET` binds a default\n\nEnv: `XI_SOURCES_<NAME>_BUCKETS`",
+          "title": "XI_SOURCES_<NAME>_BUCKETS",
+          "type": "array"
+        },
+        "connection_string": {
+          "$ref": "#/$defs/secret",
+          "description": "azure; precedence connection string > account key > SAS > DefaultAzureCredential; _ENDPOINT overrides https://<account>.blob.core.windows.net/ (Azurite: http://127.0.0.1:10000/devstoreaccount1)\n\nEnv: XI_SOURCES_<NAME>_CONNECTION_STRING (or XI_SOURCES_<NAME>_CONNECTION_STRING_FILE)",
+          "markdownDescription": "azure; precedence connection string > account key > SAS > DefaultAzureCredential; `_ENDPOINT` overrides `https://<account>.blob.core.windows.net/` (Azurite: `http://127.0.0.1:10000/devstoreaccount1`)\n\nEnv: `XI_SOURCES_<NAME>_CONNECTION_STRING` (or `XI_SOURCES_<NAME>_CONNECTION_STRING_FILE`)",
+          "title": "XI_SOURCES_<NAME>_CONNECTION_STRING"
+        },
+        "endpoint": {
+          "description": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); _ROLE_ARN assumes a role on top. _REGION falls back to the SDK chain, then us-east-1 when an endpoint is set (R2: auto). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: XI_SOURCES_<NAME>_ENDPOINT",
+          "markdownDescription": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); `_ROLE_ARN` assumes a role on top. `_REGION` falls back to the SDK chain, then `us-east-1` when an endpoint is set (R2: `auto`). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: `XI_SOURCES_<NAME>_ENDPOINT`",
+          "title": "XI_SOURCES_<NAME>_ENDPOINT",
+          "type": "string"
+        },
+        "prefix": {
+          "description": "object key prefix jail (every type except http)\n\nEnv: XI_SOURCES_<NAME>_PREFIX",
+          "markdownDescription": "object key prefix jail (every type except http)\n\nEnv: `XI_SOURCES_<NAME>_PREFIX`",
+          "title": "XI_SOURCES_<NAME>_PREFIX",
+          "type": "string"
+        },
+        "sas_token": {
+          "$ref": "#/$defs/secret",
+          "description": "azure; precedence connection string > account key > SAS > DefaultAzureCredential; _ENDPOINT overrides https://<account>.blob.core.windows.net/ (Azurite: http://127.0.0.1:10000/devstoreaccount1)\n\nEnv: XI_SOURCES_<NAME>_SAS_TOKEN (or XI_SOURCES_<NAME>_SAS_TOKEN_FILE)",
+          "markdownDescription": "azure; precedence connection string > account key > SAS > DefaultAzureCredential; `_ENDPOINT` overrides `https://<account>.blob.core.windows.net/` (Azurite: `http://127.0.0.1:10000/devstoreaccount1`)\n\nEnv: `XI_SOURCES_<NAME>_SAS_TOKEN` (or `XI_SOURCES_<NAME>_SAS_TOKEN_FILE`)",
+          "title": "XI_SOURCES_<NAME>_SAS_TOKEN"
+        },
+        "type": {
+          "const": "azure",
+          "description": "http | s3 | gcs | azure | fs | ftp | sftp\n\nEnv: XI_SOURCES_<NAME>_TYPE",
+          "markdownDescription": "`http` | `s3` | `gcs` | `azure` | `fs` | `ftp` | `sftp`\n\nEnv: `XI_SOURCES_<NAME>_TYPE`",
+          "title": "XI_SOURCES_<NAME>_TYPE"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "azure source",
+      "type": "object"
+    },
+    "source_fs": {
+      "additionalProperties": false,
+      "properties": {
+        "follow_symlinks": {
+          "description": "fs: follow symlinks whose target stays inside the root (links leaving it are always refused)\n\nEnv: XI_SOURCES_<NAME>_FOLLOW_SYMLINKS",
+          "markdownDescription": "fs: follow symlinks whose target stays inside the root (links leaving it are always refused)\n\nEnv: `XI_SOURCES_<NAME>_FOLLOW_SYMLINKS`",
+          "title": "XI_SOURCES_<NAME>_FOLLOW_SYMLINKS",
+          "type": "boolean"
+        },
+        "prefix": {
+          "description": "object key prefix jail (every type except http)\n\nEnv: XI_SOURCES_<NAME>_PREFIX",
+          "markdownDescription": "object key prefix jail (every type except http)\n\nEnv: `XI_SOURCES_<NAME>_PREFIX`",
+          "title": "XI_SOURCES_<NAME>_PREFIX",
+          "type": "string"
+        },
+        "root": {
+          "description": "fs root (jail via os.Root); ftp/sftp: server directory keys are relative to (default /)\n\nEnv: XI_SOURCES_<NAME>_ROOT",
+          "markdownDescription": "fs root (jail via `os.Root`); ftp/sftp: server directory keys are relative to (default `/`)\n\nEnv: `XI_SOURCES_<NAME>_ROOT`",
+          "title": "XI_SOURCES_<NAME>_ROOT",
+          "type": "string"
+        },
+        "type": {
+          "const": "fs",
+          "description": "http | s3 | gcs | azure | fs | ftp | sftp\n\nEnv: XI_SOURCES_<NAME>_TYPE",
+          "markdownDescription": "`http` | `s3` | `gcs` | `azure` | `fs` | `ftp` | `sftp`\n\nEnv: `XI_SOURCES_<NAME>_TYPE`",
+          "title": "XI_SOURCES_<NAME>_TYPE"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "fs source",
+      "type": "object"
+    },
+    "source_ftp": {
+      "additionalProperties": false,
+      "properties": {
+        "dial_timeout": {
+          "$ref": "#/$defs/duration",
+          "description": "ftp/sftp: connect + TLS/SSH handshake + login\n\nEnv: XI_SOURCES_<NAME>_DIAL_TIMEOUT",
+          "markdownDescription": "ftp/sftp: connect + TLS/SSH handshake + login\n\nEnv: `XI_SOURCES_<NAME>_DIAL_TIMEOUT`",
+          "title": "XI_SOURCES_<NAME>_DIAL_TIMEOUT"
+        },
+        "host": {
+          "description": "ftp/sftp. ftp: empty _USER logs in as anonymous; _TLS=true is explicit TLS (AUTH TLS, PROT P), passive mode only. sftp: _USER plus _PASSWORD and/or _PRIVATE_KEY (PEM/OpenSSH); _HOST_KEY is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: XI_SOURCES_<NAME>_HOST",
+          "markdownDescription": "ftp/sftp. ftp: empty `_USER` logs in as `anonymous`; `_TLS=true` is explicit TLS (`AUTH TLS`, `PROT P`), passive mode only. sftp: `_USER` plus `_PASSWORD` and/or `_PRIVATE_KEY` (PEM/OpenSSH); `_HOST_KEY` is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: `XI_SOURCES_<NAME>_HOST`",
+          "title": "XI_SOURCES_<NAME>_HOST",
+          "type": "string"
+        },
+        "idle_timeout": {
+          "$ref": "#/$defs/duration",
+          "description": "ftp/sftp: pooled connections idle longer are closed\n\nEnv: XI_SOURCES_<NAME>_IDLE_TIMEOUT",
+          "markdownDescription": "ftp/sftp: pooled connections idle longer are closed\n\nEnv: `XI_SOURCES_<NAME>_IDLE_TIMEOUT`",
+          "title": "XI_SOURCES_<NAME>_IDLE_TIMEOUT"
+        },
+        "password": {
+          "$ref": "#/$defs/secret",
+          "description": "ftp/sftp. ftp: empty _USER logs in as anonymous; _TLS=true is explicit TLS (AUTH TLS, PROT P), passive mode only. sftp: _USER plus _PASSWORD and/or _PRIVATE_KEY (PEM/OpenSSH); _HOST_KEY is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: XI_SOURCES_<NAME>_PASSWORD (or XI_SOURCES_<NAME>_PASSWORD_FILE)",
+          "markdownDescription": "ftp/sftp. ftp: empty `_USER` logs in as `anonymous`; `_TLS=true` is explicit TLS (`AUTH TLS`, `PROT P`), passive mode only. sftp: `_USER` plus `_PASSWORD` and/or `_PRIVATE_KEY` (PEM/OpenSSH); `_HOST_KEY` is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: `XI_SOURCES_<NAME>_PASSWORD` (or `XI_SOURCES_<NAME>_PASSWORD_FILE`)",
+          "title": "XI_SOURCES_<NAME>_PASSWORD"
+        },
+        "pool_size": {
+          "description": "ftp/sftp: max open connections to the server\n\nEnv: XI_SOURCES_<NAME>_POOL_SIZE",
+          "markdownDescription": "ftp/sftp: max open connections to the server\n\nEnv: `XI_SOURCES_<NAME>_POOL_SIZE`",
+          "title": "XI_SOURCES_<NAME>_POOL_SIZE",
+          "type": "integer"
+        },
+        "port": {
+          "description": "ftp/sftp. ftp: empty _USER logs in as anonymous; _TLS=true is explicit TLS (AUTH TLS, PROT P), passive mode only. sftp: _USER plus _PASSWORD and/or _PRIVATE_KEY (PEM/OpenSSH); _HOST_KEY is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: XI_SOURCES_<NAME>_PORT",
+          "markdownDescription": "ftp/sftp. ftp: empty `_USER` logs in as `anonymous`; `_TLS=true` is explicit TLS (`AUTH TLS`, `PROT P`), passive mode only. sftp: `_USER` plus `_PASSWORD` and/or `_PRIVATE_KEY` (PEM/OpenSSH); `_HOST_KEY` is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: `XI_SOURCES_<NAME>_PORT`",
+          "title": "XI_SOURCES_<NAME>_PORT",
+          "type": "integer"
+        },
+        "prefix": {
+          "description": "object key prefix jail (every type except http)\n\nEnv: XI_SOURCES_<NAME>_PREFIX",
+          "markdownDescription": "object key prefix jail (every type except http)\n\nEnv: `XI_SOURCES_<NAME>_PREFIX`",
+          "title": "XI_SOURCES_<NAME>_PREFIX",
+          "type": "string"
+        },
+        "root": {
+          "description": "fs root (jail via os.Root); ftp/sftp: server directory keys are relative to (default /)\n\nEnv: XI_SOURCES_<NAME>_ROOT",
+          "markdownDescription": "fs root (jail via `os.Root`); ftp/sftp: server directory keys are relative to (default `/`)\n\nEnv: `XI_SOURCES_<NAME>_ROOT`",
+          "title": "XI_SOURCES_<NAME>_ROOT",
+          "type": "string"
+        },
+        "tls": {
+          "description": "ftp/sftp. ftp: empty _USER logs in as anonymous; _TLS=true is explicit TLS (AUTH TLS, PROT P), passive mode only. sftp: _USER plus _PASSWORD and/or _PRIVATE_KEY (PEM/OpenSSH); _HOST_KEY is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: XI_SOURCES_<NAME>_TLS",
+          "markdownDescription": "ftp/sftp. ftp: empty `_USER` logs in as `anonymous`; `_TLS=true` is explicit TLS (`AUTH TLS`, `PROT P`), passive mode only. sftp: `_USER` plus `_PASSWORD` and/or `_PRIVATE_KEY` (PEM/OpenSSH); `_HOST_KEY` is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: `XI_SOURCES_<NAME>_TLS`",
+          "title": "XI_SOURCES_<NAME>_TLS",
+          "type": "boolean"
+        },
+        "type": {
+          "const": "ftp",
+          "description": "http | s3 | gcs | azure | fs | ftp | sftp\n\nEnv: XI_SOURCES_<NAME>_TYPE",
+          "markdownDescription": "`http` | `s3` | `gcs` | `azure` | `fs` | `ftp` | `sftp`\n\nEnv: `XI_SOURCES_<NAME>_TYPE`",
+          "title": "XI_SOURCES_<NAME>_TYPE"
+        },
+        "user": {
+          "description": "ftp/sftp. ftp: empty _USER logs in as anonymous; _TLS=true is explicit TLS (AUTH TLS, PROT P), passive mode only. sftp: _USER plus _PASSWORD and/or _PRIVATE_KEY (PEM/OpenSSH); _HOST_KEY is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: XI_SOURCES_<NAME>_USER",
+          "markdownDescription": "ftp/sftp. ftp: empty `_USER` logs in as `anonymous`; `_TLS=true` is explicit TLS (`AUTH TLS`, `PROT P`), passive mode only. sftp: `_USER` plus `_PASSWORD` and/or `_PRIVATE_KEY` (PEM/OpenSSH); `_HOST_KEY` is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: `XI_SOURCES_<NAME>_USER`",
+          "title": "XI_SOURCES_<NAME>_USER",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "ftp source",
+      "type": "object"
+    },
+    "source_gcs": {
+      "additionalProperties": false,
+      "properties": {
+        "bucket": {
+          "description": "s3/gcs/azure: allowed buckets/containers; _BUCKET binds a default\n\nEnv: XI_SOURCES_<NAME>_BUCKET",
+          "markdownDescription": "s3/gcs/azure: allowed buckets/containers; `_BUCKET` binds a default\n\nEnv: `XI_SOURCES_<NAME>_BUCKET`",
+          "title": "XI_SOURCES_<NAME>_BUCKET",
+          "type": "string"
+        },
+        "buckets": {
+          "description": "s3/gcs/azure: allowed buckets/containers; _BUCKET binds a default\n\nEnv: XI_SOURCES_<NAME>_BUCKETS",
+          "items": {
+            "type": "string"
+          },
+          "markdownDescription": "s3/gcs/azure: allowed buckets/containers; `_BUCKET` binds a default\n\nEnv: `XI_SOURCES_<NAME>_BUCKETS`",
+          "title": "XI_SOURCES_<NAME>_BUCKETS",
+          "type": "array"
+        },
+        "credentials_json": {
+          "$ref": "#/$defs/secret",
+          "description": "gcs: credentials document (XI_SOURCES_<NAME>_CREDENTIALS_JSON_FILE reads it from a mounted file); XI_SOURCES_<NAME>_ENDPOINT points at an emulator such as fake-gcs-server\n\nDefault: ADC\n\nEnv: XI_SOURCES_<NAME>_CREDENTIALS_JSON (or XI_SOURCES_<NAME>_CREDENTIALS_JSON_FILE)",
+          "markdownDescription": "gcs: credentials document (`XI_SOURCES_<NAME>_CREDENTIALS_JSON_FILE` reads it from a mounted file); `XI_SOURCES_<NAME>_ENDPOINT` points at an emulator such as fake-gcs-server\n\nDefault: ADC\n\nEnv: `XI_SOURCES_<NAME>_CREDENTIALS_JSON` (or `XI_SOURCES_<NAME>_CREDENTIALS_JSON_FILE`)",
+          "title": "XI_SOURCES_<NAME>_CREDENTIALS_JSON"
+        },
+        "endpoint": {
+          "description": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); _ROLE_ARN assumes a role on top. _REGION falls back to the SDK chain, then us-east-1 when an endpoint is set (R2: auto). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: XI_SOURCES_<NAME>_ENDPOINT",
+          "markdownDescription": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); `_ROLE_ARN` assumes a role on top. `_REGION` falls back to the SDK chain, then `us-east-1` when an endpoint is set (R2: `auto`). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: `XI_SOURCES_<NAME>_ENDPOINT`",
+          "title": "XI_SOURCES_<NAME>_ENDPOINT",
+          "type": "string"
+        },
+        "prefix": {
+          "description": "object key prefix jail (every type except http)\n\nEnv: XI_SOURCES_<NAME>_PREFIX",
+          "markdownDescription": "object key prefix jail (every type except http)\n\nEnv: `XI_SOURCES_<NAME>_PREFIX`",
+          "title": "XI_SOURCES_<NAME>_PREFIX",
+          "type": "string"
+        },
+        "type": {
+          "const": "gcs",
+          "description": "http | s3 | gcs | azure | fs | ftp | sftp\n\nEnv: XI_SOURCES_<NAME>_TYPE",
+          "markdownDescription": "`http` | `s3` | `gcs` | `azure` | `fs` | `ftp` | `sftp`\n\nEnv: `XI_SOURCES_<NAME>_TYPE`",
+          "title": "XI_SOURCES_<NAME>_TYPE"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "gcs source",
+      "type": "object"
+    },
+    "source_http": {
+      "additionalProperties": false,
+      "properties": {
+        "allow": {
+          "description": "http: host globs with optional path prefix (*.example.com, cdn.example.com/img/)\n\nEnv: XI_SOURCES_<NAME>_ALLOW",
+          "items": {
+            "type": "string"
+          },
+          "markdownDescription": "http: host globs with optional path prefix (`*.example.com`, `cdn.example.com/img/`)\n\nEnv: `XI_SOURCES_<NAME>_ALLOW`",
+          "title": "XI_SOURCES_<NAME>_ALLOW",
+          "type": "array"
+        },
+        "base_url": {
+          "description": "http: base for relative keys\n\nEnv: XI_SOURCES_<NAME>_BASE_URL",
+          "markdownDescription": "http: base for relative keys\n\nEnv: `XI_SOURCES_<NAME>_BASE_URL`",
+          "title": "XI_SOURCES_<NAME>_BASE_URL",
+          "type": "string"
+        },
+        "headers": {
+          "additionalProperties": {
+            "$ref": "#/$defs/secret"
+          },
+          "description": "http: extra request headers (Authorization=…)\n\nEnv: XI_SOURCES_<NAME>_HEADERS (or XI_SOURCES_<NAME>_HEADERS_FILE)",
+          "markdownDescription": "http: extra request headers (`Authorization=…`)\n\nEnv: `XI_SOURCES_<NAME>_HEADERS` (or `XI_SOURCES_<NAME>_HEADERS_FILE`)",
+          "title": "XI_SOURCES_<NAME>_HEADERS",
+          "type": "object"
+        },
+        "type": {
+          "const": "http",
+          "description": "http | s3 | gcs | azure | fs | ftp | sftp\n\nEnv: XI_SOURCES_<NAME>_TYPE",
+          "markdownDescription": "`http` | `s3` | `gcs` | `azure` | `fs` | `ftp` | `sftp`\n\nEnv: `XI_SOURCES_<NAME>_TYPE`",
+          "title": "XI_SOURCES_<NAME>_TYPE"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "http source",
+      "type": "object"
+    },
+    "source_s3": {
+      "additionalProperties": false,
+      "properties": {
+        "access_key_id": {
+          "description": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); _ROLE_ARN assumes a role on top. _REGION falls back to the SDK chain, then us-east-1 when an endpoint is set (R2: auto). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: XI_SOURCES_<NAME>_ACCESS_KEY_ID",
+          "markdownDescription": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); `_ROLE_ARN` assumes a role on top. `_REGION` falls back to the SDK chain, then `us-east-1` when an endpoint is set (R2: `auto`). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: `XI_SOURCES_<NAME>_ACCESS_KEY_ID`",
+          "title": "XI_SOURCES_<NAME>_ACCESS_KEY_ID",
+          "type": "string"
+        },
+        "bucket": {
+          "description": "s3/gcs/azure: allowed buckets/containers; _BUCKET binds a default\n\nEnv: XI_SOURCES_<NAME>_BUCKET",
+          "markdownDescription": "s3/gcs/azure: allowed buckets/containers; `_BUCKET` binds a default\n\nEnv: `XI_SOURCES_<NAME>_BUCKET`",
+          "title": "XI_SOURCES_<NAME>_BUCKET",
+          "type": "string"
+        },
+        "buckets": {
+          "description": "s3/gcs/azure: allowed buckets/containers; _BUCKET binds a default\n\nEnv: XI_SOURCES_<NAME>_BUCKETS",
+          "items": {
+            "type": "string"
+          },
+          "markdownDescription": "s3/gcs/azure: allowed buckets/containers; `_BUCKET` binds a default\n\nEnv: `XI_SOURCES_<NAME>_BUCKETS`",
+          "title": "XI_SOURCES_<NAME>_BUCKETS",
+          "type": "array"
+        },
+        "endpoint": {
+          "description": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); _ROLE_ARN assumes a role on top. _REGION falls back to the SDK chain, then us-east-1 when an endpoint is set (R2: auto). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: XI_SOURCES_<NAME>_ENDPOINT",
+          "markdownDescription": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); `_ROLE_ARN` assumes a role on top. `_REGION` falls back to the SDK chain, then `us-east-1` when an endpoint is set (R2: `auto`). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: `XI_SOURCES_<NAME>_ENDPOINT`",
+          "title": "XI_SOURCES_<NAME>_ENDPOINT",
+          "type": "string"
+        },
+        "force_path_style": {
+          "description": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); _ROLE_ARN assumes a role on top. _REGION falls back to the SDK chain, then us-east-1 when an endpoint is set (R2: auto). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: XI_SOURCES_<NAME>_FORCE_PATH_STYLE",
+          "markdownDescription": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); `_ROLE_ARN` assumes a role on top. `_REGION` falls back to the SDK chain, then `us-east-1` when an endpoint is set (R2: `auto`). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: `XI_SOURCES_<NAME>_FORCE_PATH_STYLE`",
+          "title": "XI_SOURCES_<NAME>_FORCE_PATH_STYLE",
+          "type": "boolean"
+        },
+        "prefix": {
+          "description": "object key prefix jail (every type except http)\n\nEnv: XI_SOURCES_<NAME>_PREFIX",
+          "markdownDescription": "object key prefix jail (every type except http)\n\nEnv: `XI_SOURCES_<NAME>_PREFIX`",
+          "title": "XI_SOURCES_<NAME>_PREFIX",
+          "type": "string"
+        },
+        "region": {
+          "description": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); _ROLE_ARN assumes a role on top. _REGION falls back to the SDK chain, then us-east-1 when an endpoint is set (R2: auto). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: XI_SOURCES_<NAME>_REGION",
+          "markdownDescription": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); `_ROLE_ARN` assumes a role on top. `_REGION` falls back to the SDK chain, then `us-east-1` when an endpoint is set (R2: `auto`). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: `XI_SOURCES_<NAME>_REGION`",
+          "title": "XI_SOURCES_<NAME>_REGION",
+          "type": "string"
+        },
+        "role_arn": {
+          "description": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); _ROLE_ARN assumes a role on top. _REGION falls back to the SDK chain, then us-east-1 when an endpoint is set (R2: auto). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: XI_SOURCES_<NAME>_ROLE_ARN",
+          "markdownDescription": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); `_ROLE_ARN` assumes a role on top. `_REGION` falls back to the SDK chain, then `us-east-1` when an endpoint is set (R2: `auto`). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: `XI_SOURCES_<NAME>_ROLE_ARN`",
+          "title": "XI_SOURCES_<NAME>_ROLE_ARN",
+          "type": "string"
+        },
+        "secret_access_key": {
+          "$ref": "#/$defs/secret",
+          "description": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); _ROLE_ARN assumes a role on top. _REGION falls back to the SDK chain, then us-east-1 when an endpoint is set (R2: auto). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: XI_SOURCES_<NAME>_SECRET_ACCESS_KEY (or XI_SOURCES_<NAME>_SECRET_ACCESS_KEY_FILE)",
+          "markdownDescription": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); `_ROLE_ARN` assumes a role on top. `_REGION` falls back to the SDK chain, then `us-east-1` when an endpoint is set (R2: `auto`). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: `XI_SOURCES_<NAME>_SECRET_ACCESS_KEY` (or `XI_SOURCES_<NAME>_SECRET_ACCESS_KEY_FILE`)",
+          "title": "XI_SOURCES_<NAME>_SECRET_ACCESS_KEY"
+        },
+        "type": {
+          "const": "s3",
+          "description": "http | s3 | gcs | azure | fs | ftp | sftp\n\nEnv: XI_SOURCES_<NAME>_TYPE",
+          "markdownDescription": "`http` | `s3` | `gcs` | `azure` | `fs` | `ftp` | `sftp`\n\nEnv: `XI_SOURCES_<NAME>_TYPE`",
+          "title": "XI_SOURCES_<NAME>_TYPE"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "s3 source",
+      "type": "object"
+    },
+    "source_sftp": {
+      "additionalProperties": false,
+      "properties": {
+        "dial_timeout": {
+          "$ref": "#/$defs/duration",
+          "description": "ftp/sftp: connect + TLS/SSH handshake + login\n\nEnv: XI_SOURCES_<NAME>_DIAL_TIMEOUT",
+          "markdownDescription": "ftp/sftp: connect + TLS/SSH handshake + login\n\nEnv: `XI_SOURCES_<NAME>_DIAL_TIMEOUT`",
+          "title": "XI_SOURCES_<NAME>_DIAL_TIMEOUT"
+        },
+        "host": {
+          "description": "ftp/sftp. ftp: empty _USER logs in as anonymous; _TLS=true is explicit TLS (AUTH TLS, PROT P), passive mode only. sftp: _USER plus _PASSWORD and/or _PRIVATE_KEY (PEM/OpenSSH); _HOST_KEY is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: XI_SOURCES_<NAME>_HOST",
+          "markdownDescription": "ftp/sftp. ftp: empty `_USER` logs in as `anonymous`; `_TLS=true` is explicit TLS (`AUTH TLS`, `PROT P`), passive mode only. sftp: `_USER` plus `_PASSWORD` and/or `_PRIVATE_KEY` (PEM/OpenSSH); `_HOST_KEY` is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: `XI_SOURCES_<NAME>_HOST`",
+          "title": "XI_SOURCES_<NAME>_HOST",
+          "type": "string"
+        },
+        "host_key": {
+          "description": "ftp/sftp. ftp: empty _USER logs in as anonymous; _TLS=true is explicit TLS (AUTH TLS, PROT P), passive mode only. sftp: _USER plus _PASSWORD and/or _PRIVATE_KEY (PEM/OpenSSH); _HOST_KEY is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: XI_SOURCES_<NAME>_HOST_KEY",
+          "markdownDescription": "ftp/sftp. ftp: empty `_USER` logs in as `anonymous`; `_TLS=true` is explicit TLS (`AUTH TLS`, `PROT P`), passive mode only. sftp: `_USER` plus `_PASSWORD` and/or `_PRIVATE_KEY` (PEM/OpenSSH); `_HOST_KEY` is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: `XI_SOURCES_<NAME>_HOST_KEY`",
+          "title": "XI_SOURCES_<NAME>_HOST_KEY",
+          "type": "string"
+        },
+        "idle_timeout": {
+          "$ref": "#/$defs/duration",
+          "description": "ftp/sftp: pooled connections idle longer are closed\n\nEnv: XI_SOURCES_<NAME>_IDLE_TIMEOUT",
+          "markdownDescription": "ftp/sftp: pooled connections idle longer are closed\n\nEnv: `XI_SOURCES_<NAME>_IDLE_TIMEOUT`",
+          "title": "XI_SOURCES_<NAME>_IDLE_TIMEOUT"
+        },
+        "password": {
+          "$ref": "#/$defs/secret",
+          "description": "ftp/sftp. ftp: empty _USER logs in as anonymous; _TLS=true is explicit TLS (AUTH TLS, PROT P), passive mode only. sftp: _USER plus _PASSWORD and/or _PRIVATE_KEY (PEM/OpenSSH); _HOST_KEY is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: XI_SOURCES_<NAME>_PASSWORD (or XI_SOURCES_<NAME>_PASSWORD_FILE)",
+          "markdownDescription": "ftp/sftp. ftp: empty `_USER` logs in as `anonymous`; `_TLS=true` is explicit TLS (`AUTH TLS`, `PROT P`), passive mode only. sftp: `_USER` plus `_PASSWORD` and/or `_PRIVATE_KEY` (PEM/OpenSSH); `_HOST_KEY` is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: `XI_SOURCES_<NAME>_PASSWORD` (or `XI_SOURCES_<NAME>_PASSWORD_FILE`)",
+          "title": "XI_SOURCES_<NAME>_PASSWORD"
+        },
+        "pool_size": {
+          "description": "ftp/sftp: max open connections to the server\n\nEnv: XI_SOURCES_<NAME>_POOL_SIZE",
+          "markdownDescription": "ftp/sftp: max open connections to the server\n\nEnv: `XI_SOURCES_<NAME>_POOL_SIZE`",
+          "title": "XI_SOURCES_<NAME>_POOL_SIZE",
+          "type": "integer"
+        },
+        "port": {
+          "description": "ftp/sftp. ftp: empty _USER logs in as anonymous; _TLS=true is explicit TLS (AUTH TLS, PROT P), passive mode only. sftp: _USER plus _PASSWORD and/or _PRIVATE_KEY (PEM/OpenSSH); _HOST_KEY is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: XI_SOURCES_<NAME>_PORT",
+          "markdownDescription": "ftp/sftp. ftp: empty `_USER` logs in as `anonymous`; `_TLS=true` is explicit TLS (`AUTH TLS`, `PROT P`), passive mode only. sftp: `_USER` plus `_PASSWORD` and/or `_PRIVATE_KEY` (PEM/OpenSSH); `_HOST_KEY` is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: `XI_SOURCES_<NAME>_PORT`",
+          "title": "XI_SOURCES_<NAME>_PORT",
+          "type": "integer"
+        },
+        "prefix": {
+          "description": "object key prefix jail (every type except http)\n\nEnv: XI_SOURCES_<NAME>_PREFIX",
+          "markdownDescription": "object key prefix jail (every type except http)\n\nEnv: `XI_SOURCES_<NAME>_PREFIX`",
+          "title": "XI_SOURCES_<NAME>_PREFIX",
+          "type": "string"
+        },
+        "private_key": {
+          "$ref": "#/$defs/secret",
+          "description": "ftp/sftp. ftp: empty _USER logs in as anonymous; _TLS=true is explicit TLS (AUTH TLS, PROT P), passive mode only. sftp: _USER plus _PASSWORD and/or _PRIVATE_KEY (PEM/OpenSSH); _HOST_KEY is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: XI_SOURCES_<NAME>_PRIVATE_KEY (or XI_SOURCES_<NAME>_PRIVATE_KEY_FILE)",
+          "markdownDescription": "ftp/sftp. ftp: empty `_USER` logs in as `anonymous`; `_TLS=true` is explicit TLS (`AUTH TLS`, `PROT P`), passive mode only. sftp: `_USER` plus `_PASSWORD` and/or `_PRIVATE_KEY` (PEM/OpenSSH); `_HOST_KEY` is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: `XI_SOURCES_<NAME>_PRIVATE_KEY` (or `XI_SOURCES_<NAME>_PRIVATE_KEY_FILE`)",
+          "title": "XI_SOURCES_<NAME>_PRIVATE_KEY"
+        },
+        "private_key_passphrase": {
+          "$ref": "#/$defs/secret",
+          "description": "ftp/sftp. ftp: empty _USER logs in as anonymous; _TLS=true is explicit TLS (AUTH TLS, PROT P), passive mode only. sftp: _USER plus _PASSWORD and/or _PRIVATE_KEY (PEM/OpenSSH); _HOST_KEY is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: XI_SOURCES_<NAME>_PRIVATE_KEY_PASSPHRASE (or XI_SOURCES_<NAME>_PRIVATE_KEY_PASSPHRASE_FILE)",
+          "markdownDescription": "ftp/sftp. ftp: empty `_USER` logs in as `anonymous`; `_TLS=true` is explicit TLS (`AUTH TLS`, `PROT P`), passive mode only. sftp: `_USER` plus `_PASSWORD` and/or `_PRIVATE_KEY` (PEM/OpenSSH); `_HOST_KEY` is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: `XI_SOURCES_<NAME>_PRIVATE_KEY_PASSPHRASE` (or `XI_SOURCES_<NAME>_PRIVATE_KEY_PASSPHRASE_FILE`)",
+          "title": "XI_SOURCES_<NAME>_PRIVATE_KEY_PASSPHRASE"
+        },
+        "root": {
+          "description": "fs root (jail via os.Root); ftp/sftp: server directory keys are relative to (default /)\n\nEnv: XI_SOURCES_<NAME>_ROOT",
+          "markdownDescription": "fs root (jail via `os.Root`); ftp/sftp: server directory keys are relative to (default `/`)\n\nEnv: `XI_SOURCES_<NAME>_ROOT`",
+          "title": "XI_SOURCES_<NAME>_ROOT",
+          "type": "string"
+        },
+        "type": {
+          "const": "sftp",
+          "description": "http | s3 | gcs | azure | fs | ftp | sftp\n\nEnv: XI_SOURCES_<NAME>_TYPE",
+          "markdownDescription": "`http` | `s3` | `gcs` | `azure` | `fs` | `ftp` | `sftp`\n\nEnv: `XI_SOURCES_<NAME>_TYPE`",
+          "title": "XI_SOURCES_<NAME>_TYPE"
+        },
+        "user": {
+          "description": "ftp/sftp. ftp: empty _USER logs in as anonymous; _TLS=true is explicit TLS (AUTH TLS, PROT P), passive mode only. sftp: _USER plus _PASSWORD and/or _PRIVATE_KEY (PEM/OpenSSH); _HOST_KEY is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: XI_SOURCES_<NAME>_USER",
+          "markdownDescription": "ftp/sftp. ftp: empty `_USER` logs in as `anonymous`; `_TLS=true` is explicit TLS (`AUTH TLS`, `PROT P`), passive mode only. sftp: `_USER` plus `_PASSWORD` and/or `_PRIVATE_KEY` (PEM/OpenSSH); `_HOST_KEY` is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: `XI_SOURCES_<NAME>_USER`",
+          "title": "XI_SOURCES_<NAME>_USER",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "sftp source",
+      "type": "object"
+    },
+    "tristate": {
+      "description": "true, false, or auto (derived from other settings).",
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "const": "auto"
+        }
+      ]
+    }
+  },
+  "$id": "https://xantiagoma.github.io/xtandard-image/schema/config.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Config file of xtandard-image (YAML, JSON or TOML). Every key maps to an XI_* environment variable, which wins over the file. See docs/CONFIG.md.",
+  "properties": {
+    "$schema": {
+      "description": "URL of this JSON Schema, for editors; the loader ignores it.",
+      "type": "string"
+    },
+    "admin": {
+      "additionalProperties": false,
+      "properties": {
+        "addr": {
+          "default": "127.0.0.1:9090",
+          "description": "Admin listener: /metrics, /openapi.json, pprof; set :9090 for in-cluster scraping; empty disables\n\nEnv: XI_ADMIN_ADDR",
+          "markdownDescription": "Admin listener: `/metrics`, `/openapi.json`, pprof; set `:9090` for in-cluster scraping; empty disables\n\nEnv: `XI_ADMIN_ADDR`",
+          "title": "XI_ADMIN_ADDR",
+          "type": "string"
+        },
+        "docs": {
+          "default": false,
+          "description": "Scalar API reference at admin /docs, loaded by the browser from a pinned cdn.jsdelivr.net URL (SRI, strict CSP); off answers 404 and points at /openapi.json ([OPENAPI.md](OPENAPI.md))\n\nEnv: XI_ADMIN_DOCS",
+          "markdownDescription": "Scalar API reference at admin `/docs`, loaded by the browser from a pinned `cdn.jsdelivr.net` URL (SRI, strict CSP); off answers 404 and points at `/openapi.json` ([OPENAPI.md](OPENAPI.md))\n\nEnv: `XI_ADMIN_DOCS`",
+          "title": "XI_ADMIN_DOCS",
+          "type": "boolean"
+        },
+        "pprof": {
+          "default": false,
+          "description": "pprof incl. goroutineleak on the admin listener\n\nEnv: XI_ADMIN_PPROF",
+          "markdownDescription": "pprof incl. `goroutineleak` on the admin listener\n\nEnv: `XI_ADMIN_PPROF`",
+          "title": "XI_ADMIN_PPROF",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "cache": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_bypass": {
+          "default": false,
+          "description": "Honour bypass_cache (the request skips the result cache: no lookup, no store)\n\nEnv: XI_CACHE_ALLOW_BYPASS",
+          "markdownDescription": "Honour `bypass_cache` (the request skips the result cache: no lookup, no store)\n\nEnv: `XI_CACHE_ALLOW_BYPASS`",
+          "title": "XI_CACHE_ALLOW_BYPASS",
+          "type": "boolean"
+        },
+        "etag_buster": {
+          "$ref": "#/$defs/secret",
+          "description": "Global ETag salt\n\nEnv: XI_CACHE_ETAG_BUSTER (or XI_CACHE_ETAG_BUSTER_FILE)",
+          "markdownDescription": "Global ETag salt\n\nEnv: `XI_CACHE_ETAG_BUSTER` (or `XI_CACHE_ETAG_BUSTER_FILE`)",
+          "title": "XI_CACHE_ETAG_BUSTER"
+        },
+        "headers": {
+          "additionalProperties": false,
+          "properties": {
+            "error_ttl": {
+              "$ref": "#/$defs/duration",
+              "default": "10s",
+              "description": "For upstream failures\n\nEnv: XI_CACHE_HEADERS_ERROR_TTL",
+              "markdownDescription": "For upstream failures\n\nEnv: `XI_CACHE_HEADERS_ERROR_TTL`",
+              "title": "XI_CACHE_HEADERS_ERROR_TTL"
+            },
+            "passthrough": {
+              "default": false,
+              "description": "Use source Cache-Control/Expires\n\nEnv: XI_CACHE_HEADERS_PASSTHROUGH",
+              "markdownDescription": "Use source Cache-Control/Expires\n\nEnv: `XI_CACHE_HEADERS_PASSTHROUGH`",
+              "title": "XI_CACHE_HEADERS_PASSTHROUGH",
+              "type": "boolean"
+            },
+            "ttl": {
+              "$ref": "#/$defs/duration",
+              "default": "8760h0m0s",
+              "description": "max-age for successes\n\nEnv: XI_CACHE_HEADERS_TTL",
+              "markdownDescription": "`max-age` for successes\n\nEnv: `XI_CACHE_HEADERS_TTL`",
+              "title": "XI_CACHE_HEADERS_TTL"
+            }
+          },
+          "type": "object"
+        },
+        "origin": {
+          "additionalProperties": false,
+          "properties": {
+            "memory_bytes": {
+              "$ref": "#/$defs/byteSize",
+              "default": "256MiB",
+              "description": "Original-bytes LRU\n\nEnv: XI_CACHE_ORIGIN_MEMORY_BYTES",
+              "markdownDescription": "Original-bytes LRU\n\nEnv: `XI_CACHE_ORIGIN_MEMORY_BYTES`",
+              "title": "XI_CACHE_ORIGIN_MEMORY_BYTES"
+            },
+            "negative_ttl": {
+              "$ref": "#/$defs/duration",
+              "default": "5s",
+              "description": "How long a source not-found is remembered; 0 disables\n\nEnv: XI_CACHE_ORIGIN_NEGATIVE_TTL",
+              "markdownDescription": "How long a source not-found is remembered; `0` disables\n\nEnv: `XI_CACHE_ORIGIN_NEGATIVE_TTL`",
+              "title": "XI_CACHE_ORIGIN_NEGATIVE_TTL"
+            },
+            "store_ttl": {
+              "$ref": "#/$defs/duration",
+              "default": "10m0s",
+              "description": "How long an original is served from XI_CACHE_ORIGIN_STORES without contacting the source (no revalidation)\n\nEnv: XI_CACHE_ORIGIN_STORE_TTL",
+              "markdownDescription": "How long an original is served from `XI_CACHE_ORIGIN_STORES` without contacting the source (no revalidation)\n\nEnv: `XI_CACHE_ORIGIN_STORE_TTL`",
+              "title": "XI_CACHE_ORIGIN_STORE_TTL"
+            },
+            "stores": {
+              "description": "Shared stores behind the origin LRU (disk, redis, s3, fastest first; configured by the XI_CACHE_RESULT_* variables of the same store, which the result cache shares under another namespace): a replica that misses its LRU reads the original from them before downloading, and downloads are written to them. Empty: originals stay in-process\n\nEnv: XI_CACHE_ORIGIN_STORES",
+              "items": {
+                "enum": [
+                  "memory",
+                  "disk",
+                  "redis",
+                  "s3"
+                ],
+                "type": "string"
+              },
+              "markdownDescription": "Shared stores behind the origin LRU (`disk`, `redis`, `s3`, fastest first; configured by the `XI_CACHE_RESULT_*` variables of the same store, which the result cache shares under another namespace): a replica that misses its LRU reads the original from them before downloading, and downloads are written to them. Empty: originals stay in-process\n\nEnv: `XI_CACHE_ORIGIN_STORES`",
+              "title": "XI_CACHE_ORIGIN_STORES",
+              "type": "array"
+            },
+            "ttl": {
+              "$ref": "#/$defs/duration",
+              "default": "1m0s",
+              "description": "After it, entries with an ETag/Last-Modified are revalidated with a conditional request (304 refreshes the TTL)\n\nEnv: XI_CACHE_ORIGIN_TTL",
+              "markdownDescription": "After it, entries with an ETag/Last-Modified are revalidated with a conditional request (304 refreshes the TTL)\n\nEnv: `XI_CACHE_ORIGIN_TTL`",
+              "title": "XI_CACHE_ORIGIN_TTL"
+            }
+          },
+          "type": "object"
+        },
+        "result": {
+          "additionalProperties": false,
+          "properties": {
+            "disk": {
+              "additionalProperties": false,
+              "properties": {
+                "bytes": {
+                  "$ref": "#/$defs/byteSize",
+                  "default": "10GiB",
+                  "description": "Absolute directory of the disk store and its size bound (entry files; a janitor evicts least recently used entries down to 90 % once a write goes over). The image's root file system is read-only: mount a volume there. The directory must be dedicated to one process; the index is rebuilt from it at start, so entries survive restarts. No fsync: a file torn by a crash fails its checksum and is dropped\n\nEnv: XI_CACHE_RESULT_DISK_BYTES",
+                  "markdownDescription": "Absolute directory of the `disk` store and its size bound (entry files; a janitor evicts least recently used entries down to 90 % once a write goes over). The image's root file system is read-only: mount a volume there. The directory must be dedicated to one process; the index is rebuilt from it at start, so entries survive restarts. No fsync: a file torn by a crash fails its checksum and is dropped\n\nEnv: `XI_CACHE_RESULT_DISK_BYTES`",
+                  "title": "XI_CACHE_RESULT_DISK_BYTES"
+                },
+                "path": {
+                  "default": "",
+                  "description": "Absolute directory of the disk store and its size bound (entry files; a janitor evicts least recently used entries down to 90 % once a write goes over). The image's root file system is read-only: mount a volume there. The directory must be dedicated to one process; the index is rebuilt from it at start, so entries survive restarts. No fsync: a file torn by a crash fails its checksum and is dropped\n\nEnv: XI_CACHE_RESULT_DISK_PATH",
+                  "markdownDescription": "Absolute directory of the `disk` store and its size bound (entry files; a janitor evicts least recently used entries down to 90 % once a write goes over). The image's root file system is read-only: mount a volume there. The directory must be dedicated to one process; the index is rebuilt from it at start, so entries survive restarts. No fsync: a file torn by a crash fails its checksum and is dropped\n\nEnv: `XI_CACHE_RESULT_DISK_PATH`",
+                  "title": "XI_CACHE_RESULT_DISK_PATH",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "memory_bytes": {
+              "$ref": "#/$defs/byteSize",
+              "default": "256MiB",
+              "description": "In-memory LRU tier bound (bodies, stored headers and keys)\n\nEnv: XI_CACHE_RESULT_MEMORY_BYTES",
+              "markdownDescription": "In-memory LRU tier bound (bodies, stored headers and keys)\n\nEnv: `XI_CACHE_RESULT_MEMORY_BYTES`",
+              "title": "XI_CACHE_RESULT_MEMORY_BYTES"
+            },
+            "redis": {
+              "additionalProperties": false,
+              "properties": {
+                "max_value_bytes": {
+                  "$ref": "#/$defs/byteSize",
+                  "default": "1MiB",
+                  "description": "Larger entries are not stored in Redis (counted in xi_cache_skipped_total{reason=\"too_large\"})\n\nEnv: XI_CACHE_RESULT_REDIS_MAX_VALUE_BYTES",
+                  "markdownDescription": "Larger entries are not stored in Redis (counted in `xi_cache_skipped_total{reason=\"too_large\"}`)\n\nEnv: `XI_CACHE_RESULT_REDIS_MAX_VALUE_BYTES`",
+                  "title": "XI_CACHE_RESULT_REDIS_MAX_VALUE_BYTES"
+                },
+                "prefix": {
+                  "default": "xi:",
+                  "description": "Prepended to every key, so deployments can share a server\n\nEnv: XI_CACHE_RESULT_REDIS_PREFIX",
+                  "markdownDescription": "Prepended to every key, so deployments can share a server\n\nEnv: `XI_CACHE_RESULT_REDIS_PREFIX`",
+                  "title": "XI_CACHE_RESULT_REDIS_PREFIX",
+                  "type": "string"
+                },
+                "url": {
+                  "$ref": "#/$defs/secret",
+                  "description": "Secret (may carry a password). redis://[user:pass@]host:port/db, rediss:// for TLS, go-redis query options (dial_timeout, pool_size, …). Any RESP server: Redis, Valkey, KeyDB, managed services\n\nEnv: XI_CACHE_RESULT_REDIS_URL (or XI_CACHE_RESULT_REDIS_URL_FILE)",
+                  "markdownDescription": "Secret (may carry a password). `redis://[user:pass@]host:port/db`, `rediss://` for TLS, go-redis query options (`dial_timeout`, `pool_size`, …). Any RESP server: Redis, Valkey, KeyDB, managed services\n\nEnv: `XI_CACHE_RESULT_REDIS_URL` (or `XI_CACHE_RESULT_REDIS_URL_FILE`)",
+                  "title": "XI_CACHE_RESULT_REDIS_URL"
+                }
+              },
+              "type": "object"
+            },
+            "s3": {
+              "additionalProperties": false,
+              "properties": {
+                "bucket": {
+                  "default": "",
+                  "description": "SOURCE names an s3 source whose endpoint, region, path style and credentials the s3 store reuses; BUCKET (required, must exist) and PREFIX (prepended verbatim, e.g. cache/) place the objects. Expiry is checked from object metadata on read, so no lifecycle rule is needed for correctness; add one on the prefix to reclaim space\n\nEnv: XI_CACHE_RESULT_S3_BUCKET",
+                  "markdownDescription": "`SOURCE` names an s3 source whose endpoint, region, path style and credentials the `s3` store reuses; `BUCKET` (required, must exist) and `PREFIX` (prepended verbatim, e.g. `cache/`) place the objects. Expiry is checked from object metadata on read, so no lifecycle rule is needed for correctness; add one on the prefix to reclaim space\n\nEnv: `XI_CACHE_RESULT_S3_BUCKET`",
+                  "title": "XI_CACHE_RESULT_S3_BUCKET",
+                  "type": "string"
+                },
+                "prefix": {
+                  "default": "",
+                  "description": "SOURCE names an s3 source whose endpoint, region, path style and credentials the s3 store reuses; BUCKET (required, must exist) and PREFIX (prepended verbatim, e.g. cache/) place the objects. Expiry is checked from object metadata on read, so no lifecycle rule is needed for correctness; add one on the prefix to reclaim space\n\nEnv: XI_CACHE_RESULT_S3_PREFIX",
+                  "markdownDescription": "`SOURCE` names an s3 source whose endpoint, region, path style and credentials the `s3` store reuses; `BUCKET` (required, must exist) and `PREFIX` (prepended verbatim, e.g. `cache/`) place the objects. Expiry is checked from object metadata on read, so no lifecycle rule is needed for correctness; add one on the prefix to reclaim space\n\nEnv: `XI_CACHE_RESULT_S3_PREFIX`",
+                  "title": "XI_CACHE_RESULT_S3_PREFIX",
+                  "type": "string"
+                },
+                "source": {
+                  "default": "",
+                  "description": "SOURCE names an s3 source whose endpoint, region, path style and credentials the s3 store reuses; BUCKET (required, must exist) and PREFIX (prepended verbatim, e.g. cache/) place the objects. Expiry is checked from object metadata on read, so no lifecycle rule is needed for correctness; add one on the prefix to reclaim space\n\nEnv: XI_CACHE_RESULT_S3_SOURCE",
+                  "markdownDescription": "`SOURCE` names an s3 source whose endpoint, region, path style and credentials the `s3` store reuses; `BUCKET` (required, must exist) and `PREFIX` (prepended verbatim, e.g. `cache/`) place the objects. Expiry is checked from object metadata on read, so no lifecycle rule is needed for correctness; add one on the prefix to reclaim space\n\nEnv: `XI_CACHE_RESULT_S3_SOURCE`",
+                  "title": "XI_CACHE_RESULT_S3_SOURCE",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "stores": {
+              "description": "Ordered tiers, fastest first, e.g. memory,disk or memory,redis,s3; empty disables the result cache. A hit in a slower tier is copied into the faster ones (ARCHITECTURE §9.2)\n\nEnv: XI_CACHE_RESULT_STORES",
+              "items": {
+                "enum": [
+                  "memory",
+                  "disk",
+                  "redis",
+                  "s3"
+                ],
+                "type": "string"
+              },
+              "markdownDescription": "Ordered tiers, fastest first, e.g. `memory,disk` or `memory,redis,s3`; empty disables the result cache. A hit in a slower tier is copied into the faster ones (ARCHITECTURE §9.2)\n\nEnv: `XI_CACHE_RESULT_STORES`",
+              "title": "XI_CACHE_RESULT_STORES",
+              "type": "array"
+            },
+            "ttl": {
+              "$ref": "#/$defs/duration",
+              "default": "24h0m0s",
+              "description": "How long a result is served from the cache without contacting the source (the key holds the source identity, not its validators); a per-request ttl/expires shortens it. Use a cachebuster or XI_CACHE_ETAG_BUSTER to invalidate earlier\n\nEnv: XI_CACHE_RESULT_TTL",
+              "markdownDescription": "How long a result is served from the cache without contacting the source (the key holds the source identity, not its validators); a per-request `ttl`/`expires` shortens it. Use a `cachebuster` or `XI_CACHE_ETAG_BUSTER` to invalidate earlier\n\nEnv: `XI_CACHE_RESULT_TTL`",
+              "title": "XI_CACHE_RESULT_TTL"
+            },
+            "write_queue": {
+              "default": 64,
+              "description": "Asynchronous cache writes in flight; more are dropped and counted in xi_cache_writes_dropped_total, never blocking the response\n\nEnv: XI_CACHE_RESULT_WRITE_QUEUE",
+              "markdownDescription": "Asynchronous cache writes in flight; more are dropped and counted in `xi_cache_writes_dropped_total`, never blocking the response\n\nEnv: `XI_CACHE_RESULT_WRITE_QUEUE`",
+              "title": "XI_CACHE_RESULT_WRITE_QUEUE",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "tags_header": {
+          "default": "Cache-Tag",
+          "description": "For cache_tags\n\nEnv: XI_CACHE_TAGS_HEADER",
+          "markdownDescription": "For `cache_tags`\n\nEnv: `XI_CACHE_TAGS_HEADER`",
+          "title": "XI_CACHE_TAGS_HEADER",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "client_hints": {
+      "additionalProperties": false,
+      "properties": {
+        "critical_ch": {
+          "default": false,
+          "description": "Also send Critical-CH: Sec-CH-DPR, Sec-CH-Width, Sec-CH-Viewport-Width (browsers honour it on navigations only)\n\nEnv: XI_CLIENT_HINTS_CRITICAL_CH",
+          "markdownDescription": "Also send `Critical-CH: Sec-CH-DPR, Sec-CH-Width, Sec-CH-Viewport-Width` (browsers honour it on navigations only)\n\nEnv: `XI_CLIENT_HINTS_CRITICAL_CH`",
+          "title": "XI_CLIENT_HINTS_CRITICAL_CH",
+          "type": "boolean"
+        },
+        "enabled": {
+          "default": false,
+          "description": "Honour DPR/Width/Viewport-Width/Save-Data hints on every request when the URL leaves the value unset (imgproxy IMGPROXY_ENABLE_CLIENT_HINTS); URL opt-ins (ch=, w_auto, width=auto) work regardless. Image responses then carry Accept-CH: Sec-CH-DPR, Sec-CH-Width, Sec-CH-Viewport-Width, ECT and a Vary listing only the hint names that decided the result. Unsigned requests on a restricted mount get only Save-Data (a hinted width/DPR would bypass the allowlists). Semantics and imgproxy parity: URL-DIALECTS.md §3.5\n\nEnv: XI_CLIENT_HINTS_ENABLED",
+          "markdownDescription": "Honour DPR/Width/Viewport-Width/Save-Data hints on every request when the URL leaves the value unset (imgproxy `IMGPROXY_ENABLE_CLIENT_HINTS`); URL opt-ins (`ch=`, `w_auto`, `width=auto`) work regardless. Image responses then carry `Accept-CH: Sec-CH-DPR, Sec-CH-Width, Sec-CH-Viewport-Width, ECT` and a `Vary` listing only the hint names that decided the result. Unsigned requests on a `restricted` mount get only Save-Data (a hinted width/DPR would bypass the allowlists). Semantics and imgproxy parity: URL-DIALECTS.md §3.5\n\nEnv: `XI_CLIENT_HINTS_ENABLED`",
+          "title": "XI_CLIENT_HINTS_ENABLED",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "compat": {
+      "additionalProperties": false,
+      "properties": {
+        "imgproxy_env": {
+          "default": false,
+          "description": "Translate IMGPROXY_* variables (§1, table below); YAML compat.imgproxy_env\n\nEnv: XI_COMPAT_IMGPROXY_ENV",
+          "markdownDescription": "Translate `IMGPROXY_*` variables (§1, table below); YAML `compat.imgproxy_env`\n\nEnv: `XI_COMPAT_IMGPROXY_ENV`",
+          "title": "XI_COMPAT_IMGPROXY_ENV",
+          "type": "boolean"
+        },
+        "imgproxy_status": {
+          "default": false,
+          "description": "Invalid URL and disallowed source answer 404 like imgproxy (instead of 400 / 403)\n\nEnv: XI_COMPAT_IMGPROXY_STATUS",
+          "markdownDescription": "Invalid URL and disallowed source answer 404 like imgproxy (instead of 400 / 403)\n\nEnv: `XI_COMPAT_IMGPROXY_STATUS`",
+          "title": "XI_COMPAT_IMGPROXY_STATUS",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "dev_mode": {
+      "default": false,
+      "description": "Allow any http(s) source (SSRF rules still apply), pretty errors, no signature requirement warnings\n\nEnv: XI_DEV_MODE",
+      "markdownDescription": "Allow any http(s) source (SSRF rules still apply), pretty errors, no signature requirement warnings\n\nEnv: `XI_DEV_MODE`",
+      "title": "XI_DEV_MODE",
+      "type": "boolean"
+    },
+    "dialects": {
+      "additionalProperties": false,
+      "properties": {
+        "awssih": {
+          "additionalProperties": false,
+          "properties": {
+            "buckets": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "bucket=source,…: SIH SOURCE_BUCKETS allowlist; a request without a bucket uses XI_DIALECTS_AWSSIH_SOURCE (URL-DIALECTS §13)\n\nEnv: XI_DIALECTS_AWSSIH_BUCKETS",
+              "markdownDescription": "`bucket=source,…`: SIH `SOURCE_BUCKETS` allowlist; a request without a bucket uses `XI_DIALECTS_AWSSIH_SOURCE` (URL-DIALECTS §13)\n\nEnv: `XI_DIALECTS_AWSSIH_BUCKETS`",
+              "title": "XI_DIALECTS_AWSSIH_BUCKETS",
+              "type": "object"
+            },
+            "enabled": {
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_AWSSIH_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_AWSSIH_ENABLED`",
+              "title": "XI_DIALECTS_AWSSIH_ENABLED",
+              "type": "boolean"
+            },
+            "hosts": {
+              "description": "Host bindings\n\nEnv: XI_DIALECTS_AWSSIH_HOSTS",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Host bindings\n\nEnv: `XI_DIALECTS_AWSSIH_HOSTS`",
+              "title": "XI_DIALECTS_AWSSIH_HOSTS",
+              "type": "array"
+            },
+            "keys": {
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_AWSSIH_KEYS (or XI_DIALECTS_AWSSIH_KEYS_FILE)",
+              "items": {
+                "$ref": "#/$defs/secret"
+              },
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_AWSSIH_KEYS` (or `XI_DIALECTS_AWSSIH_KEYS_FILE`)",
+              "title": "XI_DIALECTS_AWSSIH_KEYS",
+              "type": "array"
+            },
+            "mounts": {
+              "description": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "items": {
+                "$ref": "#/$defs/mount"
+              },
+              "markdownDescription": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "type": "array"
+            },
+            "prefix": {
+              "description": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: XI_DIALECTS_AWSSIH_PREFIX",
+              "markdownDescription": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: `XI_DIALECTS_AWSSIH_PREFIX`",
+              "title": "XI_DIALECTS_AWSSIH_PREFIX",
+              "type": "string"
+            },
+            "query_params": {
+              "default": true,
+              "description": "SIH query-param mapper (format, fit, width, height, rotate, flip, flop, grayscale)\n\nEnv: XI_DIALECTS_AWSSIH_QUERY_PARAMS",
+              "markdownDescription": "SIH query-param mapper (`format`, `fit`, `width`, `height`, `rotate`, `flip`, `flop`, `grayscale`)\n\nEnv: `XI_DIALECTS_AWSSIH_QUERY_PARAMS`",
+              "title": "XI_DIALECTS_AWSSIH_QUERY_PARAMS",
+              "type": "boolean"
+            },
+            "rewrite_match_pattern": {
+              "default": "",
+              "description": "SIH REWRITE_MATCH_PATTERN: /regex/flags applied to non-JSON paths before forwarding\n\nEnv: XI_DIALECTS_AWSSIH_REWRITE_MATCH_PATTERN",
+              "markdownDescription": "SIH `REWRITE_MATCH_PATTERN`: `/regex/flags` applied to non-JSON paths before forwarding\n\nEnv: `XI_DIALECTS_AWSSIH_REWRITE_MATCH_PATTERN`",
+              "title": "XI_DIALECTS_AWSSIH_REWRITE_MATCH_PATTERN",
+              "type": "string"
+            },
+            "rewrite_substitution": {
+              "default": "",
+              "description": "SIH REWRITE_SUBSTITUTION ($1, $<name>, $&, $$)\n\nEnv: XI_DIALECTS_AWSSIH_REWRITE_SUBSTITUTION",
+              "markdownDescription": "SIH `REWRITE_SUBSTITUTION` (`$1`, `$<name>`, `$&`, `$$`)\n\nEnv: `XI_DIALECTS_AWSSIH_REWRITE_SUBSTITUTION`",
+              "title": "XI_DIALECTS_AWSSIH_REWRITE_SUBSTITUTION",
+              "type": "string"
+            },
+            "source": {
+              "default": "",
+              "description": "Bound source for relative paths\n\nEnv: XI_DIALECTS_AWSSIH_SOURCE",
+              "markdownDescription": "Bound source for relative paths\n\nEnv: `XI_DIALECTS_AWSSIH_SOURCE`",
+              "title": "XI_DIALECTS_AWSSIH_SOURCE",
+              "type": "string"
+            },
+            "thumbor": {
+              "default": false,
+              "description": "Forward non-JSON paths to the thumbor dialect (SIH thumbor request type)\n\nEnv: XI_DIALECTS_AWSSIH_THUMBOR",
+              "markdownDescription": "Forward non-JSON paths to the thumbor dialect (SIH thumbor request type)\n\nEnv: `XI_DIALECTS_AWSSIH_THUMBOR`",
+              "title": "XI_DIALECTS_AWSSIH_THUMBOR",
+              "type": "boolean"
+            },
+            "unsigned_policy": {
+              "description": "Per-dialect override\n\nDefault: global\n\nEnv: XI_DIALECTS_AWSSIH_UNSIGNED_POLICY",
+              "enum": [
+                "allow",
+                "restricted",
+                "deny"
+              ],
+              "markdownDescription": "Per-dialect override\n\nDefault: global\n\nEnv: `XI_DIALECTS_AWSSIH_UNSIGNED_POLICY`",
+              "title": "XI_DIALECTS_AWSSIH_UNSIGNED_POLICY",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "bunny": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_BUNNY_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_BUNNY_ENABLED`",
+              "title": "XI_DIALECTS_BUNNY_ENABLED",
+              "type": "boolean"
+            },
+            "hosts": {
+              "description": "Host bindings\n\nEnv: XI_DIALECTS_BUNNY_HOSTS",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Host bindings\n\nEnv: `XI_DIALECTS_BUNNY_HOSTS`",
+              "title": "XI_DIALECTS_BUNNY_HOSTS",
+              "type": "array"
+            },
+            "keys": {
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_BUNNY_KEYS (or XI_DIALECTS_BUNNY_KEYS_FILE)",
+              "items": {
+                "$ref": "#/$defs/secret"
+              },
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_BUNNY_KEYS` (or `XI_DIALECTS_BUNNY_KEYS_FILE`)",
+              "title": "XI_DIALECTS_BUNNY_KEYS",
+              "type": "array"
+            },
+            "mounts": {
+              "description": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "items": {
+                "$ref": "#/$defs/mount"
+              },
+              "markdownDescription": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "type": "array"
+            },
+            "prefix": {
+              "description": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: XI_DIALECTS_BUNNY_PREFIX",
+              "markdownDescription": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: `XI_DIALECTS_BUNNY_PREFIX`",
+              "title": "XI_DIALECTS_BUNNY_PREFIX",
+              "type": "string"
+            },
+            "source": {
+              "default": "",
+              "description": "Bound source for relative paths\n\nEnv: XI_DIALECTS_BUNNY_SOURCE",
+              "markdownDescription": "Bound source for relative paths\n\nEnv: `XI_DIALECTS_BUNNY_SOURCE`",
+              "title": "XI_DIALECTS_BUNNY_SOURCE",
+              "type": "string"
+            },
+            "unsigned_policy": {
+              "description": "Per-dialect override\n\nDefault: global\n\nEnv: XI_DIALECTS_BUNNY_UNSIGNED_POLICY",
+              "enum": [
+                "allow",
+                "restricted",
+                "deny"
+              ],
+              "markdownDescription": "Per-dialect override\n\nDefault: global\n\nEnv: `XI_DIALECTS_BUNNY_UNSIGNED_POLICY`",
+              "title": "XI_DIALECTS_BUNNY_UNSIGNED_POLICY",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "cloudflare": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_CLOUDFLARE_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_CLOUDFLARE_ENABLED`",
+              "title": "XI_DIALECTS_CLOUDFLARE_ENABLED",
+              "type": "boolean"
+            },
+            "hosts": {
+              "description": "Host bindings\n\nEnv: XI_DIALECTS_CLOUDFLARE_HOSTS",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Host bindings\n\nEnv: `XI_DIALECTS_CLOUDFLARE_HOSTS`",
+              "title": "XI_DIALECTS_CLOUDFLARE_HOSTS",
+              "type": "array"
+            },
+            "keys": {
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_CLOUDFLARE_KEYS (or XI_DIALECTS_CLOUDFLARE_KEYS_FILE)",
+              "items": {
+                "$ref": "#/$defs/secret"
+              },
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_CLOUDFLARE_KEYS` (or `XI_DIALECTS_CLOUDFLARE_KEYS_FILE`)",
+              "title": "XI_DIALECTS_CLOUDFLARE_KEYS",
+              "type": "array"
+            },
+            "mounts": {
+              "description": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "items": {
+                "$ref": "#/$defs/mount"
+              },
+              "markdownDescription": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "type": "array"
+            },
+            "prefix": {
+              "description": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: XI_DIALECTS_CLOUDFLARE_PREFIX",
+              "markdownDescription": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: `XI_DIALECTS_CLOUDFLARE_PREFIX`",
+              "title": "XI_DIALECTS_CLOUDFLARE_PREFIX",
+              "type": "string"
+            },
+            "source": {
+              "default": "",
+              "description": "Bound source for relative paths\n\nEnv: XI_DIALECTS_CLOUDFLARE_SOURCE",
+              "markdownDescription": "Bound source for relative paths\n\nEnv: `XI_DIALECTS_CLOUDFLARE_SOURCE`",
+              "title": "XI_DIALECTS_CLOUDFLARE_SOURCE",
+              "type": "string"
+            },
+            "unsigned_policy": {
+              "description": "Per-dialect override\n\nDefault: global\n\nEnv: XI_DIALECTS_CLOUDFLARE_UNSIGNED_POLICY",
+              "enum": [
+                "allow",
+                "restricted",
+                "deny"
+              ],
+              "markdownDescription": "Per-dialect override\n\nDefault: global\n\nEnv: `XI_DIALECTS_CLOUDFLARE_UNSIGNED_POLICY`",
+              "title": "XI_DIALECTS_CLOUDFLARE_UNSIGNED_POLICY",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "cloudflare_images": {
+          "additionalProperties": false,
+          "properties": {
+            "accounts": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "account_hash=source,…: the source each Cloudflare Images account hash reads image ids from; empty = the mount's source for every hash, otherwise an unknown hash is 403. XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS are the raw Images signing keys (sig/exp); variants are presets\n\nEnv: XI_DIALECTS_CLOUDFLARE_IMAGES_ACCOUNTS",
+              "markdownDescription": "`account_hash=source,…`: the source each Cloudflare Images account hash reads image ids from; empty = the mount's source for every hash, otherwise an unknown hash is 403. `XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS` are the raw Images signing keys (`sig`/`exp`); variants are presets\n\nEnv: `XI_DIALECTS_CLOUDFLARE_IMAGES_ACCOUNTS`",
+              "title": "XI_DIALECTS_CLOUDFLARE_IMAGES_ACCOUNTS",
+              "type": "object"
+            },
+            "enabled": {
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_CLOUDFLARE_IMAGES_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_CLOUDFLARE_IMAGES_ENABLED`",
+              "title": "XI_DIALECTS_CLOUDFLARE_IMAGES_ENABLED",
+              "type": "boolean"
+            },
+            "hosts": {
+              "description": "Host bindings\n\nEnv: XI_DIALECTS_CLOUDFLARE_IMAGES_HOSTS",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Host bindings\n\nEnv: `XI_DIALECTS_CLOUDFLARE_IMAGES_HOSTS`",
+              "title": "XI_DIALECTS_CLOUDFLARE_IMAGES_HOSTS",
+              "type": "array"
+            },
+            "keys": {
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS (or XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS_FILE)",
+              "items": {
+                "$ref": "#/$defs/secret"
+              },
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS` (or `XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS_FILE`)",
+              "title": "XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS",
+              "type": "array"
+            },
+            "mounts": {
+              "description": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "items": {
+                "$ref": "#/$defs/mount"
+              },
+              "markdownDescription": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "type": "array"
+            },
+            "prefix": {
+              "description": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: XI_DIALECTS_CLOUDFLARE_IMAGES_PREFIX",
+              "markdownDescription": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: `XI_DIALECTS_CLOUDFLARE_IMAGES_PREFIX`",
+              "title": "XI_DIALECTS_CLOUDFLARE_IMAGES_PREFIX",
+              "type": "string"
+            },
+            "source": {
+              "default": "",
+              "description": "Bound source for relative paths\n\nEnv: XI_DIALECTS_CLOUDFLARE_IMAGES_SOURCE",
+              "markdownDescription": "Bound source for relative paths\n\nEnv: `XI_DIALECTS_CLOUDFLARE_IMAGES_SOURCE`",
+              "title": "XI_DIALECTS_CLOUDFLARE_IMAGES_SOURCE",
+              "type": "string"
+            },
+            "unsigned_policy": {
+              "description": "Per-dialect override\n\nDefault: global\n\nEnv: XI_DIALECTS_CLOUDFLARE_IMAGES_UNSIGNED_POLICY",
+              "enum": [
+                "allow",
+                "restricted",
+                "deny"
+              ],
+              "markdownDescription": "Per-dialect override\n\nDefault: global\n\nEnv: `XI_DIALECTS_CLOUDFLARE_IMAGES_UNSIGNED_POLICY`",
+              "title": "XI_DIALECTS_CLOUDFLARE_IMAGES_UNSIGNED_POLICY",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "cloudinary": {
+          "additionalProperties": false,
+          "properties": {
+            "clouds": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "cloud=source,…\n\nEnv: XI_DIALECTS_CLOUDINARY_CLOUDS",
+              "markdownDescription": "`cloud=source,…`\n\nEnv: `XI_DIALECTS_CLOUDINARY_CLOUDS`",
+              "title": "XI_DIALECTS_CLOUDINARY_CLOUDS",
+              "type": "object"
+            },
+            "enabled": {
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_CLOUDINARY_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_CLOUDINARY_ENABLED`",
+              "title": "XI_DIALECTS_CLOUDINARY_ENABLED",
+              "type": "boolean"
+            },
+            "hosts": {
+              "description": "Host bindings\n\nEnv: XI_DIALECTS_CLOUDINARY_HOSTS",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Host bindings\n\nEnv: `XI_DIALECTS_CLOUDINARY_HOSTS`",
+              "title": "XI_DIALECTS_CLOUDINARY_HOSTS",
+              "type": "array"
+            },
+            "keys": {
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_CLOUDINARY_KEYS (or XI_DIALECTS_CLOUDINARY_KEYS_FILE)",
+              "items": {
+                "$ref": "#/$defs/secret"
+              },
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_CLOUDINARY_KEYS` (or `XI_DIALECTS_CLOUDINARY_KEYS_FILE`)",
+              "title": "XI_DIALECTS_CLOUDINARY_KEYS",
+              "type": "array"
+            },
+            "mounts": {
+              "description": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "items": {
+                "$ref": "#/$defs/mount"
+              },
+              "markdownDescription": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "type": "array"
+            },
+            "prefix": {
+              "description": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: XI_DIALECTS_CLOUDINARY_PREFIX",
+              "markdownDescription": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: `XI_DIALECTS_CLOUDINARY_PREFIX`",
+              "title": "XI_DIALECTS_CLOUDINARY_PREFIX",
+              "type": "string"
+            },
+            "source": {
+              "default": "",
+              "description": "Bound source for relative paths\n\nEnv: XI_DIALECTS_CLOUDINARY_SOURCE",
+              "markdownDescription": "Bound source for relative paths\n\nEnv: `XI_DIALECTS_CLOUDINARY_SOURCE`",
+              "title": "XI_DIALECTS_CLOUDINARY_SOURCE",
+              "type": "string"
+            },
+            "unsigned_policy": {
+              "description": "Per-dialect override\n\nDefault: global\n\nEnv: XI_DIALECTS_CLOUDINARY_UNSIGNED_POLICY",
+              "enum": [
+                "allow",
+                "restricted",
+                "deny"
+              ],
+              "markdownDescription": "Per-dialect override\n\nDefault: global\n\nEnv: `XI_DIALECTS_CLOUDINARY_UNSIGNED_POLICY`",
+              "title": "XI_DIALECTS_CLOUDINARY_UNSIGNED_POLICY",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "default": {
+          "default": "imgproxy",
+          "description": "Fallback dialect\n\nEnv: XI_DIALECTS_DEFAULT",
+          "enum": [
+            "imgproxy",
+            "query",
+            "wsrv",
+            "cloudflare",
+            "cloudflare_images",
+            "imgix",
+            "cloudinary",
+            "imagekit",
+            "bunny",
+            "thumbor",
+            "awssih"
+          ],
+          "markdownDescription": "Fallback dialect\n\nEnv: `XI_DIALECTS_DEFAULT`",
+          "title": "XI_DIALECTS_DEFAULT",
+          "type": "string"
+        },
+        "imagekit": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_IMAGEKIT_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_IMAGEKIT_ENABLED`",
+              "title": "XI_DIALECTS_IMAGEKIT_ENABLED",
+              "type": "boolean"
+            },
+            "hosts": {
+              "description": "Host bindings\n\nEnv: XI_DIALECTS_IMAGEKIT_HOSTS",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Host bindings\n\nEnv: `XI_DIALECTS_IMAGEKIT_HOSTS`",
+              "title": "XI_DIALECTS_IMAGEKIT_HOSTS",
+              "type": "array"
+            },
+            "keys": {
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_IMAGEKIT_KEYS (or XI_DIALECTS_IMAGEKIT_KEYS_FILE)",
+              "items": {
+                "$ref": "#/$defs/secret"
+              },
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_IMAGEKIT_KEYS` (or `XI_DIALECTS_IMAGEKIT_KEYS_FILE`)",
+              "title": "XI_DIALECTS_IMAGEKIT_KEYS",
+              "type": "array"
+            },
+            "mounts": {
+              "description": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "items": {
+                "$ref": "#/$defs/mount"
+              },
+              "markdownDescription": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "type": "array"
+            },
+            "prefix": {
+              "description": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: XI_DIALECTS_IMAGEKIT_PREFIX",
+              "markdownDescription": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: `XI_DIALECTS_IMAGEKIT_PREFIX`",
+              "title": "XI_DIALECTS_IMAGEKIT_PREFIX",
+              "type": "string"
+            },
+            "source": {
+              "default": "",
+              "description": "Bound source for relative paths\n\nEnv: XI_DIALECTS_IMAGEKIT_SOURCE",
+              "markdownDescription": "Bound source for relative paths\n\nEnv: `XI_DIALECTS_IMAGEKIT_SOURCE`",
+              "title": "XI_DIALECTS_IMAGEKIT_SOURCE",
+              "type": "string"
+            },
+            "unsigned_policy": {
+              "description": "Per-dialect override\n\nDefault: global\n\nEnv: XI_DIALECTS_IMAGEKIT_UNSIGNED_POLICY",
+              "enum": [
+                "allow",
+                "restricted",
+                "deny"
+              ],
+              "markdownDescription": "Per-dialect override\n\nDefault: global\n\nEnv: `XI_DIALECTS_IMAGEKIT_UNSIGNED_POLICY`",
+              "title": "XI_DIALECTS_IMAGEKIT_UNSIGNED_POLICY",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "imgix": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_IMGIX_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_IMGIX_ENABLED`",
+              "title": "XI_DIALECTS_IMGIX_ENABLED",
+              "type": "boolean"
+            },
+            "hosts": {
+              "description": "Host bindings\n\nEnv: XI_DIALECTS_IMGIX_HOSTS",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Host bindings\n\nEnv: `XI_DIALECTS_IMGIX_HOSTS`",
+              "title": "XI_DIALECTS_IMGIX_HOSTS",
+              "type": "array"
+            },
+            "keys": {
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_IMGIX_KEYS (or XI_DIALECTS_IMGIX_KEYS_FILE)",
+              "items": {
+                "$ref": "#/$defs/secret"
+              },
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_IMGIX_KEYS` (or `XI_DIALECTS_IMGIX_KEYS_FILE`)",
+              "title": "XI_DIALECTS_IMGIX_KEYS",
+              "type": "array"
+            },
+            "mounts": {
+              "description": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "items": {
+                "$ref": "#/$defs/mount"
+              },
+              "markdownDescription": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "type": "array"
+            },
+            "prefix": {
+              "description": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: XI_DIALECTS_IMGIX_PREFIX",
+              "markdownDescription": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: `XI_DIALECTS_IMGIX_PREFIX`",
+              "title": "XI_DIALECTS_IMGIX_PREFIX",
+              "type": "string"
+            },
+            "source": {
+              "default": "",
+              "description": "Bound source for relative paths\n\nEnv: XI_DIALECTS_IMGIX_SOURCE",
+              "markdownDescription": "Bound source for relative paths\n\nEnv: `XI_DIALECTS_IMGIX_SOURCE`",
+              "title": "XI_DIALECTS_IMGIX_SOURCE",
+              "type": "string"
+            },
+            "unsigned_policy": {
+              "description": "Per-dialect override\n\nDefault: global\n\nEnv: XI_DIALECTS_IMGIX_UNSIGNED_POLICY",
+              "enum": [
+                "allow",
+                "restricted",
+                "deny"
+              ],
+              "markdownDescription": "Per-dialect override\n\nDefault: global\n\nEnv: `XI_DIALECTS_IMGIX_UNSIGNED_POLICY`",
+              "title": "XI_DIALECTS_IMGIX_UNSIGNED_POLICY",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "imgproxy": {
+          "additionalProperties": false,
+          "properties": {
+            "arguments_separator": {
+              "default": ":",
+              "description": "Env: XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR",
+              "markdownDescription": "Env: `XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR`",
+              "title": "XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR",
+              "type": "string"
+            },
+            "base_url": {
+              "default": "",
+              "description": "Env: XI_DIALECTS_IMGPROXY_BASE_URL",
+              "markdownDescription": "Env: `XI_DIALECTS_IMGPROXY_BASE_URL`",
+              "title": "XI_DIALECTS_IMGPROXY_BASE_URL",
+              "type": "string"
+            },
+            "enabled": {
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_IMGPROXY_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_IMGPROXY_ENABLED`",
+              "title": "XI_DIALECTS_IMGPROXY_ENABLED",
+              "type": "boolean"
+            },
+            "hosts": {
+              "description": "Host bindings\n\nEnv: XI_DIALECTS_IMGPROXY_HOSTS",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Host bindings\n\nEnv: `XI_DIALECTS_IMGPROXY_HOSTS`",
+              "title": "XI_DIALECTS_IMGPROXY_HOSTS",
+              "type": "array"
+            },
+            "keys": {
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_IMGPROXY_KEYS (or XI_DIALECTS_IMGPROXY_KEYS_FILE)",
+              "items": {
+                "$ref": "#/$defs/secret"
+              },
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_IMGPROXY_KEYS` (or `XI_DIALECTS_IMGPROXY_KEYS_FILE`)",
+              "title": "XI_DIALECTS_IMGPROXY_KEYS",
+              "type": "array"
+            },
+            "mounts": {
+              "description": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "items": {
+                "$ref": "#/$defs/mount"
+              },
+              "markdownDescription": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "type": "array"
+            },
+            "prefix": {
+              "description": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: XI_DIALECTS_IMGPROXY_PREFIX",
+              "markdownDescription": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: `XI_DIALECTS_IMGPROXY_PREFIX`",
+              "title": "XI_DIALECTS_IMGPROXY_PREFIX",
+              "type": "string"
+            },
+            "source": {
+              "default": "",
+              "description": "Bound source for relative paths\n\nEnv: XI_DIALECTS_IMGPROXY_SOURCE",
+              "markdownDescription": "Bound source for relative paths\n\nEnv: `XI_DIALECTS_IMGPROXY_SOURCE`",
+              "title": "XI_DIALECTS_IMGPROXY_SOURCE",
+              "type": "string"
+            },
+            "unsigned_policy": {
+              "description": "Per-dialect override\n\nDefault: global\n\nEnv: XI_DIALECTS_IMGPROXY_UNSIGNED_POLICY",
+              "enum": [
+                "allow",
+                "restricted",
+                "deny"
+              ],
+              "markdownDescription": "Per-dialect override\n\nDefault: global\n\nEnv: `XI_DIALECTS_IMGPROXY_UNSIGNED_POLICY`",
+              "title": "XI_DIALECTS_IMGPROXY_UNSIGNED_POLICY",
+              "type": "string"
+            },
+            "url_replacements": {
+              "description": "regex=replacement;… (;-separated in env)\n\nEnv: XI_DIALECTS_IMGPROXY_URL_REPLACEMENTS",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "`regex=replacement;…` (`;`-separated in env)\n\nEnv: `XI_DIALECTS_IMGPROXY_URL_REPLACEMENTS`",
+              "title": "XI_DIALECTS_IMGPROXY_URL_REPLACEMENTS",
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "query": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_QUERY_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_QUERY_ENABLED`",
+              "title": "XI_DIALECTS_QUERY_ENABLED",
+              "type": "boolean"
+            },
+            "hosts": {
+              "description": "Host bindings\n\nEnv: XI_DIALECTS_QUERY_HOSTS",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Host bindings\n\nEnv: `XI_DIALECTS_QUERY_HOSTS`",
+              "title": "XI_DIALECTS_QUERY_HOSTS",
+              "type": "array"
+            },
+            "keys": {
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_QUERY_KEYS (or XI_DIALECTS_QUERY_KEYS_FILE)",
+              "items": {
+                "$ref": "#/$defs/secret"
+              },
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_QUERY_KEYS` (or `XI_DIALECTS_QUERY_KEYS_FILE`)",
+              "title": "XI_DIALECTS_QUERY_KEYS",
+              "type": "array"
+            },
+            "mounts": {
+              "description": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "items": {
+                "$ref": "#/$defs/mount"
+              },
+              "markdownDescription": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "type": "array"
+            },
+            "prefix": {
+              "description": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: XI_DIALECTS_QUERY_PREFIX",
+              "markdownDescription": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: `XI_DIALECTS_QUERY_PREFIX`",
+              "title": "XI_DIALECTS_QUERY_PREFIX",
+              "type": "string"
+            },
+            "source": {
+              "default": "",
+              "description": "Bound source for relative paths\n\nEnv: XI_DIALECTS_QUERY_SOURCE",
+              "markdownDescription": "Bound source for relative paths\n\nEnv: `XI_DIALECTS_QUERY_SOURCE`",
+              "title": "XI_DIALECTS_QUERY_SOURCE",
+              "type": "string"
+            },
+            "unsigned_policy": {
+              "description": "Per-dialect override\n\nDefault: global\n\nEnv: XI_DIALECTS_QUERY_UNSIGNED_POLICY",
+              "enum": [
+                "allow",
+                "restricted",
+                "deny"
+              ],
+              "markdownDescription": "Per-dialect override\n\nDefault: global\n\nEnv: `XI_DIALECTS_QUERY_UNSIGNED_POLICY`",
+              "title": "XI_DIALECTS_QUERY_UNSIGNED_POLICY",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "simple": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "unpic providers of the table-driven family, e.g. nextjs,ipx,contentful (names in URL-DIALECTS §12; an unknown name fails startup). Each is mounted at its native prefixes and /simple/<name>/; no _PREFIX/_KEYS (xi_sig uses XI_SIGNING_*)\n\nEnv: XI_DIALECTS_SIMPLE_ENABLED",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "unpic providers of the table-driven family, e.g. `nextjs,ipx,contentful` (names in URL-DIALECTS §12; an unknown name fails startup). Each is mounted at its native prefixes and `/simple/<name>/`; no `_PREFIX`/`_KEYS` (xi_sig uses `XI_SIGNING_*`)\n\nEnv: `XI_DIALECTS_SIMPLE_ENABLED`",
+              "title": "XI_DIALECTS_SIMPLE_ENABLED",
+              "type": "array"
+            },
+            "hosts": {
+              "description": "Hosts bound to the whole family; the provider is picked per request (native prefix, upstream domain, then the first enabled CDN-style provider)\n\nEnv: XI_DIALECTS_SIMPLE_HOSTS",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Hosts bound to the whole family; the provider is picked per request (native prefix, upstream domain, then the first enabled CDN-style provider)\n\nEnv: `XI_DIALECTS_SIMPLE_HOSTS`",
+              "title": "XI_DIALECTS_SIMPLE_HOSTS",
+              "type": "array"
+            },
+            "source": {
+              "default": "",
+              "description": "Bound source for relative paths\n\nEnv: XI_DIALECTS_SIMPLE_SOURCE",
+              "markdownDescription": "Bound source for relative paths\n\nEnv: `XI_DIALECTS_SIMPLE_SOURCE`",
+              "title": "XI_DIALECTS_SIMPLE_SOURCE",
+              "type": "string"
+            },
+            "unsigned_policy": {
+              "description": "Per-dialect override\n\nDefault: global\n\nEnv: XI_DIALECTS_SIMPLE_UNSIGNED_POLICY",
+              "enum": [
+                "allow",
+                "restricted",
+                "deny"
+              ],
+              "markdownDescription": "Per-dialect override\n\nDefault: global\n\nEnv: `XI_DIALECTS_SIMPLE_UNSIGNED_POLICY`",
+              "title": "XI_DIALECTS_SIMPLE_UNSIGNED_POLICY",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "strict": {
+          "default": false,
+          "description": "400 on unknown/unsupported options\n\nEnv: XI_DIALECTS_STRICT",
+          "markdownDescription": "400 on unknown/unsupported options\n\nEnv: `XI_DIALECTS_STRICT`",
+          "title": "XI_DIALECTS_STRICT",
+          "type": "boolean"
+        },
+        "thumbor": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_THUMBOR_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_THUMBOR_ENABLED`",
+              "title": "XI_DIALECTS_THUMBOR_ENABLED",
+              "type": "boolean"
+            },
+            "hosts": {
+              "description": "Host bindings\n\nEnv: XI_DIALECTS_THUMBOR_HOSTS",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Host bindings\n\nEnv: `XI_DIALECTS_THUMBOR_HOSTS`",
+              "title": "XI_DIALECTS_THUMBOR_HOSTS",
+              "type": "array"
+            },
+            "keys": {
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_THUMBOR_KEYS (or XI_DIALECTS_THUMBOR_KEYS_FILE)",
+              "items": {
+                "$ref": "#/$defs/secret"
+              },
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_THUMBOR_KEYS` (or `XI_DIALECTS_THUMBOR_KEYS_FILE`)",
+              "title": "XI_DIALECTS_THUMBOR_KEYS",
+              "type": "array"
+            },
+            "mounts": {
+              "description": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "items": {
+                "$ref": "#/$defs/mount"
+              },
+              "markdownDescription": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "type": "array"
+            },
+            "prefix": {
+              "description": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: XI_DIALECTS_THUMBOR_PREFIX",
+              "markdownDescription": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: `XI_DIALECTS_THUMBOR_PREFIX`",
+              "title": "XI_DIALECTS_THUMBOR_PREFIX",
+              "type": "string"
+            },
+            "source": {
+              "default": "",
+              "description": "Bound source for relative paths\n\nEnv: XI_DIALECTS_THUMBOR_SOURCE",
+              "markdownDescription": "Bound source for relative paths\n\nEnv: `XI_DIALECTS_THUMBOR_SOURCE`",
+              "title": "XI_DIALECTS_THUMBOR_SOURCE",
+              "type": "string"
+            },
+            "unsigned_policy": {
+              "description": "Per-dialect override\n\nDefault: global\n\nEnv: XI_DIALECTS_THUMBOR_UNSIGNED_POLICY",
+              "enum": [
+                "allow",
+                "restricted",
+                "deny"
+              ],
+              "markdownDescription": "Per-dialect override\n\nDefault: global\n\nEnv: `XI_DIALECTS_THUMBOR_UNSIGNED_POLICY`",
+              "title": "XI_DIALECTS_THUMBOR_UNSIGNED_POLICY",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "wsrv": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, AWSSIH, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_WSRV_ENABLED",
+              "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `AWSSIH`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_WSRV_ENABLED`",
+              "title": "XI_DIALECTS_WSRV_ENABLED",
+              "type": "boolean"
+            },
+            "hosts": {
+              "description": "Host bindings\n\nEnv: XI_DIALECTS_WSRV_HOSTS",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Host bindings\n\nEnv: `XI_DIALECTS_WSRV_HOSTS`",
+              "title": "XI_DIALECTS_WSRV_HOSTS",
+              "type": "array"
+            },
+            "keys": {
+              "description": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: XI_DIALECTS_WSRV_KEYS (or XI_DIALECTS_WSRV_KEYS_FILE)",
+              "items": {
+                "$ref": "#/$defs/secret"
+              },
+              "markdownDescription": "Dialect secrets (imgix tokens, thumbor key, cloudinary api secret, imagekit private key, bunny token key, AWS SIH secret used verbatim)\n\nEnv: `XI_DIALECTS_WSRV_KEYS` (or `XI_DIALECTS_WSRV_KEYS_FILE`)",
+              "title": "XI_DIALECTS_WSRV_KEYS",
+              "type": "array"
+            },
+            "mounts": {
+              "description": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "items": {
+                "$ref": "#/$defs/mount"
+              },
+              "markdownDescription": "Extra mounts of this dialect, each with its own prefix or hosts (file only; no environment variable).",
+              "type": "array"
+            },
+            "prefix": {
+              "description": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: XI_DIALECTS_WSRV_PREFIX",
+              "markdownDescription": "Mount prefix\n\nDefault: see URL-DIALECTS.md\n\nEnv: `XI_DIALECTS_WSRV_PREFIX`",
+              "title": "XI_DIALECTS_WSRV_PREFIX",
+              "type": "string"
+            },
+            "source": {
+              "default": "",
+              "description": "Bound source for relative paths\n\nEnv: XI_DIALECTS_WSRV_SOURCE",
+              "markdownDescription": "Bound source for relative paths\n\nEnv: `XI_DIALECTS_WSRV_SOURCE`",
+              "title": "XI_DIALECTS_WSRV_SOURCE",
+              "type": "string"
+            },
+            "unsigned_policy": {
+              "description": "Per-dialect override\n\nDefault: global\n\nEnv: XI_DIALECTS_WSRV_UNSIGNED_POLICY",
+              "enum": [
+                "allow",
+                "restricted",
+                "deny"
+              ],
+              "markdownDescription": "Per-dialect override\n\nDefault: global\n\nEnv: `XI_DIALECTS_WSRV_UNSIGNED_POLICY`",
+              "title": "XI_DIALECTS_WSRV_UNSIGNED_POLICY",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "encryption": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/hexKey",
+          "description": "Hex AES keys (16/24/32 bytes) for enc/ sources; the first encrypts, all decrypt (rotation). XI_ENCRYPTION_KEY is the deprecated single-key alias (YAML encryption.key); setting both is an error\n\nEnv: XI_ENCRYPTION_KEY (or XI_ENCRYPTION_KEY_FILE)",
+          "markdownDescription": "Hex AES keys (16/24/32 bytes) for `enc/` sources; the first encrypts, all decrypt (rotation). `XI_ENCRYPTION_KEY` is the deprecated single-key alias (YAML `encryption.key`); setting both is an error\n\nEnv: `XI_ENCRYPTION_KEY` (or `XI_ENCRYPTION_KEY_FILE`)",
+          "title": "XI_ENCRYPTION_KEY"
+        },
+        "keys": {
+          "description": "Hex AES keys (16/24/32 bytes) for enc/ sources; the first encrypts, all decrypt (rotation). XI_ENCRYPTION_KEY is the deprecated single-key alias (YAML encryption.key); setting both is an error\n\nEnv: XI_ENCRYPTION_KEYS (or XI_ENCRYPTION_KEYS_FILE)",
+          "items": {
+            "$ref": "#/$defs/hexKey"
+          },
+          "markdownDescription": "Hex AES keys (16/24/32 bytes) for `enc/` sources; the first encrypts, all decrypt (rotation). `XI_ENCRYPTION_KEY` is the deprecated single-key alias (YAML `encryption.key`); setting both is an error\n\nEnv: `XI_ENCRYPTION_KEYS` (or `XI_ENCRYPTION_KEYS_FILE`)",
+          "title": "XI_ENCRYPTION_KEYS",
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "fallback": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_request_url": {
+          "default": false,
+          "description": "Honour a request's own fallback image (imgproxy fallback_image_url); it must still pass the source allowlist, otherwise XI_FALLBACK_SOURCE is used\n\nEnv: XI_FALLBACK_ALLOW_REQUEST_URL",
+          "markdownDescription": "Honour a request's own fallback image (imgproxy `fallback_image_url`); it must still pass the source allowlist, otherwise `XI_FALLBACK_SOURCE` is used\n\nEnv: `XI_FALLBACK_ALLOW_REQUEST_URL`",
+          "title": "XI_FALLBACK_ALLOW_REQUEST_URL",
+          "type": "boolean"
+        },
+        "source": {
+          "default": "",
+          "description": "Fallback image (source string)\n\nEnv: XI_FALLBACK_SOURCE",
+          "markdownDescription": "Fallback image (source string)\n\nEnv: `XI_FALLBACK_SOURCE`",
+          "title": "XI_FALLBACK_SOURCE",
+          "type": "string"
+        },
+        "status": {
+          "default": 200,
+          "description": "Status used with fallback\n\nEnv: XI_FALLBACK_STATUS",
+          "markdownDescription": "Status used with fallback\n\nEnv: `XI_FALLBACK_STATUS`",
+          "title": "XI_FALLBACK_STATUS",
+          "type": "integer"
+        },
+        "ttl": {
+          "$ref": "#/$defs/duration",
+          "default": "1m0s",
+          "description": "Cache-Control: public, max-age of a fallback response; 0 sends no-store\n\nEnv: XI_FALLBACK_TTL",
+          "markdownDescription": "`Cache-Control: public, max-age` of a fallback response; `0` sends `no-store`\n\nEnv: `XI_FALLBACK_TTL`",
+          "title": "XI_FALLBACK_TTL"
+        }
+      },
+      "type": "object"
+    },
+    "fetch": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_private_networks": {
+          "default": false,
+          "description": "Explicit opt-in to every private range\n\nEnv: XI_FETCH_ALLOW_PRIVATE_NETWORKS",
+          "markdownDescription": "Explicit opt-in to every private range\n\nEnv: `XI_FETCH_ALLOW_PRIVATE_NETWORKS`",
+          "title": "XI_FETCH_ALLOW_PRIVATE_NETWORKS",
+          "type": "boolean"
+        },
+        "allowed_networks": {
+          "description": "CIDRs exempt from the private-address block without opening every range (e.g. 10.20.0.0/16 for an in-cluster object store)\n\nEnv: XI_FETCH_ALLOWED_NETWORKS",
+          "items": {
+            "$ref": "#/$defs/cidr"
+          },
+          "markdownDescription": "CIDRs exempt from the private-address block without opening every range (e.g. `10.20.0.0/16` for an in-cluster object store)\n\nEnv: `XI_FETCH_ALLOWED_NETWORKS`",
+          "title": "XI_FETCH_ALLOWED_NETWORKS",
+          "type": "array"
+        },
+        "allowed_ports": {
+          "default": [
+            80,
+            443
+          ],
+          "description": "SSRF port allowlist\n\nEnv: XI_FETCH_ALLOWED_PORTS",
+          "items": {
+            "type": "integer"
+          },
+          "markdownDescription": "SSRF port allowlist\n\nEnv: `XI_FETCH_ALLOWED_PORTS`",
+          "title": "XI_FETCH_ALLOWED_PORTS",
+          "type": "array"
+        },
+        "max_concurrent": {
+          "default": 256,
+          "description": "Concurrent origin fetches\n\nEnv: XI_FETCH_MAX_CONCURRENT",
+          "markdownDescription": "Concurrent origin fetches\n\nEnv: `XI_FETCH_MAX_CONCURRENT`",
+          "title": "XI_FETCH_MAX_CONCURRENT",
+          "type": "integer"
+        },
+        "max_redirects": {
+          "default": 5,
+          "description": "Env: XI_FETCH_MAX_REDIRECTS",
+          "markdownDescription": "Env: `XI_FETCH_MAX_REDIRECTS`",
+          "title": "XI_FETCH_MAX_REDIRECTS",
+          "type": "integer"
+        },
+        "retry": {
+          "default": true,
+          "description": "One retry, after a jittered ~100 ms backoff, of a transient failure (origin 5xx, connection error, attempt timeout); never for 4xx\n\nEnv: XI_FETCH_RETRY",
+          "markdownDescription": "One retry, after a jittered ~100 ms backoff, of a transient failure (origin 5xx, connection error, attempt timeout); never for 4xx\n\nEnv: `XI_FETCH_RETRY`",
+          "title": "XI_FETCH_RETRY",
+          "type": "boolean"
+        },
+        "timeout": {
+          "$ref": "#/$defs/duration",
+          "default": "10s",
+          "description": "Per download attempt\n\nEnv: XI_FETCH_TIMEOUT",
+          "markdownDescription": "Per download attempt\n\nEnv: `XI_FETCH_TIMEOUT`",
+          "title": "XI_FETCH_TIMEOUT"
+        },
+        "user_agent": {
+          "default": "",
+          "description": "Env: XI_FETCH_USER_AGENT",
+          "markdownDescription": "Env: `XI_FETCH_USER_AGENT`",
+          "title": "XI_FETCH_USER_AGENT",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "formats": {
+      "additionalProperties": false,
+      "properties": {
+        "auto": {
+          "additionalProperties": false,
+          "properties": {
+            "avif": {
+              "default": true,
+              "description": "Accept negotiation\n\nEnv: XI_FORMATS_AUTO_AVIF",
+              "markdownDescription": "Accept negotiation\n\nEnv: `XI_FORMATS_AUTO_AVIF`",
+              "title": "XI_FORMATS_AUTO_AVIF",
+              "type": "boolean"
+            },
+            "jxl": {
+              "default": false,
+              "description": "Accept negotiation\n\nEnv: XI_FORMATS_AUTO_JXL",
+              "markdownDescription": "Accept negotiation\n\nEnv: `XI_FORMATS_AUTO_JXL`",
+              "title": "XI_FORMATS_AUTO_JXL",
+              "type": "boolean"
+            },
+            "webp": {
+              "default": true,
+              "description": "Accept negotiation\n\nEnv: XI_FORMATS_AUTO_WEBP",
+              "markdownDescription": "Accept negotiation\n\nEnv: `XI_FORMATS_AUTO_WEBP`",
+              "title": "XI_FORMATS_AUTO_WEBP",
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
+        "autoquality": {
+          "additionalProperties": false,
+          "properties": {
+            "allowed_error": {
+              "default": 0.001,
+              "description": "Target: DSSIM (dssim) or bytes (size, must then be ≥ 1); quality range searched; how far from the DSSIM target a save may land and stop the search (0–1)\n\nEnv: XI_FORMATS_AUTOQUALITY_ALLOWED_ERROR",
+              "markdownDescription": "Target: DSSIM (`dssim`) or bytes (`size`, must then be ≥ 1); quality range searched; how far from the DSSIM target a save may land and stop the search (0–1)\n\nEnv: `XI_FORMATS_AUTOQUALITY_ALLOWED_ERROR`",
+              "title": "XI_FORMATS_AUTOQUALITY_ALLOWED_ERROR",
+              "type": "number"
+            },
+            "format_max": {
+              "additionalProperties": false,
+              "default": {
+                "avif": 80,
+                "jpeg": 90,
+                "webp": 90
+              },
+              "description": "Per-format maximum quality (IMGPROXY_AUTOQUALITY_FORMAT_MAX); as above\n\nEnv: XI_FORMATS_AUTOQUALITY_FORMAT_MAX",
+              "markdownDescription": "Per-format maximum quality (`IMGPROXY_AUTOQUALITY_FORMAT_MAX`); as above\n\nEnv: `XI_FORMATS_AUTOQUALITY_FORMAT_MAX`",
+              "properties": {
+                "avif": {
+                  "type": "integer"
+                },
+                "heic": {
+                  "type": "integer"
+                },
+                "jpeg": {
+                  "type": "integer"
+                },
+                "jpg": {
+                  "type": "integer"
+                },
+                "jxl": {
+                  "type": "integer"
+                },
+                "webp": {
+                  "type": "integer"
+                }
+              },
+              "title": "XI_FORMATS_AUTOQUALITY_FORMAT_MAX",
+              "type": "object"
+            },
+            "format_min": {
+              "additionalProperties": false,
+              "default": {
+                "avif": 30,
+                "jpeg": 40,
+                "webp": 40
+              },
+              "description": "Per-format minimum quality (imgproxy IMGPROXY_AUTOQUALITY_FORMAT_MIN); formats not listed use _MIN. Setting the variable replaces the whole default map\n\nEnv: XI_FORMATS_AUTOQUALITY_FORMAT_MIN",
+              "markdownDescription": "Per-format minimum quality (imgproxy `IMGPROXY_AUTOQUALITY_FORMAT_MIN`); formats not listed use `_MIN`. Setting the variable replaces the whole default map\n\nEnv: `XI_FORMATS_AUTOQUALITY_FORMAT_MIN`",
+              "properties": {
+                "avif": {
+                  "type": "integer"
+                },
+                "heic": {
+                  "type": "integer"
+                },
+                "jpeg": {
+                  "type": "integer"
+                },
+                "jpg": {
+                  "type": "integer"
+                },
+                "jxl": {
+                  "type": "integer"
+                },
+                "webp": {
+                  "type": "integer"
+                }
+              },
+              "title": "XI_FORMATS_AUTOQUALITY_FORMAT_MIN",
+              "type": "object"
+            },
+            "format_target": {
+              "additionalProperties": false,
+              "description": "Per-format target, e.g. avif=0.015; formats not listed use _TARGET\n\nEnv: XI_FORMATS_AUTOQUALITY_FORMAT_TARGET",
+              "markdownDescription": "Per-format target, e.g. `avif=0.015`; formats not listed use `_TARGET`\n\nEnv: `XI_FORMATS_AUTOQUALITY_FORMAT_TARGET`",
+              "properties": {
+                "avif": {
+                  "type": "number"
+                },
+                "heic": {
+                  "type": "number"
+                },
+                "jpeg": {
+                  "type": "number"
+                },
+                "jpg": {
+                  "type": "number"
+                },
+                "jxl": {
+                  "type": "number"
+                },
+                "webp": {
+                  "type": "number"
+                }
+              },
+              "title": "XI_FORMATS_AUTOQUALITY_FORMAT_TARGET",
+              "type": "object"
+            },
+            "max": {
+              "default": 85,
+              "description": "Target: DSSIM (dssim) or bytes (size, must then be ≥ 1); quality range searched; how far from the DSSIM target a save may land and stop the search (0–1)\n\nEnv: XI_FORMATS_AUTOQUALITY_MAX",
+              "markdownDescription": "Target: DSSIM (`dssim`) or bytes (`size`, must then be ≥ 1); quality range searched; how far from the DSSIM target a save may land and stop the search (0–1)\n\nEnv: `XI_FORMATS_AUTOQUALITY_MAX`",
+              "title": "XI_FORMATS_AUTOQUALITY_MAX",
+              "type": "integer"
+            },
+            "method": {
+              "default": "none",
+              "description": "none | size | dssim (imgproxy IMGPROXY_AUTOQUALITY_METHOD; ml is not implemented). A request's autoquality option overrides it; with the method from config, an explicit request quality wins. See FORMATS.md §6.4\n\nEnv: XI_FORMATS_AUTOQUALITY_METHOD",
+              "enum": [
+                "none",
+                "size",
+                "dssim"
+              ],
+              "markdownDescription": "`none` | `size` | `dssim` (imgproxy `IMGPROXY_AUTOQUALITY_METHOD`; `ml` is not implemented). A request's `autoquality` option overrides it; with the method from config, an explicit request quality wins. See FORMATS.md §6.4\n\nEnv: `XI_FORMATS_AUTOQUALITY_METHOD`",
+              "title": "XI_FORMATS_AUTOQUALITY_METHOD",
+              "type": "string"
+            },
+            "min": {
+              "default": 60,
+              "description": "Target: DSSIM (dssim) or bytes (size, must then be ≥ 1); quality range searched; how far from the DSSIM target a save may land and stop the search (0–1)\n\nEnv: XI_FORMATS_AUTOQUALITY_MIN",
+              "markdownDescription": "Target: DSSIM (`dssim`) or bytes (`size`, must then be ≥ 1); quality range searched; how far from the DSSIM target a save may land and stop the search (0–1)\n\nEnv: `XI_FORMATS_AUTOQUALITY_MIN`",
+              "title": "XI_FORMATS_AUTOQUALITY_MIN",
+              "type": "integer"
+            },
+            "target": {
+              "default": 0.02,
+              "description": "Target: DSSIM (dssim) or bytes (size, must then be ≥ 1); quality range searched; how far from the DSSIM target a save may land and stop the search (0–1)\n\nEnv: XI_FORMATS_AUTOQUALITY_TARGET",
+              "markdownDescription": "Target: DSSIM (`dssim`) or bytes (`size`, must then be ≥ 1); quality range searched; how far from the DSSIM target a save may land and stop the search (0–1)\n\nEnv: `XI_FORMATS_AUTOQUALITY_TARGET`",
+              "title": "XI_FORMATS_AUTOQUALITY_TARGET",
+              "type": "number"
+            }
+          },
+          "type": "object"
+        },
+        "avif": {
+          "additionalProperties": false,
+          "properties": {
+            "effort": {
+              "description": "<FMT>: WEBP (0–6), AVIF (0–9), JXL (1–10), GIF (1–10); see FORMATS.md\n\nDefault: webp 4, avif 4, jxl 5, gif 7\n\nEnv: XI_FORMATS_AVIF_EFFORT",
+              "markdownDescription": "`<FMT>`: `WEBP` (0–6), `AVIF` (0–9), `JXL` (1–10), `GIF` (1–10); see FORMATS.md\n\nDefault: webp 4, avif 4, jxl 5, gif 7\n\nEnv: `XI_FORMATS_AVIF_EFFORT`",
+              "title": "XI_FORMATS_AVIF_EFFORT",
+              "type": "integer"
+            },
+            "max_pixels": {
+              "default": 16000000,
+              "description": "Env: XI_FORMATS_AVIF_MAX_PIXELS",
+              "markdownDescription": "Env: `XI_FORMATS_AVIF_MAX_PIXELS`",
+              "title": "XI_FORMATS_AVIF_MAX_PIXELS",
+              "type": "integer"
+            },
+            "quality": {
+              "description": "<FMT>: JPEG, WEBP, AVIF, HEIC, JXL; other formats use XI_FORMATS_QUALITY\n\nDefault: avif 60, heic 60, jxl 75, webp 80, jpeg 80\n\nEnv: XI_FORMATS_AVIF_QUALITY",
+              "markdownDescription": "`<FMT>`: `JPEG`, `WEBP`, `AVIF`, `HEIC`, `JXL`; other formats use `XI_FORMATS_QUALITY`\n\nDefault: avif 60, heic 60, jxl 75, webp 80, jpeg 80\n\nEnv: `XI_FORMATS_AVIF_QUALITY`",
+              "title": "XI_FORMATS_AVIF_QUALITY",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "best": {
+          "additionalProperties": false,
+          "properties": {
+            "complexity_threshold": {
+              "default": 5.5,
+              "description": "Content score below which best tries lossless formats only, above which lossy only; within ±0.75 of it both. 0 skips the analysis (every image is tried as a photo). Photos score ≈ 7–8, flat graphics and text ≈ 1–4.5 (FORMATS.md §6.3)\n\nEnv: XI_FORMATS_BEST_COMPLEXITY_THRESHOLD",
+              "markdownDescription": "Content score below which `best` tries lossless formats only, above which lossy only; within ±0.75 of it both. `0` skips the analysis (every image is tried as a photo). Photos score ≈ 7–8, flat graphics and text ≈ 1–4.5 (FORMATS.md §6.3)\n\nEnv: `XI_FORMATS_BEST_COMPLEXITY_THRESHOLD`",
+              "title": "XI_FORMATS_BEST_COMPLEXITY_THRESHOLD",
+              "type": "number"
+            },
+            "max_pixels": {
+              "default": 8000000,
+              "description": "format=best (imgproxy f:best, query f=best) is skipped above this many output pixels (all frames): the negotiated format is encoded once instead (FORMATS.md §6.3)\n\nEnv: XI_FORMATS_BEST_MAX_PIXELS",
+              "markdownDescription": "`format=best` (imgproxy `f:best`, query `f=best`) is skipped above this many output pixels (all frames): the negotiated format is encoded once instead (FORMATS.md §6.3)\n\nEnv: `XI_FORMATS_BEST_MAX_PIXELS`",
+              "title": "XI_FORMATS_BEST_MAX_PIXELS",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "enforce": {
+          "additionalProperties": false,
+          "properties": {
+            "avif": {
+              "default": false,
+              "description": "Env: XI_FORMATS_ENFORCE_AVIF",
+              "markdownDescription": "Env: `XI_FORMATS_ENFORCE_AVIF`",
+              "title": "XI_FORMATS_ENFORCE_AVIF",
+              "type": "boolean"
+            },
+            "jxl": {
+              "default": false,
+              "description": "Env: XI_FORMATS_ENFORCE_JXL",
+              "markdownDescription": "Env: `XI_FORMATS_ENFORCE_JXL`",
+              "title": "XI_FORMATS_ENFORCE_JXL",
+              "type": "boolean"
+            },
+            "webp": {
+              "default": false,
+              "description": "Env: XI_FORMATS_ENFORCE_WEBP",
+              "markdownDescription": "Env: `XI_FORMATS_ENFORCE_WEBP`",
+              "title": "XI_FORMATS_ENFORCE_WEBP",
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
+        "gif": {
+          "additionalProperties": false,
+          "properties": {
+            "effort": {
+              "description": "<FMT>: WEBP (0–6), AVIF (0–9), JXL (1–10), GIF (1–10); see FORMATS.md\n\nDefault: webp 4, avif 4, jxl 5, gif 7\n\nEnv: XI_FORMATS_GIF_EFFORT",
+              "markdownDescription": "`<FMT>`: `WEBP` (0–6), `AVIF` (0–9), `JXL` (1–10), `GIF` (1–10); see FORMATS.md\n\nDefault: webp 4, avif 4, jxl 5, gif 7\n\nEnv: `XI_FORMATS_GIF_EFFORT`",
+              "title": "XI_FORMATS_GIF_EFFORT",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "hdr": {
+          "additionalProperties": false,
+          "properties": {
+            "tonemap": {
+              "default": "reinhard",
+              "description": "Operator mapping OpenEXR, Radiance and PFM sources to 8-bit sRGB: reinhard (extended Reinhard, white at the 99th-percentile luminance; identity for sources within [0, 1]), aces (Narkowicz's fitted ACES filmic curve) or clip. Skipped with preserve_hdr for JPEG XL (float) and AVIF (12-bit) outputs; FORMATS.md §1.4\n\nEnv: XI_FORMATS_HDR_TONEMAP",
+              "enum": [
+                "reinhard",
+                "aces",
+                "clip"
+              ],
+              "markdownDescription": "Operator mapping OpenEXR, Radiance and PFM sources to 8-bit sRGB: `reinhard` (extended Reinhard, white at the 99th-percentile luminance; identity for sources within [0, 1]), `aces` (Narkowicz's fitted ACES filmic curve) or `clip`. Skipped with `preserve_hdr` for JPEG XL (float) and AVIF (12-bit) outputs; FORMATS.md §1.4\n\nEnv: `XI_FORMATS_HDR_TONEMAP`",
+              "title": "XI_FORMATS_HDR_TONEMAP",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "heic": {
+          "additionalProperties": false,
+          "properties": {
+            "encode": {
+              "default": false,
+              "description": "HEIC output (HEVC patents; decode is always on)\n\nEnv: XI_FORMATS_HEIC_ENCODE",
+              "markdownDescription": "HEIC output (HEVC patents; decode is always on)\n\nEnv: `XI_FORMATS_HEIC_ENCODE`",
+              "title": "XI_FORMATS_HEIC_ENCODE",
+              "type": "boolean"
+            },
+            "quality": {
+              "description": "<FMT>: JPEG, WEBP, AVIF, HEIC, JXL; other formats use XI_FORMATS_QUALITY\n\nDefault: avif 60, heic 60, jxl 75, webp 80, jpeg 80\n\nEnv: XI_FORMATS_HEIC_QUALITY",
+              "markdownDescription": "`<FMT>`: `JPEG`, `WEBP`, `AVIF`, `HEIC`, `JXL`; other formats use `XI_FORMATS_QUALITY`\n\nDefault: avif 60, heic 60, jxl 75, webp 80, jpeg 80\n\nEnv: `XI_FORMATS_HEIC_QUALITY`",
+              "title": "XI_FORMATS_HEIC_QUALITY",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "jpeg": {
+          "additionalProperties": false,
+          "properties": {
+            "progressive": {
+              "default": true,
+              "description": "Env: XI_FORMATS_JPEG_PROGRESSIVE",
+              "markdownDescription": "Env: `XI_FORMATS_JPEG_PROGRESSIVE`",
+              "title": "XI_FORMATS_JPEG_PROGRESSIVE",
+              "type": "boolean"
+            },
+            "quality": {
+              "description": "<FMT>: JPEG, WEBP, AVIF, HEIC, JXL; other formats use XI_FORMATS_QUALITY\n\nDefault: avif 60, heic 60, jxl 75, webp 80, jpeg 80\n\nEnv: XI_FORMATS_JPEG_QUALITY",
+              "markdownDescription": "`<FMT>`: `JPEG`, `WEBP`, `AVIF`, `HEIC`, `JXL`; other formats use `XI_FORMATS_QUALITY`\n\nDefault: avif 60, heic 60, jxl 75, webp 80, jpeg 80\n\nEnv: `XI_FORMATS_JPEG_QUALITY`",
+              "title": "XI_FORMATS_JPEG_QUALITY",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "jxl": {
+          "additionalProperties": false,
+          "properties": {
+            "effort": {
+              "description": "<FMT>: WEBP (0–6), AVIF (0–9), JXL (1–10), GIF (1–10); see FORMATS.md\n\nDefault: webp 4, avif 4, jxl 5, gif 7\n\nEnv: XI_FORMATS_JXL_EFFORT",
+              "markdownDescription": "`<FMT>`: `WEBP` (0–6), `AVIF` (0–9), `JXL` (1–10), `GIF` (1–10); see FORMATS.md\n\nDefault: webp 4, avif 4, jxl 5, gif 7\n\nEnv: `XI_FORMATS_JXL_EFFORT`",
+              "title": "XI_FORMATS_JXL_EFFORT",
+              "type": "integer"
+            },
+            "quality": {
+              "description": "<FMT>: JPEG, WEBP, AVIF, HEIC, JXL; other formats use XI_FORMATS_QUALITY\n\nDefault: avif 60, heic 60, jxl 75, webp 80, jpeg 80\n\nEnv: XI_FORMATS_JXL_QUALITY",
+              "markdownDescription": "`<FMT>`: `JPEG`, `WEBP`, `AVIF`, `HEIC`, `JXL`; other formats use `XI_FORMATS_QUALITY`\n\nDefault: avif 60, heic 60, jxl 75, webp 80, jpeg 80\n\nEnv: `XI_FORMATS_JXL_QUALITY`",
+              "title": "XI_FORMATS_JXL_QUALITY",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "pdf": {
+          "additionalProperties": false,
+          "properties": {
+            "dpi": {
+              "default": 72,
+              "description": "Resolution of a PDF page's natural size (1–1200; 72 = one pixel per point). Resized pages render directly at the target size\n\nEnv: XI_FORMATS_PDF_DPI",
+              "markdownDescription": "Resolution of a PDF page's natural size (1–1200; 72 = one pixel per point). Resized pages render directly at the target size\n\nEnv: `XI_FORMATS_PDF_DPI`",
+              "title": "XI_FORMATS_PDF_DPI",
+              "type": "number"
+            }
+          },
+          "type": "object"
+        },
+        "png": {
+          "additionalProperties": false,
+          "properties": {
+            "quantize": {
+              "default": false,
+              "description": "Env: XI_FORMATS_PNG_QUANTIZE",
+              "markdownDescription": "Env: `XI_FORMATS_PNG_QUANTIZE`",
+              "title": "XI_FORMATS_PNG_QUANTIZE",
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
+        "preferred": {
+          "default": [
+            "jpeg",
+            "png",
+            "gif"
+          ],
+          "description": "Fallback order for unencodable sources\n\nEnv: XI_FORMATS_PREFERRED",
+          "items": {
+            "enum": [
+              "jpeg",
+              "png",
+              "gif",
+              "webp",
+              "avif",
+              "heic",
+              "jxl",
+              "tiff",
+              "bmp",
+              "ico",
+              "svg",
+              "jpg"
+            ],
+            "type": "string"
+          },
+          "markdownDescription": "Fallback order for unencodable sources\n\nEnv: `XI_FORMATS_PREFERRED`",
+          "title": "XI_FORMATS_PREFERRED",
+          "type": "array"
+        },
+        "psd": {
+          "additionalProperties": false,
+          "properties": {
+            "require_composite": {
+              "default": false,
+              "description": "Refuse (422) PSD/PSB files saved without a merged composite (\"Maximize compatibility\" off) instead of letting ImageMagick flatten the layers\n\nEnv: XI_FORMATS_PSD_REQUIRE_COMPOSITE",
+              "markdownDescription": "Refuse (422) PSD/PSB files saved without a merged composite (\"Maximize compatibility\" off) instead of letting ImageMagick flatten the layers\n\nEnv: `XI_FORMATS_PSD_REQUIRE_COMPOSITE`",
+              "title": "XI_FORMATS_PSD_REQUIRE_COMPOSITE",
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
+        "quality": {
+          "default": 80,
+          "description": "Global default\n\nEnv: XI_FORMATS_QUALITY",
+          "markdownDescription": "Global default\n\nEnv: `XI_FORMATS_QUALITY`",
+          "title": "XI_FORMATS_QUALITY",
+          "type": "integer"
+        },
+        "raw": {
+          "additionalProperties": false,
+          "properties": {
+            "preview_min_ratio": {
+              "default": 1,
+              "description": "Camera RAW: decode the embedded JPEG preview instead of demosaicing when it is at least this many times the size the image is scaled to, on both axes (FORMATS.md §2); 0 < ratio ≤ 100\n\nEnv: XI_FORMATS_RAW_PREVIEW_MIN_RATIO",
+              "markdownDescription": "Camera RAW: decode the embedded JPEG preview instead of demosaicing when it is at least this many times the size the image is scaled to, on both axes (FORMATS.md §2); `0 < ratio ≤ 100`\n\nEnv: `XI_FORMATS_RAW_PREVIEW_MIN_RATIO`",
+              "title": "XI_FORMATS_RAW_PREVIEW_MIN_RATIO",
+              "type": "number"
+            }
+          },
+          "type": "object"
+        },
+        "save_data_quality_delta": {
+          "default": -15,
+          "description": "Env: XI_FORMATS_SAVE_DATA_QUALITY_DELTA",
+          "markdownDescription": "Env: `XI_FORMATS_SAVE_DATA_QUALITY_DELTA`",
+          "title": "XI_FORMATS_SAVE_DATA_QUALITY_DELTA",
+          "type": "integer"
+        },
+        "skip_processing": {
+          "description": "Source formats streamed unmodified (imgproxy IMGPROXY_SKIP_PROCESSING_FORMATS)\n\nEnv: XI_FORMATS_SKIP_PROCESSING",
+          "items": {
+            "enum": [
+              "jpeg",
+              "png",
+              "gif",
+              "webp",
+              "avif",
+              "heic",
+              "jxl",
+              "tiff",
+              "bmp",
+              "ico",
+              "svg",
+              "jpg"
+            ],
+            "type": "string"
+          },
+          "markdownDescription": "Source formats streamed unmodified (imgproxy `IMGPROXY_SKIP_PROCESSING_FORMATS`)\n\nEnv: `XI_FORMATS_SKIP_PROCESSING`",
+          "title": "XI_FORMATS_SKIP_PROCESSING",
+          "type": "array"
+        },
+        "strict_accept": {
+          "default": false,
+          "description": "406 when nothing acceptable\n\nEnv: XI_FORMATS_STRICT_ACCEPT",
+          "markdownDescription": "406 when nothing acceptable\n\nEnv: `XI_FORMATS_STRICT_ACCEPT`",
+          "title": "XI_FORMATS_STRICT_ACCEPT",
+          "type": "boolean"
+        },
+        "svg_passthrough": {
+          "default": true,
+          "description": "Env: XI_FORMATS_SVG_PASSTHROUGH",
+          "markdownDescription": "Env: `XI_FORMATS_SVG_PASSTHROUGH`",
+          "title": "XI_FORMATS_SVG_PASSTHROUGH",
+          "type": "boolean"
+        },
+        "webp": {
+          "additionalProperties": false,
+          "properties": {
+            "effort": {
+              "description": "<FMT>: WEBP (0–6), AVIF (0–9), JXL (1–10), GIF (1–10); see FORMATS.md\n\nDefault: webp 4, avif 4, jxl 5, gif 7\n\nEnv: XI_FORMATS_WEBP_EFFORT",
+              "markdownDescription": "`<FMT>`: `WEBP` (0–6), `AVIF` (0–9), `JXL` (1–10), `GIF` (1–10); see FORMATS.md\n\nDefault: webp 4, avif 4, jxl 5, gif 7\n\nEnv: `XI_FORMATS_WEBP_EFFORT`",
+              "title": "XI_FORMATS_WEBP_EFFORT",
+              "type": "integer"
+            },
+            "quality": {
+              "description": "<FMT>: JPEG, WEBP, AVIF, HEIC, JXL; other formats use XI_FORMATS_QUALITY\n\nDefault: avif 60, heic 60, jxl 75, webp 80, jpeg 80\n\nEnv: XI_FORMATS_WEBP_QUALITY",
+              "markdownDescription": "`<FMT>`: `JPEG`, `WEBP`, `AVIF`, `HEIC`, `JXL`; other formats use `XI_FORMATS_QUALITY`\n\nDefault: avif 60, heic 60, jxl 75, webp 80, jpeg 80\n\nEnv: `XI_FORMATS_WEBP_QUALITY`",
+              "title": "XI_FORMATS_WEBP_QUALITY",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "limits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_animation_frame_pixels": {
+          "default": 16000000,
+          "description": "Env: XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS",
+          "markdownDescription": "Env: `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS`",
+          "title": "XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS",
+          "type": "integer"
+        },
+        "max_animation_frames": {
+          "default": 256,
+          "description": "Env: XI_LIMITS_MAX_ANIMATION_FRAMES",
+          "markdownDescription": "Env: `XI_LIMITS_MAX_ANIMATION_FRAMES`",
+          "title": "XI_LIMITS_MAX_ANIMATION_FRAMES",
+          "type": "integer"
+        },
+        "max_pdf_pages": {
+          "default": 500,
+          "description": "Pages a PDF may have; checked when the header is read, before any page renders (422)\n\nEnv: XI_LIMITS_MAX_PDF_PAGES",
+          "markdownDescription": "Pages a PDF may have; checked when the header is read, before any page renders (422)\n\nEnv: `XI_LIMITS_MAX_PDF_PAGES`",
+          "title": "XI_LIMITS_MAX_PDF_PAGES",
+          "type": "integer"
+        },
+        "max_raw_demosaic_pixels": {
+          "default": 60000000,
+          "description": "Sensor width × height a camera RAW may be demosaiced at; the embedded-preview path is not affected\n\nEnv: XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS",
+          "markdownDescription": "Sensor width × height a camera RAW may be demosaiced at; the embedded-preview path is not affected\n\nEnv: `XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS`",
+          "title": "XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS",
+          "type": "integer"
+        },
+        "max_result_dimension": {
+          "default": 8192,
+          "description": "Env: XI_LIMITS_MAX_RESULT_DIMENSION",
+          "markdownDescription": "Env: `XI_LIMITS_MAX_RESULT_DIMENSION`",
+          "title": "XI_LIMITS_MAX_RESULT_DIMENSION",
+          "type": "integer"
+        },
+        "max_src_bytes": {
+          "$ref": "#/$defs/byteSize",
+          "default": "50MiB",
+          "description": "Env: XI_LIMITS_MAX_SRC_BYTES",
+          "markdownDescription": "Env: `XI_LIMITS_MAX_SRC_BYTES`",
+          "title": "XI_LIMITS_MAX_SRC_BYTES"
+        },
+        "max_src_pixels": {
+          "default": 50000000,
+          "description": "Env: XI_LIMITS_MAX_SRC_PIXELS",
+          "markdownDescription": "Env: `XI_LIMITS_MAX_SRC_PIXELS`",
+          "title": "XI_LIMITS_MAX_SRC_PIXELS",
+          "type": "integer"
+        },
+        "max_svg_bytes": {
+          "$ref": "#/$defs/byteSize",
+          "default": "5MiB",
+          "description": "Env: XI_LIMITS_MAX_SVG_BYTES",
+          "markdownDescription": "Env: `XI_LIMITS_MAX_SVG_BYTES`",
+          "title": "XI_LIMITS_MAX_SVG_BYTES"
+        },
+        "max_svg_depth": {
+          "default": 256,
+          "description": "SVG sanitiser nesting limit\n\nEnv: XI_LIMITS_MAX_SVG_DEPTH",
+          "markdownDescription": "SVG sanitiser nesting limit\n\nEnv: `XI_LIMITS_MAX_SVG_DEPTH`",
+          "title": "XI_LIMITS_MAX_SVG_DEPTH",
+          "type": "integer"
+        },
+        "max_svg_elements": {
+          "default": 200000,
+          "description": "SVG sanitiser element limit\n\nEnv: XI_LIMITS_MAX_SVG_ELEMENTS",
+          "markdownDescription": "SVG sanitiser element limit\n\nEnv: `XI_LIMITS_MAX_SVG_ELEMENTS`",
+          "title": "XI_LIMITS_MAX_SVG_ELEMENTS",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "observability": {
+      "additionalProperties": false,
+      "properties": {
+        "debug_headers": {
+          "default": false,
+          "description": "X-Xi-Ignored, X-Xi-Origin-Content-Length, X-Xi-Origin-Width/-Height, X-Xi-Result-Width/-Height (ARCHITECTURE §9.1)\n\nEnv: XI_OBSERVABILITY_DEBUG_HEADERS",
+          "markdownDescription": "`X-Xi-Ignored`, `X-Xi-Origin-Content-Length`, `X-Xi-Origin-Width/-Height`, `X-Xi-Result-Width/-Height` (ARCHITECTURE §9.1)\n\nEnv: `XI_OBSERVABILITY_DEBUG_HEADERS`",
+          "title": "XI_OBSERVABILITY_DEBUG_HEADERS",
+          "type": "boolean"
+        },
+        "log_level": {
+          "default": "info",
+          "description": "Env: XI_OBSERVABILITY_LOG_LEVEL",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "markdownDescription": "Env: `XI_OBSERVABILITY_LOG_LEVEL`",
+          "title": "XI_OBSERVABILITY_LOG_LEVEL",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "otel": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": false,
+          "description": "Force tracing on without an endpoint variable (exporter still chosen by OTEL_TRACES_EXPORTER, e.g. console)\n\nEnv: XI_OTEL_ENABLED",
+          "markdownDescription": "Force tracing on without an endpoint variable (exporter still chosen by `OTEL_TRACES_EXPORTER`, e.g. `console`)\n\nEnv: `XI_OTEL_ENABLED`",
+          "title": "XI_OTEL_ENABLED",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "presets": {
+      "additionalProperties": false,
+      "description": "name=opts,name2=opts (imgproxy syntax); YAML presets: {name: opts}\n\nEnv: XI_PRESETS",
+      "markdownDescription": "`name=opts,name2=opts` (imgproxy syntax); YAML `presets: {name: opts}`\n\nEnv: `XI_PRESETS`",
+      "patternProperties": {
+        "^[^:/]+$": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "title": "XI_PRESETS",
+      "type": "object"
+    },
+    "presets_file": {
+      "default": "",
+      "description": "One name=options per line; blank lines and # comments skipped; a name also in XI_PRESETS is an error\n\nEnv: XI_PRESETS_FILE",
+      "markdownDescription": "One `name=options` per line; blank lines and `#` comments skipped; a name also in `XI_PRESETS` is an error\n\nEnv: `XI_PRESETS_FILE`",
+      "title": "XI_PRESETS_FILE",
+      "type": "string"
+    },
+    "presets_only": {
+      "default": false,
+      "description": "Only preset URLs allowed\n\nEnv: XI_PRESETS_ONLY",
+      "markdownDescription": "Only preset URLs allowed\n\nEnv: `XI_PRESETS_ONLY`",
+      "title": "XI_PRESETS_ONLY",
+      "type": "boolean"
+    },
+    "processing": {
+      "additionalProperties": false,
+      "properties": {
+        "auto_rotate": {
+          "default": true,
+          "description": "Env: XI_PROCESSING_AUTO_ROTATE",
+          "markdownDescription": "Env: `XI_PROCESSING_AUTO_ROTATE`",
+          "title": "XI_PROCESSING_AUTO_ROTATE",
+          "type": "boolean"
+        },
+        "color_profiles_dir": {
+          "default": "",
+          "description": "Custom ICC files\n\nEnv: XI_PROCESSING_COLOR_PROFILES_DIR",
+          "markdownDescription": "Custom ICC files\n\nEnv: `XI_PROCESSING_COLOR_PROFILES_DIR`",
+          "title": "XI_PROCESSING_COLOR_PROFILES_DIR",
+          "type": "string"
+        },
+        "go_memory_fraction": {
+          "default": 0.3,
+          "description": "GOMEMLIMIT as fraction of cgroup memory.max\n\nEnv: XI_PROCESSING_GO_MEMORY_FRACTION",
+          "markdownDescription": "`GOMEMLIMIT` as fraction of cgroup `memory.max`\n\nEnv: `XI_PROCESSING_GO_MEMORY_FRACTION`",
+          "title": "XI_PROCESSING_GO_MEMORY_FRACTION",
+          "type": "number"
+        },
+        "keep_copyright": {
+          "default": true,
+          "description": "Env: XI_PROCESSING_KEEP_COPYRIGHT",
+          "markdownDescription": "Env: `XI_PROCESSING_KEEP_COPYRIGHT`",
+          "title": "XI_PROCESSING_KEEP_COPYRIGHT",
+          "type": "boolean"
+        },
+        "linear_resize": {
+          "default": false,
+          "description": "Resize in linear light\n\nEnv: XI_PROCESSING_LINEAR_RESIZE",
+          "markdownDescription": "Resize in linear light\n\nEnv: `XI_PROCESSING_LINEAR_RESIZE`",
+          "title": "XI_PROCESSING_LINEAR_RESIZE",
+          "type": "boolean"
+        },
+        "memory_budget": {
+          "$ref": "#/$defs/byteSize",
+          "default": "0",
+          "description": "Optional weighted admission budget in bytes\n\nEnv: XI_PROCESSING_MEMORY_BUDGET",
+          "markdownDescription": "Optional weighted admission budget in bytes\n\nEnv: `XI_PROCESSING_MEMORY_BUDGET`",
+          "title": "XI_PROCESSING_MEMORY_BUDGET"
+        },
+        "preserve_hdr": {
+          "default": false,
+          "description": "Env: XI_PROCESSING_PRESERVE_HDR",
+          "markdownDescription": "Env: `XI_PROCESSING_PRESERVE_HDR`",
+          "title": "XI_PROCESSING_PRESERVE_HDR",
+          "type": "boolean"
+        },
+        "queue_size": {
+          "default": -1,
+          "description": "Waiting jobs; beyond it requests fail fast with 429 (-1 = workers×16, 0 = no queue)\n\nEnv: XI_PROCESSING_QUEUE_SIZE",
+          "markdownDescription": "Waiting jobs; beyond it requests fail fast with 429 (`-1` = workers×16, `0` = no queue)\n\nEnv: `XI_PROCESSING_QUEUE_SIZE`",
+          "title": "XI_PROCESSING_QUEUE_SIZE",
+          "type": "integer"
+        },
+        "queue_timeout": {
+          "$ref": "#/$defs/duration",
+          "default": "5s",
+          "description": "Max wait for a worker, then 503\n\nEnv: XI_PROCESSING_QUEUE_TIMEOUT",
+          "markdownDescription": "Max wait for a worker, then 503\n\nEnv: `XI_PROCESSING_QUEUE_TIMEOUT`",
+          "title": "XI_PROCESSING_QUEUE_TIMEOUT"
+        },
+        "strip_color_profile": {
+          "default": true,
+          "description": "Env: XI_PROCESSING_STRIP_COLOR_PROFILE",
+          "markdownDescription": "Env: `XI_PROCESSING_STRIP_COLOR_PROFILE`",
+          "title": "XI_PROCESSING_STRIP_COLOR_PROFILE",
+          "type": "boolean"
+        },
+        "strip_metadata": {
+          "default": true,
+          "description": "Env: XI_PROCESSING_STRIP_METADATA",
+          "markdownDescription": "Env: `XI_PROCESSING_STRIP_METADATA`",
+          "title": "XI_PROCESSING_STRIP_METADATA",
+          "type": "boolean"
+        },
+        "watermark_opacity": {
+          "default": 1,
+          "description": "Multiplies every request's watermark opacity\n\nEnv: XI_PROCESSING_WATERMARK_OPACITY",
+          "markdownDescription": "Multiplies every request's watermark opacity\n\nEnv: `XI_PROCESSING_WATERMARK_OPACITY`",
+          "title": "XI_PROCESSING_WATERMARK_OPACITY",
+          "type": "number"
+        },
+        "watermark_source": {
+          "default": "",
+          "description": "Default watermark image (source string, resolved against the sources). Fetched and decoded once at startup, never refreshed; a watermark that cannot be loaded stops startup\n\nEnv: XI_PROCESSING_WATERMARK_SOURCE",
+          "markdownDescription": "Default watermark image (source string, resolved against the sources). Fetched and decoded once at startup, never refreshed; a watermark that cannot be loaded stops startup\n\nEnv: `XI_PROCESSING_WATERMARK_SOURCE`",
+          "title": "XI_PROCESSING_WATERMARK_SOURCE",
+          "type": "string"
+        },
+        "workers": {
+          "default": 0,
+          "description": "Concurrent processing jobs (0 = GOMAXPROCS)\n\nEnv: XI_PROCESSING_WORKERS",
+          "markdownDescription": "Concurrent processing jobs (`0` = GOMAXPROCS)\n\nEnv: `XI_PROCESSING_WORKERS`",
+          "title": "XI_PROCESSING_WORKERS",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "security": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_raising_limits": {
+          "default": false,
+          "description": "Let them exceed config\n\nEnv: XI_SECURITY_ALLOW_RAISING_LIMITS",
+          "markdownDescription": "Let them exceed config\n\nEnv: `XI_SECURITY_ALLOW_RAISING_LIMITS`",
+          "title": "XI_SECURITY_ALLOW_RAISING_LIMITS",
+          "type": "boolean"
+        },
+        "allow_security_options": {
+          "default": false,
+          "description": "Honour per-request limit options\n\nEnv: XI_SECURITY_ALLOW_SECURITY_OPTIONS",
+          "markdownDescription": "Honour per-request limit options\n\nEnv: `XI_SECURITY_ALLOW_SECURITY_OPTIONS`",
+          "title": "XI_SECURITY_ALLOW_SECURITY_OPTIONS",
+          "type": "boolean"
+        },
+        "allowed_dprs": {
+          "default": [
+            1
+          ],
+          "description": "Restricted-policy device pixel ratios (0 < dpr ≤ 8); unset and 1 are always allowed\n\nEnv: XI_SECURITY_ALLOWED_DPRS",
+          "items": {
+            "type": "number"
+          },
+          "markdownDescription": "Restricted-policy device pixel ratios (0 < dpr ≤ 8); unset and `1` are always allowed\n\nEnv: `XI_SECURITY_ALLOWED_DPRS`",
+          "title": "XI_SECURITY_ALLOWED_DPRS",
+          "type": "array"
+        },
+        "allowed_heights": {
+          "$ref": "#/$defs/intList",
+          "description": "Restricted-policy heights\n\nDefault: same as XI_SECURITY_ALLOWED_WIDTHS\n\nEnv: XI_SECURITY_ALLOWED_HEIGHTS",
+          "markdownDescription": "Restricted-policy heights\n\nDefault: same as `XI_SECURITY_ALLOWED_WIDTHS`\n\nEnv: `XI_SECURITY_ALLOWED_HEIGHTS`",
+          "title": "XI_SECURITY_ALLOWED_HEIGHTS"
+        },
+        "allowed_processing_options": {
+          "description": "imgproxy option allowlist\n\nEnv: XI_SECURITY_ALLOWED_PROCESSING_OPTIONS",
+          "items": {
+            "type": "string"
+          },
+          "markdownDescription": "imgproxy option allowlist\n\nEnv: `XI_SECURITY_ALLOWED_PROCESSING_OPTIONS`",
+          "title": "XI_SECURITY_ALLOWED_PROCESSING_OPTIONS",
+          "type": "array"
+        },
+        "allowed_qualities": {
+          "$ref": "#/$defs/intList",
+          "default": [
+            5,
+            10,
+            15,
+            20,
+            25,
+            30,
+            35,
+            40,
+            45,
+            50,
+            55,
+            60,
+            65,
+            70,
+            75,
+            80,
+            85,
+            90,
+            95,
+            100
+          ],
+          "description": "Restricted-policy qualities (5, 10, …, 100)\n\nEnv: XI_SECURITY_ALLOWED_QUALITIES",
+          "markdownDescription": "Restricted-policy qualities (5, 10, …, 100)\n\nEnv: `XI_SECURITY_ALLOWED_QUALITIES`",
+          "title": "XI_SECURITY_ALLOWED_QUALITIES"
+        },
+        "allowed_widths": {
+          "$ref": "#/$defs/intList",
+          "default": [
+            16,
+            32,
+            48,
+            64,
+            96,
+            128,
+            256,
+            384,
+            640,
+            750,
+            828,
+            1080,
+            1200,
+            1920,
+            2048,
+            3840
+          ],
+          "description": "Restricted-policy widths (Next.js device + image sizes); logged at startup\n\nEnv: XI_SECURITY_ALLOWED_WIDTHS",
+          "markdownDescription": "Restricted-policy widths (Next.js device + image sizes); logged at startup\n\nEnv: `XI_SECURITY_ALLOWED_WIDTHS`",
+          "title": "XI_SECURITY_ALLOWED_WIDTHS"
+        },
+        "secret": {
+          "$ref": "#/$defs/secret",
+          "description": "Require Authorization: Bearer <secret>\n\nEnv: XI_SECURITY_SECRET (or XI_SECURITY_SECRET_FILE)",
+          "markdownDescription": "Require `Authorization: Bearer <secret>`\n\nEnv: `XI_SECURITY_SECRET` (or `XI_SECURITY_SECRET_FILE`)",
+          "title": "XI_SECURITY_SECRET"
+        },
+        "unsigned_policy": {
+          "default": "restricted",
+          "description": "allow | restricted | deny for every request that carries no verified signature, in any dialect (including imgproxy URLs when XI_SIGNING_REQUIRED is false)\n\nEnv: XI_SECURITY_UNSIGNED_POLICY",
+          "enum": [
+            "allow",
+            "restricted",
+            "deny"
+          ],
+          "markdownDescription": "`allow` | `restricted` | `deny` for every request that carries no verified signature, in any dialect (including imgproxy URLs when `XI_SIGNING_REQUIRED` is false)\n\nEnv: `XI_SECURITY_UNSIGNED_POLICY`",
+          "title": "XI_SECURITY_UNSIGNED_POLICY",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "server": {
+      "additionalProperties": false,
+      "properties": {
+        "addr": {
+          "default": ":8080",
+          "description": "Listen address\n\nEnv: XI_SERVER_ADDR",
+          "markdownDescription": "Listen address\n\nEnv: `XI_SERVER_ADDR`",
+          "title": "XI_SERVER_ADDR",
+          "type": "string"
+        },
+        "cors_origins": {
+          "description": "Allowed CORS origins (* allowed)\n\nEnv: XI_SERVER_CORS_ORIGINS",
+          "items": {
+            "type": "string"
+          },
+          "markdownDescription": "Allowed CORS origins (`*` allowed)\n\nEnv: `XI_SERVER_CORS_ORIGINS`",
+          "title": "XI_SERVER_CORS_ORIGINS",
+          "type": "array"
+        },
+        "idle_timeout": {
+          "$ref": "#/$defs/duration",
+          "default": "1m30s",
+          "description": "Keep-alive idle\n\nEnv: XI_SERVER_IDLE_TIMEOUT",
+          "markdownDescription": "Keep-alive idle\n\nEnv: `XI_SERVER_IDLE_TIMEOUT`",
+          "title": "XI_SERVER_IDLE_TIMEOUT"
+        },
+        "max_connections": {
+          "default": 4096,
+          "description": "Accepted connections cap\n\nEnv: XI_SERVER_MAX_CONNECTIONS",
+          "markdownDescription": "Accepted connections cap\n\nEnv: `XI_SERVER_MAX_CONNECTIONS`",
+          "title": "XI_SERVER_MAX_CONNECTIONS",
+          "type": "integer"
+        },
+        "max_header_bytes": {
+          "$ref": "#/$defs/byteSize",
+          "default": "32KiB",
+          "description": "Env: XI_SERVER_MAX_HEADER_BYTES",
+          "markdownDescription": "Env: `XI_SERVER_MAX_HEADER_BYTES`",
+          "title": "XI_SERVER_MAX_HEADER_BYTES"
+        },
+        "path_prefix": {
+          "default": "",
+          "description": "Global prefix stripped before routing\n\nEnv: XI_SERVER_PATH_PREFIX",
+          "markdownDescription": "Global prefix stripped before routing\n\nEnv: `XI_SERVER_PATH_PREFIX`",
+          "title": "XI_SERVER_PATH_PREFIX",
+          "type": "string"
+        },
+        "read_header_timeout": {
+          "$ref": "#/$defs/duration",
+          "default": "5s",
+          "description": "Slowloris guard\n\nEnv: XI_SERVER_READ_HEADER_TIMEOUT",
+          "markdownDescription": "Slowloris guard\n\nEnv: `XI_SERVER_READ_HEADER_TIMEOUT`",
+          "title": "XI_SERVER_READ_HEADER_TIMEOUT"
+        },
+        "read_timeout": {
+          "$ref": "#/$defs/duration",
+          "default": "15s",
+          "description": "Env: XI_SERVER_READ_TIMEOUT",
+          "markdownDescription": "Env: `XI_SERVER_READ_TIMEOUT`",
+          "title": "XI_SERVER_READ_TIMEOUT"
+        },
+        "ready_queue_threshold": {
+          "default": 0,
+          "description": "/readyz 503 when queue fill % ≥ value\n\nEnv: XI_SERVER_READY_QUEUE_THRESHOLD",
+          "markdownDescription": "`/readyz` 503 when queue fill % ≥ value\n\nEnv: `XI_SERVER_READY_QUEUE_THRESHOLD`",
+          "title": "XI_SERVER_READY_QUEUE_THRESHOLD",
+          "type": "integer"
+        },
+        "request_timeout": {
+          "$ref": "#/$defs/duration",
+          "default": "20s",
+          "description": "Whole-request deadline\n\nEnv: XI_SERVER_REQUEST_TIMEOUT",
+          "markdownDescription": "Whole-request deadline\n\nEnv: `XI_SERVER_REQUEST_TIMEOUT`",
+          "title": "XI_SERVER_REQUEST_TIMEOUT"
+        },
+        "shutdown_delay": {
+          "$ref": "#/$defs/duration",
+          "default": "5s",
+          "description": "Readiness goes 503 this long before listener closes\n\nEnv: XI_SERVER_SHUTDOWN_DELAY",
+          "markdownDescription": "Readiness goes 503 this long before listener closes\n\nEnv: `XI_SERVER_SHUTDOWN_DELAY`",
+          "title": "XI_SERVER_SHUTDOWN_DELAY"
+        },
+        "shutdown_timeout": {
+          "$ref": "#/$defs/duration",
+          "default": "30s",
+          "description": "Drain limit\n\nEnv: XI_SERVER_SHUTDOWN_TIMEOUT",
+          "markdownDescription": "Drain limit\n\nEnv: `XI_SERVER_SHUTDOWN_TIMEOUT`",
+          "title": "XI_SERVER_SHUTDOWN_TIMEOUT"
+        },
+        "write_timeout": {
+          "$ref": "#/$defs/duration",
+          "description": "Default: request timeout + 5s\n\nEnv: XI_SERVER_WRITE_TIMEOUT",
+          "markdownDescription": "Default: request timeout + `5s`\n\nEnv: `XI_SERVER_WRITE_TIMEOUT`",
+          "title": "XI_SERVER_WRITE_TIMEOUT"
+        }
+      },
+      "type": "object"
+    },
+    "signing": {
+      "additionalProperties": false,
+      "properties": {
+        "keys": {
+          "description": "Hex key/salt pairs (same count); enables imgproxy-scheme and xi_sig verification\n\nEnv: XI_SIGNING_KEYS (or XI_SIGNING_KEYS_FILE)",
+          "items": {
+            "$ref": "#/$defs/hexKey"
+          },
+          "markdownDescription": "Hex key/salt pairs (same count); enables imgproxy-scheme and `xi_sig` verification\n\nEnv: `XI_SIGNING_KEYS` (or `XI_SIGNING_KEYS_FILE`)",
+          "title": "XI_SIGNING_KEYS",
+          "type": "array"
+        },
+        "required": {
+          "$ref": "#/$defs/tristate",
+          "default": "auto",
+          "description": "Reject unsigned imgproxy URLs\n\nEnv: XI_SIGNING_REQUIRED",
+          "markdownDescription": "Reject unsigned imgproxy URLs\n\nEnv: `XI_SIGNING_REQUIRED`",
+          "title": "XI_SIGNING_REQUIRED"
+        },
+        "salts": {
+          "description": "Hex key/salt pairs (same count); enables imgproxy-scheme and xi_sig verification\n\nEnv: XI_SIGNING_SALTS (or XI_SIGNING_SALTS_FILE)",
+          "items": {
+            "$ref": "#/$defs/hexKey"
+          },
+          "markdownDescription": "Hex key/salt pairs (same count); enables imgproxy-scheme and `xi_sig` verification\n\nEnv: `XI_SIGNING_SALTS` (or `XI_SIGNING_SALTS_FILE`)",
+          "title": "XI_SIGNING_SALTS",
+          "type": "array"
+        },
+        "size": {
+          "default": 32,
+          "description": "Signature bytes before base64 (imgproxy SIGNATURE_SIZE)\n\nEnv: XI_SIGNING_SIZE",
+          "markdownDescription": "Signature bytes before base64 (imgproxy `SIGNATURE_SIZE`)\n\nEnv: `XI_SIGNING_SIZE`",
+          "title": "XI_SIGNING_SIZE",
+          "type": "integer"
+        },
+        "trusted": {
+          "description": "Signatures always accepted\n\nEnv: XI_SIGNING_TRUSTED (or XI_SIGNING_TRUSTED_FILE)",
+          "items": {
+            "$ref": "#/$defs/secret"
+          },
+          "markdownDescription": "Signatures always accepted\n\nEnv: `XI_SIGNING_TRUSTED` (or `XI_SIGNING_TRUSTED_FILE`)",
+          "title": "XI_SIGNING_TRUSTED",
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "sources": {
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z0-9][a-z0-9-]*$": {
+          "$ref": "#/$defs/source"
+        }
+      },
+      "type": "object"
+    },
+    "vips": {
+      "additionalProperties": false,
+      "properties": {
+        "concurrency": {
+          "default": 1,
+          "description": "libvips threads per image; change only with benchmarks\n\nEnv: XI_VIPS_CONCURRENCY",
+          "markdownDescription": "libvips threads per image; change only with benchmarks\n\nEnv: `XI_VIPS_CONCURRENCY`",
+          "title": "XI_VIPS_CONCURRENCY",
+          "type": "integer"
+        },
+        "fail_on": {
+          "default": "warning",
+          "description": "Env: XI_VIPS_FAIL_ON",
+          "enum": [
+            "none",
+            "truncated",
+            "error",
+            "warning"
+          ],
+          "markdownDescription": "Env: `XI_VIPS_FAIL_ON`",
+          "title": "XI_VIPS_FAIL_ON",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "title": "xtandard-image configuration",
+  "type": "object"
+}

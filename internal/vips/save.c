@@ -28,6 +28,10 @@ xi_jpegsave(VipsImage *in, const XiJpegOptions *o, int keep, void **buf, size_t 
           "optimize_coding", o->optimize_coding,
           "subsample_mode", o->subsample,
           "restart_interval", o->restart_interval,
+          "trellis_quant", o->trellis_quant,
+          "overshoot_deringing", o->overshoot_deringing,
+          "optimize_scans", o->optimize_scans,
+          "quant_table", o->quant_table,
           "keep", keep,
           NULL))
     XI_SAVE_FAIL();

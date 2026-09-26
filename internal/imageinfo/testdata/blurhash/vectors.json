@@ -1,0 +1,21 @@
+{
+  "source": "woltapp/blurhash C encoder (C/encode.c, commit 712a47f), built with `cc -O2 encode_stb.c encode.c -lm` and run as `blurhash_encoder X Y picN.png` (component limit raised to 9 for the 9x9 rows); pic1 4x3 is the vector published in C/Readme.md. Images: Swift/BlurHashTest/picN.png, MIT (Wolt Enterprises).",
+  "vectors": [
+    {"image": "pic1.png", "x": 4, "y": 3, "hash": "LaJHjmVu8_~po#smR+a~xaoLWCRj"},
+    {"image": "pic1.png", "x": 1, "y": 1, "hash": "00JHjm"},
+    {"image": "pic1.png", "x": 8, "y": 8, "hash": ":aJHjmVu8_~pXA8_R%f+o#smR+a~tRRjoeNGxaoLWCRjxtt7Rjoct8ofRjWYRjjZjcafaxofoda~j]oLo1t7oet7ayoeWDa#jtWEWVWXayWCs:jZWAaft6t6j[ayR*V[oKs:"},
+    {"image": "pic1.png", "x": 9, "y": 9, "hash": "|aJHjmVu8_~pXA8_R%f+tPo#smR+a~tRRjoeNGRjxaoLWCRjxtt7Rjocozt8ofRjWYRjjZjcaft6axofoda~j]oLo1t7Rjoet7ayoeWDa#jtWEoLWVWXayWCs:jZWAafjut6t6j[ayR*V[oKs:t6f6j[juayj=bHj[ayof"},
+    {"image": "pic1.png", "x": 3, "y": 7, "hash": "uRJHjmR700o#smR+%1oMWCxus:Rjaxozs-ofxaayWUWYWB"},
+    {"image": "pic1.png", "x": 5, "y": 2, "hash": "DaJHjmVu8_~pXAo#smR+a~tR"},
+    {"image": "pic1.png", "x": 2, "y": 8, "hash": "%7JHjmHbt.,;~AxH?c%1WAtlxa?aRjNy-:-:"},
+    {"image": "pic4.png", "x": 1, "y": 1, "hash": "008ia?"},
+    {"image": "pic4.png", "x": 4, "y": 3, "hash": "L08ia?o|fQo|tkfQfQfQfQfQfQfQ"},
+    {"image": "pic4.png", "x": 9, "y": 9, "hash": "|08ia?o|fQo|fQo|fQo|fQtkfQfQfQfQfQfQfQfQfQfQfQfQfQfQfQfQfQtkfQfQfQfQfQfQfQfQfQfQfQfQfQfQfQfQfQtkfQfQfQfQfQfQfQfQfQfQfQfQfQfQfQfQfQtkfQfQfQfQfQfQfQfQfQfQfQfQfQfQfQfQfQ"},
+    {"image": "pic4.png", "x": 3, "y": 7, "hash": "u08ia?o|fQtkfQfQfQfQfQtkfQfQfQfQfQtkfQfQfQfQfQ"},
+    {"image": "pic5.png", "x": 1, "y": 1, "hash": "00HV9w"},
+    {"image": "pic5.png", "x": 4, "y": 3, "hash": "L%HV9wj[fQj[~qfQfQfQ%MfQfQfQ"},
+    {"image": "pic5.png", "x": 9, "y": 9, "hash": "|%HV9wj[fQj[fQj[fQj[fQ~qfQfQfQfQfQfQfQfQ%MfQfQfQfQfQfQfQfQt7fQfQfQfQfQfQfQfQt7fQfQfQfQfQfQfQfQoffQfQfQfQfQfQfQfQoffQfQfQfQfQfQfQfQoffQfQfQfQfQfQfQfQoffQfQfQfQfQfQfQfQ"},
+    {"image": "pic5.png", "x": 5, "y": 2, "hash": "D%HV9wj[fQj[fQ~qfQfQfQfQ"},
+    {"image": "pic5.png", "x": 2, "y": 8, "hash": "%%HV9wj[~qfQ%MfQt7fQt7fQoffQoffQoffQ"}
+  ]
+}

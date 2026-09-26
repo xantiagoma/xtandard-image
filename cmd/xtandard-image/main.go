@@ -31,6 +31,17 @@ func main() {
 	stop()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "xtandard-image: %v\n", err)
-		os.Exit(1)
 	}
+	if code := exitCode(err); code != 0 {
+		os.Exit(code)
+	}
+}
+
+// exitCode is the process status for run's error: 0 on success, 1 on any
+// failure (config validate relies on it for CI).
+func exitCode(err error) int {
+	if err != nil {
+		return 1
+	}
+	return 0
 }

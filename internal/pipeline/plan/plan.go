@@ -15,9 +15,31 @@ type SourceMeta struct {
 	HasAlpha    bool
 	Orientation int    // EXIF orientation 1..8; 0 is treated as 1
 	IsAnimated  bool   // several frames with delays (GIF, WebP, JXL)
-	Format      string // source format name: "jpeg", "png", "webp", "gif", "svg", "pdf", "heic", "avif", ...
+	Format      string // source format name: "jpeg", "png", "webp", "gif", "svg", "pdf", "heic", "avif", "raw", ...
 	IsVector    bool   // SVG, PDF: rendered at any scale
+	// Density is the DPI a vector source's Width and Height were measured
+	// at (PDF: XI_FORMATS_PDF_DPI); it is rendered at the same density,
+	// scaled. 0 is the loader default.
+	Density float64
+	// Selection reports that Width and Height describe the page selection
+	// of the request (`page`, and `pages` stacked vertically) as loaded,
+	// not the first page. The executor sets it after measuring a selection
+	// the header could not describe.
+	Selection bool
+	// PreviewWidth and PreviewHeight are the size of a camera RAW's
+	// embedded JPEG preview in the stored orientation (the RAW's
+	// Orientation applies to it); 0 when there is none. Width and Height
+	// are the demosaiced size.
+	PreviewWidth, PreviewHeight int
+	// HDR marks a scene-linear float source (OpenEXR, Radiance, PFM): it is
+	// loaded with random access (the tone mapper measures it first) and
+	// costs 4 bytes per sample until it is mapped to 8 bits.
+	HDR bool
 }
+
+// DefaultRawPreviewMinRatio is the RawPreviewMinRatio used when the limit
+// is zero: the preview must be at least the size the source is scaled to.
+const DefaultRawPreviewMinRatio = 1.0
 
 // Limits are the configured processing limits (XI_LIMITS_*). Zero means
 // unlimited unless stated otherwise.
@@ -32,8 +54,18 @@ type Limits struct {
 	// AllowRaisingLimits lets transform.Request.Limits raise the values
 	// above; otherwise overrides may only lower them.
 	AllowRaisingLimits bool
-	// DisableShrinkOnLoad turns off shrink-on-load for raster formats.
+	// DisableShrinkOnLoad turns off shrink-on-load for raster formats (and
+	// the half-size RAW demosaic).
 	DisableShrinkOnLoad bool
+	// MaxRawDemosaicPixels caps the sensor width × height of a camera RAW
+	// that is demosaiced (XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS); 0 is
+	// unlimited. The embedded-preview path is not affected.
+	MaxRawDemosaicPixels int64
+	// RawPreviewMinRatio: a camera RAW is decoded from its embedded JPEG
+	// preview when the preview is at least this many times the size the
+	// source is scaled to, on both axes (XI_FORMATS_RAW_PREVIEW_MIN_RATIO);
+	// 0 means DefaultRawPreviewMinRatio.
+	RawPreviewMinRatio float64
 }
 
 // Observed is what the executor saw after a step whose outcome a header
@@ -52,7 +84,7 @@ type Observed struct {
 }
 
 // Plan is the processing of one pipeline. Chained pipelines run on the
-// materialised result of the previous plan.
+// result of the previous plan (materialised when Materialize is set).
 type Plan struct {
 	Load LoadStep
 	// Animation is set when the image is processed as an animation: Steps
@@ -63,12 +95,21 @@ type Plan struct {
 	// After runs on the whole image once Steps are done (and frames are
 	// joined): watermarks and, on the last plan, the output colour.
 	After []Step
-	// Chained plans follow this one; their Load is zero.
+	// Chained plans follow this one; their Load is zero. Build predicts
+	// them from the previous prediction; the executor replans each on the
+	// observed result of the previous pipeline with Chain.
 	Chained []*Plan
+	// Materialize is set on chained plans whose input must be computed into
+	// memory before they run (a step reads it out of order: trim, smart
+	// crop, rotate, flip, filters). Otherwise the chained plan extends the
+	// previous pipeline's lazy graph.
+	Materialize bool
 	// Output is the result of this plan (the last chained plan's is the
 	// response).
 	Output Output
-	// Cost is the peak memory estimate of this plan and its chained plans.
+	// Cost is the peak memory estimate of this plan and its chained plans
+	// (on the root: the worst pipeline plus the materialised results held
+	// while it runs).
 	Cost Cost
 	// Unplanned lists request options this planner does not turn into
 	// steps yet (later work packages), for the debug header.
@@ -111,13 +152,22 @@ type Step interface{ step() }
 // LoadStep decodes the source.
 type LoadStep struct {
 	// ShrinkOnLoad is the JPEG shrink factor: 2, 4 or 8; 0 or 1 is off.
+	// For a camera RAW it applies to the embedded preview (Preview).
 	ShrinkOnLoad int
+	// Preview decodes a camera RAW from its embedded JPEG preview
+	// (SourceMeta.PreviewWidth × PreviewHeight) instead of demosaicing it.
+	Preview bool
+	// HalfSize demosaics a camera RAW at half its width and height.
+	HalfSize bool
 	// Scale is the WebP/SVG/PDF scale-on-load factor; 0 is off.
 	Scale float64
 	// Density is the vector rendering DPI; 0 keeps the loader default.
 	Density float64
 	Page    int // first page or frame
-	NPages  int // pages or frames to load (1 = one)
+	// NPages is the number of pages or frames to load (1 = one). Several
+	// pages of a still (the `pages` option) load as one image, stacked
+	// vertically and left-aligned (imgproxy Pro).
+	NPages int
 	// Autorotate is always false: orientation is applied by explicit
 	// RotateStep/FlipStep after resizing, where imgproxy applies it, so the
 	// crop geometry matches. The executor drops the orientation tag.
@@ -209,11 +259,68 @@ type RotateStep struct{ Angle int }
 // FlipStep mirrors the image.
 type FlipStep struct{ Horizontal, Vertical bool }
 
-// FilterStep applies imgproxy's filters in one pass.
+// FilterStep applies the filters of a pipeline in one pass, per frame, in
+// this order: Blur, Sharpen, Unsharp, Pixelate, BlurAreas, ProgressiveBlur
+// (imgproxy applies blur, sharpen and pixelate in one pass; the Pro filters
+// follow on the result, before colour adjustments, the canvas and
+// watermarks).
 type FilterStep struct {
 	Blur     float64 // Gaussian sigma; 0 = off
 	Sharpen  float64 // sigma; 0 = off
 	Pixelate int     // block size; ≤ 1 = off
+	// Unsharp is the resolved unsharp mask; nil = off (mode none, or auto
+	// without a downscale or with Sharpen set).
+	Unsharp *UnsharpMask
+	// BlurAreas are rectangles relative to the frame at this step; nil or
+	// no areas = off.
+	BlurAreas *BlurAreas
+	// ProgressiveBlur blends a blurred copy in along a linear ramp; nil =
+	// off.
+	ProgressiveBlur *transform.ProgressiveBlur
+}
+
+// UnsharpMask is a resolved transform.Unsharp. With Sigma > 0 it is the
+// classic mask img + Amount × (img − gaussblur(img, Sigma)) (imgix usm,
+// ImageKit e-usm); otherwise it is imgproxy's unsharp_masking kernel, the
+// 3×3 convolution
+//
+//	−w      −w      −w
+//	−w   d + 8w     −w   ÷ d
+//	−w      −w      −w
+//
+// with w = Weight and d = Divider: img + 8w/d × (img − mean of the 8
+// neighbours).
+type UnsharpMask struct {
+	Weight, Divider float64
+	Sigma, Amount   float64
+}
+
+// BlurAreas blurs rectangles of the frame with a Gaussian of Sigma. The
+// areas are fractions of the frame at the FilterStep (the planner maps the
+// request's source-relative areas through crops, rotations and flips) and
+// lie within 0..1.
+type BlurAreas struct {
+	Sigma float64
+	Areas []transform.Area
+}
+
+// ColourAdjustStep applies the colour adjustments and effects of a pipeline
+// in one pass, per frame, right after FilterStep: before the canvas grows,
+// so extend and padding backgrounds keep their exact colour. The executor
+// applies them in this order: Adjust tone curves (brightness, contrast,
+// gamma, exposure, red/green/blue), Adjust saturation and hue, Grayscale,
+// Sepia, Tint, Monochrome, Duotone, Negate, Colorize, Gradient, then
+// Adjust.Opacity. Adjust.Vibrance is not applied (Plan.Unplanned).
+type ColourAdjustStep struct {
+	Adjust     transform.Adjust
+	Grayscale  bool
+	Sepia      bool
+	Negate     bool
+	Tint       *transform.Color
+	Monochrome *transform.Monochrome
+	Duotone    *transform.Duotone
+	Colorize   *transform.Colorize
+	Gradient   *transform.Gradient
 }
 
 // ExtendGeometry grows the canvas to Width×Height (0 = keep that axis),
@@ -240,7 +347,9 @@ type PaddingStep struct {
 	Background               *transform.Color
 }
 
-// FlattenStep removes alpha over a background colour.
+// FlattenStep removes alpha over a background colour. A translucent
+// Background (A < 255, imgproxy background_alpha) keeps the alpha band: the
+// image is composited over the background instead.
 type FlattenStep struct{ Background transform.Color }
 
 // WatermarkStep overlays a watermark on the whole image, every frame of an
@@ -265,19 +374,20 @@ type WatermarkGeometry struct {
 	DPRScale float64 // scales pixel offsets
 }
 
-func (LoadStep) step()      {}
-func (ColourStep) step()    {}
-func (TrimStep) step()      {}
-func (PreCropStep) step()   {}
-func (CropStep) step()      {}
-func (ResizeStep) step()    {}
-func (RotateStep) step()    {}
-func (FlipStep) step()      {}
-func (FilterStep) step()    {}
-func (ExtendStep) step()    {}
-func (PaddingStep) step()   {}
-func (FlattenStep) step()   {}
-func (WatermarkStep) step() {}
+func (LoadStep) step()         {}
+func (ColourStep) step()       {}
+func (TrimStep) step()         {}
+func (PreCropStep) step()      {}
+func (CropStep) step()         {}
+func (ResizeStep) step()       {}
+func (RotateStep) step()       {}
+func (FlipStep) step()         {}
+func (FilterStep) step()       {}
+func (ColourAdjustStep) step() {}
+func (ExtendStep) step()       {}
+func (PaddingStep) step()      {}
+func (FlattenStep) step()      {}
+func (WatermarkStep) step()    {}
 
 // Box is the box a scaled watermark is fitted into (imgproxy
 // prepareWatermark: fit, enlarge allowed, relative to one frame): each side

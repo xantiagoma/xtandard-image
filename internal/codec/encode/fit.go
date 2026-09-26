@@ -16,11 +16,12 @@ type fitResult struct {
 	overBudget bool
 }
 
-// fitBytes finds the largest quality in 1..start whose output is at most
+// fitBytes finds the largest quality in low..start whose output is at most
 // limit bytes, with at most MaxSaves saves: start first (most requests fit),
 // then a binary search below it. When no attempt fits it returns the smallest
 // output seen, flagged overBudget. Bodies that are not returned are released.
-func fitBytes(ctx context.Context, start, limit int, save saveFunc) (fitResult, error) {
+// max_bytes searches from 1; the size auto-quality from its minimum quality.
+func fitBytes(ctx context.Context, low, start, limit int, save saveFunc) (fitResult, error) {
 	var best, smallest fitResult // best: largest fitting quality
 	keep := func(r fitResult) {
 		if best.body != nil && best.body != r.body {
@@ -47,7 +48,8 @@ func fitBytes(ctx context.Context, start, limit int, save saveFunc) (fitResult, 
 		}
 	}
 
-	low, high := 1, start
+	low = max(min(low, start), 1)
+	high := start
 	q := start
 	attempts := 0
 	for attempts < MaxSaves && low <= high {

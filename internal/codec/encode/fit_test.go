@@ -58,7 +58,7 @@ func TestFitBytes(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			s := &fakeSaver{size: tc.size}
-			r, err := fitBytes(t.Context(), tc.start, tc.limit, s.save)
+			r, err := fitBytes(t.Context(), 1, tc.start, tc.limit, s.save)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -119,7 +119,7 @@ func TestFitBytesErrors(t *testing.T) {
 			}
 			return &fakeBody{n: 1 << 20, released: &released}, nil
 		}
-		if _, err := fitBytes(t.Context(), 80, 10, save); !errors.Is(err, boom) {
+		if _, err := fitBytes(t.Context(), 1, 80, 10, save); !errors.Is(err, boom) {
 			t.Fatalf("err = %v, want boom", err)
 		}
 		// Two over-budget saves: the larger was released when the smaller
@@ -133,7 +133,7 @@ func TestFitBytesErrors(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 		s := &fakeSaver{size: func(int) int { return 1 }}
-		if _, err := fitBytes(ctx, 80, 10, s.save); !errors.Is(err, context.Canceled) {
+		if _, err := fitBytes(ctx, 1, 80, 10, s.save); !errors.Is(err, context.Canceled) {
 			t.Fatalf("err = %v, want context.Canceled", err)
 		}
 		if s.saves != 0 {

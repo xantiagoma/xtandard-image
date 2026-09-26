@@ -1,0 +1,603 @@
+{
+  "attachment": {
+    "path": "/folder/a.jpg",
+    "query": "ik-attachment=true",
+    "request": {
+      "Delivery": {
+        "Attachment": true
+      },
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "attachment_invalid": {
+    "error": {
+      "field": "ik-attachment",
+      "kind": "invalid_url",
+      "public": "invalid ik-attachment: expected boolean (1, t, true, 0, f, false)",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "ik-attachment=maybe"
+  },
+  "both_path_wins": {
+    "path": "/tr:w-300/a.jpg",
+    "query": "tr=w-100",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "tr",
+          "Reason": "path transformation takes precedence"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "both_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: tr in both path and query",
+      "status": 400
+    },
+    "path": "/tr:w-300/a.jpg",
+    "query": "tr=w-100"
+  },
+  "cache_buster": {
+    "path": "/folder/a.jpg",
+    "query": "v=123\u0026tr=w-300\u0026updatedAt=1",
+    "request": {
+      "Delivery": {
+        "CacheBuster": "v=123\u0026updatedAt=1"
+      },
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "chain_empty_steps_skipped": {
+    "path": "/folder/a.jpg",
+    "query": "tr=:w-300::,:",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "chain_request_scoped_last_wins": {
+    "path": "/folder/a.jpg",
+    "query": "tr=q-50:q-70",
+    "request": {
+      "Dialect": "imagekit",
+      "Output": {
+        "Quality": 70
+      },
+      "Pipelines": [
+        {},
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "chain_three": {
+    "path": "/folder/a.jpg",
+    "query": "tr=w-400,h-300:rt-90:bl-4",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        },
+        {
+          "Rotate": 90
+        },
+        {
+          "Blur": 2
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "chain_too_long": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: too many chained pipelines",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=w-1:w-2:w-3:w-4:w-5:w-6:w-7:w-8:w-9:w-10:w-11:w-12:w-13:w-14:w-15:w-16:w-17"
+  },
+  "empty_params_skipped": {
+    "path": "/folder/a.jpg",
+    "query": "tr=w-300,,h-200,",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "empty_path": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing source path",
+      "status": 400
+    },
+    "path": "",
+    "query": ""
+  },
+  "endpoint_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300/folder/a.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "endpoint_path_outside": {
+    "config": "endpoint",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: path outside the url endpoint",
+      "status": 400
+    },
+    "path": "/other/folder/a.jpg",
+    "query": ""
+  },
+  "endpoint_path_prefix_only": {
+    "config": "endpoint",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: path outside the url endpoint",
+      "status": 400
+    },
+    "path": "/demox/a.jpg",
+    "query": ""
+  },
+  "missing_source": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing source path",
+      "status": 400
+    },
+    "path": "/tr:w-300/",
+    "query": ""
+  },
+  "no_transform": {
+    "path": "/folder/a.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "path_bad_escape": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid path escaping",
+      "status": 400
+    },
+    "path": "/tr:w-%zz/a.jpg",
+    "query": ""
+  },
+  "path_escaped_colon": {
+    "path": "/tr%3Aw-300/folder/a.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "path_escaped_value": {
+    "path": "/tr:l-text,i-Hello%20World,l-end/a.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-text",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Text": "Hello World"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "path_first_segment": {
+    "path": "/tr:w-300,h-200/folder/a.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "path_last_segment_is_file": {
+    "path": "/tr:w-300",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "tr%3Aw-300"
+      }
+    },
+    "signature": "unsigned",
+    "source": "tr%3Aw-300"
+  },
+  "path_middle_segment": {
+    "path": "/folder/tr:w-300/a.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "path_two_tr_segments": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: multiple tr path segments",
+      "status": 400
+    },
+    "path": "/tr:w-1/tr:w-2/a.jpg",
+    "query": ""
+  },
+  "query": {
+    "path": "/folder/a.jpg",
+    "query": "tr=w-300,h-200",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "query_bad_escape": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid query escaping",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=w-%zz"
+  },
+  "query_encoded_commas": {
+    "path": "/folder/a.jpg",
+    "query": "tr=w-300%2Ch-200%2Cc-force",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "force",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "query_twice": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: multiple tr parameters",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=w-1\u0026tr=w-2"
+  },
+  "source_bad_escape": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid path escaping",
+      "status": 400
+    },
+    "path": "/a%zz.jpg",
+    "query": ""
+  },
+  "source_control_char": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid source path",
+      "status": 400
+    },
+    "path": "/a%00.jpg",
+    "query": ""
+  },
+  "source_scheme_like": {
+    "path": "/https:/evil.example/a.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "https%3A/evil.example/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https%3A/evil.example/a.jpg"
+  },
+  "source_unicode": {
+    "path": "/sdk-testing-files/%E0%A4%B9%E0%A4%BF.png",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sdk-testing-files/%E0%A4%B9%E0%A4%BF.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sdk-testing-files/%E0%A4%B9%E0%A4%BF.png"
+  },
+  "unknown_param": {
+    "path": "/folder/a.jpg",
+    "query": "tr=w-300,foo-1",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "foo",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "unknown_param_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=w-300,foo-1"
+  },
+  "unsupported_param_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=e-bgremove"
+  }
+}

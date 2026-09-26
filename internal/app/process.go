@@ -8,17 +8,34 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
+	"github.com/xantiagoma/xtandard-image/internal/negotiate"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/exec"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
+	"github.com/xantiagoma/xtandard-image/internal/security/svg"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
 // codecProber is the server.Prober: codec.Probe (magic-byte sniff, header
-// only, BMP/ICO through the Go loaders, SVG limits) inside one vips.Run.
+// only, BMP/ICO/PSD in Go, SVG and PDF limits) inside one vips.Run.
 type codecProber struct {
-	svg codec.Limits // SVG limits; the pixel and frame limits come per request
+	// svg holds the static per-format limits and settings (SVG, PDF, PSD);
+	// the pixel and frame limits come per request.
+	svg codec.Limits
+}
+
+// formatLimits are the codec limits and probe settings that come from the
+// configuration rather than the request.
+func formatLimits(cfg *config.Config) codec.Limits {
+	return codec.Limits{
+		MaxSVGBytes:         int64(cfg.Limits.MaxSVGBytes),
+		MaxSVGDepth:         cfg.Limits.MaxSVGDepth,
+		MaxSVGElements:      cfg.Limits.MaxSVGElements,
+		MaxPDFPages:         cfg.Limits.MaxPDFPages,
+		PDFDensity:          cfg.Formats.PDF.DPI,
+		PSDRequireComposite: cfg.Formats.PSD.RequireComposite,
+	}
 }
 
 // Probe implements server.Prober.
@@ -71,8 +88,9 @@ func unlimited(v int64) int64 {
 // processor is the server.Processor: pipeline/exec (plan, execute) and
 // codec/encode (encode) behind the server's interface.
 type processor struct {
-	exec *exec.Executor
-	enc  encode.Config
+	exec   *exec.Executor
+	enc    encode.Config
+	pdfDPI float64 // XI_FORMATS_PDF_DPI: the density PDF sizes were probed at
 }
 
 // newProcessor builds the executor and encoder; wm is the configured
@@ -83,22 +101,41 @@ func newProcessor(cfg *config.Config, wm *exec.Watermark) (*processor, error) {
 	if err != nil {
 		return nil, err
 	}
+	tm, err := exec.ParseToneMap(string(cfg.Formats.HDR.ToneMap))
+	if err != nil {
+		return nil, err
+	}
 	ex, err := exec.New(&exec.Config{
-		Limits: plan.Limits{
-			MaxSrcPixels:            cfg.Limits.MaxSrcPixels,
-			MaxResultDimension:      cfg.Limits.MaxResultDimension,
-			MaxAnimationFrames:      cfg.Limits.MaxAnimationFrames,
-			MaxAnimationFramePixels: cfg.Limits.MaxAnimationFramePixels,
-			MemoryBudget:            int64(cfg.Processing.MemoryBudget),
-			AllowRaisingLimits:      cfg.Security.AllowRaisingLimits,
+		Limits:           planLimits(cfg),
+		FailOn:           vipsFailOn(cfg.Vips.FailOn),
+		Watermark:        wm,
+		ColorProfilesDir: cfg.Processing.ColorProfilesDir,
+		SVG: svg.Options{
+			MaxBytes:    int64(cfg.Limits.MaxSVGBytes),
+			MaxDepth:    cfg.Limits.MaxSVGDepth,
+			MaxElements: cfg.Limits.MaxSVGElements,
 		},
-		FailOn:    vipsFailOn(cfg.Vips.FailOn),
-		Watermark: wm,
+		ToneMap: tm,
 	}, enc)
 	if err != nil {
 		return nil, err
 	}
-	return &processor{exec: ex, enc: ec}, nil
+	return &processor{exec: ex, enc: ec, pdfDPI: cfg.Formats.PDF.DPI}, nil
+}
+
+// planLimits are the planner limits of the executor, shared with the
+// thumbor meta response (server.InfoConfig.PlanLimits).
+func planLimits(cfg *config.Config) plan.Limits {
+	return plan.Limits{
+		MaxSrcPixels:            cfg.Limits.MaxSrcPixels,
+		MaxResultDimension:      cfg.Limits.MaxResultDimension,
+		MaxAnimationFrames:      cfg.Limits.MaxAnimationFrames,
+		MaxAnimationFramePixels: cfg.Limits.MaxAnimationFramePixels,
+		MemoryBudget:            int64(cfg.Processing.MemoryBudget),
+		AllowRaisingLimits:      cfg.Security.AllowRaisingLimits,
+		MaxRawDemosaicPixels:    cfg.Limits.MaxRawDemosaicPixels,
+		RawPreviewMinRatio:      cfg.Formats.RAW.PreviewMinRatio,
+	}
 }
 
 // vipsFailOn maps XI_VIPS_FAIL_ON onto the decoder strictness.
@@ -128,7 +165,42 @@ func encoderConfig(cfg *config.Config) encode.Config {
 	ec.JXLEffort = f.JXL.Effort
 	ec.GIFEffort = f.GIF.Effort
 	ec.HEICEncode = f.HEIC.Encode
+	ec.AutoQuality = autoQualityConfig(&f.AutoQuality)
+	ec.Best = encode.BestConfig{MaxPixels: f.Best.MaxPixels, ComplexityThreshold: f.Best.ComplexityThreshold}
 	return ec
+}
+
+// autoQualityConfig maps XI_FORMATS_AUTOQUALITY_* onto the encoder's.
+func autoQualityConfig(aq *config.AutoQuality) encode.AutoQualityConfig {
+	method := map[config.AutoQualityMethod]transform.AutoQualityMethod{
+		config.AutoQualityNone: transform.AutoQualityNone, config.AutoQualitySize: transform.AutoQualitySize,
+		config.AutoQualityDSSIM: transform.AutoQualityDSSIM,
+	}[aq.Method]
+	return encode.AutoQualityConfig{
+		Method:       method,
+		Target:       aq.Target,
+		Min:          aq.Min,
+		Max:          aq.Max,
+		AllowedError: aq.AllowedError,
+		FormatTarget: formatMap(aq.FormatTarget),
+		FormatMin:    formatMap(aq.FormatMin),
+		FormatMax:    formatMap(aq.FormatMax),
+	}
+}
+
+// formatMap re-keys a per-format config map by transform.Format; config
+// validation already rejected formats without a quality.
+func formatMap[V any](in map[config.Format]V) map[transform.Format]V {
+	if in == nil {
+		return nil
+	}
+	out := make(map[transform.Format]V, len(in))
+	for f, v := range in {
+		if tf, err := transform.ParseFormat(string(f)); err == nil {
+			out[tf] = v
+		}
+	}
+	return out
 }
 
 // Process implements server.Processor.
@@ -148,12 +220,16 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		q := p.enc.ResolveQuality(t.Format, t.Quality, t.FormatQuality)
 		t.Quality = min(max(q+in.QualityDelta, 1), 100)
 	}
-	res, err := p.exec.Run(ctx, &exec.Job{
+	job := &exec.Job{
 		Request: in.Request,
 		Source:  src,
-		Meta:    planMeta(format, &in.Meta),
+		Meta:    planMeta(format, &in.Meta, p.pdfDPI),
 		Target:  t,
-	})
+	}
+	if in.Decision.Reason == negotiate.ReasonBest {
+		job.Best = &in.Decision
+	}
+	res, err := p.exec.Run(ctx, job)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +239,10 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		Format:      res.Format,
 		Width:       res.Width,
 		Height:      res.Height,
+		Quality:     res.Quality,
 		Skipped:     res.Skipped,
+		Best:        res.Best.String(),
+		RawPath:     res.RawPath,
 	}, nil
 }
 
@@ -178,10 +257,14 @@ func lossy(f transform.Format) bool {
 
 // planMeta is the planner's view of the probed source. The format name is
 // the sniffed codec format (UltraHDR shrinks on load like JPEG).
-func planMeta(f codec.Format, m *server.SourceMeta) plan.SourceMeta {
+func planMeta(f codec.Format, m *server.SourceMeta, pdfDPI float64) plan.SourceMeta {
 	name := f.String()
 	if f == codec.FormatUHDR {
 		name = "jpeg"
+	}
+	var density float64
+	if f == codec.FormatPDF {
+		density = pdfDPI
 	}
 	// The planner's Frames counts pages too: it bounds `page`.
 	return plan.SourceMeta{
@@ -193,5 +276,7 @@ func planMeta(f codec.Format, m *server.SourceMeta) plan.SourceMeta {
 		IsAnimated:  m.IsAnimated,
 		Format:      name,
 		IsVector:    f == codec.FormatSVG || f == codec.FormatPDF,
+		Density:     density,
+		HDR:         f.HDR(),
 	}
 }

@@ -1,0 +1,17 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "scrgb",
+  "exif": {},
+  "format": "pfm",
+  "hdr": true,
+  "height": 48,
+  "iptc": {},
+  "mime_type": "image/x-portable-floatmap",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "float",
+  "size": 36878,
+  "width": 64,
+  "xmp": {}
+}

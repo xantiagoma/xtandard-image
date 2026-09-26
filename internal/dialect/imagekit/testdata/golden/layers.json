@@ -1,0 +1,844 @@
+{
+  "canvas": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-ik_canvas,bg-FF0000,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image:bg",
+          "Reason": "not supported"
+        },
+        {
+          "Option": "l-image:ik_canvas",
+          "Reason": "not supported"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "image": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-logo.png,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "image_base64": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,ie-YnJhbmQvbG9nbyAoMSkucG5n,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "brand/logo%20%281%29.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "image_base64_invalid": {
+    "error": {
+      "field": "l-image.ie",
+      "kind": "invalid_url",
+      "public": "invalid l-image.ie: expected base64",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,ie-!!!,l-end"
+  },
+  "image_font_param": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-logo.png,fs-10,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image:fs",
+          "Reason": "not supported"
+        },
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "image_in_chain": {
+    "path": "/folder/a.jpg",
+    "query": "tr=w-300:l-image,i-logo.png,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        },
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "image_lfo_invalid": {
+    "error": {
+      "field": "l-image.lfo",
+      "kind": "invalid_url",
+      "public": "invalid l-image.lfo: expected center, top, left, bottom, right, top_left, top_right, bottom_left or bottom_right",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-logo.png,lfo-middle,l-end"
+  },
+  "image_missing_input": {
+    "error": {
+      "field": "l-image",
+      "kind": "invalid_url",
+      "public": "invalid l-image: expected i-\u003cpath\u003e or ie-\u003cbase64 path\u003e",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,w-100,l-end"
+  },
+  "image_negative_offsets": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-logo.png,lx-N10,ly-N20,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 10,
+                "YOffset": 20
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "image_nested_layer": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-logo.png,l-text,i-hi,l-end,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image:l-text",
+          "Reason": "not supported"
+        },
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "image_nested_path": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-brand@@logos@@logo.png,lfo-bottom_right,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "brand/logos/logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "image_no_l_end": {
+    "path": "/folder/a.jpg",
+    "query": "tr=w-300,l-image,i-logo.png",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "image_offset_expression": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-logo.png,lx-bw_mul_0.5,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image:lx",
+          "Reason": "arithmetic expressions not supported"
+        },
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "image_offset_invalid": {
+    "error": {
+      "field": "l-image.lx",
+      "kind": "invalid_url",
+      "public": "invalid l-image.lx: expected integer, N\u003cinteger\u003e for negative",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-logo.png,lx-1.5,l-end"
+  },
+  "image_offsets": {
+    "path": "/folder/a.jpg",
+    "query": "tr=w-800,l-image,i-logo.png,lx-10,ly-20,w-100,h-50,o-50,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 800
+            }
+          },
+          "Watermarks": [
+            {
+              "Height": 50,
+              "Opacity": 0.5,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 10,
+                "YOffset": 20
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              },
+              "Width": 100
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "image_size_invalid": {
+    "error": {
+      "field": "l-image.w",
+      "kind": "invalid_url",
+      "public": "invalid l-image.w: expected positive integer",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-logo.png,w-x,l-end"
+  },
+  "image_size_relative": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-logo.png,w-0.5,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image:w",
+          "Reason": "not supported"
+        },
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "image_slash_path": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-/path/to/overlay.jpg,w-100,b-10_CDDC39,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image:b",
+          "Reason": "not supported"
+        },
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "path/to/overlay.jpg"
+              },
+              "Width": 100
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "image_x_only": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-logo.png,lx-10,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 10
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "l_end_alone": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: l-end without a layer",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=w-300,l-end"
+  },
+  "strict_layer_extra": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-logo.png,lm-multiply,l-end"
+  },
+  "text": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-text,i-Minimal%20Text,fs-20,co-FF0000,ff-Roboto,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-text",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Color": {
+                "A": 255,
+                "R": 255
+              },
+              "Font": "Roboto 20",
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Text": "Minimal Text"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "text_base64": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-text,ie-SGVsbG8sIHdvcmxkOiDDvG7Dr2NvZGU%3D,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-text",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Text": "Hello, world: ünïcode"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "text_color_invalid": {
+    "error": {
+      "field": "l-text.co",
+      "kind": "invalid_url",
+      "public": "invalid l-text.co: expected RRGGBB, RRGGBBAA or a color name",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=l-text,i-hi,co-nope,l-end"
+  },
+  "text_font_file": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-text,i-hi,ff-fonts@@Poppins.ttf,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-text",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Font": "fonts/Poppins.ttf",
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Text": "hi"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "text_fs_invalid": {
+    "error": {
+      "field": "l-text.fs",
+      "kind": "invalid_url",
+      "public": "invalid l-text.fs: expected positive integer",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=l-text,i-hi,fs-0,l-end"
+  },
+  "text_fs_only": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-text,i-hi,fs-12,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-text",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Font": "12",
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Text": "hi"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "text_markup_escaped": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-text,i-%3Cb%3Ex%3C%2Fb%3E%20%26,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-text",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Text": "\u0026lt;b\u0026gt;x\u0026lt;/b\u0026gt; \u0026amp;"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "text_missing": {
+    "error": {
+      "field": "l-text",
+      "kind": "invalid_url",
+      "public": "invalid l-text: expected i-\u003ctext\u003e or ie-\u003cbase64 text\u003e",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=l-text,fs-20,l-end"
+  },
+  "too_many": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: too many layers",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-a,l-end,l-image,i-a,l-end,l-image,i-a,l-end,l-image,i-a,l-end,l-image,i-a,l-end,l-image,i-a,l-end,l-image,i-a,l-end,l-image,i-a,l-end,l-image,i-a,l-end,l-image,i-a,l-end,l-image,i-a,l-end,l-image,i-a,l-end,l-image,i-a,l-end,l-image,i-a,l-end,l-image,i-a,l-end,l-image,i-a,l-end,l-image,i-a,l-end"
+  },
+  "video": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-video,i-clip.mp4,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-video",
+          "Reason": "not supported"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  }
+}

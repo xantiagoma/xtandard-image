@@ -1,0 +1,161 @@
+{
+  "provider": "builderio",
+  "unpic": {
+    "provider": "builder.io",
+    "version": "4.2.2"
+  },
+  "mode": "path",
+  "fixtures": [
+    {
+      "url": "https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f?fit=cover&format=webp&sharp=true",
+      "origin": "generate",
+      "want": {
+        "source": "api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f",
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f?height=500&format=png&fit=cover&sharp=true",
+      "origin": "generate",
+      "want": {
+        "source": "api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f?width=1200&format=avif&quality=60&fit=cover&sharp=true",
+      "origin": "generate",
+      "want": {
+        "source": "api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f?width=400&height=300&format=webp&quality=80&fit=cover&sharp=true",
+      "origin": "generate",
+      "want": {
+        "source": "api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f?width=640&format=jpeg&quality=75&fit=cover&sharp=true",
+      "origin": "generate",
+      "want": {
+        "source": "api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f?width=800&fit=cover&format=webp&sharp=true",
+      "origin": "generate",
+      "want": {
+        "source": "api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f",
+        "width": 800,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f?width=800&height=600&fit=cover&format=webp&sharp=true",
+      "origin": "generate",
+      "want": {
+        "source": "api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f",
+        "width": 800,
+        "height": 600,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f",
+      "origin": "test",
+      "want": {
+        "source": "api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f"
+      }
+    },
+    {
+      "url": "https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f?fit=contain&width=300&height=150&sharp=true&format=webp",
+      "origin": "test",
+      "want": {
+        "source": "api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f",
+        "width": 300,
+        "height": 150,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f?fit=inside&width=200&sharp=true&format=webp",
+      "origin": "test",
+      "want": {
+        "source": "api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f",
+        "width": 200,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f?format=webp&width=400&fit=cover&sharp=true",
+      "origin": "test",
+      "want": {
+        "source": "api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f",
+        "width": 400,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f?position=bottom&width=400&height=300&fit=cover&sharp=true&format=webp",
+      "origin": "test",
+      "want": {
+        "source": "api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f",
+        "width": 400,
+        "height": 300,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f?width=200&fit=cover&sharp=true&format=webp",
+      "origin": "test",
+      "want": {
+        "source": "api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f",
+        "width": 200,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f?width=200&height=100&fit=cover&sharp=true&format=webp",
+      "origin": "test",
+      "want": {
+        "source": "api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f",
+        "width": 200,
+        "height": 100,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f?width=201&height=100&fit=cover&sharp=true&format=webp",
+      "origin": "test",
+      "want": {
+        "source": "api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f",
+        "width": 201,
+        "height": 100,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f?width=600&quality=80&fit=cover&sharp=true&format=webp",
+      "origin": "test",
+      "want": {
+        "source": "api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F462d29d57dda42cb9e26441501db535f",
+        "width": 600,
+        "quality": 80,
+        "format": "webp"
+      }
+    }
+  ]
+}

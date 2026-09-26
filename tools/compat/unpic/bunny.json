@@ -1,0 +1,131 @@
+{
+  "provider": "bunny",
+  "unpic": {
+    "provider": "bunny",
+    "version": "4.2.2"
+  },
+  "mode": "path",
+  "fixtures": [
+    {
+      "url": "https://bunnyoptimizerdemo.b-cdn.net/bunny7.jpg?height=500&output=png",
+      "origin": "generate",
+      "want": {
+        "source": "bunny7.jpg",
+        "height": 500
+      }
+    },
+    {
+      "url": "https://bunnyoptimizerdemo.b-cdn.net/bunny7.jpg?width=1200&quality=60&output=avif",
+      "origin": "generate",
+      "want": {
+        "source": "bunny7.jpg",
+        "width": 1200,
+        "quality": 60
+      }
+    },
+    {
+      "url": "https://bunnyoptimizerdemo.b-cdn.net/bunny7.jpg?width=400&height=300&quality=80&output=webp",
+      "origin": "generate",
+      "want": {
+        "source": "bunny7.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://bunnyoptimizerdemo.b-cdn.net/bunny7.jpg?width=640&quality=75&output=jpeg",
+      "origin": "generate",
+      "want": {
+        "source": "bunny7.jpg",
+        "width": 640,
+        "quality": 75
+      }
+    },
+    {
+      "url": "https://bunnyoptimizerdemo.b-cdn.net/bunny7.jpg?width=800",
+      "origin": "generate",
+      "want": {
+        "source": "bunny7.jpg",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://bunnyoptimizerdemo.b-cdn.net/bunny7.jpg?width=800&height=600",
+      "origin": "generate",
+      "want": {
+        "source": "bunny7.jpg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://bunnyoptimizerdemo.b-cdn.net/bunny7.jpg",
+      "origin": "test",
+      "want": {
+        "source": "bunny7.jpg"
+      }
+    },
+    {
+      "url": "https://bunnyoptimizerdemo.b-cdn.net/bunny7.jpg?crop_gravity=bottom&width=400&height=300",
+      "origin": "test",
+      "want": {
+        "source": "bunny7.jpg",
+        "width": 400,
+        "height": 300
+      }
+    },
+    {
+      "url": "https://bunnyoptimizerdemo.b-cdn.net/bunny7.jpg?output=webp&width=400",
+      "origin": "test",
+      "want": {
+        "source": "bunny7.jpg",
+        "width": 400
+      }
+    },
+    {
+      "url": "https://bunnyoptimizerdemo.b-cdn.net/bunny7.jpg?width=200",
+      "origin": "test",
+      "want": {
+        "source": "bunny7.jpg",
+        "width": 200
+      }
+    },
+    {
+      "url": "https://bunnyoptimizerdemo.b-cdn.net/bunny7.jpg?width=200&height=100",
+      "origin": "test",
+      "want": {
+        "source": "bunny7.jpg",
+        "width": 200,
+        "height": 100
+      }
+    },
+    {
+      "url": "https://bunnyoptimizerdemo.b-cdn.net/bunny7.jpg?width=200&height=100&aspect_ratio=200:100",
+      "origin": "test",
+      "want": {
+        "source": "bunny7.jpg",
+        "width": 200,
+        "height": 100
+      }
+    },
+    {
+      "url": "https://bunnyoptimizerdemo.b-cdn.net/bunny7.jpg?width=201&height=100&aspect_ratio=201:100",
+      "origin": "test",
+      "want": {
+        "source": "bunny7.jpg",
+        "width": 201,
+        "height": 100
+      }
+    },
+    {
+      "url": "https://bunnyoptimizerdemo.b-cdn.net/bunny7.jpg?width=600&quality=80",
+      "origin": "test",
+      "want": {
+        "source": "bunny7.jpg",
+        "width": 600,
+        "quality": 80
+      }
+    }
+  ]
+}

@@ -1,12 +1,12 @@
 //go:build integration
 
-// Integration tests against the MinIO service of compose.test.yml
+// Integration tests against the S3-compatible RustFS service of compose.test.yml
 // (`task test:integration`). They read the endpoint from the environment and
 // skip when it is unset (go-standards §8):
 //
-//	XI_TEST_S3_ENDPOINT           e.g. http://minio:9000 (in compose) or http://127.0.0.1:19000
-//	XI_TEST_S3_ACCESS_KEY_ID      default minioadmin
-//	XI_TEST_S3_SECRET_ACCESS_KEY  default minioadmin
+//	XI_TEST_S3_ENDPOINT           e.g. http://rustfs:9000 (in compose) or http://127.0.0.1:19000
+//	XI_TEST_S3_ACCESS_KEY_ID      default xitestaccess
+//	XI_TEST_S3_SECRET_ACCESS_KEY  default xitestsecret
 package s3src
 
 import (
@@ -34,13 +34,13 @@ const (
 	itPrefix    = "public/"
 )
 
-type minio struct {
+type s3Store struct {
 	endpoint, id, secret string
 }
 
-func minioEnv(t *testing.T) minio {
+func s3Env(t *testing.T) s3Store {
 	t.Helper()
-	m := minio{
+	m := s3Store{
 		endpoint: os.Getenv("XI_TEST_S3_ENDPOINT"),
 		id:       os.Getenv("XI_TEST_S3_ACCESS_KEY_ID"),
 		secret:   os.Getenv("XI_TEST_S3_SECRET_ACCESS_KEY"),
@@ -49,13 +49,13 @@ func minioEnv(t *testing.T) minio {
 		t.Skip("XI_TEST_S3_ENDPOINT not set; run `task test:integration`")
 	}
 	if m.id == "" {
-		m.id, m.secret = "minioadmin", "minioadmin"
+		m.id, m.secret = "xitestaccess", "xitestsecret"
 	}
 	return m
 }
 
 // seed creates the buckets and objects the tests read; it is idempotent.
-func seed(t *testing.T, m minio) (big []byte, firstVersion string) {
+func seed(t *testing.T, m s3Store) (big []byte, firstVersion string) {
 	t.Helper()
 	ctx := t.Context()
 	c := s3.New(s3.Options{
@@ -100,9 +100,9 @@ func seed(t *testing.T, m minio) (big []byte, firstVersion string) {
 	return big, firstVersion
 }
 
-func TestIntegrationMinIO(t *testing.T) {
+func TestIntegrationS3(t *testing.T) {
 	t.Parallel()
-	m := minioEnv(t)
+	m := s3Env(t)
 	big, firstVersion := seed(t, m)
 	src, err := New(t.Context(), &Config{
 		Name: "assets", Endpoint: m.endpoint, ForcePathStyle: true,
@@ -225,7 +225,7 @@ func TestIntegrationMinIO(t *testing.T) {
 	t.Run("version", func(t *testing.T) {
 		t.Parallel()
 		if firstVersion == "" {
-			t.Fatal("MinIO returned no version id; versioning is off")
+			t.Fatal("store returned no version id; versioning is off")
 		}
 		for version, want := range map[string]string{firstVersion: "version-1", "": "version-2"} {
 			obj, err := src.Fetch(t.Context(), source.Key{Source: "assets", Bucket: itVersioned, Path: "v.txt", Version: version}, source.FetchOptions{})

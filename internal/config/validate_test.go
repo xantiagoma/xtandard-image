@@ -33,6 +33,7 @@ func TestValidate(t *testing.T) {
 		{"ready threshold", func(c *Config) { c.Server.ReadyQueueThreshold = 101 }, []string{"server.ready_queue_threshold"}},
 		{"cors origin", func(c *Config) { c.Server.CORSOrigins = []string{"*", "example.com"} }, []string{`server.cors_origins[1]`}},
 		{"pprof without admin", func(c *Config) { c.Admin.Pprof, c.Admin.Addr = true, "" }, []string{"admin.pprof (XI_ADMIN_PPROF): needs admin.addr"}},
+		{"docs without admin", func(c *Config) { c.Admin.Docs, c.Admin.Addr = true, "" }, []string{"admin.docs (XI_ADMIN_DOCS): needs admin.addr"}},
 		{"admin same as server", func(c *Config) { c.Admin.Addr = c.Server.Addr }, []string{"admin.addr"}},
 		{"keys without salts", func(c *Config) { c.Signing.Keys = []HexKey{{1}} }, []string{"signing.salts (XI_SIGNING_SALTS): want one salt per key: 1 keys, 0 salts"}},
 		{"signature size", func(c *Config) { c.Signing.Size = 33 }, []string{"signing.size"}},
@@ -67,7 +68,7 @@ func TestValidate(t *testing.T) {
 		},
 		{"s3 without buckets", func(c *Config) { c.Sources["s"] = Source{Type: SourceS3} }, []string{"sources.s.buckets"}},
 		{"s3 bucket not in list", func(c *Config) { c.Sources["s"] = Source{Type: SourceS3, Buckets: []string{"a"}, Bucket: "b"} }, []string{`sources.s.bucket (XI_SOURCES_S_BUCKET): "b" is not in buckets`}},
-		{"s3 endpoint", func(c *Config) { c.Sources["s"] = Source{Type: SourceS3, Bucket: "b", Endpoint: "minio:9000"} }, []string{"sources.s.endpoint"}},
+		{"s3 endpoint", func(c *Config) { c.Sources["s"] = Source{Type: SourceS3, Bucket: "b", Endpoint: "rustfs:9000"} }, []string{"sources.s.endpoint"}},
 		{"fs relative root", func(c *Config) { c.Sources["f"] = Source{Type: SourceFS, Root: "data"} }, []string{"sources.f.root"}},
 		{"sftp host key", func(c *Config) { c.Sources["f"] = Source{Type: SourceSFTP, Host: "h"} }, []string{"sources.f.host_key (XI_SOURCES_F_HOST_KEY): is mandatory"}},
 		{"ftp pool and timeouts", func(c *Config) {
@@ -93,11 +94,24 @@ func TestValidate(t *testing.T) {
 		{"fallback status", func(c *Config) { c.Fallback.Status = 99 }, []string{"fallback.status"}},
 		{"quality", func(c *Config) { c.Formats.AVIF.Quality = 0 }, []string{"formats.avif.quality (XI_FORMATS_AVIF_QUALITY)"}},
 		{"effort", func(c *Config) { c.Formats.WebP.Effort = 7 }, []string{"formats.webp.effort"}},
+		{"hdr tonemap", func(c *Config) { c.Formats.HDR.ToneMap = "filmic" }, []string{`formats.hdr.tonemap (XI_FORMATS_HDR_TONEMAP): must be reinhard, aces or clip, got "filmic"`}},
 		{"autoquality order", func(c *Config) { c.Formats.AutoQuality.Min = 90 }, []string{"formats.autoquality.min (XI_FORMATS_AUTOQUALITY_MIN): must be <= formats.autoquality.max"}},
+		{"autoquality size target", func(c *Config) { c.Formats.AutoQuality.Method = AutoQualitySize }, []string{"formats.autoquality.target (XI_FORMATS_AUTOQUALITY_TARGET): must be a byte count"}},
+		{"autoquality allowed error", func(c *Config) { c.Formats.AutoQuality.AllowedError = 2 }, []string{"formats.autoquality.allowed_error"}},
+		{"autoquality per-format order", func(c *Config) { c.Formats.AutoQuality.FormatMin[FormatAVIF] = 85 }, []string{"formats.autoquality.format_min (XI_FORMATS_AUTOQUALITY_FORMAT_MIN): avif minimum 85 is above its maximum 80"}},
+		{"autoquality per-format lossless", func(c *Config) { c.Formats.AutoQuality.FormatMax = map[Format]int{FormatPNG: 80} }, []string{`formats.autoquality.format_max (XI_FORMATS_AUTOQUALITY_FORMAT_MAX): "png" is not a lossy`}},
+		{"autoquality per-format target", func(c *Config) { c.Formats.AutoQuality.FormatTarget = map[Format]float64{FormatJXL: 0} }, []string{"formats.autoquality.format_target"}},
 		{"limits", func(c *Config) { c.Limits.MaxSVGBytes = 0 }, []string{"limits.max_svg_bytes (XI_LIMITS_MAX_SVG_BYTES): must be > 0"}},
 		{"duplicate store", func(c *Config) { c.Cache.Result.Stores = []StoreKind{StoreMemory, StoreMemory} }, []string{"memory listed twice"}},
 		{"disk store without path", func(c *Config) { c.Cache.Result.Stores = []StoreKind{StoreDisk} }, []string{"cache.result.disk.path (XI_CACHE_RESULT_DISK_PATH)"}},
 		{"redis store without url", func(c *Config) { c.Cache.Result.Stores = []StoreKind{StoreRedis} }, []string{"cache.result.redis.url"}},
+		{"origin store without backend config", func(c *Config) { c.Cache.Origin.Stores = []StoreKind{StoreDisk, StoreRedis} }, []string{"cache.result.disk.path", "cache.result.redis.url"}},
+		{"origin memory store", func(c *Config) { c.Cache.Origin.Stores = []StoreKind{StoreMemory} }, []string{"cache.origin.stores (XI_CACHE_ORIGIN_STORES): memory is the built-in origin LRU"}},
+		{"origin store ttl", func(c *Config) {
+			c.Cache.Origin.Stores = []StoreKind{StoreRedis}
+			c.Cache.Result.Redis.URL = "redis://r:6379"
+			c.Cache.Origin.StoreTTL = 0
+		}, []string{"cache.origin.store_ttl (XI_CACHE_ORIGIN_STORE_TTL): must be > 0"}},
 		{"s3 store on http source", func(c *Config) {
 			c.Cache.Result.Stores = []StoreKind{StoreS3}
 			c.Cache.Result.S3 = S3ResultCache{Source: "origin", Bucket: "b"}

@@ -20,6 +20,19 @@ const (
 	FormatTIFF
 	FormatSVG
 	FormatJP2K
+	// FormatPDF is loaded by PDFium (pdfload); it is never written.
+	FormatPDF
+	// FormatPSD is Photoshop PSD/PSB, loaded by ImageMagick (magickload),
+	// which is allowed for nothing else; it is never written.
+	FormatPSD
+	// FormatEXR is OpenEXR (openexrload: 4-band float scRGB); never written.
+	FormatEXR
+	// FormatRadiance is Radiance RGBE (radload: RGBE-coded, decoded to float
+	// scRGB or XYZ); never written.
+	FormatRadiance
+	// FormatPPM is a binary PGM/PPM (8/16-bit) or PFM (float) portable
+	// anymap (ppmload); never written.
+	FormatPPM
 )
 
 // String returns the lower-case format name.
@@ -45,6 +58,16 @@ func (f Format) String() string {
 		return "svg"
 	case FormatJP2K:
 		return "jp2k"
+	case FormatPDF:
+		return "pdf"
+	case FormatPSD:
+		return "psd"
+	case FormatEXR:
+		return "exr"
+	case FormatRadiance:
+		return "radiance"
+	case FormatPPM:
+		return "ppm"
 	default:
 		return "unknown"
 	}
@@ -76,6 +99,17 @@ func formatOfLoader(loader, subformat string) Format {
 		return FormatSVG
 	case "jp2kload":
 		return FormatJP2K
+	case "pdfload":
+		return FormatPDF
+	case "magickload":
+		// ImageMagick loads PSD/PSB only (xi_check_loader and policy.xml).
+		return FormatPSD
+	case "openexrload":
+		return FormatEXR
+	case "radload":
+		return FormatRadiance
+	case "ppmload":
+		return FormatPPM
 	default:
 		return FormatUnknown
 	}

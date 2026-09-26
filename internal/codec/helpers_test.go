@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/zlib"
 	"encoding/binary"
+	"fmt"
 	"hash/crc32"
 	"os"
 	"testing"
@@ -99,4 +100,65 @@ func app(n byte, p string) []byte {
 	b := []byte{0xFF, 0xE0 + n}
 	b = binary.BigEndian.AppendUint16(b, uint16(len(p)+2)) //nolint:gosec // tiny
 	return append(b, p...)
+}
+
+// synthEXR builds the header of a scanline OpenEXR file declaring a w×h
+// data window, the given channels (half) and version flags, followed by
+// no pixel data: small on disk whatever size it declares.
+func synthEXR(w, h int, flags uint32, channels ...string) []byte {
+	le := binary.LittleEndian
+	b := []byte("v/1\x01")
+	b = le.AppendUint32(b, 2|flags)
+	attr := func(name, typ string, v []byte) {
+		b = append(b, name+"\x00"+typ+"\x00"...)
+		b = le.AppendUint32(b, uint32(len(v))) //nolint:gosec // tiny
+		b = append(b, v...)
+	}
+	var ch []byte
+	for _, c := range channels {
+		ch = append(ch, c+"\x00"...)
+		ch = le.AppendUint32(ch, 1)
+		ch = append(ch, 0, 0, 0, 0)
+		ch = le.AppendUint32(ch, 1)
+		ch = le.AppendUint32(ch, 1)
+	}
+	ch = append(ch, 0)
+	var win []byte
+	for _, v := range []int{0, 0, w - 1, h - 1} {
+		win = le.AppendUint32(win, uint32(int32(v))) //nolint:gosec // test values
+	}
+	attr("channels", "chlist", ch)
+	attr("compression", "compression", []byte{0})
+	attr("dataWindow", "box2i", win)
+	attr("displayWindow", "box2i", win)
+	attr("lineOrder", "lineOrder", []byte{0})
+	return append(b, 0)
+}
+
+// synthPDF builds a PDF with n blank 100×100 pt pages in one page tree:
+// small on disk however many pages it declares.
+func synthPDF(n int) []byte {
+	var b bytes.Buffer
+	b.WriteString("%PDF-1.4\n")
+	var offsets []int
+	obj := func(body string) {
+		offsets = append(offsets, b.Len())
+		fmt.Fprintf(&b, "%d 0 obj\n%s\nendobj\n", len(offsets), body)
+	}
+	obj("<< /Type /Catalog /Pages 2 0 R >>")
+	var kids bytes.Buffer
+	for i := range n {
+		fmt.Fprintf(&kids, "%d 0 R ", i+3)
+	}
+	obj(fmt.Sprintf("<< /Type /Pages /Kids [%s] /Count %d /MediaBox [0 0 100 100] >>", kids.String(), n))
+	for range n {
+		obj("<< /Type /Page /Parent 2 0 R >>")
+	}
+	xref := b.Len()
+	fmt.Fprintf(&b, "xref\n0 %d\n0000000000 65535 f \n", len(offsets)+1)
+	for _, off := range offsets {
+		fmt.Fprintf(&b, "%010d 00000 n \n", off)
+	}
+	fmt.Fprintf(&b, "trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n", len(offsets)+1, xref)
+	return b.Bytes()
 }

@@ -8,6 +8,8 @@ package vips
 #cgo nocallback xi_probe
 #cgo noescape xi_load
 #cgo nocallback xi_load
+#cgo noescape xi_load_with
+#cgo nocallback xi_load_with
 #cgo noescape xi_thumbnail
 #cgo nocallback xi_thumbnail
 #cgo noescape xi_black
@@ -26,6 +28,8 @@ package vips
 #cgo nocallback xi_meta_set_blob
 #cgo noescape xi_meta_set_array_int
 #cgo nocallback xi_meta_set_array_int
+#cgo noescape xi_meta_set_strings
+#cgo nocallback xi_meta_set_strings
 #cgo noescape xi_meta_remove
 #cgo nocallback xi_meta_remove
 #cgo noescape xi_meta_get_string
@@ -108,6 +112,24 @@ package vips
 #cgo nocallback xi_similarity
 #cgo noescape xi_affine
 #cgo nocallback xi_affine
+#cgo noescape xi_cast_round
+#cgo nocallback xi_cast_round
+#cgo noescape xi_maplut
+#cgo nocallback xi_maplut
+#cgo noescape xi_recomb
+#cgo nocallback xi_recomb
+#cgo noescape xi_mix
+#cgo nocallback xi_mix
+#cgo noescape xi_gradient_mask
+#cgo nocallback xi_gradient_mask
+#cgo noescape xi_conv3
+#cgo nocallback xi_conv3
+#cgo noescape xi_unsharp
+#cgo nocallback xi_unsharp
+#cgo noescape xi_insert
+#cgo nocallback xi_insert
+#cgo noescape xi_blend_mask
+#cgo nocallback xi_blend_mask
 #cgo noescape xi_jpegsave
 #cgo nocallback xi_jpegsave
 #cgo noescape xi_pngsave
@@ -323,6 +345,9 @@ func opError(rc C.int, op string, cerr *C.char, src *C.VipsBlob) error {
 		kind = errs.KindCorrupt
 	case C.XI_ERR_LIMIT:
 		kind = errs.KindLimitExceeded
+	case C.XI_ERR_ENCRYPTED:
+		return errs.WithPublic(errs.Wrap(errs.KindUnsupported, &OpError{Op: op, Msg: msg}),
+			"password-protected documents are not supported")
 	case C.XI_ERR_SAVE, C.XI_ERR_OP:
 		if C.xi_blob_failed(src) != 0 {
 			kind = errs.KindCorrupt

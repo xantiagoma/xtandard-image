@@ -1,6 +1,7 @@
 package config
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"maps"
@@ -82,6 +83,7 @@ func (c *Config) validateServer(v *validator) {
 		v.check(o == "*" || validOrigin(o), fmt.Sprintf("server.cors_origins[%d]", i), "%q is not * or scheme://host[:port]", o)
 	}
 	v.check(!c.Admin.Pprof || c.Admin.Addr != "", "admin.pprof", "needs admin.addr")
+	v.check(!c.Admin.Docs || c.Admin.Addr != "", "admin.docs", "needs admin.addr")
 	v.check(c.Admin.Addr == "" || c.Admin.Addr != s.Addr, "admin.addr", "must differ from server.addr")
 	v.check(c.Observability.LogLevel != "", "observability.log_level", "must be set")
 }
@@ -238,9 +240,9 @@ func (c *Config) validateFetch(v *validator) {
 func (d *Dialects) mounts() map[string]Mount {
 	return map[string]Mount{
 		"imgproxy": d.Imgproxy.Mount, "query": d.Query, "wsrv": d.Wsrv,
-		"cloudflare": d.Cloudflare, "cloudflare_images": d.CloudflareImages,
+		"cloudflare": d.Cloudflare, "cloudflare_images": d.CloudflareImages.Mount,
 		"imgix": d.Imgix, "cloudinary": d.Cloudinary.Mount, "imagekit": d.Imagekit,
-		"bunny": d.Bunny, "thumbor": d.Thumbor,
+		"bunny": d.Bunny, "thumbor": d.Thumbor, "awssih": d.AWSSIH.Mount,
 	}
 }
 
@@ -284,6 +286,20 @@ func (c *Config) validateDialects(v *validator) {
 		src := d.Cloudinary.Clouds[cloud]
 		v.check(c.hasSource(src), "dialects.cloudinary.clouds", "cloud %q maps to unknown source %q", cloud, src)
 	}
+	for _, hash := range sortedKeys(d.CloudflareImages.Accounts) {
+		src := d.CloudflareImages.Accounts[hash]
+		v.check(hash != "" && !strings.Contains(hash, "/"), "dialects.cloudflare_images.accounts", "bad account hash %q", hash)
+		v.check(c.hasSource(src), "dialects.cloudflare_images.accounts", "account %q maps to unknown source %q", hash, src)
+	}
+	for _, bucket := range sortedKeys(d.AWSSIH.Buckets) {
+		src := d.AWSSIH.Buckets[bucket]
+		v.check(bucket != "", "dialects.awssih.buckets", "bucket name must not be empty")
+		v.check(c.hasSource(src), "dialects.awssih.buckets", "bucket %q maps to unknown source %q", bucket, src)
+	}
+	v.check((d.AWSSIH.RewriteMatchPattern == "") == (d.AWSSIH.RewriteSubstitution == ""),
+		"dialects.awssih.rewrite_match_pattern", "must be set together with rewrite_substitution")
+	v.check(d.AWSSIH.RewriteMatchPattern == "" || strings.HasPrefix(d.AWSSIH.RewriteMatchPattern, "/"),
+		"dialects.awssih.rewrite_match_pattern", "must be a /pattern/flags literal")
 	for i, name := range d.Simple.Enabled {
 		v.check(validName(name), fmt.Sprintf("dialects.simple.enabled[%d]", i), "%q is not a provider name", name)
 	}
@@ -342,8 +358,12 @@ func (c *Config) validateFormats(v *validator) {
 	v.between(f.AVIF.Effort, 0, 9, "formats.avif.effort")
 	v.between(f.JXL.Effort, 1, 10, "formats.jxl.effort")
 	v.between(f.GIF.Effort, 1, 10, "formats.gif.effort")
+	v.check(f.PDF.DPI >= 1 && f.PDF.DPI <= 1200, "formats.pdf.dpi", "must be in [1, 1200], got %g", f.PDF.DPI)
+	v.check(f.HDR.ToneMap == ToneMapReinhard || f.HDR.ToneMap == ToneMapACES || f.HDR.ToneMap == ToneMapClip,
+		"formats.hdr.tonemap", "must be reinhard, aces or clip, got %q", f.HDR.ToneMap)
 	v.positive(f.AVIF.MaxPixels, "formats.avif.max_pixels")
 	v.positive(f.Best.MaxPixels, "formats.best.max_pixels")
+	v.check(f.RAW.PreviewMinRatio > 0 && f.RAW.PreviewMinRatio <= 100, "formats.raw.preview_min_ratio", "must be > 0 and <= 100")
 	v.check(f.Best.ComplexityThreshold >= 0, "formats.best.complexity_threshold", "must be >= 0")
 	v.check(len(f.Preferred) > 0, "formats.preferred", "must not be empty")
 	v.check(!slices.Contains(f.Preferred, FormatSVG), "formats.preferred", "svg cannot be an output format")
@@ -354,7 +374,33 @@ func (c *Config) validateFormats(v *validator) {
 	v.between(aq.Max, 1, 100, "formats.autoquality.max")
 	v.check(aq.Min <= aq.Max, "formats.autoquality.min", "must be <= formats.autoquality.max")
 	v.check(aq.Target > 0, "formats.autoquality.target", "must be > 0")
-	v.check(aq.AllowedError >= 0, "formats.autoquality.allowed_error", "must be >= 0")
+	v.check(aq.AllowedError >= 0 && aq.AllowedError <= 1, "formats.autoquality.allowed_error", "must be in 0..1")
+	v.check(aq.Method != AutoQualitySize || aq.Target >= 1, "formats.autoquality.target",
+		"must be a byte count >= 1 with method size")
+	lossy := []Format{FormatJPEG, FormatWebP, FormatAVIF, FormatHEIC, FormatJXL}
+	for _, b := range []struct {
+		path string
+		m    map[Format]int
+	}{{"formats.autoquality.format_min", aq.FormatMin}, {"formats.autoquality.format_max", aq.FormatMax}} {
+		for _, f := range sortedKeys(b.m) {
+			v.check(slices.Contains(lossy, f), b.path, "%q is not a lossy output format", f)
+			v.between(b.m[f], 1, 100, b.path)
+		}
+	}
+	for _, f := range sortedKeys(aq.FormatTarget) {
+		v.check(slices.Contains(lossy, f), "formats.autoquality.format_target", "%q is not a lossy output format", f)
+		v.check(aq.FormatTarget[f] > 0, "formats.autoquality.format_target", "must be > 0")
+	}
+	for _, f := range lossy {
+		lo, hi := aq.Min, aq.Max
+		if q := aq.FormatMin[f]; q > 0 {
+			lo = q
+		}
+		if q := aq.FormatMax[f]; q > 0 {
+			hi = q
+		}
+		v.check(lo <= hi, "formats.autoquality.format_min", "%s minimum %d is above its maximum %d", f, lo, hi)
+	}
 }
 
 func (c *Config) validateLimits(v *validator) {
@@ -385,8 +431,26 @@ func (c *Config) validateCache(v *validator) {
 		v.check(!seen[s], "cache.result.stores", "%s listed twice", s)
 		seen[s] = true
 	}
+	if r.Enabled() {
+		v.positive(int64(r.TTL), "cache.result.ttl")
+		v.positive(int64(r.WriteQueue), "cache.result.write_queue")
+	}
 	if seen[StoreMemory] {
 		v.positive(int64(r.MemoryBytes), "cache.result.memory_bytes")
+	}
+	o := ca.Origin
+	seenOrigin := map[StoreKind]bool{}
+	for _, s := range o.Stores {
+		v.check(!seenOrigin[s], "cache.origin.stores", "%s listed twice", s)
+		v.check(s != StoreMemory, "cache.origin.stores", "memory is the built-in origin LRU (cache.origin.memory_bytes); list disk, redis or s3")
+		seenOrigin[s] = true
+	}
+	if len(o.Stores) > 0 {
+		v.positive(int64(o.StoreTTL), "cache.origin.store_ttl")
+	}
+	// Backends are shared by the result and the origin cache.
+	for s := range seenOrigin {
+		seen[s] = true
 	}
 	if seen[StoreDisk] {
 		v.check(filepath.IsAbs(r.Disk.Path), "cache.result.disk.path", "must be an absolute path with the disk store")
@@ -394,6 +458,7 @@ func (c *Config) validateCache(v *validator) {
 	}
 	if seen[StoreRedis] {
 		v.check(r.Redis.URL != "", "cache.result.redis.url", "must be set with the redis store")
+		v.positive(int64(r.Redis.MaxValueBytes), "cache.result.redis.max_value_bytes")
 	}
 	if seen[StoreS3] {
 		src, ok := c.Sources[r.S3.Source]
@@ -423,7 +488,7 @@ func (c *Config) warnings() []string {
 	return w
 }
 
-func sortedKeys[V any](m map[string]V) []string {
+func sortedKeys[K cmp.Ordered, V any](m map[K]V) []K {
 	return slices.Sorted(maps.Keys(m))
 }
 

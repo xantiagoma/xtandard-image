@@ -15,7 +15,8 @@ import (
 	"slices"
 	"time"
 
-	"github.com/xantiagoma/xtandard-image/internal/codec"
+	"github.com/xantiagoma/xtandard-image/internal/apidoc"
+	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/limiter"
@@ -43,6 +44,10 @@ type Options struct {
 type hooks struct {
 	listening func(public, admin net.Addr) // called once both listeners are bound
 	policy    *ssrf.Policy                 // replaces the SSRF policy derived from Config
+	// resultCache and originCache receive the caches once built (nil when
+	// off), so tests can wait for their asynchronous writes.
+	resultCache func(*cache.AsyncStore)
+	originCache func(*cache.AsyncStore)
 	// keepVips skips vips.Shutdown: libvips cannot be used again after it,
 	// and a test binary starts several services one after the other.
 	keepVips bool
@@ -138,6 +143,24 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		types[name] = string(cfg.Sources[name].Type)
 	}
 	types["_dev"] = "http"
+
+	// The caches may hold vips blobs and buffers: they are closed (after
+	// the drain) before libvips shuts down, since cleanups run in reverse.
+	cs, err := buildCaches(ctx, cfg, met, logger)
+	if err != nil {
+		return fmt.Errorf("cache: %w", err)
+	}
+	cleanups = append(cleanups, func(context.Context) error { return cs.Close() })
+	if h.resultCache != nil {
+		h.resultCache(cs.result)
+	}
+	if h.originCache != nil {
+		h.originCache(cs.origin)
+	}
+	fetchOpts := []fetch.Option{fetch.WithMetrics(&fetchMetrics{m: met, types: types})}
+	if cs.origin != nil {
+		fetchOpts = append(fetchOpts, fetch.WithStore(cs.origin, cfg.Cache.Origin.StoreTTL))
+	}
 	fetcher, err := fetch.New(reg, vipsAllocator, fetch.Config{
 		Timeout:     cfg.Fetch.Timeout,
 		MaxBytes:    int64(cfg.Limits.MaxSrcBytes),
@@ -145,7 +168,7 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		CacheTTL:    cfg.Cache.Origin.TTL,
 		NegativeTTL: cfg.Cache.Origin.NegativeTTL,
 		Retry:       cfg.Fetch.Retry,
-	}, fetch.WithMetrics(&fetchMetrics{m: met, types: types}))
+	}, fetchOpts...)
 	if err != nil {
 		return err
 	}
@@ -177,18 +200,15 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 
 	ready := admin.NewReadiness()
 	scfg := serverConfig(cfg)
-	srv, err := server.New(&scfg, &server.Deps{
-		Router:   rt,
-		Resolver: reg,
-		Fetcher:  fetcher,
-		Admitter: lim,
-		Prober: &codecProber{svg: codec.Limits{
-			MaxSVGBytes:    int64(cfg.Limits.MaxSVGBytes),
-			MaxSVGDepth:    cfg.Limits.MaxSVGDepth,
-			MaxSVGElements: cfg.Limits.MaxSVGElements,
-		}},
+	scfg.ResultCache.Build = opts.Version
+	deps := &server.Deps{
+		Router:    rt,
+		Resolver:  reg,
+		Fetcher:   fetcher,
+		Admitter:  lim,
+		Prober:    &codecProber{svg: formatLimits(cfg)},
 		Sniffer:   codecSniffer{},
-		Inspector: vipsInspector{},
+		Inspector: vipsInspector{formats: formatLimits(cfg)},
 		Processor: proc,
 		Allocator: vipsAllocator,
 		Logger:    logger,
@@ -198,7 +218,11 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		Middleware: func(next http.Handler) http.Handler {
 			return tp.Middleware(next, "image")
 		},
-	})
+	}
+	if cs.result != nil {
+		deps.ResultCache = cs.result
+	}
+	srv, err := server.New(&scfg, deps)
 	if err != nil {
 		return err
 	}
@@ -210,7 +234,7 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		adminAddr:  cfg.Admin.Addr,
 		public:     srv.HTTPServer,
 		admin: func(ctx context.Context) *http.Server {
-			return adminServer(ctx, logger, adminMux(met, ready, cfg.Admin.Pprof))
+			return adminServer(ctx, logger, adminMux(met, ready, &cfg.Admin))
 		},
 		shutdownDelay:   cfg.Server.ShutdownDelay,
 		shutdownTimeout: cfg.Server.ShutdownTimeout,
@@ -225,8 +249,11 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	return lc.run(ctx)
 }
 
-func adminMux(met *metrics.Metrics, ready *admin.Readiness, pprof bool) http.Handler {
-	return admin.NewMux(admin.Options{Metrics: met.Handler(), Readiness: ready, Pprof: pprof})
+func adminMux(met *metrics.Metrics, ready *admin.Readiness, cfg *config.Admin) http.Handler {
+	return admin.NewMux(&admin.Options{
+		Metrics: met.Handler(), Readiness: ready, Pprof: cfg.Pprof,
+		ConfigSchema: config.Schema(), OpenAPI: apidoc.Spec(), Docs: cfg.Docs,
+	})
 }
 
 // closeAll closes every source holding connections or file handles.

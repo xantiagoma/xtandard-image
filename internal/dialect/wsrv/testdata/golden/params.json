@@ -1,0 +1,4667 @@
+{
+  "a_attention": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300\u0026fit=cover\u0026a=attention",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_bottom": {
+    "query": "url=example.com/a.jpg\u0026fit=cover\u0026a=bottom",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "south"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_bottom_left": {
+    "query": "url=example.com/a.jpg\u0026fit=cover\u0026a=bottom-left",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "south-west"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_bottom_right": {
+    "query": "url=example.com/a.jpg\u0026fit=cover\u0026a=bottom-right",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "south-east"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_center": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300\u0026fit=cover\u0026a=center",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "center"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_crop_deprecated": {
+    "query": "url=example.com/a.jpg\u0026fit=cover\u0026a=crop-22-0",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusX": 0.22,
+            "Type": "focus-point"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_deprecated_t": {
+    "query": "url=example.com/a.jpg\u0026fit=cover\u0026a=t",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "north"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_entropy": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300\u0026fit=cover\u0026a=entropy",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "entropy"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_focal_default": {
+    "query": "url=example.com/a.jpg\u0026fit=cover\u0026a=focal",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusX": 0.5,
+            "FocusY": 0.5,
+            "Type": "focus-point"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_focal_fpx_fpy": {
+    "query": "url=example.com/a.jpg\u0026fit=cover\u0026a=focal\u0026fpx=0.3\u0026fpy=0.7",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusX": 0.3,
+            "FocusY": 0.7,
+            "Type": "focus-point"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_focal_percentages": {
+    "query": "url=example.com/a.jpg\u0026fit=cover\u0026a=focal-20-80",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusX": 0.2,
+            "FocusY": 0.8,
+            "Type": "focus-point"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_focal_percentages_fpx_first": {
+    "query": "url=example.com/a.jpg\u0026fpx=0.9\u0026fit=cover\u0026a=focal-20-80",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusX": 0.9,
+            "FocusY": 0.8,
+            "Type": "focus-point"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_invalid": {
+    "error": {
+      "field": "a",
+      "kind": "invalid_url",
+      "public": "invalid a: expected center, top, right, bottom, left, top-left, top-right, bottom-left, bottom-right, entropy, attention or focal",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026a=middle"
+  },
+  "a_left": {
+    "query": "url=example.com/a.jpg\u0026fit=cover\u0026a=left",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "west"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_right": {
+    "query": "url=example.com/a.jpg\u0026fit=cover\u0026a=right",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "east"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_top": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300\u0026fit=cover\u0026a=top",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "north"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_top_left": {
+    "query": "url=example.com/a.jpg\u0026fit=cover\u0026a=top-left",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "north-west"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_top_right": {
+    "query": "url=example.com/a.jpg\u0026fit=cover\u0026a=top-right",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "north-east"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "af": {
+    "query": "url=example.com/a.jpg\u0026output=png\u0026af",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "png",
+        "PNG": {
+          "AdaptiveFilter": true
+        }
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "align_synonym": {
+    "query": "url=example.com/a.jpg\u0026fit=cover\u0026align=bottom",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "south"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bg_bad_length": {
+    "error": {
+      "field": "bg",
+      "kind": "invalid_url",
+      "public": "invalid bg: expected a CSS colour name or 3, 4, 6 or 8 hex digits (RGB, ARGB, RRGGBB, AARRGGBB)",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026bg=12345"
+  },
+  "bg_hash_encoded": {
+    "query": "url=example.com/a.jpg\u0026bg=%23ff8800",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "G": 136,
+            "R": 255
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bg_hex3": {
+    "query": "url=example.com/a.jpg\u0026bg=f00",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "R": 255
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bg_hex4_argb": {
+    "query": "url=example.com/a.jpg\u0026bg=8f00",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 136,
+            "R": 255
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bg_hex6": {
+    "query": "url=example.com/a.jpg\u0026bg=ff8800",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "G": 136,
+            "R": 255
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bg_hex8_argb": {
+    "query": "url=example.com/a.jpg\u0026bg=80ff8800",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 128,
+            "G": 136,
+            "R": 255
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bg_invalid": {
+    "error": {
+      "field": "bg",
+      "kind": "invalid_url",
+      "public": "invalid bg: expected a CSS colour name or 3, 4, 6 or 8 hex digits (RGB, ARGB, RRGGBB, AARRGGBB)",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026bg=nocolour"
+  },
+  "bg_name": {
+    "query": "url=example.com/a.jpg\u0026bg=black",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "blur": {
+    "query": "url=example.com/a.jpg\u0026blur=5",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Blur": 5,
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "blur_invalid": {
+    "error": {
+      "field": "blur",
+      "kind": "invalid_url",
+      "public": "invalid blur: expected a number",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026blur=x"
+  },
+  "blur_mild": {
+    "query": "url=example.com/a.jpg\u0026blur",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "blur",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Blur": 0.8,
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "blur_out_of_range": {
+    "query": "url=example.com/a.jpg\u0026blur=0.1",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "blur",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Blur": 0.8,
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "blur_zero": {
+    "query": "url=example.com/a.jpg\u0026blur=0",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "cbg_without_contain": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026cbg=red",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "con": {
+    "query": "url=example.com/a.jpg\u0026con=25",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "con",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Contrast": 1.25
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "con_negative": {
+    "query": "url=example.com/a.jpg\u0026con=-100",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "con",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Contrast": 0
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "con_out_of_range": {
+    "error": {
+      "field": "con",
+      "kind": "invalid_url",
+      "public": "invalid con: expected an integer from -100 to 100",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026con=101"
+  },
+  "con_zero": {
+    "query": "url=example.com/a.jpg\u0026con=0",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_contain_after": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300\u0026fit=contain\u0026cbg=red\u0026cw=100\u0026ch=100",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        },
+        {
+          "Background": {
+            "A": 255,
+            "R": 255
+          },
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west"
+            },
+            "Height": {
+              "Px": 100
+            },
+            "Width": {
+              "Px": 100
+            }
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_deprecated": {
+    "query": "url=example.com/a.jpg\u0026crop=100,100,720,530",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        },
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 720,
+              "YOffset": 530
+            },
+            "Height": {
+              "Px": 100
+            },
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_deprecated_cw_first": {
+    "query": "url=example.com/a.jpg\u0026cw=50\u0026crop=100,100,720,530",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        },
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 720,
+              "YOffset": 530
+            },
+            "Height": {
+              "Px": 100
+            },
+            "Width": {
+              "Px": 50
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_deprecated_short": {
+    "query": "url=example.com/a.jpg\u0026crop=100,100",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_effects_after": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026cw=100\u0026blur=5\u0026ro=45\u0026filt=sepia",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        },
+        {
+          "Blur": 5,
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west"
+            },
+            "Width": {
+              "Px": 100
+            }
+          },
+          "RotateAny": 45,
+          "Sepia": true
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_invalid": {
+    "error": {
+      "field": "cw",
+      "kind": "invalid_url",
+      "public": "invalid cw: expected pixels (0 or more) or a percentage (0% to 100%)",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026cw=abc"
+  },
+  "crop_only_offsets": {
+    "query": "url=example.com/a.jpg\u0026cx=10\u0026cy=10",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        },
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 10,
+              "YOffset": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_precrop": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026cx=10\u0026cy=20\u0026cw=300\u0026ch=200\u0026precrop",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 10,
+              "YOffset": 20
+            },
+            "Height": {
+              "Px": 200
+            },
+            "Width": {
+              "Px": 300
+            }
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_precrop_false": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026cw=300\u0026precrop=false",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        },
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west"
+            },
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_rect": {
+    "query": "url=example.com/a.jpg\u0026cx=680\u0026cy=500\u0026cw=300\u0026ch=300",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        },
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 680,
+              "YOffset": 500
+            },
+            "Height": {
+              "Px": 300
+            },
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_rect_after_resize": {
+    "query": "url=example.com/a.jpg\u0026w=500\u0026cx=10\u0026cy=20\u0026cw=300\u0026ch=200",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 500
+            }
+          }
+        },
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 10,
+              "YOffset": 20
+            },
+            "Height": {
+              "Px": 200
+            },
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_rect_percent": {
+    "query": "url=example.com/a.jpg\u0026cx=10%25\u0026cy=100%25\u0026cw=50%25\u0026ch=50%25",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        },
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 0.1
+            },
+            "Height": {
+              "Rel": 0.5
+            },
+            "Width": {
+              "Rel": 0.5
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "default_before_errorredirect": {
+    "query": "url=example.com/a.jpg\u0026default=1\u0026errorredirect=example.com/404.png",
+    "request": {
+      "Delivery": {
+        "OnErrorRedirect": true
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "default_control_char": {
+    "error": {
+      "field": "default",
+      "kind": "invalid_url",
+      "public": "invalid default: expected an image url",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026default=example.com/%01"
+  },
+  "default_empty": {
+    "query": "url=example.com/a.jpg\u0026default=",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "default_https": {
+    "query": "url=example.com/a.jpg\u0026default=https://example.com/404.png",
+    "request": {
+      "Delivery": {
+        "Fallback": {
+          "Raw": "https://example.com/404.png"
+        },
+        "OnErrorRedirect": true
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "default_mount_relative": {
+    "mount": "assets",
+    "query": "url=a.jpg\u0026default=missing.png",
+    "request": {
+      "Delivery": {
+        "Fallback": {
+          "Encoding": "relative",
+          "Raw": "missing.png"
+        },
+        "OnErrorRedirect": true
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "default_one": {
+    "query": "url=example.com/a.jpg\u0026default=1",
+    "request": {
+      "Delivery": {
+        "OnErrorRedirect": true
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "default_url": {
+    "query": "url=example.org/noimage.jpg\u0026default=wsrv.nl/placeholder.svg",
+    "request": {
+      "Delivery": {
+        "Fallback": {
+          "Raw": "https://wsrv.nl/placeholder.svg"
+        },
+        "OnErrorRedirect": true
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.org/noimage.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.org/noimage.jpg"
+  },
+  "dpr": {
+    "query": "url=example.com/a.jpg\u0026w=100\u0026dpr=2",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "DPR": 2,
+            "Enlarge": true,
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "dpr_fraction": {
+    "query": "url=example.com/a.jpg\u0026w=100\u0026dpr=1.5",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "DPR": 1.5,
+            "Enlarge": true,
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "dpr_invalid": {
+    "error": {
+      "field": "dpr",
+      "kind": "invalid_url",
+      "public": "invalid dpr: expected a number greater than 0 and at most 8",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026dpr=x"
+  },
+  "dpr_too_large": {
+    "error": {
+      "field": "dpr",
+      "kind": "invalid_url",
+      "public": "invalid dpr: expected a number greater than 0 and at most 8",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026dpr=9"
+  },
+  "dpr_zero": {
+    "query": "url=example.com/a.jpg\u0026w=100\u0026dpr=0",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "encoding_base64": {
+    "query": "url=example.com/a.jpg\u0026crop=100,100,720,530\u0026encoding=base64",
+    "request": {
+      "Delivery": {
+        "Encoding": "data-url"
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        },
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 720,
+              "YOffset": 530
+            },
+            "Height": {
+              "Px": 100
+            },
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "encoding_base64_upper": {
+    "query": "url=example.com/a.jpg\u0026encoding=BASE64",
+    "request": {
+      "Delivery": {
+        "Encoding": "data-url"
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "encoding_other": {
+    "query": "url=example.com/a.jpg\u0026encoding=hex",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "encoding",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "errorredirect_deprecated": {
+    "query": "url=example.com/a.jpg\u0026errorredirect=example.com/404.png",
+    "request": {
+      "Delivery": {
+        "Fallback": {
+          "Raw": "https://example.com/404.png"
+        },
+        "OnErrorRedirect": true
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "filename": {
+    "query": "url=example.com/a.jpg\u0026filename=photo",
+    "request": {
+      "Delivery": {
+        "Filename": "photo"
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "filt_duotone": {
+    "query": "url=example.com/a.jpg\u0026filt=duotone",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Duotone": {
+            "Highlight": {
+              "A": 255,
+              "B": 79,
+              "G": 231,
+              "R": 216
+            },
+            "Intensity": 1,
+            "Shadow": {
+              "A": 255,
+              "B": 88,
+              "G": 54,
+              "R": 200
+            }
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "filt_duotone_colours": {
+    "query": "url=example.com/a.jpg\u0026filt=duotone\u0026start=000\u0026stop=fff",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Duotone": {
+            "Highlight": {
+              "A": 255,
+              "B": 255,
+              "G": 255,
+              "R": 255
+            },
+            "Intensity": 1,
+            "Shadow": {
+              "A": 255
+            }
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "filt_greyscale": {
+    "query": "url=example.com/a.jpg\u0026filt=greyscale",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Grayscale": true,
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "filt_invalid": {
+    "error": {
+      "field": "filt",
+      "kind": "invalid_url",
+      "public": "invalid filt: expected greyscale, sepia, duotone, negate or none",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026filt=vintage"
+  },
+  "filt_negate": {
+    "query": "url=example.com/a.jpg\u0026filt=negate",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Negate": true,
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "filt_none": {
+    "query": "url=example.com/a.jpg\u0026filt=none",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "filt_sepia": {
+    "query": "url=example.com/a.jpg\u0026filt=sepia",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          },
+          "Sepia": true
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_contain": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300\u0026fit=contain",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_contain_align": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300\u0026fit=contain\u0026a=top-left",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "north-west"
+            }
+          },
+          "Gravity": {
+            "Type": "north-west"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_contain_attention": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300\u0026fit=contain\u0026a=attention",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_contain_cbg": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300\u0026fit=contain\u0026cbg=black",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_contain_cbg_and_bg": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300\u0026fit=contain\u0026cbg=black\u0026bg=white",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "cbg",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 255,
+            "G": 255,
+            "R": 255
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_cover": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300\u0026fit=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_deprecated_absolute": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026fit=absolute",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "force",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_deprecated_crop_prefix": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026fit=crop-top",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_deprecated_fit": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026fit=fit",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_deprecated_letterbox": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026fit=letterbox",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_deprecated_squaredown": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026fit=squaredown",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_fill": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300\u0026fit=fill",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "force",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_inside": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300\u0026fit=inside",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_invalid": {
+    "error": {
+      "field": "fit",
+      "kind": "invalid_url",
+      "public": "invalid fit: expected inside, outside, cover, fill or contain",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026fit=stretch"
+  },
+  "fit_outside": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300\u0026fit=outside",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "outside",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fit_t_synonym": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026t=cover",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "flip": {
+    "query": "url=example.com/a.jpg\u0026flip",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Flip": {
+            "V": true
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "flip_false": {
+    "query": "url=example.com/a.jpg\u0026flip=false",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "flip_flop": {
+    "query": "url=example.com/a.jpg\u0026flip=1\u0026flop=true",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true,
+            "V": true
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "flop": {
+    "query": "url=example.com/a.jpg\u0026flop",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fpx_out_of_range": {
+    "error": {
+      "field": "fpx",
+      "kind": "invalid_url",
+      "public": "invalid fpx: expected a number from 0 to 1",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026a=focal\u0026fpx=2"
+  },
+  "fpy_invalid": {
+    "error": {
+      "field": "fpy",
+      "kind": "invalid_url",
+      "public": "invalid fpy: expected a number from 0 to 1",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026a=focal\u0026fpy=x"
+  },
+  "gam": {
+    "query": "url=example.com/a.jpg\u0026gam=3",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Gamma": 3
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "gam_default": {
+    "query": "url=example.com/a.jpg\u0026gam",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Gamma": 2.2
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "gam_invalid": {
+    "error": {
+      "field": "gam",
+      "kind": "invalid_url",
+      "public": "invalid gam: expected a number",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026gam=x"
+  },
+  "gam_out_of_range": {
+    "query": "url=example.com/a.jpg\u0026gam=5",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Gamma": 2.2
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "h": {
+    "query": "url=example.com/a.jpg\u0026h=200",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "height_synonym": {
+    "query": "url=example.com/a.jpg\u0026height=200",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "hue": {
+    "query": "url=example.com/a.jpg\u0026hue=90",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Hue": 90
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "hue_negative": {
+    "query": "url=example.com/a.jpg\u0026hue=-90",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Hue": 270
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "hue_wrap": {
+    "query": "url=example.com/a.jpg\u0026hue=450",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Hue": 90
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "il": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026il",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Progressive": true
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "il_false": {
+    "query": "url=example.com/a.jpg\u0026il=0",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Progressive": false
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "known_strict": {
+    "config": "strict",
+    "query": "url=example.com/a.jpg\u0026w=10\u0026fit=cover\u0026maxage=1d\u0026default=1",
+    "request": {
+      "Delivery": {
+        "OnErrorRedirect": true,
+        "TTL": 86400000000000
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "l": {
+    "query": "url=example.com/a.jpg\u0026output=png\u0026l=9",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "png",
+        "PNG": {
+          "Compression": 9
+        }
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "l_out_of_range": {
+    "error": {
+      "field": "l",
+      "kind": "invalid_url",
+      "public": "invalid l: expected an integer from 0 to 9",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026l=10"
+  },
+  "level_synonym": {
+    "query": "url=example.com/a.jpg\u0026level=0",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "PNG": {
+          "Compression": 0
+        }
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "ll": {
+    "query": "url=example.com/a.jpg\u0026output=webp\u0026ll",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "webp",
+        "Lossless": true
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "loop_delay_fsol": {
+    "query": "url=example.com/a.jpg\u0026loop=0\u0026delay=100,200\u0026fsol=0",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "loop",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "delay",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "fsol",
+          "Reason": "not applicable"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "lossless_synonym": {
+    "query": "url=example.com/a.jpg\u0026lossless=true",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Lossless": true
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mask_circle": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300\u0026fit=cover\u0026mask=circle",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Mask": {
+            "Shape": "circle"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mask_ellipse": {
+    "query": "url=example.com/a.jpg\u0026mask=ellipse",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Mask": {
+            "Shape": "ellipse"
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mask_heart_mbg": {
+    "query": "url=example.com/a.jpg\u0026mask=heart\u0026mbg=red",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Mask": {
+            "Background": {
+              "A": 255,
+              "R": 255
+            },
+            "Shape": "heart"
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mask_hexagon": {
+    "query": "url=example.com/a.jpg\u0026mask=hexagon",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Mask": {
+            "Shape": "hexagon"
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mask_invalid": {
+    "error": {
+      "field": "mask",
+      "kind": "invalid_url",
+      "public": "invalid mask: expected circle, ellipse, triangle, triangle-180, pentagon, pentagon-180, hexagon, square, star, heart or none",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026mask=blob"
+  },
+  "mask_mtrim": {
+    "query": "url=example.com/a.jpg\u0026mask=circle\u0026mtrim",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Mask": {
+            "Shape": "circle",
+            "Trim": true
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mask_none": {
+    "query": "url=example.com/a.jpg\u0026mask=none\u0026mtrim",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mask_pentagon": {
+    "query": "url=example.com/a.jpg\u0026mask=pentagon",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Mask": {
+            "Shape": "pentagon"
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mask_pentagon_180": {
+    "query": "url=example.com/a.jpg\u0026mask=pentagon-180",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Mask": {
+            "Shape": "pentagon-180"
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mask_shape_synonym": {
+    "query": "url=example.com/a.jpg\u0026shape=star\u0026strim",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Mask": {
+            "Shape": "star",
+            "Trim": true
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mask_square": {
+    "query": "url=example.com/a.jpg\u0026mask=square",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Mask": {
+            "Shape": "square"
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mask_star": {
+    "query": "url=example.com/a.jpg\u0026mask=star",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Mask": {
+            "Shape": "star"
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mask_triangle": {
+    "query": "url=example.com/a.jpg\u0026mask=triangle",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Mask": {
+            "Shape": "triangle"
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mask_triangle_180": {
+    "query": "url=example.com/a.jpg\u0026mask=triangle-180",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Mask": {
+            "Shape": "triangle-180"
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "maxage_bad_order": {
+    "error": {
+      "field": "maxage",
+      "kind": "invalid_url",
+      "public": "invalid maxage: expected a duration from 1d to 1y such as 31d, 1w, 2M or 86400 (seconds)",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026maxage=1d1w"
+  },
+  "maxage_combined": {
+    "query": "url=example.com/a.jpg\u0026maxage=1w%203d",
+    "request": {
+      "Delivery": {
+        "TTL": 864000000000000
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "maxage_days": {
+    "query": "url=example.com/a.jpg\u0026w=100\u0026maxage=31d",
+    "request": {
+      "Delivery": {
+        "TTL": 2678400000000000
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "maxage_invalid": {
+    "error": {
+      "field": "maxage",
+      "kind": "invalid_url",
+      "public": "invalid maxage: expected a duration from 1d to 1y such as 31d, 1w, 2M or 86400 (seconds)",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026maxage=soon"
+  },
+  "maxage_months": {
+    "query": "url=example.com/a.jpg\u0026maxage=2M",
+    "request": {
+      "Delivery": {
+        "TTL": 5184000000000000
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "maxage_seconds": {
+    "query": "url=example.com/a.jpg\u0026maxage=86400",
+    "request": {
+      "Delivery": {
+        "TTL": 86400000000000
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "maxage_too_long": {
+    "error": {
+      "field": "maxage",
+      "kind": "invalid_url",
+      "public": "invalid maxage: expected a duration from 1d to 1y such as 31d, 1w, 2M or 86400 (seconds)",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026maxage=2y"
+  },
+  "maxage_too_short": {
+    "error": {
+      "field": "maxage",
+      "kind": "invalid_url",
+      "public": "invalid maxage: expected a duration from 1d to 1y such as 31d, 1w, 2M or 86400 (seconds)",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026maxage=1h"
+  },
+  "maxage_week": {
+    "query": "url=example.com/a.jpg\u0026maxage=1w",
+    "request": {
+      "Delivery": {
+        "TTL": 604800000000000
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "maxage_year": {
+    "query": "url=example.com/a.jpg\u0026maxage=1y",
+    "request": {
+      "Delivery": {
+        "TTL": 31536000000000000
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mod_all": {
+    "query": "url=example.com/a.jpg\u0026mod=1.5,0.5,90",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Exposure": 1.5,
+            "Hue": 90,
+            "Saturation": 0.5
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mod_bri_synonym": {
+    "query": "url=example.com/a.jpg\u0026bri=1.2",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Exposure": 1.2
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mod_brightness": {
+    "query": "url=example.com/a.jpg\u0026mod=2",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Exposure": 2
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mod_out_of_range": {
+    "error": {
+      "field": "mod",
+      "kind": "invalid_url",
+      "public": "invalid mod: expected a number from 0 to 1000",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026mod=5000"
+  },
+  "mod_sat_first": {
+    "query": "url=example.com/a.jpg\u0026sat=2\u0026mod=1.5,0.5",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Exposure": 1.5,
+            "Saturation": 2
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "n": {
+    "query": "url=example.com/a.jpg\u0026n=3",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Pages": 3,
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "n_all": {
+    "query": "url=example.com/a.jpg\u0026h=300\u0026output=gif\u0026n=-1",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "gif"
+      },
+      "Pipelines": [
+        {
+          "Pages": -1,
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "n_invalid": {
+    "error": {
+      "field": "n",
+      "kind": "invalid_url",
+      "public": "invalid n: expected -1 (all pages) or a positive integer",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026n=0"
+  },
+  "output_avif": {
+    "query": "url=example.com/a.jpg\u0026output=avif",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "avif"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "output_gif": {
+    "query": "url=example.com/a.jpg\u0026output=gif",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "gif"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "output_invalid": {
+    "error": {
+      "field": "output",
+      "kind": "invalid_url",
+      "public": "invalid output: expected jpg, png, gif, tiff, webp, avif, jxl, json or origin",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026output=bmp"
+  },
+  "output_jpeg": {
+    "query": "url=example.com/a.jpg\u0026output=jpeg",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "output_jpg": {
+    "query": "url=example.com/a.jpg\u0026output=jpg",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "output_json": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026output=json",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "output:json",
+          "Reason": "imgproxy info schema"
+        }
+      ],
+      "Info": {
+        "Alpha": true,
+        "Bands": true,
+        "Colorspace": true,
+        "Dimensions": true,
+        "EXIF": true,
+        "Format": true,
+        "PagesNumber": true,
+        "Size": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "output_jxl": {
+    "query": "url=example.com/a.jpg\u0026output=jxl",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "jxl"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "output_origin": {
+    "query": "url=example.com/a.jpg\u0026output=origin",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "output_png": {
+    "query": "url=example.com/a.jpg\u0026output=png",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "output_tif": {
+    "query": "url=example.com/a.jpg\u0026output=tif",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "tiff"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "output_tiff": {
+    "query": "url=example.com/a.jpg\u0026output=tiff",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "tiff"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "output_webp": {
+    "query": "url=example.com/a.jpg\u0026output=webp",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "page": {
+    "query": "url=example.com/a.jpg\u0026page=2",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Page": 2,
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "page_invalid": {
+    "error": {
+      "field": "page",
+      "kind": "invalid_url",
+      "public": "invalid page: expected a page index, -1 (largest) or -2 (smallest)",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026page=-3"
+  },
+  "page_largest": {
+    "query": "url=example.com/a.jpg\u0026page=-1",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "page:-1",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "pages_synonym": {
+    "query": "url=example.com/a.jpg\u0026pages=2",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Pages": 2,
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "path_empty": {
+    "query": "url=example.com/a.jpg",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "path_not_root": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unexpected path",
+      "status": 400
+    },
+    "path": "/other",
+    "query": "url=example.com/a.jpg"
+  },
+  "q": {
+    "query": "url=example.com/a.jpg\u0026q=20",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Quality": 20
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "q_invalid": {
+    "error": {
+      "field": "q",
+      "kind": "invalid_url",
+      "public": "invalid q: expected an integer from 1 to 100",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026q=x"
+  },
+  "q_out_of_range": {
+    "error": {
+      "field": "q",
+      "kind": "invalid_url",
+      "public": "invalid q: expected an integer from 1 to 100",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026q=0"
+  },
+  "quality_synonym": {
+    "query": "url=example.com/a.jpg\u0026quality=85",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Quality": 85
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "rbg_without_rotation": {
+    "query": "url=example.com/a.jpg\u0026rbg=red",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "readme_root": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026h=300\u0026fit=cover\u0026a=attention\u0026output=webp\u0026q=80",
+    "request": {
+      "Dialect": "wsrv",
+      "Output": {
+        "Format": "webp",
+        "Quality": 80
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "readme_wsrv": {
+    "query": "url=ssl:example.com/a.jpg\u0026w=50%25\u0026filt=greyscale\u0026default=example.com/404.png",
+    "request": {
+      "Delivery": {
+        "Fallback": {
+          "Raw": "https://example.com/404.png"
+        },
+        "OnErrorRedirect": true
+      },
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Grayscale": true,
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Rel": 0.5
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "ro_450": {
+    "query": "url=example.com/a.jpg\u0026ro=450",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          },
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "ro_90": {
+    "query": "url=example.com/a.jpg\u0026ro=90",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          },
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "ro_arbitrary": {
+    "query": "url=example.com/a.jpg\u0026ro=45",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          },
+          "RotateAny": 45
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "ro_arbitrary_rbg": {
+    "query": "url=example.com/a.jpg\u0026h=300\u0026ro=45\u0026rbg=red",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "R": 255
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            }
+          },
+          "RotateAny": 45
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "ro_invalid": {
+    "error": {
+      "field": "ro",
+      "kind": "invalid_url",
+      "public": "invalid ro: expected degrees",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026ro=x"
+  },
+  "ro_negative_90": {
+    "query": "url=example.com/a.jpg\u0026ro=-90",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          },
+          "Rotate": 270
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "ro_or_synonym": {
+    "query": "url=example.com/a.jpg\u0026or=180",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          },
+          "Rotate": 180
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "sat": {
+    "query": "url=example.com/a.jpg\u0026sat=0.5",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Saturation": 0.5
+          },
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "sat_invalid": {
+    "error": {
+      "field": "sat",
+      "kind": "invalid_url",
+      "public": "invalid sat: expected a number",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026sat=x"
+  },
+  "sharp": {
+    "query": "url=example.com/a.jpg\u0026sharp=3",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          },
+          "Sharpen": 3
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "sharp_flat_jagged": {
+    "query": "url=example.com/a.jpg\u0026sharp=1,2,3",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "sharpf",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "sharpj",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          },
+          "Sharpen": 3
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "sharp_invalid": {
+    "error": {
+      "field": "sharp",
+      "kind": "invalid_url",
+      "public": "invalid sharp: expected a number",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026sharp=x"
+  },
+  "sharp_keys": {
+    "query": "url=example.com/a.jpg\u0026sharp=2\u0026sharpf=1\u0026sharpj=3",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "sharpf",
+          "Reason": "not implemented"
+        },
+        {
+          "Option": "sharpj",
+          "Reason": "not implemented"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          },
+          "Sharpen": 2
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "sharp_mild": {
+    "query": "url=example.com/a.jpg\u0026sharp",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "sharp",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          },
+          "Sharpen": 0.5
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "sharp_out_of_range": {
+    "query": "url=example.com/a.jpg\u0026sharp=20",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "sharp",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          },
+          "Sharpen": 0.5
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "tint": {
+    "query": "url=example.com/a.jpg\u0026tint=red",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          },
+          "Tint": {
+            "A": 255,
+            "R": 255
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "tint_invalid": {
+    "error": {
+      "field": "tint",
+      "kind": "invalid_url",
+      "public": "invalid tint: expected a CSS colour name or 3, 4, 6 or 8 hex digits (RGB, ARGB, RRGGBB, AARRGGBB)",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026tint=zz"
+  },
+  "trim": {
+    "query": "url=example.com/a.jpg\u0026trim=10",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          },
+          "Trim": {
+            "Threshold": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "trim_default": {
+    "query": "url=example.com/a.jpg\u0026trim",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          },
+          "Trim": {
+            "Threshold": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "trim_invalid": {
+    "error": {
+      "field": "trim",
+      "kind": "invalid_url",
+      "public": "invalid trim: expected an integer from 1 to 254",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026trim=x"
+  },
+  "trim_out_of_range": {
+    "error": {
+      "field": "trim",
+      "kind": "invalid_url",
+      "public": "invalid trim: expected an integer from 1 to 254",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026trim=255"
+  },
+  "trim_tbg": {
+    "query": "url=example.com/a.jpg\u0026trim=20\u0026tbg=ff0000",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          },
+          "Trim": {
+            "Color": {
+              "A": 255,
+              "R": 255
+            },
+            "Threshold": 20
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "trim_zero": {
+    "query": "url=example.com/a.jpg\u0026trim=0",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "unknown_ignored": {
+    "query": "url=example.com/a.jpg\u0026zz=1\u0026w=10",
+    "request": {
+      "Dialect": "wsrv",
+      "Ignored": [
+        {
+          "Option": "zz",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "unknown_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026zz=1"
+  },
+  "url_bare_host": {
+    "query": "url=example.com/a.jpg",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "url_control_char": {
+    "error": {
+      "field": "url",
+      "kind": "invalid_url",
+      "public": "invalid url: expected an image url",
+      "status": 400
+    },
+    "query": "url=example.com/%00"
+  },
+  "url_empty": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing source url",
+      "status": 400
+    },
+    "query": "url=\u0026w=10"
+  },
+  "url_encoded_query": {
+    "query": "url=example.com/a.jpg%3Fv%3D1%26x%3D2\u0026w=10",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg?v=1\u0026x=2"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg?v=1\u0026x=2"
+  },
+  "url_first_wins": {
+    "query": "url=example.com/a.jpg\u0026url=example.com/b.jpg",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "url_http": {
+    "query": "url=http://example.com/a.jpg",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://example.com/a.jpg"
+  },
+  "url_https": {
+    "query": "url=https://example.com/a.jpg",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "url_leading_slash_relative": {
+    "query": "url=/photos/a.jpg",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "url_missing": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing source url",
+      "status": 400
+    },
+    "query": "w=10"
+  },
+  "url_mount_absolute": {
+    "mount": "assets",
+    "query": "url=https://example.com/a.jpg",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "url_mount_relative": {
+    "mount": "assets",
+    "query": "url=photos/a.jpg\u0026w=10",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "photos/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "photos/a.jpg"
+  },
+  "url_mount_scheme_relative": {
+    "mount": "assets",
+    "query": "url=//example.com/a.jpg",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "url_s3": {
+    "query": "url=s3://bucket/key.png",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "s3://bucket/key.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "s3://bucket/key.png"
+  },
+  "url_scheme_relative": {
+    "query": "url=//example.com/a.jpg",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "url_space": {
+    "query": "url=example.com/a%20b.jpg",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a b.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a b.jpg"
+  },
+  "url_ssl_prefix": {
+    "query": "url=ssl:example.com/a.jpg",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "url_ssl_prefix_slashes": {
+    "query": "url=ssl://example.com/a.jpg",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "w": {
+    "query": "url=example.com/a.jpg\u0026w=300",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "w_empty": {
+    "query": "url=example.com/a.jpg\u0026w=",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "w_first_wins": {
+    "query": "url=example.com/a.jpg\u0026w=100\u0026w=200",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "w_invalid": {
+    "error": {
+      "field": "w",
+      "kind": "invalid_url",
+      "public": "invalid w: expected pixels (0 or more) or a percentage (0% to 100%)",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026w=abc"
+  },
+  "w_negative": {
+    "error": {
+      "field": "w",
+      "kind": "invalid_url",
+      "public": "invalid w: expected pixels (0 or more) or a percentage (0% to 100%)",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026w=-1"
+  },
+  "w_percent": {
+    "query": "url=example.com/a.jpg\u0026w=50%25",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Rel": 0.5
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "w_percent_literal": {
+    "query": "url=example.com/a.jpg\u0026w=50%",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Rel": 0.5
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "w_percent_out_of_range": {
+    "error": {
+      "field": "w",
+      "kind": "invalid_url",
+      "public": "invalid w: expected pixels (0 or more) or a percentage (0% to 100%)",
+      "status": 400
+    },
+    "query": "url=example.com/a.jpg\u0026w=150%25"
+  },
+  "w_zero": {
+    "query": "url=example.com/a.jpg\u0026w=0",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "we": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026we",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "we_false": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026we=false",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "we_true": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026we=true",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "we_zero": {
+    "query": "url=example.com/a.jpg\u0026w=300\u0026we=0",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "width_synonym": {
+    "query": "url=example.com/a.jpg\u0026width=300",
+    "request": {
+      "Dialect": "wsrv",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  }
+}

@@ -1,6 +1,7 @@
 package plan
 
 import (
+	"fmt"
 	"math"
 	"strings"
 
@@ -39,6 +40,8 @@ type effLimits struct {
 	frames, resultDim      int
 	memory                 int64
 	noShrinkOnLoad         bool
+	rawDemosaicPixels      int64
+	rawPreviewRatio        float64
 }
 
 func override(cfg, req int64, raise bool) int64 {
@@ -56,13 +59,22 @@ func resolveLimits(l *Limits, o *transform.LimitOverrides) effLimits {
 		return int64(f * 1e6)
 	}
 	return effLimits{
-		srcPixels:      override(l.MaxSrcPixels, mp(o.MaxSrcResolution), l.AllowRaisingLimits),
-		framePixels:    override(l.MaxAnimationFramePixels, mp(o.MaxAnimationFrameResolution), l.AllowRaisingLimits),
-		frames:         int(override(int64(l.MaxAnimationFrames), int64(o.MaxAnimationFrames), l.AllowRaisingLimits)),
-		resultDim:      int(override(int64(l.MaxResultDimension), int64(o.MaxResultDimension), l.AllowRaisingLimits)),
-		memory:         l.MemoryBudget,
-		noShrinkOnLoad: l.DisableShrinkOnLoad,
+		srcPixels:         override(l.MaxSrcPixels, mp(o.MaxSrcResolution), l.AllowRaisingLimits),
+		framePixels:       override(l.MaxAnimationFramePixels, mp(o.MaxAnimationFrameResolution), l.AllowRaisingLimits),
+		frames:            int(override(int64(l.MaxAnimationFrames), int64(o.MaxAnimationFrames), l.AllowRaisingLimits)),
+		resultDim:         int(override(int64(l.MaxResultDimension), int64(o.MaxResultDimension), l.AllowRaisingLimits)),
+		memory:            l.MemoryBudget,
+		noShrinkOnLoad:    l.DisableShrinkOnLoad,
+		rawDemosaicPixels: l.MaxRawDemosaicPixels,
+		rawPreviewRatio:   rawPreviewRatio(l.RawPreviewMinRatio),
 	}
+}
+
+func rawPreviewRatio(r float64) float64 {
+	if !(r > 0) || math.IsInf(r, 0) {
+		return DefaultRawPreviewMinRatio
+	}
+	return r
 }
 
 // source is the input of one pipeline.
@@ -75,6 +87,16 @@ type source struct {
 	hasData     bool // the encoded source is available: shrink-on-load possible
 	frames      int  // frames processed (1 unless animated)
 	page        int
+	stack       int // pages of a still loaded stacked as one image (≤ 1: one)
+	density     float64
+	// Camera RAW: the embedded preview size (0 = none) and whether the
+	// request enforces the embedded thumbnail.
+	previewW, previewH int
+	enforceThumb       bool
+	// thumbnail: enforce_thumbnail on a HEIF/AVIF still: the embedded
+	// thumbnail replaces the image whatever its size (imgproxy Pro).
+	thumbnail bool
+	hdr       bool // scene-linear float source: tone-mapped after load
 }
 
 func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observed) (*Plan, error) {
@@ -106,7 +128,10 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 	first := &pipes[0]
 	src := source{
 		w: meta.Width, h: frameH, orientation: meta.Orientation, alpha: meta.HasAlpha,
-		format: format, vector: meta.IsVector, hasData: true, frames: 1,
+		format: format, vector: meta.IsVector, hasData: true, frames: 1, density: meta.Density,
+		previewW: meta.PreviewWidth, previewH: meta.PreviewHeight,
+		enforceThumb: req.Output.EnforceThumbnail != nil && *req.Output.EnforceThumbnail,
+		hdr:          meta.HDR,
 	}
 	nFrames := max(meta.Frames, 1)
 	if first.Page != nil && *first.Page > 0 {
@@ -125,6 +150,17 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 			src.hasData = false // frames are processed one by one: no shrink-on-load
 		}
 	}
+	if n := stackedPages(first, &src, nFrames); n > 1 {
+		src.stack = n
+		src.hasData = src.vector // raster pages: no shrink-on-load or embedded thumbnail
+		if !meta.Selection {
+			// Predicted as n pages of the first one's size; the executor
+			// replans on the loaded (or, for vectors, measured) strip.
+			src.h = frameH * n
+		}
+	}
+	src.thumbnail = src.hasData && src.frames <= 1 && src.stack <= 1 && heifFormat(format) &&
+		req.Output.EnforceThumbnail != nil && *req.Output.EnforceThumbnail
 	if err := checkSource(&src, &lim); err != nil {
 		return nil, err
 	}
@@ -133,24 +169,42 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 	if err != nil {
 		return nil, err
 	}
+	// Chained pipelines are predicted on the previous prediction; the
+	// executor plans each again on the observed result (Chain).
 	prev := root
 	for i := 1; i < len(pipes); i++ {
 		out := &prev.Output
-		next := source{w: out.Width, h: out.Height, alpha: out.Alpha, frames: out.Frames}
-		pl, err := planPipeline(&pipes[i], &next, &lim, outFmt, nil, i == len(pipes)-1)
+		in := Input{Width: out.Width, Height: out.Height, Frames: out.Frames, Alpha: out.Alpha}
+		pl, err := planChained(pipes, i, &in, &lim, outFmt, nil)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("plan: pipeline %d: %w", i, err)
 		}
-		pl.Load = LoadStep{}
 		root.Chained = append(root.Chained, pl)
-		root.Cost.Pixels = max(root.Cost.Pixels, pl.Cost.Pixels)
-		root.Cost.EstimatedBytes = max(root.Cost.EstimatedBytes, pl.Cost.EstimatedBytes)
 		prev = pl
 	}
+	chainCost(root)
 	if lim.memory > 0 && root.Cost.EstimatedBytes > lim.memory {
 		return nil, errs.New(errs.KindLimitExceeded, "plan: estimated memory exceeds the processing budget")
 	}
 	return root, nil
+}
+
+// stackedPages is the number of pages the `pages` option stacks into one
+// image (imgproxy Pro: "the pages will be stacked vertically and
+// left-aligned"), from the selected page on: the pages of a multi-page
+// still, and the frames of an animation that is not processed as one
+// (output format without animation, disable_animation, a frame limit of
+// 1). An animation that stays one takes `pages` as its frame count
+// instead. PSD "pages" are layers of their own sizes, never stacked.
+func stackedPages(p *transform.Pipeline, s *source, nFrames int) int {
+	if s.frames > 1 || nFrames <= 1 || p.Pages == nil || s.format == "psd" {
+		return 1
+	}
+	n := nFrames - s.page
+	if *p.Pages > 0 {
+		n = min(n, *p.Pages)
+	}
+	return n
 }
 
 // checkSource is imgproxy's security CheckDimensions on the loaded source.
@@ -169,6 +223,12 @@ func checkSource(s *source, lim *effLimits) error {
 		return errs.New(errs.KindLimitExceeded, "plan: source resolution exceeds limits")
 	}
 	return nil
+}
+
+// heifFormat reports the HEIF-based formats whose loader can return the
+// embedded thumbnail.
+func heifFormat(format string) bool {
+	return format == "heic" || format == "heif" || format == "avif"
 }
 
 func animationFormat(f transform.Format) bool {
@@ -203,9 +263,19 @@ type builder struct {
 	curH     int
 	alpha    bool
 	random   bool
+	hdr      bool // float samples until the colour step (4 bytes each)
 	frames   int64
 	peak     int64
 	tooLarge bool
+	// geoFrom is the index of the first geometry step; geoW, geoH the
+	// size before it (stored orientation), exifAngle and exifFlip the
+	// orientation the geometry applies. Filters read them.
+	geoFrom, geoW, geoH int
+	exifAngle           int
+	exifFlip            bool
+	// rawBytes is the working memory of a RAW demosaic (LibRaw's sensor
+	// buffer and its four 16-bit samples per output pixel).
+	rawBytes int64
 }
 
 func (b *builder) add(s Step) { b.pl.Steps = append(b.pl.Steps, s) }
@@ -228,11 +298,15 @@ func (b *builder) oriented(g *geo, rotate, w, h int) (int, int) {
 }
 
 func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt transform.Format, obs *Observed, last bool) (*Plan, error) {
+	p = pixelFocus(p, s)
 	o := newOpts(p, lim.resultDim)
 	b := &builder{
 		pl:     &Plan{Steps: make([]Step, 0, 12)},
 		alpha:  s.alpha,
 		frames: int64(s.frames),
+		// The tone mapper measures the source before mapping it: two reads.
+		random: s.hdr,
+		hdr:    s.hdr,
 	}
 	g := geo{vectorBaseShrink: 1}
 	g.angle, g.flip = orientation(s.orientation, o.autoRotate)
@@ -251,9 +325,23 @@ func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt trans
 	}
 	animated := s.frames > 1
 
-	load := LoadStep{Page: s.page, NPages: s.frames, Width: s.w, Height: s.h}
+	load := LoadStep{Page: s.page, NPages: max(s.frames, s.stack), Width: s.w, Height: s.h}
+	if s.vector {
+		load.Density = s.density
+	}
 	b.size(s.w, s.h)
 	hasData := s.hasData
+	if s.thumbnail {
+		// enforce_thumbnail: the embedded thumbnail is the source; the
+		// executor reports its size (a file without one loads the image).
+		load.Thumbnail = true
+		hasData = false
+		if obs != nil && obs.Thumbnail {
+			load.Width, load.Height = obs.Width, obs.Height
+			b.peak = 0
+			b.size(obs.Width, obs.Height)
+		}
+	}
 
 	// Vector guard: render oversized vectors at the resolution limit.
 	if hasData && s.vector && lim.srcPixels > 0 {
@@ -291,6 +379,8 @@ func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt trans
 	}
 	b.pl.Load = load
 
+	b.geoFrom, b.geoW, b.geoH = len(b.pl.Steps), b.curW, b.curH
+	b.exifAngle, b.exifFlip = g.angle, g.flip
 	emitGeometry(p, &g, &o, b, cropSmart, animated)
 	emitFinish(p, &g, b, outFmt, s.frames, last)
 
@@ -332,6 +422,9 @@ func scaleOnLoad(g *geo, o *opts, s *source, lim *effLimits, obs *Observed, load
 	wshrink := float64(g.srcW) / float64(max(1, scaleDim(g.srcW, g.wScale)))
 	hshrink := float64(g.srcH) / float64(max(1, scaleDim(g.srcH, g.hScale)))
 	pre := min(wshrink, hshrink)
+	if s.format == formatRAW {
+		return rawOnLoad(g, o, s, lim, obs, load, b, pre)
+	}
 	if s.vector {
 		pre *= g.vectorBaseShrink
 	}
@@ -340,7 +433,7 @@ func scaleOnLoad(g *geo, o *opts, s *source, lim *effLimits, obs *Observed, load
 	}
 	jpeg := s.format == "jpeg" || s.format == "jpg"
 	webp := s.format == "webp"
-	thumb := s.format == "heic" || s.format == "heif" || s.format == "avif"
+	thumb := heifFormat(s.format)
 	if !s.vector && (lim.noShrinkOnLoad || pre <= 1 || (!jpeg && !webp && !thumb)) {
 		return nil
 	}
@@ -373,6 +466,58 @@ func scaleOnLoad(g *geo, o *opts, s *source, lim *effLimits, obs *Observed, load
 		load.Scale = 1 / pre
 		nw, nh = shrinkDimEven(s.w, pre), shrinkDimEven(s.h, pre)
 	}
+	return rebaseOnLoad(g, o, obs, load, b, nw, nh)
+}
+
+// formatRAW is the SourceMeta.Format of camera RAW files.
+const formatRAW = "raw"
+
+// rawOnLoad decides how a camera RAW is decoded (FORMATS.md §2): from its
+// embedded JPEG preview when the preview is at least rawPreviewRatio × the
+// size the source is scaled to on both axes (or enforce_thumbnail asks for
+// it), with JPEG shrink-on-load down to that size; otherwise by demosaicing,
+// at half size when the source is scaled to half its size or less.
+func rawOnLoad(g *geo, o *opts, s *source, lim *effLimits, obs *Observed, load *LoadStep, b *builder, pre float64) error {
+	if !(pre > 0) || math.IsInf(pre, 0) {
+		pre = 1
+	}
+	nw, nh := s.w, s.h
+	if s.previewW > 0 && s.previewH > 0 {
+		// The size the source is scaled to, and the preview, as displayed.
+		tw, th := scaleDim(g.srcW, g.wScale), scaleDim(g.srcH, g.hScale)
+		pw, ph := b.oriented(g, o.rotate, s.previewW, s.previewH)
+		r := lim.rawPreviewRatio
+		if s.enforceThumb || (float64(pw)+0.5 >= r*float64(tw) && float64(ph)+0.5 >= r*float64(th)) {
+			load.Preview = true
+			nw, nh = s.previewW, s.previewH
+			fit := min(float64(pw)/float64(max(tw, 1)), float64(ph)/float64(max(th, 1)))
+			if sh := jpegShrink(fit); sh > 1 && !lim.noShrinkOnLoad {
+				load.ShrinkOnLoad = sh
+				nw, nh = max(1, nw/sh), max(1, nh/sh)
+			}
+		}
+	}
+	if !load.Preview {
+		px := int64(s.w) * int64(s.h)
+		if lim.rawDemosaicPixels > 0 && px > lim.rawDemosaicPixels {
+			return errs.New(errs.KindLimitExceeded, "plan: raw sensor resolution exceeds the demosaic limit")
+		}
+		if pre >= 2 && !lim.noShrinkOnLoad {
+			load.HalfSize = true
+			nw, nh = (s.w+1)/2, (s.h+1)/2
+		}
+		b.rawBytes = px*2 + int64(nw)*int64(nh)*8
+	}
+	if (obs == nil || !obs.Loaded) && nw == s.w && nh == s.h {
+		return nil // loaded at the header's size: the scales stand
+	}
+	return rebaseOnLoad(g, o, obs, load, b, nw, nh)
+}
+
+// rebaseOnLoad records that the loader produces nw×nh (as stored) instead of
+// the source size, or the size the executor observed, and rebases the
+// scales and crop on it.
+func rebaseOnLoad(g *geo, o *opts, obs *Observed, load *LoadStep, b *builder, nw, nh int) error {
 	if obs != nil && obs.Loaded {
 		nw, nh = obs.Width, obs.Height
 	}
@@ -487,13 +632,18 @@ func emitGeometry(p *transform.Pipeline, g *geo, o *opts, b *builder, cropSmart 
 	}
 }
 
-// emitFinish emits filters, extend, padding, output size fixes, flatten,
-// watermarks and the output colour.
+// emitFinish emits filters, colour adjustments, the arbitrary rotation, extend, padding, mask,
+// border, radius, output size fixes, flatten, watermarks and the output colour.
 func emitFinish(p *transform.Pipeline, g *geo, b *builder, outFmt transform.Format, frames int, last bool) {
-	if p.Blur != 0 || p.Sharpen != 0 || p.Pixelate > 1 {
-		b.add(FilterStep{Blur: p.Blur, Sharpen: p.Sharpen, Pixelate: p.Pixelate})
+	if fs, ok := filterStep(p, b); ok {
+		b.add(fs)
 		b.random = true
 	}
+	if st, ok := colourAdjust(p); ok {
+		b.add(st)
+		b.alpha = b.alpha || st.Adjust.Opacity != nil
+	}
+	emitRotateAny(p, b)
 
 	extend := func(e *transform.Extend, w, h int, ar bool) {
 		eg, _ := resolveGravity(&e.Gravity)
@@ -527,6 +677,7 @@ func emitFinish(p *transform.Pipeline, g *geo, b *builder, outFmt transform.Form
 		b.size(b.curW+st.Left+st.Right, b.curH+st.Top+st.Bottom)
 		b.alpha = b.alpha || p.Background == nil
 	}
+	emitShape(p, g, b)
 
 	if s := fixSize(outFmt, b.curW, b.curH); s < 1 {
 		w, h := resizedDim(b.curW, s), resizedDim(b.curH, s)
@@ -539,8 +690,15 @@ func emitFinish(p *transform.Pipeline, g *geo, b *builder, outFmt transform.Form
 		if p.Background != nil {
 			bg = *p.Background
 		}
-		b.add(FlattenStep{Background: bg})
-		b.alpha = false
+		// A translucent background (imgproxy background_alpha) keeps the
+		// alpha band, unless the format cannot hold one.
+		if bg.A < 255 && alphaFormat(outFmt) {
+			b.add(FlattenStep{Background: bg})
+		} else {
+			bg.A = 255
+			b.add(FlattenStep{Background: bg})
+			b.alpha = false
+		}
 	}
 
 	for i := range p.Watermarks {
@@ -589,10 +747,13 @@ func cost(b *builder) Cost {
 		bands = 4
 	}
 	bytes := b.peak * bands
+	if b.hdr {
+		bytes *= 4
+	}
 	if b.random {
 		bytes *= 2
 	}
-	return Cost{Pixels: b.peak, EstimatedBytes: bytes}
+	return Cost{Pixels: b.peak, EstimatedBytes: bytes + b.rawBytes}
 }
 
 // unplanned lists options later work packages turn into steps.
@@ -603,24 +764,25 @@ func unplanned(p *transform.Pipeline) []string {
 			out = append(out, name)
 		}
 	}
-	a := &p.Adjust
-	add(p.RotateAny != 0, "rotate_any")
-	add(p.Border != nil, "border")
-	add(p.Radius != nil, "radius")
-	add(p.Mask != nil, "mask")
-	add(a.Brightness != nil || a.Contrast != nil || a.Saturation != nil || a.Gamma != nil || a.Hue != nil ||
-		a.Exposure != nil || a.Vibrance != nil || a.Red != nil || a.Green != nil || a.Blue != nil || a.Opacity != nil, "adjust")
-	add(p.Monochrome != nil, "monochrome")
-	add(p.Duotone != nil, "duotone")
-	add(p.Colorize != nil, "colorize")
-	add(p.Gradient != nil, "gradient")
-	add(p.Tint != nil, "tint")
-	add(p.Negate || p.Sepia || p.Grayscale || p.Equalize, "colour_effects")
-	add(p.Unsharp != nil, "unsharp")
-	add(p.BlurAreas != nil, "blur_areas")
-	add(p.ProgressiveBlur != nil, "progressive_blur")
+	add(p.Adjust.Vibrance != nil, "vibrance")
+	add(p.Equalize, "equalize")
 	add(p.BlurDetections != nil || p.DrawDetections != nil || p.CropObjects != nil, "detections")
-	add(p.Crop != nil && p.Crop.AspectRatio != 0, "crop_aspect_ratio")
 	add(p.Video != nil, "video")
 	return out
+}
+
+// colourAdjust is the ColourAdjustStep of p; ok is false when p has no
+// colour adjustment or effect to apply.
+func colourAdjust(p *transform.Pipeline) (ColourAdjustStep, bool) {
+	a := p.Adjust
+	a.Vibrance = nil // not applied: listed in Unplanned
+	st := ColourAdjustStep{
+		Adjust: a, Grayscale: p.Grayscale, Sepia: p.Sepia, Negate: p.Negate, Tint: p.Tint,
+		Monochrome: p.Monochrome, Duotone: p.Duotone, Colorize: p.Colorize, Gradient: p.Gradient,
+	}
+	ok := a.Brightness != nil || a.Contrast != nil || a.Saturation != nil || a.Gamma != nil || a.Hue != nil ||
+		a.Exposure != nil || a.Red != nil || a.Green != nil || a.Blue != nil || a.Opacity != nil ||
+		st.Grayscale || st.Sepia || st.Negate || st.Tint != nil || st.Monochrome != nil || st.Duotone != nil ||
+		st.Colorize != nil || st.Gradient != nil
+	return st, ok
 }

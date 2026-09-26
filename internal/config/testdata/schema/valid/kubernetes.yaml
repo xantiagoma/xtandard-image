@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/config.schema.json
+# The CONFIG.md §6 (Kubernetes) settings as the xi-config ConfigMap, with the
+# signing Secret mounted under /run/secrets and referenced with {file: …}.
+admin:
+  addr: ":9090"
+signing:
+  keys:
+    - { file: /run/secrets/xi-signing/key }
+  salts:
+    - file: /run/secrets/xi-signing/salt
+sources:
+  origin:
+    type: http
+    allow: [cdn.example.com]
+    headers:
+      Authorization: { file: /run/secrets/xi-origin/authorization }

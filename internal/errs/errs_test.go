@@ -252,3 +252,16 @@ func TestNilPassthrough(t *testing.T) {
 		t.Errorf("WithPublic(nil) = %v, want nil", err)
 	}
 }
+
+func TestKinds(t *testing.T) {
+	t.Parallel()
+	ks := Kinds()
+	if len(ks) != int(KindInternal)+1 {
+		t.Fatalf("Kinds() has %d kinds, want %d", len(ks), KindInternal+1)
+	}
+	for i, k := range ks {
+		if k != Kind(i) {
+			t.Errorf("Kinds()[%d] = %v, want kind %d", i, k, i)
+		}
+	}
+}

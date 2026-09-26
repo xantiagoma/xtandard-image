@@ -14,6 +14,7 @@ const (
 	CacheHit                            // fresh original served from memory
 	CacheNegativeHit                    // fresh not-found served from memory
 	CacheRevalidated                    // stale original confirmed by a 304
+	CacheStoreHit                       // original served from the shared store (WithStore)
 )
 
 // String returns the metric label value.
@@ -27,6 +28,8 @@ func (r CacheResult) String() string {
 		return "negative_hit"
 	case CacheRevalidated:
 		return "revalidated"
+	case CacheStoreHit:
+		return "store_hit"
 	default:
 		return "CacheResult(" + strconv.Itoa(int(r)) + ")"
 	}
@@ -39,7 +42,8 @@ type Metrics interface {
 	// "not_modified" or an errs.Kind name; bytes is the body size read.
 	ObserveFetch(source, outcome string, d time.Duration, bytes int64)
 	// OnCache records one lookup per Fetch call (plus CacheRevalidated
-	// when a flight's conditional request returns 304).
+	// when a flight's conditional request returns 304, or CacheStoreHit
+	// when a flight found the original in the shared store).
 	OnCache(r CacheResult)
 	// OnCoalesced records a Fetch that joined another caller's flight.
 	OnCoalesced()

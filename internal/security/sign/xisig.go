@@ -18,6 +18,15 @@ const XIParam = "xi_sig"
 // sig is "" when the query has no xi_sig. More than one xi_sig is an
 // errs.KindUnauthorized error wrapping ErrMalformedSignature.
 func XIMessage(path, rawQuery string) (sig, msg string, err error) {
+	return cutSignature(path, rawQuery, XIParam)
+}
+
+// cutSignature returns the value of the query parameter param (matched on
+// the raw key) and path followed by "?" and the remaining non-empty
+// parameters in their original order and encoding ("?" only when some
+// remain). A repeated param is an errs.KindUnauthorized error wrapping
+// ErrMalformedSignature.
+func cutSignature(path, rawQuery, param string) (sig, msg string, err error) {
 	var (
 		b     strings.Builder
 		found bool
@@ -30,7 +39,7 @@ func XIMessage(path, rawQuery string) (sig, msg string, err error) {
 			continue
 		}
 		key, val, _ := strings.Cut(part, "=")
-		if key == XIParam {
+		if key == param {
 			if found {
 				return "", "", errs.Wrap(errs.KindUnauthorized, ErrMalformedSignature)
 			}

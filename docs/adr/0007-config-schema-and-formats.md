@@ -1,6 +1,6 @@
 # ADR 0007: Config JSON Schema, multi-format config files, `config schema` / `config validate`
 
-- Status: accepted (implementation: WP-81, publishing: WP-81b)
+- Status: accepted; decisions 1–5, 7 and the self-serving part of 6 implemented by WP-81 (see "Implementation notes"); publishing (rest of 6) is WP-81b
 - Date: 2026-09-26
 - Amended: 2026-09-26, with the owner's answers to ROADMAP open questions 9 (schema URL and self-serving) and 11 (secret file references)
 
@@ -102,3 +102,12 @@ The config file (`--config` / `XI_CONFIG_FILE`, CONFIG.md §1) is YAML only toda
 - A published `$id` is forever. The owner accepted the GitHub Pages URL (open question 9). Moving to a custom domain later means publishing at both URLs and keeping the old `$id` resolvable.
 - The admin listener gains one always-on route, `/config.schema.json`. ADR 0008's route-coverage test must include it.
 - With `{file: …}` references, a config file can live in version control or a ConfigMap while its secrets stay in Docker or Kubernetes secret mounts.
+
+## Implementation notes (WP-81)
+
+- The generator is `internal/config/schemagen_test.go`; `schema_test.go` holds `TestJSONSchema` (staleness, compile, valid and invalid corpora, each checked against both the schema and `Load`). `schema.go` only embeds the file and exposes `config.Schema()` and `config.SchemaID`.
+- `$id` is `https://xantiagoma.github.io/xtandard-image/schema/config.schema.json` (the latest-release URL). WP-81b may rewrite it to the versioned URL when it publishes a release copy.
+- `{file: …}` decoding uses goccy `CustomUnmarshaler` options for `Secret` and `HexKey` inside the decode call instead of `BytesUnmarshaler` methods, so the types' public API does not change. The unmarshaler never fails the decode: a reference or a malformed secret becomes an internal marker that is resolved (or reported with its key path and variable) after the environment is applied, so an environment value still wins and a reference it overrides is never read. `XI_…_FILE` and `{file: …}` share `readSecretFile` (64 KiB cap, trailing newlines trimmed as before).
+- `presets` names use the loader's own rule, `^[^:/]+$`, instead of the source-name pattern, so the schema never rejects a preset name the loader accepts.
+- `--config /dev/null` keeps meaning "no file" (it skips default discovery) although it has no known extension.
+- The schema is intentionally a little stricter than the loader where editors benefit: enum values are lower case and a source must set `type` in the file.

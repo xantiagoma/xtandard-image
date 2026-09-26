@@ -92,6 +92,25 @@ jobs:
           go build -trimpath -ldflags "-s -w -X main.version=ci -X main.commit=${GITHUB_SHA}" -o bin/xtandard-image ./cmd/xtandard-image
           ./bin/xtandard-image version | tee /dev/stderr | grep -q "xtandard-image ci (commit ${GITHUB_SHA}"
 
+  openapi:
+    # ADR 0008 decision 2.4: the committed OpenAPI document must generate
+    # TypeScript types and pass Redocly's recommended rules. Staleness
+    # against the Go types is TestGolden in the unit jobs. Versions are
+    # pinned; WP-84 moves openapi-typescript into packages/image-url.
+    name: openapi (openapi-typescript, redocly lint)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: openapi-typescript generates without errors
+        run: bunx openapi-typescript@7.13.0 internal/apidoc/openapi.json -o "$RUNNER_TEMP/openapi.ts"
+      - name: redocly lint
+        # pprof's index route is /debug/pprof/ (net/http/pprof), hence the
+        # skipped trailing-slash rule.
+        run: bunx @redocly/cli@2.54.3 lint --skip-rule=no-path-trailing-slash internal/apidoc/openapi.json
+
   smoke:
     # Build the release app image (root Dockerfile, WP-37) natively on each
     # architecture from the base pinned in docker/base/versions.sh (resolved
@@ -156,7 +175,7 @@ jobs:
     # M1 acceptance suite (WP-39, docs/RELEASE.md): black-box end-to-end run
     # of the image the smoke job built on the same architecture
     # (compose.acceptance.yml: app configured through env only, nginx origin,
-    # MinIO; test/acceptance with -tags acceptance on the runner). Set the
+    # RustFS; test/acceptance with -tags acceptance on the runner). Set the
     # repository variable XI_ACCEPTANCE_IMAGE (e.g.
     # ghcr.io/xantiagoma/xtandard-image:slim) to run it against a published
     # image instead.

@@ -1,0 +1,57 @@
+#:schema https://xantiagoma.github.io/xtandard-image/schema/config.schema.json
+# The CONFIG.md §3 example in TOML.
+"$schema" = "https://xantiagoma.github.io/xtandard-image/schema/config.schema.json"
+presets = { default = "strip_metadata:1/quality:80", thumb = "rs:fill:200:200/g:sm" }
+
+[server]
+addr = ":8080"
+
+[signing]
+keys = ["943b421c9eb07c830af81030552c86009268de4e532ba2ee2eab8247c6da0881"]
+salts = ["520f986b998545b4785e0defbc4f3c1203f22de2374a3d53cb7a7fe9fea309c5"]
+
+[encryption]
+keys = ["1eb5b0e971ad7f45324c1bb15c947cb207c43152fa5c6c7f35c4f36e0c18e0f1"]
+
+[security]
+unsigned_policy = "restricted"
+
+[sources.origin]
+type = "http"
+allow = ["cdn.example.com", "*.example.org/images/"]
+
+[sources.assets]
+type = "s3"
+endpoint = "https://ACCOUNT_ID.r2.cloudflarestorage.com"
+region = "auto"
+buckets = ["assets"]
+bucket = "assets"
+
+[sources.local]
+type = "fs"
+root = "/data/images"
+
+[dialects.imgix]
+enabled = true
+hosts = ["images.example.com"]
+source = "assets"
+keys = ["imgix-token"]
+
+[dialects.cloudflare]
+enabled = true
+source = "origin"
+
+[dialects.simple]
+enabled = ["nextjs", "netlify", "ipx"]
+source = "origin"
+
+[limits]
+max_src_pixels = 80000000
+
+[cache.result]
+stores = ["memory", "s3"]
+memory_bytes = "512MiB"
+s3 = { source = "assets", bucket = "xi-cache", prefix = "results/" }
+
+[observability]
+log_level = "info"

@@ -1,0 +1,1695 @@
+[
+  {
+    "name": "plain",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg"
+  },
+  {
+    "name": "unicode_src",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/sdk-testing-files/हिन्दी.png",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/sdk-testing-files/%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80.png?tr=w-300"
+  },
+  {
+    "name": "wh_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 200
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,h-200/folder/photo.jpg"
+  },
+  {
+    "name": "wh_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 200
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,h-200"
+  },
+  {
+    "name": "chain_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 400,
+        "height": 300
+      },
+      {
+        "rotation": 90
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-400,h-300:rt-90/folder/photo.jpg"
+  },
+  {
+    "name": "chain_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 400,
+        "height": 300
+      },
+      {
+        "rotation": 90
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-400,h-300:rt-90"
+  },
+  {
+    "name": "chain3_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 400
+      },
+      {
+        "blur": 10
+      },
+      {
+        "format": "webp",
+        "quality": 60
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-400:bl-10:f-webp,q-60/folder/photo.jpg"
+  },
+  {
+    "name": "chain3_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 400
+      },
+      {
+        "blur": 10
+      },
+      {
+        "format": "webp",
+        "quality": 60
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-400:bl-10:f-webp,q-60"
+  },
+  {
+    "name": "relative_dims_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 0.5,
+        "height": 0.25
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-0.5,h-0.25/folder/photo.jpg"
+  },
+  {
+    "name": "relative_dims_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 0.5,
+        "height": 0.25
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-0.5,h-0.25"
+  },
+  {
+    "name": "aspect_ratio_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 400,
+        "aspectRatio": "4-3"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-400,ar-4-3/folder/photo.jpg"
+  },
+  {
+    "name": "aspect_ratio_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 400,
+        "aspectRatio": "4-3"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-400,ar-4-3"
+  },
+  {
+    "name": "crop_force_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 300,
+        "crop": "force"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,h-300,c-force/folder/photo.jpg"
+  },
+  {
+    "name": "crop_force_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 300,
+        "crop": "force"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,h-300,c-force"
+  },
+  {
+    "name": "crop_at_max_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 300,
+        "crop": "at_max"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,h-300,c-at_max/folder/photo.jpg"
+  },
+  {
+    "name": "crop_at_max_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 300,
+        "crop": "at_max"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,h-300,c-at_max"
+  },
+  {
+    "name": "crop_at_max_enlarge_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 300,
+        "crop": "at_max_enlarge"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,h-300,c-at_max_enlarge/folder/photo.jpg"
+  },
+  {
+    "name": "crop_at_max_enlarge_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 300,
+        "crop": "at_max_enlarge"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,h-300,c-at_max_enlarge"
+  },
+  {
+    "name": "crop_at_least_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 300,
+        "crop": "at_least"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,h-300,c-at_least/folder/photo.jpg"
+  },
+  {
+    "name": "crop_at_least_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 300,
+        "crop": "at_least"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,h-300,c-at_least"
+  },
+  {
+    "name": "crop_maintain_ratio_focus_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 300,
+        "crop": "maintain_ratio",
+        "focus": "top_left"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,h-300,c-maintain_ratio,fo-top_left/folder/photo.jpg"
+  },
+  {
+    "name": "crop_maintain_ratio_focus_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 300,
+        "crop": "maintain_ratio",
+        "focus": "top_left"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,h-300,c-maintain_ratio,fo-top_left"
+  },
+  {
+    "name": "focus_auto_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 300,
+        "focus": "auto"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,h-300,fo-auto/folder/photo.jpg"
+  },
+  {
+    "name": "focus_auto_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 300,
+        "focus": "auto"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,h-300,fo-auto"
+  },
+  {
+    "name": "focus_face_zoom_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 300,
+        "focus": "face",
+        "zoom": 0.8
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,h-300,fo-face,z-0.8/folder/photo.jpg"
+  },
+  {
+    "name": "focus_face_zoom_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 300,
+        "focus": "face",
+        "zoom": 0.8
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,h-300,fo-face,z-0.8"
+  },
+  {
+    "name": "focus_object_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 300,
+        "focus": "car"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,h-300,fo-car/folder/photo.jpg"
+  },
+  {
+    "name": "focus_object_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 300,
+        "focus": "car"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,h-300,fo-car"
+  },
+  {
+    "name": "pad_resize_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 200,
+        "cropMode": "pad_resize",
+        "background": "F3F3F3",
+        "focus": "left"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,h-200,cm-pad_resize,bg-F3F3F3,fo-left/folder/photo.jpg"
+  },
+  {
+    "name": "pad_resize_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 200,
+        "cropMode": "pad_resize",
+        "background": "F3F3F3",
+        "focus": "left"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,h-200,cm-pad_resize,bg-F3F3F3,fo-left"
+  },
+  {
+    "name": "extract_focus_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 200,
+        "cropMode": "extract",
+        "focus": "bottom_right"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,h-200,cm-extract,fo-bottom_right/folder/photo.jpg"
+  },
+  {
+    "name": "extract_focus_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 200,
+        "cropMode": "extract",
+        "focus": "bottom_right"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,h-200,cm-extract,fo-bottom_right"
+  },
+  {
+    "name": "extract_xy_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 200,
+        "cropMode": "extract",
+        "x": 10,
+        "y": 20
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,h-200,cm-extract,x-10,y-20/folder/photo.jpg"
+  },
+  {
+    "name": "extract_xy_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 200,
+        "cropMode": "extract",
+        "x": 10,
+        "y": 20
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,h-200,cm-extract,x-10,y-20"
+  },
+  {
+    "name": "extract_center_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 200,
+        "cropMode": "extract",
+        "xCenter": 400,
+        "yCenter": 300
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,h-200,cm-extract,xc-400,yc-300/folder/photo.jpg"
+  },
+  {
+    "name": "extract_center_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 200,
+        "cropMode": "extract",
+        "xCenter": 400,
+        "yCenter": 300
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,h-200,cm-extract,xc-400,yc-300"
+  },
+  {
+    "name": "pad_extract_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 800,
+        "height": 800,
+        "cropMode": "pad_extract",
+        "background": "red"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-800,h-800,cm-pad_extract,bg-red/folder/photo.jpg"
+  },
+  {
+    "name": "pad_extract_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 800,
+        "height": 800,
+        "cropMode": "pad_extract",
+        "background": "red"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-800,h-800,cm-pad_extract,bg-red"
+  },
+  {
+    "name": "dpr_quality_format_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "dpr": 2,
+        "quality": 80,
+        "format": "avif"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,dpr-2,q-80,f-avif/folder/photo.jpg"
+  },
+  {
+    "name": "dpr_quality_format_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "dpr": 2,
+        "quality": 80,
+        "format": "avif"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,dpr-2,q-80,f-avif"
+  },
+  {
+    "name": "format_auto_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "format": "auto"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,f-auto/folder/photo.jpg"
+  },
+  {
+    "name": "format_auto_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "format": "auto"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,f-auto"
+  },
+  {
+    "name": "width_auto_dpr_auto_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": "auto",
+        "dpr": "auto"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-auto,dpr-auto/folder/photo.jpg"
+  },
+  {
+    "name": "width_auto_dpr_auto_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": "auto",
+        "dpr": "auto"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-auto,dpr-auto"
+  },
+  {
+    "name": "blur_sharpen_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "blur": 10,
+        "sharpen": 10
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:bl-10,e-sharpen-10/folder/photo.jpg"
+  },
+  {
+    "name": "blur_sharpen_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "blur": 10,
+        "sharpen": 10
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=bl-10,e-sharpen-10"
+  },
+  {
+    "name": "sharpen_default_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "sharpen": true
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:e-sharpen/folder/photo.jpg"
+  },
+  {
+    "name": "sharpen_default_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "sharpen": true
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=e-sharpen"
+  },
+  {
+    "name": "usm_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "unsharpMask": "2-2-0.8-0.024"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:e-usm-2-2-0.8-0.024/folder/photo.jpg"
+  },
+  {
+    "name": "usm_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "unsharpMask": "2-2-0.8-0.024"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=e-usm-2-2-0.8-0.024"
+  },
+  {
+    "name": "grayscale_contrast_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "grayscale": true,
+        "contrastStretch": true
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:e-grayscale,e-contrast/folder/photo.jpg"
+  },
+  {
+    "name": "grayscale_contrast_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "grayscale": true,
+        "contrastStretch": true
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=e-grayscale,e-contrast"
+  },
+  {
+    "name": "radius_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "radius": 20
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:r-20/folder/photo.jpg"
+  },
+  {
+    "name": "radius_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "radius": 20
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=r-20"
+  },
+  {
+    "name": "radius_max_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "radius": "max"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:r-max/folder/photo.jpg"
+  },
+  {
+    "name": "radius_max_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "radius": "max"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=r-max"
+  },
+  {
+    "name": "radius_corners_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "radius": "20_40_80_160"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:r-20_40_80_160/folder/photo.jpg"
+  },
+  {
+    "name": "radius_corners_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "radius": "20_40_80_160"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=r-20_40_80_160"
+  },
+  {
+    "name": "border_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "border": "5_FFF000"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:b-5_FFF000/folder/photo.jpg"
+  },
+  {
+    "name": "border_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "border": "5_FFF000"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=b-5_FFF000"
+  },
+  {
+    "name": "background_rgba_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "background": "AAFF0040",
+        "width": 300,
+        "height": 300,
+        "cropMode": "pad_resize"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:bg-AAFF0040,w-300,h-300,cm-pad_resize/folder/photo.jpg"
+  },
+  {
+    "name": "background_rgba_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "background": "AAFF0040",
+        "width": 300,
+        "height": 300,
+        "cropMode": "pad_resize"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=bg-AAFF0040,w-300,h-300,cm-pad_resize"
+  },
+  {
+    "name": "background_blurred_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "background": "blurred",
+        "width": 300,
+        "height": 300,
+        "cropMode": "pad_resize"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:bg-blurred,w-300,h-300,cm-pad_resize/folder/photo.jpg"
+  },
+  {
+    "name": "background_blurred_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "background": "blurred",
+        "width": 300,
+        "height": 300,
+        "cropMode": "pad_resize"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=bg-blurred,w-300,h-300,cm-pad_resize"
+  },
+  {
+    "name": "rotate_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "rotation": 180
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:rt-180/folder/photo.jpg"
+  },
+  {
+    "name": "rotate_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "rotation": 180
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=rt-180"
+  },
+  {
+    "name": "rotate_negative_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "rotation": "N90"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:rt-N90/folder/photo.jpg"
+  },
+  {
+    "name": "rotate_negative_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "rotation": "N90"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=rt-N90"
+  },
+  {
+    "name": "rotate_any_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "rotation": 45
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:rt-45/folder/photo.jpg"
+  },
+  {
+    "name": "rotate_any_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "rotation": 45
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=rt-45"
+  },
+  {
+    "name": "rotate_auto_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "rotation": "auto"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:rt-auto/folder/photo.jpg"
+  },
+  {
+    "name": "rotate_auto_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "rotation": "auto"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=rt-auto"
+  },
+  {
+    "name": "flip_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "flip": "h_v"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:fl-h_v/folder/photo.jpg"
+  },
+  {
+    "name": "flip_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "flip": "h_v"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=fl-h_v"
+  },
+  {
+    "name": "trim_true_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "trim": true
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:t-true/folder/photo.jpg"
+  },
+  {
+    "name": "trim_true_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "trim": true
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=t-true"
+  },
+  {
+    "name": "trim_threshold_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "trim": 15
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:t-15/folder/photo.jpg"
+  },
+  {
+    "name": "trim_threshold_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "trim": 15
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=t-15"
+  },
+  {
+    "name": "original_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "original": true
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:orig-true/folder/photo.jpg"
+  },
+  {
+    "name": "original_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "original": true
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=orig-true"
+  },
+  {
+    "name": "flags_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "progressive": true,
+        "lossless": true,
+        "metadata": true,
+        "colorProfile": false
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:pr-true,lo-true,md-true,cp-false/folder/photo.jpg"
+  },
+  {
+    "name": "flags_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "progressive": true,
+        "lossless": true,
+        "metadata": true,
+        "colorProfile": false
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=pr-true,lo-true,md-true,cp-false"
+  },
+  {
+    "name": "opacity_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "opacity": 50
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:o-50/folder/photo.jpg"
+  },
+  {
+    "name": "opacity_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "opacity": 50
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=o-50"
+  },
+  {
+    "name": "default_image_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "defaultImage": "/folder/default.jpg"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:di-folder@@default.jpg/folder/photo.jpg"
+  },
+  {
+    "name": "default_image_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "defaultImage": "/folder/default.jpg"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=di-folder@@default.jpg"
+  },
+  {
+    "name": "named_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "named": "thumb"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:n-thumb/folder/photo.jpg"
+  },
+  {
+    "name": "named_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "named": "thumb"
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=n-thumb"
+  },
+  {
+    "name": "page_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "page": 2
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:pg-2/folder/photo.jpg"
+  },
+  {
+    "name": "page_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "page": 2
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=pg-2"
+  },
+  {
+    "name": "overlay_image_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 800,
+        "overlay": {
+          "type": "image",
+          "input": "logo.png",
+          "position": {
+            "x": 10,
+            "y": 20
+          },
+          "transformation": [
+            {
+              "width": 100
+            }
+          ]
+        }
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-800,l-image,i-logo.png,lx-10,ly-20,w-100,l-end/folder/photo.jpg"
+  },
+  {
+    "name": "overlay_image_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 800,
+        "overlay": {
+          "type": "image",
+          "input": "logo.png",
+          "position": {
+            "x": 10,
+            "y": 20
+          },
+          "transformation": [
+            {
+              "width": 100
+            }
+          ]
+        }
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-800,l-image,i-logo.png,lx-10,ly-20,w-100,l-end"
+  },
+  {
+    "name": "overlay_image_path_focus_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "overlay": {
+          "type": "image",
+          "input": "/brand/logos/logo.png",
+          "position": {
+            "focus": "bottom_right"
+          }
+        }
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:l-image,i-brand@@logos@@logo.png,lfo-bottom_right,l-end/folder/photo.jpg"
+  },
+  {
+    "name": "overlay_image_path_focus_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "overlay": {
+          "type": "image",
+          "input": "/brand/logos/logo.png",
+          "position": {
+            "focus": "bottom_right"
+          }
+        }
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=l-image,i-brand@@logos@@logo.png,lfo-bottom_right,l-end"
+  },
+  {
+    "name": "overlay_image_base64_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "overlay": {
+          "type": "image",
+          "input": "/brand/logo (1).png",
+          "encoding": "base64"
+        }
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:l-image,ie-YnJhbmQvbG9nbyAoMSkucG5n,l-end/folder/photo.jpg"
+  },
+  {
+    "name": "overlay_image_base64_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "overlay": {
+          "type": "image",
+          "input": "/brand/logo (1).png",
+          "encoding": "base64"
+        }
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=l-image,ie-YnJhbmQvbG9nbyAoMSkucG5n,l-end"
+  },
+  {
+    "name": "overlay_text_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "overlay": {
+          "type": "text",
+          "text": "Minimal Text",
+          "transformation": [
+            {
+              "fontSize": 20,
+              "fontColor": "FF0000"
+            }
+          ]
+        }
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:l-text,i-Minimal%20Text,fs-20,co-FF0000,l-end/folder/photo.jpg"
+  },
+  {
+    "name": "overlay_text_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "overlay": {
+          "type": "text",
+          "text": "Minimal Text",
+          "transformation": [
+            {
+              "fontSize": 20,
+              "fontColor": "FF0000"
+            }
+          ]
+        }
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=l-text,i-Minimal%20Text,fs-20,co-FF0000,l-end"
+  },
+  {
+    "name": "overlay_text_base64_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "overlay": {
+          "type": "text",
+          "text": "Hello, world: ünïcode"
+        }
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:l-text,ie-SGVsbG8sIHdvcmxkOiDDvG7Dr2NvZGU%3D,l-end/folder/photo.jpg"
+  },
+  {
+    "name": "overlay_text_base64_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "overlay": {
+          "type": "text",
+          "text": "Hello, world: ünïcode"
+        }
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=l-text,ie-SGVsbG8sIHdvcmxkOiDDvG7Dr2NvZGU%3D,l-end"
+  },
+  {
+    "name": "overlay_solid_color_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "overlay": {
+          "type": "solidColor",
+          "color": "FF0000"
+        }
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:l-image,i-ik_canvas,bg-FF0000,l-end/folder/photo.jpg"
+  },
+  {
+    "name": "overlay_solid_color_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "overlay": {
+          "type": "solidColor",
+          "color": "FF0000"
+        }
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=l-image,i-ik_canvas,bg-FF0000,l-end"
+  },
+  {
+    "name": "unsupported_ai_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "aiRemoveBackground": true,
+        "aiUpscale": true
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,e-bgremove,e-upscale/folder/photo.jpg"
+  },
+  {
+    "name": "unsupported_ai_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "aiRemoveBackground": true,
+        "aiUpscale": true
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,e-bgremove,e-upscale"
+  },
+  {
+    "name": "query_parameters",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300
+      }
+    ],
+    "signed": false,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?v=123&tr=w-300"
+  },
+  {
+    "name": "signed_plain",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "signed": true,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?ik-s=1cf423c329f220c348e9f503e1914b9e6a25c1e8"
+  },
+  {
+    "name": "signed_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 200
+      }
+    ],
+    "signed": true,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300,h-200&ik-s=f6e6d2cf84b5732b5540f0a65a8f2500a368164f"
+  },
+  {
+    "name": "signed_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300,
+        "height": 200
+      },
+      {
+        "rotation": 90
+      }
+    ],
+    "signed": true,
+    "url": "https://ik.imagekit.io/demo/tr:w-300,h-200:rt-90/folder/photo.jpg?ik-s=32ea3ef1da76b67a9a617df77dde1712471ffb25"
+  },
+  {
+    "name": "signed_query_parameters",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300
+      }
+    ],
+    "signed": true,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?version=2.0&tr=w-300&ik-s=d936f4b7c213a55db2f6369eb408b90f64de3ccc"
+  },
+  {
+    "name": "signed_unicode",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/sdk-testing-files/हिन्दी.png",
+    "position": "query",
+    "signed": true,
+    "url": "https://ik.imagekit.io/demo/sdk-testing-files/%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80.png?ik-s=961f70fb7aac91629e4909c40480ad96ea7f9272"
+  },
+  {
+    "name": "signed_text_overlay",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "overlay": {
+          "type": "text",
+          "text": "हिन्दी",
+          "transformation": [
+            {
+              "fontColor": "red",
+              "fontSize": 32
+            }
+          ]
+        }
+      }
+    ],
+    "signed": true,
+    "url": "https://ik.imagekit.io/demo/tr:l-text,ie-4KS54KS%2F4KSo4KWN4KSm4KWA,co-red,fs-32,l-end/folder/photo.jpg?ik-s=ebd3dd2163f26a0f4f2e6632d6c000127e17ffc7"
+  },
+  {
+    "name": "expiring_query",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300
+      }
+    ],
+    "signed": true,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300&ik-t=1815920000&ik-s=9b2c14134d4e825d00d18d46fe814ad0f5ce87f5"
+  },
+  {
+    "name": "expiring_path",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "path",
+    "transformation": [
+      {
+        "width": 300
+      }
+    ],
+    "signed": true,
+    "url": "https://ik.imagekit.io/demo/tr:w-300/folder/photo.jpg?ik-t=1815920000&ik-s=8d60623983dad3059cb4f10e436ca14b34f3a586"
+  },
+  {
+    "name": "expired",
+    "endpoint": "https://ik.imagekit.io/demo",
+    "src": "/folder/photo.jpg",
+    "position": "query",
+    "transformation": [
+      {
+        "width": 300
+      }
+    ],
+    "signed": true,
+    "url": "https://ik.imagekit.io/demo/folder/photo.jpg?tr=w-300&ik-t=1790000060&ik-s=99c6c7167fa8652caf31c3e37fae6e3f461af7fb"
+  }
+]

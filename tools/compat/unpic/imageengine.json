@@ -1,0 +1,140 @@
+{
+  "provider": "imageengine",
+  "unpic": {
+    "provider": "imageengine",
+    "version": "4.2.2"
+  },
+  "mode": "path",
+  "fixtures": [
+    {
+      "url": "https://blazing-fast-pics.cdn.imgeng.in/images/pic_1.jpg?imgeng=h_500%2Ff_png%2Fm_cropbox",
+      "origin": "generate",
+      "want": {
+        "source": "images/pic_1.jpg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://blazing-fast-pics.cdn.imgeng.in/images/pic_1.jpg?imgeng=m_cropbox",
+      "origin": "generate",
+      "want": {
+        "source": "images/pic_1.jpg"
+      }
+    },
+    {
+      "url": "https://blazing-fast-pics.cdn.imgeng.in/images/pic_1.jpg?imgeng=quality_60%2Fw_1200%2Ff_avif%2Fm_cropbox",
+      "origin": "generate",
+      "want": {
+        "source": "images/pic_1.jpg",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://blazing-fast-pics.cdn.imgeng.in/images/pic_1.jpg?imgeng=quality_75%2Fw_640%2Ff_jpeg%2Fm_cropbox",
+      "origin": "generate",
+      "want": {
+        "source": "images/pic_1.jpg",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://blazing-fast-pics.cdn.imgeng.in/images/pic_1.jpg?imgeng=quality_80%2Fw_400%2Fh_300%2Ff_webp%2Fm_cropbox",
+      "origin": "generate",
+      "want": {
+        "source": "images/pic_1.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://blazing-fast-pics.cdn.imgeng.in/images/pic_1.jpg?imgeng=w_800%2Fh_600%2Fm_cropbox",
+      "origin": "generate",
+      "want": {
+        "source": "images/pic_1.jpg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://blazing-fast-pics.cdn.imgeng.in/images/pic_1.jpg?imgeng=w_800%2Fm_cropbox",
+      "origin": "generate",
+      "want": {
+        "source": "images/pic_1.jpg",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://blazing-fast-pics.cdn.imgeng.in/images/pic_1.jpg?imgeng=cmpr_75%2Fw_400%2Fh_200%2Ff_webp%2Fm_cropbox",
+      "origin": "test",
+      "want": {
+        "source": "images/pic_1.jpg",
+        "width": 400,
+        "height": 200,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://blazing-fast-pics.cdn.imgeng.in/images/pic_1.jpg?imgeng=cmpr_80%2Fs_10%2Fr_90%2Fw_300%2Fh_200%2Fm_cropbox",
+      "origin": "test",
+      "want": {
+        "source": "images/pic_1.jpg",
+        "width": 300,
+        "height": 200
+      }
+    },
+    {
+      "url": "https://blazing-fast-pics.cdn.imgeng.in/images/pic_1.jpg?imgeng=m_letterbox%2Fcmpr_85%2Fs_15%2Fmeta_true%2Fw_400%2Fh_300",
+      "origin": "test",
+      "want": {
+        "source": "images/pic_1.jpg",
+        "width": 400,
+        "height": 300
+      }
+    },
+    {
+      "url": "https://blazing-fast-pics.cdn.imgeng.in/images/pic_1.jpg?imgeng=w_200/h_100/m_cropbox",
+      "origin": "test",
+      "want": {
+        "source": "images/pic_1.jpg",
+        "width": 200,
+        "height": 100
+      }
+    },
+    {
+      "url": "https://blazing-fast-pics.cdn.imgeng.in/images/pic_1.jpg?imgeng=w_300/f_webp/m_cropbox",
+      "origin": "test",
+      "want": {
+        "source": "images/pic_1.jpg",
+        "width": 300,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://blazing-fast-pics.cdn.imgeng.in/images/pic_1.jpg?imgeng=w_300/h_200/f_webp",
+      "origin": "test",
+      "want": {
+        "source": "images/pic_1.jpg",
+        "width": 300,
+        "height": 200,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://blazing-fast-pics.cdn.imgeng.in/images/pic_1.jpg?imgeng=w_300/h_200/f_webp/m_cropbox",
+      "origin": "test",
+      "want": {
+        "source": "images/pic_1.jpg",
+        "width": 300,
+        "height": 200,
+        "format": "webp"
+      }
+    }
+  ]
+}

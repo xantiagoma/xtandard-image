@@ -1,0 +1,915 @@
+{
+  "allowlist_to_file": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsicm90YXRlIjpudWxsLCJ0b0ZpbGUiOiJ0ZXN0In19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "toFile",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {
+          "AutoRotate": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "allowlist_to_file_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsicm90YXRlIjpudWxsLCJ0b0ZpbGUiOiJ0ZXN0In19",
+    "query": ""
+  },
+  "animated_false": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsiZ3JheXNjYWxlIjp0cnVlLCJhbmltYXRlZCI6ZmFsc2V9fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "DisableAnimation": true,
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "animated_true": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsiZ3JheXNjYWxlIjp0cnVlLCJhbmltYXRlZCI6dHJ1ZX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Grayscale": true,
+          "Pages": -1
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "content_moderation_min_confidence": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsiY29udGVudE1vZGVyYXRpb24iOnsibWluQ29uZmlkZW5jZSI6NzB9fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "contentModeration",
+          "Reason": "not supported"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "content_moderation_true_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsiY29udGVudE1vZGVyYXRpb24iOnRydWV9fQ==",
+    "query": ""
+  },
+  "crop_1": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsiY3JvcCI6eyJsZWZ0IjowLCJ0b3AiOjAsIndpZHRoIjoxLCJoZWlnaHQiOjF9fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west"
+            },
+            "Height": {
+              "Px": 1
+            },
+            "Width": {
+              "Px": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "crop_100": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsiY3JvcCI6eyJsZWZ0IjowLCJ0b3AiOjAsIndpZHRoIjoxMDAsImhlaWdodCI6MTAwfX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west"
+            },
+            "Height": {
+              "Px": 100
+            },
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "crop_missing_top": {
+    "error": {
+      "field": "crop.top",
+      "kind": "invalid_url",
+      "public": "invalid crop.top: expected an integer",
+      "status": 400
+    },
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsiY3JvcCI6eyJsZWZ0IjowLCJyaWdodCI6MCwid2lkdGgiOjEsImhlaWdodCI6MX19fQ==",
+    "query": ""
+  },
+  "format_jpeg": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsiZ3JheXNjYWxlIjp0cnVlLCJmbGlwIjp0cnVlfSwib3V0cHV0Rm9ybWF0IjoianBlZyJ9",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Flip": {
+            "V": true
+          },
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "format_webp_effort_3": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsiZ3JheXNjYWxlIjp0cnVlLCJmbGlwIjp0cnVlfSwib3V0cHV0Rm9ybWF0Ijoid2VicCIsImVmZm9ydCI6M30=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Effort": 5,
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {
+          "Flip": {
+            "V": true
+          },
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "overlay_25_5p": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsib3ZlcmxheVdpdGgiOnsiYnVja2V0IjoiYnVja2V0Iiwia2V5Ijoia2V5Iiwib3B0aW9ucyI6eyJsZWZ0IjoiMjUuNXAiLCJ0b3AiOiIyNS41cCJ9fX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "overlayWith",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 0.25,
+                "YOffset": 0.25
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "logos",
+                "Raw": "key"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "overlay_50p": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsib3ZlcmxheVdpdGgiOnsiYnVja2V0IjoiYnVja2V0Iiwia2V5Ijoia2V5Iiwib3B0aW9ucyI6eyJsZWZ0IjoiNTBwIiwidG9wIjoiNTBwIn19fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "overlayWith",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 0.5,
+                "YOffset": 0.5
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "logos",
+                "Raw": "key"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "overlay_bucket_not_allowed": {
+    "error": {
+      "kind": "forbidden",
+      "public": "bucket not allowed",
+      "status": 403
+    },
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsib3ZlcmxheVdpdGgiOnsiYnVja2V0IjoiaW52YWxpZEJ1Y2tldCIsImtleSI6InRlc3QuanBnIn19fQ==",
+    "query": ""
+  },
+  "overlay_minus_1": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsib3ZlcmxheVdpdGgiOnsiYnVja2V0IjoiYnVja2V0Iiwia2V5Ijoia2V5Iiwib3B0aW9ucyI6eyJsZWZ0IjoiLTEiLCJ0b3AiOiItMSJ9fX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "overlayWith",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 1,
+                "YOffset": 1
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "logos",
+                "Raw": "key"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "overlay_minus_50p": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsib3ZlcmxheVdpdGgiOnsiYnVja2V0IjoiYnVja2V0Iiwia2V5Ijoia2V5Iiwib3B0aW9ucyI6eyJsZWZ0IjoiLTUwcCIsInRvcCI6Ii01MHAifX19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "overlayWith",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 0.5,
+                "YOffset": 0.5
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "logos",
+                "Raw": "key"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "overlay_plain": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsib3ZlcmxheVdpdGgiOnsiYnVja2V0IjoiYnVja2V0Iiwia2V5Ijoia2V5In19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "overlayWith",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "logos",
+                "Raw": "key"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "overlay_plus_1": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsib3ZlcmxheVdpdGgiOnsiYnVja2V0IjoiYnVja2V0Iiwia2V5Ijoia2V5Iiwib3B0aW9ucyI6eyJsZWZ0IjoiMSIsInRvcCI6IjEifX19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "overlayWith",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 1,
+                "YOffset": 1
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "logos",
+                "Raw": "key"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "overlay_ratios_alpha": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsib3ZlcmxheVdpdGgiOnsiYnVja2V0Ijoic2FtcGxlLWJ1Y2tldCIsImtleSI6InRlc3QuanBnIiwid1JhdGlvIjoiMTAiLCJoUmF0aW8iOiIxMCIsImFscGhhIjoiMzAifX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "overlayWith.hRatio",
+          "Reason": "approximated"
+        },
+        {
+          "Option": "overlayWith",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 0.7,
+              "Position": {
+                "Type": "center"
+              },
+              "Scale": 0.1,
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "logos",
+                "Raw": "test.jpg"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "overlay_with_resize": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsicmVzaXplIjp7IndpZHRoIjo0MDAsImhlaWdodCI6NDAwfSwib3ZlcmxheVdpdGgiOnsiYnVja2V0Ijoic2FtcGxlLWJ1Y2tldCIsImtleSI6InRlc3QuanBnIiwib3B0aW9ucyI6eyJncmF2aXR5Ijoic291dGhlYXN0In19fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "overlayWith",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 400
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          },
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "logos",
+                "Raw": "test.jpg"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "resize_null_height": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsicmVzaXplIjp7IndpZHRoIjoxMDAsImhlaWdodCI6bnVsbH19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "resize_string_dims_round": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsicmVzaXplIjp7IndpZHRoIjoiOTkuMSIsImhlaWdodCI6Ijk5LjkifX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 100
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 99
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "resize_zero": {
+    "error": {
+      "field": "resize.width",
+      "kind": "invalid_url",
+      "public": "invalid resize.width: expected a positive number or null",
+      "status": 400
+    },
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsicmVzaXplIjp7IndpZHRoIjowLCJoZWlnaHQiOjB9fX0=",
+    "query": ""
+  },
+  "rotate_empty_edits": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnt9fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "rotate_null_auto_orients": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsicm90YXRlIjpudWxsfX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "AutoRotate": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "round_crop_ellipse": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsicm91bmRDcm9wIjp7InJ4IjoxMDAsInJ5Ijo1MH19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "roundCrop",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Mask": {
+            "Shape": "ellipse",
+            "Trim": true
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "round_crop_params": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsicm91bmRDcm9wIjp7InRvcCI6MTAwLCJsZWZ0IjoxMDAsInJ4IjoxMDAsInJ5IjoxMDB9fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "roundCrop",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Mask": {
+            "Shape": "circle",
+            "Trim": true
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "round_crop_true": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsicm91bmRDcm9wIjp0cnVlfX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Mask": {
+            "Shape": "circle",
+            "Trim": true
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "smart_crop_face_0": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsic21hcnRDcm9wIjp7ImZhY2VJbmRleCI6MCwicGFkZGluZyI6MH19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "smartCrop",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FaceIndex": 0,
+            "Type": "face"
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "smart_crop_face_10": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsic21hcnRDcm9wIjp7ImZhY2VJbmRleCI6MTAsInBhZGRpbmciOjB9fX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "smartCrop",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FaceIndex": 10,
+            "Type": "face"
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "smart_crop_true": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsic21hcnRDcm9wIjp0cnVlfX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "smartCrop",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "face"
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "smart_crop_webp_padding": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJ3ZWJwIiwic21hcnRDcm9wIjp7InBhZGRpbmciOjYwfX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "smartCrop.padding",
+          "Reason": "approximated"
+        },
+        {
+          "Option": "smartCrop",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "face"
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "standard_grayscale_flip": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsiZ3JheXNjYWxlIjp0cnVlLCJmbGlwIjp0cnVlfX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Flip": {
+            "V": true
+          },
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "strip_exif": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsic3RyaXBFeGlmIjp0cnVlfX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "StripMetadata": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "strip_icc": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsic3RyaXBJY2MiOnRydWV9fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "StripColorProfile": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  }
+}

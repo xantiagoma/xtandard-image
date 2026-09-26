@@ -14,6 +14,10 @@ import (
 // reasonNotApplicable marks URL parts an /info request does not use.
 const reasonNotApplicable = "not applicable to info"
 
+// reasonCentred marks an info crop whose content-aware gravity is placed at
+// the centre.
+const reasonCentred = "approximated by the centre"
+
 // ParseInfo parses an imgproxy /info request (docs/URL-DIALECTS.md §3.3).
 // in.Path is the escaped path after the "/info" prefix:
 //
@@ -92,36 +96,48 @@ func (st *state) applyInfo(name string, args []string) error {
 		return oneBool("pages_number", args, &in.PagesNumber)
 	case "alpha", "a":
 		_, err = st.infoAlpha(args)
+	// Pixel-derived and hash options (WP-63).
 	case "crop", "c":
 		tmp := transform.Pipeline{Crop: in.Crop}
-		err = st.crop(&tmp, name, args)
-		in.Crop, on, milestone = tmp.Crop, true, reasonM2
+		if err := st.crop(&tmp, name, args); err != nil {
+			return err
+		}
+		in.Crop = tmp.Crop
+		if c := in.Crop; c != nil && c.Gravity.Type.IsDetection() {
+			// The info crop is computed from the header: content-aware
+			// gravities are placed at the centre.
+			st.ignore("crop:gravity", reasonCentred)
+		}
+		return nil
 	case "objects_position", "obj_pos", "op":
 		err = objectsPosition(&st.pipeline().Gravity, args)
 		in.ObjectsPos, on, milestone = true, true, reasonM3
 	case "palette", "p":
-		err = infoPalette(in, args)
-		on, milestone = in.Palette > 0, reasonM2
+		return infoPalette(in, args)
 	case "average", "avg":
-		err = infoAverage(in, args)
-		on, milestone = in.Average != nil, reasonM2
+		return infoAverage(in, args)
 	case "dominant_colors", "dc":
-		err = infoDominantColors(in, args)
-		on, milestone = in.DominantColors != nil, reasonM2
+		return infoDominantColors(in, args)
 	case "blurhash", "bh":
-		err = infoBlurhash(in, args)
-		on, milestone = in.Blurhash != nil, reasonM2
+		return infoBlurhash(in, args)
 	case "thumbhash", "thumb_hash", "th":
-		return st.infoFlag(name, "thumbhash", args, &in.Thumbhash, reasonM2)
+		return oneBool("thumbhash", args, &in.Thumbhash)
 	case "perceptual_hash", "phash", "ph":
-		return st.infoFlag(name, "perceptual_hash", args, &in.PHash, reasonM2)
+		return oneBool("perceptual_hash", args, &in.PHash)
 	case "calc_hashsums", "chs":
-		err = infoCalcHashsums(in, args)
-		on, milestone = len(in.CalcHashsums) > 0, reasonM2
+		return infoCalcHashsums(in, args)
+
+	// /info describes the first page whatever `page` says (codec.Inspect
+	// reads one header).
+	case "page", "pg":
+		if err := st.apply(name, args); err != nil {
+			return err
+		}
+		st.ignore(name, reasonNotImplemented)
+		return nil
 
 	// Processing-like and request options shared with processing URLs.
-	case "page", "pg",
-		"video_thumbnail_second", "vts",
+	case "video_thumbnail_second", "vts",
 		"video_thumbnail_keyframes", "vtk",
 		"cachebuster", "cb",
 		"expires", "exp",

@@ -18,7 +18,8 @@ import (
 
 // TestProcessNoLeak sends 500 full requests (probe, plan, execute, encode)
 // through the production Prober and Processor, cycling through JPEG, PNG
-// with alpha, BMP, an EXIF-rotated JPEG and animated GIF/WebP, and checks
+// with alpha, BMP, an EXIF-rotated JPEG, animated GIF/WebP, PDF pages
+// (one, and all stacked) and a PSD without a composite, and checks
 // that libvips' tracked memory, allocations, open files and live objects
 // return to their baseline.
 //
@@ -67,7 +68,21 @@ func TestProcessNoLeak(t *testing.T) {
 		{"jpeg/exif-orientation-6-icc.jpg", "rs:fit:80:80/ex:1/bg:255:0:0", transform.FormatJPEG},
 		{"gif/animated.gif", "rs:fill:32:32", transform.FormatGIF},
 		{"webp/animated.webp", "c:48:48/rs:fit:24:24", transform.FormatWebP},
+		// Auto-quality: several saves and decodes per request (WP-56).
+		{"jpeg/baseline.jpg", "rs:fit:120:120/aq:dssim", transform.FormatJPEG},
+		{"png/rgba8.png", "aq:dssim:0.01", transform.FormatWebP},
+		{"jpeg/baseline.jpg", "rs:fit:120:120/aq:size:2000", transform.FormatWebP},
+		{"gif/animated.gif", "rs:fill:32:32/aq:dssim", transform.FormatWebP},
+		{"pdf/pages.pdf", "pg:1/rs:fit:100:0", transform.FormatJPEG},
+		{"pdf/pages.pdf", "pgs:-1/rs:fit:0:200", transform.FormatPNG},
+		{"psd/no-composite.psd", "rs:fit:48:48", transform.FormatPNG},
+		// Best format: analysis plus up to three candidate encodes (WP-57).
+		{"jpeg/baseline.jpg", "rs:fit:120:120/f:best", transform.FormatBest},
+		{"png/palette.png", "f:best/aq:dssim", transform.FormatBest},
+		{"gif/animated.gif", "rs:fill:32:32/f:best", transform.FormatBest},
 	}
+	negCfg := negotiate.DefaultConfig()
+	accept := negotiate.ParseAccept("image/avif,image/webp,*/*")
 	type prepared struct {
 		data []byte
 		req  *transform.Request
@@ -102,11 +117,22 @@ func TestProcessNoLeak(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		d := negotiate.Decision{Format: c.f}
+		if c.f == transform.FormatBest {
+			if d, err = negotiate.Decide(c.req, accept, &negCfg, negotiate.SourceMeta{
+				Format: meta.Format, HasAlpha: meta.HasAlpha, IsAnimated: meta.IsAnimated, FrameCount: meta.Frames,
+			}); err != nil {
+				t.Fatal(err)
+			}
+		}
 		out, err := proc.Process(t.Context(), &server.ProcessInput{
-			Request: c.req, Source: src, Meta: meta, Decision: negotiate.Decision{Format: c.f},
+			Request: c.req, Source: src, Meta: meta, Decision: d,
 		})
 		if err != nil {
 			t.Fatalf("request %d: %v", i, err)
+		}
+		if (c.f == transform.FormatBest) != (out.Best != "") {
+			t.Fatalf("request %d: best summary %q for %s", i, out.Best, c.f)
 		}
 		if len(out.Body.Bytes()) == 0 {
 			t.Fatalf("request %d: empty body", i)

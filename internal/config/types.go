@@ -455,7 +455,13 @@ const (
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (p *UnsignedPolicy) UnmarshalText(b []byte) error {
-	return unmarshalEnum(p, b, UnsignedAllow, UnsignedRestricted, UnsignedDeny)
+	return unmarshalEnum(p, b, unsignedPolicies()...)
+}
+
+// unsignedPolicies lists the UnsignedPolicy values (UnmarshalText and the
+// config schema read it).
+func unsignedPolicies() []UnsignedPolicy {
+	return []UnsignedPolicy{UnsignedAllow, UnsignedRestricted, UnsignedDeny}
 }
 
 // SourceType is the backend of a named source.
@@ -474,7 +480,12 @@ const (
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (t *SourceType) UnmarshalText(b []byte) error {
-	return unmarshalEnum(t, b, SourceHTTP, SourceS3, SourceGCS, SourceAzure, SourceFS, SourceFTP, SourceSFTP)
+	return unmarshalEnum(t, b, sourceTypes()...)
+}
+
+// sourceTypes lists the SourceType values.
+func sourceTypes() []SourceType {
+	return []SourceType{SourceHTTP, SourceS3, SourceGCS, SourceAzure, SourceFS, SourceFTP, SourceSFTP}
 }
 
 // LogLevel is the minimum slog level.
@@ -490,8 +501,11 @@ const (
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (l *LogLevel) UnmarshalText(b []byte) error {
-	return unmarshalEnum(l, b, LogDebug, LogInfo, LogWarn, LogError)
+	return unmarshalEnum(l, b, logLevels()...)
 }
+
+// logLevels lists the LogLevel values.
+func logLevels() []LogLevel { return []LogLevel{LogDebug, LogInfo, LogWarn, LogError} }
 
 // Level returns the slog level.
 func (l LogLevel) Level() slog.Level {
@@ -520,8 +534,29 @@ const (
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (f *FailOn) UnmarshalText(b []byte) error {
-	return unmarshalEnum(f, b, FailOnNone, FailOnTruncated, FailOnError, FailOnWarning)
+	return unmarshalEnum(f, b, failOns()...)
 }
+
+// failOns lists the FailOn values.
+func failOns() []FailOn { return []FailOn{FailOnNone, FailOnTruncated, FailOnError, FailOnWarning} }
+
+// ToneMap is the HDR tone-mapping operator (XI_FORMATS_HDR_TONEMAP).
+type ToneMap string
+
+// Tone-mapping operators.
+const (
+	ToneMapReinhard ToneMap = "reinhard"
+	ToneMapACES     ToneMap = "aces"
+	ToneMapClip     ToneMap = "clip"
+)
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (t *ToneMap) UnmarshalText(b []byte) error {
+	return unmarshalEnum(t, b, toneMaps()...)
+}
+
+// toneMaps lists the ToneMap values.
+func toneMaps() []ToneMap { return []ToneMap{ToneMapReinhard, ToneMapACES, ToneMapClip} }
 
 // AutoQualityMethod selects the auto-quality algorithm.
 type AutoQualityMethod string
@@ -535,7 +570,12 @@ const (
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (m *AutoQualityMethod) UnmarshalText(b []byte) error {
-	return unmarshalEnum(m, b, AutoQualityNone, AutoQualitySize, AutoQualityDSSIM)
+	return unmarshalEnum(m, b, autoQualityMethods()...)
+}
+
+// autoQualityMethods lists the AutoQualityMethod values.
+func autoQualityMethods() []AutoQualityMethod {
+	return []AutoQualityMethod{AutoQualityNone, AutoQualitySize, AutoQualityDSSIM}
 }
 
 // StoreKind is a result cache tier.
@@ -551,8 +591,11 @@ const (
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *StoreKind) UnmarshalText(b []byte) error {
-	return unmarshalEnum(s, b, StoreMemory, StoreDisk, StoreRedis, StoreS3)
+	return unmarshalEnum(s, b, storeKinds()...)
 }
+
+// storeKinds lists the StoreKind values.
+func storeKinds() []StoreKind { return []StoreKind{StoreMemory, StoreDisk, StoreRedis, StoreS3} }
 
 // Format is an image format name.
 type Format string
@@ -575,12 +618,22 @@ const (
 
 // UnmarshalText implements encoding.TextUnmarshaler; "jpg" means jpeg.
 func (f *Format) UnmarshalText(b []byte) error {
-	if strings.EqualFold(strings.TrimSpace(string(b)), "jpg") {
+	if strings.EqualFold(strings.TrimSpace(string(b)), formatJPGAlias) {
 		*f = FormatJPEG
 		return nil
 	}
-	return unmarshalEnum(f, b, FormatJPEG, FormatPNG, FormatGIF, FormatWebP, FormatAVIF,
-		FormatHEIC, FormatJXL, FormatTIFF, FormatBMP, FormatICO, FormatSVG)
+	return unmarshalEnum(f, b, formats()...)
+}
+
+// formatJPGAlias is accepted for FormatJPEG.
+const formatJPGAlias = "jpg"
+
+// formats lists the Format values (without the jpg alias).
+func formats() []Format {
+	return []Format{
+		FormatJPEG, FormatPNG, FormatGIF, FormatWebP, FormatAVIF,
+		FormatHEIC, FormatJXL, FormatTIFF, FormatBMP, FormatICO, FormatSVG,
+	}
 }
 
 // DialectName names a URL dialect.
@@ -598,10 +651,18 @@ const (
 	DialectImagekit         DialectName = "imagekit"
 	DialectBunny            DialectName = "bunny"
 	DialectThumbor          DialectName = "thumbor"
+	DialectAWSSIH           DialectName = "awssih"
 )
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (d *DialectName) UnmarshalText(b []byte) error {
-	return unmarshalEnum(d, b, DialectImgproxy, DialectQuery, DialectWsrv, DialectCloudflare,
-		DialectCloudflareImages, DialectImgix, DialectCloudinary, DialectImagekit, DialectBunny, DialectThumbor)
+	return unmarshalEnum(d, b, dialectNames()...)
+}
+
+// dialectNames lists the DialectName values.
+func dialectNames() []DialectName {
+	return []DialectName{
+		DialectImgproxy, DialectQuery, DialectWsrv, DialectCloudflare,
+		DialectCloudflareImages, DialectImgix, DialectCloudinary, DialectImagekit, DialectBunny, DialectThumbor, DialectAWSSIH,
+	}
 }

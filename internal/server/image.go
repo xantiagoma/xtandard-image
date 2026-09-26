@@ -13,6 +13,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
@@ -31,14 +32,33 @@ func (s *Server) image(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	res, err := s.process(ctx, r, info)
+	if info.cache != "" && s.cfg.DebugHeaders {
+		w.Header().Set(hdrXiCache, info.cache)
+	}
 	if err != nil {
+		err = classify(ctx, r, err)
+		// An eligible stage 9–12 failure of a request that asks for it
+		// (cloudflare onerror=redirect, wsrv default=) is a 302, ahead of
+		// the fallback image (redirect.go).
+		if s.errorRedirect(w, r, info, err) {
+			return
+		}
 		// WP-34c hook: an eligible stage 9–12 failure is answered with the
 		// fallback image when one is configured (special.go).
-		if res, err = s.fallback(ctx, r, info, classify(ctx, r, err)); err != nil {
+		if res, err = s.fallback(ctx, r, info, err); err != nil {
 			s.writeError(w, r, err)
 			return
 		}
 		w = s.fallbackWriter(w)
+	}
+	// A response the result cache may keep: its body becomes a refcounted
+	// cache.Buffer adopting the encoder's blob (no copy), so the async
+	// write can hold it past this handler.
+	var body cache.Buffer
+	if res.cacheKey != "" && res.out != nil && !res.notModified && r.Method == http.MethodGet {
+		blob := res.out.Body
+		body = cache.NewBuffer(blob.Bytes(), blob.Release)
+		res.out.Body = body
 	}
 	if res.out != nil {
 		defer res.out.Body.Release()
@@ -51,6 +71,9 @@ func (s *Server) image(w http.ResponseWriter, r *http.Request) {
 		s.respond(w, r, res)
 	}
 	t.done()
+	if body != nil {
+		s.cacheStore(ctx, r, res, body, w.Header())
+	}
 }
 
 // process runs stages 2–13. Everything it acquires (source buffer,
@@ -97,7 +120,7 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 	// 6. Normalise: client hints become concrete values, then defaults,
 	// then validation, so the canonical key only holds effective values.
 	t = s.stage(info, stageNormalize)
-	hints := negotiate.ApplyClientHints(req, negotiate.ParseClientHints(r.Header), &s.cfg.Negotiate)
+	hints := s.resolveHints(r, req, mount, signed)
 	req.ApplyDefaults(s.cfg.Defaults)
 	err = req.Validate()
 	lim := s.limits(&req.Limits)
@@ -118,9 +141,18 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 	}
 	info.source = key.Source
 
-	j := &job{req: req, key: key, lim: lim, hints: hints, signed: signed}
+	j := &job{req: req, key: key, lim: lim, hints: hints, signed: signed, hashsum: req.Source.Hashsum}
+	// 8. Result cache: a hit skips fetch, admission, probe and processing.
+	if res, ok := s.cacheLookup(ctx, r, info, j); ok {
+		return res, nil
+	}
 	info.job = j // failures from here on may be answered with the fallback
-	return s.produce(ctx, r, info, j)
+	res, err := s.produce(ctx, r, info, j)
+	if err != nil {
+		return nil, err
+	}
+	res.cacheKey = j.cacheKey
+	return res, nil
 }
 
 // produce runs stages 9–13 of one job: the requested source, or the
@@ -131,7 +163,7 @@ func (s *Server) produce(ctx context.Context, r *http.Request, info *requestInfo
 	// 9. Fetch, outside the processing semaphore so slow origins never hold
 	// a worker slot.
 	t := s.stage(info, stageFetch)
-	fr, err := s.fetch(ctx, j.key, source.FetchOptions{MaxBytes: lim.maxSrcBytes, Header: r.Header})
+	fr, err := s.fetch(ctx, j.key, source.FetchOptions{MaxBytes: lim.maxSrcBytes, Header: r.Header}, j.hashsum)
 	t.done()
 	if err != nil {
 		return nil, err
@@ -152,7 +184,13 @@ func (s *Server) produce(ctx context.Context, r *http.Request, info *requestInfo
 	canonical := req.CanonicalKey()
 	decide := func(d negotiate.Decision) bool {
 		res.decision, res.format = d, d.Format
-		res.etag = etag(canonical, d.Format, hints.QualityDelta, &fr.Object, fr.Bytes(), s.cfg.ETagBuster)
+		key := canonical
+		if bk := d.BestKey(); bk != "" {
+			// format=best: the candidate lists (from Accept) decide the
+			// output, not d.Format alone.
+			key += "\x00best:" + bk
+		}
+		res.etag = etag(key, d.Format, hints.QualityDelta, &fr.Object, fr.Bytes(), s.cfg.ETagBuster)
 		res.notModified = notModified(r, res.etag, fr.Object.LastModified)
 		if res.notModified {
 			info.format = d.Format.String()
@@ -233,6 +271,7 @@ func (s *Server) produce(ctx context.Context, r *http.Request, info *requestInfo
 	info.format = out.Format.String()
 	info.width, info.height = out.Width, out.Height
 	res.out = out
+	res.format = out.Format // format=best chose among the candidates
 	return res, nil
 }
 
@@ -271,7 +310,10 @@ func (s *Server) stripPathPrefix(r *http.Request) (*http.Request, bool) {
 	return r2, true
 }
 
-func (s *Server) fetch(ctx context.Context, key source.Key, opt source.FetchOptions) (*fetch.Result, error) {
+// fetch is stage 9: it fetches key and, when want is set, checks the bytes
+// against the request's hashsum (hashsum.go) before anything else sees
+// them.
+func (s *Server) fetch(ctx context.Context, key source.Key, opt source.FetchOptions, want *transform.Hashsum) (*fetch.Result, error) {
 	ctx, span := s.deps.Tracer.Start(ctx, "fetch", trace.WithAttributes(attribute.String("xi.source", key.Source)))
 	defer span.End()
 	fr, err := s.deps.Fetcher.Fetch(ctx, key, opt)
@@ -283,6 +325,11 @@ func (s *Server) fetch(ctx context.Context, key source.Key, opt source.FetchOpti
 		return nil, errs.New(errs.KindInternal, "server: fetcher returned no buffer")
 	}
 	span.SetAttributes(attribute.Int("xi.source_bytes", len(fr.Bytes())))
+	if err := verifyHashsum(want, fr.Bytes()); err != nil {
+		fr.Release()
+		span.SetStatus(codes.Error, errs.KindOf(err).String())
+		return nil, err
+	}
 	return fr, nil
 }
 
@@ -300,6 +347,10 @@ func (s *Server) run(ctx context.Context, in *ProcessInput) (*ProcessOutput, err
 	if len(out.Skipped) > 0 {
 		s.deps.Logger.LogAttrs(ctx, slog.LevelDebug, "options not applied",
 			slog.String("skipped", strings.Join(out.Skipped, ",")))
+	}
+	if out.RawPath != "" {
+		s.deps.Metrics.ObserveRawDecode(out.RawPath)
+		span.SetAttributes(attribute.String("xi.raw_path", out.RawPath))
 	}
 	return out, nil
 }

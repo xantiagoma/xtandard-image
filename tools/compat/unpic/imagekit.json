@@ -1,0 +1,186 @@
+{
+  "provider": "imagekit",
+  "unpic": {
+    "provider": "imagekit",
+    "version": "4.2.2"
+  },
+  "mode": "path",
+  "fixtures": [
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=c-maintain_ratio%2Cfo-auto",
+      "origin": "generate",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg"
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=h-500%2Cf-png%2Cc-maintain_ratio%2Cfo-auto",
+      "origin": "generate",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=w-1200%2Cf-avif%2Cq-60%2Cc-maintain_ratio%2Cfo-auto",
+      "origin": "generate",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=w-400%2Ch-300%2Cf-webp%2Cq-80%2Cc-maintain_ratio%2Cfo-auto",
+      "origin": "generate",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=w-640%2Cf-jpeg%2Cq-75%2Cc-maintain_ratio%2Cfo-auto",
+      "origin": "generate",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=w-800%2Cc-maintain_ratio%2Cfo-auto",
+      "origin": "generate",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=w-800%2Ch-600%2Cc-maintain_ratio%2Cfo-auto",
+      "origin": "generate",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=blur-5%2Cw-300%2Ch-200%2Cq-75%2Cc-maintain_ratio%2Cfo-auto",
+      "origin": "test",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 300,
+        "height": 200,
+        "quality": 75
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=c-force%2Cfo-center%2Cq-80%2Cw-300%2Ch-200",
+      "origin": "test",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 300,
+        "height": 200,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=q-75%2Cblur-5%2Cw-300%2Ch-200%2Cc-maintain_ratio%2Cfo-auto",
+      "origin": "test",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 300,
+        "height": 200,
+        "quality": 75
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=w-200,h-100,c-maintain_ratio,fo-auto",
+      "origin": "test",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 200,
+        "height": 100
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=w-300,f-webp,c-maintain_ratio,fo-auto",
+      "origin": "test",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 300,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=w-300,h-200",
+      "origin": "test",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 300,
+        "height": 200
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=w-300,h-200,c-force,fo-center",
+      "origin": "test",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 300,
+        "height": 200
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=w-300,h-300",
+      "origin": "test",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 300,
+        "height": 300
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=w-300,h-300,c-maintain_ratio,fo-auto",
+      "origin": "test",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 300,
+        "height": 300
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/docs_images/examples/example_food_3.jpg?tr=w-400,h-300,cm-pad_resize,c-at_max_enlarge,fo-bottom,bg-FFFFFF,r-90,q-85",
+      "origin": "test",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 85
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/tr:w-300,h-200/docs_images/examples/example_food_3.jpg",
+      "origin": "test",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 300,
+        "height": 200
+      }
+    },
+    {
+      "url": "https://ik.imagekit.io/ikmedia/tr:w-300,h-300/docs_images/examples/example_food_3.jpg",
+      "origin": "test",
+      "want": {
+        "source": "ikmedia/docs_images/examples/example_food_3.jpg",
+        "width": 300,
+        "height": 300
+      }
+    }
+  ]
+}

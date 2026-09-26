@@ -1,0 +1,1032 @@
+[
+	{
+		"name": "resize_scale_w",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_scale,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_scale,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_scale_wh",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_scale,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_scale,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_scale_rel",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_scale,w_0.5/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_scale,w_0.5/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_scale_ar",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/ar_16:9,c_scale,w_400/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/ar_16:9,c_scale,w_400/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_scale_ar_float",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/ar_1.5,c_scale,w_400/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/ar_1.5,c_scale,w_400/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_fit",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_fit,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_fit,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_limit",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_limit,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_limit,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_mfit",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_mfit,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_mfit,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_fill",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_fill,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_fill,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_fill_gravity_compass",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_fill,g_north_east,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_fill,g_north_east,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_fill_gravity_auto",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_fill,g_auto,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_fill,g_auto,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_fill_gravity_auto_subject",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_fill,g_auto:cat,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_fill,g_auto:cat,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_fill_gravity_face",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_fill,g_face,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_fill,g_face,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_fill_gravity_faces",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_fill,g_faces,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_fill,g_faces,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_fill_gravity_object",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_fill,g_dog,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_fill,g_dog,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_lfill",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_lfill,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_lfill,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_fill_pad",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_fill_pad,g_auto,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_fill_pad,g_auto,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_pad",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_pad,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_pad,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_pad_gravity",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_pad,g_south,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_pad,g_south,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_lpad",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_lpad,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_lpad,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_mpad",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_mpad,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_mpad,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_crop_xy",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_crop,h_100,w_150,x_20,y_30/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_crop,h_100,w_150,x_20,y_30/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_crop_gravity",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_crop,g_south_west,h_100,w_150/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_crop,g_south_west,h_100,w_150/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_crop_xy_center",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_crop,g_xy_center,h_0.5,w_0.5,x_0.25,y_0.75/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_crop,g_xy_center,h_0.5,w_0.5,x_0.25,y_0.75/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_crop_rel",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_crop,h_0.25,w_0.5/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_crop,h_0.25,w_0.5/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_crop_ar",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/ar_4:3,c_crop,g_auto/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/ar_4:3,c_crop,g_auto/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_thumb_face_zoom",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_thumb,g_face,h_150,w_150,z_0.7/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_thumb,g_face,h_150,w_150,z_0.7/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_auto",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_auto,h_300,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_auto,h_300,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_auto_pad",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_auto_pad,g_auto,h_300,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_auto_pad,g_auto,h_300,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_imagga_scale",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_imagga_scale,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_imagga_scale,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "resize_imagga_crop",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_imagga_crop,h_200,w_300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_imagga_crop,h_200,w_300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "effect_blur",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_blur/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_blur/v1/folder/sample.jpg"
+	},
+	{
+		"name": "effect_blur_300",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_blur:300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_blur:300/v1/folder/sample.jpg"
+	},
+	{
+		"name": "effect_pixelate",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_pixelate:20/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_pixelate:20/v1/folder/sample.jpg"
+	},
+	{
+		"name": "effect_grayscale",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_grayscale/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_grayscale/v1/folder/sample.jpg"
+	},
+	{
+		"name": "effect_blackwhite",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_blackwhite/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_blackwhite/v1/folder/sample.jpg"
+	},
+	{
+		"name": "effect_sepia",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_sepia/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_sepia/v1/folder/sample.jpg"
+	},
+	{
+		"name": "effect_negate",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_negate/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_negate/v1/folder/sample.jpg"
+	},
+	{
+		"name": "effect_colorize",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/co_red,e_colorize:40/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/co_red,e_colorize:40/v1/folder/sample.jpg"
+	},
+	{
+		"name": "effect_vignette",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_vignette/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_vignette/v1/folder/sample.jpg"
+	},
+	{
+		"name": "effect_cartoonify",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_cartoonify/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_cartoonify/v1/folder/sample.jpg"
+	},
+	{
+		"name": "effect_background_removal",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_background_removal/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_background_removal/v1/folder/sample.jpg"
+	},
+	{
+		"name": "adjust_sharpen",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_sharpen:150/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_sharpen:150/v1/folder/sample.jpg"
+	},
+	{
+		"name": "adjust_unsharp",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_unsharp_mask:200/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_unsharp_mask:200/v1/folder/sample.jpg"
+	},
+	{
+		"name": "adjust_brightness",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_brightness:30/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_brightness:30/v1/folder/sample.jpg"
+	},
+	{
+		"name": "adjust_contrast",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_contrast:-20/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_contrast:-20/v1/folder/sample.jpg"
+	},
+	{
+		"name": "adjust_saturation",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_saturation:50/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_saturation:50/v1/folder/sample.jpg"
+	},
+	{
+		"name": "adjust_gamma",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_gamma:40/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_gamma:40/v1/folder/sample.jpg"
+	},
+	{
+		"name": "adjust_hue",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_hue:50/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_hue:50/v1/folder/sample.jpg"
+	},
+	{
+		"name": "adjust_vibrance",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_vibrance:70/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_vibrance:70/v1/folder/sample.jpg"
+	},
+	{
+		"name": "adjust_red",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_red:50/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_red:50/v1/folder/sample.jpg"
+	},
+	{
+		"name": "adjust_opacity",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/o_60/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/o_60/v1/folder/sample.jpg"
+	},
+	{
+		"name": "adjust_auto_color",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_auto_color/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/e_auto_color/v1/folder/sample.jpg"
+	},
+	{
+		"name": "rotate_45",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/a_45/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/a_45/v1/folder/sample.jpg"
+	},
+	{
+		"name": "rotate_90",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/a_90/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/a_90/v1/folder/sample.jpg"
+	},
+	{
+		"name": "rotate_hflip",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/a_hflip/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/a_hflip/v1/folder/sample.jpg"
+	},
+	{
+		"name": "rotate_vflip",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/a_vflip/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/a_vflip/v1/folder/sample.jpg"
+	},
+	{
+		"name": "rotate_ignore",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/a_ignore/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/a_ignore/v1/folder/sample.jpg"
+	},
+	{
+		"name": "rotate_auto_right",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/a_auto_right/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/a_auto_right/v1/folder/sample.jpg"
+	},
+	{
+		"name": "round_20",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/r_20/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/r_20/v1/folder/sample.jpg"
+	},
+	{
+		"name": "round_4",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/r_10:20:30:40/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/r_10:20:30:40/v1/folder/sample.jpg"
+	},
+	{
+		"name": "round_max",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/r_max/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/r_max/v1/folder/sample.jpg"
+	},
+	{
+		"name": "border_solid",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/bo_4px_solid_black/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/bo_4px_solid_black/v1/folder/sample.jpg"
+	},
+	{
+		"name": "border_rgb",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/bo_10px_solid_rgb:ff0080/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/bo_10px_solid_rgb:ff0080/v1/folder/sample.jpg"
+	},
+	{
+		"name": "background_named",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_pad,h_300,w_300/b_lightblue/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_pad,h_300,w_300/b_lightblue/v1/folder/sample.jpg"
+	},
+	{
+		"name": "background_hex",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_pad,h_300,w_300/b_rgb:00ff0080/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_pad,h_300,w_300/b_rgb:00ff0080/v1/folder/sample.jpg"
+	},
+	{
+		"name": "format_auto",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/f_auto/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/f_auto/v1/folder/sample.jpg"
+	},
+	{
+		"name": "format_webp",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/f_webp/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/f_webp/v1/folder/sample.jpg"
+	},
+	{
+		"name": "format_avif",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/f_avif/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/f_avif/v1/folder/sample.jpg"
+	},
+	{
+		"name": "format_png",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/f_png/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/f_png/v1/folder/sample.jpg"
+	},
+	{
+		"name": "format_jpeg",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/f_jpeg/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/f_jpeg/v1/folder/sample.jpg"
+	},
+	{
+		"name": "format_heif",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/f_heif/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/f_heif/v1/folder/sample.jpg"
+	},
+	{
+		"name": "format_tiff",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/f_tiff/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/f_tiff/v1/folder/sample.jpg"
+	},
+	{
+		"name": "format_gif",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/f_gif/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/f_gif/v1/folder/sample.jpg"
+	},
+	{
+		"name": "format_pdf",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/f_pdf/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/f_pdf/v1/folder/sample.jpg"
+	},
+	{
+		"name": "quality_80",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/q_80/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/q_80/v1/folder/sample.jpg"
+	},
+	{
+		"name": "quality_auto",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/q_auto/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/q_auto/v1/folder/sample.jpg"
+	},
+	{
+		"name": "quality_auto_best",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/q_auto:best/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/q_auto:best/v1/folder/sample.jpg"
+	},
+	{
+		"name": "quality_auto_good",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/q_auto:good/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/q_auto:good/v1/folder/sample.jpg"
+	},
+	{
+		"name": "quality_auto_eco",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/q_auto:eco/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/q_auto:eco/v1/folder/sample.jpg"
+	},
+	{
+		"name": "quality_auto_low",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/q_auto:low/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/q_auto:low/v1/folder/sample.jpg"
+	},
+	{
+		"name": "quality_chroma",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/q_70:420/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/q_70:420/v1/folder/sample.jpg"
+	},
+	{
+		"name": "quality_jpegmini",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/q_jpegmini/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/q_jpegmini/v1/folder/sample.jpg"
+	},
+	{
+		"name": "dpr_2",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_scale,w_300/dpr_2.0/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_scale,w_300/dpr_2.0/v1/folder/sample.jpg"
+	},
+	{
+		"name": "dpr_auto",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_scale,w_300/dpr_auto/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_scale,w_300/dpr_auto/v1/folder/sample.jpg"
+	},
+	{
+		"name": "colorspace_srgb",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/cs_srgb/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/cs_srgb/v1/folder/sample.jpg"
+	},
+	{
+		"name": "colorspace_cmyk",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/cs_cmyk/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/cs_cmyk/v1/folder/sample.jpg"
+	},
+	{
+		"name": "default_image",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/d_avatar.png/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/d_avatar.png/v1/folder/sample.jpg"
+	},
+	{
+		"name": "density",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/dn_150/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/dn_150/v1/folder/sample.jpg"
+	},
+	{
+		"name": "page",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/pg_2/doc.pdf",
+		"path": "/demo/image/upload/pg_2/doc.pdf"
+	},
+	{
+		"name": "flag_lossy",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_lossy/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_lossy/v1/folder/sample.jpg"
+	},
+	{
+		"name": "flag_progressive",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_progressive/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_progressive/v1/folder/sample.jpg"
+	},
+	{
+		"name": "flag_preserve_transparency",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_preserve_transparency/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_preserve_transparency/v1/folder/sample.jpg"
+	},
+	{
+		"name": "flag_strip_profile",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_strip_profile/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_strip_profile/v1/folder/sample.jpg"
+	},
+	{
+		"name": "flag_keep_iptc",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_keep_iptc/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_keep_iptc/v1/folder/sample.jpg"
+	},
+	{
+		"name": "flag_keep_attribution",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_keep_attribution/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_keep_attribution/v1/folder/sample.jpg"
+	},
+	{
+		"name": "flag_force_strip",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_force_strip/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_force_strip/v1/folder/sample.jpg"
+	},
+	{
+		"name": "flag_attachment",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_attachment:my_photo/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_attachment:my_photo/v1/folder/sample.jpg"
+	},
+	{
+		"name": "flag_attachment_plain",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_attachment/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_attachment/v1/folder/sample.jpg"
+	},
+	{
+		"name": "flag_animated",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_animated/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_animated/v1/folder/sample.jpg"
+	},
+	{
+		"name": "flag_awebp",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_awebp/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_awebp/v1/folder/sample.jpg"
+	},
+	{
+		"name": "flag_apng",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_apng/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_apng/v1/folder/sample.jpg"
+	},
+	{
+		"name": "flag_png8",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_png8/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_png8/v1/folder/sample.jpg"
+	},
+	{
+		"name": "flag_immutable_cache",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_immutable_cache/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_immutable_cache/v1/folder/sample.jpg"
+	},
+	{
+		"name": "flag_getinfo",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_getinfo/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_getinfo/v1/folder/sample.jpg"
+	},
+	{
+		"name": "flag_any_format",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_any_format/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_any_format/v1/folder/sample.jpg"
+	},
+	{
+		"name": "flag_rasterize",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_rasterize/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/fl_rasterize/v1/folder/sample.jpg"
+	},
+	{
+		"name": "overlay_image",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/l_logos:brand/c_scale,w_100/fl_layer_apply,g_north_east,x_10,y_20/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/l_logos:brand/c_scale,w_100/fl_layer_apply,g_north_east,x_10,y_20/v1/folder/sample.jpg"
+	},
+	{
+		"name": "overlay_fetch",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/l_fetch:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw%3D%3D/fl_layer_apply,g_south/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/l_fetch:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw%3D%3D/fl_layer_apply,g_south/v1/folder/sample.jpg"
+	},
+	{
+		"name": "overlay_tiled",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/l_logo/fl_layer_apply,fl_tiled/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/l_logo/fl_layer_apply,fl_tiled/v1/folder/sample.jpg"
+	},
+	{
+		"name": "overlay_text",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/l_text:Arial_40:Hello/fl_layer_apply/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/l_text:Arial_40:Hello/fl_layer_apply/v1/folder/sample.jpg"
+	},
+	{
+		"name": "underlay_image",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/u_paper/fl_layer_apply/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/u_paper/fl_layer_apply/v1/folder/sample.jpg"
+	},
+	{
+		"name": "named_transformation",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/t_thumb/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/t_thumb/v1/folder/sample.jpg"
+	},
+	{
+		"name": "chain_resize_effect_format",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_fill,g_auto,h_300,w_400/e_blur:200/a_90/f_auto/q_auto/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_fill,g_auto,h_300,w_400/e_blur:200/a_90/f_auto/q_auto/v1/folder/sample.jpg"
+	},
+	{
+		"name": "fetch_plain",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/fetch/c_scale,w_300/https://example.com/images/cat.jpg",
+		"path": "/demo/image/fetch/c_scale,w_300/https://example.com/images/cat.jpg"
+	},
+	{
+		"name": "fetch_query",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/fetch/f_auto/https://example.com/a%20b.jpg%3Fx%3D1&y%3D2",
+		"path": "/demo/image/fetch/f_auto/https://example.com/a%20b.jpg%3Fx%3D1&y%3D2"
+	},
+	{
+		"name": "id_unicode",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_scale,w_100/v1/folder/caf%C3%A9%20%C3%BC.jpg",
+		"path": "/demo/image/upload/c_scale,w_100/v1/folder/caf%C3%A9%20%C3%BC.jpg"
+	},
+	{
+		"name": "id_version",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_scale,w_100/v1712345678/sample.png",
+		"path": "/demo/image/upload/c_scale,w_100/v1712345678/sample.png"
+	},
+	{
+		"name": "id_no_ext",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_scale,w_100/v1/folder/sample",
+		"path": "/demo/image/upload/c_scale,w_100/v1/folder/sample"
+	},
+	{
+		"name": "private_type",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/private/c_scale,w_100/v1/folder/sample.jpg",
+		"path": "/demo/image/private/c_scale,w_100/v1/folder/sample.jpg"
+	},
+	{
+		"name": "authenticated_type",
+		"group": "urlgen",
+		"url": "https://res.cloudinary.com/demo/image/authenticated/c_scale,w_100/v1/folder/sample.jpg",
+		"path": "/demo/image/authenticated/c_scale,w_100/v1/folder/sample.jpg"
+	},
+	{
+		"name": "private_cdn",
+		"group": "urlgen",
+		"url": "https://demo-res.cloudinary.com/image/upload/c_fill,h_200,w_200/v1/folder/sample.jpg",
+		"path": "/image/upload/c_fill,h_200,w_200/v1/folder/sample.jpg"
+	},
+	{
+		"name": "custom_domain",
+		"group": "urlgen",
+		"url": "https://images.example.com/demo/image/upload/c_fill,h_200,w_200/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_fill,h_200,w_200/v1/folder/sample.jpg"
+	},
+	{
+		"name": "npm_basic",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_fill,g_auto,h_200,w_300/sample.jpg",
+		"path": "/demo/image/upload/c_fill,g_auto,h_200,w_300/sample.jpg"
+	},
+	{
+		"name": "npm_chain",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_scale,w_300/e_sharpen:200/a_-30/f_auto,q_auto:eco/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/c_scale,w_300/e_sharpen:200/a_-30/f_auto,q_auto:eco/v1/folder/sample.jpg"
+	},
+	{
+		"name": "npm_flags_multi",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_progressive.strip_profile.immutable_cache/sample.jpg",
+		"path": "/demo/image/upload/fl_progressive.strip_profile.immutable_cache/sample.jpg"
+	},
+	{
+		"name": "npm_effects",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_brightness:-40/sample.jpg",
+		"path": "/demo/image/upload/e_brightness:-40/sample.jpg"
+	},
+	{
+		"name": "npm_effect_trim",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_trim:15/sample.png",
+		"path": "/demo/image/upload/e_trim:15/sample.png"
+	},
+	{
+		"name": "npm_effect_blur_faces",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_blur_faces:600/sample.jpg",
+		"path": "/demo/image/upload/e_blur_faces:600/sample.jpg"
+	},
+	{
+		"name": "npm_effect_pixelate_faces",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_pixelate_faces:12/sample.jpg",
+		"path": "/demo/image/upload/e_pixelate_faces:12/sample.jpg"
+	},
+	{
+		"name": "npm_effect_blur_region",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_blur_region:800,h_0.4,w_0.3,x_0.1,y_0.2/sample.jpg",
+		"path": "/demo/image/upload/e_blur_region:800,h_0.4,w_0.3,x_0.1,y_0.2/sample.jpg"
+	},
+	{
+		"name": "npm_effect_unknown",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/e_oil_paint:40/sample.jpg",
+		"path": "/demo/image/upload/e_oil_paint:40/sample.jpg"
+	},
+	{
+		"name": "npm_border_obj",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/bo_3px_solid_rgb:00f/sample.jpg",
+		"path": "/demo/image/upload/bo_3px_solid_rgb:00f/sample.jpg"
+	},
+	{
+		"name": "npm_radius_list",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/r_10:20/sample.jpg",
+		"path": "/demo/image/upload/r_10:20/sample.jpg"
+	},
+	{
+		"name": "npm_radius_three",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/r_10:20:30/sample.jpg",
+		"path": "/demo/image/upload/r_10:20:30/sample.jpg"
+	},
+	{
+		"name": "npm_opacity",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/o_50/sample.jpg",
+		"path": "/demo/image/upload/o_50/sample.jpg"
+	},
+	{
+		"name": "npm_angle_list",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/a_auto_right.hflip/sample.jpg",
+		"path": "/demo/image/upload/a_auto_right.hflip/sample.jpg"
+	},
+	{
+		"name": "npm_background_rgb",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/b_rgb:ff000080,c_pad,h_300,w_300/sample.jpg",
+		"path": "/demo/image/upload/b_rgb:ff000080,c_pad,h_300,w_300/sample.jpg"
+	},
+	{
+		"name": "npm_size",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_fit,h_200,w_300/sample.jpg",
+		"path": "/demo/image/upload/c_fit,h_200,w_300/sample.jpg"
+	},
+	{
+		"name": "npm_named_multi",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/t_thumb.watermarked/sample.jpg",
+		"path": "/demo/image/upload/t_thumb.watermarked/sample.jpg"
+	},
+	{
+		"name": "npm_overlay_legacy",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/fl_relative,g_south_east,l_logo,o_60,w_0.2,x_5,y_5/sample.jpg",
+		"path": "/demo/image/upload/fl_relative,g_south_east,l_logo,o_60,w_0.2,x_5,y_5/sample.jpg"
+	},
+	{
+		"name": "npm_overlay_layer_apply",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/l_logos:brand/c_scale,w_80/fl_layer_apply,g_north_west,x_10,y_10/sample.jpg",
+		"path": "/demo/image/upload/l_logos:brand/c_scale,w_80/fl_layer_apply,g_north_west,x_10,y_10/sample.jpg"
+	},
+	{
+		"name": "npm_overlay_fetch",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/g_center,l_fetch:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/sample.jpg",
+		"path": "/demo/image/upload/g_center,l_fetch:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/sample.jpg"
+	},
+	{
+		"name": "npm_underlay",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/u_paper/sample.jpg",
+		"path": "/demo/image/upload/u_paper/sample.jpg"
+	},
+	{
+		"name": "npm_default_image_folder",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/d_fallbacks:avatar.png/sample.jpg",
+		"path": "/demo/image/upload/d_fallbacks:avatar.png/sample.jpg"
+	},
+	{
+		"name": "npm_page",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/f_png,pg_3/doc.pdf",
+		"path": "/demo/image/upload/f_png,pg_3/doc.pdf"
+	},
+	{
+		"name": "npm_zoom",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_thumb,g_faces,h_200,w_200,z_1.5/sample.jpg",
+		"path": "/demo/image/upload/c_thumb,g_faces,h_200,w_200,z_1.5/sample.jpg"
+	},
+	{
+		"name": "npm_w_auto",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_scale,w_auto:100:400/sample.jpg",
+		"path": "/demo/image/upload/c_scale,w_auto:100:400/sample.jpg"
+	},
+	{
+		"name": "npm_dpr_float",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/c_scale,dpr_1.5,w_100/sample.jpg",
+		"path": "/demo/image/upload/c_scale,dpr_1.5,w_100/sample.jpg"
+	},
+	{
+		"name": "npm_video_params",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/so_2,vc_auto/sample.jpg",
+		"path": "/demo/image/upload/so_2,vc_auto/sample.jpg"
+	},
+	{
+		"name": "npm_variables",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/$size_200,c_scale,w_$size/sample.jpg",
+		"path": "/demo/image/upload/$size_200,c_scale,w_$size/sample.jpg"
+	},
+	{
+		"name": "npm_if",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/if_w_gt_1000,c_scale,w_1000/e_grayscale/sample.jpg",
+		"path": "/demo/image/upload/if_w_gt_1000,c_scale,w_1000/e_grayscale/sample.jpg"
+	},
+	{
+		"name": "npm_raw_transformation",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/w_100,zz_1/sample.jpg",
+		"path": "/demo/image/upload/w_100,zz_1/sample.jpg"
+	},
+	{
+		"name": "npm_fetch",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/fetch/c_fill,f_auto,w_150/https://example.com/img/cat.jpg",
+		"path": "/demo/image/fetch/c_fill,f_auto,w_150/https://example.com/img/cat.jpg"
+	},
+	{
+		"name": "npm_private_cdn",
+		"group": "npm",
+		"url": "https://demo-res.cloudinary.com/image/upload/w_100/sample.jpg",
+		"path": "/image/upload/w_100/sample.jpg"
+	},
+	{
+		"name": "npm_cname",
+		"group": "npm",
+		"url": "http://images.example.com/demo/image/upload/w_100/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/w_100/v1/folder/sample.jpg"
+	},
+	{
+		"name": "npm_version",
+		"group": "npm",
+		"url": "https://res.cloudinary.com/demo/image/upload/w_100/v1234/folder/sample.jpg",
+		"path": "/demo/image/upload/w_100/v1234/folder/sample.jpg"
+	},
+	{
+		"name": "sig_sha1_basic",
+		"group": "signed",
+		"url": "https://res.cloudinary.com/demo/image/upload/s--Bh1c0rqb--/c_fill,h_200,w_300/sample.jpg",
+		"path": "/demo/image/upload/s--Bh1c0rqb--/c_fill,h_200,w_300/sample.jpg",
+		"secret": "a676b67565c6767a6767d6767f676fe1",
+		"algorithm": "sha1"
+	},
+	{
+		"name": "sig_sha1_version",
+		"group": "signed",
+		"url": "https://res.cloudinary.com/demo/image/upload/s--XjKdrQzI--/c_scale,w_100/v1234/folder/sample.jpg",
+		"path": "/demo/image/upload/s--XjKdrQzI--/c_scale,w_100/v1234/folder/sample.jpg",
+		"secret": "a676b67565c6767a6767d6767f676fe1",
+		"algorithm": "sha1"
+	},
+	{
+		"name": "sig_sha1_no_tx",
+		"group": "signed",
+		"url": "https://res.cloudinary.com/demo/image/upload/s--Mh0W0keP--/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/s--Mh0W0keP--/v1/folder/sample.jpg",
+		"secret": "a676b67565c6767a6767d6767f676fe1",
+		"algorithm": "sha1"
+	},
+	{
+		"name": "sig_sha1_chain",
+		"group": "signed",
+		"url": "https://res.cloudinary.com/demo/image/upload/s--8Z_FnhqD--/c_fill,w_300/e_grayscale/f_webp/sample.png",
+		"path": "/demo/image/upload/s--8Z_FnhqD--/c_fill,w_300/e_grayscale/f_webp/sample.png",
+		"secret": "a676b67565c6767a6767d6767f676fe1",
+		"algorithm": "sha1"
+	},
+	{
+		"name": "sig_sha1_fetch",
+		"group": "signed",
+		"url": "https://res.cloudinary.com/demo/image/fetch/s--MRUGV-qq--/w_300/https://example.com/a%20b.jpg%3Fx%3D1",
+		"path": "/demo/image/fetch/s--MRUGV-qq--/w_300/https://example.com/a%20b.jpg%3Fx%3D1",
+		"secret": "a676b67565c6767a6767d6767f676fe1",
+		"algorithm": "sha1"
+	},
+	{
+		"name": "sig_sha1_unicode",
+		"group": "signed",
+		"url": "https://res.cloudinary.com/demo/image/upload/s--CEleCxpI--/w_100/v1/folder/caf%C3%A9.jpg",
+		"path": "/demo/image/upload/s--CEleCxpI--/w_100/v1/folder/caf%C3%A9.jpg",
+		"secret": "a676b67565c6767a6767d6767f676fe1",
+		"algorithm": "sha1"
+	},
+	{
+		"name": "sig_sha1_private",
+		"group": "signed",
+		"url": "https://res.cloudinary.com/demo/image/private/s--iXuySGRt--/w_100/v1/secret/photo.jpg",
+		"path": "/demo/image/private/s--iXuySGRt--/w_100/v1/secret/photo.jpg",
+		"secret": "a676b67565c6767a6767d6767f676fe1",
+		"algorithm": "sha1"
+	},
+	{
+		"name": "sig_sha1_private_cdn",
+		"group": "signed",
+		"url": "https://demo-res.cloudinary.com/image/upload/s--WsGl8cHM--/w_100/sample.jpg",
+		"path": "/image/upload/s--WsGl8cHM--/w_100/sample.jpg",
+		"secret": "a676b67565c6767a6767d6767f676fe1",
+		"algorithm": "sha1"
+	},
+	{
+		"name": "sig_sha256_short",
+		"group": "signed",
+		"url": "https://res.cloudinary.com/demo/image/upload/s--i46GHAbs--/c_scale,w_300/sample.jpg",
+		"path": "/demo/image/upload/s--i46GHAbs--/c_scale,w_300/sample.jpg",
+		"secret": "a676b67565c6767a6767d6767f676fe1",
+		"algorithm": "sha256"
+	},
+	{
+		"name": "sig_sha256_long",
+		"group": "signed",
+		"url": "https://res.cloudinary.com/demo/image/upload/s--i46GHAbs1Ed66mEYIrj83I6Y10E7Nu43--/c_scale,w_300/sample.jpg",
+		"path": "/demo/image/upload/s--i46GHAbs1Ed66mEYIrj83I6Y10E7Nu43--/c_scale,w_300/sample.jpg",
+		"secret": "a676b67565c6767a6767d6767f676fe1",
+		"algorithm": "sha256_long"
+	},
+	{
+		"name": "sig_sha256_long_chain",
+		"group": "signed",
+		"url": "https://res.cloudinary.com/demo/image/upload/s--RqauDDM-ekMKLY4XWtVkLInFGVKsiE27--/c_fill,w_300/e_blur:300/v1/folder/sample.jpg",
+		"path": "/demo/image/upload/s--RqauDDM-ekMKLY4XWtVkLInFGVKsiE27--/c_fill,w_300/e_blur:300/v1/folder/sample.jpg",
+		"secret": "a676b67565c6767a6767d6767f676fe1",
+		"algorithm": "sha256_long"
+	}
+]

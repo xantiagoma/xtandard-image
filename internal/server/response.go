@@ -61,6 +61,41 @@ type imageResult struct {
 	// ext is the sniffed file extension (no dot) of an unprocessed raw or
 	// skip-processing body; "" derives it from format (WP-34c).
 	ext string
+	// cacheKey is the result-cache key under which a successful GET is
+	// stored after it was written; "" when it must not be stored (cache
+	// off, bypass, fallback, raw, info).
+	cacheKey string
+	// stored is the cached entry's header of a result-cache hit (cache.go);
+	// nil for a response produced now.
+	stored http.Header
+}
+
+// contentType is the Content-Type of the body.
+func (res *imageResult) contentType() string {
+	if res.out != nil && res.out.ContentType != "" {
+		return res.out.ContentType
+	}
+	return negotiate.ContentType(res.format)
+}
+
+// varyHeader is the Vary value: the negotiation's and the client hints'
+// request headers, or the stored value of a cache hit.
+func (res *imageResult) varyHeader() string {
+	if res.stored != nil {
+		return res.stored.Get("Vary")
+	}
+	return (res.decision.Vary | res.hints.Vary).Header()
+}
+
+// contentDPR is the Content-DPR value ("" when none applies).
+func (res *imageResult) contentDPR() string {
+	if res.stored != nil {
+		return res.stored.Get("Content-Dpr")
+	}
+	if dpr := res.hints.ContentDPR; dpr != 0 && dpr != 1 {
+		return strconv.FormatFloat(dpr, 'f', -1, 64)
+	}
+	return ""
 }
 
 // respond is stage 14 (ARCHITECTURE §9.1). A 304 carries the headers a 200
@@ -76,9 +111,10 @@ func (s *Server) respond(w http.ResponseWriter, r *http.Request, res *imageResul
 		return
 	}
 
-	ct := negotiate.ContentType(res.format)
-	if res.out != nil && res.out.ContentType != "" {
-		ct = res.out.ContentType
+	ct := res.contentType()
+	if res.req.Delivery.Encoding == transform.ResponseDataURL {
+		s.respondDataURL(w, r, res, ct)
+		return
 	}
 	h.Set("Content-Type", ct)
 	h.Set("X-Content-Type-Options", "nosniff")
@@ -105,6 +141,37 @@ func (s *Server) respond(w http.ResponseWriter, r *http.Request, res *imageResul
 	}
 }
 
+// respondDataURL writes the encoded image as a "data:<type>;base64,..."
+// text body (wsrv encoding=base64, weserv src/nginx/util.cpp
+// output_chain_to_base64): Content-Type text/plain and no
+// Content-Disposition. The cache headers are those of the image; the
+// canonical key includes the encoding, so the ETag differs from the
+// binary response's.
+func (s *Server) respondDataURL(w http.ResponseWriter, r *http.Request, res *imageResult, ct string) {
+	h := w.Header()
+	h.Set("Content-Type", "text/plain; charset=utf-8")
+	h.Set("X-Content-Type-Options", "nosniff")
+	if s.cfg.DebugHeaders {
+		setDebugHeaders(h, res)
+	}
+	if res.out == nil {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	img := res.out.Body.Bytes()
+	const prefix, sep = "data:", ";base64,"
+	body := make([]byte, 0, len(prefix)+len(ct)+len(sep)+base64.StdEncoding.EncodedLen(len(img)))
+	body = append(body, prefix...)
+	body = append(body, ct...)
+	body = append(body, sep...)
+	body = base64.StdEncoding.AppendEncode(body, img)
+	h.Set("Content-Length", strconv.Itoa(len(body)))
+	w.WriteHeader(http.StatusOK)
+	if r.Method != http.MethodHead {
+		_, _ = w.Write(body) //nolint:gosec // G705: base64 text of the encoded image, text/plain with nosniff
+	}
+}
+
 // setCacheHeaders writes the validators and caching headers shared by 200,
 // HEAD and 304 answers.
 func (s *Server) setCacheHeaders(h http.Header, res *imageResult) {
@@ -113,12 +180,10 @@ func (s *Server) setCacheHeaders(h http.Header, res *imageResult) {
 	if lm := res.object.LastModified; !lm.IsZero() {
 		h.Set("Last-Modified", lm.UTC().Format(http.TimeFormat))
 	}
-	if v := (res.decision.Vary | res.hints.Vary).Header(); v != "" {
+	if v := res.varyHeader(); v != "" {
 		h.Set("Vary", v)
 	}
-	if dpr := res.hints.ContentDPR; dpr != 0 && dpr != 1 {
-		h.Set("Content-Dpr", strconv.FormatFloat(dpr, 'f', -1, 64))
-	}
+	s.setHintHeaders(h, res)
 	if s.cfg.CanonicalHeader {
 		if u := res.key.Path; strings.HasPrefix(u, "https://") || strings.HasPrefix(u, "http://") {
 			h.Set("Link", "<"+u+`>; rel="canonical"`)
@@ -488,8 +553,9 @@ func cacheTags(tags []string) string {
 
 // setDebugHeaders writes the XI_OBSERVABILITY_DEBUG_HEADERS headers
 // (imgproxy's X-Origin-* / X-Result-* under the X-Xi- prefix): the
-// original's size and dimensions, the result's dimensions when it was
-// encoded, and the options that were parsed but not applied.
+// original's size and dimensions, the result's dimensions and encoder
+// quality when it was encoded, and the options that were parsed but not
+// applied.
 func setDebugHeaders(h http.Header, res *imageResult) {
 	h.Set("X-Xi-Origin-Content-Length", strconv.Itoa(res.srcLen))
 	if res.meta.Width > 0 {
@@ -499,6 +565,15 @@ func setDebugHeaders(h http.Header, res *imageResult) {
 	if res.out != nil && res.out.Width > 0 {
 		h.Set("X-Xi-Result-Width", strconv.Itoa(res.out.Width))
 		h.Set("X-Xi-Result-Height", strconv.Itoa(res.out.Height))
+	}
+	if res.out != nil && res.out.Quality > 0 {
+		h.Set("X-Xi-Quality", strconv.Itoa(res.out.Quality))
+	}
+	if res.out != nil && res.out.Best != "" {
+		h.Set(hdrBest, res.out.Best)
+	}
+	if res.out != nil && res.out.RawPath != "" {
+		h.Set("X-Xi-Raw-Path", res.out.RawPath)
 	}
 	if len(res.req.Ignored) > 0 {
 		var b strings.Builder

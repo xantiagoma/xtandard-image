@@ -5,7 +5,9 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/codec/imagemeta"
+	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
+	"github.com/xantiagoma/xtandard-image/internal/imageinfo"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
@@ -14,29 +16,50 @@ import (
 // vipsInspector is the production server.Inspector: codec.Inspect (probe
 // plus a header-only load) on a locked vips thread, with IPTC and XMP
 // parsed into imgproxy's /info shapes.
-type vipsInspector struct{}
+type vipsInspector struct {
+	formats codec.Limits // static per-format limits and settings (formatLimits)
+}
 
-// Inspect implements server.Inspector.
-func (vipsInspector) Inspect(ctx context.Context, src fetch.Buffer, lim server.ProbeLimits) (*server.SourceInfo, error) {
+// Inspect implements server.Inspector. The pixel-derived fields px asks
+// for are computed in the same vips.Run: codec.Sample decodes the first
+// page to a copy of at most imageinfo.MaxSide pixels a side, and
+// imageinfo.Analyze runs on it.
+func (in vipsInspector) Inspect(ctx context.Context, src fetch.Buffer, lim server.ProbeLimits, px *imageinfo.Options) (*server.SourceInfo, error) {
 	vb, err := vipsBuffer(src)
 	if err != nil {
 		return nil, err
 	}
 	defer vb.Release()
 	var ci codec.Info
+	var pixels *imageinfo.Result
 	err = vips.Run(ctx, func() error {
 		var err error
-		ci, err = codec.Inspect(ctx, vb, codec.Limits{
-			MaxSrcPixels:            lim.MaxPixels,
-			MaxAnimationFrames:      lim.MaxFrames,
-			MaxAnimationFramePixels: lim.MaxFramePixels,
-		}, "")
-		return err
+		l := in.formats
+		l.MaxSrcPixels = lim.MaxPixels
+		l.MaxAnimationFrames = lim.MaxFrames
+		l.MaxAnimationFramePixels = lim.MaxFramePixels
+		if ci, err = codec.Inspect(ctx, vb, l, ""); err != nil || !px.Any() {
+			return err
+		}
+		raw, err := codec.Sample(ctx, vb, ci.Meta.Format, imageinfo.MaxSide, l)
+		if err != nil {
+			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		pixels, err = imageinfo.Analyze(&imageinfo.Image{Width: raw.Width, Height: raw.Height, Pix: raw.Data}, px)
+		if err != nil {
+			return errs.Wrap(errs.KindInternal, err)
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return sourceInfo(&ci), nil
+	si := sourceInfo(&ci)
+	si.Pixels = pixels
+	return si, nil
 }
 
 // sourceInfo converts codec.Info to the server's view.
@@ -60,6 +83,7 @@ func sourceInfo(ci *codec.Info) *server.SourceInfo {
 		Bands:        ci.Bands,
 		SampleFormat: ci.SampleFormat,
 		Colorspace:   ci.Colorspace,
+		HDR:          ci.HDR,
 	}
 	for _, e := range ci.EXIF {
 		si.EXIF = append(si.EXIF, server.EXIFEntry{Name: e.Name, Title: e.Title, Value: e.Value})

@@ -153,6 +153,28 @@ func TestValidate(t *testing.T) {
 		{"focus x above 1", p0(func(p *Pipeline) { p.Gravity.FocusX = 1.1 }), "pipelines[0].gravity.focus_x"},
 		{"focus y negative", p0(func(p *Pipeline) { p.Gravity.FocusY = -0.1 }), "pipelines[0].gravity.focus_y"},
 		{"focus zoom negative", p0(func(p *Pipeline) { p.Gravity.FocusZoom = -1 }), "pipelines[0].gravity.focus_zoom"},
+		{"focus px without focus point", p0(func(p *Pipeline) { p.Gravity.FocusPx = &FocusRect{X2: 1, Y2: 1} }), "pipelines[0].gravity.focus_px"},
+		{"focus px with fraction", p0(func(p *Pipeline) {
+			p.Gravity = Gravity{Type: GravityFocusPoint, FocusX: 0.5, FocusPx: &FocusRect{}}
+		}), "pipelines[0].gravity.focus_px"},
+		{"focus px negative", p0(func(p *Pipeline) {
+			p.Gravity = Gravity{Type: GravityFocusPoint, FocusPx: &FocusRect{X1: -1}}
+		}), "pipelines[0].gravity.focus_px.x1"},
+		{"focus px y2 above max", p0(func(p *Pipeline) {
+			p.Gravity = Gravity{Type: GravityFocusPoint, FocusPx: &FocusRect{Y2: MaxSourceCoord + 1}}
+		}), "pipelines[0].gravity.focus_px.y2"},
+		{"focus px corners reversed", p0(func(p *Pipeline) {
+			p.Gravity = Gravity{Type: GravityFocusPoint, FocusPx: &FocusRect{X1: 10, X2: 5}}
+		}), "pipelines[0].gravity.focus_px.x2"},
+		{"crop focus px reversed", p0(func(p *Pipeline) {
+			p.Crop.Gravity = Gravity{Type: GravityFocusPoint, FocusPx: &FocusRect{Y1: 10, Y2: 5}}
+		}), "pipelines[0].crop.gravity.focus_px.y2"},
+		{"extend focus px", p0(func(p *Pipeline) {
+			p.Extend.Gravity = Gravity{Type: GravityFocusPoint, FocusPx: &FocusRect{}}
+		}), "pipelines[0].extend.gravity.focus_px"},
+		{"watermark focus px", p0(func(p *Pipeline) {
+			p.Watermarks[0].Position = Gravity{Type: GravityFocusPoint, FocusPx: &FocusRect{}}
+		}), "pipelines[0].watermarks[0].position.focus_px"},
 		{"class empty", p0(func(p *Pipeline) { p.Gravity.Classes = []string{""} }), "pipelines[0].gravity.classes[0]"},
 		{"too many classes", p0(func(p *Pipeline) {
 			p.Gravity.Classes = slices.Repeat([]string{"a"}, MaxListLen+1)
@@ -399,6 +421,12 @@ func TestValidateAcceptsBoundaries(t *testing.T) {
 		}},
 		{"objects position focus point", func(r *Request) {
 			r.Pipelines[0].Gravity.ObjectsPosition = &ObjectsPosition{Type: GravityFocusPoint, X: 0.5, Y: 0.5}
+		}},
+		{"pixel focus point", func(r *Request) {
+			r.Pipelines[0].Gravity = Gravity{Type: GravityFocusPoint, FocusPx: &FocusRect{X1: 7, Y1: 9, X2: 7, Y2: 9}}
+		}},
+		{"pixel focus max", func(r *Request) {
+			r.Pipelines[0].Crop.Gravity = Gravity{Type: GravityFocusPoint, FocusPx: &FocusRect{X2: MaxSourceCoord, Y2: MaxSourceCoord}}
 		}},
 		{"extend focus point", func(r *Request) { r.Pipelines[0].Extend.Gravity = Gravity{Type: GravityFocusPoint, FocusX: 1} }},
 		{"watermark text only", func(r *Request) {

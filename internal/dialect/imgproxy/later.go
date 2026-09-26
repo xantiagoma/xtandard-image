@@ -47,47 +47,64 @@ var (
 	colorMonochrome = transform.Color{R: 0xb3, G: 0xb3, B: 0xb3, A: 255}
 )
 
+// applied marks a later option the executor implements: it is not recorded
+// in Request.Ignored.
+const applied = ""
+
 // applyLater parses the options of docs/URL-DIALECTS.md §3.2 scheduled for
 // M2 and M3 into the request and records each in Request.Ignored with its
 // milestone, so the server can reject or skip them until the executor
-// implements them. It reports whether name is one of them.
+// implements them (options already implemented, such as autoquality, are not
+// recorded). It reports whether name is one of them.
 //
 //nolint:gocyclo // one flat switch over the option table is the clearest form
 func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) (bool, error) {
 	var err error
-	milestone := reasonM2
+	var milestone string // every case sets it
 	switch name {
-	// Geometry.
+	// Geometry (crop_aspect_ratio applied since WP-60).
 	case "crop_aspect_ratio", "crop_ar", "car":
+		milestone = applied
 		err = cropAspectRatio(pl, args)
 	case "objects_position", "obj_pos", "op":
 		milestone = reasonM3
 		err = objectsPosition(&pl.Gravity, args)
 
-	// Colour.
+	// Colour (applied since WP-59).
 	case "adjust", "a":
+		milestone = applied
 		err = adjust(&pl.Adjust, args)
 	case "brightness", "br":
+		milestone = applied
 		err = oneRangePtr("brightness", args, -transform.MaxBrightness, transform.MaxBrightness, &pl.Adjust.Brightness)
 	case "contrast", "co":
+		milestone = applied
 		err = oneRangePtr("contrast", args, 0, transform.MaxFactor, &pl.Adjust.Contrast)
 	case "saturation", "sa":
+		milestone = applied
 		err = oneRangePtr("saturation", args, 0, transform.MaxFactor, &pl.Adjust.Saturation)
 	case "monochrome", "mc":
+		milestone = applied
 		err = monochrome(pl, args)
 	case "duotone", "dt":
+		milestone = applied
 		err = duotone(pl, args)
 	case "colorize", "col":
+		milestone = applied
 		err = colorize(pl, args)
 	case "gradient", "gr":
+		milestone = applied
 		err = gradient(pl, args)
 
-	// Blur and sharpening.
+	// Blur and sharpening (applied since WP-61).
 	case "unsharp_masking", "ush":
+		milestone = applied
 		err = unsharpMasking(pl, args)
 	case "blur_areas", "ba":
+		milestone = applied
 		err = blurAreas(pl, args)
 	case "progressive_blur", "pbl":
+		milestone = applied
 		err = progressiveBlur(pl, args)
 	case "blur_detections", "bd":
 		milestone = reasonM3
@@ -116,22 +133,30 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 		milestone = reasonM3
 		err = oneRange("watermark_shadow", args, 0, transform.MaxSigma, &firstWatermark(pl).Shadow)
 	case "style", "stl", "st":
+		milestone = applied // WP-64: SVG sources only (the executor skips it otherwise)
 		err = oneBase64Text("style", args, &pl.SVGStyle)
 
 	// Output (request-wide).
 	case "dpi":
+		milestone = applied // WP-64
 		err = oneIntRange("dpi", args, 0, transform.MaxDPI, &st.r.Output.DPI)
 	case "color_profile", "cp", "icc":
+		milestone = applied
 		err = colorProfile(&st.r.Output, args)
 	case "autoquality", "aq":
+		milestone = applied // WP-56
 		err = autoquality(&st.r.Output, args)
 	case "jpeg_options", "jpgo":
+		milestone = applied // WP-64 (the mozjpeg-only arguments are no-ops with libjpeg-turbo)
 		err = jpegOptions(&st.r.Output, args)
 	case "png_options", "pngo":
+		milestone = applied
 		err = pngOptions(&st.r.Output, args)
 	case "webp_options", "webpo":
+		milestone = applied
 		err = webpOptions(&st.r.Output, args)
 	case "avif_options", "avifo":
+		milestone = applied
 		err = avifOptions(&st.r.Output, args)
 
 	// Video (pipeline).
@@ -154,12 +179,16 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 
 	// Delivery and source (request-wide).
 	case "fallback_image_url", "fiu":
+		milestone = applied // WP-34c (honoured with XI_FALLBACK_ALLOW_REQUEST_URL)
 		err = fallbackImageURL(&st.r.Delivery, args)
 	case "bypass_cache", "bc":
+		milestone = applied // WP-52 (honoured with XI_CACHE_ALLOW_BYPASS)
 		err = oneBool("bypass_cache", args, &st.r.Delivery.BypassCache)
 	case "cache_tags", "ct":
+		milestone = applied // WP-34b header, XI_CACHE_TAGS_HEADER
 		err = cacheTags(&st.r.Delivery, args)
 	case "hashsum", "hs":
+		milestone = applied // WP-64
 		err = hashsum(&st.r.Source, args)
 	default:
 		return false, nil
@@ -167,7 +196,9 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 	if err != nil {
 		return true, err
 	}
-	st.ignore(name, milestone)
+	if milestone != applied {
+		st.ignore(name, milestone)
+	}
 	return true, nil
 }
 
@@ -844,7 +875,7 @@ func autoquality(o *transform.Output, args []string) error {
 	}
 	var err error
 	if s := arg(args, 1); s != "" {
-		if aq.Target, err = parseRange("autoquality.target", s, 0, transform.MaxFactor); err != nil {
+		if aq.Target, err = parseRange("autoquality.target", s, 0, transform.MaxAutoQualityTarget); err != nil {
 			return err
 		}
 	}

@@ -1,0 +1,255 @@
+{
+  "acme_filters": {
+    "config": "signed",
+    "path": "/5YRxzS2yxZxj9SZ50SoZ11eIdDI=/filters:fill(blue)/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 255
+          },
+          "Extend": {
+            "Enabled": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "image.jpg"
+  },
+  "acme_meta": {
+    "config": "signed",
+    "path": "/oGi9XL4nHJKGEKVHjHEp1Jg1KpM=/meta/animated.gif",
+    "request": {
+      "Dialect": "thumbor",
+      "Info": {
+        "Dimensions": true,
+        "Format": true,
+        "Schema": "thumbor",
+        "Size": true
+      },
+      "Kind": "info",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "animated.gif"
+      }
+    },
+    "signature": "verified",
+    "source": "animated.gif"
+  },
+  "acme_percent_encoded_sig": {
+    "config": "signed",
+    "path": "/_wIUeSaeHw8dricKG2MGhqu5thk%3D/smart/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "image.jpg"
+  },
+  "acme_smart": {
+    "config": "signed",
+    "path": "/_wIUeSaeHw8dricKG2MGhqu5thk=/smart/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "image.jpg"
+  },
+  "acme_utf8": {
+    "config": "signed",
+    "path": "/lc6e3kkm_2Ww7NWho8HPOe-sqLU=/smart/alabama1_ap620%C3%A9.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "alabama1_ap620é.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "alabama1_ap620é.jpg"
+  },
+  "bad_sig_escape": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/_wIUeSaeHw8dricKG2MGhqu5thk%zz/smart/image.jpg"
+  },
+  "composer_vector": {
+    "config": "signed",
+    "path": "/G_dykuWBGyEil5JnNh9cBke0Ajo=/200x300/myserver.com/myimg.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "myserver.com/myimg.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "myserver.com/myimg.jpg"
+  },
+  "long_segment_is_signature": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/filters:format(webp):quality(80)/image.jpg"
+  },
+  "signed_required": {
+    "config": "required",
+    "path": "/_wIUeSaeHw8dricKG2MGhqu5thk=/smart/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "image.jpg"
+  },
+  "signing_off_any_hash": {
+    "path": "/_wIUeSaeHw8dricKG2MGhqu5thk=/smart/image2.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image2.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image2.jpg"
+  },
+  "tampered": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/_wIUeSaeHw8dricKG2MGhqu5thk=/smart/image2.jpg"
+  },
+  "unsafe_allowed": {
+    "config": "signed",
+    "path": "/unsafe/smart/image.jpg",
+    "request": {
+      "Dialect": "thumbor",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image.jpg"
+  },
+  "unsafe_required": {
+    "config": "required",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/unsafe/smart/image.jpg"
+  }
+}

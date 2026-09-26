@@ -159,6 +159,14 @@ linters:
             - pkg: github.com/redis/go-redis
               desc: redis belongs in internal/cache/redis
 
+        # ADR 0008: huma is the OpenAPI document builder, confined to
+        # internal/apidoc (no adapter, no router, no huma globals assigned).
+        huma-only-in-apidoc:
+          files: [$all, "!**/internal/apidoc/**"]
+          deny:
+            - pkg: github.com/danielgtaylor/huma
+              desc: huma builds the OpenAPI document in internal/apidoc only (ADR 0008)
+
         # ARCHITECTURE §3: transform and errs are leaves.
         leaves:
           files:
@@ -173,7 +181,21 @@ linters:
           files: ["**/internal/config/**"]
           # strict: the allow list is exhaustive, so config imports only internal/errs (ARCHITECTURE §3)
           list-mode: strict
-          allow: [$gostd, github.com/xantiagoma/xtandard-image/internal/errs, github.com/caarlos0/env, github.com/goccy/go-yaml, github.com/google/go-cmp]
+          allow: [$gostd, github.com/xantiagoma/xtandard-image/internal/errs, github.com/caarlos0/env, github.com/goccy/go-yaml, github.com/pelletier/go-toml/v2, github.com/google/go-cmp, github.com/santhosh-tekuri/jsonschema/v6]
+
+        # ADR 0007: the TOML decoder is internal/config's alone.
+        toml-only-in-config:
+          files: [$all, "!**/internal/config/**"]
+          deny:
+            - pkg: github.com/pelletier/go-toml
+              desc: config files are decoded only by internal/config (ADR 0007)
+
+        # ADR 0007/0008: the JSON Schema validator is test-only.
+        jsonschema-only-in-tests:
+          files: [$all, "!$test"]
+          deny:
+            - pkg: github.com/santhosh-tekuri/jsonschema
+              desc: the JSON Schema validator is test-only; the loader is the authority (ADR 0007)
 
         # ARCHITECTURE §3: security/* → errs only.
         security:

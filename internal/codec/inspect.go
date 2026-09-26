@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/imagemeta"
+	"github.com/xantiagoma/xtandard-image/internal/codec/raw"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -28,6 +29,8 @@ type Info struct {
 	IPTC []byte
 	// XMP is the raw XMP packet; see imagemeta.ParseXMP.
 	XMP []byte
+	// HDR mirrors Meta.HDR: scene-linear samples (OpenEXR, Radiance, PFM).
+	HDR bool
 }
 
 // EXIFTag is one EXIF tag as libexif (through libvips) reads it.
@@ -44,15 +47,22 @@ type EXIFTag struct {
 
 // Inspect probes buf like Probe (same limits and errors) and additionally
 // reads the band layout and the metadata fields libvips attaches to the
-// image header. BMP and ICO (pure-Go loaders) and SVG carry no EXIF, IPTC
-// or XMP; their band layout follows from the probe. Like Probe it must run
-// inside vips.Run.
+// image header. BMP and ICO (pure-Go loaders), SVG and PSD carry no EXIF,
+// IPTC or XMP here; their band layout follows from the probe (the
+// Photoshop header for PSD). Camera RAW reports the camera metadata LibRaw
+// reads as EXIF (codec/raw.EXIF). Like Probe it must run inside vips.Run.
 func Inspect(ctx context.Context, buf *vips.Buffer, lim Limits, contentType string) (Info, error) {
 	m, err := Probe(ctx, buf, lim, contentType)
 	if err != nil {
 		return Info{}, err
 	}
-	info := Info{Meta: m}
+	info := Info{Meta: m, HDR: m.HDR}
+	if m.Format == FormatRAW {
+		if err := inspectRaw(ctx, buf, &info); err != nil {
+			return Info{}, err
+		}
+		return info, nil
+	}
 	switch m.Format {
 	case FormatBMP, FormatICO, FormatSVG:
 		info.Bands = 3
@@ -60,6 +70,24 @@ func Inspect(ctx context.Context, buf *vips.Buffer, lim Limits, contentType stri
 			info.Bands = 4
 		}
 		info.SampleFormat, info.Colorspace = "uchar", "srgb"
+		return info, nil
+	case FormatPSD:
+		// ImageMagick decodes the whole file even for a header: describe
+		// the merged image from the Photoshop header instead.
+		h, err := ParsePSDHeader(buf.Bytes())
+		if err != nil {
+			return Info{}, err
+		}
+		info.Bands, info.SampleFormat, info.Colorspace = psdLayout(&h)
+		return info, nil
+	case FormatEXR:
+		// Described from the Go header: loading would spool the file for
+		// OpenEXR. The pipeline sees float scRGB, alpha only when present.
+		info.Bands = 3
+		if m.HasAlpha {
+			info.Bands = 4
+		}
+		info.SampleFormat, info.Colorspace = "float", "scrgb"
 		return info, nil
 	default:
 	}
@@ -73,6 +101,18 @@ func Inspect(ctx context.Context, buf *vips.Buffer, lim Limits, contentType stri
 	}
 	defer img.Close()
 	info.Bands = img.Bands()
+	if m.Format == FormatPDF && !m.HasAlpha {
+		info.Bands = 3 // PDFium's RGBA, rendered opaque by default (probePDF)
+	}
+	if m.Format == FormatRadiance {
+		// Four RGBE-coded bytes per pixel decode to three float bands of
+		// linear light (libvips guesses sRGB for coded images; XYZE files
+		// are converted to scRGB when decoded).
+		info.Bands = 3
+		info.SampleFormat = bandFormatName(vips.BandFormatFloat)
+		info.Colorspace = interpretationName(vips.InterpretationScRGB)
+		return info, nil
+	}
 	info.SampleFormat = bandFormatName(img.BandFormat())
 	info.Colorspace = interpretationName(img.Interpretation())
 	for _, f := range img.Fields() {
@@ -97,6 +137,27 @@ func Inspect(ctx context.Context, buf *vips.Buffer, lim Limits, contentType stri
 		info.XMP = b
 	}
 	return info, nil
+}
+
+// inspectRaw describes a RAW file from its LibRaw header (nothing is
+// unpacked): 8-bit sRGB or grey output and the camera metadata as EXIF.
+func inspectRaw(ctx context.Context, buf *vips.Buffer, info *Info) error {
+	h, err := raw.Probe(ctx, buf)
+	if err != nil {
+		return fmt.Errorf("codec: inspect raw: %w", err)
+	}
+	info.Bands, info.SampleFormat, info.Colorspace = 3, "uchar", "srgb"
+	if h.Colors == 1 {
+		info.Bands, info.Colorspace = 1, "b-w"
+	}
+	for _, t := range raw.EXIF(&h.RawHeader) {
+		title, ok := vips.EXIFTitle(t.IFD, t.Name)
+		if !ok {
+			title = t.Name
+		}
+		info.EXIF = append(info.EXIF, EXIFTag{IFD: t.IFD, Name: t.Name, Title: title, Value: t.Value})
+	}
+	return nil
 }
 
 // bandFormatName is the libvips nickname of f (VipsBandFormat).
@@ -189,4 +250,36 @@ func InfoFormat(f Format) (name, mime string) {
 	default:
 		return f.String(), f.MIME()
 	}
+}
+
+// psdLayout is the band count, libvips sample format and interpretation
+// the merged image of h loads with.
+func psdLayout(h *PSDHeader) (bands int, sample, colorspace string) {
+	sample = "uchar"
+	switch h.Depth {
+	case 16:
+		sample = "ushort"
+	case 32:
+		sample = "float"
+	default:
+	}
+	switch h.ColorSpace() {
+	case ColorSpaceSRGB:
+		colorspace = "srgb"
+		if h.Depth == 16 {
+			colorspace = "rgb16"
+		}
+	case ColorSpaceGrey:
+		colorspace = "b-w"
+		if h.Depth == 16 {
+			colorspace = "grey16"
+		}
+	case ColorSpaceCMYK:
+		colorspace = "cmyk"
+	case ColorSpaceLab:
+		colorspace = "lab"
+	default:
+		colorspace = "multiband"
+	}
+	return h.Channels, sample, colorspace
 }

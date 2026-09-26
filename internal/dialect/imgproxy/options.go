@@ -101,7 +101,6 @@ func (st *state) apply(name string, args []string) error {
 			return err
 		}
 		st.bgAlpha[st.cur] = a
-		st.ignore(name, reasonM2)
 
 	// Effects.
 	case "blur", "bl":
@@ -125,7 +124,6 @@ func (st *state) apply(name string, args []string) error {
 			return err
 		}
 		pl.Page = &v
-		st.ignore(name, reasonM2)
 	case "pages", "pgs":
 		if err := maxArgs("pages", args, 1); err != nil {
 			return err
@@ -135,7 +133,6 @@ func (st *state) apply(name string, args []string) error {
 			return dialect.InvalidArgument("pages", args[0], expPages)
 		}
 		pl.Pages = &v
-		st.ignore(name, reasonM2)
 
 	// Output (request-wide).
 	case "strip_metadata", "sm":
@@ -145,10 +142,8 @@ func (st *state) apply(name string, args []string) error {
 	case "strip_color_profile", "scp":
 		return oneBoolPtr("strip_color_profile", args, &st.r.Output.StripColorProfile)
 	case "preserve_hdr", "ph":
-		st.ignore(name, reasonM2)
 		return oneBoolPtr("preserve_hdr", args, &st.r.Output.PreserveHDR)
 	case "enforce_thumbnail", "eth":
-		st.ignore(name, reasonM2)
 		return oneBoolPtr("enforce_thumbnail", args, &st.r.Output.EnforceThumbnail)
 	case "quality", "q":
 		if err := maxArgs("quality", args, 1); err != nil {
@@ -640,9 +635,6 @@ func (st *state) format(field, s string) error {
 		return err
 	}
 	st.r.Output.Format = f
-	if f == transform.FormatBest {
-		st.ignore("format:best", reasonM2)
-	}
 	return nil
 }
 

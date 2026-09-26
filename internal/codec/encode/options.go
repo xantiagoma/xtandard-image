@@ -78,6 +78,14 @@ func (c *Config) planFor(t *Target, info imageInfo) (plan, bool) {
 			if j.NoSubsample != nil && *j.NoSubsample {
 				sub = vips.SubsampleOff
 			}
+			// mozjpeg extensions (imgproxy vips_jpegsave_go): no-ops with
+			// the base image's libjpeg-turbo, honoured by a mozjpeg build.
+			p.opts.JPEG.TrellisQuant = isTrue(j.TrellisQuant)
+			p.opts.JPEG.OvershootDeringing = isTrue(j.OvershootDeringing)
+			p.opts.JPEG.OptimizeScans = isTrue(j.OptimizeScans)
+			if j.QuantTable != nil {
+				p.opts.JPEG.QuantTable = *j.QuantTable
+			}
 		}
 		p.opts.JPEG.Interlace = progressive
 		p.opts.JPEG.OptimizeCoding = true
@@ -245,6 +253,8 @@ func paletteBitDepth(colors int) int {
 		return 1
 	}
 }
+
+func isTrue(b *bool) bool { return b != nil && *b }
 
 // lossless resolves the request's lossless flag, falling back to the format
 // decision's hint.

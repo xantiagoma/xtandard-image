@@ -1,6 +1,6 @@
 // Generates corpus.json: imgproxy URLs built by the official URL generator
 // @imgproxy/imgproxy-js-core (MIT) from option objects, for the parser's
-// compatibility tests (docs/URL-DIALECTS.md §13).
+// compatibility tests (docs/URL-DIALECTS.md §14).
 //
 //   bun internal/dialect/imgproxy/testdata/jscore/generate.ts \
 //     > internal/dialect/imgproxy/testdata/jscore/corpus.json

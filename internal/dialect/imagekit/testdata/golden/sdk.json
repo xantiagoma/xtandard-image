@@ -1,0 +1,3229 @@
+{
+  "aspect_ratio_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-400,ar-4-3/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "AspectRatio": 1.3333333333333333,
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "aspect_ratio_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-400,ar-4-3",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "AspectRatio": 1.3333333333333333,
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "background_blurred_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:bg-blurred,w-300,h-300,cm-pad_resize/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "bg-blurred",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "center"
+            },
+            "Mode": "blur"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "background_blurred_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=bg-blurred,w-300,h-300,cm-pad_resize",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "bg-blurred",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "center"
+            },
+            "Mode": "blur"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "background_rgba_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:bg-AAFF0040,w-300,h-300,cm-pad_resize/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 64,
+            "G": 255,
+            "R": 170
+          },
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "center"
+            }
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "background_rgba_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=bg-AAFF0040,w-300,h-300,cm-pad_resize",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 64,
+            "G": 255,
+            "R": 170
+          },
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "center"
+            }
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "blur_sharpen_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:bl-10,e-sharpen-10/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Blur": 5,
+          "Sharpen": 0.7
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "blur_sharpen_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=bl-10,e-sharpen-10",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Blur": 5,
+          "Sharpen": 0.7
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "border_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:b-5_FFF000/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Border": {
+            "Bottom": 5,
+            "Color": {
+              "A": 255,
+              "G": 240,
+              "R": 255
+            },
+            "Left": 5,
+            "Right": 5,
+            "Top": 5
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "border_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=b-5_FFF000",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Border": {
+            "Bottom": 5,
+            "Color": {
+              "A": 255,
+              "G": 240,
+              "R": 255
+            },
+            "Left": 5,
+            "Right": 5,
+            "Top": 5
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "chain3_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-400:bl-10:f-webp,q-60/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Output": {
+        "Format": "webp",
+        "Quality": 60
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        },
+        {
+          "Blur": 5
+        },
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "chain3_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-400:bl-10:f-webp,q-60",
+    "request": {
+      "Dialect": "imagekit",
+      "Output": {
+        "Format": "webp",
+        "Quality": 60
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        },
+        {
+          "Blur": 5
+        },
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "chain_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-400,h-300:rt-90/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        },
+        {
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "chain_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-400,h-300:rt-90",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        },
+        {
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "crop_at_least_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,h-300,c-at_least/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "outside",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "crop_at_least_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,h-300,c-at_least",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "outside",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "crop_at_max_enlarge_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,h-300,c-at_max_enlarge/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "crop_at_max_enlarge_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,h-300,c-at_max_enlarge",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "crop_at_max_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,h-300,c-at_max/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "crop_at_max_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,h-300,c-at_max",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "crop_force_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,h-300,c-force/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "force",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "crop_force_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,h-300,c-force",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "force",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "crop_maintain_ratio_focus_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,h-300,c-maintain_ratio,fo-top_left/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "north-west"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "crop_maintain_ratio_focus_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,h-300,c-maintain_ratio,fo-top_left",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "north-west"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "default_image_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:di-folder@@default.jpg/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Delivery": {
+        "Fallback": {
+          "Encoding": "relative",
+          "Mount": "media",
+          "Raw": "folder/default.jpg"
+        }
+      },
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "default_image_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=di-folder@@default.jpg",
+    "request": {
+      "Delivery": {
+        "Fallback": {
+          "Encoding": "relative",
+          "Mount": "media",
+          "Raw": "folder/default.jpg"
+        }
+      },
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "dpr_quality_format_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,dpr-2,q-80,f-avif/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Output": {
+        "Format": "avif",
+        "Quality": 80
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "DPR": 2,
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "dpr_quality_format_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,dpr-2,q-80,f-avif",
+    "request": {
+      "Dialect": "imagekit",
+      "Output": {
+        "Format": "avif",
+        "Quality": 80
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "DPR": 2,
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "expired": {
+    "config": "endpoint",
+    "error": {
+      "kind": "expired",
+      "public": "url expired",
+      "status": 404
+    },
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300\u0026ik-t=1790000060\u0026ik-s=99c6c7167fa8652caf31c3e37fae6e3f461af7fb"
+  },
+  "expiring_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300/folder/photo.jpg",
+    "query": "ik-t=1815920000\u0026ik-s=8d60623983dad3059cb4f10e436ca14b34f3a586",
+    "request": {
+      "Delivery": {
+        "Expires": "2027-07-18T14:13:20Z"
+      },
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "folder/photo.jpg"
+  },
+  "expiring_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300\u0026ik-t=1815920000\u0026ik-s=9b2c14134d4e825d00d18d46fe814ad0f5ce87f5",
+    "request": {
+      "Delivery": {
+        "Expires": "2027-07-18T14:13:20Z"
+      },
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "folder/photo.jpg"
+  },
+  "extract_center_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,h-200,cm-extract,xc-400,yc-300/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 250,
+              "YOffset": 200
+            },
+            "Height": {
+              "Px": 200
+            },
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "extract_center_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,h-200,cm-extract,xc-400,yc-300",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 250,
+              "YOffset": 200
+            },
+            "Height": {
+              "Px": 200
+            },
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "extract_focus_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,h-200,cm-extract,fo-bottom_right/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "south-east"
+            },
+            "Height": {
+              "Px": 200
+            },
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "extract_focus_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,h-200,cm-extract,fo-bottom_right",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "south-east"
+            },
+            "Height": {
+              "Px": 200
+            },
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "extract_xy_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,h-200,cm-extract,x-10,y-20/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 10,
+              "YOffset": 20
+            },
+            "Height": {
+              "Px": 200
+            },
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "extract_xy_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,h-200,cm-extract,x-10,y-20",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Crop": {
+            "Gravity": {
+              "Type": "north-west",
+              "XOffset": 10,
+              "YOffset": 20
+            },
+            "Height": {
+              "Px": 200
+            },
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "flags_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:pr-true,lo-true,md-true,cp-false/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Output": {
+        "Lossless": true,
+        "Progressive": true,
+        "StripColorProfile": true,
+        "StripMetadata": false
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "flags_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=pr-true,lo-true,md-true,cp-false",
+    "request": {
+      "Dialect": "imagekit",
+      "Output": {
+        "Lossless": true,
+        "Progressive": true,
+        "StripColorProfile": true,
+        "StripMetadata": false
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "flip_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:fl-h_v/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true,
+            "V": true
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "flip_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=fl-h_v",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Flip": {
+            "H": true,
+            "V": true
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "focus_auto_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,h-300,fo-auto/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "focus_auto_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,h-300,fo-auto",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "focus_face_zoom_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,h-300,fo-face,z-0.8/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "fo-face",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusZoom": 0.8,
+            "Type": "face"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "focus_face_zoom_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,h-300,fo-face,z-0.8",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "fo-face",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "FocusZoom": 0.8,
+            "Type": "face"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "focus_object_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,h-300,fo-car/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "fo-object",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Classes": [
+              "car"
+            ],
+            "Type": "object"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "focus_object_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,h-300,fo-car",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "fo-object",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Classes": [
+              "car"
+            ],
+            "Type": "object"
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "format_auto_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,f-auto/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "format_auto_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,f-auto",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "grayscale_contrast_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:e-grayscale,e-contrast/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "e-grayscale",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "e-contrast",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Equalize": true,
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "grayscale_contrast_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=e-grayscale,e-contrast",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "e-grayscale",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "e-contrast",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Equalize": true,
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "named_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:n-thumb/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "thumb"
+        ]
+      },
+      "Dialect": "imagekit",
+      "Output": {
+        "Quality": 70
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 100
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "named_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=n-thumb",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "thumb"
+        ]
+      },
+      "Dialect": "imagekit",
+      "Output": {
+        "Quality": 70
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 100
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "opacity_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:o-50/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "o",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Opacity": 0.5
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "opacity_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=o-50",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "o",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Opacity": 0.5
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "original_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:orig-true/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "raw",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "original_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=orig-true",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "raw",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "overlay_image_base64_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:l-image,ie-YnJhbmQvbG9nbyAoMSkucG5n,l-end/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "brand/logo%20%281%29.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "overlay_image_base64_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=l-image,ie-YnJhbmQvbG9nbyAoMSkucG5n,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "brand/logo%20%281%29.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "overlay_image_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-800,l-image,i-logo.png,lx-10,ly-20,w-100,l-end/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 800
+            }
+          },
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 10,
+                "YOffset": 20
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              },
+              "Width": 100
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "overlay_image_path_focus_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:l-image,i-brand@@logos@@logo.png,lfo-bottom_right,l-end/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "brand/logos/logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "overlay_image_path_focus_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=l-image,i-brand@@logos@@logo.png,lfo-bottom_right,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "brand/logos/logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "overlay_image_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-800,l-image,i-logo.png,lx-10,ly-20,w-100,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 800
+            }
+          },
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 10,
+                "YOffset": 20
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              },
+              "Width": 100
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "overlay_solid_color_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:l-image,i-ik_canvas,bg-FF0000,l-end/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image:bg",
+          "Reason": "not supported"
+        },
+        {
+          "Option": "l-image:ik_canvas",
+          "Reason": "not supported"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "overlay_solid_color_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=l-image,i-ik_canvas,bg-FF0000,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image:bg",
+          "Reason": "not supported"
+        },
+        {
+          "Option": "l-image:ik_canvas",
+          "Reason": "not supported"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "overlay_text_base64_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:l-text,ie-SGVsbG8sIHdvcmxkOiDDvG7Dr2NvZGU%3D,l-end/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-text",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Text": "Hello, world: ünïcode"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "overlay_text_base64_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=l-text,ie-SGVsbG8sIHdvcmxkOiDDvG7Dr2NvZGU%3D,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-text",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Text": "Hello, world: ünïcode"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "overlay_text_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:l-text,i-Minimal%20Text,fs-20,co-FF0000,l-end/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-text",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Color": {
+                "A": 255,
+                "R": 255
+              },
+              "Font": "20",
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Text": "Minimal Text"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "overlay_text_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=l-text,i-Minimal%20Text,fs-20,co-FF0000,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-text",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Color": {
+                "A": 255,
+                "R": 255
+              },
+              "Font": "20",
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Text": "Minimal Text"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "pad_extract_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-800,h-800,cm-pad_extract,bg-red/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "R": 255
+          },
+          "Crop": {
+            "Gravity": {
+              "Type": "center"
+            },
+            "Height": {
+              "Px": 800
+            },
+            "Width": {
+              "Px": 800
+            }
+          },
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "center"
+            }
+          },
+          "Resize": {
+            "Height": {
+              "Px": 800
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 800
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "pad_extract_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-800,h-800,cm-pad_extract,bg-red",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "R": 255
+          },
+          "Crop": {
+            "Gravity": {
+              "Type": "center"
+            },
+            "Height": {
+              "Px": 800
+            },
+            "Width": {
+              "Px": 800
+            }
+          },
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "center"
+            }
+          },
+          "Resize": {
+            "Height": {
+              "Px": 800
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 800
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "pad_resize_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,h-200,cm-pad_resize,bg-F3F3F3,fo-left/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 243,
+            "G": 243,
+            "R": 243
+          },
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "west"
+            }
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "pad_resize_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,h-200,cm-pad_resize,bg-F3F3F3,fo-left",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Background": {
+            "A": 255,
+            "B": 243,
+            "G": 243,
+            "R": 243
+          },
+          "Extend": {
+            "Enabled": true,
+            "Gravity": {
+              "Type": "west"
+            }
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "page_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:pg-2/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Page": 1
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "page_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=pg-2",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Page": 1
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "plain": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "query_parameters": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "v=123\u0026tr=w-300",
+    "request": {
+      "Delivery": {
+        "CacheBuster": "v=123"
+      },
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "radius_corners_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:r-20_40_80_160/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Radius": {
+            "BottomLeft": 160,
+            "BottomRight": 80,
+            "TopLeft": 20,
+            "TopRight": 40
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "radius_corners_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=r-20_40_80_160",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Radius": {
+            "BottomLeft": 160,
+            "BottomRight": 80,
+            "TopLeft": 20,
+            "TopRight": 40
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "radius_max_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:r-max/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Radius": {
+            "Max": true
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "radius_max_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=r-max",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Radius": {
+            "Max": true
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "radius_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:r-20/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Radius": {
+            "BottomLeft": 20,
+            "BottomRight": 20,
+            "TopLeft": 20,
+            "TopRight": 20
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "radius_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=r-20",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Radius": {
+            "BottomLeft": 20,
+            "BottomRight": 20,
+            "TopLeft": 20,
+            "TopRight": 20
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "relative_dims_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-0.5,h-0.25/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Rel": 0.25
+            },
+            "Type": "fill",
+            "Width": {
+              "Rel": 0.5
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "relative_dims_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-0.5,h-0.25",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Rel": 0.25
+            },
+            "Type": "fill",
+            "Width": {
+              "Rel": 0.5
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "rotate_any_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:rt-45/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "RotateAny": 45
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "rotate_any_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=rt-45",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "RotateAny": 45
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "rotate_auto_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:rt-auto/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "AutoRotate": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "rotate_auto_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=rt-auto",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "AutoRotate": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "rotate_negative_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:rt-N90/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Rotate": 270
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "rotate_negative_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=rt-N90",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Rotate": 270
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "rotate_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:rt-180/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Rotate": 180
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "rotate_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=rt-180",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Rotate": 180
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "sharpen_default_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:e-sharpen/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Sharpen": 1
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "sharpen_default_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=e-sharpen",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Sharpen": 1
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "signed_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,h-200:rt-90/folder/photo.jpg",
+    "query": "ik-s=32ea3ef1da76b67a9a617df77dde1712471ffb25",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        },
+        {
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "folder/photo.jpg"
+  },
+  "signed_plain": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "ik-s=1cf423c329f220c348e9f503e1914b9e6a25c1e8",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "folder/photo.jpg"
+  },
+  "signed_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,h-200\u0026ik-s=f6e6d2cf84b5732b5540f0a65a8f2500a368164f",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "folder/photo.jpg"
+  },
+  "signed_query_parameters": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "version=2.0\u0026tr=w-300\u0026ik-s=d936f4b7c213a55db2f6369eb408b90f64de3ccc",
+    "request": {
+      "Delivery": {
+        "CacheBuster": "version=2.0"
+      },
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "folder/photo.jpg"
+  },
+  "signed_text_overlay": {
+    "config": "endpoint",
+    "path": "/demo/tr:l-text,ie-4KS54KS%2F4KSo4KWN4KSm4KWA,co-red,fs-32,l-end/folder/photo.jpg",
+    "query": "ik-s=ebd3dd2163f26a0f4f2e6632d6c000127e17ffc7",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-text",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Color": {
+                "A": 255,
+                "R": 255
+              },
+              "Font": "32",
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Text": "हिन्दी"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "folder/photo.jpg"
+  },
+  "signed_unicode": {
+    "config": "endpoint",
+    "path": "/demo/sdk-testing-files/%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80.png",
+    "query": "ik-s=961f70fb7aac91629e4909c40480ad96ea7f9272",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sdk-testing-files/%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80.png"
+      }
+    },
+    "signature": "verified",
+    "source": "sdk-testing-files/%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80.png"
+  },
+  "trim_threshold_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:t-15/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Trim": {
+            "Threshold": 15
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "trim_threshold_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=t-15",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Trim": {
+            "Threshold": 15
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "trim_true_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:t-true/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Trim": {
+            "Threshold": 10
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "trim_true_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=t-true",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Trim": {
+            "Threshold": 10
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "unicode_src": {
+    "config": "endpoint",
+    "path": "/demo/sdk-testing-files/%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80.png",
+    "query": "tr=w-300",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sdk-testing-files/%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sdk-testing-files/%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80.png"
+  },
+  "unsupported_ai_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,e-bgremove,e-upscale/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "e-bgremove",
+          "Reason": "not supported"
+        },
+        {
+          "Option": "e-upscale",
+          "Reason": "not supported"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "unsupported_ai_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,e-bgremove,e-upscale",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "e-bgremove",
+          "Reason": "not supported"
+        },
+        {
+          "Option": "e-upscale",
+          "Reason": "not supported"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "usm_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:e-usm-2-2-0.8-0.024/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Unsharp": {
+            "Amount": 0.8,
+            "Sigma": 2
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "usm_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=e-usm-2-2-0.8-0.024",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Unsharp": {
+            "Amount": 0.8,
+            "Sigma": 2
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "wh_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-300,h-200/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "wh_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-300,h-200",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "width_auto_dpr_auto_path": {
+    "config": "endpoint",
+    "path": "/demo/tr:w-auto,dpr-auto/folder/photo.jpg",
+    "query": "",
+    "request": {
+      "ClientHints": {
+        "DPR": true,
+        "Width": true
+      },
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  },
+  "width_auto_dpr_auto_query": {
+    "config": "endpoint",
+    "path": "/demo/folder/photo.jpg",
+    "query": "tr=w-auto,dpr-auto",
+    "request": {
+      "ClientHints": {
+        "DPR": true,
+        "Width": true
+      },
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/photo.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/photo.jpg"
+  }
+}

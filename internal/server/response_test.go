@@ -70,7 +70,7 @@ func TestResponseHeaders(t *testing.T) {
 			mutate: func(h *harness) {
 				h.router.sig = sign.Trusted
 				h.router.mutate = func(r *transform.Request) {
-					r.Source.Hashsum = &transform.Hashsum{Algorithm: transform.HashSHA256, Digest: strings.Repeat("0", 64)}
+					r.Source.Hashsum = &transform.Hashsum{Algorithm: transform.HashSHA256, Digest: digests(jpegSource)[transform.HashSHA256]}
 				}
 			},
 			want: map[string]string{"Cache-Control": defaultCC + ", immutable"},
@@ -157,8 +157,10 @@ func TestResponseHeaders(t *testing.T) {
 			mutate: func(h *harness) { h.cfg.Negotiate.EnableClientHints = true },
 			header: http.Header{"Sec-Ch-Dpr": {"2"}},
 			want: map[string]string{
-				// Width is fixed by the URL, so only DPR and Save-Data were consulted.
-				"Vary":        "Accept, Sec-CH-DPR, DPR, Save-Data, ECT", //nolint:misspell // ECT is the connection-type hint header
+				// Width is fixed by the URL, so only DPR and Save-Data were
+				// consulted; the valid Sec-CH-DPR makes legacy DPR irrelevant.
+				"Vary":        "Accept, Sec-CH-DPR, Save-Data, ECT", //nolint:misspell // ECT is the connection-type hint header
+				"Accept-CH":   acceptCH,
 				"Content-DPR": "2",
 			},
 		},
@@ -227,6 +229,7 @@ func TestResponseHeaders(t *testing.T) {
 				"X-Xi-Origin-Height":         "480",
 				"X-Xi-Result-Width":          "64",
 				"X-Xi-Result-Height":         "48",
+				"X-Xi-Quality":               "80",
 				"X-Xi-Ignored":               "gif_options, ab",
 			},
 		},
