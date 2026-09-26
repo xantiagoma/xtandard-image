@@ -66,6 +66,38 @@ func FuzzBuild(f *testing.F) {
 				}
 			}
 		}
+		if g := p.Gravity.Type; g >= transform.GravitySmart && g != transform.GravityFocusPoint {
+			// Smart, entropy and the detection gravities: a face and an
+			// object anywhere in the source, objects positions, crop_objects
+			// and the detection filters (WP-72/73).
+			fx, fy := math.Mod(math.Abs(gx), 1), math.Mod(math.Abs(gy), 1)
+			meta.Detections = &plan.Detections{
+				Faces:   []plan.Detected{{Class: "face", Score: 1, Box: transform.Area{Left: fx / 2, Top: fy / 2, Width: fx / 2, Height: fy / 2}}},
+				Objects: []plan.Detected{{Class: "dog", Score: 0.5, Box: transform.Area{Left: fy, Top: fx, Width: 1 - fy, Height: 1 - fx}}},
+			}
+			p.Gravity.ObjectsPosition = &transform.ObjectsPosition{
+				Type: [...]transform.GravityType{
+					transform.GravityCenter, transform.GravityNorth, transform.GravitySouth, transform.GravityEast,
+					transform.GravityWest, transform.GravityNorthEast, transform.GravityNorthWest,
+					transform.GravitySouthEast, transform.GravitySouthWest,
+				}[(budget%9+9)%9],
+				X: gy, Y: gx, Proportional: budget%11 == 0,
+			}
+			if budget%3 == 0 {
+				p.Gravity.ObjectsPosition.Type = transform.GravityFocusPoint
+			}
+			if p.Crop != nil && flip&1 != 0 {
+				p.Crop.Gravity = p.Gravity
+			}
+			if trim%3 == 0 && pad%2 == 1 {
+				p.CropObjects = &transform.CropObjects{Scale: zoomX, Padding: pad % 1000}
+			}
+			if trim%3 == 0 && pad%4 == 2 {
+				p.Gravity.Type, p.Gravity.FacePad = transform.GravityFace, zoomY
+			}
+			p.BlurDetections = &transform.DetectionFilter{Pixelate: pad % 20}
+			p.DrawDetections = &transform.DetectionFilter{}
+		}
 		r := req(p)
 		r.Limits.MaxResultDimension = mrd
 		lim := plan.Limits{MaxSrcPixels: 50_000_000, MaxAnimationFrames: 64, MemoryBudget: int64(budget) << 20}
