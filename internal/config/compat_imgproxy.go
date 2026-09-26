@@ -86,11 +86,13 @@ func imgproxyVars() []imgproxyVar {
 		{"IMGPROXY_GCS_ALLOWED_BUCKETS", ts(src(compatSourceGCS, "BUCKETS")), "As `IMGPROXY_S3_ALLOWED_BUCKETS`", blobBuckets(blobGCS)},
 		{"IMGPROXY_GCS_DENIED_BUCKETS", nil, "Rejected at startup, as `IMGPROXY_S3_DENIED_BUCKETS`", rejectDenied},
 		{"IMGPROXY_GCS_KEY", ts(src(compatSourceGCS, "CREDENTIALS_JSON")), "Same service-account JSON", sourceField(compatSourceGCS, "CREDENTIALS_JSON")},
+		{"IMGPROXY_GCS_ENDPOINT", ts(src(compatSourceGCS, "ENDPOINT")), "Same", sourceField(compatSourceGCS, "ENDPOINT")},
 		{"IMGPROXY_USE_ABS", ts("XI_SOURCES", src(compatSourceABS, "TYPE"), src(compatSourceABS, "BUCKETS")), "Creates an azure source named `abs`; container allowlist as for `IMGPROXY_USE_S3`", blobSwitch(blobABS)},
 		{"IMGPROXY_ABS_ALLOWED_BUCKETS", ts(src(compatSourceABS, "BUCKETS")), "As `IMGPROXY_S3_ALLOWED_BUCKETS`", blobBuckets(blobABS)},
 		{"IMGPROXY_ABS_DENIED_BUCKETS", nil, "Rejected at startup, as `IMGPROXY_S3_DENIED_BUCKETS`", rejectDenied},
 		{"IMGPROXY_ABS_NAME", ts(src(compatSourceABS, "ACCOUNT")), "Storage account name", sourceField(compatSourceABS, "ACCOUNT")},
 		{"IMGPROXY_ABS_KEY", ts(src(compatSourceABS, "ACCOUNT_KEY")), "Same", sourceField(compatSourceABS, "ACCOUNT_KEY")},
+		{"IMGPROXY_ABS_ENDPOINT", ts(src(compatSourceABS, "ENDPOINT")), "Same service URL", sourceField(compatSourceABS, "ENDPOINT")},
 		{"IMGPROXY_LOCAL_FILESYSTEM_ROOT", ts("XI_SOURCES", src(compatSourceLocal, "TYPE"), src(compatSourceLocal, "ROOT"), src(compatSourceLocal, "PREFIX")), "Creates an fs source named `local` (jailed with `os.Root`); its prefix comes from `local://` patterns of `IMGPROXY_ALLOWED_SOURCES`", (*imgproxyTranslator).localRoot},
 
 		// Fetching and SSRF.
