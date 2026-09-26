@@ -14,14 +14,22 @@ Lowest to highest:
 
 Rules:
 
-- **Mapping**: an env var is the YAML path upper-cased, dots → `_`, prefixed `XI_`. `limits.max_src_bytes` ↔ `XI_LIMITS_MAX_SRC_BYTES`; map entries use the key: `sources.assets.bucket` ↔ `XI_SOURCES_ASSETS_BUCKET`. Map keys are lower-case `[a-z0-9-]`; `-` becomes `_` in env names.
-- **Lists**: comma-separated in env; YAML sequences in the file. An env list **replaces** the YAML list.
-- **Secrets**: any variable accepts a `_FILE` suffix (`XI_SIGNING_KEYS_FILE=/run/secrets/xi_keys`) for Docker/Kubernetes secrets.
-- **Durations** use Go syntax (`5s`, `1m30s`); sizes accept `KiB/MiB/GiB` suffixes or bytes.
-- **Validation** is strict: unknown YAML keys and unknown `XI_` variables are a startup error (typos should not silently disable security). `xtandard-image config print` shows the effective config with secrets redacted.
+- **Mapping**: an env var is the YAML path upper-cased, dots → `_`, prefixed `XI_`. `limits.max_src_bytes` ↔ `XI_LIMITS_MAX_SRC_BYTES`; map entries use the key: `sources.assets.bucket` ↔ `XI_SOURCES_ASSETS_BUCKET`. Map keys are lower-case `[a-z0-9-]`; `-` becomes `_` in env names. Named sources are the only dynamic part: the effective sources are the YAML `sources` keys plus the names listed in `XI_SOURCES`. A test in `internal/config` checks this rule for every field and keeps the tables below in sync with the code (names and defaults).
+- **Empty values**: an empty variable (`XI_SERVER_ADDR=`) counts as unset and does not override the file.
+- **Lists**: comma-separated in env; YAML sequences in the file. An env list **replaces** the YAML list (maps such as `XI_PRESETS` and `_HEADERS` replace too). Surrounding spaces are trimmed. Integer allowlists also accept ranges: `640-1080/220`, `5-100/5` (start–end/step).
+- **Secrets**: any variable accepts a `_FILE` suffix (`XI_SIGNING_KEYS_FILE=/run/secrets/xi_keys`) for Docker/Kubernetes secrets, including dynamic ones (`XI_SOURCES_ASSETS_SECRET_ACCESS_KEY_FILE`). The trailing newline is trimmed; setting both `X` and `X_FILE` is an error. Variables whose own name ends in `_FILE` (`XI_CONFIG_FILE`, `XI_PRESETS_FILE`) are ordinary variables. Secret fields print as `[REDACTED]` everywhere (`config print`, logs, errors).
+- **Types**: durations use Go syntax (`5s`, `1m30s`; negative rejected); sizes are bytes or binary suffixes `KiB/MiB/GiB/TiB` (`10MiB`; decimal `MB` is rejected as ambiguous); networks are CIDRs or single addresses (`10.0.0.0/8`, `fd00::1`; host bits must be zero); keys are hex; enums are case-insensitive.
+- **Validation** is strict: unknown YAML keys and unknown `XI_` variables are a startup error (typos should not silently disable security); the error suggests the closest known name. `XI_ALLOW_UNKNOWN_ENV=true` downgrades unknown variables to a startup warning. `Validate` reports every violation at once, each with its YAML path and variable. `xtandard-image config print` shows the effective config with secrets redacted.
 - **Secure by default**: with no sources configured and `XI_DEV_MODE` unset, the server refuses to start.
 
 ## 2. Environment variable reference
+
+### Loader
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `XI_CONFIG_FILE` | `` | YAML file (`--config` wins); when both are unset, `/etc/xtandard/config.yaml` is read if it exists |
+| `XI_ALLOW_UNKNOWN_ENV` | `false` | Report unknown `XI_*` variables as warnings instead of failing startup |
 
 ### Core and server
 
@@ -50,10 +58,10 @@ Rules:
 | `XI_SIGNING_SIZE` | `32` | Signature bytes before base64 (imgproxy `SIGNATURE_SIZE`) |
 | `XI_SIGNING_TRUSTED` | `` | Signatures always accepted |
 | `XI_SIGNING_REQUIRED` | `true` when keys set | Reject unsigned imgproxy URLs |
-| `XI_ENCRYPTION_KEY` | `` | Hex AES key (16/24/32 bytes) for `enc/` sources |
+| `XI_ENCRYPTION_KEYS`, `XI_ENCRYPTION_KEY` | `` | Hex AES keys (16/24/32 bytes) for `enc/` sources; the first encrypts, all decrypt (rotation). `XI_ENCRYPTION_KEY` is the deprecated single-key alias (YAML `encryption.key`); setting both is an error |
 | `XI_SECURITY_UNSIGNED_POLICY` | `restricted` | `allow` \| `restricted` \| `deny` for every request that carries no verified signature, in any dialect (including imgproxy URLs when `XI_SIGNING_REQUIRED` is false) |
-| `XI_SECURITY_ALLOWED_WIDTHS` | Next.js sizes | Restricted-policy widths |
-| `XI_SECURITY_ALLOWED_QUALITIES` | `1-100/5` | Restricted-policy qualities |
+| `XI_SECURITY_ALLOWED_WIDTHS` | `16,32,48,64,96,128,256,384,640,750,828,1080,1200,1920,2048,3840` | Restricted-policy widths (Next.js device + image sizes); logged at startup |
+| `XI_SECURITY_ALLOWED_QUALITIES` | `5-100/5` | Restricted-policy qualities (5, 10, …, 100) |
 | `XI_SECURITY_ALLOW_SECURITY_OPTIONS` | `false` | Honour per-request limit options |
 | `XI_SECURITY_ALLOW_RAISING_LIMITS` | `false` | Let them exceed config |
 | `XI_SECURITY_SECRET` | `` | Require `Authorization: Bearer <secret>` |
@@ -63,13 +71,13 @@ Rules:
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `XI_SOURCES` | `` | Names of sources defined via env (`origin,assets`) |
+| `XI_SOURCES` | `` | Names of sources defined via env (`origin,assets`), added to the YAML ones |
 | `XI_SOURCES_<NAME>_TYPE` | — | `http` \| `s3` \| `gcs` \| `azure` \| `fs` \| `ftp` \| `sftp` |
 | `XI_SOURCES_<NAME>_ALLOW` | — | http: host globs with optional path prefix (`*.example.com`, `cdn.example.com/img/`) |
 | `XI_SOURCES_<NAME>_BASE_URL` | — | http: base for relative keys |
 | `XI_SOURCES_<NAME>_HEADERS` | — | http: extra request headers (`Authorization=…`) |
 | `XI_SOURCES_<NAME>_BUCKETS` / `_BUCKET` | — | s3/gcs/azure: allowed buckets/containers; `_BUCKET` binds a default |
-| `XI_SOURCES_<NAME>_PREFIX` | `` | object key prefix jail |
+| `XI_SOURCES_<NAME>_PREFIX` | `` | object key prefix jail (every type except http) |
 | `XI_SOURCES_<NAME>_ENDPOINT`, `_REGION`, `_FORCE_PATH_STYLE`, `_ACCESS_KEY_ID`, `_SECRET_ACCESS_KEY`, `_ROLE_ARN` | — | s3 (R2, MinIO, Spaces, B2 via endpoint) |
 | `XI_SOURCES_<NAME>_CREDENTIALS_JSON` | ADC | gcs |
 | `XI_SOURCES_<NAME>_ACCOUNT`, `_ACCOUNT_KEY`, `_CONNECTION_STRING` | managed identity | azure |
@@ -79,8 +87,9 @@ Rules:
 | `XI_FETCH_MAX_REDIRECTS` | `5` | |
 | `XI_FETCH_MAX_CONCURRENT` | `256` | Concurrent origin fetches |
 | `XI_FETCH_ALLOWED_PORTS` | `80,443` | SSRF port allowlist |
-| `XI_FETCH_ALLOW_PRIVATE_NETWORKS` | `false` | Explicit opt-in (e.g. in-cluster MinIO over http source) |
-| `XI_FETCH_USER_AGENT` | `xtandard-image/<ver>` | |
+| `XI_FETCH_ALLOW_PRIVATE_NETWORKS` | `false` | Explicit opt-in to every private range |
+| `XI_FETCH_ALLOWED_NETWORKS` | `` | CIDRs exempt from the private-address block without opening every range (e.g. `10.20.0.0/16` for in-cluster MinIO) |
+| `XI_FETCH_USER_AGENT` | `` (`xtandard-image/<version>`) | |
 
 ### Dialects and presets
 
@@ -88,7 +97,7 @@ Rules:
 |---|---|---|
 | `XI_DIALECTS_DEFAULT` | `imgproxy` | Fallback dialect |
 | `XI_DIALECTS_STRICT` | `false` | 400 on unknown/unsupported options |
-| `XI_DIALECTS_<NAME>_ENABLED` | imgproxy `true`, others `false` | |
+| `XI_DIALECTS_<NAME>_ENABLED` | imgproxy `true`, others `false` | `<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]` |
 | `XI_DIALECTS_<NAME>_PREFIX` | see URL-DIALECTS.md | Mount prefix |
 | `XI_DIALECTS_<NAME>_HOSTS` | `` | Host bindings |
 | `XI_DIALECTS_<NAME>_SOURCE` | `` | Bound source for relative paths |
@@ -96,9 +105,9 @@ Rules:
 | `XI_DIALECTS_<NAME>_UNSIGNED_POLICY` | global | Per-dialect override |
 | `XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR` | `:` | |
 | `XI_DIALECTS_IMGPROXY_BASE_URL` | `` | |
-| `XI_DIALECTS_IMGPROXY_URL_REPLACEMENTS` | `` | `regex=replacement;…` |
+| `XI_DIALECTS_IMGPROXY_URL_REPLACEMENTS` | `` | `regex=replacement;…` (`;`-separated in env) |
 | `XI_DIALECTS_CLOUDINARY_CLOUDS` | `` | `cloud=source,…` |
-| `XI_PRESETS` | `` | `name=opts,name2=opts` (imgproxy syntax) |
+| `XI_PRESETS` | `` | `name=opts,name2=opts` (imgproxy syntax); YAML `presets: {name: opts}` |
 | `XI_PRESETS_FILE` | `` | One preset per line |
 | `XI_PRESETS_ONLY` | `false` | Only preset URLs allowed |
 
@@ -106,8 +115,8 @@ Rules:
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `XI_PROCESSING_WORKERS` | `GOMAXPROCS` | Concurrent processing jobs |
-| `XI_PROCESSING_QUEUE_SIZE` | `workers×16` | Waiting jobs; beyond it requests fail fast with 429 |
+| `XI_PROCESSING_WORKERS` | `GOMAXPROCS` | Concurrent processing jobs (`0` = GOMAXPROCS) |
+| `XI_PROCESSING_QUEUE_SIZE` | `workers×16` | Waiting jobs; beyond it requests fail fast with 429 (`-1` = workers×16, `0` = no queue) |
 | `XI_PROCESSING_QUEUE_TIMEOUT` | `5s` | Max wait for a worker, then 503 |
 | `XI_PROCESSING_MEMORY_BUDGET` | `` (off) | Optional weighted admission budget in bytes |
 | `XI_PROCESSING_GO_MEMORY_FRACTION` | `0.3` | `GOMEMLIMIT` as fraction of cgroup `memory.max` |
@@ -123,8 +132,9 @@ Rules:
 | `XI_FALLBACK_SOURCE` | `` | Fallback image (source string) |
 | `XI_FALLBACK_STATUS` | `200` | Status used with fallback |
 | `XI_FORMATS_QUALITY` | `80` | Global default |
-| `XI_FORMATS_<FMT>_QUALITY` | avif 60, heic 60, jxl 75, webp 80, jpeg 80 | |
-| `XI_FORMATS_<FMT>_EFFORT` | per FORMATS.md | |
+| `XI_FORMATS_<FMT>_QUALITY` | avif 60, heic 60, jxl 75, webp 80, jpeg 80 | `<FMT>`: `JPEG`, `WEBP`, `AVIF`, `HEIC`, `JXL`; other formats use `XI_FORMATS_QUALITY` |
+| `XI_FORMATS_<FMT>_EFFORT` | webp 4, avif 4, jxl 5, gif 7 | `<FMT>`: `WEBP` (0–6), `AVIF` (0–9), `JXL` (1–10), `GIF` (1–10); see FORMATS.md |
+| `XI_FORMATS_HEIC_ENCODE` | `false` | HEIC output (HEVC patents; decode is always on) |
 | `XI_FORMATS_JPEG_PROGRESSIVE` | `true` | |
 | `XI_FORMATS_PNG_QUANTIZE` | `false` | |
 | `XI_FORMATS_AUTO_AVIF` / `_WEBP` / `_JXL` | `true` / `true` / `false` | Accept negotiation |
@@ -147,6 +157,8 @@ Rules:
 | `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS` | `16000000` | |
 | `XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS` | `60000000` | |
 | `XI_LIMITS_MAX_SVG_BYTES` | `5MiB` | |
+| `XI_LIMITS_MAX_SVG_DEPTH` | `256` | SVG sanitiser nesting limit |
+| `XI_LIMITS_MAX_SVG_ELEMENTS` | `200000` | SVG sanitiser element limit |
 | `XI_LIMITS_MAX_PDF_PAGES` | `500` | |
 | `XI_VIPS_CONCURRENCY` | `1` | libvips threads per image; change only with benchmarks |
 | `XI_VIPS_FAIL_ON` | `warning` | |
@@ -163,9 +175,9 @@ Rules:
 | `XI_CACHE_ALLOW_BYPASS` | `false` | Honour `bypass_cache` |
 | `XI_CACHE_RESULT_STORES` | `` | Ordered tiers: `memory,disk,redis,s3` |
 | `XI_CACHE_RESULT_MEMORY_BYTES` | `256MiB` | |
-| `XI_CACHE_RESULT_DISK_PATH` / `_DISK_BYTES` | `` / `10GiB` | |
-| `XI_CACHE_RESULT_REDIS_URL` | `` | |
-| `XI_CACHE_RESULT_S3_SOURCE` | `` | Name of an s3 source definition to reuse credentials, plus `_S3_BUCKET`, `_S3_PREFIX` |
+| `XI_CACHE_RESULT_DISK_PATH` / `_BYTES` | `` / `10GiB` | |
+| `XI_CACHE_RESULT_REDIS_URL` | `` | Secret (may carry a password) |
+| `XI_CACHE_RESULT_S3_SOURCE`, `_BUCKET`, `_PREFIX` | `` | Name of an s3 source definition to reuse credentials, bucket and key prefix |
 | `XI_CACHE_ORIGIN_MEMORY_BYTES` | `256MiB` | Original-bytes LRU |
 | `XI_CACHE_ORIGIN_TTL` | `60s` | |
 | `XI_OBSERVABILITY_LOG_LEVEL` | `info` | |
@@ -174,6 +186,15 @@ Rules:
 | `XI_OBSERVABILITY_DEBUG_HEADERS` | `false` | `X-Xi-Ignored`, stage timings |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` etc. | — | Standard OpenTelemetry vars; tracing on when set |
 | `XI_OTEL_ENABLED` | `false` | Force tracing on without an endpoint variable (exporter still chosen by `OTEL_TRACES_EXPORTER`, e.g. `console`) |
+
+### Compatibility
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `XI_COMPAT_IMGPROXY_STATUS` | `false` | Invalid URL and disallowed source answer 404 like imgproxy (instead of 400 / 403) |
+| `XI_COMPAT_IMGPROXY_ENV` | `false` | Read `IMGPROXY_*` variables (§1, mapping table added by WP-04b) |
+
+In the tables, `X` / `_Y` and `X`, `_Y` are shorthand: `_Y` replaces the last `_`-segment of `X` (`XI_FORMATS_AUTO_AVIF` / `_WEBP` → `XI_FORMATS_AUTO_WEBP`).
 
 ## 3. YAML example
 
@@ -184,7 +205,7 @@ signing:
   keys: ["943b421c9eb07c830af81030552c86009268de4e532ba2ee2eab8247c6da0881"]
   salts: ["520f986b998545b4785e0defbc4f3c1203f22de2374a3d53cb7a7fe9fea309c5"]
 encryption:
-  key: "1eb5b0e971ad7f45324c1bb15c947cb207c43152fa5c6c7f35c4f36e0c18e0f1"
+  keys: ["1eb5b0e971ad7f45324c1bb15c947cb207c43152fa5c6c7f35c4f36e0c18e0f1"]
 security:
   unsigned_policy: restricted
 sources:
@@ -193,7 +214,7 @@ sources:
     allow: ["cdn.example.com", "*.example.org/images/"]
   assets:
     type: s3
-    endpoint: https://<account>.r2.cloudflarestorage.com
+    endpoint: https://ACCOUNT_ID.r2.cloudflarestorage.com
     region: auto
     buckets: [assets]
     bucket: assets
@@ -227,7 +248,7 @@ observability:
   log_level: info
 ```
 
-The file is decoded with `goccy/go-yaml` in strict mode (unknown fields rejected); environment variables are then applied on top with `caarlos0/env/v11`. No interpolation syntax: put secrets in env or `_FILE` variables, keep the YAML file non-secret so it can live in a ConfigMap.
+The file is decoded with `goccy/go-yaml` in strict mode (unknown fields and duplicate keys rejected, one document only); environment variables are then applied on top with `caarlos0/env/v11`. This example is loaded by a test, so it stays valid. No interpolation syntax: put secrets in env or `_FILE` variables, keep the YAML file non-secret so it can live in a ConfigMap.
 
 ## 4. Dokploy
 
