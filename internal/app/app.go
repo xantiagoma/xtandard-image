@@ -63,6 +63,9 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	vcfg := vips.DefaultConfig()
 	vcfg.Concurrency = cfg.Vips.Concurrency
 	vcfg.HEICEncode = cfg.Formats.HEIC.Encode
+	// vips.Init/Shutdown are reference-counted (internal/vips doc.go,
+	// "Lifecycle invariant"): this instance's Shutdown only tears libvips
+	// down when no other owner holds it, after every Run has returned.
 	if err := vips.Init(&vcfg); err != nil {
 		return fmt.Errorf("init vips: %w", err)
 	}

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -40,6 +41,9 @@ func TestProcessNoLeak(t *testing.T) {
 	}
 	vcfg := vips.DefaultConfig()
 	if err := vips.Init(&vcfg); err != nil {
+		if errors.Is(err, vips.ErrUnavailable) {
+			t.Skip("libvips not available (CGO_ENABLED=0)")
+		}
 		t.Fatal(err)
 	}
 	proc, err := newProcessor(&cfg)

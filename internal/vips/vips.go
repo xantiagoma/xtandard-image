@@ -122,6 +122,7 @@ import "C"
 
 import (
 	"context"
+	"fmt"
 	"runtime"
 	"strings"
 	"sync"
@@ -130,11 +131,16 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 )
 
-// Init starts libvips and applies cfg: concurrency, operation cache limits,
-// the loader allowlist and the HEIC encode switch. It must be called once
-// before any other function and paired with Shutdown at process exit.
-// Calling it again only re-applies the settings (vips_init itself runs once
-// per process).
+// Init starts libvips (once per process) and applies cfg: concurrency,
+// operation cache limits, the loader allowlist and the HEIC encode switch.
+//
+// libvips is process-global, so Init takes a reference that one Shutdown
+// releases: several owners (an app.Run per test, a TestMain) may nest their
+// Init/Shutdown pairs, concurrently too. The first Init applies cfg; a
+// nested Init must ask for the same settings (re-applying the allowlists
+// would block every loader for a moment under running jobs) or it fails.
+// Once the last reference has been released, libvips is gone for good and
+// Init fails.
 func Init(cfg *Config) error {
 	if err := cfg.Validate(); err != nil {
 		return err
@@ -159,10 +165,15 @@ func Init(cfg *Config) error {
 	csavers, freeSavers := cstrings(savers)
 	defer freeSavers()
 
+	settings := C.CString(fmt.Sprintf("concurrency=%d cache=%d/%d/%d heic_encode=%t loaders=%s savers=%s",
+		cfg.Concurrency, cfg.CacheMax, cfg.CacheMaxMem, cfg.CacheMaxFiles, cfg.HEICEncode,
+		strings.Join(loaders, ","), strings.Join(savers, ",")))
+	defer C.free(unsafe.Pointer(settings))
+
 	var cerr *C.char
 	rc := C.xi_init(argv0, C.int(cfg.Concurrency), C.int(cfg.CacheMax), C.size_t(cfg.CacheMaxMem),
 		C.int(cfg.CacheMaxFiles), first(cloaders), C.int(len(cloaders)), first(csavers),
-		C.int(len(csavers)), cbool(cfg.HEICEncode), &cerr)
+		C.int(len(csavers)), cbool(cfg.HEICEncode), settings, &cerr)
 	return opError(rc, "init", cerr, nil)
 }
 
@@ -187,9 +198,12 @@ func first(p []*C.char) **C.char {
 	return &p[0]
 }
 
-// Shutdown stops libvips. No vips call may run afterwards; the process is
-// expected to exit. With SetLeakCheck(true), libvips reports leaked objects
-// and memory on stderr here.
+// Shutdown releases the reference taken by one Init. Releasing the last
+// one refuses new Runs, waits for the Runs in progress to return, then calls
+// vips_shutdown, after which no vips call may run and Init fails: the
+// process is expected to exit. With SetLeakCheck(true), libvips reports
+// leaked objects and memory on stderr there. An unbalanced Shutdown does
+// nothing. Never call it inside Run (it would wait for itself).
 func Shutdown() { C.xi_shutdown() }
 
 // SetLeakCheck turns libvips' leak checking (vips_leak_set) on or off:
@@ -201,11 +215,17 @@ func SetLeakCheck(on bool) { C.xi_leak_set(cbool(on)) }
 // unlocking it. Every image job — load, transform, save and Close of all its
 // images — must happen inside one Run: Image values are not goroutine-safe
 // and must not cross Runs. It returns early without calling fn when ctx is
-// already done.
+// already done, and fails with a KindInternal error when libvips is not
+// initialised (no Init, or the last Shutdown has started): the final
+// Shutdown waits for every Run that did start.
 func Run(ctx context.Context, fn func() error) error {
 	if err := ctxError(ctx, "vips: run"); err != nil {
 		return err
 	}
+	if C.xi_run_begin() != C.XI_OK {
+		return errs.New(errs.KindInternal, "vips: run: libvips is not initialised or already shut down")
+	}
+	defer C.xi_run_end()
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 	defer C.xi_thread_cleanup()
