@@ -78,7 +78,7 @@ Rules:
 | `XI_SOURCES_<NAME>_HEADERS` | — | http: extra request headers (`Authorization=…`) |
 | `XI_SOURCES_<NAME>_BUCKETS` / `_BUCKET` | — | s3/gcs/azure: allowed buckets/containers; `_BUCKET` binds a default |
 | `XI_SOURCES_<NAME>_PREFIX` | `` | object key prefix jail (every type except http) |
-| `XI_SOURCES_<NAME>_ENDPOINT`, `_REGION`, `_FORCE_PATH_STYLE`, `_ACCESS_KEY_ID`, `_SECRET_ACCESS_KEY`, `_ROLE_ARN` | — | s3 (R2, MinIO, Spaces, B2 via endpoint) |
+| `XI_SOURCES_<NAME>_ENDPOINT`, `_REGION`, `_FORCE_PATH_STYLE`, `_ACCESS_KEY_ID`, `_SECRET_ACCESS_KEY`, `_ROLE_ARN` | — | s3 (R2, MinIO, Spaces, B2 via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); `_ROLE_ARN` assumes a role on top. `_REGION` falls back to the SDK chain, then `us-east-1` when an endpoint is set (R2: `auto`). Checksums are sent/validated only when required, so R2/B2 work |
 | `XI_SOURCES_<NAME>_CREDENTIALS_JSON` | ADC | gcs |
 | `XI_SOURCES_<NAME>_ACCOUNT`, `_ACCOUNT_KEY`, `_CONNECTION_STRING` | managed identity | azure |
 | `XI_SOURCES_<NAME>_ROOT` | — | fs root (jail via `os.Root`) |
