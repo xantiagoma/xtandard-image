@@ -185,10 +185,15 @@ func TestGradientRamp(t *testing.T) {
 		{"up top", transform.Gradient{Direction: transform.DirectionUp, Stop: 1}, 10, 4, 0, 0, 223.125},
 		{"right", transform.Gradient{Direction: transform.DirectionRight, Stop: 1}, 4, 10, 1, 7, 95.625},
 		{"left", transform.Gradient{Direction: transform.DirectionLeft, Stop: 1}, 4, 10, 1, 7, 159.375},
-		{"angle 90 is right", transform.Gradient{Direction: transform.DirectionAngle, Angle: 90, Stop: 1}, 4, 10, 1, 7, 95.625},
+		// imgproxy angles: clockwise, 0 = top → bottom, 90 = right → left.
+		{"angle 0 is down", transform.Gradient{Direction: transform.DirectionAngle, Stop: 1}, 10, 4, 3, 3, 223.125},
+		{"angle 90 is left", transform.Gradient{Direction: transform.DirectionAngle, Angle: 90, Stop: 1}, 4, 10, 1, 7, 159.375},
+		{"angle 180 is up", transform.Gradient{Direction: transform.DirectionAngle, Angle: 180, Stop: 1}, 10, 4, 0, 0, 223.125},
+		{"angle -90 is right", transform.Gradient{Direction: transform.DirectionAngle, Angle: -90, Stop: 1}, 4, 10, 1, 7, 95.625},
 		{"start stop", transform.Gradient{Start: 0.5, Stop: 1}, 1, 4, 0, 3, 191.25},
-		// 45° on a square: the far corner pixel centre is 1/(2·8) from the end.
-		{"diagonal", transform.Gradient{Direction: transform.DirectionAngle, Angle: 45, Stop: 1}, 4, 4, 3, 0, 255 * 7.0 / 8},
+		// 45° (top-right → bottom-left) on a square: the bottom-left pixel
+		// centre is 1/(2·8) from the end.
+		{"diagonal", transform.Gradient{Direction: transform.DirectionAngle, Angle: 45, Stop: 1}, 4, 4, 0, 3, 255 * 7.0 / 8},
 		{"equal start and stop is a step", transform.Gradient{Start: 0.5, Stop: 0.5}, 1, 4, 0, 3, math.Inf(1)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

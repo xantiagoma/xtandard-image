@@ -3117,7 +3117,7 @@
             "x-xi-syntax": "—"
           },
           "gradient": {
-            "description": "Gradient overlay. URL: `gradient`, `gr`; arguments opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees; default 0:000:down:0:1.",
+            "description": "Gradient overlay. URL: `gradient`, `gr`; arguments opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees clockwise like imgproxy (0 = top to bottom like `down`, 90 = right to left like `left`); default 0:000:down:0:1.",
             "examples": [
               [
                 0.5,
@@ -3169,7 +3169,7 @@
                     "type": "null"
                   }
                 ],
-                "description": "down, up, left, right or degrees",
+                "description": "down, up, left, right or degrees clockwise (0 = down, 90 = left)",
                 "title": "direction"
               },
               {
@@ -3201,7 +3201,7 @@
             "x-xi-milestone": "M2",
             "x-xi-pro": true,
             "x-xi-scope": "pipeline",
-            "x-xi-syntax": "opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees"
+            "x-xi-syntax": "opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees clockwise like imgproxy (0 = top to bottom like `down`, 90 = right to left like `left`)"
           },
           "gravity": {
             "anyOf": [
@@ -4207,7 +4207,7 @@
                     "type": "null"
                   }
                 ],
-                "description": "down, up, left, right or degrees",
+                "description": "down, up, left, right or degrees clockwise (0 = down, 90 = left)",
                 "title": "direction"
               },
               {
