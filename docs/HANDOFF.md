@@ -20,8 +20,7 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   wp-49-raw → wp-47-48-simple-dialects`, then `wp-64-62-request-extras`. When it reports, adopt each with
   `gh stack add` + `gh stack sync` + `gh stack submit --auto --open` + `gh pr edit` (they will already be
   on top; no `--onto` needed).
-- **Still being implemented:** WP-67 HDR (`m2/wp-67-hdr`), WP-82/83 OpenAPI (`m2/wp-82-83-openapi`).
-  Adopt them after the chain with `scripts/stack/adopt2.sh`.
+- **Nothing else is being implemented.** All M2 work packages are either on the stack or in the chain above.
 - **Remaining M2 after that:** WP-81b (Pages + SchemaStore publishing), WP-82b huma-handler spike,
   and a stabilisation pass **WP-87** (not yet in ROADMAP): (1) libvips process-wide error buffer race —
   `xi_load_error` in `internal/vips/load.c` reads the buffer to classify password-protected PDFs and
