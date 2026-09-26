@@ -429,6 +429,14 @@ xi_sharpen(VipsImage *in, double sigma, double x1, double y2, double y3, double 
 }
 
 int
+xi_shrink(VipsImage *in, int hshrink, int vshrink, VipsImage **out, char **err)
+{
+  if (vips_shrink(in, out, (double) hshrink, (double) vshrink, NULL))
+    XI_FAIL();
+  return XI_OK;
+}
+
+int
 xi_composite2(VipsImage *base, VipsImage *overlay, int mode, int x, int y, VipsImage **out,
     char **err)
 {

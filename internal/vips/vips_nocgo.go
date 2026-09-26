@@ -270,6 +270,9 @@ func (*Image) Sharpen(context.Context, SharpenOptions) (*Image, error) {
 	return nil, ErrUnavailable
 }
 
+// Shrink fails.
+func (*Image) Shrink(context.Context, int, int) (*Image, error) { return nil, ErrUnavailable }
+
 // Composite2 fails.
 func (*Image) Composite2(context.Context, *Image, BlendMode, int, int) (*Image, error) {
 	return nil, ErrUnavailable

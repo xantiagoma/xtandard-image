@@ -282,6 +282,18 @@ func (img *Image) Sharpen(ctx context.Context, o SharpenOptions) (*Image, error)
 	return img.op(ctx, "sharpen", rc, out, cerr)
 }
 
+// Shrink averages hshrink×vshrink blocks of pixels into one (vips_shrink, a
+// box filter; the size is rounded down). It works on the whole strip.
+func (img *Image) Shrink(ctx context.Context, hshrink, vshrink int) (*Image, error) {
+	if err := ctxError(ctx, "vips: shrink"); err != nil {
+		return nil, err
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_shrink(img.p, C.int(hshrink), C.int(vshrink), &out, &cerr)
+	return img.op(ctx, "shrink", rc, out, cerr)
+}
+
 // Composite2 blends overlay onto img at (x, y) with mode.
 func (img *Image) Composite2(ctx context.Context, overlay *Image, mode BlendMode, x, y int) (*Image, error) {
 	if err := ctxError(ctx, "vips: composite2"); err != nil {
