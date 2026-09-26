@@ -17,7 +17,6 @@ const (
 	reasonM3             = "takes effect in M3"
 	reasonApproximated   = "approximated"
 	reasonNoEffect       = "no effect"
-	reasonAbsoluteFocal  = "absolute focal point needs the source size"
 )
 
 // maxTrimThreshold is the largest transform.Trim threshold; thumbor's

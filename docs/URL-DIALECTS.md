@@ -584,8 +584,8 @@ Grammar (libthumbor `Url.regex`; every segment optional except the first and the
 | `background_color(color)` | Background |
 | `fill(color\|auto\|blur\|transparent[,fill_transparent])` | Extend (background) + Background; `blur` → Extend blur (M3), `auto` (median colour) M3 |
 | `round_corner(a[\|b],r,g,b[,transparent])` | Radius a on every corner (b ≠ a approximated) + Background rgb unless transparent |
-| `focal(AxB:CxD)` | Gravity FocusPoint at the rectangle centre when given in fractions (all ≤ 1); **pixel rectangles, thumbor's norm, are recorded in `Ignored`: the model's focus point is relative and the dialect does not know the source size (model gap)** |
-| `extract_focal()` | when the image is itself a thumbor URL (up to 10 levels), the innermost original image replaces it; the crop rectangle is a pixel focal point (same gap) |
+| `focal(AxB:CxD)` | Gravity FocusPoint: pixel rectangles (thumbor's norm) → `FocusPx` (WP-86, below); rectangles in fractions (all ≤ 1) → `FocusX/FocusY` at the centre; an empty rectangle is recorded in `Ignored` |
+| `extract_focal()` | when the image is itself a thumbor URL (up to 10 levels), the innermost original image replaces it; the crop rectangle is a pixel focal point (`FocusPx`, WP-86); an empty crop rectangle is recorded in `Ignored` |
 | `watermark(url,x,y,alpha[,w_ratio[,h_ratio]])` | Watermark: Source url, Opacity = (100 − alpha)/100, position x/y px from left/top, negative from right/bottom, `Np` fraction, `center`; `repeat` → Tile repeat (both axes); Scale = w_ratio/100; h_ratio approximated |
 | `colorize`, `convolution`, `curve`, `noise`, `red_eye` | `Ignored` (unsupported) |
 | `gifv`, `cover`, `frame` | `Ignored` (M3) |

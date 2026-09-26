@@ -191,14 +191,17 @@
     "path": "/unsafe/filters:extract_focal()/h.com/unsafe/300x200/i.com/unsafe/1x2:30x40/s3://b/k.jpg",
     "request": {
       "Dialect": "thumbor",
-      "Ignored": [
-        {
-          "Option": "extract_focal",
-          "Reason": "absolute focal point needs the source size"
-        }
-      ],
       "Pipelines": [
         {
+          "Gravity": {
+            "FocusPx": {
+              "X1": 1,
+              "X2": 30,
+              "Y1": 2,
+              "Y2": 40
+            },
+            "Type": "focus-point"
+          },
           "Resize": {
             "Enlarge": true,
             "Type": "fill"
@@ -329,14 +332,17 @@
     "path": "/unsafe/300x200/filters:focal(146x206:279x360)/a.jpg",
     "request": {
       "Dialect": "thumbor",
-      "Ignored": [
-        {
-          "Option": "focal",
-          "Reason": "absolute focal point needs the source size"
-        }
-      ],
       "Pipelines": [
         {
+          "Gravity": {
+            "FocusPx": {
+              "X1": 146,
+              "X2": 279,
+              "Y1": 206,
+              "Y2": 360
+            },
+            "Type": "focus-point"
+          },
           "Resize": {
             "Enlarge": true,
             "Height": {
