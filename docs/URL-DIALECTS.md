@@ -133,25 +133,25 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `watermark_size` (`wms`) Pro | w:h | `Watermark.Width/Height` | 0:0 | M3 |
 | `watermark_rotate` (`wm_rot`, `wmr`) Pro | degrees | `Watermark.Rotate` | 0 | M3 |
 | `watermark_shadow` (`wmsh`) Pro | sigma | `Watermark.Shadow` | off | M3 |
-| `style` (`stl`, `st`) Pro | base64url CSS | `P.SVGStyle` | — | M2 |
+| `style` (`stl`, `st`) Pro | base64url CSS | `P.SVGStyle`: a `<style>` first child of the root of an SVG source, the document sanitised again with it (external references dropped); skipped for other sources | — | M2 (WP-64) |
 | `strip_metadata` (`sm`) | bool | `O.StripMetadata` | config (true) | M1 |
 | `keep_copyright` (`kcr`) | bool | `O.KeepCopyright` | config (true) | M1 |
-| `dpi` Pro | int | `O.DPI` | 0 | M2 |
+| `dpi` Pro | int | `O.DPI`: output resolution (JPEG JFIF/Exif, PNG pHYs, TIFF), kept when stripping (FORMATS §5) | 0 | M2 (WP-64) |
 | `strip_color_profile` (`scp`) | bool | `O.StripColorProfile` | config (true) | M1 |
 | `preserve_hdr` (`ph`) | bool | `O.PreserveHDR` | config (false) | M2 |
 | `color_profile` (`cp`, `icc`) Pro | srgb, cmyk, file | `O.ColorProfile` | — | M2 |
-| `enforce_thumbnail` (`eth`) | bool | `O.EnforceThumbnail` | config | M2 |
+| `enforce_thumbnail` (`eth`) | bool | `O.EnforceThumbnail`: HEIF/AVIF embedded thumbnail always; JPEG Exif thumbnail when large enough (FORMATS §5) | config | M2 (WP-64) |
 | `quality` (`q`) | 0..100 | `O.Quality` | 0 (config) | M1 |
 | `format_quality` (`fq`) | fmt:q… | `O.FormatQuality` | — | M1 |
 | `autoquality` (`aq`) Pro | method:target:min:max:allowed_error; method `none`/`size`/`dssim`/`ml` (`ml` parsed, run as no auto-quality and reported skipped); `size` target in bytes (≤ 2³⁰) | `O.AutoQuality` | config | M2 (WP-56, FORMATS §6.4) |
 | `max_bytes` (`mb`) | int | `O.MaxBytes` | 0 | M1 |
-| `jpeg_options` (`jpgo`) Pro | progressive:no_subsample:trellis_quant:overshoot_deringing:optimize_scans:quant_table | `O.JPEG` | config | M2 |
-| `png_options` (`pngo`) Pro | interlaced:quantize:quantization_colors | `O.PNG` | config | M2 |
-| `webp_options` (`webpo`) Pro | compression:smart_subsample:preset | `O.WebP` | config | M2 |
-| `avif_options` (`avifo`) Pro | subsample | `O.AVIF` | config | M2 |
+| `jpeg_options` (`jpgo`) Pro | progressive:no_subsample:trellis_quant:overshoot_deringing:optimize_scans:quant_table | `O.JPEG` (the last four need a mozjpeg build) | config | M2 (WP-64) |
+| `png_options` (`pngo`) Pro | interlaced:quantize:quantization_colors | `O.PNG` | config | M2 (WP-64) |
+| `webp_options` (`webpo`) Pro | compression:smart_subsample:preset | `O.WebP` | config | M2 (WP-64) |
+| `avif_options` (`avifo`) Pro | subsample | `O.AVIF` | config | M2 (WP-64) |
 | `format` (`f`, `ext`) | extension or `best` Pro | `O.Format` | source/negotiated | M1 (`best` M2) |
-| `page` (`pg`) Pro | int | `P.Page` | 0 | M2 |
-| `pages` (`pgs`) Pro | int | `P.Pages` | 1 | M2 |
+| `page` (`pg`) Pro | int | `P.Page`: page of a multi-page still, first frame of a kept animation, the frame of one that is not (FORMATS §1.2, §3) | 0 | M2 (WP-50, WP-62) |
+| `pages` (`pgs`) Pro | int | `P.Pages`: pages or frames stacked vertically; the frame count of a kept animation; `-1` = to the end | 1 | M2 (WP-50, WP-62) |
 | `disable_animation` (`da`) Pro | bool | `P.DisableAnimation` | false | M1 |
 | `video_thumbnail_second` (`vts`) Pro | float | `P.Video.Second` | config | M3 |
 | `video_thumbnail_keyframes` (`vtk`) Pro | bool | `P.Video.Keyframes` | config | M3 |
@@ -161,13 +161,13 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `skip_processing` (`skp`) | ext… | `D.SkipProcessing` | — | M1 |
 | `raw` | bool | `TR.Kind = Raw` | false | M1 |
 | `cachebuster` (`cb`) | string | `D.CacheBuster` | — | M1 |
-| `bypass_cache` (`bc`) Pro | bool | skips result cache (needs `XI_CACHE_ALLOW_BYPASS`) | false | M2 |
-| `cache_tags` (`ct`) Pro | tags… (visible ASCII, no commas; replaces earlier tags) | `D.CacheTags` → `Cache-Tag`/`Surrogate-Key` header (`XI_CACHE_TAGS_HEADER`) | — | M2 |
+| `bypass_cache` (`bc`) Pro | bool | skips result cache (needs `XI_CACHE_ALLOW_BYPASS`) | false | M2 (WP-52) |
+| `cache_tags` (`ct`) Pro | tags… (visible ASCII, no commas; replaces earlier tags) | `D.CacheTags` → `Cache-Tag`/`Surrogate-Key` header (`XI_CACHE_TAGS_HEADER`), on result-cache hits too | — | M2 (WP-34b, WP-64 end-to-end test) |
 | `expires` (`exp`) | unix ts | `D.Expires` | — | M1 |
 | `filename` (`fn`) | name:encoded | `D.Filename` | source basename | M1 |
 | `return_attachment` (`att`) | bool | `D.Attachment` | config | M1 |
 | `preset` (`pr`) | names… | expanded in place | — | M1 |
-| `hashsum` (`hs`) Pro | none, or md5/sha1/sha256/sha512:hex | `TR.Source.Hashsum` (lowercased) | none | M2 |
+| `hashsum` (`hs`) Pro | none, or md5/sha1/sha256/sha512:hex | `TR.Source.Hashsum` (lowercased): checked on the fetched bytes (processing, raw, `/info`) before anything parses them; mismatch → 422 `hash_mismatch`, never the fallback image; part of the canonical key | none | M2 (WP-64) |
 | `max_src_resolution` (`msr`), `max_src_file_size` (`msfs`), `max_animation_frames` (`maf`), `max_animation_frame_resolution` (`mafr`), `max_result_dimension` (`mrd`) | int | `TR.Limits` (only if security options allowed) | config | M1 |
 | removed upstream: `gif_options` | — | accepted and ignored for old URLs | — | — |
 
@@ -257,7 +257,7 @@ Two shapes:
 /q/resize?url=<source>&width=300&height=200&type=webp          (imaginary endpoint)
 ```
 
-Native keys (long and short): `url`, `width|w`, `height|h`, `fit` (`fit|contain|inside` → Fit, `fill|cover` → Fill, `fill-down`, `force|stretch` → Force, `outside`), `gravity|g` (compass words, `smart`, `entropy`, `fp:x:y`), `crop` (`w,h[,x,y]`), `dpr`, `enlarge`, `format|f`, `quality|q`, `lossless`, `progressive`, `blur`, `sharpen`, `pixelate`, `rotate|rot`, `flip` (`h|v|hv`), `bg`, `strip`, `trim`, `pad`, `preset`, `page`, `cb`, `filename`, `attachment`, `expires`, `sign`. Semantics are those of the equivalent imgproxy option; anything imgproxy can do is reachable via `o=<imgproxy option path>` (for example `o=rs:fill:300:200/g:sm`) so the query dialect is complete by construction.
+Native keys (long and short): `url`, `width|w`, `height|h`, `fit` (`fit|contain|inside` → Fit, `fill|cover` → Fill, `fill-down`, `force|stretch` → Force, `outside`), `gravity|g` (compass words, `smart`, `entropy`, `fp:x:y`), `crop` (`w,h[,x,y]`), `dpr`, `enlarge`, `format|f`, `quality|q`, `lossless`, `progressive`, `blur`, `sharpen`, `pixelate`, `rotate|rot`, `flip` (`h|v|hv`), `bg`, `strip`, `trim`, `pad`, `preset`, `page`, `pages`, `cb`, `filename`, `attachment`, `expires`, `sign`. Semantics are those of the equivalent imgproxy option; anything imgproxy can do is reachable via `o=<imgproxy option path>` (for example `o=rs:fill:300:200/g:sm`) so the query dialect is complete by construction.
 
 imaginary endpoints: `resize`, `enlarge`, `extract`, `crop`, `smartcrop`, `rotate`, `autorotate`, `flip`, `flop`, `thumbnail`, `zoom`, `convert`, `fit`, `blur`, `watermark` (text, M3), `watermarkimage` (M3), `info`, `pipeline` (JSON `operations` → chained pipelines, M2). imaginary params: `width`, `height`, `areawidth`, `areaheight`, `quality`, `compression`, `type`, `force`, `rotate`, `embed`, `norotation`, `noprofile`, `stripmeta`, `flip`, `flop`, `extend`, `background`, `gravity`, `top`, `left`, `factor`, `dpi`, `interlace`, `aspectratio`, `palette`, `sigma`, `minampl`, `url`. Watermark params (M3): `text`, `font`, `textwidth`, `opacity`, `margin`, `color`, `noreplicate`, `image` (watermark image URL). Also accepted: `nocrop`, `colorspace`, `operations` (JSON, `pipeline` endpoint). Unsupported: POST/multipart uploads (form field `file`), the `file` query param for local paths (use an `fs` source with `xi://` instead), `speed`. Params verified against `.refs/imaginary/params.go` and `server.go`.
 
@@ -305,7 +305,7 @@ Grammar: path = object key relative to mount source (escaped, `SourceRelative`, 
 | `lossless` | Lossless | |
 | `chromasub=420|422|444` | ChromaSubsampling | |
 | `cs=srgb|tinysrgb|strip|origin|adobergb1998` | ColorProfile `srgb` (M2) / StripColorProfile true / false; `adobergb1998` not implemented | |
-| `dpi` | DPI | M2 |
+| `dpi` | DPI (output resolution, applied) | M2 (WP-64) |
 | `bg` (RGB, ARGB, RRGGBB, AARRGGBB (alpha first), `#` optional, CSS named, `transparent`) | Background | |
 | `pad`, `pad-top/right/bottom/left` | Padding | |
 | `border=w,color`, `border-top/right/bottom/left`, `border-radius` (`r` or `tl,tr,br,bl`), `border-radius-inner` | Border, Radius; `border-radius-inner` not implemented | M2 |
@@ -324,7 +324,7 @@ Grammar: path = object key relative to mount source (escaped, `SourceRelative`, 
 | `mark`, `mark-alpha`, `mark-align` (default bottom,right), `mark-pad` (default 5), `mark-scale`, `mark-w`, `mark-h`, `mark-x`, `mark-y`, `mark-tile=grid`, `mark-rot`, `mark-fit`, `mark-base` | Watermark from URL (or a path on the mount's source) | M3 |
 | `txt`, `txt-font`, `txt-size`, `txt-color`, `txt-align`, `txt-pad` (default 10), `txt-shad`, other `txt-*` | Text watermark (Pango; `txt` is escaped, not markup) | M3 |
 | `blend*` | Unsupported (only `blend-mode=normal` via watermark) | |
-| `page`, `frame` (1-based) | Page; `frame` also Pages = 1 | M2 |
+| `page`, `frame` (1-based) | Page; `frame` also Pages = 1 (one frame of an animation) | M2 (WP-62) |
 | `dl` | Filename + Attachment | |
 | `ch=Width,DPR,Save-Data` | enable client hints for this URL | |
 | `expires` | Expires (unix seconds; 0 = never); checked after the signature, 404 once passed | |
@@ -389,7 +389,7 @@ Signature: `s--SIG--` right after the delivery type; the signed message is the r
 | other `e_*` (AI, artistic, `background_removal`, `gen_*`, `upscale`, `vectorize`, …) | Unsupported | |
 | `fl_lossy`, `fl_progressive[:none]`, `fl_strip_profile`, `fl_keep_iptc`, `fl_keep_attribution`, `fl_force_strip`, `fl_attachment[:name]`, `fl_immutable_cache`, `fl_png8` (M2), `fl_getinfo` | Lossless=false, Progressive, StripColorProfile, StripMetadata=false, KeepCopyright, StripMetadata, Attachment/Filename, Immutable, PNG quantize 256, Kind=Info (size, format, dimensions) | `fl_animated`, `fl_awebp`, `fl_apng`, `fl_preserve_transparency`, `fl_any_format` are the default behaviour; `fl_rasterize`, `fl_clip`, … unsupported |
 | `cs_srgb`/`cs_no_cmyk`/`cs_tinysrgb`, `cs_cmyk` | ColorProfile srgb / cmyk | M2; `cs_keep_cmyk`, `cs_icc:` unsupported |
-| `pg_<n>` (1-based) | Page n−1 | M2; ranges and names unsupported |
+| `pg_<n>` (1-based) | Page n−1 (WP-62) | Ranges and names unsupported |
 | `t_<name>[.<name>…]` | presets expanded in place (imgproxy option syntax); only-presets mode allows nothing but `t_` | |
 | `d_<public_id>` (`:` = folder) | Fallback (same cloud source) | M2 |
 | `l_<id>` (`:` = folder), `l_fetch:<base64url>` with `g_`, `x_`, `y_`, `o_`, `a_`, `w_`/`h_` px, relative `w_` + `fl_relative` (scale), `fl_tiled`; legacy single component or `l_…/…/fl_layer_apply,…` group | Watermark (image / URL) on the current pipeline | M3; `l_text`, `l_video`, `l_subtitles`, `l_lut` unsupported; other parameters in a layer group approximated |
@@ -450,8 +450,8 @@ Grammar: the path after the mount is the file path, relative to the mount's boun
 | `t-true|<1..99>` | Trim threshold 10 / n |
 | `o-<0..100>` | Adjust.Opacity (M2) |
 | `n-<name>` | preset `<name>` expanded in place (named transformation) |
-| `di-<path>` (`@@` = `/`) | Fallback, relative to the mount source (M2) |
-| `pg-<n>`, `pg-<a>_<b>` | Page (1-based) / Pages (M2) |
+| `di-<path>` (`@@` = `/`) | Fallback, relative to the mount source (served with `XI_FALLBACK_ALLOW_REQUEST_URL`, WP-34c) |
+| `pg-<n>`, `pg-<a>_<b>` | Page (1-based) / Pages (WP-62) |
 | `l-image,i-<path>|ie-<b64>,lx,ly,lfo,w,h,o,…,l-end` | Watermark from the mount source: `lx`/`ly` offsets from top-left (`N` = from right/bottom), else `lfo` compass, else centre; `w`/`h` px size; `o` opacity (M3) |
 | `l-text,i-<text>|ie-<b64>,fs,ff,co,…,l-end` | Text watermark (escaped for Pango), Font = `ff fs`, Color (M3) |
 | `l-image,i-ik_canvas`, `l-video`, `l-subtitles`, nested layers, in-layer transformations, `lxc`, `lyc`, `lap`, `lm` | Unsupported |
