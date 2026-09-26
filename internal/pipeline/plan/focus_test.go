@@ -12,24 +12,24 @@ import (
 )
 
 // pixelGravity is a focus at the source pixel (x, y).
-func pixelGravity(x, y int) transform.Gravity {
+func pixelGravity(x, y int) *transform.Gravity {
 	g, _ := transform.FocusFromPixels(x, y, x, y)
-	return g
+	return &g
 }
 
-func fracGravity(fx, fy float64) transform.Gravity {
-	return transform.Gravity{Type: transform.GravityFocusPoint, FocusX: fx, FocusY: fy}
+func fracGravity(fx, fy float64) *transform.Gravity {
+	return &transform.Gravity{Type: transform.GravityFocusPoint, FocusX: fx, FocusY: fy}
 }
 
 // buildBoth plans the pipeline made by mk with a pixel and with a
 // fractional gravity and fails unless the plans are identical.
-func buildBoth(t *testing.T, meta plan.SourceMeta, pixel, frac transform.Gravity, mk func(g transform.Gravity) transform.Pipeline) *plan.Plan {
+func buildBoth(t *testing.T, meta *plan.SourceMeta, pixel, frac *transform.Gravity, mk func(g transform.Gravity) transform.Pipeline) *plan.Plan {
 	t.Helper()
-	got, err := plan.Build(req(mk(pixel)), meta, plan.Limits{})
+	got, err := plan.Build(req(mk(*pixel)), *meta, plan.Limits{})
 	if err != nil {
 		t.Fatalf("pixel focus: %v", err)
 	}
-	want, err := plan.Build(req(mk(frac)), meta, plan.Limits{})
+	want, err := plan.Build(req(mk(*frac)), *meta, plan.Limits{})
 	if err != nil {
 		t.Fatalf("fractional focus: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestPixelFocusMatchesFraction(t *testing.T) {
 								Gravity: g,
 							}
 						}
-						p := buildBoth(t, meta, pixelGravity(x, y), fracGravity(fx, fy), fill)
+						p := buildBoth(t, &meta, pixelGravity(x, y), fracGravity(fx, fy), fill)
 						if len(stepsOf[plan.CropStep](p.Steps)) == 0 && src[0]*box[1] != src[1]*box[0] {
 							t.Errorf("no result crop in %+v", p.Steps)
 						}
@@ -80,7 +80,7 @@ func TestPixelFocusMatchesFraction(t *testing.T) {
 						crop := func(g transform.Gravity) transform.Pipeline {
 							return transform.Pipeline{Crop: &transform.Crop{Width: px(box[0]), Height: px(box[1]), Gravity: g}}
 						}
-						buildBoth(t, meta, pixelGravity(x, y), fracGravity(fx, fy), crop)
+						buildBoth(t, &meta, pixelGravity(x, y), fracGravity(fx, fy), crop)
 					})
 				}
 			}
@@ -131,14 +131,14 @@ func TestPixelFocusRotateFlip(t *testing.T) {
 					p.Crop = nil
 					return p
 				}
-				buildBoth(t, meta, pixelGravity(x, y), fracGravity(tc.fx, tc.fy), noCrop)
+				buildBoth(t, &meta, pixelGravity(x, y), fracGravity(tc.fx, tc.fy), noCrop)
 				// ...and a pre-crop with a compass gravity for the pre-crop.
 				cropOnly := func(g transform.Gravity) transform.Pipeline {
 					p := mk(transform.Gravity{Type: transform.GravityCenter})
 					p.Crop.Gravity = g
 					return p
 				}
-				buildBoth(t, meta, pixelGravity(x, y), fracGravity(tc.fx, tc.fy), cropOnly)
+				buildBoth(t, &meta, pixelGravity(x, y), fracGravity(tc.fx, tc.fy), cropOnly)
 			})
 		}
 	}
@@ -178,7 +178,7 @@ func TestPixelFocusAfterPreCrop(t *testing.T) {
 					},
 				}
 			}
-			buildBoth(t, meta, pixelGravity(tc.x, tc.y), fracGravity(tc.fx, tc.fy), mk)
+			buildBoth(t, &meta, pixelGravity(tc.x, tc.y), fracGravity(tc.fx, tc.fy), mk)
 		})
 	}
 }
@@ -193,17 +193,17 @@ func TestPixelFocusRectangle(t *testing.T) {
 	fill := func(g transform.Gravity) transform.Pipeline {
 		return transform.Pipeline{Resize: transform.Resize{Type: transform.ResizeFill, Width: px(100), Height: px(300)}, Gravity: g}
 	}
-	buildBoth(t, meta, rect, fracGravity(0.212, 283.0/800), fill)
+	buildBoth(t, &meta, &rect, fracGravity(0.212, 283.0/800), fill)
 
 	first := transform.Pipeline{Resize: transform.Resize{Width: px(500)}} // 500x400
 	chain := func(g transform.Gravity) *transform.Request {
 		return req(first, fill(g))
 	}
-	got, err := plan.Build(chain(pixelGravity(100, 300)), meta, plan.Limits{})
+	got, err := plan.Build(chain(*pixelGravity(100, 300)), meta, plan.Limits{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := plan.Build(chain(fracGravity(0.2, 0.75)), meta, plan.Limits{})
+	want, err := plan.Build(chain(*fracGravity(0.2, 0.75)), meta, plan.Limits{})
 	if err != nil {
 		t.Fatal(err)
 	}
