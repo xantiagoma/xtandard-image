@@ -24,6 +24,9 @@ type Target struct {
 	Animated bool
 	// MaxBytes bounds the output size (imgproxy max_bytes); 0 = no bound.
 	MaxBytes int
+	// AutoQuality is the request's autoquality option; nil or zero fields
+	// take Config.AutoQuality.
+	AutoQuality *transform.AutoQuality
 }
 
 // Options are the per-format encoder options of the request
@@ -88,8 +91,9 @@ func NewTarget(out *transform.Output, d *negotiate.Decision, animated bool) Targ
 			KeepCopyright:     boolOr(out.KeepCopyright, true),
 			StripColorProfile: boolOr(out.StripColorProfile, true),
 		},
-		Animated: animated,
-		MaxBytes: out.MaxBytes,
+		Animated:    animated,
+		MaxBytes:    out.MaxBytes,
+		AutoQuality: out.AutoQuality,
 	}
 }
 
@@ -111,11 +115,15 @@ type Result struct {
 	// Quality is the quality of the returned save; 0 for formats and modes
 	// without one (PNG, GIF, BMP, ICO, lossless).
 	Quality int
-	// Attempts counts the saves made (1 unless max_bytes searched).
+	// Attempts counts the saves made (1 unless max_bytes or auto-quality
+	// searched).
 	Attempts int
-	// OverBudget is set when MaxBytes > 0 and even the returned (smallest)
-	// output exceeds it.
+	// OverBudget is set when MaxBytes > 0 (or the size auto-quality
+	// targets a byte count) and even the returned (smallest) output
+	// exceeds it.
 	OverBudget bool
+	// AutoQuality reports the auto-quality search.
+	AutoQuality AutoQualityResult
 }
 
 // goBody is a Body over Go memory (BMP and ICO output).

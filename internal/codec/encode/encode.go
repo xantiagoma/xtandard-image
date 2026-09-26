@@ -93,7 +93,9 @@ func (e *Encoder) Encode(ctx context.Context, img *vips.Image, t *Target) (*Resu
 		return blob, nil
 	}
 
-	if t.MaxBytes <= 0 || p.quality == 0 {
+	aq, ignored := e.cfg.AutoQuality.autoQuality(t, p.quality)
+	res.AutoQuality.Ignored = ignored
+	if aq.method == transform.AutoQualityUnset && (t.MaxBytes <= 0 || p.quality == 0) {
 		body, err := save(ctx, p.quality)
 		if err != nil {
 			return nil, err
@@ -110,12 +112,103 @@ func (e *Encoder) Encode(ctx context.Context, img *vips.Image, t *Target) (*Resu
 		return nil, err
 	}
 	img = mem
-	fit, err := fitBytes(ctx, p.quality, t.MaxBytes, save)
+
+	switch aq.method {
+	case transform.AutoQualityDSSIM:
+		err = autoDSSIM(ctx, &a, img, &p, aq, t, res)
+	case transform.AutoQualitySize:
+		// The whole output counts against the budget, so an animation
+		// is searched with all its frames.
+		var fit fitResult
+		fit, err = fitBytes(ctx, aq.lo, aq.hi, int(aq.target), save)
+		if err == nil {
+			res.Blob, res.Quality, res.Attempts, res.OverBudget = fit.body, fit.quality, fit.attempts, fit.overBudget
+			res.AutoQuality = AutoQualityResult{
+				Method: aq.method, Target: aq.target, Metric: float64(fit.body.Len()), Met: !fit.overBudget,
+			}
+		}
+	default:
+		var fit fitResult
+		fit, err = fitBytes(ctx, 1, p.quality, t.MaxBytes, save)
+		if err == nil {
+			res.Blob, res.Quality, res.Attempts, res.OverBudget = fit.body, fit.quality, fit.attempts, fit.overBudget
+		}
+	}
 	if err != nil {
 		return nil, errs.Wrap(errs.KindOf(err), err)
 	}
-	res.Blob, res.Quality, res.Attempts, res.OverBudget = fit.body, fit.quality, fit.attempts, fit.overBudget
 	return res, nil
+}
+
+// autoDSSIM runs the dssim search (searchDSSIM) on the first frame of img,
+// then saves img (every frame of an animation) at the chosen quality, and
+// fits the result under t.MaxBytes when it is over. img is rendered to
+// memory.
+func autoDSSIM(ctx context.Context, a *vips.Arena, img *vips.Image, p *plan, aq aqParams, t *Target, res *Result) error {
+	save := func(ctx context.Context, img *vips.Image, q int) (Body, error) {
+		p.setQuality(q)
+		blob, err := img.Save(ctx, p.format, &p.opts)
+		if err != nil {
+			return nil, err
+		}
+		return blob, nil
+	}
+	frame := img
+	if img.Pages() > 1 {
+		var err error
+		if frame, err = firstFrame(ctx, a, img); err != nil {
+			return err
+		}
+		if frame, err = a.Add(frame.CopyMemory(ctx)); err != nil {
+			return err
+		}
+	}
+	cmp, err := newComparer(ctx, frame)
+	if err != nil {
+		return err
+	}
+	sr, err := searchDSSIM(ctx, aq, p.quality,
+		func(ctx context.Context, q int) (Body, error) { return save(ctx, frame, q) },
+		cmp.dssim)
+	if err != nil {
+		return err
+	}
+	body, attempts := sr.body, sr.attempts
+	if frame != img {
+		// Searched on the first frame: encode the animation once more.
+		body.Release()
+		if body, err = save(ctx, img, sr.q); err != nil {
+			return err
+		}
+		attempts++
+	}
+	res.Blob, res.Quality, res.Attempts = body, sr.q, attempts
+	res.AutoQuality = AutoQualityResult{Method: aq.method, Target: aq.target, Metric: sr.d, Met: sr.met}
+	if t.MaxBytes <= 0 || body.Len() <= t.MaxBytes {
+		return nil
+	}
+	// max_bytes bounds the size whatever the metric says: search below
+	// the chosen quality.
+	res.AutoQuality.Met = false
+	if sr.q <= 1 {
+		res.OverBudget = true
+		return nil
+	}
+	fit, err := fitBytes(ctx, 1, sr.q-1, t.MaxBytes, func(ctx context.Context, q int) (Body, error) { return save(ctx, img, q) })
+	if err != nil {
+		body.Release()
+		res.Blob = nil
+		return err
+	}
+	res.Attempts += fit.attempts
+	if fit.overBudget && fit.body.Len() >= body.Len() {
+		fit.body.Release()
+		res.OverBudget = true
+		return nil
+	}
+	body.Release()
+	res.Blob, res.Quality, res.OverBudget = fit.body, fit.quality, fit.overBudget
+	return nil
 }
 
 // frames reduces a multi-frame image to its first frame unless t asks for an
@@ -124,6 +217,11 @@ func (*Encoder) frames(ctx context.Context, a *vips.Arena, img *vips.Image, t *T
 	if img.Pages() <= 1 || (t.Animated && animatable(t.Format)) {
 		return img, nil
 	}
+	return firstFrame(ctx, a, img)
+}
+
+// firstFrame returns the first frame of a multi-frame image as a still.
+func firstFrame(ctx context.Context, a *vips.Arena, img *vips.Image) (*vips.Image, error) {
 	first, err := a.Add(img.ExtractArea(ctx, image.Rect(0, 0, img.Width(), img.PageHeight())))
 	if err != nil {
 		return nil, err
