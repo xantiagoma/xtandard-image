@@ -226,15 +226,23 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	if err != nil {
 		return err
 	}
+	pg, err := buildPlayground(ctx, cfg, rt, srv.Handler(), opts.Version, logger)
+	if err != nil {
+		return err
+	}
 
 	lc := &lifecycle{
 		logger:     logger,
 		ready:      ready,
 		publicAddr: cfg.Server.Addr,
 		adminAddr:  cfg.Admin.Addr,
-		public:     srv.HTTPServer,
+		public: func(ctx context.Context) *http.Server {
+			hs := srv.HTTPServer(ctx)
+			hs.Handler = withPlayground(hs.Handler, pg.public, pg.publicPath)
+			return hs
+		},
 		admin: func(ctx context.Context) *http.Server {
-			return adminServer(ctx, logger, adminMux(met, ready, &cfg.Admin))
+			return adminServer(ctx, logger, adminMux(met, ready, &cfg.Admin, pg.admin, cfg.Playground.Path))
 		},
 		shutdownDelay:   cfg.Server.ShutdownDelay,
 		shutdownTimeout: cfg.Server.ShutdownTimeout,
@@ -249,10 +257,13 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	return lc.run(ctx)
 }
 
-func adminMux(met *metrics.Metrics, ready *admin.Readiness, cfg *config.Admin) http.Handler {
+// adminMux is the admin listener's mux; playground is nil unless
+// XI_PLAYGROUND_ENABLED.
+func adminMux(met *metrics.Metrics, ready *admin.Readiness, cfg *config.Admin, playground http.Handler, playgroundPath string) http.Handler {
 	return admin.NewMux(&admin.Options{
 		Metrics: met.Handler(), Readiness: ready, Pprof: cfg.Pprof,
 		ConfigSchema: config.Schema(), OpenAPI: apidoc.Spec(), Docs: cfg.Docs,
+		Playground: playground, PlaygroundPath: playgroundPath,
 	})
 }
 
