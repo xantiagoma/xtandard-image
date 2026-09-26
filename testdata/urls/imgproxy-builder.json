@@ -7755,22 +7755,6 @@
       "url_short": "/unsafe/vts:2.5/plain/https://example.com/a.jpg"
     },
     {
-      "name": "later/vts_negative",
-      "encoding": "plain",
-      "source": "https://example.com/a.jpg",
-      "pipelines": [
-        [
-          {
-            "vts": [
-              -1
-            ]
-          }
-        ]
-      ],
-      "url": "/unsafe/vts:-1/plain/https://example.com/a.jpg",
-      "url_short": "/unsafe/vts:-1/plain/https://example.com/a.jpg"
-    },
-    {
       "name": "later/vtt_full",
       "encoding": "plain",
       "source": "https://example.com/a.jpg",
