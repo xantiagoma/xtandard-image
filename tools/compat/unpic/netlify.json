@@ -1,0 +1,148 @@
+{
+  "provider": "netlify",
+  "unpic": {
+    "provider": "netlify",
+    "version": "4.2.2"
+  },
+  "mode": "embedded",
+  "fixtures": [
+    {
+      "url": "/.netlify/images?fit=cover&url=%2Fcappadocia.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "cappadocia.jpg"
+      }
+    },
+    {
+      "url": "/.netlify/images?fm=avif&w=1200&q=60&fit=cover&url=%2Fcappadocia.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "cappadocia.jpg",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "/.netlify/images?fm=jpeg&w=640&q=75&fit=cover&url=%2Fcappadocia.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "cappadocia.jpg",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "/.netlify/images?fm=png&h=500&fit=cover&url=%2Fcappadocia.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "cappadocia.jpg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "/.netlify/images?fm=webp&w=400&h=300&q=80&fit=cover&url=%2Fcappadocia.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "cappadocia.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "/.netlify/images?w=800&fit=cover&url=%2Fcappadocia.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "cappadocia.jpg",
+        "width": 800
+      }
+    },
+    {
+      "url": "/.netlify/images?w=800&h=600&fit=cover&url=%2Fcappadocia.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "cappadocia.jpg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "/.netlify/images?url=/cappadocia.jpg&w=400&h=300",
+      "origin": "test",
+      "want": {
+        "source": "cappadocia.jpg",
+        "width": 400,
+        "height": 300
+      }
+    },
+    {
+      "url": "/.netlify/images?url=/cappadocia.jpg&w=800&h=600&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "cappadocia.jpg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "/.netlify/images?url=/cappadocia.jpg&w=800&q=75&fm=webp&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "cappadocia.jpg",
+        "width": 800,
+        "quality": 75,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://unpic-playground.netlify.app/.netlify/images?url=/cappadocia.jpg",
+      "origin": "test",
+      "want": {
+        "source": "cappadocia.jpg"
+      }
+    },
+    {
+      "url": "https://unpic-playground.netlify.app/.netlify/images?url=/cappadocia.jpg&w=1200&q=80&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "cappadocia.jpg",
+        "width": 1200,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://unpic-playground.netlify.app/.netlify/images?url=/cappadocia.jpg&w=800&h=600&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "cappadocia.jpg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://unpic-playground.netlify.app/.netlify/images?url=/cappadocia.jpg&w=800&h=600&fm=webp&q=75",
+      "origin": "test",
+      "want": {
+        "source": "cappadocia.jpg",
+        "width": 800,
+        "height": 600,
+        "quality": 75,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://unpic-playground.netlify.app/.netlify/images?url=/cappadocia.jpg&w=800&q=75&fm=webp&fit=cover",
+      "origin": "test",
+      "want": {
+        "source": "cappadocia.jpg",
+        "width": 800,
+        "quality": 75,
+        "format": "webp"
+      }
+    }
+  ]
+}

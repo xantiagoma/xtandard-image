@@ -1,0 +1,244 @@
+{
+  "provider": "ipx",
+  "unpic": {
+    "provider": "ipx",
+    "version": "4.2.2"
+  },
+  "mode": "embedded",
+  "fixtures": [
+    {
+      "url": "/_ipx/f_auto/https://example.com/images/test.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/images/test.jpg",
+        "format": "auto"
+      }
+    },
+    {
+      "url": "/_ipx/f_auto/images/test.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "images/test.jpg",
+        "format": "auto"
+      }
+    },
+    {
+      "url": "/_ipx/h_500,f_png/https://example.com/images/test.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/images/test.jpg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "/_ipx/h_500,f_png/images/test.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "images/test.jpg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "/_ipx/s_400x300,q_80,f_webp/https://example.com/images/test.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/images/test.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "/_ipx/s_400x300,q_80,f_webp/images/test.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "images/test.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "/_ipx/s_800x600,f_auto/https://example.com/images/test.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/images/test.jpg",
+        "width": 800,
+        "height": 600,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "/_ipx/s_800x600,f_auto/images/test.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "images/test.jpg",
+        "width": 800,
+        "height": 600,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "/_ipx/w_1200,q_60,f_avif/https://example.com/images/test.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/images/test.jpg",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "/_ipx/w_1200,q_60,f_avif/images/test.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "images/test.jpg",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "/_ipx/w_640,q_75,f_jpeg/https://example.com/images/test.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/images/test.jpg",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "/_ipx/w_640,q_75,f_jpeg/images/test.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "images/test.jpg",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "/_ipx/w_800,f_auto/https://example.com/images/test.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.com/images/test.jpg",
+        "width": 800,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "/_ipx/w_800,f_auto/images/test.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "images/test.jpg",
+        "width": 800,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "/_ipx/s_300x200,f_auto/https://example.com/images/test.jpg",
+      "origin": "test",
+      "want": {
+        "source": "https://example.com/images/test.jpg",
+        "width": 300,
+        "height": 200,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://example.com/_ipx/crop_100%5F50%5F300%5F200,f_auto/images/test.jpg",
+      "origin": "test",
+      "want": {
+        "source": "images/test.jpg",
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://example.com/_ipx/s_300x200,f_auto/images/test.jpg",
+      "origin": "test",
+      "want": {
+        "source": "images/test.jpg",
+        "width": 300,
+        "height": 200,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://example.com/_ipx/s_300x200,q_75,f_webp/images/test.jpg",
+      "origin": "test",
+      "want": {
+        "source": "images/test.jpg",
+        "width": 300,
+        "height": 200,
+        "quality": 75,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://example.com/_ipx/s_300x200,q_80,f_auto/https://example.com/images/test.jpg",
+      "origin": "test",
+      "want": {
+        "source": "https://example.com/images/test.jpg",
+        "width": 300,
+        "height": 200,
+        "quality": 80,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://example.com/_ipx/s_400x200,f_webp/images/test.jpg",
+      "origin": "test",
+      "want": {
+        "source": "images/test.jpg",
+        "width": 400,
+        "height": 200,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://example.com/_ipx/s_800x600,fit_cover,position_top,f_auto/images/test.jpg",
+      "origin": "test",
+      "want": {
+        "source": "images/test.jpg",
+        "width": 800,
+        "height": 600,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://example.com/_ipx/w_300,f_auto/images/test.jpg",
+      "origin": "test",
+      "want": {
+        "source": "images/test.jpg",
+        "width": 300,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://example.com/_ipx/w_300,h_200,f_auto/images/test.jpg",
+      "origin": "test",
+      "want": {
+        "source": "images/test.jpg",
+        "width": 300,
+        "height": 200,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://example.com/_ipx/w_300,h_200,q_75,f_webp/images/test.jpg",
+      "origin": "test",
+      "want": {
+        "source": "images/test.jpg",
+        "width": 300,
+        "height": 200,
+        "quality": 75,
+        "format": "webp"
+      }
+    }
+  ]
+}

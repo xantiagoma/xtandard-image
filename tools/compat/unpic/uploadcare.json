@@ -1,0 +1,156 @@
+{
+  "provider": "uploadcare",
+  "unpic": {
+    "provider": "uploadcare",
+    "version": "4.2.2"
+  },
+  "mode": "path",
+  "fixtures": [
+    {
+      "url": "https://ucarecdn.com/661bd414-064c-477a-b50f-8ffd8f66aa49/-/format/avif/-/quality/60/-/resize/1200x/",
+      "origin": "generate",
+      "want": {
+        "source": "661bd414-064c-477a-b50f-8ffd8f66aa49/",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://ucarecdn.com/661bd414-064c-477a-b50f-8ffd8f66aa49/-/format/jpeg/-/quality/75/-/resize/640x/",
+      "origin": "generate",
+      "want": {
+        "source": "661bd414-064c-477a-b50f-8ffd8f66aa49/",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://ucarecdn.com/661bd414-064c-477a-b50f-8ffd8f66aa49/-/format/png/-/resize/x500/",
+      "origin": "generate",
+      "want": {
+        "source": "661bd414-064c-477a-b50f-8ffd8f66aa49/",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://ucarecdn.com/661bd414-064c-477a-b50f-8ffd8f66aa49/-/format/webp/-/quality/80/-/resize/400x300/",
+      "origin": "generate",
+      "want": {
+        "source": "661bd414-064c-477a-b50f-8ffd8f66aa49/",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://ucarecdn.com/661bd414-064c-477a-b50f-8ffd8f66aa49/-/resize/800x/-/format/auto/",
+      "origin": "generate",
+      "want": {
+        "source": "661bd414-064c-477a-b50f-8ffd8f66aa49/",
+        "width": 800,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://ucarecdn.com/661bd414-064c-477a-b50f-8ffd8f66aa49/-/resize/x/-/format/auto/",
+      "origin": "generate",
+      "want": {
+        "source": "661bd414-064c-477a-b50f-8ffd8f66aa49/",
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://ucarecdn.com/661bd414-064c-477a-b50f-8ffd8f66aa49/",
+      "origin": "test",
+      "want": {
+        "source": "661bd414-064c-477a-b50f-8ffd8f66aa49/"
+      }
+    },
+    {
+      "url": "https://ucarecdn.com/661bd414-064c-477a-b50f-8ffd8f66aa49/-/preview/1000x500/-/quality/lighter/",
+      "origin": "test",
+      "want": {
+        "source": "661bd414-064c-477a-b50f-8ffd8f66aa49/",
+        "width": 1000,
+        "height": 500
+      }
+    },
+    {
+      "url": "https://ucarecdn.com/661bd414-064c-477a-b50f-8ffd8f66aa49/-/preview/500x300/-/quality/best/-/format/auto/-/resize/800x600/",
+      "origin": "test",
+      "want": {
+        "source": "661bd414-064c-477a-b50f-8ffd8f66aa49/",
+        "width": 800,
+        "height": 600,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://ucarecdn.com/661bd414-064c-477a-b50f-8ffd8f66aa49/-/preview/500x300/-/quality/normal/-/format/auto/",
+      "origin": "test",
+      "want": {
+        "source": "661bd414-064c-477a-b50f-8ffd8f66aa49/",
+        "width": 500,
+        "height": 300,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://ucarecdn.com/661bd414-064c-477a-b50f-8ffd8f66aa49/-/preview/500x300/-/quality/normal/-/format/webp/-/resize/800x/",
+      "origin": "test",
+      "want": {
+        "source": "661bd414-064c-477a-b50f-8ffd8f66aa49/",
+        "width": 800,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://ucarecdn.com/661bd414-064c-477a-b50f-8ffd8f66aa49/-/quality/best/-/format/webp/-/resize/800x600/",
+      "origin": "test",
+      "want": {
+        "source": "661bd414-064c-477a-b50f-8ffd8f66aa49/",
+        "width": 800,
+        "height": 600,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://ucarecdn.com/661bd414-064c-477a-b50f-8ffd8f66aa49/-/resize/800x600/-/format/auto/",
+      "origin": "test",
+      "want": {
+        "source": "661bd414-064c-477a-b50f-8ffd8f66aa49/",
+        "width": 800,
+        "height": 600,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://ucarecdn.com/661bd414-064c-477a-b50f-8ffd8f66aa49/-/resize/800x600/-/format/auto/tshirt.jpg",
+      "origin": "test",
+      "want": {
+        "source": "661bd414-064c-477a-b50f-8ffd8f66aa49/",
+        "width": 800,
+        "height": 600,
+        "format": "auto"
+      }
+    },
+    {
+      "url": "https://ucarecdn.com/661bd414-064c-477a-b50f-8ffd8f66aa49/tshirt.jpg",
+      "origin": "test",
+      "want": {
+        "source": "661bd414-064c-477a-b50f-8ffd8f66aa49/"
+      }
+    },
+    {
+      "url": "https://ucarecdn.com/661bd414-064c-477a-b50f-8ffd8f66aa49/tshirt1.jpg",
+      "origin": "test",
+      "want": {
+        "source": "661bd414-064c-477a-b50f-8ffd8f66aa49/"
+      }
+    }
+  ]
+}

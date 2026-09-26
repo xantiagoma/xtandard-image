@@ -1,0 +1,177 @@
+{
+  "provider": "vercel",
+  "unpic": {
+    "provider": "vercel",
+    "version": "4.2.2"
+  },
+  "mode": "embedded",
+  "fixtures": [
+    {
+      "url": "/_vercel/image?q=75&url=%2Fimage.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "image.jpg",
+        "quality": 75
+      }
+    },
+    {
+      "url": "/_vercel/image?q=75&url=https%3A%2F%2Fexample.net%2Fimage.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.net/image.jpg",
+        "quality": 75
+      }
+    },
+    {
+      "url": "/_vercel/image?w=1200&q=60&url=%2Fimage.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "image.jpg",
+        "width": 1200,
+        "quality": 60
+      }
+    },
+    {
+      "url": "/_vercel/image?w=1200&q=60&url=https%3A%2F%2Fexample.net%2Fimage.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.net/image.jpg",
+        "width": 1200,
+        "quality": 60
+      }
+    },
+    {
+      "url": "/_vercel/image?w=400&q=80&url=%2Fimage.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "image.jpg",
+        "width": 400,
+        "quality": 80
+      }
+    },
+    {
+      "url": "/_vercel/image?w=400&q=80&url=https%3A%2F%2Fexample.net%2Fimage.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.net/image.jpg",
+        "width": 400,
+        "quality": 80
+      }
+    },
+    {
+      "url": "/_vercel/image?w=640&q=75&url=%2Fimage.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "image.jpg",
+        "width": 640,
+        "quality": 75
+      }
+    },
+    {
+      "url": "/_vercel/image?w=640&q=75&url=https%3A%2F%2Fexample.net%2Fimage.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.net/image.jpg",
+        "width": 640,
+        "quality": 75
+      }
+    },
+    {
+      "url": "/_vercel/image?w=800&q=75&url=%2Fimage.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "image.jpg",
+        "width": 800,
+        "quality": 75
+      }
+    },
+    {
+      "url": "/_vercel/image?w=800&q=75&url=https%3A%2F%2Fexample.net%2Fimage.jpg",
+      "origin": "generate",
+      "want": {
+        "source": "https://example.net/image.jpg",
+        "width": 800,
+        "quality": 75
+      }
+    },
+    {
+      "url": "/_vercel/image?url=/image.jpg&w=400&q=75",
+      "origin": "test",
+      "want": {
+        "source": "image.jpg",
+        "width": 400,
+        "quality": 75
+      }
+    },
+    {
+      "url": "/_vercel/image?url=/image.jpg&w=800&q=75",
+      "origin": "test",
+      "want": {
+        "source": "image.jpg",
+        "width": 800,
+        "quality": 75
+      }
+    },
+    {
+      "url": "/_vercel/image?url=/image.jpg&w=800&q=80",
+      "origin": "test",
+      "want": {
+        "source": "image.jpg",
+        "width": 800,
+        "quality": 80
+      }
+    },
+    {
+      "url": "/_vercel/image?url=https%3A%2F%2Fexample.net%2Fimage.jpg&w=800&q=80",
+      "origin": "test",
+      "want": {
+        "source": "https://example.net/image.jpg",
+        "width": 800,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://example.com/_vercel/image?url=/image.jpg",
+      "origin": "test",
+      "want": {
+        "source": "image.jpg"
+      }
+    },
+    {
+      "url": "https://example.com/_vercel/image?url=/image.jpg&w=1200&q=80",
+      "origin": "test",
+      "want": {
+        "source": "image.jpg",
+        "width": 1200,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://example.com/_vercel/image?url=/image.jpg&w=800&q=75",
+      "origin": "test",
+      "want": {
+        "source": "image.jpg",
+        "width": 800,
+        "quality": 75
+      }
+    },
+    {
+      "url": "https://example.com/_vercel/image?url=/image.jpg&w=800&q=80",
+      "origin": "test",
+      "want": {
+        "source": "image.jpg",
+        "width": 800,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://example.com/_vercel/image?url=https%3A%2F%2Fexample.net%2Fimage.jpg&w=800&q=80",
+      "origin": "test",
+      "want": {
+        "source": "https://example.net/image.jpg",
+        "width": 800,
+        "quality": 80
+      }
+    }
+  ]
+}

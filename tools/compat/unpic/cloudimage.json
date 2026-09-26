@@ -1,0 +1,242 @@
+{
+  "provider": "cloudimage",
+  "unpic": {
+    "provider": "cloudimage",
+    "version": "4.2.2"
+  },
+  "mode": "embedded",
+  "fixtures": [
+    {
+      "url": "https://demo.cloudimg.io/sample.li/flat1.jpg?force_format=avif&w=1200&q=60&org_if_sml=1",
+      "origin": "generate",
+      "want": {
+        "source": "https://sample.li/flat1.jpg",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://demo.cloudimg.io/sample.li/flat1.jpg?force_format=jpeg&w=640&q=75&org_if_sml=1",
+      "origin": "generate",
+      "want": {
+        "source": "https://sample.li/flat1.jpg",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://demo.cloudimg.io/sample.li/flat1.jpg?force_format=png&h=500&org_if_sml=1",
+      "origin": "generate",
+      "want": {
+        "source": "https://sample.li/flat1.jpg",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://demo.cloudimg.io/sample.li/flat1.jpg?force_format=webp&w=400&h=300&q=80&org_if_sml=1",
+      "origin": "generate",
+      "want": {
+        "source": "https://sample.li/flat1.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://demo.cloudimg.io/sample.li/flat1.jpg?org_if_sml=1",
+      "origin": "generate",
+      "want": {
+        "source": "https://sample.li/flat1.jpg"
+      }
+    },
+    {
+      "url": "https://demo.cloudimg.io/sample.li/flat1.jpg?w=800&h=600&org_if_sml=1",
+      "origin": "generate",
+      "want": {
+        "source": "https://sample.li/flat1.jpg",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://demo.cloudimg.io/sample.li/flat1.jpg?w=800&org_if_sml=1",
+      "origin": "generate",
+      "want": {
+        "source": "https://sample.li/flat1.jpg",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://demo.cloudimg.io/sample.li%2Fflat1.jpg%3Fquery%3Dstring?ci_url_encoded=1&force_format=avif&w=1200&q=60&org_if_sml=1",
+      "origin": "generate",
+      "want": {
+        "source": "https://sample.li/flat1.jpg?query=string",
+        "width": 1200,
+        "quality": 60,
+        "format": "avif"
+      }
+    },
+    {
+      "url": "https://demo.cloudimg.io/sample.li%2Fflat1.jpg%3Fquery%3Dstring?ci_url_encoded=1&force_format=jpeg&w=640&q=75&org_if_sml=1",
+      "origin": "generate",
+      "want": {
+        "source": "https://sample.li/flat1.jpg?query=string",
+        "width": 640,
+        "quality": 75,
+        "format": "jpeg"
+      }
+    },
+    {
+      "url": "https://demo.cloudimg.io/sample.li%2Fflat1.jpg%3Fquery%3Dstring?ci_url_encoded=1&force_format=png&h=500&org_if_sml=1",
+      "origin": "generate",
+      "want": {
+        "source": "https://sample.li/flat1.jpg?query=string",
+        "height": 500,
+        "format": "png"
+      }
+    },
+    {
+      "url": "https://demo.cloudimg.io/sample.li%2Fflat1.jpg%3Fquery%3Dstring?ci_url_encoded=1&force_format=webp&w=400&h=300&q=80&org_if_sml=1",
+      "origin": "generate",
+      "want": {
+        "source": "https://sample.li/flat1.jpg?query=string",
+        "width": 400,
+        "height": 300,
+        "quality": 80,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://demo.cloudimg.io/sample.li%2Fflat1.jpg%3Fquery%3Dstring?ci_url_encoded=1&org_if_sml=1",
+      "origin": "generate",
+      "want": {
+        "source": "https://sample.li/flat1.jpg?query=string"
+      }
+    },
+    {
+      "url": "https://demo.cloudimg.io/sample.li%2Fflat1.jpg%3Fquery%3Dstring?ci_url_encoded=1&w=800&h=600&org_if_sml=1",
+      "origin": "generate",
+      "want": {
+        "source": "https://sample.li/flat1.jpg?query=string",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "url": "https://demo.cloudimg.io/sample.li%2Fflat1.jpg%3Fquery%3Dstring?ci_url_encoded=1&w=800&org_if_sml=1",
+      "origin": "generate",
+      "want": {
+        "source": "https://sample.li/flat1.jpg?query=string",
+        "width": 800
+      }
+    },
+    {
+      "url": "https://doc.cloudimg.io/sample.li/flat1.jpg",
+      "origin": "test",
+      "want": {
+        "source": "https://sample.li/flat1.jpg"
+      }
+    },
+    {
+      "url": "https://doc.cloudimg.io/sample.li/flat1.jpg?w=300&force_format=webp&org_if_sml=1",
+      "origin": "test",
+      "want": {
+        "source": "https://sample.li/flat1.jpg",
+        "width": 300,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://doc.cloudimg.io/sample.li/flat1.jpg?w=300&h=200&force_format=webp&ci_url_encoded=1",
+      "origin": "test",
+      "want": {
+        "source": "https://sample.li/flat1.jpg",
+        "width": 300,
+        "height": 200,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://doc.cloudimg.io/sample.li/flat1.jpg?w=300&h=200&org_if_sml=1",
+      "origin": "test",
+      "want": {
+        "source": "https://sample.li/flat1.jpg",
+        "width": 300,
+        "height": 200
+      }
+    },
+    {
+      "url": "https://doc.cloudimg.io/sample.li/flat1.jpg?w=400&h=300",
+      "origin": "test",
+      "want": {
+        "source": "https://sample.li/flat1.jpg",
+        "width": 400,
+        "height": 300
+      }
+    },
+    {
+      "url": "https://doc.cloudimg.io/sample.li/flat1.jpg?w=400&h=300&q=80",
+      "origin": "test",
+      "want": {
+        "source": "https://sample.li/flat1.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 80
+      }
+    },
+    {
+      "url": "https://doc.cloudimg.io/sample.li/flat1.jpg?w=400&h=300&q=85&func=cropfit&org_if_sml=1",
+      "origin": "test",
+      "want": {
+        "source": "https://sample.li/flat1.jpg",
+        "width": 400,
+        "height": 300,
+        "quality": 85
+      }
+    },
+    {
+      "url": "https://doc.cloudimg.io/sample.li/flat1.jpg?w=500&h=300&force_format=webp&org_if_sml=1",
+      "origin": "test",
+      "want": {
+        "source": "https://sample.li/flat1.jpg",
+        "width": 500,
+        "height": 300,
+        "format": "webp"
+      }
+    },
+    {
+      "url": "https://doc.cloudimg.io/sample.li/flat1.jpg?w=600&h=300&q=80&force_format=gif&org_if_sml=1",
+      "origin": "test",
+      "want": {
+        "source": "https://sample.li/flat1.jpg",
+        "width": 600,
+        "height": 300,
+        "quality": 80,
+        "format": "gif"
+      }
+    },
+    {
+      "url": "https://doc.cloudimg.io/sample.li/flat1.jpg?w=800&h=600&q=90&func=fit&org_if_sml=1",
+      "origin": "test",
+      "want": {
+        "source": "https://sample.li/flat1.jpg",
+        "width": 800,
+        "height": 600,
+        "quality": 90
+      }
+    },
+    {
+      "url": "https://doc.cloudimg.io/sample.li%2Fflat1.jpg%3Fquery%3Dstring?w=300&h=200&ci_url_encoded=1&org_if_sml=1",
+      "origin": "test",
+      "want": {
+        "source": "https://sample.li/flat1.jpg?query=string",
+        "width": 300,
+        "height": 200
+      }
+    }
+  ]
+}
