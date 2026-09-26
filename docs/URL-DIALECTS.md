@@ -32,6 +32,7 @@ Default mounts (all dialects other than imgproxy are disabled until enabled in c
 | imagekit | `/imagekit/<mount>/` | Or host-bound |
 | bunny | `/bunny/<mount>/` | Or host-bound |
 | thumbor | `/thumbor/` | Cannot share `/` with imgproxy (both signature-first) unless host-bound |
+| awssih | `/sih/` | AWS Serverless Image Handler (§13); usually host-bound to the old CloudFront domain |
 | simple:* | provider-native prefixes (`/_next/image`, `/_vercel/image`, `/.netlify/images`, `/_ipx/`, `/_image`, `/storage/v1/render/image/`) | Table-driven, see §12 |
 
 ## 2. Signing schemes at a glance
@@ -48,6 +49,7 @@ Default mounts (all dialects other than imgproxy are disabled until enabled in c
 | cloudflare `/cdn-cgi/image` | none upstream | — | https://developers.cloudflare.com/images/transform-images/transform-via-url/ |
 | cloudflare-images | `sig` = hex(HMAC-SHA256(key, path ‖ "?" ‖ query-without-sig)), i.e. `path?exp=<unix>` for Cloudflare's own URLs; raw key; `exp` checked after the signature (expired → 404) | query | https://developers.cloudflare.com/images/optimization/hosted-images/serve-private-images/ |
 | cloudflare `/cdn-cgi/image` (xi) | optional `xi_sig` | query | — |
+| awssih | `signature` = hex(HMAC-SHA256(secret, path [‖ "?" ‖ query])), secret used verbatim; query = decoded parameters without `signature`, last value per key, sorted by "key,value" (UTF-16), joined `k=v&…` unescaped; optional `expires=YYYYMMDDTHHmmssZ` | query | §13, SIH `image-request.ts` `validateRequestSignature` |
 | wsrv, simple:* | none upstream | — | — |
 
 For dialects without a native scheme xi offers the optional **xi scheme**: query param `xi_sig` = base64url(HMAC-SHA256(key, salt ‖ path ‖ "?" ‖ query-without-xi_sig)) using the imgproxy key/salt pairs. Unsigned traffic is governed by `XI_SECURITY_UNSIGNED_POLICY` (`allow` | `restricted` | `deny`), settable per mount. `restricted` is the recommended production setting for client-generated URLs (unpic): only widths in `XI_SECURITY_ALLOWED_WIDTHS` (default the Next.js device+image sizes: 16,32,48,64,96,128,256,384,640,750,828,1080,1200,1920,2048,3840), heights derived from width and aspect ratio or in the same list, qualities in `XI_SECURITY_ALLOWED_QUALITIES` (default 1–100 step 5 plus named levels), and no watermark URLs, security options or `raw`. The exact restricted option set (an allowlist that fails closed on new fields; it also admits DPRs from a router-level list and rejects info requests, chained pipelines, effects, crops, fallback URLs, cache busters and width/DPR client hints) is documented on `router.Restrictions` in `internal/dialect/router`.
@@ -694,6 +696,73 @@ unpic (https://unpic.pics/providers/, source `ascorbic/unpic/src/providers/*.ts`
 
 Because unpic generates these URLs client-side, simple dialects default to `XI_SECURITY_UNSIGNED_POLICY=restricted`.
 
-## 13. Compatibility test strategy
+## 13. AWS Serverless Image Handler ("Dynamic Image Transformation for Amazon CloudFront")
+
+Reference: `awslabs/dynamic-image-transformation-for-amazon-cloudfront` v8.x (`.refs/aws-image-handler/source/image-handler/`: `image-request.ts`, `image-handler.ts`, `query-param-mapper.ts`, `thumbor-mapper.ts`, `lib/`, and the `test/` fixtures), sharp 0.35 (`.refs/sharp/lib`) for the edit semantics. Package `internal/dialect/awssih`, mount `/sih/` (usually host-bound to the CloudFront domain being migrated). Point the mount at the old API's path root so SIH signatures, which cover the path, keep verifying.
+
+SIH picks one of three request types from the path after the mount:
+
+```
+/sih/eyJidWNrZXQiOiJteS1idWNrZXQiLCJrZXkiOiJhLmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MjAwfX19   (Default: base64 JSON)
+/sih/fit-in/200x200/filters:grayscale()/s3:my-bucket/a.jpg                                       (Thumbor)
+/sih/legacy/200/a.jpg   + REWRITE_MATCH_PATTERN=/^\/legacy\/(\d+)\/(.*)$/  REWRITE_SUBSTITUTION=/fit-in/$1x$1/$2   (Custom)
+?signature=<hex>&expires=20261231T235959Z&format=webp&width=300                                   (any type)
+```
+
+1. **Default (base64 JSON)**: the path is base64 of a JSON object. It is decoded like Node's `Buffer.from(s, "base64")`: standard and URL-safe alphabets, padding optional, anything after the first `=` ignored (SIH's own fixtures carry spurious `==`). If it decodes to a JSON object it is a Default request, otherwise the path goes to 2/3. xtandard-image implements this type completely.
+2. **Thumbor**: a thumbor URL without the signature segment. With `dialects.awssih.thumbor: true` the mount forwards it to the thumbor dialect (§10, WP-45): an `s3:<bucket>` segment naming a listed bucket is removed and selects that bucket's source (SIH `parseImageBucket`), `/unsafe` is prepended, the query is dropped, and the thumbor result keeps SIH's own signature outcome, the query-param edits and `expires`. Without forwarding (or until the thumbor dialect is registered) these paths are a 400. SIH-only thumbor filters (`animated`, `smart_crop`, …) are whatever the thumbor dialect makes of them.
+3. **Custom**: with `rewrite_match_pattern` + `rewrite_substitution` set, non-JSON paths are rewritten first (`/pattern/flags` literal with flags `g i m s`, RE2 syntax; substitution `$1`, `$<name>`, `$&`, `$$`) and then forwarded as in 2.
+
+Request JSON (`DefaultImageRequest`):
+
+| Field | TR |
+|---|---|
+| `bucket` | `Source.Mount` = `dialects.awssih.buckets[bucket]` (SIH `SOURCE_BUCKETS`); unlisted → 403; absent → the mount's `source` |
+| `key` | `Source.Raw` (relative, `Encoding` relative); `%`, `?`, `#`, `:` are escaped so a key can never read as a URL or scheme; empty or non-string → 400 |
+| `edits` | applied in JSON key order (see below); `null` = none |
+| `outputFormat` | `O.Format` (`jpg`/`jpeg`, `png`, `webp`, `avif`, `gif`, `tiff`, `heif`/`heic` → HEIC, `jxl`); `raw` → 400 |
+| `effort` | WebP output only: `O.Effort` from sharp's 0–6 (truncated; invalid → 4, like SIH) |
+| `headers` | see "Response headers" |
+| anything else (`requestType`, `reductionEffort`, …) | `Ignored` (never an error) |
+
+Edits (sharp operations; `D` = discarded silently, `I` = recorded in `Ignored`; "strict" = `XI_DIALECTS_STRICT` turns `I` for unknown/unsupported edits into 400):
+
+| SIH edit | TR |
+|---|---|
+| `resize: {width, height, fit, position, background, kernel, withoutEnlargement, ratio}` | `P.Resize`: width/height via `Number()` + `Math.round`, `null` = auto, ≤ 0 → 400; `Enlarge = !withoutEnlargement` (sharp enlarges by default); `fit` `cover` (default) → Fill, `contain` → Fit + `Extend` (gravity = position) + `Background` (default opaque black), `fill` → Force, `inside` → Fit, `outside` → Outside; `position`/`gravity` (names or sharp constants: `centre`, `top`, `right top`, …, `north`…`northwest`, `entropy` → Entropy, `attention` → Smart) → `P.Gravity` for cover; `kernel` nearest/linear/cubic/mitchell/lanczos2/lanczos3 → `Algorithm`, `mks2013`/`mks2021` I; `ratio` (thumbor mapper) scales width/height or, alone, → `ZoomX/Y`; `withoutReduction`, `fastShrinkOnLoad` I |
+| `extract`, `crop: {left, top, width, height}` | `P.Crop` (north-west + offsets). Before `resize` in key order → pre-resize crop; after it → a chained second pipeline (sharp crops after resizing), which also receives `extend` |
+| `extend: n \| {top, right, bottom, left, background, extendWith}` | `P.Padding` + `P.Background`; `extendWith` other than `background` I |
+| `trim: true \| n \| {background, threshold}` | `P.Trim` (threshold default 10, `Color`); `lineArt`, `margin` I; `false` = none |
+| `rotate: n \| null` | multiple of 90 → `P.Rotate`; other angles → `P.RotateAny` normalised to (−180, 180]; `null` → `AutoRotate` |
+| `flip`, `flop` | `Flip.V`, `Flip.H` (sharp: any non-boolean value means true) |
+| `greyscale`, `grayscale` | `Grayscale` (same boolean rule; later key wins) |
+| `negate` | `Negate` |
+| `normalise`, `normalize` | `Equalize` (SIH's thumbor mapper maps `equalize()` to `normalize`); `{lower, upper}` I |
+| `flatten: true \| {background}` | `P.Background` (default black) |
+| `tint` | `P.Tint` |
+| `sharpen: {sigma, …} \| other` | `P.Sharpen` = sigma (0.000001–10); flat/jagged params I; non-object = sharp's mild sharpen ≈ σ 0.5 I |
+| `blur: σ \| {sigma} \| true` | `P.Blur` (0.3–1000); `true`/`null` = mild box blur ≈ σ 0.8 I; `false` = none |
+| `modulate: {brightness, saturation, hue, lightness}` | `Adjust.Exposure`, `Adjust.Saturation`, `Adjust.Hue`, `Adjust.Brightness` (lightness × 2.55, I) |
+| `toFormat` | `O.Format` (wins over `outputFormat`, as in SIH) |
+| `jpeg`, `png`, `webp`, `avif`, `heif`, `gif`, `tiff: {…}` | select the output format like sharp (unless `force: false`); `quality` → `O.FormatQuality[fmt]`; jpeg `progressive`, `chromaSubsampling`, `mozjpeg` (= trellis + overshoot + optimise scans + table 3), `trellisQuantisation`, `overshootDeringing`, `optimiseScans`, `quantisationTable` → `O.JPEG`; png `progressive` (interlace), `compressionLevel`, `adaptiveFiltering`, `palette`, `colours` → `O.PNG`; webp `lossless`, `nearLossless`, `smartSubsample`, `preset` → `O.WebP`/`O.Lossless`; avif/heif `chromaSubsampling` → `O.AVIF`; `lossless` and `effort` (native 0–6 / 0–9 / 1–10, normalised to 1–9) apply only when that format is the output; other options I |
+| `overlayWith: {bucket, key, wRatio, hRatio, alpha, options: {left, top, gravity}}` | `P.Watermarks` with a per-request `Source` (bucket must be listed, else 403), `Opacity` = 1 − alpha/100, `Scale` = wRatio/100 (`hRatio` I), position from `gravity` or `left`/`top` (px or `"<n>p"`; negative = from the right/bottom edge) — takes effect in M3 (I) |
+| `smartCrop: true \| {faceIndex, padding}` | `Gravity` face + `FaceIndex` — M3 (I); `padding` > 0 I |
+| `roundCrop: true \| {top, left, rx, ry}` | `P.Mask` circle with trim (SIH's default ellipse is a centred circle then `trim()`); explicit centre/radii approximated (ellipse when rx ≠ ry, I) |
+| `animated: bool` | `true` → `Pages = -1`; `false` → `DisableAnimation` |
+| `stripExif`, `stripIcc: true` | `O.StripMetadata`, `O.StripColorProfile` |
+| `contentModeration`, `median`, `threshold`, `gamma` (linear-light resampling), `linear`, `recomb`, `convolve`, `clahe`, `boolean`, `affine`, `unflatten`, channel and colourspace operations | unsupported: I (strict 400) |
+| anything else (`toFile`, …) | unknown: I (strict 400) |
+
+Arguments sharp would reject at processing time (SIH answers 500) are a 400 naming the field here. Colours accept `{r, g, b, alpha}`, `#rgb[a]`, `#rrggbb[aa]`, `rgb()`/`rgba()` and the CSS level 2 names (plus `transparent`, `orange`).
+
+Query-param mapper (`dialects.awssih.query_params`, default on; SIH always applies it): `format` → `toFormat`; `width`, `height` (`parseInt`; `"0"`/`""` → null), `fit` → a `resize` edit; `rotate` (`""` → null); `flip`, `flop`, `grayscale`/`greyscale` (`"0"`, `"false"`, `""` are false) → the edits of the same name. They merge like SIH's `{...edits, ...queryEdits}`: an existing edit keeps its position and takes the new value, so `?width=` replaces the whole JSON `resize` object. With the mapper off they are recorded in `Ignored`. For forwarded thumbor paths they are applied to the thumbor result the same way. Other query parameters are ignored (the S3 Object Lambda `ol-` prefixes are not recognised).
+
+Signature (`XI_DIALECTS_AWSSIH_KEYS`, SIH `SECRETS_MANAGER`/`SECRET_KEY`): `signature` = lowercase hex(HMAC-SHA256(secret, msg)), msg = the decoded path after the mount, plus `?` and the query rebuilt like SIH's `recreateQueryString` when non-empty (see §2). Several keys may be configured for rotation; `XI_SIGNING_TRUSTED` applies; `XI_SIGNING_REQUIRED=true` is SIH's `ENABLE_SIGNATURE=Yes` (missing → 403 here, 400 in SIH). The signature and then `expires` are checked before the path is decoded, as in SIH. `expires=YYYYMMDDTHHmmssZ` → `D.Expires`; malformed → 400, past → the common expired status (404; SIH answers 400). Vectors in `internal/security/sign/testdata/awssih/` are produced by SIH's own code under Bun.
+
+Response headers (JSON `headers`): names on SIH's `HEADER_DENY_LIST` (`authorization`, `set-cookie`, `x-amz-*`, `access-control-*`, `content-*` including `Content-Disposition`, …) are dropped and recorded in `Ignored`, as SIH drops them. Of the rest, the model expresses `Cache-Control` `max-age` → `D.TTL` and `immutable` → `D.Immutable` (other directives I; the server's config still clamps the TTL), and `Cache-Tag` / `Surrogate-Key` / `Edge-Cache-Tag` → `D.CacheTags`. Any other header (custom `x-*`, `Expires`, …) is recorded in `Ignored` and not sent; headers never fail a request.
+
+Other differences from SIH: `AUTO_WEBP` is the server's Accept negotiation (`O.Format` unset); SIH keeps all metadata by default while xtandard-image applies `XI_PROCESSING_STRIP_METADATA` unless `stripExif`/`stripIcc` ask for stripping; an SVG source without an explicit format follows the server's format rules rather than SIH's "PNG when edited"; a request without edits or format is still processed by the pipeline (SIH streams the original bytes); `DEFAULT_FALLBACK_IMAGE_*` maps to `XI_FALLBACK_*`, `CORS_ORIGIN` to `XI_SERVER_CORS_ORIGINS`.
+
+## 14. Compatibility test strategy
 
 Each dialect WP ships (a) a table of URLs → expected TR JSON, (b) URLs produced by the upstream SDK/transformer (`@imgix/js-core`, `cloudinary` npm, `imagekit-javascript`, `unpic` transformers, `libthumbor`, imgproxy URL examples) generated by a small Bun script in `tools/compat/` and committed as fixtures, (c) signature test vectors from upstream docs, (d) a fuzz target that must never panic.
