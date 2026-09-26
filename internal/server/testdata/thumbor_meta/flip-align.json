@@ -1,0 +1,44 @@
+{
+  "thumbor": {
+    "source": {
+      "url": "http://origin/a.jpg",
+      "width": 1000,
+      "height": 800,
+      "frameCount": 1
+    },
+    "operations": [
+      {
+        "type": "resize",
+        "width": 300,
+        "height": 240
+      },
+      {
+        "type": "crop",
+        "left": 0,
+        "top": 0,
+        "right": 300,
+        "bottom": 200
+      },
+      {
+        "type": "flip_horizontally"
+      },
+      {
+        "type": "flip_vertically"
+      }
+    ],
+    "target": {
+      "width": 300,
+      "height": 200
+    },
+    "focal_points": [
+      {
+        "x": 1000,
+        "y": 0,
+        "z": 1,
+        "height": 1,
+        "width": 1,
+        "origin": "alignment"
+      }
+    ]
+  }
+}

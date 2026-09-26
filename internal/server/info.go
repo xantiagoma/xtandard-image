@@ -13,6 +13,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
+	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/source"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
@@ -25,6 +26,10 @@ type InfoConfig struct {
 	// DebugHeaders adds X-Xi-Ignored, the options that were parsed but not
 	// applied (XI_OBSERVABILITY_DEBUG_HEADERS).
 	DebugHeaders bool
+	// PlanLimits are the executor's planner limits: the thumbor meta
+	// response (InfoSchemaThumbor) plans the request to report its target
+	// size and operations.
+	PlanLimits plan.Limits
 }
 
 // EXIFEntry is one EXIF tag of a source.
@@ -138,9 +143,9 @@ func (s *Server) inspect(ctx context.Context, r *http.Request, req *transform.Re
 		return nil, err
 	}
 
-	body, err := infoBody(req.Info, si, len(fr.Bytes()))
+	body, err := s.infoResponse(req, si, len(fr.Bytes()))
 	if err != nil {
-		return nil, errs.Wrapf(errs.KindInternal, err, "server: encode info")
+		return nil, err
 	}
 	info.format = "json"
 	info.width, info.height = orientedSize(&si.Meta)
@@ -156,6 +161,18 @@ func (s *Server) inspect(ctx context.Context, r *http.Request, req *transform.Re
 		object: fr.Object,
 		req:    req,
 	}, nil
+}
+
+// infoResponse renders the info JSON in the schema the request asks for.
+func (s *Server) infoResponse(req *transform.Request, si *SourceInfo, size int) ([]byte, error) {
+	if req.Info.Schema == transform.InfoSchemaThumbor {
+		return s.thumborMetaBody(req, si)
+	}
+	body, err := infoBody(req.Info, si, size)
+	if err != nil {
+		return nil, errs.Wrapf(errs.KindInternal, err, "server: encode info")
+	}
+	return body, nil
 }
 
 // inspectSource is probe for info requests: SVG is sanitised before
