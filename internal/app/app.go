@@ -158,7 +158,19 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		logger.LogAttrs(ctx, slog.LevelWarn, "config warning", slog.String("warning", w))
 	}
 
-	proc, err := newProcessor(cfg)
+	wm, err := loadWatermark(ctx, cfg, reg, fetcher)
+	if err != nil {
+		return err
+	}
+	// Requests read the watermark's pixels until they finish: like libvips
+	// itself, it is released only once none is in flight.
+	cleanups = append(cleanups, func(context.Context) error {
+		if lim.Stats().InFlight == 0 {
+			wm.Close()
+		}
+		return nil
+	})
+	proc, err := newProcessor(cfg, wm)
 	if err != nil {
 		return err
 	}

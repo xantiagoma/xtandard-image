@@ -34,6 +34,8 @@ package vips
 #cgo nocallback xi_meta_fields
 #cgo noescape xi_copy_memory
 #cgo nocallback xi_copy_memory
+#cgo noescape xi_share
+#cgo nocallback xi_share
 #cgo noescape xi_write_to_memory
 #cgo nocallback xi_write_to_memory
 #cgo noescape xi_resize

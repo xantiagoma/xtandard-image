@@ -33,6 +33,8 @@
 // flatten later fills with the background, smart crop on a memory copy, and
 // trim compared in sRGB with transparency flattened.
 //
-// Filters (WP-27) and watermarks (WP-28) are not executed yet: their steps are
-// skipped and reported in Result.Skipped, like the plan's Unplanned options.
+// Filters (blur, sharpen, pixelate) and the configured watermark are executed
+// per frame. Options that have no implementation yet (per-request watermark
+// sources and text, chessboard tiling, the plan's Unplanned options) are
+// skipped and reported in Result.Skipped.
 package exec

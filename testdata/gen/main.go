@@ -45,7 +45,7 @@ func main() {
 
 func run(args []string) error {
 	if len(args) < 2 {
-		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|gif|gif-anim|ico-png|ico-bmp|exif6|metadata|bordered|ssim-refs> args...")
+		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|gif|gif-anim|ico-png|ico-bmp|exif6|metadata|bordered|ssim-refs> args...")
 	}
 	sizeArgs := func() (int, int, string, error) {
 		if len(args) != 4 {
@@ -75,6 +75,8 @@ func run(args []string) error {
 			img = paletted(graphic(w, h))
 		}
 		return writePNG(out, img)
+	case "watermark":
+		return writePNG(args[1], watermark())
 	case "gif":
 		return writeGIF(args[1], false)
 	case "gif-anim":
@@ -271,6 +273,34 @@ func graphic(w, h int) *image.RGBA {
 			case math.Abs(u-v) < 0.03:
 				img.SetRGBA(x, y, cols[3])
 			}
+		}
+	}
+	return img
+}
+
+// watermark is a 48x32 RGBA logo for the watermark cases: a translucent
+// orange plate with a white corner triangle top-left and a navy bar at the
+// bottom (asymmetric on both axes, so a flip or a misplacement shows), inside
+// a half-transparent white rim.
+func watermark() *image.NRGBA {
+	const w, h = 48, 32
+	img := image.NewNRGBA(image.Rect(0, 0, w, h))
+	for y := range h {
+		for x := range w {
+			var c color.NRGBA
+			switch {
+			case x == 0 || y == 0 || x == w-1 || y == h-1:
+				c = color.NRGBA{R: 255, G: 255, B: 255, A: 128}
+			case x < 2 || y < 2 || x >= w-2 || y >= h-2:
+				// transparent gap between the rim and the plate
+			case y >= h-8:
+				c = color.NRGBA{R: 20, G: 40, B: 120, A: 255}
+			case (x-2)+(y-2) < 14:
+				c = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
+			default:
+				c = color.NRGBA{R: 230, G: 90, B: 20, A: 220}
+			}
+			img.SetNRGBA(x, y, c)
 		}
 	}
 	return img

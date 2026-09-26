@@ -27,6 +27,7 @@ testdata/
 | `png/bordered.png` | PNG 80x60 | 56x42 photo on white, margins top 6, right 20, bottom 12, left 4 (trim, equal_hor/equal_ver) |
 | `png/rgb16.png` | PNG 96x72 | 16 bits per channel |
 | `png/palette.png` | PNG 96x72 | 8-bit palette (PLTE) |
+| `watermark/logo.png` | PNG 48x32 | RGBA logo used as the configured watermark (translucent plate, opaque parts, half-transparent rim) |
 | `gif/static.gif`, `gif/animated.gif` | GIF 96x72 | single frame; 6 frames, 100 ms, infinite loop |
 | `webp/lossy.webp`, `webp/lossless.webp`, `webp/animated.webp` | WebP | VP8, VP8L, animated (6 frames, alpha) |
 | `avif/photo.avif` | AVIF 320x240 | 8-bit AV1 still |

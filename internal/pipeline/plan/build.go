@@ -547,7 +547,8 @@ func emitFinish(p *transform.Pipeline, g *geo, b *builder, outFmt transform.Form
 		w := &p.Watermarks[i]
 		pos, _ := resolveGravity(&w.Position)
 		b.pl.After = append(b.pl.After, WatermarkStep{
-			Index: i, Opacity: w.Opacity, Position: pos, Scale: w.Scale, DPRScale: g.dprScale, Frames: frames,
+			Index: i, Opacity: w.Opacity, Position: pos, Tile: w.Tile, Scale: w.Scale, DPRScale: g.dprScale,
+			Frames: frames, Default: w.Source == nil && w.Text == "",
 		})
 	}
 	if last {
