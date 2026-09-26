@@ -526,3 +526,64 @@ func TestContentDispositionExt(t *testing.T) {
 		}
 	}
 }
+
+// TestRawConditional: the WP-34b 304 rules apply to raw streaming; the
+// ETag is known without processing and a match sends no body.
+func TestRawConditional(t *testing.T) {
+	t.Parallel()
+	h := newHarness(t, func(h *harness) {
+		h.router.mutate = rawRequest
+		h.f.data = pngSource
+	})
+	first := h.do(t, http.MethodGet, okPath, nil)
+	tag := first.Header().Get("ETag")
+	if first.Code != http.StatusOK || !strings.HasPrefix(tag, `"xi1-`) {
+		t.Fatalf("status %d, ETag %q", first.Code, tag)
+	}
+	rec := h.do(t, http.MethodGet, okPath, http.Header{"If-None-Match": {tag}})
+	if rec.Code != http.StatusNotModified || rec.Body.Len() != 0 {
+		t.Errorf("revalidation: status %d, %d body bytes; want 304 and none", rec.Code, rec.Body.Len())
+	}
+	if rec.Header().Get("ETag") != tag || rec.Header().Get("Content-Type") != "" {
+		t.Errorf("304 headers = %v", rec.Header())
+	}
+	if h.a.acquired.Load() != 0 || h.pr.calls.Load() != 0 || h.p.calls != 0 {
+		t.Error("raw revalidation took admission, probed or processed")
+	}
+	h.checkReleased(t)
+}
+
+// TestFallbackIgnoresConditional: a fallback is always a full response
+// with the fallback status and TTL, never a 304 that would refresh a
+// cached fallback with the success lifetime. The WP-34b ETag and Vary stay.
+func TestFallbackIgnoresConditional(t *testing.T) {
+	t.Parallel()
+	h := newHarness(t, func(h *harness) {
+		h.f.err = errs.New(errs.KindNotFound, "origin 404")
+		h.f.other = &fakeReply{data: fallbackSource}
+		h.cfg.Fallback = Fallback{Source: fallbackRef, Status: http.StatusNotFound, TTL: 90e9}
+	})
+	accept := http.Header{"Accept": {"image/webp,image/avif,*/*"}}
+	first := h.do(t, http.MethodGet, okPath, accept)
+	tag := first.Header().Get("ETag")
+	if first.Code != http.StatusNotFound || tag == "" {
+		t.Fatalf("status %d, ETag %q", first.Code, tag)
+	}
+	if !strings.Contains(first.Header().Get("Vary"), "Accept") {
+		t.Errorf("Vary = %q, want the negotiation's Accept", first.Header().Get("Vary"))
+	}
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		hdr := http.Header{"If-None-Match": {tag}, "Accept": accept["Accept"]}
+		rec := h.do(t, method, okPath, hdr)
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("%s revalidation: status %d, want the fallback's 404", method, rec.Code)
+		}
+		if got := rec.Header().Get("Cache-Control"); got != "public, max-age=90" {
+			t.Errorf("%s: Cache-Control = %q", method, got)
+		}
+		if rec.Header().Get("ETag") != tag {
+			t.Errorf("%s: ETag = %q, want %q", method, rec.Header().Get("ETag"), tag)
+		}
+	}
+	h.checkReleased(t)
+}

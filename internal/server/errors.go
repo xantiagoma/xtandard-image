@@ -127,7 +127,7 @@ func (s *Server) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	}
 	w.WriteHeader(status)
 	if r.Method != http.MethodHead {
-		_, _ = w.Write(body)
+		_, _ = w.Write(body) //nolint:gosec // G705: public error text (errs/PublicMessage) as text/plain or JSON, with nosniff
 	}
 }
 

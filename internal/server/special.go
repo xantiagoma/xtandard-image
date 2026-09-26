@@ -158,6 +158,10 @@ func (s *Server) passthrough(r *http.Request, info *requestInfo, res *imageResul
 // and it passes the allowlist, else XI_FALLBACK_SOURCE. The fallback is
 // produced with the same transform request. Any failure while producing it
 // returns cause, the original error; the fallback never falls back.
+//
+// The fallback is always a full response, never a 304: a 304 would refresh
+// a cached fallback with the success Cache-Control of setCacheHeaders and
+// let it outlive XI_FALLBACK_TTL (fallbackWriter only rewrites a 200).
 func (s *Server) fallback(ctx context.Context, r *http.Request, info *requestInfo, cause error) (*imageResult, error) {
 	j := info.job
 	if j == nil || !fallbackEligible(errs.KindOf(cause)) {
@@ -170,7 +174,7 @@ func (s *Server) fallback(ctx context.Context, r *http.Request, info *requestInf
 	}
 	fj := *j
 	fj.key = key
-	res, err := s.produce(ctx, r, info, &fj)
+	res, err := s.produce(ctx, unconditional(r), info, &fj)
 	if err != nil {
 		s.deps.Logger.LogAttrs(r.Context(), slog.LevelWarn, "fallback image failed",
 			slog.String("fallback_kind", errs.KindOf(err).String()), logging.Err(err))
@@ -179,6 +183,18 @@ func (s *Server) fallback(ctx context.Context, r *http.Request, info *requestInf
 	s.deps.Logger.LogAttrs(r.Context(), slog.LevelWarn, "serving fallback image",
 		slog.String("kind", errs.KindOf(cause).String()), logging.Err(cause))
 	return res, nil
+}
+
+// unconditional returns r without its If-None-Match / If-Modified-Since
+// headers (a copy only when it has any).
+func unconditional(r *http.Request) *http.Request {
+	if r.Header.Get("If-None-Match") == "" && r.Header.Get("If-Modified-Since") == "" {
+		return r
+	}
+	r2 := r.Clone(r.Context())
+	r2.Header.Del("If-None-Match")
+	r2.Header.Del("If-Modified-Since")
+	return r2
 }
 
 // fallbackSource picks the fallback image of req; ok is false when there
