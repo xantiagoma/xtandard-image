@@ -8,7 +8,7 @@ Lowest to highest:
 
 1. Built-in defaults.
 2. YAML file: `--config <path>` or `XI_CONFIG_FILE` (default `/etc/xtandard/config.yaml` if it exists).
-3. `IMGPROXY_*` variables, only when `XI_COMPAT_IMGPROXY_ENV=true` (migration aid; mapped to the XI equivalents listed in the reference, e.g. `IMGPROXY_KEY` → `XI_SIGNING_KEYS`).
+3. `IMGPROXY_*` variables, only when `XI_COMPAT_IMGPROXY_ENV=true` (migration aid; translated to the XI equivalents listed in [imgproxy variables](#imgproxy-variables), e.g. `IMGPROXY_KEY` → `XI_SIGNING_KEYS`).
 4. `XI_*` environment variables.
 5. Per-request security overrides (`max_src_resolution`, …) only when `XI_SECURITY_ALLOW_SECURITY_OPTIONS=true`, and only downward unless `XI_SECURITY_ALLOW_RAISING_LIMITS=true`.
 
@@ -194,7 +194,112 @@ Rules:
 | Variable | Default | Meaning |
 |---|---|---|
 | `XI_COMPAT_IMGPROXY_STATUS` | `false` | Invalid URL and disallowed source answer 404 like imgproxy (instead of 400 / 403) |
-| `XI_COMPAT_IMGPROXY_ENV` | `false` | Read `IMGPROXY_*` variables (§1, mapping table added by WP-04b) |
+| `XI_COMPAT_IMGPROXY_ENV` | `false` | Translate `IMGPROXY_*` variables (§1, table below); YAML `compat.imgproxy_env` |
+
+### imgproxy variables
+
+With `XI_COMPAT_IMGPROXY_ENV=true` (or YAML `compat.imgproxy_env: true`) every set `IMGPROXY_*` variable below is translated into its `XI_*` equivalent before the `XI_*` variables are read, so precedence is file < `IMGPROXY_*` < `XI_*`: an `XI_*` variable (or its `_FILE`) always wins, except `XI_SOURCES`, whose names are merged with the sources created here. Rules:
+
+- Only variables that are set are translated. imgproxy's own defaults are **not** imported; notably imgproxy allows private source addresses and any http(s) source by default, xtandard-image does neither unless told.
+- Named sources created: `http` (from `IMGPROXY_ALLOWED_SOURCES`), `s3`, `gcs`, `abs` (azure) and `local` (fs). Refer to them with `XI_SOURCES_<NAME>_*` to adjust them; `XI_SOURCES_S3_ACCESS_KEY_ID` etc. are the place for credentials that imgproxy read from `AWS_*`.
+- Invalid values fail startup and name the `IMGPROXY_*` variable (`XI_PROCESSING_WORKERS (from IMGPROXY_WORKERS): …`). Translations that cannot be expressed faithfully and would loosen security (bucket deny lists, `*` inside an allowed-source path, key prefixes inside a bucket) are errors; ones that only drop a nicety are startup warnings.
+- Any other set `IMGPROXY_*` variable is not an error: `Meta.UnmappedImgproxyEnv` lists them for one startup log line. Examples with no equivalent: `IMGPROXY_LOG_FORMAT` (always JSON), `IMGPROXY_DEVELOPMENT_ERRORS_MODE` (`XI_DEV_MODE` also opens every http source, so it is not implied), `IMGPROXY_HEALTH_CHECK_PATH` (`/healthz` is fixed), `IMGPROXY_SET_CANONICAL_HEADER`, `IMGPROXY_USE_ETAG`/`_USE_LAST_MODIFIED` and `IMGPROXY_SANITIZE_SVG` (no switch), `IMGPROXY_WATERMARK_DATA`/`IMGPROXY_FALLBACK_IMAGE_DATA` (use a source string), `IMGPROXY_PROMETHEUS_NAMESPACE`, `IMGPROXY_OPEN_TELEMETRY_*` other than `_ENABLE` (use `OTEL_*`), `IMGPROXY_USE_SWIFT` (use its S3 middleware), `IMGPROXY_MAX_SVG_CHECK_BYTES`, `IMGPROXY_RETURN_ATTACHMENT`, error reporters and `IMGPROXY_ENV_*` secret loaders.
+
+The table is checked against the code by a test in `internal/config`.
+
+| imgproxy variable | xtandard-image variable | Notes |
+|---|---|---|
+| `IMGPROXY_KEY` | `XI_SIGNING_KEYS` | Same hex list |
+| `IMGPROXY_SALT` | `XI_SIGNING_SALTS` | Same hex list |
+| `IMGPROXY_SIGNATURE_SIZE` | `XI_SIGNING_SIZE` | Same |
+| `IMGPROXY_TRUSTED_SIGNATURES` | `XI_SIGNING_TRUSTED` | Same |
+| `IMGPROXY_SOURCE_URL_ENCRYPTION_KEY` | `XI_ENCRYPTION_KEYS` | imgproxy Pro; the hex key becomes the only encryption key |
+| `IMGPROXY_SECRET` | `XI_SECURITY_SECRET` | Same `Authorization: Bearer` check |
+| `IMGPROXY_ALLOWED_PROCESSING_OPTIONS` | `XI_SECURITY_ALLOWED_PROCESSING_OPTIONS` | Same |
+| `IMGPROXY_ALLOW_SECURITY_OPTIONS` | `XI_SECURITY_ALLOW_SECURITY_OPTIONS` | Same |
+| `IMGPROXY_ALLOWED_SOURCES` | `XI_SOURCES`, `XI_SOURCES_HTTP_TYPE`, `XI_SOURCES_HTTP_ALLOW`, `XI_SOURCES_LOCAL_PREFIX` | `http(s)://host[:port][/path/]` patterns become the allow list of an http source named `http` (scheme dropped, `*` in the host kept as a host glob, the path kept as a directory prefix, `*` in the path rejected). `s3://`, `gs://`, `abs://` patterns restrict the buckets of the matching source (bucket names only). `local:///dir/` becomes the `local` source prefix. Unset: no http source is created (imgproxy would fetch any URL), a startup warning says so |
+| `IMGPROXY_USE_S3` | `XI_SOURCES`, `XI_SOURCES_S3_TYPE`, `XI_SOURCES_S3_BUCKETS` | Creates an s3 source named `s3`. xtandard-image needs a bucket allowlist: `IMGPROXY_S3_ALLOWED_BUCKETS` or `s3://` patterns in `IMGPROXY_ALLOWED_SOURCES`. Credentials come from the standard `AWS_*` chain as in imgproxy |
+| `IMGPROXY_S3_ALLOWED_BUCKETS` | `XI_SOURCES_S3_BUCKETS` | Intersected (exact names) with `s3://` patterns of `IMGPROXY_ALLOWED_SOURCES` when both are set |
+| `IMGPROXY_S3_DENIED_BUCKETS` | — | Rejected at startup: there is no deny list; list the allowed buckets instead |
+| `IMGPROXY_S3_REGION` | `XI_SOURCES_S3_REGION` | Same |
+| `IMGPROXY_S3_ENDPOINT_USE_PATH_STYLE` | `XI_SOURCES_S3_FORCE_PATH_STYLE` | Same |
+| `IMGPROXY_S3_ENDPOINT` | `XI_SOURCES_S3_ENDPOINT`, `XI_SOURCES_S3_FORCE_PATH_STYLE` | Same; path-style addressing is turned on unless `IMGPROXY_S3_ENDPOINT_USE_PATH_STYLE` says otherwise (imgproxy's default) |
+| `IMGPROXY_S3_ASSUME_ROLE_ARN` | `XI_SOURCES_S3_ROLE_ARN` | Same |
+| `IMGPROXY_USE_GCS` | `XI_SOURCES`, `XI_SOURCES_GCS_TYPE`, `XI_SOURCES_GCS_BUCKETS` | Creates a gcs source named `gcs`; bucket allowlist as for `IMGPROXY_USE_S3` |
+| `IMGPROXY_GCS_ALLOWED_BUCKETS` | `XI_SOURCES_GCS_BUCKETS` | As `IMGPROXY_S3_ALLOWED_BUCKETS` |
+| `IMGPROXY_GCS_DENIED_BUCKETS` | — | Rejected at startup, as `IMGPROXY_S3_DENIED_BUCKETS` |
+| `IMGPROXY_GCS_KEY` | `XI_SOURCES_GCS_CREDENTIALS_JSON` | Same service-account JSON |
+| `IMGPROXY_USE_ABS` | `XI_SOURCES`, `XI_SOURCES_ABS_TYPE`, `XI_SOURCES_ABS_BUCKETS` | Creates an azure source named `abs`; container allowlist as for `IMGPROXY_USE_S3` |
+| `IMGPROXY_ABS_ALLOWED_BUCKETS` | `XI_SOURCES_ABS_BUCKETS` | As `IMGPROXY_S3_ALLOWED_BUCKETS` |
+| `IMGPROXY_ABS_DENIED_BUCKETS` | — | Rejected at startup, as `IMGPROXY_S3_DENIED_BUCKETS` |
+| `IMGPROXY_ABS_NAME` | `XI_SOURCES_ABS_ACCOUNT` | Storage account name |
+| `IMGPROXY_ABS_KEY` | `XI_SOURCES_ABS_ACCOUNT_KEY` | Same |
+| `IMGPROXY_LOCAL_FILESYSTEM_ROOT` | `XI_SOURCES`, `XI_SOURCES_LOCAL_TYPE`, `XI_SOURCES_LOCAL_ROOT`, `XI_SOURCES_LOCAL_PREFIX` | Creates an fs source named `local` (jailed with `os.Root`); its prefix comes from `local://` patterns of `IMGPROXY_ALLOWED_SOURCES` |
+| `IMGPROXY_ALLOW_LOOPBACK_SOURCE_ADDRESSES` | `XI_FETCH_ALLOWED_NETWORKS` | `true` adds `127.0.0.0/8`, `::1/128` |
+| `IMGPROXY_ALLOW_LINK_LOCAL_SOURCE_ADDRESSES` | `XI_FETCH_ALLOWED_NETWORKS` | `true` adds `169.254.0.0/16`, `fe80::/10` |
+| `IMGPROXY_ALLOW_PRIVATE_SOURCE_ADDRESSES` | `XI_FETCH_ALLOWED_NETWORKS` | `true` adds RFC 1918, CGNAT `100.64.0.0/10` and `fc00::/7`. imgproxy defaults to `true`; xtandard-image blocks private addresses unless this is set |
+| `IMGPROXY_DOWNLOAD_TIMEOUT` | `XI_FETCH_TIMEOUT` | Integer seconds → duration |
+| `IMGPROXY_MAX_REDIRECTS` | `XI_FETCH_MAX_REDIRECTS` | Same |
+| `IMGPROXY_USER_AGENT` | `XI_FETCH_USER_AGENT` | Same; `%current_version` is not expanded |
+| `IMGPROXY_BIND` | `XI_SERVER_ADDR` | Same `host:port` (unix sockets are not supported) |
+| `IMGPROXY_PATH_PREFIX` | `XI_SERVER_PATH_PREFIX` | Same |
+| `IMGPROXY_TIMEOUT` | `XI_SERVER_REQUEST_TIMEOUT` | Integer seconds → duration |
+| `IMGPROXY_READ_REQUEST_TIMEOUT` | `XI_SERVER_READ_TIMEOUT` | Integer seconds → duration |
+| `IMGPROXY_WRITE_RESPONSE_TIMEOUT` | `XI_SERVER_WRITE_TIMEOUT` | Integer seconds → duration; must be ≥ the request timeout |
+| `IMGPROXY_KEEP_ALIVE_TIMEOUT` | `XI_SERVER_IDLE_TIMEOUT` | Integer seconds → duration; `0` (keep-alive off) is rejected |
+| `IMGPROXY_GRACEFUL_STOP_TIMEOUT` | `XI_SERVER_SHUTDOWN_TIMEOUT` | Integer seconds → duration |
+| `IMGPROXY_MAX_CLIENTS` | `XI_SERVER_MAX_CONNECTIONS` | `0` (unlimited) keeps the xtandard-image default |
+| `IMGPROXY_ALLOW_ORIGIN` | `XI_SERVER_CORS_ORIGINS` | Same single origin |
+| `IMGPROXY_WORKERS` | `XI_PROCESSING_WORKERS` | Same |
+| `IMGPROXY_REQUESTS_QUEUE_SIZE` | `XI_PROCESSING_QUEUE_SIZE` | `0` (unlimited in imgproxy) keeps the default of workers×16; the queue is always bounded |
+| `IMGPROXY_MAX_SRC_RESOLUTION` | `XI_LIMITS_MAX_SRC_PIXELS` | Megapixels (float) → pixels |
+| `IMGPROXY_MAX_SRC_FILE_SIZE` | `XI_LIMITS_MAX_SRC_BYTES` | Bytes; `0` (unlimited) keeps the default |
+| `IMGPROXY_MAX_ANIMATION_FRAMES` | `XI_LIMITS_MAX_ANIMATION_FRAMES` | Same |
+| `IMGPROXY_MAX_ANIMATION_FRAME_RESOLUTION` | `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS` | Megapixels (float) → pixels; `0` (off) keeps the default |
+| `IMGPROXY_MAX_RESULT_DIMENSION` | `XI_LIMITS_MAX_RESULT_DIMENSION` | `0` (unlimited) keeps the default |
+| `IMGPROXY_TTL` | `XI_CACHE_HEADERS_TTL` | Integer seconds → duration |
+| `IMGPROXY_CACHE_CONTROL_PASSTHROUGH` | `XI_CACHE_HEADERS_PASSTHROUGH` | Same |
+| `IMGPROXY_ETAG_BUSTER` | `XI_CACHE_ETAG_BUSTER` | Same |
+| `IMGPROXY_ARGUMENTS_SEPARATOR` | `XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR` | Same |
+| `IMGPROXY_BASE_URL` | `XI_DIALECTS_IMGPROXY_BASE_URL` | Same |
+| `IMGPROXY_URL_REPLACEMENTS` | `XI_DIALECTS_IMGPROXY_URL_REPLACEMENTS` | Wildcard patterns are converted to the equivalent anchored regexes |
+| `IMGPROXY_PRESETS_SEPARATOR` | `XI_PRESETS` | Only used to split `IMGPROXY_PRESETS` |
+| `IMGPROXY_PRESETS` | `XI_PRESETS` | Same `name=options` list, split by `IMGPROXY_PRESETS_SEPARATOR` (default `,`) |
+| `IMGPROXY_PRESETS_PATH` | `XI_PRESETS_FILE` | Same one-preset-per-line file |
+| `IMGPROXY_ONLY_PRESETS` | `XI_PRESETS_ONLY` | Same |
+| `IMGPROXY_AUTO_ROTATE` | `XI_PROCESSING_AUTO_ROTATE` | Same |
+| `IMGPROXY_STRIP_METADATA` | `XI_PROCESSING_STRIP_METADATA` | Same |
+| `IMGPROXY_KEEP_COPYRIGHT` | `XI_PROCESSING_KEEP_COPYRIGHT` | Same |
+| `IMGPROXY_STRIP_COLOR_PROFILE` | `XI_PROCESSING_STRIP_COLOR_PROFILE` | Same |
+| `IMGPROXY_PRESERVE_HDR` | `XI_PROCESSING_PRESERVE_HDR` | Same |
+| `IMGPROXY_USE_LINEAR_COLORSPACE` | `XI_PROCESSING_LINEAR_RESIZE` | Same |
+| `IMGPROXY_WATERMARK_OPACITY` | `XI_PROCESSING_WATERMARK_OPACITY` | Same |
+| `IMGPROXY_WATERMARK_PATH` | `XI_PROCESSING_WATERMARK_SOURCE` | Translated to `local:///<path>` when the path lies under `IMGPROXY_LOCAL_FILESYSTEM_ROOT`; otherwise a startup warning (set a source string yourself). Wins over `IMGPROXY_WATERMARK_URL` |
+| `IMGPROXY_WATERMARK_URL` | `XI_PROCESSING_WATERMARK_SOURCE` | Same URL, resolved against the sources like any source string |
+| `IMGPROXY_FALLBACK_IMAGE_PATH` | `XI_FALLBACK_SOURCE` | As `IMGPROXY_WATERMARK_PATH` |
+| `IMGPROXY_FALLBACK_IMAGE_URL` | `XI_FALLBACK_SOURCE` | As `IMGPROXY_WATERMARK_URL` |
+| `IMGPROXY_FALLBACK_IMAGE_HTTP_CODE` | `XI_FALLBACK_STATUS` | `0` (keep the error status) keeps the default |
+| `IMGPROXY_FORMAT_QUALITY` | `XI_FORMATS_JPEG_QUALITY`, `XI_FORMATS_WEBP_QUALITY`, `XI_FORMATS_AVIF_QUALITY`, `XI_FORMATS_HEIC_QUALITY`, `XI_FORMATS_JXL_QUALITY` | `fmt=q` pairs → per-format quality; formats without a per-format setting are ignored with a warning |
+| `IMGPROXY_QUALITY` | `XI_FORMATS_QUALITY`, `XI_FORMATS_JPEG_QUALITY`, `XI_FORMATS_HEIC_QUALITY` | Also sets jpeg and heic quality, which imgproxy's default `IMGPROXY_FORMAT_QUALITY` leaves on the global value |
+| `IMGPROXY_JPEG_PROGRESSIVE` | `XI_FORMATS_JPEG_PROGRESSIVE` | Same (xtandard-image defaults to `true`, imgproxy to `false`) |
+| `IMGPROXY_PNG_QUANTIZE` | `XI_FORMATS_PNG_QUANTIZE` | Same |
+| `IMGPROXY_WEBP_EFFORT` | `XI_FORMATS_WEBP_EFFORT` | Same |
+| `IMGPROXY_AVIF_SPEED` | `XI_FORMATS_AVIF_EFFORT` | Speed 0–9 → effort `9 − speed` |
+| `IMGPROXY_JXL_EFFORT` | `XI_FORMATS_JXL_EFFORT` | Same |
+| `IMGPROXY_AUTO_WEBP` | `XI_FORMATS_AUTO_WEBP` | Same |
+| `IMGPROXY_AUTO_AVIF` | `XI_FORMATS_AUTO_AVIF` | Same |
+| `IMGPROXY_AUTO_JXL` | `XI_FORMATS_AUTO_JXL` | Same |
+| `IMGPROXY_ENFORCE_WEBP` | `XI_FORMATS_ENFORCE_WEBP` | Same |
+| `IMGPROXY_ENFORCE_AVIF` | `XI_FORMATS_ENFORCE_AVIF` | Same |
+| `IMGPROXY_ENFORCE_JXL` | `XI_FORMATS_ENFORCE_JXL` | Same |
+| `IMGPROXY_PREFERRED_FORMATS` | `XI_FORMATS_PREFERRED` | Same format names |
+| `IMGPROXY_SKIP_PROCESSING_FORMATS` | `XI_FORMATS_SKIP_PROCESSING` | Same format names |
+| `IMGPROXY_ALWAYS_RASTERIZE_SVG` | `XI_FORMATS_SVG_PASSTHROUGH` | Inverted |
+| `IMGPROXY_ENABLE_CLIENT_HINTS` | `XI_CLIENT_HINTS_ENABLED` | Same |
+| `IMGPROXY_LOG_LEVEL` | `XI_OBSERVABILITY_LOG_LEVEL` | Same levels |
+| `IMGPROXY_ENABLE_DEBUG_HEADERS` | `XI_OBSERVABILITY_DEBUG_HEADERS` | Same switch; the header names differ (`X-Xi-*`) |
+| `IMGPROXY_PROMETHEUS_BIND` | `XI_ADMIN_ADDR` | Metrics are served on the admin listener |
+| `IMGPROXY_OPEN_TELEMETRY_ENABLE` | `XI_OTEL_ENABLED` | Same; configure the exporter with the standard `OTEL_*` variables |
 
 In the tables, `X` / `_Y` and `X`, `_Y` are shorthand: `_Y` replaces the last `_`-segment of `X` (`XI_FORMATS_AUTO_AVIF` / `_WEBP` → `XI_FORMATS_AUTO_WEBP`).
 

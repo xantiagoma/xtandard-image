@@ -263,3 +263,54 @@ func TestDocExamples(t *testing.T) {
 		}
 	})
 }
+
+// imgproxyDocRow renders one row of the CONFIG.md imgproxy table.
+func imgproxyDocRow(iv imgproxyVar) string {
+	targets := "—"
+	if len(iv.Targets) > 0 {
+		targets = "`" + strings.Join(iv.Targets, "`, `") + "`"
+	}
+	return "| `" + iv.Name + "` | " + targets + " | " + iv.Note + " |"
+}
+
+// TestDocumentedImgproxyVars checks the CONFIG.md imgproxy table row by row
+// against imgproxyVars (names, targets, notes and order), and that every
+// target is a variable the loader parses.
+func TestDocumentedImgproxyVars(t *testing.T) {
+	t.Parallel()
+	_, sec, ok := strings.Cut(section(t, readDoc(t), "## 2."), "\n### imgproxy variables\n")
+	if !ok {
+		t.Fatal(`CONFIG.md §2 has no "### imgproxy variables" section`)
+	}
+	var doc []string
+	for line := range strings.SplitSeq(sec, "\n") {
+		if strings.HasPrefix(line, "### ") {
+			break
+		}
+		if strings.HasPrefix(line, "| `IMGPROXY_") {
+			doc = append(doc, line)
+		}
+	}
+	vars := imgproxyVars()
+	code := make([]string, 0, len(vars))
+	for _, iv := range vars {
+		code = append(code, imgproxyDocRow(iv))
+	}
+	if d := diff(code, doc); d != "" {
+		t.Errorf("CONFIG.md imgproxy table differs from imgproxyVars (-code +doc):\n%s", d)
+	}
+
+	known := codeVars()
+	for _, name := range []string{compatSourceHTTP, compatSourceS3, compatSourceGCS, compatSourceABS, compatSourceLocal} {
+		for _, f := range sourceFields(name) {
+			known[f.Env] = &f
+		}
+	}
+	for _, iv := range vars {
+		for _, tg := range iv.Targets {
+			if _, ok := known[tg]; !ok {
+				t.Errorf("%s targets %s, which the loader does not parse", iv.Name, tg)
+			}
+		}
+	}
+}
