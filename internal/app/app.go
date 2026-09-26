@@ -52,7 +52,7 @@ func run(ctx context.Context, cfg *Config, logger *slog.Logger, h hooks) error {
 
 	vcfg := vips.DefaultConfig()
 	vcfg.Concurrency = cfg.VipsConcurrency
-	if err := vips.Init(vcfg); err != nil {
+	if err := vips.Init(&vcfg); err != nil {
 		return fmt.Errorf("init vips: %w", err)
 	}
 

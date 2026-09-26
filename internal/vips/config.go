@@ -24,11 +24,18 @@ type Config struct {
 	// Loaders lists the libvips loader base classes that stay enabled after
 	// every loader is blocked. Nil means DefaultLoaders.
 	Loaders []string
+	// Savers lists the libvips saver base classes that stay enabled after
+	// every saver is blocked. Nil means DefaultSavers.
+	Savers []string
+	// HEICEncode allows Save(FormatHEIF) to encode HEVC
+	// (XI_FORMATS_HEIC_ENCODE, off by default). Decoding HEIC is always on.
+	HEICEncode bool
 }
 
-// DefaultConfig returns concurrency 1, cache off and the M1 loader set.
+// DefaultConfig returns concurrency 1, cache off, the M1 loader and saver
+// sets and HEIC encoding off.
 func DefaultConfig() Config {
-	return Config{Concurrency: 1, Loaders: DefaultLoaders()}
+	return Config{Concurrency: 1, Loaders: DefaultLoaders(), Savers: DefaultSavers()}
 }
 
 // DefaultLoaders returns the loader classes of the M1 formats (FORMATS.md):
@@ -50,8 +57,22 @@ func DefaultLoaders() []string {
 	}
 }
 
+// DefaultSavers returns the saver classes behind Save: jpeg, png (spng),
+// webp, gif (cgif), heif/avif, jxl and tiff.
+func DefaultSavers() []string {
+	return []string{
+		"VipsForeignSaveJpeg",
+		"VipsForeignSaveSpng",
+		"VipsForeignSaveWebp",
+		"VipsForeignSaveCgif",
+		"VipsForeignSaveHeif",
+		"VipsForeignSaveJxl",
+		"VipsForeignSaveTiff",
+	}
+}
+
 // Validate reports every invalid field.
-func (c Config) Validate() error {
+func (c *Config) Validate() error {
 	var list []error
 	if c.Concurrency < 1 {
 		list = append(list, fmt.Errorf("vips: concurrency must be >= 1, got %d", c.Concurrency))
@@ -64,16 +85,17 @@ func (c Config) Validate() error {
 
 // MemStats is a snapshot of libvips' tracked allocations.
 type MemStats struct {
-	Mem          int64 // vips_tracked_get_mem
-	MemHighwater int64 // vips_tracked_get_mem_highwater
-	Allocs       int64 // vips_tracked_get_allocs
+	Mem          int64 // vips_tracked_get_mem: bytes currently allocated
+	MemHighwater int64 // vips_tracked_get_mem_highwater: peak of Mem
+	Allocs       int64 // vips_tracked_get_allocs: live allocations
+	Files        int64 // vips_tracked_get_files: open files
 }
 
 // OpError carries the libvips error text of one failed operation. It is
 // always wrapped in an *errs.Error whose kind was chosen from Op; Msg is for
 // logs only and never reaches clients.
 type OpError struct {
-	Op  string // "init", "thumbnail", "jpegsave", "alloc"
+	Op  string // "init", "load", "thumbnail", "resize", "jpegsave", "alloc", ...
 	Msg string // copy of the vips error buffer at the failure site
 }
 
@@ -84,7 +106,7 @@ func (e *OpError) Error() string {
 	return "vips " + e.Op + ": " + e.Msg
 }
 
-// Quality bounds of SaveJPEG.
+// Quality bounds of the savers.
 const (
 	MinQuality = 1
 	MaxQuality = 100

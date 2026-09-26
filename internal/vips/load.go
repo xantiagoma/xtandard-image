@@ -1,0 +1,173 @@
+package vips
+
+/*
+#include "shim.h"
+*/
+import "C"
+
+import (
+	"context"
+	"unsafe"
+
+	"github.com/xantiagoma/xtandard-image/internal/errs"
+)
+
+// sourceBlob validates buf for a load.
+func sourceBlob(buf *Buffer) (*C.VipsBlob, error) {
+	if buf == nil || buf.blob == nil || buf.Len() == 0 {
+		return nil, errs.New(errs.KindUnsupported, "vips: empty source")
+	}
+	return buf.blob, nil
+}
+
+// Probe reads the header of buf without decoding pixels: the loader runs
+// with sequential access and nothing is ever requested from it. Errors:
+// KindUnsupported (no enabled loader matches), KindCorrupt (the header is
+// unreadable), KindCanceled/KindTimeout (ctx done before the call).
+func Probe(ctx context.Context, buf *Buffer) (Header, error) {
+	if err := ctxError(ctx, "vips: probe"); err != nil {
+		return Header{}, err
+	}
+	blob, err := sourceBlob(buf)
+	if err != nil {
+		return Header{}, err
+	}
+	var h C.XiHeader
+	var cerr *C.char
+	rc := C.xi_probe(blob, &h, &cerr)
+	if err := opError(rc, "probe", cerr, nil); err != nil {
+		return Header{}, err
+	}
+	out := Header{
+		Loader:         C.GoString(&h.loader[0]),
+		Width:          int(h.width),
+		Height:         int(h.height),
+		Bands:          int(h.bands),
+		BandFormat:     BandFormat(h.band_format),
+		Interpretation: Interpretation(h.interpretation),
+		Pages:          max(int(h.n_pages), 1),
+		PageHeight:     int(h.height),
+		Orientation:    int(h.orientation),
+		HasAlpha:       h.has_alpha != 0,
+		HasICC:         h.has_icc != 0,
+		BitDepth:       int(h.bits),
+		Loop:           int(h.loop),
+	}
+	out.Format = formatOfLoader(out.Loader, C.GoString(&h.subformat[0]))
+	if h.delay != nil {
+		for _, d := range unsafe.Slice(h.delay, int(h.n_delay)) {
+			out.Delay = append(out.Delay, int(d))
+		}
+		C.xi_free(unsafe.Pointer(h.delay))
+	}
+	out.IsAnimated = out.Pages > 1 && len(out.Delay) > 0
+	return out, nil
+}
+
+// Load decodes buf with the loader libvips detects, applying the options
+// that loader supports (see LoadOptions; nil is the zero value). Pixels are decoded lazily by the
+// sink; the image holds its own reference to buf's memory, so buf may be
+// released once Load returns.
+//
+// Errors: KindUnsupported (no enabled loader), KindCorrupt (the decoder
+// failed), KindLimitExceeded (MaxPixels/MaxFrames), KindCanceled/KindTimeout.
+func Load(ctx context.Context, buf *Buffer, opts *LoadOptions) (*Image, error) {
+	if err := ctxError(ctx, "vips: load"); err != nil {
+		return nil, err
+	}
+	if opts == nil {
+		opts = &LoadOptions{}
+	}
+	blob, err := sourceBlob(buf)
+	if err != nil {
+		return nil, err
+	}
+	o := C.XiLoadOptions{
+		shrink:         C.int(opts.Shrink),
+		scale:          C.double(opts.Scale),
+		dpi:            C.double(opts.Density),
+		page:           C.int(opts.Page),
+		n:              C.int(opts.NPages),
+		access:         C.int(opts.Access),
+		fail_on:        failOn(opts.FailOn),
+		autorotate:     cbool(opts.Autorotate),
+		heif_thumbnail: cbool(opts.HEIFThumbnail),
+		max_pixels:     C.longlong(opts.MaxPixels),
+		max_frames:     C.int(opts.MaxFrames),
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_load(blob, &o, &out, &cerr)
+	if err := opError(rc, "load", cerr, blob); err != nil {
+		return nil, err
+	}
+	return newImage(out, blob), nil
+}
+
+// Thumbnail loads buf with shrink-on-load and resizes it in one libvips
+// operation (vips_thumbnail_buffer), the fastest path for plain resizes.
+// Loader options (Page, NPages) are passed to whichever loader matches.
+// Errors are those of Load.
+func Thumbnail(ctx context.Context, buf *Buffer, opts *ThumbnailOptions) (*Image, error) {
+	if err := ctxError(ctx, "vips: thumbnail"); err != nil {
+		return nil, err
+	}
+	if opts == nil {
+		opts = &ThumbnailOptions{}
+	}
+	blob, err := sourceBlob(buf)
+	if err != nil {
+		return nil, err
+	}
+	if opts.Width < 0 || opts.Height < 0 {
+		return nil, errs.Newf(errs.KindInvalidURL, "vips: negative thumbnail size %dx%d",
+			opts.Width, opts.Height)
+	}
+	w, h := opts.Width, opts.Height
+	if w == 0 {
+		w = maxDimension
+	}
+	if h == 0 {
+		h = maxDimension
+	}
+	o := C.XiThumbnailOptions{
+		width:     C.int(w),
+		height:    C.int(h),
+		size:      C.int(opts.Size),
+		no_rotate: cbool(opts.NoRotate),
+		crop:      C.int(opts.Crop),
+		linear:    cbool(opts.Linear),
+		intent:    C.int(opts.Intent),
+		fail_on:   failOn(opts.FailOn),
+		page:      C.int(opts.Page),
+		n:         C.int(opts.NPages),
+	}
+	in, exp := cstr(opts.ImportProfile), cstr(opts.ExportProfile)
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_thumbnail(blob, &o, cptr(in), cptr(exp), &out, &cerr)
+	if err := opError(rc, "thumbnail", cerr, blob); err != nil {
+		return nil, err
+	}
+	return newImage(out, blob), nil
+}
+
+// LoadThumbnail is Thumbnail fitting inside width×height without ever
+// enlarging (SizeDown), with EXIF auto-rotation and fail_on=warning. A zero
+// width or height means unbounded on that axis.
+func LoadThumbnail(ctx context.Context, buf *Buffer, width, height int) (*Image, error) {
+	return Thumbnail(ctx, buf, &ThumbnailOptions{Width: width, Height: height, Size: SizeDown})
+}
+
+func failOn(f FailOn) C.int {
+	switch f {
+	case FailOnError:
+		return C.VIPS_FAIL_ON_ERROR
+	case FailOnTruncated:
+		return C.VIPS_FAIL_ON_TRUNCATED
+	case FailOnNone:
+		return C.VIPS_FAIL_ON_NONE
+	default:
+		return C.VIPS_FAIL_ON_WARNING
+	}
+}
