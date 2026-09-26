@@ -3,41 +3,72 @@
 //
 // # Binding strategy
 //
-// The package is a hand-written C shim (shim.c/shim.h) plus Go wrappers, in
-// the style of imgproxy's vips/vips.c: each Go call crosses into C once and
-// runs a fixed-arity C function, so varargs never reach Go and the
-// `#cgo noescape`/`#cgo nocallback` annotations apply. vipsgen (MIT,
-// github.com/cshum/vipsgen) is deliberately not used yet:
+// The package is a hand-written C shim (shim.c, load.c, image.c, ops.c,
+// save.c behind shim.h) plus Go wrappers, in the style of imgproxy's
+// vips/vips.c: each Go call crosses into C once and runs one fixed-arity C
+// function per operation, so varargs never reach Go, options travel as
+// plain C structs and the `#cgo noescape`/`#cgo nocallback` annotations
+// apply. vipsgen (MIT, github.com/cshum/vipsgen) is not used, a deliberate
+// deviation from the WP-06 roadmap row (ARCHITECTURE §8.4):
 //
-//   - WP-00 needs four operations (init, thumbnail, jpegsave, stats); the
-//     pre-generated vipsgen package is ~31k lines with ~300 operations.
 //   - vipsgen's package imports "C" itself and carries process-global state
 //     (Startup/sync.Once, a global log handler and its own cache and
 //     concurrency defaults). Vendored as a sub-package it would break rule 3
 //     and scripts/check-cgo.sh; used as a module it would own vips init.
+//   - The M1 surface (loaders, ~40 operations, 7 savers) is small enough to
+//     write by hand, and every function needs the same error capture and
+//     source attribution that generated wrappers do not do.
 //   - imgproxy, the most battle-tested Go/libvips server, is entirely
 //     hand-written for exactly these reasons; imagor uses vipsgen for breadth.
 //
-// WP-06 pins vipsgen v1.3.11 for the long tail of operations and keeps this
-// shim for the hot path (go-standards §4).
+// vipsgen and imagor remain the reference for operation coverage and option
+// names when the surface grows.
+//
+// # API
+//
+//   - Lifecycle: [Init] (cache off, concurrency 1, loader and saver
+//     allowlists, HEIC encode switch), [Shutdown], [Run] (locked OS thread,
+//     vips_thread_shutdown), [ReadMemStats], [LiveObjects], [SetLeakCheck],
+//     [KillOnCancel].
+//   - Bytes: [Buffer] (source bytes, implements fetch.Buffer; [NewBuffer] is
+//     the fetch.Allocator) and [Blob] (encoded output, same interface).
+//   - Decode: [Probe] (header only), [Load], [Thumbnail], [Black],
+//     [NewFromMemory].
+//   - Process: methods on [Image] that return new lazy images; [Arena]
+//     closes all of a request's images in one place.
+//   - Encode: [Image.Save] with [SaveOptions].
 //
 // # Memory and threads
 //
 //   - Source bytes live in a [Buffer]: vips_tracked_malloc'd C memory wrapped
-//     in a refcounted VipsBlob. Go never hands its own memory to libvips.
+//     in a refcounted VipsBlob. Go never hands its own memory to libvips
+//     beyond one call (options, metadata and profile names are copied).
 //     Images created from a Buffer take their own blob reference, so a
 //     Buffer may be released as soon as loading returns.
 //   - Encoded output is a [Blob] of g_malloc'd memory, exposed zero-copy by
-//     [Blob.Bytes] and freed by [Blob.Release].
+//     [Blob.Bytes] and freed by the last [Blob.Release].
 //   - Every image job runs inside [Run], which locks the OS thread and calls
-//     vips_error_clear + vips_thread_shutdown on it before unlocking.
+//     vips_error_clear + vips_thread_shutdown on it before unlocking. [Image]
+//     values are not goroutine-safe and never cross Runs.
 //   - libvips concurrency is 1 and the operation cache is off by default;
 //     parallelism comes from the request semaphore (internal/limiter).
-//   - Loaders are an allowlist: vips_block_untrusted_set(TRUE), every
-//     VipsForeignLoad blocked, then [DefaultLoaders] re-enabled.
-//   - Errors are copied from the global vips error buffer at the failure site
-//     in C; the errs kind comes from which operation failed (no loader →
-//     Unsupported, load → Corrupt, save → Internal), never from the text.
+//   - Loaders and savers are allowlists: vips_block_untrusted_set(TRUE),
+//     every VipsForeignLoad/VipsForeignSave blocked, then [DefaultLoaders]
+//     and [DefaultSavers] re-enabled.
+//   - Every call checks ctx first; sinks and computing operations (Save,
+//     WriteToMemory, SmartCrop, FindTrim) also arm [KillOnCancel], so a
+//     cancelled request stops at the next tile.
+//
+// # Errors
+//
+// Errors are copied from the global vips error buffer at the failure site
+// in C, and the errs kind comes from which operation failed, never from the
+// text: no enabled loader → Unsupported; a loader failure → Corrupt; a
+// header over a configured limit → LimitExceeded; a saver or operation
+// failure → Internal, unless the source's decoder signalled "invalidate"
+// while the pipeline ran (lazy decode of a truncated file), which the shim
+// records per source buffer → Corrupt. A context that ended wins over all of
+// them (Canceled/Timeout). The libvips text is kept in [OpError] for logs.
 //
 // Without cgo (CGO_ENABLED=0) the package builds with stubs that return
 // [ErrUnavailable], so pure-Go builds of the whole module keep working.
