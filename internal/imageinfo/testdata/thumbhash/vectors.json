@@ -1,0 +1,10 @@
+{
+  "source": "evanw/thumbhash reference JavaScript (js/thumbhash.js rgbaToThumbHash, commit a652ce6) run with bun on the image/png-decoded NRGBA pixels of each file; hex is upper case like imgproxy's thumb_hash. flower.png is examples/flower.jpg (MIT, Evan Wallace) re-encoded as PNG; pic1-100.png, pic3-100.png and pic6-64.png are woltapp/blurhash Swift/BlurHashTest images (MIT) fitted in 100x100 and 64x64; alpha.png is synthetic (64x48, transparent top rows and an alpha ramp). A flat image whose AC coefficient is ~1e-17 (pic5 fitted in 100x100) was left out: its nibble sits on a .5 rounding tie that the last ulp of the platform's cos decides.",
+  "vectors": [
+    {"image": "flower.png", "hash": "934A062D069256C274055867DA8AB6679490510719"},
+    {"image": "pic1-100.png", "hash": "A0180E0C82278F6288776989678983D0FE4BBC"},
+    {"image": "pic3-100.png", "hash": "101806148220837B946598858A610798829029"},
+    {"image": "pic6-64.png", "hash": "EB28122486F986887B788588777808869770A7"},
+    {"image": "alpha.png", "hash": "A197820C8636D1976F77A35719FD36D1C00C78487948798506"}
+  ]
+}
