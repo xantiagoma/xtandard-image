@@ -35,6 +35,11 @@ type SourceMeta struct {
 	// loaded with random access (the tone mapper measures it first) and
 	// costs 4 bytes per sample until it is mapped to 8 bits.
 	HDR bool
+	// IsVideo marks a video source (MP4, MOV, WebM, MKV, AVI): one frame is
+	// decoded by FFmpeg and scaled on load by libswscale (LoadStep.Scale),
+	// leaving the last 2× of a reduction to libvips. Width and Height are
+	// the display size, Orientation the display matrix.
+	IsVideo bool
 }
 
 // DefaultRawPreviewMinRatio is the RawPreviewMinRatio used when the limit
@@ -159,7 +164,7 @@ type LoadStep struct {
 	Preview bool
 	// HalfSize demosaics a camera RAW at half its width and height.
 	HalfSize bool
-	// Scale is the WebP/SVG/PDF scale-on-load factor; 0 is off.
+	// Scale is the WebP/SVG/PDF/video scale-on-load factor; 0 is off.
 	Scale float64
 	// Density is the vector rendering DPI; 0 keeps the loader default.
 	Density float64

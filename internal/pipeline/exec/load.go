@@ -17,12 +17,14 @@ import (
 func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.AnimationStep) (*vips.Image, error) {
 	var img *vips.Image
 	var err error
-	switch r.j.Meta.Format {
-	case "bmp", "ico":
+	switch {
+	case r.j.Meta.IsVideo:
+		img, err = r.loadVideo(ctx, ls)
+	case r.j.Meta.Format == "bmp" || r.j.Meta.Format == "ico":
 		img, err = r.loadGo(ctx)
-	case formatRAW:
+	case r.j.Meta.Format == formatRAW:
 		img, err = r.loadRaw(ctx, ls)
-	case "tiff", "heic", "heif", "avif", "jp2", "jxl":
+	case stackable(r.j.Meta.Format):
 		if anim == nil && ls.NPages > 1 {
 			// Stacked pages of a multi-page still may differ in size.
 			img, err = r.loadStack(ctx, ls)
@@ -55,6 +57,17 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 		}
 	}
 	return img, nil
+}
+
+// stackable reports the multi-page still formats whose pages are loaded one
+// at a time and stacked (loadStack).
+func stackable(format string) bool {
+	switch format {
+	case "tiff", "heic", "heif", "avif", "jp2", "jxl":
+		return true
+	default:
+		return false
+	}
 }
 
 func (r *runner) loadOptions(ls *plan.LoadStep, anim *plan.AnimationStep) *vips.LoadOptions {

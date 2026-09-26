@@ -129,9 +129,6 @@ type Limits struct {
 	// instead of letting ImageMagick flatten the layers
 	// (XI_FORMATS_PSD_REQUIRE_COMPOSITE, off by default).
 	PSDRequireComposite bool
-	// Video configures video sources (XI_VIDEO_*): disabled in the zero
-	// value, so video sources are refused unless the caller enables them.
-	Video video.Settings
 }
 
 // DefaultLimits returns the XI_LIMITS_* defaults of docs/CONFIG.md.

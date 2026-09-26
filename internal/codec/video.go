@@ -3,6 +3,7 @@ package codec
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/video"
@@ -41,7 +42,7 @@ func containerOf(f Format) string {
 // the display matrix becomes the EXIF orientation, so the pipeline rotates
 // the thumbnail like a photo.
 func probeVideo(ctx context.Context, buf *vips.Buffer, f Format, s *video.Settings) (ImageMeta, error) {
-	if !s.Enabled {
+	if s == nil || !s.Enabled {
 		return ImageMeta{}, videoDisabled(f)
 	}
 	vm, err := ffmpeg.Probe(ctx, buf, s.Limits)
@@ -81,6 +82,31 @@ type VideoFrameInfo struct {
 	Score     float64
 }
 
+// String renders f for the X-Xi-Video-Frame debug header: the timestamp,
+// "key" for a keyframe and, after best-frame selection, "best" with the
+// number of keyframes compared and the winning score ("0.960s key best 4
+// 5.21"). Empty for a nil f.
+func (f *VideoFrameInfo) String() string {
+	if f == nil {
+		return ""
+	}
+	b := strconv.AppendFloat(nil, f.Time, 'f', 3, 64)
+	b = append(b, 's')
+	if f.Keyframe {
+		b = append(b, " key"...)
+	}
+	if f.BestFrame {
+		b = append(b, " best "...)
+		b = strconv.AppendInt(b, int64(f.Sampled), 10)
+		b = append(b, ' ')
+		b = strconv.AppendFloat(b, f.Score, 'f', 2, 64)
+	}
+	return string(b)
+}
+
+// VideoVersion is the FFmpeg version of this build, "" without video.
+func VideoVersion() string { return ffmpeg.Version() }
+
 // VideoFrame decodes the frame req selects from a video source (FFmpeg,
 // internal/video/ffmpeg) and wraps it as a libvips image without copying:
 // 8-bit sRGB, RGBA when the stream has alpha, req.Width × req.Height (the
@@ -110,7 +136,7 @@ func VideoFrame(ctx context.Context, buf *vips.Buffer, req *video.FrameRequest) 
 // sampleVideo decodes the default frame (s's selection) at most maxSide
 // pixels a side, upright, as RGBA.
 func sampleVideo(ctx context.Context, buf *vips.Buffer, maxSide int, s *video.Settings) (Raw, error) {
-	if !s.Enabled {
+	if s == nil || !s.Enabled {
 		return Raw{}, videoDisabled(FormatMP4)
 	}
 	vm, err := ffmpeg.Probe(ctx, buf, s.Limits)

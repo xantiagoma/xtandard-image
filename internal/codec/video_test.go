@@ -18,10 +18,24 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
-// videoLimits enables video sources the way internal/app does on the full
-// image (and asks for them on slim, where they stay unsupported).
-func videoLimits() codec.Limits {
-	return codec.Limits{Video: video.Settings{Enabled: true, Samples: 5, Span: 10 * time.Second}}
+// videoSettings enables video sources the way internal/app does on the
+// full image (and asks for them on slim, where they stay unsupported).
+func videoSettings() *video.Settings {
+	return &video.Settings{Enabled: true, Samples: 5, Span: 10 * time.Second}
+}
+
+// probeMedia is probe through ProbeMedia with v.
+func probeMedia(ctx context.Context, tb testing.TB, data []byte, lim codec.Limits, v *video.Settings, contentType string) (codec.ImageMeta, error) {
+	tb.Helper()
+	buf := newBuffer(tb, data)
+	defer buf.Release()
+	var m codec.ImageMeta
+	err := vips.Run(ctx, func() error {
+		var err error
+		m, err = codec.ProbeMedia(ctx, buf, lim, v, contentType)
+		return err
+	})
+	return m, err
 }
 
 // TestProbeVideo: with the ffmpeg build tag video fixtures probe to their
@@ -39,13 +53,13 @@ func TestProbeVideo(t *testing.T) {
 		want  codec.ImageMeta
 		codec string
 	}{
-		"video/clip-vp9.webm":    {frame(codec.FormatWebM, 1280, 720), "vp9"},
-		"video/clip-av1.mp4":     {frame(codec.FormatMP4, 1280, 720), "av1"},
-		"video/bbb-h264-aac.mp4": {frame(codec.FormatMP4, 1280, 720), "h264"},
-		"video/clip-vp8.webm":    {frame(codec.FormatWebM, 320, 180), "vp8"},
-		"video/clip-vp8.mkv":     {frame(codec.FormatMKV, 320, 180), "vp8"},
-		"video/clip-png.mov":     {frame(codec.FormatMOV, 96, 54), "png"},
-		"video/clip-raw.avi":     {frame(codec.FormatAVI, 96, 54), "rawvideo"},
+		"video/clip-vp9.webm":         {frame(codec.FormatWebM, 1280, 720), "vp9"},
+		"video/clip-av1.mp4":          {frame(codec.FormatMP4, 1280, 720), "av1"},
+		"video/bbb-h264-aac.mp4":      {frame(codec.FormatMP4, 1280, 720), "h264"},
+		"video/clip-vp8.webm":         {frame(codec.FormatWebM, 320, 180), "vp8"},
+		"video/clip-vp8-matroska.mkv": {frame(codec.FormatMKV, 320, 180), "vp8"},
+		"video/clip-png.mov":          {frame(codec.FormatMOV, 96, 54), "png"},
+		"video/clip-raw.avi":          {frame(codec.FormatAVI, 96, 54), "rawvideo"},
 		"video/clip-av1-rotate90.mp4": {func() codec.ImageMeta {
 			m := frame(codec.FormatMP4, 1280, 720)
 			m.Orientation = 6
@@ -55,7 +69,7 @@ func TestProbeVideo(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			got, err := probe(t.Context(), t, readFixture(t, name), videoLimits(), tc.want.Format.MIME())
+			got, err := probeMedia(t.Context(), t, readFixture(t, name), codec.Limits{}, videoSettings(), tc.want.Format.MIME())
 			if !codec.VideoAvailable() {
 				assertVideoUnsupported(t, err)
 				return
@@ -83,27 +97,33 @@ func assertVideoUnsupported(t *testing.T, err error) {
 	}
 }
 
-// TestProbeVideoDisabled: XI_VIDEO_ENABLED=false (the zero Limits) refuses
-// video in every build; the video limits apply before any decode.
+// TestProbeVideoDisabled: Probe, ProbeMedia without settings and
+// XI_VIDEO_ENABLED=false refuse video in every build; the video limits
+// apply before any decode.
 func TestProbeVideoDisabled(t *testing.T) {
 	t.Parallel()
 	data := readFixture(t, "video/clip-vp9.webm")
 	_, err := probe(t.Context(), t, data, codec.Limits{}, "")
 	assertVideoUnsupported(t, err)
+	_, err = probeMedia(t.Context(), t, data, codec.Limits{}, nil, "")
+	assertVideoUnsupported(t, err)
+	_, err = probeMedia(t.Context(), t, data, codec.Limits{}, &video.Settings{}, "")
+	assertVideoUnsupported(t, err)
 	if !codec.VideoAvailable() {
 		return
 	}
-	for name, edit := range map[string]func(*codec.Limits){
-		"bytes":         func(l *codec.Limits) { l.Video.Limits.MaxBytes = 1024 },
-		"duration":      func(l *codec.Limits) { l.Video.Limits.MaxDuration = time.Second },
-		"video pixels":  func(l *codec.Limits) { l.Video.Limits.MaxPixels = 1000 },
-		"source pixels": func(l *codec.Limits) { l.MaxSrcPixels = 1000 },
+	for name, edit := range map[string]func(*codec.Limits, *video.Settings){
+		"bytes":         func(_ *codec.Limits, v *video.Settings) { v.Limits.MaxBytes = 1024 },
+		"duration":      func(_ *codec.Limits, v *video.Settings) { v.Limits.MaxDuration = time.Second },
+		"video pixels":  func(_ *codec.Limits, v *video.Settings) { v.Limits.MaxPixels = 1000 },
+		"source pixels": func(l *codec.Limits, _ *video.Settings) { l.MaxSrcPixels = 1000 },
 	} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			lim := videoLimits()
-			edit(&lim)
-			if _, err := probe(t.Context(), t, data, lim, ""); errs.KindOf(err) != errs.KindLimitExceeded {
+			var lim codec.Limits
+			v := videoSettings()
+			edit(&lim, v)
+			if _, err := probeMedia(t.Context(), t, data, lim, v, ""); errs.KindOf(err) != errs.KindLimitExceeded {
 				t.Errorf("err = %v, want limit exceeded", err)
 			}
 		})
@@ -119,7 +139,7 @@ func TestInspectVideo(t *testing.T) {
 	var info codec.Info
 	err := vips.Run(t.Context(), func() error {
 		var err error
-		info, err = codec.Inspect(t.Context(), buf, videoLimits(), "")
+		info, err = codec.InspectMedia(t.Context(), buf, codec.Limits{}, videoSettings(), "")
 		return err
 	})
 	if !codec.VideoAvailable() {
@@ -152,7 +172,7 @@ func TestSampleVideo(t *testing.T) {
 			var raw codec.Raw
 			err := vips.Run(t.Context(), func() error {
 				var err error
-				raw, err = codec.Sample(t.Context(), buf, codec.FormatMP4, 64, videoLimits())
+				raw, err = codec.SampleMedia(t.Context(), buf, codec.FormatMP4, 64, codec.Limits{}, videoSettings())
 				return err
 			})
 			if !codec.VideoAvailable() {

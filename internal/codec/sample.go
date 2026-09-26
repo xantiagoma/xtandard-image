@@ -8,6 +8,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/codec/ico"
 	"github.com/xantiagoma/xtandard-image/internal/codec/raster"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/video"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -21,6 +22,16 @@ import (
 // (bounded by lim.MaxSrcPixels) and the caller fits them. Like Inspect it
 // must run inside vips.Run.
 func Sample(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Limits) (Raw, error) {
+	return sample(ctx, buf, f, maxSide, lim, nil)
+}
+
+// SampleMedia is Sample for images and, when v enables them, video
+// sources, sampled from the frame v's default selection picks.
+func SampleMedia(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Limits, v *video.Settings) (Raw, error) {
+	return sample(ctx, buf, f, maxSide, lim, v)
+}
+
+func sample(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Limits, v *video.Settings) (Raw, error) {
 	if maxSide <= 0 {
 		return Raw{}, errs.Newf(errs.KindInternal, "codec: sample size %d", maxSide)
 	}
@@ -41,7 +52,7 @@ func Sample(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Li
 		copy(emb.Bytes(), d.Embedded)
 		return sampleVips(ctx, emb, maxSide)
 	case FormatMP4, FormatMOV, FormatWebM, FormatMKV, FormatAVI:
-		return sampleVideo(ctx, buf, maxSide, &lim.Video)
+		return sampleVideo(ctx, buf, maxSide, v)
 	default:
 		return sampleVips(ctx, buf, maxSide)
 	}

@@ -5,12 +5,14 @@ import (
 	"errors"
 	"image"
 
+	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/codec/encode"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/security/svg"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
+	"github.com/xantiagoma/xtandard-image/internal/video"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -47,6 +49,11 @@ type Config struct {
 	// needs, so the estimate cannot travel with that admission. Its error
 	// ends Run; release is called when Run returns. nil admits every plan.
 	Admit func(ctx context.Context, bytes int64) (release func(), err error)
+
+	// Video configures video sources (XI_VIDEO_*): the frame a request
+	// without video options gets, best-frame selection and the limits. The
+	// zero value refuses video sources.
+	Video video.Settings
 }
 
 // noRelease is admit's release when no Admit hook is configured.
@@ -136,6 +143,9 @@ type Result struct {
 	// embedded in the source (HEIF/AVIF, or a JPEG's Exif thumbnail with
 	// enforce_thumbnail) rather than from the full image.
 	Thumbnail bool
+	// VideoFrame describes the frame a video source was decoded from; nil
+	// for images.
+	VideoFrame *codec.VideoFrameInfo
 }
 
 // Run plans j.Request for j.Meta, executes the plan on j.Source and encodes
@@ -261,6 +271,7 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 			RawPath:     r.rawPath,
 			RawDecoded:  r.rawDecoded,
 			Thumbnail:   fromThumb || r.plan.Load.Thumbnail,
+			VideoFrame:  r.videoFrame,
 		}
 		if t.Animated && animatable(out.Format) {
 			res.Frames = img.Pages()

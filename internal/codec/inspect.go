@@ -55,7 +55,18 @@ type EXIFTag struct {
 // Photoshop header for PSD). Camera RAW reports the camera metadata LibRaw
 // reads as EXIF (codec/raw.EXIF). Like Probe it must run inside vips.Run.
 func Inspect(ctx context.Context, buf *vips.Buffer, lim Limits, contentType string) (Info, error) {
-	m, err := Probe(ctx, buf, lim, contentType)
+	return inspect(ctx, buf, lim, nil, contentType)
+}
+
+// InspectMedia is Inspect for images and, when v enables them, video
+// sources (ProbeMedia): a video reports its frame's band layout and its
+// container metadata (Info.Video).
+func InspectMedia(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Settings, contentType string) (Info, error) {
+	return inspect(ctx, buf, lim, v, contentType)
+}
+
+func inspect(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Settings, contentType string) (Info, error) {
+	m, err := probe(ctx, buf, lim, v, contentType)
 	if err != nil {
 		return Info{}, err
 	}

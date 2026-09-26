@@ -97,6 +97,7 @@ type source struct {
 	// thumbnail replaces the image whatever its size (imgproxy Pro).
 	thumbnail bool
 	hdr       bool // scene-linear float source: tone-mapped after load
+	video     bool // a frame decoded by FFmpeg, scaled on load by libswscale
 }
 
 func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observed) (*Plan, error) {
@@ -132,6 +133,7 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 		previewW: meta.PreviewWidth, previewH: meta.PreviewHeight,
 		enforceThumb: req.Output.EnforceThumbnail != nil && *req.Output.EnforceThumbnail,
 		hdr:          meta.HDR,
+		video:        meta.IsVideo,
 	}
 	nFrames := max(meta.Frames, 1)
 	if first.Page != nil && *first.Page > 0 {
@@ -274,9 +276,16 @@ type builder struct {
 	exifAngle           int
 	exifFlip            bool
 	// rawBytes is the working memory of a RAW demosaic (LibRaw's sensor
-	// buffer and its four 16-bit samples per output pixel).
+	// buffer and its four 16-bit samples per output pixel), or of a video
+	// decoder (videoDecodeBytes).
 	rawBytes int64
 }
+
+// videoDecodeBytes is the decoder memory a video frame costs beyond the
+// pipeline's images: the decoded YUV 4:2:0 frame (1.5 bytes a pixel), up
+// to three reference frames and the scaler's line buffers, rounded up to
+// 8 bytes a pixel of the stream.
+func videoDecodeBytes(w, h int) int64 { return int64(w) * int64(h) * 8 }
 
 func (b *builder) add(s Step) { b.pl.Steps = append(b.pl.Steps, s) }
 
@@ -307,6 +316,9 @@ func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt trans
 		// The tone mapper measures the source before mapping it: two reads.
 		random: s.hdr,
 		hdr:    s.hdr,
+	}
+	if s.video {
+		b.rawBytes = videoDecodeBytes(s.w, s.h)
 	}
 	g := geo{vectorBaseShrink: 1}
 	g.angle, g.flip = orientation(s.orientation, o.autoRotate)
@@ -434,7 +446,7 @@ func scaleOnLoad(g *geo, o *opts, s *source, lim *effLimits, obs *Observed, load
 	jpeg := s.format == "jpeg" || s.format == "jpg"
 	webp := s.format == "webp"
 	thumb := heifFormat(s.format)
-	if !s.vector && (lim.noShrinkOnLoad || pre <= 1 || (!jpeg && !webp && !thumb)) {
+	if !s.vector && (lim.noShrinkOnLoad || pre <= 1 || (!jpeg && !webp && !thumb && !s.video)) {
 		return nil
 	}
 
@@ -462,6 +474,17 @@ func scaleOnLoad(g *geo, o *opts, s *source, lim *effLimits, obs *Observed, load
 	case webp && !s.vector:
 		load.Scale = 1 / pre
 		nw, nh = roundEvenInt(float64(s.w)*load.Scale), roundEvenInt(float64(s.h)*load.Scale)
+	case s.video:
+		// libswscale scales the frame to twice the target on load (area
+		// averaging), and libvips' kernel does the last 2×, like JPEG
+		// shrink-on-load: quality of a full-size decode at a fraction of
+		// the pixels. Reductions under 2× decode at the display size.
+		if pre < 2 {
+			return nil
+		}
+		f := pre / 2
+		load.Scale = 1 / f
+		nw, nh = max(1, int(math.Round(float64(s.w)/f))), max(1, int(math.Round(float64(s.h)/f)))
 	default: // vector
 		load.Scale = 1 / pre
 		nw, nh = shrinkDimEven(s.w, pre), shrinkDimEven(s.h, pre)
@@ -789,7 +812,11 @@ func unplanned(p *transform.Pipeline) []string {
 	add(p.Adjust.Vibrance != nil, "vibrance")
 	add(p.Equalize, "equalize")
 	add(p.BlurDetections != nil || p.DrawDetections != nil || p.CropObjects != nil, "detections")
-	add(p.Video != nil, "video")
+	// video_thumbnail_second and _keyframes select the frame of a video
+	// source when it is loaded (no step; ignored for images, like
+	// imgproxy); tiles and animations are WP-75.
+	add(p.Video != nil && p.Video.Tile != nil, "video_thumbnail_tile")
+	add(p.Video != nil && p.Video.Animation != nil, "video_thumbnail_animation")
 	return out
 }
 
