@@ -4,6 +4,9 @@ go 1.27.0
 
 toolchain go1.27.1
 
+// The TypeScript workspace (ADR 0009): never walk JS dependencies.
+ignore node_modules
+
 require (
 	cloud.google.com/go/storage v1.68.0
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.23.1

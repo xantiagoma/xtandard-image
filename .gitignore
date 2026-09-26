@@ -23,3 +23,9 @@ coverage.*
 
 # Downloaded test inputs (internal/testutil/rawfixtures)
 /testdata/cache/
+
+# TypeScript workspace (packages/*, ADR 0009)
+node_modules/
+packages/*/dist/
+*.tsbuildinfo
+packages/*/LICENSE
