@@ -366,19 +366,21 @@ Backends (under `internal/fetch/`): `httpsrc` (SSRF-safe transport, see §10), `
 
 `fetch.Fetcher` wraps sources:
 
-- **Coalescing**: `singleflight.Group` keyed by `sourceName + "\x00" + path + "\x00" + versionHint`. Ten concurrent requests for ten sizes of one original download it once.
-- **Original cache**: optional `cache.Store` namespace `orig/`. Default is an in-memory byte-bounded LRU (`XI_CACHE_ORIGIN_MEMORY_BYTES`, default 256 MiB, TTL 60 s) because most size bursts are close in time. Can be pointed at disk/redis/S3 for multi-replica setups.
-- **Limits**: `Content-Length` checked before reading; body wrapped in a counting reader that aborts at `XI_LIMITS_MAX_SRC_BYTES` (default 50 MiB). Download timeout per attempt (`XI_FETCH_TIMEOUT`, 10 s). One retry for idempotent network errors on sources that allow it.
+- **Coalescing**: a singleflight-style group keyed by `source + "\x00" + bucket + "\x00" + path + "\x00" + version`. Ten concurrent requests for ten sizes of one original download it once and share one `Buffer` (one reference per caller). It is a small in-package group rather than `x/sync/singleflight` because the call must hold its own buffer reference until every joined caller has either retained it or given up, which singleflight cannot count. The shared fetch runs on `context.WithoutCancel(leaderCtx)` bounded by the per-attempt timeout, so a caller whose context ends stops waiting without aborting the download for the others (or for the cache).
+- **Original cache**: optional `cache.Store` namespace `orig/`. Default is an in-memory byte-bounded LRU (`XI_CACHE_ORIGIN_MEMORY_BYTES`, default 256 MiB, TTL 60 s) because most size bursts are close in time. Can be pointed at disk/redis/S3 for multi-replica setups. The in-memory LRU holds one buffer reference per entry, caches not-found for `XI_CACHE_ORIGIN_NEGATIVE_TTL` (5 s), and after the TTL revalidates entries that carry an ETag/Last-Modified with `If-None-Match`/`If-Modified-Since` (304 → TTL refreshed, same buffer served).
+- **Limits**: `Content-Length` checked before reading; body wrapped in a counting reader that aborts at `XI_LIMITS_MAX_SRC_BYTES` (default 50 MiB). Download timeout per attempt (`XI_FETCH_TIMEOUT`, 10 s, via `context.WithTimeoutCause` → `UpstreamTimeout`). Exactly one retry (`XI_FETCH_RETRY`) of `UpstreamError`/`UpstreamTimeout` after a backoff jittered in [50, 150) ms; 4xx kinds are never retried. With `Content-Length` the buffer is allocated once; without it, it grows in doubling chunks from 64 KiB via the allocator and is copied into an exact-size buffer at the end, so `Bytes()` is always exactly the original.
 - **Buffering** (go-standards §4): originals are read straight into C-allocated memory that vips will own (`vips.NewBuffer(n)` + `io.ReadFull`), never into pooled Go slices. The fetcher only sees the small interface below, so it stays pure Go and tests inject a Go-memory implementation. Buffers are reference-counted so coalesced requests and the origin cache share one allocation; the last `Release` frees it (production: `vips.Buffer`, which implements `fetch.Buffer` and unrefs its `vips_blob`; `app` injects `vips.NewBuffer` as the `Allocator`).
 
 ```go
 type Buffer interface {
-    Bytes() []byte   // read-only view; valid until the final Release
+    Bytes() []byte   // exactly n bytes; written once by the fetcher before sharing, then read-only until the final Release
     Retain()
     Release()
 }
-type Allocator func(n int) (Buffer, error)
+type Allocator func(n int) (Buffer, error) // new Buffer of exactly n bytes holding one reference
 ```
+
+`fetch.Fetcher.Fetch(ctx, source.Key, source.FetchOptions) (*fetch.Result, error)`; `Result{Buffer, Object (Body nil), FromCache}` and the caller calls `Result.Release()`. Metrics hooks (`fetch.Metrics`: fetch duration/bytes/outcome per attempt, cache hit/miss/negative-hit/revalidated, coalesced, retry) default to a no-op. `fetch.GoAllocator` is the pure-Go allocator for tests.
 - **Request dedup**: in addition to fetch coalescing, identical in-flight *requests* (same result-cache key) are collapsed with a second `singleflight.Group`, as imagor does.
 - **Conditional requests**: if the client sent `If-None-Match` and the result ETag can be derived from source ETag alone, the fetcher issues a conditional request and a 304 short-circuits the pipeline.
 

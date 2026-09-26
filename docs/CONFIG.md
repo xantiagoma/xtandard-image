@@ -84,6 +84,7 @@ Rules:
 | `XI_SOURCES_<NAME>_ROOT` | — | fs root (jail via `os.Root`) |
 | `XI_SOURCES_<NAME>_HOST`, `_PORT`, `_USER`, `_PASSWORD`, `_PRIVATE_KEY`, `_HOST_KEY`, `_TLS` | — | ftp/sftp (sftp host key mandatory) |
 | `XI_FETCH_TIMEOUT` | `10s` | Per download attempt |
+| `XI_FETCH_RETRY` | `true` | One retry, after a jittered ~100 ms backoff, of a transient failure (origin 5xx, connection error, attempt timeout); never for 4xx |
 | `XI_FETCH_MAX_REDIRECTS` | `5` | |
 | `XI_FETCH_MAX_CONCURRENT` | `256` | Concurrent origin fetches |
 | `XI_FETCH_ALLOWED_PORTS` | `80,443` | SSRF port allowlist |
@@ -179,7 +180,8 @@ Rules:
 | `XI_CACHE_RESULT_REDIS_URL` | `` | Secret (may carry a password) |
 | `XI_CACHE_RESULT_S3_SOURCE`, `_BUCKET`, `_PREFIX` | `` | Name of an s3 source definition to reuse credentials, bucket and key prefix |
 | `XI_CACHE_ORIGIN_MEMORY_BYTES` | `256MiB` | Original-bytes LRU |
-| `XI_CACHE_ORIGIN_TTL` | `60s` | |
+| `XI_CACHE_ORIGIN_TTL` | `60s` | After it, entries with an ETag/Last-Modified are revalidated with a conditional request (304 refreshes the TTL) |
+| `XI_CACHE_ORIGIN_NEGATIVE_TTL` | `5s` | How long a source not-found is remembered; `0` disables |
 | `XI_OBSERVABILITY_LOG_LEVEL` | `info` | |
 | `XI_ADMIN_ADDR` | `127.0.0.1:9090` | Admin listener: `/metrics`, pprof; set `:9090` for in-cluster scraping; empty disables |
 | `XI_ADMIN_PPROF` | `false` | pprof incl. `goroutineleak` on the admin listener |
