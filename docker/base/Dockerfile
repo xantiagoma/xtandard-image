@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 #
-# xtandard-image base image (flavors: slim, full).
+# xtandard-image base image (flavors: slim, full, gpl).
 #
 # Forked from imgproxy-docker-base (MIT, Copyright (c) 2017 Sergey Alexandrovich);
 # see LICENSE.imgproxy-docker-base and docker/base/README.md.
@@ -10,16 +10,22 @@
 #   runtime       shared libraries only, non-root, jemalloc preloaded (published as *-slim; default)
 #   builder-full  builder + FFmpeg (LGPL) + ONNX Runtime headers/libs + models (*-full-builder)
 #   runtime-full  runtime + FFmpeg (LGPL) libs/CLIs + ONNX Runtime + models (*-full)
+#   builder-gpl   builder-full with FFmpeg rebuilt as GPL + x264 + x265 (*-gpl-builder)
+#   runtime-gpl   runtime-full with FFmpeg rebuilt as GPL + x264 + x265 (*-gpl)
 #
 # The full stages reuse the slim ones: full-deps starts from the finished slim `deps`
 # stage, so slim and full share every slim layer and the slim image does not change
-# when a full-only component (versions-full.sh) moves.
+# when a full-only component (versions-full.sh) moves. The gpl stages reuse full the
+# same way (gpl-deps starts from full-deps; pins in versions-gpl.sh), so a gpl-only
+# change never rebuilds or changes slim or full. slim and full contain no GPL code.
 #
 # Build natively per architecture (no cross compilation):
 #   docker buildx build --platform linux/arm64 --target builder -t xtandard-base:dev-builder docker/base
 #   docker buildx build --platform linux/arm64 -t xtandard-base:dev docker/base
 #   docker buildx build --platform linux/arm64 --target builder-full -t xtandard-base:dev-full-builder docker/base
 #   docker buildx build --platform linux/arm64 --target runtime-full -t xtandard-base:dev-full docker/base
+#   docker buildx build --platform linux/arm64 --target builder-gpl -t xtandard-base:dev-gpl-builder docker/base
+#   docker buildx build --platform linux/arm64 --target runtime-gpl -t xtandard-base:dev-gpl docker/base
 
 ARG UBUNTU_IMAGE=ubuntu:noble
 
@@ -114,6 +120,27 @@ RUN ./build-full-deps.sh
 # outside /opt/xtandard; build-full-deps.sh stages them (with their symlinks) under
 # /full-extra/{runtime,builder} for the final stages.
 RUN ./split-runtime.sh vips vipsheader ffmpeg ffprobe
+
+# ==============================================================================
+# gpl flavor (WP-70b): full + x264 and x265 + FFmpeg rebuilt with --enable-gpl.
+# The whole FFmpeg in this flavor is GPL-2.0-or-later (ADR 0006, 2026-09-27).
+FROM base AS gpl-deps-src
+
+COPY versions-gpl.sh download-gpl-deps.sh ./
+RUN ./download-gpl-deps.sh
+
+# ==============================================================================
+FROM full-deps AS gpl-deps
+
+COPY versions-gpl.sh build-gpl-deps.sh ./
+COPY --from=gpl-deps-src /root/gpl-deps /root/gpl-deps
+# A pristine copy of the full flavor's FFmpeg tarball (full-deps built in its own tree).
+COPY --from=full-deps-src /root/full-deps/ffmpeg /root/gpl-deps/ffmpeg
+
+RUN ./build-gpl-deps.sh
+
+# Same split as full; the gate on the runtime subset runs in its gpl mode.
+RUN XI_ALLOW_GPL=/root/versions-gpl.sh ./split-runtime.sh vips vipsheader ffmpeg ffprobe
 
 # ==============================================================================
 FROM ${UBUNTU_IMAGE} AS builder-base
@@ -214,6 +241,38 @@ LABEL org.opencontainers.image.title="xtandard-image-base" \
 
 COPY --from=full-deps /runtime/opt/xtandard /opt/xtandard
 # ONNX Runtime (lib + symlinks) in /usr/local/lib, models in /usr/share/xtandard/models.
+COPY --from=full-deps /full-extra/runtime/ /
+RUN ldconfig
+
+USER 65532:65532
+
+# ==============================================================================
+FROM builder-base AS builder-gpl
+
+ARG VIPS_VERSION
+LABEL org.opencontainers.image.title="xtandard-image-base (gpl builder)" \
+      org.opencontainers.image.description="Go 1.27 + libvips 8.18 + FFmpeg 8 (GPL, x264, x265) + ONNX Runtime development image for xtandard-image; contains GPL software, see /opt/xtandard/share/licenses/LICENSE-GPL.md" \
+      org.opencontainers.image.source="https://github.com/xantiagoma/xtandard-image" \
+      org.opencontainers.image.licenses="GPL-2.0-or-later AND MIT" \
+      dev.xtandard.vips.version="${VIPS_VERSION}" \
+      dev.xtandard.base.flavor="gpl"
+
+COPY --from=gpl-deps /opt/xtandard /opt/xtandard
+COPY --from=full-deps /full-extra/builder/ /
+RUN ldconfig
+
+# ==============================================================================
+FROM runtime-base AS runtime-gpl
+
+ARG VIPS_VERSION
+LABEL org.opencontainers.image.title="xtandard-image-base" \
+      org.opencontainers.image.description="libvips 8.18 + FFmpeg 8 (GPL, x264, x265) + ONNX Runtime runtime libraries for xtandard-image (gpl); contains GPL software, see /opt/xtandard/share/licenses/LICENSE-GPL.md" \
+      org.opencontainers.image.source="https://github.com/xantiagoma/xtandard-image" \
+      org.opencontainers.image.licenses="GPL-2.0-or-later AND MIT" \
+      dev.xtandard.vips.version="${VIPS_VERSION}" \
+      dev.xtandard.base.flavor="gpl"
+
+COPY --from=gpl-deps /runtime/opt/xtandard /opt/xtandard
 COPY --from=full-deps /full-extra/runtime/ /
 RUN ldconfig
 
