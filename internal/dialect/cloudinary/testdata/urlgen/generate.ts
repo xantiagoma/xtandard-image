@@ -1,5 +1,5 @@
 // Generates corpus.json: Cloudinary delivery URLs built by the official
-// SDKs, for the dialect's compatibility tests (docs/URL-DIALECTS.md §13):
+// SDKs, for the dialect's compatibility tests (docs/URL-DIALECTS.md §14):
 //
 //   - "urlgen": @cloudinary/url-gen 1.22.0 (MIT), the action builder API
 //     (same version as the .refs/cloudinary-url-gen clone; its src/ needs
