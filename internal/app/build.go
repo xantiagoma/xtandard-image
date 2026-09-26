@@ -12,6 +12,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/cloudflare"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imagekit"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/query"
@@ -46,8 +47,9 @@ func (p infoParser) Name() string { return infoDialect }
 func (p infoParser) Parse(in *dialect.Input) (*dialect.Result, error) { return p.ParseInfo(in) }
 
 // buildRouter builds the signing verifiers, presets, the available dialects
-// (imgproxy, query and imagekit) and the router. warnings lists enabled dialects
-// that are not implemented yet; their mounts are skipped.
+// (imgproxy, query, imagekit, cloudflare and cloudflare_images) and the
+// router. warnings lists enabled dialects that are not implemented yet; their
+// mounts are skipped.
 func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err error) {
 	keys := make([]sign.Key, 0, len(cfg.Signing.Keys))
 	for i, k := range cfg.Signing.Keys {
@@ -132,7 +134,13 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		return nil, nil, fmt.Errorf("query dialect: %w", err)
 	}
 
-	dialects := map[string]dialect.Dialect{imgproxy.Name: ip, infoDialect: infoParser{ip}, query.Name: q}
+	cfOpts := cloudflare.Options{Strict: cfg.Dialects.Strict, XIVerifier: qOpts.XIVerifier}
+	cf, err := cloudflare.New(&cfOpts)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cloudflare dialect: %w", err)
+	}
+
+	dialects := map[string]dialect.Dialect{imgproxy.Name: ip, infoDialect: infoParser{ip}, query.Name: q, cloudflare.Name: cf}
 	opts := &router.Options{
 		Policy: router.Policy(cfg.Security.UnsignedPolicy),
 		Restrictions: router.Restrictions{
@@ -168,6 +176,10 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	if err := addImageKit(cfg, ipOpts.Presets, required, dialects, opts); err != nil {
 		return nil, nil, err
 	}
+	addMounts(cloudflare.Name, &cfg.Dialects.Cloudflare)
+	if err := addCloudflareImages(cfg, opts, dialects, ipOpts.Presets); err != nil {
+		return nil, nil, err
+	}
 	if cfg.Dialects.Query.Enabled {
 		opts.RootURL = &router.Mount{
 			Name: "query/?url", Dialect: query.Name, Source: cfg.Dialects.Query.Source,
@@ -181,8 +193,7 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	}
 
 	for name, enabled := range map[string]bool{
-		"wsrv": cfg.Dialects.Wsrv.Enabled, "cloudflare": cfg.Dialects.Cloudflare.Enabled,
-		"cloudflare_images": cfg.Dialects.CloudflareImages.Enabled, "imgix": cfg.Dialects.Imgix.Enabled,
+		"wsrv": cfg.Dialects.Wsrv.Enabled, "imgix": cfg.Dialects.Imgix.Enabled,
 		"cloudinary": cfg.Dialects.Cloudinary.Enabled,
 		"bunny":      cfg.Dialects.Bunny.Enabled, "thumbor": cfg.Dialects.Thumbor.Enabled,
 		"simple": len(cfg.Dialects.Simple.Enabled) > 0,
@@ -232,6 +243,46 @@ func addImageKit(cfg *config.Config, presets *preset.Store, required bool, diale
 		dialects[key] = p
 		opts.Mounts = append(opts.Mounts, router.Mount{
 			Name: key, Dialect: key, Prefix: mo.Prefix, Hosts: mo.Hosts,
+			Source: mo.Source, Policy: router.Policy(mo.UnsignedPolicy),
+		})
+	}
+	return nil
+}
+
+// addCloudflareImages registers one Cloudflare Images dialect per enabled
+// mount, since each mount has its own signing keys, and the mounts. Variants
+// are the presets.
+func addCloudflareImages(cfg *config.Config, opts *router.Options, dialects map[string]dialect.Dialect, presets *preset.Store) error {
+	ci := &cfg.Dialects.CloudflareImages
+	if !ci.Enabled {
+		return nil
+	}
+	for i, mo := range append([]config.MountOptions{ci.MountOptions}, ci.Mounts...) {
+		name := cloudflare.ImagesName
+		if i > 0 {
+			name = fmt.Sprintf("%s[%d]", cloudflare.ImagesName, i)
+		}
+		o := cloudflare.ImagesOptions{Accounts: ci.Accounts, Presets: presets, Strict: cfg.Dialects.Strict}
+		if len(mo.Keys) > 0 {
+			keys := make([]sign.Key, 0, len(mo.Keys))
+			for _, k := range mo.Keys {
+				keys = append(keys, sign.NewKey([]byte(k.Reveal()), nil))
+			}
+			// Unsigned (public) images are governed by the mount's unsigned
+			// policy, not XI_SIGNING_REQUIRED, which is about XI_SIGNING_KEYS.
+			v, err := sign.NewCloudflareVerifier(sign.CloudflareOptions{Keys: sign.NewKeyring(keys...)})
+			if err != nil {
+				return fmt.Errorf("%s verifier: %w", name, err)
+			}
+			o.Verifier = v
+		}
+		d, err := cloudflare.NewImages(&o)
+		if err != nil {
+			return fmt.Errorf("%s dialect: %w", name, err)
+		}
+		dialects[name] = d
+		opts.Mounts = append(opts.Mounts, router.Mount{
+			Name: name, Dialect: name, Prefix: mo.Prefix, Hosts: mo.Hosts,
 			Source: mo.Source, Policy: router.Policy(mo.UnsignedPolicy),
 		})
 	}

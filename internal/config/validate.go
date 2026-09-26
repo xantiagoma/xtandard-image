@@ -239,7 +239,7 @@ func (c *Config) validateFetch(v *validator) {
 func (d *Dialects) mounts() map[string]Mount {
 	return map[string]Mount{
 		"imgproxy": d.Imgproxy.Mount, "query": d.Query, "wsrv": d.Wsrv,
-		"cloudflare": d.Cloudflare, "cloudflare_images": d.CloudflareImages,
+		"cloudflare": d.Cloudflare, "cloudflare_images": d.CloudflareImages.Mount,
 		"imgix": d.Imgix, "cloudinary": d.Cloudinary.Mount, "imagekit": d.Imagekit,
 		"bunny": d.Bunny, "thumbor": d.Thumbor,
 	}
@@ -284,6 +284,11 @@ func (c *Config) validateDialects(v *validator) {
 	for _, cloud := range sortedKeys(d.Cloudinary.Clouds) {
 		src := d.Cloudinary.Clouds[cloud]
 		v.check(c.hasSource(src), "dialects.cloudinary.clouds", "cloud %q maps to unknown source %q", cloud, src)
+	}
+	for _, hash := range sortedKeys(d.CloudflareImages.Accounts) {
+		src := d.CloudflareImages.Accounts[hash]
+		v.check(hash != "" && !strings.Contains(hash, "/"), "dialects.cloudflare_images.accounts", "bad account hash %q", hash)
+		v.check(c.hasSource(src), "dialects.cloudflare_images.accounts", "account %q maps to unknown source %q", hash, src)
 	}
 	for i, name := range d.Simple.Enabled {
 		v.check(validName(name), fmt.Sprintf("dialects.simple.enabled[%d]", i), "%q is not a provider name", name)
