@@ -24,6 +24,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/limiter"
+	"github.com/xantiagoma/xtandard-image/internal/negotiate"
 	"github.com/xantiagoma/xtandard-image/internal/obs/admin"
 	"github.com/xantiagoma/xtandard-image/internal/obs/logging"
 	"github.com/xantiagoma/xtandard-image/internal/obs/metrics"
@@ -172,13 +173,15 @@ type fakeProcessor struct {
 	// outFormat and outType override the JPEG output when set.
 	outFormat transform.Format
 	outType   string
+	outBest   string // ProcessOutput.Best
 
-	mu     sync.Mutex
-	calls  int
-	source []byte
-	req    *transform.Request
-	format transform.Format
-	delta  int // ProcessInput.QualityDelta
+	mu       sync.Mutex
+	calls    int
+	source   []byte
+	req      *transform.Request
+	format   transform.Format
+	decision negotiate.Decision
+	delta    int // ProcessInput.QualityDelta
 }
 
 func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*ProcessOutput, error) {
@@ -187,6 +190,7 @@ func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*Process
 	p.source = bytes.Clone(in.Source.Bytes())
 	p.req = in.Request
 	p.format = in.Decision.Format
+	p.decision = in.Decision
 	p.delta = in.QualityDelta
 	p.mu.Unlock()
 	if p.fn != nil {
@@ -201,6 +205,7 @@ func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*Process
 	if p.outFormat != transform.FormatUnset {
 		o.Format, o.ContentType = p.outFormat, p.outType
 	}
+	o.Best = p.outBest
 	return o, nil
 }
 

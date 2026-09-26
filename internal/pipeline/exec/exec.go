@@ -6,6 +6,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/encode"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/negotiate"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
@@ -59,6 +60,11 @@ type Job struct {
 	// by the plan: an animation stays one only when the plan processed it
 	// frame by frame.
 	Target encode.Target
+	// Best is the negotiated decision of a format=best request
+	// (negotiate.ReasonBest): the processed image is encoded with
+	// encode.Encoder.EncodeBest, which picks among its candidates. Nil
+	// encodes Target.Format.
+	Best *negotiate.Decision
 }
 
 // Result is an encoded image. The caller writes Body and releases it.
@@ -82,6 +88,8 @@ type Result struct {
 	// later work package implements them (filters, watermarks, the plan's
 	// Unplanned options), for debugging.
 	Skipped []string
+	// Best reports the best-format selection (Job.Best); nil otherwise.
+	Best *encode.BestResult
 }
 
 // Run plans j.Request for j.Meta, executes the plan on j.Source and encodes
@@ -129,12 +137,20 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 		if r.profileEmbedded {
 			t.Metadata.StripColorProfile = false // color_profile embeds it
 		}
-		out, err := e.enc.Encode(ctx, img, &t)
+		var out *encode.Result
+		if j.Best != nil && j.Best.Reason == negotiate.ReasonBest {
+			out, err = e.enc.EncodeBest(ctx, img, &t, j.Best)
+		} else {
+			out, err = e.enc.Encode(ctx, img, &t)
+		}
 		if err != nil {
 			return err
 		}
 		if out.AutoQuality.Ignored != "" {
 			r.skip(out.AutoQuality.Ignored)
+		}
+		if out.Best != nil && out.Best.Skipped != "" {
+			r.skip(out.Best.Skipped)
 		}
 		last := r.last()
 		res = &Result{
@@ -148,8 +164,9 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 			Quality:     out.Quality,
 			Saves:       out.Attempts,
 			Skipped:     r.skipped,
+			Best:        out.Best,
 		}
-		if t.Animated && animatable(t.Format) {
+		if t.Animated && animatable(out.Format) {
 			res.Frames = img.Pages()
 		}
 		return nil

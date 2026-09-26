@@ -58,6 +58,10 @@ const (
 	hdrXiCache       = "X-Xi-Cache"
 )
 
+// hdrBest is the best-format summary (ProcessOutput.Best): a debug header,
+// stored so cache hits replay it.
+const hdrBest = "X-Xi-Best"
+
 // ResultCacheConfig configures the result cache (XI_CACHE_RESULT_*,
 // XI_CACHE_ALLOW_BYPASS). It is used only when Deps.ResultCache is set.
 type ResultCacheConfig struct {
@@ -162,6 +166,7 @@ func (s *Server) resultFromEntry(r *http.Request, info *requestInfo, j *job, e *
 		Width:       atoiHeader(h, "X-Xi-Result-Width"),
 		Height:      atoiHeader(h, "X-Xi-Result-Height"),
 		Quality:     atoiHeader(h, "X-Xi-Quality"),
+		Best:        h.Get(hdrBest),
 	}
 	info.width, info.height = res.out.Width, res.out.Height
 	return res, nil
@@ -234,6 +239,9 @@ func (s *Server) entryHeader(res *imageResult) http.Header {
 	}
 	if res.out.Quality > 0 {
 		h.Set("X-Xi-Quality", strconv.Itoa(res.out.Quality))
+	}
+	if res.out.Best != "" {
+		h.Set(hdrBest, res.out.Best)
 	}
 	return h
 }

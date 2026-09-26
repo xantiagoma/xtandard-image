@@ -76,7 +76,13 @@ func TestProcessNoLeak(t *testing.T) {
 		{"pdf/pages.pdf", "pg:1/rs:fit:100:0", transform.FormatJPEG},
 		{"pdf/pages.pdf", "pgs:-1/rs:fit:0:200", transform.FormatPNG},
 		{"psd/no-composite.psd", "rs:fit:48:48", transform.FormatPNG},
+		// Best format: analysis plus up to three candidate encodes (WP-57).
+		{"jpeg/baseline.jpg", "rs:fit:120:120/f:best", transform.FormatBest},
+		{"png/palette.png", "f:best/aq:dssim", transform.FormatBest},
+		{"gif/animated.gif", "rs:fill:32:32/f:best", transform.FormatBest},
 	}
+	negCfg := negotiate.DefaultConfig()
+	accept := negotiate.ParseAccept("image/avif,image/webp,*/*")
 	type prepared struct {
 		data []byte
 		req  *transform.Request
@@ -111,11 +117,22 @@ func TestProcessNoLeak(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		d := negotiate.Decision{Format: c.f}
+		if c.f == transform.FormatBest {
+			if d, err = negotiate.Decide(c.req, accept, &negCfg, negotiate.SourceMeta{
+				Format: meta.Format, HasAlpha: meta.HasAlpha, IsAnimated: meta.IsAnimated, FrameCount: meta.Frames,
+			}); err != nil {
+				t.Fatal(err)
+			}
+		}
 		out, err := proc.Process(t.Context(), &server.ProcessInput{
-			Request: c.req, Source: src, Meta: meta, Decision: negotiate.Decision{Format: c.f},
+			Request: c.req, Source: src, Meta: meta, Decision: d,
 		})
 		if err != nil {
 			t.Fatalf("request %d: %v", i, err)
+		}
+		if (c.f == transform.FormatBest) != (out.Best != "") {
+			t.Fatalf("request %d: best summary %q for %s", i, out.Best, c.f)
 		}
 		if len(out.Body.Bytes()) == 0 {
 			t.Fatalf("request %d: empty body", i)

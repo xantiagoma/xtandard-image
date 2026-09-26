@@ -177,7 +177,13 @@ func (s *Server) produce(ctx context.Context, r *http.Request, info *requestInfo
 	canonical := req.CanonicalKey()
 	decide := func(d negotiate.Decision) bool {
 		res.decision, res.format = d, d.Format
-		res.etag = etag(canonical, d.Format, hints.QualityDelta, &fr.Object, fr.Bytes(), s.cfg.ETagBuster)
+		key := canonical
+		if bk := d.BestKey(); bk != "" {
+			// format=best: the candidate lists (from Accept) decide the
+			// output, not d.Format alone.
+			key += "\x00best:" + bk
+		}
+		res.etag = etag(key, d.Format, hints.QualityDelta, &fr.Object, fr.Bytes(), s.cfg.ETagBuster)
 		res.notModified = notModified(r, res.etag, fr.Object.LastModified)
 		if res.notModified {
 			info.format = d.Format.String()
@@ -258,6 +264,7 @@ func (s *Server) produce(ctx context.Context, r *http.Request, info *requestInfo
 	info.format = out.Format.String()
 	info.width, info.height = out.Width, out.Height
 	res.out = out
+	res.format = out.Format // format=best chose among the candidates
 	return res, nil
 }
 

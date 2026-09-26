@@ -137,6 +137,10 @@ type ProcessOutput struct {
 	// Skipped lists request options the pipeline did not apply yet (later
 	// work packages); the server logs them at debug level.
 	Skipped []string
+	// Best summarises the best-format selection of a format=best request
+	// (content class, every candidate tried and its size); sent as X-Xi-Best
+	// with debug headers. Empty otherwise.
+	Best string
 }
 
 // Processor plans, executes and encodes one image (stages 12–13;
