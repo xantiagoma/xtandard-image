@@ -1,0 +1,3 @@
+go test fuzz v1
+string("/_next/image")
+string("url=%2Fa.jpg&xi_sig=abc&w=640&&q=75")
