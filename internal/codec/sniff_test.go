@@ -57,6 +57,14 @@ func fixtureFormats() map[string]codec.Format {
 		"webp/animated.webp":              codec.FormatWebP,
 		"webp/lossless.webp":              codec.FormatWebP,
 		"webp/lossy.webp":                 codec.FormatWebP,
+		"video/bbb-h264-aac.mp4":          codec.FormatMP4,
+		"video/clip-av1.mp4":              codec.FormatMP4,
+		"video/clip-av1-rotate90.mp4":     codec.FormatMP4,
+		"video/clip-png.mov":              codec.FormatMOV,
+		"video/clip-raw.avi":              codec.FormatAVI,
+		"video/clip-vp8.mkv":              codec.FormatMKV,
+		"video/clip-vp8.webm":             codec.FormatWebM,
+		"video/clip-vp9.webm":             codec.FormatWebM,
 	}
 }
 
@@ -69,7 +77,7 @@ func TestSniffFixtures(t *testing.T) {
 	root := filepath.Dir(golden.Fixture(t, "jpeg/baseline.jpg"))
 	root = filepath.Dir(root)
 	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
-		if err != nil || d.IsDir() {
+		if err != nil || d.IsDir() || filepath.Ext(p) == ".md" {
 			return err
 		}
 		rel, err := filepath.Rel(root, p)
@@ -148,8 +156,17 @@ func TestSniffSynthetic(t *testing.T) {
 		{"generic heif", isobmff("mif1", "miaf"), codec.FormatHEIF},
 		{"generic heif sequence", isobmff("msf1", "iso8"), codec.FormatHEIF},
 		{"brands past the box ignored", append(isobmff("mif1"), "avif"...), codec.FormatHEIF},
-		{"mp4", isobmff("isom", "iso2", "mp41"), codec.FormatUnknown},
-		{"mov", isobmff("qt  "), codec.FormatUnknown},
+		{"mp4", isobmff("isom", "iso2", "mp41"), codec.FormatMP4},
+		{"mp4 av1", isobmff("isom", "av01", "iso2", "mp41"), codec.FormatMP4},
+		{"3gp", isobmff("3gp5", "3gp5", "isom"), codec.FormatMP4},
+		{"mov", isobmff("qt  "), codec.FormatMOV},
+		{"mov without ftyp", []byte("\x00\x00\x00\x08wide\x00\x00\xdf\xa4mdat"), codec.FormatMOV},
+		{"mov moov first", []byte("\x00\x00\x01\x00moov\x00\x00\x00\x6cmvhd"), codec.FormatMOV},
+		{"mov bad atom size", []byte("\x00\x00\x00\x04moov"), codec.FormatUnknown},
+		{"webm", []byte("\x1a\x45\xdf\xa3\x9f\x42\x86\x81\x01\x42\xf7\x81\x01\x42\xf2\x81\x04\x42\xf3\x81\x08\x42\x82\x84webm\x42\x87\x81\x04"), codec.FormatWebM},
+		{"mkv", []byte("\x1a\x45\xdf\xa3\xa3\x42\x86\x81\x01\x42\xf7\x81\x01\x42\xf2\x81\x04\x42\xf3\x81\x08\x42\x82\x88matroska"), codec.FormatMKV},
+		{"ebml without doctype", []byte("\x1a\x45\xdf\xa3\x80"), codec.FormatMKV},
+		{"avi", []byte("RIFF\x24\x00\x00\x00AVI LIST"), codec.FormatAVI},
 		{"cr3", isobmff("crx ", "isom"), codec.FormatRAW},
 		{"ftyp truncated", []byte("\x00\x00\x00\x18ftypav"), codec.FormatUnknown},
 		{"bmp", []byte("BM\x46\x00\x00\x00\x00\x00\x00\x00\x36\x00\x00\x00\x28\x00\x00\x00"), codec.FormatBMP},

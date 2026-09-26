@@ -32,6 +32,11 @@ import (
 //   - SVG over Limits.MaxSVGBytes fails with errs.KindLimitExceeded, and any
 //     other SVG is sanitised (security/svg, with the SVG depth and element
 //     limits) before librsvg parses the sanitised copy's header;
+//   - video containers (MP4, MOV, WebM, MKV, AVI) are read by FFmpeg
+//     (internal/video/ffmpeg: container and stream headers, the
+//     XI_VIDEO_* limits) when lim.Video.Enabled, and are
+//     errs.KindUnsupported otherwise (and always without the ffmpeg build
+//     tag); the frame size is the display size;
 //   - every other format goes through vips.Probe, which runs the loader
 //     header-only;
 //   - the header is then checked against lim (Limits.Check): too many
@@ -77,6 +82,8 @@ func Probe(ctx context.Context, buf *vips.Buffer, lim Limits, contentType string
 		m, err = probeEXR(data)
 	case FormatRadiance:
 		m, err = probeRadiance(ctx, buf)
+	case FormatMP4, FormatMOV, FormatWebM, FormatMKV, FormatAVI:
+		m, err = probeVideo(ctx, buf, f, &lim.Video)
 	default:
 		m, err = probeVips(ctx, buf, f, 0)
 	}

@@ -1,6 +1,7 @@
 package codec_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec"
@@ -14,7 +15,8 @@ func allFormats() []codec.Format {
 		codec.FormatAVIF, codec.FormatHEIC, codec.FormatHEIF, codec.FormatJXL, codec.FormatTIFF,
 		codec.FormatBMP, codec.FormatICO, codec.FormatSVG, codec.FormatJP2, codec.FormatUHDR,
 		codec.FormatPDF, codec.FormatPSD, codec.FormatEXR, codec.FormatRadiance, codec.FormatPPM,
-		codec.FormatPFM, codec.FormatRAW,
+		codec.FormatPFM, codec.FormatRAW, codec.FormatMP4, codec.FormatMOV, codec.FormatWebM,
+		codec.FormatMKV, codec.FormatAVI,
 	}
 }
 
@@ -51,6 +53,11 @@ func TestFormatFacts(t *testing.T) {
 		{codec.FormatPPM, "ppm", "ppm", "image/x-portable-pixmap", false, false, true, transform.FormatUnset},
 		{codec.FormatPFM, "pfm", "pfm", "image/x-portable-floatmap", false, false, true, transform.FormatUnset},
 		{codec.FormatRAW, "raw", "", "application/octet-stream", false, false, true, transform.FormatUnset},
+		{codec.FormatMP4, "mp4", "mp4", "video/mp4", false, false, true, transform.FormatUnset},
+		{codec.FormatMOV, "mov", "mov", "video/quicktime", false, false, true, transform.FormatUnset},
+		{codec.FormatWebM, "webm", "webm", "video/webm", false, false, true, transform.FormatUnset},
+		{codec.FormatMKV, "mkv", "mkv", "video/x-matroska", false, false, true, transform.FormatUnset},
+		{codec.FormatAVI, "avi", "avi", "video/x-msvideo", false, false, true, transform.FormatUnset},
 	}
 	if len(tests) != len(allFormats()) {
 		t.Fatalf("table covers %d formats, want %d", len(tests), len(allFormats()))
@@ -65,6 +72,9 @@ func TestFormatFacts(t *testing.T) {
 			if f.SupportsAnimation() != tc.anim || f.SupportsAlpha() != tc.alpha || f.Supported() != tc.supported {
 				t.Errorf("anim/alpha/supported = %v/%v/%v, want %v/%v/%v",
 					f.SupportsAnimation(), f.SupportsAlpha(), f.Supported(), tc.anim, tc.alpha, tc.supported)
+			}
+			if f.IsVideo() != strings.HasPrefix(tc.mime, "video/") {
+				t.Errorf("IsVideo = %v for %s", f.IsVideo(), tc.mime)
 			}
 			out, ok := f.Output()
 			if out != tc.out || ok != (tc.out != transform.FormatUnset) {
@@ -92,13 +102,14 @@ func TestParseFormatAliases(t *testing.T) {
 		"JPG": codec.FormatJPEG, "jpe": codec.FormatJPEG, "tif": codec.FormatTIFF, "cur": codec.FormatICO,
 		"j2k": codec.FormatJP2, "jpx": codec.FormatJP2, "psb": codec.FormatPSD, "hif": codec.FormatHEIF,
 		"apng": codec.FormatPNG, "dib": codec.FormatBMP, "ultrahdr": codec.FormatUHDR,
+		"m4v": codec.FormatMP4, "3gp": codec.FormatMP4, "qt": codec.FormatMOV, "matroska": codec.FormatMKV,
 	}
 	for in, want := range tests {
 		if got, err := codec.ParseFormat(in); err != nil || got != want {
 			t.Errorf("ParseFormat(%q) = %v, %v; want %v", in, got, err, want)
 		}
 	}
-	for _, bad := range []string{"", "unknown", "mp4", "exe"} {
+	for _, bad := range []string{"", "unknown", "flv", "exe"} {
 		if _, err := codec.ParseFormat(bad); errs.KindOf(err) != errs.KindUnsupported {
 			t.Errorf("ParseFormat(%q) error = %v, want Unsupported", bad, err)
 		}

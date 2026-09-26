@@ -136,8 +136,15 @@ func TestProbeFixtures(t *testing.T) {
 		}),
 		"ppm/photo.ppm": still(codec.FormatPPM, 96, 64),
 	}
-	// password.pdf fails by design (TestProbeErrors).
-	if len(tests) != len(fixtureFormats())-1 {
+	// password.pdf fails by design (TestProbeErrors); videos are probed by
+	// TestProbeVideo.
+	videos := 0
+	for _, f := range fixtureFormats() {
+		if f.IsVideo() {
+			videos++
+		}
+	}
+	if len(tests) != len(fixtureFormats())-1-videos {
 		t.Fatalf("probe table has %d fixtures, sniff table %d", len(tests), len(fixtureFormats()))
 	}
 	for name, want := range tests {

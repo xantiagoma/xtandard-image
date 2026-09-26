@@ -14,7 +14,8 @@ import (
 // Sample decodes the first page or frame of buf (format f, as probed) to
 // 8-bit sRGB RGBA with straight alpha, upright (EXIF orientation applied)
 // and fitted inside maxSide×maxSide: the input of the pixel-derived /info
-// fields (WP-63). libvips formats go through vips_thumbnail, so JPEG and
+// fields (WP-63). A video is sampled from the frame its default selection
+// picks (XI_VIDEO_THUMBNAIL_*), decoded at the sample size. libvips formats go through vips_thumbnail, so JPEG and
 // WebP shrink on load and nothing larger than the result is kept in
 // memory; the pure-Go BMP and ICO loaders return their pixels at full size
 // (bounded by lim.MaxSrcPixels) and the caller fits them. Like Inspect it
@@ -39,6 +40,8 @@ func Sample(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Li
 		defer emb.Release()
 		copy(emb.Bytes(), d.Embedded)
 		return sampleVips(ctx, emb, maxSide)
+	case FormatMP4, FormatMOV, FormatWebM, FormatMKV, FormatAVI:
+		return sampleVideo(ctx, buf, maxSide, &lim.Video)
 	default:
 		return sampleVips(ctx, buf, maxSide)
 	}

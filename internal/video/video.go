@@ -253,3 +253,41 @@ const (
 	ContainerMatroska = "matroska"
 	ContainerAVI      = "avi"
 )
+
+// Settings are the configured video defaults (XI_VIDEO_*), resolved
+// against the build: Enabled is false on an image without FFmpeg.
+type Settings struct {
+	// Enabled decodes video sources; false refuses them with
+	// errs.KindUnsupported.
+	Enabled bool
+	Limits  Limits
+	// Second is the frame taken when a request names none; nil selects
+	// the best frame.
+	Second *float64
+	// Keyframes takes the keyframe at or before the timestamp by default.
+	Keyframes bool
+	// Samples and Span configure best-frame selection.
+	Samples int
+	Span    time.Duration
+}
+
+// Request returns the FrameRequest for a request's video options (nil
+// takes the setting) at width × height (0: the display size).
+func (s *Settings) Request(second *float64, keyframes *bool, width, height int) FrameRequest {
+	r := FrameRequest{
+		Second:    s.Second,
+		Keyframes: s.Keyframes,
+		Samples:   s.Samples,
+		Span:      s.Span,
+		Width:     width,
+		Height:    height,
+		Limits:    s.Limits,
+	}
+	if second != nil {
+		r.Second = second
+	}
+	if keyframes != nil {
+		r.Keyframes = *keyframes
+	}
+	return r
+}
