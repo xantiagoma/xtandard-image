@@ -26,7 +26,7 @@ Default mounts (all dialects other than imgproxy are disabled until enabled in c
 | query | `/q/` | Native query + imaginary endpoints |
 | wsrv | `/` when query has `url=` and path is `/` or empty; also `/wsrv/` | Router checks `?url=` before falling back to imgproxy |
 | cloudflare | `/cdn-cgi/image/` | Exact Cloudflare path shape, no config needed besides enabling |
-| cloudflare-images | `/cdn-cgi/imagedelivery/` (and host-bound `imagedelivery.net` shape) | M2 |
+| cloudflare-images | `/cdn-cgi/imagedelivery/` (and host-bound `imagedelivery.net` shape) | WP-79 (M2) |
 | imgix | `/imgix/<mount>/` | Usually host-bound |
 | cloudinary | `/cloudinary/` then `/<cloud>/image/{upload,fetch}/…` | Or host-bound as `res.cloudinary.com`-like |
 | imagekit | `/imagekit/<mount>/` | Or host-bound |
@@ -55,6 +55,8 @@ Default mounts (all dialects other than imgproxy are disabled until enabled in c
 For dialects without a native scheme xi offers the optional **xi scheme**: query param `xi_sig` = base64url(HMAC-SHA256(key, salt ‖ path ‖ "?" ‖ query-without-xi_sig)) using the imgproxy key/salt pairs. Unsigned traffic is governed by `XI_SECURITY_UNSIGNED_POLICY` (`allow` | `restricted` | `deny`), settable per mount. `restricted` is the recommended production setting for client-generated URLs (unpic): only widths in `XI_SECURITY_ALLOWED_WIDTHS` (default the Next.js device+image sizes: 16,32,48,64,96,128,256,384,640,750,828,1080,1200,1920,2048,3840), heights derived from width and aspect ratio or in the same list, qualities in `XI_SECURITY_ALLOWED_QUALITIES` (default 1–100 step 5 plus named levels), and no watermark URLs, security options or `raw`. The exact restricted option set (an allowlist that fails closed on new fields; it also admits DPRs from a router-level list and rejects info requests, chained pipelines, effects, crops, fallback URLs, cache busters and width/DPR client hints) is documented on `router.Restrictions` in `internal/dialect/router`.
 
 ## 3. imgproxy (canonical)
+
+**Status:** on `main` (M1, M2): every option below is parsed; M1 and M2 options are applied. M3 options that need detection or video are recorded in `Ignored` until WP-72/73/74 land (in progress); the advanced watermark options (`wmu`, `wmt`, `wms`, `wmr`, `wmsh`, `ch`) are in review (#85).
 
 Reference: https://docs.imgproxy.net/usage/processing (imgproxy v4.0.x docs, source `imgproxy/imgproxy-docs` `docs/usage/processing.mdx`), https://docs.imgproxy.net/usage/getting_info, https://docs.imgproxy.net/usage/encrypting_source_url, https://docs.imgproxy.net/features/chained_pipelines.
 
@@ -268,6 +270,8 @@ Text: markup from the URL (`wmt`, imaginary `text`) is untrusted; dialects whose
 
 ## 4. Query dialect (native + imaginary)
 
+**Status:** on `main` (WP-23, M1; `pipeline` M2). imaginary's `/watermark` (text) and `/watermarkimage` are in review (#85).
+
 Reference: https://github.com/h2non/imaginary (API section). Mount `/q/`.
 
 Two shapes:
@@ -286,6 +290,8 @@ imaginary endpoints: `resize`, `enlarge`, `extract`, `crop`, `smartcrop`, `rotat
 Implementation notes (WP-23, `internal/dialect/query`): native keys are applied in query order through the imgproxy option parser, so a later key overrides an earlier one and keys after an `o=` that chains pipelines (`-`) apply to the last pipeline; `o=` must contain options only (a source in it is a 400). Multi-argument native values (`crop`, `pad`, `trim`, `bg` as `r,g,b`, `preset`, `g=fp:x:y`) accept `,` or `:` as separator, and `crop=w,h,x,y` places the top-left corner. Signing: `sign` covers the decoded path after the mount (`/resize`, or `/` for native mode) plus the sorted query; `xi_sig` covers the escaped path after the mount plus the query; both present is a 403. imaginary params are stricter than upstream (malformed or negative values are a 400 instead of silently falling back); `extend=mirror` is approximated as `copy`, `/extract` crops before resizing, `/zoom` scales by `factor+1` like bimg, `/info` uses the imgproxy info schema, and text/image watermarks are applied (WP-77/78).
 
 ## 5. imgix
+
+**Status:** parser and `s`/`expires` signing on `main` (WP-40, M2), but `main` does not mount the dialect: serving it (the mount, `XI_DIALECTS_IMGIX_KEYS`) is in review (#87, WP-88), and `mark*`/`txt*` watermarks are in review (#85).
 
 Reference: https://docs.imgix.com/apis/rendering; unpic transformer `ascorbic/unpic` `src/providers/imgix.ts` (defaults `fit=min`, `auto=format`).
 
@@ -367,6 +373,8 @@ Mount (WP-88): `XI_DIALECTS_IMGIX_ENABLED=true` mounts it under `XI_DIALECTS_IMG
 
 ## 6. Cloudinary
 
+**Status:** served on `main` (WP-41, M2; `internal/dialect/cloudinary`, `s--…--` signing). `l_` image and `l_text` overlays are in review (#85); face/object gravity and `e_blur_faces` wait for WP-72/73 (in progress).
+
 Reference: https://cloudinary.com/documentation/transformation_reference, https://cloudinary.com/documentation/delivery_url_signatures; unpic `cloudinary.ts` (defaults `f_auto,c_lfill`).
 
 ```
@@ -437,6 +445,8 @@ Fixtures: `internal/dialect/cloudinary/testdata/urlgen/generate.ts` builds the c
 
 ## 7. ImageKit
 
+**Status:** served on `main` (WP-42, M2). `l-image`/`l-text` overlays are in review (#85), `XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH` for host-bound `ik.imagekit.io/<id>/…` URLs is in review (#86); face/object focus waits for WP-72 (in progress).
+
 Reference: https://imagekit.io/docs/transformations, https://imagekit.io/docs/image-resize-and-crop, https://imagekit.io/docs/effects-and-enhancements, https://imagekit.io/docs/media-delivery-basic-security; SDKs `imagekit-javascript` `src/url.ts` (URL builder) and `imagekit-nodejs` `src/resources/helper.ts` (signing); unpic `imagekit.ts` (defaults `c-maintain_ratio,fo-auto`). Implemented in `internal/dialect/imagekit` (WP-42).
 
 ```
@@ -501,6 +511,8 @@ Signing (imagekit-nodejs `getSignature`): `ik-s` = hex(HMAC-SHA1(private key, pa
 
 ## 8. Cloudflare Images (`/cdn-cgi/image/`)
 
+**Status:** served on `main` (WP-43, M2), including `onerror=redirect`; face gravity waits for WP-72 (in progress).
+
 Reference: https://developers.cloudflare.com/images/optimization/features/ (one page per option, `src/content/partials/images/*.mdx` in cloudflare-docs); unpic `cloudflare.ts` (defaults `f=auto,fit=cover`) and `cloudflare_images.ts`. Implementation: `internal/dialect/cloudflare` (WP-43, WP-79).
 
 ```
@@ -542,6 +554,8 @@ Grammar: `/cdn-cgi/image/<k=v(,k=v)*>/<source>`. Keys are case-insensitive; comm
 
 ### 8.1 Cloudflare Images delivery (`/cdn-cgi/imagedelivery/`, `imagedelivery.net`)
 
+**Status:** served on `main` (WP-79, M2; dialect `cloudflare_images`, `sig`/`exp` signing).
+
 Reference: https://developers.cloudflare.com/images/optimization/hosted-images/ (serve-uploaded-images, create-variants, enable-flexible-variants, serve-private-images).
 
 ```
@@ -559,6 +573,8 @@ Dialect `cloudflare_images`, mounted at `/cdn-cgi/imagedelivery/`; bind the host
 - Signing: `sig` = hex(HMAC-SHA256(key, path ‖ "?" ‖ query without `sig`)) over the path after the prefix (`/<hash>/<id>/<variant>`, as for imagedelivery.net), keys from `XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS` used raw. Then `exp` (unix seconds) must be in the future, else 404 (`KindExpired`). Unsigned requests follow the mount's unsigned policy.
 
 ## 9. Bunny Optimizer
+
+**Status:** served on `main` (WP-44, M2), with token authentication.
 
 Reference: https://bunny.net/docs/optimizer/dynamic-images/overview (Dynamic Images API: resizing, cropping, face-detection, luminosity, color-manipulation, reflections-and-rotations, blur-and-sharpen, quality, formats) and https://bunny.net/docs/optimizer/image-classes, fetched 2026-09-26; unpic `bunny.ts` (sets `aspect_ratio` when w and h given; `format` → `output`). Implementation: `internal/dialect/bunny` (WP-44).
 
@@ -610,6 +626,8 @@ b64url is URL-safe base64 without padding (padding is tolerated). `path` is the 
 Verified sources: the HS256 layout is `go/token.go` of https://github.com/BunnyWay/BunnyCDN.TokenAuthentication at 48ff1af (2026-07-24), whose `e2e/vectors.json` (key `SecurityKey`, expires 1598024587) the tests reproduce; the legacy SHA-256 layout is `nodejs/token.js` and `php/url_signing.php` at 1019b23 (the last commit before the HMAC rewrite), whose C# `TokenSignerTests` expectations the tests reproduce, including path-based `bcdn_token` URLs; the basic layout is the PHP/JS/C#/Python sample on https://bunny.net/docs/cdn/security/token-authentication/basic (its example token omits the key, so the test vector is computed independently with `openssl md5`). Where the legacy SDKs disagree (C# put the IP before `expires`, Python appended it after `data`) only the IP-less layout is implemented.
 
 ## 10. Thumbor
+
+**Status:** served on `main` (WP-45, M2), with HMAC-SHA1 signing, pixel focal points (WP-86a) and the `meta` JSON response (WP-86b); `smart` uses faces once WP-72 lands (in progress).
 
 Reference: https://thumbor.readthedocs.io/en/latest/usage.html, https://thumbor.readthedocs.io/en/latest/filters.html, security page above; code: libthumbor `url.py` (`Url.regex`), thumbor `context.py` (`RequestParameters`), `transformer.py`, `filters/*.py`, `ext/filters/*.c`, `handlers/imaging.py` (signature check). Implementation: `internal/dialect/thumbor` (grammar, mapping) and `internal/dialect/thumbor/filters` (filter-list syntax, reused by Storyblok §12).
 
@@ -675,6 +693,8 @@ Pixel focal points and `meta` (WP-86): `focal(AxB:CxD)` with pixel coordinates (
 
 ## 11. weserv / wsrv.nl
 
+**Status:** served on `main` (WP-46, M2), including root `?url=` routing, `default` redirects and `maxage`.
+
 Reference: https://wsrv.nl/docs/quick-reference; the weserv source (`.refs/weserv-images`: `src/api/parsers/query.cpp` for the grammar, `src/api/processors/*.cpp` for semantics, `src/nginx` for `url`, `default`, `maxage`, `filename`, `encoding`); unpic `wsrv.ts` (default `fit=cover`; `url` without scheme is `https://`). Implemented in `internal/dialect/wsrv` (WP-46).
 
 ```
@@ -723,6 +743,8 @@ Under the restricted unsigned policy `default=<url>` (a fallback URL), crops, tr
 
 ## 12. unpic long tail ("simple" micro-dialects)
 
+**Status:** served on `main` (WP-47/48, M2): all 21 providers below, and all 28 unpic providers have a passing fixture file.
+
 unpic 4.2 (https://unpic.pics/providers/, source `ascorbic/unpic/src/providers/*.ts`) supports 28 providers. Seven are full dialects above; the other 21 only emit width, height, quality, format and a fit/crop hint, so they are implemented as **data** in `internal/dialect/simple`: one parser engine plus a `Spec` table per provider (native prefixes, upstream domains, an extractor that cuts source and parameters out of the URL, and a `Param` per name). Adding a provider is a `<name>.go` table (listed in `Providers()`) plus its fixture file `tools/compat/unpic/<name>.json`.
 
 **Coverage of the 28 unpic providers**
@@ -764,6 +786,8 @@ unpic 4.2 (https://unpic.pics/providers/, source `ascorbic/unpic/src/providers/*
 Storyblok's thumbor-style filter list (`name(args):…`) is parsed with `internal/dialect/thumbor/filters`, the thumbor dialect's grammar.
 
 ## 13. AWS Serverless Image Handler ("Dynamic Image Transformation for Amazon CloudFront")
+
+**Status:** served on `main` (WP-85, M2), with `signature`/`expires` verification and thumbor forwarding.
 
 Reference: `awslabs/dynamic-image-transformation-for-amazon-cloudfront` v8.x (`.refs/aws-image-handler/source/image-handler/`: `image-request.ts`, `image-handler.ts`, `query-param-mapper.ts`, `thumbor-mapper.ts`, `lib/`, and the `test/` fixtures), sharp 0.35 (`.refs/sharp/lib`) for the edit semantics. Package `internal/dialect/awssih`, mount `/sih/` (usually host-bound to the CloudFront domain being migrated). Point the mount at the old API's path root so SIH signatures, which cover the path, keep verifying.
 
@@ -832,4 +856,20 @@ Other differences from SIH: `AUTO_WEBP` is the server's Accept negotiation (`O.F
 
 ## 14. Compatibility test strategy
 
-Each dialect WP ships (a) a table of URLs → expected TR JSON, (b) URLs produced by the upstream SDK/transformer (`@imgix/js-core`, `cloudinary` npm, `imagekit-javascript`, `unpic` transformers, `libthumbor`, imgproxy URL examples) generated by a small Bun script in `tools/compat/` and committed as fixtures, (c) signature test vectors from upstream docs, (d) a fuzz target that must never panic.
+Each dialect WP ships (a) a table of URLs → expected TR JSON, (b) URLs produced by the upstream SDK/transformer (`@imgix/js-core`, `cloudinary` npm, `imagekit-javascript`, `unpic` transformers, imgproxy URL examples) generated by a small Bun script (`generate.ts`) and committed as fixtures, (c) signature test vectors from upstream docs or code, (d) a fuzz target that must never panic.
+
+What exists (every dialect below is on `main` except where noted; paths under `internal/dialect/<name>/testdata/` unless stated):
+
+| Dialect | (a) golden tables | (b) upstream-generated URLs | (c) signature vectors | (d) fuzz |
+|---|---|---|---|---|
+| imgproxy | `golden/` | `jscore/` (`imgproxy-js-core`); TS builder cross-check `testdata/urls/imgproxy-builder.json` (in review, #83) | imgproxy docs and `.refs` vectors (`internal/security/sign`) | yes |
+| query | `golden/` | — (imaginary has no URL builder) | imaginary `sign` vector | yes |
+| imgix | `golden/` | `jscore/` (`@imgix/js-core` 3.8.0, signed) and unpic `imgix.json` | blueprint vectors | yes |
+| cloudinary | `golden/` | `urlgen/` (`cloudinary-url-gen`) and unpic `cloudinary.json` | SHA-1/SHA-256 vectors | yes |
+| imagekit | `golden/` | `sdk/` (`imagekit-javascript`, `imagekit-nodejs`) and unpic `imagekit.json` | published dummy-key vectors | yes |
+| cloudflare, cloudflare_images | `golden/` (`image`, `delivery`, `source`) | unpic `cloudflare.json`, `cloudflare_images.json` | Images `sig`/`exp` vectors | yes |
+| bunny | `golden/` (`options`, `tokens`) | unpic `bunny.json` | token vectors from Bunny's docs | yes |
+| thumbor | `golden/` (`grammar`, `filters`, `signed`, `corpus`: thumbor docs and test-suite URLs) | — | HMAC-SHA1 vectors | yes |
+| wsrv | `golden/` | `unpic/` and unpic `wsrv.json` | — (unsigned; `xi_sig`) | yes |
+| simple (21 providers) | per-provider tests | unpic `<name>.json` in `tools/compat/unpic/` | — (unsigned; `xi_sig`) | yes |
+| awssih | `golden/` (ported from the solution's own tests) | — | `internal/security/sign/testdata/awssih/vectors.json` (generated by the solution's algorithm under Bun) | yes |
