@@ -9,7 +9,7 @@
 # Forbidden components are listed in check-licenses.sh (ADR 0006); never add them here.
 
 # Image revision: bump when the image changes without a libvips version change.
-export XI_BASE_REVISION=1
+export XI_BASE_REVISION=2
 export XI_BASE_FLAVOR=slim
 
 # --- Toolchains ---------------------------------------------------------------
@@ -101,5 +101,21 @@ export LIBRSVG_VERSION=2.63.2
 export LIBRSVG_SHA256=852b18e1a00b8605528825a27dc7748bff2a5dd254028f59dc22a34ea57e81b6
 export JEMALLOC_VERSION=5.4.0
 export JEMALLOC_SHA256=200776fac271093e7c2f21edd6d62657ecd2be578d9328633f2a86bfa6ef4f1d
+# Base extras (WP-66). LibRaw is used under LGPL-2.1 (dual LGPL-2.1/CDDL-1.0);
+# OpenEXR and Imath are BSD-3-Clause (OpenEXR vendors libdeflate, MIT, and OpenJPH,
+# BSD-2-Clause); ImageMagick is under the ImageMagick License (Apache-2.0 style) and
+# built with the PSD coder policy in magick-policy.xml; PDFium is BSD-3-Clause
+# (prebuilt by bblanchon/pdfium-binaries, MIT; PDFIUM_VERSION is the Chromium build).
+export LIBRAW_VERSION=0.22.2
+export LIBRAW_SHA256=de86b035655accff8d4010f1a221fdf50d353cb7b1422ba26f14a0db92612cfa
+export IMATH_VERSION=3.2.3
+export IMATH_SHA256=e10c12b3f21f45bf08e09d4215d9c7691368d747beebd840de0b6fefed2df9f8
+export OPENEXR_VERSION=3.4.15
+export OPENEXR_SHA256=445ed5b0ea4d9cf98be3a4f219e419628b123b61dec65ccb743ab9b07fbebdaa
+export IMAGEMAGICK_VERSION=7.1.2-31
+export IMAGEMAGICK_SHA256=34d9cc3acddc3e3c429d23af60eda5ceaac477a8b296ddb9469f773f44a80a5f
+export PDFIUM_VERSION=8066
+export PDFIUM_SHA256_AMD64=0b43f405477cf2cfc4dbff06905093c3309756c6bca1fb9da99234a2ca97fed2
+export PDFIUM_SHA256_ARM64=0e6f90dccbc6b81fd5d7106abaf164c4222178f024c204d00d526b60fd2ad535
 export VIPS_VERSION=8.18.6
 export VIPS_SHA256=3c41e1d5458081bfa4a5bc54e116c46259c75c6760a18027764555632b9dda3e

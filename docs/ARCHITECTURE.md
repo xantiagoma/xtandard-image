@@ -637,7 +637,7 @@ docker/
     build-deps.sh              builds into /opt/xtandard (prefix), license bundle, license gate
     check-licenses.sh          GPL/AGPL gate (ADR 0006)
     Dockerfile                 ubuntu:noble deps → `builder` (Go + libvips dev) and `runtime` (libs only) targets
-  imagemagick-policy.xml
+    magick-policy.xml          ImageMagick policy (PSD/PSB read only), installed as etc/ImageMagick-7/policy.xml
 Dockerfile                     app (repo root): FROM <base>-builder → go build → FROM <base> runtime
 compose.smoke.yml              app + static origin, driven by scripts/smoke.sh (WP-00) and scripts/verify-app-image.sh (WP-37)
 compose.acceptance.yml         app (env-only config) + app-tiny + nginx origin + MinIO, driven by scripts/acceptance.sh (WP-39, M1 release gate; suite in test/acceptance)
@@ -649,7 +649,7 @@ Contents of `/opt/xtandard`:
 
 | Path | Contents |
 |---|---|
-| `lib/` | (slim, M1) libvips 8.18.x, glib/gobject/gio (minimal), expat, libjpeg-turbo (+ optional mozjpeg), libspng, libpng, zlib-ng, cgif, quantizr, libwebp, libheif + libde265 + dav1d + aom + kvazaar, libjxl + highway + brotli, libtiff, lcms2, libexif, librsvg + cairo + pango + harfbuzz + freetype + fontconfig + fribidi, OpenJPEG, libultrahdr, jemalloc; added in M2 (WP-66): OpenEXR/Imath, LibRaw 0.22.x, PDFium (prebuilt, BSD/Apache), ImageMagick 7 (PSD coder only, no delegates). `full` adds FFmpeg 8 LGPL (`libavformat`, `libavcodec`, `libavutil`, `libswscale`; decoders h264/hevc/vp8/vp9/av1 via dav1d, demuxers mp4/mov/matroska/webm/gif; encoders only libvpx-vp9 and libaom-av1 for GIF→video, see open questions) and ONNX Runtime 1.30 CPU. |
+| `lib/` | (slim, M1) libvips 8.18.x, glib/gobject/gio (minimal), expat, libjpeg-turbo (+ optional mozjpeg), libspng, libpng, zlib-ng, cgif, quantizr, libwebp, libheif + libde265 + dav1d + aom + kvazaar, libjxl + highway + brotli, libtiff, lcms2, libexif, librsvg + cairo + pango + harfbuzz + freetype + fontconfig + fribidi, OpenJPEG, libultrahdr, jemalloc; added in M2 (WP-66): OpenEXR/Imath, LibRaw 0.22.x, PDFium (prebuilt, BSD-3-Clause), ImageMagick 7 (PSD coder only, no delegates; loaded through the `vips-magick.so` module). `full` adds FFmpeg 8 LGPL (`libavformat`, `libavcodec`, `libavutil`, `libswscale`; decoders h264/hevc/vp8/vp9/av1 via dav1d, demuxers mp4/mov/matroska/webm/gif; encoders only libvpx-vp9 and libaom-av1 for GIF→video, see open questions) and ONNX Runtime 1.30 CPU. |
 | `lib/pkgconfig`, `include/` | build stage only; stripped from runtime |
 | `share/fonts/` | Noto Sans + DejaVu (OFL / Bitstream-Vera licenses) for text watermarks |
 | `share/models/` | `full`: YuNet face model (MIT), YOLOX-s object model (Apache-2.0), with LICENSE files |

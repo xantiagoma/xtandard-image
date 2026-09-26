@@ -50,16 +50,63 @@ pkg-config files and the toolchains are not present.
 
 | Path | Contents |
 |---|---|
-| `lib/` | libvips (no C++ binding, no modules), glib/gobject/gio, libffi, pcre2, zlib-ng, expat, libxml2 (minimal), libjpeg-turbo, libultrahdr, libpng, libspng, libwebp, cgif, quantizr, libtiff, OpenJPEG, libheif + libde265 + dav1d + aom + kvazaar, libjxl + highway + brotli, lcms2, libexif, librsvg + cairo + pixman + pango + harfbuzz + freetype + fontconfig + fribidi, jemalloc |
+| `lib/` | libvips (no C++ binding), glib/gobject/gio, libffi, pcre2, zlib-ng, expat, libxml2 (minimal), libjpeg-turbo, libultrahdr, libpng, libspng, libwebp, cgif, quantizr, libtiff, OpenJPEG, libheif + libde265 + dav1d + aom + kvazaar, libjxl + highway + brotli, lcms2, libexif, librsvg + cairo + pixman + pango + harfbuzz + freetype + fontconfig + fribidi, jemalloc; base extras (WP-66): LibRaw (`libraw_r`), PDFium (prebuilt), OpenEXR + Imath, ImageMagick 7 MagickCore (PSD/PSB only) |
+| `lib/vips-modules-8.18/vips-magick.so` | the only libvips module: magickload (load only, no magicksave). Every other loader is built into `libvips.so`; deleting this file removes ImageMagick from libvips |
 | `lib/pkgconfig/`, `include/` | builder only |
 | `bin/vips` | libvips CLI |
 | `etc/fonts/` | fontconfig configuration (fonts from `share/fonts`, cache in `/tmp/fontconfig`) |
+| `etc/ImageMagick-7/policy.xml` | `magick-policy.xml`: PSD/PSB read only, everything else denied (see below) |
 | `share/fonts/dejavu/` | DejaVu Sans (Bitstream Vera license) for SVG text |
 | `share/licenses/` | every dependency's license files + `SOURCES.md` (URL, version, SHA256) |
 | `share/sbom/` | CycloneDX stubs per self-built library for syft/grype |
 
-Not in the slim M1 image: LibRaw, PDFium, ImageMagick, OpenEXR (WP-66), FFmpeg and ONNX
-Runtime (`full` flavor).
+Not in the slim image: poppler (GPL; PDF goes through PDFium), x265 (GPL; HEIC/AVIF encode
+uses kvazaar/aom), FFmpeg and ONNX Runtime (`full` flavor).
+
+## Base extras (WP-66, revision 2)
+
+| Component | Version | Licence | Source | libvips |
+|---|---|---|---|---|
+| LibRaw | 0.22.x | LGPL-2.1 (dual LGPL-2.1/CDDL-1.0; used under LGPL-2.1, dynamically linked) | [libraw.org](https://www.libraw.org/download) tarball; OpenMP off, JPEG/zlib/lcms2 on | `-Draw=enabled` → `dcrawload` |
+| PDFium | chromium/`PDFIUM_VERSION` | BSD-3-Clause (bundled third-party notices in `share/licenses/pdfium/licenses/`); build scripts MIT | [bblanchon/pdfium-binaries](https://github.com/bblanchon/pdfium-binaries) `pdfium-linux-{x64,arm64}.tgz` (no V8, no XFA), one SHA256 per architecture; `build-deps.sh` writes `pdfium.pc` | `-Dpdfium=enabled` → `pdfload` (poppler stays disabled) |
+| OpenEXR + Imath | 3.4.x / 3.2.x | BSD-3-Clause; vendored libdeflate (MIT) and OpenJPH (BSD-2-Clause) compiled in | GitHub release tags; no tools, examples or tests | `-Dopenexr=enabled` → `openexrload` |
+| ImageMagick | 7.1.x | ImageMagick License (Apache-2.0 style) | GitHub release tag; MagickCore only, Q16 HDRI, coders built in (`--without-modules`), no utilities, no C++/Perl, no OpenMP/OpenCL, every delegate library off except zlib | `-Dmagick=enabled -Dmagick-package=MagickCore -Dmagick-module=enabled -Dmagick-features=load` → `magickload` |
+
+Size (linux/arm64, `docker save | gzip -6`): runtime 54.8 MB compressed (r1: 48.3 MB,
++6.5 MB; budget ≤ 110 MB), builder 259.3 MB (r1: 251.9 MB). Uncompressed the extras are
+PDFium 7.6 MiB, MagickCore 2.8 MiB, OpenEXR + Imath 3.1 MiB, LibRaw 1.2 MiB, so a
+minimal-coder ImageMagick build was not needed.
+
+`dcrawload`, `openexrload` and `magickload` carry libvips' `VIPS_OPERATION_UNTRUSTED` flag
+(`pdfload` does not): an application that calls `vips_block_untrusted_set(TRUE)` must
+unblock the loaders it wants by name (`vips_operation_block_set`).
+
+### ImageMagick policy
+
+ImageMagick is in the image for one purpose: PSD/PSB through libvips' `magickload`
+(docs/FORMATS.md). `magick-policy.xml` is installed as
+`/opt/xtandard/etc/ImageMagick-7/policy.xml`, the configure path compiled into MagickCore
+(the app image also points `MAGICK_CONFIGURE_PATH` there). Rules are evaluated in order,
+later ones override earlier ones:
+
+- `module` domain: deny `*`, allow `PSD` (read | write, which ImageMagick requires to
+  register a module at all). Denied modules are never registered, so their coders do not
+  exist in the process: GIF, PNM, BMP, SVG/MVG/MSL, TEXT, URL, EPHEMERAL and every other
+  built-in coder are unreachable.
+- `coder` domain: deny `*`, allow `{PSD,PSB}` **read** only (no writing).
+- `delegate`, `filter`: deny `*`; `path`: deny `@*` (indirect reads), `-`, `fd:`, `|` (pipes).
+- Resources: thread 1, time 10 s (per image), memory 256 MiB, map 256 MiB, disk 0 (never
+  spill the pixel cache to disk; fail instead), area 64 MP, width/height 16 KP,
+  list-length 128, files 64, `max-memory-request` 256 MiB, anonymous memory maps.
+
+The limits are ceilings: `MAGICK_*` environment variables and the API can only lower them.
+ImageMagick also reads `policy.xml` from `MAGICK_CONFIGURE_PATH`, `$XDG_CONFIG_HOME` and
+`$HOME/.config/ImageMagick` and merges them; the runtime user has no home directory
+(`/nonexistent`) and the app runs with a read-only root filesystem, so nothing can add
+rules. `verify-image.sh` checks the policy: a generated PSD loads through `magickload`
+(and the generic loader), while JPEG, PNG, GIF, PPM, TIFF and WebP are refused by
+`magickload` (GIF and PNM are compiled-in ImageMagick coders, so their refusal proves the
+policy, not a missing delegate) and still load through their native libvips loaders.
 
 Compiler flags (`bashrc.sh`): `-Os` baseline (`-O3` for codecs), `-fstack-protector-strong`,
 full RELRO, `-ffunction-sections -fdata-sections -Wl,--gc-sections`, rpath
@@ -70,13 +117,16 @@ jemalloc uses 64 KiB pages on arm64 so it also runs on 64K-page kernels.
 ## License gate
 
 `check-licenses.sh <lib-dir> [versions.sh]` fails when x265, x264, poppler, exiv2,
-libimagequant, jbig-kit, Ghostscript or a GPL FFmpeg build appears in file names, binary
+libimagequant, jbig-kit, Ghostscript, a GPL FFmpeg build, or a GPL delegate ImageMagick or
+LibRaw could pick up (FFTW, DjVuLibre, AutoTrace, LibRaw's GPL demosaic packs) appears in
+file names, binary
 contents (DT_NEEDED strings, entry points, `--enable-gpl`), pkg-config requirements, or
 `versions.sh`. It runs at the end of `build-deps.sh`, again on the runtime subset, in
 `verify-image.sh`, and its self-test `test-check-licenses.sh` (clean tree passes, injected
 GPL files/symbols/pins fail) runs in CI. `build-deps.sh` also switches every optional GPL
 codec off explicitly (libheif `WITH_X265=0`/`WITH_X264=0`, libtiff `-Djbig=OFF`, vips
-`-Dimagequant=disabled -Dpoppler=disabled`), so auto-detection can never pull one in.
+`-Dimagequant=disabled -Dpoppler=disabled`, ImageMagick `--without-fftw --without-djvu
+--without-autotrace --without-gslib`), so auto-detection can never pull one in.
 
 ## Bumping versions
 
@@ -89,6 +139,10 @@ codec off explicitly (libheif `WITH_X265=0`/`WITH_X264=0`, libtiff `-Djbig=OFF`,
 3. Bump `XI_BASE_REVISION` when the image changes without a libvips version change; reset it
    to `1` when `VIPS_VERSION` changes.
 4. Build and verify locally (arm64 on Apple silicon, amd64 on x86 hosts; ~30 min cold):
+
+   PDFium is a binary per architecture: `PDFIUM_VERSION` is the Chromium build number of a
+   [bblanchon/pdfium-binaries release](https://github.com/bblanchon/pdfium-binaries/releases)
+   and `update-checksums.sh` refreshes both `PDFIUM_SHA256_AMD64` and `PDFIUM_SHA256_ARM64`.
 
    ```sh
    docker buildx build --platform linux/arm64 --build-arg VIPS_VERSION=8.18.6 --target builder --load -t xtandard-base:dev-builder docker/base
@@ -113,6 +167,7 @@ same libraries.
 | `bashrc.sh` | per-architecture compiler flags (`BASH_ENV`) |
 | `install-rust.sh` | pinned Rust + cargo-c (build time only: quantizr, librsvg) |
 | `install-tools.sh` | Go, golangci-lint, go-task for the builder stage |
+| `magick-policy.xml` | ImageMagick security policy (PSD/PSB read only) |
 | `check-licenses.sh`, `test-check-licenses.sh` | license gate and its self-test |
 | `update-checksums.sh` | recompute SHA256 lines after a bump |
 | `verify-image.sh` | smoke test used by CI and locally |
