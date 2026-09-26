@@ -22,6 +22,40 @@ Rules:
 - **Validation** is strict: unknown YAML keys and unknown `XI_` variables are a startup error (typos should not silently disable security); the error suggests the closest known name. `XI_ALLOW_UNKNOWN_ENV=true` downgrades unknown variables to a startup warning. `Validate` reports every violation at once, each with its YAML path and variable. `xtandard-image config print` shows the effective config with secrets redacted.
 - **Secure by default**: with no sources configured and `XI_DEV_MODE` unset, the server refuses to start.
 
+### Config file formats and schema (planned: WP-81, WP-81b; ADR 0007)
+
+Today the file is YAML only. WP-81 adds JSON and TOML, chosen by extension (`.yaml`/`.yml`, `.json`, `.toml`). All three have the same keys and the same strictness. Precedence and the env mapping above do not change. A JSON Schema (draft 2020-12) of the file gives editors validation, autocomplete and hover docs, and each hover also shows the matching `XI_*` variable. Planned stable URL, published per release (WP-81b):
+
+```
+https://xantiagoma.github.io/xtandard-image/schema/config.schema.json            # latest release
+https://xantiagoma.github.io/xtandard-image/schema/<version>/config.schema.json  # pinned
+```
+
+YAML (VS Code with the Red Hat YAML extension, JetBrains, Neovim/Helix with yaml-language-server). Paste this as the first line:
+
+```
+# yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/config.schema.json
+```
+
+JSON: a top-level `"$schema"` key, which the loader ignores:
+
+```
+{ "$schema": "https://xantiagoma.github.io/xtandard-image/schema/config.schema.json", "server": { "addr": ":8080" } }
+```
+
+TOML (Taplo / Even Better TOML, Tombi). Put this directive first:
+
+```
+#:schema https://xantiagoma.github.io/xtandard-image/schema/config.schema.json
+```
+
+After the SchemaStore listing, files named `xtandard-image.{yaml,yml,json,toml}` are matched without the line. The schema also ships in the binary:
+
+- `xtandard-image config schema > config.schema.json` writes it out, for offline editors.
+- `xtandard-image config validate --config config.yaml` checks a file with the real loader. It exits 1 and lists every violation. `--no-env` ignores the environment.
+
+The loader, not the schema, is the authority. `_FILE` variants are env-only, so the file has no `_file` keys.
+
 ## 2. Environment variable reference
 
 ### Loader
