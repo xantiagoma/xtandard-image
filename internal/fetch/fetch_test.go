@@ -658,8 +658,8 @@ func TestRedirectBinding(t *testing.T) {
 
 func TestCacheResultString(t *testing.T) {
 	t.Parallel()
-	got := []string{CacheMiss.String(), CacheHit.String(), CacheNegativeHit.String(), CacheRevalidated.String(), CacheResult(9).String()}
-	want := []string{"miss", "hit", "negative_hit", "revalidated", "CacheResult(9)"}
+	got := []string{CacheMiss.String(), CacheHit.String(), CacheNegativeHit.String(), CacheRevalidated.String(), CacheStoreHit.String(), CacheResult(9).String()}
+	want := []string{"miss", "hit", "negative_hit", "revalidated", "store_hit", "CacheResult(9)"}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("String() (-want +got):\n%s", diff)
 	}
