@@ -1,0 +1,22 @@
+# Keep the build context small and free of secrets. The Docker build has no
+# .git: version info is injected with -ldflags -X (go-standards §9).
+.git
+.github
+.claude
+.refs
+.idea
+.vscode
+.DS_Store
+.env
+.env.*
+!.env.example
+bin
+dist
+build
+tmp
+coverage.*
+*.test
+*.out
+*.pprof
+docs
+**/testdata/fuzz
