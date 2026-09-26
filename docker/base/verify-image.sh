@@ -1,14 +1,17 @@
 #!/bin/bash
 # Smoke-tests a built base image pair. Used by CI and for local verification.
 #
-# Usage: verify-image.sh [--flavor slim|full] <runtime-image> [<builder-image>]
+# Usage: verify-image.sh [--flavor slim|full|gpl] <runtime-image> [<builder-image>]
 #
 # The flavor defaults to the runtime image's dev.xtandard.base.flavor label (slim when
 # absent). full runs every slim check plus the FFmpeg, ONNX Runtime and model checks.
+# gpl runs the full checks with the gate in its gpl mode (--allow-gpl versions-gpl.sh,
+# licence bundle, LICENSE-GPL.md), expects the libx264/libx265 encoders instead of
+# refusing them, and round-trips H.264 and HEVC MP4 files through ffprobe.
 
 set -euo pipefail
 
-usage="usage: verify-image.sh [--flavor slim|full] <runtime-image> [<builder-image>]"
+usage="usage: verify-image.sh [--flavor slim|full|gpl] <runtime-image> [<builder-image>]"
 flavor=
 if [ "${1:-}" = --flavor ]; then
   flavor=${2:?$usage}
@@ -22,9 +25,17 @@ if [ -z "$flavor" ]; then
   flavor=${flavor:-slim}
 fi
 case "$flavor" in
-  slim | full) echo "== flavor: $flavor" ;;
+  slim | full | gpl) echo "== flavor: $flavor" ;;
   *) echo "$usage" >&2; exit 2 ;;
 esac
+
+# The licence gate runs inside the images from this checkout; gpl adds its allowlist.
+gate_mounts=(-v "$my_dir/check-licenses.sh:/usr/local/bin/check-licenses.sh:ro")
+gate_gpl=
+if [ "$flavor" = gpl ]; then
+  gate_mounts+=(-v "$my_dir/versions-gpl.sh:/usr/local/share/xtandard-gate/versions-gpl.sh:ro")
+  gate_gpl="--allow-gpl /usr/local/share/xtandard-gate/versions-gpl.sh"
+fi
 
 echo "== vips --vips-config ($runtime)"
 config="$(docker run --rm "$runtime" vips --vips-config)"
@@ -203,8 +214,9 @@ docker run --rm "$runtime" bash -euo pipefail -c '
 '
 
 echo "== license gate on the runtime image"
-docker run --rm -v "$my_dir/check-licenses.sh:/usr/local/bin/check-licenses.sh:ro" "$runtime" \
-  bash /usr/local/bin/check-licenses.sh /opt/xtandard/lib
+# shellcheck disable=SC2086 # $gate_gpl is empty or two words
+docker run --rm "${gate_mounts[@]}" "$runtime" \
+  bash /usr/local/bin/check-licenses.sh $gate_gpl /opt/xtandard/lib
 docker run --rm "$runtime" bash -euo pipefail -c '
   for name in libraw imagemagick openexr imath pdfium; do
     test -n "$(ls -A "/opt/xtandard/share/licenses/$name")"
@@ -243,40 +255,64 @@ go build -o cgotest . && ./cgotest
 EOF
 fi
 
-if [ "$flavor" = full ]; then
-  echo "== full: FFmpeg build configuration ($runtime)"
+if [ "$flavor" = full ] || [ "$flavor" = gpl ]; then
+  echo "== $flavor: FFmpeg build configuration ($runtime)"
   docker run --rm "$runtime" bash -euo pipefail -c '
     ffmpeg -hide_banner -version | head -n 1
     ffmpeg -hide_banner -buildconf
     ffmpeg -hide_banner -L | head -n 3
   '
 
-  echo "== full: licence gate (ffmpeg -buildconf, ldd, models) on $runtime"
-  docker run --rm -v "$my_dir/check-licenses.sh:/usr/local/bin/check-licenses.sh:ro" "$runtime" \
+  echo "== $flavor: licence gate (ffmpeg -buildconf, ldd, models) on $runtime"
+  docker run --rm "${gate_mounts[@]}" -e "XI_GATE_GPL=$gate_gpl" -e "XI_FLAVOR=$flavor" "$runtime" \
     bash -euo pipefail -c '
-      bash /usr/local/bin/check-licenses.sh --ffmpeg /opt/xtandard/bin/ffmpeg --ldd \
-        --models /usr/share/xtandard/models /opt/xtandard/lib
+      licenses=/opt/xtandard/share/licenses
+      bundle=
+      [ "$XI_FLAVOR" = gpl ] && bundle="--licenses $licenses"
+      # shellcheck disable=SC2086 # $XI_GATE_GPL and $bundle are empty or two words
+      bash /usr/local/bin/check-licenses.sh $XI_GATE_GPL $bundle --ffmpeg /opt/xtandard/bin/ffmpeg \
+        --ldd --models /usr/share/xtandard/models /opt/xtandard/lib
       bash /usr/local/bin/check-licenses.sh --ldd /usr/local/lib
       for name in ffmpeg libvpx onnxruntime models; do
-        test -n "$(ls -A "/opt/xtandard/share/licenses/$name")"
+        test -n "$(ls -A "$licenses/$name")"
       done
-      grep -q "GNU LESSER GENERAL PUBLIC LICENSE" /opt/xtandard/share/licenses/ffmpeg/COPYING.LGPLv2.1
-      grep -q "^## full flavor" /opt/xtandard/share/licenses/SOURCES.md
+      grep -q "GNU LESSER GENERAL PUBLIC LICENSE" $licenses/ffmpeg/COPYING.LGPLv2.1
+      grep -q "^## full flavor" $licenses/SOURCES.md
       echo "licence texts present for FFmpeg (LGPL-2.1), libvpx, ONNX Runtime and the models"
+      if [ "$XI_FLAVOR" = gpl ]; then
+        grep -q "GNU GENERAL PUBLIC LICENSE" $licenses/ffmpeg/COPYING.GPLv2
+        grep -q "GNU GENERAL PUBLIC LICENSE" $licenses/x264/COPYING
+        grep -q "GNU GENERAL PUBLIC LICENSE" $licenses/x265/COPYING
+        grep -q "^## gpl flavor" $licenses/SOURCES.md
+        grep -q "GPL-2.0-or-later" $licenses/LICENSE-GPL.md
+        grep -q "^| x264 | GPL-2.0-or-later |" $licenses/LICENSE-GPL.md
+        grep -q "^| x265 | GPL-2.0-or-later |" $licenses/LICENSE-GPL.md
+        grep -q "^| ffmpeg | GPL-2.0-or-later |" $licenses/LICENSE-GPL.md
+        grep -q "patent" $licenses/LICENSE-GPL.md
+        echo "GPL texts (FFmpeg, x264, x265), SOURCES.md gpl section and LICENSE-GPL.md present"
+        echo "LICENSE-GPL.md lists $(grep -c "^| [a-z]" $licenses/LICENSE-GPL.md) components"
+      fi
     '
 
-  echo "== full: codecs"
-  docker run --rm -i "$runtime" bash -euo pipefail <<'EOF'
+  echo "== $flavor: codecs"
+  docker run --rm -i -e "XI_FLAVOR=$flavor" "$runtime" bash -euo pipefail <<'EOF'
 decoders="$(ffmpeg -hide_banner -decoders)"
 encoders="$(ffmpeg -hide_banner -encoders)"
 for dec in h264 hevc vp8 vp9 libdav1d gif mpeg4 mjpeg png rawvideo; do
   grep -qE "^ V[^ ]* $dec " <<< "$decoders" || { echo "MISSING decoder $dec" >&2; exit 1; }
 done
-for enc in libvpx libvpx-vp9 libaom-av1 png rawvideo; do
+want="libvpx libvpx-vp9 libaom-av1 png rawvideo"
+# full: no H.264/HEVC encoder of any kind (GPL x264/x265, patents: ROADMAP open questions
+# 1-2). gpl: exactly x264 and x265 (ADR 0006, 2026-09-27), no other H.264/HEVC encoder.
+unexpected="libx26[45]|libopenh264|h264|hevc|libkvazaar"
+if [ "$XI_FLAVOR" = gpl ]; then
+  want+=" libx264 libx265"
+  unexpected="libx264rgb|libopenh264|h264|hevc|libkvazaar"
+fi
+for enc in $want; do
   grep -qE "^ V[^ ]* $enc " <<< "$encoders" || { echo "MISSING encoder $enc" >&2; exit 1; }
 done
-# No H.264/HEVC encoder of any kind (GPL x264/x265, patents: ROADMAP open questions 1-2).
-if grep -E "^ V[^ ]* (libx26[45]|libopenh264|h264|hevc|libkvazaar)" <<< "$encoders"; then
+if grep -E "^ V[^ ]* ($unexpected)" <<< "$encoders"; then
   echo "UNEXPECTED H.264/HEVC encoder" >&2
   exit 1
 fi
@@ -285,10 +321,47 @@ if grep -E "^ A[^ ]* [^= ]" <<< "$decoders$encoders"; then
   echo "UNEXPECTED audio codec" >&2
   exit 1
 fi
-echo "decoders: h264 hevc vp8 vp9 av1(dav1d) gif mpeg4 mjpeg png rawvideo; encoders: vp8 vp9 av1(aom) png rawvideo; no H.264/HEVC/audio"
+if [ "$XI_FLAVOR" = gpl ]; then
+  echo "decoders: h264 hevc vp8 vp9 av1(dav1d) gif mpeg4 mjpeg png rawvideo; encoders: vp8 vp9 av1(aom) h264(x264) hevc(x265) png rawvideo; no audio"
+else
+  echo "decoders: h264 hevc vp8 vp9 av1(dav1d) gif mpeg4 mjpeg png rawvideo; encoders: vp8 vp9 av1(aom) png rawvideo; no H.264/HEVC/audio"
+fi
 EOF
 
-  echo "== full: GIF/raw -> WebM (VP8, VP9) and AV1-in-MP4, decode back, thumbnail"
+  if [ "$flavor" = gpl ]; then
+    echo "== gpl: raw/GIF -> H.264 MP4 (libx264) and HEVC MP4 (libx265), decode back"
+    docker run --rm -i "$runtime" bash -euo pipefail <<'EOF'
+cd /tmp
+w=64 h=48 n=12
+head -c $((w * h * 3 * n)) /dev/urandom > frames.rgb
+raw=(-hide_banner -loglevel error -f rawvideo -pix_fmt rgb24 -s "${w}x${h}" -r 12 -i frames.rgb)
+ffmpeg "${raw[@]}" -c:v libx264 -pix_fmt yuv420p -preset veryfast -crf 23 -movflags +faststart h264.mp4
+ffmpeg "${raw[@]}" -c:v libx265 -pix_fmt yuv420p -preset veryfast -crf 28 -x265-params log-level=error \
+  -tag:v hvc1 -movflags +faststart hevc.mp4
+for f in h264.mp4:h264:High hevc.mp4:hevc:Main; do
+  IFS=: read -r file codec profile <<< "$f"
+  info="$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,profile,width,height,nb_read_frames \
+    -count_frames -of default=noprint_wrappers=1:nokey=1 "$file" | tr '\n' ' ')"
+  echo "$file: $info$(ffprobe -v error -show_entries format=format_name -of csv=p=0 "$file")"
+  grep -q "^$codec $profile $w $h $n " <<< "$info"
+  ffprobe -v error -show_entries format=format_name -of csv=p=0 "$file" | grep -q mp4
+  ffmpeg -hide_banner -loglevel error -i "$file" -f rawvideo -pix_fmt rgb24 "back-$file.rgb"
+  test "$(stat -c %s "back-$file.rgb")" -eq $((w * h * 3 * n))
+done
+ffprobe -v error -show_entries stream=codec_tag_string -of csv=p=0 hevc.mp4 | grep -qx hvc1
+echo "decoded h264 (High) and hevc (Main, hvc1) back to $n frames"
+
+# Animated source: libvips writes a GIF, FFmpeg turns it into H.264 MP4 (WP-76 path).
+vips black black.v $w $h --bands 3
+vips linear black.v grey.v 1 128 --uchar
+vips copy grey.v in.gif
+ffmpeg -hide_banner -loglevel error -i in.gif -c:v libx264 -pix_fmt yuv420p -movflags +faststart gif.mp4
+ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 gif.mp4 | grep -qx h264
+echo "ok gif -> h264 mp4"
+EOF
+  fi
+
+  echo "== $flavor: GIF/raw -> WebM (VP8, VP9) and AV1-in-MP4, decode back, thumbnail"
   docker run --rm -i "$runtime" bash -euo pipefail <<'EOF'
 cd /tmp
 w=64 h=48 n=12
@@ -327,7 +400,7 @@ test "$(vipsheader -f width thumb.png)x$(vipsheader -f height thumb.png)" = 32x2
 echo "ok thumbnail (scale filter, png encoder) read by libvips"
 EOF
 
-  echo "== full: ONNX Runtime and models ($runtime)"
+  echo "== $flavor: ONNX Runtime and models ($runtime)"
   docker run --rm "$runtime" bash -euo pipefail -c '
     ldconfig -p | grep -q "libonnxruntime.so.1 " && echo "ldconfig: $(ldconfig -p | grep libonnxruntime.so.1 | head -n 1 | sed "s/^[[:space:]]*//")"
     test ! -e /usr/local/lib/libonnxruntime_providers_shared.so
@@ -337,8 +410,8 @@ EOF
   '
 
   if [ -n "$builder" ]; then
-    echo "== full builder: cgo against FFmpeg and ONNX Runtime, inference on both models ($builder)"
-    docker run --rm -i "$builder" bash -euo pipefail <<'EOF'
+    echo "== $flavor builder: cgo against FFmpeg and ONNX Runtime, inference on both models ($builder)"
+    docker run --rm -i -e "XI_FLAVOR=$flavor" "$builder" bash -euo pipefail <<'EOF'
 mkdir -p /tmp/cgofull && cd /tmp/cgofull
 cat > go.mod <<'MOD'
 module cgofull
@@ -455,8 +528,18 @@ import (
 func main() {
 	fmt.Println("ffmpeg", C.GoString(C.av_version_info()), "avcodec", C.avcodec_version(), "avformat", C.avformat_version(),
 		"avfilter", C.avfilter_version())
-	fmt.Println("license", C.GoString(C.avcodec_license()))
-	for _, name := range []string{"libvpx", "libvpx-vp9", "libaom-av1"} {
+	license := C.GoString(C.avcodec_license())
+	fmt.Println("license", license)
+	encoders := []string{"libvpx", "libvpx-vp9", "libaom-av1"}
+	wantLicense := "LGPL version 2.1 or later"
+	if os.Getenv("XI_FLAVOR") == "gpl" {
+		encoders = append(encoders, "libx264", "libx265")
+		wantLicense = "GPL version 2 or later"
+	}
+	if license != wantLicense {
+		panic("avcodec_license() = " + license + ", want " + wantLicense)
+	}
+	for _, name := range encoders {
 		cs := C.CString(name)
 		if C.has_encoder(cs) == 0 {
 			panic("missing encoder " + name)
@@ -473,7 +556,7 @@ func main() {
 	if C.has_sws() == 0 {
 		panic("sws_getContext failed")
 	}
-	fmt.Println("encoders vp8/vp9/av1, decoders h264/hevc/vp8/vp9/dav1d, swscale: ok")
+	fmt.Println("encoders", encoders, "decoders h264/hevc/vp8/vp9/dav1d, swscale: ok")
 
 	if msg := C.ort_init(); msg != nil {
 		panic(C.GoString(msg))
