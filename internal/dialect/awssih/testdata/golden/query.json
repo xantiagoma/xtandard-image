@@ -1,0 +1,275 @@
+{
+  "bad_escape": {
+    "config": "query",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: invalid query escaping",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJhLmpwZyJ9",
+    "query": "width=%zz"
+  },
+  "booleans_grayscale_to_greyscale": {
+    "config": "query",
+    "path": "/eyJrZXkiOiJhLmpwZyJ9",
+    "query": "flip=true\u0026flop=0\u0026grayscale=TRUE\u0026rotate=90",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Flip": {
+            "V": true
+          },
+          "Grayscale": true,
+          "Rotate": 90
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "format": {
+    "config": "query",
+    "path": "/eyJrZXkiOiJhLmpwZyJ9",
+    "query": "format=avif",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "avif"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "last_value_wins": {
+    "config": "query",
+    "path": "/eyJrZXkiOiJhLmpwZyJ9",
+    "query": "width=1\u0026width=2",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 2
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "mapper_disabled": {
+    "path": "/eyJrZXkiOiJhLmpwZyJ9",
+    "query": "width=100\u0026format=webp",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "width",
+          "Reason": "query parameter mapping disabled"
+        },
+        {
+          "Option": "format",
+          "Reason": "query parameter mapping disabled"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "not_a_number": {
+    "config": "query",
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected an integer",
+      "status": 400
+    },
+    "path": "/eyJrZXkiOiJhLmpwZyJ9",
+    "query": "width=abc"
+  },
+  "parse_int_prefix": {
+    "config": "query",
+    "path": "/eyJrZXkiOiJhLmpwZyJ9",
+    "query": "width=12abc",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 12
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "replaces_whole_resize": {
+    "config": "query",
+    "path": "/eyJrZXkiOiJhLmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MTAsImhlaWdodCI6MjAsImZpdCI6ImNvbnRhaW4ifSwiYmx1ciI6M319",
+    "query": "width=100",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Blur": 3,
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "rotate_empty_auto_orient": {
+    "config": "query",
+    "path": "/eyJrZXkiOiJhLmpwZyJ9",
+    "query": "rotate=",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "AutoRotate": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "unknown_ignored": {
+    "config": "query",
+    "path": "/eyJrZXkiOiJhLmpwZyJ9",
+    "query": "unknown=value\u0026width=100",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "width_height_fit": {
+    "config": "query",
+    "path": "/eyJrZXkiOiJhLmpwZyJ9",
+    "query": "width=100\u0026height=200\u0026fit=cover",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "zero_width_is_null": {
+    "config": "query",
+    "path": "/eyJrZXkiOiJhLmpwZyJ9",
+    "query": "width=0\u0026height=200\u0026fit=cover",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill"
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  }
+}

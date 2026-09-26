@@ -1,0 +1,688 @@
+{
+  "decode_no_path": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: path is not a base64-encoded JSON request",
+      "status": 400
+    },
+    "path": "",
+    "query": ""
+  },
+  "decode_not_base64": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: path is not a base64-encoded JSON request",
+      "status": 400
+    },
+    "path": "/someNonBase64EncodedContentHere",
+    "query": ""
+  },
+  "decode_valid": {
+    "path": "/eyJidWNrZXQiOiJidWNrZXQtbmFtZS1oZXJlIiwia2V5Ijoia2V5LW5hbWUtaGVyZSJ9",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "key-name-here"
+      }
+    },
+    "signature": "unsigned",
+    "source": "key-name-here"
+  },
+  "edits_without_key": {
+    "error": {
+      "field": "key",
+      "kind": "invalid_url",
+      "public": "invalid key: expected a non-empty string",
+      "status": 400
+    },
+    "path": "/eyJlZGl0cyI6eyJncmF5c2NhbGUiOiJ0cnVlIiwicm90YXRlIjo5MCwiZmxpcCI6InRydWUifX0=",
+    "query": ""
+  },
+  "effort_3": {
+    "path": "/eyJidWNrZXQiOiJ0ZXN0Iiwia2V5IjoidGVzdC5wbmciLCJvdXRwdXRGb3JtYXQiOiJ3ZWJwIiwiZWZmb3J0IjozfQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Effort": 5,
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "test.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "test.png"
+  },
+  "effort_ignored_for_jpeg": {
+    "path": "/eyJidWNrZXQiOiJ0ZXN0Iiwia2V5IjoidGVzdC5wbmciLCJvdXRwdXRGb3JtYXQiOiJqcGVnIiwiZWZmb3J0IjoxfQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "test.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "test.png"
+  },
+  "effort_invalid_falls_back_to_4": {
+    "path": "/eyJidWNrZXQiOiJ0ZXN0Iiwia2V5IjoidGVzdC5wbmciLCJvdXRwdXRGb3JtYXQiOiJ3ZWJwIiwiZWZmb3J0IjoxMH0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Effort": 6,
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "test.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "test.png"
+  },
+  "expires_absent": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsInJlcXVlc3RUeXBlIjoiRGVmYXVsdCIsImtleSI6InZhbGlkS2V5In0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "requestType",
+          "Reason": "unknown request field"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "expires_bad_month": {
+    "error": {
+      "field": "expires",
+      "kind": "invalid_url",
+      "public": "invalid expires: expected a UTC time YYYYMMDDTHHmmssZ",
+      "status": 400
+    },
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsInJlcXVlc3RUeXBlIjoiRGVmYXVsdCIsImtleSI6InZhbGlkS2V5In0=",
+    "query": "expires=19700001T000000Z"
+  },
+  "expires_bad_separator": {
+    "error": {
+      "field": "expires",
+      "kind": "invalid_url",
+      "public": "invalid expires: expected a UTC time YYYYMMDDTHHmmssZ",
+      "status": 400
+    },
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsInJlcXVlc3RUeXBlIjoiRGVmYXVsdCIsImtleSI6InZhbGlkS2V5In0=",
+    "query": "expires=19700101S000000Z"
+  },
+  "expires_future": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsInJlcXVlc3RUeXBlIjoiRGVmYXVsdCIsImtleSI6InZhbGlkS2V5In0=",
+    "query": "expires=20270926T120000Z",
+    "request": {
+      "Delivery": {
+        "Expires": "2027-09-26T12:00:00Z"
+      },
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "requestType",
+          "Reason": "unknown request field"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "expires_no_zone": {
+    "error": {
+      "field": "expires",
+      "kind": "invalid_url",
+      "public": "invalid expires: expected a UTC time YYYYMMDDTHHmmssZ",
+      "status": 400
+    },
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsInJlcXVlc3RUeXBlIjoiRGVmYXVsdCIsImtleSI6InZhbGlkS2V5In0=",
+    "query": "expires=19700101T000000"
+  },
+  "expires_past": {
+    "error": {
+      "kind": "expired",
+      "public": "url expired",
+      "status": 404
+    },
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsInJlcXVlc3RUeXBlIjoiRGVmYXVsdCIsImtleSI6InZhbGlkS2V5In0=",
+    "query": "expires=19700101T000000Z"
+  },
+  "headers_absent": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5In0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "headers_cache_control": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiaGVhZGVycyI6eyJDYWNoZS1Db250cm9sIjoibWF4LWFnZT0zMTUzNjAwMCxwdWJsaWMifSwib3V0cHV0Rm9ybWF0IjoianBlZyJ9",
+    "query": "",
+    "request": {
+      "Delivery": {
+        "TTL": 31536000000000000
+      },
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "headers_restricted": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiaGVhZGVycyI6eyJDYWNoZS1Db250cm9sIjoibWF4LWFnZT0zMTUzNjAwMCxwdWJsaWMiLCAiVHJhbnNmZXItZW5jb2RpbmciOiAidmFsdWUiLCAieC1hcGkta2V5IjogInZhbHVlIiwgIngtYW16LWhlYWRlciI6ICJ2YWx1ZSIsICJjb250ZW50LXR5cGUiOiAiaHRtbCIsICJBY2Nlc3MtQ29udHJvbC1BbGxvdy1PcmlnaW4iOiAiKiJ9LCJvdXRwdXRGb3JtYXQiOiJqcGVnIn0=",
+    "query": "",
+    "request": {
+      "Delivery": {
+        "TTL": 31536000000000000
+      },
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "headers.Transfer-encoding",
+          "Reason": "header denied"
+        },
+        {
+          "Option": "headers.x-api-key",
+          "Reason": "header denied"
+        },
+        {
+          "Option": "headers.x-amz-header",
+          "Reason": "header denied"
+        },
+        {
+          "Option": "headers.content-type",
+          "Reason": "header denied"
+        },
+        {
+          "Option": "headers.Access-Control-Allow-Origin",
+          "Reason": "header denied"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "index_arabic_key": {
+    "path": "/eyJidWNrZXQiOiJlbGFzdGljYmVhbnN0YWxrLXVzLWVhc3QtMi0wNjY3ODQ4ODU1MTgiLCJrZXkiOiJlbnYtcHJvZC9nY2MvbGFuZGluZ3BhZ2UvMV81N19TbGltTl9MaWZ0LUNvcnNldC1Gb3ItTWVuLVNOQVAvYXR0YWNobWVudHMvZmZjMWYxNjAtYmQzOC00MWU4LThiYWQtZTNhMTljYzYxZGQzX1/Ys9mE2YrZhSDZhNmK2YHYqiAoMikuanBnIiwiZWRpdHMiOnsicmVzaXplIjp7IndpZHRoIjo0ODAsImZpdCI6ImNvdmVyIn19fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 480
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "env-prod/gcc/landingpage/1_57_SlimN_Lift-Corset-For-Men-SNAP/attachments/ffc1f160-bd38-41e8-8bad-e3a19cc61dd3__سليم ليفت (2).jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "env-prod/gcc/landingpage/1_57_SlimN_Lift-Corset-For-Men-SNAP/attachments/ffc1f160-bd38-41e8-8bad-e3a19cc61dd3__سليم ليفت (2).jpg"
+  },
+  "index_custom_header": {
+    "path": "/eyJidWNrZXQiOiJzb3VyY2UtYnVja2V0Iiwia2V5IjoidGVzdC5qcGciLCJoZWFkZXJzIjp7IkN1c3RvbS1IZWFkZXIiOiJDdXN0b21WYWx1ZSJ9fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "headers.Custom-Header",
+          "Reason": "response header not supported"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "test.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "test.jpg"
+  },
+  "index_wrong_filter": {
+    "path": "eyJidWNrZXQiOiJzb3VyY2UtYnVja2V0Iiwia2V5IjoidGVzdC5qcGciLCJlZGl0cyI6eyJ3cm9uZ0ZpbHRlciI6dHJ1ZX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "wrongFilter",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "test.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "test.jpg"
+  },
+  "index_wrong_filter_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "eyJidWNrZXQiOiJzb3VyY2UtYnVja2V0Iiwia2V5IjoidGVzdC5qcGciLCJlZGl0cyI6eyJ3cm9uZ0ZpbHRlciI6dHJ1ZX19",
+    "query": ""
+  },
+  "setup_bucket_not_allowed": {
+    "error": {
+      "kind": "forbidden",
+      "public": "bucket not allowed",
+      "status": 403
+    },
+    "path": "/eyJidWNrZXQiOiJub3RBbGxvd2VkQnVja2V0Iiwia2V5Ijoic2FtcGxlSW1hZ2VLZXkwMDEuanBnIn0=",
+    "query": ""
+  },
+  "setup_chinese_key_no_slash": {
+    "path": "eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6IuS4reaWhyIsImVkaXRzIjp7ImdyYXlzY2FsZSI6dHJ1ZX0sIm91dHB1dEZvcm1hdCI6ImpwZWcifQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "中文"
+      }
+    },
+    "signature": "unsigned",
+    "source": "中文"
+  },
+  "setup_chinese_key_test_bucket": {
+    "path": "eyJidWNrZXQiOiJ0ZXN0Iiwia2V5Ijoi5Lit5paHIiwiZWRpdHMiOnsiZ3JheXNjYWxlIjp0cnVlfSwib3V0cHV0Rm9ybWF0IjoianBlZyJ9",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "中文"
+      }
+    },
+    "signature": "unsigned",
+    "source": "中文"
+  },
+  "setup_grayscale": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsiZ3JheXNjYWxlIjp0cnVlfX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "setup_grayscale_jpeg": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsiZ3JheXNjYWxlIjp0cnVlfSwib3V0cHV0Rm9ybWF0IjoianBlZyJ9",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "setup_grayscale_string": {
+    "path": "/eyJidWNrZXQiOiJhbGxvd2VkQnVja2V0MDAxIiwia2V5Ijoic2FtcGxlSW1hZ2VLZXkwMDEuanBnIiwiZWRpdHMiOnsiZ3JheXNjYWxlIjoidHJ1ZSJ9fQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "sampleImageKey001.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sampleImageKey001.jpg"
+  },
+  "setup_no_bucket_extra_padding": {
+    "path": "/eyJrZXkiOiJzYW1wbGVJbWFnZUtleTAwMS5qcGciLCJlZGl0cyI6eyJncmF5c2NhbGUiOiJ0cnVlIn19==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "sampleImageKey001.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sampleImageKey001.jpg"
+  },
+  "setup_no_edits": {
+    "path": "/eyJidWNrZXQiOiJteS1zYW1wbGUtYnVja2V0Iiwia2V5Ijoic2FtcGxlLWltYWdlLTAwMS5qcGcifQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "sample-image-001.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-image-001.jpg"
+  },
+  "setup_reduction_effort_10": {
+    "path": "/eyJidWNrZXQiOiJ0ZXN0Iiwia2V5IjoidGVzdC5wbmciLCJvdXRwdXRGb3JtYXQiOiJ3ZWJwIiwicmVkdWN0aW9uRWZmb3J0IjoxMH0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "reductionEffort",
+          "Reason": "unknown request field"
+        }
+      ],
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "test.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "test.png"
+  },
+  "setup_reduction_effort_3": {
+    "path": "/eyJidWNrZXQiOiJ0ZXN0Iiwia2V5IjoidGVzdC5wbmciLCJvdXRwdXRGb3JtYXQiOiJ3ZWJwIiwicmVkdWN0aW9uRWZmb3J0IjozfQ==",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "reductionEffort",
+          "Reason": "unknown request field"
+        }
+      ],
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "test.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "test.png"
+  },
+  "setup_reduction_effort_string": {
+    "path": "/eyJidWNrZXQiOiJ0ZXN0Iiwia2V5IjoidGVzdC5wbmciLCJvdXRwdXRGb3JtYXQiOiJ3ZWJwIiwicmVkdWN0aW9uRWZmb3J0IjoidGVzdCJ9",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Ignored": [
+        {
+          "Option": "reductionEffort",
+          "Reason": "unknown request field"
+        }
+      ],
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "test.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "test.png"
+  },
+  "setup_to_format_png": {
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "validKey"
+      }
+    },
+    "signature": "unsigned",
+    "source": "validKey"
+  },
+  "setup_webp": {
+    "path": "/eyJidWNrZXQiOiJ0ZXN0Iiwia2V5IjoidGVzdC5wbmciLCJvdXRwdXRGb3JtYXQiOiJ3ZWJwIn0=",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "test.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "test.png"
+  },
+  "setup_webp_with_query_format": {
+    "config": "query",
+    "path": "/eyJidWNrZXQiOiJ0ZXN0Iiwia2V5IjoidGVzdC5wbmciLCJvdXRwdXRGb3JtYXQiOiJ3ZWJwIn0=",
+    "query": "format=png",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "test.png"
+      }
+    },
+    "signature": "unsigned",
+    "source": "test.png"
+  },
+  "type_bmp_without_forwarding": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: path is not a base64-encoded JSON request",
+      "status": 400
+    },
+    "path": "12x12e24d234r2ewxsad123d34r.bmp",
+    "query": ""
+  },
+  "type_default": {
+    "path": "/eyJidWNrZXQiOiJteS1zYW1wbGUtYnVja2V0Iiwia2V5IjoibXktc2FtcGxlLWtleSIsImVkaXRzIjp7ImdyYXlzY2FsZSI6dHJ1ZX19",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Grayscale": true
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "my-sample-key"
+      }
+    },
+    "signature": "unsigned",
+    "source": "my-sample-key"
+  },
+  "type_thumbor_without_forwarding": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: path is not a base64-encoded JSON request",
+      "status": 400
+    },
+    "path": "/unsafe/filters:brightness(10):contrast(30)/image",
+    "query": ""
+  }
+}

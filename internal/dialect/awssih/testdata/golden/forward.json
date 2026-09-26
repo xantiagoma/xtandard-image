@@ -1,0 +1,305 @@
+{
+  "base64_json_not_forwarded": {
+    "config": "thumbor",
+    "path": "/eyJrZXkiOiJhLmpwZyJ9",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "images",
+        "Raw": "a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "a.jpg"
+  },
+  "custom_rewrite": {
+    "config": "custom",
+    "path": "/filters-rotate(90)/filters-grayscale()/custom-image.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "images",
+        "Raw": "filters:rotate(90)/filters:grayscale()/custom-image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "filters:rotate(90)/filters:grayscale()/custom-image.jpg"
+  },
+  "custom_rewrite_no_extension": {
+    "config": "custom",
+    "path": "/filters-rotate(90)/filters-grayscale()/custom-image",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "images",
+        "Raw": "filters:rotate(90)/filters:grayscale()/custom-image"
+      }
+    },
+    "signature": "unsigned",
+    "source": "filters:rotate(90)/filters:grayscale()/custom-image"
+  },
+  "expires_applied": {
+    "config": "thumbor",
+    "path": "/image.jpg",
+    "query": "expires=20270101T000000Z",
+    "request": {
+      "Delivery": {
+        "Expires": "2027-01-01T00:00:00Z"
+      },
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "images",
+        "Raw": "image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image.jpg"
+  },
+  "query_edits_applied": {
+    "config": "thumbor",
+    "path": "/200x200/image.jpg",
+    "query": "format=webp\u0026width=50\u0026flip=true",
+    "request": {
+      "Dialect": "awssih",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {
+          "Flip": {
+            "V": true
+          },
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 50
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "images",
+        "Raw": "200x200/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "200x200/image.jpg"
+  },
+  "s3_bucket_not_listed": {
+    "config": "thumbor",
+    "path": "/filters:grayscale()/s3:other/test-image-001.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "images",
+        "Raw": "filters:grayscale()/s3:other/test-image-001.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "filters:grayscale()/s3:other/test-image-001.jpg"
+  },
+  "s3_bucket_override": {
+    "config": "thumbor",
+    "path": "/filters:grayscale()/s3:sample-bucket/test-image-001.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "logos",
+        "Raw": "filters:grayscale()/test-image-001.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "filters:grayscale()/test-image-001.jpg"
+  },
+  "thumbor_error_propagates": {
+    "config": "thumbor",
+    "error": {
+      "field": "thumbor",
+      "kind": "invalid_url",
+      "public": "invalid thumbor: expected anything else",
+      "status": 400
+    },
+    "path": "/fail/image.jpg",
+    "query": ""
+  },
+  "thumbor_filters": {
+    "config": "thumbor",
+    "path": "/filters:rotate(90)/filters:grayscale()/thumbor-image.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "images",
+        "Raw": "filters:rotate(90)/filters:grayscale()/thumbor-image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "filters:rotate(90)/filters:grayscale()/thumbor-image.jpg"
+  },
+  "thumbor_fit_in": {
+    "config": "thumbor",
+    "path": "/fit-in/400x400/filters:format(png)/filters:quality(50)/test-image-001.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "images",
+        "Raw": "fit-in/400x400/filters:format(png)/filters:quality(50)/test-image-001.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "fit-in/400x400/filters:format(png)/filters:quality(50)/test-image-001.jpg"
+  },
+  "thumbor_image_no_slash": {
+    "config": "thumbor",
+    "path": "image.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "images",
+        "Raw": "image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "image.jpg"
+  },
+  "thumbor_no_extension": {
+    "config": "thumbor",
+    "path": "/unsafe/filters:brightness(10):contrast(30)/image",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "images",
+        "Raw": "filters:brightness(10):contrast(30)/image"
+      }
+    },
+    "signature": "unsigned",
+    "source": "filters:brightness(10):contrast(30)/image"
+  },
+  "thumbor_unsafe": {
+    "config": "thumbor",
+    "path": "/unsafe/filters:brightness(10):contrast(30)/https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Coffee_berries_1.jpg/1200px-Coffee_berries_1.jpg",
+    "query": "",
+    "request": {
+      "Dialect": "awssih",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Mount": "images",
+        "Raw": "filters:brightness(10):contrast(30)/https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Coffee_berries_1.jpg/1200px-Coffee_berries_1.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "filters:brightness(10):contrast(30)/https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Coffee_berries_1.jpg/1200px-Coffee_berries_1.jpg"
+  }
+}
