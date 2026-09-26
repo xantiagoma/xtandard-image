@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -295,6 +296,10 @@ func (s *Server) run(ctx context.Context, in *ProcessInput) (*ProcessOutput, err
 	}
 	if out == nil || out.Body == nil {
 		return nil, errs.New(errs.KindInternal, "server: processor returned no output")
+	}
+	if len(out.Skipped) > 0 {
+		s.deps.Logger.LogAttrs(ctx, slog.LevelDebug, "options not applied",
+			slog.String("skipped", strings.Join(out.Skipped, ",")))
 	}
 	return out, nil
 }

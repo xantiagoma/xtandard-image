@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"sync/atomic"
 	"time"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/limiter"
 	"github.com/xantiagoma/xtandard-image/internal/obs/metrics"
 	"github.com/xantiagoma/xtandard-image/internal/server"
-	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -119,84 +117,4 @@ func (codecSniffer) Sniff(data []byte) (server.Sniffed, bool) {
 	}
 	out, _ := f.Output()
 	return server.Sniffed{Format: out, ContentType: f.MIME(), Ext: f.Ext()}, true
-}
-
-// vipsProber is the temporary server.Prober until codec's probe (WP-07)
-// lands: a libvips header read. BMP and ICO (pure-Go loaders, WP-08) are
-// unsupported until then. The server enforces the limits on the result.
-type vipsProber struct{}
-
-// Probe implements server.Prober.
-func (vipsProber) Probe(ctx context.Context, src fetch.Buffer, _ server.ProbeLimits) (server.SourceMeta, error) {
-	vb, err := vipsBuffer(src)
-	if err != nil {
-		return server.SourceMeta{}, err
-	}
-	defer vb.Release()
-	var h vips.Header
-	err = vips.Run(ctx, func() error {
-		var err error
-		h, err = vips.Probe(ctx, vb)
-		return err
-	})
-	if err != nil {
-		return server.SourceMeta{}, err
-	}
-	return server.SourceMeta{
-		Format:      transformFormat(h.Format),
-		Width:       h.Width,
-		Height:      h.Height,
-		Frames:      max(h.Pages, 1),
-		HasAlpha:    h.HasAlpha,
-		IsAnimated:  h.IsAnimated,
-		Orientation: h.Orientation,
-	}, nil
-}
-
-func transformFormat(f vips.Format) transform.Format {
-	switch f {
-	case vips.FormatJPEG:
-		return transform.FormatJPEG
-	case vips.FormatPNG:
-		return transform.FormatPNG
-	case vips.FormatWebP:
-		return transform.FormatWebP
-	case vips.FormatGIF:
-		return transform.FormatGIF
-	case vips.FormatAVIF:
-		return transform.FormatAVIF
-	case vips.FormatHEIF:
-		return transform.FormatHEIC
-	case vips.FormatJXL:
-		return transform.FormatJXL
-	case vips.FormatTIFF:
-		return transform.FormatTIFF
-	case vips.FormatSVG:
-		return transform.FormatSVG
-	default:
-		return transform.FormatUnset
-	}
-}
-
-func vipsFormat(f transform.Format) (vips.Format, bool) {
-	switch f {
-	case transform.FormatJPEG:
-		return vips.FormatJPEG, true
-	case transform.FormatPNG:
-		return vips.FormatPNG, true
-	case transform.FormatWebP:
-		return vips.FormatWebP, true
-	case transform.FormatGIF:
-		return vips.FormatGIF, true
-	case transform.FormatAVIF:
-		return vips.FormatAVIF, true
-	case transform.FormatHEIC:
-		return vips.FormatHEIF, true
-	case transform.FormatJXL:
-		return vips.FormatJXL, true
-	case transform.FormatTIFF:
-		return vips.FormatTIFF, true
-	default:
-		return vips.FormatUnknown, false
-	}
 }
