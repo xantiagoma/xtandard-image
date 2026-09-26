@@ -12,6 +12,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/imagekit"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/query"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/router"
@@ -45,7 +46,7 @@ func (p infoParser) Name() string { return infoDialect }
 func (p infoParser) Parse(in *dialect.Input) (*dialect.Result, error) { return p.ParseInfo(in) }
 
 // buildRouter builds the signing verifiers, presets, the available dialects
-// (imgproxy and query in M1) and the router. warnings lists enabled dialects
+// (imgproxy, query and imagekit) and the router. warnings lists enabled dialects
 // that are not implemented yet; their mounts are skipped.
 func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err error) {
 	keys := make([]sign.Key, 0, len(cfg.Signing.Keys))
@@ -164,6 +165,9 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	}
 	addMounts(imgproxy.Name, &cfg.Dialects.Imgproxy.Mount)
 	addMounts(query.Name, &cfg.Dialects.Query)
+	if err := addImageKit(cfg, ipOpts.Presets, required, dialects, opts); err != nil {
+		return nil, nil, err
+	}
 	if cfg.Dialects.Query.Enabled {
 		opts.RootURL = &router.Mount{
 			Name: "query/?url", Dialect: query.Name, Source: cfg.Dialects.Query.Source,
@@ -179,8 +183,8 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	for name, enabled := range map[string]bool{
 		"wsrv": cfg.Dialects.Wsrv.Enabled, "cloudflare": cfg.Dialects.Cloudflare.Enabled,
 		"cloudflare_images": cfg.Dialects.CloudflareImages.Enabled, "imgix": cfg.Dialects.Imgix.Enabled,
-		"cloudinary": cfg.Dialects.Cloudinary.Enabled, "imagekit": cfg.Dialects.Imagekit.Enabled,
-		"bunny": cfg.Dialects.Bunny.Enabled, "thumbor": cfg.Dialects.Thumbor.Enabled,
+		"cloudinary": cfg.Dialects.Cloudinary.Enabled,
+		"bunny":      cfg.Dialects.Bunny.Enabled, "thumbor": cfg.Dialects.Thumbor.Enabled,
 		"simple": len(cfg.Dialects.Simple.Enabled) > 0,
 	} {
 		if enabled {
@@ -194,6 +198,44 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		return nil, nil, err
 	}
 	return rt, warnings, nil
+}
+
+// addImageKit registers one ImageKit parser per enabled mount, each
+// verifying ik-s with that mount's private keys (XI_DIALECTS_IMAGEKIT_KEYS,
+// raw strings), and its router mount. Mount i > 0 is keyed "imagekit[i]".
+func addImageKit(cfg *config.Config, presets *preset.Store, required bool, dialects map[string]dialect.Dialect, opts *router.Options) error {
+	m := &cfg.Dialects.Imagekit
+	if !m.Enabled {
+		return nil
+	}
+	for i, mo := range append([]config.MountOptions{m.MountOptions}, m.Mounts...) {
+		key := imagekit.Name
+		if i > 0 {
+			key = fmt.Sprintf("%s[%d]", imagekit.Name, i)
+		}
+		o := imagekit.Options{Strict: cfg.Dialects.Strict, Presets: presets}
+		if len(mo.Keys) > 0 {
+			keys := make([]sign.Key, 0, len(mo.Keys))
+			for _, k := range mo.Keys {
+				keys = append(keys, sign.NewKey([]byte(k.Reveal()), nil))
+			}
+			v, err := sign.NewImageKitVerifier(sign.ImageKitOptions{Keys: sign.NewKeyring(keys...), Required: required})
+			if err != nil {
+				return fmt.Errorf("%s verifier: %w", key, err)
+			}
+			o.Verifier = v
+		}
+		p, err := imagekit.New(&o)
+		if err != nil {
+			return fmt.Errorf("%s dialect: %w", key, err)
+		}
+		dialects[key] = p
+		opts.Mounts = append(opts.Mounts, router.Mount{
+			Name: key, Dialect: key, Prefix: mo.Prefix, Hosts: mo.Hosts,
+			Source: mo.Source, Policy: router.Policy(mo.UnsignedPolicy),
+		})
+	}
+	return nil
 }
 
 // ssrfPolicy maps XI_FETCH_* onto the SSRF policy.
