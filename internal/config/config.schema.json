@@ -709,6 +709,28 @@
               "markdownDescription": "How long a source not-found is remembered; `0` disables\n\nEnv: `XI_CACHE_ORIGIN_NEGATIVE_TTL`",
               "title": "XI_CACHE_ORIGIN_NEGATIVE_TTL"
             },
+            "store_ttl": {
+              "$ref": "#/$defs/duration",
+              "default": "10m0s",
+              "description": "How long an original is served from XI_CACHE_ORIGIN_STORES without contacting the source (no revalidation)\n\nEnv: XI_CACHE_ORIGIN_STORE_TTL",
+              "markdownDescription": "How long an original is served from `XI_CACHE_ORIGIN_STORES` without contacting the source (no revalidation)\n\nEnv: `XI_CACHE_ORIGIN_STORE_TTL`",
+              "title": "XI_CACHE_ORIGIN_STORE_TTL"
+            },
+            "stores": {
+              "description": "Shared stores behind the origin LRU (disk, redis, s3, fastest first; configured by the XI_CACHE_RESULT_* variables of the same store, which the result cache shares under another namespace): a replica that misses its LRU reads the original from them before downloading, and downloads are written to them. Empty: originals stay in-process\n\nEnv: XI_CACHE_ORIGIN_STORES",
+              "items": {
+                "enum": [
+                  "memory",
+                  "disk",
+                  "redis",
+                  "s3"
+                ],
+                "type": "string"
+              },
+              "markdownDescription": "Shared stores behind the origin LRU (`disk`, `redis`, `s3`, fastest first; configured by the `XI_CACHE_RESULT_*` variables of the same store, which the result cache shares under another namespace): a replica that misses its LRU reads the original from them before downloading, and downloads are written to them. Empty: originals stay in-process\n\nEnv: `XI_CACHE_ORIGIN_STORES`",
+              "title": "XI_CACHE_ORIGIN_STORES",
+              "type": "array"
+            },
             "ttl": {
               "$ref": "#/$defs/duration",
               "default": "1m0s",
@@ -728,14 +750,14 @@
                 "bytes": {
                   "$ref": "#/$defs/byteSize",
                   "default": "10GiB",
-                  "description": "Env: XI_CACHE_RESULT_DISK_BYTES",
-                  "markdownDescription": "Env: `XI_CACHE_RESULT_DISK_BYTES`",
+                  "description": "Absolute directory of the disk store and its size bound (entry files; a janitor evicts least recently used entries down to 90 % once a write goes over). The image's root file system is read-only: mount a volume there. The directory must be dedicated to one process; the index is rebuilt from it at start, so entries survive restarts. No fsync: a file torn by a crash fails its checksum and is dropped\n\nEnv: XI_CACHE_RESULT_DISK_BYTES",
+                  "markdownDescription": "Absolute directory of the `disk` store and its size bound (entry files; a janitor evicts least recently used entries down to 90 % once a write goes over). The image's root file system is read-only: mount a volume there. The directory must be dedicated to one process; the index is rebuilt from it at start, so entries survive restarts. No fsync: a file torn by a crash fails its checksum and is dropped\n\nEnv: `XI_CACHE_RESULT_DISK_BYTES`",
                   "title": "XI_CACHE_RESULT_DISK_BYTES"
                 },
                 "path": {
                   "default": "",
-                  "description": "Env: XI_CACHE_RESULT_DISK_PATH",
-                  "markdownDescription": "Env: `XI_CACHE_RESULT_DISK_PATH`",
+                  "description": "Absolute directory of the disk store and its size bound (entry files; a janitor evicts least recently used entries down to 90 % once a write goes over). The image's root file system is read-only: mount a volume there. The directory must be dedicated to one process; the index is rebuilt from it at start, so entries survive restarts. No fsync: a file torn by a crash fails its checksum and is dropped\n\nEnv: XI_CACHE_RESULT_DISK_PATH",
+                  "markdownDescription": "Absolute directory of the `disk` store and its size bound (entry files; a janitor evicts least recently used entries down to 90 % once a write goes over). The image's root file system is read-only: mount a volume there. The directory must be dedicated to one process; the index is rebuilt from it at start, so entries survive restarts. No fsync: a file torn by a crash fails its checksum and is dropped\n\nEnv: `XI_CACHE_RESULT_DISK_PATH`",
                   "title": "XI_CACHE_RESULT_DISK_PATH",
                   "type": "string"
                 }
@@ -752,10 +774,24 @@
             "redis": {
               "additionalProperties": false,
               "properties": {
+                "max_value_bytes": {
+                  "$ref": "#/$defs/byteSize",
+                  "default": "1MiB",
+                  "description": "Larger entries are not stored in Redis (counted in xi_cache_skipped_total{reason=\"too_large\"})\n\nEnv: XI_CACHE_RESULT_REDIS_MAX_VALUE_BYTES",
+                  "markdownDescription": "Larger entries are not stored in Redis (counted in `xi_cache_skipped_total{reason=\"too_large\"}`)\n\nEnv: `XI_CACHE_RESULT_REDIS_MAX_VALUE_BYTES`",
+                  "title": "XI_CACHE_RESULT_REDIS_MAX_VALUE_BYTES"
+                },
+                "prefix": {
+                  "default": "xi:",
+                  "description": "Prepended to every key, so deployments can share a server\n\nEnv: XI_CACHE_RESULT_REDIS_PREFIX",
+                  "markdownDescription": "Prepended to every key, so deployments can share a server\n\nEnv: `XI_CACHE_RESULT_REDIS_PREFIX`",
+                  "title": "XI_CACHE_RESULT_REDIS_PREFIX",
+                  "type": "string"
+                },
                 "url": {
                   "$ref": "#/$defs/secret",
-                  "description": "Secret (may carry a password)\n\nEnv: XI_CACHE_RESULT_REDIS_URL (or XI_CACHE_RESULT_REDIS_URL_FILE)",
-                  "markdownDescription": "Secret (may carry a password)\n\nEnv: `XI_CACHE_RESULT_REDIS_URL` (or `XI_CACHE_RESULT_REDIS_URL_FILE`)",
+                  "description": "Secret (may carry a password). redis://[user:pass@]host:port/db, rediss:// for TLS, go-redis query options (dial_timeout, pool_size, …). Any RESP server: Redis, Valkey, KeyDB, managed services\n\nEnv: XI_CACHE_RESULT_REDIS_URL (or XI_CACHE_RESULT_REDIS_URL_FILE)",
+                  "markdownDescription": "Secret (may carry a password). `redis://[user:pass@]host:port/db`, `rediss://` for TLS, go-redis query options (`dial_timeout`, `pool_size`, …). Any RESP server: Redis, Valkey, KeyDB, managed services\n\nEnv: `XI_CACHE_RESULT_REDIS_URL` (or `XI_CACHE_RESULT_REDIS_URL_FILE`)",
                   "title": "XI_CACHE_RESULT_REDIS_URL"
                 }
               },
@@ -766,22 +802,22 @@
               "properties": {
                 "bucket": {
                   "default": "",
-                  "description": "Name of an s3 source definition to reuse credentials, bucket and key prefix\n\nEnv: XI_CACHE_RESULT_S3_BUCKET",
-                  "markdownDescription": "Name of an s3 source definition to reuse credentials, bucket and key prefix\n\nEnv: `XI_CACHE_RESULT_S3_BUCKET`",
+                  "description": "SOURCE names an s3 source whose endpoint, region, path style and credentials the s3 store reuses; BUCKET (required, must exist) and PREFIX (prepended verbatim, e.g. cache/) place the objects. Expiry is checked from object metadata on read, so no lifecycle rule is needed for correctness; add one on the prefix to reclaim space\n\nEnv: XI_CACHE_RESULT_S3_BUCKET",
+                  "markdownDescription": "`SOURCE` names an s3 source whose endpoint, region, path style and credentials the `s3` store reuses; `BUCKET` (required, must exist) and `PREFIX` (prepended verbatim, e.g. `cache/`) place the objects. Expiry is checked from object metadata on read, so no lifecycle rule is needed for correctness; add one on the prefix to reclaim space\n\nEnv: `XI_CACHE_RESULT_S3_BUCKET`",
                   "title": "XI_CACHE_RESULT_S3_BUCKET",
                   "type": "string"
                 },
                 "prefix": {
                   "default": "",
-                  "description": "Name of an s3 source definition to reuse credentials, bucket and key prefix\n\nEnv: XI_CACHE_RESULT_S3_PREFIX",
-                  "markdownDescription": "Name of an s3 source definition to reuse credentials, bucket and key prefix\n\nEnv: `XI_CACHE_RESULT_S3_PREFIX`",
+                  "description": "SOURCE names an s3 source whose endpoint, region, path style and credentials the s3 store reuses; BUCKET (required, must exist) and PREFIX (prepended verbatim, e.g. cache/) place the objects. Expiry is checked from object metadata on read, so no lifecycle rule is needed for correctness; add one on the prefix to reclaim space\n\nEnv: XI_CACHE_RESULT_S3_PREFIX",
+                  "markdownDescription": "`SOURCE` names an s3 source whose endpoint, region, path style and credentials the `s3` store reuses; `BUCKET` (required, must exist) and `PREFIX` (prepended verbatim, e.g. `cache/`) place the objects. Expiry is checked from object metadata on read, so no lifecycle rule is needed for correctness; add one on the prefix to reclaim space\n\nEnv: `XI_CACHE_RESULT_S3_PREFIX`",
                   "title": "XI_CACHE_RESULT_S3_PREFIX",
                   "type": "string"
                 },
                 "source": {
                   "default": "",
-                  "description": "Name of an s3 source definition to reuse credentials, bucket and key prefix\n\nEnv: XI_CACHE_RESULT_S3_SOURCE",
-                  "markdownDescription": "Name of an s3 source definition to reuse credentials, bucket and key prefix\n\nEnv: `XI_CACHE_RESULT_S3_SOURCE`",
+                  "description": "SOURCE names an s3 source whose endpoint, region, path style and credentials the s3 store reuses; BUCKET (required, must exist) and PREFIX (prepended verbatim, e.g. cache/) place the objects. Expiry is checked from object metadata on read, so no lifecycle rule is needed for correctness; add one on the prefix to reclaim space\n\nEnv: XI_CACHE_RESULT_S3_SOURCE",
+                  "markdownDescription": "`SOURCE` names an s3 source whose endpoint, region, path style and credentials the `s3` store reuses; `BUCKET` (required, must exist) and `PREFIX` (prepended verbatim, e.g. `cache/`) place the objects. Expiry is checked from object metadata on read, so no lifecycle rule is needed for correctness; add one on the prefix to reclaim space\n\nEnv: `XI_CACHE_RESULT_S3_SOURCE`",
                   "title": "XI_CACHE_RESULT_S3_SOURCE",
                   "type": "string"
                 }
@@ -789,7 +825,7 @@
               "type": "object"
             },
             "stores": {
-              "description": "Ordered tiers, fastest first: memory,disk,redis,s3; empty disables the result cache. memory is implemented; disk, redis and s3 are skipped with a startup warning until WP-53/54/55\n\nEnv: XI_CACHE_RESULT_STORES",
+              "description": "Ordered tiers, fastest first, e.g. memory,disk or memory,redis,s3; empty disables the result cache. A hit in a slower tier is copied into the faster ones (ARCHITECTURE §9.2)\n\nEnv: XI_CACHE_RESULT_STORES",
               "items": {
                 "enum": [
                   "memory",
@@ -799,7 +835,7 @@
                 ],
                 "type": "string"
               },
-              "markdownDescription": "Ordered tiers, fastest first: `memory,disk,redis,s3`; empty disables the result cache. `memory` is implemented; `disk`, `redis` and `s3` are skipped with a startup warning until WP-53/54/55\n\nEnv: `XI_CACHE_RESULT_STORES`",
+              "markdownDescription": "Ordered tiers, fastest first, e.g. `memory,disk` or `memory,redis,s3`; empty disables the result cache. A hit in a slower tier is copied into the faster ones (ARCHITECTURE §9.2)\n\nEnv: `XI_CACHE_RESULT_STORES`",
               "title": "XI_CACHE_RESULT_STORES",
               "type": "array"
             },
@@ -1925,15 +1961,15 @@
           "properties": {
             "complexity_threshold": {
               "default": 5.5,
-              "description": "Env: XI_FORMATS_BEST_COMPLEXITY_THRESHOLD",
-              "markdownDescription": "Env: `XI_FORMATS_BEST_COMPLEXITY_THRESHOLD`",
+              "description": "Content score below which best tries lossless formats only, above which lossy only; within ±0.75 of it both. 0 skips the analysis (every image is tried as a photo). Photos score ≈ 7–8, flat graphics and text ≈ 1–4.5 (FORMATS.md §6.3)\n\nEnv: XI_FORMATS_BEST_COMPLEXITY_THRESHOLD",
+              "markdownDescription": "Content score below which `best` tries lossless formats only, above which lossy only; within ±0.75 of it both. `0` skips the analysis (every image is tried as a photo). Photos score ≈ 7–8, flat graphics and text ≈ 1–4.5 (FORMATS.md §6.3)\n\nEnv: `XI_FORMATS_BEST_COMPLEXITY_THRESHOLD`",
               "title": "XI_FORMATS_BEST_COMPLEXITY_THRESHOLD",
               "type": "number"
             },
             "max_pixels": {
               "default": 8000000,
-              "description": "Env: XI_FORMATS_BEST_MAX_PIXELS",
-              "markdownDescription": "Env: `XI_FORMATS_BEST_MAX_PIXELS`",
+              "description": "format=best (imgproxy f:best, query f=best) is skipped above this many output pixels (all frames): the negotiated format is encoded once instead (FORMATS.md §6.3)\n\nEnv: XI_FORMATS_BEST_MAX_PIXELS",
+              "markdownDescription": "`format=best` (imgproxy `f:best`, query `f=best`) is skipped above this many output pixels (all frames): the negotiated format is encoded once instead (FORMATS.md §6.3)\n\nEnv: `XI_FORMATS_BEST_MAX_PIXELS`",
               "title": "XI_FORMATS_BEST_MAX_PIXELS",
               "type": "integer"
             }
