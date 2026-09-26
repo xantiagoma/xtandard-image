@@ -84,6 +84,15 @@ docker build -t xtandard-image .
 
 Once the first release is out, use `ghcr.io/xantiagoma/xtandard-image:slim` (linux/amd64 and linux/arm64) instead of building, and replace `xtandard-image` with it in the commands below.
 
+Image variants (both on the same `ubuntu:noble` + libvips 8.18 base, built from `docker/base`):
+
+| Variant | Contents | Status |
+|---|---|---|
+| `slim` | every still format: JPEG, PNG, GIF, WebP, AVIF, HEIC (decode), JPEG XL, TIFF, JPEG 2000, UltraHDR, SVG, PDF (PDFium), RAW (LibRaw), OpenEXR, PSD | default |
+| `full` | slim + FFmpeg 8.1 (LGPL only: video decode, VP8/VP9 and AV1 encode, no H.264/HEVC encode) + ONNX Runtime 1.30 (CPU) + the YuNet (MIT) face and YOLOX-s (Apache-2.0) object models | base image ready (`task docker:base:full`); the video and detection features using it land in M3 |
+
+No variant contains GPL code; every image carries its licences in `/opt/xtandard/share/licenses/` ([ADR 0006](docs/adr/0006-license-policy.md)).
+
 ### 2. Try it in dev mode
 
 `XI_DEV_MODE=true` accepts any public http(s) source. Unsigned URLs are allowed, but only with the widths, heights and qualities of the `restricted` policy (Next.js sizes: 640, 750, 828, 1080, 1200, …; the server logs the list at startup):
