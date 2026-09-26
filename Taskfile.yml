@@ -1,0 +1,101 @@
+# https://taskfile.dev
+#
+# Verification runs inside Docker (docker:* tasks) on the builder stage of the
+# base image, so every contributor and agent uses the same libvips and Go.
+#   task docker:lint docker:test
+#   XI_BASE_IMAGE=xtandard-base:dev task docker:test   # locally built base (WP-05)
+#
+# The host tasks (lint, test, ...) run the same scripts with the toolchain
+# pinned in .mise.toml (`mise install`); CI and the docker:* tasks are canonical.
+version: "3"
+
+vars:
+  BIN: bin/xtandard-image
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo dev
+  COMMIT:
+    sh: git rev-parse HEAD 2>/dev/null || echo unknown
+  LDFLAGS: -s -w -X main.version={{.VERSION}} -X main.commit={{.COMMIT}}
+  GO_BUILD: go build -trimpath -ldflags "{{.LDFLAGS}}" -o {{.BIN}} ./cmd/xtandard-image
+  GO_TEST: go test -race -shuffle=on ./...
+
+env:
+  XI_BASE_IMAGE:
+    sh: echo "${XI_BASE_IMAGE:-ghcr.io/xantiagoma/xtandard-image-base:slim}"
+
+tasks:
+  default:
+    cmds: [task --list]
+
+  # ---- inside Docker (canonical) -------------------------------------------
+
+  docker:lint:
+    desc: "Lint gates inside the base image builder ($XI_BASE_IMAGE)"
+    cmds:
+      - task: docker:run
+        vars: { CMD: sh scripts/lint.sh }
+
+  docker:test:
+    desc: "Unit tests (-race -shuffle=on) inside the base image builder"
+    cmds:
+      - task: docker:run
+        vars: { CMD: "{{.GO_TEST}}" }
+
+  docker:build:
+    desc: "Build the linux binary into bin/ inside the base image builder"
+    cmds:
+      - task: docker:run
+        vars: { CMD: "{{.GO_BUILD}}" }
+
+  docker:shell:
+    desc: "Interactive shell in the base image builder with the repo at /src"
+    interactive: true
+    cmds:
+      - docker compose -f compose.dev.yml run --rm dev bash
+
+  docker:run:
+    internal: true
+    requires: { vars: [CMD] }
+    cmds:
+      - docker compose -f compose.dev.yml run --rm -T dev {{.CMD}}
+
+  # ---- on the host (mise toolchain) ----------------------------------------
+
+  fmt:
+    desc: Format Go code (gofumpt + goimports via golangci-lint)
+    cmds: [golangci-lint fmt]
+
+  lint:
+    desc: golangci fmt/run, go vet, go fix -diff, tidy -diff and cgo placement
+    cmds: [sh scripts/lint.sh]
+
+  test:
+    desc: Unit tests with the race detector and shuffled order
+    cmds: ["{{.GO_TEST}}"]
+
+  test:nocgo:
+    desc: Build and test with CGO_ENABLED=0 (pure-Go packages must stay cgo-free)
+    env: { CGO_ENABLED: "0" }
+    cmds:
+      - go build -o /dev/null ./...
+      - go test -shuffle=on ./...
+
+  build:
+    desc: Build the binary with version info injected via -ldflags
+    cmds: ["{{.GO_BUILD}}"]
+
+  vuln:
+    desc: govulncheck (fails on reachable vulnerabilities)
+    cmds: [go tool -modfile=tools/go.mod govulncheck ./...]
+
+  fuzz:
+    desc: Run every fuzz target for FUZZTIME (default 60s)
+    cmds: [sh scripts/fuzz.sh]
+
+  ci:
+    desc: Everything CI runs on a pull request, on the host
+    cmds:
+      - task: lint
+      - task: test
+      - task: test:nocgo
+      - task: build
