@@ -8,6 +8,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
+	"github.com/xantiagoma/xtandard-image/internal/negotiate"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/exec"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/server"
@@ -152,6 +153,7 @@ func encoderConfig(cfg *config.Config) encode.Config {
 	ec.GIFEffort = f.GIF.Effort
 	ec.HEICEncode = f.HEIC.Encode
 	ec.AutoQuality = autoQualityConfig(&f.AutoQuality)
+	ec.Best = encode.BestConfig{MaxPixels: f.Best.MaxPixels, ComplexityThreshold: f.Best.ComplexityThreshold}
 	return ec
 }
 
@@ -205,12 +207,16 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		q := p.enc.ResolveQuality(t.Format, t.Quality, t.FormatQuality)
 		t.Quality = min(max(q+in.QualityDelta, 1), 100)
 	}
-	res, err := p.exec.Run(ctx, &exec.Job{
+	job := &exec.Job{
 		Request: in.Request,
 		Source:  src,
 		Meta:    planMeta(format, &in.Meta, p.pdfDPI),
 		Target:  t,
-	})
+	}
+	if in.Decision.Reason == negotiate.ReasonBest {
+		job.Best = &in.Decision
+	}
+	res, err := p.exec.Run(ctx, job)
 	if err != nil {
 		return nil, err
 	}
@@ -222,6 +228,7 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		Height:      res.Height,
 		Quality:     res.Quality,
 		Skipped:     res.Skipped,
+		Best:        res.Best.String(),
 	}, nil
 }
 

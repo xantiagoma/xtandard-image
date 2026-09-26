@@ -534,6 +534,9 @@ func setDebugHeaders(h http.Header, res *imageResult) {
 	if res.out != nil && res.out.Quality > 0 {
 		h.Set("X-Xi-Quality", strconv.Itoa(res.out.Quality))
 	}
+	if res.out != nil && res.out.Best != "" {
+		h.Set(hdrBest, res.out.Best)
+	}
 	if len(res.req.Ignored) > 0 {
 		var b strings.Builder
 		for _, ig := range res.req.Ignored {
