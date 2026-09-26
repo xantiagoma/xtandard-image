@@ -1143,10 +1143,6 @@
       "Dialect": "imgproxy",
       "Ignored": [
         {
-          "Option": "crop_ar",
-          "Reason": "takes effect in M2"
-        },
-        {
           "Option": "op",
           "Reason": "takes effect in M3"
         }

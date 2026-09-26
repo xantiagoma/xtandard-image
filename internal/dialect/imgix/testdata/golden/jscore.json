@@ -194,16 +194,6 @@
     "query": "ixlib=js-3.8.0\u0026border=5%2C000000\u0026border-top=10\u0026border-radius=8%2C8%2C0%2C0\u0026s=88083865a58a76f954e0e3b46033666e",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "border",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "border-radius",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Border": {
@@ -1081,12 +1071,6 @@
     "query": "ixlib=js-3.8.0\u0026mask=corners\u0026corner-radius=16\u0026s=3d606babff7837b375b3017aaee5dab8",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "mask",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Radius": {
@@ -1111,12 +1095,6 @@
     "query": "ixlib=js-3.8.0\u0026mask=ellipse\u0026mask-bg=00ff00\u0026s=e55d966bc6433b50ac2b5783c623fc62",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "mask",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Mask": {
@@ -1212,12 +1190,6 @@
     "query": "ixlib=js-3.8.0\u0026orient=90\u0026rot=45\u0026flip=hv\u0026s=f0ae03ffee01c2505733e1898ca2345a",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "rot",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "AutoRotate": false,

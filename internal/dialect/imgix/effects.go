@@ -54,9 +54,6 @@ func (st *state) applyOrientation() error {
 		}
 		if deg != 0 {
 			pl.RotateAny = -deg
-			if math.Mod(deg, 90) != 0 {
-				st.b.Ignore("rot", reasonM2)
-			}
 		}
 	}
 	if v, ok := st.get("flip"); ok {

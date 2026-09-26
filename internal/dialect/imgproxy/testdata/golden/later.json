@@ -642,12 +642,6 @@
     "path": "/unsafe/car:2:t/c:0.5:0.5/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "car",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Crop": {
@@ -673,12 +667,6 @@
     "path": "/unsafe/car:2/car::1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "car",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Crop": {
@@ -893,12 +881,6 @@
     "path": "/unsafe/c:100:200/crop_ar:1.777:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "crop_ar",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Crop": {
@@ -924,12 +906,6 @@
     "path": "/unsafe/crop_aspect_ratio:1.5/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "crop_aspect_ratio",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Crop": {
@@ -1280,10 +1256,6 @@
     "request": {
       "Dialect": "imgproxy",
       "Ignored": [
-        {
-          "Option": "car",
-          "Reason": "takes effect in M2"
-        },
         {
           "Option": "op",
           "Reason": "takes effect in M3"

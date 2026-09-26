@@ -303,10 +303,8 @@ func (ps *parseState) param(st *step, key, v string) error {
 		ps.b.Ignore(key, reasonM2)
 	case "r":
 		pl.Radius, err = parseRadius(v)
-		ps.b.Ignore(key, reasonM2)
 	case "b":
 		pl.Border, err = parseBorder(v)
-		ps.b.Ignore(key, reasonM2)
 	case "rt":
 		return ps.rotate(pl, v)
 	case "fl":
@@ -632,7 +630,6 @@ func (ps *parseState) rotate(pl *transform.Pipeline, v string) error {
 		a += 360
 	}
 	pl.RotateAny = a
-	ps.b.Ignore("rt", reasonM2)
 	return nil
 }
 

@@ -62,8 +62,9 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 	var err error
 	milestone := reasonM2
 	switch name {
-	// Geometry.
+	// Geometry (crop_aspect_ratio applied since WP-60).
 	case "crop_aspect_ratio", "crop_ar", "car":
+		milestone = applied
 		err = cropAspectRatio(pl, args)
 	case "objects_position", "obj_pos", "op":
 		milestone = reasonM3

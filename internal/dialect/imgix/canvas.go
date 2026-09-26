@@ -91,7 +91,6 @@ func (st *state) border() error {
 			return err
 		}
 		st.pl.Border = b
-		st.b.Ignore("border", reasonM2)
 	} else {
 		var scratch transform.Border
 		if err := st.sides("border", &scratch.Top, &scratch.Right, &scratch.Bottom, &scratch.Left); err != nil {
@@ -105,7 +104,6 @@ func (st *state) border() error {
 			return err
 		}
 		st.pl.Radius = r
-		st.b.Ignore("border-radius", reasonM2)
 	}
 	st.ignoreIf(reasonNotImplemented, "border-radius-inner")
 	return nil
@@ -174,7 +172,7 @@ func (st *state) trim() error {
 	return nil
 }
 
-// mask maps mask=ellipse (+ mask-bg) and mask=corners (+ corner-radius) (M2).
+// mask maps mask=ellipse (+ mask-bg) and mask=corners (+ corner-radius).
 // Image masks (a mask URL) are unsupported.
 func (st *state) mask() error {
 	v, ok := st.get("mask")
@@ -198,12 +196,10 @@ func (st *state) mask() error {
 		st.ignoreIf(reasonNeedsParent, "mask-bg", "corner-radius")
 	case v == "ellipse":
 		st.pl.Mask = &transform.Mask{Shape: transform.MaskEllipse, Background: bg}
-		st.b.Ignore("mask", reasonM2)
 		st.ignoreIf(reasonNeedsParent, "corner-radius")
 	case v == "corners":
 		if r != nil {
 			st.pl.Radius = r
-			st.b.Ignore("mask", reasonM2)
 		}
 		st.ignoreIf(reasonNotImplemented, "mask-bg")
 	default:
