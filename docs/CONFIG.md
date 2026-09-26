@@ -287,6 +287,8 @@ The playground (WP-80) is a small web UI embedded in the binary: pick a source a
 | `XI_PLAYGROUND_PUBLIC` | `false` | Also serve it on the public listener (under `XI_SERVER_PATH_PREFIX`). Its sign endpoint then signs any URL for anyone who can reach it, which makes signing pointless: only for trusted networks and demos |
 | `XI_PLAYGROUND_PATH` | `/_playground` | Mount path: starts with `/`, no trailing `/`, `[A-Za-z0-9._~/-]` only, and not an admin route |
 
+Signing per mount: imgproxy mounts get the imgproxy path signature and the query, wsrv and cloudflare mounts `xi_sig` (both from `XI_SIGNING_KEYS`), thumbor mounts the thumbor signature (`XI_DIALECTS_THUMBOR_KEYS` or the mount's `keys`). Without a key the URL is returned unsigned (`insecure/`, `unsafe/`). The other dialects (ImageKit, Cloudinary, Cloudflare Images, bunny, AWS SIH, the simple family) are built free-form and returned unsigned: the playground does not hold their provider keys.
+
 Endpoints under the mount path: the page (`/`), its assets (`/assets/<version>/…`, immutable), `GET /api/meta` (dialect mounts, option catalogues, preset names, source names and types, signing mode, output formats), `POST /api/sign` and `GET /api/render?u=…` (runs the public handler in-process so the page can show the result and its headers from its own origin). See [OPENAPI.md](OPENAPI.md).
 
 Security:
@@ -294,6 +296,7 @@ Security:
 - **Keys never reach the browser.** `api/meta` reports only the signing mode and each mount's scheme; `api/sign` computes the signature on the server with the configured keys and returns the URL. Source entries list names and types only (no bucket credentials, headers, base URLs or allowlists).
 - **Anyone who can reach the playground can sign URLs.** On the admin listener (default `127.0.0.1:9090`) that is whoever can reach the admin port; keep it private. With `XI_PLAYGROUND_PUBLIC=true` and signing keys set, the public playground is a signing oracle for the whole internet, and the server logs a warning at startup.
 - `POST api/sign` is protected against cross-site requests (`http.CrossOriginProtection`: `Sec-Fetch-Site` / `Origin` checks) and only accepts a small JSON body.
+- On the public listener the playground path (`XI_SERVER_PATH_PREFIX` + `XI_PLAYGROUND_PATH`) is always reserved: it answers 404 unless `XI_PLAYGROUND_PUBLIC=true`, so it never reaches a dialect mounted at `/`.
 - `api/render` goes through the public handler with every public-listener check (unsigned policy, source allowlist, SSRF rules, limits); it grants nothing a public request would not get.
 - Every playground response carries `Content-Security-Policy` (`default-src 'self'`, `frame-ancestors 'none'`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`.
 

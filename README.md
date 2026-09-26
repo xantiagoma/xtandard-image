@@ -202,6 +202,23 @@ await img.from("https://images.unsplash.com/photo-1506744038136-46273834b3fb")
 // https://img.example.com/<signature>/rs:fill:1200:630/g:sm/aHR0cHM6….jpg
 ```
 
+## Playground
+
+A small web UI ships inside the binary, **off by default**. Turn it on and open it on the admin listener:
+
+```sh
+docker run --rm -p 127.0.0.1:8080:8080 -p 127.0.0.1:9090:9090 \
+  -e XI_DEV_MODE=true -e XI_ADMIN_ADDR=:9090 -e XI_PLAYGROUND_ENABLED=true \
+  ghcr.io/xantiagoma/xtandard-image:slim
+# then open http://127.0.0.1:9090/_playground/
+```
+
+Pick a source (a URL, one of your named sources, or a sample image), a dialect mount, and add options from the option catalogue (typed inputs per argument, aliases shown). The page shows the generated URL live, with a copy button, and the source next to the result with its response headers (`Content-Type`, size, `X-Xi-*` debug headers, timings).
+
+<!-- Screenshot placeholder: docs/img/playground.png is not committed yet; add one when the UI settles. -->
+
+URLs are signed on the server (`POST /_playground/api/sign`), so keys never reach the browser, but anyone who can open the playground can sign URLs: keep it on the private admin listener. `XI_PLAYGROUND_PUBLIC=true` also serves it on the public listener, for demos and trusted networks only. It is plain HTML, CSS and JavaScript with no build step, loads nothing from other origins (CSP `default-src 'self'`), and works air-gapped. See [docs/CONFIG.md](docs/CONFIG.md#playground).
+
 ## Performance
 
 [bench/RESULTS.md](bench/RESULTS.md) compares xtandard-image with imgproxy OSS on the same machine with matched settings (thumbnails to JPEG/WebP/AVIF, PNG with alpha, animated GIF, 1200 px fill, `/info`); the methodology is in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
