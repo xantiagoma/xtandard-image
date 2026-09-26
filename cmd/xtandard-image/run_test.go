@@ -104,24 +104,25 @@ func TestResolveBuildInfo(t *testing.T) {
 		Settings: []debug.BuildSetting{
 			{Key: "vcs.revision", Value: "abc123"},
 			{Key: "vcs.modified", Value: "true"},
+			{Key: "vcs.time", Value: "2026-09-01T10:00:00Z"},
 		},
 	}
 	tests := []struct {
-		name             string
-		ldVersion, ldSHA string
-		bi               *debug.BuildInfo
-		wantVer, wantSHA string
-		wantGo           string
+		name                      string
+		ldVersion, ldSHA, ldDate  string
+		bi                        *debug.BuildInfo
+		wantVer, wantSHA, wantDay string
+		wantGo                    string
 	}{
-		{name: "ldflags win", ldVersion: "v9.9.9", ldSHA: "deadbeef", bi: embedded, wantVer: "v9.9.9", wantSHA: "deadbeef", wantGo: "go1.27.1"},
-		{name: "build info fallback", bi: embedded, wantVer: "v1.2.3", wantSHA: "abc123-dirty", wantGo: "go1.27.1"},
-		{name: "nothing known", bi: &debug.BuildInfo{GoVersion: "go1.27.1"}, wantVer: "(devel)", wantSHA: "unknown", wantGo: "go1.27.1"},
+		{name: "ldflags win", ldVersion: "v9.9.9", ldSHA: "deadbeef", ldDate: "2026-09-26T00:00:00Z", bi: embedded, wantVer: "v9.9.9", wantSHA: "deadbeef", wantDay: "2026-09-26T00:00:00Z", wantGo: "go1.27.1"},
+		{name: "build info fallback", bi: embedded, wantVer: "v1.2.3", wantSHA: "abc123-dirty", wantDay: "2026-09-01T10:00:00Z", wantGo: "go1.27.1"},
+		{name: "nothing known", bi: &debug.BuildInfo{GoVersion: "go1.27.1"}, wantVer: "(devel)", wantSHA: "unknown", wantDay: "unknown", wantGo: "go1.27.1"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got := resolveBuildInfo(tc.ldVersion, tc.ldSHA, tc.bi)
-			want := buildInfo{Version: tc.wantVer, Commit: tc.wantSHA, GoVersion: tc.wantGo}
+			got := resolveBuildInfo(tc.ldVersion, tc.ldSHA, tc.ldDate, tc.bi)
+			want := buildInfo{Version: tc.wantVer, Commit: tc.wantSHA, Date: tc.wantDay, GoVersion: tc.wantGo}
 			if got != want {
 				t.Errorf("resolveBuildInfo() = %+v, want %+v", got, want)
 			}

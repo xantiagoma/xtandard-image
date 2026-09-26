@@ -91,10 +91,13 @@ jobs:
           ./bin/xtandard-image version | tee /dev/stderr | grep -q "xtandard-image ci (commit ${GITHUB_SHA}"
 
   smoke:
-    # WP-00 walking skeleton: build the app image natively on each
-    # architecture from the published base image and run scripts/smoke.sh
-    # (compose: app + static origin). Override the base with the repository
-    # variable XI_BASE_RUNTIME_IMAGE (the builder is "<base>-builder").
+    # Build the release app image (root Dockerfile, WP-37) natively on each
+    # architecture from the base pinned in docker/base/versions.sh (resolved
+    # to digests) and run scripts/verify-app-image.sh: version, image config,
+    # compressed size ≤ 110 MB, read-only rootfs + health, and
+    # scripts/smoke.sh (compose: app + static origin). Override the base with
+    # the repository variable XI_BASE_RUNTIME_IMAGE (the builder is
+    # "<base>-builder").
     name: smoke (${{ matrix.arch }})
     strategy:
       fail-fast: false
@@ -112,15 +115,28 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Dockerfile base defaults match versions.sh
+        run: scripts/base-image-ref.sh --check
       - name: Build app image
+        env:
+          XI_BASE_RUNTIME_IMAGE: ${{ vars.XI_BASE_RUNTIME_IMAGE }}
         run: |
+          if [ -n "$XI_BASE_RUNTIME_IMAGE" ]; then
+            builder="$XI_BASE_RUNTIME_IMAGE-builder"
+            runtime="$XI_BASE_RUNTIME_IMAGE"
+          else
+            builder="$(scripts/base-image-ref.sh --digest builder)"
+            runtime="$(scripts/base-image-ref.sh --digest runtime)"
+          fi
           docker build -t xtandard-image:ci \
-            --build-arg BASE="${{ vars.XI_BASE_RUNTIME_IMAGE || 'ghcr.io/xantiagoma/xtandard-image-base:slim' }}" \
+            --build-arg BASE_BUILDER="$builder" \
+            --build-arg BASE_RUNTIME="$runtime" \
             --build-arg VERSION=ci \
             --build-arg COMMIT="${GITHUB_SHA}" \
+            --build-arg SOURCE_DATE_EPOCH="$(git log -1 --pretty=%ct)" \
             .
           docker image inspect -f 'image size: {{.Size}} bytes' xtandard-image:ci
-      - name: Smoke test
-        run: scripts/smoke.sh
+      - name: Verify app image (config, size, read-only, health, smoke)
+        run: scripts/verify-app-image.sh xtandard-image:ci
         env:
-          XI_IMAGE: xtandard-image:ci
+          XI_EXPECT_VERSION: ci
