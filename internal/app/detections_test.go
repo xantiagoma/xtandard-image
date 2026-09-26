@@ -429,6 +429,34 @@ func TestDetectUnavailable(t *testing.T) {
 	}
 }
 
+// TestDetectVideoComposite: a video sprite or animation (vtt, vta) is
+// assembled from many frames, so it is never detected: face and object
+// gravities fall back to the smart crop, the detection filters draw
+// nothing, and the detector is not called (full image; video needs
+// FFmpeg).
+func TestDetectVideoComposite(t *testing.T) {
+	// Not parallel: see TestDetectDialects.
+	if !codec.VideoAvailable() {
+		t.Skip("video needs FFmpeg (the full image)")
+	}
+	fake := newFakeDetector(t)
+	a := start(t, detectDialectsConfig(t, ""), hooks{detector: fake})
+	base := "http://" + a.public.String()
+	for _, path := range []string{
+		"/insecure/vtt:-1:2:2:160:0/rs:fill:100:100/g:obj:face/plain/video/clip-av1.mp4@jpg",
+		"/insecure/vtt:-1:2:2:160:0/rs:fill:100:100/g:sm/plain/video/clip-av1.mp4@jpg",
+		"/insecure/vta:-1:0:3:160:0/c_obj:1:cat/bd:10:face/dd:1:person/plain/video/clip-av1.mp4@webp",
+	} {
+		r := get(t, base+path)
+		if r.status != http.StatusOK {
+			t.Errorf("GET %s: %d %q", path, r.status, r.body)
+		}
+	}
+	if f, o := fake.faces.Load(), fake.objs.Load(); f != 0 || o != 0 {
+		t.Errorf("detector calls on video composites: faces %d, objects %d; want none", f, o)
+	}
+}
+
 // TestDetectModels runs the shipped models end to end (the full image;
 // skipped where detection is unavailable, where TestDetectUnavailable
 // covers the behaviour): /info finds the reference detections, and face
