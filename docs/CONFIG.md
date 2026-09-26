@@ -191,7 +191,7 @@ Rules:
 | `XI_OBSERVABILITY_LOG_LEVEL` | `info` | |
 | `XI_ADMIN_ADDR` | `127.0.0.1:9090` | Admin listener: `/metrics`, pprof; set `:9090` for in-cluster scraping; empty disables |
 | `XI_ADMIN_PPROF` | `false` | pprof incl. `goroutineleak` on the admin listener |
-| `XI_OBSERVABILITY_DEBUG_HEADERS` | `false` | `X-Xi-Ignored`, stage timings |
+| `XI_OBSERVABILITY_DEBUG_HEADERS` | `false` | `X-Xi-Ignored`, `X-Xi-Origin-Content-Length`, `X-Xi-Origin-Width/-Height`, `X-Xi-Result-Width/-Height` (ARCHITECTURE §9.1) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` etc. | — | Standard OpenTelemetry vars; tracing on when set |
 | `XI_OTEL_ENABLED` | `false` | Force tracing on without an endpoint variable (exporter still chosen by `OTEL_TRACES_EXPORTER`, e.g. `console`) |
 
