@@ -21,8 +21,10 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   `m3/wp-77-78-watermarks`, `m3/wp-84-ts-url-builder`, `m3/wp-80-playground`,
   `m3/wp-81b-82b-pages-huma` (**done, adopted: PR #80 is the bottom of the `m3` stack**). `m3/wp-70-full-base` is **done and adopted (PR #81)**; `m3/wp-71-detect` and `m3/wp-74-video`
   were launched from it (branch from `origin/m3/wp-70-full-base`; verify with
-  `xtandard-base:dev-full-builder` and slim). `m3/wp-84-ts-url-builder` is **done and adopted (PR #83)**. `m3/wp-80-playground` is **done and adopted (PR #84)**. `m3/wp-77-78-watermarks` is **done and adopted (PR #85)**. Stack: #80 → #81 → #83 → #84 → #85.
-  Adopt the rest as they finish (order: 87, 71, 74, then 88), then launch WP-72/73 (after 71) and WP-75/76 (after 74). After WP-70 lands, launch WP-71 (detect runtime) → WP-72/73, and WP-74 (video) →
+  `xtandard-base:dev-full-builder` and slim). `m3/wp-84-ts-url-builder` is **done and adopted (PR #83)**. `m3/wp-80-playground` is **done and adopted (PR #84)**. `m3/wp-77-78-watermarks` is **done and adopted (PR #85)**. `m3/wp-87-stabilise` is **done and adopted (PR #86)**. Stack: #80 → #81 → #83 → #84 → #85 → #86,
+  rebased on main. Adopt the rest as they finish (order: 70b, 71, 74, 88). `git config rerere.enabled
+  true` is set; `scripts/stack/resolve-handoff.py` resolves HANDOFF conflicts (branch wins inside
+  "Known gaps", both sides elsewhere)., then launch WP-72/73 (after 71) and WP-75/76 (after 74). After WP-70 lands, launch WP-71 (detect runtime) → WP-72/73, and WP-74 (video) →
   WP-75/76.
 - **Owner decision 2026-09-27:** add a third image flavour **`gpl`** (FFmpeg `--enable-gpl` + libx264 +
   x265, anything else we excluded only for being GPL) with its own GPL notice; source stays MIT;
