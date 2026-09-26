@@ -20,3 +20,4 @@ Users deploy on Dokploy, Coolify and Kubernetes and expect `docker run` with no 
 - We own a C dependency build: security updates are our responsibility (Renovate on `versions.sh`, weekly rebuilds).
 - glibc runtime (not distroless-static/musl) because PDFium and ONNX Runtime ship glibc binaries.
 - `full` is materially larger (target ≤ 170 MB compressed vs ≤ 110 MB slim).
+- WP-66 (base revision `r2`) added the M2 extras to slim: LibRaw 0.22.x (LGPL-2.1, https://www.libraw.org/), PDFium prebuilt from https://github.com/bblanchon/pdfium-binaries (BSD-3-Clause; poppler stays out), OpenEXR 3.4.x + Imath 3.2.x (BSD-3-Clause, https://openexr.com/), and ImageMagick 7 (ImageMagick License, https://imagemagick.org/license/) as MagickCore only, loaded by libvips through the single `vips-magick.so` module and restricted to reading PSD/PSB by `docker/base/magick-policy.xml`. Licence details in ADR 0006; sizes in `docker/base/README.md`.
