@@ -1,0 +1,651 @@
+[
+  {
+    "name": "readme_example",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "width": 150,
+      "height": 150,
+      "format": "webp",
+      "quality": 80,
+      "enlarge": "t",
+      "extend": {
+        "extend": 1,
+        "gravity": {
+          "type": "nowe",
+          "y_offset": 5
+        }
+      },
+      "blur": 5,
+      "zoom": 1.5
+    },
+    "path": "/bl:5/el:t/ex:t:nowe::5/f:webp/h:150/q:80/w:150/z:1.5/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "resize_full",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "resize": {
+        "resizing_type": "fill",
+        "width": 300,
+        "height": 400,
+        "enlarge": 1,
+        "extend": {
+          "extend": 1,
+          "gravity": {
+            "type": "so"
+          }
+        }
+      }
+    },
+    "path": "/rs:fill:300:400:t:t:so/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "resize_type_only",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "resize": {
+        "resizing_type": "fit"
+      }
+    },
+    "path": "/rs:fit/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "size_wh",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "base64",
+    "options": {
+      "size": {
+        "width": 640,
+        "height": 480
+      }
+    },
+    "path": "/s:640:480/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+  },
+  {
+    "name": "size_enlarge_extend",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "base64",
+    "options": {
+      "size": {
+        "width": 640,
+        "height": 480,
+        "enlarge": "t",
+        "extend": {
+          "extend": true
+        }
+      }
+    },
+    "path": "/s:640:480:t:t/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+  },
+  {
+    "name": "resizing_type_force",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "resizing_type": "force",
+      "width": 50
+    },
+    "path": "/rt:force/w:50/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "resizing_algorithm",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "resizing_algorithm": "lanczos2",
+      "w": 100
+    },
+    "path": "/ra:lanczos2/w:100/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "min_dims",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "min_width": 200,
+      "min_height": 100
+    },
+    "path": "/mh:100/mw:200/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "zoom_xy",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "zoom": {
+        "zoom_x": 0.5,
+        "zoom_y": 2
+      }
+    },
+    "path": "/z:0.5:2/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "dpr_enlarge",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "dpr": 2,
+      "enlarge": 1,
+      "width": 300
+    },
+    "path": "/dpr:2/el:t/w:300/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "extend_gravity",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "extend": {
+        "extend": 1,
+        "gravity": {
+          "type": "soea",
+          "x_offset": 10,
+          "y_offset": 20
+        }
+      }
+    },
+    "path": "/ex:t:soea:10:20/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "extend_ar_fp",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "extend_aspect_ratio": {
+        "extend": true,
+        "gravity": {
+          "type": "fp",
+          "x": 0.25,
+          "y": 0.75
+        }
+      }
+    },
+    "path": "/exar:t:fp:0.25:0.75/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "gravity_smart",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "resize": {
+        "resizing_type": "fill",
+        "width": 300,
+        "height": 300
+      },
+      "gravity": {
+        "type": "sm"
+      }
+    },
+    "path": "/g:sm/rs:fill:300:300/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "gravity_fp",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "gravity": {
+        "type": "fp",
+        "x": 0.5,
+        "y": 0.3
+      }
+    },
+    "path": "/g:fp:0.5:0.3/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "gravity_compass_offsets",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "gravity": {
+        "type": "we",
+        "x_offset": 5,
+        "y_offset": 0.1
+      }
+    },
+    "path": "/g:we:5:0.1/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "gravity_obj",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "gravity": {
+        "type": "obj",
+        "class_names": [
+          "face",
+          "cat"
+        ]
+      }
+    },
+    "path": "/g:obj:face:cat/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "gravity_objw",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "gravity": {
+        "type": "objw",
+        "class_weights": [
+          {
+            "class": "face",
+            "weight": 2
+          },
+          {
+            "class": "dog",
+            "weight": 0.5
+          }
+        ]
+      }
+    },
+    "path": "/g:objw:face:2:dog:0.5/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "crop_abs_gravity",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "crop": {
+        "width": 100,
+        "height": 200,
+        "gravity": {
+          "type": "noea",
+          "x_offset": 3
+        }
+      }
+    },
+    "path": "/c:100:200:noea:3/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "crop_rel",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "base64",
+    "options": {
+      "crop": {
+        "width": 0.5,
+        "height": 0.25
+      }
+    },
+    "path": "/c:0.5:0.25/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+  },
+  {
+    "name": "trim_full",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "trim": {
+        "threshold": 10,
+        "color": "ffaa00",
+        "equal_hor": 1,
+        "equal_ver": false
+      }
+    },
+    "path": "/t:10:ffaa00:t:f/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "trim_threshold",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "trim": {
+        "threshold": 2.5
+      }
+    },
+    "path": "/t:2.5/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "padding_number",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "padding": 10
+    },
+    "path": "/pd:10/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "padding_object",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "padding": {
+        "top": 1,
+        "right": 2,
+        "bottom": 3,
+        "left": 4
+      }
+    },
+    "path": "/pd:1:2:3:4/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "padding_partial",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "padding": {
+        "top": 5,
+        "right": 6
+      }
+    },
+    "path": "/pd:5:6/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "auto_rotate_rotate_flip",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "auto_rotate": false,
+      "rotate": 270,
+      "flip": {
+        "horizontal": true,
+        "vertical": false
+      }
+    },
+    "path": "/ar:f/fl:t:f/rot:270/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "background_hex",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "background": "ff0080"
+    },
+    "path": "/bg:ff0080/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "background_rgb",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "background": {
+        "r": 10,
+        "g": 20,
+        "b": 30
+      }
+    },
+    "path": "/bg:10:20:30/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "background_alpha",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "background": "fff",
+      "background_alpha": 0.5
+    },
+    "path": "/bg:fff/background_alpha:0.5/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "effects",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "blur": 2.5,
+      "sharpen": 0.7,
+      "pixelate": 8
+    },
+    "path": "/bl:2.5/pix:8/sh:0.7/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "watermark_full",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "watermark": {
+        "opacity": 0.5,
+        "position": "soea",
+        "x_offset": 10,
+        "y_offset": 12,
+        "scale": 0.2
+      }
+    },
+    "path": "/wm:0.5:soea:10:12:0.2/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "watermark_replicate",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "watermark": {
+        "opacity": 1,
+        "position": "re"
+      }
+    },
+    "path": "/wm:1:re/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "watermark_chessboard",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "watermark": {
+        "opacity": 0.3,
+        "position": "ch",
+        "x_offset": 4
+      }
+    },
+    "path": "/wm:0.3:ch:4/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "metadata_flags",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "strip_metadata": 0,
+      "keep_copyright": "t",
+      "strip_color_profile": false,
+      "enforce_thumbnail": 1,
+      "preserve_hdr": true
+    },
+    "path": "/eth:t/kcr:t/ph:t/scp:f/sm:f/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "quality_format_quality",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "quality": 75,
+      "format_quality": [
+        {
+          "format": "jpeg",
+          "quality": 80
+        },
+        {
+          "format": "webp",
+          "quality": 70
+        },
+        {
+          "format": "avif",
+          "quality": 50
+        }
+      ]
+    },
+    "path": "/fq:jpeg:80:webp:70:avif:50/q:75/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "max_bytes_format",
+    "source": "s3://bucket/path/to/key.png",
+    "type": "plain",
+    "options": {
+      "max_bytes": 100000,
+      "format": "avif"
+    },
+    "path": "/f:avif/mb:100000/plain/s3://bucket/path/to/key.png"
+  },
+  {
+    "name": "format_jpg_base64",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "base64",
+    "options": {
+      "format": "jpg"
+    },
+    "path": "/f:jpg/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+  },
+  {
+    "name": "skip_processing",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "skip_processing": [
+        "svg",
+        "gif"
+      ]
+    },
+    "path": "/sp:svg:gif/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "raw",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "raw": true
+    },
+    "path": "/raw:t/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "delivery",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "cachebuster": "v42",
+      "expires": 4102444800,
+      "filename": {
+        "name": "my-cat",
+        "encoded": false
+      },
+      "return_attachment": 1
+    },
+    "path": "/cb:v42/exp:4102444800/fn:my-cat:f/att:t/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "filename_encoded",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "filename": {
+        "name": "Y2hhdCByw6lzdW3DqS5qcGc",
+        "encoded": true
+      }
+    },
+    "path": "/fn:Y2hhdCByw6lzdW3DqS5qcGc:t/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "presets",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "preset": [
+        "sharp",
+        "thumbnail"
+      ]
+    },
+    "path": "/pr:sharp:thumbnail/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "disable_animation_pages",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "disable_animation": 1,
+      "page": 2,
+      "pages": 3
+    },
+    "path": "/da:t/pg:2/pgs:3/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "later_options",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "adjust": {
+        "brightness": 10,
+        "contrast": 1.2,
+        "saturation": 0.8
+      },
+      "dpi": 300,
+      "jpeg_options": {
+        "progressive": true
+      }
+    },
+    "path": "/a:10:1.2:0.8/dpi:300/jpgo:true/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "wild_options",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "wild_options": [
+        [
+          "rs",
+          "fit",
+          10,
+          10
+        ],
+        [
+          "custom",
+          "a",
+          "b"
+        ]
+      ]
+    },
+    "path": "/rs:fit:10:10/custom:a:b/plain/https://example.com/images/cat.jpg"
+  },
+  {
+    "name": "base64_s3",
+    "source": "s3://bucket/path/to/key.png",
+    "type": "base64",
+    "options": {
+      "width": 100,
+      "height": 100,
+      "resizing_type": "fill-down"
+    },
+    "path": "/h:100/rt:fill-down/w:100/czM6Ly9idWNrZXQvcGF0aC90by9rZXkucG5n"
+  },
+  {
+    "name": "plain_ext",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "plain",
+    "options": {
+      "width": 200,
+      "format": "png"
+    },
+    "path": "/f:png/w:200/plain/https://example.com/images/cat.jpg@webp"
+  },
+  {
+    "name": "base64_ext",
+    "source": "https://example.com/images/cat.jpg",
+    "type": "base64",
+    "options": {
+      "height": 120,
+      "strip_metadata": true
+    },
+    "path": "/h:120/sm:t/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw.png"
+  },
+  {
+    "name": "all_aliases_short",
+    "source": "s3://bucket/path/to/key.png",
+    "type": "plain",
+    "options": {
+      "rs": {
+        "resizing_type": "auto",
+        "width": 10
+      },
+      "g": {
+        "type": "ce"
+      },
+      "ex": {
+        "extend": 0
+      },
+      "fn": {
+        "name": "x"
+      },
+      "exp": 0,
+      "pr": [
+        "a"
+      ]
+    },
+    "path": "/ex:f/fn:x/g:ce/pr:a/rs:auto:10/plain/s3://bucket/path/to/key.png"
+  }
+]
