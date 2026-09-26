@@ -72,7 +72,7 @@ func serve(ctx context.Context, args []string, environ []string, stdout io.Write
 	logger := logging.New(stdout, logging.Options{Level: cfg.Observability.LogLevel.Level()})
 	logMeta(ctx, logger, &meta)
 
-	info := versionInfo(version, commit)
+	info := versionInfo(version, commit, date)
 	getenv := lookup(environ)
 	return app.Run(ctx, &cfg, logger, app.Options{
 		Version: info.Version,
@@ -163,9 +163,9 @@ func printVersion(args []string, stdout io.Writer) error {
 	if err := fs.Parse(args); err != nil {
 		return ignoreHelp(err)
 	}
-	info := versionInfo(version, commit)
-	_, err := fmt.Fprintf(stdout, "xtandard-image %s (commit %s, %s, %s/%s)\n",
-		info.Version, info.Commit, info.GoVersion, runtime.GOOS, runtime.GOARCH)
+	info := versionInfo(version, commit, date)
+	_, err := fmt.Fprintf(stdout, "xtandard-image %s (commit %s, built %s, %s, %s/%s)\n",
+		info.Version, info.Commit, info.Date, info.GoVersion, runtime.GOOS, runtime.GOARCH)
 	return err
 }
 
@@ -173,39 +173,45 @@ func printVersion(args []string, stdout io.Writer) error {
 type buildInfo struct {
 	Version   string
 	Commit    string
+	Date      string
 	GoVersion string
 }
 
 // versionInfo prefers link-time values (-ldflags -X, used by Docker builds
 // that have no .git) and falls back to the module and VCS data embedded by
 // the go command.
-func versionInfo(ldVersion, ldCommit string) buildInfo {
+func versionInfo(ldVersion, ldCommit, ldDate string) buildInfo {
 	bi, _ := debug.ReadBuildInfo()
-	return resolveBuildInfo(ldVersion, ldCommit, bi)
+	return resolveBuildInfo(ldVersion, ldCommit, ldDate, bi)
 }
 
-func resolveBuildInfo(ldVersion, ldCommit string, bi *debug.BuildInfo) buildInfo {
-	out := buildInfo{Version: ldVersion, Commit: ldCommit, GoVersion: runtime.Version()}
+func resolveBuildInfo(ldVersion, ldCommit, ldDate string, bi *debug.BuildInfo) buildInfo {
+	out := buildInfo{Version: ldVersion, Commit: ldCommit, Date: ldDate, GoVersion: runtime.Version()}
 	if bi != nil {
 		out.GoVersion = bi.GoVersion
 		if out.Version == "" {
 			out.Version = bi.Main.Version
 		}
-		if out.Commit == "" {
-			var rev string
-			var dirty bool
-			for _, s := range bi.Settings {
-				switch s.Key {
-				case "vcs.revision":
-					rev = s.Value
-				case "vcs.modified":
-					dirty = s.Value == "true"
-				}
+		var rev, vcsTime string
+		var dirty bool
+		for _, s := range bi.Settings {
+			switch s.Key {
+			case "vcs.revision":
+				rev = s.Value
+			case "vcs.modified":
+				dirty = s.Value == "true"
+			case "vcs.time":
+				vcsTime = s.Value
 			}
+		}
+		if out.Commit == "" {
 			if rev != "" && dirty {
 				rev += "-dirty"
 			}
 			out.Commit = rev
+		}
+		if out.Date == "" {
+			out.Date = vcsTime
 		}
 	}
 	if out.Version == "" {
@@ -213,6 +219,9 @@ func resolveBuildInfo(ldVersion, ldCommit string, bi *debug.BuildInfo) buildInfo
 	}
 	if out.Commit == "" {
 		out.Commit = "unknown"
+	}
+	if out.Date == "" {
+		out.Date = "unknown"
 	}
 	return out
 }
