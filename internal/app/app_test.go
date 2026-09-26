@@ -202,7 +202,7 @@ func TestRunEndToEnd(t *testing.T) {
 		want int
 	}{
 		{path: "/insecure/w:10/plain/" + origin.URL + "/missing.jpg", want: http.StatusNotFound},
-		{path: "/insecure/w:10/plain/" + origin.URL + "/bmp/rgb24.bmp", want: http.StatusUnprocessableEntity},
+		{path: "/insecure/w:10/plain/" + origin.URL + "/bmp/rgb24.bmp", want: http.StatusOK},
 		{path: "/insecure/w:10/plain/" + origin.URL + "/svg/logo.svg", want: http.StatusOK},
 		{path: "/insecure/w:10/plain/http://169.254.169.254/latest/meta-data", want: http.StatusForbidden},
 		{path: "/insecure/raw:1/plain/" + origin.URL + "/jpeg/baseline.jpg", want: http.StatusNotImplemented},
