@@ -19,6 +19,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/encode"
 	"github.com/xantiagoma/xtandard-image/internal/config"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/cloudinary"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/security/sign"
 	"github.com/xantiagoma/xtandard-image/internal/server"
@@ -355,5 +356,47 @@ dialects:
 	unsafe := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/thumbor/unsafe/a.jpg", http.NoBody)
 	if _, _, err := rt.Route(unsafe); err == nil {
 		t.Error("thumbor accepted an unsafe URL with signing required")
+	}
+}
+
+// TestBuildRouterCloudinary: an enabled Cloudinary mount routes its prefix
+// and verifies s--…-- signatures with the mount's keys (WP-41).
+func TestBuildRouterCloudinary(t *testing.T) {
+	t.Parallel()
+	cfg, _, err := config.Load(config.LoadOptions{Environ: []string{
+		"XI_DEV_MODE=true",
+		"XI_DIALECTS_CLOUDINARY_ENABLED=true",
+		"XI_DIALECTS_CLOUDINARY_KEYS=api-secret",
+		"XI_DIALECTS_CLOUDINARY_UNSIGNED_POLICY=deny",
+	}, ConfigFile: os.DevNull})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rt, warnings, err := buildRouter(&cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, w := range warnings {
+		if strings.Contains(w, "cloudinary") {
+			t.Errorf("warning %q", w)
+		}
+	}
+	s, err := sign.NewSigner(sign.NewCloudinaryScheme(false, false), sign.NewKeyring(sign.NewKey([]byte("api-secret"), nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	seg, err := s.SignCloudinary("c_fill,w_300/sample.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, m, err := rt.Route(httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/cloudinary/demo/image/upload/"+seg+"/c_fill,w_300/v1/sample.jpg", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Dialect != cloudinary.Name || res.Signature != sign.Verified || res.SourceString != "sample.jpg" {
+		t.Errorf("mount %q, signature %v, source %q", m.Dialect, res.Signature, res.SourceString)
+	}
+	if _, _, err := rt.Route(httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/cloudinary/demo/image/upload/c_fill,w_300/sample.jpg", nil)); errs.KindOf(err) != errs.KindForbidden {
+		t.Errorf("unsigned request: %v, want 403 (unsigned policy deny)", err)
 	}
 }
