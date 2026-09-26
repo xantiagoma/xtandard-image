@@ -31,6 +31,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/security/svg"
 	"github.com/xantiagoma/xtandard-image/internal/source"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
+	"github.com/xantiagoma/xtandard-image/internal/video"
 )
 
 // Router selects the dialect mount for a request, parses and authenticates
@@ -77,6 +78,27 @@ type SourceMeta struct {
 	HasAlpha    bool
 	IsAnimated  bool
 	Orientation int // EXIF orientation 1..8 (1 when absent)
+	// Video describes a video source (container, streams, the display size
+	// and matrix of its frames); nil for images. A video_thumbnail_tile or
+	// _animation request turns the fields above into those of the sprite
+	// or animation (videoComposite), and Composite is set.
+	Video     *video.Meta
+	Composite bool
+	// Session is what the prober kept open for the processor (a video's
+	// FFmpeg handle, so the frames are not probed twice); nil when
+	// nothing. The server closes it once the request is done.
+	Session Session
+}
+
+// Session is a resource a Prober hands to the Processor through
+// SourceMeta. Close must be idempotent.
+type Session interface{ Close() }
+
+// closeSession closes m's session, if any.
+func (m *SourceMeta) closeSession() {
+	if m.Session != nil {
+		m.Session.Close()
+	}
 }
 
 // ProbeLimits are the effective input limits of one request (config values,
@@ -152,6 +174,10 @@ type ProcessOutput struct {
 	// (timestamp, keyframe, best-frame selection); sent as
 	// X-Xi-Video-Frame with debug headers. Empty for images.
 	VideoFrame string
+	// VideoCodec is the codec of a video output ("vp9", "av1", "h264",
+	// "hevc"); sent as X-Xi-Video-Codec with debug headers. Empty for
+	// images.
+	VideoCodec string
 }
 
 // Processor plans, executes and encodes one image (stages 12–13;
@@ -180,6 +206,9 @@ type Limits struct {
 	MaxAnimationFrames      int
 	MaxAnimationFramePixels int64
 	MaxResultDimension      int
+	// MaxVideoCompositeFrames caps the frames of a video sprite or
+	// animation (XI_VIDEO_MAX_ANIMATION_FRAMES).
+	MaxVideoCompositeFrames int
 	// AllowRaising lets request security options raise limits above the
 	// configured values (XI_SECURITY_ALLOW_RAISING_LIMITS); otherwise they
 	// can only lower them.

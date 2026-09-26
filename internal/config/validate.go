@@ -471,6 +471,11 @@ func (c *Config) validateLimits(v *validator) {
 	}
 }
 
+// x26xPresets are the presets x264 and x265 share, fastest first.
+func x26xPresets() []string {
+	return []string{"ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "placebo"}
+}
+
 func (c *Config) validateVideo(v *validator) {
 	vd := c.Video
 	v.positive(int64(vd.MaxBytes), "video.max_bytes")
@@ -478,6 +483,22 @@ func (c *Config) validateVideo(v *validator) {
 	v.positive(vd.MaxPixels, "video.max_pixels")
 	v.between(vd.Thumbnail.Samples, 1, 32, "video.thumbnail.samples")
 	v.positive(int64(vd.Thumbnail.Span), "video.thumbnail.span")
+	v.between(vd.MaxAnimationFrames, 1, 10_000, "video.max_animation_frames")
+	e := vd.Encode
+	v.between(e.VP9CRF, 0, 63, "video.encode.vp9_crf")
+	v.between(e.AV1CRF, 0, 63, "video.encode.av1_crf")
+	v.between(e.H264CRF, 0, 51, "video.encode.h264_crf")
+	v.between(e.HEVCCRF, 0, 51, "video.encode.hevc_crf")
+	v.between(e.VP9Speed, 0, 9, "video.encode.vp9_speed")
+	v.between(e.AV1Speed, 0, 10, "video.encode.av1_speed")
+	for _, p := range []struct{ name, v string }{
+		{"video.encode.h264_preset", e.H264Preset}, {"video.encode.hevc_preset", e.HEVCPreset},
+	} {
+		v.check(slices.Contains(x26xPresets(), p.v), p.name, "%q is not an x264/x265 preset (%s)", p.v, strings.Join(x26xPresets(), ", "))
+	}
+	v.positive(int64(e.MaxFrames), "video.encode.max_frames")
+	v.positive(int64(e.MaxDuration), "video.encode.max_duration")
+	v.positive(e.MaxPixels, "video.encode.max_pixels")
 	_, isNumber := vd.Thumbnail.Second.Seconds()
 	v.check(isNumber || vd.Thumbnail.Second == VideoSecondAuto || vd.Thumbnail.Second == "",
 		"video.thumbnail.second", "%q is not a number of seconds or auto", vd.Thumbnail.Second)

@@ -123,6 +123,14 @@ func TestValidate(t *testing.T) {
 		{"limits", func(c *Config) { c.Limits.MaxSVGBytes = 0 }, []string{"limits.max_svg_bytes (XI_LIMITS_MAX_SVG_BYTES): must be > 0"}},
 		{"video limits", func(c *Config) { c.Video.MaxDuration, c.Video.Thumbnail.Samples = 0, 33 }, []string{"video.max_duration (XI_VIDEO_MAX_DURATION): must be > 0", "video.thumbnail.samples"}},
 		{"video second", func(c *Config) { c.Video.Thumbnail.Second = "soon" }, []string{`video.thumbnail.second (XI_VIDEO_THUMBNAIL_SECOND): "soon" is not a number`}},
+		{"video encode", func(c *Config) {
+			c.Video.MaxAnimationFrames, c.Video.Encode.VP9CRF, c.Video.Encode.H264CRF = 0, 64, 52
+			c.Video.Encode.H264Preset, c.Video.Encode.MaxDuration = "turbo", 0
+		}, []string{
+			"video.max_animation_frames", "video.encode.vp9_crf", "video.encode.h264_crf",
+			`video.encode.h264_preset (XI_VIDEO_ENCODE_H264_PRESET): "turbo" is not an x264/x265 preset`,
+			"video.encode.max_duration (XI_VIDEO_ENCODE_MAX_DURATION): must be > 0",
+		}},
 		{"duplicate store", func(c *Config) { c.Cache.Result.Stores = []StoreKind{StoreMemory, StoreMemory} }, []string{"memory listed twice"}},
 		{"disk store without path", func(c *Config) { c.Cache.Result.Stores = []StoreKind{StoreDisk} }, []string{"cache.result.disk.path (XI_CACHE_RESULT_DISK_PATH)"}},
 		{"redis store without url", func(c *Config) { c.Cache.Result.Stores = []StoreKind{StoreRedis} }, []string{"cache.result.redis.url"}},

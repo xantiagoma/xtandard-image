@@ -515,6 +515,8 @@ func formatExt(f transform.Format) string {
 		return ""
 	case transform.FormatJPEG:
 		return ".jpg"
+	case transform.FormatHEVC:
+		return ".mp4" // HEVC in MP4
 	default:
 		return "." + f.String()
 	}
@@ -577,6 +579,9 @@ func setDebugHeaders(h http.Header, res *imageResult) {
 	}
 	if res.out != nil && res.out.VideoFrame != "" {
 		h.Set("X-Xi-Video-Frame", res.out.VideoFrame)
+	}
+	if res.out != nil && res.out.VideoCodec != "" {
+		h.Set("X-Xi-Video-Codec", res.out.VideoCodec)
 	}
 	if len(res.req.Ignored) > 0 {
 		var b strings.Builder
