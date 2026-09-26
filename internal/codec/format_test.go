@@ -43,8 +43,8 @@ func TestFormatFacts(t *testing.T) {
 		{codec.FormatSVG, "svg", "svg", "image/svg+xml", false, true, true, transform.FormatSVG},
 		{codec.FormatJP2, "jp2", "jp2", "image/jp2", false, true, true, transform.FormatUnset},
 		{codec.FormatUHDR, "uhdr", "jpg", "image/jpeg", false, false, true, transform.FormatJPEG},
-		{codec.FormatPDF, "pdf", "pdf", "application/pdf", false, true, false, transform.FormatUnset},
-		{codec.FormatPSD, "psd", "psd", "image/vnd.adobe.photoshop", false, true, false, transform.FormatUnset},
+		{codec.FormatPDF, "pdf", "pdf", "application/pdf", false, true, true, transform.FormatUnset},
+		{codec.FormatPSD, "psd", "psd", "image/vnd.adobe.photoshop", false, true, true, transform.FormatUnset},
 		{codec.FormatRAW, "raw", "", "application/octet-stream", false, false, false, transform.FormatUnset},
 	}
 	if len(tests) != len(allFormats()) {

@@ -102,8 +102,14 @@ func TestProbeFixtures(t *testing.T) {
 		"bmp/rle8.bmp":       still(codec.FormatBMP, 96, 72),
 		"ico/png-entry.ico":  with(still(codec.FormatICO, 64, 64), func(m *codec.ImageMeta) { m.HasAlpha = true }),
 		"ico/bmp-entry.ico":  with(still(codec.FormatICO, 32, 32), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		// PDF pages render opaque (white) unless a request asks otherwise.
+		"pdf/pages.pdf":        with(still(codec.FormatPDF, 200, 150), func(m *codec.ImageMeta) { m.Pages = 3 }),
+		"psd/layered.psd":      with(still(codec.FormatPSD, 96, 72), func(m *codec.ImageMeta) { m.Pages = 3 }),
+		"psd/psb-layered.psb":  with(still(codec.FormatPSD, 96, 72), func(m *codec.ImageMeta) { m.Pages = 3 }),
+		"psd/no-composite.psd": with(still(codec.FormatPSD, 96, 72), func(m *codec.ImageMeta) { m.Pages = 3 }),
 	}
-	if len(tests) != len(fixtureFormats()) {
+	// password.pdf fails by design (TestProbeErrors).
+	if len(tests) != len(fixtureFormats())-1 {
 		t.Fatalf("probe table has %d fixtures, sniff table %d", len(tests), len(fixtureFormats()))
 	}
 	for name, want := range tests {
@@ -150,8 +156,13 @@ func TestProbeErrors(t *testing.T) {
 	}{
 		{"empty", nil, codec.Limits{}, errs.KindUnsupported},
 		{"garbage", []byte("definitely not an image"), codec.Limits{}, errs.KindUnsupported},
-		{"pdf is M2", []byte("%PDF-1.7\n%\xe2\xe3\xcf\xd3\n"), codec.Limits{}, errs.KindUnsupported},
-		{"psd is M2", []byte("8BPS\x00\x01\x00\x00\x00\x00\x00\x00\x00\x03"), codec.Limits{}, errs.KindUnsupported},
+		{"truncated pdf", []byte("%PDF-1.7\n%\xe2\xe3\xcf\xd3\n"), codec.Limits{}, errs.KindCorrupt},
+		{"truncated psd", []byte("8BPS\x00\x01\x00\x00\x00\x00\x00\x00\x00\x03"), codec.Limits{}, errs.KindCorrupt},
+		{"pdf with a password", readFixture(t, "pdf/password.pdf"), codec.Limits{}, errs.KindUnsupported},
+		{"pdf over page limit", readFixture(t, "pdf/pages.pdf"), codec.Limits{MaxPDFPages: 2}, errs.KindLimitExceeded},
+		{"pdf over pixel limit", readFixture(t, "pdf/pages.pdf"), codec.Limits{MaxSrcPixels: 1000}, errs.KindLimitExceeded},
+		{"psd without composite refused", readFixture(t, "psd/no-composite.psd"), codec.Limits{PSDRequireComposite: true}, errs.KindUnsupported},
+		{"psd over pixel limit", readFixture(t, "psd/layered.psd"), codec.Limits{MaxSrcPixels: 1000}, errs.KindLimitExceeded},
 		{"cr2 is M2", []byte("II*\x00\x10\x00\x00\x00CR\x02\x00"), codec.Limits{}, errs.KindUnsupported},
 		{"mp4", isobmff("isom", "mp41"), codec.Limits{}, errs.KindUnsupported},
 		{"jpeg header only", jpeg[:24], codec.Limits{}, errs.KindCorrupt},
@@ -192,7 +203,9 @@ func TestProbeCanceled(t *testing.T) {
 
 // TestProbeOversizeDoesNotDecode feeds headers that declare enormous images
 // (a 100k × 100k PNG: 30 GB decoded; a GIF with 10k frames of 1000×1000:
-// 40 GB; two 5000×4000 frames) and checks that each is refused with
+// 40 GB; two 5000×4000 frames; a PDF of 20k pages, over the default page
+// limit and past the 10k pages libvips' n-pages helper still counts) and
+// checks that each is refused with
 // LimitExceeded while libvips' tracked memory stays flat: nothing was
 // decoded. Not parallel: the counters are process-wide.
 func TestProbeOversizeDoesNotDecode(t *testing.T) {
@@ -203,6 +216,7 @@ func TestProbeOversizeDoesNotDecode(t *testing.T) {
 		{"png 100k squared", synthPNG(t, 100_000, 100_000)},
 		{"gif 10k frames", synthGIF(1000, 1000, 10_000)},
 		{"gif frames over frame pixels", synthGIF(5000, 4000, 2)},
+		{"pdf of 20k pages", synthPDF(20_000)},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -247,7 +261,11 @@ func FuzzProbe(f *testing.F) {
 	f.Add(synthPNG(f, 100_000, 100_000))
 	f.Add(synthGIF(16, 16, 300))
 	f.Add(isobmff("mif1", "avif"))
-	lim := codec.Limits{MaxSrcPixels: 1 << 20, MaxAnimationFrames: 64, MaxAnimationFramePixels: 1 << 18, MaxSVGBytes: 64 << 10}
+	f.Add(synthPDF(3))
+	lim := codec.Limits{
+		MaxSrcPixels: 1 << 20, MaxAnimationFrames: 64, MaxAnimationFramePixels: 1 << 18, MaxSVGBytes: 64 << 10,
+		MaxPDFPages: 8,
+	}
 	f.Fuzz(func(t *testing.T, data []byte) {
 		m, err := probe(t.Context(), t, data, lim, "")
 		if err != nil {

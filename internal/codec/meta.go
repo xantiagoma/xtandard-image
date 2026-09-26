@@ -88,7 +88,8 @@ func (m *ImageMeta) Pixels() int64 {
 
 // Limits bound what a source may declare in its headers. They are checked
 // by Probe before anything is decoded. A zero field takes the value of
-// DefaultLimits.
+// DefaultLimits. They also carry the two per-format probe settings (PDF
+// density, PSD composite policy), which decide what a header means.
 type Limits struct {
 	// MaxSrcPixels caps Width × Height × Frames (XI_LIMITS_MAX_SRC_PIXELS,
 	// imgproxy's IMGPROXY_MAX_SRC_RESOLUTION).
@@ -105,6 +106,19 @@ type Limits struct {
 	MaxSVGBytes    int64
 	MaxSVGDepth    int
 	MaxSVGElements int
+	// MaxPDFPages caps the pages a PDF may declare
+	// (XI_LIMITS_MAX_PDF_PAGES); the page count is read before any page is
+	// rendered.
+	MaxPDFPages int
+	// PDFDensity is the DPI PDF pages are measured (and later rendered) at
+	// when nothing is resized: the natural size of a page
+	// (XI_FORMATS_PDF_DPI, 72 by default: one pixel per point).
+	PDFDensity float64
+	// PSDRequireComposite refuses PSD/PSB files saved without a merged
+	// composite ("Maximize compatibility" off) with errs.KindUnsupported
+	// instead of letting ImageMagick flatten the layers
+	// (XI_FORMATS_PSD_REQUIRE_COMPOSITE, off by default).
+	PSDRequireComposite bool
 }
 
 // DefaultLimits returns the XI_LIMITS_* defaults of docs/CONFIG.md.
@@ -116,6 +130,8 @@ func DefaultLimits() Limits {
 		MaxSVGBytes:             5 << 20,
 		MaxSVGDepth:             256,
 		MaxSVGElements:          200_000,
+		MaxPDFPages:             500,
+		PDFDensity:              72,
 	}
 }
 
@@ -139,6 +155,12 @@ func (l Limits) withDefaults() Limits {
 	}
 	if l.MaxSVGElements <= 0 {
 		l.MaxSVGElements = d.MaxSVGElements
+	}
+	if l.MaxPDFPages <= 0 {
+		l.MaxPDFPages = d.MaxPDFPages
+	}
+	if !(l.PDFDensity > 0) {
+		l.PDFDensity = d.PDFDensity
 	}
 	return l
 }
