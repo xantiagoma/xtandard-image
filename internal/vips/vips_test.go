@@ -121,6 +121,9 @@ func TestThumbnailFixtures(t *testing.T) {
 	}
 }
 
+// unknownFormat marks inputs no enabled loader may take.
+const unknownFormat = "\x00unknown"
+
 func TestThumbnailErrors(t *testing.T) {
 	t.Parallel()
 
@@ -136,10 +139,12 @@ func TestThumbnailErrors(t *testing.T) {
 		{name: "garbage", data: []byte("definitely not an image"), want: errs.KindUnsupported},
 		// ppmload_buffer is compiled in but not on the allowlist. Blocked
 		// loaders are skipped by the libvips sniffer (foreign.c
-		// file_add_class), so the input reads as an unknown format.
-		{name: "ppm loader is blocked", data: []byte("P6\n2 2\n255\n" + string(make([]byte, 12))), want: errs.KindUnsupported, wantMsg: "not in a known format"},
+		// file_add_class), so the input reads as an unknown format, or, where
+		// ImageMagick is built in, matches its lowest-priority loader, which
+		// the shim refuses for anything but PSD.
+		{name: "ppm loader is blocked", data: []byte("P6\n2 2\n255\n" + string(make([]byte, 12))), want: errs.KindUnsupported, wantMsg: unknownFormat},
 		// radload_buffer is compiled in, untrusted and not on the allowlist.
-		{name: "radiance loader is blocked", data: []byte("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 1 +X 1\n\x00\x00\x00\x00"), want: errs.KindUnsupported, wantMsg: "not in a known format"},
+		{name: "radiance loader is blocked", data: []byte("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 1 +X 1\n\x00\x00\x00\x00"), want: errs.KindUnsupported, wantMsg: unknownFormat},
 		{name: "jpeg header only", data: baseline[:24], want: errs.KindCorrupt},
 	}
 	for _, tc := range tests {
@@ -156,7 +161,12 @@ func TestThumbnailErrors(t *testing.T) {
 			if !ok {
 				t.Fatalf("error %v does not carry *vips.OpError", err)
 			}
-			if !strings.Contains(opErr.Msg, tc.wantMsg) {
+			switch {
+			case tc.wantMsg == unknownFormat:
+				if !strings.Contains(opErr.Msg, "not in a known format") && !strings.Contains(opErr.Msg, "restricted to PSD/PSB") {
+					t.Errorf("vips message %q names neither an unknown format nor the PSD-only ImageMagick", opErr.Msg)
+				}
+			case !strings.Contains(opErr.Msg, tc.wantMsg):
 				t.Errorf("vips message %q does not mention %q", opErr.Msg, tc.wantMsg)
 			}
 		})

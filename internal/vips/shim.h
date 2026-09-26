@@ -28,6 +28,7 @@ enum {
   XI_ERR_INTERNAL = 4,    // failure not attributable to the input
   XI_ERR_LIMIT = 5,       // the header exceeds a configured limit
   XI_ERR_OP = 6,          // a processing operation failed
+  XI_ERR_ENCRYPTED = 7,   // the document needs a password (pdfload)
 };
 
 // ---- lifecycle (shim.c) ------------------------------------------------
@@ -74,7 +75,7 @@ int xi_blob_failed(VipsBlob *blob);
 typedef struct {
   int shrink;            // jpeg/uhdr shrink-on-load; <= 1 is off
   double scale;          // webp/svg scale; <= 0 is off
-  double dpi;            // svg dpi; <= 0 is the loader default
+  double dpi;            // svg/pdf dpi; <= 0 is the loader default
   int page;              // first page/frame
   int n;                 // number of pages; -1 all, 0 loader default (1)
   int access;            // VipsAccess
@@ -83,6 +84,8 @@ typedef struct {
   int heif_thumbnail;    // heif: load the embedded thumbnail
   long long max_pixels;  // > 0: width × total height limit
   int max_frames;        // > 0: loaded frame limit
+  double background[4];  // pdf page background (0..255 per band)
+  int n_background;      // bands in background; 0 is the loader default
 } XiLoadOptions;
 
 typedef struct {
@@ -91,7 +94,7 @@ typedef struct {
   int bands;
   int band_format;  // VipsBandFormat
   int interpretation;
-  int n_pages;      // pages in the file (n-pages, or 1)
+  int n_pages;      // pages in the file (raw n-pages, or 1)
   int orientation;  // 1..8
   int has_alpha;
   int has_icc;
@@ -116,8 +119,15 @@ typedef struct {
   int n;             // -1 all, 0 loader default
 } XiThumbnailOptions;
 
-int xi_probe(VipsBlob *blob, XiHeader *h, char **err);
+// dpi > 0 measures vector pages (svg, pdf) at that resolution.
+int xi_probe(VipsBlob *blob, double dpi, XiHeader *h, char **err);
 int xi_load(VipsBlob *blob, const XiLoadOptions *o, VipsImage **out, char **err);
+// xi_load_with is xi_load with the loader named instead of detected (a type
+// name such as "VipsForeignLoadMagick7Buffer"); a blocked loader still fails,
+// but the PSD-only restriction of ImageMagick is skipped. Tests use it to
+// check ImageMagick's policy.xml behind that restriction.
+int xi_load_with(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsImage **out,
+    char **err);
 // import_profile and export_profile may be NULL (none); they are copied.
 int xi_thumbnail(VipsBlob *blob, const XiThumbnailOptions *o, const char *import_profile,
     const char *export_profile, VipsImage **out, char **err);
