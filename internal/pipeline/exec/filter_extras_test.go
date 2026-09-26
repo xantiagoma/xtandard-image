@@ -3,10 +3,8 @@
 package exec_test
 
 import (
-	"bytes"
 	"image"
 	"image/color"
-	"image/png"
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
@@ -52,16 +50,6 @@ func TestGoldenFilterExtras(t *testing.T) {
 			golden.Compare(t, "exec/"+tc.name, o.img, golden.Options{Tolerance: tc.tolerance})
 		})
 	}
-}
-
-// encodePNG encodes img losslessly.
-func encodePNG(tb testing.TB, img image.Image) []byte {
-	tb.Helper()
-	var b bytes.Buffer
-	if err := png.Encode(&b, img); err != nil {
-		tb.Fatal(err)
-	}
-	return b.Bytes()
 }
 
 // nrgba is the decoded output as *image.NRGBA (what decode returns).
