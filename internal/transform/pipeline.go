@@ -6,7 +6,7 @@ type Pipeline struct {
 	Resize           Resize
 	Gravity          Gravity
 	Crop             *Crop        // pre-resize crop in source space
-	CropObjects      *CropObjects // M3
+	CropObjects      *CropObjects // pre-crop to detected objects (WP-72)
 	Trim             *Trim
 	Rotate           int     // 0/90/180/270 after ApplyDefaults
 	RotateAny        float64 // arbitrary angle, degrees clockwise, filled with Background (imgix rot, wsrv ro, cloudinary a)
@@ -35,8 +35,8 @@ type Pipeline struct {
 	Pixelate         int // block size px; 0 = off
 	BlurAreas        *BlurAreas
 	ProgressiveBlur  *ProgressiveBlur
-	BlurDetections   *DetectionFilter // M3
-	DrawDetections   *DetectionFilter // M3
+	BlurDetections   *DetectionFilter // blur or pixelate detected objects (WP-73)
+	DrawDetections   *DetectionFilter // draw detected objects' boxes (WP-73)
 	Watermarks       []Watermark
 	SVGStyle         string // CSS injected into SVG sources
 	Page             *int   // first page/frame; nil = 0
@@ -74,6 +74,12 @@ type Dim struct {
 func (d Dim) IsZero() bool { return d.Px == 0 && d.Rel == 0 }
 
 // Gravity anchors crops, extends and watermarks.
+//
+// Face and object gravities (WP-72) centre the crop on detected faces or
+// objects in the source (Classes: "face", COCO class names or
+// supercategories, see ResolveClass; none = every class). They are only
+// valid where a crop is placed, and fall back to the smart crop when
+// nothing is found (or when detection did not run for the planner).
 type Gravity struct {
 	Type    GravityType
 	XOffset float64 // ≥ 1 absolute px, < 1 relative (imgproxy semantics)
@@ -86,20 +92,34 @@ type Gravity struct {
 	// source as displayed; see FocusRect and FocusFromPixels.
 	FocusPx   *FocusRect
 	FocusZoom float64 // imgix fp-z, cloudinary z; 0 = none
-	Classes   []string
-	Weights   []float64 // GravityObjectWeighted, parallel to Classes
-	FaceIndex *int      // imgix faceindex (M3)
-	FacePad   float64   // imgix facepad (M3); 0 = none
+	// Classes are the classes GravityObject and GravityObjectWeighted
+	// look for.
+	Classes []string
+	Weights []float64 // GravityObjectWeighted, parallel to Classes
+	// FaceIndex selects one face (0-based, best score first) for
+	// GravityFace (imgix faceindex); nil = every face. An index past the
+	// faces found is no face (smart fallback).
+	FaceIndex *int
+	// FacePad > 0 on GravityFace zooms on the faces: the pipeline is
+	// pre-cropped to the faces' box scaled by FacePad, like CropObjects
+	// with Scale FacePad (imgix fit=facearea with facepad, Cloudinary
+	// c_thumb with g_face). 0 = only place the crop.
+	FacePad float64
 	// ObjectsPosition places detected objects inside the result (imgproxy
-	// objects_position, M3).
+	// objects_position); nil = centred.
 	ObjectsPosition *ObjectsPosition
 }
 
-// ObjectsPosition is imgproxy's objects_position.
+// ObjectsPosition is imgproxy's objects_position: where the detected
+// objects' box lands in the crop.
 type ObjectsPosition struct {
-	Type         GravityType // compass or GravityFocusPoint
-	X, Y         float64     // offsets (compass) or focus point (0..1)
-	Proportional bool        // imgproxy "prop"
+	// Type is a compass point (the box against that edge or corner, X and
+	// Y the offsets: positive moves it away from the edge, for the centre
+	// right and down; >= 1 pixels, < 1 fractions of the image) or
+	// GravityFocusPoint (the box centre at X, Y of the crop, 0..1).
+	Type         GravityType
+	X, Y         float64
+	Proportional bool // imgproxy "prop": the box keeps its relative position
 }
 
 // Crop is a pre-resize crop in source space.
@@ -111,10 +131,20 @@ type Crop struct {
 	AspectEnlarge bool
 }
 
-// CropObjects crops to detected objects (imgproxy crop_objects, M3).
+// CropObjects pre-crops to detected objects (imgproxy crop_objects,
+// AWS SIH smartCrop, imgix fit=facearea): the union box of the selected
+// detections, scaled by Scale around its centre and grown by Padding, and
+// for fill and fill-down resizes grown to the result's aspect ratio. It
+// takes precedence over Crop; without detections the pipeline runs as if
+// it were not set.
 type CropObjects struct {
-	Scale   float64
-	Classes []string
+	Scale   float64  // 1 = the box itself; 0 = 1
+	Classes []string // see Gravity.Classes; none = every class
+	// Index selects one detection of the classes (0-based, best score
+	// first: AWS SIH faceIndex, imgix faceindex); nil = all.
+	Index *int
+	// Padding adds pixels of the source on every side (AWS SIH padding).
+	Padding int
 }
 
 // Trim removes a uniform border.
@@ -244,11 +274,13 @@ type ProgressiveBlur struct {
 	Stop      float64 // 0..1
 }
 
-// DetectionFilter selects detected objects to blur, pixelate or draw (M3).
+// DetectionFilter selects detected objects to blur, pixelate or draw
+// (imgproxy blur_detections and draw_detections, imgix face-blur and
+// face-pixel, Cloudinary e_blur_faces and e_pixelate_faces).
 type DetectionFilter struct {
-	Sigma    float64 // blur sigma; 0 with Pixelate 0 = config default
-	Pixelate int     // pixelate block size instead of blur (cloudinary e_pixelate_faces)
-	Classes  []string
+	Sigma    float64  // blur sigma; 0 with Pixelate 0 = the planner's default
+	Pixelate int      // pixelate block size (pixels of the result) instead of blur
+	Classes  []string // see Gravity.Classes; none = every class
 }
 
 // Watermark overlays an image or text. A watermark with neither Source nor

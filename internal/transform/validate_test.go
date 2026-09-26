@@ -17,7 +17,7 @@ func validBase() Request {
 		Source: SourceSpec{Raw: "https://example.com/a.jpg", Hashsum: &Hashsum{Algorithm: HashMD5, Digest: strings.Repeat("0f", 16)}},
 		Pipelines: []Pipeline{{
 			Resize:          Resize{Width: Dim{Px: 100}, Height: Dim{Rel: 0.5}},
-			Gravity:         Gravity{Type: GravityObjectWeighted, Classes: []string{"a"}, Weights: []float64{1}, FaceIndex: new(0), ObjectsPosition: &ObjectsPosition{Type: GravityNorth}},
+			Gravity:         Gravity{Type: GravityObjectWeighted, Classes: []string{"dog"}, Weights: []float64{1}, FaceIndex: new(0), ObjectsPosition: &ObjectsPosition{Type: GravityNorth}},
 			Crop:            &Crop{Width: Dim{Px: 10}, Height: Dim{Px: 10}},
 			CropObjects:     &CropObjects{Scale: 1, Classes: []string{"cat"}},
 			Trim:            &Trim{Threshold: 10},
@@ -177,7 +177,7 @@ func TestValidate(t *testing.T) {
 		}), "pipelines[0].watermarks[0].position.focus_px"},
 		{"class empty", p0(func(p *Pipeline) { p.Gravity.Classes = []string{""} }), "pipelines[0].gravity.classes[0]"},
 		{"too many classes", p0(func(p *Pipeline) {
-			p.Gravity.Classes = slices.Repeat([]string{"a"}, MaxListLen+1)
+			p.Gravity.Classes = slices.Repeat([]string{"dog"}, MaxListLen+1)
 			p.Gravity.Weights = nil
 		}), "pipelines[0].gravity.classes"},
 		{"weights mismatch", p0(func(p *Pipeline) { p.Gravity.Weights = []float64{1, 2} }), "pipelines[0].gravity.weights"},
@@ -195,6 +195,11 @@ func TestValidate(t *testing.T) {
 		{"crop aspect ratio negative", p0(func(p *Pipeline) { p.Crop.AspectRatio = -1 }), "pipelines[0].crop.aspect_ratio"},
 		{"crop objects scale negative", p0(func(p *Pipeline) { p.CropObjects.Scale = -1 }), "pipelines[0].crop_objects.scale"},
 		{"crop objects class empty", p0(func(p *Pipeline) { p.CropObjects.Classes = []string{""} }), "pipelines[0].crop_objects.classes[0]"},
+		{"crop objects class unknown", p0(func(p *Pipeline) { p.CropObjects.Classes = []string{"unicorn"} }), "pipelines[0].crop_objects.classes[0]"},
+		{"crop objects index negative", p0(func(p *Pipeline) { p.CropObjects.Index = new(-1) }), "pipelines[0].crop_objects.index"},
+		{"crop objects padding negative", p0(func(p *Pipeline) { p.CropObjects.Padding = -1 }), "pipelines[0].crop_objects.padding"},
+		{"gravity class unknown", p0(func(p *Pipeline) { p.Gravity.Classes = []string{"dog", "dragon"} }), "pipelines[0].gravity.classes[1]"},
+		{"blur detections class unknown", p0(func(p *Pipeline) { p.BlurDetections.Classes = []string{"ghost"} }), "pipelines[0].blur_detections.classes[0]"},
 		{"trim threshold negative", p0(func(p *Pipeline) { p.Trim.Threshold = -1 }), "pipelines[0].trim.threshold"},
 		{"trim threshold huge", p0(func(p *Pipeline) { p.Trim.Threshold = 256 }), "pipelines[0].trim.threshold"},
 		{"rotate not multiple of 90", p0(func(p *Pipeline) { p.Rotate = 45 }), "pipelines[0].rotate"},
