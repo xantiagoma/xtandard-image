@@ -12,6 +12,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/encode"
 	"github.com/xantiagoma/xtandard-image/internal/config"
+	"github.com/xantiagoma/xtandard-image/internal/security/sign"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
@@ -132,5 +133,68 @@ func TestBuildRouterRootURL(t *testing.T) {
 				t.Errorf("dialect = %q / %q, want %q", m.Dialect, res.Request.Dialect, tc.want)
 			}
 		})
+	}
+}
+
+// TestThumborMount: XI_DIALECTS_THUMBOR_* mounts the thumbor dialect with
+// its SECURITY_KEY-style keys (WP-45).
+func TestThumborMount(t *testing.T) {
+	t.Parallel()
+	cfg, _, err := config.Load(config.LoadOptions{Environ: []string{
+		"XI_DEV_MODE=true",
+		"XI_SECURITY_UNSIGNED_POLICY=allow",
+		"XI_DIALECTS_THUMBOR_ENABLED=true",
+		"XI_DIALECTS_THUMBOR_KEYS=ACME-SEC",
+	}, ConfigFile: os.DevNull})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rt, warnings, err := buildRouter(&cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, w := range warnings {
+		if strings.Contains(w, "thumbor") {
+			t.Errorf("warning %q", w)
+		}
+	}
+	tests := []struct {
+		path string
+		want sign.Result
+		ok   bool
+	}{
+		// thumbor tests/handlers/test_base_handler.py (key ACME-SEC).
+		{"/thumbor/_wIUeSaeHw8dricKG2MGhqu5thk=/smart/image.jpg", sign.Verified, true},
+		{"/thumbor/unsafe/300x200/smart/image.jpg", sign.Unsigned, true},
+		{"/thumbor/_wIUeSaeHw8dricKG2MGhqu5thk=/smart/other.jpg", sign.Unsigned, false},
+	}
+	for _, tc := range tests {
+		r := httptest.NewRequestWithContext(t.Context(), http.MethodGet, tc.path, nil)
+		res, m, err := rt.Route(r)
+		if (err == nil) != tc.ok {
+			t.Fatalf("%s: err = %v", tc.path, err)
+		}
+		if err != nil {
+			continue
+		}
+		if m.Dialect != "thumbor" || res.Signature != tc.want || res.SourceString == "" {
+			t.Errorf("%s: dialect %q, signature %v, source %q", tc.path, m.Dialect, res.Signature, res.SourceString)
+		}
+	}
+}
+
+func TestThumborDisabledNotMounted(t *testing.T) {
+	t.Parallel()
+	def, _, err := config.Load(config.LoadOptions{Environ: []string{"XI_DEV_MODE=true"}, ConfigFile: os.DevNull})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rt, _, err := buildRouter(&def)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/thumbor/unsafe/a.jpg", nil)
+	if _, m, err := rt.Route(r); err == nil && m.Dialect == "thumbor" {
+		t.Fatal("thumbor mounted while disabled")
 	}
 }

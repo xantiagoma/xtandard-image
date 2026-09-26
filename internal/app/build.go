@@ -17,6 +17,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/query"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/router"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/thumbor"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/wsrv"
 	"github.com/xantiagoma/xtandard-image/internal/fetch/azuresrc"
 	"github.com/xantiagoma/xtandard-image/internal/fetch/fssrc"
@@ -48,8 +49,8 @@ func (p infoParser) Name() string { return infoDialect }
 func (p infoParser) Parse(in *dialect.Input) (*dialect.Result, error) { return p.ParseInfo(in) }
 
 // buildRouter builds the signing verifiers, presets, the available dialects
-// (imgproxy, query, imagekit, cloudflare, cloudflare_images and wsrv) and the
-// router. warnings lists enabled dialects that are not implemented yet; their
+// (imgproxy, query, imagekit, cloudflare, cloudflare_images, wsrv and
+// thumbor) and the router. warnings lists enabled dialects that are not implemented yet; their
 // mounts are skipped.
 func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err error) {
 	keys := make([]sign.Key, 0, len(cfg.Signing.Keys))
@@ -152,7 +153,14 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		return nil, nil, fmt.Errorf("wsrv dialect: %w", err)
 	}
 
-	dialects := map[string]dialect.Dialect{imgproxy.Name: ip, infoDialect: infoParser{ip}, query.Name: q, cloudflare.Name: cf, wsrv.Name: ws}
+	th, err := newThumbor(cfg.Dialects.Thumbor.Keys, cfg.Dialects.Strict, required)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	dialects := map[string]dialect.Dialect{
+		imgproxy.Name: ip, infoDialect: infoParser{ip}, query.Name: q, cloudflare.Name: cf, wsrv.Name: ws, thumbor.Name: th,
+	}
 	opts := &router.Options{
 		Policy: router.Policy(cfg.Security.UnsignedPolicy),
 		Restrictions: router.Restrictions{
@@ -193,6 +201,9 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		return nil, nil, err
 	}
 	addMounts(wsrv.Name, &cfg.Dialects.Wsrv)
+	if err := addThumborMounts(cfg, required, dialects, opts); err != nil {
+		return nil, nil, err
+	}
 	// Root "/?url=" (URL-DIALECTS §1): wsrv when enabled, else query.
 	switch {
 	case cfg.Dialects.Wsrv.Enabled:
@@ -214,7 +225,7 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 
 	for name, enabled := range map[string]bool{
 		"imgix": cfg.Dialects.Imgix.Enabled, "cloudinary": cfg.Dialects.Cloudinary.Enabled,
-		"bunny": cfg.Dialects.Bunny.Enabled, "thumbor": cfg.Dialects.Thumbor.Enabled,
+		"bunny":  cfg.Dialects.Bunny.Enabled,
 		"simple": len(cfg.Dialects.Simple.Enabled) > 0,
 	} {
 		if enabled {
@@ -302,6 +313,55 @@ func addCloudflareImages(cfg *config.Config, opts *router.Options, dialects map[
 		dialects[name] = d
 		opts.Mounts = append(opts.Mounts, router.Mount{
 			Name: name, Dialect: name, Prefix: mo.Prefix, Hosts: mo.Hosts,
+			Source: mo.Source, Policy: router.Policy(mo.UnsignedPolicy),
+		})
+	}
+	return nil
+}
+
+// newThumbor builds a thumbor parser verifying with keys (thumbor
+// SECURITY_KEY strings, not hex; XI_DIALECTS_THUMBOR_KEYS). Without keys
+// signing is off and every URL is unsigned.
+func newThumbor(keys []config.Secret, strict, required bool) (*thumbor.Parser, error) {
+	o := thumbor.Options{Strict: strict}
+	if len(keys) > 0 {
+		ks := make([]sign.Key, 0, len(keys))
+		for _, k := range keys {
+			ks = append(ks, sign.NewKey([]byte(k.Reveal()), nil))
+		}
+		v, err := sign.NewThumborVerifier(sign.ThumborOptions{Keys: sign.NewKeyring(ks...), Required: required})
+		if err != nil {
+			return nil, fmt.Errorf("thumbor verifier: %w", err)
+		}
+		o.Verifier = v
+	}
+	return thumbor.New(&o), nil
+}
+
+// addThumborMounts mounts the thumbor dialect. Each extra mount verifies
+// with its own keys (falling back to the primary mount's), so it gets its
+// own parser under the dialect key "thumbor[i]".
+func addThumborMounts(cfg *config.Config, required bool, dialects map[string]dialect.Dialect, opts *router.Options) error {
+	m := &cfg.Dialects.Thumbor
+	if !m.Enabled {
+		return nil
+	}
+	for i, mo := range append([]config.MountOptions{m.MountOptions}, m.Mounts...) {
+		key := thumbor.Name
+		if i > 0 {
+			key = fmt.Sprintf("%s[%d]", thumbor.Name, i)
+			keys := mo.Keys
+			if len(keys) == 0 {
+				keys = m.Keys
+			}
+			p, err := newThumbor(keys, cfg.Dialects.Strict, required)
+			if err != nil {
+				return fmt.Errorf("%s: %w", key, err)
+			}
+			dialects[key] = p
+		}
+		opts.Mounts = append(opts.Mounts, router.Mount{
+			Name: key, Dialect: key, Prefix: mo.Prefix, Hosts: mo.Hosts,
 			Source: mo.Source, Policy: router.Policy(mo.UnsignedPolicy),
 		})
 	}
