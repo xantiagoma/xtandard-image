@@ -308,6 +308,8 @@ Parse authenticates as well as parses because only the dialect knows which bytes
 
 Mounts are configured per dialect (`dialects.<name>.prefix`, `dialects.<name>.hosts`, `dialects.<name>.source`). Router precedence: exact host binding → longest path prefix → `XI_DIALECTS_DEFAULT` (imgproxy). Details in `URL-DIALECTS.md`.
 
+`dialect/router` API: `router.New(*router.Options, map[string]dialect.Dialect) (*Router, error)` and `(*Router).Route(*http.Request) (*dialect.Result, *router.Mount, error)`. `router.Options` is the router's own options struct (mounts with dialect/prefix/hosts/source/policy, default mount, root `?url=` mount, global unsigned policy, restricted allowlists); `app` maps `config.Config` into it, so the router does not import `config`. Full precedence: exact host → wildcard host (`*.example.com`, longest suffix) → `/?url=` root rule (wsrv, else query) → longest path prefix (segment boundary, trailing slash ignored) → root prefix `/` → default mount. `Route` passes the mount source in `Input.Mount.Source`, copies it into an empty `Request.Source.Mount`, and applies the mount's unsigned policy after parsing (403 `KindForbidden`, public "unsigned request not allowed"). The precedence table and the restricted option set are in the package doc.
+
 ## 6. Source abstraction
 
 ```go
