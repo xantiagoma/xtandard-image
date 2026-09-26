@@ -64,6 +64,19 @@
 // is the raw query without s in its original order and encoding; the "?" is
 // present only when that remainder is non-empty. Salts are ignored. See
 // [ImgixMessage] and [NewImgixVerifier].
+
+//
+// # ImageKit scheme
+//
+// The ImageKit dialect's native scheme (imagekit-nodejs helper.ts
+// getSignature, Apache-2.0):
+//
+//	ik-s = hex(HMAC-SHA1(private_key, path ["?" query] expiry))
+//
+// path is the escaped URL path relative to the URL endpoint, query the
+// raw query without ik-s and ik-t, and expiry the ik-t value (unix
+// seconds) or 9999999999 when the URL has no ik-t. The private key is used
+// as written. See [ImageKitMessage] and [NewImageKitVerifier].
 //
 // # Security
 //
