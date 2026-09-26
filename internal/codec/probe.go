@@ -12,6 +12,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/codec/raw"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/security/svg"
+	"github.com/xantiagoma/xtandard-image/internal/video"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -32,11 +33,8 @@ import (
 //   - SVG over Limits.MaxSVGBytes fails with errs.KindLimitExceeded, and any
 //     other SVG is sanitised (security/svg, with the SVG depth and element
 //     limits) before librsvg parses the sanitised copy's header;
-//   - video containers (MP4, MOV, WebM, MKV, AVI) are read by FFmpeg
-//     (internal/video/ffmpeg: container and stream headers, the
-//     XI_VIDEO_* limits) when lim.Video.Enabled, and are
-//     errs.KindUnsupported otherwise (and always without the ffmpeg build
-//     tag); the frame size is the display size;
+//   - video containers (MP4, MOV, WebM, MKV, AVI) are errs.KindUnsupported
+//     (ProbeMedia reads them with FFmpeg);
 //   - every other format goes through vips.Probe, which runs the loader
 //     header-only;
 //   - the header is then checked against lim (Limits.Check): too many
@@ -47,7 +45,20 @@ import (
 // sets ImageMeta.ContentTypeMismatch.
 //
 // Probe calls into libvips for most formats, so it must run inside vips.Run.
+// It refuses video sources (errs.KindUnsupported); ProbeMedia reads them.
 func Probe(ctx context.Context, buf *vips.Buffer, lim Limits, contentType string) (ImageMeta, error) {
+	return probe(ctx, buf, lim, nil, contentType)
+}
+
+// ProbeMedia is Probe for images and, when v enables them, video sources
+// (XI_VIDEO_*): a video is read by FFmpeg and described by the frame a
+// thumbnail is made of (ImageMeta.Video). v == nil or v.Enabled == false
+// refuses videos like Probe.
+func ProbeMedia(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Settings, contentType string) (ImageMeta, error) {
+	return probe(ctx, buf, lim, v, contentType)
+}
+
+func probe(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Settings, contentType string) (ImageMeta, error) {
 	if err := ctxErr(ctx); err != nil {
 		return ImageMeta{}, err
 	}
@@ -83,7 +94,7 @@ func Probe(ctx context.Context, buf *vips.Buffer, lim Limits, contentType string
 	case FormatRadiance:
 		m, err = probeRadiance(ctx, buf)
 	case FormatMP4, FormatMOV, FormatWebM, FormatMKV, FormatAVI:
-		m, err = probeVideo(ctx, buf, f, &lim.Video)
+		m, err = probeVideo(ctx, buf, f, v)
 	default:
 		m, err = probeVips(ctx, buf, f, 0)
 	}

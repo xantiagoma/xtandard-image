@@ -32,7 +32,9 @@ go run ./testdata/gen video-frames 96 54 10 10 "$T/f54.rgb"
 curl -fsSL -o "$T/bbb.mp4" "$BBB_URL"
 
 docker run --rm -v "$PWD/$F:/out" -v "$T:/t" -w /t "$IMG" sh -eu -c '
-ff() { ffmpeg -hide_banner -loglevel error -y "$@"; }
+# bitexact: no muxing date or library version strings in the files (libvpx
+# still varies the bitstream slightly between runs).
+ff() { ffmpeg -hide_banner -loglevel error -y -fflags +bitexact "$@"; }
 # BT.709 matrix, tagged; a keyframe every 12 frames (0.48 s).
 in720="-f rawvideo -pix_fmt rgb24 -s 1280x720 -r 25 -i f720.rgb"
 tag="-vf scale=out_color_matrix=bt709:out_range=tv -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv"
@@ -46,7 +48,7 @@ ff -f rawvideo -pix_fmt rgb24 -s 320x180 -r 10 -i f180.rgb -c:v libvpx -b:v 300k
 # PNG in QuickTime MOV, 96x54, 10 frames.
 ff -f rawvideo -pix_fmt rgb24 -s 96x54 -r 10 -i f54.rgb -c:v png -pix_fmt rgb24 /out/clip-png.mov
 # The VP8 clip remuxed into Matroska (DocType "matroska", not "webm").
-ff -i /out/clip-vp8.webm -c copy -f matroska /out/clip-vp8.mkv
+ff -i /out/clip-vp8.webm -c copy -f matroska /out/clip-vp8-matroska.mkv
 # H.264: the first second of Big Buck Bunny by stream copy (it starts on a
 # keyframe), the source metadata kept.
 ff -i bbb.mp4 -t 1 -map 0:v:0 -c copy bbb-v.mp4
@@ -63,4 +65,15 @@ ffmpeg -hide_banner -loglevel error -y -i "$T/bbb-v.mp4" \
 	-f lavfi -i "sine=frequency=440:sample_rate=16000:duration=1" \
 	-map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 24k -ac 1 \
 	-metadata:s:a:0 language=eng -movflags +faststart -shortest "$F/bbb-h264-aac.mp4"
-ls -l "$F"
+# Reference frames rendered by the ffmpeg CLI (accurate seek, autorotation,
+# the stream's colour matrix): exec's TestVideoAgainstFFmpeg compares our
+# thumbnails with them.
+R=testdata/video-ref
+mkdir -p "$R"
+docker run --rm -v "$PWD/$F:/in:ro" -v "$PWD/$R:/out" "$IMG" sh -eu -c '
+ff() { ffmpeg -hide_banner -loglevel error -y "$@"; }
+ff -ss 1 -i /in/clip-vp9.webm -frames:v 1 -vf scale=320:180:flags=bicubic -pix_fmt rgb24 /out/vp9-1s-320.png
+ff -ss 1 -i /in/clip-av1-rotate90.mp4 -frames:v 1 -vf scale=180:320:flags=bicubic -pix_fmt rgb24 /out/av1-rotate90-1s-180.png
+ff -ss 0.5 -i /in/bbb-h264-aac.mp4 -frames:v 1 -vf scale=320:180:flags=bicubic -pix_fmt rgb24 /out/h264-0.5s-320.png
+'
+ls -l "$F" "$R"

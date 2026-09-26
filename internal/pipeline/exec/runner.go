@@ -6,6 +6,7 @@ import (
 	"image"
 	"slices"
 
+	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/codec/raw"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
@@ -53,6 +54,8 @@ type runner struct {
 	// stackAlpha is set when loadStack gave stacked pages an alpha band the
 	// source header did not announce.
 	stackAlpha bool
+	// videoFrame describes the frame a video source was decoded from.
+	videoFrame *codec.VideoFrameInfo
 }
 
 // last returns the plan whose Output is the response.

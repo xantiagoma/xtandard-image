@@ -307,7 +307,7 @@ func TestValidate(t *testing.T) {
 		{"page negative", p0(func(p *Pipeline) { p.Page = new(-1) }), "pipelines[0].page"},
 		{"pages zero", p0(func(p *Pipeline) { p.Pages = new(0) }), "pipelines[0].pages"},
 		{"pages -2", p0(func(p *Pipeline) { p.Pages = new(-2) }), "pipelines[0].pages"},
-		{"video second negative", p0(func(p *Pipeline) { p.Video.Second = new(-1.0) }), "pipelines[0].video.second"},
+		{"video second out of range", p0(func(p *Pipeline) { p.Video.Second = new(-3e9) }), "pipelines[0].video.second"},
 		{"video tile step negative", p0(func(p *Pipeline) { p.Video.Tile.Step = -1 }), "pipelines[0].video.tile.step"},
 		{"video tile columns zero", p0(func(p *Pipeline) { p.Video.Tile.Columns = 0 }), "pipelines[0].video.tile.columns"},
 		{"video tile rows zero", p0(func(p *Pipeline) { p.Video.Tile.Rows = 0 }), "pipelines[0].video.tile.rows"},

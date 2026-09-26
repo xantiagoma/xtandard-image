@@ -62,7 +62,7 @@ func fixtureFormats() map[string]codec.Format {
 		"video/clip-av1-rotate90.mp4":     codec.FormatMP4,
 		"video/clip-png.mov":              codec.FormatMOV,
 		"video/clip-raw.avi":              codec.FormatAVI,
-		"video/clip-vp8.mkv":              codec.FormatMKV,
+		"video/clip-vp8-matroska.mkv":     codec.FormatMKV,
 		"video/clip-vp8.webm":             codec.FormatWebM,
 		"video/clip-vp9.webm":             codec.FormatWebM,
 	}

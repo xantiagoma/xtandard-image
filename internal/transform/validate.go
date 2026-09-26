@@ -433,7 +433,7 @@ func (w *Watermark) validate(v *validator, f string) {
 
 func (vo *VideoOptions) validate(v *validator, f string) {
 	if vo.Second != nil {
-		v.floatRange(f+".second", *vo.Second, 0, math.MaxInt32)
+		v.floatRange(f+".second", *vo.Second, -math.MaxInt32, math.MaxInt32)
 	}
 	if t := vo.Tile; t != nil {
 		v.floatRange(f+".tile.step", t.Step, 0, math.MaxInt32)

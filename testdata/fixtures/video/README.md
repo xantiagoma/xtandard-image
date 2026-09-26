@@ -9,7 +9,7 @@ file is at most 200 KiB.
 | `clip-av1.mp4` | MP4 / AV1 (libaom, CRF 50, keyframe every 12 frames), BT.709 tagged | 1280×720, 2 s, 25 fps | procedural clip | CC0 |
 | `clip-av1-rotate90.mp4` | `clip-av1.mp4` stream-copied with a display matrix: shown rotated 90° clockwise | 1280×720 stored, 720×1280 shown | procedural clip | CC0 |
 | `clip-vp8.webm` | WebM / VP8 (libvpx) | 320×180, 1 s, 10 fps | procedural clip | CC0 |
-| `clip-vp8.mkv` | `clip-vp8.webm` remuxed into Matroska (DocType `matroska`) | 320×180, 1 s | procedural clip | CC0 |
+| `clip-vp8-matroska.mkv` | `clip-vp8.webm` remuxed into Matroska (DocType `matroska`) | 320×180, 1 s | procedural clip | CC0 |
 | `clip-png.mov` | QuickTime MOV (`ftyp qt  `) / PNG | 96×54, 1 s, 10 fps | procedural clip | CC0 |
 | `clip-raw.avi` | AVI / rawvideo BGR24 | 96×54, 1 s, 10 fps | procedural clip | CC0 |
 | `bbb-h264-aac.mp4` | MP4 / H.264 High (stream copy) + AAC mono 16 kHz | 1280×720, 1 s, 30 fps | first second of *Big Buck Bunny* (see below) + a 440 Hz tone | video: **CC-BY 3.0**; audio: CC0 |
