@@ -1,7 +1,7 @@
 // Portions derived from imgproxy's vips/icosave.c,
 // https://github.com/imgproxy/imgproxy, Copyright (c) 2017 Sergey
 // Alexandrovich, licensed under the Apache License, Version 2.0 (see /NOTICE).
-// Modifications: rewritten in pure Go over codec.Raw; several entries per
+// Modifications: rewritten in pure Go over raster.Raw; several entries per
 // file; entries up to 48 px are stored as DIBs (imgproxy always writes PNG).
 
 package ico
@@ -13,7 +13,7 @@ import (
 	"image/png"
 	"math"
 
-	"github.com/xantiagoma/xtandard-image/internal/codec"
+	"github.com/xantiagoma/xtandard-image/internal/codec/raster"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 )
 
@@ -28,7 +28,7 @@ const MaxDIBSize = 48
 // PNG entries (RGB or RGBA as the frame); the others become DIB entries,
 // 24-bit with an empty AND mask for 3 bands, 32-bit BGRA with an AND mask
 // derived from alpha == 0 for 4 bands.
-func Encode(frames ...*codec.Raw) ([]byte, error) {
+func Encode(frames ...*raster.Raw) ([]byte, error) {
 	if len(frames) == 0 || len(frames) > 0xFFFF {
 		return nil, errs.Newf(errs.KindInternal, "ico: %d frames, want 1..65535", len(frames))
 	}
@@ -103,9 +103,9 @@ func u8(v int) byte {
 	return byte(v)
 }
 
-func isPNG(f *codec.Raw) bool { return f.Width > MaxDIBSize || f.Height > MaxDIBSize }
+func isPNG(f *raster.Raw) bool { return f.Width > MaxDIBSize || f.Height > MaxDIBSize }
 
-func encodePNG(f *codec.Raw) ([]byte, error) {
+func encodePNG(f *raster.Raw) ([]byte, error) {
 	var img image.Image
 	if f.Bands == 4 {
 		m := image.NewNRGBA(image.Rect(0, 0, f.Width, f.Height))
@@ -128,7 +128,7 @@ func encodePNG(f *codec.Raw) ([]byte, error) {
 
 // encodeDIB writes a BITMAPINFOHEADER DIB with doubled height, bottom-up
 // XOR pixels and the 1-bit AND mask.
-func encodeDIB(f *codec.Raw) []byte {
+func encodeDIB(f *raster.Raw) []byte {
 	w, h, bands := f.Width, f.Height, f.Bands
 	stride := (w*bands + 3) &^ 3
 	maskStride := (w + 31) / 32 * 4

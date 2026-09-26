@@ -13,7 +13,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/xantiagoma/xtandard-image/internal/codec"
+	"github.com/xantiagoma/xtandard-image/internal/codec/raster"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 )
 
@@ -27,7 +27,7 @@ func readFixture(tb testing.TB, name string) []byte {
 }
 
 // rgba converts a Raw to straight RGBA samples (alpha 255 for 3 bands).
-func rgba(r *codec.Raw) []byte {
+func rgba(r *raster.Raw) []byte {
 	out := make([]byte, 0, r.Width*r.Height*4)
 	for i := 0; i < len(r.Data); i += r.Bands {
 		a := byte(0xFF)
@@ -97,8 +97,8 @@ func build(typ uint16, payloads ...[]byte) []byte {
 
 // testRaw returns a deterministic w×h image; for 4 bands every fifth pixel is
 // fully transparent so DIB entries get a non-empty AND mask.
-func testRaw(w, h, bands int) *codec.Raw {
-	r := &codec.Raw{Width: w, Height: h, Bands: bands, Data: make([]byte, w*h*bands)}
+func testRaw(w, h, bands int) *raster.Raw {
+	r := &raster.Raw{Width: w, Height: h, Bands: bands, Data: make([]byte, w*h*bands)}
 	var v, row byte // byte(i*37 + i/bands*11) without narrowing conversions
 	for i := range r.Data {
 		if i > 0 && i%bands == 0 {
@@ -113,7 +113,7 @@ func testRaw(w, h, bands int) *codec.Raw {
 	return r
 }
 
-func pngBytes(tb testing.TB, r *codec.Raw) []byte {
+func pngBytes(tb testing.TB, r *raster.Raw) []byte {
 	tb.Helper()
 	m := image.NewNRGBA(image.Rect(0, 0, r.Width, r.Height))
 	copy(m.Pix, rgba(r))
@@ -384,7 +384,7 @@ func TestSniff(t *testing.T) {
 
 func TestRoundTrip(t *testing.T) {
 	t.Parallel()
-	frames := []*codec.Raw{
+	frames := []*raster.Raw{
 		testRaw(16, 16, 3),   // 24-bit DIB
 		testRaw(16, 16, 4),   // 32-bit DIB + AND mask
 		testRaw(48, 48, 4),   // largest DIB
@@ -435,12 +435,12 @@ func TestEncodeInvalid(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name   string
-		frames []*codec.Raw
+		frames []*raster.Raw
 		kind   errs.Kind
 	}{
 		{name: "no frames", kind: errs.KindInternal},
-		{name: "too wide", frames: []*codec.Raw{testRaw(257, 1, 3)}, kind: errs.KindLimitExceeded},
-		{name: "invalid raw", frames: []*codec.Raw{{Width: 1, Height: 1, Bands: 3}}, kind: errs.KindInternal},
+		{name: "too wide", frames: []*raster.Raw{testRaw(257, 1, 3)}, kind: errs.KindLimitExceeded},
+		{name: "invalid raw", frames: []*raster.Raw{{Width: 1, Height: 1, Bands: 3}}, kind: errs.KindInternal},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/xantiagoma/xtandard-image/internal/codec"
+	"github.com/xantiagoma/xtandard-image/internal/codec/raster"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 )
 
@@ -25,7 +25,7 @@ func readFixture(tb testing.TB, name string) []byte {
 }
 
 // rgba converts a Raw to straight RGBA samples (alpha 255 for 3 bands).
-func rgba(r *codec.Raw) []byte {
+func rgba(r *raster.Raw) []byte {
 	out := make([]byte, 0, r.Width*r.Height*4)
 	for i := 0; i < len(r.Data); i += r.Bands {
 		a := byte(0xFF)
@@ -189,7 +189,7 @@ func put16(b []byte, v int32) {
 }
 
 // rawImage wraps a Raw as an image.Image.
-func rawImage(r *codec.Raw) image.Image {
+func rawImage(r *raster.Raw) image.Image {
 	m := image.NewNRGBA(image.Rect(0, 0, r.Width, r.Height))
 	copy(m.Pix, rgba(r))
 	return m

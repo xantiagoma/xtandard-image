@@ -8,7 +8,7 @@
 
 package bmp
 
-import "github.com/xantiagoma/xtandard-image/internal/codec"
+import "github.com/xantiagoma/xtandard-image/internal/codec/raster"
 
 // RLE escape codes (first byte 0).
 const (
@@ -19,7 +19,7 @@ const (
 
 // decodeRLE expands RLE8/RLE4 data. The stream may end without an EOF code
 // after a complete command; a command cut short is corrupt.
-func decodeRLE(src []byte, h *header, raw *codec.Raw) error {
+func decodeRLE(src []byte, h *header, raw *raster.Raw) error {
 	w, ht := h.width, h.height
 	out := make([]byte, w*ht*4) // alpha 0 marks pixels the stream never set
 	rle4 := h.compression == biRLE4
