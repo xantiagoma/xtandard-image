@@ -49,6 +49,7 @@ func sourceInfo(ci *codec.Info) *server.SourceInfo {
 			Width:       m.Width,
 			Height:      m.Height,
 			Frames:      max(m.Frames, 1),
+			Pages:       max(m.Pages, m.Frames, 1),
 			HasAlpha:    m.HasAlpha,
 			IsAnimated:  m.IsAnimated,
 			Orientation: m.Orientation,

@@ -99,7 +99,7 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 	err = vips.Run(ctx, func() error {
 		var a vips.Arena
 		defer a.Close()
-		r := &runner{e: e, j: j, req: req, a: &a, plan: p}
+		r := &runner{e: e, j: j, req: req, a: &a, plan: p, meta: j.Meta}
 		img, err := r.execute(ctx)
 		if err != nil {
 			return err
