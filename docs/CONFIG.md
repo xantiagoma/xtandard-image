@@ -236,9 +236,11 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_CACHE_HEADERS_PASSTHROUGH` | `false` | Use source Cache-Control/Expires |
 | `XI_CACHE_ETAG_BUSTER` | `` | Global ETag salt |
 | `XI_CACHE_TAGS_HEADER` | `Cache-Tag` | For `cache_tags` |
-| `XI_CACHE_ALLOW_BYPASS` | `false` | Honour `bypass_cache` |
-| `XI_CACHE_RESULT_STORES` | `` | Ordered tiers: `memory,disk,redis,s3` |
-| `XI_CACHE_RESULT_MEMORY_BYTES` | `256MiB` | |
+| `XI_CACHE_ALLOW_BYPASS` | `false` | Honour `bypass_cache` (the request skips the result cache: no lookup, no store) |
+| `XI_CACHE_RESULT_STORES` | `` | Ordered tiers, fastest first: `memory,disk,redis,s3`; empty disables the result cache. `memory` is implemented; `disk`, `redis` and `s3` are skipped with a startup warning until WP-53/54/55 |
+| `XI_CACHE_RESULT_MEMORY_BYTES` | `256MiB` | In-memory LRU tier bound (bodies, stored headers and keys) |
+| `XI_CACHE_RESULT_TTL` | `24h` | How long a result is served from the cache without contacting the source (the key holds the source identity, not its validators); a per-request `ttl`/`expires` shortens it. Use a `cachebuster` or `XI_CACHE_ETAG_BUSTER` to invalidate earlier |
+| `XI_CACHE_RESULT_WRITE_QUEUE` | `64` | Asynchronous cache writes in flight; more are dropped and counted in `xi_cache_writes_dropped_total`, never blocking the response |
 | `XI_CACHE_RESULT_DISK_PATH` / `_BYTES` | `` / `10GiB` | |
 | `XI_CACHE_RESULT_REDIS_URL` | `` | Secret (may carry a password) |
 | `XI_CACHE_RESULT_S3_SOURCE`, `_BUCKET`, `_PREFIX` | `` | Name of an s3 source definition to reuse credentials, bucket and key prefix |

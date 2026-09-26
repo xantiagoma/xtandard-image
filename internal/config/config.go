@@ -407,14 +407,25 @@ type CacheHeaders struct {
 	Passthrough bool          `yaml:"passthrough" env:"PASSTHROUGH"`
 }
 
-// ResultCache configures the tiered result cache.
+// ResultCache configures the tiered result cache. It is on when Stores is
+// not empty (Enabled).
 type ResultCache struct {
-	Stores      []StoreKind   `yaml:"stores"       env:"STORES"`
-	MemoryBytes ByteSize      `yaml:"memory_bytes" env:"MEMORY_BYTES"`
-	Disk        DiskCache     `yaml:"disk"         envPrefix:"DISK_"`
-	Redis       RedisCache    `yaml:"redis"        envPrefix:"REDIS_"`
-	S3          S3ResultCache `yaml:"s3"           envPrefix:"S3_"`
+	Stores      []StoreKind `yaml:"stores"       env:"STORES"`
+	MemoryBytes ByteSize    `yaml:"memory_bytes" env:"MEMORY_BYTES"`
+	// TTL is how long a result is served from the cache without
+	// contacting the source.
+	TTL time.Duration `yaml:"ttl" env:"TTL"`
+	// WriteQueue is the most asynchronous cache writes in flight; more
+	// are dropped (xi_cache_writes_dropped_total).
+	WriteQueue int `yaml:"write_queue" env:"WRITE_QUEUE"`
+
+	Disk  DiskCache     `yaml:"disk"  envPrefix:"DISK_"`
+	Redis RedisCache    `yaml:"redis" envPrefix:"REDIS_"`
+	S3    S3ResultCache `yaml:"s3"    envPrefix:"S3_"`
 }
+
+// Enabled reports whether any result cache tier is configured.
+func (r *ResultCache) Enabled() bool { return len(r.Stores) > 0 }
 
 // DiskCache configures the disk tier.
 type DiskCache struct {
@@ -553,7 +564,7 @@ func Defaults() Config {
 		Cache: Cache{
 			Headers:    CacheHeaders{TTL: 31_536_000 * time.Second, ErrorTTL: 10 * time.Second},
 			TagsHeader: "Cache-Tag",
-			Result:     ResultCache{MemoryBytes: 256 << 20, Disk: DiskCache{Bytes: 10 << 30}},
+			Result:     ResultCache{MemoryBytes: 256 << 20, TTL: 24 * time.Hour, WriteQueue: 64, Disk: DiskCache{Bytes: 10 << 30}},
 			Origin:     OriginCache{MemoryBytes: 256 << 20, TTL: 60 * time.Second, NegativeTTL: 5 * time.Second},
 		},
 		Observability: Observability{LogLevel: LogInfo},

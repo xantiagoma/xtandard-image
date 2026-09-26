@@ -385,6 +385,10 @@ func (c *Config) validateCache(v *validator) {
 		v.check(!seen[s], "cache.result.stores", "%s listed twice", s)
 		seen[s] = true
 	}
+	if r.Enabled() {
+		v.positive(int64(r.TTL), "cache.result.ttl")
+		v.positive(int64(r.WriteQueue), "cache.result.write_queue")
+	}
 	if seen[StoreMemory] {
 		v.positive(int64(r.MemoryBytes), "cache.result.memory_bytes")
 	}
