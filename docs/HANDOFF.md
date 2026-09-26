@@ -13,35 +13,15 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   the deploy needs GitHub Pages enabled by the owner and workflows re-enabled) and the WP-82b
   huma-handler spike (#80) are all in the `m3` stack now; the rest of **M3** per `docs/ROADMAP.md`
   (face/object detection options, video thumbnails, GIF→video, `gpl` flavour) is in progress or planned.
-- **Stack `m3` (bottom → top):** #80 WP-81b/82b Pages+SchemaStore → #81 WP-70 full base → #83 WP-84
-  TypeScript → #84 WP-80 playground → #85 WP-77/78 watermarks → #86 WP-87 stabilisation → #87 WP-88
-  imgix mount → #88 WP-71 detection runtime → #89 WP-70b `gpl` image → #90 WP-74 video thumbnails
-  (integrated and verified: 65 packages on full and slim, acceptance 81/81, H.264 → JPEG served by the
-  release image) → #91 WP-89 docs status audit → #92 WP-72/73 detection options (rebased by hand: planner/app/server
-  unions of video + detection; goldens and builder fixture regenerated; dialect/apidoc/server/plan tests
-  green on the host; full container run still pending on the top). All verified green individually
-  in the container. Local base tags: `xtandard-base:dev[-builder]`, `dev-full[-builder]`, `dev-gpl[-builder]`.
-- **Integration verified:** the stack top through #86 passed lint, slim+full test suites, ts:check,
-  pages:build and acceptance (63/63) in the container; fixes landed on `m3/wp-87-stabilise`. Then
-  #87 and #88 were rebased on it; the whole chain is synced on main (`gh stack view` shows no
-  needsRebase). Lesson: an agent that pushes to a stack branch must `git fetch` right before
-  checking it out, otherwise it force-pushes a tip based on a stale chain (happened once; repaired
-  with `git rebase --onto <parent tip> <branch>~<own commits> <branch>` per branch).
-- **Merge is blocked on the owner:** the session's permission classifier denies `gh stack merge` /
-  `gh pr merge`. The owner was asked to run `gh stack merge <top> --yes --merge` (or `gh pr edit <top>
-  --base main && gh pr merge <top> --merge`). Until then `main`'s README/ROADMAP are stale (fixed in #91).
-- **In flight (2026-09-28):** `m3/wp-75-76-video-out` (tiles, animation, GIF→WebM/MP4; from
-  `origin/m3/wp-74-video`; adopt with `--onto` onto #92); `m3/wp-74-video` (video thumbnails, from `origin/m3/wp-70-full-base`);
-  `m3/wp-72-73-detect-options` (face/object gravity + filters, from `origin/m3/wp-71-detect`). After
-  WP-74: launch WP-75 (tiles/animation) and WP-76 (GIF→video; H.264 via libx264 only in `gpl`).
-- **Adoption recipe:** `scripts/stack/adopt2.sh - <branch> <n> "<title>" <body.md>`; on `MANUAL:` fix
-  the file by hand (keep both sides for docs; README status matrix: take the most advanced status
-  per row), `git add`, then loop `resolve.sh` + `GIT_EDITOR=true git rebase --continue`, then
-  `go build`, `git push --force-with-lease`, `gh stack add`, `gh stack submit --auto --open`,
-  `gh pr edit`. `rerere` is enabled; `scripts/stack/resolve-handoff.py` handles HANDOFF conflicts.
-- **Merge plan when the stack is complete and the verifier is green:** try `gh stack merge <top>
-  --yes --merge`; if GitHub refuses, the M2 fallback (one PR from the chain top, `--merge`, close
-  the per-package PRs) works.
+- **M3 merged into `main`** via `gh stack merge 92 --yes --merge` (merge commit 893b191, PRs #80–#92; the
+  owner granted merge permission explicitly after the session classifier denied it once). 0 open
+  stack PRs from that chain. ROADMAP/README still say "in PR" for the merged M3 rows: the post-merge
+  agent (`m3/wp-90-post-merge`) fixes that and runs the full container verification of `main`.
+- **Open:** PR for `m3/wp-75-76-video-out` (WP-75/76, last M3 package; rebased onto main by hand:
+  planner unions of detections + video composite; `later.json` regenerated; host tests green;
+  container run pending). Merge order: post-merge branch first, then rebase 75/76 on it and merge.
+- **Then:** first prerelease tag (`docs/RELEASE.md`; workflows disabled by the owner: build locally,
+  `gh release create` with local artefacts or ask the owner to re-enable `release.yml`).
 - **Owner decision 2026-09-27:** add a third image flavour **`gpl`** (FFmpeg `--enable-gpl` + libx264 +
   x265, anything else we excluded only for being GPL) with its own GPL notice; source stays MIT;
   users of that image review licences/patents themselves. WP-70b agent launched. WP-76 (GIF→video)
