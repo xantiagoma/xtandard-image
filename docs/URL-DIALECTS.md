@@ -690,8 +690,7 @@ unpic 4.2 (https://unpic.pics/providers/, source `ascorbic/unpic/src/providers/*
 
 | unpic provider | xi | Fixture file |
 |---|---|---|
-| imgix, imagekit | full dialects (§5, §7) | `imgix.json`, `imagekit.json` (run by `simple.TestUnpicDedicated`) |
-| cloudinary, cloudflare, cloudflare_images, bunny, wsrv | full dialects (§6, §8, §9, §11) | `cloudinary.json`, `cloudflare.json`, `cloudflare_images.json`, `bunny.json`, `wsrv.json` (for their packages) |
+| imgix, imagekit, cloudinary, cloudflare, cloudflare_images, bunny, wsrv | full dialects (§5–§9, §11) | `<name>.json` (run through the full dialects by `simple.TestUnpicDedicated`) |
 | appwrite, astro, builder.io, cloudimage, contentful, contentstack, directus, hygraph, imageengine, ipx, keycdn, kontent.ai, netlify, nextjs, scene7, shopify, storyblok, supabase, uploadcare, vercel, wordpress | `simple:<name>` (`builder.io` → `builderio`, `kontent.ai` → `kontentai`) | `<name>.json` (run by `simple.TestUnpicFixtures`) |
 
 **Mounting** (`XI_DIALECTS_SIMPLE_ENABLED=nextjs,ipx,…`): each enabled provider is mounted at its native prefixes (below) and at `/simple/<name>/`, under which the provider-native path follows (`/simple/contentful/<space>/<asset>/<token>/a.jpg?w=400`). The parser puts a stripped native prefix back, so every table matches the URL exactly as unpic writes it. `XI_DIALECTS_SIMPLE_HOSTS` binds the whole family to hosts through one dispatcher that picks, per request, the provider with the longest native prefix matching the path, else the provider whose upstream domain equals the request host, else the first enabled provider without native prefixes (the CDN-style ones: contentful, shopify, …). Dialect names are `simple:<name>` (`simple` for the dispatcher).
@@ -723,7 +722,7 @@ unpic 4.2 (https://unpic.pics/providers/, source `ascorbic/unpic/src/providers/*
 | wordpress | `*.wp.com`, `files.wordpress.com` | path (`<origin host>/<path>`) | `w`, `h`, `crop=1`→cover, `resize=W,H`→cover, `fit=W,H`→inside, `lb=W,H`→pad, `quality`, `format`, `zoom` dpr, `strip`; `ssl` silent; filters unsupported; **inside** |
 | appwrite | `/v1/storage/buckets/` | path (+`project`) | `width`, `height`, `quality`, `output`, `gravity`, `rotation`, `background`; borders, radius, opacity unsupported; **cover** |
 
-Deviation from the original plan: the Storyblok table parses its thumbor-style filter list itself (`name(args):…`, colons inside parentheses kept) instead of reusing `internal/dialect/thumbor/filters`, which is not on this branch yet; switching is a local change to `storyblok.go`.
+Storyblok's thumbor-style filter list (`name(args):…`) is parsed with `internal/dialect/thumbor/filters`, the thumbor dialect's grammar.
 
 ## 13. AWS Serverless Image Handler ("Dynamic Image Transformation for Amazon CloudFront")
 
