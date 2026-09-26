@@ -640,6 +640,7 @@ docker/
   imagemagick-policy.xml
 Dockerfile                     app (repo root): FROM <base>-builder → go build → FROM <base> runtime
 compose.smoke.yml              app + static origin, driven by scripts/smoke.sh (WP-00) and scripts/verify-app-image.sh (WP-37)
+compose.acceptance.yml         app (env-only config) + app-tiny + nginx origin + MinIO, driven by scripts/acceptance.sh (WP-39, M1 release gate; suite in test/acceptance)
 ```
 
 **Base image** `ghcr.io/xantiagoma/xtandard-image-base:<vips-version>-r<N>-<flavor>` (flavor `slim` | `full`; the `runtime` target) plus `…-<flavor>-builder` (the `builder` target: Go 1.27.1, golangci-lint, go-task, headers and pkg-config files; used for CI, `task docker:test` and the app build stage), built weekly and on `docker/base/**` change, amd64 + arm64 on native runners, cosign-signed, SBOM (syft) attached. See `docker/base/README.md`.
@@ -666,7 +667,7 @@ All libraries built with `-O3 -fstack-protector-strong -D_FORTIFY_SOURCE=2`, RPA
 5. `EXPOSE 8080 9090` (the admin listener defaults to `127.0.0.1:9090`; set `XI_ADMIN_ADDR=:9090` to scrape it); `HEALTHCHECK --interval=10s --start-interval=1s CMD ["/usr/local/bin/xtandard-image","health","--url","http://127.0.0.1:8080/healthz"]` (no curl in the image).
 6. `ENTRYPOINT ["/usr/local/bin/xtandard-image"]`, `CMD ["serve"]`.
 
-Tags: `ghcr.io/xantiagoma/xtandard-image:{latest,slim,<ver>,<ver>-slim}` and `:{full,<ver>-full}` (`<ver>` without the leading `v`; `latest` and `<ver>` point at slim until `full` exists; prereleases get only `<ver>` and `<ver>-slim`). Published by `.github/workflows/release.yml` on `v*` tags: per-arch native builds pushed by digest, `imagetools create`, cosign keyless signature, syft SBOM attestation and SLSA provenance (`docs/RELEASE.md`). Size targets: slim ≤ 110 MB compressed, full ≤ 170 MB. CI integration test boots each final image with `docker compose` (plus MinIO and a static origin; go-standards §8, no testcontainers) and runs the golden corpus over HTTP for both architectures (arm64 on native runners).
+Tags: `ghcr.io/xantiagoma/xtandard-image:{latest,slim,<ver>,<ver>-slim}` and `:{full,<ver>-full}` (`<ver>` without the leading `v`; `latest` and `<ver>` point at slim until `full` exists; prereleases get only `<ver>` and `<ver>-slim`). Published by `.github/workflows/release.yml` on `v*` tags: per-arch native builds pushed by digest, `imagetools create`, cosign keyless signature, syft SBOM attestation and SLSA provenance (`docs/RELEASE.md`). Size targets: slim ≤ 110 MB compressed, full ≤ 170 MB. The M1 acceptance suite (`scripts/acceptance.sh`, `test/acceptance` with `-tags acceptance`, WP-39) boots each final image with `docker compose` (plus MinIO and a static origin; go-standards §8, no testcontainers) and checks it over HTTP for both architectures (arm64 on native runners): CI job `acceptance` and a gate in `release.yml` before anything is tagged (`docs/RELEASE.md`).
 
 ## 15. Testing architecture
 
@@ -675,4 +676,4 @@ Tags: `ghcr.io/xantiagoma/xtandard-image:{latest,slim,<ver>,<ver>-slim}` and `:{
 - Golden images: `testdata/golden/<pkg>/<case>.png` via `internal/testutil/golden.Compare`; compared with the in-house SSIM/DSSIM (`internal/testutil/ssim`, Wang et al. 2004 on luma) ≤ tolerance per case (default `golden.DefaultTolerance` = 0.015, calibrated so a JPEG q85 re-encode passes and a 1 px shift fails), regenerated with `GOLDEN_UPDATE=1 go test ./...` or `-update` on packages importing the harness. See `testdata/README.md`.
 - Fixtures per format (JPEG CMYK/progressive/EXIF-rotated, PNG 16-bit/palette/APNG, GIF animated, WebP animated, AVIF 10-bit, HEIC, JXL, TIFF multipage, BMP variants, ICO, SVG malicious set, PDF, PSD, RAW: CR3, NEF, ARW, DNG) in `testdata/fixtures/<format>/` (the M1 set landed with WP-36; M2 formats are added by their WPs), all with redistributable licenses recorded in `testdata/LICENSES.md`.
 - Security: SSRF matrix (rebinding test with custom resolver), signature vectors from upstream docs, fuzzing (`go test -fuzz`) for every parser, the SVG sanitiser and the BMP/ICO decoders.
-- Integration: `//go:build integration` tests against the Docker image + MinIO + a local HTTP origin started with `docker compose` in CI (go-standards §8).
+- Integration: `//go:build integration` tests against MinIO and the other compose.test.yml backends (go-standards §8). Acceptance: `//go:build acceptance` black-box suite in `test/acceptance` against the app image + MinIO + a local HTTP origin (compose.acceptance.yml, `task acceptance`).

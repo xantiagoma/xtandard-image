@@ -10,7 +10,7 @@ A tag `vX.Y.Z` runs `.github/workflows/release.yml`:
 | Job | Runs on | Does |
 |---|---|---|
 | `meta` | ubuntu-24.04 | Validates the tag (`v<major>.<minor>.<patch>[-pre]`), reads the commit and `SOURCE_DATE_EPOCH`, checks `scripts/base-image-ref.sh --check`, and resolves the base images from `docker/base/versions.sh` to `@sha256:` digests. |
-| `build` (×2) | `ubuntu-24.04` (amd64), `ubuntu-24.04-arm` (arm64), native, no QEMU | Builds the `runtime` target, pushes it **by digest** (no tag yet), pulls it back and runs `scripts/verify-app-image.sh` (version, image config, ≤ 110 MB compressed, read-only rootfs + `health`, smoke test). Then it attests a syft SPDX SBOM with cosign and SLSA provenance with `actions/attest-build-provenance` on the per-arch manifest, and exports the unstripped binary (`debug` target). |
+| `build` (×2) | `ubuntu-24.04` (amd64), `ubuntu-24.04-arm` (arm64), native, no QEMU | Builds the `runtime` target, pushes it **by digest** (no tag yet), pulls it back and runs `scripts/verify-app-image.sh` (version, image config, ≤ 110 MB compressed, read-only rootfs + `health`, smoke test) and the M1 acceptance suite `scripts/acceptance.sh` against the pushed digest (the release gate, below). Then it attests a syft SPDX SBOM with cosign and SLSA provenance with `actions/attest-build-provenance` on the per-arch manifest, and exports the unstripped binary (`debug` target). |
 | `merge` | ubuntu-24.04 | `docker buildx imagetools create` the multi-arch index, signs it keyless with cosign (`--recursive`, so the per-arch manifests are signed too), attests SLSA provenance on the index, and creates the GitHub release with the unstripped binaries and `SHA256SUMS`. |
 
 Tags (`X.Y.Z` has no leading `v`):
@@ -33,7 +33,7 @@ Build properties (enforced in the `Dockerfile`):
 
 ## Cutting a release
 
-1. Make sure `main` is green (CI `smoke` builds and verifies the image on both architectures) and that the base image for the current `docker/base/versions.sh` pin is published (`base-image` workflow on `main`).
+1. Make sure `main` is green (CI `smoke` builds and verifies the image and `acceptance` runs the M1 suite against it, on both architectures) and that the base image for the current `docker/base/versions.sh` pin is published (`base-image` workflow on `main`).
 2. Refresh the PGO profile if the hot path changed since the last release (below) and merge it.
 3. Tag and push:
 
@@ -43,7 +43,7 @@ Build properties (enforced in the `Dockerfile`):
    git push origin v0.1.0
    ```
 
-4. Watch `release` in Actions. Nothing is tagged until both architectures have passed `verify-app-image.sh`; a failure leaves only untagged digests behind (GHCR retention cleans them up).
+4. Watch `release` in Actions. Nothing is tagged until both architectures have passed `verify-app-image.sh` and `acceptance.sh`; a failure leaves only untagged digests behind (GHCR retention cleans them up).
 5. Verify the published image (below) and edit the generated release notes if needed.
 
 **Dry run**: Actions → `release` → *Run workflow* with `dry_run` checked (the default) builds and verifies both architectures from the selected branch without pushing. With `dry_run` unchecked, `version` must be an existing tag; it is checked out and published like a tag push, but no GitHub release is created.
@@ -105,6 +105,34 @@ docker build --target debug --output type=local,dest=dist \
 ```
 
 `verify-app-image.sh` checks, in order: `version`; user `65532:65532`, ports, `HEALTHCHECK`, OCI labels and environment; compressed size (`docker save | gzip`, limit `XI_MAX_COMPRESSED_MB`, default 110); a run with `--read-only --tmpfs /tmp --cap-drop ALL` that must turn healthy, answer `health` with exit 0, reject writes to the rootfs and accept them in `/tmp`; and `scripts/smoke.sh`.
+
+## Acceptance suite (M1 release gate)
+
+`scripts/acceptance.sh` (`task acceptance`, WP-39) is a black-box end-to-end run of any app image on the host architecture: `XI_IMAGE` (default `xtandard-image:dev`; a registry reference is pulled). It gates every release (`release.yml` `build`, against the pushed digest, before `merge` tags anything) and runs in CI (`ci.yml` job `acceptance`, amd64 + arm64 on native runners, against the image the `smoke` job built; set the repository variable `XI_ACCEPTANCE_IMAGE`, e.g. `ghcr.io/xantiagoma/xtandard-image:slim`, to test a published image instead).
+
+```sh
+task release:build && task acceptance                                  # this checkout
+XI_IMAGE=ghcr.io/xantiagoma/xtandard-image:0.1.0 scripts/acceptance.sh  # a published image
+XI_ACC_RUN='TestSources|TestInfo' task acceptance                       # go test -run filter
+```
+
+It needs Docker (compose) and Go on the host (the suite is pure Go, `CGO_ENABLED=0`). Steps:
+
+1. `scripts/check-readonly.sh` (shared with `verify-app-image.sh`): `docker run --read-only --tmpfs /tmp --cap-drop ALL`, healthy `HEALTHCHECK`, `health` exit codes, rootfs read-only.
+2. `compose.acceptance.yml`: an nginx origin serving `testdata/fixtures` (`/slow/` throttled to 4 KiB/s), MinIO seeded with the fixtures (bucket `fixtures`), `app` configured through environment variables only (fresh signing, salt and encryption keys per run; `http`, `s3` and `fs` sources; a preset; fallback image; HEIC encode on; imgproxy at `/` with unsigned policy `allow`, the query dialect at `/q/` with `restricted`), and `app-tiny` (one worker, no queue). Both run read-only with all capabilities dropped.
+3. `go test -tags acceptance ./test/acceptance/` against the published ports. Signatures, `enc/` tokens and image checks are re-implemented in the test from the documented contracts; decoded images are checked with the stdlib and `x/image` decoders plus header sniffs for AVIF/HEIC (`ftyp` + `ispe`), JPEG XL (size header), ICO and JPEG-in-TIFF.
+4. A plain summary, one line per case with its time, on stdout, in `$XI_ACC_SUMMARY` when set, and in the Actions step summary. A skipped case counts as a failure.
+
+| Test | Cases |
+|---|---|
+| `TestOutputFormats` | jpeg, png, webp, avif, heic, jxl, gif, tiff, bmp, ico: `Content-Type`, decoded format and 64×48 dimensions, no `Vary: Accept` |
+| `TestSources` | http (plain and base64), s3 (`s3://` and `xi://assets/`), fs (`local:///` and `xi://local/`), `enc/` signed and unsigned, garbage `enc/` → 403, host/bucket not allowlisted and fs traversal → 403 |
+| `TestSigningAndPolicy` | signed URL, signed preset, signed `/info`, tampered path and bad signature → 403, unsigned on the `allow` mount, `restricted` mount: allowlisted width/quality → 200, other width/quality, effects and a bogus `xi_sig` → 403 |
+| `TestNegotiation` | `Accept` → avif / webp / jpeg with `Vary: Accept`; an explicit extension or `f:` wins without `Vary` |
+| `TestHTTPSemantics` | 304 on `If-None-Match` (exact, weak, list, `*`), HEAD, 405, `raw` byte passthrough, fallback image on a source 404 (`XI_FALLBACK_STATUS`, `XI_FALLBACK_TTL`), `expires` in the past → 404 `no-store`, 400 `no-store`, JSON error body |
+| `TestInfo` | `/info` JSON fields for jpeg (http), png with `cs`/`b`/`a`/`pn` (s3), heic (fs), animated gif; 304 on its ETag |
+| `TestHealthAndMetrics` | `/healthz`, `/readyz`; admin `/metrics` has `xi_requests_total`, `xi_request_duration_seconds`, `xi_stage_duration_seconds`, `xi_source_fetch_duration_seconds`, `xi_queue_depth`, `xi_workers_busy`, `xi_vips_mem_*`, `xi_build_info` and the Go/process collectors; no `/metrics` on the public listener |
+| `TestOverloadAndDrain` | 32 concurrent AVIF jobs on one worker → 200s and 429s with `Retry-After` and `no-store`, `xi_overload_total{reason="queue_full"}`; then SIGTERM (`docker kill`) during a ~5 s request: `/readyz` 503 while draining, the request completes with a valid image, the container exits 0 |
 
 ## Running read-only
 
