@@ -70,7 +70,7 @@ func TestResponseHeaders(t *testing.T) {
 			mutate: func(h *harness) {
 				h.router.sig = sign.Trusted
 				h.router.mutate = func(r *transform.Request) {
-					r.Source.Hashsum = &transform.Hashsum{Algorithm: transform.HashSHA256, Digest: strings.Repeat("0", 64)}
+					r.Source.Hashsum = &transform.Hashsum{Algorithm: transform.HashSHA256, Digest: digests(jpegSource)[transform.HashSHA256]}
 				}
 			},
 			want: map[string]string{"Cache-Control": defaultCC + ", immutable"},

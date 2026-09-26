@@ -141,7 +141,7 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 	}
 	info.source = key.Source
 
-	j := &job{req: req, key: key, lim: lim, hints: hints, signed: signed}
+	j := &job{req: req, key: key, lim: lim, hints: hints, signed: signed, hashsum: req.Source.Hashsum}
 	// 8. Result cache: a hit skips fetch, admission, probe and processing.
 	if res, ok := s.cacheLookup(ctx, r, info, j); ok {
 		return res, nil
@@ -163,7 +163,7 @@ func (s *Server) produce(ctx context.Context, r *http.Request, info *requestInfo
 	// 9. Fetch, outside the processing semaphore so slow origins never hold
 	// a worker slot.
 	t := s.stage(info, stageFetch)
-	fr, err := s.fetch(ctx, j.key, source.FetchOptions{MaxBytes: lim.maxSrcBytes, Header: r.Header})
+	fr, err := s.fetch(ctx, j.key, source.FetchOptions{MaxBytes: lim.maxSrcBytes, Header: r.Header}, j.hashsum)
 	t.done()
 	if err != nil {
 		return nil, err
@@ -310,7 +310,10 @@ func (s *Server) stripPathPrefix(r *http.Request) (*http.Request, bool) {
 	return r2, true
 }
 
-func (s *Server) fetch(ctx context.Context, key source.Key, opt source.FetchOptions) (*fetch.Result, error) {
+// fetch is stage 9: it fetches key and, when want is set, checks the bytes
+// against the request's hashsum (hashsum.go) before anything else sees
+// them.
+func (s *Server) fetch(ctx context.Context, key source.Key, opt source.FetchOptions, want *transform.Hashsum) (*fetch.Result, error) {
 	ctx, span := s.deps.Tracer.Start(ctx, "fetch", trace.WithAttributes(attribute.String("xi.source", key.Source)))
 	defer span.End()
 	fr, err := s.deps.Fetcher.Fetch(ctx, key, opt)
@@ -322,6 +325,11 @@ func (s *Server) fetch(ctx context.Context, key source.Key, opt source.FetchOpti
 		return nil, errs.New(errs.KindInternal, "server: fetcher returned no buffer")
 	}
 	span.SetAttributes(attribute.Int("xi.source_bytes", len(fr.Bytes())))
+	if err := verifyHashsum(want, fr.Bytes()); err != nil {
+		fr.Release()
+		span.SetStatus(codes.Error, errs.KindOf(err).String())
+		return nil, err
+	}
 	return fr, nil
 }
 

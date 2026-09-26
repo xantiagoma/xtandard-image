@@ -125,7 +125,7 @@ func (s *Server) inspect(ctx context.Context, r *http.Request, req *transform.Re
 	// 9. Fetch (coalesced with concurrent processing requests for the same
 	// source).
 	t = s.stage(info, stageFetch)
-	fr, err := s.fetch(ctx, key, source.FetchOptions{MaxBytes: lim.maxSrcBytes, Header: r.Header})
+	fr, err := s.fetch(ctx, key, source.FetchOptions{MaxBytes: lim.maxSrcBytes, Header: r.Header}, req.Source.Hashsum)
 	t.done()
 	if err != nil {
 		return nil, err
