@@ -85,7 +85,24 @@ func (c *Config) validateServer(v *validator) {
 	v.check(!c.Admin.Pprof || c.Admin.Addr != "", "admin.pprof", "needs admin.addr")
 	v.check(!c.Admin.Docs || c.Admin.Addr != "", "admin.docs", "needs admin.addr")
 	v.check(c.Admin.Addr == "" || c.Admin.Addr != s.Addr, "admin.addr", "must differ from server.addr")
+	c.validatePlayground(v)
 	v.check(c.Observability.LogLevel != "", "observability.log_level", "must be set")
+}
+
+func (c *Config) validatePlayground(v *validator) {
+	p := c.Playground
+	v.check(!p.Public || p.Enabled, "playground.public", "needs playground.enabled")
+	v.check(!p.Enabled || p.Public || c.Admin.Addr != "", "playground.enabled", "needs admin.addr (or playground.public)")
+	ok := len(p.Path) > 1 && p.Path[0] == '/' && !strings.HasSuffix(p.Path, "/") && !strings.Contains(p.Path, "//")
+	for _, r := range p.Path {
+		ok = ok && (r == '/' || r == '-' || r == '_' || r == '.' || r == '~' ||
+			('a' <= r && r <= 'z') || ('A' <= r && r <= 'Z') || ('0' <= r && r <= '9'))
+	}
+	v.check(ok, "playground.path", "%q must start with /, not end with /, and use only [A-Za-z0-9._~/-]", p.Path)
+	// Admin routes the playground path must not shadow.
+	for _, r := range []string{"/healthz", "/readyz", "/metrics", "/openapi.json", "/docs", "/debug", "/config.schema.json"} {
+		v.check(p.Path != r && !strings.HasPrefix(p.Path, r+"/"), "playground.path", "%q shadows the admin route %s", p.Path, r)
+	}
 }
 
 func validOrigin(o string) bool {

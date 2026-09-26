@@ -2472,6 +2472,33 @@
       },
       "type": "object"
     },
+    "playground": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": false,
+          "description": "Serve the playground at XI_PLAYGROUND_PATH on the admin listener (needs XI_ADMIN_ADDR unless XI_PLAYGROUND_PUBLIC); off, every playground path answers 404\n\nEnv: XI_PLAYGROUND_ENABLED",
+          "markdownDescription": "Serve the playground at `XI_PLAYGROUND_PATH` on the admin listener (needs `XI_ADMIN_ADDR` unless `XI_PLAYGROUND_PUBLIC`); off, every playground path answers 404\n\nEnv: `XI_PLAYGROUND_ENABLED`",
+          "title": "XI_PLAYGROUND_ENABLED",
+          "type": "boolean"
+        },
+        "path": {
+          "default": "/_playground",
+          "description": "Mount path: starts with /, no trailing /, [A-Za-z0-9._~/-] only, and not an admin route\n\nEnv: XI_PLAYGROUND_PATH",
+          "markdownDescription": "Mount path: starts with `/`, no trailing `/`, `[A-Za-z0-9._~/-]` only, and not an admin route\n\nEnv: `XI_PLAYGROUND_PATH`",
+          "title": "XI_PLAYGROUND_PATH",
+          "type": "string"
+        },
+        "public": {
+          "default": false,
+          "description": "Also serve it on the public listener (under XI_SERVER_PATH_PREFIX). Its sign endpoint then signs any URL for anyone who can reach it, which makes signing pointless: only for trusted networks and demos\n\nEnv: XI_PLAYGROUND_PUBLIC",
+          "markdownDescription": "Also serve it on the public listener (under `XI_SERVER_PATH_PREFIX`). Its sign endpoint then signs any URL for anyone who can reach it, which makes signing pointless: only for trusted networks and demos\n\nEnv: `XI_PLAYGROUND_PUBLIC`",
+          "title": "XI_PLAYGROUND_PUBLIC",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
     "presets": {
       "additionalProperties": false,
       "description": "name=opts,name2=opts (imgproxy syntax); YAML presets: {name: opts}\n\nEnv: XI_PRESETS",
