@@ -211,7 +211,10 @@ func (s *Server) produce(ctx context.Context, r *http.Request, info *requestInfo
 
 	// 10. Admission: fail fast when the queue is full.
 	t = s.stage(info, stageAdmission)
-	release, err := s.deps.Admitter.Acquire(ctx, 0) // cost: planner estimate once WP-25 lands
+	// The planner's memory estimate needs the probe below: the executor
+	// charges it (limiter.Reserve through exec.Config.Admit) once the plan
+	// exists, before decoding.
+	release, err := s.deps.Admitter.Acquire(ctx, 0)
 	t.done()
 	if err != nil {
 		return nil, err

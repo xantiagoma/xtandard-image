@@ -39,6 +39,25 @@ type Config struct {
 	// ToneMap maps OpenEXR, Radiance and PFM sources to 8-bit sRGB
 	// (XI_FORMATS_HDR_TONEMAP; the zero value is Reinhard).
 	ToneMap ToneMap
+	// Admit charges the plan's estimated peak memory
+	// (plan.Cost.EstimatedBytes, chained plans included) against the
+	// process-wide budget once the plan exists and before any pixel is
+	// decoded: limiter.Limiter.Reserve (XI_PROCESSING_MEMORY_BUDGET). The
+	// server admits a job (worker and queue) before the probe that planning
+	// needs, so the estimate cannot travel with that admission. Its error
+	// ends Run; release is called when Run returns. nil admits every plan.
+	Admit func(ctx context.Context, bytes int64) (release func(), err error)
+}
+
+// noRelease is admit's release when no Admit hook is configured.
+var noRelease = func() {}
+
+// admit charges p's cost through the Admit hook.
+func (e *Executor) admit(ctx context.Context, p *plan.Plan) (release func(), err error) {
+	if e.cfg.Admit == nil || p == nil {
+		return noRelease, nil
+	}
+	return e.cfg.Admit(ctx, p.Cost.EstimatedBytes)
 }
 
 // Executor plans, executes and encodes images. It holds no per-request state
@@ -177,6 +196,13 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 			j, meta, p, fromThumb = &tj, tm, tp, true
 		}
 	}
+	if !isRaw {
+		release, err := e.admit(ctx, p)
+		if err != nil {
+			return nil, err
+		}
+		defer release()
+	}
 	var res *Result
 	err = vips.Run(ctx, func() error {
 		var a vips.Arena
@@ -186,6 +212,11 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 			if err := r.planRaw(ctx); err != nil {
 				return err
 			}
+			release, err := e.admit(ctx, r.plan)
+			if err != nil {
+				return err
+			}
+			defer release()
 		}
 		img, err := r.execute(ctx)
 		if err != nil {

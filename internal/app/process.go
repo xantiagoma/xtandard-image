@@ -96,8 +96,9 @@ type processor struct {
 }
 
 // newProcessor builds the executor and encoder; wm is the configured
-// watermark (nil when none), owned by the caller.
-func newProcessor(cfg *config.Config, wm *exec.Watermark) (*processor, error) {
+// watermark (nil when none), owned by the caller. admit charges each plan's
+// memory estimate (limiter.Limiter.Reserve; nil admits everything).
+func newProcessor(cfg *config.Config, wm *exec.Watermark, admit func(context.Context, int64) (func(), error)) (*processor, error) {
 	ec := encoderConfig(cfg)
 	enc, err := encode.New(&ec)
 	if err != nil {
@@ -130,6 +131,7 @@ func newProcessor(cfg *config.Config, wm *exec.Watermark) (*processor, error) {
 			MaxElements: cfg.Limits.MaxSVGElements,
 		},
 		ToneMap: tm,
+		Admit:   admit,
 	}, enc)
 	if err != nil {
 		return nil, err

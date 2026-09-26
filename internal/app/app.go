@@ -193,7 +193,7 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		}
 		return nil
 	})
-	proc, err := newProcessor(cfg, wm)
+	proc, err := newProcessor(cfg, wm, lim.Reserve)
 	if err != nil {
 		return err
 	}
