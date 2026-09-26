@@ -233,6 +233,12 @@ type builder struct {
 	frames   int64
 	peak     int64
 	tooLarge bool
+	// geoFrom is the index of the first geometry step; geoW, geoH the
+	// size before it (stored orientation), exifAngle and exifFlip the
+	// orientation the geometry applies. Filters read them.
+	geoFrom, geoW, geoH int
+	exifAngle           int
+	exifFlip            bool
 }
 
 func (b *builder) add(s Step) { b.pl.Steps = append(b.pl.Steps, s) }
@@ -322,6 +328,8 @@ func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt trans
 	}
 	b.pl.Load = load
 
+	b.geoFrom, b.geoW, b.geoH = len(b.pl.Steps), b.curW, b.curH
+	b.exifAngle, b.exifFlip = g.angle, g.flip
 	emitGeometry(p, &g, &o, b, cropSmart, animated)
 	emitFinish(p, &g, b, outFmt, s.frames, last)
 
@@ -521,8 +529,8 @@ func emitGeometry(p *transform.Pipeline, g *geo, o *opts, b *builder, cropSmart 
 // emitFinish emits filters, colour adjustments, extend, padding, output size fixes, flatten,
 // watermarks and the output colour.
 func emitFinish(p *transform.Pipeline, g *geo, b *builder, outFmt transform.Format, frames int, last bool) {
-	if p.Blur != 0 || p.Sharpen != 0 || p.Pixelate > 1 {
-		b.add(FilterStep{Blur: p.Blur, Sharpen: p.Sharpen, Pixelate: p.Pixelate})
+	if fs, ok := filterStep(p, b); ok {
+		b.add(fs)
 		b.random = true
 	}
 	if st, ok := colourAdjust(p); ok {
@@ -651,9 +659,6 @@ func unplanned(p *transform.Pipeline) []string {
 	add(p.Mask != nil, "mask")
 	add(p.Adjust.Vibrance != nil, "vibrance")
 	add(p.Equalize, "equalize")
-	add(p.Unsharp != nil, "unsharp")
-	add(p.BlurAreas != nil, "blur_areas")
-	add(p.ProgressiveBlur != nil, "progressive_blur")
 	add(p.BlurDetections != nil || p.DrawDetections != nil || p.CropObjects != nil, "detections")
 	add(p.Crop != nil && p.Crop.AspectRatio != 0, "crop_aspect_ratio")
 	add(p.Video != nil, "video")

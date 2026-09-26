@@ -38,7 +38,8 @@
 // flatten later fills with the background, smart crop on a memory copy, and
 // trim compared in sRGB with transparency flattened.
 //
-// Filters (blur, sharpen, pixelate), colour adjustments (colour_math.go,
+// Filters (blur, sharpen, pixelate; unsharp masking, blur areas and
+// progressive blur in filter_extras.go), colour adjustments (colour_math.go,
 // colour_adjust.go) and the configured watermark are executed per frame. Options that have no implementation yet (per-request watermark
 // sources and text, chessboard tiling, the plan's Unplanned options) are
 // skipped and reported in Result.Skipped.
