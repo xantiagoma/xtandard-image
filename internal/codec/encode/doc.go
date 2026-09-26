@@ -25,6 +25,31 @@
 // is returned with Result.OverBudget set. Other formats are saved once and
 // flagged the same way when they exceed the budget.
 //
+// # Auto-quality
+//
+// Target.AutoQuality (imgproxy autoquality) and Config.AutoQuality choose the
+// quality by search instead (FORMATS.md §6.4). Each field resolves request,
+// then per-format config, then global config; a method that comes from the
+// config yields to an explicit request quality. Only quality-driven saves
+// search; lossless and quality-less formats save once.
+//
+//   - size: fitBytes over min..max quality against the byte target (capped by
+//     MaxBytes): the largest quality that fits, else the smallest output
+//     flagged OverBudget. An animation is searched with all its frames.
+//   - dssim: searchDSSIM finds the lowest quality whose DSSIM against the
+//     pre-encode image is at most the target, stopping as soon as a save is
+//     within the allowed error, in at most MaxSaves saves. Each candidate is
+//     decoded with libvips and compared by internal/testutil/ssim on luma, on
+//     copies reduced to CompareMaxDimension. An animation is searched on its
+//     first frame, then saved once more with every frame. MaxBytes still
+//     applies afterwards (fitBytes below the chosen quality).
+//   - ml: not implemented; the quality resolves as without auto-quality and
+//     Result.AutoQuality.Ignored says so.
+//
+// Result.Quality is the chosen quality, Result.Attempts every save made, and
+// Result.AutoQuality the method, target, measured metric and whether it was
+// met.
+//
 // # Metadata
 //
 // Target.Metadata applies strip_metadata, keep_copyright and
