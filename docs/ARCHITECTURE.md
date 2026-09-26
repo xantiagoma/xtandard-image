@@ -474,7 +474,7 @@ type Result struct {
     Frames        int
     DPR           float64
     Quality       int
-    Skipped       []string    // filters, watermark and plan.Unplanned: not applied yet (debug)
+    Skipped       []string    // options without an implementation yet (M3 watermark sources/text, chessboard, plan.Unplanned)
 }
 ```
 
