@@ -92,7 +92,7 @@ internal/
   cache/                    Store interface, key derivation, tiering, persisted entry framing (meta.go)
     memory/ disk/ s3cache/ redis/   backends; s3cache and redis are the only other places storage SDKs may be imported
     cachetest/              conformance suite every backend runs
-  negotiate/                Accept / client-hint parsing, format decision matrix, best-format analysis hooks
+  negotiate/                Accept / client-hint parsing, format decision matrix, best-format candidates and content analysis (`Analyze`)
   limiter/                  worker slots, memory-weighted semaphore, queue with timeout
   vips/                     ONLY package that imports "C" (hand-written shim, §8.4); Image handle, Buffer (C-owned bytes), init, errors, thread lifecycle
     (shim .c/.h files)      hand-written C in the same package: owned-buffer load w/ fail_on, libraw thumbnail loader, save-to-blob, progress/kill hook
@@ -488,7 +488,7 @@ Watermarks (WP-28, `exec/watermark.go`): `app` fetches `XI_PROCESSING_WATERMARK_
 
 ### 8.3 Encoding and quality loops
 
-`codec/encode` owns per-format savers (options in FORMATS.md). Quality selection precedence: `Output.Quality` → `FormatQuality[f]` → config per-format default → global default (80). `max_bytes` and auto-quality run a bounded binary search (≤ 6 saves) over quality; auto-quality by DSSIM uses an in-house SSIM implementation on a downscaled luma copy (the `dssim` CLI is AGPL and is not used). Best-format (M2) encodes candidate formats from the decision matrix and picks the smallest that meets the quality target, skipped above `XI_FORMATS_BEST_MAX_PIXELS`.
+`codec/encode` owns per-format savers (options in FORMATS.md). Quality selection precedence: `Output.Quality` → `FormatQuality[f]` → config per-format default → global default (80). `max_bytes` and auto-quality run a bounded binary search (≤ 6 saves) over quality; auto-quality by DSSIM uses an in-house SSIM implementation on a downscaled luma copy (the `dssim` CLI is AGPL and is not used). Best-format (`EncodeBest`, WP-57) classifies the processed image (`negotiate.Analyze`), encodes the candidates `negotiate.Decision.BestCandidates` gives for its class and picks the smallest that meets the quality target, skipped above `XI_FORMATS_BEST_MAX_PIXELS` (FORMATS.md §6.3).
 
 API (WP-30): `encode.New(Config)` → `(*Encoder).Encode(ctx, img, Target) (*Result, error)`, with `encode.NewTarget(&req.Output, &decision, animated)`. The max_bytes search renders the image once with `vips.(*Image).CopyMemory`, saves at the resolved quality, then binary-searches below it (≤ `encode.MaxSaves` = 6 saves) and returns the largest fitting quality or the smallest attempt with `Result.OverBudget`. Metadata: libvips' `keep` has a single EXIF bit and savers rebuild EXIF from the `exif-ifdN-*` fields, so `keep_copyright` (IFD0 Copyright + Artist, as imgproxy) and the always-on GPS strip (IFD 3 and XMP `exif:GPS*`) remove fields by name via `Fields`/`RemoveMetadata`.
 

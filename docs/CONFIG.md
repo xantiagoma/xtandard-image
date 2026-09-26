@@ -212,8 +212,8 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_CLIENT_HINTS_ENABLED` | `false` | Honour DPR/Width/Viewport-Width/Save-Data hints on every request when the URL leaves the value unset (imgproxy `IMGPROXY_ENABLE_CLIENT_HINTS`); URL opt-ins (`ch=`, `w_auto`, `width=auto`) work regardless. Image responses then carry `Accept-CH: Sec-CH-DPR, Sec-CH-Width, Sec-CH-Viewport-Width, ECT` and a `Vary` listing only the hint names that decided the result. Unsigned requests on a `restricted` mount get only Save-Data (a hinted width/DPR would bypass the allowlists). Semantics and imgproxy parity: URL-DIALECTS.md §3.5 |
 | `XI_CLIENT_HINTS_CRITICAL_CH` | `false` | Also send `Critical-CH: Sec-CH-DPR, Sec-CH-Width, Sec-CH-Viewport-Width` (browsers honour it on navigations only) |
 | `XI_FORMATS_AVIF_MAX_PIXELS` | `16000000` | |
-| `XI_FORMATS_BEST_MAX_PIXELS` | `8000000` | |
-| `XI_FORMATS_BEST_COMPLEXITY_THRESHOLD` | `5.5` | |
+| `XI_FORMATS_BEST_MAX_PIXELS` | `8000000` | `format=best` (imgproxy `f:best`, query `f=best`) is skipped above this many output pixels (all frames): the negotiated format is encoded once instead (FORMATS.md §6.3) |
+| `XI_FORMATS_BEST_COMPLEXITY_THRESHOLD` | `5.5` | Content score below which `best` tries lossless formats only, above which lossy only; within ±0.75 of it both. `0` skips the analysis (every image is tried as a photo). Photos score ≈ 7–8, flat graphics and text ≈ 1–4.5 (FORMATS.md §6.3) |
 | `XI_FORMATS_SAVE_DATA_QUALITY_DELTA` | `-15` | |
 | `XI_FORMATS_AUTOQUALITY_METHOD` | `none` | `none` \| `size` \| `dssim` (imgproxy `IMGPROXY_AUTOQUALITY_METHOD`; `ml` is not implemented). A request's `autoquality` option overrides it; with the method from config, an explicit request quality wins. See FORMATS.md §6.4 |
 | `XI_FORMATS_AUTOQUALITY_TARGET` / `_MIN` / `_MAX` / `_ALLOWED_ERROR` | `0.02` / `60` / `85` / `0.001` | Target: DSSIM (`dssim`) or bytes (`size`, must then be ≥ 1); quality range searched; how far from the DSSIM target a save may land and stop the search (0–1) |
@@ -371,6 +371,8 @@ The table is checked against the code by a test in `internal/config`.
 | `IMGPROXY_ENFORCE_JXL` | `XI_FORMATS_ENFORCE_JXL` | Same |
 | `IMGPROXY_PREFERRED_FORMATS` | `XI_FORMATS_PREFERRED` | Same format names |
 | `IMGPROXY_SKIP_PROCESSING_FORMATS` | `XI_FORMATS_SKIP_PROCESSING` | Same format names |
+| `IMGPROXY_BEST_FORMAT_MAX_RESOLUTION` | `XI_FORMATS_BEST_MAX_PIXELS` | Megapixels (float) → pixels; `0` (no cap in imgproxy) keeps the default |
+| `IMGPROXY_BEST_FORMAT_COMPLEXITY_THRESHOLD` | `XI_FORMATS_BEST_COMPLEXITY_THRESHOLD` | Same meaning (below: lossless; `0` skips the analysis), but the score is our own (FORMATS.md §6.3), so tune it on your images |
 | `IMGPROXY_ALWAYS_RASTERIZE_SVG` | `XI_FORMATS_SVG_PASSTHROUGH` | Inverted |
 | `IMGPROXY_ENABLE_CLIENT_HINTS` | `XI_CLIENT_HINTS_ENABLED` | Same |
 | `IMGPROXY_LOG_LEVEL` | `XI_OBSERVABILITY_LOG_LEVEL` | Same levels |

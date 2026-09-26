@@ -100,7 +100,7 @@ Not produced: PDF, PSD, RAW, JPEG 2000, EXR (open question if anyone needs JP2 o
 
 1. **Explicit format** in URL (option, extension, `fm`, `f_`, `output`) wins, except `auto`/`best`.
 2. **Accept header**: parsed with q-values; `image/avif`, `image/webp`, `image/jxl` considered. `*/*` alone does not imply modern formats. Enabled per format via `XI_FORMATS_AUTO_{AVIF,WEBP,JXL}` (default true, true, false) and `XI_FORMATS_ENFORCE_*` (use it even when the source format could be kept).
-3. **Content analysis** (from probe + cheap stats on the shrunk image): has alpha (and whether any pixel is actually non-opaque), animated, pixel count, and a *complexity score*: mean Sobel gradient magnitude on a 256 px luma thumbnail combined with unique-colour count. Score < `XI_FORMATS_BEST_COMPLEXITY_THRESHOLD` (default 5.5, same scale as imgproxy) → "graphic", else "photo".
+3. **Content analysis** (probe: alpha, animation, pixel count; for `best` also the processed image's *complexity score*, `negotiate.Analyze`, §6.3): graphic below `XI_FORMATS_BEST_COMPLEXITY_THRESHOLD` − 0.75, photo above it + 0.75, mixed in between.
 4. **Cost guard**: AVIF skipped above `XI_FORMATS_AVIF_MAX_PIXELS` (default 16 MP) and JXL above 32 MP.
 
 When the chosen format depends on `Accept`, the response carries `Vary: Accept`.
@@ -121,14 +121,32 @@ Resolution rules (`internal/negotiate`, WP-31):
 - Order: info → JSON; raw request or source format in `XI_FORMATS_SKIP_PROCESSING` / `skip_processing` → passthrough (before the explicit format, like imgproxy); explicit URL format; SVG row; content row.
 - A modern format is a candidate only when `Accept` names it exactly with q > 0 (`image/*` and `*/*` never imply it), its auto or enforce flag is on, the row allows it and the cost guard passes. Candidates are ordered by enforce flag, then Accept q-value, then the column order above (AVIF, WebP, JXL). Enforce never overrides an explicit URL format (imgproxy's `ENFORCE_*` does; we follow §6.1.1).
 - The "else" column is the first entry of `XI_FORMATS_PREFERRED` compatible with the row (alpha, animation, lossless for graphics); if none is, JPEG / PNG / GIF. The source format is never kept implicitly.
-- Until M2 content analysis exists every still image is classed as a photo.
+- `format=auto` classes every still image as a photo (the probe knows no content class); only `best` analyses the processed image (§6.3).
 - `Vary: Accept` is set whenever Accept was consulted (any enabled, applicable modern format, SVG passthrough check, or strict Accept), including when the fallback won; never when the format is explicit or the source is passed through.
 
 `Save-Data: on` or `ECT: slow-2g|2g` lowers the quality by `XI_FORMATS_SAVE_DATA_QUALITY_DELTA` (default −15) when the URL did not fix quality.
 
-### 6.3 `best` (M2)
+### 6.3 `best` (M2, WP-57)
 
-`format=best` / `f_auto` with `q_auto` / imgix `auto=format,compress`: encode the candidate set from the matrix row (max 3 formats), each at the quality chosen by auto-quality (DSSIM target, default 0.02) when enabled, and return the smallest. Skipped (falls back to the matrix's first choice) above `XI_FORMATS_BEST_MAX_PIXELS` (default 8 MP). Results are cached by the result cache so the cost is paid once per variant.
+`format=best` (imgproxy `f:best` / `format:best`, query dialect `f=best` / `format=best`; the other dialects' `auto` values mean §6.2 negotiation only) encodes up to three candidates and returns the smallest. imgproxy Pro's semantics: measure the complexity to decide between lossless and lossy encodings, then try several formats and keep the smallest.
+
+1. **Candidates** (`negotiate.Decide` with `ReasonBest`): the §6.2 rows computed with the request's Accept, enforce/auto flags, `XI_FORMATS_PREFERRED` and cost guards, before processing. A still image gets two lists, photo (the alpha or opaque row, lossy) and graphic (lossless: WebP lossless, JPEG XL lossless when enabled and accepted, AVIF lossless only when enforced, then PNG); GIF is never a still candidate. An animation gets the animated row only (WebP, AVIF sequences when supported, GIF). Each list is capped at 3. `Vary: Accept` is set because Accept shaped the lists; the ETag covers the lists (`Decision.BestKey`), not only the first candidate.
+2. **Analysis** (`codec/encode` `EncodeBest`, on the processed image, first frame of an animation): the image is rendered to memory once, then a copy of at most 256 px on the longer side is taken by nearest neighbour (no invented colours), converted to 8-bit sRGB, and scored in pure Go (`negotiate.Analyze`): the Shannon entropy (bits) of the Sobel gradient magnitudes of the luma (premultiplied by alpha, so alpha edges count) plus ¼·log2 of the unique RGBA colour count. It also reports the edge density (share of pixels with gradient ≥ 32/255) and whether any pixel is translucent. `XI_FORMATS_BEST_COMPLEXITY_THRESHOLD` = 0 skips it (every image is a photo, like imgproxy).
+3. **Class → candidates** (`Decision.BestCandidates`): graphic → the graphic list (PNG quantised when the sample has ≤ 256 colours); photo → the photo list; mixed → the two interleaved (lossy 1st, lossless 1st, lossy 2nd). Animation: the animated row, WebP/AVIF saved lossless for graphics, both variants for mixed.
+4. **Encode and pick**: every candidate is encoded with the request's quality settings: its `quality`/`format_quality`/config quality, or the auto-quality search when one applies (§6.4), and `max_bytes`. A try *meets the bar* when its auto-quality target was met (or no search ran: configured quality and lossless saves count as met) and it fits `max_bytes`. The smallest try that meets the bar wins, else the smallest; ties go to the earlier (preferred) candidate. A candidate this build cannot encode (e.g. HEIC without `XI_FORMATS_HEIC_ENCODE`) is skipped.
+5. **Cap**: above `XI_FORMATS_BEST_MAX_PIXELS` output pixels (all frames; default 8 MP) nothing is analysed and the negotiated first candidate (`Decision.Format`) is encoded once; the response lists `best_max_pixels` as skipped.
+6. **Reporting**: `X-Xi-Best` (debug headers) summarises the class, score, colour count and every try, e.g. `graphic c=1.83 colors=5; webp~=246*, png~=386` (`~` lossless, `q<n>` quality, `*` chosen, `!` missed the bar); `X-Xi-Quality` and `Content-Type` give the chosen quality and format. Result-cache hits replay both. HEAD responses report the first candidate's type (nothing is encoded).
+
+Calibration (`TestEncodeBestCorpus`, fixtures at 320–1024 px and synthetic graphics): photos score 7.2–7.9 (JPEG, PNG 8/16-bit, WebP, alpha); text 0.96, flat shapes 1.16, a bar chart 1.56, the palette/GIF/lossless-WebP graphic 1.8–2.0 (its animated GIF 2.02), the SVG logo rendered at 384 px 4.55 (graphic) and at 96 px 5.21 (mixed: its gradient sky and anti-aliased edges weigh as much as its flat areas, and lossy WebP won). A greyscale photo has at most 256 colours and tends to land in the mixed band, where both kinds are tried.
+
+Cost against plain negotiation (one encode of the negotiated format), benchstat `-count=10`, `BenchmarkEncodeBest`, base-image builder on arm64, 640 px, configured quality, Chrome-like Accept (output in `internal/codec/encode/testdata/bench-best.txt`):
+
+| Image | negotiate | best | tries | output |
+|---|---|---|---|---|
+| photo | 291 ms (AVIF) | 386 ms (+33%; +14% in an earlier run, the spread is ±16%) | AVIF, WebP, JPEG | same AVIF, 13.6 KiB |
+| bar chart | 197 ms (lossy AVIF) | 28 ms (−86%) | WebP lossless, PNG | WebP lossless, 2.41 KiB vs 2.30 KiB lossy AVIF |
+
+The analysis itself (256 px sample, entropy and colour count) costs under 1 ms and about 0.9 MiB of Go allocations (luma and colour planes, colour hash set); for photos the extra cost is the WebP and JPEG saves on top of AVIF's. For graphics `best` is faster than negotiation because lossless WebP and PNG are much cheaper than AVIF. With auto-quality every candidate runs its own search (§6.4 costs per format, added). Results are cached by the result cache (keyed by the Accept fingerprint), so the cost is paid once per variant.
 
 ### 6.4 Auto-quality (M2, WP-56, `codec/encode`)
 
