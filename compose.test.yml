@@ -1,15 +1,88 @@
-# Backing services for `//go:build integration` tests (go-standards §8).
-# Tests read their endpoints from the environment and skip when unset.
+# Backing services for `//go:build integration` tests (go-standards §8: docker
+# compose, never testcontainers). Each source/cache backend adds its service
+# here and its endpoint variables to the `test` runner below.
 #
-#   docker compose -f compose.test.yml up -d
-#   XI_TEST_GCS_ENDPOINT=http://localhost:4443/storage/v1/ \
-#     go test -race -tags integration ./internal/fetch/...
+#   task test:integration                        # services + tests in the builder
+#   task test:integration -- ./internal/fetch/s3src/
+#
+# The `test` runner is the builder stage of the base image (like compose.dev.yml)
+# on the same compose network, so tests reach services by service name. The task
+# uses a per-checkout project name (-p xi-test-<dir>) so worktrees never share or
+# tear down each other's services. To run the tests on the host instead:
+#
+#   docker compose -p xi-test-host -f compose.test.yml up -d --wait minio
+#   XI_TEST_S3_ENDPOINT=http://$(docker compose -p xi-test-host -f compose.test.yml port minio 9000) \
+#     go test -tags integration ./internal/fetch/s3src/
+#   docker compose -p xi-test-host -f compose.test.yml down
+#
+# Host ports are ephemeral (127.0.0.1::9000) for the same reason. Never use
+# `down -v` (the go caches are named volumes shared with compose.dev.yml).
 name: xtandard-image-test
 
 services:
+  # MinIO (AGPL-3.0, run as an unmodified external service only; nothing is
+  # linked or shipped). minio/minio images are no longer published, so this is
+  # the community rebuild of the final upstream release, pinned.
+  minio:
+    image: ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "127.0.0.1::9000"
+    tmpfs:
+      - /data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
   # fake-gcs-server (BSD-2-Clause): GCS JSON API emulator for fetch/gcssrc.
   fake-gcs:
     image: fsouza/fake-gcs-server:1.56.1
-    command: ["-scheme", "http", "-port", "4443", "-external-url", "http://localhost:4443", "-backend", "memory"]
+    command: ["-scheme", "http", "-port", "4443", "-external-url", "http://fake-gcs:4443", "-backend", "memory"]
     ports:
-      - "4443:4443"
+      - "127.0.0.1::4443"
+
+  # Azurite (MIT): Azure Blob emulator for fetch/azuresrc (well-known dev account).
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.37.0
+    command: ["azurite-blob", "--blobHost", "0.0.0.0", "--blobPort", "10000", "--skipApiVersionCheck", "--loose"]
+    ports:
+      - "127.0.0.1::10000"
+
+  test:
+    image: ${XI_BASE_IMAGE:-ghcr.io/xantiagoma/xtandard-image-base:slim}
+    working_dir: /src
+    volumes:
+      - .:/src
+      - xi-gocache:/gocache
+      - xi-gomodcache:/gomodcache
+    environment:
+      CGO_ENABLED: "1"
+      CGO_CFLAGS_ALLOW: -Xpreprocessor
+      GOCACHE: /gocache/go-build
+      GOMODCACHE: /gomodcache
+      GOTOOLCHAIN: local
+      GOFLAGS: -buildvcs=false
+      XI_TEST_S3_ENDPOINT: http://minio:9000
+      XI_TEST_S3_ACCESS_KEY_ID: minioadmin
+      XI_TEST_S3_SECRET_ACCESS_KEY: minioadmin
+      XI_TEST_GCS_ENDPOINT: http://fake-gcs:4443/storage/v1/
+      XI_TEST_AZURITE_ENDPOINT: http://azurite:10000/devstoreaccount1
+    depends_on:
+      minio:
+        condition: service_healthy
+      fake-gcs:
+        condition: service_started
+      azurite:
+        condition: service_started
+
+# Shared with compose.dev.yml so builds stay warm.
+volumes:
+  xi-gocache:
+    name: xi-gocache
+  xi-gomodcache:
+    name: xi-gomodcache
