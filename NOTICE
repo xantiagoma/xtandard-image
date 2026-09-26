@@ -23,6 +23,13 @@ The libraries built into the base image carry their own licenses, which
 are shipped in the image under /opt/xtandard/share/licenses/ together with
 SOURCES.md (exact source URLs, versions and SHA256 checksums).
 
+Test fixture (source repository only, not shipped in any image):
+testdata/fixtures/video/bbb-h264-aac.mp4 and the goldens rendered from it
+contain one second of "Big Buck Bunny", (c) 2008 Blender Foundation,
+www.bigbuckbunny.org, licensed under Creative Commons Attribution 3.0
+(https://creativecommons.org/licenses/by/3.0/); see
+testdata/fixtures/video/README.md.
+
 The full base image flavor (docker/base/versions-full.sh) additionally
 ships, unmodified or built from unmodified sources:
 - FFmpeg 8.1 (https://ffmpeg.org/), GNU Lesser General Public License

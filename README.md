@@ -8,7 +8,7 @@ A self-hosted image processing proxy in Go and libvips. The goal is to offer eve
 
 - **imgproxy URLs work unchanged.** Signing, `enc/` sources, presets, `/info` and the OSS processing options work today; chained pipelines and the remaining Pro options arrive in M2 and M3.
 - **Point your front end at it and keep your code** (M2, in progress). An unpic `<Image>` configured for imgix, Cloudinary, ImageKit, Cloudflare, Bunny, Netlify, Next.js and others can target xtandard-image as if it were that provider.
-- **Wide format support.** Inputs today: JPEG, PNG, GIF (animated), WebP (animated), AVIF, HEIC, JPEG XL, TIFF, BMP, ICO, SVG, JPEG 2000 and UltraHDR. Outputs: JPEG, PNG, GIF, WebP, AVIF, JPEG XL, TIFF, BMP, ICO (HEIC opt-in). Planned: camera RAW (CR3, NEF, ARW, DNG and more, embedded preview first), PDF and PSD in M2; video in the `full` image (M3).
+- **Wide format support.** Inputs today: JPEG, PNG, GIF (animated), WebP (animated), AVIF, HEIC, JPEG XL, TIFF, BMP, ICO, SVG, JPEG 2000 and UltraHDR. Outputs: JPEG, PNG, GIF, WebP, AVIF, JPEG XL, TIFF, BMP, ICO (HEIC opt-in). Planned: camera RAW (CR3, NEF, ARW, DNG and more, embedded preview first), PDF and PSD in M2. Video thumbnails (MP4, MOV, WebM, MKV, AVI: H.264, HEVC, VP8, VP9, AV1, …) in the `full` image.
 - **Secure by default.** It refuses to start without a source allowlist. It also protects against SSRF (including DNS rebinding), enforces decompression-bomb and pixel limits, and sanitises SVG.
 - **CDN-friendly and stateless.** Responses carry correct `Cache-Control`, `ETag`, `Vary: Accept`, `Content-DPR` and `Content-Disposition` headers, with 304 before any processing. Requests for the same original are coalesced. Result caching (memory, disk, S3, Redis) is optional (M2).
 - **No GPL anywhere.** Only LGPL, BSD, MIT and Apache dependencies are used (see [ADR 0006](docs/adr/0006-license-policy.md)).
@@ -43,7 +43,8 @@ The xtandard-image column is the state of `main` as of 2026-09-26: **done (M1)**
 | Camera RAW input | M2 (libraries in the base image; loader planned) | no | paid (loading only, v4.0) | no | no | no |
 | PDF / PSD thumbnails | M2 (libraries in the base image; loaders planned) | no | paid | no | partial (PDF) | partial (PDF) |
 | Best-format and auto-quality (DSSIM) | M2 | no | paid | no | no | no |
-| Video thumbnails, GIF → MP4/WebM | M3 (full image) | no | paid | partial (ffmpeg engine) | no | no |
+| Video thumbnails (frame at a time, keyframe, best frame; `/info` video metadata) | done (M3, full image) | no | paid | partial (ffmpeg engine) | no | no |
+| GIF → MP4/WebM | M3 (full image) | no | paid | no | no | no |
 | **Processing** | | | | | | |
 | Resize, crop, gravity, smart crop, focus point | done (M1) | yes | yes | yes | yes | yes |
 | Extend, padding, trim | done (M1) | yes | yes | — | — | — |
