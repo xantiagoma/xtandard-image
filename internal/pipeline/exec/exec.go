@@ -32,6 +32,9 @@ type Config struct {
 	// SVG is the sanitiser policy (XI_LIMITS_MAX_SVG_*) the document is
 	// sanitised with again after `style` injected its CSS.
 	SVG svg.Options
+	// ToneMap maps OpenEXR, Radiance and PFM sources to 8-bit sRGB
+	// (XI_FORMATS_HDR_TONEMAP; the zero value is Reinhard).
+	ToneMap ToneMap
 }
 
 // Executor plans, executes and encodes images. It holds no per-request state

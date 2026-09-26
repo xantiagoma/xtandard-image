@@ -33,6 +33,8 @@ type runner struct {
 	// iccImported is set once the source profile was converted to sRGB, so
 	// the output colour step drops the (now wrong) embedded profile.
 	iccImported bool
+	// hdrDone is set once a scene-linear source went through fromHDR.
+	hdrDone bool
 	// profileEmbedded is set when color_profile converted the result and
 	// attached its profile, which the encoder must then keep.
 	profileEmbedded bool
@@ -86,6 +88,10 @@ func (r *runner) execute(ctx context.Context) (*vips.Image, error) {
 	}
 	for _, u := range r.plan.Unplanned {
 		r.skip(u)
+	}
+	if !r.hdrPending() && r.req.Output.PreserveHDR != nil && *r.req.Output.PreserveHDR {
+		// Only scene-linear sources keep more than 8 bits so far (fromHDR).
+		r.skip("preserve_hdr")
 	}
 	img, err = r.pipeline(ctx, img)
 	if err != nil {

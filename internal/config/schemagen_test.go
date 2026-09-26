@@ -301,6 +301,8 @@ func (g *schemaGen) typeSchema(t reflect.Type, path string, def reflect.Value) j
 		return enumSchema(logLevels())
 	case reflect.TypeFor[FailOn]():
 		return enumSchema(failOns())
+	case reflect.TypeFor[ToneMap]():
+		return enumSchema(toneMaps())
 	case reflect.TypeFor[AutoQualityMethod]():
 		return enumSchema(autoQualityMethods())
 	case reflect.TypeFor[StoreKind]():

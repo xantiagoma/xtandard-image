@@ -317,6 +317,7 @@ type Formats struct {
 	PDF  PDFFormat  `yaml:"pdf"  envPrefix:"PDF_"`
 	PSD  PSDFormat  `yaml:"psd"  envPrefix:"PSD_"`
 	RAW  RAWFormat  `yaml:"raw"  envPrefix:"RAW_"`
+	HDR  HDRFormat  `yaml:"hdr"  envPrefix:"HDR_"`
 
 	Auto    FormatSwitches `yaml:"auto"    envPrefix:"AUTO_"`
 	Enforce FormatSwitches `yaml:"enforce" envPrefix:"ENFORCE_"`
@@ -397,6 +398,13 @@ type PDFFormat struct {
 	// DPI is the resolution of a page's natural size, used when no size is
 	// requested; resized pages render directly at the target size.
 	DPI float64 `yaml:"dpi" env:"DPI"`
+}
+
+// HDRFormat configures scene-linear inputs (OpenEXR, Radiance, PFM).
+type HDRFormat struct {
+	// ToneMap is the operator that maps them to 8-bit sRGB unless
+	// preserve_hdr keeps them (docs/FORMATS.md §1.4).
+	ToneMap ToneMap `yaml:"tonemap" env:"TONEMAP"`
 }
 
 // PSDFormat configures Photoshop PSD/PSB input (ImageMagick, PSD only).
@@ -633,6 +641,7 @@ func Defaults() Config {
 			GIF:                  GIFFormat{Effort: 7},
 			PDF:                  PDFFormat{DPI: 72},
 			RAW:                  RAWFormat{PreviewMinRatio: 1},
+			HDR:                  HDRFormat{ToneMap: ToneMapReinhard},
 			Auto:                 FormatSwitches{AVIF: true, WebP: true},
 			Preferred:            []Format{FormatJPEG, FormatPNG, FormatGIF},
 			SVGPassthrough:       true,

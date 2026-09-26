@@ -798,12 +798,6 @@
     "path": "/unsafe/eth:t/kcr:t/ph:t/scp:f/sm:f/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "ph",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "EnforceThumbnail": true,
         "KeepCopyright": true,

@@ -101,6 +101,10 @@ func newProcessor(cfg *config.Config, wm *exec.Watermark) (*processor, error) {
 	if err != nil {
 		return nil, err
 	}
+	tm, err := exec.ParseToneMap(string(cfg.Formats.HDR.ToneMap))
+	if err != nil {
+		return nil, err
+	}
 	ex, err := exec.New(&exec.Config{
 		Limits:           planLimits(cfg),
 		FailOn:           vipsFailOn(cfg.Vips.FailOn),
@@ -111,6 +115,7 @@ func newProcessor(cfg *config.Config, wm *exec.Watermark) (*processor, error) {
 			MaxDepth:    cfg.Limits.MaxSVGDepth,
 			MaxElements: cfg.Limits.MaxSVGElements,
 		},
+		ToneMap: tm,
 	}, enc)
 	if err != nil {
 		return nil, err
@@ -272,5 +277,6 @@ func planMeta(f codec.Format, m *server.SourceMeta, pdfDPI float64) plan.SourceM
 		Format:      name,
 		IsVector:    f == codec.FormatSVG || f == codec.FormatPDF,
 		Density:     density,
+		HDR:         f.HDR(),
 	}
 }
