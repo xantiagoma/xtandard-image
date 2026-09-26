@@ -1,0 +1,90 @@
+# Benchmark stack for bench/run.sh (docs/BENCHMARKS.md): one static origin,
+# xtandard-image and imgproxy OSS with matched settings, and k6 on the same
+# network. run.sh starts one server at a time so they never share the CPU.
+#
+#   BENCH_WORKERS  processing workers for both servers (run.sh: host cores)
+#   XI_IMAGE       xtandard-image image (default xtandard-image:dev)
+#   IMGPROXY_IMAGE imgproxy image (default darthsim/imgproxy:latest)
+#
+# Matched settings (defaults that differ between the two are pinned here):
+#   workers         BENCH_WORKERS on both (imgproxy defaults to 2 x cores)
+#   quality         jpeg 80, webp 80, avif 60 (imgproxy defaults webp 79, avif 63)
+#   jpeg            baseline (xtandard-image defaults to progressive)
+#   avif            libvips effort 1 = imgproxy IMGPROXY_AVIF_SPEED 8, its
+#                   default (xtandard-image defaults to effort 4)
+#   webp            effort 4 on both (both defaults)
+#   animation       up to 256 frames (imgproxy defaults to 1 frame)
+#   origin cache    off (imgproxy OSS has none; xtandard-image defaults to a
+#                   256 MiB in-memory LRU of source bytes)
+#   metadata        stripped, colour profile stripped (both defaults)
+#   libvips         concurrency 1 per image, operation cache off (both)
+name: xi-bench
+
+services:
+  fixtures:
+    # Caddy (Apache-2.0) as a plain static file server on port 80.
+    image: caddy:2-alpine
+    command: ["caddy", "file-server", "--root", "/srv", "--listen", ":80"]
+    volumes:
+      - ./fixtures:/srv:ro
+
+  xtandard:
+    image: ${XI_IMAGE:-xtandard-image:dev}
+    profiles: [xtandard]
+    depends_on: [fixtures]
+    environment:
+      XI_SOURCES: bench
+      XI_SOURCES_BENCH_TYPE: http
+      XI_SOURCES_BENCH_ALLOW: fixtures
+      # The origin lives on the compose network (RFC 1918 address).
+      XI_FETCH_ALLOW_PRIVATE_NETWORKS: "true"
+      # imgproxy without IMGPROXY_KEY accepts any unsigned URL; so do we.
+      XI_SECURITY_UNSIGNED_POLICY: allow
+      XI_PROCESSING_WORKERS: ${BENCH_WORKERS:?set BENCH_WORKERS}
+      XI_FORMATS_JPEG_QUALITY: "80"
+      XI_FORMATS_WEBP_QUALITY: "80"
+      XI_FORMATS_AVIF_QUALITY: "60"
+      XI_FORMATS_JPEG_PROGRESSIVE: "false"
+      XI_FORMATS_AVIF_EFFORT: "1"
+      XI_FORMATS_WEBP_EFFORT: "4"
+      XI_LIMITS_MAX_ANIMATION_FRAMES: "256"
+      XI_CACHE_ORIGIN_MEMORY_BYTES: "0"
+      XI_OBSERVABILITY_LOG_LEVEL: warn
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+
+  imgproxy:
+    image: ${IMGPROXY_IMAGE:-darthsim/imgproxy:latest}
+    profiles: [imgproxy]
+    depends_on: [fixtures]
+    environment:
+      IMGPROXY_BIND: ":8080"
+      IMGPROXY_WORKERS: ${BENCH_WORKERS:?set BENCH_WORKERS}
+      IMGPROXY_QUALITY: "80"
+      IMGPROXY_FORMAT_QUALITY: "jpeg=80,webp=80,avif=60"
+      IMGPROXY_JPEG_PROGRESSIVE: "false"
+      IMGPROXY_AVIF_SPEED: "8"
+      IMGPROXY_WEBP_EFFORT: "4"
+      IMGPROXY_MAX_ANIMATION_FRAMES: "256"
+      IMGPROXY_ALLOWED_SOURCES: "http://fixtures/"
+      IMGPROXY_ALLOW_PRIVATE_SOURCE_ADDRESSES: "true"
+      IMGPROXY_LOG_LEVEL: warn
+    healthcheck:
+      test: ["CMD", "imgproxy", "health"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+
+  k6:
+    # k6 (AGPL-3.0) runs as an unmodified external tool from its own image;
+    # nothing from it is linked, vendored or shipped (ADR 0006).
+    image: ${K6_IMAGE:-grafana/k6:latest}
+    profiles: [tools]
+    working_dir: /bench
+    volumes:
+      - ./k6:/bench/k6:ro
+      - ./out:/bench/out
