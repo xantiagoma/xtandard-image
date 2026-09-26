@@ -27,6 +27,7 @@ generated from the public-domain X11 "fixed" font).
 | `fixtures/png/rgb16.png` | `gen photo16` (Go `image/png`, 16-bit) | CC0 |
 | `fixtures/png/palette.png` | `gen palette` (Go `image/png`, Plan 9 palette) | CC0 |
 | `fixtures/watermark/logo.png` | `gen watermark` (Go `image/png`, 48x32 RGBA) | CC0 |
+| `fixtures/watermark/badge.png` | `gen watermark-badge` (Go `image/png`, 40x40 RGBA) | CC0 |
 | `fixtures/gif/static.gif`, `fixtures/gif/animated.gif` | `gen gif`, `gen gif-anim` (Go `image/gif`, 6 frames) | CC0 |
 | `fixtures/webp/lossy.webp`, `lossless.webp`, `animated.webp` | libvips `webpsave` (libwebp, BSD-3) | CC0 |
 | `fixtures/avif/photo.avif` | libvips `heifsave` AV1 (libheif + libaom, BSD-2) | CC0 |

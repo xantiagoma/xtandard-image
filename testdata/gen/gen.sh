@@ -53,6 +53,8 @@ gen bordered 56 42 6 20 12 4 "$F/png/bordered.png"
 
 # Watermark: 48x32 RGBA logo (XI_PROCESSING_WATERMARK_SOURCE in tests).
 gen watermark "$F/watermark/logo.png"
+# Watermark: 40x40 RGBA badge (per-request watermark_url in tests).
+gen watermark-badge "$F/watermark/badge.png"
 
 # GIF: static and animated (6 frames).
 gen gif "$F/gif/static.gif"

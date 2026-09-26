@@ -122,6 +122,8 @@ package vips
 #cgo nocallback xi_mix
 #cgo noescape xi_gradient_mask
 #cgo nocallback xi_gradient_mask
+#cgo noescape xi_text
+#cgo nocallback xi_text
 #cgo noescape xi_conv3
 #cgo nocallback xi_conv3
 #cgo noescape xi_unsharp

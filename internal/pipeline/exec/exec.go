@@ -22,9 +22,12 @@ type Config struct {
 	// the zero value is fail_on=warning).
 	FailOn vips.FailOn
 	// Watermark is the configured watermark image (NewWatermark); nil when
-	// XI_PROCESSING_WATERMARK_SOURCE is unset, and watermark options are
-	// then skipped. The Executor does not close it.
+	// XI_PROCESSING_WATERMARK_SOURCE is unset, and watermarks without a
+	// source or text of their own are then skipped. The Executor does not
+	// close it.
 	Watermark *Watermark
+	// Watermarks configures per-request and text watermarks.
+	Watermarks WatermarkConfig
 	// ColorProfilesDir holds the ICC files color_profile may name
 	// (XI_PROCESSING_COLOR_PROFILES_DIR); empty allows only the built-in
 	// srgb and cmyk.
@@ -67,6 +70,9 @@ type Job struct {
 	// by the plan: an animation stays one only when the plan processed it
 	// frame by frame.
 	Target encode.Target
+	// Watermarks are the per-request watermark images of the request
+	// (Watermark.Source), fetched by the caller.
+	Watermarks []WatermarkImage
 	// Best is the negotiated decision of a format=best request
 	// (negotiate.ReasonBest): the processed image is encoded with
 	// encode.Encoder.EncodeBest, which picks among its candidates. Nil

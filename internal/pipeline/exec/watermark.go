@@ -3,6 +3,7 @@ package exec
 import (
 	"context"
 	"image"
+	"math"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
@@ -54,11 +55,8 @@ func NewWatermark(ctx context.Context, src *vips.Buffer, o *WatermarkOptions) (*
 			j: &Job{Source: src, Meta: plan.SourceMeta{Format: o.Format}},
 			a: &a,
 		}
-		img, err := r.loadWatermark(ctx, o.MaxPixels)
+		img, err := r.decodeWatermark(ctx, o.MaxPixels)
 		if err != nil {
-			return err
-		}
-		if img, err = r.toProcessing(ctx, img); err != nil {
 			return err
 		}
 		shared, err = vips.Share(ctx, img)
@@ -83,12 +81,29 @@ func (w *Watermark) Close() {
 	}
 }
 
-func (r *runner) loadWatermark(ctx context.Context, maxPixels int64) (*vips.Image, error) {
+// WatermarkImage is a per-request watermark image (plan.WatermarkImage,
+// imgproxy watermark_url) the caller fetched: the image of
+// Request.Pipelines[Pipeline].Watermarks[Index].
+type WatermarkImage struct {
+	Pipeline, Index int
+	// Source holds the bytes (an SVG already sanitised); the caller keeps
+	// its reference and may release it once Run returns.
+	Source *vips.Buffer
+	// Format is the sniffed codec format name, as Job.Meta.Format.
+	Format string
+}
+
+// decodeWatermark loads r.j.Source as a watermark (imgproxy
+// prepareWatermark before sizing): first frame, EXIF orientation applied,
+// in the working colour space.
+func (r *runner) decodeWatermark(ctx context.Context, maxPixels int64) (*vips.Image, error) {
+	var img *vips.Image
+	var err error
 	switch r.j.Meta.Format {
 	case "bmp", "ico":
-		return r.loadGo(ctx)
+		img, err = r.loadGo(ctx)
 	default:
-		return r.a.Add(vips.Load(ctx, r.j.Source, &vips.LoadOptions{
+		img, err = r.a.Add(vips.Load(ctx, r.j.Source, &vips.LoadOptions{
 			NPages:     1,
 			Access:     vips.AccessRandom,
 			FailOn:     r.e.cfg.FailOn,
@@ -96,58 +111,53 @@ func (r *runner) loadWatermark(ctx context.Context, maxPixels int64) (*vips.Imag
 			MaxPixels:  maxPixels,
 		}))
 	}
+	if err != nil {
+		return nil, err
+	}
+	return r.toProcessing(ctx, img)
 }
 
 // watermark executes s on img, the whole image or the joined strip of an
-// animation (imgproxy applyWatermark): the configured watermark is fitted
-// into Scale × one frame, placed by gravity with overflow allowed, or tiled
-// across the frame with the offsets as spacing, its alpha multiplied by the
-// request's and the configured opacity, and blended over every frame. The
-// result keeps img's band format and has alpha only when img had it.
+// animation (imgproxy applyWatermark): the watermark (the configured image,
+// the request's own image or rendered text) is fitted into Scale × one
+// frame or into Width×Height, rotated, given its shadow, its alpha
+// multiplied by the request's and the configured opacity, then placed by
+// gravity with overflow allowed, or tiled across the frame (repeated or in
+// a chessboard) with the offsets as spacing, and blended over every frame.
+// The result keeps img's band format and has alpha only when img had it.
 //
-// Watermarks with their own source or text and chessboard tiling are M3:
-// they are skipped, as is a watermark when none is configured (imgproxy
-// ignores it then).
+// A configured watermark that is missing (none configured, imgproxy then
+// ignores it) or a per-request image the caller did not supply is skipped
+// and reported in Result.Skipped.
 func (r *runner) watermark(ctx context.Context, img *vips.Image, s *plan.WatermarkStep) (*vips.Image, error) {
-	wm := r.e.cfg.Watermark
-	switch {
-	case !s.Default:
-		r.skip("watermark_source")
-		return img, nil
-	case s.Tile == transform.TileChessboard:
-		r.skip("watermark_chessboard")
-		return img, nil
-	case wm == nil:
-		r.skip("watermark")
-		return img, nil
-	default:
-	}
-	opacity := s.Opacity * wm.opacity
+	opacity := s.Opacity * r.e.watermarkOpacity()
 	if opacity <= 0 {
 		return img, nil
 	}
 	w, fh, frames := img.Width(), img.PageHeight(), img.Pages()
-	tiled := s.Tile == transform.TileRepeat
-
-	mark, err := r.prepareWatermark(ctx, wm, s, w, fh)
-	if err != nil {
-		return nil, err
+	mark, err := r.watermarkSource(ctx, s, w, fh)
+	if err != nil || mark == nil {
+		return img, err
 	}
-	if mark, err = r.opacity(ctx, mark, opacity); err != nil {
+	if mark, err = r.prepareWatermark(ctx, mark, s, w, fh, opacity); err != nil {
 		return nil, err
 	}
 	var left, top int
-	if tiled {
-		if mark, err = r.replicate(ctx, mark, w, fh, true); err != nil {
-			return nil, err
-		}
-	} else {
+	switch s.Tile {
+	case transform.TileRepeat:
+		mark, err = r.replicate(ctx, mark, w, fh, true)
+	case transform.TileChessboard:
+		mark, err = r.chessboard(ctx, mark, w, fh)
+	default:
 		left, top = s.Place(w, fh, mark.Width(), mark.Height())
+	}
+	if err != nil {
+		return nil, err
 	}
 	if frames > 1 {
 		// One frame-sized overlay (clipped to the frame, so nothing
 		// bleeds into the next one) repeated down the strip, blended once.
-		if !tiled {
+		if s.Tile == transform.TileNone {
 			if mark, err = r.a.Add(mark.Embed(ctx, left, top, w, fh, vips.ExtendBlack, nil)); err != nil {
 				return nil, err
 			}
@@ -160,46 +170,134 @@ func (r *runner) watermark(ctx context.Context, img *vips.Image, s *plan.Waterma
 	return r.composite(ctx, img, mark, left, top)
 }
 
-// prepareWatermark sizes the configured watermark for a w×fh frame
-// (imgproxy prepareWatermark): fit into the scale box, enlarging allowed,
-// then, when tiled, padded with the offsets as spacing. A changed
-// watermark is rendered to memory: it is read many times when tiled or
-// blended on every frame.
-func (r *runner) prepareWatermark(ctx context.Context, wm *Watermark, s *plan.WatermarkStep, w, fh int) (*vips.Image, error) {
-	mark := r.a.Track(wm.img.Image())
-	changed := false
+// watermarkOpacity is XI_PROCESSING_WATERMARK_OPACITY.
+func (e *Executor) watermarkOpacity() float64 {
+	switch {
+	case e.cfg.Watermarks.Opacity != nil:
+		return *e.cfg.Watermarks.Opacity
+	case e.cfg.Watermark != nil:
+		return e.cfg.Watermark.opacity
+	default:
+		return 1
+	}
+}
+
+// watermarkSource is the unsized watermark of s on a w×fh frame; nil when
+// it is skipped.
+func (r *runner) watermarkSource(ctx context.Context, s *plan.WatermarkStep, w, fh int) (*vips.Image, error) {
+	switch s.Kind {
+	case plan.WatermarkText:
+		if s.Text == nil {
+			return nil, errs.New(errs.KindInternal, "exec: text watermark without text")
+		}
+		return r.renderText(ctx, s.Text, w, fh)
+	case plan.WatermarkImage:
+		for i := range r.j.Watermarks {
+			if wi := &r.j.Watermarks[i]; wi.Pipeline == s.Pipeline && wi.Index == s.Index && wi.Source != nil {
+				sub := &runner{e: r.e, j: &Job{Source: wi.Source, Meta: plan.SourceMeta{Format: wi.Format}}, a: r.a}
+				return sub.decodeWatermark(ctx, r.e.cfg.Limits.MaxSrcPixels)
+			}
+		}
+		r.skip("watermark_source")
+		return nil, nil
+	default:
+		if r.e.cfg.Watermark == nil {
+			r.skip("watermark")
+			return nil, nil
+		}
+		return r.a.Track(r.e.cfg.Watermark.img.Image()), nil
+	}
+}
+
+// prepareWatermark sizes mark for a w×fh frame (imgproxy
+// prepareWatermark): fit into the scale box or the size box, enlarging
+// allowed; then it rotates it, adds the shadow, applies the opacity and,
+// when tiled, pads it with the offsets as spacing. A changed watermark is
+// rendered to memory: it is read many times when tiled or blended on every
+// frame.
+func (r *runner) prepareWatermark(ctx context.Context, mark *vips.Image, s *plan.WatermarkStep, w, fh int, opacity float64) (*vips.Image, error) {
 	var err error
 	if sc := s.FitScale(w, fh, mark.Width(), mark.Height()); sc != 1 {
 		if mark, err = r.resize(ctx, mark, &plan.ResizeStep{ScaleX: sc, ScaleY: sc, Kernel: transform.KernelLanczos3}); err != nil {
 			return nil, err
 		}
-		changed = true
 	}
-	if s.Tile == transform.TileRepeat {
+	if !mark.HasAlpha() {
+		if mark, err = r.a.Add(mark.AddAlpha(ctx)); err != nil {
+			return nil, err
+		}
+	}
+	if angle := math.Mod(s.Rotate, 360); angle != 0 {
+		if mark, err = r.rotateMark(ctx, mark, angle); err != nil {
+			return nil, err
+		}
+	}
+	if s.Shadow > 0 {
+		if mark, err = r.shadow(ctx, mark, s.Shadow); err != nil {
+			return nil, err
+		}
+	}
+	if mark, err = r.opacity(ctx, mark, opacity); err != nil {
+		return nil, err
+	}
+	if s.Tile != transform.TileNone {
 		px, py := s.TileSpacing(w, fh)
 		px, py = max(px, 0), max(py, 0)
 		if px > 0 || py > 0 {
 			if mark, err = r.embed(ctx, mark, px/2, py/2, mark.Width()+px, mark.Height()+py); err != nil {
 				return nil, err
 			}
-			changed = true
 		}
-	}
-	if !changed {
-		return mark, nil // the shared image is already in memory
 	}
 	return r.a.Add(mark.CopyMemory(ctx))
 }
 
-// opacity gives mark an alpha band and multiplies it by opacity (imgproxy
+// rotateMark rotates mark (with alpha) by angle degrees clockwise onto its
+// transparent bounding box, premultiplied so the edges do not darken.
+func (r *runner) rotateMark(ctx context.Context, mark *vips.Image, angle float64) (*vips.Image, error) {
+	pm, err := r.a.Add(mark.Premultiply(ctx))
+	if err != nil {
+		return nil, err
+	}
+	if pm, err = r.a.Add(pm.Similarity(ctx, 1, angle, make([]float64, mark.Bands()))); err != nil {
+		return nil, err
+	}
+	if pm, err = r.a.Add(pm.Unpremultiply(ctx)); err != nil {
+		return nil, err
+	}
+	return r.uchar(ctx, pm)
+}
+
+// shadow lays mark (with alpha) over a black copy of its alpha blurred
+// with sigma, on a canvas grown by 3 sigma on every side so the blur is
+// not cut off (imgproxy watermark_shadow, imgix txt-shad).
+func (r *runner) shadow(ctx context.Context, mark *vips.Image, sigma float64) (*vips.Image, error) {
+	m := int(math.Ceil(3 * sigma))
+	padded, err := r.embed(ctx, mark, m, m, mark.Width()+2*m, mark.Height()+2*m)
+	if err != nil {
+		return nil, err
+	}
+	n := padded.Bands()
+	a := make([]float64, n)
+	a[n-1] = 1
+	black, err := r.a.Add(padded.Linear(ctx, a, make([]float64, n)))
+	if err != nil {
+		return nil, err
+	}
+	blurred, err := r.a.Add(black.Gaussblur(ctx, sigma))
+	if err != nil {
+		return nil, err
+	}
+	out, err := r.a.Add(blurred.Composite2(ctx, padded, vips.BlendOver, 0, 0))
+	if err != nil {
+		return nil, err
+	}
+	return r.uchar(ctx, out)
+}
+
+// opacity multiplies the alpha band of mark by opacity (imgproxy
 // vips_apply_watermark).
 func (r *runner) opacity(ctx context.Context, mark *vips.Image, opacity float64) (*vips.Image, error) {
-	var err error
-	if !mark.HasAlpha() {
-		if mark, err = r.a.Add(mark.AddAlpha(ctx)); err != nil {
-			return nil, err
-		}
-	}
 	if opacity >= 1 {
 		return mark, nil
 	}
@@ -237,6 +335,31 @@ func (r *runner) replicate(ctx context.Context, mark *vips.Image, w, h int, cent
 		left, top = (t.Width()-w)/2, (t.Height()-h)/2
 	}
 	return r.a.Add(t.ExtractArea(ctx, image.Rect(left, top, left+w, top+h)))
+}
+
+// chessboard tiles cell over a w×h area with every other cell empty
+// (imgproxy Pro position "ch"): a 2×2 unit holds the cell top-left and
+// bottom-right, and the units are laid out so that a cell sits in the
+// centre of the area.
+func (r *runner) chessboard(ctx context.Context, cell *vips.Image, w, h int) (*vips.Image, error) {
+	cw, ch := cell.Width(), cell.Height()
+	unit, err := r.a.Add(cell.Embed(ctx, 0, 0, 2*cw, 2*ch, vips.ExtendBlack, nil))
+	if err != nil {
+		return nil, err
+	}
+	if unit, err = r.a.Add(unit.Insert(ctx, cell, cw, ch)); err != nil {
+		return nil, err
+	}
+	if unit, err = r.a.Add(unit.CopyMemory(ctx)); err != nil {
+		return nil, err
+	}
+	// Centred on a unit, the area's centre is a cell corner; half a cell
+	// more on each axis moves it to the centre of a cell.
+	t, err := r.replicate(ctx, unit, w+cw, h+ch, true)
+	if err != nil {
+		return nil, err
+	}
+	return r.a.Add(t.ExtractArea(ctx, image.Rect(0, 0, w, h)))
 }
 
 func ceilDiv(a, b int) int { return (a + b - 1) / b }

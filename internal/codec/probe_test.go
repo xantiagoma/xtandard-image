@@ -85,6 +85,7 @@ func TestProbeFixtures(t *testing.T) {
 		"png/rgb16.png":           with(still(codec.FormatPNG, 96, 72), func(m *codec.ImageMeta) { m.BitDepth = 16 }),
 		"png/palette.png":         still(codec.FormatPNG, 96, 72),
 		"watermark/logo.png":      with(still(codec.FormatPNG, 48, 32), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"watermark/badge.png":     with(still(codec.FormatPNG, 40, 40), func(m *codec.ImageMeta) { m.HasAlpha = true }),
 		"gif/static.gif": with(still(codec.FormatGIF, 96, 72), func(m *codec.ImageMeta) {
 			m.Delays, m.Loop = []int{100}, 1
 		}),

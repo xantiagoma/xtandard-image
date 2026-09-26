@@ -35,6 +35,7 @@ testdata/
 | `png/rgb16.png` | PNG 96x72 | 16 bits per channel |
 | `png/palette.png` | PNG 96x72 | 8-bit palette (PLTE) |
 | `watermark/logo.png` | PNG 48x32 | RGBA logo used as the configured watermark (translucent plate, opaque parts, half-transparent rim) |
+| `watermark/badge.png` | PNG 40x40 | RGBA badge used as a per-request watermark (`watermark_url`, dialect overlays): teal disc, white "L" |
 | `gif/static.gif`, `gif/animated.gif` | GIF 96x72 | single frame; 6 frames, 100 ms, infinite loop |
 | `webp/lossy.webp`, `webp/lossless.webp`, `webp/animated.webp` | WebP | VP8, VP8L, animated (6 frames, alpha) |
 | `avif/photo.avif` | AVIF 320x240 | 8-bit AV1 still |

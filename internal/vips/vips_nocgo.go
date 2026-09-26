@@ -355,6 +355,9 @@ func (*Image) Multiply(context.Context, *Image) (*Image, error) { return nil, Er
 // Divide fails.
 func (*Image) Divide(context.Context, *Image) (*Image, error) { return nil, ErrUnavailable }
 
+// Text fails.
+func Text(context.Context, *TextOptions) (*Image, int, error) { return nil, 0, ErrUnavailable }
+
 // GradientMask fails.
 func GradientMask(context.Context, int, int, float64, float64, float64, float64) (*Image, error) {
 	return nil, ErrUnavailable
