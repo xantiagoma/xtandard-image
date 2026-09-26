@@ -1,5 +1,5 @@
 // Package app is the composition root (ARCHITECTURE §3): it builds every
-// component from Config, wires them together and owns the process
+// component from config.Config, wires them together and owns the process
 // lifecycle. It is the only package that constructs concrete types; cmd
 // calls Run and nothing else imports app.
 package app
@@ -8,24 +8,34 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
+	"slices"
 	"time"
 
+	"github.com/xantiagoma/xtandard-image/internal/config"
+	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/limiter"
 	"github.com/xantiagoma/xtandard-image/internal/obs/admin"
 	"github.com/xantiagoma/xtandard-image/internal/obs/logging"
 	"github.com/xantiagoma/xtandard-image/internal/obs/metrics"
+	"github.com/xantiagoma/xtandard-image/internal/obs/tracing"
 	"github.com/xantiagoma/xtandard-image/internal/security/ssrf"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
-// Build is the binary's version metadata (xi_build_info).
-type Build struct {
+// Options are the process-level inputs that do not come from config.Config.
+type Options struct {
+	// Version and Commit are the build metadata (xi_build_info, logs,
+	// default User-Agent).
 	Version string
 	Commit  string
+	// Tracing turns OpenTelemetry on (XI_OTEL_ENABLED or an
+	// OTEL_EXPORTER_OTLP_*ENDPOINT; cmd decides from the environment).
+	Tracing bool
 }
 
 // hooks are test seams; the zero value is production behaviour.
@@ -35,112 +45,220 @@ type hooks struct {
 }
 
 // Run starts the service and blocks until ctx is cancelled (SIGINT/SIGTERM
-// via signal.NotifyContext in main) or a listener fails. Shutdown order
-// follows go-standards §2: readiness → 503, wait ServerShutdownDelay,
-// http.Server.Shutdown (drains in-flight requests for up to
-// ServerShutdownTimeout), then vips.Shutdown. A signal-triggered shutdown
-// returns nil.
-func Run(ctx context.Context, cfg *Config, logger *slog.Logger) error {
-	return run(ctx, cfg, logger, hooks{})
+// via signal.NotifyContext in main) or a listener fails. See lifecycle.run
+// for the shutdown order. A signal-triggered shutdown returns nil.
+func Run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Options) error {
+	return run(ctx, cfg, logger, opts, hooks{})
 }
 
-func run(ctx context.Context, cfg *Config, logger *slog.Logger, h hooks) error {
-	build := cfg.Build
+func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Options, h hooks) (err error) {
 	if err := cfg.Validate(); err != nil {
 		return err
 	}
 
 	vcfg := vips.DefaultConfig()
-	vcfg.Concurrency = cfg.VipsConcurrency
+	vcfg.Concurrency = cfg.Vips.Concurrency
+	vcfg.HEICEncode = cfg.Formats.HEIC.Encode
 	if err := vips.Init(&vcfg); err != nil {
 		return fmt.Errorf("init vips: %w", err)
 	}
+	// Cleanups run in reverse order on every exit path; the lifecycle
+	// empties the list itself on a normal shutdown so the drain order holds.
+	var cleanups []func(context.Context) error
+	defer func() {
+		ctx := context.WithoutCancel(ctx)
+		for _, cleanup := range slices.Backward(cleanups) {
+			err = errors.Join(err, cleanup(ctx))
+		}
+	}()
+	cleanups = append(cleanups, func(context.Context) error { vips.Shutdown(); return nil })
 
-	met, err := metrics.New(metrics.Options{Version: build.Version, Commit: build.Commit, Vips: vipsStats{}})
+	met, err := metrics.New(metrics.Options{Version: opts.Version, Commit: opts.Commit, Vips: vipsStats{}})
 	if err != nil {
-		vips.Shutdown()
 		return err
 	}
 	lim, err := limiter.New(limiter.Config{
-		Workers:      cfg.ProcessingWorkers,
-		QueueSize:    cfg.ProcessingQueueSize,
-		QueueTimeout: cfg.ProcessingQueueTimeout,
+		Workers:      cfg.Processing.Workers,
+		QueueSize:    cfg.Processing.QueueSize,
+		QueueTimeout: cfg.Processing.QueueTimeout,
+		MemoryBudget: int64(cfg.Processing.MemoryBudget),
 	}, limiter.WithMetrics(&limiterMetrics{obs: met.Limiter()}))
 	if err != nil {
-		vips.Shutdown()
 		return err
 	}
 	// Once every request has drained, release libvips; if some are still in
 	// C after the drain timeout, leave it to process exit instead of pulling
 	// libvips out from under them.
-	defer func() {
+	cleanups[0] = func(ctx context.Context) error {
 		if n := lim.Stats().InFlight; n > 0 {
-			logger.LogAttrs(context.WithoutCancel(ctx), slog.LevelWarn, "skipping vips shutdown with jobs in flight",
-				slog.Int64("in_flight", n))
-			return
+			logger.LogAttrs(ctx, slog.LevelWarn, "skipping vips shutdown with jobs in flight", slog.Int64("in_flight", n))
+			return nil
 		}
 		vips.Shutdown()
-	}()
-
-	policy := ssrf.Policy{}
-	if cfg.FetchAllowPrivateNetworks {
-		policy.Allow = ssrf.ClassPrivateNetworks
+		return nil
 	}
+
+	tp, err := tracing.New(ctx, tracing.Options{Enabled: opts.Tracing, ServiceVersion: opts.Version})
+	if err != nil {
+		return err
+	}
+	cleanups = append(cleanups, tp.Shutdown)
+
+	userAgent := cfg.Fetch.UserAgent
+	if userAgent == "" {
+		userAgent = "xtandard-image/" + opts.Version
+	}
+	policy := ssrfPolicy(cfg)
 	if h.policy != nil {
 		policy = *h.policy
 	}
-	client := ssrf.New(&ssrf.Options{Policy: policy})
-	defer client.CloseIdleConnections()
+	// One SSRF-safe client shared by every http source (dev included).
+	client := ssrf.New(&ssrf.Options{Policy: policy, MaxRedirects: cfg.Fetch.MaxRedirects, UserAgent: userAgent})
+	cleanups = append(cleanups, func(context.Context) error { client.CloseIdleConnections(); return nil })
+
+	reg, closers, err := buildSources(ctx, cfg, client, userAgent)
+	cleanups = append(cleanups, closeAll(closers))
+	if err != nil {
+		return fmt.Errorf("sources: %w", err)
+	}
+	types := map[string]string{}
+	for name := range cfg.Sources {
+		types[name] = string(cfg.Sources[name].Type)
+	}
+	types["_dev"] = "http"
+	fetcher, err := fetch.New(reg, vipsAllocator, fetch.Config{
+		Timeout:     cfg.Fetch.Timeout,
+		MaxBytes:    int64(cfg.Limits.MaxSrcBytes),
+		CacheBytes:  int64(cfg.Cache.Origin.MemoryBytes),
+		CacheTTL:    cfg.Cache.Origin.TTL,
+		NegativeTTL: cfg.Cache.Origin.NegativeTTL,
+		Retry:       cfg.Fetch.Retry,
+	}, fetch.WithMetrics(&fetchMetrics{m: met, types: types}))
+	if err != nil {
+		return err
+	}
+
+	rt, warnings, err := buildRouter(cfg)
+	if err != nil {
+		return fmt.Errorf("dialects: %w", err)
+	}
+	for _, w := range warnings {
+		logger.LogAttrs(ctx, slog.LevelWarn, "config warning", slog.String("warning", w))
+	}
 
 	ready := admin.NewReadiness()
-	srv, err := server.New(server.Config{
-		Addr:              cfg.ServerAddr,
-		RequestTimeout:    cfg.ServerRequestTimeout,
-		ReadHeaderTimeout: cfg.ServerReadHeaderTimeout,
-		ReadTimeout:       cfg.ServerReadTimeout,
-		WriteTimeout:      cfg.ServerWriteTimeout,
-		IdleTimeout:       cfg.ServerIdleTimeout,
-		MaxHeaderBytes:    cfg.ServerMaxHeaderBytes,
-		DevMode:           cfg.DevMode,
-	}, &server.Deps{
-		Fetcher:   &httpFetcher{client: client, timeout: cfg.FetchTimeout, maxBytes: cfg.LimitsMaxSrcBytes},
+	scfg := serverConfig(cfg)
+	srv, err := server.New(&scfg, &server.Deps{
+		Router:    rt,
+		Resolver:  reg,
+		Fetcher:   fetcher,
 		Admitter:  lim,
-		Processor: &vipsProcessor{quality: cfg.JPEGQuality},
+		Prober:    vipsProber{},
+		Processor: &vipsProcessor{q: qualities{def: cfg.Formats.Quality, jpeg: cfg.Formats.JPEG.Quality, webp: cfg.Formats.WebP.Quality, avif: cfg.Formats.AVIF.Quality, heic: cfg.Formats.HEIC.Quality, jxl: cfg.Formats.JXL.Quality}},
+		Allocator: vipsAllocator,
 		Logger:    logger,
 		Metrics:   met,
 		Readiness: ready,
+		Tracer:    tp.Tracer("github.com/xantiagoma/xtandard-image/internal/server"),
+		Middleware: func(next http.Handler) http.Handler {
+			return tp.Middleware(next, "image")
+		},
 	})
 	if err != nil {
 		return err
 	}
 
+	lc := &lifecycle{
+		logger:     logger,
+		ready:      ready,
+		publicAddr: cfg.Server.Addr,
+		adminAddr:  cfg.Admin.Addr,
+		public:     srv.HTTPServer,
+		admin: func(ctx context.Context) *http.Server {
+			return adminServer(ctx, logger, adminMux(met, ready, cfg.Admin.Pprof))
+		},
+		shutdownDelay:   cfg.Server.ShutdownDelay,
+		shutdownTimeout: cfg.Server.ShutdownTimeout,
+		listening:       h.listening,
+	}
+	// After the drain, in go-standards §2 order: close sources, the http
+	// client, flush traces, then vips.Shutdown (the reverse of construction).
+	for _, cleanup := range slices.Backward(cleanups) {
+		lc.afterDrain = append(lc.afterDrain, cleanup)
+	}
+	cleanups = nil
+	return lc.run(ctx)
+}
+
+func adminMux(met *metrics.Metrics, ready *admin.Readiness, pprof bool) http.Handler {
+	return admin.NewMux(admin.Options{Metrics: met.Handler(), Readiness: ready, Pprof: pprof})
+}
+
+// closeAll closes every source holding connections or file handles.
+func closeAll(cs []io.Closer) func(context.Context) error {
+	return func(context.Context) error {
+		var list []error
+		for _, c := range cs {
+			if err := c.Close(); err != nil {
+				list = append(list, fmt.Errorf("close source: %w", err))
+			}
+		}
+		return errors.Join(list...)
+	}
+}
+
+// lifecycle serves the public (and optional admin) listener and drains them
+// on shutdown in go-standards §2 order:
+//
+//  1. readiness → 503 (draining),
+//  2. wait shutdownDelay so load balancers deregister us,
+//  3. http.Server.Shutdown: stop accepting (listeners closed at once), then
+//     wait for in-flight requests up to shutdownTimeout,
+//  4. afterDrain hooks, then the caller's cleanups (close sources, flush
+//     traces, vips.Shutdown once no job is in flight).
+type lifecycle struct {
+	logger          *slog.Logger
+	ready           *admin.Readiness
+	publicAddr      string
+	adminAddr       string // "" disables the admin listener
+	public          func(ctx context.Context) *http.Server
+	admin           func(ctx context.Context) *http.Server
+	shutdownDelay   time.Duration
+	shutdownTimeout time.Duration
+	listening       func(public, admin net.Addr)
+	afterDrain      []func(context.Context) error
+	onShutdown      func() // test seam: registered with every server's RegisterOnShutdown
+}
+
+func (lc *lifecycle) serveAndDrain(ctx context.Context) error {
 	// Requests must survive the shutdown signal so they can drain: their
 	// base context drops ctx's cancellation and is cancelled only after
 	// the drain timeout.
 	baseCtx, cancelBase := context.WithCancel(context.WithoutCancel(ctx))
 	defer cancelBase()
 
-	lc := net.ListenConfig{}
-	publicLn, err := lc.Listen(baseCtx, "tcp", cfg.ServerAddr)
+	lnc := net.ListenConfig{}
+	publicLn, err := lnc.Listen(baseCtx, "tcp", lc.publicAddr)
 	if err != nil {
-		return fmt.Errorf("listen %s: %w", cfg.ServerAddr, err)
+		return fmt.Errorf("listen %s: %w", lc.publicAddr, err)
 	}
-	servers := []*http.Server{srv.HTTPServer(baseCtx)}
+	servers := []*http.Server{lc.public(baseCtx)}
 	listeners := []net.Listener{publicLn}
 	var adminAddr net.Addr
-	if cfg.AdminAddr != "" {
-		adminLn, err := lc.Listen(baseCtx, "tcp", cfg.AdminAddr)
+	if lc.adminAddr != "" && lc.admin != nil {
+		adminLn, err := lnc.Listen(baseCtx, "tcp", lc.adminAddr)
 		if err != nil {
 			_ = publicLn.Close()
-			return fmt.Errorf("listen admin %s: %w", cfg.AdminAddr, err)
+			return fmt.Errorf("listen admin %s: %w", lc.adminAddr, err)
 		}
 		adminAddr = adminLn.Addr()
-		servers = append(servers, adminServer(baseCtx, logger, admin.NewMux(admin.Options{
-			Metrics:   met.Handler(),
-			Readiness: ready,
-			Pprof:     cfg.AdminPprof,
-		})))
+		servers = append(servers, lc.admin(baseCtx))
 		listeners = append(listeners, adminLn)
+	}
+	if lc.onShutdown != nil {
+		for _, s := range servers {
+			s.RegisterOnShutdown(lc.onShutdown)
+		}
 	}
 
 	// One goroutine per listener; each exits when its server is shut down
@@ -150,46 +268,57 @@ func run(ctx context.Context, cfg *Config, logger *slog.Logger, h hooks) error {
 		go func() { serveErr <- serve(s, listeners[i]) }()
 	}
 
-	ready.SetReady()
-	logger.LogAttrs(ctx, slog.LevelInfo, "listening",
+	lc.ready.SetReady()
+	lc.logger.LogAttrs(ctx, slog.LevelInfo, "listening",
 		slog.String("addr", publicLn.Addr().String()),
-		slog.String("admin_addr", addrString(adminAddr)),
-		slog.Bool("dev_mode", cfg.DevMode),
-		slog.String("version", build.Version))
-	if h.listening != nil {
-		h.listening(publicLn.Addr(), adminAddr)
+		slog.String("admin_addr", addrString(adminAddr)))
+	if lc.listening != nil {
+		lc.listening(publicLn.Addr(), adminAddr)
 	}
 
 	var failed error
 	pending := len(servers)
 	select {
 	case <-ctx.Done():
-		logger.LogAttrs(ctx, slog.LevelInfo, "shutting down",
+		lc.logger.LogAttrs(ctx, slog.LevelInfo, "shutting down",
 			slog.String("cause", context.Cause(ctx).Error()))
 	case failed = <-serveErr:
 		pending--
-		logger.LogAttrs(ctx, slog.LevelError, "listener failed", logging.Err(failed))
+		lc.logger.LogAttrs(ctx, slog.LevelError, "listener failed", logging.Err(failed))
 	}
 
 	// 1. readiness 503, 2. let load balancers deregister us.
-	ready.SetDraining()
-	if failed == nil && cfg.ServerShutdownDelay > 0 {
-		t := time.NewTimer(cfg.ServerShutdownDelay)
+	lc.ready.SetDraining()
+	if failed == nil && lc.shutdownDelay > 0 {
+		t := time.NewTimer(lc.shutdownDelay)
 		<-t.C
 	}
-	// 3. drain in-flight requests.
-	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cfg.ServerShutdownTimeout)
+	// 3. stop accepting and drain in-flight requests.
+	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), lc.shutdownTimeout)
 	defer cancel()
-	shutdownErrs := []error{failed}
+	errList := []error{failed}
 	for _, s := range servers {
-		shutdownErrs = append(shutdownErrs, s.Shutdown(shutdownCtx))
+		if err := s.Shutdown(shutdownCtx); err != nil {
+			errList = append(errList, fmt.Errorf("drain: %w", err))
+		}
 	}
 	cancelBase()
 	for range pending {
-		shutdownErrs = append(shutdownErrs, <-serveErr)
+		errList = append(errList, <-serveErr)
 	}
-	// 4. vips.Shutdown runs in the deferred func above.
-	return errors.Join(shutdownErrs...)
+	lc.logger.LogAttrs(ctx, slog.LevelInfo, "drained")
+	return errors.Join(errList...)
+}
+
+// run serves until shutdown, then runs the afterDrain hooks (step 4) on
+// every exit path, including a listener that failed to bind.
+func (lc *lifecycle) run(ctx context.Context) error {
+	err := lc.serveAndDrain(ctx)
+	ctx = context.WithoutCancel(ctx)
+	for _, f := range lc.afterDrain {
+		err = errors.Join(err, f(ctx))
+	}
+	return err
 }
 
 func serve(s *http.Server, ln net.Listener) error {

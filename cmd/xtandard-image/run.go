@@ -6,13 +6,17 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"runtime"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/xantiagoma/xtandard-image/internal/app"
+	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/obs/logging"
+	"github.com/xantiagoma/xtandard-image/internal/obs/tracing"
 )
 
 var errUnknownCommand = errors.New("unknown command")
@@ -20,21 +24,28 @@ var errUnknownCommand = errors.New("unknown command")
 const usageText = `usage: xtandard-image <command> [flags]
 
 commands:
-  serve     start the image proxy (default)
-  health    probe a running instance's health endpoint
-  version   print version information
+  serve          start the image proxy (default)
+  config print   print the effective configuration (secrets redacted)
+  health         probe a running instance's health endpoint
+  version        print version information
 `
 
 // run is the testable entry point: it owns no process state and receives
-// everything it needs (args without argv[0], environment lookup, output).
-func run(ctx context.Context, args []string, getenv func(string) string, stdout io.Writer) error {
+// everything it needs (args without argv[0], the environment as KEY=value
+// pairs, output).
+func run(ctx context.Context, args []string, environ []string, stdout io.Writer) error {
 	cmd := "serve"
 	if len(args) > 0 {
 		cmd, args = args[0], args[1:]
 	}
 	switch cmd {
 	case "serve":
-		return serve(ctx, args, getenv, stdout)
+		return serve(ctx, args, environ, stdout)
+	case "config":
+		if len(args) == 0 || args[0] != "print" {
+			return fmt.Errorf("%w %q\n%s", errUnknownCommand, strings.TrimSpace("config "+strings.Join(args, " ")), usageText)
+		}
+		return configPrint(args[1:], environ, stdout)
 	case "health":
 		return health(ctx, args, stdout)
 	case "version":
@@ -48,19 +59,75 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout 
 }
 
 // serve runs the image proxy until ctx is cancelled (SIGINT/SIGTERM).
-func serve(ctx context.Context, args []string, getenv func(string) string, stdout io.Writer) error {
+func serve(ctx context.Context, args []string, environ []string, stdout io.Writer) error {
 	fs := newFlagSet("serve", stdout)
+	configFile := fs.String("config", "", "YAML config file (default $XI_CONFIG_FILE, else "+config.DefaultConfigFile+" if present)")
 	if err := fs.Parse(args); err != nil {
 		return ignoreHelp(err)
 	}
-	cfg, err := app.ConfigFromEnv(getenv)
+	cfg, meta, err := config.Load(config.LoadOptions{Environ: environ, ConfigFile: *configFile})
 	if err != nil {
 		return fmt.Errorf("config: %w", err)
 	}
+	logger := logging.New(stdout, logging.Options{Level: cfg.Observability.LogLevel.Level()})
+	logMeta(ctx, logger, &meta)
+
 	info := versionInfo(version, commit)
-	cfg.Build = app.Build{Version: info.Version, Commit: info.Commit}
-	logger := logging.New(stdout, logging.Options{Level: cfg.LogLevel})
-	return app.Run(ctx, &cfg, logger)
+	getenv := lookup(environ)
+	return app.Run(ctx, &cfg, logger, app.Options{
+		Version: info.Version,
+		Commit:  info.Commit,
+		Tracing: cfg.OTel.Enabled || tracing.EnabledFromEnv(getenv),
+	})
+}
+
+// logMeta reports what config.Load tolerated: warnings, unknown XI_*
+// variables (XI_ALLOW_UNKNOWN_ENV) and untranslated IMGPROXY_* variables.
+func logMeta(ctx context.Context, logger *slog.Logger, meta *config.Meta) {
+	if meta.File != "" {
+		logger.LogAttrs(ctx, slog.LevelInfo, "config file loaded", slog.String("file", meta.File))
+	}
+	for _, w := range meta.Warnings {
+		logger.LogAttrs(ctx, slog.LevelWarn, "config warning", slog.String("warning", w))
+	}
+	if len(meta.UnknownEnv) > 0 {
+		logger.LogAttrs(ctx, slog.LevelWarn, "unknown environment variables ignored",
+			slog.String("variables", strings.Join(meta.UnknownEnv, ",")))
+	}
+	if len(meta.UnmappedImgproxyEnv) > 0 {
+		logger.LogAttrs(ctx, slog.LevelWarn, "imgproxy environment variables not translated",
+			slog.String("variables", strings.Join(meta.UnmappedImgproxyEnv, ",")))
+	}
+}
+
+// configPrint prints the effective configuration as redacted YAML. It
+// prints what could be loaded even when validation fails, then fails.
+func configPrint(args, environ []string, stdout io.Writer) error {
+	fs := newFlagSet("config print", stdout)
+	configFile := fs.String("config", "", "YAML config file")
+	if err := fs.Parse(args); err != nil {
+		return ignoreHelp(err)
+	}
+	cfg, _, err := config.Load(config.LoadOptions{Environ: environ, ConfigFile: *configFile})
+	if _, werr := io.WriteString(stdout, cfg.Redacted()); werr != nil {
+		return werr
+	}
+	if err != nil {
+		return fmt.Errorf("config: %w", err)
+	}
+	return nil
+}
+
+// lookup turns KEY=value pairs into a getenv function (for the OTEL_*
+// variables the tracing package reads).
+func lookup(environ []string) func(string) string {
+	m := make(map[string]string, len(environ))
+	for _, kv := range environ {
+		if k, v, ok := strings.Cut(kv, "="); ok {
+			m[k] = v
+		}
+	}
+	return func(k string) string { return m[k] }
 }
 
 // health performs a GET against a running instance and fails unless it
