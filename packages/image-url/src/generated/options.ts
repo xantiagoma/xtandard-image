@@ -707,16 +707,16 @@ export interface ImgproxyProcessingArgs {
    * Seek to keyframes only. URL: `video_thumbnail_keyframes`, `vtk`; arguments bool; default config.
    *
    * URL names: `video_thumbnail_keyframes`, `vtk`.
-   * milestone M3; scope pipeline; imgproxy Pro option (free here).
+   * milestone M3 (WP-74); scope pipeline; imgproxy Pro option (free here).
    * @example [true]
    */
   "video_thumbnail_keyframes":
     | [keyframes: boolean | null];
   /**
-   * Video frame to use as the image. URL: `video_thumbnail_second`, `vts`; arguments float; default config.
+   * Video frame to use as the image (negative: from the end; unset: the configured second or the best frame). URL: `video_thumbnail_second`, `vts`; arguments float; default config.
    *
    * URL names: `video_thumbnail_second`, `vts`.
-   * milestone M3; scope pipeline; imgproxy Pro option (free here).
+   * milestone M3 (WP-74); scope pipeline; imgproxy Pro option (free here).
    * @example [5]
    */
   "video_thumbnail_second":
@@ -1288,7 +1288,7 @@ export interface ImgproxyInfoArgs {
    * Report video metadata. URL: `video_meta`, `vm`; arguments bool; default true.
    *
    * URL names: `video_meta`, `vm`.
-   * milestone M3; scope request.
+   * milestone M3 (WP-74); scope request.
    * @example [true]
    */
   "video_meta":
@@ -1297,16 +1297,16 @@ export interface ImgproxyInfoArgs {
    * Seek to keyframes only. URL: `video_thumbnail_keyframes`, `vtk`; arguments bool; default config.
    *
    * URL names: `video_thumbnail_keyframes`, `vtk`.
-   * milestone M3; scope pipeline; imgproxy Pro option (free here).
+   * milestone M3 (WP-74); scope pipeline; imgproxy Pro option (free here).
    * @example [true]
    */
   "video_thumbnail_keyframes":
     | [keyframes: boolean | null];
   /**
-   * Video frame to use as the image. URL: `video_thumbnail_second`, `vts`; arguments float; default config.
+   * Video frame to use as the image (negative: from the end; unset: the configured second or the best frame). URL: `video_thumbnail_second`, `vts`; arguments float; default config.
    *
    * URL names: `video_thumbnail_second`, `vts`.
-   * milestone M3; scope pipeline; imgproxy Pro option (free here).
+   * milestone M3 (WP-74); scope pipeline; imgproxy Pro option (free here).
    * @example [5]
    */
   "video_thumbnail_second":
