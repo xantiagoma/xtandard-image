@@ -1,0 +1,402 @@
+{
+  "docs_vector": {
+    "config": "signed",
+    "path": "/oKfUtW34Dvo2BGQehJFR4Nr0_rIjOtdtzJ3QFsUcXH8/rs:fill:300:400:0/g:sm/aHR0cDovL2V4YW1w/bGUuY29tL2ltYWdl/cy9jdXJpb3NpdHku/anBn.png",
+    "request": {
+      "Dialect": "imgproxy",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 400
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "base64",
+        "Raw": "http://example.com/images/curiosity.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "http://example.com/images/curiosity.jpg"
+  },
+  "example_vector": {
+    "config": "signed",
+    "path": "/m3k5QADfcKPDj-SDI2AIogZbC3FlAXszuwhtWXYqavc/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://img.example.com/pretty/image.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "http://img.example.com/pretty/image.jpg"
+  },
+  "example_vector_collapsed_scheme": {
+    "config": "signed",
+    "path": "/m3k5QADfcKPDj-SDI2AIogZbC3FlAXszuwhtWXYqavc/rs:fit:300:300/plain/http:/img.example.com/pretty/image.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://img.example.com/pretty/image.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "http://img.example.com/pretty/image.jpg"
+  },
+  "example_vector_percent_colon": {
+    "config": "signed",
+    "path": "/m3k5QADfcKPDj-SDI2AIogZbC3FlAXszuwhtWXYqavc/rs%3Afit%3A300%3A300/plain/http://img.example.com/pretty/image.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://img.example.com/pretty/image.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "http://img.example.com/pretty/image.jpg"
+  },
+  "example_vector_truncated_8": {
+    "config": "signed8",
+    "path": "/m3k5QADfcKM/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://img.example.com/pretty/image.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "http://img.example.com/pretty/image.jpg"
+  },
+  "insecure_placeholder": {
+    "config": "signed",
+    "path": "/insecure/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://img.example.com/pretty/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://img.example.com/pretty/image.jpg"
+  },
+  "malformed_signature": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/not*base64/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg"
+  },
+  "required_accepts_signature": {
+    "config": "required",
+    "path": "/m3k5QADfcKPDj-SDI2AIogZbC3FlAXszuwhtWXYqavc/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://img.example.com/pretty/image.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "http://img.example.com/pretty/image.jpg"
+  },
+  "required_rejects_placeholder": {
+    "config": "required",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/insecure/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg"
+  },
+  "signature_too_long_for_size_8": {
+    "config": "signed8",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/m3k5QADfcKPDj-SDI2AIogZbC3FlAXszuwhtWXYqavc/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg"
+  },
+  "signed_chained_enc": {
+    "config": "signed",
+    "path": "/SIG/rs:fit:100:100/-/bl:2/enc/MDEyMzQ1Njc4OWFiY2RlZj206ZwwVKiBydg5ip7OI2oVBFCdcMXXGze1K8CjwiQuFTiJkTDmRJeJccTs0wH06w.png",
+    "request": {
+      "Dialect": "imgproxy",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 100
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 100
+            }
+          }
+        },
+        {
+          "Blur": 2
+        }
+      ],
+      "Source": {
+        "Encoding": "encrypted",
+        "Raw": "http://img.example.com/pretty/image.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "http://img.example.com/pretty/image.jpg"
+  },
+  "signed_option_as_signature": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg"
+  },
+  "signed_query_ignored": {
+    "config": "signed",
+    "path": "/m3k5QADfcKPDj-SDI2AIogZbC3FlAXszuwhtWXYqavc/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg?x=1",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://img.example.com/pretty/image.jpg"
+      }
+    },
+    "signature": "verified",
+    "source": "http://img.example.com/pretty/image.jpg"
+  },
+  "signing_off_any_segment": {
+    "path": "/whatever-signature/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://img.example.com/pretty/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://img.example.com/pretty/image.jpg"
+  },
+  "signing_off_option_as_signature": {
+    "error": {
+      "kind": "unauthorized",
+      "public": "The signature appears to be a processing option. The signature section should always be present in the URL.",
+      "status": 403
+    },
+    "path": "/w:10/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg"
+  },
+  "tampered_path": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/m3k5QADfcKPDj-SDI2AIogZbC3FlAXszuwhtWXYqavc/rs:fit:301:300/plain/http://img.example.com/pretty/image.jpg"
+  },
+  "trusted_signature": {
+    "config": "signed",
+    "path": "/trusted-signature/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://img.example.com/pretty/image.jpg"
+      }
+    },
+    "signature": "trusted",
+    "source": "http://img.example.com/pretty/image.jpg"
+  },
+  "underscore_placeholder": {
+    "config": "signed",
+    "path": "/_/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://img.example.com/pretty/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://img.example.com/pretty/image.jpg"
+  },
+  "unsafe_placeholder": {
+    "config": "signed",
+    "path": "/unsafe/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "http://img.example.com/pretty/image.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "http://img.example.com/pretty/image.jpg"
+  },
+  "wrong_signature": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/oKfUtW34Dvo2BGQehJFR4Nr0_rIjOtdtzJ3QFsUcXH8/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg"
+  }
+}

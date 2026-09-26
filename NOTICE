@@ -22,3 +22,17 @@ docker/base/LICENSE.imgproxy-docker-base.
 The libraries built into the base image carry their own licenses, which
 are shipped in the image under /opt/xtandard/share/licenses/ together with
 SOURCES.md (exact source URLs, versions and SHA256 checksums).
+
+imgproxy
+--------
+https://github.com/imgproxy/imgproxy
+Copyright (c) 2017 Sergey Alexandrovich and imgproxy contributors
+Licensed under the Apache License, Version 2.0
+(http://www.apache.org/licenses/LICENSE-2.0).
+
+internal/dialect/imgproxy reimplements imgproxy's URL grammar and
+processing-option semantics from handlers/path.go (path
+redenormalisation), options/parser/url.go (source URL decoding),
+options/parser/parse.go and options/parser/apply.go (option argument
+rules). The code was rewritten against xtandard-image's own request model
+and modified as described in the package documentation.

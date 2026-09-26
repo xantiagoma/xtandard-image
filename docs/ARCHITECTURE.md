@@ -35,7 +35,7 @@ Each stage has a timeout budget taken from the request context (`XI_SERVER_REQUE
 | # | Stage | Package | Output | Typical failure → status |
 |---|---|---|---|---|
 | 1 | Ingress: accept, request ID, panic recovery, max URL length (8 KiB), method check (GET/HEAD) | `server` | `*http.Request` + ctx | 405, 414 |
-| 2 | Route: choose dialect by host binding, then longest path prefix, then default | `dialect/router` | `Parser`, stripped path | 404 (no route) |
+| 2 | Route: choose dialect by host binding, then longest path prefix, then default | `dialect/router` | `Dialect`, stripped path | 404 (no route) |
 | 3 | Parse: dialect grammar → `transform.Request` (+ `Ignored` list) | `dialect/<name>` | `*transform.Request` | 400 malformed / unknown option (strict) |
 | 4 | Authenticate: dialect signature verifier, expiry | `security/sign` | ok | 403 bad signature, 404 expired (imgproxy-compatible) |
 | 5 | Resolve source: decrypt `enc/`, map source string to named source, apply allowlist | `source`, `security/crypt` | `source.Ref` | 403 not allowed, 400 bad source |
@@ -65,7 +65,7 @@ internal/
   errs/                     error kinds (Kind enum), wrapping helpers, Kind → HTTP status table
   transform/                THE model: Request, Pipeline, enums, defaults, Validate, CanonicalKey. No deps.
   preset/                   named presets store; presets compiled to transform patches
-  dialect/                  Parser interface, Registry, Mount
+  dialect/                  Dialect interface, Input/Result, error helpers, Registry, Mount
     router/                 host / prefix / default selection
     imgproxy/               canonical dialect (+ /info)
     query/                  native query + imaginary-compatible endpoints
@@ -100,7 +100,7 @@ internal/
 Dependency rules (enforced by a `depguard`/`go-arch-lint` config in CI):
 
 - `transform` and `errs` are leaves. Every other package may import them.
-- `dialect/*` → `transform`, `preset`, `security/sign`, `errs`. Dialects never import `source`, `vips`, `pipeline`.
+- `dialect/*` → `transform`, `preset`, `security/sign`, `security/crypt`, `errs`. Dialects never import `source`, `vips`, `pipeline`.
 - `security/*` → `errs` only (and stdlib/x/crypto).
 - `fetch/<backend>` → `source` (interface types), `security/ssrf`, `errs`. Backends never know about dialects or transforms.
 - `fetch` → `source`, `cache`, `errs` (never its own backend subpackages; `app` constructs them).
@@ -279,23 +279,32 @@ Normalisation rules every dialect relies on:
 ```go
 package dialect
 
-type Parser interface {
+type Dialect interface {
     Name() string
-    // Parse turns the part of the URL after the mount into a request. It must not do I/O.
-    Parse(r *Input) (*transform.Request, error)
-    // Verifier returns the signature scheme(s) for this dialect, or nil if unsigned.
+    // Parse turns the part of the URL after the mount into a request and
+    // verifies its signature. It must not do I/O.
+    Parse(in *Input) (*Result, error)
+    // Verifier returns the signature scheme Parse applies, or nil if unsigned.
     Verifier() sign.Verifier
 }
 
 type Input struct {
-    Path   string      // escaped path after mount prefix
-    Query  url.Values
+    Path     string      // escaped path after mount prefix
+    Query    url.Values
     RawQuery string
-    Host   string
-    Header http.Header // Accept, client hints; never used for cache-key-relevant decisions except negotiation
-    Mount  Mount       // bound source name, dialect options
+    Host     string
+    Header   http.Header // Accept, client hints; never used for cache-key-relevant decisions except negotiation
+    Mount    Mount       // {Name, Prefix, Source}: bound source name
+}
+
+type Result struct {
+    Request      *transform.Request // only what the URL says; defaults/presets/Validate come later
+    SourceString string             // decoded source (plain/base64/decrypted, base URL applied) == Request.Source.Raw
+    Signature    sign.Result        // Unsigned | Verified | Trusted
 }
 ```
+
+Parse authenticates as well as parses because only the dialect knows which bytes are signed (imgproxy: the redenormalised path after the signature segment; imgix: path plus query). Errors are `*errs.Error`: `KindInvalidURL` (400; argument errors wrap `*dialect.ArgumentError{Field}` and the public message names the field), `KindUnauthorized` (bad signature, bad `enc/` token), `KindForbidden` (option disallowed by config, e.g. security options), `KindExpired`. Shared constructors (`dialect.InvalidArgument`, `InvalidURL`, `UnknownOption`, `OptionNotAllowed`, `Expired`) live in `internal/dialect`. `enc/` sources are decrypted by the dialect with `security/crypt`, so stage 5 receives a plain source string.
 
 Mounts are configured per dialect (`dialects.<name>.prefix`, `dialects.<name>.hosts`, `dialects.<name>.source`). Router precedence: exact host binding → longest path prefix → `XI_DIALECTS_DEFAULT` (imgproxy). Details in `URL-DIALECTS.md`.
 
