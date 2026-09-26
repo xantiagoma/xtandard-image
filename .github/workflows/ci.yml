@@ -140,3 +140,58 @@ jobs:
         run: scripts/verify-app-image.sh xtandard-image:ci
         env:
           XI_EXPECT_VERSION: ci
+      - name: Export app image for the acceptance job
+        run: docker save xtandard-image:ci | gzip -1 > "$RUNNER_TEMP/app-image.tar.gz"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: app-image-${{ matrix.arch }}
+          path: ${{ runner.temp }}/app-image.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  acceptance:
+    # M1 acceptance suite (WP-39, docs/RELEASE.md): black-box end-to-end run
+    # of the image the smoke job built on the same architecture
+    # (compose.acceptance.yml: app configured through env only, nginx origin,
+    # MinIO; test/acceptance with -tags acceptance on the runner). Set the
+    # repository variable XI_ACCEPTANCE_IMAGE (e.g.
+    # ghcr.io/xantiagoma/xtandard-image:slim) to run it against a published
+    # image instead.
+    name: acceptance (${{ matrix.arch }})
+    needs: smoke
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    env:
+      GOTOOLCHAIN: local # setup-go installs the go.mod toolchain directive
+      XI_ACCEPTANCE_IMAGE: ${{ vars.XI_ACCEPTANCE_IMAGE }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: "**/go.sum"
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v8
+        if: env.XI_ACCEPTANCE_IMAGE == ''
+        with:
+          name: app-image-${{ matrix.arch }}
+          path: ${{ runner.temp }}
+      - name: Load app image
+        if: env.XI_ACCEPTANCE_IMAGE == ''
+        run: gunzip -c "$RUNNER_TEMP/app-image.tar.gz" | docker load
+      - name: Acceptance suite
+        run: scripts/acceptance.sh
+        env:
+          XI_IMAGE: ${{ env.XI_ACCEPTANCE_IMAGE || 'xtandard-image:ci' }}

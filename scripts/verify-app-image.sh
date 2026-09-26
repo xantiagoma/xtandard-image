@@ -5,10 +5,10 @@
 #   2. image config: UID 65532, ports 8080/9090, HEALTHCHECK, OCI labels,
 #      ARCHITECTURE §14 environment
 #   3. compressed size ≤ XI_MAX_COMPRESSED_MB (default 110; docker save | gzip)
-#   4. read-only rootfs with a tmpfs /tmp, all capabilities dropped: the
-#      server starts, the Docker HEALTHCHECK turns healthy, `health` exits 0,
-#      the rootfs refuses writes and /tmp accepts them; `health` against a
-#      dead port exits non-zero
+#   4. scripts/check-readonly.sh: read-only rootfs with a tmpfs /tmp, all
+#      capabilities dropped: the server starts, the Docker HEALTHCHECK turns
+#      healthy, `health` exits 0, the rootfs refuses writes and /tmp accepts
+#      them; `health` against a dead port exits non-zero
 #   5. scripts/smoke.sh against the image (compose, read-only + tmpfs /tmp)
 #
 # Usage: scripts/verify-app-image.sh [image]   (default $XI_IMAGE, else xtandard-image:dev)
@@ -18,23 +18,12 @@ cd "$(dirname "$0")/.."
 
 image="${1:-${XI_IMAGE:-xtandard-image:dev}}"
 max_mb="${XI_MAX_COMPRESSED_MB:-110}"
-name="xi-verify-$$"
 failed=0
 
 fail() {
   echo "verify-app-image: FAIL: $*" >&2
   failed=1
 }
-
-cleanup() {
-  status=$?
-  if [ "$status" -ne 0 ] || [ "$failed" -ne 0 ]; then
-    docker logs "$name" >&2 2>/dev/null || true
-  fi
-  docker rm -f "$name" >/dev/null 2>&1 || true
-  exit "$status"
-}
-trap cleanup EXIT INT TERM
 
 echo "== image $image"
 
@@ -80,43 +69,7 @@ echo "compressed ${mb} MB ($bytes bytes; docker save | gzip), limit ${max_mb} MB
 
 # 4. read-only rootfs + health ------------------------------------------------------------
 echo "== read-only rootfs, tmpfs /tmp, health"
-docker run -d --name "$name" \
-  --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m \
-  --cap-drop ALL --security-opt no-new-privileges \
-  -e XI_DEV_MODE=true \
-  "$image" >/dev/null
-
-status=starting
-i=0
-while [ "$i" -lt 60 ]; do
-  status="$(docker inspect -f '{{.State.Health.Status}}' "$name" 2>/dev/null || echo gone)"
-  running="$(docker inspect -f '{{.State.Running}}' "$name" 2>/dev/null || echo false)"
-  [ "$status" = healthy ] && break
-  [ "$running" = true ] || break
-  sleep 1
-  i=$((i + 1))
-done
-[ "$status" = healthy ] || fail "HEALTHCHECK status '$status' after ${i}s (read-only rootfs)"
-echo "HEALTHCHECK healthy after ${i}s"
-
-if docker exec "$name" /usr/local/bin/xtandard-image health; then
-  echo "health exit 0"
-else
-  fail "health exited $?"
-fi
-if docker exec "$name" /usr/local/bin/xtandard-image health --url http://127.0.0.1:1/healthz --timeout 1s 2>/dev/null; then
-  fail "health against a dead port exited 0"
-else
-  echo "health against a dead port exits non-zero"
-fi
-if docker exec "$name" sh -c ': > /usr/local/bin/xi-write-test' 2>/dev/null; then
-  fail "rootfs is writable"
-else
-  echo "rootfs rejects writes"
-fi
-docker exec "$name" sh -c ': > /tmp/xi-write-test && rm /tmp/xi-write-test' || fail "/tmp tmpfs is not writable"
-echo "/tmp is writable"
-docker rm -f "$name" >/dev/null
+sh scripts/check-readonly.sh "$image" || fail "read-only rootfs / health check"
 
 # 5. smoke ---------------------------------------------------------------------------
 echo "== smoke"

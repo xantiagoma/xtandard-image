@@ -5,7 +5,8 @@ name: release
 #               docker/base/versions.sh resolved to digests
 #   2. build    natively on amd64 + arm64 (no QEMU), push by digest, verify
 #               (scripts/verify-app-image.sh: version, health, size ≤ 110 MB,
-#               read-only rootfs, smoke), SBOM (syft) + SLSA provenance
+#               read-only rootfs, smoke), M1 acceptance suite against the
+#               pushed digest (scripts/acceptance.sh), SBOM (syft) + SLSA provenance
 #               attached to each per-arch manifest, unstripped binary kept
 #   3. merge    multi-arch manifest tagged <ver>-slim, slim, <ver>, latest
 #               (latest/slim/<major.minor> only for non-prerelease versions),
@@ -167,6 +168,25 @@ jobs:
             docker pull "$ref"
           fi
           scripts/verify-app-image.sh "$ref"
+
+      # M1 release gate (WP-39): the acceptance suite against the pushed
+      # digest on this architecture. merge (which tags latest) needs build,
+      # so nothing is tagged unless both architectures pass.
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: "**/go.sum"
+
+      - name: Acceptance suite
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          GOTOOLCHAIN: local
+        run: |
+          ref=xtandard-image:release
+          if [ "$PUSH" = "true" ]; then
+            ref="$IMAGE@$DIGEST"
+          fi
+          XI_IMAGE="$ref" scripts/acceptance.sh
 
       - name: Export unstripped binary
         uses: docker/build-push-action@v7

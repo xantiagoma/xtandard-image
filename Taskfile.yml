@@ -6,6 +6,7 @@
 #   XI_BASE_IMAGE=xtandard-base:dev-builder task docker:test   # locally built base (WP-05)
 #   task test:integration   # starts compose.test.yml services (MinIO, ...) and runs
 #                           # -tags integration tests in the builder on their network
+#   task acceptance         # black-box M1 suite against the app image $XI_IMAGE (WP-39)
 #
 # The host tasks (lint, test, ...) run the same scripts with the toolchain
 # pinned in .mise.toml (`mise install`); CI and the docker:* tasks are canonical.
@@ -69,6 +70,10 @@ tasks:
     desc: "End-to-end smoke test of xtandard-image:dev (compose.smoke.yml); XI_APP_BASE=xtandard-base:dev locally"
     deps: [release:build]
     cmds: [sh scripts/smoke.sh]
+
+  acceptance:
+    desc: "M1 acceptance suite (compose.acceptance.yml + test/acceptance, WP-39) against $XI_IMAGE (default xtandard-image:dev, build it with release:build; a registry ref is pulled); XI_ACC_RUN narrows"
+    cmds: [sh scripts/acceptance.sh]
 
   # ---- release (docs/RELEASE.md) --------------------------------------------
 
