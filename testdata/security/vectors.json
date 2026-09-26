@@ -1,0 +1,105 @@
+{
+  "comment": "Cross-language signing and source-encryption vectors (WP-19, WP-84). Go: internal/security/sign TestSharedVectors and internal/security/crypt TestSharedVectors; TypeScript: packages/image-url/src/sign.test.ts and encrypt.test.ts. Keys, salts and IVs are hex. Sources: imgproxy docs 'Signing the URL', imgproxy examples/signature*.{go,mjs} and security/signature_test.go (Apache-2.0), imgproxy examples/encrypted_source_url.{go,js}.",
+  "imgproxy": [
+    {
+      "name": "docs_signing_url",
+      "key": "736563726574",
+      "salt": "68656C6C6F",
+      "size": 32,
+      "path": "/rs:fill:300:400:0/g:sm/aHR0cDovL2V4YW1w/bGUuY29tL2ltYWdl/cy9jdXJpb3NpdHku/anBn.png",
+      "signature": "oKfUtW34Dvo2BGQehJFR4Nr0_rIjOtdtzJ3QFsUcXH8"
+    },
+    {
+      "name": "examples_signature",
+      "key": "943b421c9eb07c830af81030552c86009268de4e532ba2ee2eab8247c6da0881",
+      "salt": "520f986b998545b4785e0defbc4f3c1203f22de2374a3d53cb7a7fe9fea309c5",
+      "size": 32,
+      "path": "/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg",
+      "signature": "m3k5QADfcKPDj-SDI2AIogZbC3FlAXszuwhtWXYqavc"
+    },
+    {
+      "name": "examples_signature_truncated",
+      "key": "943b421c9eb07c830af81030552c86009268de4e532ba2ee2eab8247c6da0881",
+      "salt": "520f986b998545b4785e0defbc4f3c1203f22de2374a3d53cb7a7fe9fea309c5",
+      "size": 8,
+      "path": "/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg",
+      "signature": "m3k5QADfcKM"
+    },
+    {
+      "name": "upstream_TestVerifySignature",
+      "key": "746573742d6b6579",
+      "salt": "746573742d73616c74",
+      "size": 32,
+      "path": "asd",
+      "signature": "oWaL7QoW5TsgbuiS9-5-DI8S3Ibbo1gdB2SteJh3a20"
+    },
+    {
+      "name": "upstream_TestVerifySignatureTruncated",
+      "key": "746573742d6b6579",
+      "salt": "746573742d73616c74",
+      "size": 8,
+      "path": "/asd",
+      "signature": "oWaL7QoW5Ts"
+    },
+    {
+      "name": "upstream_MultiplePairs_second",
+      "key": "746573742d6b657932",
+      "salt": "746573742d73616c7432",
+      "size": 32,
+      "path": "asd",
+      "signature": "jYz1UZ7j1BCdSzH3pZhaYf0iuz0vusoOTdqJsUT6WXI"
+    }
+  ],
+  "xi_sig": [
+    {
+      "name": "example",
+      "key": "943b421c9eb07c830af81030552c86009268de4e532ba2ee2eab8247c6da0881",
+      "salt": "520f986b998545b4785e0defbc4f3c1203f22de2374a3d53cb7a7fe9fea309c5",
+      "size": 32,
+      "path": "/imgix/photo.jpg",
+      "query": "w=400&h=300",
+      "signed_query": "w=400&h=300&xi_sig=hfEpzdduLUoMu7i8byFbffPk8lDHlZheutCf3sDNr4E"
+    },
+    {
+      "name": "stale_signature_replaced_size_16",
+      "key": "943b421c9eb07c830af81030552c86009268de4e532ba2ee2eab8247c6da0881",
+      "salt": "520f986b998545b4785e0defbc4f3c1203f22de2374a3d53cb7a7fe9fea309c5",
+      "size": 16,
+      "path": "/next/_next/image",
+      "query": "xi_sig=stale&url=%2Fa.jpg&&w=640&q=75",
+      "signed_query": "url=%2Fa.jpg&w=640&q=75&xi_sig=mDbRfcbuS-b_sYXkoiqZZg"
+    },
+    {
+      "name": "empty_query",
+      "key": "736563726574",
+      "salt": "68656C6C6F",
+      "size": 32,
+      "path": "/cdn-cgi/image/width=300/https://example.com/a.jpg",
+      "query": "",
+      "signed_query": "xi_sig=IaqirM4-hBvVIzuyP0b0zgJShEa2cp7tCoaAviJIe4s"
+    }
+  ],
+  "encryption": [
+    {
+      "name": "aes256_imgproxy_example",
+      "key": "1eb5b0e971ad7f45324c1bb15c947cb207c43152fa5c6c7f35c4f36e0c18e0f1",
+      "iv": "30313233343536373839616263646566",
+      "plaintext": "http://img.example.com/pretty/image.jpg",
+      "token": "MDEyMzQ1Njc4OWFiY2RlZj206ZwwVKiBydg5ip7OI2oVBFCdcMXXGze1K8CjwiQuFTiJkTDmRJeJccTs0wH06w"
+    },
+    {
+      "name": "aes128_block_aligned",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "iv": "66656463626139383736353433323130",
+      "plaintext": "https://example.com/abcdefghijkl",
+      "token": "ZmVkY2JhOTg3NjU0MzIxMCx6VmHChBajo8LAQxnT97Rexo6Vxh_GWH1Fa7gST9LDB4olaWLqjxQvsrisG5xtfg"
+    },
+    {
+      "name": "aes192_short",
+      "key": "000102030405060708090a0b0c0d0e0f1011121314151617",
+      "iv": "69766976697669766976697669766921",
+      "plaintext": "s3://bucket/key.png",
+      "token": "aXZpdml2aXZpdml2aXZpIWPwY9qCmnnmLnNVeCIjMP1UiOg7cNRyAGHg19Rprjpx"
+    }
+  ]
+}
