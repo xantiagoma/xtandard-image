@@ -36,7 +36,7 @@ func pprofPaths() []route {
 func TestPprofDisabledIs404(t *testing.T) {
 	t.Parallel()
 
-	mux := NewMux(Options{Metrics: http.NotFoundHandler(), Readiness: NewReadiness()})
+	mux := NewMux(&Options{Metrics: http.NotFoundHandler(), Readiness: NewReadiness()})
 	all := append(pprofPaths(),
 		route{http.MethodGet, "/debug/pprof/profile?seconds=1"},
 		route{http.MethodGet, "/debug/pprof/trace?seconds=1"},
@@ -54,7 +54,7 @@ func TestPprofDisabledIs404(t *testing.T) {
 func TestPprofEnabled(t *testing.T) {
 	t.Parallel()
 
-	mux := NewMux(Options{Pprof: true})
+	mux := NewMux(&Options{Pprof: true})
 	for _, p := range pprofPaths() {
 		t.Run(p.method+" "+p.path, func(t *testing.T) {
 			t.Parallel()
@@ -78,7 +78,7 @@ func TestMuxRoutes(t *testing.T) {
 		_, _ = w.Write([]byte("xi_build_info 1\n"))
 	})
 	ready := NewReadiness()
-	mux := NewMux(Options{Metrics: metrics, Readiness: ready})
+	mux := NewMux(&Options{Metrics: metrics, Readiness: ready})
 
 	tests := []struct {
 		method, path string
@@ -108,7 +108,7 @@ func TestMuxRoutes(t *testing.T) {
 func TestMetricsOptional(t *testing.T) {
 	t.Parallel()
 
-	if rec := serve(t, NewMux(Options{}), http.MethodGet, "/metrics"); rec.Code != http.StatusNotFound {
+	if rec := serve(t, NewMux(&Options{}), http.MethodGet, "/metrics"); rec.Code != http.StatusNotFound {
 		t.Errorf("status %d, want 404 without a metrics handler", rec.Code)
 	}
 }

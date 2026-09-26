@@ -33,6 +33,7 @@ func TestValidate(t *testing.T) {
 		{"ready threshold", func(c *Config) { c.Server.ReadyQueueThreshold = 101 }, []string{"server.ready_queue_threshold"}},
 		{"cors origin", func(c *Config) { c.Server.CORSOrigins = []string{"*", "example.com"} }, []string{`server.cors_origins[1]`}},
 		{"pprof without admin", func(c *Config) { c.Admin.Pprof, c.Admin.Addr = true, "" }, []string{"admin.pprof (XI_ADMIN_PPROF): needs admin.addr"}},
+		{"docs without admin", func(c *Config) { c.Admin.Docs, c.Admin.Addr = true, "" }, []string{"admin.docs (XI_ADMIN_DOCS): needs admin.addr"}},
 		{"admin same as server", func(c *Config) { c.Admin.Addr = c.Server.Addr }, []string{"admin.addr"}},
 		{"keys without salts", func(c *Config) { c.Signing.Keys = []HexKey{{1}} }, []string{"signing.salts (XI_SIGNING_SALTS): want one salt per key: 1 keys, 0 salts"}},
 		{"signature size", func(c *Config) { c.Signing.Size = 33 }, []string{"signing.size"}},

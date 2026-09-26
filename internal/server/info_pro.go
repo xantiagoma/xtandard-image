@@ -9,21 +9,22 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
 
-// infoProJSON holds the /info fields of imgproxy's Pro options (WP-63),
+// InfoProResponse holds the /info fields of imgproxy's Pro options (WP-63),
 // with imgproxy's names and shapes (docs.imgproxy.net
 // usage/getting_info): relative crop coordinates, an RGBA palette and
 // average, the six dominant colour classes (RGB), the BlurHash, the
 // ThumbHash as upper-case hex, the perceptual hash as 16 lower-case hex
-// digits, and hex hashsums of the source bytes.
-type infoProJSON struct {
-	Crop           *infoCrop         `json:"crop,omitempty"`
-	Palette        []infoRGBA        `json:"palette,omitempty"`
-	Average        *infoRGBA         `json:"average,omitempty"`
-	DominantColors *infoDominant     `json:"dominant_colors,omitempty"`
-	Blurhash       string            `json:"blurhash,omitempty"`
-	ThumbHash      string            `json:"thumb_hash,omitempty"`
-	PerceptualHash string            `json:"perceptual_hash,omitempty"`
-	Hashsums       map[string]string `json:"hashsums,omitempty"`
+// digits, and hex hashsums of the source bytes. It is embedded in
+// InfoResponse and, like it, public API (ADR 0008).
+type InfoProResponse struct {
+	Crop           *infoCrop         `json:"crop,omitempty"            doc:"Crop rectangle as fractions of the oriented image (info option crop)."`
+	Palette        []infoRGBA        `json:"palette,omitempty"         doc:"Up to the requested number of RGBA colours (info option palette)."`
+	Average        *infoRGBA         `json:"average,omitempty"         doc:"Average RGBA colour (info option average)."`
+	DominantColors *infoDominant     `json:"dominant_colors,omitempty" doc:"Dominant RGB colours by class; missing classes are left out unless built (info option dominant_colors)."`
+	Blurhash       string            `json:"blurhash,omitempty"        doc:"BlurHash string (info option blurhash)."`
+	ThumbHash      string            `json:"thumb_hash,omitempty"      doc:"ThumbHash as upper-case hex (info option thumbhash)."`
+	PerceptualHash string            `json:"perceptual_hash,omitempty" doc:"Perceptual hash as 16 lower-case hex digits (info option phash)."`
+	Hashsums       map[string]string `json:"hashsums,omitempty"        doc:"Hex digests of the source bytes by algorithm: md5, sha1, sha256, sha512 (info option calc_hashsums)."`
 }
 
 // infoCrop is the crop rectangle as fractions of the (oriented) image.
@@ -82,8 +83,8 @@ func pixelOptions(o *transform.InfoOptions) *imageinfo.Options {
 
 // infoPro renders the WP-63 fields for o. si.Pixels holds what the
 // inspector computed for pixelOptions(o); src is the source as fetched.
-func infoPro(o *transform.InfoOptions, si *SourceInfo, src []byte) infoProJSON {
-	var out infoProJSON
+func infoPro(o *transform.InfoOptions, si *SourceInfo, src []byte) InfoProResponse {
+	var out InfoProResponse
 	if c := o.Crop; c != nil && (!c.Width.IsZero() || !c.Height.IsZero()) {
 		out.Crop = cropCoordinates(c, &si.Meta)
 	}

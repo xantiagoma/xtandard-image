@@ -228,39 +228,41 @@ func orientedSize(m *SourceMeta) (w, h int) {
 	return m.Width, m.Height
 }
 
-// infoJSON is imgproxy's /info response (docs.imgproxy.net
+// InfoResponse is imgproxy's /info response body (docs.imgproxy.net
 // usage/getting_info). Each section is present exactly when its option is
 // on; requested metadata sections the source lacks are empty objects.
 // Options imgproxy supports but this build does not compute yet (video
 // metadata, detection, classification) are left out; the dialect lists
-// them in Request.Ignored (X-Xi-Ignored). The crop, colour and hash
-// fields (WP-63) are rendered by info_pro.go.
-type infoJSON struct {
-	Size         *int                      `json:"size,omitempty"`
-	Format       string                    `json:"format,omitempty"`
-	MIMEType     string                    `json:"mime_type,omitempty"`
-	Width        *int                      `json:"width,omitempty"`
-	Height       *int                      `json:"height,omitempty"`
-	Orientation  *int                      `json:"orientation,omitempty"`
-	EXIF         map[string]string         `json:"exif,omitzero"`
-	IPTC         map[string]any            `json:"iptc,omitzero"`
-	Photoshop    map[string]any            `json:"photoshop,omitzero"`
-	XMP          map[string]map[string]any `json:"xmp,omitzero"`
-	Colorspace   string                    `json:"colorspace,omitempty"`
-	Bands        *int                      `json:"bands,omitempty"`
-	SampleFormat string                    `json:"sample_format,omitempty"`
-	PagesNumber  *int                      `json:"pages_number,omitempty"`
-	Alpha        *bool                     `json:"alpha,omitempty"`
-	infoProJSON
-	// HDR is an xtandard-image extension, present only for scene-linear
-	// sources (OpenEXR, Radiance, PFM), which imgproxy does not read.
-	HDR bool `json:"hdr,omitempty"`
+// them in Request.Ignored (X-Xi-Ignored). The crop, colour and hash fields
+// (WP-63) are InfoProResponse, rendered by info_pro.go.
+//
+// It is public API: internal/apidoc reflects it into the OpenAPI document
+// (ADR 0008), so renaming a field or its JSON name is a breaking change.
+// The doc, minimum and maximum tags become schema keywords.
+type InfoResponse struct {
+	Size         *int                      `json:"size,omitempty"          doc:"Source size in bytes (info option size)."`
+	Format       string                    `json:"format,omitempty"        doc:"Source format in imgproxy's names: jpeg (UltraHDR too), png, webp, avif, heic, jxl, gif, tiff, bmp, ico, svg, pdf, psd, ... (info option format)."`
+	MIMEType     string                    `json:"mime_type,omitempty"     doc:"Source media type, e.g. image/jpeg; HEIC is image/heif (info option format)."`
+	Width        *int                      `json:"width,omitempty"         doc:"Width of one page or frame in pixels, EXIF orientation applied (info option dimensions)."`
+	Height       *int                      `json:"height,omitempty"        doc:"Height of one page or frame in pixels, EXIF orientation applied (info option dimensions)."`
+	Orientation  *int                      `json:"orientation,omitempty"   doc:"EXIF orientation 1-8, 1 when absent (info option dimensions)."                            maximum:"8" minimum:"1"`
+	EXIF         map[string]string         `json:"exif,omitzero"           doc:"EXIF tags keyed by libexif title, with libexif's human-readable values; {} when the source has none (info option exif)."`
+	IPTC         map[string]any            `json:"iptc,omitzero"           doc:"IPTC IIM datasets keyed by title, repeatable datasets as arrays; {} when the source has none (info option iptc)."`
+	Photoshop    map[string]any            `json:"photoshop,omitzero"      doc:"Photoshop image resources, e.g. resolution, when present (info option iptc)."`
+	XMP          map[string]map[string]any `json:"xmp,omitzero"            doc:"XMP properties grouped by namespace prefix; {} when the source has none (info option xmp)."`
+	Colorspace   string                    `json:"colorspace,omitempty"    doc:"libvips interpretation name: srgb, b-w, rgb16, cmyk, ... (info option colorspace)."`
+	Bands        *int                      `json:"bands,omitempty"         doc:"Number of bands (channels), alpha included (info option bands)."`
+	SampleFormat string                    `json:"sample_format,omitempty" doc:"libvips band format name: uchar, ushort, float, ... (info option sample_format)."`
+	PagesNumber  *int                      `json:"pages_number,omitempty"  doc:"Number of pages, or frames of an animation (info option pages_number)."               minimum:"1"`
+	Alpha        *bool                     `json:"alpha,omitempty"         doc:"Whether the source has an alpha channel (info option alpha)."`
+	InfoProResponse
+	HDR bool `json:"hdr,omitempty" doc:"xtandard-image extension: true for scene-linear sources (OpenEXR, Radiance, PFM), which imgproxy does not read; absent otherwise."`
 }
 
 // infoBody renders the response for the options in o; src is the source
 // as fetched.
 func infoBody(o *transform.InfoOptions, si *SourceInfo, src []byte) ([]byte, error) {
-	var out infoJSON
+	var out InfoResponse
 	if o.Size {
 		size := len(src)
 		out.Size = &size
@@ -316,7 +318,7 @@ func infoBody(o *transform.InfoOptions, si *SourceInfo, src []byte) ([]byte, err
 	if o.Alpha {
 		out.Alpha = &si.Meta.HasAlpha
 	}
-	out.infoProJSON = infoPro(o, si, src)
+	out.InfoProResponse = infoPro(o, si, src)
 	out.HDR = si.HDR
 	return json.Marshal(&out)
 }

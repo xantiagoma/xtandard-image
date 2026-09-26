@@ -69,10 +69,13 @@ type Server struct {
 	CORSOrigins         []string      `yaml:"cors_origins"          env:"CORS_ORIGINS"`
 }
 
-// Admin configures the private listener (/metrics, pprof).
+// Admin configures the private listener (/metrics, /openapi.json, pprof).
 type Admin struct {
 	Addr  string `yaml:"addr"  env:"ADDR"` // empty disables the listener
 	Pprof bool   `yaml:"pprof" env:"PPROF"`
+	// Docs serves the Scalar API reference at /docs, loaded from a pinned
+	// jsDelivr URL (ADR 0008); /openapi.json is always served.
+	Docs bool `yaml:"docs" env:"DOCS"`
 }
 
 // Signing configures URL signature verification (imgproxy scheme and xi_sig).

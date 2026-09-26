@@ -146,16 +146,36 @@ func wantsJSON(r *http.Request) bool {
 	return false
 }
 
-// errorJSON renders {"error":{"kind":…,"message":…,"request_id":…}}.
+// ErrorResponse is the JSON error body, sent when the request's Accept
+// lists application/json (ARCHITECTURE §12):
+//
+//	{"error":{"kind":"invalid_url","message":"invalid url","request_id":"…"}}
+//
+// It is public API: internal/apidoc reflects it into the OpenAPI document
+// (ADR 0008), with the kind enum taken from errs.Kinds.
+type ErrorResponse struct {
+	Error ErrorBody `json:"error"`
+}
+
+// ErrorBody is the "error" member of ErrorResponse.
+type ErrorBody struct {
+	// Kind is the errs.Kind name (snake_case).
+	Kind string `json:"kind" doc:"Error kind (errs.Kind), one per row of the status table."`
+	// Message is the client-safe message: never internal error text.
+	Message string `json:"message" doc:"Client-safe message; internal error text is never sent."`
+	// RequestID echoes the request ID when one was assigned.
+	RequestID string `json:"request_id,omitempty" doc:"Request ID, also in the logs."`
+}
+
+// NewErrorResponse returns the body for an error of kind k with the
+// client-safe message msg.
+func NewErrorResponse(k errs.Kind, msg, requestID string) ErrorResponse {
+	return ErrorResponse{Error: ErrorBody{Kind: k.String(), Message: msg, RequestID: requestID}}
+}
+
+// errorJSON renders an ErrorResponse, newline-terminated.
 func errorJSON(kind errs.Kind, msg, requestID string) []byte {
-	type body struct {
-		Kind      string `json:"kind"`
-		Message   string `json:"message"`
-		RequestID string `json:"request_id,omitempty"`
-	}
-	b, err := json.Marshal(struct {
-		Error body `json:"error"`
-	}{body{Kind: kind.String(), Message: msg, RequestID: requestID}})
+	b, err := json.Marshal(NewErrorResponse(kind, msg, requestID))
 	if err != nil { // unreachable: only strings
 		return []byte(`{"error":{"kind":"internal","message":"internal server error"}}`)
 	}
