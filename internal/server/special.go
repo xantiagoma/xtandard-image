@@ -38,6 +38,10 @@ type job struct {
 	lim    requestLimits
 	hints  negotiate.HintResult
 	signed bool // verified or trusted signature (immutable eligibility)
+	// cacheKey is the result-cache key when the lookup missed and the
+	// response may be stored (cache.go); process copies it to the result,
+	// never the fallback.
+	cacheKey string
 }
 
 // newResult starts the result of j from its fetched source: what the

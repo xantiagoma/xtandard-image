@@ -61,6 +61,41 @@ type imageResult struct {
 	// ext is the sniffed file extension (no dot) of an unprocessed raw or
 	// skip-processing body; "" derives it from format (WP-34c).
 	ext string
+	// cacheKey is the result-cache key under which a successful GET is
+	// stored after it was written; "" when it must not be stored (cache
+	// off, bypass, fallback, raw, info).
+	cacheKey string
+	// stored is the cached entry's header of a result-cache hit (cache.go);
+	// nil for a response produced now.
+	stored http.Header
+}
+
+// contentType is the Content-Type of the body.
+func (res *imageResult) contentType() string {
+	if res.out != nil && res.out.ContentType != "" {
+		return res.out.ContentType
+	}
+	return negotiate.ContentType(res.format)
+}
+
+// varyHeader is the Vary value: the negotiation's and the client hints'
+// request headers, or the stored value of a cache hit.
+func (res *imageResult) varyHeader() string {
+	if res.stored != nil {
+		return res.stored.Get("Vary")
+	}
+	return (res.decision.Vary | res.hints.Vary).Header()
+}
+
+// contentDPR is the Content-DPR value ("" when none applies).
+func (res *imageResult) contentDPR() string {
+	if res.stored != nil {
+		return res.stored.Get("Content-Dpr")
+	}
+	if dpr := res.hints.ContentDPR; dpr != 0 && dpr != 1 {
+		return strconv.FormatFloat(dpr, 'f', -1, 64)
+	}
+	return ""
 }
 
 // respond is stage 14 (ARCHITECTURE §9.1). A 304 carries the headers a 200
@@ -76,10 +111,7 @@ func (s *Server) respond(w http.ResponseWriter, r *http.Request, res *imageResul
 		return
 	}
 
-	ct := negotiate.ContentType(res.format)
-	if res.out != nil && res.out.ContentType != "" {
-		ct = res.out.ContentType
-	}
+	ct := res.contentType()
 	h.Set("Content-Type", ct)
 	h.Set("X-Content-Type-Options", "nosniff")
 	ext := formatExt(res.format)
@@ -113,11 +145,11 @@ func (s *Server) setCacheHeaders(h http.Header, res *imageResult) {
 	if lm := res.object.LastModified; !lm.IsZero() {
 		h.Set("Last-Modified", lm.UTC().Format(http.TimeFormat))
 	}
-	if v := (res.decision.Vary | res.hints.Vary).Header(); v != "" {
+	if v := res.varyHeader(); v != "" {
 		h.Set("Vary", v)
 	}
-	if dpr := res.hints.ContentDPR; dpr != 0 && dpr != 1 {
-		h.Set("Content-Dpr", strconv.FormatFloat(dpr, 'f', -1, 64))
+	if v := res.contentDPR(); v != "" {
+		h.Set("Content-Dpr", v)
 	}
 	if s.cfg.CanonicalHeader {
 		if u := res.key.Path; strings.HasPrefix(u, "https://") || strings.HasPrefix(u, "http://") {
