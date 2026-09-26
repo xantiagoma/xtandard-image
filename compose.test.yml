@@ -1,0 +1,15 @@
+# Backing services for `//go:build integration` tests (go-standards §8).
+# Tests read their endpoints from the environment and skip when unset.
+#
+#   docker compose -f compose.test.yml up -d
+#   XI_TEST_GCS_ENDPOINT=http://localhost:4443/storage/v1/ \
+#     go test -race -tags integration ./internal/fetch/...
+name: xtandard-image-test
+
+services:
+  # fake-gcs-server (BSD-2-Clause): GCS JSON API emulator for fetch/gcssrc.
+  fake-gcs:
+    image: fsouza/fake-gcs-server:1.56.1
+    command: ["-scheme", "http", "-port", "4443", "-external-url", "http://localhost:4443", "-backend", "memory"]
+    ports:
+      - "4443:4443"
