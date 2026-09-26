@@ -2,6 +2,9 @@ package app
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"os"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/codec/encode"
@@ -14,6 +17,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/security/svg"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
+	"github.com/xantiagoma/xtandard-image/internal/video"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -23,6 +27,8 @@ type codecProber struct {
 	// svg holds the static per-format limits and settings (SVG, PDF, PSD);
 	// the pixel and frame limits come per request.
 	svg codec.Limits
+	// video configures video sources (XI_VIDEO_*).
+	video video.Settings
 }
 
 // formatLimits are the codec limits and probe settings that come from the
@@ -36,6 +42,37 @@ func formatLimits(cfg *config.Config) codec.Limits {
 		PDFDensity:          cfg.Formats.PDF.DPI,
 		PSDRequireComposite: cfg.Formats.PSD.RequireComposite,
 	}
+}
+
+// videoSettings maps XI_VIDEO_* onto the codec's and executor's video
+// settings. auto enables video when this build has FFmpeg; startup already
+// failed for true without it (checkVideo).
+func videoSettings(cfg *config.Config) video.Settings {
+	v := &cfg.Video
+	s := video.Settings{
+		Enabled: v.Enabled != config.False && codec.VideoAvailable(),
+		Limits: video.Limits{
+			MaxBytes:    int64(v.MaxBytes),
+			MaxDuration: v.MaxDuration,
+			MaxPixels:   v.MaxPixels,
+		},
+		Keyframes: v.Thumbnail.Keyframes,
+		Samples:   v.Thumbnail.Samples,
+		Span:      v.Thumbnail.Span,
+	}
+	if sec, ok := v.Thumbnail.Second.Seconds(); ok {
+		s.Second = &sec
+	}
+	return s
+}
+
+// checkVideo fails startup when XI_VIDEO_ENABLED=true asks for video on an
+// image without FFmpeg (slim).
+func checkVideo(cfg *config.Config) error {
+	if cfg.Video.Enabled == config.True && !codec.VideoAvailable() {
+		return errors.New("video.enabled (XI_VIDEO_ENABLED) is true but this image has no FFmpeg; use the full image or set it to auto")
+	}
+	return nil
 }
 
 // Probe implements server.Prober.
@@ -59,7 +96,7 @@ func (p *codecProber) Probe(ctx context.Context, src fetch.Buffer, lim server.Pr
 	var m codec.ImageMeta
 	err = vips.Run(ctx, func() error {
 		var err error
-		m, err = codec.Probe(ctx, vb, l, "")
+		m, err = codec.ProbeMedia(ctx, vb, l, &p.video, "")
 		return err
 	})
 	if err != nil {
@@ -91,11 +128,16 @@ type processor struct {
 	exec   *exec.Executor
 	enc    encode.Config
 	pdfDPI float64 // XI_FORMATS_PDF_DPI: the density PDF sizes were probed at
+	// detect runs face and object detection for the detection gravities
+	// and filters (WP-72/73); nil is no detection (tests), like a detector
+	// that is off or unavailable (slim).
+	detect *detections
 }
 
 // newProcessor builds the executor and encoder; wm is the configured
-// watermark (nil when none), owned by the caller.
-func newProcessor(cfg *config.Config, wm *exec.Watermark) (*processor, error) {
+// watermark (nil when none), owned by the caller. admit charges each plan's
+// memory estimate (limiter.Limiter.Reserve; nil admits everything).
+func newProcessor(cfg *config.Config, wm *exec.Watermark, admit func(context.Context, int64) (func(), error)) (*processor, error) {
 	ec := encoderConfig(cfg)
 	enc, err := encode.New(&ec)
 	if err != nil {
@@ -105,10 +147,22 @@ func newProcessor(cfg *config.Config, wm *exec.Watermark) (*processor, error) {
 	if err != nil {
 		return nil, err
 	}
+	if f := cfg.Processing.WatermarkFontFile; f != "" {
+		if st, err := os.Stat(f); err != nil || !st.Mode().IsRegular() {
+			return nil, fmt.Errorf("processing.watermark_font_file %q: not a readable file", f)
+		}
+	}
+	opacity := cfg.Processing.WatermarkOpacity
 	ex, err := exec.New(&exec.Config{
-		Limits:           planLimits(cfg),
-		FailOn:           vipsFailOn(cfg.Vips.FailOn),
-		Watermark:        wm,
+		Limits:    planLimits(cfg),
+		FailOn:    vipsFailOn(cfg.Vips.FailOn),
+		Watermark: wm,
+		Watermarks: exec.WatermarkConfig{
+			Opacity:       &opacity,
+			Font:          cfg.Processing.WatermarkFont,
+			FontFile:      cfg.Processing.WatermarkFontFile,
+			MaxTextPixels: cfg.Limits.MaxWatermarkTextPixels,
+		},
 		ColorProfilesDir: cfg.Processing.ColorProfilesDir,
 		SVG: svg.Options{
 			MaxBytes:    int64(cfg.Limits.MaxSVGBytes),
@@ -116,6 +170,8 @@ func newProcessor(cfg *config.Config, wm *exec.Watermark) (*processor, error) {
 			MaxElements: cfg.Limits.MaxSVGElements,
 		},
 		ToneMap: tm,
+		Admit:   admit,
+		Video:   videoSettings(cfg),
 	}, enc)
 	if err != nil {
 		return nil, err
@@ -220,11 +276,25 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		q := p.enc.ResolveQuality(t.Format, t.Quality, t.FormatQuality)
 		t.Quality = min(max(q+in.QualityDelta, 1), 100)
 	}
+	marks, err := watermarkImages(in.Watermarks)
+	defer func() {
+		for _, m := range marks {
+			m.Source.Release()
+		}
+	}()
+	if err != nil {
+		return nil, err
+	}
+	meta := planMeta(format, &in.Meta, p.pdfDPI)
+	if meta.Detections, err = p.detect.forRequest(ctx, src, format, plan.NeedsDetection(in.Request)); err != nil {
+		return nil, err
+	}
 	job := &exec.Job{
-		Request: in.Request,
-		Source:  src,
-		Meta:    planMeta(format, &in.Meta, p.pdfDPI),
-		Target:  t,
+		Request:    in.Request,
+		Source:     src,
+		Meta:       meta,
+		Target:     t,
+		Watermarks: marks,
 	}
 	if in.Decision.Reason == negotiate.ReasonBest {
 		job.Best = &in.Decision
@@ -243,7 +313,32 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		Skipped:     res.Skipped,
 		Best:        res.Best.String(),
 		RawPath:     res.RawPath,
+		VideoFrame:  res.VideoFrame.String(),
 	}, nil
+}
+
+// watermarkImages hands the request's watermark images to the executor:
+// C memory and the sniffed format. The caller releases every returned
+// Source, also on error.
+func watermarkImages(in []server.WatermarkInput) ([]exec.WatermarkImage, error) {
+	out := make([]exec.WatermarkImage, 0, len(in))
+	for _, w := range in {
+		f, ok := codec.Sniff(w.Source.Bytes())
+		if !ok {
+			return out, errs.WithPublic(errs.New(errs.KindUnsupported, "app: unrecognised watermark format"),
+				"unsupported watermark image format")
+		}
+		vb, err := vipsBuffer(w.Source)
+		if err != nil {
+			return out, err
+		}
+		name := f.String()
+		if f == codec.FormatUHDR {
+			name = "jpeg"
+		}
+		out = append(out, exec.WatermarkImage{Pipeline: w.Pipeline, Index: w.Index, Source: vb, Format: name})
+	}
+	return out, nil
 }
 
 func lossy(f transform.Format) bool {
@@ -278,5 +373,6 @@ func planMeta(f codec.Format, m *server.SourceMeta, pdfDPI float64) plan.SourceM
 		IsVector:    f == codec.FormatSVG || f == codec.FormatPDF,
 		Density:     density,
 		HDR:         f.HDR(),
+		IsVideo:     f.IsVideo(),
 	}
 }

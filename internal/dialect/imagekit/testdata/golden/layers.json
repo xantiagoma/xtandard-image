@@ -30,12 +30,6 @@
     "query": "tr=l-image,i-logo.png,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -66,12 +60,6 @@
     "query": "tr=l-image,ie-YnJhbmQvbG9nbyAoMSkucG5n,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -116,10 +104,6 @@
         {
           "Option": "l-image:fs",
           "Reason": "not supported"
-        },
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
         }
       ],
       "Pipelines": [
@@ -152,12 +136,6 @@
     "query": "tr=w-300:l-image,i-logo.png,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Resize": {
@@ -217,12 +195,6 @@
     "query": "tr=l-image,i-logo.png,lx-N10,ly-N20,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -259,10 +231,6 @@
         {
           "Option": "l-image:l-text",
           "Reason": "not supported"
-        },
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
         }
       ],
       "Pipelines": [
@@ -295,12 +263,6 @@
     "query": "tr=l-image,i-brand@@logos@@logo.png,lfo-bottom_right,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -331,12 +293,6 @@
     "query": "tr=w-300,l-image,i-logo.png",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Resize": {
@@ -378,10 +334,6 @@
         {
           "Option": "l-image:lx",
           "Reason": "arithmetic expressions not supported"
-        },
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
         }
       ],
       "Pipelines": [
@@ -424,12 +376,6 @@
     "query": "tr=w-800,l-image,i-logo.png,lx-10,ly-20,w-100,h-50,o-50,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Resize": {
@@ -466,6 +412,48 @@
     "signature": "unsigned",
     "source": "folder/a.jpg"
   },
+  "image_rotate": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-logo.png,rt-45,w-60,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Rotate": 45,
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              },
+              "Width": 60
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "image_rotate_invalid": {
+    "error": {
+      "field": "l-image.rt",
+      "kind": "invalid_url",
+      "public": "invalid l-image.rt: expected degrees 0-360, N prefix for counter-clockwise",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-logo.png,rt-400,l-end"
+  },
   "image_size_invalid": {
     "error": {
       "field": "l-image.w",
@@ -485,10 +473,6 @@
         {
           "Option": "l-image:w",
           "Reason": "not supported"
-        },
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
         }
       ],
       "Pipelines": [
@@ -525,10 +509,6 @@
         {
           "Option": "l-image:b",
           "Reason": "not supported"
-        },
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
         }
       ],
       "Pipelines": [
@@ -557,17 +537,47 @@
     "signature": "unsigned",
     "source": "folder/a.jpg"
   },
+  "image_tg": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-image,i-logo.png,tg-b,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image:tg",
+          "Reason": "not supported"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
   "image_x_only": {
     "path": "/folder/a.jpg",
     "query": "tr=l-image,i-logo.png,lx-10,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-image",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -618,12 +628,6 @@
     "query": "tr=l-text,i-Minimal%20Text,fs-20,co-FF0000,ff-Roboto,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -650,17 +654,21 @@
     "signature": "unsigned",
     "source": "folder/a.jpg"
   },
+  "text_al_invalid": {
+    "error": {
+      "field": "l-text.al",
+      "kind": "invalid_url",
+      "public": "invalid l-text.al: expected integer 1-9",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=l-text,i-hi,al-10,l-end"
+  },
   "text_base64": {
     "path": "/folder/a.jpg",
     "query": "tr=l-text,ie-SGVsbG8sIHdvcmxkOiDDvG7Dr2NvZGU%3D,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -699,15 +707,14 @@
       "Dialect": "imagekit",
       "Ignored": [
         {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
+          "Option": "l-text:ff",
+          "Reason": "approximated"
         }
       ],
       "Pipelines": [
         {
           "Watermarks": [
             {
-              "Font": "fonts/Poppins.ttf",
               "Opacity": 1,
               "Position": {
                 "Type": "center"
@@ -740,12 +747,6 @@
     "query": "tr=l-text,i-hi,fs-12,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -768,17 +769,43 @@
     "signature": "unsigned",
     "source": "folder/a.jpg"
   },
+  "text_height": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-text,i-hi,h-40,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-text:h",
+          "Reason": "approximated"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Text": "hi"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
   "text_markup_escaped": {
     "path": "/folder/a.jpg",
     "query": "tr=l-text,i-%3Cb%3Ex%3C%2Fb%3E%20%26,l-end",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "l-text",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -809,6 +836,72 @@
     },
     "path": "/folder/a.jpg",
     "query": "tr=l-text,fs-20,l-end"
+  },
+  "text_styled": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-text,i-Hello,fs-24,ff-Open%20Sans,tg-b_i_strikethrough,al-5,w-120,rt-N30,lfo-top_left,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Font": "Open Sans bold italic 24",
+              "Opacity": 0.5,
+              "Position": {
+                "Type": "north-west"
+              },
+              "Rotate": -30,
+              "Text": "\u003cs\u003eHello\u003c/s\u003e",
+              "TextWidth": 120
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
+  },
+  "text_tg_invalid": {
+    "error": {
+      "field": "l-text.tg",
+      "kind": "invalid_url",
+      "public": "invalid l-text.tg: expected b, i, strikethrough joined by _",
+      "status": 400
+    },
+    "path": "/folder/a.jpg",
+    "query": "tr=l-text,i-hi,tg-x,l-end"
+  },
+  "text_tg_only": {
+    "path": "/folder/a.jpg",
+    "query": "tr=l-text,i-hi,tg-b,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Font": "sans bold",
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Text": "hi"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "folder/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/a.jpg"
   },
   "too_many": {
     "error": {

@@ -718,7 +718,6 @@ func (b *builder) overlay(raw json.RawMessage) error {
 		return err
 	}
 	b.pre.Watermarks = append(b.pre.Watermarks, wm)
-	b.ignore("overlayWith", reasonM3)
 	return nil
 }
 
@@ -804,37 +803,41 @@ func overlayOffset(name string, opts map[string]json.RawMessage) (float64, bool,
 	return float64(n), true, nil
 }
 
-// smartCrop maps SIH's Rekognition face crop to face gravity (M3):
-// true or {faceIndex, padding}.
+// smartCrop maps SIH's Rekognition face crop (true or {faceIndex,
+// padding}) to crop_objects on the faces (WP-72): the box of face
+// faceIndex (0-based, best first; SIH orders by confidence too) grown by
+// padding pixels on every side and cut out of the source. SIH extracts it
+// after resizing, from the resized image; here it is cut from the source
+// before the resize, so with a resize the result has the requested size
+// rather than the face's size in the resized image (recorded as
+// approximated). A faceIndex past the faces found leaves the image uncut
+// (SIH answers 400). Without the detector (slim) it answers 422.
 func (b *builder) smartCrop(raw json.RawMessage) error {
 	if v, ok := asBool(raw); ok && !v {
 		return nil
 	}
-	g := &b.pre.Gravity
-	g.Type = transform.GravityFace
+	co := &transform.CropObjects{Scale: 1, Classes: []string{transform.FaceClass}, Index: new(0)}
 	if kind(raw) == kindObject {
 		m, err := objectMap(raw)
 		if err != nil {
 			return invalidJSON("smartCrop", "an object")
 		}
 		if v, ok := m["faceIndex"]; ok {
-			idx, err := asInt("smartCrop.faceIndex", v, 0, 1000)
+			idx, err := asInt("smartCrop.faceIndex", v, 0, transform.MaxListLen)
 			if err != nil {
 				return err
 			}
-			g.FaceIndex = &idx
+			co.Index = &idx
 		}
 		if v, ok := m["padding"]; ok {
 			pad, err := asInt("smartCrop.padding", v, 0, transform.MaxDimension)
 			if err != nil {
 				return err
 			}
-			if pad > 0 {
-				b.ignore("smartCrop.padding", reasonApproximated)
-			}
+			co.Padding = pad
 		}
 	}
-	b.ignore("smartCrop", reasonM3)
+	b.pre.CropObjects = co
 	return nil
 }
 

@@ -7,32 +7,8 @@
       "Dialect": "imgix",
       "Ignored": [
         {
-          "Option": "bri",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "con",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "exp",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "gam",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "sat",
-          "Reason": "takes effect in M2"
-        },
-        {
           "Option": "vib",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "hue",
-          "Reason": "takes effect in M2"
+          "Reason": "not implemented"
         }
       ],
       "Pipelines": [
@@ -225,12 +201,6 @@
     "query": "ixlib=js-3.8.0\u0026chromasub=444\u0026cs=tinysrgb\u0026dpi=300\u0026s=e6083b12b5d11d143c8b596dc795d90a",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "cs",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "ChromaSubsampling": "4:4:4",
         "ColorProfile": "srgb",
@@ -483,12 +453,6 @@
     "query": "ixlib=js-3.8.0\u0026w=400\u0026h=300\u0026fit=crop\u0026crop=faces%2Centropy\u0026s=7ceb140db6b82e30c91cd576ec8a60e1",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "crop",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -520,6 +484,12 @@
     "query": "ixlib=js-3.8.0\u0026w=600\u0026ar=16%3A9\u0026fit=crop\u0026crop=focalpoint\u0026fp-x=0.3\u0026fp-y=0.6\u0026fp-z=2\u0026s=1d3fc89e1212ed4276e2377ccf6e9104",
     "request": {
       "Dialect": "imgix",
+      "Ignored": [
+        {
+          "Option": "fp-z",
+          "Reason": "not implemented"
+        }
+      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -552,12 +522,6 @@
     "query": "ixlib=js-3.8.0\u0026w=200\u0026h=200\u0026fit=facearea\u0026facepad=1.5\u0026faceindex=2\u0026s=9961cecaf961226cffa3e7cf2597640e",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "fit",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -984,12 +948,6 @@
     "query": "ixlib=js-3.8.0\u0026invert=true\u0026s=4a7a6f2e5dfffc1e591dbd5724f82f39",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "invert",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Negate": true
@@ -1009,28 +967,6 @@
     "query": "ixlib=js-3.8.0\u0026mark64=aHR0cHM6Ly9hc3NldHMuaW1naXgubmV0L2xvZ28ucG5n\u0026mark-align=top%2Cleft\u0026mark-alpha=60\u0026mark-scale=20\u0026mark-pad=8\u0026s=10ea0e716d387d327483b9bca015057d",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "mark",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-alpha",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-align",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-pad",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "mark-scale",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1112,16 +1048,6 @@
     "query": "ixlib=js-3.8.0\u0026monochrome=c0ff0000\u0026duotone=000080%2Cffff00\u0026duotone-alpha=50\u0026s=083d2edbcd35d205a877d5427a7f86f6",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "monochrome",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "duotone",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Duotone": {
@@ -1353,10 +1279,6 @@
       "Ignored": [
         {
           "Option": "sepia",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "sepia",
           "Reason": "approximated"
         }
       ],
@@ -1434,32 +1356,6 @@
     "query": "ixlib=js-3.8.0\u0026txt64=SGVsbG8sIFdvcmxkISA8Yj4\u0026txt-font=Avenir%20Next%20Demi%2CBold\u0026txt-size=32\u0026txt-color=ffffff\u0026txt-align=bottom%2Ccenter\u0026txt-shad=5\u0026s=08c702b8cbc2a6afd4e08f4374a4e654",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "txt",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-font",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-size",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-color",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-align",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "txt-shad",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1470,7 +1366,7 @@
                 "G": 255,
                 "R": 255
               },
-              "Font": "Avenir Next Demi,Bold 32",
+              "Font": "Avenir Next Demi Bold 32",
               "Opacity": 1,
               "Position": {
                 "Type": "south",

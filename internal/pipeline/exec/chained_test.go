@@ -13,6 +13,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/exec"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/leakcheck"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/ssim"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
@@ -203,12 +204,7 @@ func TestChainedErrors(t *testing.T) {
 // tracked memory, allocations and live objects return to their baseline
 // (tolerances as vips.TestNoLeak). Not parallel: the counters are global.
 func TestChainedNoLeak(t *testing.T) {
-	const (
-		cycles      = 300
-		slackBytes  = 1 << 20
-		slackAllocs = 64
-		slackObjs   = 16
-	)
+	const cycles = 300
 	vips.SetLeakCheck(true)
 	defer vips.SetLeakCheck(false)
 	e := newWatermarkExecutor(t, newWatermark(t, watermarkLogo, "png", 1))
@@ -235,18 +231,13 @@ func TestChainedNoLeak(t *testing.T) {
 	for i := range 2 * len(jobs) {
 		cycle(i)
 	}
-	before, objects := vips.ReadMemStats(), vips.LiveObjects()
+	before := leakcheck.Take()
 	for i := range cycles {
 		cycle(i)
 	}
-	after, objectsAfter := vips.ReadMemStats(), vips.LiveObjects()
-	if after.Mem-before.Mem > slackBytes || after.Allocs-before.Allocs > slackAllocs ||
-		after.Files != before.Files || objectsAfter-objects > slackObjs {
-		t.Errorf("after %d chained runs: mem %d → %d B, allocs %d → %d, files %d → %d, objects %d → %d",
-			cycles, before.Mem, after.Mem, before.Allocs, after.Allocs, before.Files, after.Files, objects, objectsAfter)
-	}
+	after := leakcheck.Check(t, before, leakcheck.Default, "chained runs")
 	t.Logf("after %d chained runs: mem %+d B, allocs %+d, objects %+d, highwater %d B",
-		cycles, after.Mem-before.Mem, after.Allocs-before.Allocs, objectsAfter-objects, after.MemHighwater)
+		cycles, after.Mem-before.Mem, after.Allocs-before.Allocs, after.Objects-before.Objects, after.MemHighwater)
 }
 
 // processDataWith runs options on data with e and decodes the result.

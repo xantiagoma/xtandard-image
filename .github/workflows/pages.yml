@@ -1,0 +1,104 @@
+name: pages
+
+# Publishes the config JSON Schema and the OpenAPI document to GitHub Pages
+# (WP-81b, ADR 0007 decision 6, docs/RELEASE.md "Schema and API site"):
+#
+#   https://xantiagoma.github.io/xtandard-image/
+#     index.html                         links every file
+#     api/                               Scalar over schema/latest/openapi.json
+#     schema/v<N>/config.schema.json     the schema's $id (N = schema major)
+#     schema/v<N>/openapi.json
+#     schema/latest/{config.schema.json,openapi.json}
+#
+# The site is assembled by scripts/pages-build.sh, the same script as
+# `task pages:build`, so it can be checked locally in dist/pages/.
+#
+# Prerequisite (owner, once): Settings → Pages → Source: "GitHub Actions".
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - internal/config/config.schema.json
+      - internal/apidoc/openapi.json
+      - docs/pages/**
+      - scripts/pages-build.sh
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time; never cancel one that is in progress.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Assemble the site
+        run: sh scripts/pages-build.sh dist/pages
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist/pages
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
+
+  verify:
+    # The published bytes must equal the committed files: the $id resolves,
+    # and editors fetch exactly what the tests validated.
+    needs: deploy
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Fetch and compare every published file
+        run: |
+          sh scripts/pages-build.sh "$RUNNER_TEMP/site" >/dev/null
+          base=https://xantiagoma.github.io/xtandard-image
+          cd "$RUNNER_TEMP/site"
+          for f in $(find . -type f -name '*.json' | sort); do
+            url="$base/${f#./}"
+            # The query string skips the Pages CDN cache; the loop covers
+            # propagation right after the deployment.
+            ok=false
+            for attempt in 1 2 3 4 5 6; do
+              if curl -fsSL -o "$RUNNER_TEMP/fetched" "$url?run=$GITHUB_RUN_ID-$attempt" &&
+                cmp -s "$f" "$RUNNER_TEMP/fetched"; then
+                ok=true
+                break
+              fi
+              sleep 20
+            done
+            "$ok" || { echo "::error::$url is missing or differs from the committed file"; exit 1; }
+            echo "ok $url"
+          done
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Validate the samples against the schema their modeline names
+        run: |
+          pos=docs/schemastore/tests/positive/xtandard.yaml
+          neg=docs/schemastore/tests/negative/xtandard.yaml
+          url="$(sed -n 's/^# yaml-language-server: \$schema=//p' "$pos")"
+          curl -fsSL -o "$RUNNER_TEMP/schema.json" "$url?run=$GITHUB_RUN_ID"
+          ajv="bunx ajv-cli@5.0.0 validate --spec=draft2020 --strict=false -s $RUNNER_TEMP/schema.json"
+          $ajv -d "$pos"
+          if $ajv -d "$neg"; then
+            echo "::error::the negative sample validates against $url"
+            exit 1
+          fi

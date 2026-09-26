@@ -12,7 +12,7 @@ A self-hosted image processing proxy written in Go 1.27 with libvips (cgo) that 
 
 1. Pin `go 1.27.0` and `toolchain go1.27.1` in go.mod. Never write code for older Go idioms.
 2. All code lives under `internal/`. `cmd/xtandard-image/main.go` only wires things together. There is no `pkg/` without an ADR.
-3. `internal/vips` is the ONLY package that imports `"C"`. No C type ever appears outside it.
+3. `internal/vips` is the ONLY package that imports `"C"`, with one build-tagged exception: `internal/video/ffmpeg` (`//go:build ffmpeg && cgo`, ADR 0010). No C type ever appears outside those two packages; `scripts/check-cgo.sh` enforces it for both build variants.
 4. Use stdlib `net/http.ServeMux`. Set every `http.Server` timeout. Shut down gracefully via `signal.NotifyContext`.
 5. Bound vips work with `x/sync/semaphore` (workers plus queue, fail fast with 429/503). Never use channel worker pools. Keep libvips concurrency at 1 and its operation cache disabled.
 6. Never let C keep a pointer to Go memory. Downloaded image bytes go into C-allocated memory that vips owns, and output is sent zero-copy from the vips blob.

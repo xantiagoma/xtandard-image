@@ -1125,7 +1125,7 @@
       "Ignored": [
         {
           "Option": "e-contrast",
-          "Reason": "takes effect in M2"
+          "Reason": "not implemented"
         }
       ],
       "Pipelines": [
@@ -1146,12 +1146,6 @@
     "query": "tr=e-grayscale",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "e-grayscale",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Grayscale": true
@@ -1620,15 +1614,14 @@
       "Dialect": "imagekit",
       "Ignored": [
         {
-          "Option": "fo-face",
-          "Reason": "takes effect in M3"
+          "Option": "z",
+          "Reason": "not applicable here"
         }
       ],
       "Pipelines": [
         {
           "Crop": {
             "Gravity": {
-              "FocusZoom": 2,
               "Type": "face"
             },
             "Height": {
@@ -1653,12 +1646,6 @@
     "query": "tr=w-300,h-300,fo-face",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "fo-face",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1689,16 +1676,10 @@
     "query": "tr=w-300,h-300,fo-faces,z-0.8",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "fo-face",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
-            "FocusZoom": 0.8,
+            "FacePad": 1.25,
             "Type": "face"
           },
           "Resize": {
@@ -1736,12 +1717,6 @@
     "query": "tr=w-300,h-300,fo-car",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "fo-object",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
@@ -1775,17 +1750,13 @@
     "query": "tr=w-300,h-300,fo-truck_car_train",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "fo-object",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Gravity": {
             "Classes": [
-              "truck_car_train"
+              "truck",
+              "car",
+              "train"
             ],
             "Type": "object"
           },
@@ -2023,12 +1994,6 @@
     "query": "tr=o-50",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "o",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -2521,16 +2486,16 @@
           "Reason": "not supported"
         },
         {
-          "Option": "so",
-          "Reason": "not supported"
-        },
-        {
           "Option": "sr",
           "Reason": "not supported"
         }
       ],
       "Pipelines": [
-        {}
+        {
+          "Video": {
+            "Second": 5
+          }
+        }
       ],
       "Source": {
         "Encoding": "relative",

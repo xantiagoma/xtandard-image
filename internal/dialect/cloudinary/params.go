@@ -2,6 +2,7 @@ package cloudinary
 
 import (
 	"errors"
+	"math"
 	"net/url"
 	"slices"
 	"strconv"
@@ -25,28 +26,33 @@ import (
 //     pad → fit + enlarge + extend; lpad → fit + extend; mpad → fit + extend
 //     (approximated: never scales in Cloudinary); crop → pre-resize crop
 //     (x_/y_ = top-left corner, or with g_xy_center the centre); thumb →
-//     fill with z_ as focus zoom; auto → fill + smart; auto_pad → fit +
+//     fill, with face or object gravity cropped to the detections × 1.5/z_
+//     first (thumbZoom); auto → fill + smart; auto_pad → fit +
 //     enlarge + extend; imagga_* → recorded unsupported, applied as scale.
-//   - g_: compass, center, auto[:…] → smart, face(s)[:…] → face (M3),
-//     xy_center → focus point (x_/y_ relative, or integer source pixels →
-//     FocusPx, WP-86), a single object name → object
-//     (M3); x_/y_ offset the gravity.
+//   - g_: compass, center, auto → smart, auto:<face|object> → face or
+//     object (smart without them), face → the best face, faces → every
+//     face (WP-72), xy_center → focus point (x_/y_ relative, or integer
+//     source pixels → FocusPx, WP-86), a COCO object name or supercategory
+//     → object (others: smart, recorded); x_/y_ offset the gravity.
 //   - ar_: w:h or a decimal; z_: zoom for crop and thumb.
 //   - e_: blur[:1..2000] σ = n/20 (like imgix blur), sharpen σ = n/100,
-//     unsharp_mask amount n/100 (M2), pixelate[:n] (default 10),
-//     grayscale/blackwhite/sepia/negate (M2), brightness n × 2.55,
-//     contrast/saturation/gamma/vibrance/red/green/blue 1 + n/100, hue
-//     n × 1.8° (all M2), colorize[:n] with co_ (M2), trim[:tolerance[:color]],
-//     blur_faces/pixelate_faces (M3), blur_region with relative x_/y_/w_/h_
-//     (M2); other known effects are unsupported.
-//   - a_: degrees clockwise (multiples of 90 → Rotate, others → RotateAny,
-//     M2), hflip, vflip, exif, ignore; auto_right/auto_left unsupported.
-//   - b_ background, bo_<n>px_solid_<color> border (M2), r_ radius incl.
-//     max (M2), o_ opacity (M2), co_ colour for colorize.
+//     unsharp_mask amount n/100, pixelate[:n] (default 10),
+//     grayscale/blackwhite/sepia/negate, brightness n × 2.55,
+//     contrast/saturation/gamma/red/green/blue 1 + n/100, hue n × 1.8°,
+//     colorize[:n] with co_, trim[:tolerance[:color]], blur_faces/
+//     pixelate_faces (WP-73), blur_region with relative x_/y_/w_/h_;
+//     vibrance 1 + n/100 is parsed but not implemented (the planner has no
+//     vibrance step); other known effects are unsupported.
+//   - a_: degrees clockwise (multiples of 90 → Rotate, others →
+//     RotateAny), hflip, vflip, exif, ignore; auto_right/auto_left
+//     unsupported.
+//   - b_ background, bo_<n>px_solid_<color> border, r_ radius incl. max,
+//     o_ opacity, co_ colour for colorize.
 //   - q_<1..100>[:420|422|444], q_auto[:best|good|eco|low] (DSSIM targets
-//     0.005/0.02/0.035/0.05, M2); f_auto (negotiate) or f_<format>;
-//     dpr_<n>|auto; fl_ output/delivery flags; cs_ colour space (M2);
-//     d_ default image (M2); pg_ page (1-based); t_ named
+//     0.005/0.02/0.035/0.05); f_auto (negotiate) or f_<format>;
+//     dpr_<n>, dpr_auto (DPR client hint); fl_ output/delivery flags; cs_
+//     colour profile; d_ default image (Delivery.Fallback, honoured with
+//     XI_FALLBACK_ALLOW_REQUEST_URL); pg_ page (1-based); t_ named
 //     transformations (presets); l_ image overlays → watermarks (M3).
 //   - Unsupported (recorded, or 400 in strict mode): video and audio
 //     parameters, conditions (if_ skips its component or block), variables,
@@ -54,11 +60,15 @@ import (
 
 // Reasons recorded in Request.Ignored.
 const (
+	expStartOffset     = "seconds (a non-negative number), a percentage or auto"
 	reasonUnknown      = "unknown option"
 	reasonUnsupported  = "unsupported"
 	reasonApproximated = "approximated"
-	reasonM2           = "takes effect in M2"
-	reasonM3           = "takes effect in M3"
+	// reasonUnsupportedObject: a g_ object category the COCO object model
+	// does not detect (the smart crop is used).
+	reasonUnsupportedObject = "unsupported object (smart crop)"
+	reasonNotImplemented    = "not implemented"
+	reasonM3                = "takes effect in M3"
 )
 
 // ErrUnsupportedOption is the cause of the strict-mode 400 for a known
@@ -406,9 +416,7 @@ func (a *applier) base(c *component) error {
 		case "r":
 			err = a.radius(pl, p.value)
 		case "o":
-			if err = opacity(&pl.Adjust.Opacity, p.value); err == nil {
-				a.b.Ignore("o", reasonM2)
-			}
+			err = opacity(&pl.Adjust.Opacity, p.value)
 		case "dpr":
 			err = a.dpr(pl, p.value)
 		case "f":
@@ -423,7 +431,9 @@ func (a *applier) base(c *component) error {
 			err = a.defaultImage(p.value)
 		case "pg":
 			err = a.page(p.value)
-		case "ac", "af", "br", "dl", "dn", "du", "eo", "fn", "fps", "ki", "p", "so", "sp", "vc", "vs":
+		case "so":
+			err = a.startOffset(p.value)
+		case "ac", "af", "br", "dl", "dn", "du", "eo", "fn", "fps", "ki", "p", "sp", "vc", "vs":
 			err = a.skip(p.key, reasonUnsupported)
 		default:
 			err = a.skip(optionName(p.key, p.value), reasonUnknown)
@@ -622,10 +632,21 @@ func (a *applier) gravity(g *geo) (gr transform.Gravity, err error) {
 	case "south_west":
 		gr.Type = transform.GravitySouthWest
 	case "auto":
+		// g_auto[:<focus>][:<modifier>]: a face or object focus gives
+		// priority to it (face or object gravity, which fall back to the
+		// smart crop when nothing is found, like Cloudinary's); subject,
+		// classic, no_faces and unknown objects are the smart crop.
 		gr.Type = transform.GravitySmart
-	case "face", "faces", "adv_face", "adv_faces", "adv_eyes":
+		if _, focus, ok := strings.Cut(v, ":"); ok {
+			if cs, ok := autoFocus(focus); ok {
+				gr = objectGravity(cs)
+			}
+		}
+	case "face", "adv_face", "adv_eyes":
+		// The largest face in Cloudinary; the best-scoring face here.
+		gr.Type, gr.FaceIndex = transform.GravityFace, new(0)
+	case "faces", "adv_faces":
 		gr.Type = transform.GravityFace
-		a.b.Ignore("g_"+name, reasonM3)
 	case "xy_center":
 		if !g.hasX && !g.hasY {
 			gr.Type = transform.GravityCenter
@@ -652,12 +673,41 @@ func (a *applier) gravity(g *geo) (gr transform.Gravity, err error) {
 		if !isObjectName(v) {
 			return gr, dialect.InvalidArgument("g", v, expGravity)
 		}
-		gr.Type = transform.GravityObject
-		gr.Classes = []string{v}
-		a.b.Ignore("g_"+truncate(v), reasonM3)
+		cs, ok := transform.ResolveClass(v)
+		if !ok {
+			// Cloudinary knows more categories than the COCO classes of
+			// the object model: the smart crop stands in.
+			gr.Type = transform.GravitySmart
+			return gr, a.skip("g_"+truncate(v), reasonUnsupportedObject)
+		}
+		gr = objectGravity(cs)
 	}
 	gr.XOffset, gr.YOffset = g.x, g.y
 	return gr, nil
+}
+
+// autoFocus reads the focus of g_auto:<focus>[_<weight>|_avoid][:…]: the
+// classes to give priority to; ok is false for subject, classic, no_faces,
+// an avoided focus and categories the object model does not know.
+func autoFocus(s string) ([]string, bool) {
+	s, _, _ = strings.Cut(s, ":")
+	if cs, ok := transform.ResolveClass(s); ok {
+		return cs, true
+	}
+	base, mod, ok := strings.CutLast(s, "_")
+	if !ok || mod == "avoid" {
+		return nil, false
+	}
+	return transform.ResolveClass(base)
+}
+
+// objectGravity is face gravity for the face class, object gravity for
+// the others.
+func objectGravity(classes []string) transform.Gravity {
+	if len(classes) == 1 && classes[0] == transform.FaceClass {
+		return transform.Gravity{Type: transform.GravityFace}
+	}
+	return transform.Gravity{Type: transform.GravityObject, Classes: classes}
 }
 
 func isObjectName(v string) bool {
@@ -747,10 +797,10 @@ func (a *applier) geometry(c *component, pl *transform.Pipeline) error {
 		if mode == "auto" && gr.Type == transform.GravityUnset {
 			gr.Type = transform.GravitySmart
 		}
-		if g.zoom > 0 {
-			if mode == "thumb" {
-				gr.FocusZoom = g.zoom
-			} else if err := a.skip("z", reasonApproximated); err != nil {
+		if mode == "thumb" {
+			thumbZoom(pl, &gr, g.zoom)
+		} else if g.zoom > 0 {
+			if err := a.skip("z", reasonApproximated); err != nil {
 				return err
 			}
 		}
@@ -774,6 +824,30 @@ func (a *applier) geometry(c *component, pl *transform.Pipeline) error {
 		return dialect.InvalidArgument("c", mode, expCrop)
 	}
 	return nil
+}
+
+// thumbFacePad is the face or object box scale of c_thumb at z_1: the
+// thumbnail shows the detection with half its size around it (head and
+// shoulders for a face). z_ zooms in (> 1) or out (< 1).
+const thumbFacePad = 1.5
+
+// thumbZoom maps c_thumb's zoom on a detection gravity: the faces (face
+// gravity with a face pad) or the objects (crop_objects) are cropped with
+// a margin before the fill (WP-72). Other gravities keep z_ as FocusZoom,
+// which the planner does not apply.
+func thumbZoom(pl *transform.Pipeline, gr *transform.Gravity, zoom float64) {
+	scale := thumbFacePad
+	if zoom > 0 {
+		scale /= zoom
+	}
+	switch gr.Type {
+	case transform.GravityFace:
+		gr.FacePad = scale
+	case transform.GravityObject:
+		pl.CropObjects = &transform.CropObjects{Scale: scale, Classes: gr.Classes}
+	default:
+		gr.FocusZoom = zoom
+	}
 }
 
 func setDims(rs *transform.Resize, g *geo) {
@@ -811,7 +885,6 @@ func (a *applier) crop(pl *transform.Pipeline, g *geo, gr *transform.Gravity) er
 	}
 	if g.ar > 0 {
 		cr.AspectRatio = g.ar
-		a.b.Ignore("ar", reasonM2)
 	}
 	if g.zoom > 0 {
 		cr.Gravity.FocusZoom = g.zoom
@@ -869,7 +942,6 @@ func (a *applier) effect(c *component, pl *transform.Pipeline, v string) error {
 	field := "e_" + name
 	adj := &pl.Adjust
 	var err error
-	m2 := func() { a.b.Ignore(field, reasonM2) }
 	switch name {
 	case "blur":
 		var n int
@@ -885,7 +957,6 @@ func (a *applier) effect(c *component, pl *transform.Pipeline, v string) error {
 		var n int
 		if n, err = effectArg(field, v, 100, 1, 2000); err == nil {
 			pl.Unsharp = &transform.Unsharp{Sigma: 1, Amount: float64(n) / 100}
-			m2()
 		}
 	case "pixelate":
 		var n int
@@ -894,25 +965,20 @@ func (a *applier) effect(c *component, pl *transform.Pipeline, v string) error {
 		}
 	case "grayscale":
 		pl.Grayscale = true
-		m2()
 	case "blackwhite":
 		pl.Grayscale = true
-		m2()
 		err = a.skip(field, reasonApproximated)
 	case "sepia":
 		pl.Sepia = true
-		m2()
 		if strings.Contains(v, ":") {
 			err = a.skip(field, reasonApproximated)
 		}
 	case "negate":
 		pl.Negate = true
-		m2()
 	case "brightness":
 		var n int
 		if n, err = effectArg(field, v, 80, -99, 100); err == nil {
 			adj.Brightness = new(float64(n) * 2.55)
-			m2()
 		}
 	case "contrast":
 		err = a.multiplier(&adj.Contrast, field, v, 0, -100, 100)
@@ -921,7 +987,11 @@ func (a *applier) effect(c *component, pl *transform.Pipeline, v string) error {
 	case "gamma":
 		err = a.multiplier(&adj.Gamma, field, v, 0, -50, 150)
 	case "vibrance":
-		err = a.multiplier(&adj.Vibrance, field, v, 20, -100, 100)
+		// Parsed so the value reaches the cache key, but the planner has no
+		// vibrance step (plan.Unplanned).
+		if err = a.multiplier(&adj.Vibrance, field, v, 20, -100, 100); err == nil {
+			a.b.Ignore(field, reasonNotImplemented)
+		}
 	case "red":
 		err = a.multiplier(&adj.Red, field, v, 0, -100, 100)
 	case "green":
@@ -932,7 +1002,6 @@ func (a *applier) effect(c *component, pl *transform.Pipeline, v string) error {
 		var n int
 		if n, err = effectArg(field, v, 80, -100, 100); err == nil {
 			adj.Hue = new(float64(n) * 1.8)
-			m2()
 		}
 	case "colorize":
 		var n int
@@ -946,20 +1015,17 @@ func (a *applier) effect(c *component, pl *transform.Pipeline, v string) error {
 			}
 		}
 		pl.Colorize = &transform.Colorize{Opacity: float64(n) / 100, Color: col}
-		m2()
 	case "trim":
 		err = a.trim(pl, v)
 	case "blur_faces":
 		var n int
 		if n, err = effectArg(field, v, 500, 1, 2000); err == nil {
 			pl.BlurDetections = &transform.DetectionFilter{Sigma: float64(n) / 20, Classes: []string{"face"}}
-			a.b.Ignore(field, reasonM3)
 		}
 	case "pixelate_faces":
 		var n int
 		if n, err = effectArg(field, v, 10, 1, 200); err == nil {
 			pl.BlurDetections = &transform.DetectionFilter{Pixelate: n, Classes: []string{"face"}}
-			a.b.Ignore(field, reasonM3)
 		}
 	case "blur_region":
 		err = a.blurRegion(c, pl, v)
@@ -980,7 +1046,6 @@ func (a *applier) multiplier(dst **float64, field, v string, def, lo, hi int) er
 		return err
 	}
 	*dst = new(1 + float64(n)/100)
-	a.b.Ignore(field, reasonM2)
 	return nil
 }
 
@@ -1035,7 +1100,6 @@ func (a *applier) blurRegion(c *component, pl *transform.Pipeline, v string) err
 	}
 	area := transform.Area{Left: vals[0], Top: vals[1], Width: min(vals[2], 1-vals[0]), Height: min(vals[3], 1-vals[1])}
 	pl.BlurAreas = &transform.BlurAreas{Sigma: sigma, Areas: []transform.Area{area}}
-	a.b.Ignore("e_blur_region", reasonM2)
 	return nil
 }
 
@@ -1069,7 +1133,6 @@ func (a *applier) angle(pl *transform.Pipeline, v string) error {
 				continue
 			}
 			pl.RotateAny += deg
-			a.b.Ignore("a", reasonM2)
 		}
 	}
 	return nil
@@ -1103,14 +1166,12 @@ func (a *applier) border(pl *transform.Pipeline, v string) error {
 		return err
 	}
 	pl.Border = &transform.Border{Top: n, Right: n, Bottom: n, Left: n, Color: c}
-	a.b.Ignore("bo", reasonM2)
 	return nil
 }
 
 // radius is r_<n>, r_<tl/br>:<tr/bl>, r_<tl>:<tr/bl>:<br>, r_<tl>:<tr>:<br>:<bl>
 // or r_max.
 func (a *applier) radius(pl *transform.Pipeline, v string) error {
-	a.b.Ignore("r", reasonM2)
 	if v == "max" {
 		pl.Radius = &transform.Radius{Max: true}
 		return nil
@@ -1260,7 +1321,6 @@ func (a *applier) quality(v string) error {
 		}
 		o.Quality = 0
 		o.AutoQuality = &transform.AutoQuality{Method: transform.AutoQualityDSSIM, Target: t}
-		a.b.Ignore("q_auto", reasonM2)
 		return nil
 	}
 	if strings.HasPrefix(v, "jpegmini") {
@@ -1317,7 +1377,6 @@ func (a *applier) flags(v string) error {
 			d.Immutable = true
 		case "png8":
 			o.PNG = &transform.PNGOptions{Quantize: new(true), QuantizationColors: 256}
-			a.b.Ignore("fl_png8", reasonM2)
 		case "getinfo":
 			a.r.Kind = transform.KindInfo
 			a.r.Info = &transform.InfoOptions{Size: true, Format: true, Dimensions: true}
@@ -1358,7 +1417,6 @@ func (a *applier) colorSpace(v string) error {
 	default:
 		return a.skip(optionName("cs", v), reasonUnsupported)
 	}
-	a.b.Ignore("cs", reasonM2)
 	return nil
 }
 
@@ -1373,11 +1431,34 @@ func (a *applier) defaultImage(v string) error {
 		return dialect.InvalidArgument("d", v, "public id")
 	}
 	a.r.Delivery.Fallback = &transform.SourceSpec{Raw: key, Encoding: transform.SourceRelative, Mount: a.mount}
-	a.b.Ignore("d", reasonM2)
 	return nil
 }
 
 // page is pg_<n> (1-based); ranges and names are unsupported.
+// startOffset is so_<seconds>: the frame of a video source a thumbnail is
+// taken from (imgproxy video_thumbnail_second; ignored for images, like
+// Cloudinary does for image assets). so_auto keeps the configured
+// selection (best-frame selection by default); a percentage of the duration
+// (so_10p, so_10%) has no equivalent.
+func (a *applier) startOffset(v string) error {
+	switch {
+	case v == "auto":
+		return nil
+	case strings.HasSuffix(v, "p") || strings.HasSuffix(v, "%"):
+		return a.skip("so", reasonUnsupported)
+	}
+	sec, err := strconv.ParseFloat(v, 64)
+	if err != nil || sec < 0 || math.IsInf(sec, 0) || math.IsNaN(sec) || sec > math.MaxInt32 {
+		return dialect.InvalidArgument("so", v, expStartOffset)
+	}
+	pl := &a.r.Pipelines[0]
+	if pl.Video == nil {
+		pl.Video = &transform.VideoOptions{}
+	}
+	pl.Video.Second = &sec
+	return nil
+}
+
 func (a *applier) page(v string) error {
 	n, err := strconv.Atoi(v)
 	if err != nil {

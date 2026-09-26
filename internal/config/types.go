@@ -370,7 +370,9 @@ func (l *IntList) UnmarshalYAML(unmarshal func(any) error) error {
 // ---- Tristate ------------------------------------------------------------
 
 // Tristate is a boolean whose default is derived from other settings.
-// After Load it is always True or False.
+// After Load it is always True or False, except detect.enabled and video.enabled,
+// whose auto is resolved at startup (ONNX Runtime and models present; FFmpeg
+// built in or not).
 type Tristate uint8
 
 // Tristate values.
@@ -413,6 +415,48 @@ func (t *Tristate) UnmarshalText(b []byte) error {
 	if v {
 		*t = True
 	}
+	return nil
+}
+
+// ---- VideoSecond -----------------------------------------------------------
+
+// VideoSecond is a video timestamp in seconds, or "auto" (best-frame
+// selection). It is stored in its canonical text form: "auto" or the
+// shortest decimal of the number.
+type VideoSecond string
+
+// VideoSecondAuto selects the best frame.
+const VideoSecondAuto VideoSecond = "auto"
+
+// Seconds returns the timestamp; ok is false for auto.
+func (s VideoSecond) Seconds() (seconds float64, ok bool) {
+	if s == "" || s == VideoSecondAuto {
+		return 0, false
+	}
+	v, err := strconv.ParseFloat(string(s), 64)
+	return v, err == nil
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s VideoSecond) MarshalText() ([]byte, error) {
+	if s == "" {
+		return []byte(VideoSecondAuto), nil
+	}
+	return []byte(s), nil
+}
+
+// UnmarshalText accepts auto (any case, or empty) and finite numbers.
+func (s *VideoSecond) UnmarshalText(b []byte) error {
+	t := strings.TrimSpace(string(b))
+	if t == "" || strings.EqualFold(t, string(VideoSecondAuto)) {
+		*s = VideoSecondAuto
+		return nil
+	}
+	v, err := strconv.ParseFloat(t, 64)
+	if err != nil || math.IsInf(v, 0) || math.IsNaN(v) {
+		return fmt.Errorf("%q: want seconds (a number) or auto", t)
+	}
+	*s = VideoSecond(strconv.FormatFloat(v, 'f', -1, 64))
 	return nil
 }
 

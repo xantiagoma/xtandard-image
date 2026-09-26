@@ -18,8 +18,10 @@
 #include <vips/vips.h>
 
 // Result codes of the xi_* functions. Anything but XI_OK sets *err to a
-// g_malloc'd copy of the vips error buffer (possibly NULL) that the caller
-// frees with xi_free.
+// g_malloc'd message (possibly NULL) that the caller frees with xi_free:
+// the shim's own text (xi_error_new), or libvips' error buffer copied and
+// cleared at the failure site (xi_error_copy). The text is a log attribute
+// only; callers classify failures by the result code, never by the text.
 enum {
   XI_OK = 0,
   XI_ERR_UNSUPPORTED = 1, // no loader matches, or the matching loader is blocked
@@ -28,7 +30,6 @@ enum {
   XI_ERR_INTERNAL = 4,    // failure not attributable to the input
   XI_ERR_LIMIT = 5,       // the header exceeds a configured limit
   XI_ERR_OP = 6,          // a processing operation failed
-  XI_ERR_ENCRYPTED = 7,   // the document needs a password (pdfload)
 };
 
 // ---- lifecycle (shim.c) ------------------------------------------------
@@ -138,6 +139,10 @@ const void *xi_spool_source(const char *path);
 int xi_black(int width, int height, int bands, VipsImage **out, char **err);
 int xi_new_from_memory(const void *data, size_t size, int width, int height, int bands,
     int band_format, VipsImage **out, char **err);
+// xi_new_from_blob wraps the blob's pixels without copying; the image keeps
+// a reference to the blob until it closes.
+int xi_new_from_blob(VipsBlob *blob, int width, int height, int bands, int band_format,
+    VipsImage **out, char **err);
 
 // ---- camera RAW (raw.c, LibRaw) ------------------------------------------
 
@@ -310,6 +315,13 @@ int xi_insert(VipsImage *main, VipsImage *sub, int x, int y, VipsImage **out, ch
 int xi_blend_mask(VipsImage *mask, VipsImage *a, VipsImage *b, VipsImage **out,
     char **err);
 
+// Text (WP-78): vips_text with RGBA output, wrapped at width (word, then
+// character boundaries). height > 0 autofits: the DPI is searched so the
+// text fits width×height (*fit_dpi reports it) and dpi is ignored.
+// fontfile, when non-NULL, is registered with fontconfig first.
+int xi_text(const char *text, const char *font, const char *fontfile, int width, int height,
+    int dpi, VipsImage **out, int *fit_dpi, char **err);
+
 // HDR operations (WP-67): float arithmetic for tone mapping.
 int xi_decode(VipsImage *in, VipsImage **out, char **err); // Radiance/LabQ coding → float
 int xi_clamp(VipsImage *in, double min, double max, VipsImage **out, char **err);
@@ -425,6 +437,7 @@ const char *xi_exif_title(const char *name, int ifd);
 // ---- internal helpers shared by the .c files ------------------------------
 
 char *xi_error_copy(void);
+char *xi_error_new(const char *domain, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
 int xi_heic_encode_enabled(void);
 
 #endif // XI_VIPS_SHIM_H

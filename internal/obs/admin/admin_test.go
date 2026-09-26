@@ -211,3 +211,21 @@ func TestStateString(t *testing.T) {
 		}
 	}
 }
+
+// BenchmarkHealthz is the baseline for the probe endpoints through the
+// admin mux, recorder included (12 allocs/op at WP-82b). ADR 0008's
+// "WP-82b outcome" compares huma handlers against it.
+func BenchmarkHealthz(b *testing.B) {
+	ready := NewReadiness()
+	ready.SetReady()
+	mux := NewMux(&Options{Readiness: ready})
+	for _, path := range []string{"/healthz", "/readyz"} {
+		b.Run(strings.TrimPrefix(path, "/"), func(b *testing.B) {
+			req := httptest.NewRequestWithContext(b.Context(), http.MethodGet, path, http.NoBody)
+			b.ReportAllocs()
+			for b.Loop() {
+				mux.ServeHTTP(httptest.NewRecorder(), req)
+			}
+		})
+	}
+}

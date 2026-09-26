@@ -12,8 +12,10 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/playground"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 )
 
@@ -63,9 +65,13 @@ func textBody(pattern, example, desc string) map[string]*huma.MediaType {
 // Build returns the OpenAPI document. It is deterministic: Marshal of two
 // Builds is byte-identical.
 func Build() (*huma.OpenAPI, error) {
-	reg := huma.NewMapRegistry(schemaRefPrefix, huma.DefaultSchemaNamer)
+	reg := huma.NewMapRegistry(schemaRefPrefix, schemaNamer)
 	reg.Schema(reflect.TypeFor[server.InfoResponse](), true, schemaInfoResponse)
 	reg.Schema(reflect.TypeFor[server.ErrorResponse](), true, schemaErrorResponse)
+	reg.Schema(reflect.TypeFor[playground.Meta](), true, "")
+	reg.Schema(reflect.TypeFor[playground.SignRequest](), true, "")
+	reg.Schema(reflect.TypeFor[playground.SignResponse](), true, "")
+	reg.Schema(reflect.TypeFor[playground.ErrorResponse](), true, "")
 	schemas := reg.Map()
 	body, ok := schemas[schemaErrorBody]
 	if !ok || body.Properties["kind"] == nil {
@@ -104,6 +110,8 @@ func Build() (*huma.OpenAPI, error) {
 			{Name: "info", Description: "Source metadata (imgproxy /info)."},
 			{Name: "health", Description: "Liveness and readiness, on both listeners."},
 			{Name: "admin", Description: "Admin listener only: metrics, documents, profiling."},
+			{Name: "playground", Description: "Playground UI and its JSON API (XI_PLAYGROUND_ENABLED, off by default): admin listener, " +
+				"and the public listener only with XI_PLAYGROUND_PUBLIC. Paths are under XI_PLAYGROUND_PATH (default /_playground)."},
 		},
 		ExternalDocs: &huma.ExternalDocs{Description: "Documentation", URL: docsBase + "OPENAPI.md"},
 		// No HTTP authentication: image URLs carry their signature in the
@@ -308,8 +316,10 @@ func operations() []*huma.Operation {
 		},
 		{
 			OperationID: "getConfigSchema", Method: http.MethodGet, Path: "/config.schema.json", Tags: []string{"admin"}, Servers: adminServers(),
-			Summary:     "Config file JSON Schema",
-			Description: "JSON Schema (draft 2020-12) of the YAML/JSON/TOML config file, with a strong ETag; always on, admin listener only (ADR 0007 decision 6).",
+			Summary: "Config file JSON Schema",
+			Description: "JSON Schema (draft 2020-12) of the YAML/JSON/TOML config file, with a strong ETag; always on, admin listener only (ADR 0007 decision 6). " +
+				"Its $id is the published GitHub Pages copy (externalDocs); this route serves the running binary's version.",
+			ExternalDocs: &huma.ExternalDocs{Description: "Published copy (the schema's $id)", URL: config.SchemaID},
 			Responses: map[string]*huma.Response{
 				"200": {
 					Description: "The config schema.",
@@ -372,9 +382,15 @@ func operations() []*huma.Operation {
 		},
 		infoOperation(),
 		imgproxyOperation(),
+		playgroundPageOperation(),
+		playgroundAssetOperation(),
+		playgroundMetaOperation(),
+		playgroundSignOperation(),
+		playgroundRenderOperation(),
 		queryOperation(),
 		imaginaryOperation(),
 		imagekitOperation(),
+		imgixOperation(),
 	}
 }
 
@@ -558,24 +574,26 @@ func imagekitOperation() *huma.Operation {
 	}
 }
 
-// dialects lists every URL dialect with its default mount and whether this
-// build serves it; the ones without an operation are documented in
-// URL-DIALECTS.
+// dialects lists every URL dialect with its default mount and its
+// URL-DIALECTS section; the ones without an operation are documented only
+// there. Every dialect is served by this build (status "served"); a dialect
+// that is parsed but not mounted would say "planned".
 func dialects() []map[string]any {
-	d := func(name, prefix, status, anchor string) map[string]any {
-		return map[string]any{"name": name, "prefix": prefix, "status": status, "docs": urlDialectsDoc + anchor}
+	d := func(name, prefix, anchor string) map[string]any {
+		return map[string]any{"name": name, "prefix": prefix, "status": "served", "docs": urlDialectsDoc + anchor}
 	}
 	return []map[string]any{
-		d("imgproxy", "/", "served", "#3-imgproxy-canonical"),
-		d("query", "/q/", "served", "#4-query-dialect-native--imaginary"),
-		d("imagekit", "/imagekit/", "served", "#7-imagekit"),
-		d("imgix", "/imgix/", "planned", "#5-imgix"),
-		d("cloudinary", "/cloudinary/", "planned", "#6-cloudinary"),
-		d("cloudflare", "/cdn-cgi/image/", "planned", "#8-cloudflare-images-cdn-cgiimage"),
-		d("cloudflare_images", "/cdn-cgi/imagedelivery/", "planned", "#8-cloudflare-images-cdn-cgiimage"),
-		d("bunny", "/bunny/", "planned", "#9-bunny-optimizer"),
-		d("thumbor", "/thumbor/", "planned", "#10-thumbor"),
-		d("wsrv", "/wsrv/", "planned", "#11-weserv--wsrvnl"),
-		d("simple", "provider-native prefixes", "planned", "#12-unpic-long-tail-simple-micro-dialects"),
+		d("imgproxy", "/", "#3-imgproxy-canonical"),
+		d("query", "/q/", "#4-query-dialect-native--imaginary"),
+		d("imagekit", "/imagekit/", "#7-imagekit"),
+		d("imgix", "/imgix/", "#5-imgix"),
+		d("cloudinary", "/cloudinary/", "#6-cloudinary"),
+		d("cloudflare", "/cdn-cgi/image/", "#8-cloudflare-images-cdn-cgiimage"),
+		d("cloudflare_images", "/cdn-cgi/imagedelivery/", "#81-cloudflare-images-delivery-cdn-cgiimagedelivery-imagedeliverynet"),
+		d("bunny", "/bunny/", "#9-bunny-optimizer"),
+		d("thumbor", "/thumbor/", "#10-thumbor"),
+		d("wsrv", "/wsrv/", "#11-weserv--wsrvnl"),
+		d("awssih", "/sih/", "#13-aws-serverless-image-handler-dynamic-image-transformation-for-amazon-cloudfront"),
+		d("simple", "provider-native prefixes", "#12-unpic-long-tail-simple-micro-dialects"),
 	}
 }

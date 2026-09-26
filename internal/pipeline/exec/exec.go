@@ -3,13 +3,16 @@ package exec
 import (
 	"context"
 	"errors"
+	"image"
 
+	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/codec/encode"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/security/svg"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
+	"github.com/xantiagoma/xtandard-image/internal/video"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -22,9 +25,12 @@ type Config struct {
 	// the zero value is fail_on=warning).
 	FailOn vips.FailOn
 	// Watermark is the configured watermark image (NewWatermark); nil when
-	// XI_PROCESSING_WATERMARK_SOURCE is unset, and watermark options are
-	// then skipped. The Executor does not close it.
+	// XI_PROCESSING_WATERMARK_SOURCE is unset, and watermarks without a
+	// source or text of their own are then skipped. The Executor does not
+	// close it.
 	Watermark *Watermark
+	// Watermarks configures per-request and text watermarks.
+	Watermarks WatermarkConfig
 	// ColorProfilesDir holds the ICC files color_profile may name
 	// (XI_PROCESSING_COLOR_PROFILES_DIR); empty allows only the built-in
 	// srgb and cmyk.
@@ -35,6 +41,30 @@ type Config struct {
 	// ToneMap maps OpenEXR, Radiance and PFM sources to 8-bit sRGB
 	// (XI_FORMATS_HDR_TONEMAP; the zero value is Reinhard).
 	ToneMap ToneMap
+	// Admit charges the plan's estimated peak memory
+	// (plan.Cost.EstimatedBytes, chained plans included) against the
+	// process-wide budget once the plan exists and before any pixel is
+	// decoded: limiter.Limiter.Reserve (XI_PROCESSING_MEMORY_BUDGET). The
+	// server admits a job (worker and queue) before the probe that planning
+	// needs, so the estimate cannot travel with that admission. Its error
+	// ends Run; release is called when Run returns. nil admits every plan.
+	Admit func(ctx context.Context, bytes int64) (release func(), err error)
+
+	// Video configures video sources (XI_VIDEO_*): the frame a request
+	// without video options gets, best-frame selection and the limits. The
+	// zero value refuses video sources.
+	Video video.Settings
+}
+
+// noRelease is admit's release when no Admit hook is configured.
+var noRelease = func() {}
+
+// admit charges p's cost through the Admit hook.
+func (e *Executor) admit(ctx context.Context, p *plan.Plan) (release func(), err error) {
+	if e.cfg.Admit == nil || p == nil {
+		return noRelease, nil
+	}
+	return e.cfg.Admit(ctx, p.Cost.EstimatedBytes)
 }
 
 // Executor plans, executes and encodes images. It holds no per-request state
@@ -67,6 +97,9 @@ type Job struct {
 	// by the plan: an animation stays one only when the plan processed it
 	// frame by frame.
 	Target encode.Target
+	// Watermarks are the per-request watermark images of the request
+	// (Watermark.Source), fetched by the caller.
+	Watermarks []WatermarkImage
 	// Best is the negotiated decision of a format=best request
 	// (negotiate.ReasonBest): the processed image is encoded with
 	// encode.Encoder.EncodeBest, which picks among its candidates. Nil
@@ -95,6 +128,11 @@ type Result struct {
 	// (its embedded JPEG), RawPathDemosaic or RawPathDemosaicHalf; empty
 	// for other formats. It is exposed as a debug header.
 	RawPath string
+	// RawDecoded is the size of the camera RAW source as decoded (the
+	// embedded preview after shrink-on-load, or the demosaic at full or half
+	// size): the pixels the chosen path had to produce. Zero for other
+	// formats.
+	RawDecoded image.Point
 	// Skipped lists the request options that were not applied because a
 	// later work package implements them (filters, watermarks, the plan's
 	// Unplanned options), for debugging.
@@ -105,6 +143,9 @@ type Result struct {
 	// embedded in the source (HEIF/AVIF, or a JPEG's Exif thumbnail with
 	// enforce_thumbnail) rather than from the full image.
 	Thumbnail bool
+	// VideoFrame describes the frame a video source was decoded from; nil
+	// for images.
+	VideoFrame *codec.VideoFrameInfo
 }
 
 // Run plans j.Request for j.Meta, executes the plan on j.Source and encodes
@@ -165,6 +206,13 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 			j, meta, p, fromThumb = &tj, tm, tp, true
 		}
 	}
+	if !isRaw {
+		release, err := e.admit(ctx, p)
+		if err != nil {
+			return nil, err
+		}
+		defer release()
+	}
 	var res *Result
 	err = vips.Run(ctx, func() error {
 		var a vips.Arena
@@ -174,6 +222,11 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 			if err := r.planRaw(ctx); err != nil {
 				return err
 			}
+			release, err := e.admit(ctx, r.plan)
+			if err != nil {
+				return err
+			}
+			defer release()
 		}
 		img, err := r.execute(ctx)
 		if err != nil {
@@ -216,7 +269,9 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 			Skipped:     r.skipped,
 			Best:        out.Best,
 			RawPath:     r.rawPath,
+			RawDecoded:  r.rawDecoded,
 			Thumbnail:   fromThumb || r.plan.Load.Thumbnail,
+			VideoFrame:  r.videoFrame,
 		}
 		if t.Animated && animatable(out.Format) {
 			res.Frames = img.Pages()

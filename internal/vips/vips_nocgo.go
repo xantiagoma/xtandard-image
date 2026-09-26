@@ -73,6 +73,12 @@ func (*Blob) Release() {}
 // Image is unavailable without cgo.
 type Image struct{}
 
+// WritePixels fails.
+func (*Image) WritePixels(context.Context) (*Blob, error) { return nil, ErrUnavailable }
+
+// ToRGB8 fails.
+func (*Image) ToRGB8(context.Context) (*Blob, error) { return nil, ErrUnavailable }
+
 // Probe fails.
 func Probe(context.Context, *Buffer) (Header, error) { return Header{}, ErrUnavailable }
 
@@ -96,6 +102,11 @@ func LoadThumbnail(context.Context, *Buffer, int, int) (*Image, error) {
 
 // Black fails.
 func Black(context.Context, int, int, int) (*Image, error) { return nil, ErrUnavailable }
+
+// NewFromBuffer fails.
+func NewFromBuffer(context.Context, *Buffer, int, int, int, BandFormat) (*Image, error) {
+	return nil, ErrUnavailable
+}
 
 // NewFromMemory fails.
 func NewFromMemory(context.Context, []byte, int, int, int, BandFormat) (*Image, error) {
@@ -354,6 +365,9 @@ func (*Image) Multiply(context.Context, *Image) (*Image, error) { return nil, Er
 
 // Divide fails.
 func (*Image) Divide(context.Context, *Image) (*Image, error) { return nil, ErrUnavailable }
+
+// Text fails.
+func Text(context.Context, *TextOptions) (*Image, int, error) { return nil, 0, ErrUnavailable }
 
 // GradientMask fails.
 func GradientMask(context.Context, int, int, float64, float64, float64, float64) (*Image, error) {

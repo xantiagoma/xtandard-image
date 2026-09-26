@@ -3,12 +3,6 @@
     "path": "/demo/image/upload/a_45/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "a",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -518,12 +512,6 @@
     "path": "/demo/image/upload/bo_4px_solid_black/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "bo",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -571,12 +559,6 @@
     "path": "/demo/image/upload/bo_10px_solid_rgb:ff0080/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "bo",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -683,12 +665,6 @@
     "path": "/demo/image/upload/ar_4:3,c_crop,g_auto/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "ar",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -902,12 +878,6 @@
     "path": "/demo/image/upload/c_crop,g_face,w_100,h_100,z_1.5/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "g_face",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -915,6 +885,7 @@
         {
           "Crop": {
             "Gravity": {
+              "FaceIndex": 0,
               "FocusZoom": 1.5,
               "Type": "face"
             },
@@ -1149,18 +1120,13 @@
     "path": "/demo/image/upload/c_fill,g_face,w_300,h_200/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "g_face",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
       "Pipelines": [
         {
           "Gravity": {
+            "FaceIndex": 0,
             "Type": "face"
           },
           "Resize": {
@@ -1188,12 +1154,6 @@
     "path": "/demo/image/upload/c_fill,g_faces:center,w_300,h_200/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "g_faces",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -1227,12 +1187,6 @@
     "path": "/demo/image/upload/c_fill,g_dog,w_300,h_200/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "g_dog",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -1806,19 +1760,14 @@
     "path": "/demo/image/upload/c_thumb,g_face,w_150,h_150,z_0.7/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "g_face",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
       "Pipelines": [
         {
           "Gravity": {
-            "FocusZoom": 0.7,
+            "FaceIndex": 0,
+            "FacePad": 2.142857142857143,
             "Type": "face"
           },
           "Resize": {
@@ -1871,12 +1820,6 @@
     "path": "/demo/image/upload/cs_cmyk/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "cs",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "ColorProfile": "cmyk",
         "Format": "jpeg"
@@ -1922,12 +1865,6 @@
     "path": "/demo/image/upload/cs_srgb/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "cs",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "ColorProfile": "srgb",
         "Format": "jpeg"
@@ -1952,10 +1889,6 @@
         {
           "Option": "cs_tinysrgb",
           "Reason": "approximated"
-        },
-        {
-          "Option": "cs",
-          "Reason": "takes effect in M2"
         }
       ],
       "Output": {
@@ -1985,12 +1918,6 @@
         }
       },
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "d",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2017,12 +1944,6 @@
         }
       },
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "d",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2049,12 +1970,6 @@
         }
       },
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "d",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2197,10 +2112,6 @@
       "Ignored": [
         {
           "Option": "e_blackwhite",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "e_blackwhite",
           "Reason": "approximated"
         }
       ],
@@ -2225,12 +2136,6 @@
     "path": "/demo/image/upload/e_blue:10/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_blue",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2305,12 +2210,6 @@
     "path": "/demo/image/upload/e_blur_faces:600/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_blur_faces",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2346,12 +2245,6 @@
     "path": "/demo/image/upload/e_blur_region:800,h_0.4,w_0.3,x_0.1,y_0.2/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_blur_region",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2429,12 +2322,6 @@
     "path": "/demo/image/upload/e_brightness:30/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_brightness",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2467,12 +2354,6 @@
     "path": "/demo/image/upload/e_brightness/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_brightness",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2496,12 +2377,6 @@
     "path": "/demo/image/upload/co_red,e_colorize:40/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_colorize",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2538,12 +2413,6 @@
     "path": "/demo/image/upload/e_colorize/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_colorize",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2573,12 +2442,6 @@
     "path": "/demo/image/upload/e_contrast:-20/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_contrast",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2602,12 +2465,6 @@
     "path": "/demo/image/upload/e_gamma:40/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_gamma",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2631,12 +2488,6 @@
     "path": "/demo/image/upload/e_grayscale/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_grayscale",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2658,12 +2509,6 @@
     "path": "/demo/image/upload/e_green:-50/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_green",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2687,12 +2532,6 @@
     "path": "/demo/image/upload/e_hue:50/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_hue",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2716,12 +2555,6 @@
     "path": "/demo/image/upload/e_negate/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_negate",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2785,12 +2618,6 @@
     "path": "/demo/image/upload/e_pixelate_faces:12/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_pixelate_faces",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2817,12 +2644,6 @@
     "path": "/demo/image/upload/e_red:50/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_red",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2846,12 +2667,6 @@
     "path": "/demo/image/upload/e_saturation:50/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_saturation",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2875,12 +2690,6 @@
     "path": "/demo/image/upload/e_sepia/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_sepia",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -2903,10 +2712,6 @@
     "request": {
       "Dialect": "cloudinary",
       "Ignored": [
-        {
-          "Option": "e_sepia",
-          "Reason": "takes effect in M2"
-        },
         {
           "Option": "e_sepia",
           "Reason": "approximated"
@@ -3040,12 +2845,6 @@
     "path": "/demo/image/upload/e_unsharp_mask:200/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_unsharp_mask",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -3098,7 +2897,7 @@
       "Ignored": [
         {
           "Option": "e_vibrance",
-          "Reason": "takes effect in M2"
+          "Reason": "not implemented"
         }
       ],
       "Output": {
@@ -3497,12 +3296,6 @@
     "path": "/demo/image/upload/fl_png8/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "fl_png8",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg",
         "PNG": {
@@ -3795,10 +3588,6 @@
         {
           "Option": "l_c_fill",
           "Reason": "approximated"
-        },
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
         }
       ],
       "Output": {
@@ -3849,12 +3638,6 @@
     "path": "/demo/image/upload/l_fetch:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw%3D%3D/fl_layer_apply,g_south/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -3886,12 +3669,6 @@
     "path": "/demo/image/upload/g_center,l_fetch:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -3919,16 +3696,50 @@
     "signature": "unsigned",
     "source": "sample.jpg"
   },
-  "l_layer_apply": {
-    "path": "/demo/image/upload/l_logos:brand/c_scale,w_80/fl_layer_apply,g_north_west,x_10,y_10/sample.jpg",
+  "l_image_co": {
+    "path": "/demo/image/upload/l_logo,co_red,e_colorize/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
       "Ignored": [
         {
-          "Option": "l",
-          "Reason": "takes effect in M3"
+          "Option": "l_co",
+          "Reason": "approximated"
+        },
+        {
+          "Option": "l_e_colorize",
+          "Reason": "approximated"
         }
       ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "logo"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "l_layer_apply": {
+    "path": "/demo/image/upload/l_logos:brand/c_scale,w_80/fl_layer_apply,g_north_west,x_10,y_10/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
       "Output": {
         "Format": "jpeg"
       },
@@ -3965,12 +3776,6 @@
     "path": "/demo/image/upload/fl_relative,g_south_east,l_logo,o_60,w_0.2,x_5,y_5/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -4011,10 +3816,6 @@
         {
           "Option": "l_g",
           "Reason": "approximated"
-        },
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
         }
       ],
       "Output": {
@@ -4057,10 +3858,6 @@
         {
           "Option": "l_w",
           "Reason": "approximated"
-        },
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
         }
       ],
       "Output": {
@@ -4093,12 +3890,6 @@
     "path": "/demo/image/upload/l_s3:bucket/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -4129,17 +3920,114 @@
     "path": "/demo/image/upload/l_text:Arial_40:Hello/fl_layer_apply/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Font": "Arial 40",
+              "Opacity": 1,
+              "Text": "Hello"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "l_text_no_size": {
+    "error": {
+      "field": "l_text",
+      "kind": "invalid_url",
+      "public": "invalid l_text: expected text:\u003cfont family\u003e_\u003csize\u003e[_\u003cstyle\u003e…]:\u003ctext\u003e",
+      "status": 400
+    },
+    "path": "/demo/image/upload/l_text:Arial:Hello/sample.jpg"
+  },
+  "l_text_no_text": {
+    "error": {
+      "field": "l_text",
+      "kind": "invalid_url",
+      "public": "invalid l_text: expected text:\u003cfont family\u003e_\u003csize\u003e[_\u003cstyle\u003e…]:\u003ctext\u003e",
+      "status": 400
+    },
+    "path": "/demo/image/upload/l_text:Arial_20/sample.jpg"
+  },
+  "l_text_spacing": {
+    "path": "/demo/image/upload/l_text:Arial_20_letter_spacing_4:Spaced/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
       "Ignored": [
         {
-          "Option": "l_text",
-          "Reason": "unsupported"
+          "Option": "l_text_letter_spacing",
+          "Reason": "approximated"
         }
       ],
       "Output": {
         "Format": "jpeg"
       },
       "Pipelines": [
-        {}
+        {
+          "Watermarks": [
+            {
+              "Font": "Arial 20",
+              "Opacity": 1,
+              "Text": "Spaced"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "l_text_styled": {
+    "path": "/demo/image/upload/l_text:Open%20Sans_32_bold_italic_underline_center:Hi%20%3Cthere%3E%252C%20you,co_rgb:ff0000,g_south_east,x_10,y_5,o_60,a_-15,w_200/fl_layer_apply/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "l_text_center",
+          "Reason": "approximated"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Color": {
+                "A": 255,
+                "R": 255
+              },
+              "Font": "Open Sans bold italic 32",
+              "Opacity": 0.6,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 10,
+                "YOffset": 5
+              },
+              "Rotate": -15,
+              "Text": "\u003cu\u003eHi \u0026lt;there\u0026gt;, you\u003c/u\u003e",
+              "TextWidth": 200
+            }
+          ]
+        }
       ],
       "Source": {
         "Encoding": "relative",
@@ -4154,12 +4042,6 @@
     "path": "/demo/image/upload/l_logo/fl_layer_apply/c_scale,w_100/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -4199,12 +4081,6 @@
     "path": "/demo/image/upload/l_logo/fl_layer_apply,fl_tiled/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "l",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -4236,12 +4112,6 @@
     "path": "/demo/image/upload/o_60/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "o",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -4367,12 +4237,6 @@
     "path": "/demo/image/upload/q_auto/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "q_auto",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "AutoQuality": {
           "Method": "dssim",
@@ -4405,12 +4269,6 @@
     "path": "/demo/image/upload/q_auto:best/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "q_auto",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "AutoQuality": {
           "Method": "dssim",
@@ -4434,12 +4292,6 @@
     "path": "/demo/image/upload/q_auto:eco/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "q_auto",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "AutoQuality": {
           "Method": "dssim",
@@ -4463,12 +4315,6 @@
     "path": "/demo/image/upload/q_auto:low/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "q_auto",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "AutoQuality": {
           "Method": "dssim",
@@ -4568,12 +4414,6 @@
     "path": "/demo/image/upload/q_80,q_auto/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "q_auto",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "AutoQuality": {
           "Method": "dssim",
@@ -4615,12 +4455,6 @@
     "path": "/demo/image/upload/r_10:20:30:40/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "r",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -4647,12 +4481,6 @@
     "path": "/demo/image/upload/r_max/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "r",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -4685,12 +4513,6 @@
     "path": "/demo/image/upload/r_20/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "r",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -4717,12 +4539,6 @@
     "path": "/demo/image/upload/r_10:20:30/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "r",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -4749,12 +4565,6 @@
     "path": "/demo/image/upload/r_10:20/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "r",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },

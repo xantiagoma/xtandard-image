@@ -23,6 +23,53 @@ The libraries built into the base image carry their own licenses, which
 are shipped in the image under /opt/xtandard/share/licenses/ together with
 SOURCES.md (exact source URLs, versions and SHA256 checksums).
 
+Test fixture (source repository only, not shipped in any image):
+testdata/fixtures/video/bbb-h264-aac.mp4 and the goldens rendered from it
+contain one second of "Big Buck Bunny", (c) 2008 Blender Foundation,
+www.bigbuckbunny.org, licensed under Creative Commons Attribution 3.0
+(https://creativecommons.org/licenses/by/3.0/); see
+testdata/fixtures/video/README.md.
+
+The full base image flavor (docker/base/versions-full.sh) additionally
+ships, unmodified or built from unmodified sources:
+- FFmpeg 8.1 (https://ffmpeg.org/), GNU Lesser General Public License
+  version 2.1 or later, dynamically linked, built without GPL or nonfree
+  parts; build configuration in share/licenses/ffmpeg/BUILDCONF.txt.
+- libvpx 1.17 (https://chromium.googlesource.com/webm/libvpx), BSD-3-Clause
+  with the WebM patent grant.
+- ONNX Runtime 1.30 (https://github.com/microsoft/onnxruntime),
+  Copyright (c) Microsoft Corporation, MIT License; third-party notices in
+  share/licenses/onnxruntime/ThirdPartyNotices.txt.
+- YuNet face detection model face_detection_yunet_2023mar.onnx
+  (https://github.com/opencv/opencv_zoo), Copyright (c) 2020 Shiqi Yu,
+  MIT License.
+- YOLOX-s object detection model yolox_s.onnx
+  (https://github.com/Megvii-BaseDetection/YOLOX), Copyright (c) 2021-2022
+  Megvii Inc., Apache License 2.0.
+Model licences are shipped next to each model in
+/usr/share/xtandard/models/ and in share/licenses/models/.
+
+gpl base image flavor (contains GPL software)
+---------------------------------------------
+The opt-in gpl base image flavor (docker/base/versions-gpl.sh; not slim,
+not full) additionally ships, built from unmodified sources:
+- x264 (https://code.videolan.org/videolan/x264), stable branch, GNU
+  General Public License version 2 or later.
+- x265 4.2 (https://www.x265.org/, https://bitbucket.org/multicoreware/x265_git),
+  GNU General Public License version 2 or later.
+- FFmpeg 8.1 rebuilt with --enable-gpl, --enable-libx264 and
+  --enable-libx265. As distributed in that image, the FFmpeg libraries
+  and the ffmpeg/ffprobe programs are one work under the GNU General
+  Public License version 2 or later.
+The image is labelled org.opencontainers.image.licenses="GPL-2.0-or-later
+AND MIT" and carries /opt/xtandard/share/licenses/LICENSE-GPL.md (terms,
+every component's licence, where the corresponding source is) with the
+GPL texts in share/licenses/{ffmpeg,x264,x265}/. H.264 and HEVC are
+subject to patent pools; no patent licence is granted, and reviewing
+licences and patents is the responsibility of whoever deploys or
+distributes the gpl image. The xtandard-image source code in this
+repository remains under the MIT License.
+
 imgproxy
 --------
 https://github.com/imgproxy/imgproxy
@@ -134,3 +181,26 @@ tables in internal/dialect/awssih copy request paths and edit objects from
 the solution's test suite (source/image-handler/test/), and
 internal/security/sign/testdata/awssih/generate.ts contains
 recreateQueryString and the signature computation verbatim.
+
+purego
+------
+https://github.com/ebitengine/purego
+Copyright (c) 2022 The Ebitengine Authors
+Licensed under the Apache License, Version 2.0,
+https://www.apache.org/licenses/LICENSE-2.0
+Used unmodified as a Go module by internal/detect/ort to load ONNX
+Runtime at run time without cgo (ADR 0010).
+
+YuNet and YOLOX post-processing
+-------------------------------
+internal/detect reimplements, in Go, the YuNet decoding of OpenCV's
+FaceDetectorYN (modules/objdetect/src/face_detect.cpp,
+https://github.com/opencv/opencv, Apache License 2.0) and the YOLOX
+pre- and post-processing of demo/ONNXRuntime/onnx_inference.py,
+yolox/data/data_augment.py (preproc) and yolox/utils/demo_utils.py
+(demo_postprocess, multiclass_nms),
+https://github.com/Megvii-BaseDetection/YOLOX
+Copyright (c) 2021-2022 Megvii Inc., Apache License 2.0; the COCO class
+names are copied from yolox/data/datasets/coco_classes.py.
+testdata/detect/reference.py copies those YOLOX functions to compute the
+reference detections the tests compare against.

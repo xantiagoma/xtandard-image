@@ -575,6 +575,9 @@ func setDebugHeaders(h http.Header, res *imageResult) {
 	if res.out != nil && res.out.RawPath != "" {
 		h.Set("X-Xi-Raw-Path", res.out.RawPath)
 	}
+	if res.out != nil && res.out.VideoFrame != "" {
+		h.Set("X-Xi-Video-Frame", res.out.VideoFrame)
+	}
 	if len(res.req.Ignored) > 0 {
 		var b strings.Builder
 		for _, ig := range res.req.Ignored {

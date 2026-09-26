@@ -97,6 +97,9 @@ type source struct {
 	// thumbnail replaces the image whatever its size (imgproxy Pro).
 	thumbnail bool
 	hdr       bool // scene-linear float source: tone-mapped after load
+	video     bool // a frame decoded by FFmpeg, scaled on load by libswscale
+	// dets are the source's detections (first pipeline only).
+	dets *Detections
 }
 
 func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observed) (*Plan, error) {
@@ -132,6 +135,8 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 		previewW: meta.PreviewWidth, previewH: meta.PreviewHeight,
 		enforceThumb: req.Output.EnforceThumbnail != nil && *req.Output.EnforceThumbnail,
 		hdr:          meta.HDR,
+		video:        meta.IsVideo,
+		dets:         meta.Detections,
 	}
 	nFrames := max(meta.Frames, 1)
 	if first.Page != nil && *first.Page > 0 {
@@ -274,9 +279,18 @@ type builder struct {
 	exifAngle           int
 	exifFlip            bool
 	// rawBytes is the working memory of a RAW demosaic (LibRaw's sensor
-	// buffer and its four 16-bit samples per output pixel).
+	// buffer and its four 16-bit samples per output pixel), or of a video
+	// decoder (videoDecodeBytes).
 	rawBytes int64
+	// dets are the source's detections, for the detection filters.
+	dets *Detections
 }
+
+// videoDecodeBytes is the decoder memory a video frame costs beyond the
+// pipeline's images: the decoded YUV 4:2:0 frame (1.5 bytes a pixel), up
+// to three reference frames and the scaler's line buffers, rounded up to
+// 8 bytes a pixel of the stream.
+func videoDecodeBytes(w, h int) int64 { return int64(w) * int64(h) * 8 }
 
 func (b *builder) add(s Step) { b.pl.Steps = append(b.pl.Steps, s) }
 
@@ -299,6 +313,7 @@ func (b *builder) oriented(g *geo, rotate, w, h int) (int, int) {
 
 func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt transform.Format, obs *Observed, last bool) (*Plan, error) {
 	p = pixelFocus(p, s)
+	p, dg := detectGeometry(p, s)
 	o := newOpts(p, lim.resultDim)
 	b := &builder{
 		pl:     &Plan{Steps: make([]Step, 0, 12)},
@@ -307,21 +322,20 @@ func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt trans
 		// The tone mapper measures the source before mapping it: two reads.
 		random: s.hdr,
 		hdr:    s.hdr,
+		dets:   s.dets,
+	}
+	if s.video {
+		b.rawBytes = videoDecodeBytes(s.w, s.h)
 	}
 	g := geo{vectorBaseShrink: 1}
 	g.angle, g.flip = orientation(s.orientation, o.autoRotate)
-	if p.Crop != nil && p.Crop.Gravity.Type != transform.GravityUnset {
-		g.cropGravity, _ = resolveGravity(&p.Crop.Gravity)
-	} else {
-		g.cropGravity, _ = resolveGravity(&p.Gravity)
+	var cropSmart Interesting
+	g.cropGravity, cropSmart = resolveGravity(cropGravityOf(p))
+	if dg.crop != nil {
+		g.cropGravity, cropSmart = *dg.crop, InterestingNone
 	}
-	cropSmart := InterestingNone
-	if p.Crop != nil {
-		cg := p.Crop.Gravity
-		if cg.Type == transform.GravityUnset {
-			cg = p.Gravity
-		}
-		_, cropSmart = resolveGravity(&cg)
+	if p.Crop == nil {
+		cropSmart = InterestingNone
 	}
 	animated := s.frames > 1
 
@@ -381,7 +395,7 @@ func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt trans
 
 	b.geoFrom, b.geoW, b.geoH = len(b.pl.Steps), b.curW, b.curH
 	b.exifAngle, b.exifFlip = g.angle, g.flip
-	emitGeometry(p, &g, &o, b, cropSmart, animated)
+	emitGeometry(p, &g, &o, b, cropSmart, animated, dg.result)
 	emitFinish(p, &g, b, outFmt, s.frames, last)
 
 	if b.tooLarge {
@@ -399,7 +413,7 @@ func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt trans
 	b.pl.Output.Alpha = b.alpha
 	b.pl.Output.DPRScale = g.dprScale
 	b.pl.Cost = cost(b)
-	b.pl.Unplanned = unplanned(p)
+	b.pl.Unplanned = unplanned(p, s.dets != nil)
 	return b.pl, nil
 }
 
@@ -434,7 +448,7 @@ func scaleOnLoad(g *geo, o *opts, s *source, lim *effLimits, obs *Observed, load
 	jpeg := s.format == "jpeg" || s.format == "jpg"
 	webp := s.format == "webp"
 	thumb := heifFormat(s.format)
-	if !s.vector && (lim.noShrinkOnLoad || pre <= 1 || (!jpeg && !webp && !thumb)) {
+	if !s.vector && (lim.noShrinkOnLoad || pre <= 1 || (!jpeg && !webp && !thumb && !s.video)) {
 		return nil
 	}
 
@@ -462,6 +476,17 @@ func scaleOnLoad(g *geo, o *opts, s *source, lim *effLimits, obs *Observed, load
 	case webp && !s.vector:
 		load.Scale = 1 / pre
 		nw, nh = roundEvenInt(float64(s.w)*load.Scale), roundEvenInt(float64(s.h)*load.Scale)
+	case s.video:
+		// libswscale scales the frame to twice the target on load (area
+		// averaging), and libvips' kernel does the last 2×, like JPEG
+		// shrink-on-load: quality of a full-size decode at a fraction of
+		// the pixels. Reductions under 2× decode at the display size.
+		if pre < 2 {
+			return nil
+		}
+		f := pre / 2
+		load.Scale = 1 / f
+		nw, nh = max(1, int(math.Round(float64(s.w)/f))), max(1, int(math.Round(float64(s.h)/f)))
 	default: // vector
 		load.Scale = 1 / pre
 		nw, nh = shrinkDimEven(s.w, pre), shrinkDimEven(s.h, pre)
@@ -549,7 +574,14 @@ func rebaseOnLoad(g *geo, o *opts, obs *Observed, load *LoadStep, b *builder, nw
 	}
 	// Absolute crop offsets follow the preshrink; relative ones and focus
 	// points do not.
-	if g.cropGravity.Type != transform.GravityFocusPoint {
+	if cg := &g.cropGravity; cg.Type == transform.GravityObject {
+		if math.Abs(cg.OX) >= 1 {
+			cg.OX = math.RoundToEven(cg.OX / wp)
+		}
+		if math.Abs(cg.OY) >= 1 {
+			cg.OY = math.RoundToEven(cg.OY / hp)
+		}
+	} else if cg.Type != transform.GravityFocusPoint {
 		if math.Abs(g.cropGravity.X) >= 1 {
 			g.cropGravity.X = math.RoundToEven(g.cropGravity.X / wp)
 		}
@@ -561,7 +593,9 @@ func rebaseOnLoad(g *geo, o *opts, obs *Observed, load *LoadStep, b *builder, nw
 }
 
 // emitGeometry emits pre-crop, resize, orientation and the result crop.
-func emitGeometry(p *transform.Pipeline, g *geo, o *opts, b *builder, cropSmart Interesting, animated bool) {
+// detected is the result crop's placement on detected objects (nil: the
+// pipeline gravity).
+func emitGeometry(p *transform.Pipeline, g *geo, o *opts, b *builder, cropSmart Interesting, animated bool, detected *Gravity) {
 	if animated {
 		// libvips smart crop cannot run on a strip; the executor would have
 		// to crop every frame differently. Fall back to the centre.
@@ -620,6 +654,9 @@ func emitGeometry(p *transform.Pipeline, g *geo, o *opts, b *builder, cropSmart 
 	}
 
 	rg, smart := resolveGravity(&p.Gravity)
+	if detected != nil {
+		rg, smart = *detected, InterestingNone
+	}
 	if animated {
 		smart = InterestingNone
 	}
@@ -642,6 +679,9 @@ func emitFinish(p *transform.Pipeline, g *geo, b *builder, outFmt transform.Form
 	if st, ok := colourAdjust(p); ok {
 		b.add(st)
 		b.alpha = b.alpha || st.Adjust.Opacity != nil
+	}
+	if st, ok := drawDetections(p, b); ok {
+		b.add(st)
 	}
 	emitRotateAny(p, b)
 
@@ -702,16 +742,38 @@ func emitFinish(p *transform.Pipeline, g *geo, b *builder, outFmt transform.Form
 	}
 
 	for i := range p.Watermarks {
-		w := &p.Watermarks[i]
-		pos, _ := resolveGravity(&w.Position)
-		b.pl.After = append(b.pl.After, WatermarkStep{
-			Index: i, Opacity: w.Opacity, Position: pos, Tile: w.Tile, Scale: w.Scale, DPRScale: g.dprScale,
-			Frames: frames, Default: w.Source == nil && w.Text == "",
-		})
+		b.pl.After = append(b.pl.After, watermarkStep(&p.Watermarks[i], i, g.dprScale, frames))
 	}
 	if last {
 		b.pl.After = append(b.pl.After, ColourStep{Stage: ColourToResult})
 	}
+}
+
+// watermarkStep plans watermark i of a pipeline whose pixel sizes scale by
+// dpr: sizes, the shadow and the text resolution are in device pixels.
+func watermarkStep(w *transform.Watermark, i int, dpr float64, frames int) WatermarkStep {
+	pos, _ := resolveGravity(&w.Position)
+	st := WatermarkStep{
+		Index: i, Opacity: w.Opacity, Frames: frames,
+		Position: pos, Tile: w.Tile, Scale: w.Scale, DPRScale: dpr,
+		Rotate: w.Rotate, Shadow: w.Shadow * dpr,
+	}
+	if w.Scale == 0 {
+		st.Width, st.Height = scaleDim(w.Width, dpr), scaleDim(w.Height, dpr)
+	}
+	switch {
+	case w.Text != "":
+		st.Kind = WatermarkText
+		st.Text = &TextWatermark{
+			Markup: w.Text, Font: w.Font, Color: w.Color,
+			Width: scaleDim(w.TextWidth, dpr), DPI: max(roundInt(72*dpr), 1),
+		}
+	case w.Source != nil:
+		st.Kind = WatermarkImage
+	default:
+		st.Kind = WatermarkDefault
+	}
+	return st
 }
 
 // fixSize is imgproxy's fixSize: the scale an encoder's dimension limits
@@ -756,8 +818,10 @@ func cost(b *builder) Cost {
 	return Cost{Pixels: b.peak, EstimatedBytes: bytes + b.rawBytes}
 }
 
-// unplanned lists options later work packages turn into steps.
-func unplanned(p *transform.Pipeline) []string {
+// unplanned lists options later work packages turn into steps, and the
+// detection options of a pipeline planned without detections (a chained
+// pipeline, or no detector).
+func unplanned(p *transform.Pipeline, detected bool) []string {
 	var out []string
 	add := func(set bool, name string) {
 		if set {
@@ -766,8 +830,12 @@ func unplanned(p *transform.Pipeline) []string {
 	}
 	add(p.Adjust.Vibrance != nil, "vibrance")
 	add(p.Equalize, "equalize")
-	add(p.BlurDetections != nil || p.DrawDetections != nil || p.CropObjects != nil, "detections")
-	add(p.Video != nil, "video")
+	add(!detected && (p.BlurDetections != nil || p.DrawDetections != nil || p.CropObjects != nil), "detections")
+	// video_thumbnail_second and _keyframes select the frame of a video
+	// source when it is loaded (no step; ignored for images, like
+	// imgproxy); tiles and animations are WP-75.
+	add(p.Video != nil && p.Video.Tile != nil, "video_thumbnail_tile")
+	add(p.Video != nil && p.Video.Animation != nil, "video_thumbnail_animation")
 	return out
 }
 

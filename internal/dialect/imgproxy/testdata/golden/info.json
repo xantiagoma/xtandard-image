@@ -570,16 +570,6 @@
     "path": "/unsafe/c:100:100:obj:face/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "c:obj",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "crop:gravity",
-          "Reason": "approximated by the centre"
-        }
-      ],
       "Info": {
         "Crop": {
           "Gravity": {
@@ -848,7 +838,7 @@
       "Ignored": [
         {
           "Option": "cl",
-          "Reason": "takes effect in M3"
+          "Reason": "not implemented (no classification model)"
         }
       ],
       "Info": {
@@ -884,7 +874,7 @@
         },
         {
           "Option": "classify",
-          "Reason": "takes effect in M3"
+          "Reason": "not implemented (no classification model)"
         }
       ],
       "Info": {
@@ -951,32 +941,12 @@
       "Dialect": "imgproxy",
       "Ignored": [
         {
-          "Option": "vm",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "do",
-          "Reason": "takes effect in M3"
-        },
-        {
           "Option": "cl",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "op",
-          "Reason": "takes effect in M3"
+          "Reason": "not implemented (no classification model)"
         },
         {
           "Option": "pg",
           "Reason": "not implemented"
-        },
-        {
-          "Option": "vts",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "vtk",
-          "Reason": "takes effect in M3"
         }
       ],
       "Info": {
@@ -1264,12 +1234,6 @@
     "path": "/unsafe/detect_objects:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "detect_objects",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Info": {
         "DetectObjects": true,
         "Dimensions": true,
@@ -1320,12 +1284,6 @@
     "path": "/unsafe/do:t/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "do",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Info": {
         "DetectObjects": true,
         "Dimensions": true,
@@ -1764,12 +1722,6 @@
     "path": "/unsafe/obj_pos:prop/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "obj_pos",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -1802,12 +1754,6 @@
     "path": "/unsafe/objects_position:no:5:5/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "objects_position",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -1852,12 +1798,6 @@
     "path": "/unsafe/op:fp:0.1:0.9/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "op",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2712,12 +2652,6 @@
     "path": "/unsafe/video_thumbnail_second:10/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "video_thumbnail_second",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2747,12 +2681,6 @@
     "path": "/unsafe/vm:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vm",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2778,16 +2706,6 @@
     "path": "/unsafe/vts:2.5/vtk:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vts",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "vtk",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,

@@ -4,8 +4,16 @@ Every file under `testdata/` is dedicated to the public domain under
 [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). All of it is original to this
 repository except the `golden/exec/raw-{cr2,cr3,nef,arw,dng,raf}*.png` goldens, which are
 downscaled renders of the CC0 camera samples listed at the end (third-party photographs, public
-domain). There is no attribution or share-alike obligation (ADR 0006: no GPL or CC-BY-SA
-fixtures).
+domain), the three detection photos in `fixtures/detect/` (public domain or CC0, listed in
+"Detection photos") and the YOLOX functions copied into `detect/reference.py` (Apache-2.0).
+There is no share-alike obligation anywhere (ADR 0006: no GPL or CC-BY-SA fixtures), and one
+attribution exception below.
+
+**Exception (attribution required):** `fixtures/video/bbb-h264-aac.mp4` carries one second of
+*Big Buck Bunny* © 2008 Blender Foundation, www.bigbuckbunny.org, under
+[CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/), and the goldens rendered from it
+(`golden/exec/video-h264*.png`) are adaptations under the same licence. Source, changes and the
+other video fixtures: `fixtures/video/README.md`.
 
 The pixels come from `testdata/gen/main.go` (procedural landscape "photo" with value-noise
 terrain, clouds, a sun, lake reflection, Gaussian sensor noise and a caption, plus a flat-colour
@@ -27,6 +35,7 @@ generated from the public-domain X11 "fixed" font).
 | `fixtures/png/rgb16.png` | `gen photo16` (Go `image/png`, 16-bit) | CC0 |
 | `fixtures/png/palette.png` | `gen palette` (Go `image/png`, Plan 9 palette) | CC0 |
 | `fixtures/watermark/logo.png` | `gen watermark` (Go `image/png`, 48x32 RGBA) | CC0 |
+| `fixtures/watermark/badge.png` | `gen watermark-badge` (Go `image/png`, 40x40 RGBA) | CC0 |
 | `fixtures/gif/static.gif`, `fixtures/gif/animated.gif` | `gen gif`, `gen gif-anim` (Go `image/gif`, 6 frames) | CC0 |
 | `fixtures/webp/lossy.webp`, `lossless.webp`, `animated.webp` | libvips `webpsave` (libwebp, BSD-3) | CC0 |
 | `fixtures/avif/photo.avif` | libvips `heifsave` AV1 (libheif + libaom, BSD-2) | CC0 |
@@ -49,7 +58,25 @@ generated from the public-domain X11 "fixed" font).
 | `fixtures/ppm/photo.ppm` | `gen ppm`: the procedural photo as a binary 8-bit PPM (P6), written in Go | CC0 |
 | `ssim/*.png` | `gen ssim-refs` (Go only: greyscale photo plus mean shift, contrast stretch, impulse noise, Gaussian blur σ 1.5, stdlib JPEG q15) | CC0 |
 | `fixtures/dng/landscape.dng`, `fixtures/dng/portrait-orientation-6.dng` | `gen dng` (own DNG writer; the preview is Go `image/jpeg` q85 of the photo, the mosaic is the photo sampled as linear RGGB) | CC0 |
+| `fixtures/video/clip-*.{webm,mkv,mp4,mov,avi}` | `gen video-frames` (Go) encoded by `gen/video.sh` with the LGPL FFmpeg of the full base builder (libvpx VP8/VP9, libaom AV1, PNG) and the host ffmpeg's LGPL rawvideo/AVI muxer; details in `fixtures/video/README.md` | CC0 |
+| `fixtures/video/bbb-h264-aac.mp4` | stream copy of Big Buck Bunny (see the exception above) plus an AAC tone (FFmpeg native encoder, LGPL) | CC-BY 3.0 (video), CC0 (audio) |
 | `golden/**` | written by tests with `GOLDEN_UPDATE=1` from the fixtures above and the RAW samples below | CC0 |
+| `detect/expected.json`, `info/detect-*.json` | written by `detect/reference.py` and by tests from the detection photos below | CC0 |
+| `detect/reference.py` | ours, plus the YOLOX demo pre/post-processing functions copied from Megvii's YOLOX (Apache-2.0, see NOTICE) | CC0 / Apache-2.0 |
+
+## Detection photos (committed, third-party, public domain)
+
+Face and object detection (WP-71) needs real photographs: synthetic scenes do not exercise a
+trained detector. These three come from Wikimedia Commons, where each is marked public domain
+(US federal government work) or CC0; they were downloaded as the 960 px Commons thumbnails on
+2026-09-26 and re-encoded by `vips thumbnail 640` + `jpegsave Q82 --keep none` (no metadata).
+No attribution is required; the authors are listed as a courtesy.
+
+| File | Source | Author | Licence | SHA-256 |
+|---|---|---|---|---|
+| `fixtures/detect/apollo11-crew.jpg` | [File:Apollo 11 Crew.jpg](https://commons.wikimedia.org/wiki/File:Apollo_11_Crew.jpg) (NASA, 1969) | NASA | Public domain (NASA) | `f95f2b8dcbbd79d4635a823a7e4425511036fc34f68902eea2ac068b20b51965` |
+| `fixtures/detect/astronaut-dogs.jpg` | [File:NASA astronaut Leland D. Melvin with his dogs Jake and Scout.jpg](https://commons.wikimedia.org/wiki/File:NASA_astronaut_Leland_D._Melvin_with_his_dogs_Jake_and_Scout.jpg) (2009) | Robert Markowitz, NASA | Public domain (NASA) | `5d02c6afa3e401bb8a6e1fa677e47e38645a5c1923717a6212b55fa297000551` |
+| `fixtures/detect/cat-laptop.jpg` | [File:Cat on laptop yawning.jpg](https://commons.wikimedia.org/wiki/File:Cat_on_laptop_yawning.jpg) (from Pixabay, 2014) | acebrand | CC0 1.0 | `256422d01e8bbd8e91650cb0015bfec79043a8c9eb3f3ce386a67fe31ce23a71` |
 
 ## Downloaded camera RAW samples (not committed)
 
@@ -67,3 +94,12 @@ as well.
 | `sony-ilce-7s.arw` | Sony - ILCE-7S - 14bit 14bit compressed (3:2).ARW (id 1582) | `a35ebb2fbec929daa5beb20d1ce5c15a8aac7b1a7a231455387f3df8a7442e07` | 5.9 MB |
 | `pentax-k-50.dng` | Pentax - K-50 - 12bit (3:2).DNG (id 2235) | `9ea1dc1f92df19699aa8b620670c64a84d4ead0172a49cbbd47dea9257d14e67` | 12.9 MB |
 | `fujifilm-x-s10.raf` | Fujifilm - X-S10 - 14bit 14bit compressed (3:2).RAF (id 4190) | `9419d1408ebf850395e5dd563beb96309466546252caf541466034c9cb7e9724` | 17.8 MB |
+
+## Cross-language test vectors
+
+`security/vectors.json` repeats the public signing and encryption test vectors already used by the
+Go tests: the imgproxy documentation's "Signing the URL" example, `examples/signature*` and
+`examples/encrypted_source_url.*`, and `security/signature_test.go` of imgproxy (Apache-2.0,
+credited in `NOTICE`), plus vectors computed by this repository. They are keys, paths and
+expected outputs, not code. `urls/imgproxy-builder.json` is generated by this repository's tests
+(CC0).

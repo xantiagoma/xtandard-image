@@ -285,38 +285,38 @@ const (
 
 // parseGravity applies "type[:args...]" to g, keeping unspecified offsets
 // as imgproxy does, and the objects_position set by its own option. field
-// prefixes error field names. It reports the milestone of the parsed type
-// ("" for M1).
-func parseGravity(g *transform.Gravity, field string, kind gravityKind, args []string) (string, error) {
+// prefixes error field names. obj and objw class names are checked by
+// transform.Validate (face, COCO classes and supercategories).
+func parseGravity(g *transform.Gravity, field string, kind gravityKind, args []string) error {
 	op := g.ObjectsPosition
-	ms, err := parseGravityType(g, field, kind, args)
+	err := parseGravityType(g, field, kind, args)
 	g.ObjectsPosition = op
-	return ms, err
+	return err
 }
 
-func parseGravityType(g *transform.Gravity, field string, kind gravityKind, args []string) (string, error) {
+func parseGravityType(g *transform.Gravity, field string, kind gravityKind, args []string) error {
 	t := args[0]
 	if gt, ok := compass[t]; ok {
 		if err := maxArgs(field, args, 3); err != nil {
-			return "", err
+			return err
 		}
 		ng := transform.Gravity{Type: gt, XOffset: g.XOffset, YOffset: g.YOffset}
 		if len(args) > 1 && args[1] != "" {
 			x, err := parseFloat(field+".x_offset", args[1])
 			if err != nil {
-				return "", err
+				return err
 			}
 			ng.XOffset = x
 		}
 		if len(args) > 2 && args[2] != "" {
 			y, err := parseFloat(field+".y_offset", args[2])
 			if err != nil {
-				return "", err
+				return err
 			}
 			ng.YOffset = y
 		}
 		*g = ng
-		return "", nil
+		return nil
 	}
 	expected := expGravityCrop
 	if kind == gravityExtend {
@@ -325,53 +325,53 @@ func parseGravityType(g *transform.Gravity, field string, kind gravityKind, args
 	switch {
 	case t == "fp":
 		if len(args) != 3 {
-			return "", dialect.InvalidArgument(field, joinArgs(args), "fp:x:y")
+			return dialect.InvalidArgument(field, joinArgs(args), "fp:x:y")
 		}
 		x, err := parseUnitFloat(field+".x", args[1])
 		if err != nil {
-			return "", err
+			return err
 		}
 		y, err := parseUnitFloat(field+".y", args[2])
 		if err != nil {
-			return "", err
+			return err
 		}
 		*g = transform.Gravity{Type: transform.GravityFocusPoint, FocusX: x, FocusY: y}
-		return "", nil
+		return nil
 	case t == "sm" && kind == gravityCrop:
 		if len(args) > 1 {
-			return "", dialect.InvalidArgument(field, joinArgs(args), "sm without arguments")
+			return dialect.InvalidArgument(field, joinArgs(args), "sm without arguments")
 		}
 		*g = transform.Gravity{Type: transform.GravitySmart}
-		return "", nil
+		return nil
 	case t == "obj" && kind == gravityCrop:
 		ng := transform.Gravity{Type: transform.GravityObject}
 		for _, c := range args[1:] {
 			if c == "" {
-				return "", dialect.InvalidArgument(field+".classes", c, expNonEmpty)
+				return dialect.InvalidArgument(field+".classes", c, expNonEmpty)
 			}
 			ng.Classes = append(ng.Classes, c)
 		}
 		*g = ng
-		return "M3", nil
+		return nil
 	case t == "objw" && kind == gravityCrop:
 		rest := args[1:]
 		if len(rest) == 0 || len(rest)%2 != 0 {
-			return "", dialect.InvalidArgument(field, joinArgs(args), "objw:class:weight pairs")
+			return dialect.InvalidArgument(field, joinArgs(args), "objw:class:weight pairs")
 		}
 		ng := transform.Gravity{Type: transform.GravityObjectWeighted}
 		for i := 0; i < len(rest); i += 2 {
 			if rest[i] == "" {
-				return "", dialect.InvalidArgument(field+".classes", rest[i], expNonEmpty)
+				return dialect.InvalidArgument(field+".classes", rest[i], expNonEmpty)
 			}
 			w, err := parseNonNegFloat(field+".weights", rest[i+1])
 			if err != nil {
-				return "", err
+				return err
 			}
 			ng.Classes = append(ng.Classes, rest[i])
 			ng.Weights = append(ng.Weights, w)
 		}
 		*g = ng
-		return "M3", nil
+		return nil
 	}
-	return "", dialect.InvalidArgument(field+".type", t, expected)
+	return dialect.InvalidArgument(field+".type", t, expected)
 }

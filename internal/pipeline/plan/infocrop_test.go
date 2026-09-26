@@ -27,7 +27,7 @@ func TestInfoCrop(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			x, y, w, h, approx := InfoCrop(&tc.c, 400, 400)
+			x, y, w, h, approx := InfoCrop(&tc.c, nil, 400, 400, nil)
 			if x != tc.x || y != tc.y || w != tc.w || h != tc.h || approx != tc.approximated {
 				t.Errorf("InfoCrop = %d,%d %dx%d %v, want %d,%d %dx%d %v", x, y, w, h, approx, tc.x, tc.y, tc.w, tc.h, tc.approximated)
 			}

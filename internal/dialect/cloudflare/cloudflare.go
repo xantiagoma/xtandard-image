@@ -195,5 +195,6 @@ func (st *state) finish() error {
 	if st.border != nil {
 		st.pl().Border = st.border
 	}
+	st.finishZoom()
 	return st.b.Finish()
 }

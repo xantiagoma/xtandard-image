@@ -281,8 +281,11 @@ func duotonePalette(shadow, highlight transform.Color) *[256][3]uint8 {
 // (x, y) of a w×h frame, is 255 × (t − start)/(stop − start), where t runs
 // from 0 to 1 across the frame along the direction (at pixel centres, like
 // CSS linear-gradient: the corners reach 0 and 1). The gradient goes from
-// transparent at start to the colour at stop. Angles are CSS angles:
-// 0 = up (bottom → top), 90 = right, 180 = down, 270 = left.
+// transparent at start to the colour at stop. deg below is a CSS angle
+// (0 = up, bottom → top; 90 = right; 180 = down; 270 = left). A numeric
+// direction follows imgproxy's gradient and progressive_blur instead:
+// degrees clockwise where 0 runs top → bottom (like down) and 90 right →
+// left (like left), so the CSS angle is the imgproxy angle + 180.
 func gradientRamp(g *transform.Gradient, w, h int) (ax, ay, b float64) {
 	var deg float64
 	switch g.Direction {
@@ -293,7 +296,7 @@ func gradientRamp(g *transform.Gradient, w, h int) (ax, ay, b float64) {
 	case transform.DirectionLeft:
 		deg = 270
 	case transform.DirectionAngle:
-		deg = g.Angle
+		deg = g.Angle + 180
 	default: // down
 		deg = 180
 	}

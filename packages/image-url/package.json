@@ -1,0 +1,60 @@
+{
+  "name": "@xtandard/image-url",
+  "version": "0.0.0",
+  "description": "Typed imgproxy-dialect URL builder (signing, source encryption) and fetch client for xtandard-image.",
+  "keywords": [
+    "xtandard-image",
+    "imgproxy",
+    "image",
+    "url",
+    "signing",
+    "openapi"
+  ],
+  "license": "MIT",
+  "author": "Santiago Montoya",
+  "homepage": "https://github.com/xantiagoma/xtandard-image/tree/main/packages/image-url#readme",
+  "bugs": "https://github.com/xantiagoma/xtandard-image/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xantiagoma/xtandard-image.git",
+    "directory": "packages/image-url"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "generate": "bun scripts/generate.ts",
+    "generate:check": "bun scripts/generate.ts --check",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "bun test",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "prepack": "bun run build && cp ../../LICENSE LICENSE"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.2",
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}

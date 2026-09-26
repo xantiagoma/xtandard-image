@@ -181,7 +181,9 @@ type fakeProcessor struct {
 	req      *transform.Request
 	format   transform.Format
 	decision negotiate.Decision
-	delta    int // ProcessInput.QualityDelta
+	delta    int              // ProcessInput.QualityDelta
+	marks    []WatermarkInput // ProcessInput.Watermarks, Source bytes in markBytes
+	markData [][]byte
 }
 
 func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*ProcessOutput, error) {
@@ -192,6 +194,11 @@ func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*Process
 	p.format = in.Decision.Format
 	p.decision = in.Decision
 	p.delta = in.QualityDelta
+	p.marks = slices.Clone(in.Watermarks)
+	p.markData = nil
+	for _, m := range in.Watermarks {
+		p.markData = append(p.markData, bytes.Clone(m.Source.Bytes()))
+	}
 	p.mu.Unlock()
 	if p.fn != nil {
 		if err := p.fn(ctx); err != nil {

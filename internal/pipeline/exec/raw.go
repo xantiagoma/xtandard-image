@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"image"
 	"strings"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/raw"
@@ -68,6 +69,7 @@ func (r *runner) loadRaw(ctx context.Context, ls *plan.LoadStep) (*vips.Image, e
 	if err != nil {
 		return nil, err
 	}
+	r.rawDecoded = image.Pt(img.Width(), img.Height())
 	return r.rawMetadata(ctx, img)
 }
 

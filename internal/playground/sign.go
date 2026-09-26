@@ -1,0 +1,157 @@
+package playground
+
+import (
+	"encoding/json"
+	"errors"
+	"log/slog"
+	"mime"
+	"net/http"
+	"strings"
+
+	"github.com/xantiagoma/xtandard-image/internal/obs/logging"
+
+	"github.com/xantiagoma/xtandard-image/internal/security/sign"
+)
+
+// maxSignBody bounds a sign request body.
+const maxSignBody = 32 << 10
+
+// maxURLPart bounds SignRequest.Path and SignRequest.Query.
+const maxURLPart = 8 << 10
+
+// badRequestError carries a client-safe message.
+type badRequestError struct{ msg string }
+
+func (e *badRequestError) Error() string { return "playground: " + e.msg }
+
+func badRequest(msg string) error { return &badRequestError{msg: msg} }
+
+// sign answers POST api/sign: the URL for a mount, signed with the server's
+// key for that mount when it holds one.
+func (h *handler) sign(w http.ResponseWriter, r *http.Request) {
+	if mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type")); err != nil || mt != "application/json" {
+		writeJSONError(w, http.StatusUnsupportedMediaType, "content type must be application/json")
+		return
+	}
+	var req SignRequest
+	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxSignBody))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
+			writeJSONError(w, http.StatusRequestEntityTooLarge, "request body too large")
+			return
+		}
+		writeJSONError(w, http.StatusBadRequest, "invalid json body")
+		return
+	}
+	m, ok := h.mounts[req.Mount]
+	if !ok {
+		writeJSONError(w, http.StatusBadRequest, "unknown mount")
+		return
+	}
+	res, err := SignURL(m, h.signers[m.ID], req.Path, req.Query)
+	if err != nil {
+		if e, ok := errors.AsType[*badRequestError](err); ok {
+			writeJSONError(w, http.StatusBadRequest, e.msg)
+			return
+		}
+		h.logger.LogAttrs(r.Context(), slog.LevelError, "playground sign failed", logging.Err(err))
+		writeJSONError(w, http.StatusInternalServerError, "signing failed")
+		return
+	}
+	res.URL = h.pathPrefix + res.URL
+	writeJSON(w, http.StatusOK, res)
+}
+
+// SignURL builds the URL of path and query (after the mount prefix) on
+// mount m, signed with s according to m.Scheme. A nil s returns the
+// unsigned URL: the imgproxy and thumbor schemes then use their
+// placeholder signature segment ("insecure", "unsafe"). The URL starts
+// with the mount prefix; the caller prepends the server path prefix.
+func SignURL(m *Mount, s *sign.Signer, path, query string) (SignResponse, error) {
+	query = strings.TrimPrefix(query, "?")
+	if err := checkPart("path", path); err != nil {
+		return SignResponse{}, err
+	}
+	if err := checkPart("query", query); err != nil {
+		return SignResponse{}, err
+	}
+	if path == "" || path[0] != '/' {
+		return SignResponse{}, badRequest("path must start with /")
+	}
+	prefix := strings.TrimSuffix(m.Prefix, "/")
+	withQuery := func(p, q string) string {
+		if q == "" {
+			return p
+		}
+		return p + "?" + q
+	}
+	res := SignResponse{Scheme: m.Scheme}
+	switch m.Scheme {
+	case SchemeImgproxy:
+		if s == nil {
+			res.URL = withQuery(prefix+"/insecure"+path, query)
+			return res, nil
+		}
+		p, err := s.SignImgproxyPath(path)
+		if err != nil {
+			return SignResponse{}, err
+		}
+		res.URL, res.Signed = withQuery(prefix+p, query), true
+	case SchemeThumbor:
+		rest := strings.TrimPrefix(path, "/")
+		if s == nil {
+			res.URL = withQuery(prefix+"/unsafe/"+rest, query)
+			return res, nil
+		}
+		p, err := s.SignThumborPath(rest)
+		if err != nil {
+			return SignResponse{}, err
+		}
+		res.URL, res.Signed = withQuery(prefix+p, query), true
+	case SchemeImgix:
+		if s == nil {
+			res.URL = withQuery(prefix+path, query)
+			return res, nil
+		}
+		q, err := s.SignImgixQuery(path, query)
+		if err != nil {
+			return SignResponse{}, err
+		}
+		res.URL, res.Signed = withQuery(prefix+path, q), true
+	case SchemeXI:
+		if s == nil {
+			res.URL = withQuery(prefix+path, query)
+			return res, nil
+		}
+		// wsrv signs "/" plus the query whatever its mount path is; every
+		// other xi_sig dialect signs the path after its mount prefix.
+		msgPath := path
+		if m.Dialect == "wsrv" {
+			msgPath = "/"
+		}
+		q, err := s.SignXIQuery(msgPath, query)
+		if err != nil {
+			return SignResponse{}, err
+		}
+		res.URL, res.Signed = withQuery(prefix+path, q), true
+	default:
+		res.Scheme = SchemeNone
+		res.URL = withQuery(prefix+path, query)
+	}
+	return res, nil
+}
+
+// checkPart rejects oversize parts and control characters, which no URL
+// may carry unescaped.
+func checkPart(name, s string) error {
+	if len(s) > maxURLPart {
+		return badRequest(name + " too long")
+	}
+	for i := range len(s) {
+		if c := s[i]; c < 0x20 || c == 0x7f || c == ' ' || c == '#' {
+			return badRequest(name + " must be escaped (no spaces, control characters or #)")
+		}
+	}
+	return nil
+}

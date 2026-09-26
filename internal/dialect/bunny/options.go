@@ -17,8 +17,6 @@ import (
 // Reasons recorded in Request.Ignored.
 const (
 	reasonUnknown      = "unknown option"
-	reasonM2           = "takes effect in M2"
-	reasonM3           = "takes effect in M3"
 	reasonNotEnforced  = "not enforced"
 	reasonApproximated = "approximated"
 )
@@ -107,7 +105,7 @@ func (p *Parser) apply(b *imgproxy.Builder, params []sign.BunnyParam) error {
 // unpic generates) as a fill resize: cropping the source to W:H around the
 // gravity and fitting it into W×H without upscaling is imgproxy's
 // fill-down (fill with upscaling=resampling). Any other aspect_ratio stays
-// a crop aspect ratio, which takes effect in M2.
+// a crop aspect ratio (Crop.AspectRatio).
 func aspectToFill(b *imgproxy.Builder) {
 	pl := b.Pipeline()
 	c, rs := pl.Crop, &pl.Resize
@@ -121,9 +119,7 @@ func aspectToFill(b *imgproxy.Builder) {
 		if rs.Enlarge {
 			rs.Type = transform.ResizeFill
 		}
-		return
 	}
-	b.Ignore("aspect_ratio", reasonM2)
 }
 
 // other handles a parameter that is not an Optimizer option: signing
@@ -212,16 +208,16 @@ func option(b *imgproxy.Builder, key, v string, all map[string]string) error {
 
 	// Colour and luminosity (Bunny's -100..100 scales).
 	case "brightness":
-		return adjust(b, key, v, -100, &pl.Adjust.Brightness, func(f float64) float64 { return f * 2.55 })
+		return adjust(key, v, -100, &pl.Adjust.Brightness, func(f float64) float64 { return f * 2.55 })
 	case "contrast":
-		return adjust(b, key, v, -100, &pl.Adjust.Contrast, func(f float64) float64 { return 1 + f/100 })
+		return adjust(key, v, -100, &pl.Adjust.Contrast, func(f float64) float64 { return 1 + f/100 })
 	case "saturation":
-		return adjust(b, key, v, -100, &pl.Adjust.Saturation, func(f float64) float64 { return 1 + f/100 })
+		return adjust(key, v, -100, &pl.Adjust.Saturation, func(f float64) float64 { return 1 + f/100 })
 	case "gamma":
-		return adjust(b, key, v, -100, &pl.Adjust.Gamma, func(f float64) float64 { return math.Exp2(f / 100) })
+		return adjust(key, v, -100, &pl.Adjust.Gamma, func(f float64) float64 { return math.Exp2(f / 100) })
 	case "hue":
 		// "Every 33 units shifts to the next primary colour": 100 = 360°.
-		return adjust(b, key, v, 0, &pl.Adjust.Hue, func(f float64) float64 { return f * 3.6 })
+		return adjust(key, v, 0, &pl.Adjust.Hue, func(f float64) float64 { return f * 3.6 })
 	case "tint":
 		return tint(b, v)
 	case "sepia":
@@ -230,9 +226,6 @@ func option(b *imgproxy.Builder, key, v string, all map[string]string) error {
 			return err
 		}
 		pl.Sepia = f > 0
-		if pl.Sepia {
-			b.Ignore(key, reasonM2)
-		}
 
 	// Format and quality.
 	case "format", "output":
@@ -328,12 +321,15 @@ func focusCrop(b *imgproxy.Builder, v string) error {
 	return b.Apply("crop", args[0], args[1], "nowe", strconv.Itoa(max(0, x-w/2)), strconv.Itoa(max(0, y-h/2)))
 }
 
-// faceCrop is face_crop=true|false or face_crop=w,h. Face detection is M3;
-// until then w,h is a centre crop and true is ignored.
+// faceCrop is face_crop=true|false or face_crop=w,h (Bunny Optimizer):
+// true crops the requested size on the faces (face gravity, WP-72), w,h
+// crops a w×h area of the source centred on the faces before resizing.
+// Without faces the smart crop places it; without the detector (slim) it
+// answers 422.
 func faceCrop(b *imgproxy.Builder, v string) error {
 	if on, err := strconv.ParseBool(v); err == nil {
 		if on {
-			b.Ignore("face_crop", reasonM3)
+			b.Pipeline().Gravity = transform.Gravity{Type: transform.GravityFace}
 		}
 		return nil
 	}
@@ -343,8 +339,11 @@ func faceCrop(b *imgproxy.Builder, v string) error {
 	if !ok || werr != nil || herr != nil || wi <= 0 || hi <= 0 || wi > transform.MaxDimension || hi > transform.MaxDimension {
 		return dialect.InvalidArgument("face_crop", v, expFaceCrop)
 	}
-	b.Ignore("face_crop", reasonM3)
-	return b.Apply("crop", w, h, "ce")
+	if err := b.Apply("crop", w, h, "ce"); err != nil {
+		return err
+	}
+	b.Pipeline().Crop.Gravity = transform.Gravity{Type: transform.GravityFace}
+	return nil
 }
 
 // aspectRatio is aspect_ratio=w:h, a crop of the source (or of crop=) to
@@ -396,7 +395,7 @@ func sharpen(b *imgproxy.Builder, v string) error {
 }
 
 // adjust sets a colour adjustment from Bunny's scale; 0 is the identity.
-func adjust(b *imgproxy.Builder, key, v string, lo float64, dst **float64, conv func(float64) float64) error {
+func adjust(key, v string, lo float64, dst **float64, conv func(float64) float64) error {
 	f, err := parseScale(key, v, lo)
 	if err != nil {
 		return err
@@ -407,7 +406,6 @@ func adjust(b *imgproxy.Builder, key, v string, lo float64, dst **float64, conv 
 	}
 	x := conv(f)
 	*dst = &x
-	b.Ignore(key, reasonM2)
 	return nil
 }
 
@@ -423,7 +421,6 @@ func tint(b *imgproxy.Builder, v string) error {
 		return nil
 	}
 	pl.Tint = &transform.Color{R: rgb[0], G: rgb[1], B: rgb[2], A: 255}
-	b.Ignore("tint", reasonM2)
 	return nil
 }
 

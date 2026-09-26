@@ -26,7 +26,7 @@ Default mounts (all dialects other than imgproxy are disabled until enabled in c
 | query | `/q/` | Native query + imaginary endpoints |
 | wsrv | `/` when query has `url=` and path is `/` or empty; also `/wsrv/` | Router checks `?url=` before falling back to imgproxy |
 | cloudflare | `/cdn-cgi/image/` | Exact Cloudflare path shape, no config needed besides enabling |
-| cloudflare-images | `/cdn-cgi/imagedelivery/` (and host-bound `imagedelivery.net` shape) | M2 |
+| cloudflare-images | `/cdn-cgi/imagedelivery/` (and host-bound `imagedelivery.net` shape) | WP-79 (M2) |
 | imgix | `/imgix/<mount>/` | Usually host-bound |
 | cloudinary | `/cloudinary/` then `/<cloud>/image/{upload,fetch}/…` | Or host-bound as `res.cloudinary.com`-like |
 | imagekit | `/imagekit/<mount>/` | Or host-bound |
@@ -56,6 +56,8 @@ For dialects without a native scheme xi offers the optional **xi scheme**: query
 
 ## 3. imgproxy (canonical)
 
+**Status:** on `main` (M1, M2): every option below is parsed; M1 and M2 options are applied. M3 options that need detection or video are recorded in `Ignored` until WP-72/73/74 land (in progress); the advanced watermark options (`wmu`, `wmt`, `wms`, `wmr`, `wmsh`, `ch`) are in review (#85).
+
 Reference: https://docs.imgproxy.net/usage/processing (imgproxy v4.0.x docs, source `imgproxy/imgproxy-docs` `docs/usage/processing.mdx`), https://docs.imgproxy.net/usage/getting_info, https://docs.imgproxy.net/usage/encrypting_source_url, https://docs.imgproxy.net/features/chained_pipelines.
 
 ### 3.1 Grammar
@@ -80,7 +82,7 @@ bool        = "1" | "t" | "true" | "0" | "f" | "false"
 - Chained pipelines: pipeline-scoped options (geometry, effects, watermark, animation) apply to the pipeline they appear in; request-scoped ones (`O.*`, `D.*`, `TR.Limits`, `raw`) apply to the whole request wherever they appear (imgproxy `options.Main()`). Max 16 pipelines; an empty pipeline is 400. Each pipeline runs on the result of the previous one and is planned on its real size, frames and alpha (after a trim too); EXIF orientation, shrink-on-load, `page`/`pages` and `disable_animation` act in the first pipeline only, and every pipeline has its own filters, extend, padding, background and watermarks (WP-58).
 - Later occurrences of an option override earlier ones argument by argument (empty arguments keep the previous value); the source extension overrides `format` unless `raw`. An empty boolean is false; any other non-boolean is 400 (imgproxy: false). `sp` is accepted as a `skip_processing` alias because `imgproxy-js-core` emits it.
 - Malformed option arguments → 400. Unknown option names are recorded in `TR.Ignored` and return 400 only with `XI_DIALECTS_STRICT=true` (ADR 0002). imgproxy itself returns 404 for both (`options/parser/errors.go`); see ROADMAP open question 3.
-- Options tagged M2/M3 below are fully parsed and validated into TR and also recorded in `TR.Ignored` (reason "takes effect in M2"/"M3") until the executor implements them, so the server can ignore or 501 them. Strict mode rejects only unknown names.
+- Options tagged M3 below are fully parsed and validated into TR and also recorded in `TR.Ignored` (reason "takes effect in M3") until the executor implements them, so the server can ignore or 501 them; options tagged M2 are implemented and no longer recorded (every dialect). imgix `vib`, Cloudinary `e_vibrance` and ImageKit `e-contrast` parse into fields the planner still lists in `plan.Unplanned` (vibrance, equalize) and are recorded as "not implemented". Strict mode rejects only unknown names.
 
 ### 3.2 Processing options → TR
 
@@ -99,8 +101,8 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `enlarge` (`el`) | bool | `P.Resize.Enlarge` | false | M1 |
 | `extend` (`ex`) | bool:gravity:x:y | `P.Extend` | false:ce:0:0 | M1 |
 | `extend_aspect_ratio` (`extend_ar`, `exar`) | bool:gravity:x:y | `P.ExtendAR` | false | M1 |
-| `gravity` (`g`) | no,so,ea,we,noea,nowe,soea,sowe,ce[:x:y]; `sm`; `fp:x:y`; `obj:classes…` Pro; `objw:class:weight…` Pro | `P.Gravity` | ce:0:0 | M1 (sm, fp), M3 (obj, objw) |
-| `objects_position` (`obj_pos`, `op`) Pro | type:x:y, `fp:x:y`, `prop` | `P.Gravity.ObjectsPosition` (kept when `gravity` changes) | ce | M3 |
+| `gravity` (`g`) | no,so,ea,we,noea,nowe,soea,sowe,ce[:x:y]; `sm`; `fp:x:y`; `obj:classes…` Pro; `objw:class:weight…` Pro | `P.Gravity`; `obj`: the crop centres on the union box of the detections of the classes (`face` = YuNet faces, COCO class names with `_` for spaces or supercategories such as `vehicle`, none = every class of both models; unknown class → 400); `objw`: on their weighted centre (weight × box area); nothing found → `sm`; without the detector (slim) → 422. `sm` crops on the union of the detected faces when the face model is loaded and finds some (`XI_DETECT_SMART_FACES`), else libvips attention | ce:0:0 | M1 (sm, fp), M3 (obj, objw: WP-72) |
+| `objects_position` (`obj_pos`, `op`) Pro | type:x:y, `fp:x:y`, `prop` | `P.Gravity.ObjectsPosition` (kept when `gravity` changes): where the detections' box lands in the crop of `obj`/`objw` (and face) gravity: a compass type puts it against that edge, the offsets moving it away from the edge (pixels × DPR, or fractions < 1; for `ce` right/down); `fp:x:y` puts its centre at x, y of the crop; `prop` keeps its relative position (crop left = centre × (width − crop width)) | ce | M3 (WP-72) |
 | `crop` (`c`) | w:h[:gravity] (abs ≥1, rel <1) | `P.Crop` | — | M1 |
 | `crop_aspect_ratio` (`crop_ar`, `car`) Pro | ratio:enlarge | `P.Crop.AspectRatio/AspectEnlarge` (whole image without `crop`) | 0 | M2 |
 | `trim` (`t`) | threshold:color:equal_hor:equal_ver | `P.Trim` | — | M1 |
@@ -122,17 +124,17 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `unsharp_masking` (`ush`) Pro | mode:weight:divider (3×3 kernel, ARCHITECTURE §8.1 step 8) | `P.Unsharp` | auto:1:24 when given; off otherwise | M2 (WP-61) |
 | `blur_areas` (`ba`) Pro | sigma:l:t:w:h… (relative to the oriented source; follow rotate/flip/crops) | `P.BlurAreas` | off | M2 (WP-61) |
 | `progressive_blur` (`pbl`) Pro | sigma:direction:start:stop; direction as `gradient` | `P.ProgressiveBlur` | off (…:down:0:1) | M2 (WP-61) |
-| `blur_detections` (`bd`) Pro | sigma:classes… | `P.BlurDetections` | off | M3 |
-| `draw_detections` (`dd`) Pro | bool:classes… | `P.DrawDetections` | off | M3 |
-| `crop_objects` (`c_obj`) Pro | scale:classes… | `P.CropObjects` | off | M3 |
+| `blur_detections` (`bd`) Pro | sigma:classes… | `P.BlurDetections`: Gaussian blur of each detection box (mapped through crops, rotations and flips like `blur_areas`), last among the filters | off | M3 (WP-73) |
+| `draw_detections` (`dd`) Pro | bool:classes… | `P.DrawDetections`: each box outlined in its class colour (line ≈ 1/200 of the shorter side, ≥ 2 px) with a `class NN%` label, after the colour adjustments | off | M3 (WP-73) |
+| `crop_objects` (`c_obj`) Pro | scale:classes… | `P.CropObjects`: pre-crop to the union box of the detections scaled by `scale` around its centre (kept inside the image), grown to the result's aspect ratio for fill/fill-down; takes precedence over `crop`; nothing detected → no crop | off | M3 (WP-72) |
 | `colorize` (`col`) Pro | opacity:color:keep_alpha | `P.Colorize` | off | M2 |
-| `gradient` (`gr`) Pro | opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees | `P.Gradient` | 0:000:down:0:1 | M2 |
-| `watermark` (`wm`) | opacity:pos:x:y:scale; pos incl. `re` (tile), `ch` (chessboard, Pro) | `P.Watermarks[i]` | off | M1 (`re` M1, `ch` M3) |
-| `watermark_url` (`wmu`) Pro | base64url URL | `Watermark.Source` | config image | M3 |
-| `watermark_text` (`wmt`) Pro | base64url Pango markup | `Watermark.Text` (replaces `watermark_url`) | — | M3 |
-| `watermark_size` (`wms`) Pro | w:h | `Watermark.Width/Height` | 0:0 | M3 |
-| `watermark_rotate` (`wm_rot`, `wmr`) Pro | degrees | `Watermark.Rotate` | 0 | M3 |
-| `watermark_shadow` (`wmsh`) Pro | sigma | `Watermark.Shadow` | off | M3 |
+| `gradient` (`gr`) Pro | opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees clockwise like imgproxy (0 = top to bottom like `down`, 90 = right to left like `left`) | `P.Gradient` | 0:000:down:0:1 | M2 |
+| `watermark` (`wm`) | opacity:pos:x:y:scale; pos incl. `re` (tile), `ch` (chessboard, Pro) | `P.Watermarks[i]`; `ch` tiles a 2×2 unit (cell, empty, empty, cell) centred on a cell | off | M1 (`re` M1, `ch` M3 WP-77) |
+| `watermark_url` (`wmu`) Pro | base64url URL | `Watermark.Source`: resolved against the source allowlist and fetched through the source fetcher (SSRF policy, `XI_LIMITS_MAX_SRC_BYTES`, origin cache), SVG sanitised; first frame, EXIF orientation applied | config image | M3 (WP-77) |
+| `watermark_text` (`wmt`) Pro | base64url Pango markup | `Watermark.Text` (replaces `watermark_url`); sanitised to a whitelist (b, big, i, s, small, sub, sup, tt, u, span with font/colour/weight/style/decoration attributes), font sizes ≤ 1000 pt, rendered at 72 × DPR DPI with `XI_PROCESSING_WATERMARK_FONT`, wrapped at the frame width and shrunk to fit the frame | — | M3 (WP-78) |
+| `watermark_size` (`wms`) Pro | w:h | `Watermark.Width/Height`: fit into w×h CSS px (DPR applied), enlarging; 0 from the aspect ratio; only when the `wm` scale is 0 | 0:0 | M3 (WP-77) |
+| `watermark_rotate` (`wm_rot`, `wmr`) Pro | degrees | `Watermark.Rotate`: clockwise after sizing, onto the transparent bounding box | 0 | M3 (WP-77) |
+| `watermark_shadow` (`wmsh`) Pro | sigma | `Watermark.Shadow`: the watermark's alpha in black, blurred with sigma (CSS px, DPR applied), under it | off | M3 (WP-77) |
 | `style` (`stl`, `st`) Pro | base64url CSS | `P.SVGStyle`: a `<style>` first child of the root of an SVG source, the document sanitised again with it (external references dropped); skipped for other sources | — | M2 (WP-64) |
 | `strip_metadata` (`sm`) | bool | `O.StripMetadata` | config (true) | M1 |
 | `keep_copyright` (`kcr`) | bool | `O.KeepCopyright` | config (true) | M1 |
@@ -153,8 +155,8 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `page` (`pg`) Pro | int | `P.Page`: page of a multi-page still, first frame of a kept animation, the frame of one that is not (FORMATS §1.2, §3) | 0 | M2 (WP-50, WP-62) |
 | `pages` (`pgs`) Pro | int | `P.Pages`: pages or frames stacked vertically; the frame count of a kept animation; `-1` = to the end | 1 | M2 (WP-50, WP-62) |
 | `disable_animation` (`da`) Pro | bool | `P.DisableAnimation` | false | M1 |
-| `video_thumbnail_second` (`vts`) Pro | float | `P.Video.Second` | config | M3 |
-| `video_thumbnail_keyframes` (`vtk`) Pro | bool | `P.Video.Keyframes` | config | M3 |
+| `video_thumbnail_second` (`vts`) Pro | float | `P.Video.Second`: the frame of a video source (FORMATS §1.5); negative counts from the end, clamped to the video; unset = `XI_VIDEO_THUMBNAIL_SECOND` (default `auto`: best-frame selection); ignored for images | config | M3 (WP-74) |
+| `video_thumbnail_keyframes` (`vtk`) Pro | bool | `P.Video.Keyframes`: the keyframe at or before `vts` | config | M3 (WP-74) |
 | `video_thumbnail_tile` (`vtt`) Pro | step:cols:rows:tw:th:extend:trim:fill:fx:fy; step 0 = off, < 0 = from duration (stored as 0) | `P.Video.Tile` | off | M3 |
 | `video_thumbnail_animation` (`vta`) Pro | step:delay(ms):frames:fw:fh:extend:trim:fill:fx:fy; step as `vtt` | `P.Video.Animation` (delay in seconds) | off | M3 |
 | `fallback_image_url` (`fiu`) Pro | base64url URL | `D.Fallback`; honoured only with `XI_FALLBACK_ALLOW_REQUEST_URL` and when the source allowlist accepts it | config | M1 (WP-34c) |
@@ -183,16 +185,16 @@ Parsed by `imgproxy.Parser.ParseInfo` (the path after `/info`; same signature by
 | `exif` | enabled:canonical_names | `Info.EXIF` (canonical names: `Ignored`, not in model) | true:false | M1 |
 | `iptc` | bool | `Info.IPTC` | true | M1 |
 | `xmp` | bool | `Info.XMP` | true | M1 |
-| `video_meta` (`vm`) | bool | `Info.VideoMeta` | true | M3 |
-| `detect_objects` (`do`) Pro | bool | `Info.DetectObjects` | false | M3 |
-| `classify` (`cl`) Pro | top_k:classes… | `Info.Classify` (top_k/classes: `Ignored`, not in model) | 0 | M3 |
+| `video_meta` (`vm`) | bool | `Info.VideoMeta`: `video_meta` (container tags plus container, codec, coded size, rotation, duration, fps, bit rate, frames) and `video_streams` for video sources (FORMATS §1.5) | true | M3 (WP-74) |
+| `detect_objects` (`do`) Pro | bool | `Info.DetectObjects` → `"objects": [{class_id, class_name, confidence, left, top, width, height, landmarks}]` (fractions of the oriented image; faces first with five landmarks, then objects; `[]` when none); 422 without the detector | false | M3 (WP-73) |
+| `classify` (`cl`) Pro | top_k:classes… | `Info.Classify`, recorded in `Ignored`: no classification model is shipped (top_k/classes not in the model) | 0 | not implemented |
 | `colorspace` (`cs`) | bool | `Info.Colorspace` | false | M1 |
 | `bands` (`b`) | bool | `Info.Bands` | false | M1 |
 | `sample_format` (`sf`) | bool | `Info.SampleFormat` | false | M1 |
 | `pages_number` (`pn`) | bool | `Info.PagesNumber` | false | M1 |
 | `alpha` (`a`) | alpha:check_transparency | `Info.Alpha` (check_transparency: `Ignored`, not in model) | false:false | M1 |
 | `crop` (`c`) | w:h:gravity (as processing `crop`) | `Info.Crop` | — | M2 |
-| `objects_position` (`obj_pos`, `op`) Pro | as processing | `Info.ObjectsPos` + `P.Gravity.ObjectsPosition` | ce:0:0 | M3 |
+| `objects_position` (`obj_pos`, `op`) Pro | as processing | `Info.ObjectsPos` + `P.Gravity.ObjectsPosition`: places an info `crop` with face or object gravity on the detections | ce:0:0 | M3 (WP-73) |
 | `palette` (`p`) | 0 or 2..256 | `Info.Palette` | 0 | M2 |
 | `average` (`avg`) | enabled:ignore_transparent | `Info.Average` | false:true | M2 |
 | `dominant_colors` (`dc`) | enabled:build_missed | `Info.DominantColors` | false:false | M2 |
@@ -217,7 +219,7 @@ Pro options (WP-63; per-option goldens for a photo, an alpha PNG and an animated
 
 ### 3.5 Client hints (WP-65; all dialects)
 
-A hint is read when the URL opts into it (imgix `ch=Width,DPR,Save-Data`, ImageKit `w-auto`/`dpr-auto`; the cloudinary `w_auto`/`dpr_auto` and cloudflare `width=auto` rows map to the same fields once those dialects set them) or, with `XI_CLIENT_HINTS_ENABLED`, whenever the URL leaves the value unset. `negotiate.ApplyClientHints` resolves hints into the request before defaults, so hinted values are part of the canonical key and ETag (Save-Data through `qualityDelta`, ARCHITECTURE §9.1).
+A hint is read when the URL opts into it (imgix `ch=Width,DPR,Save-Data`, ImageKit `w-auto`/`dpr-auto`, Cloudinary `w_auto[:step]`/`dpr_auto`, Cloudflare `width=auto` and `slow-connection-quality`; each sets `transform.ClientHints`, which applies to the first pipeline) or, with `XI_CLIENT_HINTS_ENABLED`, whenever the URL leaves the value unset. `negotiate.ApplyClientHints` resolves hints into the request before defaults, so hinted values are part of the canonical key and ETag (Save-Data through `qualityDelta`, ARCHITECTURE §9.1).
 
 | Hint | Rule |
 |---|---|
@@ -246,7 +248,29 @@ imgproxy parity (`IMGPROXY_ENABLE_CLIENT_HINTS`, `clientfeatures/detector.go`, `
 | `Content-DPR` | Not sent | Sent for a hinted DPR ≠ 1 |
 | Restricted unsigned requests | n/a (imgproxy has no unsigned allowlist) | Save-Data only |
 
+### 3.6 Watermarks (WP-28, WP-77, WP-78; all dialects)
+
+Every dialect overlay becomes a `Pipeline.Watermarks[i]` entry; the planner turns each into a `WatermarkStep` (`internal/pipeline/plan`) and the executor draws it after the pipeline's steps, once on the joined strip of an animation (`internal/pipeline/exec/watermark.go`, `text.go`).
+
+| Kind | imgproxy | imgix | Cloudinary | ImageKit | thumbor | imaginary | SIH |
+|---|---|---|---|---|---|---|---|
+| Configured image (`XI_PROCESSING_WATERMARK_SOURCE`) | `wm` without `wmu`/`wmt` | — | — | — | — | — | — |
+| Per-request image | `wmu` | `mark` (+`mark-base`) | `l_<id>`, `l_fetch:` | `l-image` | `watermark(url,…)` | `/watermarkimage?image=` | `overlayWith` |
+| Text | `wmt` (markup) | `txt` (plain) | `l_text:` (plain) | `l-text` (plain) | — | `/watermark?text=` (markup) | — |
+| Size | `wm` scale, `wms` | `mark-scale`, `mark-w/h` | `w_`/`h_`, `fl_relative` | `w`/`h` | `w_ratio` | — | `wRatio` |
+| Rotation | `wmr` | `mark-rot` | `a_` | `rt` | — | — | — |
+| Shadow | `wmsh` | `txt-shad` | — | — | — | — | — |
+| Tiling | `wm` `re`, `ch` (chessboard) | `mark-tile=grid` | `fl_tiled` | — | `repeat` | default (`noreplicate` off) | — |
+
+Execution order: fit into Scale × the frame (both sides, enlarging), else into `Width`×`Height` (CSS px × DPR; 0 from the aspect ratio) → rotate clockwise onto the transparent bounding box (premultiplied) → shadow (black copy of the alpha blurred with `Shadow` sigma, CSS px × DPR, canvas grown by 3σ) → alpha × request opacity × `XI_PROCESSING_WATERMARK_OPACITY` → tile spacing → place by gravity with overflow (imgproxy `calcPosition`), or repeat (`re`, a tile centred) or chessboard (`ch`: a 2×2 unit with the tile top-left and bottom-right, a tile centred) → composite over, back to the base band format.
+
+Per-request images are a source fetch: the server resolves them against the source allowlist (403 otherwise) and fetches them through the same fetcher as the source (SSRF dialer and redirect policy, `XI_LIMITS_MAX_SRC_BYTES`, origin cache, coalescing), in parallel and before admission; an SVG is sanitised; the executor decodes the first frame with EXIF orientation applied under `XI_LIMITS_MAX_SRC_PIXELS`. A watermark URL is part of the URL, so it is covered by the URL signature; imgproxy's `wmu` is url-safe base64 like its source. Unsigned requests on `restricted` mounts cannot carry watermarks at all (`router.Restrictions`). The watermark bytes are not part of the ETag (the URL is, through the canonical key).
+
+Text: markup from the URL (`wmt`, imaginary `text`) is untrusted; dialects whose text is plain escape it. The executor sanitises every text again (`internal/security/pango`): a strict XML token stream re-serialised with only `b`, `big`, `i`, `s`, `small`, `sub`, `sup`, `tt`, `u` and `span` with font, size, colour, alpha, weight, style, variant, stretch and decoration attributes (each value checked against its grammar); no DTDs, entities beyond XML's five, comments, processing instructions, namespaces or other attributes (400); at most 4096 bytes, nesting 8, every font size (with `big`/`larger` compounding) ≤ 1000 pt (422). Pango markup cannot reference files. Font descriptions allow letters, digits, spaces and `,-_.` only; a size in `px` is read as points. Text is rendered by `vips_text` at 72 × DPR DPI (one point per CSS pixel) in `XI_PROCESSING_WATERMARK_FONT` (default `sans 16`, imgproxy's; a request font lacking a family or size takes it from there), wrapped at `TextWidth` or the frame width, and must fit the frame: when the markup's size bound does not prove it fits, it is laid out to fit the frame (at most `XI_LIMITS_MAX_WATERMARK_TEXT_PIXELS`) first and shrunk when larger; text that does not fit even at 1 DPI is 422. Fonts: the image ships DejaVu Sans and DejaVu Sans Mono (`sans`, `monospace`, Bitstream Vera licence) through fontconfig; `XI_PROCESSING_WATERMARK_FONT_FILE` registers one more file.
+
 ## 4. Query dialect (native + imaginary)
+
+**Status:** on `main` (WP-23, M1; `pipeline` M2). imaginary's `/watermark` (text) and `/watermarkimage` are in review (#85).
 
 Reference: https://github.com/h2non/imaginary (API section). Mount `/q/`.
 
@@ -257,13 +281,17 @@ Two shapes:
 /q/resize?url=<source>&width=300&height=200&type=webp          (imaginary endpoint)
 ```
 
+Video sources (WP-74): `vts`/`video_thumbnail_second` and `vtk`/`video_thumbnail_keyframes` are accepted as query keys like every imgproxy option (`/q/?url=<video>&w=320&vts=1.5`).
+
 Native keys (long and short): `url`, `width|w`, `height|h`, `fit` (`fit|contain|inside` → Fit, `fill|cover` → Fill, `fill-down`, `force|stretch` → Force, `outside`), `gravity|g` (compass words, `smart`, `entropy`, `fp:x:y`), `crop` (`w,h[,x,y]`), `dpr`, `enlarge`, `format|f`, `quality|q`, `lossless`, `progressive`, `blur`, `sharpen`, `pixelate`, `rotate|rot`, `flip` (`h|v|hv`), `bg`, `strip`, `trim`, `pad`, `preset`, `page`, `pages`, `cb`, `filename`, `attachment`, `expires`, `sign`. Semantics are those of the equivalent imgproxy option; anything imgproxy can do is reachable via `o=<imgproxy option path>` (for example `o=rs:fill:300:200/g:sm`) so the query dialect is complete by construction.
 
-imaginary endpoints: `resize`, `enlarge`, `extract`, `crop`, `smartcrop`, `rotate`, `autorotate`, `flip`, `flop`, `thumbnail`, `zoom`, `convert`, `fit`, `blur`, `watermark` (text, M3), `watermarkimage` (M3), `info`, `pipeline` (JSON `operations` → chained pipelines, M2). imaginary params: `width`, `height`, `areawidth`, `areaheight`, `quality`, `compression`, `type`, `force`, `rotate`, `embed`, `norotation`, `noprofile`, `stripmeta`, `flip`, `flop`, `extend`, `background`, `gravity`, `top`, `left`, `factor`, `dpi`, `interlace`, `aspectratio`, `palette`, `sigma`, `minampl`, `url`. Watermark params (M3): `text`, `font`, `textwidth`, `opacity`, `margin`, `color`, `noreplicate`, `image` (watermark image URL). Also accepted: `nocrop`, `colorspace`, `operations` (JSON, `pipeline` endpoint). Unsupported: POST/multipart uploads (form field `file`), the `file` query param for local paths (use an `fs` source with `xi://` instead), `speed`. Params verified against `.refs/imaginary/params.go` and `server.go`.
+imaginary endpoints: `resize`, `enlarge`, `extract`, `crop`, `smartcrop`, `rotate`, `autorotate`, `flip`, `flop`, `thumbnail`, `zoom`, `convert`, `fit`, `blur`, `watermark` (text, WP-78), `watermarkimage` (WP-77), `info`, `pipeline` (JSON `operations` → chained pipelines, M2). imaginary params: `width`, `height`, `areawidth`, `areaheight`, `quality`, `compression`, `type`, `force`, `rotate`, `embed`, `norotation`, `noprofile`, `stripmeta`, `flip`, `flop`, `extend`, `background`, `gravity`, `top`, `left`, `factor`, `dpi`, `interlace`, `aspectratio`, `palette`, `sigma`, `minampl`, `url`. Watermark params: `text` (Pango markup, as bimg passes it to `vips_text`), `font` (default `sans 10`), `dpi` (default 150: the font size is scaled by dpi/72, xi renders at 72 DPI per CSS pixel), `textwidth` (wrap width; bimg's default of a sixth of the image width is approximated by the image width), `opacity` (0 = 0.25 for text, 1 for images), `margin` (tile spacing, default `textwidth`), `color` (text colour), `noreplicate` (one watermark at the top-left instead of tiles), `image` (watermark image URL, placed at `left`/`top`). Also accepted: `nocrop`, `colorspace`, `operations` (JSON, `pipeline` endpoint). Unsupported: POST/multipart uploads (form field `file`), the `file` query param for local paths (use an `fs` source with `xi://` instead), `speed`. Params verified against `.refs/imaginary/params.go` and `server.go`.
 
-Implementation notes (WP-23, `internal/dialect/query`): native keys are applied in query order through the imgproxy option parser, so a later key overrides an earlier one and keys after an `o=` that chains pipelines (`-`) apply to the last pipeline; `o=` must contain options only (a source in it is a 400). Multi-argument native values (`crop`, `pad`, `trim`, `bg` as `r,g,b`, `preset`, `g=fp:x:y`) accept `,` or `:` as separator, and `crop=w,h,x,y` places the top-left corner. Signing: `sign` covers the decoded path after the mount (`/resize`, or `/` for native mode) plus the sorted query; `xi_sig` covers the escaped path after the mount plus the query; both present is a 403. imaginary params are stricter than upstream (malformed or negative values are a 400 instead of silently falling back); `extend=mirror` is approximated as `copy`, `/extract` crops before resizing, `/zoom` scales by `factor+1` like bimg, `/info` uses the imgproxy info schema, and text/image watermarks are parsed but take effect in M3.
+Implementation notes (WP-23, `internal/dialect/query`): native keys are applied in query order through the imgproxy option parser, so a later key overrides an earlier one and keys after an `o=` that chains pipelines (`-`) apply to the last pipeline; `o=` must contain options only (a source in it is a 400). Multi-argument native values (`crop`, `pad`, `trim`, `bg` as `r,g,b`, `preset`, `g=fp:x:y`) accept `,` or `:` as separator, and `crop=w,h,x,y` places the top-left corner. Signing: `sign` covers the decoded path after the mount (`/resize`, or `/` for native mode) plus the sorted query; `xi_sig` covers the escaped path after the mount plus the query; both present is a 403. imaginary params are stricter than upstream (malformed or negative values are a 400 instead of silently falling back); `extend=mirror` is approximated as `copy`, `/extract` crops before resizing, `/zoom` scales by `factor+1` like bimg, `/info` uses the imgproxy info schema, and text/image watermarks are applied (WP-77/78).
 
 ## 5. imgix
+
+**Status:** parser and `s`/`expires` signing on `main` (WP-40, M2), but `main` does not mount the dialect: serving it (the mount, `XI_DIALECTS_IMGIX_KEYS`) is in review (#87, WP-88), and `mark*`/`txt*` watermarks are in review (#85).
 
 Reference: https://docs.imgix.com/apis/rendering; unpic transformer `ascorbic/unpic` `src/providers/imgix.ts` (defaults `fit=min`, `auto=format`).
 
@@ -273,7 +301,9 @@ https://images.example.com/photos/a.jpg?w=400&h=300&fit=crop&crop=faces,entropy&
 /imgix/<mount>/https%3A%2F%2Forigin.com%2Fa.jpg?w=400  (web-proxy source, must be signed upstream; here: allowlist + policy)
 ```
 
-Grammar: path = object key relative to mount source (escaped, `SourceRelative`, `Source.Mount` = the mount's source); a path whose decoded form starts with `http:`/`https:` is a web proxy source (plain absolute URL, subject to the allowlist and the unsigned policy). Query params are applied by name, the last occurrence wins; any param may be base64url-encoded (padding optional) by appending `64` (`txt64`, `mark64`, `bg64`, …). Legacy spellings (`markalign`, `txtclr`, `trimcolor`, …) are aliases. `ixlib`/`ixid`/`ixjsv` (SDK and analytics tags) are accepted silently, also in strict mode. Unknown params and the "Unsupported" rows below are recorded in `Ignored` (strict → 400); unsupported *values* of known params (`auto=enhance|redeye|true`, `fill=gen`, `cs=adobergb1998`, image masks) are recorded in `Ignored` in both modes. Implemented in `internal/dialect/imgix` (WP-40).
+Grammar: path = object key relative to mount source (escaped, `SourceRelative`, `Source.Mount` = the mount's source); a path whose decoded form starts with `http:`/`https:` is a web proxy source (plain absolute URL, subject to the allowlist and the unsigned policy). Query params are applied by name, the last occurrence wins; any param may be base64url-encoded (padding optional) by appending `64` (`txt64`, `mark64`, `bg64`, …). Every alias of imgix's parameter list (imgix-url-params 11.36 `parameters.json`: legacy `markalign`, `txtclr`, `trimcolor`, … and short `f`, `m`, `t`, `ma`, `tsz`, `inv`, `mono`, `or`, `width`, …) is accepted. `ixlib`/`ixid`/`ixjsv` (SDK and analytics tags) are accepted silently, also in strict mode. Unknown params, the "Unsupported" rows below and the not implemented params (`loop`, `reverse`, `fps`, `skip`, `interval`, `transparency`, `grid-colors`, `grid-size`) are recorded in `Ignored` (strict → 400); unsupported *values* of known params (`auto=enhance|redeye|true`, `fill=gen|generative|gradient`, `cs=adobergb1998`, `trim=alpha`, image masks) are recorded in `Ignored` in both modes. Parser in `internal/dialect/imgix` (WP-40).
+
+Mount (WP-88): `XI_DIALECTS_IMGIX_ENABLED=true` mounts it under `XI_DIALECTS_IMGIX_PREFIX` (default `/imgix/`) and on `XI_DIALECTS_IMGIX_HOSTS` (with an empty prefix, the unpic setup), with `XI_DIALECTS_IMGIX_SOURCE` resolving object keys; extra mounts (another imgix "source") are `dialects.imgix.mounts[]` in YAML, each with its own prefix, hosts, source, tokens and unsigned policy (dialect key `imgix[i]`). `XI_DIALECTS_IMGIX_KEYS` are the secure URL tokens: with tokens `s` is verified (any token matches; `XI_SIGNING_REQUIRED` makes it mandatory) and a verified URL bypasses the unsigned policy; without tokens `s` is not checked and every URL follows the mount's unsigned policy (`restricted` by default: unpic's `w` from the allowlist, `auto=format,compress`, `fit`, but no effects, watermarks or info). `XI_DIALECTS_DEFAULT=imgix` serves unmatched paths with the primary mount's source and policy. The playground signs imgix URLs (scheme `imgix`) with the mount's first token and builds them from its imgix catalogue; OpenAPI documents the parameters on `getImgixImage`.
 
 | imgix | TR | Notes |
 |---|---|---|
@@ -284,27 +314,29 @@ Grammar: path = object key relative to mount source (escaped, `SourceRelative`, 
 | `fit=crop` | Fill + Enlarge; gravity from `crop` | |
 | `fit=smart-crop` | as `fit=crop` with `crop=auto` (Smart) unless `crop` is set | |
 | `fit=scale` | Force + Enlarge | |
-| `fit=fill`, `fill=solid|blur|gen`, `fill-color` | Fit + Enlarge + Extend; `fill-color` → Background (wins over `bg`); `fill=blur` → Extend.Mode Blur (M3); `fill=gen` unsupported (solid) | `fill`/`fill-color` only with `fit=fill|fillmax` |
+| `fit=fill`, `fill=solid|blur|gen|generative|gradient`, `fill-color` | Fit + Enlarge + Extend; `fill-color` → Background (wins over `bg`); `fill=blur` → Extend.Mode Blur (M3); `fill=gen|generative|gradient` unsupported (solid), `fill-gradient-*` unsupported | `fill`/`fill-color` only with `fit=fill|fillmax` |
 | `fit=fillmax` | as `fill` without Enlarge | |
-| `fit=facearea`, `facepad`, `faceindex` | Fill + Enlarge, Gravity Face with FacePad, FaceIndex (1-based → 0-based) | M3 |
+| `fit=facearea`, `facepad`, `faceindex` | Fill + Enlarge, Gravity Face with FacePad (default 1), FaceIndex (1-based → 0-based, best score first): the source is cut to the faces' box × facepad (grown to the output's aspect ratio) and filled into w×h (WP-72) | no face (or `faceindex` past the faces) → smart crop; slim → 422 |
 | `fit=clamp` | Fit + Enlarge + Extend with edge replication (Extend.Mode Copy, vips `embed extend=copy`) | |
 | `crop=top,bottom,left,right` | compass Gravity | combinations → corner |
 | `crop` fallback chain | the first detector listed wins (imgix falls back left to right); compass values only apply without a detector | |
-| `crop=faces` | Face gravity (M3; falls back to Smart) | |
+| `crop=faces` | Face gravity: the crop centres on the faces' union box (WP-72); no face → Smart | slim → 422 |
 | `crop=entropy` / `edges` / `auto` | Entropy / Smart (attention) / Smart | |
-| `crop=<object class>` (COCO class or supercategory, e.g. `car,vehicle`) | Gravity Object with Classes | M3 |
-| `crop=focalpoint`, `fp-x`, `fp-y`, `fp-z` | FocusPoint (default 0.5, 0.5) + FocusZoom (1–100) | `fp-*` only with `crop=focalpoint` |
+| `crop=<object class>` (COCO class or supercategory, e.g. `car,vehicle`) | Gravity Object with Classes (WP-72); none found → Smart | a class the COCO model does not know → 400 (`transform.ResolveClass`); slim → 422 |
+| `crop=focalpoint`, `fp-x`, `fp-y`, `fp-z` | FocusPoint (fractions, default 0.5, 0.5; not WP-86a pixel focus) + FocusZoom (1–100) | `fp-*` only with `crop=focalpoint`; `fp-z` > 1 not implemented (no planner zoom) |
 | `ar=16:9` (also `1.5:1`, `2`) | Resize.AspectRatio | only with `fit=crop|smart-crop`, else ignored as in imgix |
 | `rect=x,y,w,h` | Crop (pre-resize, px or relative (0,1)), anchored north-west with offsets x, y | |
 | `dpr` | Resize.DPR (0 < dpr ≤ 10) | |
 | `q` | Quality (`q=0` → 1) | |
-| `fm=jpg|pjpg|png|png8|png32|webp|avif|jxl|gif|json|blurhash|mp4|webm` | Format; `pjpg` → Progressive; `png8` → PNG quantize 256; `json` → Info; `blurhash` → Info blurhash 4:3 (JSON, not imgix's bare string: approximated; WP-63); `mp4/webm` M3 | `jp2`, `jxr`, `pdf` unsupported → 422 |
+| `fm=jpg|pjpg|png|png8|png32|webp|avif|jxl|gif|json|blurhash|mp4|webm` | Format; `pjpg` → Progressive; `png8` → PNG quantize 256; `json` → Info; `blurhash` → Info blurhash 4:3 (JSON, not imgix's bare string: approximated; WP-63); `mp4/webm` M3 | `jp2`, `jxr`, `pdf`, `spritesheet` unsupported → 422 |
+| `jpg-progressive` | Progressive (wins over `fm=pjpg`) | |
+| `iptc=allow|block` | not implemented (xi strips or keeps metadata as a whole) | |
 | `auto=format` | negotiate (Accept); wins over `fm` except `json`, `blurhash`, `mp4`, `webm` (imgix uses `fm` only as the fallback; xi records `fm` as ignored) | |
 | `auto=compress` | Quality 45 when `q` absent; StripMetadata; PreferJPEGIfOpaque when neither `fm` nor `auto=format` decides the format (imgix: PNG if transparent, else JPEG) | |
 | `auto=enhance`, `auto=redeye`, `auto=true` | Unsupported | recorded in `Ignored` even in strict mode |
 | `lossless` | Lossless | |
 | `chromasub=420|422|444` | ChromaSubsampling | |
-| `cs=srgb|tinysrgb|strip|origin|adobergb1998` | ColorProfile `srgb` (M2) / StripColorProfile true / false; `adobergb1998` not implemented | |
+| `cs=srgb|tinysrgb|strip|origin|adobergb1998` | ColorProfile `srgb` / StripColorProfile true / false; `adobergb1998` not implemented | |
 | `dpi` | DPI (output resolution, applied) | M2 (WP-64) |
 | `bg` (RGB, ARGB, RRGGBB, AARRGGBB (alpha first), `#` optional, CSS named, `transparent`) | Background | |
 | `pad`, `pad-top/right/bottom/left` | Padding | |
@@ -313,25 +345,36 @@ Grammar: path = object key relative to mount source (escaped, `SourceRelative`, 
 | `px` | Pixelate | |
 | `sharp` (0–100) | Sharpen sigma = 0.5 + v/50 | |
 | `usm` (−100..100), `usmrad` (0–500, default 2.5) | Unsharp{Amount: usm/100, Sigma: usmrad}: classic unsharp mask v + amount × (v − blur) | M2 (WP-61) |
-| `bri`, `con`, `exp`, `gam`, `sat`, `hue`, `vib` | Adjust: bri → Brightness v·255/100; con, exp, sat, vib → 1 + v/100; gam → 2^(v/100); hue → degrees; 0 = unchanged | M2 |
+| `bri`, `con`, `exp`, `gam`, `sat`, `hue`, `vib` | Adjust: bri → Brightness v·255/100; con, exp, sat, vib → 1 + v/100; gam → 2^(v/100); hue → degrees; 0 = unchanged | `vib` is recorded "not implemented" (no planner step, `plan.Unplanned`) |
+| `high`, `shad` | Unsupported | |
+| `sepia`, `monochrome`, `duotone`, `duotone-alpha`, `invert` | Sepia (any amount > 0; partial amounts approximated) / Monochrome (colour alpha = intensity) / Duotone (intensity `duotone-alpha`/100) / Negate | |
+| `bri`, `con`, `exp`, `gam`, `sat`, `hue`, `vib` | Adjust: bri → Brightness v·255/100; con, exp, sat, vib → 1 + v/100; gam → 2^(v/100); hue → degrees; 0 = unchanged | M2; `vib` not implemented (no planner step) |
 | `high`, `shad` | Unsupported | |
 | `sepia`, `monochrome`, `duotone`, `duotone-alpha`, `invert` | Sepia (any amount > 0; partial amounts approximated) / Monochrome (colour alpha = intensity) / Duotone (intensity `duotone-alpha`/100) / Negate | M2 |
+| `face-blur`, `face-pixel` (0–100) | BlurDetections on class `face`: Sigma = v/5 / Pixelate = v px blocks inside each face box (`face-pixel` wins) (WP-73) | slim → 422 |
+| `faces=1` (with `fm=json`) | Info DetectObjects on class `face`: `"objects"` with the faces' boxes and landmarks (imgproxy's shape, not imgix's `Faces` JSON) (WP-73) | without `fm=json`: `Ignored` |
 | `orient` (1–8, 90, 180, 270) | AutoRotate off + the Rotate/Flip of that EXIF orientation; 90/180/270 = EXIF 6/3/8 | overrides the EXIF orientation |
-| `rot` (0–359, counter-clockwise) | RotateAny = −rot (multiples of 90 fold into Rotate) | imgix zooms to hide the corners; xi fills them with Background. M2 |
+| `rot` (0–359, counter-clockwise), `rot-type=pivot|straighten` | RotateAny = −rot (multiples of 90 fold into Rotate); `rot-type` approximated | imgix `straighten` (default) zooms to hide the corners; xi fills them with Background for both types. M2 |
 | `flip=h|v|hv` | Flip (combined with `orient`) | |
-| `trim=auto|color`, `trim-color`, `trim-tol`, `trim-md`, `trim-sd`, `trim-pad` | Trim: `auto` → Threshold `trim-md` (default 11), `trim-sd` approximated; `color` → Color `trim-color` (default corner pixel), Threshold `trim-tol` (default 0); `trim-pad` not implemented | |
+| `trim=auto|color|colorunlessalpha|alpha`, `trim-color`, `trim-tol`, `trim-md`, `trim-sd`, `trim-pad`, `trim-alpha` | Trim: `auto` → Threshold `trim-md` (default 11), `trim-sd` approximated; `color` → Color `trim-color` (default corner pixel), Threshold `trim-tol` (default 0); `colorunlessalpha` → as `color` (approximated: imgix trims transparent images by alpha); `alpha`/`trim-alpha` and `trim-pad` not implemented | |
 | `mask=ellipse|corners`, `mask-bg`, `corner-radius` | Mask ellipse (+ Background) / Radius; image masks (a URL) unsupported | M2 |
-| `mark`, `mark-alpha`, `mark-align` (default bottom,right), `mark-pad` (default 5), `mark-scale`, `mark-w`, `mark-h`, `mark-x`, `mark-y`, `mark-tile=grid`, `mark-rot`, `mark-fit`, `mark-base` | Watermark from URL (or a path on the mount's source) | M3 |
-| `txt`, `txt-font`, `txt-size`, `txt-color`, `txt-align`, `txt-pad` (default 10), `txt-shad`, other `txt-*` | Text watermark (Pango; `txt` is escaped, not markup) | M3 |
+| `mark`, `mark-alpha`, `mark-align` (default bottom,right), `mark-pad` (default 5), `mark-scale`, `mark-w`, `mark-h`, `mark-x`, `mark-y`, `mark-tile=grid`, `mark-rot`, `mark-fit`, `mark-base` | Watermark Source: an http(s) URL, a path on the mount's source, or `mark-base` + path; Opacity = alpha/100; `mark-align`/`mark-pad` → compass + offsets; `mark-x`/`mark-y` → north-west offsets; Scale = `mark-scale`/100 (fit into that fraction of the image, both sides); `mark-w`/`mark-h` px → Width/Height (fractions approximated); `mark-tile=grid` → repeat; `mark-rot` → Rotate = −rot (counter-clockwise); `mark-fit` other than `clip`/`max` approximated; `mark-if-min-width`/`-height` not implemented (the watermark is always drawn). Parameters without `mark` are recorded ("only with its base parameter") | M3 (WP-77) |
+| `txt`, `txt-font`, `txt-size` (default 12), `txt-color`, `txt-align`, `txt-pad` (default 10), `txt-x`, `txt-y`, `txt-shad`, `txt-width`, `txt-fit`, `txt-clip`, `txt-lead`, `txt-track`, `txt-line`, `txt-line-color` | Text watermark: `txt` is plain text (escaped for Pango); Font = `txt-font` (commas become spaces: `Avenir Next,Bold` → `Avenir Next Bold`) + size; Color; `txt-x`/`txt-y` → north-west offsets (like `mark-x`/`mark-y`); Shadow = `txt-shad` sigma; TextWidth = `txt-width` (wrap width). `txt-fit` approximated (xi wraps, it does not shrink to `txt-width`); `txt-clip`, `txt-lead`, `txt-track`, `txt-line`, `txt-line-color` unsupported | M3 (WP-78) |
 | `blend*` | Unsupported (only `blend-mode=normal` via watermark) | |
 | `page`, `frame` (1-based) | Page; `frame` also Pages = 1 (one frame of an animation) | M2 (WP-62) |
 | `dl` | Filename + Attachment | |
 | `ch=Width,DPR,Save-Data` | enable client hints for this URL | |
 | `expires` | Expires (unix seconds; 0 = never); checked after the signature, 404 once passed | |
+| `s` | signature: hex(MD5(token ‖ path ‖ "?" ‖ query-without-s)), path = the escaped path after the mount prefix; `s` may appear anywhere, the message is built without it | tokens per mount (`XI_DIALECTS_IMGIX_KEYS`) |
+| AI/ML: `bg-remove*`, `bg-replace*`, `object-removal-*`, `upscale`, `nr`, `nrs`, `fill=gen`, `fill-gen-*`, `lp-blur`, `palette`, `colorquant`, `fp-debug`, `htn` halftone | Unsupported | |
+| `video-*`, `border-stroke-*`, `svg-sanitize`, `rasterize-bypass`, `pdf-annotation` | Unsupported (xi always sanitizes SVG and never bypasses processing through a URL parameter) | |
 | `s` | signature: hex(MD5(token ‖ path ‖ "?" ‖ query-without-s)); `s` may appear anywhere, the message is built without it | |
 | AI/ML: `bg-remove`, `bg-replace`, `upscale`, `nr`, `nrs`, `fill=gen`, `palette`, `colorquant`, `faces` debug, `fp-debug`, `htn` halftone | Unsupported | |
+| (video sources) | imgix has no frame parameter: a video source (full image, FORMATS §1.5) is thumbnailed with `XI_VIDEO_THUMBNAIL_*` (best frame by default) | WP-74 |
 
 ## 6. Cloudinary
+
+**Status:** served on `main` (WP-41, M2; `internal/dialect/cloudinary`, `s--…--` signing). `l_` image and `l_text` overlays are in review (#85); face/object gravity and `e_blur_faces` wait for WP-72/73 (in progress).
 
 Reference: https://cloudinary.com/documentation/transformation_reference, https://cloudinary.com/documentation/delivery_url_signatures; unpic `cloudinary.ts` (defaults `f_auto,c_lfill`).
 
@@ -341,7 +384,7 @@ Reference: https://cloudinary.com/documentation/transformation_reference, https:
 /<cloud>/image/fetch/w_400,f_auto/https://example.com/a.jpg
 ```
 
-Grammar: `/<cloud>/<asset_type>/<delivery_type>/[s--SIG--/][<tx>/]*[v<digits>/]<public_id>[.<ext>]`. When host-bound as a private CDN or custom domain (`<cloud>-res.cloudinary.com`-style, unpic `privateRegex`), the `<cloud>/` segment is absent and the source comes from the mount: the first segment is read as the asset type when it is `image`/`video`/`raw` and the second is a delivery type, otherwise it is the cloud name. `asset_type` = `image`; `video` and `raw` are 400 until video thumbnails (M3). `delivery_type` = `upload` (public ID = key under the cloud's source, extension included, as written) or `fetch` (absolute http(s) URL, percent-decoded, a proxy-collapsed `https:/` repaired; the source allowlist applies); `private`/`authenticated` are `upload` that require a verified signature (403 `signature required` otherwise, also when signing is off); other delivery types are 400. `<cloud>` maps to a named source via `dialects.cloudinary.clouds`; with a non-empty map an unmapped cloud is 403, with an empty map the mount's source applies to every cloud. Public IDs, layer IDs and `d_` IDs whose first segment contains `:` (`https:`, `s3:`) are 400, so an `upload` URL can never name an absolute source. The query string (SDK `_a=` analytics) is ignored.
+Grammar: `/<cloud>/<asset_type>/<delivery_type>/[s--SIG--/][<tx>/]*[v<digits>/]<public_id>[.<ext>]`. When host-bound as a private CDN or custom domain (`<cloud>-res.cloudinary.com`-style, unpic `privateRegex`), the `<cloud>/` segment is absent and the source comes from the mount: the first segment is read as the asset type when it is `image`/`video`/`raw` and the second is a delivery type, otherwise it is the cloud name. `asset_type` = `image`, or `video` for a thumbnail of a video source in an image format (WP-74; `so_` picks the frame; a video output format is 400); `raw` is 400. `delivery_type` = `upload` (public ID = key under the cloud's source, extension included, as written) or `fetch` (absolute http(s) URL, percent-decoded, a proxy-collapsed `https:/` repaired; the source allowlist applies); `private`/`authenticated` are `upload` that require a verified signature (403 `signature required` otherwise, also when signing is off); other delivery types are 400. `<cloud>` maps to a named source via `dialects.cloudinary.clouds`; with a non-empty map an unmapped cloud is 403, with an empty map the mount's source applies to every cloud. Public IDs, layer IDs and `d_` IDs whose first segment contains `:` (`https:`, `s3:`) are 400, so an `upload` URL can never name an absolute source. The query string (SDK `_a=` analytics) is ignored.
 
 Components: a path segment is a transformation component when every comma-separated part is `key_value` with a lower-case key (or `$variable`) and at least one key is a Cloudinary parameter; the first segment that is not, or a `v<digits>` segment, starts the public ID (the SDKs add `v1` to foldered IDs for exactly this ambiguity). Components apply in URL order. A component with pipeline parameters (`w h c g x y ar z a bo e o r t`) starts a chained pipeline once the current one holds anything; components with only `f_`, `q_`, `fl_`, `dpr_`, `b_`, `cs_`, `d_`, `pg_` modify the current pipeline / the request, so `c_fill,w_400/q_auto/f_auto` is one pipeline and `c_fill,w_400/e_blur` two. The extension sets `O.Format` unless `f_` is given. In `XI_DIALECTS_STRICT` mode unknown and unsupported parameters are 400.
 
@@ -349,55 +392,62 @@ Signature: `s--SIG--` right after the delivery type; the signed message is the r
 
 | Cloudinary | TR | Notes |
 |---|---|---|
-| `w_`, `h_` (int px; a decimal is relative: `w_0.5`, `w_1.0`; `w_auto[:step[:fallback]]` client hint) | Width/Height | expressions (`iw_div_2`), `$vars` unsupported |
+| `w_`, `h_` (int px; a decimal is relative: `w_0.5`, `w_1.0`; `w_auto[:step[:fallback]]` client hint) | Width/Height; `w_auto` → `ClientHints.Width` (`WidthStep` = step; the fallback is the Width until a hint resolves it) | expressions (`iw_div_2`), `$vars` unsupported |
 | `c_scale` (default when `w_`/`h_`/`ar_` without `c_`) | Force if both dims or `ar_`, else Fit + Enlarge | after a `t_` preset that set a mode, the preset's mode is kept |
 | `c_fit` / `c_limit` / `c_mfit` | Fit+Enlarge / Fit / Outside+Enlarge | |
 | `c_fill` / `c_lfill` | Fill+Enlarge / FillDown | |
 | `c_fill_pad` | Fill + gravity + Extend | approximated |
 | `c_pad` / `c_lpad` / `c_mpad` | Fit+Enlarge+Extend / Fit+Extend / Fit+Extend | `c_mpad` approximated (never scales upstream); extend anchor = compass `g_` else centre |
 | `c_crop` | Crop (w, h, `ar_`), no scaling; `x_`/`y_` without `g_` = top-left corner (NorthWest + offsets); `g_xy_center` = FocusPoint (relative `x_`/`y_`, or integer source pixels → `FocusPx`, WP-86) | a relative axis mixed with an absolute one is approximated (centre) |
-| `c_thumb` | Fill + gravity, `z_` → FocusZoom | faces M3 |
+| `c_thumb` | Fill + gravity; with face gravity the faces' box × 1.5/`z_` (default z 1) is cut first (FacePad), with object gravity the objects' box (CropObjects), so the thumbnail frames them (WP-72); other gravities keep `z_` as FocusZoom (not applied) | the 1.5 margin approximates Cloudinary's head-and-shoulders thumb |
 | `c_auto`, `c_auto_pad` | Fill + Smart / Fit + Enlarge + Extend | |
 | `c_imagga_*` | recorded unsupported, applied as `c_scale` | |
 | `g_` compass (`north_east`…), `center` | Gravity | |
-| `g_auto`, `g_auto:<anything>` | Smart | |
-| `g_face`, `g_faces`, `g_face(s):…`, `g_adv_*` | Face (M3; fallback Smart) | |
-| `g_<object>` (e.g. `g_dog`) | Object | M3 |
+| `g_auto`, `g_auto:subject`, `g_auto:classic`, `g_auto:no_faces`, `g_auto:<x>_avoid` | Smart (faces first, `XI_DETECT_SMART_FACES`) | |
+| `g_auto:face(s)`, `g_auto:<object>` (`_<weight>` suffix dropped) | Face / Object gravity: priority to the detections, Smart when none (WP-72) | an object the COCO model does not know → Smart |
+| `g_face`, `g_adv_face`, `g_adv_eyes` / `g_faces`, `g_adv_faces` (`:…` modifiers dropped) | Face gravity on the best-scoring face (FaceIndex 0; Cloudinary: the largest) / on every face (WP-72); no face → Smart | slim → 422 |
+| `g_<object>` (e.g. `g_dog`, `g_traffic_light`, `g_vehicle`) | Object gravity with the COCO class or supercategory (WP-72); none found → Smart | a category the COCO model does not know → Smart, `Ignored` "unsupported object"; slim → 422 |
 | `g_xy_center` + `x_`,`y_` | FocusPoint: relative `x_`/`y_` (0..1) → `FocusX/FocusY`; absolute (integer pixels on both axes) → `FocusPx` via `transform.FocusFromPixels(x, y, x, y)` (WP-86a); a relative axis mixed with an absolute one is approximated to the centre | |
 | `g_custom`, `g_body`, `g_ocr_text`, `g_liquid`, … | unsupported (centre) | |
-| `ar_16:9` / `ar_1.5` | Resize.AspectRatio (Crop.AspectRatio with `c_crop`, M2) | |
+| `ar_16:9` / `ar_1.5` | Resize.AspectRatio (Crop.AspectRatio with `c_crop`) | |
 | `x_`, `y_` | gravity offsets | |
 | `z_` | FocusZoom (`c_thumb`, `c_crop`) | other modes approximated |
-| `q_<1-100>[:420\|422\|444]`, `q_auto[:best\|good\|eco\|low]` | Quality (+ChromaSubsampling) / AutoQuality DSSIM targets 0.005 / 0.02 / 0.035 / 0.05 (`q_auto` = good) | M2; `q_jpegmini` unsupported |
+| `q_<1-100>[:420\|422\|444]`, `q_auto[:best\|good\|eco\|low]` | Quality (+ChromaSubsampling) / AutoQuality DSSIM targets 0.005 / 0.02 / 0.035 / 0.05 (`q_auto` = good) | `q_jpegmini` unsupported |
 | `f_auto[:…]`, `f_<fmt>` (jpg/jpeg/jpe, png, webp, avif, jxl, gif, heic/heif, tif/tiff, bmp, ico, svg, mp4, webm) | Format unset (negotiated) / Format | mp4/webm M3; other formats (pdf, jp2, …) 400 |
-| `dpr_<float>`, `dpr_auto` | DPR of the current pipeline / client hint | |
-| `a_<deg>` (`.`-joined list), `a_hflip`, `a_vflip`, `a_exif`, `a_ignore` | Rotate (multiples of 90) / RotateAny (M2) / Flip / AutoRotate | `a_auto_right`, `a_auto_left` unsupported |
+| `dpr_<float>`, `dpr_auto` | DPR of the current pipeline / `ClientHints.DPR` | the hint resolves into the first pipeline (§3.5) |
+| `a_<deg>` (`.`-joined list), `a_hflip`, `a_vflip`, `a_exif`, `a_ignore` | Rotate (multiples of 90) / RotateAny / Flip / AutoRotate | `a_auto_right`, `a_auto_left` unsupported |
 | `b_<color>` (`rgb:` 3/4/6/8 hex digits, `%23` hex, CSS names, `transparent`) | Background | `b_auto`, `b_blurred`, `b_gen_fill` unsupported |
-| `bo_<n>px_solid_<color>` | Border | M2 |
-| `r_<n>[:<n>…]` (1–4 values, Cloudinary corner order), `r_max` | Radius | M2 |
-| `o_<0-100>` | Adjust.Opacity | M2 |
+| `bo_<n>px_solid_<color>` | Border | |
+| `r_<n>[:<n>…]` (1–4 values, Cloudinary corner order), `r_max` | Radius | |
+| `o_<0-100>` | Adjust.Opacity | |
 | `e_blur[:1-2000]` | Blur σ = n/20 (default 100 → 5, like imgix `blur`) | |
-| `e_sharpen[:1-2000]`, `e_unsharp_mask[:1-2000]` | Sharpen σ = n/100 / Unsharp σ 1, amount n/100 (M2) | |
+| `e_sharpen[:1-2000]`, `e_unsharp_mask[:1-2000]` | Sharpen σ = n/100 / Unsharp σ 1, amount n/100 | |
 | `e_pixelate[:1-200]` | Pixelate (default 10) | |
-| `e_grayscale`, `e_blackwhite` (approximated), `e_sepia`, `e_negate` | corresponding Pipeline fields | M2 |
-| `e_brightness[:-99..100]` (default 80), `e_hue[:-100..100]` (80) | Brightness n × 2.55 / Hue n × 1.8° | M2 |
-| `e_contrast`, `e_saturation`, `e_gamma`, `e_vibrance`, `e_red`/`e_green`/`e_blue` | multiplier 1 + n/100 | M2 |
-| `e_colorize[:0-100]` + `co_<color>` | Colorize (opacity n/100, default grey) | M2 |
+| `e_grayscale`, `e_blackwhite` (approximated), `e_sepia`, `e_negate` | corresponding Pipeline fields | |
+| `e_brightness[:-99..100]` (default 80), `e_hue[:-100..100]` (80) | Brightness n × 2.55 / Hue n × 1.8° | |
+| `e_contrast`, `e_saturation`, `e_gamma`, `e_vibrance`, `e_red`/`e_green`/`e_blue` | multiplier 1 + n/100 | `e_vibrance` is recorded "not implemented" (no planner step, `plan.Unplanned`) |
+| `e_colorize[:0-100]` + `co_<color>` | Colorize (opacity n/100, default grey) | |
 | `e_trim[:tolerance[:color]]` | Trim (threshold = tolerance, default 10) | |
-| `e_blur_faces[:n]`, `e_pixelate_faces[:n]` | BlurDetections(face) σ n/20 / pixelate n | M3 |
-| `e_blur_region[:n]` + relative `x_`,`y_`,`w_`,`h_` | BlurAreas (no region: whole-image blur) | M2; pixel regions approximated |
+| `e_blur_faces[:n]`, `e_pixelate_faces[:n]` | BlurDetections(face) σ n/20 (default 500 → 25) / pixelate n px blocks (default 10) inside each face box (WP-73) | slim → 422 |
+| `e_blur_region[:n]` + relative `x_`,`y_`,`w_`,`h_` | BlurAreas (no region: whole-image blur) | pixel regions approximated |
 | other `e_*` (AI, artistic, `background_removal`, `gen_*`, `upscale`, `vectorize`, …) | Unsupported | |
-| `fl_lossy`, `fl_progressive[:none]`, `fl_strip_profile`, `fl_keep_iptc`, `fl_keep_attribution`, `fl_force_strip`, `fl_attachment[:name]`, `fl_immutable_cache`, `fl_png8` (M2), `fl_getinfo` | Lossless=false, Progressive, StripColorProfile, StripMetadata=false, KeepCopyright, StripMetadata, Attachment/Filename, Immutable, PNG quantize 256, Kind=Info (size, format, dimensions) | `fl_animated`, `fl_awebp`, `fl_apng`, `fl_preserve_transparency`, `fl_any_format` are the default behaviour; `fl_rasterize`, `fl_clip`, … unsupported |
-| `cs_srgb`/`cs_no_cmyk`/`cs_tinysrgb`, `cs_cmyk` | ColorProfile srgb / cmyk | M2; `cs_keep_cmyk`, `cs_icc:` unsupported |
+| `fl_lossy`, `fl_progressive[:none]`, `fl_strip_profile`, `fl_keep_iptc`, `fl_keep_attribution`, `fl_force_strip`, `fl_attachment[:name]`, `fl_immutable_cache`, `fl_png8`, `fl_getinfo` | Lossless=false, Progressive, StripColorProfile, StripMetadata=false, KeepCopyright, StripMetadata, Attachment/Filename, Immutable, PNG quantize 256, Kind=Info (size, format, dimensions) | `fl_animated`, `fl_awebp`, `fl_apng`, `fl_preserve_transparency`, `fl_any_format` are the default behaviour; `fl_rasterize`, `fl_clip`, … unsupported |
+| `cs_srgb`/`cs_no_cmyk`/`cs_tinysrgb`, `cs_cmyk` | ColorProfile srgb / cmyk | `cs_keep_cmyk`, `cs_icc:` unsupported |
 | `pg_<n>` (1-based) | Page n−1 (WP-62) | Ranges and names unsupported |
 | `t_<name>[.<name>…]` | presets expanded in place (imgproxy option syntax); only-presets mode allows nothing but `t_` | |
+| `d_<public_id>` (`:` = folder) | Fallback (same cloud source) | honoured with `XI_FALLBACK_ALLOW_REQUEST_URL` |
+| `l_<id>` (`:` = folder), `l_fetch:<base64url>`, `l_text:<family>_<size>[_<style>…]:<text>` with `g_`, `x_`, `y_`, `o_`, `a_`, `co_` (text), `w_`/`h_` px, relative `w_` + `fl_relative` (scale), `fl_tiled`; legacy single component or `l_…/…/fl_layer_apply,…` group | Watermark on the current pipeline: `l_<id>` is an image on the cloud's source (the base image's storage), `l_fetch:` a remote URL; `a_` → Rotate (clockwise); a text layer's `w_` is its wrap width (`c_fit`), its `h_` approximated. `l_text`: Font = family + weight/style tokens (`bold`, `italic`, …) + size, `underline`/`strikethrough` → markup, the text (double-escaped commas decoded) escaped for Pango; alignment, `letter_spacing_N`, `line_spacing_N`, `stroke`, antialias and hinting approximated | M3 (WP-77/78); `l_video`, `l_subtitles`, `l_lut`, `l_audio` unsupported; other parameters in a layer group (`co_` on an image layer, `e_`, `b_`, …) approximated |
+| `u_` underlays, `if_` (skips its component, or the block up to `if_end`), `$var`, `fn_`, `dn_`, video/audio `vc_`/`ac_`/`du_`/`so_`/`eo_`/`fps_`/… | Unsupported | |
 | `d_<public_id>` (`:` = folder) | Fallback (same cloud source) | M2 |
 | `l_<id>` (`:` = folder), `l_fetch:<base64url>` with `g_`, `x_`, `y_`, `o_`, `a_`, `w_`/`h_` px, relative `w_` + `fl_relative` (scale), `fl_tiled`; legacy single component or `l_…/…/fl_layer_apply,…` group | Watermark (image / URL) on the current pipeline | M3; `l_text`, `l_video`, `l_subtitles`, `l_lut` unsupported; other parameters in a layer group approximated |
-| `u_` underlays, `if_` (skips its component, or the block up to `if_end`), `$var`, `fn_`, `dn_`, video/audio `vc_`/`ac_`/`du_`/`so_`/`eo_`/`fps_`/… | Unsupported | |
+| `so_<seconds>`, `so_auto` | Video.Second (the frame of a video source, WP-74); `so_auto` keeps the configured selection (best frame by default) | percentages (`so_10p`) unsupported; the `video` asset type delivers a thumbnail in an image format: `/video/upload/so_2,f_jpg/dog.mp4`, `/video/fetch/so_2,f_auto/<url>`; a video output format there is 400 (no transcoding) |
+| `u_` underlays, `if_` (skips its component, or the block up to `if_end`), `$var`, `fn_`, `dn_`, video/audio `vc_`/`ac_`/`du_`/`eo_`/`fps_`/… | Unsupported | |
 
 Fixtures: `internal/dialect/cloudinary/testdata/urlgen/generate.ts` builds the corpus with `@cloudinary/url-gen` 1.22.0 and the `cloudinary` Node SDK 2.11.0 (including signed URLs, i.e. the signature vectors); unpic's `cloudinary.test.ts` URLs are asserted in `compat_test.go`.
 
 ## 7. ImageKit
+
+**Status:** served on `main` (WP-42, M2). `l-image`/`l-text` overlays are in review (#85), `XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH` for host-bound `ik.imagekit.io/<id>/…` URLs is in review (#86); face/object focus waits for WP-72 (in progress).
 
 Reference: https://imagekit.io/docs/transformations, https://imagekit.io/docs/image-resize-and-crop, https://imagekit.io/docs/effects-and-enhancements, https://imagekit.io/docs/media-delivery-basic-security; SDKs `imagekit-javascript` `src/url.ts` (URL builder) and `imagekit-nodejs` `src/resources/helper.ts` (signing); unpic `imagekit.ts` (defaults `c-maintain_ratio,fo-auto`). Implemented in `internal/dialect/imagekit` (WP-42).
 
@@ -408,7 +458,7 @@ https://ik.example.com/path/a.jpg?tr=w-400,h-300:rt-90&ik-t=1767225600&ik-s=…
 /imagekit/<mount>/tr:w-400/path/a.jpg
 ```
 
-Grammar: the path after the mount is the file path, relative to the mount's bound source. When a host-bound mount keeps the ImageKit URL-endpoint id in the path (`https://ik.imagekit.io/<id>/…`), `imagekit.Options.EndpointPath` (`/<id>`) is stripped first (not yet a config key). Transformations: a `tr:` path segment anywhere before the file name (`:` may be written `%3A`; the segment is percent-decoded), or the `tr` query parameter (query-decoded, so unpic's `%2C` works). Both present: the path wins and the query is recorded in `TR.Ignored` (400 in strict mode); the SDKs never emit both and ImageKit documents no order. More than one `tr:` segment or `tr` parameter is 400. `:` separates chained steps (→ chained pipelines, max 16), `,` separates `key-value` parameters (split on the first `-`; `e-<effect>[-value]` and `l-<layer>` keep their two-part names). Empty steps and parameters are skipped. Request-scoped parameters (`q`, `f`, `pr`, `lo`, `md`, `cp`, `orig`) apply to the whole request, the last occurrence winning. Other query parameters (SDK `queryParameters`, e.g. `?v=2`) become `D.CacheBuster`; `ik-attachment=true` → `D.Attachment`. ImageKit arithmetic expressions (`w-iw_div_2`, `lx-bw_mul_0.5`) are recorded as ignored (strict: 400).
+Grammar: the path after the mount is the file path, relative to the mount's bound source. When a host-bound mount keeps the ImageKit URL-endpoint id in the path (`https://ik.imagekit.io/<id>/…`), `XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH` (`/<id>`, YAML `dialects.imagekit.endpoint_path`) is stripped first. Transformations: a `tr:` path segment anywhere before the file name (`:` may be written `%3A`; the segment is percent-decoded), or the `tr` query parameter (query-decoded, so unpic's `%2C` works). Both present: the path wins and the query is recorded in `TR.Ignored` (400 in strict mode); the SDKs never emit both and ImageKit documents no order. More than one `tr:` segment or `tr` parameter is 400. `:` separates chained steps (→ chained pipelines, max 16), `,` separates `key-value` parameters (split on the first `-`; `e-<effect>[-value]` and `l-<layer>` keep their two-part names). Empty steps and parameters are skipped. Request-scoped parameters (`q`, `f`, `pr`, `lo`, `md`, `cp`, `orig`) apply to the whole request, the last occurrence winning. Other query parameters (SDK `queryParameters`, e.g. `?v=2`) become `D.CacheBuster`; `ik-attachment=true` → `D.Attachment`. ImageKit arithmetic expressions (`w-iw_div_2`, `lx-bw_mul_0.5`) are recorded as ignored (strict: 400).
 
 | ImageKit | TR |
 |---|---|
@@ -423,10 +473,10 @@ Grammar: the path after the mount is the file path, relative to the mount's boun
 | `cm-pad_extract` | Crop + Fit (no enlarge) + Extend to w×h |
 | `fo-center|top|left|bottom|right|top_left|top_right|bottom_left|bottom_right` | compass Gravity |
 | `fo-auto`, `fo-auto-custom_override` | Smart |
-| `fo-face`, `fo-faces` | Face (M3) |
-| `fo-<object>` (`car`, `truck_car_train`) | Object, Classes = [value] (M3) |
+| `fo-face`, `fo-faces` | Face gravity (WP-72); no face → Smart; slim → 422 |
+| `fo-<object>` (`car`, `traffic_light`, `truck_car_train`) | Object gravity: one class with `_` for spaces, or several joined by `_` (WP-72); none found → Smart; an object the COCO model does not know → Smart, `Ignored` "unsupported object" |
 | `fo-custom` | Unsupported (per-file crop area stored in ImageKit) |
-| `z` (with face/object focus) | FocusZoom |
+| `z` (with `fo-face` / `fo-<object>`) | Zoom on the detections: their box × 1/z is cut before the resize (FacePad / CropObjects, WP-72); other focus: `Ignored` |
 | `q` (1–100) | Quality |
 | `f-auto`, `f-orig` | Format unset (negotiated / source) |
 | `f-jpg|jpeg|png|webp|avif|gif|jxl` | Format; `f-mp4|webm` M3; `f-svg` unsupported |
@@ -438,29 +488,32 @@ Grammar: the path after the mount is the file path, relative to the mount's boun
 | `bl-<1..100>` (also unpic's `blur-`) | Blur σ = v/2 |
 | `e-sharpen[-n]` | Sharpen σ = 1 (bare) or 0.5 + n/50 (approximation) |
 | `e-usm-<radius>-<sigma>-<amount>-<threshold>` | Unsharp{Sigma, Amount} (WP-61, classic unsharp mask); radius, threshold dropped |
-| `e-grayscale` | Grayscale (M2) |
-| `e-contrast` (auto contrast stretch) | Equalize (M2) |
-| `r-<n>`, `r-<tl>_<tr>_<br>_<bl>`, `r-max` | Radius (M2) |
-| `b-<w>_<color>` | Border (M2) |
+| `e-grayscale` | Grayscale |
+| `e-contrast` (auto contrast stretch) | Equalize; recorded "not implemented" (no planner step, `plan.Unplanned`) |
+| `r-<n>`, `r-<tl>_<tr>_<br>_<bl>`, `r-max` | Radius |
+| `b-<w>_<color>` | Border |
 | `bg-<RRGGBB|RRGGBBAA|RGB|css name>` | Background |
 | `bg-blurred[_…]` | Extend.Mode = blur (M3); `bg-dominant`, `bg-gradient…`, `bg-genfill…` unsupported |
-| `rt-<deg>`, `rt-N<deg>` | Rotate (multiples of 90), else RotateAny (M2) |
+| `rt-<deg>`, `rt-N<deg>` | Rotate (multiples of 90), else RotateAny |
 | `rt-auto` | AutoRotate |
 | `fl-h|v|h_v` | Flip |
 | `t-true|<1..99>` | Trim threshold 10 / n |
-| `o-<0..100>` | Adjust.Opacity (M2) |
+| `o-<0..100>` | Adjust.Opacity |
 | `n-<name>` | preset `<name>` expanded in place (named transformation) |
 | `di-<path>` (`@@` = `/`) | Fallback, relative to the mount source (served with `XI_FALLBACK_ALLOW_REQUEST_URL`, WP-34c) |
 | `pg-<n>`, `pg-<a>_<b>` | Page (1-based) / Pages (WP-62) |
-| `l-image,i-<path>|ie-<b64>,lx,ly,lfo,w,h,o,…,l-end` | Watermark from the mount source: `lx`/`ly` offsets from top-left (`N` = from right/bottom), else `lfo` compass, else centre; `w`/`h` px size; `o` opacity (M3) |
-| `l-text,i-<text>|ie-<b64>,fs,ff,co,…,l-end` | Text watermark (escaped for Pango), Font = `ff fs`, Color (M3) |
+| `l-image,i-<path>|ie-<b64>,lx,ly,lfo,w,h,o,rt,…,l-end` | Watermark from the mount source: `lx`/`ly` offsets from top-left (`N` = from right/bottom), else `lfo` compass, else centre; `w`/`h` px size (fit); `o` opacity; `rt` rotation (clockwise, `N` prefix counter-clockwise) (WP-77) |
+| `l-text,i-<text>|ie-<b64>,fs,ff,co,tg,al,w,rt,…,l-end` | Text watermark (escaped for Pango): Font = `ff` + `tg` (`b` bold, `i` italic) + `fs`, `tg` `strikethrough` → markup, Color = `co`, Opacity = `al`/10, TextWidth = `w` (wrap width; `h` approximated), `rt` rotation; `ff` naming a font file on the media library (`fonts@@x.ttf`) approximated (configured font) (WP-78) |
 | `l-image,i-ik_canvas`, `l-video`, `l-subtitles`, nested layers, in-layer transformations, `lxc`, `lyc`, `lap`, `lm` | Unsupported |
-| `e-bgremove`, `e-removedotbg`, `e-upscale`, `e-retouch`, `e-genvar`, `e-dropshadow`, `e-shadow`, `e-gradient`, `e-changebg`, `e-edit`, `e-distort`, `e-colorize`, `cr`, `dn`, video `vc`,`ac`,`so`,`eo`,`du`,`sr` | Unsupported |
+| `<video>/ik-thumbnail.jpg`, `so-<seconds>` | A thumbnail of the video `<video>` (JPEG unless `f-` says otherwise); `so-` = Video.Second (WP-74), arithmetic expressions unsupported |
+| `e-bgremove`, `e-removedotbg`, `e-upscale`, `e-retouch`, `e-genvar`, `e-dropshadow`, `e-shadow`, `e-gradient`, `e-changebg`, `e-edit`, `e-distort`, `e-colorize`, `cr`, `dn`, video `vc`,`ac`,`eo`,`du`,`sr` | Unsupported |
 | `ik-s`, `ik-t` | signature, Expires |
 
 Signing (imagekit-nodejs `getSignature`): `ik-s` = hex(HMAC-SHA1(private key, path-relative-to-endpoint ‖ ["?" query without `ik-s`/`ik-t`] ‖ expiry)), expiry = the `ik-t` value or `9999999999` when absent (the SDK signs but does not write it). The private key is used as written (`XI_DIALECTS_IMAGEKIT_KEYS`, one list per mount). An `ik-t` in the past is 404 (`KindExpired`), checked after the signature.
 
 ## 8. Cloudflare Images (`/cdn-cgi/image/`)
+
+**Status:** served on `main` (WP-43, M2), including `onerror=redirect`; face gravity waits for WP-72 (in progress).
 
 Reference: https://developers.cloudflare.com/images/optimization/features/ (one page per option, `src/content/partials/images/*.mdx` in cloudflare-docs); unpic `cloudflare.ts` (defaults `f=auto,fit=cover`) and `cloudflare_images.ts`. Implementation: `internal/dialect/cloudflare` (WP-43, WP-79).
 
@@ -478,8 +531,8 @@ Grammar: `/cdn-cgi/image/<k=v(,k=v)*>/<source>`. Keys are case-insensitive; comm
 | `width=auto` | `ClientHints.Width`; `wbreakpoints`/`wmobile`/`wdesktop` → Ignored |
 | `fit=scale-down` (default) / `contain` / `cover` / `crop` / `pad` / `squeeze` | Fit / Fit+Enlarge / Fill+Enlarge / FillDown / Fit+Extend+Enlarge / Force+Enlarge |
 | `fit=scale-up` / `aspect-crop` | Fit+Enlarge / Fill (both Ignored "approximated": no "never downscale" or "crop without scaling" field) |
-| `gravity`/`g` = `auto` / `face` / `left` / `right` / `top` / `bottom` / `XxY` (0–1) | Smart / Face (M3) / West / East / North / South / FocusPoint |
-| `zoom`/`face-zoom` (0–1) | Gravity.FocusZoom (M3) |
+| `gravity`/`g` = `auto` / `face` / `left` / `right` / `top` / `bottom` / `XxY` (0–1) | Smart (faces first) / Face (WP-72; no face → Smart; slim → 422) / West / East / North / South / FocusPoint |
+| `zoom`/`face-zoom` (0–1) with `gravity=face` | How closely the crop frames the faces: 0 (default) = face gravity only places the crop, z > 0 cuts the faces' box × 1/z first (FacePad, WP-72); without `gravity=face` → `Ignored` |
 | `quality`/`q` = 1–100 or `high` / `medium-high` / `medium-low` / `low` | Quality (90 / 80 / 65 / 50) |
 | `slow-connection-quality`/`scq` (same values) | SlowConnectionQuality + `ClientHints.SaveData` (used when Save-Data/ECT hints say slow) |
 | `format`/`f` = `auto` / `avif` / `webp` / `jpeg` / `baseline-jpeg` / `png` / `gif` | negotiate (FormatUnset) / Format / JPEG+Progressive / JPEG+Progressive=false / … |
@@ -489,12 +542,12 @@ Grammar: `/cdn-cgi/image/<k=v(,k=v)*>/<source>`. Keys are case-insensitive; comm
 | `background` (`%23RGB[A]`, `%23RRGGBB[AA]`, CSS names, `transparent`, `rgb()`/`rgba()` with commas or spaces and `/ alpha`) | Background |
 | `blur` (0–250) | Blur σ = v/2 |
 | `sharpen` (0–10) | Sharpen σ = v/4 |
-| `brightness` (multiplier) | Adjust.Exposure (Adjust.Brightness is additive) (M2) |
-| `contrast`, `saturation` (multipliers), `gamma` (0 and 1 = unchanged) | Adjust (M2) |
+| `brightness` (multiplier) | Adjust.Exposure (Adjust.Brightness is additive) |
+| `contrast`, `saturation` (multipliers), `gamma` (0 and 1 = unchanged) | Adjust |
 | `rotate=0|90|180|270`, `flip=h|v|hv` | Rotate, Flip |
 | `trim=border`, `trim.border.color`, `trim.border.tolerance` (0–255, 255 = exact) | Trim (Threshold = 255 − tolerance, default 10); `trim.border.keep` → Ignored |
 | `trim=top;right;bottom;left`, `trim.top/right/bottom/left/width/height` (px, or a fraction < 1) | Crop anchored north-west: left/top are gravity offsets, width/height the size; right/bottom fractions fold into a relative size when left/top are fractions, right/bottom pixels → Ignored "not implemented" |
-| `border=color;width`, `border=color;top;right;bottom;left`, `border.color/width/top/right/bottom/left` (Workers-only upstream) | Border (M2) |
+| `border=color;width`, `border=color;top;right;bottom;left`, `border.color/width/top/right/bottom/left` (Workers-only upstream) | Border |
 | `metadata=keep` / `copyright` / `none` | StripMetadata=false / StripMetadata+KeepCopyright / StripMetadata, KeepCopyright=false |
 | `onerror=redirect` | Delivery.OnErrorRedirect: when the fetch or decode fails with a fallback-eligible error, the server answers 302 to the source URL (http sources only; ahead of the fallback image; the error Cache-Control; same path as wsrv `default=`, ARCHITECTURE §12) |
 | `compression=fast` | Output.Effort = 1 (the format is not forced to JPEG) |
@@ -502,6 +555,8 @@ Grammar: `/cdn-cgi/image/<k=v(,k=v)*>/<source>`. Keys are case-insensitive; comm
 | anything else | Ignored "unknown option" (400 in strict mode) |
 
 ### 8.1 Cloudflare Images delivery (`/cdn-cgi/imagedelivery/`, `imagedelivery.net`)
+
+**Status:** served on `main` (WP-79, M2; dialect `cloudflare_images`, `sig`/`exp` signing).
 
 Reference: https://developers.cloudflare.com/images/optimization/hosted-images/ (serve-uploaded-images, create-variants, enable-flexible-variants, serve-private-images).
 
@@ -521,6 +576,8 @@ Dialect `cloudflare_images`, mounted at `/cdn-cgi/imagedelivery/`; bind the host
 
 ## 9. Bunny Optimizer
 
+**Status:** served on `main` (WP-44, M2), with token authentication.
+
 Reference: https://bunny.net/docs/optimizer/dynamic-images/overview (Dynamic Images API: resizing, cropping, face-detection, luminosity, color-manipulation, reflections-and-rotations, blur-and-sharpen, quality, formats) and https://bunny.net/docs/optimizer/image-classes, fetched 2026-09-26; unpic `bunny.ts` (sets `aspect_ratio` when w and h given; `format` → `output`). Implementation: `internal/dialect/bunny` (WP-44).
 
 ```
@@ -535,11 +592,11 @@ The path after the mount is the source, a key relative to the mount's bound sour
 |---|---|
 | `width`, `height` (px) | Width/Height, Fit (Bunny keeps the aspect ratio with both, picking the smaller result), no enlarge |
 | `upscaling=off|resampling` | Enlarge |
-| `aspect_ratio=w:h` (`auto` = none) | Crop.AspectRatio anchored by `crop_gravity` (M2). With `width`+`height` of the same ratio (what unpic emits) it is Resize fill-down (fill with `upscaling=resampling`), which takes effect now |
+| `aspect_ratio=w:h` (`auto` = none) | Crop.AspectRatio anchored by `crop_gravity`. With `width`+`height` of the same ratio (what unpic emits) it is Resize fill-down (fill with `upscaling=resampling`) instead |
 | `crop=w,h` / `crop=w,h,x,y` (px, x,y = top-left) | Crop with gravity from `crop_gravity` / Crop at north-west + offsets |
 | `crop_gravity=center|north|south|east|west|northeast|northwest|southeast|southwest` (+ unpic aliases `top|bottom|left|right|top_left|…`) | Gravity |
 | `focus_crop=w,h,x,y` | Crop w×h: relative x,y (0–1 with a decimal point) → focus-point gravity; pixel x,y → north-west offsets (x−w/2, y−h/2), clamped by the planner |
-| `face_crop=true` / `face_crop=w,h` | Face (M3); until then ignored / a centred w×h crop |
+| `face_crop=true` / `face_crop=w,h` | Face gravity for the resize crop / a w×h crop of the source centred on the faces (WP-72); no face → Smart | slim → 422 |
 | `quality` (0–100) | Quality |
 | `format` / `output` = `webp|jpeg|png|gif|avif` | Format |
 | `auto_optimize=low|medium|high` | Quality 85/75/65 unless `quality` is set (format negotiation is the default) |
@@ -547,12 +604,12 @@ The path after the mount is the source, a key relative to the mount's bound sour
 | `blur` (0–100) | Blur σ = v/4 |
 | `flip`, `flop` | Flip V / H |
 | `rotate` (−270…270, multiples of 90) | Rotate (normalised to 0/90/180/270) |
-| `brightness` (−100..100) | Adjust.Brightness = v × 2.55 (M2) |
-| `contrast`, `saturation` (−100..100) | multiplier 1 + v/100 (M2); `saturation=-100` is grayscale |
-| `gamma` (−100..100) | multiplier 2^(v/100) (M2) |
-| `hue` (0–100, 33 ≈ one primary) | Adjust.Hue = v × 3.6° (M2) |
-| `tint=rrggbb` (`ffffff` = none) | Tint (M2) |
-| `sepia` (0–100) | Sepia on when > 0 (M2; intensity not modelled) |
+| `brightness` (−100..100) | Adjust.Brightness = v × 2.55 |
+| `contrast`, `saturation` (−100..100) | multiplier 1 + v/100; `saturation=-100` is grayscale |
+| `gamma` (−100..100) | multiplier 2^(v/100) |
+| `hue` (0–100, 33 ≈ one primary) | Adjust.Hue = v × 3.6° |
+| `tint=rrggbb` (`ffffff` = none) | Tint |
+| `sepia` (0–100) | Sepia on when > 0 (intensity not modelled) |
 | `class=<name>` | preset (the mount shares `XI_PRESETS`); with `XI_PRESETS_ONLY` ("forced transformation classes") any other option is 403 |
 | `optimizer=image` | ignored (meaning is implicit) |
 | `token`/`bcdn_token`, `expires`, `token_path`, `token_ignore_params` | signature (below) |
@@ -571,6 +628,8 @@ b64url is URL-safe base64 without padding (padding is tolerated). `path` is the 
 Verified sources: the HS256 layout is `go/token.go` of https://github.com/BunnyWay/BunnyCDN.TokenAuthentication at 48ff1af (2026-07-24), whose `e2e/vectors.json` (key `SecurityKey`, expires 1598024587) the tests reproduce; the legacy SHA-256 layout is `nodejs/token.js` and `php/url_signing.php` at 1019b23 (the last commit before the HMAC rewrite), whose C# `TokenSignerTests` expectations the tests reproduce, including path-based `bcdn_token` URLs; the basic layout is the PHP/JS/C#/Python sample on https://bunny.net/docs/cdn/security/token-authentication/basic (its example token omits the key, so the test vector is computed independently with `openssl md5`). Where the legacy SDKs disagree (C# put the IP before `expires`, Python appended it after `data`) only the IP-less layout is implemented.
 
 ## 10. Thumbor
+
+**Status:** served on `main` (WP-45, M2), with HMAC-SHA1 signing, pixel focal points (WP-86a) and the `meta` JSON response (WP-86b); `smart` uses faces once WP-72 lands (in progress).
 
 Reference: https://thumbor.readthedocs.io/en/latest/usage.html, https://thumbor.readthedocs.io/en/latest/filters.html, security page above; code: libthumbor `url.py` (`Url.regex`), thumbor `context.py` (`RequestParameters`), `transformer.py`, `filters/*.py`, `ext/filters/*.c`, `handlers/imaging.py` (signature check). Implementation: `internal/dialect/thumbor` (grammar, mapping) and `internal/dialect/thumbor/filters` (filter-list syntax, reused by Storyblok §12).
 
@@ -602,7 +661,7 @@ Grammar (libthumbor `Url.regex`; every segment optional except the first and the
 | `AxB:CxD` | Crop (pre-resize, px): width C−A, height D−B, gravity north-west with offsets A, B; all zero = none; C ≤ A or D ≤ B = none (`Ignored`) |
 | `trim[:corner][:tol]` | Trim (`ColorFromBottomRight`, `Threshold` = tolerance clamped to 255); `trim:N` is tolerance N (thumbor reads a lone number as the corner name and ends up with top-left, 0) |
 | halign/valign | Gravity compass (either alone pairs with center/middle); both absent = unset (centre) |
-| `smart` | Gravity Smart (overrides halign/valign; M3: faces first) |
+| `smart` | Gravity Smart (overrides halign/valign): the union of the detected faces when the face model finds some (WP-72, `XI_DETECT_SMART_FACES`), else libvips attention (thumbor's feature detector is not reproduced); `meta` lists the faces as `Face Detection` focal points |
 | `meta` | `Kind` Info, `Info{Schema: thumbor, Size, Format, Dimensions}`; the pipeline keeps the operations so the info path can report the target |
 | `debug` | `Ignored` (not implemented) |
 | `quality(n)` | Quality (0–100) |
@@ -635,6 +694,8 @@ Filter-list syntax (`filters` sub-package): `name(args)` separated by `:`, names
 Pixel focal points and `meta` (WP-86): `focal(AxB:CxD)` with pixel coordinates (thumbor's norm) and the crop rectangle found by `extract_focal()` become `Gravity{Type: FocusPoint, FocusPx: &FocusRect{A, B, C, D}}` through `transform.FocusFromPixels(A, B, C, D)`; the planner focuses on the rectangle's centre (`A + (C−A)/2`, rounded down like thumbor's `FocalPoint.from_square`) in the displayed source, relative to the manual crop `AxB:CxD` when there is one. Rectangles given in fractions (all ≤ 1) keep `FocusX/FocusY`. `meta` answers thumbor's JSONEngine shape (`server/info_thumbor.go`): `source` (`url` as written, displayed `width`/`height`, `frameCount`), `operations` (`crop` left/top/right/bottom in displayed source pixels, `resize` width/height, shrink-on-load listed as a resize, `flip_horizontally`/`flip_vertically`; rotations, fills and filters are not listed, as in thumbor), `target` (the planned result size) and `focal_points` (the explicit point with `z` = its area, or one `alignment` point). The JSONP `callback` argument is not supported.
 
 ## 11. weserv / wsrv.nl
+
+**Status:** served on `main` (WP-46, M2), including root `?url=` routing, `default` redirects and `maxage`.
 
 Reference: https://wsrv.nl/docs/quick-reference; the weserv source (`.refs/weserv-images`: `src/api/parsers/query.cpp` for the grammar, `src/api/processors/*.cpp` for semantics, `src/nginx` for `url`, `default`, `maxage`, `filename`, `encoding`); unpic `wsrv.ts` (default `fit=cover`; `url` without scheme is `https://`). Implemented in `internal/dialect/wsrv` (WP-46).
 
@@ -684,6 +745,8 @@ Under the restricted unsigned policy `default=<url>` (a fallback URL), crops, tr
 
 ## 12. unpic long tail ("simple" micro-dialects)
 
+**Status:** served on `main` (WP-47/48, M2): all 21 providers below, and all 28 unpic providers have a passing fixture file.
+
 unpic 4.2 (https://unpic.pics/providers/, source `ascorbic/unpic/src/providers/*.ts`) supports 28 providers. Seven are full dialects above; the other 21 only emit width, height, quality, format and a fit/crop hint, so they are implemented as **data** in `internal/dialect/simple`: one parser engine plus a `Spec` table per provider (native prefixes, upstream domains, an extractor that cuts source and parameters out of the URL, and a `Param` per name). Adding a provider is a `<name>.go` table (listed in `Providers()`) plus its fixture file `tools/compat/unpic/<name>.json`.
 
 **Coverage of the 28 unpic providers**
@@ -725,6 +788,8 @@ unpic 4.2 (https://unpic.pics/providers/, source `ascorbic/unpic/src/providers/*
 Storyblok's thumbor-style filter list (`name(args):…`) is parsed with `internal/dialect/thumbor/filters`, the thumbor dialect's grammar.
 
 ## 13. AWS Serverless Image Handler ("Dynamic Image Transformation for Amazon CloudFront")
+
+**Status:** served on `main` (WP-85, M2), with `signature`/`expires` verification and thumbor forwarding.
 
 Reference: `awslabs/dynamic-image-transformation-for-amazon-cloudfront` v8.x (`.refs/aws-image-handler/source/image-handler/`: `image-request.ts`, `image-handler.ts`, `query-param-mapper.ts`, `thumbor-mapper.ts`, `lib/`, and the `test/` fixtures), sharp 0.35 (`.refs/sharp/lib`) for the edit semantics. Package `internal/dialect/awssih`, mount `/sih/` (usually host-bound to the CloudFront domain being migrated). Point the mount at the old API's path root so SIH signatures, which cover the path, keep verifying.
 
@@ -773,8 +838,8 @@ Edits (sharp operations; `D` = discarded silently, `I` = recorded in `Ignored`; 
 | `modulate: {brightness, saturation, hue, lightness}` | `Adjust.Exposure`, `Adjust.Saturation`, `Adjust.Hue`, `Adjust.Brightness` (lightness × 2.55, I) |
 | `toFormat` | `O.Format` (wins over `outputFormat`, as in SIH) |
 | `jpeg`, `png`, `webp`, `avif`, `heif`, `gif`, `tiff: {…}` | select the output format like sharp (unless `force: false`); `quality` → `O.FormatQuality[fmt]`; jpeg `progressive`, `chromaSubsampling`, `mozjpeg` (= trellis + overshoot + optimise scans + table 3), `trellisQuantisation`, `overshootDeringing`, `optimiseScans`, `quantisationTable` → `O.JPEG`; png `progressive` (interlace), `compressionLevel`, `adaptiveFiltering`, `palette`, `colours` → `O.PNG`; webp `lossless`, `nearLossless`, `smartSubsample`, `preset` → `O.WebP`/`O.Lossless`; avif/heif `chromaSubsampling` → `O.AVIF`; `lossless` and `effort` (native 0–6 / 0–9 / 1–10, normalised to 1–9) apply only when that format is the output; other options I |
-| `overlayWith: {bucket, key, wRatio, hRatio, alpha, options: {left, top, gravity}}` | `P.Watermarks` with a per-request `Source` (bucket must be listed, else 403), `Opacity` = 1 − alpha/100, `Scale` = wRatio/100 (`hRatio` I), position from `gravity` or `left`/`top` (px or `"<n>p"`; negative = from the right/bottom edge) — takes effect in M3 (I) |
-| `smartCrop: true \| {faceIndex, padding}` | `Gravity` face + `FaceIndex` — M3 (I); `padding` > 0 I |
+| `overlayWith: {bucket, key, wRatio, hRatio, alpha, options: {left, top, gravity}}` | `P.Watermarks` with a per-request `Source` (bucket must be listed, else 403), `Opacity` = 1 − alpha/100, `Scale` = wRatio/100 (`hRatio` I), position from `gravity` or `left`/`top` (px or `"<n>p"`; negative = from the right/bottom edge) (WP-77) |
+| `smartCrop: true \| {faceIndex, padding}` | `CropObjects` on class face: face `faceIndex` (default 0, best score first like Rekognition's confidence order) + `padding` px on every side, cut from the source (WP-72) | with `resize` SIH cuts from the resized image, xi before resizing: the result has the requested size (I "approximated"); `faceIndex` past the faces → uncut (SIH 400); slim → 422 |
 | `roundCrop: true \| {top, left, rx, ry}` | `P.Mask` circle with trim (SIH's default ellipse is a centred circle then `trim()`); explicit centre/radii approximated (ellipse when rx ≠ ry, I) |
 | `animated: bool` | `true` → `Pages = -1`; `false` → `DisableAnimation` |
 | `stripExif`, `stripIcc: true` | `O.StripMetadata`, `O.StripColorProfile` |
@@ -793,4 +858,20 @@ Other differences from SIH: `AUTO_WEBP` is the server's Accept negotiation (`O.F
 
 ## 14. Compatibility test strategy
 
-Each dialect WP ships (a) a table of URLs → expected TR JSON, (b) URLs produced by the upstream SDK/transformer (`@imgix/js-core`, `cloudinary` npm, `imagekit-javascript`, `unpic` transformers, `libthumbor`, imgproxy URL examples) generated by a small Bun script in `tools/compat/` and committed as fixtures, (c) signature test vectors from upstream docs, (d) a fuzz target that must never panic.
+Each dialect WP ships (a) a table of URLs → expected TR JSON, (b) URLs produced by the upstream SDK/transformer (`@imgix/js-core`, `cloudinary` npm, `imagekit-javascript`, `unpic` transformers, imgproxy URL examples) generated by a small Bun script (`generate.ts`) and committed as fixtures, (c) signature test vectors from upstream docs or code, (d) a fuzz target that must never panic.
+
+What exists (every dialect below is on `main` except where noted; paths under `internal/dialect/<name>/testdata/` unless stated):
+
+| Dialect | (a) golden tables | (b) upstream-generated URLs | (c) signature vectors | (d) fuzz |
+|---|---|---|---|---|
+| imgproxy | `golden/` | `jscore/` (`imgproxy-js-core`); TS builder cross-check `testdata/urls/imgproxy-builder.json` (in review, #83) | imgproxy docs and `.refs` vectors (`internal/security/sign`) | yes |
+| query | `golden/` | — (imaginary has no URL builder) | imaginary `sign` vector | yes |
+| imgix | `golden/` | `jscore/` (`@imgix/js-core` 3.8.0, signed) and unpic `imgix.json` | blueprint vectors | yes |
+| cloudinary | `golden/` | `urlgen/` (`cloudinary-url-gen`) and unpic `cloudinary.json` | SHA-1/SHA-256 vectors | yes |
+| imagekit | `golden/` | `sdk/` (`imagekit-javascript`, `imagekit-nodejs`) and unpic `imagekit.json` | published dummy-key vectors | yes |
+| cloudflare, cloudflare_images | `golden/` (`image`, `delivery`, `source`) | unpic `cloudflare.json`, `cloudflare_images.json` | Images `sig`/`exp` vectors | yes |
+| bunny | `golden/` (`options`, `tokens`) | unpic `bunny.json` | token vectors from Bunny's docs | yes |
+| thumbor | `golden/` (`grammar`, `filters`, `signed`, `corpus`: thumbor docs and test-suite URLs) | — | HMAC-SHA1 vectors | yes |
+| wsrv | `golden/` | `unpic/` and unpic `wsrv.json` | — (unsigned; `xi_sig`) | yes |
+| simple (21 providers) | per-provider tests | unpic `<name>.json` in `tools/compat/unpic/` | — (unsigned; `xi_sig`) | yes |
+| awssih | `golden/` (ported from the solution's own tests) | — | `internal/security/sign/testdata/awssih/vectors.json` (generated by the solution's algorithm under Bun) | yes |

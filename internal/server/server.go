@@ -115,6 +115,9 @@ type ProcessInput struct {
 	// QualityDelta lowers the effective quality for Save-Data / slow
 	// connection hints (negotiate.HintResult.QualityDelta); 0 = none.
 	QualityDelta int
+	// Watermarks are the request's own watermark images, fetched and
+	// sanitised like Source and owned by the server the same way.
+	Watermarks []WatermarkInput
 }
 
 // Blob is encoded output with an explicit owner (a vips blob in
@@ -145,6 +148,10 @@ type ProcessOutput struct {
 	// "demosaic" or "demosaic-half"; empty for other formats): counted in
 	// xi_raw_decodes_total and sent as X-Xi-Raw-Path with debug headers.
 	RawPath string
+	// VideoFrame describes the frame a video source was decoded from
+	// (timestamp, keyframe, best-frame selection); sent as
+	// X-Xi-Video-Frame with debug headers. Empty for images.
+	VideoFrame string
 }
 
 // Processor plans, executes and encodes one image (stages 12–13;

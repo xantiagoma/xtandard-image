@@ -67,7 +67,7 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 		milestone = applied
 		err = cropAspectRatio(pl, args)
 	case "objects_position", "obj_pos", "op":
-		milestone = reasonM3
+		milestone = applied // WP-72
 		err = objectsPosition(&pl.Gravity, args)
 
 	// Colour (applied since WP-59).
@@ -106,31 +106,33 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 	case "progressive_blur", "pbl":
 		milestone = applied
 		err = progressiveBlur(pl, args)
+	// Detection (applied since WP-72/73; 422 without the detector).
 	case "blur_detections", "bd":
-		milestone = reasonM3
+		milestone = applied
 		err = blurDetections(pl, args)
 	case "draw_detections", "dd":
-		milestone = reasonM3
+		milestone = applied
 		err = drawDetections(pl, args)
 	case "crop_objects", "c_obj":
-		milestone = reasonM3
+		milestone = applied
 		err = cropObjects(pl, args)
 
-	// Watermark details (the watermark itself is wm).
+	// Watermark details, the watermark itself is wm (applied since
+	// WP-77/78).
 	case "watermark_url", "wmu":
-		milestone = reasonM3
+		milestone = applied
 		err = watermarkURL(firstWatermark(pl), args)
 	case "watermark_text", "wmt":
-		milestone = reasonM3
+		milestone = applied
 		err = watermarkText(firstWatermark(pl), args)
 	case "watermark_size", "wms":
-		milestone = reasonM3
+		milestone = applied
 		err = watermarkSize(firstWatermark(pl), args)
 	case "watermark_rotate", "wm_rot", "wmr":
-		milestone = reasonM3
+		milestone = applied
 		err = watermarkRotate(firstWatermark(pl), args)
 	case "watermark_shadow", "wmsh":
-		milestone = reasonM3
+		milestone = applied
 		err = oneRange("watermark_shadow", args, 0, transform.MaxSigma, &firstWatermark(pl).Shadow)
 	case "style", "stl", "st":
 		milestone = applied // WP-64: SVG sources only (the executor skips it otherwise)
@@ -161,14 +163,14 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 
 	// Video (pipeline).
 	case "video_thumbnail_second", "vts":
-		milestone = reasonM3
+		milestone = applied // WP-74; negative counts from the end
 		v := video(pl)
 		var s float64
-		if err = oneRange("video_thumbnail_second", args, 0, math.MaxInt32, &s); err == nil {
+		if err = oneRange("video_thumbnail_second", args, -math.MaxInt32, math.MaxInt32, &s); err == nil {
 			v.Second = &s
 		}
 	case "video_thumbnail_keyframes", "vtk":
-		milestone = reasonM3
+		milestone = applied // WP-74
 		err = oneBoolPtr("video_thumbnail_keyframes", args, &video(pl).Keyframes)
 	case "video_thumbnail_tile", "vtt":
 		milestone = reasonM3

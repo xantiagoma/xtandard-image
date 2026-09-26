@@ -17,7 +17,6 @@ import (
 
 // Reasons recorded in Request.Ignored.
 const (
-	reasonM2             = "takes effect in M2"
 	reasonM3             = "takes effect in M3"
 	reasonNotImplemented = "not implemented"
 	reasonUnknown        = "unknown option"
@@ -67,9 +66,9 @@ func (st *state) apply(name string, args []string) error {
 
 	// Cropping and geometry.
 	case "gravity", "g":
-		return st.gravity(&pl.Gravity, "gravity", gravityCrop, name, args)
+		return st.gravity(&pl.Gravity, "gravity", gravityCrop, args)
 	case "crop", "c":
-		return st.crop(pl, name, args)
+		return st.crop(pl, args)
 	case "trim", "t":
 		return trim(pl, args)
 	case "padding", "pd":
@@ -110,7 +109,7 @@ func (st *state) apply(name string, args []string) error {
 	case "pixelate", "pix":
 		return oneNonNegInt("pixelate", args, &pl.Pixelate)
 	case "watermark", "wm":
-		return st.watermark(pl, name, args)
+		return st.watermark(pl, args)
 
 	// Animation and pages.
 	case "disable_animation", "da":
@@ -409,26 +408,19 @@ func (st *state) extend(e *transform.Extend, field string, args []string) error 
 	}
 	e.Enabled = on
 	if len(args) > 1 {
-		if _, err := parseGravity(&e.Gravity, field+".gravity", gravityExtend, args[1:]); err != nil {
+		if err := parseGravity(&e.Gravity, field+".gravity", gravityExtend, args[1:]); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (st *state) gravity(g *transform.Gravity, field string, kind gravityKind, name string, args []string) error {
-	ms, err := parseGravity(g, field, kind, args)
-	if err != nil {
-		return err
-	}
-	if ms == "M3" {
-		st.ignore(name+":"+args[0], reasonM3)
-	}
-	return nil
+func (st *state) gravity(g *transform.Gravity, field string, kind gravityKind, args []string) error {
+	return parseGravity(g, field, kind, args)
 }
 
 // crop is c:width[:height[:gravity...]].
-func (st *state) crop(pl *transform.Pipeline, name string, args []string) error {
+func (st *state) crop(pl *transform.Pipeline, args []string) error {
 	c := transform.Crop{}
 	if pl.Crop != nil {
 		c = *pl.Crop
@@ -446,7 +438,7 @@ func (st *state) crop(pl *transform.Pipeline, name string, args []string) error 
 		c.Height = h
 	}
 	if len(args) > 2 {
-		if err := st.gravity(&c.Gravity, "crop.gravity", gravityCrop, name, args[2:]); err != nil {
+		if err := st.gravity(&c.Gravity, "crop.gravity", gravityCrop, args[2:]); err != nil {
 			return err
 		}
 	}
@@ -580,7 +572,7 @@ func background(pl *transform.Pipeline, args []string) error {
 
 // watermark is wm:opacity[:position:x:y:scale]. One watermark per
 // pipeline; later wm options update it argument by argument.
-func (st *state) watermark(pl *transform.Pipeline, name string, args []string) error {
+func (st *state) watermark(pl *transform.Pipeline, args []string) error {
 	if err := maxArgs("watermark", args, 7); err != nil {
 		return err
 	}
@@ -601,7 +593,6 @@ func (st *state) watermark(pl *transform.Pipeline, name string, args []string) e
 		case "ch":
 			w.Tile = transform.TileChessboard
 			w.Position.Type = transform.GravityUnset
-			st.ignore(name+":ch", reasonM3)
 		default:
 			gt, ok := compass[pos]
 			if !ok {

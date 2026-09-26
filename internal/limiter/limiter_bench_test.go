@@ -34,6 +34,31 @@ func BenchmarkAcquireRelease(b *testing.B) {
 	}
 }
 
+// BenchmarkReserve measures Reserve without a budget (the default: it must
+// not allocate) and with one.
+func BenchmarkReserve(b *testing.B) {
+	for _, tc := range []struct {
+		name   string
+		budget int64
+	}{{"no_budget", 0}, {"budget", 1 << 30}} {
+		b.Run(tc.name, func(b *testing.B) {
+			l, err := New(Config{Workers: 4, QueueSize: 64, QueueTimeout: 5 * time.Second, MemoryBudget: tc.budget})
+			if err != nil {
+				b.Fatal(err)
+			}
+			ctx := b.Context()
+			b.ReportAllocs()
+			for b.Loop() {
+				release, err := l.Reserve(ctx, 1<<20)
+				if err != nil {
+					b.Fatal(err)
+				}
+				release()
+			}
+		})
+	}
+}
+
 // BenchmarkAcquireReleaseParallel measures contention with GOMAXPROCS
 // workers and as many goroutines competing for them.
 func BenchmarkAcquireReleaseParallel(b *testing.B) {

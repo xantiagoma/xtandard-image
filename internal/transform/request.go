@@ -99,8 +99,12 @@ type InfoOptions struct {
 	Thumbhash      bool
 	PHash          bool
 	CalcHashsums   []HashAlgorithm
-	DetectObjects  bool
-	Classify       bool
+	// DetectObjects reports the detected faces and objects (imgproxy Pro
+	// detect_objects, imgix fm=json with faces=1), limited to
+	// DetectClasses when set (see Gravity.Classes).
+	DetectObjects bool
+	DetectClasses []string
+	Classify      bool
 }
 
 // InfoAverage configures the info average colour.

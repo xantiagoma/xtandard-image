@@ -15,6 +15,7 @@
 //	XI_ACC_TINY_CONTAINER               its container ID (docker kill/wait)
 //	XI_ACC_SIGNING_KEY, _SALT           hex imgproxy key/salt of the main app
 //	XI_ACC_ENCRYPTION_KEY               hex AES key for enc/ sources
+//	XI_ACC_IMGIX_TOKEN                  imgix secure URL token of the main app
 //	XI_ACC_FIXTURES                     path of testdata/fixtures on the host
 //
 // Every test skips when its endpoint is unset (go-standards §8).

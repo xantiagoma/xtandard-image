@@ -1,7 +1,10 @@
 # Release runbook
 
-How the app image `ghcr.io/xantiagoma/xtandard-image` is built, published and verified.
-Design context: `docs/ARCHITECTURE.md` §14, `docs/go-standards.md` §9, ADR 0005.
+How the app image `ghcr.io/xantiagoma/xtandard-image` is built, published and verified, and how the
+npm package `@xtandard/image-url` follows it ([npm package](#npm-package)).
+Design context: `docs/ARCHITECTURE.md` §14, `docs/go-standards.md` §9, ADR 0005, ADR 0009.
+
+**Status (2026-09-27):** no release has been tagged yet, nothing is on npm, and the GitHub Pages site is not deployed. All GitHub workflows (`ci`, `base-image`, `nightly`, `release`, `pages`, `ts`) are disabled by owner decision until further notice, so everything below runs only after they are re-enabled (`gh workflow enable <name>`); until then images are built and verified locally (`task docker:*`).
 
 ## What gets published
 
@@ -22,7 +25,7 @@ Tags (`X.Y.Z` has no leading `v`):
 | `slim` | yes | no |
 | `latest` | yes | no |
 
-`slim` is the default flavor until `full` exists (M3); then `X.Y.Z`/`latest` keep pointing at slim and `full` gets `X.Y.Z-full`/`full`.
+`slim` is the only app flavor the release workflow builds today. The `full` base image is in review (WP-70, #81) and the `gpl` flavor is in progress (WP-70b); once they ship, `X.Y.Z`/`latest` keep pointing at slim and `full` gets `X.Y.Z-full`/`full`.
 
 Build properties (enforced in the `Dockerfile`):
 
@@ -47,9 +50,31 @@ Build properties (enforced in the `Dockerfile`):
 5. Watch `release` in Actions. Nothing is tagged until both architectures have passed `verify-app-image.sh` and `acceptance.sh`; a failure leaves only untagged digests behind (GHCR retention cleans them up).
 6. Verify the published image (below) and edit the generated release notes if needed. After the first release, switch the README quick start from building to the published image: the `sh quickstart-build` block becomes `docker pull ghcr.io/xantiagoma/xtandard-image:slim && docker tag ghcr.io/xantiagoma/xtandard-image:slim xtandard-image`, or the later blocks use the GHCR name directly.
 
+7. Check the published schema and API document (below, "Schema and API site"): the last `pages` run on `main` must be green, and `curl -fsS https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json | cmp - <(docker run --rm ghcr.io/xantiagoma/xtandard-image:X.Y.Z config schema)` must print nothing. If it differs, run the `pages` workflow from the tag.
+
 **Dry run**: Actions → `release` → *Run workflow* with `dry_run` checked (the default) builds and verifies both architectures from the selected branch without pushing. With `dry_run` unchecked, `version` must be an existing tag; it is checked out and published like a tag push, but no GitHub release is created.
 
 **Re-running** a release for the same tag rebuilds and re-tags; the image content is identical (reproducible build), but the digest can differ if the base image digest moved in between.
+
+## Schema and API site (GitHub Pages)
+
+`.github/workflows/pages.yml` publishes the config JSON Schema and the OpenAPI document to `https://xantiagoma.github.io/xtandard-image/` (WP-81b, ADR 0007 decision 6). It runs on every push to `main` that changes `internal/config/config.schema.json`, `internal/apidoc/openapi.json`, `docs/pages/**`, `scripts/pages-build.sh` or the workflow, and on demand (*Run workflow*).
+
+| Path | Content |
+|---|---|
+| `/` | `index.html`: links every file, editor modelines (`docs/pages/index.html`) |
+| `/api/` | Scalar API reference over `schema/latest/openapi.json` (same pinned Scalar build and SRI as admin `/docs`) |
+| `/schema/v1/config.schema.json` | The config schema; this URL is its `$id` |
+| `/schema/v1/openapi.json` | The OpenAPI document |
+| `/schema/latest/…` | The same two files for the newest schema major |
+
+`v1` is the schema major version read from the `$id`, not the release version, so the URL stays stable across releases. Bump it (in `config.SchemaID`, `TestSchemaID` and `docs/schemastore/catalog-entry.json`) only when a config key is removed or renamed; `scripts/pages-build.sh` then needs to keep publishing the last `v1` files next to `v2` (check them out from the last `v1` tag), because a published `$id` is forever.
+
+Jobs: `build` runs `scripts/pages-build.sh` (the same script as `task pages:build`) and uploads `dist/pages` with `actions/upload-pages-artifact`; `deploy` publishes it with `actions/deploy-pages` to the `github-pages` environment; `verify` fetches every published JSON file, compares it byte for byte with the committed one, and validates the SchemaStore samples (`docs/schemastore/tests`) with Ajv against the schema URL their modeline names.
+
+Before the first run the owner must, once: set Settings → Pages → Source to *GitHub Actions* and enable the `pages` workflow. Then open the SchemaStore PR ([docs/schemastore/README.md](schemastore/README.md)).
+
+Locally, `task pages:build` assembles the same site in `dist/pages/` and lists its files; the output depends only on the committed files, so two runs are byte-identical. Serve it with any static server to check it, e.g. `python3 -m http.server -d dist/pages`.
 
 ## Verifying a published image
 
@@ -173,3 +198,24 @@ To build without the profile (bootstrapping from scratch, or measuring the gain)
 4. CI `smoke` and the next release resolve the new tags to digests (`scripts/base-image-ref.sh --digest runtime|builder`) and build against them; the release records the runtime base in the `org.opencontainers.image.base.name` label.
 
 The weekly `base-image` rebuild republishes the same tag with Ubuntu security updates; the next release picks up the new digest automatically. To ship those updates without code changes, tag a patch release.
+
+## npm package
+
+`@xtandard/image-url` (`packages/image-url`, [ADR 0009](adr/0009-typescript-monorepo.md) decision 6) is released from the same tag as the image and at the same version: tag `v0.4.0` publishes `@xtandard/image-url@0.4.0`. Its generated types describe that server version. The committed `package.json` keeps `"version": "0.0.0"`, and the version comes only from the tag.
+
+The `npm` job of `.github/workflows/release.yml` runs after `merge`, so no package is published unless the image was:
+
+1. It checks out the tag and runs `bun install --frozen-lockfile`. Then it runs the same checks as `task ts:check`: `bun run generate:check` (the generated types match the tagged `openapi.json`), `bun run typecheck`, `bun run test` (the shared signing vectors and the cross-language builder fixture included) and `bun run licenses`.
+2. `npm pkg set version=<X.Y.Z>` sets the version, and `bun pm pack` packs the tarball. `prepack` builds `dist/` with `tsc` (JavaScript and `.d.ts`) and copies the root `LICENSE`. The `files` whitelist keeps the tarball to `dist/`, `README.md` and `LICENSE`.
+3. `npm publish <tarball> --provenance --access public` publishes through npm trusted publishing. The GitHub Actions OIDC token (`id-token: write`) authenticates, so there is no npm token secret, and npm attaches a provenance attestation that links the tarball to the workflow run and commit. A stable release takes the `latest` dist-tag; a prerelease (`v0.4.0-rc.1`) takes `next`. `publishConfig` in `package.json` also sets `access: public` and `provenance: true`, so a manual `npm publish` from CI does the same.
+
+**Not enabled yet.** The job only runs when the repository variable `XI_NPM_PUBLISH` is `enabled`. Before setting it, configure `@xtandard/image-url` on npmjs.com with a trusted publisher: repository `xantiagoma/xtandard-image`, workflow `release.yml`. The scope `@xtandard` belongs to the owner. The first publish of a new package name may need one manual `npm publish --access public` from a maintainer account before trusted publishing can be attached. The `ts` workflow (`.github/workflows/ts.yml`) is gated the same way, on `XI_TS_WORKFLOW=enabled`, and runs `task ts:check`'s steps on every change to `packages/**`, the lockfile, `openapi.json` or the shared fixtures.
+
+Verify a published version:
+
+```sh
+npm view @xtandard/image-url@0.4.0 dist.attestations   # provenance present
+npm audit signatures                                     # in a project that installed it
+```
+
+`bun pm pack --dry-run` in `packages/image-url` lists what would be published.

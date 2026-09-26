@@ -13,7 +13,13 @@ testdata/
   info/<case>.json      expected /info responses (internal/app TestInfo; GOLDEN_UPDATE=1 rewrites, review the diff)
   info/pro/<fixture>-<option>.json  expected /info Pro option responses (WP-63) for jpeg/baseline, png/rgba8 and gif/animated
   ssim/                 greyscale reference + distortions validating internal/testutil/ssim
-  gen/                  generator: main.go (Go), gen.sh (driver), logo.svg
+  security/vectors.json signing (imgproxy, xi_sig) and enc/ encryption vectors shared by Go
+                        (internal/security/{sign,crypt}) and TypeScript (packages/image-url)
+  urls/imgproxy-builder.json  cross-language fixture of the TypeScript URL builder: cases derived
+                        from the imgproxy golden tables, URLs built by packages/image-url, parsed
+                        back by internal/dialect/imgproxy (task ts:fixtures regenerates it)
+  detect/               expected detections on fixtures/detect (expected.json) and the script that made them
+  gen/                  generator: main.go (Go), gen.sh (driver), logo.svg; video.go + video.sh (video fixtures, full base builder)
   LICENSES.md           origin and licence of every file
 ```
 
@@ -30,6 +36,7 @@ testdata/
 | `png/rgb16.png` | PNG 96x72 | 16 bits per channel |
 | `png/palette.png` | PNG 96x72 | 8-bit palette (PLTE) |
 | `watermark/logo.png` | PNG 48x32 | RGBA logo used as the configured watermark (translucent plate, opaque parts, half-transparent rim) |
+| `watermark/badge.png` | PNG 40x40 | RGBA badge used as a per-request watermark (`watermark_url`, dialect overlays): teal disc, white "L" |
 | `gif/static.gif`, `gif/animated.gif` | GIF 96x72 | single frame; 6 frames, 100 ms, infinite loop |
 | `webp/lossy.webp`, `webp/lossless.webp`, `webp/animated.webp` | WebP | VP8, VP8L, animated (6 frames, alpha) |
 | `avif/photo.avif` | AVIF 320x240 | 8-bit AV1 still |
@@ -48,6 +55,26 @@ testdata/
 | `hdr/scene.hdr`, `hdr/rgbe.hdr` | Radiance 96x64, 48x32 | the same scene as RGBE, `#?RADIANCE` and `#?RGBE` headers |
 | `pfm/scene.pfm` | PFM 64x48 | the same scene as float RGB |
 | `ppm/photo.ppm` | PPM 96x64 | 8-bit binary P6 photo (not HDR) |
+| `detect/apollo11-crew.jpg`, `detect/astronaut-dogs.jpg`, `detect/cat-laptop.jpg` | JPEG 640 px wide | real photographs (public domain / CC0, `LICENSES.md` "Detection photos") for face and object detection (WP-71): three faces and three people; a face, a person and two dogs; a cat on a laptop. Expected boxes: `detect/expected.json` |
+
+### Detection expectations
+
+`detect/expected.json` holds the detections of the reference implementations on the
+`fixtures/detect/` photos: OpenCV's `cv2.FaceDetectorYN` (YuNet, score ≥ 0.6, NMS 0.3) and the
+official YOLOX ONNXRuntime demo post-processing (class-aware NMS 0.45; objects with score ≥ 0.5
+kept). `internal/detect` must find each of them with IoU ≥ 0.5 (ROADMAP WP-71). Regenerate it
+with `detect/reference.py` after changing a photo or a model (it prints the raw JSON; the
+committed file keeps the objects with score ≥ 0.5):
+
+```sh
+docker run --rm -v "$PWD:/w" -w /w python:3.12-slim sh -c \
+  'pip install -q onnxruntime==1.23.2 opencv-python-headless numpy &&
+   python testdata/detect/reference.py <yunet.onnx> <yolox_s.onnx> testdata/fixtures/detect/*.jpg'
+```
+
+The models are the ones in the `full` base image (`/usr/share/xtandard/models`). The last run
+used onnxruntime 1.23.2, OpenCV 5.0.0 and NumPy 2.5.3. The left dog in `astronaut-dogs.jpg` is
+reported as a horse by YOLOX-s; the expectation records what the model says.
 
 ### Camera RAW samples (downloaded)
 

@@ -1355,12 +1355,6 @@
     "query": "url=https://example.com/a.jpg\u0026text=hello\u0026font=sans%2012\u0026opacity=0.5\u0026textwidth=200\u0026color=255,200,150\u0026margin=10\u0026dpi=150",
     "request": {
       "Dialect": "query",
-      "Ignored": [
-        {
-          "Option": "watermark",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -1371,11 +1365,15 @@
                 "G": 200,
                 "R": 255
               },
-              "Font": "sans 12",
+              "Font": "sans 25",
               "Opacity": 0.5,
+              "Position": {
+                "XOffset": 10,
+                "YOffset": 10
+              },
               "Text": "hello",
-              "Tile": "repeat",
-              "Width": 200
+              "TextWidth": 200,
+              "Tile": "repeat"
             }
           ]
         }
@@ -1394,15 +1392,19 @@
       "Dialect": "query",
       "Ignored": [
         {
-          "Option": "watermark",
-          "Reason": "takes effect in M3"
+          "Option": "watermark:textwidth",
+          "Reason": "approximated"
         }
       ],
       "Pipelines": [
         {
           "Watermarks": [
             {
+              "Font": "sans 20.8",
               "Opacity": 0.25,
+              "Position": {
+                "Type": "north-west"
+              },
               "Text": "hello"
             }
           ]
@@ -1430,12 +1432,6 @@
     "query": "url=https://example.com/a.jpg\u0026image=https://example.com/logo.png\u0026top=10\u0026left=20\u0026opacity=2",
     "request": {
       "Dialect": "query",
-      "Ignored": [
-        {
-          "Option": "watermarkimage",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Watermarks": [

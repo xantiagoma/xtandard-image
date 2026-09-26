@@ -23,6 +23,7 @@ type Config struct {
 
 	Server     Server     `yaml:"server"     envPrefix:"SERVER_"`
 	Admin      Admin      `yaml:"admin"      envPrefix:"ADMIN_"`
+	Playground Playground `yaml:"playground" envPrefix:"PLAYGROUND_"`
 	Signing    Signing    `yaml:"signing"    envPrefix:"SIGNING_"`
 	Encryption Encryption `yaml:"encryption" envPrefix:"ENCRYPTION_"`
 	Security   Security   `yaml:"security"   envPrefix:"SECURITY_"`
@@ -44,7 +45,9 @@ type Config struct {
 	Formats       Formats       `yaml:"formats"       envPrefix:"FORMATS_"`
 	ClientHints   ClientHints   `yaml:"client_hints"  envPrefix:"CLIENT_HINTS_"`
 	Limits        Limits        `yaml:"limits"        envPrefix:"LIMITS_"`
+	Video         Video         `yaml:"video"         envPrefix:"VIDEO_"`
 	Vips          Vips          `yaml:"vips"          envPrefix:"VIPS_"`
+	Detect        Detect        `yaml:"detect"        envPrefix:"DETECT_"`
 	Cache         Cache         `yaml:"cache"         envPrefix:"CACHE_"`
 	Observability Observability `yaml:"observability" envPrefix:"OBSERVABILITY_"`
 	OTel          OTel          `yaml:"otel"          envPrefix:"OTEL_"`
@@ -76,6 +79,19 @@ type Admin struct {
 	// Docs serves the Scalar API reference at /docs, loaded from a pinned
 	// jsDelivr URL (ADR 0008); /openapi.json is always served.
 	Docs bool `yaml:"docs" env:"DOCS"`
+}
+
+// Playground configures the embedded playground UI (WP-80): off by default,
+// served on the admin listener, and on the public listener only when Public
+// is set.
+type Playground struct {
+	Enabled bool `yaml:"enabled" env:"ENABLED"`
+	// Public also serves the playground on the public listener (under
+	// server.path_prefix); its sign endpoint then signs URLs for anyone.
+	Public bool `yaml:"public" env:"PUBLIC"`
+	// Path is where the playground is mounted: starts with "/", no
+	// trailing "/".
+	Path string `yaml:"path" env:"PATH"`
 }
 
 // Signing configures URL signature verification (imgproxy scheme and xi_sig).
@@ -201,7 +217,7 @@ type Dialects struct {
 	CloudflareImages CloudflareImagesDialect `yaml:"cloudflare_images" envPrefix:"CLOUDFLARE_IMAGES_"`
 	Imgix            Mount                   `yaml:"imgix"             envPrefix:"IMGIX_"`
 	Cloudinary       CloudinaryDialect       `yaml:"cloudinary"        envPrefix:"CLOUDINARY_"`
-	Imagekit         Mount                   `yaml:"imagekit"          envPrefix:"IMAGEKIT_"`
+	Imagekit         ImagekitDialect         `yaml:"imagekit"          envPrefix:"IMAGEKIT_"`
 	Bunny            Mount                   `yaml:"bunny"             envPrefix:"BUNNY_"`
 	Thumbor          Mount                   `yaml:"thumbor"           envPrefix:"THUMBOR_"`
 	AWSSIH           AWSSIHDialect           `yaml:"awssih"            envPrefix:"AWSSIH_"`
@@ -240,6 +256,16 @@ type ImgproxyDialect struct {
 type CloudinaryDialect struct {
 	Mount  `yaml:",inline"`
 	Clouds map[string]string `yaml:"clouds" env:"CLOUDS" envKeyValSeparator:"="`
+}
+
+// ImagekitDialect adds the URL-endpoint path of host-bound mounts.
+type ImagekitDialect struct {
+	Mount `yaml:",inline"`
+	// EndpointPath is the ImageKit URL-endpoint id kept in the path of every
+	// mount of the dialect (https://ik.imagekit.io/<id>/…): "/<id>". It is
+	// stripped before parsing, excluded from the source key and from the
+	// signed message; requests outside it are 400. Empty: none.
+	EndpointPath string `yaml:"endpoint_path" env:"ENDPOINT_PATH"`
 }
 
 // CloudflareImagesDialect adds the account hash → source map.
@@ -295,6 +321,12 @@ type Processing struct {
 	ColorProfilesDir  string        `yaml:"color_profiles_dir"  env:"COLOR_PROFILES_DIR"`
 	WatermarkSource   string        `yaml:"watermark_source"    env:"WATERMARK_SOURCE"`
 	WatermarkOpacity  float64       `yaml:"watermark_opacity"   env:"WATERMARK_OPACITY"`
+	// WatermarkFont is the Pango font description of text watermarks; a
+	// request's font takes its missing family or size from it.
+	WatermarkFont string `yaml:"watermark_font" env:"WATERMARK_FONT"`
+	// WatermarkFontFile is a font file registered for text watermarks
+	// besides the image's fontconfig fonts.
+	WatermarkFontFile string `yaml:"watermark_font_file" env:"WATERMARK_FONT_FILE"`
 }
 
 // Fallback is the image served when the source fails.
@@ -457,12 +489,84 @@ type Limits struct {
 	MaxSVGDepth             int      `yaml:"max_svg_depth"              env:"MAX_SVG_DEPTH"`
 	MaxSVGElements          int      `yaml:"max_svg_elements"           env:"MAX_SVG_ELEMENTS"`
 	MaxPDFPages             int      `yaml:"max_pdf_pages"              env:"MAX_PDF_PAGES"`
+	// MaxWatermarkTextPixels bounds the area a text watermark is rendered
+	// on: larger text is shrunk to fit.
+	MaxWatermarkTextPixels int64 `yaml:"max_watermark_text_pixels" env:"MAX_WATERMARK_TEXT_PIXELS"`
+}
+
+// Video configures video sources: a frame of an MP4, MOV, WebM, MKV or AVI
+// file becomes the image (docs/FORMATS.md §1.5). Only the full image
+// decodes video (FFmpeg, build tag ffmpeg; ADR 0010).
+type Video struct {
+	// Enabled: auto decodes video when the build has FFmpeg (the full
+	// image) and refuses it otherwise; true fails startup without FFmpeg;
+	// false refuses video sources (422) in every image. Unlike the other
+	// Tristates it stays auto after Load: the application resolves it
+	// against the build.
+	Enabled Tristate `yaml:"enabled" env:"ENABLED"`
+	// MaxBytes caps a video source; limits.max_src_bytes applies first, at
+	// fetch.
+	MaxBytes ByteSize `yaml:"max_bytes" env:"MAX_BYTES"`
+	// MaxDuration caps the container duration.
+	MaxDuration time.Duration `yaml:"max_duration" env:"MAX_DURATION"`
+	// MaxPixels caps the width × height of the video stream (the decoder
+	// refuses larger frames too).
+	MaxPixels int64 `yaml:"max_pixels" env:"MAX_PIXELS"`
+
+	Thumbnail VideoThumbnail `yaml:"thumbnail" envPrefix:"THUMBNAIL_"`
+}
+
+// VideoThumbnail holds the frame-selection defaults of video thumbnails.
+type VideoThumbnail struct {
+	// Second is the frame taken when a request sets no
+	// video_thumbnail_second: a timestamp in seconds (negative counts
+	// from the end), or auto for best-frame selection.
+	Second VideoSecond `yaml:"second" env:"SECOND"`
+	// Keyframes takes the keyframe at or before the timestamp instead of
+	// the exact frame (imgproxy IMGPROXY_VIDEO_THUMBNAIL_KEYFRAMES).
+	Keyframes bool `yaml:"keyframes" env:"KEYFRAMES"`
+	// Samples is the number of keyframes best-frame selection compares.
+	Samples int `yaml:"samples" env:"SAMPLES"`
+	// Span is how much of the start of a video best-frame selection
+	// samples.
+	Span time.Duration `yaml:"span" env:"SPAN"`
 }
 
 // Vips configures libvips.
 type Vips struct {
 	Concurrency int    `yaml:"concurrency" env:"CONCURRENCY"`
 	FailOn      FailOn `yaml:"fail_on"     env:"FAIL_ON"`
+}
+
+// Detect configures the face and object detection runtime (internal/detect,
+// WP-71): ONNX Runtime loaded at startup and the YuNet/YOLOX models.
+type Detect struct {
+	// Enabled: auto runs detection when the library and the models are
+	// found (the full image) and without it otherwise (slim); true fails
+	// startup when they are missing; false never loads them.
+	Enabled Tristate `yaml:"enabled" env:"ENABLED"`
+	// Library is the ONNX Runtime shared library, a path or a file name the
+	// dynamic linker resolves.
+	Library   string `yaml:"library"    env:"LIBRARY"`
+	ModelsDir string `yaml:"models_dir" env:"MODELS_DIR"`
+	// FaceModel and ObjectModel are file names in ModelsDir (or absolute
+	// paths); empty disables that model.
+	FaceModel   string `yaml:"face_model"   env:"FACE_MODEL"`
+	ObjectModel string `yaml:"object_model" env:"OBJECT_MODEL"`
+	// Threads is ONNX Runtime's intra-op threads per inference.
+	Threads int `yaml:"threads" env:"THREADS"`
+	// Workers bounds concurrent inferences; 0 is GOMAXPROCS / Threads.
+	Workers int `yaml:"workers" env:"WORKERS"`
+	// MaxInput is the longest side fed to a model with a dynamic input
+	// size; the shipped models are fixed at 640x640.
+	MaxInput        int  `yaml:"max_input"        env:"MAX_INPUT"`
+	VerifyChecksums bool `yaml:"verify_checksums" env:"VERIFY_CHECKSUMS"`
+	// CacheSize bounds the per-source detection results kept in memory
+	// (entries of one model on one source); 0 disables the cache.
+	CacheSize int `yaml:"cache_size" env:"CACHE_SIZE"`
+	// SmartFaces makes smart gravity crop on detected faces when there are
+	// some (and the face model is loaded); false keeps libvips attention.
+	SmartFaces bool `yaml:"smart_faces" env:"SMART_FACES"`
 }
 
 // Cache configures HTTP cache headers and the result/origin caches.
@@ -593,8 +697,9 @@ func Defaults() Config {
 			ShutdownDelay:     5 * time.Second,
 			ShutdownTimeout:   30 * time.Second,
 		},
-		Admin:   Admin{Addr: "127.0.0.1:9090"},
-		Signing: Signing{Size: 32},
+		Admin:      Admin{Addr: "127.0.0.1:9090"},
+		Playground: Playground{Path: "/_playground"},
+		Signing:    Signing{Size: 32},
 		Security: Security{
 			UnsignedPolicy: UnsignedRestricted,
 			// Next.js deviceSizes + imageSizes.
@@ -618,7 +723,7 @@ func Defaults() Config {
 			CloudflareImages: CloudflareImagesDialect{Mount: mount("/cdn-cgi/imagedelivery/")},
 			Imgix:            mount("/imgix/"),
 			Cloudinary:       CloudinaryDialect{Mount: mount("/cloudinary/")},
-			Imagekit:         mount("/imagekit/"),
+			Imagekit:         ImagekitDialect{Mount: mount("/imagekit/")},
 			Bunny:            mount("/bunny/"),
 			Thumbor:          mount("/thumbor/"),
 			AWSSIH:           AWSSIHDialect{Mount: mount("/sih/"), QueryParams: true},
@@ -632,6 +737,7 @@ func Defaults() Config {
 			KeepCopyright:     true,
 			StripColorProfile: true,
 			WatermarkOpacity:  1,
+			WatermarkFont:     "sans 16",
 		},
 		Fallback: Fallback{Status: 200, TTL: time.Minute},
 		Formats: Formats{
@@ -667,8 +773,25 @@ func Defaults() Config {
 			MaxSVGDepth:             256,
 			MaxSVGElements:          200_000,
 			MaxPDFPages:             500,
+			MaxWatermarkTextPixels:  16_777_216,
+		},
+		Video: Video{
+			MaxBytes:    100 << 20,
+			MaxDuration: time.Hour,
+			MaxPixels:   7680 * 4320, // 8K UHD
+			Thumbnail:   VideoThumbnail{Second: VideoSecondAuto, Samples: 5, Span: 10 * time.Second},
 		},
 		Vips: Vips{Concurrency: 1, FailOn: FailOnWarning},
+		Detect: Detect{
+			Library:     "libonnxruntime.so.1",
+			ModelsDir:   "/usr/share/xtandard/models",
+			FaceModel:   "face_detection_yunet_2023mar.onnx",
+			ObjectModel: "yolox_s.onnx",
+			Threads:     1,
+			MaxInput:    640,
+			CacheSize:   512,
+			SmartFaces:  true,
+		},
 		Cache: Cache{
 			Headers:    CacheHeaders{TTL: 31_536_000 * time.Second, ErrorTTL: 10 * time.Second},
 			TagsHeader: "Cache-Tag",

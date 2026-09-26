@@ -15,6 +15,8 @@ package vips
 #cgo noescape xi_black
 #cgo nocallback xi_black
 #cgo noescape xi_new_from_memory
+#cgo noescape xi_new_from_blob
+#cgo nocallback xi_new_from_blob
 #cgo nocallback xi_new_from_memory
 #cgo noescape xi_meta_get_int
 #cgo nocallback xi_meta_get_int
@@ -122,6 +124,8 @@ package vips
 #cgo nocallback xi_mix
 #cgo noescape xi_gradient_mask
 #cgo nocallback xi_gradient_mask
+#cgo noescape xi_text
+#cgo nocallback xi_text
 #cgo noescape xi_conv3
 #cgo nocallback xi_conv3
 #cgo noescape xi_unsharp
@@ -345,9 +349,6 @@ func opError(rc C.int, op string, cerr *C.char, src *C.VipsBlob) error {
 		kind = errs.KindCorrupt
 	case C.XI_ERR_LIMIT:
 		kind = errs.KindLimitExceeded
-	case C.XI_ERR_ENCRYPTED:
-		return errs.WithPublic(errs.Wrap(errs.KindUnsupported, &OpError{Op: op, Msg: msg}),
-			"password-protected documents are not supported")
 	case C.XI_ERR_SAVE, C.XI_ERR_OP:
 		if C.xi_blob_failed(src) != 0 {
 			kind = errs.KindCorrupt

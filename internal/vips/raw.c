@@ -45,8 +45,7 @@ xi_raw_clear(libraw_processed_image_t *p)
 static int
 xi_raw_error(int rc, const char *what, char **err)
 {
-  vips_error("rawload", "%s: %s", what, libraw_strerror(rc));
-  *err = xi_error_copy();
+  *err = xi_error_new("rawload", "%s: %s", what, libraw_strerror(rc));
   switch (rc) {
   case LIBRAW_FILE_UNSUPPORTED:
     return XI_ERR_UNSUPPORTED;
@@ -143,8 +142,7 @@ xi_raw_probe(VipsBlob *blob, XiRawHeader *h, char **err)
   xi_raw_close(lr);
 
   if (h->width <= 0 || h->height <= 0) {
-    vips_error("rawload", "no image in file");
-    *err = xi_error_copy();
+    *err = xi_error_new("rawload", "no image in file");
     return XI_ERR_LOAD;
   }
   return XI_OK;
@@ -190,9 +188,8 @@ xi_raw_load(VipsBlob *blob, const XiRawOptions *o, VipsImage **out, char **err)
   // holds four 16-bit samples per pixel), so check it before unpacking.
   px = (long long) lr->sizes.width * lr->sizes.height;
   if (o->max_pixels > 0 && px > o->max_pixels) {
-    vips_error("rawload", "%dx%d sensor pixels exceed the demosaic limit of %lld",
+    *err = xi_error_new("rawload", "%dx%d sensor pixels exceed the demosaic limit of %lld",
         lr->sizes.width, lr->sizes.height, o->max_pixels);
-    *err = xi_error_copy();
     xi_raw_close(lr);
     return XI_ERR_LIMIT;
   }
@@ -221,8 +218,7 @@ xi_raw_load(VipsBlob *blob, const XiRawOptions *o, VipsImage **out, char **err)
       p->width == 0 || p->height == 0 ||
       p->data_size != (unsigned) p->width * p->height * p->colors) {
     xi_raw_clear(p);
-    vips_error("rawload", "unexpected demosaic output");
-    *err = xi_error_copy();
+    *err = xi_error_new("rawload", "unexpected demosaic output");
     return XI_ERR_LOAD;
   }
 

@@ -2,7 +2,7 @@
   "asset_private_video": {
     "error": {
       "kind": "invalid_url",
-      "public": "invalid url: unsupported asset type",
+      "public": "invalid url: video output is not supported; ask for a thumbnail with an image format (f_jpg)",
       "status": 400
     },
     "path": "/video/upload/dog.mp4"
@@ -18,7 +18,7 @@
   "asset_video": {
     "error": {
       "kind": "invalid_url",
-      "public": "invalid url: unsupported asset type",
+      "public": "invalid url: video output is not supported; ask for a thumbnail with an image format (f_jpg)",
       "status": 400
     },
     "path": "/demo/video/upload/dog.mp4"
@@ -580,10 +580,6 @@
         {
           "Option": "if",
           "Reason": "unsupported"
-        },
-        {
-          "Option": "e_grayscale",
-          "Reason": "takes effect in M2"
         }
       ],
       "Output": {
@@ -611,10 +607,6 @@
         {
           "Option": "if",
           "Reason": "unsupported"
-        },
-        {
-          "Option": "e_grayscale",
-          "Reason": "takes effect in M2"
         }
       ],
       "Output": {
@@ -693,12 +685,6 @@
         ]
       },
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "e_grayscale",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },
@@ -1069,12 +1055,6 @@
     "path": "/demo/image/upload/c_fill,w_400/q_auto/f_auto/dpr_2.0/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "q_auto",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "AutoQuality": {
           "Method": "dssim",
@@ -1667,10 +1647,6 @@
       "Dialect": "cloudinary",
       "Ignored": [
         {
-          "Option": "so",
-          "Reason": "unsupported"
-        },
-        {
           "Option": "vc",
           "Reason": "unsupported"
         }
@@ -1679,7 +1655,11 @@
         "Format": "jpeg"
       },
       "Pipelines": [
-        {}
+        {
+          "Video": {
+            "Second": 2
+          }
+        }
       ],
       "Source": {
         "Encoding": "relative",
@@ -1692,11 +1672,128 @@
   },
   "video_param_strict": {
     "config": "strict",
+    "path": "/demo/image/upload/so_2/sample.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Video": {
+            "Second": 2
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "sample.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample.jpg"
+  },
+  "video_thumbnail": {
+    "path": "/demo/video/upload/so_1.5,f_jpg/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Video": {
+            "Second": 1.5
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "video_thumbnail_bad_offset": {
     "error": {
+      "field": "so",
       "kind": "invalid_url",
-      "public": "invalid url: unsupported option",
+      "public": "invalid so: expected seconds (a non-negative number), a percentage or auto",
       "status": 400
     },
-    "path": "/demo/image/upload/so_2/sample.jpg"
+    "path": "/demo/video/upload/so_soon,f_jpg/dog.mp4"
+  },
+  "video_thumbnail_best": {
+    "path": "/demo/video/upload/so_auto,w_300,f_webp/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "webp"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit",
+            "Width": {
+              "Px": 300
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "video_thumbnail_fetch": {
+    "path": "/demo/video/fetch/so_3,f_auto/https://example.com/dog.webm",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {
+          "Video": {
+            "Second": 3
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/dog.webm"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/dog.webm"
+  },
+  "video_thumbnail_percent": {
+    "path": "/demo/video/upload/so_10p,f_jpg/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "so",
+          "Reason": "unsupported"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
   }
 }

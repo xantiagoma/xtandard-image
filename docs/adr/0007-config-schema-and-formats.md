@@ -1,6 +1,6 @@
 # ADR 0007: Config JSON Schema, multi-format config files, `config schema` / `config validate`
 
-- Status: accepted; decisions 1–5, 7 and the self-serving part of 6 implemented by WP-81 (see "Implementation notes"); publishing (rest of 6) is WP-81b
+- Status: accepted; decisions 1–5, 7 and the self-serving part of 6 implemented by WP-81; publishing (rest of 6) implemented by WP-81b (see "Implementation notes"), live once the owner enables Pages
 - Date: 2026-09-26
 - Amended: 2026-09-26, with the owner's answers to ROADMAP open questions 9 (schema URL and self-serving) and 11 (secret file references)
 
@@ -111,3 +111,14 @@ The config file (`--config` / `XI_CONFIG_FILE`, CONFIG.md §1) is YAML only toda
 - `presets` names use the loader's own rule, `^[^:/]+$`, instead of the source-name pattern, so the schema never rejects a preset name the loader accepts.
 - `--config /dev/null` keeps meaning "no file" (it skips default discovery) although it has no known extension.
 - The schema is intentionally a little stricter than the loader where editors benefit: enum values are lower case and a source must set `type` in the file.
+
+## Implementation notes (WP-81b)
+
+These amend decision 6 where the implementation chose differently; the reasons follow each point.
+
+- **The version segment is the schema major, not the release.** `$id` is `https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json` (`config.SchemaID`, pinned by `TestSchemaID`). A per-release `$id` would change the committed, embedded schema on every tag (the golden would need the version stamped at build time) and would give SchemaStore and every modeline a new URL per release. `v1` changes only when a key is removed or renamed; added keys go into `v1`. `schema/latest/…` aliases the newest major. The ROADMAP row's `/schema/<version>/…` is replaced by this.
+- **Pages follows `main`, not the latest release.** `.github/workflows/pages.yml` deploys on every push to `main` that changes the schema, the OpenAPI document, `docs/pages/**` or the build script, and on demand. So `v1` can describe a key that an older binary does not know; the exact-version answers stay the admin route, `config schema` and the raw tag URL (above). A release-gated site would need the whole site rebuilt from the last tag on each deployment, which is possible later without changing any URL.
+- **Site layout** (`scripts/pages-build.sh`, also `task pages:build` into `dist/pages/`): `index.html` (a self-contained page with links and modelines, `docs/pages/index.html`), `api/index.html` (Scalar with the admin `/docs` pin and SRI, CSP as a meta tag; `TestPagesScalarPin` keeps the pins equal), `schema/v1/{config.schema.json,openapi.json}`, `schema/latest/{…}` and `.nojekyll`. The script reads the major from the `$id` and fails on any other shape, and its output depends only on committed files.
+- **Verification:** the workflow's `verify` job fetches every published JSON file and compares it byte for byte with the committed one, then validates `docs/schemastore/tests/{positive,negative}` with Ajv (`ajv-cli@5.0.0`, draft 2020-12) against the URL their `yaml-language-server` modeline names. Ajv stands in for yaml-language-server, which has no CLI; it is also the validator SchemaStore runs. CI's `openapi` job runs the build script and the same Ajv check on the committed schema.
+- **SchemaStore:** `docs/schemastore/catalog-entry.json` (self-hosted entry, `url` = `$id`), the sample pair, and `docs/schemastore/README.md` with the PR steps. `TestSchemaStoreEntry` applies SchemaStore's catalog lint and checks the samples against the schema and the loader. `fileMatch` covers `xtandard.*` and `xtandard-image.*` (json, yaml, yml, toml; plain and dot-prefixed), spelled out because SchemaStore asks for simple patterns. The schema stays draft 2020-12: SchemaStore recommends draft-07 only for schemas it hosts. The PR waits until Pages serves the URL.
+- **CLI:** `xtandard-image openapi` prints the embedded OpenAPI document, next to `config schema`.

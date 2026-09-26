@@ -167,7 +167,10 @@ func TestGradientMaths(t *testing.T) {
 		{"up", 1, 4, "gr:1:ff0000:up", []uint8{32, 96, 159, 223}},
 		{"right", 4, 1, "gr:1:ff0000:right", []uint8{223, 159, 96, 32}},
 		{"left", 4, 1, "gr:1:ff0000:left", []uint8{32, 96, 159, 223}},
-		{"angle 180 is down", 1, 4, "gr:1:ff0000:180", []uint8{223, 159, 96, 32}},
+		// imgproxy: degrees clockwise, 0 = top → bottom, 90 = right → left.
+		{"angle 0 is down", 1, 4, "gr:1:ff0000:0", []uint8{223, 159, 96, 32}},
+		{"angle 180 is up", 1, 4, "gr:1:ff0000:180", []uint8{32, 96, 159, 223}},
+		{"angle 90 is left", 4, 1, "gr:1:ff0000:90", []uint8{32, 96, 159, 223}},
 		{"start and stop", 1, 4, "gr:1:ff0000:down:0.5:1", []uint8{255, 255, 191, 64}},
 		{"opacity", 1, 4, "gr:0.5:ff0000:down:0:0.25", []uint8{191, 127, 127, 127}},
 	} {
