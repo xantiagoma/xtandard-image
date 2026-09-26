@@ -321,6 +321,7 @@ func (c *Config) validateProcessing(v *validator) {
 	v.check(p.WatermarkOpacity >= 0 && p.WatermarkOpacity <= 1, "processing.watermark_opacity", "must be in [0, 1], got %g", p.WatermarkOpacity)
 	v.check(p.ColorProfilesDir == "" || filepath.IsAbs(p.ColorProfilesDir), "processing.color_profiles_dir", "must be an absolute path")
 	v.between(c.Fallback.Status, 200, 599, "fallback.status")
+	v.nonNegative(int64(c.Fallback.TTL), "fallback.ttl")
 	v.positive(int64(c.Vips.Concurrency), "vips.concurrency")
 	v.check(c.Vips.FailOn != "", "vips.fail_on", "must be set")
 }

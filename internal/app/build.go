@@ -368,5 +368,11 @@ func serverConfig(cfg *config.Config) server.Config {
 		},
 		CacheTagsHeader: cfg.Cache.TagsHeader,
 		DebugHeaders:    cfg.Observability.DebugHeaders,
+		Fallback: server.Fallback{
+			Source:          cfg.Fallback.Source,
+			Status:          cfg.Fallback.Status,
+			TTL:             cfg.Fallback.TTL,
+			AllowRequestURL: cfg.Fallback.AllowRequestURL,
+		},
 	}
 }
