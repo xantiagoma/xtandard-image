@@ -571,6 +571,53 @@ func (img *Image) Mix(ctx context.Context, other *Image, t float64) (*Image, err
 	return img.op(ctx, "mix", rc, out, cerr)
 }
 
+// Decode unpacks coded pixels (Radiance RGBE, LabQ) to float bands
+// (vips_image_decode); an uncoded image comes back unchanged.
+func (img *Image) Decode(ctx context.Context) (*Image, error) {
+	if err := ctxError(ctx, "vips: decode"); err != nil {
+		return nil, err
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_decode(img.p, &out, &cerr)
+	return img.op(ctx, "decode", rc, out, cerr)
+}
+
+// Clamp limits every band to [lo, hi] (vips_clamp); the band format is kept.
+func (img *Image) Clamp(ctx context.Context, lo, hi float64) (*Image, error) {
+	if err := ctxError(ctx, "vips: clamp"); err != nil {
+		return nil, err
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_clamp(img.p, C.double(lo), C.double(hi), &out, &cerr)
+	return img.op(ctx, "clamp", rc, out, cerr)
+}
+
+// Multiply is img × other per pixel and band (vips_multiply); float inputs
+// give float.
+func (img *Image) Multiply(ctx context.Context, other *Image) (*Image, error) {
+	if err := ctxError(ctx, "vips: multiply"); err != nil {
+		return nil, err
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_multiply(img.p, other.p, &out, &cerr)
+	return img.op(ctx, "multiply", rc, out, cerr)
+}
+
+// Divide is img / other per pixel and band as float (vips_divide; x / 0 is
+// 0).
+func (img *Image) Divide(ctx context.Context, other *Image) (*Image, error) {
+	if err := ctxError(ctx, "vips: divide"); err != nil {
+		return nil, err
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_divide(img.p, other.p, &out, &cerr)
+	return img.op(ctx, "divide", rc, out, cerr)
+}
+
 // GradientMask returns a one-band uchar width×height image whose pixel
 // (x, y) is round(opacity × clamp(ax·x + ay·y + b, 0, 255)): a linear ramp
 // for gradient overlays.

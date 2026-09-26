@@ -131,6 +131,10 @@ int xi_load_with(const char *loader, VipsBlob *blob, const XiLoadOptions *o, Vip
 // import_profile and export_profile may be NULL (none); they are copied.
 int xi_thumbnail(VipsBlob *blob, const XiThumbnailOptions *o, const char *import_profile,
     const char *export_profile, VipsImage **out, char **err);
+// xi_spool_source returns the source blob data of a live OpenEXR spool path
+// (load.c), or NULL; the invalidate hook (shim.c) attributes decode
+// failures with it.
+const void *xi_spool_source(const char *path);
 int xi_black(int width, int height, int bands, VipsImage **out, char **err);
 int xi_new_from_memory(const void *data, size_t size, int width, int height, int bands,
     int band_format, VipsImage **out, char **err);
@@ -305,6 +309,12 @@ int xi_unsharp(VipsImage *in, double sigma, double amount, VipsImage **out, char
 int xi_insert(VipsImage *main, VipsImage *sub, int x, int y, VipsImage **out, char **err);
 int xi_blend_mask(VipsImage *mask, VipsImage *a, VipsImage *b, VipsImage **out,
     char **err);
+
+// HDR operations (WP-67): float arithmetic for tone mapping.
+int xi_decode(VipsImage *in, VipsImage **out, char **err); // Radiance/LabQ coding → float
+int xi_clamp(VipsImage *in, double min, double max, VipsImage **out, char **err);
+int xi_multiply(VipsImage *a, VipsImage *b, VipsImage **out, char **err);
+int xi_divide(VipsImage *a, VipsImage *b, VipsImage **out, char **err);
 
 // ---- save (save.c) -----------------------------------------------------
 //

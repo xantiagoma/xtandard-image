@@ -343,6 +343,18 @@ func (*Image) Recomb(context.Context, []float64, int) (*Image, error) { return n
 // Mix fails.
 func (*Image) Mix(context.Context, *Image, float64) (*Image, error) { return nil, ErrUnavailable }
 
+// Decode fails.
+func (*Image) Decode(context.Context) (*Image, error) { return nil, ErrUnavailable }
+
+// Clamp fails.
+func (*Image) Clamp(context.Context, float64, float64) (*Image, error) { return nil, ErrUnavailable }
+
+// Multiply fails.
+func (*Image) Multiply(context.Context, *Image) (*Image, error) { return nil, ErrUnavailable }
+
+// Divide fails.
+func (*Image) Divide(context.Context, *Image) (*Image, error) { return nil, ErrUnavailable }
+
 // GradientMask fails.
 func GradientMask(context.Context, int, int, float64, float64, float64, float64) (*Image, error) {
 	return nil, ErrUnavailable
