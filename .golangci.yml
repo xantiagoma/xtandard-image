@@ -168,18 +168,16 @@ linters:
         # ARCHITECTURE §3: config imports nothing internal except errs.
         config:
           files: ["**/internal/config/**"]
+          # strict: the allow list is exhaustive, so config imports only internal/errs (ARCHITECTURE §3)
+          list-mode: strict
           allow: [$gostd, github.com/xantiagoma/xtandard-image/internal/errs, github.com/caarlos0/env, github.com/goccy/go-yaml]
-          deny:
-            - pkg: github.com/xantiagoma/xtandard-image/internal
-              desc: config imports only internal/errs (ARCHITECTURE §3)
 
         # ARCHITECTURE §3: security/* → errs only.
         security:
           files: ["**/internal/security/**"]
+          # strict: the allow list is exhaustive, so security packages import only internal/errs (ARCHITECTURE §3)
+          list-mode: strict
           allow: [$gostd, golang.org/x/crypto, golang.org/x/net, github.com/xantiagoma/xtandard-image/internal/errs, github.com/xantiagoma/xtandard-image/internal/security]
-          deny:
-            - pkg: github.com/xantiagoma/xtandard-image/internal
-              desc: security packages import only internal/errs (ARCHITECTURE §3)
 
         # ARCHITECTURE §3: dialects never touch sources, fetching, vips or the pipeline.
         dialect:
