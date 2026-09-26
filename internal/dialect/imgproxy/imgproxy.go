@@ -10,6 +10,9 @@
 //	/%signature/%options.../%base64url_source_url[.%extension]  (may be split with "/")
 //	/%signature/%options.../enc/%aes_cbc_source[.%extension]    (may be split with "/")
 //
+// ParseInfo parses the /info variant of the same grammar with the info
+// option set of §3.3 (info.go).
+//
 // Options are "name" + separator + args joined by the separator (":" by
 // default); a path segment that is exactly "-" starts a chained pipeline.
 // Pipeline-scoped options (resize, crop, effects, watermark, ...) apply to
@@ -159,6 +162,10 @@ func (p *Parser) Parse(in *dialect.Input) (*dialect.Result, error) {
 // ParsePath parses an escaped request path such as
 // "/unsafe/rs:fit:300:300/plain/https://example.com/a.jpg".
 func (p *Parser) ParsePath(path string) (*dialect.Result, error) {
+	return p.parsePath(path, false)
+}
+
+func (p *Parser) parsePath(path string, info bool) (*dialect.Result, error) {
 	path, _, _ = strings.Cut(path, "?")
 	path = strings.TrimPrefix(path, "/")
 	signature, rest, _ := strings.Cut(path, "/")
@@ -175,7 +182,7 @@ func (p *Parser) ParsePath(path string) (*dialect.Result, error) {
 		return nil, err
 	}
 
-	st := newState(p)
+	st := newState(p, info)
 	if err := st.parse(rest); err != nil {
 		return nil, err
 	}
@@ -242,15 +249,23 @@ type state struct {
 	bgAlpha []float64
 	// args is scratch space for splitting option arguments.
 	args []string
+	// info selects the /info option grammar (info.go).
+	info bool
 }
 
-func newState(p *Parser) *state {
-	return &state{
+func newState(p *Parser, info bool) *state {
+	st := &state{
 		p:       p,
 		r:       &transform.Request{Dialect: Name, Pipelines: make([]transform.Pipeline, 1)},
 		bgAlpha: []float64{-1},
 		args:    make([]string, 0, 8),
+		info:    info,
 	}
+	if info {
+		st.r.Kind = transform.KindInfo
+		st.r.Info = defaultInfo()
+	}
+	return st
 }
 
 func (st *state) pipeline() *transform.Pipeline { return &st.r.Pipelines[st.cur] }
@@ -258,14 +273,17 @@ func (st *state) pipeline() *transform.Pipeline { return &st.r.Pipelines[st.cur]
 // parse consumes the options and the source of rest (the path after the
 // signature, without a leading slash).
 func (st *state) parse(rest string) error {
-	rest, err := st.presetPrologue(rest)
-	if err != nil {
-		return err
+	// The default preset and only-presets mode concern processing URLs.
+	if !st.info {
+		var err error
+		if rest, err = st.presetPrologue(rest); err != nil {
+			return err
+		}
 	}
-	if first, _, _ := strings.Cut(rest, "/"); isResizingType(first) {
+	if first, _, _ := strings.Cut(rest, "/"); !st.info && isResizingType(first) {
 		return dialect.InvalidURL("deprecated basic url format")
 	}
-	rest, err = st.parseOptions(rest)
+	rest, err := st.parseOptions(rest)
 	if err != nil {
 		return err
 	}
@@ -273,7 +291,10 @@ func (st *state) parse(rest string) error {
 	if err != nil {
 		return err
 	}
-	if ext != "" && st.r.Kind != transform.KindRaw {
+	switch {
+	case ext != "" && st.info:
+		st.ignore("extension", reasonNotApplicable)
+	case ext != "" && st.r.Kind != transform.KindRaw:
 		if err := st.format("extension", ext); err != nil {
 			return err
 		}
@@ -289,6 +310,9 @@ func (st *state) parseOptions(rest string) (string, error) {
 	for rest != "" {
 		seg, tail, _ := strings.Cut(rest, "/")
 		if seg == "-" {
+			if st.info {
+				return "", dialect.InvalidURL("chained pipelines in info url")
+			}
 			if !sawOption {
 				return "", dialect.InvalidURL("empty pipeline")
 			}
@@ -304,7 +328,11 @@ func (st *state) parseOptions(rest string) (string, error) {
 			break
 		}
 		st.args = splitArgs(st.args[:0], argStr, st.p.sep)
-		if err := st.apply(name, st.args); err != nil {
+		apply := st.apply
+		if st.info {
+			apply = st.applyInfo
+		}
+		if err := apply(name, st.args); err != nil {
 			return "", err
 		}
 		sawOption = true
@@ -346,6 +374,9 @@ func (st *state) finish() error {
 		if len(pl.Watermarks) > 0 && pl.Watermarks[0].Opacity == 0 {
 			pl.Watermarks = nil
 		}
+	}
+	if err := finishLater(st.r); err != nil {
+		return err
 	}
 	if e := st.r.Delivery.Expires; !e.IsZero() && e.Before(st.p.o.Now()) {
 		return dialect.Expired()

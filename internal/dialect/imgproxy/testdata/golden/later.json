@@ -1,0 +1,4052 @@
+{
+  "a_brightness_out_of_range": {
+    "error": {
+      "field": "adjust.brightness",
+      "kind": "invalid_url",
+      "public": "invalid adjust.brightness: expected number in range -255 to 255",
+      "status": 400
+    },
+    "path": "/unsafe/a:300/plain/https://example.com/a.jpg"
+  },
+  "a_identity": {
+    "path": "/unsafe/a:0:1:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "a",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": 0,
+            "Contrast": 1,
+            "Saturation": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_partial_merge": {
+    "path": "/unsafe/a:10/a::1.5/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "a",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": 10,
+            "Contrast": 1.5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "a_too_many_args": {
+    "error": {
+      "field": "adjust",
+      "kind": "invalid_url",
+      "public": "invalid adjust: expected at most 3 arguments",
+      "status": 400
+    },
+    "path": "/unsafe/a:1:1:1:1/plain/https://example.com/a.jpg"
+  },
+  "adjust_full": {
+    "path": "/unsafe/adjust:-20:1.2:0.8/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "adjust",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": -20,
+            "Contrast": 1.2,
+            "Saturation": 0.8
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "aq_bad_allowed_error": {
+    "error": {
+      "field": "autoquality.allowed_error",
+      "kind": "invalid_url",
+      "public": "invalid autoquality.allowed_error: expected number in range 0-1",
+      "status": 400
+    },
+    "path": "/unsafe/aq:dssim::::2/plain/https://example.com/a.jpg"
+  },
+  "aq_bad_method": {
+    "error": {
+      "field": "autoquality.method",
+      "kind": "invalid_url",
+      "public": "invalid autoquality.method: expected none, size, dssim or ml",
+      "status": 400
+    },
+    "path": "/unsafe/aq:fast/plain/https://example.com/a.jpg"
+  },
+  "aq_each_method": {
+    "path": "/unsafe/aq:none/aq:ml/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "aq",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AutoQuality": {
+          "Method": "ml"
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "aq_merge": {
+    "path": "/unsafe/aq:dssim:0.02/aq:::50:80/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "aq",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AutoQuality": {
+          "Max": 80,
+          "Method": "dssim",
+          "Min": 50,
+          "Target": 0.02
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "aq_method_only": {
+    "path": "/unsafe/aq:size/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "aq",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AutoQuality": {
+          "Method": "size"
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "aq_min_over_max": {
+    "error": {
+      "field": "autoquality.min_quality",
+      "kind": "invalid_url",
+      "public": "invalid autoquality.min_quality: expected min_quality \u003c= max_quality",
+      "status": 400
+    },
+    "path": "/unsafe/aq:size::90:60/plain/https://example.com/a.jpg"
+  },
+  "autoquality_full": {
+    "path": "/unsafe/autoquality:dssim:0.02:60:90:0.001/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "autoquality",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AutoQuality": {
+          "AllowedError": 0.001,
+          "Max": 90,
+          "Method": "dssim",
+          "Min": 60,
+          "Target": 0.02
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "avif_options_on": {
+    "path": "/unsafe/avif_options:on/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "avif_options",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AVIF": {
+          "Subsample": "4:2:0"
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "avifo_auto": {
+    "path": "/unsafe/avifo:auto/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "avifo",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AVIF": {}
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "avifo_bad": {
+    "error": {
+      "field": "avif_options.subsample",
+      "kind": "invalid_url",
+      "public": "invalid avif_options.subsample: expected auto, on or off",
+      "status": 400
+    },
+    "path": "/unsafe/avifo:444/plain/https://example.com/a.jpg"
+  },
+  "avifo_off": {
+    "path": "/unsafe/avifo:off/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "avifo",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AVIF": {
+          "Subsample": "4:4:4"
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "ba_incomplete_area": {
+    "error": {
+      "field": "blur_areas",
+      "kind": "invalid_url",
+      "public": "invalid blur_areas: expected sigma followed by left:top:width:height groups",
+      "status": 400
+    },
+    "path": "/unsafe/ba:5:0:0:1/plain/https://example.com/a.jpg"
+  },
+  "ba_out_of_range": {
+    "error": {
+      "field": "blur_areas.width",
+      "kind": "invalid_url",
+      "public": "invalid blur_areas.width: expected number in range 0-1",
+      "status": 400
+    },
+    "path": "/unsafe/ba:5:0:0:1.5:1/plain/https://example.com/a.jpg"
+  },
+  "ba_two_areas": {
+    "path": "/unsafe/ba:10:0.1:0.1:0.2:0.2:0.5:0.5:0.25:0.25/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "ba",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "BlurAreas": {
+            "Areas": [
+              {
+                "Height": 0.2,
+                "Left": 0.1,
+                "Top": 0.1,
+                "Width": 0.2
+              },
+              {
+                "Height": 0.25,
+                "Left": 0.5,
+                "Top": 0.5,
+                "Width": 0.25
+              }
+            ],
+            "Sigma": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "ba_zero_sigma_off": {
+    "path": "/unsafe/ba:5:0:0:1:1/ba:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "ba",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bc_false": {
+    "path": "/unsafe/bc:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "bc",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bd_classes": {
+    "path": "/unsafe/bd:5:face:license_plate/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "bd",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "BlurDetections": {
+            "Classes": [
+              "face",
+              "license_plate"
+            ],
+            "Sigma": 5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bd_empty_class": {
+    "error": {
+      "field": "blur_detections.classes",
+      "kind": "invalid_url",
+      "public": "invalid blur_detections.classes: expected non-empty string",
+      "status": 400
+    },
+    "path": "/unsafe/bd:5::face/plain/https://example.com/a.jpg"
+  },
+  "bd_zero_off": {
+    "path": "/unsafe/bd:5:face/bd:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "bd",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "blur_areas": {
+    "path": "/unsafe/blur_areas:5:0:0:0.5:0.5/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "blur_areas",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "BlurAreas": {
+            "Areas": [
+              {
+                "Height": 0.5,
+                "Width": 0.5
+              }
+            ],
+            "Sigma": 5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "blur_detections": {
+    "path": "/unsafe/blur_detections:10/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "blur_detections",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "BlurDetections": {
+            "Sigma": 10
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "br": {
+    "path": "/unsafe/br:12.5/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "br",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": 12.5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "br_out_of_range": {
+    "error": {
+      "field": "brightness",
+      "kind": "invalid_url",
+      "public": "invalid brightness: expected number in range -255 to 255",
+      "status": 400
+    },
+    "path": "/unsafe/br:256/plain/https://example.com/a.jpg"
+  },
+  "brightness": {
+    "path": "/unsafe/brightness:-255/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "brightness",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": -255
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "bypass_cache": {
+    "path": "/unsafe/bypass_cache:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Delivery": {
+        "BypassCache": true
+      },
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "bypass_cache",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "c_obj_classes": {
+    "path": "/unsafe/c_obj:1:face/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "c_obj",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "CropObjects": {
+            "Classes": [
+              "face"
+            ],
+            "Scale": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "c_obj_negative": {
+    "error": {
+      "field": "crop_objects.scale_factor",
+      "kind": "invalid_url",
+      "public": "invalid crop_objects.scale_factor: expected number in range 0 to 1000",
+      "status": 400
+    },
+    "path": "/unsafe/c_obj:-1/plain/https://example.com/a.jpg"
+  },
+  "c_obj_zero_off": {
+    "path": "/unsafe/c_obj:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "c_obj",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "cache_tags": {
+    "path": "/unsafe/cache_tags:product-1:catalog/plain/https://example.com/a.jpg",
+    "request": {
+      "Delivery": {
+        "CacheTags": [
+          "product-1",
+          "catalog"
+        ]
+      },
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "cache_tags",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "car_before_crop_kept": {
+    "path": "/unsafe/car:2:t/c:0.5:0.5/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "car",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Crop": {
+            "AspectEnlarge": true,
+            "AspectRatio": 2,
+            "Height": {
+              "Rel": 0.5
+            },
+            "Width": {
+              "Rel": 0.5
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "car_empty_ratio_keeps": {
+    "path": "/unsafe/car:2/car::1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "car",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Crop": {
+            "AspectEnlarge": true,
+            "AspectRatio": 2
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "car_negative": {
+    "error": {
+      "field": "crop_aspect_ratio.aspect_ratio",
+      "kind": "invalid_url",
+      "public": "invalid crop_aspect_ratio.aspect_ratio: expected number in range 0 to 1000",
+      "status": 400
+    },
+    "path": "/unsafe/car:-1/plain/https://example.com/a.jpg"
+  },
+  "car_too_many_args": {
+    "error": {
+      "field": "crop_aspect_ratio",
+      "kind": "invalid_url",
+      "public": "invalid crop_aspect_ratio: expected at most 2 arguments",
+      "status": 400
+    },
+    "path": "/unsafe/car:1:1:1/plain/https://example.com/a.jpg"
+  },
+  "co_negative": {
+    "error": {
+      "field": "contrast",
+      "kind": "invalid_url",
+      "public": "invalid contrast: expected number in range 0 to 1000",
+      "status": 400
+    },
+    "path": "/unsafe/co:-1/plain/https://example.com/a.jpg"
+  },
+  "col_bad_keep_alpha": {
+    "error": {
+      "field": "colorize.keep_alpha",
+      "kind": "invalid_url",
+      "public": "invalid colorize.keep_alpha: expected boolean (1, t, true, 0, f, false)",
+      "status": 400
+    },
+    "path": "/unsafe/col:0.3::x/plain/https://example.com/a.jpg"
+  },
+  "col_full": {
+    "path": "/unsafe/col:1:00ff00:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "col",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Colorize": {
+            "Color": {
+              "A": 255,
+              "G": 255
+            },
+            "KeepAlpha": true,
+            "Opacity": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "col_keep_alpha_only": {
+    "path": "/unsafe/col:0.3::t/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "col",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Colorize": {
+            "Color": {
+              "A": 255
+            },
+            "KeepAlpha": true,
+            "Opacity": 0.3
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "color_profile_srgb": {
+    "path": "/unsafe/color_profile:srgb/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "color_profile",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "ColorProfile": "srgb"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "colorize": {
+    "path": "/unsafe/colorize:0.5/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "colorize",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Colorize": {
+            "Color": {
+              "A": 255
+            },
+            "Opacity": 0.5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "contrast": {
+    "path": "/unsafe/contrast:2/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "contrast",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Contrast": 2
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "cp_bad_escape": {
+    "error": {
+      "field": "color_profile",
+      "kind": "invalid_url",
+      "public": "invalid color_profile: expected srgb, cmyk or an ICC file name",
+      "status": 400
+    },
+    "path": "/unsafe/cp:%zz/plain/https://example.com/a.jpg"
+  },
+  "cp_cleared": {
+    "path": "/unsafe/cp:srgb/cp:/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "cp",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "cp_cmyk": {
+    "path": "/unsafe/cp:cmyk/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "cp",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "ColorProfile": "cmyk"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "cp_dotdot_rejected": {
+    "error": {
+      "field": "color_profile",
+      "kind": "invalid_url",
+      "public": "invalid color_profile: expected srgb, cmyk or an ICC file name",
+      "status": 400
+    },
+    "path": "/unsafe/cp:../plain/https://example.com/a.jpg"
+  },
+  "cp_path_rejected": {
+    "error": {
+      "field": "color_profile",
+      "kind": "invalid_url",
+      "public": "invalid color_profile: expected srgb, cmyk or an ICC file name",
+      "status": 400
+    },
+    "path": "/unsafe/cp:..%2Fetc%2Fpasswd/plain/https://example.com/a.jpg"
+  },
+  "crop_ar_enlarge": {
+    "path": "/unsafe/c:100:200/crop_ar:1.777:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "crop_ar",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Crop": {
+            "AspectEnlarge": true,
+            "AspectRatio": 1.777,
+            "Height": {
+              "Px": 200
+            },
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_aspect_ratio": {
+    "path": "/unsafe/crop_aspect_ratio:1.5/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "crop_aspect_ratio",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Crop": {
+            "AspectRatio": 1.5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "crop_objects": {
+    "path": "/unsafe/crop_objects:1.2/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "crop_objects",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "CropObjects": {
+            "Scale": 1.2
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "ct_cleared": {
+    "path": "/unsafe/ct:a/ct:/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "ct",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "ct_comma": {
+    "error": {
+      "field": "cache_tags",
+      "kind": "invalid_url",
+      "public": "invalid cache_tags: expected non-empty tag of visible ASCII without commas",
+      "status": 400
+    },
+    "path": "/unsafe/ct:a,b/plain/https://example.com/a.jpg"
+  },
+  "ct_empty_tag": {
+    "error": {
+      "field": "cache_tags",
+      "kind": "invalid_url",
+      "public": "invalid cache_tags: expected non-empty tag of visible ASCII without commas",
+      "status": 400
+    },
+    "path": "/unsafe/ct:a::b/plain/https://example.com/a.jpg"
+  },
+  "ct_replaces": {
+    "path": "/unsafe/ct:a:b/ct:c/plain/https://example.com/a.jpg",
+    "request": {
+      "Delivery": {
+        "CacheTags": [
+          "c"
+        ]
+      },
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "ct",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "ct_too_many": {
+    "error": {
+      "field": "cache_tags",
+      "kind": "invalid_url",
+      "public": "invalid cache_tags: expected at most 64 entries",
+      "status": 400
+    },
+    "path": "/unsafe/ct:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t:t/plain/https://example.com/a.jpg"
+  },
+  "dd_bad": {
+    "error": {
+      "field": "draw_detections.draw",
+      "kind": "invalid_url",
+      "public": "invalid draw_detections.draw: expected boolean (1, t, true, 0, f, false)",
+      "status": 400
+    },
+    "path": "/unsafe/dd:maybe/plain/https://example.com/a.jpg"
+  },
+  "dd_classes": {
+    "path": "/unsafe/dd:t:cat:dog/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "dd",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "DrawDetections": {
+            "Classes": [
+              "cat",
+              "dog"
+            ]
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "dd_false_off": {
+    "path": "/unsafe/dd:1/dd:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "dd",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "dpi": {
+    "path": "/unsafe/dpi:300/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "dpi",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "DPI": 300
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "dpi_float": {
+    "error": {
+      "field": "dpi",
+      "kind": "invalid_url",
+      "public": "invalid dpi: expected integer in range 0 to 10000",
+      "status": 400
+    },
+    "path": "/unsafe/dpi:72.5/plain/https://example.com/a.jpg"
+  },
+  "dpi_too_large": {
+    "error": {
+      "field": "dpi",
+      "kind": "invalid_url",
+      "public": "invalid dpi: expected integer in range 0 to 10000",
+      "status": 400
+    },
+    "path": "/unsafe/dpi:100000/plain/https://example.com/a.jpg"
+  },
+  "dpi_zero_resets": {
+    "path": "/unsafe/dpi:300/dpi:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "dpi",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "draw_detections": {
+    "path": "/unsafe/draw_detections:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "draw_detections",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "DrawDetections": {}
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "dt_colors": {
+    "path": "/unsafe/dt:1:112233:ddeeff/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "dt",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Duotone": {
+            "Highlight": {
+              "A": 255,
+              "B": 255,
+              "G": 238,
+              "R": 221
+            },
+            "Intensity": 1,
+            "Shadow": {
+              "A": 255,
+              "B": 51,
+              "G": 34,
+              "R": 17
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "dt_merge_color2": {
+    "path": "/unsafe/dt:1:112233/dt:::abcdef/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "dt",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Duotone": {
+            "Highlight": {
+              "A": 255,
+              "B": 239,
+              "G": 205,
+              "R": 171
+            },
+            "Intensity": 1,
+            "Shadow": {
+              "A": 255,
+              "B": 51,
+              "G": 34,
+              "R": 17
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "dt_too_many_args": {
+    "error": {
+      "field": "duotone",
+      "kind": "invalid_url",
+      "public": "invalid duotone: expected at most 3 arguments",
+      "status": 400
+    },
+    "path": "/unsafe/dt:1:0:0:0/plain/https://example.com/a.jpg"
+  },
+  "duotone": {
+    "path": "/unsafe/duotone:0.7/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "duotone",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Duotone": {
+            "Highlight": {
+              "A": 255,
+              "B": 255,
+              "G": 255,
+              "R": 255
+            },
+            "Intensity": 0.7,
+            "Shadow": {
+              "A": 255
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "every_later_pipeline_option": {
+    "path": "/unsafe/car:1/op:ce/a:1:1.1:0.9/br:5/co:1.1/sa:0.9/mc:0.1/dt:0.2/col:0.3/gr:0.4/ush:auto/ba:1:0:0:1:1/pbl:2/bd:3/dd:1/c_obj:1/wm:1/wmu:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/wms:10:10/wmr:10/wmsh:1/stl:YXt9/vts:1/vtk:1/vtt:1:1:1:1:1/vta:1:1:1:1:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "car",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "op",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "a",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "br",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "co",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "sa",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "mc",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "dt",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "col",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "gr",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "ush",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "ba",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "pbl",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "bd",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "dd",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "c_obj",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "wmu",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "wms",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "wmr",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "wmsh",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "stl",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "vts",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "vtk",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "vtt",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "vta",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": 5,
+            "Contrast": 1.1,
+            "Saturation": 0.9
+          },
+          "BlurAreas": {
+            "Areas": [
+              {
+                "Height": 1,
+                "Width": 1
+              }
+            ],
+            "Sigma": 1
+          },
+          "BlurDetections": {
+            "Sigma": 3
+          },
+          "Colorize": {
+            "Color": {
+              "A": 255
+            },
+            "Opacity": 0.3
+          },
+          "Crop": {
+            "AspectRatio": 1
+          },
+          "CropObjects": {
+            "Scale": 1
+          },
+          "DrawDetections": {},
+          "Duotone": {
+            "Highlight": {
+              "A": 255,
+              "B": 255,
+              "G": 255,
+              "R": 255
+            },
+            "Intensity": 0.2,
+            "Shadow": {
+              "A": 255
+            }
+          },
+          "Gradient": {
+            "Color": {
+              "A": 255
+            },
+            "Opacity": 0.4,
+            "Stop": 1
+          },
+          "Gravity": {
+            "ObjectsPosition": {
+              "Type": "center"
+            }
+          },
+          "Monochrome": {
+            "Color": {
+              "A": 255,
+              "B": 179,
+              "G": 179,
+              "R": 179
+            },
+            "Intensity": 0.1
+          },
+          "ProgressiveBlur": {
+            "Sigma": 2,
+            "Stop": 1
+          },
+          "SVGStyle": "a{}",
+          "Unsharp": {
+            "Mode": "auto"
+          },
+          "Video": {
+            "Animation": {
+              "Delay": 0.001,
+              "FocusX": 0.5,
+              "FocusY": 0.5,
+              "FrameHeight": 1,
+              "FrameWidth": 1,
+              "Frames": 1,
+              "Step": 1
+            },
+            "Keyframes": true,
+            "Second": 1,
+            "Tile": {
+              "Columns": 1,
+              "FocusX": 0.5,
+              "FocusY": 0.5,
+              "Rows": 1,
+              "Step": 1,
+              "TileHeight": 1,
+              "TileWidth": 1
+            }
+          },
+          "Watermarks": [
+            {
+              "Height": 10,
+              "Opacity": 1,
+              "Rotate": 10,
+              "Shadow": 1,
+              "Source": {
+                "Encoding": "base64",
+                "Raw": "https://example.com/logo.png"
+              },
+              "Width": 10
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "every_later_request_option": {
+    "path": "/unsafe/dpi:72/cp:srgb/aq:size/jpgo:1/pngo:1/webpo:lossy/avifo:on/fiu:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/bc:1/ct:x/hs:none/plain/https://example.com/a.jpg",
+    "request": {
+      "Delivery": {
+        "BypassCache": true,
+        "CacheTags": [
+          "x"
+        ],
+        "Fallback": {
+          "Encoding": "base64",
+          "Raw": "https://example.com/logo.png"
+        }
+      },
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "dpi",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "cp",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "aq",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "jpgo",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "pngo",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "webpo",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "avifo",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "fiu",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "bc",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "ct",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "hs",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AVIF": {
+          "Subsample": "4:2:0"
+        },
+        "AutoQuality": {
+          "Method": "size"
+        },
+        "ColorProfile": "srgb",
+        "DPI": 72,
+        "JPEG": {
+          "Progressive": true
+        },
+        "PNG": {
+          "Interlaced": true
+        },
+        "WebP": {
+          "Compression": "lossy"
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fallback_image_url": {
+    "path": "/unsafe/fallback_image_url:aHR0cHM6Ly9leGFtcGxlLmNvbS80MDQucG5n/plain/https://example.com/a.jpg",
+    "request": {
+      "Delivery": {
+        "Fallback": {
+          "Encoding": "base64",
+          "Raw": "https://example.com/404.png"
+        }
+      },
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "fallback_image_url",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "fiu_bad": {
+    "error": {
+      "field": "fallback_image_url",
+      "kind": "invalid_url",
+      "public": "invalid fallback_image_url: expected url-safe base64 source url",
+      "status": 400
+    },
+    "path": "/unsafe/fiu:%%%/plain/https://example.com/a.jpg"
+  },
+  "fiu_cleared": {
+    "path": "/unsafe/fiu:eA/fiu:/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "fiu",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "format_best": {
+    "path": "/unsafe/f:best/aq:dssim/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "format:best",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "aq",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "AutoQuality": {
+          "Method": "dssim"
+        },
+        "Format": "best"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "gr_angle": {
+    "path": "/unsafe/gr:0.8::45/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "gr",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gradient": {
+            "Angle": 45,
+            "Color": {
+              "A": 255
+            },
+            "Direction": "angle",
+            "Opacity": 0.8,
+            "Stop": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "gr_angle_out_of_range": {
+    "error": {
+      "field": "gradient.direction",
+      "kind": "invalid_url",
+      "public": "invalid gradient.direction: expected down, up, left, right or an angle in degrees",
+      "status": 400
+    },
+    "path": "/unsafe/gr:1::400/plain/https://example.com/a.jpg"
+  },
+  "gr_bad_direction": {
+    "error": {
+      "field": "gradient.direction",
+      "kind": "invalid_url",
+      "public": "invalid gradient.direction: expected down, up, left, right or an angle in degrees",
+      "status": 400
+    },
+    "path": "/unsafe/gr:1::sideways/plain/https://example.com/a.jpg"
+  },
+  "gr_bad_stop": {
+    "error": {
+      "field": "gradient.stop",
+      "kind": "invalid_url",
+      "public": "invalid gradient.stop: expected number in range 0-1",
+      "status": 400
+    },
+    "path": "/unsafe/gr:1:::0:2/plain/https://example.com/a.jpg"
+  },
+  "gr_each_direction": {
+    "path": "/unsafe/gr:1::left/gr:1::right/gr:1::down/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "gr",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gradient": {
+            "Color": {
+              "A": 255
+            },
+            "Opacity": 1,
+            "Stop": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "gr_full": {
+    "path": "/unsafe/gr:1:ff0000:up:0.2:0.9/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "gr",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gradient": {
+            "Color": {
+              "A": 255,
+              "R": 255
+            },
+            "Direction": "up",
+            "Opacity": 1,
+            "Start": 0.2,
+            "Stop": 0.9
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "gradient": {
+    "path": "/unsafe/gradient:0.5/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "gradient",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gradient": {
+            "Color": {
+              "A": 255
+            },
+            "Opacity": 0.5,
+            "Stop": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "hashsum_sha256": {
+    "path": "/unsafe/hashsum:sha256:abababababababababababababababababababababababababababababababab/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "hashsum",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Hashsum": {
+          "Algorithm": "sha256",
+          "Digest": "abababababababababababababababababababababababababababababababab"
+        },
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "hdr_thumbnail_pages": {
+    "path": "/unsafe/ph:1/eth:1/pg:1/pgs:2/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "ph",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "eth",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "pg",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "pgs",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "EnforceThumbnail": true,
+        "PreserveHDR": true
+      },
+      "Pipelines": [
+        {
+          "Page": 1,
+          "Pages": 2
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "hs_bad_type": {
+    "error": {
+      "field": "hashsum.type",
+      "kind": "invalid_url",
+      "public": "invalid hashsum.type: expected none, md5, sha1, sha256 or sha512",
+      "status": 400
+    },
+    "path": "/unsafe/hs:crc32:00000000/plain/https://example.com/a.jpg"
+  },
+  "hs_kept_with_base64_source": {
+    "path": "/unsafe/hs:md5:11111111111111111111111111111111/aHR0cHM6Ly9leGFtcGxlLmNvbS9hLmpwZw.png",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "hs",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "base64",
+        "Hashsum": {
+          "Algorithm": "md5",
+          "Digest": "11111111111111111111111111111111"
+        },
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "hs_md5_uppercase": {
+    "path": "/unsafe/hs:md5:ABABABABABABABABABABABABABABABAB/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "hs",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Hashsum": {
+          "Algorithm": "md5",
+          "Digest": "abababababababababababababababab"
+        },
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "hs_none_clears": {
+    "path": "/unsafe/hs:md5:00000000000000000000000000000000/hs:none/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "hs",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "hs_not_hex": {
+    "error": {
+      "field": "hashsum.hashsum",
+      "kind": "invalid_url",
+      "public": "invalid hashsum.hashsum: expected hex digest of the hashsum type",
+      "status": 400
+    },
+    "path": "/unsafe/hs:md5:gggggggggggggggggggggggggggggggg/plain/https://example.com/a.jpg"
+  },
+  "hs_sha1": {
+    "path": "/unsafe/hs:sha1:0000000000000000000000000000000000000000/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "hs",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Hashsum": {
+          "Algorithm": "sha1",
+          "Digest": "0000000000000000000000000000000000000000"
+        },
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "hs_sha512": {
+    "path": "/unsafe/hs:sha512:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "hs",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Hashsum": {
+          "Algorithm": "sha512",
+          "Digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "hs_wrong_length": {
+    "error": {
+      "field": "hashsum.hashsum",
+      "kind": "invalid_url",
+      "public": "invalid hashsum.hashsum: expected hex digest of the hashsum type",
+      "status": 400
+    },
+    "path": "/unsafe/hs:md5:00/plain/https://example.com/a.jpg"
+  },
+  "icc_file": {
+    "path": "/unsafe/icc:Display%20P3.icc/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "icc",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "ColorProfile": "Display P3.icc"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "jpeg_options_full": {
+    "path": "/unsafe/jpeg_options:1:0:1:1:1:3/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "jpeg_options",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "JPEG": {
+          "NoSubsample": false,
+          "OptimizeScans": true,
+          "OvershootDeringing": true,
+          "Progressive": true,
+          "QuantTable": 3,
+          "TrellisQuant": true
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "jpgo_bad_bool": {
+    "error": {
+      "field": "jpeg_options.progressive",
+      "kind": "invalid_url",
+      "public": "invalid jpeg_options.progressive: expected boolean (1, t, true, 0, f, false)",
+      "status": 400
+    },
+    "path": "/unsafe/jpgo:x/plain/https://example.com/a.jpg"
+  },
+  "jpgo_bad_quant_table": {
+    "error": {
+      "field": "jpeg_options.quant_table",
+      "kind": "invalid_url",
+      "public": "invalid jpeg_options.quant_table: expected integer in range 0 to 8",
+      "status": 400
+    },
+    "path": "/unsafe/jpgo::::::9/plain/https://example.com/a.jpg"
+  },
+  "jpgo_merge": {
+    "path": "/unsafe/jpgo:1/jpgo::1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "jpgo",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "JPEG": {
+          "NoSubsample": true,
+          "Progressive": true
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "jpgo_progressive": {
+    "path": "/unsafe/jpgo:t/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "jpgo",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "JPEG": {
+          "Progressive": true
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "jpgo_quant_table_only": {
+    "path": "/unsafe/jpgo::::::8/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "jpgo",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "JPEG": {
+          "QuantTable": 8
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "later_chained_pipelines": {
+    "path": "/unsafe/a:10/mc:0.5/-/dt:1/ush:auto/-/pbl:3:up/ct:x/dpi:72/plain/https://example.com/a.jpg",
+    "request": {
+      "Delivery": {
+        "CacheTags": [
+          "x"
+        ]
+      },
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "a",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "mc",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "dt",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "ush",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "pbl",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "ct",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "dpi",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "DPI": 72
+      },
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": 10
+          },
+          "Monochrome": {
+            "Color": {
+              "A": 255,
+              "B": 179,
+              "G": 179,
+              "R": 179
+            },
+            "Intensity": 0.5
+          }
+        },
+        {
+          "Duotone": {
+            "Highlight": {
+              "A": 255,
+              "B": 255,
+              "G": 255,
+              "R": 255
+            },
+            "Intensity": 1,
+            "Shadow": {
+              "A": 255
+            }
+          },
+          "Unsharp": {
+            "Mode": "auto"
+          }
+        },
+        {
+          "ProgressiveBlur": {
+            "Direction": "up",
+            "Sigma": 3,
+            "Stop": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mc_bad_color": {
+    "error": {
+      "field": "monochrome.color",
+      "kind": "invalid_url",
+      "public": "invalid monochrome.color: expected hex color (rgb or rrggbb)",
+      "status": 400
+    },
+    "path": "/unsafe/mc:1:zz/plain/https://example.com/a.jpg"
+  },
+  "mc_bad_intensity": {
+    "error": {
+      "field": "monochrome.intensity",
+      "kind": "invalid_url",
+      "public": "invalid monochrome.intensity: expected number in range 0-1",
+      "status": 400
+    },
+    "path": "/unsafe/mc:1.5/plain/https://example.com/a.jpg"
+  },
+  "mc_color": {
+    "path": "/unsafe/mc:1:ff0000/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "mc",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Monochrome": {
+            "Color": {
+              "A": 255,
+              "R": 255
+            },
+            "Intensity": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "mc_zero_off": {
+    "path": "/unsafe/mc:0.5/mc:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "mc",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "monochrome": {
+    "path": "/unsafe/monochrome:0.5/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "monochrome",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Monochrome": {
+            "Color": {
+              "A": 255,
+              "B": 179,
+              "G": 179,
+              "R": 179
+            },
+            "Intensity": 0.5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "obj_pos_fp": {
+    "path": "/unsafe/obj_pos:fp:0.2:0.8/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "obj_pos",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "ObjectsPosition": {
+              "Type": "focus-point",
+              "X": 0.2,
+              "Y": 0.8
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "objects_position_compass": {
+    "path": "/unsafe/objects_position:soea:10:0.2/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "objects_position",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "ObjectsPosition": {
+              "Type": "south-east",
+              "X": 10,
+              "Y": 0.2
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "op_bad_type": {
+    "error": {
+      "field": "objects_position.type",
+      "kind": "invalid_url",
+      "public": "invalid objects_position.type: expected ce, no, so, ea, we, noea, nowe, soea, sowe, fp or prop",
+      "status": 400
+    },
+    "path": "/unsafe/op:sm/plain/https://example.com/a.jpg"
+  },
+  "op_fp_defaults": {
+    "path": "/unsafe/op:fp/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "op",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "ObjectsPosition": {
+              "Type": "focus-point",
+              "X": 0.5,
+              "Y": 0.5
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "op_fp_out_of_range": {
+    "error": {
+      "field": "objects_position.x",
+      "kind": "invalid_url",
+      "public": "invalid objects_position.x: expected number in range 0-1",
+      "status": 400
+    },
+    "path": "/unsafe/op:fp:2:0/plain/https://example.com/a.jpg"
+  },
+  "op_kept_across_gravity": {
+    "path": "/unsafe/op:no/g:sm/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "op",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "ObjectsPosition": {
+              "Type": "north"
+            },
+            "Type": "smart"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "op_prop": {
+    "path": "/unsafe/op:prop/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "op",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Gravity": {
+            "ObjectsPosition": {
+              "Proportional": true
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "op_prop_args": {
+    "error": {
+      "field": "objects_position",
+      "kind": "invalid_url",
+      "public": "invalid objects_position: expected prop without arguments",
+      "status": 400
+    },
+    "path": "/unsafe/op:prop:1/plain/https://example.com/a.jpg"
+  },
+  "pbl_angle": {
+    "path": "/unsafe/pbl:5:-30/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "pbl",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "ProgressiveBlur": {
+            "Angle": -30,
+            "Direction": "angle",
+            "Sigma": 5,
+            "Stop": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "pbl_bad_sigma": {
+    "error": {
+      "field": "progressive_blur.sigma",
+      "kind": "invalid_url",
+      "public": "invalid progressive_blur.sigma: expected number in range 0 to 1000",
+      "status": 400
+    },
+    "path": "/unsafe/pbl:x/plain/https://example.com/a.jpg"
+  },
+  "pbl_full": {
+    "path": "/unsafe/pbl:5:right:0.1:0.6/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "pbl",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "ProgressiveBlur": {
+            "Direction": "right",
+            "Sigma": 5,
+            "Start": 0.1,
+            "Stop": 0.6
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "pbl_zero_off": {
+    "path": "/unsafe/pbl:5/pbl:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "pbl",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "png_options_full": {
+    "path": "/unsafe/png_options:1:1:64/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "png_options",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "PNG": {
+          "Interlaced": true,
+          "QuantizationColors": 64,
+          "Quantize": true
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "pngo_one_color": {
+    "error": {
+      "field": "png_options.quantization_colors",
+      "kind": "invalid_url",
+      "public": "invalid png_options.quantization_colors: expected 0 or an integer in range 2-256",
+      "status": 400
+    },
+    "path": "/unsafe/pngo:::1/plain/https://example.com/a.jpg"
+  },
+  "pngo_quantize": {
+    "path": "/unsafe/pngo::t/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "pngo",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "PNG": {
+          "Quantize": true
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "pngo_too_many_colors": {
+    "error": {
+      "field": "png_options.quantization_colors",
+      "kind": "invalid_url",
+      "public": "invalid png_options.quantization_colors: expected 0 or an integer in range 2-256",
+      "status": 400
+    },
+    "path": "/unsafe/pngo:::257/plain/https://example.com/a.jpg"
+  },
+  "progressive_blur": {
+    "path": "/unsafe/progressive_blur:10/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "progressive_blur",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "ProgressiveBlur": {
+            "Sigma": 10,
+            "Stop": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "sa": {
+    "path": "/unsafe/sa:1.25/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "sa",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Saturation": 1.25
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "sa_empty": {
+    "error": {
+      "field": "saturation",
+      "kind": "invalid_url",
+      "public": "invalid saturation: expected number in range 0 to 1000",
+      "status": 400
+    },
+    "path": "/unsafe/sa:/plain/https://example.com/a.jpg"
+  },
+  "saturation": {
+    "path": "/unsafe/saturation:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "saturation",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Saturation": 0
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "st_docs_alias": {
+    "path": "/unsafe/st:Knt9/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "st",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "SVGStyle": "*{}"
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "stl": {
+    "path": "/unsafe/stl:cGF0aHtzdHJva2U6IzAwMH0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "stl",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "SVGStyle": "path{stroke:#000}"
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "stl_bad": {
+    "error": {
+      "field": "style",
+      "kind": "invalid_url",
+      "public": "invalid style: expected url-safe base64 of UTF-8 text",
+      "status": 400
+    },
+    "path": "/unsafe/stl:***/plain/https://example.com/a.jpg"
+  },
+  "stl_cleared": {
+    "path": "/unsafe/stl:YXt9/stl:/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "stl",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "strict_gif_options_still_ignored": {
+    "config": "strict",
+    "path": "/unsafe/gifo:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "gifo",
+          "Reason": "removed upstream"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "strict_info_only_option": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/unsafe/palette:8/plain/https://example.com/a.jpg"
+  },
+  "strict_later_options_accepted": {
+    "config": "strict",
+    "path": "/unsafe/a:1/mc:0.5/vts:1/ct:x/stl:YXt9/plain/https://example.com/a.jpg",
+    "request": {
+      "Delivery": {
+        "CacheTags": [
+          "x"
+        ]
+      },
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "a",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "mc",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "vts",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "ct",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "stl",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": 1
+          },
+          "Monochrome": {
+            "Color": {
+              "A": 255,
+              "B": 179,
+              "G": 179,
+              "R": 179
+            },
+            "Intensity": 0.5
+          },
+          "SVGStyle": "a{}",
+          "Video": {
+            "Second": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "strict_unknown_rejected": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/unsafe/a:1/nonsense:1/plain/https://example.com/a.jpg"
+  },
+  "strict_unknown_single_letter": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/unsafe/x:1/plain/https://example.com/a.jpg"
+  },
+  "style": {
+    "path": "/unsafe/style:c3ZnIHsgZmlsbDogcmVkIH0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "style",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "SVGStyle": "svg { fill: red }"
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "unknown_recorded": {
+    "path": "/unsafe/a:1/nonsense:1/palette:8/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "a",
+          "Reason": "takes effect in M2"
+        },
+        {
+          "Option": "nonsense",
+          "Reason": "unknown option"
+        },
+        {
+          "Option": "palette",
+          "Reason": "unknown option"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Adjust": {
+            "Brightness": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "unsharp_masking": {
+    "path": "/unsafe/unsharp_masking:always:2:20/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "unsharp_masking",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Unsharp": {
+            "Divider": 20,
+            "Mode": "always",
+            "Weight": 2
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "ush_bad_mode": {
+    "error": {
+      "field": "unsharp_masking.mode",
+      "kind": "invalid_url",
+      "public": "invalid unsharp_masking.mode: expected auto, none or always",
+      "status": 400
+    },
+    "path": "/unsafe/ush:sometimes/plain/https://example.com/a.jpg"
+  },
+  "ush_empty": {
+    "path": "/unsafe/ush:/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "ush",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Unsharp": {}
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "ush_merge": {
+    "path": "/unsafe/ush:auto:1/ush::3/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "ush",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Unsharp": {
+            "Mode": "auto",
+            "Weight": 3
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "ush_mode_only": {
+    "path": "/unsafe/ush:none/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "ush",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Unsharp": {
+            "Mode": "none"
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "ush_negative_weight": {
+    "error": {
+      "field": "unsharp_masking.weight",
+      "kind": "invalid_url",
+      "public": "invalid unsharp_masking.weight: expected number in range 0 to 1000",
+      "status": 400
+    },
+    "path": "/unsafe/ush:auto:-1/plain/https://example.com/a.jpg"
+  },
+  "video_thumbnail_animation": {
+    "path": "/unsafe/video_thumbnail_animation:1:100:10:320:240/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "video_thumbnail_animation",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Video": {
+            "Animation": {
+              "Delay": 0.1,
+              "FocusX": 0.5,
+              "FocusY": 0.5,
+              "FrameHeight": 240,
+              "FrameWidth": 320,
+              "Frames": 10,
+              "Step": 1
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "video_thumbnail_keyframes": {
+    "path": "/unsafe/video_thumbnail_keyframes:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "video_thumbnail_keyframes",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Video": {
+            "Keyframes": true
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "video_thumbnail_second": {
+    "path": "/unsafe/video_thumbnail_second:5/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "video_thumbnail_second",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Video": {
+            "Second": 5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "video_thumbnail_tile": {
+    "path": "/unsafe/video_thumbnail_tile:1:3:2:100:50/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "video_thumbnail_tile",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Video": {
+            "Tile": {
+              "Columns": 3,
+              "FocusX": 0.5,
+              "FocusY": 0.5,
+              "Rows": 2,
+              "Step": 1,
+              "TileHeight": 50,
+              "TileWidth": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "vta_bad_delay": {
+    "error": {
+      "field": "video_thumbnail_animation.delay",
+      "kind": "invalid_url",
+      "public": "invalid video_thumbnail_animation.delay: expected number in range 0 to 2147483647",
+      "status": 400
+    },
+    "path": "/unsafe/vta:1:-5:10/plain/https://example.com/a.jpg"
+  },
+  "vta_full": {
+    "path": "/unsafe/vta:-1:40:25:0:0:1:0:1:0.5:0.1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "vta",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Video": {
+            "Animation": {
+              "Delay": 0.04,
+              "ExtendFrame": true,
+              "Fill": true,
+              "FocusX": 0.5,
+              "FocusY": 0.1,
+              "Frames": 25
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "vta_missing_frames": {
+    "error": {
+      "field": "video_thumbnail_animation.frames",
+      "kind": "invalid_url",
+      "public": "invalid video_thumbnail_animation.frames: expected integer \u003e 0 when step is not 0",
+      "status": 400
+    },
+    "path": "/unsafe/vta:1:100/plain/https://example.com/a.jpg"
+  },
+  "vta_zero_step_off": {
+    "path": "/unsafe/vta:0:100:10/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "vta",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "vtk_false": {
+    "path": "/unsafe/vtk:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "vtk",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Video": {
+            "Keyframes": false
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "vts_fraction": {
+    "path": "/unsafe/vts:2.5/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "vts",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Video": {
+            "Second": 2.5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "vts_negative": {
+    "error": {
+      "field": "video_thumbnail_second",
+      "kind": "invalid_url",
+      "public": "invalid video_thumbnail_second: expected number in range 0 to 2147483647",
+      "status": 400
+    },
+    "path": "/unsafe/vts:-1/plain/https://example.com/a.jpg"
+  },
+  "vtt_bad_focus": {
+    "error": {
+      "field": "video_thumbnail_tile.focus_x",
+      "kind": "invalid_url",
+      "public": "invalid video_thumbnail_tile.focus_x: expected number in range 0-1",
+      "status": 400
+    },
+    "path": "/unsafe/vtt:1:2:2:0:0:0:0:1:2/plain/https://example.com/a.jpg"
+  },
+  "vtt_full": {
+    "path": "/unsafe/vtt:2:4:4:0:0:1:1:1:0.25:0.75/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "vtt",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Video": {
+            "Tile": {
+              "Columns": 4,
+              "ExtendTile": true,
+              "Fill": true,
+              "FocusX": 0.25,
+              "FocusY": 0.75,
+              "Rows": 4,
+              "Step": 2,
+              "Trim": true
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "vtt_missing_rows": {
+    "error": {
+      "field": "video_thumbnail_tile.rows",
+      "kind": "invalid_url",
+      "public": "invalid video_thumbnail_tile.rows: expected integer \u003e 0 when step is not 0",
+      "status": 400
+    },
+    "path": "/unsafe/vtt:1:2/plain/https://example.com/a.jpg"
+  },
+  "vtt_negative_step_auto": {
+    "path": "/unsafe/vtt:-1:2:2:0:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "vtt",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Video": {
+            "Tile": {
+              "Columns": 2,
+              "FocusX": 0.5,
+              "FocusY": 0.5,
+              "Rows": 2
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "vtt_too_many_args": {
+    "error": {
+      "field": "video_thumbnail_tile",
+      "kind": "invalid_url",
+      "public": "invalid video_thumbnail_tile: expected at most 10 arguments",
+      "status": 400
+    },
+    "path": "/unsafe/vtt:1:1:1:1:1:1:1:1:1:1:1/plain/https://example.com/a.jpg"
+  },
+  "vtt_zero_step_off": {
+    "path": "/unsafe/vtt:1:2:2:0:0/vtt:0/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "vtt",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "watermark_everything": {
+    "path": "/unsafe/wm:0.8:soea:5:5:0.2/wmt:wqkgQUNNRQ/wms:200:0/wmr:15/wmsh:2/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "wmt",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "wms",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "wmr",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "wmsh",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 0.8,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 5,
+                "YOffset": 5
+              },
+              "Rotate": 15,
+              "Scale": 0.2,
+              "Shadow": 2,
+              "Text": "© ACME",
+              "Width": 200
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "watermark_rotate": {
+    "path": "/unsafe/wm:1/watermark_rotate:45/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "watermark_rotate",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Rotate": 45
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "watermark_shadow": {
+    "path": "/unsafe/wm:1/watermark_shadow:3/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "watermark_shadow",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Shadow": 3
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "watermark_size": {
+    "path": "/unsafe/wm:1/watermark_size:100:50/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "watermark_size",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Height": 50,
+              "Opacity": 1,
+              "Width": 100
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "watermark_text": {
+    "path": "/unsafe/wm:0.5/watermark_text:PGI-SGVsbG88L2I-IMKp/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "watermark_text",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 0.5,
+              "Text": "\u003cb\u003eHello\u003c/b\u003e ©"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "watermark_url": {
+    "path": "/unsafe/wm:1/watermark_url:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "watermark_url",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Source": {
+                "Encoding": "base64",
+                "Raw": "https://example.com/logo.png"
+              }
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "webp_options_full": {
+    "path": "/unsafe/webp_options:lossy:1:photo/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "webp_options",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "WebP": {
+          "Compression": "lossy",
+          "Preset": "photo",
+          "SmartSubsample": true
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "webpo_bad_compression": {
+    "error": {
+      "field": "webp_options.compression",
+      "kind": "invalid_url",
+      "public": "invalid webp_options.compression: expected lossy, near_lossless or lossless",
+      "status": 400
+    },
+    "path": "/unsafe/webpo:lossyish/plain/https://example.com/a.jpg"
+  },
+  "webpo_bad_preset": {
+    "error": {
+      "field": "webp_options.preset",
+      "kind": "invalid_url",
+      "public": "invalid webp_options.preset: expected default, photo, picture, drawing, icon or text",
+      "status": 400
+    },
+    "path": "/unsafe/webpo::1:cartoon/plain/https://example.com/a.jpg"
+  },
+  "webpo_every_preset": {
+    "path": "/unsafe/webpo:lossless::default/webpo:::picture/webpo:::drawing/webpo:::icon/webpo:::text/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "webpo",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "WebP": {
+          "Compression": "lossless",
+          "Preset": "text"
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "webpo_near_lossless": {
+    "path": "/unsafe/webpo:near_lossless/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "webpo",
+          "Reason": "takes effect in M2"
+        }
+      ],
+      "Output": {
+        "WebP": {
+          "Compression": "near_lossless"
+        }
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "wm_rot_reduced": {
+    "path": "/unsafe/wm:1/wm_rot:-450/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "wm_rot",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Rotate": -90
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "wmr": {
+    "path": "/unsafe/wm:1/wmr:90.5/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "wmr",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Rotate": 90.5
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "wmr_bad": {
+    "error": {
+      "field": "watermark_rotate",
+      "kind": "invalid_url",
+      "public": "invalid watermark_rotate: expected number",
+      "status": 400
+    },
+    "path": "/unsafe/wmr:x/plain/https://example.com/a.jpg"
+  },
+  "wms_height_only": {
+    "path": "/unsafe/wm:1/wms::40/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "wms",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Height": 40,
+              "Opacity": 1
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "wms_negative": {
+    "error": {
+      "field": "watermark_size.width",
+      "kind": "invalid_url",
+      "public": "invalid watermark_size.width: expected integer in range 0 to 65536",
+      "status": 400
+    },
+    "path": "/unsafe/wms:-1/plain/https://example.com/a.jpg"
+  },
+  "wmsh_negative": {
+    "error": {
+      "field": "watermark_shadow",
+      "kind": "invalid_url",
+      "public": "invalid watermark_shadow: expected number in range 0 to 1000",
+      "status": 400
+    },
+    "path": "/unsafe/wmsh:-2/plain/https://example.com/a.jpg"
+  },
+  "wmt_invalid_utf8": {
+    "error": {
+      "field": "watermark_text",
+      "kind": "invalid_url",
+      "public": "invalid watermark_text: expected url-safe base64 of UTF-8 text",
+      "status": 400
+    },
+    "path": "/unsafe/wmt:__4/plain/https://example.com/a.jpg"
+  },
+  "wmt_wins_over_wmu": {
+    "path": "/unsafe/wm:1/wmt:dGV4dA/wmu:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "wmt",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "wmu",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1,
+              "Text": "text"
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "wmu_bad_base64": {
+    "error": {
+      "field": "watermark_url",
+      "kind": "invalid_url",
+      "public": "invalid watermark_url: expected url-safe base64 source url",
+      "status": 400
+    },
+    "path": "/unsafe/wmu:!!!/plain/https://example.com/a.jpg"
+  },
+  "wmu_cleared": {
+    "path": "/unsafe/wm:1/wmu:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/wmu:/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "wmu",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Watermarks": [
+            {
+              "Opacity": 1
+            }
+          ]
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "wmu_control_chars": {
+    "error": {
+      "field": "watermark_url",
+      "kind": "invalid_url",
+      "public": "invalid watermark_url: expected url-safe base64 source url",
+      "status": 400
+    },
+    "path": "/unsafe/wmu:aHR0cHM6Ly9lLmNvbS8B/plain/https://example.com/a.jpg"
+  },
+  "wmu_without_wm_dropped": {
+    "path": "/unsafe/wmu:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "wmu",
+          "Reason": "takes effect in M3"
+        }
+      ],
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  }
+}

@@ -43,7 +43,7 @@ func (p *Parser) validatePresets() error {
 		return fmt.Errorf("imgproxy: presets use separator %q, dialect uses %q", s.Separator(), p.sep)
 	}
 	for _, name := range s.Names() {
-		st := newState(p)
+		st := newState(p, false)
 		if err := st.applyPresets([]string{name}); err != nil {
 			return fmt.Errorf("imgproxy: preset %q: %w", name, err)
 		}
