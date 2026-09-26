@@ -15,7 +15,8 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   detection, video thumbnails, advanced watermarks, GIF→video, playground, TypeScript package WP-84).
 - **Stack `m3` (bottom → top):** #80 WP-81b/82b Pages+SchemaStore → #81 WP-70 full base → #83 WP-84
   TypeScript → #84 WP-80 playground → #85 WP-77/78 watermarks → #86 WP-87 stabilisation → #87 WP-88
-  imgix mount → #88 WP-71 detection runtime. All verified green individually in the container.
+  imgix mount → #88 WP-71 detection runtime → #89 WP-70b `gpl` image. All verified green individually
+  in the container. Local base tags: `xtandard-base:dev[-builder]`, `dev-full[-builder]`, `dev-gpl[-builder]`.
 - **Integration verified:** the stack top through #86 passed lint, slim+full test suites, ts:check,
   pages:build and acceptance (63/63) in the container; fixes landed on `m3/wp-87-stabilise`. Then
   #87 and #88 were rebased on it; the whole chain is synced on main (`gh stack view` shows no
@@ -23,8 +24,7 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   checking it out, otherwise it force-pushes a tip based on a stale chain (happened once; repaired
   with `git rebase --onto <parent tip> <branch>~<own commits> <branch>` per branch).
 - **In flight (2026-09-27 night):** `m3/wp-89-docs-status` (ROADMAP/README status audit: M2 rows
-  still said planned; `x-xi-dialects` said planned for served dialects); `m3/wp-70b-gpl-base` (third image flavour
-  `gpl`); `m3/wp-74-video` (video thumbnails, from `origin/m3/wp-70-full-base`);
+  still said planned; `x-xi-dialects` said planned for served dialects); `m3/wp-74-video` (video thumbnails, from `origin/m3/wp-70-full-base`);
   `m3/wp-72-73-detect-options` (face/object gravity + filters, from `origin/m3/wp-71-detect`). After
   WP-74: launch WP-75 (tiles/animation) and WP-76 (GIF→video; H.264 via libx264 only in `gpl`).
 - **Adoption recipe:** `scripts/stack/adopt2.sh - <branch> <n> "<title>" <body.md>`; on `MANUAL:` fix
