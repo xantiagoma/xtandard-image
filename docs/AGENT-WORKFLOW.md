@@ -26,8 +26,11 @@ and never push to `main`.
    go test -race -shuffle=on ./...
    ```
 
-   cgo packages need libvips: `brew install vips` on macOS
-   (`export CGO_CFLAGS_ALLOW=-Xpreprocessor`), or the base image container in CI.
+   **Run these inside the base image container**, not on the host: `task docker:lint`,
+   `task docker:test` (they mount the worktree into the `builder` stage of
+   `docker/base`, image `xtandard-base:dev` locally or `ghcr.io/xantiagoma/xtandard-image-base:slim`).
+   The Docker image is the product; a host-only pass (Homebrew libvips) proves nothing and is not
+   accepted as verification. Pure-Go packages may additionally run on the host for speed.
 5. **Commit** in small, focused commits with imperative subjects, and end each message with the
    attribution trailer `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
    Set the author with `git -c user.name="Santiago Montoya" -c user.email=xantiagoma@gmail.com`.
