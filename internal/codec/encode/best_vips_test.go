@@ -17,6 +17,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/encode"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/leakcheck"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
@@ -389,12 +390,7 @@ func TestEncodeBestCanceled(t *testing.T) {
 // live objects return to their baseline. Not parallel: the counters are
 // global.
 func TestEncodeBestNoLeak(t *testing.T) {
-	const (
-		cycles      = 60
-		slackBytes  = 1 << 20
-		slackAllocs = 64
-		slackObjs   = 16
-	)
+	const cycles = 60
 	vips.SetLeakCheck(true)
 	defer vips.SetLeakCheck(false)
 	e := newEncoder(t, func(c *encode.Config) { c.AutoQuality.Method = transform.AutoQualityDSSIM })
@@ -419,16 +415,11 @@ func TestEncodeBestNoLeak(t *testing.T) {
 	for i := range 2 * len(inputs) {
 		cycle(i)
 	}
-	before, objects := vips.ReadMemStats(), vips.LiveObjects()
+	before := leakcheck.Take()
 	for i := range cycles {
 		cycle(i)
 	}
-	after, objectsAfter := vips.ReadMemStats(), vips.LiveObjects()
-	if after.Mem-before.Mem > slackBytes || after.Allocs-before.Allocs > slackAllocs ||
-		after.Files != before.Files || objectsAfter-objects > slackObjs {
-		t.Errorf("after %d selections: mem %d → %d B, allocs %d → %d, files %d → %d, objects %d → %d",
-			cycles, before.Mem, after.Mem, before.Allocs, after.Allocs, before.Files, after.Files, objects, objectsAfter)
-	}
+	leakcheck.Check(t, before, leakcheck.Default, "selections")
 }
 
 // BenchmarkEncodeBest compares format=best with plain negotiation (one

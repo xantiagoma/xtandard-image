@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/leakcheck"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -222,12 +223,7 @@ func pixelAt(ctx context.Context, tb testing.TB, a *vips.Arena, img *vips.Image,
 // libraries' own heaps are not tracked by libvips; the images, regions and
 // source buffers are. Not parallel: the counters are process-wide.
 func TestNoLeakPDFPSD(t *testing.T) {
-	const (
-		cycles      = 600
-		slackBytes  = 1 << 20
-		slackAllocs = 64
-		slackObjs   = 16
-	)
+	const cycles = 600
 	vips.SetLeakCheck(true)
 	defer vips.SetLeakCheck(false)
 
@@ -256,17 +252,11 @@ func TestNoLeakPDFPSD(t *testing.T) {
 	for i := range 4 {
 		cycle(i)
 	}
-	before, objects := vips.ReadMemStats(), vips.LiveObjects()
+	before := leakcheck.Take()
 	for i := range cycles {
 		cycle(i)
 	}
-	after, objectsAfter := vips.ReadMemStats(), vips.LiveObjects()
-	if after.Mem-before.Mem > slackBytes || after.Allocs-before.Allocs > slackAllocs ||
-		after.Files != before.Files || objectsAfter-objects > slackObjs {
-		t.Errorf("after %d cycles: mem %d → %d B, allocs %d → %d, files %d → %d, objects %d → %d",
-			cycles, before.Mem, after.Mem, before.Allocs, after.Allocs, before.Files, after.Files,
-			objects, objectsAfter)
-	}
+	after := leakcheck.Check(t, before, leakcheck.Default, "cycles")
 	t.Logf("after %d cycles: mem %+d B, allocs %+d, objects %+d",
-		cycles, after.Mem-before.Mem, after.Allocs-before.Allocs, objectsAfter-objects)
+		cycles, after.Mem-before.Mem, after.Allocs-before.Allocs, after.Objects-before.Objects)
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/leakcheck"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/rawfixtures"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
@@ -250,11 +251,7 @@ func TestProbeRawHeaderOnly(t *testing.T) {
 // tracked memory and objects and the LibRaw handles and buffers the shim
 // counts return to their baseline. Not parallel: the counters are global.
 func TestRawNoLeak(t *testing.T) {
-	const (
-		cycles     = 200
-		slackBytes = 1 << 20
-		slackObjs  = 16
-	)
+	const cycles = 200
 	dng := readFixture(t, "dng/landscape.dng")
 	cycle := func(i int) {
 		buf := newBuffer(t, dng)
@@ -283,14 +280,16 @@ func TestRawNoLeak(t *testing.T) {
 	for i := range 4 {
 		cycle(i)
 	}
-	before, objects, live := vips.ReadMemStats(), vips.LiveObjects(), vips.RawLive()
+	before, live := leakcheck.Take(), vips.RawLive()
 	for i := range cycles {
 		cycle(i)
 	}
-	after, objectsAfter, liveAfter := vips.ReadMemStats(), vips.LiveObjects(), vips.RawLive()
-	if after.Mem-before.Mem > slackBytes || objectsAfter-objects > slackObjs || liveAfter != live {
-		t.Errorf("after %d cycles: mem %d → %d B, objects %d → %d, LibRaw handles+buffers %d → %d",
-			cycles, before.Mem, after.Mem, objects, objectsAfter, live, liveAfter)
+	leakcheck.Check(t, before, leakcheck.Limits{
+		Bytes: leakcheck.Default.Bytes, Allocs: -1,
+		Objects: leakcheck.Default.Objects,
+	}, "cycles")
+	if liveAfter := vips.RawLive(); liveAfter != live {
+		t.Errorf("after %d cycles: LibRaw handles+buffers %d → %d", cycles, live, liveAfter)
 	}
 }
 

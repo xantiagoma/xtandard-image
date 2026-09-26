@@ -14,6 +14,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/exec"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/leakcheck"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/ssim"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
@@ -305,12 +306,7 @@ func TestNewWatermarkErrors(t *testing.T) {
 //
 // Not parallel: the counters are process-wide.
 func TestWatermarkNoLeak(t *testing.T) {
-	const (
-		requests    = 300
-		slackBytes  = 1 << 20
-		slackAllocs = 64
-		slackObjs   = 16
-	)
+	const requests = 300
 	type prepared struct {
 		data []byte
 		req  *transform.Request
@@ -360,21 +356,15 @@ func TestWatermarkNoLeak(t *testing.T) {
 	for i := range 2 * len(in) {
 		request(i) // warm up lazily initialised libvips state
 	}
-	before, objects := vips.ReadMemStats(), vips.LiveObjects()
+	before := leakcheck.Take()
 	for i := range requests {
 		request(i)
 	}
-	after, objectsAfter := vips.ReadMemStats(), vips.LiveObjects()
-	if after.Mem-before.Mem > slackBytes || after.Allocs-before.Allocs > slackAllocs ||
-		after.Files != before.Files || objectsAfter-objects > slackObjs {
-		t.Errorf("after %d requests: mem %d → %d B, allocs %d → %d, files %d → %d, objects %d → %d",
-			requests, before.Mem, after.Mem, before.Allocs, after.Allocs, before.Files, after.Files,
-			objects, objectsAfter)
-	}
+	after := leakcheck.Check(t, before, leakcheck.Default, "requests")
 	wm.Close()
-	if n := vips.LiveObjects(); n-baseObjects > slackObjs {
+	if n := vips.LiveObjects(); n-baseObjects > leakcheck.Default.Objects {
 		t.Errorf("after Close: %d live objects, %d before NewWatermark", n, baseObjects)
 	}
 	t.Logf("after %d requests: mem %+d B, allocs %+d, objects %+d", requests,
-		after.Mem-before.Mem, after.Allocs-before.Allocs, objectsAfter-objects)
+		after.Mem-before.Mem, after.Allocs-before.Allocs, after.Objects-before.Objects)
 }
