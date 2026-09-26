@@ -1,0 +1,315 @@
+name: release
+
+# Publishes the slim app image (WP-37, docs/RELEASE.md):
+#   1. meta     version, commit, SOURCE_DATE_EPOCH; base images from
+#               docker/base/versions.sh resolved to digests
+#   2. build    natively on amd64 + arm64 (no QEMU), push by digest, verify
+#               (scripts/verify-app-image.sh: version, health, size ≤ 110 MB,
+#               read-only rootfs, smoke), SBOM (syft) + SLSA provenance
+#               attached to each per-arch manifest, unstripped binary kept
+#   3. merge    multi-arch manifest tagged <ver>-slim, slim, <ver>, latest
+#               (latest/slim/<major.minor> only for non-prerelease versions),
+#               cosign keyless signature (recursive), provenance on the index,
+#               GitHub release with the unstripped binaries
+#
+#   ghcr.io/xantiagoma/xtandard-image:{<ver>-slim,slim,<ver>,latest}
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to publish, e.g. v0.1.0 (must be an existing tag unless dry_run)
+        required: true
+      dry_run:
+        description: Build and verify on both architectures without pushing
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/xantiagoma/xtandard-image
+  PUSH: ${{ github.event_name == 'push' || !inputs.dry_run }}
+
+jobs:
+  meta:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+      commit: ${{ steps.meta.outputs.commit }}
+      epoch: ${{ steps.meta.outputs.epoch }}
+      created: ${{ steps.meta.outputs.created }}
+      base_builder: ${{ steps.base.outputs.builder }}
+      base_runtime: ${{ steps.base.outputs.runtime }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && !inputs.dry_run && inputs.version || github.ref }}
+
+      - id: meta
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          tag="${INPUT_VERSION:-$GITHUB_REF_NAME}"
+          if ! printf '%s\n' "$tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::version '$tag' is not v<major>.<minor>.<patch>[-prerelease]"
+            exit 1
+          fi
+          version="${tag#v}"
+          prerelease=false
+          case "$version" in *-*) prerelease=true ;; esac
+          {
+            echo "tag=$tag"
+            echo "version=$version"
+            echo "prerelease=$prerelease"
+            echo "commit=$(git rev-parse HEAD)"
+            epoch="$(git log -1 --pretty=%ct)"
+            echo "epoch=$epoch"
+            echo "created=$(date -u -d "@$epoch" +%Y-%m-%dT%H:%M:%SZ)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Dockerfile base defaults match versions.sh
+        run: scripts/base-image-ref.sh --check
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve base images to digests
+        id: base
+        run: |
+          {
+            echo "builder=$(scripts/base-image-ref.sh --digest builder)"
+            echo "runtime=$(scripts/base-image-ref.sh --digest runtime)"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: meta
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+            arch: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # keyless cosign attest + GitHub attestations
+      attestations: write
+    env:
+      SOURCE_DATE_EPOCH: ${{ needs.meta.outputs.epoch }}
+      BUILD_ARGS: |
+        BASE_BUILDER=${{ needs.meta.outputs.base_builder }}
+        BASE_RUNTIME=${{ needs.meta.outputs.base_runtime }}
+        VERSION=${{ needs.meta.outputs.version }}
+        COMMIT=${{ needs.meta.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.meta.outputs.commit }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # SOURCE_DATE_EPOCH (env) is forwarded by buildx as a build arg and
+      # clamps layer timestamps (rewrite-timestamp): reproducible images.
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: runtime
+          platforms: ${{ matrix.platform }}
+          build-args: ${{ env.BUILD_ARGS }}
+          labels: org.opencontainers.image.created=${{ needs.meta.outputs.created }}
+          provenance: false # SLSA provenance comes from actions/attest-build-provenance
+          sbom: false # syft SBOM is attested below
+          cache-from: type=gha,scope=app-slim-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=app-slim-${{ matrix.arch }}
+          outputs: >-
+            ${{ env.PUSH == 'true'
+              && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true,rewrite-timestamp=true', env.IMAGE)
+              || 'type=docker,name=xtandard-image:release,rewrite-timestamp=true' }}
+
+      - name: Verify image
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          XI_EXPECT_VERSION: ${{ needs.meta.outputs.version }}
+        run: |
+          ref=xtandard-image:release
+          if [ "$PUSH" = "true" ]; then
+            ref="$IMAGE@$DIGEST"
+            docker pull "$ref"
+          fi
+          scripts/verify-app-image.sh "$ref"
+
+      - name: Export unstripped binary
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: debug
+          platforms: ${{ matrix.platform }}
+          build-args: ${{ env.BUILD_ARGS }}
+          provenance: false
+          cache-from: type=gha,scope=app-slim-${{ matrix.arch }}
+          outputs: type=local,dest=${{ runner.temp }}/debug
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: debug-${{ matrix.arch }}
+          path: ${{ runner.temp }}/debug/*
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: SBOM (syft)
+        if: env.PUSH == 'true'
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+          format: spdx-json
+          output-file: ${{ runner.temp }}/sbom-${{ matrix.arch }}.spdx.json
+          artifact-name: sbom-${{ matrix.arch }}.spdx.json
+          upload-release-assets: false
+
+      - uses: sigstore/cosign-installer@v4
+        if: env.PUSH == 'true'
+
+      - name: Attest SBOM (cosign keyless)
+        if: env.PUSH == 'true'
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          cosign attest --yes --type spdxjson \
+            --predicate "$RUNNER_TEMP/sbom-${{ matrix.arch }}.spdx.json" \
+            "$IMAGE@$DIGEST"
+
+      - name: SLSA provenance (per-arch manifest)
+        if: env.PUSH == 'true'
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Export digest
+        if: env.PUSH == 'true'
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+
+      - uses: actions/upload-artifact@v7
+        if: env.PUSH == 'true'
+        with:
+          name: digests-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    if: github.event_name == 'push' || !inputs.dry_run
+    needs: [meta, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # GitHub release
+      packages: write
+      id-token: write # keyless cosign + GitHub attestations
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create multi-arch manifest
+        id: manifest
+        env:
+          VERSION: ${{ needs.meta.outputs.version }}
+          PRERELEASE: ${{ needs.meta.outputs.prerelease }}
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          # slim is the default flavor until `full` exists (WP-37): <ver> and
+          # latest point at the slim image. Prereleases only get <ver>[-slim].
+          tags="-t $IMAGE:$VERSION-slim -t $IMAGE:$VERSION"
+          if [ "$PRERELEASE" = "false" ]; then
+            tags="$tags -t $IMAGE:slim -t $IMAGE:latest"
+          fi
+          # shellcheck disable=SC2046,SC2086
+          docker buildx imagetools create $tags \
+            $(printf "$IMAGE@sha256:%s " $(ls))
+          digest="$(docker buildx imagetools inspect "$IMAGE:$VERSION-slim" | awk '/^Digest:/ { print $2; exit }')"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          docker buildx imagetools inspect "$IMAGE@$digest"
+
+      - uses: sigstore/cosign-installer@v4
+
+      - name: Sign (cosign keyless, index and per-arch manifests)
+        env:
+          DIGEST: ${{ steps.manifest.outputs.digest }}
+        run: cosign sign --yes --recursive "$IMAGE@$DIGEST"
+
+      - name: SLSA provenance (multi-arch index)
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.manifest.outputs.digest }}
+          push-to-registry: true
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/debug
+          pattern: debug-*
+          merge-multiple: true
+
+      - name: GitHub release (unstripped binaries for symbolication)
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.meta.outputs.tag }}
+          PRERELEASE: ${{ needs.meta.outputs.prerelease }}
+          VERSION: ${{ needs.meta.outputs.version }}
+          DIGEST: ${{ steps.manifest.outputs.digest }}
+        run: |
+          cd "$RUNNER_TEMP/debug"
+          sha256sum -- * > SHA256SUMS
+          flags=""
+          if [ "$PRERELEASE" = "true" ]; then flags="--prerelease"; fi
+          # shellcheck disable=SC2086
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes $flags \
+            --notes "Image: \`$IMAGE:$VERSION\` (\`$IMAGE@$DIGEST\`). Verify with \`cosign verify\`, see docs/RELEASE.md." \
+            -- *
