@@ -99,16 +99,33 @@ func (r *runner) importICC(ctx context.Context, img *vips.Image, target vips.Int
 	return r.a.Add(vips.Bandjoin(ctx, []*vips.Image{out, alpha}))
 }
 
-// toResult prepares the output colour: after an ICC import the pixels are
-// sRGB, so the source profile no longer describes them and is dropped (an
-// untagged image is sRGB). Keeping the original profile by converting back
-// to it is not done (strip_color_profile=false keeps sRGB pixels untagged).
+// toResult prepares the output colour (FORMATS §4). Without an ICC import
+// the image is still in its source space, whose profile (sRGB IEC61966-2.1,
+// or none) the encoder keeps or drops per strip_color_profile. After an
+// import the pixels are sRGB (or grey), so the source profile no longer
+// describes them: it is dropped, and with strip_color_profile=false
+// replaced by libvips' built-in sRGB (sGrey) profile. Converting back to the
+// source profile, as imgproxy does, is not done.
 func (r *runner) toResult(ctx context.Context, img *vips.Image) (*vips.Image, error) {
 	if !r.iccImported {
 		return img, nil
 	}
-	if _, ok := img.Blob(vips.FieldICC); !ok {
-		return img, nil
+	if r.j.Target.Metadata.StripColorProfile {
+		if _, ok := img.Blob(vips.FieldICC); !ok {
+			return img, nil
+		}
+		return r.a.Add(img.RemoveMetadata(ctx, vips.FieldICC))
 	}
-	return r.a.Add(img.RemoveMetadata(ctx, vips.FieldICC))
+	name := "srgb"
+	if i := img.Interpretation(); i == vips.InterpretationBW || i == vips.InterpretationGrey16 {
+		name = "sgrey"
+	}
+	icc, err := vips.ProfileLoad(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	if len(icc) == 0 {
+		return r.a.Add(img.RemoveMetadata(ctx, vips.FieldICC))
+	}
+	return r.a.Add(img.SetBlob(ctx, vips.FieldICC, icc))
 }

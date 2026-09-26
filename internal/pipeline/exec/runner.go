@@ -22,6 +22,9 @@ type runner struct {
 	req  *transform.Request // j.Request planned for the output format
 	a    *vips.Arena
 	plan *plan.Plan // root plan; replaced by plan.Continue
+	// meta is j.Meta, with the size of the loaded page when a page other
+	// than the first has its own size (multi-page TIFF).
+	meta plan.SourceMeta
 	// iccImported is set once the source profile was converted to sRGB, so
 	// the output colour step drops the (now wrong) embedded profile.
 	iccImported bool
@@ -44,7 +47,7 @@ func (r *runner) skip(what string) {
 
 // replan asks the planner again with what was observed.
 func (r *runner) replan(obs plan.Observed) error {
-	p, err := plan.Continue(r.req, r.j.Meta, r.e.cfg.Limits, obs)
+	p, err := plan.Continue(r.req, r.meta, r.e.cfg.Limits, obs)
 	if err != nil {
 		return err
 	}
@@ -101,6 +104,11 @@ func (r *runner) loadObserved(ctx context.Context) (*vips.Image, error) {
 			// Not worth it: load the full image instead.
 			ls = r.plan.Load
 			return r.load(ctx, &ls, nil)
+		}
+	case (w != ls.Width || h != ls.Height) && ls.Page > 0 && ls.ShrinkOnLoad <= 1 && ls.Scale == 0:
+		// The header describes the first page; this one has its own size.
+		if err := r.replanPage(w, h); err != nil {
+			return nil, err
 		}
 	case w != ls.Width || h != ls.Height:
 		if err := r.replan(plan.Observed{Width: w, Height: h, Loaded: true}); err != nil {

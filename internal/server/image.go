@@ -382,7 +382,9 @@ func checkMeta(m *SourceMeta, lim *ProbeLimits) error {
 		return errs.Newf(errs.KindCorrupt, "server: probe returned %dx%d", m.Width, m.Height)
 	case lim.MaxPixels > 0 && framePixels*frames > lim.MaxPixels:
 		return errs.Newf(errs.KindLimitExceeded, "server: source has %d pixels, limit %d", framePixels*frames, lim.MaxPixels)
-	case lim.MaxFrames > 0 && frames > int64(lim.MaxFrames):
+	case lim.MaxFrames > 1 && frames > int64(lim.MaxFrames):
+		// A limit of 1 disables animation (one frame is processed, as in
+		// imgproxy) instead of rejecting animated sources.
 		return errs.Newf(errs.KindLimitExceeded, "server: source has %d frames, limit %d", frames, lim.MaxFrames)
 	case frames > 1 && lim.MaxFramePixels > 0 && framePixels > lim.MaxFramePixels:
 		return errs.Newf(errs.KindLimitExceeded, "server: frame has %d pixels, limit %d", framePixels, lim.MaxFramePixels)

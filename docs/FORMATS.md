@@ -32,7 +32,7 @@ libvips 8.18.x is the engine; library choices and licenses are in `docs/research
 - UltraHDR: a JPEG whose header (before SOS) has an APP2 `MPF` segment **and** gain-map metadata (APP2 ISO 21496-1 `urn:iso:std:iso:ts:21496:-1` or APP1 XMP with `hdrgm:Version`). libvips `uhdrload` checks MPF and then libultrahdr's full `is_uhdr_image`; the probe trusts the loader libvips picked (`uhdrload` ⇒ UHDR).
 - The format libvips' loader reports must agree with the sniffed family, otherwise the file is refused (polyglots).
 - PDF, PSD and RAW are recognised and refused with `unsupported` until M2.
-- Limits before decode: frames ≤ `MAX_ANIMATION_FRAMES`, animated frame pixels ≤ `MAX_ANIMATION_FRAME_PIXELS`, width × height × frames ≤ `MAX_SRC_PIXELS` (multi-page stills count one page), SVG bytes ≤ `MAX_SVG_BYTES` and the SVG is sanitised before librsvg reads even its header. Frame counts use the header's delay array as well as `n-pages`, because `vips_image_get_n_pages` reports 1 for 10 000 pages or more.
+- Limits before decode: frames ≤ `MAX_ANIMATION_FRAMES` (a limit of 1, from config or `max_animation_frames:1`, disables animation instead: the first frame is processed, as in imgproxy), animated frame pixels ≤ `MAX_ANIMATION_FRAME_PIXELS`, width × height × frames ≤ `MAX_SRC_PIXELS` (multi-page stills count one page), SVG bytes ≤ `MAX_SVG_BYTES` and the SVG is sanitised before librsvg reads even its header. Frame counts use the header's delay array as well as `n-pages`, because `vips_image_get_n_pages` reports 1 for 10 000 pages or more.
 - The declared upstream `Content-Type` never drives detection; a disagreement only sets `ImageMeta.ContentTypeMismatch`.
 
 ## 2. Camera RAW strategy
@@ -52,7 +52,7 @@ libvips 8.18.x is the engine; library choices and licenses are in `docs/research
 
 ## 4. Metadata policy
 
-Default: strip EXIF/XMP/IPTC, keep copyright fields (`XI_PROCESSING_KEEP_COPYRIGHT=true`), convert to sRGB and drop the ICC profile (`strip_color_profile=true`), always reset orientation after auto-rotate. `color_profile` embeds sRGB/CMYK/custom profiles from `XI_PROCESSING_COLOR_PROFILES_DIR`. GPS is always removed when stripping, even with keep-copyright.
+Default: strip EXIF/XMP/IPTC, keep copyright fields (`XI_PROCESSING_KEEP_COPYRIGHT=true`), convert to sRGB and drop the ICC profile (`strip_color_profile=true`; with `false` the converted output is tagged with the built-in sRGB profile, sGrey for grey, and an sRGB IEC61966-2.1 source profile is kept as is), always reset orientation after auto-rotate (the output EXIF, when kept, says orientation 1, so a second pass does not rotate again). `color_profile` embeds sRGB/CMYK/custom profiles from `XI_PROCESSING_COLOR_PROFILES_DIR`. GPS is always removed when stripping, even with keep-copyright.
 
 ## 5. Output formats
 

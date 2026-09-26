@@ -8,6 +8,7 @@ import "C"
 import (
 	"context"
 	"image"
+	"unsafe"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 )
@@ -193,9 +194,10 @@ func (img *Image) Colourspace(ctx context.Context, interpretation Interpretation
 	return img.op(ctx, "colourspace", rc, out, cerr)
 }
 
-// ICCImport converts to the PCS (Lab) with the embedded profile when
-// embedded is true and present, else profile (a path or built-in name such
-// as "srgb"; empty: libvips' default for the interpretation).
+// ICCImport converts to the PCS with the embedded profile when embedded is
+// true and present, else profile (a path or built-in name such as "srgb";
+// empty: libvips' default for the interpretation). The PCS is the embedded
+// profile's own (XYZ or Lab, as imgproxy picks it); Lab otherwise.
 func (img *Image) ICCImport(ctx context.Context, profile string, intent Intent, embedded bool) (*Image, error) {
 	if err := ctxError(ctx, "vips: icc_import"); err != nil {
 		return nil, err
@@ -218,6 +220,32 @@ func (img *Image) ICCExport(ctx context.Context, profile string, intent Intent, 
 	var cerr *C.char
 	rc := C.xi_icc_export(img.p, cptr(p), C.int(intent), C.int(depth), &out, &cerr)
 	return img.op(ctx, "icc_export", rc, out, cerr)
+}
+
+// ProfileLoad returns the ICC profile libvips knows by name: a built-in
+// ("srgb", "sgrey", "p3", "cmyk") or a file path. "none" returns nil. The
+// profile is copied into Go memory (a few hundred bytes for the built-ins).
+func ProfileLoad(ctx context.Context, name string) ([]byte, error) {
+	if err := ctxError(ctx, "vips: profile_load"); err != nil {
+		return nil, err
+	}
+	if name == "" {
+		return nil, errs.New(errs.KindInternal, "vips: profile_load needs a name")
+	}
+	n := cstr(name)
+	var blob *C.VipsBlob
+	var data unsafe.Pointer
+	var size C.size_t
+	var cerr *C.char
+	rc := C.xi_profile_load(cptr(n), &blob, &data, &size, &cerr)
+	if err := stepError(ctx, rc, "profile_load", cerr, nil); err != nil {
+		return nil, err
+	}
+	if blob == nil {
+		return nil, nil
+	}
+	defer C.xi_blob_unref(blob)
+	return C.GoBytes(data, C.int(size)), nil
 }
 
 // ICCTransform converts to profile (required), using the embedded input

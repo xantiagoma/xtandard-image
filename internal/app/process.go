@@ -33,6 +33,11 @@ func (p *codecProber) Probe(ctx context.Context, src fetch.Buffer, lim server.Pr
 	// "unlimited" (the server re-checks the result against lim anyway).
 	l.MaxSrcPixels = unlimited(lim.MaxPixels)
 	l.MaxAnimationFrames = int(unlimited(int64(lim.MaxFrames)))
+	if lim.MaxFrames == 1 {
+		// max_animation_frames=1 disables animation (the planner processes
+		// one frame, like imgproxy); it does not reject animations.
+		l.MaxAnimationFrames = int(unlimited(0))
+	}
 	l.MaxAnimationFramePixels = unlimited(lim.MaxFramePixels)
 	var m codec.ImageMeta
 	err = vips.Run(ctx, func() error {
@@ -49,6 +54,7 @@ func (p *codecProber) Probe(ctx context.Context, src fetch.Buffer, lim server.Pr
 		Width:       m.Width,
 		Height:      m.Height,
 		Frames:      max(m.Frames, 1),
+		Pages:       max(m.Pages, m.Frames, 1),
 		HasAlpha:    m.HasAlpha,
 		IsAnimated:  m.IsAnimated,
 		Orientation: m.Orientation,
@@ -170,10 +176,11 @@ func planMeta(f codec.Format, m *server.SourceMeta) plan.SourceMeta {
 	if f == codec.FormatUHDR {
 		name = "jpeg"
 	}
+	// The planner's Frames counts pages too: it bounds `page`.
 	return plan.SourceMeta{
 		Width:       m.Width,
 		Height:      m.Height,
-		Frames:      m.Frames,
+		Frames:      max(m.Frames, m.Pages),
 		HasAlpha:    m.HasAlpha,
 		Orientation: m.Orientation,
 		IsAnimated:  m.IsAnimated,

@@ -132,7 +132,7 @@ func jobMeta(tb testing.TB, header, data []byte, req *transform.Request, out tra
 		Request: req,
 		Source:  buf,
 		Meta: plan.SourceMeta{
-			Width: m.Width, Height: m.Height, Frames: m.Frames, HasAlpha: m.HasAlpha,
+			Width: m.Width, Height: m.Height, Frames: max(m.Frames, m.Pages), HasAlpha: m.HasAlpha,
 			Orientation: m.Orientation, IsAnimated: m.IsAnimated, Format: name,
 			IsVector: m.Format == codec.FormatSVG,
 		},
