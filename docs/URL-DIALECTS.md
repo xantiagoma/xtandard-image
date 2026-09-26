@@ -158,7 +158,7 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `video_thumbnail_tile` (`vtt`) Pro | step:cols:rows:tw:th:extend:trim:fill:fx:fy; step 0 = off, < 0 = from duration (stored as 0) | `P.Video.Tile` | off | M3 |
 | `video_thumbnail_animation` (`vta`) Pro | step:delay(ms):frames:fw:fh:extend:trim:fill:fx:fy; step as `vtt` | `P.Video.Animation` (delay in seconds) | off | M3 |
 | `fallback_image_url` (`fiu`) Pro | base64url URL | `D.Fallback`; honoured only with `XI_FALLBACK_ALLOW_REQUEST_URL` and when the source allowlist accepts it | config | M1 (WP-34c) |
-| `skip_processing` (`skp`) | ext… | `D.SkipProcessing` | — | M1 |
+| `skip_processing` (`skp`, `sp`) | ext… | `D.SkipProcessing` | — | M1 |
 | `raw` | bool | `TR.Kind = Raw` | false | M1 |
 | `cachebuster` (`cb`) | string | `D.CacheBuster` | — | M1 |
 | `bypass_cache` (`bc`) Pro | bool | skips result cache (needs `XI_CACHE_ALLOW_BYPASS`) | false | M2 (WP-52) |
@@ -169,7 +169,7 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `preset` (`pr`) | names… | expanded in place | — | M1 |
 | `hashsum` (`hs`) Pro | none, or md5/sha1/sha256/sha512:hex | `TR.Source.Hashsum` (lowercased): checked on the fetched bytes (processing, raw, `/info`) before anything parses them; mismatch → 422 `hash_mismatch`, never the fallback image; part of the canonical key | none | M2 (WP-64) |
 | `max_src_resolution` (`msr`), `max_src_file_size` (`msfs`), `max_animation_frames` (`maf`), `max_animation_frame_resolution` (`mafr`), `max_result_dimension` (`mrd`) | int | `TR.Limits` (only if security options allowed) | config | M1 |
-| removed upstream: `gif_options` | — | accepted and ignored for old URLs | — | — |
+| removed upstream: `gif_options` (`gifo`) | — | accepted and ignored for old URLs | — | — |
 
 ### 3.3 Info options
 
