@@ -68,6 +68,8 @@ package vips
 #cgo nocallback xi_icc_export
 #cgo noescape xi_icc_transform
 #cgo nocallback xi_icc_transform
+#cgo noescape xi_profile_load
+#cgo nocallback xi_profile_load
 #cgo noescape xi_cast
 #cgo nocallback xi_cast
 #cgo noescape xi_copy

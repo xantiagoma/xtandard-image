@@ -4,6 +4,7 @@
 // animated images follow imgproxy's vips/vips.c (Apache-2.0).
 
 #include <math.h>
+#include <string.h>
 
 #include "shim.h"
 
@@ -344,17 +345,34 @@ xi_colourspace(VipsImage *in, int interpretation, VipsImage **out, char **err)
   return XI_OK;
 }
 
+// xi_icc_pcs is the connection space of the embedded profile (imgproxy
+// vips_icc_get_pcs). Importing to Lab when the profile's PCS is XYZ shifts
+// colours by several levels after the conversion to sRGB.
+static VipsPCS
+xi_icc_pcs(VipsImage *in)
+{
+  const void *data;
+  size_t len;
+
+  if (vips_image_get_typeof(in, VIPS_META_ICC_NAME) &&
+      !vips_image_get_blob(in, VIPS_META_ICC_NAME, &data, &len) && len >= 24 &&
+      memcmp((const char *) data + 20, "XYZ ", 4) == 0)
+    return VIPS_PCS_XYZ;
+  return VIPS_PCS_LAB;
+}
+
 int
 xi_icc_import(VipsImage *in, const char *profile, int intent, int embedded,
     VipsImage **out, char **err)
 {
   int rc;
+  VipsPCS pcs = embedded ? xi_icc_pcs(in) : VIPS_PCS_LAB;
 
   if (profile)
     rc = vips_icc_import(in, out, "intent", intent, "embedded", embedded,
-        "input_profile", profile, NULL);
+        "input_profile", profile, "pcs", pcs, NULL);
   else
-    rc = vips_icc_import(in, out, "intent", intent, "embedded", embedded, NULL);
+    rc = vips_icc_import(in, out, "intent", intent, "embedded", embedded, "pcs", pcs, NULL);
   if (rc)
     XI_FAIL();
   return XI_OK;
@@ -383,6 +401,22 @@ xi_icc_transform(VipsImage *in, const char *profile, int intent, int embedded, i
   if (vips_icc_transform(in, out, profile, "intent", intent, "embedded", embedded, "depth",
           depth, NULL))
     XI_FAIL();
+  return XI_OK;
+}
+
+// xi_profile_load loads a named ICC profile (a libvips built-in such as
+// "srgb" or "sgrey", or a path). *blob is NULL for "none"; the caller unrefs
+// it after copying *data.
+int
+xi_profile_load(const char *name, VipsBlob **blob, const void **data, size_t *len, char **err)
+{
+  *blob = NULL;
+  *data = NULL;
+  *len = 0;
+  if (vips_profile_load(name, blob, NULL))
+    XI_FAIL();
+  if (*blob)
+    *data = vips_blob_get(*blob, len);
   return XI_OK;
 }
 
