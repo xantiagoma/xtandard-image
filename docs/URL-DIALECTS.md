@@ -684,7 +684,7 @@ Under the restricted unsigned policy `default=<url>` (a fallback URL), crops, tr
 
 ## 12. unpic long tail ("simple" micro-dialects)
 
-unpic 4.2 (https://unpic.pics/providers/, source `ascorbic/unpic/src/providers/*.ts`) supports 28 providers. Seven are full dialects above; the others only emit width, height, quality, format and a fit/crop hint, so they are implemented as **data** in `internal/dialect/simple`: one parser engine plus a `Spec` table per provider (native prefixes, upstream domains, an extractor that cuts source and parameters out of the URL, and a `Param` per name). Adding a provider is a `<name>.go` table (listed in `Providers()`) plus its fixture file `tools/compat/unpic/<name>.json`.
+unpic 4.2 (https://unpic.pics/providers/, source `ascorbic/unpic/src/providers/*.ts`) supports 28 providers. Seven are full dialects above; the other 21 only emit width, height, quality, format and a fit/crop hint, so they are implemented as **data** in `internal/dialect/simple`: one parser engine plus a `Spec` table per provider (native prefixes, upstream domains, an extractor that cuts source and parameters out of the URL, and a `Param` per name). Adding a provider is a `<name>.go` table (listed in `Providers()`) plus its fixture file `tools/compat/unpic/<name>.json`.
 
 **Coverage of the 28 unpic providers**
 
@@ -692,7 +692,7 @@ unpic 4.2 (https://unpic.pics/providers/, source `ascorbic/unpic/src/providers/*
 |---|---|---|
 | imgix, imagekit | full dialects (§5, §7) | `imgix.json`, `imagekit.json` (run by `simple.TestUnpicDedicated`) |
 | cloudinary, cloudflare, cloudflare_images, bunny, wsrv | full dialects (§6, §8, §9, §11) | `cloudinary.json`, `cloudflare.json`, `cloudflare_images.json`, `bunny.json`, `wsrv.json` (for their packages) |
-| appwrite, astro, builder.io, cloudimage, contentful, contentstack, directus, hygraph, imageengine, ipx, keycdn, kontent.ai, netlify, nextjs, scene7, shopify, storyblok, supabase, uploadcare, vercel | `simple:<name>` (`builder.io` → `builderio`, `kontent.ai` → `kontentai`) | `<name>.json` (run by `simple.TestUnpicFixtures`) |
+| appwrite, astro, builder.io, cloudimage, contentful, contentstack, directus, hygraph, imageengine, ipx, keycdn, kontent.ai, netlify, nextjs, scene7, shopify, storyblok, supabase, uploadcare, vercel, wordpress | `simple:<name>` (`builder.io` → `builderio`, `kontent.ai` → `kontentai`) | `<name>.json` (run by `simple.TestUnpicFixtures`) |
 
 **Mounting** (`XI_DIALECTS_SIMPLE_ENABLED=nextjs,ipx,…`): each enabled provider is mounted at its native prefixes (below) and at `/simple/<name>/`, under which the provider-native path follows (`/simple/contentful/<space>/<asset>/<token>/a.jpg?w=400`). The parser puts a stripped native prefix back, so every table matches the URL exactly as unpic writes it. `XI_DIALECTS_SIMPLE_HOSTS` binds the whole family to hosts through one dispatcher that picks, per request, the provider with the longest native prefix matching the path, else the provider whose upstream domain equals the request host, else the first enabled provider without native prefixes (the CDN-style ones: contentful, shopify, …). Dialect names are `simple:<name>` (`simple` for the dispatcher).
 
@@ -720,6 +720,7 @@ unpic 4.2 (https://unpic.pics/providers/, source `ascorbic/unpic/src/providers/*
 | hygraph | `*.graphassets.com` | `<env>/<handle>` | tasks `resize=width:,height:,fit:clip→inside/crop→cover/scale→stretch/max→scale-down,align:`, `output=format:`, `quality=value:`, `blur=amount:`, `sharpen=amount:`, `rotate=deg:`; `auto_image`, `compress` silent; **inside** |
 | imageengine | `*.imgeng.in` | path + other query parameters | `imgeng=/k_v/…`: `w`, `h`, `f`, `cmpr` (quality = 100−cmpr), `quality` (unpic), `m` cropbox→cover / box→inside / letterbox→pad / stretch / outside, `s` sharpen, `r` rotate, `meta`, `dl`; pass, pc, cr, maxdpr unsupported; **inside** |
 | cloudimage | `*.cloudimg.io` | path as `https://` URL (`ci_url_encoded`, `v7/`) | `w`/`width`, `h`/`height`, `q`, `force_format`, `func` crop, cropfit→cover / fit→pad / bound→inside / boundmin→outside / cover→stretch / face, `gravity` (compass, auto, face, `Xp,Yp`), `org_if_sml` (no enlarge), `bg_color`, `r` (counter-clockwise), `flip`, `blur`; pixel crops, trim, radius unsupported; **inside**, enl. |
+| wordpress | `*.wp.com`, `files.wordpress.com` | path (`<origin host>/<path>`) | `w`, `h`, `crop=1`→cover, `resize=W,H`→cover, `fit=W,H`→inside, `lb=W,H`→pad, `quality`, `format`, `zoom` dpr, `strip`; `ssl` silent; filters unsupported; **inside** |
 | appwrite | `/v1/storage/buckets/` | path (+`project`) | `width`, `height`, `quality`, `output`, `gravity`, `rotation`, `background`; borders, radius, opacity unsupported; **cover** |
 
 Deviation from the original plan: the Storyblok table parses its thumbor-style filter list itself (`name(args):…`, colons inside parentheses kept) instead of reusing `internal/dialect/thumbor/filters`, which is not on this branch yet; switching is a local change to `storyblok.go`.
