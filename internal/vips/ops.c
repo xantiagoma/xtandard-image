@@ -273,8 +273,8 @@ xi_smartcrop(VipsImage *in, int width, int height, int interesting, VipsImage **
     char **err)
 {
   if (xi_frames(in, NULL) > 1) {
-    vips_error("xi_smartcrop", "smartcrop needs a single-frame image");
-    XI_FAIL();
+    *err = xi_error_new("xi_smartcrop", "smartcrop needs a single-frame image");
+    return XI_ERR_OP;
   }
   if (vips_smartcrop(in, out, width, height, "interesting", interesting, NULL))
     XI_FAIL();
@@ -565,8 +565,8 @@ xi_find_trim(VipsImage *in, double threshold, const double *bg, int nbg, int lin
 
   if (xi_frames(in, NULL) > 1) {
     g_object_unref(base);
-    vips_error("xi_find_trim", "trim needs a single-frame image");
-    XI_FAIL();
+    *err = xi_error_new("xi_find_trim", "trim needs a single-frame image");
+    return XI_ERR_OP;
   }
   // imgproxy vips_trim: compare in sRGB with transparency flattened onto a
   // colour that cannot be mistaken for image content.

@@ -129,8 +129,7 @@ xi_heifsave(VipsImage *in, const XiHeifOptions *o, int keep, void **buf, size_t 
   // HEIC (HEVC) encoding is off unless XI_FORMATS_HEIC_ENCODE enabled it at
   // init (patent-encumbered codec; decode stays on).
   if (o->compression == VIPS_FOREIGN_HEIF_COMPRESSION_HEVC && !xi_heic_encode_enabled()) {
-    vips_error("xi_heifsave", "HEVC encoding is disabled");
-    *err = xi_error_copy();
+    *err = xi_error_new("xi_heifsave", "HEVC encoding is disabled");
     return XI_ERR_UNSUPPORTED;
   }
   if (o->bitdepth > 0)

@@ -79,40 +79,33 @@ xi_check_loader(const char *loader, VipsBlob *blob, char **err)
   // The libvips sniffer already skips blocked loaders; this is a second
   // line of defence should that ever change.
   if (xi_loader_blocked(loader)) {
-    vips_error("xi_load", "loader %s is blocked", loader);
-    *err = xi_error_copy();
+    *err = xi_error_new("xi_load", "loader %s is blocked", loader);
     return XI_ERR_UNSUPPORTED;
   }
   if (xi_is_magick(loader) &&
       (area->length < 4 || memcmp(area->data, "8BPS", 4) != 0)) {
-    vips_error("xi_load", "%s is restricted to PSD/PSB", loader);
-    *err = xi_error_copy();
+    *err = xi_error_new("xi_load", "%s is restricted to PSD/PSB", loader);
     return XI_ERR_UNSUPPORTED;
   }
   if (g_str_has_prefix(loader, "VipsForeignLoadPpm") &&
       !xi_is_binary_pnm(area->data, area->length)) {
-    vips_error("xi_load", "%s is restricted to binary PGM/PPM/PFM", loader);
-    *err = xi_error_copy();
+    *err = xi_error_new("xi_load", "%s is restricted to binary PGM/PPM/PFM", loader);
     return XI_ERR_UNSUPPORTED;
   }
   return XI_OK;
 }
 
-// xi_load_error classifies a failed loader run: a PDF that needs a password
-// is XI_ERR_ENCRYPTED, anything else XI_ERR_LOAD. PDFium reports the
-// password case only through FPDF_GetLastError, which pdfload turns into
-// this message; the text is the only signal libvips gives.
+// xi_load_error reports a failed loader run as XI_ERR_LOAD with libvips'
+// text copied (and cleared) right here, at the failure site. Nothing is
+// classified by that text: the buffer is process-global, so under
+// concurrency it may hold another thread's message or none. A PDF that needs
+// a password is recognised on the Go side from the document's trailer
+// (pdfEncrypted), not from PDFium's message.
 static int
-xi_load_error(const char *loader, char **err)
+xi_load_error(char **err)
 {
-  const char *msg = vips_error_buffer();
-  int rc = XI_ERR_LOAD;
-
-  if (g_str_has_prefix(loader, "VipsForeignLoadPdf") && msg &&
-      strstr(msg, "password required or incorrect password"))
-    rc = XI_ERR_ENCRYPTED;
   *err = xi_error_copy();
-  return rc;
+  return XI_ERR_LOAD;
 }
 
 // xi_find_loader sniffs the loader class name for blob. It returns
@@ -129,7 +122,10 @@ xi_find_loader(VipsBlob *blob, const char **loader, char **err)
   else if (xi_is_rgbe(area->data, area->length))
     *loader = XI_RAD_LOADER;
   else if (!(*loader = vips_foreign_find_load_buffer(area->data, area->length))) {
-    *err = xi_error_copy();
+    // The sniffer's own message is dropped: the shim states the failure,
+    // so the text never depends on the shared buffer.
+    vips_error_clear();
+    *err = xi_error_new("xi_load", "buffer is not in a known format");
     return XI_ERR_UNSUPPORTED;
   }
   return xi_check_loader(*loader, blob, err);
@@ -366,7 +362,7 @@ xi_probe(VipsBlob *blob, double dpi, XiHeader *h, char **err)
   o.fail_on = VIPS_FAIL_ON_NONE;
   o.dpi = dpi;
   if (xi_run_loader(loader, blob, &o, &img))
-    return xi_load_error(loader, err);
+    return xi_load_error(err);
 
   h->width = img->Xsize;
   h->height = vips_image_get_page_height(img);
@@ -420,13 +416,11 @@ xi_load_with(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsIma
 
   *out = NULL;
   if (!(type = g_type_from_name(loader)) || !g_type_is_a(type, VIPS_TYPE_FOREIGN_LOAD)) {
-    vips_error("xi_load", "no loader %s", loader);
-    *err = xi_error_copy();
+    *err = xi_error_new("xi_load", "no loader %s", loader);
     return XI_ERR_UNSUPPORTED;
   }
   if (xi_loader_blocked(loader)) {
-    vips_error("xi_load", "loader %s is blocked", loader);
-    *err = xi_error_copy();
+    *err = xi_error_new("xi_load", "loader %s is blocked", loader);
     return XI_ERR_UNSUPPORTED;
   }
   return xi_load_run(loader, blob, o, out, err);
@@ -440,20 +434,18 @@ xi_load_run(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsImag
   int frames;
 
   if (xi_run_loader(loader, blob, o, &img))
-    return xi_load_error(loader, err);
+    return xi_load_error(err);
 
   // Limits are checked on the header, before any pixel is decoded.
   frames = img->Ysize / vips_image_get_page_height(img);
   if (o->max_frames > 0 && frames > o->max_frames) {
-    vips_error("xi_load", "%d frames exceed the limit of %d", frames, o->max_frames);
-    *err = xi_error_copy();
+    *err = xi_error_new("xi_load", "%d frames exceed the limit of %d", frames, o->max_frames);
     g_object_unref(img);
     return XI_ERR_LIMIT;
   }
   if (o->max_pixels > 0 && (long long) img->Xsize * img->Ysize > o->max_pixels) {
-    vips_error("xi_load", "%dx%d pixels exceed the limit of %lld", img->Xsize, img->Ysize,
+    *err = xi_error_new("xi_load", "%dx%d pixels exceed the limit of %lld", img->Xsize, img->Ysize,
         o->max_pixels);
-    *err = xi_error_copy();
     g_object_unref(img);
     return XI_ERR_LIMIT;
   }
@@ -486,8 +478,7 @@ xi_thumbnail(VipsBlob *blob, const XiThumbnailOptions *o, const char *import_pro
   if ((rc = xi_find_loader(blob, &loader, err)))
     return rc;
   if (strcmp(loader, XI_EXR_LOADER) == 0) {
-    vips_error("xi_thumbnail", "OpenEXR has no buffer loader");
-    *err = xi_error_copy();
+    *err = xi_error_new("xi_thumbnail", "OpenEXR has no buffer loader");
     return XI_ERR_UNSUPPORTED;
   }
 
@@ -529,7 +520,7 @@ xi_thumbnail(VipsBlob *blob, const XiThumbnailOptions *o, const char *import_pro
   if (export_profile)
     g_object_set(op, "output_profile", export_profile, NULL);
   if (xi_build(op, out))
-    return xi_load_error(loader, err);
+    return xi_load_error(err);
 
   xi_keep_blob(*out, blob);
   return XI_OK;

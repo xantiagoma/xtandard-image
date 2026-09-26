@@ -2,6 +2,7 @@
 // buffers. See shim.h for the licence notice of the portions derived from
 // imgproxy (Apache-2.0).
 
+#include <stdarg.h>
 #include <string.h>
 
 #include "shim.h"
@@ -22,6 +23,23 @@ xi_error_copy(void)
   // Copies and clears the process-global error buffer. Called right at the
   // failure site so the text belongs to this operation (go-standards §4).
   return vips_error_buffer_copy();
+}
+
+char *
+xi_error_new(const char *domain, const char *fmt, ...)
+{
+  // The shim's own failures never pass through the process-global buffer,
+  // where a concurrent xi_error_copy on another thread could take or
+  // interleave the text before this thread copies it.
+  va_list ap;
+  char *msg, *out;
+
+  va_start(ap, fmt);
+  msg = g_strdup_vprintf(fmt, ap);
+  va_end(ap);
+  out = g_strconcat(domain, ": ", msg, NULL);
+  g_free(msg);
+  return out;
 }
 
 // ---- source registry -----------------------------------------------------
