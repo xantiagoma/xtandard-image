@@ -1,0 +1,85 @@
+goos: linux
+goarch: arm64
+pkg: github.com/xantiagoma/xtandard-image/internal/pipeline/exec
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 193348629 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 193496197 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 187422983 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 191394161 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 195422589 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 189015464 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 197443716 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 186918062 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 188298682 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 189898564 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/mp4-av1-8          	       5	 302318735 ns/op	     39834 bytes
+BenchmarkVideoOutput/gif100-320/mp4-av1-8          	       5	 345696782 ns/op	     39834 bytes
+BenchmarkVideoOutput/gif100-320/mp4-av1-8          	       5	 334079709 ns/op	     39834 bytes
+BenchmarkVideoOutput/gif100-320/mp4-av1-8          	       5	 302244484 ns/op	     39834 bytes
+BenchmarkVideoOutput/gif100-320/mp4-av1-8          	       5	 305845959 ns/op	     39834 bytes
+BenchmarkVideoOutput/gif100-320/mp4-av1-8          	       5	 301425443 ns/op	     39834 bytes
+BenchmarkVideoOutput/gif100-320/mp4-av1-8          	       5	 302316743 ns/op	     39834 bytes
+BenchmarkVideoOutput/gif100-320/mp4-av1-8          	       5	 310785421 ns/op	     39834 bytes
+BenchmarkVideoOutput/gif100-320/mp4-av1-8          	       5	 303329536 ns/op	     39834 bytes
+BenchmarkVideoOutput/gif100-320/mp4-av1-8          	       5	 307505849 ns/op	     39834 bytes
+BenchmarkVideoOutput/h264/tile3x3-png-8            	       5	  60030816 ns/op
+BenchmarkVideoOutput/h264/tile3x3-png-8            	       5	  62238620 ns/op
+BenchmarkVideoOutput/h264/tile3x3-png-8            	       5	  60659722 ns/op
+BenchmarkVideoOutput/h264/tile3x3-png-8            	       5	  60726264 ns/op
+BenchmarkVideoOutput/h264/tile3x3-png-8            	       5	  59118533 ns/op
+BenchmarkVideoOutput/h264/tile3x3-png-8            	       5	  59043924 ns/op
+BenchmarkVideoOutput/h264/tile3x3-png-8            	       5	  59472195 ns/op
+BenchmarkVideoOutput/h264/tile3x3-png-8            	       5	  58704629 ns/op
+BenchmarkVideoOutput/h264/tile3x3-png-8            	       5	  58914156 ns/op
+BenchmarkVideoOutput/h264/tile3x3-png-8            	       5	  58986190 ns/op
+BenchmarkVideoOutput/h264/anim10-webp-8            	       5	 143125977 ns/op
+BenchmarkVideoOutput/h264/anim10-webp-8            	       5	 138256091 ns/op
+BenchmarkVideoOutput/h264/anim10-webp-8            	       5	 139488944 ns/op
+BenchmarkVideoOutput/h264/anim10-webp-8            	       5	 140356560 ns/op
+BenchmarkVideoOutput/h264/anim10-webp-8            	       5	 142163552 ns/op
+BenchmarkVideoOutput/h264/anim10-webp-8            	       5	 138029356 ns/op
+BenchmarkVideoOutput/h264/anim10-webp-8            	       5	 137471651 ns/op
+BenchmarkVideoOutput/h264/anim10-webp-8            	       5	 138773287 ns/op
+BenchmarkVideoOutput/h264/anim10-webp-8            	       5	 140952574 ns/op
+BenchmarkVideoOutput/h264/anim10-webp-8            	       5	 138736504 ns/op
+BenchmarkVideoOutput/vp9/tile3x3-png-8             	       5	  39507053 ns/op
+BenchmarkVideoOutput/vp9/tile3x3-png-8             	       5	  38666954 ns/op
+BenchmarkVideoOutput/vp9/tile3x3-png-8             	       5	  39308785 ns/op
+BenchmarkVideoOutput/vp9/tile3x3-png-8             	       5	  39769398 ns/op
+BenchmarkVideoOutput/vp9/tile3x3-png-8             	       5	  41906167 ns/op
+BenchmarkVideoOutput/vp9/tile3x3-png-8             	       5	  38954357 ns/op
+BenchmarkVideoOutput/vp9/tile3x3-png-8             	       5	  38814514 ns/op
+BenchmarkVideoOutput/vp9/tile3x3-png-8             	       5	  39123508 ns/op
+BenchmarkVideoOutput/vp9/tile3x3-png-8             	       5	  38756355 ns/op
+BenchmarkVideoOutput/vp9/tile3x3-png-8             	       5	  39448786 ns/op
+BenchmarkVideoOutput/vp9/anim10-webp-8             	       5	  88466452 ns/op
+BenchmarkVideoOutput/vp9/anim10-webp-8             	       5	  88490710 ns/op
+BenchmarkVideoOutput/vp9/anim10-webp-8             	       5	  89239642 ns/op
+BenchmarkVideoOutput/vp9/anim10-webp-8             	       5	  89295968 ns/op
+BenchmarkVideoOutput/vp9/anim10-webp-8             	       5	  89117941 ns/op
+BenchmarkVideoOutput/vp9/anim10-webp-8             	       5	  88746938 ns/op
+BenchmarkVideoOutput/vp9/anim10-webp-8             	       5	  89195825 ns/op
+BenchmarkVideoOutput/vp9/anim10-webp-8             	       5	  88807547 ns/op
+BenchmarkVideoOutput/vp9/anim10-webp-8             	       5	  89926190 ns/op
+BenchmarkVideoOutput/vp9/anim10-webp-8             	       5	  89994791 ns/op
+BenchmarkVideoOutput/av1/tile3x3-png-8             	       5	  85697051 ns/op
+BenchmarkVideoOutput/av1/tile3x3-png-8             	       5	  85100579 ns/op
+BenchmarkVideoOutput/av1/tile3x3-png-8             	       5	  84374773 ns/op
+BenchmarkVideoOutput/av1/tile3x3-png-8             	       5	  85087437 ns/op
+BenchmarkVideoOutput/av1/tile3x3-png-8             	       5	  87277674 ns/op
+BenchmarkVideoOutput/av1/tile3x3-png-8             	       5	  86054621 ns/op
+BenchmarkVideoOutput/av1/tile3x3-png-8             	       5	  85485266 ns/op
+BenchmarkVideoOutput/av1/tile3x3-png-8             	       5	  84833227 ns/op
+BenchmarkVideoOutput/av1/tile3x3-png-8             	       5	  83742750 ns/op
+BenchmarkVideoOutput/av1/tile3x3-png-8             	       5	  84257363 ns/op
+BenchmarkVideoOutput/av1/anim10-webp-8             	       5	 136648293 ns/op
+BenchmarkVideoOutput/av1/anim10-webp-8             	       5	 134114685 ns/op
+BenchmarkVideoOutput/av1/anim10-webp-8             	       5	 132819122 ns/op
+BenchmarkVideoOutput/av1/anim10-webp-8             	       5	 133056028 ns/op
+BenchmarkVideoOutput/av1/anim10-webp-8             	       5	 133801307 ns/op
+BenchmarkVideoOutput/av1/anim10-webp-8             	       5	 132151046 ns/op
+BenchmarkVideoOutput/av1/anim10-webp-8             	       5	 132179726 ns/op
+BenchmarkVideoOutput/av1/anim10-webp-8             	       5	 133556221 ns/op
+BenchmarkVideoOutput/av1/anim10-webp-8             	       5	 133345138 ns/op
+BenchmarkVideoOutput/av1/anim10-webp-8             	       5	 132429468 ns/op
+PASS
+ok  	github.com/xantiagoma/xtandard-image/internal/pipeline/exec	54.343s

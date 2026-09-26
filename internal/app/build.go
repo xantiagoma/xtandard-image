@@ -761,6 +761,7 @@ func serverConfig(cfg *config.Config) server.Config {
 			MaxAnimationFrames:      cfg.Limits.MaxAnimationFrames,
 			MaxAnimationFramePixels: cfg.Limits.MaxAnimationFramePixels,
 			MaxResultDimension:      cfg.Limits.MaxResultDimension,
+			MaxVideoCompositeFrames: cfg.Video.MaxAnimationFrames,
 			AllowRaising:            cfg.Security.AllowRaisingLimits,
 		},
 		SVG: svg.Options{

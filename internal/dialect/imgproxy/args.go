@@ -233,6 +233,13 @@ func parseFormat(field, s string, allowBest bool) (transform.Format, error) {
 		return transform.FormatICO, nil
 	case "svg":
 		return transform.FormatSVG, nil
+	case "mp4":
+		// imgproxy Pro: an animation saved as MP4 (H.264 in the gpl image,
+		// AV1 in the full image; FORMATS 5.1).
+		return transform.FormatMP4, nil
+	case "webm", "hevc", "h265":
+		// Extensions: VP9 in WebM, HEVC in MP4 (gpl image only).
+		return transform.ParseFormat(s)
 	case "best":
 		if allowBest {
 			return transform.FormatBest, nil

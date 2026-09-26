@@ -35,6 +35,7 @@ func TestGrammar(t *testing.T) {
 		{name: "video_thumbnail_expression", path: "/videos/dog.mp4/ik-thumbnail.jpg", query: "tr=so-duration_mul_0.5"},
 		{name: "video_thumbnail_bad_offset", path: "/videos/dog.mp4/ik-thumbnail.jpg", query: "tr=so--2"},
 		{name: "ik_thumbnail_alone", path: "/ik-thumbnail.jpg"},
+		{name: "gif_video", path: "/tr:w-320/anim/cat.gif/ik-gif-video.mp4"},
 		{name: "query_bad_escape", path: img, query: "tr=w-%zz"},
 		{name: "both_path_wins", path: "/tr:w-300/a.jpg", query: "tr=w-100"},
 		{name: "both_strict", cfg: "strict", path: "/tr:w-300/a.jpg", query: "tr=w-100"},

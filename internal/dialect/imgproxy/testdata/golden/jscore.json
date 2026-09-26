@@ -1291,12 +1291,6 @@
     "path": "/unsafe/vtk:t/vts:5/vtt:2:3:3:160:90:t:f:t:0.5:0.25/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vtt",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Video": {
@@ -1327,12 +1321,6 @@
     "path": "/unsafe/vta:-1:100:10:320:180/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vta",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Video": {

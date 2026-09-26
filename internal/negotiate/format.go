@@ -35,6 +35,8 @@ func mediaTypeOf(f transform.Format) (mediaType, bool) {
 		return mediaType{"video", "mp4"}, true
 	case transform.FormatWebM:
 		return mediaType{"video", "webm"}, true
+	case transform.FormatHEVC:
+		return mediaType{"video", "mp4"}, true
 	case transform.FormatJSON:
 		return mediaType{"application", "json"}, true
 	default:
@@ -68,7 +70,7 @@ func ContentType(f transform.Format) string {
 		return "image/x-icon"
 	case transform.FormatSVG:
 		return "image/svg+xml"
-	case transform.FormatMP4:
+	case transform.FormatMP4, transform.FormatHEVC:
 		return "video/mp4"
 	case transform.FormatWebM:
 		return "video/webm"

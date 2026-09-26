@@ -174,6 +174,7 @@ type fakeProcessor struct {
 	outFormat transform.Format
 	outType   string
 	outBest   string // ProcessOutput.Best
+	outCodec  string // ProcessOutput.VideoCodec
 
 	mu       sync.Mutex
 	calls    int
@@ -184,6 +185,7 @@ type fakeProcessor struct {
 	delta    int              // ProcessInput.QualityDelta
 	marks    []WatermarkInput // ProcessInput.Watermarks, Source bytes in markBytes
 	markData [][]byte
+	meta     SourceMeta // ProcessInput.Meta
 }
 
 func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*ProcessOutput, error) {
@@ -194,6 +196,7 @@ func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*Process
 	p.format = in.Decision.Format
 	p.decision = in.Decision
 	p.delta = in.QualityDelta
+	p.meta = in.Meta
 	p.marks = slices.Clone(in.Watermarks)
 	p.markData = nil
 	for _, m := range in.Watermarks {
@@ -213,6 +216,7 @@ func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*Process
 		o.Format, o.ContentType = p.outFormat, p.outType
 	}
 	o.Best = p.outBest
+	o.VideoCodec = p.outCodec
 	return o, nil
 }
 

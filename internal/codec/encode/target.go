@@ -1,6 +1,7 @@
 package encode
 
 import (
+	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
@@ -131,6 +132,8 @@ type Result struct {
 	// Best reports the best-format selection of EncodeBest; nil from
 	// Encode.
 	Best *BestResult
+	// Video describes a video output (MP4, WebM, HEVC); nil for images.
+	Video *codec.VideoEncodeInfo
 }
 
 // goBody is a Body over Go memory (BMP and ICO output).

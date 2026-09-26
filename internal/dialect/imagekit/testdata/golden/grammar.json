@@ -262,6 +262,33 @@
     "path": "/demox/a.jpg",
     "query": ""
   },
+  "gif_video": {
+    "path": "/tr:w-320/anim/cat.gif/ik-gif-video.mp4",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Output": {
+        "Format": "mp4"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 320
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "anim/cat.gif"
+      }
+    },
+    "signature": "unsigned",
+    "source": "anim/cat.gif"
+  },
   "ik_thumbnail_alone": {
     "path": "/ik-thumbnail.jpg",
     "query": "",

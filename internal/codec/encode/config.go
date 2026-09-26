@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"github.com/xantiagoma/xtandard-image/internal/transform"
+	"github.com/xantiagoma/xtandard-image/internal/video"
 )
 
 // Config is the encoder part of the config tree (CONFIG.md "Processing,
@@ -46,6 +47,21 @@ type Config struct {
 
 	// Best configures format=best (XI_FORMATS_BEST_*, EncodeBest).
 	Best BestConfig
+
+	// Video configures MP4, WebM and HEVC output (WP-76, XI_VIDEO_*).
+	Video VideoConfig
+}
+
+// VideoConfig configures video output (FORMATS 5.1).
+type VideoConfig struct {
+	// Enabled allows video output (XI_VIDEO_ENABLED resolved against the
+	// build); false answers errs.KindUnsupported.
+	Enabled bool
+	// Encoders are the encoders of this build (codec.VideoEncoders, probed
+	// at startup): they decide the codec of mp4.
+	Encoders video.EncoderSet
+	// Settings are the CRF, speed and limit defaults (XI_VIDEO_ENCODE_*).
+	Settings video.EncodeSettings
 }
 
 // BestConfig configures the best-format selection (FORMATS §6.3).

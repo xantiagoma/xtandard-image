@@ -100,6 +100,10 @@ type Job struct {
 	// Watermarks are the per-request watermark images of the request
 	// (Watermark.Source), fetched by the caller.
 	Watermarks []WatermarkImage
+	// Video is the FFmpeg handle the probe of a video source kept open
+	// (codec.ProbeSession): frames are decoded on it instead of opening
+	// the source again. Nil opens Source. The caller closes it.
+	Video *codec.VideoSession
 	// Best is the negotiated decision of a format=best request
 	// (negotiate.ReasonBest): the processed image is encoded with
 	// encode.Encoder.EncodeBest, which picks among its candidates. Nil
@@ -146,6 +150,9 @@ type Result struct {
 	// VideoFrame describes the frame a video source was decoded from; nil
 	// for images.
 	VideoFrame *codec.VideoFrameInfo
+	// VideoCodec is the codec of a video output ("vp9", "av1", "h264",
+	// "hevc"); empty for images. It is exposed as a debug header.
+	VideoCodec string
 }
 
 // Run plans j.Request for j.Meta, executes the plan on j.Source and encodes
@@ -276,6 +283,10 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 		if t.Animated && animatable(out.Format) {
 			res.Frames = img.Pages()
 		}
+		if v := out.Video; v != nil {
+			res.VideoCodec = v.Codec.String()
+			res.Width, res.Height, res.Frames = v.Width, v.Height, v.Frames
+		}
 		return nil
 	})
 	if err != nil {
@@ -285,7 +296,7 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 }
 
 func animatable(f transform.Format) bool {
-	return f == transform.FormatGIF || f == transform.FormatWebP || f == transform.FormatJXL
+	return f == transform.FormatGIF || f == transform.FormatWebP || f == transform.FormatJXL || f.IsVideo()
 }
 
 // ctxErr reports a done ctx with the matching errs kind.

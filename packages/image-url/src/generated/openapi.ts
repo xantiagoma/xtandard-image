@@ -1155,13 +1155,13 @@ export interface components {
                 boolean | null
             ];
             /**
-             * @description Output format. URL: `format`, `f`, `ext`; arguments extension or `best` Pro; default source/negotiated.
+             * @description Output format. `mp4` (Pro), `webm` and `hevc` encode the (animated) result as video: VP9 WebM, MP4 with H.264 in the gpl image or AV1 in full, HEVC only in gpl. URL: `format`, `f`, `ext`; arguments extension or `best` Pro; default source/negotiated.
              * @example [
              *       "webp"
              *     ]
              */
             format?: [
-                "jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | "best"
+                "jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | "mp4" | "webm" | "hevc" | "h265" | "best"
             ];
             /**
              * @description Quality per output format. URL: `format_quality`, `fq`; arguments fmt:q…; default —.
@@ -1172,7 +1172,7 @@ export interface components {
              *       50
              *     ]
              */
-            format_quality?: (("jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg") | number)[];
+            format_quality?: (("jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | "mp4" | "webm" | "hevc" | "h265") | number)[];
             /**
              * @deprecated
              * @description Removed upstream; accepted and ignored for old URLs. URL: `gif_options`, `gifo`; arguments —; default —.
@@ -1568,7 +1568,7 @@ export interface components {
              *       "gif"
              *     ]
              */
-            skip_processing?: ("jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg")[];
+            skip_processing?: ("jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | "mp4" | "webm" | "hevc" | "h265")[];
             /**
              * @description Convert to sRGB and drop the ICC profile. URL: `strip_color_profile`, `scp`; arguments bool; default config (true).
              * @example [

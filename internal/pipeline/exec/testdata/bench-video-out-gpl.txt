@@ -1,0 +1,25 @@
+goos: linux
+goarch: arm64
+pkg: github.com/xantiagoma/xtandard-image/internal/pipeline/exec
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 196303320 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 211221904 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 189645091 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 191696954 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 196614203 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 190602665 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 194711852 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 188417571 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 189037182 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/webm-vp9-8         	       5	 196705170 ns/op	     74439 bytes
+BenchmarkVideoOutput/gif100-320/mp4-h264-8         	       5	 241787611 ns/op	     47752 bytes
+BenchmarkVideoOutput/gif100-320/mp4-h264-8         	       5	 235619797 ns/op	     47752 bytes
+BenchmarkVideoOutput/gif100-320/mp4-h264-8         	       5	 233743013 ns/op	     47752 bytes
+BenchmarkVideoOutput/gif100-320/mp4-h264-8         	       5	 236877245 ns/op	     47752 bytes
+BenchmarkVideoOutput/gif100-320/mp4-h264-8         	       5	 236924029 ns/op	     47752 bytes
+BenchmarkVideoOutput/gif100-320/mp4-h264-8         	       5	 255595255 ns/op	     47752 bytes
+BenchmarkVideoOutput/gif100-320/mp4-h264-8         	       5	 241554144 ns/op	     47752 bytes
+BenchmarkVideoOutput/gif100-320/mp4-h264-8         	       5	 240864557 ns/op	     47752 bytes
+BenchmarkVideoOutput/gif100-320/mp4-h264-8         	       5	 235900657 ns/op	     47752 bytes
+BenchmarkVideoOutput/gif100-320/mp4-h264-8         	       5	 239675176 ns/op	     47752 bytes
+PASS
+ok  	github.com/xantiagoma/xtandard-image/internal/pipeline/exec	23.394s
