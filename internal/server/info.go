@@ -77,6 +77,11 @@ type SourceInfo struct {
 	// Video describes a video source (container, tags, streams); nil for
 	// images.
 	Video *video.Meta
+	// Detections are the faces and objects Inspect detected for det
+	// (WP-73): detect_objects and crops placed by face or object gravity.
+	// nil when det asked for none (or only for optional faces the
+	// deployment cannot detect).
+	Detections *plan.Detections
 }
 
 // Inspector reads a source's header and metadata for /info (stage 11 of an
@@ -84,10 +89,13 @@ type SourceInfo struct {
 // disabled formats, KindCorrupt for unreadable headers and
 // KindLimitExceeded when a limit is exceeded, and must not retain src.
 // When px asks for pixel-derived fields (px.Any()), it also decodes the
-// first page and fills SourceInfo.Pixels (WP-63). app implements it with
-// codec.Inspect, codec.Sample and imageinfo.Analyze in one vips.Run.
+// first page and fills SourceInfo.Pixels (WP-63). When det asks for
+// detection (det.Any()) it detects faces and objects on the source and
+// fills SourceInfo.Detections, failing with errs.KindUnsupported when a
+// required model is unavailable (WP-73). app implements it with
+// codec.Inspect, codec.Sample, imageinfo.Analyze and internal/detect.
 type Inspector interface {
-	Inspect(ctx context.Context, src fetch.Buffer, lim ProbeLimits, px *imageinfo.Options) (*SourceInfo, error)
+	Inspect(ctx context.Context, src fetch.Buffer, lim ProbeLimits, px *imageinfo.Options, det plan.DetectionNeeds) (*SourceInfo, error)
 }
 
 // infoContentType is the media type of info responses.
@@ -151,7 +159,7 @@ func (s *Server) inspect(ctx context.Context, r *http.Request, req *transform.Re
 	// 11. Header and metadata, plus the pixel-derived fields when asked
 	// for (decoded in the same vips.Run).
 	t = s.stage(info, stageProbe)
-	si, err := s.inspectSource(ctx, fr.Buffer, &lim.probe, pixelOptions(req.Info))
+	si, err := s.inspectSource(ctx, fr.Buffer, &lim.probe, pixelOptions(req.Info), infoDetection(req))
 	t.done()
 	if err != nil {
 		return nil, err
@@ -184,7 +192,7 @@ func (s *Server) infoResponse(req *transform.Request, si *SourceInfo, src []byte
 	if req.Info.Schema == transform.InfoSchemaThumbor {
 		return s.thumborMetaBody(req, si)
 	}
-	body, err := infoBody(req.Info, si, src)
+	body, err := infoBody(req.Info, objectsPositionOf(req), si, src)
 	if err != nil {
 		return nil, errs.Wrapf(errs.KindInternal, err, "server: encode info")
 	}
@@ -193,7 +201,7 @@ func (s *Server) infoResponse(req *transform.Request, si *SourceInfo, src []byte
 
 // inspectSource is probe for info requests: SVG is sanitised before
 // anything parses it, and the input limits are re-checked on the result.
-func (s *Server) inspectSource(ctx context.Context, buf fetch.Buffer, lim *ProbeLimits, px *imageinfo.Options) (*SourceInfo, error) {
+func (s *Server) inspectSource(ctx context.Context, buf fetch.Buffer, lim *ProbeLimits, px *imageinfo.Options, det plan.DetectionNeeds) (*SourceInfo, error) {
 	ctx, span := s.deps.Tracer.Start(ctx, "probe")
 	defer span.End()
 
@@ -203,7 +211,7 @@ func (s *Server) inspectSource(ctx context.Context, buf fetch.Buffer, lim *Probe
 		return nil, err
 	}
 	defer src.Release()
-	si, err := s.deps.Inspector.Inspect(ctx, src, *lim, px)
+	si, err := s.deps.Inspector.Inspect(ctx, src, *lim, px, det)
 	switch {
 	case err != nil:
 	case si == nil:
@@ -235,10 +243,9 @@ func orientedSize(m *SourceMeta) (w, h int) {
 // InfoResponse is imgproxy's /info response body (docs.imgproxy.net
 // usage/getting_info). Each section is present exactly when its option is
 // on; requested metadata sections the source lacks are empty objects.
-// Options imgproxy supports but this build does not compute yet (detection,
-// classification) are left out; the dialect lists
-// them in Request.Ignored (X-Xi-Ignored). The crop, colour and hash fields
-// (WP-63) are InfoProResponse, rendered by info_pro.go.
+// Options imgproxy supports but this build does not compute (classification) are left out; the dialect lists them in
+// Request.Ignored (X-Xi-Ignored). The crop, colour, hash and detection
+// fields (WP-63, WP-73) are InfoProResponse, rendered by info_pro.go.
 //
 // It is public API: internal/apidoc reflects it into the OpenAPI document
 // (ADR 0008), so renaming a field or its JSON name is a breaking change.
@@ -264,9 +271,10 @@ type InfoResponse struct {
 	HDR bool `json:"hdr,omitempty" doc:"xtandard-image extension: true for scene-linear sources (OpenEXR, Radiance, PFM), which imgproxy does not read; absent otherwise."`
 }
 
-// infoBody renders the response for the options in o; src is the source
-// as fetched.
-func infoBody(o *transform.InfoOptions, si *SourceInfo, src []byte) ([]byte, error) {
+// infoBody renders the response for the options in o; op is the objects
+// position of the request (for a crop placed on detections), src the
+// source as fetched.
+func infoBody(o *transform.InfoOptions, op *transform.ObjectsPosition, si *SourceInfo, src []byte) ([]byte, error) {
 	var out InfoResponse
 	if o.Size {
 		size := len(src)
@@ -323,7 +331,7 @@ func infoBody(o *transform.InfoOptions, si *SourceInfo, src []byte) ([]byte, err
 	if o.Alpha {
 		out.Alpha = &si.Meta.HasAlpha
 	}
-	out.InfoProResponse = infoPro(o, si, src)
+	out.InfoProResponse = infoPro(o, op, si, src)
 	out.InfoVideoResponse = infoVideo(o, si.Video)
 	out.HDR = si.HDR
 	return json.Marshal(&out)

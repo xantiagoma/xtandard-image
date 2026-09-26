@@ -275,6 +275,8 @@ Face and object detection (WP-71, [ARCHITECTURE.md](ARCHITECTURE.md) "Detection"
 | `XI_DETECT_WORKERS` | `0` | Inferences running at once (a semaphore; more wait); `0` is GOMAXPROCS / `XI_DETECT_THREADS` |
 | `XI_DETECT_MAX_INPUT` | `640` | Longest side fed to a model whose input size is dynamic (32–4096); the shipped models are fixed at 640×640 |
 | `XI_DETECT_VERIFY_CHECKSUMS` | `false` | Check each model against the `SHA256SUMS` of its directory when it lists the model; a mismatch fails startup |
+| `XI_DETECT_CACHE_SIZE` | `512` | Detection results kept in memory, least recently used first out: one entry per model and source (keyed by the SHA-256 of the source bytes), shared by processing and `/info` (0–1000000; `0` disables the cache) |
+| `XI_DETECT_SMART_FACES` | `true` | Smart gravity (imgproxy `sm`, imgix `crop=edges`, Cloudinary `g_auto`, thumbor `smart`, …) crops on the detected faces when there are some and falls back to libvips attention otherwise; `false` always uses attention. Without the face model (slim) smart gravity is attention |
 
 ### Cache and observability
 

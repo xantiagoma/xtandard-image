@@ -8,6 +8,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/imageinfo"
+	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/video"
@@ -20,13 +21,17 @@ import (
 type vipsInspector struct {
 	formats codec.Limits   // static per-format limits and settings (formatLimits)
 	video   video.Settings // XI_VIDEO_* (videoSettings)
+	// detect answers detect_objects and crops placed on detections; nil
+	// is no detection.
+	detect *detections
 }
 
 // Inspect implements server.Inspector. The pixel-derived fields px asks
 // for are computed in the same vips.Run: codec.Sample decodes the first
 // page to a copy of at most imageinfo.MaxSide pixels a side, and
-// imageinfo.Analyze runs on it.
-func (in *vipsInspector) Inspect(ctx context.Context, src fetch.Buffer, lim server.ProbeLimits, px *imageinfo.Options) (*server.SourceInfo, error) {
+// imageinfo.Analyze runs on it. Detection (det) runs after it on its own
+// sample, through the detection cache shared with processing.
+func (in *vipsInspector) Inspect(ctx context.Context, src fetch.Buffer, lim server.ProbeLimits, px *imageinfo.Options, det plan.DetectionNeeds) (*server.SourceInfo, error) {
 	vb, err := vipsBuffer(src)
 	if err != nil {
 		return nil, err
@@ -61,6 +66,9 @@ func (in *vipsInspector) Inspect(ctx context.Context, src fetch.Buffer, lim serv
 	}
 	si := sourceInfo(&ci)
 	si.Pixels = pixels
+	if si.Detections, err = in.detect.forRequest(ctx, vb, ci.Meta.Format, det); err != nil {
+		return nil, err
+	}
 	return si, nil
 }
 

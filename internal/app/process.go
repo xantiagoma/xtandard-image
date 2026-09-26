@@ -9,7 +9,6 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/codec/encode"
 	"github.com/xantiagoma/xtandard-image/internal/config"
-	"github.com/xantiagoma/xtandard-image/internal/detect"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
@@ -129,10 +128,10 @@ type processor struct {
 	exec   *exec.Executor
 	enc    encode.Config
 	pdfDPI float64 // XI_FORMATS_PDF_DPI: the density PDF sizes were probed at
-	// detector runs face/object detection; nil when it is off or
-	// unavailable (slim). Face/object gravity (WP-72) and the detection
-	// filters (WP-73) consume it.
-	detector *detect.Detector
+	// detect runs face and object detection for the detection gravities
+	// and filters (WP-72/73); nil is no detection (tests), like a detector
+	// that is off or unavailable (slim).
+	detect *detections
 }
 
 // newProcessor builds the executor and encoder; wm is the configured
@@ -286,10 +285,14 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 	if err != nil {
 		return nil, err
 	}
+	meta := planMeta(format, &in.Meta, p.pdfDPI)
+	if meta.Detections, err = p.detect.forRequest(ctx, src, format, plan.NeedsDetection(in.Request)); err != nil {
+		return nil, err
+	}
 	job := &exec.Job{
 		Request:    in.Request,
 		Source:     src,
-		Meta:       planMeta(format, &in.Meta, p.pdfDPI),
+		Meta:       meta,
 		Target:     t,
 		Watermarks: marks,
 	}

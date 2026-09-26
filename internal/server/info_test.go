@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -21,6 +22,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/imageinfo"
 	"github.com/xantiagoma/xtandard-image/internal/limiter"
 	"github.com/xantiagoma/xtandard-image/internal/obs/admin"
+	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
 
@@ -34,18 +36,28 @@ type fakeInspector struct {
 	pixels *imageinfo.Result
 	// noPixels ignores px (a broken inspector).
 	noPixels bool
+	// det is the detection request of the last call; dets answers it.
+	det  atomic.Pointer[plan.DetectionNeeds]
+	dets *plan.Detections
 }
 
-func (f *fakeInspector) Inspect(_ context.Context, _ fetch.Buffer, _ ProbeLimits, px *imageinfo.Options) (*SourceInfo, error) {
+func (f *fakeInspector) Inspect(_ context.Context, _ fetch.Buffer, _ ProbeLimits, px *imageinfo.Options, det plan.DetectionNeeds) (*SourceInfo, error) {
 	f.calls.Add(1)
 	f.px.Store(px)
+	f.det.Store(&det)
 	if f.err != nil {
 		return nil, f.err
 	}
-	if !px.Any() || f.info == nil || f.noPixels {
+	if f.info == nil || ((!px.Any() || f.noPixels) && !det.Any()) {
 		return f.info, nil
 	}
 	si := *f.info
+	if det.Any() {
+		si.Detections = f.dets
+	}
+	if !px.Any() || f.noPixels {
+		return &si, nil
+	}
 	si.Pixels = f.pixels
 	if si.Pixels == nil {
 		si.Pixels = cannedPixels(px)
@@ -199,8 +211,11 @@ func TestInfoOptionFlags(t *testing.T) {
 			want: `{"pages_number":6,"alpha":true}`,
 		},
 		{name: "not implemented options add nothing", set: only(func(o *transform.InfoOptions) {
-			o.VideoMeta, o.DetectObjects, o.Classify, o.ObjectsPos = true, true, true, true
+			o.VideoMeta, o.Classify, o.ObjectsPos = true, true, true
 		}), want: `{}`},
+		{name: "detect objects without detections", set: only(func(o *transform.InfoOptions) {
+			o.DetectObjects = true
+		}), want: `{"objects":[]}`},
 		{
 			name: "palette", set: only(func(o *transform.InfoOptions) { o.Palette = 2 }),
 			want: `{"palette":[{"R":189,"G":178,"B":169,"A":255},{"R":83,"G":79,"B":67,"A":255}]}`,
@@ -526,4 +541,119 @@ func TestInfoPixelOptions(t *testing.T) {
 		}
 		h.checkReleased(t)
 	})
+}
+
+// TestInfoDetectObjects: detect_objects reports the inspector's detections
+// in imgproxy Pro's shape (plus landmarks), filtered by class; a crop with
+// object gravity is placed on them; the inspector is asked for exactly the
+// models the options need.
+func TestInfoDetectObjects(t *testing.T) {
+	t.Parallel()
+	dets := &plan.Detections{
+		Faces: []plan.Detected{{
+			Class: "face", Score: 0.9321, Box: transform.Area{Left: 0.1, Top: 0.2, Width: 0.1, Height: 0.15},
+			Landmarks: [][2]float64{{0.12, 0.25}, {0.17, 0.25}, {0.15, 0.28}, {0.13, 0.31}, {0.17, 0.31}},
+		}},
+		Objects: []plan.Detected{{Class: "dog", Score: 0.87654321, Box: transform.Area{Left: 0.5, Top: 0.5, Width: 0.25, Height: 0.25}}},
+	}
+	face := `{"class_id":0,"class_name":"face","confidence":0.9321,"left":0.1,"top":0.2,"width":0.1,"height":0.15,` +
+		`"landmarks":[[0.12,0.25],[0.17,0.25],[0.15,0.28],[0.13,0.31],[0.17,0.31]]}`
+	dog := `{"class_id":16,"class_name":"dog","confidence":0.876543,"left":0.5,"top":0.5,"width":0.25,"height":0.25}`
+	tests := []struct {
+		name string
+		set  func(*transform.InfoOptions)
+		op   *transform.ObjectsPosition
+		need plan.DetectionNeeds
+		want string
+	}{
+		{
+			"all", func(o *transform.InfoOptions) { o.DetectObjects = true },
+			nil,
+			plan.DetectionNeeds{Faces: true, Objects: true},
+			`{"objects":[` + face + `,` + dog + `]}`,
+		},
+		{
+			"faces only", func(o *transform.InfoOptions) { o.DetectObjects, o.DetectClasses = true, []string{"faces"} },
+			nil,
+			plan.DetectionNeeds{Faces: true},
+			`{"objects":[` + face + `]}`,
+		},
+		{
+			"animals", func(o *transform.InfoOptions) { o.DetectObjects, o.DetectClasses = true, []string{"animal"} },
+			nil,
+			plan.DetectionNeeds{Objects: true},
+			`{"objects":[` + dog + `]}`,
+		},
+		// Upright 3000x4000: the dog's centre is at 1875, 2500; a centred
+		// 1000x1000 crop starts at 1375, 2000.
+		{"crop on the dog", func(o *transform.InfoOptions) {
+			o.Crop = &transform.Crop{
+				Width: transform.Dim{Px: 1000}, Height: transform.Dim{Px: 1000},
+				Gravity: transform.Gravity{Type: transform.GravityObject, Classes: []string{"dog"}},
+			}
+		}, nil, plan.DetectionNeeds{Objects: true}, `{"crop":{"left":0.458333,"top":0.5,"width":0.333333,"height":0.25}}`},
+		{
+			"crop on the dog, north-west", func(o *transform.InfoOptions) {
+				o.Crop = &transform.Crop{
+					Width: transform.Dim{Px: 1000}, Height: transform.Dim{Px: 1000},
+					Gravity: transform.Gravity{Type: transform.GravityObject, Classes: []string{"dog"}},
+				}
+			}, &transform.ObjectsPosition{Type: transform.GravityNorthWest},
+			plan.DetectionNeeds{Objects: true},
+			`{"crop":{"left":0.5,"top":0.5,"width":0.333333,"height":0.25}}`,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			insp := &fakeInspector{info: photoInfo(), dets: dets}
+			h := newInfoHarness(t, insp, func(h *harness) {
+				h.router.mutate = func(r *transform.Request) {
+					infoRequest(func(o *transform.InfoOptions) { *o = transform.InfoOptions{}; tc.set(o) })(r)
+					r.Pipelines[0].Gravity.ObjectsPosition = tc.op
+				}
+			})
+			rec := h.do(t, http.MethodGet, infoPath, nil)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status %d, body %q", rec.Code, rec.Body.String())
+			}
+			if diff := cmp.Diff(canonicalJSON(t, tc.want), canonicalJSON(t, roundJSON(t, rec.Body.String()))); diff != "" {
+				t.Errorf("body (-want +got):\n%s", diff)
+			}
+			if got := *insp.det.Load(); got != tc.need {
+				t.Errorf("inspector asked for %+v, want %+v", got, tc.need)
+			}
+			h.checkReleased(t)
+		})
+	}
+}
+
+// roundJSON rounds the numbers of a JSON document to 6 decimals.
+func roundJSON(t *testing.T, s string) string {
+	t.Helper()
+	var v any
+	if err := json.Unmarshal([]byte(s), &v); err != nil {
+		t.Fatal(err)
+	}
+	var walk func(v any) any
+	walk = func(v any) any {
+		switch x := v.(type) {
+		case float64:
+			return math.Round(x*1e6) / 1e6
+		case []any:
+			for i := range x {
+				x[i] = walk(x[i])
+			}
+		case map[string]any:
+			for k := range x {
+				x[k] = walk(x[k])
+			}
+		}
+		return v
+	}
+	b, err := json.Marshal(walk(v))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
 }

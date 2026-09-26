@@ -72,6 +72,7 @@ type thumborRect struct{ left, top, right, bottom int }
 // callback is not supported.
 func (s *Server) thumborMetaBody(req *transform.Request, si *SourceInfo) ([]byte, error) {
 	meta := thumborPlanMeta(si)
+	meta.Detections = si.Detections
 	pl, err := plan.Build(req, meta, s.cfg.Info.PlanLimits)
 	if err != nil {
 		return nil, err
@@ -92,6 +93,9 @@ func (s *Server) thumborMetaBody(req *transform.Request, si *SourceInfo) ([]byte
 		Target:      thumborSize{Width: last.Output.Width, Height: last.Output.Height},
 		FocalPoints: thumborFocalPoints(&p0.Gravity, manual, ow, oh),
 	}}
+	if faces := thumborFaces(&p0.Gravity, manual, si.Detections, ow, oh); faces != nil {
+		out.Thumbor.FocalPoints = faces
+	}
 	b, err := json.Marshal(&out)
 	if err != nil {
 		return nil, errs.Wrapf(errs.KindInternal, err, "server: encode thumbor meta")
@@ -251,6 +255,36 @@ func thumborFocalPoints(g *transform.Gravity, manual *thumborRect, w, h int) []t
 	return []thumborFocal{{
 		X: int(float64(w) * fx), Y: int(float64(h) * fy), Z: 1, Width: 1, Height: 1, Origin: "alignment",
 	}}
+}
+
+// thumborFaceHair is thumbor's face detector HAIR_OFFSET: the box is
+// raised by 12 % of its height to include the hair.
+const thumborFaceHair = 0.12
+
+// thumborFaces are the focal points of smart cropping on detected faces
+// (thumbor's face detector: FocalPoint.from_square with origin "Face
+// Detection" and the hair offset), in the displayed source or the manual
+// crop; nil unless the gravity is smart and faces were found.
+func thumborFaces(g *transform.Gravity, manual *thumborRect, dets *plan.Detections, w, h int) []thumborFocal {
+	if g.Type != transform.GravitySmart || dets == nil || len(dets.Faces) == 0 {
+		return nil
+	}
+	var out []thumborFocal
+	for _, f := range dets.Faces {
+		left := int(f.Box.Left * float64(w))
+		top := int(f.Box.Top * float64(h))
+		fw, fh := int(f.Box.Width*float64(w)), int(f.Box.Height*float64(h))
+		if off := float64(fh) * thumborFaceHair; float64(top)-off >= 0 {
+			top = int(float64(top) - off)
+		}
+		if manual != nil {
+			left, top = left-manual.left, top-manual.top
+		}
+		out = append(out, thumborFocal{
+			X: left + fw/2, Y: top + fh/2, Z: float64(fw * fh), Width: fw, Height: fh, Origin: "Face Detection",
+		})
+	}
+	return out
 }
 
 // exifTransform is the clockwise rotation and the horizontal flip that
