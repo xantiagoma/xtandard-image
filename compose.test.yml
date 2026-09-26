@@ -15,6 +15,10 @@
 #     go test -tags integration ./internal/fetch/s3src/
 #   docker compose -p xi-test-host -f compose.test.yml down
 #
+# Redis-protocol tests (cache/redis) on the host:
+#   XI_TEST_REDIS_ADDR=$(docker compose -p xi-test-host -f compose.test.yml port valkey 6379) \
+#     go test -tags integration ./internal/cache/redis/
+#
 # FTP/SFTP on the host: sftp works through its ephemeral port
 # (XI_TEST_SFTP_ADDR=127.0.0.1:$(... port sftp 22 | cut -d: -f2)), but ftp/ftps
 # passive data ports are only reachable on the compose network, so run the
@@ -125,6 +129,22 @@ services:
       timeout: 2s
       retries: 30
 
+  # Valkey (BSD-3-Clause): Redis-protocol server for cache/redis (WP-55).
+  # Redis itself is RSALv2/SSPL (7.4+) or AGPL (8+), which ADR 0006 forbids
+  # even as a test service; Valkey is the Linux Foundation fork of Redis 7.2
+  # and speaks the same RESP commands (GET, SET PX, DEL). Pinned by digest
+  # (multi-arch index). No persistence: every run starts empty.
+  valkey:
+    image: valkey/valkey:9.1.2-alpine@sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11
+    command: ["valkey-server", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "127.0.0.1::6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 1s
+      timeout: 2s
+      retries: 30
+
   test:
     image: ${XI_BASE_IMAGE:-ghcr.io/xantiagoma/xtandard-image-base:slim}
     working_dir: /src
@@ -147,6 +167,7 @@ services:
       XI_TEST_FTP_ADDR: ftp:21
       XI_TEST_FTPS_ADDR: ftps:21
       XI_TEST_SFTP_ADDR: sftp:22
+      XI_TEST_REDIS_ADDR: valkey:6379
     depends_on:
       rustfs:
         condition: service_healthy
@@ -159,6 +180,8 @@ services:
       ftps:
         condition: service_healthy
       sftp:
+        condition: service_healthy
+      valkey:
         condition: service_healthy
 
 # Shared with compose.dev.yml so builds stay warm.
