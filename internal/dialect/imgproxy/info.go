@@ -63,7 +63,7 @@ func (st *state) applyInfo(name string, args []string) error {
 		milestone string // "" = M1
 	)
 	switch name {
-	// Enabled by default (M1 except video_meta).
+	// Enabled by default.
 	case "size", "s":
 		return oneBool("size", args, &in.Size)
 	case "format", "f":
@@ -77,7 +77,7 @@ func (st *state) applyInfo(name string, args []string) error {
 	case "xmp":
 		return oneBool("xmp", args, &in.XMP)
 	case "video_meta", "vm":
-		return st.infoFlag(name, "video_meta", args, &in.VideoMeta, reasonM3)
+		return oneBool("video_meta", args, &in.VideoMeta)
 
 	// Disabled by default.
 	case "detect_objects", "do":

@@ -2,6 +2,7 @@ package cloudinary
 
 import (
 	"errors"
+	"math"
 	"net/url"
 	"slices"
 	"strconv"
@@ -57,6 +58,7 @@ import (
 
 // Reasons recorded in Request.Ignored.
 const (
+	expStartOffset       = "seconds (a non-negative number), a percentage or auto"
 	reasonUnknown        = "unknown option"
 	reasonUnsupported    = "unsupported"
 	reasonApproximated   = "approximated"
@@ -424,7 +426,9 @@ func (a *applier) base(c *component) error {
 			err = a.defaultImage(p.value)
 		case "pg":
 			err = a.page(p.value)
-		case "ac", "af", "br", "dl", "dn", "du", "eo", "fn", "fps", "ki", "p", "so", "sp", "vc", "vs":
+		case "so":
+			err = a.startOffset(p.value)
+		case "ac", "af", "br", "dl", "dn", "du", "eo", "fn", "fps", "ki", "p", "sp", "vc", "vs":
 			err = a.skip(p.key, reasonUnsupported)
 		default:
 			err = a.skip(optionName(p.key, p.value), reasonUnknown)
@@ -1364,6 +1368,30 @@ func (a *applier) defaultImage(v string) error {
 }
 
 // page is pg_<n> (1-based); ranges and names are unsupported.
+// startOffset is so_<seconds>: the frame of a video source a thumbnail is
+// taken from (imgproxy video_thumbnail_second; ignored for images, like
+// Cloudinary does for image assets). so_auto keeps the configured
+// selection (best-frame selection by default); a percentage of the duration
+// (so_10p, so_10%) has no equivalent.
+func (a *applier) startOffset(v string) error {
+	switch {
+	case v == "auto":
+		return nil
+	case strings.HasSuffix(v, "p") || strings.HasSuffix(v, "%"):
+		return a.skip("so", reasonUnsupported)
+	}
+	sec, err := strconv.ParseFloat(v, 64)
+	if err != nil || sec < 0 || math.IsInf(sec, 0) || math.IsNaN(sec) || sec > math.MaxInt32 {
+		return dialect.InvalidArgument("so", v, expStartOffset)
+	}
+	pl := &a.r.Pipelines[0]
+	if pl.Video == nil {
+		pl.Video = &transform.VideoOptions{}
+	}
+	pl.Video.Second = &sec
+	return nil
+}
+
 func (a *applier) page(v string) error {
 	n, err := strconv.Atoi(v)
 	if err != nil {

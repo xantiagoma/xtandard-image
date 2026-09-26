@@ -1880,6 +1880,61 @@
     "signature": "unsigned",
     "source": "s3://bucket/key.png"
   },
+  "video_second": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026w=320\u0026vts=1.5\u0026vtk=1",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 320
+            }
+          },
+          "Video": {
+            "Keyframes": true,
+            "Second": 1.5
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "video_second_invalid": {
+    "error": {
+      "field": "video_thumbnail_second",
+      "kind": "invalid_url",
+      "public": "invalid video_thumbnail_second: expected number in range -2147483647 to 2147483647",
+      "status": 400
+    },
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026vts=soon"
+  },
+  "video_second_long": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026video_thumbnail_second=-2\u0026video_thumbnail_keyframes=0",
+    "request": {
+      "Dialect": "query",
+      "Pipelines": [
+        {
+          "Video": {
+            "Keyframes": false,
+            "Second": -2
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
   "w": {
     "path": "/",
     "query": "url=https://example.com/a.jpg\u0026w=300",
