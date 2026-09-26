@@ -1566,12 +1566,6 @@
     "path": "/unsafe/f:best/aq:dssim/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "format:best",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "AutoQuality": {
           "Method": "dssim"

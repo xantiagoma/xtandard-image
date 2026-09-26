@@ -372,6 +372,24 @@
     "signature": "unsigned",
     "source": "https://example.com/a.jpg"
   },
+  "f_best": {
+    "path": "/",
+    "query": "url=https://example.com/a.jpg\u0026f=best",
+    "request": {
+      "Dialect": "query",
+      "Output": {
+        "Format": "best"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
   "f_invalid": {
     "error": {
       "field": "format",
