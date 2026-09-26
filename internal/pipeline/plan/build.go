@@ -526,8 +526,8 @@ func emitGeometry(p *transform.Pipeline, g *geo, o *opts, b *builder, cropSmart 
 	}
 }
 
-// emitFinish emits filters, colour adjustments, extend, padding, output size fixes, flatten,
-// watermarks and the output colour.
+// emitFinish emits filters, colour adjustments, the arbitrary rotation, extend, padding, mask,
+// border, radius, output size fixes, flatten, watermarks and the output colour.
 func emitFinish(p *transform.Pipeline, g *geo, b *builder, outFmt transform.Format, frames int, last bool) {
 	if fs, ok := filterStep(p, b); ok {
 		b.add(fs)
@@ -537,6 +537,7 @@ func emitFinish(p *transform.Pipeline, g *geo, b *builder, outFmt transform.Form
 		b.add(st)
 		b.alpha = b.alpha || st.Adjust.Opacity != nil
 	}
+	emitRotateAny(p, b)
 
 	extend := func(e *transform.Extend, w, h int, ar bool) {
 		eg, _ := resolveGravity(&e.Gravity)
@@ -570,6 +571,7 @@ func emitFinish(p *transform.Pipeline, g *geo, b *builder, outFmt transform.Form
 		b.size(b.curW+st.Left+st.Right, b.curH+st.Top+st.Bottom)
 		b.alpha = b.alpha || p.Background == nil
 	}
+	emitShape(p, g, b)
 
 	if s := fixSize(outFmt, b.curW, b.curH); s < 1 {
 		w, h := resizedDim(b.curW, s), resizedDim(b.curH, s)
@@ -653,14 +655,9 @@ func unplanned(p *transform.Pipeline) []string {
 			out = append(out, name)
 		}
 	}
-	add(p.RotateAny != 0, "rotate_any")
-	add(p.Border != nil, "border")
-	add(p.Radius != nil, "radius")
-	add(p.Mask != nil, "mask")
 	add(p.Adjust.Vibrance != nil, "vibrance")
 	add(p.Equalize, "equalize")
 	add(p.BlurDetections != nil || p.DrawDetections != nil || p.CropObjects != nil, "detections")
-	add(p.Crop != nil && p.Crop.AspectRatio != 0, "crop_aspect_ratio")
 	add(p.Video != nil, "video")
 	return out
 }

@@ -456,12 +456,13 @@ func TestCost(t *testing.T) {
 func TestUnplanned(t *testing.T) {
 	t.Parallel()
 	p, err := plan.Build(req(transform.Pipeline{
-		Border: &transform.Border{Top: 1}, Adjust: transform.Adjust{Contrast: new(1.5)}, Sepia: true, RotateAny: 12,
+		Border: &transform.Border{Top: 1}, Adjust: transform.Adjust{Contrast: new(1.5), Vibrance: new(1.2)}, Sepia: true,
+		RotateAny: 12, Equalize: true,
 	}), jpeg(10, 10), plan.Limits{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"rotate_any", "border"}
+	want := []string{"vibrance", "equalize"}
 	if !slices.Equal(p.Unplanned, want) {
 		t.Errorf("Unplanned = %v, want %v", p.Unplanned, want)
 	}
