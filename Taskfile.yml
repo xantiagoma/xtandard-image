@@ -4,6 +4,9 @@
 # base image, so every contributor and agent uses the same libvips and Go.
 #   task docker:lint docker:test
 #   XI_BASE_IMAGE=xtandard-base:dev-builder task docker:test   # locally built base (WP-05)
+#   task docker:base:slim docker:base:slim:check   # build + verify the slim base locally
+#   task docker:base:full docker:base:full:check   # same for the full flavor (WP-70)
+#   XI_BASE_IMAGE=xtandard-base:dev-full-builder task docker:test
 #   task test:integration   # starts compose.test.yml services (RustFS, ...) and runs
 #                           # -tags integration tests in the builder on their network
 #   task acceptance         # black-box M1 suite against the app image $XI_IMAGE (WP-39)
@@ -129,6 +132,51 @@ tasks:
     requires: { vars: [CMD] }
     cmds:
       - docker compose -f compose.dev.yml run --rm -T dev {{.CMD}}
+
+  # ---- base image (docker/base, host architecture only) --------------------
+  # Local tags: xtandard-base:dev[-builder] (slim), xtandard-base:dev-full[-builder].
+  # Publishing (multi-arch, GHCR) is .github/workflows/base-image.yml.
+
+  docker:base:slim:
+    desc: "Build the slim base image for the host arch: xtandard-base:dev-builder and xtandard-base:dev"
+    cmds:
+      - task: docker:base:build
+        vars: { TARGET: builder, TAG: xtandard-base:dev-builder }
+      - task: docker:base:build
+        vars: { TARGET: runtime, TAG: xtandard-base:dev }
+
+  docker:base:slim:check:
+    desc: "Licence gate self-test and verify-image.sh on the local slim pair"
+    cmds:
+      - bash docker/base/test-check-licenses.sh
+      - bash docker/base/verify-image.sh --flavor slim xtandard-base:dev xtandard-base:dev-builder
+
+  docker:base:full:
+    desc: "Build the full base image (slim + FFmpeg LGPL + ONNX Runtime + models) for the host arch: xtandard-base:dev-full-builder and xtandard-base:dev-full"
+    cmds:
+      - task: docker:base:build
+        vars: { TARGET: builder-full, TAG: xtandard-base:dev-full-builder }
+      - task: docker:base:build
+        vars: { TARGET: runtime-full, TAG: xtandard-base:dev-full }
+
+  docker:base:full:check:
+    desc: "Licence gate self-test and verify-image.sh (ffmpeg -buildconf, ldd, models, codecs, ONNX inference) on the local full pair"
+    cmds:
+      - bash docker/base/test-check-licenses.sh
+      - bash docker/base/verify-image.sh --flavor full xtandard-base:dev-full xtandard-base:dev-full-builder
+
+  docker:base:build:
+    internal: true
+    requires: { vars: [TARGET, TAG] }
+    vars:
+      ARCH:
+        sh: case "$(uname -m)" in x86_64|amd64) echo amd64 ;; *) echo arm64 ;; esac
+      VIPS:
+        sh: . docker/base/versions.sh && echo "$VIPS_VERSION"
+    cmds:
+      - >-
+        docker buildx build --platform linux/{{.ARCH}} --build-arg VIPS_VERSION={{.VIPS}}
+        --target {{.TARGET}} --load -t {{.TAG}} docker/base
 
   # ---- on the host (mise toolchain) ----------------------------------------
 
