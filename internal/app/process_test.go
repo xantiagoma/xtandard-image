@@ -12,6 +12,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/leakcheck"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
@@ -23,19 +24,15 @@ import (
 // that libvips' tracked memory, allocations, open files and live objects
 // return to their baseline.
 //
-// Tolerance as in internal/vips TestNoLeak: libvips' worker threads keep
-// per-thread buffers that wobble by a few hundred KiB; one leaked source
-// buffer or image per request would show up as ≥ 500 objects or tens of MB.
+// Tolerance: leakcheck.Default once the counters settle (libvips' worker
+// threads free their reserve buffers just after a sink returns); one leaked
+// source buffer or image per request would show up as ≥ 500 objects or
+// tens of MB.
 //
 // Not parallel: the counters are process-wide (see TestRunEndToEnd for the
 // libvips lifecycle).
 func TestProcessNoLeak(t *testing.T) {
-	const (
-		requests    = 500
-		slackBytes  = 1 << 20
-		slackAllocs = 64
-		slackObjs   = 16
-	)
+	const requests = 500
 	cfg, _, err := config.Load(config.LoadOptions{Environ: []string{"XI_DEV_MODE=true"}, ConfigFile: os.DevNull})
 	if err != nil {
 		t.Fatal(err)
@@ -143,17 +140,11 @@ func TestProcessNoLeak(t *testing.T) {
 		request(i) // warm up lazily initialised libvips state
 	}
 
-	before, objects := vips.ReadMemStats(), vips.LiveObjects()
+	before := leakcheck.Take()
 	for i := range requests {
 		request(i)
 	}
-	after, objectsAfter := vips.ReadMemStats(), vips.LiveObjects()
-	if after.Mem-before.Mem > slackBytes || after.Allocs-before.Allocs > slackAllocs ||
-		after.Files != before.Files || objectsAfter-objects > slackObjs {
-		t.Errorf("after %d requests: mem %d → %d B, allocs %d → %d, files %d → %d, objects %d → %d",
-			requests, before.Mem, after.Mem, before.Allocs, after.Allocs, before.Files, after.Files,
-			objects, objectsAfter)
-	}
+	after := leakcheck.Check(t, before, leakcheck.Default, "requests")
 	t.Logf("after %d requests: mem %+d B, allocs %+d, objects %+d, highwater %d B",
-		requests, after.Mem-before.Mem, after.Allocs-before.Allocs, objectsAfter-objects, after.MemHighwater)
+		requests, after.Mem-before.Mem, after.Allocs-before.Allocs, after.Objects-before.Objects, after.MemHighwater)
 }
