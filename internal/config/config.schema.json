@@ -1043,6 +1043,15 @@
         "cloudflare_images": {
           "additionalProperties": false,
           "properties": {
+            "accounts": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "account_hash=source,…: the source each Cloudflare Images account hash reads image ids from; empty = the mount's source for every hash, otherwise an unknown hash is 403. XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS are the raw Images signing keys (sig/exp); variants are presets\n\nEnv: XI_DIALECTS_CLOUDFLARE_IMAGES_ACCOUNTS",
+              "markdownDescription": "`account_hash=source,…`: the source each Cloudflare Images account hash reads image ids from; empty = the mount's source for every hash, otherwise an unknown hash is 403. `XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS` are the raw Images signing keys (`sig`/`exp`); variants are presets\n\nEnv: `XI_DIALECTS_CLOUDFLARE_IMAGES_ACCOUNTS`",
+              "title": "XI_DIALECTS_CLOUDFLARE_IMAGES_ACCOUNTS",
+              "type": "object"
+            },
             "enabled": {
               "description": "<NAME>: IMGPROXY, QUERY, WSRV, CLOUDFLARE, CLOUDFLARE_IMAGES, IMGIX, CLOUDINARY, IMAGEKIT, BUNNY, THUMBOR, SIMPLE (for SIMPLE a list of providers: nextjs,netlify,ipx). Extra mounts of one dialect are YAML-only: dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]\n\nDefault: imgproxy true, others false\n\nEnv: XI_DIALECTS_CLOUDFLARE_IMAGES_ENABLED",
               "markdownDescription": "`<NAME>`: `IMGPROXY`, `QUERY`, `WSRV`, `CLOUDFLARE`, `CLOUDFLARE_IMAGES`, `IMGIX`, `CLOUDINARY`, `IMAGEKIT`, `BUNNY`, `THUMBOR`, `SIMPLE` (for `SIMPLE` a list of providers: `nextjs,netlify,ipx`). Extra mounts of one dialect are YAML-only: `dialects.<name>.mounts: [{prefix, hosts, source, keys, unsigned_policy}]`\n\nDefault: imgproxy `true`, others `false`\n\nEnv: `XI_DIALECTS_CLOUDFLARE_IMAGES_ENABLED`",

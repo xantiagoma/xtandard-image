@@ -191,17 +191,17 @@ type Dialects struct {
 	Default DialectName `yaml:"default" env:"DEFAULT"`
 	Strict  bool        `yaml:"strict"  env:"STRICT"`
 
-	Imgproxy         ImgproxyDialect   `yaml:"imgproxy"          envPrefix:"IMGPROXY_"`
-	Query            Mount             `yaml:"query"             envPrefix:"QUERY_"`
-	Wsrv             Mount             `yaml:"wsrv"              envPrefix:"WSRV_"`
-	Cloudflare       Mount             `yaml:"cloudflare"        envPrefix:"CLOUDFLARE_"`
-	CloudflareImages Mount             `yaml:"cloudflare_images" envPrefix:"CLOUDFLARE_IMAGES_"`
-	Imgix            Mount             `yaml:"imgix"             envPrefix:"IMGIX_"`
-	Cloudinary       CloudinaryDialect `yaml:"cloudinary"        envPrefix:"CLOUDINARY_"`
-	Imagekit         Mount             `yaml:"imagekit"          envPrefix:"IMAGEKIT_"`
-	Bunny            Mount             `yaml:"bunny"             envPrefix:"BUNNY_"`
-	Thumbor          Mount             `yaml:"thumbor"           envPrefix:"THUMBOR_"`
-	Simple           SimpleDialect     `yaml:"simple"            envPrefix:"SIMPLE_"`
+	Imgproxy         ImgproxyDialect         `yaml:"imgproxy"          envPrefix:"IMGPROXY_"`
+	Query            Mount                   `yaml:"query"             envPrefix:"QUERY_"`
+	Wsrv             Mount                   `yaml:"wsrv"              envPrefix:"WSRV_"`
+	Cloudflare       Mount                   `yaml:"cloudflare"        envPrefix:"CLOUDFLARE_"`
+	CloudflareImages CloudflareImagesDialect `yaml:"cloudflare_images" envPrefix:"CLOUDFLARE_IMAGES_"`
+	Imgix            Mount                   `yaml:"imgix"             envPrefix:"IMGIX_"`
+	Cloudinary       CloudinaryDialect       `yaml:"cloudinary"        envPrefix:"CLOUDINARY_"`
+	Imagekit         Mount                   `yaml:"imagekit"          envPrefix:"IMAGEKIT_"`
+	Bunny            Mount                   `yaml:"bunny"             envPrefix:"BUNNY_"`
+	Thumbor          Mount                   `yaml:"thumbor"           envPrefix:"THUMBOR_"`
+	Simple           SimpleDialect           `yaml:"simple"            envPrefix:"SIMPLE_"`
 }
 
 // MountOptions are the per-mount settings of a dialect.
@@ -236,6 +236,12 @@ type ImgproxyDialect struct {
 type CloudinaryDialect struct {
 	Mount  `yaml:",inline"`
 	Clouds map[string]string `yaml:"clouds" env:"CLOUDS" envKeyValSeparator:"="`
+}
+
+// CloudflareImagesDialect adds the account hash → source map.
+type CloudflareImagesDialect struct {
+	Mount    `yaml:",inline"`
+	Accounts map[string]string `yaml:"accounts" env:"ACCOUNTS" envKeyValSeparator:"="`
 }
 
 // SimpleDialect is the table-driven family (nextjs, netlify, ipx, …); each
@@ -568,7 +574,7 @@ func Defaults() Config {
 			Query:            mount("/q/"),
 			Wsrv:             mount("/wsrv/"),
 			Cloudflare:       mount("/cdn-cgi/image/"),
-			CloudflareImages: mount("/cdn-cgi/imagedelivery/"),
+			CloudflareImages: CloudflareImagesDialect{Mount: mount("/cdn-cgi/imagedelivery/")},
 			Imgix:            mount("/imgix/"),
 			Cloudinary:       CloudinaryDialect{Mount: mount("/cloudinary/")},
 			Imagekit:         mount("/imagekit/"),
