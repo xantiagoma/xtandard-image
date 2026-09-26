@@ -249,7 +249,7 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 }
 
 func adminMux(met *metrics.Metrics, ready *admin.Readiness, pprof bool) http.Handler {
-	return admin.NewMux(admin.Options{Metrics: met.Handler(), Readiness: ready, Pprof: pprof})
+	return admin.NewMux(admin.Options{Metrics: met.Handler(), Readiness: ready, Pprof: pprof, ConfigSchema: config.Schema()})
 }
 
 // closeAll closes every source holding connections or file handles.

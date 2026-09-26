@@ -164,6 +164,14 @@ func TestConfigDrivenFSSource(t *testing.T) {
 		}
 	}
 
+	// The config schema lives on the admin listener only (ADR 0007).
+	if got := get(t, "http://"+a.admin.String()+"/config.schema.json"); got.status != http.StatusOK || !bytes.Equal(got.body, config.Schema()) {
+		t.Errorf("admin /config.schema.json = %d, want 200 with config.Schema()", got.status)
+	}
+	if got := get(t, base+"/config.schema.json"); got.status == http.StatusOK || bytes.Contains(got.body, []byte(config.SchemaID)) {
+		t.Errorf("public /config.schema.json = %d: the schema must not be served there", got.status)
+	}
+
 	metricsBody := string(get(t, "http://"+a.admin.String()+"/metrics").body)
 	for _, want := range []string{
 		`xi_requests_total{dialect="imgproxy",format="jpeg",status="200"}`,

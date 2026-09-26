@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"runtime"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"time"
 
@@ -19,15 +20,22 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/obs/tracing"
 )
 
-var errUnknownCommand = errors.New("unknown command")
+var (
+	errUnknownCommand = errors.New("unknown command")
+	// errInvalidConfig is returned by config validate after it has printed
+	// the violations; main exits 1.
+	errInvalidConfig = errors.New("invalid configuration")
+)
 
 const usageText = `usage: xtandard-image <command> [flags]
 
 commands:
-  serve          start the image proxy (default)
-  config print   print the effective configuration (secrets redacted)
-  health         probe a running instance's health endpoint
-  version        print version information
+  serve            start the image proxy (default)
+  config print     print the effective configuration (secrets redacted)
+  config validate  check a config file (and the environment) with the real loader
+  config schema    print the config file JSON Schema
+  health           probe a running instance's health endpoint
+  version          print version information
 `
 
 // run is the testable entry point: it owns no process state and receives
@@ -42,10 +50,7 @@ func run(ctx context.Context, args []string, environ []string, stdout io.Writer)
 	case "serve":
 		return serve(ctx, args, environ, stdout)
 	case "config":
-		if len(args) == 0 || args[0] != "print" {
-			return fmt.Errorf("%w %q\n%s", errUnknownCommand, strings.TrimSpace("config "+strings.Join(args, " ")), usageText)
-		}
-		return configPrint(args[1:], environ, stdout)
+		return configCommand(args, environ, stdout)
 	case "health":
 		return health(ctx, args, stdout)
 	case "version":
@@ -61,7 +66,7 @@ func run(ctx context.Context, args []string, environ []string, stdout io.Writer)
 // serve runs the image proxy until ctx is cancelled (SIGINT/SIGTERM).
 func serve(ctx context.Context, args []string, environ []string, stdout io.Writer) error {
 	fs := newFlagSet("serve", stdout)
-	configFile := fs.String("config", "", "YAML config file (default $XI_CONFIG_FILE, else "+config.DefaultConfigFile+" if present)")
+	configFile := fs.String("config", "", configFlagUsage)
 	if err := fs.Parse(args); err != nil {
 		return ignoreHelp(err)
 	}
@@ -100,11 +105,87 @@ func logMeta(ctx context.Context, logger *slog.Logger, meta *config.Meta) {
 	}
 }
 
+// configFlagUsage documents --config for every command that loads it.
+const configFlagUsage = "config file, .yaml/.yml/.json/.toml (default $XI_CONFIG_FILE, else " + config.DefaultConfigFiles + " if present)"
+
+// configCommand dispatches the config subcommands.
+func configCommand(args, environ []string, stdout io.Writer) error {
+	sub := ""
+	if len(args) > 0 {
+		sub, args = args[0], args[1:]
+	}
+	switch sub {
+	case "print":
+		return configPrint(args, environ, stdout)
+	case "validate":
+		return configValidate(args, environ, stdout)
+	case "schema":
+		return configSchema(args, stdout)
+	default:
+		return fmt.Errorf("%w %q\n%s", errUnknownCommand, strings.TrimSpace("config "+sub), usageText)
+	}
+}
+
+// configValidate loads the configuration exactly like serve (file, then
+// IMGPROXY_* and XI_* unless --no-env, then Validate) and prints ok or
+// every violation with its key path and variable.
+func configValidate(args, environ []string, stdout io.Writer) error {
+	fs := newFlagSet("config validate", stdout)
+	configFile := fs.String("config", "", configFlagUsage)
+	noEnv := fs.Bool("no-env", false, "ignore XI_* and IMGPROXY_* variables: check the file alone")
+	if err := fs.Parse(args); err != nil {
+		return ignoreHelp(err)
+	}
+	if fs.NArg() > 0 {
+		return fmt.Errorf("config validate: unexpected argument %q", fs.Arg(0))
+	}
+	if *noEnv {
+		environ = slices.DeleteFunc(slices.Clone(environ), func(kv string) bool {
+			return strings.HasPrefix(kv, "XI_") || strings.HasPrefix(kv, "IMGPROXY_")
+		})
+	}
+	_, meta, err := config.Load(config.LoadOptions{Environ: environ, ConfigFile: *configFile})
+	file := meta.File
+	if file == "" {
+		file = "(no config file)"
+	}
+	var out strings.Builder
+	for _, w := range meta.Warnings {
+		out.WriteString("warning: " + w + "\n")
+	}
+	if len(meta.UnknownEnv) > 0 {
+		out.WriteString("warning: unknown environment variables ignored: " + strings.Join(meta.UnknownEnv, ",") + "\n")
+	}
+	if err != nil {
+		out.WriteString(file + ": invalid\n" + err.Error() + "\n")
+	} else {
+		out.WriteString(file + ": ok\n")
+	}
+	if _, werr := io.WriteString(stdout, out.String()); werr != nil {
+		return werr
+	}
+	if err != nil {
+		return fmt.Errorf("config validate: %w", errInvalidConfig)
+	}
+	return nil
+}
+
+// configSchema prints the embedded config JSON Schema: the same bytes the
+// admin listener serves at /config.schema.json.
+func configSchema(args []string, stdout io.Writer) error {
+	fs := newFlagSet("config schema", stdout)
+	if err := fs.Parse(args); err != nil {
+		return ignoreHelp(err)
+	}
+	_, err := stdout.Write(config.Schema())
+	return err
+}
+
 // configPrint prints the effective configuration as redacted YAML. It
 // prints what could be loaded even when validation fails, then fails.
 func configPrint(args, environ []string, stdout io.Writer) error {
 	fs := newFlagSet("config print", stdout)
-	configFile := fs.String("config", "", "YAML config file")
+	configFile := fs.String("config", "", configFlagUsage)
 	if err := fs.Parse(args); err != nil {
 		return ignoreHelp(err)
 	}
