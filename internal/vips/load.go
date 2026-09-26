@@ -25,6 +25,13 @@ func sourceBlob(buf *Buffer) (*C.VipsBlob, error) {
 // KindUnsupported (no enabled loader matches), KindCorrupt (the header is
 // unreadable), KindCanceled/KindTimeout (ctx done before the call).
 func Probe(ctx context.Context, buf *Buffer) (Header, error) {
+	return ProbeDensity(ctx, buf, 0)
+}
+
+// ProbeDensity is Probe with vector pages (SVG, PDF) measured at dpi
+// (≤ 0 keeps the loader default, 72). A PDF that needs a password fails with
+// KindUnsupported and a public message saying so.
+func ProbeDensity(ctx context.Context, buf *Buffer, dpi float64) (Header, error) {
 	if err := ctxError(ctx, "vips: probe"); err != nil {
 		return Header{}, err
 	}
@@ -34,7 +41,7 @@ func Probe(ctx context.Context, buf *Buffer) (Header, error) {
 	}
 	var h C.XiHeader
 	var cerr *C.char
-	rc := C.xi_probe(blob, &h, &cerr)
+	rc := C.xi_probe(blob, C.double(dpi), &h, &cerr)
 	if err := opError(rc, "probe", cerr, nil); err != nil {
 		return Header{}, err
 	}
@@ -82,6 +89,46 @@ func Load(ctx context.Context, buf *Buffer, opts *LoadOptions) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
+	o := loadOptions(opts)
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_load(blob, &o, &out, &cerr)
+	if err := opError(rc, "load", cerr, blob); err != nil {
+		return nil, err
+	}
+	return newImage(out, blob), nil
+}
+
+// loadWith is Load with the loader named (a libvips type name such as
+// "VipsForeignLoadMagick7Buffer") instead of detected. A blocked loader
+// still fails with KindUnsupported, but ImageMagick is not restricted to
+// PSD here: tests use it to check ImageMagick's own policy.
+func loadWith(ctx context.Context, loader string, buf *Buffer, opts *LoadOptions) (*Image, error) {
+	if err := ctxError(ctx, "vips: load"); err != nil {
+		return nil, err
+	}
+	if opts == nil {
+		opts = &LoadOptions{}
+	}
+	blob, err := sourceBlob(buf)
+	if err != nil {
+		return nil, err
+	}
+	if loader == "" {
+		return nil, errs.New(errs.KindUnsupported, "vips: no loader named")
+	}
+	o := loadOptions(opts)
+	name := cstr(loader)
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_load_with(cptr(name), blob, &o, &out, &cerr)
+	if err := opError(rc, "load", cerr, blob); err != nil {
+		return nil, err
+	}
+	return newImage(out, blob), nil
+}
+
+func loadOptions(opts *LoadOptions) C.XiLoadOptions {
 	o := C.XiLoadOptions{
 		shrink:         C.int(opts.Shrink),
 		scale:          C.double(opts.Scale),
@@ -95,13 +142,11 @@ func Load(ctx context.Context, buf *Buffer, opts *LoadOptions) (*Image, error) {
 		max_pixels:     C.longlong(opts.MaxPixels),
 		max_frames:     C.int(opts.MaxFrames),
 	}
-	var out *C.VipsImage
-	var cerr *C.char
-	rc := C.xi_load(blob, &o, &out, &cerr)
-	if err := opError(rc, "load", cerr, blob); err != nil {
-		return nil, err
+	for i, v := range opts.Background[:min(len(opts.Background), len(o.background))] {
+		o.background[i] = C.double(v)
+		o.n_background = C.int(i + 1)
 	}
-	return newImage(out, blob), nil
+	return o
 }
 
 // Thumbnail loads buf with shrink-on-load and resizes it in one libvips

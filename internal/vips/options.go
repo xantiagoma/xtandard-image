@@ -9,8 +9,13 @@ type LoadOptions struct {
 	Shrink int
 	// Scale is WebP and SVG scale-on-load (≤ 0 is off).
 	Scale float64
-	// Density is the SVG rendering DPI (≤ 0 keeps the loader default, 72).
+	// Density is the SVG and PDF rendering DPI (≤ 0 keeps the loader
+	// default, 72).
 	Density float64
+	// Background is the PDF page background, one value per band on the
+	// 0..255 scale (up to four: RGBA). Nil keeps the loader default, opaque
+	// white; {0, 0, 0, 0} renders transparent. Other loaders ignore it.
+	Background []float64
 	// Page is the first page or frame to load.
 	Page int
 	// NPages is the number of pages or frames: -1 loads all of them as one

@@ -32,7 +32,7 @@
 //     [KillOnCancel].
 //   - Bytes: [Buffer] (source bytes, implements fetch.Buffer; [NewBuffer] is
 //     the fetch.Allocator) and [Blob] (encoded output, same interface).
-//   - Decode: [Probe] (header only), [Load], [Thumbnail], [Black],
+//   - Decode: [Probe] and [ProbeDensity] (header only), [Load], [Thumbnail], [Black],
 //     [NewFromMemory].
 //   - Process: methods on [Image] that return new lazy images; [Arena]
 //     closes all of a request's images in one place.
@@ -80,7 +80,10 @@
 //     parallelism comes from the request semaphore (internal/limiter).
 //   - Loaders and savers are allowlists: vips_block_untrusted_set(TRUE),
 //     every VipsForeignLoad/VipsForeignSave blocked, then [DefaultLoaders]
-//     and [DefaultSavers] re-enabled.
+//     and [DefaultSavers] re-enabled. ImageMagick (UNTRUSTED, PSD only) is
+//     re-enabled by name and additionally refused for any buffer that does
+//     not start with the PSD signature; the base image's policy.xml is the
+//     third line of defence.
 //   - Every call checks ctx first; sinks and computing operations (Save,
 //     WriteToMemory, SmartCrop, FindTrim) also arm [KillOnCancel], so a
 //     cancelled request stops at the next tile.
@@ -93,7 +96,10 @@
 // header over a configured limit → LimitExceeded; a saver or operation
 // failure → Internal, unless the source's decoder signalled "invalidate"
 // while the pipeline ran (lazy decode of a truncated file), which the shim
-// records per source buffer → Corrupt. A context that ended wins over all of
+// records per source buffer → Corrupt. The one exception is a PDF that needs
+// a password: PDFium reports it only as pdfload's error text, so the shim
+// matches that message and the error is Unsupported with a public message.
+// A context that ended wins over all of
 // them (Canceled/Timeout). The libvips text is kept in [OpError] for logs.
 //
 // Without cgo (CGO_ENABLED=0) the package builds with stubs that return

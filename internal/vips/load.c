@@ -23,6 +23,55 @@ xi_loader_blocked(const char *loader)
   return blocked;
 }
 
+// xi_is_magick reports whether loader is one of libvips' ImageMagick
+// loaders (magickload*, Magick6 or Magick7 builds).
+static gboolean
+xi_is_magick(const char *loader)
+{
+  return g_str_has_prefix(loader, "VipsForeignLoadMagick");
+}
+
+// xi_check_loader refuses a blocked loader, and ImageMagick for anything but
+// PSD/PSB: ImageMagick is in the image for Photoshop files only
+// (FORMATS.md), and its policy.xml denies every other coder as well.
+static int
+xi_check_loader(const char *loader, VipsBlob *blob, char **err)
+{
+  VipsArea *area = VIPS_AREA(blob);
+
+  // The libvips sniffer already skips blocked loaders; this is a second
+  // line of defence should that ever change.
+  if (xi_loader_blocked(loader)) {
+    vips_error("xi_load", "loader %s is blocked", loader);
+    *err = xi_error_copy();
+    return XI_ERR_UNSUPPORTED;
+  }
+  if (xi_is_magick(loader) &&
+      (area->length < 4 || memcmp(area->data, "8BPS", 4) != 0)) {
+    vips_error("xi_load", "%s is restricted to PSD/PSB", loader);
+    *err = xi_error_copy();
+    return XI_ERR_UNSUPPORTED;
+  }
+  return XI_OK;
+}
+
+// xi_load_error classifies a failed loader run: a PDF that needs a password
+// is XI_ERR_ENCRYPTED, anything else XI_ERR_LOAD. PDFium reports the
+// password case only through FPDF_GetLastError, which pdfload turns into
+// this message; the text is the only signal libvips gives.
+static int
+xi_load_error(const char *loader, char **err)
+{
+  const char *msg = vips_error_buffer();
+  int rc = XI_ERR_LOAD;
+
+  if (g_str_has_prefix(loader, "VipsForeignLoadPdf") && msg &&
+      strstr(msg, "password required or incorrect password"))
+    rc = XI_ERR_ENCRYPTED;
+  *err = xi_error_copy();
+  return rc;
+}
+
 // xi_find_loader sniffs the loader class name for blob. It returns
 // XI_ERR_UNSUPPORTED with *err set when nothing enabled matches.
 static int
@@ -34,14 +83,7 @@ xi_find_loader(VipsBlob *blob, const char **loader, char **err)
     *err = xi_error_copy();
     return XI_ERR_UNSUPPORTED;
   }
-  // The libvips sniffer already skips blocked loaders; this is a second
-  // line of defence should that ever change.
-  if (xi_loader_blocked(*loader)) {
-    vips_error("xi_load", "loader %s is blocked", *loader);
-    *err = xi_error_copy();
-    return XI_ERR_UNSUPPORTED;
-  }
-  return XI_OK;
+  return xi_check_loader(*loader, blob, err);
 }
 
 static gboolean
@@ -117,6 +159,12 @@ xi_run_loader(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsIm
     g_object_set(op, "n", o->n, NULL);
   if (o->heif_thumbnail && xi_has_prop(op, "thumbnail"))
     g_object_set(op, "thumbnail", TRUE, NULL);
+  if (o->n_background > 0 && xi_has_prop(op, "background")) {
+    VipsArrayDouble *bg = vips_array_double_new(o->background, o->n_background);
+
+    g_object_set(op, "background", bg, NULL);
+    vips_area_unref(VIPS_AREA(bg));
+  }
   return xi_build(op, out);
 }
 
@@ -142,7 +190,7 @@ xi_copy_string(VipsImage *img, const char *name, char *dst, size_t size)
 }
 
 int
-xi_probe(VipsBlob *blob, XiHeader *h, char **err)
+xi_probe(VipsBlob *blob, double dpi, XiHeader *h, char **err)
 {
   const char *loader;
   VipsImage *img = NULL;
@@ -156,17 +204,20 @@ xi_probe(VipsBlob *blob, XiHeader *h, char **err)
   // Header only: the pixels are never requested, so nothing is decoded.
   o.access = VIPS_ACCESS_SEQUENTIAL;
   o.fail_on = VIPS_FAIL_ON_NONE;
-  if (xi_run_loader(loader, blob, &o, &img)) {
-    *err = xi_error_copy();
-    return XI_ERR_LOAD;
-  }
+  o.dpi = dpi;
+  if (xi_run_loader(loader, blob, &o, &img))
+    return xi_load_error(loader, err);
 
   h->width = img->Xsize;
   h->height = vips_image_get_page_height(img);
   h->bands = img->Bands;
   h->band_format = img->BandFmt;
   h->interpretation = vips_image_guess_interpretation(img);
-  h->n_pages = vips_image_get_n_pages(img);
+  // The raw n-pages: vips_image_get_n_pages reports 1 for 10000 pages or
+  // more, which would slip past the page limits.
+  h->n_pages = 1;
+  if (vips_image_get_typeof(img, VIPS_META_N_PAGES))
+    vips_image_get_int(img, VIPS_META_N_PAGES, &h->n_pages);
   h->orientation = vips_image_get_orientation(img);
   h->has_alpha = vips_image_hasalpha(img);
   h->has_icc = vips_image_get_typeof(img, VIPS_META_ICC_NAME) != 0;
@@ -186,20 +237,50 @@ xi_probe(VipsBlob *blob, XiHeader *h, char **err)
   return XI_OK;
 }
 
+static int xi_load_run(const char *loader, VipsBlob *blob, const XiLoadOptions *o,
+    VipsImage **out, char **err);
+
 int
 xi_load(VipsBlob *blob, const XiLoadOptions *o, VipsImage **out, char **err)
 {
   const char *loader;
-  VipsImage *img = NULL, *rot = NULL;
-  int rc, frames;
+  int rc;
 
   *out = NULL;
   if ((rc = xi_find_loader(blob, &loader, err)))
     return rc;
-  if (xi_run_loader(loader, blob, o, &img)) {
+  return xi_load_run(loader, blob, o, out, err);
+}
+
+int
+xi_load_with(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsImage **out,
+    char **err)
+{
+  GType type;
+
+  *out = NULL;
+  if (!(type = g_type_from_name(loader)) || !g_type_is_a(type, VIPS_TYPE_FOREIGN_LOAD)) {
+    vips_error("xi_load", "no loader %s", loader);
     *err = xi_error_copy();
-    return XI_ERR_LOAD;
+    return XI_ERR_UNSUPPORTED;
   }
+  if (xi_loader_blocked(loader)) {
+    vips_error("xi_load", "loader %s is blocked", loader);
+    *err = xi_error_copy();
+    return XI_ERR_UNSUPPORTED;
+  }
+  return xi_load_run(loader, blob, o, out, err);
+}
+
+static int
+xi_load_run(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsImage **out,
+    char **err)
+{
+  VipsImage *img = NULL, *rot = NULL;
+  int frames;
+
+  if (xi_run_loader(loader, blob, o, &img))
+    return xi_load_error(loader, err);
 
   // Limits are checked on the header, before any pixel is decoded.
   frames = img->Ysize / vips_image_get_page_height(img);
@@ -282,10 +363,8 @@ xi_thumbnail(VipsBlob *blob, const XiThumbnailOptions *o, const char *import_pro
     g_object_set(op, "input_profile", import_profile, NULL);
   if (export_profile)
     g_object_set(op, "output_profile", export_profile, NULL);
-  if (xi_build(op, out)) {
-    *err = xi_error_copy();
-    return XI_ERR_LOAD;
-  }
+  if (xi_build(op, out))
+    return xi_load_error(loader, err);
 
   xi_keep_blob(*out, blob);
   return XI_OK;

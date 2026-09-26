@@ -22,6 +22,8 @@ func TestFormatOfLoader(t *testing.T) {
 		{"tiffload_buffer", "", FormatTIFF},
 		{"svgload_buffer", "", FormatSVG},
 		{"jp2kload_buffer", "", FormatJP2K},
+		{"pdfload_buffer", "", FormatPDF},
+		{"magickload_buffer", "", FormatPSD},
 		{"ppmload_buffer", "", FormatUnknown},
 		{"", "", FormatUnknown},
 	}
@@ -38,7 +40,7 @@ func TestFormatString(t *testing.T) {
 	want := map[Format]string{
 		FormatUnknown: "unknown", FormatJPEG: "jpeg", FormatPNG: "png", FormatWebP: "webp",
 		FormatGIF: "gif", FormatAVIF: "avif", FormatHEIF: "heif", FormatJXL: "jxl",
-		FormatTIFF: "tiff", FormatSVG: "svg", FormatJP2K: "jp2k", Format(-1): "unknown",
+		FormatTIFF: "tiff", FormatSVG: "svg", FormatJP2K: "jp2k", FormatPDF: "pdf", FormatPSD: "psd", Format(-1): "unknown",
 		Format(100): "unknown",
 	}
 	for f, s := range want {

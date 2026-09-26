@@ -76,6 +76,11 @@ type Image struct{}
 // Probe fails.
 func Probe(context.Context, *Buffer) (Header, error) { return Header{}, ErrUnavailable }
 
+// ProbeDensity returns ErrUnavailable.
+func ProbeDensity(context.Context, *Buffer, float64) (Header, error) {
+	return Header{}, ErrUnavailable
+}
+
 // Load fails.
 func Load(context.Context, *Buffer, *LoadOptions) (*Image, error) { return nil, ErrUnavailable }
 
