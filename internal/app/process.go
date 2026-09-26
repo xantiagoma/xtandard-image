@@ -84,14 +84,7 @@ func newProcessor(cfg *config.Config, wm *exec.Watermark) (*processor, error) {
 		return nil, err
 	}
 	ex, err := exec.New(&exec.Config{
-		Limits: plan.Limits{
-			MaxSrcPixels:            cfg.Limits.MaxSrcPixels,
-			MaxResultDimension:      cfg.Limits.MaxResultDimension,
-			MaxAnimationFrames:      cfg.Limits.MaxAnimationFrames,
-			MaxAnimationFramePixels: cfg.Limits.MaxAnimationFramePixels,
-			MemoryBudget:            int64(cfg.Processing.MemoryBudget),
-			AllowRaisingLimits:      cfg.Security.AllowRaisingLimits,
-		},
+		Limits:           planLimits(cfg),
 		FailOn:           vipsFailOn(cfg.Vips.FailOn),
 		Watermark:        wm,
 		ColorProfilesDir: cfg.Processing.ColorProfilesDir,
@@ -100,6 +93,19 @@ func newProcessor(cfg *config.Config, wm *exec.Watermark) (*processor, error) {
 		return nil, err
 	}
 	return &processor{exec: ex, enc: ec}, nil
+}
+
+// planLimits are the planner limits of the executor, shared with the
+// thumbor meta response (server.InfoConfig.PlanLimits).
+func planLimits(cfg *config.Config) plan.Limits {
+	return plan.Limits{
+		MaxSrcPixels:            cfg.Limits.MaxSrcPixels,
+		MaxResultDimension:      cfg.Limits.MaxResultDimension,
+		MaxAnimationFrames:      cfg.Limits.MaxAnimationFrames,
+		MaxAnimationFramePixels: cfg.Limits.MaxAnimationFramePixels,
+		MemoryBudget:            int64(cfg.Processing.MemoryBudget),
+		AllowRaisingLimits:      cfg.Security.AllowRaisingLimits,
+	}
 }
 
 // vipsFailOn maps XI_VIPS_FAIL_ON onto the decoder strictness.

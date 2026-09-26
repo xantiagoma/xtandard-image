@@ -1,0 +1,38 @@
+{
+  "thumbor": {
+    "source": {
+      "url": "http://origin/a.jpg",
+      "width": 400,
+      "height": 300,
+      "frameCount": 6
+    },
+    "operations": [
+      {
+        "type": "resize",
+        "width": 67,
+        "height": 50
+      },
+      {
+        "type": "crop",
+        "left": 9,
+        "top": 0,
+        "right": 59,
+        "bottom": 50
+      }
+    ],
+    "target": {
+      "width": 50,
+      "height": 50
+    },
+    "focal_points": [
+      {
+        "x": 200,
+        "y": 150,
+        "z": 1,
+        "height": 1,
+        "width": 1,
+        "origin": "alignment"
+      }
+    ]
+  }
+}

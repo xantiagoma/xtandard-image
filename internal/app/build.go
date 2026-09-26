@@ -419,6 +419,7 @@ func serverConfig(cfg *config.Config) server.Config {
 		Info: server.InfoConfig{
 			CacheTTL:     cfg.Cache.Headers.TTL,
 			DebugHeaders: cfg.Observability.DebugHeaders,
+			PlanLimits:   planLimits(cfg),
 		},
 		ResultCache: server.ResultCacheConfig{
 			TTL:         cfg.Cache.Result.TTL,
