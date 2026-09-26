@@ -933,6 +933,13 @@
     "detect": {
       "additionalProperties": false,
       "properties": {
+        "cache_size": {
+          "default": 512,
+          "description": "Detection results kept in memory, least recently used first out: one entry per model and source (keyed by the SHA-256 of the source bytes), shared by processing and /info (0–1000000; 0 disables the cache)\n\nEnv: XI_DETECT_CACHE_SIZE",
+          "markdownDescription": "Detection results kept in memory, least recently used first out: one entry per model and source (keyed by the SHA-256 of the source bytes), shared by processing and `/info` (0–1000000; `0` disables the cache)\n\nEnv: `XI_DETECT_CACHE_SIZE`",
+          "title": "XI_DETECT_CACHE_SIZE",
+          "type": "integer"
+        },
         "enabled": {
           "$ref": "#/$defs/tristate",
           "default": "auto",
@@ -974,6 +981,13 @@
           "markdownDescription": "YOLOX object model (COCO, 80 classes, `[1,N,85]` output); empty disables object detection\n\nEnv: `XI_DETECT_OBJECT_MODEL`",
           "title": "XI_DETECT_OBJECT_MODEL",
           "type": "string"
+        },
+        "smart_faces": {
+          "default": true,
+          "description": "Smart gravity (imgproxy sm, imgix crop=edges, Cloudinary g_auto, thumbor smart, …) crops on the detected faces when there are some and falls back to libvips attention otherwise; false always uses attention. Without the face model (slim) smart gravity is attention\n\nEnv: XI_DETECT_SMART_FACES",
+          "markdownDescription": "Smart gravity (imgproxy `sm`, imgix `crop=edges`, Cloudinary `g_auto`, thumbor `smart`, …) crops on the detected faces when there are some and falls back to libvips attention otherwise; `false` always uses attention. Without the face model (slim) smart gravity is attention\n\nEnv: `XI_DETECT_SMART_FACES`",
+          "title": "XI_DETECT_SMART_FACES",
+          "type": "boolean"
         },
         "threads": {
           "default": 1,

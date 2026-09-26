@@ -561,6 +561,12 @@ type Detect struct {
 	// size; the shipped models are fixed at 640x640.
 	MaxInput        int  `yaml:"max_input"        env:"MAX_INPUT"`
 	VerifyChecksums bool `yaml:"verify_checksums" env:"VERIFY_CHECKSUMS"`
+	// CacheSize bounds the per-source detection results kept in memory
+	// (entries of one model on one source); 0 disables the cache.
+	CacheSize int `yaml:"cache_size" env:"CACHE_SIZE"`
+	// SmartFaces makes smart gravity crop on detected faces when there are
+	// some (and the face model is loaded); false keeps libvips attention.
+	SmartFaces bool `yaml:"smart_faces" env:"SMART_FACES"`
 }
 
 // Cache configures HTTP cache headers and the result/origin caches.
@@ -783,6 +789,8 @@ func Defaults() Config {
 			ObjectModel: "yolox_s.onnx",
 			Threads:     1,
 			MaxInput:    640,
+			CacheSize:   512,
+			SmartFaces:  true,
 		},
 		Cache: Cache{
 			Headers:    CacheHeaders{TTL: 31_536_000 * time.Second, ErrorTTL: 10 * time.Second},

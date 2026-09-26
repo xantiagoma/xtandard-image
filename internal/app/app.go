@@ -52,6 +52,9 @@ type hooks struct {
 	// keepVips skips vips.Shutdown: libvips cannot be used again after it,
 	// and a test binary starts several services one after the other.
 	keepVips bool
+	// detector replaces the detector built from XI_DETECT_* (tests inject
+	// fakes; the detection cache and XI_DETECT_SMART_FACES still apply).
+	detector faceObjectDetector
 }
 
 // Run starts the service and blocks until ctx is cancelled (SIGINT/SIGTERM
@@ -215,7 +218,12 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		}
 		return nil
 	})
-	proc.detector = det
+	var fod faceObjectDetector = det
+	if h.detector != nil {
+		fod = h.detector
+	}
+	dets := newDetections(fod, cfg.Detect.CacheSize, cfg.Detect.SmartFaces, formatLimits(cfg), logger)
+	proc.detect = dets
 
 	ready := admin.NewReadiness()
 	scfg := serverConfig(cfg)
@@ -227,7 +235,7 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		Admitter:  lim,
 		Prober:    &codecProber{svg: formatLimits(cfg), video: videoSettings(cfg)},
 		Sniffer:   codecSniffer{},
-		Inspector: &vipsInspector{formats: formatLimits(cfg), video: videoSettings(cfg)},
+		Inspector: &vipsInspector{formats: formatLimits(cfg), video: videoSettings(cfg), detect: dets},
 		Processor: proc,
 		Allocator: vipsAllocator,
 		Logger:    logger,

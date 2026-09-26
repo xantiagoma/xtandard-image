@@ -376,6 +376,7 @@ func (c *Config) validateDetect(v *validator) {
 	v.between(d.Threads, 1, 64, "detect.threads")
 	v.nonNegative(int64(d.Workers), "detect.workers")
 	v.between(d.MaxInput, 32, 4096, "detect.max_input")
+	v.between(d.CacheSize, 0, 1_000_000, "detect.cache_size")
 	v.check(d.ModelsDir == "" || filepath.IsAbs(d.ModelsDir), "detect.models_dir", "must be an absolute path")
 	for _, m := range []named[string]{{"detect.face_model", d.FaceModel}, {"detect.object_model", d.ObjectModel}} {
 		switch {
