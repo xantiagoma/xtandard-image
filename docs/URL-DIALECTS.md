@@ -56,7 +56,7 @@ For dialects without a native scheme xi offers the optional **xi scheme**: query
 
 ## 3. imgproxy (canonical)
 
-**Status:** on `main` (M1, M2): every option below is parsed; M1 and M2 options are applied. M3 options that need detection or video are recorded in `Ignored` until WP-72/73/74 land (in progress); the advanced watermark options (`wmu`, `wmt`, `wms`, `wmr`, `wmsh`, `ch`) are in review (#85).
+**Status:** on `main` (M1, M2, M3): every option below is parsed and applied, except video tiles and animation (`vtt`, `vta`), which are recorded in `Ignored` until WP-75 lands (in progress). Detection options (WP-72/73) and video thumbnails (WP-74) need the `full` image; the slim image answers 422. The advanced watermark options (`wmu`, `wmt`, `wms`, `wmr`, `wmsh`, `ch`) are on `main` (WP-77/78).
 
 Reference: https://docs.imgproxy.net/usage/processing (imgproxy v4.0.x docs, source `imgproxy/imgproxy-docs` `docs/usage/processing.mdx`), https://docs.imgproxy.net/usage/getting_info, https://docs.imgproxy.net/usage/encrypting_source_url, https://docs.imgproxy.net/features/chained_pipelines.
 
@@ -270,7 +270,7 @@ Text: markup from the URL (`wmt`, imaginary `text`) is untrusted; dialects whose
 
 ## 4. Query dialect (native + imaginary)
 
-**Status:** on `main` (WP-23, M1; `pipeline` M2). imaginary's `/watermark` (text) and `/watermarkimage` are in review (#85).
+**Status:** on `main` (WP-23, M1; `pipeline` M2). imaginary's `/watermark` (text) and `/watermarkimage` are on `main` (WP-77/78, M3).
 
 Reference: https://github.com/h2non/imaginary (API section). Mount `/q/`.
 
@@ -291,7 +291,7 @@ Implementation notes (WP-23, `internal/dialect/query`): native keys are applied 
 
 ## 5. imgix
 
-**Status:** parser and `s`/`expires` signing on `main` (WP-40, M2), but `main` does not mount the dialect: serving it (the mount, `XI_DIALECTS_IMGIX_KEYS`) is in review (#87, WP-88), and `mark*`/`txt*` watermarks are in review (#85).
+**Status:** served on `main`: parser and `s`/`expires` signing (WP-40, M2), the mount and `XI_DIALECTS_IMGIX_KEYS` (WP-88, M3), and `mark*`/`txt*` watermarks (WP-77/78, M3).
 
 Reference: https://docs.imgix.com/apis/rendering; unpic transformer `ascorbic/unpic` `src/providers/imgix.ts` (defaults `fit=min`, `auto=format`).
 
@@ -374,7 +374,7 @@ Mount (WP-88): `XI_DIALECTS_IMGIX_ENABLED=true` mounts it under `XI_DIALECTS_IMG
 
 ## 6. Cloudinary
 
-**Status:** served on `main` (WP-41, M2; `internal/dialect/cloudinary`, `s--…--` signing). `l_` image and `l_text` overlays are in review (#85); face/object gravity and `e_blur_faces` wait for WP-72/73 (in progress).
+**Status:** served on `main` (WP-41, M2; `internal/dialect/cloudinary`, `s--…--` signing). `l_` image and `l_text` overlays (WP-77/78) and face/object gravity and `e_blur_faces` (WP-72/73, `full` image) are on `main` (M3).
 
 Reference: https://cloudinary.com/documentation/transformation_reference, https://cloudinary.com/documentation/delivery_url_signatures; unpic `cloudinary.ts` (defaults `f_auto,c_lfill`).
 
@@ -447,7 +447,7 @@ Fixtures: `internal/dialect/cloudinary/testdata/urlgen/generate.ts` builds the c
 
 ## 7. ImageKit
 
-**Status:** served on `main` (WP-42, M2). `l-image`/`l-text` overlays are in review (#85), `XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH` for host-bound `ik.imagekit.io/<id>/…` URLs is in review (#86); face/object focus waits for WP-72 (in progress).
+**Status:** served on `main` (WP-42, M2). `l-image`/`l-text` overlays (WP-77/78), `XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH` for host-bound `ik.imagekit.io/<id>/…` URLs (WP-87) and face/object focus (WP-72, `full` image) are on `main` (M3).
 
 Reference: https://imagekit.io/docs/transformations, https://imagekit.io/docs/image-resize-and-crop, https://imagekit.io/docs/effects-and-enhancements, https://imagekit.io/docs/media-delivery-basic-security; SDKs `imagekit-javascript` `src/url.ts` (URL builder) and `imagekit-nodejs` `src/resources/helper.ts` (signing); unpic `imagekit.ts` (defaults `c-maintain_ratio,fo-auto`). Implemented in `internal/dialect/imagekit` (WP-42).
 
@@ -513,7 +513,7 @@ Signing (imagekit-nodejs `getSignature`): `ik-s` = hex(HMAC-SHA1(private key, pa
 
 ## 8. Cloudflare Images (`/cdn-cgi/image/`)
 
-**Status:** served on `main` (WP-43, M2), including `onerror=redirect`; face gravity waits for WP-72 (in progress).
+**Status:** served on `main` (WP-43, M2), including `onerror=redirect`; face gravity is on `main` (WP-72, M3, `full` image).
 
 Reference: https://developers.cloudflare.com/images/optimization/features/ (one page per option, `src/content/partials/images/*.mdx` in cloudflare-docs); unpic `cloudflare.ts` (defaults `f=auto,fit=cover`) and `cloudflare_images.ts`. Implementation: `internal/dialect/cloudflare` (WP-43, WP-79).
 
@@ -629,7 +629,7 @@ Verified sources: the HS256 layout is `go/token.go` of https://github.com/BunnyW
 
 ## 10. Thumbor
 
-**Status:** served on `main` (WP-45, M2), with HMAC-SHA1 signing, pixel focal points (WP-86a) and the `meta` JSON response (WP-86b); `smart` uses faces once WP-72 lands (in progress).
+**Status:** served on `main` (WP-45, M2), with HMAC-SHA1 signing, pixel focal points (WP-86a) and the `meta` JSON response (WP-86b); `smart` uses faces in the `full` image (WP-72, M3).
 
 Reference: https://thumbor.readthedocs.io/en/latest/usage.html, https://thumbor.readthedocs.io/en/latest/filters.html, security page above; code: libthumbor `url.py` (`Url.regex`), thumbor `context.py` (`RequestParameters`), `transformer.py`, `filters/*.py`, `ext/filters/*.c`, `handlers/imaging.py` (signature check). Implementation: `internal/dialect/thumbor` (grammar, mapping) and `internal/dialect/thumbor/filters` (filter-list syntax, reused by Storyblok §12).
 
@@ -864,7 +864,7 @@ What exists (every dialect below is on `main` except where noted; paths under `i
 
 | Dialect | (a) golden tables | (b) upstream-generated URLs | (c) signature vectors | (d) fuzz |
 |---|---|---|---|---|
-| imgproxy | `golden/` | `jscore/` (`imgproxy-js-core`); TS builder cross-check `testdata/urls/imgproxy-builder.json` (in review, #83) | imgproxy docs and `.refs` vectors (`internal/security/sign`) | yes |
+| imgproxy | `golden/` | `jscore/` (`imgproxy-js-core`); TS builder cross-check `testdata/urls/imgproxy-builder.json` (WP-84) | imgproxy docs and `.refs` vectors (`internal/security/sign`) | yes |
 | query | `golden/` | — (imaginary has no URL builder) | imaginary `sign` vector | yes |
 | imgix | `golden/` | `jscore/` (`@imgix/js-core` 3.8.0, signed) and unpic `imgix.json` | blueprint vectors | yes |
 | cloudinary | `golden/` | `urlgen/` (`cloudinary-url-gen`) and unpic `cloudinary.json` | SHA-1/SHA-256 vectors | yes |
