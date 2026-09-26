@@ -64,7 +64,6 @@
 // is the raw query without s in its original order and encoding; the "?" is
 // present only when that remainder is non-empty. Salts are ignored. See
 // [ImgixMessage] and [NewImgixVerifier].
-
 //
 // # ImageKit scheme
 //
