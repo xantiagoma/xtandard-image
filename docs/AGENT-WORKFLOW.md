@@ -45,14 +45,14 @@ and never push to `main`.
 - `os.Getenv` outside `internal/config`; globals; `init()`.
 - Tests that `time.Sleep`, use testify, or compare images byte-for-byte.
 - A new third-party module without a line in the relevant ADR and a licence in MIT/BSD/Apache/ISC.
-- GPL/AGPL code or binaries anywhere, including test fixtures.
+- GPL/AGPL code or binaries anywhere, including test fixtures. The only exception is the opt-in `gpl` base image flavor (x264, x265, GPL FFmpeg; `docker/base/versions-gpl.sh`, ADR 0006 amendment 2026-09-27); Go code and slim/full stay GPL-free.
 - Touching files owned by another WP without saying so in "Deviations".
 
 ## Decisions already taken (do not reopen)
 
-- GIF→video: WebM/VP9 (libvpx) and AV1-in-MP4 (libaom); no H.264 encode (no libx264/libx265/openh264).
-- No GPL code in any image: FFmpeg is LGPL-only (`--disable-gpl --disable-nonfree`), no poppler, exiv2, x264/x265 or GPL `dssim`.
-- HEVC: decode stays (libde265, FFmpeg `hevc`); HEVC encode stays disabled (HEIC encode off by default, no HEVC video encoder).
+- GIF→video (2026-09-27, FORMATS 5.1): `webm` = VP9 (libvpx) everywhere; `mp4` = H.264 (libx264) in `gpl` images and AV1-in-MP4 (libaom) in `full`; `hevc` (libx265) only in `gpl`. The Go side detects encoders at startup with `avcodec_find_encoder_by_name`; no openh264.
+- No GPL code in `slim` or `full`: their FFmpeg is LGPL-only (`--disable-gpl --disable-nonfree`), no poppler, exiv2, x264/x265 or GPL `dssim`. The opt-in `gpl` flavor (WP-70b) adds exactly x264, x265 and FFmpeg with `--enable-gpl`, labelled `GPL-2.0-or-later AND MIT`; patent review is the deployer's.
+- HEVC: decode stays (libde265, FFmpeg `hevc`); HEIC encode (kvazaar) off by default; HEVC video encode only in `gpl` (libx265).
 - Detection model files: YuNet `face_detection_yunet_2023mar.onnx` (MIT) and YOLOX-s `yolox_s.onnx` (Apache-2.0), shipped in the `full` image under `/usr/share/xtandard/models/` with their licences (WP-70).
 - HEIC: decode on, encode off by default (`XI_HEIC_ENCODE=false`).
 - Invalid URL → 400; `XI_COMPAT_IMGPROXY_STATUS=true` switches to 404 like imgproxy.

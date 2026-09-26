@@ -85,14 +85,15 @@ docker build -t xtandard-image .
 
 Once the first release is out, use `ghcr.io/xantiagoma/xtandard-image:slim` (linux/amd64 and linux/arm64) instead of building, and replace `xtandard-image` with it in the commands below.
 
-Image variants (both on the same `ubuntu:noble` + libvips 8.18 base, built from `docker/base`):
+Image variants (all on the same `ubuntu:noble` + libvips 8.18 base, built from `docker/base`):
 
 | Variant | Contents | Status |
 |---|---|---|
 | `slim` | every still format: JPEG, PNG, GIF, WebP, AVIF, HEIC (decode), JPEG XL, TIFF, JPEG 2000, UltraHDR, SVG, PDF (PDFium), RAW (LibRaw), OpenEXR, PSD | default |
 | `full` | slim + FFmpeg 8.1 (LGPL only: video decode, VP8/VP9 and AV1 encode, no H.264/HEVC encode) + ONNX Runtime 1.30 (CPU) + the YuNet (MIT) face and YOLOX-s (Apache-2.0) object models | base image ready (`task docker:base:full`); the detection runtime loads its ONNX Runtime and models at startup (WP-71, `XI_DETECT_*`); the detection options and video land in M3 |
+| `gpl` | full + FFmpeg rebuilt under the GPL with x264 and x265: adds H.264 video encoding (MP4 that plays in every browser and phone) and HEVC video encoding. **Contains GPL software; see below** | base image ready (`task docker:base:gpl`); opt-in |
 
-No variant contains GPL code; every image carries its licences in `/opt/xtandard/share/licenses/` ([ADR 0006](docs/adr/0006-license-policy.md)).
+`slim` and `full` contain no GPL code. `gpl` does: its FFmpeg is GPL-2.0-or-later, and H.264 and HEVC are covered by patents. The project does not sell anything and grants no patent licence, so if you run or redistribute the `gpl` image, checking that the GPL and those patents are acceptable for your use is your job; if you are unsure, use `full` (WebM/VP9 and AV1-in-MP4 video). The xtandard-image code itself stays MIT. Every image carries its licences in `/opt/xtandard/share/licenses/`, and the gpl image adds `LICENSE-GPL.md` there ([ADR 0006](docs/adr/0006-license-policy.md)).
 
 ### 2. Try it in dev mode
 

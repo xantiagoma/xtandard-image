@@ -35,7 +35,9 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   users of that image review licences/patents themselves. WP-70b agent launched. WP-76 (GIF→video)
   must pick the H.264 encoder at runtime when present (gpl image) and fall back to VP9/AV1.
 - **M3 decisions taken by the orchestrator (owner said "resuélvelo con tu mejor approach"):**
-  GIF→video = WebM/VP9 + AV1-in-MP4, no H.264 encode (open question 1); detection models = YuNet
+  GIF→video = WebM/VP9 + AV1-in-MP4, no H.264 encode (open question 1; **superseded by the owner
+  2026-09-27**: H.264/HEVC encode ship in the opt-in `gpl` flavor, WP-70b `m3/wp-70b-gpl-base`,
+  ADR 0006 amendment, FORMATS 5.1); detection models = YuNet
   (MIT) + YOLOX-s (Apache-2.0) (question 7); playground inside the binary, admin listener, off by
   default (question 8).
 - Stacks start fresh per milestone: `m3/wp-XX-slug` branches, adopt with `scripts/stack/adopt2.sh`.

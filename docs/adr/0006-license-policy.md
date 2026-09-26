@@ -10,7 +10,7 @@ The project is MIT. It links many C libraries and may ship ML models. GPL/AGPL c
 ## Decision
 
 - Allowed in shipped artefacts: MIT, BSD-2/3, Apache-2.0, ISC, Zlib, libpng, IJG, OFL (fonts), MPL-2.0 (file-level), LGPL-2.1+/LGPL-3 **dynamically linked only** with source offer and license text shipped. LibRaw used under LGPL-2.1 (or CDDL-1.0).
-- Forbidden: GPL, AGPL, SSPL, non-commercial or "research only" licenses, including model weights. Concretely excluded: x265 (use kvazaar), poppler (use PDFium), exiv2, GPL FFmpeg builds (`--enable-gpl`, libx264, libx265), libimagequant ≥ 2.12 (GPL-3; use quantizr), Ultralytics YOLO weights (AGPL), Ghostscript, `dssim` CLI (AGPL; own SSIM implementation instead).
+- Forbidden (in `slim`, `full` and every Go module; the opt-in `gpl` image flavor is the single exception, see the 2026-09-27 amendment below): GPL, AGPL, SSPL, non-commercial or "research only" licenses, including model weights. Concretely excluded: x265 (use kvazaar), poppler (use PDFium), exiv2, GPL FFmpeg builds (`--enable-gpl`, libx264, libx265), libimagequant ≥ 2.12 (GPL-3; use quantizr), Ultralytics YOLO weights (AGPL), Ghostscript, `dssim` CLI (AGPL; own SSIM implementation instead).
 - Base image extras (WP-66), all dynamically linked from `/opt/xtandard/lib` with their licence texts in `share/licenses/` and exact sources in `SOURCES.md`:
   - LibRaw 0.22.x: LGPL-2.1 (dual-licensed LGPL-2.1/CDDL-1.0; used under LGPL-2.1), https://www.libraw.org/ , https://github.com/LibRaw/LibRaw/blob/master/LICENSE.LGPL . Built without the (discontinued) GPL demosaic packs.
   - PDFium: BSD-3-Clause, https://pdfium.googlesource.com/pdfium/+/refs/heads/main/LICENSE ; prebuilt by bblanchon/pdfium-binaries (MIT build scripts), https://github.com/bblanchon/pdfium-binaries/blob/master/LICENSE . Its statically bundled third-party code (FreeType, libjpeg-turbo, OpenJPEG, lcms, libpng, zlib, ICU, abseil, agg, simdutf, fast_float, llvm-libc) is under permissive licences listed in the archive's `licenses/`.
@@ -32,12 +32,22 @@ The project is MIT. It links many C libraries and may ship ML models. GPL/AGPL c
 - `build-deps.sh` runs a license gate that fails on any forbidden license; every image contains `/opt/xtandard/share/licenses/` and `SOURCES.md` with exact source URLs and versions.
 - Test fixtures must be redistributable; licenses recorded in `testdata/LICENSES.md`.
 - External tools that are only run, never linked, vendored or shipped, may carry any licence, like MinIO in `compose.test.yml`. The benchmark (WP-38, `bench/`) runs k6 (AGPL-3.0) from its unmodified `grafana/k6` image as the load generator, and Caddy (Apache-2.0) and `darthsim/imgproxy` (Apache-2.0) as services; its fixtures are generated from `testdata/gen` (CC0) at run time.
-- Patent-encumbered codecs (HEVC decode/encode, H.264 encode) are a separate question from copyright licenses; tracked in the open questions of `docs/ROADMAP.md`.
+- Patent-encumbered codecs (HEVC decode/encode, H.264 encode) are a separate question from copyright licenses. Resolved 2026-09-27 (ROADMAP open questions 1 and 2): H.264 and HEVC **video** encoding (libx264, libx265) exist only in the `gpl` flavor, and their patent review is the deployer's responsibility; slim and full keep H.264/HEVC decode (FFmpeg `h264`/`hevc`, libde265) and HEIC still-image encoding through kvazaar (BSD) behind `XI_HEIC_ENCODE` (default off).
 
 ## Consequences
 
-- Some capabilities cost more work (own BMP/ICO loaders, own SSIM, PDFium integration) or are unavailable (H.264 encoding without openh264 decision, x265-quality HEIC encoding).
-- Users may build their own images with GPL components; such builds are unsupported and must not be published under the project name.
+- Some capabilities cost more work (own BMP/ICO loaders, own SSIM, PDFium integration) or are unavailable in slim and full (H.264/HEVC video encoding, which only the `gpl` flavor has; x265-quality HEIC encoding).
+- GPL components are available only through the opt-in `gpl` flavor (amendment below). Other GPL builds users make themselves are unsupported and must not be published under the project name.
+
+## Amendment 2026-09-27: `gpl` flavor
+
+- Status: accepted (owner decision, 2026-09-27, final).
+- Reasoning: the owner does not sell this project and does not want licence purity to limit features. The GPL exclusions cost real capability (H.264 MP4 output, the format every browser and phone plays; HEVC video), while nobody is forced to take GPL code if it lives in a separate, clearly labelled image.
+- Decision: add a third base image flavor (the app image built on it with `BASE_BUILDER`/`BASE_RUNTIME` inherits it), `gpl` = `full` + FFmpeg rebuilt with `--enable-gpl` + x264 (GPL-2.0-or-later, H.264 encode) + x265 (GPL-2.0-or-later, HEVC encode). It keeps everything full has (dav1d, libvpx, libaom, ONNX Runtime, models). Tags `ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<G>-gpl[-builder]`, pins in `docker/base/versions-gpl.sh`. As distributed, its FFmpeg libraries and CLIs are one GPL-2.0-or-later work; the image label is `org.opencontainers.image.licenses="GPL-2.0-or-later AND MIT"` and `/opt/xtandard/share/licenses/LICENSE-GPL.md` states it, lists every component with its SPDX licence, and points to the corresponding source (`SOURCES.md` + `docker/base/`).
+- What stays permissive: the Go source (MIT, and Go modules keep the MIT/BSD/Apache/ISC allowlist), and the `slim` and `full` images, which contain no GPL code, keep the `MIT` label and keep the strict licence gate with unchanged results. The gpl stages start from `full-deps`, so they never change slim or full.
+- Scope: only x264, x265 and GPL FFmpeg are allowed, through an explicit allowlist (`XI_GPL_COMPONENTS` in `versions-gpl.sh`) that the licence gate reads in its gpl mode (`check-licenses.sh --allow-gpl`); AGPL, SSPL, nonfree, `--enable-version3` for a GPL-2.0 entry, unknown licences and any other GPL component still fail. poppler, exiv2 and GPL `dssim` are not added back: they were replaced (PDFium, own metadata handling, own SSIM), so there is nothing to gain. libheif is not rebuilt against x265; HEIC encoding stays on kvazaar.
+- Patents: H.264 and HEVC are covered by patent pools. Neither the image nor the project grants a patent licence; whoever deploys or distributes the gpl image reviews the licences and patents that apply to them. The docs (README, `docker/base/README.md`, `LICENSE-GPL.md`) say so plainly.
+- Runtime: the app picks the video encoder at startup by probing `avcodec_find_encoder_by_name` (`docs/FORMATS.md` "Video output"), so one binary serves full and gpl.
 
 ## Go module register
 
