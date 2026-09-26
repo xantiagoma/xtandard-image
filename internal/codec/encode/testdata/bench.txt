@@ -1,0 +1,30 @@
+goos: linux
+goarch: arm64
+pkg: github.com/xantiagoma/xtandard-image/internal/codec/encode
+              │ /tmp/new.txt │
+              │    sec/op    │
+Encode/jpeg-8    5.629m ± 4%
+Encode/webp-8    37.16m ± 3%
+Encode/avif-8    427.6m ± 1%
+geomean          44.72m
+
+              │ /tmp/new.txt │
+              │     B/s      │
+Encode/jpeg-8   6.776Mi ± 4%
+Encode/webp-8   512.7Ki ± 3%
+Encode/avif-8   39.06Ki ± 0%
+geomean         518.0Ki
+
+              │ /tmp/new.txt │
+              │     B/op     │
+Encode/jpeg-8     912.0 ± 0%
+Encode/webp-8     914.0 ± 0%
+Encode/avif-8     917.0 ± 1%
+geomean           914.3
+
+              │ /tmp/new.txt │
+              │  allocs/op   │
+Encode/jpeg-8     24.00 ± 0%
+Encode/webp-8     24.00 ± 0%
+Encode/avif-8     24.00 ± 0%
+geomean           24.00
