@@ -38,9 +38,7 @@ func (r *runner) step(ctx context.Context, img *vips.Image, s plan.Step) (*vips.
 	case plan.FilterStep:
 		return r.filter(ctx, img, &s)
 	case plan.WatermarkStep:
-		// WP-28.
-		r.skip("watermark")
-		return img, nil
+		return r.watermark(ctx, img, &s)
 	case plan.TrimStep:
 		return r.trim(ctx, img, &s)
 	default:

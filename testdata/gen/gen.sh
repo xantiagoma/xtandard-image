@@ -20,7 +20,7 @@ gen() { go run ./testdata/gen "$@"; }
 
 rm -rf "$F" testdata/ssim
 mkdir -p "$F"/jpeg "$F"/png "$F"/gif "$F"/webp "$F"/avif "$F"/heic "$F"/jxl \
-	"$F"/tiff "$F"/bmp "$F"/ico "$F"/svg "$F"/jp2 "$F"/uhdr
+	"$F"/tiff "$F"/bmp "$F"/ico "$F"/svg "$F"/jp2 "$F"/uhdr "$F"/watermark
 
 # Masters (not committed).
 gen photo 320 240 "$T/photo.png"
@@ -49,6 +49,9 @@ gen photo16 96 72 "$F/png/rgb16.png"
 gen palette 96 72 "$F/png/palette.png"
 # PNG: the small photo on white with four different margins (trim).
 gen bordered 56 42 6 20 12 4 "$F/png/bordered.png"
+
+# Watermark: 48x32 RGBA logo (XI_PROCESSING_WATERMARK_SOURCE in tests).
+gen watermark "$F/watermark/logo.png"
 
 # GIF: static and animated (6 frames).
 gen gif "$F/gif/static.gif"
