@@ -1,6 +1,7 @@
 package config
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"maps"
@@ -354,7 +355,33 @@ func (c *Config) validateFormats(v *validator) {
 	v.between(aq.Max, 1, 100, "formats.autoquality.max")
 	v.check(aq.Min <= aq.Max, "formats.autoquality.min", "must be <= formats.autoquality.max")
 	v.check(aq.Target > 0, "formats.autoquality.target", "must be > 0")
-	v.check(aq.AllowedError >= 0, "formats.autoquality.allowed_error", "must be >= 0")
+	v.check(aq.AllowedError >= 0 && aq.AllowedError <= 1, "formats.autoquality.allowed_error", "must be in 0..1")
+	v.check(aq.Method != AutoQualitySize || aq.Target >= 1, "formats.autoquality.target",
+		"must be a byte count >= 1 with method size")
+	lossy := []Format{FormatJPEG, FormatWebP, FormatAVIF, FormatHEIC, FormatJXL}
+	for _, b := range []struct {
+		path string
+		m    map[Format]int
+	}{{"formats.autoquality.format_min", aq.FormatMin}, {"formats.autoquality.format_max", aq.FormatMax}} {
+		for _, f := range sortedKeys(b.m) {
+			v.check(slices.Contains(lossy, f), b.path, "%q is not a lossy output format", f)
+			v.between(b.m[f], 1, 100, b.path)
+		}
+	}
+	for _, f := range sortedKeys(aq.FormatTarget) {
+		v.check(slices.Contains(lossy, f), "formats.autoquality.format_target", "%q is not a lossy output format", f)
+		v.check(aq.FormatTarget[f] > 0, "formats.autoquality.format_target", "must be > 0")
+	}
+	for _, f := range lossy {
+		lo, hi := aq.Min, aq.Max
+		if q := aq.FormatMin[f]; q > 0 {
+			lo = q
+		}
+		if q := aq.FormatMax[f]; q > 0 {
+			hi = q
+		}
+		v.check(lo <= hi, "formats.autoquality.format_min", "%s minimum %d is above its maximum %d", f, lo, hi)
+	}
 }
 
 func (c *Config) validateLimits(v *validator) {
@@ -427,7 +454,7 @@ func (c *Config) warnings() []string {
 	return w
 }
 
-func sortedKeys[V any](m map[string]V) []string {
+func sortedKeys[K cmp.Ordered, V any](m map[K]V) []K {
 	return slices.Sorted(maps.Keys(m))
 }
 

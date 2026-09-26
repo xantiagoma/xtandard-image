@@ -72,8 +72,12 @@ type Result struct {
 	Frames int
 	// DPR is the effective device-pixel ratio of the result (Content-DPR).
 	DPR float64
-	// Quality is the encoder quality used (0 for formats without one).
+	// Quality is the encoder quality used (0 for formats without one); with
+	// auto-quality, the quality the search chose.
 	Quality int
+	// Saves counts the encoder saves (1 unless max_bytes or auto-quality
+	// searched).
+	Saves int
 	// Skipped lists the request options that were not applied because a
 	// later work package implements them (filters, watermarks, the plan's
 	// Unplanned options), for debugging.
@@ -124,6 +128,9 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 		if err != nil {
 			return err
 		}
+		if out.AutoQuality.Ignored != "" {
+			r.skip(out.AutoQuality.Ignored)
+		}
 		last := r.last()
 		res = &Result{
 			Body:        out.Blob,
@@ -134,6 +141,7 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 			Frames:      1,
 			DPR:         last.Output.DPRScale,
 			Quality:     out.Quality,
+			Saves:       out.Attempts,
 			Skipped:     r.skipped,
 		}
 		if t.Animated && animatable(t.Format) {

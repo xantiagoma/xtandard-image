@@ -192,6 +192,12 @@ sources:
 		},
 		{"int ranges", []string{"XI_SECURITY_ALLOWED_WIDTHS=300,400-600/100"}, func(c Config) any { return []int(c.Security.AllowedWidths) }, []int{300, 400, 500, 600}},
 		{"map", []string{"XI_PRESETS=small=rs:fit:50"}, func(c Config) any { return c.Presets }, map[string]string{"small": "rs:fit:50"}},
+		{
+			"autoquality per-format map",
+			[]string{"XI_FORMATS_AUTOQUALITY_FORMAT_MIN=avif=50,jxl=45", "XI_FORMATS_AUTOQUALITY_FORMAT_TARGET=avif=0.015"},
+			func(c Config) any { return []any{c.Formats.AutoQuality.FormatMin, c.Formats.AutoQuality.FormatTarget} },
+			[]any{map[Format]int{FormatAVIF: 50, FormatJXL: 45}, map[Format]float64{FormatAVIF: 0.015}},
+		},
 		{"source list", []string{"XI_SOURCES_ORIGIN_ALLOW=c.example"}, func(c Config) any { return c.Sources["origin"].Allow }, []string{"c.example"}},
 	}
 	for _, tc := range tests {

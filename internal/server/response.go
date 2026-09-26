@@ -518,8 +518,9 @@ func cacheTags(tags []string) string {
 
 // setDebugHeaders writes the XI_OBSERVABILITY_DEBUG_HEADERS headers
 // (imgproxy's X-Origin-* / X-Result-* under the X-Xi- prefix): the
-// original's size and dimensions, the result's dimensions when it was
-// encoded, and the options that were parsed but not applied.
+// original's size and dimensions, the result's dimensions and encoder
+// quality when it was encoded, and the options that were parsed but not
+// applied.
 func setDebugHeaders(h http.Header, res *imageResult) {
 	h.Set("X-Xi-Origin-Content-Length", strconv.Itoa(res.srcLen))
 	if res.meta.Width > 0 {
@@ -529,6 +530,9 @@ func setDebugHeaders(h http.Header, res *imageResult) {
 	if res.out != nil && res.out.Width > 0 {
 		h.Set("X-Xi-Result-Width", strconv.Itoa(res.out.Width))
 		h.Set("X-Xi-Result-Height", strconv.Itoa(res.out.Height))
+	}
+	if res.out != nil && res.out.Quality > 0 {
+		h.Set("X-Xi-Quality", strconv.Itoa(res.out.Quality))
 	}
 	if len(res.req.Ignored) > 0 {
 		var b strings.Builder
