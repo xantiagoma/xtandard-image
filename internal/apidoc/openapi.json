@@ -9103,43 +9103,49 @@
       "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#6-cloudinary",
       "name": "cloudinary",
       "prefix": "/cloudinary/",
-      "status": "planned"
+      "status": "served"
     },
     {
       "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#8-cloudflare-images-cdn-cgiimage",
       "name": "cloudflare",
       "prefix": "/cdn-cgi/image/",
-      "status": "planned"
+      "status": "served"
     },
     {
-      "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#8-cloudflare-images-cdn-cgiimage",
+      "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#81-cloudflare-images-delivery-cdn-cgiimagedelivery-imagedeliverynet",
       "name": "cloudflare_images",
       "prefix": "/cdn-cgi/imagedelivery/",
-      "status": "planned"
+      "status": "served"
     },
     {
       "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#9-bunny-optimizer",
       "name": "bunny",
       "prefix": "/bunny/",
-      "status": "planned"
+      "status": "served"
     },
     {
       "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#10-thumbor",
       "name": "thumbor",
       "prefix": "/thumbor/",
-      "status": "planned"
+      "status": "served"
     },
     {
       "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#11-weserv--wsrvnl",
       "name": "wsrv",
       "prefix": "/wsrv/",
-      "status": "planned"
+      "status": "served"
+    },
+    {
+      "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#13-aws-serverless-image-handler-dynamic-image-transformation-for-amazon-cloudfront",
+      "name": "awssih",
+      "prefix": "/sih/",
+      "status": "served"
     },
     {
       "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#12-unpic-long-tail-simple-micro-dialects",
       "name": "simple",
       "prefix": "provider-native prefixes",
-      "status": "planned"
+      "status": "served"
     }
   ]
 }
