@@ -14,9 +14,9 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
 )
 
-// dialectWatermarkConfig mounts imgproxy, cloudinary (cloud "demo") and
-// imagekit on the fs source over testdata/, unsigned, with the logo as
-// the configured watermark.
+// dialectWatermarkConfig mounts imgproxy, cloudinary (cloud "demo"),
+// imagekit and imgix on the fs source over testdata/, unsigned, with the
+// logo as the configured watermark.
 func dialectWatermarkConfig(t *testing.T) *config.Config {
 	t.Helper()
 	root := filepath.Join(golden.ModuleRoot(t), "testdata")
@@ -37,6 +37,9 @@ dialects:
     clouds:
       demo: td
   imagekit:
+    enabled: true
+    source: td
+  imgix:
     enabled: true
     source: td
 security:
@@ -61,8 +64,7 @@ func b64(s string) string { return base64.RawURLEncoding.EncodeToString([]byte(s
 // watermark through every dialect with overlays, end to end (router,
 // resolver, fetcher, executor), and compares each response with its
 // golden (testdata/golden/app/). The badge is fetched from the fs source
-// like any source. The imgix dialect has no app mount yet (its mark and
-// txt are covered by the executor's dialect goldens).
+// like any source (imgix: a path on the mount's source).
 func TestWatermarkDialects(t *testing.T) {
 	// Not parallel: run re-applies libvips' process-global allowlists.
 	a := start(t, dialectWatermarkConfig(t), hooks{})
@@ -76,11 +78,35 @@ func TestWatermarkDialects(t *testing.T) {
 		{"wm-cloudinary-text", "/cloudinary/demo/image/upload/w_200,f_png/l_text:DejaVu%20Sans_18_bold:Hello,co_white,g_north_west,x_6,y_6/fl_layer_apply/" + photo},
 		{"wm-imagekit-image", "/imagekit/" + photo + "?tr=w-200,f-png:l-image,i-fixtures@@watermark@@badge.png,w-40,lx-N4,ly-N4,rt-20,l-end"},
 		{"wm-imagekit-text", "/imagekit/" + photo + "?tr=w-200,f-png:l-text,i-Hello,fs-18,co-FFFFFF,tg-b,lx-6,ly-6,l-end"},
+		{"wm-imgix-mark", "/imgix/" + photo + "?w=200&fm=png&mark64=" + b64("fixtures/watermark/badge.png") + "&mark-scale=25&mark-pad=4"},
+		{"wm-imgix-text", "/imgix/" + photo + "?w=200&fm=png&txt64=" + b64("Hello, imgix") + "&txt-size=24&txt-color=fff&txt-align=top,left&txt-shad=2"},
+		{"imgix-crop-entropy", "/imgix/" + photo + "?w=200&h=100&fit=crop&crop=entropy&fm=png"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			img := getPNG(t, base+tc.path)
 			golden.Compare(t, "app/"+tc.name, img, golden.Options{Tolerance: 0.03})
 		})
+	}
+
+	// imgix's fm and auto=format: an explicit WebP, and AVIF negotiated
+	// from Accept (fm is only imgix's fallback then).
+	if r := get(t, base+"/imgix/"+photo+"?w=200&h=100&fit=crop&crop=entropy&fm=webp"); r.status != http.StatusOK || r.ctype != "image/webp" {
+		t.Errorf("imgix fm=webp: %d %q", r.status, r.ctype)
+	}
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, base+"/imgix/"+photo+"?w=200&auto=format&fm=png", http.NoBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Accept", "image/avif,image/webp,*/*")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := resp.Body.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if ct := resp.Header.Get("Content-Type"); resp.StatusCode != http.StatusOK || (ct != "image/avif" && ct != "image/webp") {
+		t.Errorf("imgix auto=format: %d %q", resp.StatusCode, ct)
 	}
 
 	// A watermark source outside the allowlist, and one that does not

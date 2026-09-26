@@ -155,6 +155,12 @@ func playgroundMeta(cfg *config.Config, rt *router.Router, version string) (*pla
 			if s, err = thumborSigner(cfg, rm.Dialect); err != nil {
 				return nil, nil, err
 			}
+		case "imgix":
+			m.Scheme, m.Grammar, m.Example = playground.SchemeImgix, playground.GrammarImgix, ""
+			var err error
+			if s, err = imgixSigner(cfg, rm.Dialect); err != nil {
+				return nil, nil, err
+			}
 		case "imagekit":
 			m.Example = "/tr:w-300,h-200/{src}"
 		case "cloudinary":
@@ -219,6 +225,29 @@ func thumborSigner(cfg *config.Config, dialect string) (*sign.Signer, error) {
 		ks = append(ks, sign.NewKey([]byte(k.Reveal()), nil))
 	}
 	return sign.NewSigner(sign.NewThumborScheme(), sign.NewKeyring(ks...))
+}
+
+// imgixSigner signs for imgix mount dialect ("imgix" or "imgix[i]") with
+// the first of that mount's tokens, as addImgix verifies. nil without
+// tokens.
+func imgixSigner(cfg *config.Config, dialect string) (*sign.Signer, error) {
+	m := &cfg.Dialects.Imgix
+	keys := m.Keys
+	if idx, ok := strings.CutPrefix(dialect, "imgix["); ok {
+		i, err := strconv.Atoi(strings.TrimSuffix(idx, "]"))
+		if err != nil || i < 1 || i > len(m.Mounts) {
+			return nil, fmt.Errorf("imgix mount %q", dialect)
+		}
+		keys = m.Mounts[i-1].Keys
+	}
+	if len(keys) == 0 {
+		return nil, nil
+	}
+	ks := make([]sign.Key, 0, len(keys))
+	for _, k := range keys {
+		ks = append(ks, sign.NewKey([]byte(k.Reveal()), nil))
+	}
+	return sign.NewSigner(sign.NewImgixScheme(), sign.NewKeyring(ks...))
 }
 
 // presetNames lists the configured presets (XI_PRESETS and

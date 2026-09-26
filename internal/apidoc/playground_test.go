@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/xantiagoma/xtandard-image/internal/dialect"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/imgix"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
 	"github.com/xantiagoma/xtandard-image/internal/playground"
 )
@@ -64,7 +66,8 @@ func TestContractPlayground(t *testing.T) {
 func TestCataloguesCoverImgproxy(t *testing.T) {
 	t.Parallel()
 	cats := Catalogues()
-	if len(cats) != 2 || cats[0].Grammar != playground.GrammarImgproxy || cats[1].Grammar != playground.GrammarQuery {
+	if len(cats) != 3 || cats[0].Grammar != playground.GrammarImgproxy || cats[1].Grammar != playground.GrammarQuery ||
+		cats[2].Grammar != playground.GrammarImgix {
 		t.Fatalf("catalogues %+v", cats)
 	}
 	got := map[string][]string{}
@@ -96,5 +99,33 @@ func TestCataloguesCoverImgproxy(t *testing.T) {
 	}
 	if width == nil || strings.Join(width.Aliases, ",") != "w" {
 		t.Errorf("query width option %+v, want alias w", width)
+	}
+}
+
+// TestImgixCatalogueKnown checks that the imgix parser knows every name and
+// alias of the imgix catalogue (and so of getImgixImage): none is recorded
+// as unknown or unsupported.
+func TestImgixCatalogueKnown(t *testing.T) {
+	t.Parallel()
+	p, err := imgix.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, o := range imgixCatalogue().Options {
+		sample := "1"
+		if e := o.Forms[0].Args[0].Enum; len(e) > 0 {
+			sample = e[0]
+		}
+		for _, name := range append([]string{o.Name}, o.Aliases...) {
+			res, err := p.Parse(&dialect.Input{Path: "/a.jpg", RawQuery: name + "=" + sample})
+			if err != nil {
+				continue // a known name with an invalid sample value
+			}
+			for _, ig := range res.Request.Ignored {
+				if ig.Reason == "unknown option" || ig.Reason == "unsupported" {
+					t.Errorf("%s: recorded as %s", name, ig.Reason)
+				}
+			}
+		}
 	}
 }

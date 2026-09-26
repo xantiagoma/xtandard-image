@@ -109,6 +109,16 @@ func SignURL(m *Mount, s *sign.Signer, path, query string) (SignResponse, error)
 			return SignResponse{}, err
 		}
 		res.URL, res.Signed = withQuery(prefix+p, query), true
+	case SchemeImgix:
+		if s == nil {
+			res.URL = withQuery(prefix+path, query)
+			return res, nil
+		}
+		q, err := s.SignImgixQuery(path, query)
+		if err != nil {
+			return SignResponse{}, err
+		}
+		res.URL, res.Signed = withQuery(prefix+path, q), true
 	case SchemeXI:
 		if s == nil {
 			res.URL = withQuery(prefix+path, query)

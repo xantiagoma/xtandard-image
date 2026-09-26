@@ -390,6 +390,7 @@ func operations() []*huma.Operation {
 		queryOperation(),
 		imaginaryOperation(),
 		imagekitOperation(),
+		imgixOperation(),
 	}
 }
 
@@ -584,7 +585,7 @@ func dialects() []map[string]any {
 		d("imgproxy", "/", "served", "#3-imgproxy-canonical"),
 		d("query", "/q/", "served", "#4-query-dialect-native--imaginary"),
 		d("imagekit", "/imagekit/", "served", "#7-imagekit"),
-		d("imgix", "/imgix/", "planned", "#5-imgix"),
+		d("imgix", "/imgix/", "served", "#5-imgix"),
 		d("cloudinary", "/cloudinary/", "planned", "#6-cloudinary"),
 		d("cloudflare", "/cdn-cgi/image/", "planned", "#8-cloudflare-images-cdn-cgiimage"),
 		d("cloudflare_images", "/cdn-cgi/imagedelivery/", "planned", "#8-cloudflare-images-cdn-cgiimage"),

@@ -244,6 +244,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/imgix/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Process an image (imgix dialect)
+         * @description imgix Rendering API URL under its mount (XI_DIALECTS_IMGIX_ENABLED, prefix /imgix/ or host-bound). Parameters apply by name, the last occurrence wins; any parameter may be base64url-encoded under its name plus 64 (txt64, mark64, ...). Unknown and unsupported parameters are ignored (400 with XI_DIALECTS_STRICT).
+         */
+        get: operations["getImgixImage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/info/{signature}/{options}/{source}": {
         parameters: {
             query?: never;
@@ -1162,7 +1182,7 @@ export interface components {
              */
             gif_options?: (string | null)[];
             /**
-             * @description Gradient overlay. URL: `gradient`, `gr`; arguments opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees clockwise like imgproxy (0 = top to bottom like `down`, 90 = right to left like `left`); default 0:000:down:0:1.
+             * @description Gradient overlay. URL: `gradient`, `gr`; arguments opacity:color:direction:start:stop; direction `down`/`up`/`left`/`right` or degrees; default 0:000:down:0:1.
              * @example [
              *       0.5,
              *       "000000",
@@ -1913,7 +1933,7 @@ export interface components {
              * @description The grammar the options belong to.
              * @enum {string}
              */
-            grammar: "imgproxy" | "query";
+            grammar: "imgproxy" | "query" | "imgix";
             /** @description Options, in documentation order. */
             options: components["schemas"]["PlaygroundOption"][] | null;
         };
@@ -1965,7 +1985,7 @@ export interface components {
              * @description URL grammar: imgproxy options path, query keys, or free-form path.
              * @enum {string}
              */
-            grammar: "imgproxy" | "query" | "path";
+            grammar: "imgproxy" | "query" | "imgix" | "path";
             /** @description Host bindings. */
             hosts?: string[] | null;
             /** @description Mount name; the mount field of a sign request. */
@@ -1978,7 +1998,7 @@ export interface components {
              * @description Signature the sign endpoint computes for this mount.
              * @enum {string}
              */
-            scheme: "imgproxy" | "xi_sig" | "thumbor" | "none";
+            scheme: "imgproxy" | "xi_sig" | "thumbor" | "imgix" | "none";
             /** @description Named source relative keys resolve against. */
             source?: string;
             /**
@@ -2016,7 +2036,7 @@ export interface components {
              * @description The mount's signing scheme.
              * @enum {string}
              */
-            scheme: "imgproxy" | "xi_sig" | "thumbor" | "none";
+            scheme: "imgproxy" | "xi_sig" | "thumbor" | "imgix" | "none";
             /** @description A signature was computed; false when the server has no key for the mount. */
             signed: boolean;
             /** @description Path and query on the public listener (prepend the public base URL). */
@@ -2558,6 +2578,228 @@ export interface operations {
                 /**
                  * @description [tr:<transformations>/]<source path>, relative to the mount's source.
                  * @example tr:w-300,h-200/photos/a.jpg
+                 */
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The processed image; the format follows `format`, the source extension or Accept negotiation. */
+            200: {
+                headers: {
+                    /** @description XI_CACHE_HEADERS_* policy, or the URL's expires. */
+                    "Cache-Control"?: string;
+                    /** @description Strong entity tag of the result. */
+                    ETag?: string;
+                    /** @description Accept and the client hints that decided the result. */
+                    Vary?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/*": string;
+                };
+            };
+            /** @description Not modified: If-None-Match matched the ETag. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Error400"];
+            403: components["responses"]["Error403"];
+            404: components["responses"]["Error404"];
+            406: components["responses"]["Error406"];
+            414: components["responses"]["Error414"];
+            422: components["responses"]["Error422"];
+            429: components["responses"]["Error429"];
+            500: components["responses"]["Error500"];
+            501: components["responses"]["Error501"];
+            502: components["responses"]["Error502"];
+            503: components["responses"]["Error503"];
+            504: components["responses"]["Error504"];
+        };
+    };
+    getImgixImage: {
+        parameters: {
+            query?: {
+                /** @description Width: pixels, or a fraction of the source below 1. */
+                w?: string;
+                /** @description Height: pixels, or a fraction of the source below 1. */
+                h?: string;
+                /** @description Resize mode (default clip once w or h is set). */
+                fit?: string;
+                /** @description With fit=crop/min: top, bottom, left, right, faces, focalpoint, entropy, edges or object classes, comma-separated. */
+                crop?: string;
+                /** @description Aspect ratio w:h (with fit=crop). */
+                ar?: string;
+                /** @description Device pixel ratio (0 < dpr <= 10). */
+                dpr?: string;
+                /** @description Maximum width. */
+                "max-w"?: string;
+                /** @description Maximum height. */
+                "max-h"?: string;
+                /** @description Minimum width. */
+                "min-w"?: string;
+                /** @description Minimum height. */
+                "min-h"?: string;
+                /** @description Source crop x,y,w,h before resizing (pixels, or fractions below 1). */
+                rect?: string;
+                /** @description Focal point x, 0..1 (crop=focalpoint). */
+                "fp-x"?: string;
+                /** @description Focal point y, 0..1 (crop=focalpoint). */
+                "fp-y"?: string;
+                /** @description With fit=fill/fillmax: how the extra space is filled. */
+                fill?: string;
+                /** @description Fill colour for fit=fill. */
+                "fill-color"?: string;
+                /** @description Padding around the face for fit=facearea. */
+                facepad?: string;
+                /** @description 1-based face for fit=facearea. */
+                faceindex?: string;
+                /** @description Output format; json answers image info. */
+                fm?: string;
+                /** @description format (negotiate from Accept) and/or compress (quality 45, strip metadata), comma-separated. */
+                auto?: string;
+                /** @description Quality 0..100. */
+                q?: string;
+                /** @description Lossless encoding. */
+                lossless?: string;
+                /** @description Progressive JPEG. */
+                "jpg-progressive"?: string;
+                /** @description Chroma subsampling. */
+                chromasub?: string;
+                /** @description Colour space. */
+                cs?: string;
+                /** @description Output resolution metadata. */
+                dpi?: string;
+                /** @description Download as an attachment with this file name. */
+                dl?: string;
+                /** @description Client hints to honour: Width, DPR, Save-Data. */
+                ch?: string;
+                /** @description EXIF orientation override. */
+                orient?: string;
+                /** @description Counter-clockwise rotation, 0..359 degrees. */
+                rot?: string;
+                /** @description Mirror. */
+                flip?: string;
+                /** @description Brightness -100..100. */
+                bri?: string;
+                /** @description Contrast -100..100. */
+                con?: string;
+                /** @description Exposure -100..100. */
+                exp?: string;
+                /** @description Gamma -100..100. */
+                gam?: string;
+                /** @description Saturation -100..100. */
+                sat?: string;
+                /** @description Hue shift in degrees. */
+                hue?: string;
+                /** @description Sharpen 0..100. */
+                sharp?: string;
+                /** @description Unsharp mask amount -100..100. */
+                usm?: string;
+                /** @description Unsharp mask radius (default 2.5). */
+                usmrad?: string;
+                /** @description Blur 0..2000. */
+                blur?: string;
+                /** @description Pixelate 0..100. */
+                px?: string;
+                /** @description Sepia 0..100. */
+                sepia?: string;
+                /** @description Monochrome tint (alpha = intensity). */
+                monochrome?: string;
+                /** @description Two colours: shadow,highlight. */
+                duotone?: string;
+                /** @description Duotone intensity 0..100. */
+                "duotone-alpha"?: string;
+                /** @description Invert colours. */
+                invert?: string;
+                /** @description Blur detected faces 0..100. */
+                "face-blur"?: string;
+                /** @description Pixelate detected faces 0..100. */
+                "face-pixel"?: string;
+                /** @description Background colour. */
+                bg?: string;
+                /** @description Padding on every side. */
+                pad?: string;
+                /** @description Border width,color. */
+                border?: string;
+                /** @description Corner radius r or tl,tr,br,bl. */
+                "border-radius"?: string;
+                /** @description Trim borders. */
+                trim?: string;
+                /** @description Trim colour (trim=color). */
+                "trim-color"?: string;
+                /** @description Trim tolerance (trim=color). */
+                "trim-tol"?: string;
+                /** @description Trim mean difference (trim=auto, default 11). */
+                "trim-md"?: string;
+                /** @description Mask shape. */
+                mask?: string;
+                /** @description Background outside an ellipse mask. */
+                "mask-bg"?: string;
+                /** @description Corner radius for mask=corners. */
+                "corner-radius"?: string;
+                /** @description 1-based page of a PDF. */
+                page?: string;
+                /** @description 1-based frame of an animation. */
+                frame?: string;
+                /** @description Watermark image: http(s) URL or a path on the mount's source. */
+                mark?: string;
+                /** @description Watermark alignment: top, middle, bottom, left, center, right. */
+                "mark-align"?: string;
+                /** @description Watermark opacity 0..100. */
+                "mark-alpha"?: string;
+                /** @description Watermark padding (default 5). */
+                "mark-pad"?: string;
+                /** @description Watermark size as a percentage of the image. */
+                "mark-scale"?: string;
+                /** @description Watermark width. */
+                "mark-w"?: string;
+                /** @description Watermark height. */
+                "mark-h"?: string;
+                /** @description Watermark x from the left edge. */
+                "mark-x"?: string;
+                /** @description Watermark y from the top edge. */
+                "mark-y"?: string;
+                /** @description Repeat the watermark. */
+                "mark-tile"?: string;
+                /** @description Watermark rotation, counter-clockwise degrees. */
+                "mark-rot"?: string;
+                /** @description http(s) URL prefix for mark paths. */
+                "mark-base"?: string;
+                /** @description Text watermark (plain text). */
+                txt?: string;
+                /** @description Font family and style, comma-separated. */
+                "txt-font"?: string;
+                /** @description Text size (default 12). */
+                "txt-size"?: string;
+                /** @description Text colour. */
+                "txt-color"?: string;
+                /** @description Text alignment: top, middle, bottom, left, center, right. */
+                "txt-align"?: string;
+                /** @description Text padding (default 10). */
+                "txt-pad"?: string;
+                /** @description Text shadow 0..10. */
+                "txt-shad"?: string;
+                /** @description Text wrap width. */
+                "txt-width"?: string;
+                /** @description Text x from the left edge. */
+                "txt-x"?: string;
+                /** @description Text y from the top edge. */
+                "txt-y"?: string;
+                /** @description Expiry, unix seconds; 404 once passed (checked after the signature). */
+                expires?: string;
+                /** @description Signature: hex MD5 of the mount's token, the path and ? plus the query without s. */
+                s?: string;
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Object key on the mount's source, or a percent-encoded http(s) URL (web proxy source).
+                 * @example photos/a.jpg
                  */
                 path: string;
             };
