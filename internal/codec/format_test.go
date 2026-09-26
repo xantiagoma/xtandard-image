@@ -45,7 +45,7 @@ func TestFormatFacts(t *testing.T) {
 		{codec.FormatUHDR, "uhdr", "jpg", "image/jpeg", false, false, true, transform.FormatJPEG},
 		{codec.FormatPDF, "pdf", "pdf", "application/pdf", false, true, true, transform.FormatUnset},
 		{codec.FormatPSD, "psd", "psd", "image/vnd.adobe.photoshop", false, true, true, transform.FormatUnset},
-		{codec.FormatRAW, "raw", "", "application/octet-stream", false, false, false, transform.FormatUnset},
+		{codec.FormatRAW, "raw", "", "application/octet-stream", false, false, true, transform.FormatUnset},
 	}
 	if len(tests) != len(allFormats()) {
 		t.Fatalf("table covers %d formats, want %d", len(tests), len(allFormats()))

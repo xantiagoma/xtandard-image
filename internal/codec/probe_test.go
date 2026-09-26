@@ -75,7 +75,11 @@ func TestProbeFixtures(t *testing.T) {
 		"jpeg/metadata-p3.jpg": with(still(codec.FormatJPEG, 120, 160), func(m *codec.ImageMeta) {
 			m.Orientation, m.HasICC = 6, true
 		}),
-		"png/bordered.png":        still(codec.FormatPNG, 80, 60),
+		"png/bordered.png":  still(codec.FormatPNG, 80, 60),
+		"dng/landscape.dng": still(codec.FormatRAW, 192, 128),
+		"dng/portrait-orientation-6.dng": with(still(codec.FormatRAW, 192, 128), func(m *codec.ImageMeta) {
+			m.Orientation = 6
+		}),
 		"uhdr/photo-ultrahdr.jpg": with(still(codec.FormatUHDR, 320, 240), func(m *codec.ImageMeta) { m.HasICC = true }),
 		"png/rgba8.png":           with(still(codec.FormatPNG, 128, 96), func(m *codec.ImageMeta) { m.HasAlpha = true }),
 		"png/rgb16.png":           with(still(codec.FormatPNG, 96, 72), func(m *codec.ImageMeta) { m.BitDepth = 16 }),
@@ -163,7 +167,9 @@ func TestProbeErrors(t *testing.T) {
 		{"pdf over pixel limit", readFixture(t, "pdf/pages.pdf"), codec.Limits{MaxSrcPixels: 1000}, errs.KindLimitExceeded},
 		{"psd without composite refused", readFixture(t, "psd/no-composite.psd"), codec.Limits{PSDRequireComposite: true}, errs.KindUnsupported},
 		{"psd over pixel limit", readFixture(t, "psd/layered.psd"), codec.Limits{MaxSrcPixels: 1000}, errs.KindLimitExceeded},
-		{"cr2 is M2", []byte("II*\x00\x10\x00\x00\x00CR\x02\x00"), codec.Limits{}, errs.KindUnsupported},
+		{"cr2 header only", []byte("II*\x00\x10\x00\x00\x00CR\x02\x00"), codec.Limits{}, errs.KindCorrupt},
+		{"dng truncated in its header", readFixture(t, "dng/landscape.dng")[:300], codec.Limits{}, errs.KindCorrupt},
+		{"dng over pixel limit", readFixture(t, "dng/landscape.dng"), codec.Limits{MaxSrcPixels: 192*128 - 1}, errs.KindLimitExceeded},
 		{"mp4", isobmff("isom", "mp41"), codec.Limits{}, errs.KindUnsupported},
 		{"jpeg header only", jpeg[:24], codec.Limits{}, errs.KindCorrupt},
 		{"png signature only", png[:8], codec.Limits{}, errs.KindCorrupt},

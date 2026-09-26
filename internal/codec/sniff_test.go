@@ -17,6 +17,8 @@ func fixtureFormats() map[string]codec.Format {
 		"bmp/rgb24.bmp":                   codec.FormatBMP,
 		"bmp/rle8.bmp":                    codec.FormatBMP,
 		"gif/animated.gif":                codec.FormatGIF,
+		"dng/landscape.dng":               codec.FormatRAW,
+		"dng/portrait-orientation-6.dng":  codec.FormatRAW,
 		"gif/static.gif":                  codec.FormatGIF,
 		"heic/photo.heic":                 codec.FormatHEIC,
 		"ico/bmp-entry.ico":               codec.FormatICO,

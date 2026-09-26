@@ -9,6 +9,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/bmp"
 	"github.com/xantiagoma/xtandard-image/internal/codec/ico"
+	"github.com/xantiagoma/xtandard-image/internal/codec/raw"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/security/svg"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
@@ -17,8 +18,9 @@ import (
 // Probe sniffs buf, reads only its headers and enforces lim before anything
 // is decoded (ARCHITECTURE §2 stage 11):
 //
-//   - unrecognised input and formats of a later milestone (RAW) fail with
-//     errs.KindUnsupported, without reaching a decoder;
+//   - unrecognised input fails with errs.KindUnsupported, without reaching
+//     a decoder;
+//   - camera RAW headers are read by LibRaw without unpacking (codec/raw);
 //   - BMP and ICO headers are parsed by the pure-Go loaders' config
 //     functions, and PSD/PSB headers by ParsePSDHeader, never by libvips
 //     (ImageMagick decodes a whole PSD even for its header);
@@ -67,6 +69,8 @@ func Probe(ctx context.Context, buf *vips.Buffer, lim Limits, contentType string
 		m, err = probePSD(data, lim)
 	case FormatPDF:
 		m, err = probePDF(ctx, buf, lim)
+	case FormatRAW:
+		m, err = probeRaw(ctx, buf)
 	default:
 		m, err = probeVips(ctx, buf, f, 0)
 	}
@@ -91,6 +95,32 @@ func ctxErr(ctx context.Context) error {
 	default:
 		return errs.Wrap(errs.KindCanceled, err)
 	}
+}
+
+// probeRaw describes the demosaiced image: its size in the stored
+// orientation and LibRaw's orientation. Pixels are 8-bit sRGB (grey for
+// monochrome sensors) whichever path the executor takes.
+func probeRaw(ctx context.Context, buf *vips.Buffer) (ImageMeta, error) {
+	h, err := raw.Probe(ctx, buf)
+	if err != nil {
+		return ImageMeta{}, err
+	}
+	cs := ColorSpaceSRGB
+	if h.Colors == 1 {
+		cs = ColorSpaceGrey
+	}
+	return ImageMeta{
+		Format:      FormatRAW,
+		Width:       h.Width,
+		Height:      h.Height,
+		Frames:      1,
+		Pages:       1,
+		PageHeight:  h.Height,
+		Orientation: h.Orientation,
+		BitDepth:    8,
+		Loop:        -1,
+		ColorSpace:  cs,
+	}, nil
 }
 
 func probeBMP(data []byte) (ImageMeta, error) {

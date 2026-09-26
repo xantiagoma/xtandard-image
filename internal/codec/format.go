@@ -22,9 +22,7 @@ import (
 // never from a file extension or an upstream Content-Type (FORMATS.md).
 type Format uint8
 
-// Formats, one per input row of FORMATS.md §1. RAW is recognised so that it
-// fails with a precise error, but Supported reports false for it until its
-// work package lands.
+// Formats, one per input row of FORMATS.md §1.
 const (
 	FormatUnknown Format = iota
 	FormatJPEG
@@ -51,9 +49,9 @@ const (
 	FormatPDF
 	// FormatPSD covers Photoshop PSD and PSB.
 	FormatPSD
-	// FormatRAW is a camera RAW with its own signature (CR2, CR3, CRW, RAF,
-	// ORF, RW2, X3F, MRW). TIFF-based RAWs without one (NEF, ARW, DNG, PEF,
-	// SRW, ...) sniff as FormatTIFF.
+	// FormatRAW is a camera RAW (codec/raw: CR2, CR3, CRW, NEF, ARW, DNG,
+	// RAF, ORF, RW2, PEF, SRW, X3F, 3FR, IIQ, ERF, MEF, MOS, DCR, MRW),
+	// decoded by LibRaw: embedded preview or demosaic.
 	FormatRAW
 
 	numFormats
@@ -105,7 +103,7 @@ func (f Format) info() formatInfo {
 	case FormatPSD:
 		return formatInfo{"psd", "psd", "image/vnd.adobe.photoshop", false, true, true}
 	case FormatRAW:
-		return formatInfo{"raw", "", "application/octet-stream", false, false, false}
+		return formatInfo{"raw", "", "application/octet-stream", false, false, true}
 	default:
 		return formatInfo{"unknown", "", "application/octet-stream", false, false, false}
 	}
@@ -130,9 +128,8 @@ func (f Format) SupportsAnimation() bool { return f.info().anim }
 // SupportsAlpha reports whether the format can carry transparency.
 func (f Format) SupportsAlpha() bool { return f.info().alpha }
 
-// Supported reports whether the format can be decoded in this build. RAW is
-// recognised but not decoded yet; Probe rejects it with
-// errs.KindUnsupported.
+// Supported reports whether the format can be decoded in this build.
+// Probe rejects an unsupported format with errs.KindUnsupported.
 func (f Format) Supported() bool { return f.info().supported }
 
 // MarshalText implements encoding.TextMarshaler (the canonical name).
