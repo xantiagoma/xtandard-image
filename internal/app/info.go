@@ -10,6 +10,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/imageinfo"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
+	"github.com/xantiagoma/xtandard-image/internal/video"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -17,14 +18,15 @@ import (
 // plus a header-only load) on a locked vips thread, with IPTC and XMP
 // parsed into imgproxy's /info shapes.
 type vipsInspector struct {
-	formats codec.Limits // static per-format limits and settings (formatLimits)
+	formats codec.Limits   // static per-format limits and settings (formatLimits)
+	video   video.Settings // XI_VIDEO_* (videoSettings)
 }
 
 // Inspect implements server.Inspector. The pixel-derived fields px asks
 // for are computed in the same vips.Run: codec.Sample decodes the first
 // page to a copy of at most imageinfo.MaxSide pixels a side, and
 // imageinfo.Analyze runs on it.
-func (in vipsInspector) Inspect(ctx context.Context, src fetch.Buffer, lim server.ProbeLimits, px *imageinfo.Options) (*server.SourceInfo, error) {
+func (in *vipsInspector) Inspect(ctx context.Context, src fetch.Buffer, lim server.ProbeLimits, px *imageinfo.Options) (*server.SourceInfo, error) {
 	vb, err := vipsBuffer(src)
 	if err != nil {
 		return nil, err
@@ -38,10 +40,10 @@ func (in vipsInspector) Inspect(ctx context.Context, src fetch.Buffer, lim serve
 		l.MaxSrcPixels = lim.MaxPixels
 		l.MaxAnimationFrames = lim.MaxFrames
 		l.MaxAnimationFramePixels = lim.MaxFramePixels
-		if ci, err = codec.Inspect(ctx, vb, l, ""); err != nil || !px.Any() {
+		if ci, err = codec.InspectMedia(ctx, vb, l, &in.video, ""); err != nil || !px.Any() {
 			return err
 		}
-		raw, err := codec.Sample(ctx, vb, ci.Meta.Format, imageinfo.MaxSide, l)
+		raw, err := codec.SampleMedia(ctx, vb, ci.Meta.Format, imageinfo.MaxSide, l, &in.video)
 		if err != nil {
 			return err
 		}
@@ -84,6 +86,7 @@ func sourceInfo(ci *codec.Info) *server.SourceInfo {
 		SampleFormat: ci.SampleFormat,
 		Colorspace:   ci.Colorspace,
 		HDR:          ci.HDR,
+		Video:        ci.Video,
 	}
 	for _, e := range ci.EXIF {
 		si.EXIF = append(si.EXIF, server.EXIFEntry{Name: e.Name, Title: e.Title, Value: e.Value})

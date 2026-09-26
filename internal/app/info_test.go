@@ -18,6 +18,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/security/sign"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
@@ -97,6 +98,7 @@ func TestInfo(t *testing.T) {
 	t.Run("exif names", func(t *testing.T) { infoEXIFNames(t, base) })
 	t.Run("signature", func(t *testing.T) { infoSignature(t, base) })
 	t.Run("raw decode path", func(t *testing.T) { rawDecodePath(t, base, "http://"+a.admin.String()) })
+	t.Run("video", func(t *testing.T) { videoRequests(t, base) })
 }
 
 // rawDecodePath: a camera RAW is decoded from its embedded preview when the
@@ -143,6 +145,9 @@ func infoGolden(t *testing.T, base, root string) {
 		t.Fatal(err)
 	}
 	for _, f := range fixtures {
+		if filepath.Ext(f) == ".md" {
+			continue
+		}
 		rel, err := filepath.Rel(filepath.Join(root, "testdata", "fixtures"), f)
 		if err != nil {
 			t.Fatal(err)
@@ -159,7 +164,8 @@ func infoGolden(t *testing.T, base, root string) {
 	for name, src := range cases {
 		t.Run(name, func(t *testing.T) {
 			r := get(t, base+"/info/unsafe"+allInfo+"/plain/"+src)
-			if name == "pdf-password" {
+			if name == "pdf-password" || (strings.HasPrefix(name, "video-") && !codec.VideoAvailable()) {
+				// Videos are 422 without FFmpeg (slim).
 				if r.status != http.StatusUnprocessableEntity {
 					t.Errorf("GET: %d %s, want 422", r.status, r.body)
 				}

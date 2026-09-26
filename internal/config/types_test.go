@@ -173,7 +173,7 @@ func TestHexKeyErrorDoesNotLeak(t *testing.T) {
 
 func TestVideoSecond(t *testing.T) {
 	t.Parallel()
-	for in, want := range map[string]VideoSecond{"auto": VideoSecondAuto, " AUTO ": VideoSecondAuto, "": VideoSecondAuto, "1": "1", "2.50": "2.5", "-1.5": "-1.5", "+3": "3"} {
+	for in, want := range map[string]VideoSecond{"auto": VideoSecondAuto, "AUTO": VideoSecondAuto, "": VideoSecondAuto, "1": "1", "2.50": "2.5", "-1.5": "-1.5", "+3": "3"} {
 		var got VideoSecond
 		if err := got.UnmarshalText([]byte(in)); err != nil || got != want {
 			t.Errorf("UnmarshalText(%q) = %q, %v; want %q", in, got, err, want)

@@ -17,6 +17,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/apidoc"
 	"github.com/xantiagoma/xtandard-image/internal/cache"
+	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/limiter"
@@ -193,6 +194,11 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		}
 		return nil
 	})
+	if err := checkVideo(cfg); err != nil {
+		return err
+	}
+	logger.LogAttrs(ctx, slog.LevelInfo, "video thumbnails",
+		slog.Bool("enabled", videoSettings(cfg).Enabled), slog.String("ffmpeg", codec.VideoVersion()))
 	proc, err := newProcessor(cfg, wm, lim.Reserve)
 	if err != nil {
 		return err
@@ -219,9 +225,9 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		Resolver:  reg,
 		Fetcher:   fetcher,
 		Admitter:  lim,
-		Prober:    &codecProber{svg: formatLimits(cfg)},
+		Prober:    &codecProber{svg: formatLimits(cfg), video: videoSettings(cfg)},
 		Sniffer:   codecSniffer{},
-		Inspector: vipsInspector{formats: formatLimits(cfg)},
+		Inspector: &vipsInspector{formats: formatLimits(cfg), video: videoSettings(cfg)},
 		Processor: proc,
 		Allocator: vipsAllocator,
 		Logger:    logger,

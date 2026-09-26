@@ -1,0 +1,37 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "exif": {},
+  "format": "mkv",
+  "height": 180,
+  "iptc": {},
+  "mime_type": "video/x-matroska",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 47198,
+  "video_meta": {
+    "ENCODER": "Lavf62.12.103",
+    "bit_rate": 377584,
+    "codec": "vp8",
+    "container": "matroska",
+    "duration": 1,
+    "fps": 10,
+    "frames": 10,
+    "height": 180,
+    "rotation": 0,
+    "width": 320
+  },
+  "video_streams": [
+    {
+      "codec": "vp8",
+      "fps": 10,
+      "height": 180,
+      "type": "video",
+      "width": 320
+    }
+  ],
+  "width": 320,
+  "xmp": {}
+}
