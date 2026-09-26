@@ -868,12 +868,6 @@
     "query": "bri=50",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "bri",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -1022,12 +1016,6 @@
     "query": "con=-50",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "con",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -1568,12 +1556,6 @@
     "query": "cs=srgb",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "cs",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "ColorProfile": "srgb"
       },
@@ -1612,12 +1594,6 @@
     "query": "cs=tinysrgb",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "cs",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "ColorProfile": "srgb"
       },
@@ -1741,12 +1717,6 @@
     "query": "duotone=000080,ffff00",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "duotone",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Duotone": {
@@ -1776,12 +1746,6 @@
     "query": "duotone=000080,ffff00\u0026duotone-alpha=40",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "duotone",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Duotone": {
@@ -1843,12 +1807,6 @@
     "query": "exp=100",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "exp",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -2903,12 +2861,6 @@
     "query": "gam=-100",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "gam",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -3013,12 +2965,6 @@
     "query": "hue=-90",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "hue",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -3039,12 +2985,6 @@
     "query": "invert=true",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "invert",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Negate": true
@@ -3652,12 +3592,6 @@
     "query": "monochrome=ff0000",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "monochrome",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Monochrome": {
@@ -3682,12 +3616,6 @@
     "query": "monochrome=80ff0000",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "monochrome",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Monochrome": {
@@ -4326,12 +4254,6 @@
     "query": "sat=-100",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "sat",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -4352,12 +4274,6 @@
     "query": "sepia=100",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "sepia",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Sepia": true
@@ -4377,10 +4293,6 @@
     "request": {
       "Dialect": "imgix",
       "Ignored": [
-        {
-          "Option": "sepia",
-          "Reason": "takes effect in M2"
-        },
         {
           "Option": "sepia",
           "Reason": "approximated"
@@ -5291,7 +5203,7 @@
       "Ignored": [
         {
           "Option": "vib",
-          "Reason": "takes effect in M2"
+          "Reason": "not implemented"
         }
       ],
       "Pipelines": [

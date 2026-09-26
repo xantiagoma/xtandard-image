@@ -179,7 +179,7 @@ func (st *state) format(autoFormat bool) error {
 	return nil
 }
 
-// colorSpace maps cs: srgb and tinysrgb convert to sRGB (M2), strip drops
+// colorSpace maps cs: srgb and tinysrgb convert to sRGB, strip drops
 // the profile, origin keeps it; adobergb1998 is not implemented.
 func (st *state) colorSpace() error {
 	v, ok := st.get("cs")
@@ -190,7 +190,6 @@ func (st *state) colorSpace() error {
 	switch v {
 	case "srgb", "tinysrgb":
 		o.ColorProfile = "srgb"
-		st.b.Ignore("cs", reasonM2)
 	case "strip", "origin":
 		on := v == "strip"
 		o.StripColorProfile = &on

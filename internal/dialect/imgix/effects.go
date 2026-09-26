@@ -74,7 +74,7 @@ func (st *state) applyOrientation() error {
 	return nil
 }
 
-// --- adjustments and stylize (M2 except blur, px and sharp) ---------------
+// --- adjustments and stylize (vib is not implemented) ----------------------
 
 // applyEffects maps the adjustment and stylize parameters. imgix's
 // -100..100 scales become: bri → additive brightness v*255/100; con, sat,
@@ -108,7 +108,11 @@ func (st *state) applyEffects() error {
 			}
 			x := c.conv(f)
 			*c.dst = &x
-			st.b.Ignore(c.key, reasonM2)
+			if c.key == "vib" {
+				// Kept for the cache key; the planner has no vibrance step
+				// (plan.Unplanned).
+				st.b.Ignore(c.key, reasonNotImplemented)
+			}
 		}
 	}
 
@@ -176,7 +180,6 @@ func (st *state) colourEffects() error {
 		}
 		if f > 0 {
 			pl.Sepia = true
-			st.b.Ignore("sepia", reasonM2)
 			if f < 100 {
 				st.b.Ignore("sepia", reasonApproximated)
 			}
@@ -188,7 +191,6 @@ func (st *state) colourEffects() error {
 			return err
 		}
 		pl.Monochrome = &transform.Monochrome{Intensity: float64(c.A) / 255, Color: opaque(c)}
-		st.b.Ignore("monochrome", reasonM2)
 	}
 	alpha, err := st.optNum("duotone-alpha", 0, 100, 100)
 	if err != nil {
@@ -208,7 +210,6 @@ func (st *state) colourEffects() error {
 			return err
 		}
 		pl.Duotone = &transform.Duotone{Intensity: alpha / 100, Shadow: opaque(shadow), Highlight: opaque(highlight)}
-		st.b.Ignore("duotone", reasonM2)
 	} else {
 		st.ignoreIf(reasonNeedsParent, "duotone-alpha")
 	}
@@ -219,7 +220,6 @@ func (st *state) colourEffects() error {
 		}
 		if on {
 			pl.Negate = true
-			st.b.Ignore("invert", reasonM2)
 		}
 	}
 	return nil
