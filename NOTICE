@@ -8,4 +8,17 @@ Third-party notices
 
 Attributions for third-party code incorporated into this repository
 (for example Apache-2.0 components reimplemented from imgproxy) are
-listed below. None yet.
+listed below.
+
+imgproxy-docker-base
+--------------------
+docker/base/ (Dockerfile, versions.sh, download-deps.sh, build-deps.sh,
+bashrc.sh, install-rust.sh, install-tools.sh) is derived from
+imgproxy-docker-base, https://github.com/imgproxy/imgproxy-docker-base
+Copyright (c) 2017 Sergey Alexandrovich
+Licensed under the MIT License; the full text is kept in
+docker/base/LICENSE.imgproxy-docker-base.
+
+The libraries built into the base image carry their own licenses, which
+are shipped in the image under /opt/xtandard/share/licenses/ together with
+SOURCES.md (exact source URLs, versions and SHA256 checksums).
