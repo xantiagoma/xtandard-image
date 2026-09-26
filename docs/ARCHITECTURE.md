@@ -445,7 +445,7 @@ type Result struct {
 | `Cache-Control` | Success: `public, max-age=<TTL>, stale-while-revalidate=<TTL/10>`; add `immutable` when the URL is signed and carries a cache buster or content hash. Source `Cache-Control` passthrough optional (`XI_CACHE_HEADERS_PASSTHROUGH`). Errors: `no-store` (4xx signature/validation) or `public, max-age=XI_CACHE_HEADERS_ERROR_TTL` (default 10 s) for upstream failures. |
 | `ETag` | Strong: `"xi1-" + base64url(sha256(canonicalKey ‖ outputFormat ‖ sourceValidator ‖ XI_CACHE_ETAG_BUSTER))[:22]`. `sourceValidator` is source ETag, else Last-Modified, else SHA-256 of source bytes. |
 | `Last-Modified` | Source Last-Modified when known. |
-| `Vary` | `Accept` only when format was negotiated (format not fixed by URL). Add `Sec-CH-DPR, Sec-CH-Width, Sec-CH-Viewport-Width` when client hints influenced the result. Never `Vary: *`. |
+| `Vary` | `Accept` only when format was negotiated (format not fixed by URL). Add each consulted client-hint group with both names (`Sec-CH-DPR, DPR`; `Sec-CH-Width, Width, Sec-CH-Viewport-Width, Viewport-Width`; `Save-Data, ECT`) when client hints were consulted. Never `Vary: *`. |
 | `Content-DPR` | Set when DPR ≠ 1 was applied. |
 | `Content-Disposition` | `inline` (or `attachment`) with RFC 6266 `filename*` from `filename` option or source basename + new extension. |
 | `Content-Type`, `Content-Length`, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox` for SVG output. |
