@@ -3,6 +3,7 @@ package exec
 import (
 	"context"
 	"errors"
+	"image"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/encode"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
@@ -101,6 +102,11 @@ type Result struct {
 	// (its embedded JPEG), RawPathDemosaic or RawPathDemosaicHalf; empty
 	// for other formats. It is exposed as a debug header.
 	RawPath string
+	// RawDecoded is the size of the camera RAW source as decoded (the
+	// embedded preview after shrink-on-load, or the demosaic at full or half
+	// size): the pixels the chosen path had to produce. Zero for other
+	// formats.
+	RawDecoded image.Point
 	// Skipped lists the request options that were not applied because a
 	// later work package implements them (filters, watermarks, the plan's
 	// Unplanned options), for debugging.
@@ -222,6 +228,7 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 			Skipped:     r.skipped,
 			Best:        out.Best,
 			RawPath:     r.rawPath,
+			RawDecoded:  r.rawDecoded,
 			Thumbnail:   fromThumb || r.plan.Load.Thumbnail,
 		}
 		if t.Animated && animatable(out.Format) {

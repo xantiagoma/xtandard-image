@@ -241,9 +241,8 @@ func TestProbeRawHeaderOnly(t *testing.T) {
 		t.Errorf("probe: tracked mem %d → %d B, allocs %d → %d, LibRaw handles %d → %d",
 			before.Mem, after.Mem, before.Allocs, after.Allocs, live, vips.RawLive())
 	}
-	if per > 50*time.Millisecond {
-		t.Errorf("probe takes %v per call: is it unpacking?", per)
-	}
+	// Header only is asserted by the unchanged counters above, not by the
+	// time per call (machine load decides it; BenchmarkProbeRaw has it).
 	t.Logf("ProbeRaw %s: %v per call", f.Name, per)
 }
 
