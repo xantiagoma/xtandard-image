@@ -37,3 +37,7 @@ go tool -modfile=tools/go.mod govulncheck ./...
 ```
 
 Local libvips on macOS: `brew install vips pkg-config` and `export CGO_CFLAGS_ALLOW=-Xpreprocessor`.
+
+## Reference source code
+
+`.refs/` (gitignored) holds shallow clones of imgproxy, imagor, thumbor, imaginary, weserv, unpic, provider SDKs (imgix, cloudinary, imagekit, cloudflare docs), libvips, sharp, libraw and more. Run `scripts/clone-refs.sh` to (re)populate. Before implementing a dialect, option, or vips call, `rg` the real implementation there instead of guessing.
