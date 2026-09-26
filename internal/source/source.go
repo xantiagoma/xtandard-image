@@ -32,6 +32,11 @@ const (
 // Configured names match [a-z0-9-]+, so it can never collide with one.
 const DevSourceName = "_dev"
 
+// PlaygroundSourceName is the name of the playground's in-memory source
+// (playground://<area>/<key>, WP-94): uploads and the built-in samples.
+// Like DevSourceName it can never collide with a configured name.
+const PlaygroundSourceName = "_playground"
+
 // Source is one configured origin (a named source). Implementations live in
 // internal/fetch/<type>src.
 type Source interface {
