@@ -3,7 +3,7 @@ package ico
 import (
 	"testing"
 
-	"github.com/xantiagoma/xtandard-image/internal/codec"
+	"github.com/xantiagoma/xtandard-image/internal/codec/raster"
 )
 
 func BenchmarkDecode(b *testing.B) {
@@ -29,7 +29,7 @@ func BenchmarkDecode(b *testing.B) {
 
 func BenchmarkEncode(b *testing.B) {
 	// A typical favicon set: three DIB sizes and one PNG.
-	frames := []*codec.Raw{testRaw(16, 16, 4), testRaw(32, 32, 4), testRaw(48, 48, 4), testRaw(256, 256, 4)}
+	frames := []*raster.Raw{testRaw(16, 16, 4), testRaw(32, 32, 4), testRaw(48, 48, 4), testRaw(256, 256, 4)}
 	b.ReportAllocs()
 	for b.Loop() {
 		if _, err := Encode(frames...); err != nil {

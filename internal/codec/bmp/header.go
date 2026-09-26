@@ -8,7 +8,7 @@
 // read and a pixel limit enforced before allocation.
 
 // Package bmp decodes and encodes Windows/OS/2 bitmaps in pure Go. Decode
-// returns 8-bit RGB/RGBA pixels as a codec.Raw, or the embedded PNG/JPEG
+// returns 8-bit RGB/RGBA pixels as a raster.Raw, or the embedded PNG/JPEG
 // stream of a BI_PNG/BI_JPEG bitmap for libvips to load itself.
 //
 // Supported: 1/2/4/8-bit paletted, 16-bit (5-5-5, 5-6-5 or any contiguous
@@ -22,7 +22,7 @@ import (
 	"math"
 	"math/bits"
 
-	"github.com/xantiagoma/xtandard-image/internal/codec"
+	"github.com/xantiagoma/xtandard-image/internal/codec/raster"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 )
 
@@ -49,7 +49,7 @@ const (
 type Options struct {
 	// MaxPixels rejects images whose Width*Height exceeds it, with
 	// errs.KindLimitExceeded, before any pixel buffer is allocated. Zero
-	// means codec.DefaultMaxPixels.
+	// means raster.DefaultMaxPixels.
 	MaxPixels int64
 }
 
@@ -57,7 +57,7 @@ func (o Options) maxPixels() int64 {
 	if o.MaxPixels > 0 {
 		return o.MaxPixels
 	}
-	return codec.DefaultMaxPixels
+	return raster.DefaultMaxPixels
 }
 
 // Config is the header-only view of a bitmap, for probing.
