@@ -78,6 +78,7 @@ func TestNativeKeys(t *testing.T) {
 		{name: "f", path: "/", query: src + "&f=webp"},
 		{name: "format", path: "/", query: src + "&format=avif"},
 		{name: "f_jpg", path: "/", query: src + "&f=jpg"},
+		{name: "f_best", path: "/", query: src + "&f=best"},
 		{name: "f_invalid", path: "/", query: src + "&f=pdf"},
 		{name: "q", path: "/", query: src + "&q=80"},
 		{name: "quality", path: "/", query: src + "&quality=55"},

@@ -637,9 +637,6 @@ func (st *state) format(field, s string) error {
 		return err
 	}
 	st.r.Output.Format = f
-	if f == transform.FormatBest {
-		st.ignore("format:best", reasonM2)
-	}
 	return nil
 }
 

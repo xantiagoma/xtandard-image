@@ -1265,12 +1265,6 @@
     "path": "/unsafe/f:best/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "format:best",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "best"
       },
