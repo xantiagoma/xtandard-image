@@ -1,0 +1,2 @@
+go test fuzz v1
+string("/unsafe/rs:fill:300:400:0/g:sm/-/wm:0.5:re/aHR0cDovL2V4YW1w/bGUuY29tL2ltYWdl.png")

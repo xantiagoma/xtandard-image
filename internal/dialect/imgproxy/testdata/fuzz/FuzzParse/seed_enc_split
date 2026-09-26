@@ -1,0 +1,2 @@
+go test fuzz v1
+string("/_/pd::5/t:1:fff/fq:png:0/enc/MDEyMzQ1Njc4OWFiY2RlZg/x.webp")
