@@ -5834,7 +5834,11 @@
   "paths": {
     "/config.schema.json": {
       "get": {
-        "description": "JSON Schema (draft 2020-12) of the YAML/JSON/TOML config file, with a strong ETag; always on, admin listener only (ADR 0007 decision 6).",
+        "description": "JSON Schema (draft 2020-12) of the YAML/JSON/TOML config file, with a strong ETag; always on, admin listener only (ADR 0007 decision 6). Its $id is the published GitHub Pages copy (externalDocs); this route serves the running binary's version.",
+        "externalDocs": {
+          "description": "Published copy (the schema's $id)",
+          "url": "https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json"
+        },
         "operationId": "getConfigSchema",
         "responses": {
           "200": {

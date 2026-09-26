@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/xantiagoma/xtandard-image/internal/apidoc"
 	"github.com/xantiagoma/xtandard-image/internal/config"
 )
 
@@ -21,7 +22,7 @@ func writeConfig(t *testing.T, name, content string) string {
 	return path
 }
 
-const validYAML = `# yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/config.schema.json
+const validYAML = `# yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json
 sources:
   origin: {type: http, allow: [cdn.example.com]}
 `
@@ -90,6 +91,20 @@ func TestConfigSchemaCommand(t *testing.T) {
 	}
 	if !bytes.Contains(out.Bytes(), []byte(`"$id": "`+config.SchemaID+`"`)) {
 		t.Errorf("schema lacks $id %s", config.SchemaID)
+	}
+}
+
+func TestOpenAPICommand(t *testing.T) {
+	t.Parallel()
+	var out bytes.Buffer
+	if err := run(t.Context(), []string{"openapi"}, nil, &out); err != nil {
+		t.Fatalf("openapi: %v", err)
+	}
+	if !bytes.Equal(out.Bytes(), apidoc.Spec()) {
+		t.Error("openapi output differs from the embedded document")
+	}
+	if err := run(t.Context(), []string{"openapi", "extra"}, nil, &bytes.Buffer{}); err == nil {
+		t.Error("openapi accepted an argument")
 	}
 }
 
