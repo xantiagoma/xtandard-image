@@ -340,6 +340,10 @@ func (s *Server) run(ctx context.Context, in *ProcessInput) (*ProcessOutput, err
 		s.deps.Logger.LogAttrs(ctx, slog.LevelDebug, "options not applied",
 			slog.String("skipped", strings.Join(out.Skipped, ",")))
 	}
+	if out.RawPath != "" {
+		s.deps.Metrics.ObserveRawDecode(out.RawPath)
+		span.SetAttributes(attribute.String("xi.raw_path", out.RawPath))
+	}
 	return out, nil
 }
 

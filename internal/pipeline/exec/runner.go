@@ -6,6 +6,7 @@ import (
 	"image"
 	"slices"
 
+	"github.com/xantiagoma/xtandard-image/internal/codec/raw"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
@@ -42,6 +43,10 @@ type runner struct {
 	// coverage caches the rasterised mask and radius outlines per frame
 	// size (geometry_extras.go).
 	coverage map[coverageKey][]byte
+	// rawHdr is the LibRaw header of a camera RAW source (planRaw), and
+	// rawPath how it was decoded.
+	rawHdr  *raw.Header
+	rawPath string
 }
 
 // last returns the plan whose Output is the response.

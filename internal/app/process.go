@@ -122,6 +122,8 @@ func planLimits(cfg *config.Config) plan.Limits {
 		MaxAnimationFramePixels: cfg.Limits.MaxAnimationFramePixels,
 		MemoryBudget:            int64(cfg.Processing.MemoryBudget),
 		AllowRaisingLimits:      cfg.Security.AllowRaisingLimits,
+		MaxRawDemosaicPixels:    cfg.Limits.MaxRawDemosaicPixels,
+		RawPreviewMinRatio:      cfg.Formats.RAW.PreviewMinRatio,
 	}
 }
 
@@ -229,6 +231,7 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		Quality:     res.Quality,
 		Skipped:     res.Skipped,
 		Best:        res.Best.String(),
+		RawPath:     res.RawPath,
 	}, nil
 }
 

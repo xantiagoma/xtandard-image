@@ -84,6 +84,10 @@ type Result struct {
 	// Saves counts the encoder saves (1 unless max_bytes or auto-quality
 	// searched).
 	Saves int
+	// RawPath is how a camera RAW source was decoded: RawPathPreview
+	// (its embedded JPEG), RawPathDemosaic or RawPathDemosaicHalf; empty
+	// for other formats. It is exposed as a debug header.
+	RawPath string
 	// Skipped lists the request options that were not applied because a
 	// later work package implements them (filters, watermarks, the plan's
 	// Unplanned options), for debugging.
@@ -116,15 +120,26 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 	if transparent {
 		meta.HasAlpha = true
 	}
-	p, err := plan.Build(req, meta, e.cfg.Limits)
-	if err != nil {
-		return nil, err
+	// A camera RAW is planned inside the Run: the preview size comes from
+	// its LibRaw header.
+	isRaw := j.Meta.Format == formatRAW
+	var p *plan.Plan
+	var err error
+	if !isRaw {
+		if p, err = plan.Build(req, meta, e.cfg.Limits); err != nil {
+			return nil, err
+		}
 	}
 	var res *Result
 	err = vips.Run(ctx, func() error {
 		var a vips.Arena
 		defer a.Close()
 		r := &runner{e: e, j: j, req: req, a: &a, plan: p, meta: meta, transparent: transparent}
+		if isRaw {
+			if err := r.planRaw(ctx); err != nil {
+				return err
+			}
+		}
 		img, err := r.execute(ctx)
 		if err != nil {
 			return err
@@ -165,6 +180,7 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 			Saves:       out.Attempts,
 			Skipped:     r.skipped,
 			Best:        out.Best,
+			RawPath:     r.rawPath,
 		}
 		if t.Animated && animatable(out.Format) {
 			res.Frames = img.Pages()

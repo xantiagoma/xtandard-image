@@ -20,6 +20,8 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 	switch r.j.Meta.Format {
 	case "bmp", "ico":
 		img, err = r.loadGo(ctx)
+	case formatRAW:
+		img, err = r.loadRaw(ctx, ls)
 	default:
 		img, err = r.a.Add(vips.Load(ctx, r.j.Source, r.loadOptions(ls, anim)))
 	}

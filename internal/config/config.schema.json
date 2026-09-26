@@ -2254,6 +2254,19 @@
           "title": "XI_FORMATS_QUALITY",
           "type": "integer"
         },
+        "raw": {
+          "additionalProperties": false,
+          "properties": {
+            "preview_min_ratio": {
+              "default": 1,
+              "description": "Env: XI_FORMATS_RAW_PREVIEW_MIN_RATIO",
+              "markdownDescription": "Env: `XI_FORMATS_RAW_PREVIEW_MIN_RATIO`",
+              "title": "XI_FORMATS_RAW_PREVIEW_MIN_RATIO",
+              "type": "number"
+            }
+          },
+          "type": "object"
+        },
         "save_data_quality_delta": {
           "default": -15,
           "description": "Env: XI_FORMATS_SAVE_DATA_QUALITY_DELTA",

@@ -316,6 +316,7 @@ type Formats struct {
 	GIF  GIFFormat  `yaml:"gif"  envPrefix:"GIF_"`
 	PDF  PDFFormat  `yaml:"pdf"  envPrefix:"PDF_"`
 	PSD  PSDFormat  `yaml:"psd"  envPrefix:"PSD_"`
+	RAW  RAWFormat  `yaml:"raw"  envPrefix:"RAW_"`
 
 	Auto    FormatSwitches `yaml:"auto"    envPrefix:"AUTO_"`
 	Enforce FormatSwitches `yaml:"enforce" envPrefix:"ENFORCE_"`
@@ -345,6 +346,14 @@ type ClientHints struct {
 type JPEGFormat struct {
 	Quality     int  `yaml:"quality"     env:"QUALITY"`
 	Progressive bool `yaml:"progressive" env:"PROGRESSIVE"`
+}
+
+// RAWFormat configures camera RAW decoding (FORMATS.md §2).
+type RAWFormat struct {
+	// PreviewMinRatio: the embedded JPEG preview is decoded instead of
+	// demosaicing when it is at least this many times the size the image
+	// is scaled to, on both axes.
+	PreviewMinRatio float64 `yaml:"preview_min_ratio" env:"PREVIEW_MIN_RATIO"`
 }
 
 // PNGFormat holds PNG encoder defaults.
@@ -623,6 +632,7 @@ func Defaults() Config {
 			JXL:                  JXLFormat{Quality: 75, Effort: 5},
 			GIF:                  GIFFormat{Effort: 7},
 			PDF:                  PDFFormat{DPI: 72},
+			RAW:                  RAWFormat{PreviewMinRatio: 1},
 			Auto:                 FormatSwitches{AVIF: true, WebP: true},
 			Preferred:            []Format{FormatJPEG, FormatPNG, FormatGIF},
 			SVGPassthrough:       true,
