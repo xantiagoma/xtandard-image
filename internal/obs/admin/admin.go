@@ -1,13 +1,18 @@
 // Package admin builds the admin listener's ServeMux (ARCHITECTURE §13):
-// /metrics, /healthz, /readyz and, only when enabled, pprof. app serves it on
-// its own http.Server bound to XI_ADMIN_ADDR; it is never mounted on the
-// public listener, and http.DefaultServeMux is never served.
+// /metrics, /healthz, /readyz, /config.schema.json and, only when enabled,
+// pprof. app serves it on its own http.Server bound to XI_ADMIN_ADDR; it is
+// never mounted on the public listener, and http.DefaultServeMux is never
+// served.
 package admin
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"net/http/pprof"
 	"sync/atomic"
+	"time"
 )
 
 // State is the process readiness state.
@@ -96,6 +101,9 @@ type Options struct {
 	// Pprof registers /debug/pprof/* (XI_ADMIN_PPROF). Off by default; when
 	// off, every pprof path is a 404.
 	Pprof bool
+	// ConfigSchema is served at /config.schema.json (config.Schema(), ADR
+	// 0007 decision 6). Nil leaves the route unregistered.
+	ConfigSchema []byte
 }
 
 // NewMux returns the admin ServeMux.
@@ -113,7 +121,29 @@ func NewMux(opts Options) *http.ServeMux {
 	if opts.Pprof {
 		registerPprof(mux)
 	}
+	if opts.ConfigSchema != nil {
+		mux.Handle("GET "+ConfigSchemaPath, schemaHandler(opts.ConfigSchema))
+	}
 	return mux
+}
+
+// ConfigSchemaPath is the admin route of the config file JSON Schema.
+const ConfigSchemaPath = "/config.schema.json"
+
+// schemaHandler serves a JSON Schema document with a strong ETag (its
+// SHA-256), so editors revalidate with If-None-Match and get a 304.
+func schemaHandler(schema []byte) http.Handler {
+	sum := sha256.Sum256(schema)
+	etag := `"` + hex.EncodeToString(sum[:16]) + `"`
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("Content-Type", "application/schema+json")
+		h.Set("ETag", etag)
+		h.Set("Cache-Control", "no-cache")
+		h.Set("X-Content-Type-Options", "nosniff")
+		// ServeContent answers If-None-Match (304) and HEAD from the ETag.
+		http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(schema))
+	})
 }
 
 // registerPprof registers the pprof handlers explicitly on mux (never on
