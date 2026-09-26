@@ -113,3 +113,34 @@ Resolution rules (`internal/negotiate`, WP-31):
 ### 6.3 `best` (M2)
 
 `format=best` / `f_auto` with `q_auto` / imgix `auto=format,compress`: encode the candidate set from the matrix row (max 3 formats), each at the quality chosen by auto-quality (DSSIM target, default 0.02) when enabled, and return the smallest. Skipped (falls back to the matrix's first choice) above `XI_FORMATS_BEST_MAX_PIXELS` (default 8 MP). Results are cached by the result cache so the cost is paid once per variant.
+
+### 6.4 Auto-quality (M2, WP-56, `codec/encode`)
+
+imgproxy Pro's `autoquality` (`aq:method:target:min_quality:max_quality:allowed_error`) and `XI_FORMATS_AUTOQUALITY_*` (CONFIG.md) pick the quality of a lossy save by search. It applies only to quality-driven saves (JPEG, lossy WebP, AVIF, HEIC, JPEG XL, TIFF-JPEG); lossless and quality-less formats save once.
+
+Resolution, per field: the request's value, else the per-format config (`_FORMAT_TARGET`, `_FORMAT_MIN`, `_FORMAT_MAX`; defaults JPEG and WebP 40–90, AVIF 30–80), else the global config (target 0.02, 60–85, allowed error 0.001). A method that comes only from the config yields to an explicit request `quality`/`format_quality` (including the Save-Data delta); a request method always runs. When one request bound crosses a configured one, the configured one moves onto it.
+
+| Method | Search | Result |
+|---|---|---|
+| `none` | — | the quality of §5 |
+| `size` | the `max_bytes` search (`fitBytes`) over min..max: max first, then binary search, ≤ 6 saves. The target is bytes, capped by `max_bytes`; a target < 1 falls back to `max_bytes`, and without either the option is skipped (`autoquality_size_target`). An animation is searched with all its frames. | the largest quality tried whose output fits, else the smallest output with `OverBudget` |
+| `dssim` | ≤ 6 saves starting at the §5 quality clamped into min..max. Each candidate is decoded with libvips and compared with the pre-encode image (after flatten/metadata) by the in-house SSIM (`internal/testutil/ssim`, luma, alpha composited on white and black). From one side of the target the next quality extrapolates ln(DSSIM) (slope of the last two saves, 0.05/quality before that); once the target is bracketed it interpolates between the closest failing and passing qualities, kept away from the bracket ends. A save within `allowed_error` of the target stops the search. | the lowest passing quality found; unmet (`Met=false`) at max when even max fails |
+| `ml` | not implemented | parsed and run as `none`; reported in the skipped list (`autoquality_ml`) |
+
+- **Comparison size**: both images are reduced to at most 512 px on the longer side (`CompareMaxDimension`, linear kernel, premultiplied) before SSIM, so one comparison costs the same for a 1 MP and a 16 MP image. Trade-off: downscaling averages away part of the artefacts, so above 512 px the measured DSSIM is lower than at full size and the search settles on a lower quality. On the 1024 px corpus of `TestAutoQualityDSSIMCorpus` the full-size DSSIM of the chosen output was 0.9–2.3× the compared one (median ≈ 1.4×; the largest gaps are on flat graphics and alpha edges, where the absolute values are small); at or below 512 px the two are the same measurement.
+- **Animation**: `dssim` searches on the first frame only (cheap, and frames of one animation compress alike), then saves every frame once at the chosen quality: up to 7 saves in all.
+- **With `max_bytes`**: the `dssim` result must still fit; when it does not, `max_bytes`' search runs below the chosen quality (extra saves) and `Met` is false.
+- **Metric scale**: our DSSIM is (1 − SSIM)/2 on luma (Wang et al. 2004); imgproxy's comes from a different, multi-scale implementation, so the same numeric target is not the same visual quality. On the corpus the default 0.02 is lenient: most photos land at the per-format minimum. Tighten `_TARGET` (≈ 0.005–0.01) for visibly cleaner output.
+- **Reporting**: `Result.Quality` is the chosen quality (`X-Xi-Quality` with debug headers), `Result.Attempts` counts every save, `Result.AutoQuality` holds the method, target, measured metric and `Met`.
+- **Cost** (benchstat `-count=10`, `BenchmarkAutoQuality`, base-image builder on arm64; benchstat output in `internal/codec/encode/testdata/bench-autoquality.txt`), photo, default target):
+
+  | Size / format | plain | dssim | saves | overhead |
+  |---|---|---|---|---|
+  | 320 px JPEG | 1.6 ms | 18.2 ms | 3 | 11× |
+  | 320 px WebP | 7.5 ms | 27.1 ms | 2 | 3.6× |
+  | 320 px AVIF | 109 ms | 524 ms | 4 | 4.8× |
+  | 1024 px JPEG | 8.4 ms | 44.7 ms | 2 | 5.3× |
+  | 1024 px WebP | 69 ms | 309 ms | 3 | 4.5× |
+  | 1024 px AVIF | 845 ms | 1.88 s | 2 | 2.2× |
+
+  Each comparison (decode, 512 px copy, SSIM) costs about 5 ms at 320 px and 15 ms at 1024 px, so JPEG pays mostly for the metric and WebP/AVIF mostly for the extra saves; allocations grow from 1 KiB to 3–9 MiB per request (luma planes and pixel copies). Enable it where the result cache absorbs the cost.
