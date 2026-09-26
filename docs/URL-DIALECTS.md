@@ -56,7 +56,7 @@ For dialects without a native scheme xi offers the optional **xi scheme**: query
 
 ## 3. imgproxy (canonical)
 
-**Status:** on `main` (M1, M2, M3): every option below is parsed and applied, except video tiles and animation (`vtt`, `vta`), which are recorded in `Ignored` until WP-75 lands (in progress). Detection options (WP-72/73) and video thumbnails (WP-74) need the `full` image; the slim image answers 422. The advanced watermark options (`wmu`, `wmt`, `wms`, `wmr`, `wmsh`, `ch`) are on `main` (WP-77/78).
+**Status:** on `main` (M1, M2, M3): every option below is parsed and applied. Detection options (WP-72/73), video thumbnails (WP-74) and video sprites and animations (`vtt`, `vta`, WP-75) need the `full` image; the slim image answers 422. The advanced watermark options (`wmu`, `wmt`, `wms`, `wmr`, `wmsh`, `ch`) are on `main` (WP-77/78).
 
 Reference: https://docs.imgproxy.net/usage/processing (imgproxy v4.0.x docs, source `imgproxy/imgproxy-docs` `docs/usage/processing.mdx`), https://docs.imgproxy.net/usage/getting_info, https://docs.imgproxy.net/usage/encrypting_source_url, https://docs.imgproxy.net/features/chained_pipelines.
 
