@@ -1,0 +1,57 @@
+name: nightly
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      fuzztime:
+        description: Duration per fuzz target
+        default: 60s
+
+permissions:
+  contents: read
+  packages: read # pull the base image from GHCR
+
+# Both jobs load cgo packages (internal/vips), so they run in the base image
+# builder, like the cgo jobs in ci.yml.
+jobs:
+  fuzz:
+    name: fuzz (every FuzzXxx target)
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ vars.XI_BASE_IMAGE || 'ghcr.io/xantiagoma/xtandard-image-base:slim' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        CGO_ENABLED: "1"
+        GOTOOLCHAIN: local
+        GOFLAGS: -buildvcs=false
+    steps:
+      - uses: actions/checkout@v7
+      - name: Fuzz
+        env:
+          FUZZTIME: ${{ inputs.fuzztime || '60s' }}
+        run: sh scripts/fuzz.sh
+      - name: Upload new crashers
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-crashers
+          path: "**/testdata/fuzz/**"
+
+  govulncheck:
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ vars.XI_BASE_IMAGE || 'ghcr.io/xantiagoma/xtandard-image-base:slim' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        CGO_ENABLED: "1"
+        GOTOOLCHAIN: local
+        GOFLAGS: -buildvcs=false
+    steps:
+      - uses: actions/checkout@v7
+      - run: go tool -modfile=tools/go.mod govulncheck ./...
