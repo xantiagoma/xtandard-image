@@ -76,6 +76,8 @@ package vips
 #cgo nocallback xi_gaussblur
 #cgo noescape xi_sharpen
 #cgo nocallback xi_sharpen
+#cgo noescape xi_shrink
+#cgo nocallback xi_shrink
 #cgo noescape xi_composite2
 #cgo nocallback xi_composite2
 #cgo noescape xi_replicate
