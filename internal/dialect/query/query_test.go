@@ -136,7 +136,7 @@ func TestNativeKeys(t *testing.T) {
 		{name: "o_security_forbidden", path: "/", query: src + "&o=mrd:100"},
 		{name: "o_security_allowed", cfg: "security", path: "/", query: src + "&o=mrd:100"},
 		{name: "o_separator", cfg: "sep", path: "/", query: src + "&o=rs,fill,10,20"},
-		{name: "o_later_milestone", path: "/", query: src + "&o=sa:1.2"},
+		{name: "o_later_milestone", path: "/", query: src + "&o=ush:always"},
 		{name: "o_empty_pipeline", path: "/", query: src + "&o=-/w:1"},
 		// Unknown keys.
 		{name: "unknown_key", path: "/", query: src + "&utm_source=x&w=10"},
