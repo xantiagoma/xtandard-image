@@ -100,6 +100,9 @@ func NewFromMemory(context.Context, []byte, int, int, int, BandFormat) (*Image, 
 // Arrayjoin fails.
 func Arrayjoin(context.Context, []*Image, int) (*Image, error) { return nil, ErrUnavailable }
 
+// ProfileLoad fails.
+func ProfileLoad(context.Context, string) ([]byte, error) { return nil, ErrUnavailable }
+
 // Bandjoin fails.
 func Bandjoin(context.Context, []*Image) (*Image, error) { return nil, ErrUnavailable }
 
