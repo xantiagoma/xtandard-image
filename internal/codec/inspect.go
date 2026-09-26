@@ -29,6 +29,8 @@ type Info struct {
 	IPTC []byte
 	// XMP is the raw XMP packet; see imagemeta.ParseXMP.
 	XMP []byte
+	// HDR mirrors Meta.HDR: scene-linear samples (OpenEXR, Radiance, PFM).
+	HDR bool
 }
 
 // EXIFTag is one EXIF tag as libexif (through libvips) reads it.
@@ -54,7 +56,7 @@ func Inspect(ctx context.Context, buf *vips.Buffer, lim Limits, contentType stri
 	if err != nil {
 		return Info{}, err
 	}
-	info := Info{Meta: m}
+	info := Info{Meta: m, HDR: m.HDR}
 	if m.Format == FormatRAW {
 		if err := inspectRaw(ctx, buf, &info); err != nil {
 			return Info{}, err
@@ -78,6 +80,15 @@ func Inspect(ctx context.Context, buf *vips.Buffer, lim Limits, contentType stri
 		}
 		info.Bands, info.SampleFormat, info.Colorspace = psdLayout(&h)
 		return info, nil
+	case FormatEXR:
+		// Described from the Go header: loading would spool the file for
+		// OpenEXR. The pipeline sees float scRGB, alpha only when present.
+		info.Bands = 3
+		if m.HasAlpha {
+			info.Bands = 4
+		}
+		info.SampleFormat, info.Colorspace = "float", "scrgb"
+		return info, nil
 	default:
 	}
 	if err := ctxErr(ctx); err != nil {
@@ -92,6 +103,15 @@ func Inspect(ctx context.Context, buf *vips.Buffer, lim Limits, contentType stri
 	info.Bands = img.Bands()
 	if m.Format == FormatPDF && !m.HasAlpha {
 		info.Bands = 3 // PDFium's RGBA, rendered opaque by default (probePDF)
+	}
+	if m.Format == FormatRadiance {
+		// Four RGBE-coded bytes per pixel decode to three float bands of
+		// linear light (libvips guesses sRGB for coded images; XYZE files
+		// are converted to scRGB when decoded).
+		info.Bands = 3
+		info.SampleFormat = bandFormatName(vips.BandFormatFloat)
+		info.Colorspace = interpretationName(vips.InterpretationScRGB)
+		return info, nil
 	}
 	info.SampleFormat = bandFormatName(img.BandFormat())
 	info.Colorspace = interpretationName(img.Interpretation())

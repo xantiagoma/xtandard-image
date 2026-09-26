@@ -26,6 +26,9 @@ const (
 	jpegISOGain  = "urn:iso:std:iso:ts:21496:-1\x00"
 	jpegXMP      = "http://ns.adobe.com/xap/1.0/\x00"
 	jpegHDRGMXMP = "hdrgm:Version"
+	magicEXR     = "v/1\x01"
+	magicRad     = "#?RADIANCE"
+	magicRGBE    = "#?RGBE"
 )
 
 // has reports whether b starts with s, without allocating.
@@ -65,6 +68,14 @@ func sniff(b []byte) Format {
 		return FormatPDF
 	case len(b) >= 6 && string(b[:4]) == "8BPS" && b[4] == 0 && (b[5] == 1 || b[5] == 2):
 		return FormatPSD
+	case has(b, magicEXR):
+		return FormatEXR
+	case isLine(b, magicRad), isLine(b, magicRGBE):
+		return FormatRadiance
+	case len(b) >= 3 && b[0] == 'P' && isPNMSpace(b[2]) && (b[1] == '5' || b[1] == '6'):
+		return FormatPPM
+	case len(b) >= 3 && b[0] == 'P' && isPNMSpace(b[2]) && (b[1] == 'F' || b[1] == 'f'):
+		return FormatPFM
 	case len(b) >= 4 && (string(b[:4]) == "II*\x00" || string(b[:4]) == "MM\x00*" ||
 		string(b[:4]) == "II+\x00" || string(b[:4]) == "MM\x00+"):
 		// TIFF-shaped RAWs: CR2, and NEF, ARW, DNG, PEF, ... by IFD0.
@@ -85,6 +96,16 @@ func sniff(b []byte) Format {
 	}
 	return FormatUnknown
 }
+
+// isLine reports whether b starts with the line s (ended by LF or CR).
+func isLine(b []byte, s string) bool {
+	return len(b) > len(s) && has(b, s) && (b[len(s)] == '\n' || b[len(s)] == '\r')
+}
+
+// isPNMSpace is the whitespace that ends a Netpbm magic number. Only the
+// binary variants are recognised: PGM/PPM (P5, P6) and PFM (PF, Pf); ASCII
+// (P1-P3) and bitmap (P4) files are not images this service decodes.
+func isPNMSpace(c byte) bool { return c == ' ' || c == '\t' || c == '\n' || c == '\r' }
 
 // isRAW recognises camera RAW formats with their own signature (RAF, ORF,
 // RW2, X3F, MRW, CRW, IIQ); see raw.Sniff.

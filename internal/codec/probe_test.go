@@ -114,6 +114,23 @@ func TestProbeFixtures(t *testing.T) {
 		"psd/layered.psd":      with(still(codec.FormatPSD, 96, 72), func(m *codec.ImageMeta) { m.Pages = 3 }),
 		"psd/psb-layered.psb":  with(still(codec.FormatPSD, 96, 72), func(m *codec.ImageMeta) { m.Pages = 3 }),
 		"psd/no-composite.psd": with(still(codec.FormatPSD, 96, 72), func(m *codec.ImageMeta) { m.Pages = 3 }),
+		// Scene-linear sources: HDR, no ICC; OpenEXR from the Go header.
+		"exr/rgba-half.exr": with(still(codec.FormatEXR, 80, 60), func(m *codec.ImageMeta) {
+			m.HasAlpha, m.BitDepth, m.ColorSpace, m.HDR = true, 16, codec.ColorSpaceScRGB, true
+		}),
+		"exr/rgb-float.exr": with(still(codec.FormatEXR, 48, 32), func(m *codec.ImageMeta) {
+			m.BitDepth, m.ColorSpace, m.HDR = 32, codec.ColorSpaceScRGB, true
+		}),
+		"hdr/scene.hdr": with(still(codec.FormatRadiance, 96, 64), func(m *codec.ImageMeta) {
+			m.BitDepth, m.ColorSpace, m.HDR = 32, codec.ColorSpaceScRGB, true
+		}),
+		"hdr/rgbe.hdr": with(still(codec.FormatRadiance, 48, 32), func(m *codec.ImageMeta) {
+			m.BitDepth, m.ColorSpace, m.HDR = 32, codec.ColorSpaceScRGB, true
+		}),
+		"pfm/scene.pfm": with(still(codec.FormatPFM, 64, 48), func(m *codec.ImageMeta) {
+			m.BitDepth, m.ColorSpace, m.HDR = 32, codec.ColorSpaceScRGB, true
+		}),
+		"ppm/photo.ppm": still(codec.FormatPPM, 96, 64),
 	}
 	// password.pdf fails by design (TestProbeErrors).
 	if len(tests) != len(fixtureFormats())-1 {
@@ -185,6 +202,16 @@ func TestProbeErrors(t *testing.T) {
 		{"bmp over pixel limit", bmp, codec.Limits{MaxSrcPixels: 1000}, errs.KindLimitExceeded},
 		{"animation over frame limit", readFixture(t, "gif/animated.gif"), codec.Limits{MaxAnimationFrames: 5}, errs.KindLimitExceeded},
 		{"animation over frame pixel limit", readFixture(t, "webp/animated.webp"), codec.Limits{MaxAnimationFramePixels: 96*72 - 1}, errs.KindLimitExceeded},
+		{"exr over pixel limit", readFixture(t, "exr/rgba-half.exr"), codec.Limits{MaxSrcPixels: 1000}, errs.KindLimitExceeded},
+		{"radiance over pixel limit", readFixture(t, "hdr/scene.hdr"), codec.Limits{MaxSrcPixels: 1000}, errs.KindLimitExceeded},
+		{"pfm over pixel limit", readFixture(t, "pfm/scene.pfm"), codec.Limits{MaxSrcPixels: 1000}, errs.KindLimitExceeded},
+		{"ppm over pixel limit", readFixture(t, "ppm/photo.ppm"), codec.Limits{MaxSrcPixels: 1000}, errs.KindLimitExceeded},
+		{"exr truncated header", readFixture(t, "exr/rgba-half.exr")[:30], codec.Limits{}, errs.KindCorrupt},
+		{"exr deep", synthEXR(4, 4, 0x800, "R"), codec.Limits{}, errs.KindUnsupported},
+		{"exr multi-part", synthEXR(4, 4, 0x1000, "R"), codec.Limits{}, errs.KindUnsupported},
+		{"exr without colour", synthEXR(4, 4, 0, "Z"), codec.Limits{}, errs.KindUnsupported},
+		{"radiance without resolution", []byte("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n"), codec.Limits{}, errs.KindCorrupt},
+		{"ascii ppm", []byte("P3\n1 1\n255\n0 0 0\n"), codec.Limits{}, errs.KindUnsupported},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -226,6 +253,9 @@ func TestProbeOversizeDoesNotDecode(t *testing.T) {
 		{"gif 10k frames", synthGIF(1000, 1000, 10_000)},
 		{"gif frames over frame pixels", synthGIF(5000, 4000, 2)},
 		{"pdf of 20k pages", synthPDF(20_000)},
+		{"exr 1M squared", synthEXR(1_000_000, 1_000_000, 0, "B", "G", "R")},
+		{"radiance 100k squared", []byte("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 100000 +X 100000\n")},
+		{"pfm 100k squared", []byte("PF\n100000 100000\n-1.0\n")},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -271,6 +301,7 @@ func FuzzProbe(f *testing.F) {
 	f.Add(synthGIF(16, 16, 300))
 	f.Add(isobmff("mif1", "avif"))
 	f.Add(synthPDF(3))
+	f.Add(synthEXR(16, 16, 0, "A", "B", "G", "R"))
 	lim := codec.Limits{
 		MaxSrcPixels: 1 << 20, MaxAnimationFrames: 64, MaxAnimationFramePixels: 1 << 18, MaxSVGBytes: 64 << 10,
 		MaxPDFPages: 8,

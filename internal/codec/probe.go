@@ -24,6 +24,8 @@ import (
 //   - BMP and ICO headers are parsed by the pure-Go loaders' config
 //     functions, and PSD/PSB headers by ParsePSDHeader, never by libvips
 //     (ImageMagick decodes a whole PSD even for its header);
+//   - OpenEXR headers are parsed by ParseEXRHeader, so the pixel limits hold
+//     before OpenEXR sizes anything from the data window;
 //   - PDF pages are counted by PDFium's header read (nothing is rendered)
 //     and more than Limits.MaxPDFPages fail with errs.KindLimitExceeded; a
 //     PDF that needs a password fails with errs.KindUnsupported;
@@ -71,6 +73,10 @@ func Probe(ctx context.Context, buf *vips.Buffer, lim Limits, contentType string
 		m, err = probePDF(ctx, buf, lim)
 	case FormatRAW:
 		m, err = probeRaw(ctx, buf)
+	case FormatEXR:
+		m, err = probeEXR(data)
+	case FormatRadiance:
+		m, err = probeRadiance(ctx, buf)
 	default:
 		m, err = probeVips(ctx, buf, f, 0)
 	}
@@ -80,6 +86,7 @@ func Probe(ctx context.Context, buf *vips.Buffer, lim Limits, contentType string
 	if err := lim.Check(&m); err != nil {
 		return ImageMeta{}, err
 	}
+	m.HDR = m.Format.HDR()
 	m.ContentTypeMismatch = !m.Format.MatchesContentType(contentType)
 	return m, nil
 }
@@ -232,6 +239,49 @@ func probePDF(ctx context.Context, buf *vips.Buffer, lim Limits) (ImageMeta, err
 	return m, nil
 }
 
+// probeEXR reads the header in Go. libvips loads every OpenEXR image as
+// four float bands (RGBA, A = 1 when the file has none); the probe reports
+// the alpha the file really has.
+func probeEXR(data []byte) (ImageMeta, error) {
+	h, err := ParseEXRHeader(data)
+	if err != nil {
+		return ImageMeta{}, err
+	}
+	bits := 16
+	if h.Float {
+		bits = 32
+	}
+	return ImageMeta{
+		Format:      FormatEXR,
+		Width:       h.Width,
+		Height:      h.Height,
+		Frames:      1,
+		Pages:       1,
+		PageHeight:  h.Height,
+		HasAlpha:    h.HasAlpha(),
+		Orientation: 1,
+		BitDepth:    bits,
+		Loop:        -1,
+		ColorSpace:  ColorSpaceScRGB,
+	}, nil
+}
+
+// probeRadiance reads the Radiance header through libvips (text lines and
+// the resolution string; nothing is decoded). The loader reports four
+// RGBE-coded uchar bands; they decode to three float bands without alpha.
+func probeRadiance(ctx context.Context, buf *vips.Buffer) (ImageMeta, error) {
+	m, err := probeVips(ctx, buf, FormatRadiance, 0)
+	if err != nil {
+		return ImageMeta{}, err
+	}
+	// libvips guesses sRGB for any RGBE-coded image; the pixels are linear
+	// (XYZE files too, converted to scRGB when decoded).
+	m.HasAlpha = false
+	m.BitDepth = 32
+	m.ColorSpace = ColorSpaceScRGB
+	return m, nil
+}
+
 // SanitizeSVG checks an SVG document against lim's SVG limits and returns
 // the sanitised copy (security/svg) that is safe to hand to librsvg. Byte,
 // depth and element limits fail with errs.KindLimitExceeded; malformed or
@@ -328,6 +378,15 @@ func reconcile(sniffed Format, h *vips.Header) (Format, error) {
 		got = FormatPDF
 	case vips.FormatPSD:
 		got = FormatPSD
+	case vips.FormatEXR:
+		got = FormatEXR
+	case vips.FormatRadiance:
+		got = FormatRadiance
+	case vips.FormatPPM:
+		got = FormatPPM
+		if h.BandFormat == vips.BandFormatFloat {
+			got = FormatPFM
+		}
 	default:
 		got = FormatUnknown
 	}
@@ -344,6 +403,8 @@ func family(f Format) Format {
 		return FormatJPEG
 	case FormatAVIF, FormatHEIC:
 		return FormatHEIF
+	case FormatPFM:
+		return FormatPPM
 	default:
 		return f
 	}
@@ -371,7 +432,8 @@ func colorSpaceOf(i vips.Interpretation) ColorSpace {
 // VipsFormat returns the libvips format of f, for the formats libvips loads
 // itself (every supported format except BMP and ICO, which the Go loaders
 // decode). UltraHDR is vips.FormatJPEG and HEIC/HEIF vips.FormatHEIF; PSD
-// is loaded by ImageMagick (vips.FormatPSD).
+// is loaded by ImageMagick (vips.FormatPSD), PPM and PFM by ppmload
+// (vips.FormatPPM).
 func (f Format) VipsFormat() (vips.Format, bool) {
 	switch f {
 	case FormatJPEG, FormatUHDR:
@@ -398,6 +460,12 @@ func (f Format) VipsFormat() (vips.Format, bool) {
 		return vips.FormatPDF, true
 	case FormatPSD:
 		return vips.FormatPSD, true
+	case FormatEXR:
+		return vips.FormatEXR, true
+	case FormatRadiance:
+		return vips.FormatRadiance, true
+	case FormatPPM, FormatPFM:
+		return vips.FormatPPM, true
 	default:
 		return vips.FormatUnknown, false
 	}
