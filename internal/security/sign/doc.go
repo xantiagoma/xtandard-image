@@ -99,6 +99,18 @@
 // first path segment "unsafe" marks a deliberately unsigned URL. See
 // [NewThumborVerifier] (libthumbor url_signers/base64_hmac_sha1.py, MIT).
 //
+// # Cloudinary scheme
+//
+// The Cloudinary dialect's s--SIG-- path segment:
+//
+//	SIG = base64url(H(message ‖ api_secret))[:8]   H = SHA-1 (or SHA-256)
+//	SIG = base64url(SHA-256(message ‖ api_secret))[:32]   long signatures
+//
+// a plain hash, not an HMAC; the secret is raw bytes and salts are
+// ignored. [CloudinaryVerifier] dispatches on the signature length. See
+// cloudinary.go and [NewCloudinaryVerifier] (cloudinary-npm utils.url,
+// MIT).
+//
 // # Security
 //
 // Signatures are compared with crypto/subtle. Key material lives in []byte
