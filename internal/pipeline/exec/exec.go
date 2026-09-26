@@ -19,6 +19,10 @@ type Config struct {
 	// FailOn is the decoder strictness for untrusted sources (XI_VIPS_FAIL_ON;
 	// the zero value is fail_on=warning).
 	FailOn vips.FailOn
+	// Watermark is the configured watermark image (NewWatermark); nil when
+	// XI_PROCESSING_WATERMARK_SOURCE is unset, and watermark options are
+	// then skipped. The Executor does not close it.
+	Watermark *Watermark
 }
 
 // Executor plans, executes and encodes images. It holds no per-request state
