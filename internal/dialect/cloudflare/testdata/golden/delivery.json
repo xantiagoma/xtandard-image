@@ -1,0 +1,651 @@
+{
+  "account_mapped": {
+    "config": "images_accounts",
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "public"
+        ]
+      },
+      "Dialect": "cloudflare_images",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Mount": "cfimages",
+        "Raw": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+  },
+  "account_unknown": {
+    "config": "images_accounts",
+    "error": {
+      "kind": "forbidden",
+      "public": "unknown account",
+      "status": 403
+    },
+    "path": "/otherhash/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public"
+  },
+  "custom_id_escaped": {
+    "config": "images",
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/a%20b.jpg/public",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "public"
+        ]
+      },
+      "Dialect": "cloudflare_images",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/a%20b.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/a%20b.jpg"
+  },
+  "custom_id_slashes": {
+    "config": "images",
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/products/2026/shoe.jpg/thumbnail",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "thumbnail"
+        ]
+      },
+      "Dialect": "cloudflare_images",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/products/2026/shoe.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/products/2026/shoe.jpg"
+  },
+  "empty_path": {
+    "config": "images",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing account hash or image id",
+      "status": 400
+    },
+    "path": ""
+  },
+  "empty_segment": {
+    "config": "images",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: empty path segment",
+      "status": 400
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw//x/public"
+  },
+  "empty_variant": {
+    "config": "images",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: empty path segment",
+      "status": 400
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/"
+  },
+  "exp_duplicate": {
+    "config": "images",
+    "error": {
+      "field": "exp",
+      "kind": "invalid_url",
+      "public": "invalid exp: expected a single unix timestamp",
+      "status": 400
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public",
+    "query": "exp=1790427600\u0026exp=1790427600"
+  },
+  "exp_huge": {
+    "config": "images",
+    "error": {
+      "field": "exp",
+      "kind": "invalid_url",
+      "public": "invalid exp: expected unix timestamp in seconds",
+      "status": 400
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public",
+    "query": "exp=99999999999999"
+  },
+  "exp_invalid": {
+    "config": "images",
+    "error": {
+      "field": "exp",
+      "kind": "invalid_url",
+      "public": "invalid exp: expected unix timestamp in seconds",
+      "status": 400
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public",
+    "query": "exp=soon"
+  },
+  "exp_without_signing": {
+    "config": "images",
+    "error": {
+      "kind": "expired",
+      "public": "url expired",
+      "status": 404
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public",
+    "query": "exp=1790420400"
+  },
+  "flexible": {
+    "config": "images",
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/w=400,sharpen=3",
+    "request": {
+      "Dialect": "cloudflare_images",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 400
+            }
+          },
+          "Sharpen": 0.75
+        }
+      ],
+      "Source": {
+        "Raw": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+  },
+  "flexible_all": {
+    "config": "images",
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/width=400,height=300,fit=cover,gravity=auto,quality=80,format=avif,dpr=2,metadata=keep",
+    "request": {
+      "Dialect": "cloudflare_images",
+      "Output": {
+        "Format": "avif",
+        "KeepCopyright": false,
+        "Quality": 80,
+        "StripMetadata": false
+      },
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "DPR": 2,
+            "Enlarge": true,
+            "Height": {
+              "Px": 300
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 400
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+  },
+  "flexible_invalid": {
+    "config": "images",
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected positive integer or auto",
+      "status": 400
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/w=abc"
+  },
+  "flexible_onerror_ignored": {
+    "config": "images",
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/w=10,onerror=redirect",
+    "request": {
+      "Dialect": "cloudflare_images",
+      "Ignored": [
+        {
+          "Option": "onerror",
+          "Reason": "not supported for hosted images"
+        }
+      ],
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 10
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+  },
+  "flexible_only_presets": {
+    "config": "images_only",
+    "error": {
+      "kind": "forbidden",
+      "public": "flexible variants are disabled",
+      "status": 403
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/w=10"
+  },
+  "flexible_unknown_strict": {
+    "config": "images_strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/w=10,bogus=1"
+  },
+  "missing_id": {
+    "config": "images",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing account hash or image id",
+      "status": 400
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw"
+  },
+  "missing_id_slash": {
+    "config": "images",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing account hash or image id",
+      "status": 400
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/"
+  },
+  "native_prefix": {
+    "config": "images",
+    "path": "/cdn-cgi/imagedelivery/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "public"
+        ]
+      },
+      "Dialect": "cloudflare_images",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+  },
+  "signed": {
+    "config": "images_signed",
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public",
+    "query": "exp=1790427600\u0026sig=99f6318b37192b49ef830e5b37bf2de6cf3b6a115f7db29713f8f1f69a8adb17",
+    "request": {
+      "Delivery": {
+        "Expires": "2026-09-26T13:00:00Z",
+        "Presets": [
+          "public"
+        ]
+      },
+      "Dialect": "cloudflare_images",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+      }
+    },
+    "signature": "verified",
+    "source": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+  },
+  "signed_bad_hex": {
+    "config": "images_signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public",
+    "query": "exp=1790427600\u0026sig=zz"
+  },
+  "signed_custom_domain": {
+    "config": "images_signed",
+    "path": "/cdn-cgi/imagedelivery/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public",
+    "query": "exp=1790427600\u0026sig=99f6318b37192b49ef830e5b37bf2de6cf3b6a115f7db29713f8f1f69a8adb17",
+    "request": {
+      "Delivery": {
+        "Expires": "2026-09-26T13:00:00Z",
+        "Presets": [
+          "public"
+        ]
+      },
+      "Dialect": "cloudflare_images",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+      }
+    },
+    "signature": "verified",
+    "source": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+  },
+  "signed_duplicate_sig": {
+    "config": "images_signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public",
+    "query": "sig=a\u0026sig=b"
+  },
+  "signed_expired": {
+    "config": "images_signed",
+    "error": {
+      "kind": "expired",
+      "public": "url expired",
+      "status": 404
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public",
+    "query": "exp=1790420400\u0026sig=d690a7bc5604d7feb97d10f7a21d259ca3a8ce0c1927d9973ad87e6598e1c439"
+  },
+  "signed_flexible": {
+    "config": "images_signed",
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/w=100",
+    "query": "exp=1790427600\u0026sig=8d38a29cbf32f93b62507fbdbeeb38e63dac6c2130ca44021763e855049a3d60",
+    "request": {
+      "Delivery": {
+        "Expires": "2026-09-26T13:00:00Z"
+      },
+      "Dialect": "cloudflare_images",
+      "Pipelines": [
+        {
+          "Resize": {
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+      }
+    },
+    "signature": "verified",
+    "source": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+  },
+  "signed_no_exp": {
+    "config": "images_signed",
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public",
+    "query": "sig=5613ee6d58c0c01f69ecfd4bcc6a8352db5c22de03f495a984564f806494a50f",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "public"
+        ]
+      },
+      "Dialect": "cloudflare_images",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+      }
+    },
+    "signature": "verified",
+    "source": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+  },
+  "signed_tampered_exp": {
+    "config": "images_signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public",
+    "query": "exp=1790427600\u0026sig=d690a7bc5604d7feb97d10f7a21d259ca3a8ce0c1927d9973ad87e6598e1c439"
+  },
+  "signed_tampered_variant": {
+    "config": "images_signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/thumbnail",
+    "query": "exp=1790427600\u0026sig=99f6318b37192b49ef830e5b37bf2de6cf3b6a115f7db29713f8f1f69a8adb17"
+  },
+  "unsigned_allowed": {
+    "config": "images_signed",
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "public"
+        ]
+      },
+      "Dialect": "cloudflare_images",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+  },
+  "unsigned_required": {
+    "config": "images_required",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public"
+  },
+  "variant_missing": {
+    "config": "images",
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "public"
+        ]
+      },
+      "Dialect": "cloudflare_images",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+  },
+  "variant_no_presets": {
+    "config": "images_bare",
+    "error": {
+      "field": "variant",
+      "kind": "invalid_url",
+      "public": "invalid variant: expected defined variant (preset)",
+      "status": 400
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/thumbnail"
+  },
+  "variant_only_presets": {
+    "config": "images_only",
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/thumbnail",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "thumbnail"
+        ]
+      },
+      "Dialect": "cloudflare_images",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+  },
+  "variant_preset": {
+    "config": "images",
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/thumbnail",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "thumbnail"
+        ]
+      },
+      "Dialect": "cloudflare_images",
+      "Pipelines": [
+        {
+          "Gravity": {
+            "Type": "smart"
+          },
+          "Resize": {
+            "Height": {
+              "Px": 200
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 200
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+  },
+  "variant_preset_q": {
+    "config": "images",
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/mobile",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "mobile"
+        ]
+      },
+      "Dialect": "cloudflare_images",
+      "Output": {
+        "Quality": 70
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Type": "fit",
+            "Width": {
+              "Px": 640
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+  },
+  "variant_public_default": {
+    "config": "images",
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "public"
+        ]
+      },
+      "Dialect": "cloudflare_images",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+  },
+  "variant_public_no_presets": {
+    "config": "images_bare",
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/public",
+    "request": {
+      "Delivery": {
+        "Presets": [
+          "public"
+        ]
+      },
+      "Dialect": "cloudflare_images",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+      }
+    },
+    "signature": "unsigned",
+    "source": "/2ba36ba9-69f6-41b6-8ff0-2779b41df200"
+  },
+  "variant_unknown": {
+    "config": "images",
+    "error": {
+      "field": "variant",
+      "kind": "invalid_url",
+      "public": "invalid variant: expected defined variant (preset)",
+      "status": 400
+    },
+    "path": "/1aS6NlIe-Sc1o3NhVvy8Qw/2ba36ba9-69f6-41b6-8ff0-2779b41df200/hero"
+  }
+}
