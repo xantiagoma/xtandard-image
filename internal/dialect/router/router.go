@@ -29,6 +29,14 @@
 // Health, readiness and metrics paths never reach the router: the server
 // registers them on its ServeMux ahead of the catch-all (ARCHITECTURE §3).
 //
+// # Info endpoint
+//
+// When the selected dialect implements [InfoParser] and the path after the
+// mount prefix is "/info" or starts with "/info/", the router strips that
+// segment and calls ParseInfo instead of Parse ("/info/sig/opts/plain/src"
+// on a root mount, "/p/info/sig/..." under mount "/p/"). The signature and
+// unsigned policy apply unchanged (restricted rejects info requests).
+//
 // # Source binding
 //
 // The mount's Source is passed to the dialect in Input.Mount.Source and, if
@@ -309,6 +317,39 @@ func (rt *Router) selectMount(host, path string, query url.Values) (m *Mount, re
 	return rt.def, path, ""
 }
 
+// InfoParser is implemented by dialects with a metadata endpoint under
+// "<mount>/info" (imgproxy's /info, docs/URL-DIALECTS.md §3.3). ParseInfo
+// receives the path after the "/info" segment and returns a request of
+// Kind transform.KindInfo.
+type InfoParser interface {
+	ParseInfo(in *dialect.Input) (*dialect.Result, error)
+}
+
+// infoSegment is the first path segment (after the mount prefix) that
+// selects InfoParser.ParseInfo.
+const infoSegment = "/info"
+
+// parse runs d on in: a path under "/info" goes to ParseInfo when d
+// implements InfoParser, with the "/info" segment removed; everything else
+// goes to Parse. Dialects without an info endpoint see "/info/..." as an
+// ordinary path.
+func parse(d dialect.Dialect, in *dialect.Input) (*dialect.Result, error) {
+	ip, ok := d.(InfoParser)
+	if !ok {
+		return d.Parse(in)
+	}
+	rest, ok := strings.CutPrefix(in.Path, infoSegment)
+	switch {
+	case !ok || (rest != "" && rest[0] != '/'):
+		return d.Parse(in)
+	case rest == "":
+		rest = "/"
+	}
+	info := *in
+	info.Path = rest
+	return ip.ParseInfo(&info)
+}
+
 // Route selects the mount for r, parses the URL with the mount's dialect
 // and applies the unsigned policy. The returned mount must not be
 // modified. Errors are *errs.Error values: the dialect's parse errors,
@@ -335,7 +376,7 @@ func (rt *Router) Route(r *http.Request) (*dialect.Result, *Mount, error) {
 		Header:   r.Header,
 		Mount:    dialect.Mount{Name: m.Name, Prefix: prefix, Source: m.Source},
 	}
-	res, err := rt.dialects[m.Dialect].Parse(in)
+	res, err := parse(rt.dialects[m.Dialect], in)
 	if err != nil {
 		return nil, m, err
 	}
