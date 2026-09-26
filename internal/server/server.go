@@ -247,7 +247,7 @@ func DefaultConfig() Config {
 		Cache:           CacheHeaders{TTL: 31_536_000 * time.Second, ErrorTTL: 10 * time.Second},
 		CacheTagsHeader: "Cache-Tag",
 		Fallback:        Fallback{Status: http.StatusOK, TTL: time.Minute},
-		Info: InfoConfig{CacheTTL: 365 * 24 * time.Hour},
+		Info:            InfoConfig{CacheTTL: 365 * 24 * time.Hour},
 	}
 }
 
