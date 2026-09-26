@@ -23,6 +23,25 @@ The libraries built into the base image carry their own licenses, which
 are shipped in the image under /opt/xtandard/share/licenses/ together with
 SOURCES.md (exact source URLs, versions and SHA256 checksums).
 
+The full base image flavor (docker/base/versions-full.sh) additionally
+ships, unmodified or built from unmodified sources:
+- FFmpeg 8.1 (https://ffmpeg.org/), GNU Lesser General Public License
+  version 2.1 or later, dynamically linked, built without GPL or nonfree
+  parts; build configuration in share/licenses/ffmpeg/BUILDCONF.txt.
+- libvpx 1.17 (https://chromium.googlesource.com/webm/libvpx), BSD-3-Clause
+  with the WebM patent grant.
+- ONNX Runtime 1.30 (https://github.com/microsoft/onnxruntime),
+  Copyright (c) Microsoft Corporation, MIT License; third-party notices in
+  share/licenses/onnxruntime/ThirdPartyNotices.txt.
+- YuNet face detection model face_detection_yunet_2023mar.onnx
+  (https://github.com/opencv/opencv_zoo), Copyright (c) 2020 Shiqi Yu,
+  MIT License.
+- YOLOX-s object detection model yolox_s.onnx
+  (https://github.com/Megvii-BaseDetection/YOLOX), Copyright (c) 2021-2022
+  Megvii Inc., Apache License 2.0.
+Model licences are shipped next to each model in
+/usr/share/xtandard/models/ and in share/licenses/models/.
+
 imgproxy
 --------
 https://github.com/imgproxy/imgproxy

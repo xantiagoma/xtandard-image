@@ -50,7 +50,10 @@ and never push to `main`.
 
 ## Decisions already taken (do not reopen)
 
-- GIF→video: WebM/VP9 and AV1-in-MP4; no H.264.
+- GIF→video: WebM/VP9 (libvpx) and AV1-in-MP4 (libaom); no H.264 encode (no libx264/libx265/openh264).
+- No GPL code in any image: FFmpeg is LGPL-only (`--disable-gpl --disable-nonfree`), no poppler, exiv2, x264/x265 or GPL `dssim`.
+- HEVC: decode stays (libde265, FFmpeg `hevc`); HEVC encode stays disabled (HEIC encode off by default, no HEVC video encoder).
+- Detection model files: YuNet `face_detection_yunet_2023mar.onnx` (MIT) and YOLOX-s `yolox_s.onnx` (Apache-2.0), shipped in the `full` image under `/usr/share/xtandard/models/` with their licences (WP-70).
 - HEIC: decode on, encode off by default (`XI_HEIC_ENCODE=false`).
 - Invalid URL → 400; `XI_COMPAT_IMGPROXY_STATUS=true` switches to 404 like imgproxy.
 - Disallowed source → 403 (imgproxy uses 404; same compat switch).
