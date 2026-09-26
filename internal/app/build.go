@@ -374,5 +374,9 @@ func serverConfig(cfg *config.Config) server.Config {
 			TTL:             cfg.Fallback.TTL,
 			AllowRequestURL: cfg.Fallback.AllowRequestURL,
 		},
+		Info: server.InfoConfig{
+			CacheTTL:     cfg.Cache.Headers.TTL,
+			DebugHeaders: cfg.Observability.DebugHeaders,
+		},
 	}
 }

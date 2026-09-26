@@ -81,17 +81,17 @@ func (st *state) applyInfo(name string, args []string) error {
 	case "classify", "cl":
 		on, err = st.infoClassify(args)
 		milestone = reasonM3
+	// Header-only values, reported in M1 (WP-35).
 	case "colorspace", "cs":
-		return st.infoFlag(name, "colorspace", args, &in.Colorspace, reasonM2)
+		return oneBool("colorspace", args, &in.Colorspace)
 	case "bands", "b":
-		return st.infoFlag(name, "bands", args, &in.Bands, reasonM2)
+		return oneBool("bands", args, &in.Bands)
 	case "sample_format", "sf":
-		return st.infoFlag(name, "sample_format", args, &in.SampleFormat, reasonM2)
+		return oneBool("sample_format", args, &in.SampleFormat)
 	case "pages_number", "pn":
-		return st.infoFlag(name, "pages_number", args, &in.PagesNumber, reasonM2)
+		return oneBool("pages_number", args, &in.PagesNumber)
 	case "alpha", "a":
-		on, err = st.infoAlpha(args)
-		milestone = reasonM2
+		_, err = st.infoAlpha(args)
 	case "crop", "c":
 		tmp := transform.Pipeline{Crop: in.Crop}
 		err = st.crop(&tmp, name, args)

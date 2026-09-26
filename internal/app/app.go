@@ -155,6 +155,7 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		Admitter:  lim,
 		Prober:    vipsProber{},
 		Sniffer:   codecSniffer{},
+		Inspector: vipsInspector{},
 		Processor: &vipsProcessor{q: qualities{def: cfg.Formats.Quality, jpeg: cfg.Formats.JPEG.Quality, webp: cfg.Formats.WebP.Quality, avif: cfg.Formats.AVIF.Quality, heic: cfg.Formats.HEIC.Quality, jxl: cfg.Formats.JXL.Quality}},
 		Allocator: vipsAllocator,
 		Logger:    logger,
