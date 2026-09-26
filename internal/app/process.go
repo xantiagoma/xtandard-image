@@ -8,6 +8,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/codec/encode"
 	"github.com/xantiagoma/xtandard-image/internal/config"
+	"github.com/xantiagoma/xtandard-image/internal/detect"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
@@ -93,6 +94,10 @@ type processor struct {
 	exec   *exec.Executor
 	enc    encode.Config
 	pdfDPI float64 // XI_FORMATS_PDF_DPI: the density PDF sizes were probed at
+	// detector runs face/object detection; nil when it is off or
+	// unavailable (slim). Face/object gravity (WP-72) and the detection
+	// filters (WP-73) consume it.
+	detector *detect.Detector
 }
 
 // newProcessor builds the executor and encoder; wm is the configured

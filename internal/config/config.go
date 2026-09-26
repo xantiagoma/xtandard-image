@@ -46,6 +46,7 @@ type Config struct {
 	ClientHints   ClientHints   `yaml:"client_hints"  envPrefix:"CLIENT_HINTS_"`
 	Limits        Limits        `yaml:"limits"        envPrefix:"LIMITS_"`
 	Vips          Vips          `yaml:"vips"          envPrefix:"VIPS_"`
+	Detect        Detect        `yaml:"detect"        envPrefix:"DETECT_"`
 	Cache         Cache         `yaml:"cache"         envPrefix:"CACHE_"`
 	Observability Observability `yaml:"observability" envPrefix:"OBSERVABILITY_"`
 	OTel          OTel          `yaml:"otel"          envPrefix:"OTEL_"`
@@ -498,6 +499,31 @@ type Vips struct {
 	FailOn      FailOn `yaml:"fail_on"     env:"FAIL_ON"`
 }
 
+// Detect configures the face and object detection runtime (internal/detect,
+// WP-71): ONNX Runtime loaded at startup and the YuNet/YOLOX models.
+type Detect struct {
+	// Enabled: auto runs detection when the library and the models are
+	// found (the full image) and without it otherwise (slim); true fails
+	// startup when they are missing; false never loads them.
+	Enabled Tristate `yaml:"enabled" env:"ENABLED"`
+	// Library is the ONNX Runtime shared library, a path or a file name the
+	// dynamic linker resolves.
+	Library   string `yaml:"library"    env:"LIBRARY"`
+	ModelsDir string `yaml:"models_dir" env:"MODELS_DIR"`
+	// FaceModel and ObjectModel are file names in ModelsDir (or absolute
+	// paths); empty disables that model.
+	FaceModel   string `yaml:"face_model"   env:"FACE_MODEL"`
+	ObjectModel string `yaml:"object_model" env:"OBJECT_MODEL"`
+	// Threads is ONNX Runtime's intra-op threads per inference.
+	Threads int `yaml:"threads" env:"THREADS"`
+	// Workers bounds concurrent inferences; 0 is GOMAXPROCS / Threads.
+	Workers int `yaml:"workers" env:"WORKERS"`
+	// MaxInput is the longest side fed to a model with a dynamic input
+	// size; the shipped models are fixed at 640x640.
+	MaxInput        int  `yaml:"max_input"        env:"MAX_INPUT"`
+	VerifyChecksums bool `yaml:"verify_checksums" env:"VERIFY_CHECKSUMS"`
+}
+
 // Cache configures HTTP cache headers and the result/origin caches.
 type Cache struct {
 	Headers     CacheHeaders `yaml:"headers"      envPrefix:"HEADERS_"`
@@ -705,6 +731,14 @@ func Defaults() Config {
 			MaxWatermarkTextPixels:  16_777_216,
 		},
 		Vips: Vips{Concurrency: 1, FailOn: FailOnWarning},
+		Detect: Detect{
+			Library:     "libonnxruntime.so.1",
+			ModelsDir:   "/usr/share/xtandard/models",
+			FaceModel:   "face_detection_yunet_2023mar.onnx",
+			ObjectModel: "yolox_s.onnx",
+			Threads:     1,
+			MaxInput:    640,
+		},
 		Cache: Cache{
 			Headers:    CacheHeaders{TTL: 31_536_000 * time.Second, ErrorTTL: 10 * time.Second},
 			TagsHeader: "Cache-Tag",

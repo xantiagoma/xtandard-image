@@ -58,6 +58,7 @@ func (c *Config) Validate() error {
 	c.validateFormats(&v)
 	c.validateLimits(&v)
 	c.validateCache(&v)
+	c.validateDetect(&v)
 	return errors.Join(v.errs...)
 }
 
@@ -363,6 +364,29 @@ func (c *Config) validateProcessing(v *validator) {
 	v.nonNegative(int64(c.Fallback.TTL), "fallback.ttl")
 	v.positive(int64(c.Vips.Concurrency), "vips.concurrency")
 	v.check(c.Vips.FailOn != "", "vips.fail_on", "must be set")
+}
+
+func (c *Config) validateDetect(v *validator) {
+	d := c.Detect
+	if d.Enabled == False {
+		return
+	}
+	v.check(d.Library != "", "detect.library", "must not be empty")
+	v.between(d.Threads, 1, 64, "detect.threads")
+	v.nonNegative(int64(d.Workers), "detect.workers")
+	v.between(d.MaxInput, 32, 4096, "detect.max_input")
+	v.check(d.ModelsDir == "" || filepath.IsAbs(d.ModelsDir), "detect.models_dir", "must be an absolute path")
+	for _, m := range []named[string]{{"detect.face_model", d.FaceModel}, {"detect.object_model", d.ObjectModel}} {
+		switch {
+		case m.v == "" || filepath.IsAbs(m.v):
+		case strings.ContainsRune(m.v, '/') || m.v == "." || m.v == "..":
+			v.add(m.path, "must be a file name in detect.models_dir or an absolute path, got %q", m.v)
+		default:
+			v.check(d.ModelsDir != "", m.path, "needs detect.models_dir for the relative name %q", m.v)
+		}
+	}
+	v.check(d.Enabled != True || d.FaceModel != "" || d.ObjectModel != "", "detect.enabled",
+		"true needs detect.face_model or detect.object_model")
 }
 
 func (c *Config) validateFormats(v *validator) {

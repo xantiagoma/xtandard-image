@@ -370,7 +370,8 @@ func (l *IntList) UnmarshalYAML(unmarshal func(any) error) error {
 // ---- Tristate ------------------------------------------------------------
 
 // Tristate is a boolean whose default is derived from other settings.
-// After Load it is always True or False.
+// After Load it is always True or False, except detect.enabled, whose auto
+// is resolved at startup by probing for ONNX Runtime and the models.
 type Tristate uint8
 
 // Tristate values.

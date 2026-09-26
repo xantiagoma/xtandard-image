@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"slices"
 	"strings"
 
 	"github.com/xantiagoma/xtandard-image/internal/config"
+	"github.com/xantiagoma/xtandard-image/internal/detect"
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/awssih"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/bunny"
@@ -790,4 +792,44 @@ func serverConfig(cfg *config.Config) server.Config {
 			AllowBypass: cfg.Cache.AllowBypass,
 		},
 	}
+}
+
+// buildDetector loads face and object detection (internal/detect) as
+// XI_DETECT_* configure it. Nothing is loaded before this call: ONNX
+// Runtime is dlopen'ed here, never at init. With enabled=auto a missing
+// library or model (the slim image) is logged and detection stays off
+// (nil, which internal/detect treats as unavailable); with true it fails
+// startup; with false nothing is loaded.
+func buildDetector(ctx context.Context, cfg *config.Config, obs detect.Observer, logger *slog.Logger) (*detect.Detector, error) {
+	dc := cfg.Detect
+	if dc.Enabled == config.False {
+		logger.LogAttrs(ctx, slog.LevelInfo, "detection disabled")
+		return nil, nil
+	}
+	d, err := detect.New(&detect.Options{
+		Library:         dc.Library,
+		ModelsDir:       dc.ModelsDir,
+		FaceModel:       dc.FaceModel,
+		ObjectModel:     dc.ObjectModel,
+		VerifyChecksums: dc.VerifyChecksums,
+		Threads:         dc.Threads,
+		Workers:         dc.Workers,
+		MaxInput:        dc.MaxInput,
+		Observer:        obs,
+		Logger:          logger,
+	})
+	switch {
+	case errors.Is(err, detect.ErrUnavailable) && dc.Enabled == config.Auto:
+		logger.LogAttrs(ctx, slog.LevelInfo, "detection unavailable", slog.String("reason", err.Error()))
+		return nil, nil
+	case err != nil:
+		return nil, fmt.Errorf("detection (XI_DETECT_*): %w", err)
+	}
+	attrs := []slog.Attr{slog.String("onnxruntime", d.Version())}
+	for _, m := range d.Models() {
+		attrs = append(attrs, slog.Group(m.Kind+"_model",
+			slog.String("path", m.Path), slog.String("input", m.Input), slog.String("checksum", m.Checksum)))
+	}
+	logger.LogAttrs(ctx, slog.LevelInfo, "detection enabled", attrs...)
+	return d, nil
 }
