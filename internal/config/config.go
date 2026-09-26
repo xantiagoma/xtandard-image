@@ -304,6 +304,9 @@ type ClientHints struct {
 	// Enabled honours DPR/Width/Viewport-Width/Save-Data on every request
 	// that leaves the value unset (imgproxy IMGPROXY_ENABLE_CLIENT_HINTS).
 	Enabled bool `yaml:"enabled" env:"ENABLED"`
+	// CriticalCH adds Critical-CH (Sec-CH-DPR, Sec-CH-Width,
+	// Sec-CH-Viewport-Width) next to Accept-CH on image responses.
+	CriticalCH bool `yaml:"critical_ch" env:"CRITICAL_CH"`
 }
 
 // JPEGFormat holds JPEG encoder defaults.

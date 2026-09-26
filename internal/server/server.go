@@ -183,8 +183,11 @@ type Config struct {
 
 	Defaults  transform.Defaults
 	Negotiate negotiate.Config
-	Limits    Limits
-	SVG       svg.Options // sanitiser limits (XI_LIMITS_MAX_SVG_*)
+	// ClientHints configures the Accept-CH / Critical-CH response headers
+	// (hints.go); Negotiate.EnableClientHints is the server-wide switch.
+	ClientHints ClientHintHeaders
+	Limits      Limits
+	SVG         svg.Options // sanitiser limits (XI_LIMITS_MAX_SVG_*)
 	// ETagBuster is mixed into every ETag (XI_CACHE_ETAG_BUSTER).
 	ETagBuster string
 	// Cache is the Cache-Control policy (XI_CACHE_HEADERS_*).

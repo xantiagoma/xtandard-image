@@ -113,7 +113,7 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 	// 6. Normalise: client hints become concrete values, then defaults,
 	// then validation, so the canonical key only holds effective values.
 	t = s.stage(info, stageNormalize)
-	hints := negotiate.ApplyClientHints(req, negotiate.ParseClientHints(r.Header), &s.cfg.Negotiate)
+	hints := s.resolveHints(r, req, mount, signed)
 	req.ApplyDefaults(s.cfg.Defaults)
 	err = req.Validate()
 	lim := s.limits(&req.Limits)
