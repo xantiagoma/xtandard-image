@@ -2421,10 +2421,6 @@
       "Dialect": "cloudinary",
       "Ignored": [
         {
-          "Option": "so",
-          "Reason": "unsupported"
-        },
-        {
           "Option": "vc",
           "Reason": "unsupported"
         }
@@ -2433,7 +2429,11 @@
         "Format": "jpeg"
       },
       "Pipelines": [
-        {}
+        {
+          "Video": {
+            "Second": 2
+          }
+        }
       ],
       "Source": {
         "Encoding": "relative",

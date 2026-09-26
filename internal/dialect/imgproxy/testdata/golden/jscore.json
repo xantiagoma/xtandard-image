@@ -713,14 +713,6 @@
         {
           "Option": "pg",
           "Reason": "not implemented"
-        },
-        {
-          "Option": "vtk",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "vts",
-          "Reason": "takes effect in M3"
         }
       ],
       "Info": {
@@ -1348,14 +1340,6 @@
     "request": {
       "Dialect": "imgproxy",
       "Ignored": [
-        {
-          "Option": "vtk",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "vts",
-          "Reason": "takes effect in M3"
-        },
         {
           "Option": "vtt",
           "Reason": "takes effect in M3"

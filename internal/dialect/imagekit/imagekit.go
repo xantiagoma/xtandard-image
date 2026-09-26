@@ -29,6 +29,9 @@
 //   - l-image overlays become basic watermarks from the mount's source and
 //     l-text overlays text watermarks, both taking effect in M3.
 //   - n-<name> named transformations expand the preset <name>.
+//   - <video>/ik-thumbnail.jpg is a thumbnail of the video <video> (a JPEG
+//     unless f- says otherwise); so-<seconds> picks the frame (imgproxy
+//     video_thumbnail_second), else the configured selection applies.
 //
 // Signing: ik-s = hex(HMAC-SHA1(private key, url-relative-to-endpoint ‖
 // ik-t)) as in imagekit-nodejs (sign.ImageKitMessage). An ik-t in the past
@@ -62,6 +65,9 @@ const Name = "imagekit"
 const (
 	paramTr         = "tr"
 	paramAttachment = "ik-attachment"
+	// videoThumbnail is the path suffix that asks for a video's thumbnail
+	// (<video>/ik-thumbnail.jpg; so- picks the frame).
+	videoThumbnail = "ik-thumbnail.jpg"
 )
 
 // Reasons recorded in Request.Ignored.
@@ -203,11 +209,19 @@ func (p *Parser) parse(path, rawQuery, mountSource string) (*dialect.Result, err
 		return nil, dialect.InvalidURL("multiple tr parameters")
 	}
 
+	thumb := len(segs) > 1 && segs[len(segs)-1] == videoThumbnail
+	if thumb {
+		segs = segs[:len(segs)-1]
+	}
 	key, err := sourceKey(segs)
 	if err != nil {
 		return nil, err
 	}
 	r := b.Request()
+	if thumb && r.Output.Format == transform.FormatUnset {
+		// A video's thumbnail is a JPEG unless f- says otherwise.
+		r.Output.Format = transform.FormatJPEG
+	}
 	if err := applyQuery(r, &q, expires); err != nil {
 		return nil, err
 	}

@@ -1213,11 +1213,19 @@
           "Reason": "takes effect in M3"
         },
         {
-          "Option": "vts",
+          "Option": "wmu",
           "Reason": "takes effect in M3"
         },
         {
-          "Option": "vtk",
+          "Option": "wms",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "wmr",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "wmsh",
           "Reason": "takes effect in M3"
         },
         {
@@ -2428,12 +2436,6 @@
         ]
       },
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vts",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Adjust": {
@@ -2650,12 +2652,6 @@
     "path": "/unsafe/video_thumbnail_keyframes:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "video_thumbnail_keyframes",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Video": {
@@ -2674,12 +2670,6 @@
     "path": "/unsafe/video_thumbnail_second:5/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "video_thumbnail_second",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Video": {
@@ -2799,12 +2789,6 @@
     "path": "/unsafe/vtk:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vtk",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Video": {
@@ -2823,12 +2807,6 @@
     "path": "/unsafe/vts:2.5/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vts",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Pipelines": [
         {
           "Video": {
@@ -2844,13 +2822,22 @@
     "source": "https://example.com/a.jpg"
   },
   "vts_negative": {
-    "error": {
-      "field": "video_thumbnail_second",
-      "kind": "invalid_url",
-      "public": "invalid video_thumbnail_second: expected number in range 0 to 2147483647",
-      "status": 400
+    "path": "/unsafe/vts:-1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Pipelines": [
+        {
+          "Video": {
+            "Second": -1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
     },
-    "path": "/unsafe/vts:-1/plain/https://example.com/a.jpg"
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
   },
   "vtt_bad_focus": {
     "error": {
@@ -2965,6 +2952,24 @@
     "path": "/unsafe/wm:0.8:soea:5:5:0.2/wmt:wqkgQUNNRQ/wms:200:0/wmr:15/wmsh:2/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "wmt",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "wms",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "wmr",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "wmsh",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -2995,6 +3000,12 @@
     "path": "/unsafe/wm:1/watermark_rotate:45/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "watermark_rotate",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3016,6 +3027,12 @@
     "path": "/unsafe/wm:1/watermark_shadow:3/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "watermark_shadow",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3037,6 +3054,12 @@
     "path": "/unsafe/wm:1/watermark_size:100:50/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "watermark_size",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3059,6 +3082,12 @@
     "path": "/unsafe/wm:0.5/watermark_text:PGI-SGVsbG88L2I-IMKp/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "watermark_text",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3080,6 +3109,12 @@
     "path": "/unsafe/wm:1/watermark_url:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "watermark_url",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3182,6 +3217,12 @@
     "path": "/unsafe/wm:1/wm_rot:-450/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "wm_rot",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3203,6 +3244,12 @@
     "path": "/unsafe/wm:1/wmr:90.5/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "wmr",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3233,6 +3280,12 @@
     "path": "/unsafe/wm:1/wms::40/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "wms",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3281,6 +3334,16 @@
     "path": "/unsafe/wm:1/wmt:dGV4dA/wmu:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "wmt",
+          "Reason": "takes effect in M3"
+        },
+        {
+          "Option": "wmu",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3311,6 +3374,12 @@
     "path": "/unsafe/wm:1/wmu:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/wmu:/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "wmu",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {
           "Watermarks": [
@@ -3340,6 +3409,12 @@
     "path": "/unsafe/wmu:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "wmu",
+          "Reason": "takes effect in M3"
+        }
+      ],
       "Pipelines": [
         {}
       ],

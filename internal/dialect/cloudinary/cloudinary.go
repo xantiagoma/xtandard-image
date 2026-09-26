@@ -15,8 +15,11 @@
 // source; without a mapping the mount's source applies); private and
 // authenticated additionally require a verified signature. fetch takes an
 // absolute http(s) URL (percent-encoded as the SDKs emit it), which the
-// source allowlist then governs. Other delivery types and the video and raw
-// asset types are 400.
+// source allowlist then governs. The video asset type delivers a thumbnail
+// of a video source in an image format: so_ selects the frame and f_ (or an
+// image extension on the source key) the format, as in
+// /video/upload/so_2,f_jpg/dog.mp4; a video output format is 400 (no
+// transcoding). Other delivery types and the raw asset type are 400.
 //
 // Each transformation segment is a component: comma-separated key_value
 // parameters (w_400,c_fill,g_auto). A path segment is a component when
@@ -139,6 +142,7 @@ type parsedURL struct {
 	comps     []string // transformation components in URL order
 	source    string   // public ID (with extension) or fetch URL
 	message   string   // what the signature covers
+	video     bool     // the video asset type: a thumbnail of a video source
 }
 
 // ParsePath parses the escaped path after the mount prefix; mountSource is
@@ -173,6 +177,11 @@ func (p *Parser) ParsePath(path, mountSource string) (*dialect.Result, error) {
 		return nil, err
 	}
 	a.finishFormat()
+	if u.video {
+		if f := b.Request().Output.Format; f == transform.FormatMP4 || f == transform.FormatWebM {
+			return nil, dialect.InvalidURL("video output is not supported; ask for a thumbnail with an image format (f_jpg)")
+		}
+	}
 	if err := b.Finish(); err != nil {
 		return nil, err
 	}
@@ -200,6 +209,10 @@ func splitPath(path string) (*parsedURL, error) {
 	}
 	switch asset {
 	case "image":
+	case "video":
+		// A thumbnail of one frame (so_ picks it), as an image format
+		// (f_); video output (transcoding) is not supported.
+		u.video = true
 	case "":
 		return nil, dialect.InvalidURL("missing asset type")
 	default:

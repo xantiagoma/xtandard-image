@@ -2509,16 +2509,16 @@
           "Reason": "not supported"
         },
         {
-          "Option": "so",
-          "Reason": "not supported"
-        },
-        {
           "Option": "sr",
           "Reason": "not supported"
         }
       ],
       "Pipelines": [
-        {}
+        {
+          "Video": {
+            "Second": 5
+          }
+        }
       ],
       "Source": {
         "Encoding": "relative",

@@ -12,32 +12,33 @@ import (
 
 // Expectation phrases (client-safe, static).
 const (
-	expDim       = "positive integer, fraction below 1 or auto"
-	expDimNoAuto = "positive integer or fraction below 1"
-	expAR        = "<width>-<height> with positive numbers"
-	expCrop      = "maintain_ratio, maintain_ratio_no_enlarge, force, at_max, at_max_enlarge or at_least"
-	expCropMode  = "pad_resize, pad_resize_no_enlarge, extract or pad_extract"
-	expFocus     = "compass position, auto, face, custom or an object name"
-	expPosition  = "center, top, left, bottom, right, top_left, top_right, bottom_left or bottom_right"
-	expCoord     = "non-negative number"
-	expPositive  = "positive number"
-	expQuality   = "integer 1-100"
-	expFormat    = "auto, orig, jpg, jpeg, png, webp, avif, gif, jxl, svg, mp4 or webm"
-	expDPR       = "number 0.1-5 or auto"
-	expBlur      = "number 1-100"
-	expSharpen   = "non-negative number"
-	expUSM       = "<radius>-<sigma>-<amount>-<threshold> with non-negative numbers"
-	expRadius    = "max, <n> or <tl>_<tr>_<br>_<bl> with non-negative integers"
-	expBorder    = "<width>_<color>"
-	expColor     = "RRGGBB, RRGGBBAA or a color name"
-	expRotate    = "degrees, N<degrees> or auto"
-	expFlip      = "h, v or h_v"
-	expTrim      = "true, false or integer 1-99"
-	expOpacity   = "number 0-100"
-	expPath      = "non-empty path"
-	expPage      = "<n> or <from>_<to> with positive integers"
-	expOffset    = "integer, N<integer> for negative"
-	expLayerSize = "positive integer"
+	expDim         = "positive integer, fraction below 1 or auto"
+	expStartOffset = "seconds (a non-negative number)"
+	expDimNoAuto   = "positive integer or fraction below 1"
+	expAR          = "<width>-<height> with positive numbers"
+	expCrop        = "maintain_ratio, maintain_ratio_no_enlarge, force, at_max, at_max_enlarge or at_least"
+	expCropMode    = "pad_resize, pad_resize_no_enlarge, extract or pad_extract"
+	expFocus       = "compass position, auto, face, custom or an object name"
+	expPosition    = "center, top, left, bottom, right, top_left, top_right, bottom_left or bottom_right"
+	expCoord       = "non-negative number"
+	expPositive    = "positive number"
+	expQuality     = "integer 1-100"
+	expFormat      = "auto, orig, jpg, jpeg, png, webp, avif, gif, jxl, svg, mp4 or webm"
+	expDPR         = "number 0.1-5 or auto"
+	expBlur        = "number 1-100"
+	expSharpen     = "non-negative number"
+	expUSM         = "<radius>-<sigma>-<amount>-<threshold> with non-negative numbers"
+	expRadius      = "max, <n> or <tl>_<tr>_<br>_<bl> with non-negative integers"
+	expBorder      = "<width>_<color>"
+	expColor       = "RRGGBB, RRGGBBAA or a color name"
+	expRotate      = "degrees, N<degrees> or auto"
+	expFlip        = "h, v or h_v"
+	expTrim        = "true, false or integer 1-99"
+	expOpacity     = "number 0-100"
+	expPath        = "non-empty path"
+	expPage        = "<n> or <from>_<to> with positive integers"
+	expOffset      = "integer, N<integer> for negative"
+	expLayerSize   = "positive integer"
 )
 
 // Crop strategies (c-) and modes (cm-).
@@ -340,9 +341,11 @@ func (ps *parseState) param(st *step, key, v string) error {
 		r.Delivery.Fallback = &transform.SourceSpec{Raw: relativeKey(path), Encoding: transform.SourceRelative, Mount: ps.mountSource}
 	case "pg":
 		return ps.page(v)
+	case "so":
+		return ps.startOffset(v)
 
 	// Video, AI and other features without an equivalent.
-	case "vc", "ac", "so", "eo", "du", "sr", "cr", "dn", "e-bgremove", "e-removedotbg", "e-upscale",
+	case "vc", "ac", "eo", "du", "sr", "cr", "dn", "e-bgremove", "e-removedotbg", "e-upscale",
 		"e-retouch", "e-genvar", "e-dropshadow", "e-shadow", "e-gradient", "e-changebg", "e-edit",
 		"e-distort", "e-colorize":
 		return ps.unsupported(key)
@@ -661,6 +664,23 @@ func (ps *parseState) page(v string) error {
 		return dialect.InvalidArgument("pg", v, expPage)
 	}
 	return ps.b.Apply("pages", strconv.Itoa(z-a+1))
+}
+
+// startOffset is so-<seconds>: the frame of a video source a thumbnail
+// (/ik-thumbnail.jpg) is taken from, imgproxy video_thumbnail_second.
+// Arithmetic expressions have no equivalent.
+func (ps *parseState) startOffset(v string) error {
+	sec, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		if strings.ContainsAny(v, "_") {
+			return ps.unsupportedAs("so", reasonUnsupported)
+		}
+		return dialect.InvalidArgument("so", v, expStartOffset)
+	}
+	if sec < 0 {
+		return dialect.InvalidArgument("so", v, expStartOffset)
+	}
+	return ps.b.Apply("video_thumbnail_second", strconv.FormatFloat(sec, 'f', -1, 64))
 }
 
 // unknown handles a parameter the dialect does not know.

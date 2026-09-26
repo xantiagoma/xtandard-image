@@ -78,6 +78,10 @@ func (p *Parser) nativeKey(b *imgproxy.Builder, key, v string) error {
 		return b.Apply("preset", split(v)...)
 	case "page":
 		return b.Apply("page", v)
+	case "video_thumbnail_second", "vts":
+		return b.Apply("video_thumbnail_second", v)
+	case "video_thumbnail_keyframes", "vtk":
+		return b.Apply("video_thumbnail_keyframes", v)
 	case "pages":
 		return b.Apply("pages", v)
 	case "cb":

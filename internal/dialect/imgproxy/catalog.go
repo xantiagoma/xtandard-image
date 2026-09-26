@@ -656,12 +656,12 @@ func ProcessingOptions() []Option {
 			Syntax: "bool", Default: "false", Milestone: "M1", Doc: "Process only the first frame.", Example: "1",
 		},
 		{
-			Name: "video_thumbnail_second", Aliases: []string{"vts"}, Scope: ScopePipeline, Pro: true, Forms: single(numArg("second", 0, maxInt32, "timestamp in seconds")),
-			Syntax: "float", Default: "config", Milestone: "M3", Doc: "Video frame to use as the image.", Example: "5",
+			Name: "video_thumbnail_second", Aliases: []string{"vts"}, Scope: ScopePipeline, Pro: true, Forms: single(numArg("second", -maxInt32, maxInt32, "timestamp in seconds; negative counts from the end")),
+			Syntax: "float", Default: "config", Milestone: "M3 (WP-74)", Doc: "Video frame to use as the image (negative: from the end; unset: the configured second or the best frame).", Example: "5",
 		},
 		{
 			Name: "video_thumbnail_keyframes", Aliases: []string{"vtk"}, Scope: ScopePipeline, Pro: true, Forms: single(boolArg("keyframes", "use keyframes only")),
-			Syntax: "bool", Default: "config", Milestone: "M3", Doc: "Seek to keyframes only.", Example: "1",
+			Syntax: "bool", Default: "config", Milestone: "M3 (WP-74)", Doc: "Seek to keyframes only.", Example: "1",
 		},
 		{
 			Name: "video_thumbnail_tile", Aliases: []string{"vtt"}, Scope: ScopePipeline, Pro: true,
@@ -777,7 +777,7 @@ func InfoOptions() []Option {
 		},
 		flag("iptc", nil, "true", "M1", "Report IPTC datasets (and Photoshop resolution)."),
 		flag("xmp", nil, "true", "M1", "Report XMP properties."),
-		flag("video_meta", []string{"vm"}, "true", "M3", "Report video metadata."),
+		flag("video_meta", []string{"vm"}, "true", "M3 (WP-74)", "Report video metadata."),
 		pro(flag("detect_objects", []string{"do"}, "false", "M3", "Report detected objects.")),
 		{
 			Name: "classify", Aliases: []string{"cl"}, Scope: ScopeRequest, Pro: true,

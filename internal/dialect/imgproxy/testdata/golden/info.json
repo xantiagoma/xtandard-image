@@ -951,10 +951,6 @@
       "Dialect": "imgproxy",
       "Ignored": [
         {
-          "Option": "vm",
-          "Reason": "takes effect in M3"
-        },
-        {
           "Option": "do",
           "Reason": "takes effect in M3"
         },
@@ -969,14 +965,6 @@
         {
           "Option": "pg",
           "Reason": "not implemented"
-        },
-        {
-          "Option": "vts",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "vtk",
-          "Reason": "takes effect in M3"
         }
       ],
       "Info": {
@@ -2712,12 +2700,6 @@
     "path": "/unsafe/video_thumbnail_second:10/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "video_thumbnail_second",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2747,12 +2729,6 @@
     "path": "/unsafe/vm:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vm",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2778,16 +2754,6 @@
     "path": "/unsafe/vts:2.5/vtk:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "vts",
-          "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "vtk",
-          "Reason": "takes effect in M3"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,

@@ -162,14 +162,14 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 
 	// Video (pipeline).
 	case "video_thumbnail_second", "vts":
-		milestone = reasonM3
+		milestone = applied // WP-74; negative counts from the end
 		v := video(pl)
 		var s float64
-		if err = oneRange("video_thumbnail_second", args, 0, math.MaxInt32, &s); err == nil {
+		if err = oneRange("video_thumbnail_second", args, -math.MaxInt32, math.MaxInt32, &s); err == nil {
 			v.Second = &s
 		}
 	case "video_thumbnail_keyframes", "vtk":
-		milestone = reasonM3
+		milestone = applied // WP-74
 		err = oneBoolPtr("video_thumbnail_keyframes", args, &video(pl).Keyframes)
 	case "video_thumbnail_tile", "vtt":
 		milestone = reasonM3
