@@ -10,12 +10,14 @@ import (
 // toProcessing converts img to the working colour space (imgproxy
 // colorspaceToProcessing without HDR): an embedded ICC profile is imported
 // unless it is sRGB IEC61966-2.1, then the pixels are converted to 8-bit
-// sRGB, or 8-bit grey for grey sources. Alpha is kept.
+// sRGB, or 8-bit grey for grey sources. Alpha is kept. A profile is imported
+// once: a chained pipeline sees pixels that are already sRGB but still carry
+// the source profile, which must not be applied a second time.
 func (r *runner) toProcessing(ctx context.Context, img *vips.Image) (*vips.Image, error) {
 	src := img.Interpretation()
 	target := targetSpace(src)
 	var err error
-	if icc, ok := img.Blob(vips.FieldICC); ok && importable(img, src, icc) {
+	if icc, ok := img.Blob(vips.FieldICC); ok && !r.iccImported && importable(img, src, icc) {
 		if img, err = r.importICC(ctx, img, target); err != nil {
 			return nil, err
 		}
