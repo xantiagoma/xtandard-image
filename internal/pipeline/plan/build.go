@@ -1,6 +1,7 @@
 package plan
 
 import (
+	"fmt"
 	"math"
 	"strings"
 
@@ -133,20 +134,20 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 	if err != nil {
 		return nil, err
 	}
+	// Chained pipelines are predicted on the previous prediction; the
+	// executor plans each again on the observed result (Chain).
 	prev := root
 	for i := 1; i < len(pipes); i++ {
 		out := &prev.Output
-		next := source{w: out.Width, h: out.Height, alpha: out.Alpha, frames: out.Frames}
-		pl, err := planPipeline(&pipes[i], &next, &lim, outFmt, nil, i == len(pipes)-1)
+		in := Input{Width: out.Width, Height: out.Height, Frames: out.Frames, Alpha: out.Alpha}
+		pl, err := planChained(pipes, i, &in, &lim, outFmt, nil)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("plan: pipeline %d: %w", i, err)
 		}
-		pl.Load = LoadStep{}
 		root.Chained = append(root.Chained, pl)
-		root.Cost.Pixels = max(root.Cost.Pixels, pl.Cost.Pixels)
-		root.Cost.EstimatedBytes = max(root.Cost.EstimatedBytes, pl.Cost.EstimatedBytes)
 		prev = pl
 	}
+	chainCost(root)
 	if lim.memory > 0 && root.Cost.EstimatedBytes > lim.memory {
 		return nil, errs.New(errs.KindLimitExceeded, "plan: estimated memory exceeds the processing budget")
 	}
