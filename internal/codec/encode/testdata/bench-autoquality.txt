@@ -1,0 +1,65 @@
+goos: linux
+goarch: arm64
+pkg: github.com/xantiagoma/xtandard-image/internal/codec/encode
+                              │              │
+                              │    sec/op    │
+AutoQuality/320/jpeg/none-8     1.645m ± 13%
+AutoQuality/320/jpeg/dssim-8    18.19m ± 48%
+AutoQuality/320/webp/none-8     7.537m ±  3%
+AutoQuality/320/webp/dssim-8    27.13m ±  3%
+AutoQuality/320/avif/none-8     109.1m ±  3%
+AutoQuality/320/avif/dssim-8    523.6m ±  4%
+AutoQuality/1024/jpeg/none-8    8.419m ±  5%
+AutoQuality/1024/jpeg/dssim-8   44.68m ±  3%
+AutoQuality/1024/webp/none-8    68.61m ±  7%
+AutoQuality/1024/webp/dssim-8   308.7m ± 21%
+AutoQuality/1024/avif/none-8    844.7m ± 20%
+AutoQuality/1024/avif/dssim-8    1.875 ± 26%
+geomean                         63.64m
+
+                              │            │
+                              │  saves/op  │
+AutoQuality/320/jpeg/none-8     1.000 ± 0%
+AutoQuality/320/jpeg/dssim-8    3.000 ± 0%
+AutoQuality/320/webp/none-8     1.000 ± 0%
+AutoQuality/320/webp/dssim-8    2.000 ± 0%
+AutoQuality/320/avif/none-8     1.000 ± 0%
+AutoQuality/320/avif/dssim-8    4.000 ± 0%
+AutoQuality/1024/jpeg/none-8    1.000 ± 0%
+AutoQuality/1024/jpeg/dssim-8   2.000 ± 0%
+AutoQuality/1024/webp/none-8    1.000 ± 0%
+AutoQuality/1024/webp/dssim-8   3.000 ± 0%
+AutoQuality/1024/avif/none-8    1.000 ± 0%
+AutoQuality/1024/avif/dssim-8   2.000 ± 0%
+geomean                         1.603
+
+                              │              │
+                              │     B/op     │
+AutoQuality/320/jpeg/none-8       960.0 ± 0%
+AutoQuality/320/jpeg/dssim-8    3.706Mi ± 0%
+AutoQuality/320/webp/none-8       960.0 ± 0%
+AutoQuality/320/webp/dssim-8    3.036Mi ± 0%
+AutoQuality/320/avif/none-8       963.0 ± 0%
+AutoQuality/320/avif/dssim-8    4.376Mi ± 0%
+AutoQuality/1024/jpeg/none-8      960.0 ± 0%
+AutoQuality/1024/jpeg/dssim-8   7.401Mi ± 0%
+AutoQuality/1024/webp/none-8      962.0 ± 0%
+AutoQuality/1024/webp/dssim-8   8.945Mi ± 0%
+AutoQuality/1024/avif/none-8      968.0 ± 1%
+AutoQuality/1024/avif/dssim-8   7.401Mi ± 0%
+geomean                         71.92Ki
+
+                              │            │
+                              │ allocs/op  │
+AutoQuality/320/jpeg/none-8     24.00 ± 0%
+AutoQuality/320/jpeg/dssim-8    95.00 ± 1%
+AutoQuality/320/webp/none-8     24.00 ± 0%
+AutoQuality/320/webp/dssim-8    75.00 ± 0%
+AutoQuality/320/avif/none-8     24.00 ± 0%
+AutoQuality/320/avif/dssim-8    115.5 ± 1%
+AutoQuality/1024/jpeg/none-8    24.00 ± 0%
+AutoQuality/1024/jpeg/dssim-8   82.00 ± 0%
+AutoQuality/1024/webp/none-8    24.00 ± 0%
+AutoQuality/1024/webp/dssim-8   103.5 ± 0%
+AutoQuality/1024/avif/none-8    24.00 ± 0%
+AutoQuality/1024/avif/dssim-8   81.00 ± 2%
