@@ -4274,12 +4274,6 @@
     "path": "/demo/image/upload/pg_3/sample.jpg",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "pg",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "jpeg"
       },

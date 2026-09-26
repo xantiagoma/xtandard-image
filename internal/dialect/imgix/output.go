@@ -70,7 +70,6 @@ func (st *state) applyOutput() error {
 			return err
 		}
 		o.DPI = n
-		st.b.Ignore("dpi", reasonM2)
 	}
 	if v, ok := st.get("dl"); ok {
 		if v == "" || !imgproxy.PlausibleSource(v) {

@@ -2350,12 +2350,6 @@
     "path": "/demo/image/upload/f_png,pg_3/doc.pdf",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "pg",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "Format": "png"
       },
@@ -2858,12 +2852,6 @@
     "path": "/demo/image/upload/pg_2/doc.pdf",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "pg",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Page": 1

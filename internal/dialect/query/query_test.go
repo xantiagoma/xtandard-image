@@ -114,6 +114,9 @@ func TestNativeKeys(t *testing.T) {
 		{name: "pad_invalid", path: "/", query: src + "&pad=-1"},
 		{name: "page", path: "/", query: src + "&page=2"},
 		{name: "page_invalid", path: "/", query: src + "&page=-2"},
+		{name: "pages", path: "/", query: src + "&page=1&pages=2"},
+		{name: "pages_all", path: "/", query: src + "&pages=-1"},
+		{name: "pages_invalid", path: "/", query: src + "&pages=0"},
 		// Delivery.
 		{name: "preset", path: "/", query: src + "&preset=thumb,sharp"},
 		{name: "preset_empty", path: "/", query: src + "&preset=a,,b"},

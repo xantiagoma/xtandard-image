@@ -592,16 +592,6 @@
         ]
       },
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "bc",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "ct",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -764,16 +754,6 @@
     "path": "/unsafe/a:10:1.2:0.8/dpi:300/jpgo:true/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "dpi",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "jpgo",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "DPI": 300,
         "JPEG": {
@@ -819,10 +799,6 @@
     "request": {
       "Dialect": "imgproxy",
       "Ignored": [
-        {
-          "Option": "eth",
-          "Reason": "takes effect in M2"
-        },
         {
           "Option": "ph",
           "Reason": "takes effect in M2"
@@ -1158,20 +1134,6 @@
         }
       },
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "bc",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "ct",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "fiu",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {}
       ],
@@ -1328,28 +1290,6 @@
     "path": "/unsafe/aq:dssim:0.02:60:90:0.001/avifo:off/cp:srgb/dpi:300/jpgo:true:false:true:true:true:3/pngo:true:true:128/webpo:near_lossless:true:photo/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "avifo",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "dpi",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "jpgo",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "pngo",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "webpo",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "AVIF": {
           "Subsample": "4:4:4"
@@ -1396,12 +1336,6 @@
     "path": "/unsafe/stl:c3ZnIHsgYmFja2dyb3VuZDogI2ZmZiB9/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "stl",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "SVGStyle": "svg { background: #fff }"

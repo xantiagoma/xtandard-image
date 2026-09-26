@@ -1672,12 +1672,6 @@
     "query": "dpi=300",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "dpi",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "DPI": 300
       },

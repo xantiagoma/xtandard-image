@@ -145,7 +145,6 @@ func (st *state) apply(name string, args []string) error {
 		st.ignore(name, reasonM2)
 		return oneBoolPtr("preserve_hdr", args, &st.r.Output.PreserveHDR)
 	case "enforce_thumbnail", "eth":
-		st.ignore(name, reasonM2)
 		return oneBoolPtr("enforce_thumbnail", args, &st.r.Output.EnforceThumbnail)
 	case "quality", "q":
 		if err := maxArgs("quality", args, 1); err != nil {
