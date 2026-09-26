@@ -45,7 +45,7 @@ func main() {
 
 func run(args []string) error {
 	if len(args) < 2 {
-		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|gif|gif-anim|ico-png|ico-bmp|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb> args...")
+		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|gif|gif-anim|ico-png|ico-bmp|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb|dng> args...")
 	}
 	sizeArgs := func() (int, int, string, error) {
 		if len(args) != 4 {
@@ -118,6 +118,19 @@ func run(args []string) error {
 		return writePSD(args[1], false, false)
 	case "psb":
 		return writePSD(args[1], true, true)
+	case "dng":
+		if len(args) != 7 {
+			return errors.New("dng: want W H previewW previewH orientation out.dng")
+		}
+		var v [5]int
+		for i := range v {
+			n, err := strconv.Atoi(args[i+1])
+			if err != nil {
+				return err
+			}
+			v[i] = n
+		}
+		return writeDNG(args[6], v[0], v[1], v[2], v[3], uint16(v[4]))
 	default:
 		return fmt.Errorf("unknown subcommand %q", args[0])
 	}

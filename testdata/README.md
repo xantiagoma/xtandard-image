@@ -7,7 +7,8 @@ Shared test inputs and golden outputs for the whole module. Go tooling ignores d
 
 ```
 testdata/
-  fixtures/<format>/…   one small file per M1 input format and variant (inputs; never rewritten by tests)
+  fixtures/<format>/…   one small file per input format and variant (inputs; never rewritten by tests)
+  cache/raw/            real camera RAW samples downloaded by internal/testutil/rawfixtures (gitignored)
   golden/<case>.png     expected outputs, compared perceptually by internal/testutil/golden
   info/<case>.json      expected /info responses (internal/app TestInfo; GOLDEN_UPDATE=1 rewrites, review the diff)
   info/pro/<fixture>-<option>.json  expected /info Pro option responses (WP-63) for jpeg/baseline, png/rgba8 and gif/animated
@@ -40,6 +41,17 @@ testdata/
 | `ico/png-entry.ico`, `ico/bmp-entry.ico` | ICO | 64x64 PNG entry; 32x32 32-bit DIB entry with AND mask |
 | `svg/logo.svg` | SVG 96x72 | gradient, paths, opacity, text |
 | `uhdr/photo-ultrahdr.jpg` | UltraHDR JPEG 320x240 | JPEG with a libultrahdr gain map (MPF secondary image) |
+| `dng/landscape.dng` | DNG 192x128 | synthetic camera RAW: 16-bit RGGB mosaic in a SubIFD, 96x64 JPEG preview in IFD0, camera EXIF (Make, Model, exposure, ISO, lens, date) |
+| `dng/portrait-orientation-6.dng` | DNG 192x128 stored, shown 128x192 | same, Orientation 6 (mosaic and 48x32 preview stored rotated 90° CCW) |
+
+### Camera RAW samples (downloaded)
+
+Real RAW files are 5–18 MB, so they are not committed. `internal/testutil/rawfixtures` downloads
+each once from raw.pixls.us (pinned URL and SHA-256), caches it in `testdata/cache/raw/`
+(gitignored) and skips the test when it is not cached and the network is unavailable
+(`XI_TEST_OFFLINE=1` skips without trying). The synthetic DNGs above keep every RAW code path
+covered offline. The goldens rendered from the samples (`golden/exec/raw-<kind>.png`) are
+committed.
 
 Keep each file small (target ≤ 50 KB, hard limit 200 KB). Add new variants (CMYK JPEG, APNG,
 10-bit AVIF, malicious SVGs, …) through `gen/gen.sh`, and add a row to `LICENSES.md` in the same

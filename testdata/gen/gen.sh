@@ -21,7 +21,7 @@ gen() { go run ./testdata/gen "$@"; }
 rm -rf "$F" testdata/ssim
 mkdir -p "$F"/jpeg "$F"/png "$F"/gif "$F"/webp "$F"/avif "$F"/heic "$F"/jxl \
 	"$F"/tiff "$F"/bmp "$F"/ico "$F"/svg "$F"/jp2 "$F"/uhdr "$F"/watermark \
-	"$F"/pdf "$F"/psd
+	"$F"/pdf "$F"/psd "$F"/dng
 
 # Masters (not committed).
 gen photo 320 240 "$T/photo.png"
@@ -99,6 +99,12 @@ qpdf --encrypt --user-password=secret --owner-password=owner --bits=256 -- \
 gen psd "$F/psd/layered.psd"
 gen psb "$F/psd/psb-layered.psb"
 gen psd-nocomposite "$F/psd/no-composite.psd"
+
+# Camera RAW: synthetic DNGs (16-bit RGGB mosaic + JPEG preview in IFD0,
+# linear-sRGB colour matrix, camera metadata). Landscape with a half-size
+# preview; portrait (Orientation 6, stored rotated) with a quarter-size one.
+gen dng 192 128 96 64 1 "$F/dng/landscape.dng"
+gen dng 128 192 48 32 6 "$F/dng/portrait-orientation-6.dng"
 
 # SSIM reference set for internal/testutil/ssim.
 gen ssim-refs testdata/ssim

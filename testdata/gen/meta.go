@@ -25,6 +25,7 @@ type ifdEntry struct {
 	count    uint32
 	data     []byte // value bytes; offsets of out-of-line data are patched in
 	ifd      int    // pointer tags: index of the sub-IFD; -1 otherwise
+	blob     int    // tiffFile: > 0 is the index of the blob whose offset is the value
 }
 
 func asciiEntry(tag uint16, s string) ifdEntry {
