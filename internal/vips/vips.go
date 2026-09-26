@@ -28,6 +28,12 @@ package vips
 #cgo nocallback xi_meta_set_array_int
 #cgo noescape xi_meta_remove
 #cgo nocallback xi_meta_remove
+#cgo noescape xi_meta_get_string
+#cgo nocallback xi_meta_get_string
+#cgo noescape xi_meta_fields
+#cgo nocallback xi_meta_fields
+#cgo noescape xi_copy_memory
+#cgo nocallback xi_copy_memory
 #cgo noescape xi_write_to_memory
 #cgo nocallback xi_write_to_memory
 #cgo noescape xi_resize
