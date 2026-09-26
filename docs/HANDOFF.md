@@ -13,6 +13,19 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   SchemaStore publishing (needs GitHub Pages enabled by the owner and workflows re-enabled), WP-82b
   huma-handler spike, then **M3** per `docs/ROADMAP.md` (full image with FFmpeg + ONNX, face/object
   detection, video thumbnails, advanced watermarks, GIF→video, playground, TypeScript package WP-84).
+- **In flight (launched 2026-09-27 night, one Opus agent each, isolated worktrees):**
+  `m3/wp-87-stabilise` (vips error-buffer race + PDF /Encrypt pre-detection, wall-clock tests,
+  leak slack, reasonM2 leftovers, client-hint flags, IMAGEKIT_ENDPOINT_PATH, limiter cost,
+  progressive-blur angle, PNG-alpha→WebP perf), `m3/wp-70-full-base` (FFmpeg 8 LGPL + ONNX Runtime
+  1.30 + YuNet/YOLOX-s models, local tags `xtandard-base:dev-full[-builder]`),
+  `m3/wp-77-78-watermarks`, `m3/wp-84-ts-url-builder`, `m3/wp-80-playground`,
+  `m3/wp-81b-82b-pages-huma`. Adopt them into a fresh `m3` stack in this order: 87, 81b, 84, 80,
+  77-78, 70. After WP-70 lands, launch WP-71 (detect runtime) → WP-72/73, and WP-74 (video) →
+  WP-75/76.
+- **M3 decisions taken by the orchestrator (owner said "resuélvelo con tu mejor approach"):**
+  GIF→video = WebM/VP9 + AV1-in-MP4, no H.264 encode (open question 1); detection models = YuNet
+  (MIT) + YOLOX-s (Apache-2.0) (question 7); playground inside the binary, admin listener, off by
+  default (question 8).
 - Stacks start fresh per milestone: `m3/wp-XX-slug` branches, adopt with `scripts/stack/adopt2.sh`.
   Because GitHub's stack grouping blocked per-PR merges twice, the fallback that worked for M2 is:
   one PR from the verified chain top merged with `--merge`, then close the per-package PRs.
