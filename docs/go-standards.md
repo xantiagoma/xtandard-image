@@ -158,7 +158,7 @@ img := C.xi_load_owned(p, C.size_t(n))           // shim wraps vips_blob_new(fre
 - Free resources deterministically with `defer img.Close()`. Treat `runtime.AddCleanup` (1.24) as a leak backstop that logs and counts, never as the release mechanism. Never use `runtime.SetFinalizer`.
 - Leave `GODEBUG=cgocheck=1` (the default) on in all environments. The `-race` CI job also builds with `GOEXPERIMENT=cgocheck2` (https://pkg.go.dev/cmd/cgo).
 
-**Build flags:** use `#cgo pkg-config: vips` only. Never hard-code `-I`/`-L`. Set `PKG_CONFIG_PATH` for `/opt/app/lib` builds, as imagor's Dockerfile does. On macOS, vipsgen needs `CGO_CFLAGS_ALLOW=-Xpreprocessor`.
+**Build flags:** use `#cgo pkg-config:` only (`vips`, plus `libexif` and `libraw_r` for the EXIF titles and the RAW shim). Never hard-code `-I`/`-L`. Homebrew's `libraw_r.pc` puts `-Xpreprocessor -fopenmp` in its libs, so host builds on macOS also need `CGO_LDFLAGS_ALLOW='-Xpreprocessor|-fopenmp'`. Set `PKG_CONFIG_PATH` for `/opt/app/lib` builds, as imagor's Dockerfile does. On macOS, vipsgen needs `CGO_CFLAGS_ALLOW=-Xpreprocessor`.
 
 **Process memory tuning (runtime image):**
 - Preload jemalloc with `LD_PRELOAD=libjemalloc.so.2` and set `MALLOC_ARENA_MAX=2` as a glibc fallback. Both imgproxy (`docker/Dockerfile`, `entrypoint.sh`) and imagor (`Dockerfile`) ship this. glibc arena fragmentation under many threads is the main cause of apparent memory leaks. When running on glibc without jemalloc, periodically call `debug.FreeOSMemory()` followed by `malloc_trim(0)` (imgproxy `memory/free_linux.go`).

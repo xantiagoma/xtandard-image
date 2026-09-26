@@ -220,6 +220,7 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_FORMATS_AVIF_MAX_PIXELS` | `16000000` | |
 | `XI_FORMATS_BEST_MAX_PIXELS` | `8000000` | `format=best` (imgproxy `f:best`, query `f=best`) is skipped above this many output pixels (all frames): the negotiated format is encoded once instead (FORMATS.md §6.3) |
 | `XI_FORMATS_BEST_COMPLEXITY_THRESHOLD` | `5.5` | Content score below which `best` tries lossless formats only, above which lossy only; within ±0.75 of it both. `0` skips the analysis (every image is tried as a photo). Photos score ≈ 7–8, flat graphics and text ≈ 1–4.5 (FORMATS.md §6.3) |
+| `XI_FORMATS_RAW_PREVIEW_MIN_RATIO` | `1` | Camera RAW: decode the embedded JPEG preview instead of demosaicing when it is at least this many times the size the image is scaled to, on both axes (FORMATS.md §2); `0 < ratio ≤ 100` |
 | `XI_FORMATS_SAVE_DATA_QUALITY_DELTA` | `-15` | |
 | `XI_FORMATS_AUTOQUALITY_METHOD` | `none` | `none` \| `size` \| `dssim` (imgproxy `IMGPROXY_AUTOQUALITY_METHOD`; `ml` is not implemented). A request's `autoquality` option overrides it; with the method from config, an explicit request quality wins. See FORMATS.md §6.4 |
 | `XI_FORMATS_AUTOQUALITY_TARGET` / `_MIN` / `_MAX` / `_ALLOWED_ERROR` | `0.02` / `60` / `85` / `0.001` | Target: DSSIM (`dssim`) or bytes (`size`, must then be ≥ 1); quality range searched; how far from the DSSIM target a save may land and stop the search (0–1) |
@@ -231,7 +232,7 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_LIMITS_MAX_RESULT_DIMENSION` | `8192` | |
 | `XI_LIMITS_MAX_ANIMATION_FRAMES` | `256` | |
 | `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS` | `16000000` | |
-| `XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS` | `60000000` | |
+| `XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS` | `60000000` | Sensor width × height a camera RAW may be demosaiced at; the embedded-preview path is not affected |
 | `XI_LIMITS_MAX_SVG_BYTES` | `5MiB` | |
 | `XI_LIMITS_MAX_SVG_DEPTH` | `256` | SVG sanitiser nesting limit |
 | `XI_LIMITS_MAX_SVG_ELEMENTS` | `200000` | SVG sanitiser element limit |
