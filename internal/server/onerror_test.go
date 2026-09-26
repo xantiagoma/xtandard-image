@@ -13,7 +13,7 @@ func onErrorRedirect(r *transform.Request) { r.Delivery.OnErrorRedirect = true }
 // TestOnErrorRedirect: a request with Delivery.OnErrorRedirect (Cloudflare
 // onerror=redirect) whose source fails is answered with a 302 to the source
 // URL, ahead of the fallback image; other failures and non-http sources
-// take the normal path.
+// take the normal path. wsrv default= is covered by TestWsrvDefaultRedirect.
 func TestOnErrorRedirect(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -73,8 +73,10 @@ func TestOnErrorRedirect(t *testing.T) {
 				t.Errorf("Location = %q, want %q", got, tc.location)
 			}
 			if tc.location != "" {
-				if got := rec.Header().Get("Cache-Control"); got != noStore {
-					t.Errorf("Cache-Control = %q, want %q", got, noStore)
+				// The redirect is cached like the error it replaces
+				// (XI_CACHE_HEADERS_ERROR_TTL, 10s in the harness).
+				if got := rec.Header().Get("Cache-Control"); got != "public, max-age=10" {
+					t.Errorf("Cache-Control = %q, want %q", got, "public, max-age=10")
 				}
 				if h.fetchedFallback() {
 					t.Error("fallback fetched although the request redirected")

@@ -38,9 +38,9 @@ func (s *Server) image(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		err = classify(ctx, r, err)
 		// An eligible stage 9–12 failure of a request that asks for it
-		// (wsrv default=, cloudflare onerror=redirect) is a redirect
-		// (redirect.go).
-		if s.redirectOnError(w, r, info, err) {
+		// (cloudflare onerror=redirect, wsrv default=) is a 302, ahead of
+		// the fallback image (redirect.go).
+		if s.errorRedirect(w, r, info, err) {
 			return
 		}
 		// WP-34c hook: an eligible stage 9–12 failure is answered with the
