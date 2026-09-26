@@ -132,6 +132,8 @@ Rules:
 | `XI_FORMATS_STRICT_ACCEPT` | `false` | 406 when nothing acceptable |
 | `XI_FORMATS_PREFERRED` | `jpeg,png,gif` | Fallback order for unencodable sources |
 | `XI_FORMATS_SVG_PASSTHROUGH` | `true` | |
+| `XI_FORMATS_SKIP_PROCESSING` | `` | Source formats streamed unmodified (imgproxy `IMGPROXY_SKIP_PROCESSING_FORMATS`) |
+| `XI_CLIENT_HINTS_ENABLED` | `false` | Honour DPR/Width/Viewport-Width/Save-Data hints on every request when the URL leaves the value unset (imgproxy `IMGPROXY_ENABLE_CLIENT_HINTS`); URL opt-ins (`ch=`, `w_auto`, `width=auto`) work regardless |
 | `XI_FORMATS_AVIF_MAX_PIXELS` | `16000000` | |
 | `XI_FORMATS_BEST_MAX_PIXELS` | `8000000` | |
 | `XI_FORMATS_BEST_COMPLEXITY_THRESHOLD` | `5.5` | |
