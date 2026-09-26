@@ -39,10 +39,11 @@ type fakeRouter struct {
 	mutate  func(*transform.Request)
 	dialect string
 	sig     sign.Result
+	policy  router.Policy // the mount's unsigned policy
 }
 
 func (f *fakeRouter) Route(*http.Request) (*dialect.Result, *router.Mount, error) {
-	m := &router.Mount{Dialect: f.dialect}
+	m := &router.Mount{Dialect: f.dialect, Policy: f.policy}
 	if f.err != nil {
 		return nil, m, f.err
 	}
@@ -177,6 +178,7 @@ type fakeProcessor struct {
 	source []byte
 	req    *transform.Request
 	format transform.Format
+	delta  int // ProcessInput.QualityDelta
 }
 
 func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*ProcessOutput, error) {
@@ -185,6 +187,7 @@ func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*Process
 	p.source = bytes.Clone(in.Source.Bytes())
 	p.req = in.Request
 	p.format = in.Decision.Format
+	p.delta = in.QualityDelta
 	p.mu.Unlock()
 	if p.fn != nil {
 		if err := p.fn(ctx); err != nil {
@@ -250,7 +253,7 @@ func newHarness(tb testing.TB, mutate func(*harness)) *harness {
 	tb.Helper()
 	h := &harness{
 		cfg:     DefaultConfig(),
-		router:  &fakeRouter{dialect: "imgproxy"},
+		router:  &fakeRouter{dialect: "imgproxy", policy: router.PolicyAllow},
 		res:     &fakeResolver{},
 		f:       &fakeFetcher{data: jpegSource},
 		a:       &fakeAdmitter{},

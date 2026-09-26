@@ -210,6 +210,37 @@ Response (WP-35; golden files per fixture in `testdata/info/`): `size` (source b
 /info/unsafe/s:1/f:1/d:1/bh:4:3/plain/https://example.com/a.jpg
 ```
 
+### 3.5 Client hints (WP-65; all dialects)
+
+A hint is read when the URL opts into it (imgix `ch=Width,DPR,Save-Data`, ImageKit `w-auto`/`dpr-auto`; the cloudinary `w_auto`/`dpr_auto` and cloudflare `width=auto` rows map to the same fields once those dialects set them) or, with `XI_CLIENT_HINTS_ENABLED`, whenever the URL leaves the value unset. `negotiate.ApplyClientHints` resolves hints into the request before defaults, so hinted values are part of the canonical key and ETag (Save-Data through `qualityDelta`, ARCHITECTURE §9.1).
+
+| Hint | Rule |
+|---|---|
+| DPR | `Sec-CH-DPR`, else `DPR` (an invalid Sec-CH value falls back to the legacy name); `(0, 8]`. Used when the URL sets no `dpr`. Sets `Content-DPR` when ≠ 1. |
+| Width | `Sec-CH-Width`, else `Width`: physical px ÷ the effective DPR (URL `dpr`, else the DPR hint, else 1). Used when the URL sets no width. |
+| Viewport-Width | `Sec-CH-Viewport-Width`, else `Viewport-Width` (CSS px), only without a Width hint. |
+| Save-Data / ECT | `Save-Data: on` or `ECT: slow-2g`/`2g`: the URL's slow-connection quality, else `XI_FORMATS_SAVE_DATA_QUALITY_DELTA`, only when the URL fixes no quality. Not consulted when the delta is 0 and the URL gives no slow-connection quality. |
+| `Vary` | Only the names that decided the result: a hint the URL overrode is not listed; a valid `Sec-CH-*` value drops the legacy name; a Width hint drops Viewport-Width; `Save-Data: on` drops `ECT`. A hint that could apply but was absent lists both its names, because its presence would have changed the result (a shared cache must not serve the hint-less rendition to hinted clients). |
+| `Accept-CH` | `Sec-CH-DPR, Sec-CH-Width, Sec-CH-Viewport-Width, ECT` on every image response (200, HEAD, 304, unprocessed) when hints are enabled or the URL opted in; `Critical-CH` too with `XI_CLIENT_HINTS_CRITICAL_CH`. |
+| Unsigned policy | `restricted` rejects URLs that opt into width/DPR hints (403) and, for the server-wide switch, applies only Save-Data to unsigned requests: a hinted width or DPR would bypass `XI_SECURITY_ALLOWED_WIDTHS`. Signed requests and `allow` mounts get every hint. |
+
+Browsers (Chromium only; Firefox and Safari send none of these except Save-Data where enabled) act on `Accept-CH` only for navigations, over HTTPS. A page embedding images from this server must itself send `Accept-CH: Sec-CH-DPR, Sec-CH-Width, Sec-CH-Viewport-Width` and delegate them cross-origin, e.g. `Permissions-Policy: ch-dpr=(self "https://img.example.com"), ch-width=(self "https://img.example.com"), ch-viewport-width=(self "https://img.example.com")`. `Sec-CH-Width` is only sent for `<img>` elements with a `sizes` attribute.
+
+imgproxy parity (`IMGPROXY_ENABLE_CLIENT_HINTS`, `clientfeatures/detector.go`, `options/parser/processing_options.go`):
+
+| Behaviour | imgproxy | xtandard-image |
+|---|---|---|
+| DPR / Width header names and precedence | `Sec-CH-DPR` → `DPR`; `Sec-CH-Width` → `Width` | Same |
+| URL options beat hints | Yes (hints are defaults, URL options applied after) | Yes |
+| Width hint ÷ DPR | ÷ the DPR hint only, even when the URL sets `dpr` | ÷ the effective DPR (URL `dpr` wins), so the physical width equals the hint. Deliberate |
+| Explicit `w:0` in the URL | Overrides the hint | Indistinguishable from unset; the hint applies. Deliberate (the model has no "explicit 0") |
+| `Viewport-Width` | Removed (v3.16.0) | Fallback when no Width hint |
+| `Save-Data` / `ECT` | Ignored | Quality delta / slow-connection quality |
+| `Vary` | Static `Sec-CH-DPR, DPR, Sec-CH-Width, Width` whenever enabled | Only the names that decided the result (table above) |
+| `Accept-CH` / `Critical-CH` | Not sent | Sent (Critical-CH opt-in) |
+| `Content-DPR` | Not sent | Sent for a hinted DPR ≠ 1 |
+| Restricted unsigned requests | n/a (imgproxy has no unsigned allowlist) | Save-Data only |
+
 ## 4. Query dialect (native + imaginary)
 
 Reference: https://github.com/h2non/imaginary (API section). Mount `/q/`.

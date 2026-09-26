@@ -389,6 +389,7 @@ func serverConfig(cfg *config.Config) server.Config {
 			EnableClientHints:    cfg.ClientHints.Enabled,
 			SaveDataQualityDelta: cfg.Formats.SaveDataQualityDelta,
 		},
+		ClientHints: server.ClientHintHeaders{CriticalCH: cfg.ClientHints.CriticalCH},
 		Limits: server.Limits{
 			MaxSrcBytes:             int64(cfg.Limits.MaxSrcBytes),
 			MaxSrcPixels:            cfg.Limits.MaxSrcPixels,

@@ -5,7 +5,7 @@
 // It is pure Go and imports only transform and errs. The server calls, in
 // order:
 //
-//	hints := negotiate.ApplyClientHints(req, negotiate.ParseClientHints(r.Header), &cfg)
+//	hints := negotiate.ApplyClientHints(req, negotiate.ParseClientHints(r.Header), &cfg, negotiate.HintsAll)
 //	req.ApplyDefaults(...)                    // then Validate
 //	accept := negotiate.ParseAcceptHeader(r.Header)
 //	d, err := negotiate.Decide(req, accept, &cfg, meta) // after probe

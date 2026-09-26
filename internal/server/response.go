@@ -148,9 +148,7 @@ func (s *Server) setCacheHeaders(h http.Header, res *imageResult) {
 	if v := res.varyHeader(); v != "" {
 		h.Set("Vary", v)
 	}
-	if v := res.contentDPR(); v != "" {
-		h.Set("Content-Dpr", v)
-	}
+	s.setHintHeaders(h, res)
 	if s.cfg.CanonicalHeader {
 		if u := res.key.Path; strings.HasPrefix(u, "https://") || strings.HasPrefix(u, "http://") {
 			h.Set("Link", "<"+u+`>; rel="canonical"`)

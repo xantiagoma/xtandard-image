@@ -157,8 +157,10 @@ func TestResponseHeaders(t *testing.T) {
 			mutate: func(h *harness) { h.cfg.Negotiate.EnableClientHints = true },
 			header: http.Header{"Sec-Ch-Dpr": {"2"}},
 			want: map[string]string{
-				// Width is fixed by the URL, so only DPR and Save-Data were consulted.
-				"Vary":        "Accept, Sec-CH-DPR, DPR, Save-Data, ECT", //nolint:misspell // ECT is the connection-type hint header
+				// Width is fixed by the URL, so only DPR and Save-Data were
+				// consulted; the valid Sec-CH-DPR makes legacy DPR irrelevant.
+				"Vary":        "Accept, Sec-CH-DPR, Save-Data, ECT", //nolint:misspell // ECT is the connection-type hint header
+				"Accept-CH":   acceptCH,
 				"Content-DPR": "2",
 			},
 		},
