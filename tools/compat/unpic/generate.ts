@@ -249,3 +249,15 @@ for (const [name, p] of Object.entries(providers)) {
   writeFileSync(join(outDir, `${name}.json`), JSON.stringify(doc, null, 2) + "\n");
   console.error(`${name}: ${list.length} fixtures`);
 }
+
+// _index.json lists every provider unpic supports and its fixture file, so
+// the Go tests notice a provider unpic adds (xi: null until it has one).
+const { SupportedProviders } = await import(join(unpicDir, "src/types.ts"));
+const xiName = new Map(Object.entries(providers).map(([n, p]) => [p.unpic, n]));
+const index = {
+  unpic: version,
+  providers: Object.keys(SupportedProviders).sort().map((id) => ({ unpic: id, xi: xiName.get(id) ?? null })),
+};
+writeFileSync(join(outDir, "_index.json"), JSON.stringify(index, null, 2) + "\n");
+const missing = index.providers.filter((p) => p.xi === null).map((p) => p.unpic);
+if (missing.length > 0) console.error(`unpic providers without a fixture file: ${missing.join(", ")}`);
