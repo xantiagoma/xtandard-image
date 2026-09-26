@@ -1,5 +1,5 @@
 // Package s3src is the s3 source backend (docs/ARCHITECTURE.md §6): it
-// fetches objects from AWS S3 or any S3-compatible store (MinIO, Cloudflare
+// fetches objects from AWS S3 or any S3-compatible store (RustFS, Cloudflare
 // R2, DigitalOcean Spaces, Backblaze B2) through aws-sdk-go-v2.
 //
 // Keys arrive already allowlisted and jailed by source.Registry: Key.Bucket is
@@ -28,7 +28,8 @@ import (
 )
 
 // DefaultRegion is the signing region used when an endpoint is configured
-// without a region (MinIO accepts any; R2 wants "auto", which callers set).
+// without a region (self-hosted stores such as RustFS accept it; R2 wants
+// "auto", which callers set).
 const DefaultRegion = "us-east-1"
 
 // DefaultRoleSessionName names assumed-role sessions in CloudTrail.
@@ -48,12 +49,12 @@ type Config struct {
 	// Name is the registered source name.
 	Name string
 	// Endpoint is the S3-compatible base URL (https://<acct>.r2.cloudflarestorage.com,
-	// http://minio:9000, ...). Empty means AWS S3 resolved from Region.
+	// http://rustfs:9000, ...). Empty means AWS S3 resolved from Region.
 	Endpoint string
 	// Region is the signing region; empty falls back to the SDK chain
 	// (AWS_REGION, shared config) and then, with an Endpoint, DefaultRegion.
 	Region string
-	// ForcePathStyle addresses objects as <endpoint>/<bucket>/<key> (MinIO,
+	// ForcePathStyle addresses objects as <endpoint>/<bucket>/<key> (RustFS,
 	// B2, most self-hosted stores) instead of virtual-hosted style.
 	ForcePathStyle bool
 	// AccessKeyID and SecretAccessKey select static credentials. Both empty
@@ -117,8 +118,9 @@ func New(ctx context.Context, cfg *Config) (source.Source, error) {
 		return nil, err
 	}
 	opts := []func(*config.LoadOptions) error{
-		// R2, B2 and older MinIO reject the CRC checksums newer SDKs send by
-		// default; only send or validate them when an operation requires it.
+		// R2, B2 and some self-hosted stores reject the CRC checksums newer
+		// SDKs send by default; only send or validate them when an operation
+		// requires it.
 		config.WithRequestChecksumCalculation(aws.RequestChecksumCalculationWhenRequired),
 		config.WithResponseChecksumValidation(aws.ResponseChecksumValidationWhenRequired),
 	}

@@ -123,7 +123,7 @@ type Source struct {
 	// every type except http
 	Prefix string `yaml:"prefix,omitempty" env:"PREFIX"`
 
-	// s3, gcs, azure: service endpoint override (MinIO, fake-gcs, Azurite)
+	// s3, gcs, azure: service endpoint override (RustFS, fake-gcs, Azurite)
 	Endpoint string `yaml:"endpoint,omitempty" env:"ENDPOINT"`
 
 	// s3
@@ -177,7 +177,7 @@ type Fetch struct {
 	AllowedPorts         []int `yaml:"allowed_ports"          env:"ALLOWED_PORTS"`
 	AllowPrivateNetworks bool  `yaml:"allow_private_networks" env:"ALLOW_PRIVATE_NETWORKS"`
 	// AllowedNetworks are exempt from the private-address block (for example
-	// an in-cluster MinIO) without opening every private range.
+	// an in-cluster object store) without opening every private range.
 	AllowedNetworks []CIDR `yaml:"allowed_networks" env:"ALLOWED_NETWORKS"`
 	// UserAgent defaults to xtandard-image/<version> when empty.
 	UserAgent string `yaml:"user_agent" env:"USER_AGENT"`

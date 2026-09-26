@@ -71,8 +71,8 @@ func imgproxyCases() map[string]compatCase {
 			with(s3, "IMGPROXY_S3_ENDPOINT_USE_PATH_STYLE=true"), plus(s3Want, "XI_SOURCES_S3_FORCE_PATH_STYLE", "true"),
 		},
 		"IMGPROXY_S3_ENDPOINT": {
-			with(s3, "IMGPROXY_S3_ENDPOINT=https://minio.example.com"),
-			plus(s3Want, "XI_SOURCES_S3_ENDPOINT", "https://minio.example.com", "XI_SOURCES_S3_FORCE_PATH_STYLE", "true"),
+			with(s3, "IMGPROXY_S3_ENDPOINT=https://s3.example.com"),
+			plus(s3Want, "XI_SOURCES_S3_ENDPOINT", "https://s3.example.com", "XI_SOURCES_S3_FORCE_PATH_STYLE", "true"),
 		},
 		"IMGPROXY_S3_ASSUME_ROLE_ARN": {
 			with(s3, "IMGPROXY_S3_ASSUME_ROLE_ARN=arn:aws:iam::1:role/x"), plus(s3Want, "XI_SOURCES_S3_ROLE_ARN", "arn:aws:iam::1:role/x"),

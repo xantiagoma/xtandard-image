@@ -67,7 +67,7 @@ func TestValidate(t *testing.T) {
 		},
 		{"s3 without buckets", func(c *Config) { c.Sources["s"] = Source{Type: SourceS3} }, []string{"sources.s.buckets"}},
 		{"s3 bucket not in list", func(c *Config) { c.Sources["s"] = Source{Type: SourceS3, Buckets: []string{"a"}, Bucket: "b"} }, []string{`sources.s.bucket (XI_SOURCES_S_BUCKET): "b" is not in buckets`}},
-		{"s3 endpoint", func(c *Config) { c.Sources["s"] = Source{Type: SourceS3, Bucket: "b", Endpoint: "minio:9000"} }, []string{"sources.s.endpoint"}},
+		{"s3 endpoint", func(c *Config) { c.Sources["s"] = Source{Type: SourceS3, Bucket: "b", Endpoint: "rustfs:9000"} }, []string{"sources.s.endpoint"}},
 		{"fs relative root", func(c *Config) { c.Sources["f"] = Source{Type: SourceFS, Root: "data"} }, []string{"sources.f.root"}},
 		{"sftp host key", func(c *Config) { c.Sources["f"] = Source{Type: SourceSFTP, Host: "h"} }, []string{"sources.f.host_key (XI_SOURCES_F_HOST_KEY): is mandatory"}},
 		{"ftp pool and timeouts", func(c *Config) {

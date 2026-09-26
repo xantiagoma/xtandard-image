@@ -156,7 +156,7 @@ jobs:
     # M1 acceptance suite (WP-39, docs/RELEASE.md): black-box end-to-end run
     # of the image the smoke job built on the same architecture
     # (compose.acceptance.yml: app configured through env only, nginx origin,
-    # MinIO; test/acceptance with -tags acceptance on the runner). Set the
+    # RustFS; test/acceptance with -tags acceptance on the runner). Set the
     # repository variable XI_ACCEPTANCE_IMAGE (e.g.
     # ghcr.io/xantiagoma/xtandard-image:slim) to run it against a published
     # image instead.
