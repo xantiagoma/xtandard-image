@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/xantiagoma/xtandard-image/internal/cache"
-	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/limiter"
@@ -193,17 +192,13 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	scfg := serverConfig(cfg)
 	scfg.ResultCache.Build = opts.Version
 	deps := &server.Deps{
-		Router:   rt,
-		Resolver: reg,
-		Fetcher:  fetcher,
-		Admitter: lim,
-		Prober: &codecProber{svg: codec.Limits{
-			MaxSVGBytes:    int64(cfg.Limits.MaxSVGBytes),
-			MaxSVGDepth:    cfg.Limits.MaxSVGDepth,
-			MaxSVGElements: cfg.Limits.MaxSVGElements,
-		}},
+		Router:    rt,
+		Resolver:  reg,
+		Fetcher:   fetcher,
+		Admitter:  lim,
+		Prober:    &codecProber{svg: formatLimits(cfg)},
 		Sniffer:   codecSniffer{},
-		Inspector: vipsInspector{},
+		Inspector: vipsInspector{formats: formatLimits(cfg)},
 		Processor: proc,
 		Allocator: vipsAllocator,
 		Logger:    logger,

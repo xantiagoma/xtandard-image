@@ -343,6 +343,7 @@ func (c *Config) validateFormats(v *validator) {
 	v.between(f.AVIF.Effort, 0, 9, "formats.avif.effort")
 	v.between(f.JXL.Effort, 1, 10, "formats.jxl.effort")
 	v.between(f.GIF.Effort, 1, 10, "formats.gif.effort")
+	v.check(f.PDF.DPI >= 1 && f.PDF.DPI <= 1200, "formats.pdf.dpi", "must be in [1, 1200], got %g", f.PDF.DPI)
 	v.positive(f.AVIF.MaxPixels, "formats.avif.max_pixels")
 	v.positive(f.Best.MaxPixels, "formats.best.max_pixels")
 	v.check(f.Best.ComplexityThreshold >= 0, "formats.best.complexity_threshold", "must be >= 0")

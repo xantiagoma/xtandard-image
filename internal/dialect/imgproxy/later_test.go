@@ -177,7 +177,7 @@ func TestLaterOptions(t *testing.T) {
 		opt("avifo_bad", "avifo:444"),
 		// format best (M2)
 		opt("format_best", "f:best/aq:dssim"),
-		// preserve_hdr / ph, enforce_thumbnail / eth, page / pg, pages / pgs (M2)
+		// preserve_hdr / ph, enforce_thumbnail / eth (M2), page / pg, pages / pgs
 		opt("hdr_thumbnail_pages", "ph:1/eth:1/pg:1/pgs:2"),
 		// video_thumbnail_second / vts, video_thumbnail_keyframes / vtk (M3)
 		opt("video_thumbnail_second", "video_thumbnail_second:5"),

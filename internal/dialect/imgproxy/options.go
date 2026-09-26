@@ -124,7 +124,6 @@ func (st *state) apply(name string, args []string) error {
 			return err
 		}
 		pl.Page = &v
-		st.ignore(name, reasonM2)
 	case "pages", "pgs":
 		if err := maxArgs("pages", args, 1); err != nil {
 			return err
@@ -134,7 +133,6 @@ func (st *state) apply(name string, args []string) error {
 			return dialect.InvalidArgument("pages", args[0], expPages)
 		}
 		pl.Pages = &v
-		st.ignore(name, reasonM2)
 
 	// Output (request-wide).
 	case "strip_metadata", "sm":

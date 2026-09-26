@@ -236,16 +236,6 @@
     "path": "/unsafe/da:t/pg:2/pgs:3/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "pg",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "pgs",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "DisableAnimation": true,
@@ -764,7 +754,7 @@
       "Ignored": [
         {
           "Option": "pg",
-          "Reason": "takes effect in M2"
+          "Reason": "not implemented"
         },
         {
           "Option": "vtk",

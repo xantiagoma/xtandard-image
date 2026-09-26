@@ -26,6 +26,13 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 	if err != nil {
 		return nil, err
 	}
+	if r.j.Meta.Format == "pdf" && !r.transparent && img.HasAlpha() {
+		// Rendered onto opaque white. Only the gaps PDFium leaves beside a
+		// narrower page of a stack are transparent: fill them with white too.
+		if img, err = r.a.Add(img.Flatten(ctx, []float64{255, 255, 255})); err != nil {
+			return nil, err
+		}
+	}
 	if img.Orientation() != 1 {
 		if img, err = r.a.Add(img.RemoveOrientation(ctx)); err != nil {
 			return nil, err
@@ -54,6 +61,9 @@ func (r *runner) loadOptions(ls *plan.LoadStep, anim *plan.AnimationStep) *vips.
 	}
 	if anim != nil {
 		o.NPages = anim.Frames
+	}
+	if r.j.Meta.Format == "pdf" {
+		o.Background = r.pdfBackground()
 	}
 	if ls.Access == plan.AccessRandom {
 		o.Access = vips.AccessRandom

@@ -1364,12 +1364,6 @@
     "query": "url=https://example.com/a.jpg\u0026page=2",
     "request": {
       "Dialect": "query",
-      "Ignored": [
-        {
-          "Option": "page",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Page": 2

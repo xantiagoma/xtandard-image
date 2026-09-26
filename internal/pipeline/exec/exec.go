@@ -103,7 +103,12 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 		cp.Output.Format = j.Target.Format
 		req = &cp
 	}
-	p, err := plan.Build(req, j.Meta, e.cfg.Limits)
+	meta := j.Meta
+	transparent := pdfTransparent(j, req)
+	if transparent {
+		meta.HasAlpha = true
+	}
+	p, err := plan.Build(req, meta, e.cfg.Limits)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +116,7 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 	err = vips.Run(ctx, func() error {
 		var a vips.Arena
 		defer a.Close()
-		r := &runner{e: e, j: j, req: req, a: &a, plan: p, meta: j.Meta}
+		r := &runner{e: e, j: j, req: req, a: &a, plan: p, meta: meta, transparent: transparent}
 		img, err := r.execute(ctx)
 		if err != nil {
 			return err
