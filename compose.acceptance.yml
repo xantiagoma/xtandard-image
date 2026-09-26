@@ -16,7 +16,8 @@
 #   app        the image under test: signing + encryption keys, http, s3 and
 #              fs sources, presets, fallback image, HEIC encode, imgproxy
 #              mount "/" with unsigned policy allow, query mount "/q/" with
-#              unsigned policy restricted
+#              unsigned policy restricted, playground on the admin
+#              listener (WP-80)
 #   app-tiny   same image, one worker and no queue: 429 under load, then
 #              SIGTERM drain (the suite stops it)
 #
@@ -123,6 +124,8 @@ services:
       XI_FALLBACK_SOURCE: local:///png/rgba8.png
       XI_FALLBACK_STATUS: "200"
       XI_FALLBACK_TTL: 30s
+      # WP-80: the playground on the admin listener only.
+      XI_PLAYGROUND_ENABLED: "true"
     ports:
       - "127.0.0.1::8080"
       - "127.0.0.1::9090"
