@@ -13,19 +13,23 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   SchemaStore publishing (needs GitHub Pages enabled by the owner and workflows re-enabled), WP-82b
   huma-handler spike, then **M3** per `docs/ROADMAP.md` (full image with FFmpeg + ONNX, face/object
   detection, video thumbnails, advanced watermarks, GIF→video, playground, TypeScript package WP-84).
-- **In flight (launched 2026-09-27 night, one Opus agent each, isolated worktrees):**
-  `m3/wp-87-stabilise` (vips error-buffer race + PDF /Encrypt pre-detection, wall-clock tests,
-  leak slack, reasonM2 leftovers, client-hint flags, IMAGEKIT_ENDPOINT_PATH, limiter cost,
-  progressive-blur angle, PNG-alpha→WebP perf), `m3/wp-70-full-base` (FFmpeg 8 LGPL + ONNX Runtime
-  1.30 + YuNet/YOLOX-s models, local tags `xtandard-base:dev-full[-builder]`),
-  `m3/wp-77-78-watermarks`, `m3/wp-84-ts-url-builder`, `m3/wp-80-playground`,
-  `m3/wp-81b-82b-pages-huma` (**done, adopted: PR #80 is the bottom of the `m3` stack**). `m3/wp-70-full-base` is **done and adopted (PR #81)**; `m3/wp-71-detect` and `m3/wp-74-video`
-  were launched from it (branch from `origin/m3/wp-70-full-base`; verify with
-  `xtandard-base:dev-full-builder` and slim). `m3/wp-84-ts-url-builder` is **done and adopted (PR #83)**. `m3/wp-80-playground` is **done and adopted (PR #84)**. `m3/wp-77-78-watermarks` is **done and adopted (PR #85)**. `m3/wp-87-stabilise` is **done and adopted (PR #86)**. Stack: #80 → #81 → #83 → #84 → #85 → #86,
-  rebased on main. Adopt the rest as they finish (order: 70b, 71, 74, 88). `git config rerere.enabled
-  true` is set; `scripts/stack/resolve-handoff.py` resolves HANDOFF conflicts (branch wins inside
-  "Known gaps", both sides elsewhere)., then launch WP-72/73 (after 71) and WP-75/76 (after 74). After WP-70 lands, launch WP-71 (detect runtime) → WP-72/73, and WP-74 (video) →
-  WP-75/76.
+- **Stack `m3` (bottom → top):** #80 WP-81b/82b Pages+SchemaStore → #81 WP-70 full base → #83 WP-84
+  TypeScript → #84 WP-80 playground → #85 WP-77/78 watermarks → #86 WP-87 stabilisation → #87 WP-88
+  imgix mount → #88 WP-71 detection runtime. All verified green individually in the container.
+- **In flight (2026-09-27 night):** an integration verifier running lint/test/acceptance on the stack
+  top and fixing integration breakage on `m3/wp-87-stabilise` (do not `gh stack sync` until it
+  reports; then sync, since #80/#86/#87 show needsRebase); `m3/wp-70b-gpl-base` (third image flavour
+  `gpl`); `m3/wp-74-video` (video thumbnails, from `origin/m3/wp-70-full-base`);
+  `m3/wp-72-73-detect-options` (face/object gravity + filters, from `origin/m3/wp-71-detect`). After
+  WP-74: launch WP-75 (tiles/animation) and WP-76 (GIF→video; H.264 via libx264 only in `gpl`).
+- **Adoption recipe:** `scripts/stack/adopt2.sh - <branch> <n> "<title>" <body.md>`; on `MANUAL:` fix
+  the file by hand (keep both sides for docs; README status matrix: take the most advanced status
+  per row), `git add`, then loop `resolve.sh` + `GIT_EDITOR=true git rebase --continue`, then
+  `go build`, `git push --force-with-lease`, `gh stack add`, `gh stack submit --auto --open`,
+  `gh pr edit`. `rerere` is enabled; `scripts/stack/resolve-handoff.py` handles HANDOFF conflicts.
+- **Merge plan when the stack is complete and the verifier is green:** try `gh stack merge <top>
+  --yes --merge`; if GitHub refuses, the M2 fallback (one PR from the chain top, `--merge`, close
+  the per-package PRs) works.
 - **Owner decision 2026-09-27:** add a third image flavour **`gpl`** (FFmpeg `--enable-gpl` + libx264 +
   x265, anything else we excluded only for being GPL) with its own GPL notice; source stays MIT;
   users of that image review licences/patents themselves. WP-70b agent launched. WP-76 (GIF→video)
