@@ -79,7 +79,7 @@ func TestProbe(t *testing.T) {
 			Container: "matroska", Duration: 1, Codec: "vp8", Width: 320, Height: 180,
 			DisplayWidth: 320, DisplayHeight: 180, FPS: 10, Frames: 10,
 		}},
-		{"clip-vp8.mkv", video.Meta{
+		{"clip-vp8-matroska.mkv", video.Meta{
 			Container: "matroska", Duration: 1, Codec: "vp8", Width: 320, Height: 180,
 			DisplayWidth: 320, DisplayHeight: 180, FPS: 10, Frames: 10,
 		}},
@@ -194,7 +194,7 @@ func TestThumbnail(t *testing.T) {
 		{"clip-vp9.webm", video.FrameRequest{Second: new(99.0)}, 1280, 720, 1.96, false, 0.001},
 		{"clip-av1.mp4", video.FrameRequest{Second: new(0.5)}, 1280, 720, 0.52, false, 0.001},
 		{"bbb-h264-aac.mp4", video.FrameRequest{Second: new(0.5)}, 1280, 720, 0.5, false, 0.001},
-		{"clip-vp8.mkv", video.FrameRequest{Second: new(0.3)}, 320, 180, 0.3, false, 0.001},
+		{"clip-vp8-matroska.mkv", video.FrameRequest{Second: new(0.3)}, 320, 180, 0.3, false, 0.001},
 		{"clip-png.mov", video.FrameRequest{Second: new(0.5)}, 96, 54, 0.5, true, 0.001},
 		{"clip-raw.avi", video.FrameRequest{Second: new(0.5)}, 96, 54, 0.5, true, 0.001},
 	}
@@ -234,6 +234,7 @@ func TestBestFrame(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer f.Release()
+			t.Logf("best frame at %.3f s of %d keyframes compared, score %.2f", f.Time, f.Sampled, f.Score)
 			if f.Sampled == 0 || f.Score <= 0 || !f.Keyframe {
 				t.Errorf("sampled %d, score %.3f, keyframe %v", f.Sampled, f.Score, f.Keyframe)
 			}
@@ -262,5 +263,90 @@ func TestThumbnailCanceled(t *testing.T) {
 	}
 	if !errors.Is(err, context.Canceled) {
 		t.Errorf("error %v does not wrap context.Canceled", err)
+	}
+}
+
+// TestNoLeak: 200 thumbnails (best frame and a timestamp) leave no FFmpeg
+// handle open and no libvips-tracked byte behind, and glibc's in-use heap
+// (FFmpeg's allocations) does not grow once warm.
+func TestNoLeak(t *testing.T) {
+	src := source(t, "clip-av1.mp4")
+	reqs := []video.FrameRequest{{Width: 160, Height: 90}, {Second: new(1.5), Width: 320, Height: 180}}
+	run := func(req *video.FrameRequest) {
+		f, err := ffmpeg.Thumbnail(t.Context(), src, req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.Release()
+	}
+	for i := range 20 { // warm up FFmpeg's and malloc's one-time state
+		run(&reqs[i%2])
+	}
+	mem, heap := vips.ReadMemStats().Mem, ffmpeg.ReadStats().HeapInUse
+	defer func() { t.Logf("glibc heap in use %d → %d bytes", heap, ffmpeg.ReadStats().HeapInUse) }()
+	for i := range 200 {
+		run(&reqs[i%2])
+	}
+	if s := ffmpeg.ReadStats(); s.Handles != 0 {
+		t.Errorf("%d FFmpeg handles open after 200 thumbnails", s.Handles)
+	}
+	if m := vips.ReadMemStats().Mem; m != mem {
+		t.Errorf("libvips tracked memory %d → %d bytes after 200 thumbnails", mem, m)
+	}
+	// 200 decodes of a 1280×720 stream would leak far more than 1 MiB if
+	// any frame, packet or codec context survived.
+	if h := ffmpeg.ReadStats().HeapInUse; heap > 0 && h-heap > 1<<20 {
+		t.Errorf("glibc heap in use grew by %d bytes over 200 thumbnails", h-heap)
+	}
+}
+
+// benchFixtures are the 1280×720 clips of each codec.
+var benchFixtures = []struct{ name, file string }{
+	{"h264", "bbb-h264-aac.mp4"},
+	{"vp9", "clip-vp9.webm"},
+	{"av1", "clip-av1.mp4"},
+}
+
+// BenchmarkThumbnail measures one thumbnail of a 720p stream per codec:
+// the exact frame at 0.9 s at full size and scaled to 320×180 on load, the
+// keyframe before it, and best-frame selection (5 samples).
+func BenchmarkThumbnail(b *testing.B) {
+	for _, fx := range benchFixtures {
+		src := source(b, fx.file)
+		for _, bc := range []struct {
+			name string
+			req  video.FrameRequest
+		}{
+			{"exact-720p", video.FrameRequest{Second: new(0.9)}},
+			{"exact-320", video.FrameRequest{Second: new(0.9), Width: 320, Height: 180}},
+			{"keyframe-320", video.FrameRequest{Second: new(0.9), Keyframes: true, Width: 320, Height: 180}},
+			{"best-320", video.FrameRequest{Samples: 5, Width: 320, Height: 180}},
+		} {
+			b.Run(fx.name+"/"+bc.name, func(b *testing.B) {
+				b.ReportAllocs()
+				for b.Loop() {
+					f, err := ffmpeg.Thumbnail(b.Context(), src, &bc.req)
+					if err != nil {
+						b.Fatal(err)
+					}
+					f.Release()
+				}
+			})
+		}
+	}
+}
+
+// BenchmarkProbe measures reading a 720p video's headers.
+func BenchmarkProbe(b *testing.B) {
+	for _, fx := range benchFixtures {
+		src := source(b, fx.file)
+		b.Run(fx.name, func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				if _, err := ffmpeg.Probe(b.Context(), src, video.Limits{}); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
 	}
 }

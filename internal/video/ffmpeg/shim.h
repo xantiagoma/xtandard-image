@@ -82,6 +82,7 @@ int xi_ff_tag(XiFF *h, int i, const char **key, const char **value);
 // XI_FF_ERR_ABORTED (the AVIO interrupt callback and the decode loop poll
 // the flag). Safe from any thread; clear restores the handle.
 void xi_ff_abort(XiFF *h, int on);
+int xi_ff_aborted(XiFF *h);
 
 // xi_ff_decode_at seeks to seconds (from the stream start) and decodes the
 // keyframe at or before it (keyframe != 0) or the first frame whose
@@ -91,6 +92,11 @@ void xi_ff_abort(XiFF *h, int on);
 // a copy at most 64 pixels wide.
 int xi_ff_decode_at(XiFF *h, double seconds, int keyframe, double *got, int *key, uint32_t *hist,
     char *err, size_t errlen);
+// xi_ff_keyframe_before stores in *at the index timestamp (decode order, in
+// seconds; it may be negative) of the keyframe the demuxer's index has at or
+// before seconds and returns 1, or returns 0 when the index does not know (no
+// index yet, or none at all). Nothing is decoded.
+int xi_ff_keyframe_before(XiFF *h, double seconds, double *at);
 // xi_ff_keep moves the decoded frame into the handle's "best" slot.
 void xi_ff_keep(XiFF *h);
 // xi_ff_convert scales the decoded frame (best != 0: the best slot) to
