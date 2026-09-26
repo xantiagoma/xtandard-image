@@ -680,9 +680,12 @@ const (
 	FormatWebM
 	FormatJSON
 	FormatBest // M2: encode the candidate set and keep the smallest
+	// FormatHEVC is HEVC video in MP4 (hvc1), written only by images with
+	// libx265 (the gpl flavor, FORMATS 5.1); never negotiated.
+	FormatHEVC
 )
 
-const numFormats = 16
+const numFormats = 17
 
 func (f Format) String() string {
 	switch f {
@@ -718,18 +721,28 @@ func (f Format) String() string {
 		return "json"
 	case FormatBest:
 		return "best"
+	case FormatHEVC:
+		return "hevc"
 	}
 	return invalidEnum("Format", uint8(f))
 }
 
+// IsVideo reports the video output formats (MP4, WebM, HEVC): animations
+// encoded by FFmpeg (FORMATS 5.1).
+func (f Format) IsVideo() bool {
+	return f == FormatMP4 || f == FormatWebM || f == FormatHEVC
+}
+
 // ParseFormat parses a canonical Format name. It also accepts the extensions
-// "jpg" and "tif".
+// "jpg" and "tif", and "h265" for "hevc".
 func ParseFormat(s string) (Format, error) {
 	switch s {
 	case "jpg":
 		return FormatJPEG, nil
 	case "tif":
 		return FormatTIFF, nil
+	case "h265":
+		return FormatHEVC, nil
 	}
 	return parseEnum[Format]("Format", s, numFormats)
 }

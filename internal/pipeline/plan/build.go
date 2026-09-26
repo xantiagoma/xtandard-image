@@ -100,6 +100,9 @@ type source struct {
 	video     bool // a frame decoded by FFmpeg, scaled on load by libswscale
 	// dets are the source's detections (first pipeline only).
 	dets *Detections
+	// streamPixels is the video stream's frame size (decoder memory); 0
+	// for images.
+	streamPixels int64
 }
 
 func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observed) (*Plan, error) {
@@ -135,8 +138,14 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 		previewW: meta.PreviewWidth, previewH: meta.PreviewHeight,
 		enforceThumb: req.Output.EnforceThumbnail != nil && *req.Output.EnforceThumbnail,
 		hdr:          meta.HDR,
-		video:        meta.IsVideo,
+		video:        meta.IsVideo && !meta.VideoComposite,
 		dets:         meta.Detections,
+	}
+	switch {
+	case meta.VideoComposite:
+		src.streamPixels = int64(meta.StreamWidth) * int64(meta.StreamHeight)
+	case meta.IsVideo:
+		src.streamPixels = int64(meta.Width) * int64(frameH)
 	}
 	nFrames := max(meta.Frames, 1)
 	if first.Page != nil && *first.Page > 0 {
@@ -236,13 +245,17 @@ func heifFormat(format string) bool {
 	return format == "heic" || format == "heif" || format == "avif"
 }
 
+// animationFormat reports the output formats an animation stays one in:
+// GIF, WebP and the video formats (WP-76).
 func animationFormat(f transform.Format) bool {
-	return f == transform.FormatGIF || f == transform.FormatWebP
+	return f == transform.FormatGIF || f == transform.FormatWebP || f.IsVideo()
 }
 
+// alphaFormat reports the output formats that keep alpha; WebM does (VP9
+// yuva420p), MP4 does not.
 func alphaFormat(f transform.Format) bool {
 	switch f {
-	case transform.FormatJPEG, transform.FormatMP4, transform.FormatWebM:
+	case transform.FormatJPEG, transform.FormatMP4, transform.FormatHEVC:
 		return false
 	default:
 		return true
@@ -290,7 +303,7 @@ type builder struct {
 // pipeline's images: the decoded YUV 4:2:0 frame (1.5 bytes a pixel), up
 // to three reference frames and the scaler's line buffers, rounded up to
 // 8 bytes a pixel of the stream.
-func videoDecodeBytes(w, h int) int64 { return int64(w) * int64(h) * 8 }
+func videoDecodeBytes(pixels int64) int64 { return pixels * 8 }
 
 func (b *builder) add(s Step) { b.pl.Steps = append(b.pl.Steps, s) }
 
@@ -324,8 +337,8 @@ func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt trans
 		hdr:    s.hdr,
 		dets:   s.dets,
 	}
-	if s.video {
-		b.rawBytes = videoDecodeBytes(s.w, s.h)
+	if s.streamPixels > 0 {
+		b.rawBytes = videoDecodeBytes(s.streamPixels)
 	}
 	g := geo{vectorBaseShrink: 1}
 	g.angle, g.flip = orientation(s.orientation, o.autoRotate)
@@ -831,11 +844,9 @@ func unplanned(p *transform.Pipeline, detected bool) []string {
 	add(p.Adjust.Vibrance != nil, "vibrance")
 	add(p.Equalize, "equalize")
 	add(!detected && (p.BlurDetections != nil || p.DrawDetections != nil || p.CropObjects != nil), "detections")
-	// video_thumbnail_second and _keyframes select the frame of a video
-	// source when it is loaded (no step; ignored for images, like
-	// imgproxy); tiles and animations are WP-75.
-	add(p.Video != nil && p.Video.Tile != nil, "video_thumbnail_tile")
-	add(p.Video != nil && p.Video.Animation != nil, "video_thumbnail_animation")
+	// The video options (video_thumbnail_second, _keyframes, _tile,
+	// _animation) select or assemble the frames of a video source when it
+	// is loaded: no step, and ignored for images, like imgproxy.
 	return out
 }
 
