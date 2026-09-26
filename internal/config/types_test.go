@@ -171,6 +171,31 @@ func TestHexKeyErrorDoesNotLeak(t *testing.T) {
 	}
 }
 
+func TestVideoSecond(t *testing.T) {
+	t.Parallel()
+	for in, want := range map[string]VideoSecond{"auto": VideoSecondAuto, " AUTO ": VideoSecondAuto, "": VideoSecondAuto, "1": "1", "2.50": "2.5", "-1.5": "-1.5", "+3": "3"} {
+		var got VideoSecond
+		if err := got.UnmarshalText([]byte(in)); err != nil || got != want {
+			t.Errorf("UnmarshalText(%q) = %q, %v; want %q", in, got, err, want)
+		}
+	}
+	for _, in := range []string{"soon", "1s", "inf", "NaN", "1e999"} {
+		var got VideoSecond
+		if err := got.UnmarshalText([]byte(in)); err == nil {
+			t.Errorf("UnmarshalText(%q) = %q, want an error", in, got)
+		}
+	}
+	if s, ok := VideoSecond("-2.5").Seconds(); !ok || s != -2.5 {
+		t.Errorf("Seconds() = %v, %v", s, ok)
+	}
+	if _, ok := VideoSecondAuto.Seconds(); ok {
+		t.Error("auto has seconds")
+	}
+	if b, _ := VideoSecond("").MarshalText(); string(b) != "auto" {
+		t.Errorf("MarshalText(\"\") = %q", b)
+	}
+}
+
 func TestTristate(t *testing.T) {
 	t.Parallel()
 	for in, want := range map[string]Tristate{"auto": Auto, "AUTO": Auto, "true": True, "1": True, "false": False, "F": False} {

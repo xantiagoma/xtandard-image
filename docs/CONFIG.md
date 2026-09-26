@@ -247,6 +247,14 @@ A reference means the same as `XI_…_FILE` for that one value: the file is read
 | `XI_LIMITS_MAX_SVG_ELEMENTS` | `200000` | SVG sanitiser element limit |
 | `XI_LIMITS_MAX_PDF_PAGES` | `500` | Pages a PDF may have; checked when the header is read, before any page renders (422) |
 | `XI_LIMITS_MAX_WATERMARK_TEXT_PIXELS` | `16777216` | Area a text watermark is rendered on (the frame, or the text width × the frame height, scaled down to this); text that does not fit is shrunk until it does |
+| `XI_VIDEO_ENABLED` | `auto` | Video sources (MP4, MOV, WebM, MKV, AVI; FORMATS.md §1.5): `auto` decodes them when the image has FFmpeg (the `full` flavor) and answers 422 otherwise; `true` fails startup without FFmpeg; `false` answers 422 in every image |
+| `XI_VIDEO_MAX_BYTES` | `100MiB` | Largest video source; `XI_LIMITS_MAX_SRC_BYTES` applies first, at fetch, so raise both for large videos (422) |
+| `XI_VIDEO_MAX_DURATION` | `1h` | Longest video, from the container header, before any frame is decoded (422) |
+| `XI_VIDEO_MAX_PIXELS` | `33177600` | Width × height of the video stream (8K UHD); the decoder refuses larger frames too (422). `XI_LIMITS_MAX_SRC_PIXELS` applies to the frame as well |
+| `XI_VIDEO_THUMBNAIL_SECOND` | `auto` | Frame taken when a request sets no `video_thumbnail_second`: seconds (negative counts from the end; clamped to the video), or `auto` for best-frame selection (imgproxy `IMGPROXY_VIDEO_THUMBNAIL_SECOND`, whose default is 1) |
+| `XI_VIDEO_THUMBNAIL_KEYFRAMES` | `false` | Take the keyframe at or before the timestamp instead of the exact frame (faster, less precise; imgproxy `IMGPROXY_VIDEO_THUMBNAIL_KEYFRAMES`); a request's `video_thumbnail_keyframes` overrides it |
+| `XI_VIDEO_THUMBNAIL_SAMPLES` | `5` | Keyframes best-frame selection compares (1–32) |
+| `XI_VIDEO_THUMBNAIL_SPAN` | `10s` | How much of the start of a video best-frame selection samples |
 | `XI_VIPS_CONCURRENCY` | `1` | libvips threads per image; change only with benchmarks |
 | `XI_VIPS_FAIL_ON` | `warning` | |
 
@@ -391,6 +399,9 @@ The table is checked against the code by a test in `internal/config`.
 | `IMGPROXY_MAX_ANIMATION_FRAMES` | `XI_LIMITS_MAX_ANIMATION_FRAMES` | Same |
 | `IMGPROXY_MAX_ANIMATION_FRAME_RESOLUTION` | `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS` | Megapixels (float) → pixels; `0` (off) keeps the default |
 | `IMGPROXY_MAX_RESULT_DIMENSION` | `XI_LIMITS_MAX_RESULT_DIMENSION` | `0` (unlimited) keeps the default |
+| `IMGPROXY_ENABLE_VIDEO_THUMBNAILS` | `XI_VIDEO_ENABLED` | Same; `true` fails startup on an image without FFmpeg (slim) |
+| `IMGPROXY_VIDEO_THUMBNAIL_SECOND` | `XI_VIDEO_THUMBNAIL_SECOND` | Same seconds; imgproxy's default is 1, xtandard-image's is best-frame selection (`auto`) |
+| `IMGPROXY_VIDEO_THUMBNAIL_KEYFRAMES` | `XI_VIDEO_THUMBNAIL_KEYFRAMES` | Same |
 | `IMGPROXY_TTL` | `XI_CACHE_HEADERS_TTL` | Integer seconds → duration |
 | `IMGPROXY_CACHE_CONTROL_PASSTHROUGH` | `XI_CACHE_HEADERS_PASSTHROUGH` | Same |
 | `IMGPROXY_ETAG_BUSTER` | `XI_CACHE_ETAG_BUSTER` | Same |
