@@ -22,6 +22,7 @@ The project is MIT. It links many C libraries and may ship ML models. GPL/AGPL c
 - Source code ported or adapted from other projects keeps its licence obligations. imgproxy is **Apache-2.0** (not MIT; only imgproxy-docker-base and imagor-base are MIT): every file derived from it (for example the BMP/ICO codecs) keeps the upstream copyright header plus a modification notice, and the repository `NOTICE` file credits imgproxy and reproduces any upstream NOTICE text that applies. MIT-licensed build scripts (imgproxy-docker-base) keep their copyright notice in `docker/base/`.
 - `build-deps.sh` runs a license gate that fails on any forbidden license; every image contains `/opt/xtandard/share/licenses/` and `SOURCES.md` with exact source URLs and versions.
 - Test fixtures must be redistributable; licenses recorded in `testdata/LICENSES.md`.
+- External tools that are only run, never linked, vendored or shipped, may carry any licence, like MinIO in `compose.test.yml`. The benchmark (WP-38, `bench/`) runs k6 (AGPL-3.0) from its unmodified `grafana/k6` image as the load generator, and Caddy (Apache-2.0) and `darthsim/imgproxy` (Apache-2.0) as services; its fixtures are generated from `testdata/gen` (CC0) at run time.
 - Patent-encumbered codecs (HEVC decode/encode, H.264 encode) are a separate question from copyright licenses; tracked in the open questions of `docs/ROADMAP.md`.
 
 ## Consequences
