@@ -356,12 +356,41 @@ type FlattenStep struct{ Background transform.Color }
 // animation (imgproxy applyWatermark).
 type WatermarkStep struct {
 	WatermarkGeometry
-	Index   int     // index into the pipeline's Watermarks
-	Opacity float64 // the request's opacity (0..1), before the configured one
-	Frames  int     // frames of the strip it is applied to
-	// Default is set when the watermark is the configured image
+	Kind WatermarkKind
+	// Pipeline and Index identify the watermark in the request
+	// (Pipelines[Pipeline].Watermarks[Index]): the executor finds a
+	// per-request image by them.
+	Pipeline int
+	Index    int
+	Opacity  float64 // the request's opacity (0..1), before the configured one
+	Frames   int     // frames of the strip it is applied to
+	// Text is set when Kind is WatermarkText.
+	Text *TextWatermark
+}
+
+// WatermarkKind is what a watermark draws.
+type WatermarkKind uint8
+
+// WatermarkKind values.
+const (
+	// WatermarkDefault is the configured image
 	// (XI_PROCESSING_WATERMARK_SOURCE): no source or text of its own.
-	Default bool
+	WatermarkDefault WatermarkKind = iota
+	// WatermarkImage is the request's own image (imgproxy watermark_url),
+	// fetched by the server like a source.
+	WatermarkImage
+	// WatermarkText is rendered Pango markup (imgproxy watermark_text).
+	WatermarkText
+)
+
+// TextWatermark is a text watermark to render. Markup and Font come from
+// the request unsanitised; the executor sanitises them.
+type TextWatermark struct {
+	Markup string
+	Font   string           // "" = the configured font
+	Color  *transform.Color // nil = the markup's (black by default)
+	Width  int              // wrap width in pixels (DPR applied); 0 = the frame width
+	DPI    int              // 72 × DPR: one point per CSS pixel
 }
 
 // WatermarkGeometry sizes and places a watermark. Its methods reproduce
@@ -372,6 +401,12 @@ type WatermarkGeometry struct {
 	Tile     transform.TileMode
 	Scale    float64 // fraction of the frame to fit the watermark into; 0 = natural size
 	DPRScale float64 // scales pixel offsets
+	// Width and Height (pixels, DPR applied) are the box the watermark is
+	// fitted into, enlarging, when Scale is 0 (imgproxy watermark_size);
+	// 0 is derived from the other side and the aspect ratio.
+	Width, Height int
+	Rotate        float64 // degrees clockwise, after sizing
+	Shadow        float64 // drop-shadow sigma in pixels (DPR applied); 0 = none
 }
 
 func (LoadStep) step()         {}
@@ -400,14 +435,26 @@ func (w *WatermarkGeometry) Box(frameW, frameH int) (bw, bh int, ok bool) {
 	return max(scaleDimEven(frameW, w.Scale), 1), max(scaleDimEven(frameH, w.Scale), 1), true
 }
 
-// FitScale is the resize factor that fits a wmW×wmH watermark into Box
-// (1 when there is no box).
+// FitScale is the resize factor that fits a wmW×wmH watermark into Box,
+// or into Width×Height when there is no box (1 when there is neither).
 func (w *WatermarkGeometry) FitScale(frameW, frameH, wmW, wmH int) float64 {
-	bw, bh, ok := w.Box(frameW, frameH)
-	if !ok || wmW <= 0 || wmH <= 0 {
+	if wmW <= 0 || wmH <= 0 {
 		return 1
 	}
-	return 1 / max(float64(wmW)/float64(bw), float64(wmH)/float64(bh))
+	if bw, bh, ok := w.Box(frameW, frameH); ok {
+		return 1 / max(float64(wmW)/float64(bw), float64(wmH)/float64(bh))
+	}
+	sx, sy := float64(w.Width)/float64(wmW), float64(w.Height)/float64(wmH)
+	switch {
+	case w.Width > 0 && w.Height > 0:
+		return min(sx, sy)
+	case w.Width > 0:
+		return sx
+	case w.Height > 0:
+		return sy
+	default:
+		return 1
+	}
 }
 
 // TileSpacing is the padding added around a tiled watermark (imgproxy

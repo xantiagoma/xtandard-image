@@ -251,20 +251,27 @@ type DetectionFilter struct {
 	Classes  []string
 }
 
-// Watermark overlays an image or text.
+// Watermark overlays an image or text. A watermark with neither Source nor
+// Text is the configured image (XI_PROCESSING_WATERMARK_SOURCE).
 type Watermark struct {
 	Opacity  float64 // 0..1
-	Position Gravity // GravityUnset → center
+	Position Gravity // GravityUnset → center; offsets are the spacing when tiled
 	Tile     TileMode
-	Scale    float64     // relative to the result width; 0 = natural size
-	Source   *SourceSpec // nil = config default watermark (XI_PROCESSING_WATERMARK_SOURCE)
-	Text     string      // Pango markup (imgproxy wmt, imgix txt, cloudinary l_text)
-	Font     string      // Pango font description for Text
-	Color    *Color      // Text colour
-	Width    int         // imgproxy watermark_size; 0 = auto
-	Height   int
-	Rotate   float64 // degrees
-	Shadow   float64 // shadow sigma; 0 = off
+	Scale    float64     // fit into Scale × the frame (both sides); 0 = natural size (or Width/Height)
+	Source   *SourceSpec // per-request image (imgproxy wmu, imgix mark, cloudinary l_, imagekit l-image)
+	// Text is Pango markup (imgproxy wmt, imgix txt, cloudinary l_text,
+	// imagekit l-text). Dialects whose text is plain escape it; the
+	// executor sanitises it again before rendering.
+	Text  string
+	Font  string // Pango font description for Text ("family [style] size"); "" = XI_PROCESSING_WATERMARK_FONT
+	Color *Color // Text colour; nil = black (or the markup's)
+	// TextWidth wraps Text at this width in CSS pixels (imgix txt-width,
+	// imagekit text layer w); 0 wraps at the frame width.
+	TextWidth int
+	Width     int     // fit into Width×Height CSS pixels, enlarging (imgproxy watermark_size); 0 = auto; used when Scale is 0
+	Height    int     //
+	Rotate    float64 // degrees clockwise, after sizing
+	Shadow    float64 // drop-shadow sigma in CSS pixels; 0 = off
 }
 
 // VideoOptions selects frames from video sources (M3).

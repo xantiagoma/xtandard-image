@@ -5,6 +5,8 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
+	"unicode/utf8"
 )
 
 // Sanity bounds. Config limits (XI_LIMITS_*) are enforced later by the
@@ -30,6 +32,10 @@ const (
 	MaxBlurhashDim       = 9
 	MaxJPEGQuant         = 8
 	MaxPNGLevel          = 9
+	// MaxWatermarkText bounds a text watermark's markup in bytes, and
+	// MaxFontDescription its font description.
+	MaxWatermarkText   = 4096
+	MaxFontDescription = 128
 )
 
 // ValidationError reports one invalid field. Validate joins several with
@@ -407,6 +413,18 @@ func (w *Watermark) validate(v *validator, f string) {
 			v.fail(f+".text", "source and text are mutually exclusive")
 		}
 	}
+	if len(w.Text) > MaxWatermarkText {
+		v.fail(f+".text", "at most "+strconv.Itoa(MaxWatermarkText)+" bytes")
+	} else if !utf8.ValidString(w.Text) {
+		v.fail(f+".text", "must be UTF-8")
+	}
+	if len(w.Font) > MaxFontDescription || !utf8.ValidString(w.Font) || strings.ContainsAny(w.Font, "<>&\"\x00") {
+		v.fail(f+".font", "must be a font description of at most "+strconv.Itoa(MaxFontDescription)+" bytes")
+	}
+	if w.Text == "" && (w.Font != "" || w.Color != nil || w.TextWidth != 0) {
+		v.fail(f+".text", "font, color and text width need a text")
+	}
+	v.intRange(f+".text_width", w.TextWidth, 0, MaxDimension)
 	v.intRange(f+".width", w.Width, 0, MaxDimension)
 	v.intRange(f+".height", w.Height, 0, MaxDimension)
 	v.floatRange(f+".rotate", w.Rotate, -360, 360)

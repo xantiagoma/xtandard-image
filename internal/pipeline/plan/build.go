@@ -702,16 +702,38 @@ func emitFinish(p *transform.Pipeline, g *geo, b *builder, outFmt transform.Form
 	}
 
 	for i := range p.Watermarks {
-		w := &p.Watermarks[i]
-		pos, _ := resolveGravity(&w.Position)
-		b.pl.After = append(b.pl.After, WatermarkStep{
-			Index: i, Opacity: w.Opacity, Position: pos, Tile: w.Tile, Scale: w.Scale, DPRScale: g.dprScale,
-			Frames: frames, Default: w.Source == nil && w.Text == "",
-		})
+		b.pl.After = append(b.pl.After, watermarkStep(&p.Watermarks[i], i, g.dprScale, frames))
 	}
 	if last {
 		b.pl.After = append(b.pl.After, ColourStep{Stage: ColourToResult})
 	}
+}
+
+// watermarkStep plans watermark i of a pipeline whose pixel sizes scale by
+// dpr: sizes, the shadow and the text resolution are in device pixels.
+func watermarkStep(w *transform.Watermark, i int, dpr float64, frames int) WatermarkStep {
+	pos, _ := resolveGravity(&w.Position)
+	st := WatermarkStep{
+		Index: i, Opacity: w.Opacity, Frames: frames,
+		Position: pos, Tile: w.Tile, Scale: w.Scale, DPRScale: dpr,
+		Rotate: w.Rotate, Shadow: w.Shadow * dpr,
+	}
+	if w.Scale == 0 {
+		st.Width, st.Height = scaleDim(w.Width, dpr), scaleDim(w.Height, dpr)
+	}
+	switch {
+	case w.Text != "":
+		st.Kind = WatermarkText
+		st.Text = &TextWatermark{
+			Markup: w.Text, Font: w.Font, Color: w.Color,
+			Width: scaleDim(w.TextWidth, dpr), DPI: max(roundInt(72*dpr), 1),
+		}
+	case w.Source != nil:
+		st.Kind = WatermarkImage
+	default:
+		st.Kind = WatermarkDefault
+	}
+	return st
 }
 
 // fixSize is imgproxy's fixSize: the scale an encoder's dimension limits
