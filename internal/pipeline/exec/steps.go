@@ -36,9 +36,7 @@ func (r *runner) step(ctx context.Context, img *vips.Image, s plan.Step) (*vips.
 	case plan.FlattenStep:
 		return r.flatten(ctx, img, s.Background)
 	case plan.FilterStep:
-		// WP-27 (blur, sharpen, pixelate).
-		r.skip("filters")
-		return img, nil
+		return r.filter(ctx, img, &s)
 	case plan.WatermarkStep:
 		// WP-28.
 		r.skip("watermark")
