@@ -246,6 +246,13 @@ int xi_mix(VipsImage *a, VipsImage *b, double t, VipsImage **out, char **err);
 int xi_gradient_mask(int width, int height, double ax, double ay, double b, double opacity,
     VipsImage **out, char **err);
 
+// Filter extras (WP-61), in the input's band format.
+int xi_conv3(VipsImage *in, const double *m, VipsImage **out, char **err);
+int xi_unsharp(VipsImage *in, double sigma, double amount, VipsImage **out, char **err);
+int xi_insert(VipsImage *main, VipsImage *sub, int x, int y, VipsImage **out, char **err);
+int xi_blend_mask(VipsImage *mask, VipsImage *a, VipsImage *b, VipsImage **out,
+    char **err);
+
 // ---- save (save.c) -----------------------------------------------------
 //
 // Every saver writes to a g_malloc'd buffer that the caller releases with

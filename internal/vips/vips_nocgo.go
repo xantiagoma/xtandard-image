@@ -343,6 +343,24 @@ func GradientMask(context.Context, int, int, float64, float64, float64, float64)
 	return nil, ErrUnavailable
 }
 
+// Conv3 fails.
+func (*Image) Conv3(context.Context, *[9]float64) (*Image, error) { return nil, ErrUnavailable }
+
+// Unsharp fails.
+func (*Image) Unsharp(context.Context, float64, float64) (*Image, error) {
+	return nil, ErrUnavailable
+}
+
+// Insert fails.
+func (*Image) Insert(context.Context, *Image, int, int) (*Image, error) {
+	return nil, ErrUnavailable
+}
+
+// BlendMask fails.
+func (*Image) BlendMask(context.Context, *Image, *Image) (*Image, error) {
+	return nil, ErrUnavailable
+}
+
 // BandjoinConst fails.
 func (*Image) BandjoinConst(context.Context, []float64) (*Image, error) {
 	return nil, ErrUnavailable

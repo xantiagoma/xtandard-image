@@ -436,6 +436,34 @@ func TestPixelValues(t *testing.T) {
 			}
 			return img.Mix(ctx, other, 0.25)
 		}, []byte{50, 75, 255}},
+		{"conv3 correlates and copies edges", []byte{0, 100, 200}, 3, 1, func(ctx context.Context, _ *vips.Arena, img *vips.Image) (*vips.Image, error) {
+			// The right neighbour's weight: each pixel takes its right neighbour's value.
+			return img.Conv3(ctx, &[9]float64{0, 0, 0, 0, 0, 1, 0, 0, 0})
+		}, []byte{100, 200, 200}},
+		{"conv3 clamps", []byte{10, 100, 250}, 3, 1, func(ctx context.Context, _ *vips.Arena, img *vips.Image) (*vips.Image, error) {
+			return img.Conv3(ctx, &[9]float64{0, 0, 0, 0, 2, 0, 0, 0, 0})
+		}, []byte{20, 200, 255}},
+		{"unsharp keeps flat areas", []byte{50, 50, 50, 50}, 4, 1, func(ctx context.Context, _ *vips.Arena, img *vips.Image) (*vips.Image, error) {
+			return img.Unsharp(ctx, 1, 3)
+		}, []byte{50, 50, 50, 50}},
+		{"insert", []byte{1, 2, 3}, 3, 1, func(ctx context.Context, a *vips.Arena, img *vips.Image) (*vips.Image, error) {
+			sub, err := a.Add(vips.NewFromMemory(ctx, []byte{9}, 1, 1, 1, vips.BandFormatUchar))
+			if err != nil {
+				return nil, err
+			}
+			return img.Insert(ctx, sub, 1, 0)
+		}, []byte{1, 9, 3}},
+		{"blend mask", []byte{0, 0, 7}, 3, 1, func(ctx context.Context, a *vips.Arena, img *vips.Image) (*vips.Image, error) {
+			over, err := a.Add(vips.NewFromMemory(ctx, []byte{200, 100, 100}, 3, 1, 1, vips.BandFormatUchar))
+			if err != nil {
+				return nil, err
+			}
+			mask, err := a.Add(vips.NewFromMemory(ctx, []byte{0, 51, 255}, 3, 1, 1, vips.BandFormatUchar))
+			if err != nil {
+				return nil, err
+			}
+			return img.BlendMask(ctx, mask, over)
+		}, []byte{0, 20, 100}},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

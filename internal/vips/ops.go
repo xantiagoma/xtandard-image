@@ -591,6 +591,59 @@ func GradientMask(ctx context.Context, width, height int, ax, ay, b, opacity flo
 	return newImage(out, nil), nil
 }
 
+// Conv3 convolves every band with the 3×3 row-major matrix m as it is
+// (no scale or offset) in float precision, repeating the edge pixels, and
+// rounds back to img's band format.
+func (img *Image) Conv3(ctx context.Context, m *[9]float64) (*Image, error) {
+	if err := ctxError(ctx, "vips: conv"); err != nil {
+		return nil, err
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_conv3(img.p, cdoubles(m[:]), &out, &cerr)
+	return img.op(ctx, "conv", rc, out, cerr)
+}
+
+// Unsharp is the classic unsharp mask img + amount × (img − gaussblur(img,
+// sigma)) on every band, in img's band format. A negative amount blurs.
+func (img *Image) Unsharp(ctx context.Context, sigma, amount float64) (*Image, error) {
+	if err := ctxError(ctx, "vips: unsharp"); err != nil {
+		return nil, err
+	}
+	if !(sigma > 0) {
+		return nil, errs.Newf(errs.KindInternal, "vips: unsharp sigma %g", sigma)
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_unsharp(img.p, C.double(sigma), C.double(amount), &out, &cerr)
+	return img.op(ctx, "unsharp", rc, out, cerr)
+}
+
+// Insert places sub over img with its top-left corner at (x, y), clipped to
+// img. Both have the same bands; the result has img's size.
+func (img *Image) Insert(ctx context.Context, sub *Image, x, y int) (*Image, error) {
+	if err := ctxError(ctx, "vips: insert"); err != nil {
+		return nil, err
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_insert(img.p, sub.p, C.int(x), C.int(y), &out, &cerr)
+	return img.op(ctx, "insert", rc, out, cerr)
+}
+
+// BlendMask blends img towards over by the one-band uchar mask:
+// img × (1 − m/255) + over × m/255, in over's band format. The three images
+// have the same size; img and over the same bands.
+func (img *Image) BlendMask(ctx context.Context, mask, over *Image) (*Image, error) {
+	if err := ctxError(ctx, "vips: blend_mask"); err != nil {
+		return nil, err
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_blend_mask(mask.p, over.p, img.p, &out, &cerr)
+	return img.op(ctx, "blend_mask", rc, out, cerr)
+}
+
 // imagePointers returns the C handles of imgs. The slice is Go memory
 // holding C pointers only, which cgo may pass.
 func imagePointers(imgs []*Image) []*C.VipsImage {

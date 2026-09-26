@@ -4,6 +4,7 @@ package vips_test
 
 import (
 	"context"
+	"image"
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/vips"
@@ -53,6 +54,11 @@ func TestNoLeak(t *testing.T) {
 			if err != nil {
 				return err
 			}
+			if i%4 == 3 {
+				if small, err = filterExtrasChain(ctx, a, small); err != nil {
+					return err
+				}
+			}
 			if i%4 == 1 {
 				if small, err = colourChain(ctx, a, small); err != nil {
 					return err
@@ -91,6 +97,38 @@ func TestNoLeak(t *testing.T) {
 	}
 	t.Logf("after %d cycles: mem %+d B, allocs %+d, objects %+d, highwater %d B",
 		cycles, after.Mem-before.Mem, after.Allocs-before.Allocs, objectsAfter-objects, after.MemHighwater)
+}
+
+// filterExtrasChain runs the filter-extras operations (WP-61): a 3×3
+// convolution, an unsharp mask, a blurred area inserted back and a blend
+// through a gradient mask.
+func filterExtrasChain(ctx context.Context, a *vips.Arena, img *vips.Image) (*vips.Image, error) {
+	k := 1.0 / 24
+	sharp, err := a.Add(img.Conv3(ctx, &[9]float64{-k, -k, -k, -k, 1 + 8*k, -k, -k, -k, -k}))
+	if err != nil {
+		return nil, err
+	}
+	usm, err := a.Add(sharp.Unsharp(ctx, 1.5, 0.5))
+	if err != nil {
+		return nil, err
+	}
+	area, err := a.Add(usm.ExtractArea(ctx, image.Rect(0, 0, usm.Width()/2, usm.Height()/2)))
+	if err != nil {
+		return nil, err
+	}
+	blurred, err := a.Add(area.Gaussblur(ctx, 3))
+	if err != nil {
+		return nil, err
+	}
+	inserted, err := a.Add(usm.Insert(ctx, blurred, 0, 0))
+	if err != nil {
+		return nil, err
+	}
+	mask, err := a.Add(vips.GradientMask(ctx, img.Width(), img.Height(), 0, 1, 0, 1))
+	if err != nil {
+		return nil, err
+	}
+	return a.Add(usm.BlendMask(ctx, mask, inserted))
 }
 
 // colourChain runs the colour operations (WP-59) on a three-band image:
