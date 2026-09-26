@@ -43,6 +43,10 @@ generated from the public-domain X11 "fixed" font).
 | `fixtures/pdf/password.pdf` | `qpdf --encrypt` (qpdf, Apache-2.0) of `pages.pdf`, AES-256, user password `secret`, owner password `owner` | CC0 |
 | `fixtures/psd/layered.psd`, `fixtures/psd/psb-layered.psb` | `gen psd`, `gen psb`: Photoshop files written by hand in Go (RGB 8-bit, raw channels, a photo background layer and a flat-graphic layer at an offset, with the merged composite) | CC0 |
 | `fixtures/psd/no-composite.psd` | `gen psd-nocomposite`: the same layers saved like "Maximize compatibility" off (version-info resource with `hasRealMergedData = 0`, blank merged image) | CC0 |
+| `fixtures/exr/rgba-half.exr`, `fixtures/exr/rgb-float.exr` | `gen exr-rgba-half`, `gen exr-rgb-float`: OpenEXR files written by hand in Go (single-part scanline, no compression; RGBA half and RGB float) from the procedural HDR scene | CC0 |
+| `fixtures/hdr/scene.hdr`, `fixtures/hdr/rgbe.hdr` | `gen radiance`, `gen rgbe`: Radiance RGBE written by hand in Go (flat scanlines; `#?RADIANCE` and `#?RGBE` magic lines) | CC0 |
+| `fixtures/pfm/scene.pfm` | `gen pfm`: colour PFM written by hand in Go (little endian) | CC0 |
+| `fixtures/ppm/photo.ppm` | `gen ppm`: the procedural photo as a binary 8-bit PPM (P6), written in Go | CC0 |
 | `ssim/*.png` | `gen ssim-refs` (Go only: greyscale photo plus mean shift, contrast stretch, impulse noise, Gaussian blur σ 1.5, stdlib JPEG q15) | CC0 |
 | `fixtures/dng/landscape.dng`, `fixtures/dng/portrait-orientation-6.dng` | `gen dng` (own DNG writer; the preview is Go `image/jpeg` q85 of the photo, the mosaic is the photo sampled as linear RGGB) | CC0 |
 | `golden/**` | written by tests with `GOLDEN_UPDATE=1` from the fixtures above and the RAW samples below | CC0 |

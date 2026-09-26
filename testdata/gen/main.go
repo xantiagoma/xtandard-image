@@ -45,7 +45,7 @@ func main() {
 
 func run(args []string) error {
 	if len(args) < 2 {
-		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|gif|gif-anim|ico-png|ico-bmp|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb|dng> args...")
+		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|gif|gif-anim|ico-png|ico-bmp|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb|exr-rgba-half|exr-rgb-float|radiance|rgbe|pfm|ppm|hdr-stats|dng> args...")
 	}
 	sizeArgs := func() (int, int, string, error) {
 		if len(args) != 4 {
@@ -131,6 +131,32 @@ func run(args []string) error {
 			v[i] = n
 		}
 		return writeDNG(args[6], v[0], v[1], v[2], v[3], uint16(v[4]))
+	case "exr-rgba-half", "exr-rgb-float", "radiance", "rgbe", "pfm", "ppm":
+		w, h, out, err := sizeArgs()
+		if err != nil {
+			return err
+		}
+		switch args[0] {
+		case "exr-rgba-half":
+			return writeEXR(out, w, h, true, false)
+		case "exr-rgb-float":
+			return writeEXR(out, w, h, false, true)
+		case "radiance":
+			return writeRadiance(out, "#?RADIANCE", w, h)
+		case "rgbe":
+			return writeRadiance(out, "#?RGBE", w, h)
+		case "pfm":
+			return writePFM(out, w, h)
+		default:
+			return writePPM(out, w, h)
+		}
+	case "hdr-stats":
+		w, h, _, err := sizeArgs()
+		if err != nil {
+			return err
+		}
+		hdrStats(w, h)
+		return nil
 	default:
 		return fmt.Errorf("unknown subcommand %q", args[0])
 	}

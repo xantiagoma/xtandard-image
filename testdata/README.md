@@ -44,6 +44,10 @@ testdata/
 | `uhdr/photo-ultrahdr.jpg` | UltraHDR JPEG 320x240 | JPEG with a libultrahdr gain map (MPF secondary image) |
 | `dng/landscape.dng` | DNG 192x128 | synthetic camera RAW: 16-bit RGGB mosaic in a SubIFD, 96x64 JPEG preview in IFD0, camera EXIF (Make, Model, exposure, ISO, lens, date) |
 | `dng/portrait-orientation-6.dng` | DNG 192x128 stored, shown 128x192 | same, Orientation 6 (mosaic and 48x32 preview stored rotated 90° CCW) |
+| `exr/rgba-half.exr`, `exr/rgb-float.exr` | OpenEXR 80x60, 48x32 | scene-linear HDR (sun at 40): RGBA half with an alpha fade in the bottom quarter; RGB float without alpha |
+| `hdr/scene.hdr`, `hdr/rgbe.hdr` | Radiance 96x64, 48x32 | the same scene as RGBE, `#?RADIANCE` and `#?RGBE` headers |
+| `pfm/scene.pfm` | PFM 64x48 | the same scene as float RGB |
+| `ppm/photo.ppm` | PPM 96x64 | 8-bit binary P6 photo (not HDR) |
 
 ### Camera RAW samples (downloaded)
 

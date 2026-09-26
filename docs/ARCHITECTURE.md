@@ -431,7 +431,7 @@ type Plan struct {
 Fixed step order within one pipeline (imgproxy's `mainPipeline`, chosen for sequential access):
 
 1. **Load** with shrink-on-load: JPEG `shrink` 2/4/8, WebP `scale`, HEIF/AVIF embedded thumbnail, SVG/PDF `scale` (vector guard at `max_src_resolution`). The shrink comes from the size the computed scales give, not the scales, so one-sided targets do not overshrink; the remaining scale is rebased on the loaded size. Animated sources and trimmed images never shrink on load. RAW embedded preview: see FORMATS.md.
-2. **Colour to working space**: import ICC, convert to sRGB (or keep 16-bit when preserving HDR).
+2. **Colour to working space**: import ICC, convert to sRGB. Scene-linear sources (OpenEXR, Radiance, PFM) are tone-mapped to 8-bit sRGB here, or kept as float (JPEG XL) or 16-bit (AVIF) with `preserve_hdr` (FORMATS.md §1.4).
 3. **Trim** (forces random access; disables shrink-on-load; not on animations).
 4. **Pre-crop** (`crop`, thumbor `AxB:CxD`, imgix `rect`) in stored (un-rotated) coordinates: the gravity is mapped back through the user rotate/flip and the EXIF orientation. `crop_aspect_ratio` (imgproxy Pro, WP-60) corrects the crop area (the whole image without `crop`) to the ratio before it is placed: it shrinks the area to match, or with `enlarge` grows it and shrinks it back, keeping the ratio, when it no longer fits; the gravity is not corrected (imgproxy docs).
 5. **Resize** remainder (premultiplied when the image has alpha, linear light optional via `XI_PROCESSING_LINEAR_RESIZE`).
