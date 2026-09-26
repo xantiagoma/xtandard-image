@@ -11,10 +11,13 @@
 const root =
   process.env.IMGPROXY_JS_CORE ??
   "/Users/santi/Projects/xtandard-image/.refs/imgproxy-js-core";
-const { generateUrl } = await import(`${root}/src/index.ts`);
+const { generateUrl, generateImageInfoUrl } = await import(`${root}/src/index.ts`);
 
 type URLType = "plain" | "base64";
-type Case = { name: string; source: string; type: URLType; ext?: string; options: Record<string, unknown> };
+type Case = {
+  name: string; source: string; type: URLType; ext?: string; options: Record<string, unknown>;
+  kind?: "info"; // generateImageInfoUrl; the path excludes the "/info" prefix
+};
 
 const b64 = (s: string) => Buffer.from(s).toString("base64url");
 
@@ -80,14 +83,69 @@ const cases: Case[] = [
   { name: "base64_ext", source: src, type: "base64", ext: "png", options: { height: 120, strip_metadata: true } },
   { name: "all_aliases_short", source: s3, type: "plain", options: {
     rs: { resizing_type: "auto", width: 10 }, g: { type: "ce" }, ex: { extend: 0 }, fn: { name: "x" }, exp: 0, pr: ["a"] } },
+  // Pro options (M2/M3, WP-21b). js-core does not export watermark_rotate.
+  { name: "pro_crop_ar_objects_position", source: src, type: "plain", options: {
+    crop: { width: 100, height: 100 }, crop_aspect_ratio: { aspect_ratio: 1.5, enlarge: true }, objects_position: { type: "soea", xOffset: 5, yOffset: 6 } } },
+  { name: "pro_objects_position_fp", source: src, type: "plain", options: { objects_position: { type: "fp", x: 0.2, y: 0.4 } } },
+  { name: "pro_objects_position_prop", source: src, type: "plain", options: { op: { type: "prop" } } },
+  { name: "pro_color_adjustments", source: src, type: "plain", options: {
+    brightness: -20, contrast: 1.3, saturation: 0.5, monochrome: { intensity: 0.4, color: "aabbcc" },
+    duotone: { intensity: 0.6, color1: "001122", color2: "ffeedd" } } },
+  { name: "pro_adjust_partial", source: src, type: "plain", options: { adjust: { contrast: 1.1 } } },
+  { name: "pro_colorize_gradient", source: src, type: "plain", options: {
+    colorize: { opacity: 0.5, color: "ff0000", keepAlpha: true },
+    gradient: { opacity: 0.8, color: "00ff00", direction: "up", start: 0.1, stop: 0.9 } } },
+  { name: "pro_gradient_angle", source: src, type: "plain", options: { gr: { opacity: 1, direction: 45 } } },
+  { name: "pro_blurs", source: src, type: "plain", options: {
+    unsharp_masking: { mode: "always", weight: 1.5, divider: 20 },
+    blur_areas: { sigma: 10, areas: [{ left: 0, top: 0, width: 0.5, height: 0.5 }, { left: 0.5, top: 0.5, width: 0.25, height: 0.25 }] },
+    progressive_blur: { sigma: 5, direction: "left", start: 0.2, stop: 0.8 } } },
+  { name: "pro_detections", source: src, type: "plain", options: {
+    blur_detections: { sigma: 8, class_names: ["face", "license_plate"] },
+    draw_detections: { draw: true, class_names: ["cat"] }, crop_objects: { scale_factor: 1.2, class_names: ["dog"] } } },
+  { name: "pro_watermark", source: src, type: "plain", options: {
+    watermark: { opacity: 0.7, position: "soea" }, watermark_url: b64("https://example.com/logo.png"),
+    watermark_size: { width: 120, height: 40 }, watermark_shadow: 2 } },
+  { name: "pro_watermark_text", source: src, type: "plain", options: {
+    watermark: { opacity: 1 }, watermark_text: b64("<span foreground='red'>© ACME</span>") } },
+  { name: "pro_style", source: src, type: "base64", options: { style: b64("svg { background: #fff }") } },
+  { name: "pro_output", source: src, type: "plain", options: {
+    dpi: 300, color_profile: "srgb", autoquality: { method: "dssim", target: 0.02, min_quality: 60, max_quality: 90, allowed_error: 0.001 },
+    jpeg_options: { progressive: true, no_subsample: false, trellis_quant: true, overshoot_deringing: true, optimize_scans: true, quant_table: 3 },
+    png_options: { interlaced: true, quantize: true, quantization_colors: 128 },
+    webp_options: { compression: "near_lossless", smart_subsample: true, preset: "photo" }, avif_options: "off" } },
+  { name: "pro_format_best", source: src, type: "plain", options: { format: "best" } },
+  { name: "pro_video", source: src, type: "plain", options: {
+    video_thumbnail_second: 5, video_thumbnail_keyframes: true,
+    video_thumbnail_tile: { step: 2, columns: 3, rows: 3, tile_width: 160, tile_height: 90, extend_tile: true, trim: false, fill: true, focus_x: 0.5, focus_y: 0.25 } } },
+  { name: "pro_video_animation", source: src, type: "plain", options: {
+    video_thumbnail_animation: { step: -1, delay: 100, frames: 10, frame_width: 320, frame_height: 180 } } },
+  { name: "pro_delivery", source: src, type: "plain", options: {
+    fallback_image_url: b64("https://example.com/fallback.png"), bypass_cache: true, cache_tags: ["product-1", "catalog"],
+    max_result_dimension: undefined } },
+  // /info URLs (generateImageInfoUrl).
+  { name: "info_defaults", source: src, type: "plain", kind: "info", options: {} },
+  { name: "info_basic", source: src, type: "plain", kind: "info", options: {
+    size: true, format: true, dimensions: true, exif: { enabled: true, canonical_names: false }, iptc: false, xmp: false, video_meta: false } },
+  { name: "info_colors", source: src, type: "base64", kind: "info", options: {
+    palette: 16, average: { average: true, ignore_transparent: false }, dominant_colors: { dominant_colors: true, build_missed: true } } },
+  { name: "info_hashes", source: src, type: "plain", kind: "info", options: {
+    blurhash: { x_components: 4, y_components: 3 }, thumb_hash: true, perceptual_hash: true, calcHashsums: ["md5", "sha256"] } },
+  { name: "info_detection", source: src, type: "plain", kind: "info", options: {
+    detect_objects: true, classify: { top_k: 3, class_names: ["cat", "dog"] }, crop: { width: 100, height: 100, gravity: { type: "sm" } } } },
+  { name: "info_pages", source: s3, type: "plain", kind: "info", options: {
+    pages_number: true, page: 2, video_thumbnail_second: 3, video_thumbnail_keyframes: false } },
+  { name: "info_delivery", source: src, type: "base64", kind: "info", options: {
+    cachebuster: "v1", expires: 4102444800, preset: ["info"], bypass_cache: true, cache_tags: ["i"] } },
 ];
 
 const out = cases.map(c => {
   const value = c.type === "base64" ? b64(c.source) : c.source;
   const opts = Object.fromEntries(Object.entries(c.options).filter(([, v]) => v !== undefined));
-  let url: string = generateUrl({ value, type: c.type }, opts);
+  const gen = c.kind === "info" ? generateImageInfoUrl : generateUrl;
+  let url: string = gen({ value, type: c.type }, opts);
   if (c.ext) url += (c.type === "plain" ? "@" : ".") + c.ext;
-  return { name: c.name, source: c.source, type: c.type, options: opts, path: url };
+  return { name: c.name, source: c.source, type: c.type, ...(c.kind ? { kind: c.kind } : {}), options: opts, path: url };
 });
 
 console.log(JSON.stringify(out, null, 2));

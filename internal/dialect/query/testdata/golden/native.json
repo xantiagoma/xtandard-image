@@ -1141,11 +1141,15 @@
       "Ignored": [
         {
           "Option": "sa",
-          "Reason": "not implemented"
+          "Reason": "takes effect in M2"
         }
       ],
       "Pipelines": [
-        {}
+        {
+          "Adjust": {
+            "Saturation": 1.2
+          }
+        }
       ],
       "Source": {
         "Raw": "https://example.com/a.jpg"

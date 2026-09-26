@@ -20,7 +20,7 @@ type Builder struct {
 // NewBuilder returns a builder for one request tagged with dialectName.
 // It uses p's separator, strictness, security-option policy and clock.
 func (p *Parser) NewBuilder(dialectName string) *Builder {
-	st := newState(p)
+	st := newState(p, false)
 	st.r.Dialect = dialectName
 	return &Builder{st: st}
 }

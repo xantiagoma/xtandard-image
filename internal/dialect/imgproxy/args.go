@@ -284,9 +284,17 @@ const (
 )
 
 // parseGravity applies "type[:args...]" to g, keeping unspecified offsets
-// as imgproxy does. field prefixes error field names. It reports the
-// milestone of the parsed type ("" for M1).
+// as imgproxy does, and the objects_position set by its own option. field
+// prefixes error field names. It reports the milestone of the parsed type
+// ("" for M1).
 func parseGravity(g *transform.Gravity, field string, kind gravityKind, args []string) (string, error) {
+	op := g.ObjectsPosition
+	ms, err := parseGravityType(g, field, kind, args)
+	g.ObjectsPosition = op
+	return ms, err
+}
+
+func parseGravityType(g *transform.Gravity, field string, kind gravityKind, args []string) (string, error) {
 	t := args[0]
 	if gt, ok := compass[t]; ok {
 		if err := maxArgs(field, args, 3); err != nil {
