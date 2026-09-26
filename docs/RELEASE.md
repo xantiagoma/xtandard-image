@@ -47,9 +47,31 @@ Build properties (enforced in the `Dockerfile`):
 5. Watch `release` in Actions. Nothing is tagged until both architectures have passed `verify-app-image.sh` and `acceptance.sh`; a failure leaves only untagged digests behind (GHCR retention cleans them up).
 6. Verify the published image (below) and edit the generated release notes if needed. After the first release, switch the README quick start from building to the published image: the `sh quickstart-build` block becomes `docker pull ghcr.io/xantiagoma/xtandard-image:slim && docker tag ghcr.io/xantiagoma/xtandard-image:slim xtandard-image`, or the later blocks use the GHCR name directly.
 
+7. Check the published schema and API document (below, "Schema and API site"): the last `pages` run on `main` must be green, and `curl -fsS https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json | cmp - <(docker run --rm ghcr.io/xantiagoma/xtandard-image:X.Y.Z config schema)` must print nothing. If it differs, run the `pages` workflow from the tag.
+
 **Dry run**: Actions → `release` → *Run workflow* with `dry_run` checked (the default) builds and verifies both architectures from the selected branch without pushing. With `dry_run` unchecked, `version` must be an existing tag; it is checked out and published like a tag push, but no GitHub release is created.
 
 **Re-running** a release for the same tag rebuilds and re-tags; the image content is identical (reproducible build), but the digest can differ if the base image digest moved in between.
+
+## Schema and API site (GitHub Pages)
+
+`.github/workflows/pages.yml` publishes the config JSON Schema and the OpenAPI document to `https://xantiagoma.github.io/xtandard-image/` (WP-81b, ADR 0007 decision 6). It runs on every push to `main` that changes `internal/config/config.schema.json`, `internal/apidoc/openapi.json`, `docs/pages/**`, `scripts/pages-build.sh` or the workflow, and on demand (*Run workflow*).
+
+| Path | Content |
+|---|---|
+| `/` | `index.html`: links every file, editor modelines (`docs/pages/index.html`) |
+| `/api/` | Scalar API reference over `schema/latest/openapi.json` (same pinned Scalar build and SRI as admin `/docs`) |
+| `/schema/v1/config.schema.json` | The config schema; this URL is its `$id` |
+| `/schema/v1/openapi.json` | The OpenAPI document |
+| `/schema/latest/…` | The same two files for the newest schema major |
+
+`v1` is the schema major version read from the `$id`, not the release version, so the URL stays stable across releases. Bump it (in `config.SchemaID`, `TestSchemaID` and `docs/schemastore/catalog-entry.json`) only when a config key is removed or renamed; `scripts/pages-build.sh` then needs to keep publishing the last `v1` files next to `v2` (check them out from the last `v1` tag), because a published `$id` is forever.
+
+Jobs: `build` runs `scripts/pages-build.sh` (the same script as `task pages:build`) and uploads `dist/pages` with `actions/upload-pages-artifact`; `deploy` publishes it with `actions/deploy-pages` to the `github-pages` environment; `verify` fetches every published JSON file, compares it byte for byte with the committed one, and validates the SchemaStore samples (`docs/schemastore/tests`) with Ajv against the schema URL their modeline names.
+
+Before the first run the owner must, once: set Settings → Pages → Source to *GitHub Actions* and enable the `pages` workflow. Then open the SchemaStore PR ([docs/schemastore/README.md](schemastore/README.md)).
+
+Locally, `task pages:build` assembles the same site in `dist/pages/` and lists its files; the output depends only on the committed files, so two runs are byte-identical. Serve it with any static server to check it, e.g. `python3 -m http.server -d dist/pages`.
 
 ## Verifying a published image
 

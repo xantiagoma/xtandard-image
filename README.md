@@ -165,6 +165,18 @@ services:
 
 The image declares a Docker `HEALTHCHECK` (`/healthz`); Prometheus metrics are on the admin listener (`XI_ADMIN_ADDR`, default `127.0.0.1:9090`, set `:9090` to scrape it from another container). Put a CDN in front for caching. Every variable is documented in [docs/CONFIG.md](docs/CONFIG.md), which also has Kubernetes and larger Dokploy/Coolify examples; `XI_COMPAT_IMGPROXY_ENV=true` accepts your existing `IMGPROXY_*` variables.
 
+## Editor support
+
+The config file (YAML, JSON or TOML) has a JSON Schema, so editors validate it, complete keys and show each key's meaning and its `XI_*` variable on hover. Point the file at the published schema:
+
+```yaml
+# yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json
+server:
+  addr: ":8080"
+```
+
+JSON files use a top-level `"$schema"` key with the same URL, and TOML files a first line `#:schema <url>` (Taplo, Tombi). A running instance also serves the schema for its exact version on the admin listener (`GET /config.schema.json`), `xtandard-image config schema` prints it, and `xtandard-image config validate --config <file>` checks a file with the real loader. The HTTP API is described by an OpenAPI 3.1 document: `xtandard-image openapi`, admin `GET /openapi.json`, or the [published copy](https://xantiagoma.github.io/xtandard-image/schema/v1/openapi.json) with a [browsable reference](https://xantiagoma.github.io/xtandard-image/api/). See [docs/CONFIG.md](docs/CONFIG.md#config-file-formats-and-schema-adr-0007) and [docs/OPENAPI.md](docs/OPENAPI.md).
+
 ## Performance
 
 [bench/RESULTS.md](bench/RESULTS.md) compares xtandard-image with imgproxy OSS on the same machine with matched settings (thumbnails to JPEG/WebP/AVIF, PNG with alpha, animated GIF, 1200 px fill, `/info`); the methodology is in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
@@ -174,7 +186,8 @@ The image declares a Docker `HEALTHCHECK` (`/healthz`); Prometheus metrics are o
 - [Architecture](docs/ARCHITECTURE.md): request lifecycle, packages, the canonical transform model, concurrency and memory, failure modes, and the Docker build.
 - [URL dialects](docs/URL-DIALECTS.md): grammar, option mapping and signing for every supported dialect.
 - [Formats](docs/FORMATS.md): decoders, encoders, and the best-format decision matrix.
-- [Configuration](docs/CONFIG.md): environment variables, YAML, and Dokploy, Coolify and Kubernetes examples.
+- [Configuration](docs/CONFIG.md): environment variables, the YAML/JSON/TOML config file and its JSON Schema, and Dokploy, Coolify and Kubernetes examples.
+- [OpenAPI](docs/OPENAPI.md): the OpenAPI 3.1 document of the HTTP API and where it is published.
 - [Release](docs/RELEASE.md): how the image is built, published and verified.
 - [Benchmarks](docs/BENCHMARKS.md): methodology and how to reproduce [bench/RESULTS.md](bench/RESULTS.md).
 - [Roadmap](docs/ROADMAP.md): the M1, M2 and M3 work packages.
