@@ -44,7 +44,7 @@ Default mounts (all dialects other than imgproxy are disabled until enabled in c
 | cloudinary | `s--XXXXXXXX--` = first 8 chars of base64url(SHA-1(transformations/…/public_id ‖ api_secret)); 32 chars with SHA-256 "long" signatures | path segment | https://cloudinary.com/documentation/delivery_url_signatures |
 | imagekit | `ik-s` = hex(HMAC-SHA1(private_key, url-relative-to-endpoint (path ["?" query without ik-s/ik-t]) ‖ ik-t)), `ik-t` = expiry unix seconds; absent = 9999999999, which is signed but not written | query | https://imagekit.io/docs/media-delivery-basic-security |
 | thumbor | HMAC-SHA1(SECURITY_KEY, escaped path-after-signature **without** the leading `/`), URL-safe base64 **with** padding (28 chars, Python `urlsafe_b64encode`); keys are raw strings, not hex; `unsafe` = unsigned (§10) | first path segment | https://thumbor.readthedocs.io/en/latest/security.html |
-| bunny | token auth: `token` + `expires`; basic = MD5, advanced = SHA-256 of key ‖ path ‖ expires (‖ optional params), base64url | query | https://bunny.net/docs/cdn/security/token-authentication (exact byte layout to be verified against Bunny SDK code in the WP) |
+| bunny | token auth: `token` (or path segment `bcdn_token=`) + `expires`; basic = b64url(MD5(key ‖ path ‖ expires)); legacy advanced = b64url(SHA-256(key ‖ path ‖ expires ‖ data)); current advanced = `HS256-` b64url(HMAC-SHA256(key, path ‖ expires ‖ data)); path = decoded path or `token_path`, data = other params sorted `k=v&…`; b64url unpadded | query or first path segment | https://bunny.net/docs/cdn/security/token-authentication; layout verified against `BunnyWay/BunnyCDN.TokenAuthentication` (see §9) |
 | cloudflare `/cdn-cgi/image` | none upstream | — | https://developers.cloudflare.com/images/transform-images/transform-via-url/ |
 | cloudflare-images | `sig` = hex(HMAC-SHA256(key, path ‖ "?" ‖ query-without-sig)), i.e. `path?exp=<unix>` for Cloudflare's own URLs; raw key; `exp` checked after the signature (expired → 404) | query | https://developers.cloudflare.com/images/optimization/hosted-images/serve-private-images/ |
 | cloudflare `/cdn-cgi/image` (xi) | optional `xi_sig` | query | — |
@@ -504,31 +504,54 @@ Dialect `cloudflare_images`, mounted at `/cdn-cgi/imagedelivery/`; bind the host
 
 ## 9. Bunny Optimizer
 
-Reference: https://bunny.net/docs/stream-image-processing (Dynamic Image API); unpic `bunny.ts` (sets `aspect_ratio` when w and h given; `format` → `output`).
+Reference: https://bunny.net/docs/optimizer/dynamic-images/overview (Dynamic Images API: resizing, cropping, face-detection, luminosity, color-manipulation, reflections-and-rotations, blur-and-sharpen, quality, formats) and https://bunny.net/docs/optimizer/image-classes, fetched 2026-09-26; unpic `bunny.ts` (sets `aspect_ratio` when w and h given; `format` → `output`). Implementation: `internal/dialect/bunny` (WP-44).
 
 ```
 https://cdn.example.com/a.jpg?width=400&aspect_ratio=16:9&quality=80&output=webp
 /bunny/<mount>/a.jpg?width=400&crop_gravity=north&token=…&expires=…
+/bunny/<mount>/bcdn_token=HS256-…&expires=…&token_path=%2Fimg%2F/img/a.jpg
 ```
+
+The path after the mount is the source, a key relative to the mount's bound source (never an absolute URL; a `:` in its first segment is escaped). Parameters are unordered as on Bunny: the last value of a repeated parameter wins and options apply in Bunny's documented order (class, crop operations, resize, flip/flop/rotate, blur/sharpen, colour, format/quality). Numbers are Bunny's integer scales; out-of-range or malformed values are 400 naming the parameter; unknown parameters are `Ignored` (strict mode: 400).
 
 | Bunny | TR |
 |---|---|
-| `width`, `height` | Width/Height (Fit + no enlarge when one dim; Fill when both) |
-| `aspect_ratio=16:9` | Fill to aspect with `crop_gravity` |
-| `crop=w,h[,x,y]` | Crop |
-| `crop_gravity=center|north|south|east|west|northeast|…|top_left…` | Gravity |
-| `face_crop` | Face (M3) |
-| `quality` | Quality |
-| `output`/`format` = `webp|jpeg|png|gif|avif` | Format |
-| `auto_optimize=low|medium|high` | negotiate + Quality 85/75/65 |
-| `sharpen=true` | Sharpen σ 1 |
+| `width`, `height` (px) | Width/Height, Fit (Bunny keeps the aspect ratio with both, picking the smaller result), no enlarge |
+| `upscaling=off|resampling` | Enlarge |
+| `aspect_ratio=w:h` (`auto` = none) | Crop.AspectRatio anchored by `crop_gravity` (M2). With `width`+`height` of the same ratio (what unpic emits) it is Resize fill-down (fill with `upscaling=resampling`), which takes effect now |
+| `crop=w,h` / `crop=w,h,x,y` (px, x,y = top-left) | Crop with gravity from `crop_gravity` / Crop at north-west + offsets |
+| `crop_gravity=center|north|south|east|west|northeast|northwest|southeast|southwest` (+ unpic aliases `top|bottom|left|right|top_left|…`) | Gravity |
+| `focus_crop=w,h,x,y` | Crop w×h: relative x,y (0–1 with a decimal point) → focus-point gravity; pixel x,y → north-west offsets (x−w/2, y−h/2), clamped by the planner |
+| `face_crop=true` / `face_crop=w,h` | Face (M3); until then ignored / a centred w×h crop |
+| `quality` (0–100) | Quality |
+| `format` / `output` = `webp|jpeg|png|gif|avif` | Format |
+| `auto_optimize=low|medium|high` | Quality 85/75/65 unless `quality` is set (format negotiation is the default) |
+| `sharpen=true|false` (Bunny's examples also use `sharpen=<n>`) | Sharpen σ 1 (numeric: same, recorded as approximated) |
 | `blur` (0–100) | Blur σ = v/4 |
 | `flip`, `flop` | Flip V / H |
-| `rotate` (90 multiples) | Rotate |
-| `brightness`, `contrast`, `saturation`, `gamma` (−100..100), `hue` (0–100), `sepia` | Adjust / Sepia (M2) |
-| `class=<name>` | preset |
+| `rotate` (−270…270, multiples of 90) | Rotate (normalised to 0/90/180/270) |
+| `brightness` (−100..100) | Adjust.Brightness = v × 2.55 (M2) |
+| `contrast`, `saturation` (−100..100) | multiplier 1 + v/100 (M2); `saturation=-100` is grayscale |
+| `gamma` (−100..100) | multiplier 2^(v/100) (M2) |
+| `hue` (0–100, 33 ≈ one primary) | Adjust.Hue = v × 3.6° (M2) |
+| `tint=rrggbb` (`ffffff` = none) | Tint (M2) |
+| `sepia` (0–100) | Sepia on when > 0 (M2; intensity not modelled) |
+| `class=<name>` | preset (the mount shares `XI_PRESETS`); with `XI_PRESETS_ONLY` ("forced transformation classes") any other option is 403 |
 | `optimizer=image` | ignored (meaning is implicit) |
-| `token`, `expires` | signature |
+| `token`/`bcdn_token`, `expires`, `token_path`, `token_ignore_params` | signature (below) |
+| `token_countries`, `token_countries_blocked`, `limit` | signed but not enforced (no geo lookup, no rate limiting); recorded in `Ignored` |
+
+**Token authentication** (`sign.BunnyMessage`, `sign.NewBunnyVerifier`). Keys are the mount's `keys` (the pull zone's URL token authentication key, a raw string, not hex); a mount without keys is unsigned. Three layouts are accepted, told apart by the `HS256-` prefix or the token length:
+
+```
+basic   token = b64url(MD5(key ‖ path ‖ expires))                   22 chars, deprecated by Bunny
+sha256  token = b64url(SHA-256(key ‖ path ‖ expires ‖ data))        43 chars, legacy "advanced"
+hs256   token = "HS256-" b64url(HMAC-SHA256(key, path ‖ expires ‖ data))   current "advanced"
+```
+
+b64url is URL-safe base64 without padding (padding is tolerated). `path` is the decoded path after the mount (the pull-zone path), or `token_path` when present; `expires` is the parameter exactly as written (unix seconds); `data` is every other parameter, Optimizer options included, except `token`/`bcdn_token` and `expires`, sorted by key and joined as `key=value` with `&` using the decoded values (empty values kept as `key=`); with `token_ignore_params=true` it is only `token_ignore_params=true` plus `token_path`, so options can be added freely. A verified token with `token_path` authorises only paths starting with it (else 403). A token without `expires`, a repeated `token`/`expires` or a repeated signed parameter is 403. `expires` in the past is 404 (`KindExpired`) for every URL that carries it. IP-locked tokens (basic with the IP appended, `HS256-1-…`) cannot be verified because dialects never see the client address; they are 403. Unsigned requests fall under the mount's unsigned policy (set `unsigned_policy: deny` to require tokens like Bunny does).
+
+Verified sources: the HS256 layout is `go/token.go` of https://github.com/BunnyWay/BunnyCDN.TokenAuthentication at 48ff1af (2026-07-24), whose `e2e/vectors.json` (key `SecurityKey`, expires 1598024587) the tests reproduce; the legacy SHA-256 layout is `nodejs/token.js` and `php/url_signing.php` at 1019b23 (the last commit before the HMAC rewrite), whose C# `TokenSignerTests` expectations the tests reproduce, including path-based `bcdn_token` URLs; the basic layout is the PHP/JS/C#/Python sample on https://bunny.net/docs/cdn/security/token-authentication/basic (its example token omits the key, so the test vector is computed independently with `openssl md5`). Where the legacy SDKs disagree (C# put the IP before `expires`, Python appended it after `data`) only the IP-less layout is implemented.
 
 ## 10. Thumbor
 

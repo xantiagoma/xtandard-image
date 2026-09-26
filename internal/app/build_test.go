@@ -12,6 +12,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/encode"
 	"github.com/xantiagoma/xtandard-image/internal/config"
+	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/security/sign"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
@@ -196,5 +197,44 @@ func TestThumborDisabledNotMounted(t *testing.T) {
 	r := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/thumbor/unsafe/a.jpg", nil)
 	if _, m, err := rt.Route(r); err == nil && m.Dialect == "thumbor" {
 		t.Fatal("thumbor mounted while disabled")
+	}
+}
+
+// TestBuildRouterBunny: an enabled bunny mount is routed with its own
+// token key (WP-44) and no longer reported as unimplemented.
+func TestBuildRouterBunny(t *testing.T) {
+	t.Parallel()
+	cfg, _, err := config.Load(config.LoadOptions{Environ: []string{
+		"XI_DEV_MODE=true",
+		"XI_DIALECTS_BUNNY_ENABLED=true",
+		"XI_DIALECTS_BUNNY_KEYS=SecurityKey",
+	}, ConfigFile: os.DevNull})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rt, warnings, err := buildRouter(&cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, w := range warnings {
+		if strings.Contains(w, "bunny") {
+			t.Errorf("warning %q", w)
+		}
+	}
+	// BunnyWay/BunnyCDN.TokenAuthentication e2e vector "plain": the token
+	// verifies, then its 2020 expiry answers 404; a changed path is a 403.
+	const q = "?token=HS256-o10JRWlsAItyAsdKS6jJKjabHN4FrFsplDHPV1idcX4&expires=1598024587"
+	for path, want := range map[string]errs.Kind{
+		"/bunny/300kb.jpg" + q: errs.KindExpired,
+		"/bunny/301kb.jpg" + q: errs.KindUnauthorized,
+	} {
+		_, m, err := rt.Route(httptest.NewRequestWithContext(t.Context(), http.MethodGet, path, http.NoBody))
+		if errs.KindOf(err) != want || m == nil || m.Dialect != "bunny" {
+			t.Errorf("%s: mount %v, err %v; want %v", path, m, err, want)
+		}
+	}
+	res, _, err := rt.Route(httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/bunny/a.jpg?width=640", http.NoBody))
+	if err != nil || res.Request.Dialect != "bunny" || res.SourceString != "a.jpg" {
+		t.Errorf("unsigned: %v, %v", res, err)
 	}
 }
