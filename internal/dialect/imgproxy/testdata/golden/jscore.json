@@ -1396,10 +1396,6 @@
       "Dialect": "imgproxy",
       "Ignored": [
         {
-          "Option": "aq",
-          "Reason": "takes effect in M2"
-        },
-        {
           "Option": "avifo",
           "Reason": "takes effect in M2"
         },

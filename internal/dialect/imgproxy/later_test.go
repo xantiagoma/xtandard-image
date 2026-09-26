@@ -150,6 +150,8 @@ func TestLaterOptions(t *testing.T) {
 		opt("aq_bad_method", "aq:fast"),
 		opt("aq_min_over_max", "aq:size::90:60"),
 		opt("aq_bad_allowed_error", "aq:dssim::::2"),
+		opt("aq_size_bytes", "aq:size:10240:10:80"),
+		opt("aq_size_too_large", "aq:size:2000000000"),
 		// jpeg_options / jpgo (M2)
 		opt("jpeg_options_full", "jpeg_options:1:0:1:1:1:3"),
 		opt("jpgo_progressive", "jpgo:t"),
