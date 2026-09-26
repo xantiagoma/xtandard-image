@@ -50,6 +50,16 @@
 // Result.AutoQuality the method, target, measured metric and whether it was
 // met.
 //
+// # Best format
+//
+// EncodeBest serves format=best (FORMATS.md §6.3): it classifies the
+// processed image (negotiate.Analyze on a 256 px nearest-neighbour copy of
+// the first frame), encodes every candidate negotiate.Decision.BestCandidates
+// gives for that class with the request's quality settings (auto-quality
+// included), and returns the smallest output that meets the quality bar.
+// Above Config.Best.MaxPixels it encodes the negotiated format once.
+// Result.Best reports the analysis and every try.
+//
 // # Metadata
 //
 // Target.Metadata applies strip_metadata, keep_copyright and

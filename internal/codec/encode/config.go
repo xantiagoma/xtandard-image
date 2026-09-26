@@ -43,6 +43,21 @@ type Config struct {
 
 	// AutoQuality is the configured auto-quality (XI_FORMATS_AUTOQUALITY_*).
 	AutoQuality AutoQualityConfig
+
+	// Best configures format=best (XI_FORMATS_BEST_*, EncodeBest).
+	Best BestConfig
+}
+
+// BestConfig configures the best-format selection (FORMATS §6.3).
+type BestConfig struct {
+	// MaxPixels skips the selection above this many output pixels (all
+	// frames): the negotiated format is encoded instead
+	// (XI_FORMATS_BEST_MAX_PIXELS). 0 = no cap.
+	MaxPixels int64
+	// ComplexityThreshold separates graphics from photos
+	// (negotiate.Analyze; XI_FORMATS_BEST_COMPLEXITY_THRESHOLD). 0 skips
+	// the analysis: every image is tried as a photo.
+	ComplexityThreshold float64
 }
 
 // AutoQualityConfig is the configured quality search (imgproxy
@@ -104,6 +119,7 @@ func DefaultConfig() Config {
 		AVIFLargePixels: 4_000_000,
 		AVIFLargeEffort: 2,
 		AutoQuality:     DefaultAutoQuality(),
+		Best:            BestConfig{MaxPixels: 8_000_000, ComplexityThreshold: 5.5},
 	}
 }
 
@@ -134,6 +150,12 @@ func (c *Config) Validate() error {
 	}
 	if c.AVIFLargePixels < 0 {
 		errList = append(errList, errors.New("encode: avif large-image pixels must not be negative"))
+	}
+	if c.Best.MaxPixels < 0 {
+		errList = append(errList, errors.New("encode: best max pixels must not be negative"))
+	}
+	if !(c.Best.ComplexityThreshold >= 0) {
+		errList = append(errList, fmt.Errorf("encode: best complexity threshold %v must be >= 0", c.Best.ComplexityThreshold))
 	}
 	errList = append(errList, c.AutoQuality.validate()...)
 	return errors.Join(errList...)

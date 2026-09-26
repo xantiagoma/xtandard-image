@@ -124,6 +124,9 @@ type Result struct {
 	OverBudget bool
 	// AutoQuality reports the auto-quality search.
 	AutoQuality AutoQualityResult
+	// Best reports the best-format selection of EncodeBest; nil from
+	// Encode.
+	Best *BestResult
 }
 
 // goBody is a Body over Go memory (BMP and ICO output).
