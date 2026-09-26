@@ -62,17 +62,42 @@ tasks:
         vars: { CMD: "{{.GO_BUILD}}" }
 
   docker:image:
-    desc: "Build the app image xtandard-image:dev on $XI_APP_BASE (runtime base; builder = <base>-builder)"
-    cmds:
-      - >-
-        docker build -t xtandard-image:dev
-        --build-arg BASE="${XI_APP_BASE:-ghcr.io/xantiagoma/xtandard-image-base:slim}"
-        --build-arg VERSION={{.VERSION}} --build-arg COMMIT={{.COMMIT}} .
+    desc: "Alias of release:build"
+    cmds: [task: release:build]
 
   smoke:
     desc: "End-to-end smoke test of xtandard-image:dev (compose.smoke.yml); XI_APP_BASE=xtandard-base:dev locally"
-    deps: [docker:image]
+    deps: [release:build]
     cmds: [sh scripts/smoke.sh]
+
+  # ---- release (docs/RELEASE.md) --------------------------------------------
+
+  release:build:
+    desc: "Build the release app image $XI_IMAGE (default xtandard-image:dev) for the host arch; XI_APP_BASE=xtandard-base:dev uses a local base (builder = <base>-builder), else the versions.sh base pinned by digest"
+    vars:
+      EPOCH:
+        sh: git log -1 --pretty=%ct 2>/dev/null || echo 0
+    cmds:
+      - |
+        if [ -n "${XI_APP_BASE:-}" ]; then
+          builder="${XI_APP_BASE}-builder"
+          runtime="${XI_APP_BASE}"
+        else
+          builder="$(sh scripts/base-image-ref.sh --digest builder)"
+          runtime="$(sh scripts/base-image-ref.sh --digest runtime)"
+        fi
+        docker build -t "${XI_IMAGE:-xtandard-image:dev}" \
+          --build-arg BASE_BUILDER="$builder" --build-arg BASE_RUNTIME="$runtime" \
+          --build-arg VERSION={{.VERSION}} --build-arg COMMIT={{.COMMIT}} \
+          --build-arg SOURCE_DATE_EPOCH={{.EPOCH}} .
+
+  release:verify:
+    desc: "Verify $XI_IMAGE (default xtandard-image:dev): version, config, ≤ 110 MB compressed, read-only + health, smoke"
+    cmds: [sh scripts/verify-app-image.sh]
+
+  release:pgo:
+    desc: "Refresh cmd/xtandard-image/default.pgo: 30 s CPU profile of $XI_IMAGE under the smoke load (build it first)"
+    cmds: [sh scripts/pgo-profile.sh]
 
   docker:shell:
     desc: "Interactive shell in the base image builder with the repo at /src"

@@ -1,7 +1,8 @@
-# End-to-end smoke test of the built app image (WP-00): the image next to a
-# static origin serving testdata/fixtures. Driven by scripts/smoke.sh.
+# End-to-end smoke test of the built app image (WP-00, WP-37): the image next
+# to a static origin serving testdata/fixtures. Driven by scripts/smoke.sh,
+# scripts/verify-app-image.sh and scripts/pgo-profile.sh.
 #
-#   docker build -t xtandard-image:dev --build-arg BASE=xtandard-base:dev .
+#   task release:build XI_BASE=local   # or docker build … (see Dockerfile)
 #   scripts/smoke.sh
 name: xtandard-image-smoke
 
@@ -23,8 +24,13 @@ services:
       XI_ADMIN_ADDR: ":9090"
       XI_SERVER_SHUTDOWN_DELAY: "1s"
       XI_SERVER_SHUTDOWN_TIMEOUT: "10s"
+      # scripts/pgo-profile.sh turns pprof on to collect default.pgo.
+      XI_ADMIN_PPROF: ${XI_ADMIN_PPROF:-false}
     ports:
       - "127.0.0.1::8080"
       - "127.0.0.1::9090"
+    # Production posture: read-only rootfs, writable tmpfs /tmp only.
     read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
     stop_grace_period: 20s
