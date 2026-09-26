@@ -1,5 +1,5 @@
 #!/bin/bash
-# Recomputes every *_SHA256 value in versions.sh and versions-full.sh from the
+# Recomputes every *_SHA256 value in versions.sh, versions-full.sh and versions-gpl.sh from the
 # pinned versions. Run after bumping a version; review the diff before committing.
 #
 # Usage: docker/base/update-checksums.sh
@@ -40,8 +40,10 @@ trap 'rm -f "$sums"' EXIT
 
 # Full flavor (WP-70): FFmpeg, libvpx, ONNX Runtime (both architectures) and models.
 PRINT_CHECKSUMS=1 FULL_DEPS_SRC="$(mktemp -d)" "$my_dir/download-full-deps.sh" >> "$sums"
+# gpl flavor (WP-70b): x264, x265.
+PRINT_CHECKSUMS=1 GPL_DEPS_SRC="$(mktemp -d)" "$my_dir/download-gpl-deps.sh" >> "$sums"
 
-for file in "$versions_file" "$my_dir/versions-full.sh"; do
+for file in "$versions_file" "$my_dir/versions-full.sh" "$my_dir/versions-gpl.sh"; do
   awk -F= '
     NR == FNR { sum[$1] = $2; next }
     /^export [A-Z0-9_]+_SHA256[A-Z0-9_]*=/ {

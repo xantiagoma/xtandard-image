@@ -6,6 +6,7 @@
 #   XI_BASE_IMAGE=xtandard-base:dev-builder task docker:test   # locally built base (WP-05)
 #   task docker:base:slim docker:base:slim:check   # build + verify the slim base locally
 #   task docker:base:full docker:base:full:check   # same for the full flavor (WP-70)
+#   task docker:base:gpl docker:base:gpl:check     # same for the gpl flavor (WP-70b, GPL)
 #   XI_BASE_IMAGE=xtandard-base:dev-full-builder task docker:test
 #   task test:integration   # starts compose.test.yml services (RustFS, ...) and runs
 #                           # -tags integration tests in the builder on their network
@@ -135,7 +136,8 @@ tasks:
       - docker compose -f compose.dev.yml run --rm -T dev {{.CMD}}
 
   # ---- base image (docker/base, host architecture only) --------------------
-  # Local tags: xtandard-base:dev[-builder] (slim), xtandard-base:dev-full[-builder].
+  # Local tags: xtandard-base:dev[-builder] (slim), xtandard-base:dev-full[-builder],
+  # xtandard-base:dev-gpl[-builder] (gpl: contains GPL software, ADR 0006).
   # Publishing (multi-arch, GHCR) is .github/workflows/base-image.yml.
 
   docker:base:slim:
@@ -165,6 +167,20 @@ tasks:
     cmds:
       - bash docker/base/test-check-licenses.sh
       - bash docker/base/verify-image.sh --flavor full xtandard-base:dev-full xtandard-base:dev-full-builder
+
+  docker:base:gpl:
+    desc: "Build the gpl base image (full + FFmpeg rebuilt as GPL with x264/x265; contains GPL software, ADR 0006) for the host arch: xtandard-base:dev-gpl-builder and xtandard-base:dev-gpl"
+    cmds:
+      - task: docker:base:build
+        vars: { TARGET: builder-gpl, TAG: xtandard-base:dev-gpl-builder }
+      - task: docker:base:build
+        vars: { TARGET: runtime-gpl, TAG: xtandard-base:dev-gpl }
+
+  docker:base:gpl:check:
+    desc: "Licence gate self-test and verify-image.sh --flavor gpl (GPL allowlist, LICENSE-GPL.md, H.264/HEVC round trips) on the local gpl pair"
+    cmds:
+      - bash docker/base/test-check-licenses.sh
+      - bash docker/base/verify-image.sh --flavor gpl xtandard-base:dev-gpl xtandard-base:dev-gpl-builder
 
   docker:base:build:
     internal: true
