@@ -217,7 +217,7 @@ Pro options (WP-63; per-option goldens for a photo, an alpha PNG and an animated
 
 ### 3.5 Client hints (WP-65; all dialects)
 
-A hint is read when the URL opts into it (imgix `ch=Width,DPR,Save-Data`, ImageKit `w-auto`/`dpr-auto`; the cloudinary `w_auto`/`dpr_auto` and cloudflare `width=auto` rows map to the same fields once those dialects set them) or, with `XI_CLIENT_HINTS_ENABLED`, whenever the URL leaves the value unset. `negotiate.ApplyClientHints` resolves hints into the request before defaults, so hinted values are part of the canonical key and ETag (Save-Data through `qualityDelta`, ARCHITECTURE §9.1).
+A hint is read when the URL opts into it (imgix `ch=Width,DPR,Save-Data`, ImageKit `w-auto`/`dpr-auto`, Cloudinary `w_auto[:step]`/`dpr_auto`, Cloudflare `width=auto` and `slow-connection-quality`; each sets `transform.ClientHints`, which applies to the first pipeline) or, with `XI_CLIENT_HINTS_ENABLED`, whenever the URL leaves the value unset. `negotiate.ApplyClientHints` resolves hints into the request before defaults, so hinted values are part of the canonical key and ETag (Save-Data through `qualityDelta`, ARCHITECTURE §9.1).
 
 | Hint | Rule |
 |---|---|
@@ -369,7 +369,7 @@ Signature: `s--SIG--` right after the delivery type; the signed message is the r
 
 | Cloudinary | TR | Notes |
 |---|---|---|
-| `w_`, `h_` (int px; a decimal is relative: `w_0.5`, `w_1.0`; `w_auto[:step[:fallback]]` client hint) | Width/Height | expressions (`iw_div_2`), `$vars` unsupported |
+| `w_`, `h_` (int px; a decimal is relative: `w_0.5`, `w_1.0`; `w_auto[:step[:fallback]]` client hint) | Width/Height; `w_auto` → `ClientHints.Width` (`WidthStep` = step; the fallback is the Width until a hint resolves it) | expressions (`iw_div_2`), `$vars` unsupported |
 | `c_scale` (default when `w_`/`h_`/`ar_` without `c_`) | Force if both dims or `ar_`, else Fit + Enlarge | after a `t_` preset that set a mode, the preset's mode is kept |
 | `c_fit` / `c_limit` / `c_mfit` | Fit+Enlarge / Fit / Outside+Enlarge | |
 | `c_fill` / `c_lfill` | Fill+Enlarge / FillDown | |
@@ -390,7 +390,7 @@ Signature: `s--SIG--` right after the delivery type; the signed message is the r
 | `z_` | FocusZoom (`c_thumb`, `c_crop`) | other modes approximated |
 | `q_<1-100>[:420\|422\|444]`, `q_auto[:best\|good\|eco\|low]` | Quality (+ChromaSubsampling) / AutoQuality DSSIM targets 0.005 / 0.02 / 0.035 / 0.05 (`q_auto` = good) | `q_jpegmini` unsupported |
 | `f_auto[:…]`, `f_<fmt>` (jpg/jpeg/jpe, png, webp, avif, jxl, gif, heic/heif, tif/tiff, bmp, ico, svg, mp4, webm) | Format unset (negotiated) / Format | mp4/webm M3; other formats (pdf, jp2, …) 400 |
-| `dpr_<float>`, `dpr_auto` | DPR of the current pipeline / client hint | |
+| `dpr_<float>`, `dpr_auto` | DPR of the current pipeline / `ClientHints.DPR` | the hint resolves into the first pipeline (§3.5) |
 | `a_<deg>` (`.`-joined list), `a_hflip`, `a_vflip`, `a_exif`, `a_ignore` | Rotate (multiples of 90) / RotateAny / Flip / AutoRotate | `a_auto_right`, `a_auto_left` unsupported |
 | `b_<color>` (`rgb:` 3/4/6/8 hex digits, `%23` hex, CSS names, `transparent`) | Background | `b_auto`, `b_blurred`, `b_gen_fill` unsupported |
 | `bo_<n>px_solid_<color>` | Border | |
