@@ -324,7 +324,7 @@ Grammar: path = object key relative to mount source (escaped, `SourceRelative`, 
 | `auto=enhance`, `auto=redeye`, `auto=true` | Unsupported | recorded in `Ignored` even in strict mode |
 | `lossless` | Lossless | |
 | `chromasub=420|422|444` | ChromaSubsampling | |
-| `cs=srgb|tinysrgb|strip|origin|adobergb1998` | ColorProfile `srgb` (M2) / StripColorProfile true / false; `adobergb1998` not implemented | |
+| `cs=srgb|tinysrgb|strip|origin|adobergb1998` | ColorProfile `srgb` / StripColorProfile true / false; `adobergb1998` not implemented | |
 | `dpi` | DPI (output resolution, applied) | M2 (WP-64) |
 | `bg` (RGB, ARGB, RRGGBB, AARRGGBB (alpha first), `#` optional, CSS named, `transparent`) | Background | |
 | `pad`, `pad-top/right/bottom/left` | Padding | |
@@ -333,9 +333,9 @@ Grammar: path = object key relative to mount source (escaped, `SourceRelative`, 
 | `px` | Pixelate | |
 | `sharp` (0–100) | Sharpen sigma = 0.5 + v/50 | |
 | `usm` (−100..100), `usmrad` (0–500, default 2.5) | Unsharp{Amount: usm/100, Sigma: usmrad}: classic unsharp mask v + amount × (v − blur) | M2 (WP-61) |
-| `bri`, `con`, `exp`, `gam`, `sat`, `hue`, `vib` | Adjust: bri → Brightness v·255/100; con, exp, sat, vib → 1 + v/100; gam → 2^(v/100); hue → degrees; 0 = unchanged | M2 |
+| `bri`, `con`, `exp`, `gam`, `sat`, `hue`, `vib` | Adjust: bri → Brightness v·255/100; con, exp, sat, vib → 1 + v/100; gam → 2^(v/100); hue → degrees; 0 = unchanged | `vib` is recorded "not implemented" (no planner step, `plan.Unplanned`) |
 | `high`, `shad` | Unsupported | |
-| `sepia`, `monochrome`, `duotone`, `duotone-alpha`, `invert` | Sepia (any amount > 0; partial amounts approximated) / Monochrome (colour alpha = intensity) / Duotone (intensity `duotone-alpha`/100) / Negate | M2 |
+| `sepia`, `monochrome`, `duotone`, `duotone-alpha`, `invert` | Sepia (any amount > 0; partial amounts approximated) / Monochrome (colour alpha = intensity) / Duotone (intensity `duotone-alpha`/100) / Negate | |
 | `orient` (1–8, 90, 180, 270) | AutoRotate off + the Rotate/Flip of that EXIF orientation; 90/180/270 = EXIF 6/3/8 | overrides the EXIF orientation |
 | `rot` (0–359, counter-clockwise) | RotateAny = −rot (multiples of 90 fold into Rotate) | imgix zooms to hide the corners; xi fills them with Background. M2 |
 | `flip=h|v|hv` | Flip (combined with `orient`) | |

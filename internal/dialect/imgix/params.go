@@ -16,7 +16,6 @@ const (
 	reasonUnsupported    = "unsupported"
 	reasonNotImplemented = "not implemented"
 	reasonApproximated   = "approximated"
-	reasonM2             = "takes effect in M2"
 	reasonM3             = "takes effect in M3"
 	reasonCropFit        = "only with fit=crop, fit=min, fit=smart-crop or fit=facearea"
 	reasonFocalPoint     = "only with crop=focalpoint"

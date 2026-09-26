@@ -7,32 +7,8 @@
       "Dialect": "imgix",
       "Ignored": [
         {
-          "Option": "bri",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "con",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "exp",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "gam",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "sat",
-          "Reason": "takes effect in M2"
-        },
-        {
           "Option": "vib",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "hue",
-          "Reason": "takes effect in M2"
+          "Reason": "not implemented"
         }
       ],
       "Pipelines": [
@@ -225,12 +201,6 @@
     "query": "ixlib=js-3.8.0\u0026chromasub=444\u0026cs=tinysrgb\u0026dpi=300\u0026s=e6083b12b5d11d143c8b596dc795d90a",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "cs",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "ChromaSubsampling": "4:4:4",
         "ColorProfile": "srgb",
@@ -984,12 +954,6 @@
     "query": "ixlib=js-3.8.0\u0026invert=true\u0026s=4a7a6f2e5dfffc1e591dbd5724f82f39",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "invert",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Negate": true
@@ -1090,16 +1054,6 @@
     "query": "ixlib=js-3.8.0\u0026monochrome=c0ff0000\u0026duotone=000080%2Cffff00\u0026duotone-alpha=50\u0026s=083d2edbcd35d205a877d5427a7f86f6",
     "request": {
       "Dialect": "imgix",
-      "Ignored": [
-        {
-          "Option": "monochrome",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "duotone",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Duotone": {
@@ -1329,10 +1283,6 @@
     "request": {
       "Dialect": "imgix",
       "Ignored": [
-        {
-          "Option": "sepia",
-          "Reason": "takes effect in M2"
-        },
         {
           "Option": "sepia",
           "Reason": "approximated"

@@ -70,7 +70,7 @@ func (st *state) padding() error {
 }
 
 // border maps border=width,color with border-top/right/bottom/left
-// overriding widths, and border-radius (M2). border-radius-inner is not
+// overriding widths, and border-radius. border-radius-inner is not
 // implemented.
 func (st *state) border() error {
 	if v, ok := st.get("border"); ok {
