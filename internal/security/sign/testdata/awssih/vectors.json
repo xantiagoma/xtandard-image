@@ -1,0 +1,106 @@
+[
+  {
+    "name": "setup_spec_fixture",
+    "secret": "secret",
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=",
+    "query": "",
+    "message": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=",
+    "signature": "4d41311006641a56de7bca8abdbda91af254506107a2c7b338a13ca2fa95eac3"
+  },
+  {
+    "name": "fixture_signature_only",
+    "secret": "secret",
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=",
+    "query": "signature=abc",
+    "message": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=",
+    "signature": "4d41311006641a56de7bca8abdbda91af254506107a2c7b338a13ca2fa95eac3"
+  },
+  {
+    "name": "expires",
+    "secret": "secret",
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=",
+    "query": "expires=20991231T235959Z",
+    "message": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=?expires=20991231T235959Z",
+    "signature": "add9fbb1d91b8560d6351c16bb1d1d376cac7f4230be07477fadc97f11b8df8b"
+  },
+  {
+    "name": "query_mapper",
+    "secret": "secret",
+    "path": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=",
+    "query": "width=100&height=100&fit=cover&format=webp&signature=x&rotate=90&flip=true&flop=true&grayscale=true",
+    "message": "/eyJidWNrZXQiOiJ2YWxpZEJ1Y2tldCIsImtleSI6InZhbGlkS2V5IiwiZWRpdHMiOnsidG9Gb3JtYXQiOiJwbmcifX0=?fit=cover&flip=true&flop=true&format=webp&grayscale=true&height=100&rotate=90&width=100",
+    "signature": "01c88f0bfcb62e3508418ef6d76243f021704f41facaecb396fdeacc57b70378"
+  },
+  {
+    "name": "recreate_spec_1",
+    "secret": "secret",
+    "path": "/test.jpg",
+    "query": "signature=test-signature&expires=test-expires&format=png",
+    "message": "/test.jpg?expires=test-expires&format=png",
+    "signature": "a77c081e1f5dbbd52a6af13c01812e07536b99a8b84081b18e2c436a2aa6f712"
+  },
+  {
+    "name": "recreate_spec_2",
+    "secret": "secret",
+    "path": "/test.jpg",
+    "query": "grayscale=true&expires=test-expires&format=png",
+    "message": "/test.jpg?expires=test-expires&format=png&grayscale=true",
+    "signature": "4b19412ce396531972bcef299aaf5df5672d53bbc5f8f2199e92670e3ca1eb48"
+  },
+  {
+    "name": "thumbor_path",
+    "secret": "my-secret-key",
+    "path": "/fit-in/400x400/filters:grayscale()/image.jpg",
+    "query": "",
+    "message": "/fit-in/400x400/filters:grayscale()/image.jpg",
+    "signature": "245411376d5259e5382dad69a4c1d742f48294d941026b8d3cdc144c4e698824"
+  },
+  {
+    "name": "repeated_key_last_wins",
+    "secret": "secret",
+    "path": "/a.jpg",
+    "query": "width=1&width=2",
+    "message": "/a.jpg?width=2",
+    "signature": "b39ce7312f669de172741fe52114d5830f7e9b2bee06a28d05e0af073370d6bb"
+  },
+  {
+    "name": "form_decoding",
+    "secret": "secret",
+    "path": "/a.jpg",
+    "query": "a=b+c&d=%2C%26&e",
+    "message": "/a.jpg?a=b c&d=,&&e=",
+    "signature": "69e620fc7b84d70141feaffe76f4ec09ba17c94cc0a9b555d3b8251582e36a9f"
+  },
+  {
+    "name": "sort_is_key_comma_value",
+    "secret": "secret",
+    "path": "/a.jpg",
+    "query": "a=1&a!=2&a-=3&ab=4",
+    "message": "/a.jpg?a!=2&a=1&a-=3&ab=4",
+    "signature": "fae8f5946609bcf558d5551584a0e2630b3c153c699c182718e803f6492e96c7"
+  },
+  {
+    "name": "utf16_sort",
+    "secret": "secret",
+    "path": "/a.jpg",
+    "query": "%F0%9F%98%80=1&%EF%BD%81=2&%C3%A9=3",
+    "message": "/a.jpg?é=3&😀=1&ａ=2",
+    "signature": "7d05403eebee4209cb2868f6b818a0c41d4ce9a5e3b9acc1ba956c4d37d771c1"
+  },
+  {
+    "name": "unicode_secret",
+    "secret": "sécrèt",
+    "path": "/eyJidWNrZXQiOiJiIiwia2V5IjoiayIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MzAwfX19",
+    "query": "",
+    "message": "/eyJidWNrZXQiOiJiIiwia2V5IjoiayIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MzAwfX19",
+    "signature": "4ecc68d185e427d7364edb70c7a860a78412ce441c6abd46243f733cf07d569d"
+  },
+  {
+    "name": "json_edits",
+    "secret": "secret",
+    "path": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MjAwLCJoZWlnaHQiOjIwMCwiZml0IjoiY292ZXIifSwidG9Gb3JtYXQiOiJ3ZWJwIn19",
+    "query": "",
+    "message": "/eyJrZXkiOiJwaG90b3MvY2F0LmpwZyIsImVkaXRzIjp7InJlc2l6ZSI6eyJ3aWR0aCI6MjAwLCJoZWlnaHQiOjIwMCwiZml0IjoiY292ZXIifSwidG9Gb3JtYXQiOiJ3ZWJwIn19",
+    "signature": "30e66eeae68ea0b2a16e517616ef0b7c15e829ea62080557fd0a081e31001183"
+  }
+]
