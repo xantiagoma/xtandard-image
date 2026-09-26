@@ -15,6 +15,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
@@ -43,6 +44,9 @@ type Options struct {
 type hooks struct {
 	listening func(public, admin net.Addr) // called once both listeners are bound
 	policy    *ssrf.Policy                 // replaces the SSRF policy derived from Config
+	// resultCache receives the result cache once built (nil when off), so
+	// tests can wait for its asynchronous writes.
+	resultCache func(*cache.AsyncStore)
 	// keepVips skips vips.Shutdown: libvips cannot be used again after it,
 	// and a test binary starts several services one after the other.
 	keepVips bool
@@ -175,9 +179,20 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		return err
 	}
 
+	// The result cache may hold vips output blobs: it is closed (after the
+	// drain) before libvips shuts down, since cleanups run in reverse.
+	rc, err := buildResultCache(ctx, cfg, met, logger)
+	if err != nil {
+		return fmt.Errorf("result cache: %w", err)
+	}
+	if h.resultCache != nil {
+		h.resultCache(rc)
+	}
+
 	ready := admin.NewReadiness()
 	scfg := serverConfig(cfg)
-	srv, err := server.New(&scfg, &server.Deps{
+	scfg.ResultCache.Build = opts.Version
+	deps := &server.Deps{
 		Router:   rt,
 		Resolver: reg,
 		Fetcher:  fetcher,
@@ -198,7 +213,12 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		Middleware: func(next http.Handler) http.Handler {
 			return tp.Middleware(next, "image")
 		},
-	})
+	}
+	if rc != nil {
+		deps.ResultCache = rc
+		cleanups = append(cleanups, func(context.Context) error { return rc.Close() })
+	}
+	srv, err := server.New(&scfg, deps)
 	if err != nil {
 		return err
 	}

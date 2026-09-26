@@ -20,3 +20,9 @@ Most deployments sit behind a CDN, so the server should be stateless and emit co
 - Zero-config deployments work well behind a CDN; cache backends are opt-in and cannot take the service down (errors degrade to misses).
 - ETag stability depends on `CanonicalKey` stability; changing it is a versioned event (`v1` prefix) that invalidates caches.
 - No cross-replica invalidation API in scope; purge is the CDN's job, `cachebuster`/`XI_CACHE_ETAG_BUSTER` handle global busting.
+
+## Implementation notes (WP-52, 2026-09-26)
+
+- The result key holds the resolved source identity, not its validators, so a hit never contacts the origin (sparing origins across replicas, like imagor's result storage); freshness is bounded by `XI_CACHE_RESULT_TTL` (24 h default) and busted by `cachebuster` / `XI_CACHE_ETAG_BUSTER`. Negotiated formats are keyed by the Accept weights the negotiation reads (`negotiate.AcceptList.Key`), so no source metadata is needed before the lookup.
+- The memory tier is an in-package byte-bounded LRU (`container/list`) instead of otter's W-TinyLFU: no new dependency, refcounted bodies (a hit shares the stored vips blob without copying), and deterministic tests under `testing/synctest`. Revisit with benchmarks if hit ratios under scan-heavy traffic call for admission control.
+- Async writes are bounded by an `x/sync/semaphore` (`XI_CACHE_RESULT_WRITE_QUEUE`), dropped when full (`xi_cache_writes_dropped_total`).

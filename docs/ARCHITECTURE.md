@@ -41,7 +41,7 @@ Each stage has a timeout budget taken from the request context (`XI_SERVER_REQUE
 | 5 | Resolve source: decrypt `enc/`, map source string to named source, apply allowlist | `source`, `security/crypt` | `source.Ref` | 403 not allowed, 400 bad source |
 | 6 | Normalise and validate: defaults filled, limits clamped, `Validate()` (presets were expanded in place at stage 3, since URL order decides overrides) | `transform` | frozen request | 400, 422 (result dimension limit) |
 | 7 | Negotiate: output format from explicit format, `Accept`, client hints, config | `negotiate` | `OutputFormat`, `Vary` set | 406 (only when `XI_FORMATS_STRICT_ACCEPT`) |
-| 8 | Result cache lookup (optional): key = hash(canonical request, output format, source identity) | `cache` | hit → stage 14 | cache errors are logged, never fatal |
+| 8 | Result cache lookup (optional, §9.2): key = hash(canonical request, source identity, format or Accept weights, hints, build); runs right after stage 5 | `cache` | hit → stage 14 | cache errors are logged, never fatal |
 | 9 | Fetch: singleflight by source identity, origin cache, size limit, conditional request | `fetch` | `*fetch.Original` (bytes + metadata) | 404, 502, 504, 413→422 |
 | 10 | Admission: `queue.TryAcquire` (fail fast), then `workers.Acquire(ctx)` with queue timeout; optional memory budget | `limiter` | permit | 429 queue full, 503 wait timeout (both with `Retry-After`) |
 | 11 | Probe: magic-byte sniff, header-only decode, pixel/frame limits, SVG sanitise | `codec` | `ImageMeta` | 415→422 unsupported, 422 limits |
@@ -61,7 +61,7 @@ Special paths as implemented (WP-34c, `internal/server/special.go`):
 
 Stages 1–8 are pure Go and must complete in well under 1 ms for cache hits. Fetch happens **outside** the processing semaphore so slow origins never hold CPU slots.
 
-Implementation order (WP-34a, `server.process`): route+parse+authenticate (2–4) → normalise (6: `ApplyClientHints`, `ApplyDefaults`, `Validate`, result-dimension limit) → resolve (5) → fetch (9) → admission (10) → probe (11: SVG sanitised by magic-byte sniff *before* the header probe, then limits re-checked on the probed meta) → negotiate (7, after the probe because `negotiate.Decide` needs source meta) → process (12–13) → respond (14). Conditional requests short-circuit to 304 right after the fetch when the URL fixes the format, else after negotiation; HEAD stops after negotiation; the processor never runs for either (§9.1). Every stage records `xi_stage_duration_seconds{stage}` and an access-log timing; fetch, probe and process get spans. The server sees stages 11–13 only through `server.Prober` and `server.Processor` (`internal/server/server.go`); `app` adapts codec (WP-07: `codec.Probe`) and pipeline/encode (WP-25/26a/30: `exec.Executor` with an `encode.Encoder`) to them; `ProcessOutput. Stages 9–13 live in `server.produce`, so the fallback can re-run them on another source. Info requests (WP-35, `server/info.go`; the router sends `<mount>/info/...` to dialects implementing `router.InfoParser`) run normalise → resolve → fetch → admission → `server.Inspector` (stage 11: SVG sanitised first, limits re-checked; `app` adapts `codec.Inspect`, a probe plus a header-only load that reads EXIF fields, libexif tag titles, `iptc-data` and `xmp-data`, parsed by the pure-Go `codec/imagemeta`) → `respondInfo` (JSON with imgproxy field names, the processing ETag scheme, `Cache-Control: max-age=XI_CACHE_HEADERS_TTL, public`, 304 on `If-None-Match`, `X-Xi-Ignored` with debug headers). Info options not computed yet are parsed, answered without their field and listed in `X-Xi-Ignored`; they never cause a 501.
+Implementation order (WP-34a, `server.process`): route+parse+authenticate (2–4) → normalise (6: `ApplyClientHints`, `ApplyDefaults`, `Validate`, result-dimension limit) → resolve (5) → result cache lookup (8, WP-52, §9.2; a hit goes straight to respond) → fetch (9) → admission (10) → probe (11: SVG sanitised by magic-byte sniff *before* the header probe, then limits re-checked on the probed meta) → negotiate (7, after the probe because `negotiate.Decide` needs source meta) → process (12–13) → respond (14). Conditional requests short-circuit to 304 right after the fetch when the URL fixes the format, else after negotiation; HEAD stops after negotiation; the processor never runs for either (§9.1). Every stage records `xi_stage_duration_seconds{stage}` and an access-log timing; fetch, probe and process get spans. The server sees stages 11–13 only through `server.Prober` and `server.Processor` (`internal/server/server.go`); `app` adapts codec (WP-07: `codec.Probe`) and pipeline/encode (WP-25/26a/30: `exec.Executor` with an `encode.Encoder`) to them; `ProcessOutput. Stages 9–13 live in `server.produce`, so the fallback can re-run them on another source. Info requests (WP-35, `server/info.go`; the router sends `<mount>/info/...` to dialects implementing `router.InfoParser`) run normalise → resolve → fetch → admission → `server.Inspector` (stage 11: SVG sanitised first, limits re-checked; `app` adapts `codec.Inspect`, a probe plus a header-only load that reads EXIF fields, libexif tag titles, `iptc-data` and `xmp-data`, parsed by the pure-Go `codec/imagemeta`) → `respondInfo` (JSON with imgproxy field names, the processing ETag scheme, `Cache-Control: max-age=XI_CACHE_HEADERS_TTL, public`, 304 on `If-None-Match`, `X-Xi-Ignored` with debug headers). Info options not computed yet are parsed, answered without their field and listed in `X-Xi-Ignored`; they never cause a 501.
 
 ## 3. Package layout
 
@@ -538,27 +538,42 @@ Implemented in `internal/server/response.go` (WP-34b).
 
 ### 9.2 Pluggable stores (M2)
 
+Implemented in `internal/cache` (WP-52): the interface, `Buffer`, key derivation, `Tiered`, `AsyncStore`, and the `memory` backend. `disk`, `s3cache` and `redis` (WP-53/54/55) implement the same `Store`.
+
 ```go
 package cache
 
-type Store interface {
-    Get(ctx context.Context, key string) (*Entry, error) // returns ErrMiss on miss
-    Set(ctx context.Context, key string, e *Entry, ttl time.Duration) error
-    Delete(ctx context.Context, key string) error
-    Close() error
+type Namespace string // "res/" (NSResult), "orig/" (NSOrigin, reserved)
+
+// Buffer is refcounted, read-only bytes (the shape of fetch.Buffer and
+// server.Blob): a vips output blob is stored without copying.
+type Buffer interface {
+    Bytes() []byte
+    Retain()
+    Release()
 }
 
 type Entry struct {
-    Body        []byte
-    ContentType string
-    ETag        string
-    LastModified time.Time
-    Headers     map[string]string // Content-Disposition, Content-DPR, Vary
-    CreatedAt   time.Time
+    Body      Buffer      // Get: one reference owned by the caller (Release it); Set: the store retains or copies
+    Status    int         // 200 for results
+    Header    http.Header // Content-Type, ETag, Last-Modified, Vary, Content-DPR, X-Xi-* (read-only, shared)
+    StoredAt  time.Time
+    ExpiresAt time.Time   // zero = only eviction removes it; derived from the Set ttl
+}
+
+type Store interface {
+    Get(ctx context.Context, ns Namespace, key string) (e Entry, ok bool, err error) // err = backend failure, callers treat it as a miss
+    Set(ctx context.Context, ns Namespace, key string, e *Entry, ttl time.Duration) error // ttl <= 0: no expiry; *e is copied, never kept
+    Delete(ctx context.Context, ns Namespace, key string) error
+    Close() error // releases every held entry; later calls return ErrClosed
 }
 ```
 
-Backends: `memory` (W-TinyLFU via otter, byte-bounded), `disk` (sharded dirs, atomic rename, size-bounded LRU janitor), `s3cache` (any S3-compatible, lifecycle rules for expiry), `redis` (`SET PX`, values > 1 MiB skipped by default). A `Tiered` store composes them (memory → disk/redis → s3). Writes are async with a bounded queue; a full queue drops writes (metric `xi_cache_write_dropped_total`). Result key: `res/v1/` + hex(sha256(canonicalKey ‖ negotiated format ‖ sourceValidator)).
+Backends: `memory` (byte-bounded LRU over `container/list`, TTL per entry checked lazily, no goroutine; a hit hands out the stored buffer itself; `XI_CACHE_RESULT_MEMORY_BYTES`), `disk` (sharded dirs, atomic rename, size-bounded LRU janitor), `s3cache` (any S3-compatible, lifecycle rules for expiry), `redis` (`SET PX`, values > 1 MiB skipped by default). `cache.Tiered` composes them in `XI_CACHE_RESULT_STORES` order (memory → disk/redis → s3): Get returns the first hit and fills the faster tiers with the remaining lifetime (read-fill), Set writes through, a failing tier counts as a miss. `cache.AsyncStore` wraps the composition: Set retains the body and writes on a goroutine bounded by an `x/sync` semaphore of `XI_CACHE_RESULT_WRITE_QUEUE` slots (TryAcquire, never a channel pool), detached from the request (`context.WithoutCancel` + 30 s timeout); a full queue drops the write (`ErrDropped`, `xi_cache_writes_dropped_total`) and never blocks the response. Metrics: `xi_cache_requests_total{store,result}`, `xi_cache_evictions_total{store}`, `xi_cache_bytes{store}`, `xi_cache_entries{store}`, `xi_cache_writes_dropped_total`, `xi_cache_evictions_total{store}`, `xi_cache_bytes{store}`, `xi_cache_entries{store}`.
+
+**Result key** (`cache.ResultKey`, pinned by `TestResultKeyGolden`): `res/` + `v1/` + hex(sha256(F("v1") F(canonicalKey) F(sourceIdentity) F(formatSelector) F(qualityDelta) F(hints) F(XI_CACHE_ETAG_BUSTER) F(buildVersion))), `F` as in the ETag (§9.1). `sourceIdentity` is the resolved `source.Key` (name, bucket, path, version joined by NUL); `formatSelector` is `f:<format>` when the URL fixes the format, else `a:` + `negotiate.AcceptList.Key()` (the Quality/Explicit weights of every output media type, the only Accept inputs of `negotiate.Decide`, so equivalent Accept headers share entries); `hints` is the client-hint Vary set and Content-DPR; `buildVersion` keeps a new release from serving an older encoder's bytes. Every input is known before the fetch, so the lookup is stage 8 (§2) and a hit skips fetch, admission, probe and processing. Source validators are deliberately **not** in the key (imagor's result storage works the same way): a result is served for `XI_CACHE_RESULT_TTL` (default 24 h; a per-request `ttl`/`expires` shortens it) without contacting the origin; `cachebuster` or `XI_CACHE_ETAG_BUSTER` invalidate earlier. The stored ETag still embeds the source validator of the response that was cached.
+
+**Server integration** (`internal/server/cache.go`): the hit is answered through `respond` like a miss. The entry stores the headers derived from source and output (ETag, Content-Type, Last-Modified, Vary, Content-DPR, `X-Xi-Origin-*`/`X-Xi-Result-*`, plus internal `X-Xi-Format`, `X-Xi-Ext`, `X-Xi-Source-Cache-Control`/`-Expires` for passthrough), and the request-dependent ones (Cache-Control, Content-Disposition, Cache-Tag, Link) are recomputed, so a hit's headers equal the miss's; `If-None-Match`/`If-Modified-Since` get a 304 and HEAD the GET's headers from the entry. `X-Xi-Cache: HIT|MISS|BYPASS` is a debug header (`XI_OBSERVABILITY_DEBUG_HEADERS`) and the access log's `cache` attribute. Stored: 200 GET responses of process requests from their own source (never a fallback, raw, info, 304 or HEAD) whose Cache-Control has neither `no-store` nor `private`; the body adopts the encoder's blob (refcount, no copy). `bypass_cache` with `XI_CACHE_ALLOW_BYPASS` skips lookup and store. Errors are never stored (no negative result caching; the fetcher's origin cache remembers not-found for `XI_CACHE_ORIGIN_NEGATIVE_TTL`), and cache failures are logged and served as misses. The original cache stays fetch's in-process LRU (§7); backing `orig/` with a shared Store is left to WP-53/54 (fetch has no Store hook yet).
 
 ## 10. Security architecture (summary; decisions in ADR 0003)
 
@@ -624,7 +639,7 @@ When a fallback image is configured (global or per request), a failure after the
 ## 13. Observability
 
 - Logs: `log/slog` JSON to stdout; one access line per request (`request_id`, dialect, source name, status, bytes, stage timings, cache status, output format, dimensions). Source URLs are logged with query strings stripped; signatures never logged.
-- Metrics (`/metrics` on the admin listener `XI_ADMIN_ADDR`, default `127.0.0.1:9090`; set `:9090` to scrape from outside the pod), client_golang on a private registry: `xi_requests_total{dialect,status,format}`, `xi_request_duration_seconds{dialect,status,format}`, `xi_requests_in_flight`, `xi_stage_duration_seconds{stage}`, `xi_panics_total`, `xi_source_fetch_duration_seconds{source,type}`, `xi_source_bytes_total{type}`, `xi_fetch_coalesced_total`, `xi_cache_requests_total{store,result}`, `xi_queue_depth`, `xi_workers_busy`, `xi_semaphore_wait_seconds`, `xi_overload_total{reason}`, `xi_vips_mem_bytes`, `xi_vips_mem_highwater_bytes`, `xi_vips_allocs`, `xi_build_info{version,commit,goversion}`, Go runtime and process collectors. Implemented in `internal/obs/metrics`; the limiter reports through `metrics.LimiterObserver` and vips through `metrics.VipsCollector`.
+- Metrics (`/metrics` on the admin listener `XI_ADMIN_ADDR`, default `127.0.0.1:9090`; set `:9090` to scrape from outside the pod), client_golang on a private registry: `xi_requests_total{dialect,status,format}`, `xi_request_duration_seconds{dialect,status,format}`, `xi_requests_in_flight`, `xi_stage_duration_seconds{stage}`, `xi_panics_total`, `xi_source_fetch_duration_seconds{source,type}`, `xi_source_bytes_total{type}`, `xi_fetch_coalesced_total`, `xi_cache_requests_total{store,result}`, `xi_cache_evictions_total{store}`, `xi_cache_bytes{store}`, `xi_cache_entries{store}`, `xi_cache_writes_dropped_total`, `xi_queue_depth`, `xi_workers_busy`, `xi_semaphore_wait_seconds`, `xi_overload_total{reason}`, `xi_vips_mem_bytes`, `xi_vips_mem_highwater_bytes`, `xi_vips_allocs`, `xi_build_info{version,commit,goversion}`, Go runtime and process collectors. Implemented in `internal/obs/metrics`; the limiter reports through `metrics.LimiterObserver` and vips through `metrics.VipsCollector`.
 - Tracing: OpenTelemetry OTLP when `OTEL_EXPORTER_OTLP_ENDPOINT` (or `XI_OTEL_ENABLED=true`) is set, otherwise a no-op provider and no middleware; one span per stage, W3C propagation, outbound propagation to sources off by default.
 - `/healthz` (liveness, no vips calls), `/readyz` (vips initialised, sources' static config valid, not draining). pprof (incl. `goroutineleak`) on the admin listener only when `XI_ADMIN_PPROF=true`.
 
