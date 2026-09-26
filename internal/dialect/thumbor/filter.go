@@ -283,11 +283,9 @@ func (b *builder) filter(f filters.Filter, image string) (string, error) {
 }
 
 // focal applies focal(AxB:CxD): the centre of the rectangle becomes the
-// focus point. thumbor's coordinates are source pixels, which the model
-// cannot express without the source size, so only a rectangle given in
-// fractions of the source (every value ≤ 1, as imagor and Storyblok
-// clients sometimes write) becomes a focus point; pixel rectangles are
-// recorded in Ignored.
+// focus point. thumbor's coordinates are source pixels (Gravity.FocusPx,
+// WP-86); a rectangle given in fractions of the source (every value ≤ 1, as
+// imagor and Storyblok clients sometimes write) is a relative focus point.
 func (b *builder) focal(name string, args []string) error {
 	if err := wantArgs(name, args, 1, 1, expFocal); err != nil {
 		return err
@@ -310,12 +308,16 @@ func (b *builder) focal(name string, args []string) error {
 		b.ignore(name, reasonNoEffect)
 		return nil
 	}
+	g := &b.pipeline().Gravity
 	if v[2] > 1 || v[3] > 1 {
-		b.ignore(name, reasonAbsoluteFocal)
+		pg, ok := transform.FocusFromPixels(int(v[0]), int(v[1]), int(v[2]), int(v[3]))
+		if !ok {
+			return dialect.InvalidArgument(name, args[0], expFocal)
+		}
+		g.Type, g.FocusX, g.FocusY, g.FocusPx = pg.Type, 0, 0, pg.FocusPx
 		return nil
 	}
-	g := &b.pipeline().Gravity
-	g.Type, g.FocusX, g.FocusY = transform.GravityFocusPoint, (v[0]+v[2])/2, (v[1]+v[3])/2
+	g.Type, g.FocusX, g.FocusY, g.FocusPx = transform.GravityFocusPoint, (v[0]+v[2])/2, (v[1]+v[3])/2, nil
 	return nil
 }
 
@@ -324,8 +326,8 @@ const maxFocalDepth = 10
 
 // extractFocal implements extract_focal(): when the image is itself a
 // thumbor URL, the original image replaces it and the manual crop of the
-// innermost URL that has one becomes the focal rectangle. The rectangle is
-// in source pixels, so it is recorded in Ignored like a pixel focal().
+// innermost URL that has one becomes the focal rectangle, in source pixels
+// (Gravity.FocusPx) like a pixel focal().
 func (b *builder) extractFocal(image string) string {
 	cur := image
 	for range maxFocalDepth {
@@ -344,7 +346,13 @@ func (b *builder) extractFocal(image string) string {
 			break
 		}
 		if u.crop {
-			b.ignore("extract_focal", reasonAbsoluteFocal)
+			l, t, r, bt := u.cropBox[0], u.cropBox[1], u.cropBox[2], u.cropBox[3]
+			if pg, ok := transform.FocusFromPixels(l, t, r, bt); ok && r > l && bt > t {
+				g := &b.pipeline().Gravity
+				g.Type, g.FocusX, g.FocusY, g.FocusPx = pg.Type, 0, 0, pg.FocusPx
+			} else {
+				b.ignore("extract_focal", reasonNoEffect)
+			}
 			return u.image
 		}
 		cur = u.image
