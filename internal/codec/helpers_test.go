@@ -102,6 +102,39 @@ func app(n byte, p string) []byte {
 	return append(b, p...)
 }
 
+// synthEXR builds the header of a scanline OpenEXR file declaring a w×h
+// data window, the given channels (half) and version flags, followed by
+// no pixel data: small on disk whatever size it declares.
+func synthEXR(w, h int, flags uint32, channels ...string) []byte {
+	le := binary.LittleEndian
+	b := []byte("v/1\x01")
+	b = le.AppendUint32(b, 2|flags)
+	attr := func(name, typ string, v []byte) {
+		b = append(b, name+"\x00"+typ+"\x00"...)
+		b = le.AppendUint32(b, uint32(len(v))) //nolint:gosec // tiny
+		b = append(b, v...)
+	}
+	var ch []byte
+	for _, c := range channels {
+		ch = append(ch, c+"\x00"...)
+		ch = le.AppendUint32(ch, 1)
+		ch = append(ch, 0, 0, 0, 0)
+		ch = le.AppendUint32(ch, 1)
+		ch = le.AppendUint32(ch, 1)
+	}
+	ch = append(ch, 0)
+	var win []byte
+	for _, v := range []int{0, 0, w - 1, h - 1} {
+		win = le.AppendUint32(win, uint32(int32(v))) //nolint:gosec // test values
+	}
+	attr("channels", "chlist", ch)
+	attr("compression", "compression", []byte{0})
+	attr("dataWindow", "box2i", win)
+	attr("displayWindow", "box2i", win)
+	attr("lineOrder", "lineOrder", []byte{0})
+	return append(b, 0)
+}
+
 // synthPDF builds a PDF with n blank 100×100 pt pages in one page tree:
 // small on disk however many pages it declares.
 func synthPDF(n int) []byte {

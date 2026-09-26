@@ -49,6 +49,15 @@ const (
 	FormatPDF
 	// FormatPSD covers Photoshop PSD and PSB.
 	FormatPSD
+	// FormatEXR is OpenEXR (scene-linear half/float, HDR).
+	FormatEXR
+	// FormatRadiance is Radiance RGBE (.hdr, scene-linear, HDR).
+	FormatRadiance
+	// FormatPPM is a binary 8/16-bit PGM or PPM portable anymap (P5, P6).
+	FormatPPM
+	// FormatPFM is a portable float map (PF colour, Pf grey; scene-linear,
+	// HDR).
+	FormatPFM
 	// FormatRAW is a camera RAW (codec/raw: CR2, CR3, CRW, NEF, ARW, DNG,
 	// RAF, ORF, RW2, PEF, SRW, X3F, 3FR, IIQ, ERF, MEF, MOS, DCR, MRW),
 	// decoded by LibRaw: embedded preview or demosaic.
@@ -102,6 +111,14 @@ func (f Format) info() formatInfo {
 		return formatInfo{"pdf", "pdf", "application/pdf", false, true, true}
 	case FormatPSD:
 		return formatInfo{"psd", "psd", "image/vnd.adobe.photoshop", false, true, true}
+	case FormatEXR:
+		return formatInfo{"exr", "exr", "image/x-exr", false, true, true}
+	case FormatRadiance:
+		return formatInfo{"radiance", "hdr", "image/vnd.radiance", false, false, true}
+	case FormatPPM:
+		return formatInfo{"ppm", "ppm", "image/x-portable-pixmap", false, false, true}
+	case FormatPFM:
+		return formatInfo{"pfm", "pfm", "image/x-portable-floatmap", false, false, true}
 	case FormatRAW:
 		return formatInfo{"raw", "", "application/octet-stream", false, false, true}
 	default:
@@ -127,6 +144,15 @@ func (f Format) SupportsAnimation() bool { return f.info().anim }
 
 // SupportsAlpha reports whether the format can carry transparency.
 func (f Format) SupportsAlpha() bool { return f.info().alpha }
+
+// HDR reports whether the format stores scene-linear light (float or
+// shared-exponent samples, values above 1.0): OpenEXR, Radiance and PFM. Such
+// sources are tone-mapped to 8-bit sRGB unless preserve_hdr keeps them
+// (FORMATS.md §1.4). 16-bit PPM/PNG and 10/12-bit AVIF are high bit depth,
+// not HDR here.
+func (f Format) HDR() bool {
+	return f == FormatEXR || f == FormatRadiance || f == FormatPFM
+}
 
 // Supported reports whether the format can be decoded in this build.
 // Probe rejects an unsupported format with errs.KindUnsupported.
@@ -176,6 +202,14 @@ func ParseFormat(s string) (Format, error) {
 		return FormatPDF, nil
 	case "psd", "psb":
 		return FormatPSD, nil
+	case "exr", "openexr":
+		return FormatEXR, nil
+	case "radiance", "hdr", "rgbe", "pic":
+		return FormatRadiance, nil
+	case "ppm", "pgm", "pnm":
+		return FormatPPM, nil
+	case "pfm":
+		return FormatPFM, nil
 	case "raw":
 		return FormatRAW, nil
 	}
@@ -184,8 +218,8 @@ func ParseFormat(s string) (Format, error) {
 
 // Output returns the output format that re-encodes f in kind, for keeping
 // the source format: UltraHDR maps to JPEG and generic HEIF to HEIC. JPEG
-// 2000, PDF, PSD, RAW and unknown formats cannot be written (FORMATS.md §5)
-// and report false.
+// 2000, PDF, PSD, the HDR inputs (EXR, Radiance, PPM/PFM), RAW and unknown
+// formats cannot be written (FORMATS.md §5) and report false.
 func (f Format) Output() (transform.Format, bool) {
 	switch f {
 	case FormatJPEG, FormatUHDR:
@@ -254,6 +288,14 @@ func (f Format) MatchesContentType(contentType string) bool {
 		return mt == "image/jpx" || mt == "image/jpm" || mt == "image/j2k" || mt == "image/x-jp2"
 	case FormatPSD:
 		return mt == "image/x-photoshop" || mt == "application/x-photoshop" || mt == "image/psd"
+	case FormatEXR:
+		return mt == "image/aces" || mt == "application/x-exr"
+	case FormatRadiance:
+		return mt == "image/x-hdr" || mt == "image/vnd.radiance" || mt == "image/x-radiance"
+	case FormatPPM:
+		return mt == "image/x-portable-anymap" || mt == "image/x-portable-graymap" || mt == "image/x-portable-bitmap"
+	case FormatPFM:
+		return mt == "image/x-portable-anymap" || mt == "image/x-pfm"
 	case FormatRAW:
 		return strings.HasPrefix(mt, "image/x-")
 	default:

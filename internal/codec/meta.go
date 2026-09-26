@@ -74,6 +74,10 @@ type ImageMeta struct {
 	Loop       int
 	HasICC     bool
 	ColorSpace ColorSpace
+	// HDR reports scene-linear samples that can exceed 1.0 (OpenEXR,
+	// Radiance, PFM): the executor tone-maps them to 8-bit sRGB unless
+	// preserve_hdr keeps them (FORMATS.md §1.4).
+	HDR bool
 	// ContentTypeMismatch reports that the Content-Type declared by the
 	// origin disagrees with the sniffed format. It is only a warning: the
 	// declared type is never trusted for detection.
