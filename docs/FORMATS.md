@@ -25,6 +25,16 @@ libvips 8.18.x is the engine; library choices and licenses are in `docs/research
 | Video (MP4, MOV, WebM, MKV, animated MP4 GIF-likes) | FFmpeg 8 LGPL via go-astiav (`full` image only) | frames | decoder scaling | duration, streams (`/info` `vm`) | frame at `vts` or best frame by histogram variance among keyframes | M3 |
 | Blocked | FITS, Matlab, NIfTI, Analyze, CSV/matrix, raw pixels, magick for anything except PSD/PSB | | | | `vips_block_untrusted_set(TRUE)` and operation block list | — |
 
+### 1.1 Detection and probe (`codec.Sniff`, `codec.Probe`)
+
+- Magic bytes: JPEG `FF D8 FF`; PNG signature; `GIF87a`/`GIF89a`; `RIFF….WEBP`; JPEG XL codestream `FF 0A` or container box `JXL `; JPEG 2000 `jP  ` signature box or raw J2K codestream `FF 4F FF 51`; TIFF `II*\0`/`MM\0*` and BigTIFF `II+\0`/`MM\0+`; BMP `BM` + known info-header length; ICO/CUR (reserved 0, type 1/2, sane first entry); SVG via `security/svg.IsSVG` (first 4 KiB); `%PDF-`; `8BPS` v1/v2 (PSD/PSB); RAW signatures (CR2, CR3 `ftypcrx`, CRW, RAF, ORF, RW2, X3F, MRW). TIFF-based RAWs without their own signature (NEF, ARW, DNG, PEF, SRW) sniff as TIFF.
+- ISOBMFF: major brand first, then compatible brands inside the `ftyp` box: `avif`/`avis` → AVIF; `heic`/`heix`/`hevc`/`heim`/`heis`/`hevm`/`hevs` → HEIC; generic `mif1`/`msf1`/`miaf` → HEIF, refined to AVIF/HEIC by the loader's `heif-compression`. libvips' `heifload` only accepts a fixed list of *major* brands (no `avis`), so an AVIF sequence whose major brand is `avis` is sniffed but refused as unsupported by the loader.
+- UltraHDR: a JPEG whose header (before SOS) has an APP2 `MPF` segment **and** gain-map metadata (APP2 ISO 21496-1 `urn:iso:std:iso:ts:21496:-1` or APP1 XMP with `hdrgm:Version`). libvips `uhdrload` checks MPF and then libultrahdr's full `is_uhdr_image`; the probe trusts the loader libvips picked (`uhdrload` ⇒ UHDR).
+- The format libvips' loader reports must agree with the sniffed family, otherwise the file is refused (polyglots).
+- PDF, PSD and RAW are recognised and refused with `unsupported` until M2.
+- Limits before decode: frames ≤ `MAX_ANIMATION_FRAMES`, animated frame pixels ≤ `MAX_ANIMATION_FRAME_PIXELS`, width × height × frames ≤ `MAX_SRC_PIXELS` (multi-page stills count one page), SVG bytes ≤ `MAX_SVG_BYTES` and the SVG is sanitised before librsvg reads even its header. Frame counts use the header's delay array as well as `n-pages`, because `vips_image_get_n_pages` reports 1 for 10 000 pages or more.
+- The declared upstream `Content-Type` never drives detection; a disagreement only sets `ImageMeta.ContentTypeMismatch`.
+
 ## 2. Camera RAW strategy
 
 1. `codec/raw` (cgo, `vips/shim`) calls `libraw_open_buffer` → `libraw_unpack_thumb` → `libraw_dcraw_make_mem_thumb`.

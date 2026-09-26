@@ -8,15 +8,15 @@
 
 // Package ico decodes and encodes Windows icon (ICO) and cursor (CUR) files
 // in pure Go. An entry is either a PNG stream, returned as
-// codec.Decoded.Embedded for libvips to load, or a DIB decoded by codec/bmp.
+// raster.Decoded.Embedded for libvips to load, or a DIB decoded by codec/bmp.
 package ico
 
 import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/codec/bmp"
+	"github.com/xantiagoma/xtandard-image/internal/codec/raster"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 )
 
@@ -50,7 +50,7 @@ type Entry struct {
 // Options control Decode.
 type Options struct {
 	// MaxPixels bounds the chosen entry's Width*Height (errs.KindLimitExceeded).
-	// Zero means codec.DefaultMaxPixels.
+	// Zero means raster.DefaultMaxPixels.
 	MaxPixels int64
 	// UsePage selects the entry whose directory index is Page. Otherwise
 	// Decode picks with Pick(entries, MinWidth, MinHeight).
@@ -197,16 +197,16 @@ func area(e Entry) int64 { return int64(e.Width) * int64(e.Height) }
 // back as Embedded, a DIB entry as Raw with the AND mask applied as alpha.
 // Malformed input fails with errs.KindCorrupt, an entry over MaxPixels with
 // errs.KindLimitExceeded; Decode never panics.
-func Decode(data []byte, o Options) (codec.Decoded, error) {
+func Decode(data []byte, o Options) (raster.Decoded, error) {
 	entries, err := Entries(data)
 	if err != nil {
-		return codec.Decoded{}, err
+		return raster.Decoded{}, err
 	}
 	var e Entry
 	if o.UsePage {
 		i := indexOf(entries, o.Page)
 		if i < 0 {
-			return codec.Decoded{}, errs.Newf(errs.KindCorrupt, "ico: page %d not found or unreadable", o.Page)
+			return raster.Decoded{}, errs.Newf(errs.KindCorrupt, "ico: page %d not found or unreadable", o.Page)
 		}
 		e = entries[i]
 	} else {
@@ -214,14 +214,14 @@ func Decode(data []byte, o Options) (codec.Decoded, error) {
 	}
 	limit := o.MaxPixels
 	if limit <= 0 {
-		limit = codec.DefaultMaxPixels
+		limit = raster.DefaultMaxPixels
 	}
 	if area(e) > limit {
-		return codec.Decoded{}, errs.Newf(errs.KindLimitExceeded,
+		return raster.Decoded{}, errs.Newf(errs.KindLimitExceeded,
 			"ico: %dx%d exceeds %d pixels", e.Width, e.Height, limit)
 	}
 	if e.PNG {
-		return codec.Decoded{Embedded: e.data}, nil
+		return raster.Decoded{Embedded: e.data}, nil
 	}
 	return bmp.DecodeIcon(e.data, bmp.Options{MaxPixels: limit})
 }

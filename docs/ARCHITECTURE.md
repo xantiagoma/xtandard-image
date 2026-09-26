@@ -86,6 +86,7 @@ internal/
   vips/                     ONLY package that imports "C" (hand-written shim, §8.4); Image handle, Buffer (C-owned bytes), init, errors, thread lifecycle
     (shim .c/.h files)      hand-written C in the same package: owned-buffer load w/ fail_on, libraw thumbnail loader, save-to-blob, progress/kill hook
   codec/                    Format enum, magic sniffing, probe, loader selection, encoder options
+    raster/                 cgo-free pixel types (Raw, Decoded) shared by the own loaders; a leaf so codec can import bmp/ico
     bmp/ ico/               own pure-Go loaders/savers, reimplemented from imgproxy's C loaders (Apache-2.0: keep upstream header, add NOTICE entry)
     raw/                    RAW strategy (calls vips.LoadRawThumbnail / vips.DcrawLoad)
   pipeline/

@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	xbmp "golang.org/x/image/bmp"
 
-	"github.com/xantiagoma/xtandard-image/internal/codec"
+	"github.com/xantiagoma/xtandard-image/internal/codec/raster"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 )
 
@@ -494,8 +494,8 @@ func TestSniff(t *testing.T) {
 }
 
 // testRaw returns a deterministic w×h image with varied samples.
-func testRaw(w, h, bands int) *codec.Raw {
-	r := &codec.Raw{Width: w, Height: h, Bands: bands, Data: make([]byte, w*h*bands)}
+func testRaw(w, h, bands int) *raster.Raw {
+	r := &raster.Raw{Width: w, Height: h, Bands: bands, Data: make([]byte, w*h*bands)}
 	var v, row byte // byte(i*37 + i/bands*11) without narrowing conversions
 	for i := range r.Data {
 		if i > 0 && i%bands == 0 {
@@ -511,13 +511,13 @@ func TestRoundTrip(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name string
-		raw  *codec.Raw
+		raw  *raster.Raw
 	}{
 		{name: "rgb 1x1", raw: testRaw(1, 1, 3)},
 		{name: "rgb 13x7", raw: testRaw(13, 7, 3)},
 		{name: "rgba 13x7", raw: testRaw(13, 7, 4)},
 		{name: "rgba 4x3", raw: testRaw(4, 3, 4)},
-		{name: "rgb with resolution", raw: func() *codec.Raw {
+		{name: "rgb with resolution", raw: func() *raster.Raw {
 			r := testRaw(5, 2, 3)
 			r.XRes, r.YRes = 2.835, 11.811
 			return r
@@ -552,7 +552,7 @@ func TestRoundTrip(t *testing.T) {
 
 func TestEncodeInvalid(t *testing.T) {
 	t.Parallel()
-	for _, r := range []*codec.Raw{
+	for _, r := range []*raster.Raw{
 		{Width: 0, Height: 1, Bands: 3},
 		{Width: 1, Height: 1, Bands: 2, Data: make([]byte, 2)},
 		{Width: 2, Height: 1, Bands: 3, Data: make([]byte, 3)},
