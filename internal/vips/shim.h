@@ -318,6 +318,12 @@ typedef struct {
   int optimize_coding;
   int subsample; // VipsForeignSubsample
   int restart_interval;
+  // mozjpeg extensions: libvips ignores them (with a warning, only when
+  // set) when built against libjpeg-turbo.
+  int trellis_quant;
+  int overshoot_deringing;
+  int optimize_scans;
+  int quant_table; // 0..8
 } XiJpegOptions;
 
 typedef struct {

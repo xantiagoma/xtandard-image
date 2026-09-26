@@ -103,15 +103,20 @@ type SaveOptions struct {
 	TIFF TIFFOptions
 }
 
-// JPEGOptions are the jpegsave options. mozjpeg-only options (trellis,
-// overshoot deringing, scan optimisation, quant tables) are not exposed:
-// the base image ships libjpeg-turbo.
+// JPEGOptions are the jpegsave options. The mozjpeg-only options
+// (TrellisQuant, OvershootDeringing, OptimizeScans, QuantTable) are passed
+// to libvips as imgproxy does; the base image ships libjpeg-turbo, where
+// libvips ignores them (logging a GLib warning when one is set).
 type JPEGOptions struct {
-	Quality         int  // 1..100
-	Interlace       bool // progressive
-	OptimizeCoding  bool // optimised Huffman tables
-	Subsample       Subsample
-	RestartInterval int // MCUs between restart markers; 0 is none
+	Quality            int  // 1..100
+	Interlace          bool // progressive
+	OptimizeCoding     bool // optimised Huffman tables
+	Subsample          Subsample
+	RestartInterval    int  // MCUs between restart markers; 0 is none
+	TrellisQuant       bool // trellis quantisation per 8x8 block
+	OvershootDeringing bool // overshoot samples with extreme values
+	OptimizeScans      bool // split the DCT spectrum into scans (progressive only)
+	QuantTable         int  // quantisation table 0..8
 }
 
 // PNGOptions are the pngsave options.

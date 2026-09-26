@@ -37,6 +37,18 @@ func (e *Encoder) Config() Config { return e.cfg }
 // without Config.HEICEncode, SVG, video, JSON, unset), errs.KindLimitExceeded
 // for an ICO over 256×256, and the vips errors of the savers.
 func (e *Encoder) Encode(ctx context.Context, img *vips.Image, t *Target) (*Result, error) {
+	res, err := e.encode(ctx, img, t)
+	if err != nil {
+		return nil, err
+	}
+	if t.DPI > 0 && res.Format == transform.FormatJPEG {
+		res.Blob = jpegDensity(res.Blob, t.DPI)
+		res.OverBudget = t.MaxBytes > 0 && res.Blob.Len() > t.MaxBytes
+	}
+	return res, nil
+}
+
+func (e *Encoder) encode(ctx context.Context, img *vips.Image, t *Target) (*Result, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, errs.Wrap(errs.KindOf(err), context.Cause(ctx))
 	}
@@ -78,6 +90,9 @@ func (e *Encoder) Encode(ctx context.Context, img *vips.Image, t *Target) (*Resu
 	}
 	img, keep, err := prepareMetadata(ctx, &a, img, t.Metadata)
 	if err != nil {
+		return nil, err
+	}
+	if img, err = setResolution(ctx, &a, img, t.DPI); err != nil {
 		return nil, err
 	}
 	p.opts.Keep = keep
