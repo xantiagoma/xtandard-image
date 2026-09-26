@@ -56,6 +56,24 @@ func shrinkDimEven(a int, s float64) int {
 // position is imgproxy's calcPosition without overflow: where an inner
 // innerW×innerH box goes inside width×height.
 func position(width, height, innerW, innerH int, g Gravity, dpr float64) (left, top int) {
+	left, top = place(width, height, innerW, innerH, g, dpr)
+	left = max(0, min(left, width-innerW))
+	top = max(0, min(top, height-innerH))
+	return left, top
+}
+
+// positionOverflow is imgproxy's calcPosition with overflow (watermarks):
+// the box may stick out of width×height but keeps at least one pixel
+// inside.
+func positionOverflow(width, height, innerW, innerH int, g Gravity, dpr float64) (left, top int) {
+	left, top = place(width, height, innerW, innerH, g, dpr)
+	left = max(-innerW+1, min(left, width-1))
+	top = max(-innerH+1, min(top, height-1))
+	return left, top
+}
+
+// place is the unclamped part of imgproxy's calcPosition.
+func place(width, height, innerW, innerH int, g Gravity, dpr float64) (left, top int) {
 	if g.Type == transform.GravityFocusPoint {
 		left = scaleDimEven(width, g.X) - innerW/2
 		top = scaleDimEven(height, g.Y) - innerH/2
@@ -81,8 +99,6 @@ func position(width, height, innerW, innerH int, g Gravity, dpr float64) (left, 
 		default:
 		}
 	}
-	left = max(0, min(left, width-innerW))
-	top = max(0, min(top, height-innerH))
 	return left, top
 }
 

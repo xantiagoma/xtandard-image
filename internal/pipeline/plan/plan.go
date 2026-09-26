@@ -243,14 +243,26 @@ type PaddingStep struct {
 // FlattenStep removes alpha over a background colour.
 type FlattenStep struct{ Background transform.Color }
 
-// WatermarkStep is a placeholder for the watermark executor (WP-28).
+// WatermarkStep overlays a watermark on the whole image, every frame of an
+// animation (imgproxy applyWatermark).
 type WatermarkStep struct {
-	Index    int // index into the pipeline's Watermarks
-	Opacity  float64
-	Position Gravity
-	Scale    float64
-	DPRScale float64
-	Frames   int // frames of the strip it is applied to
+	WatermarkGeometry
+	Index   int     // index into the pipeline's Watermarks
+	Opacity float64 // the request's opacity (0..1), before the configured one
+	Frames  int     // frames of the strip it is applied to
+	// Default is set when the watermark is the configured image
+	// (XI_PROCESSING_WATERMARK_SOURCE): no source or text of its own.
+	Default bool
+}
+
+// WatermarkGeometry sizes and places a watermark. Its methods reproduce
+// imgproxy's prepareWatermark and calcPosition; the executor applies them
+// to the real frame size.
+type WatermarkGeometry struct {
+	Position Gravity // placement and offsets; offsets are the tile spacing when tiled
+	Tile     transform.TileMode
+	Scale    float64 // fraction of the frame to fit the watermark into; 0 = natural size
+	DPRScale float64 // scales pixel offsets
 }
 
 func (LoadStep) step()      {}
@@ -266,6 +278,41 @@ func (ExtendStep) step()    {}
 func (PaddingStep) step()   {}
 func (FlattenStep) step()   {}
 func (WatermarkStep) step() {}
+
+// Box is the box a scaled watermark is fitted into (imgproxy
+// prepareWatermark: fit, enlarge allowed, relative to one frame): each side
+// is Scale × the frame side, rounded to even and at least 1. ok is false
+// when Scale is 0 (natural size).
+func (w *WatermarkGeometry) Box(frameW, frameH int) (bw, bh int, ok bool) {
+	if w.Scale <= 0 {
+		return 0, 0, false
+	}
+	return max(scaleDimEven(frameW, w.Scale), 1), max(scaleDimEven(frameH, w.Scale), 1), true
+}
+
+// FitScale is the resize factor that fits a wmW×wmH watermark into Box
+// (1 when there is no box).
+func (w *WatermarkGeometry) FitScale(frameW, frameH, wmW, wmH int) float64 {
+	bw, bh, ok := w.Box(frameW, frameH)
+	if !ok || wmW <= 0 || wmH <= 0 {
+		return 1
+	}
+	return 1 / max(float64(wmW)/float64(bw), float64(wmH)/float64(bh))
+}
+
+// TileSpacing is the padding added around a tiled watermark (imgproxy
+// splits it left/right and top/bottom): the offsets, in pixels scaled by
+// DPRScale when |offset| ≥ 1, else as a fraction of the frame.
+func (w *WatermarkGeometry) TileSpacing(frameW, frameH int) (x, y int) {
+	return offset(frameW, w.Position.X, w.DPRScale), offset(frameH, w.Position.Y, w.DPRScale)
+}
+
+// Place is where a wmW×wmH watermark goes on a frameW×frameH frame
+// (imgproxy calcPosition with overflow: it may stick out of the frame but
+// keeps at least one pixel inside).
+func (w *WatermarkGeometry) Place(frameW, frameH, wmW, wmH int) (left, top int) {
+	return positionOverflow(frameW, frameH, wmW, wmH, w.Position, w.DPRScale)
+}
 
 // Rect places the crop on an imgW×imgH image, exactly like imgproxy's
 // cropImage. ok is false when the crop does nothing.
