@@ -273,7 +273,10 @@ func (st *state) pipeline() *transform.Pipeline { return &st.r.Pipelines[st.cur]
 // parse consumes the options and the source of rest (the path after the
 // signature, without a leading slash).
 func (st *state) parse(rest string) error {
-	// The default preset and only-presets mode concern processing URLs.
+	// The processing preset store does not apply to /info URLs: imgproxy
+	// keeps separate info presets, so there a preset option is only
+	// recorded (applyPresets) and neither the default preset nor
+	// only-presets mode applies.
 	if !st.info {
 		var err error
 		if rest, err = st.presetPrologue(rest); err != nil {
