@@ -1,13 +1,22 @@
-// Hand-written C shim for internal/vips. See shim.h for the licence notice of
-// the portions derived from imgproxy (Apache-2.0).
+// Hand-written C shim for internal/vips: lifecycle, statistics and source
+// buffers. See shim.h for the licence notice of the portions derived from
+// imgproxy (Apache-2.0).
 
 #include <string.h>
 
 #include "shim.h"
 
-#define XI_SRC_BLOB_KEY "xi-src-blob"
+// Set once by xi_init: whether heifsave may encode HEVC (HEIC). Process
+// state that belongs to libvips' configuration, like the loader block list.
+static int xi_heic_encode = 0;
 
-static char *
+int
+xi_heic_encode_enabled(void)
+{
+  return g_atomic_int_get(&xi_heic_encode);
+}
+
+char *
 xi_error_copy(void)
 {
   // Copies and clears the process-global error buffer. Called right at the
@@ -15,10 +24,92 @@ xi_error_copy(void)
   return vips_error_buffer_copy();
 }
 
+// ---- source registry -----------------------------------------------------
+//
+// data pointer -> GINT_TO_POINTER(failed + 1). The key is the tracked
+// allocation of a live xi blob; loaders wrap the same pointer in their own
+// blobs (thumbnail_buffer does), so the pointer, not the VipsBlob, is the
+// identity of a source.
+
+static GMutex xi_sources_lock;
+static GHashTable *xi_sources = NULL;
+
+static void
+xi_sources_insert(void *data)
+{
+  g_mutex_lock(&xi_sources_lock);
+  if (!xi_sources)
+    xi_sources = g_hash_table_new(g_direct_hash, g_direct_equal);
+  g_hash_table_insert(xi_sources, data, GINT_TO_POINTER(1));
+  g_mutex_unlock(&xi_sources_lock);
+}
+
+static void
+xi_sources_remove(void *data)
+{
+  g_mutex_lock(&xi_sources_lock);
+  if (xi_sources)
+    g_hash_table_remove(xi_sources, data);
+  g_mutex_unlock(&xi_sources_lock);
+}
+
+static void
+xi_sources_mark_failed(const void *data)
+{
+  g_mutex_lock(&xi_sources_lock);
+  if (xi_sources && g_hash_table_contains(xi_sources, data))
+    g_hash_table_insert(xi_sources, (void *) data, GINT_TO_POINTER(2));
+  g_mutex_unlock(&xi_sources_lock);
+}
+
+static int
+xi_sources_failed(const void *data)
+{
+  int failed;
+
+  g_mutex_lock(&xi_sources_lock);
+  failed = xi_sources &&
+      GPOINTER_TO_INT(g_hash_table_lookup(xi_sources, data)) == 2;
+  g_mutex_unlock(&xi_sources_lock);
+  return failed;
+}
+
+// Emission hook for VipsOperation::invalidate. libvips emits it on a loader
+// when decoding fails (foreign.c vips_foreign_load_start and
+// vips_foreign_load_invalidate), also when that happens lazily inside a
+// sink long after the header was read. Runs on whichever thread decoded.
+static gboolean
+xi_invalidate_hook(GSignalInvocationHint *ihint, guint n_param_values,
+    const GValue *param_values, gpointer data)
+{
+  GObject *op;
+  VipsBlob *blob = NULL;
+
+  (void) ihint;
+  (void) data;
+  if (n_param_values < 1)
+    return TRUE;
+  op = g_value_get_object(&param_values[0]);
+  if (!op || !VIPS_IS_FOREIGN_LOAD(op) ||
+      !g_object_class_find_property(G_OBJECT_GET_CLASS(op), "buffer"))
+    return TRUE;
+  g_object_get(op, "buffer", &blob, NULL);
+  if (blob) {
+    xi_sources_mark_failed(VIPS_AREA(blob)->data);
+    vips_area_unref(VIPS_AREA(blob));
+  }
+  return TRUE;
+}
+
+// ---- lifecycle -----------------------------------------------------------
+
 int
 xi_init(const char *argv0, int concurrency, int cache_max, size_t cache_max_mem,
-    int cache_max_files, const char **allowed_loaders, int n_allowed, char **err)
+    int cache_max_files, const char **allowed_loaders, int n_loaders,
+    const char **allowed_savers, int n_savers, int heic_encode, char **err)
 {
+  static gsize hooked = 0;
+
   // vips_init is idempotent: a second call returns 0 without doing anything.
   if (VIPS_INIT(argv0)) {
     *err = xi_error_copy();
@@ -32,12 +123,26 @@ xi_init(const char *argv0, int concurrency, int cache_max, size_t cache_max_mem,
   vips_cache_set_max_files(cache_max_files);
   vips_concurrency_set(concurrency);
 
-  // Allowlist of loaders: block everything flagged untrusted, then every
-  // loader, then re-enable exactly the configured ones (FORMATS.md M1).
+  // Allowlists of loaders and savers: block everything flagged untrusted,
+  // then every loader and saver, then re-enable exactly the configured ones
+  // (FORMATS.md M1). jxlsave is flagged untrusted in 8.18 and comes back
+  // only through this list.
   vips_block_untrusted_set(TRUE);
   vips_operation_block_set("VipsForeignLoad", TRUE);
-  for (int i = 0; i < n_allowed; i++)
+  vips_operation_block_set("VipsForeignSave", TRUE);
+  for (int i = 0; i < n_loaders; i++)
     vips_operation_block_set(allowed_loaders[i], FALSE);
+  for (int i = 0; i < n_savers; i++)
+    vips_operation_block_set(allowed_savers[i], FALSE);
+
+  g_atomic_int_set(&xi_heic_encode, heic_encode ? 1 : 0);
+
+  if (g_once_init_enter(&hooked)) {
+    guint id = g_signal_lookup("invalidate", VIPS_TYPE_OPERATION);
+    if (id)
+      g_signal_add_emission_hook(id, 0, xi_invalidate_hook, NULL, NULL);
+    g_once_init_leave(&hooked, 1);
+  }
 
   return XI_OK;
 }
@@ -55,6 +160,12 @@ xi_thread_cleanup(void)
   // unless it is released on the thread that used it.
   vips_error_clear();
   vips_thread_shutdown();
+}
+
+void
+xi_leak_set(int leak)
+{
+  vips_leak_set(leak ? TRUE : FALSE);
 }
 
 size_t
@@ -75,10 +186,43 @@ xi_tracked_allocs(void)
   return vips_tracked_get_allocs();
 }
 
+int
+xi_tracked_files(void)
+{
+  return vips_tracked_get_files();
+}
+
+static void *
+xi_count_object(VipsObject *object, void *a, void *b)
+{
+  (void) object;
+  (void) b;
+  (*(int *) a)++;
+  return NULL;
+}
+
+int
+xi_live_objects(void)
+{
+  int n = 0;
+
+  vips_object_map((VipsSListMap2Fn) xi_count_object, &n, NULL);
+  return n;
+}
+
+void
+xi_free(void *p)
+{
+  g_free(p);
+}
+
+// ---- source buffers --------------------------------------------------------
+
 static int
 xi_blob_free(void *data, void *area)
 {
   (void) area;
+  xi_sources_remove(data);
   vips_tracked_free(data);
   return 0;
 }
@@ -92,6 +236,7 @@ xi_blob_new(size_t capacity)
     capacity = 1;
   if (!(data = vips_tracked_malloc(capacity)))
     return NULL;
+  xi_sources_insert(data);
   return vips_blob_new((VipsCallbackFn) xi_blob_free, data, capacity);
 }
 
@@ -120,100 +265,23 @@ xi_blob_set_length(VipsBlob *blob, size_t length)
   VIPS_AREA(blob)->length = length;
 }
 
+VipsBlob *
+xi_blob_ref(VipsBlob *blob)
+{
+  if (blob)
+    vips_area_copy(VIPS_AREA(blob));
+  return blob;
+}
+
 void
 xi_blob_unref(VipsBlob *blob)
 {
-  vips_area_unref(VIPS_AREA(blob));
-}
-
-static gboolean
-xi_loader_blocked(const char *loader)
-{
-  GType type;
-  gpointer klass;
-  gboolean blocked;
-
-  if (!(type = g_type_from_name(loader)))
-    return TRUE;
-  klass = g_type_class_ref(type);
-  blocked = (VIPS_OPERATION_CLASS(klass)->flags & VIPS_OPERATION_BLOCKED) != 0;
-  g_type_class_unref(klass);
-  return blocked;
+  if (blob)
+    vips_area_unref(VIPS_AREA(blob));
 }
 
 int
-xi_thumbnail(VipsBlob *blob, int width, int height, int size, int fail_on,
-    VipsImage **out, char **err)
+xi_blob_failed(VipsBlob *blob)
 {
-  VipsArea *area = VIPS_AREA(blob);
-  const char *loader;
-
-  *out = NULL;
-  if (!(loader = vips_foreign_find_load_buffer(area->data, area->length))) {
-    *err = xi_error_copy();
-    return XI_ERR_UNSUPPORTED;
-  }
-  // The libvips sniffer already skips blocked loaders; this is a second
-  // line of defence should that ever change.
-  if (xi_loader_blocked(loader)) {
-    vips_error("xi_thumbnail", "loader %s is blocked", loader);
-    *err = xi_error_copy();
-    return XI_ERR_UNSUPPORTED;
-  }
-
-  // vips_thumbnail_buffer does not copy or own the bytes: loading is lazy and
-  // pixels are read on save. The output keeps a blob reference for that.
-  if (vips_thumbnail_buffer(area->data, area->length, out, width,
-          "height", height,
-          "size", size,
-          "fail_on", fail_on,
-          NULL)) {
-    *err = xi_error_copy();
-    return XI_ERR_LOAD;
-  }
-
-  vips_area_copy(area);
-  g_object_set_data_full(G_OBJECT(*out), XI_SRC_BLOB_KEY, area,
-      (GDestroyNotify) vips_area_unref);
-  return XI_OK;
-}
-
-int
-xi_image_width(VipsImage *img)
-{
-  return vips_image_get_width(img);
-}
-
-int
-xi_image_height(VipsImage *img)
-{
-  return vips_image_get_height(img);
-}
-
-void
-xi_image_unref(VipsImage *img)
-{
-  VIPS_UNREF(img);
-}
-
-int
-xi_jpegsave(VipsImage *in, int quality, void **buf, size_t *len, char **err)
-{
-  *buf = NULL;
-  *len = 0;
-  if (vips_jpegsave_buffer(in, buf, len,
-          "Q", quality,
-          "optimize_coding", TRUE,
-          "keep", VIPS_FOREIGN_KEEP_NONE,
-          NULL)) {
-    *err = xi_error_copy();
-    return XI_ERR_SAVE;
-  }
-  return XI_OK;
-}
-
-void
-xi_free(void *p)
-{
-  g_free(p);
+  return blob && xi_sources_failed(VIPS_AREA(blob)->data);
 }

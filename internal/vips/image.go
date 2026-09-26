@@ -13,94 +13,290 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 )
 
-// Image is a handle on one libvips image node. Pixels are computed lazily
-// when a saver pulls them. Close it exactly once, inside the same Run that
-// created it.
+// Image is a handle on one libvips image node. Operations return new nodes
+// that reference their inputs; pixels are computed lazily when a sink
+// (Save, WriteToMemory) pulls them. Close every Image exactly once, inside
+// the Run that created it; an Arena does that in one place.
+//
+// Image is not safe for concurrent use: one goroutine (the Run's locked
+// thread) owns it.
 type Image struct {
 	p *C.VipsImage
+	// src is a reference to the source Buffer's blob (nil for synthetic
+	// images). Derived images carry it too, so a failed sink can be
+	// attributed to a decode failure of the source (opError).
+	src *C.VipsBlob
 }
 
-// LoadThumbnail decodes buf with shrink-on-load (vips_thumbnail_buffer) and
-// resizes it to fit inside width×height, keeping the aspect ratio and never
-// enlarging. A zero width or height means unbounded on that axis; both zero
-// keeps the original size. EXIF orientation is applied. Loading uses
-// fail_on=warning (untrusted input).
-//
-// The image holds its own reference to buf's memory, so buf may be released
-// once LoadThumbnail returns. Errors: KindUnsupported (no enabled loader
-// matches), KindCorrupt (the decoder failed), KindCanceled/KindTimeout (ctx
-// done before the call).
-func LoadThumbnail(ctx context.Context, buf *Buffer, width, height int) (*Image, error) {
-	if err := ctxError(ctx, "vips: thumbnail"); err != nil {
-		return nil, err
-	}
-	if buf == nil || buf.blob == nil || buf.Len() == 0 {
-		return nil, errs.New(errs.KindUnsupported, "vips: empty source")
-	}
-	if width < 0 || height < 0 {
-		return nil, errs.Newf(errs.KindInvalidURL, "vips: negative thumbnail size %dx%d", width, height)
-	}
-	if width == 0 {
-		width = maxDimension
-	}
-	if height == 0 {
-		height = maxDimension
-	}
+// newImage wraps out, taking a reference to src.
+func newImage(out *C.VipsImage, src *C.VipsBlob) *Image {
+	return &Image{p: out, src: C.xi_blob_ref(src)}
+}
 
-	var out *C.VipsImage
-	var cerr *C.char
-	rc := C.xi_thumbnail(buf.blob, C.int(width), C.int(height),
-		C.VIPS_SIZE_DOWN, C.VIPS_FAIL_ON_WARNING, &out, &cerr)
-	if err := opError(rc, "thumbnail", cerr); err != nil {
-		return nil, err
+// derive wraps an operation's output that depends on img.
+func (img *Image) derive(out *C.VipsImage) *Image { return newImage(out, img.src) }
+
+// Close unrefs the image. It is idempotent and nil-safe.
+func (img *Image) Close() {
+	if img == nil {
+		return
 	}
-	return &Image{p: out}, nil
+	if img.p != nil {
+		C.xi_image_unref(img.p)
+		img.p = nil
+	}
+	if img.src != nil {
+		C.xi_blob_unref(img.src)
+		img.src = nil
+	}
 }
 
 // Width returns the image width in pixels.
 func (img *Image) Width() int { return int(C.xi_image_width(img.p)) }
 
-// Height returns the image height in pixels.
+// Height returns the image height in pixels: all frames for an animation
+// loaded with NPages != 1 (see PageHeight).
 func (img *Image) Height() int { return int(C.xi_image_height(img.p)) }
 
-// Close unrefs the image. It is idempotent.
-func (img *Image) Close() {
-	if img.p != nil {
-		C.xi_image_unref(img.p)
-		img.p = nil
-	}
+// Bands returns the number of bands, alpha included.
+func (img *Image) Bands() int { return int(C.xi_image_bands(img.p)) }
+
+// BandFormat returns the numeric type of the bands.
+func (img *Image) BandFormat() BandFormat { return BandFormat(C.xi_image_band_format(img.p)) }
+
+// Interpretation returns the (sanity-checked) colour space.
+func (img *Image) Interpretation() Interpretation {
+	return Interpretation(C.xi_image_interpretation(img.p))
 }
 
-// SaveJPEG encodes img as JPEG with the given quality (1–100, clamped),
-// optimised Huffman tables and all metadata stripped. This is the sink: the
-// whole pipeline runs here. Errors: KindInternal (saver failure),
-// KindCanceled/KindTimeout (ctx done before the call).
-func (img *Image) SaveJPEG(ctx context.Context, quality int) (*Blob, error) {
-	if err := ctxError(ctx, "vips: jpegsave"); err != nil {
+// HasAlpha reports whether the last band is alpha.
+func (img *Image) HasAlpha() bool { return C.xi_image_has_alpha(img.p) != 0 }
+
+// Orientation returns the EXIF orientation 1..8 (1 when absent).
+func (img *Image) Orientation() int { return int(C.xi_image_orientation(img.p)) }
+
+// PageHeight returns the height of one frame (page-height), or Height for
+// a single-frame image.
+func (img *Image) PageHeight() int { return int(C.xi_image_page_height(img.p)) }
+
+// Pages returns the number of frames in the strip (Height / PageHeight).
+func (img *Image) Pages() int { return img.Height() / max(img.PageHeight(), 1) }
+
+// XRes and YRes return the resolution in pixels per millimetre.
+func (img *Image) XRes() float64 { return float64(C.xi_image_xres(img.p)) }
+
+// YRes returns the vertical resolution in pixels per millimetre.
+func (img *Image) YRes() float64 { return float64(C.xi_image_yres(img.p)) }
+
+// ImageBytes returns the uncompressed size of the pixels in bytes, what a
+// full decode to memory would take.
+func (img *Image) ImageBytes() int64 { return int64(C.xi_image_sizeof(img.p)) }
+
+// Int returns an integer metadata field.
+func (img *Image) Int(field MetaField) (int, bool) {
+	name := cstr(string(field))
+	var v C.int
+	if C.xi_meta_get_int(img.p, cptr(name), &v) != 0 {
+		return 0, false
+	}
+	return int(v), true
+}
+
+// Ints returns an integer array metadata field, such as FieldDelay.
+func (img *Image) Ints(field MetaField) ([]int, bool) {
+	name := cstr(string(field))
+	var p *C.int
+	var n C.int
+	if C.xi_meta_get_array_int(img.p, cptr(name), &p, &n) != 0 {
+		return nil, false
+	}
+	out := make([]int, int(n))
+	for i, v := range unsafe.Slice(p, int(n)) {
+		out[i] = int(v)
+	}
+	return out, true
+}
+
+// Blob returns a copy of a binary metadata field such as FieldEXIF or
+// FieldICC. Metadata is small, cold data, so it is copied (go-standards §4).
+func (img *Image) Blob(field MetaField) ([]byte, bool) {
+	name := cstr(string(field))
+	var p unsafe.Pointer
+	var n C.size_t
+	if C.xi_meta_get_blob(img.p, cptr(name), &p, &n) != 0 {
+		return nil, false
+	}
+	return C.GoBytes(p, C.int(n)), true
+}
+
+// SetInt returns a copy of img with an integer metadata field set. The
+// input is never modified: other nodes may share it.
+func (img *Image) SetInt(ctx context.Context, field MetaField, v int) (*Image, error) {
+	if err := ctxError(ctx, "vips: set metadata"); err != nil {
 		return nil, err
 	}
-	quality = min(max(quality, MinQuality), MaxQuality)
+	name := cstr(string(field))
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_meta_set_int(img.p, cptr(name), C.int(v), &out, &cerr)
+	if err := opError(rc, "set_int", cerr, img.src); err != nil {
+		return nil, err
+	}
+	return img.derive(out), nil
+}
 
+// SetInts returns a copy of img with an integer array metadata field set
+// (for example FieldDelay).
+func (img *Image) SetInts(ctx context.Context, field MetaField, v []int) (*Image, error) {
+	if err := ctxError(ctx, "vips: set metadata"); err != nil {
+		return nil, err
+	}
+	name := cstr(string(field))
+	cv := make([]C.int, len(v))
+	for i, x := range v {
+		cv[i] = C.int(x)
+	}
+	var p *C.int
+	if len(cv) > 0 {
+		p = &cv[0]
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_meta_set_array_int(img.p, cptr(name), p, C.int(len(cv)), &out, &cerr)
+	if err := opError(rc, "set_ints", cerr, img.src); err != nil {
+		return nil, err
+	}
+	return img.derive(out), nil
+}
+
+// SetBlob returns a copy of img with a binary metadata field set (EXIF,
+// XMP, IPTC or an ICC profile). data is copied.
+func (img *Image) SetBlob(ctx context.Context, field MetaField, data []byte) (*Image, error) {
+	if err := ctxError(ctx, "vips: set metadata"); err != nil {
+		return nil, err
+	}
+	name := cstr(string(field))
+	var p unsafe.Pointer
+	if len(data) > 0 {
+		p = unsafe.Pointer(&data[0])
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_meta_set_blob(img.p, cptr(name), p, C.size_t(len(data)), &out, &cerr)
+	if err := opError(rc, "set_blob", cerr, img.src); err != nil {
+		return nil, err
+	}
+	return img.derive(out), nil
+}
+
+// RemoveMetadata returns a copy of img without the given fields. Missing
+// fields are ignored.
+func (img *Image) RemoveMetadata(ctx context.Context, fields ...MetaField) (*Image, error) {
+	if err := ctxError(ctx, "vips: remove metadata"); err != nil {
+		return nil, err
+	}
+	var names []byte
+	for _, f := range fields {
+		names = append(names, f...)
+		names = append(names, 0)
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_meta_remove(img.p, cptr(names), C.int(len(fields)), &out, &cerr)
+	if err := opError(rc, "remove_metadata", cerr, img.src); err != nil {
+		return nil, err
+	}
+	return img.derive(out), nil
+}
+
+// SetOrientation returns a copy of img tagged with EXIF orientation o.
+func (img *Image) SetOrientation(ctx context.Context, o int) (*Image, error) {
+	return img.SetInt(ctx, FieldOrientation, o)
+}
+
+// RemoveOrientation returns a copy of img without an orientation tag.
+func (img *Image) RemoveOrientation(ctx context.Context) (*Image, error) {
+	return img.RemoveMetadata(ctx, FieldOrientation)
+}
+
+// SetPageHeight returns a copy of img whose frames are h rows tall. h must
+// divide Height; libvips ignores it otherwise.
+func (img *Image) SetPageHeight(ctx context.Context, h int) (*Image, error) {
+	return img.SetInt(ctx, FieldPageHeight, h)
+}
+
+// WriteToMemory computes the whole image and returns a copy of its pixels
+// (band-interleaved, BandFormat samples, row by row). It is a sink: ctx
+// cancellation kills it. Meant for tests and small images.
+func (img *Image) WriteToMemory(ctx context.Context) ([]byte, error) {
+	if err := ctxError(ctx, "vips: write to memory"); err != nil {
+		return nil, err
+	}
+	stop := KillOnCancel(ctx, img)
+	defer stop()
 	var p unsafe.Pointer
 	var n C.size_t
 	var cerr *C.char
-	rc := C.xi_jpegsave(img.p, C.int(quality), &p, &n, &cerr)
-	if err := opError(rc, "jpegsave", cerr); err != nil {
+	rc := C.xi_write_to_memory(img.p, &p, &n, &cerr)
+	if err := stepError(ctx, rc, "write_to_memory", cerr, img.src); err != nil {
 		return nil, err
 	}
-	return &Blob{p: p, n: int(n)}, nil
+	defer C.xi_free(p)
+	return C.GoBytes(p, C.int(n)), nil
+}
+
+// Black returns a width×height image of bands zero (black) uchar bands.
+func Black(ctx context.Context, width, height, bands int) (*Image, error) {
+	if err := ctxError(ctx, "vips: black"); err != nil {
+		return nil, err
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_black(C.int(width), C.int(height), C.int(bands), &out, &cerr)
+	if err := opError(rc, "black", cerr, nil); err != nil {
+		return nil, err
+	}
+	return newImage(out, nil), nil
+}
+
+// NewFromMemory copies band-interleaved pixels into a new libvips image
+// (codec/bmp and codec/ico decode in Go and hand the pixels over here).
+// len(pix) must be width × height × bands × the sample size of format.
+func NewFromMemory(ctx context.Context, pix []byte, width, height, bands int, format BandFormat) (*Image, error) {
+	if err := ctxError(ctx, "vips: new from memory"); err != nil {
+		return nil, err
+	}
+	if len(pix) == 0 || width <= 0 || height <= 0 || bands <= 0 {
+		return nil, errs.Newf(errs.KindInternal, "vips: new from memory: %d bytes for %dx%dx%d",
+			len(pix), width, height, bands)
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_new_from_memory(unsafe.Pointer(&pix[0]), C.size_t(len(pix)), C.int(width),
+		C.int(height), C.int(bands), C.int(format), &out, &cerr)
+	if err := opError(rc, "new_from_memory", cerr, nil); err != nil {
+		return nil, err
+	}
+	return newImage(out, nil), nil
 }
 
 // Blob is encoded output in C memory allocated by libvips. Bytes exposes it
-// without copying, so it can be written straight to the response; Release
-// frees it.
+// without copying, so it can be written straight to the response. It is
+// reference counted like Buffer (and satisfies the same interface): Retain
+// adds a reference, and the final Release frees the memory.
 type Blob struct {
-	p        unsafe.Pointer
-	n        int
-	released atomic.Bool
+	p    unsafe.Pointer
+	n    int
+	refs atomic.Int32
 }
 
-// Bytes returns the encoded bytes, valid until Release.
+func newBlob(p unsafe.Pointer, n int) *Blob {
+	b := &Blob{p: p, n: n}
+	b.refs.Store(1)
+	return b
+}
+
+// Bytes returns the encoded bytes, valid until the final Release.
 func (b *Blob) Bytes() []byte {
 	if b.p == nil || b.n == 0 {
 		return nil
@@ -111,9 +307,31 @@ func (b *Blob) Bytes() []byte {
 // Len returns the encoded size in bytes.
 func (b *Blob) Len() int { return b.n }
 
-// Release frees the memory. It is idempotent.
+// Retain adds a reference; each Retain needs one Release. Retaining a
+// released Blob has no effect.
+func (b *Blob) Retain() {
+	for {
+		n := b.refs.Load()
+		if n <= 0 || b.refs.CompareAndSwap(n, n+1) {
+			return
+		}
+	}
+}
+
+// Release drops a reference; the last one frees the memory. Extra
+// Releases are no-ops.
 func (b *Blob) Release() {
-	if b.released.CompareAndSwap(false, true) {
-		C.xi_free(b.p)
+	for {
+		n := b.refs.Load()
+		if n <= 0 {
+			return
+		}
+		if b.refs.CompareAndSwap(n, n-1) {
+			if n == 1 {
+				C.xi_free(b.p)
+				b.p, b.n = nil, 0
+			}
+			return
+		}
 	}
 }
