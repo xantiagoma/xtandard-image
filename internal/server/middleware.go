@@ -205,6 +205,9 @@ type requestInfo struct {
 	width, height int
 	stages        [numStages]time.Duration
 	ran           [numStages]bool
+	// job is set once the source resolved; a later failure may be
+	// answered with the fallback image (special.go).
+	job *job
 }
 
 func (ri *requestInfo) stageAttrs() []slog.Attr {

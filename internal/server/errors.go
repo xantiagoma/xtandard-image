@@ -39,8 +39,7 @@ func (e *httpError) HTTPStatus() int       { return e.status }
 func (e *httpError) PublicMessage() string { return e.msg }
 
 // notImplementedError marks request kinds whose handling lands in a later
-// work package: raw / skip-processing / passthrough streaming and /info
-// (WP-34c and the info WP). It wraps KindUnsupported so logs and fallback
+// work package: /info (WP-35). It wraps KindUnsupported so logs and fallback
 // eligibility see an unsupported request, but answers 501 so clients can
 // tell "not built yet" from "bad image".
 type notImplementedError struct {

@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/limiter"
 	"github.com/xantiagoma/xtandard-image/internal/obs/metrics"
@@ -104,6 +105,20 @@ func vipsBuffer(buf fetch.Buffer) (*vips.Buffer, error) {
 	}
 	copy(vb.Bytes(), data)
 	return vb, nil
+}
+
+// codecSniffer adapts codec.Sniff to server.Sniffer: the Content-Type of
+// raw and skip-processing responses comes from magic bytes only.
+type codecSniffer struct{}
+
+// Sniff implements server.Sniffer.
+func (codecSniffer) Sniff(data []byte) (server.Sniffed, bool) {
+	f, ok := codec.Sniff(data)
+	if !ok {
+		return server.Sniffed{}, false
+	}
+	out, _ := f.Output()
+	return server.Sniffed{Format: out, ContentType: f.MIME(), Ext: f.Ext()}, true
 }
 
 // vipsProber is the temporary server.Prober until codec's probe (WP-07)
