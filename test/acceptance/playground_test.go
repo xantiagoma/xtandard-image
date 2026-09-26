@@ -120,8 +120,11 @@ func TestPlayground(t *testing.T) {
 			mounts[m.ID] = m.Scheme
 		}
 	}
+	if bytes.Contains(metaRes.Body, []byte(env(t, "XI_ACC_IMGIX_TOKEN"))) {
+		t.Fatal("api/meta contains the imgix token")
+	}
 	if meta.Signing.Mode != "optional" || mounts["imgproxy"] != "imgproxy" || mounts["query"] != "xi_sig" ||
-		len(meta.Catalogues) != 2 || len(meta.Catalogues[0].Options) < 50 || len(meta.Sources) != 3 ||
+		mounts["imgix"] != "imgix" || len(meta.Catalogues) != 3 || len(meta.Catalogues[0].Options) < 50 || len(meta.Sources) != 3 ||
 		len(meta.Presets) != 1 || meta.Presets[0] != "thumb" {
 		t.Errorf("meta: %s", truncate(metaRes.Body))
 	}
@@ -144,6 +147,15 @@ func TestPlayground(t *testing.T) {
 	qi := get(t, app+q.URL, nil)
 	qi.wantStatus(t, http.StatusOK)
 	wantImage(t, qi, "image/png", props{Format: "png", Width: 65})
+
+	// imgix: s with the mount's token lifts the restricted policy.
+	x := postSign(t, admin, `{"mount":"imgix","path":"/jpeg/baseline.jpg","query":"w=65&fm=png"}`)
+	if want := "/imgix/jpeg/baseline.jpg?" + imgixSign(env(t, "XI_ACC_IMGIX_TOKEN"), "/jpeg/baseline.jpg", "w=65&fm=png"); !x.Signed || x.URL != want {
+		t.Errorf("imgix sign %+v, want %s", x, want)
+	}
+	xi := get(t, app+x.URL, nil)
+	xi.wantStatus(t, http.StatusOK)
+	wantImage(t, xi, "image/png", props{Format: "png", Width: 65, Height: 49})
 
 	rendered := get(t, admin+"/_playground/api/render?u="+url.QueryEscape(s.URL), http.Header{"Accept": {"image/webp"}})
 	rendered.wantStatus(t, http.StatusOK)
