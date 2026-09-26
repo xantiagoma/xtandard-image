@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <symbol id="icon"><circle r="1"/></symbol>
+  <use href="https://evil.example/sprite.svg#icon"/>
+  <use xlink:href="data:image/svg+xml,%3Csvg%20onload%3Dalert(1)%3E#x"><title>t</title></use>
+  <use xlink:href="sprite.svg#icon"/>
+  <use href="#icon" x="2"/>
+</svg>
