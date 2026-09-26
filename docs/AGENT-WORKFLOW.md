@@ -41,7 +41,7 @@ and never push to `main`.
 
 ## Rules that get PRs rejected
 
-- Any `import "C"` outside `internal/vips`.
+- Any `import "C"` outside `internal/vips` (and `internal/video/ffmpeg` under the `ffmpeg` build tag, ADR 0010).
 - `os.Getenv` outside `internal/config`; globals; `init()`.
 - Tests that `time.Sleep`, use testify, or compare images byte-for-byte.
 - A new third-party module without a line in the relevant ADR and a licence in MIT/BSD/Apache/ISC.

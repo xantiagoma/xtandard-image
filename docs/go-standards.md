@@ -59,6 +59,7 @@ Dev tools other than golangci go in a separate `tools/go.mod` with `tool` direct
 ```
 cmd/xtandard-image/main.go    # wiring only: config, signals, run(); default.pgo lives here
 internal/vips/                # the ONLY package that imports "C" (plus *.c/*.h shim)
+internal/video/ffmpeg/        # the one exception (ADR 0010): FFmpeg shim, build tag `ffmpeg` only
 internal/transform/           # normalised Request model (pure Go)
 internal/dialect/<name>/      # URL parsers per dialect: imgproxy, query, imgix, ... (fuzzed)
 internal/security/            # sign (HMAC per dialect), enc (AES source URLs), ssrf, svg
@@ -133,7 +134,7 @@ if err := s.workers.Acquire(ctx, 1); err != nil { s.queue.Release(1); return nil
 ## 4. cgo and libvips
 
 **Structure (copying the good parts of imgproxy and imagor/vipsgen):**
-- `internal/vips` is the only package that imports `"C"`. Nothing else sees a `*C.VipsImage`. The exported API is small and Go-typed: `Load`, `Thumbnail`, `Resize`, `Save` and similar.
+- `internal/vips` is the only package that imports `"C"`. Nothing else sees a `*C.VipsImage`. ADR 0010 adds exactly one exception, `internal/video/ffmpeg` under the `ffmpeg` build tag, held to the same rules (no C type escapes, C-owned buffers, `noescape`/`nocallback`, deterministic frees); `scripts/check-cgo.sh` enforces both. The exported API is small and Go-typed: `Load`, `Thumbnail`, `Resize`, `Save` and similar.
 - imgproxy hand-writes a C shim (`vips/vips.c`, about 33 KB) whose functions do several vips calls per Go call and each take one fixed-arity C function. That crosses the boundary once per step, avoids varargs from Go, and lets `#cgo noescape/nocallback` apply (https://github.com/imgproxy/imgproxy/tree/master/vips). **Copy this for hot paths.**
 - vipsgen v1.3.11 generates about 300 type-safe operations from GObject introspection, pre-generated for libvips 8.16, 8.17 and 8.18 (https://github.com/cshum/vipsgen). **Use it for the long tail and as a reference for signatures.** Wrap it inside `internal/vips` and never leak its types.
 - Both projects disable the vips operation cache (`vips_cache_set_max(0)`, `vips_cache_set_max_mem(0)`), because it can SIGSEGV on musl and doesn't help a tuned pipeline. Both default `vips_concurrency_set(1)` and get parallelism from the request semaphore instead (imgproxy `vips.go` `Init`; imagor `config/vipsconfig`). **We do the same.** Benchmark the alternative (fewer workers, `VIPS_CONCURRENCY`>1) for the latency tier before changing anything.
