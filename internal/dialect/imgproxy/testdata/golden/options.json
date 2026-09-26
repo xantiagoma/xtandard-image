@@ -2389,12 +2389,6 @@
     "path": "/unsafe/ph:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "ph",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "PreserveHDR": false
       },
@@ -2483,12 +2477,6 @@
     "path": "/unsafe/preserve_hdr:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "preserve_hdr",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Output": {
         "PreserveHDR": true
       },

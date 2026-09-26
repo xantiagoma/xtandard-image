@@ -59,6 +59,9 @@ type SourceInfo struct {
 	Bands        int
 	SampleFormat string
 	Colorspace   string
+	// HDR reports a scene-linear source (OpenEXR, Radiance, PFM); /info
+	// then answers "hdr": true.
+	HDR bool
 	// EXIF is in file order.
 	EXIF []EXIFEntry
 	// IPTC maps dataset titles to values, Photoshop holds
@@ -249,6 +252,9 @@ type infoJSON struct {
 	PagesNumber  *int                      `json:"pages_number,omitempty"`
 	Alpha        *bool                     `json:"alpha,omitempty"`
 	infoProJSON
+	// HDR is an xtandard-image extension, present only for scene-linear
+	// sources (OpenEXR, Radiance, PFM), which imgproxy does not read.
+	HDR bool `json:"hdr,omitempty"`
 }
 
 // infoBody renders the response for the options in o; src is the source
@@ -311,6 +317,7 @@ func infoBody(o *transform.InfoOptions, si *SourceInfo, src []byte) ([]byte, err
 		out.Alpha = &si.Meta.HasAlpha
 	}
 	out.infoProJSON = infoPro(o, si, src)
+	out.HDR = si.HDR
 	return json.Marshal(&out)
 }
 

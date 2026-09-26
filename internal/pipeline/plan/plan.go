@@ -31,6 +31,10 @@ type SourceMeta struct {
 	// Orientation applies to it); 0 when there is none. Width and Height
 	// are the demosaiced size.
 	PreviewWidth, PreviewHeight int
+	// HDR marks a scene-linear float source (OpenEXR, Radiance, PFM): it is
+	// loaded with random access (the tone mapper measures it first) and
+	// costs 4 bytes per sample until it is mapped to 8 bits.
+	HDR bool
 }
 
 // DefaultRawPreviewMinRatio is the RawPreviewMinRatio used when the limit

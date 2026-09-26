@@ -93,6 +93,7 @@ func TestValidate(t *testing.T) {
 		{"fallback status", func(c *Config) { c.Fallback.Status = 99 }, []string{"fallback.status"}},
 		{"quality", func(c *Config) { c.Formats.AVIF.Quality = 0 }, []string{"formats.avif.quality (XI_FORMATS_AVIF_QUALITY)"}},
 		{"effort", func(c *Config) { c.Formats.WebP.Effort = 7 }, []string{"formats.webp.effort"}},
+		{"hdr tonemap", func(c *Config) { c.Formats.HDR.ToneMap = "filmic" }, []string{`formats.hdr.tonemap (XI_FORMATS_HDR_TONEMAP): must be reinhard, aces or clip, got "filmic"`}},
 		{"autoquality order", func(c *Config) { c.Formats.AutoQuality.Min = 90 }, []string{"formats.autoquality.min (XI_FORMATS_AUTOQUALITY_MIN): must be <= formats.autoquality.max"}},
 		{"autoquality size target", func(c *Config) { c.Formats.AutoQuality.Method = AutoQualitySize }, []string{"formats.autoquality.target (XI_FORMATS_AUTOQUALITY_TARGET): must be a byte count"}},
 		{"autoquality allowed error", func(c *Config) { c.Formats.AutoQuality.AllowedError = 2 }, []string{"formats.autoquality.allowed_error"}},

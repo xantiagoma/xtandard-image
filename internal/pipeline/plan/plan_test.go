@@ -451,6 +451,14 @@ func TestCost(t *testing.T) {
 	if p.Cost.Pixels != 200*150*5 {
 		t.Errorf("animated Cost.Pixels = %d", p.Cost.Pixels)
 	}
+	// Scene-linear sources: float samples (×4), read twice (random access).
+	p, err = plan.Build(req(transform.Pipeline{}), plan.SourceMeta{Width: 100, Height: 50, Format: "exr", HDR: true}, plan.Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := (plan.Cost{Pixels: 5000, EstimatedBytes: 5000 * 3 * 4 * 2}); p.Cost != want || p.Load.Access != plan.AccessRandom {
+		t.Errorf("HDR Cost = %+v, access %v; want %+v, random", p.Cost, p.Load.Access, want)
+	}
 }
 
 func TestUnplanned(t *testing.T) {

@@ -83,6 +83,7 @@ func sourceInfo(ci *codec.Info) *server.SourceInfo {
 		Bands:        ci.Bands,
 		SampleFormat: ci.SampleFormat,
 		Colorspace:   ci.Colorspace,
+		HDR:          ci.HDR,
 	}
 	for _, e := range ci.EXIF {
 		si.EXIF = append(si.EXIF, server.EXIFEntry{Name: e.Name, Title: e.Title, Value: e.Value})

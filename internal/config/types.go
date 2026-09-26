@@ -540,6 +540,24 @@ func (f *FailOn) UnmarshalText(b []byte) error {
 // failOns lists the FailOn values.
 func failOns() []FailOn { return []FailOn{FailOnNone, FailOnTruncated, FailOnError, FailOnWarning} }
 
+// ToneMap is the HDR tone-mapping operator (XI_FORMATS_HDR_TONEMAP).
+type ToneMap string
+
+// Tone-mapping operators.
+const (
+	ToneMapReinhard ToneMap = "reinhard"
+	ToneMapACES     ToneMap = "aces"
+	ToneMapClip     ToneMap = "clip"
+)
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (t *ToneMap) UnmarshalText(b []byte) error {
+	return unmarshalEnum(t, b, toneMaps()...)
+}
+
+// toneMaps lists the ToneMap values.
+func toneMaps() []ToneMap { return []ToneMap{ToneMapReinhard, ToneMapACES, ToneMapClip} }
+
 // AutoQualityMethod selects the auto-quality algorithm.
 type AutoQualityMethod string
 

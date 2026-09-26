@@ -96,6 +96,7 @@ type source struct {
 	// thumbnail: enforce_thumbnail on a HEIF/AVIF still: the embedded
 	// thumbnail replaces the image whatever its size (imgproxy Pro).
 	thumbnail bool
+	hdr       bool // scene-linear float source: tone-mapped after load
 }
 
 func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observed) (*Plan, error) {
@@ -130,6 +131,7 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 		format: format, vector: meta.IsVector, hasData: true, frames: 1, density: meta.Density,
 		previewW: meta.PreviewWidth, previewH: meta.PreviewHeight,
 		enforceThumb: req.Output.EnforceThumbnail != nil && *req.Output.EnforceThumbnail,
+		hdr:          meta.HDR,
 	}
 	nFrames := max(meta.Frames, 1)
 	if first.Page != nil && *first.Page > 0 {
@@ -261,6 +263,7 @@ type builder struct {
 	curH     int
 	alpha    bool
 	random   bool
+	hdr      bool // float samples until the colour step (4 bytes each)
 	frames   int64
 	peak     int64
 	tooLarge bool
@@ -301,6 +304,9 @@ func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt trans
 		pl:     &Plan{Steps: make([]Step, 0, 12)},
 		alpha:  s.alpha,
 		frames: int64(s.frames),
+		// The tone mapper measures the source before mapping it: two reads.
+		random: s.hdr,
+		hdr:    s.hdr,
 	}
 	g := geo{vectorBaseShrink: 1}
 	g.angle, g.flip = orientation(s.orientation, o.autoRotate)
@@ -741,6 +747,9 @@ func cost(b *builder) Cost {
 		bands = 4
 	}
 	bytes := b.peak * bands
+	if b.hdr {
+		bytes *= 4
+	}
 	if b.random {
 		bytes *= 2
 	}

@@ -2124,6 +2124,24 @@
           },
           "type": "object"
         },
+        "hdr": {
+          "additionalProperties": false,
+          "properties": {
+            "tonemap": {
+              "default": "reinhard",
+              "description": "Env: XI_FORMATS_HDR_TONEMAP",
+              "enum": [
+                "reinhard",
+                "aces",
+                "clip"
+              ],
+              "markdownDescription": "Env: `XI_FORMATS_HDR_TONEMAP`",
+              "title": "XI_FORMATS_HDR_TONEMAP",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
         "heic": {
           "additionalProperties": false,
           "properties": {

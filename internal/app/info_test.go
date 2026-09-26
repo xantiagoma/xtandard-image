@@ -283,9 +283,10 @@ func infoHashsums(t *testing.T, base, root string) {
 	}
 }
 
-// pdfPSDStatus checks the PDF and PSD answers the goldens do not cover: a
+// pdfPSDStatus checks the PDF, PSD and HDR answers the goldens do not cover: a
 // password-protected PDF and one over XI_LIMITS_MAX_PDF_PAGES (500) are
-// 422 for /info and processing alike, and a PDF page or PSD layer renders.
+// 422 for /info and processing alike, a PDF page or PSD layer renders, and
+// OpenEXR, Radiance and PFM sources render through the configured wiring.
 func pdfPSDStatus(t *testing.T, base string) {
 	t.Helper()
 	for _, tc := range []struct {
@@ -301,6 +302,11 @@ func pdfPSDStatus(t *testing.T, base string) {
 		{"/unsafe/pgs:-1/rs:fit:100:0/f:png/plain/pdf/pages.pdf", http.StatusOK, "image/png"},
 		{"/unsafe/rs:fit:48:0/plain/psd/no-composite.psd", http.StatusOK, "image/jpeg"},
 		{"/unsafe/pg:2/plain/psd/layered.psd", http.StatusOK, "image/jpeg"},
+		// HDR inputs (WP-67): tone-mapped, alpha kept, preserve_hdr to JXL.
+		{"/unsafe/rs:fit:32:0/plain/exr/rgba-half.exr", http.StatusOK, "image/png"},
+		{"/unsafe/rs:fit:32:0/plain/hdr/scene.hdr", http.StatusOK, "image/jpeg"},
+		{"/unsafe/plain/pfm/scene.pfm", http.StatusOK, "image/jpeg"},
+		{"/unsafe/ph:1/f:jxl/plain/exr/rgb-float.exr", http.StatusOK, "image/jxl"},
 	} {
 		t.Run(tc.path, func(t *testing.T) {
 			r := get(t, base+tc.path)

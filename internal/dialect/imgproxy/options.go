@@ -142,7 +142,6 @@ func (st *state) apply(name string, args []string) error {
 	case "strip_color_profile", "scp":
 		return oneBoolPtr("strip_color_profile", args, &st.r.Output.StripColorProfile)
 	case "preserve_hdr", "ph":
-		st.ignore(name, reasonM2)
 		return oneBoolPtr("preserve_hdr", args, &st.r.Output.PreserveHDR)
 	case "enforce_thumbnail", "eth":
 		return oneBoolPtr("enforce_thumbnail", args, &st.r.Output.EnforceThumbnail)

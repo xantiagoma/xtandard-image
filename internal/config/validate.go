@@ -358,6 +358,8 @@ func (c *Config) validateFormats(v *validator) {
 	v.between(f.JXL.Effort, 1, 10, "formats.jxl.effort")
 	v.between(f.GIF.Effort, 1, 10, "formats.gif.effort")
 	v.check(f.PDF.DPI >= 1 && f.PDF.DPI <= 1200, "formats.pdf.dpi", "must be in [1, 1200], got %g", f.PDF.DPI)
+	v.check(f.HDR.ToneMap == ToneMapReinhard || f.HDR.ToneMap == ToneMapACES || f.HDR.ToneMap == ToneMapClip,
+		"formats.hdr.tonemap", "must be reinhard, aces or clip, got %q", f.HDR.ToneMap)
 	v.positive(f.AVIF.MaxPixels, "formats.avif.max_pixels")
 	v.positive(f.Best.MaxPixels, "formats.best.max_pixels")
 	v.check(f.RAW.PreviewMinRatio > 0 && f.RAW.PreviewMinRatio <= 100, "formats.raw.preview_min_ratio", "must be > 0 and <= 100")
