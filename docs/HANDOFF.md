@@ -65,7 +65,11 @@ owner has authorised merging PRs without review.
    `gh pr edit --base main` + `gh pr merge --squash`. gh-stack's local state is `.git/gh-stack`
    (JSON; stale stacks can be pruned by hand). After a squash merge, unstacked local branches are
    deleted and the remaining ones are re-initialised from the first unmerged branch.
-7. CI on stacked PRs is only green once the base image tag the branch pins exists on GHCR; the
+7. GitHub Actions minutes are billed (private repo). Since 2026-09-27 PR pushes run only lint, container
+   unit tests and the `CGO_ENABLED=0` job; smoke/acceptance/quickstart run on pushes to `main` or when a
+   PR carries the `ci-full` label; docs-only changes skip CI. The included 2,000 min/month were exhausted on
+   2026-09-26 (resets 2026-10-01); runs may queue or fail until then unless a budget is set.
+8. CI on stacked PRs is only green once the base image tag the branch pins exists on GHCR; the
    base image is published by `.github/workflows/base-image.yml` on pushes to `main` (never on PRs).
 
 ## Known gaps and follow-ups
