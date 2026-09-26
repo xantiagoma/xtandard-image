@@ -110,6 +110,16 @@ jobs:
         # pprof's index route is /debug/pprof/ (net/http/pprof), hence the
         # skipped trailing-slash rule.
         run: bunx @redocly/cli@2.54.3 lint --skip-rule=no-path-trailing-slash internal/apidoc/openapi.json
+      - name: pages site assembles (WP-81b, same script as pages.yml)
+        run: sh scripts/pages-build.sh "$RUNNER_TEMP/pages"
+      - name: SchemaStore samples under Ajv (the validator SchemaStore runs)
+        run: |
+          ajv="bunx ajv-cli@5.0.0 validate --spec=draft2020 --strict=false -s internal/config/config.schema.json"
+          $ajv -d docs/schemastore/tests/positive/xtandard.yaml
+          if $ajv -d docs/schemastore/tests/negative/xtandard.yaml; then
+            echo "::error::the negative sample validates"
+            exit 1
+          fi
 
   smoke:
     # Build the release app image (root Dockerfile, WP-37) natively on each

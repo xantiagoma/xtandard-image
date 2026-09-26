@@ -110,6 +110,10 @@ tasks:
     desc: "Verify $XI_IMAGE (default xtandard-image:dev): version, config, ≤ 110 MB compressed, read-only + health, smoke"
     cmds: [sh scripts/verify-app-image.sh]
 
+  pages:build:
+    desc: "Assemble the GitHub Pages site (config schema, OpenAPI, index, Scalar page) into dist/pages/, as .github/workflows/pages.yml deploys it"
+    cmds: [sh scripts/pages-build.sh]
+
   release:pgo:
     desc: "Refresh cmd/xtandard-image/default.pgo: 30 s CPU profile of $XI_IMAGE under the smoke load (build it first)"
     cmds: [sh scripts/pgo-profile.sh]

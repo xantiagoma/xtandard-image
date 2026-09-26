@@ -3,6 +3,7 @@ package admin
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -125,6 +126,26 @@ func TestPatternsMatchMux(t *testing.T) {
 		req := httptest.NewRequestWithContext(t.Context(), method, path, http.NoBody)
 		if _, got := mux.Handler(req); got != p {
 			t.Errorf("%s routed to %q", p, got)
+		}
+	}
+}
+
+// TestPagesScalarPin keeps the GitHub Pages API reference
+// (docs/pages/api/index.html, WP-81b) on the same pinned Scalar build and
+// SRI hash as /docs, with a CSP that allows exactly that script.
+func TestPagesScalarPin(t *testing.T) {
+	t.Parallel()
+	b, err := os.ReadFile("../../../docs/pages/api/index.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	page := string(b)
+	for _, want := range []string{
+		`src="` + scalarScript + `" integrity="` + scalarIntegrity + `"`,
+		"script-src " + scalarScript + ";",
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("docs/pages/api/index.html lacks %q", want)
 		}
 	}
 }
