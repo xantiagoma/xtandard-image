@@ -121,99 +121,118 @@ Build tags: `ffmpeg` (video). `server` tests use a fake `exec.Executor`, so they
 package transform
 
 type Request struct {
-    Kind      Kind         // Process | Info | Raw
-    Dialect   string       // for metrics/logging only; not part of cache key
-    Source    SourceSpec
-    Pipelines []Pipeline   // len>=1; >1 means chained pipelines (imgproxy "-", cloudinary "/")
-    Output    Output
-    Delivery  Delivery
-    Limits    LimitOverrides // only honoured if XI_SECURITY_ALLOW_SECURITY_OPTIONS
-    Info      *InfoOptions   // Kind == Info
-    Ignored   []Ignored      // options understood syntactically but not applied (debug header)
+    Kind        Kind           // Process (zero) | Info | Raw
+    Dialect     string         `key:"-"` // for metrics/logging only; not part of cache key
+    Source      SourceSpec
+    Pipelines   []Pipeline     // len>=1 after ApplyDefaults; >1 means chained pipelines (imgproxy "-", cloudinary "/"); max 16
+    Output      Output
+    Delivery    Delivery
+    ClientHints ClientHints    // hints this URL opts into (imgix ch=, w_auto, dpr_auto, width=auto); server resolves them before CanonicalKey
+    Limits      LimitOverrides // only honoured if XI_SECURITY_ALLOW_SECURITY_OPTIONS
+    Info        *InfoOptions   // Kind == Info
+    Ignored     []Ignored      `key:"-"` // {Option, Reason}: understood syntactically but not applied (debug header)
 }
 
 type SourceSpec struct {
-    Raw       string       // as written: "https://…", "s3://b/k", "local:///p", "xi://name/key", or relative key
-    Encoding  SourceEncoding // Plain | Base64 | Encrypted | Relative
-    Mount     string       // named source bound by dialect mount (imgix source, cloudinary cloud, …)
-    Hashsum   *Hashsum     // expected source digest (md5|sha1|sha256|sha512)
+    Raw      string         // as written: "https://…", "s3://b/k", "local:///p", "xi://name/key", or relative key
+    Encoding SourceEncoding // Plain (zero) | Base64 | Encrypted | Relative
+    Mount    string         // named source bound by dialect mount (imgix source, cloudinary cloud, …)
+    Hashsum  *Hashsum       // {Algorithm md5|sha1|sha256|sha512, Digest lowercase hex}
+}
+
+type ClientHints struct { Width, DPR, SaveData bool; WidthStep int }
+type LimitOverrides struct {
+    MaxSrcResolution float64; MaxSrcFileSize int64; MaxAnimationFrames int
+    MaxAnimationFrameResolution float64; MaxResultDimension int // zero = config value
 }
 
 type Pipeline struct {
     Resize      Resize
     Gravity     Gravity
-    Crop        *Crop        // pre-resize crop in source space
-    CropObjects *CropObjects // M3
-    Trim        *Trim
-    Rotate      int          // 0/90/180/270 (arbitrary angles: RotateAny)
-    RotateAny   float64      // arbitrary angle with Background fill (imgix rot, wsrv ro, cloudinary a)
+    Crop        *Crop        // pre-resize crop in source space; unset gravity inherits Pipeline.Gravity
+    CropObjects *CropObjects // M3 {Scale, Classes}
+    Trim        *Trim        // {Threshold, Color *Color (nil = auto), ColorFromBottomRight, EqualHor, EqualVer}
+    Rotate      int          // 0/90/180/270 after ApplyDefaults
+    RotateAny   float64      // (−180, 180] degrees with Background fill (imgix rot, wsrv ro, cloudinary a)
     AutoRotate  *bool        // nil = config default
     Flip        Flip         // {H, V bool}
-    Padding     *Padding     // after resize, follows DPR
-    Extend      Extend       // {Enabled bool; Gravity Gravity}
+    Padding     *Padding     // {Top, Right, Bottom, Left}; after resize, follows DPR
+    Extend      Extend       // {Enabled bool; Gravity Gravity; Mode Background|Copy (imgix clamp)|Blur (M3)}
     ExtendAR    Extend
-    Background  *Color       // RGBA; nil = keep alpha
-    Border      *Border      // width px + color (cloudflare, cloudinary, imgix, imagekit)
-    Radius      *Radius      // rounded corners / "max" circle (cloudinary r, imagekit r, wsrv mask=circle)
-    Mask        *Mask        // shape masks (wsrv)
-    Adjust      Adjust       // brightness, contrast, saturation, gamma, hue, exposure, vibrance: pointers
-    Monochrome  *Monochrome
-    Duotone     *Duotone
-    Colorize    *Colorize
-    Gradient    *Gradient
+    Background  *Color       // {R,G,B,A uint8}; nil = keep alpha
+    Border      *Border      // per-side widths + Color (cloudflare, cloudinary, imgix, imagekit)
+    Radius      *Radius      // per-corner px, Max = circle (cloudinary r, imagekit r, thumbor round_corner)
+    Mask        *Mask        // {Shape, Trim, Background} (wsrv mask, mtrim, mbg)
+    Adjust      Adjust       // pointers: Brightness, Contrast, Saturation, Gamma, Hue, Exposure, Vibrance, Red, Green, Blue, Opacity
+    Monochrome  *Monochrome  // {Intensity, Color}
+    Duotone     *Duotone     // {Intensity, Shadow, Highlight}
+    Colorize    *Colorize    // {Opacity, Color, KeepAlpha}
+    Gradient    *Gradient    // {Opacity, Color, Direction down|up|left|right|angle, Angle, Start, Stop}
     Tint        *Color
-    Negate, Sepia, Grayscale bool
+    Negate, Sepia, Grayscale, Equalize bool
     Blur        float64      // Gaussian sigma; 0 = off. Dialects convert their radius units to sigma.
     Sharpen     float64      // sigma
-    Unsharp     *Unsharp     // mode, weight, divider
+    Unsharp     *Unsharp     // imgproxy {Mode, Weight, Divider} + classic USM {Sigma, Amount}
     Pixelate    int
-    BlurAreas   []Area       // relative source coords
-    ProgressiveBlur *ProgressiveBlur
-    BlurDetections  *DetectionFilter // M3
+    BlurAreas   *BlurAreas   // {Sigma, Areas []Area} relative source coords
+    ProgressiveBlur *ProgressiveBlur // {Sigma, Direction, Angle, Start, Stop}
+    BlurDetections  *DetectionFilter // M3 {Sigma, Pixelate, Classes}
     DrawDetections  *DetectionFilter // M3
-    Watermarks  []Watermark
+    Watermarks  []Watermark  // {Opacity, Position Gravity, Tile none|repeat|chessboard, Scale, Source *SourceSpec, Text, Font, Color, Width, Height, Rotate, Shadow}
     SVGStyle    string       // CSS injected into SVG sources
     Page        *int         // start page/frame
     Pages       *int         // number of pages/frames (-1 = all)
     DisableAnimation bool
-    Video       *VideoOptions // M3
+    Video       *VideoOptions // M3 {Second, Keyframes, Tile *VideoTile, Animation *VideoAnimation}
 }
 
 type Resize struct {
-    Type      ResizeType   // Fit | Fill | FillDown | Force | Auto | Outside (wsrv/imagekit at_least)
-    Width     Dim          // px or relative (0<r<1 or "%" dialects); zero = auto
-    Height    Dim
-    MinWidth  int
-    MinHeight int
+    Type        ResizeType // Unset → Fit | Fill | FillDown | Force | Auto | Outside (wsrv/imagekit at_least)
+    Width       Dim        // px or relative; zero = auto
+    Height      Dim
+    MinWidth, MinHeight int
+    MaxWidth, MaxHeight int // clamp (imgix max-w/max-h)
+    AspectRatio float64    // derive a missing dimension (imgix ar, cloudinary ar_, imagekit ar, bunny aspect_ratio)
     ZoomX, ZoomY float64   // default 1
-    DPR       float64      // default 1; affects offsets and padding
-    Enlarge   bool
-    Algorithm Kernel       // Lanczos3 default | Nearest | Linear | Cubic | Lanczos2 | Mitchell
+    DPR         float64    // default 1; affects offsets and padding
+    Enlarge     bool
+    Adaptive    bool       // swap W/H when orientation differs (thumbor adaptive-*)
+    Algorithm   Kernel     // Unset → Lanczos3 | Nearest | Linear | Cubic | Mitchell | Lanczos2
 }
 
-type Dim struct { Px int; Rel float64 } // exactly one non-zero, or both zero
+type Dim struct { Px int; Rel float64 } // at most one non-zero; both zero = auto
 
 type Gravity struct {
-    Type     GravityType // Center, North, South, East, West, NorthEast, NorthWest, SouthEast, SouthWest,
+    Type     GravityType // Unset → Center, North, South, East, West, NorthEast, NorthWest, SouthEast, SouthWest,
                          // Smart (libvips attention), Entropy, FocusPoint, Face, Object, ObjectWeighted
     XOffset, YOffset float64 // >=1 absolute px, <1 relative (imgproxy semantics)
     FocusX, FocusY   float64 // FocusPoint, 0..1
     FocusZoom        float64 // imgix fp-z, cloudinary z
     Classes          []string
     Weights          []float64
+    FaceIndex        *int    // imgix faceindex (M3)
+    FacePad          float64 // imgix facepad (M3)
+    ObjectsPosition  *ObjectsPosition // imgproxy objects_position {Type compass|FocusPoint, X, Y, Proportional} (M3)
 }
+
+type Crop struct { Width, Height Dim; Gravity Gravity; AspectRatio float64; AspectEnlarge bool }
 
 type Output struct {
     Format        Format   // Unset (source/negotiated) | JPEG | PNG | WebP | AVIF | JXL | HEIC | GIF | TIFF | BMP | ICO | SVG | MP4 | WebM | JSON | Best
     Quality       int      // 0 = default for format
     FormatQuality map[Format]int
+    SlowConnectionQuality int // cloudflare scq (M2); 0 = config delta
     AutoQuality   *AutoQuality // method none|size|dssim|ml, target, min, max, allowed error
     MaxBytes      int
     Lossless      *bool
     Progressive   *bool
-    ChromaSubsampling Subsampling // Auto | S420 | S422 | S444
-    Effort        int          // encoder speed/effort, format-specific scale normalised 0..9
-    JPEG *JPEGOptions; PNG *PNGOptions; WebP *WebPOptions; AVIF *AVIFOptions
+    PreferJPEGIfOpaque bool    // thumbor autojpg()
+    ChromaSubsampling Subsampling // Auto (zero) | 4:2:0 | 4:2:2 | 4:4:4
+    Effort        int          // 1..9 normalised per encoder; 0 = format default
+    JPEG *JPEGOptions          // Progressive, NoSubsample, TrellisQuant, OvershootDeringing, OptimizeScans, QuantTable
+    PNG  *PNGOptions           // Interlaced, Quantize, QuantizationColors, Compression (zlib 0–9), AdaptiveFilter
+    WebP *WebPOptions          // Compression lossy|near_lossless|lossless, SmartSubsample, Preset
+    AVIF *AVIFOptions          // Subsample auto|4:2:0|4:4:4
     StripMetadata    *bool
     KeepCopyright    *bool
     StripColorProfile *bool
@@ -229,13 +248,19 @@ type Delivery struct {
     CacheBuster    string
     Expires        time.Time
     TTL            time.Duration // per-request max-age override (thumbor max_age, wsrv maxage), clamped by config
+    Immutable      bool          // cloudinary fl_immutable_cache
     Fallback       *SourceSpec   // per-request fallback image
     OnErrorRedirect bool         // cloudflare onerror=redirect
     SkipProcessing []Format
-    Presets        []string      // for logging; already expanded
-    Encoding       ResponseEncoding // Binary | DataURL (wsrv encoding=base64)
+    BypassCache    bool          `key:"-"` // imgproxy bypass_cache (M2)
+    CacheTags      []string      // imgproxy cache_tags (M2)
+    Presets        []string      `key:"-"` // for logging; already expanded
+    Encoding       ResponseEncoding // Binary (zero) | DataURL (wsrv encoding=base64)
 }
 ```
+
+Fields added in WP-03 beyond the original sketch, each so that an option in `URL-DIALECTS.md` has a home:
+`Request.ClientHints` (imgix `ch`, cloudinary `w_auto`/`dpr_auto`, cloudflare `width=auto`); `Resize.MaxWidth/MaxHeight` (imgix `max-w/max-h`), `Resize.AspectRatio` (`ar`), `Resize.Adaptive` (thumbor `adaptive-*`); `Gravity.FaceIndex/FacePad` (imgix `facearea`), `Gravity.ObjectsPosition` (imgproxy `objects_position`); `Crop.AspectEnlarge` (second arg of `crop_aspect_ratio`); `Trim.ColorFromBottomRight` (thumbor `trim:bottom-right`); `Extend.Mode` (imgix `fit=clamp`, `fill=blur`); `Mask.Trim/Background` (wsrv `mtrim`, `mbg`); `Adjust.Red/Green/Blue` (thumbor `rgb`) and `Adjust.Opacity` (cloudinary `o_`); `Pipeline.Equalize` (thumbor `equalize`); `Unsharp.Sigma/Amount` (imgix `usm`, thumbor `sharpen`); `DetectionFilter.Pixelate` (cloudinary `e_pixelate_faces`); `Watermark.Tile/Font/Color` (imgproxy `re`/`ch`, imgix `txt-font`/`txt-color`); `Output.SlowConnectionQuality` (cloudflare `scq`), `Output.PreferJPEGIfOpaque` (thumbor `autojpg`); `PNGOptions.Compression/AdaptiveFilter` (wsrv `l`, `af`, imaginary `compression`); `Delivery.Immutable` (cloudinary `fl_immutable_cache`), `Delivery.BypassCache`, `Delivery.CacheTags` (imgproxy `bypass_cache`, `cache_tags`); `InfoOptions.Schema` (thumbor `meta` JSON shape, which must be part of the cache key). Changed shapes: `BlurAreas` is `*BlurAreas{Sigma, Areas}` (imgproxy `ba` carries a sigma); `Border` has per-side widths; `Radius` has per-corner values; `Effort` 0 means "format default" and 1..9 are explicit.
 
 Normalisation rules every dialect relies on:
 
@@ -243,7 +268,9 @@ Normalisation rules every dialect relies on:
 - Colour adjustments are **multipliers** with 1 = unchanged (brightness is additive −255..255 to match imgproxy). Dialects with −100..100 scales convert linearly: `1 + v/100`.
 - Dimensions are in **CSS pixels before DPR**. The planner multiplies by DPR once.
 - Rotation: `Rotate` is always a multiple of 90; anything else goes into `RotateAny`.
-- `Request.CanonicalKey()` serialises the effective request (after defaults, without `Dialect`, `Ignored`, `Presets`) to a stable binary form and hashes it with SHA-256. It is the result-cache key input and the ETag input.
+- Hue is additive degrees; `Adjust` identity values (brightness 0, hue 0, multipliers 1) are dropped to nil by `ApplyDefaults`.
+- `Request.Validate()` runs after `ApplyDefaults` and returns an `errors.Join` of `*transform.ValidationError{Field, Reason}`; each implements `HTTPStatus() == 400` and a client-safe `PublicMessage()` (go-standards §6).
+- `Request.CanonicalKey()` serialises the effective request (after defaults, and after the server resolves `ClientHints` and the negotiated format) to a stable binary form and hashes it with SHA-256 (64 hex chars). It is the result-cache key input and the ETag input. Fields tagged `key:"-"` are excluded: `Dialect`, `Ignored`, `Presets`, and `BypassCache` (it never changes the response). The encoding walks the struct by reflection with fields sorted by name, omits zero values (so adding a field never changes existing keys), writes enums by canonical name, floats as IEEE-754 bits (−0 folded to +0, one NaN pattern) and map entries sorted by encoded key; the full algorithm is the doc comment on `CanonicalKey`, and `internal/transform/testdata/canonical_keys.json` pins 40 golden keys.
 
 `InfoOptions` mirrors imgproxy info options (size, format, dimensions, exif, iptc, xmp, video_meta, colorspace, bands, sample_format, pages_number, alpha, crop, palette, average, dominant_colors, blurhash, thumbhash, phash, calc_hashsums, detect_objects, classify).
 
