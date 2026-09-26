@@ -5,6 +5,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -187,6 +188,31 @@ func (s *Server) fallback(ctx context.Context, r *http.Request, info *requestInf
 	s.deps.Logger.LogAttrs(r.Context(), slog.LevelWarn, "serving fallback image",
 		slog.String("kind", errs.KindOf(cause).String()), logging.Err(cause))
 	return res, nil
+}
+
+// errorRedirect answers an eligible failure (the fallbackEligible kinds) of
+// a request with Delivery.OnErrorRedirect (Cloudflare onerror=redirect) with
+// a 302 to the source URL, and reports whether it did. Only http(s)
+// sources have a URL a client can follow; for any other source, and for
+// failures before the source was resolved (so never for a source the
+// allowlist refused), the normal error or fallback path applies.
+func (s *Server) errorRedirect(w http.ResponseWriter, r *http.Request, info *requestInfo, cause error) bool {
+	j := info.job
+	if j == nil || !j.req.Delivery.OnErrorRedirect || !fallbackEligible(errs.KindOf(cause)) {
+		return false
+	}
+	u, err := url.Parse(j.key.Path)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return false
+	}
+	info.job = nil
+	s.deps.Logger.LogAttrs(r.Context(), slog.LevelWarn, "redirecting to source on error",
+		slog.String("kind", errs.KindOf(cause).String()), logging.Err(cause))
+	h := w.Header()
+	h.Set("Location", u.String())
+	h.Set("Cache-Control", noStore)
+	w.WriteHeader(http.StatusFound)
+	return true
 }
 
 // unconditional returns r without its If-None-Match / If-Modified-Since
