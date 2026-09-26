@@ -377,11 +377,11 @@ func TestNewRegion(t *testing.T) {
 	if _, err := New(t.Context(), &Config{Name: "aws"}); !errors.Is(err, ErrInvalidConfig) {
 		t.Errorf("no region, no endpoint: err = %v, want ErrInvalidConfig", err)
 	}
-	s := mustNew(t, &Config{Name: "minio", Endpoint: "http://minio:9000"})
+	s := mustNew(t, &Config{Name: "rustfs", Endpoint: "http://rustfs:9000"})
 	if got := s.client.Options().Region; got != DefaultRegion {
 		t.Errorf("region = %q, want %q", got, DefaultRegion)
 	}
-	if s.Name() != "minio" || s.Type() != source.TypeS3 {
+	if s.Name() != "rustfs" || s.Type() != source.TypeS3 {
 		t.Errorf("Name/Type = %q/%q", s.Name(), s.Type())
 	}
 }
@@ -396,9 +396,9 @@ func TestValidate(t *testing.T) {
 		{"minimal", Config{Name: "a"}, true},
 		{"full", Config{Name: "a", Endpoint: "https://x.r2.cloudflarestorage.com", AccessKeyID: "k", SecretAccessKey: "s"}, true},
 		{"no name", Config{}, false},
-		{"relative endpoint", Config{Name: "a", Endpoint: "minio:9000"}, false},
-		{"ftp endpoint", Config{Name: "a", Endpoint: "ftp://minio"}, false},
-		{"userinfo endpoint", Config{Name: "a", Endpoint: "http://user@minio"}, false},
+		{"relative endpoint", Config{Name: "a", Endpoint: "rustfs:9000"}, false},
+		{"ftp endpoint", Config{Name: "a", Endpoint: "ftp://rustfs"}, false},
+		{"userinfo endpoint", Config{Name: "a", Endpoint: "http://user@rustfs"}, false},
 		{"half credentials", Config{Name: "a", AccessKeyID: "k"}, false},
 		{"negative attempts", Config{Name: "a", MaxAttempts: -1}, false},
 	}
