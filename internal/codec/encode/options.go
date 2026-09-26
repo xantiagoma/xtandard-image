@@ -306,7 +306,8 @@ func webpPreset(p transform.WebPPreset) vips.WebPPreset {
 // sequences are not written in M1.
 func animatable(f transform.Format) bool {
 	switch f {
-	case transform.FormatGIF, transform.FormatWebP, transform.FormatJXL:
+	case transform.FormatGIF, transform.FormatWebP, transform.FormatJXL, transform.FormatMP4,
+		transform.FormatWebM, transform.FormatHEVC:
 		return true
 	default:
 		return false

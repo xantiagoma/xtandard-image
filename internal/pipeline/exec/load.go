@@ -19,7 +19,7 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 	var err error
 	switch {
 	case r.j.Meta.IsVideo:
-		img, err = r.loadVideo(ctx, ls)
+		img, err = r.loadVideo(ctx, ls, anim)
 	case r.j.Meta.Format == "bmp" || r.j.Meta.Format == "ico":
 		img, err = r.loadGo(ctx)
 	case r.j.Meta.Format == formatRAW:
