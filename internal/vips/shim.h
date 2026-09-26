@@ -199,6 +199,7 @@ int xi_copy(VipsImage *in, int interpretation, double xres, double yres, int pag
 int xi_gaussblur(VipsImage *in, double sigma, VipsImage **out, char **err);
 int xi_sharpen(VipsImage *in, double sigma, double x1, double y2, double y3, double m1,
     double m2, VipsImage **out, char **err);
+int xi_shrink(VipsImage *in, int hshrink, int vshrink, VipsImage **out, char **err);
 int xi_composite2(VipsImage *base, VipsImage *overlay, int mode, int x, int y,
     VipsImage **out, char **err);
 int xi_replicate(VipsImage *in, int across, int down, VipsImage **out, char **err);

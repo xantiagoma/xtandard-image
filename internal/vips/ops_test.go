@@ -102,6 +102,9 @@ func TestOpsGeometry(t *testing.T) {
 		{"sharpen", "jpeg/baseline.jpg", func(ctx context.Context, _ *vips.Arena, img *vips.Image) (*vips.Image, error) {
 			return img.Sharpen(ctx, vips.DefaultSharpenOptions())
 		}, geometry{320, 240, 240, 1, 3, 1}},
+		{"shrink", "jpeg/baseline.jpg", func(ctx context.Context, _ *vips.Arena, img *vips.Image) (*vips.Image, error) {
+			return img.Shrink(ctx, 4, 3)
+		}, geometry{80, 80, 80, 1, 3, 1}},
 		{"composite2", "jpeg/baseline.jpg", func(ctx context.Context, a *vips.Arena, img *vips.Image) (*vips.Image, error) {
 			rgb, err := a.Add(vips.NewFromMemory(ctx, pattern(64, 48), 64, 48, 3, vips.BandFormatUchar))
 			if err != nil {
