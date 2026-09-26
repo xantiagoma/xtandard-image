@@ -5814,6 +5814,459 @@
           }
         },
         "type": "object"
+      },
+      "PlaygroundArg": {
+        "additionalProperties": false,
+        "properties": {
+          "doc": {
+            "description": "Description.",
+            "type": "string"
+          },
+          "enum": {
+            "description": "Accepted values of an enum argument.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "max": {
+            "description": "Upper bound of a numeric argument.",
+            "format": "double",
+            "type": "number"
+          },
+          "min": {
+            "description": "Lower bound of a numeric argument.",
+            "format": "double",
+            "type": "number"
+          },
+          "name": {
+            "description": "Argument name.",
+            "type": "string"
+          },
+          "optional": {
+            "description": "May be left empty.",
+            "type": "boolean"
+          },
+          "pattern": {
+            "description": "Regular expression for string arguments.",
+            "type": "string"
+          },
+          "type": {
+            "description": "Argument type.",
+            "enum": [
+              "string",
+              "integer",
+              "number",
+              "boolean",
+              "enum",
+              "color",
+              "base64",
+              "direction"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ],
+        "type": "object"
+      },
+      "PlaygroundCatalogue": {
+        "additionalProperties": false,
+        "properties": {
+          "grammar": {
+            "description": "The grammar the options belong to.",
+            "enum": [
+              "imgproxy",
+              "query"
+            ],
+            "type": "string"
+          },
+          "options": {
+            "description": "Options, in documentation order.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundOption"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "grammar",
+          "options"
+        ],
+        "type": "object"
+      },
+      "PlaygroundErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "description": "Client-safe message.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "PlaygroundForm": {
+        "additionalProperties": false,
+        "properties": {
+          "args": {
+            "description": "Leading positional arguments; trailing ones may be omitted.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundArg"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "min_items": {
+            "description": "Least number of arguments (0 means 1).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "rest": {
+            "description": "A group of arguments repeated after args.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundArg"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "args"
+        ],
+        "type": "object"
+      },
+      "PlaygroundMeta": {
+        "additionalProperties": false,
+        "properties": {
+          "catalogues": {
+            "description": "Option catalogues (internal/apidoc), one per URL grammar.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundCatalogue"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "formats": {
+            "description": "Output formats the server encodes.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "mounts": {
+            "description": "Enabled dialect mounts, in configuration order.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundMount"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "path_prefix": {
+            "description": "XI_SERVER_PATH_PREFIX; every generated URL starts with it.",
+            "type": "string"
+          },
+          "presets": {
+            "description": "Configured preset names.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "public": {
+            "description": "XI_PLAYGROUND_PUBLIC: the playground is also served on the public listener.",
+            "type": "boolean"
+          },
+          "public_addr": {
+            "description": "XI_SERVER_ADDR (the page derives a default public base URL from its port).",
+            "type": "string"
+          },
+          "signing": {
+            "$ref": "#/components/schemas/PlaygroundSigning",
+            "description": "Signing mode; keys and salts are never included."
+          },
+          "sources": {
+            "description": "Named sources, name and type only (xi://\u003cname\u003e/\u003ckey\u003e).",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundSource"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "version": {
+            "description": "Server build version.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "path_prefix",
+          "public_addr",
+          "public",
+          "signing",
+          "mounts",
+          "catalogues",
+          "presets",
+          "sources",
+          "formats"
+        ],
+        "type": "object"
+      },
+      "PlaygroundMount": {
+        "additionalProperties": false,
+        "properties": {
+          "arguments_separator": {
+            "description": "imgproxy argument separator (XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR).",
+            "type": "string"
+          },
+          "dialect": {
+            "description": "Dialect name.",
+            "type": "string"
+          },
+          "example": {
+            "description": "Example path and query after the prefix (free-form grammar).",
+            "type": "string"
+          },
+          "grammar": {
+            "description": "URL grammar: imgproxy options path, query keys, or free-form path.",
+            "enum": [
+              "imgproxy",
+              "query",
+              "path"
+            ],
+            "type": "string"
+          },
+          "hosts": {
+            "description": "Host bindings.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "id": {
+            "description": "Mount name; the mount field of a sign request.",
+            "type": "string"
+          },
+          "keyed": {
+            "description": "The server holds a key for the scheme; false returns unsigned URLs.",
+            "type": "boolean"
+          },
+          "prefix": {
+            "description": "Path prefix; empty for host-only mounts.",
+            "type": "string"
+          },
+          "scheme": {
+            "description": "Signature the sign endpoint computes for this mount.",
+            "enum": [
+              "imgproxy",
+              "xi_sig",
+              "thumbor",
+              "none"
+            ],
+            "type": "string"
+          },
+          "source": {
+            "description": "Named source relative keys resolve against.",
+            "type": "string"
+          },
+          "unsigned_policy": {
+            "description": "Effective unsigned policy.",
+            "enum": [
+              "allow",
+              "restricted",
+              "deny"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "dialect",
+          "unsigned_policy",
+          "scheme",
+          "keyed",
+          "grammar"
+        ],
+        "type": "object"
+      },
+      "PlaygroundOption": {
+        "additionalProperties": false,
+        "properties": {
+          "aliases": {
+            "description": "Accepted short names.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "doc": {
+            "description": "One-line description.",
+            "type": "string"
+          },
+          "example": {
+            "description": "A valid argument string.",
+            "type": "string"
+          },
+          "forms": {
+            "description": "Accepted argument shapes; most options have one.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundForm"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "milestone": {
+            "description": "Milestone that implements the option.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Canonical name.",
+            "type": "string"
+          },
+          "security": {
+            "description": "Needs XI_SECURITY_ALLOW_SECURITY_OPTIONS.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "forms"
+        ],
+        "type": "object"
+      },
+      "PlaygroundSignRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "mount": {
+            "description": "Mount ID from api/meta (the dialect name for its primary mount).",
+            "type": "string"
+          },
+          "path": {
+            "description": "Escaped path after the mount prefix, starting with /; without the signature segment for imgproxy and thumbor.",
+            "maxLength": 8192,
+            "minLength": 1,
+            "type": "string"
+          },
+          "query": {
+            "description": "Raw query without ?; an existing xi_sig is replaced.",
+            "maxLength": 8192,
+            "type": "string"
+          }
+        },
+        "required": [
+          "mount",
+          "path"
+        ],
+        "type": "object"
+      },
+      "PlaygroundSignResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "scheme": {
+            "description": "The mount's signing scheme.",
+            "enum": [
+              "imgproxy",
+              "xi_sig",
+              "thumbor",
+              "none"
+            ],
+            "type": "string"
+          },
+          "signed": {
+            "description": "A signature was computed; false when the server has no key for the mount.",
+            "type": "boolean"
+          },
+          "url": {
+            "description": "Path and query on the public listener (prepend the public base URL).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "signed",
+          "scheme"
+        ],
+        "type": "object"
+      },
+      "PlaygroundSigning": {
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "description": "off: no XI_SIGNING_KEYS; optional: keys set, unsigned URLs fall under the unsigned policy; required: XI_SIGNING_REQUIRED.",
+            "enum": [
+              "off",
+              "optional",
+              "required"
+            ],
+            "type": "string"
+          },
+          "unsigned_policy": {
+            "description": "XI_SECURITY_UNSIGNED_POLICY.",
+            "enum": [
+              "allow",
+              "restricted",
+              "deny"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "unsigned_policy"
+        ],
+        "type": "object"
+      },
+      "PlaygroundSource": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Source name.",
+            "type": "string"
+          },
+          "type": {
+            "description": "Source type (http, s3, gcs, azure, fs, ftp, sftp).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ],
+        "type": "object"
       }
     }
   },
@@ -5832,6 +6285,312 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/_playground/": {
+      "get": {
+        "description": "The playground UI: plain HTML, CSS and JavaScript embedded in the binary, served with Content-Security-Policy default-src 'self', X-Frame-Options DENY and Cache-Control no-store. 404 unless XI_PLAYGROUND_ENABLED.",
+        "operationId": "getPlayground",
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "description": "HTML page.",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The page."
+          },
+          "404": {
+            "description": "The playground is disabled."
+          }
+        },
+        "servers": [
+          {
+            "description": "Admin listener (XI_ADMIN_ADDR).",
+            "url": "http://127.0.0.1:9090"
+          }
+        ],
+        "summary": "Playground page",
+        "tags": [
+          "playground"
+        ],
+        "x-xi-config": "XI_PLAYGROUND_ENABLED; also on the public listener with XI_PLAYGROUND_PUBLIC; path XI_PLAYGROUND_PATH",
+        "x-xi-listener": "admin"
+      }
+    },
+    "/_playground/api/meta": {
+      "get": {
+        "description": "Enabled dialect mounts with their signing scheme and grammar, the option catalogues (the imgproxy catalogue behind ImgproxyProcessingOptions and the query keys), preset names, named sources (name and type only), the signing mode and the output formats. Never contains key material. Cache-Control no-store.",
+        "operationId": "getPlaygroundMeta",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundMeta"
+                }
+              }
+            },
+            "description": "Playground metadata."
+          },
+          "404": {
+            "description": "The playground is disabled."
+          }
+        },
+        "servers": [
+          {
+            "description": "Admin listener (XI_ADMIN_ADDR).",
+            "url": "http://127.0.0.1:9090"
+          }
+        ],
+        "summary": "What the playground can build",
+        "tags": [
+          "playground"
+        ],
+        "x-xi-config": "XI_PLAYGROUND_ENABLED; also on the public listener with XI_PLAYGROUND_PUBLIC; path XI_PLAYGROUND_PATH",
+        "x-xi-listener": "admin"
+      }
+    },
+    "/_playground/api/render": {
+      "get": {
+        "description": "Runs the public listener's handler on u (a path and query on the public listener) and returns its response unchanged plus Server-Timing, so the page reads the result and its headers from its own origin. Accept and client hints are forwarded; cookies and credentials are not. Every public-listener check applies.",
+        "operationId": "getPlaygroundRender",
+        "parameters": [
+          {
+            "description": "Path and query on the public listener, starting with a single /.",
+            "example": "/insecure/rs:fit:300:0/plain/https://example.com/a.jpg",
+            "in": "query",
+            "name": "u",
+            "required": true,
+            "schema": {
+              "maxLength": 16384,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/*": {
+                "schema": {
+                  "contentEncoding": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The processed image; the format follows `format`, the source extension or Accept negotiation.",
+            "headers": {
+              "Server-Timing": {
+                "description": "Time the public handler took to the first header write.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "406": {
+            "$ref": "#/components/responses/Error406"
+          },
+          "414": {
+            "$ref": "#/components/responses/Error414"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "501": {
+            "$ref": "#/components/responses/Error501"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          }
+        },
+        "servers": [
+          {
+            "description": "Admin listener (XI_ADMIN_ADDR).",
+            "url": "http://127.0.0.1:9090"
+          }
+        ],
+        "summary": "Render a public URL in-process",
+        "tags": [
+          "playground"
+        ],
+        "x-xi-config": "XI_PLAYGROUND_ENABLED; also on the public listener with XI_PLAYGROUND_PUBLIC; path XI_PLAYGROUND_PATH",
+        "x-xi-listener": "admin"
+      }
+    },
+    "/_playground/api/sign": {
+      "post": {
+        "description": "Builds the URL of a path (and query) on a mount and signs it with the server's key for that mount's scheme (imgproxy path signature, xi_sig or thumbor), so keys never reach the browser. Without a key the URL is returned unsigned (imgproxy insecure/, thumbor unsafe/). Anyone who can call this endpoint can sign URLs: keep the playground private. Cross-origin requests are rejected; the body is JSON of at most 32 KiB.",
+        "operationId": "postPlaygroundSign",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaygroundSignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundSignResponse"
+                }
+              }
+            },
+            "description": "The URL, signed with the server's key for the mount when it holds one."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request."
+          },
+          "403": {
+            "description": "Cross-origin request rejected (http.CrossOriginProtection)."
+          },
+          "404": {
+            "description": "The playground is disabled."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large."
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Unsupported Media Type."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error."
+          }
+        },
+        "servers": [
+          {
+            "description": "Admin listener (XI_ADMIN_ADDR).",
+            "url": "http://127.0.0.1:9090"
+          }
+        ],
+        "summary": "Sign a URL with the server's keys",
+        "tags": [
+          "playground"
+        ],
+        "x-xi-config": "XI_PLAYGROUND_ENABLED; also on the public listener with XI_PLAYGROUND_PUBLIC; path XI_PLAYGROUND_PATH",
+        "x-xi-listener": "admin"
+      }
+    },
+    "/_playground/assets/{version}/{name}": {
+      "get": {
+        "description": "app.js and style.css under a content-hash version, with Cache-Control immutable; another version is a 404.",
+        "operationId": "getPlaygroundAsset",
+        "parameters": [
+          {
+            "description": "Content hash of the assets (from the page).",
+            "example": "0123456789ab",
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Asset file name.",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "enum": [
+                "app.js",
+                "style.css"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/css": {
+                "schema": {
+                  "description": "Stylesheet.",
+                  "type": "string"
+                }
+              },
+              "text/javascript": {
+                "schema": {
+                  "description": "ES module.",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The asset."
+          },
+          "404": {
+            "description": "Unknown asset or stale version, or the playground is disabled."
+          }
+        },
+        "servers": [
+          {
+            "description": "Admin listener (XI_ADMIN_ADDR).",
+            "url": "http://127.0.0.1:9090"
+          }
+        ],
+        "summary": "Playground script and stylesheet",
+        "tags": [
+          "playground"
+        ],
+        "x-xi-config": "XI_PLAYGROUND_ENABLED; also on the public listener with XI_PLAYGROUND_PUBLIC; path XI_PLAYGROUND_PATH",
+        "x-xi-listener": "admin"
+      }
+    },
     "/config.schema.json": {
       "get": {
         "description": "JSON Schema (draft 2020-12) of the YAML/JSON/TOML config file, with a strong ETag; always on, admin listener only (ADR 0007 decision 6). Its $id is the published GitHub Pages copy (externalDocs); this route serves the running binary's version.",
@@ -7450,6 +8209,10 @@
     {
       "description": "Admin listener only: metrics, documents, profiling.",
       "name": "admin"
+    },
+    {
+      "description": "Playground UI and its JSON API (XI_PLAYGROUND_ENABLED, off by default): admin listener, and the public listener only with XI_PLAYGROUND_PUBLIC. Paths are under XI_PLAYGROUND_PATH (default /_playground).",
+      "name": "playground"
     }
   ],
   "x-xi-dialects": [
