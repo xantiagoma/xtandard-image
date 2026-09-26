@@ -24,6 +24,10 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   `xtandard-base:dev-full-builder` and slim). `m3/wp-84-ts-url-builder` is **done and adopted (PR #83)**. `m3/wp-80-playground` is **done and adopted (PR #84)**. `m3/wp-77-78-watermarks` is **done and adopted (PR #85)**. Stack: #80 → #81 → #83 → #84 → #85.
   Adopt the rest as they finish (order: 87, 71, 74, then 88), then launch WP-72/73 (after 71) and WP-75/76 (after 74). After WP-70 lands, launch WP-71 (detect runtime) → WP-72/73, and WP-74 (video) →
   WP-75/76.
+- **Owner decision 2026-09-27:** add a third image flavour **`gpl`** (FFmpeg `--enable-gpl` + libx264 +
+  x265, anything else we excluded only for being GPL) with its own GPL notice; source stays MIT;
+  users of that image review licences/patents themselves. WP-70b agent launched. WP-76 (GIF→video)
+  must pick the H.264 encoder at runtime when present (gpl image) and fall back to VP9/AV1.
 - **M3 decisions taken by the orchestrator (owner said "resuélvelo con tu mejor approach"):**
   GIF→video = WebM/VP9 + AV1-in-MP4, no H.264 encode (open question 1); detection models = YuNet
   (MIT) + YOLOX-s (Apache-2.0) (question 7); playground inside the binary, admin listener, off by
