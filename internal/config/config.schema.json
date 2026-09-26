@@ -2259,8 +2259,8 @@
           "properties": {
             "preview_min_ratio": {
               "default": 1,
-              "description": "Env: XI_FORMATS_RAW_PREVIEW_MIN_RATIO",
-              "markdownDescription": "Env: `XI_FORMATS_RAW_PREVIEW_MIN_RATIO`",
+              "description": "Camera RAW: decode the embedded JPEG preview instead of demosaicing when it is at least this many times the size the image is scaled to, on both axes (FORMATS.md §2); 0 < ratio ≤ 100\n\nEnv: XI_FORMATS_RAW_PREVIEW_MIN_RATIO",
+              "markdownDescription": "Camera RAW: decode the embedded JPEG preview instead of demosaicing when it is at least this many times the size the image is scaled to, on both axes (FORMATS.md §2); `0 < ratio ≤ 100`\n\nEnv: `XI_FORMATS_RAW_PREVIEW_MIN_RATIO`",
               "title": "XI_FORMATS_RAW_PREVIEW_MIN_RATIO",
               "type": "number"
             }
@@ -2358,8 +2358,8 @@
         },
         "max_raw_demosaic_pixels": {
           "default": 60000000,
-          "description": "Env: XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS",
-          "markdownDescription": "Env: `XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS`",
+          "description": "Sensor width × height a camera RAW may be demosaiced at; the embedded-preview path is not affected\n\nEnv: XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS",
+          "markdownDescription": "Sensor width × height a camera RAW may be demosaiced at; the embedded-preview path is not affected\n\nEnv: `XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS`",
           "title": "XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS",
           "type": "integer"
         },
