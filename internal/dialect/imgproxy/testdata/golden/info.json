@@ -104,12 +104,6 @@
     "path": "/unsafe/average:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "average",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Average": {
           "IgnoreTransparent": true
@@ -148,12 +142,6 @@
     "path": "/unsafe/avg:1:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "avg",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Average": {},
         "Dimensions": true,
@@ -180,12 +168,6 @@
     "path": "/unsafe/avg:1/avg:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "avg",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -357,12 +339,6 @@
     "path": "/unsafe/bh:9:9/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "bh",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Blurhash": {
           "XComponents": 9,
@@ -392,12 +368,6 @@
     "path": "/unsafe/bh:4:3/bh:0:0/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "bh",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -453,12 +423,6 @@
     "path": "/unsafe/blurhash:4:3/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "blurhash",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Blurhash": {
           "XComponents": 4,
@@ -532,12 +496,6 @@
     "path": "/unsafe/c:100:100:fp:0.2:0.3/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "c",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Crop": {
           "Gravity": {
@@ -578,8 +536,8 @@
       "Dialect": "imgproxy",
       "Ignored": [
         {
-          "Option": "c",
-          "Reason": "takes effect in M2"
+          "Option": "crop:gravity",
+          "Reason": "approximated by the centre"
         }
       ],
       "Info": {
@@ -624,8 +582,8 @@
           "Reason": "takes effect in M3"
         },
         {
-          "Option": "c",
-          "Reason": "takes effect in M2"
+          "Option": "crop:gravity",
+          "Reason": "approximated by the centre"
         }
       ],
       "Info": {
@@ -732,12 +690,6 @@
     "path": "/unsafe/calc_hashsums:md5:sha256/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "calc_hashsums",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "CalcHashsums": [
           "md5",
@@ -804,12 +756,6 @@
     "path": "/unsafe/chs:md5:sha1:sha256:sha512:md5/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "chs",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "CalcHashsums": [
           "md5",
@@ -851,12 +797,6 @@
     "path": "/unsafe/chs:md5/chs:/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "chs",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -1035,40 +975,8 @@
           "Reason": "takes effect in M3"
         },
         {
-          "Option": "c",
-          "Reason": "takes effect in M2"
-        },
-        {
           "Option": "op",
           "Reason": "takes effect in M3"
-        },
-        {
-          "Option": "p",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "avg",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "dc",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "bh",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "th",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "ph",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "chs",
-          "Reason": "takes effect in M2"
         },
         {
           "Option": "pg",
@@ -1157,16 +1065,6 @@
     "path": "/unsafe/p:8/p:16/c:10:10/c:20/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "p",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "c",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Crop": {
           "Height": {
@@ -1201,20 +1099,6 @@
     "path": "/unsafe/s:0/f:0/d:0/exif:0/iptc:0/xmp:0/vm:0/th:1/ph:1/bh:4:4/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "th",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "ph",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "bh",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Blurhash": {
           "XComponents": 4,
@@ -1239,12 +1123,6 @@
     "path": "/unsafe/crop:100:200/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "crop",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Crop": {
           "Height": {
@@ -1328,12 +1206,6 @@
     "path": "/unsafe/dc:1:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "dc",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "DominantColors": {
@@ -1500,12 +1372,6 @@
     "path": "/unsafe/s:1/f:1/d:1/bh:4:3/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "bh",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Blurhash": {
           "XComponents": 4,
@@ -1535,12 +1401,6 @@
     "path": "/unsafe/dominant_colors:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "dominant_colors",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "DominantColors": {},
@@ -1886,12 +1746,6 @@
     "path": "/unsafe/s:1/p:4/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "p",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2064,12 +1918,6 @@
     "path": "/unsafe/p:256/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "p",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2200,12 +2048,6 @@
     "path": "/unsafe/palette:16/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "palette",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2232,12 +2074,6 @@
     "path": "/unsafe/bh%3A4%3A3/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "bh",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Blurhash": {
           "XComponents": 4,
@@ -2267,12 +2103,6 @@
     "path": "/unsafe/perceptual_hash:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "perceptual_hash",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2309,12 +2139,6 @@
     "path": "/unsafe/ph:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "ph",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2341,12 +2165,6 @@
     "path": "/unsafe/phash:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "phash",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2640,12 +2458,6 @@
     "path": "/SIG/p:8/enc/MDEyMzQ1Njc4OWFiY2RlZj206ZwwVKiBydg5ip7OI2oVBFCdcMXXGze1K8CjwiQuFTiJkTDmRJeJccTs0wH06w",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "p",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2684,12 +2496,6 @@
     "path": "/trusted-signature/p:4/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "p",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2727,12 +2533,6 @@
     "path": "/SIG/s:1/bh:4:3/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "bh",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Blurhash": {
           "XComponents": 4,
@@ -2787,16 +2587,6 @@
     "path": "/unsafe/s:1/p:4/chs:md5/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "p",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "chs",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "CalcHashsums": [
           "md5"
@@ -2846,12 +2636,6 @@
     "path": "/unsafe/th:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "th",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2878,12 +2662,6 @@
     "path": "/unsafe/thumb_hash:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "thumb_hash",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,
@@ -2910,12 +2688,6 @@
     "path": "/unsafe/thumbhash:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "thumbhash",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Dimensions": true,
         "EXIF": true,

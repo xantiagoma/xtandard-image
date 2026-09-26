@@ -133,7 +133,6 @@ func (st *state) format(autoFormat bool) error {
 		st.r.Kind = transform.KindInfo
 		st.r.Info = &transform.InfoOptions{Blurhash: &transform.InfoBlurhash{XComponents: 4, YComponents: 3}}
 		st.b.Ignore("fm", reasonApproximated)
-		st.b.Ignore("fm", reasonM2)
 		return nil
 	case "mp4":
 		o.Format = transform.FormatMP4

@@ -525,20 +525,6 @@
     "path": "/unsafe/avg:t:f/dc:t:t/p:16/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "avg",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "dc",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "p",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Average": {},
         "Dimensions": true,
@@ -652,8 +638,8 @@
           "Reason": "takes effect in M3"
         },
         {
-          "Option": "c",
-          "Reason": "takes effect in M2"
+          "Option": "crop:gravity",
+          "Reason": "approximated by the centre"
         },
         {
           "Option": "do",
@@ -698,24 +684,6 @@
     "path": "/unsafe/bh:4:3/chs:md5:sha256/ph:t/th:t/plain/https://example.com/images/cat.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "bh",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "chs",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "ph",
-          "Reason": "takes effect in M2"
-        },
-        {
-          "Option": "th",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Info": {
         "Blurhash": {
           "XComponents": 4,

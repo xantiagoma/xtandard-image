@@ -808,10 +808,6 @@
         {
           "Option": "fm",
           "Reason": "approximated"
-        },
-        {
-          "Option": "fm",
-          "Reason": "takes effect in M2"
         }
       ],
       "Info": {
