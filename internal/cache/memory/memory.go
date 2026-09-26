@@ -118,6 +118,7 @@ func (s *Store) Set(_ context.Context, ns cache.Namespace, key string, in *cache
 	it := &item{key: full, entry: e}
 	it.size = e.Size() + int64(len(full))
 	if it.size > s.max {
+		s.metrics.ObserveCacheSkip(s.name, cache.SkipTooLarge)
 		return nil
 	}
 
