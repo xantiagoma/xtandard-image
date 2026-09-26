@@ -17,6 +17,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/query"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/router"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/wsrv"
 	"github.com/xantiagoma/xtandard-image/internal/fetch/azuresrc"
 	"github.com/xantiagoma/xtandard-image/internal/fetch/fssrc"
 	"github.com/xantiagoma/xtandard-image/internal/fetch/ftpsrc"
@@ -47,7 +48,7 @@ func (p infoParser) Name() string { return infoDialect }
 func (p infoParser) Parse(in *dialect.Input) (*dialect.Result, error) { return p.ParseInfo(in) }
 
 // buildRouter builds the signing verifiers, presets, the available dialects
-// (imgproxy, query, imagekit, cloudflare and cloudflare_images) and the
+// (imgproxy, query, imagekit, cloudflare, cloudflare_images and wsrv) and the
 // router. warnings lists enabled dialects that are not implemented yet; their
 // mounts are skipped.
 func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err error) {
@@ -140,7 +141,18 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		return nil, nil, fmt.Errorf("cloudflare dialect: %w", err)
 	}
 
-	dialects := map[string]dialect.Dialect{imgproxy.Name: ip, infoDialect: infoParser{ip}, query.Name: q, cloudflare.Name: cf}
+	wsOpts := wsrv.Options{Strict: cfg.Dialects.Strict}
+	if ring != nil || len(trusted) > 0 {
+		if wsOpts.XIVerifier, err = sign.NewXIVerifier(sign.XIOptions{Keys: ring, Size: cfg.Signing.Size, Trusted: trusted, Required: required}); err != nil {
+			return nil, nil, fmt.Errorf("wsrv xi_sig verifier: %w", err)
+		}
+	}
+	ws, err := wsrv.New(&wsOpts)
+	if err != nil {
+		return nil, nil, fmt.Errorf("wsrv dialect: %w", err)
+	}
+
+	dialects := map[string]dialect.Dialect{imgproxy.Name: ip, infoDialect: infoParser{ip}, query.Name: q, cloudflare.Name: cf, wsrv.Name: ws}
 	opts := &router.Options{
 		Policy: router.Policy(cfg.Security.UnsignedPolicy),
 		Restrictions: router.Restrictions{
@@ -180,7 +192,15 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	if err := addCloudflareImages(cfg, opts, dialects, ipOpts.Presets); err != nil {
 		return nil, nil, err
 	}
-	if cfg.Dialects.Query.Enabled {
+	addMounts(wsrv.Name, &cfg.Dialects.Wsrv)
+	// Root "/?url=" (URL-DIALECTS §1): wsrv when enabled, else query.
+	switch {
+	case cfg.Dialects.Wsrv.Enabled:
+		opts.RootURL = &router.Mount{
+			Name: "wsrv/?url", Dialect: wsrv.Name, Source: cfg.Dialects.Wsrv.Source,
+			Policy: router.Policy(cfg.Dialects.Wsrv.UnsignedPolicy),
+		}
+	case cfg.Dialects.Query.Enabled:
 		opts.RootURL = &router.Mount{
 			Name: "query/?url", Dialect: query.Name, Source: cfg.Dialects.Query.Source,
 			Policy: router.Policy(cfg.Dialects.Query.UnsignedPolicy),
@@ -193,9 +213,8 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	}
 
 	for name, enabled := range map[string]bool{
-		"wsrv": cfg.Dialects.Wsrv.Enabled, "imgix": cfg.Dialects.Imgix.Enabled,
-		"cloudinary": cfg.Dialects.Cloudinary.Enabled,
-		"bunny":      cfg.Dialects.Bunny.Enabled, "thumbor": cfg.Dialects.Thumbor.Enabled,
+		"imgix": cfg.Dialects.Imgix.Enabled, "cloudinary": cfg.Dialects.Cloudinary.Enabled,
+		"bunny": cfg.Dialects.Bunny.Enabled, "thumbor": cfg.Dialects.Thumbor.Enabled,
 		"simple": len(cfg.Dialects.Simple.Enabled) > 0,
 	} {
 		if enabled {
