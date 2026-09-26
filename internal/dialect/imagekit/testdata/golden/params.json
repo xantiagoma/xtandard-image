@@ -96,12 +96,6 @@
     "query": "tr=b-5_FFF000",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "b",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Border": {
@@ -130,12 +124,6 @@
     "query": "tr=b-5-A94D34",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "b",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Border": {
@@ -175,12 +163,6 @@
     "query": "tr=b-2_red",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "b",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Border": {
@@ -2259,12 +2241,6 @@
     "query": "tr=r-20",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "r",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Radius": {
@@ -2288,12 +2264,6 @@
     "query": "tr=r-20_40_80_160",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "r",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Radius": {
@@ -2327,12 +2297,6 @@
     "query": "tr=r-max",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "r",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "Radius": {
@@ -2391,12 +2355,6 @@
     "query": "tr=rt-45",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "rt",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "RotateAny": 45
@@ -2415,12 +2373,6 @@
     "query": "tr=rt-N40",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "rt",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "RotateAny": -40
@@ -2439,12 +2391,6 @@
     "query": "tr=rt-270.5",
     "request": {
       "Dialect": "imagekit",
-      "Ignored": [
-        {
-          "Option": "rt",
-          "Reason": "takes effect in M2"
-        }
-      ],
       "Pipelines": [
         {
           "RotateAny": -89.5
