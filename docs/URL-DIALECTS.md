@@ -579,37 +579,51 @@ Pixel focal points and `meta` (WP-86): `focal(AxB:CxD)` with pixel coordinates (
 
 ## 11. weserv / wsrv.nl
 
-Reference: https://wsrv.nl/docs/quick-reference; unpic `wsrv.ts` (default `fit=cover`; `url` without scheme is `https://`).
+Reference: https://wsrv.nl/docs/quick-reference; the weserv source (`.refs/weserv-images`: `src/api/parsers/query.cpp` for the grammar, `src/api/processors/*.cpp` for semantics, `src/nginx` for `url`, `default`, `maxage`, `filename`, `encoding`); unpic `wsrv.ts` (default `fit=cover`; `url` without scheme is `https://`). Implemented in `internal/dialect/wsrv` (WP-46).
 
 ```
 /?url=example.com/a.jpg&w=300&h=300&fit=cover&a=attention&output=webp&q=80
 /wsrv/?url=ssl:example.com/a.jpg&w=50%25&filt=greyscale&default=example.com/404.png
 ```
 
+Grammar (upstream semantics xi keeps): the **first** occurrence of a key wins (upstream uses `emplace`); synonyms fold into the canonical key (`width`/`height`/`quality`/`level`/`lossless`/`pages`/`align`, deprecated `t`→`fit`, `bri`→`mod`, `or`→`ro`, `shape`→`mask`, `strim`→`mtrim`, `errorredirect`→`default`); a key without `=` has the empty value; booleans are true unless `0`/`false`; query decoding is lenient (`w=50%` works). Parameter order is otherwise irrelevant: the processing order is fixed (trim → size/orientation/crop → effects). Deliberately stricter than upstream: malformed or out-of-range values are a 400 naming the parameter (wsrv silently ignores them); only the fallbacks wsrv documents keep their meaning (see below). The path after the mount must be `/`.
+
 | wsrv | TR |
 |---|---|
-| `url` (scheme optional, legacy `ssl:` prefix) | Source |
-| `w`, `h` (px or `%`) | Width/Height |
-| `dpr` (1–8) | DPR |
-| `fit=inside|outside|cover|fill|contain` | Fit / Outside / Fill / Force / Fit+Extend |
-| `cbg` | Background for contain |
-| `we` | Enlarge=false (default enlarges) |
-| `a=center|top|…|top-left…|entropy|attention|focal`, `fpx`, `fpy` | Gravity (Entropy, Smart, FocusPoint) |
-| `crop=w,h,x,y`, `precrop` | Crop pre- or post-resize |
-| `trim`, `tbg` | Trim |
-| `mask=circle|ellipse|triangle|triangle-180|pentagon|pentagon-180|hexagon|square|star|heart`, `mtrim`, `mbg` | Mask (M2) |
+| `url` (scheme optional; `//host/…` and legacy `ssl:` prefix = https; any `scheme://` passes to the allowlist) | Source; on a mount bound to a named source a scheme-less value is a relative key |
+| `w`, `h` (px or `%`, 0 = auto) | Width/Height (`Dim.Rel` for %) |
+| `dpr` (0 < dpr ≤ 8; 0 = unset) | DPR |
+| `fit=inside|outside|cover|fill|contain` (deprecated `fit`/`fitup`, `squaredown`/`square`/`crop*`, `absolute`, `letterbox`; `fit`/`squaredown` also imply `we`) | Fit / Outside / Fill / Force / Fit+Extend (background fill, gravity from `a`) |
+| `cbg` | Background, only with `fit=contain` (approximated when `bg` is also set) |
+| `we` | Enlarge=false; without it Enlarge=true (wsrv enlarges by default) |
+| `a=center|top|right|bottom|left|top-left|…|entropy|attention|focal` (deprecated `t`,`l`,`r`,`b`), `fpx`, `fpy` (0–1), `a=focal-X-Y` / `crop-X-Y` (percent) | Gravity compass / Entropy / Smart / FocusPoint (default 0.5, 0.5) |
+| `cx`, `cy`, `cw`, `ch` (px or %), deprecated `crop=w,h,x,y` | Crop with its top-left corner at (cx, cy); missing sizes run to the edge. Post-resize (wsrv default): a second chained pipeline holding the crop and every effect; `precrop` puts it before the resize in pipeline 0 |
+| `trim` (1–254; empty = 10), `tbg` | Trim threshold / colour |
+| `mask=circle|ellipse|triangle|triangle-180|pentagon|pentagon-180|hexagon|square|star|heart|none`, `mtrim`, `mbg` | Mask (M2) |
 | `flip`, `flop` | Flip V / H |
-| `ro`, `rbg` | Rotate/RotateAny + Background |
+| `ro` (multiples of 90 → Rotate, others → RotateAny), `rbg` | Rotate / RotateAny + Background (approximated when `bg` is set) |
 | `bg` | Background |
-| `blur` (0.3–1000 σ) | Blur |
-| `sharp` (σ) | Sharpen |
-| `con`, `sat`, `hue`, `gam`, `mod=b,s,h`, `tint`, `filt=greyscale|sepia|duotone|negate`, `start`, `stop` | Adjust / Tint / filters (M2) |
-| `output=jpg|png|gif|tiff|webp|avif|json` | Format / Info |
-| `q`, `l` (zlib 0–9), `ll`, `af`, `il` | Quality, PNG compression, Lossless, adaptive filter, Progressive |
-| `n` (−1 all), `page` | Pages, Page |
-| `default` | Fallback (302 redirect, like wsrv) |
-| `filename`, `maxage` (`31d`, `1w`…) | Filename, TTL |
-| `encoding=base64` | DataURL response (M2) |
+| `blur` (σ 0.3–1000; empty or out of range = wsrv's mild 3×3 blur ≈ σ 0.8, approximated) | Blur |
+| `sharp` (σ ≤ 10; empty or out of range = mild ≈ σ 0.5, approximated), `sharp=f,j,σ`, `sharpf`, `sharpj` | Sharpen (flat/jagged slopes recorded as not implemented) |
+| `con` (−100–100) | Contrast multiplier 1+con/100 (wsrv uses a sigmoid; approximated, M2) |
+| `mod=b[,s[,h]]` | Exposure (brightness multiplier on LCH L), Saturation, Hue (M2) |
+| `sat` (multiplier, ≤ 1000), `hue` (degrees, normalised to 0–359) | Saturation / Hue (M2) |
+| `gam` (1–3; empty or out of range = 2.2) | Gamma (M2) |
+| `tint` | Tint (M2) |
+| `filt=greyscale|sepia|duotone|negate|none`, `start`, `stop` (duotone colours, default `#C83658`/`#D8E74F`) | Grayscale / Sepia / Duotone (intensity 1) / Negate (M2) |
+| colours | CSS names, or hex `RGB`/`ARGB`/`RRGGBB`/`AARRGGBB` with optional `#` — alpha comes **first** |
+| `output=jpg|png|gif|tiff|webp|avif|jxl|origin|json` | Format (origin = unset) / Info (imgproxy info schema, recorded as ignored) |
+| `q` (1–100), `l` (zlib 0–9), `ll`, `af`, `il` | Quality, PNG compression, Lossless, PNG adaptive filter, Progressive |
+| `n` (−1 all, ≥ 1), `page` (≥ 0; −1 largest / −2 smallest recorded as not implemented) | Pages, Page (M2) |
+| `loop`, `delay`, `fsol` | Ignored (not implemented / not applicable) |
+| `default=<url>` (or deprecated `errorredirect`) | OnErrorRedirect + Fallback: on a fallback-eligible failure (ARCHITECTURE §12) the server answers **302** to that URL, but only when it is an absolute http(s) URL the source allowlist accepts (never an open redirect); otherwise the fallback-image path runs (the URL is used as the fallback image when `XI_FALLBACK_ALLOW_REQUEST_URL`) |
+| `default=1` | OnErrorRedirect: 302 to the request's own http(s) source |
+| `filename` | Filename |
+| `maxage` (nginx time: `31d`, `1w`, `2M`, `1y`, `1w 3d`, plain seconds; 1d–1y) | TTL (Cache-Control max-age, capped by `XI_CACHE_HEADERS_TTL`) |
+| `encoding=base64` | ResponseDataURL: body `data:<type>;base64,…` as `text/plain`, no Content-Disposition |
+| `xi_sig` | optional xi signature (§2) |
+
+Under the restricted unsigned policy `default=<url>` (a fallback URL), crops, trims, effects, `n` and `output=json` are rejected like in every other dialect; `default=1`, `maxage` and `encoding` are allowed.
 
 ## 12. unpic long tail ("simple" micro-dialects)
 
