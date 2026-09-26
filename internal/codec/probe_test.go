@@ -72,6 +72,10 @@ func TestProbeFixtures(t *testing.T) {
 		"jpeg/exif-orientation-6-icc.jpg": with(still(codec.FormatJPEG, 240, 320), func(m *codec.ImageMeta) {
 			m.Orientation, m.HasICC = 6, true
 		}),
+		"jpeg/metadata-p3.jpg": with(still(codec.FormatJPEG, 120, 160), func(m *codec.ImageMeta) {
+			m.Orientation, m.HasICC = 6, true
+		}),
+		"png/bordered.png":        still(codec.FormatPNG, 80, 60),
 		"uhdr/photo-ultrahdr.jpg": with(still(codec.FormatUHDR, 320, 240), func(m *codec.ImageMeta) { m.HasICC = true }),
 		"png/rgba8.png":           with(still(codec.FormatPNG, 128, 96), func(m *codec.ImageMeta) { m.HasAlpha = true }),
 		"png/rgb16.png":           with(still(codec.FormatPNG, 96, 72), func(m *codec.ImageMeta) { m.BitDepth = 16 }),

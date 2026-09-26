@@ -193,6 +193,8 @@ int xi_icc_export(VipsImage *in, const char *profile, int intent, int depth,
     VipsImage **out, char **err);
 int xi_icc_transform(VipsImage *in, const char *profile, int intent, int embedded,
     int depth, VipsImage **out, char **err);
+int xi_profile_load(const char *name, VipsBlob **blob, const void **data, size_t *len,
+    char **err);
 int xi_cast(VipsImage *in, int band_format, VipsImage **out, char **err);
 int xi_copy(VipsImage *in, int interpretation, double xres, double yres, int page_height,
     VipsImage **out, char **err);

@@ -67,8 +67,12 @@ type SourceMeta struct {
 	Format transform.Format
 	// Width and Height are one frame/page in pixels.
 	Width, Height int
-	// Frames is the number of frames or pages (1 for still images).
-	Frames      int
+	// Frames is the number of animation frames (1 for still images,
+	// multi-page files included).
+	Frames int
+	// Pages is the number of pages, frames or entries in the file (≥ 1):
+	// it bounds the `page` option of multi-page stills (TIFF, HEIF).
+	Pages       int
 	HasAlpha    bool
 	IsAnimated  bool
 	Orientation int // EXIF orientation 1..8 (1 when absent)
