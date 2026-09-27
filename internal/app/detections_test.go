@@ -17,6 +17,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -162,7 +163,7 @@ func TestDetectionsForRequest(t *testing.T) {
 	// are not detected.
 	for _, d := range []*detections{nil, newDetections(nil, 8, true, codec.Limits{}, log)} {
 		for _, needs := range []plan.DetectionNeeds{{Faces: true}, {Objects: true}} {
-			_, err := d.forRequest(ctx, src, codec.FormatJPEG, needs)
+			_, err := d.forRequest(ctx, imageSource(src, codec.FormatJPEG), needs)
 			if errs.KindOf(err) != errs.KindUnsupported || !errors.Is(err, detect.ErrUnavailable) {
 				t.Errorf("%+v without a detector: %v", needs, err)
 			}
@@ -170,14 +171,14 @@ func TestDetectionsForRequest(t *testing.T) {
 				t.Errorf("%+v: public message %v", needs, err)
 			}
 		}
-		if got, err := d.forRequest(ctx, src, codec.FormatJPEG, plan.DetectionNeeds{SmartFaces: true}); got != nil || err != nil {
+		if got, err := d.forRequest(ctx, imageSource(src, codec.FormatJPEG), plan.DetectionNeeds{SmartFaces: true}); got != nil || err != nil {
 			t.Errorf("smart without a detector: %v, %v", got, err)
 		}
 	}
 
 	fake := newFakeDetector(t)
 	d := newDetections(fake, 8, true, codec.Limits{}, log)
-	got, err := d.forRequest(ctx, src, codec.FormatJPEG, plan.DetectionNeeds{Faces: true})
+	got, err := d.forRequest(ctx, imageSource(src, codec.FormatJPEG), plan.DetectionNeeds{Faces: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,7 +186,7 @@ func TestDetectionsForRequest(t *testing.T) {
 		t.Errorf("faces (-want +got):\n%s objects %v", diff, got.Objects)
 	}
 	// Objects run once, faces come from the cache.
-	got, err = d.forRequest(ctx, src, codec.FormatJPEG, plan.DetectionNeeds{Faces: true, Objects: true})
+	got, err = d.forRequest(ctx, imageSource(src, codec.FormatJPEG), plan.DetectionNeeds{Faces: true, Objects: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,21 +207,21 @@ func TestDetectionsForRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer other.Release()
-	if got, err := newDetections(fake, 0, false, codec.Limits{}, log).forRequest(ctx, other, codec.FormatJPEG, plan.DetectionNeeds{SmartFaces: true}); got != nil || err != nil {
+	if got, err := newDetections(fake, 0, false, codec.Limits{}, log).forRequest(ctx, imageSource(other, codec.FormatJPEG), plan.DetectionNeeds{SmartFaces: true}); got != nil || err != nil {
 		t.Errorf("smart faces off: %v, %v", got, err)
 	}
 	failing := newFakeDetector(t)
 	failing.failFaces = true
 	fd := newDetections(failing, 0, true, codec.Limits{}, log)
-	if got, err := fd.forRequest(ctx, other, codec.FormatJPEG, plan.DetectionNeeds{SmartFaces: true}); got != nil || err != nil {
+	if got, err := fd.forRequest(ctx, imageSource(other, codec.FormatJPEG), plan.DetectionNeeds{SmartFaces: true}); got != nil || err != nil {
 		t.Errorf("failing smart faces: %v, %v", got, err)
 	}
-	if _, err := fd.forRequest(ctx, other, codec.FormatJPEG, plan.DetectionNeeds{Faces: true}); err == nil {
+	if _, err := fd.forRequest(ctx, imageSource(other, codec.FormatJPEG), plan.DetectionNeeds{Faces: true}); err == nil {
 		t.Error("failing required faces: no error")
 	}
 	noFaces := newFakeDetector(t)
 	noFaces.noFaces = true
-	if got, err := newDetections(noFaces, 0, true, codec.Limits{}, log).forRequest(ctx, other, codec.FormatJPEG, plan.DetectionNeeds{SmartFaces: true, Objects: true}); err != nil || got == nil || got.Faces != nil || len(got.Objects) != 3 {
+	if got, err := newDetections(noFaces, 0, true, codec.Limits{}, log).forRequest(ctx, imageSource(other, codec.FormatJPEG), plan.DetectionNeeds{SmartFaces: true, Objects: true}); err != nil || got == nil || got.Faces != nil || len(got.Objects) != 3 {
 		t.Errorf("objects without a face model: %+v, %v", got, err)
 	}
 	if noFaces.faces.Load() != 0 {
@@ -504,6 +505,34 @@ func TestDetectModels(t *testing.T) {
 	for _, tc := range detectDialectCases(t)[:2] {
 		img := getPNG(t, base+tc.path)
 		golden.Compare(t, "app/detect-"+tc.name, img, golden.Options{Tolerance: 0.05})
+	}
+	if !codec.VideoAvailable() {
+		return
+	}
+	// WP-91: the models find the crew's faces on the frames of the face
+	// clips (the rotated one upright), and face gravity crops like on the
+	// photo.
+	for _, src := range []string{faceVideo, faceVideoRotated} {
+		r := get(t, base+"/info/insecure"+noDefaults+"/do:1/plain/"+src)
+		if r.status != http.StatusOK {
+			t.Fatalf("/info %s: %d %s", src, r.status, r.body)
+		}
+		raw.Objects = nil
+		if err := json.Unmarshal(r.body, &raw); err != nil {
+			t.Fatal(err)
+		}
+		for _, w := range want.Faces {
+			best := 0.0
+			for _, o := range raw.Objects {
+				best = max(best, iou(transform.Area{Left: o.Left, Top: o.Top, Width: o.Width, Height: o.Height}, w.Box))
+			}
+			if best < 0.5 {
+				t.Errorf("%s: face %+v not found (best IoU %.2f) in %s", src, w.Box, best, r.body)
+			}
+		}
+		tc := detectDialectCases(t)[0]
+		img := getPNG(t, base+strings.ReplaceAll(tc.path, detectfix.Crew, src))
+		golden.Compare(t, "app/detect-"+tc.name, img, golden.Options{Tolerance: 0.06})
 	}
 }
 

@@ -138,7 +138,7 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 		previewW: meta.PreviewWidth, previewH: meta.PreviewHeight,
 		enforceThumb: req.Output.EnforceThumbnail != nil && *req.Output.EnforceThumbnail,
 		hdr:          meta.HDR,
-		video:        meta.IsVideo && !meta.VideoComposite,
+		video:        meta.IsVideo && !meta.VideoComposite && !meta.FrameDecoded,
 		dets:         meta.Detections,
 	}
 	switch {
@@ -185,15 +185,22 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 	}
 	// Chained pipelines are predicted on the previous prediction; the
 	// executor plans each again on the observed result (Chain).
+	// The detections follow the predicted geometry (a smart crop or a
+	// trim drops them from the prediction; the executor maps what it cut).
 	prev := root
+	var dets *Detections
+	if len(pipes) > 1 {
+		dets = SourceDetections(req, meta, root).MapPlan(root, root.Load.Width, loadFrameHeight(root))
+	}
 	for i := 1; i < len(pipes); i++ {
 		out := &prev.Output
-		in := Input{Width: out.Width, Height: out.Height, Frames: out.Frames, Alpha: out.Alpha}
+		in := Input{Width: out.Width, Height: out.Height, Frames: out.Frames, Alpha: out.Alpha, Detections: dets}
 		pl, err := planChained(pipes, i, &in, &lim, outFmt, nil)
 		if err != nil {
 			return nil, fmt.Errorf("plan: pipeline %d: %w", i, err)
 		}
 		root.Chained = append(root.Chained, pl)
+		dets = dets.MapPlan(pl, in.Width, in.Height)
 		prev = pl
 	}
 	chainCost(root)
@@ -201,6 +208,14 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 		return nil, errs.New(errs.KindLimitExceeded, "plan: estimated memory exceeds the processing budget")
 	}
 	return root, nil
+}
+
+// loadFrameHeight is the height of one loaded frame of pl.
+func loadFrameHeight(pl *Plan) int {
+	if a := pl.Animation; a != nil && a.PageHeight > 0 {
+		return a.PageHeight
+	}
+	return pl.Load.Height
 }
 
 // stackedPages is the number of pages the `pages` option stacks into one
@@ -843,11 +858,24 @@ func unplanned(p *transform.Pipeline, detected bool) []string {
 	}
 	add(p.Adjust.Vibrance != nil, "vibrance")
 	add(p.Equalize, "equalize")
-	add(!detected && (p.BlurDetections != nil || p.DrawDetections != nil || p.CropObjects != nil), "detections")
+	add(!detected && (p.BlurDetections != nil || p.DrawDetections != nil || p.CropObjects != nil ||
+		detectionGravity(&p.Gravity) || (p.Crop != nil && detectionGravity(&p.Crop.Gravity))), "detections")
 	// The video options (video_thumbnail_second, _keyframes, _tile,
 	// _animation) select or assemble the frames of a video source when it
 	// is loaded: no step, and ignored for images, like imgproxy.
 	return out
+}
+
+// detectionGravity reports a gravity that places the crop on detections
+// only (face, object, weighted objects); smart gravity has its own
+// fallback.
+func detectionGravity(g *transform.Gravity) bool {
+	switch g.Type {
+	case transform.GravityFace, transform.GravityObject, transform.GravityObjectWeighted:
+		return true
+	default:
+		return false
+	}
 }
 
 // colourAdjust is the ColourAdjustStep of p; ok is false when p has no

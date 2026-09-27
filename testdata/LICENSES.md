@@ -60,6 +60,7 @@ generated from the public-domain X11 "fixed" font).
 | `fixtures/dng/landscape.dng`, `fixtures/dng/portrait-orientation-6.dng` | `gen dng` (own DNG writer; the preview is Go `image/jpeg` q85 of the photo, the mosaic is the photo sampled as linear RGGB) | CC0 |
 | `fixtures/video/clip-*.{webm,mkv,mp4,mov,avi}` | `gen video-frames` (Go) encoded by `gen/video.sh` with the LGPL FFmpeg of the full base builder (libvpx VP8/VP9, libaom AV1, PNG) and the host ffmpeg's LGPL rawvideo/AVI muxer; details in `fixtures/video/README.md` | CC0 |
 | `fixtures/video/bbb-h264-aac.mp4` | stream copy of Big Buck Bunny (see the exception above) plus an AAC tone (FFmpeg native encoder, LGPL) | CC-BY 3.0 (video), CC0 (audio) |
+| `fixtures/video/faces-vp9.webm`, `fixtures/video/faces-av1-rotate90.mp4` | `fixtures/detect/apollo11-crew.jpg` (below) as a one-second still clip, encoded by `gen/video-faces.sh` with the LGPL FFmpeg of the full base builder (libvpx VP9; libaom AV1 stored rotated with a display matrix); details in `fixtures/video/README.md` | Public domain (NASA), like the photo |
 | `golden/**` | written by tests with `GOLDEN_UPDATE=1` from the fixtures above and the RAW samples below | CC0 |
 | `detect/expected.json`, `info/detect-*.json` | written by `detect/reference.py` and by tests from the detection photos below | CC0 |
 | `detect/reference.py` | ours, plus the YOLOX demo pre/post-processing functions copied from Megvii's YOLOX (Apache-2.0, see NOTICE) | CC0 / Apache-2.0 |

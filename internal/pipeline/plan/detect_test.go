@@ -86,7 +86,7 @@ func TestNeedsDetection(t *testing.T) {
 		{"smart and dog blur", req(transform.Pipeline{
 			Gravity: g(transform.GravitySmart), BlurDetections: &transform.DetectionFilter{Classes: []string{"dog"}},
 		}), plan.DetectionNeeds{Objects: true, SmartFaces: true}},
-		{"chained only", req(transform.Pipeline{}, transform.Pipeline{Gravity: g(transform.GravityFace)}), plan.DetectionNeeds{}},
+		{"chained only", req(transform.Pipeline{}, transform.Pipeline{Gravity: g(transform.GravityFace)}), plan.DetectionNeeds{Faces: true}},
 		{"info detect", &transform.Request{Kind: transform.KindInfo, Info: &transform.InfoOptions{DetectObjects: true, DetectClasses: []string{"face"}}}, plan.DetectionNeeds{Faces: true}},
 		{"info crop", &transform.Request{Kind: transform.KindInfo, Info: &transform.InfoOptions{Crop: &transform.Crop{Width: px(1), Gravity: g(transform.GravityObject, "dog")}}}, plan.DetectionNeeds{Objects: true}},
 	}
@@ -563,10 +563,17 @@ func TestDetectionFilters(t *testing.T) {
 	if len(stepsOf[plan.FilterStep](pl.Steps)) != 0 || len(stepsOf[plan.DrawDetectionsStep](pl.Steps)) != 0 || len(pl.Unplanned) != 0 {
 		t.Errorf("no cats: %+v %v", pl.Steps, pl.Unplanned)
 	}
-	// Chained pipelines have no detections.
+	// Chained pipelines blur the source's boxes mapped onto their input
+	// (WP-92); without detections they list the filter as unplanned.
 	pl = mustBuild(t, req(transform.Pipeline{}, transform.Pipeline{BlurDetections: &transform.DetectionFilter{Sigma: 3}}), &meta)
+	if fs := stepsOf[plan.FilterStep](pl.Chained[0].Steps); len(pl.Chained) != 1 || len(pl.Chained[0].Unplanned) != 0 || len(fs) != 1 || fs[0].Detections == nil {
+		t.Errorf("chained Unplanned = %v, filters %+v", pl.Chained[0].Unplanned, fs)
+	}
+	noDets := meta
+	noDets.Detections = nil
+	pl = mustBuild(t, req(transform.Pipeline{}, transform.Pipeline{BlurDetections: &transform.DetectionFilter{Sigma: 3}}), &noDets)
 	if len(pl.Chained) != 1 || len(pl.Chained[0].Unplanned) != 1 || pl.Chained[0].Unplanned[0] != "detections" {
-		t.Errorf("chained Unplanned = %v", pl.Chained[0].Unplanned)
+		t.Errorf("chained Unplanned without detections = %v", pl.Chained[0].Unplanned)
 	}
 }
 

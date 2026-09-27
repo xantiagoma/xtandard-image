@@ -1,0 +1,43 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "exif": {},
+  "format": "mp4",
+  "height": 503,
+  "iptc": {},
+  "mime_type": "video/mp4",
+  "orientation": 6,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 122251,
+  "video_meta": {
+    "bit_rate": 978008,
+    "codec": "av1",
+    "compatible_brands": "isomav01iso2mp41",
+    "container": "mov",
+    "duration": 1,
+    "encoder": "Lavf62.12.103",
+    "fps": 10,
+    "frames": 10,
+    "height": 640,
+    "major_brand": "isom",
+    "minor_version": "512",
+    "rotation": 90,
+    "width": 503
+  },
+  "video_streams": [
+    {
+      "bps": 970912,
+      "codec": "av1",
+      "duration": 1,
+      "fps": 10,
+      "height": 640,
+      "rotation": 90,
+      "type": "video",
+      "width": 503
+    }
+  ],
+  "width": 640,
+  "xmp": {}
+}

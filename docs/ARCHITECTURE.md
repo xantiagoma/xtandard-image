@@ -575,8 +575,8 @@ filters and `/info` options (WP-73). It needs the `full` image; on slim it repor
   checksum status.
 - **In the pipeline (WP-72/73).** Detection is not a plan step: the plan depends on it
   (`crop_objects` changes the pre-crop and so the shrink-on-load). `plan.NeedsDetection(req)`
-  says which models the first pipeline (or, for `/info`, `detect_objects` and a detection-placed
-  `crop`) needs; smart gravity asks for faces as an option (`XI_DETECT_SMART_FACES`). `app`
+  says which models the pipelines (chained ones included; or, for `/info`, `detect_objects` and a
+  detection-placed `crop`) need; smart gravity asks for faces as an option (`XI_DETECT_SMART_FACES`). `app`
   (`detections.go`) runs them before planning, inside the request's worker slot, on an upright
   thumbnail of the source (`codec.SampleImage`, 1024 px, shrink-on-load, copied to memory so both
   models read it) and hands `plan.SourceMeta.Detections` to the executor (boxes as fractions of the
@@ -584,14 +584,27 @@ filters and `/info` options (WP-73). It needs the `full` image; on slim it repor
   the deployment lacks is `Unsupported` (422, public message "face detection is not
   available"); optional smart faces never fail a request. Results are cached per model and source
   in a bounded LRU (`XI_DETECT_CACHE_SIZE` entries, default 512) keyed by the SHA-256 of the source
-  bytes (an origin that changes behind the same URL is detected again), shared by processing and
-  `/info`. The planner (`plan/detect.go`) turns face, object and weighted-object gravity (and smart
+  bytes (an origin that changes behind the same URL is detected again) and, for a video, the frame's
+  timestamp, shared by processing and `/info`. A single-frame video (WP-91) is detected on the
+  frame the request selects: `app` decodes it once at the display size on the probe's FFmpeg
+  session (`codec.DecodeVideoFrame`, a `codec.DecodedFrame` that outlives `vips.Run`), detects on
+  it upright, and hands the same decode to the executor (`exec.Job.Frame`,
+  `plan.SourceMeta.FrameDecoded`: no scale-on-load); sprites and animations (`vtt`, `vta`) are not
+  detected. The planner (`plan/detect.go`) turns face, object and weighted-object gravity (and smart
   gravity with faces) into a `GravityObject` placement: the point, the anchor in the crop and the
   offsets of `objects_position`, mapped through EXIF orientation, rotate/flip and a pre-crop;
   `crop_objects` and face pads become a pre-crop; blur/draw boxes are mapped like `blur_areas` into
-  `FilterStep.Detections` and `DrawDetectionsStep`. Without detections (none found, or a chained
-  pipeline: detections describe the source) the gravities are the attention smart crop and the
-  filters do nothing. Class names are validated in `transform` (`ResolveClass`), so an unknown class
+  `FilterStep.Detections` and `DrawDetectionsStep`. Chained pipelines (WP-92) get the source's
+  boxes mapped through the pipelines before them (`plan.Input.Detections`, `plan/detectmap.go`):
+  the executor follows every step it runs (`Detections.MapStep`: crops clip or drop boxes, resizes
+  keep fractions, rotations and flips turn them, extend, padding and borders place them on the
+  canvas, an arbitrary rotation takes the bounding box of the rotated corners, filters and colour
+  keep them), starting from the stored orientation (`Detections.Stored`), and maps smart crops and
+  trims on the rectangle it cut (`Detections.Crop`, from the smart crop's `xoffset`/`yoffset`
+  and the trim box); a step without a mapping drops them for later pipelines. `Build` predicts the
+  same through the predicted steps (`MapPlan`), dropping them after a smart crop or trim. Without
+  detections (none found, or dropped) the gravities are the attention smart crop, the filters do
+  nothing and a face/object option is listed in `Unplanned` ("detections"). Class names are validated in `transform` (`ResolveClass`), so an unknown class
   is 400 before the fetch.
 
 ## 9. Caching

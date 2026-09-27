@@ -66,7 +66,19 @@ func (in *vipsInspector) Inspect(ctx context.Context, src fetch.Buffer, lim serv
 	}
 	si := sourceInfo(&ci)
 	si.Pixels = pixels
-	if si.Detections, err = in.detect.forRequest(ctx, vb, ci.Meta.Format, det); err != nil {
+	ds := imageSource(vb, ci.Meta.Format)
+	var frame *codec.DecodedFrame
+	defer func() { frame.Release() }()
+	if ci.Meta.Format.IsVideo() {
+		// The frame the default selection picks, like the pixel fields
+		// (WP-91).
+		ds.frame = func(ctx context.Context) (*codec.DecodedFrame, int, error) {
+			f, orientation, err := codec.SampleVideoFrame(ctx, vb, detectSampleSide, &in.video)
+			frame = f
+			return f, orientation, err
+		}
+	}
+	if si.Detections, err = in.detect.forRequest(ctx, ds, det); err != nil {
 		return nil, err
 	}
 	return si, nil

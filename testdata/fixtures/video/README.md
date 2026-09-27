@@ -1,7 +1,8 @@
 # Video fixtures (WP-74)
 
-Regenerate with `sh testdata/gen/video.sh` (see the script for the exact commands). Every
-file is at most 200 KiB.
+Regenerate with `sh testdata/gen/video.sh` (see the script for the exact commands) and the face
+clips (WP-91: detection on video frames) with `sh testdata/gen/video-faces.sh`. Every file is at
+most 200 KiB.
 
 | File | Container / codec | Size, duration | Source | Licence |
 |---|---|---|---|---|
@@ -12,6 +13,8 @@ file is at most 200 KiB.
 | `clip-vp8-matroska.mkv` | `clip-vp8.webm` remuxed into Matroska (DocType `matroska`) | 320×180, 1 s | procedural clip | CC0 |
 | `clip-png.mov` | QuickTime MOV (`ftyp qt  `) / PNG | 96×54, 1 s, 10 fps | procedural clip | CC0 |
 | `clip-raw.avi` | AVI / rawvideo BGR24 | 96×54, 1 s, 10 fps | procedural clip | CC0 |
+| `faces-vp9.webm` | WebM / VP9 (libvpx, CRF 32, keyframe every 5 frames), BT.709 tagged | 640×503 (odd height), 1 s, 10 fps, a still | `detect/apollo11-crew.jpg` (`sh testdata/gen/video-faces.sh`) | Public domain (NASA) |
+| `faces-av1-rotate90.mp4` | MP4 / AV1 (libaom, CRF 28), stored rotated 90° counter-clockwise with a display matrix that shows it upright | 503×640 stored, 640×503 shown, 1 s, 10 fps, a still | `detect/apollo11-crew.jpg` | Public domain (NASA) |
 | `bbb-h264-aac.mp4` | MP4 / H.264 High (stream copy) + AAC mono 16 kHz | 1280×720, 1 s, 30 fps | first second of *Big Buck Bunny* (see below) + a 440 Hz tone | video: **CC-BY 3.0**; audio: CC0 |
 
 The procedural clip pans across the landscape of `testdata/gen/main.go`, with a red disc moving

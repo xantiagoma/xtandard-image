@@ -76,7 +76,16 @@ func (r *runner) crop(ctx context.Context, img *vips.Image, c *plan.CropGeometry
 		if err != nil {
 			return nil, err
 		}
-		return r.a.Add(mem.SmartCrop(ctx, w, h, interesting(c.Smart)))
+		out, err := r.a.Add(mem.SmartCrop(ctx, w, h, interesting(c.Smart)))
+		if err != nil {
+			return nil, err
+		}
+		// libvips extracts the crop: its offset is minus the rectangle's.
+		ox, _ := out.Int(vips.FieldXOffset)
+		oy, _ := out.Int(vips.FieldYOffset)
+		cut := image.Rect(-ox, -oy, -ox+w, -oy+h)
+		r.cut = &cut
+		return out, nil
 	}
 	return r.a.Add(img.Crop(ctx, image.Rect(x, y, x+w, y+h)))
 }
@@ -298,12 +307,16 @@ func (r *runner) trim(ctx context.Context, img *vips.Image, t *plan.TrimStep) (*
 		}
 	}
 	if width <= 0 || height <= 0 {
+		all := image.Rect(0, 0, img.Width(), img.Height())
+		r.cut = &all
 		return img, nil // nothing but background
 	}
-	out, err := r.a.Add(img.ExtractArea(ctx, image.Rect(left, top, left+width, top+height)))
+	cut := image.Rect(left, top, left+width, top+height)
+	out, err := r.a.Add(img.ExtractArea(ctx, cut))
 	if err != nil {
 		return nil, err
 	}
+	r.cut = &cut
 	return r.a.Add(out.CopyMemory(ctx))
 }
 

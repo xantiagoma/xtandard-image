@@ -302,4 +302,8 @@ const (
 	FieldNPages      MetaField = "n-pages"
 	FieldLoop        MetaField = "loop"
 	FieldDelay       MetaField = "delay"
+	// FieldXOffset and FieldYOffset are the image's origin: an extracted
+	// area (vips_extract_area, vips_smartcrop) has minus its left and top.
+	FieldXOffset MetaField = "xoffset"
+	FieldYOffset MetaField = "yoffset"
 )
