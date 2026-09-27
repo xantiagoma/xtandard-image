@@ -1,0 +1,120 @@
+From: xtandard-image
+Subject: [PATCH] Free repeated and byte-typed descriptive metadata
+
+Found by libFuzzer + LeakSanitizer: a descriptive metadata tag that appears
+twice in the container leaked the first value (ReadPropvar overwrites it),
+and FreeDescMetadata ignored values stored as BYTE/UNDEFINED arrays.
+---
+--- a/jxrgluelib/JXRGlueJxr.c
++++ b/jxrgluelib/JXRGlueJxr.c
+@@ -190,6 +190,10 @@
+             PKFree((void **) &pvar->VT.pwszVal);
+             break;
+ 
++        case DPKVT_BYREF | DPKVT_UI1: // a BYTE or UNDEFINED tag (ReadPropvar)
++            PKFree((void **) &pvar->VT.pbVal);
++            break;
++
+         default:
+             assert(FALSE); // This case is not handled
+             break;
+@@ -1652,60 +1656,70 @@
+ 
+         // Descriptive Metadata
+         case WMP_tagImageDescription:
++            FreeDescMetadata(&pID->WMP.sDescMetadata.pvarImageDescription); // a repeated tag replaces, not leaks
+             CallIgnoreError(errTmp, ReadPropvar(pWS, uType, uCount, uValue,
+                 &pID->WMP.sDescMetadata.pvarImageDescription));
+             assert(DPKVT_LPSTR == pID->WMP.sDescMetadata.pvarImageDescription.vt);
+             break;
+ 
+         case WMP_tagCameraMake:
++            FreeDescMetadata(&pID->WMP.sDescMetadata.pvarCameraMake); // a repeated tag replaces, not leaks
+             CallIgnoreError(errTmp, ReadPropvar(pWS, uType, uCount, uValue,
+                 &pID->WMP.sDescMetadata.pvarCameraMake));
+             assert(DPKVT_LPSTR == pID->WMP.sDescMetadata.pvarCameraMake.vt);
+             break;
+ 
+         case WMP_tagCameraModel:
++            FreeDescMetadata(&pID->WMP.sDescMetadata.pvarCameraModel); // a repeated tag replaces, not leaks
+             CallIgnoreError(errTmp, ReadPropvar(pWS, uType, uCount, uValue,
+                 &pID->WMP.sDescMetadata.pvarCameraModel));
+             assert(DPKVT_LPSTR == pID->WMP.sDescMetadata.pvarCameraModel.vt);
+             break;
+ 
+         case WMP_tagSoftware:
++            FreeDescMetadata(&pID->WMP.sDescMetadata.pvarSoftware); // a repeated tag replaces, not leaks
+             CallIgnoreError(errTmp, ReadPropvar(pWS, uType, uCount, uValue,
+                 &pID->WMP.sDescMetadata.pvarSoftware));
+             assert(DPKVT_LPSTR == pID->WMP.sDescMetadata.pvarSoftware.vt);
+             break;
+ 
+         case WMP_tagDateTime:
++            FreeDescMetadata(&pID->WMP.sDescMetadata.pvarDateTime); // a repeated tag replaces, not leaks
+             CallIgnoreError(errTmp, ReadPropvar(pWS, uType, uCount, uValue,
+                 &pID->WMP.sDescMetadata.pvarDateTime));
+             assert(DPKVT_LPSTR == pID->WMP.sDescMetadata.pvarDateTime.vt);
+             break;
+ 
+         case WMP_tagArtist:
++            FreeDescMetadata(&pID->WMP.sDescMetadata.pvarArtist); // a repeated tag replaces, not leaks
+             CallIgnoreError(errTmp, ReadPropvar(pWS, uType, uCount, uValue,
+                 &pID->WMP.sDescMetadata.pvarArtist));
+             assert(DPKVT_LPSTR == pID->WMP.sDescMetadata.pvarArtist.vt);
+             break;
+ 
+         case WMP_tagCopyright:
++            FreeDescMetadata(&pID->WMP.sDescMetadata.pvarCopyright); // a repeated tag replaces, not leaks
+             CallIgnoreError(errTmp, ReadPropvar(pWS, uType, uCount, uValue,
+                 &pID->WMP.sDescMetadata.pvarCopyright));
+             assert(DPKVT_LPSTR == pID->WMP.sDescMetadata.pvarCopyright.vt);
+             break;
+ 
+         case WMP_tagRatingStars:
++            FreeDescMetadata(&pID->WMP.sDescMetadata.pvarRatingStars); // a repeated tag replaces, not leaks
+             CallIgnoreError(errTmp, ReadPropvar(pWS, uType, uCount, uValue,
+                 &pID->WMP.sDescMetadata.pvarRatingStars));
+             assert(DPKVT_UI2 == pID->WMP.sDescMetadata.pvarRatingStars.vt);
+             break;
+ 
+         case WMP_tagRatingValue:
++            FreeDescMetadata(&pID->WMP.sDescMetadata.pvarRatingValue); // a repeated tag replaces, not leaks
+             CallIgnoreError(errTmp, ReadPropvar(pWS, uType, uCount, uValue,
+                 &pID->WMP.sDescMetadata.pvarRatingValue));
+             assert(DPKVT_UI2 == pID->WMP.sDescMetadata.pvarRatingValue.vt);
+             break;
+ 
+         case WMP_tagCaption:
++            FreeDescMetadata(&pID->WMP.sDescMetadata.pvarCaption); // a repeated tag replaces, not leaks
+             CallIgnoreError(errTmp, ReadPropvar(pWS, uType, uCount, uValue,
+                 &pID->WMP.sDescMetadata.pvarCaption));
+             assert((DPKVT_BYREF | DPKVT_UI1) == pID->WMP.sDescMetadata.pvarCaption.vt);
+@@ -1720,24 +1734,28 @@
+             break;
+ 
+         case WMP_tagDocumentName:
++            FreeDescMetadata(&pID->WMP.sDescMetadata.pvarDocumentName); // a repeated tag replaces, not leaks
+             CallIgnoreError(errTmp, ReadPropvar(pWS, uType, uCount, uValue,
+                 &pID->WMP.sDescMetadata.pvarDocumentName));
+             assert(DPKVT_LPSTR == pID->WMP.sDescMetadata.pvarDocumentName.vt);
+             break;
+ 
+         case WMP_tagPageName:
++            FreeDescMetadata(&pID->WMP.sDescMetadata.pvarPageName); // a repeated tag replaces, not leaks
+             CallIgnoreError(errTmp, ReadPropvar(pWS, uType, uCount, uValue,
+                 &pID->WMP.sDescMetadata.pvarPageName));
+             assert(DPKVT_LPSTR == pID->WMP.sDescMetadata.pvarPageName.vt);
+             break;
+ 
+         case WMP_tagPageNumber:
++            FreeDescMetadata(&pID->WMP.sDescMetadata.pvarPageNumber); // a repeated tag replaces, not leaks
+             CallIgnoreError(errTmp, ReadPropvar(pWS, uType, uCount, uValue,
+                 &pID->WMP.sDescMetadata.pvarPageNumber));
+             assert(DPKVT_UI4 == pID->WMP.sDescMetadata.pvarPageNumber.vt);
+             break;
+ 
+         case WMP_tagHostComputer:
++            FreeDescMetadata(&pID->WMP.sDescMetadata.pvarHostComputer); // a repeated tag replaces, not leaks
+             CallIgnoreError(errTmp, ReadPropvar(pWS, uType, uCount, uValue,
+                 &pID->WMP.sDescMetadata.pvarHostComputer));
+             assert(DPKVT_LPSTR == pID->WMP.sDescMetadata.pvarHostComputer.vt);
