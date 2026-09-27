@@ -56,6 +56,16 @@ type runner struct {
 	stackAlpha bool
 	// videoFrame describes the frame a video source was decoded from.
 	videoFrame *codec.VideoFrameInfo
+	// dets are the source's detections as fractions of the image the next
+	// step runs on, followed through the steps (follow) when chained
+	// pipelines come after the root (WP-92); nil when there are none or a
+	// step could not carry them. follows is off while frames other than
+	// the first of an animation run (they repeat its geometry).
+	dets    *plan.Detections
+	follows bool
+	// cut is the rectangle the last step cut out of its input when only
+	// the executor knows it (a smart crop, a trim), for follow.
+	cut *image.Rectangle
 }
 
 // last returns the plan whose Output is the response.
@@ -93,6 +103,10 @@ func (r *runner) execute(ctx context.Context) (*vips.Image, error) {
 	for _, u := range r.plan.Unplanned {
 		r.skip(u)
 	}
+	if len(r.plan.Chained) > 0 {
+		r.dets = plan.SourceDetections(r.req, &r.meta, r.plan)
+		r.follows = r.dets != nil
+	}
 	if !r.hdrPending() && r.req.Output.PreserveHDR != nil && *r.req.Output.PreserveHDR {
 		// Only scene-linear sources keep more than 8 bits so far (fromHDR).
 		r.skip("preserve_hdr")
@@ -128,7 +142,7 @@ func (r *runner) chained(ctx context.Context, img *vips.Image, i int) (*vips.Ima
 	if err := ctxErr(ctx); err != nil {
 		return nil, err
 	}
-	in := plan.Input{Width: img.Width(), Height: img.PageHeight(), Frames: img.Pages(), Alpha: img.HasAlpha()}
+	in := plan.Input{Width: img.Width(), Height: img.PageHeight(), Frames: img.Pages(), Alpha: img.HasAlpha(), Detections: r.dets}
 	p, err := plan.Chain(r.req, r.meta, r.e.cfg.Limits, i, in, nil)
 	if err != nil {
 		return nil, err
@@ -222,11 +236,33 @@ func (r *runner) run(ctx context.Context, img *vips.Image, p *plan.Plan, start i
 		if err := ctxErr(ctx); err != nil {
 			return nil, err
 		}
+		w, h := img.Width(), img.PageHeight()
+		r.cut = nil
 		if img, err = r.after(ctx, img, s); err != nil {
 			return nil, err
 		}
+		r.follow(s, w, h)
 	}
 	return img, nil
+}
+
+// follow maps r.dets through step s, which ran on a w×h image (one frame):
+// on the rectangle it cut when only the executor knows it (r.cut), else
+// through the plan's geometry (plan.Detections.MapStep). A step without a
+// mapping drops them for the pipelines after it.
+func (r *runner) follow(s plan.Step, w, h int) {
+	if !r.follows || r.dets == nil {
+		return
+	}
+	if c := r.cut; c != nil {
+		r.dets = r.dets.Crop(*c, w, h)
+		return
+	}
+	d, _, _, ok := r.dets.MapStep(s, w, h)
+	if !ok {
+		d = nil
+	}
+	r.dets = d
 }
 
 // frames runs p.Steps on every frame of an animation strip and joins the
@@ -250,7 +286,13 @@ func (r *runner) frames(ctx context.Context, img *vips.Image, p *plan.Plan, star
 		if f, err = r.a.Add(f.RemoveMetadata(ctx, vips.FieldPageHeight, vips.FieldNPages)); err != nil {
 			return nil, err
 		}
-		if f, _, err = r.steps(ctx, f, p, start, nil); err != nil {
+		// The geometry is the same for every frame: detections follow
+		// the first.
+		follows := r.follows
+		r.follows = follows && i == 0
+		f, _, err = r.steps(ctx, f, p, start, nil)
+		r.follows = follows
+		if err != nil {
 			return nil, err
 		}
 		out = append(out, f)
@@ -291,10 +333,13 @@ func (r *runner) steps(ctx context.Context, img *vips.Image, p *plan.Plan, start
 			return nil, nil, err
 		}
 		s := p.Steps[i]
+		w, h := img.Width(), img.Height()
+		r.cut = nil
 		if t, ok := s.(plan.TrimStep); ok {
 			if img, err = r.trim(ctx, img, &t); err != nil {
 				return nil, nil, err
 			}
+			r.follow(s, w, h)
 			if trimmed == nil {
 				continue
 			}
@@ -310,6 +355,7 @@ func (r *runner) steps(ctx context.Context, img *vips.Image, p *plan.Plan, start
 		if img, err = r.step(ctx, img, s); err != nil {
 			return nil, nil, err
 		}
+		r.follow(s, w, h)
 	}
 	return img, p, nil
 }

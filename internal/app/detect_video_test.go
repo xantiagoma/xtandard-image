@@ -167,6 +167,46 @@ func TestDetectVideoUnavailable(t *testing.T) {
 	}
 }
 
+// TestDetectChained: a face gravity in a chained pipeline (imgproxy `-/`,
+// Cloudinary chained components) crops on the source's faces mapped
+// through the crop before it (WP-92), on the photo and on the face clip,
+// like the executor's golden of the same chain; the detector runs once
+// per source.
+func TestDetectChained(t *testing.T) {
+	// Not parallel: see TestDetectDialects.
+	fake := newFakeDetector(t)
+	a := start(t, detectDialectsConfig(t, ""), hooks{detector: fake})
+	base := "http://" + a.public.String()
+	sources := []string{detectfix.Crew}
+	if codec.VideoAvailable() {
+		sources = append(sources, faceVideo)
+	}
+	for _, src := range sources {
+		for _, path := range []string{
+			"/insecure/c:300:503:ea/-/rs:fill:100:100/g:obj:face/plain/" + src + "@png",
+			"/cloudinary/demo/image/upload/c_crop,w_300,h_503,g_east/c_fill,g_face,w_100,h_100/f_png/" + src,
+		} {
+			t.Run(path, func(t *testing.T) {
+				r := get(t, base+path)
+				if r.status != http.StatusOK {
+					t.Fatalf("GET %s: %d %q", path, r.status, r.body)
+				}
+				if ig := r.header.Get("X-Xi-Ignored"); ig != "" {
+					t.Errorf("X-Xi-Ignored = %q", ig)
+				}
+				img, _, err := image.Decode(bytes.NewReader(r.body))
+				if err != nil {
+					t.Fatal(err)
+				}
+				golden.Compare(t, "exec/detect-chained-face", img, golden.Options{Tolerance: 0.06})
+			})
+		}
+	}
+	if f, o := fake.faces.Load(), fake.objs.Load(); int(f) != len(sources) || o != 0 {
+		t.Errorf("detector calls: faces %d, objects %d; want %d and 0", f, o, len(sources))
+	}
+}
+
 // TestDetectVideoNoLeak runs video detection requests through the
 // production Prober and Processor (probe with its FFmpeg session, one
 // frame decoded for detection and processing, the fake detector, face
