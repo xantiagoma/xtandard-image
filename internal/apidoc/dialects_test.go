@@ -72,7 +72,7 @@ func catalogueURL(grammar string, o *playground.Option) *dialect.Input {
 			in.RawQuery += "&" + extra
 		}
 	case playground.GrammarThumbor:
-		seg := ""
+		var seg string
 		switch name {
 		case "size":
 			seg = v

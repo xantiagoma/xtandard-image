@@ -81,8 +81,8 @@ type entry struct {
 // Registry holds the named sources and resolves source strings against
 // them. It is immutable after NewRegistry and safe for concurrent use.
 type Registry struct {
-	byName  map[string]*entry
-	order   []*entry
+	byName     map[string]*entry
+	order      []*entry
 	devMode    bool
 	dev        Source
 	playground Source

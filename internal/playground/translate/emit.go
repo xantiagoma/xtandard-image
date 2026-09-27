@@ -69,14 +69,9 @@ func dim(d transform.Dim) (string, bool) {
 	return "", false
 }
 
-// fmtName is the extension-style format name ("jpg" for jpeg when jpg is
-// true).
-func fmtName(f transform.Format, jpg bool) string {
-	if f == transform.FormatJPEG && jpg {
-		return "jpg"
-	}
-	return f.String()
-}
+// sameSides reports four equal values (a uniform padding, border or
+// radius).
+func sameSides(a, b, c, d int) bool { return a == b && b == c && c == d }
 
 // plainText strips Pango markup the dialects that take plain text cannot
 // carry, reporting whether s had none (only the five XML escapes).

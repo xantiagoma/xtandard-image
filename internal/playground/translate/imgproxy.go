@@ -4,7 +4,6 @@ import (
 	"maps"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
@@ -26,9 +25,9 @@ func (o *ipOpts) add(name string, args ...string) {
 	*o = append(*o, ipOpt{name: name, args: args})
 }
 
-func (o ipOpts) segments(sep string) []string {
-	out := make([]string, 0, len(o))
-	for _, x := range o {
+func (o *ipOpts) segments(sep string) []string {
+	out := make([]string, 0, len(*o))
+	for _, x := range *o {
 		out = append(out, strings.Join(append([]string{x.name}, x.args...), sep))
 	}
 	return out
@@ -49,7 +48,7 @@ func boolArg(b bool) string {
 
 // ipGravity is the gravity arguments ("sm", "fp:x:y", "obj:classes", a
 // compass point with offsets); nil when imgproxy has no form for it.
-func ipGravity(g transform.Gravity, crop bool) []string {
+func ipGravity(g *transform.Gravity, crop bool) []string {
 	switch g.Type {
 	case transform.GravityUnset:
 		return nil
@@ -96,7 +95,7 @@ func ipGravity(g transform.Gravity, crop bool) []string {
 }
 
 // isDefaultGravity reports centre without offsets.
-func isDefaultGravity(g transform.Gravity) bool {
+func isDefaultGravity(g *transform.Gravity) bool {
 	return (g.Type == transform.GravityUnset || g.Type == transform.GravityCenter) && g.XOffset == 0 && g.YOffset == 0
 }
 
@@ -113,8 +112,8 @@ func ipDirection(d transform.Direction, angle float64) string {
 func ipPipeline(p *transform.Pipeline) ipOpts {
 	var o ipOpts
 	rs := &p.Resize
-	w, _ := dimPx(rs.Width)
-	h, _ := dimPx(rs.Height)
+	w := dimPx(rs.Width)
+	h := dimPx(rs.Height)
 	typ := ""
 	if rs.Type != transform.ResizeUnset && rs.Type != transform.ResizeFit {
 		typ = rs.Type.String()
@@ -143,18 +142,18 @@ func ipPipeline(p *transform.Pipeline) ipOpts {
 	}
 	for _, x := range []struct {
 		name string
-		e    transform.Extend
-	}{{"ex", p.Extend}, {"exar", p.ExtendAR}} {
+		e    *transform.Extend
+	}{{"ex", &p.Extend}, {"exar", &p.ExtendAR}} {
 		if x.e.Enabled {
 			args := []string{"1"}
-			if !isDefaultGravity(x.e.Gravity) {
-				args = append(args, ipGravity(x.e.Gravity, false)...)
+			if !isDefaultGravity(&x.e.Gravity) {
+				args = append(args, ipGravity(&x.e.Gravity, false)...)
 			}
 			o.add(x.name, args...)
 		}
 	}
-	if !isDefaultGravity(p.Gravity) {
-		if g := ipGravity(p.Gravity, true); g != nil {
+	if !isDefaultGravity(&p.Gravity) {
+		if g := ipGravity(&p.Gravity, true); g != nil {
 			o.add("g", g...)
 		}
 	}
@@ -175,8 +174,8 @@ func ipPipeline(p *transform.Pipeline) ipOpts {
 		ch, okH := dim(c.Height)
 		if okW || okH {
 			args := []string{orZero(cw), orZero(ch)}
-			if !isDefaultGravity(c.Gravity) {
-				args = append(args, ipGravity(c.Gravity, true)...)
+			if !isDefaultGravity(&c.Gravity) {
+				args = append(args, ipGravity(&c.Gravity, true)...)
 			}
 			o.add("c", args...)
 		}
@@ -247,7 +246,8 @@ func ipPipeline(p *transform.Pipeline) ipOpts {
 		o.add("ush", u.Mode.String(), num(u.Weight), num(u.Divider))
 	}
 	if ba := p.BlurAreas; ba != nil {
-		args := []string{num(ba.Sigma)}
+		args := make([]string, 0, 1+4*len(ba.Areas))
+		args = append(args, num(ba.Sigma))
 		for _, ar := range ba.Areas {
 			args = append(args, num(ar.Left), num(ar.Top), num(ar.Width), num(ar.Height))
 		}
@@ -353,7 +353,7 @@ func ipRequest(r *transform.Request) ipOpts {
 		o.add("q", itoa(out.Quality))
 	}
 	if len(out.FormatQuality) > 0 {
-		var args []string
+		args := make([]string, 0, 2*len(out.FormatQuality))
 		for _, f := range slices.Sorted(maps.Keys(out.FormatQuality)) {
 			args = append(args, f.String(), itoa(out.FormatQuality[f]))
 		}
@@ -390,8 +390,11 @@ func ipRequest(r *transform.Request) ipOpts {
 		v    *bool
 		def  bool
 	}{
-		{"sm", out.StripMetadata, true}, {"kcr", out.KeepCopyright, true}, {"scp", out.StripColorProfile, true},
-		{"ph", out.PreserveHDR, false}, {"eth", out.EnforceThumbnail, false},
+		{"sm", out.StripMetadata, true},
+		{"kcr", out.KeepCopyright, true},
+		{"scp", out.StripColorProfile, true},
+		{"ph", out.PreserveHDR, false},
+		{"eth", out.EnforceThumbnail, false},
 	} {
 		if b.v != nil && *b.v != b.def {
 			o.add(b.name, boolArg(*b.v))
@@ -421,7 +424,7 @@ func ipRequest(r *transform.Request) ipOpts {
 		o.add("exp", itoa64(d.Expires.Unix()))
 	}
 	if len(d.SkipProcessing) > 0 {
-		var args []string
+		args := make([]string, 0, len(d.SkipProcessing))
 		for _, f := range d.SkipProcessing {
 			args = append(args, f.String())
 		}
@@ -448,9 +451,11 @@ func ipPaths(r *transform.Request, sep string) [][]string {
 	}
 	out := make([][]string, 0, len(pls))
 	for i := range pls {
-		segs := ipPipeline(&pls[i]).segments(sep)
+		po := ipPipeline(&pls[i])
+		segs := po.segments(sep)
 		if i == 0 {
-			segs = append(segs, ipRequest(r).segments(sep)...)
+			ro := ipRequest(r)
+			segs = append(segs, ro.segments(sep)...)
 		}
 		out = append(out, segs)
 	}
@@ -475,11 +480,11 @@ func emitImgproxy(e *emitter) (string, string, error) {
 	return b.String(), "", nil
 }
 
-func dimPx(d transform.Dim) (string, bool) {
+func dimPx(d transform.Dim) string {
 	if d.Px > 0 {
-		return itoa(d.Px), true
+		return itoa(d.Px)
 	}
-	return "", false
+	return ""
 }
 
 func orOne(f float64) float64 {
@@ -525,5 +530,3 @@ func num0(f float64) string {
 }
 
 func itoa64(n int64) string { return num(float64(n)) }
-
-var _ = time.Second

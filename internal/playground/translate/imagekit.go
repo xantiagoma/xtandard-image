@@ -19,7 +19,7 @@ var imagekitFormats = map[transform.Format]string{
 }
 
 // imagekitFocus is fo-<value>, or "".
-func imagekitFocus(g transform.Gravity) string {
+func imagekitFocus(g *transform.Gravity) string {
 	switch g.Type {
 	case transform.GravitySmart:
 		return "auto"
@@ -76,7 +76,7 @@ func imagekitStep(p *transform.Pipeline) []string {
 			s = append(s, "c-at_max")
 		}
 	}
-	if f := imagekitFocus(focus); f != "" {
+	if f := imagekitFocus(&focus); f != "" {
 		s = append(s, "fo-"+f)
 	}
 	if rs.DPR != 0 && rs.DPR != 1 {
@@ -98,15 +98,16 @@ func imagekitStep(p *transform.Pipeline) []string {
 		s = append(s, "e-grayscale")
 	}
 	if r := p.Radius; r != nil {
-		if r.Max {
+		switch {
+		case r.Max:
 			s = append(s, "r-max")
-		} else if r.TopLeft == r.TopRight && r.TopLeft == r.BottomRight && r.TopLeft == r.BottomLeft {
+		case sameSides(r.TopLeft, r.TopRight, r.BottomRight, r.BottomLeft):
 			s = append(s, "r-"+itoa(r.TopLeft))
-		} else {
+		default:
 			s = append(s, "r-"+itoa(r.TopLeft)+"_"+itoa(r.TopRight)+"_"+itoa(r.BottomRight)+"_"+itoa(r.BottomLeft))
 		}
 	}
-	if b := p.Border; b != nil && b.Top == b.Right && b.Top == b.Bottom && b.Top == b.Left {
+	if b := p.Border; b != nil && sameSides(b.Top, b.Right, b.Bottom, b.Left) {
 		s = append(s, "b-"+itoa(b.Top)+"_"+strings.ToUpper(hexRGB(b.Color)))
 	}
 	if rot := p.Rotate; rot != 0 || p.RotateAny != 0 {

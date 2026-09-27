@@ -134,8 +134,8 @@ func (e *playgroundEnv) extend(meta *playground.Meta, cfg *config.Config) error 
 // fsRoots are the fs sources api/sources/<name>/list browses.
 func fsRoots(cfg *config.Config) map[string]playground.FSRoot {
 	out := map[string]playground.FSRoot{}
-	for name, s := range cfg.Sources {
-		if s.Type == config.SourceFS {
+	for name := range cfg.Sources {
+		if s := cfg.Sources[name]; s.Type == config.SourceFS {
 			prefix := strings.Trim(s.Prefix, "/")
 			if prefix != "" {
 				prefix += "/"
@@ -211,7 +211,9 @@ func playgroundMeta(cfg *config.Config, rt *router.Router, version string) (*pla
 		Formats:    outputFormats(cfg),
 	}
 	signers := map[string]*sign.Signer{}
-	for _, rm := range rt.Mounts() {
+	mounts := rt.Mounts()
+	for i := range mounts {
+		rm := &mounts[i]
 		if rm.Dialect == infoDialect {
 			continue
 		}

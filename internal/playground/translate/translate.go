@@ -242,8 +242,8 @@ func (t *Translator) target(tg target, req, norm *transform.Request) playground.
 	out := playground.TranslateTarget{Dialect: tg.name, Label: tg.label}
 	prefix := tg.prefix
 	mountSource := ""
-	for _, m := range t.mounts {
-		if base(m.Dialect) == tg.name && m.Prefix != "" {
+	for i := range t.mounts {
+		if m := &t.mounts[i]; base(m.Dialect) == tg.name && m.Prefix != "" {
 			out.Mount, prefix, mountSource = m.ID, m.Prefix, m.Source
 			break
 		}
@@ -335,12 +335,12 @@ func sourceOf(s transform.SourceSpec) (src, error) {
 }
 
 // isHTTP reports an http(s) source.
-func (s src) isHTTP() bool {
+func (s *src) isHTTP() bool {
 	return s.ref.Scheme == source.SchemeHTTP || s.ref.Scheme == source.SchemeHTTPS
 }
 
 // keyOn returns the escaped key when the source is xi://<name>/<key>.
-func (s src) keyOn(name string) (string, bool) {
+func (s *src) keyOn(name string) (string, bool) {
 	if name == "" || s.ref.Scheme != source.SchemeXI || s.ref.Host != name {
 		return "", false
 	}

@@ -81,6 +81,7 @@ func emitCloudflare(e *emitter) (string, string, error) {
 		set("gravity", "top")
 	case transform.GravitySouth:
 		set("gravity", "bottom")
+	default:
 	}
 	if rs.DPR != 0 && rs.DPR != 1 {
 		set("dpr", num(rs.DPR))
@@ -117,7 +118,7 @@ func emitCloudflare(e *emitter) (string, string, error) {
 	case p.Flip.V:
 		set("flip", "v")
 	}
-	if b := p.Border; b != nil && b.Top == b.Right && b.Top == b.Bottom && b.Top == b.Left {
+	if b := p.Border; b != nil && sameSides(b.Top, b.Right, b.Bottom, b.Left) {
 		set("border", "%23"+hexRGB(b.Color)+";"+itoa(b.Top))
 	}
 	if t := p.Trim; t != nil && t.Threshold <= 255 {
