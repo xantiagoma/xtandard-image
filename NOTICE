@@ -30,6 +30,13 @@ www.bigbuckbunny.org, licensed under Creative Commons Attribution 3.0
 (https://creativecommons.org/licenses/by/3.0/); see
 testdata/fixtures/video/README.md.
 
+Every base image flavor (slim, full, gpl) also ships jxrlib
+(https://github.com/4creators/jxrlib, commit f752187), Copyright (c)
+Microsoft Corporation, BSD-2-Clause, built with the patches in
+docker/base/patches/jxrlib (three from Debian's jxrlib package and two
+from YOKOTA Hiroshi via Debian, the rest ours; README.md there), for the
+JPEG XR loader in internal/vips/jxr.c.
+
 The full base image flavor (docker/base/versions-full.sh) additionally
 ships, unmodified or built from unmodified sources:
 - FFmpeg 8.1 (https://ffmpeg.org/), GNU Lesser General Public License
