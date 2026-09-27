@@ -69,7 +69,7 @@ func (s *Server) raw(ctx context.Context, r *http.Request, info *requestInfo, re
 	lim := s.limits(&req.Limits)
 
 	t := s.stage(info, stageResolve)
-	key, err := s.deps.Resolver.Resolve(req.Source)
+	key, err := s.resolve(ctx, req.Source)
 	t.done()
 	if err != nil {
 		return nil, err
@@ -209,7 +209,7 @@ func unconditional(r *http.Request) *http.Request {
 // is none.
 func (s *Server) fallbackSource(ctx context.Context, req *transform.Request) (source.Key, bool) {
 	if spec := req.Delivery.Fallback; spec != nil && spec.Raw != "" && s.cfg.Fallback.AllowRequestURL {
-		key, err := s.deps.Resolver.Resolve(*spec)
+		key, err := s.resolve(ctx, *spec)
 		if err == nil {
 			return key, true
 		}

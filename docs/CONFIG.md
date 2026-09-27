@@ -324,23 +324,28 @@ Face and object detection (WP-71, [ARCHITECTURE.md](ARCHITECTURE.md) "Detection"
 
 ### Playground
 
-The playground (WP-80) is a small web UI embedded in the binary: pick a source and a dialect mount, build options from the option catalogue, get a (signed) URL and compare the source with the result. It is plain HTML, CSS and JavaScript served with `Content-Security-Policy: default-src 'self'` and loads nothing from other origins, so it works air-gapped.
+The playground (WP-80, v2 in WP-94) is a web UI embedded in the binary: pick a source (sample gallery, upload, fs browser or URL) and a dialect mount, build options from the dialect's option catalogue, get a (signed) URL, see the same transform in every other dialect, and compare the source with the result (slider, zoom, headers, `Server-Timing`, `/info`, detections). It is plain HTML, CSS and JavaScript modules served with `Content-Security-Policy: default-src 'self'` and loads nothing from other origins, so it works air-gapped (the public sample gallery needs network access; the built-in samples do not).
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `XI_PLAYGROUND_ENABLED` | `false` | Serve the playground at `XI_PLAYGROUND_PATH` on the admin listener (needs `XI_ADMIN_ADDR` unless `XI_PLAYGROUND_PUBLIC`); off, every playground path answers 404 |
 | `XI_PLAYGROUND_PUBLIC` | `false` | Also serve it on the public listener (under `XI_SERVER_PATH_PREFIX`). Its sign endpoint then signs any URL for anyone who can reach it, which makes signing pointless: only for trusted networks and demos |
 | `XI_PLAYGROUND_PATH` | `/_playground` | Mount path: starts with `/`, no trailing `/`, `[A-Za-z0-9._~/-]` only, and not an admin route |
+| `XI_PLAYGROUND_UPLOADS` | `auto` (= `XI_PLAYGROUND_ENABLED`) | `POST api/upload`: files dropped on the page are kept in memory (at most `XI_LIMITS_MAX_SRC_BYTES` each, 64 files or 256 MiB, 10 minutes) as `playground://uploads/<id>` sources that only `api/render` can read. `false` disables uploads; `true` needs `XI_PLAYGROUND_ENABLED` |
 
 Signing per mount: imgproxy mounts get the imgproxy path signature and the query, wsrv and cloudflare mounts `xi_sig` (both from `XI_SIGNING_KEYS`), thumbor mounts the thumbor signature (`XI_DIALECTS_THUMBOR_KEYS` or the mount's `keys`). Without a key the URL is returned unsigned (`insecure/`, `unsafe/`). The other dialects (ImageKit, Cloudinary, Cloudflare Images, bunny, AWS SIH, the simple family) are built free-form and returned unsigned: the playground does not hold their provider keys.
 
-Endpoints under the mount path: the page (`/`), its assets (`/assets/<version>/…`, immutable), `GET /api/meta` (dialect mounts, option catalogues, preset names, source names and types, signing mode, output formats), `POST /api/sign` and `GET /api/render?u=…` (runs the public handler in-process so the page can show the result and its headers from its own origin). See [OPENAPI.md](OPENAPI.md).
+Endpoints under the mount path: the page (`/`), its assets (`/assets/<version>/…`, immutable), `GET /api/meta` (dialect mounts, option catalogues, preset names, source names and types, signing mode, output formats, samples), `POST /api/sign`, `GET /api/render?u=…` (runs the public handler in-process so the page can show the result and its headers from its own origin), `POST /api/translate` (the transform of a URL in every dialect, with what each cannot express), `POST /api/upload` (with `XI_PLAYGROUND_UPLOADS`) and `GET /api/sources/<name>/list?prefix=` (one directory of an `fs` source, at most 500 entries, dot files skipped). See [OPENAPI.md](OPENAPI.md).
+
+Samples: the built-in samples are copies of repository fixtures embedded in the binary (`playground://samples/<file>`, readable only through `api/render`). The public gallery (`internal/playground/samples.json`: one or two real-world files per input format, with licence and attribution) is fetched through the http sources like any URL: with no http source allowing its host (or `XI_DEV_MODE`), an entry is shown disabled.
 
 Security:
 
 - **Keys never reach the browser.** `api/meta` reports only the signing mode and each mount's scheme; `api/sign` computes the signature on the server with the configured keys and returns the URL. Source entries list names and types only (no bucket credentials, headers, base URLs or allowlists).
 - **Anyone who can reach the playground can sign URLs.** On the admin listener (default `127.0.0.1:9090`) that is whoever can reach the admin port; keep it private. With `XI_PLAYGROUND_PUBLIC=true` and signing keys set, the public playground is a signing oracle for the whole internet, and the server logs a warning at startup.
-- `POST api/sign` is protected against cross-site requests (`http.CrossOriginProtection`: `Sec-Fetch-Site` / `Origin` checks) and only accepts a small JSON body.
+- `POST api/sign`, `api/translate` and `api/upload` are protected against cross-site requests (`http.CrossOriginProtection`: `Sec-Fetch-Site` / `Origin` checks); sign and translate only accept a small JSON body.
+- `playground://` sources exist only for requests made through `api/render`: a public request naming one gets 404. Upload IDs are 128-bit random values; the rendered result and the original may still be cached (result and origin caches) under that ID for their TTLs.
+- `api/sources/<name>/list` lists only `fs` sources, inside the source's root and prefix jail (`os.Root`), never following symlinks out of it.
 - On the public listener the playground path (`XI_SERVER_PATH_PREFIX` + `XI_PLAYGROUND_PATH`) is always reserved: it answers 404 unless `XI_PLAYGROUND_PUBLIC=true`, so it never reaches a dialect mounted at `/`.
 - `api/render` goes through the public handler with every public-listener check (unsigned policy, source allowlist, SSRF rules, limits); it grants nothing a public request would not get.
 - Every playground response carries `Content-Security-Policy` (`default-src 'self'`, `frame-ancestors 'none'`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`.

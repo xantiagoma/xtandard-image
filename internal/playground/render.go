@@ -47,7 +47,7 @@ func (h *handler) render(w http.ResponseWriter, r *http.Request) {
 	req := (&http.Request{
 		Method: http.MethodGet, URL: target, RequestURI: u, Header: http.Header{}, Body: http.NoBody,
 		Host: r.Host, RemoteAddr: r.RemoteAddr, Proto: r.Proto, ProtoMajor: r.ProtoMajor, ProtoMinor: r.ProtoMinor,
-	}).WithContext(r.Context())
+	}).WithContext(withRender(r.Context()))
 	for name, vs := range r.Header {
 		if forwarded(name) {
 			req.Header[name] = vs
@@ -68,7 +68,7 @@ func (t *timingWriter) WriteHeader(status int) {
 	if !t.wrote {
 		t.wrote = true
 		ms := float64(time.Since(t.start).Microseconds()) / 1000
-		t.Header().Set("Server-Timing", "xi;desc=\"public handler\";dur="+strconv.FormatFloat(ms, 'f', 1, 64))
+		t.Header().Add("Server-Timing", "xi;desc=\"public handler\";dur="+strconv.FormatFloat(ms, 'f', 1, 64))
 	}
 	t.ResponseWriter.WriteHeader(status)
 }

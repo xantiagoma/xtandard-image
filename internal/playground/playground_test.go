@@ -71,9 +71,10 @@ func (f *fakeImage) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type fixture struct {
-	h     http.Handler
-	image *fakeImage
-	ring  *sign.Keyring
+	h       http.Handler
+	image   *fakeImage
+	ring    *sign.Keyring
+	signers map[string]*sign.Signer
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -89,22 +90,23 @@ func newFixture(t *testing.T) *fixture {
 	}
 	thumborRing := sign.NewKeyring(sign.NewKey([]byte("thumbor-secret"), nil))
 	img := &fakeImage{}
+	signers := map[string]*sign.Signer{
+		"imgproxy": testSigner(t, ip, ring),
+		"query":    testSigner(t, xi, ring),
+		"wsrv":     testSigner(t, xi, ring),
+		"thumbor":  testSigner(t, sign.NewThumborScheme(), thumborRing),
+		"imgix":    testSigner(t, sign.NewImgixScheme(), sign.NewKeyring(sign.NewKey([]byte("FOO123bar"), nil))),
+	}
 	h, err := New(Config{Path: DefaultPath}, &Deps{
-		Meta: testMeta(),
-		Signers: map[string]*sign.Signer{
-			"imgproxy": testSigner(t, ip, ring),
-			"query":    testSigner(t, xi, ring),
-			"wsrv":     testSigner(t, xi, ring),
-			"thumbor":  testSigner(t, sign.NewThumborScheme(), thumborRing),
-			"imgix":    testSigner(t, sign.NewImgixScheme(), sign.NewKeyring(sign.NewKey([]byte("FOO123bar"), nil))),
-		},
-		Image:  img,
-		Logger: slog.New(slog.DiscardHandler),
+		Meta:    testMeta(),
+		Signers: signers,
+		Image:   img,
+		Logger:  slog.New(slog.DiscardHandler),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &fixture{h: h, image: img, ring: ring}
+	return &fixture{h: h, image: img, ring: ring, signers: signers}
 }
 
 // result is a recorded response.

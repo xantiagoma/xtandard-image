@@ -39,6 +39,8 @@ func TestValidate(t *testing.T) {
 		{"playground public without admin", func(c *Config) { c.Playground.Enabled, c.Playground.Public, c.Admin.Addr = true, true, "" }, nil},
 		{"playground without admin", func(c *Config) { c.Playground.Enabled, c.Admin.Addr = true, "" }, []string{"playground.enabled (XI_PLAYGROUND_ENABLED): needs admin.addr"}},
 		{"playground public without enabled", func(c *Config) { c.Playground.Public = true }, []string{"playground.public (XI_PLAYGROUND_PUBLIC): needs playground.enabled"}},
+		{"playground uploads without enabled", func(c *Config) { c.Playground.Uploads = True }, []string{"playground.uploads (XI_PLAYGROUND_UPLOADS): needs playground.enabled"}},
+		{"playground uploads", func(c *Config) { c.Playground.Enabled, c.Playground.Uploads = true, True }, nil},
 		{"playground trailing slash", func(c *Config) { c.Playground.Path = "/play/" }, []string{"playground.path (XI_PLAYGROUND_PATH)"}},
 		{"playground root", func(c *Config) { c.Playground.Path = "/" }, []string{"playground.path"}},
 		{"playground bad char", func(c *Config) { c.Playground.Path = "/play?x" }, []string{"playground.path"}},

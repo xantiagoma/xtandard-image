@@ -32,6 +32,28 @@ const (
 // Configured names match [a-z0-9-]+, so it can never collide with one.
 const DevSourceName = "_dev"
 
+// PlaygroundSourceName is the name of the playground's in-memory source
+// (playground://<area>/<key>, WP-94): uploads and the built-in samples.
+// Like DevSourceName it can never collide with a configured name.
+const PlaygroundSourceName = "_playground"
+
+// playgroundRequestKey marks the context of a playground request.
+type playgroundRequestKey struct{}
+
+// WithPlaygroundRequest marks ctx as a request the playground makes
+// (api/render). Only those may use playground:// sources: the registry
+// resolves them for anyone, so the server and the playground store check
+// the mark (IsPlaygroundRequest) before the result cache and the fetch.
+func WithPlaygroundRequest(ctx context.Context) context.Context {
+	return context.WithValue(ctx, playgroundRequestKey{}, true)
+}
+
+// IsPlaygroundRequest reports whether WithPlaygroundRequest marked ctx.
+func IsPlaygroundRequest(ctx context.Context) bool {
+	v, _ := ctx.Value(playgroundRequestKey{}).(bool)
+	return v
+}
+
 // Source is one configured origin (a named source). Implementations live in
 // internal/fetch/<type>src.
 type Source interface {

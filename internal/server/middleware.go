@@ -8,11 +8,13 @@ import (
 	"net/http"
 	"path"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/obs/logging"
+	"github.com/xantiagoma/xtandard-image/internal/source"
 )
 
 // maxURLLength is the ingress limit on the request target (ARCHITECTURE §2).
@@ -55,7 +57,9 @@ func (s *Server) ingress(mux *http.ServeMux) http.Handler {
 		id := requestID(r)
 		r = r.WithContext(logging.WithRequestID(r.Context(), id))
 		info := &requestInfo{dialect: noDialect}
-		sw := &statusWriter{ResponseWriter: w, info: info}
+		// The playground's own renders (api/render) get the stage
+		// durations in Server-Timing; nobody else does.
+		sw := &statusWriter{ResponseWriter: w, info: info, timing: source.IsPlaygroundRequest(r.Context())}
 		sw.Header().Set("X-Request-ID", id)
 
 		isImage := r.URL.Path != "/healthz" && r.URL.Path != "/readyz"
@@ -255,18 +259,37 @@ type statusWriter struct {
 	info   *requestInfo
 	status int
 	bytes  int64
+	timing bool // add Server-Timing with the stage durations
 }
 
 func (w *statusWriter) WriteHeader(code int) {
 	if w.status == 0 {
 		w.status = code
+		if w.timing {
+			w.serverTiming()
+		}
 	}
 	w.ResponseWriter.WriteHeader(code)
+}
+
+// serverTiming adds one Server-Timing entry per stage that ran
+// ("fetch;dur=12.3").
+func (w *statusWriter) serverTiming() {
+	h := w.Header()
+	for i, ok := range w.info.ran {
+		if ok {
+			ms := float64(w.info.stages[i].Microseconds()) / 1000
+			h.Add("Server-Timing", stageName(i)+";dur="+strconv.FormatFloat(ms, 'f', 3, 64))
+		}
+	}
 }
 
 func (w *statusWriter) Write(p []byte) (int, error) {
 	if w.status == 0 {
 		w.status = http.StatusOK
+		if w.timing {
+			w.serverTiming()
+		}
 	}
 	n, err := w.ResponseWriter.Write(p)
 	w.bytes += int64(n)

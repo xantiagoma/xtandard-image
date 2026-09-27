@@ -1,56 +1,88 @@
-// xtandard-image playground (WP-80). Plain ES2022 module, no dependencies.
-// Everything it needs comes from api/meta; URLs are signed by api/sign on
-// the server (keys never reach the browser) and previews go through
-// api/render, so every request stays on this origin.
+// xtandard-image playground v2 (WP-94). Plain ES2022 modules, no
+// dependencies. Everything comes from api/meta; URLs are signed by
+// api/sign on the server (keys never reach the browser) and previews go
+// through api/render, so every request stays on this origin.
 
-const SAMPLES = [
-  ['JPEG photo (WebP gallery)', 'https://www.gstatic.com/webp/gallery/1.jpg'],
-  ['PNG with transparency', 'https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png'],
-  ['Animated GIF', 'https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif'],
-  ['SVG logo', 'https://upload.wikimedia.org/wikipedia/commons/0/02/SVG_logo.svg'],
-];
+import { Builder } from './builder.js';
+import { $, b64url, copyText, debounce, el, escapePlain, postJSON, store, tabs, toast, unb64url } from './dom.js';
+import { build, curlSnippet, tsSnippet } from './grammar.js';
+import { Info } from './info.js';
+import { Matrix } from './matrix.js';
+import { Preview } from './preview.js';
+import { Sources } from './sources.js';
+import { Translate } from './translate.js';
 
-const STORAGE_KEY = 'xi-playground';
-const $ = (id) => document.getElementById(id);
+const PREFS = 'xi-playground';
+const HISTORY = 'xi-playground-history';
+const HISTORY_MAX = 30;
 
 const state = {
-  meta: null,
-  catalogues: new Map(), // grammar → Map(name or alias → option)
-  selected: [],          // [{option, form, groups, el}]
-  seq: 0,                // request sequence, drops stale responses
-  ids: 0,                 // element id counter
-  lastBefore: '',
-  objectURLs: { before: '', after: '' },
-  renders: { before: 0, after: 0 }, // per-slot sequence, drops stale previews
+  mount: '',
+  source: '',
+  sourceLabel: '',
+  pipelines: [[]],
+  alias: false,
+  encoding: 'plain',
+  ext: '',
+  free: { path: '', query: '' },
+  edits: '',
 };
 
-// ---- persistence (per-browser convenience only) ---------------------------
+let meta;
+const catalogues = new Map(); // grammar → {options, index}
+let builder;
+let preview;
+let sources;
+let info;
+let translate;
+let matrix;
+let lastSigned = null; // {req, url, signed, scheme}
+let seq = 0;
 
-function loadPrefs() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}'); } catch { return {}; }
+// ---- state in the URL hash -------------------------------------------
+
+function snapshot() {
+  return {
+    m: state.mount, s: state.source, l: state.sourceLabel, a: state.alias ? 1 : 0, e: state.encoding, x: state.ext,
+    p: state.pipelines.map((p) => p.map((e) => [e.name, e.form, e.values, e.groups, e.on ? 1 : 0])),
+    f: state.free, j: state.edits,
+  };
 }
 
-function savePrefs() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      base: $('base-url').value, accept: $('accept').value, mount: $('mount').value,
-    }));
-  } catch { /* storage unavailable */ }
+function restore(s) {
+  if (!s || typeof s !== 'object') return false;
+  state.mount = s.m ?? state.mount;
+  state.source = s.s ?? '';
+  state.sourceLabel = s.l ?? '';
+  state.alias = Boolean(s.a);
+  state.encoding = s.e === 'base64' ? 'base64' : 'plain';
+  state.ext = s.x ?? '';
+  state.pipelines = Array.isArray(s.p) && s.p.length
+    ? s.p.map((p) => (Array.isArray(p) ? p.map(([name, form, values, groups, on]) => ({
+      name, form: form ?? 0, values: Array.isArray(values) ? values.map(String) : [], groups: groups ?? 1, on: Boolean(on),
+    })) : []))
+    : [[]];
+  state.free = { path: s.f?.path ?? '', query: s.f?.query ?? '' };
+  state.edits = s.j ?? '';
+  return true;
 }
 
-// ---- helpers ---------------------------------------------------------------
-
-function el(tag, attrs = {}, ...children) {
-  const e = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (v === undefined || v === null || v === false) continue;
-    if (k === 'text') e.textContent = v;
-    else if (v === true) e.setAttribute(k, '');
-    else e.setAttribute(k, String(v));
-  }
-  e.append(...children);
-  return e;
+function readHash() {
+  const h = location.hash.replace(/^#/, '');
+  if (!h.startsWith('v1:')) return null;
+  try { return JSON.parse(unb64url(h.slice(3))); } catch { return null; }
 }
+
+const writeHash = debounce(() => {
+  history.replaceState(null, '', `#v1:${b64url(JSON.stringify(snapshot()))}`);
+}, 300);
+
+// ---- helpers -------------------------------------------------------------
+
+const currentMount = () => meta.mounts.find((m) => m.id === state.mount);
+const baseURL = () => $('base-url').value.replace(/\/+$/, '');
+const publicURL = (path) => baseURL() + path;
+const sign = (body) => postJSON('api/sign', body);
 
 function setStatus(msg, isError = false) {
   const s = $('status');
@@ -58,43 +90,8 @@ function setStatus(msg, isError = false) {
   s.classList.toggle('error', isError);
 }
 
-function debounce(fn, ms) {
-  let t;
-  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
-}
-
-function base64url(s) {
-  const bytes = new TextEncoder().encode(s);
-  let bin = '';
-  for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
-}
-
-// plainSource escapes a source for imgproxy's plain/ form: everything that
-// would end the path segment or start the @extension, keeping : and /.
-function plainSource(src) {
-  return encodeURIComponent(src).replaceAll('%3A', ':').replaceAll('%2F', '/');
-}
-
-// imgixSource is the imgix path for src: an object key when src is on the
-// mount's own source (xi://<source>/<key>), else the percent-encoded URL
-// (imgix web proxy source).
-function imgixSource(m, src) {
-  const own = m.source ? `xi://${m.source}/` : '';
-  if (own && src.startsWith(own)) return src.slice(own.length).split('/').map(encodeURIComponent).join('/');
-  return encodeURIComponent(src);
-}
-
-function currentMount() {
-  return state.meta.mounts.find((m) => m.id === $('mount').value);
-}
-
-function currentSource() {
-  const kind = $('source-kind').value;
-  const input = $('source-input').value.trim();
-  if (kind === 'sample') return $('sample').value;
-  if (kind.startsWith('xi:')) return input ? `xi://${kind.slice(3)}/${input.replace(/^\/+/, '')}` : '';
-  return input;
+function savePrefs() {
+  store.set(PREFS, { base: $('base-url').value, accept: $('accept').value, mount: state.mount });
 }
 
 // ---- meta ------------------------------------------------------------------
@@ -102,408 +99,328 @@ function currentSource() {
 async function loadMeta() {
   const res = await fetch('api/meta', { headers: { Accept: 'application/json' } });
   if (!res.ok) throw new Error(`api/meta answered ${res.status}`);
-  const meta = await res.json();
-  state.meta = meta;
+  meta = await res.json();
   for (const cat of meta.catalogues ?? []) {
     const index = new Map();
     for (const o of cat.options) {
       index.set(o.name, o);
       for (const a of o.aliases ?? []) if (!index.has(a)) index.set(a, o);
     }
-    state.catalogues.set(cat.grammar, { options: cat.options, index });
+    catalogues.set(cat.grammar, { options: cat.options, index });
   }
-  return meta;
 }
 
-function renderMeta(meta, prefs) {
+function renderMeta(prefs) {
   $('version').textContent = `version ${meta.version || 'dev'}`;
   const mode = $('signing-mode');
   mode.textContent = `${meta.signing.mode}, unsigned policy ${meta.signing.unsigned_policy}`;
   mode.classList.add(meta.signing.mode === 'off' ? 'warn' : 'ok');
-
   const port = (meta.public_addr || ':8080').split(':').pop() || '8080';
   $('base-url').value = prefs.base || (meta.public ? location.origin : `${location.protocol}//${location.hostname}:${port}`);
   if (prefs.accept) $('accept').value = prefs.accept;
-
-  const kind = $('source-kind');
-  kind.append(el('option', { value: 'url', text: 'URL' }), el('option', { value: 'sample', text: 'Sample image' }));
-  for (const s of meta.sources ?? []) {
-    kind.append(el('option', { value: `xi:${s.name}`, text: `Named source ${s.name} (${s.type}): xi://${s.name}/…` }));
-  }
-  for (const [label, url] of SAMPLES) $('sample').append(el('option', { value: url, text: label }));
-  kind.value = 'sample';
-
   const mount = $('mount');
   for (const m of meta.mounts) {
     const where = m.prefix || (m.hosts ?? []).join(', ');
-    mount.append(el('option', { value: m.id, text: `${m.id} (${m.dialect}) ${where}` }));
+    mount.append(el('option', { value: m.id, text: `${m.dialect} · ${where}${m.id !== m.dialect ? ` (${m.id})` : ''}` }));
   }
-  if (prefs.mount && meta.mounts.some((m) => m.id === prefs.mount)) mount.value = prefs.mount;
-
-  const ext = $('extension');
-  for (const f of meta.formats ?? []) ext.append(el('option', { value: f, text: f }));
-  updateSourceKind();
-  updateMount();
+  for (const f of meta.formats ?? []) $('extension').append(el('option', { value: f, text: f }));
+  for (const c of meta.classes ?? []) $('xi-classes').append(el('option', { value: c }));
+  for (const p of meta.presets ?? []) $('xi-presets').append(el('option', { value: p }));
 }
 
-// ---- source ----------------------------------------------------------------
+// ---- mount and builder -----------------------------------------------------
 
-function updateSourceKind() {
-  const kind = $('source-kind').value;
-  $('sample-row').hidden = kind !== 'sample';
-  const input = $('source-input');
-  input.hidden = kind === 'sample';
-  $('source-label').hidden = kind === 'sample';
-  if (kind === 'url') {
-    $('source-label').textContent = 'Source URL';
-    input.placeholder = 'https://example.com/photo.jpg';
-  } else if (kind.startsWith('xi:')) {
-    $('source-label').textContent = `Key in source ${kind.slice(3)}`;
-    input.placeholder = 'photos/a.jpg';
-  }
-}
-
-// ---- mounts and the option builder -----------------------------------------
-
-function updateMount() {
+function applyMount() {
   const m = currentMount();
   if (!m) return;
+  $('mount').value = m.id;
   const signing = m.scheme === 'none'
-    ? 'the playground cannot sign this dialect; URLs are returned unsigned'
+    ? 'the playground cannot sign this dialect; URLs are unsigned'
     : m.keyed ? `signed with the ${m.scheme} scheme` : `${m.scheme} scheme, no key configured: unsigned`;
-  $('mount-info').textContent = `Unsigned policy ${m.unsigned_policy}; ${signing}.`;
-  const cat = state.catalogues.get(m.grammar);
-  $('catalogue-builder').hidden = !cat;
+  const bound = m.source ? ` Keys resolve against source "${m.source}".` : '';
+  $('mount-info').textContent = `Unsigned policy ${m.unsigned_policy}; ${signing}.${bound}`;
+  const cat = catalogues.get(m.grammar);
   $('free-builder').hidden = Boolean(cat);
   $('imgproxy-extra').hidden = m.grammar !== 'imgproxy';
-  if (!cat) {
-    $('free-path').value = m.example ? m.example.split('?')[0] : '/{src}';
-    $('free-query').value = m.example?.includes('?') ? m.example.split('?').slice(1).join('?') : '';
+  $('awssih-extra').hidden = m.grammar !== 'awssih';
+  $('option-search').disabled = !cat;
+  if (!cat && !state.free.path) {
+    state.free.path = m.example ? m.example.split('?')[0] : '/{src}';
+    state.free.query = m.example?.includes('?') ? m.example.split('?').slice(1).join('?') : '';
   }
-  // The selected options belong to the previous grammar.
-  for (const s of state.selected) s.el.remove();
-  state.selected = [];
-  const list = $('option-list');
-  list.replaceChildren();
-  for (const o of cat?.options ?? []) {
-    list.append(el('option', { value: o.name, label: [o.name, ...(o.aliases ?? [])].join(', ') + (o.doc ? ` · ${o.doc}` : '') }));
-  }
+  $('free-path').value = state.free.path;
+  $('free-query').value = state.free.query;
+  $('use-alias').checked = state.alias;
+  $('src-encoding').value = state.encoding;
+  $('extension').value = state.ext;
+  $('sih-edits').value = state.edits;
+  builder.pipeline = 0;
+  builder.render(m.grammar, cat);
+  $('copy-ts').disabled = m.grammar !== 'imgproxy';
   savePrefs();
 }
 
-function addOption(name) {
-  const m = currentMount();
-  const cat = state.catalogues.get(m?.grammar);
-  const option = cat?.index.get(name.trim());
-  if (!option) {
-    $('option-hint').textContent = name.trim() ? `Unknown option "${name.trim()}".` : 'Type an option name.';
-    return;
-  }
-  $('option-hint').textContent = '';
-  const node = $('option-template').content.firstElementChild.cloneNode(true);
-  node.querySelector('.option-name').textContent = option.name;
-  node.querySelector('.option-aliases').textContent = option.aliases?.length ? `aliases: ${option.aliases.join(', ')}` : '';
-  node.querySelector('.option-doc').textContent = [option.doc, option.milestone && `(${option.milestone})`].filter(Boolean).join(' ');
-  const entry = { option, form: 0, groups: 1, el: node };
-  node.querySelector('.remove').setAttribute('aria-label', `Remove ${option.name}`);
-  node.querySelector('.remove').addEventListener('click', () => {
-    node.remove();
-    state.selected = state.selected.filter((s) => s !== entry);
-    $('option-search').focus();
-    update();
-  });
-  if (option.forms.length > 1) {
-    const id = `form-${++state.ids}`;
-    const sel = el('select', { id });
-    option.forms.forEach((f, i) => sel.append(el('option', { value: i, text: f.args.map((a) => a.name).join(', ') || '(no arguments)' })));
-    sel.addEventListener('change', () => { entry.form = Number(sel.value); entry.groups = 1; renderArgs(entry); update(); });
-    node.querySelector('.form-choice').append(el('label', { for: id, text: 'Form' }), sel);
-  }
-  state.selected.push(entry);
-  $('options').append(node);
-  renderArgs(entry);
-  node.querySelector('.args input, .args select')?.focus();
-  $('option-search').value = '';
-  update();
-}
+// ---- URL -------------------------------------------------------------------
 
-function argInput(entry, arg, id) {
-  let input;
-  switch (arg.type) {
-    case 'boolean':
-      input = el('select', { id });
-      for (const [v, t] of [['', '(unset)'], ['1', 'true'], ['0', 'false']]) input.append(el('option', { value: v, text: t }));
-      break;
-    case 'enum':
-      input = el('select', { id });
-      input.append(el('option', { value: '', text: '(unset)' }));
-      for (const v of arg.enum ?? []) input.append(el('option', { value: v, text: v }));
-      break;
-    case 'integer':
-    case 'number':
-      input = el('input', { id, type: 'number', step: arg.type === 'integer' ? 1 : 'any', min: arg.min, max: arg.max, inputmode: 'decimal' });
-      break;
-    default:
-      input = el('input', { id, type: 'text', autocomplete: 'off', spellcheck: 'false', pattern: arg.pattern,
-        placeholder: arg.type === 'color' ? 'ff0000' : '' });
-      if (entry.option.name === 'preset' && state.meta.presets?.length) input.setAttribute('list', 'preset-list');
-  }
-  if (arg.doc) input.title = arg.doc;
-  input.addEventListener('input', update);
-  input.addEventListener('change', update);
-  return input;
-}
-
-function renderArgs(entry) {
-  const box = entry.el.querySelector('.args');
+// urlView colour-codes the URL: base, signature, options, source, query.
+function urlView(full, m) {
+  const box = $('url-view');
   box.replaceChildren();
-  const form = entry.option.forms[entry.form] ?? { args: [] };
-  const add = (arg) => {
-    const id = `arg-${++state.ids}`;
-    // Bounds at the int32 limit are "unbounded" for a person.
-    const bounds = [arg.min !== undefined && `≥ ${arg.min}`, arg.max !== undefined && arg.max < 1e9 && `≤ ${arg.max}`]
-      .filter(Boolean).join(', ');
-    const label = el('label', { for: id, text: `${arg.name}${bounds ? ` (${bounds})` : ''}${arg.optional ? ' (optional)' : ''}` });
-    const wrap = el('div', {}, label, argInput(entry, arg, id));
-    box.append(wrap);
-  };
-  form.args.forEach(add);
-  if (form.rest?.length) {
-    for (let g = 0; g < entry.groups; g++) {
-      box.append(el('div', { class: 'group-sep' }));
-      form.rest.forEach(add);
-    }
-    const more = el('button', { type: 'button', text: `Add ${form.rest.map((a) => a.name).join('/')}` });
-    more.addEventListener('click', () => { entry.groups++; renderArgs(entry); update(); });
-    box.append(el('div', {}, more));
+  const base = baseURL();
+  if (!full.startsWith(base)) { box.textContent = full; return; }
+  let rest = full.slice(base.length);
+  const [path, query] = [rest.split('?')[0], rest.includes('?') ? rest.slice(rest.indexOf('?') + 1) : ''];
+  box.append(el('span', { class: 'u-base', text: base }));
+  const prefix = (meta.path_prefix || '').replace(/\/+$/, '') + (m.prefix || '/').replace(/\/+$/, '');
+  rest = path.slice(prefix.length);
+  box.append(el('span', { class: 'u-prefix', text: prefix }));
+  const segs = rest.split('/').slice(1);
+  let i = 0;
+  if (m.scheme === 'imgproxy' || m.scheme === 'thumbor') box.append('/', el('span', { class: 'u-sig', title: 'signature', text: segs[i++] ?? '' }));
+  const srcAt = segs.findIndex((s, j) => j >= i && (s === 'plain' || /^https?:/i.test(decodeURIComponent(s))));
+  for (; i < segs.length; i++) {
+    const cls = srcAt >= 0 && i >= srcAt ? 'u-src' : segs[i].startsWith('tr:') || /[:=_]/.test(segs[i]) ? 'u-opt' : 'u-path';
+    box.append('/', el('span', { class: cls, text: segs[i] }));
+  }
+  if (query) {
+    box.append('?');
+    query.split('&').forEach((kv, j) => {
+      if (j) box.append('&');
+      const [k] = kv.split('=');
+      const cls = k === 'url' ? 'u-src' : ['s', 'xi_sig', 'sign', 'signature', 'token'].includes(k) ? 'u-sig' : 'u-opt';
+      box.append(el('span', { class: cls, text: kv }));
+    });
   }
 }
 
-function optionValues(entry) {
-  const vals = [...entry.el.querySelectorAll('.args input, .args select')].map((i) => i.value.trim());
-  while (vals.length > 1 && vals.at(-1) === '') vals.pop();
-  return vals;
-}
-
-// ---- URL building ----------------------------------------------------------
-
-// buildRequest returns the sign request body for the current state, or null
-// when there is nothing to sign yet.
-function buildRequest() {
-  const m = currentMount();
-  const src = currentSource();
-  if (!m) return null;
-  if (m.grammar === 'imgproxy') {
-    if (!src) return null;
-    const sep = m.arguments_separator || ':';
-    const short = $('use-alias').checked;
-    const segs = [];
-    for (const s of state.selected) {
-      const name = short && s.option.aliases?.length ? s.option.aliases[0] : s.option.name;
-      const vals = optionValues(s);
-      // An option whose arguments are all still empty is left out until
-      // it is filled in, so half-typed options do not produce 400s.
-      if (vals.every((v) => v === '') && (s.option.forms[s.form]?.args.length ?? 0) > 0) continue;
-      segs.push(vals.length === 0 ? name : [name, ...vals].join(sep));
-    }
-    const ext = $('extension').value;
-    const source = $('src-encoding').value === 'base64'
-      ? `/${base64url(src)}${ext ? `.${ext}` : ''}`
-      : `/plain/${plainSource(src)}${ext ? `@${ext}` : ''}`;
-    return { mount: m.id, path: (segs.length ? `/${segs.join('/')}` : '') + source, query: '' };
-  }
-  if (m.grammar === 'query') {
-    if (!src) return null;
-    const params = [`url=${encodeURIComponent(src)}`];
-    for (const s of state.selected) {
-      const v = optionValues(s).join(',');
-      if (v === '') continue;
-      params.push(`${encodeURIComponent(s.option.name)}=${encodeURIComponent(v)}`);
-    }
-    return { mount: m.id, path: '/', query: params.join('&') };
-  }
-  if (m.grammar === 'imgix') {
-    if (!src) return null;
-    const params = [];
-    for (const s of state.selected) {
-      const v = optionValues(s).join(',');
-      if (v === '') continue;
-      params.push(`${encodeURIComponent(s.option.name)}=${encodeURIComponent(v)}`);
-    }
-    return { mount: m.id, path: `/${imgixSource(m, src)}`, query: params.join('&') };
-  }
-  const fill = (s) => s.replaceAll('{src}', encodeURI(src));
-  const path = fill($('free-path').value.trim() || '/');
-  return { mount: m.id, path: path.startsWith('/') ? path : `/${path}`, query: fill($('free-query').value.trim()) };
-}
-
-// beforeRequest is the source without options, through the first mount
-// that has a structured grammar.
+// beforeRequest: the source without options, through the first structured
+// mount.
 function beforeRequest() {
-  const src = currentSource();
+  const src = state.source;
   if (!src) return null;
-  const ip = state.meta.mounts.find((m) => m.grammar === 'imgproxy' && m.prefix);
-  if (ip) return { mount: ip.id, path: `/plain/${plainSource(src)}`, query: '' };
-  const q = state.meta.mounts.find((m) => m.grammar === 'query' && m.prefix);
+  const ip = meta.mounts.find((m) => m.grammar === 'imgproxy' && m.prefix);
+  if (ip) return { mount: ip.id, path: `/plain/${escapePlain(src)}`, query: '' };
+  const q = meta.mounts.find((m) => m.grammar === 'query' && m.prefix);
   if (q) return { mount: q.id, path: '/', query: `url=${encodeURIComponent(src)}` };
   return null;
 }
 
-async function signRequest(body) {
-  const res = await fetch('api/sign', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `api/sign answered ${res.status}`);
-  return data;
-}
-
-function publicURL(path) {
-  return $('base-url').value.replace(/\/+$/, '') + path;
-}
-
-async function update() {
-  const seq = ++state.seq;
-  const body = buildRequest();
-  if (!body) {
+async function update({ render = $('auto-render').checked } = {}) {
+  const my = ++seq;
+  writeHash();
+  sources?.show(state.source);
+  const m = currentMount();
+  const req = m ? build(m, state, catalogues.get(m.grammar)?.index ?? new Map()) : { error: 'No mount.' };
+  if (req.error) {
     $('url-out').value = '';
+    $('url-view').replaceChildren();
     $('signed').textContent = '';
-    setStatus('Choose a source to build a URL.');
+    lastSigned = null;
+    setStatus(req.error);
     return;
   }
   try {
-    const signed = await signRequest(body);
-    if (seq !== state.seq) return;
-    $('url-out').value = publicURL(signed.url);
-    $('url-out').dataset.path = signed.url;
+    const signed = await sign(req);
+    if (my !== seq) return;
+    lastSigned = { req, ...signed };
+    const full = publicURL(signed.url);
+    $('url-out').value = full;
+    urlView(full, m);
     const badge = $('signed');
     badge.textContent = signed.signed ? `signed (${signed.scheme})` : 'unsigned';
     badge.className = `badge ${signed.signed ? 'ok' : 'warn'}`;
     setStatus('');
-    if ($('auto-render').checked) renderPreview();
+    translate.run(req);
+    if (render) await renderPreview();
   } catch (err) {
-    if (seq !== state.seq) return;
+    if (my !== seq) return;
     setStatus(err.message, true);
   }
 }
 
-// ---- preview ---------------------------------------------------------------
-
-const SHOWN_HEADERS = ['content-type', 'content-length', 'cache-control', 'etag', 'vary', 'content-disposition', 'server-timing'];
-
-async function renderInto(which, path) {
-  const img = $(`${which}-img`);
-  const error = $(`${which}-error`);
-  const table = $(`${which}-headers`);
-  const seq = ++state.renders[which];
-  const started = performance.now();
-  let res;
-  let blob;
-  try {
-    res = await fetch(`api/render?u=${encodeURIComponent(path)}`, { headers: { Accept: $('accept').value } });
-    blob = await res.blob();
-  } catch (err) {
-    if (seq !== state.renders[which]) return;
-    error.hidden = false;
-    error.textContent = `Request failed: ${err.message}`;
-    return;
-  }
-  if (seq !== state.renders[which]) return;
-  const elapsed = performance.now() - started;
-  const rows = [['status', `${res.status} ${res.statusText}`], ['size', `${blob.size.toLocaleString()} bytes`],
-    ['time (browser)', `${elapsed.toFixed(1)} ms`]];
-  for (const [k, v] of res.headers) {
-    if (SHOWN_HEADERS.includes(k) || k.startsWith('x-xi-') || k === 'x-request-id') rows.push([k, v]);
-  }
-  table.replaceChildren(...rows.map(([k, v]) => el('tr', {}, el('th', { scope: 'row', text: k }), el('td', { text: v }))));
-  if (state.objectURLs[which]) URL.revokeObjectURL(state.objectURLs[which]);
-  state.objectURLs[which] = '';
-  const type = res.headers.get('content-type') || '';
-  if (!res.ok || !type.startsWith('image/')) {
-    img.removeAttribute('src');
-    error.hidden = false;
-    const text = await blob.text().catch(() => '');
-    let msg = text;
-    try { msg = JSON.parse(text).error?.message ?? JSON.parse(text).error ?? text; } catch { /* plain text */ }
-    error.textContent = res.ok ? `Not an image (${type || 'no content type'}).` : `${res.status}: ${String(msg).slice(0, 300)}`;
-    return;
-  }
-  error.hidden = true;
-  error.textContent = '';
-  state.objectURLs[which] = URL.createObjectURL(blob);
-  img.onload = () => {
-    table.append(el('tr', {}, el('th', { scope: 'row', text: 'dimensions' }), el('td', { text: `${img.naturalWidth} × ${img.naturalHeight}` })));
-  };
-  img.src = state.objectURLs[which];
-}
-
 async function renderPreview() {
-  const path = $('url-out').dataset.path;
-  if (!path) return;
+  if (!lastSigned) return;
   const before = beforeRequest();
-  const key = before ? JSON.stringify(before) + $('accept').value : '';
-  const jobs = [renderInto('after', path)];
-  if (before && key !== state.lastBefore) {
-    state.lastBefore = key;
-    jobs.push(signRequest(before).then((s) => renderInto('before', s.url)).catch((err) => {
-      state.lastBefore = '';
-      $('before-error').hidden = false;
-      $('before-error').textContent = err.message;
-    }));
-  } else if (!before) {
-    $('before-error').hidden = false;
-    $('before-error').textContent = 'No imgproxy or query mount to show the source through.';
+  let beforePath = null;
+  if (before) {
+    try { beforePath = (await sign(before)).url; } catch { beforePath = null; }
   }
-  await Promise.all(jobs);
+  await preview.render(lastSigned.url, beforePath);
+  pushHistory();
 }
 
-// ---- copy ------------------------------------------------------------------
+function pushHistory() {
+  const url = $('url-out').value;
+  if (!url || (preview.res?.status ?? 500) >= 400) return;
+  const list = store.get(HISTORY, []).filter((h) => h.url !== url);
+  list.unshift({ url, hash: location.hash, when: Date.now(), mount: state.mount, label: state.sourceLabel || state.source });
+  store.set(HISTORY, list.slice(0, HISTORY_MAX));
+  renderHistory();
+}
 
-async function copyURL() {
-  const out = $('url-out');
-  if (!out.value) return;
-  try {
-    await navigator.clipboard.writeText(out.value);
-  } catch {
-    out.select();
-    document.execCommand('copy');
+function renderHistory() {
+  const box = $('history');
+  box.replaceChildren();
+  const list = store.get(HISTORY, []);
+  if (!list.length) box.append(el('li', { class: 'hint', text: 'Rendered URLs appear here (kept in this browser only).' }));
+  for (const h of list) {
+    const b = el('button', { type: 'button', class: 'link', text: h.url });
+    b.addEventListener('click', () => { location.hash = h.hash; loadFromHash(); });
+    box.append(el('li', {}, el('span', { class: 'hint', text: `${new Date(h.when).toLocaleString()} · ${h.mount} · ${h.label} ` }), b));
   }
-  setStatus('URL copied.');
+}
+
+function loadFromHash() {
+  const s = readHash();
+  if (!restore(s)) return false;
+  if (!currentMount()) state.mount = meta.mounts[0]?.id ?? '';
+  applyMount();
+  preview.clearBefore();
+  info.reset();
+  update({ render: true });
+  return true;
 }
 
 // ---- wiring ----------------------------------------------------------------
 
+function setTheme(t) {
+  if (t === 'auto') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = t;
+  $('theme').value = t;
+  store.set('xi-playground-theme', t);
+}
+
+function defaults() {
+  state.pipelines = [[]];
+  state.alias = false;
+  state.encoding = 'plain';
+  state.ext = '';
+  state.free = { path: '', query: '' };
+  state.edits = '';
+  const first = meta.samples?.[0] ?? null;
+  const gallery = meta.gallery?.find((g) => g.allowed && g.format === 'jpeg');
+  state.source = first?.source ?? gallery?.url ?? '';
+  state.sourceLabel = first?.label ?? gallery?.name ?? '';
+}
+
 async function main() {
-  const prefs = loadPrefs();
-  let meta;
+  setTheme(store.get('xi-playground-theme', 'auto'));
+  const prefs = store.get(PREFS, {});
   try {
-    meta = await loadMeta();
+    await loadMeta();
   } catch (err) {
     setStatus(`Cannot load api/meta: ${err.message}`, true);
     return;
   }
-  if (meta.presets?.length) {
-    const dl = el('datalist', { id: 'preset-list' });
-    for (const p of meta.presets) dl.append(el('option', { value: p }));
-    document.body.append(dl);
-  }
-  renderMeta(meta, prefs);
-  const later = debounce(update, 250);
-  $('source-kind').addEventListener('change', () => { updateSourceKind(); update(); });
-  for (const id of ['sample', 'src-encoding', 'extension', 'use-alias']) $(id).addEventListener('change', update);
-  for (const id of ['source-input', 'free-path', 'free-query']) $(id).addEventListener('input', later);
-  $('base-url').addEventListener('input', () => { savePrefs(); later(); });
-  $('accept').addEventListener('change', () => { savePrefs(); renderPreview(); });
-  $('mount').addEventListener('change', () => { updateMount(); update(); });
-  $('add-option').addEventListener('click', () => addOption($('option-search').value));
-  $('option-search').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); addOption(e.target.value); }
+  renderMeta(prefs);
+  const later = debounce(() => update(), 250);
+  builder = new Builder({ state, onChange: later });
+  preview = new Preview({ accept: () => $('accept').value });
+  translate = new Translate({ publicURL, onPreview: (path) => preview.render(path, null) });
+  info = new Info({ meta, sign, preview, getSource: () => state.source });
+  matrix = new Matrix({ meta, sign });
+  sources = new Sources({
+    meta,
+    onPick: (src, label) => {
+      state.source = src;
+      state.sourceLabel = label;
+      preview.clearBefore();
+      info.reset();
+      update({ render: true });
+    },
+    thumb: async (src) => {
+      const ip = meta.mounts.find((m) => m.grammar === 'imgproxy' && m.prefix);
+      if (!ip) return null;
+      const s = await sign({ mount: ip.id, path: `/rs:fit:160:160/f:webp/plain/${escapePlain(src)}`, query: '' });
+      const res = await fetch(`api/render?u=${encodeURIComponent(s.url)}`, { headers: { Accept: 'image/webp,*/*' } });
+      if (!res.ok) return null;
+      return URL.createObjectURL(await res.blob());
+    },
   });
-  $('copy').addEventListener('click', copyURL);
-  $('render').addEventListener('click', () => { state.lastBefore = ''; renderPreview(); });
-  update();
+
+  if (!loadFromHash()) {
+    defaults();
+    state.mount = meta.mounts.some((m) => m.id === prefs.mount) ? prefs.mount : meta.mounts[0]?.id ?? '';
+    applyMount();
+    update({ render: true });
+  }
+  renderHistory();
+
+  tabs('more-tabs', (id) => {
+    translate.setVisible(id === 'mtab-translate');
+    if (id === 'mtab-matrix') matrix.build();
+    if (id === 'mtab-info' && !$('info-tree').childElementCount) info.run();
+  });
+
+  $('mount').addEventListener('change', (e) => {
+    state.mount = e.target.value;
+    state.pipelines = [[]];
+    state.free = { path: '', query: '' };
+    applyMount();
+    update();
+  });
+  $('option-search').addEventListener('input', (e) => builder.applySearch(e.target.value));
+  $('use-alias').addEventListener('change', (e) => { state.alias = e.target.checked; update(); });
+  $('src-encoding').addEventListener('change', (e) => { state.encoding = e.target.value; update(); });
+  $('extension').addEventListener('change', (e) => { state.ext = e.target.value; update(); });
+  $('sih-edits').addEventListener('input', (e) => { state.edits = e.target.value; later(); });
+  $('free-path').addEventListener('input', (e) => { state.free.path = e.target.value; later(); });
+  $('free-query').addEventListener('input', (e) => { state.free.query = e.target.value; later(); });
+  $('base-url').addEventListener('input', () => { savePrefs(); later(); });
+  $('accept').addEventListener('change', () => { savePrefs(); preview.clearBefore(); renderPreview(); });
+  $('render').addEventListener('click', () => { preview.clearBefore(); renderPreview(); });
+  $('copy').addEventListener('click', () => copyText($('url-out').value, 'URL copied'));
+  $('copy-curl').addEventListener('click', () => copyText(curlSnippet($('url-out').value, $('accept').value), 'curl command copied'));
+  $('copy-ts').addEventListener('click', () => {
+    const m = currentMount();
+    const base = baseURL() + (meta.path_prefix || '').replace(/\/+$/, '') + (m.prefix || '/').replace(/\/+$/, '');
+    const ts = tsSnippet(m, state, catalogues.get('imgproxy').index, base, $('snippet-signed').checked);
+    if (ts) copyText(ts, 'TypeScript copied');
+  });
+  $('share').addEventListener('click', () => { writeHash(); setTimeout(() => copyText(location.href, 'Share link copied'), 350); });
+  $('reset').addEventListener('click', () => {
+    history.replaceState(null, '', location.pathname);
+    defaults();
+    applyMount();
+    update({ render: true });
+  });
+  $('history-clear').addEventListener('click', () => { store.set(HISTORY, []); renderHistory(); });
+  $('theme').addEventListener('change', (e) => setTheme(e.target.value));
+  $('help-button').addEventListener('click', () => {
+    const h = $('help');
+    h.hidden = !h.hidden;
+    $('help-button').setAttribute('aria-expanded', String(!h.hidden));
+  });
+  window.addEventListener('hashchange', () => loadFromHash());
+
+  // Keyboard shortcuts.
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    const typing = t instanceof HTMLElement && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName));
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      preview.clearBefore();
+      renderPreview();
+      return;
+    }
+    if (e.key === 'Enter' && typing && t.closest('.builder') && t.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      update({ render: true });
+      return;
+    }
+    if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+    switch (e.key) {
+      case '/': e.preventDefault(); $('option-search').focus(); break;
+      case 'c': copyText($('url-out').value, 'URL copied'); break;
+      case 's': preview.toggleMode(); break;
+      case '1': preview.setZoom('1'); break;
+      case '2': preview.setZoom('2'); break;
+      case '0': preview.setZoom('fit'); break;
+      case '?': $('help-button').click(); break;
+      default:
+    }
+  });
+  toast('Ready.');
 }
 
 main();
