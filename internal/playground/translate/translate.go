@@ -264,7 +264,7 @@ func (t *Translator) target(tg target, req, norm *transform.Request) playground.
 		out.Error = "the source cannot be written in URLs"
 		return out
 	}
-	if r, ok := t.rebase(src, mountSource); ok {
+	if r, ok := t.rebase(&src, mountSource); ok {
 		src = r
 	}
 	e := &emitter{r: req, src: src, mountSource: mountSource, mountBase: t.bases[mountSource], sep: t.sep}
@@ -364,25 +364,25 @@ func (s *src) keyOn(name string) (string, bool) {
 // rebase writes an http(s) source under the base_url of mountSource as a
 // key on it (xi://<mountSource>/<key>, which that source resolves back to
 // the same URL); ok is false when it is not under it.
-func (t *Translator) rebase(s src, mountSource string) (src, bool) {
+func (t *Translator) rebase(s *src, mountSource string) (src, bool) {
 	b := t.bases[mountSource]
 	if b == "" || !s.isHTTP() || s.ref.Query != "" {
-		return s, false
+		return src{}, false
 	}
 	key, ok := strings.CutPrefix(s.abs, b)
 	if !ok || key == "" {
-		return s, false
+		return src{}, false
 	}
 	ref, err := source.ParseRef("xi://" + mountSource + "/" + key)
 	if err != nil || b+ref.RawPath != s.abs {
-		return s, false
+		return src{}, false
 	}
 	return src{abs: ref.String(), ref: ref}, true
 }
 
 // absolute is s with a key on an http source with a base_url written as
 // the URL it resolves to, so both forms of one image compare equal.
-func (t *Translator) absolute(s src) string {
+func (t *Translator) absolute(s *src) string {
 	if b := t.bases[s.ref.Host]; b != "" && s.ref.Scheme == source.SchemeXI && s.ref.Query == "" {
 		return b + s.ref.RawPath
 	}
@@ -397,7 +397,7 @@ func (t *Translator) normalize(r *transform.Request) *transform.Request {
 	c.Dialect = ""
 	c.Delivery.Presets = nil
 	if s, err := sourceOf(c.Source); err == nil {
-		c.Source = transform.SourceSpec{Raw: t.absolute(s), Hashsum: c.Source.Hashsum}
+		c.Source = transform.SourceSpec{Raw: t.absolute(&s), Hashsum: c.Source.Hashsum}
 	}
 	c.ApplyDefaults(transform.StandardDefaults())
 	for i := range c.Pipelines {
