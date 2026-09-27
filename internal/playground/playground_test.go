@@ -55,7 +55,7 @@ func testMeta() *Meta {
 		},
 		Catalogues: []Catalogue{{Grammar: GrammarImgproxy, Options: []Option{{Name: "resize", Aliases: []string{"rs"}, Forms: []Form{{Args: []Arg{{Name: "type", Type: "enum", Enum: []string{"fit"}}}}}}}}},
 		Presets:    []string{"thumb"},
-		Sources:    []Source{{Name: "local", Type: "fs"}},
+		Sources:    []Source{{Name: "local", Type: "fs", Syntax: []string{"xi://local/…", "local:///…"}, Prefix: "xi://local/"}},
 		Formats:    []string{"jpeg", "webp"},
 	}
 }

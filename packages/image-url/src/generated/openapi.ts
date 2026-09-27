@@ -2175,7 +2175,7 @@ export interface components {
             samples: components["schemas"]["PlaygroundSample"][] | null;
             /** @description Signing mode; keys and salts are never included. */
             signing: components["schemas"]["PlaygroundSigning"];
-            /** @description Named sources, name and type only (xi://<name>/<key>). */
+            /** @description Named sources: name, type and the source strings each accepts (xi://<name>/<key>), never their settings. */
             sources: components["schemas"]["PlaygroundSource"][] | null;
             /** @description XI_PLAYGROUND_UPLOADS: api/upload accepts files (playground://uploads/<id>, 10 minutes). */
             uploads: boolean;
@@ -2289,6 +2289,10 @@ export interface components {
             listable?: boolean;
             /** @description Source name. */
             name: string;
+            /** @description What the source picker pre-fills when this source is picked (the first syntax up to …). */
+            prefix: string;
+            /** @description Source strings this source accepts, the named form first; … is the part to fill in (xi://web/https://…, https://…, local:///…). Configured hosts, buckets and base URLs are never shown. */
+            syntax: string[] | null;
             /** @description Source type (http, s3, gcs, azure, fs, ftp, sftp). */
             type: string;
         };
