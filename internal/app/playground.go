@@ -268,7 +268,9 @@ func playgroundMeta(cfg *config.Config, rt *router.Router, version string) (*pla
 		meta.Mounts = append(meta.Mounts, m)
 	}
 	for _, name := range slices.Sorted(maps.Keys(cfg.Sources)) {
-		meta.Sources = append(meta.Sources, playground.Source{Name: name, Type: string(cfg.Sources[name].Type)})
+		s := cfg.Sources[name]
+		syntax, prefix := playground.SourceSyntax(name, string(s.Type), s.BaseURL != "", s.Bucket != "")
+		meta.Sources = append(meta.Sources, playground.Source{Name: name, Type: string(s.Type), Syntax: syntax, Prefix: prefix})
 	}
 	names, err := presetNames(cfg)
 	if err != nil {

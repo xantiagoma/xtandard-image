@@ -411,17 +411,17 @@
       "additionalProperties": false,
       "properties": {
         "allow": {
-          "description": "http: host globs with optional path prefix (*.example.com, cdn.example.com/img/)\n\nEnv: XI_SOURCES_<NAME>_ALLOW",
+          "description": "http: host globs with optional scheme, port and path prefix (*.example.com, cdn.example.com/img/, https://*, *); a bare https://… source and xi://<name>/https://… must match one. An http source needs _ALLOW, _BASE_URL or both\n\nEnv: XI_SOURCES_<NAME>_ALLOW",
           "items": {
             "type": "string"
           },
-          "markdownDescription": "http: host globs with optional path prefix (`*.example.com`, `cdn.example.com/img/`)\n\nEnv: `XI_SOURCES_<NAME>_ALLOW`",
+          "markdownDescription": "http: host globs with optional scheme, port and path prefix (`*.example.com`, `cdn.example.com/img/`, `https://*`, `*`); a bare `https://…` source and `xi://<name>/https://…` must match one. An http source needs `_ALLOW`, `_BASE_URL` or both\n\nEnv: `XI_SOURCES_<NAME>_ALLOW`",
           "title": "XI_SOURCES_<NAME>_ALLOW",
           "type": "array"
         },
         "base_url": {
-          "description": "http: base for relative keys\n\nEnv: XI_SOURCES_<NAME>_BASE_URL",
-          "markdownDescription": "http: base for relative keys\n\nEnv: `XI_SOURCES_<NAME>_BASE_URL`",
+          "description": "http: base for relative keys (xi://<name>/a.jpg → <base>/a.jpg), implicitly allowed. Without it, xi://<name>/<key> takes only an absolute http(s):// key, checked against _ALLOW; with it, an absolute key under the base is taken as is and any other key is joined to the base ([URL-DIALECTS §3.1](URL-DIALECTS.md#31-grammar))\n\nDefault: — (optional)\n\nEnv: XI_SOURCES_<NAME>_BASE_URL",
+          "markdownDescription": "http: base for relative keys (`xi://<name>/a.jpg` → `<base>/a.jpg`), implicitly allowed. Without it, `xi://<name>/<key>` takes only an absolute `http(s)://` key, checked against `_ALLOW`; with it, an absolute key under the base is taken as is and any other key is joined to the base ([URL-DIALECTS §3.1](URL-DIALECTS.md#31-grammar))\n\nDefault: — (optional)\n\nEnv: `XI_SOURCES_<NAME>_BASE_URL`",
           "title": "XI_SOURCES_<NAME>_BASE_URL",
           "type": "string"
         },

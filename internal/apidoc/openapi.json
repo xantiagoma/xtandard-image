@@ -6333,7 +6333,7 @@
             "description": "Signing mode; keys and salts are never included."
           },
           "sources": {
-            "description": "Named sources, name and type only (xi://\u003cname\u003e/\u003ckey\u003e).",
+            "description": "Named sources: name, type and the source strings each accepts (xi://\u003cname\u003e/\u003ckey\u003e), never their settings.",
             "items": {
               "$ref": "#/components/schemas/PlaygroundSource"
             },
@@ -6669,6 +6669,20 @@
             "description": "Source name.",
             "type": "string"
           },
+          "prefix": {
+            "description": "What the source picker pre-fills when this source is picked (the first syntax up to …).",
+            "type": "string"
+          },
+          "syntax": {
+            "description": "Source strings this source accepts, the named form first; … is the part to fill in (xi://web/https://…, https://…, local:///…). Configured hosts, buckets and base URLs are never shown.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "type": {
             "description": "Source type (http, s3, gcs, azure, fs, ftp, sftp).",
             "type": "string"
@@ -6676,7 +6690,9 @@
         },
         "required": [
           "name",
-          "type"
+          "type",
+          "syntax",
+          "prefix"
         ],
         "type": "object"
       },
