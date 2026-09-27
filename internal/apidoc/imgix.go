@@ -2,6 +2,7 @@ package apidoc
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -134,11 +135,38 @@ func imgixCatalogue() playground.Catalogue {
 	opts := make([]playground.Option, 0, len(params))
 	for _, ip := range params {
 		opts = append(opts, playground.Option{
-			Name: ip.name, Aliases: ip.aliases, Doc: ip.doc, Milestone: ip.milestone,
+			Name: ip.name, Aliases: ip.aliases, Doc: ip.doc, Milestone: ip.milestone, Group: imgixGroup(ip.name),
 			Forms: []playground.Form{{Args: []playground.Arg{{Name: "value", Type: ip.typ, Enum: ip.enum, Doc: ip.doc}}}},
 		})
 	}
 	return playground.Catalogue{Grammar: playground.GrammarImgix, Options: opts}
+}
+
+// imgixGroup is the builder group of an imgix parameter.
+func imgixGroup(name string) string {
+	switch {
+	case strings.HasPrefix(name, "mark"), strings.HasPrefix(name, "txt"):
+		return groupWatermark
+	case strings.HasPrefix(name, "face-"):
+		return groupDetection
+	}
+	switch name {
+	case "crop", "fp-x", "fp-y":
+		return groupGravity
+	case "fm", "auto", "q", "lossless", "jpg-progressive", "chromasub":
+		return groupFormat
+	case "cs", "dpi":
+		return groupMetadata
+	case "dl", "ch":
+		return groupDelivery
+	case "page", "frame":
+		return groupFrames
+	case "bri", "con", "exp", "gam", "sat", "hue", "monochrome", "duotone", "duotone-alpha", "bg":
+		return groupColor
+	case "sharp", "usm", "usmrad", "blur", "px", "sepia", "invert", "mask", "mask-bg":
+		return groupEffects
+	}
+	return groupSize
 }
 
 func imgixOperation() *huma.Operation {

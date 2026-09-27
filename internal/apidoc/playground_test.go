@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -12,6 +14,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgix"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
 	"github.com/xantiagoma/xtandard-image/internal/playground"
+	"github.com/xantiagoma/xtandard-image/internal/playground/translate"
 )
 
 // TestContractPlayground validates real api/meta, api/sign and error
@@ -29,9 +32,26 @@ func TestContractPlayground(t *testing.T) {
 		Presets: []string{"thumb"},
 		Sources: []playground.Source{{Name: "local", Type: "fs"}},
 		Formats: []string{"jpeg", "png", "webp"},
+		Samples: playground.Samples(), Uploads: true, MaxUploadBytes: 1 << 20, Classes: []string{"face", "dog"},
+	}
+	gallery, err := playground.Gallery(func(string) bool { return true })
+	if err != nil {
+		t.Fatal(err)
+	}
+	meta.Gallery = gallery
+	tr, err := translate.New(translate.Options{Mounts: meta.Mounts})
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "a.jpg"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
 	}
 	h, err := playground.New(playground.Config{Path: playground.DefaultPath}, &playground.Deps{
 		Meta: meta, Image: http.NotFoundHandler(), Logger: slog.New(slog.DiscardHandler),
+		Store:      playground.NewStore(playground.StoreOptions{Uploads: true, MaxBytes: 1 << 20}),
+		FSRoots:    map[string]playground.FSRoot{"local": {Root: root}},
+		Translator: tr,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -51,12 +71,20 @@ func TestContractPlayground(t *testing.T) {
 		{schemaPlaygroundMeta, do(http.MethodGet, "/_playground/api/meta", "")},
 		{schemaPlaygroundSignResponse, do(http.MethodPost, "/_playground/api/sign", `{"mount":"imgproxy","path":"/rs:fit:300:0/plain/https://example.com/a.jpg"}`)},
 		{schemaPlaygroundError, do(http.MethodPost, "/_playground/api/sign", `{"mount":"nope","path":"/x"}`)},
+		{schemaPlaygroundTranslateRes, do(http.MethodPost, "/_playground/api/translate", `{"mount":"imgproxy","path":"/rs:fill:300:200/g:sm/plain/https://example.com/a.jpg"}`)},
+		{schemaPlaygroundError, do(http.MethodPost, "/_playground/api/translate", `{"mount":"imgproxy","path":"/rs:nope/plain/a"}`)},
+		{schemaPlaygroundUpload, do(http.MethodPost, "/_playground/api/upload", "GIF89a")},
+		{schemaPlaygroundList, do(http.MethodGet, "/_playground/api/sources/local/list", "")},
+		{schemaPlaygroundError, do(http.MethodGet, "/_playground/api/sources/nope/list", "")},
 	} {
 		if err := validateJSON(t, schemaValidator(t, tc.schema), tc.body); err != nil {
 			t.Errorf("%s: %v\n%s", tc.schema, err, tc.body)
 		}
 	}
 	if err := validateJSON(t, schemaValidator(t, schemaPlaygroundSignRequest), []byte(`{"mount":"imgproxy","path":"/plain/a.jpg"}`)); err != nil {
+		t.Error(err)
+	}
+	if err := validateJSON(t, schemaValidator(t, schemaPlaygroundTranslateReq), []byte(`{"mount":"imgproxy","path":"/plain/a.jpg"}`)); err != nil {
 		t.Error(err)
 	}
 }
@@ -66,7 +94,7 @@ func TestContractPlayground(t *testing.T) {
 func TestCataloguesCoverImgproxy(t *testing.T) {
 	t.Parallel()
 	cats := Catalogues()
-	if len(cats) != 3 || cats[0].Grammar != playground.GrammarImgproxy || cats[1].Grammar != playground.GrammarQuery ||
+	if len(cats) != 10 || cats[0].Grammar != playground.GrammarImgproxy || cats[1].Grammar != playground.GrammarQuery ||
 		cats[2].Grammar != playground.GrammarImgix {
 		t.Fatalf("catalogues %+v", cats)
 	}
