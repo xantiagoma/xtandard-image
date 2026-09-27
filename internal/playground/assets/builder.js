@@ -21,6 +21,16 @@ const GROUPS = [
   ['other', 'Other'],
 ];
 
+// formLabel names a form: its keyword (a single-valued first argument)
+// and its arguments ("obj: class…", "fp: x, y").
+function formLabel(f) {
+  const args = [...(f.args ?? [])];
+  let head = '';
+  if (args[0]?.enum?.length === 1) head = args.shift().enum[0];
+  const names = [...args.map((a) => a.name), ...(f.rest ?? []).map((a) => `${a.name}…`)].join(', ');
+  return [head, names].filter(Boolean).join(': ') || '(no arguments)';
+}
+
 // Bounds at the int32 limit are "unbounded" for a person.
 const BIG = 1e9;
 
@@ -109,12 +119,13 @@ export class Builder {
     row.append(args);
     if (o.forms.length > 1) {
       const sel = el('select', { 'aria-label': `${o.name} form` });
-      o.forms.forEach((f, i) => sel.append(el('option', { value: i, text: f.args.map((a) => a.name).join(', ') || '(no arguments)' })));
+      o.forms.forEach((f, i) => sel.append(el('option', { value: i, text: formLabel(f) })));
       sel.value = String(this.entry(o.name)?.form ?? 0);
       sel.addEventListener('change', () => {
         const e = this.entry(o.name, true);
         e.form = Number(sel.value);
-        e.values = [];
+        // Arguments with a single allowed value (the form's keyword) are set.
+        e.values = (o.forms[e.form].args ?? []).map((x) => (x.enum?.length === 1 ? x.enum[0] : ''));
         e.groups = 1;
         this.renderArgs(o, args);
         this.changed(o);
