@@ -38,6 +38,11 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   Known demo limits: ImageKit/Bunny/AWS SIH translation cards are empty for absolute URLs (their
   grammars need relative keys on a source with `base_url`); the playground lists a mount once per
   native prefix (`simple:*` duplicates) — dedupe in the UI later.
+- **M4 in flight (2026-09-28):** WP-95 (named http sources take absolute keys; `xi://web/https://…`
+  works; clearer 403s) is **PR #96 waiting for the owner's merge**; the demo container already runs
+  it (`xtandard-image:wp95-gpl` via `compose.playground.yml`). WP-96 (playground polish: slider
+  aspect ratio for portrait images, mount dedupe, empty translate-card reasons, sortable matrix)
+  agent running on `m4/wp-96-playground-polish`; rebase it onto main after #96 merges.
 - **Backlog after M3 (WP-91+):** face/object gravity on a single-frame video answers 422 (detection
   hands the container bytes to libvips; fix = detect on the decoded frame; composites already skip
   detection); `classify` has no model; detections are not used in chained pipelines; `MALLOC_CONF`
