@@ -188,7 +188,7 @@ func TestPageAndAssets(t *testing.T) {
 		}
 	}
 	csp := res.Header.Get("Content-Security-Policy")
-	for _, d := range []string{"default-src 'self'", "frame-ancestors 'none'", "object-src 'none'"} {
+	for _, d := range []string{"default-src 'self'", "frame-ancestors 'none'", "object-src 'none'", "media-src 'self' blob:"} {
 		if !strings.Contains(csp, d) {
 			t.Errorf("CSP %q lacks %q", csp, d)
 		}
