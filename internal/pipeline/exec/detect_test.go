@@ -48,6 +48,19 @@ var detectCases = []detectCase{
 	{name: "detect-draw", fixture: detectfix.Dogs, options: "rs:fit:320:320/dd:1", w: 320, h: 256},
 	{name: "detect-draw-rotated", fixture: detectfix.Dogs, options: "rot:90/rs:fit:320:320/dd:1:face:dog", w: 256, h: 320},
 	{name: "detect-draw-grey", fixture: detectfix.Cat, options: "rs:fit:320:320/mc:1/dd:1:animal", w: 320, h: 210},
+	// Chained pipelines (WP-92): the source's boxes follow the pipelines
+	// before the one that uses them.
+	// The right 300 px keep one face; pipeline 2 fills on it.
+	{name: "detect-chained-face", fixture: detectfix.Crew, options: "c:300:503:ea/-/rs:fill:100:100/g:obj:face", w: 100, h: 100},
+	// Rotated and resized first, then an object gravity.
+	{name: "detect-chained-rotated", fixture: detectfix.Crew, options: "rot:90/rs:fit:300:300/-/rs:fill:150:60/g:obj:face", w: 150, h: 60},
+	// An attention crop (its rectangle comes from libvips), then boxes
+	// drawn on the cat.
+	{name: "detect-chained-smart-draw", fixture: detectfix.Cat, options: "rs:fill:200:200/g:sm/-/dd:1:cat", w: 200, h: 200},
+	// Extended canvas, then boxes drawn on the face and the dog.
+	{name: "detect-chained-extend-draw", fixture: detectfix.Dogs, options: "rs:fit:200:200/ex:1/-/dd:1:face:dog", w: 200, h: 200},
+	// Blurred faces two pipelines after a flip and a crop.
+	{name: "detect-chained-blur", fixture: detectfix.Crew, options: "fl:1:0/-/c:400:300:nowe:0:0/-/bd:8:face", w: 400, h: 300},
 }
 
 func detectRequest(tb testing.TB, tc *detectCase) *transform.Request {
@@ -192,7 +205,10 @@ func TestDetectionsNoLeak(t *testing.T) {
 		dets *plan.Detections
 	}
 	var jobs []prepared
-	for _, name := range []string{"detect-face-gravity", "detect-crop-objects", "detect-blur-faces", "detect-pixelate-faces", "detect-draw", "detect-draw-grey"} {
+	for _, name := range []string{
+		"detect-face-gravity", "detect-crop-objects", "detect-blur-faces", "detect-pixelate-faces", "detect-draw", "detect-draw-grey",
+		"detect-chained-face", "detect-chained-smart-draw", "detect-chained-extend-draw",
+	} {
 		for i := range detectCases {
 			if tc := &detectCases[i]; tc.name == name {
 				jobs = append(jobs, prepared{readFixture(t, tc.fixture), detectRequest(t, tc), detectfix.Load(t, tc.fixture)})

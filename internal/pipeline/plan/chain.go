@@ -14,6 +14,10 @@ type Input struct {
 	// Frames is the number of frames of the strip; ≤ 1 is a single image.
 	Frames int
 	Alpha  bool
+	// Detections are the source's detections mapped onto this input
+	// through the pipelines before it (Detections.MapStep); nil when there
+	// are none or a step could not carry them (WP-92).
+	Detections *Detections
 }
 
 // Chain plans pipeline i (1 ≤ i < len(req.Pipelines)) of req on in, the
@@ -21,7 +25,9 @@ type Input struct {
 // crops, extends) is computed on the real size rather than on the
 // prediction Build made. A chained pipeline sees a fresh image: no EXIF
 // orientation (it was applied by the first pipeline), no shrink-on-load and
-// no page selection. obs is nil, or the size after the pipeline's own
+// no page selection. Its detection gravities, crop_objects and detection
+// filters use in.Detections, the source's boxes mapped through the
+// pipelines before it (WP-92). obs is nil, or the size after the pipeline's own
 // TrimStep (Observed.Trimmed); the steps before it are unchanged.
 //
 // The returned plan's Load is zero and its Chained is empty. Errors are
@@ -51,7 +57,7 @@ func Chain(req *transform.Request, meta SourceMeta, limits Limits, i int, in Inp
 
 // planChained plans pipelines[i] on in.
 func planChained(pipes []transform.Pipeline, i int, in *Input, lim *effLimits, outFmt transform.Format, obs *Observed) (*Plan, error) {
-	s := source{w: in.Width, h: in.Height, alpha: in.Alpha, frames: max(in.Frames, 1)}
+	s := source{w: in.Width, h: in.Height, alpha: in.Alpha, frames: max(in.Frames, 1), dets: in.Detections}
 	pl, err := planPipeline(&pipes[i], &s, lim, outFmt, obs, i == len(pipes)-1)
 	if err != nil {
 		return nil, err
