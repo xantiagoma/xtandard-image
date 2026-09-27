@@ -20,7 +20,8 @@ import (
 // in the stored orientation; the plan applies the display matrix like EXIF
 // orientation. A video_thumbnail_tile or _animation request assembles the
 // sprite or animation instead (loadComposite). The probe's FFmpeg handle
-// (Job.Video) is reused when there is one.
+// (Job.Video) is reused when there is one, and a frame the caller already
+// decoded (Job.Frame, to detect on it) is used as it is.
 func (r *runner) loadVideo(ctx context.Context, ls *plan.LoadStep, anim *plan.AnimationStep) (*vips.Image, error) {
 	s := &r.e.cfg.Video
 	if !s.Enabled {
@@ -30,6 +31,15 @@ func (r *runner) loadVideo(ctx context.Context, ls *plan.LoadStep, anim *plan.An
 	vo := firstVideo(r.req)
 	if o, ok := video.Composite(vo); ok {
 		return r.loadComposite(ctx, &o, ls, anim)
+	}
+	if f := r.j.Frame; f != nil {
+		img, err := r.a.Add(f.Image(ctx))
+		if err != nil {
+			return nil, err
+		}
+		info := f.Info
+		r.videoFrame = &info
+		return img, nil
 	}
 	var w, h int
 	if ls.Scale > 0 {

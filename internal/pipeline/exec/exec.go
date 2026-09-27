@@ -104,6 +104,11 @@ type Job struct {
 	// (codec.ProbeSession): frames are decoded on it instead of opening
 	// the source again. Nil opens Source. The caller closes it.
 	Video *codec.VideoSession
+	// Frame is the frame of a video source the caller already decoded,
+	// at the display size, to detect on it (WP-91; Meta.FrameDecoded):
+	// the executor processes it instead of decoding again. It is the frame
+	// the request selects; the caller releases it after Run. Nil decodes.
+	Frame *codec.DecodedFrame
 	// Best is the negotiated decision of a format=best request
 	// (negotiate.ReasonBest): the processed image is encoded with
 	// encode.Encoder.EncodeBest, which picks among its candidates. Nil

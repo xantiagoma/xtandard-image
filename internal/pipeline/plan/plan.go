@@ -40,6 +40,10 @@ type SourceMeta struct {
 	// leaving the last 2× of a reduction to libvips. Width and Height are
 	// the display size, Orientation the display matrix.
 	IsVideo bool
+	// FrameDecoded marks a video frame the caller decoded at the display
+	// size before planning, to detect on it (WP-91): it is not scaled on
+	// load.
+	FrameDecoded bool
 
 	// Detections are the faces and objects detected in the source, for
 	// the detection gravities, crop_objects and the detection filters of

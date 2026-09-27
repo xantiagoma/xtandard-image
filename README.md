@@ -59,7 +59,7 @@ The xtandard-image column is the state as of 2026-09-28: **done (M1)** / **done 
 | Metadata policy (strip, keep copyright, ICC → sRGB, `color_profile`) | done (M1, M2) | yes | yes | — | — | — |
 | Colour adjustments, duotone, gradients | done (M2) | no | paid | yes | no | yes |
 | Chained pipelines | done (M2) | no | paid | no | yes (`/pipeline`) | no |
-| Face and object detection (face/object gravity, `objects_position`, `crop_objects`, blur/pixelate/draw detections, `/info` objects; every dialect's face options) | done (M3, full image; slim answers 422) | no | paid | partial (OpenCV faces) | no | no |
+| Face and object detection (face/object gravity, `objects_position`, `crop_objects`, blur/pixelate/draw detections, `/info` objects; every dialect's face options; on video frames and in chained pipelines) | done (M3, full image; slim answers 422) | no | paid | partial (OpenCV faces) | no | no |
 | Watermarks (text, per-request URL, size, shadow, rotation, chessboard) | done (M3) | no | paid | partial | partial (text) | no |
 | **Serving and operations** | | | | | | |
 | `/info` endpoint (dimensions, EXIF, IPTC, XMP) | done (M1) | no | paid | partial (`/meta`) | yes | partial (`output=json`) |

@@ -23,10 +23,11 @@ import (
 //
 // Without detections (nil: detection did not run, or nothing matched) the
 // gravities fall back to the smart crop, crop_objects does nothing and the
-// filters have nothing to draw. Detections describe the source, so only
-// the first pipeline uses them; chained pipelines fall back the same way.
-// A trim is not accounted for: the boxes of the untrimmed source apply to
-// the trimmed image (like pixel focus points).
+// filters have nothing to draw. Detections describe the source; chained
+// pipelines use them mapped through the pipelines before them
+// (detectmap.go). In the first pipeline a trim is not accounted for: the
+// boxes of the untrimmed source apply to the trimmed image (like pixel
+// focus points).
 
 // Detections are the faces and objects detected in the source.
 type Detections struct {
@@ -67,7 +68,8 @@ type DetectionNeeds struct {
 func (n DetectionNeeds) Any() bool { return n.Faces || n.Objects || n.SmartFaces }
 
 // NeedsDetection reports which detection models req uses: the gravities
-// and filters of its first pipeline, or for an info request (KindInfo)
+// and filters of its pipelines (chained ones use the source's boxes mapped
+// through the pipelines before them, WP-92), or for an info request (KindInfo)
 // detect_objects and a crop placed by a detection gravity. Class lists
 // must be valid (Validate).
 func NeedsDetection(req *transform.Request) DetectionNeeds {
@@ -89,8 +91,11 @@ func NeedsDetection(req *transform.Request) DetectionNeeds {
 		}
 	}
 	info := req.Kind == transform.KindInfo
-	if len(req.Pipelines) > 0 && !info {
-		p := &req.Pipelines[0]
+	for i := range req.Pipelines {
+		if info {
+			break
+		}
+		p := &req.Pipelines[i]
 		gravity(&p.Gravity)
 		if p.Crop != nil {
 			gravity(&p.Crop.Gravity)

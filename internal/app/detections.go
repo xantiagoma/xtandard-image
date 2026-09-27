@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"log/slog"
+	"math"
 	"sync"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec"
@@ -68,12 +69,31 @@ func unavailable(model string) error {
 		model+" detection is not available")
 }
 
-// forRequest returns the detections needs asks for on src (a source of
-// format f, as probed), or nil when it asks for none. A required model
-// the deployment lacks is Unsupported (422); faces for smart gravity are
-// optional: without the face model, with XI_DETECT_SMART_FACES=false, or
-// when detection fails, the planner uses the attention smart crop.
-func (d *detections) forRequest(ctx context.Context, src *vips.Buffer, f codec.Format, needs plan.DetectionNeeds) (*plan.Detections, error) {
+// detectSource is what detection runs on: the first page of an image
+// source, or the frame of a video source the request uses (WP-91).
+type detectSource struct {
+	// buf holds the source bytes (the cache key) and format is their
+	// probed format.
+	buf    *vips.Buffer
+	format codec.Format
+	// frame, set for a video source, returns its decoded frame (in the
+	// stored orientation) and the orientation that shows it upright. It
+	// runs inside vips.Run; the caller owns and releases the frame, so the
+	// same decode can be processed afterwards.
+	frame func(ctx context.Context) (*codec.DecodedFrame, int, error)
+}
+
+// imageSource is the detectSource of an image (not video) source.
+func imageSource(buf *vips.Buffer, f codec.Format) *detectSource {
+	return &detectSource{buf: buf, format: f}
+}
+
+// forRequest returns the detections needs asks for on src, or nil when it
+// asks for none. A required model the deployment lacks is Unsupported
+// (422); faces for smart gravity are optional: without the face model,
+// with XI_DETECT_SMART_FACES=false, or when detection fails, the planner
+// uses the attention smart crop.
+func (d *detections) forRequest(ctx context.Context, src *detectSource, needs plan.DetectionNeeds) (*plan.Detections, error) {
 	if !needs.Any() {
 		return nil, nil
 	}
@@ -94,7 +114,7 @@ func (d *detections) forRequest(ctx context.Context, src *vips.Buffer, f codec.F
 	if !faces && !objects {
 		return nil, nil
 	}
-	dets, err := d.detect(ctx, src, f, faces, objects)
+	dets, err := d.detect(ctx, src, faces, objects)
 	if err != nil && optional && ctx.Err() == nil {
 		d.logger.LogAttrs(ctx, slog.LevelDebug, "smart face detection failed", slog.String("error", err.Error()))
 		return nil, nil
@@ -102,28 +122,53 @@ func (d *detections) forRequest(ctx context.Context, src *vips.Buffer, f codec.F
 	return dets, err
 }
 
+// noFrame is the frame of a detectKey for an image source.
+const noFrame = -1
+
+// frameKey is the detectKey frame of a video frame at t seconds:
+// microseconds.
+func frameKey(t float64) int64 { return int64(math.Round(t * 1e6)) }
+
 // detect runs the face and/or object model on src, from the cache when it
-// has them.
-func (d *detections) detect(ctx context.Context, src *vips.Buffer, f codec.Format, faces, objects bool) (*plan.Detections, error) {
-	sum := sha256.Sum256(src.Bytes())
+// has them. A video frame is decoded first (its timestamp is part of the
+// key), also on a cache hit: the caller processes the same decode.
+func (d *detections) detect(ctx context.Context, src *detectSource, faces, objects bool) (*plan.Detections, error) {
+	sum := sha256.Sum256(src.buf.Bytes())
 	out := &plan.Detections{}
 	var needFaces, needObjects bool
-	if faces {
-		out.Faces, needFaces = d.cache.get(detectKey{sum: sum, model: modelFace})
-		needFaces = !needFaces
+	lookup := func(frame int64) bool {
+		if faces {
+			out.Faces, needFaces = d.cache.get(detectKey{sum: sum, model: modelFace, frame: frame})
+			needFaces = !needFaces
+		}
+		if objects {
+			out.Objects, needObjects = d.cache.get(detectKey{sum: sum, model: modelObject, frame: frame})
+			needObjects = !needObjects
+		}
+		return needFaces || needObjects
 	}
-	if objects {
-		out.Objects, needObjects = d.cache.get(detectKey{sum: sum, model: modelObject})
-		needObjects = !needObjects
-	}
-	if !needFaces && !needObjects {
+	if src.frame == nil && !lookup(noFrame) {
 		return out, nil
 	}
 	err := vips.Run(ctx, func() error {
 		var a vips.Arena
 		defer a.Close()
-		img, err := codec.SampleImage(ctx, &a, src, f, detectSampleSide, d.limits)
-		if err != nil {
+		frame := int64(noFrame)
+		var img *vips.Image
+		var err error
+		if src.frame != nil {
+			var f *codec.DecodedFrame
+			var orientation int
+			if f, orientation, err = src.frame(ctx); err != nil {
+				return err
+			}
+			if frame = frameKey(f.Info.Time); !lookup(frame) {
+				return nil
+			}
+			if img, err = sampleFrame(ctx, &a, f, orientation); err != nil {
+				return err
+			}
+		} else if img, err = codec.SampleImage(ctx, &a, src.buf, src.format, detectSampleSide, d.limits); err != nil {
 			return err
 		}
 		// The thumbnail is read sequentially; each model reads it once, so
@@ -141,7 +186,7 @@ func (d *detections) detect(ctx context.Context, src *vips.Buffer, f codec.Forma
 				return err
 			}
 			out.Faces = planDetections(found, w, h)
-			d.cache.put(detectKey{sum: sum, model: modelFace}, out.Faces)
+			d.cache.put(detectKey{sum: sum, model: modelFace, frame: frame}, out.Faces)
 		}
 		if err := ctx.Err(); err != nil {
 			return errs.Wrap(errs.KindOf(err), context.Cause(ctx))
@@ -152,7 +197,7 @@ func (d *detections) detect(ctx context.Context, src *vips.Buffer, f codec.Forma
 				return err
 			}
 			out.Objects = planDetections(found, w, h)
-			d.cache.put(detectKey{sum: sum, model: modelObject}, out.Objects)
+			d.cache.put(detectKey{sum: sum, model: modelObject, frame: frame}, out.Objects)
 		}
 		return nil
 	})
@@ -160,6 +205,20 @@ func (d *detections) detect(ctx context.Context, src *vips.Buffer, f codec.Forma
 		return nil, err
 	}
 	return out, nil
+}
+
+// sampleFrame is the detection image of a decoded video frame: upright
+// (orientation applied) and scaled down to fit detectSampleSide, like
+// codec.SampleImage for images. It runs inside vips.Run.
+func sampleFrame(ctx context.Context, a *vips.Arena, f *codec.DecodedFrame, orientation int) (*vips.Image, error) {
+	img, err := f.UprightImage(ctx, a, orientation)
+	if err != nil {
+		return nil, err
+	}
+	if s := float64(detectSampleSide) / float64(max(img.Width(), img.Height())); s < 1 {
+		return a.Add(img.Resize(ctx, s, s, vips.KernelLanczos3))
+	}
+	return img, nil
 }
 
 // planDetections converts detections in a w×h image to the planner's
@@ -188,12 +247,15 @@ func planDetections(found []detect.Detection, w, h int) []plan.Detected {
 
 // detectKey identifies the result of one model on one source: the
 // SHA-256 of the source bytes (the fetched or sanitised bytes, so an
-// origin that changes behind the same URL is detected again) and the
-// model. The detection image is always derived from the bytes the same
-// way (detectSampleSide), so the key needs nothing else.
+// origin that changes behind the same URL is detected again), the model
+// and, for a video, the timestamp of the frame detected (frameKey; noFrame
+// for images). The detection image is always derived from the bytes (or
+// the frame) the same way (detectSampleSide), so the key needs nothing
+// else.
 type detectKey struct {
 	sum   [sha256.Size]byte
 	model string
+	frame int64
 }
 
 // detectCache is a bounded LRU of detection results shared by processing
