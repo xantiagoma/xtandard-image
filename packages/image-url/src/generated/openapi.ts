@@ -84,6 +84,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/_playground/api/sources/{name}/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Browse an fs source
+         * @description Lists one directory of a named fs source (inside its root and prefix jail, through os.Root): directories first, then files, at most 500 entries, dot files skipped. Other source types and unknown names are 404.
+         */
+        get: operations["getPlaygroundSourceList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_playground/api/translate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Translate a URL into every dialect
+         * @description Parses a URL of a mount (as for api/sign, without a signature) with that dialect's parser, or takes a canonical transform.Request, and writes the transform in imgproxy (path and query form), imgix, Cloudinary, ImageKit, Cloudflare, wsrv, thumbor, Bunny and AWS SIH. Each URL is parsed back with its dialect's parser and compared with the canonical request: unsupported lists the fields the dialect cannot express, approximated those it writes with a different value. URLs of mounted dialects are signed like api/sign; the others use the dialect's default prefix. Cross-origin requests are rejected.
+         */
+        post: operations["postPlaygroundTranslate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_playground/api/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload a file for the playground
+         * @description Stores the raw request body (at most XI_LIMITS_MAX_SRC_BYTES) in memory for 10 minutes and returns its source, playground://uploads/<id>. The source resolves only for requests made through api/render; the store keeps at most 64 files or 256 MiB and drops the oldest first. Needs XI_PLAYGROUND_UPLOADS (on by default with the playground).
+         */
+        post: operations["postPlaygroundUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/_playground/assets/{version}/{name}": {
         parameters: {
             query?: never;
@@ -92,8 +152,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Playground script and stylesheet
-         * @description app.js and style.css under a content-hash version, with Cache-Control immutable; another version is a 404.
+         * Playground scripts and stylesheet
+         * @description The ES modules (app.js imports the others with relative URLs) and style.css under a content-hash version, with Cache-Control immutable; another version is a 404.
          */
         get: operations["getPlaygroundAsset"];
         put?: never;
@@ -2022,7 +2082,7 @@ export interface components {
              * @description The grammar the options belong to.
              * @enum {string}
              */
-            grammar: "imgproxy" | "query" | "imgix";
+            grammar: "imgproxy" | "query" | "imgix" | "cloudinary" | "imagekit" | "cloudflare" | "wsrv" | "thumbor" | "bunny" | "awssih";
             /** @description Options, in documentation order. */
             options: components["schemas"]["PlaygroundOption"][] | null;
         };
@@ -2041,11 +2101,66 @@ export interface components {
             /** @description A group of arguments repeated after args. */
             rest?: components["schemas"]["PlaygroundArg"][] | null;
         };
+        PlaygroundGallerySample: {
+            /** @description A configured http source (or dev mode) allows the URL. */
+            allowed: boolean;
+            /**
+             * Format: int64
+             * @description File size when the list was made.
+             */
+            bytes: number;
+            /** @description Input format the file exercises. */
+            format: string;
+            /** @description SPDX licence of the file. */
+            licence: string;
+            /** @description Description. */
+            name: string;
+            /** @description What the file shows or the expected outcome. */
+            notes?: string;
+            /** @description Where the file comes from; the attribution for CC-BY files. */
+            source: string;
+            /** @description Public URL, fetched through an http source. */
+            url: string;
+        };
+        PlaygroundListEntry: {
+            /** @description A directory: list it with prefix=key. */
+            dir?: boolean;
+            /** @description Key relative to the source (xi://<source>/<key>); directories end with /. */
+            key: string;
+            /** @description File or directory name. */
+            name: string;
+            /**
+             * Format: int64
+             * @description File size in bytes.
+             */
+            size?: number;
+        };
+        PlaygroundListResponse: {
+            /** @description Directories first, then files, each sorted by name. */
+            entries: components["schemas"]["PlaygroundListEntry"][] | null;
+            /** @description The directory listed, relative to the source; empty for its root. */
+            prefix: string;
+            /** @description Source name. */
+            source: string;
+            /** @description More than 500 entries: only the first 500 are listed. */
+            truncated?: boolean;
+        };
         PlaygroundMeta: {
             /** @description Option catalogues (internal/apidoc), one per URL grammar. */
             catalogues: components["schemas"]["PlaygroundCatalogue"][] | null;
+            /** @description Detection classes: face, the COCO class names and supercategories. */
+            classes: string[] | null;
+            /** @description The detection models are loaded: face and object gravity, detect_objects. */
+            detection: boolean;
             /** @description Output formats the server encodes. */
             formats: string[] | null;
+            /** @description Public sample files, one or two per input format, fetched through the http sources. */
+            gallery: components["schemas"]["PlaygroundGallerySample"][] | null;
+            /**
+             * Format: int64
+             * @description Largest upload in bytes (XI_LIMITS_MAX_SRC_BYTES).
+             */
+            max_upload_bytes: number;
             /** @description Enabled dialect mounts, in configuration order. */
             mounts: components["schemas"]["PlaygroundMount"][] | null;
             /** @description XI_SERVER_PATH_PREFIX; every generated URL starts with it. */
@@ -2056,12 +2171,18 @@ export interface components {
             public: boolean;
             /** @description XI_SERVER_ADDR (the page derives a default public base URL from its port). */
             public_addr: string;
+            /** @description Built-in sample images (repository fixtures), served as playground://samples/<name> to the playground only; they work offline. */
+            samples: components["schemas"]["PlaygroundSample"][] | null;
             /** @description Signing mode; keys and salts are never included. */
             signing: components["schemas"]["PlaygroundSigning"];
             /** @description Named sources, name and type only (xi://<name>/<key>). */
             sources: components["schemas"]["PlaygroundSource"][] | null;
+            /** @description XI_PLAYGROUND_UPLOADS: api/upload accepts files (playground://uploads/<id>, 10 minutes). */
+            uploads: boolean;
             /** @description Server build version. */
             version: string;
+            /** @description Video sources are decoded (FFmpeg, full image). */
+            video: boolean;
         };
         PlaygroundMount: {
             /** @description imgproxy argument separator (XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR). */
@@ -2071,10 +2192,10 @@ export interface components {
             /** @description Example path and query after the prefix (free-form grammar). */
             example?: string;
             /**
-             * @description URL grammar: imgproxy options path, query keys, or free-form path.
+             * @description URL grammar the page builds with the catalogue of the same name; path is free-form.
              * @enum {string}
              */
-            grammar: "imgproxy" | "query" | "imgix" | "path";
+            grammar: "imgproxy" | "query" | "imgix" | "cloudinary" | "imagekit" | "cloudflare" | "wsrv" | "thumbor" | "bunny" | "awssih" | "path";
             /** @description Host bindings. */
             hosts?: string[] | null;
             /** @description Mount name; the mount field of a sign request. */
@@ -2105,12 +2226,32 @@ export interface components {
             example?: string;
             /** @description Accepted argument shapes; most options have one. */
             forms: components["schemas"]["PlaygroundForm"][] | null;
+            /**
+             * @description Builder category.
+             * @enum {string}
+             */
+            group?: "size" | "gravity" | "format" | "color" | "effects" | "watermark" | "metadata" | "frames" | "detection" | "delivery" | "presets" | "other";
             /** @description Milestone that implements the option. */
             milestone?: string;
             /** @description Canonical name. */
             name: string;
             /** @description Needs XI_SECURITY_ALLOW_SECURITY_OPTIONS. */
             security?: boolean;
+        };
+        PlaygroundSample: {
+            /** @description Needs the full image (FFmpeg or the detection models). */
+            full?: boolean;
+            /**
+             * @description Gallery group.
+             * @enum {string}
+             */
+            kind: "photo" | "alpha" | "animated" | "raw" | "document" | "video" | "vector" | "detection";
+            /** @description Description. */
+            label: string;
+            /** @description File name (playground://samples/<name>). */
+            name: string;
+            /** @description Source string (playground://samples/<name>). */
+            source: string;
         };
         PlaygroundSignRequest: {
             /** @description Mount ID from api/meta (the dialect name for its primary mount). */
@@ -2144,10 +2285,68 @@ export interface components {
             unsigned_policy: "allow" | "restricted" | "deny";
         };
         PlaygroundSource: {
+            /** @description api/sources/<name>/list browses this source (fs sources). */
+            listable?: boolean;
             /** @description Source name. */
             name: string;
             /** @description Source type (http, s3, gcs, azure, fs, ftp, sftp). */
             type: string;
+        };
+        PlaygroundTranslateRequest: {
+            /** @description Mount ID from api/meta; with path and query, the URL to translate. */
+            mount?: string;
+            /** @description Escaped path after the mount prefix, without a signature segment. */
+            path?: string;
+            /** @description Raw query without ?. */
+            query?: string;
+            /** @description A canonical transform.Request (as in the translate response), instead of a URL. */
+            request?: {
+                [key: string]: unknown;
+            };
+        };
+        PlaygroundTranslateResponse: {
+            /** @description The canonical transform.Request the URL parses into. */
+            canonical: unknown;
+            /** @description The same transform in every dialect, in a fixed order. */
+            targets: components["schemas"]["PlaygroundTranslateTarget"][] | null;
+        };
+        PlaygroundTranslateTarget: {
+            /** @description Canonical fields this dialect expresses with a different value. */
+            approximated?: string[] | null;
+            /** @description Dialect name (query is the imgproxy options in query form). */
+            dialect: string;
+            /** @description Why the transform cannot be written in this dialect at all. */
+            error?: string;
+            /** @description Human-readable dialect name. */
+            label: string;
+            /** @description Mount ID serving this dialect here; empty when it is not mounted (the URL uses the default prefix). */
+            mount?: string;
+            /** @description Escaped path after the prefix, unsigned. */
+            path?: string;
+            /** @description Raw query, unsigned. */
+            query?: string;
+            /** @description URL carries a signature. */
+            signed?: boolean;
+            /** @description Canonical fields this dialect cannot express (lost in translation). */
+            unsupported?: string[] | null;
+            /** @description Path and query on the public listener (prepend the base URL), signed when this server holds the mount's key. */
+            url?: string;
+        };
+        PlaygroundUpload: {
+            /** @description Content type sniffed from the bytes. */
+            content_type: string;
+            /**
+             * Format: date-time
+             * @description When the upload is dropped.
+             */
+            expires: string;
+            /**
+             * Format: int64
+             * @description Bytes stored.
+             */
+            size: number;
+            /** @description Source string for URLs (playground://uploads/<id>). */
+            source: string;
         };
     };
     responses: {
@@ -2447,6 +2646,195 @@ export interface operations {
             };
         };
     };
+    getPlaygroundSourceList: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Directory relative to the source; empty for its root. No . or .. segments.
+                 * @example photos/2026
+                 */
+                prefix?: string;
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Named source (type fs).
+                 * @example local
+                 */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One directory of the source. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundListResponse"];
+                };
+            };
+            /** @description Bad Request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Not Found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+        };
+    };
+    postPlaygroundTranslate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaygroundTranslateRequest"];
+            };
+        };
+        responses: {
+            /** @description The canonical request and the same transform in every dialect. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundTranslateResponse"];
+                };
+            };
+            /** @description Bad Request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Cross-origin request rejected (http.CrossOriginProtection). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The playground is disabled. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request Entity Too Large. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Unsupported Media Type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+        };
+    };
+    postPlaygroundUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description The stored file and its playground:// source. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundUpload"];
+                };
+            };
+            /** @description Bad Request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Cross-origin request rejected (http.CrossOriginProtection). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The playground or its uploads are disabled (XI_PLAYGROUND_UPLOADS). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request Entity Too Large. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+        };
+    };
     getPlaygroundAsset: {
         parameters: {
             query?: never;
@@ -2457,8 +2845,8 @@ export interface operations {
                  * @example 0123456789ab
                  */
                 version: string;
-                /** @description Asset file name. */
-                name: "app.js" | "style.css";
+                /** @description Asset file name: an ES module or the stylesheet (app.js, style.css, ...). */
+                name: string;
             };
             cookie?: never;
         };
