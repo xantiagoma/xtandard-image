@@ -1,5 +1,7 @@
 package playground
 
+import "strings"
+
 // Signing schemes of a mount (Mount.Scheme): which signature the sign
 // endpoint computes for URLs of that mount.
 const (
@@ -86,7 +88,7 @@ type Meta struct {
 	// Presets are the configured preset names.
 	Presets []string `json:"presets" doc:"Configured preset names."`
 	// Sources are the configured named sources (names and types only).
-	Sources []Source `json:"sources" doc:"Named sources, name and type only (xi://<name>/<key>)."`
+	Sources []Source `json:"sources" doc:"Named sources: name, type and the source strings each accepts (xi://<name>/<key>), never their settings."`
 	// Formats are the output formats this server encodes.
 	Formats []string `json:"formats" doc:"Output formats the server encodes."`
 	// Samples are the built-in sample images (playground://samples/...),
@@ -147,6 +149,52 @@ type Source struct {
 	Type string `json:"type" doc:"Source type (http, s3, gcs, azure, fs, ftp, sftp)."`
 	// Listable reports that api/sources/<name>/list browses it (fs).
 	Listable bool `json:"listable,omitempty" doc:"api/sources/<name>/list browses this source (fs sources)."`
+	// Syntax lists the source strings the source accepts, the named form
+	// first ("…" is the part to fill in). It names no host, bucket, base
+	// url or path of the configuration (SourceSyntax).
+	Syntax []string `json:"syntax" doc:"Source strings this source accepts, the named form first; … is the part to fill in (xi://web/https://…, https://…, local:///…). Configured hosts, buckets and base URLs are never shown."`
+	// Prefix is what the source picker pre-fills when the source is
+	// picked: Syntax[0] up to the "…".
+	Prefix string `json:"prefix" doc:"What the source picker pre-fills when this source is picked (the first syntax up to …)."`
+}
+
+// SourceSyntax returns Source.Syntax and Source.Prefix for a named source
+// of type typ. hasBase reports an http base_url, hasBucket an s3/gcs/azure
+// default bucket (docs/URL-DIALECTS.md §3.1, WP-95):
+//
+//   - http without base_url: xi://<name>/https://… (the absolute URL is
+//     checked against the source's allowlist), https://…
+//   - http with base_url: xi://<name>/… (joined to the base url), https://…
+//   - fs: xi://<name>/…, local:///…
+//   - s3, gcs, azure: xi://<name>/… (default bucket only), then the scheme
+//     form with the bucket
+//   - ftp, sftp: xi://<name>/…, ftp://<host>/…
+func SourceSyntax(name, typ string, hasBase, hasBucket bool) (syntax []string, prefix string) {
+	xi := "xi://" + name + "/"
+	switch typ {
+	case "http":
+		if hasBase {
+			syntax = []string{xi + "…", "https://…"}
+		} else {
+			syntax = []string{xi + "https://…", "https://…"}
+		}
+	case "fs":
+		syntax = []string{xi + "…", "local:///…"}
+	case "s3", "gcs", "azure":
+		scheme := map[string]string{"s3": "s3://<bucket>/…", "gcs": "gs://<bucket>/…", "azure": "abs://<container>/…"}[typ]
+		if hasBucket {
+			syntax = []string{xi + "…", scheme}
+		} else {
+			syntax = []string{scheme}
+		}
+	case "ftp", "sftp":
+		syntax = []string{xi + "…", typ + "://<host>/…"}
+	default:
+		syntax = []string{xi + "…"}
+	}
+	prefix, _, _ = strings.Cut(syntax[0], "<")
+	prefix, _, _ = strings.Cut(prefix, "…")
+	return syntax, prefix
 }
 
 // Catalogue is the option catalogue of one URL grammar.

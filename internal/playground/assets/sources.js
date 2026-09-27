@@ -207,8 +207,22 @@ export class Sources {
 
   wireURL() {
     const input = $('source-input');
-    const names = (this.meta.sources ?? []).map((s) => `xi://${s.name}/… (${s.type})`);
-    $('named-sources').textContent = names.length ? names.join(', ') : 'none';
+    const list = $('named-sources');
+    const sources = this.meta.sources ?? [];
+    if (!sources.length) list.append(el('li', { class: 'hint', text: 'none' }));
+    // Each source shows the strings it accepts (api/meta sources[].syntax);
+    // picking it pre-fills its prefix without rendering the incomplete URL.
+    for (const s of sources) {
+      const prefix = s.prefix || `xi://${s.name}/`;
+      const b = el('button', { type: 'button', class: 'link', title: `Pre-fill ${prefix}`, text: `${s.name} (${s.type})` });
+      b.addEventListener('click', () => {
+        input.value = prefix;
+        input.focus();
+        input.setSelectionRange(prefix.length, prefix.length);
+      });
+      const forms = (s.syntax ?? [`xi://${s.name}/…`]).flatMap((x, i) => [i ? ' · ' : '', el('code', { text: x })]);
+      list.append(el('li', {}, b, ': ', ...forms));
+    }
     let t;
     input.addEventListener('input', () => {
       clearTimeout(t);

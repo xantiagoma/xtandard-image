@@ -134,8 +134,8 @@ This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS`
 |---|---|---|
 | `XI_SOURCES` | `` | Names of sources defined via env (`origin,assets`), added to the YAML ones |
 | `XI_SOURCES_<NAME>_TYPE` | — | `http` \| `s3` \| `gcs` \| `azure` \| `fs` \| `ftp` \| `sftp` |
-| `XI_SOURCES_<NAME>_ALLOW` | — | http: host globs with optional path prefix (`*.example.com`, `cdn.example.com/img/`) |
-| `XI_SOURCES_<NAME>_BASE_URL` | — | http: base for relative keys |
+| `XI_SOURCES_<NAME>_ALLOW` | — | http: host globs with optional scheme, port and path prefix (`*.example.com`, `cdn.example.com/img/`, `https://*`, `*`); a bare `https://…` source and `xi://<name>/https://…` must match one. An http source needs `_ALLOW`, `_BASE_URL` or both |
+| `XI_SOURCES_<NAME>_BASE_URL` | — (optional) | http: base for relative keys (`xi://<name>/a.jpg` → `<base>/a.jpg`), implicitly allowed. Without it, `xi://<name>/<key>` takes only an absolute `http(s)://` key, checked against `_ALLOW`; with it, an absolute key under the base is taken as is and any other key is joined to the base ([URL-DIALECTS §3.1](URL-DIALECTS.md#31-grammar)) |
 | `XI_SOURCES_<NAME>_HEADERS` | — | http: extra request headers (`Authorization=…`) |
 | `XI_SOURCES_<NAME>_BUCKETS` / `_BUCKET` | — | s3/gcs/azure: allowed buckets/containers; `_BUCKET` binds a default |
 | `XI_SOURCES_<NAME>_PREFIX` | `` | object key prefix jail (every type except http) |
