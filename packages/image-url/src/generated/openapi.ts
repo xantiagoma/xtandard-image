@@ -2204,6 +2204,8 @@ export interface components {
             keyed: boolean;
             /** @description Path prefix; empty for host-only mounts. */
             prefix?: string;
+            /** @description Every path prefix of the mount, prefix first, when it has more than one (simple providers: native prefixes and /simple/<name>/). */
+            prefixes?: string[] | null;
             /**
              * @description Signature the sign endpoint computes for this mount.
              * @enum {string}
@@ -2258,6 +2260,8 @@ export interface components {
             mount: string;
             /** @description Escaped path after the mount prefix, starting with /; without the signature segment for imgproxy and thumbor. */
             path: string;
+            /** @description One of the mount's prefixes; empty means its first prefix. */
+            prefix?: string;
             /** @description Raw query without ?; an existing xi_sig is replaced. */
             query?: string;
         };
@@ -2296,6 +2300,12 @@ export interface components {
             /** @description Source type (http, s3, gcs, azure, fs, ftp, sftp). */
             type: string;
         };
+        PlaygroundTranslateAlternate: {
+            /** @description The mount prefix. */
+            prefix: string;
+            /** @description Path and query on the public listener, signed like url. */
+            url: string;
+        };
         PlaygroundTranslateRequest: {
             /** @description Mount ID from api/meta; with path and query, the URL to translate. */
             mount?: string;
@@ -2315,6 +2325,8 @@ export interface components {
             targets: components["schemas"]["PlaygroundTranslateTarget"][] | null;
         };
         PlaygroundTranslateTarget: {
+            /** @description The same URL on the mount's other prefixes (mounts with several prefixes). */
+            alternates?: components["schemas"]["PlaygroundTranslateAlternate"][] | null;
             /** @description Canonical fields this dialect expresses with a different value. */
             approximated?: string[] | null;
             /** @description Dialect name (query is the imgproxy options in query form). */

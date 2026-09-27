@@ -30,7 +30,7 @@ func sihColor(c transform.Color) map[string]any {
 //nolint:gocyclo // one flat walk over the pipeline model
 func emitAWSSIH(e *emitter) (string, string, error) {
 	if _, ok := e.src.keyOn(e.mountSource); !ok {
-		return "", "", errSource("AWS SIH takes an object key on the mount's source (its bucket)")
+		return "", "", e.errNeedsKey("AWS SIH")
 	}
 	p := e.pl()
 	edits := map[string]any{}

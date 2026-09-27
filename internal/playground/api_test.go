@@ -258,6 +258,7 @@ func (f fakeTranslator) Translate(*TranslateRequest) (*Translation, error) {
 			{Dialect: "imgproxy", Mount: "imgproxy", Path: "/rs:fit:10:0/plain/https://e.com/a.jpg"},
 			{Dialect: "cloudflare", Path: "/cdn-cgi/image/width=10/https://e.com/a.jpg"},
 			{Dialect: "bunny", Error: "no source"},
+			{Dialect: "simple:ipx", Mount: "simple:ipx", Path: "/w_10/a.jpg"},
 		},
 	}, nil
 }
@@ -272,7 +273,7 @@ func TestTranslateEndpoint(t *testing.T) {
 	}
 	code, body := tr(`{"mount":"imgproxy","path":"/rs:fit:10:0/plain/https://e.com/a.jpg"}`)
 	var res TranslateResponse
-	if code != http.StatusOK || json.Unmarshal(body, &res) != nil || len(res.Targets) != 3 {
+	if code != http.StatusOK || json.Unmarshal(body, &res) != nil || len(res.Targets) != 4 {
 		t.Fatalf("translate = %d %s", code, body)
 	}
 	if ip := res.Targets[0]; !ip.Signed || !strings.HasPrefix(ip.URL, "/img/") || strings.Contains(ip.URL, "insecure") {
@@ -280,6 +281,13 @@ func TestTranslateEndpoint(t *testing.T) {
 	}
 	if cf := res.Targets[1]; cf.Signed || cf.URL != "/img/cdn-cgi/image/width=10/https://e.com/a.jpg" {
 		t.Errorf("unmounted target = %+v", cf)
+	}
+	if ipx := res.Targets[3]; ipx.URL != "/img/_ipx/w_10/a.jpg" ||
+		!cmp.Equal(ipx.Alternates, []TranslateAlternate{{Prefix: "/simple/ipx/", URL: "/img/simple/ipx/w_10/a.jpg"}}) {
+		t.Errorf("target on a mount with two prefixes = %+v", ipx)
+	}
+	if ip := res.Targets[0]; len(ip.Alternates) != 0 {
+		t.Errorf("single-prefix mount has alternates: %+v", ip.Alternates)
 	}
 	for _, bad := range []string{`{}`, `{"mount":"nope","path":"/"}`, `{"mount":"imgproxy","path":"/a b"}`, `{"mount":"imgproxy","request":{}}`} {
 		if code, _ := tr(bad); code != http.StatusBadRequest {

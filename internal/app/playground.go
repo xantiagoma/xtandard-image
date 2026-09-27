@@ -56,7 +56,15 @@ func buildPlayground(ctx context.Context, cfg *config.Config, rt *router.Router,
 	if err != nil {
 		return playgroundHandlers{}, fmt.Errorf("playground: %w", err)
 	}
-	tr, err := translate.New(translate.Options{Mounts: meta.Mounts, Separator: cfg.Dialects.Imgproxy.ArgumentsSeparator, Presets: presets})
+	bases := map[string]string{}
+	for name := range cfg.Sources {
+		if s := cfg.Sources[name]; s.Type == config.SourceHTTP && s.BaseURL != "" {
+			bases[name] = s.BaseURL
+		}
+	}
+	tr, err := translate.New(translate.Options{
+		Mounts: meta.Mounts, Separator: cfg.Dialects.Imgproxy.ArgumentsSeparator, Presets: presets, SourceBases: bases,
+	})
 	if err != nil {
 		return playgroundHandlers{}, fmt.Errorf("playground: %w", err)
 	}
@@ -214,7 +222,7 @@ func playgroundMeta(cfg *config.Config, rt *router.Router, version string) (*pla
 	mounts := rt.Mounts()
 	for i := range mounts {
 		rm := &mounts[i]
-		if rm.Dialect == infoDialect {
+		if rm.Dialect == infoDialect || mergeMount(meta.Mounts, rm) {
 			continue
 		}
 		m := playground.Mount{
@@ -278,6 +286,34 @@ func playgroundMeta(cfg *config.Config, rt *router.Router, version string) (*pla
 	}
 	meta.Presets = names
 	return meta, signers, nil
+}
+
+// mergeMount folds rm into the playground mount of the same name when
+// ms has one, reporting whether it did: the router lists a mount once per
+// prefix (a simple provider's native prefixes and /simple/<name>/), the
+// page once, with every prefix in Prefixes.
+func mergeMount(ms []playground.Mount, rm *router.Mount) bool {
+	i := slices.IndexFunc(ms, func(m playground.Mount) bool { return m.ID == rm.Name })
+	if i < 0 {
+		return false
+	}
+	m := &ms[i]
+	for _, h := range rm.Hosts {
+		if !slices.Contains(m.Hosts, h) {
+			m.Hosts = append(m.Hosts, h)
+		}
+	}
+	switch {
+	case rm.Prefix == "" || rm.Prefix == m.Prefix || slices.Contains(m.Prefixes, rm.Prefix):
+	case m.Prefix == "":
+		m.Prefix = rm.Prefix
+	default:
+		if len(m.Prefixes) == 0 {
+			m.Prefixes = []string{m.Prefix}
+		}
+		m.Prefixes = append(m.Prefixes, rm.Prefix)
+	}
+	return true
 }
 
 // signingRing is the XI_SIGNING_KEYS keyring (nil without keys), built as

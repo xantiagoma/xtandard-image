@@ -148,6 +148,9 @@ export function tabs(listId, onChange = () => {}) {
     if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
       e.preventDefault();
       select(ts[(i + (e.key === 'ArrowRight' ? 1 : ts.length - 1)) % ts.length], true);
+    } else if (e.key === 'Home' || e.key === 'End') {
+      e.preventDefault();
+      select(ts[e.key === 'Home' ? 0 : ts.length - 1], true);
     }
   });
   for (const t of all()) t.tabIndex = t.getAttribute('aria-selected') === 'true' ? 0 : -1;

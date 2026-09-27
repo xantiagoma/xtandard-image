@@ -22,10 +22,11 @@ type playgroundMeta struct {
 		Mode string `json:"mode"`
 	} `json:"signing"`
 	Mounts []struct {
-		ID      string `json:"id"`
-		Scheme  string `json:"scheme"`
-		Keyed   bool   `json:"keyed"`
-		Grammar string `json:"grammar"`
+		ID       string   `json:"id"`
+		Scheme   string   `json:"scheme"`
+		Keyed    bool     `json:"keyed"`
+		Grammar  string   `json:"grammar"`
+		Prefixes []string `json:"prefixes"`
 	} `json:"mounts"`
 	Catalogues []struct {
 		Grammar string            `json:"grammar"`
@@ -115,7 +116,15 @@ func TestPlayground(t *testing.T) {
 		t.Fatal(err)
 	}
 	mounts := map[string]string{}
+	ids := map[string]bool{}
 	for _, m := range meta.Mounts {
+		if ids[m.ID] {
+			t.Errorf("api/meta lists mount %s twice (WP-96: once, with its prefixes)", m.ID)
+		}
+		ids[m.ID] = true
+		if m.ID == "simple:ipx" && strings.Join(m.Prefixes, ",") != "/_ipx/,/simple/ipx/" {
+			t.Errorf("simple:ipx prefixes %v", m.Prefixes)
+		}
 		if m.Keyed {
 			mounts[m.ID] = m.Scheme
 		}
@@ -127,6 +136,14 @@ func TestPlayground(t *testing.T) {
 		mounts["imgix"] != "imgix" || len(meta.Catalogues) != 10 || len(meta.Catalogues[0].Options) < 50 || len(meta.Sources) != 3 ||
 		len(meta.Presets) != 1 || meta.Presets[0] != "thumb" {
 		t.Errorf("meta: %s", truncate(metaRes.Body))
+	}
+
+	if !ids["simple:ipx"] {
+		t.Error("api/meta has no simple:ipx mount")
+	}
+	// A mount with several prefixes signs on the one asked for.
+	if s := postSign(t, admin, `{"mount":"simple:ipx","path":"/w_64/jpeg/baseline.jpg","prefix":"/simple/ipx/"}`); s.URL != "/simple/ipx/w_64/jpeg/baseline.jpg" {
+		t.Errorf("simple:ipx on /simple/ipx/: %+v", s)
 	}
 
 	// imgproxy: the server's signature equals the suite's own HMAC.

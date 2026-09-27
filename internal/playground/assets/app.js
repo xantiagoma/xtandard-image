@@ -18,6 +18,7 @@ const HISTORY_MAX = 30;
 
 const state = {
   mount: '',
+  prefix: '', // one of the mount's prefixes; '' is its first
   source: '',
   sourceLabel: '',
   pipelines: [[]],
@@ -45,13 +46,14 @@ function snapshot() {
   return {
     m: state.mount, s: state.source, l: state.sourceLabel, a: state.alias ? 1 : 0, e: state.encoding, x: state.ext,
     p: state.pipelines.map((p) => p.map((e) => [e.name, e.form, e.values, e.groups, e.on ? 1 : 0])),
-    f: state.free, j: state.edits,
+    f: state.free, j: state.edits, ...(state.prefix ? { pf: state.prefix } : {}),
   };
 }
 
 function restore(s) {
   if (!s || typeof s !== 'object') return false;
   state.mount = s.m ?? state.mount;
+  state.prefix = typeof s.pf === 'string' ? s.pf : '';
   state.source = s.s ?? '';
   state.sourceLabel = s.l ?? '';
   state.alias = Boolean(s.a);
@@ -118,11 +120,7 @@ function renderMeta(prefs) {
   const port = (meta.public_addr || ':8080').split(':').pop() || '8080';
   $('base-url').value = prefs.base || (meta.public ? location.origin : `${location.protocol}//${location.hostname}:${port}`);
   if (prefs.accept) $('accept').value = prefs.accept;
-  const mount = $('mount');
-  for (const m of meta.mounts) {
-    const where = m.prefix || (m.hosts ?? []).join(', ');
-    mount.append(el('option', { value: m.id, text: `${m.dialect} · ${where}${m.id !== m.dialect ? ` (${m.id})` : ''}` }));
-  }
+  renderMounts();
   for (const f of meta.formats ?? []) $('extension').append(el('option', { value: f, text: f }));
   for (const c of meta.classes ?? []) $('xi-classes').append(el('option', { value: c }));
   for (const p of meta.presets ?? []) $('xi-presets').append(el('option', { value: p }));
@@ -130,10 +128,47 @@ function renderMeta(prefs) {
 
 // ---- mount and builder -----------------------------------------------------
 
+// renderMounts fills the mount picker: one entry per mount (a mount with
+// several prefixes, like a simple provider's native prefixes and
+// /simple/<name>/, is listed once and its prefix picked below), grouped
+// into dialects with a builder, simple providers and the other free-form
+// dialects.
+function renderMounts() {
+  const seen = new Set();
+  meta.mounts = meta.mounts.filter((m) => !seen.has(m.id) && seen.add(m.id));
+  const groups = [
+    ['Dialects', (m) => m.grammar !== 'path'],
+    ['Simple providers', (m) => m.dialect.startsWith('simple:')],
+    ['Other dialects', () => true],
+  ].map(([label, test]) => ({ label, test, node: el('optgroup', { label }) }));
+  for (const m of meta.mounts) {
+    const where = m.prefix || (m.hosts ?? []).join(', ');
+    const more = (m.prefixes?.length ?? 0) > 1 ? ` (+${m.prefixes.length - 1} prefixes)` : '';
+    const g = groups.find((x) => x.test(m));
+    g.node.append(el('option', { value: m.id, text: `${m.dialect} · ${where}${more}${m.id !== m.dialect ? ` (${m.id})` : ''}` }));
+  }
+  $('mount').replaceChildren(...groups.filter((g) => g.node.childElementCount).map((g) => g.node));
+}
+
+// mountPrefix is the prefix URLs of m are built on: the picked one when
+// m has several.
+function mountPrefix(m) {
+  return m.prefixes?.includes(state.prefix) ? state.prefix : m.prefix || '';
+}
+
+function applyPrefixes(m) {
+  const list = m.prefixes ?? [];
+  $('prefix-row').hidden = list.length < 2;
+  $('mount-prefix').replaceChildren(...list.map((p, i) => el('option', { value: p, text: i ? p : `${p} (primary)` })));
+  if (!list.includes(state.prefix)) state.prefix = '';
+  $('mount-prefix').value = mountPrefix(m);
+}
+
 function applyMount() {
   const m = currentMount();
   if (!m) return;
   $('mount').value = m.id;
+  applyPrefixes(m);
   const signing = m.scheme === 'none'
     ? 'the playground cannot sign this dialect; URLs are unsigned'
     : m.keyed ? `signed with the ${m.scheme} scheme` : `${m.scheme} scheme, no key configured: unsigned`;
@@ -171,7 +206,7 @@ function urlView(full, m) {
   let rest = full.slice(base.length);
   const [path, query] = [rest.split('?')[0], rest.includes('?') ? rest.slice(rest.indexOf('?') + 1) : ''];
   box.append(el('span', { class: 'u-base', text: base }));
-  const prefix = (meta.path_prefix || '').replace(/\/+$/, '') + (m.prefix || '/').replace(/\/+$/, '');
+  const prefix = (meta.path_prefix || '').replace(/\/+$/, '') + (mountPrefix(m) || '/').replace(/\/+$/, '');
   rest = path.slice(prefix.length);
   box.append(el('span', { class: 'u-prefix', text: prefix }));
   const segs = rest.split('/').slice(1);
@@ -211,6 +246,7 @@ async function update({ render = $('auto-render').checked } = {}) {
   sources?.show(state.source);
   const m = currentMount();
   const req = m ? build(m, state, catalogues.get(m.grammar)?.index ?? new Map()) : { error: 'No mount.' };
+  if (m && !req.error && mountPrefix(m) !== (m.prefix || '')) req.prefix = mountPrefix(m);
   if (req.error) {
     $('url-out').value = '';
     $('url-view').replaceChildren();
@@ -354,9 +390,15 @@ async function main() {
 
   $('mount').addEventListener('change', (e) => {
     state.mount = e.target.value;
+    state.prefix = '';
     state.pipelines = [[]];
     state.free = { path: '', query: '' };
     applyMount();
+    update();
+  });
+  $('mount-prefix').addEventListener('change', (e) => {
+    const m = currentMount();
+    state.prefix = e.target.value === m?.prefix ? '' : e.target.value;
     update();
   });
   $('option-search').addEventListener('input', (e) => builder.applySearch(e.target.value));
@@ -373,7 +415,7 @@ async function main() {
   $('copy-curl').addEventListener('click', () => copyText(curlSnippet($('url-out').value, $('accept').value), 'curl command copied'));
   $('copy-ts').addEventListener('click', () => {
     const m = currentMount();
-    const base = baseURL() + (meta.path_prefix || '').replace(/\/+$/, '') + (m.prefix || '/').replace(/\/+$/, '');
+    const base = baseURL() + (meta.path_prefix || '').replace(/\/+$/, '') + (mountPrefix(m) || '/').replace(/\/+$/, '');
     const ts = tsSnippet(m, state, catalogues.get('imgproxy').index, base, $('snippet-signed').checked);
     if (ts) copyText(ts, 'TypeScript copied');
   });

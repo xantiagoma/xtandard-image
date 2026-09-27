@@ -4,10 +4,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/width=300,fit=scale-down/https://example.com/photos/a.jpg"
@@ -16,7 +16,7 @@
         "url": "/xi/image/fetch/w_300,c_limit/https://example.com/photos/a.jpg"
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?w=300\u0026fit=max"
@@ -76,10 +76,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/width=300,height=200,fit=cover,gravity=auto/https://example.com/photos/a.jpg"
@@ -88,7 +88,7 @@
         "url": "/xi/image/fetch/w_300,h_200,c_fill,g_auto/https://example.com/photos/a.jpg"
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?w=300\u0026h=200\u0026fit=crop\u0026crop=edges"
@@ -151,10 +151,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/width=300,height=200,fit=cover,gravity=face/https://example.com/photos/a.jpg"
@@ -163,7 +163,7 @@
         "url": "/xi/image/fetch/w_300,h_200,c_fill,g_faces/https://example.com/photos/a.jpg"
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?w=300\u0026h=200\u0026fit=crop\u0026crop=faces"
@@ -238,10 +238,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/width=300,height=200,fit=cover/https://example.com/photos/a.jpg",
@@ -256,7 +256,7 @@
         "url": "/xi/image/fetch/w_300,h_200,c_fill,g_dog/https://example.com/photos/a.jpg"
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?w=300\u0026h=200\u0026fit=crop\u0026crop=dog"
@@ -352,10 +352,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/width=300,height=200,fit=cover,gravity=0.3x0.7/https://example.com/photos/a.jpg"
@@ -364,7 +364,7 @@
         "url": "/xi/image/fetch/w_300,h_200,c_fill,g_xy_center,x_0.3,y_0.7/https://example.com/photos/a.jpg"
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?w=300\u0026h=200\u0026fit=crop\u0026crop=focalpoint\u0026fp-x=0.3\u0026fp-y=0.7"
@@ -459,10 +459,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/width=300,height=200,fit=cover/https://example.com/photos/a.jpg",
@@ -474,7 +474,7 @@
         "url": "/xi/image/fetch/w_300,h_200,c_fill,g_north_west/https://example.com/photos/a.jpg"
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?w=300\u0026h=200\u0026fit=crop\u0026crop=top%2Cleft"
@@ -534,10 +534,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/format=webp,quality=70/https://example.com/photos/a.jpg"
@@ -546,7 +546,7 @@
         "url": "/xi/image/fetch/f_webp,q_70/https://example.com/photos/a.jpg"
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fm=webp\u0026q=70"
@@ -612,10 +612,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/blur=4,sharpen=4/https://example.com/photos/a.jpg"
@@ -624,7 +624,7 @@
         "url": "/xi/image/fetch/e_blur:40,e_sharpen:100/https://example.com/photos/a.jpg"
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?blur=40\u0026sharp=25"
@@ -690,10 +690,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/rotate=90,flip=h/https://example.com/photos/a.jpg"
@@ -702,7 +702,7 @@
         "url": "/xi/image/fetch/a_90.hflip/https://example.com/photos/a.jpg"
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?rot=270\u0026flip=h"
@@ -762,10 +762,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/background=%23ff0000/https://example.com/photos/a.jpg",
@@ -780,7 +780,7 @@
         ]
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?bg=ff0000\u0026pad=10"
@@ -862,10 +862,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/contrast=1.2,saturation=0.8/https://example.com/photos/a.jpg",
@@ -877,7 +877,7 @@
         "url": "/xi/image/fetch/e_brightness:20,e_contrast:20,e_saturation:-20/https://example.com/photos/a.jpg"
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?bri=20\u0026con=20\u0026sat=-20"
@@ -958,10 +958,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/fit=scale-down/https://example.com/photos/a.jpg",
@@ -973,7 +973,7 @@
         "url": "/xi/image/fetch/e_pixelate:8/https://example.com/photos/a.jpg"
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?px=8"
@@ -1054,10 +1054,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/fit=scale-down/https://example.com/photos/a.jpg",
@@ -1070,7 +1070,7 @@
         "url": "/xi/image/fetch/e_blur_faces:100/https://example.com/photos/a.jpg"
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?face-blur=25"
@@ -1158,10 +1158,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/fit=scale-down/https://example.com/photos/a.jpg",
@@ -1180,7 +1180,7 @@
         ]
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?txt=Hello\u0026txt-align=bottom%2Cright\u0026txt-pad=10",
@@ -1288,10 +1288,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/fit=scale-down/https://example.com/photos/a.jpg",
@@ -1303,7 +1303,7 @@
         "url": "/xi/image/fetch/pg_2/https://example.com/photos/a.jpg"
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?page=2"
@@ -1375,10 +1375,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/fit=scale-down/https://example.com/photos/a.jpg",
@@ -1390,7 +1390,7 @@
         "url": "/xi/image/fetch/so_1.5/https://example.com/photos/a.jpg"
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg",
@@ -1474,10 +1474,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/fit=scale-down/https://example.com/photos/a.jpg",
@@ -1493,7 +1493,7 @@
         ]
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?dl=photo.jpg"
@@ -1582,10 +1582,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/width=500,height=500,fit=scale-down/https://example.com/photos/a.jpg",
@@ -1597,7 +1597,7 @@
         "url": "/xi/image/fetch/w_500,h_500,c_limit/e_blur:40/https://example.com/photos/a.jpg"
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?w=500\u0026h=500\u0026fit=max",
@@ -1681,10 +1681,10 @@
     "source": "https://example.com/photos/a.jpg",
     "targets": {
       "awssih": {
-        "error": "AWS SIH takes an object key on the mount's source (its bucket)"
+        "error": "AWS SIH addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "bunny": {
-        "error": "Bunny Optimizer takes a path on the mount's source (its pull zone)"
+        "error": "Bunny Optimizer addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "cloudflare": {
         "url": "/cdn-cgi/image/fit=scale-down/https://example.com/photos/a.jpg",
@@ -1703,7 +1703,7 @@
         ]
       },
       "imagekit": {
-        "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
       },
       "imgix": {
         "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?duotone=000000%2Cffffff"
