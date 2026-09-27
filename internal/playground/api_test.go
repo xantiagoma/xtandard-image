@@ -139,7 +139,7 @@ func TestGallery(t *testing.T) {
 			t.Errorf("%s: allowed = %v", s.URL, s.Allowed)
 		}
 	}
-	for _, f := range []string{"jpeg", "png", "gif", "webp", "avif", "heic", "jxl", "tiff", "bmp", "ico", "svg", "pdf", "raw", "mp4", "webm"} {
+	for _, f := range []string{"jpeg", "png", "gif", "webp", "avif", "heic", "jxl", "tiff", "bmp", "ico", "svg", "pdf", "raw", "mp4", "webm", "jxr", "tga", "pcx", "dds", "qoi", "pnm", "xbm", "xpm"} {
 		if !formats[f] {
 			t.Errorf("no %s sample in the gallery", f)
 		}
