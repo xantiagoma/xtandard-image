@@ -27,6 +27,17 @@ func (e *badRequestError) Error() string { return "playground: " + e.msg }
 
 func badRequest(msg string) error { return &badRequestError{msg: msg} }
 
+// ClientError is an error the API answers with 400 and msg, for
+// Translator implementations: a request the translator cannot handle is
+// the client's, not a server failure.
+func ClientError(msg string) error { return badRequest(msg) }
+
+// IsClientError reports whether err wraps a ClientError.
+func IsClientError(err error) bool {
+	_, ok := errors.AsType[*badRequestError](err)
+	return ok
+}
+
 // sign answers POST api/sign: the URL for a mount, signed with the server's
 // key for that mount when it holds one.
 func (h *handler) sign(w http.ResponseWriter, r *http.Request) {

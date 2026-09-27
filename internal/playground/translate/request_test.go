@@ -2,7 +2,6 @@ package translate
 
 import (
 	"encoding/json"
-	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -69,8 +68,10 @@ func TestTranslateErrors(t *testing.T) {
 		{Request: map[string]any{"Nope": 1}},
 		{Request: map[string]any{"Kind": "process"}},
 		{Mount: "imgproxy", Path: "/raw:1/plain/https://example.com/a.jpg"},
+		// A free-form dialect has no parser here: a 400, not a 500.
+		{Mount: "simple:ipx", Path: "/w_300/a.jpg"},
 	} {
-		if _, err := tr.Translate(in); !errors.As(err, new(*badRequestError)) {
+		if _, err := tr.Translate(in); !playground.IsClientError(err) {
 			t.Errorf("Translate(%+v) error = %v, want a bad request", in, err)
 		}
 	}

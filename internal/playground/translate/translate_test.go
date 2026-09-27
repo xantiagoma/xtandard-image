@@ -27,6 +27,7 @@ func testMounts() []playground.Mount {
 		{ID: "imagekit", Dialect: "imagekit", Prefix: "/imagekit/", Source: "local", Scheme: playground.SchemeNone, Grammar: playground.GrammarImagekit},
 		{ID: "awssih", Dialect: "awssih", Prefix: "/sih/", Source: "local", Scheme: playground.SchemeNone, Grammar: playground.GrammarAWSSIH},
 		{ID: "cloudinary", Dialect: "cloudinary", Prefix: "/cloudinary/", Source: "local", Scheme: playground.SchemeNone, Grammar: playground.GrammarCloudinary},
+		{ID: "simple:ipx", Dialect: "simple:ipx", Prefix: "/_ipx/", Prefixes: []string{"/_ipx/", "/simple/ipx/"}, Scheme: playground.SchemeNone, Grammar: playground.GrammarPath},
 	}
 }
 
