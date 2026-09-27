@@ -382,7 +382,7 @@ type Resolver interface {
 // RedactKey(Key) renders keys for logs with http query strings redacted.
 ```
 
-Source string resolution order: `xi://<name>/<key>` explicit; `s3://bucket/key`, `gs://`, `abs://container/blob` (alias `az://`), `local:///path` (aliases `local:/path`, `local:path`, `file:///path`), `ftp://`, `sftp://` (imgproxy-compatible schemes; the mount's own source is tried first, then configuration order) matched to a source of that type whose bucket/host list contains the target; absolute `http(s)://` matched against each http source's `allow` patterns (host globs + optional path prefix); relative keys resolved against the dialect mount's bound source. No match → 403 unless dev mode, in which case an implicit unrestricted `http` source is used (SSRF protections still apply).
+Source string resolution order: `xi://<name>/<key>` explicit (for an `http` source without `base_url` the key is an absolute `http(s)://` URL checked against that source's allowlist; with `base_url` it is joined to the base unless it is an absolute URL under it; WP-95, URL-DIALECTS §3.1); `s3://bucket/key`, `gs://`, `abs://container/blob` (alias `az://`), `local:///path` (aliases `local:/path`, `local:path`, `file:///path`), `ftp://`, `sftp://` (imgproxy-compatible schemes; the mount's own source is tried first, then configuration order) matched to a source of that type whose bucket/host list contains the target; absolute `http(s)://` matched against each http source's `allow` patterns (host globs + optional path prefix); relative keys resolved against the dialect mount's bound source. No match → 403 unless dev mode, in which case an implicit unrestricted `http` source is used (SSRF protections still apply).
 
 Backends (under `internal/fetch/`): `httpsrc` (SSRF-safe transport, see §10), `s3src` (aws-sdk-go-v2 with custom endpoint and path-style for R2/Spaces/B2/RustFS), `gcssrc`, `azuresrc`, `fssrc` (uses Go `os.Root` so `..` and symlinks cannot escape the root), `ftpsrc` (jlaffaye/ftp, explicit TLS option), `sftpsrc` (pkg/sftp with pinned host keys; no TOFU).
 
@@ -705,7 +705,7 @@ Errors carry an `errs.Kind`; the table below is the single mapping (`errs.Status
 |---|---|---|---|
 | `InvalidURL` | cannot parse path, bad base64, unknown option in strict mode, bad arg type | 400 | no-store |
 | `Unauthorized` | missing/bad signature, bad `enc/` payload | 403 | no-store |
-| `Forbidden` | source not allowlisted, SSRF block, bucket not allowed, security option not allowed, only-presets violation | 403 | no-store |
+| `Forbidden` | source not allowlisted, SSRF block, bucket not allowed, security option not allowed, only-presets violation. Source refusals name the failed check in the body without configuration (`unknown source "x"`, `source "web" has no base_url: the key must be an absolute http(s) url`, `source "web": host not in the source allowlist`, `no source allows this url`); the log keeps the redacted reference | 403 | no-store |
 | `Expired` | `expires`, imgix `expires`, imagekit `ik-t` in the past | 404 (imgproxy parity) | no-store |
 | `NotFound` | source 404/NoSuchKey/ENOENT | 404 | error TTL |
 | `SourceTooLarge` / `LimitExceeded` | bytes, pixels, frames, result dimension, cost > budget | 422 | error TTL |
