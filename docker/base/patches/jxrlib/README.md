@@ -20,6 +20,7 @@ itself, as Debian ships them in its `jxrlib` package (1.2~git20170615.f752187-5.
 | `0011-lookup-tables-bounds-and-leak.patch` | (ours, WP-97, found by fuzzing) | the primary and the interleaved alpha plane share the offset lookup tables and both built them, leaking the first set; the plane header's bit depth indexed an 11-entry table unchecked |
 | `0012-cap-codec-context-allocations.patch` | (ours, WP-97, found by fuzzing) | a corrupt alpha plane header made `ImageStrDecInit` ask for 117 GB; its per-plane buffers (two macroblock rows) are capped at 1 GiB |
 | `0013-free-repeated-and-byte-metadata.patch` | (ours, WP-97, found by fuzzing) | a descriptive metadata tag repeated in the container leaked its first value, and values stored as BYTE/UNDEFINED arrays were never freed |
+| `0014-bound-metadata-reads.patch` | (ours, WP-97, found by fuzzing) | `ReadBinaryData` allocated `uCount + 2` bytes for a count read from the file (3.6 GB requests; `0xFFFFFFFF` wraps to a 1-byte buffer the read then overflows); counts above 16 MiB are refused |
 
-0001-0003 and 0006-0007 are Debian's (the latter two by YOKOTA Hiroshi); 0004, 0005 and 0008-0013 are
+0001-0003 and 0006-0007 are Debian's (the latter two by YOKOTA Hiroshi); 0004, 0005 and 0008-0014 are
 ours, under the same BSD-2-Clause licence as jxrlib.

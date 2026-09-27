@@ -263,13 +263,15 @@ linux/arm64, `docker save | gzip -6` (compressed) and `docker image inspect` (un
 
 | Image | Compressed | Uncompressed | Budget (compressed) |
 |---|---|---|---|
-| slim runtime (`8.18.6-r3-slim`) | 54.7 MB | 165.1 MB | ≤ 110 MB |
-| slim builder | 259.2 MB | 818.6 MB | — |
-| full runtime (`8.18.6-r4-full`) | 103.1 MB | 237.3 MB | ≤ 170 MB |
+| slim runtime (`8.18.6-r4-slim`) | 54.9 MB | 165.5 MB | ≤ 110 MB |
+| slim builder | 259.4 MB | 819.2 MB | — |
+| full runtime (`8.18.6-r5-full`) | 103.3 MB | 237.7 MB | ≤ 170 MB |
 | full builder | 308.2 MB | 893.3 MB | — |
-| gpl runtime (`8.18.6-r4-gpl`) | 105.3 MB | 242.1 MB | ≤ 170 MB (as full) |
+| gpl runtime (`8.18.6-r5-gpl`) | 105.4 MB | 242.5 MB | ≤ 170 MB (as full) |
 | gpl builder | 310.4 MB | 898.3 MB | — |
 
+jxrlib (r4, WP-97) adds 0.2 MB compressed / 0.4 MB uncompressed to every flavor; the wider
+ImageMagick policy costs nothing (the coders were already compiled in).
 The full additions are ONNX Runtime 24 MiB, the models 35 MiB (YOLOX-s 34 MiB, YuNet
 0.2 MiB) and FFmpeg + libvpx 11 MiB (libraries and both CLIs), uncompressed.
 The gpl flavor adds 2.2 MB compressed / 4.8 MB uncompressed over full (libx264, libx265 and
