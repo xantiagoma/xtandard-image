@@ -46,7 +46,7 @@ func (s *Server) fetchWatermarks(ctx context.Context, req *transform.Request, ma
 	}
 	keys := make([]source.Key, len(out))
 	for i, in := range out {
-		key, err := s.deps.Resolver.Resolve(*req.Pipelines[in.Pipeline].Watermarks[in.Index].Source)
+		key, err := s.resolve(ctx, *req.Pipelines[in.Pipeline].Watermarks[in.Index].Source)
 		if err != nil {
 			return nil, fmt.Errorf("server: watermark source: %w", err)
 		}
