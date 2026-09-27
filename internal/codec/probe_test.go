@@ -135,6 +135,40 @@ func TestProbeFixtures(t *testing.T) {
 			m.BitDepth, m.ColorSpace, m.HDR = 32, codec.ColorSpaceScRGB, true
 		}),
 		"ppm/photo.ppm": still(codec.FormatPPM, 96, 64),
+		// WP-97: ASCII and bitmap Netpbm through ppmload.
+		"ppm/photo-ascii.ppm": still(codec.FormatPPM, 64, 48),
+		"ppm/photo-ascii.pgm": with(still(codec.FormatPPM, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		// ppmload expands bitmaps to 8-bit grey.
+		"ppm/graphic.pbm":       with(still(codec.FormatPPM, 48, 36), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"ppm/graphic-ascii.pbm": with(still(codec.FormatPPM, 48, 36), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		// JPEG XR through the shim's jxrlib loader.
+		"jxr/photo.jxr": still(codec.FormatJXR, 64, 48),
+		"jxr/alpha.jxr": with(still(codec.FormatJXR, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"jxr/rgb16.jxr": with(still(codec.FormatJXR, 64, 48), func(m *codec.ImageMeta) { m.BitDepth = 16 }),
+		"jxr/gray.jxr":  with(still(codec.FormatJXR, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"jxr/hdr.jxr":   still(codec.FormatJXR, 48, 32),
+		// Legacy formats: headers parsed in Go, decoded by ImageMagick.
+		"tga/alpha.tga":      with(still(codec.FormatTGA, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"tga/photo-rle.tga":  still(codec.FormatTGA, 64, 48),
+		"pcx/photo.pcx":      still(codec.FormatPCX, 64, 48),
+		"dds/photo-dxt1.dds": still(codec.FormatDDS, 64, 48),
+		"dds/alpha-dxt5.dds": with(still(codec.FormatDDS, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"qoi/alpha.qoi":      with(still(codec.FormatQOI, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"sgi/photo.sgi":      still(codec.FormatSGI, 64, 48),
+		"sgi/alpha.sgi":      with(still(codec.FormatSGI, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"sun/photo.ras":      still(codec.FormatSunRaster, 64, 48),
+		"xbm/graphic.xbm": with(still(codec.FormatXBM, 48, 36), func(m *codec.ImageMeta) {
+			m.ColorSpace, m.BitDepth = codec.ColorSpaceGrey, 1
+		}),
+		"xpm/graphic.xpm": still(codec.FormatXPM, 48, 36),
+		"pam/alpha.pam":   with(still(codec.FormatPAM, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		// Pure-Go loaders.
+		"wbmp/graphic.wbmp": with(still(codec.FormatWBMP, 48, 36), func(m *codec.ImageMeta) {
+			m.ColorSpace, m.BitDepth = codec.ColorSpaceGrey, 1
+		}),
+		"icns/icon.icns": with(still(codec.FormatICNS, 128, 128), func(m *codec.ImageMeta) {
+			m.HasAlpha, m.Pages = true, 2
+		}),
 	}
 	// password.pdf fails by design (TestProbeErrors); videos are probed by
 	// TestProbeVideo.
@@ -222,7 +256,12 @@ func TestProbeErrors(t *testing.T) {
 		{"exr multi-part", synthEXR(4, 4, 0x1000, "R"), codec.Limits{}, errs.KindUnsupported},
 		{"exr without colour", synthEXR(4, 4, 0, "Z"), codec.Limits{}, errs.KindUnsupported},
 		{"radiance without resolution", []byte("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n"), codec.Limits{}, errs.KindCorrupt},
-		{"ascii ppm", []byte("P3\n1 1\n255\n0 0 0\n"), codec.Limits{}, errs.KindUnsupported},
+		{"tga with a huge canvas", tgaHuge(), codec.Limits{MaxSrcPixels: 1 << 20}, errs.KindLimitExceeded},
+		{"dds header only", []byte("DDS \x7c\x00\x00\x00"), codec.Limits{}, errs.KindUnsupported},
+		{"qoi without channels", []byte("qoif\x00\x00\x00\x01\x00\x00\x00\x01\x05\x00"), codec.Limits{}, errs.KindCorrupt},
+		{"xbm without height", []byte("#define x_width 8\nstatic char x_bits[] = {0};\n"), codec.Limits{}, errs.KindCorrupt},
+		{"jxr garbage", append([]byte("II\xbc\x01"), make([]byte, 60)...), codec.Limits{}, errs.KindCorrupt},
+		{"icns without images", []byte("icns\x00\x00\x00\x18ICN#\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00"), codec.Limits{}, errs.KindCorrupt},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -332,4 +371,10 @@ func FuzzProbe(f *testing.F) {
 			t.Fatalf("Probe accepted %+v", m)
 		}
 	})
+}
+
+// tgaHuge is the header of a 30000×30000 true-colour TGA with no pixels:
+// the pixel limit must stop it before ImageMagick sees it.
+func tgaHuge() []byte {
+	return []byte{0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x30, 0x75, 0x30, 0x75, 24, 0}
 }

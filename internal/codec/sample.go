@@ -5,8 +5,10 @@ import (
 	"fmt"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/bmp"
+	"github.com/xantiagoma/xtandard-image/internal/codec/icns"
 	"github.com/xantiagoma/xtandard-image/internal/codec/ico"
 	"github.com/xantiagoma/xtandard-image/internal/codec/raster"
+	"github.com/xantiagoma/xtandard-image/internal/codec/wbmp"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/video"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
@@ -36,7 +38,7 @@ func sample(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Li
 		return Raw{}, errs.Newf(errs.KindInternal, "codec: sample size %d", maxSide)
 	}
 	switch f {
-	case FormatBMP, FormatICO:
+	case FormatBMP, FormatICO, FormatWBMP, FormatICNS:
 		d, err := decodeOwn(buf.Bytes(), f, lim.withDefaults().MaxSrcPixels)
 		if err != nil {
 			return Raw{}, err
@@ -58,14 +60,34 @@ func sample(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Li
 	}
 }
 
+// IsOwn reports the formats decoded by the pure-Go loaders (DecodeOwn):
+// BMP, ICO, WBMP and ICNS.
+func (f Format) IsOwn() bool {
+	return f == FormatBMP || f == FormatICO || f == FormatWBMP || f == FormatICNS
+}
+
+// DecodeOwn runs the pure-Go loader of f (IsOwn), bounded by maxPixels:
+// the pixels, or a PNG/JPEG/JPEG 2000 stream embedded in the container for
+// libvips to load.
+func DecodeOwn(data []byte, f Format, maxPixels int64) (raster.Decoded, error) {
+	return decodeOwn(data, f, maxPixels)
+}
+
 // decodeOwn runs the pure-Go loader of f.
 func decodeOwn(data []byte, f Format, maxPixels int64) (raster.Decoded, error) {
 	var d raster.Decoded
 	var err error
-	if f == FormatBMP {
+	switch f {
+	case FormatBMP:
 		d, err = bmp.Decode(data, bmp.Options{MaxPixels: maxPixels})
-	} else {
+	case FormatICO:
 		d, err = ico.Decode(data, ico.Options{MaxPixels: maxPixels})
+	case FormatWBMP:
+		d, err = wbmp.Decode(data, wbmp.Options{MaxPixels: maxPixels})
+	case FormatICNS:
+		d, err = icns.Decode(data, icns.Options{MaxPixels: maxPixels})
+	default:
+		return d, errs.Newf(errs.KindInternal, "codec: %s has no own loader", f)
 	}
 	if err != nil {
 		switch errs.KindOf(err) {

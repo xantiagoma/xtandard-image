@@ -78,7 +78,7 @@ func inspect(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Setting
 		return info, nil
 	}
 	switch m.Format {
-	case FormatBMP, FormatICO, FormatSVG:
+	case FormatBMP, FormatICO, FormatSVG, FormatWBMP, FormatICNS:
 		info.Bands = 3
 		if m.HasAlpha || m.Format == FormatSVG {
 			info.Bands = 4

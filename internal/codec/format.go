@@ -53,7 +53,8 @@ const (
 	FormatEXR
 	// FormatRadiance is Radiance RGBE (.hdr, scene-linear, HDR).
 	FormatRadiance
-	// FormatPPM is a binary 8/16-bit PGM or PPM portable anymap (P5, P6).
+	// FormatPPM is a PBM, PGM or PPM portable anymap, ASCII or binary
+	// (P1-P6; 1, 8 or 16 bits), read by libvips' ppmload.
 	FormatPPM
 	// FormatPFM is a portable float map (PF colour, Pf grey; scene-linear,
 	// HDR).
@@ -75,6 +76,39 @@ const (
 	FormatMKV
 	// FormatAVI is RIFF AVI.
 	FormatAVI
+	// FormatJXR is JPEG XR / HD Photo (ITU-T T.832), decoded by jxrlib
+	// through the shim's own libvips loader (vips jxr.c, WP-97).
+	FormatJXR
+	// The legacy formats below are decoded by ImageMagick through libvips'
+	// magickload, which the base image's policy.xml restricts to exactly
+	// these coders (and PSD/PSB); their headers are parsed in Go
+	// (ParseLegacyHeader), so probing never runs ImageMagick.
+
+	// FormatTGA is Truevision TGA (Targa), raw or run-length coded.
+	FormatTGA
+	// FormatPCX is ZSoft PCX (versions 2 and 5).
+	FormatPCX
+	// FormatDDS is DirectDraw Surface: uncompressed, DXT1/3/5 (BC1-3) or
+	// DX10 (BC4-BC7) textures; the first image (mipmap level 0).
+	FormatDDS
+	// FormatQOI is the Quite OK Image format.
+	FormatQOI
+	// FormatSGI is SGI image (IRIS RGB), raw or run-length coded.
+	FormatSGI
+	// FormatSunRaster is Sun raster (RAS).
+	FormatSunRaster
+	// FormatXBM is an X11 bitmap (C source).
+	FormatXBM
+	// FormatXPM is an X11 pixmap (C source).
+	FormatXPM
+	// FormatPAM is a Netpbm PAM (P7) portable arbitrary map.
+	FormatPAM
+	// FormatWBMP is a Wireless Bitmap (WAP type 0), decoded in Go
+	// (codec/wbmp).
+	FormatWBMP
+	// FormatICNS is an Apple icon image, decoded in Go (codec/icns): the
+	// largest entry, PNG and JPEG 2000 entries through libvips.
+	FormatICNS
 
 	numFormats
 )
@@ -144,6 +178,30 @@ func (f Format) info() formatInfo {
 		return formatInfo{"mkv", "mkv", "video/x-matroska", false, false, true}
 	case FormatAVI:
 		return formatInfo{"avi", "avi", "video/x-msvideo", false, false, true}
+	case FormatJXR:
+		return formatInfo{"jxr", "jxr", "image/jxr", false, true, true}
+	case FormatTGA:
+		return formatInfo{"tga", "tga", "image/x-tga", false, true, true}
+	case FormatPCX:
+		return formatInfo{"pcx", "pcx", "image/vnd.zbrush.pcx", false, false, true}
+	case FormatDDS:
+		return formatInfo{"dds", "dds", "image/vnd.ms-dds", false, true, true}
+	case FormatQOI:
+		return formatInfo{"qoi", "qoi", "image/qoi", false, true, true}
+	case FormatSGI:
+		return formatInfo{"sgi", "sgi", "image/sgi", false, true, true}
+	case FormatSunRaster:
+		return formatInfo{"sun", "ras", "image/x-sun-raster", false, false, true}
+	case FormatXBM:
+		return formatInfo{"xbm", "xbm", "image/x-xbitmap", false, false, true}
+	case FormatXPM:
+		return formatInfo{"xpm", "xpm", "image/x-xpixmap", false, true, true}
+	case FormatPAM:
+		return formatInfo{"pam", "pam", "image/x-portable-arbitrarymap", false, true, true}
+	case FormatWBMP:
+		return formatInfo{"wbmp", "wbmp", "image/vnd.wap.wbmp", false, false, true}
+	case FormatICNS:
+		return formatInfo{"icns", "icns", "image/icns", false, true, true}
 	default:
 		return formatInfo{"unknown", "", "application/octet-stream", false, false, false}
 	}
@@ -175,6 +233,19 @@ func (f Format) SupportsAlpha() bool { return f.info().alpha }
 // not HDR here.
 func (f Format) HDR() bool {
 	return f == FormatEXR || f == FormatRadiance || f == FormatPFM
+}
+
+// IsMagick reports the legacy formats ImageMagick decodes (TGA, PCX, DDS,
+// QOI, SGI, Sun raster, XBM, XPM, PAM). PSD, which ImageMagick also
+// decodes, has its own paths and is not included.
+func (f Format) IsMagick() bool {
+	switch f {
+	case FormatTGA, FormatPCX, FormatDDS, FormatQOI, FormatSGI, FormatSunRaster, FormatXBM,
+		FormatXPM, FormatPAM:
+		return true
+	default:
+		return false
+	}
 }
 
 // IsVideo reports a video container (MP4, MOV, WebM, MKV, AVI): decoded by
@@ -241,7 +312,7 @@ func ParseFormat(s string) (Format, error) {
 		return FormatEXR, nil
 	case "radiance", "hdr", "rgbe", "pic":
 		return FormatRadiance, nil
-	case "ppm", "pgm", "pnm":
+	case "ppm", "pgm", "pbm", "pnm", "netpbm":
 		return FormatPPM, nil
 	case "pfm":
 		return FormatPFM, nil
@@ -257,6 +328,30 @@ func ParseFormat(s string) (Format, error) {
 		return FormatMKV, nil
 	case "avi":
 		return FormatAVI, nil
+	case "jxr", "wdp", "hdp", "jpegxr", "jpeg-xr":
+		return FormatJXR, nil
+	case "tga", "targa", "icb", "vda", "vst":
+		return FormatTGA, nil
+	case "pcx":
+		return FormatPCX, nil
+	case "dds":
+		return FormatDDS, nil
+	case "qoi":
+		return FormatQOI, nil
+	case "sgi", "rgb", "rgba", "bw", "iris":
+		return FormatSGI, nil
+	case "sun", "ras", "sunraster":
+		return FormatSunRaster, nil
+	case "xbm":
+		return FormatXBM, nil
+	case "xpm":
+		return FormatXPM, nil
+	case "pam":
+		return FormatPAM, nil
+	case "wbmp":
+		return FormatWBMP, nil
+	case "icns":
+		return FormatICNS, nil
 	}
 	return FormatUnknown, errs.Newf(errs.KindUnsupported, "codec: unknown format %q", s)
 }
@@ -353,6 +448,30 @@ func (f Format) MatchesContentType(contentType string) bool {
 		return mt == "video/matroska" || mt == "video/webm"
 	case FormatAVI:
 		return mt == "video/avi" || mt == "video/msvideo" || mt == "video/vnd.avi"
+	case FormatJXR:
+		return mt == "image/vnd.ms-photo" || mt == "image/jpeg-xr"
+	case FormatTGA:
+		return mt == "image/x-targa" || mt == "image/tga" || mt == "image/targa" || mt == "application/tga"
+	case FormatPCX:
+		return mt == "image/x-pcx" || mt == "image/pcx"
+	case FormatDDS:
+		return mt == "image/dds" || mt == "image/x-dds"
+	case FormatQOI:
+		return mt == "image/x-qoi"
+	case FormatSGI:
+		return mt == "image/x-sgi" || mt == "image/x-rgb"
+	case FormatSunRaster:
+		return mt == "image/x-cmu-raster" || mt == "image/x-sun"
+	case FormatXBM:
+		return mt == "image/xbm" || mt == "image/x-xbm"
+	case FormatXPM:
+		return mt == "image/xpm" || mt == "image/x-xpm"
+	case FormatPAM:
+		return mt == "image/x-portable-anymap"
+	case FormatWBMP:
+		return mt == "image/x-wbmp"
+	case FormatICNS:
+		return mt == "image/x-icns"
 	default:
 		return false
 	}
