@@ -144,3 +144,78 @@ func withQueryTest(p, q string) string {
 	}
 	return p + "?" + q
 }
+
+// TestKeyedDialects covers the dialects that address images by path on
+// their mount's source (ImageKit, Bunny, AWS SIH): a URL under the base_url
+// of that http source is written as a key and round-trips exactly; any
+// other absolute URL, or a dialect not bound to a source, gets a reason.
+func TestKeyedDialects(t *testing.T) {
+	t.Parallel()
+	keyed := []string{"imagekit", "bunny", "awssih"}
+	mounts := []playground.Mount{
+		{ID: "imgproxy", Dialect: "imgproxy", Prefix: "/", Scheme: playground.SchemeImgproxy, Grammar: playground.GrammarImgproxy},
+		{ID: "imagekit", Dialect: "imagekit", Prefix: "/imagekit/", Source: "cdn", Grammar: playground.GrammarImagekit},
+		{ID: "bunny", Dialect: "bunny", Prefix: "/bunny/", Source: "cdn", Grammar: playground.GrammarBunny},
+		{ID: "awssih", Dialect: "awssih", Prefix: "/sih/", Source: "web", Grammar: playground.GrammarAWSSIH},
+	}
+	tr, err := New(Options{Mounts: mounts, SourceBases: map[string]string{"cdn": "https://cdn.example.com/media/", "web": "ftp://x/"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	unbound, err := New(Options{Mounts: mounts[:1]})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct {
+		name, src string
+		tr        *Translator
+		// want maps a dialect to its URL, or to "!<text>" for an error
+		// containing text.
+		want map[string]string
+	}{
+		{"under base_url", "https://cdn.example.com/media/photos/a%20b.jpg", tr, map[string]string{
+			"imagekit": "/tr:w-300,c-at_max/photos/a%20b.jpg",
+			"bunny":    "/photos/a%20b.jpg?width=300",
+			"awssih":   "!\"web\", and this source is not a key on it",
+		}},
+		{"outside base_url", "https://other.example.com/media/a.jpg", tr, map[string]string{
+			"imagekit": "!nor a URL under its base_url: pick a key on it (xi://cdn/<key>)",
+			"bunny":    "!nor a URL under its base_url",
+		}},
+		{"key on the source", "xi://cdn/photos/a.jpg", tr, map[string]string{
+			"imagekit": "/tr:w-300,c-at_max/photos/a.jpg",
+		}},
+		{"not bound", "https://cdn.example.com/media/a.jpg", unbound, map[string]string{
+			"imagekit": "!no mount here binds it to one",
+			"bunny":    "!no mount here binds it to one",
+			"awssih":   "!no mount here binds it to one",
+		}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			res, err := tc.tr.Translate(&playground.TranslateRequest{Mount: "imgproxy", Path: "/rs:fit:300:0/plain/" + tc.src})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, tg := range res.Targets {
+				want, ok := tc.want[tg.Dialect]
+				if !ok {
+					continue
+				}
+				if msg, isErr := strings.CutPrefix(want, "!"); isErr {
+					if !strings.Contains(tg.Error, msg) || tg.Path != "" {
+						t.Errorf("%s: error %q, path %q; want an error containing %q", tg.Dialect, tg.Error, tg.Path, msg)
+					}
+					continue
+				}
+				if got := withQueryTest(tg.Path, tg.Query); got != want || tg.Error != "" {
+					t.Errorf("%s: %q (error %q), want %q", tg.Dialect, got, tg.Error, want)
+				}
+				if slices.Contains(keyed, tg.Dialect) && len(tg.Unsupported)+len(tg.Approximated) > 0 {
+					t.Errorf("%s: unsupported %v, approximated %v", tg.Dialect, tg.Unsupported, tg.Approximated)
+				}
+			}
+		})
+	}
+}

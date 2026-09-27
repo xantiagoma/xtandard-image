@@ -52,6 +52,10 @@ func testMeta() *Meta {
 			{ID: "imagekit", Dialect: "imagekit", Prefix: "/imagekit/", Scheme: SchemeNone, Grammar: GrammarPath, UnsignedPolicy: "allow"},
 			{ID: "imgix", Dialect: "imgix", Prefix: "/imgix/", Scheme: SchemeImgix, Keyed: true, Grammar: GrammarImgix, UnsignedPolicy: "restricted"},
 			{ID: "imgix[1]", Dialect: "imgix[1]", Prefix: "/imgix-open/", Scheme: SchemeImgix, Grammar: GrammarImgix, UnsignedPolicy: "allow"},
+			{
+				ID: "simple:ipx", Dialect: "simple:ipx", Prefix: "/_ipx/", Prefixes: []string{"/_ipx/", "/simple/ipx/"},
+				Scheme: SchemeNone, Grammar: GrammarPath, UnsignedPolicy: "allow",
+			},
 		},
 		Catalogues: []Catalogue{{Grammar: GrammarImgproxy, Options: []Option{{Name: "resize", Aliases: []string{"rs"}, Forms: []Form{{Args: []Arg{{Name: "type", Type: "enum", Enum: []string{"fit"}}}}}}}}},
 		Presets:    []string{"thumb"},
@@ -365,6 +369,21 @@ func TestSign(t *testing.T) {
 			t.Errorf("response %+v", out)
 		}
 	})
+	t.Run("mount prefixes", func(t *testing.T) {
+		t.Parallel()
+		for prefix, want := range map[string]string{
+			"": "/img/_ipx/w_300/a.jpg", "/_ipx/": "/img/_ipx/w_300/a.jpg", "/simple/ipx/": "/img/simple/ipx/w_300/a.jpg",
+		} {
+			out := signed(t, `{"mount":"simple:ipx","path":"/w_300/a.jpg","prefix":"`+prefix+`"}`)
+			if out.URL != want {
+				t.Errorf("prefix %q: %q, want %q", prefix, out.URL, want)
+			}
+		}
+		out := signed(t, `{"mount":"imgproxy","path":"`+src+`","prefix":"/"}`)
+		if !out.Signed || !strings.HasPrefix(out.URL, "/img/") {
+			t.Errorf("imgproxy on its own prefix: %+v", out)
+		}
+	})
 }
 
 func TestSignRejects(t *testing.T) {
@@ -376,6 +395,10 @@ func TestSignRejects(t *testing.T) {
 		status int
 	}{
 		{"unknown mount", func(t *testing.T) *http.Request { t.Helper(); return post(t, `{"mount":"nope","path":"/a"}`) }, http.StatusBadRequest},
+		{"unknown prefix", func(t *testing.T) *http.Request {
+			t.Helper()
+			return post(t, `{"mount":"simple:ipx","path":"/a","prefix":"/q/"}`)
+		}, http.StatusBadRequest},
 		{"relative path", func(t *testing.T) *http.Request { t.Helper(); return post(t, `{"mount":"imgproxy","path":"a.jpg"}`) }, http.StatusBadRequest},
 		{"space", func(t *testing.T) *http.Request {
 			t.Helper()

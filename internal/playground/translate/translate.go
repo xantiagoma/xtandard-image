@@ -50,6 +50,10 @@ type Options struct {
 	Presets *preset.Store
 	// Now is the clock of expiring URLs; nil means time.Now.
 	Now func() time.Time
+	// SourceBases maps named http sources to their base_url: an http(s)
+	// source under the base of a target's mount source is written as a
+	// key on it, the form ImageKit, Bunny and AWS SIH need.
+	SourceBases map[string]string
 }
 
 // target is one output dialect.
@@ -86,6 +90,8 @@ type Translator struct {
 	// back (without presets, which the canonical request already holds
 	// expanded).
 	input, check map[string]dialect.Dialect
+	// bases maps http source names to their canonical base_url.
+	bases map[string]string
 }
 
 var _ playground.Translator = (*Translator)(nil)
@@ -108,7 +114,15 @@ func New(o Options) (*Translator, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Translator{mounts: o.Mounts, sep: sep, input: input, check: check}, nil
+	bases := make(map[string]string, len(o.SourceBases))
+	for name, b := range o.SourceBases {
+		ref, err := source.ParseRef(b)
+		if err != nil || !(&src{ref: ref}).isHTTP() || ref.Query != "" {
+			continue // not rebased: URLs under it keep their absolute form
+		}
+		bases[name] = ref.String()
+	}
+	return &Translator{mounts: o.Mounts, sep: sep, input: input, check: check, bases: bases}, nil
 }
 
 // parsers builds one unsigned parser per dialect.
@@ -169,7 +183,7 @@ func (t *Translator) Translate(in *playground.TranslateRequest) (*playground.Tra
 	if req.Kind != transform.KindProcess {
 		return nil, badRequest("only processing URLs translate (not info or raw)")
 	}
-	norm := normalize(req)
+	norm := t.normalize(req)
 	canon, err := toMap(req)
 	if err != nil {
 		return nil, err
@@ -253,7 +267,10 @@ func (t *Translator) target(tg target, req, norm *transform.Request) playground.
 		out.Error = "the source cannot be written in URLs"
 		return out
 	}
-	e := &emitter{r: req, src: src, mountSource: mountSource, sep: t.sep}
+	if r, ok := t.rebase(src, mountSource); ok {
+		src = r
+	}
+	e := &emitter{r: req, src: src, mountSource: mountSource, mountBase: t.bases[mountSource], sep: t.sep}
 	p, q, err := tg.emit(e)
 	if err != nil {
 		out.Error = err.Error()
@@ -277,7 +294,7 @@ func (t *Translator) target(tg target, req, norm *transform.Request) playground.
 		out.Path, out.Query = "", ""
 		return out
 	}
-	out.Unsupported, out.Approximated = compare(norm, normalize(back))
+	out.Unsupported, out.Approximated = compare(norm, t.normalize(back))
 	return out
 }
 
@@ -347,15 +364,43 @@ func (s *src) keyOn(name string) (string, bool) {
 	return s.ref.RawPath, true
 }
 
+// rebase writes an http(s) source under the base_url of mountSource as a
+// key on it (xi://<mountSource>/<key>, which that source resolves back to
+// the same URL); ok is false when it is not under it.
+func (t *Translator) rebase(s src, mountSource string) (src, bool) {
+	b := t.bases[mountSource]
+	if b == "" || !s.isHTTP() || s.ref.Query != "" {
+		return s, false
+	}
+	key, ok := strings.CutPrefix(s.abs, b)
+	if !ok || key == "" {
+		return s, false
+	}
+	ref, err := source.ParseRef("xi://" + mountSource + "/" + key)
+	if err != nil || b+ref.RawPath != s.abs {
+		return s, false
+	}
+	return src{abs: ref.String(), ref: ref}, true
+}
+
+// absolute is s with a key on an http source with a base_url written as
+// the URL it resolves to, so both forms of one image compare equal.
+func (t *Translator) absolute(s src) string {
+	if b := t.bases[s.ref.Host]; b != "" && s.ref.Scheme == source.SchemeXI && s.ref.Query == "" {
+		return b + s.ref.RawPath
+	}
+	return s.abs
+}
+
 // normalize returns a copy of r with defaults applied and the fields that
 // never describe the output cleared, for compare.
-func normalize(r *transform.Request) *transform.Request {
+func (t *Translator) normalize(r *transform.Request) *transform.Request {
 	c := *r
 	c.Ignored = nil
 	c.Dialect = ""
 	c.Delivery.Presets = nil
 	if s, err := sourceOf(c.Source); err == nil {
-		c.Source = transform.SourceSpec{Raw: s.abs, Hashsum: c.Source.Hashsum}
+		c.Source = transform.SourceSpec{Raw: t.absolute(s), Hashsum: c.Source.Hashsum}
 	}
 	c.ApplyDefaults(transform.StandardDefaults())
 	for i := range c.Pipelines {
