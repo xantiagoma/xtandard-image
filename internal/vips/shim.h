@@ -104,7 +104,7 @@ typedef struct {
   int *delay;       // g_malloc'd copy, freed by the caller with xi_free
   int n_delay;
   char loader[48];  // vips-loader, e.g. "jpegload"
-  char subformat[16]; // heif-compression, e.g. "av1" or "hevc"
+  char subformat[16]; // heif-compression ("av1", "hevc") or magick-format ("TGA")
 } XiHeader;
 
 typedef struct {
@@ -192,6 +192,16 @@ int xi_raw_load(VipsBlob *blob, const XiRawOptions *o, VipsImage **out, char **e
 void xi_raw_cancel(int *flag);
 // Live LibRaw handles plus live demosaiced buffers (leak tests).
 int xi_raw_live(void);
+
+// ---- JPEG XR (jxr.c, jxrlib) --------------------------------------------
+
+// Registers the jxrload_buffer loader class (XiForeignLoadJxrBuffer) with
+// libvips; xi_init calls it before applying the loader allowlist.
+void xi_jxr_register(void);
+// The JPEG XR / HD Photo container signature.
+gboolean xi_is_jxr(const void *buf, size_t len);
+// Live jxrlib decoders plus live decoded buffers (leak tests).
+int xi_jxr_live(void);
 
 // ---- image accessors and metadata (image.c) ------------------------------
 

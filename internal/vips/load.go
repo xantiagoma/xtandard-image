@@ -80,7 +80,8 @@ func ProbeDensity(ctx context.Context, buf *Buffer, dpi float64) (Header, error)
 		BitDepth:       int(h.bits),
 		Loop:           int(h.loop),
 	}
-	out.Format = formatOfLoader(out.Loader, C.GoString(&h.subformat[0]))
+	out.Subformat = C.GoString(&h.subformat[0])
+	out.Format = formatOfLoader(out.Loader, out.Subformat)
 	if h.delay != nil {
 		for _, d := range unsafe.Slice(h.delay, int(h.n_delay)) {
 			out.Delay = append(out.Delay, int(d))
