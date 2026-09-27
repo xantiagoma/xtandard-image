@@ -44,9 +44,10 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   not playing (CSP `media-src blob:`) and translate 500 on `simple:*`) is **merged (#97)**. The demo
   runs `xtandard-image:main-gpl` built from main a394eca. `scripts/playground-check.ts` drives the UI
   in headless Chromium (41 checks).
-- **In flight (2026-09-27):** `m4/wp-91-92-detect-video-chains` (detection on the decoded video frame;
-  detections mapped through chained pipelines) and `m4/wp-93-base-malloc-conf` (MALLOC_CONF in the
-  base runtime, base revision bump). Commit trailer is now `Co-Authored-By: Claude Opus 5.5`.
+- **M4 backlog done (2026-09-27):** WP-91/92 (detection on video frames, detections mapped through
+  chains) merged as #99, WP-93 (MALLOC_CONF in the base, slim r3 / full+gpl r4, local only until the
+  `base-image` workflow runs) merged as #98. Demo runs `xtandard-image:main-gpl` from main 0bd3d7c.
+  Commit trailer is now `Co-Authored-By: Claude Opus 5.5`.
 - **Backlog after M3 (WP-91+):** face/object gravity on a single-frame video answers 422 (detection
   hands the container bytes to libvips; fix = detect on the decoded frame; composites already skip
   detection); `classify` has no model; detections are not used in chained pipelines; `/info` capability listing (encoders).
