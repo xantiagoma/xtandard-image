@@ -27,9 +27,9 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
 - **M3 is complete on `main`** (PR #93 merged, 4e8dc70; 0 open PRs). Every milestone package is
   merged and verified in the container (slim/full/gpl: 65 packages; acceptance 90/90).
 - **Next: first prerelease tag.** `docs/RELEASE.md` needs the `release` and `base-image` workflows
-  (multi-arch GHCR push, cosign, SBOM; the r3 `full`/`gpl` base tags are not on GHCR yet). Both are
+  (multi-arch GHCR push, cosign, SBOM; the r3 `slim` and r4 `full`/`gpl` base tags (WP-93) are not on GHCR yet). Both are
   disabled by the owner and the Actions minutes were exhausted until 2026-10-01. Ask the owner to
-  re-enable `base-image` (push to main publishes r3 full/gpl), then `release`, then tag `v0.1.0-rc.1`.
+  re-enable `base-image` (push to main publishes r3 slim, r4 full/gpl), then `release`, then tag `v0.1.0-rc.1`.
   A local-only tag without images on GHCR is not useful for a Docker-target project.
 - **M4:** WP-94 playground v2 is **merged (PR #95, owner-run merge; the session classifier denies merges without review, so ask
   the owner to run `gh pr merge`)**. The demo container `xtandard-play` on the tailnet (http://100.102.217.2:8080/_playground/)
@@ -46,8 +46,7 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   in headless Chromium (41 checks).
 - **Backlog after M3 (WP-91+):** face/object gravity on a single-frame video answers 422 (detection
   hands the container bytes to libvips; fix = detect on the decoded frame; composites already skip
-  detection); `classify` has no model; detections are not used in chained pipelines; `MALLOC_CONF`
-  in the base runtime image at the next base release; `/info` capability listing (encoders).
+  detection); `classify` has no model; detections are not used in chained pipelines; `/info` capability listing (encoders).
 - **Adoption recipe:** `scripts/stack/adopt2.sh - <branch> <n> "<title>" <body.md>`; on `MANUAL:` fix
   the file by hand (keep both sides for docs; README status matrix: take the most advanced status
   per row), `git add`, then loop `resolve.sh` + `GIT_EDITOR=true git rebase --continue`, then
@@ -101,7 +100,7 @@ owner has authorised merging PRs without review.
    verifies in the container and force-pushes; then adopt each with `adopt2.sh … 0`-style bookkeeping
    (`gh stack add`, `gh stack sync`, `gh stack submit --auto --open`, `gh pr edit`).
 5. Verification is the container: `XI_BASE_IMAGE=xtandard-base:dev-builder task docker:lint` and
-   `task docker:test`. Local images `xtandard-base:dev` / `dev-builder` are the r2 build.
+   `task docker:test`. Local images `xtandard-base:dev*` (slim, full, gpl) are the r3/r4/r4 build (WP-93).
    Host cgo builds need `CGO_LDFLAGS_ALLOW='-Xpreprocessor|-fopenmp' CGO_CFLAGS_ALLOW=-Xpreprocessor`.
 6. Merging: `gh stack merge <top PR> --yes --squash` merges the whole stack bottom-up; if GitHub
    refuses (`is part of a stack …`) or the remote grouping is stale, rebuild the stack
@@ -120,9 +119,8 @@ owner has authorised merging PRs without review.
 ## Known gaps and follow-ups
 
 - Peak RSS is still above imgproxy's after WP-87's `MALLOC_CONF=narenas:2` (png-alpha 400 px
-  WebP at 16 concurrent: ~180–210 MiB vs ~165–180 MiB; it was 2–5×; see `bench/RESULTS.md`). The
-  app image sets it; the base runtime image (`docker/base/Dockerfile`) does not yet, so images
-  built directly on the base keep jemalloc's 4 arenas per CPU until the next base release.
+  WebP at 16 concurrent: ~180–210 MiB vs ~165–180 MiB; it was 2–5×; see `bench/RESULTS.md`).
+  Both the app image and, since WP-93, every base runtime (r3 slim, r4 full/gpl) set it.
 - The PNG-alpha → WebP "14 % slower" gap did not reproduce under profiling (WP-87): the executor
   equals the bare libvips pipeline and libwebp is ~60 % of the CPU. Rerun the full bench on a quiet
   Linux host before quoting capacity.
