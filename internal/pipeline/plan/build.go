@@ -138,7 +138,7 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 		previewW: meta.PreviewWidth, previewH: meta.PreviewHeight,
 		enforceThumb: req.Output.EnforceThumbnail != nil && *req.Output.EnforceThumbnail,
 		hdr:          meta.HDR,
-		video:        meta.IsVideo && !meta.VideoComposite,
+		video:        meta.IsVideo && !meta.VideoComposite && !meta.FrameDecoded,
 		dets:         meta.Detections,
 	}
 	switch {

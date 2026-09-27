@@ -157,6 +157,8 @@ type processor struct {
 	exec   *exec.Executor
 	enc    encode.Config
 	pdfDPI float64 // XI_FORMATS_PDF_DPI: the density PDF sizes were probed at
+	// video selects the frame of a video source detection runs on.
+	video video.Settings
 	// detect runs face and object detection for the detection gravities
 	// and filters (WP-72/73); nil is no detection (tests), like a detector
 	// that is off or unavailable (slim).
@@ -205,7 +207,7 @@ func newProcessor(cfg *config.Config, wm *exec.Watermark, admit func(context.Con
 	if err != nil {
 		return nil, err
 	}
-	return &processor{exec: ex, enc: ec, pdfDPI: cfg.Formats.PDF.DPI}, nil
+	return &processor{exec: ex, enc: ec, pdfDPI: cfg.Formats.PDF.DPI, video: videoSettings(cfg)}, nil
 }
 
 // planLimits are the planner limits of the executor, shared with the
@@ -316,12 +318,30 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		return nil, err
 	}
 	meta := planMeta(format, &in.Meta, p.pdfDPI)
+	session, _ := in.Meta.Session.(*codec.VideoSession) // owned by the server, which closes it
 	// Detections describe one upright picture of the source; a video
 	// sprite or animation (vtt, vta) is assembled from many frames, so it
 	// is not detected: the planner falls back to the smart crop and lists
-	// the detection options as unplanned, like a chained pipeline.
+	// the detection options as unplanned. A single-frame video is detected
+	// on the frame the request selects, decoded once for detection and
+	// processing (WP-91).
+	var frame *codec.DecodedFrame
+	defer func() { frame.Release() }()
 	if !meta.VideoComposite {
-		if meta.Detections, err = p.detect.forRequest(ctx, src, format, plan.NeedsDetection(in.Request)); err != nil {
+		ds := imageSource(src, format)
+		if meta.IsVideo {
+			ds.frame = func(ctx context.Context) (*codec.DecodedFrame, int, error) {
+				if frame == nil {
+					f, err := p.decodeFrame(ctx, src, session, in.Request)
+					if err != nil {
+						return nil, 0, err
+					}
+					frame = f
+				}
+				return frame, meta.Orientation, nil
+			}
+		}
+		if meta.Detections, err = p.detect.forRequest(ctx, ds, plan.NeedsDetection(in.Request)); err != nil {
 			return nil, err
 		}
 	}
@@ -331,9 +351,11 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		Meta:       meta,
 		Target:     t,
 		Watermarks: marks,
+		Video:      session,
 	}
-	if vs, ok := in.Meta.Session.(*codec.VideoSession); ok {
-		job.Video = vs // owned by the server, which closes it
+	if frame != nil {
+		job.Frame = frame
+		job.Meta.FrameDecoded = true
 	}
 	if in.Decision.Reason == negotiate.ReasonBest {
 		job.Best = &in.Decision
@@ -355,6 +377,21 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 		VideoFrame:  res.VideoFrame.String(),
 		VideoCodec:  res.VideoCodec,
 	}, nil
+}
+
+// decodeFrame decodes the frame of a video source that req's first
+// pipeline selects (video_thumbnail_second, _keyframes, else
+// XI_VIDEO_THUMBNAIL_*), at the display size, on the probe's handle.
+func (p *processor) decodeFrame(ctx context.Context, src *vips.Buffer, sess *codec.VideoSession, req *transform.Request) (*codec.DecodedFrame, error) {
+	var second *float64
+	var keyframes *bool
+	if len(req.Pipelines) > 0 {
+		if vo := req.Pipelines[0].Video; vo != nil {
+			second, keyframes = vo.Second, vo.Keyframes
+		}
+	}
+	fr := p.video.Request(second, keyframes, 0, 0)
+	return codec.DecodeVideoFrame(ctx, src, sess, &fr)
 }
 
 // watermarkImages hands the request's watermark images to the executor:
