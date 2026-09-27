@@ -18,7 +18,10 @@ type emitter struct {
 	// mountSource is the named source the target's mount binds (keys on
 	// it are written relative); "" when not mounted or unbound.
 	mountSource string
-	sep         string
+	// mountBase is the base_url of mountSource when it is an http source
+	// with one (never shown: the playground does not reveal base URLs).
+	mountBase string
+	sep       string
 }
 
 // pl is the first pipeline (a zero one when the request has none).
@@ -31,6 +34,24 @@ func (e *emitter) pl() *transform.Pipeline {
 
 // errSource is returned when a dialect cannot address the source.
 func errSource(msg string) error { return errors.New(msg) }
+
+// errNeedsKey is why a dialect that addresses images by path on its
+// mount's source (ImageKit's URL endpoint, Bunny's pull zone, AWS SIH's
+// bucket) cannot write the source: it is not a key on that source, nor an
+// http(s) URL under the source's base_url.
+func (e *emitter) errNeedsKey(dialect string) error {
+	if e.mountSource == "" {
+		return fmt.Errorf("%s addresses images by path on its mount's source, and no mount here binds it to one: "+
+			"mount it with a source (a local or keyed source, or an http source with base_url)", dialect)
+	}
+	if e.mountBase != "" {
+		return fmt.Errorf("%s addresses images by path on its mount's source %q, and this source is neither a key on it "+
+			"nor a URL under its base_url: pick a key on it (xi://%s/<key>)", dialect, e.mountSource, e.mountSource)
+	}
+	return fmt.Errorf("%s addresses images by path on its mount's source %q, and this source is not a key on it: "+
+		"pick a key on it (xi://%s/<key>, a local or keyed source), or bind the mount to an http source with base_url "+
+		"so URLs under it translate", dialect, e.mountSource, e.mountSource)
+}
 
 // num formats a float without trailing zeros ("0.5", "300").
 func num(f float64) string { return strconv.FormatFloat(f, 'f', -1, 64) }

@@ -13,7 +13,36 @@ export class Matrix {
     this.mount = meta.mounts.find((m) => m.grammar === 'imgproxy' && m.prefix);
     this.rows = [];
     this.built = false;
+    this.sort = null; // {key, dir}
     $('matrix-run').addEventListener('click', () => this.runAll());
+    for (const th of $('matrix').tHead.querySelectorAll('th[data-sort]')) {
+      th.querySelector('button').addEventListener('click', () => this.sortBy(th.dataset.sort));
+    }
+  }
+
+  // sortBy orders the rows by a column; a second click reverses. Status
+  // puts failures first, then rows not run yet, successes, and samples no
+  // source allows.
+  sortBy(key) {
+    const dir = this.sort?.key === key && this.sort.dir === 1 ? -1 : 1;
+    this.sort = { key, dir };
+    const rank = (r) => (!r.e.allowed ? 3 : r.ok === false ? 0 : r.ok ? 2 : 1);
+    const value = {
+      format: (r) => r.e.format,
+      name: (r) => r.e.name,
+      time: (r) => r.ms ?? Infinity,
+      status: rank,
+    }[key];
+    const rows = [...this.rows].sort((a, b) => {
+      const x = value(a);
+      const y = value(b);
+      const c = typeof x === 'string' ? x.localeCompare(y) : x - y;
+      return (c || a.i - b.i) * dir;
+    });
+    $('matrix').tBodies[0].append(...rows.map((r) => r.tr));
+    for (const th of $('matrix').tHead.querySelectorAll('th[data-sort]')) {
+      th.setAttribute('aria-sort', th.dataset.sort === key ? (dir === 1 ? 'ascending' : 'descending') : 'none');
+    }
   }
 
   entries() {
@@ -36,7 +65,7 @@ export class Matrix {
       const retry = el('button', { type: 'button', class: 'small', text: 'Run', 'aria-label': `Run ${e.name}` });
       const tr = el('tr', {}, el('td', { text: e.format }), el('td', { text: e.name, title: e.source }),
         cells.probe, cells.thumb, cells.time, cells.bytes, cells.result, el('td', {}, retry));
-      const row = { e, tr, cells };
+      const row = { e, tr, cells, i: this.rows.length };
       retry.addEventListener('click', () => this.run(row));
       if (!e.allowed) {
         cells.result.textContent = 'no http source allows this host';
@@ -65,12 +94,19 @@ export class Matrix {
     $('matrix-run').disabled = false;
     const ok = this.rows.filter((r) => r.ok).length;
     status.textContent = `${ok} of ${this.rows.length} samples rendered.`;
+    if (this.sort) {
+      const { key, dir } = this.sort;
+      this.sort = { key, dir: -dir }; // sortBy flips it back
+      this.sortBy(key);
+    }
   }
 
   async run(row) {
     const { e, cells } = row;
     for (const c of Object.values(cells)) c.replaceChildren();
     cells.result.textContent = '…';
+    row.ok = undefined;
+    row.ms = undefined;
     const src = escapePlain(e.source);
     const prefix = (this.meta.path_prefix || '').replace(/\/+$/, '') + (this.mount.prefix || '/').replace(/\/+$/, '');
     const started = performance.now();
@@ -89,6 +125,7 @@ export class Matrix {
       const tres = await fetch(`api/render?u=${encodeURIComponent(tSigned.url)}`, { headers: { Accept: 'image/webp,*/*' } });
       const blob = await tres.blob();
       const elapsed = performance.now() - started;
+      row.ms = elapsed;
       cells.time.textContent = fmtMs(elapsed);
       cells.result.replaceChildren();
       if (tres.ok) {

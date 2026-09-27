@@ -33,7 +33,10 @@ export class Preview {
     this.ty = 0;
     this.lastBefore = '';
     this.detections = null;
+    this.mediaSize = null; // {w, h} of both media when zoomed, else null
+    this.size = null; // natural size the stage takes its aspect from
     this.wire();
+    this.layout();
   }
 
   wire() {
@@ -73,7 +76,7 @@ export class Preview {
       } else {
         this.tx = e.clientX - drag.x;
         this.ty = e.clientY - drag.y;
-        this.applyZoom();
+        this.position();
       }
     });
     const end = () => { drag = null; stage.classList.remove('panning'); };
@@ -82,13 +85,25 @@ export class Preview {
     $('view-mode').addEventListener('change', (e) => this.setMode(e.target.value));
     $('zoom').addEventListener('change', (e) => this.setZoom(e.target.value));
     $('checker').addEventListener('change', (e) => stage.classList.toggle('checker', e.target.checked));
-    new ResizeObserver(() => this.drawDetections()).observe(stage);
+    // Zoomed, the stage is focusable and the arrow keys pan (Shift: 4×).
+    stage.addEventListener('keydown', (e) => {
+      const step = e.shiftKey ? 160 : 40;
+      const d = { ArrowLeft: [step, 0], ArrowRight: [-step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] }[e.key];
+      if (!d || !this.mediaSize || e.target !== stage) return;
+      e.preventDefault();
+      this.tx += d[0];
+      this.ty += d[1];
+      this.position();
+    });
+    // position() never changes the stage's size, so observing it cannot
+    // loop.
+    new ResizeObserver(() => this.position()).observe(stage);
   }
 
   setMode(mode) {
     $('view-mode').value = mode;
     $('stage').dataset.mode = mode;
-    this.drawDetections();
+    this.layout();
   }
 
   toggleMode() { this.setMode($('stage').dataset.mode === 'slider' ? 'side' : 'slider'); }
@@ -99,25 +114,62 @@ export class Preview {
     this.tx = 0;
     this.ty = 0;
     $('stage').classList.toggle('fit', z === 'fit');
-    this.applyZoom();
+    this.layout();
   }
 
-  // applyZoom sizes both media to the result's natural width × zoom, so
-  // the slider compares the same area of both images.
-  applyZoom() {
-    const after = $('after-media').firstElementChild;
-    const natural = after?.naturalWidth || after?.videoWidth || 0;
+  // natural is the intrinsic size of the before or after media, or null.
+  natural(which) {
+    const m = $(`${which}-media`).firstElementChild;
+    const w = m?.naturalWidth || m?.videoWidth || 0;
+    const h = m?.naturalHeight || m?.videoHeight || 0;
+    return w && h ? { w, h } : null;
+  }
+
+  // layout gives the stage the result's aspect ratio (the source's when
+  // there is no result), so neither image is ever cropped: fit scales the
+  // box to at most 70vh high and the column's width; 1× and 2× size a
+  // viewport of the same bounds over media at the result's natural size ×
+  // zoom. Side by side is two such boxes. Both media share one box and are
+  // drawn with object-fit: contain, so a source of another aspect is
+  // letterboxed on the checkerboard and the slider compares the same area.
+  layout() {
+    const stage = $('stage');
+    const size = this.natural('after') ?? this.natural('before');
+    const cols = stage.dataset.mode === 'side' ? 2 : 1;
+    const ar = size ? size.w / size.h : 16 / 10;
+    stage.style.setProperty('--stage-ar', String(ar * cols));
+    const zoomed = this.zoom !== 'fit' && size;
+    const z = Number(this.zoom);
+    stage.style.setProperty('--zw', zoomed ? `${size.w * z * cols}px` : '100%');
+    stage.style.setProperty('--zh', zoomed ? `${size.h * z}px` : '70vh');
+    this.mediaSize = zoomed ? { w: size.w * z, h: size.h * z } : null;
+    this.size = size;
+    stage.tabIndex = zoomed ? 0 : -1;
+    this.position();
+  }
+
+  // position places both media for the current pan (clamped so the image
+  // never leaves the box it covers) and redraws the detections. It never
+  // changes the stage's size.
+  position() {
+    const pane = $('pane-after').getBoundingClientRect();
+    const ms = this.mediaSize;
+    if (ms) {
+      const mx = Math.max(0, (ms.w - pane.width) / 2);
+      const my = Math.max(0, (ms.h - pane.height) / 2);
+      this.tx = Math.max(-mx, Math.min(mx, this.tx));
+      this.ty = Math.max(-my, Math.min(my, this.ty));
+    }
     for (const id of ['before-media', 'after-media']) {
       const m = $(id).firstElementChild;
-      if (!m) continue;
-      if (this.zoom === 'fit' || !natural) {
-        m.style.width = '';
-        m.style.transform = '';
-      } else {
-        m.style.width = `${natural * Number(this.zoom)}px`;
-        m.style.transform = `translate(${this.tx}px, ${this.ty}px)`;
-      }
+      if (!m || m.tagName === 'PRE' || m.tagName === 'P') continue;
+      m.style.width = ms ? `${ms.w}px` : '';
+      m.style.height = ms ? `${ms.h}px` : '';
+      m.style.transform = ms ? `translate(-50%, -50%) translate(${this.tx}px, ${this.ty}px)` : '';
     }
+    // Upscaled more than 2× (a small icon in fit mode): show pixels.
+    const s = this.size;
+    $('stage').classList.toggle('upscaled', Boolean(s) && Math.min(pane.width / s.w, pane.height / s.h) > 2);
     this.drawDetections();
   }
 
@@ -171,21 +223,24 @@ export class Preview {
     if (type.startsWith('video/')) {
       node = el('video', { src: url, controls: true, autoplay: true, loop: true, muted: true, playsinline: true, 'aria-label': `${which} video` });
       node.muted = true;
-      node.addEventListener('loadedmetadata', () => { this.applyZoom(); this.stats(); });
+      node.addEventListener('loadedmetadata', () => { this.layout(); this.stats(); });
     } else if (type.startsWith('image/')) {
       node = el('img', { src: url, alt: which === 'after' ? 'Result' : 'Source', decoding: 'async', draggable: 'false' });
-      node.addEventListener('load', () => { this.applyZoom(); this.stats(); });
+      node.addEventListener('load', () => { this.layout(); this.stats(); });
     } else {
       node = el('pre', { class: 'text-result', text: (await blob.text()).slice(0, 20000) });
     }
     media.replaceChildren(node);
+    this.layout();
   }
 
   error(which, msg) {
     if (which === 'before') {
       $('before-media').replaceChildren(el('p', { class: 'error', text: `Source: ${msg}` }));
+      this.layout();
       return;
     }
+    this.layout();
     const e = $('render-error');
     e.hidden = false;
     e.textContent = msg;
@@ -252,7 +307,7 @@ export class Preview {
     const overlay = $('det-overlay');
     overlay.replaceChildren();
     const img = $('before-media').firstElementChild;
-    if (!this.detections?.length || !$('show-detections').checked || !img || $('stage').dataset.mode === 'result') {
+    if (!this.detections?.length || !$('show-detections').checked || !this.natural('before') || $('stage').dataset.mode === 'result') {
       overlay.style.display = 'none';
       return;
     }

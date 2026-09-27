@@ -44,8 +44,8 @@ var assets embed.FS
 const DefaultPath = "/_playground"
 
 // csp allows only same-origin scripts, styles and requests; result images
-// are shown from blob: URLs of same-origin responses.
-const csp = "default-src 'self'; img-src 'self' blob: data:; object-src 'none'; base-uri 'none'; " +
+// and videos are shown from blob: URLs of same-origin responses.
+const csp = "default-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; " +
 	"form-action 'none'; frame-ancestors 'none'"
 
 // renderCSP applies to rendered images opened directly (an SVG result must

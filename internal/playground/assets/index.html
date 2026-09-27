@@ -12,6 +12,7 @@
 </head>
 <body>
 <a class="skip" href="#builder-title">Skip to the option builder</a>
+<a class="skip" href="#preview-title">Skip to the preview</a>
 <header class="top">
   <div class="brand">
     <h1>xtandard-image <span>playground</span></h1>
@@ -32,7 +33,7 @@
 
 <aside id="help" class="notice" hidden aria-label="Keyboard shortcuts">
   <p><kbd>/</kbd> search options · <kbd>Enter</kbd> (in the builder) render now · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> render from anywhere ·
-    <kbd>c</kbd> copy the URL · <kbd>s</kbd> toggle slider / side by side · <kbd>1</kbd> <kbd>2</kbd> <kbd>0</kbd> zoom 1×, 2×, fit · <kbd>?</kbd> this help</p>
+    <kbd>c</kbd> copy the URL · <kbd>s</kbd> toggle slider / side by side · <kbd>1</kbd> <kbd>2</kbd> <kbd>0</kbd> zoom 1×, 2×, fit · arrow keys pan the zoomed preview (focus it first) · <kbd>?</kbd> this help</p>
   <p class="hint">Signing happens on the server: keys never reach this page. Anyone who can open it can sign URLs, so keep it on the private admin listener.</p>
 </aside>
 
@@ -80,6 +81,11 @@
       <h2 id="dialect-title">Dialect</h2>
       <label for="mount">Mount</label>
       <select id="mount"></select>
+      <div id="prefix-row" hidden>
+        <label for="mount-prefix">Prefix</label>
+        <select id="mount-prefix" aria-describedby="prefix-hint"></select>
+        <p class="hint" id="prefix-hint">This mount answers on several prefixes; URLs are built on the one picked here.</p>
+      </div>
       <p class="hint" id="mount-info"></p>
       <details class="server">
         <summary>Server settings</summary>
@@ -96,7 +102,7 @@
     </section>
 
     <section class="panel builder" aria-labelledby="builder-title">
-      <h2 id="builder-title">Options</h2>
+      <h2 id="builder-title" tabindex="-1">Options</h2>
       <div class="search-row">
         <label for="option-search" class="sr">Search options</label>
         <input id="option-search" type="search" autocomplete="off" spellcheck="false" placeholder="Search options (/): name, alias or description">
@@ -150,8 +156,8 @@
 
     <section class="panel" aria-labelledby="preview-title">
       <div class="panel-head">
-        <h2 id="preview-title">Preview</h2>
-        <div class="row wrap toolbar" role="toolbar" aria-label="Preview controls">
+        <h2 id="preview-title" tabindex="-1">Preview</h2>
+        <div class="row wrap toolbar" role="group" aria-label="Preview controls">
           <button type="button" id="render" class="primary" title="Ctrl+Enter">Render</button>
           <label class="inline"><input type="checkbox" id="auto-render" checked> live</label>
           <select id="view-mode" aria-label="Comparison view">
@@ -168,7 +174,7 @@
           <label class="inline"><input type="checkbox" id="show-detections"> detections</label>
         </div>
       </div>
-      <div id="stage" class="stage fit checker" data-mode="slider">
+      <div id="stage" class="stage fit checker" data-mode="slider" role="group" aria-label="Source and result comparison (arrow keys pan when zoomed)">
         <div class="pane before" id="pane-before"><span class="tag">Source</span><div class="media" id="before-media"></div><svg class="overlay" id="det-overlay" aria-hidden="true"></svg></div>
         <div class="pane after" id="pane-after"><span class="tag">Result</span><div class="media" id="after-media"></div></div>
         <div class="handle" id="handle" aria-hidden="true"></div>
@@ -211,8 +217,13 @@
         <p class="hint">Probes every sample with <code>/info</code> and a 160 px thumbnail through the first imgproxy mount, two at a time.</p>
         <div class="row wrap"><button type="button" id="matrix-run" class="primary">Run all</button><span id="matrix-status" class="status" role="status"></span></div>
         <div class="table-wrap"><table class="matrix" id="matrix"><thead><tr>
-          <th scope="col">Format</th><th scope="col">Sample</th><th scope="col">Probe</th><th scope="col">Thumbnail</th>
-          <th scope="col">Time</th><th scope="col">Bytes</th><th scope="col">Result</th><th scope="col"><span class="sr">Retry</span></th>
+          <th scope="col" data-sort="format" aria-sort="none"><button type="button" class="sort">Format</button></th>
+          <th scope="col" data-sort="name" aria-sort="none"><button type="button" class="sort">Sample</button></th>
+          <th scope="col">Probe</th><th scope="col">Thumbnail</th>
+          <th scope="col" data-sort="time" aria-sort="none"><button type="button" class="sort">Time</button></th>
+          <th scope="col">Bytes</th>
+          <th scope="col" data-sort="status" aria-sort="none"><button type="button" class="sort">Result</button></th>
+          <th scope="col"><span class="sr">Retry</span></th>
         </tr></thead><tbody></tbody></table></div>
       </div>
     </section>

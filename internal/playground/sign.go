@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/xantiagoma/xtandard-image/internal/obs/logging"
@@ -25,6 +26,17 @@ type badRequestError struct{ msg string }
 func (e *badRequestError) Error() string { return "playground: " + e.msg }
 
 func badRequest(msg string) error { return &badRequestError{msg: msg} }
+
+// ClientError is an error the API answers with 400 and msg, for
+// Translator implementations: a request the translator cannot handle is
+// the client's, not a server failure.
+func ClientError(msg string) error { return badRequest(msg) }
+
+// IsClientError reports whether err wraps a ClientError.
+func IsClientError(err error) bool {
+	_, ok := errors.AsType[*badRequestError](err)
+	return ok
+}
 
 // sign answers POST api/sign: the URL for a mount, signed with the server's
 // key for that mount when it holds one.
@@ -49,6 +61,11 @@ func (h *handler) sign(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusBadRequest, "unknown mount")
 		return
 	}
+	m, ok = m.at(req.Prefix)
+	if !ok {
+		writeJSONError(w, http.StatusBadRequest, "unknown prefix for this mount")
+		return
+	}
 	res, err := SignURL(m, h.signers[m.ID], req.Path, req.Query)
 	if err != nil {
 		if e, ok := errors.AsType[*badRequestError](err); ok {
@@ -61,6 +78,19 @@ func (h *handler) sign(w http.ResponseWriter, r *http.Request) {
 	}
 	res.URL = h.pathPrefix + res.URL
 	writeJSON(w, http.StatusOK, res)
+}
+
+// at is m answering on prefix p, one of its Prefixes; "" is m itself.
+func (m *Mount) at(p string) (*Mount, bool) {
+	if p == "" || p == m.Prefix {
+		return m, true
+	}
+	if !slices.Contains(m.Prefixes, p) {
+		return nil, false
+	}
+	c := *m
+	c.Prefix = p
+	return &c, true
 }
 
 // SignURL builds the URL of path and query (after the mount prefix) on

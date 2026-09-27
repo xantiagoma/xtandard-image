@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -294,5 +295,44 @@ func checkPlaygroundV2(t *testing.T, admin, public string, m *playground.Meta) {
 	list := get(t, admin+"/_playground/api/sources/"+m.Sources[0].Name+"/list?prefix=jpeg")
 	if list.status != http.StatusOK || !bytes.Contains(list.body, []byte(`"key":"jpeg/baseline.jpg"`)) {
 		t.Errorf("list: %d %s", list.status, list.body)
+	}
+}
+
+// TestPlaygroundMetaMergesPrefixes: the router lists a simple provider
+// once per prefix; api/meta lists it once with every prefix.
+func TestPlaygroundMetaMergesPrefixes(t *testing.T) {
+	t.Parallel()
+	cfg, _, err := config.Load(config.LoadOptions{Environ: []string{
+		"XI_DEV_MODE=true",
+		"XI_DIALECTS_SIMPLE_ENABLED=supabase,ipx,shopify",
+		"XI_PLAYGROUND_ENABLED=true",
+	}, ConfigFile: os.DevNull})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rt, _, err := buildRouter(&cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	meta, _, err := playgroundMeta(&cfg, rt, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string][]string{}
+	for _, m := range meta.Mounts {
+		if _, dup := got[m.ID]; dup {
+			t.Errorf("mount %s listed twice", m.ID)
+		}
+		got[m.ID] = append([]string{m.Prefix}, m.Prefixes...)
+	}
+	want := map[string][]string{
+		"simple:supabase": {"/storage/v1/render/image/public/", "/storage/v1/render/image/public/", "/storage/v1/object/public/", "/simple/supabase/"},
+		"simple:ipx":      {"/_ipx/", "/_ipx/", "/simple/ipx/"},
+		"simple:shopify":  {"/simple/shopify/"},
+	}
+	for id, w := range want {
+		if !slices.Equal(got[id], w) {
+			t.Errorf("%s: prefix and prefixes %v, want %v", id, got[id], w)
+		}
 	}
 }

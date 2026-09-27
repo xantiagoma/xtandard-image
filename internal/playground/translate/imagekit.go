@@ -145,7 +145,7 @@ func imagekitStep(p *transform.Pipeline) []string {
 func emitImagekit(e *emitter) (string, string, error) {
 	key, ok := e.src.keyOn(e.mountSource)
 	if !ok {
-		return "", "", errSource("ImageKit takes a key on the mount's source (its URL endpoint)")
+		return "", "", e.errNeedsKey("ImageKit")
 	}
 	steps := make([]string, 0, len(e.r.Pipelines))
 	for i := range e.r.Pipelines {

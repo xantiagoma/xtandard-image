@@ -6430,6 +6430,16 @@
             "description": "Path prefix; empty for host-only mounts.",
             "type": "string"
           },
+          "prefixes": {
+            "description": "Every path prefix of the mount, prefix first, when it has more than one (simple providers: native prefixes and /simple/\u003cname\u003e/).",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "scheme": {
             "description": "Signature the sign endpoint computes for this mount.",
             "enum": [
@@ -6588,6 +6598,11 @@
             "minLength": 1,
             "type": "string"
           },
+          "prefix": {
+            "description": "One of the mount's prefixes; empty means its first prefix.",
+            "maxLength": 512,
+            "type": "string"
+          },
           "query": {
             "description": "Raw query without ?; an existing xi_sig is replaced.",
             "maxLength": 8192,
@@ -6696,6 +6711,24 @@
         ],
         "type": "object"
       },
+      "PlaygroundTranslateAlternate": {
+        "additionalProperties": false,
+        "properties": {
+          "prefix": {
+            "description": "The mount prefix.",
+            "type": "string"
+          },
+          "url": {
+            "description": "Path and query on the public listener, signed like url.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "prefix",
+          "url"
+        ],
+        "type": "object"
+      },
       "PlaygroundTranslateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -6747,6 +6780,16 @@
       "PlaygroundTranslateTarget": {
         "additionalProperties": false,
         "properties": {
+          "alternates": {
+            "description": "The same URL on the mount's other prefixes (mounts with several prefixes).",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundTranslateAlternate"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "approximated": {
             "description": "Canonical fields this dialect expresses with a different value.",
             "items": {

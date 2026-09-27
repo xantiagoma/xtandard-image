@@ -94,6 +94,14 @@ type TranslateTarget struct {
 	// Error is set when the transform cannot be written in the dialect
 	// at all (for example its source form).
 	Error string `json:"error,omitempty" doc:"Why the transform cannot be written in this dialect at all."`
+	// Alternates are the URL on the mount's other prefixes.
+	Alternates []TranslateAlternate `json:"alternates,omitempty" doc:"The same URL on the mount's other prefixes (mounts with several prefixes)."`
+}
+
+// TranslateAlternate is a target's URL on another prefix of its mount.
+type TranslateAlternate struct {
+	Prefix string `json:"prefix" doc:"The mount prefix."`
+	URL    string `json:"url" doc:"Path and query on the public listener, signed like url."`
 }
 
 // Translator translates a URL or canonical request into every dialect
@@ -182,6 +190,15 @@ func (h *handler) translate(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		t.URL, t.Signed = h.pathPrefix+s.URL, s.Signed
+		for _, p := range m.Prefixes {
+			alt, ok := m.at(p)
+			if !ok || p == m.Prefix {
+				continue
+			}
+			if s, err := SignURL(alt, h.signers[m.ID], t.Path, t.Query); err == nil {
+				t.Alternates = append(t.Alternates, TranslateAlternate{Prefix: p, URL: h.pathPrefix + s.URL})
+			}
+		}
 	}
 	writeJSON(w, http.StatusOK, res)
 }
