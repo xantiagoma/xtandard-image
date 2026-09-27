@@ -52,7 +52,7 @@ func dpr(name, typ, group, example, doc string, lo, hi float64) dparam {
 func dialectCatalogue(grammar string, ps []dparam) playground.Catalogue {
 	opts := make([]playground.Option, 0, len(ps))
 	for _, p := range ps {
-		o := playground.Option{Name: p.name, Doc: p.doc, Group: p.group, Example: p.example, Forms: []playground.Form{{}}}
+		o := playground.Option{Name: p.name, Doc: p.doc, Group: p.group, Example: p.example, Forms: []playground.Form{{Args: []playground.Arg{}}}}
 		if p.typ != "flag" {
 			o.Forms[0].Args = []playground.Arg{{Name: "value", Type: p.typ, Enum: p.enum, Min: p.min, Max: p.max, Doc: p.doc}}
 		}

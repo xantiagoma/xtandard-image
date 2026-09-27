@@ -80,7 +80,7 @@ func imgproxyCatalogue() playground.Catalogue {
 		forms := make([]playground.Form, 0, len(o.Forms))
 		for j := range o.Forms {
 			f := &o.Forms[j]
-			forms = append(forms, playground.Form{Args: args(f.Args), Rest: args(f.Rest), MinItems: f.MinItems})
+			forms = append(forms, playground.Form{Args: append([]playground.Arg{}, args(f.Args)...), Rest: args(f.Rest), MinItems: f.MinItems})
 		}
 		opts = append(opts, playground.Option{
 			Name: o.Name, Aliases: o.Aliases, Doc: o.Doc, Forms: forms,

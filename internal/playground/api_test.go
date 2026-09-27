@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -288,6 +290,31 @@ func TestTranslateEndpoint(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	if code, body := serve(t, failing, req); code != http.StatusBadRequest || !strings.Contains(string(body), "invalid width") {
 		t.Errorf("parse error = %d %s", code, body)
+	}
+}
+
+// TestModulesServed: every module app.js imports is served next to it.
+func TestModulesServed(t *testing.T) {
+	t.Parallel()
+	f := newFixture(t)
+	_, page := f.do(t, get(t, "/_playground/"))
+	m := regexp.MustCompile(`assets/([0-9a-f]{12})/app\.js`).FindSubmatch(page)
+	if m == nil {
+		t.Fatal("no versioned app.js")
+	}
+	app, err := fs.ReadFile(assets, "assets/app.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	imports := regexp.MustCompile(`from '\./([a-z0-9-]+\.js)'`).FindAllSubmatch(app, -1)
+	if len(imports) < 5 {
+		t.Fatalf("app.js imports %d modules", len(imports))
+	}
+	for _, im := range imports {
+		res, body := f.do(t, get(t, "/_playground/assets/"+string(m[1])+"/"+string(im[1])))
+		if res.StatusCode != http.StatusOK || res.Header.Get("Content-Type") != "text/javascript; charset=utf-8" || len(body) == 0 {
+			t.Errorf("%s: %d %q", im[1], res.StatusCode, res.Header.Get("Content-Type"))
+		}
 	}
 }
 

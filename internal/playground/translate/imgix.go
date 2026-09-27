@@ -102,8 +102,6 @@ func imgixFit(p *transform.Pipeline, q *params) {
 		sized := !rs.Width.IsZero() || !rs.Height.IsZero()
 		if !rs.Enlarge && sized {
 			q.set("fit", "max")
-		} else if rs.Width.IsZero() && rs.Height.IsZero() {
-			q.set("fit", "clip")
 		}
 	}
 	if crop && !isDefaultGravity(p.Gravity) {
