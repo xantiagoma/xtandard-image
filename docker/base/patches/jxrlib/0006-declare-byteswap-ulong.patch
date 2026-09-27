@@ -1,0 +1,33 @@
+From: YOKOTA Hiroshi <yokota.hgml@gmail.com>
+Date: Thu, 25 Jul 2024 15:03:31 +0900
+Subject: jxrlib: ftbfs with GCC-14
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+Bug-Debian: https://bugs.debian.org/1075105
+
+_byteswap_ulong() is defined in image/sys/strcodec.c
+
+----
+/usr/bin/cc -DDISABLE_PERF_MEASUREMENT -D__ANSI__ -Djpegxr_EXPORTS -I"/<<PKGBUILDDIR>>/common/include" -I"/<<PKGBUILDDIR>>/image/sys" -I"/<<PKGBUILDDIR>>/jxrgluelib" -I"/<<PKGBUILDDIR>>/jxrtestlib" -g -O2 -Werror=implicit-function-declaration -ffile-prefix-map=/<<PKGBUILDDIR>>=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -fcf-protection -Wall -Wextra -Wdate-time -D_FORTIFY_SOURCE=2 -fPIC -w -MD -MT CMakeFiles/jpegxr.dir/image/encode/strenc.c.o -MF CMakeFiles/jpegxr.dir/image/encode/strenc.c.o.d -o CMakeFiles/jpegxr.dir/image/encode/strenc.c.o -c "/<<PKGBUILDDIR>>/image/encode/strenc.c"
+/<<PKGBUILDDIR>>/image/decode/segdec.c: In function ‘_load4’:
+/<<PKGBUILDDIR>>/image/decode/segdec.c:68:12: error: implicit declaration of function ‘_byteswap_ulong’ [-Wimplicit-function-declaration]
+   68 |     return _byteswap_ulong(v);
+      |            ^~~~~~~~~~~~~~~
+---
+ image/decode/segdec.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/image/decode/segdec.c b/image/decode/segdec.c
+index 3c890af..5d55f06 100644
+--- a/image/decode/segdec.c
++++ b/image/decode/segdec.c
+@@ -63,6 +63,7 @@ static U32 _FORCEINLINE _load4(void* pv)
+     v |= ((U32)((U16 *) pv)[1]) << 16;
+     return _byteswap_ulong(v);
+ #else // _M_IA64
++    U32 _byteswap_ulong(U32 bits); // from image/sys/strcodec.c
+     U32 v;
+     memcpy(&v, pv, sizeof(U32));
+     return _byteswap_ulong(v);
