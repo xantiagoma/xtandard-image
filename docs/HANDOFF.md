@@ -39,9 +39,11 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   grammars need relative keys on a source with `base_url`); the playground lists a mount once per
   native prefix (`simple:*` duplicates) — dedupe in the UI later.
 - **M4 in flight (2026-09-28):** WP-95 (named http sources take absolute keys; `xi://web/https://…`
-  works; clearer 403s) is **merged (#96; owner granted merge permission in chat, `gh pr merge` worked)**; the demo runs it (`xtandard-image:wp95-gpl` via `compose.playground.yml`). WP-96 (playground polish: slider
-  aspect ratio for portrait images, mount dedupe, empty translate-card reasons, sortable matrix)
-  agent running on `m4/wp-96-playground-polish`; rebase it onto main after #96 merges.
+  works; clearer 403s) is **merged (#96; owner granted merge permission in chat, `gh pr merge` worked)**; the demo runs it (`xtandard-image:wp95-gpl` via `compose.playground.yml`). WP-96 (playground polish: aspect-correct comparison,
+  mount dedupe (a real `api/meta` bug), translate reasons, sortable matrix; also fixed video results
+  not playing (CSP `media-src blob:`) and translate 500 on `simple:*`) is **merged (#97)**. The demo
+  runs `xtandard-image:main-gpl` built from main a394eca. `scripts/playground-check.ts` drives the UI
+  in headless Chromium (41 checks).
 - **Backlog after M3 (WP-91+):** face/object gravity on a single-frame video answers 422 (detection
   hands the container bytes to libvips; fix = detect on the decoded frame; composites already skip
   detection); `classify` has no model; detections are not used in chained pipelines; `MALLOC_CONF`
