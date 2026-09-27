@@ -33,8 +33,11 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   A local-only tag without images on GHCR is not useful for a Docker-target project.
 - **M4:** WP-94 playground v2 is **merged (PR #95, owner-run merge; the session classifier denies merges without review, so ask
   the owner to run `gh pr merge`)**. The demo container `xtandard-play` on the tailnet (http://100.102.217.2:8080/_playground/)
-  already runs the v2 build `xtandard-image:wp94-gpl` (gpl base, dev mode, fixtures as `local`,
-  any-host `web` source, all dialects enabled).
+  runs the v2 build `xtandard-image:wp94-gpl` with the configuration in `compose.playground.yml`
+  (every dialect + all 20 simple providers mounted, sources bound to `web`, unsigned policy `allow`).
+  Known demo limits: ImageKit/Bunny/AWS SIH translation cards are empty for absolute URLs (their
+  grammars need relative keys on a source with `base_url`); the playground lists a mount once per
+  native prefix (`simple:*` duplicates) — dedupe in the UI later.
 - **Backlog after M3 (WP-91+):** face/object gravity on a single-frame video answers 422 (detection
   hands the container bytes to libvips; fix = detect on the decoded frame; composites already skip
   detection); `classify` has no model; detections are not used in chained pipelines; `MALLOC_CONF`

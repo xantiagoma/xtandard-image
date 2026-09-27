@@ -1,0 +1,42 @@
+# Local demo: every dialect mounted, every unpic provider, playground public, unsigned requests
+# allowed, repo fixtures as the `local` source and any http(s) URL through `web`.
+# DEV ONLY (dev mode + open policy). Build the image first, e.g.
+#   XI_APP_BASE=xtandard-base:dev-gpl XI_IMAGE=xtandard-image:dev-gpl task release:build
+#   XI_IMAGE=xtandard-image:dev-gpl docker compose -f compose.playground.yml up -d
+# then open http://<host>:8080/_playground/
+services:
+  xtandard:
+    image: ${XI_IMAGE:-xtandard-image:dev-gpl}
+    container_name: xtandard-play
+    restart: unless-stopped
+    ports: ["8080:8080", "9090:9090"]
+    volumes: ["./testdata/fixtures:/fixtures:ro"]
+    environment:
+      XI_DEV_MODE: "true"
+      XI_SECURITY_UNSIGNED_POLICY: allow
+      XI_ADMIN_ADDR: ":9090"
+      XI_PLAYGROUND_ENABLED: "true"
+      XI_PLAYGROUND_PUBLIC: "true"
+      XI_SOURCES: local,web
+      XI_SOURCES_LOCAL_TYPE: fs
+      XI_SOURCES_LOCAL_ROOT: /fixtures
+      XI_SOURCES_WEB_TYPE: http
+      XI_SOURCES_WEB_ALLOW: "*"
+      XI_DIALECTS_QUERY_ENABLED: "true"
+      XI_DIALECTS_WSRV_ENABLED: "true"
+      XI_DIALECTS_CLOUDFLARE_ENABLED: "true"
+      XI_DIALECTS_CLOUDFLARE_IMAGES_ENABLED: "true"
+      XI_DIALECTS_CLOUDFLARE_IMAGES_SOURCE: web
+      XI_DIALECTS_IMGIX_ENABLED: "true"
+      XI_DIALECTS_IMGIX_SOURCE: web
+      XI_DIALECTS_CLOUDINARY_ENABLED: "true"
+      XI_DIALECTS_CLOUDINARY_SOURCE: web
+      XI_DIALECTS_IMAGEKIT_ENABLED: "true"
+      XI_DIALECTS_IMAGEKIT_SOURCE: web
+      XI_DIALECTS_BUNNY_ENABLED: "true"
+      XI_DIALECTS_BUNNY_SOURCE: web
+      XI_DIALECTS_THUMBOR_ENABLED: "true"
+      XI_DIALECTS_AWSSIH_ENABLED: "true"
+      XI_DIALECTS_AWSSIH_SOURCE: web
+      XI_DIALECTS_SIMPLE_ENABLED: appwrite,astro,builderio,cloudimage,contentful,contentstack,directus,hygraph,imageengine,ipx,keycdn,kontentai,netlify,nextjs,scene7,shopify,storyblok,supabase,uploadcare,wordpress
+      XI_DIALECTS_SIMPLE_SOURCE: web
