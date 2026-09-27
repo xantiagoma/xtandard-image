@@ -2609,6 +2609,13 @@
           "markdownDescription": "Also serve it on the public listener (under `XI_SERVER_PATH_PREFIX`). Its sign endpoint then signs any URL for anyone who can reach it, which makes signing pointless: only for trusted networks and demos\n\nEnv: `XI_PLAYGROUND_PUBLIC`",
           "title": "XI_PLAYGROUND_PUBLIC",
           "type": "boolean"
+        },
+        "uploads": {
+          "$ref": "#/$defs/tristate",
+          "default": "auto",
+          "description": "POST api/upload: files dropped on the page are kept in memory (at most XI_LIMITS_MAX_SRC_BYTES each, 64 files or 256 MiB, 10 minutes) as playground://uploads/<id> sources that only api/render can read. false disables uploads; true needs XI_PLAYGROUND_ENABLED\n\nEnv: XI_PLAYGROUND_UPLOADS",
+          "markdownDescription": "`POST api/upload`: files dropped on the page are kept in memory (at most `XI_LIMITS_MAX_SRC_BYTES` each, 64 files or 256 MiB, 10 minutes) as `playground://uploads/<id>` sources that only `api/render` can read. `false` disables uploads; `true` needs `XI_PLAYGROUND_ENABLED`\n\nEnv: `XI_PLAYGROUND_UPLOADS`",
+          "title": "XI_PLAYGROUND_UPLOADS"
         }
       },
       "type": "object"
