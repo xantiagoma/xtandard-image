@@ -92,6 +92,10 @@ type Playground struct {
 	// Path is where the playground is mounted: starts with "/", no
 	// trailing "/".
 	Path string `yaml:"path" env:"PATH"`
+	// Uploads enables POST <path>/api/upload: files dropped on the page
+	// are kept in memory for 10 minutes as playground:// sources, visible
+	// only through the playground. Auto (the default) follows Enabled.
+	Uploads Tristate `yaml:"uploads" env:"UPLOADS"`
 }
 
 // Signing configures URL signature verification (imgproxy scheme and xi_sig).

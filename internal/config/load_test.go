@@ -24,6 +24,7 @@ func TestLoadDefaultsOnly(t *testing.T) {
 	want.Processing.Workers = 4
 	want.Processing.QueueSize = 64
 	want.Signing.Required = False
+	want.Playground.Uploads = False
 	if d := diff(want, cfg); d != "" {
 		t.Errorf("config (-want +got):\n%s", d)
 	}
@@ -101,6 +102,7 @@ formats:
 			want.Processing.QueueSize = 48
 			want.Formats.AVIF.Quality = 50
 			want.Signing.Required = False
+			want.Playground.Uploads = False
 			tc.want(&want)
 			if d := diff(want, got); d != "" {
 				t.Errorf("config (-want +got):\n%s", d)
