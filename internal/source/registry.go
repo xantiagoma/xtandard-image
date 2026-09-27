@@ -163,7 +163,7 @@ func compileEntry(b *Binding) (*entry, error) {
 			} else {
 				base.Path, base.RawPath = dirPrefix(base.Path), dirPrefix(base.RawPath)
 				e.base = &base
-				e.allow = append(e.allow, allowRule{scheme: base.Scheme, host: base.Host, port: base.Port, prefix: base.Path})
+				e.allow = append(e.allow, e.baseRule())
 			}
 		}
 		if len(e.allow) == 0 {
@@ -227,6 +227,13 @@ func notAllowed(ref *Ref, why string) error {
 	return errs.Wrapf(errs.KindForbidden, ErrNotAllowed, "%s: %s", why, redactRef(ref))
 }
 
+// refused is notAllowed with a client-safe message naming the check that
+// failed (WP-95). public never echoes configuration (allow patterns, base
+// urls, buckets, prefixes); names and schemes the client wrote are fine.
+func refused(ref *Ref, why, public string) error {
+	return errs.WithPublic(notAllowed(ref, why), public)
+}
+
 func redactRef(ref *Ref) string {
 	c := *ref
 	c.Query = ""
@@ -239,7 +246,8 @@ func redactRef(ref *Ref) string {
 
 // Resolve maps spec to a Key. Order (ARCHITECTURE §6):
 //
-//  1. xi://<name>/<key>: the named source, key relative to it.
+//  1. xi://<name>/<key>: the named source, key relative to it; for an http
+//     source an absolute http(s) key is that URL (entry.httpKey).
 //  2. s3://, gs://, abs:// (az://), local:/// (file:///), ftp://, sftp://:
 //     the first source of that type (the mount's source first, then
 //     configuration order) whose buckets / host allow the target and whose
@@ -271,7 +279,7 @@ func (r *Registry) Resolve(spec transform.SourceSpec) (Key, error) {
 	case SchemeXI:
 		e := r.byName[ref.Host]
 		if e == nil {
-			return Key{}, notAllowed(&ref, "unknown source")
+			return Key{}, refused(&ref, "unknown source", "unknown source "+strconv.Quote(ref.Host))
 		}
 		return e.relative(&ref)
 	case SchemeHTTP, SchemeHTTPS:
@@ -283,7 +291,7 @@ func (r *Registry) Resolve(spec transform.SourceSpec) (Key, error) {
 		if r.devMode {
 			return Key{Source: DevSourceName, Path: ref.String(), Dev: true}, nil
 		}
-		return Key{}, notAllowed(&ref, "no http source allows url")
+		return Key{}, refused(&ref, "no http source allows url", "no source allows this url")
 	case SchemePlayground:
 		if r.playground == nil {
 			return Key{}, notAllowed(&ref, "playground store disabled")
@@ -295,7 +303,8 @@ func (r *Registry) Resolve(spec transform.SourceSpec) (Key, error) {
 				return k, nil
 			}
 		}
-		return Key{}, notAllowed(&ref, "no "+ref.Scheme.sourceType()+" source allows reference")
+		return Key{}, refused(&ref, "no "+ref.Scheme.sourceType()+" source allows reference",
+			"no source allows this "+ref.Scheme.String()+":// reference")
 	}
 }
 
@@ -351,27 +360,17 @@ func (e *entry) allowsBucket(b string) bool {
 }
 
 // relative resolves a relative or xi:// key against e: http sources join it
-// to the base url; the others prepend the prefix jail.
+// to the base url or take an absolute key as is (entry.httpKey); the others
+// prepend the prefix jail.
 func (e *entry) relative(ref *Ref) (Key, error) {
 	k := Key{Source: e.spec.Name}
 	switch e.spec.Type {
 	case TypeHTTP:
-		if e.base == nil {
-			return Key{}, notAllowed(ref, "http source has no base url")
-		}
-		u := e.base.Scheme.String() + "://" + e.base.hostPort() + e.base.RawPath + ref.RawPath
-		if ref.Query != "" {
-			u += "?" + ref.Query
-		}
-		abs, err := ParseRef(u)
-		if err != nil {
-			return Key{}, err
-		}
-		k.Path = abs.String()
-		return k, nil
+		return e.httpKey(ref)
 	case TypeS3, TypeGCS, TypeAzure:
 		if e.spec.Bucket == "" {
-			return Key{}, notAllowed(ref, "source has no default bucket")
+			return Key{}, refused(ref, "source has no default bucket",
+				"source "+strconv.Quote(e.spec.Name)+" has no default bucket: name the bucket in the url")
 		}
 		k.Bucket = e.spec.Bucket
 		if ref.Query != "" {
@@ -391,6 +390,96 @@ func (e *entry) relative(ref *Ref) (Key, error) {
 	}
 	k.Path = e.prefix + ref.Path
 	return k, nil
+}
+
+// httpKey resolves the key of xi://<name>/<key> (or a relative key on the
+// mount) against the http source e (WP-95, docs/URL-DIALECTS.md §3.1):
+//
+//   - an xi:// key that is itself an absolute http(s) URL (literal, or
+//     percent-encoded as a whole) is fetched as that URL, through e's allow
+//     patterns, headers and limits, when e has no base url or when the URL
+//     lies under e's base url;
+//   - any other key is joined to the base url (an absolute URL outside the
+//     base included, as before WP-95); without a base url it is refused.
+func (e *entry) httpKey(ref *Ref) (Key, error) {
+	abs, isAbs, err := absoluteKey(ref)
+	if err != nil {
+		return Key{}, err
+	}
+	name := strconv.Quote(e.spec.Name)
+	switch {
+	case isAbs && e.base == nil:
+		if !e.allowsURL(&abs) {
+			return Key{}, refused(&abs, "url not in the allowlist of source "+name, e.allowPublic(&abs))
+		}
+		return Key{Source: e.spec.Name, Path: abs.String()}, nil
+	case isAbs && e.baseRule().matchURL(&abs):
+		return Key{Source: e.spec.Name, Path: abs.String()}, nil
+	case e.base == nil:
+		return Key{}, refused(ref, "http source "+name+" has no base url and the key is not an absolute http(s) url",
+			"source "+name+" has no base_url: the key must be an absolute http(s) url")
+	default:
+	}
+	u := e.base.Scheme.String() + "://" + e.base.hostPort() + e.base.RawPath + ref.RawPath
+	if ref.Query != "" {
+		u += "?" + ref.Query
+	}
+	joined, err := ParseRef(u)
+	if err != nil {
+		return Key{}, err
+	}
+	return Key{Source: e.spec.Name, Path: joined.String()}, nil
+}
+
+// baseRule is the allow rule the base url implies.
+func (e *entry) baseRule() allowRule {
+	return allowRule{scheme: e.base.Scheme, host: e.base.Host, port: e.base.Port, prefix: e.base.Path}
+}
+
+// allowPublic is the client-safe reason e's allowlist refuses the http(s)
+// ref: its host, or (host allowed) its scheme, port or path.
+func (e *entry) allowPublic(ref *Ref) string {
+	name := strconv.Quote(e.spec.Name)
+	for _, a := range e.allow {
+		if matchHost(a.host, ref.Host) {
+			return "source " + name + ": url scheme, port or path not in the source allowlist"
+		}
+	}
+	return "source " + name + ": host not in the source allowlist"
+}
+
+// absoluteKey reports whether the key of the xi:// ref is an absolute
+// http(s) URL and parses it, with the xi query as its query. The literal
+// form (xi://web/https://host/p, the inner URL's percent-encoding kept as
+// written) is preferred; a key percent-encoded as a whole
+// (xi://web/https%3A%2F%2Fhost%2Fp) is decoded once. ParseRef repairs a
+// proxy-collapsed "https:/host".
+func absoluteKey(ref *Ref) (Ref, bool, error) {
+	if ref.Scheme != SchemeXI {
+		return Ref{}, false, nil
+	}
+	s := ref.RawPath
+	if !isHTTPScheme(s) {
+		if !isHTTPScheme(ref.Path) {
+			return Ref{}, false, nil
+		}
+		s = ref.Path
+	}
+	if ref.Query != "" {
+		s += "?" + ref.Query
+	}
+	abs, err := ParseRef(s)
+	if err != nil {
+		return Ref{}, true, err
+	}
+	return abs, true, nil
+}
+
+// isHTTPScheme reports whether s starts with "http:/" or "https:/" (any
+// case).
+func isHTTPScheme(s string) bool {
+	name, rest, ok := splitScheme(s)
+	return ok && (name == "http" || name == "https") && strings.HasPrefix(rest, "/")
 }
 
 // ResolveRedirect vets one redirect hop of an http fetch of from: location
