@@ -28,6 +28,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/obs/tracing"
 	"github.com/xantiagoma/xtandard-image/internal/security/ssrf"
 	"github.com/xantiagoma/xtandard-image/internal/server"
+	"github.com/xantiagoma/xtandard-image/internal/source"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -138,7 +139,10 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	client := ssrf.New(&ssrf.Options{Policy: policy, MaxRedirects: cfg.Fetch.MaxRedirects, UserAgent: userAgent})
 	cleanups = append(cleanups, func(context.Context) error { client.CloseIdleConnections(); return nil })
 
-	reg, closers, err := buildSources(ctx, cfg, client, userAgent)
+	// The playground's in-memory source (samples and uploads, WP-94) is
+	// registered with the other sources; nil without the playground.
+	pgStore := playgroundStore(cfg)
+	reg, closers, err := buildSources(ctx, cfg, client, userAgent, pgStore)
 	cleanups = append(cleanups, closeAll(closers))
 	if err != nil {
 		return fmt.Errorf("sources: %w", err)
@@ -148,6 +152,7 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		types[name] = string(cfg.Sources[name].Type)
 	}
 	types["_dev"] = "http"
+	types[source.PlaygroundSourceName] = "playground"
 
 	// The caches may hold vips blobs and buffers: they are closed (after
 	// the drain) before libvips shuts down, since cleanups run in reverse.
@@ -255,7 +260,9 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	if err != nil {
 		return err
 	}
-	pg, err := buildPlayground(ctx, cfg, rt, srv.Handler(), opts.Version, logger)
+	pg, err := buildPlayground(ctx, cfg, rt, srv.Handler(), opts.Version, logger, &playgroundEnv{
+		registry: reg, store: pgStore, detection: det != nil || h.detector != nil, video: videoSettings(cfg).Enabled,
+	})
 	if err != nil {
 		return err
 	}
