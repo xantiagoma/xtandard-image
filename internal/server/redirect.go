@@ -39,7 +39,7 @@ func (s *Server) errorRedirect(w http.ResponseWriter, r *http.Request, info *req
 	if spec := j.req.Delivery.Fallback; spec != nil {
 		target = ""
 		if u, ok := httpURL(spec.Raw); ok {
-			if _, err := s.deps.Resolver.Resolve(*spec); err == nil {
+			if _, err := s.resolve(r.Context(), *spec); err == nil {
 				target = u
 			} else {
 				s.deps.Logger.LogAttrs(r.Context(), slog.LevelWarn, "error redirect target not allowed", logging.Err(err))

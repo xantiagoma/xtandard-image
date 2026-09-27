@@ -47,7 +47,7 @@ func (h *handler) render(w http.ResponseWriter, r *http.Request) {
 	req := (&http.Request{
 		Method: http.MethodGet, URL: target, RequestURI: u, Header: http.Header{}, Body: http.NoBody,
 		Host: r.Host, RemoteAddr: r.RemoteAddr, Proto: r.Proto, ProtoMajor: r.ProtoMajor, ProtoMinor: r.ProtoMinor,
-	}).WithContext(r.Context())
+	}).WithContext(withRender(r.Context()))
 	for name, vs := range r.Header {
 		if forwarded(name) {
 			req.Header[name] = vs

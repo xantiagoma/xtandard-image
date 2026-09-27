@@ -8,11 +8,14 @@
 // origin, so the page works air-gapped under Content-Security-Policy
 // default-src 'self'. Routes, relative to Config.Path:
 //
-//	GET  /                       the page (Cache-Control: no-store)
-//	GET  /assets/<version>/<f>   app.js, style.css (immutable; version is their hash)
-//	GET  /api/meta               Meta as JSON (no key material)
-//	POST /api/sign               SignRequest → SignResponse, signed with the server's keys
-//	GET  /api/render?u=<url>     runs Deps.Image on a public path and query in-process
+//	GET  /                          the page (Cache-Control: no-store)
+//	GET  /assets/<version>/<f>      the ES modules and the stylesheet (immutable; version is their hash)
+//	GET  /api/meta                  Meta as JSON (no key material)
+//	POST /api/sign                  SignRequest → SignResponse, signed with the server's keys
+//	GET  /api/render?u=<url>        runs Deps.Image on a public path and query in-process
+//	POST /api/translate             TranslateRequest → the transform in every dialect (WP-94)
+//	POST /api/upload                a file for playground://uploads/<id> (XI_PLAYGROUND_UPLOADS)
+//	GET  /api/sources/<n>/list      one directory of an fs source (WP-94)
 //
 // app mounts the handler on the admin listener, and on the public listener
 // only with XI_PLAYGROUND_PUBLIC. The package never sees key bytes: it holds
@@ -69,6 +72,13 @@ type Deps struct {
 	Image http.Handler
 	// Logger receives panics and unexpected failures.
 	Logger *slog.Logger
+	// Store is the playground:// source (samples and uploads); nil
+	// disables api/upload.
+	Store *Store
+	// FSRoots are the fs sources api/sources/<name>/list browses.
+	FSRoots map[string]FSRoot
+	// Translator answers api/translate; nil answers 404.
+	Translator Translator
 }
 
 // handler is the playground's handler tree.
@@ -80,6 +90,9 @@ type handler struct {
 	signers    map[string]*sign.Signer
 	image      http.Handler
 	logger     *slog.Logger
+	store      *Store
+	fsRoots    map[string]FSRoot
+	translator Translator
 	page       []byte
 	version    string
 	files      map[string]asset
@@ -112,6 +125,9 @@ func New(cfg Config, deps *Deps) (http.Handler, error) {
 		signers:    deps.Signers,
 		image:      deps.Image,
 		logger:     deps.Logger,
+		store:      deps.Store,
+		fsRoots:    deps.FSRoots,
+		translator: deps.Translator,
 		files:      map[string]asset{},
 	}
 	for i := range deps.Meta.Mounts {
@@ -128,6 +144,13 @@ func New(cfg Config, deps *Deps) (http.Handler, error) {
 	mux.HandleFunc("GET "+p+"/api/meta", h.serveMeta)
 	mux.Handle("POST "+p+"/api/sign", http.NewCrossOriginProtection().Handler(http.HandlerFunc(h.sign)))
 	mux.HandleFunc("GET "+p+"/api/render", h.render)
+	if h.translator != nil {
+		mux.Handle("POST "+p+"/api/translate", http.NewCrossOriginProtection().Handler(http.HandlerFunc(h.translate)))
+	}
+	if h.store != nil && h.store.UploadsEnabled() {
+		mux.Handle("POST "+p+"/api/upload", http.NewCrossOriginProtection().Handler(http.HandlerFunc(h.upload)))
+	}
+	mux.HandleFunc("GET "+p+"/api/sources/{name}/list", h.list)
 	// Anything else under p is the ServeMux 404 (or 405 for a known path
 	// with another method).
 	mux.HandleFunc(p, func(w http.ResponseWriter, r *http.Request) {
@@ -136,20 +159,34 @@ func New(cfg Config, deps *Deps) (http.Handler, error) {
 	return h.recoverer(securityHeaders(mux)), nil
 }
 
-// loadAssets reads the embedded files, derives the asset version from
-// their hash and fills the page template.
+// loadAssets reads the embedded files (every .js module and .css
+// stylesheet under assets/), derives the asset version from their hash and
+// fills the page template. The modules import each other with relative
+// URLs, so they all live under one versioned directory.
 func (h *handler) loadAssets() error {
 	sum := sha256.New()
-	for _, f := range []struct{ name, contentType string }{
-		{"app.js", "text/javascript; charset=utf-8"},
-		{"style.css", "text/css; charset=utf-8"},
-	} {
-		b, err := fs.ReadFile(assets, "assets/"+f.name)
+	entries, err := fs.ReadDir(assets, "assets")
+	if err != nil {
+		return fmt.Errorf("playground: %w", err)
+	}
+	for _, e := range entries { // sorted by name: the hash is deterministic
+		name := e.Name()
+		var contentType string
+		switch {
+		case strings.HasSuffix(name, ".js"):
+			contentType = "text/javascript; charset=utf-8"
+		case strings.HasSuffix(name, ".css"):
+			contentType = "text/css; charset=utf-8"
+		default:
+			continue
+		}
+		b, err := fs.ReadFile(assets, "assets/"+name)
 		if err != nil {
 			return fmt.Errorf("playground: %w", err)
 		}
+		sum.Write([]byte(name))
 		sum.Write(b)
-		h.files[f.name] = asset{body: b, contentType: f.contentType}
+		h.files[name] = asset{body: b, contentType: contentType}
 	}
 	h.version = hex.EncodeToString(sum.Sum(nil))[:12]
 	page, err := fs.ReadFile(assets, "assets/index.html")

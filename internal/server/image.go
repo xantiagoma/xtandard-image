@@ -134,7 +134,7 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 
 	// 5. Resolve the source against the allowlist.
 	t = s.stage(info, stageResolve)
-	key, err := s.deps.Resolver.Resolve(req.Source)
+	key, err := s.resolve(ctx, req.Source)
 	t.done()
 	if err != nil {
 		return nil, err
@@ -526,4 +526,16 @@ func errorsIsAny(err error, targets ...error) bool {
 		}
 	}
 	return false
+}
+
+// resolve maps spec to a source key through the allowlist. playground://
+// sources (source.PlaygroundSourceName) exist only for the playground's
+// own requests: anyone else gets a 404, before the result cache could
+// answer from a rendition the playground made.
+func (s *Server) resolve(ctx context.Context, spec transform.SourceSpec) (source.Key, error) {
+	key, err := s.deps.Resolver.Resolve(spec)
+	if err == nil && key.Source == source.PlaygroundSourceName && !source.IsPlaygroundRequest(ctx) {
+		return source.Key{}, errs.New(errs.KindNotFound, "playground source outside the playground")
+	}
+	return key, err
 }

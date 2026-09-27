@@ -130,7 +130,7 @@ func (s *Server) inspect(ctx context.Context, r *http.Request, req *transform.Re
 
 	// 5. Resolve the source against the allowlist.
 	t = s.stage(info, stageResolve)
-	key, err := s.deps.Resolver.Resolve(req.Source)
+	key, err := s.resolve(ctx, req.Source)
 	t.done()
 	if err != nil {
 		return nil, err
