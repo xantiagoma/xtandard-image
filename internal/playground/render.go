@@ -68,7 +68,7 @@ func (t *timingWriter) WriteHeader(status int) {
 	if !t.wrote {
 		t.wrote = true
 		ms := float64(time.Since(t.start).Microseconds()) / 1000
-		t.Header().Set("Server-Timing", "xi;desc=\"public handler\";dur="+strconv.FormatFloat(ms, 'f', 1, 64))
+		t.Header().Add("Server-Timing", "xi;desc=\"public handler\";dur="+strconv.FormatFloat(ms, 'f', 1, 64))
 	}
 	t.ResponseWriter.WriteHeader(status)
 }
