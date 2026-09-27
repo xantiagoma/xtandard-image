@@ -13,13 +13,14 @@ import (
 // maxSide, as a libvips image tracked by a: the input of face and object
 // detection (WP-72/73), which letterboxes it to the model and renders it
 // to 8-bit sRGB itself. libvips formats go through vips_thumbnail (JPEG
-// and WebP shrink on load); BMP and ICO are decoded in Go like Sample. It
+// and WebP shrink on load); BMP, ICO, WBMP and ICNS are decoded in Go like
+// Sample. It
 // must run inside vips.Run.
 func SampleImage(ctx context.Context, a *vips.Arena, buf *vips.Buffer, f Format, maxSide int, lim Limits) (*vips.Image, error) {
 	if maxSide <= 0 {
 		return nil, errs.Newf(errs.KindInternal, "codec: sample size %d", maxSide)
 	}
-	if f == FormatBMP || f == FormatICO {
+	if f.IsOwn() {
 		d, err := decodeOwn(buf.Bytes(), f, lim.withDefaults().MaxSrcPixels)
 		if err != nil {
 			return nil, err

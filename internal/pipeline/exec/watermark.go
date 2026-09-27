@@ -99,8 +99,8 @@ type WatermarkImage struct {
 func (r *runner) decodeWatermark(ctx context.Context, maxPixels int64) (*vips.Image, error) {
 	var img *vips.Image
 	var err error
-	switch r.j.Meta.Format {
-	case "bmp", "ico":
+	switch {
+	case ownFormat(r.j.Meta.Format):
 		img, err = r.loadGo(ctx)
 	default:
 		img, err = r.a.Add(vips.Load(ctx, r.j.Source, &vips.LoadOptions{

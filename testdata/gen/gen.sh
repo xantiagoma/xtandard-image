@@ -136,5 +136,48 @@ gen rgbe 48 32 "$F/hdr/rgbe.hdr"
 gen pfm 64 48 "$F/pfm/scene.pfm"
 gen ppm 96 64 "$F/ppm/photo.ppm"
 
+# WP-97 long-tail inputs from 64x48 / 48x36 masters (FORMATS.md 1.6).
+gen photo 64 48 "$T/p64.png"
+gen photo-alpha 64 48 "$T/pa64.png"
+gen graphic 48 36 "$T/g48.png"
+mkdir -p "$F"/jxr "$F"/tga "$F"/pcx "$F"/dds "$F"/qoi "$F"/sgi "$F"/sun "$F"/xbm "$F"/xpm \
+	"$F"/pam "$F"/wbmp "$F"/icns
+magick "$T/g48.png" -threshold 50% -compress none PBM:"$F/ppm/graphic-ascii.pbm"
+magick "$T/g48.png" -threshold 50% PBM:"$F/ppm/graphic.pbm"
+magick "$T/p64.png" -colorspace Gray -compress none PGM:"$F/ppm/photo-ascii.pgm"
+magick "$T/p64.png" -compress none PPM:"$F/ppm/photo-ascii.ppm"
+magick "$T/pa64.png" TGA:"$F/tga/alpha.tga"
+magick "$T/p64.png" -compress RLE TGA:"$F/tga/photo-rle.tga"
+magick "$T/p64.png" PCX:"$F/pcx/photo.pcx"
+magick "$T/p64.png" -define dds:compression=dxt1 -define dds:mipmaps=0 DDS:"$F/dds/photo-dxt1.dds"
+magick "$T/pa64.png" -define dds:compression=dxt5 DDS:"$F/dds/alpha-dxt5.dds"
+magick "$T/pa64.png" QOI:"$F/qoi/alpha.qoi"
+magick "$T/p64.png" SGI:"$F/sgi/photo.sgi"
+magick "$T/pa64.png" SGI:"$F/sgi/alpha.sgi"
+magick "$T/p64.png" SUN:"$F/sun/photo.ras"
+magick "$T/pa64.png" PAM:"$F/pam/alpha.pam"
+magick "$T/g48.png" -threshold 50% XBM:"$F/xbm/graphic.xbm"
+magick "$T/g48.png" -colors 8 XPM:"$F/xpm/graphic.xpm"
+magick "$T/g48.png" -threshold 50% WBMP:"$F/wbmp/graphic.wbmp"
+gen icns "$F/icns/icon.icns"
+# JPEG XR needs jxrlib's JxrEncApp, which the base image does not ship: build it
+# from the pinned jxrlib source (docker/base/versions.sh JXRLIB_COMMIT, the same
+# patches) and set JXRENCAPP to it; without it the JPEG XR fixtures are not
+# regenerated (restore them from version control after this script).
+if [ -n "${JXRENCAPP:-}" ]; then
+	magick "$T/p64.png" -type TrueColor BMP3:"$T/p64.bmp"
+	magick "$T/pa64.png" -compress None "$T/pa64.tif"
+	magick "$T/p64.png" -depth 16 -compress None "$T/p64-16.tif"
+	magick "$T/p64.png" -colorspace Gray -depth 8 "$T/p64.pgm"
+	gen radiance 48 32 "$T/scene48.hdr"
+	"$JXRENCAPP" -i "$T/p64.bmp" -o "$F/jxr/photo.jxr" -q 0.9
+	"$JXRENCAPP" -i "$T/pa64.tif" -o "$F/jxr/alpha.jxr" -q 0.9 -a 2
+	"$JXRENCAPP" -i "$T/p64-16.tif" -o "$F/jxr/rgb16.jxr" -q 0.9
+	"$JXRENCAPP" -i "$T/p64.pgm" -o "$F/jxr/gray.jxr" -q 0.9
+	"$JXRENCAPP" -i "$T/scene48.hdr" -o "$F/jxr/hdr.jxr" -q 0.9
+else
+	echo "JXRENCAPP not set: jxr/*.jxr not regenerated (restore testdata/fixtures/jxr)" >&2
+fi
+
 # SSIM reference set for internal/testutil/ssim.
 gen ssim-refs testdata/ssim

@@ -90,8 +90,8 @@ type Job struct {
 	// may release it once Run returns.
 	Source *vips.Buffer
 	// Meta is the probed header. Meta.Format is the sniffed codec format
-	// name ("jpeg", "png", "bmp", "ico", "svg", ...): BMP and ICO are
-	// decoded in Go.
+	// name ("jpeg", "png", "bmp", "ico", "svg", ...): BMP, ICO, WBMP and
+	// ICNS are decoded in Go.
 	Meta plan.SourceMeta
 	// Target is the encoding (encode.NewTarget). Target.Animated is decided
 	// by the plan: an animation stays one only when the plan processed it
