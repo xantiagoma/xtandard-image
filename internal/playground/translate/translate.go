@@ -161,12 +161,9 @@ func parsers(sep string, presets *preset.Store, now func() time.Time) (map[strin
 	return m, nil
 }
 
-// badRequestError is a client-safe translate error.
-type badRequestError struct{ msg string }
-
-func (e *badRequestError) Error() string { return "translate: " + e.msg }
-
-func badRequest(msg string) error { return &badRequestError{msg: msg} }
+// badRequest is a client-safe translate error: api/translate answers 400
+// with msg.
+func badRequest(msg string) error { return fmt.Errorf("translate: %w", playground.ClientError(msg)) }
 
 // base is the dialect of a mount dialect key ("imgix[1]" → "imgix").
 func base(d string) string {
@@ -221,7 +218,7 @@ func (t *Translator) canonical(in *playground.TranslateRequest) (*transform.Requ
 	m := t.mounts[i]
 	d := t.input[base(m.Dialect)]
 	if d == nil {
-		return nil, badRequest("this dialect does not translate")
+		return nil, badRequest("this dialect does not translate: its URLs are free-form; pick a mount with an option builder (imgproxy, query, imgix, …)")
 	}
 	p := in.Path
 	switch m.Scheme {
