@@ -69,7 +69,9 @@
       <div role="tabpanel" id="spane-url" aria-labelledby="stab-url" hidden>
         <label for="source-input">Source URL or reference</label>
         <input id="source-input" type="text" autocomplete="off" spellcheck="false" placeholder="https://example.com/photo.jpg · xi://source/key · s3://bucket/key">
-        <p class="hint">Named sources: <span id="named-sources">none</span>. The server must allow the URL (an <code>http</code> source or <code>XI_DEV_MODE</code>).</p>
+        <p class="hint">Named sources and the syntax each accepts; pick one to pre-fill its prefix:</p>
+        <ul id="named-sources" class="syntax-list"></ul>
+        <p class="hint">The server must allow the URL: a bare <code>https://…</code> needs an <code>http</code> source whose allowlist matches the host (or <code>XI_DEV_MODE</code>); <code>xi://&lt;source&gt;/https://…</code> picks which source's allowlist and headers apply.</p>
       </div>
       <p class="current-source">Current: <code id="current-source">none</code></p>
     </section>
