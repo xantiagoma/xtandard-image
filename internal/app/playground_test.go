@@ -243,7 +243,12 @@ func checkPlaygroundV2(t *testing.T, admin, public string, m *playground.Meta) {
 		return sr.URL
 	}
 	sample := sign("/rs:fit:64:0/f:jpeg/plain/playground://samples/photo.jpg")
-	checkJPEG(t, get(t, admin+"/_playground/api/render?u="+url.QueryEscape(sample)), 64, 48)
+	rendered := get(t, admin+"/_playground/api/render?u="+url.QueryEscape(sample))
+	checkJPEG(t, rendered, 64, 48)
+	if st := strings.Join(rendered.header.Values("Server-Timing"), ", "); !strings.Contains(st, "fetch;dur=") ||
+		!strings.Contains(st, "process;dur=") || !strings.Contains(st, "xi;") {
+		t.Errorf("render Server-Timing %q lacks the stages", st)
+	}
 	if got := get(t, public+sample); got.status != http.StatusNotFound {
 		t.Errorf("playground sample on the public listener: %d, want 404", got.status)
 	}
@@ -278,7 +283,11 @@ func checkPlaygroundV2(t *testing.T, admin, public string, m *playground.Meta) {
 	if ip := tres.Targets[0]; ip.Dialect != "imgproxy" || !ip.Signed {
 		t.Errorf("translate imgproxy target %+v", ip)
 	} else {
-		checkJPEG(t, get(t, public+ip.URL), 64, 64)
+		pub := get(t, public+ip.URL)
+		checkJPEG(t, pub, 64, 64)
+		if st := pub.header.Get("Server-Timing"); st != "" {
+			t.Errorf("public response carries Server-Timing %q", st)
+		}
 	}
 
 	list := get(t, admin+"/_playground/api/sources/"+m.Sources[0].Name+"/list?prefix=jpeg")
