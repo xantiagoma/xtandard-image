@@ -207,6 +207,13 @@ docker run --rm "$runtime" bash -euo pipefail -c '
   test "$(id -u):$(id -g)" = "65532:65532" && echo "user $(id -un) $(id -u):$(id -g)"
   grep -q libjemalloc /proc/self/maps && echo "jemalloc preloaded ($LD_PRELOAD)"
   test "$MALLOC_ARENA_MAX" = 2 && test "$VIPS_WARNING" = 0 && echo "MALLOC_ARENA_MAX=2 VIPS_WARNING=0"
+  # jemalloc must actually read MALLOC_CONF (unprefixed build): its exit stats show the option.
+  narenas=$(MALLOC_CONF="${MALLOC_CONF:-},stats_print:true" vips --version 2>&1 >/dev/null | sed -n "s/^ *opt.narenas: //p")
+  if [ "${MALLOC_CONF:-}" != narenas:2 ] || [ "$narenas" != 2 ]; then
+    echo "MALLOC_CONF=${MALLOC_CONF:-<unset>}, jemalloc opt.narenas=${narenas:-<none>}; want narenas:2" >&2
+    exit 1
+  fi
+  echo "jemalloc honours MALLOC_CONF=$MALLOC_CONF (opt.narenas: $narenas)"
   if ldd /opt/xtandard/lib/*.so* /opt/xtandard/lib/vips-modules-*/*.so /opt/xtandard/bin/vips | grep "not found"; then exit 1; fi
   echo "all shared objects resolve"
   echo "libs in /opt/xtandard/lib: $(ls /opt/xtandard/lib | wc -l)"

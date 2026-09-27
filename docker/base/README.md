@@ -2,9 +2,9 @@
 
 `docker/base` builds libvips 8.18 and every codec it links into `/opt/xtandard` on
 `ubuntu:noble`, in three flavors: `slim` (every still format), `full` (slim plus FFmpeg 8
-under the LGPL, ONNX Runtime and the detection models; WP-70, see [full flavor](#full-flavor-wp-70-revision-3))
+under the LGPL, ONNX Runtime and the detection models; WP-70, see [full flavor](#full-flavor-wp-70-revision-4))
 and `gpl` (full with FFmpeg rebuilt under the GPL to add the x264 H.264 and x265 HEVC
-encoders; WP-70b, see [gpl flavor](#gpl-flavor-wp-70b-revision-3)). slim and full contain no GPL code; gpl does,
+encoders; WP-70b, see [gpl flavor](#gpl-flavor-wp-70b-revision-4)). slim and full contain no GPL code; gpl does,
 and is labelled and documented as such. It is a fork of
 [imgproxy-docker-base](https://github.com/imgproxy/imgproxy-docker-base) (MIT, Copyright (c)
 2017 Sergey Alexandrovich; kept in `LICENSE.imgproxy-docker-base`, credited in `/NOTICE`).
@@ -25,7 +25,7 @@ Decisions: [ADR 0005](../../docs/adr/0005-docker-image-strategy.md) (image strat
 
 `<vips>` is `VIPS_VERSION` and `<N>` is `XI_BASE_REVISION` from `versions.sh`; `<M>` is
 `XI_BASE_FULL_REVISION` from `versions-full.sh`; `<G>` is `XI_BASE_GPL_REVISION` from
-`versions-gpl.sh` (currently `8.18.6-r2-slim`, `8.18.6-r3-full` and `8.18.6-r3-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
+`versions-gpl.sh` (currently `8.18.6-r3-slim`, `8.18.6-r4-full` and `8.18.6-r4-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
 locally with the `task docker:base:*` tasks (below), which tag `xtandard-base:dev`,
 `xtandard-base:dev-builder`, `xtandard-base:dev-full`, `xtandard-base:dev-full-builder`,
 `xtandard-base:dev-gpl` and `xtandard-base:dev-gpl-builder`. All are
@@ -74,9 +74,20 @@ docker run --rm -v "$PWD":/src ghcr.io/xantiagoma/xtandard-image-base:slim-build
 ```
 
 **runtime** (user `xtandard`, UID/GID 65532): `LD_LIBRARY_PATH=/opt/xtandard/lib`,
-`LD_PRELOAD=/opt/xtandard/lib/libjemalloc.so.2`, `MALLOC_ARENA_MAX=2`, `VIPS_WARNING=0`,
-`FONTCONFIG_PATH=/opt/xtandard/etc/fonts`. It keeps the `vips` CLI for diagnostics; headers,
-pkg-config files and the toolchains are not present.
+`LD_PRELOAD=/opt/xtandard/lib/libjemalloc.so.2`, `MALLOC_ARENA_MAX=2`, `MALLOC_CONF=narenas:2`,
+`VIPS_WARNING=0`, `FONTCONFIG_PATH=/opt/xtandard/etc/fonts`. It keeps the `vips` CLI for
+diagnostics; headers, pkg-config files and the toolchains are not present. The full and gpl
+runtimes inherit the same environment.
+
+jemalloc is not linked into libvips or any other library; it is preloaded, and because it is
+built without a symbol prefix it replaces `malloc`/`free` for the whole process (Go's cgo
+allocations and every C library). It therefore reads `MALLOC_CONF`, not glibc's
+`MALLOC_ARENA_MAX` (kept only for the case where someone clears `LD_PRELOAD`).
+`MALLOC_CONF=narenas:2` (since r3, WP-93) caps jemalloc at 2 arenas instead of 4 per CPU (32 on
+an 8-CPU host): the default kept the freed pages of every busy thread and more than doubled peak
+RSS under concurrent load with no throughput gain (WP-87, `bench/RESULTS.md`). Override it per
+deployment, e.g. `MALLOC_CONF=narenas:4,background_thread:true`. `verify-image.sh` checks that
+jemalloc actually honours it (`opt.narenas: 2` in its stats).
 
 ## `/opt/xtandard`
 
@@ -95,7 +106,7 @@ pkg-config files and the toolchains are not present.
 Not in the slim image: poppler (GPL; PDF goes through PDFium), x265 (GPL; HEIC/AVIF encode
 uses kvazaar/aom), FFmpeg and ONNX Runtime (`full` flavor).
 
-## Full flavor (WP-70, revision 3)
+## Full flavor (WP-70, revision 4)
 
 Everything in slim, plus:
 
@@ -133,7 +144,7 @@ licence) and `SHA256SUMS`; the licences and `MODELS.md` are also copied to
 Size: runtime 103.1 MB compressed on linux/arm64 (slim + 48.4 MB; budget ≤ 170 MB), see
 [Sizes](#sizes).
 
-## gpl flavor (WP-70b, revision 3)
+## gpl flavor (WP-70b, revision 4)
 
 > **This image contains GPL software.** Its FFmpeg libraries and CLIs are
 > GPL-2.0-or-later, and H.264 and HEVC are patent-encumbered. If you use or redistribute
@@ -228,11 +239,11 @@ linux/arm64, `docker save | gzip -6` (compressed) and `docker image inspect` (un
 
 | Image | Compressed | Uncompressed | Budget (compressed) |
 |---|---|---|---|
-| slim runtime (`8.18.6-r2-slim`) | 54.7 MB | 165.1 MB | ≤ 110 MB |
+| slim runtime (`8.18.6-r3-slim`) | 54.7 MB | 165.1 MB | ≤ 110 MB |
 | slim builder | 259.2 MB | 818.6 MB | — |
-| full runtime (`8.18.6-r3-full`) | 103.1 MB | 237.3 MB | ≤ 170 MB |
+| full runtime (`8.18.6-r4-full`) | 103.1 MB | 237.3 MB | ≤ 170 MB |
 | full builder | 308.2 MB | 893.3 MB | — |
-| gpl runtime (`8.18.6-r3-gpl`) | 105.3 MB | 242.1 MB | ≤ 170 MB (as full) |
+| gpl runtime (`8.18.6-r4-gpl`) | 105.3 MB | 242.1 MB | ≤ 170 MB (as full) |
 | gpl builder | 310.4 MB | 898.3 MB | — |
 
 The full additions are ONNX Runtime 24 MiB, the models 35 MiB (YOLOX-s 34 MiB, YuNet
@@ -305,10 +316,10 @@ the real `versions-gpl.sh` is refused by the strict gate.
 3. Bump `XI_BASE_REVISION` when the image changes without a libvips version change; reset it
    to `1` when `VIPS_VERSION` changes. `XI_BASE_FULL_REVISION` (`versions-full.sh`) is the
    full flavor's own counter: bump it whenever slim's revision moves or a full-only component
-   changes, including when slim's revision moves (full r3 = slim r2 +
+   changes, including when slim's revision moves (full r4 = slim r3 +
    WP-70).
    `XI_BASE_GPL_REVISION` (`versions-gpl.sh`) is the gpl flavor's counter in the same way:
-   bump it when full's revision moves or x264/x265 change (gpl r3 = full r3 + WP-70b).
+   bump it when full's revision moves or x264/x265 change (gpl r4 = full r4 + WP-70b).
 4. Build and verify locally (host architecture: arm64 on Apple silicon, amd64 on x86 hosts;
    slim ~30 min cold, full adds ~10 min, gpl another ~5 min):
 

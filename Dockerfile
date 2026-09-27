@@ -24,8 +24,8 @@
 #     --build-arg BASE_BUILDER=xtandard-base:dev-builder \
 #     --build-arg BASE_RUNTIME=xtandard-base:dev .            # locally built base
 
-ARG BASE_BUILDER=ghcr.io/xantiagoma/xtandard-image-base:8.18.6-r2-slim-builder
-ARG BASE_RUNTIME=ghcr.io/xantiagoma/xtandard-image-base:8.18.6-r2-slim
+ARG BASE_BUILDER=ghcr.io/xantiagoma/xtandard-image-base:8.18.6-r3-slim-builder
+ARG BASE_RUNTIME=ghcr.io/xantiagoma/xtandard-image-base:8.18.6-r3-slim
 
 # ==============================================================================
 FROM ${BASE_BUILDER} AS source
@@ -116,7 +116,9 @@ LABEL org.opencontainers.image.title="xtandard-image" \
 # MALLOC_CONF=narenas:2 is jemalloc's equivalent of MALLOC_ARENA_MAX=2 (which
 # only glibc reads): jemalloc's default of 4 arenas per CPU kept freed pages
 # of every busy thread and more than doubled peak RSS under load, with no
-# throughput gain (WP-87, bench/RESULTS.md).
+# throughput gain (WP-87, bench/RESULTS.md). The base runtime sets it too
+# since r3 (WP-93); it stays here so an older or third-party BASE_RUNTIME
+# cannot silently drop it (scripts/verify-app-image.sh checks it).
 ENV LD_LIBRARY_PATH=/opt/xtandard/lib \
     LD_PRELOAD=/opt/xtandard/lib/libjemalloc.so.2 \
     MALLOC_ARENA_MAX=2 \
