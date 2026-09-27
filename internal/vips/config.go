@@ -41,13 +41,14 @@ func DefaultConfig() Config {
 // DefaultLoaders returns the loader classes of the input formats
 // (FORMATS.md): jpeg, png (spng), gif (nsgif), webp, heif/avif, jxl, tiff,
 // svg, jp2k and UltraHDR (M1), then PDF (PDFium), ImageMagick, OpenEXR,
-// Radiance and PPM/PFM (M2). The M2 loaders are unblocked by their buffer
-// class only, the one the service uses, except OpenEXR, which has only a
-// file loader (the shim spools the buffer for it). ImageMagick, OpenEXR,
-// Radiance and PPM are libvips-UNTRUSTED: they are unblocked by name here;
-// the shim refuses ImageMagick for anything but PSD/PSB (and the base
-// image's policy.xml registers no other coder) and the PPM loader for
-// anything but binary PGM/PPM/PFM. Everything else, including untrusted
+// Radiance and PPM/PFM (M2), then JPEG XR (the shim's jxrlib loader,
+// WP-97). The M2 loaders are unblocked by their buffer class only, the one
+// the service uses, except OpenEXR, which has only a file loader (the shim
+// spools the buffer for it). ImageMagick, OpenEXR, Radiance, PPM and JPEG
+// XR are untrusted: they are unblocked by name here; the shim refuses
+// ImageMagick for anything but PSD/PSB and the legacy formats of its
+// policy.xml (which registers no other coder) and the PPM loader for
+// anything but a PNM or PFM header. Everything else, including untrusted
 // loaders such as matload, fits or csv, stays blocked.
 func DefaultLoaders() []string {
 	return []string{
@@ -66,6 +67,7 @@ func DefaultLoaders() []string {
 		"VipsForeignLoadOpenexr",
 		"VipsForeignLoadRadBuffer",
 		"VipsForeignLoadPpmBuffer",
+		"XiForeignLoadJxrBuffer",
 	}
 }
 

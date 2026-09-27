@@ -30,9 +30,17 @@ const (
 	// FormatRadiance is Radiance RGBE (radload: RGBE-coded, decoded to float
 	// scRGB or XYZ); never written.
 	FormatRadiance
-	// FormatPPM is a binary PGM/PPM (8/16-bit) or PFM (float) portable
-	// anymap (ppmload); never written.
+	// FormatPPM is a PBM/PGM/PPM (ASCII or binary, 1/8/16-bit) or PFM
+	// (float) portable anymap (ppmload); never written.
 	FormatPPM
+	// FormatJXR is JPEG XR / HD Photo, loaded by the shim's own jxrlib
+	// loader (jxrload_buffer, jxr.c); never written.
+	FormatJXR
+	// FormatMagick is any format ImageMagick loads other than PSD/PSB:
+	// the legacy formats its policy.xml allows (TGA, PCX, DDS, QOI, SGI,
+	// Sun raster, XBM, XPM, PICT, PAM); Header.Subformat names the coder.
+	// Never written.
+	FormatMagick
 )
 
 // String returns the lower-case format name.
@@ -68,13 +76,18 @@ func (f Format) String() string {
 		return "radiance"
 	case FormatPPM:
 		return "ppm"
+	case FormatJXR:
+		return "jxr"
+	case FormatMagick:
+		return "magick"
 	default:
 		return "unknown"
 	}
 }
 
 // formatOfLoader maps a vips-loader name ("jpegload") and, for heifload,
-// the heif-compression metadata ("av1", "hevc") to a Format.
+// the heif-compression metadata ("av1", "hevc"), for magickload the coder
+// ImageMagick used ("PSD", "TGA", ...), to a Format.
 func formatOfLoader(loader, subformat string) Format {
 	name, _ := strings.CutSuffix(loader, "_buffer")
 	switch name {
@@ -102,14 +115,20 @@ func formatOfLoader(loader, subformat string) Format {
 	case "pdfload":
 		return FormatPDF
 	case "magickload":
-		// ImageMagick loads PSD/PSB only (xi_check_loader and policy.xml).
-		return FormatPSD
+		// ImageMagick loads PSD/PSB and the legacy formats of policy.xml
+		// (xi_check_loader restricts it to their signatures).
+		if subformat == "PSD" || subformat == "PSB" {
+			return FormatPSD
+		}
+		return FormatMagick
 	case "openexrload":
 		return FormatEXR
 	case "radload":
 		return FormatRadiance
 	case "ppmload":
 		return FormatPPM
+	case "jxrload":
+		return FormatJXR
 	default:
 		return FormatUnknown
 	}
@@ -117,8 +136,11 @@ func formatOfLoader(loader, subformat string) Format {
 
 // Header is what Probe reads without decoding pixels.
 type Header struct {
-	Loader         string // vips-loader, e.g. "jpegload", "uhdrload"
-	Format         Format
+	Loader string // vips-loader, e.g. "jpegload", "uhdrload"
+	Format Format
+	// Subformat is heifload's heif-compression ("av1", "hevc") or the
+	// ImageMagick coder of magickload ("PSD", "TGA", ...); empty otherwise.
+	Subformat      string
 	Width          int
 	Height         int // one page/frame
 	Bands          int

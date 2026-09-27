@@ -23,7 +23,11 @@ func TestFormatOfLoader(t *testing.T) {
 		{"svgload_buffer", "", FormatSVG},
 		{"jp2kload_buffer", "", FormatJP2K},
 		{"pdfload_buffer", "", FormatPDF},
-		{"magickload_buffer", "", FormatPSD},
+		{"magickload_buffer", "PSD", FormatPSD},
+		{"magickload_buffer", "PSB", FormatPSD},
+		{"magickload_buffer", "TGA", FormatMagick},
+		{"magickload_buffer", "", FormatMagick},
+		{"jxrload_buffer", "", FormatJXR},
 		{"ppmload_buffer", "", FormatPPM},
 		{"radload_buffer", "", FormatRadiance},
 		{"openexrload", "", FormatEXR},
@@ -43,7 +47,7 @@ func TestFormatString(t *testing.T) {
 	want := map[Format]string{
 		FormatUnknown: "unknown", FormatJPEG: "jpeg", FormatPNG: "png", FormatWebP: "webp",
 		FormatGIF: "gif", FormatAVIF: "avif", FormatHEIF: "heif", FormatJXL: "jxl",
-		FormatTIFF: "tiff", FormatSVG: "svg", FormatJP2K: "jp2k", FormatPDF: "pdf", FormatPSD: "psd", FormatEXR: "exr", FormatRadiance: "radiance", FormatPPM: "ppm", Format(-1): "unknown",
+		FormatTIFF: "tiff", FormatSVG: "svg", FormatJP2K: "jp2k", FormatPDF: "pdf", FormatPSD: "psd", FormatEXR: "exr", FormatRadiance: "radiance", FormatPPM: "ppm", FormatJXR: "jxr", FormatMagick: "magick", Format(-1): "unknown",
 		Format(100): "unknown",
 	}
 	for f, s := range want {
