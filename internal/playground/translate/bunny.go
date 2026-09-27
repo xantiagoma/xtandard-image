@@ -17,7 +17,7 @@ var bunnyFormats = map[transform.Format]string{
 func emitBunny(e *emitter) (string, string, error) {
 	key, ok := e.src.keyOn(e.mountSource)
 	if !ok {
-		return "", "", errSource("Bunny Optimizer takes a path on the mount's source (its pull zone)")
+		return "", "", e.errNeedsKey("Bunny Optimizer")
 	}
 	p := e.pl()
 	var q params

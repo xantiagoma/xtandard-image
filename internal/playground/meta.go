@@ -123,6 +123,11 @@ type Mount struct {
 	Dialect string `json:"dialect" doc:"Dialect name."`
 	// Prefix is the path prefix ("/", "/q/"); empty for host-only mounts.
 	Prefix string `json:"prefix,omitempty" doc:"Path prefix; empty for host-only mounts."`
+	// Prefixes are every path prefix the mount answers on, Prefix first,
+	// when it has more than one (a simple provider's native prefixes and
+	// /simple/<name>/): the router lists the mount once per prefix, the
+	// page once.
+	Prefixes []string `json:"prefixes,omitempty" doc:"Every path prefix of the mount, prefix first, when it has more than one (simple providers: native prefixes and /simple/<name>/)."`
 	// Hosts are the host bindings.
 	Hosts []string `json:"hosts,omitempty" doc:"Host bindings."`
 	// Source is the named source relative keys resolve against.
@@ -245,6 +250,8 @@ type SignRequest struct {
 	Path string `json:"path" minLength:"1" maxLength:"8192" doc:"Escaped path after the mount prefix, starting with /; without the signature segment for imgproxy and thumbor."`
 	// Query is the raw query without "?"; any xi_sig is replaced.
 	Query string `json:"query,omitempty" maxLength:"8192" doc:"Raw query without ?; an existing xi_sig is replaced."`
+	// Prefix picks one of the mount's Prefixes; empty means Prefix.
+	Prefix string `json:"prefix,omitempty" maxLength:"512" doc:"One of the mount's prefixes; empty means its first prefix."`
 }
 
 // SignResponse is the body of a successful sign request.
