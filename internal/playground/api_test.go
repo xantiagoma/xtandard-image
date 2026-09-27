@@ -23,7 +23,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/source"
 )
 
-func fetchAll(t *testing.T, s *Store, ctx context.Context, path string) ([]byte, error) {
+func fetchAll(ctx context.Context, t *testing.T, s *Store, path string) ([]byte, error) {
 	t.Helper()
 	obj, err := s.Fetch(ctx, source.Key{Source: source.PlaygroundSourceName, Path: path}, source.FetchOptions{})
 	if err != nil {
@@ -46,11 +46,11 @@ func TestStoreUploads(t *testing.T) {
 	}
 	path := strings.TrimPrefix(u.Source, "playground://")
 	ctx := withRender(t.Context())
-	if b, err := fetchAll(t, s, ctx, path); err != nil || string(b) != "\x89PNG\r\n\x1a\nabc" {
+	if b, err := fetchAll(ctx, t, s, path); err != nil || string(b) != "\x89PNG\r\n\x1a\nabc" {
 		t.Errorf("render fetch = %q, %v", b, err)
 	}
 	// Outside api/render the store answers not found, like a missing file.
-	if _, err := fetchAll(t, s, t.Context(), path); !errors.Is(err, errs.Match(errs.KindNotFound)) {
+	if _, err := fetchAll(t.Context(), t, s, path); !errors.Is(err, errs.Match(errs.KindNotFound)) {
 		t.Errorf("public fetch error = %v, want not found", err)
 	}
 	if _, err := s.Put(make([]byte, 17)); !errors.Is(err, errs.Match(errs.KindSourceTooLarge)) {
@@ -60,7 +60,7 @@ func TestStoreUploads(t *testing.T) {
 		t.Error("empty put succeeded")
 	}
 	now = now.Add(UploadTTL)
-	if _, err := fetchAll(t, s, ctx, path); !errors.Is(err, errs.Match(errs.KindNotFound)) {
+	if _, err := fetchAll(ctx, t, s, path); !errors.Is(err, errs.Match(errs.KindNotFound)) {
 		t.Errorf("expired fetch error = %v, want not found", err)
 	}
 	if NewStore(StoreOptions{MaxBytes: 16}).UploadsEnabled() {
@@ -81,7 +81,7 @@ func TestStoreEvictsOldest(t *testing.T) {
 			first = strings.TrimPrefix(u.Source, "playground://")
 		}
 	}
-	if _, err := fetchAll(t, s, withRender(t.Context()), first); err == nil {
+	if _, err := fetchAll(withRender(t.Context()), t, s, first); err == nil {
 		t.Error("the oldest upload survived the cap")
 	}
 }
@@ -107,12 +107,12 @@ func TestSamplesMatchFixtures(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		got, err := fetchAll(t, s, withRender(t.Context()), "samples/"+sm.Name)
+		got, err := fetchAll(withRender(t.Context()), t, s, "samples/"+sm.Name)
 		if err != nil || !bytes.Equal(got, want) {
 			t.Errorf("sample %s differs from testdata/fixtures/%s (err %v)", sm.Name, fixture, err)
 		}
 	}
-	if _, err := fetchAll(t, s, withRender(t.Context()), "samples/nope.jpg"); err == nil {
+	if _, err := fetchAll(withRender(t.Context()), t, s, "samples/nope.jpg"); err == nil {
 		t.Error("unknown sample fetched")
 	}
 }
@@ -146,7 +146,7 @@ func TestGallery(t *testing.T) {
 	}
 }
 
-func newAPIFixture(t *testing.T, tr Translator) (http.Handler, string) {
+func newAPIFixture(t *testing.T, tr Translator) http.Handler {
 	t.Helper()
 	root := t.TempDir()
 	for _, p := range []string{"photos/a.jpg", "photos/sub/b.png", "top.gif", ".hidden"} {
@@ -168,7 +168,7 @@ func newAPIFixture(t *testing.T, tr Translator) (http.Handler, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return h, root
+	return h
 }
 
 func serve(t *testing.T, h http.Handler, req *http.Request) (int, []byte) {
@@ -180,7 +180,7 @@ func serve(t *testing.T, h http.Handler, req *http.Request) (int, []byte) {
 
 func TestUploadEndpoint(t *testing.T) {
 	t.Parallel()
-	h, _ := newAPIFixture(t, nil)
+	h := newAPIFixture(t, nil)
 	up := func(body string, header ...string) *http.Request {
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/_playground/api/upload", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/octet-stream")
@@ -201,8 +201,10 @@ func TestUploadEndpoint(t *testing.T) {
 		t.Errorf("cross-site upload = %d, want 403", code)
 	}
 	// Disabled: the route does not exist.
-	off, err := New(Config{Path: DefaultPath}, &Deps{Meta: testMeta(), Image: &fakeImage{}, Logger: slog.New(slog.DiscardHandler),
-		Store: NewStore(StoreOptions{MaxBytes: 32})})
+	off, err := New(Config{Path: DefaultPath}, &Deps{
+		Meta: testMeta(), Image: &fakeImage{}, Logger: slog.New(slog.DiscardHandler),
+		Store: NewStore(StoreOptions{MaxBytes: 32}),
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,7 +215,7 @@ func TestUploadEndpoint(t *testing.T) {
 
 func TestListEndpoint(t *testing.T) {
 	t.Parallel()
-	h, _ := newAPIFixture(t, nil)
+	h := newAPIFixture(t, nil)
 	list := func(q string) (int, ListResponse) {
 		code, body := serve(t, h, get(t, "/_playground/api/sources/local/list"+q))
 		var r ListResponse
@@ -262,7 +264,7 @@ func (f fakeTranslator) Translate(*TranslateRequest) (*Translation, error) {
 
 func TestTranslateEndpoint(t *testing.T) {
 	t.Parallel()
-	h, _ := newAPIFixture(t, fakeTranslator{})
+	h := newAPIFixture(t, fakeTranslator{})
 	tr := func(body string) (int, []byte) {
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/_playground/api/translate", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -284,7 +286,7 @@ func TestTranslateEndpoint(t *testing.T) {
 			t.Errorf("%s = %d, want 400", bad, code)
 		}
 	}
-	failing, _ := newAPIFixture(t, fakeTranslator{err: &errs.Error{Kind: errs.KindInvalidURL, Public: "invalid width: expected integer"}})
+	failing := newAPIFixture(t, fakeTranslator{err: &errs.Error{Kind: errs.KindInvalidURL, Public: "invalid width: expected integer"}})
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/_playground/api/translate",
 		strings.NewReader(`{"mount":"imgproxy","path":"/w:x/plain/a"}`))
 	req.Header.Set("Content-Type", "application/json")

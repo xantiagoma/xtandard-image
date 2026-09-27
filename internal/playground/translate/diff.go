@@ -156,7 +156,7 @@ func (d *differ) value(path string, w, g reflect.Value) {
 		n := max(w.Len(), g.Len())
 		// Lists of names or numbers compare as a whole.
 		if k := w.Type().Elem().Kind(); k != reflect.Struct && k != reflect.Pointer {
-			if !reflect.DeepEqual(w.Interface(), g.Interface()) && !(w.Len() == 0 && g.Len() == 0) {
+			if !reflect.DeepEqual(w.Interface(), g.Interface()) && (w.Len() != 0 || g.Len() != 0) {
 				d.report(path, g.Len() == 0)
 			}
 			return

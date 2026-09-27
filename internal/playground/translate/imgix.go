@@ -13,7 +13,7 @@ type params []string
 
 func (p *params) set(k, v string) { *p = append(*p, url.QueryEscape(k)+"="+url.QueryEscape(v)) }
 
-func (p params) encode() string { return strings.Join(p, "&") }
+func (p *params) encode() string { return strings.Join(*p, "&") }
 
 // sideWords maps compass gravities to (horizontal, vertical) words.
 var sideWords = map[transform.GravityType][2]string{
@@ -24,7 +24,7 @@ var sideWords = map[transform.GravityType][2]string{
 }
 
 // imgixCrop is the crop= value of a gravity.
-func imgixCrop(g transform.Gravity, q *params) {
+func imgixCrop(g *transform.Gravity, q *params) {
 	switch g.Type {
 	case transform.GravitySmart:
 		q.set("crop", "edges")
@@ -104,8 +104,8 @@ func imgixFit(p *transform.Pipeline, q *params) {
 			q.set("fit", "max")
 		}
 	}
-	if crop && !isDefaultGravity(p.Gravity) {
-		imgixCrop(p.Gravity, q)
+	if crop && !isDefaultGravity(&p.Gravity) {
+		imgixCrop(&p.Gravity, q)
 	}
 }
 
@@ -142,7 +142,7 @@ func emitImgix(e *emitter) (string, string, error) {
 			q.set(c.k, itoa(c.v))
 		}
 	}
-	if c := p.Crop; c != nil && (c.Gravity.Type == transform.GravityNorthWest || isDefaultGravity(c.Gravity)) && c.AspectRatio == 0 {
+	if c := p.Crop; c != nil && (c.Gravity.Type == transform.GravityNorthWest || isDefaultGravity(&c.Gravity)) && c.AspectRatio == 0 {
 		cw, okW := dim(c.Width)
 		ch, okH := dim(c.Height)
 		if okW && okH {
@@ -216,11 +216,11 @@ func emitImgix(e *emitter) (string, string, error) {
 	if p.Negate {
 		q.set("invert", "true")
 	}
-	if bg := p.Background; bg != nil && !(p.Extend.Enabled && p.Extend.Mode != transform.ExtendBlur) {
+	if bg := p.Background; bg != nil && (!p.Extend.Enabled || p.Extend.Mode == transform.ExtendBlur) {
 		q.set("bg", hexARGB(*bg))
 	}
 	if pd := p.Padding; pd != nil {
-		if pd.Top == pd.Right && pd.Top == pd.Bottom && pd.Top == pd.Left {
+		if sameSides(pd.Top, pd.Right, pd.Bottom, pd.Left) {
 			q.set("pad", itoa(pd.Top))
 		} else {
 			q.set("pad-top", itoa(pd.Top))
@@ -229,11 +229,11 @@ func emitImgix(e *emitter) (string, string, error) {
 			q.set("pad-left", itoa(pd.Left))
 		}
 	}
-	if b := p.Border; b != nil && b.Top == b.Right && b.Top == b.Bottom && b.Top == b.Left {
+	if b := p.Border; b != nil && sameSides(b.Top, b.Right, b.Bottom, b.Left) {
 		q.set("border", itoa(b.Top)+","+hexARGB(b.Color))
 	}
 	if r := p.Radius; r != nil && !r.Max {
-		if r.TopLeft == r.TopRight && r.TopLeft == r.BottomRight && r.TopLeft == r.BottomLeft {
+		if sameSides(r.TopLeft, r.TopRight, r.BottomRight, r.BottomLeft) {
 			q.set("border-radius", itoa(r.TopLeft))
 		} else {
 			q.set("border-radius", itoa(r.TopLeft)+","+itoa(r.TopRight)+","+itoa(r.BottomRight)+","+itoa(r.BottomLeft))
@@ -378,6 +378,7 @@ func imgixOutput(r *transform.Request, q *params) {
 		q.set("chromasub", "422")
 	case transform.Subsampling444:
 		q.set("chromasub", "444")
+	default:
 	}
 	if o.DPI > 0 {
 		q.set("dpi", itoa(o.DPI))

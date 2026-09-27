@@ -71,8 +71,8 @@ var roundTripCases = []struct {
 
 // roundTripResult is one golden row.
 type roundTripResult struct {
-	Case    string                       `json:"case"`
-	Source  string                       `json:"source"`
+	Case    string                     `json:"case"`
+	Source  string                     `json:"source"`
 	Targets map[string]roundTripTarget `json:"targets"`
 }
 
@@ -91,7 +91,7 @@ type roundTripTarget struct {
 func TestRoundTrip(t *testing.T) {
 	t.Parallel()
 	tr := newTranslator(t)
-	var rows []roundTripResult
+	rows := make([]roundTripResult, 0, 2*len(roundTripCases))
 	for _, tc := range roundTripCases {
 		for _, src := range []string{"https://example.com/photos/a.jpg", "xi://local/photos/a.jpg"} {
 			res, err := tr.Translate(&playground.TranslateRequest{Mount: "imgproxy", Path: "/" + tc.opts + "/plain/" + src})
@@ -124,7 +124,7 @@ func TestRoundTrip(t *testing.T) {
 	got = append(got, '\n')
 	golden := filepath.Join("testdata", "roundtrip.json")
 	if *update {
-		if err := os.WriteFile(golden, got, 0o644); err != nil {
+		if err := os.WriteFile(golden, got, 0o600); err != nil {
 			t.Fatal(err)
 		}
 		return

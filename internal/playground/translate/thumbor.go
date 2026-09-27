@@ -25,7 +25,7 @@ func emitThumbor(e *emitter) (string, string, error) {
 	var segs, filters []string
 	f := func(s string) { filters = append(filters, s) }
 	if c := p.Crop; c != nil && c.Width.Px > 0 && c.Height.Px > 0 && c.AspectRatio == 0 &&
-		(c.Gravity.Type == transform.GravityNorthWest || isDefaultGravity(c.Gravity)) &&
+		(c.Gravity.Type == transform.GravityNorthWest || isDefaultGravity(&c.Gravity)) &&
 		c.Gravity.XOffset == math.Trunc(c.Gravity.XOffset) && c.Gravity.YOffset == math.Trunc(c.Gravity.YOffset) {
 		x, y := int(c.Gravity.XOffset), int(c.Gravity.YOffset)
 		segs = append(segs, itoa(x)+"x"+itoa(y)+":"+itoa(x+c.Width.Px)+"x"+itoa(y+c.Height.Px))
@@ -146,9 +146,5 @@ func emitThumbor(e *emitter) (string, string, error) {
 	if len(filters) > 0 {
 		segs = append(segs, "filters:"+strings.Join(filters, ":"))
 	}
-	path := ""
-	for _, s := range segs {
-		path += "/" + s
-	}
-	return path + "/" + image, "", nil
+	return "/" + strings.Join(append(segs, image), "/"), "", nil
 }

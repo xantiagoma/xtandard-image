@@ -33,13 +33,11 @@ func emitQuery(e *emitter) (string, string, error) {
 				rest = append(rest, seg)
 			}
 		}
-		q := "url=" + url.QueryEscape(e.src.abs)
-		for _, n := range native {
-			q += "&" + n
-		}
+		parts := append([]string{"url=" + url.QueryEscape(e.src.abs)}, native...)
 		if len(rest) > 0 {
-			q += "&o=" + url.QueryEscape(strings.Join(rest, "/"))
+			parts = append(parts, "o="+url.QueryEscape(strings.Join(rest, "/")))
 		}
+		q := strings.Join(parts, "&")
 		return "/", q, nil
 	}
 	parts := make([]string, 0, len(paths))

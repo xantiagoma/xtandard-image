@@ -98,7 +98,8 @@ func FuzzTranslate(f *testing.F) {
 		if err != nil {
 			return
 		}
-		for _, tg := range res.Targets {
+		for i := range res.Targets {
+			tg := &res.Targets[i]
 			if tg.Error == "" && tg.Path == "" {
 				t.Errorf("%s: no path and no error", tg.Dialect)
 			}

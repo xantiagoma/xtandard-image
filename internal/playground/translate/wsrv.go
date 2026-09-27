@@ -85,7 +85,7 @@ func emitWsrv(e *emitter) (string, string, error) {
 			q.set("fpy", num(g.FocusY))
 		}
 	default:
-		if n, ok := wsrvCompass[g.Type]; ok && !isDefaultGravity(g) && g.XOffset == 0 && g.YOffset == 0 {
+		if n, ok := wsrvCompass[g.Type]; ok && !isDefaultGravity(&g) && g.XOffset == 0 && g.YOffset == 0 {
 			q.set("a", n)
 		}
 	}

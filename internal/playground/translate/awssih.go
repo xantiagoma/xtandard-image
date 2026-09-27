@@ -85,10 +85,9 @@ func emitAWSSIH(e *emitter) (string, string, error) {
 		}
 		edits["extend"] = ex
 	}
+	// SIH's rotate: null is auto-rotation, the default here.
 	if deg := float64(p.Rotate) + p.RotateAny; deg != 0 {
 		edits["rotate"] = deg
-	} else if p.AutoRotate != nil && *p.AutoRotate {
-		// SIH's rotate: null is auto-rotation, the default here.
 	}
 	if p.Flip.V {
 		edits["flip"] = true

@@ -21,7 +21,7 @@ var cloudinaryFormats = map[transform.Format]string{
 }
 
 // cloudinaryGravity writes g_ (and x_, y_) into c.
-func cloudinaryGravity(g transform.Gravity, c *[]string) {
+func cloudinaryGravity(g *transform.Gravity, c *[]string) {
 	switch g.Type {
 	case transform.GravitySmart:
 		*c = append(*c, "g_auto")
@@ -96,8 +96,8 @@ func cloudinaryPipeline(p *transform.Pipeline) []string {
 	default:
 		c = append(c, "c_limit")
 	}
-	if !isDefaultGravity(gravity) {
-		cloudinaryGravity(gravity, &c)
+	if !isDefaultGravity(&gravity) {
+		cloudinaryGravity(&gravity, &c)
 	}
 	if rs.DPR != 0 && rs.DPR != 1 {
 		c = append(c, "dpr_"+num(rs.DPR))
@@ -124,7 +124,7 @@ func cloudinaryPipeline(p *transform.Pipeline) []string {
 	if bg := p.Background; bg != nil {
 		c = append(c, "b_"+cloudinaryColor(*bg))
 	}
-	if b := p.Border; b != nil && b.Top == b.Right && b.Top == b.Bottom && b.Top == b.Left {
+	if b := p.Border; b != nil && sameSides(b.Top, b.Right, b.Bottom, b.Left) {
 		c = append(c, "bo_"+itoa(b.Top)+"px_solid_"+cloudinaryColor(b.Color))
 	}
 	if r := p.Radius; r != nil {
@@ -167,8 +167,13 @@ func cloudinaryPipeline(p *transform.Pipeline) []string {
 		name string
 		v    *float64
 	}{
-		{"contrast", a.Contrast}, {"saturation", a.Saturation}, {"gamma", a.Gamma}, {"vibrance", a.Vibrance},
-		{"red", a.Red}, {"green", a.Green}, {"blue", a.Blue},
+		{"contrast", a.Contrast},
+		{"saturation", a.Saturation},
+		{"gamma", a.Gamma},
+		{"vibrance", a.Vibrance},
+		{"red", a.Red},
+		{"green", a.Green},
+		{"blue", a.Blue},
 	} {
 		if m.v != nil {
 			eff(m.name, (*m.v-1)*100)
@@ -231,6 +236,7 @@ func emitCloudinary(e *emitter) (string, string, error) {
 			q += ":422"
 		case transform.Subsampling444:
 			q += ":444"
+		default:
 		}
 		req = append(req, q)
 	}
@@ -261,11 +267,7 @@ func emitCloudinary(e *emitter) (string, string, error) {
 	if len(req) > 0 {
 		comps = append(comps, strings.Join(req, ","))
 	}
-	path := "/xi/image/" + kind
-	for _, c := range comps {
-		path += "/" + c
-	}
-	return path + "/" + id, "", nil
+	return "/xi/image/" + kind + "/" + strings.Join(append(comps, id), "/"), "", nil
 }
 
 // fileExt is the extension of name including the dot, or "".

@@ -167,7 +167,7 @@ func cloudflareParams() []dparam {
 		dpr("zoom", "number", groupDetection, "0.5", "How closely a face crop frames the faces (gravity=face).", 0, 1),
 		dpr("dpr", "number", groupSize, "2", "Device pixel ratio.", 0.1, 8),
 		dp("quality", "string", groupFormat, "80", "Quality 1-100 or high, medium-high, medium-low, low."),
-		dp("slow-connection-quality", "string", groupFormat, "50", "Quality on slow connections (Save-Data, ECT)."),
+		dp("slow-connection-quality", "string", groupFormat, "50", "Quality on slow connections (Save-Data or a slow effective connection type)."),
 		dp("format", "enum", groupFormat, "webp", "Output format.", "auto", "avif", "webp", "jpeg", "baseline-jpeg", "png", "gif"),
 		dp("anim", "boolean", groupFrames, "false", "Keep animation."),
 		dp("background", "color", groupColor, "%23ff0000", "Background colour (#hex, CSS name, rgb())."),

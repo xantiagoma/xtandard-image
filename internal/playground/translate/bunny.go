@@ -41,8 +41,7 @@ func emitBunny(e *emitter) (string, string, error) {
 			q.set("face_crop", "true")
 		}
 	default:
-		if c, ok := ipCompass[g.Type]; ok && !isDefaultGravity(g) && g.XOffset == 0 && g.YOffset == 0 {
-			_ = c
+		if _, ok := ipCompass[g.Type]; ok && !isDefaultGravity(&g) && g.XOffset == 0 && g.YOffset == 0 {
 			q.set("crop_gravity", map[transform.GravityType]string{
 				transform.GravityNorth: "north", transform.GravitySouth: "south", transform.GravityEast: "east",
 				transform.GravityWest: "west", transform.GravityNorthEast: "northeast", transform.GravityNorthWest: "northwest",
@@ -53,7 +52,7 @@ func emitBunny(e *emitter) (string, string, error) {
 	if c := p.Crop; c != nil && c.Width.Px > 0 && c.Height.Px > 0 && c.AspectRatio == 0 {
 		if c.Gravity.Type == transform.GravityNorthWest {
 			q.set("crop", itoa(c.Width.Px)+","+itoa(c.Height.Px)+","+num(c.Gravity.XOffset)+","+num(c.Gravity.YOffset))
-		} else if isDefaultGravity(c.Gravity) {
+		} else if isDefaultGravity(&c.Gravity) {
 			q.set("crop", itoa(c.Width.Px)+","+itoa(c.Height.Px))
 		}
 	}
