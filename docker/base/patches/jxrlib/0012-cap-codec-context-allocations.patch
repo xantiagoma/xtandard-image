@@ -1,0 +1,32 @@
+From: xtandard-image
+Subject: [PATCH] Cap the codec context allocations
+
+Found by libFuzzer: a corrupt alpha plane header made ImageStrDecInit ask
+for 117 GB. The per-plane buffers are two macroblock rows; refuse more
+than 1 GiB.
+---
+--- a/image/decode/strdec.c
++++ b/image/decode/strdec.c
+@@ -3287,6 +3287,11 @@
+     }
+     cb += i * cMacBlock;
+ 
++    // Two macroblock rows per plane: far below 1 GiB for any image a
++    // caller accepts. A corrupt plane header (the alpha plane is not checked
++    // against the image's limits) must not size a giant allocation.
++    if (cb > ((size_t) 1 << 30))
++        return ICERR_ERROR;
+     pb = malloc(cb);
+     if(pb == NULL)
+         return WMP_errOutOfMemory;
+@@ -3335,6 +3340,10 @@
+         // 1. allocate new pNextSC info
+         //================================================
+         cb = sizeof(*pNextSC) + (128 - 1) + cbMacBlockStride * cMacBlock * 2;
++        if (cb > ((size_t) 1 << 30)) {
++            free(pSC);
++            return ICERR_ERROR;
++        }
+         // if primary image is safe to allocate, alpha channel is certainly safe
+         pb = malloc(cb);
+         if(pb == NULL)
