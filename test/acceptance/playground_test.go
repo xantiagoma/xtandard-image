@@ -124,7 +124,7 @@ func TestPlayground(t *testing.T) {
 		t.Fatal("api/meta contains the imgix token")
 	}
 	if meta.Signing.Mode != "optional" || mounts["imgproxy"] != "imgproxy" || mounts["query"] != "xi_sig" ||
-		mounts["imgix"] != "imgix" || len(meta.Catalogues) != 3 || len(meta.Catalogues[0].Options) < 50 || len(meta.Sources) != 3 ||
+		mounts["imgix"] != "imgix" || len(meta.Catalogues) != 10 || len(meta.Catalogues[0].Options) < 50 || len(meta.Sources) != 3 ||
 		len(meta.Presets) != 1 || meta.Presets[0] != "thumb" {
 		t.Errorf("meta: %s", truncate(metaRes.Body))
 	}
@@ -159,11 +159,91 @@ func TestPlayground(t *testing.T) {
 
 	rendered := get(t, admin+"/_playground/api/render?u="+url.QueryEscape(s.URL), http.Header{"Accept": {"image/webp"}})
 	rendered.wantStatus(t, http.StatusOK)
-	if !strings.HasPrefix(rendered.Header.Get("Server-Timing"), "xi;") {
-		t.Errorf("render Server-Timing %q", rendered.Header.Get("Server-Timing"))
+	if st := strings.Join(rendered.Header.Values("Server-Timing"), ", "); !strings.Contains(st, "xi;") || !strings.Contains(st, "process;dur=") {
+		t.Errorf("render Server-Timing %q", st)
 	}
 	// Accept is forwarded, so the in-process render negotiates WebP.
 	wantImage(t, rendered, "image/webp", props{Format: "webp", Width: 64, Height: 48})
+
+	playgroundV2(t, app, admin, path)
+}
+
+// postJSONAcc posts body and decodes the JSON answer into out.
+func postJSONAcc(t *testing.T, u, ctype string, body []byte, want int, out any) {
+	t.Helper()
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, u, bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", ctype)
+	res, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("POST %s: %v", u, err)
+	}
+	defer res.Body.Close()
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.StatusCode != want {
+		t.Fatalf("POST %s: %d %s", u, res.StatusCode, truncate(b))
+	}
+	if err := json.Unmarshal(b, out); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// playgroundV2 covers WP-94: api/translate writes the URL in every
+// dialect (the imgproxy one signed and served by the app), an uploaded
+// file and a built-in sample render through api/render and never on the
+// public listener.
+func playgroundV2(t *testing.T, app, admin, path string) {
+	t.Helper()
+	var tr struct {
+		Targets []struct {
+			Dialect, URL, Error string
+			Signed              bool
+			Unsupported         []string
+		} `json:"targets"`
+	}
+	postJSONAcc(t, admin+"/_playground/api/translate", "application/json",
+		[]byte(`{"mount":"imgproxy","path":"`+path+`"}`), http.StatusOK, &tr)
+	dialects := map[string]bool{}
+	for _, x := range tr.Targets {
+		dialects[x.Dialect] = true
+	}
+	for _, d := range []string{"imgproxy", "query", "imgix", "cloudinary", "imagekit", "cloudflare", "wsrv", "thumbor", "bunny", "awssih"} {
+		if !dialects[d] {
+			t.Errorf("translate has no %s target", d)
+		}
+	}
+	if ip := tr.Targets[0]; ip.Dialect != "imgproxy" || !ip.Signed {
+		t.Errorf("translate imgproxy target %+v", ip)
+	} else {
+		r := get(t, app+ip.URL, nil)
+		r.wantStatus(t, http.StatusOK)
+		wantImage(t, r, "image/jpeg", props{Format: "jpeg", Width: 64, Height: 48})
+	}
+
+	// Upload a PNG, render it through the playground.
+	png := get(t, app+postSign(t, admin, `{"mount":"imgproxy","path":"/rs:fit:32:32/f:png/plain/`+jpegSrc+`"}`).URL, nil)
+	png.wantStatus(t, http.StatusOK)
+	var up struct {
+		Source string `json:"source"`
+	}
+	postJSONAcc(t, admin+"/_playground/api/upload", "image/png", png.Body, http.StatusCreated, &up)
+	if !strings.HasPrefix(up.Source, "playground://uploads/") {
+		t.Fatalf("upload source %q", up.Source)
+	}
+	for _, src := range []string{up.Source, "playground://samples/photo.jpg"} {
+		s := postSign(t, admin, `{"mount":"imgproxy","path":"/rs:fit:16:16/f:png/plain/`+src+`"}`)
+		r := get(t, admin+"/_playground/api/render?u="+url.QueryEscape(s.URL), nil)
+		r.wantStatus(t, http.StatusOK)
+		wantImage(t, r, "image/png", props{Format: "png", Width: 16})
+		if pub := get(t, app+s.URL, nil); pub.Status != http.StatusNotFound {
+			t.Errorf("%s on the public listener: %d, want 404", src, pub.Status)
+		}
+	}
 }
 
 // wantImage checks the Content-Type and decodes the body; a zero Height in
