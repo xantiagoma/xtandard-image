@@ -57,8 +57,8 @@ func buildPlayground(ctx context.Context, cfg *config.Config, rt *router.Router,
 		return playgroundHandlers{}, fmt.Errorf("playground: %w", err)
 	}
 	bases := map[string]string{}
-	for name, s := range cfg.Sources {
-		if s.Type == config.SourceHTTP && s.BaseURL != "" {
+	for name := range cfg.Sources {
+		if s := cfg.Sources[name]; s.Type == config.SourceHTTP && s.BaseURL != "" {
 			bases[name] = s.BaseURL
 		}
 	}
