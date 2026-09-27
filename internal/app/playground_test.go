@@ -10,12 +10,14 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/playground"
 	"github.com/xantiagoma/xtandard-image/internal/security/sign"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
 )
 
 const (
@@ -72,6 +74,9 @@ func TestPlaygroundListeners(t *testing.T) {
 			t.Parallel()
 			cfg := fixturesConfig(t)
 			cfg.Playground.Enabled, cfg.Playground.Public = tc.enabled, tc.public
+			if tc.enabled {
+				cfg.Playground.Uploads = config.True // Load resolved auto before Enabled was set
+			}
 			cfg.Signing.Keys = []config.HexKey{hexKey(t, pgKeyHex)}
 			cfg.Signing.Salts = []config.HexKey{hexKey(t, pgSaltHex)}
 			cfg.Signing.Required = config.True
@@ -107,7 +112,7 @@ func TestPlaygroundListeners(t *testing.T) {
 				t.Fatal(err)
 			}
 			if m.Signing.Mode != playground.SigningRequired || len(m.Mounts) == 0 || m.Mounts[0].ID != "imgproxy" || !m.Mounts[0].Keyed ||
-				len(m.Catalogues) != 3 || len(m.Sources) != 1 || m.Sources[0].Name != "fixtures" {
+				len(m.Catalogues) != 10 || len(m.Sources) != 1 || m.Sources[0].Name != "fixtures" {
 				t.Errorf("meta %+v", m)
 			}
 
@@ -122,6 +127,7 @@ func TestPlaygroundListeners(t *testing.T) {
 			if rendered.header.Get("Server-Timing") == "" {
 				t.Error("api/render has no Server-Timing")
 			}
+			checkPlaygroundV2(t, admin, public, &m)
 			// Signing is required: the unsigned form is rejected.
 			if got := get(t, public+"/insecure/rs:fit:64:64/plain/jpeg/baseline.jpg"); got.status != http.StatusForbidden {
 				t.Errorf("unsigned URL: %d, want 403", got.status)
@@ -214,5 +220,78 @@ func TestPlaygroundSignsForEveryScheme(t *testing.T) {
 		if m.ID == "imagekit" && (m.Scheme != playground.SchemeNone || m.Keyed) {
 			t.Errorf("imagekit mount %+v: the playground holds no ImageKit keys", m)
 		}
+	}
+}
+
+// checkPlaygroundV2 exercises the WP-94 endpoints against the real server:
+// a built-in sample and an upload render through api/render but not on
+// the public listener, translate signs the mounted dialect's URL, and the
+// fs source lists its files.
+func checkPlaygroundV2(t *testing.T, admin, public string, m *playground.Meta) {
+	t.Helper()
+	if len(m.Samples) == 0 || !m.Uploads || m.MaxUploadBytes <= 0 || len(m.Gallery) == 0 || len(m.Classes) < 2 || !m.Sources[0].Listable {
+		t.Errorf("meta v2 fields: samples %d uploads %v max %d gallery %d classes %d sources %+v",
+			len(m.Samples), m.Uploads, m.MaxUploadBytes, len(m.Gallery), len(m.Classes), m.Sources)
+	}
+	sign := func(path string) string {
+		t.Helper()
+		res := postJSON(t, admin+"/_playground/api/sign", `{"mount":"imgproxy","path":"`+path+`"}`)
+		var sr playground.SignResponse
+		if err := json.Unmarshal(res.body, &sr); err != nil || res.status != http.StatusOK {
+			t.Fatalf("sign %s: %d %s", path, res.status, res.body)
+		}
+		return sr.URL
+	}
+	sample := sign("/rs:fit:64:0/f:jpeg/plain/playground://samples/photo.jpg")
+	rendered := get(t, admin+"/_playground/api/render?u="+url.QueryEscape(sample))
+	checkJPEG(t, rendered, 64, 48)
+	if st := strings.Join(rendered.header.Values("Server-Timing"), ", "); !strings.Contains(st, "fetch;dur=") ||
+		!strings.Contains(st, "process;dur=") || !strings.Contains(st, "xi;") {
+		t.Errorf("render Server-Timing %q lacks the stages", st)
+	}
+	if got := get(t, public+sample); got.status != http.StatusNotFound {
+		t.Errorf("playground sample on the public listener: %d, want 404", got.status)
+	}
+
+	photo, err := os.ReadFile(filepath.Join(golden.ModuleRoot(t), "testdata", "fixtures", "jpeg", "baseline.jpg"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, admin+"/_playground/api/upload", bytes.NewReader(photo))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "image/jpeg")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var up playground.Upload
+	err = json.NewDecoder(resp.Body).Decode(&up)
+	_ = resp.Body.Close()
+	if err != nil || resp.StatusCode != http.StatusCreated {
+		t.Fatalf("upload: %d %v", resp.StatusCode, err)
+	}
+	uploaded := sign("/rs:fit:32:0/f:jpeg/plain/" + up.Source)
+	checkJPEG(t, get(t, admin+"/_playground/api/render?u="+url.QueryEscape(uploaded)), 32, 24)
+
+	tr := postJSON(t, admin+"/_playground/api/translate", `{"mount":"imgproxy","path":"/rs:fill:64:64/f:jpeg/plain/jpeg/baseline.jpg"}`)
+	var tres playground.TranslateResponse
+	if err := json.Unmarshal(tr.body, &tres); err != nil || tr.status != http.StatusOK || len(tres.Targets) < 10 {
+		t.Fatalf("translate: %d %s", tr.status, tr.body)
+	}
+	if ip := tres.Targets[0]; ip.Dialect != "imgproxy" || !ip.Signed {
+		t.Errorf("translate imgproxy target %+v", ip)
+	} else {
+		pub := get(t, public+ip.URL)
+		checkJPEG(t, pub, 64, 64)
+		if st := pub.header.Get("Server-Timing"); st != "" {
+			t.Errorf("public response carries Server-Timing %q", st)
+		}
+	}
+
+	list := get(t, admin+"/_playground/api/sources/"+m.Sources[0].Name+"/list?prefix=jpeg")
+	if list.status != http.StatusOK || !bytes.Contains(list.body, []byte(`"key":"jpeg/baseline.jpg"`)) {
+		t.Errorf("list: %d %s", list.status, list.body)
 	}
 }

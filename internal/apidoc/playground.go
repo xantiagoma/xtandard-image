@@ -18,6 +18,10 @@ const (
 	schemaPlaygroundSignRequest  = "PlaygroundSignRequest"
 	schemaPlaygroundSignResponse = "PlaygroundSignResponse"
 	schemaPlaygroundError        = "PlaygroundErrorResponse"
+	schemaPlaygroundTranslateReq = "PlaygroundTranslateRequest"
+	schemaPlaygroundTranslateRes = "PlaygroundTranslateResponse"
+	schemaPlaygroundUpload       = "PlaygroundUpload"
+	schemaPlaygroundList         = "PlaygroundListResponse"
 )
 
 // schemaNamer is huma's default namer, with "Playground" in front of the
@@ -73,13 +77,13 @@ func playgroundAssetOperation() *huma.Operation {
 	return &huma.Operation{
 		OperationID: "getPlaygroundAsset", Method: http.MethodGet, Path: playgroundPath + "/assets/{version}/{name}",
 		Tags: []string{"playground"}, Servers: adminServers(),
-		Summary:     "Playground script and stylesheet",
-		Description: "app.js and style.css under a content-hash version, with Cache-Control immutable; another version is a 404.",
+		Summary:     "Playground scripts and stylesheet",
+		Description: "The ES modules (app.js imports the others with relative URLs) and style.css under a content-hash version, with Cache-Control immutable; another version is a 404.",
 		Parameters: []*huma.Param{
 			pathParam("version", "Content hash of the assets (from the page).", "0123456789ab", nil),
 			{
-				Name: "name", In: "path", Required: true, Description: "Asset file name.",
-				Schema: &huma.Schema{Type: "string", Enum: []any{"app.js", "style.css"}},
+				Name: "name", In: "path", Required: true, Description: "Asset file name: an ES module or the stylesheet (app.js, style.css, ...).",
+				Schema: &huma.Schema{Type: "string", Pattern: `^[a-z0-9-]+\.(js|css)$`},
 			},
 		},
 		Responses: map[string]*huma.Response{
@@ -152,6 +156,77 @@ func playgroundRenderOperation() *huma.Operation {
 				Content: map[string]*huma.MediaType{"image/*": {Schema: &huma.Schema{Type: "string", ContentEncoding: "binary"}}},
 			},
 		}),
+		Extensions: playgroundExtensions(),
+	}
+}
+
+func playgroundTranslateOperation() *huma.Operation {
+	rs := playgroundErrors(http.StatusBadRequest, http.StatusRequestEntityTooLarge, http.StatusUnsupportedMediaType, http.StatusInternalServerError)
+	rs["200"] = &huma.Response{
+		Description: "The canonical request and the same transform in every dialect.",
+		Content:     map[string]*huma.MediaType{"application/json": {Schema: ref(schemaPlaygroundTranslateRes)}},
+	}
+	rs["403"] = &huma.Response{Description: "Cross-origin request rejected (http.CrossOriginProtection)."}
+	rs["404"] = &huma.Response{Description: "The playground is disabled."}
+	return &huma.Operation{
+		OperationID: "postPlaygroundTranslate", Method: http.MethodPost, Path: playgroundPath + "/api/translate", Tags: []string{"playground"}, Servers: adminServers(),
+		Summary: "Translate a URL into every dialect",
+		Description: "Parses a URL of a mount (as for api/sign, without a signature) with that dialect's parser, or takes a canonical " +
+			"transform.Request, and writes the transform in imgproxy (path and query form), imgix, Cloudinary, ImageKit, Cloudflare, wsrv, " +
+			"thumbor, Bunny and AWS SIH. Each URL is parsed back with its dialect's parser and compared with the canonical request: " +
+			"unsupported lists the fields the dialect cannot express, approximated those it writes with a different value. URLs of " +
+			"mounted dialects are signed like api/sign; the others use the dialect's default prefix. Cross-origin requests are rejected.",
+		RequestBody: &huma.RequestBody{
+			Required: true,
+			Content:  map[string]*huma.MediaType{"application/json": {Schema: ref(schemaPlaygroundTranslateReq)}},
+		},
+		Responses:  rs,
+		Extensions: playgroundExtensions(),
+	}
+}
+
+func playgroundUploadOperation() *huma.Operation {
+	rs := playgroundErrors(http.StatusBadRequest, http.StatusRequestEntityTooLarge)
+	rs["201"] = &huma.Response{
+		Description: "The stored file and its playground:// source.",
+		Content:     map[string]*huma.MediaType{"application/json": {Schema: ref(schemaPlaygroundUpload)}},
+	}
+	rs["403"] = &huma.Response{Description: "Cross-origin request rejected (http.CrossOriginProtection)."}
+	rs["404"] = &huma.Response{Description: "The playground or its uploads are disabled (XI_PLAYGROUND_UPLOADS)."}
+	return &huma.Operation{
+		OperationID: "postPlaygroundUpload", Method: http.MethodPost, Path: playgroundPath + "/api/upload", Tags: []string{"playground"}, Servers: adminServers(),
+		Summary: "Upload a file for the playground",
+		Description: "Stores the raw request body (at most XI_LIMITS_MAX_SRC_BYTES) in memory for 10 minutes and returns its source, " +
+			"playground://uploads/<id>. The source resolves only for requests made through api/render; the store keeps at most 64 " +
+			"files or 256 MiB and drops the oldest first. Needs XI_PLAYGROUND_UPLOADS (on by default with the playground).",
+		RequestBody: &huma.RequestBody{
+			Required: true,
+			Content:  map[string]*huma.MediaType{"application/octet-stream": {Schema: &huma.Schema{Type: "string", ContentEncoding: "binary"}}},
+		},
+		Responses:  rs,
+		Extensions: playgroundExtensions(),
+	}
+}
+
+func playgroundListOperation() *huma.Operation {
+	rs := playgroundErrors(http.StatusBadRequest, http.StatusNotFound, http.StatusInternalServerError)
+	rs["200"] = &huma.Response{
+		Description: "One directory of the source.",
+		Content:     map[string]*huma.MediaType{"application/json": {Schema: ref(schemaPlaygroundList)}},
+	}
+	return &huma.Operation{
+		OperationID: "getPlaygroundSourceList", Method: http.MethodGet, Path: playgroundPath + "/api/sources/{name}/list", Tags: []string{"playground"}, Servers: adminServers(),
+		Summary: "Browse an fs source",
+		Description: "Lists one directory of a named fs source (inside its root and prefix jail, through os.Root): directories first, " +
+			"then files, at most 500 entries, dot files skipped. Other source types and unknown names are 404.",
+		Parameters: []*huma.Param{
+			pathParam("name", "Named source (type fs).", "local", nil),
+			{
+				Name: "prefix", In: "query", Description: "Directory relative to the source; empty for its root. No . or .. segments.",
+				Schema: &huma.Schema{Type: "string", MaxLength: new(8 << 10)}, Example: "photos/2026",
+			},
+		},
+		Responses:  rs,
 		Extensions: playgroundExtensions(),
 	}
 }

@@ -226,9 +226,17 @@ docker run --rm -p 127.0.0.1:8080:8080 -p 127.0.0.1:9090:9090 \
 # then open http://127.0.0.1:9090/_playground/
 ```
 
-Pick a source (a URL, one of your named sources, or a sample image), a dialect mount, and add options from the option catalogue (typed inputs per argument, aliases shown). The page shows the generated URL live, with a copy button, and the source next to the result with its response headers (`Content-Type`, size, `X-Xi-*` debug headers, timings).
+What it does (v2, WP-94):
 
-<!-- Screenshot placeholder: docs/img/playground.png is not committed yet; add one when the UI settles. -->
+- **Sources:** a sample gallery (built-in fixtures that work offline, plus a curated list of public files, one or two per input format with their licence), drag-and-drop uploads kept in memory for 10 minutes (`XI_PLAYGROUND_UPLOADS`), a browser for `fs` sources, or any URL / `xi://` reference.
+- **Option builder for every dialect:** imgproxy, the query form, imgix, Cloudinary, ImageKit, Cloudflare, wsrv, thumbor, Bunny and AWS SIH, from each dialect's catalogue, grouped by category (resize, gravity incl. face and object classes, format and quality, colour, effects, watermarks, detection, pages/frames/video, metadata, delivery, presets). Typed inputs (bounded numbers with sliders, enums, colour pickers, booleans, tuples and repeatable groups), inline docs, aliases, a search box (`/`) and chained pipelines.
+- **URL panel:** the live, colour-coded URL (signed on the server), copy as URL, as `curl` and as an `@xtandard/image-url` TypeScript call, and **the same transform in every other dialect** (`POST api/translate`): each URL is parsed back by its dialect and what it cannot express is listed.
+- **Preview:** before/after slider or side by side, zoom 1×/2×/fit with pan, a checkerboard for alpha, inline animations and video results, result vs source size and % saved, the response headers (`X-Xi-*` included) and the server's per-stage `Server-Timing` as a bar chart; errors show the server's error kind and message.
+- **Info:** the source's `/info` as a collapsible tree, detections drawn over the preview (full image), video metadata.
+- **Format matrix:** probes every sample with `/info` and a thumbnail, to check a file of every format works.
+- The whole session lives in the URL hash (share link), recent URLs in a local history, keyboard shortcuts, light and dark themes.
+
+<!-- Screenshot placeholder: docs/img/playground.png is not committed yet. -->
 
 URLs are signed on the server (`POST /_playground/api/sign`), so keys never reach the browser, but anyone who can open the playground can sign URLs: keep it on the private admin listener. `XI_PLAYGROUND_PUBLIC=true` also serves it on the public listener, for demos and trusted networks only. It is plain HTML, CSS and JavaScript with no build step, loads nothing from other origins (CSP `default-src 'self'`), and works air-gapped. See [docs/CONFIG.md](docs/CONFIG.md#playground).
 

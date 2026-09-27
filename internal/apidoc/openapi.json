@@ -6051,7 +6051,14 @@
             "enum": [
               "imgproxy",
               "query",
-              "imgix"
+              "imgix",
+              "cloudinary",
+              "imagekit",
+              "cloudflare",
+              "wsrv",
+              "thumbor",
+              "bunny",
+              "awssih"
             ],
             "type": "string"
           },
@@ -6119,6 +6126,114 @@
         ],
         "type": "object"
       },
+      "PlaygroundGallerySample": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed": {
+            "description": "A configured http source (or dev mode) allows the URL.",
+            "type": "boolean"
+          },
+          "bytes": {
+            "description": "File size when the list was made.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "format": {
+            "description": "Input format the file exercises.",
+            "type": "string"
+          },
+          "licence": {
+            "description": "SPDX licence of the file.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Description.",
+            "type": "string"
+          },
+          "notes": {
+            "description": "What the file shows or the expected outcome.",
+            "type": "string"
+          },
+          "source": {
+            "description": "Where the file comes from; the attribution for CC-BY files.",
+            "type": "string"
+          },
+          "url": {
+            "description": "Public URL, fetched through an http source.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "format",
+          "name",
+          "url",
+          "bytes",
+          "licence",
+          "source",
+          "allowed"
+        ],
+        "type": "object"
+      },
+      "PlaygroundListEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "dir": {
+            "description": "A directory: list it with prefix=key.",
+            "type": "boolean"
+          },
+          "key": {
+            "description": "Key relative to the source (xi://\u003csource\u003e/\u003ckey\u003e); directories end with /.",
+            "type": "string"
+          },
+          "name": {
+            "description": "File or directory name.",
+            "type": "string"
+          },
+          "size": {
+            "description": "File size in bytes.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "key"
+        ],
+        "type": "object"
+      },
+      "PlaygroundListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "entries": {
+            "description": "Directories first, then files, each sorted by name.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundListEntry"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "prefix": {
+            "description": "The directory listed, relative to the source; empty for its root.",
+            "type": "string"
+          },
+          "source": {
+            "description": "Source name.",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "More than 500 entries: only the first 500 are listed.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "source",
+          "prefix",
+          "entries"
+        ],
+        "type": "object"
+      },
       "PlaygroundMeta": {
         "additionalProperties": false,
         "properties": {
@@ -6132,6 +6247,20 @@
               "null"
             ]
           },
+          "classes": {
+            "description": "Detection classes: face, the COCO class names and supercategories.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "detection": {
+            "description": "The detection models are loaded: face and object gravity, detect_objects.",
+            "type": "boolean"
+          },
           "formats": {
             "description": "Output formats the server encodes.",
             "items": {
@@ -6141,6 +6270,21 @@
               "array",
               "null"
             ]
+          },
+          "gallery": {
+            "description": "Public sample files, one or two per input format, fetched through the http sources.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundGallerySample"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "max_upload_bytes": {
+            "description": "Largest upload in bytes (XI_LIMITS_MAX_SRC_BYTES).",
+            "format": "int64",
+            "type": "integer"
           },
           "mounts": {
             "description": "Enabled dialect mounts, in configuration order.",
@@ -6174,6 +6318,16 @@
             "description": "XI_SERVER_ADDR (the page derives a default public base URL from its port).",
             "type": "string"
           },
+          "samples": {
+            "description": "Built-in sample images (repository fixtures), served as playground://samples/\u003cname\u003e to the playground only; they work offline.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundSample"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "signing": {
             "$ref": "#/components/schemas/PlaygroundSigning",
             "description": "Signing mode; keys and salts are never included."
@@ -6188,9 +6342,17 @@
               "null"
             ]
           },
+          "uploads": {
+            "description": "XI_PLAYGROUND_UPLOADS: api/upload accepts files (playground://uploads/\u003cid\u003e, 10 minutes).",
+            "type": "boolean"
+          },
           "version": {
             "description": "Server build version.",
             "type": "string"
+          },
+          "video": {
+            "description": "Video sources are decoded (FFmpeg, full image).",
+            "type": "boolean"
           }
         },
         "required": [
@@ -6203,7 +6365,14 @@
           "catalogues",
           "presets",
           "sources",
-          "formats"
+          "formats",
+          "samples",
+          "gallery",
+          "uploads",
+          "max_upload_bytes",
+          "detection",
+          "video",
+          "classes"
         ],
         "type": "object"
       },
@@ -6223,11 +6392,18 @@
             "type": "string"
           },
           "grammar": {
-            "description": "URL grammar: imgproxy options path, query keys, or free-form path.",
+            "description": "URL grammar the page builds with the catalogue of the same name; path is free-form.",
             "enum": [
               "imgproxy",
               "query",
               "imgix",
+              "cloudinary",
+              "imagekit",
+              "cloudflare",
+              "wsrv",
+              "thumbor",
+              "bunny",
+              "awssih",
               "path"
             ],
             "type": "string"
@@ -6320,6 +6496,24 @@
               "null"
             ]
           },
+          "group": {
+            "description": "Builder category.",
+            "enum": [
+              "size",
+              "gravity",
+              "format",
+              "color",
+              "effects",
+              "watermark",
+              "metadata",
+              "frames",
+              "detection",
+              "delivery",
+              "presets",
+              "other"
+            ],
+            "type": "string"
+          },
           "milestone": {
             "description": "Milestone that implements the option.",
             "type": "string"
@@ -6336,6 +6530,48 @@
         "required": [
           "name",
           "forms"
+        ],
+        "type": "object"
+      },
+      "PlaygroundSample": {
+        "additionalProperties": false,
+        "properties": {
+          "full": {
+            "description": "Needs the full image (FFmpeg or the detection models).",
+            "type": "boolean"
+          },
+          "kind": {
+            "description": "Gallery group.",
+            "enum": [
+              "photo",
+              "alpha",
+              "animated",
+              "raw",
+              "document",
+              "video",
+              "vector",
+              "detection"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "description": "Description.",
+            "type": "string"
+          },
+          "name": {
+            "description": "File name (playground://samples/\u003cname\u003e).",
+            "type": "string"
+          },
+          "source": {
+            "description": "Source string (playground://samples/\u003cname\u003e).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "label",
+          "kind",
+          "source"
         ],
         "type": "object"
       },
@@ -6425,6 +6661,10 @@
       "PlaygroundSource": {
         "additionalProperties": false,
         "properties": {
+          "listable": {
+            "description": "api/sources/\u003cname\u003e/list browses this source (fs sources).",
+            "type": "boolean"
+          },
           "name": {
             "description": "Source name.",
             "type": "string"
@@ -6437,6 +6677,146 @@
         "required": [
           "name",
           "type"
+        ],
+        "type": "object"
+      },
+      "PlaygroundTranslateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "mount": {
+            "description": "Mount ID from api/meta; with path and query, the URL to translate.",
+            "type": "string"
+          },
+          "path": {
+            "description": "Escaped path after the mount prefix, without a signature segment.",
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "query": {
+            "description": "Raw query without ?.",
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "request": {
+            "additionalProperties": {},
+            "description": "A canonical transform.Request (as in the translate response), instead of a URL.",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "PlaygroundTranslateResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "canonical": {
+            "description": "The canonical transform.Request the URL parses into."
+          },
+          "targets": {
+            "description": "The same transform in every dialect, in a fixed order.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundTranslateTarget"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "canonical",
+          "targets"
+        ],
+        "type": "object"
+      },
+      "PlaygroundTranslateTarget": {
+        "additionalProperties": false,
+        "properties": {
+          "approximated": {
+            "description": "Canonical fields this dialect expresses with a different value.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "dialect": {
+            "description": "Dialect name (query is the imgproxy options in query form).",
+            "type": "string"
+          },
+          "error": {
+            "description": "Why the transform cannot be written in this dialect at all.",
+            "type": "string"
+          },
+          "label": {
+            "description": "Human-readable dialect name.",
+            "type": "string"
+          },
+          "mount": {
+            "description": "Mount ID serving this dialect here; empty when it is not mounted (the URL uses the default prefix).",
+            "type": "string"
+          },
+          "path": {
+            "description": "Escaped path after the prefix, unsigned.",
+            "type": "string"
+          },
+          "query": {
+            "description": "Raw query, unsigned.",
+            "type": "string"
+          },
+          "signed": {
+            "description": "URL carries a signature.",
+            "type": "boolean"
+          },
+          "unsupported": {
+            "description": "Canonical fields this dialect cannot express (lost in translation).",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "url": {
+            "description": "Path and query on the public listener (prepend the base URL), signed when this server holds the mount's key.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dialect",
+          "label"
+        ],
+        "type": "object"
+      },
+      "PlaygroundUpload": {
+        "additionalProperties": false,
+        "properties": {
+          "content_type": {
+            "description": "Content type sniffed from the bytes.",
+            "type": "string"
+          },
+          "expires": {
+            "description": "When the upload is dropped.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "size": {
+            "description": "Bytes stored.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "source": {
+            "description": "Source string for URLs (playground://uploads/\u003cid\u003e).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "size",
+          "content_type",
+          "expires"
         ],
         "type": "object"
       }
@@ -6698,9 +7078,244 @@
         "x-xi-listener": "admin"
       }
     },
+    "/_playground/api/sources/{name}/list": {
+      "get": {
+        "description": "Lists one directory of a named fs source (inside its root and prefix jail, through os.Root): directories first, then files, at most 500 entries, dot files skipped. Other source types and unknown names are 404.",
+        "operationId": "getPlaygroundSourceList",
+        "parameters": [
+          {
+            "description": "Named source (type fs).",
+            "example": "local",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Directory relative to the source; empty for its root. No . or .. segments.",
+            "example": "photos/2026",
+            "in": "query",
+            "name": "prefix",
+            "schema": {
+              "maxLength": 8192,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundListResponse"
+                }
+              }
+            },
+            "description": "One directory of the source."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error."
+          }
+        },
+        "servers": [
+          {
+            "description": "Admin listener (XI_ADMIN_ADDR).",
+            "url": "http://127.0.0.1:9090"
+          }
+        ],
+        "summary": "Browse an fs source",
+        "tags": [
+          "playground"
+        ],
+        "x-xi-config": "XI_PLAYGROUND_ENABLED; also on the public listener with XI_PLAYGROUND_PUBLIC; path XI_PLAYGROUND_PATH",
+        "x-xi-listener": "admin"
+      }
+    },
+    "/_playground/api/translate": {
+      "post": {
+        "description": "Parses a URL of a mount (as for api/sign, without a signature) with that dialect's parser, or takes a canonical transform.Request, and writes the transform in imgproxy (path and query form), imgix, Cloudinary, ImageKit, Cloudflare, wsrv, thumbor, Bunny and AWS SIH. Each URL is parsed back with its dialect's parser and compared with the canonical request: unsupported lists the fields the dialect cannot express, approximated those it writes with a different value. URLs of mounted dialects are signed like api/sign; the others use the dialect's default prefix. Cross-origin requests are rejected.",
+        "operationId": "postPlaygroundTranslate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaygroundTranslateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundTranslateResponse"
+                }
+              }
+            },
+            "description": "The canonical request and the same transform in every dialect."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request."
+          },
+          "403": {
+            "description": "Cross-origin request rejected (http.CrossOriginProtection)."
+          },
+          "404": {
+            "description": "The playground is disabled."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large."
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Unsupported Media Type."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error."
+          }
+        },
+        "servers": [
+          {
+            "description": "Admin listener (XI_ADMIN_ADDR).",
+            "url": "http://127.0.0.1:9090"
+          }
+        ],
+        "summary": "Translate a URL into every dialect",
+        "tags": [
+          "playground"
+        ],
+        "x-xi-config": "XI_PLAYGROUND_ENABLED; also on the public listener with XI_PLAYGROUND_PUBLIC; path XI_PLAYGROUND_PATH",
+        "x-xi-listener": "admin"
+      }
+    },
+    "/_playground/api/upload": {
+      "post": {
+        "description": "Stores the raw request body (at most XI_LIMITS_MAX_SRC_BYTES) in memory for 10 minutes and returns its source, playground://uploads/\u003cid\u003e. The source resolves only for requests made through api/render; the store keeps at most 64 files or 256 MiB and drops the oldest first. Needs XI_PLAYGROUND_UPLOADS (on by default with the playground).",
+        "operationId": "postPlaygroundUpload",
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "contentEncoding": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundUpload"
+                }
+              }
+            },
+            "description": "The stored file and its playground:// source."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request."
+          },
+          "403": {
+            "description": "Cross-origin request rejected (http.CrossOriginProtection)."
+          },
+          "404": {
+            "description": "The playground or its uploads are disabled (XI_PLAYGROUND_UPLOADS)."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large."
+          }
+        },
+        "servers": [
+          {
+            "description": "Admin listener (XI_ADMIN_ADDR).",
+            "url": "http://127.0.0.1:9090"
+          }
+        ],
+        "summary": "Upload a file for the playground",
+        "tags": [
+          "playground"
+        ],
+        "x-xi-config": "XI_PLAYGROUND_ENABLED; also on the public listener with XI_PLAYGROUND_PUBLIC; path XI_PLAYGROUND_PATH",
+        "x-xi-listener": "admin"
+      }
+    },
     "/_playground/assets/{version}/{name}": {
       "get": {
-        "description": "app.js and style.css under a content-hash version, with Cache-Control immutable; another version is a 404.",
+        "description": "The ES modules (app.js imports the others with relative URLs) and style.css under a content-hash version, with Cache-Control immutable; another version is a 404.",
         "operationId": "getPlaygroundAsset",
         "parameters": [
           {
@@ -6714,15 +7329,12 @@
             }
           },
           {
-            "description": "Asset file name.",
+            "description": "Asset file name: an ES module or the stylesheet (app.js, style.css, ...).",
             "in": "path",
             "name": "name",
             "required": true,
             "schema": {
-              "enum": [
-                "app.js",
-                "style.css"
-              ],
+              "pattern": "^[a-z0-9-]+\\.(js|css)$",
               "type": "string"
             }
           }
@@ -6755,7 +7367,7 @@
             "url": "http://127.0.0.1:9090"
           }
         ],
-        "summary": "Playground script and stylesheet",
+        "summary": "Playground scripts and stylesheet",
         "tags": [
           "playground"
         ],

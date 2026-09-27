@@ -33,6 +33,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/fetch/s3src"
 	"github.com/xantiagoma/xtandard-image/internal/fetch/sftpsrc"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
+	"github.com/xantiagoma/xtandard-image/internal/playground"
 	"github.com/xantiagoma/xtandard-image/internal/preset"
 	"github.com/xantiagoma/xtandard-image/internal/security/crypt"
 	"github.com/xantiagoma/xtandard-image/internal/security/sign"
@@ -617,7 +618,7 @@ func ssrfPolicy(cfg *config.Config) ssrf.Policy {
 // sources builds every configured backend (and the dev-mode http source)
 // and the registry over them. closers are the backends holding connections
 // or file handles, closed on shutdown after the listeners drained.
-func buildSources(ctx context.Context, cfg *config.Config, client *http.Client, userAgent string) (*source.Registry, []io.Closer, error) {
+func buildSources(ctx context.Context, cfg *config.Config, client *http.Client, userAgent string, pg *playground.Store) (*source.Registry, []io.Closer, error) {
 	var (
 		bindings []source.Binding
 		closers  []io.Closer
@@ -651,7 +652,11 @@ func buildSources(ctx context.Context, cfg *config.Config, client *http.Client, 
 	if err := errors.Join(problems...); err != nil {
 		return nil, closers, err
 	}
-	reg, err := source.NewRegistry(source.Options{Sources: bindings, DevMode: cfg.DevMode, Dev: dev})
+	opts := source.Options{Sources: bindings, DevMode: cfg.DevMode, Dev: dev}
+	if pg != nil {
+		opts.Playground = pg
+	}
+	reg, err := source.NewRegistry(opts)
 	if err != nil {
 		return nil, closers, err
 	}

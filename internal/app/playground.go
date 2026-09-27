@@ -14,8 +14,11 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/router"
 	"github.com/xantiagoma/xtandard-image/internal/playground"
+	"github.com/xantiagoma/xtandard-image/internal/playground/translate"
 	"github.com/xantiagoma/xtandard-image/internal/preset"
 	"github.com/xantiagoma/xtandard-image/internal/security/sign"
+	"github.com/xantiagoma/xtandard-image/internal/source"
+	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
 
 // playgroundHandlers are the playground handlers of both listeners; nil
@@ -33,7 +36,7 @@ type playgroundHandlers struct {
 // its metadata from the router's mounts and the apidoc catalogues, one
 // signer per signable mount, and image, the public handler api/render
 // runs.
-func buildPlayground(ctx context.Context, cfg *config.Config, rt *router.Router, image http.Handler, version string, logger *slog.Logger) (playgroundHandlers, error) {
+func buildPlayground(ctx context.Context, cfg *config.Config, rt *router.Router, image http.Handler, version string, logger *slog.Logger, env *playgroundEnv) (playgroundHandlers, error) {
 	pc := &cfg.Playground
 	var publicPath string
 	if pc.Path != "" {
@@ -46,7 +49,21 @@ func buildPlayground(ctx context.Context, cfg *config.Config, rt *router.Router,
 	if err != nil {
 		return playgroundHandlers{}, fmt.Errorf("playground: %w", err)
 	}
-	deps := &playground.Deps{Meta: meta, Signers: signers, Image: image, Logger: logger}
+	if err := env.extend(meta, cfg); err != nil {
+		return playgroundHandlers{}, fmt.Errorf("playground: %w", err)
+	}
+	presets, err := presetStore(cfg)
+	if err != nil {
+		return playgroundHandlers{}, fmt.Errorf("playground: %w", err)
+	}
+	tr, err := translate.New(translate.Options{Mounts: meta.Mounts, Separator: cfg.Dialects.Imgproxy.ArgumentsSeparator, Presets: presets})
+	if err != nil {
+		return playgroundHandlers{}, fmt.Errorf("playground: %w", err)
+	}
+	deps := &playground.Deps{
+		Meta: meta, Signers: signers, Image: image, Logger: logger,
+		Store: env.store, FSRoots: fsRoots(cfg), Translator: tr,
+	}
 	out := playgroundHandlers{publicPath: publicPath}
 	if cfg.Admin.Addr != "" {
 		if out.admin, err = playground.New(playground.Config{Path: pc.Path}, deps); err != nil {
@@ -63,6 +80,70 @@ func buildPlayground(ctx context.Context, cfg *config.Config, rt *router.Router,
 		}
 	}
 	return out, nil
+}
+
+// playgroundEnv is what the playground learns from the rest of the app.
+type playgroundEnv struct {
+	registry  *source.Registry
+	store     *playground.Store
+	detection bool // the detector is loaded
+	video     bool // video sources decode
+}
+
+// playgroundStore is the playground:// source (WP-94): the built-in
+// samples and, with XI_PLAYGROUND_UPLOADS, uploads. nil without the
+// playground.
+func playgroundStore(cfg *config.Config) *playground.Store {
+	if !cfg.Playground.Enabled {
+		return nil
+	}
+	return playground.NewStore(playground.StoreOptions{
+		Uploads: cfg.Playground.Uploads.Bool(), MaxBytes: int64(cfg.Limits.MaxSrcBytes),
+	})
+}
+
+// extend adds the samples, the gallery, the upload settings, the
+// detection and video capabilities and the listable sources to meta.
+func (e *playgroundEnv) extend(meta *playground.Meta, cfg *config.Config) error {
+	allowed := func(u string) bool {
+		if e.registry == nil {
+			return false
+		}
+		_, err := e.registry.Resolve(transform.SourceSpec{Raw: u})
+		return err == nil
+	}
+	gallery, err := playground.Gallery(allowed)
+	if err != nil {
+		return err
+	}
+	meta.Gallery = gallery
+	meta.Samples = []playground.Sample{}
+	if e.store != nil {
+		meta.Samples = playground.Samples()
+		meta.Uploads = e.store.UploadsEnabled()
+		meta.MaxUploadBytes = e.store.MaxBytes()
+	}
+	meta.Detection, meta.Video = e.detection, e.video
+	meta.Classes = append([]string{"face"}, transform.ObjectClasses()...)
+	for i := range meta.Sources {
+		meta.Sources[i].Listable = cfg.Sources[meta.Sources[i].Name].Type == config.SourceFS
+	}
+	return nil
+}
+
+// fsRoots are the fs sources api/sources/<name>/list browses.
+func fsRoots(cfg *config.Config) map[string]playground.FSRoot {
+	out := map[string]playground.FSRoot{}
+	for name := range cfg.Sources {
+		if s := cfg.Sources[name]; s.Type == config.SourceFS {
+			prefix := strings.Trim(s.Prefix, "/")
+			if prefix != "" {
+				prefix += "/"
+			}
+			out[name] = playground.FSRoot{Root: s.Root, Prefix: prefix}
+		}
+	}
+	return out
 }
 
 // withPlayground reserves path on the public listener: requests under it
@@ -130,7 +211,9 @@ func playgroundMeta(cfg *config.Config, rt *router.Router, version string) (*pla
 		Formats:    outputFormats(cfg),
 	}
 	signers := map[string]*sign.Signer{}
-	for _, rm := range rt.Mounts() {
+	mounts := rt.Mounts()
+	for i := range mounts {
+		rm := &mounts[i]
 		if rm.Dialect == infoDialect {
 			continue
 		}
@@ -162,11 +245,21 @@ func playgroundMeta(cfg *config.Config, rt *router.Router, version string) (*pla
 				return nil, nil, err
 			}
 		case "imagekit":
-			m.Example = "/tr:w-300,h-200/{src}"
+			m.Grammar, m.Example = playground.GrammarImagekit, "/tr:w-300,h-200/{src}"
 		case "cloudinary":
-			m.Example = "/image/upload/w_300,c_fill/{src}"
+			m.Grammar, m.Example = playground.GrammarCloudinary, "/image/upload/w_300,c_fill/{src}"
 		case "bunny":
-			m.Example = "/{src}?width=300"
+			m.Grammar, m.Example = playground.GrammarBunny, "/{src}?width=300"
+		case "awssih":
+			m.Grammar = playground.GrammarAWSSIH
+		}
+		switch base, _, _ := strings.Cut(rm.Dialect, "["); base {
+		case "wsrv":
+			m.Grammar = playground.GrammarWsrv
+		case "cloudflare":
+			m.Grammar = playground.GrammarCloudflare
+		case "thumbor":
+			m.Grammar = playground.GrammarThumbor
 		}
 		if s != nil {
 			m.Keyed = true
@@ -253,8 +346,20 @@ func imgixSigner(cfg *config.Config, dialect string) (*sign.Signer, error) {
 // presetNames lists the configured presets (XI_PRESETS and
 // XI_PRESETS_FILE), never nil.
 func presetNames(cfg *config.Config) ([]string, error) {
+	store, err := presetStore(cfg)
+	if err != nil || store == nil {
+		return []string{}, err
+	}
+	if names := store.Names(); names != nil {
+		return names, nil
+	}
+	return []string{}, nil
+}
+
+// presetStore loads the presets as buildRouter does; nil without presets.
+func presetStore(cfg *config.Config) (*preset.Store, error) {
 	if len(cfg.Presets) == 0 && cfg.PresetsFile == "" {
-		return []string{}, nil
+		return nil, nil
 	}
 	store, err := preset.New(preset.Options{
 		Definitions: cfg.Presets,
@@ -265,10 +370,7 @@ func presetNames(cfg *config.Config) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("presets: %w", err)
 	}
-	if names := store.Names(); names != nil {
-		return names, nil
-	}
-	return []string{}, nil
+	return store, nil
 }
 
 // outputFormats are the formats the server encodes (FORMATS.md); HEIC only

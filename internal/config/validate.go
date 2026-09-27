@@ -95,6 +95,7 @@ func (c *Config) validateServer(v *validator) {
 func (c *Config) validatePlayground(v *validator) {
 	p := c.Playground
 	v.check(!p.Public || p.Enabled, "playground.public", "needs playground.enabled")
+	v.check(!p.Uploads.Bool() || p.Enabled, "playground.uploads", "needs playground.enabled")
 	v.check(!p.Enabled || p.Public || c.Admin.Addr != "", "playground.enabled", "needs admin.addr (or playground.public)")
 	ok := len(p.Path) > 1 && p.Path[0] == '/' && !strings.HasSuffix(p.Path, "/") && !strings.Contains(p.Path, "//")
 	for _, r := range p.Path {

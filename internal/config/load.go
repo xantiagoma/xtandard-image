@@ -341,6 +341,12 @@ func (c *Config) resolveDerived(gomaxprocs int) {
 	if c.Processing.QueueSize < 0 && c.Processing.Workers > 0 {
 		c.Processing.QueueSize = c.Processing.Workers * 16
 	}
+	if c.Playground.Uploads == Auto {
+		c.Playground.Uploads = False
+		if c.Playground.Enabled {
+			c.Playground.Uploads = True
+		}
+	}
 	if c.Signing.Required == Auto {
 		c.Signing.Required = False
 		if len(c.Signing.Keys) > 0 {

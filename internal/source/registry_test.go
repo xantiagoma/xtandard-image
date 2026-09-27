@@ -331,3 +331,55 @@ func TestSourceUnknown(t *testing.T) {
 		t.Error("Source(nope) found")
 	}
 }
+
+func TestResolvePlayground(t *testing.T) {
+	t.Parallel()
+	pg := fakeSource{PlaygroundSourceName, "memory"}
+	with, err := NewRegistry(Options{DevMode: true, Dev: fakeSource{DevSourceName, TypeHTTP}, Playground: pg})
+	if err != nil {
+		t.Fatalf("NewRegistry: %v", err)
+	}
+	without := newTestRegistry(t, false)
+	tests := []struct {
+		name string
+		raw  string
+		want Key
+		kind errs.Kind
+	}{
+		{name: "upload", raw: "playground://uploads/0123abcd", want: Key{Source: PlaygroundSourceName, Path: "uploads/0123abcd"}},
+		{name: "sample, area lower-cased", raw: "playground://Samples/photo.jpg", want: Key{Source: PlaygroundSourceName, Path: "samples/photo.jpg"}},
+		{name: "traversal", raw: "playground://uploads/../x", kind: errs.KindForbidden},
+		{name: "bad area", raw: "playground://up_loads/x", kind: errs.KindInvalidURL},
+		{name: "empty key", raw: "playground://uploads/", kind: errs.KindInvalidURL},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := with.Resolve(transform.SourceSpec{Raw: tc.raw})
+			if tc.kind != errs.KindUnknown {
+				if !errors.Is(err, errs.Match(tc.kind)) {
+					t.Fatalf("Resolve(%q) = %+v, %v; want kind %v", tc.raw, got, err, tc.kind)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Resolve(%q): %v", tc.raw, err)
+			}
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("mismatch (-want +got):\n%s", diff)
+			}
+			if _, err := without.Resolve(transform.SourceSpec{Raw: tc.raw}); !errors.Is(err, errs.Match(errs.KindForbidden)) {
+				t.Errorf("without a playground store Resolve(%q) error = %v, want Forbidden", tc.raw, err)
+			}
+		})
+	}
+	if src, ok := with.Source(PlaygroundSourceName); !ok || src != Source(pg) {
+		t.Errorf("Source(%q) = %v, %v", PlaygroundSourceName, src, ok)
+	}
+	if _, ok := without.Source(PlaygroundSourceName); ok {
+		t.Error("Source(PlaygroundSourceName) available without a playground store")
+	}
+	if got := SchemePlayground.String(); got != "playground" {
+		t.Errorf("SchemePlayground = %q", got)
+	}
+}

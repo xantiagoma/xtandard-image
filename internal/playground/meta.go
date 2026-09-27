@@ -31,6 +31,27 @@ const (
 	// catalogue; the source is an object key on the mount's source or a
 	// percent-encoded http(s) URL.
 	GrammarImgix = "imgix"
+	// GrammarCloudinary is /<cloud>/image/{fetch,upload}/<k_v,...>/<source>,
+	// keys from the cloudinary catalogue.
+	GrammarCloudinary = "cloudinary"
+	// GrammarImagekit is /tr:<k-v,...>/<key>, keys from the imagekit
+	// catalogue; the source is a key on the mount's source.
+	GrammarImagekit = "imagekit"
+	// GrammarCloudflare is /<k=v,...>/<source>, keys from the cloudflare
+	// catalogue.
+	GrammarCloudflare = "cloudflare"
+	// GrammarWsrv is /?url=<source>&k=v, keys from the wsrv catalogue.
+	GrammarWsrv = "wsrv"
+	// GrammarThumbor is /<segments>/filters:<f(a)...>/<source>: segment
+	// options and filters from the thumbor catalogue.
+	GrammarThumbor = "thumbor"
+	// GrammarBunny is /<key>?k=v, keys from the bunny catalogue; the
+	// source is a key on the mount's source.
+	GrammarBunny = "bunny"
+	// GrammarAWSSIH is the base64 JSON request of AWS Serverless Image
+	// Handler: {"key", "edits"} plus query parameters from the awssih
+	// catalogue.
+	GrammarAWSSIH = "awssih"
 	// GrammarPath is free-form: the page takes the path and query after
 	// the mount prefix as typed (the other dialects).
 	GrammarPath = "path"
@@ -68,6 +89,21 @@ type Meta struct {
 	Sources []Source `json:"sources" doc:"Named sources, name and type only (xi://<name>/<key>)."`
 	// Formats are the output formats this server encodes.
 	Formats []string `json:"formats" doc:"Output formats the server encodes."`
+	// Samples are the built-in sample images (playground://samples/...),
+	// the offline group of the gallery.
+	Samples []Sample `json:"samples" doc:"Built-in sample images (repository fixtures), served as playground://samples/<name> to the playground only; they work offline."`
+	// Gallery is the curated list of public sample files.
+	Gallery []GallerySample `json:"gallery" doc:"Public sample files, one or two per input format, fetched through the http sources."`
+	// Uploads reports XI_PLAYGROUND_UPLOADS: api/upload accepts files.
+	Uploads bool `json:"uploads" doc:"XI_PLAYGROUND_UPLOADS: api/upload accepts files (playground://uploads/<id>, 10 minutes)."`
+	// MaxUploadBytes is the largest upload (XI_LIMITS_MAX_SRC_BYTES).
+	MaxUploadBytes int64 `json:"max_upload_bytes" doc:"Largest upload in bytes (XI_LIMITS_MAX_SRC_BYTES)."`
+	// Detection reports whether the detector is loaded (faces, objects).
+	Detection bool `json:"detection" doc:"The detection models are loaded: face and object gravity, detect_objects."`
+	// Video reports whether video sources can be decoded.
+	Video bool `json:"video" doc:"Video sources are decoded (FFmpeg, full image)."`
+	// Classes are the object classes gravity, crop and filters accept.
+	Classes []string `json:"classes" doc:"Detection classes: face, the COCO class names and supercategories."`
 }
 
 // Signing is the signing configuration without key material.
@@ -97,7 +133,7 @@ type Mount struct {
 	// URLs are returned unsigned (with the scheme's placeholder).
 	Keyed bool `json:"keyed" doc:"The server holds a key for the scheme; false returns unsigned URLs."`
 	// Grammar is how the page builds URLs (Grammar*).
-	Grammar string `json:"grammar" enum:"imgproxy,query,imgix,path" doc:"URL grammar: imgproxy options path, query keys, or free-form path."`
+	Grammar string `json:"grammar" enum:"imgproxy,query,imgix,cloudinary,imagekit,cloudflare,wsrv,thumbor,bunny,awssih,path" doc:"URL grammar the page builds with the catalogue of the same name; path is free-form."`
 	// ArgumentsSeparator separates imgproxy option arguments (":").
 	ArgumentsSeparator string `json:"arguments_separator,omitempty" doc:"imgproxy argument separator (XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR)."`
 	// Example is a path (and query) after the prefix, for the free-form
@@ -109,11 +145,13 @@ type Mount struct {
 type Source struct {
 	Name string `json:"name" doc:"Source name."`
 	Type string `json:"type" doc:"Source type (http, s3, gcs, azure, fs, ftp, sftp)."`
+	// Listable reports that api/sources/<name>/list browses it (fs).
+	Listable bool `json:"listable,omitempty" doc:"api/sources/<name>/list browses this source (fs sources)."`
 }
 
 // Catalogue is the option catalogue of one URL grammar.
 type Catalogue struct {
-	Grammar string   `json:"grammar" enum:"imgproxy,query,imgix" doc:"The grammar the options belong to."`
+	Grammar string   `json:"grammar" enum:"imgproxy,query,imgix,cloudinary,imagekit,cloudflare,wsrv,thumbor,bunny,awssih" doc:"The grammar the options belong to."`
 	Options []Option `json:"options" doc:"Options, in documentation order."`
 }
 
@@ -126,6 +164,8 @@ type Option struct {
 	Example   string   `json:"example,omitempty" doc:"A valid argument string."`
 	Milestone string   `json:"milestone,omitempty" doc:"Milestone that implements the option."`
 	Security  bool     `json:"security,omitempty" doc:"Needs XI_SECURITY_ALLOW_SECURITY_OPTIONS."`
+	// Group is the builder category.
+	Group string `json:"group,omitempty" enum:"size,gravity,format,color,effects,watermark,metadata,frames,detection,delivery,presets,other" doc:"Builder category."`
 }
 
 // Form is one argument shape.
