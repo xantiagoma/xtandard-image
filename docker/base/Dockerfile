@@ -190,10 +190,16 @@ RUN apt-get update \
   && useradd --system --uid 65532 --gid 65532 --no-create-home --home-dir /nonexistent \
     --shell /usr/sbin/nologin xtandard
 
+# jemalloc (unprefixed build, so it replaces malloc for every library) reads
+# MALLOC_CONF; MALLOC_ARENA_MAX is glibc's knob and only matters if the preload is
+# dropped. narenas:2 instead of jemalloc's default 4 arenas per CPU: the default
+# more than doubled peak RSS under concurrent load with no throughput gain (WP-87,
+# bench/RESULTS.md; WP-93 moved it here from the app image).
 ENV PATH=/opt/xtandard/bin:$PATH \
     LD_LIBRARY_PATH=/opt/xtandard/lib \
     LD_PRELOAD=/opt/xtandard/lib/libjemalloc.so.2 \
     MALLOC_ARENA_MAX=2 \
+    MALLOC_CONF=narenas:2 \
     FONTCONFIG_PATH=/opt/xtandard/etc/fonts \
     VIPS_WARNING=0
 
