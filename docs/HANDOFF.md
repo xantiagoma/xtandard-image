@@ -31,9 +31,8 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   disabled by the owner and the Actions minutes were exhausted until 2026-10-01. Ask the owner to
   re-enable `base-image` (push to main publishes r3 full/gpl), then `release`, then tag `v0.1.0-rc.1`.
   A local-only tag without images on GHCR is not useful for a Docker-target project.
-- **M4:** WP-94 playground v2 is done and verified (66 packages, acceptance 90/90, headless Chromium
-  clean) as **PR #95, waiting for the owner to merge** (the session classifier denies merges without
-  review). The demo container `xtandard-play` on the tailnet (http://100.102.217.2:8080/_playground/)
+- **M4:** WP-94 playground v2 is **merged (PR #95, owner-run merge; the session classifier denies merges without review, so ask
+  the owner to run `gh pr merge`)**. The demo container `xtandard-play` on the tailnet (http://100.102.217.2:8080/_playground/)
   already runs the v2 build `xtandard-image:wp94-gpl` (gpl base, dev mode, fixtures as `local`,
   any-host `web` source, all dialects enabled).
 - **Backlog after M3 (WP-91+):** face/object gravity on a single-frame video answers 422 (detection
