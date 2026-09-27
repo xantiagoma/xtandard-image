@@ -72,6 +72,10 @@ func Build() (*huma.OpenAPI, error) {
 	reg.Schema(reflect.TypeFor[playground.SignRequest](), true, "")
 	reg.Schema(reflect.TypeFor[playground.SignResponse](), true, "")
 	reg.Schema(reflect.TypeFor[playground.ErrorResponse](), true, "")
+	reg.Schema(reflect.TypeFor[playground.TranslateRequest](), true, "")
+	reg.Schema(reflect.TypeFor[playground.TranslateResponse](), true, "")
+	reg.Schema(reflect.TypeFor[playground.Upload](), true, "")
+	reg.Schema(reflect.TypeFor[playground.ListResponse](), true, "")
 	schemas := reg.Map()
 	body, ok := schemas[schemaErrorBody]
 	if !ok || body.Properties["kind"] == nil {
@@ -387,6 +391,9 @@ func operations() []*huma.Operation {
 		playgroundMetaOperation(),
 		playgroundSignOperation(),
 		playgroundRenderOperation(),
+		playgroundTranslateOperation(),
+		playgroundUploadOperation(),
+		playgroundListOperation(),
 		queryOperation(),
 		imaginaryOperation(),
 		imagekitOperation(),
