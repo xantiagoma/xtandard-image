@@ -549,7 +549,7 @@
         "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
       },
       "imgix": {
-        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026fm=webp\u0026q=70"
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fm=webp\u0026q=70"
       },
       "imgproxy": {
         "url": "/f:webp/q:70/plain/https://example.com/photos/a.jpg"
@@ -591,7 +591,7 @@
         "url": "/tr:f-webp,q-70/photos/a.jpg"
       },
       "imgix": {
-        "url": "/photos/a.jpg?fit=clip\u0026fm=webp\u0026q=70"
+        "url": "/photos/a.jpg?fm=webp\u0026q=70"
       },
       "imgproxy": {
         "url": "/f:webp/q:70/plain/xi://local/photos/a.jpg"
@@ -627,7 +627,7 @@
         "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
       },
       "imgix": {
-        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026blur=40\u0026sharp=25"
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?blur=40\u0026sharp=25"
       },
       "imgproxy": {
         "url": "/bl:2/sh:1/plain/https://example.com/photos/a.jpg"
@@ -666,7 +666,7 @@
         "url": "/tr:bl-4,e-sharpen/photos/a.jpg"
       },
       "imgix": {
-        "url": "/photos/a.jpg?fit=clip\u0026blur=40\u0026sharp=25"
+        "url": "/photos/a.jpg?blur=40\u0026sharp=25"
       },
       "imgproxy": {
         "url": "/bl:2/sh:1/plain/xi://local/photos/a.jpg"
@@ -705,7 +705,7 @@
         "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
       },
       "imgix": {
-        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026rot=270\u0026flip=h"
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?rot=270\u0026flip=h"
       },
       "imgproxy": {
         "url": "/rot:90/fl:1:0/plain/https://example.com/photos/a.jpg"
@@ -741,7 +741,7 @@
         "url": "/tr:rt-90,fl-h/photos/a.jpg"
       },
       "imgix": {
-        "url": "/photos/a.jpg?fit=clip\u0026rot=270\u0026flip=h"
+        "url": "/photos/a.jpg?rot=270\u0026flip=h"
       },
       "imgproxy": {
         "url": "/rot:90/fl:1:0/plain/xi://local/photos/a.jpg"
@@ -783,7 +783,7 @@
         "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
       },
       "imgix": {
-        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026bg=ff0000\u0026pad=10"
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?bg=ff0000\u0026pad=10"
       },
       "imgproxy": {
         "url": "/pd:10:10:10:10/bg:ff0000/plain/https://example.com/photos/a.jpg"
@@ -835,7 +835,7 @@
         ]
       },
       "imgix": {
-        "url": "/photos/a.jpg?fit=clip\u0026bg=ff0000\u0026pad=10"
+        "url": "/photos/a.jpg?bg=ff0000\u0026pad=10"
       },
       "imgproxy": {
         "url": "/pd:10:10:10:10/bg:ff0000/plain/xi://local/photos/a.jpg"
@@ -880,7 +880,7 @@
         "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
       },
       "imgix": {
-        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026bri=20\u0026con=20\u0026sat=-20"
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?bri=20\u0026con=20\u0026sat=-20"
       },
       "imgproxy": {
         "url": "/br:51/co:1.2/sa:0.8/plain/https://example.com/photos/a.jpg"
@@ -931,7 +931,7 @@
         ]
       },
       "imgix": {
-        "url": "/photos/a.jpg?fit=clip\u0026bri=20\u0026con=20\u0026sat=-20"
+        "url": "/photos/a.jpg?bri=20\u0026con=20\u0026sat=-20"
       },
       "imgproxy": {
         "url": "/br:51/co:1.2/sa:0.8/plain/xi://local/photos/a.jpg"
@@ -976,7 +976,7 @@
         "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
       },
       "imgix": {
-        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026px=8"
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?px=8"
       },
       "imgproxy": {
         "url": "/pix:8/plain/https://example.com/photos/a.jpg"
@@ -1027,7 +1027,7 @@
         ]
       },
       "imgix": {
-        "url": "/photos/a.jpg?fit=clip\u0026px=8"
+        "url": "/photos/a.jpg?px=8"
       },
       "imgproxy": {
         "url": "/pix:8/plain/xi://local/photos/a.jpg"
@@ -1073,7 +1073,7 @@
         "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
       },
       "imgix": {
-        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026face-blur=25"
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?face-blur=25"
       },
       "imgproxy": {
         "url": "/bd:5:face/plain/https://example.com/photos/a.jpg"
@@ -1129,7 +1129,7 @@
         ]
       },
       "imgix": {
-        "url": "/photos/a.jpg?fit=clip\u0026face-blur=25"
+        "url": "/photos/a.jpg?face-blur=25"
       },
       "imgproxy": {
         "url": "/bd:5:face/plain/xi://local/photos/a.jpg"
@@ -1183,7 +1183,7 @@
         "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
       },
       "imgix": {
-        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026txt=Hello\u0026txt-align=bottom%2Cright\u0026txt-pad=10",
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?txt=Hello\u0026txt-align=bottom%2Cright\u0026txt-pad=10",
         "approximated": [
           "watermarks[0].opacity",
           "watermarks[0].font"
@@ -1253,7 +1253,7 @@
         ]
       },
       "imgix": {
-        "url": "/photos/a.jpg?fit=clip\u0026txt=Hello\u0026txt-align=bottom%2Cright\u0026txt-pad=10",
+        "url": "/photos/a.jpg?txt=Hello\u0026txt-align=bottom%2Cright\u0026txt-pad=10",
         "approximated": [
           "watermarks[0].opacity",
           "watermarks[0].font"
@@ -1306,7 +1306,7 @@
         "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
       },
       "imgix": {
-        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026page=2"
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?page=2"
       },
       "imgproxy": {
         "url": "/pg:1/plain/https://example.com/photos/a.jpg"
@@ -1351,7 +1351,7 @@
         "url": "/tr:pg-2/photos/a.jpg"
       },
       "imgix": {
-        "url": "/photos/a.jpg?fit=clip\u0026page=2"
+        "url": "/photos/a.jpg?page=2"
       },
       "imgproxy": {
         "url": "/pg:1/plain/xi://local/photos/a.jpg"
@@ -1393,7 +1393,7 @@
         "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
       },
       "imgix": {
-        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip",
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg",
         "unsupported": [
           "video.second"
         ]
@@ -1444,7 +1444,7 @@
         "url": "/tr:so-1.5/photos/a.jpg"
       },
       "imgix": {
-        "url": "/photos/a.jpg?fit=clip",
+        "url": "/photos/a.jpg",
         "unsupported": [
           "video.second"
         ]
@@ -1496,7 +1496,7 @@
         "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
       },
       "imgix": {
-        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026dl=photo.jpg"
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?dl=photo.jpg"
       },
       "imgproxy": {
         "url": "/fn:photo.jpg/att:1/plain/https://example.com/photos/a.jpg"
@@ -1554,7 +1554,7 @@
         ]
       },
       "imgix": {
-        "url": "/photos/a.jpg?fit=clip\u0026dl=photo.jpg"
+        "url": "/photos/a.jpg?dl=photo.jpg"
       },
       "imgproxy": {
         "url": "/fn:photo.jpg/att:1/plain/xi://local/photos/a.jpg"
@@ -1706,7 +1706,7 @@
         "error": "ImageKit takes a key on the mount's source (its URL endpoint)"
       },
       "imgix": {
-        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?fit=clip\u0026duotone=000000%2Cffffff"
+        "url": "/https:%2F%2Fexample.com%2Fphotos%2Fa.jpg?duotone=000000%2Cffffff"
       },
       "imgproxy": {
         "url": "/dt:1:000000:ffffff/plain/https://example.com/photos/a.jpg"
@@ -1767,7 +1767,7 @@
         ]
       },
       "imgix": {
-        "url": "/photos/a.jpg?fit=clip\u0026duotone=000000%2Cffffff"
+        "url": "/photos/a.jpg?duotone=000000%2Cffffff"
       },
       "imgproxy": {
         "url": "/dt:1:000000:ffffff/plain/xi://local/photos/a.jpg"
