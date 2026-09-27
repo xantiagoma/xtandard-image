@@ -147,15 +147,45 @@ func (f *VideoFrameInfo) String() string {
 // VideoVersion is the FFmpeg version of this build, "" without video.
 func VideoVersion() string { return ffmpeg.Version() }
 
-// VideoFrame decodes the frame req selects from a video source (FFmpeg,
-// internal/video/ffmpeg) and wraps it as a libvips image without copying:
-// 8-bit sRGB, RGBA when the stream has alpha, req.Width × req.Height (the
-// display size when 0), in the stored orientation (apply
-// ImageMeta.Orientation to display it). Without the ffmpeg build tag it
-// fails with errs.KindUnsupported. sess, when it reads buf (ProbeSession),
-// decodes on the probe's handle instead of opening buf again. It must run
-// inside vips.Run; the caller closes the image.
-func VideoFrame(ctx context.Context, buf *vips.Buffer, sess *VideoSession, req *video.FrameRequest) (*vips.Image, VideoFrameInfo, error) {
+// DecodedFrame is a decoded video frame that is not a libvips image yet:
+// packed 8-bit sRGB (Bands 3) or RGBA (Bands 4) pixels in C memory, in the
+// stored orientation. It outlives vips.Run, so one decode serves several
+// runs (detection, then processing: WP-91). The caller releases it.
+type DecodedFrame struct {
+	pixels        *vips.Buffer
+	Width, Height int
+	Bands         int
+	// Info describes the frame.
+	Info VideoFrameInfo
+}
+
+// Release frees the pixels once every image made from them is closed. It is
+// nil-safe and idempotent.
+func (f *DecodedFrame) Release() {
+	if f == nil || f.pixels == nil {
+		return
+	}
+	f.pixels.Release()
+	f.pixels = nil
+}
+
+// Image wraps the pixels as a libvips image without copying (the image
+// keeps its own reference to them). It must run inside vips.Run; the
+// caller closes the image.
+func (f *DecodedFrame) Image(ctx context.Context) (*vips.Image, error) {
+	if f == nil || f.pixels == nil {
+		return nil, errs.New(errs.KindInternal, "codec: released video frame")
+	}
+	return vips.NewFromBuffer(ctx, f.pixels, f.Width, f.Height, f.Bands, vips.BandFormatUchar)
+}
+
+// DecodeVideoFrame decodes the frame req selects from a video source
+// (FFmpeg, internal/video/ffmpeg): req.Width × req.Height (the display size
+// when 0), in the stored orientation (apply ImageMeta.Orientation to
+// display it). Without the ffmpeg build tag it fails with
+// errs.KindUnsupported. sess, when it reads buf (ProbeSession), decodes on
+// the probe's handle instead of opening buf again.
+func DecodeVideoFrame(ctx context.Context, buf *vips.Buffer, sess *VideoSession, req *video.FrameRequest) (*DecodedFrame, error) {
 	var fr *ffmpeg.Frame
 	var err error
 	if s := sess.session(buf); s != nil {
@@ -164,51 +194,91 @@ func VideoFrame(ctx context.Context, buf *vips.Buffer, sess *VideoSession, req *
 		fr, err = ffmpeg.Thumbnail(ctx, buf, req)
 	}
 	if err != nil {
-		return nil, VideoFrameInfo{}, err
+		return nil, err
 	}
-	defer fr.Release() // the image keeps its own reference to the pixels
-	img, err := vips.NewFromBuffer(ctx, fr.Pixels, fr.Width, fr.Height, fr.Bands, vips.BandFormatUchar)
-	if err != nil {
-		return nil, VideoFrameInfo{}, err
-	}
-	return img, VideoFrameInfo{
-		Time:      fr.Time,
-		Keyframe:  fr.Keyframe,
-		BestFrame: req.Second == nil,
-		Sampled:   fr.Sampled,
-		Score:     fr.Score,
+	return &DecodedFrame{
+		pixels: fr.Pixels, Width: fr.Width, Height: fr.Height, Bands: fr.Bands,
+		Info: VideoFrameInfo{
+			Time:      fr.Time,
+			Keyframe:  fr.Keyframe,
+			BestFrame: req.Second == nil,
+			Sampled:   fr.Sampled,
+			Score:     fr.Score,
+		},
 	}, nil
 }
 
-// sampleVideo decodes the default frame (s's selection) at most maxSide
-// pixels a side, upright, as RGBA.
-func sampleVideo(ctx context.Context, buf *vips.Buffer, maxSide int, s *video.Settings) (Raw, error) {
+// VideoFrame is DecodeVideoFrame wrapped as a libvips image. It must run
+// inside vips.Run; the caller closes the image.
+func VideoFrame(ctx context.Context, buf *vips.Buffer, sess *VideoSession, req *video.FrameRequest) (*vips.Image, VideoFrameInfo, error) {
+	f, err := DecodeVideoFrame(ctx, buf, sess, req)
+	if err != nil {
+		return nil, VideoFrameInfo{}, err
+	}
+	defer f.Release() // the image keeps its own reference to the pixels
+	img, err := f.Image(ctx)
+	if err != nil {
+		return nil, VideoFrameInfo{}, err
+	}
+	return img, f.Info, nil
+}
+
+// SampleVideoFrame decodes the frame s's default selection picks
+// (XI_VIDEO_THUMBNAIL_*) fitted inside maxSide × maxSide, in the stored
+// orientation, and returns it with the orientation that displays it. It
+// opens buf on its own handle.
+func SampleVideoFrame(ctx context.Context, buf *vips.Buffer, maxSide int, s *video.Settings) (*DecodedFrame, int, error) {
 	if s == nil || !s.Enabled {
-		return Raw{}, videoDisabled(FormatMP4)
+		return nil, 0, videoDisabled(FormatMP4)
 	}
 	fs, err := ffmpeg.Open(ctx, buf, s.Limits)
 	if err != nil {
-		return Raw{}, err
+		return nil, 0, err
 	}
 	sess := &VideoSession{s: fs}
 	defer sess.Close()
 	vm := fs.Meta()
 	w, h := fitInside(vm.DisplayWidth, vm.DisplayHeight, maxSide)
 	req := s.Request(nil, nil, w, h)
-	var a vips.Arena
-	defer a.Close()
-	img, _, err := VideoFrame(ctx, buf, sess, &req)
+	f, err := DecodeVideoFrame(ctx, buf, sess, &req)
+	if err != nil {
+		return nil, 0, err
+	}
+	return f, vm.Orientation(), nil
+}
+
+// UprightImage wraps f as a libvips image tracked by a and applies
+// orientation (EXIF 1..8, the display matrix) so it shows upright. It must
+// run inside vips.Run.
+func (f *DecodedFrame) UprightImage(ctx context.Context, a *vips.Arena, orientation int) (*vips.Image, error) {
+	img, err := a.Add(f.Image(ctx))
+	if err != nil {
+		return nil, err
+	}
+	if orientation > 1 && orientation <= 8 {
+		if img, err = a.Add(img.SetOrientation(ctx, orientation)); err != nil {
+			return nil, err
+		}
+		if img, err = a.Add(img.Autorot(ctx)); err != nil {
+			return nil, err
+		}
+	}
+	return img, nil
+}
+
+// sampleVideo decodes the default frame (s's selection) at most maxSide
+// pixels a side, upright, as RGBA.
+func sampleVideo(ctx context.Context, buf *vips.Buffer, maxSide int, s *video.Settings) (Raw, error) {
+	f, orientation, err := SampleVideoFrame(ctx, buf, maxSide, s)
 	if err != nil {
 		return Raw{}, fmt.Errorf("codec: sample video: %w", err)
 	}
-	a.Track(img)
-	if o := vm.Orientation(); o != 1 {
-		if img, err = a.Add(img.SetOrientation(ctx, o)); err != nil {
-			return Raw{}, err
-		}
-		if img, err = a.Add(img.Autorot(ctx)); err != nil {
-			return Raw{}, err
-		}
+	defer f.Release()
+	var a vips.Arena
+	defer a.Close()
+	img, err := f.UprightImage(ctx, &a, orientation)
+	if err != nil {
+		return Raw{}, err
 	}
 	if img.Bands() == 3 {
 		if img, err = a.Add(img.BandjoinConst(ctx, []float64{255})); err != nil {
