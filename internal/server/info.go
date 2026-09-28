@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 
+	"github.com/xantiagoma/xtandard-image/internal/codec/container"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/imageinfo"
@@ -77,6 +78,10 @@ type SourceInfo struct {
 	// Video describes a video source (container, tags, streams); nil for
 	// images.
 	Video *video.Meta
+	// Container is set by the server when the source is a designer
+	// document (codec/container) and everything above describes the image
+	// embedded in it; nil otherwise. Inspectors leave it nil.
+	Container *container.Source
 	// Detections are the faces and objects Inspect detected for det
 	// (WP-73): detect_objects and crops placed by face or object gravity.
 	// nil when det asked for none (or only for optional faces the
@@ -159,7 +164,7 @@ func (s *Server) inspect(ctx context.Context, r *http.Request, req *transform.Re
 	// 11. Header and metadata, plus the pixel-derived fields when asked
 	// for (decoded in the same vips.Run).
 	t = s.stage(info, stageProbe)
-	si, err := s.inspectSource(ctx, fr.Buffer, &lim.probe, pixelOptions(req.Info), infoDetection(req))
+	si, err := s.inspectSource(ctx, fr.Buffer, &lim.probe, lim.maxSrcBytes, pixelOptions(req.Info), infoDetection(req))
 	t.done()
 	if err != nil {
 		return nil, err
@@ -199,19 +204,23 @@ func (s *Server) infoResponse(req *transform.Request, si *SourceInfo, src []byte
 	return body, nil
 }
 
-// inspectSource is probe for info requests: SVG is sanitised before
-// anything parses it, and the input limits are re-checked on the result.
-func (s *Server) inspectSource(ctx context.Context, buf fetch.Buffer, lim *ProbeLimits, px *imageinfo.Options, det plan.DetectionNeeds) (*SourceInfo, error) {
+// inspectSource is probe for info requests: a designer container is
+// unwrapped and SVG sanitised before anything parses it, and the input
+// limits are re-checked on the result.
+func (s *Server) inspectSource(ctx context.Context, buf fetch.Buffer, lim *ProbeLimits, maxSrcBytes int64, px *imageinfo.Options, det plan.DetectionNeeds) (*SourceInfo, error) {
 	ctx, span := s.deps.Tracer.Start(ctx, "probe")
 	defer span.End()
 
-	src, sanitised, err := s.sanitize(buf)
+	src, cont, sanitised, err := s.prepare(buf, maxSrcBytes)
 	if err != nil {
 		span.SetStatus(codes.Error, errs.KindOf(err).String())
 		return nil, err
 	}
 	defer src.Release()
 	si, err := s.deps.Inspector.Inspect(ctx, src, *lim, px, det)
+	if si != nil {
+		si.Container = cont
+	}
 	switch {
 	case err != nil:
 	case si == nil:
@@ -269,6 +278,8 @@ type InfoResponse struct {
 	InfoProResponse
 	InfoVideoResponse
 	HDR bool `json:"hdr,omitempty" doc:"xtandard-image extension: true for scene-linear sources (OpenEXR, Radiance, PFM), which imgproxy does not read; absent otherwise."`
+	// Container is last so imgproxy's fields keep their order.
+	Container *InfoContainer `json:"container,omitempty" doc:"xtandard-image extension (info option format): the source is a designer document (OpenRaster, Krita, Procreate, Sketch, SVGZ, Paint.NET) and format, dimensions and the other fields describe the image embedded in it; absent otherwise."`
 }
 
 // infoBody renders the response for the options in o; op is the objects
@@ -282,6 +293,7 @@ func infoBody(o *transform.InfoOptions, op *transform.ObjectsPosition, si *Sourc
 	}
 	if o.Format {
 		out.Format, out.MIMEType = si.Format, si.MIMEType
+		out.Container = infoContainer(si.Container)
 	}
 	if o.Dimensions {
 		w, h := orientedSize(&si.Meta)

@@ -243,6 +243,9 @@ func (s *Server) entryHeader(res *imageResult) http.Header {
 	if res.out.Best != "" {
 		h.Set(hdrBest, res.out.Best)
 	}
+	if v := res.containerSource(); v != "" {
+		h.Set(hdrContainerSource, v)
+	}
 	return h
 }
 

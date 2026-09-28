@@ -1,0 +1,22 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "container": {
+    "content": "preview",
+    "entry": "previews/preview.png",
+    "format": "sketch",
+    "mime_type": "application/x-sketch"
+  },
+  "exif": {},
+  "format": "png",
+  "height": 144,
+  "iptc": {},
+  "mime_type": "image/png",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 2223,
+  "width": 192,
+  "xmp": {}
+}

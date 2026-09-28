@@ -70,6 +70,18 @@ type imageResult struct {
 	stored http.Header
 }
 
+// containerSource is the X-Xi-Container-Source value: the container the
+// source's pixels came from, or the stored value of a cache hit.
+func (res *imageResult) containerSource() string {
+	if res.stored != nil {
+		return res.stored.Get(hdrContainerSource)
+	}
+	if c := res.meta.Container; c != nil {
+		return c.Header()
+	}
+	return ""
+}
+
 // contentType is the Content-Type of the body.
 func (res *imageResult) contentType() string {
 	if res.out != nil && res.out.ContentType != "" {
@@ -556,8 +568,8 @@ func cacheTags(tags []string) string {
 // setDebugHeaders writes the XI_OBSERVABILITY_DEBUG_HEADERS headers
 // (imgproxy's X-Origin-* / X-Result-* under the X-Xi- prefix): the
 // original's size and dimensions, the result's dimensions and encoder
-// quality when it was encoded, and the options that were parsed but not
-// applied.
+// quality when it was encoded, the container a designer document's pixels
+// came from, and the options that were parsed but not applied.
 func setDebugHeaders(h http.Header, res *imageResult) {
 	h.Set("X-Xi-Origin-Content-Length", strconv.Itoa(res.srcLen))
 	if res.meta.Width > 0 {
@@ -582,6 +594,9 @@ func setDebugHeaders(h http.Header, res *imageResult) {
 	}
 	if res.out != nil && res.out.VideoCodec != "" {
 		h.Set("X-Xi-Video-Codec", res.out.VideoCodec)
+	}
+	if v := res.containerSource(); v != "" {
+		h.Set(hdrContainerSource, v)
 	}
 	if len(res.req.Ignored) > 0 {
 		var b strings.Builder

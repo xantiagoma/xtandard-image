@@ -23,6 +23,7 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/xantiagoma/xtandard-image/internal/cache"
+	"github.com/xantiagoma/xtandard-image/internal/codec/container"
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/router"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
@@ -88,6 +89,10 @@ type SourceMeta struct {
 	// embedded preview): the source limits judge it on what can be decoded
 	// (transform.SourceLimits.CheckRaw). nil for other formats.
 	Raw *transform.RawSource
+	// Container is set by the server (not the Prober) when the source is a
+	// designer document and the fields above describe the image embedded
+	// in it (codec/container, WP-107); nil otherwise.
+	Container *container.Source
 	// Session is what the prober kept open for the processor (a video's
 	// FFmpeg handle, so the frames are not probed twice); nil when
 	// nothing. The server closes it once the request is done.

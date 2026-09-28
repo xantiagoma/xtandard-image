@@ -1,0 +1,22 @@
+{
+  "alpha": true,
+  "bands": 4,
+  "colorspace": "srgb",
+  "container": {
+    "content": "composite",
+    "entry": "mergedimage.png",
+    "format": "ora",
+    "mime_type": "image/openraster"
+  },
+  "exif": {},
+  "format": "png",
+  "height": 72,
+  "iptc": {},
+  "mime_type": "image/png",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 90084,
+  "width": 96,
+  "xmp": {}
+}
