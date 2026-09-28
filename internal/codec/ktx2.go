@@ -25,9 +25,9 @@ func (vipsKTX2) Basis(ctx context.Context, data []byte, maxPixels int64) (ktx2.B
 		return ktx2.BasisImage{}, err
 	}
 	return ktx2.BasisImage{
-		BasisInfo: ktx2.BasisInfo{Width: img.Width, Height: img.Height, Alpha: img.Alpha, HDR: img.HDR},
-		RGBA8:     img.RGBA8,
-		RGBAHalf:  img.RGBAHalf,
+		Width: img.Width, Height: img.Height, Alpha: img.Alpha, HDR: img.HDR,
+		RGBA8:    img.RGBA8,
+		RGBAHalf: img.RGBAHalf,
 	}, nil
 }
 

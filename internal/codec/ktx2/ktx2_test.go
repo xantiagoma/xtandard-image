@@ -65,7 +65,7 @@ type file struct {
 	truncateIndex         bool
 }
 
-func (f file) bytes() []byte {
+func (f *file) bytes() []byte {
 	le := binary.LittleEndian
 	if f.faces == 0 {
 		f.faces = 1
@@ -142,19 +142,24 @@ func TestDecodeConfig(t *testing.T) {
 			Width: 64, Height: 48, Format: "Basis Universal", Scheme: ktx2.SupercompressionBasisLZ, Basis: true,
 			Levels: 1, Faces: 1,
 		}},
-		{"etc1s fixture, backend says alpha", readFixture(t, "ktx2/etc1s.ktx2"),
-			&fakeBackend{info: ktx2.BasisInfo{Width: 64, Height: 48, Alpha: true}}, ktx2.Config{
+		{
+			"etc1s fixture, backend says alpha", readFixture(t, "ktx2/etc1s.ktx2"),
+			&fakeBackend{info: ktx2.BasisInfo{Width: 64, Height: 48, Alpha: true}},
+			ktx2.Config{
 				Width: 64, Height: 48, Format: "Basis Universal", Scheme: ktx2.SupercompressionBasisLZ, Basis: true,
 				Alpha: true, Levels: 1, Faces: 1,
-			}},
-		{"astc goes to the transcoder", file{vk: 157, w: 4, h: 4, level: make([]byte, 16)}.bytes(), nil, ktx2.Config{
+			},
+		},
+		{"astc goes to the transcoder", (&file{vk: 157, w: 4, h: 4, level: make([]byte, 16)}).bytes(), nil, ktx2.Config{
 			Width: 4, Height: 4, VkFormat: 157, Format: "ASTC", Basis: true, Levels: 1, Faces: 1,
 		}},
-		{"1d texture", file{vk: 37, w: 3, h: 0, level: make([]byte, 12)}.bytes(), nil, ktx2.Config{
+		{"1d texture", (&file{vk: 37, w: 3, h: 0, level: make([]byte, 12)}).bytes(), nil, ktx2.Config{
 			Width: 3, Height: 1, VkFormat: 37, Format: "R8G8B8A8", Alpha: true, Levels: 1, Faces: 1,
 		}},
-		{"cube map", file{vk: 37, w: 3, h: 4, faces: 6, levels: 1, level: append(rgba, make([]byte, 5*len(rgba))...)}.bytes(), nil,
-			ktx2.Config{Width: 3, Height: 4, VkFormat: 37, Format: "R8G8B8A8", Alpha: true, Levels: 1, Faces: 6}},
+		{
+			"cube map", (&file{vk: 37, w: 3, h: 4, faces: 6, levels: 1, level: make([]byte, 6*len(rgba))}).bytes(), nil,
+			ktx2.Config{Width: 3, Height: 4, VkFormat: 37, Format: "R8G8B8A8", Alpha: true, Levels: 1, Faces: 6},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -336,6 +341,7 @@ func TestDecodeBasis(t *testing.T) {
 		{"opaque drops alpha", &fakeBackend{img: ktx2.BasisImage{
 			BasisInfo: ktx2.BasisInfo{Width: 64, Height: 48}, RGBA8: px(64*48*4, 7),
 		}}, func(t *testing.T, d raster.Decoded) {
+			t.Helper()
 			if d.Raw == nil || d.Raw.Bands != 3 || len(d.Raw.Data) != 64*48*3 || d.Raw.Data[0] != 7 {
 				t.Errorf("raw %+v", d.Raw)
 			}
@@ -343,6 +349,7 @@ func TestDecodeBasis(t *testing.T) {
 		{"alpha kept", &fakeBackend{img: ktx2.BasisImage{
 			BasisInfo: ktx2.BasisInfo{Width: 64, Height: 48, Alpha: true}, RGBA8: px(64*48*4, 9),
 		}}, func(t *testing.T, d raster.Decoded) {
+			t.Helper()
 			if d.Raw == nil || d.Raw.Bands != 4 {
 				t.Errorf("raw %+v", d.Raw)
 			}
@@ -351,6 +358,7 @@ func TestDecodeBasis(t *testing.T) {
 			BasisInfo: ktx2.BasisInfo{Width: 64, Height: 48, HDR: true},
 			RGBAHalf:  make([]uint16, 64*48*4),
 		}}, func(t *testing.T, d raster.Decoded) {
+			t.Helper()
 			if d.Float == nil || d.Float.Bands != 3 {
 				t.Errorf("float %+v", d.Float)
 			}
@@ -410,8 +418,11 @@ func TestDecodeSupercompressionErrors(t *testing.T) {
 		{"zlib declares less than an image", file{vk: 37, w: 2, h: 2, scheme: 3, level: zlibBytes(t, img), uncompressed: 8}, nil, errs.KindCorrupt},
 		{"zlib declares more than the level", file{vk: 37, w: 2, h: 2, scheme: 3, level: zlibBytes(t, img), uncompressed: 64}, nil, errs.KindCorrupt},
 		{"zstd without a decoder", file{vk: 37, w: 2, h: 2, scheme: 2, level: make([]byte, 16), uncompressed: 16}, nil, errs.KindUnsupported},
-		{"zstd decoder error", file{vk: 37, w: 2, h: 2, scheme: 2, level: make([]byte, 16), uncompressed: 16},
-			&fakeBackend{err: errs.New(errs.KindCorrupt, "bad frame")}, errs.KindCorrupt},
+		{
+			"zstd decoder error",
+			file{vk: 37, w: 2, h: 2, scheme: 2, level: make([]byte, 16), uncompressed: 16},
+			&fakeBackend{err: errs.New(errs.KindCorrupt, "bad frame")}, errs.KindCorrupt,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

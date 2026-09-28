@@ -88,7 +88,8 @@ type Config struct {
 	dxgi      uint32 // DXGI format of the Go route
 	opaque    bool   // DDS alpha mode opaque: drop the alpha band
 	expand    int    // 3-byte RGB/BGR formats: 1 RGB, 2 BGR (expanded to RGBA8)
-	imageSize int64  // bytes of the first image (Go route)
+	imageSize uint64 // bytes of the first image (Go route)
+	images    uint64 // images in level 0: layers × faces × slices
 	level0    levelIndex
 }
 
@@ -197,6 +198,7 @@ func parse(b []byte) (Config, error) {
 	}
 	c.Width, c.Height = int(w), int(h)
 	c.Levels, c.Layers, c.Faces, c.Depth = int(levels), int(layers), int(faces), int(d)
+	c.images = uint64(max(layers, 1)) * uint64(faces) * uint64(max(d, 1))
 	n := max(levels, 1)
 	if int64(len(b)) < headerSize+int64(n)*levelEntrySize {
 		return Config{}, corrupt("truncated level index")
@@ -227,7 +229,7 @@ func parse(b []byte) (Config, error) {
 	if c.Scheme != SupercompressionNone {
 		level = c.level0.uncompressed
 	}
-	if uint64(c.imageSize) > level {
+	if c.imageSize > level {
 		return Config{}, corrupt("level 0 is shorter than its first image")
 	}
 	return c, nil
@@ -434,8 +436,8 @@ func (c *Config) setFormat() error {
 
 // firstImageSize is the byte size of one image of level 0 in the stored
 // format (tightly packed rows, KTX 2.0 §3.9.6).
-func (c *Config) firstImageSize() int64 {
-	w, h := int64(c.Width), int64(c.Height)
+func (c *Config) firstImageSize() uint64 {
+	w, h := uint64(c.Width), uint64(c.Height) //nolint:gosec // 1..65536, checked by parse
 	switch c.dxgi {
 	case dxgiBC1UNorm, dxgiBC1UNormSRGB, dxgiBC4UNorm, dxgiBC4SNorm:
 		return (w + 3) / 4 * ((h + 3) / 4) * 8
@@ -446,10 +448,10 @@ func (c *Config) firstImageSize() int64 {
 	if c.expand != 0 {
 		return w * h * 3
 	}
-	return w * h * int64(bytesPerPixel(c.dxgi))
+	return w * h * bytesPerPixel(c.dxgi)
 }
 
-func bytesPerPixel(dxgi uint32) int {
+func bytesPerPixel(dxgi uint32) uint64 {
 	switch dxgi {
 	case dxgiR8UNorm:
 		return 1
@@ -556,8 +558,7 @@ func (c *Config) level(ctx context.Context, b []byte, be Backend) ([]byte, error
 	// slice. A level declared larger, or more than 1024 times its compressed
 	// size (a bomb), is corrupt; zlib inflates only the first image.
 	n := c.level0.uncompressed
-	images := uint64(max(c.Layers, 1)) * uint64(c.Faces) * uint64(max(c.Depth, 1))
-	if n < uint64(c.imageSize) || n > images*uint64(c.imageSize) || n/1024 > c.level0.length {
+	if n < c.imageSize || n > c.images*c.imageSize || n/1024 > c.level0.length {
 		return nil, corrupt("uncompressed level size")
 	}
 	if c.Scheme == SupercompressionZlib {
