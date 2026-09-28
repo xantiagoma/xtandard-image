@@ -51,7 +51,11 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   bases now slim r4 / full r5 / gpl r5 (local `xtandard-base:dev*` tags retagged from the WP-97
   build). WP-98 (animation pixel limits follow imgproxy's
   CheckDimensions; new `XI_LIMITS_MAX_ANIMATION_PIXELS` 200 MP; 422 bodies name the limit) merged as
-  #101. Demo runs `xtandard-image:main-gpl` from main 900c418.
+  #101. WP-99 (EPS/PS/AI via out-of-process sandboxed Ghostscript 10.08,
+  gpl only, off by default; gpl base r6; ADR 0011) merged as #102 with the owner's explicit
+  authorisation after the classifier had blocked the first launch. Demo runs `xtandard-image:main-gpl`
+  from main with `XI_FORMATS_EPS_ENABLED=true` (in `compose.playground.yml`); the network namespace
+  falls back under Docker's seccomp (logged). Local `xtandard-base:dev-gpl*` retagged from wp99.
   Commit trailer is now `Co-Authored-By: Claude Opus 5.5`.
 - **Backlog after M3 (WP-91+):** face/object gravity on a single-frame video answers 422 (detection
   hands the container bytes to libvips; fix = detect on the decoded frame; composites already skip
