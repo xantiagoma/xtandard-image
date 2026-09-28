@@ -82,17 +82,89 @@ xi_raw_open(VipsBlob *blob, int *rc)
   return lr;
 }
 
+// xi_raw_undecodable says why LibRaw cannot demosaic the file lr opened
+// (XI_RAW_*), before anything is unpacked.
+//
+// Nikon High Efficiency NEFs (intoPIX TicoRAW; makernote NEFCompression 13
+// "HE" and 14 "HE*", as ExifTool names them) have no open decoder. LibRaw
+// 0.22 flags them only for the Z 9, Z 8, Z f and Z6III (a JPEG XS marker
+// check) and decodes other bodies, such as the Z50II, as lossless NEF:
+// wrong pixels and no error. The makernote decides here for every body. A
+// DNG converted from such a NEF carries the original makernote but
+// ordinary DNG data, so DNGs are left to the decoder check.
+//
+// LibRaw also sets placeholder decoders it cannot run without optional
+// SDKs (GoPro VC-5, JPEG XL DNG without the DNG SDK): the decoder's
+// LIBRAW_DECODER_UNSUPPORTED_FORMAT flag.
+static int
+xi_raw_undecodable(libraw_data_t *lr)
+{
+  libraw_decoder_info_t d;
+  unsigned nefc = lr->makernotes.nikon.NEFCompression;
+
+  if (!lr->idata.dng_version && g_ascii_strncasecmp(lr->idata.make, "Nikon", 5) == 0 &&
+      (nefc == 13 || nefc == 14))
+    return XI_RAW_NIKON_HE;
+  if (libraw_get_decoder_info(lr, &d) == LIBRAW_SUCCESS &&
+      (d.decoder_flags & LIBRAW_DECODER_UNSUPPORTED_FORMAT))
+    return XI_RAW_NO_DECODER;
+  return XI_RAW_DECODABLE;
+}
+
+// xi_raw_thumbs copies LibRaw's thumbnail list into h.
+static void
+xi_raw_thumbs(libraw_data_t *lr, XiRawHeader *h)
+{
+  for (int i = 0; i < lr->thumbs_list.thumbcount && i < LIBRAW_THUMBNAIL_MAXCOUNT &&
+       h->n_thumbs < XI_RAW_MAX_THUMBS; i++) {
+    libraw_thumbnail_item_t *t = &lr->thumbs_list.thumblist[i];
+    XiRawThumb *o = &h->thumbs[h->n_thumbs];
+
+    if (t->toffset <= 0 || t->tlength == 0)
+      continue;
+    o->jpeg = t->tformat == LIBRAW_INTERNAL_THUMBNAIL_JPEG;
+    o->width = t->twidth;
+    o->height = t->theight;
+    o->offset = t->toffset;
+    o->length = t->tlength;
+    h->n_thumbs++;
+  }
+}
+
 int
 xi_raw_probe(VipsBlob *blob, XiRawHeader *h, char **err)
 {
+  VipsArea *area = VIPS_AREA(blob);
   libraw_data_t *lr;
   int rc;
   struct tm tm;
   time_t ts;
 
   memset(h, 0, sizeof(*h));
-  if (!(lr = xi_raw_open(blob, &rc)))
+  if (!(lr = libraw_init(LIBRAW_OPTIONS_NO_DATAERR_CALLBACK)))
+    return xi_raw_error(LIBRAW_UNSUFFICIENT_MEMORY, "unable to read", err);
+  __atomic_fetch_add(&xi_raw_handles, 1, __ATOMIC_RELAXED);
+  lr->params.user_flip = 0;
+  rc = libraw_open_buffer(lr, area->data, area->length);
+  if (rc == LIBRAW_FILE_UNSUPPORTED && lr->thumbs_list.thumbcount > 0 && lr->idata.make[0]) {
+    // A camera LibRaw does not know yet (a body newer than this release):
+    // identify still parsed the TIFF/EXIF structure, so its maker and
+    // embedded previews are known. Nothing else is trusted. (A JPEG with
+    // an EXIF thumbnail looks the same: callers decide it is a RAW first,
+    // as codec/raw.Sniff does.)
+    h->undecodable = XI_RAW_UNKNOWN_CAMERA;
+    h->flip = lr->sizes.flip;
+    g_strlcpy(h->make, lr->idata.make, sizeof(h->make));
+    g_strlcpy(h->model, lr->idata.model, sizeof(h->model));
+    xi_raw_thumbs(lr, h);
+    xi_raw_close(lr);
+    return XI_OK;
+  }
+  if (rc != LIBRAW_SUCCESS) {
+    xi_raw_close(lr);
     return xi_raw_error(rc, "unable to read", err);
+  }
+  h->undecodable = xi_raw_undecodable(lr);
 
   // Header only: nothing is unpacked. flip and the metadata are read
   // before libraw_adjust_sizes_info_only, which resets flip.
@@ -120,21 +192,7 @@ xi_raw_probe(VipsBlob *blob, XiRawHeader *h, char **err)
   g_strlcpy(h->model, lr->idata.model, sizeof(h->model));
   g_strlcpy(h->software, lr->idata.software, sizeof(h->software));
   g_strlcpy(h->lens, lr->lens.Lens, sizeof(h->lens));
-
-  for (int i = 0; i < lr->thumbs_list.thumbcount && i < LIBRAW_THUMBNAIL_MAXCOUNT &&
-       h->n_thumbs < XI_RAW_MAX_THUMBS; i++) {
-    libraw_thumbnail_item_t *t = &lr->thumbs_list.thumblist[i];
-    XiRawThumb *o = &h->thumbs[h->n_thumbs];
-
-    if (t->toffset <= 0 || t->tlength == 0)
-      continue;
-    o->jpeg = t->tformat == LIBRAW_INTERNAL_THUMBNAIL_JPEG;
-    o->width = t->twidth;
-    o->height = t->theight;
-    o->offset = t->toffset;
-    o->length = t->tlength;
-    h->n_thumbs++;
-  }
+  xi_raw_thumbs(lr, h);
 
   libraw_adjust_sizes_info_only(lr);
   h->width = lr->sizes.iwidth;
@@ -192,6 +250,15 @@ xi_raw_load(VipsBlob *blob, const XiRawOptions *o, VipsImage **out, char **err)
         lr->sizes.width, lr->sizes.height, o->max_pixels);
     xi_raw_close(lr);
     return XI_ERR_LIMIT;
+  }
+  // Never demosaic what LibRaw would decode into wrong pixels (Nikon HE on
+  // bodies it does not flag) or cannot decode at all; the planner serves
+  // those from the embedded preview (FORMATS.md §2).
+  if (xi_raw_undecodable(lr) != XI_RAW_DECODABLE) {
+    *err = xi_error_new("rawload", "%s %s: no decoder for this RAW compression",
+        lr->idata.make, lr->idata.model);
+    xi_raw_close(lr);
+    return XI_ERR_UNSUPPORTED;
   }
 
   lr->params.output_bps = 8;

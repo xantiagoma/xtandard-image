@@ -66,6 +66,7 @@ generated from the public-domain X11 "fixed" font).
 | `../internal/ghostscript/testdata/hostile/*.eps` | hand-written hostile PostScript for the sandbox tests (file read, `%pipe%`, endless loop, unbounded recursion, memory exhaustion, oversized page) | CC0 |
 | `ssim/*.png` | `gen ssim-refs` (Go only: greyscale photo plus mean shift, contrast stretch, impulse noise, Gaussian blur σ 1.5, stdlib JPEG q15) | CC0 |
 | `fixtures/dng/landscape.dng`, `fixtures/dng/portrait-orientation-6.dng` | `gen dng` (own DNG writer; the preview is Go `image/jpeg` q85 of the photo, the mosaic is the photo sampled as linear RGGB) | CC0 |
+| `fixtures/dng/jxl-undecodable.dng`, `fixtures/dng/deflate-corrupt.dng` | `gen dng … 52546` / `… 8`: the landscape with its uncompressed mosaic labelled JPEG XL or deflate, so LibRaw cannot demosaic it (WP-101 preview-only and fallback paths) | CC0 |
 | `fixtures/video/clip-*.{webm,mkv,mp4,mov,avi}` | `gen video-frames` (Go) encoded by `gen/video.sh` with the LGPL FFmpeg of the full base builder (libvpx VP8/VP9, libaom AV1, PNG) and the host ffmpeg's LGPL rawvideo/AVI muxer; details in `fixtures/video/README.md` | CC0 |
 | `fixtures/video/bbb-h264-aac.mp4` | stream copy of Big Buck Bunny (see the exception above) plus an AAC tone (FFmpeg native encoder, LGPL) | CC-BY 3.0 (video), CC0 (audio) |
 | `fixtures/video/faces-vp9.webm`, `fixtures/video/faces-av1-rotate90.mp4` | `fixtures/detect/apollo11-crew.jpg` (below) as a one-second still clip, encoded by `gen/video-faces.sh` with the LGPL FFmpeg of the full base builder (libvpx VP9; libaom AV1 stored rotated with a display matrix); details in `fixtures/video/README.md` | Public domain (NASA), like the photo |
@@ -103,6 +104,19 @@ as well.
 | `sony-ilce-7s.arw` | Sony - ILCE-7S - 14bit 14bit compressed (3:2).ARW (id 1582) | `a35ebb2fbec929daa5beb20d1ce5c15a8aac7b1a7a231455387f3df8a7442e07` | 5.9 MB |
 | `pentax-k-50.dng` | Pentax - K-50 - 12bit (3:2).DNG (id 2235) | `9ea1dc1f92df19699aa8b620670c64a84d4ead0172a49cbbd47dea9257d14e67` | 12.9 MB |
 | `fujifilm-x-s10.raf` | Fujifilm - X-S10 - 14bit 14bit compressed (3:2).RAF (id 4190) | `9419d1408ebf850395e5dd563beb96309466546252caf541466034c9cb7e9724` | 17.8 MB |
+
+The WP-101/102 samples (`rawfixtures.NetworkFiles`, used only by `-tags network` tests), CC0 on
+raw.pixls.us as well (checked 2026-09-27):
+
+| Cache name | raw.pixls.us file | SHA-256 | Size |
+|---|---|---|---|
+| `nikon-z50ii-he.nef` | Nikon - Z50_2 - 8bit compressed (3:2).NEF (id 7764; High Efficiency) | `71c12d398e6f5a01e0e32c2211c40cafdb29e85ba1e17c4f65e7a4e958754c54` | 12.4 MB |
+| `nikon-z8-he.nef` | Nikon - Z 8 - 8bit 8bit compressed (3:2).NEF (id 6616; High Efficiency) | `82df041542b8d328738443bb5ff3373b396e406ecc8cbe7dc3b35252790c53e7` | 24.4 MB |
+| `nikon-zf-he.nef` | Nikon - Z f - 8bit 8bit lossy compressed (3:2).NEF (id 6887; High Efficiency) | `98d6ca8e6c98048ca7ffed68ccaeda7b2b9f03807f0d320d97d5678db21748c2` | 13.5 MB |
+| `sony-ilce-7m5.arw` | Sony - ILCE-7M5 - 14bit (3:2).ARW (id 8849) | `c16cae99d26a2f8ad183d31a23823310a994aa058d55cfe56e4f82ba56865f57` | 11.5 MB |
+| `fujifilm-gfx100rf.raf` | Fujifilm - GFX100RF - 16bit compressed (4:3).RAF (id 8091) | `14bed5ac8191d6f2a7c82984e3bf6470ad4740df329293eac42b8018cc6a668a` | 72.8 MB |
+| `hasselblad-x1d-ii.fff` | Hasselblad - X1D II 50C - 16bit (4:3).fff (id 3874) | `8c2451b3478fb529b4e9bd51ed3267999ce26eb1fcb5c3b93c3ae7bc56267794` | 78.2 MB |
+| `google-pixel-8-pro.dng` | Google - Pixel 8 Pro - 16bit (4:3).dng (id 7751) | `45420c595401547cca950ae58d552bc82b32d31ce1d58c082df33004016197f5` | 45.1 MB |
 
 ## Cross-language test vectors
 

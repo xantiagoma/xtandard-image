@@ -827,7 +827,7 @@ func Defaults() Config {
 			MaxAnimationFrames:      256,
 			MaxAnimationFramePixels: 16_000_000,
 			MaxAnimationPixels:      200_000_000,
-			MaxRawDemosaicPixels:    60_000_000,
+			MaxRawDemosaicPixels:    120_000_000,
 			MaxSVGBytes:             5 << 20,
 			MaxSVGDepth:             256,
 			MaxSVGElements:          200_000,

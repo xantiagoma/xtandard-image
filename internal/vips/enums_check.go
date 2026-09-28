@@ -290,4 +290,12 @@ func _() {
 	_ = x[C.VIPS_FOREIGN_TIFF_PREDICTOR_HORIZONTAL-int(TIFFPredictorHorizontal)]
 	_ = x[int(TIFFPredictorFloat)-C.VIPS_FOREIGN_TIFF_PREDICTOR_FLOAT]
 	_ = x[C.VIPS_FOREIGN_TIFF_PREDICTOR_FLOAT-int(TIFFPredictorFloat)]
+	_ = x[int(RawDecodable)-C.XI_RAW_DECODABLE]
+	_ = x[C.XI_RAW_DECODABLE-int(RawDecodable)]
+	_ = x[int(RawNikonHE)-C.XI_RAW_NIKON_HE]
+	_ = x[C.XI_RAW_NIKON_HE-int(RawNikonHE)]
+	_ = x[int(RawNoDecoder)-C.XI_RAW_NO_DECODER]
+	_ = x[C.XI_RAW_NO_DECODER-int(RawNoDecoder)]
+	_ = x[int(RawUnknownCamera)-C.XI_RAW_UNKNOWN_CAMERA]
+	_ = x[C.XI_RAW_UNKNOWN_CAMERA-int(RawUnknownCamera)]
 }
