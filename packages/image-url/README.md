@@ -108,6 +108,18 @@ await img.url({ source: "s3://private/cat.jpg", options: { w: 300 } });
 
 Each URL gets a fresh random IV, like the server's own encoder. To make URLs stable, for example as cache keys, pass a fixed 16-byte `iv`. A fixed IV reveals when two URLs have the same source. Encrypted URLs should always be signed, because CBC is malleable ([ARCHITECTURE §10](https://github.com/xantiagoma/xtandard-image/blob/main/docs/ARCHITECTURE.md)). Chromium's WebCrypto rejects 192-bit AES keys. Bun, Node, Deno, Firefox and Safari accept them.
 
+## Password-protected PDFs
+
+A PDF with a user (open) password needs its password in the URL, encrypted with the same key as `enc/` sources, and the server accepts it on signed URLs only ([URL-DIALECTS §3.7](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#37-password-protected-pdfs-wp-115)). Pass the plain-text password as `pdfPassword` (or `.pdfPassword()` in the fluent form); the builder encrypts it into a `pdp:<token>` segment and needs both `encryption` and `signing`:
+
+```ts
+const img = imgproxy({ baseUrl, signing, encryption: { key: process.env.XI_ENCRYPTION_KEY! } });
+await img.url({ source: "s3://docs/contract.pdf", options: { rs: ["fit", 800, 0], f: "webp" }, pdfPassword: "s3cret" });
+await img.from("s3://docs/contract.pdf").pdfPassword("s3cret").rs("fit", 800, 0).build();
+```
+
+`encryptPdfPassword(password, { key })` returns the token alone, for the query dialect (`pdf_password=<token>` with `xi_sig`) or the `pdp` option. Like the signing key, the encryption key belongs on a server: build these URLs there.
+
 ## Client
 
 `@xtandard/image-url/client` wraps the JSON and health endpoints. Its types come from the OpenAPI document:

@@ -17,7 +17,7 @@ export {
   type SourceEncoding,
 } from "./builder.ts";
 export type { KeyMaterial } from "./bytes.ts";
-export { type EncryptionKey, encryptSource } from "./encrypt.ts";
+export { type EncryptionKey, encryptPdfPassword, encryptSource, MAX_PDF_PASSWORD_BYTES } from "./encrypt.ts";
 export {
   imgproxyInfoAliases,
   imgproxyInfoOptionNames,
