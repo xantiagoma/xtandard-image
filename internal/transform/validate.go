@@ -556,6 +556,10 @@ func (in *InfoOptions) validate(v *validator, f string) {
 		v.intRange(f+".blurhash.y_components", b.YComponents, 1, MaxBlurhashDim)
 	}
 	v.classes(f+".detect_classes", in.DetectClasses)
+	// The classifier's vocabulary is the deployment's (a mountable model):
+	// class names are matched when the result is rendered.
+	v.intRange(f+".classify_top_k", in.ClassifyTopK, 0, MaxListLen)
+	v.strings(f+".classify_classes", in.ClassifyClasses)
 	v.list(f+".calc_hashsums", len(in.CalcHashsums))
 	for i, h := range in.CalcHashsums {
 		v.enum(f+".calc_hashsums["+strconv.Itoa(i)+"]", h != HashUnset && validEnum(h, numHashAlgorithms))

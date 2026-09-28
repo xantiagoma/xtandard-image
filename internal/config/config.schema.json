@@ -940,6 +940,52 @@
           "title": "XI_DETECT_CACHE_SIZE",
           "type": "integer"
         },
+        "classify": {
+          "additionalProperties": false,
+          "properties": {
+            "labels": {
+              "description": "Absolute path of the class names file of a custom classifier: one name per line, in output order (imgproxy's IMGPROXY_CLASSIFICATION_CLASSES format); empty uses the embedded ImageNet-1k names (imagenet-simple-labels, public domain), which need a 1000-class output\n\nDefault: *(empty)*\n\nEnv: XI_DETECT_CLASSIFY_LABELS",
+              "markdownDescription": "Absolute path of the class names file of a custom classifier: one name per line, in output order (imgproxy's `IMGPROXY_CLASSIFICATION_CLASSES` format); empty uses the embedded ImageNet-1k names (imagenet-simple-labels, public domain), which need a 1000-class output\n\nDefault: *(empty)*\n\nEnv: `XI_DETECT_CLASSIFY_LABELS`",
+              "title": "XI_DETECT_CLASSIFY_LABELS",
+              "type": "string"
+            },
+            "model": {
+              "default": "mobilenetv3_large_100.onnx",
+              "description": "Image classifier of the /info option classify (WP-110): an ONNX model with one float32 NCHW or NHWC RGB input and one score per class, a file name in XI_DETECT_MODELS_DIR or an absolute path; empty disables classification. The shipped one is MobileNetV3-Large (timm, ImageNet-1k, Apache-2.0). Its session is created on the first request that classifies, so a deployment that never classifies pays nothing for it. A missing file disables classification only (detection keeps running; classify is then reported in X-Xi-Ignored)\n\nEnv: XI_DETECT_CLASSIFY_MODEL",
+              "markdownDescription": "Image classifier of the `/info` option `classify` (WP-110): an ONNX model with one float32 NCHW or NHWC RGB input and one score per class, a file name in `XI_DETECT_MODELS_DIR` or an absolute path; empty disables classification. The shipped one is MobileNetV3-Large (timm, ImageNet-1k, Apache-2.0). Its session is created on the first request that classifies, so a deployment that never classifies pays nothing for it. A missing file disables classification only (detection keeps running; `classify` is then reported in `X-Xi-Ignored`)\n\nEnv: `XI_DETECT_CLASSIFY_MODEL`",
+              "title": "XI_DETECT_CLASSIFY_MODEL",
+              "type": "string"
+            },
+            "normalization": {
+              "default": "imagenet",
+              "description": "How 8-bit input values v are scaled: imagenet ((v/255 − mean)/std with ImageNet statistics: timm and torchvision models), full (v/127.5 − 1, TensorFlow models such as EfficientNet-Lite), half (v/255) or none (0–255). The image is resized so its short side is the input size / 0.875 and centre-cropped (timm's evaluation transform)\n\nEnv: XI_DETECT_CLASSIFY_NORMALIZATION",
+              "enum": [
+                "imagenet",
+                "full",
+                "half",
+                "none"
+              ],
+              "markdownDescription": "How 8-bit input values `v` are scaled: `imagenet` (`(v/255 − mean)/std` with ImageNet statistics: timm and torchvision models), `full` (`v/127.5 − 1`, TensorFlow models such as EfficientNet-Lite), `half` (`v/255`) or `none` (0–255). The image is resized so its short side is the input size / 0.875 and centre-cropped (timm's evaluation transform)\n\nEnv: `XI_DETECT_CLASSIFY_NORMALIZATION`",
+              "title": "XI_DETECT_CLASSIFY_NORMALIZATION",
+              "type": "string"
+            },
+            "threshold": {
+              "default": 0,
+              "description": "Classes with a probability below it are left out (0–1). imgproxy's default is 0.5 for its multi-label model; a 1000-class softmax spreads probability over similar classes, so 0 returns the top_k asked for\n\nEnv: XI_DETECT_CLASSIFY_THRESHOLD",
+              "markdownDescription": "Classes with a probability below it are left out (0–1). imgproxy's default is 0.5 for its multi-label model; a 1000-class softmax spreads probability over similar classes, so 0 returns the `top_k` asked for\n\nEnv: `XI_DETECT_CLASSIFY_THRESHOLD`",
+              "title": "XI_DETECT_CLASSIFY_THRESHOLD",
+              "type": "number"
+            },
+            "top_k_max": {
+              "default": 20,
+              "description": "Most classes one request gets: cl:<top_k> above it is capped (1–64)\n\nEnv: XI_DETECT_CLASSIFY_TOP_K_MAX",
+              "markdownDescription": "Most classes one request gets: `cl:<top_k>` above it is capped (1–64)\n\nEnv: `XI_DETECT_CLASSIFY_TOP_K_MAX`",
+              "title": "XI_DETECT_CLASSIFY_TOP_K_MAX",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
         "enabled": {
           "$ref": "#/$defs/tristate",
           "default": "auto",

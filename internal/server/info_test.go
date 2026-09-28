@@ -213,7 +213,7 @@ func TestInfoOptionFlags(t *testing.T) {
 			want: `{"pages_number":6,"alpha":true}`,
 		},
 		{name: "not implemented options add nothing", set: only(func(o *transform.InfoOptions) {
-			o.VideoMeta, o.Classify, o.ObjectsPos = true, true, true
+			o.VideoMeta, o.ClassifyTopK, o.ObjectsPos = true, 3, true
 		}), want: `{}`},
 		{name: "detect objects without detections", set: only(func(o *transform.InfoOptions) {
 			o.DetectObjects = true
@@ -660,6 +660,80 @@ func TestInfoDetectObjects(t *testing.T) {
 			}
 			if got := *insp.det.Load(); got != tc.need {
 				t.Errorf("inspector asked for %+v, want %+v", got, tc.need)
+			}
+			h.checkReleased(t)
+		})
+	}
+}
+
+// TestInfoClassify: classify renders imgproxy Pro's classification shape
+// from the inspector's classification (top_k, class filter, rounding), an
+// unknown class name is 400, and without a classifier the key is absent
+// and X-Xi-Ignored says why.
+func TestInfoClassify(t *testing.T) {
+	t.Parallel()
+	classes := &plan.Classification{
+		Labels: []string{"tench", "Golden Retriever", "tabby cat", "pizza"},
+		Scores: []float32{0.05, 0.6123456, 0.3, 0.0376544},
+	}
+	tests := []struct {
+		name    string
+		k       int
+		names   []string
+		dets    *plan.Detections
+		status  int
+		want    string
+		ignored string
+	}{
+		{
+			name: "top 2", k: 2, dets: &plan.Detections{Classes: classes}, status: http.StatusOK,
+			want: `{"classification":[{"class_id":1,"name":"Golden Retriever","confidence":0.612346},{"class_id":2,"name":"tabby cat","confidence":0.3}]}`,
+		},
+		{
+			name: "class filter", k: 5, names: []string{"pizza", "TENCH"}, dets: &plan.Detections{Classes: classes}, status: http.StatusOK,
+			want: `{"classification":[{"class_id":0,"name":"tench","confidence":0.05},{"class_id":3,"name":"pizza","confidence":0.037654}]}`,
+		},
+		{
+			name: "threshold leaves none", k: 1,
+			dets:   &plan.Detections{Classes: &plan.Classification{Labels: classes.Labels, Scores: classes.Scores, MinScore: 0.9}},
+			status: http.StatusOK, want: `{"classification":[]}`,
+		},
+		{name: "unknown class", k: 1, names: []string{"unicorn"}, dets: &plan.Detections{Classes: classes}, status: http.StatusBadRequest},
+		{
+			name: "no classifier", k: 3, status: http.StatusOK, want: `{}`,
+			ignored: "classify (classification needs the full image)",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			insp := &fakeInspector{info: photoInfo(), dets: tc.dets}
+			h := newInfoHarness(t, insp, func(h *harness) {
+				h.cfg.Info = InfoConfig{DebugHeaders: true}
+				h.router.mutate = func(r *transform.Request) {
+					infoRequest(func(o *transform.InfoOptions) {
+						*o = transform.InfoOptions{ClassifyTopK: tc.k, ClassifyClasses: tc.names}
+					})(r)
+				}
+			})
+			rec := h.do(t, http.MethodGet, infoPath, nil)
+			if rec.Code != tc.status {
+				t.Fatalf("status %d, body %q", rec.Code, rec.Body.String())
+			}
+			if got := *insp.det.Load(); got != (plan.DetectionNeeds{Classify: true}) {
+				t.Errorf("inspector asked for %+v", got)
+			}
+			if tc.status != http.StatusOK {
+				if !strings.Contains(rec.Body.String(), "unicorn") {
+					t.Errorf("body %q does not name the class", rec.Body.String())
+				}
+				return
+			}
+			if diff := cmp.Diff(canonicalJSON(t, tc.want), canonicalJSON(t, rec.Body.String())); diff != "" {
+				t.Errorf("body (-want +got):\n%s", diff)
+			}
+			if got := rec.Header().Get("X-Xi-Ignored"); got != tc.ignored {
+				t.Errorf("X-Xi-Ignored = %q, want %q", got, tc.ignored)
 			}
 			h.checkReleased(t)
 		})

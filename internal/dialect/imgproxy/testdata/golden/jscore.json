@@ -608,20 +608,16 @@
       "Dialect": "imgproxy",
       "Ignored": [
         {
-          "Option": "classify:top_k",
-          "Reason": "not implemented"
-        },
-        {
-          "Option": "cl",
-          "Reason": "not implemented (no classification model)"
-        },
-        {
           "Option": "crop:gravity",
           "Reason": "approximated by the centre"
         }
       ],
       "Info": {
-        "Classify": true,
+        "ClassifyClasses": [
+          "cat",
+          "dog"
+        ],
+        "ClassifyTopK": 3,
         "Crop": {
           "Gravity": {
             "Type": "smart"

@@ -835,14 +835,8 @@
     "path": "/unsafe/cl:1/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "cl",
-          "Reason": "not implemented (no classification model)"
-        }
-      ],
       "Info": {
-        "Classify": true,
+        "ClassifyTopK": 1,
         "Dimensions": true,
         "EXIF": true,
         "Format": true,
@@ -867,18 +861,12 @@
     "path": "/unsafe/classify:3:cat:dog/plain/https://example.com/a.jpg",
     "request": {
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "classify:top_k",
-          "Reason": "not implemented"
-        },
-        {
-          "Option": "classify",
-          "Reason": "not implemented (no classification model)"
-        }
-      ],
       "Info": {
-        "Classify": true,
+        "ClassifyClasses": [
+          "cat",
+          "dog"
+        ],
+        "ClassifyTopK": 3,
         "Dimensions": true,
         "EXIF": true,
         "Format": true,
@@ -941,10 +929,6 @@
       "Dialect": "imgproxy",
       "Ignored": [
         {
-          "Option": "cl",
-          "Reason": "not implemented (no classification model)"
-        },
-        {
           "Option": "pg",
           "Reason": "not implemented"
         }
@@ -962,7 +946,7 @@
         "CalcHashsums": [
           "sha256"
         ],
-        "Classify": true,
+        "ClassifyTopK": 1,
         "Colorspace": true,
         "Crop": {
           "Height": {

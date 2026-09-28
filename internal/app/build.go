@@ -816,17 +816,21 @@ func buildDetector(ctx context.Context, cfg *config.Config, obs detect.Observer,
 		logger.LogAttrs(ctx, slog.LevelInfo, "detection disabled")
 		return nil, nil
 	}
+	norm, _ := detect.ParseNormalization(string(dc.Classify.Normalization)) // validated by config
 	d, err := detect.New(&detect.Options{
-		Library:         dc.Library,
-		ModelsDir:       dc.ModelsDir,
-		FaceModel:       dc.FaceModel,
-		ObjectModel:     dc.ObjectModel,
-		VerifyChecksums: dc.VerifyChecksums,
-		Threads:         dc.Threads,
-		Workers:         dc.Workers,
-		MaxInput:        dc.MaxInput,
-		Observer:        obs,
-		Logger:          logger,
+		Library:               dc.Library,
+		ModelsDir:             dc.ModelsDir,
+		FaceModel:             dc.FaceModel,
+		ObjectModel:           dc.ObjectModel,
+		ClassifyModel:         dc.Classify.Model,
+		ClassifyLabels:        dc.Classify.Labels,
+		ClassifyNormalization: norm,
+		VerifyChecksums:       dc.VerifyChecksums,
+		Threads:               dc.Threads,
+		Workers:               dc.Workers,
+		MaxInput:              dc.MaxInput,
+		Observer:              obs,
+		Logger:                logger,
 	})
 	switch {
 	case errors.Is(err, detect.ErrUnavailable) && dc.Enabled == config.Auto:
@@ -841,5 +845,8 @@ func buildDetector(ctx context.Context, cfg *config.Config, obs detect.Observer,
 			slog.String("path", m.Path), slog.String("input", m.Input), slog.String("checksum", m.Checksum)))
 	}
 	logger.LogAttrs(ctx, slog.LevelInfo, "detection enabled", attrs...)
+	if err := d.ClassifyUnavailable(); err != nil {
+		logger.LogAttrs(ctx, slog.LevelInfo, "classification unavailable", slog.String("reason", err.Error()))
+	}
 	return d, nil
 }

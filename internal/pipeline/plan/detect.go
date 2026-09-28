@@ -36,6 +36,9 @@ type Detections struct {
 	// the rotate and flip options (like transform.Area in blur_areas).
 	Faces   []Detected
 	Objects []Detected
+	// Classes is the image classification (/info classify, WP-110); nil
+	// when it did not run. The planner does not use it.
+	Classes *Classification
 }
 
 // Detected is one detection.
@@ -62,10 +65,14 @@ type DetectionNeeds struct {
 	// detected when the model is there, and the smart crop is used
 	// otherwise.
 	SmartFaces bool
+	// Classify asks for the image classification (/info classify). It is
+	// optional like SmartFaces: without a classifier the request is
+	// answered without it (the server reports the option as ignored).
+	Classify bool
 }
 
-// Any reports whether detection should run at all.
-func (n DetectionNeeds) Any() bool { return n.Faces || n.Objects || n.SmartFaces }
+// Any reports whether detection or classification should run at all.
+func (n DetectionNeeds) Any() bool { return n.Faces || n.Objects || n.SmartFaces || n.Classify }
 
 // NeedsDetection reports which detection models req uses: the gravities
 // and filters of its pipelines (chained ones use the source's boxes mapped
@@ -116,6 +123,7 @@ func NeedsDetection(req *transform.Request) DetectionNeeds {
 		if in.Crop != nil {
 			gravity(&in.Crop.Gravity)
 		}
+		n.Classify = in.ClassifyTopK > 0
 	}
 	if n.Faces {
 		n.SmartFaces = false // detected anyway

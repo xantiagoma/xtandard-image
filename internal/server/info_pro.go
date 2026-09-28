@@ -3,8 +3,10 @@ package server
 import (
 	"encoding/hex"
 	"math"
+	"strconv"
 	"strings"
 
+	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/imageinfo"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
@@ -28,6 +30,15 @@ type InfoProResponse struct {
 	PerceptualHash string            `json:"perceptual_hash,omitempty" doc:"Perceptual hash as 16 lower-case hex digits (info option phash)."`
 	Hashsums       map[string]string `json:"hashsums,omitempty"        doc:"Hex digests of the source bytes by algorithm: md5, sha1, sha256, sha512 (info option calc_hashsums)."`
 	Objects        []InfoObject      `json:"objects,omitzero"          doc:"Detected faces and objects, best first within each model (faces first), with boxes as fractions of the oriented image; [] when none were found (info option detect_objects)."`
+	Classification []InfoClass       `json:"classification,omitzero"   doc:"The top_k classes of the image classifier (ImageNet-1k by default), best first; absent when no classifier is available (the option is then listed in X-Xi-Ignored) (info option classify)."`
+}
+
+// InfoClass is one class of the image classification, imgproxy Pro's
+// classify shape.
+type InfoClass struct {
+	ClassID    int     `json:"class_id"   doc:"Class index in the classifier's output (the ImageNet-1k class id by default)."`
+	Name       string  `json:"name"       doc:"Class name (ImageNet-1k: tabby cat, golden retriever, pizza, ...)."`
+	Confidence float64 `json:"confidence" doc:"Class probability, 0-1."                                        maximum:"1" minimum:"0"`
 }
 
 // InfoObject is one detected face or object, imgproxy Pro's
@@ -102,13 +113,24 @@ func pixelOptions(o *transform.InfoOptions) *imageinfo.Options {
 // the inspector computed for pixelOptions(o) and si.Detections what it
 // detected for infoDetection; op places a crop on detections; src is the
 // source as fetched.
-func infoPro(o *transform.InfoOptions, op *transform.ObjectsPosition, si *SourceInfo, src []byte) InfoProResponse {
+func infoPro(o *transform.InfoOptions, op *transform.ObjectsPosition, si *SourceInfo, src []byte) (InfoProResponse, error) {
 	var out InfoProResponse
 	if c := o.Crop; c != nil && (!c.Width.IsZero() || !c.Height.IsZero()) {
 		out.Crop = cropCoordinates(c, op, si)
 	}
 	if o.DetectObjects {
 		out.Objects = infoObjects(si.Detections.Select(o.DetectClasses))
+	}
+	if cls := classificationOf(si); o.ClassifyTopK > 0 && cls != nil {
+		top, unknown := cls.Top(o.ClassifyTopK, o.ClassifyClasses)
+		if len(unknown) > 0 {
+			return out, errs.WithPublic(errs.Newf(errs.KindInvalidURL, "server: unknown classification class %q", unknown[0]),
+				"unknown classification class "+strconv.Quote(unknown[0]))
+		}
+		out.Classification = make([]InfoClass, 0, len(top))
+		for _, c := range top {
+			out.Classification = append(out.Classification, InfoClass{ClassID: c.ID, Name: c.Name, Confidence: round6(c.Score)})
+		}
 	}
 	if len(o.CalcHashsums) > 0 {
 		out.Hashsums = make(map[string]string, len(o.CalcHashsums))
@@ -120,7 +142,7 @@ func infoPro(o *transform.InfoOptions, op *transform.ObjectsPosition, si *Source
 	}
 	px := si.Pixels
 	if px == nil {
-		return out
+		return out, nil
 	}
 	for _, c := range px.Palette {
 		out.Palette = append(out.Palette, infoRGBA(c))
@@ -143,7 +165,7 @@ func infoPro(o *transform.InfoOptions, op *transform.ObjectsPosition, si *Source
 	if px.PerceptualHash != nil {
 		out.PerceptualHash = imageinfo.FormatPerceptualHash(*px.PerceptualHash)
 	}
-	return out
+	return out, nil
 }
 
 func rgb(c *imageinfo.RGB) *infoRGB {

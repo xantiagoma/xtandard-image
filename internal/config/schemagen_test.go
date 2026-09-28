@@ -308,6 +308,8 @@ func (g *schemaGen) typeSchema(t reflect.Type, path string, def reflect.Value) j
 		return enumSchema(sourceTypes())
 	case reflect.TypeFor[LogLevel]():
 		return enumSchema(logLevels())
+	case reflect.TypeFor[Normalization]():
+		return enumSchema(normalizations())
 	case reflect.TypeFor[FailOn]():
 		return enumSchema(failOns())
 	case reflect.TypeFor[ToneMap]():

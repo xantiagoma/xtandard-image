@@ -25,8 +25,9 @@ const detectSampleSide = 1024
 
 // Detection model names (cache keys, logs).
 const (
-	modelFace   = "face"
-	modelObject = "object"
+	modelFace     = "face"
+	modelObject   = "object"
+	modelClassify = "classify"
 )
 
 // faceObjectDetector is what the pipeline needs from internal/detect; a
@@ -35,19 +36,26 @@ const (
 type faceObjectDetector interface {
 	HasFaces() bool
 	HasObjects() bool
+	HasClassifier() bool
 	Faces(ctx context.Context, img *vips.Image) ([]detect.Detection, error)
 	Objects(ctx context.Context, img *vips.Image, classes []string) ([]detect.Detection, error)
+	Classify(ctx context.Context, img *vips.Image) (*detect.Classification, error)
 }
 
-// detections runs face and object detection for processing and /info
-// (WP-72/73) and caches the results per source.
+// detections runs face and object detection and image classification for
+// processing and /info (WP-72/73, WP-110) and caches the results per
+// source.
 type detections struct {
 	det   faceObjectDetector
 	cache *detectCache // nil: no cache
 	// smartFaces lets smart gravity crop on faces (XI_DETECT_SMART_FACES).
 	smartFaces bool
-	limits     codec.Limits
-	logger     *slog.Logger
+	// classifyMinScore and classifyTopKMax are XI_DETECT_CLASSIFY_THRESHOLD
+	// and XI_DETECT_CLASSIFY_TOP_K_MAX (plan.Classification).
+	classifyMinScore float64
+	classifyTopKMax  int
+	limits           codec.Limits
+	logger           *slog.Logger
 }
 
 // newDetections wraps det (nil when detection is off or unavailable).
@@ -56,7 +64,7 @@ func newDetections(det faceObjectDetector, cacheSize int, smartFaces bool, limit
 		det = (*detect.Detector)(nil)
 	}
 	d := &detections{det: det, smartFaces: smartFaces, limits: limits, logger: logger}
-	if cacheSize > 0 && (det.HasFaces() || det.HasObjects()) {
+	if cacheSize > 0 && (det.HasFaces() || det.HasObjects() || det.HasClassifier()) {
 		d.cache = newDetectCache(cacheSize)
 	}
 	return d
@@ -88,11 +96,20 @@ func imageSource(buf *vips.Buffer, f codec.Format) *detectSource {
 	return &detectSource{buf: buf, format: f}
 }
 
+// models is which models one detect call runs.
+type models struct {
+	faces, objects, classify bool
+}
+
+func (m models) any() bool { return m.faces || m.objects || m.classify }
+
 // forRequest returns the detections needs asks for on src, or nil when it
 // asks for none. A required model the deployment lacks is Unsupported
 // (422); faces for smart gravity are optional: without the face model,
 // with XI_DETECT_SMART_FACES=false, or when detection fails, the planner
-// uses the attention smart crop.
+// uses the attention smart crop. Classification is optional too: without
+// a classifier (the slim image) Classes stays nil and the server reports
+// the option as ignored; a classifier that fails is an error.
 func (d *detections) forRequest(ctx context.Context, src *detectSource, needs plan.DetectionNeeds) (*plan.Detections, error) {
 	if !needs.Any() {
 		return nil, nil
@@ -100,21 +117,21 @@ func (d *detections) forRequest(ctx context.Context, src *detectSource, needs pl
 	if d == nil {
 		d = &detections{det: (*detect.Detector)(nil)}
 	}
-	faces, objects := needs.Faces, needs.Objects
-	if faces && !d.det.HasFaces() {
+	run := models{faces: needs.Faces, objects: needs.Objects, classify: needs.Classify && d.det.HasClassifier()}
+	if run.faces && !d.det.HasFaces() {
 		return nil, unavailable(modelFace)
 	}
-	if objects && !d.det.HasObjects() {
+	if run.objects && !d.det.HasObjects() {
 		return nil, unavailable(modelObject)
 	}
-	optional := !faces && !objects && needs.SmartFaces
+	optional := !run.faces && !run.objects && !run.classify && needs.SmartFaces
 	if needs.SmartFaces && d.smartFaces && d.det.HasFaces() {
-		faces = true
+		run.faces = true
 	}
-	if !faces && !objects {
+	if !run.any() {
 		return nil, nil
 	}
-	dets, err := d.detect(ctx, src, faces, objects)
+	dets, err := d.detect(ctx, src, run)
 	if err != nil && optional && ctx.Err() == nil {
 		d.logger.LogAttrs(ctx, slog.LevelDebug, "smart face detection failed", slog.String("error", err.Error()))
 		return nil, nil
@@ -129,23 +146,30 @@ const noFrame = -1
 // microseconds.
 func frameKey(t float64) int64 { return int64(math.Round(t * 1e6)) }
 
-// detect runs the face and/or object model on src, from the cache when it
-// has them. A video frame is decoded first (its timestamp is part of the
-// key), also on a cache hit: the caller processes the same decode.
-func (d *detections) detect(ctx context.Context, src *detectSource, faces, objects bool) (*plan.Detections, error) {
+// detect runs the face, object and classification models of run on src,
+// from the cache when it has their results. They share one upright
+// thumbnail of the source. A video frame is decoded first (its timestamp
+// is part of the key), also on a cache hit: the caller processes the same
+// decode.
+func (d *detections) detect(ctx context.Context, src *detectSource, run models) (*plan.Detections, error) {
 	sum := sha256.Sum256(src.buf.Bytes())
 	out := &plan.Detections{}
-	var needFaces, needObjects bool
+	var need models
 	lookup := func(frame int64) bool {
-		if faces {
-			out.Faces, needFaces = d.cache.get(detectKey{sum: sum, model: modelFace, frame: frame})
-			needFaces = !needFaces
+		var ok bool
+		if run.faces {
+			out.Faces, ok = d.cache.get(detectKey{sum: sum, model: modelFace, frame: frame})
+			need.faces = !ok
 		}
-		if objects {
-			out.Objects, needObjects = d.cache.get(detectKey{sum: sum, model: modelObject, frame: frame})
-			needObjects = !needObjects
+		if run.objects {
+			out.Objects, ok = d.cache.get(detectKey{sum: sum, model: modelObject, frame: frame})
+			need.objects = !ok
 		}
-		return needFaces || needObjects
+		if run.classify {
+			out.Classes, ok = d.cache.getClasses(detectKey{sum: sum, model: modelClassify, frame: frame})
+			need.classify = !ok
+		}
+		return need.any()
 	}
 	if src.frame == nil && !lookup(noFrame) {
 		return out, nil
@@ -180,7 +204,7 @@ func (d *detections) detect(ctx context.Context, src *detectSource, faces, objec
 		if ph := img.PageHeight(); ph > 0 && ph < h {
 			h = ph // the detector reads the first page
 		}
-		if needFaces {
+		if need.faces {
 			found, err := d.det.Faces(ctx, img)
 			if err != nil {
 				return err
@@ -191,13 +215,27 @@ func (d *detections) detect(ctx context.Context, src *detectSource, faces, objec
 		if err := ctx.Err(); err != nil {
 			return errs.Wrap(errs.KindOf(err), context.Cause(ctx))
 		}
-		if needObjects {
+		if need.objects {
 			found, err := d.det.Objects(ctx, img, nil)
 			if err != nil {
 				return err
 			}
 			out.Objects = planDetections(found, w, h)
 			d.cache.put(detectKey{sum: sum, model: modelObject, frame: frame}, out.Objects)
+		}
+		if err := ctx.Err(); err != nil {
+			return errs.Wrap(errs.KindOf(err), context.Cause(ctx))
+		}
+		if need.classify {
+			c, err := d.det.Classify(ctx, img)
+			if err != nil {
+				return err
+			}
+			out.Classes = &plan.Classification{
+				Labels: c.Labels, Scores: c.Scores,
+				MinScore: d.classifyMinScore, MaxTopK: d.classifyTopKMax,
+			}
+			d.cache.putClasses(detectKey{sum: sum, model: modelClassify, frame: frame}, out.Classes)
 		}
 		return nil
 	})
@@ -267,50 +305,75 @@ type detectCache struct {
 	byKey map[detectKey]*list.Element
 }
 
+// detectEntry is one cached result: the detections of a face or object
+// model, or the classification of the classifier.
 type detectEntry struct {
-	key  detectKey
-	dets []plan.Detected
+	key     detectKey
+	dets    []plan.Detected
+	classes *plan.Classification
 }
 
 func newDetectCache(size int) *detectCache {
 	return &detectCache{max: size, order: list.New(), byKey: make(map[detectKey]*list.Element, size)}
 }
 
-// get returns the cached result of k; a nil cache has nothing.
+// get returns the cached detections of k; a nil cache has nothing.
 func (c *detectCache) get(k detectKey) ([]plan.Detected, bool) {
+	e, ok := c.lookup(k)
+	return e.dets, ok
+}
+
+// getClasses returns the cached classification of k.
+func (c *detectCache) getClasses(k detectKey) (*plan.Classification, bool) {
+	e, ok := c.lookup(k)
+	return e.classes, ok
+}
+
+// put stores the detections of k (see store).
+func (c *detectCache) put(k detectKey, dets []plan.Detected) {
+	c.store(&detectEntry{key: k, dets: dets})
+}
+
+// putClasses stores the classification of k (see store).
+func (c *detectCache) putClasses(k detectKey, classes *plan.Classification) {
+	c.store(&detectEntry{key: k, classes: classes})
+}
+
+// lookup returns a copy of the entry of k and marks it recently used.
+func (c *detectCache) lookup(k detectKey) (detectEntry, bool) {
 	if c == nil {
-		return nil, false
+		return detectEntry{}, false
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	e, ok := c.byKey[k]
 	if !ok {
-		return nil, false
+		return detectEntry{}, false
 	}
 	c.order.MoveToFront(e)
 	entry, _ := e.Value.(*detectEntry)
-	return entry.dets, true
+	return *entry, true
 }
 
-// put stores the result of k, evicting the least recently used entries
-// beyond the bound; a nil cache stores nothing.
-func (c *detectCache) put(k detectKey, dets []plan.Detected) {
+// store stores entry, evicting the least recently used entries beyond the
+// bound; a nil cache stores nothing.
+func (c *detectCache) store(entry *detectEntry) {
 	if c == nil {
 		return
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if e, ok := c.byKey[k]; ok {
+	if e, ok := c.byKey[entry.key]; ok {
 		c.order.MoveToFront(e)
-		entry, _ := e.Value.(*detectEntry)
-		entry.dets = dets
+		old, _ := e.Value.(*detectEntry)
+		*old = *entry
 		return
 	}
-	c.byKey[k] = c.order.PushFront(&detectEntry{key: k, dets: dets})
+	c.byKey[entry.key] = c.order.PushFront(entry)
 	for c.order.Len() > c.max {
 		last := c.order.Back()
-		entry, _ := last.Value.(*detectEntry)
-		delete(c.byKey, entry.key)
+		evicted, _ := last.Value.(*detectEntry)
+		delete(c.byKey, evicted.key)
 		c.order.Remove(last)
 	}
 }
