@@ -506,6 +506,15 @@ export interface ImgproxyProcessingArgs {
   "pages":
     | [pages: number];
   /**
+   * Open a password-protected PDF; signed URLs only. URL: `pdf_password`, `pdp`; arguments encrypted password (base64url); default none.
+   *
+   * URL names: `pdf_password`, `pdp`.
+   * milestone M4 (WP-115); scope request.
+   * @example ["MDEyMzQ1Njc4OWFiY2RlZlsN0ZQuFO2sitmy5C87M2o"]
+   */
+  "pdf_password":
+    | [token: string | null];
+  /**
    * Pixelate. URL: `pixelate`, `pix`; arguments size; default off.
    *
    * URL names: `pixelate`, `pix`.
@@ -872,6 +881,7 @@ export const imgproxyProcessingAliases = {
   "op": "objects_position",
   "pbl": "progressive_blur",
   "pd": "padding",
+  "pdp": "pdf_password",
   "pg": "page",
   "pgs": "pages",
   "ph": "preserve_hdr",
@@ -966,6 +976,7 @@ export const imgproxyProcessingOptionNames = [
   "padding",
   "page",
   "pages",
+  "pdf_password",
   "pixelate",
   "png_options",
   "preserve_hdr",
@@ -1240,6 +1251,15 @@ export interface ImgproxyInfoArgs {
   "palette":
     | [colors: number];
   /**
+   * Open a password-protected PDF; signed URLs only. URL: `pdf_password`, `pdp`; arguments encrypted password (base64url); default none.
+   *
+   * URL names: `pdf_password`, `pdp`.
+   * milestone M4 (WP-115); scope request.
+   * @example ["MDEyMzQ1Njc4OWFiY2RlZlsN0ZQuFO2sitmy5C87M2o"]
+   */
+  "pdf_password":
+    | [token: string | null];
+  /**
    * Report a perceptual hash. URL: `perceptual_hash`, `phash`, `ph`; arguments bool; default false.
    *
    * URL names: `perceptual_hash`, `phash`, `ph`.
@@ -1346,6 +1366,7 @@ export const imgproxyInfoAliases = {
   "obj_pos": "objects_position",
   "op": "objects_position",
   "p": "palette",
+  "pdp": "pdf_password",
   "pg": "page",
   "ph": "perceptual_hash",
   "phash": "perceptual_hash",
@@ -1387,6 +1408,7 @@ export const imgproxyInfoOptionNames = [
   "page",
   "pages_number",
   "palette",
+  "pdf_password",
   "perceptual_hash",
   "preset",
   "sample_format",

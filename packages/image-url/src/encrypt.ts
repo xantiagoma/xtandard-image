@@ -3,6 +3,8 @@
 //
 //   token = base64url_unpadded( IV[16] ‖ AES-CBC(key, IV, PKCS#7(source)) )
 //
+// Document passwords for `pdf_password` (WP-115) use the same format.
+//
 // Keys are 16, 24 or 32 bytes (AES-128/192/256). WebCrypto in Chromium
 // rejects 192-bit AES keys; Bun, Node, Deno, Firefox and Safari accept them.
 
@@ -43,6 +45,35 @@ export async function encryptSource(source: string, k: EncryptionKey): Promise<s
   if (source === "" || hasControlChar(source)) {
     throw new TypeError("source must be a non-empty string without control characters");
   }
+  return seal(source, k);
+}
+
+/** The longest document password the server accepts, in UTF-8 bytes. */
+export const MAX_PDF_PASSWORD_BYTES = 1024;
+
+/**
+ * Encrypts the password of a password-protected PDF into a `pdf_password`
+ * (`pdp`) token: the `enc/` format over the password, with the same key
+ * (the first of XI_ENCRYPTION_KEYS). The server accepts the option on
+ * signed URLs only, so pair it with `signing`; like the key, encrypt on a
+ * server, not in browser code.
+ *
+ * ```ts
+ * const token = await encryptPdfPassword("s3cret", { key: process.env.XI_ENCRYPTION_KEY! });
+ * await img.url({ source: "s3://docs/a.pdf", options: { pdp: token, rs: ["fit", 800, 0] } });
+ * ```
+ */
+export async function encryptPdfPassword(password: string, k: EncryptionKey): Promise<string> {
+  if (password === "" || hasControlChar(password)) {
+    throw new TypeError("password must be a non-empty string without control characters");
+  }
+  if (utf8(password).length > MAX_PDF_PASSWORD_BYTES) {
+    throw new RangeError(`password is longer than ${MAX_PDF_PASSWORD_BYTES} bytes`);
+  }
+  return seal(password, k);
+}
+
+async function seal(plaintext: string, k: EncryptionKey): Promise<string> {
   let iv: Uint8Array<ArrayBuffer>;
   if (k.iv === undefined) {
     iv = globalThis.crypto.getRandomValues(new Uint8Array(BLOCK));
@@ -50,6 +81,6 @@ export async function encryptSource(source: string, k: EncryptionKey): Promise<s
     iv = keyBytes(k.iv);
     if (iv.length !== BLOCK) throw new RangeError(`iv is ${iv.length} bytes, want ${BLOCK}`);
   }
-  const ct = await subtle().encrypt({ name: "AES-CBC", iv }, await aesKey(k), utf8(source));
+  const ct = await subtle().encrypt({ name: "AES-CBC", iv }, await aesKey(k), utf8(plaintext));
   return base64url(concat(iv, new Uint8Array(ct)));
 }
