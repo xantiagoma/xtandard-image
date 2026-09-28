@@ -123,7 +123,7 @@ func TestSamplesMatchFixtures(t *testing.T) {
 var licences = map[string]bool{
 	"MIT": true, "MIT-CMU": true, "CC0-1.0": true, "CC-BY-4.0": true, "CC-BY-3.0": true, "Apache-2.0": true,
 	"BSD-2-Clause": true, "BSD-3-Clause": true, "IJG": true, "ImageMagick": true,
-	"LicenseRef-public-domain": true, "LicenseRef-Kodak-unrestricted": true,
+	"LicenseRef-public-domain": true, "LicenseRef-Kodak-unrestricted": true, "Unlicense": true,
 }
 
 // largeBytes is the size from which a gallery file must be tagged "large".
@@ -161,7 +161,7 @@ func TestGallery(t *testing.T) {
 			t.Errorf("%s: allowed = %v", s.URL, s.Allowed)
 		}
 	}
-	for _, f := range []string{"jpeg", "png", "gif", "webp", "avif", "heic", "jxl", "tiff", "bmp", "ico", "svg", "pdf", "raw", "mp4", "webm", "jxr", "tga", "pcx", "dds", "qoi", "pnm", "xbm", "xpm"} {
+	for _, f := range []string{"jpeg", "png", "gif", "webp", "avif", "heic", "jxl", "tiff", "bmp", "ico", "svg", "pdf", "raw", "mp4", "webm", "jxr", "tga", "pcx", "dds", "qoi", "pnm", "xbm", "xpm", "xcf", "ora", "kra", "procreate", "pdn", "svgz"} {
 		if !formats[f] {
 			t.Errorf("no %s sample in the gallery", f)
 		}
