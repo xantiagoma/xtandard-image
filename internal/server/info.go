@@ -233,7 +233,7 @@ func (s *Server) inspectSource(ctx context.Context, buf fetch.Buffer, lim *Probe
 	ctx, span := s.deps.Tracer.Start(ctx, "probe")
 	defer span.End()
 
-	src, cont, sanitised, err := s.prepare(buf, maxSrcBytes)
+	src, cont, sanitised, err := s.prepare(ctx, buf, maxSrcBytes)
 	if err != nil {
 		span.SetStatus(codes.Error, errs.KindOf(err).String())
 		return nil, err

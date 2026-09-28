@@ -217,6 +217,10 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	if err != nil {
 		return err
 	}
+	mf, err := buildMetafile(ctx, cfg, logger)
+	if err != nil {
+		return err
+	}
 	det, err := buildDetector(ctx, cfg, met, logger)
 	if err != nil {
 		return err
@@ -260,6 +264,9 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	}
 	if cs.result != nil {
 		deps.ResultCache = cs.result
+	}
+	if mf != nil {
+		deps.Metafile = mf
 	}
 	srv, err := server.New(&scfg, deps)
 	if err != nil {

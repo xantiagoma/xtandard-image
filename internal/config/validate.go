@@ -457,6 +457,10 @@ func (c *Config) validateFormats(v *validator) {
 		"must be in [100ms, 10m], got %s", f.EPS.Timeout)
 	v.check(f.EPS.MaxDPI >= 1 && f.EPS.MaxDPI <= 2400, "formats.eps.max_dpi", "must be in [1, 2400], got %g", f.EPS.MaxDPI)
 	v.check(strings.TrimSpace(f.EPS.GSPath) != "", "formats.eps.gs_path", "must not be empty")
+	v.between(f.Metafile.MaxProcs, 1, 256, "formats.metafile.max_procs")
+	v.check(f.Metafile.Timeout >= 100*time.Millisecond && f.Metafile.Timeout <= 10*time.Minute, "formats.metafile.timeout",
+		"must be in [100ms, 10m], got %s", f.Metafile.Timeout)
+	v.check(strings.TrimSpace(f.Metafile.Path) != "", "formats.metafile.path", "must not be empty")
 	v.check(f.HDR.ToneMap == ToneMapReinhard || f.HDR.ToneMap == ToneMapACES || f.HDR.ToneMap == ToneMapClip,
 		"formats.hdr.tonemap", "must be reinhard, aces or clip, got %q", f.HDR.ToneMap)
 	v.positive(f.AVIF.MaxPixels, "formats.avif.max_pixels")

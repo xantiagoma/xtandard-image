@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	osexec "os/exec"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/codec/encode"
@@ -13,6 +14,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/ghostscript"
+	"github.com/xantiagoma/xtandard-image/internal/metafile"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/exec"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
@@ -83,6 +85,49 @@ func buildEPS(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*gh
 			slog.String("reason", iso.NetNamespaceError))
 	}
 	return r, nil
+}
+
+// buildMetafile starts WMF/EMF conversion (WP-108): with
+// XI_FORMATS_METAFILE_ENABLED=auto when the converter is found (only the gpl
+// image ships it), with true always, and then the converter must run
+// through the sandbox or startup fails. It logs which isolation layers hold
+// (ADR 0011). nil when conversion is off.
+func buildMetafile(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*metafile.Converter, error) {
+	m := &cfg.Formats.Metafile
+	if m.Enabled == config.False {
+		logger.LogAttrs(ctx, slog.LevelInfo, "metafile conversion disabled")
+		return nil, nil
+	}
+	if m.Enabled == config.Auto && !onPath(m.Path) {
+		logger.LogAttrs(ctx, slog.LevelInfo, "metafile conversion unavailable", slog.String("path", m.Path))
+		return nil, nil
+	}
+	c, err := metafile.New(ctx, &metafile.Config{
+		Path:     m.Path,
+		MaxProcs: m.MaxProcs,
+		Timeout:  m.Timeout,
+		MaxBytes: int64(cfg.Limits.MaxSrcBytes),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("formats.metafile.enabled (XI_FORMATS_METAFILE_ENABLED) is %s but the converter is not usable: %w; "+
+			"WMF/EMF input needs the gpl image (or XI_FORMATS_METAFILE_PATH), or set it to false", m.Enabled, err)
+	}
+	iso := c.Isolation()
+	attrs := append([]slog.Attr{
+		slog.String("converter", c.Version()),
+		slog.String("path", c.Path()),
+		slog.Int("max_procs", m.MaxProcs),
+		slog.Duration("timeout", m.Timeout),
+	}, iso.LogAttrs()...)
+	logger.LogAttrs(ctx, slog.LevelInfo, "metafile conversion enabled", attrs...)
+	return c, nil
+}
+
+// onPath reports whether the program p resolves (an absolute path or a name
+// in PATH).
+func onPath(p string) bool {
+	_, err := osexec.LookPath(p)
+	return err == nil
 }
 
 // videoSettings maps XI_VIDEO_* onto the codec's and executor's video

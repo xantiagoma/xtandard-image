@@ -253,6 +253,9 @@ gen fits 64 48 "$F/fits"
 if [ -z "${XI_SKIP_FPACK:-}" ]; then
 	sh testdata/gen/fits-fpack.sh
 fi
+# WP-108: Windows metafiles (testdata/gen/metafile.go), one scene as WMF and EMF.
+mkdir -p "$F"/wmf "$F"/emf
+gen metafile "$F"
 # WP-108: synthetic DICOM files (testdata/gen/dicom.go): made-up patient
 # elements carrying XIPRIVACYMARKER, pixels from photo() or a CT phantom;
 # ct-j2k.dcm wraps the codestream of a lossless JPEG 2000 of the phantom

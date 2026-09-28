@@ -174,6 +174,13 @@ func infoGolden(t *testing.T, base, root string) {
 				}
 				return
 			}
+			if (strings.HasPrefix(name, "wmf-") || strings.HasPrefix(name, "emf-")) && !metafileConverter() {
+				// WMF and EMF need the gpl image's converter (WP-108).
+				if r.status != http.StatusUnprocessableEntity || !strings.Contains(string(r.body), "gpl image") {
+					t.Errorf("GET: %d %s, want 422 naming the gpl image", r.status, r.body)
+				}
+				return
+			}
 			if strings.HasPrefix(name, "eps-") && name != "eps-preview" {
 				// Without XI_FORMATS_EPS_ENABLED only a DOS EPS preview is
 				// readable (TestEPS covers Ghostscript).

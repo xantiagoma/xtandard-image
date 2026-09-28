@@ -60,6 +60,11 @@ const (
 	KindMNG
 	// KindJNG is a JPEG Network Graphics image (mng.go).
 	KindJNG
+	// KindWMF and KindEMF are Windows metafiles (metafile.go): the server
+	// converts them to SVG with the gpl image's converter, not this
+	// package.
+	KindWMF
+	KindEMF
 )
 
 // String is the format's short name ("ora", "kra", ...).
@@ -81,6 +86,10 @@ func (k Kind) String() string {
 		return "mng"
 	case KindJNG:
 		return "jng"
+	case KindWMF:
+		return "wmf"
+	case KindEMF:
+		return "emf"
 	default:
 		return "none"
 	}
@@ -105,6 +114,10 @@ func (k Kind) MIME() string {
 		return "video/x-mng"
 	case KindJNG:
 		return "image/x-jng"
+	case KindWMF:
+		return "image/wmf"
+	case KindEMF:
+		return "image/emf"
 	default:
 		return "application/octet-stream"
 	}
@@ -126,6 +139,8 @@ const (
 	ContentDocument
 	// ContentFrame is the first frame of an animation (MNG).
 	ContentFrame
+	// ContentConverted is the document converted to SVG (WMF, EMF).
+	ContentConverted
 )
 
 // String is the content's name ("composite", "thumbnail", ...).
@@ -141,6 +156,8 @@ func (c Content) String() string {
 		return "document"
 	case ContentFrame:
 		return "frame"
+	case ContentConverted:
+		return "converted"
 	default:
 		return "unknown"
 	}

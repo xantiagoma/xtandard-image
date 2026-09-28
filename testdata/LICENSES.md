@@ -96,6 +96,7 @@ generated from the public-domain X11 "fixed" font).
 | `fixtures/dicom/ct-j2k.dcm` | `gen dicom-phantom`, then libvips `jp2ksave --lossless` (OpenJPEG, BSD-2-Clause), then `gen dicom` wraps its `jp2c` codestream (JPEG 2000 lossless transfer syntax, 1.2.840.10008.1.2.4.90) | CC0 |
 | `fixtures/pict/photo.pct` | ImageMagick 7 `PICT:` (version 2, 72 DPI, 512-byte header) of the 64×48 photo | CC0 |
 | `fixtures/mng/png.mng`, `palette.mng`, `frames.mng`, `jng.mng` | `gen mng mng-*` (WP-108, own MNG writer around Go `image/png`/`image/jpeg` of the photo or graphic, `gen/mng.go`): one PNG frame; a global PLTE with an empty embedded PLTE; two frames with FRAM/DEFI; a JNG frame with IDAT alpha | CC0 |
+| `fixtures/wmf/shapes.wmf`, `fixtures/emf/shapes.emf` | `gen metafile` (WP-108, own WMF and EMF writers, `gen/metafile.go`): the same 200×150 scene (blue background, orange ellipse, green rectangle, dark outlines) as a placeable WMF and an EMF | CC0 |
 | `fixtures/jng/jng.jng`, `jng-idat.jng`, `jng-jdaa.jng` | `gen mng jng*` (own JNG writer: Go `image/jpeg` of the photo in two JDAT chunks; without alpha, with 8-bit PNG-compressed alpha, with JPEG alpha) | CC0 |
 | `golden/codec/*.png` | `golden/codec/reference.py`: the CIE L\*a\*b\* fixtures converted by the CIE formulas, the CMYK JPEG XL samples through lcms and the DDS fixtures through Pillow (reference decodes, not written by tests) | CC0 |
 | `../internal/codec/dds/testdata/bcdec/*.bin` | pseudo-random blocks and their decodes by bcdec (MIT; not vendored), written by the generator in `bcdec/gen/` | CC0 |

@@ -359,9 +359,11 @@ type Formats struct {
 	GIF  GIFFormat  `yaml:"gif"  envPrefix:"GIF_"`
 	PDF  PDFFormat  `yaml:"pdf"  envPrefix:"PDF_"`
 	EPS  EPSFormat  `yaml:"eps"  envPrefix:"EPS_"`
-	PSD  PSDFormat  `yaml:"psd"  envPrefix:"PSD_"`
-	RAW  RAWFormat  `yaml:"raw"  envPrefix:"RAW_"`
-	HDR  HDRFormat  `yaml:"hdr"  envPrefix:"HDR_"`
+	// Metafile configures WMF and EMF input (WP-108).
+	Metafile MetafileFormat `yaml:"metafile" envPrefix:"METAFILE_"`
+	PSD      PSDFormat      `yaml:"psd"  envPrefix:"PSD_"`
+	RAW      RAWFormat      `yaml:"raw"  envPrefix:"RAW_"`
+	HDR      HDRFormat      `yaml:"hdr"  envPrefix:"HDR_"`
 
 	Auto    FormatSwitches `yaml:"auto"    envPrefix:"AUTO_"`
 	Enforce FormatSwitches `yaml:"enforce" envPrefix:"ENFORCE_"`
@@ -463,6 +465,23 @@ type EPSFormat struct {
 	// GSPath is the gs executable: an absolute path or a name looked up
 	// in PATH.
 	GSPath string `yaml:"gs_path" env:"GS_PATH"`
+}
+
+// MetafileFormat configures Windows metafile input (WMF, EMF), converted
+// to SVG by xi-metafile2svg (libwmf, libemf2svg: GPL) in a sandboxed
+// subprocess. Only the gpl image ships the converter (WP-108).
+type MetafileFormat struct {
+	// Enabled converts WMF and EMF sources. auto (the default) converts them
+	// when the converter is found (the gpl image) and refuses them (422)
+	// otherwise; true fails startup without it; false refuses them.
+	Enabled Tristate `yaml:"enabled" env:"ENABLED"`
+	// MaxProcs bounds concurrent conversions; more fail fast with 429.
+	MaxProcs int `yaml:"max_procs" env:"MAX_PROCS"`
+	// Timeout bounds one conversion (wall clock); the process gets the
+	// same CPU time plus one second.
+	Timeout time.Duration `yaml:"timeout" env:"TIMEOUT"`
+	// Path is the converter: an absolute path or a name looked up in PATH.
+	Path string `yaml:"path" env:"PATH"`
 }
 
 // HDRFormat configures scene-linear inputs (OpenEXR, Radiance, PFM).
@@ -834,6 +853,7 @@ func Defaults() Config {
 			GIF:                  GIFFormat{Effort: 7},
 			PDF:                  PDFFormat{DPI: 72},
 			EPS:                  EPSFormat{MaxProcs: 2, Timeout: 10 * time.Second, MaxDPI: 600, GSPath: "gs"},
+			Metafile:             MetafileFormat{MaxProcs: 2, Timeout: 10 * time.Second, Path: "xi-metafile2svg"},
 			RAW:                  RAWFormat{PreviewMinRatio: 1},
 			HDR:                  HDRFormat{ToneMap: ToneMapReinhard},
 			Auto:                 FormatSwitches{AVIF: true, WebP: true},
