@@ -55,6 +55,14 @@ func sample(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Li
 		return sampleVips(ctx, emb, maxSide)
 	case FormatMP4, FormatMOV, FormatWebM, FormatMKV, FormatAVI:
 		return sampleVideo(ctx, buf, maxSide, v)
+	case FormatEPS:
+		// Never Ghostscript: the embedded preview, when there is one.
+		pre, err := EPSPreview(buf.Bytes())
+		if err != nil {
+			return Raw{}, err
+		}
+		defer pre.Release()
+		return sampleVips(ctx, pre, maxSide)
 	default:
 		return sampleVips(ctx, buf, maxSide)
 	}

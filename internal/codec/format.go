@@ -109,6 +109,13 @@ const (
 	// FormatICNS is an Apple icon image, decoded in Go (codec/icns): the
 	// largest entry, PNG and JPEG 2000 entries through libvips.
 	FormatICNS
+	// FormatEPS is Encapsulated PostScript, PostScript and PostScript-based
+	// Adobe Illustrator files (a DOS EPS binary header included), rendered
+	// by Ghostscript in a sandboxed subprocess in the gpl image when
+	// XI_FORMATS_EPS_ENABLED is set (internal/ghostscript, ADR 0011), and
+	// otherwise from a DOS EPS file's embedded TIFF preview. PDF-based
+	// Illustrator files sniff as FormatPDF.
+	FormatEPS
 
 	numFormats
 )
@@ -202,6 +209,8 @@ func (f Format) info() formatInfo {
 		return formatInfo{"wbmp", "wbmp", "image/vnd.wap.wbmp", false, false, true}
 	case FormatICNS:
 		return formatInfo{"icns", "icns", "image/icns", false, true, true}
+	case FormatEPS:
+		return formatInfo{"eps", "eps", "application/postscript", false, true, true}
 	default:
 		return formatInfo{"unknown", "", "application/octet-stream", false, false, false}
 	}
@@ -352,6 +361,8 @@ func ParseFormat(s string) (Format, error) {
 		return FormatWBMP, nil
 	case "icns":
 		return FormatICNS, nil
+	case "eps", "epsf", "epsi", "ps", "postscript", "ai":
+		return FormatEPS, nil
 	}
 	return FormatUnknown, errs.Newf(errs.KindUnsupported, "codec: unknown format %q", s)
 }
@@ -472,6 +483,9 @@ func (f Format) MatchesContentType(contentType string) bool {
 		return mt == "image/x-wbmp"
 	case FormatICNS:
 		return mt == "image/x-icns"
+	case FormatEPS:
+		return mt == "application/eps" || mt == "application/x-eps" || mt == "image/eps" || mt == "image/x-eps" ||
+			mt == "application/illustrator" || mt == "application/vnd.adobe.illustrator"
 	default:
 		return false
 	}

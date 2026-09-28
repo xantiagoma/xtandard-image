@@ -4,7 +4,8 @@
 `ubuntu:noble`, in three flavors: `slim` (every still format), `full` (slim plus FFmpeg 8
 under the LGPL, ONNX Runtime and the detection models; WP-70, see [full flavor](#full-flavor-wp-70-revision-5))
 and `gpl` (full with FFmpeg rebuilt under the GPL to add the x264 H.264 and x265 HEVC
-encoders; WP-70b, see [gpl flavor](#gpl-flavor-wp-70b-revision-5)). slim and full contain no GPL code; gpl does,
+encoders, plus the Ghostscript `gs` program for EPS input, AGPL, used only with
+`XI_FORMATS_EPS_ENABLED=true`; WP-70b and WP-99, see [gpl flavor](#gpl-flavor-wp-70b-revision-6)). slim and full contain no GPL code; gpl does,
 and is labelled and documented as such. It is a fork of
 [imgproxy-docker-base](https://github.com/imgproxy/imgproxy-docker-base) (MIT, Copyright (c)
 2017 Sergey Alexandrovich; kept in `LICENSE.imgproxy-docker-base`, credited in `/NOTICE`).
@@ -20,12 +21,12 @@ Decisions: [ADR 0005](../../docs/adr/0005-docker-image-strategy.md) (image strat
 | `ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<N>-slim-builder`, `:slim-builder` | `builder` | complete Go + libvips development environment (CI, `task docker:test`, app build stage) |
 | `ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<M>-full`, `:full` | `runtime-full` | slim runtime + FFmpeg libraries and CLIs, ONNX Runtime, models |
 | `ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<M>-full-builder`, `:full-builder` | `builder-full` | slim builder + FFmpeg/libvpx headers and pkg-config files, ONNX Runtime headers, models |
-| `ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<G>-gpl`, `:gpl` | `runtime-gpl` | full runtime with FFmpeg rebuilt as GPL + libx264 + libx265 (**GPL-2.0-or-later AND MIT**) |
+| `ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<G>-gpl`, `:gpl` | `runtime-gpl` | full runtime with FFmpeg rebuilt as GPL + libx264 + libx265, and `bin/gs` (Ghostscript) (**AGPL-3.0-or-later AND GPL-2.0-or-later AND MIT**) |
 | `ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<G>-gpl-builder`, `:gpl-builder` | `builder-gpl` | full builder with the same GPL FFmpeg, x264/x265 headers and pkg-config files |
 
 `<vips>` is `VIPS_VERSION` and `<N>` is `XI_BASE_REVISION` from `versions.sh`; `<M>` is
 `XI_BASE_FULL_REVISION` from `versions-full.sh`; `<G>` is `XI_BASE_GPL_REVISION` from
-`versions-gpl.sh` (currently `8.18.6-r4-slim`, `8.18.6-r5-full` and `8.18.6-r5-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
+`versions-gpl.sh` (currently `8.18.6-r4-slim`, `8.18.6-r5-full` and `8.18.6-r6-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
 locally with the `task docker:base:*` tasks (below), which tag `xtandard-base:dev`,
 `xtandard-base:dev-builder`, `xtandard-base:dev-full`, `xtandard-base:dev-full-builder`,
 `xtandard-base:dev-gpl` and `xtandard-base:dev-gpl-builder`. All are
@@ -42,12 +43,13 @@ base ──► deps-src        download-deps.sh: fetch every tarball, verify SHA
    │                     license bundle, license gate; build-jxrlib.sh (own layer, patches/jxrlib);
    │                     split-runtime.sh → /runtime
    ├───► full-deps-src   download-full-deps.sh: FFmpeg, libvpx, ONNX Runtime, models (SHA256)
-   └───► gpl-deps-src    download-gpl-deps.sh: x264, x265 (SHA256)
+   └───► gpl-deps-src    download-gpl-deps.sh: x264, x265, Ghostscript (SHA256)
 deps ──► full-deps       build-full-deps.sh: libvpx + FFmpeg into /opt/xtandard, ONNX Runtime into
                          /usr/local, models into /usr/share/xtandard/models, license gate
                          (+ ffmpeg -buildconf, ldd, models), split-runtime.sh → /runtime
 full-deps ──► gpl-deps   build-gpl-deps.sh: x264 + x265, FFmpeg rebuilt with full's configuration
-                         + --enable-gpl --enable-libx264 --enable-libx265, LICENSE-GPL.md, gate in
+                         + --enable-gpl --enable-libx264 --enable-libx265, gs (static, 3 devices),
+                         LICENSE-GPL.md, gate in
                          its gpl mode (--allow-gpl versions-gpl.sh), split-runtime.sh → /runtime
 ubuntu:noble ──► builder-base ──► builder        /opt/xtandard from deps (lib, bin, include, lib/pkgconfig)
                               ├─► builder-full   /opt/xtandard from full-deps + ONNX Runtime + models
@@ -145,10 +147,12 @@ licence) and `SHA256SUMS`; the licences and `MODELS.md` are also copied to
 Size: runtime 103.1 MB compressed on linux/arm64 (slim + 48.4 MB; budget ≤ 170 MB), see
 [Sizes](#sizes).
 
-## gpl flavor (WP-70b, revision 5)
+## gpl flavor (WP-70b, revision 6)
 
-> **This image contains GPL software.** Its FFmpeg libraries and CLIs are
-> GPL-2.0-or-later, and H.264 and HEVC are patent-encumbered. If you use or redistribute
+> **This image contains GPL and AGPL software.** Its FFmpeg libraries and CLIs are
+> GPL-2.0-or-later, H.264 and HEVC are patent-encumbered, and `bin/gs` is Ghostscript,
+> AGPL-3.0-or-later (a separate program the server runs only with
+> `XI_FORMATS_EPS_ENABLED=true`; [ADR 0011](../../docs/adr/0011-ghostscript-subprocess.md)). If you use or redistribute
 > it, reviewing those licences and patents is your responsibility. The xtandard-image code
 > stays MIT, and `slim` and `full` stay free of GPL code
 > ([ADR 0006](../../docs/adr/0006-license-policy.md), amendment 2026-09-27).
@@ -160,28 +164,38 @@ Everything in full, plus:
 | x264 | `stable` branch head, build 165 (`X264_COMMIT`) | GPL-2.0-or-later | `/opt/xtandard/lib/libx264.so.165`; `x264.h` + `x264.pc` in the builder | GitLab archive of the pinned commit (x264 publishes no release tarballs), SHA256-pinned; library only (`--disable-cli`, no lavf/ffms/gpac/lsmash/swscale/OpenCL), 8- and 10-bit (`--bit-depth=all`) |
 | x265 | 4.2 (`X265_VERSION`) | GPL-2.0-or-later | `/opt/xtandard/lib/libx265.so.*`; headers + `x265.pc` in the builder | release tarball from download.videolan.org; library only (`ENABLE_CLI=OFF`), 8-bit Main, no libnuma, no HDR10+ |
 | FFmpeg | as full (`FFMPEG_VERSION`) | **GPL-2.0-or-later** as built | same files as full, rebuilt | the full flavor's tarball, configured with **exactly the full configuration** (read back from `share/licenses/ffmpeg/BUILDCONF.txt`) with `--disable-gpl` swapped for `--enable-gpl`, plus `--enable-libx264 --enable-libx265 --enable-encoder=libx264,libx265` |
+| Ghostscript (WP-99) | 10.08.0 (`GHOSTSCRIPT_VERSION`) | **AGPL-3.0-or-later** (compiles in FreeType FTL, IJG libjpeg, libpng, zlib, lcms2mt MIT, brotli MIT, Droid Sans Fallback Apache-2.0, Adobe CMaps BSD-3-Clause) | `/opt/xtandard/bin/gs` only (no `libgs`, no headers) | release tarball from ghostpdl-downloads (SHA256; checked against its SHA512SUMS), unmodified; `gs` alone, statically linked against its own libraries (libc/libm only), resources and fonts compiled in (`%rom%`); no X11, CUPS, dbus, GTK, fontconfig, libpaper, IJS, threads, contrib drivers, PDF interpreter, JBIG2/JPX, TIFF, OCR or extract; devices `pngalpha`, `png16m`, `bbox` (+ `nullpage`) |
 
 So the gpl image has full's demuxers, decoders, filters and VP8/VP9/AV1 encoders and adds
-exactly two encoders: `libx264` (H.264) and `libx265` (HEVC). Still no audio, network,
+exactly two encoders: `libx264` (H.264) and `libx265` (HEVC), and one program, `gs`, which
+the server runs as a sandboxed subprocess for EPS/PostScript input when
+`XI_FORMATS_EPS_ENABLED=true` (off by default; `internal/ghostscript`, ADR 0011). Still no audio, network,
 nonfree code or `--enable-version3`. HEIC encoding stays on kvazaar (libheif is not
 rebuilt against x265), and poppler, exiv2 and GPL `dssim` stay out: they were replaced
 (PDFium, own metadata code, own SSIM), not just excluded.
 
 Licences: `share/licenses/x264/COPYING`, `share/licenses/x265/COPYING`,
 `share/licenses/ffmpeg/COPYING.GPLv2` (next to the LGPL text), the regenerated
-`ffmpeg/BUILDCONF.txt`, a `## gpl flavor` section in `SOURCES.md`, and
+`ffmpeg/BUILDCONF.txt`, `share/licenses/ghostscript/` (its licence statement, the AGPL text
+`COPYING.AGPLv3`, the notices of what it compiles in, `BUILD.txt` with `gs -h`), a
+`## gpl flavor` section in `SOURCES.md` (with the Ghostscript tarball), and
 **`share/licenses/LICENSE-GPL.md`**: the statement that the combined FFmpeg is
-GPL-2.0-or-later, the patent caveat, where the corresponding source is, and a table of every
+GPL-2.0-or-later, that `gs` is AGPL-3.0-or-later and what that means for distributing or
+serving it, the patent caveat, where the corresponding source is, and a table of every
 component in the bundle with its SPDX licence (from `XI_COMPONENT_LICENSES` in
-`versions-gpl.sh`). Image labels: `org.opencontainers.image.licenses="GPL-2.0-or-later AND MIT"`,
+`versions-gpl.sh`). Image labels: `org.opencontainers.image.licenses="AGPL-3.0-or-later AND GPL-2.0-or-later AND MIT"`,
 `dev.xtandard.base.flavor="gpl"` (slim and full keep `MIT`).
 
 `verify-image.sh --flavor gpl` runs every full check with the gate in its gpl mode, requires
 `libx264` and `libx265` in `ffmpeg -encoders` and `avcodec_license()` = "GPL version 2 or
 later", and encodes a short H.264 MP4 (High) and an HEVC MP4 (Main, `hvc1`) and decodes both
-back with ffprobe/ffmpeg, plus GIF → H.264 MP4.
+back with ffprobe/ffmpeg, plus GIF → H.264 MP4. For Ghostscript it runs the gate's
+`--ghostscript` check, rasterises a test EPS with the server's flags (stdin to a 200×100
+RGBA PNG at 144 DPI, pixel-checked with libvips) as the non-root image user, and checks
+that `-dSAFER` refuses a file read and `%pipe%`; slim and full must have no `gs`.
 
-Size: runtime 105.3 MB compressed on linux/arm64 (full + 2.2 MB), see [Sizes](#sizes).
+Size: runtime 116.6 MB compressed on linux/arm64 (full + 13.3 MB: x264/x265 2.2 MB, Ghostscript
+11.1 MB), see [Sizes](#sizes).
 
 ## Base extras (WP-66, revision 2)
 
@@ -267,15 +281,17 @@ linux/arm64, `docker save | gzip -6` (compressed) and `docker image inspect` (un
 | slim builder | 259.4 MB | 819.2 MB | — |
 | full runtime (`8.18.6-r5-full`) | 103.3 MB | 237.7 MB | ≤ 170 MB |
 | full builder | 308.2 MB | 893.3 MB | — |
-| gpl runtime (`8.18.6-r5-gpl`) | 105.4 MB | 242.5 MB | ≤ 170 MB (as full) |
-| gpl builder | 310.4 MB | 898.3 MB | — |
+| gpl runtime (`8.18.6-r6-gpl`) | 116.6 MB | 257.0 MB | ≤ 170 MB (as full) |
+| gpl builder | 321.7 MB | 913.4 MB | — |
 
 jxrlib (r4, WP-97) adds 0.2 MB compressed / 0.4 MB uncompressed to every flavor; the wider
 ImageMagick policy costs nothing (the coders were already compiled in).
 The full additions are ONNX Runtime 24 MiB, the models 35 MiB (YOLOX-s 34 MiB, YuNet
 0.2 MiB) and FFmpeg + libvpx 11 MiB (libraries and both CLIs), uncompressed.
-The gpl flavor adds 2.2 MB compressed / 4.8 MB uncompressed over full (libx264, libx265 and
-the two encoders in libavcodec).
+The gpl flavor adds 2.2 MB compressed / 4.8 MB uncompressed over full for libx264, libx265 and
+the two encoders in libavcodec (r5), and Ghostscript another 11.1 MB compressed / 14.5 MB
+uncompressed (r6, WP-99: the 14.4 MB static `gs`, whose compiled-in resources and fonts are
+already compressed, plus its licence texts).
 
 ## License gate
 
@@ -319,15 +335,23 @@ so their results are unchanged:
   Everything else stays forbidden: `--enable-nonfree`, xvid, frei0r, libpostproc, poppler,
   exiv2, Ghostscript, libimagequant, ...
 - `--licenses <dir>` (with `--allow-gpl`): every entry of the licence bundle must have a
-  licence in `XI_COMPONENT_LICENSES` built only from known SPDX identifiers (AGPL, SSPL and
-  unknown identifiers fail; an entry without a licence fails), and `<dir>/LICENSE-GPL.md`
-  must exist and declare GPL-2.0-or-later.
+  licence in `XI_COMPONENT_LICENSES` built only from known SPDX identifiers (SSPL and
+  unknown identifiers fail, AGPL for anything but an allowed `ghostscript` fails; an entry
+  without a licence fails), and `<dir>/LICENSE-GPL.md` must exist and declare
+  GPL-2.0-or-later (and AGPL-3.0-or-later when ghostscript is allowed).
+- Ghostscript (WP-99): `ghostscript` is the one component allowed under an AGPL, and only as
+  exactly `ghostscript=AGPL-3.0-or-later`; `--ghostscript <gs>` then requires `gs --version`
+  to run and `gs -h` to list exactly `bbox nullpage png16m pngalpha`. `libgs` in any library
+  (file name, `libgs.so`, `gsapi_new_instance`) fails even then, and `--ghostscript` without
+  the allowlist (slim, full) fails.
 
-`build-gpl-deps.sh` runs it with `--allow-gpl --licenses --ffmpeg --ldd --models`,
+`build-gpl-deps.sh` runs it with `--allow-gpl --licenses --ffmpeg --ghostscript --ldd --models`,
 `split-runtime.sh` with `XI_ALLOW_GPL`, and `verify-image.sh --flavor gpl` again inside
 `runtime-gpl`. `test-check-licenses.sh` covers the gpl mode (clean gpl tree passes; the same
 tree fails the strict gate; AGPL/unknown/unlisted entries, nonfree, version3, a non-GPL
-FFmpeg, libpostproc, xvid, unknown bundle entries and a missing notice fail) and checks that
+FFmpeg, libpostproc, xvid, unknown bundle entries and a missing notice fail; ghostscript
+passes only as AGPL-3.0-or-later with the minimal device list and an AGPL notice, AGPL for
+x264 or another bundle entry, extra gs devices, libgs and gs in the strict gate fail) and checks that
 the real `versions-gpl.sh` is refused by the strict gate.
 
 ## Bumping versions
@@ -345,7 +369,8 @@ the real `versions-gpl.sh` is refused by the strict gate.
    changes, including when slim's revision moves (full r5 = slim r4 +
    WP-70).
    `XI_BASE_GPL_REVISION` (`versions-gpl.sh`) is the gpl flavor's counter in the same way:
-   bump it when full's revision moves or x264/x265 change (gpl r5 = full r5 + WP-70b).
+   bump it when full's revision moves or x264/x265/Ghostscript change (gpl r6 = full r5 +
+   WP-70b + Ghostscript, WP-99).
 4. Build and verify locally (host architecture: arm64 on Apple silicon, amd64 on x86 hosts;
    slim ~30 min cold, full adds ~10 min, gpl another ~5 min):
 

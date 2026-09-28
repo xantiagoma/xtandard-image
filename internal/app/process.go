@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec"
@@ -11,6 +12,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
+	"github.com/xantiagoma/xtandard-image/internal/ghostscript"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/exec"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
@@ -41,7 +43,46 @@ func formatLimits(cfg *config.Config) codec.Limits {
 		MaxPDFPages:         cfg.Limits.MaxPDFPages,
 		PDFDensity:          cfg.Formats.PDF.DPI,
 		PSDRequireComposite: cfg.Formats.PSD.RequireComposite,
+		// Startup failed already when it is on without Ghostscript (buildEPS).
+		EPSEnabled: cfg.Formats.EPS.Enabled,
 	}
+}
+
+// buildEPS starts EPS/PostScript rendering when XI_FORMATS_EPS_ENABLED is
+// set: Ghostscript must be present and run through the sandbox (only the
+// gpl image ships it), otherwise startup fails. It logs once which
+// isolation layers hold (ADR 0011). nil when the feature is off.
+func buildEPS(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*ghostscript.Runner, error) {
+	e := &cfg.Formats.EPS
+	if !e.Enabled {
+		logger.LogAttrs(ctx, slog.LevelInfo, "eps rendering disabled")
+		return nil, nil
+	}
+	r, err := ghostscript.New(ctx, &ghostscript.Config{
+		Path:      e.GSPath,
+		MaxProcs:  e.MaxProcs,
+		Timeout:   e.Timeout,
+		MaxDPI:    e.MaxDPI,
+		MaxPixels: cfg.Limits.MaxSrcPixels,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("formats.eps.enabled (XI_FORMATS_EPS_ENABLED) is true but Ghostscript is not usable: %w; "+
+			"EPS needs the gpl image (or XI_FORMATS_EPS_GS_PATH), or set it to false", err)
+	}
+	iso := r.Isolation()
+	attrs := append([]slog.Attr{
+		slog.String("ghostscript", r.Version()),
+		slog.String("gs_path", r.Path()),
+		slog.Int("max_procs", e.MaxProcs),
+		slog.Duration("timeout", e.Timeout),
+		slog.Float64("max_dpi", e.MaxDPI),
+	}, iso.LogAttrs()...)
+	logger.LogAttrs(ctx, slog.LevelInfo, "eps rendering enabled", attrs...)
+	if !iso.NetNamespace {
+		logger.LogAttrs(ctx, slog.LevelWarn, "eps rendering without a network namespace",
+			slog.String("reason", iso.NetNamespaceError))
+	}
+	return r, nil
 }
 
 // videoSettings maps XI_VIDEO_* onto the codec's and executor's video
@@ -162,6 +203,10 @@ type processor struct {
 	exec   *exec.Executor
 	enc    encode.Config
 	pdfDPI float64 // XI_FORMATS_PDF_DPI: the density PDF sizes were probed at
+	// eps is set when Ghostscript renders EPS/PostScript sources
+	// (XI_FORMATS_EPS_ENABLED): they are then vectors measured at 72 DPI;
+	// otherwise their TIFF preview is a raster.
+	eps bool
 	// video selects the frame of a video source detection runs on.
 	video video.Settings
 	// detect runs face and object detection for the detection gravities
@@ -172,8 +217,10 @@ type processor struct {
 
 // newProcessor builds the executor and encoder; wm is the configured
 // watermark (nil when none), owned by the caller. admit charges each plan's
-// memory estimate (limiter.Limiter.Reserve; nil admits everything).
-func newProcessor(cfg *config.Config, wm *exec.Watermark, admit func(context.Context, int64) (func(), error)) (*processor, error) {
+// memory estimate (limiter.Limiter.Reserve; nil admits everything). eps
+// renders EPS/PostScript sources (buildEPS; nil when XI_FORMATS_EPS_ENABLED
+// is off).
+func newProcessor(cfg *config.Config, wm *exec.Watermark, admit func(context.Context, int64) (func(), error), eps *ghostscript.Runner) (*processor, error) {
 	ec := encoderConfig(cfg)
 	enc, err := encode.New(&ec)
 	if err != nil {
@@ -189,7 +236,12 @@ func newProcessor(cfg *config.Config, wm *exec.Watermark, admit func(context.Con
 		}
 	}
 	opacity := cfg.Processing.WatermarkOpacity
+	var renderer exec.EPSRenderer // stays a nil interface without a runner
+	if eps != nil {
+		renderer = eps
+	}
 	ex, err := exec.New(&exec.Config{
+		EPS:       renderer,
 		Limits:    planLimits(cfg),
 		FailOn:    vipsFailOn(cfg.Vips.FailOn),
 		Watermark: wm,
@@ -212,7 +264,7 @@ func newProcessor(cfg *config.Config, wm *exec.Watermark, admit func(context.Con
 	if err != nil {
 		return nil, err
 	}
-	return &processor{exec: ex, enc: ec, pdfDPI: cfg.Formats.PDF.DPI, video: videoSettings(cfg)}, nil
+	return &processor{exec: ex, enc: ec, pdfDPI: cfg.Formats.PDF.DPI, eps: eps != nil, video: videoSettings(cfg)}, nil
 }
 
 // planLimits are the planner limits of the executor, shared with the
@@ -323,7 +375,7 @@ func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*serv
 	if err != nil {
 		return nil, err
 	}
-	meta := planMeta(format, &in.Meta, p.pdfDPI)
+	meta := planMeta(format, &in.Meta, p.pdfDPI, p.eps)
 	session, _ := in.Meta.Session.(*codec.VideoSession) // owned by the server, which closes it
 	// Detections describe one upright picture of the source; a video
 	// sprite or animation (vtt, vta) is assembled from many frames, so it
@@ -435,14 +487,18 @@ func lossy(f transform.Format) bool {
 
 // planMeta is the planner's view of the probed source. The format name is
 // the sniffed codec format (UltraHDR shrinks on load like JPEG).
-func planMeta(f codec.Format, m *server.SourceMeta, pdfDPI float64) plan.SourceMeta {
+func planMeta(f codec.Format, m *server.SourceMeta, pdfDPI float64, eps bool) plan.SourceMeta {
 	name := f.String()
 	if f == codec.FormatUHDR {
 		name = "jpeg"
 	}
 	var density float64
-	if f == codec.FormatPDF {
+	vector := f == codec.FormatSVG || f == codec.FormatPDF
+	switch {
+	case f == codec.FormatPDF:
 		density = pdfDPI
+	case f == codec.FormatEPS && eps:
+		density, vector = codec.EPSDensity, true
 	}
 	// The planner's Frames counts pages too: it bounds `page`.
 	pm := plan.SourceMeta{
@@ -453,7 +509,7 @@ func planMeta(f codec.Format, m *server.SourceMeta, pdfDPI float64) plan.SourceM
 		Orientation: m.Orientation,
 		IsAnimated:  m.IsAnimated,
 		Format:      name,
-		IsVector:    f == codec.FormatSVG || f == codec.FormatPDF,
+		IsVector:    vector,
 		Density:     density,
 		HDR:         f.HDR(),
 		IsVideo:     f.IsVideo(),

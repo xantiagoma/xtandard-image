@@ -170,16 +170,18 @@ func TestProbeFixtures(t *testing.T) {
 		"icns/icon.icns": with(still(codec.FormatICNS, 128, 128), func(m *codec.ImageMeta) {
 			m.HasAlpha, m.Pages = true, 2
 		}),
+		// EPS without Ghostscript (the default): the DOS EPS TIFF preview.
+		"eps/preview.eps": with(still(codec.FormatEPS, 96, 72), func(m *codec.ImageMeta) { m.HasAlpha = true }),
 	}
 	// password.pdf fails by design (TestProbeErrors); videos are probed by
-	// TestProbeVideo.
+	// TestProbeVideo, EPS files without a preview by TestProbeEPS.
 	videos := 0
 	for _, f := range fixtureFormats() {
 		if f.IsVideo() {
 			videos++
 		}
 	}
-	if len(tests) != len(fixtureFormats())-1-videos {
+	if len(tests) != len(fixtureFormats())-1-videos-3 {
 		t.Fatalf("probe table has %d fixtures, sniff table %d", len(tests), len(fixtureFormats()))
 	}
 	for name, want := range tests {

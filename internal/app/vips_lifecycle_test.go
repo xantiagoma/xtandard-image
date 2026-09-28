@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/config"
+	"github.com/xantiagoma/xtandard-image/internal/ghostscript"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -26,6 +27,11 @@ import (
 // parallel tests and -count=N never drop the last reference: that would
 // call vips_shutdown, which is final for the process.
 func TestMain(m *testing.M) {
+	// The EPS tests re-execute the test binary as the Ghostscript sandbox
+	// helper, as the server re-executes itself.
+	if ghostscript.IsSandboxHelper(os.Args) {
+		os.Exit(ghostscript.RunSandboxHelper(os.Args))
+	}
 	if err := vips.Init(new(vips.DefaultConfig())); err != nil {
 		_, _ = os.Stderr.WriteString("vips init: " + err.Error() + "\n")
 		os.Exit(1)

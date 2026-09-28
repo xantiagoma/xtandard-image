@@ -171,6 +171,14 @@ func infoGolden(t *testing.T, base, root string) {
 				}
 				return
 			}
+			if strings.HasPrefix(name, "eps-") && name != "eps-preview" {
+				// Without XI_FORMATS_EPS_ENABLED only a DOS EPS preview is
+				// readable (TestEPS covers Ghostscript).
+				if r.status != http.StatusUnprocessableEntity || !strings.Contains(string(r.body), codec.EPSDisabledMessage) {
+					t.Errorf("GET: %d %s, want 422 %q", r.status, r.body, codec.EPSDisabledMessage)
+				}
+				return
+			}
 			if r.status != http.StatusOK || r.ctype != "application/json" {
 				t.Fatalf("GET: %d %q %s", r.status, r.ctype, r.body)
 			}
