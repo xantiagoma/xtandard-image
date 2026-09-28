@@ -68,6 +68,11 @@ func buildEPS(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*gh
 		MaxPixels: cfg.Limits.MaxSrcPixels,
 	})
 	if err != nil {
+		if ctx.Err() != nil {
+			// Shutdown requested while starting: the check was cut short,
+			// which says nothing about Ghostscript; run stops right after.
+			return nil, nil //nolint:nilerr // not a configuration error
+		}
 		return nil, fmt.Errorf("formats.eps.enabled (XI_FORMATS_EPS_ENABLED) is true but Ghostscript is not usable: %w; "+
 			"EPS needs the gpl image (or XI_FORMATS_EPS_GS_PATH), or set it to false", err)
 	}
@@ -109,6 +114,10 @@ func buildMetafile(ctx context.Context, cfg *config.Config, logger *slog.Logger)
 		MaxBytes: int64(cfg.Limits.MaxSrcBytes),
 	})
 	if err != nil {
+		if ctx.Err() != nil {
+			// Shutdown requested while starting (see buildEPS).
+			return nil, nil //nolint:nilerr // not a configuration error
+		}
 		return nil, fmt.Errorf("formats.metafile.enabled (XI_FORMATS_METAFILE_ENABLED) is %s but the converter is not usable: %w; "+
 			"WMF/EMF input needs the gpl image (or XI_FORMATS_METAFILE_PATH), or set it to false", m.Enabled, err)
 	}
