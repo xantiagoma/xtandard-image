@@ -144,12 +144,15 @@ type fakeProber struct {
 	calls  atomic.Int32
 	mu     sync.Mutex
 	seen   []byte
+	// password is the last ProbeLimits.Password (copied).
+	password []byte
 }
 
-func (p *fakeProber) Probe(_ context.Context, src fetch.Buffer, _ ProbeLimits) (SourceMeta, error) {
+func (p *fakeProber) Probe(_ context.Context, src fetch.Buffer, lim ProbeLimits) (SourceMeta, error) {
 	p.calls.Add(1)
 	p.mu.Lock()
 	p.seen = bytes.Clone(src.Bytes())
+	p.password = bytes.Clone(lim.Password)
 	p.mu.Unlock()
 	if p.errFor != nil && !bytes.Equal(p.errFor, src.Bytes()) {
 		return p.meta, nil
@@ -186,6 +189,7 @@ type fakeProcessor struct {
 	marks    []WatermarkInput // ProcessInput.Watermarks, Source bytes in markBytes
 	markData [][]byte
 	meta     SourceMeta // ProcessInput.Meta
+	password []byte     // ProcessInput.Password (copied)
 }
 
 func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*ProcessOutput, error) {
@@ -197,6 +201,7 @@ func (p *fakeProcessor) Process(ctx context.Context, in *ProcessInput) (*Process
 	p.decision = in.Decision
 	p.delta = in.QualityDelta
 	p.meta = in.Meta
+	p.password = bytes.Clone(in.Password)
 	p.marks = slices.Clone(in.Watermarks)
 	p.markData = nil
 	for _, m := range in.Watermarks {

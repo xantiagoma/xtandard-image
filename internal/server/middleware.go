@@ -105,7 +105,7 @@ func (s *Server) accessLog(r *http.Request, sw *statusWriter, isImage bool, d ti
 	attrs := make([]slog.Attr, 0, 11)
 	attrs = append(attrs,
 		slog.String("method", r.Method),
-		slog.String("path", stripQuery(r.URL.Path)),
+		slog.String("path", redactPasswords(stripQuery(r.URL.Path))),
 		slog.Int("status", status),
 		slog.Int64("bytes", sw.bytes),
 		slog.Duration("duration", d),
@@ -136,6 +136,42 @@ func (s *Server) accessLog(r *http.Request, sw *statusWriter, isImage bool, d ti
 func stripQuery(p string) string {
 	p, _, _ = strings.Cut(p, "?")
 	return p
+}
+
+// redactedToken replaces the argument of a pdf_password path segment in
+// access logs.
+const redactedToken = "REDACTED"
+
+// redactPasswords replaces the encrypted token of every pdf_password (pdp)
+// path segment with "REDACTED" (WP-115): the token is ciphertext, but a
+// document password has no business in logs in any form. A segment counts
+// when it starts with the option name followed by any argument separator
+// (not a letter or digit, so pdpx is left alone), up to a plain/ or enc/
+// source. The query dialect's
+// pdf_password= travels in the query string, which is never logged.
+func redactPasswords(p string) string {
+	if !strings.Contains(p, "pdp") && !strings.Contains(p, "pdf_password") {
+		return p
+	}
+	segs := strings.Split(p, "/")
+	for i, seg := range segs {
+		if seg == "plain" || seg == "enc" {
+			break // the source follows
+		}
+		for _, name := range [...]string{"pdf_password", "pdp"} {
+			rest, ok := strings.CutPrefix(seg, name)
+			if !ok || rest == "" || isAlnum(rest[0]) {
+				continue
+			}
+			segs[i] = name + rest[:1] + redactedToken
+			break
+		}
+	}
+	return strings.Join(segs, "/")
+}
+
+func isAlnum(c byte) bool {
+	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9'
 }
 
 // requestID reuses a well-formed incoming X-Request-Id, else makes one.

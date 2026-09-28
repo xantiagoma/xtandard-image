@@ -32,7 +32,7 @@ type vipsInspector struct {
 // imageinfo.Analyze runs on it. Detection (det) runs after it on its own
 // sample, through the detection cache shared with processing.
 func (in *vipsInspector) Inspect(ctx context.Context, src fetch.Buffer, lim server.ProbeLimits, px *imageinfo.Options, det plan.DetectionNeeds) (*server.SourceInfo, error) {
-	vb, err := vipsBuffer(src)
+	vb, err := passwordBuffer(src, lim.Password)
 	if err != nil {
 		return nil, err
 	}

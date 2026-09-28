@@ -122,7 +122,7 @@ Pick whichever fits the platform; they combine freely:
 | `{file: …}` in the config file | `secret_access_key: { file: /run/secrets/r2_secret_access_key }` | Keeping the whole configuration in a file that holds no secret (a ConfigMap, a git repository) |
 | Provider identity | no key at all | AWS (IRSA, EKS Pod Identity, ECS task role, instance profile, `AWS_*` variables), GCS (Application Default Credentials, GKE Workload Identity), Azure (`DefaultAzureCredential`: managed identity, workload identity, `AZURE_*` variables) |
 
-Rules: a file is read once at startup, must be an absolute path and at most 64 KiB, and its trailing newline is trimmed. Setting both `X` and `X_FILE` is an error. `{file: …}` is accepted only by secret-typed fields: `headers` values, `secret_access_key`, `credentials_json`, `account_key`, `connection_string`, `sas_token`, `password`, `private_key` and `private_key_passphrase`. The other fields (`access_key_id`, `host_key`, …) are not secret; write them in the file, or use the `_FILE` variable if you keep them next to the secret.
+Rules: a file is read once at startup, must be an absolute path and at most 64 KiB, and its trailing newline is trimmed. Setting both `X` and `X_FILE` is an error. `{file: …}` is accepted only by secret-typed fields: `headers` values, `secret_access_key`, `credentials_json`, `account_key`, `connection_string`, `sas_token`, `password`, `private_key`, `private_key_passphrase` and `pdf_password`. The other fields (`access_key_id`, `host_key`, …) are not secret; write them in the file, or use the `_FILE` variable if you keep them next to the secret.
 
 Secret-typed fields print as `[REDACTED]` in `config print`, in logs and in errors, and never reach clients or the playground (it lists source names and types only). Logged source references drop http query strings (`?REDACTED`), where origins often carry tokens.
 
@@ -195,6 +195,12 @@ The environment variable of each key is `XI_SOURCES_<NAME>_<KEY>` in upper case 
 | `pool_size` | no | `4` | Open connections to the server |
 | `dial_timeout` | no | `10s` | Connect, handshake and login |
 | `idle_timeout` | no | `1m` | Idle pooled connections are closed after it |
+
+**Every type**
+
+| Key | Required | Default | Meaning |
+|---|---|---|---|
+| `pdf_password` | no | — | Default password for password-protected PDFs of this source (secret; at most 1024 bytes, no control characters), used when a request carries no `pdf_password` of its own. A request's encrypted password wins ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)). Every request for the source opens its PDFs with it, signed or not, so put documents that need different passwords (or none) in different sources. Changing it does not purge renditions already in the result cache |
 
 ## 4. Provider recipes
 

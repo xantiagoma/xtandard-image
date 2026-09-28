@@ -106,6 +106,7 @@ func fixtureFormats() map[string]codec.Format {
 		"png/rgba8.png":                codec.FormatPNG,
 		"pdf/pages.pdf":                codec.FormatPDF,
 		"pdf/password.pdf":             codec.FormatPDF,
+		"pdf/password-aes128.pdf":      codec.FormatPDF,
 		"psd/layered.psd":              codec.FormatPSD,
 		"psd/psb-layered.psb":          codec.FormatPSD,
 		"psd/no-composite.psd":         codec.FormatPSD,
