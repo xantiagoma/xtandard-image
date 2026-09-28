@@ -191,3 +191,12 @@ owner has authorised merging PRs without review.
   for up to `XI_PROCESSING_QUEUE_TIMEOUT`.
 - First release tag pending (`docs/RELEASE.md`); the WP-81b Pages site is built (`task pages:build`)
   but not deployed until the owner enables GitHub Pages and the workflows.
+
+- **2026-09-28 (latest):** base integration merged (#111): classify (WP-110) + LibRaw snapshot/X3F in
+  all flavours, DNG SDK + GPR only in gpl (WP-103); bases slim r6 / full r7 / gpl r8 are the local
+  `xtandard-base:dev*`. The integrator also freed Docker disk by removing unused third-party images
+  (demi-*, mongo:7, clickhouse, moneat-backend…; owner informed; no volumes/containers touched).
+  Demo redeployed from main 1956f2c (classify and XCF work). **In flight:** WP-104 (AVIF/HEIF
+  sequences, gain maps), WP-106 (12/16-bit JPEG, JPEG-LS), WP-108 (FITS, DICOM, KTX2, MNG/PICT,
+  EMF/WMF gpl-only, Leaf MOS sniffing), WP-115 (encrypted per-request PDF password on signed URLs).
+  Parallel rule as before: agents build under `xtandard-base:wpNNN*`; one integration bump at the end.
