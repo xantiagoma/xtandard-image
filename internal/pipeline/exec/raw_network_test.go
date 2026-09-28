@@ -74,19 +74,30 @@ func previewOf(t *testing.T, data []byte) []byte {
 	return out
 }
 
-// TestRawNetworkSamples renders the WP-100 gallery samples WP-101 and
-// WP-102 fixed, at 160 and 2000 px with the default limits. The Nikon High
-// Efficiency files and the body LibRaw does not know come from their
-// embedded previews: their pixels must match the camera's own JPEG (the
-// Z50II decoded into garbage before), whatever size is asked. The 50–102
-// MP sensors render through the preview or the half-size demosaic, and a
-// full-size demosaic of them stays over XI_LIMITS_MAX_SRC_PIXELS.
+// TestRawNetworkSamples renders the WP-100 gallery samples WP-101, WP-102
+// and WP-103 fixed, at 160 and 2000 px with the default limits. The Nikon
+// High Efficiency files come from their embedded previews: their pixels
+// must match the camera's own JPEG (the Z50II decoded into garbage
+// before), whatever size is asked. The 50–102 MP sensors render through the
+// preview or the half-size demosaic, and a full-size demosaic of them stays
+// over XI_LIMITS_MAX_SRC_PIXELS. The WP-103 samples (Sony A7 V, Sigma X3F,
+// and GoPro GPR in the gpl image) demosaic: a full-size request renders the
+// sensor's size.
 func TestRawNetworkSamples(t *testing.T) {
 	t.Parallel()
 	for _, f := range rawfixtures.NetworkFiles() {
 		t.Run(f.Name, func(t *testing.T) {
 			t.Parallel()
 			data := rawfixtures.Read(t, &f.File)
+			if f.Kind == "dng" && f.Camera == "GoPro HERO11 Black" && !vips.RawLibraryInfo().GPRSDK {
+				// slim and full have no GPR SDK (gpl only) and the file no
+				// usable preview: 422, never a demosaic of the placeholder.
+				_, err := runRaw(t, data, "rs:fit:160:160", defaultLimits)
+				if errs.KindOf(err) != errs.KindUnsupported {
+					t.Errorf("without the GPR SDK: %v (kind %v), want unsupported", err, errs.KindOf(err))
+				}
+				return
+			}
 			sizes := []string{"rs:fit:160:160", "rs:fit:2000:2000"}
 			if f.Undecodable != "" {
 				sizes = append(sizes, "") // full size: the preview's
@@ -138,6 +149,14 @@ func TestRawNetworkSamples(t *testing.T) {
 				if res := runRawResult(t, data, "rs:fit:5000:5000"); res.RawPath != exec.RawPathDemosaicHalf || res.Width != 5000 {
 					t.Errorf("5000 px: %s %dx%d, want demosaic-half 5000 wide", res.RawPath, res.Width, res.Height)
 				}
+			}
+			if int64(f.Width)*int64(f.Height) <= defaultLimits.MaxSrcPixels {
+				// Under the limit: the full-size demosaic renders.
+				res := runRawResult(t, data, "")
+				if res.RawPath != exec.RawPathDemosaic || res.Width != f.Width || res.Height != f.Height {
+					t.Errorf("full size: %s %dx%d, want demosaic %dx%d", res.RawPath, res.Width, res.Height, f.Width, f.Height)
+				}
+				return
 			}
 			// A full-size demosaic of a > 50 MP sensor is over the limit.
 			_, err := runRaw(t, data, "", defaultLimits)

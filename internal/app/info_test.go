@@ -22,6 +22,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/security/sign"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
+	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
 // allInfo turns on every info option this build answers.
@@ -136,7 +137,9 @@ func rawDecodePath(t *testing.T, base, admin string) {
 // infoGolden answers /info for every fixture of every M1 format plus a
 // JPEG carrying EXIF, IPTC (with Photoshop resolution) and XMP, and
 // compares the JSON with testdata/info/<name>.json (GOLDEN_UPDATE=1
-// rewrites them; review the diff).
+// rewrites them; review the diff). The JPEG XL DNG and GoPro GPR fixtures
+// answer differently with LibRaw's Adobe DNG SDK (gpl image, WP-103):
+// there they use testdata/info/rawsdk/<name>.json.
 func infoGolden(t *testing.T, base, root string) {
 	t.Helper()
 	cases := map[string]string{"synth-metadata": "xi://synth/metadata.jpg"}
@@ -184,6 +187,9 @@ func infoGolden(t *testing.T, base, root string) {
 			}
 			got := indentJSON(t, r.body)
 			path := filepath.Join(root, "testdata", "info", name+".json")
+			if rawSDKFixture(name) && vips.RawLibraryInfo().DNGSDK {
+				path = filepath.Join(root, "testdata", "info", "rawsdk", name+".json")
+			}
 			if update {
 				if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 					t.Fatal(err)
@@ -202,6 +208,12 @@ func infoGolden(t *testing.T, base, root string) {
 			}
 		})
 	}
+}
+
+// rawSDKFixture reports a fixture whose /info depends on LibRaw's Adobe DNG
+// SDK and GoPro GPR SDK (decoded in gpl; preview-only in slim and full).
+func rawSDKFixture(name string) bool {
+	return strings.HasPrefix(name, "dng-jxl-") || strings.HasPrefix(name, "gpr-")
 }
 
 // noDefaults turns off imgproxy's default info fields, so a URL reports

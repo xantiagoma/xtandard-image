@@ -4,8 +4,9 @@ Every file under `testdata/` is dedicated to the public domain under
 [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). All of it is original to this
 repository except the `golden/exec/raw-{cr2,cr3,nef,arw,dng,raf}*.png` goldens, which are
 downscaled renders of the CC0 camera samples listed at the end (third-party photographs, public
-domain), the three detection photos in `fixtures/detect/` (public domain or CC0, listed in
-"Detection photos") and the YOLOX functions copied into `detect/reference.py` (Apache-2.0).
+domain), the three detection photos in `fixtures/detect/` and the seven classification photos
+in `fixtures/classify/` (public domain or CC0, listed in "Detection photos" and
+"Classification photos") and the YOLOX functions copied into `detect/reference.py` (Apache-2.0).
 There is no share-alike obligation anywhere (ADR 0006: no GPL or CC-BY-SA fixtures), and one
 attribution exception below.
 
@@ -70,6 +71,8 @@ generated from the public-domain X11 "fixed" font).
 | `ssim/*.png` | `gen ssim-refs` (Go only: greyscale photo plus mean shift, contrast stretch, impulse noise, Gaussian blur σ 1.5, stdlib JPEG q15) | CC0 |
 | `fixtures/dng/landscape.dng`, `fixtures/dng/portrait-orientation-6.dng` | `gen dng` (own DNG writer; the preview is Go `image/jpeg` q85 of the photo, the mosaic is the photo sampled as linear RGGB) | CC0 |
 | `fixtures/dng/jxl-undecodable.dng`, `fixtures/dng/deflate-corrupt.dng` | `gen dng … 52546` / `… 8`: the landscape with its uncompressed mosaic labelled JPEG XL or deflate, so LibRaw cannot demosaic it (WP-101 preview-only and fallback paths) | CC0 |
+| `fixtures/dng/jxl-landscape.dng` | `gen/jxl-dng.sh` (WP-103): `landscape.dng` rewritten by Adobe's `dng_validate -losslessJXL` (DNG SDK 1.7.1, pinned in `docker/base/versions-gpl.sh`; built and run only for this, not shipped): DNG 1.7 with lossless JPEG XL raw data and a 192×128 JPEG preview | CC0 |
+| `fixtures/gpr/hero11-crop.gpr` | `gen/gpr.sh` (WP-103): a 256×192 window of the CC0 raw.pixls.us GoPro HERO11 Black sample (id 7319, `gopro-hero11.gpr` below), decoded to raw and VC-5 encoded again by GoPro's `gpr_tools` (GPR SDK, Apache-2.0 OR MIT; built and run only for this) with the sample's parameters and an empty serial number; `../internal/vips/testdata/rawfuzz/*.gpr` are libFuzzer mutations of it that crashed GoPro's VC-5 decoder before `docker/base/patches/gpr/0002` (`FuzzRawLoad` regression seeds) | CC0 |
 | `fixtures/video/clip-*.{webm,mkv,mp4,mov,avi}` | `gen video-frames` (Go) encoded by `gen/video.sh` with the LGPL FFmpeg of the full base builder (libvpx VP8/VP9, libaom AV1, PNG) and the host ffmpeg's LGPL rawvideo/AVI muxer; details in `fixtures/video/README.md` | CC0 |
 | `fixtures/video/bbb-h264-aac.mp4` | stream copy of Big Buck Bunny (see the exception above) plus an AAC tone (FFmpeg native encoder, LGPL) | CC-BY 3.0 (video), CC0 (audio) |
 | `fixtures/video/faces-vp9.webm`, `fixtures/video/faces-av1-rotate90.mp4` | `fixtures/detect/apollo11-crew.jpg` (below) as a one-second still clip, encoded by `gen/video-faces.sh` with the LGPL FFmpeg of the full base builder (libvpx VP9; libaom AV1 stored rotated with a display matrix); details in `fixtures/video/README.md` | Public domain (NASA), like the photo |
@@ -81,6 +84,7 @@ generated from the public-domain X11 "fixed" font).
 | `golden/**` | written by tests with `GOLDEN_UPDATE=1` from the fixtures above and the RAW samples below | CC0 |
 | `detect/expected.json`, `info/detect-*.json` | written by `detect/reference.py` and by tests from the detection photos below | CC0 |
 | `detect/reference.py` | ours, plus the YOLOX demo pre/post-processing functions copied from Megvii's YOLOX (Apache-2.0, see NOTICE) | CC0 / Apache-2.0 |
+| `classify/expected.json`, `classify/reference.py`, `info/classify-*.json` | ours (the `info` goldens are written by tests from the classification photos): the reference top 5 of the classification photos (timm's evaluation transform reimplemented in Pillow/NumPy, onnxruntime) | CC0 |
 
 ## Detection photos (committed, third-party, public domain)
 
@@ -95,6 +99,24 @@ No attribution is required; the authors are listed as a courtesy.
 | `fixtures/detect/apollo11-crew.jpg` | [File:Apollo 11 Crew.jpg](https://commons.wikimedia.org/wiki/File:Apollo_11_Crew.jpg) (NASA, 1969) | NASA | Public domain (NASA) | `f95f2b8dcbbd79d4635a823a7e4425511036fc34f68902eea2ac068b20b51965` |
 | `fixtures/detect/astronaut-dogs.jpg` | [File:NASA astronaut Leland D. Melvin with his dogs Jake and Scout.jpg](https://commons.wikimedia.org/wiki/File:NASA_astronaut_Leland_D._Melvin_with_his_dogs_Jake_and_Scout.jpg) (2009) | Robert Markowitz, NASA | Public domain (NASA) | `5d02c6afa3e401bb8a6e1fa677e47e38645a5c1923717a6212b55fa297000551` |
 | `fixtures/detect/cat-laptop.jpg` | [File:Cat on laptop yawning.jpg](https://commons.wikimedia.org/wiki/File:Cat_on_laptop_yawning.jpg) (from Pixabay, 2014) | acebrand | CC0 1.0 | `256422d01e8bbd8e91650cb0015bfec79043a8c9eb3f3ce386a67fe31ce23a71` |
+
+## Classification photos (committed, third-party, public domain)
+
+Image classification (WP-110) is checked on the three detection photos above and on these seven,
+each of one ImageNet class. Same origin and processing as the detection photos: Wikimedia
+Commons files marked public domain (US federal government work) or CC0, downloaded as the
+960 px Commons thumbnails on 2026-09-28 and re-encoded by `vips thumbnail 640` +
+`jpegsave Q82 --keep none`. No attribution is required; the authors are listed as a courtesy.
+
+| File | Source | Author | Licence | SHA-256 |
+|---|---|---|---|---|
+| `fixtures/classify/bald-eagle.jpg` | [File:Haliaeetus leucocephalus-tree-USFWS.jpg](https://commons.wikimedia.org/wiki/File:Haliaeetus_leucocephalus-tree-USFWS.jpg) (2005) | Steve Hillebrand, USFWS | Public domain (USFWS) | `46bfbcca257251d032c8d55be0a418252782f3379dceb73aaca301f072e87dd3` |
+| `fixtures/classify/banana.jpg` | [File:Banana-1206002 960 720.jpg](https://commons.wikimedia.org/wiki/File:Banana-1206002_960_720.jpg) (from Pixabay, 2015) | Robfoto | CC0 1.0 | `6fd44259d12317863d00a026ef046b8207fa9403c38bfe1958838096aee53e8c` |
+| `fixtures/classify/golden-retriever.jpg` | [File:Golden-retriever-1827903 1920.jpg](https://commons.wikimedia.org/wiki/File:Golden-retriever-1827903_1920.jpg) (from Pixabay, 2016) | RetyiRetyi | CC0 1.0 | `97a7afe7d77e045bd90eb441e5e848721e38f7cc503cb10ceabfca164bf5efc4` |
+| `fixtures/classify/monarch.jpg` | [File:Monarch butterfly on butterfly milkweed (53069280718).jpg](https://commons.wikimedia.org/wiki/File:Monarch_butterfly_on_butterfly_milkweed_(53069280718).jpg) (2023) | USFWS Midwest Region | Public domain (USFWS) | `87b7006d881d31934c8c6faba476bcd9fe5040f6cb2567454048eea6e1c76ca4` |
+| `fixtures/classify/pizza.jpg` | [File:Pizza-3007395.jpg](https://commons.wikimedia.org/wiki/File:Pizza-3007395.jpg) (from Pixabay, 2013) | igorovsyannykov | CC0 1.0 | `221851816d4794191eb967a5725616b1a40b57b616186f43c7709658c3d276ec` |
+| `fixtures/classify/red-fox.jpg` | [File:Red fox (8385104980).jpg](https://commons.wikimedia.org/wiki/File:Red_fox_(8385104980).jpg) (2012) | USFWS Alaska | Public domain (USFWS) | `840d1a226e83be95aa59516ffda61b0e2f132902e71c6db04fd21ae520e57964` |
+| `fixtures/classify/space-shuttle.jpg` | [File:Columbia.sts-1.01.jpg](https://commons.wikimedia.org/wiki/File:Columbia.sts-1.01.jpg) (STS-1, 1981) | NASA/KSC | Public domain (NASA) | `ada835659b720439df5871fc70f757063a8943799403c05cf8cb7c9c860e6571` |
 
 ## Downloaded camera RAW samples (not committed)
 
@@ -113,8 +135,8 @@ as well.
 | `pentax-k-50.dng` | Pentax - K-50 - 12bit (3:2).DNG (id 2235) | `9ea1dc1f92df19699aa8b620670c64a84d4ead0172a49cbbd47dea9257d14e67` | 12.9 MB |
 | `fujifilm-x-s10.raf` | Fujifilm - X-S10 - 14bit 14bit compressed (3:2).RAF (id 4190) | `9419d1408ebf850395e5dd563beb96309466546252caf541466034c9cb7e9724` | 17.8 MB |
 
-The WP-101/102 samples (`rawfixtures.NetworkFiles`, used only by `-tags network` tests), CC0 on
-raw.pixls.us as well (checked 2026-09-27):
+The WP-101/102/103 samples (`rawfixtures.NetworkFiles`, used only by `-tags network` tests), CC0
+on raw.pixls.us as well (checked 2026-09-27):
 
 | Cache name | raw.pixls.us file | SHA-256 | Size |
 |---|---|---|---|
@@ -125,6 +147,8 @@ raw.pixls.us as well (checked 2026-09-27):
 | `fujifilm-gfx100rf.raf` | Fujifilm - GFX100RF - 16bit compressed (4:3).RAF (id 8091) | `14bed5ac8191d6f2a7c82984e3bf6470ad4740df329293eac42b8018cc6a668a` | 72.8 MB |
 | `hasselblad-x1d-ii.fff` | Hasselblad - X1D II 50C - 16bit (4:3).fff (id 3874) | `8c2451b3478fb529b4e9bd51ed3267999ce26eb1fcb5c3b93c3ae7bc56267794` | 78.2 MB |
 | `google-pixel-8-pro.dng` | Google - Pixel 8 Pro - 16bit (4:3).dng (id 7751) | `45420c595401547cca950ae58d552bc82b32d31ce1d58c082df33004016197f5` | 45.1 MB |
+| `sigma-sd14.x3f` | Sigma - SIGMA SD14 - 3:2.X3F (id 4462) | `c32f247eb372c3e66ad3b433518ec11f898fdc317c8432ebe025b46d4917bcf3` | 12.2 MB |
+| `gopro-hero11.gpr` | GoPro - HERO11 Black - 16bit (5:4).GPR (id 7319) | `d7a6be163c847cb8456e6858a99aef3b85dc3d8836bca1da1b8886effe0d43e1` | 13.9 MB |
 
 ## Cross-language test vectors
 

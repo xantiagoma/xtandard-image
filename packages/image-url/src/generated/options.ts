@@ -1081,14 +1081,14 @@ export interface ImgproxyInfoArgs {
   "calc_hashsums":
     | [type: "md5" | "sha1" | "sha256" | "sha512" | null, ...types: Array<"md5" | "sha1" | "sha256" | "sha512" | null>];
   /**
-   * Classify the image (no classification model is shipped). URL: `classify`, `cl`; arguments top_k:classes…; default 0.
+   * Classify the image with the ImageNet classifier of the full image and report the top_k classes (ignored on slim). URL: `classify`, `cl`; arguments top_k:class_names…; default 0.
    *
    * URL names: `classify`, `cl`.
-   * milestone not implemented; scope request; imgproxy Pro option (free here).
+   * milestone M4 (WP-110); scope request; imgproxy Pro option (free here).
    * @example [3]
    */
   "classify":
-    | [top_k: number, ...classes: Array<string>];
+    | [top_k: number, ...class_names: Array<string>];
   /**
    * Report the libvips interpretation. URL: `colorspace`, `cs`; arguments bool; default false.
    *

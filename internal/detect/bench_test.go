@@ -35,6 +35,25 @@ func BenchmarkObjects(b *testing.B) {
 	})
 }
 
+// BenchmarkClassify is one classification per iteration of a 640×512
+// fixture with the shipped MobileNetV3-Large (one intra-op thread): cubic
+// resize, centre crop, sRGB render and tensor packing through libvips,
+// inference and softmax. The session is created before the timer starts.
+func BenchmarkClassify(b *testing.B) {
+	d := newTestDetector(b, testClassifyOptions())
+	withImage(b, "astronaut-dogs.jpg", func(img *vips.Image) error {
+		if _, err := d.Classify(b.Context(), img); err != nil {
+			return err
+		}
+		for b.Loop() {
+			if _, err := d.Classify(b.Context(), img); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 // BenchmarkDecodeYOLOX isolates the Go post-processing of one YOLOX output.
 func BenchmarkDecodeYOLOX(b *testing.B) {
 	const w, h = 640, 640

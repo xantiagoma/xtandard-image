@@ -73,10 +73,21 @@ func TestValidate(t *testing.T) {
 		{"detect max input", func(c *Config) { c.Detect.MaxInput = 8 }, []string{"detect.max_input (XI_DETECT_MAX_INPUT)"}},
 		{"detect model path", func(c *Config) { c.Detect.FaceModel = "sub/face.onnx" }, []string{"detect.face_model (XI_DETECT_FACE_MODEL): must be a file name"}},
 		{"detect relative dir", func(c *Config) { c.Detect.ModelsDir = "models" }, []string{"detect.models_dir (XI_DETECT_MODELS_DIR): must be an absolute path"}},
-		{"detect enabled without models", func(c *Config) { c.Detect.Enabled, c.Detect.FaceModel, c.Detect.ObjectModel = True, "", "" }, []string{"detect.enabled (XI_DETECT_ENABLED)"}},
+		{"detect enabled without models", func(c *Config) {
+			c.Detect.Enabled, c.Detect.FaceModel, c.Detect.ObjectModel, c.Detect.Classify.Model = True, "", "", ""
+		}, []string{"detect.enabled (XI_DETECT_ENABLED)"}},
+		{"detect classify only", func(c *Config) { c.Detect.Enabled, c.Detect.FaceModel, c.Detect.ObjectModel = True, "", "" }, nil},
+		{"detect classify settings", func(c *Config) {
+			c.Detect.Classify.Labels, c.Detect.Classify.Normalization = "labels.txt", "bgr"
+			c.Detect.Classify.TopKMax, c.Detect.Classify.Threshold = 65, 1.5
+		}, []string{
+			"detect.classify.labels (XI_DETECT_CLASSIFY_LABELS)", "detect.classify.normalization (XI_DETECT_CLASSIFY_NORMALIZATION)",
+			"detect.classify.top_k_max (XI_DETECT_CLASSIFY_TOP_K_MAX)", "detect.classify.threshold (XI_DETECT_CLASSIFY_THRESHOLD)",
+		}},
 		{"detect off skips checks", func(c *Config) { c.Detect.Enabled, c.Detect.Threads, c.Detect.Library = False, 0, "" }, nil},
 		{"detect absolute model", func(c *Config) {
 			c.Detect.ObjectModel, c.Detect.FaceModel, c.Detect.ModelsDir = "/models/x.onnx", "", ""
+			c.Detect.Classify.Model = "/models/c.onnx"
 		}, nil},
 		{"http without allow", func(c *Config) { c.Sources["web"] = Source{Type: SourceHTTP} }, []string{"sources.web.allow"}},
 		{"http allow with http(s) scheme", func(c *Config) {

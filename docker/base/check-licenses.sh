@@ -26,8 +26,10 @@
 # gpl flavor only (WP-70b, ADR 0006 amendment 2026-09-27):
 #   --allow-gpl <versions-gpl.sh>
 #                   the components listed in its XI_GPL_COMPONENTS (component=SPDX;
-#                   only x264, x265 and ffmpeg under GPL-2.0/GPL-3.0, and ghostscript
-#                   under exactly AGPL-3.0-or-later, WP-99) stop being forbidden: their
+#                   only x264, x265 and ffmpeg under GPL-2.0/GPL-3.0, ghostscript
+#                   under exactly AGPL-3.0-or-later, WP-99, and dng-sdk, the Adobe DNG
+#                   SDK inside libraw_r, under exactly LicenseRef-Adobe-DNG-SDK,
+#                   WP-103, owner decision 2026-09-28) stop being forbidden: their
 #                   names, symbols and pins pass, and --ffmpeg then requires
 #                   --enable-gpl and `-L` reporting the GNU General Public License (and
 #                   no --enable-version3 for a GPL-2.0 entry). Everything else stays
@@ -94,22 +96,26 @@ fi
 #   libimagequant (GPL-3 since 2.12; use quantizr), jbig-kit (GPL),
 #   Ghostscript (AGPL), GPL FFmpeg builds and libpostproc (GPL-only FFmpeg library),
 #   xvid (GPL MPEG-4 encoder), and the GPL delegates ImageMagick or LibRaw
-#   could pick up (WP-66): FFTW, DjVuLibre, AutoTrace, LibRaw's GPL demosaic packs.
+#   could pick up (WP-66): FFTW, DjVuLibre, AutoTrace, LibRaw's GPL demosaic packs;
+#   and the Adobe DNG SDK (not GPL, but its licence is confined to the gpl flavor).
 # Each item is `regex` or `regex=component`; a component allowed by --allow-gpl drops
 # its items from the patterns (and only those).
 name_items=(x265=x265 x264=x264 poppler exiv2 imagequant jbig ghostscript=ghostscript
   'libgs\.so' ffmpeg-gpl=ffmpeg postproc xvidcore fftw djvulibre autotrace
-  'demosaic[-_]pack[-_]gpl')
+  'demosaic[-_]pack[-_]gpl' 'dng[-_]?sdk=dng-sdk')
 
 # Strings that only exist inside binaries built from or linked against those components.
 # Ghostscript is only ever allowed as the separate `gs` program (--ghostscript): a
-# library linking libgs still fails, allowlist or not.
+# library linking libgs still fails, allowlist or not. The Adobe DNG SDK is compiled
+# into libraw_r with hidden visibility, so it is recognised by the RTTI names of its
+# classes (dng_negative, dng_host), which a LibRaw built without it does not contain.
 content_items=('libx265\.so=x265' x265_encoder_open=x265 'libx264\.so=x264'
   x264_encoder_open=x264 libpoppler poppler_document_new libexiv2 'Exiv2::'
   'libimagequant\.so' libjbig jbg_enc_init 'libgs\.so' gsapi_new_instance
   --enable-gpl=ffmpeg --enable-nonfree --enable-libx264=x264 --enable-libx265=x265
   'libpostproc\.so' 'libxvidcore\.so' libfftw3 fftw_plan_dft libdjvulibre
-  ddjvu_document_create libautotrace at_splines_new)
+  ddjvu_document_create libautotrace at_splines_new '12dng_negative=dng-sdk'
+  '8dng_host=dng-sdk')
 
 # Extra strings refused in a versions file (besides the component names).
 versions_items=(enable-gpl=ffmpeg enable-nonfree)
@@ -120,15 +126,21 @@ buildconf_items=(gpl=ffmpeg nonfree libx264=x264 libx265=x265 libxvid frei0r lib
 
 # The GPL components --allow-gpl can allow, and the licences it accepts for them.
 # Ghostscript (WP-99, ADR 0011) is the single AGPL component, and only as exactly
-# AGPL-3.0-or-later; no other component may be AGPL.
-gpl_allowable_components=' x264 x265 ffmpeg ghostscript '
+# AGPL-3.0-or-later; no other component may be AGPL. dng-sdk (WP-103) is the Adobe DNG
+# SDK, allowed only in the gpl flavor and only as exactly LicenseRef-Adobe-DNG-SDK.
+gpl_allowable_components=' x264 x265 ffmpeg ghostscript dng-sdk '
 gpl_allowable_licenses=' GPL-2.0-only GPL-2.0-or-later GPL-3.0-only GPL-3.0-or-later '
 agpl_component=ghostscript
 agpl_license=AGPL-3.0-or-later
+dngsdk_component=dng-sdk
+dngsdk_license=LicenseRef-Adobe-DNG-SDK
 
 # Identifiers an XI_COMPONENT_LICENSES expression may use (--licenses). GPL-* ids are
 # accepted there too (--licenses only runs in gpl mode); AGPL, SSPL and anything not
 # listed fail.
+# LicenseRef-Adobe-DNG-SDK (the Adobe DNG SDK License Agreement: no SPDX identifier,
+# permissive with an indemnity clause; ADR 0006 amendment WP-103) is not listed: it is
+# accepted only for an allowed dng-sdk, like the AGPL for ghostscript.
 known_license_ids=' MIT MIT-Modern-Variant BSD-2-Clause BSD-3-Clause Apache-2.0 ISC Zlib
   libpng-2.0 IJG libtiff FTL HPND-sell-variant Bitstream-Vera OFL-1.1 ImageMagick MPL-1.1
   MPL-2.0 CDDL-1.0 LGPL-2.0-or-later LGPL-2.1-only LGPL-2.1-or-later LGPL-3.0-only
@@ -170,10 +182,13 @@ if [ -n "$gpl_file" ]; then
     if [ "$component" = "$entry" ] || [ -z "$license" ]; then
       report "GPL allowlist entry '$entry' in $gpl_file is not component=SPDX"
     elif [[ $gpl_allowable_components != *" $component "* ]]; then
-      report "GPL allowlist entry '$entry' in $gpl_file: only x264, x265, ffmpeg and ghostscript can be allowed"
+      report "GPL allowlist entry '$entry' in $gpl_file: only x264, x265, ffmpeg, ghostscript and dng-sdk can be allowed"
     elif [ "$component" = "$agpl_component" ] && [ "$license" != "$agpl_license" ]; then
       report "GPL allowlist entry '$entry' in $gpl_file: ghostscript is allowed as exactly $agpl_license"
-    elif [ "$component" != "$agpl_component" ] && [[ $gpl_allowable_licenses != *" $license "* ]]; then
+    elif [ "$component" = "$dngsdk_component" ] && [ "$license" != "$dngsdk_license" ]; then
+      report "GPL allowlist entry '$entry' in $gpl_file: dng-sdk is allowed as exactly $dngsdk_license"
+    elif [ "$component" != "$agpl_component" ] && [ "$component" != "$dngsdk_component" ] &&
+      [[ $gpl_allowable_licenses != *" $license "* ]]; then
       report "GPL allowlist entry '$entry' in $gpl_file: licence $license is not GPL-2.0/GPL-3.0"
     else
       allowed_gpl+="$component "
@@ -359,6 +374,12 @@ if [ -n "$licenses_dir" ]; then
           # Only the allowed Ghostscript entry may carry the AGPL.
           if [ "$component" != "$agpl_component" ] || [[ $allowed_gpl != *" $agpl_component "* ]]; then
             report "component $component: licence $id is not allowed (AGPL only for an allowed ghostscript)"
+          fi
+          ;;
+        "$dngsdk_license")
+          # Only the allowed dng-sdk entry may carry the Adobe DNG SDK licence.
+          if [ "$component" != "$dngsdk_component" ] || [[ $allowed_gpl != *" $dngsdk_component "* ]]; then
+            report "component $component: licence $id is not allowed (only for an allowed dng-sdk)"
           fi
           ;;
         *) [[ $known_license_ids == *" $id "* ]] || report "component $component: licence $id is not allowed (AGPL, SSPL and unknown licences are refused)" ;;

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -170,6 +171,11 @@ func (s *Server) inspect(ctx context.Context, r *http.Request, req *transform.Re
 		return nil, err
 	}
 
+	if req.Info.ClassifyTopK > 0 && req.Info.Schema != transform.InfoSchemaThumbor && classificationOf(si) == nil {
+		// Classification is optional like imgproxy Pro's model: without a
+		// classifier the answer leaves it out and says why.
+		req.Ignored = append(req.Ignored, transform.Ignored{Option: "classify", Reason: reasonNoClassifier})
+	}
 	body, err := s.infoResponse(req, si, fr.Bytes())
 	if err != nil {
 		return nil, err
@@ -198,10 +204,22 @@ func (s *Server) infoResponse(req *transform.Request, si *SourceInfo, src []byte
 		return s.thumborMetaBody(req, si)
 	}
 	body, err := infoBody(req.Info, objectsPositionOf(req), si, src)
-	if err != nil {
+	if _, classified := errors.AsType[*errs.Error](err); err != nil && !classified {
 		return nil, errs.Wrapf(errs.KindInternal, err, "server: encode info")
 	}
-	return body, nil
+	return body, err
+}
+
+// reasonNoClassifier is the X-Xi-Ignored reason of classify when this
+// deployment has no classifier (the slim image, or the model is off).
+const reasonNoClassifier = "classification needs the full image"
+
+// classificationOf is the classification Inspect computed, or nil.
+func classificationOf(si *SourceInfo) *plan.Classification {
+	if si == nil || si.Detections == nil {
+		return nil
+	}
+	return si.Detections.Classes
 }
 
 // inspectSource is probe for info requests: a designer container is
@@ -347,7 +365,11 @@ func infoBody(o *transform.InfoOptions, op *transform.ObjectsPosition, si *Sourc
 	if o.Alpha {
 		out.Alpha = &si.Meta.HasAlpha
 	}
-	out.InfoProResponse = infoPro(o, op, si, src)
+	pro, err := infoPro(o, op, si, src)
+	if err != nil {
+		return nil, err
+	}
+	out.InfoProResponse = pro
 	out.InfoVideoResponse = infoVideo(o, si.Video)
 	out.HDR = si.HDR
 	return json.Marshal(&out)

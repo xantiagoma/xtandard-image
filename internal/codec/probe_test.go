@@ -73,6 +73,21 @@ func TestProbeFixtures(t *testing.T) {
 		}
 	}
 	delays := []int{100, 100, 100, 100, 100, 100}
+	// JPEG XL raw data (DNG 1.7): decoded by LibRaw with the Adobe DNG SDK
+	// (the gpl base image, WP-103); without it (slim, full) the preview is
+	// the image.
+	jxlBroken := with(still(codec.FormatRAW, 96, 64), rawSource(96, 64, 96, 64, true))
+	jxlLandscape := with(still(codec.FormatRAW, 192, 128), rawSource(192, 128, 192, 128, true))
+	if vips.RawLibraryInfo().DNGSDK {
+		jxlBroken = with(still(codec.FormatRAW, 192, 128), rawSource(192, 128, 96, 64, false))
+		jxlLandscape = with(still(codec.FormatRAW, 192, 128), rawSource(192, 128, 192, 128, false))
+	}
+	// GoPro VC-5 (GPR SDK, gpl flavour only) with gpr_tools' 16x12 thumbnail;
+	// without the SDK only that thumbnail can be shown.
+	gprCrop := with(still(codec.FormatRAW, 16, 12), rawSource(16, 12, 16, 12, true))
+	if vips.RawLibraryInfo().GPRSDK {
+		gprCrop = with(still(codec.FormatRAW, 256, 192), rawSource(256, 192, 16, 12, false))
+	}
 	tests := map[string]codec.ImageMeta{
 		"jpeg/baseline.jpg":    still(codec.FormatJPEG, 320, 240),
 		"jpeg/progressive.jpg": still(codec.FormatJPEG, 320, 240),
@@ -82,17 +97,28 @@ func TestProbeFixtures(t *testing.T) {
 		"jpeg/metadata-p3.jpg": with(still(codec.FormatJPEG, 120, 160), func(m *codec.ImageMeta) {
 			m.Orientation, m.HasICC = 6, true
 		}),
-		"png/bordered.png":          still(codec.FormatPNG, 80, 60),
-		"detect/apollo11-crew.jpg":  still(codec.FormatJPEG, 640, 503),
-		"detect/astronaut-dogs.jpg": still(codec.FormatJPEG, 640, 512),
-		"detect/cat-laptop.jpg":     still(codec.FormatJPEG, 640, 419),
-		"dng/landscape.dng":         with(still(codec.FormatRAW, 192, 128), rawSource(192, 128, 96, 64, false)),
+		"png/bordered.png":              still(codec.FormatPNG, 80, 60),
+		"detect/apollo11-crew.jpg":      still(codec.FormatJPEG, 640, 503),
+		"detect/astronaut-dogs.jpg":     still(codec.FormatJPEG, 640, 512),
+		"detect/cat-laptop.jpg":         still(codec.FormatJPEG, 640, 419),
+		"classify/bald-eagle.jpg":       still(codec.FormatJPEG, 448, 640),
+		"classify/banana.jpg":           still(codec.FormatJPEG, 640, 424),
+		"classify/golden-retriever.jpg": still(codec.FormatJPEG, 640, 428),
+		"classify/monarch.jpg":          still(codec.FormatJPEG, 640, 427),
+		"classify/pizza.jpg":            still(codec.FormatJPEG, 640, 427),
+		"classify/red-fox.jpg":          still(codec.FormatJPEG, 640, 571),
+		"classify/space-shuttle.jpg":    still(codec.FormatJPEG, 640, 512),
+		"dng/landscape.dng":             with(still(codec.FormatRAW, 192, 128), rawSource(192, 128, 96, 64, false)),
 		"dng/portrait-orientation-6.dng": with(still(codec.FormatRAW, 192, 128), func(m *codec.ImageMeta) {
 			m.Orientation = 6
 			rawSource(192, 128, 48, 32, false)(m)
 		}),
-		// JPEG XL raw data without the DNG SDK: the preview is the image.
-		"dng/jxl-undecodable.dng": with(still(codec.FormatRAW, 96, 64), rawSource(96, 64, 96, 64, true)),
+		// Uncompressed data labelled JPEG XL: undecodable either way, but
+		// only a LibRaw without the DNG SDK knows before unpacking.
+		"dng/jxl-undecodable.dng": jxlBroken,
+		// landscape.dng with lossless JPEG XL raw data (dng_validate).
+		"dng/jxl-landscape.dng": jxlLandscape,
+		"gpr/hero11-crop.gpr":   gprCrop,
 		// Its header is fine; LibRaw fails when unpacking (exec falls back).
 		"dng/deflate-corrupt.dng": with(still(codec.FormatRAW, 192, 128), rawSource(192, 128, 96, 64, false)),
 		"uhdr/photo-ultrahdr.jpg": with(still(codec.FormatUHDR, 320, 240), func(m *codec.ImageMeta) { m.HasICC = true }),

@@ -1,0 +1,12 @@
+{
+  "apollo11-crew.jpg": {"top5": [[697, "pajamas", 0.2923], [981, "baseball player", 0.2248], [617, "lab coat", 0.1546], [652, "military uniform", 0.0457], [746, "hockey puck", 0.0267]]},
+  "astronaut-dogs.jpg": {"top5": [[163, "Bloodhound", 0.1739], [243, "Bullmastiff", 0.1563], [180, "American Staffordshire Terrier", 0.0933], [211, "Vizsla", 0.0811], [159, "Rhodesian Ridgeback", 0.0681]]},
+  "bald-eagle.jpg": {"top5": [[22, "bald eagle", 0.9224], [21, "kite", 0.0349], [146, "albatross", 0.0011], [93, "hornbill", 0.0009], [16, "bulbul", 0.0006]]},
+  "banana.jpg": {"top5": [[954, "banana", 0.9864], [502, "clogs", 0.0011], [941, "acorn squash", 0.0007], [951, "lemon", 0.0006], [950, "orange", 0.0006]]},
+  "cat-laptop.jpg": {"top5": [[284, "Siamese cat", 0.5632], [681, "notebook computer", 0.1152], [534, "dishwasher", 0.0189], [620, "laptop computer", 0.0178], [761, "remote control", 0.0176]]},
+  "golden-retriever.jpg": {"top5": [[207, "Golden Retriever", 0.7698], [222, "Kuvasz", 0.042], [244, "Tibetan Mastiff", 0.0238], [257, "Pyrenean Mountain Dog", 0.0172], [208, "Labrador Retriever", 0.0147]]},
+  "monarch.jpg": {"top5": [[323, "monarch butterfly", 0.8837], [325, "sulphur butterfly", 0.0066], [322, "ringlet", 0.0056], [326, "gossamer-winged butterfly", 0.0017], [318, "lacewing", 0.0016]]},
+  "pizza.jpg": {"top5": [[963, "pizza", 0.7218], [567, "frying pan", 0.0475], [939, "zucchini", 0.0236], [544, "Dutch oven", 0.0174], [813, "spatula", 0.0089]]},
+  "red-fox.jpg": {"top5": [[280, "grey fox", 0.2705], [278, "kit fox", 0.1714], [277, "red fox", 0.1373], [272, "coyote", 0.0622], [269, "grey wolf", 0.0342]]},
+  "space-shuttle.jpg": {"top5": [[812, "space shuttle", 0.944], [497, "church", 0.0034], [657, "missile", 0.0031], [540, "drilling rig", 0.0017], [744, "projectile", 0.0011]]}
+}

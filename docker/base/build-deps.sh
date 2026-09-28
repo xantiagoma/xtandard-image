@@ -569,6 +569,10 @@ add_sbom jemalloc "$JEMALLOC_VERSION" "cpe:2.3:a:jemalloc:jemalloc:$JEMALLOC_VER
 
 print_build_stage libraw "$LIBRAW_VERSION"
 cd "$DEPS_SRC/libraw"
+# A git snapshot (WP-103): no generated configure script. This plain build is what
+# libvips links against; build-libraw.sh rebuilds the same sources with X3F tools and
+# the GPR and DNG SDKs over it (same SONAME).
+autoreconf -fi
 # OpenMP off: libvips runs one thread per image and the runtime has no libgomp.
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" ./configure \
   --prefix="$TARGET_PATH" \

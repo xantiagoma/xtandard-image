@@ -133,7 +133,7 @@ LibRaw 0.22.2 against the market. "Default path" is the planner's choice: the em
 | **Nikon NEF** lossless / uncompressed / lossy type 1–2 / small RAW, NRW, Coolscan NEF | Z6, D3, D5300, D810 sRAW, D2H, P1100, Coolscan V | ✅ 7/7 | ✅ 7/7 | |
 | **Nikon NEF High Efficiency (HE, HE\*)** | Z50 II HE, Z8, Z f | ✅ preview | ❌ Z8/Z f 422; **Z50 II: 200 with garbage** | intoPIX TicoRAW. No open decoder exists (LibRaw 0.22 lists Nikon bodies as "standard compression only"). WP-101 guards it and falls back to the preview |
 | **Sony ARW** v1/v2, lossless compressed (S/M/L), lossy, SR2 | A100, ZV-E10 II, A1 II (lossless S, lossy), R1 SR2 | ✅ 4/4 | ✅ | Sony's "YCC" M/S pseudo-RAW is new in 0.22 |
-| Sony ARW, A7 V (2025) | 1 | ❌ | ❌ | Body newer than LibRaw 0.22.2 (WP-103: snapshots and preview fallback) |
+| Sony ARW, A7 V (2025) | 1 | ❌ | ❌ | Body newer than LibRaw 0.22.2 (WP-101: preview fallback). **WP-103: demosaics** with the LibRaw snapshot (ARW 6) |
 | **Fujifilm RAF** X-Trans compressed, lossy, lossless, GFX 16-bit, SuperCCD, Bayer X100 | X-T30 III, X-E5, GFX100RF, S9600, X100 | ✅ 5/6 | ✅ 6/6 | GFX100RF (102 MP) is over the default 50 MP pixel limit (WP-102). X-Trans demosaic is the slowest: 1.3–2 s at half size, 4.9 s for 102 MP |
 | **OM System / Olympus ORF, ORI** | OM-3, OM-5 II ORI | ✅ 2/2 | ✅ | 14-bit high-resolution decoder new in 0.22 |
 | **Panasonic RW2**, Leica RWL | G100D, S1 II, D-LUX 6 | ✅ 3/3 | ✅ | Panasonic encoding 8 new in 0.22 |
@@ -141,15 +141,15 @@ LibRaw 0.22.2 against the market. "Default path" is the planner's choice: the em
 | **Leica DNG** | M10, M9 8-bit, Monochrom (no CFA), M-series | ✅ 4/4 | ✅ | |
 | Samsung SRW | NX500 14-bit lossless | ✅ | ✅ | |
 | **Hasselblad 3FR / FFF**, Phase One IIQ (S, L), Leaf MOS | H3D, X1D II, P40+, P20+, Aptus 22 | ✅ 3/5 | ✅ 4/5 | X1D II (51 MP) is over the pixel limit. The Aptus 22 MOS file fails in LibRaw |
-| Sigma X3F (Foveon) | SD14 | ❌ | ❌ | Needs `-DUSE_X3FTOOLS` (WP-103) |
+| Sigma X3F (Foveon) | SD14 | ❌ | ❌ | Needs `-DUSE_X3FTOOLS`. **WP-103: decodes** (X3F tools) |
 | Sigma DNG (fp) | 1 | ✅ | ✅ | |
 | Minolta MRW, Kodak DCR, Epson ERF | 3 | ✅ | ✅ | |
 | **Apple ProRAW** (linear DNG, lossless JPEG, iPhone 12 Pro) and iPhone Bayer DNG | 2 | ✅ | ✅ | Newer iPhones can write ProRAW with JPEG XL compression (not in the corpus; see JXL DNG below) |
 | **Samsung Expert RAW** (linear DNG, JPEG tiles), Google Pixel, Raspberry Pi HQ | 4 | ✅ 3/4 | ✅ 4/4 | Pixel 8 Pro 50.1 MP: over the pixel limit |
 | **Drones**: DJI Mini 2, Phantom 4 Pro, Mavic 3 (Hasselblad L2D-20c) | 3 | ✅ | ✅ | |
-| **GoPro GPR** (VC-5 in DNG) | HERO11 | ❌ (probe ok) | ❌ | Needs the GoPro GPR SDK (Apache-2.0 OR MIT) (WP-103) |
+| **GoPro GPR** (VC-5 in DNG) | HERO11 | ❌ (probe ok) | ❌ | Needs the GoPro GPR SDK (Apache-2.0 OR MIT). **WP-103: decodes in the gpl image** (GPR SDK VC-5 decoder through the DNG SDK; slim/full: 422 naming the gpl image) |
 | **Lossy DNG** (Adobe, 8-bit JPEG tiles), **linear DNG** (lossy and lossless) | 3 | ✅ | ✅ | `--enable-jpeg` covers them |
-| **DNG 1.7 JPEG XL** | 1 (Canon 7D II through a DNG converter) | ✅ | ✅ | That sample keeps the Bayer data in lossless JPEG. Only its "enhanced" image and previews are JPEG XL, and LibRaw decodes the former. A DNG whose main raw IFD is JPEG XL (Lightroom's JPEG XL option, ProRAW "JPEG-XL" on recent iPhones) needs LibRaw built with the Adobe DNG SDK 1.7 and libjxl (WP-103); expect 422 until then |
+| **DNG 1.7 JPEG XL** | 1 (Canon 7D II through a DNG converter) | ✅ | ✅ | That sample keeps the Bayer data in lossless JPEG. Only its "enhanced" image and previews are JPEG XL, and LibRaw decodes the former. A DNG whose main raw IFD is JPEG XL (Lightroom's JPEG XL option, ProRAW "JPEG-XL" on recent iPhones) needs LibRaw built with the Adobe DNG SDK 1.7 and libjxl. **WP-103: decodes in the gpl image** (Adobe's JPEG XL samples and `dng/jxl-landscape.dng`); slim/full serve the embedded preview or 422 |
 | HDRMerge floating-point DNG (16-bit float, deflate) | 1 | ✅ | ✅ | |
 | CinemaDNG (Blackmagic 3:1 lossy) | 1 | ✅ | ✅ | |
 | ARRI ARI, RED R3D, Canon CRM, Blackmagic BRAW, Apple ProRes RAW | 0 | ❌ | ❌ | Cinema RAW. LibRaw dropped RED/ARRI in 0.22. BRAW and ProRes RAW need proprietary SDKs. Out of scope |
@@ -164,8 +164,8 @@ Speed (half-size demosaic, arm64 Docker, 3 concurrent requests, indicative only)
 | **rawspeed** (darktable) | LGPL-2.1, separately buildable C++ library | Decoders: ARW, CR2, CRW, DCR/DCS, DNG (LJPEG, lossy JPEG, deflate float), ERF, IIQ, KDC, MEF, MOS, MRW, NEF, ORF, PEF, RAF (incl. compressed), RW2 (Panasonic V4–V8), SRW, STI, 3FR, **VC-5 (GoPro GPR)**. **No CR3** (darktable uses LibRaw for CR3 since 3.8), no X3F, no Nikon HE, **no JPEG XL DNG** (rawspeed issue #516 open). Unpacks only; demosaic is darktable's | Not worth a second RAW stack. It would only add GPR, which the GPR SDK also gives LibRaw. LibRaw can even call rawspeed (`USE_RAWSPEED3`) for its fast paths. Any speed claim needs a benchmark (CLAUDE rule 13) |
 | **RawTherapee** (rtengine, dcraw fork) | GPL-3.0 | Similar camera list; CR3 via LibRaw-derived code. 5.11+ reads JPEG XL images; DNG 1.7 JPEG XL was requested in issue #7131 | GPL: gpl flavour only, and a whole application, not a library. No |
 | **dcraw** | Mostly public domain plus GPL parts; unmaintained since 2018 | No CR3, no modern compressions | No |
-| **Adobe DNG SDK 1.7** | Adobe DNG SDK licence (permissive, BSD-style); bundles XMP SDK (BSD) and libjxl (BSD) | DNG 1.7 incl. JPEG XL raw and Enhanced images, opcode lists | Yes, as a LibRaw option (`USE_DNGSDK`) in WP-103; needs an ADR line and a size check |
-| **GoPro GPR SDK** | Apache-2.0 OR MIT | VC-5 decode for `.gpr` | Yes, as a LibRaw option (`USE_GPRSDK`) in WP-103 |
+| **Adobe DNG SDK 1.7** | Adobe DNG SDK License Agreement (permissive, but with an indemnity clause for commercial redistribution; ADR 0006 amendment WP-103); bundles XMP SDK (BSD) and libjxl (BSD), neither used | DNG 1.7 incl. JPEG XL raw and Enhanced images, opcode lists | Yes, as a LibRaw option (`USE_DNGSDK`) in WP-103, in the gpl flavour only (owner decision 2026-09-28) |
+| **GoPro GPR SDK** | Apache-2.0 OR MIT | VC-5 decode for `.gpr` | Yes, as a LibRaw option (`USE_GPRSDK`) in WP-103; gpl only, since LibRaw reaches it through the DNG SDK |
 | **X3F tools** (Kalpanika, inside LibRaw) | BSD-style, shipped in LibRaw's tree | Foveon X3F incl. Quattro | Yes, a compile flag (`-DUSE_X3FTOOLS`) in WP-103 |
 | **ExifTool** | GPL-1.0+ or Artistic | Extracts embedded previews from every RAW, HE included | Perl, GPL/Artistic. The app can already take LibRaw's thumbnail list (`codec/raw`). No |
 | libraw-contrib / LibRaw snapshots | same as LibRaw | New bodies arrive in snapshots months before a release | Pin a snapshot per base release (WP-103) |
@@ -272,10 +272,10 @@ In priority order. Each needs an ADR line for any new dependency (ADR 0006) and 
 - **Do we have .cr3?** Yes, in every flavour, including C-RAW (lossy CR3), cropped aspect ratios and 2025 bodies (EOS R6 Mark III, PowerShot V1). Both preview and demosaic paths were verified.
 - **Lossy DNG (Lightroom "Lossy Compressed DNG", Adobe DNG Converter)?** Yes, Bayer and linear. LibRaw is built with libjpeg.
 - **Linear DNG, Apple ProRAW, Samsung Expert RAW?** Yes (demosaic of the linear data, JPEG tiles).
-- **JPEG XL DNG (DNG 1.7)?** Not for a JXL-compressed raw IFD: it needs the Adobe DNG SDK (WP-103). A DNG that only carries JXL previews or an enhanced image still decodes from its lossless JPEG raw.
+- **JPEG XL DNG (DNG 1.7)?** Yes since WP-103 in the `gpl` image (Adobe DNG SDK 1.7.1 inside LibRaw); `slim`/`full` serve its embedded preview or answer 422. A DNG that only carries JXL previews or an enhanced image decodes from its lossless JPEG raw, as before.
 - **Nikon HE/HE\*?** Preview only, and today only when the request fits the preview; a larger request is a correctness bug (WP-101). No open-source HE decoder exists.
 - **Sony lossless compressed ARW, Fujifilm compressed/lossy RAF, OM ORI, Panasonic encoding 8?** Yes.
-- **X3F, GPR?** No (WP-103).
+- **X3F, GPR?** Yes since WP-103: X3F in every flavour (X3F tools), GPR in `gpl` only (GoPro GPR SDK through the DNG SDK).
 - **rawspeed instead of LibRaw?** No: no CR3, no HE, no JXL DNG. It would add only GPR, which the GPR SDK also gives.
 - **Photoshop 16/32-bit, CMYK, Lab, duotone, smart objects?** Yes, through the composite. Lab and CMYK are converted to sRGB.
 - **Illustrator?** PDF-compatible `.ai` renders through PDFium in every flavour; PostScript `.ai` renders through Ghostscript in `gpl`.

@@ -128,6 +128,9 @@ gen dng 128 192 48 32 6 "$F/dng/portrait-orientation-6.dng"
 # (the unpack fails). Both keep the 96x64 preview.
 gen dng 192 128 96 64 1 "$F/dng/jxl-undecodable.dng" 52546
 gen dng 192 128 96 64 1 "$F/dng/deflate-corrupt.dng" 8
+# dng/jxl-landscape.dng and gpr/hero11-crop.gpr (WP-103) come from
+# testdata/gen/jxl-dng.sh and testdata/gen/gpr.sh (Adobe's and GoPro's tools,
+# built in Docker); rerun jxl-dng.sh after changing landscape.dng.
 
 # HDR inputs written in Go from the procedural scene in linear light (a sun
 # at 40, ~5% of the pixels above 1.0; `gen hdr-stats W H -` prints the

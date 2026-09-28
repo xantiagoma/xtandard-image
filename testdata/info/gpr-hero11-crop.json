@@ -1,0 +1,25 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "exif": {
+    "Date and Time (Original)": "2016:03:25 15:55:23",
+    "Exposure Time": "1/247 sec.",
+    "F-Number": "f/2.5",
+    "Focal Length": "2.7 mm",
+    "ISO Speed Ratings": "263",
+    "Manufacturer": "GoPro",
+    "Model": "HERO11 Black",
+    "Software": "H22.01.02.20.00"
+  },
+  "format": "raw",
+  "height": 12,
+  "iptc": {},
+  "mime_type": "application/octet-stream",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 33250,
+  "width": 16,
+  "xmp": {}
+}

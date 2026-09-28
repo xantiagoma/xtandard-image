@@ -781,8 +781,12 @@ func InfoOptions() []Option {
 		pro(flag("detect_objects", []string{"do"}, "false", "M3 (WP-73)", "Report detected faces and objects.")),
 		{
 			Name: "classify", Aliases: []string{"cl"}, Scope: ScopeRequest, Pro: true,
-			Forms:  []Form{{Args: []Arg{intArg("top_k", 0, transform.MaxListLen, "number of classes; 0 = off")}, Rest: []Arg{classArg()}}},
-			Syntax: "top_k:classes…", Default: "0", Milestone: "not implemented", Doc: "Classify the image (no classification model is shipped).", Example: "3",
+			Forms: []Form{{
+				Args: []Arg{intArg("top_k", 0, transform.MaxListLen, "number of classes; 0 = off")},
+				Rest: []Arg{{Name: "class_name", Type: TypeString, Pattern: `^.+$`, Doc: "a classifier class name (ImageNet-1k by default: tabby_cat, golden_retriever, pizza, ...; case-insensitive, _ for a space)"}},
+			}},
+			Syntax: "top_k:class_names…", Default: "0", Milestone: "M4 (WP-110)",
+			Doc: "Classify the image with the ImageNet classifier of the full image and report the top_k classes (ignored on slim).", Example: "3",
 		},
 		flag("colorspace", []string{"cs"}, "false", "M1", "Report the libvips interpretation."),
 		flag("bands", []string{"b"}, "false", "M1", "Report the number of bands."),

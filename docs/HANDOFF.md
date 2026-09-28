@@ -93,6 +93,14 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   then WP-103 (DNG SDK/GPR confined to gpl), one revision bump (slim r6 / full r7 / gpl r8), build
   bases (`dev*`), lint/test on slim/full/gpl, acceptance, by-hand checks, push; then orchestrator
   merges, rebuilds the demo, and launches batch 2 (WP-104, 106, 108).
+- **Base integration done (2026-09-28), branch `m4/base-integration` (pushed, not merged):** main +
+  WP-110 (5 commits) + WP-103 (3 commits) + DNG SDK/GPR confined to gpl (`build-libraw.sh
+  --with-sdks` in gpl-deps only; pins in `versions-gpl.sh`; gate: `dng-sdk=LicenseRef-Adobe-DNG-SDK`
+  only through `XI_GPL_COMPONENTS`, strict gate fails on the SDK's RTTI names) + one bump: slim r6 /
+  full r7 / gpl r8, root Dockerfile `8.18.6-r6-slim`. Local `xtandard-base:dev*` are these r6/r7/r8
+  builds (wp103*/wp110* tags removed). Verified: base checks slim/full/gpl, lint and tests on the three
+  builders, acceptance 125/125 on full and gpl release images. Next: merge, rebuild the demo
+  (`xtandard-image:main-gpl`), launch batch 2.
 - **Backlog after M3 (WP-91+):** face/object gravity on a single-frame video answers 422 (detection
   hands the container bytes to libvips; fix = detect on the decoded frame; composites already skip
   detection); `classify` has no model; detections are not used in chained pipelines; `/info` capability listing (encoders).

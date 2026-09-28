@@ -40,6 +40,19 @@ xi_raw_clear(libraw_processed_image_t *p)
   __atomic_fetch_sub(&xi_raw_images, 1, __ATOMIC_RELAXED);
 }
 
+void
+xi_raw_library(XiRawLibrary *l)
+{
+  unsigned caps = libraw_capabilities();
+
+  memset(l, 0, sizeof(*l));
+  g_strlcpy(l->version, libraw_version(), sizeof(l->version));
+  l->cameras = libraw_cameraCount();
+  l->x3f = (caps & LIBRAW_CAPS_X3FTOOLS) != 0;
+  l->dng_sdk = (caps & LIBRAW_CAPS_DNGSDK) != 0;
+  l->gpr_sdk = (caps & LIBRAW_CAPS_GPRSDK) != 0;
+}
+
 // xi_raw_error maps a LibRaw result code to an XI_ERR_* code and records
 // libraw_strerror's text in the vips error buffer.
 static int
@@ -261,6 +274,18 @@ xi_raw_load(VipsBlob *blob, const XiRawOptions *o, VipsImage **out, char **err)
     return XI_ERR_UNSUPPORTED;
   }
 
+  // With the Adobe DNG SDK built in (WP-103), LibRaw hands it JPEG XL and
+  // VC-5 (GoPro) raw data whatever this says; every other DNG keeps
+  // LibRaw's own decoders, as without the SDK.
+  lr->rawparams.use_dngsdk = LIBRAW_DNG_NONE;
+#if LIBRAW_COMPILE_CHECK_VERSION_NOTLESS(0, 22)
+  // A linear (demosaiced) DNG with lossy JPEG or JPEG XL data carries opcode
+  // lists (gain, black levels) the DNG SDK must apply before LibRaw scales
+  // it; without them Adobe's JPEG XL linear sample comes out magenta and
+  // clipped. Bayer ones decode right without (and fail with it).
+  if (lr->idata.dng_version && lr->idata.filters == 0)
+    lr->rawparams.options |= LIBRAW_RAWOPTIONS_DNG_STAGE23_IFPRESENT_JPGJXL;
+#endif
   lr->params.output_bps = 8;
   lr->params.use_camera_wb = 1;
   lr->params.output_color = 1; // sRGB
