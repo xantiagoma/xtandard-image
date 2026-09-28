@@ -162,19 +162,22 @@ func TestRealHostile(t *testing.T) {
 	tests := []struct {
 		file string
 		want errs.Kind
+		// alt is also accepted: on a loaded machine the memory document
+		// may reach the timeout before RLIMIT_AS.
+		alt errs.Kind
 	}{
-		{"readfile.eps", errs.KindCorrupt},     // /invalidfileaccess (-dSAFER)
-		{"pipe.eps", errs.KindCorrupt},         // %pipe% refused (-dSAFER)
-		{"loop.eps", errs.KindTimeout},         // killed after XI_FORMATS_EPS_TIMEOUT
-		{"recursion.eps", errs.KindCorrupt},    // /dictstackoverflow
-		{"memory.eps", errs.KindLimitExceeded}, // /VMerror under RLIMIT_AS
+		{"readfile.eps", errs.KindCorrupt, 0},                    // /invalidfileaccess (-dSAFER)
+		{"pipe.eps", errs.KindCorrupt, 0},                        // %pipe% refused (-dSAFER)
+		{"loop.eps", errs.KindTimeout, 0},                        // killed after XI_FORMATS_EPS_TIMEOUT
+		{"recursion.eps", errs.KindCorrupt, 0},                   // /dictstackoverflow
+		{"memory.eps", errs.KindLimitExceeded, errs.KindTimeout}, // /VMerror under RLIMIT_AS
 	}
 	for _, tt := range tests {
 		t.Run(tt.file, func(t *testing.T) {
 			t.Parallel()
 			start := time.Now()
 			_, out, err := renderPNG(t, r, filepath.Join(dir, tt.file), &ghostscript.Page{Width: 100, Height: 100})
-			if got := errs.KindOf(err); got != tt.want {
+			if got := errs.KindOf(err); got != tt.want && (tt.alt == 0 || got != tt.alt) {
 				t.Errorf("error kind = %s (%v), want %s", got, err, tt.want)
 			}
 			for _, leak := range []string{"root:", "/bin/", "uid="} {

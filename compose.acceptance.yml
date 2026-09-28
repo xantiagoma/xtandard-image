@@ -17,7 +17,7 @@
 #              fs sources, presets, fallback image, HEIC encode, imgproxy
 #              mount "/" with unsigned policy allow, query mount "/q/" with
 #              unsigned policy restricted, playground on the admin
-#              listener (WP-80)
+#              listener (WP-80), EPS rendering when the image has gs (WP-99)
 #   app-tiny   same image, one worker and no queue: 429 under load, then
 #              SIGTERM drain (the suite stops it)
 #
@@ -40,6 +40,8 @@ services:
     image: nginx:1.29-alpine
     volumes:
       - ./testdata/fixtures:/srv:ro
+      # WP-99: hostile PostScript for the EPS sandbox cases, at /hostile/.
+      - ./internal/ghostscript/testdata/hostile:/srv-hostile:ro
       - ./test/acceptance/testdata/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/png/palette.png"]
@@ -136,6 +138,10 @@ services:
       XI_FALLBACK_TTL: 30s
       # WP-80: the playground on the admin listener only.
       XI_PLAYGROUND_ENABLED: "true"
+      # WP-99: EPS through Ghostscript, on when the image has gs (the gpl
+      # flavour; scripts/acceptance.sh sets XI_ACC_EPS), off otherwise.
+      XI_FORMATS_EPS_ENABLED: ${XI_ACC_EPS:-false}
+      XI_FORMATS_EPS_TIMEOUT: 3s
     ports:
       - "127.0.0.1::8080"
       - "127.0.0.1::9090"
