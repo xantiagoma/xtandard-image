@@ -624,7 +624,7 @@ cd "$DEPS_SRC/imagemagick"
 # switched off explicitly (those coders need zlib at most), there are no utilities, no
 # C++/Perl bindings, no OpenMP/OpenCL, and coders are built in (no loadable modules).
 # magick-policy.xml then denies every coder except PSD/PSB, TGA, PCX, DDS, QOI, SGI,
-# SUN, XBM, XPM, PAM and XCF (GIMP, WP-107).
+# SUN, XBM, XPM, PAM, XCF (GIMP, WP-107), PICT and PCD (Photo CD, WP-108).
 ./configure \
   --prefix="$TARGET_PATH" \
   --enable-shared \
