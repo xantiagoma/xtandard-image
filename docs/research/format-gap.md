@@ -259,7 +259,7 @@ In priority order. Each needs an ADR line for any new dependency (ADR 0006) and 
     - Procreate and Kra fixtures are generated in `testdata/gen` (no public permissive samples exist).
     - Zip-bomb and path tests pass.
     - Fuzz targets per reader.
-- **WP-108 Scientific and legacy long tail** (P3, only on demand).
+- **WP-108 Scientific and legacy long tail** (P3, only on demand). Delivered 2026-09-28, with FITS, DICOM and MNG/JNG read in Go instead of the libraries named below (`docs/FORMATS.md` §1.8, ROADMAP).
   - Scope, one item per request:
     - FITS through libvips `fitsload` (cfitsio).
     - DICOM through DCMTK or GDCM (BSD-3-Clause), first frame.
