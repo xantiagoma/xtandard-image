@@ -1,0 +1,282 @@
+From: xtandard-image
+Subject: [PATCH] Harden the VC-5 decoder
+
+Found by libFuzzer + ASan/LSan on LibRaw's GPR path (WP-103). The
+decoder checks its bitstream with assert(), which NDEBUG removes:
+- the memory stream read words and bytes past the end of the buffer
+  (heap over-reads, SEGV): reads past the end now return zeros and the
+  bitstream reports an underflow, which the decoder already checks, and
+  SkipBytes moves in one step and stops at the end;
+- DecodeBandRuns wrote a run past the end of the band (heap overflow)
+  when a run was longer than the pixels left, and trusted width <= pitch;
+- the channel count (up to 255) indexed four-entry arrays, a codeblock
+  before the header (or for a channel or subband past the arrays)
+  dereferenced wavelets that were never allocated, and a failed wavelet
+  allocation was used: the header's counts and sizes are checked before
+  anything is allocated, codeblocks need the header and in-range
+  channel and subband numbers, and missing wavelets are errors;
+- DecodeImage returned without freeing the wavelets and component arrays
+  when the decode failed (leaks); ReleaseDecoderTransforms now frees
+  every allocated slot whatever counts the bitstream gave;
+- vc5_decoder_process printed to stderr on a failed decode.
+---
+--- a/source/lib/vc5_common/bitstream.c
++++ b/source/lib/vc5_common/bitstream.c
+@@ -268,7 +268,18 @@
+     
+     // The bit buffer should be empty
+     assert(bitstream->count == 0);
+-    
++
++    // Past the end of a memory stream: report the underflow (the decoder
++    // checks bitstream->error) and fill the buffer with zero bits.
++    if (bitstream->stream->type == STREAM_TYPE_MEMORY &&
++        bitstream->stream->byte_count >= bitstream->stream->location.memory.size)
++    {
++        bitstream->error = BITSTREAM_ERROR_UNDERFLOW;
++        bitstream->buffer = 0;
++        bitstream->count = bit_word_count;
++        return CODEC_ERROR_FILE_READ;
++    }
++
+     // Fill the bit buffer with a word from the byte stream
+     bitstream->buffer = Swap32(GetWord(bitstream->stream));
+     bitstream->count = bit_word_count;
+--- a/source/lib/vc5_common/stream.c
++++ b/source/lib/vc5_common/stream.c
+@@ -117,7 +117,13 @@
+             break;
+             
+         case STREAM_TYPE_MEMORY:
+-            memcpy(&buffer, (uint8_t *)stream->location.memory.buffer + stream->byte_count, sizeof(buffer));
++            // Never read past the end of the buffer: the bytes that are
++            // missing read as zero (GetBuffer reports the underflow).
++            if (stream->byte_count < stream->location.memory.size) {
++                size_t left = stream->location.memory.size - stream->byte_count;
++                memcpy(&buffer, (uint8_t *)stream->location.memory.buffer + stream->byte_count,
++                       left < sizeof(buffer) ? left : sizeof(buffer));
++            }
+             break;
+             
+         default:
+@@ -146,7 +152,9 @@
+             break;
+             
+         case STREAM_TYPE_MEMORY:
+-            byte = ((uint8_t *)stream->location.memory.buffer)[stream->byte_count];            
++            if (stream->byte_count < stream->location.memory.size) {
++                byte = ((uint8_t *)stream->location.memory.buffer)[stream->byte_count];
++            }
+             break;
+             
+         default:
+@@ -262,6 +270,18 @@
+ */
+ CODEC_ERROR SkipBytes(STREAM *stream, size_t size)
+ {
++	// A memory stream skips in one step, to the end of the buffer at most.
++	if (stream->type == STREAM_TYPE_MEMORY)
++	{
++		size_t left = stream->byte_count < stream->location.memory.size ?
++			stream->location.memory.size - stream->byte_count : 0;
++		if (size > left) {
++			stream->byte_count = stream->location.memory.size;
++			return CODEC_ERROR_FILE_READ;
++		}
++		stream->byte_count += size;
++		return CODEC_ERROR_OKAY;
++	}
+ 	for (; size > 0; size--)
+ 	{
+ 		(void)GetByte(stream);
+--- a/source/lib/vc5_decoder/decoder.c
++++ b/source/lib/vc5_decoder/decoder.c
+@@ -191,10 +191,17 @@
+     InitUnpackedImage(&unpacked_image);
+     
+     // Decode the bitstream sample into a image buffer
++    memset(&decoder, 0, sizeof(decoder));
+     error = DecodingProcess(&decoder, &bitstream, &unpacked_image, parameters);
+-    
++
+     if( error != CODEC_ERROR_OKAY )
+     {
++        // Free what the failed decode allocated.
++        if (unpacked_image.component_array_list != NULL) {
++            ReleaseComponentArrays( &parameters->allocator, &unpacked_image, unpacked_image.component_count );
++        }
++        ReleaseDecoder(&decoder);
++        ReleaseBitstream(&bitstream);
+         return error;
+     }
+ 
+@@ -635,6 +642,9 @@
+             
+             wavelet = CreateWavelet(allocator, wavelet_width, wavelet_height);
+             decoder->transform[channel_number].wavelet[wavelet_index] = wavelet;
++            if (wavelet == NULL) {
++                return CODEC_ERROR_OUTOFMEMORY;
++            }
+         }
+     }
+     
+@@ -647,17 +657,20 @@
+  */
+ CODEC_ERROR ReleaseDecoderTransforms(DECODER *decoder)
+ {
+-    int channel_count = decoder->codec.channel_count;
+     int channel_index;
+-    
+-    for (channel_index = 0; channel_index < channel_count; channel_index++)
++
++    // Every wavelet slot, whatever channel and wavelet counts the bitstream gave.
++    for (channel_index = 0; channel_index < MAX_CHANNEL_COUNT; channel_index++)
+     {
+         int wavelet_index;
+-        
+-        for (wavelet_index = 0; wavelet_index < decoder->wavelet_count; wavelet_index++)
++
++        for (wavelet_index = 0; wavelet_index < MAX_WAVELET_COUNT; wavelet_index++)
+         {
+             WAVELET *wavelet = decoder->transform[channel_index].wavelet[wavelet_index];
+-            DeleteWavelet(decoder->allocator, wavelet);
++            if (wavelet != NULL) {
++                DeleteWavelet(decoder->allocator, wavelet);
++                decoder->transform[channel_index].wavelet[wavelet_index] = NULL;
++            }
+         }
+     }
+     
+@@ -827,7 +840,9 @@
+         for (wavelet_index = 0; wavelet_index < wavelet_count; wavelet_index++)
+         {
+             WAVELET *wavelet = decoder->transform[channel_index].wavelet[wavelet_index];
+-            wavelet->valid_band_mask = 0;
++            if (wavelet != NULL) {
++                wavelet->valid_band_mask = 0;
++            }
+         }
+     }
+     
+@@ -933,7 +948,7 @@
+     for (channel = 0; channel < channel_count; channel++)
+     {
+         WAVELET *wavelet = decoder->transform[channel].wavelet[index];
+-        if ((wavelet->valid_band_mask & BandValidMask(0)) == 0) {
++        if (wavelet == NULL || (wavelet->valid_band_mask & BandValidMask(0)) == 0) {
+             return false;
+         }
+     }
+@@ -1147,6 +1162,9 @@
+     {
+         case CODEC_TAG_ChannelCount:		// Number of channels in the transform
+             assert(0 < value && value <= MAX_CHANNEL_COUNT);
++            if (! (0 < value && value <= MAX_CHANNEL_COUNT)) {
++                return CODEC_ERROR_BITSTREAM_SYNTAX;
++            }
+             codec->channel_count = (uint_least8_t)value;
+             codec->header = true;
+             break;
+@@ -1482,9 +1500,21 @@
+         decoder->header_finished &&
+         !decoder->memory_allocated)
+     {
++        // xtandard-image: the counts and sizes index fixed arrays and size
++        // the allocations; the bitstream is untrusted.
++        if (codec->channel_count == 0 || codec->channel_count > MAX_CHANNEL_COUNT ||
++            decoder->wavelet_count <= 0 || decoder->wavelet_count > MAX_WAVELET_COUNT ||
++            codec->image_width == 0 || codec->image_height == 0 ||
++            codec->image_width > 32768 || codec->image_height > 32768) {
++            return CODEC_ERROR_IMAGE_DIMENSIONS;
++        }
++
+         // Allocate space for the wavelet transforms
+-        AllocDecoderTransforms(decoder);
+-        
++        error = AllocDecoderTransforms(decoder);
++        if (error != CODEC_ERROR_OKAY) {
++            return error;
++        }
++
+         // Allocate all buffers required for decoding
+         AllocDecoderBuffers(decoder);
+         
+@@ -1500,6 +1530,14 @@
+     if (codec->codeblock)
+     {
+         const int channel_number = codec->channel_number;
++
++        // xtandard-image: a codeblock needs the header (and the wavelets it
++        // sizes) and a channel and subband inside the arrays.
++        if (!decoder->memory_allocated ||
++            channel_number < 0 || channel_number >= codec->channel_count ||
++            codec->subband_number < 0 || codec->subband_number >= MAX_SUBBAND_COUNT) {
++            return CODEC_ERROR_BITSTREAM_SYNTAX;
++        }
+         
+         // Have the channel dimensions been initialized?
+         if (!decoder->channel[channel_number].initialized)
+@@ -1755,9 +1793,12 @@
+         
+         // Get the wavelet that contains the highpass band
+         wavelet = decoder->transform[channel_number].wavelet[index];
+-        
++
+         // The wavelets are preallocated
+         assert(wavelet != NULL);
++        if (wavelet == NULL) {
++            return CODEC_ERROR_OUTOFMEMORY;
++        }
+         
+         error = DecodeHighpassBand(decoder, input, wavelet, band);
+         if (error == CODEC_ERROR_OKAY)
+@@ -1784,7 +1825,10 @@
+         
+         // The wavelets are preallocated
+         assert(wavelet != NULL);
+-        
++        if (wavelet == NULL) {
++            return CODEC_ERROR_OUTOFMEMORY;
++        }
++
+         error = DecodeLowpassBand(decoder, input, wavelet);
+         if (error == CODEC_ERROR_OKAY)
+         {
+@@ -2005,6 +2049,9 @@
+     
+     // Check that the band dimensions are reasonable
+     assert(width <= pitch);
++    if (width > pitch) {
++        return CODEC_ERROR_IMAGE_DIMENSIONS;
++    }
+     
+     // Compute the number of pixels encoded into the band
+     data_count = height * width;
+@@ -2020,6 +2067,9 @@
+         
+         // Check that the run does not extend past the end of the band
+         assert(run.count <= data_count);
++        if (run.count > data_count) {
++            return CODEC_ERROR_DECODING_SUBBAND;
++        }
+         
+         // Copy the value into the specified number of pixels in the band
+         while (run.count > 0)
+--- a/source/lib/vc5_decoder/vc5_decoder.c
++++ b/source/lib/vc5_decoder/vc5_decoder.c
+@@ -91,7 +91,6 @@
+ 
+     error = OpenStreamBuffer(&input, vc5_buffer->buffer, vc5_buffer->size );
+     if (error != CODEC_ERROR_OKAY) {
+-        fprintf(stderr, "Could not open input vc5 stream\n" );
+         return error;
+     }
+ 
+@@ -100,7 +99,6 @@
+     
+     error = DecodeImage(&input, &output_image, &rgb_image, &parameters);
+     if (error != CODEC_ERROR_OKAY) {
+-        fprintf(stderr, "Could not decode input vc5 bitstream. Error number %d\n", error );
+         return error;
+     }
+     

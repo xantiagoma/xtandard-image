@@ -10,14 +10,17 @@
 #   runtime       shared libraries only, non-root, jemalloc preloaded (published as *-slim; default)
 #   builder-full  builder + FFmpeg (LGPL) + ONNX Runtime headers/libs + models (*-full-builder)
 #   runtime-full  runtime + FFmpeg (LGPL) libs/CLIs + ONNX Runtime + models (*-full)
-#   builder-gpl   builder-full with FFmpeg rebuilt as GPL + x264 + x265 + gs (*-gpl-builder)
-#   runtime-gpl   runtime-full with FFmpeg rebuilt as GPL + x264 + x265 + gs (*-gpl)
+#   builder-gpl   builder-full with FFmpeg rebuilt as GPL + x264 + x265 + gs, and LibRaw
+#                 rebuilt with the Adobe DNG SDK and GoPro GPR SDK (*-gpl-builder)
+#   runtime-gpl   runtime-full with the same gpl additions (*-gpl)
 #
 # The full stages reuse the slim ones: full-deps starts from the finished slim `deps`
 # stage, so slim and full share every slim layer and the slim image does not change
 # when a full-only component (versions-full.sh) moves. The gpl stages reuse full the
 # same way (gpl-deps starts from full-deps; pins in versions-gpl.sh), so a gpl-only
-# change never rebuilds or changes slim or full. slim and full contain no GPL code.
+# change never rebuilds or changes slim or full. slim and full contain no GPL code,
+# and no Adobe DNG SDK (owner decision 2026-09-28: its licence ships in gpl only;
+# slim and full never copy from libraw-deps-src or read its pins in versions-gpl.sh).
 #
 # Build natively per architecture (no cross compilation):
 #   docker buildx build --platform linux/arm64 --target builder -t xtandard-base:dev-builder docker/base
@@ -54,6 +57,17 @@ FROM base AS deps-src
 
 COPY versions.sh download-deps.sh ./
 RUN ./download-deps.sh
+
+# ==============================================================================
+# LibRaw's SDKs (WP-103): Adobe DNG SDK and GoPro GPR SDK, trimmed to what
+# `build-libraw.sh --with-sdks` compiles. Used by the gpl flavor only (gpl-deps).
+FROM base AS libraw-deps-src
+
+RUN apt-get update \
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends unzip \
+  && rm -rf /var/lib/apt/lists/*
+COPY versions-gpl.sh download-libraw-deps.sh ./
+RUN ./download-libraw-deps.sh
 
 # ==============================================================================
 FROM base AS deps
@@ -97,8 +111,13 @@ RUN ./build-deps.sh
 
 # jxrlib (WP-97) in its own layer: a change to its patches rebuilds only this step.
 COPY build-jxrlib.sh ./
-COPY patches ./patches
+COPY patches/jxrlib ./patches/jxrlib
 RUN ./build-jxrlib.sh
+
+# LibRaw rebuilt with the X3F tools (WP-103), in its own layer. The DNG and GPR SDKs
+# are added in gpl-deps only.
+COPY build-libraw.sh ./
+RUN ./build-libraw.sh
 
 # Split the prefix into what the runtime needs and what only the builder needs.
 # The runtime keeps the vips and vipsheader CLIs (diagnostics, verify-image.sh) and only
@@ -137,7 +156,18 @@ RUN ./download-gpl-deps.sh
 # ==============================================================================
 FROM full-deps AS gpl-deps
 
-COPY versions-gpl.sh build-gpl-deps.sh ./
+# LibRaw rebuilt once more with the X3F tools, the Adobe DNG SDK and the GoPro GPR SDK
+# (WP-103; the DNG SDK licence ships in this flavor only, owner decision 2026-09-28),
+# over the full flavor's LibRaw (same sources and SONAME). Before build-gpl-deps.sh so
+# LICENSE-GPL.md lists dng-sdk and gpr.
+COPY versions-gpl.sh ./
+COPY patches/libraw ./patches/libraw
+COPY patches/dng-sdk ./patches/dng-sdk
+COPY patches/gpr ./patches/gpr
+COPY --from=libraw-deps-src /root/libraw-deps /root/libraw-deps
+RUN ./build-libraw.sh --with-sdks
+
+COPY build-gpl-deps.sh ./
 COPY --from=gpl-deps-src /root/gpl-deps /root/gpl-deps
 # A pristine copy of the full flavor's FFmpeg tarball (full-deps built in its own tree).
 COPY --from=full-deps-src /root/full-deps/ffmpeg /root/gpl-deps/ffmpeg

@@ -9,7 +9,7 @@
 # Forbidden components are listed in check-licenses.sh (ADR 0006); never add them here.
 
 # Image revision: bump when the image changes without a libvips version change.
-export XI_BASE_REVISION=5
+export XI_BASE_REVISION=6
 export XI_BASE_FLAVOR=slim
 
 # --- Toolchains ---------------------------------------------------------------
@@ -111,8 +111,16 @@ export JEMALLOC_SHA256=200776fac271093e7c2f21edd6d62657ecd2be578d9328633f2a86bfa
 # built with the coder policy in magick-policy.xml (PSD, and the legacy formats of
 # WP-97); PDFium is BSD-3-Clause
 # (prebuilt by bblanchon/pdfium-binaries, MIT; PDFIUM_VERSION is the Chromium build).
-export LIBRAW_VERSION=0.22.2
-export LIBRAW_SHA256=de86b035655accff8d4010f1a221fdf50d353cb7b1422ba26f14a0db92612cfa
+# LibRaw is a snapshot of its master branch (WP-103: a snapshot per base release, for
+# bodies newer than the last release; the camera-list diff is in README.md), fetched as
+# a GitHub archive of the commit. Its version header still says 0.22.0; the SONAME is
+# libraw_r.so.26. build-libraw.sh rebuilds it with the X3F tools (BSD-3-Clause, in
+# LibRaw's tree) in every flavour; the gpl flavour rebuilds it once more with the Adobe
+# DNG SDK and the GoPro GPR SDK, whose pins live in versions-gpl.sh (owner decision
+# 2026-09-28: the DNG SDK licence ships only in gpl).
+export LIBRAW_VERSION=0.22-snapshot-20260925
+export LIBRAW_COMMIT=0694b5ac18ac19dfe6a18e11104ad190682222bd
+export LIBRAW_SHA256=5257832672c82a42b1348d64d6ca8e0007af3aa771111cf9a977aad315674ff2
 export IMATH_VERSION=3.2.3
 export IMATH_SHA256=e10c12b3f21f45bf08e09d4215d9c7691368d747beebd840de0b6fefed2df9f8
 export OPENEXR_VERSION=3.4.15

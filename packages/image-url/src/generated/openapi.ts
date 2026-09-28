@@ -587,7 +587,7 @@ export interface components {
              */
             calc_hashsums?: ("md5" | "sha1" | "sha256" | "sha512" | null)[];
             /**
-             * @description Classify the image (no classification model is shipped). URL: `classify`, `cl`; arguments top_k:classes…; default 0.
+             * @description Classify the image with the ImageNet classifier of the full image and report the top_k classes (ignored on slim). URL: `classify`, `cl`; arguments top_k:class_names…; default 0.
              * @example [
              *       3
              *     ]
@@ -1844,6 +1844,20 @@ export interface components {
                 number
             ];
         };
+        InfoClass: {
+            /**
+             * Format: int64
+             * @description Class index in the classifier's output (the ImageNet-1k class id by default).
+             */
+            class_id: number;
+            /**
+             * Format: double
+             * @description Class probability, 0-1.
+             */
+            confidence: number;
+            /** @description Class name (ImageNet-1k: tabby cat, golden retriever, pizza, ...). */
+            name: string;
+        };
         InfoContainer: {
             /** @description What the image is to the document: composite (full-size flattened image), thumbnail (reduced copy), preview (first page) or document (SVGZ: the whole document, decompressed). */
             content: string;
@@ -1939,6 +1953,8 @@ export interface components {
             bands?: number;
             /** @description BlurHash string (info option blurhash). */
             blurhash?: string;
+            /** @description The top_k classes of the image classifier (ImageNet-1k by default), best first; absent when no classifier is available (the option is then listed in X-Xi-Ignored) (info option classify). */
+            classification?: components["schemas"]["InfoClass"][] | null;
             /** @description libvips interpretation name: srgb, b-w, rgb16, cmyk, ... (info option colorspace). */
             colorspace?: string;
             /** @description xtandard-image extension (info option format): the source is a designer document (OpenRaster, Krita, Procreate, Sketch, SVGZ, Paint.NET) and format, dimensions and the other fields describe the image embedded in it; absent otherwise. */
@@ -2172,6 +2188,8 @@ export interface components {
             formats: string[] | null;
             /** @description Public sample files per input format and variant (docs/research/format-gap.md), fetched through the http sources. */
             gallery: components["schemas"]["PlaygroundGallerySample"][] | null;
+            /** @description imgproxy /info options (internal/apidoc, the ImgproxyInfoOptions schema) for the Info panel's builder. */
+            info_options: components["schemas"]["PlaygroundOption"][] | null;
             /**
              * Format: int64
              * @description Largest upload in bytes (XI_LIMITS_MAX_SRC_BYTES).
@@ -2238,6 +2256,8 @@ export interface components {
         PlaygroundOption: {
             /** @description Accepted short names. */
             aliases?: string[] | null;
+            /** @description Value used when the option is absent, as imgproxy documents it (info options). */
+            default?: string;
             /** @description One-line description. */
             doc?: string;
             /** @description A valid argument string. */
@@ -2245,10 +2265,10 @@ export interface components {
             /** @description Accepted argument shapes; most options have one. */
             forms: components["schemas"]["PlaygroundForm"][] | null;
             /**
-             * @description Builder category.
+             * @description Builder category; report, hashes and security are Info panel groups.
              * @enum {string}
              */
-            group?: "size" | "gravity" | "format" | "color" | "effects" | "watermark" | "metadata" | "frames" | "detection" | "delivery" | "presets" | "other";
+            group?: "size" | "gravity" | "format" | "color" | "effects" | "watermark" | "metadata" | "frames" | "detection" | "delivery" | "presets" | "other" | "report" | "hashes" | "security";
             /** @description Milestone that implements the option. */
             milestone?: string;
             /** @description Canonical name. */

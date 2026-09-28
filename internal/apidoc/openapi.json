@@ -516,16 +516,16 @@
             "x-xi-syntax": "md5, sha1, sha256, sha512…"
           },
           "classify": {
-            "description": "Classify the image (no classification model is shipped). URL: `classify`, `cl`; arguments top_k:classes…; default 0.",
+            "description": "Classify the image with the ImageNet classifier of the full image and report the top_k classes (ignored on slim). URL: `classify`, `cl`; arguments top_k:class_names…; default 0.",
             "examples": [
               [
                 3
               ]
             ],
             "items": {
-              "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
+              "description": "a classifier class name (ImageNet-1k by default: tabby_cat, golden_retriever, pizza, ...; case-insensitive, _ for a space)",
               "pattern": "^.+$",
-              "title": "class",
+              "title": "class_name",
               "type": "string"
             },
             "minItems": 1,
@@ -543,10 +543,10 @@
               "cl"
             ],
             "x-xi-default": "0",
-            "x-xi-milestone": "not implemented",
+            "x-xi-milestone": "M4 (WP-110)",
             "x-xi-pro": true,
             "x-xi-scope": "request",
-            "x-xi-syntax": "top_k:classes…"
+            "x-xi-syntax": "top_k:class_names…"
           },
           "colorspace": {
             "description": "Report the libvips interpretation. URL: `colorspace`, `cs`; arguments bool; default false.",
@@ -5587,6 +5587,33 @@
         },
         "type": "object"
       },
+      "InfoClass": {
+        "additionalProperties": false,
+        "properties": {
+          "class_id": {
+            "description": "Class index in the classifier's output (the ImageNet-1k class id by default).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "confidence": {
+            "description": "Class probability, 0-1.",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "name": {
+            "description": "Class name (ImageNet-1k: tabby cat, golden retriever, pizza, ...).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "class_id",
+          "name",
+          "confidence"
+        ],
+        "type": "object"
+      },
       "InfoContainer": {
         "additionalProperties": false,
         "properties": {
@@ -5815,6 +5842,16 @@
           "blurhash": {
             "description": "BlurHash string (info option blurhash).",
             "type": "string"
+          },
+          "classification": {
+            "description": "The top_k classes of the image classifier (ImageNet-1k by default), best first; absent when no classifier is available (the option is then listed in X-Xi-Ignored) (info option classify).",
+            "items": {
+              "$ref": "#/components/schemas/InfoClass"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "colorspace": {
             "description": "libvips interpretation name: srgb, b-w, rgb16, cmyk, ... (info option colorspace).",

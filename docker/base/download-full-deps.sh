@@ -1,7 +1,8 @@
 #!/bin/bash
 # Downloads, verifies (SHA256) and unpacks the components of the `full` flavor
 # (WP-70) listed in versions-full.sh: libvpx and FFmpeg sources, the prebuilt ONNX
-# Runtime for this architecture, and the detection models with their licences.
+# Runtime for this architecture, and the detection and classification models with
+# their licences.
 #
 # Same conventions as download-deps.sh (kept separate so the slim stages never
 # change when a full-only pin moves).
@@ -110,3 +111,8 @@ fetch_file YOLOX_SHA256 models/yolox_s.onnx \
   "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/${YOLOX_VERSION}/yolox_s.onnx"
 fetch_file YOLOX_LICENSE_SHA256 models/yolox_s.LICENSE \
   "https://raw.githubusercontent.com/Megvii-BaseDetection/YOLOX/${YOLOX_VERSION}/LICENSE"
+classifier_path="Computer_Vision/mobilenetv3_large_100_Opset17_timm/mobilenetv3_large_100_Opset17.onnx"
+fetch_file CLASSIFIER_SHA256 models/mobilenetv3_large_100.onnx \
+  "https://media.githubusercontent.com/media/onnx/models/${CLASSIFIER_COMMIT}/${classifier_path}"
+fetch_file CLASSIFIER_LICENSE_SHA256 models/mobilenetv3_large_100.LICENSE \
+  "https://raw.githubusercontent.com/onnx/models/${CLASSIFIER_COMMIT}/LICENSE"

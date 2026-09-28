@@ -610,6 +610,9 @@ type Detect struct {
 	// paths); empty disables that model.
 	FaceModel   string `yaml:"face_model"   env:"FACE_MODEL"`
 	ObjectModel string `yaml:"object_model" env:"OBJECT_MODEL"`
+	// Classify configures the image classifier of the /info classify
+	// option (WP-110).
+	Classify DetectClassify `yaml:"classify" envPrefix:"CLASSIFY_"`
 	// Threads is ONNX Runtime's intra-op threads per inference.
 	Threads int `yaml:"threads" env:"THREADS"`
 	// Workers bounds concurrent inferences; 0 is GOMAXPROCS / Threads.
@@ -624,6 +627,26 @@ type Detect struct {
 	// SmartFaces makes smart gravity crop on detected faces when there are
 	// some (and the face model is loaded); false keeps libvips attention.
 	SmartFaces bool `yaml:"smart_faces" env:"SMART_FACES"`
+}
+
+// DetectClassify configures image classification (internal/detect
+// Classify): an ImageNet-style ONNX classifier, run on CPU only when a
+// request asks for it (its session is created on first use).
+type DetectClassify struct {
+	// Model is a file name in Detect.ModelsDir (or an absolute path); empty
+	// disables classification. A missing file disables classification
+	// only, while detection keeps running.
+	Model string `yaml:"model" env:"MODEL"`
+	// Labels is the class names file of Model, one per line in output
+	// order; empty uses the embedded ImageNet-1k names (1000 outputs).
+	Labels string `yaml:"labels" env:"LABELS"`
+	// Normalization scales the input: imagenet (mean/std, timm and
+	// torchvision models), full ([-1, 1]), half ([0, 1]) or none (0-255).
+	Normalization Normalization `yaml:"normalization" env:"NORMALIZATION"`
+	// TopKMax caps the classes one request gets (classify:top_k).
+	TopKMax int `yaml:"top_k_max" env:"TOP_K_MAX"`
+	// Threshold drops classes whose probability is below it.
+	Threshold float64 `yaml:"threshold" env:"THRESHOLD"`
 }
 
 // Cache configures HTTP cache headers and the result/origin caches.
@@ -852,10 +875,13 @@ func Defaults() Config {
 			ModelsDir:   "/usr/share/xtandard/models",
 			FaceModel:   "face_detection_yunet_2023mar.onnx",
 			ObjectModel: "yolox_s.onnx",
-			Threads:     1,
-			MaxInput:    640,
-			CacheSize:   512,
-			SmartFaces:  true,
+			Classify: DetectClassify{
+				Model: "mobilenetv3_large_100.onnx", Normalization: NormalizeImageNet, TopKMax: 20,
+			},
+			Threads:    1,
+			MaxInput:   640,
+			CacheSize:  512,
+			SmartFaces: true,
 		},
 		Cache: Cache{
 			Headers:    CacheHeaders{TTL: 31_536_000 * time.Second, ErrorTTL: 10 * time.Second},

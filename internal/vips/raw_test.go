@@ -85,12 +85,18 @@ func TestProbeRawErrors(t *testing.T) {
 // file (WP-101) and still lists its previews.
 func TestProbeRawUndecodable(t *testing.T) {
 	t.Parallel()
+	// JPEG XL raw data has a decoder once LibRaw has the Adobe DNG SDK
+	// (WP-103; the base image's LibRaw, not a system one).
+	jxl := vips.RawNoDecoder
+	if vips.RawLibraryInfo().DNGSDK {
+		jxl = vips.RawDecodable
+	}
 	for _, tc := range []struct {
 		fixture string
 		want    vips.RawUndecodable
 	}{
 		{"dng/landscape.dng", vips.RawDecodable},
-		{"dng/jxl-undecodable.dng", vips.RawNoDecoder},
+		{"dng/jxl-undecodable.dng", jxl},
 		// Decodable as far as the header tells: the unpack fails.
 		{"dng/deflate-corrupt.dng", vips.RawDecodable},
 	} {
@@ -158,6 +164,13 @@ func TestRawLoad(t *testing.T) {
 func TestRawLoadErrors(t *testing.T) {
 	t.Parallel()
 	dng := readFixture(t, "dng/landscape.dng")
+	// Without the DNG SDK a JPEG XL mosaic is refused before unpacking;
+	// with it, the SDK fails on the fixture's (uncompressed) data and
+	// LibRaw's placeholder decoder answers "unsupported" in the unpack.
+	jxlName, jxlKind := "no decoder (jpeg xl dng)", errs.KindUnsupported
+	if vips.RawLibraryInfo().DNGSDK {
+		jxlName = "jpeg xl data does not decode"
+	}
 	for _, tc := range []struct {
 		name     string
 		canceled bool
@@ -169,7 +182,7 @@ func TestRawLoadErrors(t *testing.T) {
 		{"truncated mosaic", false, dng[:len(dng)-20_000], vips.RawOptions{}, errs.KindCorrupt},
 		{"not a raw", false, readFixture(t, "png/rgba8.png"), vips.RawOptions{}, errs.KindUnsupported},
 		// Refused before unpacking: never demosaiced into wrong pixels.
-		{"no decoder (jpeg xl dng)", false, readFixture(t, "dng/jxl-undecodable.dng"), vips.RawOptions{}, errs.KindUnsupported},
+		{jxlName, false, readFixture(t, "dng/jxl-undecodable.dng"), vips.RawOptions{}, jxlKind},
 		{"unpack fails", false, readFixture(t, "dng/deflate-corrupt.dng"), vips.RawOptions{}, errs.KindCorrupt},
 		{"canceled", true, dng, vips.RawOptions{}, errs.KindCanceled},
 	} {
@@ -280,15 +293,19 @@ func TestProbeRawHeaderOnly(t *testing.T) {
 // counts return to their baseline. Not parallel: the counters are global.
 func TestRawNoLeak(t *testing.T) {
 	const cycles = 200
-	dng := readFixture(t, "dng/landscape.dng")
+	inputs := [][]byte{readFixture(t, "dng/landscape.dng")}
+	if vips.RawLibraryInfo().DNGSDK {
+		// Through the Adobe DNG SDK and the dng_host each handle owns.
+		inputs = append(inputs, readFixture(t, "dng/jxl-landscape.dng"))
+	}
 	cycle := func(i int) {
-		buf := newBuffer(t, dng)
+		buf := newBuffer(t, inputs[i%len(inputs)])
 		defer buf.Release()
 		job(t, func(ctx context.Context, a *vips.Arena) error {
 			if _, err := vips.ProbeRaw(ctx, buf); err != nil {
 				return err
 			}
-			img, err := a.Add(vips.RawLoad(ctx, buf, &vips.RawOptions{HalfSize: i%2 == 0}))
+			img, err := a.Add(vips.RawLoad(ctx, buf, &vips.RawOptions{HalfSize: i%4 < 2}))
 			if err != nil {
 				return err
 			}

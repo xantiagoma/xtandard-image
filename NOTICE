@@ -37,6 +37,24 @@ docker/base/patches/jxrlib (three from Debian's jxrlib package and two
 from YOKOTA Hiroshi via Debian, the rest ours; README.md there), for the
 JPEG XR loader in internal/vips/jxr.c.
 
+Every base image flavor also builds LibRaw (LGPL-2.1, a snapshot of
+https://github.com/LibRaw/LibRaw) with optional decoders compiled into
+libraw_r (WP-103), with the patches in docker/base/patches:
+- in every flavor: X3F tools (Sigma X3F), inside LibRaw's tree,
+  Copyright (c) 2010 Roland Karlsson, BSD-3-Clause;
+- in the gpl flavor only (docker/base/versions-gpl.sh):
+  - the Adobe DNG SDK 1.7.1 (DNG 1.7 JPEG XL raw data), Copyright Adobe
+    Inc., under the DNG SDK License Agreement (shipped as
+    share/licenses/dng-sdk/LICENSE.txt). Adobe and the DNG logo are
+    trademarks of Adobe Inc.; this project is not endorsed by Adobe;
+  - the GoPro GPR SDK (VC-5 decoder for GoPro .GPR),
+    https://github.com/gopro/gpr, Copyright (c) 2018 GoPro, Inc.,
+    Apache-2.0 OR MIT.
+Test fixtures testdata/fixtures/dng/jxl-landscape.dng and
+testdata/fixtures/gpr/hero11-crop.gpr were produced with Adobe's
+dng_validate and GoPro's gpr_tools (testdata/gen/jxl-dng.sh, gpr.sh);
+neither tool is shipped.
+
 The full base image flavor (docker/base/versions-full.sh) additionally
 ships, unmodified or built from unmodified sources:
 - FFmpeg 8.1 (https://ffmpeg.org/), GNU Lesser General Public License
@@ -53,8 +71,20 @@ ships, unmodified or built from unmodified sources:
 - YOLOX-s object detection model yolox_s.onnx
   (https://github.com/Megvii-BaseDetection/YOLOX), Copyright (c) 2021-2022
   Megvii Inc., Apache License 2.0.
+- MobileNetV3-Large ImageNet classification model
+  mobilenetv3_large_100.onnx: timm's mobilenetv3_large_100 weights
+  (https://github.com/huggingface/pytorch-image-models, Copyright 2019 Ross
+  Wightman, Apache License 2.0) exported to ONNX by the ONNX Model Zoo
+  (https://github.com/onnx/models, Apache License 2.0).
 Model licences are shipped next to each model in
 /usr/share/xtandard/models/ and in share/licenses/models/.
+
+The ImageNet class names embedded in the binary
+(internal/detect/imagenet_labels.txt) are imagenet-simple-labels by Anish
+Athalye (https://github.com/anishathalye/imagenet-simple-labels), dedicated
+to the public domain, derived from the WordNet synsets of ImageNet
+(WordNet 3.0, Copyright 2006 Princeton University, WordNet licence:
+permission to use, copy, modify and distribute without fee).
 
 gpl base image flavor (contains GPL and AGPL software)
 ------------------------------------------------------

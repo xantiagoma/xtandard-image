@@ -64,6 +64,17 @@ type Options struct {
 	// ObjectModel is a YOLOX (COCO, 80 classes) ONNX file; empty disables
 	// Objects.
 	ObjectModel string
+	// ClassifyModel is an image classifier ONNX file (ImageNet-1k by
+	// default); empty disables Classify. Its session is created on the
+	// first Classify call. A missing file disables Classify only (see
+	// ClassifyUnavailable) unless it is the only model configured.
+	ClassifyModel string
+	// ClassifyLabels is the class names file of ClassifyModel, one per
+	// line in output order; empty uses the embedded ImageNet-1k names.
+	ClassifyLabels string
+	// ClassifyNormalization scales the classifier's input (default
+	// NormalizeImageNet).
+	ClassifyNormalization Normalization
 	// VerifyChecksums checks each model against the SHA256SUMS file of its
 	// directory when it lists the model.
 	VerifyChecksums bool
@@ -103,9 +114,9 @@ type Detection struct {
 
 // ModelInfo describes a loaded model, for startup logs.
 type ModelInfo struct {
-	Kind     string // "face" or "object"
+	Kind     string // "face", "object" or "classify"
 	Path     string
-	Input    string // e.g. "640x640", or "dynamic"
+	Input    string // e.g. "640x640", "dynamic", or "lazy" (a classifier not loaded yet)
 	Checksum string // "verified", "unlisted" (not in SHA256SUMS) or "skipped"
 }
 
@@ -129,12 +140,16 @@ type model struct {
 // image through libvips). A nil *Detector is valid and reports
 // ErrUnavailable, so callers need no special case for slim deployments.
 type Detector struct {
-	rt       *ort.Runtime
-	face     *model
-	object   *model
-	sem      *semaphore.Weighted
-	maxInput int
-	opts     Options
+	rt         *ort.Runtime
+	face       *model
+	object     *model
+	classifier *classifier // nil: no classification
+	// classifyErr is why the configured classifier is unavailable (its
+	// file is missing while the detection models are there); nil otherwise.
+	classifyErr error
+	sem         *semaphore.Weighted
+	maxInput    int
+	opts        Options
 }
 
 // New loads ONNX Runtime and the configured models. Nothing is loaded
@@ -143,7 +158,7 @@ type Detector struct {
 // or unexpected model, a checksum mismatch) is a configuration error.
 func New(options *Options) (*Detector, error) {
 	opts := withDefaults(options)
-	if opts.FaceModel == "" && opts.ObjectModel == "" {
+	if opts.FaceModel == "" && opts.ObjectModel == "" && opts.ClassifyModel == "" {
 		return nil, errs.New(errs.KindInternal, "detect: no model configured")
 	}
 	if opts.Library == "" {
@@ -154,12 +169,26 @@ func New(options *Options) (*Detector, error) {
 		path       string
 		checksum   string
 	}
-	var models []pending
-	for _, m := range []pending{{kind: modelFace, name: opts.FaceModel}, {kind: modelObject, name: opts.ObjectModel}} {
+	var (
+		models      []pending
+		classify    *classifier
+		classifyErr error
+	)
+	for _, m := range []pending{
+		{kind: modelFace, name: opts.FaceModel},
+		{kind: modelObject, name: opts.ObjectModel},
+		{kind: modelClassify, name: opts.ClassifyModel},
+	} {
 		if m.name == "" {
 			continue
 		}
 		path, err := resolveModel(opts.ModelsDir, m.name)
+		if m.kind == modelClassify && errors.Is(err, ErrUnavailable) && (opts.FaceModel != "" || opts.ObjectModel != "") {
+			// A models directory with the detection models but not the
+			// classifier keeps detecting.
+			classifyErr = err
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -174,6 +203,18 @@ func New(options *Options) (*Detector, error) {
 				m.checksum = "verified"
 			}
 		}
+		if m.kind == modelClassify {
+			classify = &classifier{
+				info: ModelInfo{Kind: modelClassify, Path: m.path, Input: "lazy", Checksum: m.checksum},
+				norm: opts.ClassifyNormalization,
+			}
+			if opts.ClassifyLabels != "" {
+				if classify.labels, err = readClassNames(opts.ClassifyLabels); err != nil {
+					return nil, err
+				}
+			}
+			continue
+		}
 		models = append(models, m)
 	}
 
@@ -185,10 +226,12 @@ func New(options *Options) (*Detector, error) {
 		return nil, errs.Wrap(errs.KindInternal, err)
 	}
 	d := &Detector{
-		rt:       rt,
-		sem:      semaphore.NewWeighted(int64(opts.Workers)),
-		maxInput: opts.MaxInput,
-		opts:     opts,
+		rt:          rt,
+		classifier:  classify,
+		classifyErr: classifyErr,
+		sem:         semaphore.NewWeighted(int64(opts.Workers)),
+		maxInput:    opts.MaxInput,
+		opts:        opts,
 	}
 	for _, p := range models {
 		m, err := loadModel(rt, p.kind, p.path, opts.Threads)
@@ -302,6 +345,9 @@ func (d *Detector) Close() {
 			m.session.Close()
 		}
 	}
+	if d.classifier != nil {
+		d.classifier.close()
+	}
 	d.rt.Close()
 }
 
@@ -324,7 +370,21 @@ func (d *Detector) Models() []ModelInfo {
 			out = append(out, m.info)
 		}
 	}
+	if c := d.classifier; c != nil {
+		c.mu.Lock()
+		out = append(out, c.info)
+		c.mu.Unlock()
+	}
 	return out
+}
+
+// ClassifyUnavailable reports why the configured classifier is missing
+// while the detection models are loaded, or nil.
+func (d *Detector) ClassifyUnavailable() error {
+	if d == nil {
+		return nil
+	}
+	return d.classifyErr
 }
 
 // HasFaces reports whether Faces can run.

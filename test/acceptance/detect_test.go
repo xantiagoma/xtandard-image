@@ -97,3 +97,56 @@ func TestDetection(t *testing.T) {
 	)
 	runImageCases(t, app, cases)
 }
+
+// TestClassification: the /info classify option (WP-110). The full image
+// classifies with MobileNetV3-Large: the cat on the laptop comes first as
+// a Siamese cat (the reference reading, testdata/classify) and the class
+// filter keeps the named classes. The slim image has no classifier: the
+// answer leaves classification out and X-Xi-Ignored says so. Which image
+// this is comes from /info detect_objects, as in TestDetection.
+func TestClassification(t *testing.T) {
+	t.Parallel()
+	app := base(t, "XI_ACC_APP")
+	const (
+		none = "/info/unsafe/s:0/f:0/d:0/exif:0/iptc:0/xmp:0/vm:0"
+		cat  = "/plain/local:///detect/cat-laptop.jpg"
+	)
+	full := get(t, app+none+"/do:1"+cat, nil).Status == 200
+	type class struct {
+		ClassID    int     `json:"class_id"`
+		Name       string  `json:"name"`
+		Confidence float64 `json:"confidence"`
+	}
+	var body struct {
+		Classification []class `json:"classification"`
+	}
+	r := get(t, app+none+"/cl:5"+cat, nil)
+	r.wantStatus(t, 200)
+	if err := json.Unmarshal(r.Body, &body); err != nil {
+		t.Fatalf("/info cl:5: %v: %s", err, truncate(r.Body))
+	}
+	if !full {
+		if len(body.Classification) != 0 || r.Header.Get("X-Xi-Ignored") != "classify (classification needs the full image)" {
+			t.Errorf("slim /info cl:5: %s, X-Xi-Ignored %q", r.Body, r.Header.Get("X-Xi-Ignored"))
+		}
+		return
+	}
+	if len(body.Classification) != 5 {
+		t.Fatalf("/info cl:5: %s", r.Body)
+	}
+	if c := body.Classification[0]; c.ClassID != 284 || c.Name != "Siamese cat" || c.Confidence < 0.4 {
+		t.Errorf("top class %+v, want Siamese cat", c)
+	}
+	body.Classification = nil
+	r = get(t, app+none+"/cl:2:laptop_computer:notebook_computer"+cat, nil)
+	r.wantStatus(t, 200)
+	if err := json.Unmarshal(r.Body, &body); err != nil || len(body.Classification) != 2 {
+		t.Errorf("class filter: %v: %s", err, r.Body)
+	}
+	for _, c := range body.Classification {
+		if c.Name != "laptop computer" && c.Name != "notebook computer" {
+			t.Errorf("class filter kept %+v", c)
+		}
+	}
+	get(t, app+none+"/cl:1:unicorn"+cat, nil).wantStatus(t, 400)
+}

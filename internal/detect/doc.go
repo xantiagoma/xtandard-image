@@ -1,6 +1,8 @@
-// Package detect is the face and object detection runtime (WP-71): ONNX
-// Runtime loaded with purego (internal/detect/ort, ADR 0010), a registry of
-// the two shipped models, and their pre- and post-processing in Go.
+// Package detect is the face and object detection and image classification
+// runtime (WP-71, WP-110): ONNX Runtime loaded with purego
+// (internal/detect/ort, ADR 0010), a registry of the shipped models, and
+// their pre- and post-processing in Go. Classification (MobileNetV3-Large,
+// ImageNet-1k, a lazily created session) is described in classify.go.
 //
 //   - Faces: YuNet (face_detection_yunet_2023mar.onnx, MIT, opencv_zoo),
 //     decoded like OpenCV's FaceDetectorYN: per-stride cls/obj/bbox/kps

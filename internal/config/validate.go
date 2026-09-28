@@ -394,7 +394,11 @@ func (c *Config) validateDetect(v *validator) {
 	v.between(d.MaxInput, 32, 4096, "detect.max_input")
 	v.between(d.CacheSize, 0, 1_000_000, "detect.cache_size")
 	v.check(d.ModelsDir == "" || filepath.IsAbs(d.ModelsDir), "detect.models_dir", "must be an absolute path")
-	for _, m := range []named[string]{{"detect.face_model", d.FaceModel}, {"detect.object_model", d.ObjectModel}} {
+	for _, m := range []named[string]{
+		{"detect.face_model", d.FaceModel},
+		{"detect.object_model", d.ObjectModel},
+		{"detect.classify.model", d.Classify.Model},
+	} {
 		switch {
 		case m.v == "" || filepath.IsAbs(m.v):
 		case strings.ContainsRune(m.v, '/') || m.v == "." || m.v == "..":
@@ -403,8 +407,14 @@ func (c *Config) validateDetect(v *validator) {
 			v.check(d.ModelsDir != "", m.path, "needs detect.models_dir for the relative name %q", m.v)
 		}
 	}
-	v.check(d.Enabled != True || d.FaceModel != "" || d.ObjectModel != "", "detect.enabled",
-		"true needs detect.face_model or detect.object_model")
+	v.check(d.Enabled != True || d.FaceModel != "" || d.ObjectModel != "" || d.Classify.Model != "", "detect.enabled",
+		"true needs detect.face_model, detect.object_model or detect.classify.model")
+	cl := d.Classify
+	v.check(cl.Labels == "" || filepath.IsAbs(cl.Labels), "detect.classify.labels", "must be an absolute path")
+	v.check(slices.Contains(normalizations(), cl.Normalization), "detect.classify.normalization",
+		"must be imagenet, full, half or none, got %q", cl.Normalization)
+	v.between(cl.TopKMax, 1, 64, "detect.classify.top_k_max")
+	v.check(cl.Threshold >= 0 && cl.Threshold <= 1, "detect.classify.threshold", "must be between 0 and 1, got %v", cl.Threshold)
 }
 
 func (c *Config) validateFormats(v *validator) {

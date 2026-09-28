@@ -7,6 +7,8 @@
 #     --enable-libx265 and the libx264/libx265 encoders; the result is GPL-2.0-or-later
 #   - Ghostscript (AGPL-3.0-or-later, WP-99): the `gs` program alone, static, minimal
 #     devices, run by the server as a sandboxed subprocess when EPS input is enabled
+# (LibRaw with the Adobe DNG SDK and GoPro GPR SDK is built just before, by
+# `build-libraw.sh --with-sdks`; the notice below lists them.)
 # then extends the licence bundle and SOURCES.md, writes share/licenses/LICENSE-GPL.md
 # and runs the licence gate in its gpl mode (--allow-gpl versions-gpl.sh).
 #
@@ -284,8 +286,18 @@ with EPS rendering enabled, must be able to offer that corresponding source; cha
 Ghostscript brings AGPL section 13's obligation to offer the modified source to every
 network user. The ADR docs/adr/0011-ghostscript-subprocess.md explains the setup.
 
+Its LibRaw (\`libraw_r\`) is built with the **Adobe DNG SDK ${DNGSDK_VERSION}** and
+the **GoPro GPR SDK** (Apache-2.0 OR MIT) compiled in, to decode JPEG XL and VC-5
+(GoPro .GPR) raw data. The DNG SDK is not GPL: it is under Adobe's DNG SDK License
+Agreement (\`dng-sdk/LICENSE.txt\`, \`LicenseRef-Adobe-DNG-SDK\`), a permissive licence
+with an indemnity clause, and ships in this flavor only (ADR 0006, amendment WP-103).
+Adobe and the DNG logo are trademarks of Adobe Inc.; this image is not endorsed by
+Adobe. The slim and full images decode those files from their embedded previews, or
+answer 422.
+
 The xtandard-image source code stays under the MIT License. The slim and full images
-contain no GPL or AGPL code; use one of them if you cannot accept these terms.
+contain no GPL or AGPL code and no Adobe DNG SDK; use one of them if you cannot accept
+these terms.
 
 H.264 and HEVC are covered by patent pools (for example Via LA and Access Advance).
 This image does not grant, and its authors do not provide, any patent licence.

@@ -104,7 +104,11 @@ type InfoOptions struct {
 	// DetectClasses when set (see Gravity.Classes).
 	DetectObjects bool
 	DetectClasses []string
-	Classify      bool
+	// ClassifyTopK reports the image's ClassifyTopK best classes (imgproxy
+	// Pro classify, WP-110); 0 is off. ClassifyClasses restricts them to
+	// those class names of the classifier (none = every class).
+	ClassifyTopK    int
+	ClassifyClasses []string
 }
 
 // InfoAverage configures the info average colour.

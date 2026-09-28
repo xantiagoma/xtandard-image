@@ -10,17 +10,19 @@
 # Bump a version, then run ./update-checksums.sh to refresh the *_SHA256 lines.
 
 # Revision of the gpl flavor. Its tag is <VIPS_VERSION>-r<XI_BASE_GPL_REVISION>-gpl.
-# gpl r7 = full r6 (versions-full.sh XI_BASE_FULL_REVISION) + the components below
-# (r6: Ghostscript, WP-99).
-export XI_BASE_GPL_REVISION=7
+# gpl r8 = full r7 (versions-full.sh XI_BASE_FULL_REVISION) + the components below
+# (r6: Ghostscript, WP-99; r8: LibRaw with the Adobe DNG SDK and GoPro GPR SDK, WP-103).
+export XI_BASE_GPL_REVISION=8
 
 # --- GPL allowlist read by check-licenses.sh --allow-gpl ----------------------------
 # component=SPDX pairs. Only these GPL components may appear in a gpl image, and only
 # under GPL-2.0/GPL-3.0; ghostscript is the one AGPL exception, exactly
 # AGPL-3.0-or-later (WP-99, ADR 0011). Anything else AGPL, nonfree or unlisted still
 # fails the gate. ffmpeg is the FFmpeg build as a whole: with --enable-gpl it is
-# GPL-2.0-or-later.
-export XI_GPL_COMPONENTS="x264=GPL-2.0-or-later x265=GPL-2.0-or-later ffmpeg=GPL-2.0-or-later ghostscript=AGPL-3.0-or-later"
+# GPL-2.0-or-later. dng-sdk is not GPL but is confined to this flavour the same way
+# (owner decision 2026-09-28): the Adobe DNG SDK licence (LicenseRef-Adobe-DNG-SDK,
+# permissive with an indemnity clause) is allowed only here, exactly under that id.
+export XI_GPL_COMPONENTS="x264=GPL-2.0-or-later x265=GPL-2.0-or-later ffmpeg=GPL-2.0-or-later ghostscript=AGPL-3.0-or-later dng-sdk=LicenseRef-Adobe-DNG-SDK"
 
 # --- H.264 encoder: x264 (GPL-2.0-or-later) ------------------------------------------
 # x264 publishes no release tarballs; this is the head of its `stable` branch
@@ -42,6 +44,21 @@ export X265_SHA256=40b1ea0453e0309f0eba934e0ddf533f8f6295966679e8894e8f1c1c8d5e1
 export GHOSTSCRIPT_VERSION=10.08.0
 export GHOSTSCRIPT_SHA256=c20492bc8ebb96c87fa2e52a0926e1cda8cde95d66145e018ac713fed5da38cf
 
+# --- LibRaw's SDKs (WP-103): Adobe DNG SDK and GoPro GPR SDK --------------------------
+# Downloaded by download-libraw-deps.sh (stage libraw-deps-src) and compiled into
+# libraw_r by `build-libraw.sh --with-sdks` in the gpl-deps stage only; slim and full
+# build LibRaw with the X3F tools alone. Adobe DNG SDK (JPEG XL and VC-5 DNG decoding;
+# Adobe DNG SDK License Agreement, ADR 0006 amendment WP-103): the release zip, whose
+# date is part of its name. GoPro GPR SDK (Apache-2.0 OR MIT): its VC-5 decoder, from
+# the head of master (no release since v1.1 in 2019); LibRaw reaches it through the
+# DNG SDK, so it ships only where the DNG SDK does.
+export DNGSDK_VERSION=1.7.1-2724
+export DNGSDK_ARCHIVE=dng_sdk_1_7_1_2724_20260908.zip
+export DNGSDK_SHA256=740fbe95c69e09e9cd17654a5e4fef2d7021254b06fd2b8c5557b79a1496b50c
+export GPR_VERSION=1.1-446c736
+export GPR_COMMIT=446c736a38fb14f51343605c0780d347dc602f89
+export GPR_SHA256=ddb09f4910f07f43e7d93dbda41d20a6af572be5ac7032052f2fa24b33aeeb0c
+
 # --- Licence of every component in /opt/xtandard/share/licenses ----------------------
 # One line per entry of the licence bundle: <entry> <SPDX expression>. The gpl build
 # writes share/licenses/LICENSE-GPL.md from it, and check-licenses.sh --licenses fails on
@@ -53,6 +70,7 @@ brotli MIT
 cairo LGPL-2.1-only OR MPL-1.1
 cgif MIT
 dav1d BSD-2-Clause
+dng-sdk LicenseRef-Adobe-DNG-SDK
 expat MIT
 ffi MIT
 ffmpeg GPL-2.0-or-later
@@ -62,6 +80,7 @@ freetype FTL
 fribidi LGPL-2.1-or-later
 ghostscript AGPL-3.0-or-later AND Apache-2.0 AND FTL AND IJG AND libpng-2.0 AND Zlib AND MIT
 glib LGPL-2.1-or-later
+gpr Apache-2.0 OR MIT
 harfbuzz MIT-Modern-Variant
 highway Apache-2.0 OR BSD-3-Clause
 imagemagick ImageMagick
@@ -76,7 +95,7 @@ libheif LGPL-3.0-or-later
 libjpeg-turbo IJG AND BSD-3-Clause AND Zlib
 libjxl BSD-3-Clause
 libpng libpng-2.0
-libraw LGPL-2.1-only OR CDDL-1.0
+libraw (LGPL-2.1-only OR CDDL-1.0) AND BSD-3-Clause
 librsvg LGPL-2.1-or-later
 libspng BSD-2-Clause
 libtiff libtiff

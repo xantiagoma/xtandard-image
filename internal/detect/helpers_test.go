@@ -69,8 +69,14 @@ func newTestDetector(tb testing.TB, opts *Options) *Detector {
 // pipeline does) and runs fn on it inside vips.Run.
 func withImage(tb testing.TB, name string, fn func(img *vips.Image) error) {
 	tb.Helper()
+	withImageFile(tb, filepath.Join(fixturesDir, name), fn)
+}
+
+// withImageFile is withImage for a path.
+func withImageFile(tb testing.TB, path string, fn func(img *vips.Image) error) {
+	tb.Helper()
 	ctx := tb.Context()
-	f, err := os.Open(filepath.Join(fixturesDir, name))
+	f, err := os.Open(path)
 	if err != nil {
 		tb.Fatal(err)
 	}

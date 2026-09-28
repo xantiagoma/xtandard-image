@@ -295,7 +295,7 @@ Normalisation rules every dialect relies on:
 - `Request.Validate()` runs after `ApplyDefaults` and returns an `errors.Join` of `*transform.ValidationError{Field, Reason}`; each implements `HTTPStatus() == 400` and a client-safe `PublicMessage()` (go-standards §6).
 - `Request.CanonicalKey()` serialises the effective request (after defaults, and after the server resolves `ClientHints` and the negotiated format) to a stable binary form and hashes it with SHA-256 (64 hex chars). It is the result-cache key input and the ETag input. Fields tagged `key:"-"` are excluded: `Dialect`, `Ignored`, `Presets`, and `BypassCache` (it never changes the response). The encoding walks the struct by reflection with fields sorted by name, omits zero values (so adding a field never changes existing keys), writes enums by canonical name, floats as IEEE-754 bits (−0 folded to +0, one NaN pattern) and map entries sorted by encoded key; the full algorithm is the doc comment on `CanonicalKey`, and `internal/transform/testdata/canonical_keys.json` pins 40 golden keys.
 
-`InfoOptions` mirrors imgproxy info options (size, format, dimensions, exif, iptc, xmp, video_meta, colorspace, bands, sample_format, pages_number, alpha, crop, palette, average, dominant_colors, blurhash, thumbhash, phash, calc_hashsums, detect_objects, classify).
+`InfoOptions` mirrors imgproxy info options (size, format, dimensions, exif, iptc, xmp, video_meta, colorspace, bands, sample_format, pages_number, alpha, crop, palette, average, dominant_colors, blurhash, thumbhash, phash, calc_hashsums, detect_objects, classify: `ClassifyTopK` and `ClassifyClasses`).
 
 ## 5. Dialect abstraction
 
@@ -571,9 +571,34 @@ filters and `/info` options (WP-73). It needs the `full` image; on slim it repor
   line up with the crop geometry. Unknown class names are `InvalidURL`. `detect.NewInfo` builds
   the `/info` JSON (`{"objects":[{"class_id","class_name","confidence","left","top","width","height","landmarks"}]}`,
   coordinates relative to the image, imgproxy Pro's `detect_objects` shape) for WP-73.
-- **Observability.** `xi_detect_duration_seconds{model="face"|"object"}`; a debug log line per
-  call; the startup log names the ONNX Runtime version and each model's path, input size and
-  checksum status.
+- **Observability.** `xi_detect_duration_seconds{model="face"|"object"|"classify"}`; a debug log
+  line per call; the startup log names the ONNX Runtime version and each model's path, input size
+  and checksum status.
+- **Classification (WP-110).** The `/info` option `classify` (`cl:<top_k>[:<class>…]`, imgproxy
+  Pro) runs one ImageNet-style classifier, `XI_DETECT_CLASSIFY_MODEL`: in the `full` and `gpl`
+  images timm's MobileNetV3-Large (`mobilenetv3_large_100.onnx`, ONNX Model Zoo export, Apache-2.0,
+  1000 ImageNet-1k classes, 75.8% top-1, 22 MB, CPU only). It was chosen over EfficientNet-Lite4
+  (80.4% top-1 but 52 MB and 4.5× slower: 72 against 16 ms per inference on one arm64 core in
+  onnxruntime 1.30), EfficientNet-B0 (77.7%, 35 ms) and MobileNetV2 (70.9%, 15 ms). Its session is
+  **lazy**: `detect.New` only resolves (and checksums) the file and reads the class names; the
+  first `Detector.Classify` creates the session under a mutex and checks the model (one float32
+  RGB input, NCHW or NHWC, one score per class; a failure is logged once and every call answers
+  500). A deployment that never classifies pays nothing. A missing classifier file disables
+  classification only while the detection models load. **Pre-processing** is timm's evaluation
+  transform in libvips and Go: the upright first page is resized (cubic) so its short side is the
+  input / 0.875 (224 → 256), centre-cropped to 224×224, rendered to 8-bit sRGB and packed as RGB
+  float32 normalised by `XI_DETECT_CLASSIFY_NORMALIZATION` (`imagenet` mean/std by default;
+  `full`, `half`, `none` like imgproxy's option) into a `vips.Buffer`. **Post-processing:** a
+  softmax (skipped when the output already is a distribution), copied to Go memory. Class names are
+  the embedded ImageNet-1k `imagenet-simple-labels` (public domain, unique) or
+  `XI_DETECT_CLASSIFY_LABELS`. `internal/app` runs it on the same upright ≤ 1024 px thumbnail as
+  detection (one decode when `do` and `cl` are both asked for; video sources use the WP-91 frame)
+  and caches the probability vector in the detection cache (`model = "classify"`). The server
+  renders `"classification": [{"class_id","name","confidence"}]` from it: the `top_k` best (capped
+  by `XI_DETECT_CLASSIFY_TOP_K_MAX`, at least `XI_DETECT_CLASSIFY_THRESHOLD`), restricted to the
+  requested class names (case-insensitive, `_` for a space; an unknown name is 400). Without a
+  classifier (slim) the request succeeds without the key and `X-Xi-Ignored` lists
+  `classify (classification needs the full image)`.
 - **In the pipeline (WP-72/73).** Detection is not a plan step: the plan depends on it
   (`crop_objects` changes the pre-crop and so the shrink-on-load). `plan.NeedsDetection(req)`
   says which models the pipelines (chained ones included; or, for `/info`, `detect_objects` and a
