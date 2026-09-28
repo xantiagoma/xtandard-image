@@ -60,8 +60,10 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   ROADMAP. DOC-1 merged (#104: SOURCES.md, config methods, OpenAPI discovery,
   examples loaded by tests; sources resolve in **alphabetical** order; follow-ups: imgproxy compat drops
   the scheme from allowed-source patterns, `config validate` misses Azure account / sftp host keys).
-  In flight: WP-101/102 (Nikon HE guard + preview fallback, lazy-decode 500→422, RAW-aware pixel limit, libtiff
-  zstd; base bumps slim r5/full r6/gpl r7 built under `xtandard-base:wp101*`).
+  WP-101/102 merged (#105): Nikon HE / unsupported RAW → embedded preview, lazy-decode 500→422,
+  RAW-aware pixel limit (`XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS` 120 MP), libtiff zstd; bases slim r5 /
+  full r6 / gpl r7 (local `dev*` tags retagged from wp101). Host `go build` no longer works (libjxr
+  only in the base): verify in the container. Next candidates: WP-103…108 (ROADMAP), Leaf MOS sniffing.
   Commit trailer is now `Co-Authored-By: Claude Opus 5.5`.
 - **Backlog after M3 (WP-91+):** face/object gravity on a single-frame video answers 422 (detection
   hands the container bytes to libvips; fix = detect on the decoded frame; composites already skip
