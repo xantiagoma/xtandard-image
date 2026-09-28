@@ -488,6 +488,7 @@ type Limits struct {
 	MaxResultDimension      int      `yaml:"max_result_dimension"       env:"MAX_RESULT_DIMENSION"`
 	MaxAnimationFrames      int      `yaml:"max_animation_frames"       env:"MAX_ANIMATION_FRAMES"`
 	MaxAnimationFramePixels int64    `yaml:"max_animation_frame_pixels" env:"MAX_ANIMATION_FRAME_PIXELS"`
+	MaxAnimationPixels      int64    `yaml:"max_animation_pixels"       env:"MAX_ANIMATION_PIXELS"`
 	MaxRawDemosaicPixels    int64    `yaml:"max_raw_demosaic_pixels"    env:"MAX_RAW_DEMOSAIC_PIXELS"`
 	MaxSVGBytes             ByteSize `yaml:"max_svg_bytes"              env:"MAX_SVG_BYTES"`
 	MaxSVGDepth             int      `yaml:"max_svg_depth"              env:"MAX_SVG_DEPTH"`
@@ -802,6 +803,7 @@ func Defaults() Config {
 			MaxResultDimension:      8192,
 			MaxAnimationFrames:      256,
 			MaxAnimationFramePixels: 16_000_000,
+			MaxAnimationPixels:      200_000_000,
 			MaxRawDemosaicPixels:    60_000_000,
 			MaxSVGBytes:             5 << 20,
 			MaxSVGDepth:             256,

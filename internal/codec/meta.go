@@ -2,6 +2,7 @@ package codec
 
 import (
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/video"
 )
 
@@ -94,7 +95,7 @@ type ImageMeta struct {
 }
 
 // Pixels returns Width × Height × Frames, the pixels a full decode of every
-// animation frame produces (the unit of Limits.MaxSrcPixels).
+// animation frame produces.
 func (m *ImageMeta) Pixels() int64 {
 	return int64(m.Width) * int64(m.Height) * int64(max(m.Frames, 1))
 }
@@ -104,14 +105,18 @@ func (m *ImageMeta) Pixels() int64 {
 // DefaultLimits. They also carry the two per-format probe settings (PDF
 // density, PSD composite policy), which decide what a header means.
 type Limits struct {
-	// MaxSrcPixels caps Width × Height × Frames (XI_LIMITS_MAX_SRC_PIXELS,
-	// imgproxy's IMGPROXY_MAX_SRC_RESOLUTION).
+	// MaxSrcPixels caps Width × Height of a still or of an animation frame
+	// when no per-frame limit admits it (XI_LIMITS_MAX_SRC_PIXELS, imgproxy's
+	// IMGPROXY_MAX_SRC_RESOLUTION); the total over frames is the planner's.
 	MaxSrcPixels int64
 	// MaxAnimationFrames caps the frames of an animation
-	// (XI_LIMITS_MAX_ANIMATION_FRAMES).
+	// (XI_LIMITS_MAX_ANIMATION_FRAMES); 1 disables animation (the first
+	// frame is processed) instead of rejecting animated sources.
 	MaxAnimationFrames int
 	// MaxAnimationFramePixels caps Width × Height of one frame of an
-	// animation (XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS).
+	// animation (XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS) and then replaces
+	// MaxSrcPixels for it. Negative turns it off (imgproxy's 0): animation
+	// frames must fit MaxSrcPixels like stills.
 	MaxAnimationFramePixels int64
 	// MaxSVGBytes, MaxSVGDepth and MaxSVGElements bound SVG documents
 	// (XI_LIMITS_MAX_SVG_*), enforced by the sanitiser that runs before
@@ -157,7 +162,7 @@ func (l Limits) withDefaults() Limits {
 	if l.MaxAnimationFrames <= 0 {
 		l.MaxAnimationFrames = d.MaxAnimationFrames
 	}
-	if l.MaxAnimationFramePixels <= 0 {
+	if l.MaxAnimationFramePixels == 0 {
 		l.MaxAnimationFramePixels = d.MaxAnimationFramePixels
 	}
 	if l.MaxSVGBytes <= 0 {
@@ -178,29 +183,32 @@ func (l Limits) withDefaults() Limits {
 	return l
 }
 
-// Check reports errs.KindLimitExceeded when m declares more than l allows:
-// more animation frames than MaxAnimationFrames, an animation frame larger
-// than MaxAnimationFramePixels, or more pixels in total (all frames) than
-// MaxSrcPixels (FORMATS.md §3). Zero fields of l take their defaults.
+// Check reports errs.KindLimitExceeded when m declares more than l allows
+// before anything is decoded (FORMATS.md §3): more animation frames than
+// MaxAnimationFrames, or a frame no limit could admit
+// (transform.SourceLimits.CheckFrame: a still, or an animation that may
+// be processed as its first frame, must fit MaxSrcPixels; a frame of an
+// animation may instead fit MaxAnimationFramePixels). The totals over all
+// frames depend on the frames a request loads and are checked by the
+// planner, still before decoding. Zero fields of l take their defaults.
 func (l Limits) Check(m *ImageMeta) error {
 	l = l.withDefaults()
 	if m.Width <= 0 || m.Height <= 0 {
 		return errs.Newf(errs.KindCorrupt, "codec: %s declares %dx%d pixels", m.Format, m.Width, m.Height)
 	}
-	frame := int64(m.Width) * int64(m.Height)
-	if m.Frames > 1 {
-		if m.Frames > l.MaxAnimationFrames {
-			return errs.Newf(errs.KindLimitExceeded, "codec: %d animation frames exceed the limit of %d",
-				m.Frames, l.MaxAnimationFrames)
-		}
-		if frame > l.MaxAnimationFramePixels {
-			return errs.Newf(errs.KindLimitExceeded, "codec: %dx%d animation frame exceeds the limit of %d pixels",
-				m.Width, m.Height, l.MaxAnimationFramePixels)
-		}
+	if le := transform.CheckFrames(m.Frames, l.MaxAnimationFrames); le != nil {
+		return limitExceeded(le)
 	}
-	if p := m.Pixels(); p > l.MaxSrcPixels {
-		return errs.Newf(errs.KindLimitExceeded, "codec: %dx%d×%d pixels exceed the limit of %d",
-			m.Width, m.Height, max(m.Frames, 1), l.MaxSrcPixels)
+	animated := m.Frames > 1 && l.MaxAnimationFrames != 1
+	src := transform.SourceLimits{MaxSrcPixels: l.MaxSrcPixels, MaxFramePixels: max(l.MaxAnimationFramePixels, 0)}
+	if le := src.CheckFrame(m.Width, m.Height, animated); le != nil {
+		return limitExceeded(le)
 	}
 	return nil
+}
+
+// limitExceeded is the 422 of a source limit, with its message for the
+// client.
+func limitExceeded(le *transform.LimitError) error {
+	return errs.WithPublic(errs.Wrapf(errs.KindLimitExceeded, le, "codec"), le.Public)
 }

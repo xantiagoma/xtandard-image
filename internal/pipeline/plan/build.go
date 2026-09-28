@@ -37,6 +37,7 @@ func Continue(req *transform.Request, meta SourceMeta, limits Limits, obs Observ
 // effLimits are Limits with the request overrides applied.
 type effLimits struct {
 	srcPixels, framePixels int64
+	animationPixels        int64
 	frames, resultDim      int
 	memory                 int64
 	noShrinkOnLoad         bool
@@ -61,6 +62,7 @@ func resolveLimits(l *Limits, o *transform.LimitOverrides) effLimits {
 	return effLimits{
 		srcPixels:         override(l.MaxSrcPixels, mp(o.MaxSrcResolution), l.AllowRaisingLimits),
 		framePixels:       override(l.MaxAnimationFramePixels, mp(o.MaxAnimationFrameResolution), l.AllowRaisingLimits),
+		animationPixels:   l.MaxAnimationPixels,
 		frames:            int(override(int64(l.MaxAnimationFrames), int64(o.MaxAnimationFrames), l.AllowRaisingLimits)),
 		resultDim:         int(override(int64(l.MaxResultDimension), int64(o.MaxResultDimension), l.AllowRaisingLimits)),
 		memory:            l.MemoryBudget,
@@ -236,20 +238,15 @@ func stackedPages(p *transform.Pipeline, s *source, nFrames int) int {
 	return n
 }
 
-// checkSource is imgproxy's security CheckDimensions on the loaded source.
+// checkSource is imgproxy's security CheckDimensions on the loaded source
+// (the frames the request processes), plus XI_LIMITS_MAX_ANIMATION_PIXELS.
 func checkSource(s *source, lim *effLimits) error {
 	if s.vector {
 		return nil // rendered at the requested size
 	}
-	px := int64(s.w) * int64(s.h)
-	if s.frames > 1 && lim.framePixels > 0 {
-		if px > lim.framePixels {
-			return errs.New(errs.KindLimitExceeded, "plan: source frame resolution exceeds limits")
-		}
-		return nil
-	}
-	if lim.srcPixels > 0 && px*int64(s.frames) > lim.srcPixels {
-		return errs.New(errs.KindLimitExceeded, "plan: source resolution exceeds limits")
+	sl := transform.SourceLimits{MaxSrcPixels: lim.srcPixels, MaxFramePixels: lim.framePixels, MaxAnimationPixels: lim.animationPixels}
+	if le := sl.CheckDimensions(s.w, s.h, s.frames); le != nil {
+		return errs.WithPublic(errs.Wrapf(errs.KindLimitExceeded, le, "plan"), le.Public)
 	}
 	return nil
 }

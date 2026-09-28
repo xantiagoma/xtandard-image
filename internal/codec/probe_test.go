@@ -5,6 +5,7 @@ package codec_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -246,7 +247,10 @@ func TestProbeErrors(t *testing.T) {
 		{"png over pixel limit", png, codec.Limits{MaxSrcPixels: 1000}, errs.KindLimitExceeded},
 		{"bmp over pixel limit", bmp, codec.Limits{MaxSrcPixels: 1000}, errs.KindLimitExceeded},
 		{"animation over frame limit", readFixture(t, "gif/animated.gif"), codec.Limits{MaxAnimationFrames: 5}, errs.KindLimitExceeded},
-		{"animation over frame pixel limit", readFixture(t, "webp/animated.webp"), codec.Limits{MaxAnimationFramePixels: 96*72 - 1}, errs.KindLimitExceeded},
+		{"animation frame over the pixel limits", readFixture(t, "webp/animated.webp"), codec.Limits{MaxSrcPixels: 96*72 - 1, MaxAnimationFramePixels: 96*72 - 1}, errs.KindLimitExceeded},
+		// Over the frame limit only: it may be processed as a still; the
+		// planner checks the frames it loads (WP-98).
+		{"animation over the frame pixel limit only", readFixture(t, "webp/animated.webp"), codec.Limits{MaxAnimationFramePixels: 96*72 - 1}, errs.KindUnknown},
 		{"exr over pixel limit", readFixture(t, "exr/rgba-half.exr"), codec.Limits{MaxSrcPixels: 1000}, errs.KindLimitExceeded},
 		{"radiance over pixel limit", readFixture(t, "hdr/scene.hdr"), codec.Limits{MaxSrcPixels: 1000}, errs.KindLimitExceeded},
 		{"pfm over pixel limit", readFixture(t, "pfm/scene.pfm"), codec.Limits{MaxSrcPixels: 1000}, errs.KindLimitExceeded},
@@ -287,6 +291,59 @@ func TestProbeCanceled(t *testing.T) {
 	}
 }
 
+// TestProbeAnimationLimits (WP-98): the probe applies imgproxy's rule to
+// one frame. An animation within the per-frame limit passes even when all
+// its frames add up to more than XI_LIMITS_MAX_SRC_PIXELS (cards.gif,
+// 800×600×176); a frame no limit admits, or too many frames, is 422 with a
+// message naming the limit.
+func TestProbeAnimationLimits(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name string
+		data []byte
+		lim  codec.Limits
+		want string // public message; "" accepts
+	}{
+		{"cards.gif shape", synthGIF(800, 600, 176), codec.Limits{}, ""},
+		{"frame limit off, frame fits the total", synthGIF(800, 600, 176), codec.Limits{MaxAnimationFramePixels: -1}, ""},
+		{
+			"frame over every limit", synthGIF(8000, 8000, 2),
+			codec.Limits{},
+			"source frame is 8000×8000 (64 MP); limit XI_LIMITS_MAX_SRC_PIXELS is 50 MP",
+		},
+		{
+			"frame limit off, frame over the total", synthGIF(800, 600, 3),
+			codec.Limits{MaxAnimationFramePixels: -1, MaxSrcPixels: 400_000},
+			"source frame is 800×600 (0.5 MP); limit XI_LIMITS_MAX_SRC_PIXELS is 0.4 MP",
+		},
+		{
+			"too many frames", synthGIF(16, 16, 300),
+			codec.Limits{},
+			"source has 300 frames; limit XI_LIMITS_MAX_ANIMATION_FRAMES is 256",
+		},
+		{"animation disabled", synthGIF(16, 16, 300), codec.Limits{MaxAnimationFrames: 1}, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			m, err := probe(t.Context(), t, tc.data, tc.lim, "")
+			got := ""
+			if err != nil {
+				e, ok := errors.AsType[*errs.Error](err)
+				if !ok || errs.KindOf(err) != errs.KindLimitExceeded {
+					t.Fatalf("Probe = %v (kind %v), want limit_exceeded", err, errs.KindOf(err))
+				}
+				got = e.PublicMessage()
+			}
+			if got != tc.want {
+				t.Fatalf("Probe public message = %q, want %q", got, tc.want)
+			}
+			if err == nil && tc.lim.MaxAnimationFrames != 1 && m.Frames < 2 {
+				t.Errorf("Probe = %dx%d×%d", m.Width, m.Height, m.Frames)
+			}
+		})
+	}
+}
+
 // TestProbeOversizeDoesNotDecode feeds headers that declare enormous images
 // (a 100k × 100k PNG: 30 GB decoded; a GIF with 10k frames of 1000×1000:
 // 40 GB; two 5000×4000 frames; a PDF of 20k pages, over the default page
@@ -301,7 +358,7 @@ func TestProbeOversizeDoesNotDecode(t *testing.T) {
 	}{
 		{"png 100k squared", synthPNG(t, 100_000, 100_000)},
 		{"gif 10k frames", synthGIF(1000, 1000, 10_000)},
-		{"gif frames over frame pixels", synthGIF(5000, 4000, 2)},
+		{"gif frames over every pixel limit", synthGIF(8000, 8000, 2)},
 		{"pdf of 20k pages", synthPDF(20_000)},
 		{"exr 1M squared", synthEXR(1_000_000, 1_000_000, 0, "B", "G", "R")},
 		{"radiance 100k squared", []byte("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 100000 +X 100000\n")},
@@ -366,7 +423,7 @@ func FuzzProbe(f *testing.F) {
 				t.Fatalf("Probe error %v has kind %v", err, errs.KindOf(err))
 			}
 		}
-		if !m.Format.Supported() || m.Width <= 0 || m.Height <= 0 || m.Pixels() > lim.MaxSrcPixels ||
+		if !m.Format.Supported() || m.Width <= 0 || m.Height <= 0 || int64(m.Width)*int64(m.Height) > lim.MaxSrcPixels ||
 			m.Frames > lim.MaxAnimationFrames || m.Frames < 1 {
 			t.Fatalf("Probe accepted %+v", m)
 		}

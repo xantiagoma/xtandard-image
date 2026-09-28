@@ -180,8 +180,19 @@ func TestLimitsCheck(t *testing.T) {
 		{"frames at limit", codec.Limits{}, anim(10, 10, 256), errs.KindUnknown},
 		{"too many frames", codec.Limits{}, anim(1, 1, 257), errs.KindLimitExceeded},
 		{"custom frame limit", codec.Limits{MaxAnimationFrames: 2}, anim(1, 1, 3), errs.KindLimitExceeded},
-		{"frame too large", codec.Limits{}, anim(5_000, 4_000, 2), errs.KindLimitExceeded},
-		{"frames times pixels over total", codec.Limits{}, anim(4_000, 4_000, 4), errs.KindLimitExceeded},
+		{"animation disabled", codec.Limits{MaxAnimationFrames: 1}, anim(1, 1, 300), errs.KindUnknown},
+		// A frame over the per-frame limit may still be processed as a
+		// still (non-animated output), so only a frame no limit admits
+		// is rejected here; the planner checks what is loaded.
+		{"frame over the frame limit only", codec.Limits{}, anim(5_000, 4_000, 2), errs.KindUnknown},
+		{"frame over every limit", codec.Limits{}, anim(8_000, 8_000, 2), errs.KindLimitExceeded},
+		// cards.gif: 800×600×176 = 84.5 MP over the 50 MP total, 0.48 MP
+		// a frame: the frame limit replaces the total (imgproxy).
+		{"cards.gif", codec.Limits{}, anim(800, 600, 176), errs.KindUnknown},
+		{"frames times pixels over total is the planner's", codec.Limits{}, anim(4_000, 4_000, 4), errs.KindUnknown},
+		{"frame limit off, frame fits the total", codec.Limits{MaxAnimationFramePixels: -1}, anim(800, 600, 176), errs.KindUnknown},
+		{"frame limit off, frame over the total", codec.Limits{MaxAnimationFramePixels: -1, MaxSrcPixels: 100}, anim(11, 10, 2), errs.KindLimitExceeded},
+		{"raised frame limit admits a frame over the total", codec.Limits{MaxSrcPixels: 100, MaxAnimationFramePixels: 200}, anim(15, 10, 2), errs.KindUnknown},
 		{"multi-page still counts one page", codec.Limits{}, codec.ImageMeta{Width: 7_000, Height: 7_000, Frames: 1, Pages: 50}, errs.KindUnknown},
 	}
 	for _, tc := range tests {
