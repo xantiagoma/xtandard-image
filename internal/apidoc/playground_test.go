@@ -39,6 +39,10 @@ func TestContractPlayground(t *testing.T) {
 		t.Fatal(err)
 	}
 	meta.Gallery = gallery
+	if meta.Recipes, err = playground.Recipes(); err != nil {
+		t.Fatal(err)
+	}
+	meta.Watermark = true
 	tr, err := translate.New(translate.Options{Mounts: meta.Mounts})
 	if err != nil {
 		t.Fatal(err)
