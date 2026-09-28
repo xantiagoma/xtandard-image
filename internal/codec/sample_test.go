@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/synth"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -110,4 +111,57 @@ func TestSampleNoLeak(t *testing.T) {
 	if got := vips.LiveObjects(); got != objects {
 		t.Errorf("live objects %d after sampling, want %d", got, objects)
 	}
+}
+
+// TestSampleLongTail samples the WP-108 formats: the Go loaders (KTX2,
+// FITS, DICOM) and ImageMagick's named coders (PICT, and a synthetic Photo
+// CD pack, which is too large to commit).
+func TestSampleLongTail(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name    string
+		maxSide int
+		w, h    int
+	}{
+		{"ktx2/etc1s.ktx2", 512, 64, 48},
+		{"ktx2/uastc-hdr.ktx2", 512, 48, 32},
+		{"ktx2/bc7.ktx2", 512, 64, 48},
+		{"fits/rice-f32.fits.fz", 512, 64, 48},
+		{"dicom/ct-j2k.dcm", 512, 64, 48},
+		{"dicom/jpeg-baseline.dcm", 512, 64, 48},
+		{"pict/photo.pct", 32, 32, 24},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			raw := sample(t, tc.name, tc.maxSide)
+			if raw.Width != tc.w || raw.Height != tc.h || raw.Bands != 4 {
+				t.Errorf("Sample = %dx%d with %d bands, want %dx%d with 4", raw.Width, raw.Height, raw.Bands, tc.w, tc.h)
+			}
+		})
+	}
+	t.Run("pcd", func(t *testing.T) {
+		t.Parallel()
+		buf := newBuffer(t, synth.PCD(1))
+		defer buf.Release()
+		err := vips.Run(t.Context(), func() error {
+			m, err := codec.Probe(t.Context(), buf, codec.Limits{}, "")
+			if err != nil {
+				return err
+			}
+			if m.Format != codec.FormatPCD || m.Width != 512 || m.Height != 768 {
+				t.Errorf("Probe = %s %dx%d, want pcd 512x768", m.Format, m.Width, m.Height)
+			}
+			raw, err := codec.Sample(t.Context(), buf, m.Format, 100, codec.Limits{})
+			if err != nil {
+				return err
+			}
+			if raw.Width != 67 || raw.Height != 100 {
+				t.Errorf("Sample = %dx%d, want 67x100", raw.Width, raw.Height)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 }

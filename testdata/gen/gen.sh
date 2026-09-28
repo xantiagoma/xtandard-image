@@ -3,8 +3,10 @@
 #
 # Requirements (tools only; nothing they ship ends up in the fixtures except
 # the pixels we feed them): Go 1.27, libvips >= 8.18 with heif/jxl/jp2k/uhdr
-# savers, ImageMagick 7 (`magick`), qpdf (PDF encryption), and macOS `sips`
-# for HEIC (Apple's HEVC encoder, so no x265/GPL encoder is involved).
+# savers, ImageMagick 7 (`magick`), qpdf (PDF encryption), the `zstd` CLI
+# (KTX2), and macOS `sips` for HEIC (Apple's HEVC encoder, so no x265/GPL
+# encoder is involved). Optional: JXRENCAPP (JPEG XR), BASISU (KTX2 Basis
+# Universal), Docker (FITS fpack, designer files).
 #
 #   sh testdata/gen/gen.sh
 #
@@ -259,6 +261,23 @@ mkdir -p "$F"/dicom
 gen dicom-phantom "$T/phantom.png"
 vips jp2ksave "$T/phantom.png" "$T/phantom.jp2" --lossless
 gen dicom "$F/dicom" "$T/phantom.jp2"
+# WP-108: PICT (ImageMagick's writer) and KTX2 (own writer, the zstd CLI for
+# the Zstandard level). The Basis Universal textures need the basisu tool of
+# the pinned basis_universal (docker/base/versions.sh BASISU_COMMIT; build it
+# with cmake and set BASISU to it); without it they are not regenerated.
+mkdir -p "$F"/pict "$F"/ktx2
+magick "$T/p64.png" PICT:"$F/pict/photo.pct"
+for k in bc1 bc4 bc7 bc6h rgba8 rgb8 rgba8-zlib; do gen "ktx2-$k" 64 48 "$F/ktx2/$k.ktx2"; done
+gen ktx2-rgba8-level 64 48 "$T/level.raw"
+zstd -q -19 -f --no-check "$T/level.raw" -o "$T/level.zst"
+gen ktx2-rgba8-zstd 64 48 "$F/ktx2/rgba8-zstd.ktx2" "$T/level.zst"
+if [ -n "${BASISU:-}" ]; then
+	"$BASISU" -ktx2 "$T/p64.png" -output_file "$F/ktx2/etc1s.ktx2" -q 128
+	"$BASISU" -ktx2 -uastc "$T/pa64.png" -output_file "$F/ktx2/uastc-zstd.ktx2"
+	"$BASISU" -ktx2 -hdr "$F/exr/rgb-float.exr" -output_file "$F/ktx2/uastc-hdr.ktx2"
+else
+	echo "BASISU not set: ktx2/{etc1s,uastc-zstd,uastc-hdr}.ktx2 not regenerated (restore them)" >&2
+fi
 # Reference decodes for internal/codec (Pillow, NumPy): run by hand,
 # testdata/golden/codec/reference.py.
 
