@@ -58,7 +58,7 @@ Legend:
 | JPEG EXIF orientation 1–8, EXIF/XMP/IPTC/ICC | ✅ all | 5 | |
 | JPEG lossless (SOF3), 8-bit | ✅ all | 1 | libjpeg-turbo 3; since WP-106 every lossless frame goes through the shim's `jpeghpload_buffer` |
 | JPEG 12-bit, lossless 16-bit | ✅ since WP-106 | 5 | libvips uses the 8-bit libjpeg API (500 before WP-101, 422 until WP-106); the shim's `jpeghpload_buffer` reads them with libjpeg-turbo 3's 12/16-bit APIs as 16-bit images (FORMATS 1.6) |
-| UltraHDR / gain-map JPEG (Apple, ISO 21496-1, Android) | ✅ SDR base | 2 | Gain map ignored (FORMATS 1.4). Keeping HDR is WP-104 |
+| UltraHDR / gain-map JPEG (Apple, ISO 21496-1, Android) | ✅ SDR base, HDR with `preserve_hdr` | 2 | Gain map applied for AVIF (PQ), JPEG XL and UltraHDR JPEG outputs (WP-104, FORMATS 1.4); Adobe's JPEGs that libultrahdr refuses too |
 | MPO (stereo, multi-picture) | ✅ first image | 1 | |
 | JPEG-LS | ❌ | 1 | Sniffed as JPEG, refused at probe with 422 "JPEG-LS is not supported". Needs CharLS (BSD-3-Clause) in the base image; left out of WP-106 (base revision, ADR line) |
 | JPEG XT | ❌ untested | 0 | Base layer is plain JPEG, so it decodes as SDR JPEG. No public sample found |
@@ -68,10 +68,10 @@ Legend:
 | GIF static, transparent, interlaced, local palettes, mixed disposal | ✅ all | 5 | |
 | GIF with more than 256 frames | ⚠️ by limit | 1 | `XI_LIMITS_MAX_ANIMATION_FRAMES` (256) |
 | WebP lossy, lossless, alpha, animated, EXIF orientation | ✅ all | 6 | |
-| AVIF 8/10/12-bit, grey, alpha, grid, irot/imir, ICC/EXIF/XMP, PQ HDR (P3, Rec. 2020), wide-gamut SDR, gain map (tmap) | ✅ all | 11 | HDR is tone-mapped to SDR. For gain maps, the base image is used |
-| AVIF image sequence (`avis`, `.avifs`) | ❌ | 2 | libvips `heifload` refuses the `avis` major brand (WP-104) |
-| HEIC (iPhone, grid, burst, sequence, alpha, grey, 10/12-bit) | ✅ all | 7 | Sequence and burst: first image or `page`. Depth and auxiliary images are ignored |
-| HEIC gain map (iOS 18 adaptive HDR) | ✅ SDR base (expected) | 0 | libheif exposes `tmap`; no permissive sample found |
+| AVIF 8/10/12-bit, grey, alpha, grid, irot/imir, ICC/EXIF/XMP, PQ HDR (P3, Rec. 2020), wide-gamut SDR, gain map (tmap) | ✅ all | 11 | HDR is tone-mapped to SDR. For gain maps, the SDR base is used, and HDR is rendered with `preserve_hdr` (WP-104) |
+| AVIF image sequence (`avis`, `.avifs`) | ✅ (WP-104) | 2 | The shim's libheif sequence loader: animations, the first frame for stills |
+| HEIC (iPhone, grid, burst, sequence, alpha, grey, 10/12-bit) | ✅ all | 7 | Sequence tracks (and bursts stored as one) animate since WP-104; image items by `page`. Depth and auxiliary images are ignored |
+| HEIC gain map (iOS 18 adaptive HDR) | ✅ SDR base, HDR with `preserve_hdr` (expected) | 0 | The `tmap` path is the AVIF one (WP-104); no permissive sample found |
 | Live Photo | — | — | A HEIC plus a separate MOV; each decodes on its own |
 | JPEG XL (8/16-bit, float, grey, alpha, premultiplied alpha, lossless, recompressed JPEG, animation, spot channel, PQ) | ✅ all | 10 | |
 | JPEG XL CMYK (black extra channel) | ✅ since WP-105 | 1 | libvips `jxlload` has no CMYK output; the shim's `jxlcmykload_buffer` (libjxl) reads it (FORMATS 1.6) |
