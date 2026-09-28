@@ -14,6 +14,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/codec/wbmp"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/security/svg"
+	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/video"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
@@ -159,8 +160,10 @@ func ctxErr(ctx context.Context) error {
 }
 
 // probeRaw describes the demosaiced image: its size in the stored
-// orientation and LibRaw's orientation. Pixels are 8-bit sRGB (grey for
-// monochrome sensors) whichever path the executor takes.
+// orientation and LibRaw's orientation, and what else it can be decoded to
+// (ImageMeta.Raw). A preview-only RAW is described by its preview. Pixels
+// are 8-bit sRGB (grey for monochrome sensors) whichever path the executor
+// takes.
 func probeRaw(ctx context.Context, buf *vips.Buffer) (ImageMeta, error) {
 	h, err := raw.Probe(ctx, buf)
 	if err != nil {
@@ -170,7 +173,12 @@ func probeRaw(ctx context.Context, buf *vips.Buffer) (ImageMeta, error) {
 	if h.Colors == 1 {
 		cs = ColorSpaceGrey
 	}
+	rs := &transform.RawSource{Width: h.Width, Height: h.Height, PreviewOnly: h.PreviewOnly}
+	if h.HasPreview {
+		rs.PreviewWidth, rs.PreviewHeight = h.Preview.Width, h.Preview.Height
+	}
 	return ImageMeta{
+		Raw:         rs,
 		Format:      FormatRAW,
 		Width:       h.Width,
 		Height:      h.Height,

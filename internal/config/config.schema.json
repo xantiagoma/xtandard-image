@@ -2537,9 +2537,9 @@
           "type": "integer"
         },
         "max_raw_demosaic_pixels": {
-          "default": 60000000,
-          "description": "Sensor width × height a camera RAW may be demosaiced at; the embedded-preview path is not affected\n\nEnv: XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS",
-          "markdownDescription": "Sensor width × height a camera RAW may be demosaiced at; the embedded-preview path is not affected\n\nEnv: `XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS`",
+          "default": 120000000,
+          "description": "Sensor width × height a camera RAW may be demosaiced at, at full or half size (102 MP medium format and 50 MP phones pass); the embedded-preview path is not affected. The decoded image also counts against XI_LIMITS_MAX_SRC_PIXELS\n\nEnv: XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS",
+          "markdownDescription": "Sensor width × height a camera RAW may be demosaiced at, at full or half size (102 MP medium format and 50 MP phones pass); the embedded-preview path is not affected. The decoded image also counts against `XI_LIMITS_MAX_SRC_PIXELS`\n\nEnv: `XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS`",
           "title": "XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS",
           "type": "integer"
         },
@@ -2559,8 +2559,8 @@
         },
         "max_src_pixels": {
           "default": 50000000,
-          "description": "Width × height × frames loaded, as imgproxy's IMGPROXY_MAX_SRC_RESOLUTION: a still (a multi-page still counts the pages it loads), the first frame of an animation processed as a still, and an animation processed as one only while XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS is 0. The 422 body names the limit and the numbers, e.g. source has 176 frames of 800×600 (84.5 MP); limit XI_LIMITS_MAX_SRC_PIXELS is 50 MP\n\nEnv: XI_LIMITS_MAX_SRC_PIXELS",
-          "markdownDescription": "Width × height × frames loaded, as imgproxy's `IMGPROXY_MAX_SRC_RESOLUTION`: a still (a multi-page still counts the pages it loads), the first frame of an animation processed as a still, and an animation processed as one only while `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS` is `0`. The 422 body names the limit and the numbers, e.g. `source has 176 frames of 800×600 (84.5 MP); limit XI_LIMITS_MAX_SRC_PIXELS is 50 MP`\n\nEnv: `XI_LIMITS_MAX_SRC_PIXELS`",
+          "description": "Width × height × frames loaded, as imgproxy's IMGPROXY_MAX_SRC_RESOLUTION: a still (a multi-page still counts the pages it loads), the first frame of an animation processed as a still, and an animation processed as one only while XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS is 0. The 422 body names the limit and the numbers, e.g. source has 176 frames of 800×600 (84.5 MP); limit XI_LIMITS_MAX_SRC_PIXELS is 50 MP. A camera RAW counts what is decoded: its embedded preview, its half-size demosaic or its full demosaic, whichever the request takes (FORMATS.md §2)\n\nEnv: XI_LIMITS_MAX_SRC_PIXELS",
+          "markdownDescription": "Width × height × frames loaded, as imgproxy's `IMGPROXY_MAX_SRC_RESOLUTION`: a still (a multi-page still counts the pages it loads), the first frame of an animation processed as a still, and an animation processed as one only while `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS` is `0`. The 422 body names the limit and the numbers, e.g. `source has 176 frames of 800×600 (84.5 MP); limit XI_LIMITS_MAX_SRC_PIXELS is 50 MP`. A camera RAW counts what is decoded: its embedded preview, its half-size demosaic or its full demosaic, whichever the request takes (FORMATS.md §2)\n\nEnv: `XI_LIMITS_MAX_SRC_PIXELS`",
           "title": "XI_LIMITS_MAX_SRC_PIXELS",
           "type": "integer"
         },

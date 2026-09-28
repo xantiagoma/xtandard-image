@@ -5,9 +5,12 @@ import "time"
 // RawHeader is what LibRaw reads from a camera RAW file without unpacking
 // it (ProbeRaw).
 type RawHeader struct {
+	// Undecodable says why RawLoad would refuse the file (never demosaic
+	// it); RawDecodable otherwise.
+	Undecodable RawUndecodable
 	// Width and Height are the size of the full demosaiced image in the
 	// stored orientation (before Flip); RawLoad with HalfSize halves each
-	// side, rounding up.
+	// side, rounding up. Zero for RawUnknownCamera.
 	Width, Height int
 	// RawWidth and RawHeight are the sensor data size, margins included.
 	RawWidth, RawHeight int
@@ -29,6 +32,41 @@ type RawHeader struct {
 	Captured time.Time
 	// Thumbnails are the embedded previews LibRaw lists, in its order.
 	Thumbnails []RawThumbnail
+}
+
+// RawUndecodable is why LibRaw cannot demosaic a RAW file whose header it
+// read (the shim's XI_RAW_* codes).
+type RawUndecodable uint8
+
+// RawUndecodable values.
+const (
+	RawDecodable RawUndecodable = iota
+	// RawNikonHE is a Nikon High Efficiency NEF (HE/HE*, intoPIX
+	// TicoRAW): no open decoder exists.
+	RawNikonHE
+	// RawNoDecoder is a compression LibRaw's build has only a placeholder
+	// for (GoPro VC-5 without the GPR SDK, JPEG XL DNG without the DNG
+	// SDK).
+	RawNoDecoder
+	// RawUnknownCamera is a file LibRaw refused to open (typically a body
+	// newer than its release) whose embedded previews it could still list.
+	RawUnknownCamera
+)
+
+// String names the reason for logs and client messages.
+func (u RawUndecodable) String() string {
+	switch u {
+	case RawDecodable:
+		return "decodable"
+	case RawNikonHE:
+		return "Nikon High Efficiency compression"
+	case RawNoDecoder:
+		return "compression without a decoder in this build"
+	case RawUnknownCamera:
+		return "camera not supported by LibRaw"
+	default:
+		return "unknown"
+	}
 }
 
 // RawThumbnail is one embedded preview of a RAW file: Length bytes at

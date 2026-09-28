@@ -24,7 +24,13 @@ import (
 // orientation is the TIFF Orientation of the file (1 or 6); the pixels are
 // stored so that applying it shows the photo upright (6: stored rotated 90°
 // counter-clockwise, so the mosaic is h×w).
-func writeDNG(path string, w, h, pw, ph int, orientation uint16) error {
+//
+// compression is the mosaic's TIFF Compression tag: 1 (uncompressed) for a
+// decodable file. Any other value labels the same uncompressed bytes, which
+// makes a DNG LibRaw can read but not demosaic: 52546 (JPEG XL, a
+// placeholder decoder without the Adobe DNG SDK) exercises the preview-only
+// path (FORMATS.md §2).
+func writeDNG(path string, w, h, pw, ph int, orientation, compression uint16) error {
 	disp := photo(w, h)
 	stored := disp
 	if orientation == 6 {
@@ -124,7 +130,7 @@ func writeDNG(path string, w, h, pw, ph int, orientation uint16) error {
 			long(0x0100, uint32(sw)),
 			long(0x0101, uint32(sh)),
 			shorts(0x0102, 16),
-			shorts(0x0103, 1),
+			shorts(0x0103, compression),
 			shorts(0x0106, 32803),
 			blobRef(0x0111, blobCFA),
 			shorts(0x0115, 1),

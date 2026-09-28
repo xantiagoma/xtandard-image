@@ -95,6 +95,9 @@ type source struct {
 	// request enforces the embedded thumbnail.
 	previewW, previewH int
 	enforceThumb       bool
+	// previewOnly: the RAW cannot be demosaiced; its preview (previewW ×
+	// previewH, which are also w × h) is always what is loaded.
+	previewOnly bool
 	// thumbnail: enforce_thumbnail on a HEIF/AVIF still: the embedded
 	// thumbnail replaces the image whatever its size (imgproxy Pro).
 	thumbnail bool
@@ -138,6 +141,7 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 		w: meta.Width, h: frameH, orientation: meta.Orientation, alpha: meta.HasAlpha,
 		format: format, vector: meta.IsVector, hasData: true, frames: 1, density: meta.Density,
 		previewW: meta.PreviewWidth, previewH: meta.PreviewHeight,
+		previewOnly:  meta.PreviewOnly && meta.PreviewWidth > 0 && meta.PreviewHeight > 0,
 		enforceThumb: req.Output.EnforceThumbnail != nil && *req.Output.EnforceThumbnail,
 		hdr:          meta.HDR,
 		video:        meta.IsVideo && !meta.VideoComposite && !meta.FrameDecoded,
@@ -177,13 +181,20 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 	}
 	src.thumbnail = src.hasData && src.frames <= 1 && src.stack <= 1 && heifFormat(format) &&
 		req.Output.EnforceThumbnail != nil && *req.Output.EnforceThumbnail
-	if err := checkSource(&src, &lim); err != nil {
-		return nil, err
+	if format != formatRAW {
+		if err := checkSource(&src, &lim); err != nil {
+			return nil, err
+		}
 	}
 
 	root, err := planPipeline(first, &src, &lim, outFmt, obs, len(pipes) == 1)
 	if err != nil {
 		return nil, err
+	}
+	if format == formatRAW {
+		if err := checkRaw(&src, &root.Load, &lim); err != nil {
+			return nil, err
+		}
 	}
 	// Chained pipelines are predicted on the previous prediction; the
 	// executor plans each again on the observed result (Chain).
@@ -246,6 +257,31 @@ func checkSource(s *source, lim *effLimits) error {
 	}
 	sl := transform.SourceLimits{MaxSrcPixels: lim.srcPixels, MaxFramePixels: lim.framePixels, MaxAnimationPixels: lim.animationPixels}
 	if le := sl.CheckDimensions(s.w, s.h, s.frames); le != nil {
+		return errs.WithPublic(errs.Wrapf(errs.KindLimitExceeded, le, "plan"), le.Public)
+	}
+	return nil
+}
+
+// checkRaw is checkSource for a camera RAW (FORMATS.md §2): a RAW is judged
+// on what the planned load decodes, not on its sensor: the embedded preview
+// (at its full size, as a JPEG is judged by its header), the half-size
+// demosaic or the full demosaic against XI_LIMITS_MAX_SRC_PIXELS, and a
+// demosaic also on its sensor against XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS.
+func checkRaw(s *source, load *LoadStep, lim *effLimits) error {
+	sl := transform.SourceLimits{MaxSrcPixels: lim.srcPixels}
+	var le *transform.LimitError
+	switch {
+	case load.Preview || s.previewOnly:
+		le = sl.CheckRawDecode(transform.RawPreview, s.previewW, s.previewH)
+	default:
+		le = transform.CheckRawSensor(s.w, s.h, lim.rawDemosaicPixels)
+		if le == nil && load.HalfSize {
+			le = sl.CheckRawDecode(transform.RawDemosaicHalf, (s.w+1)/2, (s.h+1)/2)
+		} else if le == nil {
+			le = sl.CheckRawDecode(transform.RawDemosaic, s.w, s.h)
+		}
+	}
+	if le != nil {
 		return errs.WithPublic(errs.Wrapf(errs.KindLimitExceeded, le, "plan"), le.Public)
 	}
 	return nil
@@ -525,8 +561,10 @@ const formatRAW = "raw"
 // rawOnLoad decides how a camera RAW is decoded (FORMATS.md §2): from its
 // embedded JPEG preview when the preview is at least rawPreviewRatio × the
 // size the source is scaled to on both axes (or enforce_thumbnail asks for
-// it), with JPEG shrink-on-load down to that size; otherwise by demosaicing,
-// at half size when the source is scaled to half its size or less.
+// it, or the RAW cannot be demosaiced), with JPEG shrink-on-load down to
+// that size; otherwise by demosaicing, at half size when the source is
+// scaled to half its size or less. The limits of the chosen path are
+// checkRaw's.
 func rawOnLoad(g *geo, o *opts, s *source, lim *effLimits, obs *Observed, load *LoadStep, b *builder, pre float64) error {
 	if !(pre > 0) || math.IsInf(pre, 0) {
 		pre = 1
@@ -537,7 +575,7 @@ func rawOnLoad(g *geo, o *opts, s *source, lim *effLimits, obs *Observed, load *
 		tw, th := scaleDim(g.srcW, g.wScale), scaleDim(g.srcH, g.hScale)
 		pw, ph := b.oriented(g, o.rotate, s.previewW, s.previewH)
 		r := lim.rawPreviewRatio
-		if s.enforceThumb || (float64(pw)+0.5 >= r*float64(tw) && float64(ph)+0.5 >= r*float64(th)) {
+		if s.previewOnly || s.enforceThumb || (float64(pw)+0.5 >= r*float64(tw) && float64(ph)+0.5 >= r*float64(th)) {
 			load.Preview = true
 			nw, nh = s.previewW, s.previewH
 			fit := min(float64(pw)/float64(max(tw, 1)), float64(ph)/float64(max(th, 1)))
@@ -549,9 +587,6 @@ func rawOnLoad(g *geo, o *opts, s *source, lim *effLimits, obs *Observed, load *
 	}
 	if !load.Preview {
 		px := int64(s.w) * int64(s.h)
-		if lim.rawDemosaicPixels > 0 && px > lim.rawDemosaicPixels {
-			return errs.New(errs.KindLimitExceeded, "plan: raw sensor resolution exceeds the demosaic limit")
-		}
 		if pre >= 2 && !lim.noShrinkOnLoad {
 			load.HalfSize = true
 			nw, nh = (s.w+1)/2, (s.h+1)/2

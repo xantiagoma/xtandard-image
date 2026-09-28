@@ -159,7 +159,16 @@ typedef struct {
   long long offset;
 } XiRawThumb;
 
+// Why LibRaw cannot demosaic a file whose header it read (XiRawHeader.undecodable).
+enum {
+  XI_RAW_DECODABLE = 0,
+  XI_RAW_NIKON_HE = 1,      // Nikon High Efficiency NEF (TicoRAW): no decoder anywhere
+  XI_RAW_NO_DECODER = 2,    // LibRaw's decoder is a placeholder (GPR, JPEG XL DNG, ...)
+  XI_RAW_UNKNOWN_CAMERA = 3 // libraw_open_buffer refused the file; only its previews are known
+};
+
 typedef struct {
+  int undecodable;      // XI_RAW_*; with XI_RAW_UNKNOWN_CAMERA the sizes are 0
   int width;            // demosaiced size (half_size off), stored orientation
   int height;
   int raw_width;        // sensor data size

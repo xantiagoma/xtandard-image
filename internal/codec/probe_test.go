@@ -15,6 +15,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -66,6 +67,11 @@ func TestProbeFixtures(t *testing.T) {
 		edit(&m)
 		return m
 	}
+	rawSource := func(w, h, pw, ph int, only bool) func(*codec.ImageMeta) {
+		return func(m *codec.ImageMeta) {
+			m.Raw = &transform.RawSource{Width: w, Height: h, PreviewWidth: pw, PreviewHeight: ph, PreviewOnly: only}
+		}
+	}
 	delays := []int{100, 100, 100, 100, 100, 100}
 	tests := map[string]codec.ImageMeta{
 		"jpeg/baseline.jpg":    still(codec.FormatJPEG, 320, 240),
@@ -80,10 +86,15 @@ func TestProbeFixtures(t *testing.T) {
 		"detect/apollo11-crew.jpg":  still(codec.FormatJPEG, 640, 503),
 		"detect/astronaut-dogs.jpg": still(codec.FormatJPEG, 640, 512),
 		"detect/cat-laptop.jpg":     still(codec.FormatJPEG, 640, 419),
-		"dng/landscape.dng":         still(codec.FormatRAW, 192, 128),
+		"dng/landscape.dng":         with(still(codec.FormatRAW, 192, 128), rawSource(192, 128, 96, 64, false)),
 		"dng/portrait-orientation-6.dng": with(still(codec.FormatRAW, 192, 128), func(m *codec.ImageMeta) {
 			m.Orientation = 6
+			rawSource(192, 128, 48, 32, false)(m)
 		}),
+		// JPEG XL raw data without the DNG SDK: the preview is the image.
+		"dng/jxl-undecodable.dng": with(still(codec.FormatRAW, 96, 64), rawSource(96, 64, 96, 64, true)),
+		// Its header is fine; LibRaw fails when unpacking (exec falls back).
+		"dng/deflate-corrupt.dng": with(still(codec.FormatRAW, 192, 128), rawSource(192, 128, 96, 64, false)),
 		"uhdr/photo-ultrahdr.jpg": with(still(codec.FormatUHDR, 320, 240), func(m *codec.ImageMeta) { m.HasICC = true }),
 		"png/rgba8.png":           with(still(codec.FormatPNG, 128, 96), func(m *codec.ImageMeta) { m.HasAlpha = true }),
 		"png/rgb16.png":           with(still(codec.FormatPNG, 96, 72), func(m *codec.ImageMeta) { m.BitDepth = 16 }),
@@ -237,7 +248,12 @@ func TestProbeErrors(t *testing.T) {
 		{"psd over pixel limit", readFixture(t, "psd/layered.psd"), codec.Limits{MaxSrcPixels: 1000}, errs.KindLimitExceeded},
 		{"cr2 header only", []byte("II*\x00\x10\x00\x00\x00CR\x02\x00"), codec.Limits{}, errs.KindCorrupt},
 		{"dng truncated in its header", readFixture(t, "dng/landscape.dng")[:300], codec.Limits{}, errs.KindCorrupt},
-		{"dng over pixel limit", readFixture(t, "dng/landscape.dng"), codec.Limits{MaxSrcPixels: 192*128 - 1}, errs.KindLimitExceeded},
+		// A RAW is judged on what can be decoded (WP-102): its 96×64
+		// preview and its 96×64 half-size demosaic.
+		{"dng over pixel limit, preview within", readFixture(t, "dng/landscape.dng"), codec.Limits{MaxSrcPixels: 192*128 - 1}, errs.KindUnknown},
+		{"dng over pixel limit", readFixture(t, "dng/landscape.dng"), codec.Limits{MaxSrcPixels: 96*64 - 1}, errs.KindLimitExceeded},
+		{"12-bit jpeg", withPrecision(t, jpeg, 0xC1, 12), codec.Limits{}, errs.KindUnsupported},
+		{"16-bit lossless jpeg", withPrecision(t, jpeg, 0xC3, 16), codec.Limits{}, errs.KindUnsupported},
 		{"mp4", isobmff("isom", "mp41"), codec.Limits{}, errs.KindUnsupported},
 		{"jpeg header only", jpeg[:24], codec.Limits{}, errs.KindCorrupt},
 		{"png signature only", png[:8], codec.Limits{}, errs.KindCorrupt},

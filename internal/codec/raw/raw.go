@@ -11,6 +11,7 @@ package raw
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
@@ -29,6 +30,12 @@ type Header struct {
 	// JPEG; HasPreview is false when there is none.
 	Preview    Preview
 	HasPreview bool
+	// PreviewOnly: LibRaw cannot demosaic the file (RawHeader.Undecodable:
+	// Nikon High Efficiency, a placeholder decoder, a camera it does not
+	// know), so the embedded preview is the image. Probe then reports the
+	// preview's size as Width × Height, and fails when there is no usable
+	// preview.
+	PreviewOnly bool
 }
 
 // Preview locates an embedded JPEG preview in the source buffer.
@@ -40,21 +47,43 @@ type Preview struct {
 }
 
 // Probe sniffs data's kind and reads the RAW header with LibRaw (header
-// only: no unpacking, no decoding) and picks the preview. Errors are those
-// of vips.ProbeRaw: KindUnsupported, KindCorrupt, KindLimitExceeded or a
-// context kind. Like every vips call it must run inside vips.Run.
+// only: no unpacking, no decoding) and picks the preview (FromHeader).
+// Errors are those of vips.ProbeRaw (KindUnsupported, KindCorrupt,
+// KindLimitExceeded or a context kind) and FromHeader's. Like every vips
+// call it must run inside vips.Run.
 func Probe(ctx context.Context, buf *vips.Buffer) (Header, error) {
 	rh, err := vips.ProbeRaw(ctx, buf)
 	if err != nil {
 		return Header{}, fmt.Errorf("raw: probe: %w", err)
 	}
-	if rh.Width <= 0 || rh.Height <= 0 {
-		return Header{}, errs.New(errs.KindCorrupt, "raw: probe: no image size")
-	}
-	data := buf.Bytes()
-	h := Header{RawHeader: rh, Orientation: Orientation(rh.Flip)}
+	return FromHeader(&rh, buf.Bytes())
+}
+
+// FromHeader completes the LibRaw header rh of the RAW file data: its
+// kind, orientation and usable preview. A file LibRaw cannot demosaic
+// (rh.Undecodable) is PreviewOnly: its size becomes the preview's, and
+// without a usable preview it fails with KindUnsupported and a client
+// message naming the reason. A camera LibRaw refused to open is only
+// accepted when Sniff recognises data as a RAW container. A decodable
+// header without a size is KindCorrupt.
+func FromHeader(rh *vips.RawHeader, data []byte) (Header, error) {
+	h := Header{RawHeader: *rh, Orientation: Orientation(rh.Flip)}
 	h.Kind, _ = Sniff(data)
 	h.Preview, h.HasPreview = PickPreview(data, rh.Thumbnails)
+	if rh.Undecodable == vips.RawDecodable {
+		if rh.Width <= 0 || rh.Height <= 0 {
+			return Header{}, errs.New(errs.KindCorrupt, "raw: probe: no image size")
+		}
+		return h, nil
+	}
+	camera := strings.TrimSpace(rh.Make + " " + rh.Model)
+	if !h.HasPreview || (rh.Undecodable == vips.RawUnknownCamera && h.Kind == KindUnknown) {
+		return Header{}, errs.WithPublic(
+			errs.Newf(errs.KindUnsupported, "raw: probe: %s: %s and no usable embedded preview", camera, rh.Undecodable),
+			fmt.Sprintf("camera RAW not supported (%s: %s) and the file has no usable embedded preview", camera, rh.Undecodable))
+	}
+	h.PreviewOnly = true
+	h.Width, h.Height = h.Preview.Width, h.Preview.Height
 	return h, nil
 }
 

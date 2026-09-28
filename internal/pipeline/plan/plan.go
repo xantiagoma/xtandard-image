@@ -31,6 +31,11 @@ type SourceMeta struct {
 	// Orientation applies to it); 0 when there is none. Width and Height
 	// are the demosaiced size.
 	PreviewWidth, PreviewHeight int
+	// PreviewOnly marks a camera RAW LibRaw cannot demosaic (Nikon High
+	// Efficiency, a camera it does not know): its embedded preview is the
+	// image, Width × Height is the preview's size, and it is always loaded
+	// from the preview (FORMATS.md §2).
+	PreviewOnly bool
 	// HDR marks a scene-linear float source (OpenEXR, Radiance, PFM): it is
 	// loaded with random access (the tone mapper measures it first) and
 	// costs 4 bytes per sample until it is mapped to 8 bits.
