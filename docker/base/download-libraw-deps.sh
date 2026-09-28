@@ -1,9 +1,11 @@
 #!/bin/bash
 # Downloads, verifies (SHA256) and unpacks the SDKs LibRaw is built with (WP-103):
-# the Adobe DNG SDK and the GoPro GPR SDK (versions.sh). LibRaw itself, and its X3F
-# tools, come from download-deps.sh. It runs in its own stage (libraw-deps-src) so the
-# 80 MB DNG SDK zip never enters the deps stage: only the parts build-libraw.sh
-# compiles, and the licence texts, are kept.
+# the Adobe DNG SDK and the GoPro GPR SDK (versions-gpl.sh). LibRaw itself, and its X3F
+# tools, come from download-deps.sh. It runs in its own stage (libraw-deps-src), which
+# only the gpl-deps stage copies from (owner decision 2026-09-28: the DNG SDK ships in
+# the gpl flavor only), so the 80 MB DNG SDK zip never enters any image and slim and
+# full never depend on it: only the parts `build-libraw.sh --with-sdks` compiles, and
+# the licence texts, are kept.
 #
 # Environment:
 #   LIBRAW_DEPS_SRC   where sources are unpacked (default /root/libraw-deps)
@@ -13,8 +15,8 @@
 set -euo pipefail
 
 my_dir="$(cd "$(dirname "$0")" && pwd)"
-# shellcheck source=versions.sh
-source "$my_dir/versions.sh"
+# shellcheck source=versions-gpl.sh
+source "$my_dir/versions-gpl.sh"
 
 LIBRAW_DEPS_SRC=${LIBRAW_DEPS_SRC:-/root/libraw-deps}
 PRINT_CHECKSUMS=${PRINT_CHECKSUMS:-0}

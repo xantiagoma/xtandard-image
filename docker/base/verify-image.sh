@@ -261,20 +261,33 @@ echo "== license gate on the runtime image"
 # shellcheck disable=SC2086 # $gate_gpl is empty or two words
 docker run --rm "${gate_mounts[@]}" "$runtime" \
   bash /usr/local/bin/check-licenses.sh $gate_gpl /opt/xtandard/lib
-docker run --rm "$runtime" bash -euo pipefail -c '
-  for name in libraw imagemagick openexr imath pdfium jxrlib dng-sdk gpr; do
+docker run --rm -e "XI_FLAVOR=$flavor" "$runtime" bash -euo pipefail -c '
+  for name in libraw imagemagick openexr imath pdfium jxrlib; do
     test -n "$(ls -A "/opt/xtandard/share/licenses/$name")"
   done
   grep -q "Redistribution and use in source and binary forms" /opt/xtandard/share/licenses/jxrlib/LICENSE
   test -e /opt/xtandard/lib/libjxrglue.so.0 && test -e /opt/xtandard/lib/libjpegxr.so.0
   echo "licence texts present for LibRaw, ImageMagick, OpenEXR, Imath, PDFium, jxrlib (BSD-2-Clause)"
-  # LibRaw (WP-103): X3F tools (BSD-3-Clause), Adobe DNG SDK, GoPro GPR SDK.
+  # LibRaw (WP-103): X3F tools (BSD-3-Clause) everywhere; the Adobe DNG SDK and the
+  # GoPro GPR SDK in the gpl flavor only (owner decision 2026-09-28).
   grep -q "Redistribution and use" /opt/xtandard/share/licenses/libraw/LICENSE.x3f-tools
-  grep -q "DNG SDK License Agreement" /opt/xtandard/share/licenses/dng-sdk/LICENSE.txt
-  grep -q "Apache License 2.0 or MIT" /opt/xtandard/share/licenses/gpr/LICENSE.txt
-  grep -q "| dng-sdk |" /opt/xtandard/share/licenses/SOURCES.md
-  grep -q "| gpr |" /opt/xtandard/share/licenses/SOURCES.md
-  echo "licence texts present for X3F tools, the Adobe DNG SDK and the GoPro GPR SDK"
+  echo "licence text present for the X3F tools"
+  if [ "$XI_FLAVOR" = gpl ]; then
+    grep -q "DNG SDK License Agreement" /opt/xtandard/share/licenses/dng-sdk/LICENSE.txt
+    grep -q "Apache License 2.0 or MIT" /opt/xtandard/share/licenses/gpr/LICENSE.txt
+    grep -q "| dng-sdk |" /opt/xtandard/share/licenses/SOURCES.md
+    grep -q "| gpr |" /opt/xtandard/share/licenses/SOURCES.md
+    grep -q "Adobe DNG SDK" /opt/xtandard/share/licenses/LICENSE-GPL.md
+    echo "gpl: licence texts present for the Adobe DNG SDK and the GoPro GPR SDK"
+  else
+    if [ -e /opt/xtandard/share/licenses/dng-sdk ] || [ -e /opt/xtandard/share/licenses/gpr ] ||
+      grep -qE "\| (dng-sdk|gpr) \|" /opt/xtandard/share/licenses/SOURCES.md ||
+      grep -qa 12dng_negative /opt/xtandard/lib/libraw_r.so.*; then
+      echo "Adobe DNG SDK or GoPro GPR SDK in a $XI_FLAVOR image" >&2
+      exit 1
+    fi
+    echo "$XI_FLAVOR: no Adobe DNG SDK, no GoPro GPR SDK"
+  fi
 '
 # Ghostscript (AGPL) is in the gpl flavor only (WP-99).
 docker run --rm -e "XI_FLAVOR=$flavor" "$runtime" bash -euo pipefail -c '
@@ -351,19 +364,23 @@ gcc -o jxr jxr.c $(pkg-config --cflags --libs libjxr)
 ./jxr /fixtures/jxr/photo.jxr | grep -qx "jxrlib decoded 64x48"
 echo "ok libjxr.pc, headers and libraries"
 EOF
-  echo "== builder: LibRaw (WP-103) with X3F tools, DNG SDK and GPR SDK"
-  docker run --rm -i -v "$fixtures:/fixtures:ro" "$builder" bash -euo pipefail <<'EOF'
+  echo "== builder: LibRaw (WP-103): X3F tools; DNG SDK and GPR SDK in gpl only"
+  docker run --rm -i -e "XI_FLAVOR=$flavor" -v "$fixtures:/fixtures:ro" "$builder" bash -euo pipefail <<'EOF'
 cd /tmp
 cat > lr.c <<'C'
 #include <stdio.h>
+#include <string.h>
 #include <libraw.h>
 
-/* Decodes a RAW file through the C API (half size) and prints its size. */
+/* With no file: checks the capabilities of the flavor (argv[0] is ./lr-gpl in gpl).
+   With a file: decodes it through the C API (half size) and prints its size. */
 int main(int argc, char **argv) {
-	unsigned want = LIBRAW_CAPS_X3FTOOLS | LIBRAW_CAPS_DNGSDK | LIBRAW_CAPS_GPRSDK;
+	unsigned sdks = LIBRAW_CAPS_X3FTOOLS | LIBRAW_CAPS_DNGSDK | LIBRAW_CAPS_GPRSDK;
+	unsigned want = strstr(argv[0], "gpl") ? sdks : LIBRAW_CAPS_X3FTOOLS;
 	if (argc == 1) {
 		printf("LibRaw %s, %d cameras, caps 0x%x\n", libraw_version(), libraw_cameraCount(), libraw_capabilities());
-		return (libraw_capabilities() & want) == want && libraw_cameraCount() >= 1287 ? 0 : 1;
+		/* 1287 cameras with the GPR SDK; its nine GoPro bodies count only there. */
+		return (libraw_capabilities() & sdks) == want && libraw_cameraCount() >= (want == sdks ? 1287 : 1278) ? 0 : 1;
 	}
 	libraw_data_t *lr = libraw_init(0);
 	int rc, err = 0;
@@ -381,10 +398,23 @@ int main(int argc, char **argv) {
 }
 C
 gcc -o lr lr.c $(pkg-config --cflags --libs libraw_r)
-./lr
-./lr /fixtures/dng/jxl-landscape.dng | grep -qx "xtandard Synthetic DNG 96x64"
-./lr /fixtures/gpr/hero11-crop.gpr | grep -qx "GoPro HERO11 Black 128x96"
-echo "ok LibRaw: JPEG XL DNG (DNG SDK) and GoPro GPR (VC-5) decode"
+if [ "$XI_FLAVOR" = gpl ]; then
+  cp lr lr-gpl
+  ./lr-gpl
+  ./lr /fixtures/dng/jxl-landscape.dng | grep -qx "xtandard Synthetic DNG 96x64"
+  ./lr /fixtures/gpr/hero11-crop.gpr | grep -qx "GoPro HERO11 Black 128x96"
+  echo "ok LibRaw: JPEG XL DNG (DNG SDK) and GoPro GPR (VC-5) decode"
+else
+  ./lr
+  # Without the SDKs LibRaw has only placeholder decoders for both: no garbage.
+  for f in /fixtures/dng/jxl-landscape.dng /fixtures/gpr/hero11-crop.gpr; do
+    if ./lr "$f"; then
+      echo "LibRaw decoded $f without the SDKs" >&2
+      exit 1
+    fi
+  done
+  echo "ok LibRaw: X3F tools only; JPEG XL DNG and GPR are refused"
+fi
 EOF
 fi
 

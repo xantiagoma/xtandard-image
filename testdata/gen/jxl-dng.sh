@@ -9,7 +9,7 @@
 # Requirements: curl, unzip and Docker with a base builder (default
 # xtandard-base:dev-builder, or XI_BASE_IMAGE) for libjxl and libjpeg-turbo.
 # dng_validate is built from the DNG SDK release pinned in
-# docker/base/versions.sh, with docker/base/patches/dng-sdk, and only run here:
+# docker/base/versions-gpl.sh, with docker/base/patches/dng-sdk, and only run here:
 # nothing of it is committed but its output.
 set -eu
 cd "$(dirname "$0")/../.."
@@ -19,8 +19,8 @@ F=testdata/fixtures/dng
 T=$(mktemp -d)
 trap 'rm -rf "$T"' EXIT
 
-# shellcheck source=../../docker/base/versions.sh
-. docker/base/versions.sh
+# shellcheck source=../../docker/base/versions-gpl.sh
+. docker/base/versions-gpl.sh
 curl -fsSL -o "$T/sdk.zip" "https://download.adobe.com/pub/adobe/dng/${DNGSDK_ARCHIVE}"
 sum=$( (sha256sum "$T/sdk.zip" 2>/dev/null || shasum -a 256 "$T/sdk.zip") | cut -d' ' -f1)
 if [ "$sum" != "$DNGSDK_SHA256" ]; then

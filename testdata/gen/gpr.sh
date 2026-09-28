@@ -11,7 +11,7 @@
 #
 # Requirements: curl and Docker (ubuntu:noble). The GPR SDK (Apache-2.0 OR
 # MIT, with its own old DNG and XMP SDKs) is built from the commit pinned in
-# docker/base/versions.sh and only run here.
+# docker/base/versions-gpl.sh and only run here.
 set -eu
 cd "$(dirname "$0")/../.."
 
@@ -21,8 +21,8 @@ trap 'rm -rf "$T"' EXIT
 SAMPLE_URL="https://raw.pixls.us/getfile.php/7319/nice/GoPro%20-%20HERO11%20Black%20-%2016bit%20%285%3A4%29.GPR"
 SAMPLE_SHA256=d7a6be163c847cb8456e6858a99aef3b85dc3d8836bca1da1b8886effe0d43e1
 
-# shellcheck source=../../docker/base/versions.sh
-. docker/base/versions.sh
+# shellcheck source=../../docker/base/versions-gpl.sh
+. docker/base/versions-gpl.sh
 curl -fsSL -o "$T/gpr.tar.gz" "https://github.com/gopro/gpr/archive/${GPR_COMMIT}.tar.gz"
 curl -fsSL -o "$T/hero11.gpr" "$SAMPLE_URL"
 sum() { (sha256sum "$1" 2>/dev/null || shasum -a 256 "$1") | cut -d' ' -f1; }
