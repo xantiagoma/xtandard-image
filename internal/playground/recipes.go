@@ -20,7 +20,9 @@ var recipesJSON []byte
 // reason in its tooltip.
 const (
 	// NeedWatermark: a default watermark image (XI_PROCESSING_WATERMARK_SOURCE,
-	// Meta.Watermark); imgproxy wm without wmu or wmt draws it.
+	// Meta.Watermark); imgproxy wm without wmu or wmt draws it. Only the
+	// imgproxy-compatibility recipe (wm-default) has it: every other
+	// watermark names its image or text in the URL (WP-117).
 	NeedWatermark = "watermark"
 	// NeedDetection: the detection models (Meta.Detection).
 	NeedDetection = "detection"
