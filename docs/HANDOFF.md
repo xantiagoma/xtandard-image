@@ -217,5 +217,5 @@ owner has authorised merging PRs without review.
   Verified: base checks slim/full/gpl, lint and `-race` tests on the three builders, acceptance
   133/133 on full and gpl release images. Next: merge, rebuild the demo.
 - **WP-108 merged (#115)**, bases slim r7 / full r8 / gpl r9 (local `dev*`). Demo redeployed from main
-  a69b514. In flight: WP-116 playground recipes (watermarks + showcase; adds a default watermark to
-  `compose.playground.yml`).
+  a69b514. WP-116 playground Examples (37 recipes) merged (#116); demo redeployed from
+  main a795fc1 with a default watermark. No agents in flight.
