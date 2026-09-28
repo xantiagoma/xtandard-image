@@ -112,6 +112,11 @@ type Meta struct {
 	// PDFPasswords reports whether api/sign can encrypt a pdf_password
 	// (XI_ENCRYPTION_KEYS is set).
 	PDFPasswords bool `json:"pdf_passwords" doc:"api/sign encrypts pdf_password for password-protected PDFs (XI_ENCRYPTION_KEYS is set); signed mounts only."`
+	// Watermark reports that a default watermark image is configured
+	// (XI_PROCESSING_WATERMARK_SOURCE), never which one.
+	Watermark bool `json:"watermark" doc:"A default watermark image is configured (XI_PROCESSING_WATERMARK_SOURCE; the source itself is never included): imgproxy wm without wmu or wmt draws it."`
+	// Recipes are the Examples tool's ready-made sessions.
+	Recipes []Recipe `json:"recipes" doc:"Ready-made sessions of the Examples tool (internal/playground/recipes.json): source, dialect and options, loaded into the builder with one click."`
 }
 
 // Signing is the signing configuration without key material.

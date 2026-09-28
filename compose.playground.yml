@@ -23,6 +23,8 @@ services:
       XI_SOURCES_LOCAL_ROOT: /fixtures
       XI_SOURCES_WEB_TYPE: http
       XI_SOURCES_WEB_ALLOW: "*"
+      # Default watermark for imgproxy wm (the playground's Examples use it; WP-116).
+      XI_PROCESSING_WATERMARK_SOURCE: local:///watermark/logo.png
       XI_DIALECTS_QUERY_ENABLED: "true"
       XI_DIALECTS_WSRV_ENABLED: "true"
       XI_DIALECTS_CLOUDFLARE_ENABLED: "true"
@@ -33,7 +35,8 @@ services:
       XI_DIALECTS_CLOUDINARY_ENABLED: "true"
       XI_DIALECTS_CLOUDINARY_SOURCE: web
       XI_DIALECTS_IMAGEKIT_ENABLED: "true"
-      XI_DIALECTS_IMAGEKIT_SOURCE: web
+      # ImageKit addresses images by key, so it is bound to the fixtures (web has no base_url).
+      XI_DIALECTS_IMAGEKIT_SOURCE: local
       XI_DIALECTS_BUNNY_ENABLED: "true"
       XI_DIALECTS_BUNNY_SOURCE: web
       XI_DIALECTS_THUMBOR_ENABLED: "true"

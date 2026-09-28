@@ -31,6 +31,21 @@ function formLabel(f) {
   return [head, names].filter(Boolean).join(': ') || '(no arguments)';
 }
 
+// PIPELINE_HINTS explain chaining in each grammar that has it: text with
+// `code` spans.
+const PIPELINE_HINTS = {
+  imgproxy: 'Chained pipelines (`/-/`): each runs on the result of the previous one.',
+  imagekit: 'Chained steps (`:`): each runs on the result of the previous one.',
+  cloudinary: 'Chained components (`/`): each runs on the result of the previous one; an overlay is `l` in one component and `fl_layer_apply` (with its placement) in a later one.',
+};
+
+const hintNodes = (text) => text.split('`').map((part, i) => (i % 2 ? el('code', { text: part }) : part));
+
+// vPattern makes a catalogue pattern valid as an HTML pattern attribute,
+// which browsers compile with the v flag: a literal "-" at the end of a
+// character class must be escaped there.
+const vPattern = (p) => (p ? p.replace(/(?<!\\)-\]/g, '\\-]') : undefined);
+
 // Bounds at the int32 limit are "unbounded" for a person.
 const BIG = 1e9;
 
@@ -237,7 +252,9 @@ export class Builder {
         return el('div', { class: 'arg' }, label, el('div', { class: 'num' }, control, picker));
       }
       default: {
-        control = el('input', { id, type: 'text', autocomplete: 'off', spellcheck: 'false', pattern: a.pattern || undefined });
+        // A base64 argument is typed as plain text (encoded for you), so the
+        // pattern of its encoded form does not apply.
+        control = el('input', { id, type: 'text', autocomplete: 'off', spellcheck: 'false', pattern: a.type === 'base64' ? undefined : vPattern(a.pattern) });
         control.value = value;
         if (a.type === 'base64') control.placeholder = 'plain text (encoded for you)';
         if (a.type === 'direction') control.setAttribute('list', 'xi-directions');
@@ -319,15 +336,17 @@ export class Builder {
     }
   }
 
-  // renderPipelines draws the pipeline tabs (imgproxy grammar only).
+  // renderPipelines draws the pipeline tabs of the grammars that chain:
+  // imgproxy (/-/), ImageKit steps (:) and Cloudinary components (/).
   renderPipelines() {
     const box = $('pipelines');
-    const chained = this.grammar === 'imgproxy' || this.grammar === 'imagekit';
-    box.hidden = !chained;
-    if (!chained) {
+    const hint = PIPELINE_HINTS[this.grammar];
+    box.hidden = !hint;
+    if (!hint) {
       this.pipeline = 0;
       return;
     }
+    $('pipelines-hint').replaceChildren(...hintNodes(hint));
     const tabs = $('pipeline-tabs');
     tabs.replaceChildren();
     const n = Math.max(1, this.state.pipelines.length);

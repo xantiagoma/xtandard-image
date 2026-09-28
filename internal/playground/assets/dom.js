@@ -89,6 +89,19 @@ export function escapePlain(s) {
   return out;
 }
 
+// escapeValue percent-encodes an option value written into a path
+// segment (Cloudinary components, ImageKit steps): spaces, non-ASCII text
+// and "/?#" are encoded; sub-delimiters, ":" and "@" stay, and so does
+// "%", so a value typed already encoded ("%252C") is left alone.
+export function escapeValue(s) {
+  let out = '';
+  for (const b of new TextEncoder().encode(s)) {
+    const c = String.fromCharCode(b);
+    out += /[A-Za-z0-9\-._~:@!$&'()*+,;=%]/.test(c) ? c : `%${b.toString(16).toUpperCase().padStart(2, '0')}`;
+  }
+  return out;
+}
+
 // errorText reads a JSON error body ({"error": "..."} or the server's
 // {"error": {"kind", "message"}}) or plain text.
 export function errorText(text, status) {
