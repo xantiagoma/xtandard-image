@@ -72,6 +72,14 @@ func buildPlayground(ctx context.Context, cfg *config.Config, rt *router.Router,
 		Meta: meta, Signers: signers, Image: image, Logger: logger,
 		Store: env.store, FSRoots: fsRoots(cfg), Translator: tr,
 	}
+	// api/sign encrypts a pdf_password with the enc/ key (WP-115).
+	enc, err := encryptionCipher(cfg)
+	if err != nil {
+		return playgroundHandlers{}, fmt.Errorf("playground: %w", err)
+	}
+	if enc != nil {
+		deps.EncryptPassword, meta.PDFPasswords = enc.Encrypt, true
+	}
 	out := playgroundHandlers{publicPath: publicPath}
 	if cfg.Admin.Addr != "" {
 		if out.admin, err = playground.New(playground.Config{Path: pc.Path}, deps); err != nil {

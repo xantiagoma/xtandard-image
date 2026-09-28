@@ -134,7 +134,7 @@ This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS`
 | `XI_SIGNING_SIZE` | `32` | Signature bytes before base64 (imgproxy `SIGNATURE_SIZE`) |
 | `XI_SIGNING_TRUSTED` | `` | Signatures always accepted |
 | `XI_SIGNING_REQUIRED` | `true` when keys set | Reject unsigned imgproxy URLs |
-| `XI_ENCRYPTION_KEYS`, `XI_ENCRYPTION_KEY` | `` | Hex AES keys (16/24/32 bytes) for `enc/` sources; the first encrypts, all decrypt (rotation). `XI_ENCRYPTION_KEY` is the deprecated single-key alias (YAML `encryption.key`); setting both is an error |
+| `XI_ENCRYPTION_KEYS`, `XI_ENCRYPTION_KEY` | `` | Hex AES keys (16/24/32 bytes) for `enc/` sources and `pdf_password` tokens ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); the first encrypts, all decrypt (rotation). `XI_ENCRYPTION_KEY` is the deprecated single-key alias (YAML `encryption.key`); setting both is an error |
 | `XI_SECURITY_UNSIGNED_POLICY` | `restricted` | `allow` \| `restricted` \| `deny` for every request that carries no verified signature, in any dialect (including imgproxy URLs when `XI_SIGNING_REQUIRED` is false) |
 | `XI_SECURITY_ALLOWED_WIDTHS` | `16,32,48,64,96,128,256,384,640,750,828,1080,1200,1920,2048,3840` | Restricted-policy widths (Next.js device + image sizes); logged at startup |
 | `XI_SECURITY_ALLOWED_HEIGHTS` | same as `XI_SECURITY_ALLOWED_WIDTHS` | Restricted-policy heights |
@@ -167,6 +167,7 @@ Each source is configured by the `XI_SOURCES_<NAME>_*` variables below (`<NAME>`
 | `XI_SOURCES_<NAME>_POOL_SIZE` | `4` | ftp/sftp: max open connections to the server |
 | `XI_SOURCES_<NAME>_DIAL_TIMEOUT` | `10s` | ftp/sftp: connect + TLS/SSH handshake + login |
 | `XI_SOURCES_<NAME>_IDLE_TIMEOUT` | `1m` | ftp/sftp: pooled connections idle longer are closed |
+| `XI_SOURCES_<NAME>_PDF_PASSWORD` | — | every type: default password for password-protected PDFs of this source, used when a request carries no `pdf_password` of its own ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); a secret (`_PDF_PASSWORD_FILE`, `{file: …}`), at most 1024 bytes without control characters. Rotating it does not purge renditions already in the result cache |
 | `XI_FETCH_TIMEOUT` | `10s` | Per download attempt |
 | `XI_FETCH_RETRY` | `true` | One retry, after a jittered ~100 ms backoff, of a transient failure (origin 5xx, connection error, attempt timeout); never for 4xx |
 | `XI_FETCH_MAX_REDIRECTS` | `5` | |

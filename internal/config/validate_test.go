@@ -116,6 +116,12 @@ func TestValidate(t *testing.T) {
 		{"passphrase on ftp", func(c *Config) {
 			c.Sources["f"] = Source{Type: SourceFTP, Host: "h", PrivateKey: "k", PrivateKeyPassphrase: "x"}
 		}, []string{"sources.f.private_key_passphrase (XI_SOURCES_F_PRIVATE_KEY_PASSPHRASE): does not apply to type ftp"}},
+		{"pdf password with a control character", func(c *Config) {
+			c.Sources["f"] = Source{Type: SourceFS, Root: "/data", PDFPassword: "a\nb"}
+		}, []string{"sources.f.pdf_password (XI_SOURCES_F_PDF_PASSWORD): must be at most 1024 bytes without control characters"}},
+		{"pdf password too long", func(c *Config) {
+			c.Sources["f"] = Source{Type: SourceFS, Root: "/data", PDFPassword: Secret(strings.Repeat("x", 1025))}
+		}, []string{"sources.f.pdf_password"}},
 		{"ports", func(c *Config) { c.Fetch.AllowedPorts = []int{0} }, []string{"fetch.allowed_ports"}},
 		{"default dialect disabled", func(c *Config) { c.Dialects.Default = DialectImgix }, []string{"dialects.default (XI_DIALECTS_DEFAULT): dialect imgix is not enabled"}},
 		{"mount source missing", func(c *Config) { c.Dialects.Imgix.Source = "nope" }, []string{`dialects.imgix.source (XI_DIALECTS_IMGIX_SOURCE): source "nope" is not configured`}},

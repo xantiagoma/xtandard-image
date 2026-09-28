@@ -106,6 +106,18 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 	}
 	req := parsed.Request
 	signed := parsed.Signature != sign.Unsigned
+	if req.Source.Password != nil {
+		// The request owns its decrypted pdf_password: wiped once served.
+		defer req.Source.Password.Clear()
+		// Defence in depth: dialects accept pdf_password only on verified
+		// signatures, before decrypting it.
+		if parsed.Signature != sign.Verified {
+			return nil, &errs.Error{
+				Kind: errs.KindForbidden, Public: "pdf_password requires a signed url",
+				Msg: "server: pdf_password on a url without a verified signature",
+			}
+		}
+	}
 	// Defence in depth: dialects reject expired URLs at authentication.
 	if e := req.Delivery.Expires; !e.IsZero() && !s.now().Before(e) {
 		return nil, errs.New(errs.KindExpired, "server: url expired")
@@ -142,7 +154,10 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 	}
 	info.source = key.Source
 
-	j := &job{req: req, key: key, lim: lim, hints: hints, signed: signed, hashsum: req.Source.Hashsum}
+	j := &job{
+		req: req, key: key, lim: lim, hints: hints, signed: signed, hashsum: req.Source.Hashsum,
+		password: s.documentPassword(req, key.Source),
+	}
 	// 8. Result cache: a hit skips fetch, admission, probe and processing.
 	if res, ok := s.cacheLookup(ctx, r, info, j); ok {
 		return res, nil
@@ -224,7 +239,9 @@ func (s *Server) produce(ctx context.Context, r *http.Request, info *requestInfo
 
 	// 11. Probe: sanitise SVG, read the header, enforce input limits.
 	t = s.stage(info, stageProbe)
-	src, meta, err := s.probe(ctx, req, fr.Buffer, &lim.probe, lim.maxSrcBytes)
+	plim := lim.probe
+	plim.Password = j.password
+	src, meta, err := s.probe(ctx, req, fr.Buffer, &plim, lim.maxSrcBytes)
 	t.done()
 	if err != nil {
 		return nil, err
@@ -277,6 +294,7 @@ func (s *Server) produce(ctx context.Context, r *http.Request, info *requestInfo
 		Decision:     d,
 		QualityDelta: hints.QualityDelta,
 		Watermarks:   marks,
+		Password:     j.password,
 	})
 	t.done()
 	if err != nil {
@@ -570,6 +588,16 @@ func errorsIsAny(err error, targets ...error) bool {
 		}
 	}
 	return false
+}
+
+// documentPassword is the password a request opens a protected PDF with:
+// its own pdf_password, else the default of the source it resolved to
+// (XI_SOURCES_<NAME>_PDF_PASSWORD), else nil.
+func (s *Server) documentPassword(req *transform.Request, source string) []byte {
+	if pw := req.Source.Password.Bytes(); len(pw) > 0 {
+		return pw
+	}
+	return s.cfg.SourcePasswords[source]
 }
 
 // resolve maps spec to a source key through the allowlist. playground://

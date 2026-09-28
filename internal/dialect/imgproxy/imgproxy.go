@@ -183,7 +183,9 @@ func (p *Parser) parsePath(path string, info bool) (*dialect.Result, error) {
 	}
 
 	st := newState(p, info)
+	st.verified = sigResult == sign.Verified
 	if err := st.parse(rest); err != nil {
+		st.r.Source.Password.Clear()
 		return nil, err
 	}
 	return &dialect.Result{Request: st.r, SourceString: st.r.Source.Raw, Signature: sigResult}, nil
@@ -251,6 +253,9 @@ type state struct {
 	args []string
 	// info selects the /info option grammar (info.go).
 	info bool
+	// verified is set when the URL's signature was verified (not unsigned,
+	// not a trusted signature): only then is pdf_password accepted.
+	verified bool
 }
 
 func newState(p *Parser, info bool) *state {

@@ -109,6 +109,9 @@ type Meta struct {
 	Video bool `json:"video" doc:"Video sources are decoded (FFmpeg, full image)."`
 	// Classes are the object classes gravity, crop and filters accept.
 	Classes []string `json:"classes" doc:"Detection classes: face, the COCO class names and supercategories."`
+	// PDFPasswords reports whether api/sign can encrypt a pdf_password
+	// (XI_ENCRYPTION_KEYS is set).
+	PDFPasswords bool `json:"pdf_passwords" doc:"api/sign encrypts pdf_password for password-protected PDFs (XI_ENCRYPTION_KEYS is set); signed mounts only."`
 }
 
 // Signing is the signing configuration without key material.
@@ -258,6 +261,10 @@ type SignRequest struct {
 	Query string `json:"query,omitempty" maxLength:"8192" doc:"Raw query without ?; an existing xi_sig is replaced."`
 	// Prefix picks one of the mount's Prefixes; empty means Prefix.
 	Prefix string `json:"prefix,omitempty" maxLength:"512" doc:"One of the mount's prefixes; empty means its first prefix."`
+	// PDFPassword is the plain-text password of a password-protected PDF
+	// source (WP-115): the server encrypts it into the URL's pdf_password
+	// option. Never logged or echoed.
+	PDFPassword string `json:"pdf_password,omitempty" maxLength:"1024" doc:"Plain-text password of a password-protected PDF source: the server encrypts it (XI_ENCRYPTION_KEYS) into a pdf_password option (imgproxy mounts: a pdp segment first in the path; the query mount: a pdf_password parameter) and signs the result. Needs a signed mount; never logged or echoed."`
 }
 
 // SignResponse is the body of a successful sign request.

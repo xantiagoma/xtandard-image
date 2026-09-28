@@ -283,6 +283,12 @@ func (p *Parser) imaginary(b *imgproxy.Builder, endpoint string, params []param)
 		if kv.key == paramURL || isSignatureParam(kv.key) || kv.key == "field" {
 			continue
 		}
+		if isPDFPasswordParam(kv.key) {
+			if err := b.Apply("pdf_password", kv.value); err != nil {
+				return err
+			}
+			continue
+		}
 		known, err := ip.set(kv.key, kv.value)
 		if err != nil {
 			return err

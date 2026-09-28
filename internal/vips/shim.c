@@ -356,6 +356,36 @@ xi_free(void *p)
   g_free(p);
 }
 
+// ---- secrets ---------------------------------------------------------------
+
+void
+xi_wipe(void *p, size_t n)
+{
+  volatile unsigned char *v = p;
+
+  while (n--)
+    *v++ = 0;
+}
+
+char *
+xi_secret_new(const void *p, size_t n)
+{
+  char *s = g_malloc(n + 1);
+
+  memcpy(s, p, n);
+  s[n] = '\0';
+  return s;
+}
+
+void
+xi_secret_free(char *s)
+{
+  if (!s)
+    return;
+  xi_wipe(s, strlen(s));
+  g_free(s);
+}
+
 // ---- source buffers --------------------------------------------------------
 
 static int

@@ -52,6 +52,17 @@ int xi_live_objects(void);
 
 void xi_free(void *p);
 
+// ---- secrets (shim.c) --------------------------------------------------
+
+// xi_wipe overwrites n bytes at p with zeros; the writes are volatile, so
+// the compiler cannot drop them as dead stores.
+void xi_wipe(void *p, size_t n);
+// xi_secret_new copies n bytes of p into a new NUL-terminated g_malloc'd
+// string (a document password; p holds no NUL); xi_secret_free wipes and
+// frees it.
+char *xi_secret_new(const void *p, size_t n);
+void xi_secret_free(char *s);
+
 // ---- source buffers (shim.c) -------------------------------------------
 
 // Input buffers: vips_tracked_malloc'd memory wrapped in a VipsBlob whose
@@ -90,6 +101,10 @@ typedef struct {
   int max_frames;        // > 0: loaded frame limit
   double background[4];  // pdf page background (0..255 per band)
   int n_background;      // bands in background; 0 is the loader default
+  // pdf document password (NUL-terminated, owned by the caller), or NULL.
+  // Only a loader with a "password" property gets it; libvips' own copy is
+  // wiped once the loader is built (the password is only read then).
+  const char *password;
 } XiLoadOptions;
 
 typedef struct {
@@ -121,10 +136,15 @@ typedef struct {
   int fail_on;       // VipsFailOn
   int page;
   int n;             // -1 all, 0 loader default
+  // pdf document password, as XiLoadOptions.password. With one, a loader
+  // that takes it is run directly and thumbnail_image resizes its output:
+  // thumbnail_buffer could only pass the password in its option string.
+  const char *password;
 } XiThumbnailOptions;
 
-// dpi > 0 measures vector pages (svg, pdf) at that resolution.
-int xi_probe(VipsBlob *blob, double dpi, XiHeader *h, char **err);
+// dpi > 0 measures vector pages (svg, pdf) at that resolution. password is
+// XiLoadOptions.password (NULL: none).
+int xi_probe(VipsBlob *blob, double dpi, const char *password, XiHeader *h, char **err);
 int xi_load(VipsBlob *blob, const XiLoadOptions *o, VipsImage **out, char **err);
 // xi_load_with is xi_load with the loader named instead of detected (a type
 // name such as "VipsForeignLoadMagick7Buffer"); a blocked loader still fails,

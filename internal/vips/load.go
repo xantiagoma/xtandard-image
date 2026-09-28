@@ -8,6 +8,7 @@ import "C"
 import (
 	"context"
 	"errors"
+	"fmt"
 	"unsafe"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
@@ -27,6 +28,10 @@ func sourceBlob(buf *Buffer) (*C.VipsBlob, error) {
 // opens with the empty user password and never gets here); the trailer check
 // replaces matching PDFium's text in libvips' process-global error buffer,
 // which concurrent requests share.
+//
+// With a password (Buffer.WithPassword) the same failure means the password
+// does not open the document: KindUnsupported with the public message
+// "wrong document password". Neither message ever contains the password.
 func loadError(rc C.int, op string, cerr *C.char, src *C.VipsBlob, buf *Buffer) error {
 	err := opError(rc, op, cerr, src)
 	if rc != C.XI_ERR_LOAD || !pdfEncrypted(buf.Bytes()) {
@@ -35,6 +40,10 @@ func loadError(rc C.int, op string, cerr *C.char, src *C.VipsBlob, buf *Buffer) 
 	var msg string
 	if oe, ok := errors.AsType[*OpError](err); ok {
 		msg = oe.Msg
+	}
+	if buf.HasPassword() {
+		return errs.WithPublic(errs.Wrap(errs.KindUnsupported,
+			fmt.Errorf("%w: %w", errs.ErrWrongPassword, &OpError{Op: op, Msg: msg})), "wrong document password")
 	}
 	return errs.WithPublic(errs.Wrap(errs.KindUnsupported, &OpError{Op: op, Msg: msg}),
 		"password-protected documents are not supported")
@@ -61,7 +70,7 @@ func ProbeDensity(ctx context.Context, buf *Buffer, dpi float64) (Header, error)
 	}
 	var h C.XiHeader
 	var cerr *C.char
-	rc := C.xi_probe(blob, C.double(dpi), &h, &cerr)
+	rc := C.xi_probe(blob, C.double(dpi), buf.password, &h, &cerr)
 	if err := loadError(rc, "probe", cerr, nil, buf); err != nil {
 		return Header{}, err
 	}
@@ -111,6 +120,7 @@ func Load(ctx context.Context, buf *Buffer, opts *LoadOptions) (*Image, error) {
 		return nil, err
 	}
 	o := loadOptions(opts)
+	o.password = buf.password
 	var out *C.VipsImage
 	var cerr *C.char
 	rc := C.xi_load(blob, &o, &out, &cerr)
@@ -139,6 +149,7 @@ func loadWith(ctx context.Context, loader string, buf *Buffer, opts *LoadOptions
 		return nil, errs.New(errs.KindUnsupported, "vips: no loader named")
 	}
 	o := loadOptions(opts)
+	o.password = buf.password
 	name := cstr(loader)
 	var out *C.VipsImage
 	var cerr *C.char
@@ -207,6 +218,7 @@ func Thumbnail(ctx context.Context, buf *Buffer, opts *ThumbnailOptions) (*Image
 		fail_on:   failOn(opts.FailOn),
 		page:      C.int(opts.Page),
 		n:         C.int(opts.NPages),
+		password:  buf.password,
 	}
 	in, exp := cstr(opts.ImportProfile), cstr(opts.ExportProfile)
 	var out *C.VipsImage

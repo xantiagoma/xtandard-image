@@ -3,6 +3,7 @@ package server
 import (
 	"cmp"
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -42,6 +43,9 @@ type job struct {
 	// source hashsum, hashsum.go); nil for the fallback image, which is
 	// another file.
 	hashsum *transform.Hashsum
+	// password opens a password-protected PDF source (documentPassword);
+	// nil for the fallback image, which is another file.
+	password []byte
 	// cacheKey is the result-cache key when the lookup missed and the
 	// response may be stored (cache.go); process copies it to the result,
 	// never the fallback.
@@ -172,7 +176,9 @@ func (s *Server) passthrough(r *http.Request, info *requestInfo, res *imageResul
 // let it outlive XI_FALLBACK_TTL (fallbackWriter only rewrites a 200).
 func (s *Server) fallback(ctx context.Context, r *http.Request, info *requestInfo, cause error) (*imageResult, error) {
 	j := info.job
-	if j == nil || !fallbackEligible(errs.KindOf(cause)) {
+	// A wrong document password is the client's credential failure, never
+	// masked by the fallback image (like a hashsum mismatch).
+	if j == nil || !fallbackEligible(errs.KindOf(cause)) || errors.Is(cause, errs.ErrWrongPassword) {
 		return nil, cause
 	}
 	info.job = nil // loop protection
@@ -181,7 +187,7 @@ func (s *Server) fallback(ctx context.Context, r *http.Request, info *requestInf
 		return nil, cause
 	}
 	fj := *j
-	fj.key, fj.hashsum = key, nil
+	fj.key, fj.hashsum, fj.password = key, nil, nil
 	res, err := s.produce(ctx, unconditional(r), info, &fj)
 	if err != nil {
 		s.deps.Logger.LogAttrs(r.Context(), slog.LevelWarn, "fallback image failed",

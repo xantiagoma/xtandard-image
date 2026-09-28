@@ -140,7 +140,7 @@ func checkVideo(cfg *config.Config) error {
 
 // Probe implements server.Prober.
 func (p *codecProber) Probe(ctx context.Context, src fetch.Buffer, lim server.ProbeLimits) (server.SourceMeta, error) {
-	vb, err := vipsBuffer(src)
+	vb, err := passwordBuffer(src, lim.Password)
 	if err != nil {
 		return server.SourceMeta{}, err
 	}
@@ -353,7 +353,7 @@ func formatMap[V any](in map[config.Format]V) map[transform.Format]V {
 
 // Process implements server.Processor.
 func (p *processor) Process(ctx context.Context, in *server.ProcessInput) (*server.ProcessOutput, error) {
-	src, err := vipsBuffer(in.Source)
+	src, err := passwordBuffer(in.Source, in.Password)
 	if err != nil {
 		return nil, err
 	}

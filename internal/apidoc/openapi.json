@@ -1315,6 +1315,36 @@
             "x-xi-scope": "request",
             "x-xi-syntax": "0 or 2..256"
           },
+          "pdf_password": {
+            "description": "Open a password-protected PDF; signed URLs only. URL: `pdf_password`, `pdp`; arguments encrypted password (base64url); default none.",
+            "examples": [
+              [
+                "MDEyMzQ1Njc4OWFiY2RlZlsN0ZQuFO2sitmy5C87M2o"
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "the document password encrypted like an enc/ source (AES-CBC with the XI_ENCRYPTION_KEYS key, base64url); empty removes it",
+                "pattern": "^[A-Za-z0-9_-]*=*$",
+                "title": "token",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "pdp"
+            ],
+            "x-xi-default": "none",
+            "x-xi-milestone": "M4 (WP-115)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "encrypted password (base64url)"
+          },
           "perceptual_hash": {
             "description": "Report a perceptual hash. URL: `perceptual_hash`, `phash`, `ph`; arguments bool; default false.",
             "examples": [
@@ -4042,6 +4072,36 @@
             "x-xi-scope": "pipeline",
             "x-xi-syntax": "int"
           },
+          "pdf_password": {
+            "description": "Open a password-protected PDF; signed URLs only. URL: `pdf_password`, `pdp`; arguments encrypted password (base64url); default none.",
+            "examples": [
+              [
+                "MDEyMzQ1Njc4OWFiY2RlZlsN0ZQuFO2sitmy5C87M2o"
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "the document password encrypted like an enc/ source (AES-CBC with the XI_ENCRYPTION_KEYS key, base64url); empty removes it",
+                "pattern": "^[A-Za-z0-9_-]*=*$",
+                "title": "token",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "pdp"
+            ],
+            "x-xi-default": "none",
+            "x-xi-milestone": "M4 (WP-115)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "encrypted password (base64url)"
+          },
           "pixelate": {
             "description": "Pixelate. URL: `pixelate`, `pix`; arguments size; default off.",
             "examples": [
@@ -6393,6 +6453,10 @@
             "description": "XI_SERVER_PATH_PREFIX; every generated URL starts with it.",
             "type": "string"
           },
+          "pdf_passwords": {
+            "description": "api/sign encrypts pdf_password for password-protected PDFs (XI_ENCRYPTION_KEYS is set); signed mounts only.",
+            "type": "boolean"
+          },
           "presets": {
             "description": "Configured preset names.",
             "items": {
@@ -6466,7 +6530,8 @@
           "max_upload_bytes",
           "detection",
           "video",
-          "classes"
+          "classes",
+          "pdf_passwords"
         ],
         "type": "object"
       },
@@ -6697,6 +6762,11 @@
             "description": "Escaped path after the mount prefix, starting with /; without the signature segment for imgproxy and thumbor.",
             "maxLength": 8192,
             "minLength": 1,
+            "type": "string"
+          },
+          "pdf_password": {
+            "description": "Plain-text password of a password-protected PDF source: the server encrypts it (XI_ENCRYPTION_KEYS) into a pdf_password option (imgproxy mounts: a pdp segment first in the path; the query mount: a pdf_password parameter) and signs the result. Needs a signed mount; never logged or echoed.",
+            "maxLength": 1024,
             "type": "string"
           },
           "prefix": {
