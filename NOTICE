@@ -38,17 +38,18 @@ from YOKOTA Hiroshi via Debian, the rest ours; README.md there), for the
 JPEG XR loader in internal/vips/jxr.c.
 
 Every base image flavor also builds LibRaw (LGPL-2.1, a snapshot of
-https://github.com/LibRaw/LibRaw) with three optional decoders compiled
-into libraw_r (WP-103), each with the patches in docker/base/patches:
-- X3F tools (Sigma X3F), inside LibRaw's tree, Copyright (c) 2010 Roland
-  Karlsson, BSD-3-Clause;
-- the Adobe DNG SDK 1.7.1 (DNG 1.7 JPEG XL raw data), Copyright Adobe
-  Inc., under the DNG SDK License Agreement (shipped as
-  share/licenses/dng-sdk/LICENSE.txt). Adobe and the DNG logo are
-  trademarks of Adobe Inc.; this project is not endorsed by Adobe;
-- the GoPro GPR SDK (VC-5 decoder for GoPro .GPR),
-  https://github.com/gopro/gpr, Copyright (c) 2018 GoPro, Inc.,
-  Apache-2.0 OR MIT.
+https://github.com/LibRaw/LibRaw) with optional decoders compiled into
+libraw_r (WP-103), with the patches in docker/base/patches:
+- in every flavor: X3F tools (Sigma X3F), inside LibRaw's tree,
+  Copyright (c) 2010 Roland Karlsson, BSD-3-Clause;
+- in the gpl flavor only (docker/base/versions-gpl.sh):
+  - the Adobe DNG SDK 1.7.1 (DNG 1.7 JPEG XL raw data), Copyright Adobe
+    Inc., under the DNG SDK License Agreement (shipped as
+    share/licenses/dng-sdk/LICENSE.txt). Adobe and the DNG logo are
+    trademarks of Adobe Inc.; this project is not endorsed by Adobe;
+  - the GoPro GPR SDK (VC-5 decoder for GoPro .GPR),
+    https://github.com/gopro/gpr, Copyright (c) 2018 GoPro, Inc.,
+    Apache-2.0 OR MIT.
 Test fixtures testdata/fixtures/dng/jxl-landscape.dng and
 testdata/fixtures/gpr/hero11-crop.gpr were produced with Adobe's
 dng_validate and GoPro's gpr_tools (testdata/gen/jxl-dng.sh, gpr.sh);

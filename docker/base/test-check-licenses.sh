@@ -415,6 +415,51 @@ dir="$(new_fixture gpl-licenses-needs-allow)"
 mkdir -p "$dir/licenses"
 expect_args 2 gpl-licenses-needs-allow --licenses "$dir/licenses" "$dir/lib"
 
+# --- Adobe DNG SDK (WP-103, owner decision 2026-09-28): gpl flavor only -------------
+# It is compiled into libraw_r with hidden visibility; its RTTI class names give it away.
+
+# add_dngsdk dir: libraw_r with the DNG SDK inside, its licence entry and bundle dir.
+add_dngsdk() {
+  printf '\x7fELF libraw 12dng_negative 8dng_host libraw_open_buffer\n' > "$1/lib/libraw_r.so.26"
+  printf "XI_COMPONENT_LICENSES=\"\$XI_COMPONENT_LICENSES\ndng-sdk LicenseRef-Adobe-DNG-SDK\n\"\n" >> "$1/versions-gpl.sh"
+  printf 'export DNGSDK_VERSION=1.7.1-2724\n' >> "$1/versions-gpl.sh"
+  mkdir -p "$1/licenses/dng-sdk"
+}
+
+dir="$(new_fixture strict-dngsdk-libraw)"
+printf '\x7fELF libraw 12dng_negative 8dng_host libraw_open_buffer\n' > "$dir/lib/libraw_r.so.26"
+expect 1 strict-dngsdk-libraw "$dir"
+
+dir="$(new_fixture strict-plain-libraw)"
+printf '\x7fELF libraw _ZN6LibRaw12set_dng_hostEPv libraw_open_buffer\n' > "$dir/lib/libraw_r.so.26"
+expect 0 strict-plain-libraw "$dir"
+
+dir="$(new_fixture strict-dngsdk-pin)"
+printf 'export DNGSDK_VERSION=1.7.1-2724\n' >> "$dir/versions.sh"
+expect 1 strict-dngsdk-pin "$dir"
+
+dir="$(new_gs_fixture gpl-dngsdk-clean "$gs_components dng-sdk=LicenseRef-Adobe-DNG-SDK")"
+add_dngsdk "$dir"
+# shellcheck disable=SC2046
+expect_args 0 gpl-dngsdk-clean $(gs_args "$dir")
+
+dir="$(new_gs_fixture gpl-dngsdk-not-listed)"
+add_dngsdk "$dir"
+# shellcheck disable=SC2046
+expect_args 1 gpl-dngsdk-not-listed $(gs_args "$dir")
+
+dir="$(new_gs_fixture gpl-dngsdk-as-mit "$gs_components dng-sdk=MIT")"
+add_dngsdk "$dir"
+# shellcheck disable=SC2046
+expect_args 1 gpl-dngsdk-as-mit $(gs_args "$dir")
+
+dir="$(new_gs_fixture gpl-dngsdk-licence-elsewhere "$gs_components dng-sdk=LicenseRef-Adobe-DNG-SDK")"
+add_dngsdk "$dir"
+printf "XI_COMPONENT_LICENSES=\"\$XI_COMPONENT_LICENSES\nmystery-codec LicenseRef-Adobe-DNG-SDK\n\"\n" >> "$dir/versions-gpl.sh"
+mkdir -p "$dir/licenses/mystery-codec"
+# shellcheck disable=SC2046
+expect_args 1 gpl-dngsdk-licence-elsewhere $(gs_args "$dir")
+
 # The real versions-gpl.sh is refused by the strict gate and accepted by --allow-gpl.
 if "$gate" "$work/empty-lib" "$my_dir/versions-gpl.sh" > /dev/null 2>&1; then
   echo "FAIL real-versions-gpl.sh passes the strict gate" >&2
