@@ -2,8 +2,10 @@
 // takes the result's aspect ratio (portrait, wide, tiny), side by side
 // keeps equal boxes, zoom/pan, the mount picker lists each mount once,
 // translate cards always say something, the matrix sorts, and there are
-// no console errors, CSP violations or 5xx answers; §8 checks the Info
-// panel (WP-109) on a JPEG, a PNG with alpha, a detection photo and a video.
+// no console errors, CSP violations or 5xx answers; §7 checks the WP-111
+// layout (global tools, captions, Source/Result labels, loading states,
+// page/frame/time selectors); §8 checks the Info panel (WP-109) on a JPEG,
+// a PNG with alpha, a detection photo and a video.
 //
 // Playwright is not a dependency of the repository: run it from a
 // throwaway directory against a server with the demo configuration
@@ -202,15 +204,263 @@ const ik = cards.find((c) => c.label === 'ImageKit');
 if (shots) await page.locator('#translate').screenshot({ path: `${shots}/translate.png` });
 check(Boolean(ik?.reason.includes('addresses images by path')), `translate: ImageKit says why (${ik?.reason.slice(0, 90)}…)`);
 
-// 7. Format matrix sorts by status; tabs take Home/End.
-await page.click('#mtab-matrix');
+// 7. WP-111 layout: History, Format matrix and Gallery are global tools
+// (header navigation, #tools/<name> routes) that leave the session as it
+// is; the asset workspace keeps Preview (result) and Info (source) with
+// captions and cross-links; Source/Result labels are unambiguous.
+await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+await show(page, hash(SRC, [['resize', 0, ['fit', '200', '0'], 1, 1]]), 200, 150);
+await page.waitForTimeout(400); // the session hash is written 300 ms after a change
+const session = await page.evaluate(() => ({ hash: location.hash, url: (document.getElementById('url-out') as HTMLTextAreaElement).value }));
+check(!(await page.isVisible('#mtab-matrix')) && !(await page.isVisible('#mtab-history')), 'layout: no History or Format matrix tab in the asset workspace');
+check(await page.evaluate(() => [...document.querySelectorAll('#more-tabs [role=tab]')].map((t) => t.textContent).join('|')) === 'Every dialect|Info (source)', 'layout: session tabs are Every dialect and Info (source)');
+check(/source file \(original asset\), independent of the processing options/.test(await page.textContent('#info-caption') ?? ''), 'caption: Info is about the source file');
+check(/processed output/.test(await page.textContent('#result-caption') ?? '') && /processed output/.test(await page.textContent('#preview-caption') ?? ''), 'caption: the preview and its details are about the processed output');
+// Cross-links.
+await page.click('#goto-source-info');
+check(await page.getAttribute('#mtab-info', 'aria-selected') === 'true' && await page.evaluate(() => document.activeElement?.id === 'info-caption'), 'link: "source info" opens the Info tab');
+await page.click('#goto-result');
+check(await page.evaluate(() => document.activeElement?.id === 'result-details-title'), 'link: "see output details" jumps to the result details');
+await page.click('#mtab-translate');
+
+// Unambiguous Source/Result labels.
+await page.waitForFunction(() => document.querySelectorAll('#compare tbody tr').length > 5 && !document.querySelector('#compare td[title^="loading"]'), undefined, { timeout: 10000 });
+const labels = await page.evaluate(() => ({
+  cols: [...document.querySelectorAll('#compare thead th')].map((t) => t.textContent),
+  rows: Object.fromEntries([...document.querySelectorAll('#compare tbody tr')].map((r) => [r.querySelector('th')!.textContent, [...r.querySelectorAll('td')].map((t) => t.textContent)])),
+  stats: [...document.querySelectorAll('#stats .stat span')].map((s) => s.textContent),
+  headers: [...document.querySelectorAll('#after-headers th')].map((t) => ({ label: t.firstChild?.textContent ?? '', raw: t.getAttribute('title') ?? '', key: t.parentElement!.dataset.header })),
+  tags: [...document.querySelectorAll('#stage .tag')].map((t) => t.textContent),
+  timing: document.querySelector('#timing h4')?.textContent ?? '',
+  headersTitle: document.getElementById('headers-title')!.textContent,
+}));
+check(labels.cols.some((c) => c?.startsWith('Source')) && labels.cols.some((c) => c?.startsWith('Result')) && labels.cols.includes('Change'), `labels: Source | Result | Change columns (${labels.cols.join(', ')})`);
+for (const row of ['Format (MIME type)', 'Dimensions (px)', 'Megapixels', 'Bytes', 'Colour space', 'Alpha', 'Pages / frames', 'Orientation (EXIF)']) {
+  check(Array.isArray(labels.rows[row]), `labels: comparison row ${row} (${labels.rows[row]?.join(' | ')})`);
+}
+check(labels.rows['Dimensions (px)']?.[0] === '320×240' && labels.rows['Dimensions (px)']?.[1] === '200×150' && /scale ×0\.6/.test(labels.rows['Dimensions (px)']?.[2] ?? ''),
+  `labels: source 320×240 from /info, result 200×150, scale (${labels.rows['Dimensions (px)']?.join(' | ')})`);
+check(/^jpeg \(image\/jpeg\)$/.test(labels.rows['Format (MIME type)']?.[0] ?? ''), `labels: source format from /info (${labels.rows['Format (MIME type)']?.[0]})`);
+check(/%/.test(labels.rows['Bytes']?.[2] ?? ''), `labels: bytes change (${labels.rows['Bytes']?.[2]})`);
+const bare = ['Type', 'Size', 'Status', 'Source', 'Result', 'Browser', 'Saved', 'Bytes', 'Dimensions'];
+check(labels.stats.length > 0 && labels.stats.every((s) => !bare.includes(s ?? '') && /^Result /.test(s ?? '')), `labels: result stats name their side (${labels.stats.join(', ')})`);
+check(labels.headers.length > 0 && labels.headers.every((h) => h.label && h.label !== h.key && !bare.includes(h.label) && h.raw.endsWith(' header')),
+  `labels: ${labels.headers.length} result headers in words with the raw name in the tooltip (${labels.headers.map((h) => h.label).join(', ')})`);
+check(labels.headers.filter((h) => h.key?.startsWith('x-xi-origin-')).every((h) => h.label.startsWith('Source')) && labels.headers.filter((h) => ['content-type', 'content-length', 'etag', 'cache-control'].includes(h.key ?? '')).every((h) => h.label.startsWith('Result')),
+  'labels: X-Xi-Origin-* read "Source …", content-type/length read "Result …"');
+check(labels.headersTitle === 'Result response headers' && labels.timing.includes('result request'), `labels: "${labels.headersTitle}", "${labels.timing}"`);
+check(labels.tags.join('|') === 'Source|Result', `labels: slider tags ${labels.tags.join(' / ')}`);
+
+// Format matrix as a tool: route, focus, caption, sort, run a few rows.
+await page.click('#tools-nav a[data-tool="matrix"]');
+await page.waitForSelector('#tool-matrix:not([hidden])');
+check(await page.evaluate(() => location.hash) === '#tools/matrix', 'tools: the matrix opens as #tools/matrix');
+check(await page.isHidden('#workspace') && await page.evaluate(() => document.activeElement?.id === 'tool-title'), 'tools: the workspace is hidden and focus moves to the tool heading');
+check(/Global tool/.test(await page.textContent('#tool-caption') ?? ''), 'tools: the caption says the tool is global');
+check(await page.getAttribute('#tools-nav a[data-tool="matrix"]', 'aria-current') === 'page', 'tools: the nav marks the open tool');
 await page.click('th[data-sort="status"] button');
 check(await page.getAttribute('th[data-sort="status"]', 'aria-sort') === 'ascending', 'matrix: sorted by status');
 await page.click('th[data-sort="status"] button');
 check(await page.getAttribute('th[data-sort="status"]', 'aria-sort') === 'descending', 'matrix: reversed');
-await page.focus('#mtab-matrix');
+await page.click('th[data-sort="name"] button');
+const runRows = await page.$$('#matrix tbody tr:not([hidden]):not(.off) button[aria-label^="Run "]');
+for (const b of runRows.slice(0, 3)) await b.click();
+await page.waitForFunction(() => {
+  const rows = [...document.querySelectorAll('#matrix tbody tr:not([hidden]):not(.off)')].slice(0, 3);
+  return rows.every((r) => !r.hasAttribute('aria-busy') && r.lastElementChild!.previousElementSibling!.textContent !== '…');
+}, undefined, { timeout: 60000 });
+const ran = await page.evaluate(() => [...document.querySelectorAll('#matrix tbody tr:not([hidden]):not(.off)')].slice(0, 3)
+  .map((r) => ({ name: r.children[1].textContent, ok: Boolean(r.querySelector('.badge.ok')), thumb: Boolean(r.querySelector('img.mthumb')) })));
+check(ran.length === 3 && ran.every((r) => r.ok === r.thumb), `matrix: ran 3 rows (${ran.map((r) => `${r.name} ${r.ok ? 'ok' : 'failed'}`).join(', ')})`);
+check(ran.some((r) => r.ok), 'matrix: at least one row rendered a thumbnail');
+// Share link while a tool is open: the session's link.
+await page.click('#share');
+check(await page.evaluate(() => navigator.clipboard.readText()) === `${base.replace(/#.*$/, '')}${session.hash}`, 'tools: Share link copies the session link while a tool is open');
+// Esc returns to the session, intact.
+await page.keyboard.press('Escape');
+await page.waitForSelector('#workspace:not([hidden])');
+const back = await page.evaluate(() => ({ hash: location.hash, url: (document.getElementById('url-out') as HTMLTextAreaElement).value, img: (document.querySelector('#after-media img') as HTMLImageElement)?.naturalWidth }));
+check(back.hash === session.hash && back.url === session.url && back.img === 200, `tools: Esc returns to the session with its state (url ${back.url === session.url}, hash ${back.hash === session.hash}, result ${back.img}px)`);
+check(await page.evaluate(() => document.activeElement?.getAttribute('data-tool') === 'matrix'), 'tools: focus returns to the link that opened the tool');
+
+// Keyboard: the nav is reachable and Enter opens History.
+await page.focus('#nav-session');
+await page.keyboard.press('Tab');
+await page.keyboard.press('Tab');
+check(await page.evaluate(() => document.activeElement?.getAttribute('data-tool')) === 'history', 'tools: Tab reaches the History link');
+await page.keyboard.press('Enter');
+await page.waitForSelector('#tool-history:not([hidden])');
+const hist = await page.evaluate(() => [...document.querySelectorAll('#history li.hentry')].map((li) => ({
+  url: li.querySelector('.hurl')!.textContent, time: li.querySelector('time')?.getAttribute('datetime') ?? '', thumb: Boolean(li.querySelector('img.hthumb')),
+})));
+check(hist.length >= 3 && hist.every((h) => h.time) && hist.some((h) => h.thumb), `history: ${hist.length} entries with timestamps, ${hist.filter((h) => h.thumb).length} thumbnails`);
+await page.fill('#history-search', 'zzzz-no-such-session');
+check(await page.$$eval('#history li.hentry', (l) => l.length) === 0, 'history: the search filters');
+await page.fill('#history-search', '');
+const other = hist.findIndex((h) => h.url !== session.url);
+await page.locator('#history li.hentry').nth(other).locator('button', { hasText: 'Copy link' }).click();
+check((await page.evaluate(() => navigator.clipboard.readText())).includes('#v1:'), 'history: copy the share link of an entry');
+await page.locator('#history li.hentry').nth(other).locator('button', { hasText: 'Open' }).click();
+await page.waitForSelector('#workspace:not([hidden])');
+await page.waitForFunction((u) => (document.getElementById('url-out') as HTMLTextAreaElement).value === u, hist[other].url, { timeout: 10000 })
+  .then(() => check(true, 'history: Open loads that session'), () => check(false, 'history: Open loads that session'));
+// Back returns to the previous session.
+await page.evaluate((h) => { location.hash = h; }, session.hash);
+await page.waitForFunction((u) => (document.getElementById('url-out') as HTMLTextAreaElement).value === u, session.url, { timeout: 10000 });
+
+// Gallery tool: pick a sample, back in the session with that source.
+await page.click('#tools-nav a[data-tool="gallery"]');
+await page.waitForSelector('#tool-gallery:not([hidden]) .tile');
+const tiles = await page.$$eval('#gallery-big .tile', (t) => t.length);
+await page.fill('#gallery-filter', 'png');
+const pngTile = page.locator('#gallery-big .tile:not([hidden]):not([disabled])').first();
+const pick = await pngTile.getAttribute('data-source');
+await pngTile.click();
+await page.waitForSelector('#workspace:not([hidden])');
+check(tiles > 5 && await page.evaluate(() => document.getElementById('current-source')!.textContent) === pick && !(await page.evaluate(() => location.hash)).startsWith('#tools'),
+  `gallery: ${tiles} tiles; picking one loads it into the session (${pick})`);
+check(await page.evaluate(() => [...document.querySelectorAll('.gallery .tile[aria-current="true"]')].length) >= 1, 'gallery: the picked tile is marked current');
+
+// Direct link to a tool, and Back from a tool.
+const toolPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
+await toolPage.goto(`${base.replace(/#.*$/, '')}#tools/history`);
+await toolPage.waitForSelector('#tool-history:not([hidden])');
+check(await toolPage.isHidden('#workspace'), 'tools: a #tools/history link opens the tool');
+for (const t of ['history', 'matrix', 'gallery']) {
+  await toolPage.click(`#tools-nav a[data-tool="${t}"]`);
+  await toolPage.waitForSelector(`#tool-${t}:not([hidden])`);
+  const o = await toolPage.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
+  check(o.sw <= o.cw + 1, `tools 390px: ${t} without horizontal scroll (${o.sw} ≤ ${o.cw})`);
+  if (shots) await toolPage.screenshot({ path: `${shots}/tool-${t}-390.png` });
+}
+await toolPage.goBack();
+await toolPage.waitForFunction(() => location.hash === '#tools/matrix');
+check(await toolPage.isVisible('#tool-matrix'), 'tools: Back goes to the previous tool');
+await toolPage.click('#tool-close');
+check(await toolPage.isVisible('#workspace') && (await toolPage.evaluate(() => location.hash)).startsWith('#v1:'), 'tools: Back to the session writes the session hash');
+await toolPage.close();
+
+// Tabs take Home/End.
+await page.focus('#mtab-info');
 await page.keyboard.press('Home');
 check(await page.evaluate(() => document.activeElement?.id === 'mtab-translate'), 'tabs: Home selects the first tab');
+
+// 7b. Loading state: a slow render hides the old result at once, shows
+// the placeholder, and the new image replaces it; overlapping requests
+// paint only the last one.
+await show(page, hash(SRC, [['resize', 0, ['fit', '200', '0'], 1, 1]]), 200, 150);
+const delays = new Map<string, number>();
+await page.route('**/api/render?u=*', async (route) => {
+  const u = decodeURIComponent(route.request().url());
+  const d = [...delays].find(([k]) => u.includes(k))?.[1] ?? 0;
+  if (d) await new Promise((r) => setTimeout(r, d));
+  try { await route.continue(); } catch { /* aborted by a newer request */ }
+});
+await page.evaluate(() => {
+  (window as any).__painted = [];
+  new MutationObserver((ms) => {
+    for (const m of ms) for (const n of m.addedNodes) if (n instanceof HTMLImageElement) (window as any).__painted.push(n.naturalWidth);
+  }).observe(document.getElementById('after-media')!, { childList: true });
+});
+delays.set(':240:', 1200);
+await page.evaluate((x) => { location.hash = x; }, hash(SRC, [['resize', 0, ['fit', '240', '0'], 1, 1]]));
+await page.waitForFunction(() => document.getElementById('pane-after')!.classList.contains('loading'), undefined, { timeout: 5000 });
+await page.waitForTimeout(400);
+const loading = await page.evaluate(() => {
+  const old = document.querySelector('#after-media img')!;
+  const loader = document.querySelector('#pane-after .loader');
+  return {
+    oldHidden: !old || getComputedStyle(old).visibility === 'hidden', loader: Boolean(loader) && getComputedStyle(loader!).opacity === '1',
+    text: loader?.textContent ?? '', busy: document.getElementById('stage')!.getAttribute('aria-busy'), live: document.getElementById('preview-busy')!.textContent,
+  };
+});
+if (shots) await page.locator('#stage').screenshot({ path: `${shots}/loading.png` });
+check(loading.oldHidden, 'loading: the previous result is hidden as soon as the request starts');
+check(loading.loader && loading.text === 'Processing…' && loading.busy === 'true' && /Processing/.test(loading.live), `loading: placeholder "${loading.text}", aria-busy ${loading.busy}, live region "${loading.live}"`);
+await page.waitForFunction(() => (document.querySelector('#after-media img') as HTMLImageElement)?.naturalWidth === 240 && !document.querySelector('#pane-after .loader'), undefined, { timeout: 10000 });
+check(await page.evaluate(() => getComputedStyle(document.querySelector('#after-media img')!).visibility === 'visible' && !document.getElementById('stage')!.hasAttribute('aria-busy')), 'loading: the new result replaces the placeholder');
+// Overlap: A (slow) then B (fast): only B paints.
+delays.set(':111:', 1500);
+await page.evaluate(() => { (window as any).__painted = []; });
+await page.evaluate((x) => { location.hash = x; }, hash(SRC, [['resize', 0, ['fit', '111', '0'], 1, 1]]));
+await page.waitForTimeout(100);
+await page.evaluate((x) => { location.hash = x; }, hash(SRC, [['resize', 0, ['fit', '122', '0'], 1, 1]]));
+await page.waitForFunction(() => (document.querySelector('#after-media img') as HTMLImageElement)?.naturalWidth === 122, undefined, { timeout: 10000 });
+await page.waitForTimeout(2000);
+const painted = await page.evaluate(() => (window as any).__painted as number[]);
+check(!painted.includes(111) && painted.at(-1) === 122 && await page.evaluate(() => (document.querySelector('#after-media img') as HTMLImageElement).naturalWidth) === 122,
+  `loading: overlapping requests paint only the last (painted ${painted.join(', ')})`);
+await page.unroute('**/api/render?u=*');
+
+// 7c. Pages, frames and time on the preview.
+// fresh waits until the result is a new image (not prev) and settled.
+const resultSrc = () => page.evaluate(() => (document.querySelector('#after-media img') as HTMLImageElement | null)?.src ?? '');
+const fresh = (prev: string, timeout = 20000) => page.waitForFunction((p) => {
+  const img = document.querySelector('#after-media img') as HTMLImageElement | null;
+  return img && img.src !== p && !document.querySelector('#pane-after.loading');
+}, prev, { timeout });
+const hasVideo = await page.evaluate(() => fetch('api/meta').then((r) => r.json()).then((m) => Boolean(m.video)));
+const lum = (sel: string) => page.evaluate((s) => {
+  const img = document.querySelector(s) as HTMLImageElement;
+  const c = document.createElement('canvas');
+  c.width = 16; c.height = 16;
+  const g = c.getContext('2d')!;
+  g.drawImage(img, 0, 0, 16, 16);
+  const d = g.getImageData(0, 0, 16, 16).data;
+  let t = 0;
+  for (let i = 0; i < d.length; i += 4) t += d[i] + d[i + 1] * 3 + d[i + 2] * 7;
+  return t;
+}, sel);
+let prevSrc = await resultSrc();
+await page.evaluate((x) => { location.hash = x; }, hash('xi://local/pdf/pages.pdf', []));
+await page.waitForSelector('#frames[data-kind="pages"]', { timeout: 20000 });
+await fresh(prevSrc);
+const pdfPage1 = await lum('#after-media img');
+check((await page.textContent('#frames-count'))?.trim() === '/ 3', 'pages: "n / 3" from /info pages_number');
+const pdfSrc1 = await page.getAttribute('#after-media img', 'src');
+await page.click('#frames-next');
+await page.waitForFunction(() => (document.getElementById('url-out') as HTMLTextAreaElement).value.includes('/page:1/'), undefined, { timeout: 5000 });
+await page.waitForFunction((s1) => (document.querySelector('#after-media img') as HTMLImageElement | null)?.src !== s1 && !document.querySelector('#pane-after.loading'), pdfSrc1, { timeout: 20000 });
+const pdfPage2 = await lum('#after-media img');
+check(pdfPage1 !== pdfPage2 && await page.inputValue('#frames-page') === '2', `pages: page 2 updates the URL (page:1) and the result (${pdfPage1} → ${pdfPage2})`);
+check(await page.$$eval('.page-thumb', (b) => b.length) === 3 && await page.getAttribute('.page-thumb[data-page="2"]', 'aria-current') === 'true', 'pages: a strip of 3 page thumbnails, page 2 current');
+await page.check('#frames-all');
+await page.waitForFunction(() => (document.getElementById('url-out') as HTMLTextAreaElement).value.includes('/pages:-1/'), undefined, { timeout: 5000 })
+  .then(() => check(true, 'pages: all pages stacked writes pages:-1'), () => check(false, 'pages: all pages stacked writes pages:-1'));
+await page.selectOption('#mount', 'thumbor');
+await page.waitForSelector('#frames[data-kind="pages"]');
+check(await page.isDisabled('#frames-page') && /cannot express/.test(await page.getAttribute('#frames-page', 'title') ?? ''), 'pages: disabled with a tooltip on a dialect without pages (thumbor)');
+await page.selectOption('#mount', 'imgproxy');
+
+await page.evaluate((x) => { location.hash = x; }, hash('xi://local/gif/animated.gif', [['format', 0, ['png'], 1, 1]]));
+await page.waitForSelector('#frames[data-kind="frames"]', { timeout: 20000 });
+prevSrc = await resultSrc();
+await page.$eval('#frames-frame', (r: HTMLInputElement) => { r.value = '4'; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change')); });
+await page.waitForFunction(() => (document.getElementById('url-out') as HTMLTextAreaElement).value.includes('/page:3/pages:1/'), undefined, { timeout: 5000 });
+await fresh(prevSrc);
+const gif = await page.evaluate(() => ({ readout: document.getElementById('frames-readout')!.textContent, type: document.querySelector('#after-headers tr[data-header="content-type"] td')?.textContent }));
+check(gif.readout === 'frame 4 / 6' && gif.type === 'image/png', `frames: GIF frame 4 as a still PNG (${gif.readout}, ${gif.type})`);
+
+if (hasVideo) {
+  await page.evaluate((x) => { location.hash = x; }, hash('xi://local/video/clip-vp9.webm', []));
+  await page.waitForSelector('#frames[data-kind="video"]', { timeout: 20000 });
+  await page.$eval('#frames-time', (r: HTMLInputElement) => { r.value = '1.2'; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change')); });
+  await page.waitForFunction(() => (document.getElementById('url-out') as HTMLTextAreaElement).value.includes('video_thumbnail_second:1.2'), undefined, { timeout: 5000 })
+    .then(() => check(true, 'video: scrubbing to 1.2 s writes video_thumbnail_second:1.2'), () => check(false, 'video: scrubbing writes video_thumbnail_second'));
+  prevSrc = await resultSrc();
+  await page.check('#frames-keyframes');
+  await page.waitForFunction(() => (document.getElementById('url-out') as HTMLTextAreaElement).value.includes('video_thumbnail_keyframes:1'), undefined, { timeout: 5000 });
+  await fresh(prevSrc, 30000);
+  const vf = await page.evaluate(() => ({ readout: document.getElementById('frames-time-readout')!.textContent, frame: document.getElementById('frames-video-frame')!.textContent, status: document.querySelector('#stats .stat strong')!.textContent }));
+  check(vf.readout === '1.20 s' && vf.status?.startsWith('200'), `video: keyframe toggle renders (${vf.readout}; frame used: ${vf.frame}; ${vf.status})`);
+  await page.click('#frames-sprite');
+  await page.waitForFunction(() => (document.getElementById('url-out') as HTMLTextAreaElement).value.includes('video_thumbnail_tile:'), undefined, { timeout: 5000 });
+  check(await page.getAttribute('#frames-sprite', 'aria-pressed') === 'true', 'video: the sprite button writes video_thumbnail_tile');
+  await page.click('#frames-sprite');
+  if (shots) await page.locator('#frames').screenshot({ path: `${shots}/frames-video.png` });
+} else {
+  notes.push('video selectors skipped: no FFmpeg in this image');
+}
 
 // 8. Info panel (WP-109): every /info option on a JPEG, a PNG with alpha,
 // a video and a detection photo; placeholders decoded in the browser;
