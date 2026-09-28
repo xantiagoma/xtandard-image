@@ -152,27 +152,35 @@ func TestToneMapRamp(t *testing.T) {
 }
 
 // TestPreserveHDR checks preserve_hdr: JPEG XL keeps float samples (above
-// 1.0 included), AVIF keeps 12 bits, and outputs or steps that cannot hold
-// them clip to 8 bits and report preserve_hdr as skipped.
+// 1.0 included), AVIF is 12-bit BT.2100 PQ (the sun at 40 × 203 cd/m²
+// clips at PQ's 10000), JPEG is UltraHDR when there is no alpha to flatten,
+// and outputs or steps that cannot hold them clip to 8 bits and report
+// preserve_hdr as skipped.
 func TestPreserveHDR(t *testing.T) {
 	t.Parallel()
-	exr := readFixture(t, "exr/rgba-half.exr")
 	for _, tc := range []struct {
-		name, options string
-		out           transform.Format
-		format        vips.BandFormat // of the decoded output
-		minMax        float64         // the brightest decoded sample is at least this
-		skipped       bool
+		name, fixture, options string
+		out                    transform.Format
+		format                 vips.BandFormat // of the decoded output
+		minMax                 float64         // the brightest decoded sample is at least this
+		skipped                bool
+		pq, uhdr               bool
 	}{
 		{name: "jxl float", options: "ph:1/rs:fit:64:0", out: transform.FormatJXL, format: vips.BandFormatFloat, minMax: 8},
 		{name: "jxl without preserve", options: "rs:fit:64:0", out: transform.FormatJXL, format: vips.BandFormatUchar},
-		{name: "avif 12-bit", options: "ph:1", out: transform.FormatAVIF, format: vips.BandFormatUshort},
+		{name: "avif pq", options: "ph:1", out: transform.FormatAVIF, format: vips.BandFormatUshort, minMax: 60000, pq: true},
+		{name: "jpeg ultrahdr", fixture: "exr/rgb-float.exr", options: "ph:1", out: transform.FormatJPEG, format: vips.BandFormatUchar, uhdr: true},
+		{name: "jpeg with alpha clips", options: "ph:1", out: transform.FormatJPEG, format: vips.BandFormatUchar, skipped: true},
 		{name: "png clips", options: "ph:1", out: transform.FormatPNG, format: vips.BandFormatUchar, skipped: true},
 		{name: "jxl with blur clips", options: "ph:1/bl:1", out: transform.FormatJXL, format: vips.BandFormatUchar, skipped: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			j, buf := job(t, exr, parse(t, tc.options), tc.out)
+			fixture := tc.fixture
+			if fixture == "" {
+				fixture = "exr/rgba-half.exr"
+			}
+			j, buf := job(t, readFixture(t, fixture), parse(t, tc.options), tc.out)
 			defer buf.Release()
 			res, err := newExecutor(t).Run(t.Context(), j)
 			if err != nil {
@@ -182,7 +190,14 @@ func TestPreserveHDR(t *testing.T) {
 			if got := slices.Contains(res.Skipped, "preserve_hdr"); got != tc.skipped {
 				t.Errorf("skipped %v, want preserve_hdr skipped %v", res.Skipped, tc.skipped)
 			}
-			bf, top := decodedFormat(t, bytes.Clone(res.Body.Bytes()))
+			out := bytes.Clone(res.Body.Bytes())
+			if got := bytes.Contains(out, []byte("colrnclx\x00\x09\x00\x10\x00\x09")); got != tc.pq {
+				t.Errorf("BT.2100 PQ nclx box %v, want %v", got, tc.pq)
+			}
+			if got := decodedLoader(t, out) == "uhdrload_buffer"; got != tc.uhdr {
+				t.Errorf("UltraHDR output %v, want %v", got, tc.uhdr)
+			}
+			bf, top := decodedFormat(t, out)
 			if bf != tc.format {
 				t.Errorf("decoded band format %v, want %v", bf, tc.format)
 			}
@@ -270,6 +285,23 @@ func srgb8(v float64) int {
 		v = 1.055*math.Pow(v, 1/2.4) - 0.055
 	}
 	return int(math.Round(255 * v))
+}
+
+// decodedLoader is the libvips loader of an encoded image.
+func decodedLoader(tb testing.TB, data []byte) string {
+	tb.Helper()
+	buf := newBuffer(tb, data)
+	defer buf.Release()
+	var loader string
+	err := vips.Run(tb.Context(), func() error {
+		h, err := vips.Probe(tb.Context(), buf)
+		loader = h.Loader
+		return err
+	})
+	if err != nil {
+		tb.Fatal(err)
+	}
+	return loader
 }
 
 // decodedBands is the band count of an encoded image as libvips loads it.

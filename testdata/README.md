@@ -49,6 +49,9 @@ testdata/
 | `avif/photo.avif` | AVIF 320x240 | 8-bit AV1 still |
 | `heic/photo.heic` | HEIC 320x240 | HEVC Main still |
 | `heic/thumbnail.heic`, `avif/thumbnail.avif` | HEIC / AVIF 320x240 | the photo with an embedded 80x60 thumbnail of a *different* image (the graphic), so tests can tell which one was decoded (`enforce_thumbnail`) |
+| `avif/sequence.avif`, `avif/sequence-alpha.avif`, `heic/sequence.heic` | AVIF / HEIC sequence 64x48 | libheif sequence tracks (no still item; brands `avis` / `hevc`, `msf1`), 4 frames: frame i a palette colour with a white square at x = 4 + 12i, lasting (i + 1) × 100 ms; loops forever, the alpha one (half-transparent left half) plays twice (WP-104) |
+| `avif/libavif-colors-animated-8bpc.avif` | AVIF sequence 150x150 | libavif's `avis` sample, 5 frames at 30 fps (BSD-2-Clause) |
+| `gainmap/libavif-*.avif`, `gainmap/libavif-paris_exif_xmp_gainmap_bigendian.jpg` | AVIF / JPEG | libavif's gain-map samples (BSD-2-Clause): ISO 21496-1 `tmap` with an SDR base (Seine), grid variants, an HDR base, an unsupported tmap version, and an Adobe gain-map JPEG libultrahdr refuses (WP-104) |
 | `jxl/photo.jxl` | JPEG XL 320x240 | container, lossy |
 | `jp2/photo.jp2` | JPEG 2000 160x120 | JP2 container |
 | `tiff/multipage.tif` | TIFF | 2 pages (160x120 photo, 96x72 graphic), deflate |

@@ -20,6 +20,22 @@ import (
 // once: a chained pipeline sees pixels that are already sRGB but still carry
 // the source profile, which must not be applied a second time.
 func (r *runner) toProcessing(ctx context.Context, img *vips.Image) (*vips.Image, error) {
+	if r.gainMapWanted() {
+		hdr, ok, err := r.applyGainMap(ctx, img)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			return r.fromHDR(ctx, hdr)
+		}
+		// An unusable gain map: the SDR base goes on as a plain image.
+		if r.req.Output.PreserveHDR != nil && *r.req.Output.PreserveHDR {
+			r.skip("preserve_hdr")
+		}
+		if r.req.Output.GainMap == transform.GainMapHDR {
+			r.skip("gain_map")
+		}
+	}
 	if r.hdrPending() {
 		return r.fromHDR(ctx, img)
 	}

@@ -1243,6 +1243,15 @@ export interface components {
              */
             format_quality?: (("jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | "mp4" | "webm" | "hevc" | "h265") | number)[];
             /**
+             * @description What an HDR gain map (UltraHDR, ISO 21496-1) does: auto renders HDR with preserve_hdr for AVIF, JPEG XL and JPEG outputs, hdr does so without preserve_hdr, sdr keeps the SDR base. URL: `gain_map`, `gm`; arguments auto, hdr, sdr; default auto.
+             * @example [
+             *       "hdr"
+             *     ]
+             */
+            gain_map?: [
+                "auto" | "hdr" | "sdr"
+            ];
+            /**
              * @deprecated
              * @description Removed upstream; accepted and ignored for old URLs. URL: `gif_options`, `gifo`; arguments —; default —.
              * @example [
@@ -1987,11 +1996,13 @@ export interface components {
             };
             /** @description Source format in imgproxy's names: jpeg (UltraHDR too), png, webp, avif, heic, jxl, gif, tiff, bmp, ico, svg, pdf, psd, ... (info option format). */
             format?: string;
+            /** @description xtandard-image extension: true when the source carries an HDR gain map (UltraHDR JPEG, ISO 21496-1 JPEG, AVIF or HEIC tmap item); its pixels are the SDR base, and preserve_hdr or gain_map:hdr render the HDR version for AVIF, JPEG XL and JPEG outputs; absent otherwise. */
+            gain_map?: boolean;
             /** @description Hex digests of the source bytes by algorithm: md5, sha1, sha256, sha512 (info option calc_hashsums). */
             hashsums?: {
                 [key: string]: string;
             };
-            /** @description xtandard-image extension: true for scene-linear sources (OpenEXR, Radiance, PFM), which imgproxy does not read; absent otherwise. */
+            /** @description xtandard-image extension: true for scene-linear sources (OpenEXR, Radiance, PFM), which imgproxy does not read, and for sources with an HDR gain map; absent otherwise. */
             hdr?: boolean;
             /**
              * Format: int64

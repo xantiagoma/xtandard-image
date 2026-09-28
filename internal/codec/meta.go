@@ -80,6 +80,11 @@ type ImageMeta struct {
 	// Radiance, PFM, DDS BC6H and float textures): the executor tone-maps them to 8-bit sRGB unless
 	// preserve_hdr keeps them (FORMATS.md §1.4).
 	HDR bool
+	// GainMap reports an HDR gain map (UltraHDR or ISO 21496-1 JPEG, AVIF or
+	// HEIC tmap): the pixels are the SDR base, and the executor applies the
+	// map for HDR outputs with preserve_hdr or gain_map:hdr (FORMATS.md
+	// §1.4, WP-104).
+	GainMap bool
 	// ContentTypeMismatch reports that the Content-Type declared by the
 	// origin disagrees with the sniffed format. It is only a warning: the
 	// declared type is never trusted for detection.

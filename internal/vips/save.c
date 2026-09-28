@@ -186,6 +186,15 @@ xi_jxlsave(VipsImage *in, const XiJxlOptions *o, int keep, void **buf, size_t *l
 }
 
 int
+xi_uhdrsave(VipsImage *in, int quality, int keep, void **buf, size_t *len, char **err)
+{
+  xi_save_reset(buf, len);
+  if (vips_uhdrsave_buffer(in, buf, len, "Q", quality, "keep", keep, NULL))
+    XI_SAVE_FAIL();
+  return XI_OK;
+}
+
+int
 xi_tiffsave(VipsImage *in, const XiTiffOptions *o, int keep, void **buf, size_t *len,
     char **err)
 {

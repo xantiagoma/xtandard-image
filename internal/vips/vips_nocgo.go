@@ -450,3 +450,19 @@ func RawLoad(context.Context, *Buffer, *RawOptions) (*Image, error) { return nil
 
 // RawLibraryInfo reports no LibRaw.
 func RawLibraryInfo() RawLibrary { return RawLibrary{} }
+
+// LoadHEIFGainMap fails.
+func LoadHEIFGainMap(context.Context, *Buffer) (*Image, []byte, error) {
+	return nil, nil, ErrUnavailable
+}
+
+// UHDRGainMap fails.
+func (*Image) UHDRGainMap(context.Context) (*Image, UHDRGainMap, bool, error) {
+	return nil, UHDRGainMap{}, false, ErrUnavailable
+}
+
+// Pow fails.
+func (*Image) Pow(context.Context, []float64) (*Image, error) { return nil, ErrUnavailable }
+
+// Exp2 fails.
+func (*Image) Exp2(context.Context) (*Image, error) { return nil, ErrUnavailable }

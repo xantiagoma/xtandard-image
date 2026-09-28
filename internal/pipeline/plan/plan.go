@@ -41,6 +41,11 @@ type SourceMeta struct {
 	// loaded with random access (the tone mapper measures it first) and
 	// costs 4 bytes per sample until it is mapped to 8 bits.
 	HDR bool
+	// GainMap marks an SDR base with an HDR gain map (UltraHDR JPEG, ISO
+	// 21496-1 JPEG, AVIF or HEIC tmap). With preserve_hdr (or gain_map:hdr)
+	// and an HDR output (JPEG XL, AVIF, JPEG) the executor applies the map
+	// and the source becomes scene-linear like HDR (WP-104).
+	GainMap bool
 	// IsVideo marks a video source (MP4, MOV, WebM, MKV, AVI): one frame is
 	// decoded by FFmpeg and scaled on load by libswscale (LoadStep.Scale),
 	// leaving the last 2× of a reduction to libvips. Width and Height are

@@ -82,6 +82,9 @@ type SourceMeta struct {
 	// HDR marks scene-linear samples (OpenEXR, Radiance, PFM, and DDS
 	// BC6H or float textures, which only the header tells apart).
 	HDR bool
+	// GainMap marks an HDR gain map (UltraHDR, ISO 21496-1): the image is
+	// its SDR base, and HDR outputs can apply the map (WP-104).
+	GainMap bool
 	// Video describes a video source (container, streams, the display size
 	// and matrix of its frames); nil for images. A video_thumbnail_tile or
 	// _animation request turns the fields above into those of the sprite

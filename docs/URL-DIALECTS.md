@@ -146,6 +146,7 @@ Aliases in parentheses. "Pro" marks options that are paid in imgproxy; all are f
 | `dpi` Pro | int | `O.DPI`: output resolution (JPEG JFIF/Exif, PNG pHYs, TIFF), kept when stripping (FORMATS §5) | 0 | M2 (WP-64) |
 | `strip_color_profile` (`scp`) | bool | `O.StripColorProfile` | config (true) | M1 |
 | `preserve_hdr` (`ph`) | bool | `O.PreserveHDR` | config (false) | M2 |
+| `gain_map` (`gm`) | auto, hdr, sdr | `O.GainMap`: an HDR gain map (UltraHDR, ISO 21496-1 JPEG, AVIF or HEIC tmap) is applied for AVIF (PQ), JPEG XL (float) and JPEG (UltraHDR) outputs with `preserve_hdr` (`auto`) or always (`hdr`); `sdr` keeps the SDR base (FORMATS §1.4) | auto | M4 (WP-104) |
 | `color_profile` (`cp`, `icc`) Pro | srgb, cmyk, file | `O.ColorProfile` | — | M2 |
 | `enforce_thumbnail` (`eth`) | bool | `O.EnforceThumbnail`: HEIF/AVIF embedded thumbnail always; JPEG Exif thumbnail when large enough (FORMATS §5) | config | M2 (WP-64) |
 | `quality` (`q`) | 0..100 | `O.Quality` | 0 (config) | M1 |

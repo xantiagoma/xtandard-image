@@ -569,6 +569,12 @@ func ProcessingOptions() []Option {
 			Syntax: "bool", Default: "config (false)", Milestone: "M2", Doc: "Keep HDR data (gain maps, high bit depth).", Example: "1",
 		},
 		{
+			Name: "gain_map", Aliases: []string{"gm"}, Scope: ScopeRequest,
+			Forms:  single(enumArg("mode", []string{"auto", "hdr", "sdr"}, "auto follows preserve_hdr, hdr applies the gain map, sdr keeps the SDR base")),
+			Syntax: "auto, hdr, sdr", Default: "auto", Milestone: "M4 (WP-104)",
+			Doc: "What an HDR gain map (UltraHDR, ISO 21496-1) does: auto renders HDR with preserve_hdr for AVIF, JPEG XL and JPEG outputs, hdr does so without preserve_hdr, sdr keeps the SDR base.", Example: "hdr",
+		},
+		{
 			Name: "color_profile", Aliases: []string{"cp", "icc"}, Scope: ScopeRequest, Pro: true,
 			Forms:  single(strArg("profile", "srgb, cmyk or a profile file name (no path)").opt()),
 			Syntax: "srgb, cmyk, file", Default: "—", Milestone: "M2", Doc: "Target colour profile.", Example: "srgb",

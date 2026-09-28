@@ -32,6 +32,8 @@ type Info struct {
 	XMP []byte
 	// HDR mirrors Meta.HDR: scene-linear samples (OpenEXR, Radiance, PFM).
 	HDR bool
+	// GainMap mirrors Meta.GainMap: an HDR gain map (WP-104).
+	GainMap bool
 	// Video mirrors Meta.Video: the container, its tags and streams.
 	Video *video.Meta
 }
@@ -70,7 +72,7 @@ func inspect(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Setting
 	if err != nil {
 		return Info{}, err
 	}
-	info := Info{Meta: m, HDR: m.HDR}
+	info := Info{Meta: m, HDR: m.HDR, GainMap: m.GainMap}
 	if m.Format == FormatRAW {
 		if err := inspectRaw(ctx, buf, &info); err != nil {
 			return Info{}, err

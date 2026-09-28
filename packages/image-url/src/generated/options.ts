@@ -320,6 +320,15 @@ export interface ImgproxyProcessingArgs {
   "format_quality":
     | [format_or_quality: "jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | "mp4" | "webm" | "hevc" | "h265" | number, format_or_quality_2: "jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | "mp4" | "webm" | "hevc" | "h265" | number, ...format_or_qualitys: Array<"jpeg" | "jpg" | "png" | "webp" | "avif" | "jxl" | "heic" | "gif" | "tiff" | "bmp" | "ico" | "svg" | "mp4" | "webm" | "hevc" | "h265" | number>];
   /**
+   * What an HDR gain map (UltraHDR, ISO 21496-1) does: auto renders HDR with preserve_hdr for AVIF, JPEG XL and JPEG outputs, hdr does so without preserve_hdr, sdr keeps the SDR base. URL: `gain_map`, `gm`; arguments auto, hdr, sdr; default auto.
+   *
+   * URL names: `gain_map`, `gm`.
+   * milestone M4 (WP-104); scope request.
+   * @example ["hdr"]
+   */
+  "gain_map":
+    | [mode: "auto" | "hdr" | "sdr"];
+  /**
    * Removed upstream; accepted and ignored for old URLs. URL: `gif_options`, `gifo`; arguments —; default —.
    *
    * URL names: `gif_options`, `gifo`.
@@ -862,6 +871,7 @@ export const imgproxyProcessingAliases = {
   "fq": "format_quality",
   "g": "gravity",
   "gifo": "gif_options",
+  "gm": "gain_map",
   "gr": "gradient",
   "h": "height",
   "hs": "hashsum",
@@ -956,6 +966,7 @@ export const imgproxyProcessingOptionNames = [
   "flip",
   "format",
   "format_quality",
+  "gain_map",
   "gif_options",
   "gradient",
   "gravity",
