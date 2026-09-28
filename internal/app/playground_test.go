@@ -336,3 +336,53 @@ func TestPlaygroundMetaMergesPrefixes(t *testing.T) {
 		}
 	}
 }
+
+// TestPlaygroundMetaWatermark: api/meta says whether a default watermark
+// is configured (the Examples tool disables the recipes that need one)
+// without naming its source, and carries the recipes.
+func TestPlaygroundMetaWatermark(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, source string
+		want         bool
+	}{
+		{"none", "", false},
+		{"configured", "local:///private/brand/secret-logo.png", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			env := []string{"XI_DEV_MODE=true", "XI_PLAYGROUND_ENABLED=true"}
+			if tc.source != "" {
+				env = append(env, "XI_PROCESSING_WATERMARK_SOURCE="+tc.source)
+			}
+			cfg, _, err := config.Load(config.LoadOptions{Environ: env, ConfigFile: os.DevNull})
+			if err != nil {
+				t.Fatal(err)
+			}
+			rt, _, err := buildRouter(&cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			meta, _, err := playgroundMeta(&cfg, rt, "test")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := (&playgroundEnv{}).extend(meta, &cfg); err != nil {
+				t.Fatal(err)
+			}
+			if meta.Watermark != tc.want {
+				t.Errorf("watermark = %v, want %v", meta.Watermark, tc.want)
+			}
+			if len(meta.Recipes) == 0 {
+				t.Error("no recipes")
+			}
+			b, err := json.Marshal(meta)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if bytes.Contains(b, []byte("secret-logo")) || bytes.Contains(b, []byte("/private/brand")) {
+				t.Error("api/meta names the watermark source")
+			}
+		})
+	}
+}

@@ -140,6 +140,11 @@ func (e *playgroundEnv) extend(meta *playground.Meta, cfg *config.Config) error 
 		meta.MaxUploadBytes = e.store.MaxBytes()
 	}
 	meta.Detection, meta.Video = e.detection, e.video
+	// Whether a default watermark is configured, never its source string.
+	meta.Watermark = cfg.Processing.WatermarkSource != ""
+	if meta.Recipes, err = playground.Recipes(); err != nil {
+		return err
+	}
 	meta.Classes = append([]string{"face"}, transform.ObjectClasses()...)
 	for i := range meta.Sources {
 		meta.Sources[i].Listable = cfg.Sources[meta.Sources[i].Name].Type == config.SourceFS
