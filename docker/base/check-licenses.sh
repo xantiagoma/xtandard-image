@@ -5,7 +5,7 @@
 # lacks a permissive licence.
 #
 # Usage: check-licenses.sh [--allow-gpl <versions-gpl.sh>] [--licenses <dir>]
-#          [--ffmpeg <ffmpeg>] [--ldd] [--models <dir>] <lib-dir> [versions.sh ...]
+#          [--ffmpeg <ffmpeg>] [--ghostscript <gs>] [--ldd] [--models <dir>] <lib-dir> [versions.sh ...]
 #
 # Checks:
 #   1. file names under <lib-dir> (libx265.so*, poppler, exiv2, libimagequant, ...)
@@ -26,27 +26,37 @@
 # gpl flavor only (WP-70b, ADR 0006 amendment 2026-09-27):
 #   --allow-gpl <versions-gpl.sh>
 #                   the components listed in its XI_GPL_COMPONENTS (component=SPDX;
-#                   only x264, x265 and ffmpeg, only under GPL-2.0/GPL-3.0) stop being
-#                   forbidden: their names, symbols and pins pass, and --ffmpeg then
-#                   requires --enable-gpl and `-L` reporting the GNU General Public
-#                   License (and no --enable-version3 for a GPL-2.0 entry). Everything
-#                   else stays forbidden: nonfree, AGPL, poppler, exiv2, libpostproc, ...
+#                   only x264, x265 and ffmpeg under GPL-2.0/GPL-3.0, and ghostscript
+#                   under exactly AGPL-3.0-or-later, WP-99) stop being forbidden: their
+#                   names, symbols and pins pass, and --ffmpeg then requires
+#                   --enable-gpl and `-L` reporting the GNU General Public License (and
+#                   no --enable-version3 for a GPL-2.0 entry). Everything else stays
+#                   forbidden: nonfree, any other AGPL, poppler, exiv2, libpostproc,
+#                   and libgs (Ghostscript linked as a library) even with ghostscript
+#                   allowed.
 #   --licenses <dir>
 #                   (needs --allow-gpl) every entry of the licence bundle <dir> has a
 #                   licence in XI_COMPONENT_LICENSES made only of known identifiers (no
-#                   AGPL, SSPL or unknown ones), and <dir>/LICENSE-GPL.md exists and
-#                   declares the combined GPL-2.0-or-later licence
+#                   SSPL or unknown ones; AGPL-3.0-or-later only for an allowed
+#                   ghostscript), and <dir>/LICENSE-GPL.md exists and declares the
+#                   combined GPL-2.0-or-later licence (and AGPL-3.0-or-later when
+#                   ghostscript is allowed)
+#   --ghostscript <gs>
+#                   (needs ghostscript allowed) `<gs> --version` runs and `<gs> -h`
+#                   lists exactly the bbox, nullpage, png16m and pngalpha devices; with
+#                   --ldd, gs is checked like the libraries
 #
 # Exit status: 0 when clean, 1 when a forbidden component is found, 2 on usage error.
 
 set -uo pipefail
 
 usage() {
-  echo "usage: $0 [--allow-gpl <versions-gpl.sh>] [--licenses <dir>] [--ffmpeg <ffmpeg>] [--ldd] [--models <dir>] <lib-dir> [versions.sh ...]" >&2
+  echo "usage: $0 [--allow-gpl <versions-gpl.sh>] [--licenses <dir>] [--ffmpeg <ffmpeg>] [--ghostscript <gs>] [--ldd] [--models <dir>] <lib-dir> [versions.sh ...]" >&2
   exit 2
 }
 
 ffmpeg_bin=
+gs_bin=
 use_ldd=0
 models_dir=
 gpl_file=
@@ -56,6 +66,7 @@ while [ $# -gt 0 ]; do
     --allow-gpl) [ $# -ge 2 ] || usage; gpl_file=$2; shift 2 ;;
     --licenses) [ $# -ge 2 ] || usage; licenses_dir=$2; shift 2 ;;
     --ffmpeg) [ $# -ge 2 ] || usage; ffmpeg_bin=$2; shift 2 ;;
+    --ghostscript) [ $# -ge 2 ] || usage; gs_bin=$2; shift 2 ;;
     --ldd) use_ldd=1; shift ;;
     --models) [ $# -ge 2 ] || usage; models_dir=$2; shift 2 ;;
     --) shift; break ;;
@@ -86,10 +97,13 @@ fi
 #   could pick up (WP-66): FFTW, DjVuLibre, AutoTrace, LibRaw's GPL demosaic packs.
 # Each item is `regex` or `regex=component`; a component allowed by --allow-gpl drops
 # its items from the patterns (and only those).
-name_items=(x265=x265 x264=x264 poppler exiv2 imagequant jbig ghostscript 'libgs\.so'
-  ffmpeg-gpl=ffmpeg postproc xvidcore fftw djvulibre autotrace 'demosaic[-_]pack[-_]gpl')
+name_items=(x265=x265 x264=x264 poppler exiv2 imagequant jbig ghostscript=ghostscript
+  'libgs\.so' ffmpeg-gpl=ffmpeg postproc xvidcore fftw djvulibre autotrace
+  'demosaic[-_]pack[-_]gpl')
 
 # Strings that only exist inside binaries built from or linked against those components.
+# Ghostscript is only ever allowed as the separate `gs` program (--ghostscript): a
+# library linking libgs still fails, allowlist or not.
 content_items=('libx265\.so=x265' x265_encoder_open=x265 'libx264\.so=x264'
   x264_encoder_open=x264 libpoppler poppler_document_new libexiv2 'Exiv2::'
   'libimagequant\.so' libjbig jbg_enc_init 'libgs\.so' gsapi_new_instance
@@ -105,8 +119,12 @@ buildconf_items=(gpl=ffmpeg nonfree libx264=x264 libx265=x265 libxvid frei0r lib
   libvidstab libzvbi libcdio libdavs2 'libxavs2?')
 
 # The GPL components --allow-gpl can allow, and the licences it accepts for them.
-gpl_allowable_components=' x264 x265 ffmpeg '
+# Ghostscript (WP-99, ADR 0011) is the single AGPL component, and only as exactly
+# AGPL-3.0-or-later; no other component may be AGPL.
+gpl_allowable_components=' x264 x265 ffmpeg ghostscript '
 gpl_allowable_licenses=' GPL-2.0-only GPL-2.0-or-later GPL-3.0-only GPL-3.0-or-later '
+agpl_component=ghostscript
+agpl_license=AGPL-3.0-or-later
 
 # Identifiers an XI_COMPONENT_LICENSES expression may use (--licenses). GPL-* ids are
 # accepted there too (--licenses only runs in gpl mode); AGPL, SSPL and anything not
@@ -152,8 +170,10 @@ if [ -n "$gpl_file" ]; then
     if [ "$component" = "$entry" ] || [ -z "$license" ]; then
       report "GPL allowlist entry '$entry' in $gpl_file is not component=SPDX"
     elif [[ $gpl_allowable_components != *" $component "* ]]; then
-      report "GPL allowlist entry '$entry' in $gpl_file: only x264, x265 and ffmpeg can be allowed"
-    elif [[ $gpl_allowable_licenses != *" $license "* ]]; then
+      report "GPL allowlist entry '$entry' in $gpl_file: only x264, x265, ffmpeg and ghostscript can be allowed"
+    elif [ "$component" = "$agpl_component" ] && [ "$license" != "$agpl_license" ]; then
+      report "GPL allowlist entry '$entry' in $gpl_file: ghostscript is allowed as exactly $agpl_license"
+    elif [ "$component" != "$agpl_component" ] && [[ $gpl_allowable_licenses != *" $license "* ]]; then
       report "GPL allowlist entry '$entry' in $gpl_file: licence $license is not GPL-2.0/GPL-3.0"
     else
       allowed_gpl+="$component "
@@ -243,6 +263,21 @@ if [ -n "$ffmpeg_bin" ]; then
   fi
 fi
 
+# 5b. Ghostscript (gpl flavor, WP-99): allowed only through --allow-gpl, as the one
+# `gs` program with exactly the devices the server uses.
+if [ -n "$gs_bin" ]; then
+  if [[ $allowed_gpl != *" $agpl_component "* ]]; then
+    report "$gs_bin: Ghostscript ($agpl_license) is only allowed in the gpl gate"
+  elif ! gs_version="$("$gs_bin" --version 2>&1)"; then
+    report "$gs_bin --version failed: $gs_version"
+  else
+    gs_devices="$("$gs_bin" -h 2>&1 | sed -n '/^Available devices:/,/^Search path:/p' | sed '1d;$d' | xargs)"
+    if [ "$gs_devices" != "bbox nullpage png16m pngalpha" ]; then
+      report "$gs_bin has devices beyond bbox, png16m and pngalpha: $gs_devices"
+    fi
+  fi
+fi
+
 # 6. Resolved shared-library dependencies.
 if [ "$use_ldd" = "1" ]; then
   ldd_cmd=${LDD:-ldd}
@@ -251,6 +286,7 @@ if [ "$use_ldd" = "1" ]; then
     is_elf "$path" && elf_files+=("$path")
   done < <(find "$lib_dir" -type f)
   [ -n "$ffmpeg_bin" ] && elf_files+=("$(command -v "$ffmpeg_bin" || echo "$ffmpeg_bin")")
+  [ -n "$gs_bin" ] && elf_files+=("$gs_bin")
   for path in ${elf_files[@]+"${elf_files[@]}"}; do
     deps="$("$ldd_cmd" "$path" 2>&1)"
     while IFS= read -r line; do
@@ -319,6 +355,12 @@ if [ -n "$licenses_dir" ]; then
       id=${id//[()]/}
       case "$id" in
         AND | OR | WITH | '') ;;
+        "$agpl_license")
+          # Only the allowed Ghostscript entry may carry the AGPL.
+          if [ "$component" != "$agpl_component" ] || [[ $allowed_gpl != *" $agpl_component "* ]]; then
+            report "component $component: licence $id is not allowed (AGPL only for an allowed ghostscript)"
+          fi
+          ;;
         *) [[ $known_license_ids == *" $id "* ]] || report "component $component: licence $id is not allowed (AGPL, SSPL and unknown licences are refused)" ;;
       esac
     done
@@ -337,6 +379,8 @@ if [ -n "$licenses_dir" ]; then
     report "$notice is missing"
   elif ! grep -q 'GPL-2.0-or-later' "$notice"; then
     report "$notice does not declare GPL-2.0-or-later"
+  elif [[ $allowed_gpl == *" $agpl_component "* ]] && ! grep -q "$agpl_license" "$notice"; then
+    report "$notice does not declare Ghostscript's $agpl_license"
   fi
   echo "check-licenses: $components component(s) in $licenses_dir with known licences"
 fi
@@ -350,6 +394,7 @@ extras=""
 if [ -n "$ffmpeg_bin" ]; then
   if [[ $allowed_gpl == *" ffmpeg "* ]]; then extras+=", ffmpeg GPL"; else extras+=", ffmpeg LGPL"; fi
 fi
+[ -n "$gs_bin" ] && extras+=", ghostscript ${gs_version:-} (AGPL, devices: ${gs_devices:-})"
 [ "$use_ldd" = "1" ] && extras+=", ldd"
 [ -n "$models_dir" ] && extras+=", models"
 [ -n "$licenses_dir" ] && extras+=", licence bundle"
