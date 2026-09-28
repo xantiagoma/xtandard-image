@@ -134,12 +134,13 @@ func FuzzRawLoad(f *testing.F) {
 	}
 	// libFuzzer finds in GoPro's VC-5 decoder, fixed by
 	// docker/base/patches/gpr/0002 (mutations of hero11-crop.gpr).
-	regressions, err := os.ReadDir("testdata/rawfuzz")
+	dir := filepath.Join("testdata", "rawfuzz")
+	regressions, err := os.ReadDir(dir)
 	if err != nil {
 		f.Fatal(err)
 	}
 	for _, e := range regressions {
-		b, err := os.ReadFile(filepath.Join("testdata/rawfuzz", e.Name()))
+		b, err := os.ReadFile(filepath.Join(dir, e.Name()))
 		if err != nil {
 			f.Fatal(err)
 		}
