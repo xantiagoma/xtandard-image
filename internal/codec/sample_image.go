@@ -57,6 +57,9 @@ func SampleImage(ctx context.Context, a *vips.Arena, buf *vips.Buffer, f Format,
 		defer pre.Release() // the image keeps its own reference
 		return thumbnailImage(ctx, a, pre, maxSide)
 	}
+	if f == FormatXCF {
+		return flattenXCFSample(ctx, a, buf, maxSide, lim)
+	}
 	return thumbnailImage(ctx, a, buf, maxSide)
 }
 

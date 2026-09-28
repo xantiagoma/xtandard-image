@@ -32,6 +32,8 @@ import (
 //     whole file even for its header);
 //   - OpenEXR headers are parsed by ParseEXRHeader, so the pixel limits hold
 //     before OpenEXR sizes anything from the data window;
+//   - GIMP XCF headers and layer tables are parsed by ParseXCFHeader: the
+//     size is the canvas, flattened to 8-bit sRGB;
 //   - EPS/PostScript headers are parsed by ParseEPSHeader (DSC comments,
 //     never Ghostscript): with Limits.EPSEnabled the page is its bounding
 //     box at 72 DPI; otherwise the embedded TIFF preview of a DOS EPS file
@@ -129,6 +131,8 @@ func probeKeep(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Setti
 		m, err = probeRadiance(ctx, buf)
 	case FormatEPS:
 		m, err = probeEPS(ctx, data, lim)
+	case FormatXCF:
+		m, err = probeXCF(data)
 	case FormatMP4, FormatMOV, FormatWebM, FormatMKV, FormatAVI:
 		m, err = probeVideo(ctx, buf, f, v, keep)
 	default:
@@ -301,6 +305,29 @@ func probeLegacy(f Format, data []byte) (ImageMeta, error) {
 		BitDepth:    h.Depth,
 		Loop:        -1,
 		ColorSpace:  cs,
+	}, nil
+}
+
+// probeXCF describes the flattened image from the XCF header and layer
+// table (ParseXCFHeader): the canvas, 8-bit sRGB, with alpha unless an
+// opaque bottom layer covers the canvas.
+func probeXCF(data []byte) (ImageMeta, error) {
+	h, err := ParseXCFHeader(data)
+	if err != nil {
+		return ImageMeta{}, err
+	}
+	return ImageMeta{
+		Format:      FormatXCF,
+		Width:       h.Width,
+		Height:      h.Height,
+		Frames:      1,
+		Pages:       1,
+		PageHeight:  h.Height,
+		HasAlpha:    h.HasAlpha(),
+		Orientation: 1,
+		BitDepth:    8,
+		Loop:        -1,
+		ColorSpace:  ColorSpaceSRGB,
 	}, nil
 }
 
@@ -552,6 +579,8 @@ func magickFormat(coder string) Format {
 		return FormatXPM
 	case "PAM":
 		return FormatPAM
+	case "XCF":
+		return FormatXCF
 	default:
 		return FormatUnknown
 	}
@@ -631,7 +660,8 @@ func (f Format) VipsFormat() (vips.Format, bool) {
 		return vips.FormatPPM, true
 	case FormatJXR:
 		return vips.FormatJXR, true
-	case FormatTGA, FormatPCX, FormatDDS, FormatQOI, FormatSGI, FormatSunRaster, FormatXBM, FormatXPM, FormatPAM:
+	case FormatTGA, FormatPCX, FormatDDS, FormatQOI, FormatSGI, FormatSunRaster, FormatXBM, FormatXPM, FormatPAM,
+		FormatXCF:
 		return vips.FormatMagick, true
 	default:
 		return vips.FormatUnknown, false

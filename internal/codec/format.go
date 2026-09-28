@@ -116,6 +116,11 @@ const (
 	// otherwise from a DOS EPS file's embedded TIFF preview. PDF-based
 	// Illustrator files sniff as FormatPDF.
 	FormatEPS
+	// FormatXCF is a GIMP image. It has no stored composite: ImageMagick's
+	// XCF coder decodes each visible top-level layer and FlattenXCF
+	// composites them (8-bit RGB and greyscale, RLE tiles; WP-107). Its
+	// header and layer table are parsed in Go (ParseXCFHeader).
+	FormatXCF
 
 	numFormats
 )
@@ -211,6 +216,8 @@ func (f Format) info() formatInfo {
 		return formatInfo{"icns", "icns", "image/icns", false, true, true}
 	case FormatEPS:
 		return formatInfo{"eps", "eps", "application/postscript", false, true, true}
+	case FormatXCF:
+		return formatInfo{"xcf", "xcf", "image/x-xcf", false, true, true}
 	default:
 		return formatInfo{"unknown", "", "application/octet-stream", false, false, false}
 	}
@@ -245,8 +252,8 @@ func (f Format) HDR() bool {
 }
 
 // IsMagick reports the legacy formats ImageMagick decodes (TGA, PCX, DDS,
-// QOI, SGI, Sun raster, XBM, XPM, PAM). PSD, which ImageMagick also
-// decodes, has its own paths and is not included.
+// QOI, SGI, Sun raster, XBM, XPM, PAM). PSD and XCF, which ImageMagick
+// also decodes, have their own paths and are not included.
 func (f Format) IsMagick() bool {
 	switch f {
 	case FormatTGA, FormatPCX, FormatDDS, FormatQOI, FormatSGI, FormatSunRaster, FormatXBM,
@@ -363,6 +370,8 @@ func ParseFormat(s string) (Format, error) {
 		return FormatICNS, nil
 	case "eps", "epsf", "epsi", "ps", "postscript", "ai":
 		return FormatEPS, nil
+	case "xcf", "gimp":
+		return FormatXCF, nil
 	}
 	return FormatUnknown, errs.Newf(errs.KindUnsupported, "codec: unknown format %q", s)
 }
@@ -486,6 +495,8 @@ func (f Format) MatchesContentType(contentType string) bool {
 	case FormatEPS:
 		return mt == "application/eps" || mt == "application/x-eps" || mt == "image/eps" || mt == "image/x-eps" ||
 			mt == "application/illustrator" || mt == "application/vnd.adobe.illustrator"
+	case FormatXCF:
+		return mt == "image/xcf" || mt == "application/x-xcf" || mt == "image/x-compressed-xcf"
 	default:
 		return false
 	}

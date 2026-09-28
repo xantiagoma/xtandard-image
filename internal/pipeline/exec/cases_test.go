@@ -114,6 +114,13 @@ var goldenCases = []goldenCase{
 	{name: "icns", fixture: "icns/icon.icns", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 32, noImgproxy: true},
 	{name: "icns-to-webp", fixture: "icns/icon.icns", options: "rs:fit:64:64", out: transform.FormatWebP, w: 64, h: 64, noImgproxy: true},
 
+	// GIMP XCF (WP-107): the visible layers flattened (ImageMagick decodes
+	// each layer; offsets, opacity, blend modes and groups in Go).
+	{name: "xcf", fixture: "xcf/layers.xcf", options: "rs:fit:80:80", out: transform.FormatPNG, w: 80, h: 60, noImgproxy: true},
+	{name: "xcf-gray", fixture: "xcf/gray.xcf", options: "rs:fit:80:80", out: transform.FormatPNG, w: 80, h: 60, noImgproxy: true},
+	{name: "xcf-alpha", fixture: "xcf/alpha.xcf", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "xcf-to-jpeg", fixture: "xcf/alpha.xcf", options: "rs:fit:32:32/bg:255:255:255", out: transform.FormatJPEG, w: 32, h: 24, noImgproxy: true},
+
 	// Chained pipelines.
 	{name: "chained", fixture: jpegPhoto, options: "rs:fill:100:80/-/rot:90", out: transform.FormatPNG, w: 80, h: 100, noImgproxy: true},
 }
