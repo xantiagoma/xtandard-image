@@ -3,7 +3,7 @@
 // api/sign on the server (keys never reach the browser) and previews go
 // through api/render, so every request stays on this origin.
 
-import { Builder } from './builder.js';
+import { Builder, imageArg } from './builder.js';
 import { $, b64url, copyText, debounce, el, escapePlain, postJSON, store, tabs, toast, unb64url } from './dom.js';
 import { build, curlSnippet, tsSnippet } from './grammar.js';
 import { Frames } from './frames.js';
@@ -279,11 +279,91 @@ function beforeRequest() {
   return null;
 }
 
+// plainPath signs src without options (opts: imgproxy options before
+// plain/) on the first imgproxy mount: the path for api/render, or null.
+async function plainPath(src, opts = '') {
+  const ip = meta.mounts.find((m) => m.grammar === 'imgproxy' && m.prefix);
+  if (!ip || !src) return null;
+  return (await sign({ mount: ip.id, path: `${opts}/plain/${escapePlain(src)}`, query: '' })).url;
+}
+
+// originalHref is a link to the original of src: a public URL itself,
+// anything else through api/render without options.
+async function originalHref(src) {
+  const inner = /^xi:\/\/[^/]+\/(https?:\/\/.*)$/i.exec(src)?.[1] ?? src;
+  if (/^https?:\/\//i.test(inner)) return inner;
+  try {
+    const p = await plainPath(src);
+    return p ? `api/render?u=${encodeURIComponent(p)}` : null;
+  } catch {
+    return null;
+  }
+}
+
+// originNodes says in words where a source string points (WP-117).
+function originNodes(src) {
+  const code = (t) => el('code', { text: t });
+  if (!src) return ['none'];
+  if (src.startsWith('playground://samples/')) return ['built-in sample ', code(src.slice('playground://samples/'.length)), ' (a repository fixture served by the playground)'];
+  if (src.startsWith('playground://uploads/')) return ['an uploaded file (kept by this playground for 10 minutes)'];
+  if (/^https?:\/\//i.test(src)) return ['public URL ', code(src), ' (fetched by the server through an http source)'];
+  const m = /^xi:\/\/([^/]+)\/(.*)$/.exec(src);
+  if (m) {
+    if (/^https?:\/\//i.test(m[2])) return ['public URL ', code(m[2]), ` through the "${m[1]}" source`];
+    const s = meta.sources?.find((x) => x.name === m[1]);
+    return [s?.type === 'fs' ? 'file ' : 'key ', code(m[2]), ` on the "${m[1]}" source${s ? ` (${s.type})` : ' (not configured on this server)'}`];
+  }
+  return [code(src)];
+}
+
+// watermarkImages are the watermark image references of the session
+// (imgproxy wmu, imgix mark), in order, without duplicates.
+function watermarkImages() {
+  const m = currentMount();
+  if (!m || state.raw) return [];
+  const out = [];
+  for (const p of state.pipelines) {
+    for (const e of p) {
+      const v = String(e.values?.[0] ?? '').trim();
+      if (v && imageArg(m.grammar, e) && !out.includes(v)) out.push(v);
+    }
+  }
+  return out;
+}
+
+// renderOrigin shows where the session's images come from under the
+// preview (source and watermark images) and in the Info tab (source),
+// each with a link to the original.
+let originKey = '';
+async function renderOrigin() {
+  const marks = watermarkImages();
+  const key = JSON.stringify([state.source, marks]);
+  if (key === originKey) return;
+  originKey = key;
+  const links = [];
+  const line = (label, src, cls) => {
+    const a = el('a', { target: '_blank', rel: 'noopener noreferrer', text: 'open the original' });
+    const wrap = el('span', { class: 'origin-link', hidden: true }, ' · ', a);
+    links.push([a, wrap, src]);
+    return el('p', { class: cls }, el('strong', { text: `${label}: ` }), ...originNodes(src), wrap);
+  };
+  $('source-origin').replaceChildren(line('Source', state.source, 'origin-source'),
+    ...marks.map((w) => line('Watermark image', w, 'origin-watermark')));
+  $('info-source-origin').replaceChildren(line('Source', state.source, 'origin-source'));
+  await Promise.all(links.map(async ([a, wrap, src]) => {
+    const href = src ? await originalHref(src) : null;
+    if (originKey !== key || !href) return;
+    a.href = href;
+    wrap.hidden = false;
+  }));
+}
+
 async function update({ render = $('auto-render').checked } = {}) {
   const my = ++seq;
   writeHash();
   frames?.sync();
   sources?.show(state.source);
+  renderOrigin();
   const m = currentMount();
   const req = m ? build(m, state, catalogues.get(m.grammar)?.index ?? new Map()) : { error: 'No mount.' };
   if (m && !req.error && mountPrefix(m) !== (m.prefix || '')) req.prefix = mountPrefix(m);
@@ -423,7 +503,20 @@ async function main() {
   }
   renderMeta(prefs);
   const later = debounce(() => update(), 250);
-  builder = new Builder({ state, onChange: later });
+  builder = new Builder({
+    state, onChange: later, meta,
+    image: async (src) => {
+      const [thumb, href] = await Promise.all([
+        plainPath(src, '/rs:fit:96:96/f:webp').then(async (p) => {
+          if (!p) return null;
+          const res = await fetch(`api/render?u=${encodeURIComponent(p)}`, { headers: { Accept: 'image/webp,*/*' } });
+          return res.ok && (res.headers.get('Content-Type') ?? '').startsWith('image/') ? URL.createObjectURL(await res.blob()) : null;
+        }).catch(() => null),
+        originalHref(src),
+      ]);
+      return { thumb, href };
+    },
+  });
   const imgproxyMount = meta.mounts.find((m) => m.grammar === 'imgproxy' && m.prefix);
   frames = new Frames({
     state,

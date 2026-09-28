@@ -8,7 +8,11 @@
 // a PNG with alpha, a detection photo and a video; §9 checks the Examples
 // (WP-116): the tool and the quick menu load recipes (default, text,
 // imgix, Cloudinary, ImageKit and imaginary watermarks) that render, match
-// the recipe's URL and stay editable.
+// the recipe's URL and stay editable; with WP-117 every watermark is
+// explicit (the demo has no default watermark: only the compatibility
+// recipe needs one and is disabled with its reason), wmu shows its image,
+// the preview names the source and watermark origins, and the builder's
+// default-watermark notice and its one-click wmu action work.
 //
 // Playwright is not a dependency of the repository: run it from a
 // throwaway directory against a server with the demo configuration
@@ -667,11 +671,15 @@ await page.selectOption('#theme', 'auto');
 // 9. Examples (WP-116): recipes from api/meta in a global tool and a quick
 // menu; loading one is a session (hash) that renders, matches the
 // recipe's URL, and stays editable.
-type Recipe = { id: string; title: string; dialect: string; source: string; url: string; needs?: string[]; raw?: { path: string; query?: string } };
+type Recipe = { id: string; title: string; category: string; dialect: string; source: string; url: string; needs?: string[]; raw?: { path: string; query?: string } };
 const pm = await page.evaluate(() => fetch('api/meta').then((r) => r.json()));
 const recipes: Recipe[] = pm.recipes ?? [];
 check(recipes.length >= 30 && typeof pm.watermark === 'boolean', `examples: api/meta has ${recipes.length} recipes, watermark configured: ${pm.watermark}`);
-check(!JSON.stringify(pm).includes('watermark/logo.png'), 'examples: api/meta does not name the default watermark source');
+// The recipes name the fixture logo in wmu; outside them api/meta never
+// names a watermark source.
+check(!JSON.stringify({ ...pm, recipes: [] }).includes('watermark/logo.png'), 'examples: api/meta does not name the default watermark source');
+// WP-117: the demo (compose.playground.yml) configures no default watermark.
+check(pm.watermark === false, 'examples: the demo has no default watermark (XI_PROCESSING_WATERMARK_SOURCE unset)');
 await page.setViewportSize({ width: 1400, height: 900 });
 await page.evaluate((x) => { location.hash = x; }, hash(SRC, []));
 await page.click('#tools-nav a[data-tool="examples"]');
@@ -695,8 +703,16 @@ const wmCards = await page.$$eval('#examples article.recipe', (a) => a.map((x) =
   title: x.querySelector('button[data-recipe]')!.getAttribute('title') ?? '',
 })));
 const needWm = recipes.filter((r) => r.needs?.includes('watermark')).map((r) => r.id);
-check(needWm.length >= 8 && wmCards.filter((c) => needWm.includes(c.id!)).every((c) => (pm.watermark ? !c.disabled : c.disabled && /XI_PROCESSING_WATERMARK_SOURCE/.test(c.title))),
-  `examples: ${needWm.length} default-watermark recipes ${pm.watermark ? 'enabled' : 'disabled with a tooltip'}`);
+check(needWm.length === 1 && needWm[0] === 'wm-default', `examples: only the compatibility recipe needs the default watermark (${needWm.join(', ')})`);
+const compat = wmCards.find((c) => c.id === 'wm-default');
+check(Boolean(compat) && (pm.watermark ? !compat!.disabled : compat!.disabled && /XI_PROCESSING_WATERMARK_SOURCE/.test(compat!.title)),
+  `examples: the compatibility recipe is ${pm.watermark ? 'enabled' : 'disabled with the reason'}`);
+const compatWhy = await page.textContent('#recipe-wm-default .recipe-why');
+check(pm.watermark || /XI_PROCESSING_WATERMARK_SOURCE/.test(compatWhy ?? ''), 'examples: the compatibility card shows its reason');
+check(pm.watermark || await page.$eval('#examples-quick option[value="wm-default"]', (o) => (o as HTMLOptionElement).disabled), 'examples: the compatibility recipe is disabled in the quick menu');
+const explicit = recipes.filter((r) => r.category === 'watermark' && r.id !== 'wm-default').map((r) => r.id);
+const offExplicit = wmCards.filter((c) => explicit.includes(c.id!) && c.disabled).map((c) => c.id);
+check(offExplicit.length === 0, `examples: all ${explicit.length} explicit watermark recipes are enabled without a default watermark${offExplicit.length ? ` (disabled: ${offExplicit.join(', ')})` : ''}`);
 check(await page.isHidden('#examples-watermark-note') === Boolean(pm.watermark), 'examples: the default-watermark note follows api/meta');
 
 const urlOut = () => page.inputValue('#url-out');
@@ -747,8 +763,94 @@ check(await page.isChecked('#raw-mode') && await page.inputValue('#free-path') =
 await page.uncheck('#raw-mode');
 const rawOff = await page.waitForFunction(() => !(document.getElementById('url-out') as HTMLTextAreaElement).value.includes('/watermark?'), undefined, { timeout: 10000 }).then(() => true, () => false);
 check(rawOff && await page.isVisible('#catalogue'), 'raw mode off: back to the builder');
-if (pm.watermark) await loadExample('wm-corner', 'quick');
-else notes.push('default watermark not configured: wm-corner skipped');
+// WP-117: explicit watermarks render without a default watermark, and the
+// session says where its images come from.
+const FIXTURE = 'xi://local/watermark/logo.png';
+const WMU = `watermark_url:${b64url(FIXTURE)}`;
+// changed is the share of result pixels that differ strongly (> 64 in a
+// channel) from the source at the same size: a drawn watermark changes
+// some, JPEG re-encoding none (a skipped watermark is silent, like
+// imgproxy's, so the pixels are the evidence).
+const changed = () => page.evaluate(() => {
+  const a = document.querySelector('#after-media img') as HTMLImageElement | null;
+  const b = document.querySelector('#before-media img') as HTMLImageElement | null;
+  if (!a || !b || !a.naturalWidth || !b.naturalWidth) return -1;
+  const w = a.naturalWidth;
+  const h = a.naturalHeight;
+  const px = (img: HTMLImageElement) => {
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const x = c.getContext('2d')!;
+    x.drawImage(img, 0, 0, w, h);
+    return x.getImageData(0, 0, w, h).data;
+  };
+  const pa = px(a);
+  const pb = px(b);
+  let n = 0;
+  for (let i = 0; i < pa.length; i += 4) {
+    if (Math.max(Math.abs(pa[i] - pb[i]), Math.abs(pa[i + 1] - pb[i + 1]), Math.abs(pa[i + 2] - pb[i + 2])) > 64) n++;
+  }
+  return n / (w * h);
+});
+const beforeReady = () => page.waitForFunction(() => {
+  const b = document.querySelector('#before-media img') as HTMLImageElement | null;
+  return b && b.complete && b.naturalWidth > 0 && !document.querySelector('#pane-before.loading');
+}, undefined, { timeout: 20000 }).catch(() => {});
+const drawn = async (id: string) => {
+  await beforeReady();
+  const f = await changed();
+  check(f > 0.002, `example ${id}: the watermark is drawn (${(f * 100).toFixed(2)}% of the pixels changed)`);
+};
+await loadExample('wm-corner', 'quick');
+await drawn('wm-corner');
+check(await page.inputValue('.opt[data-name="watermark_url"] input[type="text"]') === FIXTURE, 'builder: wmu shows the decoded image URL');
+await page.waitForFunction(() => {
+  const i = document.querySelector('.opt[data-name="watermark_url"] .wm-image img') as HTMLImageElement | null;
+  return i && !i.hidden && i.complete && i.naturalWidth > 0;
+}, undefined, { timeout: 20000 }).then(() => check(true, 'builder: wmu has a thumbnail of the watermark image'), () => check(false, 'builder: wmu has a thumbnail of the watermark image'));
+await page.waitForFunction(() => [...document.querySelectorAll('#source-origin .origin-link')].every((s) => !(s as HTMLElement).hidden), undefined, { timeout: 15000 }).catch(() => {});
+const origin = await page.evaluate(() => ({
+  src: document.querySelector('#source-origin .origin-source')?.textContent ?? '',
+  srcHref: document.querySelector('#source-origin .origin-source a')?.getAttribute('href') ?? '',
+  wm: document.querySelector('#source-origin .origin-watermark')?.textContent ?? '',
+  wmHref: document.querySelector('#source-origin .origin-watermark a')?.getAttribute('href') ?? '',
+  info: document.querySelector('#info-source-origin')?.textContent ?? '',
+}));
+check(/detect\/cat-laptop\.jpg/.test(origin.src) && /"local" source \(fs\)/.test(origin.src) && origin.srcHref.startsWith('api/render?u='),
+  `preview: the source origin is named with a link to the original (${origin.src})`);
+check(/watermark\/logo\.png/.test(origin.wm) && origin.wmHref.startsWith('api/render?u='), `preview: the wmu image is named with a link (${origin.wm})`);
+check(/detect\/cat-laptop\.jpg/.test(origin.info), 'info: the source origin is named in the Info tab');
+const orig = await page.evaluate((h) => fetch(h).then((r) => ({ ok: r.ok, type: r.headers.get('content-type') })), origin.wmHref);
+check(orig.ok && /^image\/png/.test(orig.type ?? ''), `preview: the watermark link serves the original (${orig.type})`);
+// The notice: clear wmu, the default-watermark notice appears; the
+// one-click action puts the fixture back.
+const withWmu = await resultSrc();
+await page.click('.opt[data-name="watermark_url"] button.clear');
+await page.waitForFunction(() => !(document.getElementById('url-out') as HTMLTextAreaElement).value.includes('watermark_url:'), undefined, { timeout: 10000 }).catch(() => {});
+const note = await page.evaluate(() => {
+  const n = document.querySelector('.opt[data-name="watermark"] .wm-default') as HTMLElement | null;
+  return n && !n.hidden ? n.textContent ?? '' : '';
+});
+check(note.includes('XI_PROCESSING_WATERMARK_SOURCE') && note.includes(pm.watermark ? '— configured on this server' : '— not configured on this server'),
+  `builder: wm without wmu shows the default-watermark notice (${note.slice(0, 90)}…)`);
+await settled(withWmu).catch(() => {});
+const noWmu = await resultSrc();
+if (!pm.watermark) {
+  const f = await changed();
+  check(f >= 0 && f < 0.0005, `builder: without wmu and without a default watermark nothing is drawn (${(f * 100).toFixed(3)}% changed)`);
+}
+await page.click('.opt[data-name="watermark"] [data-action="use-wmu"]');
+const fixed = await page.waitForFunction((w) => (document.getElementById('url-out') as HTMLTextAreaElement).value.includes(`/${w}/`), WMU, { timeout: 10000 }).then(() => true, () => false);
+const noteGone = await page.evaluate(() => (document.querySelector('.opt[data-name="watermark"] .wm-default') as HTMLElement | null)?.hidden ?? true);
+check(fixed && noteGone && await page.inputValue('.opt[data-name="watermark_url"] input[type="text"]') === FIXTURE,
+  'builder: "Use an explicit image (wmu)" adds wmu with the fixture logo and hides the notice');
+await settled(noWmu).then(() => check(true, 'builder: the result re-renders with the explicit watermark'), () => check(false, 'builder: the result re-renders with the explicit watermark'));
+for (const id of ['wm-four-corners', 'wm-tiled-rotated', 'wm-chessboard', 'wm-size', 'wm-gif']) {
+  if (!recipes.some((r) => r.id === id)) continue;
+  await loadExample(id, 'tool');
+  await drawn(id);
+}
 const blur = recipes.find((r) => r.id === 'blurhash-info');
 if (blur) {
   await loadExample('blurhash-info', 'tool');
