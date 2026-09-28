@@ -26,6 +26,7 @@ var fixtures = []string{
 	"ct-bigendian.dcm", "ct-j2k.dcm", "ct-rle.dcm", "ct-window.dcm", "grey-2frames.dcm",
 	"jpeg-2frames-bot.dcm", "jpeg-baseline.dcm", "mono1-implicit.dcm", "palette.dcm",
 	"rgb-deflated.dcm", "rgb-planar.dcm", "rgb-rle.dcm",
+	"ct-jpegll-signed.dcm", "ct-jpegll12.dcm", "jpeg-extended12.dcm",
 }
 
 func readFixture(tb testing.TB, name string) []byte {
@@ -84,6 +85,8 @@ func TestParseHeader(t *testing.T) {
 	mono1.Photometric = "MONOCHROME1"
 	twoFrames := grey("1.2.840.10008.1.2.1", dicom.EncodingNative, 8, 8, false)
 	twoFrames.Frames = 2
+	ext12 := rgb("1.2.840.10008.1.2.4.51", dicom.EncodingJPEGExtended, "YBR_FULL_422", false, 1)
+	ext12.BitsAllocated, ext12.BitsStored, ext12.HighBit = 16, 12, 11
 	pal := grey("1.2.840.10008.1.2.1", dicom.EncodingNative, 8, 8, false)
 	pal.Photometric = "PALETTE COLOR"
 	for _, tc := range []struct {
@@ -102,6 +105,9 @@ func TestParseHeader(t *testing.T) {
 		{"rgb-rle.dcm", rgb("1.2.840.10008.1.2.5", dicom.EncodingRLE, "RGB", true, 1)},
 		{"jpeg-baseline.dcm", rgb("1.2.840.10008.1.2.4.50", dicom.EncodingJPEGBaseline, "YBR_FULL_422", false, 1)},
 		{"jpeg-2frames-bot.dcm", rgb("1.2.840.10008.1.2.4.50", dicom.EncodingJPEGBaseline, "YBR_FULL_422", false, 2)},
+		{"ct-jpegll-signed.dcm", grey("1.2.840.10008.1.2.4.70", dicom.EncodingJPEGLossless, 16, 16, true)},
+		{"ct-jpegll12.dcm", ct("1.2.840.10008.1.2.4.57", dicom.EncodingJPEGLossless, 12)},
+		{"jpeg-extended12.dcm", ext12},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
 			t.Parallel()

@@ -30,6 +30,9 @@ const (
 	dcmExplicitBE = "1.2.840.10008.1.2.2"
 	dcmRLE        = "1.2.840.10008.1.2.5"
 	dcmJPEGBase   = "1.2.840.10008.1.2.4.50"
+	dcmJPEGExt    = "1.2.840.10008.1.2.4.51"
+	dcmJPEGLL     = "1.2.840.10008.1.2.4.57"
+	dcmJPEGLLSV1  = "1.2.840.10008.1.2.4.70"
 	dcmJ2KLossls  = "1.2.840.10008.1.2.4.90"
 )
 
@@ -320,10 +323,91 @@ func dicomJPEG(img image.Image) ([]byte, error) {
 	return b.Bytes(), err
 }
 
+// losslessJPEG encodes grey samples of precision bits (2–16) as a Huffman
+// lossless JPEG (ITU T.81 process 14, SOF3) with predictor 1 (left; the
+// first column from above), no point transform, and one table giving
+// every difference category a 5-bit code.
+func losslessJPEG(w, h, bits int, px []uint16) []byte {
+	var b bytes.Buffer
+	seg := func(m byte, body ...byte) {
+		b.Write([]byte{0xFF, m, byte((len(body) + 2) >> 8), byte(len(body) + 2)})
+		b.Write(body)
+	}
+	b.Write([]byte{0xFF, 0xD8})
+	seg(0xC3, byte(bits), byte(h>>8), byte(h), byte(w>>8), byte(w), 1, 1, 0x11, 0)
+	dht := []byte{0x00}
+	counts := make([]byte, 16)
+	counts[4] = 17 // 17 codes of 5 bits: symbol s has code s
+	dht = append(dht, counts...)
+	for v := range 17 {
+		dht = append(dht, byte(v))
+	}
+	seg(0xC4, dht...)
+	seg(0xDA, 1, 1, 0x00, 1, 0, 0)
+	var acc uint64
+	var n uint
+	put := func(v uint32, k uint) {
+		acc = acc<<k | uint64(v&(1<<k-1))
+		n += k
+		for n >= 8 {
+			c := byte(acc >> (n - 8))
+			b.WriteByte(c)
+			if c == 0xFF {
+				b.WriteByte(0)
+			}
+			n -= 8
+		}
+	}
+	mod := 1 << bits
+	for y := range h {
+		for x := range w {
+			var pred int
+			switch {
+			case x == 0 && y == 0:
+				pred = 1 << (bits - 1)
+			case x == 0:
+				pred = int(px[(y-1)*w])
+			default:
+				pred = int(px[y*w+x-1])
+			}
+			// The difference modulo 2^16 (T.81 H.1.2.1): only 16-bit
+			// samples can differ by more than 32767.
+			d := int(px[y*w+x]&uint16(mod-1)) - pred
+			if d >= 32768 {
+				d -= 65536
+			} else if d < -32768 {
+				d += 65536
+			}
+			ssss := uint(0)
+			for a := max(d, -d); a != 0; a >>= 1 {
+				ssss++
+			}
+			if d == -32768 { // category 16 has no additional bits
+				ssss = 16
+			}
+			put(uint32(ssss), 5)
+			if ssss > 0 && ssss < 16 {
+				v := d
+				if d < 0 {
+					v = d - 1
+				}
+				put(uint32(v), ssss) //nolint:gosec // two's complement low bits
+			}
+		}
+	}
+	if n > 0 {
+		put(1<<(8-n)-1, 8-n)
+	}
+	b.Write([]byte{0xFF, 0xD9})
+	return b.Bytes()
+}
+
 // writeDICOMFixtures writes the internal/codec/dicom fixtures into dir. j2k,
 // when not empty, is a lossless 16-bit grey JPEG 2000 codestream of the
-// phantom (vips jp2ksave, see gen.sh) wrapped as ct-j2k.dcm.
-func writeDICOMFixtures(dir, j2k string) error {
+// phantom (vips jp2ksave, see gen.sh) wrapped as ct-j2k.dcm; jpeg12, when
+// not empty, is a 12-bit colour DCT JPEG (fixtures/jpeg/rgb12.jpg) wrapped
+// as jpeg-extended12.dcm.
+func writeDICOMFixtures(dir, j2k, jpeg12 string) error {
 	const w, h = 64, 48
 	files := map[string][]byte{}
 	le := binary.LittleEndian
@@ -485,6 +569,44 @@ func writeDICOMFixtures(dir, j2k string) error {
 		})
 		d.encapsulated(nil, [][]byte{cs})
 		files["ct-j2k.dcm"] = dcmFile(dcmJ2KLossls, d.b.Bytes())
+	}
+	// Lossless JPEG (decoded by the shim's jpeghpload, WP-106): the phantom
+	// as signed 16-bit HU without a window (as ct-bigendian.dcm), and as
+	// 12-bit HU + 1024 with the window of ct-rle.dcm.
+	{
+		hu := make([]uint16, w*h)
+		ct := make([]uint16, w*h)
+		for y := range h {
+			for x := range w {
+				hu[y*w+x] = uint16(int16(phantomHU(w, h, x, y)))
+				ct[y*w+x] = uint16(phantomHU(w, h, x, y) + 1024)
+			}
+		}
+		d := newDataset(dcmExplicitLE)
+		d.image(dcmImage{
+			w: w, h: h, samples: 1, frames: 1, bitsAlloc: 16, bitsStored: 16, signed: true,
+			photometric: "MONOCHROME2",
+		})
+		d.encapsulated(nil, [][]byte{losslessJPEG(w, h, 16, hu)})
+		files["ct-jpegll-signed.dcm"] = dcmFile(dcmJPEGLLSV1, d.b.Bytes())
+
+		d = newDataset(dcmExplicitLE)
+		d.image(dcmImage{
+			w: w, h: h, samples: 1, frames: 1, bitsAlloc: 16, bitsStored: 12,
+			photometric: "MONOCHROME2", intercept: "-1024", slope: "1", windowC: "40", windowW: "400",
+		})
+		d.encapsulated(nil, [][]byte{losslessJPEG(w, h, 12, ct)})
+		files["ct-jpegll12.dcm"] = dcmFile(dcmJPEGLL, d.b.Bytes())
+	}
+	if jpeg12 != "" {
+		cs, err := os.ReadFile(jpeg12)
+		if err != nil {
+			return err
+		}
+		d := newDataset(dcmExplicitLE)
+		d.image(dcmImage{w: w, h: h, samples: 3, frames: 1, bitsAlloc: 16, bitsStored: 12, photometric: "YBR_FULL_422"})
+		d.encapsulated(nil, [][]byte{cs})
+		files["jpeg-extended12.dcm"] = dcmFile(dcmJPEGExt, d.b.Bytes())
 	}
 	for name, b := range files {
 		if err := os.WriteFile(filepath.Join(dir, name), b, 0o644); err != nil {
