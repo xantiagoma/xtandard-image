@@ -219,3 +219,6 @@ owner has authorised merging PRs without review.
 - **WP-108 merged (#115)**, bases slim r7 / full r8 / gpl r9 (local `dev*`). Demo redeployed from main
   a69b514. WP-116 playground Examples (37 recipes) merged (#116); demo redeployed from
   main a795fc1 with a default watermark. No agents in flight.
+- **WP-117 merged:** playground watermarks are explicit (`wmu` with the fixture logo); the demo no longer
+  sets `XI_PROCESSING_WATERMARK_SOURCE` (owner: the server default stays off; the playground must not
+  rely on hidden settings). Demo redeployed. No agents in flight.
