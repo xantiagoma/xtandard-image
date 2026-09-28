@@ -58,7 +58,7 @@ const (
 	RawNikonHE
 	// RawNoDecoder is a compression LibRaw's build has only a placeholder
 	// for (GoPro VC-5 without the GPR SDK, JPEG XL DNG without the DNG
-	// SDK; the base image's LibRaw has both, WP-103).
+	// SDK; of the base images only gpl's LibRaw has both, WP-103).
 	RawNoDecoder
 	// RawUnknownCamera is a file LibRaw refused to open (typically a body
 	// newer than its release) whose embedded previews it could still list.
@@ -73,7 +73,7 @@ func (u RawUndecodable) String() string {
 	case RawNikonHE:
 		return "Nikon High Efficiency compression"
 	case RawNoDecoder:
-		return "compression without a decoder in this build"
+		return "JPEG XL or GoPro VC-5 raw data needs the gpl image"
 	case RawUnknownCamera:
 		return "camera not supported by LibRaw"
 	default:

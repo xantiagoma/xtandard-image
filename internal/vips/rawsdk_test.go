@@ -16,8 +16,10 @@ import (
 )
 
 // TestRawLibrary: the base image's LibRaw is the WP-103 build, a snapshot
-// with X3F tools, the Adobe DNG SDK and the GoPro GPR SDK. Elsewhere (a
-// system LibRaw) the build is only logged.
+// with X3F tools in every flavour, plus the Adobe DNG SDK and the GoPro GPR
+// SDK in the gpl flavour only (owner decision 2026-09-28; the gpl images are
+// the ones with share/licenses/LICENSE-GPL.md). Elsewhere (a system LibRaw)
+// the build is only logged.
 func TestRawLibrary(t *testing.T) {
 	t.Parallel()
 	l := vips.RawLibraryInfo()
@@ -28,10 +30,20 @@ func TestRawLibrary(t *testing.T) {
 	if os.Getenv("XI_IN_BASE_CONTAINER") != "true" {
 		return
 	}
+	_, err := os.Stat("/opt/xtandard/share/licenses/LICENSE-GPL.md")
+	gpl := err == nil
 	// 0.22.2 listed 1283 cameras with every option; the snapshot adds the
 	// Canon EOS R50 V, Hasselblad X2D II 100C, Sony A1 II and Sony A7 V.
-	if !strings.HasPrefix(l.Version, "0.22") || l.Cameras < 1287 || !l.X3F || !l.DNGSDK || !l.GPRSDK {
-		t.Errorf("base image LibRaw = %+v, want a 0.22 snapshot with >= 1287 cameras, X3F, DNG SDK and GPR SDK", l)
+	// The nine GoPro bodies count only with the GPR SDK (gpl).
+	cameras := 1278
+	if gpl {
+		cameras = 1287
+	}
+	if !strings.HasPrefix(l.Version, "0.22") || l.Cameras < cameras || !l.X3F {
+		t.Errorf("base image LibRaw = %+v, want a 0.22 snapshot with >= %d cameras and X3F", l, cameras)
+	}
+	if l.DNGSDK != gpl || l.GPRSDK != gpl {
+		t.Errorf("base image LibRaw: DNG SDK %v, GPR SDK %v; want both %v (gpl flavour %v)", l.DNGSDK, l.GPRSDK, gpl, gpl)
 	}
 }
 

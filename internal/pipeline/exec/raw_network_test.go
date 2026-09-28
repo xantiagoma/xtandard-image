@@ -81,13 +81,23 @@ func previewOf(t *testing.T, data []byte) []byte {
 // before), whatever size is asked. The 50–102 MP sensors render through the
 // preview or the half-size demosaic, and a full-size demosaic of them stays
 // over XI_LIMITS_MAX_SRC_PIXELS. The WP-103 samples (Sony A7 V, Sigma X3F,
-// GoPro GPR) demosaic: a full-size request renders the sensor's size.
+// and GoPro GPR in the gpl image) demosaic: a full-size request renders the
+// sensor's size.
 func TestRawNetworkSamples(t *testing.T) {
 	t.Parallel()
 	for _, f := range rawfixtures.NetworkFiles() {
 		t.Run(f.Name, func(t *testing.T) {
 			t.Parallel()
 			data := rawfixtures.Read(t, &f.File)
+			if f.Kind == "dng" && f.Camera == "GoPro HERO11 Black" && !vips.RawLibraryInfo().GPRSDK {
+				// slim and full have no GPR SDK (gpl only) and the file no
+				// usable preview: 422, never a demosaic of the placeholder.
+				_, err := runRaw(t, data, "rs:fit:160:160", defaultLimits)
+				if errs.KindOf(err) != errs.KindUnsupported {
+					t.Errorf("without the GPR SDK: %v (kind %v), want unsupported", err, errs.KindOf(err))
+				}
+				return
+			}
 			sizes := []string{"rs:fit:160:160", "rs:fit:2000:2000"}
 			if f.Undecodable != "" {
 				sizes = append(sizes, "") // full size: the preview's

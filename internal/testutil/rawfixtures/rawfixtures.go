@@ -107,7 +107,7 @@ func NetworkFiles() []NetworkFile {
 			SHA256: "c16cae99d26a2f8ad183d31a23823310a994aa058d55cfe56e4f82ba56865f57",
 		}, "", 4640, 3088},
 		// WP-103: LibRaw's optional decoders. Sigma X3F (X3F tools) and
-		// GoPro GPR (VC-5 through the GPR and DNG SDKs).
+		// GoPro GPR (VC-5 through the GPR and DNG SDKs, gpl image only).
 		{File{
 			Name: "sigma-sd14.x3f", Kind: "x3f", Camera: "Sigma SD14", Orientation: 1,
 			URL:    base + "4462/nice/Sigma%20-%20SIGMA%20SD14%20-%203%3A2.X3F",
