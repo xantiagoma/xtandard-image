@@ -2920,8 +2920,8 @@
         },
         "watermark_source": {
           "default": "",
-          "description": "Default watermark image (source string, resolved against the sources). Fetched and decoded once at startup, never refreshed; a watermark that cannot be loaded stops startup\n\nEnv: XI_PROCESSING_WATERMARK_SOURCE",
-          "markdownDescription": "Default watermark image (source string, resolved against the sources). Fetched and decoded once at startup, never refreshed; a watermark that cannot be loaded stops startup\n\nEnv: `XI_PROCESSING_WATERMARK_SOURCE`",
+          "description": "Default watermark image (source string, resolved against the sources). Fetched and decoded once at startup, never refreshed; a watermark that cannot be loaded stops startup. The playground's api/meta reports only whether it is set (watermark), for the Examples that need it\n\nEnv: XI_PROCESSING_WATERMARK_SOURCE",
+          "markdownDescription": "Default watermark image (source string, resolved against the sources). Fetched and decoded once at startup, never refreshed; a watermark that cannot be loaded stops startup. The playground's `api/meta` reports only whether it is set (`watermark`), for the Examples that need it\n\nEnv: `XI_PROCESSING_WATERMARK_SOURCE`",
           "title": "XI_PROCESSING_WATERMARK_SOURCE",
           "type": "string"
         },
