@@ -3,6 +3,7 @@ package server
 import (
 	"cmp"
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -175,7 +176,9 @@ func (s *Server) passthrough(r *http.Request, info *requestInfo, res *imageResul
 // let it outlive XI_FALLBACK_TTL (fallbackWriter only rewrites a 200).
 func (s *Server) fallback(ctx context.Context, r *http.Request, info *requestInfo, cause error) (*imageResult, error) {
 	j := info.job
-	if j == nil || !fallbackEligible(errs.KindOf(cause)) {
+	// A wrong document password is the client's credential failure, never
+	// masked by the fallback image (like a hashsum mismatch).
+	if j == nil || !fallbackEligible(errs.KindOf(cause)) || errors.Is(cause, errs.ErrWrongPassword) {
 		return nil, cause
 	}
 	info.job = nil // loop protection

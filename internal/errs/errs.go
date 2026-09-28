@@ -6,6 +6,12 @@ import (
 	"fmt"
 )
 
+// ErrWrongPassword marks a document password (pdf_password or a source's
+// default, WP-115) that does not open the source. It is the client's
+// credential failure, so the server never answers it with the fallback
+// image; the kind stays Unsupported (422).
+var ErrWrongPassword = errors.New("wrong document password")
+
 // Error carries a Kind, an optional internal message, an optional
 // client-safe message and the wrapped cause.
 //

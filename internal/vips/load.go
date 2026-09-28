@@ -8,6 +8,7 @@ import "C"
 import (
 	"context"
 	"errors"
+	"fmt"
 	"unsafe"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
@@ -40,11 +41,12 @@ func loadError(rc C.int, op string, cerr *C.char, src *C.VipsBlob, buf *Buffer) 
 	if oe, ok := errors.AsType[*OpError](err); ok {
 		msg = oe.Msg
 	}
-	public := "password-protected documents are not supported"
 	if buf.HasPassword() {
-		public = "wrong document password"
+		return errs.WithPublic(errs.Wrap(errs.KindUnsupported,
+			fmt.Errorf("%w: %w", errs.ErrWrongPassword, &OpError{Op: op, Msg: msg})), "wrong document password")
 	}
-	return errs.WithPublic(errs.Wrap(errs.KindUnsupported, &OpError{Op: op, Msg: msg}), public)
+	return errs.WithPublic(errs.Wrap(errs.KindUnsupported, &OpError{Op: op, Msg: msg}),
+		"password-protected documents are not supported")
 }
 
 // Probe reads the header of buf without decoding pixels: the loader runs

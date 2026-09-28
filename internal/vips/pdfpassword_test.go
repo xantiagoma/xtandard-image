@@ -117,6 +117,9 @@ func TestPDFPasswordWrong(t *testing.T) {
 					if errs.KindOf(err) != errs.KindUnsupported || publicMessage(err) != tc.public {
 						t.Errorf("%s: %v (kind %s, public %q); want unsupported %q", op, err, errs.KindOf(err), publicMessage(err), tc.public)
 					}
+					if wrongPW := tc.password != ""; errors.Is(err, errs.ErrWrongPassword) != wrongPW {
+						t.Errorf("%s: errors.Is(err, ErrWrongPassword) = %t, want %t", op, !wrongPW, wrongPW)
+					}
 					if err != nil && (strings.Contains(err.Error(), wrong) || strings.Contains(err.Error(), fx.password)) {
 						t.Errorf("%s: error %q echoes a password", op, err)
 					}
