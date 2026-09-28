@@ -82,11 +82,18 @@ func TestProbeFixtures(t *testing.T) {
 		"jpeg/metadata-p3.jpg": with(still(codec.FormatJPEG, 120, 160), func(m *codec.ImageMeta) {
 			m.Orientation, m.HasICC = 6, true
 		}),
-		"png/bordered.png":          still(codec.FormatPNG, 80, 60),
-		"detect/apollo11-crew.jpg":  still(codec.FormatJPEG, 640, 503),
-		"detect/astronaut-dogs.jpg": still(codec.FormatJPEG, 640, 512),
-		"detect/cat-laptop.jpg":     still(codec.FormatJPEG, 640, 419),
-		"dng/landscape.dng":         with(still(codec.FormatRAW, 192, 128), rawSource(192, 128, 96, 64, false)),
+		"png/bordered.png":              still(codec.FormatPNG, 80, 60),
+		"detect/apollo11-crew.jpg":      still(codec.FormatJPEG, 640, 503),
+		"detect/astronaut-dogs.jpg":     still(codec.FormatJPEG, 640, 512),
+		"detect/cat-laptop.jpg":         still(codec.FormatJPEG, 640, 419),
+		"classify/bald-eagle.jpg":       still(codec.FormatJPEG, 448, 640),
+		"classify/banana.jpg":           still(codec.FormatJPEG, 640, 424),
+		"classify/golden-retriever.jpg": still(codec.FormatJPEG, 640, 428),
+		"classify/monarch.jpg":          still(codec.FormatJPEG, 640, 427),
+		"classify/pizza.jpg":            still(codec.FormatJPEG, 640, 427),
+		"classify/red-fox.jpg":          still(codec.FormatJPEG, 640, 571),
+		"classify/space-shuttle.jpg":    still(codec.FormatJPEG, 640, 512),
+		"dng/landscape.dng":             with(still(codec.FormatRAW, 192, 128), rawSource(192, 128, 96, 64, false)),
 		"dng/portrait-orientation-6.dng": with(still(codec.FormatRAW, 192, 128), func(m *codec.ImageMeta) {
 			m.Orientation = 6
 			rawSource(192, 128, 48, 32, false)(m)
