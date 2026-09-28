@@ -212,6 +212,11 @@ gen procreate "$F/procreate/thumbnail.procreate"
 gen sketch "$F/sketch/preview.sketch"
 gen pdn "$F/pdn/thumbnail.pdn"
 gen svgz "$F/svg/logo.svg" "$F/svgz/logo.svgz"
+
+# MNG and JNG (WP-108): chunk streams around stdlib PNG/JPEG data.
+mkdir -p "$F"/mng "$F"/jng
+for k in png palette frames jng; do gen mng "mng-$k" "$F/mng/$k.mng"; done
+for k in jng jng-idat jng-jdaa; do gen mng "$k" "$F/jng/$k.jng"; done
 if [ -z "${XI_SKIP_DESIGNER:-}" ]; then
 	sh testdata/gen/designer.sh
 fi
