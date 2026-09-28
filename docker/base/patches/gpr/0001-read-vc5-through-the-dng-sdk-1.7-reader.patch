@@ -1,0 +1,169 @@
+From: xtandard-image
+Subject: [PATCH] Read VC-5 through the DNG SDK 1.7 reader
+
+gpr_read_image::ReadTile overrides dng_read_image::ReadTile, whose
+signature changed in DNG SDK 1.6/1.7 (shared_ptr compressed buffer,
+usingMultipleThreads); LibRaw ships the same change as
+GoPro/gpr_read_image.*-dng16/17.diff. The SDK defines ccVc5 itself.
+
+Hardening (upstream only assert()s, which NDEBUG removes):
+- a VC-5 decode failure throws instead of leaving the image unwritten;
+- the decoded buffer must hold the IFD's image (CopyBufferToRawImage
+  reads width x height samples from it);
+- a tiled VC-5 IFD is refused (one stream decodes the whole image), the
+  tile must lie inside the file, the reused stream buffer is freed
+  before the next tile and a failed allocation throws.
+---
+--- a/source/lib/gpr_sdk/private/gpr_read_image.h
++++ b/source/lib/gpr_sdk/private/gpr_read_image.h
+@@ -22,6 +22,8 @@
+ #ifndef GPR_READ_IMAGE
+ #define GPR_READ_IMAGE
+ 
++#include <memory>
++
+ #include "dng_read_image.h"
+ #include "gpr_buffer_auto.h"
+ 
+@@ -54,9 +56,10 @@
+                    uint32 plane,
+                    uint32 planes,
+                    uint32 tileByteCount,
+-                   AutoPtr<dng_memory_block> &compressedBuffer,
++                   std::shared_ptr<dng_memory_block> &compressedBuffer,
+                    AutoPtr<dng_memory_block> &uncompressedBuffer,
+-                   AutoPtr<dng_memory_block> &subTileBlockBuffer);
++                   AutoPtr<dng_memory_block> &subTileBlockBuffer,
++                   bool usingMultipleThreads) override;
+ };
+ 
+ #endif // GPR_READING
+--- a/source/lib/gpr_sdk/private/gpr_read_image.cpp
++++ b/source/lib/gpr_sdk/private/gpr_read_image.cpp
+@@ -31,34 +31,44 @@
+ 
+ #include "vc5_decoder.h"
+ 
+-static bool DecodeVC5(dng_image &image, gpr_buffer_auto& vc5_buffer, VC5_DECODER_PIXEL_FORMAT pixel_format )
++// xtandard-image: a VC-5 stream that fails to decode, or decodes to fewer
++// samples than the IFD's image, throws instead of leaving the image
++// unwritten (upstream only assert()s, which NDEBUG removes) or reading past
++// the decoded buffer.
++static void DecodeVC5(dng_image &image, gpr_buffer_auto& vc5_buffer, VC5_DECODER_PIXEL_FORMAT pixel_format )
+ {
+     gpr_buffer_auto raw_buffer( malloc, free );
+-    
++
+     vc5_decoder_parameters vc5_decoder_params;
+-    
++
+     vc5_decoder_parameters_set_default(&vc5_decoder_params);
+-    
++
+     vc5_decoder_params.mem_alloc        = raw_buffer.get_malloc();
+     vc5_decoder_params.mem_free         = raw_buffer.get_free();
+     vc5_decoder_params.pixel_format     = pixel_format;
+-    
++
+     gpr_buffer vc5_image = { vc5_buffer.get_buffer(), vc5_buffer.get_size()  };
+-    gpr_buffer raw_image = { raw_buffer.get_buffer(), raw_buffer.get_size()  };
+-    
++    gpr_buffer raw_image = { NULL, 0 };
++
+     if( vc5_decoder_process( &vc5_decoder_params, &vc5_image, &raw_image, NULL ) != CODEC_ERROR_OKAY )
+     {
+-        assert(0);
+-        return false;
++        if( raw_image.buffer )
++            free( raw_image.buffer );
++        ThrowBadFormat ("VC-5 decode failed");
+     }
+-    
++
++    if( raw_image.buffer == NULL || raw_image.size == 0 )
++        ThrowBadFormat ("VC-5 decode returned no image");
++
+     raw_buffer.set( raw_image.buffer, raw_image.size, true );
+-    
++
+     dng_point size = image.Bounds().Size();
+-    
+-    CopyBufferToRawImage( raw_buffer, size.h, image );
+ 
+-    return true;
++    if( size.h <= 0 || size.v <= 0 ||
++        raw_buffer.get_size() / sizeof(unsigned short) / (size_t) size.h < (size_t) size.v )
++        ThrowBadFormat ("VC-5 image smaller than the IFD");
++
++    CopyBufferToRawImage( raw_buffer, size.h, image );
+ }
+ 
+ gpr_read_image::gpr_read_image( gpr_buffer_auto* vc5_buffer ) : _vc5_buffer(vc5_buffer)
+@@ -75,25 +85,35 @@
+                                    uint32 plane,
+                                    uint32 planes,
+                                    uint32 tileByteCount,
+-                                   AutoPtr<dng_memory_block> &compressedBuffer,
++                                   std::shared_ptr<dng_memory_block> &compressedBuffer,
+                                    AutoPtr<dng_memory_block> &uncompressedBuffer,
+-                                   AutoPtr<dng_memory_block> &subTileBlockBuffer)
++                                   AutoPtr<dng_memory_block> &subTileBlockBuffer,
++                                   bool usingMultipleThreads)
+ {
+-    
++
+     if( ifd.fCompression == ccVc5 )
+     {
+         if( GetReadVC5() && _vc5_buffer != NULL )
+         {
++            // xtandard-image: one VC-5 stream decodes the whole image, so a
++            // tiled IFD is refused, and the tile must lie inside the file.
++            if( tileArea != image.Bounds() || tileByteCount == 0 ||
++                tileByteCount > stream.Length() - stream.Position() )
++                ThrowBadFormat ("unsupported VC-5 tile layout");
++
++            _vc5_buffer->deallocate();
+             _vc5_buffer->allocate( tileByteCount );
+-            
+-            stream.Get(_vc5_buffer->get_buffer(), _vc5_buffer->get_size() );
+-            
++            if( _vc5_buffer->get_buffer() == NULL )
++                ThrowMemoryFull ();
++
++            stream.Get(_vc5_buffer->get_buffer(), (uint32) _vc5_buffer->get_size() );
++
+             if( GetDecodeVC5() == true )
+             {
+                 bool rggb_raw = (ifd.fCFAPattern[0][0] == 0) && (ifd.fCFAPattern[0][1] == 1) && (ifd.fCFAPattern[1][0] == 1) && (ifd.fCFAPattern[1][1] == 2);
+-                
++
+                 VC5_DECODER_PIXEL_FORMAT pixel_format;
+-                
++
+                 if( rggb_raw )
+                 {
+                     pixel_format = VC5_DECODER_PIXEL_FORMAT_RGGB_14;
+@@ -102,11 +122,8 @@
+                 {
+                     pixel_format = VC5_DECODER_PIXEL_FORMAT_GBRG_12;
+                 }
+-                
+-                if( DecodeVC5( image, *_vc5_buffer, pixel_format ) )
+-                {
+-                    return;
+-                }
++
++                DecodeVC5( image, *_vc5_buffer, pixel_format );
+             }
+         }
+     }
+@@ -122,7 +139,8 @@
+                                   tileByteCount,
+                                   compressedBuffer,
+                                   uncompressedBuffer,
+-                                  subTileBlockBuffer);
++                                  subTileBlockBuffer,
++                                  usingMultipleThreads);
+     }
+ }
+ 

@@ -111,8 +111,25 @@ export JEMALLOC_SHA256=200776fac271093e7c2f21edd6d62657ecd2be578d9328633f2a86bfa
 # built with the coder policy in magick-policy.xml (PSD, and the legacy formats of
 # WP-97); PDFium is BSD-3-Clause
 # (prebuilt by bblanchon/pdfium-binaries, MIT; PDFIUM_VERSION is the Chromium build).
-export LIBRAW_VERSION=0.22.2
-export LIBRAW_SHA256=de86b035655accff8d4010f1a221fdf50d353cb7b1422ba26f14a0db92612cfa
+# LibRaw is a snapshot of its master branch (WP-103: a snapshot per base release, for
+# bodies newer than the last release; the camera-list diff is in README.md), fetched as
+# a GitHub archive of the commit. Its version header still says 0.22.0; the SONAME is
+# libraw_r.so.26. build-libraw.sh rebuilds it with X3F tools, the GoPro GPR SDK and the
+# Adobe DNG SDK (pins below).
+export LIBRAW_VERSION=0.22-snapshot-20260925
+export LIBRAW_COMMIT=0694b5ac18ac19dfe6a18e11104ad190682222bd
+export LIBRAW_SHA256=5257832672c82a42b1348d64d6ca8e0007af3aa771111cf9a977aad315674ff2
+# LibRaw options (WP-103), downloaded by download-libraw-deps.sh and built into
+# libraw_r by build-libraw.sh. Adobe DNG SDK (JPEG XL and VC-5 DNG decoding; Adobe DNG
+# SDK License Agreement, permissive with an indemnity clause, ADR 0006 amendment
+# WP-103): the release zip, whose date is part of its name. GoPro GPR SDK (Apache-2.0
+# OR MIT): its VC-5 decoder, from the head of master (no release since v1.1 in 2019).
+export DNGSDK_VERSION=1.7.1-2724
+export DNGSDK_ARCHIVE=dng_sdk_1_7_1_2724_20260908.zip
+export DNGSDK_SHA256=740fbe95c69e09e9cd17654a5e4fef2d7021254b06fd2b8c5557b79a1496b50c
+export GPR_VERSION=1.1-446c736
+export GPR_COMMIT=446c736a38fb14f51343605c0780d347dc602f89
+export GPR_SHA256=ddb09f4910f07f43e7d93dbda41d20a6af572be5ac7032052f2fa24b33aeeb0c
 export IMATH_VERSION=3.2.3
 export IMATH_SHA256=e10c12b3f21f45bf08e09d4215d9c7691368d747beebd840de0b6fefed2df9f8
 export OPENEXR_VERSION=3.4.15

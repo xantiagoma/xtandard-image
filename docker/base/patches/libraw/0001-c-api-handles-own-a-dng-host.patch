@@ -1,0 +1,85 @@
+From: xtandard-image
+Subject: [PATCH] C API handles own a dng_host
+
+The C API has no set_dng_host, so a LibRaw built with USE_DNGSDK never
+uses the Adobe DNG SDK through libraw_init/libraw_open_buffer (JPEG XL
+and VC-5 DNGs stay undecodable). Built with USE_DNGSDK, each C API
+handle now owns a default dng_host (single-threaded; its
+PerformAreaTaskThreads is 1), created in libraw_init and deleted with the
+handle. Without USE_DNGSDK nothing changes.
+---
+--- a/src/libraw_c_api.cpp
++++ b/src/libraw_c_api.cpp
+@@ -21,6 +21,33 @@
+ #include <errno.h>
+ #include "libraw/libraw.h"
+ 
++#ifdef USE_DNGSDK
++// xtandard-image: the C API has no set_dng_host, so a LibRaw built with the
++// Adobe DNG SDK could never use it through libraw_init. Each C API handle
++// owns a default (single-threaded) dng_host instead, freed with the handle.
++void *libraw_xi_dng_host_new();
++void libraw_xi_dng_host_delete(void *host);
++
++class LibRaw_xi_dnghost : public LibRaw
++{
++public:
++  explicit LibRaw_xi_dnghost(unsigned int flags)
++      : LibRaw(flags), xi_host(libraw_xi_dng_host_new())
++  {
++    set_dng_host(xi_host);
++  }
++  virtual ~LibRaw_xi_dnghost()
++  {
++    recycle();
++    set_dng_host(NULL);
++    libraw_xi_dng_host_delete(xi_host);
++  }
++
++private:
++  void *xi_host;
++};
++#endif
++
+ #ifdef __cplusplus
+ #include <new>
+ extern "C"
+@@ -32,7 +59,11 @@
+     LibRaw *ret;
+     try
+     {
++#ifdef USE_DNGSDK
++      ret = new LibRaw_xi_dnghost(flags);
++#else
+       ret = new LibRaw(flags);
++#endif
+     }
+     catch (const std::bad_alloc& )
+     {
+--- a/src/integration/dngsdk_glue.cpp
++++ b/src/integration/dngsdk_glue.cpp
+@@ -529,4 +529,24 @@
+ #ifdef USE_DNGSDK
+   dnghost = p;
+ #endif
++}
++
++#ifdef USE_DNGSDK
++// xtandard-image: the dng_host each C API handle owns (libraw_c_api.cpp).
++void *libraw_xi_dng_host_new()
++{
++  try
++  {
++    return new dng_host();
++  }
++  catch (...)
++  {
++    return NULL;
++  }
+ }
++
++void libraw_xi_dng_host_delete(void *host)
++{
++  delete static_cast<dng_host *>(host);
++}
++#endif

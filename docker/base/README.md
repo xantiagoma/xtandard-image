@@ -39,8 +39,10 @@ joined with `docker buildx imagetools create`. The workflow runs on changes unde
 
 ```
 base ──► deps-src        download-deps.sh: fetch every tarball, verify SHA256, unpack
+   ├───► libraw-deps-src download-libraw-deps.sh: Adobe DNG SDK and GoPro GPR SDK (SHA256), trimmed
    ├───► deps            install-rust.sh + pinned meson/ninja/cmake, build-deps.sh → /opt/xtandard,
    │                     license bundle, license gate; build-jxrlib.sh (own layer, patches/jxrlib);
+   │                     build-libraw.sh (own layer: LibRaw again with X3F, DNG SDK, GPR SDK);
    │                     split-runtime.sh → /runtime
    ├───► full-deps-src   download-full-deps.sh: FFmpeg, libvpx, ONNX Runtime, models (SHA256)
    └───► gpl-deps-src    download-gpl-deps.sh: x264, x265, Ghostscript (SHA256)
@@ -202,7 +204,7 @@ Size: runtime 116.6 MB compressed on linux/arm64 (full + 13.3 MB: x264/x265 2.2 
 
 | Component | Version | Licence | Source | libvips |
 |---|---|---|---|---|
-| LibRaw | 0.22.x | LGPL-2.1 (dual LGPL-2.1/CDDL-1.0; used under LGPL-2.1, dynamically linked) | [libraw.org](https://www.libraw.org/download) tarball; OpenMP off, JPEG/zlib/lcms2 on | `-Draw=enabled` → `dcrawload` |
+| LibRaw | 0.22 snapshot (`LIBRAW_COMMIT`, WP-103) | LGPL-2.1 (dual LGPL-2.1/CDDL-1.0; used under LGPL-2.1, dynamically linked) | GitHub archive of the pinned master commit; OpenMP off, JPEG/zlib/lcms2 on; rebuilt with X3F tools and the DNG and GPR SDKs (see [LibRaw options](#libraw-snapshot-and-options-wp-103)) | `-Draw=enabled` → `dcrawload` |
 | PDFium | chromium/`PDFIUM_VERSION` | BSD-3-Clause (bundled third-party notices in `share/licenses/pdfium/licenses/`); build scripts MIT | [bblanchon/pdfium-binaries](https://github.com/bblanchon/pdfium-binaries) `pdfium-linux-{x64,arm64}.tgz` (no V8, no XFA), one SHA256 per architecture; `build-deps.sh` writes `pdfium.pc` | `-Dpdfium=enabled` → `pdfload` (poppler stays disabled) |
 | OpenEXR + Imath | 3.4.x / 3.2.x | BSD-3-Clause; vendored libdeflate (MIT) and OpenJPH (BSD-2-Clause) compiled in | GitHub release tags; no tools, examples or tests | `-Dopenexr=enabled` → `openexrload` |
 | ImageMagick | 7.1.x | ImageMagick License (Apache-2.0 style) | GitHub release tag; MagickCore only, Q16 HDRI, coders built in (`--without-modules`), no utilities, no C++/Perl, no OpenMP/OpenCL, every delegate library off except zlib | `-Dmagick=enabled -Dmagick-package=MagickCore -Dmagick-module=enabled -Dmagick-features=load` → `magickload` |
@@ -266,6 +268,61 @@ API with `-DNDEBUG` (jxrlib's asserts would abort the process on a hostile file)
 `libjpegxr.so.0` and `libjxrglue.so.0` (Debian's SONAMEs, 0.4 MB stripped), with Debian's
 `libjxr.pc` layout. The sample apps (`JxrEncApp`, `JxrDecApp`) and the test library are not
 built; ImageMagick's JXR coder, which runs `JxrDecApp` as a delegate, stays denied.
+
+### LibRaw snapshot and options (WP-103)
+
+LibRaw is pinned to a **snapshot of its master branch** rather than the last release, so bodies
+that arrive between releases decode (WP-103: one snapshot per base release; bump
+`LIBRAW_COMMIT`, then diff `src/tables/cameralist.cpp` against the previous pin and record it
+here). It is fetched as the GitHub archive of the commit, so `build-deps.sh` runs `autoreconf`.
+The snapshot's `libraw_version.h` still says 0.22.0; its SONAME is `libraw_r.so.26`.
+
+| Component | Version | Licence | Source | What it decodes |
+|---|---|---|---|---|
+| LibRaw | `LIBRAW_VERSION` = 0.22-snapshot-20260925, commit `0694b5ac18` (2026-09-25) | LGPL-2.1 (or CDDL-1.0) | GitHub archive | every camera RAW (1287 cameras with all options) |
+| X3F tools | inside LibRaw (`src/x3f`), `-DUSE_X3FTOOLS` | BSD-3-Clause (Roland Karlsson; notice extracted to `share/licenses/libraw/LICENSE.x3f-tools`) | LibRaw's tree | Sigma X3F (Foveon, SD/DP bodies) |
+| Adobe DNG SDK | `DNGSDK_VERSION` = 1.7.1 build 2724 (2026-09-08), `-DUSE_DNGSDK` | Adobe DNG SDK License Agreement (permissive, with an indemnity clause for commercial redistribution and no endorsement; `LicenseRef-Adobe-DNG-SDK`, ADR 0006 amendment WP-103) | `download.adobe.com/pub/adobe/dng/<DNGSDK_ARCHIVE>` (only `dng_sdk/source` and the licence are kept) | DNG 1.7 JPEG XL raw data (Lightroom "JPEG XL" DNG, iPhone ProRAW JPEG-XL), through the base's libjxl 0.12 and libjpeg-turbo |
+| GoPro GPR SDK | `GPR_VERSION` = v1.1 + master `446c736` (2026-05-05), `-DUSE_GPRSDK` | Apache-2.0 OR MIT | GitHub archive of the commit (only the VC-5 decoder, `common` and the DNG reader glue are compiled) | GoPro `.GPR` (VC-5 compressed DNG; Fusion, HERO5 and later) |
+
+Camera-list diff, LibRaw 0.22.2 (2026-07-16) → snapshot `0694b5ac18`: **+4** (1283 → 1287 with all
+options): Canon EOS R50 V, Hasselblad X2D II 100C, Sony ILCE-1M2 (A1 II), Sony ILCE-7M5 (A7 V,
+new ARW 6 decoder `sony_arw6_load_raw`). The nine GoPro entries (Fusion, HERO5–HERO12) count
+only with `USE_GPRSDK`. Other changes in the 100 commits: fixes for damaged CR3/CRX, CIFF, Kodak and
+Hasselblad files, the X3F data size check, lossy DNG tone curve initialisation.
+
+`build-libraw.sh` runs after `build-jxrlib.sh` in its own layer (the plain LibRaw from
+`build-deps.sh` stays what libvips is linked against; same sources and SONAME, so the rebuilt
+library replaces it in place). It compiles the DNG SDK (everything but `dng_validate`,
+`dng_xmp_sdk` and `dng_update_meta`) and the GPR SDK's VC-5 decoder into static, PIC,
+`-fvisibility=hidden` archives, then configures LibRaw with `-DUSE_X3FTOOLS -DUSE_DNGSDK
+-DUSE_GPRSDK` and those archives, so they end up inside `libraw.so`/`libraw_r.so` with no
+exported symbol and add only `libjxl`/`libjxl_threads` to its dependencies. The DNG SDK is
+configured for Linux, thread-safe, **without the XMP SDK** (`qDNGUseXMP=0`: LibRaw reads its
+own metadata; this drops XMP Toolkit, boost and expat copies), with libjpeg, and with
+`NDEBUG`. A small C check fails the build unless `libraw_capabilities()` reports
+`LIBRAW_CAPS_X3FTOOLS | DNGSDK | GPRSDK`.
+
+Patches (`git apply`, in order):
+
+| Patch | Fix |
+|---|---|
+| `patches/libraw/0001-c-api-handles-own-a-dng-host.patch` | LibRaw's C API has no `set_dng_host`, so the DNG SDK could never be used through `libraw_init`: with `USE_DNGSDK`, every C API handle owns a default single-threaded `dng_host`, deleted with the handle |
+| `patches/dng-sdk/0001-build-without-xmp.patch` | `dng_jxl.cpp` still used `dng_xmp` with `qDNGUseXMP=0` (JXL XMP box on encode, XMP parse on decode) |
+| `patches/gpr/0001-read-vc5-through-the-dng-sdk-1.7-reader.patch` | `gpr_read_image::ReadTile` follows DNG SDK 1.7's signature (LibRaw's `GoPro/*.diff`); a failed VC-5 decode throws, the decoded buffer must cover the IFD's image, tiled VC-5 is refused, the tile must lie inside the file |
+| `patches/gpr/0002-harden-the-vc5-decoder.patch` | found by libFuzzer + ASan/LSan (below): bounds for the memory stream reader, band runs, channel/subband numbers and the header's counts, failed allocations checked, the decoder freed on errors, no stderr output |
+
+The shim (`internal/vips/raw.c`) sets `rawparams.use_dngsdk = LIBRAW_DNG_NONE`: LibRaw hands the
+SDK only what it cannot decode itself (JPEG XL and VC-5 raw data, which it routes there
+whatever the flag); every other DNG keeps LibRaw's own decoders, as before.
+
+**Not added:** RawSpeed (no gain: it has no CR3/HE/JPEG XL DNG; its VC-5 path duplicates the GPR
+SDK); the XMP SDK; the DNG SDK's bundled libjxl/libjpeg copies (the base's are used).
+
+**Fuzzing (WP-103).** libFuzzer + ASan/LSan on LibRaw's C API as the shim drives it
+(`open_buffer`, decoder check, `unpack`, half-size `dcraw_process`, `make_mem_image`; 6 MP and
+256 MB caps), with LibRaw, the DNG SDK and the GPR SDK instrumented (libjxl and libjpeg-turbo
+not), seeded with the DNG fixtures, the JPEG XL DNGs, two small GPRs and the Sigma SD14 X3F.
+FUZZ_RESULTS_PLACEHOLDER
 
 ### zstd for libtiff (WP-102, revision r5)
 
@@ -434,6 +491,8 @@ same libraries.
 | `download-gpl-deps.sh` | same for the gpl flavor (x264, x265) |
 | `build-deps.sh` | build into `/opt/xtandard`, license bundle, SBOM stubs, license gate |
 | `build-jxrlib.sh`, `patches/jxrlib/` | jxrlib with its patches (own layer), gate |
+| `download-libraw-deps.sh` | fetch + verify the Adobe DNG SDK zip and the GoPro GPR SDK, keep only what is compiled (own stage) |
+| `build-libraw.sh`, `patches/{libraw,dng-sdk,gpr}/` | LibRaw rebuilt with X3F tools, the DNG SDK and the GPR SDK (own layer), capability check, licences, gate |
 | `build-full-deps.sh` | full flavor: libvpx + FFmpeg, ONNX Runtime, models, licences, gate |
 | `build-gpl-deps.sh` | gpl flavor: x264, x265, FFmpeg rebuilt with `--enable-gpl`, licences, `LICENSE-GPL.md`, gate (gpl mode) |
 | `split-runtime.sh` | copy the runtime subset of `/opt/xtandard` to `/runtime` + gate (`XI_ALLOW_GPL` for gpl) |

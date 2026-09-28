@@ -151,7 +151,7 @@ fetch LIBRSVG librsvg \
 fetch JEMALLOC jemalloc \
   "https://github.com/jemalloc/jemalloc/releases/download/${JEMALLOC_VERSION}/jemalloc-${JEMALLOC_VERSION}.tar.bz2"
 fetch LIBRAW libraw \
-  "https://www.libraw.org/data/LibRaw-${LIBRAW_VERSION}.tar.gz"
+  "https://github.com/LibRaw/LibRaw/archive/${LIBRAW_COMMIT}.tar.gz"
 fetch IMATH imath \
   "https://github.com/AcademySoftwareFoundation/Imath/archive/refs/tags/v${IMATH_VERSION}.tar.gz"
 fetch OPENEXR openexr \

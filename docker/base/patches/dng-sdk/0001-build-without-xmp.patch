@@ -1,0 +1,50 @@
+From: xtandard-image
+Subject: [PATCH] Build without the XMP SDK
+
+dng_jxl.cpp still uses dng_xmp when qDNGUseXMP is 0: it adds an XMP box
+when encoding and parses an XMP box when decoding. Both are skipped
+without XMP; a decoded XMP box is kept as raw bytes, as before.
+---
+--- a/source/dng_jxl.cpp
++++ b/source/dng_jxl.cpp
+@@ -1535,7 +1535,9 @@
+ 
+ 			} // exif
+ 			
+-		// XMP.
++		// XMP (xtandard-image: skipped when the SDK is built without XMP).
++
++		#if qDNGUseXMP
+ 
+ 		if (includeXMP && metadata && metadata->GetXMP ())
+ 			{
+@@ -1575,6 +1577,8 @@
+ 
+ 			} // xmp
+ 
++		#endif	// qDNGUseXMP
++
+ 		// IPTC.
+ 
+ 		if (includeIPTC && metadata)
+@@ -3843,12 +3847,20 @@
+ 				{
+ 				ThrowBadFormat ("XMP box too large");
+ 				}
++
++			#if qDNGUseXMP
+ 
+ 			dng_xmp xmp (host.Allocator ());
+ 
+ 			uint32 count = (uint32) data.size ();
+ 
+ 			xmp.Parse (host, data.data (), count);
++
++			#else
++
++			uint32 count = (uint32) data.size ();
++
++			#endif	// qDNGUseXMP
+ 
+ 			auto &block = fInfo->fXMPBlock;
+ 
