@@ -51,6 +51,7 @@ generated from the public-domain X11 "fixed" font).
 | `fixtures/uhdr/photo-ultrahdr.jpg` | libvips `uhdrsave` of the photo in scRGB ×2.5 (libultrahdr, Apache-2.0) | CC0 |
 | `fixtures/pdf/pages.pdf` | `gen pdf`: a PDF 1.4 written by hand in Go (three pages: vector art with the standard Helvetica font, not embedded; the procedural photo as a Flate RGB image; vector art) | CC0 |
 | `fixtures/pdf/password.pdf` | `qpdf --encrypt` (qpdf, Apache-2.0) of `pages.pdf`, AES-256, user password `secret`, owner password `owner` | CC0 |
+| `fixtures/pdf/password-aes128.pdf` | `qpdf --encrypt` (qpdf, Apache-2.0) of `pages.pdf`, AES-128 (R4), user password `open sesame`, owner password `owner128` | CC0 |
 | `fixtures/psd/layered.psd`, `fixtures/psd/psb-layered.psb` | `gen psd`, `gen psb`: Photoshop files written by hand in Go (RGB 8-bit, raw channels, a photo background layer and a flat-graphic layer at an offset, with the merged composite) | CC0 |
 | `fixtures/psd/no-composite.psd` | `gen psd-nocomposite`: the same layers saved like "Maximize compatibility" off (version-info resource with `hasRealMergedData = 0`, blank merged image) | CC0 |
 | `fixtures/exr/rgba-half.exr`, `fixtures/exr/rgb-float.exr` | `gen exr-rgba-half`, `gen exr-rgb-float`: OpenEXR files written by hand in Go (single-part scanline, no compression; RGBA half and RGB float) from the procedural HDR scene | CC0 |

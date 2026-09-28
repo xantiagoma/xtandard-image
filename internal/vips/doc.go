@@ -102,8 +102,11 @@
 // pipeline ran (lazy decode of a truncated file), which the shim records per
 // source buffer → Corrupt. A loader failure on a PDF whose trailer carries
 // /Encrypt is a password-protected document: Unsupported with a public
-// message (the trailer is parsed in Go; PDFium's text is not matched). A
-// context that ended wins over all of them (Canceled/Timeout).
+// message (the trailer is parsed in Go; PDFium's text is not matched),
+// "wrong document password" when the Buffer carries one
+// ([Buffer.WithPassword], WP-115: the password reaches PDFium through the
+// loader's "password" property and libvips' copy is wiped once the loader
+// is built). A context that ended wins over all of them (Canceled/Timeout).
 //
 // Without cgo (CGO_ENABLED=0) the package builds with stubs that return
 // [ErrUnavailable], so pure-Go builds of the whole module keep working.
