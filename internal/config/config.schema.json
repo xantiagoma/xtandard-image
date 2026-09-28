@@ -1955,16 +1955,16 @@
       "properties": {
         "key": {
           "$ref": "#/$defs/hexKey",
-          "description": "Hex AES keys (16/24/32 bytes) for enc/ sources; the first encrypts, all decrypt (rotation). XI_ENCRYPTION_KEY is the deprecated single-key alias (YAML encryption.key); setting both is an error\n\nEnv: XI_ENCRYPTION_KEY (or XI_ENCRYPTION_KEY_FILE)",
-          "markdownDescription": "Hex AES keys (16/24/32 bytes) for `enc/` sources; the first encrypts, all decrypt (rotation). `XI_ENCRYPTION_KEY` is the deprecated single-key alias (YAML `encryption.key`); setting both is an error\n\nEnv: `XI_ENCRYPTION_KEY` (or `XI_ENCRYPTION_KEY_FILE`)",
+          "description": "Hex AES keys (16/24/32 bytes) for enc/ sources and pdf_password tokens ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); the first encrypts, all decrypt (rotation). XI_ENCRYPTION_KEY is the deprecated single-key alias (YAML encryption.key); setting both is an error\n\nEnv: XI_ENCRYPTION_KEY (or XI_ENCRYPTION_KEY_FILE)",
+          "markdownDescription": "Hex AES keys (16/24/32 bytes) for `enc/` sources and `pdf_password` tokens ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); the first encrypts, all decrypt (rotation). `XI_ENCRYPTION_KEY` is the deprecated single-key alias (YAML `encryption.key`); setting both is an error\n\nEnv: `XI_ENCRYPTION_KEY` (or `XI_ENCRYPTION_KEY_FILE`)",
           "title": "XI_ENCRYPTION_KEY"
         },
         "keys": {
-          "description": "Hex AES keys (16/24/32 bytes) for enc/ sources; the first encrypts, all decrypt (rotation). XI_ENCRYPTION_KEY is the deprecated single-key alias (YAML encryption.key); setting both is an error\n\nEnv: XI_ENCRYPTION_KEYS (or XI_ENCRYPTION_KEYS_FILE)",
+          "description": "Hex AES keys (16/24/32 bytes) for enc/ sources and pdf_password tokens ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); the first encrypts, all decrypt (rotation). XI_ENCRYPTION_KEY is the deprecated single-key alias (YAML encryption.key); setting both is an error\n\nEnv: XI_ENCRYPTION_KEYS (or XI_ENCRYPTION_KEYS_FILE)",
           "items": {
             "$ref": "#/$defs/hexKey"
           },
-          "markdownDescription": "Hex AES keys (16/24/32 bytes) for `enc/` sources; the first encrypts, all decrypt (rotation). `XI_ENCRYPTION_KEY` is the deprecated single-key alias (YAML `encryption.key`); setting both is an error\n\nEnv: `XI_ENCRYPTION_KEYS` (or `XI_ENCRYPTION_KEYS_FILE`)",
+          "markdownDescription": "Hex AES keys (16/24/32 bytes) for `enc/` sources and `pdf_password` tokens ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); the first encrypts, all decrypt (rotation). `XI_ENCRYPTION_KEY` is the deprecated single-key alias (YAML `encryption.key`); setting both is an error\n\nEnv: `XI_ENCRYPTION_KEYS` (or `XI_ENCRYPTION_KEYS_FILE`)",
           "title": "XI_ENCRYPTION_KEYS",
           "type": "array"
         }
