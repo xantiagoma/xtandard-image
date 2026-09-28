@@ -1,0 +1,123 @@
+diff --git a/src/ipa/svg/device.h b/src/ipa/svg/device.h
+index 1d2fa1c..8f31ce6 100644
+--- a/src/ipa/svg/device.h
++++ b/src/ipa/svg/device.h
+@@ -65,11 +65,15 @@ static void wmf_svg_device_begin (wmfAPI* API)
+ 		ddata->height = (unsigned int) ceil (ddata->bbox.BR.y - ddata->bbox.TL.y);
+ 	}
+ 
+-	wmf_stream_printf (API,out,"<?xml version=\"1.0\" standalone=\"no\"?>\n");
+-	wmf_stream_printf (API,out,"<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20001102//EN\"\n");
+-	wmf_stream_printf (API,out,"\"http://www.w3.org/TR/2000/CR-SVG-20001102/DTD/svg-20001102.dtd\">\n");
+-
+-	wmf_stream_printf (API,out,"<svg width=\"%u\" height=\"%u\"\n",ddata->width,ddata->height);
++	/* xtandard-image: no DOCTYPE (an external DTD reference), the SVG and xlink
++	 * namespaces declared (renderers ignore un-namespaced elements; images use
++	 * xlink:href), and a viewBox so the drawing scales with the document. */
++	wmf_stream_printf (API,out,"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
++
++	wmf_stream_printf (API,out,"<svg width=\"%u\" height=\"%u\" viewBox=\"0 0 %u %u\"\n",
++		ddata->width,ddata->height,ddata->width,ddata->height);
++	wmf_stream_printf (API,out,"\txmlns=\"http://www.w3.org/2000/svg\"\n");
++	wmf_stream_printf (API,out,"\txmlns:xlink=\"http://www.w3.org/1999/xlink\"\n");
+ 	wmf_stream_printf (API,out,"\txmlns:sodipodi=\"http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd\">\n");
+ 
+ 	if (ddata->Description)
+diff --git a/src/ipa/svg.c b/src/ipa/svg.c
+index 9c4adf7..8a55965 100644
+--- a/src/ipa/svg.c
++++ b/src/ipa/svg.c
+@@ -148,6 +148,30 @@ void wmf_svg_function (wmfAPI* API)
+ #endif /* ! WITHOUT_LAYERS */
+ }
+ #ifndef WITHOUT_LAYERS
++/* xtandard-image: text is character data, escaped. Metafile strings are in
++ * a Windows code page, not UTF-8: bytes from 0x80 are written as the Latin-1
++ * character of that value (exact for ISO-8859-1, close for Windows-1252),
++ * and control characters XML forbids are dropped. */
++static void svg_text_escaped (wmfAPI* API,wmfStream* out,const char* str)
++{	const unsigned char* p;
++
++	if (str == 0) return;
++
++	for (p = (const unsigned char*) str; *p; p++)
++	{	switch (*p)
++		{
++		case '&': wmf_stream_printf (API,out,"&amp;"); break;
++		case '<': wmf_stream_printf (API,out,"&lt;"); break;
++		case '>': wmf_stream_printf (API,out,"&gt;"); break;
++		default:
++			if (*p >= 0x80) wmf_stream_printf (API,out,"&#x%X;",(unsigned int) *p);
++			else if (*p >= 0x20 || *p == '\t' || *p == '\n' || *p == '\r')
++				wmf_stream_printf (API,out,"%c",(int) *p);
++			break;
++		}
++	}
++}
++
+ static void wmf_svg_draw_text (wmfAPI* API,wmfDrawText_t* draw_text)
+ {	wmf_svg_t* ddata = WMF_SVG_GetData (API);
+ 
+@@ -205,7 +229,7 @@ static void wmf_svg_draw_text (wmfAPI* API,wmfDrawText_t* draw_text)
+ 	wmf_stream_printf (API,out,"%f %f %f %f ",cos_theta,sin_theta,-sin_theta,cos_theta);
+ 	wmf_stream_printf (API,out,"%f %f)\"\n\t>",pt.x,pt.y);
+ 
+-	wmf_stream_printf (API,out,"%s",draw_text->str);
++	svg_text_escaped (API,out,draw_text->str);
+ 
+ /*	wmf_stream_printf (API,out,"</tspan></text>\n");
+  */	wmf_stream_printf (API,out,"</text>\n");
+@@ -246,45 +270,16 @@ static svgFont svg_font (char* ps_name)
+ 	return (*font);
+ }
+ 
++/* xtandard-image: the exact colour, not the closest of the SVG named colours
++ * (which shifted every colour of a drawing). The string is used by one
++ * printf before the next call; the converter is single-threaded. */
+ static char* svg_color_closest (wmfRGB* rgb)
+-{	int i;
+-	int i_best;
+-	int d;
+-	int d_r;
+-	int d_g;
+-	int d_b;
+-	int d_best;
+-
+-	i_best = 0;
+-	d_r = (int) rgb->r - (int) svg_named_color[i_best].r;
+-	d_r = ABS (d_r);
+-	d_g = (int) rgb->g - (int) svg_named_color[i_best].g;
+-	d_g = ABS (d_g);
+-	d_b = (int) rgb->b - (int) svg_named_color[i_best].b;
+-	d_b = ABS (d_b);
+-	d_best = MAX (d_r,d_g);
+-	d_best = MAX (d_b,d_best);
+-
+-	for (i = 1; i < 147; i++)
+-	{	d_r = (int) rgb->r - (int) svg_named_color[i].r;
+-		d_r = ABS (d_r);
+-		d_g = (int) rgb->g - (int) svg_named_color[i].g;
+-		d_g = ABS (d_g);
+-		d_b = (int) rgb->b - (int) svg_named_color[i].b;
+-		d_b = ABS (d_b);
+-		d = MAX (d_r,d_g);
+-		d = MAX (d_b,d);
+-		if (d == 0)
+-		{	i_best = i;
+-			break;
+-		}
+-		if (d < d_best)
+-		{	i_best = i;
+-			d_best = d;
+-		}
+-	}
++{	static char hex[8];
++
++	snprintf (hex,sizeof (hex),"#%02x%02x%02x",
++		(unsigned int) rgb->r,(unsigned int) rgb->g,(unsigned int) rgb->b);
+ 
+-	return (svg_named_color[i_best].name);
++	return (hex);
+ }
+ 
+ static void svg_style_fill (wmfAPI* API,wmfDC* dc)

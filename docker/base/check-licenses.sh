@@ -29,7 +29,8 @@
 #                   only x264, x265 and ffmpeg under GPL-2.0/GPL-3.0, ghostscript
 #                   under exactly AGPL-3.0-or-later, WP-99, and dng-sdk, the Adobe DNG
 #                   SDK inside libraw_r, under exactly LicenseRef-Adobe-DNG-SDK,
-#                   WP-103, owner decision 2026-09-28) stop being forbidden: their
+#                   WP-103, owner decision 2026-09-28, and libemf2svg under
+#                   GPL-2.0, WP-108, EMF input) stop being forbidden: their
 #                   names, symbols and pins pass, and --ffmpeg then requires
 #                   --enable-gpl and `-L` reporting the GNU General Public License (and
 #                   no --enable-version3 for a GPL-2.0 entry). Everything else stays
@@ -102,7 +103,7 @@ fi
 # its items from the patterns (and only those).
 name_items=(x265=x265 x264=x264 poppler exiv2 imagequant jbig ghostscript=ghostscript
   'libgs\.so' ffmpeg-gpl=ffmpeg postproc xvidcore fftw djvulibre autotrace
-  'demosaic[-_]pack[-_]gpl' 'dng[-_]?sdk=dng-sdk')
+  'demosaic[-_]pack[-_]gpl' 'dng[-_]?sdk=dng-sdk' 'emf2svg=libemf2svg')
 
 # Strings that only exist inside binaries built from or linked against those components.
 # Ghostscript is only ever allowed as the separate `gs` program (--ghostscript): a
@@ -115,7 +116,7 @@ content_items=('libx265\.so=x265' x265_encoder_open=x265 'libx264\.so=x264'
   --enable-gpl=ffmpeg --enable-nonfree --enable-libx264=x264 --enable-libx265=x265
   'libpostproc\.so' 'libxvidcore\.so' libfftw3 fftw_plan_dft libdjvulibre
   ddjvu_document_create libautotrace at_splines_new '12dng_negative=dng-sdk'
-  '8dng_host=dng-sdk')
+  '8dng_host=dng-sdk' 'libemf2svg\.so=libemf2svg' 'emf2svg_is_emfplus=libemf2svg')
 
 # Extra strings refused in a versions file (besides the component names).
 versions_items=(enable-gpl=ffmpeg enable-nonfree)
@@ -128,7 +129,7 @@ buildconf_items=(gpl=ffmpeg nonfree libx264=x264 libx265=x265 libxvid frei0r lib
 # Ghostscript (WP-99, ADR 0011) is the single AGPL component, and only as exactly
 # AGPL-3.0-or-later; no other component may be AGPL. dng-sdk (WP-103) is the Adobe DNG
 # SDK, allowed only in the gpl flavor and only as exactly LicenseRef-Adobe-DNG-SDK.
-gpl_allowable_components=' x264 x265 ffmpeg ghostscript dng-sdk '
+gpl_allowable_components=' x264 x265 ffmpeg ghostscript dng-sdk libemf2svg '
 gpl_allowable_licenses=' GPL-2.0-only GPL-2.0-or-later GPL-3.0-only GPL-3.0-or-later '
 agpl_component=ghostscript
 agpl_license=AGPL-3.0-or-later
@@ -182,7 +183,7 @@ if [ -n "$gpl_file" ]; then
     if [ "$component" = "$entry" ] || [ -z "$license" ]; then
       report "GPL allowlist entry '$entry' in $gpl_file is not component=SPDX"
     elif [[ $gpl_allowable_components != *" $component "* ]]; then
-      report "GPL allowlist entry '$entry' in $gpl_file: only x264, x265, ffmpeg, ghostscript and dng-sdk can be allowed"
+      report "GPL allowlist entry '$entry' in $gpl_file: only x264, x265, ffmpeg, ghostscript, dng-sdk and libemf2svg can be allowed"
     elif [ "$component" = "$agpl_component" ] && [ "$license" != "$agpl_license" ]; then
       report "GPL allowlist entry '$entry' in $gpl_file: ghostscript is allowed as exactly $agpl_license"
     elif [ "$component" = "$dngsdk_component" ] && [ "$license" != "$dngsdk_license" ]; then

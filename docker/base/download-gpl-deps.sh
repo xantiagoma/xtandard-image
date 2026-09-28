@@ -1,6 +1,7 @@
 #!/bin/bash
 # Downloads, verifies (SHA256) and unpacks the sources the `gpl` flavor (WP-70b) adds:
-# x264 and x265, and Ghostscript (WP-99) (versions-gpl.sh). FFmpeg itself is the full flavor's tarball
+# x264 and x265, Ghostscript (WP-99), libwmf and libemf2svg (WP-108) (versions-gpl.sh).
+# FFmpeg itself is the full flavor's tarball
 # (versions-full.sh), reused from the full-deps-src stage.
 #
 # Same conventions as download-full-deps.sh (kept separate so the slim and full stages
@@ -67,3 +68,8 @@ fetch X265_SHA256 x265 \
 # Ghostscript's release tags drop the dots: 10.08.0 is gs10080.
 fetch GHOSTSCRIPT_SHA256 ghostscript \
   "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${GHOSTSCRIPT_VERSION//./}/ghostscript-${GHOSTSCRIPT_VERSION}.tar.xz"
+# WMF and EMF (WP-108): libwmf and libemf2svg, GitHub archives of their release tags.
+fetch LIBWMF_SHA256 libwmf \
+  "https://github.com/caolanm/libwmf/archive/refs/tags/v${LIBWMF_VERSION}.tar.gz"
+fetch LIBEMF2SVG_SHA256 libemf2svg \
+  "https://github.com/kakwa/libemf2svg/archive/refs/tags/${LIBEMF2SVG_VERSION}.tar.gz"

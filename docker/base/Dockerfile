@@ -174,15 +174,24 @@ COPY patches/gpr ./patches/gpr
 COPY --from=libraw-deps-src /root/libraw-deps /root/libraw-deps
 RUN ./build-libraw.sh --with-sdks
 
-COPY build-gpl-deps.sh ./
 COPY --from=gpl-deps-src /root/gpl-deps /root/gpl-deps
+
+# WMF and EMF input (WP-108): libwmf, libemf2svg and the xi-metafile2svg program the
+# server runs as a sandboxed subprocess. Before build-gpl-deps.sh, which lists them in
+# LICENSE-GPL.md and runs the gpl licence gate.
+COPY build-gpl-metafile.sh ./
+COPY metafile ./metafile
+COPY patches/libwmf ./patches/libwmf
+RUN ./build-gpl-metafile.sh
+
+COPY build-gpl-deps.sh ./
 # A pristine copy of the full flavor's FFmpeg tarball (full-deps built in its own tree).
 COPY --from=full-deps-src /root/full-deps/ffmpeg /root/gpl-deps/ffmpeg
 
 RUN ./build-gpl-deps.sh
 
 # Same split as full; the gate on the runtime subset runs in its gpl mode.
-RUN XI_ALLOW_GPL=/root/versions-gpl.sh ./split-runtime.sh vips vipsheader ffmpeg ffprobe gs
+RUN XI_ALLOW_GPL=/root/versions-gpl.sh ./split-runtime.sh vips vipsheader ffmpeg ffprobe gs xi-metafile2svg
 
 # ==============================================================================
 FROM ${UBUNTU_IMAGE} AS builder-base
