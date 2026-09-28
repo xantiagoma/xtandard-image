@@ -31,6 +31,7 @@
 
 #include <libheif/heif.h>
 #include <libheif/heif_items.h>
+#include <libheif/heif_security.h>
 #include <libheif/heif_sequences.h>
 
 // Live libheif contexts and decoded buffers, for leak tests (libheif's
@@ -168,12 +169,11 @@ xi_sample_table(const void *data, size_t len, guint32 id, guint32 *count, guint3
       !xi_child(box, XI_4CC('m', 'i', 'n', 'f'), &box) ||
       !xi_child(box, XI_4CC('s', 't', 'b', 'l'), &stbl))
     return FALSE;
-  if (xi_child(stbl, XI_4CC('s', 't', 's', 'z'), &stsz) && stsz.n >= 12)
-    n = xi_be32(stsz.p + 8);
-  else if (xi_child(stbl, XI_4CC('s', 't', 'z', '2'), &stsz) && stsz.n >= 12)
-    n = xi_be32(stsz.p + 8);
-  else
+  if (!(xi_child(stbl, XI_4CC('s', 't', 's', 'z'), &stsz) ||
+          xi_child(stbl, XI_4CC('s', 't', 'z', '2'), &stsz)) ||
+      stsz.n < 12)
     return FALSE;
+  n = xi_be32(stsz.p + 8);
   if (n == 0 || n > XI_HEIFSEQ_MAX_SAMPLES)
     return FALSE;
 
@@ -196,6 +196,45 @@ xi_sample_table(const void *data, size_t len, guint32 id, guint32 *count, guint3
     (*durations)[filled] = delta;
   *count = n;
   return TRUE;
+}
+
+// xi_stsz_count reads the sample count of a trak's stsz or stz2 box (0
+// when it has none).
+static guint32
+xi_stsz_count(XiSpan trak)
+{
+  XiSpan box, stbl, stsz;
+
+  if (!xi_child(trak, XI_4CC('m', 'd', 'i', 'a'), &box) ||
+      !xi_child(box, XI_4CC('m', 'i', 'n', 'f'), &box) ||
+      !xi_child(box, XI_4CC('s', 't', 'b', 'l'), &stbl))
+    return 0;
+  if ((xi_child(stbl, XI_4CC('s', 't', 's', 'z'), &stsz) ||
+          xi_child(stbl, XI_4CC('s', 't', 'z', '2'), &stsz)) &&
+      stsz.n >= 12)
+    return xi_be32(stsz.p + 8);
+  return 0;
+}
+
+// xi_max_track_samples is the largest sample count of the file's tracks.
+// libheif's sequence decoder keeps feeding samples to a decoder that
+// returns no frame for as many samples as the edit list's (possibly
+// indefinite) repetitions allow, capped only by max_sequence_frames
+// (18 million by default: half a minute on a broken HEVC stream). The
+// loader caps that limit to what the file really holds.
+static guint32
+xi_max_track_samples(const void *data, size_t len)
+{
+  XiSpan file = { data, len }, moov, trak;
+  size_t off = 0;
+  guint32 type, most = 0;
+
+  if (!xi_child(file, XI_4CC('m', 'o', 'o', 'v'), &moov))
+    return 0;
+  while (xi_box(moov, &off, &type, &trak))
+    if (type == XI_4CC('t', 'r', 'a', 'k'))
+      most = MAX(most, xi_stsz_count(trak));
+  return most;
 }
 
 // xi_ftyp_sequence reports an ISO BMFF file whose ftyp names an image
@@ -231,8 +270,10 @@ xi_ftyp_sequence(const guchar *d, size_t n)
 
 // ---- contexts ------------------------------------------------------------
 
+// xi_heif_open reads data into a new libheif context. max_frames > 0
+// lowers the context's max_sequence_frames to it (xi_max_track_samples).
 static heif_context *
-xi_heif_open(const void *data, size_t len, const char *nickname)
+xi_heif_open(const void *data, size_t len, guint32 max_frames, const char *nickname)
 {
   heif_context *ctx = heif_context_alloc();
   heif_error e;
@@ -242,6 +283,13 @@ xi_heif_open(const void *data, size_t len, const char *nickname)
     return NULL;
   }
   __atomic_add_fetch(&xi_heif_contexts, 1, __ATOMIC_RELAXED);
+  if (max_frames > 0) {
+    heif_security_limits limits = *heif_get_global_security_limits();
+
+    // A few more than the samples: the edit list's own entries.
+    limits.max_sequence_frames = MIN(max_frames, XI_HEIFSEQ_MAX_SAMPLES) + 8;
+    heif_context_set_security_limits(ctx, &limits);
+  }
   e = heif_context_read_from_memory_without_copy(ctx, data, len, NULL);
   if (e.code != heif_error_Ok) {
     vips_error(nickname, "%s", e.message ? e.message : "cannot read the HEIF file");
@@ -376,9 +424,11 @@ xi_is_heif_sequence(const void *buf, size_t len)
   heif_track *track;
   gboolean yes = FALSE;
 
-  if (!xi_ftyp_sequence(buf, len))
+  guint32 samples;
+
+  if (!xi_ftyp_sequence(buf, len) || !(samples = xi_max_track_samples(buf, len)))
     return FALSE;
-  if (!(ctx = xi_heif_open(buf, len, "heifseqload_buffer"))) {
+  if (!(ctx = xi_heif_open(buf, len, samples, "heifseqload_buffer"))) {
     vips_error_clear();
     return FALSE;
   }
@@ -400,7 +450,8 @@ xi_heifseq_open(XiHeifSeq *s, VipsBlob *blob, const char *nickname)
 
   xi_heifseq_clear(s);
   memset(s, 0, sizeof(*s));
-  if (!(s->ctx = xi_heif_open(area->data, area->length, nickname)))
+  if (!(s->ctx = xi_heif_open(area->data, area->length,
+            MAX(xi_max_track_samples(area->data, area->length), 1), nickname)))
     return -1;
   if (!(s->track = xi_heifseq_track(s->ctx))) {
     xi_heifseq_clear(s);
@@ -716,7 +767,7 @@ xi_heif_gainmap(VipsBlob *blob, VipsImage **out, void **meta, size_t *meta_len, 
   *out = NULL;
   *meta = NULL;
   *meta_len = 0;
-  if (!(ctx = xi_heif_open(area->data, area->length, "xi_heif_gainmap"))) {
+  if (!(ctx = xi_heif_open(area->data, area->length, 0, "xi_heif_gainmap"))) {
     *err = xi_error_copy();
     return XI_ERR_LOAD;
   }

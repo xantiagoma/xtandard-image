@@ -81,6 +81,10 @@ func TestSequenceStill(t *testing.T) {
 			t.Errorf("%s: not the first frame (dssim %.4f)", options, r.DSSIM)
 		}
 	}
+	// pages stacks frames 1 and 2, loaded as one strip.
+	stack := process(t, seqAVIF, "pg:1/pgs:2", transform.FormatPNG)
+	checkOutput(t, &goldenCase{out: transform.FormatPNG, w: 64, h: 96}, &stack)
+	golden.Compare(t, "exec/avif-sequence-pages", stack.img, golden.Options{})
 	// The HEIC sequence (no still item at all) renders its first frame.
 	heic := process(t, seqHEIC, "", transform.FormatPNG)
 	r, err := ssim.Compare(first.img, heic.img)

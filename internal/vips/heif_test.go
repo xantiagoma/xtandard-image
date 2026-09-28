@@ -7,7 +7,10 @@ import (
 	"context"
 	"encoding/binary"
 	"math"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -170,6 +173,39 @@ func TestHEIFSequenceErrors(t *testing.T) {
 	})
 	if errs.KindOf(err) != errs.KindLimitExceeded {
 		t.Errorf("4 frames with a limit of 3: %v, want limit exceeded", err)
+	}
+}
+
+// TestHEIFSequenceBrokenLoop is FuzzHEIFSequence's first finding
+// (testdata/heif/broken-indefinite-loop.heic: sequence.heic with an
+// indefinite mvhd duration, a repeating edit list and a damaged HEVC
+// stream). libheif feeds a decoder that returns no frame as many samples as
+// the repetitions allow, capped by max_sequence_frames: 18 million by
+// default, half a minute here. The loader caps that limit to the file's
+// sample count, so the load fails at once.
+func TestHEIFSequenceBrokenLoop(t *testing.T) {
+	t.Parallel()
+	data, err := os.ReadFile(filepath.Join("testdata", "heif", "broken-indefinite-loop.heic"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	buf := newBuffer(t, data)
+	defer buf.Release()
+	start := time.Now()
+	err = tryJob(t.Context(), func(ctx context.Context, a *vips.Arena) error {
+		img, err := a.Add(vips.Load(ctx, buf, &vips.LoadOptions{NPages: -1, Access: vips.AccessRandom}))
+		if err != nil {
+			return err
+		}
+		_, err = img.WriteToMemory(ctx)
+		return err
+	})
+	if errs.KindOf(err) != errs.KindCorrupt {
+		t.Errorf("load: %v, want corrupt", err)
+	}
+	// Generous for a loaded machine; the uncapped decoder took 30 s.
+	if d := time.Since(start); d > 5*time.Second {
+		t.Errorf("failing took %v", d)
 	}
 }
 
