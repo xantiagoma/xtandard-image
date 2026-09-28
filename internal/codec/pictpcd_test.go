@@ -157,14 +157,15 @@ func FuzzParsePICTHeader(f *testing.F) {
 	})
 }
 
-// FuzzParsePCDHeader fuzzes the image pack header (the first 4 KiB of a
-// synthetic pack; the rest is the Base image, which only has to be there).
+// FuzzParsePCDHeader fuzzes the image pack header (bytes 2048-4095 of a
+// synthetic pack, from the PCD_IPI magic on). The first 2 KiB stay as
+// written: other formats' signatures there rightly win the sniff.
 func FuzzParsePCDHeader(f *testing.F) {
-	f.Add(synth.PCD(0)[:4096])
-	f.Add(synth.PCD(1)[:4096])
+	f.Add(synth.PCD(0)[2048:4096])
+	f.Add(synth.PCD(1)[2048:4096])
 	f.Fuzz(func(t *testing.T, head []byte) {
 		data := synth.PCD(0)
-		copy(data, head)
+		copy(data[2048:4096], head)
 		h, err := codec.ParsePCDHeader(data)
 		if err != nil {
 			return
