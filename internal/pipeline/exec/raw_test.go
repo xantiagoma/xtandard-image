@@ -158,7 +158,9 @@ func TestRawErrors(t *testing.T) {
 		kind    errs.Kind
 	}{
 		{"demosaic over the limit", dng, "rs:fit:160:160", plan.Limits{MaxRawDemosaicPixels: 1000}, errs.KindLimitExceeded},
-		{"truncated mosaic", dng[:len(dng)-30_000], "rs:fit:160:160", testLimits, errs.KindCorrupt},
+		// A truncated mosaic with an intact preview falls back to the
+		// preview (TestRawPreviewOnly); without one it is corrupt
+		// (TestRawPreviewFallbackNeedsPreview).
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

@@ -76,6 +76,60 @@ func Files() []File {
 	}
 }
 
+// NetworkFiles returns the WP-101/102 samples of the playground gallery
+// (docs/research/format-gap.md): bodies LibRaw cannot demosaic, served from
+// their embedded previews, and sensors over 50 MP. They are 11–78 MB each,
+// so only the `-tags network` tests use them. All are CC0 on raw.pixls.us.
+func NetworkFiles() []NetworkFile {
+	const base = "https://raw.pixls.us/getfile.php/"
+	return []NetworkFile{
+		{File{
+			Name: "nikon-z50ii-he.nef", Kind: "nef", Camera: "Nikon Z50_2", Orientation: 1,
+			URL:    base + "7764/nice/Nikon%20-%20Z50_2%20-%208bit%20compressed%20%283%3A2%29.NEF",
+			SHA256: "71c12d398e6f5a01e0e32c2211c40cafdb29e85ba1e17c4f65e7a4e958754c54",
+		}, "nikon-he", 5568, 3712},
+		{File{
+			Name: "nikon-z8-he.nef", Kind: "nef", Camera: "Nikon Z 8", Orientation: 1,
+			URL:    base + "6616/nice/Nikon%20-%20Z%208%20-%208bit%208bit%20compressed%20%283%3A2%29.NEF",
+			SHA256: "82df041542b8d328738443bb5ff3373b396e406ecc8cbe7dc3b35252790c53e7",
+		}, "nikon-he", 8256, 5504},
+		{File{
+			Name: "nikon-zf-he.nef", Kind: "nef", Camera: "Nikon Z f", Orientation: 1,
+			URL:    base + "6887/nice/Nikon%20-%20Z%20f%20-%208bit%208bit%20lossy%20compressed%20%283%3A2%29.NEF",
+			SHA256: "98d6ca8e6c98048ca7ffed68ccaeda7b2b9f03807f0d320d97d5678db21748c2",
+		}, "nikon-he", 6048, 4032},
+		{File{
+			Name: "sony-ilce-7m5.arw", Kind: "arw", Camera: "Sony ILCE-7M5", Orientation: 1,
+			URL:    base + "8849/nice/Sony%20-%20ILCE-7M5%20-%2014bit%20%283%3A2%29.ARW",
+			SHA256: "c16cae99d26a2f8ad183d31a23823310a994aa058d55cfe56e4f82ba56865f57",
+		}, "unknown-camera", 4608, 3072},
+		{File{
+			Name: "fujifilm-gfx100rf.raf", Kind: "raf", Camera: "Fujifilm GFX100RF", Orientation: 1,
+			URL:    base + "8091/nice/Fujifilm%20-%20GFX100RF%20-%2016bit%20compressed%20%284%3A3%29.RAF",
+			SHA256: "14bed5ac8191d6f2a7c82984e3bf6470ad4740df329293eac42b8018cc6a668a",
+		}, "", 11662, 8746},
+		{File{
+			Name: "hasselblad-x1d-ii.fff", Kind: "3fr", Camera: "Hasselblad X1D-50c", Orientation: 1,
+			URL:    base + "3874/nice/Hasselblad%20-%20X1D%20II%2050C%20-%2016bit%20%284%3A3%29.fff",
+			SHA256: "8c2451b3478fb529b4e9bd51ed3267999ce26eb1fcb5c3b93c3ae7bc56267794",
+		}, "", 8278, 6208},
+		{File{
+			Name: "google-pixel-8-pro.dng", Kind: "dng", Camera: "Google Pixel 8 Pro", Orientation: 1,
+			URL:    base + "7751/nice/Google%20-%20Pixel%208%20Pro%20-%2016bit%20%284%3A3%29.dng",
+			SHA256: "45420c595401547cca950ae58d552bc82b32d31ce1d58c082df33004016197f5",
+		}, "", 8160, 6144},
+	}
+}
+
+// NetworkFile is a WP-101/102 sample: its reason to be preview-only
+// ("nikon-he", "unknown-camera") or "" and the size the probe reports (the
+// preview's for a preview-only file, the demosaic's otherwise).
+type NetworkFile struct {
+	File
+	Undecodable   string
+	Width, Height int
+}
+
 // Path returns the cached path of f, downloading and verifying it first
 // when needed. It skips tb when the file is unavailable.
 func Path(tb testing.TB, f *File) string {
@@ -153,7 +207,7 @@ func download(ctx context.Context, dir, p string, f *File) error {
 	}
 	defer os.Remove(tmp.Name())
 	h := sha256.New()
-	if _, err := io.Copy(io.MultiWriter(tmp, h), io.LimitReader(resp.Body, 64<<20)); err != nil {
+	if _, err := io.Copy(io.MultiWriter(tmp, h), io.LimitReader(resp.Body, 128<<20)); err != nil {
 		_ = tmp.Close()
 		return err
 	}

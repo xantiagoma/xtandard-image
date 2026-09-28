@@ -5,7 +5,7 @@
 # see LICENSE.imgproxy-docker-base. Changes: SHA256 verification of every tarball,
 # release tarballs instead of git clones, SOURCES.md generation, and the additional
 # libraries libspng, OpenJPEG, libultrahdr and jemalloc (WP-05), LibRaw, Imath,
-# OpenEXR, ImageMagick and prebuilt PDFium (WP-66), jxrlib (WP-97).
+# OpenEXR, ImageMagick and prebuilt PDFium (WP-66), jxrlib (WP-97), zstd (WP-102).
 #
 # Environment:
 #   DEPS_SRC          where sources are unpacked (default /root/deps)
@@ -112,6 +112,8 @@ fetch LIBSPNG libspng \
   "https://github.com/randy408/libspng/archive/refs/tags/v${LIBSPNG_VERSION}.tar.gz"
 fetch LIBWEBP libwebp \
   "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${LIBWEBP_VERSION}.tar.gz"
+fetch ZSTD zstd \
+  "https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz"
 fetch LIBTIFF libtiff \
   "https://download.osgeo.org/libtiff/tiff-${LIBTIFF_VERSION}.tar.gz"
 fetch OPENJPEG openjpeg \

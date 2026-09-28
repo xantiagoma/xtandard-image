@@ -449,7 +449,9 @@ func svgError(err error) error {
 // the output format and the request, so the totals over frames (imgproxy's
 // CheckDimensions, and XI_LIMITS_MAX_ANIMATION_PIXELS) are the planner's,
 // before anything is decoded. A frame limit of 1 disables animation (one
-// frame is processed, as in imgproxy) instead of rejecting animations.
+// frame is processed, as in imgproxy) instead of rejecting animations. A
+// camera RAW passes when one of its decode paths fits
+// (transform.SourceLimits.CheckRaw).
 func checkMeta(m *SourceMeta, lim *ProbeLimits) error {
 	if m.Width <= 0 || m.Height <= 0 {
 		return errs.Newf(errs.KindCorrupt, "server: probe returned %dx%d", m.Width, m.Height)
@@ -459,6 +461,15 @@ func checkMeta(m *SourceMeta, lim *ProbeLimits) error {
 		return limitExceeded(le)
 	}
 	src := transform.SourceLimits{MaxSrcPixels: lim.MaxPixels, MaxFramePixels: lim.MaxFramePixels}
+	if m.Raw != nil {
+		// A camera RAW is judged on what it can be decoded to (its
+		// preview or half-size demosaic); the planner checks the path the
+		// request takes.
+		if le := src.CheckRaw(m.Raw); le != nil {
+			return limitExceeded(le)
+		}
+		return nil
+	}
 	if le := src.CheckFrame(m.Width, m.Height, frames > 1 && lim.MaxFrames != 1); le != nil {
 		return limitExceeded(le)
 	}

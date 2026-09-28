@@ -84,6 +84,10 @@ type SourceMeta struct {
 	// or animation (videoComposite), and Composite is set.
 	Video     *video.Meta
 	Composite bool
+	// Raw describes a camera RAW's decode paths (demosaic, half-size,
+	// embedded preview): the source limits judge it on what can be decoded
+	// (transform.SourceLimits.CheckRaw). nil for other formats.
+	Raw *transform.RawSource
 	// Session is what the prober kept open for the processor (a video's
 	// FFmpeg handle, so the frames are not probed twice); nil when
 	// nothing. The server closes it once the request is done.

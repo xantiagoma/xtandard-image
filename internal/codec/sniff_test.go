@@ -56,6 +56,8 @@ func fixtureFormats() map[string]codec.Format {
 		"detect/cat-laptop.jpg":           codec.FormatJPEG,
 		"dng/landscape.dng":               codec.FormatRAW,
 		"dng/portrait-orientation-6.dng":  codec.FormatRAW,
+		"dng/jxl-undecodable.dng":         codec.FormatRAW,
+		"dng/deflate-corrupt.dng":         codec.FormatRAW,
 		"gif/static.gif":                  codec.FormatGIF,
 		"heic/photo.heic":                 codec.FormatHEIC,
 		"heic/thumbnail.heic":             codec.FormatHEIC,

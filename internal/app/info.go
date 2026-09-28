@@ -95,6 +95,7 @@ func sourceInfo(ci *codec.Info) *server.SourceInfo {
 			HasAlpha:    m.HasAlpha,
 			IsAnimated:  m.IsAnimated,
 			Orientation: m.Orientation,
+			Raw:         m.Raw,
 		},
 		Format:       name,
 		MIMEType:     mime,

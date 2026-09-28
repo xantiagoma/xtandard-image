@@ -105,7 +105,7 @@ func (s *Server) thumborMetaBody(req *transform.Request, si *SourceInfo) ([]byte
 
 // thumborPlanMeta is the planner's view of the inspected source.
 func thumborPlanMeta(si *SourceInfo) plan.SourceMeta {
-	return plan.SourceMeta{
+	m := plan.SourceMeta{
 		Width:       si.Meta.Width,
 		Height:      si.Meta.Height,
 		Frames:      max(si.Meta.Frames, si.Pages),
@@ -115,6 +115,10 @@ func thumborPlanMeta(si *SourceInfo) plan.SourceMeta {
 		Format:      si.Format,
 		IsVector:    si.Format == "svg" || si.Format == "pdf",
 	}
+	if r := si.Meta.Raw; r != nil {
+		m.PreviewWidth, m.PreviewHeight, m.PreviewOnly = r.PreviewWidth, r.PreviewHeight, r.PreviewOnly
+	}
+	return m
 }
 
 // thumborOperations lists the crops, resizes and flips of the first plan

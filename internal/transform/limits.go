@@ -95,6 +95,77 @@ func (l *SourceLimits) CheckFrame(width, height int, animated bool) *LimitError 
 	return limitError(what, frame, "XI_LIMITS_MAX_SRC_PIXELS", l.MaxSrcPixels)
 }
 
+// RawSource is what a camera RAW can be decoded to (FORMATS.md §2): the
+// demosaic at full size (Width × Height, the sensor's output), the
+// half-size demosaic, or the largest usable embedded JPEG preview.
+type RawSource struct {
+	Width, Height int
+	// PreviewWidth and PreviewHeight are the embedded preview's size; zero
+	// when there is none.
+	PreviewWidth, PreviewHeight int
+	// PreviewOnly: the sensor data cannot be decoded (Nikon High
+	// Efficiency, a camera LibRaw does not know), only the preview.
+	PreviewOnly bool
+}
+
+// RawDecode is the decode path the planner picked for a camera RAW.
+type RawDecode uint8
+
+// RawDecode values.
+const (
+	RawDemosaic     RawDecode = iota // LibRaw demosaic at full size
+	RawDemosaicHalf                  // LibRaw half_size: (w+1)/2 × (h+1)/2
+	RawPreview                       // the embedded JPEG preview
+)
+
+// CheckRaw is the probe's check for a camera RAW: a RAW is judged on what
+// is decoded, not on its sensor, so it passes when one of its decode paths
+// fits MaxSrcPixels: the embedded preview or, unless PreviewOnly, the
+// half-size demosaic. Which path a request takes, and so the exact check
+// (CheckRawDecode), is the planner's, still before anything is decoded.
+func (l *SourceLimits) CheckRaw(r *RawSource) *LimitError {
+	if l.MaxSrcPixels <= 0 {
+		return nil
+	}
+	if r.PreviewWidth > 0 && r.PreviewHeight > 0 && int64(r.PreviewWidth)*int64(r.PreviewHeight) <= l.MaxSrcPixels {
+		return nil
+	}
+	if r.PreviewOnly {
+		return l.CheckRawDecode(RawPreview, r.PreviewWidth, r.PreviewHeight)
+	}
+	return l.CheckRawDecode(RawDemosaicHalf, (r.Width+1)/2, (r.Height+1)/2)
+}
+
+// CheckRawDecode checks the w×h image the decode path d produces against
+// MaxSrcPixels, naming the path in the message.
+func (l *SourceLimits) CheckRawDecode(d RawDecode, w, h int) *LimitError {
+	px := int64(w) * int64(h)
+	if l.MaxSrcPixels <= 0 || px <= l.MaxSrcPixels {
+		return nil
+	}
+	var what string
+	switch d {
+	case RawDemosaic:
+		what = sourceSize(w, h)
+	case RawDemosaicHalf:
+		what = fmt.Sprintf("camera RAW half-size demosaic is %d×%d", w, h)
+	case RawPreview:
+		what = fmt.Sprintf("camera RAW embedded preview is %d×%d", w, h)
+	}
+	return limitError(what, px, "XI_LIMITS_MAX_SRC_PIXELS", l.MaxSrcPixels)
+}
+
+// CheckRawSensor is the demosaic's own limit: the sensor width × height
+// LibRaw unpacks whatever the output size (XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS;
+// ≤ 0 is unlimited). The preview path is not subject to it.
+func CheckRawSensor(w, h int, maxPixels int64) *LimitError {
+	px := int64(w) * int64(h)
+	if maxPixels <= 0 || px <= maxPixels {
+		return nil
+	}
+	return limitError(fmt.Sprintf("camera RAW sensor is %d×%d", w, h), px, "XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS", maxPixels)
+}
+
 // CheckFrames rejects an animation with more frames than maxFrames
 // (XI_LIMITS_MAX_ANIMATION_FRAMES). A limit of 1 disables animation (the
 // first frame is processed, as in imgproxy) and ≤ 0 is unlimited, so

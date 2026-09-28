@@ -26,6 +26,11 @@ import (
 // size): dimensions, orientation, camera metadata and the embedded
 // previews. Nothing is unpacked or decoded, and no libvips memory is used.
 //
+// A file LibRaw can read but not demosaic comes back with
+// RawHeader.Undecodable set (Nikon High Efficiency, placeholder decoders),
+// and so does a camera LibRaw does not know yet when its previews could be
+// listed (RawUnknownCamera: no sizes, no exposure metadata).
+//
 // Errors: KindUnsupported (LibRaw does not know the file), KindCorrupt (the
 // header is unreadable), KindLimitExceeded (LibRaw's own size limits),
 // KindCanceled/KindTimeout (ctx done before the call).
@@ -44,6 +49,7 @@ func ProbeRaw(ctx context.Context, buf *Buffer) (RawHeader, error) {
 		return RawHeader{}, err
 	}
 	out := RawHeader{
+		Undecodable:    RawUndecodable(h.undecodable),
 		Width:          int(h.width),
 		Height:         int(h.height),
 		RawWidth:       int(h.raw_width),

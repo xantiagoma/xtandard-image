@@ -9,7 +9,7 @@
 # Forbidden components are listed in check-licenses.sh (ADR 0006); never add them here.
 
 # Image revision: bump when the image changes without a libvips version change.
-export XI_BASE_REVISION=4
+export XI_BASE_REVISION=5
 export XI_BASE_FLAVOR=slim
 
 # --- Toolchains ---------------------------------------------------------------
@@ -65,6 +65,10 @@ export LIBSPNG_VERSION=0.7.4
 export LIBSPNG_SHA256=47ec02be6c0a6323044600a9221b049f63e1953faf816903e7383d4dc4234487
 export LIBWEBP_VERSION=1.6.0
 export LIBWEBP_SHA256=e4ab7009bf0629fd11982d4c2aa83964cf244cffba7347ecd39019a9e38c4564
+# zstd is dual-licensed BSD-3-Clause OR GPL-2.0-only and used under BSD-3-Clause; only
+# libtiff links it, for ZSTD-compressed TIFF (WP-102).
+export ZSTD_VERSION=1.5.7
+export ZSTD_SHA256=eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3
 export LIBTIFF_VERSION=4.7.2
 export LIBTIFF_SHA256=672bd7d10aee4606171afb864f3570b83340f6a33e2c186dc0512f7145ffdf6a
 export OPENJPEG_VERSION=2.5.4

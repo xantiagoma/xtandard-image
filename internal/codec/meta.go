@@ -92,6 +92,11 @@ type ImageMeta struct {
 	// Session is the video's open FFmpeg handle when ProbeSession probed
 	// it; nil otherwise. The caller closes it.
 	Session *VideoSession
+	// Raw describes what a camera RAW can be decoded to (its demosaic,
+	// half-size demosaic and embedded preview sizes), for the RAW-aware
+	// pixel limit (transform.SourceLimits.CheckRaw); nil for other formats.
+	// For a preview-only RAW, Width × Height is already the preview's.
+	Raw *transform.RawSource
 }
 
 // Pixels returns Width × Height × Frames, the pixels a full decode of every
@@ -197,7 +202,9 @@ func (l Limits) withDefaults() Limits {
 // be processed as its first frame, must fit MaxSrcPixels; a frame of an
 // animation may instead fit MaxAnimationFramePixels). The totals over all
 // frames depend on the frames a request loads and are checked by the
-// planner, still before decoding. Zero fields of l take their defaults.
+// planner, still before decoding. A camera RAW (m.Raw) passes when one of
+// its decode paths fits (transform.SourceLimits.CheckRaw). Zero fields of l
+// take their defaults.
 func (l Limits) Check(m *ImageMeta) error {
 	l = l.withDefaults()
 	if m.Width <= 0 || m.Height <= 0 {
@@ -208,6 +215,12 @@ func (l Limits) Check(m *ImageMeta) error {
 	}
 	animated := m.Frames > 1 && l.MaxAnimationFrames != 1
 	src := transform.SourceLimits{MaxSrcPixels: l.MaxSrcPixels, MaxFramePixels: max(l.MaxAnimationFramePixels, 0)}
+	if m.Raw != nil {
+		if le := src.CheckRaw(m.Raw); le != nil {
+			return limitExceeded(le)
+		}
+		return nil
+	}
 	if le := src.CheckFrame(m.Width, m.Height, animated); le != nil {
 		return limitExceeded(le)
 	}

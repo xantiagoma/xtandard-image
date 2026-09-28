@@ -168,6 +168,7 @@ func (p *codecProber) Probe(ctx context.Context, src fetch.Buffer, lim server.Pr
 		IsAnimated:  m.IsAnimated,
 		Orientation: m.Orientation,
 		Video:       m.Video,
+		Raw:         m.Raw,
 	}
 	if m.Session != nil {
 		out.Session = m.Session
