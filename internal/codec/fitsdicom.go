@@ -201,7 +201,7 @@ func dicomSamples(px []byte, f vips.BandFormat, n int) ([]int32, error) {
 		for i := range out {
 			v := ne.Uint32(px[4*i:])
 			if f == vips.BandFormatUint {
-				out[i] = int32(min(v, math.MaxInt32)) //nolint:gosec // clamped
+				out[i] = int32(min(v, math.MaxInt32))
 			} else {
 				out[i] = int32(v) //nolint:gosec // signed samples
 			}

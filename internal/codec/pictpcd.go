@@ -89,8 +89,8 @@ func ParsePICTHeader(b []byte) (PICTHeader, error) {
 	be := binary.BigEndian
 	for range pictMaxOps {
 		var op int
-		switch {
-		case h.Version == 1:
+		switch h.Version {
+		case 1:
 			if pos >= len(b) {
 				return h, nil
 			}
