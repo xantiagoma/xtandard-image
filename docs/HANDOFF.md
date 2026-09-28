@@ -49,7 +49,9 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   `base-image` workflow runs) merged as #98. WP-97 long-tail inputs (JPEG XR via fuzz-hardened jxrlib, PNM P1–P7, TGA/PCX/DDS/QOI/SGI/
   Sun/XBM/XPM via ImageMagick, WBMP/ICNS in Go; EPS declined: AGPL Ghostscript) merged as #100;
   bases now slim r4 / full r5 / gpl r5 (local `xtandard-base:dev*` tags retagged from the WP-97
-  build). Demo runs `xtandard-image:main-gpl` from main 244ae64.
+  build). WP-98 (animation pixel limits follow imgproxy's
+  CheckDimensions; new `XI_LIMITS_MAX_ANIMATION_PIXELS` 200 MP; 422 bodies name the limit) merged as
+  #101. Demo runs `xtandard-image:main-gpl` from main 900c418.
   Commit trailer is now `Co-Authored-By: Claude Opus 5.5`.
 - **Backlog after M3 (WP-91+):** face/object gravity on a single-frame video answers 422 (detection
   hands the container bytes to libvips; fix = detect on the decoded frame; composites already skip
