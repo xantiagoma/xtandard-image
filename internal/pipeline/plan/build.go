@@ -102,12 +102,29 @@ type source struct {
 	// thumbnail replaces the image whatever its size (imgproxy Pro).
 	thumbnail bool
 	hdr       bool // scene-linear float source: tone-mapped after load
-	video     bool // a frame decoded by FFmpeg, scaled on load by libswscale
+	// gainHDR: a gain-map source whose request may render HDR (WP-104):
+	// float samples after the colour step, read once.
+	gainHDR bool
+	video   bool // a frame decoded by FFmpeg, scaled on load by libswscale
 	// dets are the source's detections (first pipeline only).
 	dets *Detections
 	// streamPixels is the video stream's frame size (decoder memory); 0
 	// for images.
 	streamPixels int64
+}
+
+// gainMapHDR reports whether o may render a gain-map source as HDR
+// (preserve_hdr with gain_map:auto, or gain_map:hdr); the executor decides
+// for good once it knows the steps and the output.
+func gainMapHDR(o *transform.Output) bool {
+	switch o.GainMap {
+	case transform.GainMapHDR:
+		return true
+	case transform.GainMapSDR:
+		return false
+	default:
+		return o.PreserveHDR != nil && *o.PreserveHDR
+	}
 }
 
 func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observed) (*Plan, error) {
@@ -144,6 +161,7 @@ func build(req *transform.Request, meta *SourceMeta, limits *Limits, obs *Observ
 		previewOnly:  meta.PreviewOnly && meta.PreviewWidth > 0 && meta.PreviewHeight > 0,
 		enforceThumb: req.Output.EnforceThumbnail != nil && *req.Output.EnforceThumbnail,
 		hdr:          meta.HDR,
+		gainHDR:      meta.GainMap && gainMapHDR(&req.Output),
 		video:        meta.IsVideo && !meta.VideoComposite && !meta.FrameDecoded,
 		dets:         meta.Detections,
 	}
@@ -382,7 +400,7 @@ func planPipeline(p *transform.Pipeline, s *source, lim *effLimits, outFmt trans
 		frames: int64(s.frames),
 		// The tone mapper measures the source before mapping it: two reads.
 		random: s.hdr,
-		hdr:    s.hdr,
+		hdr:    s.hdr || s.gainHDR,
 		dets:   s.dets,
 	}
 	if s.streamPixels > 0 {

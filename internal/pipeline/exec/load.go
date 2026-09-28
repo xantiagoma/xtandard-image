@@ -41,6 +41,7 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 	if err != nil {
 		return nil, err
 	}
+	r.gainLoadable = r.plan != nil && anim == nil && ls.Page == 0 && ls.NPages <= 1 && !ls.Thumbnail
 	if r.j.Meta.Format == "pdf" && !r.transparent && img.HasAlpha() {
 		// Rendered onto opaque white. Only the gaps PDFium leaves beside a
 		// narrower page of a stack are transparent: fill them with white too.

@@ -135,7 +135,7 @@ func jobMeta(tb testing.TB, header, data []byte, req *transform.Request, out tra
 			Width: m.Width, Height: m.Height, Frames: max(m.Frames, m.Pages), HasAlpha: m.HasAlpha,
 			Orientation: m.Orientation, IsAnimated: m.IsAnimated, Format: name,
 			IsVector: m.Format == codec.FormatSVG || m.Format == codec.FormatPDF, Density: density(m.Format),
-			HDR: m.HDR,
+			HDR: m.HDR, GainMap: m.GainMap,
 		},
 		Target: encode.NewTarget(&req.Output, &d, m.IsAnimated),
 	}, buf

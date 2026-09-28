@@ -78,10 +78,11 @@ const (
 type hdrMode uint8
 
 const (
-	hdrToneMap   hdrMode = iota // map to 8-bit sRGB with the configured operator
-	hdrClip                     // preserve_hdr cannot be honoured: clip to 8-bit sRGB
-	hdrKeepFloat                // preserve_hdr to JPEG XL: linear float, values above 1 kept
-	hdrKeep16                   // preserve_hdr to AVIF: 16-bit sRGB (12-bit AVIF), clipped at 1
+	hdrToneMap hdrMode = iota // map to 8-bit sRGB with the configured operator
+	hdrClip                   // preserve_hdr cannot be honoured: clip to 8-bit sRGB
+	// hdrKeepFloat keeps linear float, values above 1 included: JPEG XL
+	// writes float, AVIF BT.2100 PQ and JPEG UltraHDR (vips.Image.Save).
+	hdrKeepFloat
 )
 
 // hdrPending reports whether img is the root pipeline's scene-linear source
@@ -97,12 +98,12 @@ func (r *runner) hdrPending() bool {
 	return r.j.Meta.HDR // DDS BC6H and float textures
 }
 
-// fromHDR converts a scene-linear source to the working space: 8-bit sRGB
-// (8-bit grey for a grey PFM) through the configured tone-mapping operator,
-// or, with preserve_hdr and an output that holds more than 8 bits, linear
-// float for JPEG XL or 16-bit sRGB for AVIF. Alpha is kept (clamped to
-// [0, 1]) unless the file has none: libvips gives every OpenEXR image an
-// alpha band of ones.
+// fromHDR converts a scene-linear source (or a gain-map source with its
+// map applied) to the working space: 8-bit sRGB (8-bit grey for a grey
+// PFM) through the configured tone-mapping operator, or, with preserve_hdr
+// and an HDR output (JPEG XL, AVIF, JPEG), linear float. Alpha is kept
+// (clamped to [0, 1]) unless the file has none: libvips gives every
+// OpenEXR image an alpha band of ones.
 func (r *runner) fromHDR(ctx context.Context, img *vips.Image) (*vips.Image, error) {
 	r.hdrDone = true
 	colour, alpha, grey, err := r.hdrSplit(ctx, img)
@@ -116,11 +117,6 @@ func (r *runner) fromHDR(ctx context.Context, img *vips.Image) (*vips.Image, err
 			return nil, err
 		}
 		return r.hdrJoin(ctx, colour, alpha, vips.InterpretationScRGB)
-	case hdrKeep16:
-		if colour, err = r.a.Add(colour.Clamp(ctx, 0, 1)); err != nil {
-			return nil, err
-		}
-		return r.hdrJoin(ctx, colour, alpha, vips.InterpretationRGB16)
 	default:
 	}
 	op := r.e.cfg.ToneMap
@@ -216,21 +212,24 @@ func (r *runner) hdrJoin(ctx context.Context, colour, alpha *vips.Image, target 
 	return r.a.Add(img.Colourspace(ctx, target))
 }
 
-// hdrMode decides between tone mapping and preserve_hdr. The high bit
-// depth survives only into JPEG XL (float) and AVIF (12-bit), and only
-// through steps that are exact on float or 16-bit pixels (crop, resize,
-// rotate, flip); otherwise preserve_hdr is reported as skipped and the
-// source is clipped at 1 instead of tone-mapped.
+// hdrMode decides between tone mapping and preserve_hdr (or gain_map:hdr
+// for a gain-map source). HDR survives only into JPEG XL (float), AVIF
+// (PQ) and JPEG without alpha (UltraHDR), and only through steps that are
+// exact on float pixels (crop, resize, rotate, flip); otherwise
+// preserve_hdr is reported as skipped and the source is clipped at 1
+// instead of tone-mapped.
 func (r *runner) hdrMode() hdrMode {
-	if r.req == nil || r.req.Output.PreserveHDR == nil || !*r.req.Output.PreserveHDR {
+	if !r.wantsHDR() {
 		return hdrToneMap
 	}
-	var mode hdrMode
+	mode := hdrKeepFloat
 	switch r.j.Target.Format {
-	case transform.FormatJXL:
-		mode = hdrKeepFloat
-	case transform.FormatAVIF:
-		mode = hdrKeep16
+	case transform.FormatJXL, transform.FormatAVIF:
+	case transform.FormatJPEG:
+		if r.plan == nil || r.meta.HasAlpha {
+			r.skip("preserve_hdr")
+			return hdrClip
+		}
 	default:
 		r.skip("preserve_hdr")
 		return hdrClip
@@ -243,7 +242,9 @@ func (r *runner) hdrMode() hdrMode {
 }
 
 // preservable reports whether every step of the request keeps float and
-// 16-bit pixels exact: geometry only, one pipeline, no colour profile.
+// 16-bit pixels exact: geometry only, one pipeline, no colour profile. The
+// flatten a JPEG output plans is kept when there is no alpha to flatten
+// (it does nothing then).
 func (r *runner) preservable() bool {
 	p := r.plan
 	if p == nil || len(p.Chained) > 0 || r.req.Output.ColorProfile != "" {
@@ -252,6 +253,10 @@ func (r *runner) preservable() bool {
 	for _, s := range p.Steps {
 		switch s.(type) {
 		case plan.ColourStep, plan.PreCropStep, plan.CropStep, plan.ResizeStep, plan.RotateStep, plan.FlipStep:
+		case plan.FlattenStep:
+			if r.meta.HasAlpha {
+				return false
+			}
 		default:
 			return false
 		}
