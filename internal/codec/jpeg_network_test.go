@@ -3,23 +3,22 @@
 package codec_test
 
 import (
-	"errors"
 	"io"
 	"net/http"
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec"
-	"github.com/xantiagoma/xtandard-image/internal/errs"
 )
 
-// TestProbeHighPrecisionJPEGSamples: the gallery's 12-bit JPEG samples
-// (WP-100) answer 422 with a clear message instead of failing in the saver
-// with a 500 (WP-101; decoding them is WP-106).
+// TestProbeHighPrecisionJPEGSamples: the gallery's 12-bit and lossless JPEG
+// samples (WP-100) probe as JPEG at their precision, through the shim's
+// jpeghpload (WP-106; WP-101 refused the 12-bit ones with a 422).
 func TestProbeHighPrecisionJPEGSamples(t *testing.T) {
 	t.Parallel()
-	for _, url := range []string{
-		"https://raw.githubusercontent.com/cgohlke/imagecodecs-samples/main/images/rgb_u2.jpg",
-		"https://raw.githubusercontent.com/libjpeg-turbo/libjpeg-turbo/main/testimages/monkey12.jpg",
+	for url, bits := range map[string]int{
+		"https://raw.githubusercontent.com/cgohlke/imagecodecs-samples/main/images/rgb_u2.jpg":       12,
+		"https://raw.githubusercontent.com/libjpeg-turbo/libjpeg-turbo/main/testimages/monkey12.jpg": 12,
+		"https://raw.githubusercontent.com/cgohlke/imagecodecs-samples/main/images/rgb_u1.ljpg":      8,
 	} {
 		t.Run(url, func(t *testing.T) {
 			t.Parallel()
@@ -36,10 +35,9 @@ func TestProbeHighPrecisionJPEGSamples(t *testing.T) {
 			if err != nil || resp.StatusCode != http.StatusOK {
 				t.Skipf("GET %s: %s, %v", url, resp.Status, err)
 			}
-			_, err = probe(t.Context(), t, data, codec.Limits{}, "image/jpeg")
-			e, ok := errors.AsType[*errs.Error](err)
-			if errs.KindOf(err) != errs.KindUnsupported || !ok || e.PublicMessage() != "12-bit JPEG is not supported yet" {
-				t.Errorf("probe: %v, want unsupported %q", err, "12-bit JPEG is not supported yet")
+			m, err := probe(t.Context(), t, data, codec.Limits{}, "image/jpeg")
+			if err != nil || m.Format != codec.FormatJPEG || m.BitDepth != bits {
+				t.Errorf("probe: %+v, %v; want JPEG at %d bits", m, err, bits)
 			}
 		})
 	}
