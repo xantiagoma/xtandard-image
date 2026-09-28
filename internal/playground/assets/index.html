@@ -214,11 +214,15 @@
         <ol id="history" class="history"></ol>
       </div>
       <div role="tabpanel" id="mpane-matrix" aria-labelledby="mtab-matrix" hidden>
-        <p class="hint">Probes every sample with <code>/info</code> and a 160 px thumbnail through the first imgproxy mount, two at a time.</p>
-        <div class="row wrap"><button type="button" id="matrix-run" class="primary">Run all</button><span id="matrix-status" class="status" role="status"></span></div>
+        <p class="hint">Probes every sample with <code>/info</code> and a 160 px thumbnail through the first imgproxy mount, two at a time. "Run all" runs the rows shown (the format filter); camera RAWs over 20 MB only when included. Rows tagged <em>gap</em> are formats or variants not decoded yet (<code>docs/research/format-gap.md</code>): 422 is the expected answer.</p>
+        <div class="row wrap"><button type="button" id="matrix-run" class="primary">Run all</button>
+          <label class="inline">Format <select id="matrix-format"><option value="">all formats</option></select></label>
+          <label class="inline"><input type="checkbox" id="matrix-large"> include files over 20 MB</label>
+          <span id="matrix-status" class="status" role="status"></span></div>
         <div class="table-wrap"><table class="matrix" id="matrix"><thead><tr>
           <th scope="col" data-sort="format" aria-sort="none"><button type="button" class="sort">Format</button></th>
           <th scope="col" data-sort="name" aria-sort="none"><button type="button" class="sort">Sample</button></th>
+          <th scope="col" data-sort="variant" aria-sort="none"><button type="button" class="sort">Variant</button></th>
           <th scope="col">Probe</th><th scope="col">Thumbnail</th>
           <th scope="col" data-sort="time" aria-sort="none"><button type="button" class="sort">Time</button></th>
           <th scope="col">Bytes</th>

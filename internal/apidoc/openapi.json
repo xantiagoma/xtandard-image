@@ -6158,8 +6158,22 @@
             "description": "Where the file comes from; the attribution for CC-BY files.",
             "type": "string"
           },
+          "tags": {
+            "description": "Lower-case keywords: colour type, bit depth, alpha, animated, multi-page, hdr, icc, camera brand; \"large\" marks files over 20 MB and \"gap\" formats not decoded yet (expected 422).",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "url": {
             "description": "Public URL, fetched through an http source.",
+            "type": "string"
+          },
+          "variant": {
+            "description": "Configuration within the format: colour type, bit depth, compression, animation, camera model (\"cmyk 16-bit\", \"Canon CR3 C-RAW\").",
             "type": "string"
           }
         },
@@ -6272,7 +6286,7 @@
             ]
           },
           "gallery": {
-            "description": "Public sample files, one or two per input format, fetched through the http sources.",
+            "description": "Public sample files per input format and variant (docs/research/format-gap.md), fetched through the http sources.",
             "items": {
               "$ref": "#/components/schemas/PlaygroundGallerySample"
             },
