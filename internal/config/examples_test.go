@@ -436,10 +436,10 @@ func TestExampleKubernetes(t *testing.T) {
 				if !ok {
 					t.Fatalf("volume %s: key %s missing", m.Name, it.Key)
 				}
-				switch {
-				case m.SubPath == "":
+				switch m.SubPath {
+				case "":
 					vfs.files[path.Join(m.MountPath, it.Path)] = v
-				case m.SubPath == it.Path:
+				case it.Path:
 					vfs.files[m.MountPath] = v
 				}
 			}
