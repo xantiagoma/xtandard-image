@@ -9,7 +9,7 @@
 # Forbidden components are listed in check-licenses.sh (ADR 0006); never add them here.
 
 # Image revision: bump when the image changes without a libvips version change.
-export XI_BASE_REVISION=6
+export XI_BASE_REVISION=7
 export XI_BASE_FLAVOR=slim
 
 # --- Toolchains ---------------------------------------------------------------
