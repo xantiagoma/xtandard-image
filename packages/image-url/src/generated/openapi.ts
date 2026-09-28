@@ -1858,6 +1858,16 @@ export interface components {
             /** @description Class name (ImageNet-1k: tabby cat, golden retriever, pizza, ...). */
             name: string;
         };
+        InfoContainer: {
+            /** @description What the image is to the document: composite (full-size flattened image), thumbnail (reduced copy), preview (first page) or document (SVGZ: the whole document, decompressed). */
+            content: string;
+            /** @description Where the image was found: the path inside the archive (mergedimage.png, QuickLook/Thumbnail.png, previews/preview.png, ...), gzip for SVGZ, header thumbnail for Paint.NET. */
+            entry: string;
+            /** @description Container format: ora (OpenRaster), kra (Krita), procreate, sketch, svgz or pdn (Paint.NET). */
+            format: string;
+            /** @description Media type of the container, e.g. image/openraster. */
+            mime_type: string;
+        };
         InfoCrop: {
             /** Format: double */
             height: number;
@@ -1947,6 +1957,8 @@ export interface components {
             classification?: components["schemas"]["InfoClass"][] | null;
             /** @description libvips interpretation name: srgb, b-w, rgb16, cmyk, ... (info option colorspace). */
             colorspace?: string;
+            /** @description xtandard-image extension (info option format): the source is a designer document (OpenRaster, Krita, Procreate, Sketch, SVGZ, Paint.NET) and format, dimensions and the other fields describe the image embedded in it; absent otherwise. */
+            container?: components["schemas"]["InfoContainer"];
             /** @description Crop rectangle as fractions of the oriented image (info option crop). */
             crop?: components["schemas"]["InfoCrop"];
             /** @description Dominant RGB colours by class; missing classes are left out unless built (info option dominant_colors). */
@@ -2176,6 +2188,8 @@ export interface components {
             formats: string[] | null;
             /** @description Public sample files per input format and variant (docs/research/format-gap.md), fetched through the http sources. */
             gallery: components["schemas"]["PlaygroundGallerySample"][] | null;
+            /** @description imgproxy /info options (internal/apidoc, the ImgproxyInfoOptions schema) for the Info panel's builder. */
+            info_options: components["schemas"]["PlaygroundOption"][] | null;
             /**
              * Format: int64
              * @description Largest upload in bytes (XI_LIMITS_MAX_SRC_BYTES).
@@ -2242,6 +2256,8 @@ export interface components {
         PlaygroundOption: {
             /** @description Accepted short names. */
             aliases?: string[] | null;
+            /** @description Value used when the option is absent, as imgproxy documents it (info options). */
+            default?: string;
             /** @description One-line description. */
             doc?: string;
             /** @description A valid argument string. */
@@ -2249,10 +2265,10 @@ export interface components {
             /** @description Accepted argument shapes; most options have one. */
             forms: components["schemas"]["PlaygroundForm"][] | null;
             /**
-             * @description Builder category.
+             * @description Builder category; report, hashes and security are Info panel groups.
              * @enum {string}
              */
-            group?: "size" | "gravity" | "format" | "color" | "effects" | "watermark" | "metadata" | "frames" | "detection" | "delivery" | "presets" | "other";
+            group?: "size" | "gravity" | "format" | "color" | "effects" | "watermark" | "metadata" | "frames" | "detection" | "delivery" | "presets" | "other" | "report" | "hashes" | "security";
             /** @description Milestone that implements the option. */
             milestone?: string;
             /** @description Canonical name. */
