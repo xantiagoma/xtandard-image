@@ -3,12 +3,22 @@
 
 import { $, el, errorText, fmtBytes, tabs, toast } from './dom.js';
 
-const FORMAT_LABELS = {
+export const FORMAT_LABELS = {
   jpeg: 'JPEG', png: 'PNG', apng: 'APNG', gif: 'GIF', webp: 'WebP', avif: 'AVIF', heic: 'HEIC', jxl: 'JPEG XL',
-  tiff: 'TIFF', bmp: 'BMP', ico: 'ICO', svg: 'SVG', pdf: 'PDF', psd: 'PSD', jp2: 'JPEG 2000', jxr: 'JPEG XR',
-  exr: 'OpenEXR', hdr: 'Radiance HDR', raw: 'Camera RAW', pnm: 'PNM', qoi: 'QOI', tga: 'TGA', pcx: 'PCX',
-  dds: 'DDS', eps: 'EPS', mp4: 'MP4', webm: 'WebM', mkv: 'Matroska',
+  tiff: 'TIFF', bmp: 'BMP', ico: 'ICO', icns: 'ICNS', svg: 'SVG', pdf: 'PDF', psd: 'PSD', jp2: 'JPEG 2000', jxr: 'JPEG XR',
+  exr: 'OpenEXR', hdr: 'Radiance HDR', pfm: 'PFM', raw: 'Camera RAW', pnm: 'PNM', qoi: 'QOI', tga: 'TGA', pcx: 'PCX',
+  dds: 'DDS', sgi: 'SGI', sun: 'Sun raster', xbm: 'XBM', xpm: 'XPM', wbmp: 'WBMP', eps: 'EPS', mp4: 'MP4', webm: 'WebM', mkv: 'Matroska',
+  // Formats not decoded yet (tag "gap"): kept in the gallery so the format
+  // matrix shows the gaps of docs/research/format-gap.md.
+  svgz: 'SVGZ', mpo: 'MPO', jls: 'JPEG-LS', ljpeg: 'Lossless JPEG', jxs: 'JPEG XS', xcf: 'GIMP XCF', ora: 'OpenRaster',
+  pdn: 'Paint.NET', emf: 'EMF', wmf: 'WMF', dicom: 'DICOM', fits: 'FITS', ktx2: 'KTX2', mng: 'MNG', jng: 'JNG',
+  pict: 'PICT', pcd: 'Photo CD', svs: 'Aperio SVS', fpx: 'FlashPix', xwd: 'XWD', miff: 'MIFF', wpg: 'WPG', cgm: 'CGM',
+  blp: 'BLP', iff: 'IFF ILBM', pxr: 'Pixar',
 };
+
+// LARGE is the size above which a gallery file is tagged "large" and its
+// tile loads no thumbnail by itself.
+const LARGE = 20 * 1024 * 1024;
 
 // Sources: the source pickers. onPick(source, label) sets the source;
 // thumb(source) resolves to an object URL of a small rendition or null.
@@ -48,6 +58,7 @@ export class Sources {
       out.push({
         group: FORMAT_LABELS[g.format] ?? g.format, format: g.format, name: g.name, source: g.url, bytes: g.bytes,
         allowed: g.allowed && (!video || this.meta.video), licence: g.licence, attribution: g.source, note: g.notes,
+        variant: g.variant ?? '', tags: g.tags ?? [],
         why: !g.allowed ? 'No http source allows this host: add one or set XI_DEV_MODE=true.' : video && !this.meta.video ? 'Video sources need the full image (FFmpeg).' : '',
       });
     }
@@ -75,16 +86,21 @@ export class Sources {
   }
 
   tile(e) {
-    const title = [e.name, e.bytes ? fmtBytes(e.bytes) : '', `${e.licence}: ${e.attribution}`, e.note, e.why].filter(Boolean).join('\n');
+    const title = [e.name, e.variant, e.bytes ? fmtBytes(e.bytes) : '', `${e.licence}: ${e.attribution}`, e.note, e.why,
+      e.tags?.length ? `tags: ${e.tags.join(', ')}` : ''].filter(Boolean).join('\n');
     const img = el('div', { class: 'thumb', 'aria-hidden': 'true' }, el('span', { text: (FORMAT_LABELS[e.format] ?? e.format).slice(0, 8) }));
     const b = el('button', {
       type: 'button', class: 'tile', title, disabled: !e.allowed, 'data-source': e.source,
-      'data-search': `${e.format} ${e.name} ${e.group}`.toLowerCase(),
+      'data-search': `${e.format} ${e.name} ${e.group} ${e.variant ?? ''} ${(e.tags ?? []).join(' ')}`.toLowerCase(),
     }, img, el('span', { class: 'tile-name', text: e.name }),
-    el('span', { class: 'tile-meta', text: [e.bytes ? fmtBytes(e.bytes) : '', e.licence].filter(Boolean).join(' · ') }));
+    e.variant ? el('span', { class: 'tile-variant', text: e.variant }) : null,
+    el('span', { class: 'tile-meta', text: [e.bytes ? fmtBytes(e.bytes) : '', e.licence, e.tags?.includes('gap') ? 'not decoded yet' : ''].filter(Boolean).join(' · ') }));
     if (e.bytes > 5 * 1024 * 1024) b.classList.add('big');
+    if (e.tags?.includes('gap')) b.classList.add('gap');
     b.addEventListener('click', () => this.onPick(e.source, e.name));
-    if (e.allowed && this.observer) {
+    // Files over 20 MB (camera RAWs) and formats not decoded yet get no
+    // automatic thumbnail: scrolling the gallery must not pull gigabytes.
+    if (e.allowed && this.observer && e.bytes <= LARGE && !e.tags?.includes('gap')) {
       img._source = e.source;
       this.observer.observe(img);
     }

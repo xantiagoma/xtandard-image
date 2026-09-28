@@ -135,6 +135,25 @@ Implemented in WP-49 (`codec/raw`, `internal/vips/raw.c`, `pipeline/plan` `rawOn
 
 Measured on the builder image (arm64 Docker on Apple silicon, 1024 px JPEG output, plan + decode + encode; `BenchmarkRaw -count 10`, benchstat medians): Sony ILCE-7S ARW (12 MP) preview 37 ms, half-size demosaic 76 ms, full demosaic 311 ms; Pentax K-50 DNG (16 MP) preview 46 ms, half-size 382 ms, full 1.06 s. `ProbeRaw` is ~0.1 ms per file.
 
+**Coverage measured by WP-100** ([research/format-gap.md](research/format-gap.md) §3.3; 72 raw.pixls.us samples, release image with the full base):
+
+- **Decoded on both the preview and the demosaic path:**
+  - Canon CR3, both lossless RAW and lossy C-RAW, cropped aspect ratios included.
+  - CR2 (sRAW/mRAW included) and CRW.
+  - Nikon NEF: lossless, uncompressed, lossy type 1/2 and small RAW; NRW.
+  - Sony ARW v1/v2, lossless compressed and lossy; SR2.
+  - Fujifilm RAF: X-Trans compressed, lossy and lossless; GFX; SuperCCD.
+  - OM System ORF/ORI.
+  - Panasonic RW2 and Leica RWL.
+  - Pentax PEF, pixel shift included.
+  - Samsung SRW.
+  - Hasselblad 3FR/FFF and Phase One IIQ.
+  - Minolta MRW, Kodak DCR and Epson ERF.
+  - DNG: in-camera, Leica Monochrom, Apple ProRAW and Samsung Expert RAW (linear), drones, lossy DNG (Bayer and linear), HDRMerge float, CinemaDNG.
+- **Not decoded:** LibRaw is built without `USE_X3FTOOLS`, the GoPro GPR SDK and the Adobe DNG SDK. So Sigma X3F and GoPro GPR answer 422, and so would a DNG whose raw IFD is JPEG XL-compressed (DNG 1.7). A DNG that only carries JPEG XL previews decodes. Bodies newer than LibRaw 0.22.2, such as the Sony A7 V, answer 422 `unsupported`.
+- **Nikon High Efficiency (HE/HE\*, TicoRAW):** LibRaw has no decoder. The embedded preview serves requests it covers. The demosaic answers 422 for the Z8 and Z f, but for the Z50 II it returns **wrong pixels with 200**. Known bug, fixed by WP-101 (HE forced to the preview).
+- **Pixel limit:** sensors over 50 MP (GFX100, X1D/X2D, 50 MP phone DNGs) exceed the default `XI_LIMITS_MAX_SRC_PIXELS` and need it raised (WP-102).
+
 ## 3. Animation handling
 
 - Loaded as a vertical strip with `page-height`. Limits (WP-98, imgproxy's `CheckDimensions` on the frames loaded): `XI_LIMITS_MAX_ANIMATION_FRAMES` (default 256) caps the frames; for an animation processed as one, `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS` (default 16 MP) caps width × height of a frame and **replaces** `XI_LIMITS_MAX_SRC_PIXELS`, so an 800×600 GIF of 176 frames (84.5 MP in all) is accepted, and `XI_LIMITS_MAX_ANIMATION_PIXELS` (default 200 MP, not in imgproxy) caps width × height × frames so the decoded strip stays bounded (256 frames of 16 MP would be 4.1 gigapixels). With the frame limit at `0` (imgproxy's default) the animation counts all its frames against `XI_LIMITS_MAX_SRC_PIXELS`. An animation processed as a still (still output, `disable_animation`, a frame limit of 1) counts the frames it loads (one, or the stacked `pages`) against `XI_LIMITS_MAX_SRC_PIXELS`. The probe cannot know which applies yet, so it only rejects a frame that no limit admits; the planner checks the totals before anything is decoded. Every 422 names the limit and the numbers (`source has 176 frames of 800×600 (84.5 MP); limit XI_LIMITS_MAX_SRC_PIXELS is 50 MP`).

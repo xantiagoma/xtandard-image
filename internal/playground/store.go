@@ -26,9 +26,10 @@ import (
 //go:embed samples
 var sampleFiles embed.FS
 
-// galleryJSON is the curated list of public sample files (one or two
-// real-world files per input format), fetched through the server's http
-// sources like any other URL.
+// galleryJSON is the curated list of public sample files (real-world files
+// per input format and its common variants: colour types, bit depths,
+// animation, camera RAW families; WP-100), fetched through the server's
+// http sources like any other URL.
 //
 //go:embed samples.json
 var galleryJSON []byte
@@ -42,6 +43,12 @@ type GallerySample struct {
 	Licence string `json:"licence" doc:"SPDX licence of the file."`
 	Source  string `json:"source" doc:"Where the file comes from; the attribution for CC-BY files."`
 	Notes   string `json:"notes,omitempty" doc:"What the file shows or the expected outcome."`
+	// Variant names the configuration the file exercises within its
+	// format (colour type, bit depth, compression, camera family, ...).
+	Variant string `json:"variant,omitempty" doc:"Configuration within the format: colour type, bit depth, compression, animation, camera model (\"cmyk 16-bit\", \"Canon CR3 C-RAW\")."`
+	// Tags are lower-case keywords for filtering (colour type, depth,
+	// alpha, animated, hdr, large, gap, ...).
+	Tags []string `json:"tags,omitempty" doc:"Lower-case keywords: colour type, bit depth, alpha, animated, multi-page, hdr, icc, camera brand; \"large\" marks files over 20 MB and \"gap\" formats not decoded yet (expected 422)."`
 	// Allowed reports whether a configured http source (or dev mode)
 	// allows the URL; the page disables the others.
 	Allowed bool `json:"allowed" doc:"A configured http source (or dev mode) allows the URL."`
