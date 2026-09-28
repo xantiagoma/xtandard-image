@@ -2,6 +2,43 @@
 
 xtandard-image describes its HTTP surface in an OpenAPI 3.1 document ([ADR 0008](adr/0008-openapi.md)). It is generated from Go types in `internal/apidoc`, committed as [`internal/apidoc/openapi.json`](../internal/apidoc/openapi.json), embedded in the binary and served byte for byte.
 
+## How to view it
+
+The API reference, the OpenAPI document and the config JSON Schema are served by the **admin listener** (`XI_ADMIN_ADDR`, default `127.0.0.1:9090`), never by the public one (`XI_SERVER_ADDR`, `:8080`): a request for `/docs` or `/openapi.json` on port 8080 is an ordinary image URL and fails.
+
+| What | Where | Needs |
+|---|---|---|
+| Browsable API reference (Scalar) | `http://<admin>/docs` | `XI_ADMIN_DOCS=true`, and internet access in the browser (Scalar loads from `cdn.jsdelivr.net`, pinned with SRI). Off, `/docs` answers 404 and points at `/openapi.json` |
+| OpenAPI 3.1 document | `http://<admin>/openapi.json` | Always on |
+| Config file JSON Schema | `http://<admin>/config.schema.json` | Always on ([CONFIG.md](CONFIG.md#config-file-formats-and-schema-adr-0007)) |
+| The same files without a server | `xtandard-image openapi > openapi.json`, `xtandard-image config schema > config.schema.json` (in Docker: `docker run --rm <image> openapi`) | Nothing |
+| The committed files | [`internal/apidoc/openapi.json`](../internal/apidoc/openapi.json), [`internal/config/config.schema.json`](../internal/config/config.schema.json) | Nothing |
+| Published copies | `https://xantiagoma.github.io/xtandard-image/api/` (reference), `…/schema/v1/openapi.json`, `…/schema/v1/config.schema.json` | **Not live yet**: GitHub Pages is built (`task pages:build`) but deploys once the owner enables Pages |
+| TypeScript client | [`@xtandard/image-url`](../packages/image-url/README.md), generated from the document | In the repository; **not on npm** until the first release |
+
+The admin default `127.0.0.1:9090` is loopback *inside the container*, so publishing the port alone does not reach it: set `XI_ADMIN_ADDR=:9090` and publish it on the host's loopback only.
+
+```sh
+docker run --rm -p 127.0.0.1:8080:8080 -p 127.0.0.1:9090:9090 \
+  -e XI_DEV_MODE=true -e XI_ADMIN_ADDR=:9090 -e XI_ADMIN_DOCS=true \
+  xtandard-image
+# open http://127.0.0.1:9090/docs
+curl -s http://127.0.0.1:9090/openapi.json | head -c 200
+curl -s http://127.0.0.1:9090/config.schema.json -o config.schema.json
+```
+
+On Kubernetes, keep the admin port out of the Service and forward it: `kubectl port-forward deploy/xtandard-image 9090:9090`, then open `http://127.0.0.1:9090/docs` ([`docs/examples/k8s/deployment.yaml`](examples/k8s/deployment.yaml) sets `XI_ADMIN_ADDR=:9090` and `XI_ADMIN_DOCS=true`). In Docker Compose, map `127.0.0.1:9090:9090` ([`docs/examples/compose.multi-source.yml`](examples/compose.multi-source.yml)). The same listener serves `/metrics`, `/healthz`, `/readyz`, pprof with `XI_ADMIN_PPROF=true` and the playground with `XI_PLAYGROUND_ENABLED=true`, so do not expose it publicly.
+
+Editors validate a config file against the schema with one line ([CONFIG.md](CONFIG.md#config-file-formats-and-schema-adr-0007) has the details and the per-editor setup):
+
+| Format | First line or key |
+|---|---|
+| YAML (yaml-language-server: VS Code Red Hat YAML, JetBrains, Neovim, Helix) | `# yaml-language-server: $schema=<schema url>` |
+| JSON | `"$schema": "<schema url>"` (ignored by the loader) |
+| TOML (Taplo / Even Better TOML, Tombi) | `#:schema <schema url>` |
+
+`<schema url>` is `https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json` once Pages is live; until then (or to match the exact running version) use `http://127.0.0.1:9090/config.schema.json` or a local copy from `xtandard-image config schema`.
+
 ## Where to get it
 
 | Location | Served by | Notes |

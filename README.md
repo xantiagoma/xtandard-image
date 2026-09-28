@@ -187,6 +187,39 @@ services:
 
 The image declares a Docker `HEALTHCHECK` (`/healthz`); Prometheus metrics are on the admin listener (`XI_ADMIN_ADDR`, default `127.0.0.1:9090`, set `:9090` to scrape it from another container). Put a CDN in front for caching. Every variable is documented in [docs/CONFIG.md](docs/CONFIG.md), which also has Kubernetes and larger Dokploy/Coolify examples; `XI_COMPAT_IMGPROXY_ENV=true` accepts your existing `IMGPROXY_*` variables.
 
+## Sources
+
+Sources are the allowlist of origins, and you can configure as many as you need, several of the same type included: AWS S3, Cloudflare R2, Backblaze B2 and a self-hosted RustFS or MinIO side by side, plus GCS, Azure Blob, local directories, FTP/FTPS/SFTP servers and http origins with their own allowlists and headers. For example, in the environment:
+
+```dotenv
+XI_SOURCES=aws,r2,rustfs,web
+XI_SOURCES_AWS_TYPE=s3
+XI_SOURCES_AWS_REGION=eu-west-1
+XI_SOURCES_AWS_BUCKETS=acme-media
+XI_SOURCES_R2_TYPE=s3
+XI_SOURCES_R2_ENDPOINT=https://ACCOUNT_ID.r2.cloudflarestorage.com
+XI_SOURCES_R2_REGION=auto
+XI_SOURCES_R2_BUCKET=assets
+XI_SOURCES_R2_ACCESS_KEY_ID=CHANGE_ME
+XI_SOURCES_R2_SECRET_ACCESS_KEY_FILE=/run/secrets/r2_secret_access_key
+XI_SOURCES_RUSTFS_TYPE=s3
+XI_SOURCES_RUSTFS_ENDPOINT=http://rustfs:9000
+XI_SOURCES_RUSTFS_FORCE_PATH_STYLE=true
+XI_SOURCES_RUSTFS_BUCKET=assets
+XI_SOURCES_RUSTFS_ACCESS_KEY_ID=xi-reader
+XI_SOURCES_RUSTFS_SECRET_ACCESS_KEY_FILE=/run/secrets/rustfs_secret_key
+XI_SOURCES_WEB_TYPE=http
+XI_SOURCES_WEB_ALLOW=https://images.unsplash.com
+```
+
+A URL picks its source by name or by scheme: `plain/xi://rustfs/cat.jpg` reads RustFS, `plain/s3://acme-media/cat.jpg` goes to the s3 source that allows that bucket (`aws`), and `plain/https://images.unsplash.com/…` to `web`. When two sources allow the same bucket name (`assets` here), a scheme reference goes to the first one in alphabetical order (the mount's own source first), so address the others with `xi://<name>/…`. Anything no source allows answers 403 with the reason. Credentials come from the environment, `_FILE` variables (Docker and Kubernetes secrets), `{file: …}` references in a config file, or the provider's own identity (IAM roles, Workload Identity, managed identity).
+
+[docs/SOURCES.md](docs/SOURCES.md) has the resolution rules with a worked table, recipes for every provider, and complete YAML, TOML, Docker Compose, Dokploy/Coolify and Kubernetes examples ([docs/examples/](docs/examples/), all loaded by the tests).
+
+## API reference
+
+The HTTP API is described by an OpenAPI 3.1 document (on `main`). A running instance serves it on the admin listener only (`XI_ADMIN_ADDR`, default `127.0.0.1:9090`; set `:9090` in a container and publish it on loopback): `GET /openapi.json`, a browsable Scalar reference at `/docs` with `XI_ADMIN_DOCS=true`, and the config schema at `/config.schema.json`. Without a server, `xtandard-image openapi` and `xtandard-image config schema` print the same files. The [published copy](https://xantiagoma.github.io/xtandard-image/schema/v1/openapi.json) and its [browsable reference](https://xantiagoma.github.io/xtandard-image/api/) go live with the GitHub Pages site, which is built but not enabled yet. See [docs/OPENAPI.md](docs/OPENAPI.md#how-to-view-it).
+
 ## Editor support
 
 The config file (YAML, JSON or TOML) has a JSON Schema (on `main`), so editors validate it, complete keys and show each key's meaning and its `XI_*` variable on hover. Point the file at the schema URL below. It is the schema's `$id`; the GitHub Pages site that serves it is built (`task pages:build`) and goes live once the owner enables Pages, so until then use a running instance's admin URL or a local copy from `xtandard-image config schema`:
@@ -197,7 +230,7 @@ server:
   addr: ":8080"
 ```
 
-JSON files use a top-level `"$schema"` key with the same URL, and TOML files a first line `#:schema <url>` (Taplo, Tombi). A running instance also serves the schema for its exact version on the admin listener (`GET /config.schema.json`), `xtandard-image config schema` prints it, and `xtandard-image config validate --config <file>` checks a file with the real loader. The HTTP API is described by an OpenAPI 3.1 document (on `main`): admin `GET /openapi.json` and, with `XI_ADMIN_DOCS=true`, a browsable reference at admin `/docs`. The `xtandard-image openapi` subcommand and the [published copy](https://xantiagoma.github.io/xtandard-image/schema/v1/openapi.json) with its [browsable reference](https://xantiagoma.github.io/xtandard-image/api/) go live with the same Pages site. See [docs/CONFIG.md](docs/CONFIG.md#config-file-formats-and-schema-adr-0007) and [docs/OPENAPI.md](docs/OPENAPI.md).
+JSON files use a top-level `"$schema"` key with the same URL, and TOML files a first line `#:schema <url>` (Taplo, Tombi). A running instance also serves the schema for its exact version on the admin listener (`GET /config.schema.json`), `xtandard-image config schema` prints it, and `xtandard-image config validate --config <file>` checks a file with the real loader. See [docs/CONFIG.md](docs/CONFIG.md#config-file-formats-and-schema-adr-0007).
 
 ## TypeScript client
 
@@ -250,6 +283,7 @@ URLs are signed on the server (`POST /_playground/api/sign`), so keys never reac
 - [URL dialects](docs/URL-DIALECTS.md): grammar, option mapping and signing for every supported dialect.
 - [Formats](docs/FORMATS.md): decoders, encoders, and the best-format decision matrix.
 - [Configuration](docs/CONFIG.md): environment variables, the YAML/JSON/TOML config file and its JSON Schema, and Dokploy, Coolify and Kubernetes examples.
+- [Sources](docs/SOURCES.md): several S3-compatible stores, GCS, Azure, directories, FTP/SFTP and http origins at once; how a URL picks one; credentials; provider recipes and deployment examples.
 - [OpenAPI](docs/OPENAPI.md): the OpenAPI 3.1 document of the HTTP API, where it is published, and the [TypeScript package](packages/image-url/README.md) generated from it.
 - [Release](docs/RELEASE.md): how the image and the npm package are built, published and verified.
 - [Benchmarks](docs/BENCHMARKS.md): methodology and how to reproduce [bench/RESULTS.md](bench/RESULTS.md).
