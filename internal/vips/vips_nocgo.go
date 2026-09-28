@@ -96,6 +96,22 @@ func ProbeDensity(context.Context, *Buffer, float64) (Header, error) {
 // Load fails.
 func Load(context.Context, *Buffer, *LoadOptions) (*Image, error) { return nil, ErrUnavailable }
 
+// LoadMagickCoder fails.
+func LoadMagickCoder(context.Context, *Buffer, MagickCoder, *LoadOptions) (*Image, error) {
+	return nil, ErrUnavailable
+}
+
+// BasisKTX2Info fails.
+func BasisKTX2Info(context.Context, []byte) (BasisInfo, error) { return BasisInfo{}, ErrUnavailable }
+
+// DecodeBasisKTX2 fails.
+func DecodeBasisKTX2(context.Context, []byte, int64) (BasisImage, error) {
+	return BasisImage{}, ErrUnavailable
+}
+
+// ZstdDecompress fails.
+func ZstdDecompress([]byte, []byte) error { return ErrUnavailable }
+
 // Thumbnail fails.
 func Thumbnail(context.Context, *Buffer, *ThumbnailOptions) (*Image, error) {
 	return nil, ErrUnavailable

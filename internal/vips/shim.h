@@ -152,6 +152,27 @@ int xi_load(VipsBlob *blob, const XiLoadOptions *o, VipsImage **out, char **err)
 // check ImageMagick's policy.xml behind that restriction.
 int xi_load_with(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsImage **out,
     char **err);
+// ImageMagick coders the app names explicitly (WP-108): libvips' buffer
+// loader lets ImageMagick guess the coder from the first bytes, which takes
+// PICT's 512-byte header for TGA.
+enum { XI_MAGICK_PICT = 1, XI_MAGICK_PCD = 2 };
+// End of a Photo CD file's Base image: sector 96 (0x30000) + 768×512 YCC 4:2:0.
+#define XI_PCD_BASE_END (0x30000 + 768 * 512 * 3 / 2)
+gboolean xi_is_pict(const unsigned char *d, size_t n);
+gboolean xi_is_pcd(const unsigned char *d, size_t n);
+// xi_load_magick_coder loads blob with ImageMagick's PICT or Photo CD coder
+// (XI_MAGICK_*) after checking its signature: the blob is spooled to a
+// memfd and magickload opens "PICT:<path>" (or "PCD:"), so the coder is
+// never guessed. ImageMagick decodes the whole file here; o's limits apply.
+int xi_load_magick_coder(int coder, VipsBlob *blob, const XiLoadOptions *o, VipsImage **out,
+    char **err);
+// ---- KTX2 (ktx2.c) --------------------------------------------------------
+
+// xi_zstd_decompress decompresses the Zstandard data src into dst, which is
+// cap bytes, the size the caller expects: 0 when it decoded to *got bytes,
+// -1 when it is corrupt or larger than cap, or declares another size.
+int xi_zstd_decompress(void *dst, size_t cap, const void *src, size_t len, size_t *got);
+
 // import_profile and export_profile may be NULL (none); they are copied.
 int xi_thumbnail(VipsBlob *blob, const XiThumbnailOptions *o, const char *import_profile,
     const char *export_profile, VipsImage **out, char **err);

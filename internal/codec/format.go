@@ -123,6 +123,30 @@ const (
 	// composites them (8-bit RGB and greyscale, RLE tiles; WP-107). Its
 	// header and layer table are parsed in Go (ParseXCFHeader).
 	FormatXCF
+	// FormatKTX2 is a KTX 2.0 texture (Khronos): its first image, decoded
+	// in Go by codec/ktx2 (BCn and uncompressed Vulkan formats, through
+	// codec/dds) or by the Basis Universal transcoder (ETC1S, UASTC, ASTC;
+	// WP-108).
+	FormatKTX2
+	// FormatPICT is Macintosh PICT (with its 512-byte header), decoded by
+	// ImageMagick's PICT coder, which the shim names explicitly
+	// (vips.LoadMagickCoder; WP-108).
+	FormatPICT
+	// FormatPCD is a Kodak Photo CD image pack, decoded by ImageMagick's PCD
+	// coder at its Base resolution, 768×512 (WP-108).
+	FormatPCD
+	// FormatFITS is FITS (astronomy), decoded in Go by codec/fits and
+	// stretched for display (WP-108).
+	FormatFITS
+	// FormatDICOM is a DICOM Part 10 file (medical imaging): its first
+	// frame, parsed in Go by codec/dicom, compressed frames decoded by
+	// libvips, windowed for display. Patient data is never read (WP-108).
+	FormatDICOM
+	// FormatWMF and FormatEMF are Windows metafiles, converted to SVG by
+	// libwmf's wmf2svg and libemf2svg's emf2svg-conv in a sandboxed
+	// subprocess in the gpl image only (internal/metafile, WP-108).
+	FormatWMF
+	FormatEMF
 
 	numFormats
 )
@@ -220,6 +244,20 @@ func (f Format) info() formatInfo {
 		return formatInfo{"eps", "eps", "application/postscript", false, true, true}
 	case FormatXCF:
 		return formatInfo{"xcf", "xcf", "image/x-xcf", false, true, true}
+	case FormatKTX2:
+		return formatInfo{"ktx2", "ktx2", "image/ktx2", false, true, true}
+	case FormatPICT:
+		return formatInfo{"pict", "pct", "image/x-pict", false, false, true}
+	case FormatPCD:
+		return formatInfo{"pcd", "pcd", "image/x-photo-cd", false, false, true}
+	case FormatFITS:
+		return formatInfo{"fits", "fits", "image/fits", false, false, true}
+	case FormatDICOM:
+		return formatInfo{"dicom", "dcm", "application/dicom", false, false, true}
+	case FormatWMF:
+		return formatInfo{"wmf", "wmf", "image/wmf", false, true, true}
+	case FormatEMF:
+		return formatInfo{"emf", "emf", "image/emf", false, true, true}
 	default:
 		return formatInfo{"unknown", "", "application/octet-stream", false, false, false}
 	}
@@ -378,6 +416,20 @@ func ParseFormat(s string) (Format, error) {
 		return FormatEPS, nil
 	case "xcf", "gimp":
 		return FormatXCF, nil
+	case "ktx2":
+		return FormatKTX2, nil
+	case "pict", "pct":
+		return FormatPICT, nil
+	case "pcd", "photocd":
+		return FormatPCD, nil
+	case "fits", "fit", "fts":
+		return FormatFITS, nil
+	case "dicom", "dcm":
+		return FormatDICOM, nil
+	case "wmf":
+		return FormatWMF, nil
+	case "emf":
+		return FormatEMF, nil
 	}
 	return FormatUnknown, errs.Newf(errs.KindUnsupported, "codec: unknown format %q", s)
 }
@@ -503,6 +555,20 @@ func (f Format) MatchesContentType(contentType string) bool {
 			mt == "application/illustrator" || mt == "application/vnd.adobe.illustrator"
 	case FormatXCF:
 		return mt == "image/xcf" || mt == "application/x-xcf" || mt == "image/x-compressed-xcf"
+	case FormatKTX2:
+		return mt == "image/x-ktx2" || mt == "image/ktx"
+	case FormatPICT:
+		return mt == "image/pict" || mt == "image/x-macpict"
+	case FormatPCD:
+		return mt == "image/x-pcd" || mt == "image/pcd"
+	case FormatFITS:
+		return mt == "application/fits" || mt == "image/x-fits"
+	case FormatDICOM:
+		return mt == "application/dicom+json" || mt == "image/dicom" || mt == "application/x-dicom"
+	case FormatWMF:
+		return mt == "image/x-wmf" || mt == "windows/metafile" || mt == "application/x-msmetafile"
+	case FormatEMF:
+		return mt == "image/x-emf" || mt == "application/x-msmetafile"
 	default:
 		return false
 	}

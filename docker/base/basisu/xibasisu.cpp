@@ -96,7 +96,10 @@ extern "C" int xi_basisu_ktx2_decode(const void *data, size_t len, uint64_t max_
       return XI_BASISU_NOMEM;
     const auto fmt = info->hdr ? basist::transcoder_texture_format::cTFRGBA_HALF
                                : basist::transcoder_texture_format::cTFRGBA32;
+    // The state has no constructor: clear() sets the cached level index to
+    // -1, or a stale stack value would skip the Zstandard decompression.
     basist::ktx2_transcoder_state state;
+    state.clear();
     if (!t.transcode_image_level(0, 0, 0, px, static_cast<uint32_t>(pixels), fmt, 0, info->width,
             info->height, -1, -1, &state)) {
       std::free(px);

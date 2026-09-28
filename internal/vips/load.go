@@ -160,6 +160,37 @@ func loadWith(ctx context.Context, loader string, buf *Buffer, opts *LoadOptions
 	return newImage(out, blob), nil
 }
 
+// LoadMagickCoder decodes buf with ImageMagick's coder c (PICT, Photo CD;
+// WP-108). libvips' buffer loader would let ImageMagick guess the coder from
+// the first bytes, and PICT's 512-byte header looks like TGA to it, so the
+// shim checks c's signature, spools buf to a memfd and opens it as
+// "PICT:<path>". ImageMagick decodes the whole file in this call; opts
+// applies like for Load (MaxPixels is checked on the decoded size).
+//
+// Errors: KindUnsupported (not that format, or no ImageMagick), KindCorrupt
+// (the coder failed, including its policy.xml resource limits),
+// KindLimitExceeded, KindCanceled/KindTimeout.
+func LoadMagickCoder(ctx context.Context, buf *Buffer, c MagickCoder, opts *LoadOptions) (*Image, error) {
+	if err := ctxError(ctx, "vips: load"); err != nil {
+		return nil, err
+	}
+	if opts == nil {
+		opts = &LoadOptions{}
+	}
+	blob, err := sourceBlob(buf)
+	if err != nil {
+		return nil, err
+	}
+	o := loadOptions(opts)
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_load_magick_coder(C.int(c), blob, &o, &out, &cerr)
+	if err := loadError(rc, "load", cerr, blob, buf); err != nil {
+		return nil, err
+	}
+	return newImage(out, blob), nil
+}
+
 func loadOptions(opts *LoadOptions) C.XiLoadOptions {
 	o := C.XiLoadOptions{
 		shrink:         C.int(opts.Shrink),

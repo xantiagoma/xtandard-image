@@ -36,6 +36,12 @@ import (
 //     before OpenEXR sizes anything from the data window;
 //   - GIMP XCF headers and layer tables are parsed by ParseXCFHeader: the
 //     size is the canvas, flattened to 8-bit sRGB;
+//   - FITS headers are parsed by codec/fits, DICOM datasets by codec/dicom
+//     (the pixel description only, never patient data);
+//   - KTX2 headers and level indexes are parsed by codec/ktx2 (a Basis
+//     Universal payload's by the transcoder, header only), PICT and Photo
+//     CD headers by ParsePICTHeader and ParsePCDHeader, never by
+//     ImageMagick;
 //   - EPS/PostScript headers are parsed by ParseEPSHeader (DSC comments,
 //     never Ghostscript): with Limits.EPSEnabled the page is its bounding
 //     box at 72 DPI; otherwise the embedded TIFF preview of a DOS EPS file
@@ -137,6 +143,16 @@ func probeKeep(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Setti
 		m, err = probeEPS(ctx, data, lim)
 	case FormatXCF:
 		m, err = probeXCF(data)
+	case FormatKTX2:
+		m, err = probeKTX2(ctx, data)
+	case FormatFITS:
+		m, err = probeFITS(data)
+	case FormatDICOM:
+		m, err = probeDICOM(data)
+	case FormatPICT:
+		m, err = probePICT(data)
+	case FormatPCD:
+		m, err = probePCD(data)
 	case FormatTIFF:
 		m, err = probeTIFF(ctx, buf)
 	case FormatMP4, FormatMOV, FormatWebM, FormatMKV, FormatAVI:

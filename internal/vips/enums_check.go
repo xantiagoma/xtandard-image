@@ -298,4 +298,8 @@ func _() {
 	_ = x[C.XI_RAW_NO_DECODER-int(RawNoDecoder)]
 	_ = x[int(RawUnknownCamera)-C.XI_RAW_UNKNOWN_CAMERA]
 	_ = x[C.XI_RAW_UNKNOWN_CAMERA-int(RawUnknownCamera)]
+	_ = x[int(MagickPICT)-C.XI_MAGICK_PICT]
+	_ = x[C.XI_MAGICK_PICT-int(MagickPICT)]
+	_ = x[int(MagickPCD)-C.XI_MAGICK_PCD]
+	_ = x[C.XI_MAGICK_PCD-int(MagickPCD)]
 }
