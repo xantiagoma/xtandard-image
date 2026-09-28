@@ -121,6 +121,11 @@ func cloudinaryParams() []dparam {
 		dpr("pg", "integer", groupFrames, "2", "Page or frame, 1-based.", 1, 1e6),
 		dp("so", "number", groupFrames, "2.5", "Video frame at this second (video sources)."),
 		dp("t", "string", groupPresets, "thumb", "Named transformation (a preset)."),
+		dp("l", "string", groupWatermark, "text:Arial_20:Hi", "Overlay: text:<font>_<size>[_<style>…]:<text>, fetch:<base64url of an http(s) URL> or a public ID on the mount's source. "+
+			"Its parameters (w, o, a, co, g, x, y) share the component, or follow in chained components closed by fl_layer_apply."),
+		dp("fl_layer_apply", "flag", groupWatermark, "", "Closes an overlay group: this component's g, x and y place the layer opened by l in an earlier component."),
+		dp("fl_tiled", "flag", groupWatermark, "", "Tile the overlay over the whole image."),
+		dp("fl_relative", "flag", groupWatermark, "", "The overlay's w is a fraction of the base image (w_0.2)."),
 	}
 }
 
@@ -158,6 +163,10 @@ func imagekitParams() []dparam {
 		dp("pg", "string", groupFrames, "2", "Page, 1-based (or a_b for a range)."),
 		dp("so", "number", groupFrames, "2.5", "Video frame at this second (video sources)."),
 		dp("n", "string", groupPresets, "thumb", "Named transformation (a preset)."),
+		dp("l-image", "string", groupWatermark, "i-logo.png,w-100,lfo-bottom_right",
+			"Image overlay, written l-image,<value>,l-end: i-<path on the mount's source> (@@ for /) or ie-<base64>, then w, h, o, rt, lfo or lx/ly."),
+		dp("l-text", "string", groupWatermark, "i-Hello,fs-24,co-FFFFFF",
+			"Text overlay, written l-text,<value>,l-end: i-<text> or ie-<base64>, then fs, ff, co, tg (b, i), al (opacity 1-9), w, rt, lfo or lx/ly."),
 	}
 }
 
