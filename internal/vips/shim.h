@@ -205,6 +205,17 @@ void xi_raw_cancel(int *flag);
 // Live LibRaw handles plus live demosaiced buffers (leak tests).
 int xi_raw_live(void);
 
+// The LibRaw build: version, camera count and optional decoders (WP-103).
+typedef struct {
+  char version[64];
+  int cameras;
+  int x3f;              // LIBRAW_CAPS_X3FTOOLS: Sigma X3F
+  int dng_sdk;          // LIBRAW_CAPS_DNGSDK: Adobe DNG SDK (JPEG XL DNG)
+  int gpr_sdk;          // LIBRAW_CAPS_GPRSDK: GoPro GPR (VC-5)
+} XiRawLibrary;
+
+void xi_raw_library(XiRawLibrary *l);
+
 // ---- JPEG XR (jxr.c, jxrlib) --------------------------------------------
 
 // Registers the jxrload_buffer loader class (XiForeignLoadJxrBuffer) with

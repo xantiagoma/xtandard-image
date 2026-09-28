@@ -441,3 +441,6 @@ func ProbeRaw(context.Context, *Buffer) (RawHeader, error) { return RawHeader{},
 
 // RawLoad fails.
 func RawLoad(context.Context, *Buffer, *RawOptions) (*Image, error) { return nil, ErrUnavailable }
+
+// RawLibraryInfo reports no LibRaw.
+func RawLibraryInfo() RawLibrary { return RawLibrary{} }

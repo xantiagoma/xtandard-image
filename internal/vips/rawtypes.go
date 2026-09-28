@@ -34,6 +34,18 @@ type RawHeader struct {
 	Thumbnails []RawThumbnail
 }
 
+// RawLibrary describes the linked LibRaw build (RawLibraryInfo).
+type RawLibrary struct {
+	Version string
+	Cameras int
+	// X3F: Sigma X3F (Foveon) through LibRaw's X3F tools.
+	X3F bool
+	// DNGSDK: the Adobe DNG SDK, which decodes JPEG XL raw data (DNG 1.7).
+	DNGSDK bool
+	// GPRSDK: the GoPro GPR SDK's VC-5 decoder (GoPro .GPR).
+	GPRSDK bool
+}
+
 // RawUndecodable is why LibRaw cannot demosaic a RAW file whose header it
 // read (the shim's XI_RAW_* codes).
 type RawUndecodable uint8
@@ -46,7 +58,7 @@ const (
 	RawNikonHE
 	// RawNoDecoder is a compression LibRaw's build has only a placeholder
 	// for (GoPro VC-5 without the GPR SDK, JPEG XL DNG without the DNG
-	// SDK).
+	// SDK; the base image's LibRaw has both, WP-103).
 	RawNoDecoder
 	// RawUnknownCamera is a file LibRaw refused to open (typically a body
 	// newer than its release) whose embedded previews it could still list.
