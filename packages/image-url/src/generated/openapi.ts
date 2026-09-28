@@ -1886,11 +1886,11 @@ export interface components {
             name: string;
         };
         InfoContainer: {
-            /** @description What the image is to the document: composite (full-size flattened image), thumbnail (reduced copy), preview (first page) or document (SVGZ: the whole document, decompressed). */
+            /** @description What the image is to the document: composite (full-size flattened image), thumbnail (reduced copy), preview (first page), document (SVGZ: the whole document, decompressed) or frame (MNG: the first image of the animation). */
             content: string;
-            /** @description Where the image was found: the path inside the archive (mergedimage.png, QuickLook/Thumbnail.png, previews/preview.png, ...), gzip for SVGZ, header thumbnail for Paint.NET. */
+            /** @description Where the image was found: the path inside the archive (mergedimage.png, QuickLook/Thumbnail.png, previews/preview.png, ...), gzip for SVGZ, header thumbnail for Paint.NET, first frame for MNG, JDAT (JDAT+IDAT, JDAT+JDAA with alpha) for JNG. */
             entry: string;
-            /** @description Container format: ora (OpenRaster), kra (Krita), procreate, sketch, svgz or pdn (Paint.NET). */
+            /** @description Container format: ora (OpenRaster), kra (Krita), procreate, sketch, svgz, pdn (Paint.NET), mng or jng. */
             format: string;
             /** @description Media type of the container, e.g. image/openraster. */
             mime_type: string;
