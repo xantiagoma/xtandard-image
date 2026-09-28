@@ -15,6 +15,7 @@ services:
       XI_DEV_MODE: "true"
       XI_SECURITY_UNSIGNED_POLICY: allow
       XI_ADMIN_ADDR: ":9090"
+      XI_ADMIN_DOCS: "true"
       XI_PLAYGROUND_ENABLED: "true"
       XI_PLAYGROUND_PUBLIC: "true"
       XI_SOURCES: local,web
