@@ -68,6 +68,17 @@ image_id="$(docker image inspect -f '{{.Id}}' "$XI_IMAGE")"
 version="$(docker run --rm "$XI_IMAGE" version)"
 echo "acceptance: $XI_IMAGE ($image_id) on $(uname -m): $version"
 
+# EPS (WP-99): rendered only by an image that ships Ghostscript (gpl); the
+# app then runs with XI_FORMATS_EPS_ENABLED=true and TestEPS checks rendering
+# and the sandbox, otherwise the 422.
+if docker run --rm --entrypoint /opt/xtandard/bin/gs "$XI_IMAGE" --version >/dev/null 2>&1; then
+  XI_ACC_EPS=true
+else
+  XI_ACC_EPS=false
+fi
+export XI_ACC_EPS
+echo "acceptance: EPS rendering (Ghostscript in the image): $XI_ACC_EPS"
+
 # 1. read-only posture ------------------------------------------------------------
 echo "== read-only rootfs (scripts/check-readonly.sh)"
 sh scripts/check-readonly.sh "$XI_IMAGE" || fail "read-only rootfs check"
