@@ -19,10 +19,12 @@
 //     resources, no %pipe%), in its own process group, killed as a group on
 //     cancellation, after XI_FORMATS_EPS_TIMEOUT, or when its output
 //     outgrows the page;
-//   - on Linux, through a re-exec of this binary (the sandbox helper) that
-//     sets resource limits, no-new-privileges, the parent-death signal and
-//     an unprivileged user before it execs gs, in a new network namespace
-//     when the kernel and the container's seccomp profile allow one.
+//   - on Linux, through a re-exec of this binary (the sandbox helper,
+//     internal/sandbox, shared with the metafile converter since WP-108)
+//     that sets resource limits, no-new-privileges, the parent-death signal
+//     and an unprivileged user before it execs gs, in a new network
+//     namespace when the kernel and the container's seccomp profile allow
+//     one.
 //
 // Probing never runs Ghostscript: codec parses the DSC comments in Go.
 package ghostscript
@@ -45,6 +47,7 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/sandbox"
 )
 
 // Defaults of the XI_FORMATS_EPS_* settings (docs/CONFIG.md).
@@ -57,16 +60,19 @@ const (
 	DefaultMaxPixels = 50_000_000
 )
 
-// Sandbox resource limits. The address space grows with the page raster.
-const (
-	baseAddressSpace = 1 << 30 // interpreter, fonts, band list
-	maxAddressSpace  = 16 << 30
-	maxOpenFiles     = 64
-	stderrLimit      = 4 << 10
-	// waitDelay bounds how long Wait waits for the pipes after the process
-	// group was killed.
-	waitDelay = 2 * time.Second
-)
+// stderrLimit bounds the stderr kept for an error message.
+const stderrLimit = 4 << 10
+
+// Isolation lists the layers a render runs under (internal/sandbox).
+type Isolation = sandbox.Isolation
+
+// IsSandboxHelper reports whether args (os.Args) start the sandbox helper
+// (sandbox.IsHelper). main must then call RunSandboxHelper before anything
+// else and exit with its status.
+func IsSandboxHelper(args []string) bool { return sandbox.IsHelper(args) }
+
+// RunSandboxHelper is sandbox.RunHelper.
+func RunSandboxHelper(args []string) int { return sandbox.RunHelper(args) }
 
 // pngMagic starts every PNG stream.
 const pngMagic = "\x89PNG\r\n\x1a\n"
@@ -124,7 +130,7 @@ func (c *Config) withDefaults() Config {
 type Runner struct {
 	cfg     Config
 	sem     *semaphore.Weighted
-	sandbox *sandbox
+	sandbox *sandbox.Sandbox
 	iso     Isolation
 	version string
 }
@@ -139,7 +145,9 @@ func New(ctx context.Context, cfg *Config) (*Runner, error) {
 		return nil, fmt.Errorf("ghostscript: gs executable %q not found: %w", c.Path, err)
 	}
 	c.Path = path
-	sb, iso, version, err := newSandbox(ctx, &c)
+	sb, iso, version, err := sandbox.New(ctx, &sandbox.Config{
+		Program: c.Path, Timeout: c.Timeout, TempDir: c.TempDir, Helper: c.Helper, NoNetNamespace: c.NoNetNamespace,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("ghostscript: %s does not run: %w", path, err)
 	}
@@ -281,7 +289,7 @@ func (r *Runner) Render(ctx context.Context, ps []byte, p *Page, read func(r io.
 	defer runtime.UnlockOSThread()
 
 	limit := outputLimit(g.Width, g.Height)
-	cmd, err := r.sandbox.command(rctx, tmp, limit, args(p, g), false)
+	cmd, err := r.sandbox.Command(rctx, tmp, limit, args(p, g))
 	if err != nil {
 		return Raster{}, errs.Wrapf(errs.KindInternal, err, "ghostscript: sandbox")
 	}
@@ -299,13 +307,13 @@ func (r *Runner) Render(ctx context.Context, ps []byte, p *Page, read func(r io.
 	out := &pngReader{r: stdout, left: limit}
 	readErr := read(out, limit+1)
 	if readErr != nil {
-		killGroup(pgid)
+		sandbox.KillGroup(pgid)
 	} else if _, err := io.Copy(io.Discard, out); err != nil {
-		killGroup(pgid)
+		sandbox.KillGroup(pgid)
 	}
 	waitErr := cmd.Wait()
 	// Anything the process left in its group goes with it.
-	killGroup(pgid)
+	sandbox.KillGroup(pgid)
 
 	switch {
 	case ctx.Err() != nil:
