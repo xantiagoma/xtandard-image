@@ -5,7 +5,10 @@
 // no console errors, CSP violations or 5xx answers; §7 checks the WP-111
 // layout (global tools, captions, Source/Result labels, loading states,
 // page/frame/time selectors); §8 checks the Info panel (WP-109) on a JPEG,
-// a PNG with alpha, a detection photo and a video.
+// a PNG with alpha, a detection photo and a video; §9 checks the Examples
+// (WP-116): the tool and the quick menu load recipes (default, text,
+// imgix, Cloudinary, ImageKit and imaginary watermarks) that render, match
+// the recipe's URL and stay editable.
 //
 // Playwright is not a dependency of the repository: run it from a
 // throwaway directory against a server with the demo configuration
@@ -200,9 +203,12 @@ const cards = await page.evaluate(() => [...document.querySelectorAll('#translat
 })));
 check(cards.every((c) => c.url || c.reason.length > 20), `translate: ${cards.length} cards, each with a URL or a reason`);
 check(new Set(cards.map((c) => c.label)).size === cards.length, 'translate: one card per dialect');
-const ik = cards.find((c) => c.label === 'ImageKit');
+// ImageKit is bound to the fixtures in the demo (it writes a key); Bunny
+// is bound to web, which cannot address an fs fixture.
+const bunny = cards.find((c) => c.label === 'Bunny Optimizer');
 if (shots) await page.locator('#translate').screenshot({ path: `${shots}/translate.png` });
-check(Boolean(ik?.reason.includes('addresses images by path')), `translate: ImageKit says why (${ik?.reason.slice(0, 90)}…)`);
+check(Boolean(bunny?.reason.includes('addresses images by path')), `translate: Bunny says why (${bunny?.reason.slice(0, 90)}…)`);
+check(Boolean(cards.find((c) => c.label === 'ImageKit')?.url), 'translate: ImageKit writes a key on its source (local)');
 
 // 7. WP-111 layout: History, Format matrix and Gallery are global tools
 // (header navigation, #tools/<name> routes) that leave the session as it
@@ -326,7 +332,7 @@ const toolPage = await browser.newPage({ viewport: { width: 390, height: 844 } }
 await toolPage.goto(`${base.replace(/#.*$/, '')}#tools/history`);
 await toolPage.waitForSelector('#tool-history:not([hidden])');
 check(await toolPage.isHidden('#workspace'), 'tools: a #tools/history link opens the tool');
-for (const t of ['history', 'matrix', 'gallery']) {
+for (const t of ['examples', 'history', 'matrix', 'gallery']) {
   await toolPage.click(`#tools-nav a[data-tool="${t}"]`);
   await toolPage.waitForSelector(`#tool-${t}:not([hidden])`);
   const o = await toolPage.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
@@ -564,7 +570,9 @@ check(jpeg.thumb > 0, 'info jpeg: real thumbnail next to the placeholders');
 check(jpeg.swatches >= 2, `info jpeg: ${jpeg.swatches} colour swatches`);
 check(['perceptual hash', 'BlurHash', 'ThumbHash', 'md5', 'sha1', 'sha256', 'sha512'].every((h) => jpeg.hashes.includes(h)), `info jpeg: hashes ${jpeg.hashes.join(', ')}`);
 check(jpeg.metaTables.includes('EXIF') && jpeg.metaTables.includes('XMP') && jpeg.metaTables.includes('IPTC'), `info jpeg: metadata tables ${jpeg.metaTables.join(', ')}`);
-check(jpeg.warn.includes('classify') && jpeg.warn.includes('alpha') && jpeg.warn.includes('exif'),
+// classify is ignored where the classifier is not loaded (slim); the full
+// and gpl images run it.
+check((jpeg.warn.includes('classify') || !jpeg.err.includes('classify')) && jpeg.warn.includes('alpha') && jpeg.warn.includes('exif'),
   `info jpeg: ignored badges from X-Xi-Ignored (${jpeg.warn.join(', ')})`);
 check(jpeg.err.includes('max_src_file_size') && jpeg.err.includes('max_src_resolution'),
   `info jpeg: security options refused without XI_SECURITY_ALLOW_SECURITY_OPTIONS (${jpeg.err.join(', ')})`);
@@ -655,6 +663,98 @@ await page.selectOption('#theme', 'dark');
 const dark = await page.evaluate(() => getComputedStyle(document.querySelector('#mpane-info')!.closest('.panel')!).backgroundColor);
 check(dark === 'rgb(27, 30, 35)', `info: dark theme panel (${dark})`);
 await page.selectOption('#theme', 'auto');
+
+// 9. Examples (WP-116): recipes from api/meta in a global tool and a quick
+// menu; loading one is a session (hash) that renders, matches the
+// recipe's URL, and stays editable.
+type Recipe = { id: string; title: string; dialect: string; source: string; url: string; needs?: string[]; raw?: { path: string; query?: string } };
+const pm = await page.evaluate(() => fetch('api/meta').then((r) => r.json()));
+const recipes: Recipe[] = pm.recipes ?? [];
+check(recipes.length >= 30 && typeof pm.watermark === 'boolean', `examples: api/meta has ${recipes.length} recipes, watermark configured: ${pm.watermark}`);
+check(!JSON.stringify(pm).includes('watermark/logo.png'), 'examples: api/meta does not name the default watermark source');
+await page.setViewportSize({ width: 1400, height: 900 });
+await page.evaluate((x) => { location.hash = x; }, hash(SRC, []));
+await page.click('#tools-nav a[data-tool="examples"]');
+await page.waitForSelector('#tool-examples:not([hidden]) article.recipe');
+check(await page.evaluate(() => location.hash) === '#tools/examples' && /Global tool/.test(await page.textContent('#tool-caption') ?? ''), 'examples: opens as the #tools/examples global tool');
+const nCards = await page.$$eval('#examples article.recipe', (a) => a.length);
+check(nCards === recipes.length, `examples: one card per recipe (${nCards})`);
+await page.waitForFunction(() => [...document.querySelectorAll('#examples .recipe-media img')].filter((i) => (i as HTMLImageElement).naturalWidth > 0).length >= 3, undefined, { timeout: 60000 })
+  .then(() => check(true, 'examples: live result thumbnails on the visible cards'), () => check(false, 'examples: live result thumbnails on the visible cards'));
+if (shots) await page.screenshot({ path: `${shots}/examples.png` });
+await page.click('#examples-filters .chip[data-filter="imgix"]');
+const imgixShown = await page.$$eval('#examples article.recipe:not([hidden])', (a) => a.map((x) => x.querySelector('.badge.dialect')!.textContent));
+check(imgixShown.length === recipes.filter((r) => r.dialect === 'imgix').length && imgixShown.every((d) => d === 'imgix'), `examples: the imgix chip filters (${imgixShown.length} cards)`);
+await page.click('#examples-filters .chip[data-filter="all"]');
+await page.fill('#examples-search', 'chessboard');
+check(await page.$$eval('#examples article.recipe:not([hidden])', (a) => a.length) === 1, 'examples: the search filters');
+await page.fill('#examples-search', '');
+// Cards that need a default watermark follow api/meta.
+const wmCards = await page.$$eval('#examples article.recipe', (a) => a.map((x) => ({
+  id: x.getAttribute('data-id'), disabled: (x.querySelector('button[data-recipe]') as HTMLButtonElement).disabled,
+  title: x.querySelector('button[data-recipe]')!.getAttribute('title') ?? '',
+})));
+const needWm = recipes.filter((r) => r.needs?.includes('watermark')).map((r) => r.id);
+check(needWm.length >= 8 && wmCards.filter((c) => needWm.includes(c.id!)).every((c) => (pm.watermark ? !c.disabled : c.disabled && /XI_PROCESSING_WATERMARK_SOURCE/.test(c.title))),
+  `examples: ${needWm.length} default-watermark recipes ${pm.watermark ? 'enabled' : 'disabled with a tooltip'}`);
+check(await page.isHidden('#examples-watermark-note') === Boolean(pm.watermark), 'examples: the default-watermark note follows api/meta');
+
+const urlOut = () => page.inputValue('#url-out');
+// settled waits for a rendered image result of the current URL.
+const settled = (prev = '') => page.waitForFunction((p) => {
+  const img = document.querySelector('#after-media img') as HTMLImageElement | null;
+  return img && img.complete && img.naturalWidth > 0 && img.src !== p && !document.querySelector('#pane-after.loading') && document.getElementById('render-error')!.hidden;
+}, prev, { timeout: 60000 });
+async function loadExample(id: string, via: 'tool' | 'quick') {
+  const r = recipes.find((x) => x.id === id)!;
+  const prev = await resultSrc();
+  if (via === 'tool') {
+    if (!(await page.isVisible('#tool-examples'))) {
+      await page.click('#tools-nav a[data-tool="examples"]');
+      await page.waitForSelector('#tool-examples:not([hidden])');
+    }
+    await page.click(`button[data-recipe="${id}"]`);
+  } else {
+    await page.selectOption('#examples-quick', id);
+  }
+  await page.waitForSelector('#workspace:not([hidden])');
+  const ok = await page.waitForFunction((u) => (document.getElementById('url-out') as HTMLTextAreaElement).value.includes(u), r.url, { timeout: 15000 }).then(() => true, () => false);
+  const rendered = await settled(prev).then(() => true, () => false);
+  const got = { url: await urlOut(), mount: await page.inputValue('#mount'), source: await page.textContent('#current-source'), err: await page.textContent('#render-error') };
+  const m = pm.mounts.find((x: { dialect: string }) => x.dialect === r.dialect);
+  check(ok && got.mount === m?.id && got.source === r.source, `example ${id} (${via}): URL has the recipe's ${r.url.slice(0, 70)}…, mount ${got.mount}, source ${got.source}`);
+  check(rendered, `example ${id}: the result renders${rendered ? '' : ` (${got.err})`}`);
+  if (shots) await page.locator('#stage').screenshot({ path: `${shots}/example-${id}.png` });
+  return r;
+}
+// Text watermark (imgproxy), then edit an option: the URL and the result follow.
+await loadExample('wm-text-footer', 'tool');
+const beforeEdit = await resultSrc();
+await page.selectOption('.opt[data-name="watermark"] .args select', 'nowe');
+await page.waitForFunction(() => (document.getElementById('url-out') as HTMLTextAreaElement).value.includes('/watermark:1:nowe:18:14/'), undefined, { timeout: 10000 })
+  .then(() => check(true, 'example edit: the position select rewrites the URL (nowe)'), () => check(false, 'example edit: the position select rewrites the URL (nowe)'));
+await settled(beforeEdit).then(() => check(true, 'example edit: the result re-renders'), () => check(false, 'example edit: the result re-renders'));
+// Back returns to the tool.
+await page.goBack();
+await page.waitForSelector('#tool-examples:not([hidden])', { timeout: 5000 })
+  .then(() => check(true, 'examples: Back from a loaded example returns to the tool'), () => check(false, 'examples: Back from a loaded example returns to the tool'));
+await loadExample('imgix-txt', 'tool');
+await loadExample('cloudinary-text', 'tool');
+check(await page.isVisible('#pipelines') && await page.$$eval('#pipeline-tabs [role=tab]', (t) => t.length) === 2, 'example cloudinary-text: two chained components in the builder');
+await loadExample('imagekit-image', 'quick');
+await loadExample('imaginary-text', 'quick');
+check(await page.isChecked('#raw-mode') && await page.inputValue('#free-path') === '/watermark' && await page.isHidden('#catalogue'), 'example imaginary-text: raw mode with the endpoint path');
+await page.uncheck('#raw-mode');
+const rawOff = await page.waitForFunction(() => !(document.getElementById('url-out') as HTMLTextAreaElement).value.includes('/watermark?'), undefined, { timeout: 10000 }).then(() => true, () => false);
+check(rawOff && await page.isVisible('#catalogue'), 'raw mode off: back to the builder');
+if (pm.watermark) await loadExample('wm-corner', 'quick');
+else notes.push('default watermark not configured: wm-corner skipped');
+const blur = recipes.find((r) => r.id === 'blurhash-info');
+if (blur) {
+  await loadExample('blurhash-info', 'tool');
+  await page.waitForFunction(() => document.getElementById('mtab-info')!.getAttribute('aria-selected') === 'true' && document.getElementById('info-result')!.dataset.options?.includes('blurhash'), undefined, { timeout: 30000 })
+    .then(() => check(true, 'example blurhash-info: opens the Info tab with blurhash'), () => check(false, 'example blurhash-info: opens the Info tab with blurhash'));
+}
 
 const csp = await page.evaluate(() => (window as any).__csp ?? []);
 check(errors.length === 0, `no console errors${errors.length ? `: ${errors.join(' | ')}` : ''}`);
