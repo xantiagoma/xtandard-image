@@ -19,6 +19,7 @@ testdata/
                         from the imgproxy golden tables, URLs built by packages/image-url, parsed
                         back by internal/dialect/imgproxy (task ts:fixtures regenerates it)
   detect/               expected detections on fixtures/detect (expected.json) and the script that made them
+  classify/             reference top 5 of the classifier on fixtures/detect and fixtures/classify (expected.json) and its script
   gen/                  generator: main.go (Go), gen.sh (driver), logo.svg; video.go + video.sh (video fixtures, full base builder);
                         designer.go (Procreate, Sketch, Paint.NET, SVGZ) and designer.sh (GIMP/Krita in Docker: XCF, ORA, KRA)
   LICENSES.md           origin and licence of every file
@@ -67,6 +68,7 @@ testdata/
 | `pdn/thumbnail.pdn` | Paint.NET | `PDN3` XML header with a 128x96 base64 PNG thumbnail, stand-in body |
 | `svgz/logo.svgz` | SVGZ | the gzipped `svg/logo.svg` |
 | `detect/apollo11-crew.jpg`, `detect/astronaut-dogs.jpg`, `detect/cat-laptop.jpg` | JPEG 640 px wide | real photographs (public domain / CC0, `LICENSES.md` "Detection photos") for face and object detection (WP-71): three faces and three people; a face, a person and two dogs; a cat on a laptop. Expected boxes: `detect/expected.json` |
+| `classify/{bald-eagle,banana,golden-retriever,monarch,pizza,red-fox,space-shuttle}.jpg` | JPEG, 640 px long side | real photographs of one ImageNet class each (public domain / CC0, `LICENSES.md` "Classification photos") for image classification (WP-110). Reference top 5: `classify/expected.json` |
 
 ### Detection expectations
 
@@ -86,6 +88,28 @@ docker run --rm -v "$PWD:/w" -w /w python:3.12-slim sh -c \
 The models are the ones in the `full` base image (`/usr/share/xtandard/models`). The last run
 used onnxruntime 1.23.2, OpenCV 5.0.0 and NumPy 2.5.3. The left dog in `astronaut-dogs.jpg` is
 reported as a horse by YOLOX-s; the expectation records what the model says.
+
+### Classification expectations
+
+`classify/expected.json` holds the top 5 (ImageNet class id, name, probability) of the shipped
+classifier, MobileNetV3-Large (`mobilenetv3_large_100.onnx`, WP-110), on the ten photos of
+`fixtures/detect/` and `fixtures/classify/`, computed by `classify/reference.py`: timm's
+evaluation transform for the model (short side resized to 256 with bicubic interpolation, centre
+crop 224, ImageNet mean/std) reimplemented with Pillow and NumPy, onnxruntime, softmax.
+`internal/detect` (`TestClassifyFixtures`) must agree with it (same top 1, or one of the top 2
+where the reference is unsure; the reference top 1 within 0.1; the reference classes of
+probability ≥ 0.03 in its top 5) and name each photo's subject. Regenerate it after changing a
+photo or the model:
+
+```sh
+docker run --rm -v "$PWD:/w" -w /w python:3.13-slim sh -c \
+  'pip install -q onnxruntime==1.30.0 pillow==12.3.0 numpy==2.5.3 &&
+   python testdata/classify/reference.py <mobilenetv3_large_100.onnx> \
+     internal/detect/imagenet_labels.txt testdata/fixtures/detect/*.jpg testdata/fixtures/classify/*.jpg'
+```
+
+The model reads the red fox as a grey fox (red fox is its third class) and the cat on the laptop
+as a Siamese cat; the expectation records what the model says.
 
 ### Camera RAW samples (downloaded)
 
