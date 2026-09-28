@@ -134,6 +134,14 @@ export IMAGEMAGICK_SHA256=34d9cc3acddc3e3c429d23af60eda5ceaac477a8b296ddb9469f77
 export JXRLIB_VERSION=1.2-f752187
 export JXRLIB_COMMIT=f7521879862b9085318e814c6157490dd9dbbdb4
 export JXRLIB_SHA256=8ab20a21f6c3f8cfdedd2511b03a2009e52cce7fa6550202c355063d0d83213e
+# KTX2 textures (WP-108): the Basis Universal transcoder (Binomial LLC, Apache-2.0) at
+# the v2.50 tag, fetched as a GitHub archive of the tag's commit. build-basisu.sh
+# compiles only transcoder/basisu_transcoder.cpp (with patches/basisu) and the app's C
+# wrapper (basisu/xibasisu.cpp, MIT) into libxibasisu.so; Zstandard supercompression
+# goes through the base's libzstd, not the copy in the archive.
+export BASISU_VERSION=2.50
+export BASISU_COMMIT=9bebe16726b3a61c8c213eeee3b7cffb462ef34e
+export BASISU_SHA256=8f4397a8d547ab07736c34a8d835e783cd019c3a0bd83d343c1bc4ebe7c570df
 export PDFIUM_VERSION=8066
 export PDFIUM_SHA256_AMD64=0b43f405477cf2cfc4dbff06905093c3309756c6bca1fb9da99234a2ca97fed2
 export PDFIUM_SHA256_ARM64=0e6f90dccbc6b81fd5d7106abaf164c4222178f024c204d00d526b60fd2ad535

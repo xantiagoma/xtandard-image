@@ -114,6 +114,13 @@ COPY build-jxrlib.sh ./
 COPY patches/jxrlib ./patches/jxrlib
 RUN ./build-jxrlib.sh
 
+# The Basis Universal transcoder behind the app's C wrapper (WP-108, KTX2), in its own
+# layer like jxrlib.
+COPY build-basisu.sh ./
+COPY basisu ./basisu
+COPY patches/basisu ./patches/basisu
+RUN ./build-basisu.sh
+
 # LibRaw rebuilt with the X3F tools (WP-103), in its own layer. The DNG and GPR SDKs
 # are added in gpl-deps only.
 COPY build-libraw.sh ./
