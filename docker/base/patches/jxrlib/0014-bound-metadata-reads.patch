@@ -1,0 +1,20 @@
+From: xtandard-image
+Subject: [PATCH] Bound metadata reads
+
+Found by libFuzzer: ReadBinaryData allocated uCount + 2 bytes for a count
+read from the file (a 3.6 GB request; with uCount = 0xFFFFFFFF the sum
+wraps to 1 and the read would overflow it). Refuse counts above 16 MiB.
+---
+--- a/jxrgluelib/JXRMeta.c
++++ b/jxrgluelib/JXRMeta.c
+@@ -674,6 +674,10 @@
+     ERR err = WMP_errSuccess;
+     U8 *pbData = NULL;
+ 
++    // uCount comes from the file: + 2 must not wrap (a 1-byte buffer read
++    // into with the full count), and no metadata value is anywhere near
++    // 16 MiB.
++    FailIf(uCount > (1u << 24), WMP_errBufferOverflow);
+     Call(PKAlloc((void **) &pbData, uCount + 2)); // Allocate buffer to store data with space for an added ascii or unicode null
+     if (uCount <= 4)
+     {

@@ -1,0 +1,32 @@
+From: xtandard-image
+Subject: [PATCH] Do not print from the library
+
+The container parser writes unknown tags to stderr and the decoder an
+out-of-memory note to stdout; a library linked into a server must not
+write to the process's standard streams (the decode fails either way).
+---
+--- a/jxrgluelib/JXRGlueJxr.c
++++ b/jxrgluelib/JXRGlueJxr.c
+@@ -1744,8 +1744,8 @@
+             break;
+ 
+         default:
+-            fprintf(stderr, "Unrecognized WMPTag: %d(%#x), %d, %d, %#x" CRLF,
+-                (int)uTag, (int)uTag, (int)uType, (int)uCount, (int)uValue);
++            // Unknown tags are skipped silently: a library must not write to
++            // the host process's stderr.
+             break;
+     }
+ 
+--- a/image/decode/decode.c
++++ b/image/decode/decode.c
+@@ -100,9 +100,6 @@
+         free(pAdHuff);
+     }
+     *ppAdHuff = NULL;
+-    if (-1 == iMemStatus) {
+-        printf("Insufficient memory to init decoder.\n");
+-    }
+     return ICERR_ERROR;
+ }
+ 

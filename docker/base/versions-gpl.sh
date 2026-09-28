@@ -9,8 +9,8 @@
 # Bump a version, then run ./update-checksums.sh to refresh the *_SHA256 lines.
 
 # Revision of the gpl flavor. Its tag is <VIPS_VERSION>-r<XI_BASE_GPL_REVISION>-gpl.
-# gpl r4 = full r4 (versions-full.sh XI_BASE_FULL_REVISION) + the components below.
-export XI_BASE_GPL_REVISION=4
+# gpl r5 = full r5 (versions-full.sh XI_BASE_FULL_REVISION) + the components below.
+export XI_BASE_GPL_REVISION=5
 
 # --- GPL allowlist read by check-licenses.sh --allow-gpl ----------------------------
 # component=SPDX pairs. Only these GPL components may appear in a gpl image, and only
@@ -53,6 +53,7 @@ highway Apache-2.0 OR BSD-3-Clause
 imagemagick ImageMagick
 imath BSD-3-Clause
 jemalloc BSD-2-Clause
+jxrlib BSD-2-Clause
 kvazaar BSD-3-Clause
 lcms2 MIT
 libde265 LGPL-3.0-or-later

@@ -7,3 +7,6 @@ var LoadWith = loadWith
 
 // RawLive exposes rawLive to the external tests.
 func RawLive() int { return rawLive() }
+
+// JXRLive exposes jxrLive to the external tests.
+func JXRLive() int { return jxrLive() }

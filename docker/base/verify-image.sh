@@ -109,13 +109,32 @@ vips copy in.pdf pdf.png
 echo "ok pdf (pdfium)"
 EOF
 
-echo "== ImageMagick: PSD/PSB only (policy.xml)"
-docker run --rm -i "$runtime" bash -euo pipefail <<'EOF'
+echo "== ImageMagick: PSD/PSB and the WP-97 legacy coders only (policy.xml)"
+fixtures="$(cd "$my_dir/../../testdata/fixtures" && pwd)"
+docker run --rm -i -v "$fixtures:/fixtures:ro" "$runtime" bash -euo pipefail <<'EOF'
 cd /tmp
 policy=/opt/xtandard/etc/ImageMagick-7/policy.xml
 grep -q '<policy domain="coder" rights="none" pattern="\*"/>' "$policy"
-grep -q '<policy domain="coder" rights="read" pattern="{PSD,PSB}"/>' "$policy"
-echo "policy $policy denies every coder except PSD/PSB"
+grep -q '<policy domain="coder" rights="read" pattern="{PSD,PSB,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PAM}"/>' "$policy"
+grep -q '<policy domain="delegate" rights="none" pattern="\*"/>' "$policy"
+echo "policy $policy denies every coder except PSD/PSB and TGA, PCX, DDS, QOI, SGI, SUN, XBM, XPM, PAM"
+
+# WP-97 legacy formats: each decodes through magickload with its own coder.
+for f in tga/alpha.tga:TGA:4 tga/photo-rle.tga:TGA:3 pcx/photo.pcx:PCX:3 dds/photo-dxt1.dds:DDS:3 \
+  dds/alpha-dxt5.dds:DDS:4 qoi/alpha.qoi:QOI:4 sgi/photo.sgi:SGI:3 sgi/alpha.sgi:SGI:4 sun/photo.ras:SUN:3 \
+  xbm/graphic.xbm:XBM:3 xpm/graphic.xpm:XPM:3 pam/alpha.pam:PAM:4; do
+  IFS=: read -r file coder bands <<< "$f"
+  vips magickload "/fixtures/$file" legacy.v
+  got="$(vipsheader -f magick-format legacy.v) $(vipsheader -f bands legacy.v)"
+  test "$got" = "$coder $bands" || { echo "$file: magick-format/bands $got, want $coder $bands" >&2; exit 1; }
+  vips copy legacy.v legacy.png
+done
+echo "ok legacy coders: TGA, PCX, DDS (DXT1, DXT5), QOI, SGI, SUN, XBM, XPM, PAM"
+# ASCII and bitmap Netpbm go through ppmload, not ImageMagick.
+for f in ppm/graphic-ascii.pbm ppm/graphic.pbm ppm/photo-ascii.pgm ppm/photo-ascii.ppm; do
+  vips ppmload "/fixtures/$f" pnm.v
+done
+echo "ok P1-P4 through ppmload"
 
 # bytes N...: writes each number as one byte.
 bytes() {
@@ -149,7 +168,7 @@ vips black base.v 16 16 --bands 3
 for ext in jpg png gif ppm tif webp; do
   vips copy base.v "in.$ext"
   if vips magickload "in.$ext" "magick-$ext.v" 2>/dev/null; then
-    echo "magickload accepted $ext; the PSD-only policy is not in effect" >&2
+    echo "magickload accepted $ext; the restricted policy is not in effect" >&2
     exit 1
   fi
   vips copy "in.$ext" "native-$ext.v"
@@ -225,10 +244,12 @@ echo "== license gate on the runtime image"
 docker run --rm "${gate_mounts[@]}" "$runtime" \
   bash /usr/local/bin/check-licenses.sh $gate_gpl /opt/xtandard/lib
 docker run --rm "$runtime" bash -euo pipefail -c '
-  for name in libraw imagemagick openexr imath pdfium; do
+  for name in libraw imagemagick openexr imath pdfium jxrlib; do
     test -n "$(ls -A "/opt/xtandard/share/licenses/$name")"
   done
-  echo "licence texts present for LibRaw, ImageMagick, OpenEXR, Imath, PDFium"
+  grep -q "Redistribution and use in source and binary forms" /opt/xtandard/share/licenses/jxrlib/LICENSE
+  test -e /opt/xtandard/lib/libjxrglue.so.0 && test -e /opt/xtandard/lib/libjpegxr.so.0
+  echo "licence texts present for LibRaw, ImageMagick, OpenEXR, Imath, PDFium, jxrlib (BSD-2-Clause)"
 '
 
 if [ -n "$builder" ]; then
@@ -259,6 +280,39 @@ func main() {
 }
 GO
 go build -o cgotest . && ./cgotest
+EOF
+  echo "== builder: jxrlib (WP-97) decodes a JPEG XR fixture"
+  docker run --rm -i -v "$fixtures:/fixtures:ro" "$builder" bash -euo pipefail <<'EOF'
+cd /tmp
+cat > jxr.c <<'C'
+#include <stdio.h>
+#include <stdlib.h>
+#include <JXRGlue.h>
+
+int main(int argc, char **argv) {
+	static unsigned char buf[1 << 20];
+	FILE *f = fopen(argv[1], "rb");
+	size_t n = fread(buf, 1, sizeof(buf), f);
+	struct WMPStream *s;
+	PKImageDecode *d;
+	I32 w, h;
+	fclose(f);
+	if (CreateWS_Memory(&s, buf, n) || PKImageDecode_Create_WMP(&d)) return 1;
+	d->fStreamOwner = 1;
+	if (d->Initialize(d, s) || d->GetSize(d, &w, &h)) return 2;
+	PKRect r = {0, 0, w, h};
+	U8 *px = calloc((size_t)w * h, 4);
+	d->WMP.wmiSCP.uAlphaMode = 0;
+	if (d->Copy(d, &r, px, (U32)w * 4)) return 3;
+	printf("jxrlib decoded %dx%d\n", w, h);
+	d->Release(&d);
+	free(px);
+	return 0;
+}
+C
+gcc -o jxr jxr.c $(pkg-config --cflags --libs libjxr)
+./jxr /fixtures/jxr/photo.jxr | grep -qx "jxrlib decoded 64x48"
+echo "ok libjxr.pc, headers and libraries"
 EOF
 fi
 

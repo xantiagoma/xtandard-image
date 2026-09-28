@@ -95,6 +95,11 @@ ENV BASH_ENV=/root/.bashrc
 
 RUN ./build-deps.sh
 
+# jxrlib (WP-97) in its own layer: a change to its patches rebuilds only this step.
+COPY build-jxrlib.sh ./
+COPY patches ./patches
+RUN ./build-jxrlib.sh
+
 # Split the prefix into what the runtime needs and what only the builder needs.
 # The runtime keeps the vips and vipsheader CLIs (diagnostics, verify-image.sh) and only
 # the thread-safe libraw_r that libvips links (not the plain libraw).

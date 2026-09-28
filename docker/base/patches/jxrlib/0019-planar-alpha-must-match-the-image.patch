@@ -1,0 +1,23 @@
+From: xtandard-image
+Subject: [PATCH] The planar alpha plane must match the image
+
+Found by fuzzing (Go FuzzJXR, confirmed with ASan): the planar alpha
+plane's own codestream header could turn its output into 32-bit floats
+(or another size) while it is written into the image's 8-bit pixels,
+past the end of the caller's buffer. Fail the decode when the alpha plane's
+sample type or size differs from the image's.
+---
+--- a/jxrgluelib/JXRGlueJxr.c
++++ b/jxrgluelib/JXRGlueJxr.c
+@@ -2148,6 +2148,11 @@
+         if (0 == pID->WMP.DecoderCurrAlphaMBRow) // add this to WMP struct!
+         {
+             FailIf(ICERR_OK != ImageStrDecInit(&pID->WMP.wmiI_Alpha, &pID->WMP.wmiSCP_Alpha, &pID->WMP.ctxSC_Alpha), WMP_errFail);
++            // The alpha plane is written into the image's pixels: its
++            // codestream must not change the sample type or the size.
++            FailIf(pID->WMP.wmiI_Alpha.bdBitDepth != pID->WMP.wmiI.bdBitDepth ||
++                pID->WMP.wmiI_Alpha.cWidth != pID->WMP.wmiI.cWidth ||
++                pID->WMP.wmiI_Alpha.cHeight != pID->WMP.wmiI.cHeight, WMP_errFail);
+         }
+         
+         // Re-entrant mode incurs 1 MBR delay, so to get 0th MBR, we have to ask for 1st MBR

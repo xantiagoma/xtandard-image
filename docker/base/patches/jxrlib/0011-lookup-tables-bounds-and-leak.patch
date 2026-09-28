@@ -1,0 +1,35 @@
+From: xtandard-image
+Subject: [PATCH] Bound the lookup tables' bit depth and free old tables
+
+Found by libFuzzer + ASan/LSan: initLookupTables runs for the primary
+plane and again for an interleaved alpha plane, which share m_Dparam, so
+the second run leaked the first tables; and it indexed an 11-entry table
+with the plane header's bit depth unchecked.
+---
+--- a/image/decode/strdec.c
++++ b/image/decode/strdec.c
+@@ -2602,6 +2602,11 @@
+             break;
+     }
+ 
++    // The bit depth indexes cbChannels below; a corrupt (alpha) plane
++    // header can carry any value.
++    if (pII->bdBitDepth >= BDB_MAX)
++        return ICERR_ERROR;
++
+     switch(pII->cfColorFormat){
+         case YUV_420:
+             cStrideX = 6;
+@@ -2624,6 +2629,12 @@
+     if(pII->oOrientation > O_FLIPVH) // rotated !!
+         i =cStrideX, cStrideX = cStrideY, cStrideY = i;
+ 
++    // The primary and the interleaved alpha plane share m_Dparam and both
++    // build the tables: free the previous ones instead of leaking them.
++    free(pSC->m_Dparam->pOffsetX);
++    pSC->m_Dparam->pOffsetX = NULL;
++    free(pSC->m_Dparam->pOffsetY);
++    pSC->m_Dparam->pOffsetY = NULL;
+     pSC->m_Dparam->pOffsetX = (size_t *)malloc(w * sizeof(size_t));
+     if(pSC->m_Dparam->pOffsetX == NULL || w * sizeof(size_t) < w)
+         return ICERR_ERROR;

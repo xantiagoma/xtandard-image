@@ -49,15 +49,81 @@ xi_is_magick(const char *loader)
   return g_str_has_prefix(loader, "VipsForeignLoadMagick");
 }
 
-// xi_is_binary_pnm reports whether d starts with a binary PGM/PPM (P5, P6)
-// or PFM (PF, Pf) header: the only portable anymap variants enabled
-// (FORMATS.md §1.4). ASCII (P1-P3) and bitmap (P4) files are refused.
+// xi_is_pnm reports whether d starts with a portable anymap header that
+// ppmload reads: PBM, PGM or PPM, ASCII or binary (P1-P6), or PFM (PF, Pf),
+// followed by whitespace (FORMATS.md §1.4). PAM (P7) goes to ImageMagick.
 static gboolean
-xi_is_binary_pnm(const unsigned char *d, size_t n)
+xi_is_pnm(const unsigned char *d, size_t n)
 {
   return n >= 3 && d[0] == 'P' &&
-      (d[1] == '5' || d[1] == '6' || d[1] == 'F' || d[1] == 'f') &&
+      ((d[1] >= '1' && d[1] <= '6') || d[1] == 'F' || d[1] == 'f') &&
       (d[2] == ' ' || d[2] == '\t' || d[2] == '\n' || d[2] == '\r');
+}
+
+static guint
+xi_le16(const unsigned char *d)
+{
+  return d[0] | (guint) d[1] << 8;
+}
+
+// xi_is_tga mirrors codec.sniffTGA: TGA has no signature, so the 18-byte
+// header must be self-consistent (colour map, image type, depth,
+// descriptor) and the file must not be an ISO BMFF one.
+static gboolean
+xi_is_tga(const unsigned char *d, size_t n)
+{
+  guint cmap, type, cmap_len, cmap_bits, depth, desc;
+
+  if (n < 18 || memcmp(d + 4, "ftyp", 4) == 0)
+    return FALSE;
+  cmap = d[1];
+  type = d[2];
+  depth = d[16];
+  desc = d[17];
+  if (cmap > 1)
+    return FALSE;
+  cmap_len = xi_le16(d + 5);
+  cmap_bits = d[7];
+  if (xi_le16(d + 12) == 0 || xi_le16(d + 14) == 0 || (desc & 0xC0) != 0 || (desc & 0x0F) > 8)
+    return FALSE;
+  switch (type) {
+  case 1:
+  case 9: // colour-mapped
+    return cmap == 1 && cmap_len > 0 &&
+        (cmap_bits == 15 || cmap_bits == 16 || cmap_bits == 24 || cmap_bits == 32) &&
+        (depth == 8 || depth == 16);
+  case 2:
+  case 10: // true colour
+    return cmap == 0 && (depth == 15 || depth == 16 || depth == 24 || depth == 32);
+  case 3:
+  case 11: // grey
+    return cmap == 0 && (depth == 8 || depth == 16);
+  default:
+    return FALSE;
+  }
+}
+
+// xi_is_magick_input reports whether d starts like a format ImageMagick is
+// allowed to read (magick-policy.xml): the same checks as codec.Sniff for
+// PSD/PSB, DDS, QOI, PCX, SGI, Sun raster, XBM, XPM, PAM and TGA.
+static gboolean
+xi_is_magick_input(const unsigned char *d, size_t n)
+{
+  if (n >= 4 && (memcmp(d, "8BPS", 4) == 0 || memcmp(d, "DDS ", 4) == 0 ||
+                    memcmp(d, "qoif", 4) == 0 || memcmp(d, "\x59\xa6\x6a\x95", 4) == 0))
+    return TRUE;
+  if (n >= 4 && d[0] == 0x0A && (d[1] == 2 || d[1] == 5) && d[2] <= 1 &&
+      (d[3] == 1 || d[3] == 2 || d[3] == 4 || d[3] == 8))
+    return TRUE; // PCX
+  if (n >= 4 && d[0] == 0x01 && d[1] == 0xDA && d[2] <= 1 && (d[3] == 1 || d[3] == 2))
+    return TRUE; // SGI
+  if (n >= 8 && memcmp(d, "#define ", 8) == 0)
+    return TRUE; // XBM
+  if (n >= 9 && memcmp(d, "/* XPM */", 9) == 0)
+    return TRUE;
+  if (n >= 3 && d[0] == 'P' && d[1] == '7' && (d[2] == '\n' || d[2] == '\r' || d[2] == ' '))
+    return TRUE; // PAM
+  return xi_is_tga(d, n);
 }
 
 // xi_is_rgbe reports a Radiance file whose first line is "#?RGBE".
@@ -68,9 +134,9 @@ xi_is_rgbe(const unsigned char *d, size_t n)
 }
 
 // xi_check_loader refuses a blocked loader, ImageMagick for anything but
-// PSD/PSB (ImageMagick is in the image for Photoshop files only,
-// FORMATS.md, and its policy.xml denies every other coder as well) and the
-// PPM loader for anything but binary PGM/PPM/PFM.
+// the formats it is in the image for (PSD/PSB and the legacy formats of
+// FORMATS.md; its policy.xml denies every other coder as well) and the PPM
+// loader for anything but a PNM or PFM header.
 static int
 xi_check_loader(const char *loader, VipsBlob *blob, char **err)
 {
@@ -82,14 +148,12 @@ xi_check_loader(const char *loader, VipsBlob *blob, char **err)
     *err = xi_error_new("xi_load", "loader %s is blocked", loader);
     return XI_ERR_UNSUPPORTED;
   }
-  if (xi_is_magick(loader) &&
-      (area->length < 4 || memcmp(area->data, "8BPS", 4) != 0)) {
-    *err = xi_error_new("xi_load", "%s is restricted to PSD/PSB", loader);
+  if (xi_is_magick(loader) && !xi_is_magick_input(area->data, area->length)) {
+    *err = xi_error_new("xi_load", "%s is restricted to PSD/PSB and the legacy formats", loader);
     return XI_ERR_UNSUPPORTED;
   }
-  if (g_str_has_prefix(loader, "VipsForeignLoadPpm") &&
-      !xi_is_binary_pnm(area->data, area->length)) {
-    *err = xi_error_new("xi_load", "%s is restricted to binary PGM/PPM/PFM", loader);
+  if (g_str_has_prefix(loader, "VipsForeignLoadPpm") && !xi_is_pnm(area->data, area->length)) {
+    *err = xi_error_new("xi_load", "%s is restricted to PNM/PFM", loader);
     return XI_ERR_UNSUPPORTED;
   }
   return XI_OK;
@@ -388,6 +452,8 @@ xi_probe(VipsBlob *blob, double dpi, XiHeader *h, char **err)
   }
   xi_copy_string(img, VIPS_META_LOADER, h->loader, sizeof(h->loader));
   xi_copy_string(img, "heif-compression", h->subformat, sizeof(h->subformat));
+  if (!h->subformat[0])
+    xi_copy_string(img, "magick-format", h->subformat, sizeof(h->subformat));
 
   g_object_unref(img);
   return XI_OK;

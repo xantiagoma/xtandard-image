@@ -88,25 +88,13 @@ func TestLoadHDR(t *testing.T) {
 	}
 }
 
-// TestHDRRefusals checks the loader restrictions: ASCII PNM and OpenEXR
-// through the thumbnail path are unsupported, a truncated OpenEXR fails as
-// corrupt when its pixels are read (the spool maps the failure back to the
-// source), and a truncated header at probe.
+// TestHDRRefusals checks the loader restrictions: OpenEXR through the
+// thumbnail path is unsupported, a truncated OpenEXR fails as corrupt when
+// its pixels are read (the spool maps the failure back to the source), and a
+// truncated header at probe.
 func TestHDRRefusals(t *testing.T) {
 	t.Parallel()
 	exr := readFixture(t, "exr/rgba-half.exr")
-	t.Run("ascii ppm", func(t *testing.T) {
-		t.Parallel()
-		buf := newBuffer(t, []byte("P3\n1 1\n255\n0 0 0\n"))
-		defer buf.Release()
-		err := tryJob(t.Context(), func(ctx context.Context, _ *vips.Arena) error {
-			_, err := vips.Probe(ctx, buf)
-			return err
-		})
-		if errs.KindOf(err) != errs.KindUnsupported {
-			t.Errorf("probe: %v, want unsupported", err)
-		}
-	})
 	t.Run("exr thumbnail", func(t *testing.T) {
 		t.Parallel()
 		buf := newBuffer(t, exr)

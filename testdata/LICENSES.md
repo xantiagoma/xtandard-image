@@ -56,6 +56,11 @@ generated from the public-domain X11 "fixed" font).
 | `fixtures/hdr/scene.hdr`, `fixtures/hdr/rgbe.hdr` | `gen radiance`, `gen rgbe`: Radiance RGBE written by hand in Go (flat scanlines; `#?RADIANCE` and `#?RGBE` magic lines) | CC0 |
 | `fixtures/pfm/scene.pfm` | `gen pfm`: colour PFM written by hand in Go (little endian) | CC0 |
 | `fixtures/ppm/photo.ppm` | `gen ppm`: the procedural photo as a binary 8-bit PPM (P6), written in Go | CC0 |
+| `fixtures/ppm/photo-ascii.ppm`, `photo-ascii.pgm`, `graphic.pbm`, `graphic-ascii.pbm` | ImageMagick 7 (`-compress none` for the ASCII P1-P3 variants; PBM thresholded at 50%) of the 64×48 photo and the 48×36 graphic | CC0 |
+| `fixtures/jxr/photo.jxr`, `alpha.jxr`, `rgb16.jxr`, `gray.jxr`, `hdr.jxr` | jxrlib's `JxrEncApp` (BSD-2-Clause; built from the pinned jxrlib in the base builder, not shipped) at quality 0.9 from the 64×48 photo (24-bit BMP), the photo with alpha (32-bit TIFF), the photo at 16 bits (48-bit TIFF), its grey PGM and the 48×32 `gen radiance` scene (32bppRGBE) | CC0 |
+| `fixtures/tga/alpha.tga`, `photo-rle.tga`, `pcx/photo.pcx`, `dds/photo-dxt1.dds`, `dds/alpha-dxt5.dds`, `qoi/alpha.qoi`, `sgi/photo.sgi`, `sgi/alpha.sgi`, `sun/photo.ras`, `pam/alpha.pam` | ImageMagick 7 of the 64×48 photo, with alpha where the name says (TGA RLE, DDS `dds:compression=dxt1`/`dxt5` without mipmaps) | CC0 |
+| `fixtures/xbm/graphic.xbm`, `xpm/graphic.xpm`, `wbmp/graphic.wbmp` | ImageMagick 7 of the 48×36 graphic (XBM and WBMP thresholded at 50%, XPM with 8 colours) | CC0 |
+| `fixtures/icns/icon.icns` | `gen icns` (own ICNS writer: a run-length coded 16×16 `is32` entry with its `s8mk` mask and a 128×128 PNG `ic07` entry of the photo with alpha) | CC0 |
 | `ssim/*.png` | `gen ssim-refs` (Go only: greyscale photo plus mean shift, contrast stretch, impulse noise, Gaussian blur σ 1.5, stdlib JPEG q15) | CC0 |
 | `fixtures/dng/landscape.dng`, `fixtures/dng/portrait-orientation-6.dng` | `gen dng` (own DNG writer; the preview is Go `image/jpeg` q85 of the photo, the mosaic is the photo sampled as linear RGGB) | CC0 |
 | `fixtures/video/clip-*.{webm,mkv,mp4,mov,avi}` | `gen video-frames` (Go) encoded by `gen/video.sh` with the LGPL FFmpeg of the full base builder (libvpx VP8/VP9, libaom AV1, PNG) and the host ffmpeg's LGPL rawvideo/AVI muxer; details in `fixtures/video/README.md` | CC0 |

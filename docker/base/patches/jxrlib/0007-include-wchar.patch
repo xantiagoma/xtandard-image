@@ -1,0 +1,21 @@
+From: YOKOTA Hiroshi <yokota.hgml@gmail.com>
+Date: Thu, 25 Jul 2024 16:01:01 +0900
+Subject: FTBFS fix for function prototype error
+
+Bug-Debian: https://bugs.debian.org/1075105
+---
+ jxrgluelib/JXRGlueJxr.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/jxrgluelib/JXRGlueJxr.c b/jxrgluelib/JXRGlueJxr.c
+index 1745acf..741bd97 100644
+--- a/jxrgluelib/JXRGlueJxr.c
++++ b/jxrgluelib/JXRGlueJxr.c
+@@ -28,6 +28,7 @@
+ //*@@@---@@@@******************************************************************
+ #include <limits.h>
+ #include <JXRGlue.h>
++#include <wchar.h>
+ 
+ 
+ static const char szHDPhotoFormat[] = "<dc:format>image/vnd.ms-photo</dc:format>";

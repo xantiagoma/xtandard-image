@@ -1,0 +1,49 @@
+From: xtandard-image
+Subject: [PATCH] Fix over-reads found by fuzzing
+
+Found by libFuzzer + ASan on the app's JPEG XR loader (WP-97):
+- DecodeSignificantRun indexed gSignificantRunBin (15 entries) with a
+  run of 15 once a corrupt block wrapped its position to 0, and trusted
+  the Huffman symbol when indexing aRemap and the fixed-length table;
+- ReadWMIHeader ran strstr over the 8-byte signature, which is not
+  NUL-terminated.
+---
+--- a/image/decode/segdec.c
++++ b/image/decode/segdec.c
+@@ -357,8 +357,14 @@
+ {
+     Int iIndex;
+     static const Int aRemap[] = {1,2,3,5,7,   1,2,3,5,7,   /*1,2,3,4,6,  */1,2,3,4,5 };
+-    Int iBin = gSignificantRunBin[iMaxRun];
++    Int iBin;
+     Int iRun = 0, iFLC = 0;
++
++    // gSignificantRunBin has 15 entries: a run past the block (possible
++    // only in a corrupt stream) ends it instead of reading past the table.
++    if (iMaxRun < 0 || iMaxRun > 14)
++        return 16;
++    iBin = gSignificantRunBin[iMaxRun];
+ 
+     if (iMaxRun < 5) {
+         if (iMaxRun == 1) {
+@@ -376,6 +382,8 @@
+         return 4;
+     }
+     iIndex = _getHuffShort (pAHexpt->m_hufDecTable, pIO);
++    if (iIndex < 0 || iIndex > 4)
++        return 16;
+     iIndex += iBin * 5;
+     iRun = aRemap[iIndex];
+     iFLC = gSignificantRunFixedLength[iIndex];
+--- a/image/decode/strdec.c
++++ b/image/decode/strdec.c
+@@ -2962,7 +2962,8 @@
+ // 0
+     /** signature **/
+     Call(pWS->Read(pWS, szMS, sizeof(szMS)));
+-    FailIf(szMS != (U8 *) strstr((char *) szMS, "WMPHOTO"), WMP_errUnsupportedFormat);
++    // szMS is not NUL-terminated: compare, do not search.
++    FailIf(memcmp(szMS, "WMPHOTO", 7) != 0, WMP_errUnsupportedFormat);
+     //================================
+     Call(attach_SB(pSB, pWS));
+ 

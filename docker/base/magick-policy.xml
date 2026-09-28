@@ -11,11 +11,13 @@
   xtandard-image ImageMagick security policy (WP-66, docs/FORMATS.md).
 
   Installed at /opt/xtandard/etc/ImageMagick-7/policy.xml by docker/base/build-deps.sh.
-  ImageMagick is in the base image for one reason: libvips' magickload for PSD/PSB.
-  Every other coder, every delegate, every filter and every indirect read is denied,
-  so a file that reaches the magick loader in any other format fails instead of being
-  decoded by one of ImageMagick's many built-in coders. Later rules override earlier
-  ones, so the deny-all rules come first.
+  ImageMagick is in the base image for libvips' magickload of PSD/PSB (WP-51) and of a
+  short list of legacy raster formats without a libvips loader (WP-97): TGA, PCX,
+  DDS, QOI, SGI, Sun raster, XBM, XPM and PAM. Only those coders can read; every other
+  coder, every delegate, every filter and every indirect read is denied, so a file
+  that reaches the magick loader in any other format fails instead of being decoded
+  by one of ImageMagick's many built-in coders. Later rules override earlier ones, so
+  the deny-all rules come first.
 
   Resource limits are ceilings: MAGICK_* environment variables and the API can only
   lower them, never raise them.
@@ -44,12 +46,16 @@
   <policy domain="path" rights="none" pattern="[Ff][Dd]:*"/>
   <policy domain="path" rights="none" pattern="|*"/>
 
-  <!-- Coders: deny all, then allow reading PSD and PSB only (no writing). A module
-       (the PSD module registers both the PSD and PSB coders) needs "read | write" to
-       be registered at all; the coder rules below then restrict it to reading. Denied
-       modules are never registered, so their coders do not exist in the process. -->
+  <!-- Coders: deny all, then allow reading the listed formats only (no writing). A
+       module needs "read | write" to be registered at all; the coder rules below then
+       restrict it to reading, and to the named coders of each module: PSD registers
+       PSD and PSB; TGA also registers ICB, VDA and VST, PCX also DCX, DDS also DXT1
+       and DXT5, SUN also RAS, XPM also PICON and PM, PNM also PBM, PGM, PPM, PNM,
+       PFM and PHM (libvips' ppmload reads those): of these only the names below
+       can read. Denied modules are never registered, so their coders do not exist
+       in the process. -->
   <policy domain="module" rights="none" pattern="*"/>
-  <policy domain="module" rights="read | write" pattern="PSD"/>
+  <policy domain="module" rights="read | write" pattern="{PSD,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PNM}"/>
   <policy domain="coder" rights="none" pattern="*"/>
-  <policy domain="coder" rights="read" pattern="{PSD,PSB}"/>
+  <policy domain="coder" rights="read" pattern="{PSD,PSB,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PAM}"/>
 </policymap>

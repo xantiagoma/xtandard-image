@@ -1,0 +1,40 @@
+From: xtandard-image
+Subject: [PATCH] Refuse outputs with more channels than the codestream
+
+Found by fuzzing (Go FuzzJXR, confirmed with ASan): an RGB output of a
+codestream coding a single channel read the missing U and V planes
+through NULL in outputMBRow. The output colour format needs at least as
+many coded channels as it has.
+---
+--- a/image/decode/strdec.c
++++ b/image/decode/strdec.c
+@@ -3275,6 +3275,29 @@
+         return ICERR_ERROR;
+     if (pSCP->bdBitDepth != BD_SHORT && pSCP->bdBitDepth != BD_LONG)
+         return ICERR_ERROR;
++    // The output stage reads as many planes as the output colour format has
++    // (three for RGB/RGBE/YUV, four for CMYK): a codestream with fewer
++    // coded channels would be read through a NULL plane.
++    switch (pII->cfColorFormat) {
++        case CF_RGB: case CF_RGBE: case YUV_420: case YUV_422: case YUV_444:
++            if (SC.m_param.cNumChannels < 3)
++                return ICERR_ERROR;
++            break;
++        case CMYK:
++            if (SC.m_param.cNumChannels < 4)
++                return ICERR_ERROR;
++            break;
++        default:
++            break;
++    }
++    // Packed depths only exist as RGB, and 1 bit only as grey; the output
++    // code for them assumes as much (a planar alpha plane of a packed
++    // RGB image took the RGB path with one channel).
++    if ((pII->bdBitDepth == BD_5 || pII->bdBitDepth == BD_10 || pII->bdBitDepth == BD_565) &&
++        pII->cfColorFormat != CF_RGB)
++        return ICERR_ERROR;
++    if (pII->bdBitDepth == BD_1 && pII->cfColorFormat != Y_ONLY)
++        return ICERR_ERROR;
+ 
+     bUseHardTileBoundaries = SC.WMISCP.bUseHardTileBoundaries;
+     if(SC.WMII.cfColorFormat == CMYK && pII->cfColorFormat == CF_RGB)
