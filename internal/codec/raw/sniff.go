@@ -93,17 +93,23 @@ const (
 	tagPhotometric    = 0x0106
 	tagMake           = 0x010F
 	tagSubIFDs        = 0x014A
+	tagLeafData       = 0x8606
 	tagDNGVersion     = 0xC612
 )
+
+// leafMagic starts the LeafData block (tag 0x8606) of a Leaf MOS file.
+const leafMagic = "PKTS"
 
 // Sniff recognises a camera RAW file from its leading bytes, the way
 // LibRaw's identify does: formats with a signature (CR2, CR3, CRW, RAF,
 // ORF, RW2, X3F, MRW, IIQ) by magic bytes and ISOBMFF brands, and
 // TIFF-shaped formats without one (NEF, ARW, DNG, PEF, SRW, 3FR, ERF, MEF,
-// MOS, DCR) by IFD0: a DNGVersion tag, or a camera maker's Make together
-// with the structure of a RAW (a reduced-resolution IFD0, SubIFDs, a
-// camera-specific compression or a CFA photometric interpretation). A TIFF
-// that a camera wrote as a plain RGB image is not a RAW.
+// MOS, DCR) by IFD0: a DNGVersion tag, a camera maker's Make together with
+// the structure of a RAW (a reduced-resolution IFD0, SubIFDs, a
+// camera-specific compression or a CFA photometric interpretation), or, for
+// Leaf backs whose IFD0 has no Make (the maker is only in the XMP), Leaf's
+// private LeafData tag (0x8606, a "PKTS" block) with that same structure. A
+// TIFF that a camera wrote as a plain RGB image is not a RAW.
 //
 // Only b is read (at most the first IFD0 it holds, bounded by
 // maxIFDEntries), so it is safe on untrusted input of any size.
@@ -176,7 +182,7 @@ func isCR3(b []byte) bool {
 
 // ifd0 is what the sniffer reads from IFD0.
 type ifd0 struct {
-	dng, subIFDs            bool
+	dng, subIFDs, leaf      bool
 	subfile, compression    uint32
 	photometric             uint32
 	makeOff                 int64
@@ -219,6 +225,12 @@ func sniffTIFF(b []byte, order binary.ByteOrder) Kind {
 			d.subIFDs = true
 		case tagDNGVersion:
 			d.dng = true
+		case tagLeafData:
+			off := e + 8 // four bytes or less are stored in the entry
+			if count > 4 {
+				off = int64(order.Uint32(b[e+8:]))
+			}
+			d.leaf = isLeafData(b, typ, count, off)
 		case tagMake:
 			if typ == 2 && count > 0 {
 				d.hasMake, d.makeLen = true, count
@@ -234,6 +246,9 @@ func sniffTIFF(b []byte, order binary.ByteOrder) Kind {
 		return KindDNG
 	}
 	if !d.hasMake {
+		if d.leaf && d.rawShaped() {
+			return KindMOS
+		}
 		return KindUnknown
 	}
 	end := d.makeOff + int64(min(d.makeLen, 64))
@@ -245,6 +260,20 @@ func sniffTIFF(b []byte, order binary.ByteOrder) Kind {
 		return KindUnknown
 	}
 	return k
+}
+
+// isLeafData reports whether a 0x8606 entry is Leaf's LeafData: a BYTE,
+// ASCII or UNDEFINED block of at least 4 bytes stored at off, which starts
+// with "PKTS" when it lies within b (the sniffer may see only the file's
+// head).
+func isLeafData(b []byte, typ uint16, count uint32, off int64) bool {
+	if (typ != 1 && typ != 2 && typ != 7) || count < uint32(len(leafMagic)) || off < 8 {
+		return false
+	}
+	if off+int64(len(leafMagic)) > int64(len(b)) {
+		return true
+	}
+	return string(b[off:off+int64(len(leafMagic))]) == leafMagic
 }
 
 // rawShaped reports whether IFD0 looks like a RAW container rather than a
