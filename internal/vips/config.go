@@ -42,7 +42,8 @@ func DefaultConfig() Config {
 // (FORMATS.md): jpeg, png (spng), gif (nsgif), webp, heif/avif, jxl, tiff,
 // svg, jp2k and UltraHDR (M1), then PDF (PDFium), ImageMagick, OpenEXR,
 // Radiance and PPM/PFM (M2), then JPEG XR (the shim's jxrlib loader,
-// WP-97). The M2 loaders are unblocked by their buffer class only, the one
+// WP-97) and CMYK JPEG XL (the shim's libjxl loader for the files jxlload
+// cannot read, WP-105). The M2 loaders are unblocked by their buffer class only, the one
 // the service uses, except OpenEXR, which has only a file loader (the shim
 // spools the buffer for it). ImageMagick, OpenEXR, Radiance, PPM and JPEG
 // XR are untrusted: they are unblocked by name here; the shim refuses
@@ -68,6 +69,7 @@ func DefaultLoaders() []string {
 		"VipsForeignLoadRadBuffer",
 		"VipsForeignLoadPpmBuffer",
 		"XiForeignLoadJxrBuffer",
+		"XiForeignLoadJxlCmykBuffer",
 	}
 }
 

@@ -104,7 +104,7 @@ func formatOfLoader(loader, subformat string) Format {
 			return FormatAVIF
 		}
 		return FormatHEIF
-	case "jxlload":
+	case "jxlload", "jxlcmykload":
 		return FormatJXL
 	case "tiffload":
 		return FormatTIFF

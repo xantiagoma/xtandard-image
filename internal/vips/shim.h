@@ -215,6 +215,16 @@ gboolean xi_is_jxr(const void *buf, size_t len);
 // Live jxrlib decoders plus live decoded buffers (leak tests).
 int xi_jxr_live(void);
 
+// ---- CMYK JPEG XL (jxlcmyk.c, libjxl) --------------------------------------
+
+// Registers the jxlcmykload_buffer loader class (XiForeignLoadJxlCmykBuffer)
+// with libvips; xi_init calls it before applying the loader allowlist.
+void xi_jxlcmyk_register(void);
+// A JPEG XL stream with a black extra channel (CMYK).
+gboolean xi_is_jxl_cmyk(const void *buf, size_t len);
+// Live libjxl decoders plus live decoded buffers (leak tests).
+int xi_jxlcmyk_live(void);
+
 // ---- image accessors and metadata (image.c) ------------------------------
 
 int xi_image_width(VipsImage *img);
