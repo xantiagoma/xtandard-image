@@ -63,6 +63,14 @@ func sample(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Li
 		}
 		defer pre.Release()
 		return sampleVips(ctx, pre, maxSide)
+	case FormatXCF:
+		var a vips.Arena
+		defer a.Close()
+		img, err := flattenXCFSample(ctx, &a, buf, maxSide, lim)
+		if err != nil {
+			return Raw{}, err
+		}
+		return sampleImage(ctx, &a, img)
 	default:
 		return sampleVips(ctx, buf, maxSide)
 	}
@@ -140,6 +148,25 @@ func sampleVips(ctx context.Context, buf *vips.Buffer, maxSide int) (Raw, error)
 	if err != nil {
 		return Raw{}, fmt.Errorf("codec: sample: %w", err)
 	}
+	return sampleImage(ctx, &a, img)
+}
+
+// flattenXCFSample flattens an XCF source (FlattenXCF) and fits it inside
+// maxSide×maxSide.
+func flattenXCFSample(ctx context.Context, a *vips.Arena, buf *vips.Buffer, maxSide int, lim Limits) (*vips.Image, error) {
+	img, err := FlattenXCF(ctx, a, buf, lim.withDefaults().MaxSrcPixels, vips.FailOnError)
+	if err != nil {
+		return nil, err
+	}
+	if s := float64(maxSide) / float64(max(img.Width(), img.Height())); s < 1 {
+		return a.Add(img.Resize(ctx, s, s, vips.KernelLanczos3))
+	}
+	return img, nil
+}
+
+// sampleImage exports img as uchar sRGB with alpha.
+func sampleImage(ctx context.Context, a *vips.Arena, img *vips.Image) (Raw, error) {
+	var err error
 	if img.Interpretation() != vips.InterpretationSRGB || img.BandFormat() != vips.BandFormatUchar {
 		if img, err = a.Add(img.Colourspace(ctx, vips.InterpretationSRGB)); err != nil {
 			return Raw{}, fmt.Errorf("codec: sample: %w", err)

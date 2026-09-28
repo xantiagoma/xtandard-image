@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec"
+	"github.com/xantiagoma/xtandard-image/internal/codec/container"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
 )
 
@@ -96,8 +97,23 @@ func fixtureFormats() map[string]codec.Format {
 		"video/clip-vp8-matroska.mkv":     codec.FormatMKV,
 		"video/clip-vp8.webm":             codec.FormatWebM,
 		"video/clip-vp9.webm":             codec.FormatWebM,
+		"xcf/layers.xcf":                  codec.FormatXCF,
+		"xcf/gray.xcf":                    codec.FormatXCF,
+		"xcf/alpha.xcf":                   codec.FormatXCF,
+		// Designer containers are no codec format: the server unwraps them
+		// (codec/container) before anything sniffs the source.
+		"ora/layers.ora":                codec.FormatUnknown,
+		"kra/layers.kra":                codec.FormatUnknown,
+		"procreate/thumbnail.procreate": codec.FormatUnknown,
+		"sketch/preview.sketch":         codec.FormatUnknown,
+		"svgz/logo.svgz":                codec.FormatUnknown,
+		"pdn/thumbnail.pdn":             codec.FormatUnknown,
 	}
 }
+
+// containerFixtures is the number of fixtures fixtureFormats lists as
+// FormatUnknown.
+const containerFixtures = 6
 
 func TestSniffFixtures(t *testing.T) {
 	t.Parallel()
@@ -129,6 +145,12 @@ func TestSniffFixtures(t *testing.T) {
 			t.Parallel()
 			data := readFixture(t, name)
 			got, ok := codec.Sniff(data)
+			if f == codec.FormatUnknown {
+				if _, isContainer := container.Detect(data); !isContainer || ok {
+					t.Errorf("container: Detect %v, Sniff = %v, %v", isContainer, got, ok)
+				}
+				return
+			}
 			if got != f || !ok {
 				t.Errorf("Sniff = %v, %v; want %v, true", got, ok, f)
 			}

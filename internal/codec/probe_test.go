@@ -183,16 +183,21 @@ func TestProbeFixtures(t *testing.T) {
 		}),
 		// EPS without Ghostscript (the default): the DOS EPS TIFF preview.
 		"eps/preview.eps": with(still(codec.FormatEPS, 96, 72), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		// GIMP XCF: the canvas, flattened to sRGB (the Go header reader).
+		"xcf/layers.xcf": still(codec.FormatXCF, 160, 120),
+		"xcf/gray.xcf":   still(codec.FormatXCF, 160, 120),
+		"xcf/alpha.xcf":  with(still(codec.FormatXCF, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
 	}
 	// password.pdf fails by design (TestProbeErrors); videos are probed by
-	// TestProbeVideo, EPS files without a preview by TestProbeEPS.
+	// TestProbeVideo, EPS files without a preview by TestProbeEPS; designer
+	// containers are unwrapped by the server, not probed.
 	videos := 0
 	for _, f := range fixtureFormats() {
 		if f.IsVideo() {
 			videos++
 		}
 	}
-	if len(tests) != len(fixtureFormats())-1-videos-3 {
+	if len(tests) != len(fixtureFormats())-1-videos-3-containerFixtures {
 		t.Fatalf("probe table has %d fixtures, sniff table %d", len(tests), len(fixtureFormats()))
 	}
 	for name, want := range tests {
