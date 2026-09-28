@@ -56,11 +56,11 @@ Legend:
 | JPEG baseline, progressive, arithmetic, greyscale | ✅ all | 6 | Arithmetic coding through libjpeg-turbo 3 |
 | JPEG CMYK / YCCK (Adobe APP14), with and without ICC | ✅ all | 2 | Converted to sRGB |
 | JPEG EXIF orientation 1–8, EXIF/XMP/IPTC/ICC | ✅ all | 5 | |
-| JPEG lossless (SOF3), 8-bit | ✅ all | 1 | libjpeg-turbo 3 |
-| JPEG 12-bit, lossless 16-bit | ⚠️ **500** | 3 | libvips uses the 8-bit libjpeg API. The failure comes from the lazy decode inside the save, where it is mapped to `internal` (WP-101: 422; WP-106: decode) |
+| JPEG lossless (SOF3), 8-bit | ✅ all | 1 | libjpeg-turbo 3; since WP-106 every lossless frame goes through the shim's `jpeghpload_buffer` |
+| JPEG 12-bit, lossless 16-bit | ✅ since WP-106 | 5 | libvips uses the 8-bit libjpeg API (500 before WP-101, 422 until WP-106); the shim's `jpeghpload_buffer` reads them with libjpeg-turbo 3's 12/16-bit APIs as 16-bit images (FORMATS 1.6) |
 | UltraHDR / gain-map JPEG (Apple, ISO 21496-1, Android) | ✅ SDR base | 2 | Gain map ignored (FORMATS 1.4). Keeping HDR is WP-104 |
 | MPO (stereo, multi-picture) | ✅ first image | 1 | |
-| JPEG-LS | ❌ | 1 | Sniffed as JPEG, then refused (WP-106, CharLS BSD-3-Clause) |
+| JPEG-LS | ❌ | 1 | Sniffed as JPEG, refused at probe with 422 "JPEG-LS is not supported". Needs CharLS (BSD-3-Clause) in the base image; left out of WP-106 (base revision, ADR line) |
 | JPEG XT | ❌ untested | 0 | Base layer is plain JPEG, so it decodes as SDR JPEG. No public sample found |
 | JPEG XS | ❌ | 1 | Broadcast mezzanine codec. Low demand, no plan |
 | PNG 1/2/4/8/16-bit, grey, palette+tRNS, alpha, Adam7, gAMA, iCCP, eXIf, XMP orientation | ✅ all | 12 | 16-bit kept only with `preserve_hdr` |
@@ -245,6 +245,7 @@ In priority order. Each needs an ADR line for any new dependency (ADR 0006) and 
 - **WP-106 High-precision JPEG family** (P2).
   - Scope: a shim loader over libjpeg-turbo 3's 12- and 16-bit APIs (`jpeg12_*`/`jpeg16_*`) for 12-bit DCT and lossless 16-bit JPEG, output 16-bit. Optional JPEG-LS through CharLS (BSD-3-Clause), after an ADR line.
   - Done when: the three high-precision JPEG samples and the JPEG-LS sample render, and `FuzzJPEG12` runs clean.
+  - Done (2026-09-28): 12-bit DCT and 2–16-bit lossless JPEG decode through the shim's `jpeghpload_buffer` (FORMATS 1.6), sample-exact against djpeg; the 12-bit and lossless gallery samples render. JPEG-LS was left out (CharLS needs a base revision) and answers a clear 422.
 - **WP-107 Designer containers** (P2).
   - Scope (pure Go, bounded `archive/zip`: entry count, uncompressed size and ratio caps, no path traversal):
     - OpenRaster/Krita `mergedimage.png`.
