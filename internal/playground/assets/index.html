@@ -26,6 +26,7 @@
     <a href="#tools/gallery" data-tool="gallery" title="Every sample as a browsable grid (pick one to load it into the session)">Gallery</a>
     <a href="#tools/history" data-tool="history" title="Sessions you rendered in this browser">History</a>
     <a href="#tools/matrix" data-tool="matrix" title="The whole sample gallery run against this server">Format matrix</a>
+    <a href="#tools/examples" data-tool="examples" title="Ready-made sessions: watermarks in every dialect, crops, video, PDF, RAW, HDR">Examples</a>
   </nav>
   <div class="top-actions">
     <button type="button" id="share" title="Copy a link that restores this session">Share link</button>
@@ -117,13 +118,21 @@
 
     <section class="panel builder" aria-labelledby="builder-title">
       <h2 id="builder-title" tabindex="-1">Options</h2>
+      <div class="row wrap examples-row">
+        <label class="inline" for="examples-quick">Examples</label>
+        <select id="examples-quick" aria-describedby="examples-quick-hint"></select>
+        <a href="#tools/examples" data-tool="examples" class="small-link" id="examples-browse">browse all</a>
+        <p class="hint sr" id="examples-quick-hint">Loads a ready-made session (source, dialect and options) into the builder.</p>
+      </div>
       <div class="search-row">
         <label for="option-search" class="sr">Search options</label>
         <input id="option-search" type="search" autocomplete="off" spellcheck="false" placeholder="Search options (/): name, alias or description">
       </div>
+      <p class="row wrap" id="raw-row"><label class="inline"><input type="checkbox" id="raw-mode"> Write the path and query by hand</label>
+        <span class="hint">(for what the builder cannot express, such as imaginary endpoints)</span></p>
       <div id="pipelines" class="pipelines" hidden>
         <div class="tabs" role="tablist" aria-label="Chained pipelines" id="pipeline-tabs"></div>
-        <p class="hint">Chained pipelines (<code>/-/</code>): each runs on the result of the previous one.</p>
+        <p class="hint" id="pipelines-hint">Chained pipelines (<code>/-/</code>): each runs on the result of the previous one.</p>
       </div>
       <div id="applied" class="applied" aria-label="Applied options"></div>
       <div id="catalogue" class="catalogue"></div>
@@ -142,7 +151,7 @@
         <textarea id="sih-edits" rows="4" spellcheck="false" placeholder='{"resize": {"width": 300, "fit": "cover"}}'></textarea>
       </div>
       <div id="free-builder" hidden>
-        <p class="hint">This dialect is built by hand. <code>{src}</code> is replaced by the source.</p>
+        <p class="hint" id="free-hint">This dialect is built by hand. <code>{src}</code> is replaced by the source.</p>
         <label for="free-path">Path after the mount prefix</label>
         <input id="free-path" type="text" autocomplete="off" spellcheck="false">
         <label for="free-query">Query (without ?)</label>
@@ -273,6 +282,17 @@
     <label for="gallery-filter" class="sr">Filter the gallery</label>
     <input id="gallery-filter" type="search" placeholder="Filter by format, name, variant or tag" autocomplete="off">
     <div id="gallery-big" class="gallery big"></div>
+  </section>
+  <section class="panel tool" id="tool-examples" aria-labelledby="tool-title" hidden>
+    <p class="hint">Ready-made sessions: pick one to load its source, dialect and options into the builder and render it. Watermarks in imgproxy (default image, per-request image, text, size, rotation, shadow, tiles, chessboard), imgix, Cloudinary, ImageKit and imaginary, and a few other things this server does. Each card shows the live result.</p>
+    <p class="notice" id="examples-watermark-note" hidden>This server has no default watermark image, so the recipes marked <em>default watermark</em> are disabled: set <code>XI_PROCESSING_WATERMARK_SOURCE</code> (the demo's <code>compose.playground.yml</code> uses <code>local:///watermark/logo.png</code>). Per-request images and text work without it.</p>
+    <div class="row wrap">
+      <label for="examples-search" class="sr">Search the examples</label>
+      <input id="examples-search" type="search" placeholder="Search by title, tag, dialect or URL" autocomplete="off">
+      <div class="chips" id="examples-filters" role="group" aria-label="Filter the examples"></div>
+    </div>
+    <p id="examples-status" class="status" role="status" aria-live="polite"></p>
+    <div id="examples" class="recipes"></div>
   </section>
   <section class="panel tool" id="tool-history" aria-labelledby="tool-title" hidden>
     <p class="hint">Sessions you rendered in this browser (kept in its local storage only, newest first, at most 30).</p>
