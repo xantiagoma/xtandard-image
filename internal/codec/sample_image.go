@@ -25,7 +25,8 @@ func SampleImage(ctx context.Context, a *vips.Arena, buf *vips.Buffer, f Format,
 		if err != nil {
 			return nil, err
 		}
-		if d.Raw == nil {
+		r := ownRaw(d)
+		if r == nil {
 			emb, err := vips.NewBuffer(len(d.Embedded))
 			if err != nil {
 				return nil, err
@@ -34,7 +35,6 @@ func SampleImage(ctx context.Context, a *vips.Arena, buf *vips.Buffer, f Format,
 			copy(emb.Bytes(), d.Embedded)
 			return thumbnailImage(ctx, a, emb, maxSide)
 		}
-		r := d.Raw
 		img, err := a.Add(vips.NewFromMemory(ctx, r.Data, r.Width, r.Height, r.Bands, vips.BandFormatUchar))
 		if err != nil {
 			return nil, err
@@ -59,6 +59,11 @@ func SampleImage(ctx context.Context, a *vips.Arena, buf *vips.Buffer, f Format,
 	}
 	if f == FormatXCF {
 		return flattenXCFSample(ctx, a, buf, maxSide, lim)
+	}
+	if f == FormatTIFF {
+		if l, ok := ParseLabTIFF(buf.Bytes()); ok {
+			return labImage(ctx, a, &l, buf, maxSide)
+		}
 	}
 	return thumbnailImage(ctx, a, buf, maxSide)
 }

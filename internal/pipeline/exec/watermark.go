@@ -103,13 +103,13 @@ func (r *runner) decodeWatermark(ctx context.Context, maxPixels int64) (*vips.Im
 	case ownFormat(r.j.Meta.Format):
 		img, err = r.loadGo(ctx)
 	default:
-		img, err = r.a.Add(vips.Load(ctx, r.j.Source, &vips.LoadOptions{
+		img, err = r.loadSource(ctx, &vips.LoadOptions{
 			NPages:     1,
 			Access:     vips.AccessRandom,
 			FailOn:     r.e.cfg.FailOn,
 			Autorotate: true,
 			MaxPixels:  maxPixels,
-		}))
+		})
 	}
 	if err != nil {
 		return nil, err

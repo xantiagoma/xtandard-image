@@ -95,6 +95,7 @@ func sourceInfo(ci *codec.Info) *server.SourceInfo {
 			HasAlpha:    m.HasAlpha,
 			IsAnimated:  m.IsAnimated,
 			Orientation: m.Orientation,
+			HDR:         m.HDR,
 			Raw:         m.Raw,
 		},
 		Format:       name,

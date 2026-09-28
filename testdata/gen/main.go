@@ -45,7 +45,7 @@ func main() {
 
 func run(args []string) error {
 	if len(args) < 2 {
-		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|watermark-badge|gif|gif-anim|ico-png|ico-bmp|icns|eps-preview|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb|exr-rgba-half|exr-rgb-float|radiance|rgbe|pfm|ppm|hdr-stats|dng|video-frames|procreate|sketch|pdn|svgz> args...")
+		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|watermark-badge|gif|gif-anim|ico-png|ico-bmp|icns|eps-preview|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb|exr-rgba-half|exr-rgb-float|radiance|rgbe|pfm|ppm|hdr-stats|dng|video-frames|procreate|sketch|pdn|svgz|dds-bc1|dds-bc4|dds-bc7|dds-bc6h|lab-tiff8|lab-tiff16|lab-tiff8-alpha|lab-tiff8-icc|cmyk-raw> args...")
 	}
 	sizeArgs := func() (int, int, string, error) {
 		if len(args) != 4 {
@@ -141,6 +141,25 @@ func run(args []string) error {
 			v[i] = n
 		}
 		return writeDNG(args[6], v[0], v[1], v[2], v[3], uint16(v[4]), uint16(v[5]))
+	case "cmyk-raw":
+		if len(args) != 6 || (args[3] != "alpha" && args[3] != "opaque") {
+			return errors.New("cmyk-raw: want W H alpha|opaque out.cmyk out.icc")
+		}
+		w, err1 := strconv.Atoi(args[1])
+		h, err2 := strconv.Atoi(args[2])
+		if err := errors.Join(err1, err2); err != nil {
+			return err
+		}
+		return writeCMYKRaw(w, h, args[3] == "alpha", args[4], args[5])
+	case "dds-bc1", "dds-bc4", "dds-bc7", "dds-bc6h", "lab-tiff8", "lab-tiff16", "lab-tiff8-alpha", "lab-tiff8-icc":
+		w, h, out, err := sizeArgs()
+		if err != nil {
+			return err
+		}
+		if args[0][:4] == "dds-" {
+			return ddsFixture(args[0], w, h, out)
+		}
+		return labTIFFFixture(args[0], w, h, out)
 	case "exr-rgba-half", "exr-rgb-float", "radiance", "rgbe", "pfm", "ppm":
 		w, h, out, err := sizeArgs()
 		if err != nil {
