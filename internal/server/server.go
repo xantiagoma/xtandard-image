@@ -105,9 +105,9 @@ func (m *SourceMeta) closeSession() {
 // lowered — or raised, with XI_SECURITY_ALLOW_RAISING_LIMITS — by the
 // request's security options). Zero means unlimited.
 type ProbeLimits struct {
-	MaxPixels      int64 // all frames (XI_LIMITS_MAX_SRC_PIXELS)
+	MaxPixels      int64 // frames loaded (XI_LIMITS_MAX_SRC_PIXELS)
 	MaxFrames      int   // XI_LIMITS_MAX_ANIMATION_FRAMES
-	MaxFramePixels int64 // XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS
+	MaxFramePixels int64 // XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS; zero is off (the total applies), not unlimited
 }
 
 // Prober reads the source header (stage 11): magic-byte sniff plus a

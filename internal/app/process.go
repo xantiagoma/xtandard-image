@@ -104,17 +104,7 @@ func (p *codecProber) Probe(ctx context.Context, src fetch.Buffer, lim server.Pr
 		return server.SourceMeta{}, err
 	}
 	defer vb.Release()
-	l := p.svg
-	// codec.Limits treats zero as its default; the server's zero is
-	// "unlimited" (the server re-checks the result against lim anyway).
-	l.MaxSrcPixels = unlimited(lim.MaxPixels)
-	l.MaxAnimationFrames = int(unlimited(int64(lim.MaxFrames)))
-	if lim.MaxFrames == 1 {
-		// max_animation_frames=1 disables animation (the planner processes
-		// one frame, like imgproxy); it does not reject animations.
-		l.MaxAnimationFrames = int(unlimited(0))
-	}
-	l.MaxAnimationFramePixels = unlimited(lim.MaxFramePixels)
+	l := withProbeLimits(p.svg, &lim)
 	var m codec.ImageMeta
 	err = vips.Run(ctx, func() error {
 		var err error
@@ -142,6 +132,21 @@ func (p *codecProber) Probe(ctx context.Context, src fetch.Buffer, lim server.Pr
 		out.Session = m.Session
 	}
 	return out, nil
+}
+
+// withProbeLimits sets the request's pixel and frame limits on the codec
+// limits l. codec.Limits treats zero as its default, the server's zero is
+// "unlimited" (a per-frame limit of zero is "off": animation frames count
+// against the total, codec's negative); the server re-checks the result
+// against lim anyway. A frame limit of 1 disables animation in both.
+func withProbeLimits(l codec.Limits, lim *server.ProbeLimits) codec.Limits {
+	l.MaxSrcPixels = unlimited(lim.MaxPixels)
+	l.MaxAnimationFrames = int(unlimited(int64(lim.MaxFrames)))
+	l.MaxAnimationFramePixels = -1
+	if lim.MaxFramePixels > 0 {
+		l.MaxAnimationFramePixels = lim.MaxFramePixels
+	}
+	return l
 }
 
 func unlimited(v int64) int64 {
@@ -218,6 +223,7 @@ func planLimits(cfg *config.Config) plan.Limits {
 		MaxResultDimension:      cfg.Limits.MaxResultDimension,
 		MaxAnimationFrames:      cfg.Limits.MaxAnimationFrames,
 		MaxAnimationFramePixels: cfg.Limits.MaxAnimationFramePixels,
+		MaxAnimationPixels:      cfg.Limits.MaxAnimationPixels,
 		MemoryBudget:            int64(cfg.Processing.MemoryBudget),
 		AllowRaisingLimits:      cfg.Security.AllowRaisingLimits,
 		MaxRawDemosaicPixels:    cfg.Limits.MaxRawDemosaicPixels,

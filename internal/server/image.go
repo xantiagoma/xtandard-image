@@ -443,23 +443,32 @@ func svgError(err error) error {
 }
 
 // checkMeta enforces the input limits on the probed header, independent of
-// whether the prober already did (defence in depth, and fakes in tests).
+// whether the prober already did (defence in depth, and fakes in tests):
+// the frame count, and one frame against the limits that could admit it
+// (transform.SourceLimits.CheckFrame). Which frames are loaded depends on
+// the output format and the request, so the totals over frames (imgproxy's
+// CheckDimensions, and XI_LIMITS_MAX_ANIMATION_PIXELS) are the planner's,
+// before anything is decoded. A frame limit of 1 disables animation (one
+// frame is processed, as in imgproxy) instead of rejecting animations.
 func checkMeta(m *SourceMeta, lim *ProbeLimits) error {
-	frames := int64(max(m.Frames, 1))
-	framePixels := int64(m.Width) * int64(m.Height)
-	switch {
-	case m.Width <= 0 || m.Height <= 0:
+	if m.Width <= 0 || m.Height <= 0 {
 		return errs.Newf(errs.KindCorrupt, "server: probe returned %dx%d", m.Width, m.Height)
-	case lim.MaxPixels > 0 && framePixels*frames > lim.MaxPixels:
-		return errs.Newf(errs.KindLimitExceeded, "server: source has %d pixels, limit %d", framePixels*frames, lim.MaxPixels)
-	case lim.MaxFrames > 1 && frames > int64(lim.MaxFrames):
-		// A limit of 1 disables animation (one frame is processed, as in
-		// imgproxy) instead of rejecting animated sources.
-		return errs.Newf(errs.KindLimitExceeded, "server: source has %d frames, limit %d", frames, lim.MaxFrames)
-	case frames > 1 && lim.MaxFramePixels > 0 && framePixels > lim.MaxFramePixels:
-		return errs.Newf(errs.KindLimitExceeded, "server: frame has %d pixels, limit %d", framePixels, lim.MaxFramePixels)
+	}
+	frames := max(m.Frames, 1)
+	if le := transform.CheckFrames(frames, lim.MaxFrames); le != nil {
+		return limitExceeded(le)
+	}
+	src := transform.SourceLimits{MaxSrcPixels: lim.MaxPixels, MaxFramePixels: lim.MaxFramePixels}
+	if le := src.CheckFrame(m.Width, m.Height, frames > 1 && lim.MaxFrames != 1); le != nil {
+		return limitExceeded(le)
 	}
 	return nil
+}
+
+// limitExceeded is the 422 of a source limit, with its message for the
+// client.
+func limitExceeded(le *transform.LimitError) error {
+	return errs.WithPublic(errs.Wrapf(errs.KindLimitExceeded, le, "server"), le.Public)
 }
 
 // checkResultDimension rejects requests whose explicit target size exceeds
