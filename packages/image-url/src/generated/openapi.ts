@@ -2119,8 +2119,12 @@ export interface components {
             notes?: string;
             /** @description Where the file comes from; the attribution for CC-BY files. */
             source: string;
+            /** @description Lower-case keywords: colour type, bit depth, alpha, animated, multi-page, hdr, icc, camera brand; "large" marks files over 20 MB and "gap" formats not decoded yet (expected 422). */
+            tags?: string[] | null;
             /** @description Public URL, fetched through an http source. */
             url: string;
+            /** @description Configuration within the format: colour type, bit depth, compression, animation, camera model ("cmyk 16-bit", "Canon CR3 C-RAW"). */
+            variant?: string;
         };
         PlaygroundListEntry: {
             /** @description A directory: list it with prefix=key. */
@@ -2154,7 +2158,7 @@ export interface components {
             detection: boolean;
             /** @description Output formats the server encodes. */
             formats: string[] | null;
-            /** @description Public sample files, one or two per input format, fetched through the http sources. */
+            /** @description Public sample files per input format and variant (docs/research/format-gap.md), fetched through the http sources. */
             gallery: components["schemas"]["PlaygroundGallerySample"][] | null;
             /**
              * Format: int64

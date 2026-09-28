@@ -3,6 +3,7 @@
 // check "a file of every format works".
 
 import { $, el, errorText, escapePlain, fmtBytes, fmtMs } from './dom.js';
+import { FORMAT_LABELS } from './sources.js';
 
 const CONCURRENCY = 2;
 
@@ -15,6 +16,8 @@ export class Matrix {
     this.built = false;
     this.sort = null; // {key, dir}
     $('matrix-run').addEventListener('click', () => this.runAll());
+    $('matrix-format').addEventListener('change', () => this.filter());
+    $('matrix-large').addEventListener('change', () => this.filter());
     for (const th of $('matrix').tHead.querySelectorAll('th[data-sort]')) {
       th.querySelector('button').addEventListener('click', () => this.sortBy(th.dataset.sort));
     }
@@ -30,6 +33,7 @@ export class Matrix {
     const value = {
       format: (r) => r.e.format,
       name: (r) => r.e.name,
+      variant: (r) => r.e.variant,
       time: (r) => r.ms ?? Infinity,
       status: rank,
     }[key];
@@ -46,15 +50,39 @@ export class Matrix {
   }
 
   entries() {
-    const out = (this.meta.samples ?? []).map((s) => ({ format: s.kind, name: `${s.label} (built-in)`, source: s.source, allowed: true }));
-    for (const g of this.meta.gallery ?? []) out.push({ format: g.format, name: g.name, source: g.url, allowed: g.allowed, bytes: g.bytes });
+    const out = (this.meta.samples ?? []).map((s) => ({ format: s.kind, name: `${s.label} (built-in)`, source: s.source, allowed: true, variant: 'built-in', tags: [] }));
+    for (const g of this.meta.gallery ?? []) {
+      out.push({ format: g.format, name: g.name, source: g.url, allowed: g.allowed, bytes: g.bytes, variant: g.variant ?? '', tags: g.tags ?? [] });
+    }
     return out;
+  }
+
+  // shown reports whether a row passes the format filter and the size
+  // switch; "Run all" runs only the rows shown.
+  shown(r) {
+    const f = $('matrix-format').value;
+    return (f === '' || r.e.format === f) && ($('matrix-large').checked || !r.e.tags.includes('large'));
+  }
+
+  filter() {
+    for (const r of this.rows) r.tr.hidden = !this.shown(r);
+    this.summary();
+  }
+
+  // summary counts the shown rows by result.
+  summary() {
+    const rows = this.rows.filter((r) => this.shown(r));
+    const ok = rows.filter((r) => r.ok).length;
+    const failed = rows.filter((r) => r.ok === false).length;
+    $('matrix-status').textContent = `${rows.length} samples shown` + (ok || failed ? `: ${ok} rendered, ${failed} failed.` : '.');
   }
 
   build() {
     if (this.built) return;
     this.built = true;
     const body = $('matrix').tBodies[0];
+    const formats = [...new Set(this.entries().map((e) => e.format))].sort((a, b) => a.localeCompare(b));
+    $('matrix-format').append(...formats.map((f) => el('option', { value: f, text: FORMAT_LABELS[f] ? `${FORMAT_LABELS[f]} (${f})` : f })));
     if (!this.mount) {
       $('matrix-status').textContent = 'No imgproxy mount with a prefix: the matrix needs one.';
       $('matrix-run').disabled = true;
@@ -63,7 +91,9 @@ export class Matrix {
     for (const e of this.entries()) {
       const cells = { probe: el('td'), thumb: el('td'), time: el('td'), bytes: el('td'), result: el('td') };
       const retry = el('button', { type: 'button', class: 'small', text: 'Run', 'aria-label': `Run ${e.name}` });
+      const gap = e.tags.includes('gap');
       const tr = el('tr', {}, el('td', { text: e.format }), el('td', { text: e.name, title: e.source }),
+        el('td', { class: 'variant', text: [e.variant, gap ? 'gap: 422 expected' : ''].filter(Boolean).join(' · ') }),
         cells.probe, cells.thumb, cells.time, cells.bytes, cells.result, el('td', {}, retry));
       const row = { e, tr, cells, i: this.rows.length };
       retry.addEventListener('click', () => this.run(row));
@@ -75,10 +105,11 @@ export class Matrix {
       this.rows.push(row);
       body.append(tr);
     }
+    this.filter();
   }
 
   async runAll() {
-    const todo = this.rows.filter((r) => r.e.allowed);
+    const todo = this.rows.filter((r) => r.e.allowed && this.shown(r));
     let done = 0;
     const status = $('matrix-status');
     const worker = async () => {
@@ -92,8 +123,7 @@ export class Matrix {
     $('matrix-run').disabled = true;
     await Promise.all(Array.from({ length: CONCURRENCY }, worker));
     $('matrix-run').disabled = false;
-    const ok = this.rows.filter((r) => r.ok).length;
-    status.textContent = `${ok} of ${this.rows.length} samples rendered.`;
+    this.summary();
     if (this.sort) {
       const { key, dir } = this.sort;
       this.sort = { key, dir: -dir }; // sortBy flips it back
