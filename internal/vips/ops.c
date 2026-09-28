@@ -877,6 +877,56 @@ xi_divide(VipsImage *a, VipsImage *b, VipsImage **out, char **err)
   return XI_OK;
 }
 
+int
+xi_math2_const(VipsImage *in, int op, const double *c, int n, VipsImage **out, char **err)
+{
+  if (vips_math2_const(in, out, op, c, n, NULL))
+    XI_FAIL();
+  return XI_OK;
+}
+
+// ---- gain maps (WP-104) -----------------------------------------------------
+
+// xi_get3 reads a three-value double array field.
+static gboolean
+xi_get3(VipsImage *in, const char *name, double out[3])
+{
+  double *d;
+  int n;
+
+  if (!vips_image_get_typeof(in, name) || vips_image_get_array_double(in, name, &d, &n) ||
+      n != 3)
+    return FALSE;
+  memcpy(out, d, 3 * sizeof(double));
+  return TRUE;
+}
+
+int
+xi_uhdr_gainmap(VipsImage *in, VipsImage **gm, XiUhdrGainMap *p, char **err)
+{
+  memset(p, 0, sizeof(*p));
+  *gm = NULL;
+  if (!vips_image_get_typeof(in, "gainmap") && !vips_image_get_typeof(in, "gainmap-data"))
+    return XI_OK;
+  if (!xi_get3(in, "gainmap-min-content-boost", p->min_boost) ||
+      !xi_get3(in, "gainmap-max-content-boost", p->max_boost) ||
+      !xi_get3(in, "gainmap-gamma", p->gamma) ||
+      !xi_get3(in, "gainmap-offset-sdr", p->offset_sdr) ||
+      !xi_get3(in, "gainmap-offset-hdr", p->offset_hdr) ||
+      vips_image_get_double(in, "gainmap-hdr-capacity-min", &p->capacity_min) ||
+      vips_image_get_double(in, "gainmap-hdr-capacity-max", &p->capacity_max)) {
+    vips_error_clear();
+    *err = xi_error_new("xi_uhdr_gainmap", "incomplete gain map metadata");
+    return XI_ERR_LOAD;
+  }
+  // Decompresses "gainmap-data" (a JPEG) unless the image carries one.
+  if (!(*gm = vips_image_get_gainmap(in))) {
+    *err = xi_error_copy();
+    return XI_ERR_LOAD;
+  }
+  return XI_OK;
+}
+
 // Text (WP-78).
 
 // xi_text renders Pango markup with vips_text as 4-band sRGB (rgba), built

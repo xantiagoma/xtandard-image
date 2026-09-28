@@ -1034,3 +1034,52 @@ func (s InfoSchema) MarshalText() ([]byte, error) {
 func (s *InfoSchema) UnmarshalText(b []byte) error {
 	return unmarshalEnum("InfoSchema", s, b, numInfoSchemas)
 }
+
+// ---------------------------------------------------------------------------
+// GainMapMode
+
+// GainMapMode says what an HDR gain map (UltraHDR, ISO 21496-1) does to the
+// output (WP-104, FORMATS.md §1.4).
+type GainMapMode uint8
+
+// GainMapMode values. The zero value is GainMapAuto.
+const (
+	// GainMapAuto applies the gain map when preserve_hdr asks for HDR and
+	// the output holds it (AVIF, JPEG XL, JPEG as UltraHDR); otherwise the
+	// SDR base is used.
+	GainMapAuto GainMapMode = iota
+	// GainMapHDR applies the gain map for those outputs even without
+	// preserve_hdr.
+	GainMapHDR
+	// GainMapSDR always uses the SDR base, preserve_hdr or not.
+	GainMapSDR
+)
+
+const numGainMapModes = 3
+
+func (m GainMapMode) String() string {
+	switch m {
+	case GainMapAuto:
+		return "auto"
+	case GainMapHDR:
+		return "hdr"
+	case GainMapSDR:
+		return "sdr"
+	}
+	return invalidEnum("GainMapMode", uint8(m))
+}
+
+// ParseGainMapMode parses a canonical GainMapMode name.
+func ParseGainMapMode(s string) (GainMapMode, error) {
+	return parseEnum[GainMapMode]("GainMapMode", s, numGainMapModes)
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (m GainMapMode) MarshalText() ([]byte, error) {
+	return marshalEnum("GainMapMode", m, numGainMapModes)
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (m *GainMapMode) UnmarshalText(b []byte) error {
+	return unmarshalEnum("GainMapMode", m, b, numGainMapModes)
+}

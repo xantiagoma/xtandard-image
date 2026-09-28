@@ -237,8 +237,10 @@ func (f Format) MIME() string { return f.info().mime }
 func (f Format) Ext() string { return f.info().ext }
 
 // SupportsAnimation reports whether the format can carry an animation that
-// the engine reads and writes frame by frame: GIF, WebP and JPEG XL. APNG and
-// AVIF sequences are loaded as their first frame (FORMATS.md §1).
+// the engine reads and writes frame by frame: GIF, WebP and JPEG XL. APNG is
+// loaded as its first frame; AVIF and HEIF image sequences are read as
+// animations (WP-104) but written as one frame, as libvips' heifsave has no
+// sequence output (FORMATS.md §1, §3).
 func (f Format) SupportsAnimation() bool { return f.info().anim }
 
 // SupportsAlpha reports whether the format can carry transparency.

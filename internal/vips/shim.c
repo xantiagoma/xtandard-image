@@ -273,6 +273,7 @@ xi_init_locked(const char *argv0, int concurrency, int cache_max, size_t cache_m
   xi_jxr_register();
   xi_jxlcmyk_register();
   xi_jpeghp_register();
+  xi_heifseq_register();
   vips_block_untrusted_set(TRUE);
   vips_operation_block_set("VipsForeignLoad", TRUE);
   vips_operation_block_set("VipsForeignSave", TRUE);

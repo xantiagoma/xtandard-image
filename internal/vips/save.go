@@ -20,6 +20,11 @@ import (
 // FormatHEIF encodes HEVC and is refused with KindUnsupported unless
 // Config.HEICEncode is on. SVG, JPEG 2000, BMP and ICO are not saved here.
 //
+// A linear scRGB float image (preserve_hdr) is written as HDR where the
+// format holds it: AVIF as BT.2100 PQ with BT.2020 primaries (10 or 12 bits,
+// HEIF.BitDepth; EXIF and XMP are not written), JPEG as UltraHDR (an SDR
+// base plus a gain map derived by libultrahdr), JPEG XL as float.
+//
 // Errors: KindInternal (the saver failed), KindCorrupt (the source's decoder
 // failed while the pipeline ran), KindUnsupported (format not encodable
 // here), KindCanceled/KindTimeout.
@@ -40,8 +45,13 @@ func (img *Image) Save(ctx context.Context, format Format, o *SaveOptions) (*Blo
 	var cerr *C.char
 	var rc C.int
 	var op string
-	switch format {
-	case FormatJPEG:
+	hdr := false
+	if img.isHDR() {
+		rc, op, p, n, cerr, hdr = img.saveHDR(format, o)
+	}
+	switch {
+	case hdr:
+	case format == FormatJPEG:
 		op = "jpegsave"
 		c := C.XiJpegOptions{
 			quality:             C.int(quality(o.JPEG.Quality)),
@@ -55,7 +65,7 @@ func (img *Image) Save(ctx context.Context, format Format, o *SaveOptions) (*Blo
 			quant_table:         C.int(min(max(o.JPEG.QuantTable, 0), 8)),
 		}
 		rc = C.xi_jpegsave(img.p, &c, keep, &p, &n, &cerr)
-	case FormatPNG:
+	case format == FormatPNG:
 		op = "pngsave"
 		c := C.XiPngOptions{
 			compression: C.int(min(max(o.PNG.Compression, 0), 9)),
@@ -68,7 +78,7 @@ func (img *Image) Save(ctx context.Context, format Format, o *SaveOptions) (*Blo
 			effort:      C.int(min(max(o.PNG.Effort, 1), 10)),
 		}
 		rc = C.xi_pngsave(img.p, &c, keep, &p, &n, &cerr)
-	case FormatWebP:
+	case format == FormatWebP:
 		op = "webpsave"
 		c := C.XiWebpOptions{
 			quality:         C.int(min(max(o.WebP.Quality, 0), MaxQuality)),
@@ -86,7 +96,7 @@ func (img *Image) Save(ctx context.Context, format Format, o *SaveOptions) (*Blo
 			exact:           cbool(o.WebP.Exact),
 		}
 		rc = C.xi_webpsave(img.p, &c, keep, &p, &n, &cerr)
-	case FormatGIF:
+	case format == FormatGIF:
 		op = "gifsave"
 		c := C.XiGifOptions{
 			dither:                C.double(min(max(o.GIF.Dither, 0), 1)),
@@ -99,7 +109,7 @@ func (img *Image) Save(ctx context.Context, format Format, o *SaveOptions) (*Blo
 			keep_duplicate_frames: cbool(o.GIF.KeepDuplicateFrames),
 		}
 		rc = C.xi_gifsave(img.p, &c, keep, &p, &n, &cerr)
-	case FormatAVIF, FormatHEIF:
+	case format == FormatAVIF, format == FormatHEIF:
 		op = "heifsave"
 		compression := C.int(C.VIPS_FOREIGN_HEIF_COMPRESSION_AV1)
 		if format == FormatHEIF {
@@ -114,7 +124,7 @@ func (img *Image) Save(ctx context.Context, format Format, o *SaveOptions) (*Blo
 			compression: compression,
 		}
 		rc = C.xi_heifsave(img.p, &c, keep, &p, &n, &cerr)
-	case FormatJXL:
+	case format == FormatJXL:
 		op = "jxlsave"
 		c := C.XiJxlOptions{
 			quality:  C.int(min(max(o.JXL.Quality, 0), MaxQuality)),
@@ -124,7 +134,7 @@ func (img *Image) Save(ctx context.Context, format Format, o *SaveOptions) (*Blo
 			tier:     C.int(min(max(o.JXL.Tier, 0), 4)),
 		}
 		rc = C.xi_jxlsave(img.p, &c, keep, &p, &n, &cerr)
-	case FormatTIFF:
+	case format == FormatTIFF:
 		op = "tiffsave"
 		c := C.XiTiffOptions{
 			quality:     C.int(quality(o.TIFF.Quality)),

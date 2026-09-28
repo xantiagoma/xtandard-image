@@ -22,6 +22,7 @@ type Output struct {
 	StripColorProfile     *bool
 	ColorProfile          string // "srgb" | "cmyk" | file name
 	PreserveHDR           *bool
+	GainMap               GainMapMode // HDR gain maps: auto (follow preserve_hdr), hdr, sdr (WP-104)
 	DPI                   int
 	EnforceThumbnail      *bool
 }

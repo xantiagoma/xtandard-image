@@ -62,9 +62,12 @@ type SourceInfo struct {
 	Bands        int
 	SampleFormat string
 	Colorspace   string
-	// HDR reports a scene-linear source (OpenEXR, Radiance, PFM); /info
-	// then answers "hdr": true.
+	// HDR reports a scene-linear source (OpenEXR, Radiance, PFM) or one
+	// with an HDR gain map; /info then answers "hdr": true.
 	HDR bool
+	// GainMap reports an HDR gain map (UltraHDR, ISO 21496-1 JPEG, AVIF or
+	// HEIC tmap); /info then answers "gain_map": true.
+	GainMap bool
 	// EXIF is in file order.
 	EXIF []EXIFEntry
 	// IPTC maps dataset titles to values, Photoshop holds
@@ -300,7 +303,9 @@ type InfoResponse struct {
 	Alpha        *bool                     `json:"alpha,omitempty"         doc:"Whether the source has an alpha channel (info option alpha)."`
 	InfoProResponse
 	InfoVideoResponse
-	HDR bool `json:"hdr,omitempty" doc:"xtandard-image extension: true for scene-linear sources (OpenEXR, Radiance, PFM), which imgproxy does not read; absent otherwise."`
+	HDR bool `json:"hdr,omitempty" doc:"xtandard-image extension: true for scene-linear sources (OpenEXR, Radiance, PFM), which imgproxy does not read, and for sources with an HDR gain map; absent otherwise."`
+	// GainMap is an xtandard-image extension too (WP-104).
+	GainMap bool `json:"gain_map,omitempty" doc:"xtandard-image extension: true when the source carries an HDR gain map (UltraHDR JPEG, ISO 21496-1 JPEG, AVIF or HEIC tmap item); its pixels are the SDR base, and preserve_hdr or gain_map:hdr render the HDR version for AVIF, JPEG XL and JPEG outputs; absent otherwise."`
 	// Container is last so imgproxy's fields keep their order.
 	Container *InfoContainer `json:"container,omitempty" doc:"xtandard-image extension (info option format): the source is a designer document (OpenRaster, Krita, Procreate, Sketch, SVGZ, Paint.NET) and format, dimensions and the other fields describe the image embedded in it; absent otherwise."`
 }
@@ -373,6 +378,7 @@ func infoBody(o *transform.InfoOptions, op *transform.ObjectsPosition, si *Sourc
 	out.InfoProResponse = pro
 	out.InfoVideoResponse = infoVideo(o, si.Video)
 	out.HDR = si.HDR
+	out.GainMap = si.GainMap
 	return json.Marshal(&out)
 }
 

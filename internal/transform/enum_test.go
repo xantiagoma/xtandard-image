@@ -99,6 +99,7 @@ func allEnumCases() []enumCase {
 		enumCheck[WebPPreset]("WebPPreset", numWebPPresets, ParseWebPPreset),
 		enumCheck[ResponseEncoding]("ResponseEncoding", numResponseEncodings, ParseResponseEncoding),
 		enumCheck[InfoSchema]("InfoSchema", numInfoSchemas, ParseInfoSchema),
+		enumCheck[GainMapMode]("GainMapMode", numGainMapModes, ParseGainMapMode),
 	}
 }
 
@@ -208,6 +209,7 @@ func FuzzParseEnums(f *testing.F) {
 		wrapParse("WebPPreset", ParseWebPPreset),
 		wrapParse("ResponseEncoding", ParseResponseEncoding),
 		wrapParse("InfoSchema", ParseInfoSchema),
+		wrapParse("GainMapMode", ParseGainMapMode),
 	}
 	for _, seed := range []string{
 		"", "fit", "fill-down", "lanczos3", "north-east", "focus-point", "object-weighted",
