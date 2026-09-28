@@ -1,0 +1,141 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "exif": {
+    "Color Space": "sRGB",
+    "Components Configuration": "Y Cb Cr -",
+    "Composite Image": "Not a composite image",
+    "Contrast": "Normal",
+    "Custom Rendered": "Custom process",
+    "Date and Time": "2022:08:24 20:07:42",
+    "Date and Time (Digitized)": "2022:08:24 20:07:42",
+    "Date and Time (Original)": "2022:08:24 20:07:42",
+    "Digital Zoom Ratio": " 0",
+    "Exif Version": "Exif Version 2.32",
+    "Exposure Bias": "0.00 EV",
+    "Exposure Mode": "Auto exposure",
+    "Exposure Program": "Normal program",
+    "Exposure Time": "1/1067 sec.",
+    "Flash": "No flash function",
+    "FlashPixVersion": "FlashPix Version 1.0",
+    "ISO Speed Ratings": "47",
+    "Interoperability Index": "R98",
+    "Interoperability Version": "0100",
+    "Lens Make": "Google",
+    "Lens Model": "Pixel 4a unknown camera",
+    "Manufacturer": "Google",
+    "Metering Mode": "Center-weighted average",
+    "Model": "Pixel 4a",
+    "Offset Time For DateTime": "+00:00",
+    "Offset Time For DateTimeDigitized": "+00:00",
+    "Offset Time For DateTimeOriginal": "+00:00",
+    "Orientation": "Top-left",
+    "Pixel X Dimension": "403",
+    "Pixel Y Dimension": "302",
+    "Resolution Unit": "Inch",
+    "Saturation": "Normal",
+    "Scene Capture Type": "Standard",
+    "Scene Type": "Directly photographed",
+    "Sensing Method": "One-chip color area sensor",
+    "Sharpness": "Normal",
+    "Shutter Speed": "10.06 EV (1/1067 sec.)",
+    "Software": "GIMP 2.10.32",
+    "Sub-second Time": "023000",
+    "Sub-second Time (Digitized)": "023000",
+    "Sub-second Time (Original)": "023000",
+    "Subject Distance": "0.0 m",
+    "Subject Distance Range": "Unknown",
+    "X-Resolution": "72",
+    "Y-Resolution": "72",
+    "YCbCr Positioning": "Centered"
+  },
+  "format": "jpeg",
+  "gain_map": true,
+  "hdr": true,
+  "height": 302,
+  "iptc": {},
+  "mime_type": "image/jpeg",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 47579,
+  "width": 403,
+  "xmp": {
+    "Container": {
+      "Directory": [
+        {
+          "Item": {
+            "Mime": "image/jpeg",
+            "Semantic": "Primary"
+          }
+        },
+        {
+          "Item": {
+            "Length": "14092",
+            "Mime": "image/jpeg",
+            "Semantic": "GainMap"
+          }
+        }
+      ]
+    },
+    "DICOM": {
+      "PatientSex": "other"
+    },
+    "GIMP": {
+      "API": "2.0",
+      "Platform": "Linux",
+      "TimeStamp": "1661371642640328",
+      "Version": "2.10.32"
+    },
+    "dc": {
+      "Format": "image/jpeg"
+    },
+    "hdrgm": {
+      "Version": "1.0"
+    },
+    "xmp": {
+      "CreatorTool": "GIMP 2.10",
+      "MetadataDate": "2022:08:24T22:07:07+02:00",
+      "ModifyDate": "2022:08:24T22:07:07+02:00"
+    },
+    "xmpMM": {
+      "DocumentID": "gimp:docid:gimp:d19d8265-6ba3-418e-9f89-cefba3ef5b22",
+      "History": [
+        {
+          "action": "saved",
+          "changed": "/",
+          "instanceID": "xmp.iid:f13d68d8-4ce1-4b96-8693-06fa2b068a09",
+          "softwareAgent": "Gimp 2.10 (Linux)",
+          "when": "2022-08-24T21:15:28+02:00"
+        },
+        {
+          "action": "saved",
+          "changed": "/",
+          "instanceID": "xmp.iid:22108f79-8464-416c-9df2-f0a964bf865d",
+          "softwareAgent": "Gimp 2.10 (Linux)",
+          "when": "2022-08-24T21:16:53+02:00"
+        },
+        {
+          "action": "saved",
+          "changed": "/metadata",
+          "instanceID": "xmp.iid:d1f1b9bd-d635-4bb2-8267-e847d9e0c892",
+          "softwareAgent": "Gimp 2.10 (Linux)",
+          "when": "2022-08-24T22:05:15+02:00"
+        },
+        {
+          "action": "saved",
+          "changed": "/",
+          "instanceID": "xmp.iid:c7acfa6c-c977-410c-92ff-c3b900b7af4b",
+          "softwareAgent": "Gimp 2.10 (Linux)",
+          "when": "2022-08-24T22:07:22+02:00"
+        }
+      ],
+      "InstanceID": "xmp.iid:a21468a0-72ee-489e-8927-2f380856cb8c",
+      "OriginalDocumentID": "xmp.did:915da93c-438f-425b-b7c0-ddd63bad346b"
+    },
+    "xmpNote": {
+      "HasExtendedXMP": "0FBF8664D08ED771A01EEB4E43F943B3"
+    }
+  }
+}

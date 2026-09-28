@@ -1,0 +1,18 @@
+{
+  "alpha": true,
+  "bands": 4,
+  "colorspace": "rgb16",
+  "exif": {},
+  "format": "avif",
+  "gain_map": true,
+  "hdr": true,
+  "height": 100,
+  "iptc": {},
+  "mime_type": "image/avif",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "ushort",
+  "size": 1371,
+  "width": 100,
+  "xmp": {}
+}

@@ -96,6 +96,7 @@ func sourceInfo(ci *codec.Info) *server.SourceInfo {
 			IsAnimated:  m.IsAnimated,
 			Orientation: m.Orientation,
 			HDR:         m.HDR,
+			GainMap:     m.GainMap,
 			Raw:         m.Raw,
 		},
 		Format:       name,
@@ -104,7 +105,8 @@ func sourceInfo(ci *codec.Info) *server.SourceInfo {
 		Bands:        ci.Bands,
 		SampleFormat: ci.SampleFormat,
 		Colorspace:   ci.Colorspace,
-		HDR:          ci.HDR,
+		HDR:          ci.HDR || ci.GainMap,
+		GainMap:      ci.GainMap,
 		Video:        ci.Video,
 	}
 	for _, e := range ci.EXIF {
