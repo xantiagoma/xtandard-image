@@ -216,3 +216,6 @@ owner has authorised merging PRs without review.
   `8.18.6-r7-slim`. Local `xtandard-base:dev*` are these builds (`wp108*` base tags removed).
   Verified: base checks slim/full/gpl, lint and `-race` tests on the three builders, acceptance
   133/133 on full and gpl release images. Next: merge, rebuild the demo.
+- **WP-108 merged (#115)**, bases slim r7 / full r8 / gpl r9 (local `dev*`). Demo redeployed from main
+  a69b514. In flight: WP-116 playground recipes (watermarks + showcase; adds a default watermark to
+  `compose.playground.yml`).
