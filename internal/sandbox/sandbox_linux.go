@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"syscall"
@@ -235,6 +236,14 @@ func (s *Sandbox) command(ctx context.Context, tmp string, outLimit int64, progA
 func RunHelper(args []string) int {
 	// prctl settings are per thread: set them on the thread that execs.
 	runtime.LockOSThread()
+	// RLIMIT_NPROC 0 (below) forbids new threads: a Go runtime that
+	// started one between the limits and execve (for another P, a GC
+	// worker, or to hand off a P stuck in a syscall) would abort with
+	// "pthread_create failed". One P and no GC leave it nothing to start
+	// a thread for, and the limits and the report use raw syscalls, which
+	// never release the P.
+	runtime.GOMAXPROCS(1)
+	debug.SetGCPercent(-1)
 	fail := func(what string, err error) int {
 		fmt.Fprintf(os.Stderr, "%s: %s: %v\n", HelperArg, what, err)
 		return helperFailStatus
@@ -282,37 +291,61 @@ func RunHelper(args []string) int {
 	if err := prctl(prSetNoNewPrivs, 1); err != nil {
 		return fail("PR_SET_NO_NEW_PRIVS", err)
 	}
-	limits := []struct {
+	type limit struct {
 		res      int
 		cur, max uint64
-	}{
+	}
+	// Through syscall.Setrlimit: setting RLIMIT_NOFILE there also stops
+	// syscall.Exec from restoring the soft limit the runtime raised.
+	for _, l := range []limit{
 		{syscall.RLIMIT_CORE, 0, 0},
 		{syscall.RLIMIT_NOFILE, *nofile, *nofile},
 		// Output goes to a pipe; no file may grow.
 		{syscall.RLIMIT_FSIZE, 0, 0},
 		// SIGXCPU at the soft limit, SIGKILL one second later.
 		{syscall.RLIMIT_CPU, *cpu, *cpu + 1},
-		// No fork: counted per user, so the server's own threads already
-		// exceed it (root is exempt, hence the switch to nobody).
-		{rlimitNPROC, 0, 0},
-		// Last: nothing below allocates much.
-		{syscall.RLIMIT_AS, *as, *as},
-	}
-	for _, l := range limits {
+	} {
 		if err := syscall.Setrlimit(l.res, &syscall.Rlimit{Cur: l.cur, Max: l.max}); err != nil {
 			return fail("setrlimit "+strconv.Itoa(l.res), err)
 		}
 	}
+	// Last, as raw system calls (see above): nothing after them may start
+	// a thread or grow the heap much.
+	limits := []limit{
+		// No fork: counted per user, so the server's own threads already
+		// exceed it (root is exempt, hence the switch to nobody).
+		{rlimitNPROC, 0, 0},
+		{syscall.RLIMIT_AS, *as, *as},
+	}
+	env := []string{"TMPDIR=" + *tmp, "TEMP=" + *tmp}
+	var line []byte
 	if *report {
 		nnp, _ := prctlGet(prGetNoNewPrivs)
 		var sig int32
 		_, _, _ = syscall.RawSyscall(syscall.SYS_PRCTL, prGetPdeathsig, uintptr(unsafe.Pointer(&sig)), 0)
-		fmt.Fprintf(os.Stdout, "%s nnp=%d pdeathsig=%d uid=%d gid=%d rlimits=1\n",
+		line = fmt.Appendf(nil, "%s nnp=%d pdeathsig=%d uid=%d gid=%d rlimits=1\n",
 			HelperArg, nnp, sig, os.Getuid(), os.Getgid())
 	}
-	env := []string{"TMPDIR=" + *tmp, "TEMP=" + *tmp}
+	for _, l := range limits {
+		if err := rawSetrlimit(l.res, l.cur, l.max); err != nil {
+			return fail("setrlimit "+strconv.Itoa(l.res), err)
+		}
+	}
+	if len(line) > 0 {
+		_, _, _ = syscall.RawSyscall(syscall.SYS_WRITE, 1, uintptr(unsafe.Pointer(&line[0])), uintptr(len(line)))
+	}
 	err := syscall.Exec(argv[0], argv, env) //nolint:gosec // G204: the program and its arguments come from the parent, never from a request
 	return fail("exec "+argv[0], err)
+}
+
+// rawSetrlimit sets a resource limit of this process with prlimit64(2) as a
+// raw system call (syscall.Setrlimit may release the P, see RunHelper).
+func rawSetrlimit(res int, cur, maxv uint64) error {
+	lim := syscall.Rlimit{Cur: cur, Max: maxv}
+	if _, _, e := syscall.RawSyscall6(syscall.SYS_PRLIMIT64, 0, uintptr(res), uintptr(unsafe.Pointer(&lim)), 0, 0, 0); e != 0 {
+		return e
+	}
+	return nil
 }
 
 // prctl calls prctl(2) with one argument.
