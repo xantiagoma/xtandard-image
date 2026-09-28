@@ -288,6 +288,9 @@ func TestFallback(t *testing.T) {
 			h.a.err = &limiter.OverloadError{Reason: limiter.ReasonQueueFull, Err: errs.New(errs.KindOverloaded, "full")}
 		}, false, 429},
 		{"process/internal", procErr(errs.KindInternal), false, 500},
+		{"probe/wrong document password", func(h *harness) {
+			h.pr.err, h.pr.errFor = errs.Wrap(errs.KindUnsupported, errs.ErrWrongPassword), jpegSource
+		}, false, 422},
 		{"negotiate/not acceptable", func(h *harness) { h.cfg.Negotiate.StrictAccept = true }, false, 406},
 	}
 	for _, tc := range tests {
