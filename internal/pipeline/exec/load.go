@@ -29,8 +29,11 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 		// and flattened (codec.FlattenXCF).
 		img, err = codec.FlattenXCF(ctx, r.a, r.j.Source, r.e.cfg.Limits.MaxSrcPixels, r.e.cfg.FailOn)
 	case stackable(r.j.Meta.Format):
-		if anim == nil && ls.NPages > 1 {
-			// Stacked pages of a multi-page still may differ in size.
+		// Stacked pages of a multi-page still may differ in size. The
+		// frames of an AVIF/HEIF sequence do not, and each page loaded
+		// on its own would decode every frame before it again: they are
+		// loaded as one strip.
+		if anim == nil && ls.NPages > 1 && !r.j.Meta.IsAnimated {
 			img, err = r.loadStack(ctx, ls)
 			break
 		}
