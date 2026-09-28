@@ -36,6 +36,11 @@ type runner struct {
 	iccImported bool
 	// hdrDone is set once a scene-linear source went through fromHDR.
 	hdrDone bool
+	// gainLoadable is set when the root load decoded the first page of a
+	// still at its own size (no page, stack, animation or embedded
+	// thumbnail), so the source's gain map matches it; gainDone once the
+	// colour step considered the gain map (WP-104).
+	gainLoadable, gainDone bool
 	// profileEmbedded is set when color_profile converted the result and
 	// attached its profile, which the encoder must then keep.
 	profileEmbedded bool
@@ -107,9 +112,13 @@ func (r *runner) execute(ctx context.Context) (*vips.Image, error) {
 		r.dets = plan.SourceDetections(r.req, &r.meta, r.plan)
 		r.follows = r.dets != nil
 	}
-	if !r.hdrPending() && r.req.Output.PreserveHDR != nil && *r.req.Output.PreserveHDR {
-		// Only scene-linear sources keep more than 8 bits so far (fromHDR).
+	if !r.hdrPending() && !r.gainMapWanted() && r.req.Output.PreserveHDR != nil && *r.req.Output.PreserveHDR {
+		// Only scene-linear sources and applied gain maps keep more than 8
+		// bits (fromHDR).
 		r.skip("preserve_hdr")
+	}
+	if r.req.Output.GainMap == transform.GainMapHDR && r.j.Meta.GainMap && !r.gainMapWanted() {
+		r.skip("gain_map")
 	}
 	img, err = r.pipeline(ctx, img)
 	if err != nil {
