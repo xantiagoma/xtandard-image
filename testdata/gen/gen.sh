@@ -83,8 +83,15 @@ if pkg-config --exists libheif 2>/dev/null; then
 	vips rawsave "$T/graphic-thumb.png" "$T/graphic-thumb.raw"
 	"$T/heifthumb" hevc "$T/photo.raw" 320 240 "$T/graphic-thumb.raw" 160 120 80 "$F/heic/thumbnail.heic"
 	"$T/heifthumb" av1 "$T/photo.raw" 320 240 "$T/graphic-thumb.raw" 160 120 80 "$F/avif/thumbnail.avif"
+	# Image sequences (WP-104): a libheif sequence track, 4 procedural
+	# frames of 64x48; AV1 looping forever, AV1 with alpha playing twice,
+	# HEVC (kvazaar) looping forever.
+	cc -O2 -o "$T/heifseq" testdata/gen/heifseq/heifseq.c $(pkg-config --cflags --libs libheif)
+	"$T/heifseq" av1 64 48 4 0 0 "$F/avif/sequence.avif"
+	"$T/heifseq" av1 64 48 4 1 2 "$F/avif/sequence-alpha.avif"
+	"$T/heifseq" hevc 64 48 4 0 0 "$F/heic/sequence.heic"
 else
-	echo "libheif development files missing: heic/thumbnail.heic and avif/thumbnail.avif not regenerated" >&2
+	echo "libheif development files missing: heic/thumbnail.heic, avif/thumbnail.avif and the sequences not regenerated" >&2
 fi
 
 # TIFF: two pages, deflate.

@@ -99,7 +99,7 @@ func formatOfLoader(loader, subformat string) Format {
 		return FormatWebP
 	case "gifload":
 		return FormatGIF
-	case "heifload":
+	case "heifload", "heifseqload":
 		if subformat == "av1" {
 			return FormatAVIF
 		}

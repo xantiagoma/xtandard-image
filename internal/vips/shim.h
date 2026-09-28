@@ -269,6 +269,34 @@ gboolean xi_is_jpeghp(const void *buf, size_t len);
 // Live libjpeg decompressors of the loader (leak tests).
 int xi_jpeghp_live(void);
 
+// ---- HEIF/AVIF through libheif (heif.c, WP-104) ----------------------------
+
+// Registers the heifseqload_buffer loader class (XiForeignLoadHeifSeqBuffer)
+// with libvips; xi_init calls it before applying the loader allowlist.
+void xi_heifseq_register(void);
+// A HEIF/AVIF file with a sequence brand, a moov box and a visual track.
+gboolean xi_is_heif_sequence(const void *buf, size_t len);
+// Live libheif contexts plus live decoded buffers (leak tests).
+int xi_heif_live(void);
+// xi_heif_gainmap decodes the gain map of the ISO 21496-1 tmap item whose
+// base is the primary image: *out is its 8-bit RGB image (NULL, with XI_OK,
+// when the file has none) and *meta a g_malloc'd copy of the tmap payload
+// (freed with xi_free).
+int xi_heif_gainmap(VipsBlob *blob, VipsImage **out, void **meta, size_t *meta_len, char **err);
+
+typedef struct {
+  int quality;
+  int effort;   // 0..9
+  int lossless;
+  int bitdepth; // 10 or 12
+} XiAvifHdrOptions;
+
+// xi_avif_hdr_save encodes linear scRGB float (1.0 = SDR white, 203 cd/m²)
+// as a BT.2100 PQ, BT.2020 AVIF with nclx and clli boxes, into a g_malloc'd
+// buffer.
+int xi_avif_hdr_save(VipsImage *in, const XiAvifHdrOptions *o, void **buf, size_t *len,
+    char **err);
+
 // ---- image accessors and metadata (image.c) ------------------------------
 
 int xi_image_width(VipsImage *img);
@@ -403,6 +431,25 @@ int xi_decode(VipsImage *in, VipsImage **out, char **err); // Radiance/LabQ codi
 int xi_clamp(VipsImage *in, double min, double max, VipsImage **out, char **err);
 int xi_multiply(VipsImage *a, VipsImage *b, VipsImage **out, char **err);
 int xi_divide(VipsImage *a, VipsImage *b, VipsImage **out, char **err);
+// vips_math2_const: op is VipsOperationMath2 (POW: in ^ c, WOP: c ^ in).
+int xi_math2_const(VipsImage *in, int op, const double *c, int n, VipsImage **out, char **err);
+
+// Gain maps (WP-104). XiUhdrGainMap holds uhdrload's gain map metadata:
+// linear content boosts and capacities, per channel where libvips has
+// three values.
+typedef struct {
+  double min_boost[3];
+  double max_boost[3];
+  double gamma[3];
+  double offset_sdr[3];
+  double offset_hdr[3];
+  double capacity_min;
+  double capacity_max;
+} XiUhdrGainMap;
+
+// xi_uhdr_gainmap returns the gain map uhdrload attached to in (decoded;
+// *gm NULL with XI_OK when there is none) and its metadata.
+int xi_uhdr_gainmap(VipsImage *in, VipsImage **gm, XiUhdrGainMap *p, char **err);
 
 // ---- save (save.c) -----------------------------------------------------
 //
@@ -502,6 +549,9 @@ int xi_jxlsave(VipsImage *in, const XiJxlOptions *o, int keep, void **buf, size_
     char **err);
 int xi_tiffsave(VipsImage *in, const XiTiffOptions *o, int keep, void **buf, size_t *len,
     char **err);
+// xi_uhdrsave writes scRGB float as UltraHDR JPEG: libultrahdr derives the
+// SDR base and a new gain map (WP-104).
+int xi_uhdrsave(VipsImage *in, int quality, int keep, void **buf, size_t *len, char **err);
 
 // ---- EXIF tag titles (libexif, exif.c) ----------------------------------------
 
