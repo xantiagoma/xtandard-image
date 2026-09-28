@@ -1,0 +1,16 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "exif": {},
+  "format": "dicom",
+  "height": 48,
+  "iptc": {},
+  "mime_type": "application/dicom",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 3748,
+  "width": 64,
+  "xmp": {}
+}
