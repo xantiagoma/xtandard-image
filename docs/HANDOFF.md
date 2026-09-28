@@ -63,7 +63,11 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   WP-101/102 merged (#105): Nikon HE / unsupported RAW → embedded preview, lazy-decode 500→422,
   RAW-aware pixel limit (`XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS` 120 MP), libtiff zstd; bases slim r5 /
   full r6 / gpl r7 (local `dev*` tags retagged from wp101). Host `go build` no longer works (libjxr
-  only in the base): verify in the container. Next candidates: WP-103…108 (ROADMAP), Leaf MOS sniffing.
+  only in the base): verify in the container. In flight (batch 1): WP-103 (LibRaw snapshot, X3F, GPR, DNG SDK),
+  WP-105 (Lab TIFF, CMYK JXL, pure-Go DDS BCn), WP-107 (designer containers, bounded ZIP, XCF). Batch 2
+  after these: WP-104 (AVIF sequences, gain maps), WP-106 (12/16-bit JPEG), WP-108 (FITS/DICOM/KTX2…).
+  Rule for parallel base work: agents build under `xtandard-base:wpNNN*`, never bump revisions or
+  retag `dev*`; the orchestrator bumps revisions once when integrating. Leaf MOS sniffing still open.
   Commit trailer is now `Co-Authored-By: Claude Opus 5.5`.
 - **Backlog after M3 (WP-91+):** face/object gravity on a single-frame video answers 422 (detection
   hands the container bytes to libvips; fix = detect on the decoded frame; composites already skip
