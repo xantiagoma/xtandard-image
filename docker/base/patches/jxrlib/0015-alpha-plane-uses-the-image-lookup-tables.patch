@@ -1,0 +1,32 @@
+From: xtandard-image
+Subject: [PATCH] The interleaved alpha plane uses the image's lookup tables
+
+Found by fuzzing (Go FuzzJXR, confirmed with ASan): ImageStrDecDecode
+rebuilt the shared offset tables from the interleaved alpha plane's header;
+a plane claiming a subsampled colour format halved them and the image then
+read past their end. Both planes share m_Dparam and, in a valid file, the
+same geometry: build the tables once, from the image.
+---
+--- a/image/decode/strdec.c
++++ b/image/decode/strdec.c
+@@ -3463,14 +3463,16 @@
+     {
+         if(initLookupTables(pSC) != ICERR_OK)
+             return ICERR_ERROR;
+-        if (pNextSC && initLookupTables(pNextSC) != ICERR_OK)
+-            return ICERR_ERROR;
++        // The interleaved alpha plane shares m_Dparam, so the image's tables
++        // serve it; rebuilding them from its own (corrupt) plane header made
++        // them shorter than the image and the image read past them.
+     }
+ #else
+     if(initLookupTables(pSC) != ICERR_OK)
+         return ICERR_ERROR;
+-    if (pNextSC && initLookupTables(pNextSC) != ICERR_OK)
+-        return ICERR_ERROR;
++    // The interleaved alpha plane shares m_Dparam, so the image's tables
++    // serve it; rebuilding them from its own (corrupt) plane header made
++    // them shorter than the image and the image read past them.
+ #endif // REENTRANT_MODE
+ 
+ #ifndef REENTRANT_MODE

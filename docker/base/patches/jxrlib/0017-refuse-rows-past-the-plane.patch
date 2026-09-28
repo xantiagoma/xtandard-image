@@ -1,0 +1,23 @@
+From: xtandard-image
+Subject: [PATCH] Refuse macroblock rows past the plane
+
+Found by fuzzing (Go FuzzJXR, confirmed with ASan): PKImageDecode_Copy_WMP
+asks the planar alpha plane for as many macroblock rows as the image has;
+an alpha plane whose header declares fewer was decoded past its last row
+and past its offset tables (heap over-read in outputNChannel). Fail the
+decode instead.
+---
+--- a/image/decode/strdec.c
++++ b/image/decode/strdec.c
+@@ -3498,6 +3498,11 @@
+     cMBRow = (pSC->m_Dparam->bDecodeFullFrame ? pSC->cmbHeight : ((pSC->m_Dparam->cROIBottomY + 16) >> 4));
+ 
+ #ifdef REENTRANT_MODE
++    // The caller counts rows from the image's height; a planar alpha plane
++    // whose own header is shorter would be decoded past its last row (and
++    // past its lookup tables). One row of delay is legitimate.
++    if (pSC->WMIBI.uiLastMBRow > cMBRow + 1)
++        return ICERR_ERROR;
+     if (0 == pSC->WMIBI.uiFirstMBRow)
+     {
+         if(initLookupTables(pSC) != ICERR_OK)
