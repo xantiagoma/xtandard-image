@@ -40,3 +40,5 @@ services:
       XI_DIALECTS_AWSSIH_SOURCE: web
       XI_DIALECTS_SIMPLE_ENABLED: appwrite,astro,builderio,cloudimage,contentful,contentstack,directus,hygraph,imageengine,ipx,keycdn,kontentai,netlify,nextjs,scene7,shopify,storyblok,supabase,uploadcare,wordpress
       XI_DIALECTS_SIMPLE_SOURCE: web
+      # gpl image only: EPS/PS/AI through the sandboxed Ghostscript subprocess (WP-99, ADR 0011)
+      XI_FORMATS_EPS_ENABLED: "true"
