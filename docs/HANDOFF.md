@@ -63,9 +63,8 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   WP-101/102 merged (#105): Nikon HE / unsupported RAW → embedded preview, lazy-decode 500→422,
   RAW-aware pixel limit (`XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS` 120 MP), libtiff zstd; bases slim r5 /
   full r6 / gpl r7 (local `dev*` tags retagged from wp101). Host `go build` no longer works (libjxr
-  only in the base): verify in the container. In flight (batch 1): WP-103 (LibRaw snapshot, X3F, GPR, DNG SDK),
+  only in the base): verify in the container. WP-109 (playground Info panel, #106) merged. In flight (batch 1): WP-103 (LibRaw snapshot, X3F, GPR, DNG SDK),
   WP-105 (Lab TIFF, CMYK JXL, pure-Go DDS BCn), WP-107 (designer containers, bounded ZIP, XCF),
-  WP-109 (playground Info panel: every /info option, BlurHash/ThumbHash decoded client-side),
   WP-110 (`classify` with a CPU ImageNet ONNX model in full/gpl, only when requested; CLIP and a
   CUDA image are future ROADMAP rows). Batch 2
   after these: WP-104 (AVIF sequences, gain maps), WP-106 (12/16-bit JPEG), WP-108 (FITS/DICOM/KTX2…).
