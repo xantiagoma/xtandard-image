@@ -423,3 +423,10 @@ xi_blob_failed(VipsBlob *blob)
 {
   return blob && xi_sources_failed(VIPS_AREA(blob)->data);
 }
+
+void
+xi_blob_mark_failed(VipsBlob *blob)
+{
+  if (blob)
+    xi_sources_mark_failed(VIPS_AREA(blob)->data);
+}

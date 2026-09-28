@@ -70,6 +70,9 @@ void xi_blob_set_length(VipsBlob *blob, size_t length);
 VipsBlob *xi_blob_ref(VipsBlob *blob);
 void xi_blob_unref(VipsBlob *blob);
 int xi_blob_failed(VipsBlob *blob);
+// Marks blob's source failed (load.c's decode guard: a loader that could
+// not compute a region without signalling "invalidate").
+void xi_blob_mark_failed(VipsBlob *blob);
 
 // ---- load (load.c) -----------------------------------------------------
 
