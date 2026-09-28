@@ -46,7 +46,10 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   in headless Chromium (41 checks).
 - **M4 backlog done (2026-09-27):** WP-91/92 (detection on video frames, detections mapped through
   chains) merged as #99, WP-93 (MALLOC_CONF in the base, slim r3 / full+gpl r4, local only until the
-  `base-image` workflow runs) merged as #98. Demo runs `xtandard-image:main-gpl` from main 0bd3d7c.
+  `base-image` workflow runs) merged as #98. WP-97 long-tail inputs (JPEG XR via fuzz-hardened jxrlib, PNM P1–P7, TGA/PCX/DDS/QOI/SGI/
+  Sun/XBM/XPM via ImageMagick, WBMP/ICNS in Go; EPS declined: AGPL Ghostscript) merged as #100;
+  bases now slim r4 / full r5 / gpl r5 (local `xtandard-base:dev*` tags retagged from the WP-97
+  build). Demo runs `xtandard-image:main-gpl` from main 244ae64.
   Commit trailer is now `Co-Authored-By: Claude Opus 5.5`.
 - **Backlog after M3 (WP-91+):** face/object gravity on a single-frame video answers 422 (detection
   hands the container bytes to libvips; fix = detect on the decoded frame; composites already skip
