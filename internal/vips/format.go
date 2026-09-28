@@ -91,7 +91,7 @@ func (f Format) String() string {
 func formatOfLoader(loader, subformat string) Format {
 	name, _ := strings.CutSuffix(loader, "_buffer")
 	switch name {
-	case "jpegload", "uhdrload":
+	case "jpegload", "uhdrload", "jpeghpload":
 		return FormatJPEG
 	case "pngload":
 		return FormatPNG
