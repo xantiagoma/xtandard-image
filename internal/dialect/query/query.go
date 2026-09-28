@@ -38,6 +38,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/security/crypt"
 	"github.com/xantiagoma/xtandard-image/internal/security/sign"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
@@ -50,7 +51,17 @@ const (
 	paramURL  = "url"
 	paramFile = "file"
 	paramO    = "o"
+	// paramPDFPassword (and its short form) is the imgproxy pdf_password
+	// option: an encrypted document password, signed URLs only (WP-115).
+	paramPDFPassword      = "pdf_password"
+	paramPDFPasswordShort = "pdp"
 )
+
+// isPDFPasswordParam reports whether key carries an encrypted document
+// password.
+func isPDFPasswordParam(key string) bool {
+	return key == paramPDFPassword || key == paramPDFPasswordShort
+}
 
 // Reasons recorded in Request.Ignored.
 const (
@@ -69,6 +80,9 @@ type Options struct {
 	// XIVerifier checks the xi_sig parameter (sign.NewXIVerifier). nil means
 	// xi_sig signing is off.
 	XIVerifier sign.Verifier
+	// Cipher decrypts pdf_password tokens (XI_ENCRYPTION_KEYS, the enc/
+	// source key). nil refuses pdf_password with 403.
+	Cipher *crypt.Cipher
 	// ArgumentsSeparator separates arguments inside o= (the imgproxy
 	// dialect's XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR); "" means ":".
 	ArgumentsSeparator string
@@ -95,6 +109,7 @@ func New(opts *Options) (*Parser, error) {
 		o = *opts
 	}
 	ip, err := imgproxy.New(&imgproxy.Options{
+		Cipher:               o.Cipher,
 		ArgumentsSeparator:   o.ArgumentsSeparator,
 		Strict:               o.Strict,
 		AllowSecurityOptions: o.AllowSecurityOptions,
@@ -141,19 +156,24 @@ func (p *Parser) ParseURL(path, rawQuery string) (*dialect.Result, error) {
 	}
 
 	b := p.opt.NewBuilder(Name)
+	// pdf_password is refused unless the signature was verified, before
+	// its token is decrypted.
+	b.SetVerified(sigResult == sign.Verified)
 	if decoded == "" {
 		err = p.native(b, params)
 	} else {
 		err = p.imaginary(b, decoded, params)
 	}
-	if err != nil {
-		return nil, err
-	}
-	if err := b.Finish(); err != nil {
-		return nil, err
+	if err == nil {
+		err = b.Finish()
 	}
 	r := b.Request()
-	r.Source = transform.SourceSpec{Raw: src, Encoding: transform.SourcePlain}
+	if err != nil {
+		r.Source.Password.Clear()
+		return nil, err
+	}
+	// Options may have set the source's hashsum or password: keep them.
+	r.Source.Raw, r.Source.Encoding = src, transform.SourcePlain
 	return &dialect.Result{Request: r, SourceString: src, Signature: sigResult}, nil
 }
 

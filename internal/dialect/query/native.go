@@ -92,6 +92,8 @@ func (p *Parser) nativeKey(b *imgproxy.Builder, key, v string) error {
 		return b.Apply("return_attachment", v)
 	case "expires":
 		return b.Apply("expires", v)
+	case paramPDFPassword, paramPDFPasswordShort:
+		return b.Apply("pdf_password", v)
 	}
 	if isSignatureParam(key) {
 		return nil

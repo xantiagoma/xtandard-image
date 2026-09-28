@@ -60,6 +60,7 @@ var imgproxyGroups = map[string]string{
 	"cachebuster": groupDelivery, "bypass_cache": groupDelivery, "cache_tags": groupDelivery, "expires": groupDelivery,
 	"filename": groupDelivery, "return_attachment": groupDelivery, "cb": groupDelivery, "attachment": groupDelivery,
 	"preset": groupPresets, "o": groupPresets,
+	"pdf_password": groupSecurity, "pdp": groupSecurity,
 }
 
 func groupOf(groups map[string]string, name string) string {
@@ -98,6 +99,7 @@ var infoGroups = map[string]string{
 	"cachebuster": groupDelivery, "expires": groupDelivery, "bypass_cache": groupDelivery, "cache_tags": groupDelivery,
 	"preset":             groupPresets,
 	"max_src_resolution": groupSecurity, "max_src_file_size": groupSecurity,
+	"pdf_password": groupSecurity,
 }
 
 // InfoOptions returns the imgproxy /info option catalogue (the
