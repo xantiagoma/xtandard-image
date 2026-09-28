@@ -92,6 +92,28 @@ var goldenCases = []goldenCase{
 	{name: "png16", fixture: "png/rgb16.png", options: "rs:fit:48:48", out: transform.FormatPNG, w: 48, h: 36},
 	{name: "heic", fixture: "heic/photo.heic", options: "rs:fit:80:80", out: transform.FormatPNG, w: 80, h: 60},
 
+	// Long-tail inputs (WP-97): JPEG XR (jxrlib), ImageMagick's legacy
+	// coders, Netpbm through ppmload and the Go WBMP and ICNS loaders.
+	// imgproxy (open source) reads none of them.
+	{name: "jxr", fixture: "jxr/photo.jxr", options: "rs:fill:40:40", out: transform.FormatPNG, w: 40, h: 40, noImgproxy: true},
+	{name: "jxr-alpha", fixture: "jxr/alpha.jxr", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "jxr-rgb16", fixture: "jxr/rgb16.jxr", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "tga-alpha", fixture: "tga/alpha.tga", options: "rs:fill:40:40", out: transform.FormatPNG, w: 40, h: 40, noImgproxy: true},
+	{name: "tga-rle", fixture: "tga/photo-rle.tga", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "pcx", fixture: "pcx/photo.pcx", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "dds-dxt5", fixture: "dds/alpha-dxt5.dds", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "qoi", fixture: "qoi/alpha.qoi", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "sgi", fixture: "sgi/alpha.sgi", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "sun", fixture: "sun/photo.ras", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "xbm", fixture: "xbm/graphic.xbm", options: "rs:fit:24:24", out: transform.FormatPNG, w: 24, h: 18, noImgproxy: true},
+	{name: "xpm", fixture: "xpm/graphic.xpm", options: "rs:fit:24:24", out: transform.FormatPNG, w: 24, h: 18, noImgproxy: true},
+	{name: "pam", fixture: "pam/alpha.pam", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "pbm-ascii", fixture: "ppm/graphic-ascii.pbm", options: "rs:fit:24:24", out: transform.FormatPNG, w: 24, h: 18, noImgproxy: true},
+	{name: "pgm-ascii", fixture: "ppm/photo-ascii.pgm", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "wbmp", fixture: "wbmp/graphic.wbmp", options: "rs:fit:24:24", out: transform.FormatPNG, w: 24, h: 18, noImgproxy: true},
+	{name: "icns", fixture: "icns/icon.icns", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 32, noImgproxy: true},
+	{name: "icns-to-webp", fixture: "icns/icon.icns", options: "rs:fit:64:64", out: transform.FormatWebP, w: 64, h: 64, noImgproxy: true},
+
 	// Chained pipelines.
 	{name: "chained", fixture: jpegPhoto, options: "rs:fill:100:80/-/rot:90", out: transform.FormatPNG, w: 80, h: 100, noImgproxy: true},
 }

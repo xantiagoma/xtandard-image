@@ -5,7 +5,8 @@
 # Forked from imgproxy-docker-base (MIT, Copyright (c) 2017 Sergey Alexandrovich);
 # see LICENSE.imgproxy-docker-base. Changes: /opt/xtandard prefix; added libspng,
 # OpenJPEG, libultrahdr and jemalloc (WP-05) and LibRaw, Imath, OpenEXR,
-# ImageMagick (PSD only) and prebuilt PDFium (WP-66); explicit feature switches so
+# ImageMagick (PSD only, widened to a few legacy formats by WP-97) and prebuilt PDFium
+# (WP-66); explicit feature switches so
 # optional GPL codecs (jbig, x265, poppler) can never be picked up by
 # auto-detection; license bundle and SOURCES.md; license gate.
 
@@ -595,10 +596,12 @@ add_sbom openexr "$OPENEXR_VERSION" "cpe:2.3:a:openexr:openexr:$OPENEXR_VERSION:
 
 print_build_stage imagemagick "$IMAGEMAGICK_VERSION"
 cd "$DEPS_SRC/imagemagick"
-# ImageMagick exists only for libvips' magickload of PSD/PSB (docs/FORMATS.md). Every
-# delegate library is switched off explicitly (the PSD coder needs zlib only), there
-# are no utilities, no C++/Perl bindings, no OpenMP/OpenCL, and coders are built in
-# (no loadable modules). magick-policy.xml then denies every coder except PSD/PSB.
+# ImageMagick exists only for libvips' magickload of PSD/PSB and of a few legacy
+# formats without a libvips loader (docs/FORMATS.md, WP-97). Every delegate library is
+# switched off explicitly (those coders need zlib at most), there are no utilities, no
+# C++/Perl bindings, no OpenMP/OpenCL, and coders are built in (no loadable modules).
+# magick-policy.xml then denies every coder except PSD/PSB, TGA, PCX, DDS, QOI, SGI,
+# SUN, XBM, XPM and PAM.
 ./configure \
   --prefix="$TARGET_PATH" \
   --enable-shared \

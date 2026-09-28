@@ -1,0 +1,40 @@
+From: xtandard-image
+Subject: [PATCH] Validate the stream headers before decoding
+
+Found by fuzzing (internal/vips FuzzJXR): a colour format outside the
+known ones leaves cNumChannels at 0, so ImageStrDecInit sizes its buffers
+with cNumChannels - 1 (underflow) and never sets the macroblock row
+buffers, which ImageStrDecDecode then writes through (NULL). The two
+header asserts of PKImageDecode_Initialize_WMP become checks, since the
+build defines NDEBUG.
+---
+--- a/jxrgluelib/JXRGlueJxr.c
++++ b/jxrgluelib/JXRGlueJxr.c
+@@ -1853,8 +1853,10 @@
+     pID->WMP.fFirstNonZeroDecode = FALSE;
+ 
+     FailIf(ICERR_OK != ImageStrDecGetInfo(&pID->WMP.wmiI, &pID->WMP.wmiSCP), WMP_errFail);
+-    assert(Y_ONLY <= pID->WMP.wmiSCP.cfColorFormat && pID->WMP.wmiSCP.cfColorFormat < CFT_MAX);
+-    assert(BD_SHORT == pID->WMP.wmiSCP.bdBitDepth || BD_LONG == pID->WMP.wmiSCP.bdBitDepth);
++    // Checked, not asserted: asserts are compiled out (NDEBUG) and would
++    // abort the host process otherwise.
++    FailIf(!(Y_ONLY <= pID->WMP.wmiSCP.cfColorFormat && pID->WMP.wmiSCP.cfColorFormat < CFT_MAX), WMP_errUnsupportedFormat);
++    FailIf(!(BD_SHORT == pID->WMP.wmiSCP.bdBitDepth || BD_LONG == pID->WMP.wmiSCP.bdBitDepth), WMP_errUnsupportedFormat);
+ 
+     // If HD Photo container provided an orientation, this should override bitstream orientation
+     // If container did NOT provide an orientation, force O_NONE. This is to be consistent with
+--- a/image/decode/strdec.c
++++ b/image/decode/strdec.c
+@@ -3251,6 +3251,12 @@
+     if (ReadWMIHeader(&SC.WMII, &SC.WMISCP, &SC.m_param) != ICERR_OK) {
+         return ICERR_ERROR;
+     }
++    // A colour format outside the known ones leaves the channel count at
++    // 0: the macroblock row buffers below would never be set up.
++    if (SC.m_param.cNumChannels == 0 || SC.m_param.cNumChannels > MAX_CHANNELS)
++        return ICERR_ERROR;
++    if (pSCP->bdBitDepth != BD_SHORT && pSCP->bdBitDepth != BD_LONG)
++        return ICERR_ERROR;
+ 
+     bUseHardTileBoundaries = SC.WMISCP.bUseHardTileBoundaries;
+     if(SC.WMII.cfColorFormat == CMYK && pII->cfColorFormat == CF_RGB)

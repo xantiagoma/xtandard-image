@@ -2,9 +2,9 @@
 
 `docker/base` builds libvips 8.18 and every codec it links into `/opt/xtandard` on
 `ubuntu:noble`, in three flavors: `slim` (every still format), `full` (slim plus FFmpeg 8
-under the LGPL, ONNX Runtime and the detection models; WP-70, see [full flavor](#full-flavor-wp-70-revision-4))
+under the LGPL, ONNX Runtime and the detection models; WP-70, see [full flavor](#full-flavor-wp-70-revision-5))
 and `gpl` (full with FFmpeg rebuilt under the GPL to add the x264 H.264 and x265 HEVC
-encoders; WP-70b, see [gpl flavor](#gpl-flavor-wp-70b-revision-4)). slim and full contain no GPL code; gpl does,
+encoders; WP-70b, see [gpl flavor](#gpl-flavor-wp-70b-revision-5)). slim and full contain no GPL code; gpl does,
 and is labelled and documented as such. It is a fork of
 [imgproxy-docker-base](https://github.com/imgproxy/imgproxy-docker-base) (MIT, Copyright (c)
 2017 Sergey Alexandrovich; kept in `LICENSE.imgproxy-docker-base`, credited in `/NOTICE`).
@@ -25,7 +25,7 @@ Decisions: [ADR 0005](../../docs/adr/0005-docker-image-strategy.md) (image strat
 
 `<vips>` is `VIPS_VERSION` and `<N>` is `XI_BASE_REVISION` from `versions.sh`; `<M>` is
 `XI_BASE_FULL_REVISION` from `versions-full.sh`; `<G>` is `XI_BASE_GPL_REVISION` from
-`versions-gpl.sh` (currently `8.18.6-r3-slim`, `8.18.6-r4-full` and `8.18.6-r4-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
+`versions-gpl.sh` (currently `8.18.6-r4-slim`, `8.18.6-r5-full` and `8.18.6-r5-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
 locally with the `task docker:base:*` tasks (below), which tag `xtandard-base:dev`,
 `xtandard-base:dev-builder`, `xtandard-base:dev-full`, `xtandard-base:dev-full-builder`,
 `xtandard-base:dev-gpl` and `xtandard-base:dev-gpl-builder`. All are
@@ -39,7 +39,8 @@ joined with `docker buildx imagetools create`. The workflow runs on changes unde
 ```
 base ──► deps-src        download-deps.sh: fetch every tarball, verify SHA256, unpack
    ├───► deps            install-rust.sh + pinned meson/ninja/cmake, build-deps.sh → /opt/xtandard,
-   │                     license bundle, license gate, split-runtime.sh → /runtime
+   │                     license bundle, license gate; build-jxrlib.sh (own layer, patches/jxrlib);
+   │                     split-runtime.sh → /runtime
    ├───► full-deps-src   download-full-deps.sh: FFmpeg, libvpx, ONNX Runtime, models (SHA256)
    └───► gpl-deps-src    download-gpl-deps.sh: x264, x265 (SHA256)
 deps ──► full-deps       build-full-deps.sh: libvpx + FFmpeg into /opt/xtandard, ONNX Runtime into
@@ -93,12 +94,12 @@ jemalloc actually honours it (`opt.narenas: 2` in its stats).
 
 | Path | Contents |
 |---|---|
-| `lib/` | libvips (no C++ binding), glib/gobject/gio, libffi, pcre2, zlib-ng, expat, libxml2 (minimal), libjpeg-turbo, libultrahdr, libpng, libspng, libwebp, cgif, quantizr, libtiff, OpenJPEG, libheif + libde265 + dav1d + aom + kvazaar, libjxl + highway + brotli, lcms2, libexif, librsvg + cairo + pixman + pango + harfbuzz + freetype + fontconfig + fribidi, jemalloc; base extras (WP-66): LibRaw (`libraw_r`), PDFium (prebuilt), OpenEXR + Imath, ImageMagick 7 MagickCore (PSD/PSB only) |
+| `lib/` | libvips (no C++ binding), glib/gobject/gio, libffi, pcre2, zlib-ng, expat, libxml2 (minimal), libjpeg-turbo, libultrahdr, libpng, libspng, libwebp, cgif, quantizr, libtiff, OpenJPEG, libheif + libde265 + dav1d + aom + kvazaar, libjxl + highway + brotli, lcms2, libexif, librsvg + cairo + pixman + pango + harfbuzz + freetype + fontconfig + fribidi, jemalloc; base extras (WP-66): LibRaw (`libraw_r`), PDFium (prebuilt), OpenEXR + Imath, ImageMagick 7 MagickCore (PSD/PSB and the WP-97 legacy coders); jxrlib (`libjpegxr`, `libjxrglue`, WP-97; headers in `include/jxrlib` and `libjxr.pc` in the builder) |
 | `lib/vips-modules-8.18/vips-magick.so` | the only libvips module: magickload (load only, no magicksave). Every other loader is built into `libvips.so`; deleting this file removes ImageMagick from libvips |
 | `lib/pkgconfig/`, `include/` | builder only |
 | `bin/vips` | libvips CLI |
 | `etc/fonts/` | fontconfig configuration (fonts from `share/fonts`, cache in `/tmp/fontconfig`) |
-| `etc/ImageMagick-7/policy.xml` | `magick-policy.xml`: PSD/PSB read only, everything else denied (see below) |
+| `etc/ImageMagick-7/policy.xml` | `magick-policy.xml`: PSD/PSB, TGA, PCX, DDS, QOI, SGI, SUN, XBM, XPM and PAM read only, everything else denied (see below) |
 | `share/fonts/dejavu/` | DejaVu Sans (Bitstream Vera license) for SVG text |
 | `share/licenses/` | every dependency's license files + `SOURCES.md` (URL, version, SHA256) |
 | `share/sbom/` | CycloneDX stubs per self-built library for syft/grype |
@@ -106,7 +107,7 @@ jemalloc actually honours it (`opt.narenas: 2` in its stats).
 Not in the slim image: poppler (GPL; PDF goes through PDFium), x265 (GPL; HEIC/AVIF encode
 uses kvazaar/aom), FFmpeg and ONNX Runtime (`full` flavor).
 
-## Full flavor (WP-70, revision 4)
+## Full flavor (WP-70, revision 5)
 
 Everything in slim, plus:
 
@@ -144,7 +145,7 @@ licence) and `SHA256SUMS`; the licences and `MODELS.md` are also copied to
 Size: runtime 103.1 MB compressed on linux/arm64 (slim + 48.4 MB; budget ≤ 170 MB), see
 [Sizes](#sizes).
 
-## gpl flavor (WP-70b, revision 4)
+## gpl flavor (WP-70b, revision 5)
 
 > **This image contains GPL software.** Its FFmpeg libraries and CLIs are
 > GPL-2.0-or-later, and H.264 and HEVC are patent-encumbered. If you use or redistribute
@@ -202,17 +203,22 @@ unblock the loaders it wants by name (`vips_operation_block_set`).
 
 ### ImageMagick policy
 
-ImageMagick is in the image for one purpose: PSD/PSB through libvips' `magickload`
-(docs/FORMATS.md). `magick-policy.xml` is installed as
+ImageMagick is in the image for PSD/PSB through libvips' `magickload` and, since WP-97
+(revision r4), for a short list of legacy formats libvips cannot read: TGA, PCX, DDS, QOI,
+SGI, Sun raster, XBM, XPM and PAM (docs/FORMATS.md §1.6). Its coders are compiled in anyway,
+so this costs no image size. `magick-policy.xml` is installed as
 `/opt/xtandard/etc/ImageMagick-7/policy.xml`, the configure path compiled into MagickCore
 (the app image also points `MAGICK_CONFIGURE_PATH` there). Rules are evaluated in order,
 later ones override earlier ones:
 
-- `module` domain: deny `*`, allow `PSD` (read | write, which ImageMagick requires to
-  register a module at all). Denied modules are never registered, so their coders do not
-  exist in the process: GIF, PNM, BMP, SVG/MVG/MSL, TEXT, URL, EPHEMERAL and every other
-  built-in coder are unreachable.
-- `coder` domain: deny `*`, allow `{PSD,PSB}` **read** only (no writing).
+- `module` domain: deny `*`, allow `{PSD,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PNM}` (read |
+  write, which ImageMagick requires to register a module at all). Denied modules are never
+  registered, so their coders do not exist in the process: GIF, BMP, PS/EPS, SVG/MVG/MSL,
+  TEXT, URL, EPHEMERAL and every other built-in coder are unreachable.
+- `coder` domain: deny `*`, allow `{PSD,PSB,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PAM}` **read**
+  only (no writing). The aliases the allowed modules also register (ICB, VDA, VST, DCX,
+  DXT1, DXT5, RAS, PICON, PM, and PBM/PGM/PPM/PNM/PFM/PHM of the PNM module, which libvips'
+  `ppmload` reads instead) stay denied.
 - `delegate`, `filter`: deny `*`; `path`: deny `@*` (indirect reads), `-`, `fd:`, `|` (pipes).
 - Resources: thread 1, time 10 s (per image), memory 256 MiB, map 256 MiB, disk 0 (never
   spill the pixel cache to disk; fail instead), area 64 MP, width/height 16 KP,
@@ -225,7 +231,25 @@ ImageMagick also reads `policy.xml` from `MAGICK_CONFIGURE_PATH`, `$XDG_CONFIG_H
 rules. `verify-image.sh` checks the policy: a generated PSD loads through `magickload`
 (and the generic loader), while JPEG, PNG, GIF, PPM, TIFF and WebP are refused by
 `magickload` (GIF and PNM are compiled-in ImageMagick coders, so their refusal proves the
-policy, not a missing delegate) and still load through their native libvips loaders.
+policy, not a missing delegate) and still load through their native libvips loaders; every
+legacy fixture in `testdata/fixtures` (TGA, PCX, DDS DXT1/DXT5, QOI, SGI, SUN, XBM, XPM, PAM)
+decodes through `magickload` with its own coder, and the ASCII/bitmap Netpbm fixtures through
+`ppmload`.
+
+### jxrlib (WP-97, revision r4)
+
+| Component | Version | Licence | Source | Used by |
+|---|---|---|---|---|
+| jxrlib | `JXRLIB_VERSION` (4creators commit `JXRLIB_COMMIT`, the one Debian and Homebrew package as 1.2~git20170615.f752187) | BSD-2-Clause | GitHub archive of the pinned commit (no release tarballs) | the app's own libvips loader (`internal/vips/jxr.c`); libvips does not link it |
+
+`build-jxrlib.sh` runs right after `build-deps.sh` in its own layer (a patch change rebuilds
+only that step and what follows). It applies `patches/jxrlib/*.patch` (Debian's fixes and
+ours, listed in `patches/jxrlib/README.md`: header validation, over-reads, leaks and prints
+found by fuzzing the loader with libFuzzer + ASan/LSan) and compiles the codec and the glue
+API with `-DNDEBUG` (jxrlib's asserts would abort the process on a hostile file) into
+`libjpegxr.so.0` and `libjxrglue.so.0` (Debian's SONAMEs, 0.4 MB stripped), with Debian's
+`libjxr.pc` layout. The sample apps (`JxrEncApp`, `JxrDecApp`) and the test library are not
+built; ImageMagick's JXR coder, which runs `JxrDecApp` as a delegate, stays denied.
 
 Compiler flags (`bashrc.sh`): `-Os` baseline (`-O3` for codecs), `-fstack-protector-strong`,
 full RELRO, `-ffunction-sections -fdata-sections -Wl,--gc-sections`, rpath
@@ -239,13 +263,15 @@ linux/arm64, `docker save | gzip -6` (compressed) and `docker image inspect` (un
 
 | Image | Compressed | Uncompressed | Budget (compressed) |
 |---|---|---|---|
-| slim runtime (`8.18.6-r3-slim`) | 54.7 MB | 165.1 MB | ≤ 110 MB |
-| slim builder | 259.2 MB | 818.6 MB | — |
-| full runtime (`8.18.6-r4-full`) | 103.1 MB | 237.3 MB | ≤ 170 MB |
+| slim runtime (`8.18.6-r4-slim`) | 54.9 MB | 165.5 MB | ≤ 110 MB |
+| slim builder | 259.4 MB | 819.2 MB | — |
+| full runtime (`8.18.6-r5-full`) | 103.3 MB | 237.7 MB | ≤ 170 MB |
 | full builder | 308.2 MB | 893.3 MB | — |
-| gpl runtime (`8.18.6-r4-gpl`) | 105.3 MB | 242.1 MB | ≤ 170 MB (as full) |
+| gpl runtime (`8.18.6-r5-gpl`) | 105.4 MB | 242.5 MB | ≤ 170 MB (as full) |
 | gpl builder | 310.4 MB | 898.3 MB | — |
 
+jxrlib (r4, WP-97) adds 0.2 MB compressed / 0.4 MB uncompressed to every flavor; the wider
+ImageMagick policy costs nothing (the coders were already compiled in).
 The full additions are ONNX Runtime 24 MiB, the models 35 MiB (YOLOX-s 34 MiB, YuNet
 0.2 MiB) and FFmpeg + libvpx 11 MiB (libraries and both CLIs), uncompressed.
 The gpl flavor adds 2.2 MB compressed / 4.8 MB uncompressed over full (libx264, libx265 and
@@ -316,10 +342,10 @@ the real `versions-gpl.sh` is refused by the strict gate.
 3. Bump `XI_BASE_REVISION` when the image changes without a libvips version change; reset it
    to `1` when `VIPS_VERSION` changes. `XI_BASE_FULL_REVISION` (`versions-full.sh`) is the
    full flavor's own counter: bump it whenever slim's revision moves or a full-only component
-   changes, including when slim's revision moves (full r4 = slim r3 +
+   changes, including when slim's revision moves (full r5 = slim r4 +
    WP-70).
    `XI_BASE_GPL_REVISION` (`versions-gpl.sh`) is the gpl flavor's counter in the same way:
-   bump it when full's revision moves or x264/x265 change (gpl r4 = full r4 + WP-70b).
+   bump it when full's revision moves or x264/x265 change (gpl r5 = full r5 + WP-70b).
 4. Build and verify locally (host architecture: arm64 on Apple silicon, amd64 on x86 hosts;
    slim ~30 min cold, full adds ~10 min, gpl another ~5 min):
 
@@ -361,13 +387,14 @@ same libraries.
 | `download-full-deps.sh` | same for the full flavor |
 | `download-gpl-deps.sh` | same for the gpl flavor (x264, x265) |
 | `build-deps.sh` | build into `/opt/xtandard`, license bundle, SBOM stubs, license gate |
+| `build-jxrlib.sh`, `patches/jxrlib/` | jxrlib with its patches (own layer), gate |
 | `build-full-deps.sh` | full flavor: libvpx + FFmpeg, ONNX Runtime, models, licences, gate |
 | `build-gpl-deps.sh` | gpl flavor: x264, x265, FFmpeg rebuilt with `--enable-gpl`, licences, `LICENSE-GPL.md`, gate (gpl mode) |
 | `split-runtime.sh` | copy the runtime subset of `/opt/xtandard` to `/runtime` + gate (`XI_ALLOW_GPL` for gpl) |
 | `bashrc.sh` | per-architecture compiler flags (`BASH_ENV`) |
 | `install-rust.sh` | pinned Rust + cargo-c (build time only: quantizr, librsvg) |
 | `install-tools.sh` | Go, golangci-lint, go-task for the builder stage |
-| `magick-policy.xml` | ImageMagick security policy (PSD/PSB read only) |
+| `magick-policy.xml` | ImageMagick security policy (PSD/PSB and the WP-97 legacy coders, read only) |
 | `check-licenses.sh`, `test-check-licenses.sh` | license gate and its self-test |
 | `update-checksums.sh` | recompute SHA256 lines after a bump |
 | `verify-image.sh` | smoke test used by CI and locally (`--flavor full` adds FFmpeg, ONNX Runtime, model checks; `--flavor gpl` adds the GPL gate, x264/x265 and H.264/HEVC round trips) |

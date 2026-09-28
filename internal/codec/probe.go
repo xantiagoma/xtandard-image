@@ -8,8 +8,10 @@ import (
 	"strings"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/bmp"
+	"github.com/xantiagoma/xtandard-image/internal/codec/icns"
 	"github.com/xantiagoma/xtandard-image/internal/codec/ico"
 	"github.com/xantiagoma/xtandard-image/internal/codec/raw"
+	"github.com/xantiagoma/xtandard-image/internal/codec/wbmp"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/security/svg"
 	"github.com/xantiagoma/xtandard-image/internal/video"
@@ -22,9 +24,11 @@ import (
 //   - unrecognised input fails with errs.KindUnsupported, without reaching
 //     a decoder;
 //   - camera RAW headers are read by LibRaw without unpacking (codec/raw);
-//   - BMP and ICO headers are parsed by the pure-Go loaders' config
-//     functions, and PSD/PSB headers by ParsePSDHeader, never by libvips
-//     (ImageMagick decodes a whole PSD even for its header);
+//   - BMP, ICO, WBMP and ICNS headers are parsed by the pure-Go loaders'
+//     config functions, PSD/PSB headers by ParsePSDHeader and the legacy
+//     ImageMagick formats (TGA, PCX, DDS, QOI, SGI, Sun raster, XBM, XPM,
+//     PAM) by ParseLegacyHeader, never by libvips (ImageMagick decodes a
+//     whole file even for its header);
 //   - OpenEXR headers are parsed by ParseEXRHeader, so the pixel limits hold
 //     before OpenEXR sizes anything from the data window;
 //   - PDF pages are counted by PDFium's header read (nothing is rendered)
@@ -94,6 +98,12 @@ func probeKeep(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Setti
 		m, err = probeBMP(data)
 	case FormatICO:
 		m, err = probeICO(data)
+	case FormatWBMP:
+		m, err = probeWBMP(data)
+	case FormatICNS:
+		m, err = probeICNS(data)
+	case FormatTGA, FormatPCX, FormatDDS, FormatQOI, FormatSGI, FormatSunRaster, FormatXBM, FormatXPM, FormatPAM:
+		m, err = probeLegacy(f, data)
 	case FormatSVG:
 		m, err = probeSVG(ctx, data, lim)
 	case FormatPSD:
@@ -203,6 +213,74 @@ func probeICO(data []byte) (ImageMeta, error) {
 		BitDepth:    8,
 		Loop:        -1,
 		ColorSpace:  ColorSpaceSRGB,
+	}, nil
+}
+
+// probeWBMP describes a Wireless Bitmap: black and white, decoded to RGB.
+func probeWBMP(data []byte) (ImageMeta, error) {
+	c, err := wbmp.DecodeConfig(data)
+	if err != nil {
+		return ImageMeta{}, err
+	}
+	return ImageMeta{
+		Format:      FormatWBMP,
+		Width:       c.Width,
+		Height:      c.Height,
+		Frames:      1,
+		Pages:       1,
+		PageHeight:  c.Height,
+		Orientation: 1,
+		BitDepth:    1,
+		Loop:        -1,
+		ColorSpace:  ColorSpaceGrey,
+	}, nil
+}
+
+// probeICNS describes the entry Decode picks: the largest one.
+func probeICNS(data []byte) (ImageMeta, error) {
+	entries, err := icns.Entries(data)
+	if err != nil {
+		return ImageMeta{}, err
+	}
+	e := icns.Pick(entries)
+	return ImageMeta{
+		Format:      FormatICNS,
+		Width:       e.Width,
+		Height:      e.Height,
+		Frames:      1,
+		Pages:       len(entries),
+		PageHeight:  e.Height,
+		HasAlpha:    e.HasAlpha(),
+		Orientation: 1,
+		BitDepth:    8,
+		Loop:        -1,
+		ColorSpace:  ColorSpaceSRGB,
+	}, nil
+}
+
+// probeLegacy reads the header of a format ImageMagick decodes in Go
+// (ParseLegacyHeader), so the limits hold before ImageMagick runs.
+func probeLegacy(f Format, data []byte) (ImageMeta, error) {
+	h, err := ParseLegacyHeader(f, data)
+	if err != nil {
+		return ImageMeta{}, err
+	}
+	cs := ColorSpaceSRGB
+	if h.Grey {
+		cs = ColorSpaceGrey
+	}
+	return ImageMeta{
+		Format:      f,
+		Width:       h.Width,
+		Height:      h.Height,
+		Frames:      1,
+		Pages:       1,
+		PageHeight:  h.Height,
+		HasAlpha:    h.Alpha,
+		Orientation: 1,
+		BitDepth:    h.Depth,
+		Loop:        -1,
+		ColorSpace:  cs,
 	}, nil
 }
 
@@ -419,6 +497,10 @@ func reconcile(sniffed Format, h *vips.Header) (Format, error) {
 		if h.BandFormat == vips.BandFormatFloat {
 			got = FormatPFM
 		}
+	case vips.FormatJXR:
+		got = FormatJXR
+	case vips.FormatMagick:
+		got = magickFormat(h.Subformat)
 	default:
 		got = FormatUnknown
 	}
@@ -426,6 +508,33 @@ func reconcile(sniffed Format, h *vips.Header) (Format, error) {
 		return FormatUnknown, errs.Newf(errs.KindUnsupported, "codec: sniffed %s but loader %s matched", sniffed, h.Loader)
 	}
 	return got, nil
+}
+
+// magickFormat maps an ImageMagick coder name (magick-format) to the
+// format.
+func magickFormat(coder string) Format {
+	switch coder {
+	case "TGA":
+		return FormatTGA
+	case "PCX":
+		return FormatPCX
+	case "DDS":
+		return FormatDDS
+	case "QOI":
+		return FormatQOI
+	case "SGI":
+		return FormatSGI
+	case "SUN":
+		return FormatSunRaster
+	case "XBM":
+		return FormatXBM
+	case "XPM":
+		return FormatXPM
+	case "PAM":
+		return FormatPAM
+	default:
+		return FormatUnknown
+	}
 }
 
 // family groups the formats that share a libvips loader.
@@ -462,10 +571,12 @@ func colorSpaceOf(i vips.Interpretation) ColorSpace {
 }
 
 // VipsFormat returns the libvips format of f, for the formats libvips loads
-// itself (every supported format except BMP and ICO, which the Go loaders
-// decode). UltraHDR is vips.FormatJPEG and HEIC/HEIF vips.FormatHEIF; PSD
-// is loaded by ImageMagick (vips.FormatPSD), PPM and PFM by ppmload
-// (vips.FormatPPM).
+// itself (every supported format except BMP, ICO, WBMP and ICNS, which the
+// Go loaders decode, and camera RAW and video). UltraHDR is vips.FormatJPEG
+// and HEIC/HEIF vips.FormatHEIF; PSD is loaded by ImageMagick
+// (vips.FormatPSD) like the legacy formats (vips.FormatMagick), PPM and PFM
+// by ppmload (vips.FormatPPM), JPEG XR by the shim's jxrlib loader
+// (vips.FormatJXR).
 func (f Format) VipsFormat() (vips.Format, bool) {
 	switch f {
 	case FormatJPEG, FormatUHDR:
@@ -498,6 +609,10 @@ func (f Format) VipsFormat() (vips.Format, bool) {
 		return vips.FormatRadiance, true
 	case FormatPPM, FormatPFM:
 		return vips.FormatPPM, true
+	case FormatJXR:
+		return vips.FormatJXR, true
+	case FormatTGA, FormatPCX, FormatDDS, FormatQOI, FormatSGI, FormatSunRaster, FormatXBM, FormatXPM, FormatPAM:
+		return vips.FormatMagick, true
 	default:
 		return vips.FormatUnknown, false
 	}

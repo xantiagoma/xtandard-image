@@ -269,6 +269,8 @@ xi_init_locked(const char *argv0, int concurrency, int cache_max, size_t cache_m
   // then every loader and saver, then re-enable exactly the configured ones
   // (FORMATS.md M1). jxlsave is flagged untrusted in 8.18 and comes back
   // only through this list.
+  // The shim's own loaders exist before the block list is applied.
+  xi_jxr_register();
   vips_block_untrusted_set(TRUE);
   vips_operation_block_set("VipsForeignLoad", TRUE);
   vips_operation_block_set("VipsForeignSave", TRUE);

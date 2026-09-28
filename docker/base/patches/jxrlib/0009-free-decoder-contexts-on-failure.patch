@@ -1,0 +1,106 @@
+From: xtandard-image
+Subject: [PATCH] Free the decoder contexts after a failed decode
+
+Found by libFuzzer (out of memory after a few thousand corrupt files):
+with REENTRANT_MODE, PKImageDecode_Copy_WMP terminates the codec
+contexts only after the last macroblock row, so a decode that fails
+leaked them (about the size of two macroblock rows per plane), and
+releasing the decoder did not free them either. Terminate them when
+Copy fails and when the decoder is released, and NULL them whenever they
+are terminated so neither frees them twice.
+---
+--- a/jxrgluelib/JXRGlueJxr.c
++++ b/jxrgluelib/JXRGlueJxr.c
+@@ -1912,6 +1912,22 @@
+     return err;
+ }
+ 
++// Frees the codec contexts a decode left allocated: a failed or partial
++// Copy never reaches the terminating last row.
++static Void PKImageDecode_TermContexts_WMP(PKImageDecode* pID)
++{
++    if (pID->WMP.ctxSC) {
++        ImageStrDecTerm(pID->WMP.ctxSC);
++        pID->WMP.ctxSC = NULL;
++    }
++    if (pID->WMP.ctxSC_Alpha) {
++        ImageStrDecTerm(pID->WMP.ctxSC_Alpha);
++        pID->WMP.ctxSC_Alpha = NULL;
++    }
++    pID->WMP.DecoderCurrMBRow = 0;
++    pID->WMP.DecoderCurrAlphaMBRow = 0;
++}
++
+ ERR PKImageDecode_Copy_WMP(
+     PKImageDecode* pID,
+     const PKRect* pRect,
+@@ -1995,7 +2011,11 @@
+             pID->WMP.cLinesDecoded = 0;
+             pID->WMP.cLinesCropped = 0;
+             pID->WMP.fFirstNonZeroDecode = FALSE;
+-            FailIf(ICERR_OK != ImageStrDecTerm(pID->WMP.ctxSC), WMP_errFail);   
++            {
++                Int iTerm = ImageStrDecTerm(pID->WMP.ctxSC);
++                pID->WMP.ctxSC = NULL;
++                FailIf(ICERR_OK != iTerm, WMP_errFail);
++            }
+             Call(pID->WMP.wmiSCP.pWStream->SetPos(pID->WMP.wmiSCP.pWStream, pID->WMP.cMarker));
+             FailIf(ICERR_OK != ImageStrDecInit(&pID->WMP.wmiI, &pID->WMP.wmiSCP, &pID->WMP.ctxSC), WMP_errFail);
+         }
+@@ -2046,7 +2066,11 @@
+ 
+         // If we're past the top of the image, then we're done, so terminate.
+         if (linesperMBRow * (cMBRow - 1) >= (U32) pID->WMP.cLinesCropped + pID->WMP.wmiI.cROIHeight) {
+-            FailIf(ICERR_OK != ImageStrDecTerm(pID->WMP.ctxSC), WMP_errFail);        
++            {
++                Int iTerm = ImageStrDecTerm(pID->WMP.ctxSC);
++                pID->WMP.ctxSC = NULL;
++                FailIf(ICERR_OK != iTerm, WMP_errFail);
++            }
+         }
+         pID->WMP.DecoderCurrMBRow = cMBRow; // Set to next possible MBRow that is decodable
+ 
+@@ -2114,7 +2138,11 @@
+         if (cMBRowStart < pID->WMP.DecoderCurrAlphaMBRow) 
+         {
+             pID->WMP.DecoderCurrAlphaMBRow = 0;
+-            FailIf(ICERR_OK != ImageStrDecTerm(pID->WMP.ctxSC_Alpha), WMP_errFail);
++            {
++                Int iTerm = ImageStrDecTerm(pID->WMP.ctxSC_Alpha);
++                pID->WMP.ctxSC_Alpha = NULL;
++                FailIf(ICERR_OK != iTerm, WMP_errFail);
++            }
+             FailIf(ICERR_OK != ImageStrDecInit(&pID->WMP.wmiI_Alpha, &pID->WMP.wmiSCP_Alpha, &pID->WMP.ctxSC_Alpha), WMP_errFail);
+         }
+ 
+@@ -2128,7 +2156,11 @@
+ 
+         // If we're past the top of the image, then we're done, so terminate
+         if (linesperMBRow * (cMBRow - 1) >= (U32) pID->WMP.cLinesCropped + pID->WMP.wmiI.cROIHeight) {
+-            FailIf(ICERR_OK != ImageStrDecTerm(pID->WMP.ctxSC_Alpha), WMP_errFail);
++            {
++                Int iTerm = ImageStrDecTerm(pID->WMP.ctxSC_Alpha);
++                pID->WMP.ctxSC_Alpha = NULL;
++                FailIf(ICERR_OK != iTerm, WMP_errFail);
++            }
+         }
+         pID->WMP.DecoderCurrAlphaMBRow = cMBRow; // Set to next possible MBRow that is decodable
+         wmiBI.pv = pb;
+@@ -2142,6 +2174,8 @@
+     pID->idxCurrentLine += pRect->Height;
+ 
+ Cleanup:
++    if (Failed(err))
++        PKImageDecode_TermContexts_WMP(pID);
+     return err;
+ }
+ 
+@@ -2249,6 +2283,8 @@
+     FreeDescMetadata(&pID->WMP.sDescMetadata.pvarPageNumber);
+     FreeDescMetadata(&pID->WMP.sDescMetadata.pvarHostComputer);
+ 
++    PKImageDecode_TermContexts_WMP(pID);
++
+     // Release base class
+     Call(PKImageDecode_Release(ppID));
+ 

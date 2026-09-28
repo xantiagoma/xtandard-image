@@ -21,6 +21,29 @@ func fixtureFormats() map[string]codec.Format {
 		"hdr/rgbe.hdr":                    codec.FormatRadiance,
 		"pfm/scene.pfm":                   codec.FormatPFM,
 		"ppm/photo.ppm":                   codec.FormatPPM,
+		"ppm/photo-ascii.ppm":             codec.FormatPPM,
+		"ppm/photo-ascii.pgm":             codec.FormatPPM,
+		"ppm/graphic.pbm":                 codec.FormatPPM,
+		"ppm/graphic-ascii.pbm":           codec.FormatPPM,
+		"jxr/photo.jxr":                   codec.FormatJXR,
+		"jxr/alpha.jxr":                   codec.FormatJXR,
+		"jxr/rgb16.jxr":                   codec.FormatJXR,
+		"jxr/gray.jxr":                    codec.FormatJXR,
+		"jxr/hdr.jxr":                     codec.FormatJXR,
+		"tga/alpha.tga":                   codec.FormatTGA,
+		"tga/photo-rle.tga":               codec.FormatTGA,
+		"pcx/photo.pcx":                   codec.FormatPCX,
+		"dds/photo-dxt1.dds":              codec.FormatDDS,
+		"dds/alpha-dxt5.dds":              codec.FormatDDS,
+		"qoi/alpha.qoi":                   codec.FormatQOI,
+		"sgi/photo.sgi":                   codec.FormatSGI,
+		"sgi/alpha.sgi":                   codec.FormatSGI,
+		"sun/photo.ras":                   codec.FormatSunRaster,
+		"xbm/graphic.xbm":                 codec.FormatXBM,
+		"xpm/graphic.xpm":                 codec.FormatXPM,
+		"pam/alpha.pam":                   codec.FormatPAM,
+		"wbmp/graphic.wbmp":               codec.FormatWBMP,
+		"icns/icon.icns":                  codec.FormatICNS,
 		"bmp/rgb24.bmp":                   codec.FormatBMP,
 		"bmp/rle8.bmp":                    codec.FormatBMP,
 		"gif/animated.gif":                codec.FormatGIF,
@@ -191,8 +214,34 @@ func TestSniffSynthetic(t *testing.T) {
 		{"ppm", []byte("P6 2 2 65535\n"), codec.FormatPPM},
 		{"pfm", []byte("PF\n2 2\n-1.0\n"), codec.FormatPFM},
 		{"pfm grey", []byte("Pf\n2 2\n1.0\n"), codec.FormatPFM},
-		{"ascii ppm", []byte("P3\n2 2\n255\n"), codec.FormatUnknown},
-		{"pbm", []byte("P4\n8 1\n"), codec.FormatUnknown},
+		{"ascii ppm", []byte("P3\n2 2\n255\n"), codec.FormatPPM},
+		{"ascii pbm", []byte("P1\n2 2\n0 1 1 0\n"), codec.FormatPPM},
+		{"pbm", []byte("P4\n8 1\n"), codec.FormatPPM},
+		{"pam", []byte("P7\nWIDTH 1\n"), codec.FormatPAM},
+		{"p8", []byte("P8\n"), codec.FormatUnknown},
+		{"jxr", []byte("II\xbc\x01\x08\x00\x00\x00"), codec.FormatJXR},
+		{"hd photo", []byte("II\xbc\x00\x08\x00\x00\x00"), codec.FormatJXR},
+		{"jxr bad version", []byte("II\xbc\x02\x08\x00\x00\x00"), codec.FormatUnknown},
+		{"dds", append([]byte("DDS \x7c\x00\x00\x00"), make([]byte, 120)...), codec.FormatDDS},
+		{"dds bad header size", append([]byte("DDS \x7d\x00\x00\x00"), make([]byte, 120)...), codec.FormatUnknown},
+		{"qoi", []byte("qoif\x00\x00\x00\x01\x00\x00\x00\x01\x04\x00"), codec.FormatQOI},
+		{"sun", append([]byte("\x59\xa6\x6a\x95"), make([]byte, 28)...), codec.FormatSunRaster},
+		{"sgi", append([]byte("\x01\xda\x01\x01\x00\x03"), make([]byte, 506)...), codec.FormatSGI},
+		{"sgi bad dimension", append([]byte("\x01\xda\x01\x01\x00\x04"), make([]byte, 506)...), codec.FormatUnknown},
+		{"pcx", append([]byte("\x0a\x05\x01\x08"), make([]byte, 124)...), codec.FormatPCX},
+		{"pcx version 3", append([]byte("\x0a\x03\x01\x08"), make([]byte, 124)...), codec.FormatUnknown},
+		{"xbm", []byte("#define logo_width 16\n#define logo_height 16\n"), codec.FormatXBM},
+		{"c header", []byte("#define VERSION 3\n"), codec.FormatUnknown},
+		{"xpm", []byte("/* XPM */\nstatic char *x[] = {\n"), codec.FormatXPM},
+		{"icns", []byte("icns\x00\x00\x00\x10is32\x00\x00\x00\x08"), codec.FormatICNS},
+		{"tga", tga(2, 0, 24, 0), codec.FormatTGA},
+		{"tga grey rle", tga(11, 0, 8, 0), codec.FormatTGA},
+		{"tga colour-mapped", tgaMapped(), codec.FormatTGA},
+		{"tga with interleave bits", tga(2, 0, 24, 0x40), codec.FormatUnknown},
+		{"tga bad depth", tga(2, 0, 12, 0), codec.FormatUnknown},
+		{"tga zero width", append(tga(2, 0, 24, 0)[:12], make([]byte, 6)...), codec.FormatUnknown},
+		{"wbmp", []byte{0, 0, 10, 2, 0xAA, 0x80, 0xFF, 0xC0}, codec.FormatWBMP},
+		{"wbmp with a trailing byte", []byte{0, 0, 10, 2, 0xAA, 0x80, 0xFF, 0xC0, 0}, codec.FormatUnknown},
 		{"p6 text", []byte("P6x"), codec.FormatUnknown},
 		{"cr2", []byte("II*\x00\x10\x00\x00\x00CR\x02\x00"), codec.FormatRAW},
 		{"crw", []byte("II\x1a\x00\x00\x00HEAPCCDR"), codec.FormatRAW},
@@ -212,6 +261,18 @@ func TestSniffSynthetic(t *testing.T) {
 			}
 		})
 	}
+}
+
+// tga returns an 18-byte TGA header of a 4×2 image of the given type,
+// pixel depth and descriptor, and one byte of pixels.
+func tga(imageType, cmap, depth, desc byte) []byte {
+	return []byte{0, cmap, imageType, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 2, 0, depth, desc, 0}
+}
+
+// tgaMapped is a colour-mapped TGA header: 16 entries of 24 bits, 8-bit
+// indices.
+func tgaMapped() []byte {
+	return []byte{0, 1, 1, 0, 0, 16, 0, 24, 0, 0, 0, 0, 4, 0, 2, 0, 8, 0, 0}
 }
 
 func TestSniffSVGBeyondSniffLen(t *testing.T) {
@@ -240,7 +301,9 @@ func FuzzSniff(f *testing.F) {
 		if ok != (got != codec.FormatUnknown) {
 			t.Fatalf("Sniff = %v, %v", got, ok)
 		}
-		if got == codec.FormatUHDR || got == codec.FormatJPEG {
+		// UltraHDR markers may lie anywhere before the start of scan; a
+		// WBMP is only one when its length matches its header.
+		if got == codec.FormatUHDR || got == codec.FormatJPEG || got == codec.FormatWBMP {
 			return
 		}
 		longer := append(append([]byte(nil), b...), make([]byte, 64)...)

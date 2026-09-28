@@ -3,9 +3,7 @@ package exec
 import (
 	"context"
 
-	"github.com/xantiagoma/xtandard-image/internal/codec/bmp"
-	"github.com/xantiagoma/xtandard-image/internal/codec/ico"
-	"github.com/xantiagoma/xtandard-image/internal/codec/raster"
+	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
@@ -20,7 +18,7 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 	switch {
 	case r.j.Meta.IsVideo:
 		img, err = r.loadVideo(ctx, ls, anim)
-	case r.j.Meta.Format == "bmp" || r.j.Meta.Format == "ico":
+	case ownFormat(r.j.Meta.Format):
 		img, err = r.loadGo(ctx)
 	case r.j.Meta.Format == formatRAW:
 		img, err = r.loadRaw(ctx, ls)
@@ -59,6 +57,17 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 	return img, nil
 }
 
+// ownFormat reports the formats decoded by the pure-Go loaders
+// (codec.DecodeOwn): BMP, ICO, WBMP and ICNS.
+func ownFormat(format string) bool {
+	switch format {
+	case "bmp", "ico", "wbmp", "icns":
+		return true
+	default:
+		return false
+	}
+}
+
 // stackable reports the multi-page still formats whose pages are loaded one
 // at a time and stacked (loadStack).
 func stackable(format string) bool {
@@ -93,18 +102,15 @@ func (r *runner) loadOptions(ls *plan.LoadStep, anim *plan.AnimationStep) *vips.
 	return o
 }
 
-// loadGo decodes BMP and ICO with the pure-Go loaders. A PNG or JPEG stream
-// embedded in the container is loaded by libvips from a C copy.
+// loadGo decodes BMP, ICO, WBMP and ICNS with the pure-Go loaders. A PNG,
+// JPEG or JPEG 2000 stream embedded in the container is loaded by libvips
+// from a C copy.
 func (r *runner) loadGo(ctx context.Context) (*vips.Image, error) {
-	data := r.j.Source.Bytes()
-	maxPx := r.e.cfg.Limits.MaxSrcPixels
-	var d raster.Decoded
-	var err error
-	if r.j.Meta.Format == "bmp" {
-		d, err = bmp.Decode(data, bmp.Options{MaxPixels: maxPx})
-	} else {
-		d, err = ico.Decode(data, ico.Options{MaxPixels: maxPx})
+	f, err := codec.ParseFormat(r.j.Meta.Format)
+	if err != nil {
+		return nil, err
 	}
+	d, err := codec.DecodeOwn(r.j.Source.Bytes(), f, r.e.cfg.Limits.MaxSrcPixels)
 	if err != nil {
 		return nil, goDecodeError(r.j.Meta.Format, err)
 	}

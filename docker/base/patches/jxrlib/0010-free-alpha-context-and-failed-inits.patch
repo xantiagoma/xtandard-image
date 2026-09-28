@@ -1,0 +1,41 @@
+From: xtandard-image
+Subject: [PATCH] Free the interleaved alpha context and failed inits
+
+Found by libFuzzer + LeakSanitizer: ImageStrDecTerm never freed the block
+ImageStrDecInit allocates for an interleaved alpha plane (only what it
+holds, through StrDecTerm), and ImageStrDecInit returned without freeing
+its blocks when it failed after allocating them.
+---
+--- a/image/decode/strdec.c
++++ b/image/decode/strdec.c
+@@ -3402,6 +3402,12 @@
+     PERFTIMER_STOP(pSC->m_fMeasurePerf, pSC->m_ptEncDecPerf);
+ 
+ Cleanup:
++    if (WMP_errSuccess != err) {
++        // The context never reached the caller: free its two blocks (the
++        // image plane and the alpha plane, each one malloc).
++        free(pNextSC);
++        free(pSC);
++    }
+     return WMP_errSuccess == err ? ICERR_OK : ICERR_ERROR;
+ }
+ 
+@@ -3612,6 +3618,7 @@
+     {
+         return ICERR_ERROR;
+     }
++    CWMImageStrCodec* pNextSC = pSC->m_pNextSC;
+ 
+     PERFTIMER_START(pSC->m_fMeasurePerf, pSC->m_ptEncDecPerf);
+ 
+@@ -3622,6 +3629,9 @@
+     PERFTIMER_DELETE(pSC->m_fMeasurePerf, pSC->m_ptEndToEndPerf);
+ 
+     free(pSC);
++    // The interleaved alpha plane is a block of its own (ImageStrDecInit);
++    // StrDecTerm frees what it holds, not the block.
++    free(pNextSC);
+ 
+     return ICERR_OK;
+ }

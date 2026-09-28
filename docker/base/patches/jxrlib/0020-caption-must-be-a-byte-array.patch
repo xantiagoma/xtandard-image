@@ -1,0 +1,24 @@
+From: xtandard-image
+Subject: [PATCH] A caption must be a byte array
+
+Found by fuzzing (Go FuzzJXR, confirmed with ASan): ParsePFDEntry
+terminated a caption tag of any type as a UTF-16 string, so a SHORT or
+LONG caption wrote through its number as if it were a pointer. Only a
+byte array is kept.
+---
+--- a/jxrgluelib/JXRGlueJxr.c
++++ b/jxrgluelib/JXRGlueJxr.c
+@@ -1730,6 +1730,13 @@
+                 pID->WMP.sDescMetadata.pvarCaption.VT.pbVal);
+             assert(0 == pID->WMP.sDescMetadata.pvarCaption.VT.pwszVal[uCount/sizeof(U16) - 1]); // Confirm null-term
+             //  make sure null term (ReadPropvar allocated enough space for this)
++            // Only a byte array is a caption: any other tag type stored a
++            // number where the pointer would be (asserts are compiled out).
++            if ((DPKVT_BYREF | DPKVT_UI1) != pID->WMP.sDescMetadata.pvarCaption.vt ||
++                NULL == pID->WMP.sDescMetadata.pvarCaption.VT.pbVal) {
++                memset(&pID->WMP.sDescMetadata.pvarCaption, 0, sizeof(pID->WMP.sDescMetadata.pvarCaption));
++                break;
++            }
+             pID->WMP.sDescMetadata.pvarCaption.VT.pwszVal[uCount/sizeof(U16)] = 0;
+             pID->WMP.sDescMetadata.pvarCaption.vt = DPKVT_LPWSTR;
+             break;
