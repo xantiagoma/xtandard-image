@@ -21,11 +21,20 @@ import (
 // companions are parameters some entries need next to them to be applied
 // rather than recorded as ignored (strict mode rejects ignored ones).
 var companions = map[string]map[string]string{
-	playground.GrammarCloudinary: {"co": "e_colorize:50", "x": "g_north_west", "y": "g_north_west", "z": "c_thumb,w_100,h_100"},
+	playground.GrammarCloudinary: {
+		"co": "e_colorize:50", "x": "g_north_west", "y": "g_north_west", "z": "c_thumb,w_100,h_100",
+		"fl_tiled": "l_text:Arial_20:Hi", "fl_relative": "l_fetch:aHR0cHM6Ly9leGFtcGxlLmNvbS9hLnBuZw,w_0.2",
+	},
 	playground.GrammarImagekit:   {"cm": "w-100,h-100", "x": "w-100,h-100,cm-extract", "y": "w-100,h-100,cm-extract", "z": "fo-face", "c": "w-100", "ar": "w-100"},
 	playground.GrammarCloudflare: {"zoom": "gravity=face"},
 	playground.GrammarWsrv:       {"fpx": "a=focal", "fpy": "a=focal", "cbg": "fit=contain", "mtrim": "mask=circle", "mbg": "mask=circle", "rbg": "ro=45", "start": "filt=duotone", "stop": "filt=duotone", "precrop": "cx=1"},
 	playground.GrammarBunny:      {"crop_gravity": "crop=10,10"},
+}
+
+// before are components a parameter needs ahead of its own (a layer group
+// closed by fl_layer_apply).
+var before = map[string]map[string]string{
+	playground.GrammarCloudinary: {"fl_layer_apply": "l_text:Arial_20:Hi"},
 }
 
 // catalogueURL writes one parameter the way the playground page does, and
@@ -47,10 +56,16 @@ func catalogueURL(grammar string, o *playground.Option) *dialect.Input {
 		if extra != "" {
 			c += "," + extra
 		}
+		if b := before[grammar][name]; b != "" {
+			c = b + "/" + c
+		}
 		in.Path = "/demo/image/fetch/" + c + "/https://example.com/a.jpg"
 	case playground.GrammarImagekit:
 		c := name
-		if !flag {
+		switch {
+		case strings.HasPrefix(name, "l-"):
+			c += "," + v + ",l-end"
+		case !flag:
 			c += "-" + v
 		}
 		if extra != "" {
