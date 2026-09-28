@@ -142,6 +142,15 @@ func (st *state) apply(name string, args []string) error {
 		return oneBoolPtr("strip_color_profile", args, &st.r.Output.StripColorProfile)
 	case "preserve_hdr", "ph":
 		return oneBoolPtr("preserve_hdr", args, &st.r.Output.PreserveHDR)
+	case "gain_map", "gm":
+		if err := maxArgs("gain_map", args, 1); err != nil {
+			return err
+		}
+		m, err := transform.ParseGainMapMode(args[0])
+		if err != nil {
+			return dialect.InvalidArgument("gain_map", args[0], "auto, hdr or sdr")
+		}
+		st.r.Output.GainMap = m
 	case "enforce_thumbnail", "eth":
 		return oneBoolPtr("enforce_thumbnail", args, &st.r.Output.EnforceThumbnail)
 	case "quality", "q":

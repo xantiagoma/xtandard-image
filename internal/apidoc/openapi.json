@@ -3127,6 +3127,37 @@
             "x-xi-scope": "request",
             "x-xi-syntax": "fmt:q…"
           },
+          "gain_map": {
+            "description": "What an HDR gain map (UltraHDR, ISO 21496-1) does: auto renders HDR with preserve_hdr for AVIF, JPEG XL and JPEG outputs, hdr does so without preserve_hdr, sdr keeps the SDR base. URL: `gain_map`, `gm`; arguments auto, hdr, sdr; default auto.",
+            "examples": [
+              [
+                "hdr"
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "auto follows preserve_hdr, hdr applies the gain map, sdr keeps the SDR base",
+                "enum": [
+                  "auto",
+                  "hdr",
+                  "sdr"
+                ],
+                "title": "mode",
+                "type": "string"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "gm"
+            ],
+            "x-xi-default": "auto",
+            "x-xi-milestone": "M4 (WP-104)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "auto, hdr, sdr"
+          },
           "gif_options": {
             "deprecated": true,
             "description": "Removed upstream; accepted and ignored for old URLs. URL: `gif_options`, `gifo`; arguments —; default —.",
@@ -5940,6 +5971,10 @@
             "description": "Source format in imgproxy's names: jpeg (UltraHDR too), png, webp, avif, heic, jxl, gif, tiff, bmp, ico, svg, pdf, psd, ... (info option format).",
             "type": "string"
           },
+          "gain_map": {
+            "description": "xtandard-image extension: true when the source carries an HDR gain map (UltraHDR JPEG, ISO 21496-1 JPEG, AVIF or HEIC tmap item); its pixels are the SDR base, and preserve_hdr or gain_map:hdr render the HDR version for AVIF, JPEG XL and JPEG outputs; absent otherwise.",
+            "type": "boolean"
+          },
           "hashsums": {
             "additionalProperties": {
               "type": "string"
@@ -5948,7 +5983,7 @@
             "type": "object"
           },
           "hdr": {
-            "description": "xtandard-image extension: true for scene-linear sources (OpenEXR, Radiance, PFM), which imgproxy does not read; absent otherwise.",
+            "description": "xtandard-image extension: true for scene-linear sources (OpenEXR, Radiance, PFM), which imgproxy does not read, and for sources with an HDR gain map; absent otherwise.",
             "type": "boolean"
           },
           "height": {
