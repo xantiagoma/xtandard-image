@@ -142,12 +142,41 @@ func TestProbeFixtures(t *testing.T) {
 		"gpr/hero11-crop.gpr":   gprCrop,
 		// Its header is fine; LibRaw fails when unpacking (exec falls back).
 		"dng/deflate-corrupt.dng": with(still(codec.FormatRAW, 192, 128), rawSource(192, 128, 96, 64, false)),
-		"uhdr/photo-ultrahdr.jpg": with(still(codec.FormatUHDR, 320, 240), func(m *codec.ImageMeta) { m.HasICC = true }),
-		"png/rgba8.png":           with(still(codec.FormatPNG, 128, 96), func(m *codec.ImageMeta) { m.HasAlpha = true }),
-		"png/rgb16.png":           with(still(codec.FormatPNG, 96, 72), func(m *codec.ImageMeta) { m.BitDepth = 16 }),
-		"png/palette.png":         still(codec.FormatPNG, 96, 72),
-		"watermark/logo.png":      with(still(codec.FormatPNG, 48, 32), func(m *codec.ImageMeta) { m.HasAlpha = true }),
-		"watermark/badge.png":     with(still(codec.FormatPNG, 40, 40), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"uhdr/photo-ultrahdr.jpg": with(still(codec.FormatUHDR, 320, 240), func(m *codec.ImageMeta) { m.HasICC, m.GainMap = true, true }),
+		// WP-104: sequences through the shim's libheif loader, gain maps
+		// found in the headers (codec/gainmap).
+		"avif/sequence.avif": with(still(codec.FormatAVIF, 64, 48), func(m *codec.ImageMeta) {
+			m.Frames, m.Pages, m.IsAnimated, m.Delays, m.Loop = 4, 4, true, []int{100, 200, 300, 400}, 0
+		}),
+		"avif/sequence-alpha.avif": with(still(codec.FormatAVIF, 64, 48), func(m *codec.ImageMeta) {
+			m.Frames, m.Pages, m.IsAnimated, m.Delays, m.Loop, m.HasAlpha = 4, 4, true, []int{100, 200, 300, 400}, 2, true
+		}),
+		"heic/sequence.heic": with(still(codec.FormatHEIC, 64, 48), func(m *codec.ImageMeta) {
+			m.Frames, m.Pages, m.IsAnimated, m.Delays, m.Loop = 4, 4, true, []int{100, 200, 300, 400}, 0
+		}),
+		"avif/libavif-colors-animated-8bpc.avif": with(still(codec.FormatAVIF, 150, 150), func(m *codec.ImageMeta) {
+			m.Frames, m.Pages, m.IsAnimated, m.Delays, m.Loop = 5, 5, true, []int{33, 33, 33, 33, 33}, 1
+		}),
+		"gainmap/libavif-color_grid_gainmap_different_grid.avif": with(still(codec.FormatAVIF, 512, 600), func(m *codec.ImageMeta) {
+			m.BitDepth, m.HasAlpha, m.GainMap = 10, true, true
+		}),
+		"gainmap/libavif-color_nogrid_alpha_nogrid_gainmap_grid.avif": with(still(codec.FormatAVIF, 128, 200), func(m *codec.ImageMeta) {
+			m.BitDepth, m.HasAlpha, m.GainMap = 10, true, true
+		}),
+		"gainmap/libavif-unsupported_gainmap_version.avif": with(still(codec.FormatAVIF, 100, 100), func(m *codec.ImageMeta) {
+			m.BitDepth, m.HasAlpha, m.GainMap = 10, true, true
+		}),
+		"gainmap/libavif-seine_sdr_gainmap_srgb.avif": with(still(codec.FormatAVIF, 400, 300), func(m *codec.ImageMeta) {
+			m.GainMap = true
+		}),
+		"gainmap/libavif-paris_exif_xmp_gainmap_bigendian.jpg": with(still(codec.FormatJPEG, 403, 302), func(m *codec.ImageMeta) {
+			m.GainMap = true
+		}),
+		"png/rgba8.png":       with(still(codec.FormatPNG, 128, 96), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"png/rgb16.png":       with(still(codec.FormatPNG, 96, 72), func(m *codec.ImageMeta) { m.BitDepth = 16 }),
+		"png/palette.png":     still(codec.FormatPNG, 96, 72),
+		"watermark/logo.png":  with(still(codec.FormatPNG, 48, 32), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"watermark/badge.png": with(still(codec.FormatPNG, 40, 40), func(m *codec.ImageMeta) { m.HasAlpha = true }),
 		"gif/static.gif": with(still(codec.FormatGIF, 96, 72), func(m *codec.ImageMeta) {
 			m.Delays, m.Loop = []int{100}, 1
 		}),

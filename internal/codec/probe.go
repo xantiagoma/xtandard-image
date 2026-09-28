@@ -9,6 +9,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/bmp"
 	"github.com/xantiagoma/xtandard-image/internal/codec/dds"
+	"github.com/xantiagoma/xtandard-image/internal/codec/gainmap"
 	"github.com/xantiagoma/xtandard-image/internal/codec/icns"
 	"github.com/xantiagoma/xtandard-image/internal/codec/ico"
 	"github.com/xantiagoma/xtandard-image/internal/codec/raw"
@@ -554,7 +555,26 @@ func probeVips(ctx context.Context, buf *vips.Buffer, sniffed Format, dpi float6
 	if m.IsAnimated {
 		m.Frames = m.Pages
 	}
+	m.GainMap = hasGainMap(f, buf.Bytes())
 	return m, nil
+}
+
+// hasGainMap reports an HDR gain map the executor can apply (FORMATS.md
+// §1.4): UltraHDR (libultrahdr parsed it), a JPEG whose MPF secondary
+// image carries usable gain-map metadata, or an AVIF/HEIC with an ISO
+// 21496-1 tmap item. Only headers are read.
+func hasGainMap(f Format, src []byte) bool {
+	switch f {
+	case FormatUHDR:
+		return true
+	case FormatJPEG:
+		_, ok, err := gainmap.FindJPEG(src)
+		return ok && err == nil
+	case FormatAVIF, FormatHEIC, FormatHEIF:
+		return gainmap.HasTmap(src)
+	default:
+		return false
+	}
 }
 
 // reconcile checks that the loader libvips chose agrees with the magic bytes

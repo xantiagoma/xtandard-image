@@ -16,6 +16,8 @@
     "YCbCr Positioning": "Centered"
   },
   "format": "jpeg",
+  "gain_map": true,
+  "hdr": true,
   "height": 240,
   "iptc": {},
   "mime_type": "image/jpeg",
