@@ -41,10 +41,7 @@ func (in *vipsInspector) Inspect(ctx context.Context, src fetch.Buffer, lim serv
 	var pixels *imageinfo.Result
 	err = vips.Run(ctx, func() error {
 		var err error
-		l := in.formats
-		l.MaxSrcPixels = lim.MaxPixels
-		l.MaxAnimationFrames = lim.MaxFrames
-		l.MaxAnimationFramePixels = lim.MaxFramePixels
+		l := withProbeLimits(in.formats, &lim)
 		if ci, err = codec.InspectMedia(ctx, vb, l, &in.video, ""); err != nil || !px.Any() {
 			return err
 		}
