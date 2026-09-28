@@ -21,7 +21,7 @@ func SampleImage(ctx context.Context, a *vips.Arena, buf *vips.Buffer, f Format,
 		return nil, errs.Newf(errs.KindInternal, "codec: sample size %d", maxSide)
 	}
 	if f.IsOwn() {
-		d, err := decodeOwn(buf.Bytes(), f, lim.withDefaults().MaxSrcPixels)
+		d, err := decodeOwn(ctx, buf.Bytes(), f, lim.withDefaults().MaxSrcPixels)
 		if err != nil {
 			return nil, err
 		}
@@ -59,6 +59,9 @@ func SampleImage(ctx context.Context, a *vips.Arena, buf *vips.Buffer, f Format,
 	}
 	if f == FormatXCF {
 		return flattenXCFSample(ctx, a, buf, maxSide, lim)
+	}
+	if f == FormatPICT || f == FormatPCD {
+		return magickCoderSample(ctx, a, buf, f, maxSide)
 	}
 	if f == FormatTIFF {
 		if l, ok := ParseLabTIFF(buf.Bytes()); ok {

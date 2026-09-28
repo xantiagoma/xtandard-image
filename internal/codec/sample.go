@@ -6,8 +6,10 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/bmp"
 	"github.com/xantiagoma/xtandard-image/internal/codec/dds"
+	"github.com/xantiagoma/xtandard-image/internal/codec/fits"
 	"github.com/xantiagoma/xtandard-image/internal/codec/icns"
 	"github.com/xantiagoma/xtandard-image/internal/codec/ico"
+	"github.com/xantiagoma/xtandard-image/internal/codec/ktx2"
 	"github.com/xantiagoma/xtandard-image/internal/codec/raster"
 	"github.com/xantiagoma/xtandard-image/internal/codec/wbmp"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
@@ -39,8 +41,8 @@ func sample(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Li
 		return Raw{}, errs.Newf(errs.KindInternal, "codec: sample size %d", maxSide)
 	}
 	switch f {
-	case FormatBMP, FormatICO, FormatWBMP, FormatICNS, FormatDDS:
-		d, err := decodeOwn(buf.Bytes(), f, lim.withDefaults().MaxSrcPixels)
+	case FormatBMP, FormatICO, FormatWBMP, FormatICNS, FormatDDS, FormatKTX2, FormatFITS, FormatDICOM:
+		d, err := decodeOwn(ctx, buf.Bytes(), f, lim.withDefaults().MaxSrcPixels)
 		if err != nil {
 			return Raw{}, err
 		}
@@ -68,6 +70,14 @@ func sample(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Li
 		var a vips.Arena
 		defer a.Close()
 		img, err := flattenXCFSample(ctx, &a, buf, maxSide, lim)
+		if err != nil {
+			return Raw{}, err
+		}
+		return sampleImage(ctx, &a, img)
+	case FormatPICT, FormatPCD:
+		var a vips.Arena
+		defer a.Close()
+		img, err := magickCoderSample(ctx, &a, buf, f, maxSide)
 		if err != nil {
 			return Raw{}, err
 		}
@@ -116,10 +126,17 @@ func labImage(ctx context.Context, a *vips.Arena, l *LabTIFF, buf *vips.Buffer, 
 	return img, nil
 }
 
-// IsOwn reports the formats decoded by the pure-Go loaders (DecodeOwn):
-// BMP, ICO, WBMP, ICNS and DDS.
+// IsOwn reports the formats decoded by the Go loaders (DecodeOwn): BMP,
+// ICO, WBMP, ICNS, DDS, FITS, KTX2 (whose Basis Universal payloads go
+// through the transcoder in internal/vips) and DICOM (whose JPEG and JPEG
+// 2000 frames libvips decodes before they are windowed in Go).
 func (f Format) IsOwn() bool {
-	return f == FormatBMP || f == FormatICO || f == FormatWBMP || f == FormatICNS || f == FormatDDS
+	switch f {
+	case FormatBMP, FormatICO, FormatWBMP, FormatICNS, FormatDDS, FormatKTX2, FormatFITS, FormatDICOM:
+		return true
+	default:
+		return false
+	}
 }
 
 // ownRaw returns the 8-bit pixels of an own loader's result: Raw, or an HDR
@@ -132,15 +149,16 @@ func ownRaw(d raster.Decoded) *Raw {
 	return d.Raw
 }
 
-// DecodeOwn runs the pure-Go loader of f (IsOwn), bounded by maxPixels:
-// the pixels, or a PNG/JPEG/JPEG 2000 stream embedded in the container for
-// libvips to load.
-func DecodeOwn(data []byte, f Format, maxPixels int64) (raster.Decoded, error) {
-	return decodeOwn(data, f, maxPixels)
+// DecodeOwn runs the Go loader of f (IsOwn), bounded by maxPixels: the
+// pixels, or a PNG/JPEG/JPEG 2000 stream embedded in the container for
+// libvips to load. KTX2 may call the Basis Universal transcoder, so like
+// Sample it must run inside vips.Run.
+func DecodeOwn(ctx context.Context, data []byte, f Format, maxPixels int64) (raster.Decoded, error) {
+	return decodeOwn(ctx, data, f, maxPixels)
 }
 
-// decodeOwn runs the pure-Go loader of f.
-func decodeOwn(data []byte, f Format, maxPixels int64) (raster.Decoded, error) {
+// decodeOwn runs the Go loader of f.
+func decodeOwn(ctx context.Context, data []byte, f Format, maxPixels int64) (raster.Decoded, error) {
 	var d raster.Decoded
 	var err error
 	switch f {
@@ -154,12 +172,18 @@ func decodeOwn(data []byte, f Format, maxPixels int64) (raster.Decoded, error) {
 		d, err = icns.Decode(data, icns.Options{MaxPixels: maxPixels})
 	case FormatDDS:
 		d, err = dds.Decode(data, dds.Options{MaxPixels: maxPixels})
+	case FormatKTX2:
+		d, err = ktx2.Decode(ctx, data, ktx2.Options{MaxPixels: maxPixels, Backend: vipsKTX2{}})
+	case FormatFITS:
+		d, err = fits.Decode(data, fits.Options{MaxPixels: maxPixels})
+	case FormatDICOM:
+		d.Raw, err = decodeDICOM(ctx, data, maxPixels)
 	default:
 		return d, errs.Newf(errs.KindInternal, "codec: %s has no own loader", f)
 	}
 	if err != nil {
 		switch errs.KindOf(err) {
-		case errs.KindLimitExceeded, errs.KindUnsupported, errs.KindCorrupt:
+		case errs.KindLimitExceeded, errs.KindUnsupported, errs.KindCorrupt, errs.KindCanceled, errs.KindTimeout:
 			return d, err
 		default:
 			return d, errs.Wrapf(errs.KindCorrupt, err, "codec: sample %s", f)
@@ -212,6 +236,19 @@ func sampleVips(ctx context.Context, buf *vips.Buffer, maxSide int) (Raw, error)
 // maxSide×maxSide.
 func flattenXCFSample(ctx context.Context, a *vips.Arena, buf *vips.Buffer, maxSide int, lim Limits) (*vips.Image, error) {
 	img, err := FlattenXCF(ctx, a, buf, lim.withDefaults().MaxSrcPixels, vips.FailOnError)
+	if err != nil {
+		return nil, err
+	}
+	if s := float64(maxSide) / float64(max(img.Width(), img.Height())); s < 1 {
+		return a.Add(img.Resize(ctx, s, s, vips.KernelLanczos3))
+	}
+	return img, nil
+}
+
+// magickCoderSample decodes a PICT or Photo CD source (LoadMagickCoder) and
+// fits it inside maxSide×maxSide.
+func magickCoderSample(ctx context.Context, a *vips.Arena, buf *vips.Buffer, f Format, maxSide int) (*vips.Image, error) {
+	img, err := LoadMagickCoder(ctx, a, buf, f, vips.FailOnError)
 	if err != nil {
 		return nil, err
 	}

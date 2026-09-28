@@ -64,7 +64,7 @@ func writeKTX2(out string, w, h int, vk, scheme uint32, level []byte, raw int) e
 	u64(levelOff)
 	u64(uint64(len(level)))
 	u64(uint64(raw)) //nolint:gosec // fixture sizes
-	u32(4) // DFD: dfdTotalSize
+	u32(4)           // DFD: dfdTotalSize
 	for uint64(b.Len()) < levelOff {
 		b.WriteByte(0)
 	}

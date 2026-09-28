@@ -128,6 +128,13 @@ func NetworkFiles() []NetworkFile {
 			URL:    base + "3874/nice/Hasselblad%20-%20X1D%20II%2050C%20-%2016bit%20%284%3A3%29.fff",
 			SHA256: "8c2451b3478fb529b4e9bd51ed3267999ce26eb1fcb5c3b93c3ae7bc56267794",
 		}, "", 8278, 6208},
+		// WP-108: a Leaf back that writes its maker only in the XMP; IFD0
+		// has Leaf's LeafData tag instead of a Make (codec/raw.Sniff).
+		{File{
+			Name: "leaf-aptus-22.mos", Kind: "mos", Camera: "Leaf Aptus 22", Orientation: 1,
+			URL:    base + "3196/nice/Leaf%20-%20Aptus%2022%20-%2016bit%20%284%3A3%29.mos",
+			SHA256: "8a1a101cb3940b0648af54a721d92e6fb8612dd29a0909036ea2753196a00ec2",
+		}, "", 4008, 5344},
 		{File{
 			Name: "google-pixel-8-pro.dng", Kind: "dng", Camera: "Google Pixel 8 Pro", Orientation: 1,
 			URL:    base + "7751/nice/Google%20-%20Pixel%208%20Pro%20-%2016bit%20%284%3A3%29.dng",

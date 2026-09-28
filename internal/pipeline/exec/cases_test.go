@@ -131,6 +131,30 @@ var goldenCases = []goldenCase{
 	{name: "xcf-alpha", fixture: "xcf/alpha.xcf", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
 	{name: "xcf-to-jpeg", fixture: "xcf/alpha.xcf", options: "rs:fit:32:32/bg:255:255:255", out: transform.FormatJPEG, w: 32, h: 24, noImgproxy: true},
 
+	// WP-108: KTX2 through the Go BCn/uncompressed route and the Basis
+	// Universal transcoder (ETC1S, UASTC with Zstandard, UASTC HDR
+	// tone-mapped), FITS stretched for display, DICOM windowed (native,
+	// RLE, JPEG and JPEG 2000 frames, palette, MONOCHROME1), PICT through
+	// ImageMagick's named coder.
+	{name: "ktx2-bc7-alpha", fixture: "ktx2/bc7.ktx2", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "ktx2-bc6h", fixture: "ktx2/bc6h.ktx2", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "ktx2-rgba8-zstd", fixture: "ktx2/rgba8-zstd.ktx2", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "ktx2-etc1s", fixture: "ktx2/etc1s.ktx2", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "ktx2-uastc-zstd", fixture: "ktx2/uastc-zstd.ktx2", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "ktx2-uastc-hdr", fixture: "ktx2/uastc-hdr.ktx2", options: "rs:fit:48:48", out: transform.FormatPNG, w: 48, h: 32, noImgproxy: true},
+	{name: "fits-u16", fixture: "fits/u16.fits", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "fits-rgb16", fixture: "fits/rgb16.fits", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "fits-rice-f32", fixture: "fits/rice-f32.fits.fz", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "fits-mef", fixture: "fits/mef-i32.fits", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "dicom-ct-window", fixture: "dicom/ct-window.dcm", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "dicom-ct-rle", fixture: "dicom/ct-rle.dcm", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "dicom-ct-j2k", fixture: "dicom/ct-j2k.dcm", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "dicom-jpeg", fixture: "dicom/jpeg-baseline.dcm", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "dicom-mono1", fixture: "dicom/mono1-implicit.dcm", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "dicom-palette", fixture: "dicom/palette.dcm", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "dicom-rgb-rle", fixture: "dicom/rgb-rle.dcm", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "pict", fixture: "pict/photo.pct", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+
 	// Chained pipelines.
 	{name: "chained", fixture: jpegPhoto, options: "rs:fill:100:80/-/rot:90", out: transform.FormatPNG, w: 80, h: 100, noImgproxy: true},
 }

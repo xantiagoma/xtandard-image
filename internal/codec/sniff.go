@@ -5,8 +5,11 @@ import (
 	"encoding/binary"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/bmp"
+	"github.com/xantiagoma/xtandard-image/internal/codec/dicom"
+	"github.com/xantiagoma/xtandard-image/internal/codec/fits"
 	"github.com/xantiagoma/xtandard-image/internal/codec/icns"
 	"github.com/xantiagoma/xtandard-image/internal/codec/ico"
+	"github.com/xantiagoma/xtandard-image/internal/codec/ktx2"
 	"github.com/xantiagoma/xtandard-image/internal/codec/raw"
 	"github.com/xantiagoma/xtandard-image/internal/codec/wbmp"
 	"github.com/xantiagoma/xtandard-image/internal/security/svg"
@@ -108,6 +111,18 @@ func sniff(b []byte) Format {
 		return FormatMOV
 	case isRAW(b):
 		return FormatRAW
+	case has(b, ktx2.Identifier):
+		return FormatKTX2
+	case fits.Sniff(b):
+		return FormatFITS
+	case dicom.Sniff(b):
+		return FormatDICOM
+	case isPICT(b):
+		// A 512-byte application header of any content (usually zeros)
+		// comes first: checked before the formats without a signature.
+		return FormatPICT
+	case isPCD(b):
+		return FormatPCD
 	case len(b) >= 8 && has(b, magicJXR) && b[3] <= 1:
 		return FormatJXR
 	case len(b) >= 128 && has(b, magicDDS):

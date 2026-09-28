@@ -197,7 +197,7 @@ xi_find_loader(VipsBlob *blob, const char **loader, char **err)
   return xi_check_loader(*loader, blob, err);
 }
 
-// ---- OpenEXR spool ---------------------------------------------------------
+// ---- file spool (OpenEXR, named ImageMagick coders) --------------------------
 //
 // openexrload reads a file by name, lazily: the file must outlive every
 // image derived from the load. The spool is attached to the loaded image and
@@ -205,37 +205,48 @@ xi_find_loader(VipsBlob *blob, const char **loader, char **err)
 // Linux it is a memfd opened through /proc/self/fd, so nothing touches the
 // filesystem; elsewhere a file in g_get_tmp_dir().
 //
-// The registry maps a spool's path to the source blob's data pointer, so a
-// decode failure (the invalidate hook sees the loader's "filename", not a
-// "buffer") is attributed to the source like any buffer load.
+// ImageMagick's PICT and Photo CD coders are reached the same way (WP-108):
+// libvips' buffer loader lets ImageMagick guess the coder from the first
+// bytes, which takes PICT's 512-byte header for TGA, so the spool's path is
+// handed to magickload behind an explicit "PICT:" or "PCD:" prefix
+// (xi_load_magick_coder); the spool's name is that prefixed path.
+//
+// The registry maps a spool's name (the loader's "filename") to the source
+// blob's data pointer, so a decode failure (the invalidate hook sees that
+// filename, not a "buffer") is attributed to the source like any buffer
+// load.
 
 typedef struct {
   int fd;
-  char *path;
+  char *path;       // the file
+  char *name;       // what the loader opens: path, or "<coder>:<path>"
   gboolean temp;    // a named temporary file: unlink when done
   const void *data; // the source blob's data (registry value)
 } XiSpool;
 
 static GMutex xi_spools_lock;
-static GHashTable *xi_spools = NULL; // path -> source data pointer
+static GHashTable *xi_spools = NULL; // name -> source data pointer
 
 static void
 xi_spool_free(XiSpool *s)
 {
   g_mutex_lock(&xi_spools_lock);
-  if (xi_spools && s->path)
-    g_hash_table_remove(xi_spools, s->path);
+  if (xi_spools && s->name)
+    g_hash_table_remove(xi_spools, s->name);
   g_mutex_unlock(&xi_spools_lock);
   if (s->fd >= 0)
     close(s->fd);
   if (s->temp && s->path)
     g_unlink(s->path);
+  g_free(s->name);
   g_free(s->path);
   g_free(s);
 }
 
+// xi_spool_new writes blob to a new spool whose name is its path, prefixed
+// by "<coder>:" when coder is not NULL.
 static XiSpool *
-xi_spool_new(VipsBlob *blob)
+xi_spool_new(VipsBlob *blob, const char *coder)
 {
   VipsArea *area = VIPS_AREA(blob);
   const char *p = area->data;
@@ -245,13 +256,13 @@ xi_spool_new(VipsBlob *blob)
   s->fd = -1;
   s->data = area->data;
 #ifdef __linux__
-  if ((s->fd = memfd_create("xi-exr", MFD_CLOEXEC)) >= 0)
+  if ((s->fd = memfd_create(coder ? "xi-magick" : "xi-exr", MFD_CLOEXEC)) >= 0)
     s->path = g_strdup_printf("/proc/self/fd/%d", s->fd);
 #endif
   if (s->fd < 0) {
     GError *gerr = NULL;
 
-    if ((s->fd = g_file_open_tmp("xi-XXXXXX.exr", &s->path, &gerr)) < 0) {
+    if ((s->fd = g_file_open_tmp(coder ? "xi-XXXXXX" : "xi-XXXXXX.exr", &s->path, &gerr)) < 0) {
       vips_error("xi_load", "spool: %s", gerr ? gerr->message : "cannot create");
       g_clear_error(&gerr);
       xi_spool_free(s);
@@ -272,10 +283,11 @@ xi_spool_new(VipsBlob *blob)
     p += n;
     left -= (size_t) n;
   }
+  s->name = coder ? g_strdup_printf("%s:%s", coder, s->path) : g_strdup(s->path);
   g_mutex_lock(&xi_spools_lock);
   if (!xi_spools)
     xi_spools = g_hash_table_new(g_str_hash, g_str_equal);
-  g_hash_table_insert(xi_spools, s->path, (gpointer) s->data);
+  g_hash_table_insert(xi_spools, s->name, (gpointer) s->data);
   g_mutex_unlock(&xi_spools_lock);
   return s;
 }
@@ -419,9 +431,12 @@ xi_wipe_password(VipsOperation *op)
     xi_wipe(s, strlen(s));
 }
 
-// xi_run_loader builds loader over blob with the options it supports.
+// xi_run_loader builds loader over blob with the options it supports. With
+// coder (an ImageMagick coder name), loader is magickload and blob is read
+// from a spool named "<coder>:<path>".
 static int
-xi_run_loader(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsImage **out)
+xi_run_loader(const char *loader, const char *coder, VipsBlob *blob, const XiLoadOptions *o,
+    VipsImage **out)
 {
   VipsOperation *op;
   XiSpool *spool = NULL;
@@ -430,12 +445,12 @@ xi_run_loader(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsIm
 
   if (!(op = vips_operation_new(loader)))
     return -1;
-  if (strcmp(loader, XI_EXR_LOADER) == 0) {
-    if (!(spool = xi_spool_new(blob))) {
+  if (coder || strcmp(loader, XI_EXR_LOADER) == 0) {
+    if (!(spool = xi_spool_new(blob, coder))) {
       g_object_unref(op);
       return -1;
     }
-    g_object_set(op, "filename", spool->path, NULL);
+    g_object_set(op, "filename", spool->name, NULL);
   } else
     g_object_set(op, "buffer", blob, NULL);
   g_object_set(op, "access", o->access, "fail_on", o->fail_on, NULL);
@@ -521,7 +536,7 @@ xi_probe(VipsBlob *blob, double dpi, const char *password, XiHeader *h, char **e
   o.fail_on = VIPS_FAIL_ON_NONE;
   o.dpi = dpi;
   o.password = password;
-  if (xi_run_loader(loader, blob, &o, &img))
+  if (xi_run_loader(loader, NULL, blob, &o, &img))
     return xi_load_error(err);
 
   h->width = img->Xsize;
@@ -555,8 +570,8 @@ xi_probe(VipsBlob *blob, double dpi, const char *password, XiHeader *h, char **e
   return XI_OK;
 }
 
-static int xi_load_run(const char *loader, VipsBlob *blob, const XiLoadOptions *o,
-    VipsImage **out, char **err);
+static int xi_load_run(const char *loader, const char *coder, VipsBlob *blob,
+    const XiLoadOptions *o, VipsImage **out, char **err);
 
 int
 xi_load(VipsBlob *blob, const XiLoadOptions *o, VipsImage **out, char **err)
@@ -567,7 +582,7 @@ xi_load(VipsBlob *blob, const XiLoadOptions *o, VipsImage **out, char **err)
   *out = NULL;
   if ((rc = xi_find_loader(blob, &loader, err)))
     return rc;
-  return xi_load_run(loader, blob, o, out, err);
+  return xi_load_run(loader, NULL, blob, o, out, err);
 }
 
 int
@@ -585,17 +600,93 @@ xi_load_with(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsIma
     *err = xi_error_new("xi_load", "loader %s is blocked", loader);
     return XI_ERR_UNSUPPORTED;
   }
-  return xi_load_run(loader, blob, o, out, err);
+  return xi_load_run(loader, NULL, blob, o, out, err);
+}
+
+// ---- named ImageMagick coders (WP-108) ------------------------------------
+
+static guint
+xi_be16(const unsigned char *d)
+{
+  return (guint) d[0] << 8 | d[1];
+}
+
+// xi_is_pict reports a Macintosh PICT file: the 512-byte application header
+// (any content), the picture size, a non-empty frame rectangle with
+// non-negative coordinates, then the version opcode, 0x11 0x01 (version 1)
+// or 0x0011 0x02FF (version 2). codec.Sniff checks the same.
+gboolean
+xi_is_pict(const unsigned char *d, size_t n)
+{
+  gint16 top, left, bottom, right;
+  const unsigned char *v;
+
+  if (n < 528)
+    return FALSE;
+  top = (gint16) xi_be16(d + 514);
+  left = (gint16) xi_be16(d + 516);
+  bottom = (gint16) xi_be16(d + 518);
+  right = (gint16) xi_be16(d + 520);
+  if (top < 0 || left < 0 || bottom <= top || right <= left)
+    return FALSE;
+  v = d + 522;
+  return (v[0] == 0x11 && v[1] == 0x01) ||
+      (v[0] == 0x00 && v[1] == 0x11 && v[2] == 0x02 && v[3] == 0xFF);
+}
+
+// xi_is_pcd reports a Kodak Photo CD image pack ("PCD_IPI" at 2048) holding
+// at least the Base image ImageMagick decodes (768×512 YCC 4:2:0 at sector
+// 96). Overview packs (PCD_OPA) are not read.
+gboolean
+xi_is_pcd(const unsigned char *d, size_t n)
+{
+  return n >= XI_PCD_BASE_END && memcmp(d + 2048, "PCD_IPI", 7) == 0;
+}
+
+int
+xi_load_magick_coder(int coder, VipsBlob *blob, const XiLoadOptions *o, VipsImage **out,
+    char **err)
+{
+  VipsArea *area = VIPS_AREA(blob);
+  const char *name, *loader = "VipsForeignLoadMagick7File";
+
+  *out = NULL;
+  switch (coder) {
+  case XI_MAGICK_PICT:
+    name = "PICT";
+    if (!xi_is_pict(area->data, area->length)) {
+      *err = xi_error_new("xi_load", "not a PICT file");
+      return XI_ERR_UNSUPPORTED;
+    }
+    break;
+  case XI_MAGICK_PCD:
+    name = "PCD";
+    if (!xi_is_pcd(area->data, area->length)) {
+      *err = xi_error_new("xi_load", "not a Photo CD image pack");
+      return XI_ERR_UNSUPPORTED;
+    }
+    break;
+  default:
+    *err = xi_error_new("xi_load", "unknown magick coder %d", coder);
+    return XI_ERR_UNSUPPORTED;
+  }
+  if (!g_type_from_name(loader))
+    loader = "VipsForeignLoadMagick6File";
+  if (!g_type_from_name(loader) || xi_loader_blocked(loader)) {
+    *err = xi_error_new("xi_load", "the ImageMagick file loader is not available");
+    return XI_ERR_UNSUPPORTED;
+  }
+  return xi_load_run(loader, name, blob, o, out, err);
 }
 
 static int
-xi_load_run(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsImage **out,
-    char **err)
+xi_load_run(const char *loader, const char *coder, VipsBlob *blob, const XiLoadOptions *o,
+    VipsImage **out, char **err)
 {
   VipsImage *img = NULL, *rot = NULL;
   int frames;
 
-  if (xi_run_loader(loader, blob, o, &img))
+  if (xi_run_loader(loader, coder, blob, o, &img))
     return xi_load_error(err);
 
   // Limits are checked on the header, before any pixel is decoded.
@@ -650,7 +741,7 @@ xi_thumbnail_password(const char *loader, VipsBlob *blob, const XiThumbnailOptio
   lo.page = o->page;
   lo.n = o->n;
   lo.password = o->password;
-  if (xi_run_loader(loader, blob, &lo, &in))
+  if (xi_run_loader(loader, NULL, blob, &lo, &in))
     return xi_load_error(err);
   if (!(op = vips_operation_new("thumbnail_image"))) {
     g_object_unref(in);

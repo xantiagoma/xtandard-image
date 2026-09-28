@@ -80,7 +80,8 @@ func inspect(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Setting
 		return info, nil
 	}
 	switch m.Format {
-	case FormatBMP, FormatICO, FormatSVG, FormatWBMP, FormatICNS, FormatEPS, FormatXCF:
+	case FormatBMP, FormatICO, FormatSVG, FormatWBMP, FormatICNS, FormatEPS, FormatXCF, FormatPICT, FormatPCD,
+		FormatFITS, FormatDICOM:
 		info.Bands = 3
 		if m.HasAlpha || m.Format == FormatSVG {
 			info.Bands = 4
@@ -106,9 +107,9 @@ func inspect(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Setting
 		info.SampleFormat, info.Colorspace = "uchar", "srgb"
 		info.Video = m.Video
 		return info, nil
-	case FormatDDS:
-		// Described from the Go header (codec/dds): 8-bit sRGB, or float
-		// scRGB for HDR textures; grey textures decode to RGB.
+	case FormatDDS, FormatKTX2:
+		// Described from the Go header (codec/dds, codec/ktx2): 8-bit sRGB,
+		// or float scRGB for HDR textures; grey textures decode to RGB.
 		info.Bands = 3
 		if m.HasAlpha {
 			info.Bands = 4

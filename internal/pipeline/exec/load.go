@@ -28,6 +28,9 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 		// No stored composite: the visible layers are decoded one by one
 		// and flattened (codec.FlattenXCF).
 		img, err = codec.FlattenXCF(ctx, r.a, r.j.Source, r.e.cfg.Limits.MaxSrcPixels, r.e.cfg.FailOn)
+	case r.j.Meta.Format == formatPICT || r.j.Meta.Format == formatPCD:
+		// ImageMagick's coder named explicitly (codec.LoadMagickCoder).
+		img, err = r.loadMagickCoder(ctx)
 	case stackable(r.j.Meta.Format):
 		// Stacked pages of a multi-page still may differ in size. The
 		// frames of an AVIF/HEIF sequence do not, and each page loaded
@@ -67,8 +70,23 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 	return img, nil
 }
 
-// formatXCF is the Job.Meta.Format of GIMP XCF sources.
-const formatXCF = "xcf"
+// Job.Meta.Format of the sources with their own load path: GIMP XCF,
+// Macintosh PICT and Kodak Photo CD.
+const (
+	formatXCF  = "xcf"
+	formatPICT = "pict"
+	formatPCD  = "pcd"
+)
+
+// loadMagickCoder decodes a PICT or Photo CD source with its ImageMagick
+// coder (codec.LoadMagickCoder).
+func (r *runner) loadMagickCoder(ctx context.Context) (*vips.Image, error) {
+	f, err := codec.ParseFormat(r.j.Meta.Format)
+	if err != nil {
+		return nil, err
+	}
+	return codec.LoadMagickCoder(ctx, r.a, r.j.Source, f, r.e.cfg.FailOn)
+}
 
 // loadSource loads the source through libvips with o. A CIE L*a*b* TIFF,
 // which libvips 8.18 cannot read as such, is loaded from a copy relabelled
@@ -82,11 +100,11 @@ func (r *runner) loadSource(ctx context.Context, o *vips.LoadOptions) (*vips.Ima
 	return r.a.Add(vips.Load(ctx, r.j.Source, o))
 }
 
-// ownFormat reports the formats decoded by the pure-Go loaders
-// (codec.DecodeOwn): BMP, ICO, WBMP, ICNS and DDS.
+// ownFormat reports the formats decoded by the Go loaders
+// (codec.DecodeOwn): BMP, ICO, WBMP, ICNS, DDS, KTX2, FITS and DICOM.
 func ownFormat(format string) bool {
 	switch format {
-	case "bmp", "ico", "wbmp", "icns", "dds":
+	case "bmp", "ico", "wbmp", "icns", "dds", "ktx2", "fits", "dicom":
 		return true
 	default:
 		return false
@@ -127,7 +145,7 @@ func (r *runner) loadOptions(ls *plan.LoadStep, anim *plan.AnimationStep) *vips.
 	return o
 }
 
-// loadGo decodes BMP, ICO, WBMP, ICNS and DDS with the pure-Go loaders. A
+// loadGo decodes BMP, ICO, WBMP, ICNS, DDS, KTX2, FITS and DICOM with the Go loaders. A
 // PNG, JPEG or JPEG 2000 stream embedded in the container is loaded by
 // libvips from a C copy; an HDR texture becomes float scRGB, which the
 // colour step tone-maps (fromHDR).
@@ -136,7 +154,7 @@ func (r *runner) loadGo(ctx context.Context) (*vips.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	d, err := codec.DecodeOwn(r.j.Source.Bytes(), f, r.e.cfg.Limits.MaxSrcPixels)
+	d, err := codec.DecodeOwn(ctx, r.j.Source.Bytes(), f, r.e.cfg.Limits.MaxSrcPixels)
 	if err != nil {
 		return nil, goDecodeError(r.j.Meta.Format, err)
 	}

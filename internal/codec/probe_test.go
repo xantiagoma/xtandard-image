@@ -280,6 +280,53 @@ func TestProbeFixtures(t *testing.T) {
 		"xcf/layers.xcf": still(codec.FormatXCF, 160, 120),
 		"xcf/gray.xcf":   still(codec.FormatXCF, 160, 120),
 		"xcf/alpha.xcf":  with(still(codec.FormatXCF, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		// WP-108. KTX2: the Go route (BCn, uncompressed) and Basis Universal.
+		"ktx2/bc1.ktx2": still(codec.FormatKTX2, 64, 48),
+		"ktx2/bc4.ktx2": with(still(codec.FormatKTX2, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"ktx2/bc6h.ktx2": with(still(codec.FormatKTX2, 64, 48), func(m *codec.ImageMeta) {
+			m.BitDepth, m.ColorSpace, m.HDR = 32, codec.ColorSpaceScRGB, true
+		}),
+		"ktx2/bc7.ktx2":        with(still(codec.FormatKTX2, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"ktx2/rgba8.ktx2":      with(still(codec.FormatKTX2, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"ktx2/rgb8.ktx2":       still(codec.FormatKTX2, 64, 48),
+		"ktx2/rgba8-zlib.ktx2": with(still(codec.FormatKTX2, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"ktx2/rgba8-zstd.ktx2": with(still(codec.FormatKTX2, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"ktx2/etc1s.ktx2":      still(codec.FormatKTX2, 64, 48),
+		"ktx2/uastc-zstd.ktx2": with(still(codec.FormatKTX2, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"ktx2/uastc-hdr.ktx2": with(still(codec.FormatKTX2, 48, 32), func(m *codec.ImageMeta) {
+			m.BitDepth, m.ColorSpace, m.HDR = 32, codec.ColorSpaceScRGB, true
+		}),
+		// FITS: stretched to 8-bit, grey unless a 3-plane cube.
+		"fits/dither2-f32.fits.fz":   with(still(codec.FormatFITS, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"fits/dither2-f32.ref.fits":  with(still(codec.FormatFITS, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"fits/f32-nan.fits":          with(still(codec.FormatFITS, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"fits/f64.fits":              with(still(codec.FormatFITS, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"fits/gzip1-mef-i32.fits.fz": with(still(codec.FormatFITS, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"fits/gzip2-f32.fits.fz":     with(still(codec.FormatFITS, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"fits/gzip2-f32.ref.fits":    with(still(codec.FormatFITS, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"fits/hcompress-u16.fits.fz": with(still(codec.FormatFITS, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"fits/mef-i32.fits":          with(still(codec.FormatFITS, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"fits/rice-f32.fits.fz":      with(still(codec.FormatFITS, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"fits/rice-f32.ref.fits":     with(still(codec.FormatFITS, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"fits/rice-u16.fits.fz":      with(still(codec.FormatFITS, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"fits/u16.fits":              with(still(codec.FormatFITS, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"fits/u8.fits":               with(still(codec.FormatFITS, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"fits/rgb16.fits":            still(codec.FormatFITS, 64, 48),
+		// DICOM: the first frame, windowed to 8-bit.
+		"dicom/ct-bigendian.dcm":     with(still(codec.FormatDICOM, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"dicom/ct-j2k.dcm":           with(still(codec.FormatDICOM, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"dicom/ct-rle.dcm":           with(still(codec.FormatDICOM, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"dicom/ct-window.dcm":        with(still(codec.FormatDICOM, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"dicom/grey-2frames.dcm":     with(still(codec.FormatDICOM, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"dicom/mono1-implicit.dcm":   with(still(codec.FormatDICOM, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"dicom/jpeg-2frames-bot.dcm": still(codec.FormatDICOM, 64, 48),
+		"dicom/jpeg-baseline.dcm":    still(codec.FormatDICOM, 64, 48),
+		"dicom/palette.dcm":          still(codec.FormatDICOM, 64, 48),
+		"dicom/rgb-deflated.dcm":     still(codec.FormatDICOM, 64, 48),
+		"dicom/rgb-planar.dcm":       still(codec.FormatDICOM, 64, 48),
+		"dicom/rgb-rle.dcm":          still(codec.FormatDICOM, 64, 48),
+		// PICT: the header read in Go, decoded by ImageMagick's named coder.
+		"pict/photo.pct": still(codec.FormatPICT, 64, 48),
 	}
 	// password.pdf and password-aes128.pdf fail by design (TestProbeErrors,
 	// TestProbePDFPassword); videos are probed by
