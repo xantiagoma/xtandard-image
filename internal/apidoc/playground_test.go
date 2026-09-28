@@ -130,6 +130,37 @@ func TestCataloguesCoverImgproxy(t *testing.T) {
 	}
 }
 
+// TestInfoOptionsCoverImgproxy: the Info panel's catalogue lists every
+// /info option with its aliases, forms, default, security flag and a panel
+// group.
+func TestInfoOptionsCoverImgproxy(t *testing.T) {
+	t.Parallel()
+	got := map[string]playground.Option{}
+	for _, o := range InfoOptions() {
+		got[o.Name] = o
+	}
+	want := imgproxy.InfoOptions()
+	for i := range want {
+		o := &want[i]
+		p, ok := got[o.Name]
+		switch {
+		case !ok:
+			t.Errorf("info option %s is missing", o.Name)
+		case strings.Join(p.Aliases, ",") != strings.Join(o.Aliases, ","):
+			t.Errorf("%s aliases %v, want %v", o.Name, p.Aliases, o.Aliases)
+		case len(p.Forms) != len(o.Forms):
+			t.Errorf("%s has %d forms, want %d", o.Name, len(p.Forms), len(o.Forms))
+		case p.Group == "" || p.Group == groupOther:
+			t.Errorf("%s has no Info panel group (%q)", o.Name, p.Group)
+		case p.Default != o.Default || p.Security != o.Security:
+			t.Errorf("%s default %q security %v, want %q %v", o.Name, p.Default, p.Security, o.Default, o.Security)
+		}
+	}
+	if len(got) != len(want) {
+		t.Errorf("%d info options, want %d", len(got), len(want))
+	}
+}
+
 // TestImgixCatalogueKnown checks that the imgix parser knows every name and
 // alias of the imgix catalogue (and so of getImgixImage): none is recorded
 // as unknown or unsupported.

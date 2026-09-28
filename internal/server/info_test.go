@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"math"
 	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -23,6 +24,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/limiter"
 	"github.com/xantiagoma/xtandard-image/internal/obs/admin"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
+	"github.com/xantiagoma/xtandard-image/internal/source"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
 
@@ -387,6 +389,42 @@ func TestInfoDebugHeaderOff(t *testing.T) {
 	rec := h.do(t, http.MethodGet, infoPath, nil)
 	if rec.Code != http.StatusOK || rec.Header().Get("X-Xi-Ignored") != "" || rec.Header().Get("Cache-Control") != "no-cache" {
 		t.Errorf("status %d, X-Xi-Ignored %q, Cache-Control %q", rec.Code, rec.Header().Get("X-Xi-Ignored"), rec.Header().Get("Cache-Control"))
+	}
+}
+
+// TestInfoIgnoredForPlayground: the playground's api/render requests get
+// X-Xi-Ignored without debug headers (its Info panel badges the ignored
+// options); other requests do not.
+func TestInfoIgnoredForPlayground(t *testing.T) {
+	t.Parallel()
+	h := newInfoHarness(t, &fakeInspector{info: photoInfo()}, func(h *harness) {
+		h.cfg.Info = InfoConfig{}
+		h.router.mutate = func(r *transform.Request) {
+			infoRequest(nil)(r)
+			r.Ignored = []transform.Ignored{{Option: "classify", Reason: "not implemented (no classification model)"}}
+		}
+	})
+	for _, tc := range []struct {
+		name       string
+		playground bool
+		want       string
+	}{
+		{"playground", true, "classify (not implemented (no classification model))"},
+		{"public", false, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := t.Context()
+			if tc.playground {
+				ctx = source.WithPlaygroundRequest(ctx)
+			}
+			req := httptest.NewRequestWithContext(ctx, http.MethodGet, infoPath, http.NoBody)
+			rec := httptest.NewRecorder()
+			h.srv.Handler().ServeHTTP(rec, req)
+			if rec.Code != http.StatusOK || rec.Header().Get("X-Xi-Ignored") != tc.want {
+				t.Errorf("status %d, X-Xi-Ignored %q, want %q", rec.Code, rec.Header().Get("X-Xi-Ignored"), tc.want)
+			}
+		})
 	}
 }
 

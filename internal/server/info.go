@@ -346,7 +346,8 @@ func orEmpty(m map[string]any) map[string]any {
 
 // respondInfo is stage 14 for info requests: JSON with the processing
 // ETag scheme, Cache-Control from XI_CACHE_HEADERS_TTL, 304 on a matching
-// If-None-Match, and X-Xi-Ignored when debug headers are on.
+// If-None-Match, and X-Xi-Ignored when debug headers are on or the
+// playground asked (api/render: its Info panel badges the ignored options).
 //
 // WP-34b hook: once processing responses get their full header set
 // (Cache-Control per request, expires, Last-Modified), move the shared
@@ -356,7 +357,7 @@ func (s *Server) respondInfo(w http.ResponseWriter, r *http.Request, res *imageR
 	h.Set("ETag", res.etag)
 	h.Set("Cache-Control", s.infoCacheControl())
 	h.Set("X-Content-Type-Options", "nosniff")
-	if s.cfg.Info.DebugHeaders && len(res.req.Ignored) > 0 {
+	if (s.cfg.Info.DebugHeaders || source.IsPlaygroundRequest(r.Context())) && len(res.req.Ignored) > 0 {
 		h.Set("X-Xi-Ignored", ignoredHeader(res.req.Ignored))
 	}
 	if etagMatches(r.Header.Get("If-None-Match"), res.etag) {

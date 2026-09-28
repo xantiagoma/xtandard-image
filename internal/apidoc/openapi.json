@@ -6295,6 +6295,16 @@
               "null"
             ]
           },
+          "info_options": {
+            "description": "imgproxy /info options (internal/apidoc, the ImgproxyInfoOptions schema) for the Info panel's builder.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundOption"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "max_upload_bytes": {
             "description": "Largest upload in bytes (XI_LIMITS_MAX_SRC_BYTES).",
             "format": "int64",
@@ -6377,6 +6387,7 @@
           "signing",
           "mounts",
           "catalogues",
+          "info_options",
           "presets",
           "sources",
           "formats",
@@ -6502,6 +6513,10 @@
               "null"
             ]
           },
+          "default": {
+            "description": "Value used when the option is absent, as imgproxy documents it (info options).",
+            "type": "string"
+          },
           "doc": {
             "description": "One-line description.",
             "type": "string"
@@ -6521,7 +6536,7 @@
             ]
           },
           "group": {
-            "description": "Builder category.",
+            "description": "Builder category; report, hashes and security are Info panel groups.",
             "enum": [
               "size",
               "gravity",
@@ -6534,7 +6549,10 @@
               "detection",
               "delivery",
               "presets",
-              "other"
+              "other",
+              "report",
+              "hashes",
+              "security"
             ],
             "type": "string"
           },
