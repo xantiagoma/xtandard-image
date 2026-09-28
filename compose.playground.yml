@@ -23,8 +23,9 @@ services:
       XI_SOURCES_LOCAL_ROOT: /fixtures
       XI_SOURCES_WEB_TYPE: http
       XI_SOURCES_WEB_ALLOW: "*"
-      # Default watermark for imgproxy wm (the playground's Examples use it; WP-116).
-      XI_PROCESSING_WATERMARK_SOURCE: local:///watermark/logo.png
+      # No XI_PROCESSING_WATERMARK_SOURCE (WP-117): the playground's watermarks are all explicit
+      # in the URL (wmu, wmt, dialect overlays); the default image is an imgproxy-compatibility
+      # option, shown by one Example that stays disabled here.
       XI_DIALECTS_QUERY_ENABLED: "true"
       XI_DIALECTS_WSRV_ENABLED: "true"
       XI_DIALECTS_CLOUDFLARE_ENABLED: "true"

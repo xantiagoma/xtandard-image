@@ -198,6 +198,7 @@
         </div>
       </div>
       <p class="hint caption" id="preview-caption">The result: the processed output of this URL. Left of the slider is the <strong>source</strong> (the original asset), right is the <strong>result</strong>.</p>
+      <div class="source-origin" id="source-origin" aria-label="Where the images of this session come from"></div>
       <div id="stage" class="stage fit checker" data-mode="slider" role="group" aria-label="Source and result comparison (arrow keys pan when zoomed)">
         <div class="pane before" id="pane-before"><span class="tag">Source</span><div class="media" id="before-media"></div><svg class="overlay" id="det-overlay" aria-hidden="true"></svg></div>
         <div class="pane after" id="pane-after"><span class="tag">Result</span><div class="media" id="after-media"></div></div>
@@ -241,6 +242,7 @@
           <p class="caption" id="info-caption" tabindex="-1"><strong>About the source file (original asset), independent of the processing options.</strong></p>
           <button type="button" class="link" id="goto-result">see output details</button>
         </div>
+        <div class="source-origin" id="info-source-origin" aria-label="Where the source comes from"></div>
         <p class="hint">imgproxy <code>/info</code> of the current source through the first imgproxy mount. Options left out use the server's default, shown beside each name.</p>
         <div class="row wrap" role="group" aria-label="Info option presets">
           <button type="button" id="info-preset-recommended">Recommended</button>
@@ -284,8 +286,8 @@
     <div id="gallery-big" class="gallery big"></div>
   </section>
   <section class="panel tool" id="tool-examples" aria-labelledby="tool-title" hidden>
-    <p class="hint">Ready-made sessions: pick one to load its source, dialect and options into the builder and render it. Watermarks in imgproxy (default image, per-request image, text, size, rotation, shadow, tiles, chessboard), imgix, Cloudinary, ImageKit and imaginary, and a few other things this server does. Each card shows the live result.</p>
-    <p class="notice" id="examples-watermark-note" hidden>This server has no default watermark image, so the recipes marked <em>default watermark</em> are disabled: set <code>XI_PROCESSING_WATERMARK_SOURCE</code> (the demo's <code>compose.playground.yml</code> uses <code>local:///watermark/logo.png</code>). Per-request images and text work without it.</p>
+    <p class="hint">Ready-made sessions: pick one to load its source, dialect and options into the builder and render it. Watermarks in imgproxy (an image named in the URL, text, size, rotation, shadow, tiles, chessboard), imgix, Cloudinary, ImageKit and imaginary, and a few other things this server does. Each card shows the live result.</p>
+    <p class="notice" id="examples-watermark-note" hidden>Every watermark example names its image (<code>wmu</code>, <code>mark</code>, <code>l_fetch</code>, <code>l-image</code>) or its text in the URL. The one example that uses the server's default watermark image (<code>XI_PROCESSING_WATERMARK_SOURCE</code>, an imgproxy-compatibility option, empty by default) is disabled: this server does not configure it.</p>
     <div class="row wrap">
       <label for="examples-search" class="sr">Search the examples</label>
       <input id="examples-search" type="search" placeholder="Search by title, tag, dialect or URL" autocomplete="off">

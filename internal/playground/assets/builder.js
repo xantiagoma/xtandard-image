@@ -3,7 +3,7 @@
 // state lives in state.pipelines (one list of entries per chained
 // pipeline); this module renders it and reports edits through onChange.
 
-import { $, el, uid } from './dom.js';
+import { $, debounce, el, toast, uid } from './dom.js';
 import { argTypes, colorValue, isActive, isFlag } from './grammar.js';
 
 const GROUPS = [
@@ -49,10 +49,26 @@ const vPattern = (p) => (p ? p.replace(/(?<!\\)-\]/g, '\\-]') : undefined);
 // Bounds at the int32 limit are "unbounded" for a person.
 const BIG = 1e9;
 
+// WM_FIXTURE is the repository's watermark logo on the demo's `local` fs
+// source (testdata/fixtures, compose.playground.yml): the image the
+// "Use an explicit image" action writes into wmu (WP-117).
+export const WM_FIXTURE = 'xi://local/watermark/logo.png';
+
+// imageArg reports that argument i of option o in grammar is a watermark
+// image reference (imgproxy wmu, imgix mark), which the builder shows as
+// a thumbnail with a link to the original.
+export const imageArg = (grammar, o, i = 0) => i === 0
+  && ((grammar === 'imgproxy' && o.name === 'watermark_url') || (grammar === 'imgix' && o.name === 'mark'));
+
 export class Builder {
-  constructor({ state, onChange }) {
+  // meta is api/meta; image(src) resolves to {thumb, href} for an image
+  // reference (thumb: an object URL of a small rendition or null; href: a
+  // link to the original without options), or null.
+  constructor({ state, onChange, meta = {}, image = async () => null }) {
     this.state = state;
     this.onChange = onChange;
+    this.meta = meta;
+    this.image = image;
     this.cat = null; // {options, index}
     this.grammar = '';
     this.pipeline = 0;
@@ -155,9 +171,95 @@ export class Builder {
       this.changed(o);
     });
     this.renderArgs(o, args);
+    // imgproxy wm without wmu or wmt draws the server's default image,
+    // which nothing in the URL names: say so under the option (WP-117).
+    if (this.grammar === 'imgproxy' && o.name === 'watermark') {
+      row._wmNote = el('div', { class: 'wm-default', hidden: true, 'data-configured': String(Boolean(this.meta.watermark)) });
+      row.append(row._wmNote);
+    }
     this.rows.set(o.name, row);
     this.mark(o);
+    this.refreshWatermarkNote();
     return row;
+  }
+
+  // active reports that option name has an active entry in the pipeline.
+  active(name) {
+    const o = this.cat?.index.get(name);
+    const e = this.entry(name);
+    return Boolean(o && e && isActive(o, e));
+  }
+
+  // refreshWatermarkNote shows the default-watermark notice under wm when
+  // the pipeline has wm but neither wmu nor wmt.
+  refreshWatermarkNote() {
+    const note = this.rows.get('watermark')?._wmNote;
+    if (!note) return;
+    const show = this.active('watermark') && !this.active('watermark_url') && !this.active('watermark_text');
+    note.hidden = !show;
+    if (!show || note.childElementCount) return;
+    const configured = Boolean(this.meta.watermark);
+    const local = (this.meta.sources ?? []).some((s) => s.name === 'local');
+    const use = el('button', {
+      type: 'button', class: 'small', 'data-action': 'use-wmu', disabled: !local,
+      title: local ? `Adds wmu with ${WM_FIXTURE}: the watermark image is then named in the URL` : 'Needs the "local" fs source on testdata/fixtures (compose.playground.yml)',
+      text: 'Use an explicit image (wmu)',
+    });
+    use.addEventListener('click', () => this.useExplicitWatermark());
+    note.append(
+      el('p', {}, 'Uses the server\'s default watermark (', el('code', { text: 'XI_PROCESSING_WATERMARK_SOURCE' }), ') — ',
+        el('strong', { text: configured ? 'configured on this server' : 'not configured on this server' }),
+        configured ? '. The image is not named in the URL.' : ', so nothing is drawn.'),
+      el('div', { class: 'row' }, use));
+  }
+
+  // useExplicitWatermark adds wmu with the fixture logo next to wm.
+  useExplicitWatermark() {
+    const p = this.state.pipelines[this.pipeline] ?? (this.state.pipelines[this.pipeline] = []);
+    let e = p.find((x) => x.name === 'watermark_url');
+    if (!e) {
+      e = { name: 'watermark_url', form: 0, groups: 1, values: [], on: true };
+      p.splice(Math.max(0, p.findIndex((x) => x.name === 'watermark')), 0, e);
+    }
+    e.form = 0;
+    e.values = [WM_FIXTURE];
+    this.render(this.grammar, this.cat);
+    this.reveal('watermark_url');
+    toast(`Watermark image set: ${WM_FIXTURE}.`);
+    this.onChange();
+  }
+
+  // imagePreview is the thumbnail and link under a watermark image
+  // argument; update(src) refreshes it (the latest call wins).
+  imagePreview() {
+    const img = el('img', { alt: 'Watermark image', hidden: true, decoding: 'async' });
+    const link = el('a', { href: '#', target: '_blank', rel: 'noopener noreferrer', hidden: true, text: 'open the image' });
+    const what = el('code', { class: 'wm-src' });
+    const status = el('span', { class: 'hint' });
+    const box = el('div', { class: 'wm-image', 'aria-live': 'polite' }, img, el('div', {}, what, ' ', link, ' ', status));
+    let seq = 0;
+    let obj = '';
+    const update = debounce(async (src) => {
+      const my = ++seq;
+      what.textContent = src;
+      box.hidden = !src;
+      if (!src) return;
+      status.textContent = 'loading…';
+      let r = null;
+      try { r = await this.image(src); } catch { r = null; }
+      if (my !== seq) {
+        if (r?.thumb) URL.revokeObjectURL(r.thumb);
+        return;
+      }
+      if (obj) URL.revokeObjectURL(obj);
+      obj = r?.thumb ?? '';
+      img.hidden = !obj;
+      if (obj) img.src = obj;
+      link.hidden = !r?.href;
+      if (r?.href) link.href = r.href;
+      status.textContent = obj ? '' : 'no preview (the server cannot fetch it)';
+    }, 400);
+    return { box, update };
   }
 
   // renderArgs renders the inputs of an option's current form.
@@ -260,6 +362,16 @@ export class Builder {
         if (a.type === 'direction') control.setAttribute('list', 'xi-directions');
         if (/class/.test(a.name) || (o.name === 'crop' && this.grammar === 'imgix') || /^(g|fo)$/.test(o.name)) control.setAttribute('list', 'xi-classes');
         if (o.name === 'preset' || o.name === 't' || o.name === 'n' || o.name === 'class') control.setAttribute('list', 'xi-presets');
+        // A watermark image reference: its URL in plain text (wmu is
+        // base64-encoded only in the URL), a thumbnail and a link.
+        if (imageArg(this.grammar, o, i)) {
+          const pv = this.imagePreview();
+          if (a.doc) control.title = a.doc;
+          control.placeholder = `image URL or source reference, e.g. ${WM_FIXTURE}`;
+          control.addEventListener('input', () => { set(control.value); pv.update(control.value.trim()); });
+          pv.update(String(value).trim());
+          return el('div', { class: 'arg wide' }, label, control, pv.box);
+        }
       }
     }
     if (a.doc) control.title = a.doc;
@@ -285,6 +397,7 @@ export class Builder {
       const n = det._opts.filter((o) => { const e = this.entry(o.name); return e && isActive(o, e); }).length;
       det._count.textContent = n ? String(n) : '';
     }
+    this.refreshWatermarkNote();
     this.renderApplied();
   }
 
