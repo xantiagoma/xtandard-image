@@ -3,6 +3,7 @@
 package codec_test
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec"
@@ -139,6 +140,36 @@ func TestSampleLongTail(t *testing.T) {
 			}
 		})
 	}
+	// Lossless and 12-bit JPEG frames (jpeghpload, WP-106) render like the
+	// same pixels stored natively or RLE-compressed: jpeghpload's 0–65535
+	// scaling is undone and signed frames keep their sign.
+	for _, tc := range []struct{ got, want string }{
+		{"dicom/ct-jpegll-signed.dcm", "dicom/ct-bigendian.dcm"},
+		{"dicom/ct-jpegll12.dcm", "dicom/ct-rle.dcm"},
+	} {
+		t.Run(tc.got, func(t *testing.T) {
+			t.Parallel()
+			got, want := sample(t, tc.got, 512), sample(t, tc.want, 512)
+			if got.Width != want.Width || got.Height != want.Height || !bytes.Equal(got.Data, want.Data) {
+				t.Errorf("%s (%dx%d) differs from %s (%dx%d)", tc.got, got.Width, got.Height, tc.want, want.Width, want.Height)
+			}
+		})
+	}
+	t.Run("dicom/jpeg-extended12.dcm", func(t *testing.T) {
+		t.Parallel()
+		got, want := sample(t, "dicom/jpeg-extended12.dcm", 512), sample(t, "jpeg/rgb12.jpg", 512)
+		if got.Width != want.Width || got.Height != want.Height {
+			t.Fatalf("Sample = %dx%d, want %dx%d", got.Width, got.Height, want.Width, want.Height)
+		}
+		worst := 0
+		for i := range got.Data {
+			d := int(got.Data[i]) - int(want.Data[i])
+			worst = max(worst, d, -d)
+		}
+		if worst > 1 {
+			t.Errorf("12-bit JPEG frame differs from the JPEG by up to %d levels, want at most 1", worst)
+		}
+	})
 	t.Run("pcd", func(t *testing.T) {
 		t.Parallel()
 		buf := newBuffer(t, synth.PCD(1))

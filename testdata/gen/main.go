@@ -199,14 +199,17 @@ func run(args []string) error {
 	case "metafile":
 		return metafileFixtures(args[1])
 	case "dicom":
-		if len(args) != 2 && len(args) != 3 {
-			return errors.New("dicom: want out-dir [ct.j2k]")
+		if len(args) < 2 || len(args) > 4 {
+			return errors.New("dicom: want out-dir [ct.j2k [rgb12.jpg]]")
 		}
-		j2k := ""
-		if len(args) == 3 {
+		j2k, jpeg12 := "", ""
+		if len(args) >= 3 {
 			j2k = args[2]
 		}
-		return writeDICOMFixtures(args[1], j2k)
+		if len(args) == 4 {
+			jpeg12 = args[3]
+		}
+		return writeDICOMFixtures(args[1], j2k, jpeg12)
 	case "dicom-phantom":
 		return writePhantomPNG(args[1])
 	case "procreate":

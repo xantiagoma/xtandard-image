@@ -325,6 +325,10 @@ func TestProbeFixtures(t *testing.T) {
 		"dicom/rgb-deflated.dcm":     still(codec.FormatDICOM, 64, 48),
 		"dicom/rgb-planar.dcm":       still(codec.FormatDICOM, 64, 48),
 		"dicom/rgb-rle.dcm":          still(codec.FormatDICOM, 64, 48),
+		// Lossless and 12-bit JPEG frames: the shim's jpeghpload (WP-106).
+		"dicom/ct-jpegll-signed.dcm": with(still(codec.FormatDICOM, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"dicom/ct-jpegll12.dcm":      with(still(codec.FormatDICOM, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"dicom/jpeg-extended12.dcm":  still(codec.FormatDICOM, 64, 48),
 		// PICT: the header read in Go, decoded by ImageMagick's named coder.
 		"pict/photo.pct": still(codec.FormatPICT, 64, 48),
 	}

@@ -42,8 +42,10 @@ func probeFITS(data []byte) (ImageMeta, error) {
 // (codec/dicom, which reads the pixel description only, never patient
 // data): it is rendered to 8-bit RGB (windowed; grey replicated). A frame
 // compressed with a codec the image has no decoder for is refused here:
-// 12- and 16-bit JPEG (lossless JPEG included) like a standalone JPEG, and
-// JPEG-LS.
+// JPEG frames the standalone JPEG probe refuses (hierarchical, arithmetic
+// lossless, precisions other than 8 and 12 bits for DCT), and JPEG-LS.
+// 12-bit DCT and lossless JPEG frames decode through the shim's
+// jpeghpload (WP-106).
 func probeDICOM(data []byte) (ImageMeta, error) {
 	h, err := dicom.ParseHeader(data)
 	if err != nil {
@@ -88,7 +90,7 @@ func dicomCodestream(data []byte, h *dicom.Header) ([]byte, error) {
 	case !ok || (f != FormatJPEG && f != FormatJP2):
 		return nil, errs.Newf(errs.KindCorrupt, "codec: dicom: %s frame is not a JPEG or JPEG 2000 codestream", h.Encoding)
 	case f == FormatJPEG:
-		if err := checkJPEGPrecision(cs); err != nil {
+		if err := checkJPEGFrame(cs); err != nil {
 			return nil, err
 		}
 	}
@@ -148,12 +150,48 @@ func decodeDICOM(ctx context.Context, data []byte, maxPixels int64) (*raster.Raw
 	if err != nil {
 		return nil, err
 	}
+	if _, bits, ok := JPEGFrame(cs); ok {
+		jpegStoredSamples(samples, bits, img.BandFormat(), &h)
+	}
 	return h.Render(dicom.Samples{
 		Width: img.Width(), Height: img.Height(), Bands: bands, Data: samples,
 		// libjpeg and OpenJPEG return RGB for colour frames whatever the
 		// photometric interpretation (YBR) says.
 		Decoded: bands == 3,
 	})
+}
+
+// jpegStoredSamples turns the samples of a JPEG frame of the given
+// precision back into stored values. jpeghpload (WP-106) scales 9–16-bit
+// samples to 0–65535 and 2–7-bit ones to 0–255, like any 16- or 8-bit
+// image; DICOM's rescale and window apply to the stored values, and a
+// signed frame (PixelRepresentation 1) keeps its two's complement pattern
+// in the low BitsStored bits of the decoded sample.
+func jpegStoredSamples(s []int32, bits int, f vips.BandFormat, h *dicom.Header) {
+	full := 0
+	switch {
+	case f == vips.BandFormatUshort && bits > 8 && bits < 16:
+		full = 65535
+	case f == vips.BandFormatUchar && bits >= 2 && bits < 8:
+		full = 255
+	}
+	if full != 0 {
+		maxv := float64(int(1)<<bits - 1)
+		for i, v := range s {
+			s[i] = int32(math.Round(float64(v) * maxv / float64(full)))
+		}
+	}
+	if !h.Signed || h.Samples != 1 || h.BitsStored < 2 || h.BitsStored > bits {
+		return
+	}
+	mask := int32(1)<<h.BitsStored - 1
+	sign := int32(1) << (h.BitsStored - 1)
+	for i, v := range s {
+		if v &= mask; v&sign != 0 {
+			v -= mask + 1
+		}
+		s[i] = v
+	}
 }
 
 // dicomSamples converts libvips' pixels (native byte order) to stored

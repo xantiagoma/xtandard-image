@@ -182,6 +182,9 @@ func fixtureFormats() map[string]codec.Format {
 		"dicom/rgb-deflated.dcm":     codec.FormatDICOM,
 		"dicom/rgb-planar.dcm":       codec.FormatDICOM,
 		"dicom/rgb-rle.dcm":          codec.FormatDICOM,
+		"dicom/ct-jpegll-signed.dcm": codec.FormatDICOM,
+		"dicom/ct-jpegll12.dcm":      codec.FormatDICOM,
+		"dicom/jpeg-extended12.dcm":  codec.FormatDICOM,
 		"pict/photo.pct":             codec.FormatPICT,
 		// Designer containers are no codec format: the server unwraps them
 		// (codec/container) before anything sniffs the source; nor are MNG

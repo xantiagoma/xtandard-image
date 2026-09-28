@@ -259,11 +259,12 @@ gen metafile "$F"
 # WP-108: synthetic DICOM files (testdata/gen/dicom.go): made-up patient
 # elements carrying XIPRIVACYMARKER, pixels from photo() or a CT phantom;
 # ct-j2k.dcm wraps the codestream of a lossless JPEG 2000 of the phantom
-# written by libvips.
+# written by libvips, jpeg-extended12.dcm the 12-bit jpeg/rgb12.jpg above;
+# ct-jpegll*.dcm carry gen's own lossless JPEG encoder's codestreams.
 mkdir -p "$F"/dicom
 gen dicom-phantom "$T/phantom.png"
 vips jp2ksave "$T/phantom.png" "$T/phantom.jp2" --lossless
-gen dicom "$F/dicom" "$T/phantom.jp2"
+gen dicom "$F/dicom" "$T/phantom.jp2" "$F/jpeg/rgb12.jpg"
 # WP-108: PICT (ImageMagick's writer) and KTX2 (own writer, the zstd CLI for
 # the Zstandard level). The Basis Universal textures need the basisu tool of
 # the pinned basis_universal (docker/base/versions.sh BASISU_COMMIT; build it
