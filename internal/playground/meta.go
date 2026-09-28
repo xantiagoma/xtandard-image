@@ -85,6 +85,9 @@ type Meta struct {
 	Mounts []Mount `json:"mounts" doc:"Enabled dialect mounts, in configuration order."`
 	// Catalogues are the option catalogues, one per grammar.
 	Catalogues []Catalogue `json:"catalogues" doc:"Option catalogues (internal/apidoc), one per URL grammar."`
+	// InfoOptions is the imgproxy /info option catalogue for the Info
+	// panel's builder.
+	InfoOptions []Option `json:"info_options" doc:"imgproxy /info options (internal/apidoc, the ImgproxyInfoOptions schema) for the Info panel's builder."`
 	// Presets are the configured preset names.
 	Presets []string `json:"presets" doc:"Configured preset names."`
 	// Sources are the configured named sources (names and types only).
@@ -218,7 +221,10 @@ type Option struct {
 	Milestone string   `json:"milestone,omitempty" doc:"Milestone that implements the option."`
 	Security  bool     `json:"security,omitempty" doc:"Needs XI_SECURITY_ALLOW_SECURITY_OPTIONS."`
 	// Group is the builder category.
-	Group string `json:"group,omitempty" enum:"size,gravity,format,color,effects,watermark,metadata,frames,detection,delivery,presets,other" doc:"Builder category."`
+	Group string `json:"group,omitempty" enum:"size,gravity,format,color,effects,watermark,metadata,frames,detection,delivery,presets,other,report,hashes,security" doc:"Builder category; report, hashes and security are Info panel groups."`
+	// Default is the value the server uses when the option is absent
+	// (info options only).
+	Default string `json:"default,omitempty" doc:"Value used when the option is absent, as imgproxy documents it (info options)."`
 }
 
 // Form is one argument shape.

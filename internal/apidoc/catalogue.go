@@ -77,17 +77,55 @@ func imgproxyCatalogue() playground.Catalogue {
 		if o.Removed {
 			continue
 		}
-		forms := make([]playground.Form, 0, len(o.Forms))
-		for j := range o.Forms {
-			f := &o.Forms[j]
-			forms = append(forms, playground.Form{Args: append([]playground.Arg{}, args(f.Args)...), Rest: args(f.Rest), MinItems: f.MinItems})
-		}
 		opts = append(opts, playground.Option{
-			Name: o.Name, Aliases: o.Aliases, Doc: o.Doc, Forms: forms,
+			Name: o.Name, Aliases: o.Aliases, Doc: o.Doc, Forms: forms(o.Forms),
 			Example: o.Example, Milestone: o.Milestone, Security: o.Security, Group: groupOf(imgproxyGroups, o.Name),
 		})
 	}
 	return playground.Catalogue{Grammar: playground.GrammarImgproxy, Options: opts}
+}
+
+// infoGroups is the Info panel group of each /info option.
+var infoGroups = map[string]string{
+	"size": groupReport, "format": groupReport, "dimensions": groupReport, "colorspace": groupReport,
+	"bands": groupReport, "sample_format": groupReport, "pages_number": groupReport, "alpha": groupReport,
+	"exif": groupMetadata, "iptc": groupMetadata, "xmp": groupMetadata, "video_meta": groupMetadata,
+	"palette": groupColor, "average": groupColor, "dominant_colors": groupColor,
+	"blurhash": groupHashes, "thumbhash": groupHashes, "perceptual_hash": groupHashes, "calc_hashsums": groupHashes,
+	"hashsum":        groupHashes,
+	"detect_objects": groupDetection, "classify": groupDetection, "crop": groupDetection, "objects_position": groupDetection,
+	"page": groupFrames, "video_thumbnail_second": groupFrames, "video_thumbnail_keyframes": groupFrames,
+	"cachebuster": groupDelivery, "expires": groupDelivery, "bypass_cache": groupDelivery, "cache_tags": groupDelivery,
+	"preset":             groupPresets,
+	"max_src_resolution": groupSecurity, "max_src_file_size": groupSecurity,
+}
+
+// InfoOptions returns the imgproxy /info option catalogue (the
+// ImgproxyInfoOptions schema) for the playground's Info panel builder
+// (GET /_playground/api/meta, info_options), with each option's default.
+func InfoOptions() []playground.Option {
+	src := imgproxy.InfoOptions()
+	opts := make([]playground.Option, 0, len(src))
+	for i := range src {
+		o := &src[i]
+		if o.Removed {
+			continue
+		}
+		opts = append(opts, playground.Option{
+			Name: o.Name, Aliases: o.Aliases, Doc: o.Doc, Forms: forms(o.Forms), Example: o.Example,
+			Milestone: o.Milestone, Security: o.Security, Group: groupOf(infoGroups, o.Name), Default: o.Default,
+		})
+	}
+	return opts
+}
+
+func forms(in []imgproxy.Form) []playground.Form {
+	out := make([]playground.Form, 0, len(in))
+	for j := range in {
+		f := &in[j]
+		out = append(out, playground.Form{Args: append([]playground.Arg{}, args(f.Args)...), Rest: args(f.Rest), MinItems: f.MinItems})
+	}
+	return out
 }
 
 func args(in []imgproxy.Arg) []playground.Arg {
