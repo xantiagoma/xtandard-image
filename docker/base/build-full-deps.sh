@@ -5,7 +5,8 @@
 #     ffmpeg/ffprobe CLIs, video only, --disable-gpl --disable-nonfree, linking the
 #     slim dav1d (AV1 decode) and libaom (AV1 encode)
 #   - ONNX Runtime (MIT): the official prebuilt CPU library in /usr/local/lib
-#   - detection models (YuNet MIT, YOLOX-s Apache-2.0) in /usr/share/xtandard/models
+#   - detection models (YuNet MIT, YOLOX-s Apache-2.0) and the ImageNet classifier
+#     (MobileNetV3-Large, Apache-2.0) in /usr/share/xtandard/models
 # then extends the licence bundle and SOURCES.md and runs the licence gate.
 #
 # Runs in the `full-deps` stage after build-deps.sh (BASH_ENV=bashrc.sh sets the flags).
@@ -155,12 +156,12 @@ EOF
 ldconfig
 add_sbom onnxruntime "$ONNXRUNTIME_VERSION" "cpe:2.3:a:microsoft:onnxruntime:$ONNXRUNTIME_VERSION:*:*:*:*:*:*:*"
 
-print_build_stage models "yunet-$YUNET_VERSION yolox_s-$YOLOX_VERSION"
+print_build_stage models "yunet-$YUNET_VERSION yolox_s-$YOLOX_VERSION mobilenetv3_large_100"
 mkdir -p "$MODELS_DIR"
 cp "$FULL_DEPS_SRC"/models/* "$MODELS_DIR/"
 chmod 0644 "$MODELS_DIR"/*
 cat > "$MODELS_DIR/MODELS.md" << EOF
-# Detection models (xtandard-image full flavor, revision $XI_BASE_FULL_REVISION)
+# Detection and classification models (xtandard-image full flavor, revision $XI_BASE_FULL_REVISION)
 
 Each \`<name>.onnx\` has its licence text in \`<name>.LICENSE\`. Checksums: \`SHA256SUMS\`.
 
@@ -168,6 +169,7 @@ Each \`<name>.onnx\` has its licence text in \`<name>.LICENSE\`. Checksums: \`SH
 |---|---|---|---|
 | face_detection_yunet_${YUNET_VERSION}.onnx | YuNet face detector (libfacedetection) | MIT | https://github.com/opencv/opencv_zoo/tree/${YUNET_COMMIT}/models/face_detection_yunet |
 | yolox_s.onnx | YOLOX-s object detector (COCO, 80 classes) | Apache-2.0 | https://github.com/Megvii-BaseDetection/YOLOX/releases/tag/${YOLOX_VERSION} |
+| mobilenetv3_large_100.onnx | MobileNetV3-Large ImageNet classifier (timm mobilenetv3_large_100, ra_in1k, 1000 classes) | Apache-2.0 | https://github.com/onnx/models/tree/${CLASSIFIER_COMMIT}/Computer_Vision/mobilenetv3_large_100_Opset17_timm |
 EOF
 (cd "$MODELS_DIR" && sha256sum ./*.onnx | sed 's| \./| |' > SHA256SUMS && sha256sum -c SHA256SUMS)
 mkdir -p "$LICENSES/models"

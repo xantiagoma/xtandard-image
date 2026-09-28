@@ -121,6 +121,7 @@ Everything in slim, plus:
 | ONNX Runtime | 1.30.x (`ONNXRUNTIME_VERSION`) | MIT (bundled third-party notices in `share/licenses/onnxruntime/ThirdPartyNotices.txt`) | `/usr/local/lib/libonnxruntime.so.1*` (+ `ldconfig`); headers in `/usr/local/include/onnxruntime` and `libonnxruntime.pc` in the builder | official prebuilt `onnxruntime-linux-{x64,aarch64}-<v>.tgz` from GitHub releases, one SHA256 per architecture; CPU execution provider only (`libonnxruntime_providers_shared.so` is not shipped) |
 | YuNet | `face_detection_yunet_2023mar.onnx` | MIT | `/usr/share/xtandard/models/` + `.LICENSE` | opencv_zoo at a pinned commit (`YUNET_COMMIT`), Git LFS media URL, SHA256-pinned model and licence |
 | YOLOX-s | `yolox_s.onnx` (COCO, 80 classes) | Apache-2.0 | `/usr/share/xtandard/models/` + `.LICENSE` | Megvii YOLOX release `0.1.1rc0` asset, SHA256-pinned model and licence |
+| MobileNetV3-Large | `mobilenetv3_large_100.onnx` (ImageNet-1k classifier, 1000 classes; timm `mobilenetv3_large_100`, 75.8% top-1; WP-110) | Apache-2.0 | `/usr/share/xtandard/models/` + `.LICENSE` | ONNX Model Zoo (`onnx/models`) at a pinned commit (`CLASSIFIER_COMMIT`), Git LFS media URL, SHA256-pinned model and licence (the zoo's LICENSE) |
 
 FFmpeg is configured with `--disable-everything --disable-autodetect` and then only what the
 video WPs need (WP-74/75/76), video only:
@@ -303,8 +304,11 @@ zstd (r5, WP-102) adds 0.3–0.4 MB compressed / 0.8 MB uncompressed to every fl
 
 jxrlib (r4, WP-97) adds 0.2 MB compressed / 0.4 MB uncompressed to every flavor; the wider
 ImageMagick policy costs nothing (the coders were already compiled in).
-The full additions are ONNX Runtime 24 MiB, the models 35 MiB (YOLOX-s 34 MiB, YuNet
-0.2 MiB) and FFmpeg + libvpx 11 MiB (libraries and both CLIs), uncompressed.
+The full additions are ONNX Runtime 24 MiB, the models 56 MiB (YOLOX-s 34 MiB, MobileNetV3-Large
+21 MiB, YuNet 0.2 MiB) and FFmpeg + libvpx 11 MiB (libraries and both CLIs), uncompressed.
+The classifier (WP-110) adds 20.3 MB compressed / 21.9 MB uncompressed to full and gpl (full
+runtime 103.7 → 124.0 MB compressed and 238.5 → 260.5 MB uncompressed, measured on arm64
+before the next revision bump; the table above still shows the published revisions).
 The gpl flavor adds 2.2 MB compressed / 4.8 MB uncompressed over full for libx264, libx265 and
 the two encoders in libavcodec (r5), and Ghostscript another 11.1 MB compressed / 14.5 MB
 uncompressed (r6, WP-99: the 14.4 MB static `gs`, whose compiled-in resources and fonts are

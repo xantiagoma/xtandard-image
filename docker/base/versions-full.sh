@@ -1,7 +1,7 @@
 # shellcheck shell=bash
 # Pinned versions and SHA256 checksums of the components that only the `full`
 # flavor adds on top of slim (WP-70): FFmpeg (LGPL, video only), libvpx, ONNX Runtime
-# (prebuilt, CPU only) and the detection models.
+# (prebuilt, CPU only) and the detection and classification models.
 #
 # Kept apart from versions.sh so that pinning or bumping a full-only component never
 # invalidates the slim build (the slim stages COPY versions.sh, not this file).
@@ -36,3 +36,11 @@ export YUNET_LICENSE_SHA256=c83b8120c50ccbd4c4f96edf53141bdd566ebb8f8e9227e41532
 export YOLOX_VERSION=0.1.1rc0
 export YOLOX_SHA256=c5c2d13e59ae883e6af3b45daea64af4833a4951c92d116ec270d9ddbe998063
 export YOLOX_LICENSE_SHA256=577c03d505ec80f667ebf96ebd0cc4f6825c817ca1088ee348c48aaabd51bd92
+# ImageNet classifier (WP-110, info option classify): timm mobilenetv3_large_100
+# (ra_in1k weights, 1000 classes, 75.8% ImageNet top-1) exported to ONNX (opset 17) by
+# the ONNX Model Zoo, Apache-2.0 (the zoo's LICENSE; timm is Apache-2.0 too). A Git LFS
+# object at a pinned onnx/models commit, fetched through the media URL; the LICENSE is
+# the same commit's.
+export CLASSIFIER_COMMIT=4f43949841cb55a0b98dc8fcd045431ccafd9f96
+export CLASSIFIER_SHA256=b0b785f44a068dee4ff35bd88b114d4fd17a8bd635816f8f0ee46fa8b196c29f
+export CLASSIFIER_LICENSE_SHA256=cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30

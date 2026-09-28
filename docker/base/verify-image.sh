@@ -543,7 +543,7 @@ EOF
   '
 
   if [ -n "$builder" ]; then
-    echo "== $flavor builder: cgo against FFmpeg and ONNX Runtime, inference on both models ($builder)"
+    echo "== $flavor builder: cgo against FFmpeg and ONNX Runtime, inference on every model ($builder)"
     docker run --rm -i -e "XI_FLAVOR=$flavor" "$builder" bash -euo pipefail <<'EOF'
 mkdir -p /tmp/cgofull && cd /tmp/cgofull
 cat > go.mod <<'MOD'
