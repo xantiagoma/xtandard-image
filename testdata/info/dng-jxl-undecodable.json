@@ -14,13 +14,13 @@
     "Software": "testdata/gen"
   },
   "format": "raw",
-  "height": 128,
+  "height": 64,
   "iptc": {},
   "mime_type": "application/octet-stream",
   "orientation": 1,
   "pages_number": 1,
   "sample_format": "uchar",
   "size": 52100,
-  "width": 192,
+  "width": 96,
   "xmp": {}
 }

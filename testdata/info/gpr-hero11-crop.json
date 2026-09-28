@@ -13,13 +13,13 @@
     "Software": "H22.01.02.20.00"
   },
   "format": "raw",
-  "height": 192,
+  "height": 12,
   "iptc": {},
   "mime_type": "application/octet-stream",
   "orientation": 1,
   "pages_number": 1,
   "sample_format": "uchar",
   "size": 33250,
-  "width": 256,
+  "width": 16,
   "xmp": {}
 }

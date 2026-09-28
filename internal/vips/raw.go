@@ -85,8 +85,9 @@ func ProbeRaw(ctx context.Context, buf *Buffer) (RawHeader, error) {
 }
 
 // RawLibraryInfo describes the linked LibRaw: its version, how many cameras
-// it lists and which optional decoders it was built with (the base image
-// builds all three, WP-103; a system LibRaw usually has none).
+// it lists and which optional decoders it was built with (the base images
+// have X3F; gpl also the DNG and GPR SDKs, WP-103; a system LibRaw usually
+// has none).
 func RawLibraryInfo() RawLibrary {
 	var l C.XiRawLibrary
 	C.xi_raw_library(&l)

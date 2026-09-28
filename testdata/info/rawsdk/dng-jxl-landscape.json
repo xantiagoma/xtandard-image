@@ -1,0 +1,25 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "exif": {
+    "Date and Time (Original)": "2024:05:06 07:08:09",
+    "Exposure Time": "1/250 sec.",
+    "F-Number": "f/5.6",
+    "Focal Length": "35.0 mm",
+    "ISO Speed Ratings": "200",
+    "Manufacturer": "xtandard",
+    "Model": "Synthetic DNG",
+    "Software": "testdata/gen"
+  },
+  "format": "raw",
+  "height": 128,
+  "iptc": {},
+  "mime_type": "application/octet-stream",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 23412,
+  "width": 192,
+  "xmp": {}
+}
