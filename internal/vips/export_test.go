@@ -13,3 +13,6 @@ func JXRLive() int { return jxrLive() }
 
 // JXLCMYKLive exposes jxlCMYKLive to the external tests.
 func JXLCMYKLive() int { return jxlCMYKLive() }
+
+// JPEGHPLive exposes jpegHPLive to the external tests.
+func JPEGHPLive() int { return jpegHPLive() }

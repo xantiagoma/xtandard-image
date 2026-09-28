@@ -98,7 +98,7 @@ func probeKeep(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Setti
 		return ImageMeta{}, errs.Newf(errs.KindUnsupported, "codec: %s input is not supported yet", f)
 	}
 	if f == FormatJPEG {
-		if err := checkJPEGPrecision(data); err != nil {
+		if err := checkJPEGFrame(data); err != nil {
 			return ImageMeta{}, err
 		}
 	}
