@@ -151,6 +151,17 @@ func run(args []string) error {
 			return err
 		}
 		return writeCMYKRaw(w, h, args[3] == "alpha", args[4], args[5])
+	case "ktx2-bc1", "ktx2-bc4", "ktx2-bc7", "ktx2-bc6h", "ktx2-rgba8", "ktx2-rgb8", "ktx2-rgba8-zlib",
+		"ktx2-rgba8-level", "ktx2-rgba8-zstd":
+		in := ""
+		if args[0] == "ktx2-rgba8-zstd" && len(args) == 5 {
+			in, args = args[4], args[:4]
+		}
+		w, h, out, err := sizeArgs()
+		if err != nil {
+			return err
+		}
+		return ktx2Fixture(args[0], w, h, out, in)
 	case "dds-bc1", "dds-bc4", "dds-bc7", "dds-bc6h", "lab-tiff8", "lab-tiff16", "lab-tiff8-alpha", "lab-tiff8-icc":
 		w, h, out, err := sizeArgs()
 		if err != nil {
