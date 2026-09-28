@@ -52,6 +52,9 @@ testdata/
 | `uhdr/photo-ultrahdr.jpg` | UltraHDR JPEG 320x240 | JPEG with a libultrahdr gain map (MPF secondary image) |
 | `dng/landscape.dng` | DNG 192x128 | synthetic camera RAW: 16-bit RGGB mosaic in a SubIFD, 96x64 JPEG preview in IFD0, camera EXIF (Make, Model, exposure, ISO, lens, date) |
 | `dng/portrait-orientation-6.dng` | DNG 192x128 stored, shown 128x192 | same, Orientation 6 (mosaic and 48x32 preview stored rotated 90° CCW) |
+| `dds/bc1-dx10.dds`, `dds/bc4.dds`, `dds/bc7-alpha.dds`, `dds/bc6h-scene.dds` | DDS, DX10 header | BC1, BC4 (grey), BC7 with alpha (64x48 photo) and BC6H HDR (48x32 scene): the Go BCn decoder (WP-105) |
+| `tiff/lab8.tif`, `tiff/lab8-alpha.tif`, `tiff/lab8-icc.tif`, `tiff/lab16.tif` | TIFF 64x48, CIELab | CIE L\*a\*b\* (D50) at 8 bits, with alpha, with an L\*a\*b\* ICC profile, and 16 bits (WP-105) |
+| `jxl/cmyk.jxl`, `jxl/cmyk-alpha.jxl` | JPEG XL 64x48, CMYK | lossless CMYK with K as a black extra channel and a CMYK profile, without and with alpha (WP-105) |
 | `exr/rgba-half.exr`, `exr/rgb-float.exr` | OpenEXR 80x60, 48x32 | scene-linear HDR (sun at 40): RGBA half with an alpha fade in the bottom quarter; RGB float without alpha |
 | `hdr/scene.hdr`, `hdr/rgbe.hdr` | Radiance 96x64, 48x32 | the same scene as RGBE, `#?RADIANCE` and `#?RGBE` headers |
 | `pfm/scene.pfm` | PFM 64x48 | the same scene as float RGB |

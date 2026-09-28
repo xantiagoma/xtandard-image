@@ -74,12 +74,12 @@ Legend:
 | HEIC gain map (iOS 18 adaptive HDR) | ✅ SDR base (expected) | 0 | libheif exposes `tmap`; no permissive sample found |
 | Live Photo | — | — | A HEIC plus a separate MOV; each decodes on its own |
 | JPEG XL (8/16-bit, float, grey, alpha, premultiplied alpha, lossless, recompressed JPEG, animation, spot channel, PQ) | ✅ all | 10 | |
-| JPEG XL CMYK (black extra channel) | ❌ | 1 | libvips `jxlload` has no CMYK output (WP-105) |
+| JPEG XL CMYK (black extra channel) | ✅ since WP-105 | 1 | libvips `jxlload` has no CMYK output; the shim's `jxlcmykload_buffer` (libjxl) reads it (FORMATS 1.6) |
 | JPEG 2000 JP2/J2K/JPX, 8/16-bit, alpha, ICC | ✅ all | 6 | |
 | HTJ2K (`.jph`) | ✅ | 1 | OpenJPEG 2.5 |
 | JPEG XR (8-bit, alpha, float, CMYK, bilevel) | ✅ all | 5 | jxrlib (WP-97) |
 | TIFF 1-bit (CCITT G4), grey, RGB 8/16-bit, float 16/32, CMYK(+alpha), multi-page, tiled, planar, BigTIFF, LZW/deflate/JPEG/WebP/LZMA/packbits, YCbCr JPEG, layered (Photoshop-style), pyramidal SVS | ✅ all | 15 | |
-| TIFF CIE Lab | ❌ | 1 | libvips "bad labq format" on 8-bit CIELab (WP-105) |
+| TIFF CIE Lab | ✅ since WP-105 | 1 | libvips "bad labq format" on 8-bit CIELab; read through a copy relabelled RGB and converted with lcms (FORMATS 1.6) |
 | TIFF ZSTD | ❌ | 1 | The base libtiff is built without zstd (WP-102) |
 | TIFF JPEG XL (compression 50002) | ❌ | 1 | GDAL extension, not in libtiff. No plan |
 | TIFF 12-bit packed, old-style JPEG (OJPEG) | ❌ | 2 | libvips limitation / obsolete. No plan |
@@ -89,8 +89,8 @@ Legend:
 | OpenEXR multi-part / deep | ❌ by design | 1 | Refused at probe (FORMATS 1.1) |
 | Radiance HDR (RLE, old RLE, `#?RGBE`), PFM (LE/BE) | ✅ all | 5 | |
 | PNM (P1–P6, 16-bit), QOI, TGA (RLE, colour-mapped, 32-bit alpha), PCX (planar), SGI (8/16-bit), Sun raster, XBM, XPM | ✅ all | 21 | ImageMagick coders (WP-97) |
-| DDS DXT1/3/5 (legacy header) | ✅ | 3 | |
-| DDS DX10 header (BC1/BC4/BC7), BC6H | ❌ | 3 | ImageMagick "image type not supported" (WP-105) |
+| DDS DXT1/3/5 (legacy header) | ✅ | 3 | Pure-Go decoder since WP-105 (ImageMagick before) |
+| DDS DX10 header (BC1/BC4/BC7), BC6H | ✅ since WP-105 | 3 | ImageMagick answered "image type not supported"; `codec/dds` decodes BC1–BC7 and BC6H (tone-mapped like OpenEXR) |
 | KTX2 / Basis Universal | ❌ | 1 | GPU texture container (WP-108) |
 | DICOM | ❌ | 1 | Medical. libvips has no DICOM loader; its `magickload` is blocked (WP-108) |
 | FITS | ❌ | 2 | Astronomy. libvips `fitsload` (cfitsio) is not built (WP-108) |
@@ -241,6 +241,7 @@ In priority order. Each needs an ADR line for any new dependency (ADR 0006) and 
     - CMYK JPEG XL (black extra channel → libvips CMYK).
     - DDS with DX10 headers and BC6H: a pure-Go BCn decoder (BC1–BC7, fuzzed) replaces ImageMagick for DDS.
   - Done when: the Lab TIFF, CMYK JXL and four DDS gallery samples render, and fuzz and leak tests pass.
+  - Done (2026-09-28): all six samples render (FORMATS 1.4 and 1.6).
 - **WP-106 High-precision JPEG family** (P2).
   - Scope: a shim loader over libjpeg-turbo 3's 12- and 16-bit APIs (`jpeg12_*`/`jpeg16_*`) for 12-bit DCT and lossless 16-bit JPEG, output 16-bit. Optional JPEG-LS through CharLS (BSD-3-Clause), after an ADR line.
   - Done when: the three high-precision JPEG samples and the JPEG-LS sample render, and `FuzzJPEG12` runs clean.
