@@ -30,13 +30,24 @@
 // negligible probability. Encrypt refuses plaintexts that Decrypt would
 // reject, so every token it produces round-trips.
 //
+// # Document passwords
+//
+// The same token format carries document passwords (WP-115, the imgproxy
+// dialect's pdf_password option): DecryptPassword reverses Encrypt with its
+// own public message, and PasswordDigest is the keyed hash the result-cache
+// key holds in place of the password. Its MAC key is derived from the first
+// AES key (HMAC-SHA256 over a fixed label), so a digest that reaches a client
+// through an ETag cannot be brute-forced offline without the server's key.
+//
 // Key bytes never appear in errors, String, GoString or slog output.
 package crypt
 
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
@@ -57,6 +68,13 @@ const MaxTokenLen = 32 << 10
 // publicMessage is the only text a client sees for any decryption failure.
 const publicMessage = "invalid encrypted source url"
 
+// passwordPublicMessage is the only text a client sees for any failure to
+// decrypt a document password token.
+const passwordPublicMessage = "invalid encrypted document password" //nolint:gosec // G101: an error message, not a credential
+
+// digestLabel derives the document password MAC key from the first AES key.
+const digestLabel = "xtandard-image/crypt.PasswordDigest/v1"
+
 // ErrInvalidToken is wrapped by every Decrypt failure, which is also of kind
 // errs.KindUnauthorized.
 var ErrInvalidToken = errors.New("crypt: invalid token")
@@ -75,6 +93,9 @@ var ErrNoKeys = errors.New("crypt: no keys configured")
 // use. Create it with New; the zero value has no keys and rejects everything.
 type Cipher struct {
 	blocks []cipher.Block // blocks[0] encrypts; all are tried to decrypt
+	// digestKey is HMAC-SHA256(first key, digestLabel): the key of
+	// PasswordDigest.
+	digestKey []byte
 }
 
 // New builds a Cipher from hex-encoded AES keys. The first key encrypts; all
@@ -84,6 +105,7 @@ func New(hexKeys ...string) (*Cipher, error) {
 		return nil, ErrNoKeys
 	}
 	blocks := make([]cipher.Block, 0, len(hexKeys))
+	var digestKey []byte
 	var errList []error
 	for i, hk := range hexKeys {
 		key, err := hex.DecodeString(strings.TrimSpace(hk))
@@ -99,6 +121,11 @@ func New(hexKeys ...string) (*Cipher, error) {
 			continue
 		}
 		b, err := aes.NewCipher(key)
+		if digestKey == nil {
+			m := hmac.New(sha256.New, key)
+			m.Write([]byte(digestLabel))
+			digestKey = m.Sum(nil)
+		}
 		clear(key)
 		if err != nil {
 			errList = append(errList, fmt.Errorf("key %d: %w", i, ErrInvalidKey))
@@ -109,7 +136,7 @@ func New(hexKeys ...string) (*Cipher, error) {
 	if err := errors.Join(errList...); err != nil {
 		return nil, err
 	}
-	return &Cipher{blocks: blocks}, nil
+	return &Cipher{blocks: blocks, digestKey: digestKey}, nil
 }
 
 // Encrypt returns the unpadded base64url token for plaintext, encrypted with
@@ -150,18 +177,43 @@ func seal(b cipher.Block, iv, plaintext []byte) string {
 // internal message only says whether the token was malformed or did not
 // decrypt, never which check failed after decryption.
 func (c *Cipher) Decrypt(token string) ([]byte, error) {
+	return c.decrypt(token, "decrypt source url: ", publicMessage)
+}
+
+// DecryptPassword is Decrypt for a document password token (the same
+// format; pdf_password). The caller owns the plaintext and should clear it
+// once used. Failures are errs.KindUnauthorized errors wrapping
+// ErrInvalidToken with one public message that never echoes the token.
+func (c *Cipher) DecryptPassword(token string) ([]byte, error) {
+	return c.decrypt(token, "decrypt document password: ", passwordPublicMessage)
+}
+
+// PasswordDigest returns the keyed hash of a document password: 64
+// lowercase hex digits of HMAC-SHA256 under a key derived from the first
+// AES key. It stands for the password in cache keys, which may reach
+// clients (ETag). A nil Cipher returns "".
+func (c *Cipher) PasswordDigest(password []byte) string {
+	if c == nil || c.digestKey == nil {
+		return ""
+	}
+	m := hmac.New(sha256.New, c.digestKey)
+	m.Write(password)
+	return hex.EncodeToString(m.Sum(nil))
+}
+
+func (c *Cipher) decrypt(token, prefix, public string) ([]byte, error) {
 	if c == nil || len(c.blocks) == 0 {
-		return nil, invalid("no decryption keys")
+		return nil, invalid(prefix, public, "no decryption keys")
 	}
 	if len(token) > MaxTokenLen {
-		return nil, invalid("token too long")
+		return nil, invalid(prefix, public, "token too long")
 	}
 	raw, err := base64.RawURLEncoding.DecodeString(strings.TrimRight(token, "="))
 	if err != nil {
-		return nil, invalid("token is not base64url")
+		return nil, invalid(prefix, public, "token is not base64url")
 	}
 	if len(raw) < 2*aes.BlockSize || len(raw)%aes.BlockSize != 0 {
-		return nil, invalid("token length is not iv plus whole blocks")
+		return nil, invalid(prefix, public, "token length is not iv plus whole blocks")
 	}
 	iv, ct := raw[:aes.BlockSize], raw[aes.BlockSize:]
 	out := make([]byte, len(ct))
@@ -173,7 +225,7 @@ func (c *Cipher) Decrypt(token string) ([]byte, error) {
 		}
 	}
 	clear(out)
-	return nil, invalid("token does not decrypt with any key")
+	return nil, invalid(prefix, public, "token does not decrypt with any key")
 }
 
 // unpad validates PKCS#7 padding in constant time with respect to the padding
@@ -207,11 +259,11 @@ func plausible(p []byte) bool {
 	return utf8.Valid(p)
 }
 
-func invalid(msg string) error {
+func invalid(prefix, public, msg string) error {
 	return &errs.Error{
 		Kind:   errs.KindUnauthorized,
-		Msg:    "decrypt source url: " + msg,
-		Public: publicMessage,
+		Msg:    prefix + msg,
+		Public: public,
 		Err:    ErrInvalidToken,
 	}
 }
