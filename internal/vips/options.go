@@ -235,3 +235,16 @@ type TextOptions struct {
 	// libvips' 72, where one point is one pixel.
 	DPI int
 }
+
+// UHDRGainMap is the gain map metadata libvips' uhdrload reads through
+// libultrahdr (Google UltraHDR XMP, ISO 21496-1 or Apple's), in libultrahdr's
+// linear units: content boosts and HDR capacities are ratios, not log2.
+type UHDRGainMap struct {
+	MinContentBoost [3]float64
+	MaxContentBoost [3]float64
+	Gamma           [3]float64
+	OffsetSDR       [3]float64
+	OffsetHDR       [3]float64
+	CapacityMin     float64
+	CapacityMax     float64
+}

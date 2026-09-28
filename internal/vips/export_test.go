@@ -16,3 +16,5 @@ func JXLCMYKLive() int { return jxlCMYKLive() }
 
 // JPEGHPLive exposes jpegHPLive to the external tests.
 func JPEGHPLive() int { return jpegHPLive() }
+// HEIFLive exposes heifLive to the external tests.
+func HEIFLive() int { return heifLive() }

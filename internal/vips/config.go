@@ -43,8 +43,9 @@ func DefaultConfig() Config {
 // svg, jp2k and UltraHDR (M1), then PDF (PDFium), ImageMagick, OpenEXR,
 // Radiance and PPM/PFM (M2), then JPEG XR (the shim's jxrlib loader,
 // WP-97), CMYK JPEG XL (the shim's libjxl loader for the files jxlload
-// cannot read, WP-105) and high-precision JPEG (the shim's libjpeg-turbo
-// loader for 12-bit and lossless files, WP-106). The M2 loaders are
+// cannot read, WP-105), high-precision JPEG (the shim's libjpeg-turbo
+// loader for 12-bit and lossless files, WP-106) and HEIF/AVIF image
+// sequences (the shim's libheif loader, WP-104). The M2 loaders are
 // unblocked by their buffer class only, the one the service uses, except
 // OpenEXR, which has only a file loader (the shim spools the buffer for
 // it). ImageMagick, OpenEXR, Radiance, PPM and the shim's loaders are
@@ -73,11 +74,13 @@ func DefaultLoaders() []string {
 		"XiForeignLoadJxrBuffer",
 		"XiForeignLoadJxlCmykBuffer",
 		"XiForeignLoadJpegHpBuffer",
+		"XiForeignLoadHeifSeqBuffer",
 	}
 }
 
 // DefaultSavers returns the saver classes behind Save: jpeg, png (spng),
-// webp, gif (cgif), heif/avif, jxl and tiff.
+// webp, gif (cgif), heif/avif, jxl and tiff, and UltraHDR for HDR JPEG
+// (preserve_hdr, WP-104).
 func DefaultSavers() []string {
 	return []string{
 		"VipsForeignSaveJpeg",
@@ -87,6 +90,7 @@ func DefaultSavers() []string {
 		"VipsForeignSaveHeif",
 		"VipsForeignSaveJxl",
 		"VipsForeignSaveTiff",
+		"VipsForeignSaveUhdr",
 	}
 }
 

@@ -8,7 +8,8 @@ domain), the three detection photos in `fixtures/detect/` and the seven classifi
 in `fixtures/classify/` (public domain or CC0, listed in "Detection photos" and
 "Classification photos") and the YOLOX functions copied into `detect/reference.py` (Apache-2.0).
 There is no share-alike obligation anywhere (ADR 0006: no GPL or CC-BY-SA fixtures), and one
-attribution exception below.
+attribution exception below. The libavif test images in `fixtures/avif/` and `fixtures/gainmap/`
+(named `libavif-*`, WP-104) are BSD-2-Clause, listed under "libavif samples" with their notice.
 
 **Exception (attribution required):** `fixtures/video/bbb-h264-aac.mp4` carries one second of
 *Big Buck Bunny* © 2008 Blender Foundation, www.bigbuckbunny.org, under
@@ -42,6 +43,7 @@ generated from the public-domain X11 "fixed" font).
 | `fixtures/avif/photo.avif` | libvips `heifsave` AV1 (libheif + libaom, BSD-2) | CC0 |
 | `fixtures/heic/photo.heic` | macOS `sips` (Apple HEVC encoder; no x265/GPL encoder involved) | CC0 |
 | `fixtures/heic/thumbnail.heic`, `fixtures/avif/thumbnail.avif` | `gen/heifthumb/heifthumb.c` (ours, CC0) against libheif with kvazaar (HEVC, BSD-3) and libaom (AV1, BSD-2) in the base builder image | CC0 |
+| `fixtures/avif/sequence.avif`, `fixtures/avif/sequence-alpha.avif`, `fixtures/heic/sequence.heic` | `gen/heifseq/heifseq.c` (ours, CC0): procedural frames written as a libheif sequence track with libaom (AV1, BSD-2) and kvazaar (HEVC, BSD-3) in the base builder image | CC0 |
 | `fixtures/jxl/photo.jxl` | libvips `jxlsave` (libjxl, BSD-3) | CC0 |
 | `fixtures/jp2/photo.jp2` | libvips `jp2ksave` (OpenJPEG, BSD-2) | CC0 |
 | `fixtures/tiff/multipage.tif` | ImageMagick 7 (ImageMagick licence), 2 pages, deflate | CC0 |
@@ -153,6 +155,51 @@ on raw.pixls.us as well (checked 2026-09-27):
 | `google-pixel-8-pro.dng` | Google - Pixel 8 Pro - 16bit (4:3).dng (id 7751) | `45420c595401547cca950ae58d552bc82b32d31ce1d58c082df33004016197f5` | 45.1 MB |
 | `sigma-sd14.x3f` | Sigma - SIGMA SD14 - 3:2.X3F (id 4462) | `c32f247eb372c3e66ad3b433518ec11f898fdc317c8432ebe025b46d4917bcf3` | 12.2 MB |
 | `gopro-hero11.gpr` | GoPro - HERO11 Black - 16bit (5:4).GPR (id 7319) | `d7a6be163c847cb8456e6858a99aef3b85dc3d8836bca1da1b8886effe0d43e1` | 13.9 MB |
+
+## libavif samples
+
+Copied unchanged from libavif's `tests/data` (https://github.com/AOMediaCodec/libavif, commit on
+`main` as of 2026-09-28), whose README gives each of them the libavif licence (BSD-2-Clause):
+
+| File | libavif file | What it exercises |
+|---|---|---|
+| `fixtures/avif/libavif-colors-animated-8bpc.avif` | `colors-animated-8bpc.avif` | a real-world `avis` sequence (ffmpeg colours, 5 frames at 30 fps) |
+| `fixtures/gainmap/libavif-seine_sdr_gainmap_srgb.avif` | `seine_sdr_gainmap_srgb.avif` | SDR base + ISO 21496-1 `tmap` gain map (the gallery sample) |
+| `fixtures/gainmap/libavif-color_grid_gainmap_different_grid.avif` | `color_grid_gainmap_different_grid.avif` | `tmap` with a grid base and a grid gain map |
+| `fixtures/gainmap/libavif-color_nogrid_alpha_nogrid_gainmap_grid.avif` | `color_nogrid_alpha_nogrid_gainmap_grid.avif` | `tmap` whose base is the HDR rendition, with alpha |
+| `fixtures/gainmap/libavif-unsupported_gainmap_version.avif` | `unsupported_gainmap_version.avif` | `tmap` version 99 (must be ignored) |
+| `fixtures/gainmap/libavif-paris_exif_xmp_gainmap_bigendian.jpg` | `paris_exif_xmp_gainmap_bigendian.jpg` | Adobe gain-map JPEG (MPF + hdrgm XMP) that libultrahdr does not read |
+
+The notice those files come with:
+
+```
+Copyright 2019 Joe Drago. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+The goldens rendered from them (`golden/exec/gainmap-tmap-*`, `gainmap-adobe-*`,
+`avif-colors-animated-webp`) and the `/info` answers about them (`info/gainmap-*`,
+`info/avif-libavif-*`) are derived from these files under the same licence.
 
 ## Cross-language test vectors
 
