@@ -460,7 +460,7 @@ func (c *Config) validateLimits(v *validator) {
 		{"limits.max_src_pixels", l.MaxSrcPixels},
 		{"limits.max_result_dimension", int64(l.MaxResultDimension)},
 		{"limits.max_animation_frames", int64(l.MaxAnimationFrames)},
-		{"limits.max_animation_frame_pixels", l.MaxAnimationFramePixels},
+		{"limits.max_animation_pixels", l.MaxAnimationPixels},
 		{"limits.max_raw_demosaic_pixels", l.MaxRawDemosaicPixels},
 		{"limits.max_svg_bytes", int64(l.MaxSVGBytes)},
 		{"limits.max_svg_depth", int64(l.MaxSVGDepth)},
@@ -470,6 +470,9 @@ func (c *Config) validateLimits(v *validator) {
 	} {
 		v.positive(n.v, n.path)
 	}
+	// 0 turns the per-frame limit off: animations count all their frames
+	// against max_src_pixels, as imgproxy does.
+	v.nonNegative(l.MaxAnimationFramePixels, "limits.max_animation_frame_pixels")
 }
 
 // x26xPresets are the presets x264 and x265 share, fastest first.

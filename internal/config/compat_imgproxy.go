@@ -120,7 +120,7 @@ func imgproxyVars() []imgproxyVar {
 		{"IMGPROXY_MAX_SRC_RESOLUTION", ts("XI_LIMITS_MAX_SRC_PIXELS"), "Megapixels (float) → pixels", megapixels},
 		{"IMGPROXY_MAX_SRC_FILE_SIZE", ts("XI_LIMITS_MAX_SRC_BYTES"), "Bytes; `0` (unlimited) keeps the default", positiveOrDefault},
 		{"IMGPROXY_MAX_ANIMATION_FRAMES", ts("XI_LIMITS_MAX_ANIMATION_FRAMES"), "Same", direct},
-		{"IMGPROXY_MAX_ANIMATION_FRAME_RESOLUTION", ts("XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS"), "Megapixels (float) → pixels; `0` (off) keeps the default", megapixels},
+		{"IMGPROXY_MAX_ANIMATION_FRAME_RESOLUTION", ts("XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS"), "Megapixels (float) → pixels; `0` turns the per-frame limit off as in imgproxy (animations count all frames against `XI_LIMITS_MAX_SRC_PIXELS`). Unset keeps the xtandard-image default of 16 MP, where imgproxy defaults to off", megapixelsOrOff},
 		{"IMGPROXY_MAX_RESULT_DIMENSION", ts("XI_LIMITS_MAX_RESULT_DIMENSION"), "`0` (unlimited) keeps the default", positiveOrDefault},
 
 		// Video thumbnails (imgproxy Pro).
@@ -357,6 +357,17 @@ func megapixels(t *imgproxyTranslator, v string) error {
 	if px := int64(math.Round(mp * 1e6)); px > 0 {
 		t.set(t.target(), strconv.FormatInt(px, 10))
 	}
+	return nil
+}
+
+// megapixelsOrOff is megapixels for a limit whose 0 means "off" rather
+// than "unlimited": 0 is written through.
+func megapixelsOrOff(t *imgproxyTranslator, v string) error {
+	mp, err := strconv.ParseFloat(v, 64)
+	if err != nil || mp < 0 || math.IsInf(mp, 0) || math.IsNaN(mp) || mp > 1e9 {
+		return fmt.Errorf("want non-negative megapixels, got %q", v)
+	}
+	t.set(t.target(), strconv.FormatInt(int64(math.Round(mp*1e6)), 10))
 	return nil
 }
 

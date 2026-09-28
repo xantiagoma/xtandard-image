@@ -292,6 +292,23 @@ func TestImgproxyVars(t *testing.T) {
 	}
 }
 
+// TestImgproxyFrameResolutionOff: IMGPROXY_MAX_ANIMATION_FRAME_RESOLUTION=0
+// is imgproxy's "off" (animations count all frames against the total), not
+// "keep the default" (WP-98).
+func TestImgproxyFrameResolutionOff(t *testing.T) {
+	t.Parallel()
+	got, _, err := load(opts(nil, compatOn, "IMGPROXY_MAX_ANIMATION_FRAME_RESOLUTION=0"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Limits.MaxAnimationFramePixels != 0 {
+		t.Errorf("MaxAnimationFramePixels = %d, want 0 (off)", got.Limits.MaxAnimationFramePixels)
+	}
+	if def := mustParse(t, nil); def.Limits.MaxAnimationFramePixels != 16_000_000 || def.Limits.MaxAnimationPixels != 200_000_000 {
+		t.Errorf("defaults: frame %d, animation %d", def.Limits.MaxAnimationFramePixels, def.Limits.MaxAnimationPixels)
+	}
+}
+
 // TestImgproxyXIWins proves XI_* variables beat IMGPROXY_* ones.
 func TestImgproxyXIWins(t *testing.T) {
 	t.Parallel()
