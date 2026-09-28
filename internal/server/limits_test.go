@@ -66,6 +66,16 @@ func TestCheckMetaPixels(t *testing.T) {
 		{"frame over every limit", anim(8000, 8000, 2), def, "source frame is 8000×8000 (64 MP); limit XI_LIMITS_MAX_SRC_PIXELS is 50 MP"},
 		{"frame over, animation disabled", anim(8000, 8000, 2), noAnim, "source is 8000×8000 (64 MP); limit XI_LIMITS_MAX_SRC_PIXELS is 50 MP"},
 		{"too many frames", anim(10, 10, 300), def, "source has 300 frames; limit XI_LIMITS_MAX_ANIMATION_FRAMES is 256"},
+		// A camera RAW is judged on what can be decoded (WP-102).
+		{"102 MP raw with a 12 MP preview", SourceMeta{Width: 11662, Height: 8746, Frames: 1, Pages: 1, Raw: &transform.RawSource{
+			Width: 11662, Height: 8746, PreviewWidth: 4000, PreviewHeight: 3000,
+		}}, def, ""},
+		{"51 MP raw without a preview", SourceMeta{Width: 8278, Height: 6208, Frames: 1, Pages: 1, Raw: &transform.RawSource{
+			Width: 8278, Height: 6208,
+		}}, def, ""},
+		{"300 MP raw without a preview", SourceMeta{Width: 20000, Height: 15000, Frames: 1, Pages: 1, Raw: &transform.RawSource{
+			Width: 20000, Height: 15000,
+		}}, def, "camera RAW half-size demosaic is 10000×7500 (75 MP); limit XI_LIMITS_MAX_SRC_PIXELS is 50 MP"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

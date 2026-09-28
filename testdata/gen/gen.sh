@@ -123,6 +123,11 @@ gen psd-nocomposite "$F/psd/no-composite.psd"
 # preview; portrait (Orientation 6, stored rotated) with a quarter-size one.
 gen dng 192 128 96 64 1 "$F/dng/landscape.dng"
 gen dng 128 192 48 32 6 "$F/dng/portrait-orientation-6.dng"
+# The landscape with a mosaic LibRaw cannot demosaic (WP-101): labelled JPEG
+# XL (a placeholder decoder without the Adobe DNG SDK), and labelled deflate
+# (the unpack fails). Both keep the 96x64 preview.
+gen dng 192 128 96 64 1 "$F/dng/jxl-undecodable.dng" 52546
+gen dng 192 128 96 64 1 "$F/dng/deflate-corrupt.dng" 8
 
 # HDR inputs written in Go from the procedural scene in linear light (a sun
 # at 40, ~5% of the pixels above 1.0; `gen hdr-stats W H -` prints the

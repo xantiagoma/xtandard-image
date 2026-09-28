@@ -125,18 +125,22 @@ func run(args []string) error {
 	case "psb":
 		return writePSD(args[1], true, true)
 	case "dng":
-		if len(args) != 7 {
-			return errors.New("dng: want W H previewW previewH orientation out.dng")
+		if len(args) != 7 && len(args) != 8 {
+			return errors.New("dng: want W H previewW previewH orientation out.dng [compression]")
 		}
-		var v [5]int
-		for i := range v {
-			n, err := strconv.Atoi(args[i+1])
+		v := [6]int{5: 1} // compression 1: uncompressed
+		for i := range len(args) - 2 {
+			a := args[i+1]
+			if i == 5 {
+				a = args[7]
+			}
+			n, err := strconv.Atoi(a)
 			if err != nil {
 				return err
 			}
 			v[i] = n
 		}
-		return writeDNG(args[6], v[0], v[1], v[2], v[3], uint16(v[4]))
+		return writeDNG(args[6], v[0], v[1], v[2], v[3], uint16(v[4]), uint16(v[5]))
 	case "exr-rgba-half", "exr-rgb-float", "radiance", "rgbe", "pfm", "ppm":
 		w, h, out, err := sizeArgs()
 		if err != nil {

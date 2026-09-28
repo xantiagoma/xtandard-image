@@ -322,6 +322,54 @@ xi_keep_blob(VipsImage *img, VipsBlob *blob)
       (GDestroyNotify) vips_area_unref);
 }
 
+// ---- decode guard --------------------------------------------------------
+//
+// libvips signals "invalidate" on a loader (shim.c's hook marks the source
+// failed) only for some failures: a truncated file, a failed load start. A
+// decoder that fails while a region is computed returns -1 from its
+// generate function and nothing else: libjpeg refusing 12-bit data under
+// sequential access, for example. The sink then fails with the saver's
+// name and would be taken for our fault (500). xi_guard puts a
+// pass-through image on a load's output whose generate marks the source
+// failed when the region below it cannot be computed, so such a failure is
+// the input's (Corrupt, 422) whichever loader it was. Pixels are shared
+// with the region below (vips_region_region), as vips_copy does.
+
+static int
+xi_guard_gen(VipsRegion *out_region, void *seq, void *a, void *b, gboolean *stop)
+{
+  VipsRegion *ir = (VipsRegion *) seq;
+  VipsRect *r = &out_region->valid;
+
+  (void) a;
+  (void) stop;
+  if (vips_region_prepare(ir, r) || vips_region_region(out_region, ir, r, r->left, r->top)) {
+    xi_blob_mark_failed((VipsBlob *) b);
+    return -1;
+  }
+  return 0;
+}
+
+// xi_guard replaces *img (a load's output, whose reference it takes) with
+// the guard over it. blob is the source; the caller keeps it alive at least
+// as long as the returned image (xi_keep_blob).
+static int
+xi_guard(VipsImage **img, VipsBlob *blob)
+{
+  VipsImage *in = *img;
+  VipsImage *out = vips_image_new();
+
+  if (vips_image_pipelinev(out, in->dhint, in, NULL) ||
+      vips_image_generate(out, vips_start_one, xi_guard_gen, vips_stop_one, in, blob)) {
+    g_object_unref(out);
+    return -1;
+  }
+  // out owns the caller's reference to in: the load lives as long as out.
+  g_object_set_data_full(G_OBJECT(out), "xi-guarded", in, g_object_unref);
+  *img = out;
+  return 0;
+}
+
 // xi_build runs op (consuming the caller's reference) and returns its "out"
 // image with a new reference.
 static int
@@ -516,6 +564,11 @@ xi_load_run(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsImag
     return XI_ERR_LIMIT;
   }
 
+  if (xi_guard(&img, blob)) {
+    g_object_unref(img);
+    *err = xi_error_copy();
+    return XI_ERR_INTERNAL;
+  }
   xi_keep_blob(img, blob);
 
   if (o->autorotate) {
@@ -588,6 +641,14 @@ xi_thumbnail(VipsBlob *blob, const XiThumbnailOptions *o, const char *import_pro
   if (xi_build(op, out))
     return xi_load_error(err);
 
+  // The guard sits on the resized output: a failure there is the loader's
+  // in practice (the shrink and resize run on valid pixels).
+  if (xi_guard(out, blob)) {
+    g_object_unref(*out);
+    *out = NULL;
+    *err = xi_error_copy();
+    return XI_ERR_INTERNAL;
+  }
   xi_keep_blob(*out, blob);
   return XI_OK;
 }

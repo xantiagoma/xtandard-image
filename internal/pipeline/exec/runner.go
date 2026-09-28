@@ -47,10 +47,10 @@ type runner struct {
 	// size (geometry_extras.go).
 	coverage map[coverageKey][]byte
 	// rawHdr is the LibRaw header of a camera RAW source (planRaw),
-	// rawPath how it was decoded and rawDecoded to what size.
-	rawHdr     *raw.Header
-	rawPath    string
-	rawDecoded image.Point
+	// rawPath how it was decoded and rawSize to what size.
+	rawHdr  *raw.Header
+	rawPath string
+	rawSize image.Point
 	// stackAlpha is set when loadStack gave stacked pages an alpha band the
 	// source header did not announce.
 	stackAlpha bool

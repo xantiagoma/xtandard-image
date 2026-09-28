@@ -81,6 +81,32 @@ func TestProbeRawErrors(t *testing.T) {
 	}
 }
 
+// TestProbeRawUndecodable: the probe says why LibRaw cannot demosaic a
+// file (WP-101) and still lists its previews.
+func TestProbeRawUndecodable(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		fixture string
+		want    vips.RawUndecodable
+	}{
+		{"dng/landscape.dng", vips.RawDecodable},
+		{"dng/jxl-undecodable.dng", vips.RawNoDecoder},
+		// Decodable as far as the header tells: the unpack fails.
+		{"dng/deflate-corrupt.dng", vips.RawDecodable},
+	} {
+		t.Run(tc.fixture, func(t *testing.T) {
+			t.Parallel()
+			h, err := probeRaw(t, readFixture(t, tc.fixture))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if h.Undecodable != tc.want || h.Width != 192 || len(h.Thumbnails) != 1 {
+				t.Errorf("undecodable %v, width %d, %d thumbnails; want %v, 192, 1", h.Undecodable, h.Width, len(h.Thumbnails), tc.want)
+			}
+		})
+	}
+}
+
 // rawLoad demosaics data and returns the image size and bands.
 func rawLoad(tb testing.TB, data []byte, o *vips.RawOptions) (w, h, bands int, interp vips.Interpretation, err error) {
 	tb.Helper()
@@ -142,6 +168,9 @@ func TestRawLoadErrors(t *testing.T) {
 		{"over the demosaic limit", false, dng, vips.RawOptions{MaxPixels: 192*128 - 1}, errs.KindLimitExceeded},
 		{"truncated mosaic", false, dng[:len(dng)-20_000], vips.RawOptions{}, errs.KindCorrupt},
 		{"not a raw", false, readFixture(t, "png/rgba8.png"), vips.RawOptions{}, errs.KindUnsupported},
+		// Refused before unpacking: never demosaiced into wrong pixels.
+		{"no decoder (jpeg xl dng)", false, readFixture(t, "dng/jxl-undecodable.dng"), vips.RawOptions{}, errs.KindUnsupported},
+		{"unpack fails", false, readFixture(t, "dng/deflate-corrupt.dng"), vips.RawOptions{}, errs.KindCorrupt},
 		{"canceled", true, dng, vips.RawOptions{}, errs.KindCanceled},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

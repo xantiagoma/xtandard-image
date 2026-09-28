@@ -23,7 +23,8 @@ const (
 
 // planRaw reads the LibRaw header of a camera RAW source (header only) and
 // plans with its preview size: whether the preview is large enough is the
-// planner's decision (plan.LoadStep.Preview, FORMATS.md §2).
+// planner's decision (plan.LoadStep.Preview, FORMATS.md §2). A RAW LibRaw
+// cannot demosaic is planned as its preview (previewOnly).
 func (r *runner) planRaw(ctx context.Context) error {
 	h, err := raw.Probe(ctx, r.j.Source)
 	if err != nil {
@@ -33,6 +34,9 @@ func (r *runner) planRaw(ctx context.Context) error {
 	if h.HasPreview {
 		r.meta.PreviewWidth, r.meta.PreviewHeight = h.Preview.Width, h.Preview.Height
 	}
+	if h.PreviewOnly {
+		r.previewOnly()
+	}
 	p, err := plan.Build(r.req, r.meta, r.e.cfg.Limits)
 	if err != nil {
 		return err
@@ -41,35 +45,68 @@ func (r *runner) planRaw(ctx context.Context) error {
 	return nil
 }
 
+// previewOnly makes the embedded preview the source: its size replaces the
+// demosaiced size the plan was made for.
+func (r *runner) previewOnly() {
+	r.rawHdr.PreviewOnly = true
+	r.meta.PreviewOnly = true
+	r.meta.Width, r.meta.Height = r.rawHdr.Preview.Width, r.rawHdr.Preview.Height
+}
+
 // loadRaw decodes a camera RAW as ls says (the embedded preview, or the
 // demosaic at full or half size) and attaches the camera metadata as EXIF
 // fields. Both paths produce the stored orientation; the plan applies the
 // RAW's orientation like any other.
+//
+// When LibRaw fails to demosaic a file its header read (it cannot unpack
+// the data: KindUnsupported or KindCorrupt) and the file has a usable
+// preview, the request is planned again with the preview as the source and
+// *ls becomes that plan's load: an embedded preview is better than a 422.
 func (r *runner) loadRaw(ctx context.Context, ls *plan.LoadStep) (*vips.Image, error) {
 	h := r.rawHdr
 	if h == nil {
 		return nil, errs.New(errs.KindInternal, "exec: raw source was not probed")
 	}
-	var img *vips.Image
-	var err error
-	switch {
-	case ls.Preview && h.HasPreview:
-		img, err = r.loadRawPreview(ctx, ls, h.Preview)
-		r.rawPath = RawPathPreview
-	default:
-		img, err = r.a.Add(vips.RawLoad(ctx, r.j.Source, &vips.RawOptions{
-			HalfSize:  ls.HalfSize,
-			MaxPixels: r.e.cfg.Limits.MaxRawDemosaicPixels,
-		}))
-		r.rawPath = RawPathDemosaic
-		if ls.HalfSize {
-			r.rawPath = RawPathDemosaicHalf
-		}
+	if (ls.Preview || h.PreviewOnly) && h.HasPreview {
+		return r.rawPreview(ctx, ls)
 	}
+	img, err := r.a.Add(vips.RawLoad(ctx, r.j.Source, &vips.RawOptions{
+		HalfSize:  ls.HalfSize,
+		MaxPixels: r.e.cfg.Limits.MaxRawDemosaicPixels,
+	}))
+	r.rawPath = RawPathDemosaic
+	if ls.HalfSize {
+		r.rawPath = RawPathDemosaicHalf
+	}
+	if err != nil {
+		if k := errs.KindOf(err); !h.HasPreview || (k != errs.KindUnsupported && k != errs.KindCorrupt) {
+			return nil, err
+		}
+		r.previewOnly()
+		p, perr := plan.Build(r.req, r.meta, r.e.cfg.Limits)
+		if perr != nil {
+			return nil, perr
+		}
+		r.plan = p
+		*ls = p.Load
+		return r.rawPreview(ctx, ls)
+	}
+	return r.rawDecoded(ctx, img)
+}
+
+// rawPreview decodes the embedded preview as ls says.
+func (r *runner) rawPreview(ctx context.Context, ls *plan.LoadStep) (*vips.Image, error) {
+	r.rawPath = RawPathPreview
+	img, err := r.loadRawPreview(ctx, ls, r.rawHdr.Preview)
 	if err != nil {
 		return nil, err
 	}
-	r.rawDecoded = image.Pt(img.Width(), img.Height())
+	return r.rawDecoded(ctx, img)
+}
+
+// rawDecoded records the decoded size and attaches the camera metadata.
+func (r *runner) rawDecoded(ctx context.Context, img *vips.Image) (*vips.Image, error) {
+	r.rawSize = image.Pt(img.Width(), img.Height())
 	return r.rawMetadata(ctx, img)
 }
 

@@ -287,7 +287,7 @@ func (e *Executor) Run(ctx context.Context, j *Job) (*Result, error) {
 			Skipped:     r.skipped,
 			Best:        out.Best,
 			RawPath:     r.rawPath,
-			RawDecoded:  r.rawDecoded,
+			RawDecoded:  r.rawSize,
 			Thumbnail:   fromThumb || r.plan.Load.Thumbnail,
 			VideoFrame:  r.videoFrame,
 		}

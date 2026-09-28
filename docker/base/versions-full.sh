@@ -9,8 +9,8 @@
 # Forbidden components are listed in check-licenses.sh (ADR 0006); never add them here.
 
 # Revision of the full flavor. Its tag is <VIPS_VERSION>-r<XI_BASE_FULL_REVISION>-full.
-# Full r5 = slim r4 (versions.sh XI_BASE_REVISION) + the components below.
-export XI_BASE_FULL_REVISION=5
+# Full r6 = slim r5 (versions.sh XI_BASE_REVISION) + the components below.
+export XI_BASE_FULL_REVISION=6
 
 # --- Video (FFmpeg under LGPL-2.1+, GPL and nonfree parts disabled) ---------------
 # AV1 is decoded by dav1d and encoded by libaom; both are already built for slim
