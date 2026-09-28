@@ -72,6 +72,15 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   Rule for parallel base work: agents build under `xtandard-base:wpNNN*`, never bump revisions or
   retag `dev*`; the orchestrator bumps revisions once when integrating. Leaf MOS sniffing still open.
   Commit trailer is now `Co-Authored-By: Claude Opus 5.5`.
+- **State 2026-09-28 (night):** merged WP-109 (#106), WP-107 (#107), WP-105 (#108), race fix in
+  `internal/server` inspectSource (#109), WP-111 playground tools/labels/loading/selectors (#110).
+  Demo runs `xtandard-image:main-gpl` from main de83223 (bases still r5/r6/r7: no XCF policy yet).
+  **Pending:** branch `m4/wp-110-classify` (rebased, plus commit bumping bases to slim r6 / full r7 /
+  gpl r8 for WP-107 XCF policy + WP-110 model; its ROADMAP row says `#109`: fix to the real PR
+  number); building those bases failed with **Docker VM disk full (4.4 GB free of 88 GB)**; asked the
+  owner to allow pruning 32 dangling volumes + 3 stale `xi-quickstart-*` containers, or to grow the
+  Docker disk. WP-103 (LibRaw coverage) still running. Batch 2 (WP-104, 106, 108) not launched.
+  Follow-ups renumbered: WP-113 shim float rounding, WP-114 CMYK BPC.
 - **Backlog after M3 (WP-91+):** face/object gravity on a single-frame video answers 422 (detection
   hands the container bytes to libvips; fix = detect on the decoded frame; composites already skip
   detection); `classify` has no model; detections are not used in chained pipelines; `/info` capability listing (encoders).
