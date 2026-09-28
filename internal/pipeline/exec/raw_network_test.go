@@ -140,7 +140,7 @@ func TestRawNetworkSamples(t *testing.T) {
 					t.Errorf("5000 px: %s %dx%d, want demosaic-half 5000 wide", res.RawPath, res.Width, res.Height)
 				}
 			}
-			if f.Width*f.Height <= defaultLimits.MaxSrcPixels {
+			if int64(f.Width)*int64(f.Height) <= defaultLimits.MaxSrcPixels {
 				// Under the limit: the full-size demosaic renders.
 				res := runRawResult(t, data, "")
 				if res.RawPath != exec.RawPathDemosaic || res.Width != f.Width || res.Height != f.Height {

@@ -313,7 +313,10 @@ Patches (`git apply`, in order):
 
 The shim (`internal/vips/raw.c`) sets `rawparams.use_dngsdk = LIBRAW_DNG_NONE`: LibRaw hands the
 SDK only what it cannot decode itself (JPEG XL and VC-5 raw data, which it routes there
-whatever the flag); every other DNG keeps LibRaw's own decoders, as before.
+whatever the flag); every other DNG keeps LibRaw's own decoders, as before. For a linear
+(demosaiced) DNG it also sets `LIBRAW_RAWOPTIONS_DNG_STAGE23_IFPRESENT_JPGJXL`, so the SDK
+applies the file's opcode lists to lossy JPEG / JPEG XL data (without it Adobe's linear JPEG XL
+sample renders magenta and clipped; Bayer ones need no stage 2 and fail with it).
 
 **Not added:** RawSpeed (no gain: it has no CR3/HE/JPEG XL DNG; its VC-5 path duplicates the GPR
 SDK); the XMP SDK; the DNG SDK's bundled libjxl/libjpeg copies (the base's are used).
@@ -322,7 +325,17 @@ SDK); the XMP SDK; the DNG SDK's bundled libjxl/libjpeg copies (the base's are u
 (`open_buffer`, decoder check, `unpack`, half-size `dcraw_process`, `make_mem_image`; 6 MP and
 256 MB caps), with LibRaw, the DNG SDK and the GPR SDK instrumented (libjxl and libjpeg-turbo
 not), seeded with the DNG fixtures, the JPEG XL DNGs, two small GPRs and the Sigma SD14 X3F.
-FUZZ_RESULTS_PLACEHOLDER
+The first rounds crashed within seconds, all in GoPro's VC-5 reference decoder, whose checks
+are `assert()`s: a heap overflow writing a band run past the band, heap over-reads and wild
+reads of the memory stream past the buffer (the most frequent), a channel count of up to 255
+indexing four-entry arrays, codeblocks dereferencing wavelets that were never allocated, and
+leaks on every failed decode; all fixed in `patches/gpr/0002`. The final rounds were clean:
+libFuzzer 3 workers × 15 min (892 k executions over the DNG/JPEG XL DNG/GPR corpus), 20 min
+on the 12 MB X3F (825 executions: X3F tools, no finding; the slowest input took 12 s under
+ASan), and Go `FuzzRawLoad` 10 min (3.7 M executions through the shim). Three of the
+crashing inputs are `FuzzRawLoad` regression seeds (`internal/vips/testdata/rawfuzz`). The
+DNG SDK's JPEG XL path decodes through libjxl, which was not instrumented (libjxl is fuzzed
+upstream).
 
 ### zstd for libtiff (WP-102, revision r5)
 
@@ -356,6 +369,12 @@ linux/arm64, `docker save | gzip -6` (compressed) and `docker image inspect` (un
 | full builder | 308.8 MB | 895.0 MB | — |
 | gpl runtime (`8.18.6-r7-gpl`) | 117.0 MB | 257.8 MB | ≤ 170 MB (as full) |
 | gpl builder | 322.1 MB | 914.4 MB | — |
+
+LibRaw's options (WP-103; measured on the `wp103` builds of those revisions) add 0.4–0.6 MB
+compressed / 1.0–1.2 MB uncompressed to every runtime (slim 55.8 / 167.6 MB, full 104.1 /
+239.5 MB, gpl 117.4 / 258.8 MB) and about 1 MB compressed / 2 MB uncompressed to the builders
+(slim 260.8 / 822.5 MB, full 309.7 / 897.0 MB): `libraw_r.so` grows from 1.3 to 2.2 MB (DNG
+SDK, VC-5 decoder, X3F tools), the builders also carry the plain `libraw.so`.
 
 zstd (r5, WP-102) adds 0.3–0.4 MB compressed / 0.8 MB uncompressed to every flavor.
 

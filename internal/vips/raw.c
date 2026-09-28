@@ -278,6 +278,14 @@ xi_raw_load(VipsBlob *blob, const XiRawOptions *o, VipsImage **out, char **err)
   // VC-5 (GoPro) raw data whatever this says; every other DNG keeps
   // LibRaw's own decoders, as without the SDK.
   lr->rawparams.use_dngsdk = LIBRAW_DNG_NONE;
+#if LIBRAW_COMPILE_CHECK_VERSION_NOTLESS(0, 22)
+  // A linear (demosaiced) DNG with lossy JPEG or JPEG XL data carries opcode
+  // lists (gain, black levels) the DNG SDK must apply before LibRaw scales
+  // it; without them Adobe's JPEG XL linear sample comes out magenta and
+  // clipped. Bayer ones decode right without (and fail with it).
+  if (lr->idata.dng_version && lr->idata.filters == 0)
+    lr->rawparams.options |= LIBRAW_RAWOPTIONS_DNG_STAGE23_IFPRESENT_JPGJXL;
+#endif
   lr->params.output_bps = 8;
   lr->params.use_camera_wb = 1;
   lr->params.output_color = 1; // sRGB
