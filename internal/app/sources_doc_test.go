@@ -102,7 +102,7 @@ func TestSourcesDocResolution(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", file, err)
 		}
-		var bindings []source.Binding
+		bindings := make([]source.Binding, 0, len(cfg.Sources))
 		for _, name := range sourceOrder(&cfg) {
 			sc := cfg.Sources[name]
 			bindings = append(bindings, source.Binding{Spec: sourceSpec(name, &sc), Source: docSource{name, string(sc.Type)}})
