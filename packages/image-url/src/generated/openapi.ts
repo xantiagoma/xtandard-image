@@ -2236,6 +2236,8 @@ export interface components {
             public: boolean;
             /** @description XI_SERVER_ADDR (the page derives a default public base URL from its port). */
             public_addr: string;
+            /** @description Ready-made sessions of the Examples tool (internal/playground/recipes.json): source, dialect and options, loaded into the builder with one click. */
+            recipes: components["schemas"]["PlaygroundRecipe"][] | null;
             /** @description Built-in sample images (repository fixtures), served as playground://samples/<name> to the playground only; they work offline. */
             samples: components["schemas"]["PlaygroundSample"][] | null;
             /** @description Signing mode; keys and salts are never included. */
@@ -2248,6 +2250,8 @@ export interface components {
             version: string;
             /** @description Video sources are decoded (FFmpeg, full image). */
             video: boolean;
+            /** @description A default watermark image is configured (XI_PROCESSING_WATERMARK_SOURCE; the source itself is never included): imgproxy wm without wmu or wmt draws it. */
+            watermark: boolean;
         };
         PlaygroundMount: {
             /** @description imgproxy argument separator (XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR). */
@@ -2306,6 +2310,43 @@ export interface components {
             name: string;
             /** @description Needs XI_SECURITY_ALLOW_SECURITY_OPTIONS. */
             security?: boolean;
+        };
+        PlaygroundRecipe: {
+            /**
+             * @description Card group.
+             * @enum {string}
+             */
+            category: "watermark" | "showcase";
+            /** @description What the recipe shows. */
+            description: string;
+            /** @description Dialect of the mount the recipe is built on (its first mount). */
+            dialect: string;
+            /** @description imgproxy source extension. */
+            ext?: string;
+            /** @description Stable identifier. */
+            id: string;
+            /** @description Info panel options ([name, value…]); the recipe opens the Info (source) tab. */
+            info?: (string[] | null)[] | null;
+            /** @description Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output). */
+            needs?: ("watermark" | "detection" | "video")[] | null;
+            /** @description Builder entries per chained pipeline: [name, value…] (catalogue names; base64 arguments plain). */
+            pipelines: ((string[] | null)[] | null)[] | null;
+            /** @description Path and query written by hand ({src} is the source); the builder is bypassed. */
+            raw?: components["schemas"]["PlaygroundRecipeRaw"];
+            /** @description Source string: xi://local/<fixture> or a public gallery URL. */
+            source: string;
+            /** @description Lower-case keywords for the filter. */
+            tags: string[] | null;
+            /** @description Card title. */
+            title: string;
+            /** @description Path and query after the mount prefix (and the imgproxy signature segment), unsigned. */
+            url: string;
+        };
+        PlaygroundRecipeRaw: {
+            /** @description Path after the mount prefix; {src} is the source. */
+            path: string;
+            /** @description Query without ?; {src} is the source. */
+            query?: string;
         };
         PlaygroundSample: {
             /** @description Needs the full image (FFmpeg or the detection models). */

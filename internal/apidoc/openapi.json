@@ -6510,6 +6510,16 @@
             "description": "XI_SERVER_ADDR (the page derives a default public base URL from its port).",
             "type": "string"
           },
+          "recipes": {
+            "description": "Ready-made sessions of the Examples tool (internal/playground/recipes.json): source, dialect and options, loaded into the builder with one click.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundRecipe"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "samples": {
             "description": "Built-in sample images (repository fixtures), served as playground://samples/\u003cname\u003e to the playground only; they work offline.",
             "items": {
@@ -6545,6 +6555,10 @@
           "video": {
             "description": "Video sources are decoded (FFmpeg, full image).",
             "type": "boolean"
+          },
+          "watermark": {
+            "description": "A default watermark image is configured (XI_PROCESSING_WATERMARK_SOURCE; the source itself is never included): imgproxy wm without wmu or wmt draws it.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -6566,7 +6580,9 @@
           "detection",
           "video",
           "classes",
-          "pdf_passwords"
+          "pdf_passwords",
+          "watermark",
+          "recipes"
         ],
         "type": "object"
       },
@@ -6741,6 +6757,143 @@
         "required": [
           "name",
           "forms"
+        ],
+        "type": "object"
+      },
+      "PlaygroundRecipe": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "description": "Card group.",
+            "enum": [
+              "watermark",
+              "showcase"
+            ],
+            "type": "string"
+          },
+          "description": {
+            "description": "What the recipe shows.",
+            "type": "string"
+          },
+          "dialect": {
+            "description": "Dialect of the mount the recipe is built on (its first mount).",
+            "type": "string"
+          },
+          "ext": {
+            "description": "imgproxy source extension.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Stable identifier.",
+            "type": "string"
+          },
+          "info": {
+            "description": "Info panel options ([name, value…]); the recipe opens the Info (source) tab.",
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "needs": {
+            "description": "Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output).",
+            "items": {
+              "enum": [
+                "watermark",
+                "detection",
+                "video"
+              ],
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "pipelines": {
+            "description": "Builder entries per chained pipeline: [name, value…] (catalogue names; base64 arguments plain).",
+            "items": {
+              "items": {
+                "items": {
+                  "type": "string"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "raw": {
+            "$ref": "#/components/schemas/PlaygroundRecipeRaw",
+            "description": "Path and query written by hand ({src} is the source); the builder is bypassed."
+          },
+          "source": {
+            "description": "Source string: xi://local/\u003cfixture\u003e or a public gallery URL.",
+            "type": "string"
+          },
+          "tags": {
+            "description": "Lower-case keywords for the filter.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "title": {
+            "description": "Card title.",
+            "type": "string"
+          },
+          "url": {
+            "description": "Path and query after the mount prefix (and the imgproxy signature segment), unsigned.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "category",
+          "dialect",
+          "source",
+          "pipelines",
+          "url",
+          "tags"
+        ],
+        "type": "object"
+      },
+      "PlaygroundRecipeRaw": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "description": "Path after the mount prefix; {src} is the source.",
+            "type": "string"
+          },
+          "query": {
+            "description": "Query without ?; {src} is the source.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
         ],
         "type": "object"
       },

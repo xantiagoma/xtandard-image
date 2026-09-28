@@ -4,7 +4,8 @@
 // the workspace without touching it; closing it shows the workspace again
 // and puts the session back in the hash, so the share link keeps working.
 //
-// History lists the sessions rendered in this browser (localStorage).
+// History lists the sessions rendered in this browser (localStorage);
+// Examples (recipes.js) lists ready-made sessions.
 
 import { $, copyText, el, store } from './dom.js';
 
@@ -12,6 +13,7 @@ export const TOOLS = {
   gallery: { title: 'Gallery', caption: 'Global tool: every sample this server knows. Picking one loads it into the session; nothing else in the session changes.' },
   history: { title: 'History', caption: 'Global tool: the sessions you rendered in this browser, for every asset, not only the current one.' },
   matrix: { title: 'Format matrix', caption: 'Global tool: the whole sample gallery run against this server, independent of the current session.' },
+  examples: { title: 'Examples', caption: 'Global tool: ready-made sessions (watermarks in every dialect, and more). Loading one replaces the session with it; everything stays editable, and Back returns here.' },
 };
 
 // toolFromHash is the tool a hash routes to, or null.

@@ -223,7 +223,7 @@ Each source is configured by the `XI_SOURCES_<NAME>_*` variables below (`<NAME>`
 | `XI_PROCESSING_PRESERVE_HDR` | `false` | |
 | `XI_PROCESSING_LINEAR_RESIZE` | `false` | Resize in linear light |
 | `XI_PROCESSING_COLOR_PROFILES_DIR` | `` | Custom ICC files |
-| `XI_PROCESSING_WATERMARK_SOURCE` | `` | Default watermark image (source string, resolved against the sources). Fetched and decoded once at startup, never refreshed; a watermark that cannot be loaded stops startup |
+| `XI_PROCESSING_WATERMARK_SOURCE` | `` | Default watermark image (source string, resolved against the sources). Fetched and decoded once at startup, never refreshed; a watermark that cannot be loaded stops startup. The playground's `api/meta` reports only whether it is set (`watermark`), for the Examples that need it |
 | `XI_PROCESSING_WATERMARK_OPACITY` | `1` | Multiplies every request's watermark opacity (configured image, per-request image and text) |
 | `XI_PROCESSING_WATERMARK_FONT` | `sans 16` | Pango font description of text watermarks (imgproxy's default); a request's font takes the family or size it lacks from it. The image ships DejaVu Sans and DejaVu Sans Mono (`sans`, `monospace`) through fontconfig |
 | `XI_PROCESSING_WATERMARK_FONT_FILE` | `` | Absolute path of a font file (TTF/OTF) registered with fontconfig for text watermarks, in addition to the fonts under `/opt/xtandard/share/fonts`; requests select it by family name |
