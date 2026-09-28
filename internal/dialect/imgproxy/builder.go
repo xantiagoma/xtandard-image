@@ -25,6 +25,11 @@ func (p *Parser) NewBuilder(dialectName string) *Builder {
 	return &Builder{st: st}
 }
 
+// SetVerified records that the URL the options come from carries a
+// verified signature (sign.Verified). Only then does pdf_password apply;
+// a builder that is never told refuses it with 403.
+func (b *Builder) SetVerified(verified bool) { b.st.verified = verified }
+
 // Request returns the request being built.
 func (b *Builder) Request() *transform.Request { return b.st.r }
 

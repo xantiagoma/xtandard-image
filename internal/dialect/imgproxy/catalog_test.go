@@ -123,6 +123,9 @@ func TestCatalogAccepted(t *testing.T) {
 		{"info", imgproxy.InfoOptions(), func(s string) error { _, err := p.ParseInfoPath(s); return err }},
 	} {
 		for _, o := range tc.opts {
+			if o.Name == "pdf_password" {
+				continue // signed URLs only: password_test.go parses its example
+			}
 			for _, n := range o.Names() {
 				path := "/unsafe/" + n + ":" + o.Example + "/plain/https://example.com/a.jpg"
 				if err := tc.parse(path); err != nil {

@@ -20,6 +20,10 @@ const maxSignBody = 32 << 10
 // maxURLPart bounds SignRequest.Path and SignRequest.Query.
 const maxURLPart = 8 << 10
 
+// maxPDFPassword bounds SignRequest.PDFPassword in bytes
+// (transform.MaxPasswordLen).
+const maxPDFPassword = 1024
+
 // badRequestError carries a client-safe message.
 type badRequestError struct{ msg string }
 
@@ -46,9 +50,10 @@ func (h *handler) sign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req SignRequest
+	var err error
 	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxSignBody))
 	dec.DisallowUnknownFields()
-	if err := dec.Decode(&req); err != nil {
+	if err = dec.Decode(&req); err != nil {
 		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 			writeJSONError(w, http.StatusRequestEntityTooLarge, "request body too large")
 			return
@@ -66,7 +71,14 @@ func (h *handler) sign(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusBadRequest, "unknown prefix for this mount")
 		return
 	}
-	res, err := SignURL(m, h.signers[m.ID], req.Path, req.Query)
+	path, query := req.Path, req.Query
+	if req.PDFPassword != "" {
+		if path, query, err = h.withPDFPassword(m, req.PDFPassword, path, query); err != nil {
+			writeJSONError(w, http.StatusBadRequest, badRequestMessage(err))
+			return
+		}
+	}
+	res, err := SignURL(m, h.signers[m.ID], path, query)
 	if err != nil {
 		if e, ok := errors.AsType[*badRequestError](err); ok {
 			writeJSONError(w, http.StatusBadRequest, e.msg)
@@ -78,6 +90,59 @@ func (h *handler) sign(w http.ResponseWriter, r *http.Request) {
 	}
 	res.URL = h.pathPrefix + res.URL
 	writeJSON(w, http.StatusOK, res)
+}
+
+// withPDFPassword adds the encrypted password to the URL parts of mount m
+// (WP-115): a pdp segment first in an imgproxy path, a pdf_password
+// parameter on the query mount. The server accepts it on signed URLs only,
+// so a mount the playground cannot sign is refused, as are other dialects.
+// The plaintext is copied once and that copy wiped; it never reaches a log
+// or the response.
+func (h *handler) withPDFPassword(m *Mount, password, path, query string) (string, string, error) {
+	if h.encrypt == nil {
+		return "", "", badRequest("pdf_password needs XI_ENCRYPTION_KEYS")
+	}
+	if h.signers[m.ID] == nil {
+		return "", "", badRequest("pdf_password needs a signed url: the server holds no signing key for this mount")
+	}
+	if !m.passwordCapable() {
+		return "", "", badRequest("pdf_password is an imgproxy and query dialect option")
+	}
+	if len(password) > maxPDFPassword {
+		return "", "", badRequest("pdf_password is longer than 1024 bytes")
+	}
+	pw := []byte(password)
+	token, err := h.encrypt(pw)
+	clear(pw)
+	if err != nil {
+		return "", "", badRequest("pdf_password must be text without control characters")
+	}
+	if m.Scheme == SchemeImgproxy {
+		sep := m.ArgumentsSeparator
+		if sep == "" {
+			sep = ":"
+		}
+		return "/pdp" + sep + token + path, query, nil
+	}
+	query = strings.TrimPrefix(query, "?")
+	if query != "" {
+		query += "&"
+	}
+	return path, query + "pdf_password=" + token, nil
+}
+
+// passwordCapable reports whether m's dialect takes pdf_password: the
+// imgproxy dialect (and its /info) and the query dialect.
+func (m *Mount) passwordCapable() bool {
+	return m.Scheme == SchemeImgproxy || (m.Scheme == SchemeXI && m.Grammar == GrammarQuery)
+}
+
+// badRequestMessage is the client-safe message of a badRequest error.
+func badRequestMessage(err error) string {
+	if e, ok := errors.AsType[*badRequestError](err); ok {
+		return e.msg
+	}
+	return "invalid request"
 }
 
 // at is m answering on prefix p, one of its Prefixes; "" is m itself.

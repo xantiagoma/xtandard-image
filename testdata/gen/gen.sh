@@ -111,6 +111,9 @@ vips uhdrsave "$T/hdr.v" "$F/uhdr/photo-ultrahdr.jpg" --Q 80
 gen pdf "$F/pdf/pages.pdf"
 qpdf --encrypt --user-password=secret --owner-password=owner --bits=256 -- \
 	"$F/pdf/pages.pdf" "$F/pdf/password.pdf"
+# WP-115: an AES-128 (R4) variant whose user password has a space.
+qpdf --encrypt --user-password="open sesame" --owner-password=owner128 --bits=128 --use-aes=y -- \
+	"$F/pdf/pages.pdf" "$F/pdf/password-aes128.pdf"
 
 # PSD/PSB written by hand: two layers with the merged composite, PSB, and
 # the PSD saved without a composite ("Maximize compatibility" off).

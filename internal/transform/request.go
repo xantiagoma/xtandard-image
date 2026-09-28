@@ -41,6 +41,35 @@ type SourceSpec struct {
 	Encoding SourceEncoding // how Raw was encoded in the URL
 	Mount    string         // named source bound by a dialect mount (imgix source, cloudinary cloud, …)
 	Hashsum  *Hashsum       // expected source digest
+	// Password opens a password-protected document (PDF): the dialect
+	// decrypts it from an encrypted URL option (pdf_password), accepted on
+	// signed URLs only. nil is none.
+	Password *DocumentPassword
+}
+
+// DocumentPassword is a request's document password (WP-115).
+type DocumentPassword struct {
+	// Secret is the decrypted password: never logged or echoed, and not
+	// hashed into the key (Digest stands for it).
+	Secret Password `key:"-"`
+	// Digest is the keyed hash of Secret (crypt.PasswordDigest): 64
+	// lowercase hex digits.
+	Digest string
+}
+
+// Bytes returns the password, or nil when d is nil.
+func (d *DocumentPassword) Bytes() []byte {
+	if d == nil {
+		return nil
+	}
+	return d.Secret
+}
+
+// Clear wipes the password; a nil d is a no-op.
+func (d *DocumentPassword) Clear() {
+	if d != nil {
+		d.Secret.Clear()
+	}
 }
 
 // Hashsum is an expected source digest (imgproxy hashsum).

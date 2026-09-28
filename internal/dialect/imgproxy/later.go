@@ -192,6 +192,9 @@ func (st *state) applyLater(pl *transform.Pipeline, name string, args []string) 
 	case "hashsum", "hs":
 		milestone = applied // WP-64
 		err = hashsum(&st.r.Source, args)
+	case "pdf_password", "pdp":
+		milestone = applied // WP-115
+		err = st.pdfPassword(args)
 	default:
 		return false, nil
 	}

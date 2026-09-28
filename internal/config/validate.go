@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 )
 
 // maxDPR is the largest device pixel ratio accepted anywhere (client hints
@@ -193,6 +194,7 @@ func sourceFieldTypes() map[string][]SourceType {
 		"host": remote, "port": remote, "user": remote, "password": remote, "tls": {SourceFTP},
 		"private_key": {SourceSFTP}, "private_key_passphrase": {SourceSFTP}, "host_key": {SourceSFTP},
 		"pool_size": remote, "dial_timeout": remote, "idle_timeout": remote,
+		"pdf_password": sourceTypes(),
 	}
 }
 
@@ -206,6 +208,7 @@ func (c *Config) validateSources(v *validator) {
 			v.add(p+".type", "must be set")
 			continue
 		}
+		v.check(validPDFPassword(s.PDFPassword.Reveal()), p+".pdf_password", "must be at most 1024 bytes without control characters")
 		rv, rt := reflect.ValueOf(s), reflect.TypeFor[Source]()
 		for i := range rt.NumField() {
 			tag, _, _ := strings.Cut(rt.Field(i).Tag.Get("yaml"), ",")
@@ -237,6 +240,21 @@ func (c *Config) validateSources(v *validator) {
 			v.check(s.PrivateKeyPassphrase == "" || s.PrivateKey != "", p+".private_key_passphrase", "needs private_key")
 		}
 	}
+}
+
+// validPDFPassword checks a source's default document password: what a
+// pdf_password token may carry (crypt refuses control characters; the
+// transform package caps the length at 1024 bytes).
+func validPDFPassword(pw string) bool {
+	if len(pw) > 1024 || !utf8.ValidString(pw) {
+		return false
+	}
+	for i := range len(pw) {
+		if c := pw[i]; c < 0x20 || c == 0x7f {
+			return false
+		}
+	}
+	return true
 }
 
 // validAllowPattern is the syntactic check of an http allow pattern: an

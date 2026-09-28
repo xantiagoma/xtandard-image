@@ -778,6 +778,15 @@ export interface components {
                 number
             ];
             /**
+             * @description Open a password-protected PDF; signed URLs only. URL: `pdf_password`, `pdp`; arguments encrypted password (base64url); default none.
+             * @example [
+             *       "MDEyMzQ1Njc4OWFiY2RlZlsN0ZQuFO2sitmy5C87M2o"
+             *     ]
+             */
+            pdf_password?: [
+                string | null
+            ];
+            /**
              * @description Report a perceptual hash. URL: `perceptual_hash`, `phash`, `ph`; arguments bool; default false.
              * @example [
              *       true
@@ -1459,6 +1468,15 @@ export interface components {
              */
             pages?: [
                 number
+            ];
+            /**
+             * @description Open a password-protected PDF; signed URLs only. URL: `pdf_password`, `pdp`; arguments encrypted password (base64url); default none.
+             * @example [
+             *       "MDEyMzQ1Njc4OWFiY2RlZlsN0ZQuFO2sitmy5C87M2o"
+             *     ]
+             */
+            pdf_password?: [
+                string | null
             ];
             /**
              * @description Pixelate. URL: `pixelate`, `pix`; arguments size; default off.
@@ -2199,6 +2217,8 @@ export interface components {
             mounts: components["schemas"]["PlaygroundMount"][] | null;
             /** @description XI_SERVER_PATH_PREFIX; every generated URL starts with it. */
             path_prefix: string;
+            /** @description api/sign encrypts pdf_password for password-protected PDFs (XI_ENCRYPTION_KEYS is set); signed mounts only. */
+            pdf_passwords: boolean;
             /** @description Configured preset names. */
             presets: string[] | null;
             /** @description XI_PLAYGROUND_PUBLIC: the playground is also served on the public listener. */
@@ -2296,6 +2316,8 @@ export interface components {
             mount: string;
             /** @description Escaped path after the mount prefix, starting with /; without the signature segment for imgproxy and thumbor. */
             path: string;
+            /** @description Plain-text password of a password-protected PDF source: the server encrypts it (XI_ENCRYPTION_KEYS) into a pdf_password option (imgproxy mounts: a pdp segment first in the path; the query mount: a pdf_password parameter) and signs the result. Needs a signed mount; never logged or echoed. */
+            pdf_password?: string;
             /** @description One of the mount's prefixes; empty means its first prefix. */
             prefix?: string;
             /** @description Raw query without ?; an existing xi_sig is replaced. */

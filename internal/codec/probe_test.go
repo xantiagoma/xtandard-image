@@ -252,7 +252,8 @@ func TestProbeFixtures(t *testing.T) {
 		"xcf/gray.xcf":   still(codec.FormatXCF, 160, 120),
 		"xcf/alpha.xcf":  with(still(codec.FormatXCF, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
 	}
-	// password.pdf fails by design (TestProbeErrors); videos are probed by
+	// password.pdf and password-aes128.pdf fail by design (TestProbeErrors,
+	// TestProbePDFPassword); videos are probed by
 	// TestProbeVideo, EPS files without a preview by TestProbeEPS; designer
 	// containers are unwrapped by the server, not probed.
 	videos := 0
@@ -261,7 +262,7 @@ func TestProbeFixtures(t *testing.T) {
 			videos++
 		}
 	}
-	if len(tests) != len(fixtureFormats())-1-videos-3-containerFixtures {
+	if len(tests) != len(fixtureFormats())-2-videos-3-containerFixtures {
 		t.Fatalf("probe table has %d fixtures, sniff table %d", len(tests), len(fixtureFormats()))
 	}
 	for name, want := range tests {
@@ -311,6 +312,7 @@ func TestProbeErrors(t *testing.T) {
 		{"truncated pdf", []byte("%PDF-1.7\n%\xe2\xe3\xcf\xd3\n"), codec.Limits{}, errs.KindCorrupt},
 		{"truncated psd", []byte("8BPS\x00\x01\x00\x00\x00\x00\x00\x00\x00\x03"), codec.Limits{}, errs.KindCorrupt},
 		{"pdf with a password", readFixture(t, "pdf/password.pdf"), codec.Limits{}, errs.KindUnsupported},
+		{"aes-128 pdf with a password", readFixture(t, "pdf/password-aes128.pdf"), codec.Limits{}, errs.KindUnsupported},
 		{"pdf over page limit", readFixture(t, "pdf/pages.pdf"), codec.Limits{MaxPDFPages: 2}, errs.KindLimitExceeded},
 		{"pdf over pixel limit", readFixture(t, "pdf/pages.pdf"), codec.Limits{MaxSrcPixels: 1000}, errs.KindLimitExceeded},
 		{"psd without composite refused", readFixture(t, "psd/no-composite.psd"), codec.Limits{PSDRequireComposite: true}, errs.KindUnsupported},

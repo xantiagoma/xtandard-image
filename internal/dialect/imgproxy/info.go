@@ -139,6 +139,7 @@ func (st *state) applyInfo(name string, args []string) error {
 		"expires", "exp",
 		"preset", "pr",
 		"hashsum", "hs",
+		"pdf_password", "pdp",
 		"max_src_resolution", "msr",
 		"max_src_file_size", "msfs",
 		"bypass_cache", "bc",

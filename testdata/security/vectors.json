@@ -1,5 +1,5 @@
 {
-  "comment": "Cross-language signing and source-encryption vectors (WP-19, WP-84). Go: internal/security/sign TestSharedVectors and internal/security/crypt TestSharedVectors; TypeScript: packages/image-url/src/sign.test.ts and encrypt.test.ts. Keys, salts and IVs are hex. Sources: imgproxy docs 'Signing the URL', imgproxy examples/signature*.{go,mjs} and security/signature_test.go (Apache-2.0), imgproxy examples/encrypted_source_url.{go,js}.",
+  "comment": "Cross-language signing, source-encryption and pdf_password vectors (WP-19, WP-84, WP-115). Go: internal/security/sign TestSharedVectors and internal/security/crypt TestSharedVectors and TestSharedPasswordVectors (pdf_password: token = the enc/ format over the password; digest = HMAC-SHA256(HMAC-SHA256(key, 'xtandard-image/crypt.PasswordDigest/v1'), password), server-side only); TypeScript: packages/image-url/src/sign.test.ts and encrypt.test.ts (encryptPdfPassword too). Keys, salts and IVs are hex. Sources: imgproxy docs 'Signing the URL', imgproxy examples/signature*.{go,mjs} and security/signature_test.go (Apache-2.0), imgproxy examples/encrypted_source_url.{go,js}.",
   "imgproxy": [
     {
       "name": "docs_signing_url",
@@ -100,6 +100,32 @@
       "iv": "69766976697669766976697669766921",
       "plaintext": "s3://bucket/key.png",
       "token": "aXZpdml2aXZpdml2aXZpIWPwY9qCmnnmLnNVeCIjMP1UiOg7cNRyAGHg19Rprjpx"
+    }
+  ],
+  "pdf_password": [
+    {
+      "name": "aes256_secret",
+      "key": "1eb5b0e971ad7f45324c1bb15c947cb207c43152fa5c6c7f35c4f36e0c18e0f1",
+      "iv": "30313233343536373839616263646566",
+      "password": "secret",
+      "token": "MDEyMzQ1Njc4OWFiY2RlZlsN0ZQuFO2sitmy5C87M2o",
+      "digest": "4af9658893fcdb55323920af446e2f433c7f380061f2ef33f7f9564a29a36738"
+    },
+    {
+      "name": "aes256_space",
+      "key": "1eb5b0e971ad7f45324c1bb15c947cb207c43152fa5c6c7f35c4f36e0c18e0f1",
+      "iv": "000102030405060708090a0b0c0d0e0f",
+      "password": "open sesame",
+      "token": "AAECAwQFBgcICQoLDA0ODzSjMg6okjG-X5IG8F3ndVI",
+      "digest": "e4e5b7772bebc4425950ea87419e731f8f09ac6849a1ca08a139b5bd1c74c6d5"
+    },
+    {
+      "name": "aes128_non_ascii",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "iv": "fedcba9876543210fedcba9876543210",
+      "password": "pässwörd € 1",
+      "token": "_ty6mHZUMhD-3LqYdlQyEMaC21X3QTJwqYlIFdYUKTZNjfcY2APDYNGiAKgJV8d0",
+      "digest": "f8a8a35c8827fdc1dcb8e5dcd0f617fbe198c5f5bb5941bb85a0b2388c8473b9"
     }
   ]
 }

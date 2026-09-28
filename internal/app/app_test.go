@@ -41,11 +41,17 @@ func start(t *testing.T, cfg *config.Config, h hooks) addrs {
 // it too).
 func startStoppable(t *testing.T, cfg *config.Config, h hooks) (addrs, func()) {
 	t.Helper()
+	return startLogged(t, cfg, h, slog.New(slog.DiscardHandler))
+}
+
+// startLogged is startStoppable with the service logging to logger.
+func startLogged(t *testing.T, cfg *config.Config, h hooks, logger *slog.Logger) (addrs, func()) {
+	t.Helper()
 	bound := make(chan addrs, 1)
 	h.listening = func(p, a net.Addr) { bound <- addrs{p, a} }
 	ctx, cancel := context.WithCancelCause(context.WithoutCancel(t.Context()))
 	done := make(chan error, 1)
-	go func() { done <- run(ctx, cfg, slog.New(slog.DiscardHandler), Options{Version: "test"}, h) }()
+	go func() { done <- run(ctx, cfg, logger, Options{Version: "test"}, h) }()
 	var once sync.Once
 	stop := func() {
 		once.Do(func() {

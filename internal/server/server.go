@@ -120,6 +120,11 @@ type ProbeLimits struct {
 	MaxPixels      int64 // frames loaded (XI_LIMITS_MAX_SRC_PIXELS)
 	MaxFrames      int   // XI_LIMITS_MAX_ANIMATION_FRAMES
 	MaxFramePixels int64 // XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS; zero is off (the total applies), not unlimited
+	// Password opens a password-protected PDF (WP-115): the request's
+	// pdf_password or its source's default; nil is none. Not a limit, but
+	// the one other per-request input of a header read. Read-only: the
+	// prober must neither keep nor log it.
+	Password []byte
 }
 
 // Prober reads the source header (stage 11): magic-byte sniff plus a
@@ -149,6 +154,9 @@ type ProcessInput struct {
 	// QualityDelta lowers the effective quality for Save-Data / slow
 	// connection hints (negotiate.HintResult.QualityDelta); 0 = none.
 	QualityDelta int
+	// Password opens a password-protected PDF source, as
+	// ProbeLimits.Password; nil is none.
+	Password []byte
 	// Watermarks are the request's own watermark images, fetched and
 	// sanitised like Source and owned by the server the same way.
 	Watermarks []WatermarkInput
@@ -271,6 +279,10 @@ type Config struct {
 	// ResultCache configures the result cache (cache.go); used only when
 	// Deps.ResultCache is set.
 	ResultCache ResultCacheConfig
+	// SourcePasswords are the default document passwords of named sources
+	// (XI_SOURCES_<NAME>_PDF_PASSWORD), used when a request carries no
+	// pdf_password of its own. Read-only; never cleared by the server.
+	SourcePasswords map[string]transform.Password
 }
 
 // CacheHeaders is the Cache-Control policy of ARCHITECTURE §9.1 and §12.

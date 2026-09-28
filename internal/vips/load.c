@@ -388,12 +388,45 @@ xi_build(VipsOperation *op, VipsImage **out)
   return 0;
 }
 
+// xi_set_password hands password to op's "password" property without an
+// intermediate heap copy (a static-string GValue), so the only copy libvips
+// makes is the loader's own (VIPS_SETSTR), which xi_wipe_password clears.
+static void
+xi_set_password(VipsOperation *op, const char *password)
+{
+  GValue v = G_VALUE_INIT;
+
+  g_value_init(&v, G_TYPE_STRING);
+  g_value_set_static_string(&v, password);
+  g_object_set_property(G_OBJECT(op), "password", &v);
+  g_value_unset(&v);
+}
+
+// xi_wipe_password zeroes the loader's copy of the password. PDFium reads it
+// only while the loader is built (FPDF_LoadCustomDocument), so the loader
+// never needs it again, even while it renders pages lazily.
+static void
+xi_wipe_password(VipsOperation *op)
+{
+  GParamSpec *pspec;
+  VipsArgumentClass *aclass;
+  VipsArgumentInstance *ainst;
+  char *s;
+
+  if (vips_object_get_argument(VIPS_OBJECT(op), "password", &pspec, &aclass, &ainst))
+    return;
+  if ((s = G_STRUCT_MEMBER(char *, op, aclass->offset)))
+    xi_wipe(s, strlen(s));
+}
+
 // xi_run_loader builds loader over blob with the options it supports.
 static int
 xi_run_loader(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsImage **out)
 {
   VipsOperation *op;
   XiSpool *spool = NULL;
+  gboolean password;
+  int rc;
 
   if (!(op = vips_operation_new(loader)))
     return -1;
@@ -427,7 +460,19 @@ xi_run_loader(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsIm
     g_object_set(op, "background", bg, NULL);
     vips_area_unref(VIPS_AREA(bg));
   }
-  if (xi_build(op, out)) {
+  password = o->password && o->password[0] && xi_has_prop(op, "password");
+  if (password) {
+    xi_set_password(op, o->password);
+    // xi_build drops the caller's reference: keep one to wipe the copy
+    // afterwards, whether the build succeeded or not.
+    g_object_ref(op);
+  }
+  rc = xi_build(op, out);
+  if (password) {
+    xi_wipe_password(op);
+    g_object_unref(op);
+  }
+  if (rc) {
     if (spool)
       xi_spool_free(spool);
     return -1;
@@ -460,7 +505,7 @@ xi_copy_string(VipsImage *img, const char *name, char *dst, size_t size)
 }
 
 int
-xi_probe(VipsBlob *blob, double dpi, XiHeader *h, char **err)
+xi_probe(VipsBlob *blob, double dpi, const char *password, XiHeader *h, char **err)
 {
   const char *loader;
   VipsImage *img = NULL;
@@ -475,6 +520,7 @@ xi_probe(VipsBlob *blob, double dpi, XiHeader *h, char **err)
   o.access = VIPS_ACCESS_SEQUENTIAL;
   o.fail_on = VIPS_FAIL_ON_NONE;
   o.dpi = dpi;
+  o.password = password;
   if (xi_run_loader(loader, blob, &o, &img))
     return xi_load_error(err);
 
@@ -586,6 +632,60 @@ xi_load_run(const char *loader, VipsBlob *blob, const XiLoadOptions *o, VipsImag
   return XI_OK;
 }
 
+// xi_thumbnail_password is xi_thumbnail for a document opened with a
+// password: the loader runs directly (xi_run_loader passes and then wipes the
+// password) and thumbnail_image resizes its output. thumbnail_buffer would
+// need the password in its option string, a copy nobody wipes. No
+// shrink-on-load: PDFium renders at the loader's default density.
+static int
+xi_thumbnail_password(const char *loader, VipsBlob *blob, const XiThumbnailOptions *o,
+    const char *import_profile, const char *export_profile, VipsImage **out, char **err)
+{
+  XiLoadOptions lo = { 0 };
+  VipsImage *in = NULL;
+  VipsOperation *op;
+
+  lo.access = VIPS_ACCESS_SEQUENTIAL;
+  lo.fail_on = o->fail_on;
+  lo.page = o->page;
+  lo.n = o->n;
+  lo.password = o->password;
+  if (xi_run_loader(loader, blob, &lo, &in))
+    return xi_load_error(err);
+  if (!(op = vips_operation_new("thumbnail_image"))) {
+    g_object_unref(in);
+    *err = xi_error_copy();
+    return XI_ERR_INTERNAL;
+  }
+  g_object_set(op,
+      "in", in,
+      "width", o->width,
+      "height", o->height,
+      "size", o->size,
+      "no_rotate", o->no_rotate,
+      "crop", o->crop,
+      "linear", o->linear,
+      "intent", o->intent,
+      NULL);
+  g_object_unref(in); // op holds its own reference
+  if (xi_has_prop(op, "fail_on"))
+    g_object_set(op, "fail_on", o->fail_on, NULL);
+  if (import_profile)
+    g_object_set(op, "input_profile", import_profile, NULL);
+  if (export_profile)
+    g_object_set(op, "output_profile", export_profile, NULL);
+  if (xi_build(op, out))
+    return xi_load_error(err);
+  if (xi_guard(out, blob)) {
+    g_object_unref(*out);
+    *out = NULL;
+    *err = xi_error_copy();
+    return XI_ERR_INTERNAL;
+  }
+  xi_keep_blob(*out, blob);
+  return XI_OK;
+}
+
 int
 xi_thumbnail(VipsBlob *blob, const XiThumbnailOptions *o, const char *import_profile,
     const char *export_profile, VipsImage **out, char **err)
@@ -602,6 +702,8 @@ xi_thumbnail(VipsBlob *blob, const XiThumbnailOptions *o, const char *import_pro
     *err = xi_error_new("xi_thumbnail", "OpenEXR has no buffer loader");
     return XI_ERR_UNSUPPORTED;
   }
+  if (o->password && o->password[0] && xi_class_has_prop(loader, "password"))
+    return xi_thumbnail_password(loader, blob, o, import_profile, export_profile, out, err);
 
   // Loader options travel in option_string; only pass what this loader has,
   // since unknown keys are an error.

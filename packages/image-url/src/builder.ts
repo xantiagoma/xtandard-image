@@ -6,7 +6,7 @@
 // `enc/` (AES-CBC, see encrypt.ts); base64 and enc sources take `.ext`.
 
 import { base64url, hasControlChar, utf8 } from "./bytes.ts";
-import { type EncryptionKey, encryptSource } from "./encrypt.ts";
+import { type EncryptionKey, encryptPdfPassword, encryptSource } from "./encrypt.ts";
 import {
   type Arg,
   entriesOf,
@@ -65,6 +65,13 @@ export interface ImgproxyUrlRequest<O = ImgproxyProcessingOptions> {
   readonly extension?: string;
   /** Overrides the configured source encoding. */
   readonly sourceEncoding?: SourceEncoding;
+  /**
+   * The password of a password-protected PDF source, as plain text: it is
+   * encrypted with `encryption` (encryptPdfPassword) into a `pdf_password`
+   * option. The server accepts it on signed URLs only, so `signing` is
+   * required too. Build such URLs on a server.
+   */
+  readonly pdfPassword?: string;
 }
 
 /** One `/info` URL, in the plain object form. */
@@ -143,6 +150,18 @@ async function finish(cfg: ImgproxyUrlConfig, info: boolean, path: string): Prom
   return `${base}${info ? "/info" : ""}${signed}`;
 }
 
+/**
+ * The `pdf_password` segment for a plain-text password. The token is
+ * written verbatim: base64url may contain a separator such as "_", which the
+ * server joins back.
+ */
+async function passwordSegment(cfg: ImgproxyUrlConfig, password: string, sep: string, style: OptionNameStyle): Promise<string> {
+  if (!cfg.encryption) throw new Error("pdfPassword needs an encryption key");
+  if (!cfg.signing) throw new Error("pdfPassword needs signing: the server refuses pdf_password on unsigned URLs");
+  const token = await encryptPdfPassword(password, cfg.encryption);
+  return `${style === "canonical" ? "pdf_password" : "pdp"}${sep}${token}`;
+}
+
 /** Builds a URL from option pipelines (entries) and a source. */
 async function build(
   cfg: ImgproxyUrlConfig,
@@ -151,6 +170,7 @@ async function build(
   source: string,
   encoding: SourceEncoding | undefined,
   ext: string | undefined,
+  pdfPassword?: string,
 ): Promise<string> {
   const sep = checkSeparator(cfg.separator ?? ":");
   const style = cfg.optionNames ?? "short";
@@ -159,6 +179,7 @@ async function build(
   const nonEmpty = pipelines.filter((p) => p.length > 0);
   if (info && nonEmpty.length > 1) throw new TypeError("/info URLs have no chained pipelines");
   const segments: string[] = [];
+  if (pdfPassword !== undefined) segments.push(await passwordSegment(cfg, pdfPassword, sep, style));
   nonEmpty.forEach((p, i) => {
     if (i > 0) segments.push("-");
     for (const e of p) segments.push(formatEntry(cat, e, sep, style));
@@ -182,12 +203,21 @@ export function buildImgproxyUrl(request: ImgproxyUrlRequest, config: ImgproxyUr
     request.source,
     request.sourceEncoding,
     request.extension,
+    request.pdfPassword,
   );
 }
 
 /** Builds an `/info` URL from the plain object form. */
 export function buildImgproxyInfoUrl(request: ImgproxyInfoUrlRequest, config: ImgproxyUrlConfig = {}): Promise<string> {
-  return build(config, true, pipelinesOf(request.options), request.source, request.sourceEncoding, undefined);
+  return build(
+    config,
+    true,
+    pipelinesOf(request.options),
+    request.source,
+    request.sourceEncoding,
+    undefined,
+    request.pdfPassword,
+  );
 }
 
 // ---- fluent form -------------------------------------------------------------
@@ -207,6 +237,8 @@ interface ChainControl<Self, Options, Name extends string, ArgsOf extends Record
   options(options: Options): Self;
   /** Overrides the source encoding. */
   encoding(encoding: SourceEncoding): Self;
+  /** Opens a password-protected PDF: see ImgproxyUrlRequest.pdfPassword. */
+  pdfPassword(password: string): Self;
   /** Builds the URL (async: signing and encryption use WebCrypto). */
   build(): Promise<string>;
 }
@@ -244,6 +276,7 @@ class Chain {
   readonly #pipelines: OptionEntry[][] = [[]];
   #encoding: SourceEncoding | undefined;
   #ext: string | undefined;
+  #pdfPassword: string | undefined;
 
   constructor(cfg: ImgproxyUrlConfig, info: boolean, source: string) {
     this.#cfg = cfg;
@@ -276,8 +309,13 @@ class Chain {
     return this;
   }
 
+  pdfPassword(password: string): this {
+    this.#pdfPassword = password;
+    return this;
+  }
+
   build(): Promise<string> {
-    return build(this.#cfg, this.#info, this.#pipelines, this.#source, this.#encoding, this.#ext);
+    return build(this.#cfg, this.#info, this.#pipelines, this.#source, this.#encoding, this.#ext, this.#pdfPassword);
   }
 }
 

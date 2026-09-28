@@ -55,6 +55,12 @@ func (*Buffer) Retain() {}
 // Release does nothing.
 func (*Buffer) Release() {}
 
+// WithPassword fails.
+func (*Buffer) WithPassword([]byte) (*Buffer, error) { return nil, ErrUnavailable }
+
+// HasPassword reports false.
+func (*Buffer) HasPassword() bool { return false }
+
 // Blob is unavailable without cgo.
 type Blob struct{}
 

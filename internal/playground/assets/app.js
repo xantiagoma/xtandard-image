@@ -100,7 +100,16 @@ const writeHash = debounce(() => {
 const currentMount = () => meta.mounts.find((m) => m.id === state.mount);
 const baseURL = () => $('base-url').value.replace(/\/+$/, '');
 const publicURL = (path) => baseURL() + path;
-const sign = (body) => postJSON('api/sign', body);
+// sign asks the server to sign a URL. The PDF password field (WP-115)
+// travels as pdf_password in the body, for the mounts that take it (signed
+// imgproxy and query mounts); the server encrypts it into the URL. It is
+// never written to the hash, the preferences or the history.
+const sign = (body) => {
+  const pw = meta?.pdf_passwords ? $('pdf-password').value : '';
+  const m = meta?.mounts.find((x) => x.id === body.mount);
+  const capable = m?.keyed && (m.scheme === 'imgproxy' || (m.scheme === 'xi_sig' && m.grammar === 'query'));
+  return postJSON('api/sign', pw && capable ? { ...body, pdf_password: pw } : body);
+};
 
 function setStatus(msg, isError = false) {
   const s = $('status');
@@ -140,6 +149,7 @@ function renderMeta(prefs) {
   for (const f of meta.formats ?? []) $('extension').append(el('option', { value: f, text: f }));
   for (const c of meta.classes ?? []) $('xi-classes').append(el('option', { value: c }));
   for (const p of meta.presets ?? []) $('xi-presets').append(el('option', { value: p }));
+  $('pdf-password-row').hidden = !meta.pdf_passwords;
 }
 
 // ---- mount and builder -----------------------------------------------------
@@ -510,6 +520,7 @@ async function main() {
   $('use-alias').addEventListener('change', (e) => { state.alias = e.target.checked; update(); });
   $('src-encoding').addEventListener('change', (e) => { state.encoding = e.target.value; update(); });
   $('extension').addEventListener('change', (e) => { state.ext = e.target.value; update(); });
+  $('pdf-password').addEventListener('change', () => update());
   $('sih-edits').addEventListener('input', (e) => { state.edits = e.target.value; later(); });
   $('free-path').addEventListener('input', (e) => { state.free.path = e.target.value; later(); });
   $('free-query').addEventListener('input', (e) => { state.free.query = e.target.value; later(); });

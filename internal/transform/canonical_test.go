@@ -511,8 +511,12 @@ func TestCanonicalKeyCoversEveryField(t *testing.T) {
 		after := newBase()
 		mutate(navigate(after, steps))
 		kb, ka := before.CanonicalKey(), after.CanonicalKey()
+		// Navigating may allocate a nil pointer on the way (a watermark's
+		// or the fallback's SourceSpec, whose Password is excluded): the
+		// navigated request then differs from the base, so an excluded field
+		// is only held to "mutating it changes nothing".
 		switch {
-		case excluded && (ka != kb || ka != baseKey):
+		case excluded && (ka != kb || (ka != baseKey && !strings.Contains(path, "*"))):
 			t.Errorf("%s: excluded field changed the key", path)
 		case !excluded && ka == kb:
 			t.Errorf("%s: changing the field does not change the key", path)

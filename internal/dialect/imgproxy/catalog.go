@@ -740,6 +740,16 @@ func ProcessingOptions() []Option {
 			)},
 			Syntax: "none, or md5/sha1/sha256/sha512:hex", Default: "none", Milestone: "M2 (WP-64)", Doc: "Check the source bytes against a digest.", Example: "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 		},
+		{
+			Name: "pdf_password", Aliases: []string{"pdp"}, Scope: ScopeRequest,
+			Forms: single(Arg{
+				Name: "token", Type: TypeString, Pattern: `^[A-Za-z0-9_-]*=*$`, Optional: true,
+				Doc: "the document password encrypted like an enc/ source (AES-CBC with the XI_ENCRYPTION_KEYS key, base64url); empty removes it",
+			}),
+			Syntax: "encrypted password (base64url)", Default: "none", Milestone: "M4 (WP-115)",
+			Doc:     "Open a password-protected PDF; signed URLs only.",
+			Example: "MDEyMzQ1Njc4OWFiY2RlZlsN0ZQuFO2sitmy5C87M2o",
+		},
 		securityOption("max_src_resolution", "msr", nonNeg("megapixels", "megapixels"), "Lower (or raise) the source resolution limit."),
 		securityOption("max_src_file_size", "msfs", intArg("bytes", 0, maxInt32, "bytes"), "Lower (or raise) the source size limit."),
 		securityOption("max_animation_frames", "maf", intArg("frames", 1, maxInt32, "frames"), "Lower (or raise) the animation frame limit."),
@@ -841,7 +851,7 @@ func InfoOptions() []Option {
 		o := proc[i]
 		switch o.Name {
 		case "page", "video_thumbnail_second", "video_thumbnail_keyframes", "cachebuster", "expires",
-			"preset", "hashsum", "max_src_resolution", "max_src_file_size", "bypass_cache", "cache_tags":
+			"preset", "hashsum", "pdf_password", "max_src_resolution", "max_src_file_size", "bypass_cache", "cache_tags":
 			o.Shared = true
 			opts = append(opts, o)
 		}
