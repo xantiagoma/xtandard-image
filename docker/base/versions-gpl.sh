@@ -10,9 +10,9 @@
 # Bump a version, then run ./update-checksums.sh to refresh the *_SHA256 lines.
 
 # Revision of the gpl flavor. Its tag is <VIPS_VERSION>-r<XI_BASE_GPL_REVISION>-gpl.
-# gpl r6 = full r5 (versions-full.sh XI_BASE_FULL_REVISION) + the components below
+# gpl r7 = full r6 (versions-full.sh XI_BASE_FULL_REVISION) + the components below
 # (r6: Ghostscript, WP-99).
-export XI_BASE_GPL_REVISION=6
+export XI_BASE_GPL_REVISION=7
 
 # --- GPL allowlist read by check-licenses.sh --allow-gpl ----------------------------
 # component=SPDX pairs. Only these GPL components may appear in a gpl image, and only
@@ -97,5 +97,6 @@ vips LGPL-2.1-or-later
 x264 GPL-2.0-or-later
 x265 GPL-2.0-or-later
 zlib Zlib
+zstd BSD-3-Clause
 '
 export XI_COMPONENT_LICENSES

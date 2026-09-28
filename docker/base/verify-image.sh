@@ -239,6 +239,17 @@ docker run --rm "$runtime" bash -euo pipefail -c '
   test -s /opt/xtandard/share/licenses/SOURCES.md && echo "license bundle present"
 '
 
+echo "== libtiff codecs: ZSTD (WP-102), WebP and deflate TIFF round trips"
+docker run --rm "$runtime" bash -euo pipefail -c '
+  cd "$(mktemp -d)"
+  vips black u8.v 64 48 --bands 3
+  for c in zstd webp deflate; do
+    vips tiffsave u8.v "$c.tif" --compression "$c"
+    vips avg "$c.tif" > /dev/null  # decodes through tiffload
+  done
+  echo "tiffsave/tiffload: zstd, webp, deflate"
+'
+
 echo "== license gate on the runtime image"
 # shellcheck disable=SC2086 # $gate_gpl is empty or two words
 docker run --rm "${gate_mounts[@]}" "$runtime" \

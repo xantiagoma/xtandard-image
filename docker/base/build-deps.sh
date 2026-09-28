@@ -6,7 +6,7 @@
 # see LICENSE.imgproxy-docker-base. Changes: /opt/xtandard prefix; added libspng,
 # OpenJPEG, libultrahdr and jemalloc (WP-05) and LibRaw, Imath, OpenEXR,
 # ImageMagick (PSD only, widened to a few legacy formats by WP-97) and prebuilt PDFium
-# (WP-66); explicit feature switches so
+# (WP-66), zstd for libtiff (WP-102); explicit feature switches so
 # optional GPL codecs (jbig, x265, poppler) can never be picked up by
 # auto-detection; license bundle and SOURCES.md; license gate.
 
@@ -277,9 +277,24 @@ cd "$DEPS_SRC/libwebp"
 make install-strip -j"$(nproc)"
 add_sbom libwebp "$LIBWEBP_VERSION" "cpe:2.3:a:webmproject:libwebp:$LIBWEBP_VERSION:*:*:*:*:*:*:*"
 
+print_build_stage zstd "$ZSTD_VERSION"
+cd "$DEPS_SRC/zstd"
+# Library only (no zstd CLI, no static archive): libtiff's ZSTD codec (WP-102).
+CFLAGS="${CFLAGS} -O3" cmake -S build/cmake -B _build "${CMAKE_ARGS[@]}" \
+  -DZSTD_BUILD_SHARED=ON \
+  -DZSTD_BUILD_STATIC=OFF \
+  -DZSTD_BUILD_PROGRAMS=OFF \
+  -DZSTD_BUILD_CONTRIB=OFF \
+  -DZSTD_BUILD_TESTS=OFF \
+  -DZSTD_LEGACY_SUPPORT=OFF \
+  -DZSTD_MULTITHREAD_SUPPORT=OFF
+ninja -C _build install/strip
+add_sbom zstd "$ZSTD_VERSION" "cpe:2.3:a:facebook:zstandard:$ZSTD_VERSION:*:*:*:*:*:*:*"
+
 print_build_stage libtiff "$LIBTIFF_VERSION"
 cd "$DEPS_SRC/libtiff"
-# jbig is disabled explicitly: JBIG-KIT is GPL.
+# jbig is disabled explicitly: JBIG-KIT is GPL. zstd (WP-102) must be found: the
+# NEEDED check below fails the build when libtiff silently dropped it.
 cmake -B _build "${CMAKE_ARGS[@]}" \
   -DBUILD_SHARED_LIBS=TRUE \
   -Dtiff-tools=FALSE \
@@ -292,12 +307,16 @@ cmake -B _build "${CMAKE_ARGS[@]}" \
   -Dwebp=ON \
   -Djbig=OFF \
   -Dlzma=OFF \
-  -Dzstd=OFF \
+  -Dzstd=ON \
   -Dlerc=OFF \
   -Dlibdeflate=OFF \
   -Dold-jpeg=OFF \
   -Djpeg12=OFF
 ninja -C _build install/strip
+if ! readelf -d "$TARGET_PATH/lib/libtiff.so" | grep -q 'NEEDED.*libzstd'; then
+  echo "libtiff was built without zstd" >&2
+  exit 1
+fi
 add_sbom libtiff "$LIBTIFF_VERSION" "cpe:2.3:a:libtiff:libtiff:$LIBTIFF_VERSION:*:*:*:*:*:*:*"
 
 print_build_stage openjpeg "$OPENJPEG_VERSION"
@@ -775,6 +794,10 @@ for dir in "$DEPS_SRC"/*/; do
   if [ "$name" = openexr ]; then
     cp "$dir/external/deflate/COPYING" "$LICENSES/$name/COPYING.libdeflate"
     cp "$dir/external/OpenJPH/LICENSE" "$LICENSES/$name/LICENSE.OpenJPH"
+  fi
+  # zstd is BSD-3-Clause OR GPL-2.0-only and used under BSD-3-Clause: ship LICENSE only.
+  if [ "$name" = zstd ]; then
+    rm -f "$LICENSES/$name/COPYING"
   fi
   if [ -z "$(ls -A "$LICENSES/$name")" ]; then
     echo "No license file found for $name" >&2
