@@ -95,7 +95,7 @@ type Meta struct {
 	// the offline group of the gallery.
 	Samples []Sample `json:"samples" doc:"Built-in sample images (repository fixtures), served as playground://samples/<name> to the playground only; they work offline."`
 	// Gallery is the curated list of public sample files.
-	Gallery []GallerySample `json:"gallery" doc:"Public sample files, one or two per input format, fetched through the http sources."`
+	Gallery []GallerySample `json:"gallery" doc:"Public sample files per input format and variant (docs/research/format-gap.md), fetched through the http sources."`
 	// Uploads reports XI_PLAYGROUND_UPLOADS: api/upload accepts files.
 	Uploads bool `json:"uploads" doc:"XI_PLAYGROUND_UPLOADS: api/upload accepts files (playground://uploads/<id>, 10 minutes)."`
 	// MaxUploadBytes is the largest upload (XI_LIMITS_MAX_SRC_BYTES).

@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -117,8 +118,16 @@ func TestSamplesMatchFixtures(t *testing.T) {
 	}
 }
 
-// licences are the SPDX identifiers the gallery may list.
-var licences = map[string]bool{"MIT": true, "CC0-1.0": true, "CC-BY-4.0": true, "CC-BY-3.0": true, "Apache-2.0": true}
+// licences are the SPDX identifiers the gallery may list: permissive
+// only (the files are linked, never vendored; WP-100).
+var licences = map[string]bool{
+	"MIT": true, "MIT-CMU": true, "CC0-1.0": true, "CC-BY-4.0": true, "CC-BY-3.0": true, "Apache-2.0": true,
+	"BSD-2-Clause": true, "BSD-3-Clause": true, "IJG": true, "ImageMagick": true,
+	"LicenseRef-public-domain": true, "LicenseRef-Kodak-unrestricted": true,
+}
+
+// largeBytes is the size from which a gallery file must be tagged "large".
+const largeBytes = 20 << 20
 
 func TestGallery(t *testing.T) {
 	t.Parallel()
@@ -127,10 +136,23 @@ func TestGallery(t *testing.T) {
 		t.Fatal(err)
 	}
 	formats := map[string]bool{}
+	urls := map[string]bool{}
 	for _, s := range g {
 		formats[s.Format] = true
-		if !licences[s.Licence] || s.Source == "" || s.Name == "" || s.Bytes <= 0 || !strings.HasPrefix(s.URL, "https://") {
+		if !licences[s.Licence] || s.Source == "" || s.Name == "" || s.Variant == "" || s.Bytes <= 0 || !strings.HasPrefix(s.URL, "https://") {
 			t.Errorf("incomplete entry %+v", s)
+		}
+		if urls[s.URL] {
+			t.Errorf("%s listed twice", s.URL)
+		}
+		urls[s.URL] = true
+		if large := slices.Contains(s.Tags, "large"); large != (s.Bytes > largeBytes) {
+			t.Errorf("%s: %d bytes, tagged large = %v", s.URL, s.Bytes, large)
+		}
+		for _, tag := range s.Tags {
+			if tag == "" || strings.ToLower(tag) != tag || strings.ContainsRune(tag, ' ') {
+				t.Errorf("%s: tag %q is not a lower-case keyword", s.URL, tag)
+			}
 		}
 		if strings.HasPrefix(s.Licence, "CC-BY") && !strings.Contains(s.Source, "by ") && !strings.Contains(s.Source, "Foundation") {
 			t.Errorf("%s: CC-BY entry without attribution: %q", s.URL, s.Source)
@@ -142,6 +164,22 @@ func TestGallery(t *testing.T) {
 	for _, f := range []string{"jpeg", "png", "gif", "webp", "avif", "heic", "jxl", "tiff", "bmp", "ico", "svg", "pdf", "raw", "mp4", "webm", "jxr", "tga", "pcx", "dds", "qoi", "pnm", "xbm", "xpm"} {
 		if !formats[f] {
 			t.Errorf("no %s sample in the gallery", f)
+		}
+	}
+	// The variant corpus (WP-100): camera RAW per brand family and the
+	// colour types photographers and designers produce.
+	tagged := func(tag string) int {
+		n := 0
+		for _, s := range g {
+			if slices.Contains(s.Tags, tag) {
+				n++
+			}
+		}
+		return n
+	}
+	for _, tag := range []string{"cr3", "nef", "arw", "raf", "orf", "rw2", "pef", "dng", "iiq", "x3f", "cmyk", "lab", "grey", "1-bit", "palette", "16-bit", "32-bit-float", "alpha", "animated", "multi-page", "orientation", "icc", "wide-gamut", "hdr", "gain-map", "gap"} {
+		if tagged(tag) == 0 {
+			t.Errorf("no gallery sample tagged %q", tag)
 		}
 	}
 }
