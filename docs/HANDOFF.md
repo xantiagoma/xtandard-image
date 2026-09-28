@@ -79,7 +79,10 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   gpl r8 for WP-107 XCF policy + WP-110 model; its ROADMAP row says `#109`: fix to the real PR
   number); building those bases failed with **Docker VM disk full (4.4 GB free of 88 GB)**; asked the
   owner to allow pruning 32 dangling volumes + 3 stale `xi-quickstart-*` containers, or to grow the
-  Docker disk. WP-103 (LibRaw coverage) still running. Batch 2 (WP-104, 106, 108) not launched.
+  Docker disk. WP-103 (LibRaw snapshot 2026-09-25, X3F, GPR, Adobe DNG SDK for JPEG XL DNG;
+  branch `m4/wp-103-libraw-coverage`, verified on `xtandard-base:wp103*`) is done but NOT merged: owner
+  must decide whether the Adobe DNG SDK (indemnity clause, `LicenseRef-Adobe-DNG-SDK`) ships in all
+  flavours or only `gpl` (recommended). Integrate 103 + 107 policy + 110 model in one base revision. Batch 2 (WP-104, 106, 108) not launched.
   Follow-ups renumbered: WP-113 shim float rounding, WP-114 CMYK BPC.
 - **Backlog after M3 (WP-91+):** face/object gravity on a single-frame video answers 422 (detection
   hands the container bytes to libvips; fix = detect on the decoded frame; composites already skip
