@@ -53,8 +53,9 @@ type Binding struct {
 
 // Options configures NewRegistry.
 type Options struct {
-	// Sources in configuration order; resolution tries them in this order
-	// (after the dialect mount's own source).
+	// Sources in configuration order (internal/app passes them sorted by
+	// name); resolution tries them in this order (after the dialect mount's
+	// own source). docs/SOURCES.md documents the result.
 	Sources []Binding
 	// DevMode (XI_DEV_MODE) resolves otherwise unmatched absolute http(s)
 	// URLs to Dev instead of returning KindForbidden.
