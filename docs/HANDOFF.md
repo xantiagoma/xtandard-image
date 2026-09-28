@@ -205,3 +205,8 @@ owner has authorised merging PRs without review.
   maps, `gain_map` option, PQ AVIF / UltraHDR outputs). None needed a base change. Demo redeployed from
   main 85164d1. Still running: WP-108 (FITS, DICOM, KTX2, MNG/PICT, EMF/WMF gpl-only, Leaf MOS).
   Rebase lesson: unioning map literals in tests can duplicate keys; run `go vet` after unions.
+- **WP-108 done** on `m4/wp-108-long-tail` (KTX2/Basis Universal, pure-Go FITS and DICOM with privacy
+  test, MNG/JNG, PICT/Photo CD, Leaf MOS, WMF/EMF gpl-only via sandboxed converter; sandbox
+  NPROC/execve race fixed; Ghostscript sandbox moved to `internal/sandbox`). Docker hung once and
+  recovered by itself. Integration agent running on `m4/wp-108-integration`: rebase onto main, bases
+  slim r7 / full r8 / gpl r9, finish gpl verify-image, fuzz and full suites. Then merge + redeploy demo.
