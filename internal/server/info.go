@@ -218,8 +218,12 @@ func (s *Server) inspectSource(ctx context.Context, buf fetch.Buffer, lim *Probe
 	}
 	defer src.Release()
 	si, err := s.deps.Inspector.Inspect(ctx, src, *lim, px, det)
-	if si != nil {
-		si.Container = cont
+	if si != nil && cont != nil {
+		// The inspector may return a shared (cached) value: copy before
+		// recording this request's container, never write through it.
+		c := *si
+		c.Container = cont
+		si = &c
 	}
 	switch {
 	case err != nil:
