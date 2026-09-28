@@ -76,9 +76,10 @@ func Files() []File {
 	}
 }
 
-// NetworkFiles returns the WP-101/102 samples of the playground gallery
+// NetworkFiles returns the WP-101/102/103 samples of the playground gallery
 // (docs/research/format-gap.md): bodies LibRaw cannot demosaic, served from
-// their embedded previews, and sensors over 50 MP. They are 11–78 MB each,
+// their embedded previews, sensors over 50 MP, and the formats LibRaw's
+// optional decoders added (WP-103). They are 11–78 MB each,
 // so only the `-tags network` tests use them. All are CC0 on raw.pixls.us.
 func NetworkFiles() []NetworkFile {
 	const base = "https://raw.pixls.us/getfile.php/"
@@ -98,11 +99,25 @@ func NetworkFiles() []NetworkFile {
 			URL:    base + "6887/nice/Nikon%20-%20Z%20f%20-%208bit%208bit%20lossy%20compressed%20%283%3A2%29.NEF",
 			SHA256: "98d6ca8e6c98048ca7ffed68ccaeda7b2b9f03807f0d320d97d5678db21748c2",
 		}, "nikon-he", 6048, 4032},
+		// Unknown to LibRaw 0.22.2 (WP-101 served its preview); the WP-103
+		// snapshot decodes it (ARW 6).
 		{File{
 			Name: "sony-ilce-7m5.arw", Kind: "arw", Camera: "Sony ILCE-7M5", Orientation: 1,
 			URL:    base + "8849/nice/Sony%20-%20ILCE-7M5%20-%2014bit%20%283%3A2%29.ARW",
 			SHA256: "c16cae99d26a2f8ad183d31a23823310a994aa058d55cfe56e4f82ba56865f57",
-		}, "unknown-camera", 4608, 3072},
+		}, "", 4640, 3088},
+		// WP-103: LibRaw's optional decoders. Sigma X3F (X3F tools) and
+		// GoPro GPR (VC-5 through the GPR and DNG SDKs).
+		{File{
+			Name: "sigma-sd14.x3f", Kind: "x3f", Camera: "Sigma SD14", Orientation: 1,
+			URL:    base + "4462/nice/Sigma%20-%20SIGMA%20SD14%20-%203%3A2.X3F",
+			SHA256: "c32f247eb372c3e66ad3b433518ec11f898fdc317c8432ebe025b46d4917bcf3",
+		}, "", 2651, 1767},
+		{File{
+			Name: "gopro-hero11.gpr", Kind: "dng", Camera: "GoPro HERO11 Black", Orientation: 1,
+			URL:    base + "7319/nice/GoPro%20-%20HERO11%20Black%20-%2016bit%20%285%3A4%29.GPR",
+			SHA256: "d7a6be163c847cb8456e6858a99aef3b85dc3d8836bca1da1b8886effe0d43e1",
+		}, "", 5568, 4872},
 		{File{
 			Name: "fujifilm-gfx100rf.raf", Kind: "raf", Camera: "Fujifilm GFX100RF", Orientation: 1,
 			URL:    base + "8091/nice/Fujifilm%20-%20GFX100RF%20-%2016bit%20compressed%20%284%3A3%29.RAF",

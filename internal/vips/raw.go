@@ -8,6 +8,8 @@ package vips
 #cgo nocallback xi_raw_load
 #cgo nocallback xi_raw_cancel
 #cgo nocallback xi_raw_live
+#cgo noescape xi_raw_library
+#cgo nocallback xi_raw_library
 #include <stdlib.h>
 #include "shim.h"
 */
@@ -80,6 +82,21 @@ func ProbeRaw(ctx context.Context, buf *Buffer) (RawHeader, error) {
 		})
 	}
 	return out, nil
+}
+
+// RawLibraryInfo describes the linked LibRaw: its version, how many cameras
+// it lists and which optional decoders it was built with (the base image
+// builds all three, WP-103; a system LibRaw usually has none).
+func RawLibraryInfo() RawLibrary {
+	var l C.XiRawLibrary
+	C.xi_raw_library(&l)
+	return RawLibrary{
+		Version: C.GoString(&l.version[0]),
+		Cameras: int(l.cameras),
+		X3F:     l.x3f != 0,
+		DNGSDK:  l.dng_sdk != 0,
+		GPRSDK:  l.gpr_sdk != 0,
+	}
 }
 
 // rawLive counts the live LibRaw handles and demosaiced buffers, whose

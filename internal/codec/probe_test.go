@@ -73,6 +73,14 @@ func TestProbeFixtures(t *testing.T) {
 		}
 	}
 	delays := []int{100, 100, 100, 100, 100, 100}
+	// JPEG XL raw data (DNG 1.7): decoded by LibRaw with the Adobe DNG SDK
+	// (the base image, WP-103); without it the preview is the image.
+	jxlBroken := with(still(codec.FormatRAW, 96, 64), rawSource(96, 64, 96, 64, true))
+	jxlLandscape := with(still(codec.FormatRAW, 192, 128), rawSource(192, 128, 192, 128, true))
+	if vips.RawLibraryInfo().DNGSDK {
+		jxlBroken = with(still(codec.FormatRAW, 192, 128), rawSource(192, 128, 96, 64, false))
+		jxlLandscape = with(still(codec.FormatRAW, 192, 128), rawSource(192, 128, 192, 128, false))
+	}
 	tests := map[string]codec.ImageMeta{
 		"jpeg/baseline.jpg":    still(codec.FormatJPEG, 320, 240),
 		"jpeg/progressive.jpg": still(codec.FormatJPEG, 320, 240),
@@ -98,8 +106,13 @@ func TestProbeFixtures(t *testing.T) {
 			m.Orientation = 6
 			rawSource(192, 128, 48, 32, false)(m)
 		}),
-		// JPEG XL raw data without the DNG SDK: the preview is the image.
-		"dng/jxl-undecodable.dng": with(still(codec.FormatRAW, 96, 64), rawSource(96, 64, 96, 64, true)),
+		// Uncompressed data labelled JPEG XL: undecodable either way, but
+		// only a LibRaw without the DNG SDK knows before unpacking.
+		"dng/jxl-undecodable.dng": jxlBroken,
+		// landscape.dng with lossless JPEG XL raw data (dng_validate).
+		"dng/jxl-landscape.dng": jxlLandscape,
+		// GoPro VC-5 (GPR SDK, WP-103) with gpr_tools' 16x12 thumbnail.
+		"gpr/hero11-crop.gpr": with(still(codec.FormatRAW, 256, 192), rawSource(256, 192, 16, 12, false)),
 		// Its header is fine; LibRaw fails when unpacking (exec falls back).
 		"dng/deflate-corrupt.dng": with(still(codec.FormatRAW, 192, 128), rawSource(192, 128, 96, 64, false)),
 		"uhdr/photo-ultrahdr.jpg": with(still(codec.FormatUHDR, 320, 240), func(m *codec.ImageMeta) { m.HasICC = true }),

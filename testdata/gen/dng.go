@@ -139,7 +139,7 @@ func writeDNG(path string, w, h, pw, ph int, orientation, compression uint16) er
 			shorts(0x011C, 1),
 			shorts(0x828D, 2, 2),
 			bytesEntry(0x828E, 0, 1, 1, 2),
-			bytesEntry(0xC617, 0, 1, 2), // CFAPlaneColor
+			bytesEntry(0xC616, 0, 1, 2), // CFAPlaneColor
 			long(0xC61D, 65535),         // WhiteLevel
 		},
 		{ // Exif IFD
