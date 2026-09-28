@@ -1,0 +1,22 @@
+{
+  "alpha": true,
+  "bands": 4,
+  "colorspace": "srgb",
+  "container": {
+    "content": "converted",
+    "entry": "xi-metafile2svg",
+    "format": "emf",
+    "mime_type": "image/emf"
+  },
+  "exif": {},
+  "format": "svg",
+  "height": 149,
+  "iptc": {},
+  "mime_type": "image/svg+xml",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 364,
+  "width": 199,
+  "xmp": {}
+}
