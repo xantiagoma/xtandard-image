@@ -2,7 +2,8 @@
 // takes the result's aspect ratio (portrait, wide, tiny), side by side
 // keeps equal boxes, zoom/pan, the mount picker lists each mount once,
 // translate cards always say something, the matrix sorts, and there are
-// no console errors, CSP violations or 5xx answers.
+// no console errors, CSP violations or 5xx answers; §8 checks the Info
+// panel (WP-109) on a JPEG, a PNG with alpha, a detection photo and a video.
 //
 // Playwright is not a dependency of the repository: run it from a
 // throwaway directory against a server with the demo configuration
@@ -210,6 +211,200 @@ check(await page.getAttribute('th[data-sort="status"]', 'aria-sort') === 'descen
 await page.focus('#mtab-matrix');
 await page.keyboard.press('Home');
 check(await page.evaluate(() => document.activeElement?.id === 'mtab-translate'), 'tabs: Home selects the first tab');
+
+// 8. Info panel (WP-109): every /info option on a JPEG, a PNG with alpha,
+// a video and a detection photo; placeholders decoded in the browser;
+// badges from the server's answers; share link; 390 px; dark mode.
+await page.setViewportSize({ width: 1400, height: 900 });
+await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+await page.evaluate((x) => { location.hash = x; }, hash(SRC, []));
+await page.click('#mtab-info');
+
+// 8a. The decoders as unit tests, in the page (placeholder.js). Vectors
+// from internal/imageinfo/testdata (reference encoders).
+const unit = await page.evaluate(async () => {
+  const src = (document.querySelector('script[type=module]') as HTMLScriptElement).src.replace(/app\.js$/, 'placeholder.js');
+  const ph = await import(src);
+  const out: string[] = [];
+  const bh = ph.decodeBlurhash('LaJHjmVu8_~po#smR+a~xaoLWCRj', 32, 18);
+  if (bh.w !== 32 || bh.h !== 18 || bh.rgba.length !== 32 * 18 * 4) out.push('blurhash size');
+  const s = ph.blurhashSize('LaJHjmVu8_~po#smR+a~xaoLWCRj');
+  if (s.x !== 4 || s.y !== 3) out.push(`blurhash components ${s.x}×${s.y}`);
+  // A 1×1 hash is its DC colour: "00JHjm" decodes to one flat colour.
+  const dc = ph.decodeBlurhash('00JHjm', 4, 4);
+  if (new Set(Array.from({ length: 16 }, (_, i) => dc.rgba.slice(i * 4, i * 4 + 3).join())).size !== 1) out.push('blurhash 1×1 not flat');
+  for (const bad of ['LaJHjmVu8_~po#smR+a~xaoLWCR', '0', '00JH"m']) {
+    try { ph.decodeBlurhash(bad, 4, 4); out.push(`blurhash accepted ${bad}`); } catch { /* expected */ }
+  }
+  const th = ph.decodeThumbhash('934A062D069256C274055867DA8AB6679490510719'); // flower.png, 75×100
+  if (th.h !== 32 || Math.abs(th.w / th.h - 0.75) > 0.1) out.push(`thumbhash flower ${th.w}×${th.h}`);
+  const ta = ph.decodeThumbhash('A197820C8636D1976F77A35719FD36D1C00C78487948798506'); // alpha.png: transparent top
+  const alphaTop = ta.rgba[3], alphaBottom = ta.rgba[ta.rgba.length - 1];
+  if (!(alphaTop < 64 && alphaBottom > 192)) out.push(`thumbhash alpha top ${alphaTop} bottom ${alphaBottom}`);
+  try { ph.decodeThumbhash('A018'); out.push('thumbhash accepted a truncated hash'); } catch { /* expected */ }
+  return out;
+});
+check(unit.length === 0, `placeholder decoders: unit checks in the browser${unit.length ? `: ${unit.join('; ')}` : ''}`);
+
+// selectAll loads source with every option ("Select all") and waits for
+// the result.
+async function infoAll(source: string, label: string) {
+  await page.evaluate((x) => { location.hash = x; }, hash(source, []));
+  await page.click('#mtab-translate');
+  await page.click('#mtab-info');
+  await page.click('#info-preset-all');
+  await page.waitForFunction((src) => {
+    const r = document.getElementById('info-result')!;
+    return r.dataset.source === src && (r.dataset.options?.includes('classify') || r.querySelector('p.error'));
+  }, source, { timeout: 60000 });
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  if (shots) await page.locator('#mpane-info').screenshot({ path: `${shots}/info-${label}.png` });
+  return page.evaluate(() => {
+    const r = document.getElementById('info-result')!;
+    const canvas = (id: string) => {
+      const c = document.getElementById(id) as HTMLCanvasElement | null;
+      if (!c || !c.width || !c.height) return null;
+      const d = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
+      let opaque = 0; const colours = new Set<string>();
+      for (let i = 0; i < d.length; i += 4) { if (d[i + 3] > 0) opaque++; colours.add(`${d[i]},${d[i + 1]},${d[i + 2]}`); }
+      let [r0, g0, b0, n] = [0, 0, 0, 0];
+      for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 128) { r0 += d[i]; g0 += d[i + 1]; b0 += d[i + 2]; n++; }
+      return { w: c.width, h: c.height, opaque, colours: colours.size, mean: n ? [r0 / n, g0 / n, b0 / n] : null };
+    };
+    const badges = (kind: string) => [...document.querySelectorAll(`#info-options .opt .badge.${kind}`)].map((b) => b.closest('.opt')!.getAttribute('data-name'));
+    return {
+      status: document.getElementById('info-status')!.textContent,
+      error: r.querySelector('p.error')?.textContent ?? '',
+      sections: [...r.querySelectorAll('section h3, details.raw summary')].map((h) => h.textContent?.trim()),
+      stats: [...r.querySelectorAll('.stat span')].map((s) => s.textContent),
+      blurhash: canvas('ph-blurhash'), thumbhash: canvas('ph-thumbhash'),
+      thumb: (r.querySelector('.ph img') as HTMLImageElement | null)?.naturalWidth ?? 0,
+      swatches: r.querySelectorAll('.swatch').length,
+      hashes: [...r.querySelectorAll('table.hashes th')].map((t) => t.textContent),
+      metaTables: [...r.querySelectorAll('details.meta-table summary span:first-child')].map((s) => s.textContent),
+      objects: r.querySelectorAll('table[aria-label="Detected objects"] tbody tr').length,
+      streams: r.querySelectorAll('table[aria-label="Video streams"] tbody tr').length,
+      warn: badges('warn'), err: badges('err'),
+      overlay: document.querySelectorAll('#det-overlay rect').length,
+      phOverlay: document.querySelectorAll('.ph-overlay rect').length,
+    };
+  });
+}
+
+const infoRes = await page.evaluate(async () => {
+  // The server's own /info of the JPEG, for the average colour.
+  const url = (document.getElementById('info-url') as HTMLTextAreaElement).value;
+  return url;
+});
+check(infoRes.includes('/info/'), `info: live /info URL (${infoRes.slice(0, 80)}…)`);
+
+const jpeg = await infoAll('xi://local/jpeg/metadata-p3.jpg', 'jpeg');
+check(!jpeg.error, `info jpeg: loaded (${jpeg.status}${jpeg.error ? `: ${jpeg.error}` : ''})`);
+for (const s of ['Summary', 'Placeholders (decoded in the browser)', 'Colours', 'Hashes', 'Metadata']) {
+  check(jpeg.sections.includes(s), `info jpeg: section ${s}`);
+}
+for (const s of ['Format', 'Dimensions', 'Orientation', 'Size', 'Colour space', 'Bands', 'Sample format', 'Pages', 'Alpha']) {
+  check(jpeg.stats.includes(s), `info jpeg: summary ${s}`);
+}
+check(Boolean(jpeg.blurhash && jpeg.blurhash.opaque === jpeg.blurhash.w * jpeg.blurhash.h && jpeg.blurhash.colours > 8),
+  `info jpeg: BlurHash canvas painted (${JSON.stringify(jpeg.blurhash && { w: jpeg.blurhash.w, h: jpeg.blurhash.h, colours: jpeg.blurhash.colours })})`);
+check(Boolean(jpeg.thumbhash && jpeg.thumbhash.opaque > 0 && jpeg.thumbhash.colours > 8),
+  `info jpeg: ThumbHash canvas painted (${JSON.stringify(jpeg.thumbhash && { w: jpeg.thumbhash.w, h: jpeg.thumbhash.h, colours: jpeg.thumbhash.colours })})`);
+check(jpeg.thumb > 0, 'info jpeg: real thumbnail next to the placeholders');
+check(jpeg.swatches >= 2, `info jpeg: ${jpeg.swatches} colour swatches`);
+check(['perceptual hash', 'BlurHash', 'ThumbHash', 'md5', 'sha1', 'sha256', 'sha512'].every((h) => jpeg.hashes.includes(h)), `info jpeg: hashes ${jpeg.hashes.join(', ')}`);
+check(jpeg.metaTables.includes('EXIF') && jpeg.metaTables.includes('XMP') && jpeg.metaTables.includes('IPTC'), `info jpeg: metadata tables ${jpeg.metaTables.join(', ')}`);
+check(jpeg.warn.includes('classify') && jpeg.warn.includes('alpha') && jpeg.warn.includes('exif'),
+  `info jpeg: ignored badges from X-Xi-Ignored (${jpeg.warn.join(', ')})`);
+check(jpeg.err.includes('max_src_file_size') && jpeg.err.includes('max_src_resolution'),
+  `info jpeg: security options refused without XI_SECURITY_ALLOW_SECURITY_OPTIONS (${jpeg.err.join(', ')})`);
+// The decoded placeholders agree with the server's average colour.
+const avg = await page.evaluate(() => {
+  const t = [...document.querySelectorAll('#info-result .swatch')].find((s) => s.querySelector('.sw-label')?.textContent === 'average');
+  const hex = t?.querySelector('code')?.textContent ?? '';
+  return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+});
+const near3 = (a: number[] | null | undefined, b: number[], tol: number) => Boolean(a) && a!.every((v, i) => Math.abs(v - b[i]) <= tol);
+check(near3(jpeg.thumbhash?.mean, avg, 24), `info jpeg: ThumbHash mean ${jpeg.thumbhash?.mean?.map(Math.round)} ≈ server average ${avg}`);
+check(near3(jpeg.blurhash?.mean, avg, 32), `info jpeg: BlurHash mean ${jpeg.blurhash?.mean?.map(Math.round)} ≈ server average ${avg}`);
+// Metadata search filters rows.
+const filtered = await page.evaluate(() => {
+  const d = [...document.querySelectorAll('#info-result details.meta-table')].find((x) => x.querySelector('summary span')?.textContent === 'EXIF') as HTMLDetailsElement;
+  d.open = true;
+  const input = d.querySelector('input[type=search]') as HTMLInputElement | null;
+  const before = d.querySelectorAll('tbody tr').length;
+  if (!input) return { before, after: before };
+  input.value = 'zzzz-no-such-tag';
+  input.dispatchEvent(new Event('input'));
+  const after = d.querySelectorAll('tbody tr th').length;
+  input.value = '';
+  input.dispatchEvent(new Event('input'));
+  return { before, after };
+});
+check(filtered.before > 1 && filtered.after === 0, `info jpeg: EXIF filter (${filtered.before} rows → ${filtered.after})`);
+// Copy as TypeScript: the @xtandard/image-url info builder.
+await page.click('#info-copy-ts');
+const ts = await page.evaluate(() => navigator.clipboard.readText());
+check(ts.includes('.info(') && ts.includes('.blurhash(4, 3)') && ts.includes('.calc_hashsums("md5", "sha1", "sha256", "sha512")'), `info: TypeScript snippet (${ts.split('\n').slice(4, 7).join(' ')}…)`);
+await page.click('#info-copy-curl');
+check((await page.evaluate(() => navigator.clipboard.readText())).startsWith("curl -sS -H 'Accept: application/json' "), 'info: curl snippet');
+// Share link: the info options survive a reload.
+const shared = await page.evaluate(() => location.href);
+const page2 = await browser.newPage();
+await page2.goto(shared);
+await page2.waitForSelector('#info-options .opt', { state: 'attached' });
+const restored = await page2.evaluate(() => [...document.querySelectorAll('#info-options input[data-option]:checked')].map((i) => i.getAttribute('data-option')));
+check(restored.includes('blurhash') && restored.includes('max_src_file_size') && restored.length > 25, `info: share link restores ${restored.length} options`);
+await page2.close();
+
+const png = await infoAll('xi://local/png/rgba8.png', 'png');
+check(!png.error && png.stats.includes('Alpha'), `info png: loaded with alpha (${png.status})`);
+check(Boolean(png.thumbhash && png.thumbhash.opaque > 0) && Boolean(png.blurhash && png.blurhash.colours > 1), 'info png: placeholders painted');
+
+const det = await infoAll('xi://local/detect/apollo11-crew.jpg', 'detect');
+const detection = await page.evaluate(() => fetch('api/meta').then((r) => r.json()).then((m) => m.detection));
+if (detection) {
+  check(det.objects > 0, `info detection: ${det.objects} objects listed`);
+  check(det.overlay > 0 && det.phOverlay > 0, `info detection: boxes over the preview (${det.overlay}) and the thumbnail (${det.phOverlay})`);
+} else {
+  check(det.err.includes('detect_objects') || det.warn.includes('detect_objects') || /no models/.test(await page.textContent('#info-options') ?? ''),
+    `info detection: detect_objects badged unavailable (${det.err.join(', ')})`);
+  notes.push('detection models not loaded: detection rendering skipped');
+}
+check(det.sections.includes('Crop and detections'), 'info detection: crop section');
+
+const vid = await infoAll('xi://local/video/clip-vp9.webm', 'video');
+if (vid.error) notes.push(`video info skipped: ${vid.error}`);
+else {
+  check(vid.sections.includes('Video') && vid.streams > 0, `info video: metadata and ${vid.streams} streams`);
+}
+
+// 390 px: no horizontal scroll, the result fits.
+await page.evaluate((x) => { location.hash = x; }, hash(SRC, []));
+await page.setViewportSize({ width: 390, height: 844 });
+await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+await page.click('#mtab-info');
+await page.evaluate(() => (document.getElementById('info-builder') as HTMLDetailsElement).open = true);
+await page.evaluate(() => document.querySelectorAll('#info-options details').forEach((d) => { (d as HTMLDetailsElement).open = true; }));
+const overflow = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
+if (shots) await page.screenshot({ path: `${shots}/info-390.png`, fullPage: true });
+check(overflow.sw <= overflow.cw + 1, `info 390px: no horizontal scroll (${overflow.sw} ≤ ${overflow.cw})`);
+// Every control in the panel has an accessible name.
+const unnamed = await page.evaluate(() => [...document.querySelectorAll('#mpane-info input, #mpane-info select, #mpane-info textarea, #mpane-info button')]
+  .filter((e) => !(e.getAttribute('aria-label') || (e as HTMLInputElement).labels?.length || e.textContent?.trim() || e.getAttribute('title')))
+  .map((e) => e.outerHTML.slice(0, 80)));
+check(unnamed.length === 0, `info: every control is labelled${unnamed.length ? `: ${unnamed.join(' | ')}` : ''}`);
+// Keyboard: Space on an option's checkbox includes it.
+await page.focus('#info-options input[data-option="bands"]');
+const wasOn = await page.isChecked('#info-options input[data-option="bands"]');
+await page.keyboard.press('Space');
+check(await page.isChecked('#info-options input[data-option="bands"]') !== wasOn, 'info: options toggle from the keyboard');
+await page.setViewportSize({ width: 1400, height: 900 });
+// Dark mode: the panel follows the theme.
+await page.selectOption('#theme', 'dark');
+const dark = await page.evaluate(() => getComputedStyle(document.querySelector('#mpane-info')!.closest('.panel')!).backgroundColor);
+check(dark === 'rgb(27, 30, 35)', `info: dark theme panel (${dark})`);
+await page.selectOption('#theme', 'auto');
 
 const csp = await page.evaluate(() => (window as any).__csp ?? []);
 check(errors.length === 0, `no console errors${errors.length ? `: ${errors.join(' | ')}` : ''}`);

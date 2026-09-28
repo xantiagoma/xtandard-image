@@ -297,9 +297,10 @@ export class Preview {
     }
   }
 
-  // setDetections stores /info objects to draw over the source.
-  setDetections(objects) {
+  // setDetections stores /info objects and crop to draw over the source.
+  setDetections(objects, crop = null) {
     this.detections = objects;
+    this.crop = crop;
     this.drawDetections();
   }
 
@@ -307,7 +308,7 @@ export class Preview {
     const overlay = $('det-overlay');
     overlay.replaceChildren();
     const img = $('before-media').firstElementChild;
-    if (!this.detections?.length || !$('show-detections').checked || !this.natural('before') || $('stage').dataset.mode === 'result') {
+    if ((!this.detections?.length && !this.crop) || !$('show-detections').checked || !this.natural('before') || $('stage').dataset.mode === 'result') {
       overlay.style.display = 'none';
       return;
     }
@@ -325,7 +326,16 @@ export class Preview {
       display: 'block', left: `${r.left - pane.left}px`, top: `${r.top - pane.top}px`, width: `${r.width}px`, height: `${r.height}px`,
     });
     overlay.setAttribute('viewBox', `0 0 ${r.width} ${r.height}`);
-    for (const d of this.detections) {
+    if (this.crop) {
+      const c = this.crop;
+      const g = svg('g', { class: 'det crop' });
+      g.append(svg('rect', { x: c.left * r.width, y: c.top * r.height, width: c.width * r.width, height: c.height * r.height }));
+      const label = svg('text', { x: c.left * r.width + 3, y: Math.max(12, c.top * r.height + 14) });
+      label.textContent = 'info crop';
+      g.append(label);
+      overlay.append(g);
+    }
+    for (const d of this.detections ?? []) {
       const x = d.left * r.width;
       const y = d.top * r.height;
       const g = svg('g', { class: d.class_name === 'face' ? 'det face' : 'det' });

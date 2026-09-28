@@ -201,13 +201,29 @@
         <div id="translate" class="translate"></div>
       </div>
       <div role="tabpanel" id="mpane-info" aria-labelledby="mtab-info" hidden>
-        <div class="row wrap">
-          <button type="button" id="info-run">Load /info</button>
-          <label class="inline"><input type="checkbox" id="info-detect"> detect objects</label>
-          <label class="inline"><input type="checkbox" id="info-colors"> colours and hashes</label>
+        <p class="hint">imgproxy <code>/info</code> of the current source through the first imgproxy mount. Options left out use the server's default, shown beside each name.</p>
+        <div class="row wrap" role="group" aria-label="Info option presets">
+          <button type="button" id="info-preset-recommended">Recommended</button>
+          <button type="button" id="info-preset-all">Select all</button>
+          <button type="button" id="info-preset-defaults">Server defaults</button>
+          <label class="inline"><input type="checkbox" id="info-alias"> short names</label>
         </div>
-        <div id="info-summary" class="stats"></div>
-        <div id="info-tree" class="tree" role="tree" aria-label="Source info"></div>
+        <div id="info-applied" class="applied" aria-label="Info options in the URL"></div>
+        <details class="info-builder" id="info-builder">
+          <summary>Info options</summary>
+          <div id="info-options" class="catalogue info-options"></div>
+        </details>
+        <label for="info-url" class="sr">/info URL</label>
+        <textarea id="info-url" rows="2" readonly spellcheck="false"></textarea>
+        <div class="row wrap">
+          <button type="button" id="info-run" class="primary">Load /info</button>
+          <label class="inline"><input type="checkbox" id="info-live" checked> live</label>
+          <button type="button" id="info-copy">Copy URL</button>
+          <button type="button" id="info-copy-curl">Copy as curl</button>
+          <button type="button" id="info-copy-ts" title="@xtandard/image-url info builder">Copy as TypeScript</button>
+        </div>
+        <p id="info-status" class="status" role="status" aria-live="polite"></p>
+        <div id="info-result" class="info-result"></div>
       </div>
       <div role="tabpanel" id="mpane-history" aria-labelledby="mtab-history" hidden>
         <div class="row"><button type="button" id="history-clear">Clear history</button></div>
