@@ -71,7 +71,12 @@ type Limits struct {
 	MaxSrcPixels            int64 // width × height × frames of the loaded source
 	MaxResultDimension      int   // result width and height, padding and extend included (downscales, like imgproxy)
 	MaxAnimationFrames      int   // frames loaded; 1 disables animation
-	MaxAnimationFramePixels int64 // per-frame pixels of animated sources (replaces MaxSrcPixels for them)
+	MaxAnimationFramePixels int64 // per-frame pixels of animated sources (replaces MaxSrcPixels for them; 0 = off, the total applies)
+	// MaxAnimationPixels caps width × height × frames of an animation
+	// that MaxAnimationFramePixels checks instead of MaxSrcPixels
+	// (XI_LIMITS_MAX_ANIMATION_PIXELS): it bounds the decoded frames when
+	// the total no longer does.
+	MaxAnimationPixels int64
 	// MemoryBudget rejects plans whose Cost.EstimatedBytes exceeds it
 	// (XI_PROCESSING_MEMORY_BUDGET).
 	MemoryBudget int64

@@ -1,6 +1,7 @@
 package plan_test
 
 import (
+	"errors"
 	"slices"
 	"testing"
 
@@ -196,6 +197,45 @@ func TestBuildAnimation(t *testing.T) {
 	}
 }
 
+func gifFrames(w, h, frames int) plan.SourceMeta {
+	return plan.SourceMeta{Width: w, Height: h, Frames: frames, IsAnimated: true, Format: "gif"}
+}
+
+var (
+	cardsGIF      = gifFrames(800, 600, 176)
+	defaultLimits = plan.Limits{MaxSrcPixels: 50_000_000, MaxAnimationFrames: 256, MaxAnimationFramePixels: 16_000_000, MaxAnimationPixels: 200_000_000}
+	frameOff      = plan.Limits{MaxSrcPixels: 50_000_000, MaxAnimationFrames: 256, MaxAnimationPixels: 200_000_000}
+)
+
+// TestBuildLimitMessages: the planner's 422 names the limit and the
+// numbers (the public message the client sees).
+func TestBuildLimitMessages(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name   string
+		meta   plan.SourceMeta
+		limits plan.Limits
+		want   string
+	}{
+		{"total with the frame limit off", cardsGIF, frameOff, "source has 176 frames of 800×600 (84.5 MP); limit XI_LIMITS_MAX_SRC_PIXELS is 50 MP"},
+		{"frame", gifFrames(5000, 4000, 2), defaultLimits, "source frame is 5000×4000 (20 MP); limit XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS is 16 MP"},
+		{"animation total", gifFrames(4000, 4000, 20), defaultLimits, "source has 20 frames of 4000×4000 (320 MP); limit XI_LIMITS_MAX_ANIMATION_PIXELS is 200 MP"},
+		{"still", jpeg(8000, 8000), defaultLimits, "source is 8000×8000 (64 MP); limit XI_LIMITS_MAX_SRC_PIXELS is 50 MP"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := plan.Build(req(transform.Pipeline{}), tc.meta, tc.limits)
+			e, ok := errors.AsType[*errs.Error](err)
+			if !ok || errs.KindOf(err) != errs.KindLimitExceeded {
+				t.Fatalf("Build = %v, want limit_exceeded", err)
+			}
+			if got := e.PublicMessage(); got != tc.want {
+				t.Errorf("public message = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestBuildLimits(t *testing.T) {
 	t.Parallel()
 	big := plan.SourceMeta{Width: 8000, Height: 6000, Format: "jpeg"} // 48 MP
@@ -216,6 +256,15 @@ func TestBuildLimits(t *testing.T) {
 		{"frames_count_towards_src_pixels", gifMeta(5), transform.LimitOverrides{}, plan.Limits{MaxSrcPixels: 100_000}, transform.Pipeline{}, true},
 		{"frame_pixels_replace_src_pixels", gifMeta(5), transform.LimitOverrides{}, plan.Limits{MaxSrcPixels: 100_000, MaxAnimationFramePixels: 30_000}, transform.Pipeline{}, false},
 		{"frame_pixels_exceeded", gifMeta(5), transform.LimitOverrides{MaxAnimationFrameResolution: 0.02}, plan.Limits{}, transform.Pipeline{}, true},
+		// WP-98: cards.gif (800×600×176, 84.5 MP) with the defaults.
+		{"cards_gif_defaults", cardsGIF, transform.LimitOverrides{}, defaultLimits, transform.Pipeline{}, false},
+		{"frame_limit_off_total_applies", cardsGIF, transform.LimitOverrides{}, frameOff, transform.Pipeline{}, true},
+		{"frame_limit_off_still_output_one_frame", cardsGIF, transform.LimitOverrides{}, frameOff, transform.Pipeline{DisableAnimation: true}, false},
+		{"frame_limit_on_request_replaces_total", cardsGIF, transform.LimitOverrides{MaxAnimationFrameResolution: 1}, frameOff, transform.Pipeline{}, false},
+		{"animation_pixels_exceeded", cardsGIF, transform.LimitOverrides{}, plan.Limits{MaxSrcPixels: 50_000_000, MaxAnimationFramePixels: 16_000_000, MaxAnimationPixels: 80_000_000}, transform.Pipeline{}, true},
+		{"animation_pixels_count_frames_loaded", cardsGIF, transform.LimitOverrides{MaxAnimationFrames: 100}, plan.Limits{MaxSrcPixels: 50_000_000, MaxAnimationFrames: 256, MaxAnimationFramePixels: 16_000_000, MaxAnimationPixels: 80_000_000}, transform.Pipeline{}, false},
+		{"frame_over_frame_limit_still_output", gifFrames(5000, 4000, 2), transform.LimitOverrides{}, defaultLimits, transform.Pipeline{DisableAnimation: true}, false},
+		{"frame_over_frame_limit_animated", gifFrames(5000, 4000, 2), transform.LimitOverrides{}, defaultLimits, transform.Pipeline{}, true},
 		{"memory_budget_exceeded", big, transform.LimitOverrides{}, plan.Limits{MemoryBudget: 100 << 20}, transform.Pipeline{}, true},
 		{"memory_budget_ok_with_shrink_on_load", big, transform.LimitOverrides{}, plan.Limits{MemoryBudget: 100 << 20}, transform.Pipeline{Resize: transform.Resize{Width: px(500)}}, false},
 		{"absurd_enlarge", jpeg(100, 100), transform.LimitOverrides{}, plan.Limits{}, transform.Pipeline{Resize: transform.Resize{Width: px(1 << 30), Enlarge: true}}, true},

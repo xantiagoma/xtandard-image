@@ -239,10 +239,11 @@ This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS`
 | `XI_FORMATS_AUTOQUALITY_FORMAT_MAX` | `jpeg=90,webp=90,avif=80` | Per-format maximum quality (`IMGPROXY_AUTOQUALITY_FORMAT_MAX`); as above |
 | `XI_FORMATS_AUTOQUALITY_FORMAT_TARGET` | `` | Per-format target, e.g. `avif=0.015`; formats not listed use `_TARGET` |
 | `XI_LIMITS_MAX_SRC_BYTES` | `50MiB` | |
-| `XI_LIMITS_MAX_SRC_PIXELS` | `50000000` | |
+| `XI_LIMITS_MAX_SRC_PIXELS` | `50000000` | Width × height × frames loaded, as imgproxy's `IMGPROXY_MAX_SRC_RESOLUTION`: a still (a multi-page still counts the pages it loads), the first frame of an animation processed as a still, and an animation processed as one only while `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS` is `0`. The 422 body names the limit and the numbers, e.g. `source has 176 frames of 800×600 (84.5 MP); limit XI_LIMITS_MAX_SRC_PIXELS is 50 MP` |
 | `XI_LIMITS_MAX_RESULT_DIMENSION` | `8192` | |
-| `XI_LIMITS_MAX_ANIMATION_FRAMES` | `256` | |
-| `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS` | `16000000` | |
+| `XI_LIMITS_MAX_ANIMATION_FRAMES` | `256` | Frames an animation may declare (422 above it, checked on the header); `1` disables animation instead (the first frame is processed, as in imgproxy) |
+| `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS` | `16000000` | Width × height of one frame of an animation processed as one. When set it **replaces** `XI_LIMITS_MAX_SRC_PIXELS` for those animations, as imgproxy's `IMGPROXY_MAX_ANIMATION_FRAME_RESOLUTION` does, so an 800×600 GIF of 176 frames (84.5 MP in all) is accepted; the total is then bounded by `XI_LIMITS_MAX_ANIMATION_PIXELS`. `0` turns it off: the animation counts all its frames against `XI_LIMITS_MAX_SRC_PIXELS` (imgproxy's default) |
+| `XI_LIMITS_MAX_ANIMATION_PIXELS` | `200000000` | Width × height × frames of an animation that `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS` checks instead of `XI_LIMITS_MAX_SRC_PIXELS` (not in imgproxy). The frame limit alone would admit 256 frames of 16 MP (4.1 gigapixels, 12–16 GB decoded); this caps one animation at about 0.6–0.8 GB of decoded frames (3–4 bytes a pixel, the planner's memory estimate). `XI_PROCESSING_MEMORY_BUDGET` still applies on top; no URL option changes it |
 | `XI_LIMITS_MAX_RAW_DEMOSAIC_PIXELS` | `60000000` | Sensor width × height a camera RAW may be demosaiced at; the embedded-preview path is not affected |
 | `XI_LIMITS_MAX_SVG_BYTES` | `5MiB` | |
 | `XI_LIMITS_MAX_SVG_DEPTH` | `256` | SVG sanitiser nesting limit |
@@ -418,7 +419,7 @@ The table is checked against the code by a test in `internal/config`.
 | `IMGPROXY_MAX_SRC_RESOLUTION` | `XI_LIMITS_MAX_SRC_PIXELS` | Megapixels (float) → pixels |
 | `IMGPROXY_MAX_SRC_FILE_SIZE` | `XI_LIMITS_MAX_SRC_BYTES` | Bytes; `0` (unlimited) keeps the default |
 | `IMGPROXY_MAX_ANIMATION_FRAMES` | `XI_LIMITS_MAX_ANIMATION_FRAMES` | Same |
-| `IMGPROXY_MAX_ANIMATION_FRAME_RESOLUTION` | `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS` | Megapixels (float) → pixels; `0` (off) keeps the default |
+| `IMGPROXY_MAX_ANIMATION_FRAME_RESOLUTION` | `XI_LIMITS_MAX_ANIMATION_FRAME_PIXELS` | Megapixels (float) → pixels; `0` turns the per-frame limit off as in imgproxy (animations count all frames against `XI_LIMITS_MAX_SRC_PIXELS`). Unset keeps the xtandard-image default of 16 MP, where imgproxy defaults to off |
 | `IMGPROXY_MAX_RESULT_DIMENSION` | `XI_LIMITS_MAX_RESULT_DIMENSION` | `0` (unlimited) keeps the default |
 | `IMGPROXY_ENABLE_VIDEO_THUMBNAILS` | `XI_VIDEO_ENABLED` | Same; `true` fails startup on an image without FFmpeg (slim) |
 | `IMGPROXY_VIDEO_THUMBNAIL_SECOND` | `XI_VIDEO_THUMBNAIL_SECOND` | Same seconds; imgproxy's default is 1, xtandard-image's is best-frame selection (`auto`) |
