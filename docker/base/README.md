@@ -194,7 +194,8 @@ back with ffprobe/ffmpeg, plus GIF → H.264 MP4. For Ghostscript it runs the ga
 RGBA PNG at 144 DPI, pixel-checked with libvips) as the non-root image user, and checks
 that `-dSAFER` refuses a file read and `%pipe%`; slim and full must have no `gs`.
 
-Size: runtime 105.3 MB compressed on linux/arm64 (full + 2.2 MB), see [Sizes](#sizes).
+Size: runtime 116.6 MB compressed on linux/arm64 (full + 13.3 MB: x264/x265 2.2 MB, Ghostscript
+11.1 MB), see [Sizes](#sizes).
 
 ## Base extras (WP-66, revision 2)
 
@@ -280,15 +281,17 @@ linux/arm64, `docker save | gzip -6` (compressed) and `docker image inspect` (un
 | slim builder | 259.4 MB | 819.2 MB | — |
 | full runtime (`8.18.6-r5-full`) | 103.3 MB | 237.7 MB | ≤ 170 MB |
 | full builder | 308.2 MB | 893.3 MB | — |
-| gpl runtime (`8.18.6-r5-gpl`) | 105.4 MB | 242.5 MB | ≤ 170 MB (as full) |
-| gpl builder | 310.4 MB | 898.3 MB | — |
+| gpl runtime (`8.18.6-r6-gpl`) | 116.6 MB | 257.0 MB | ≤ 170 MB (as full) |
+| gpl builder | 321.7 MB | 913.4 MB | — |
 
 jxrlib (r4, WP-97) adds 0.2 MB compressed / 0.4 MB uncompressed to every flavor; the wider
 ImageMagick policy costs nothing (the coders were already compiled in).
 The full additions are ONNX Runtime 24 MiB, the models 35 MiB (YOLOX-s 34 MiB, YuNet
 0.2 MiB) and FFmpeg + libvpx 11 MiB (libraries and both CLIs), uncompressed.
-The gpl flavor adds 2.2 MB compressed / 4.8 MB uncompressed over full (libx264, libx265 and
-the two encoders in libavcodec).
+The gpl flavor adds 2.2 MB compressed / 4.8 MB uncompressed over full for libx264, libx265 and
+the two encoders in libavcodec (r5), and Ghostscript another 11.1 MB compressed / 14.5 MB
+uncompressed (r6, WP-99: the 14.4 MB static `gs`, whose compiled-in resources and fonts are
+already compressed, plus its licence texts).
 
 ## License gate
 

@@ -16,7 +16,7 @@ Users deploy on Dokploy, Coolify and Kubernetes and expect `docker run` with no 
   |---|---|---|---|---|
   | `slim` | all still formats | `MIT` | `<vips>-r<N>-slim[-builder]`, `slim[-builder]` | `builder`, `runtime` |
   | `full` | slim + FFmpeg 8 LGPL (VP8/VP9/AV1 encode, no H.264/HEVC encode) + ONNX Runtime with permissive models | `MIT` | `<vips>-r<M>-full[-builder]`, `full[-builder]` | `builder-full`, `runtime-full` |
-  | `gpl` | full + FFmpeg rebuilt with `--enable-gpl` + x264 (H.264 encode) + x265 (HEVC encode); contains GPL software | `GPL-2.0-or-later AND MIT` | `<vips>-r<G>-gpl[-builder]`, `gpl[-builder]` | `builder-gpl`, `runtime-gpl` |
+  | `gpl` | full + FFmpeg rebuilt with `--enable-gpl` + x264 (H.264 encode) + x265 (HEVC encode) + Ghostscript `gs` for EPS input (WP-99, ADR 0011, off by default); contains GPL and AGPL software | `AGPL-3.0-or-later AND GPL-2.0-or-later AND MIT` | `<vips>-r<G>-gpl[-builder]`, `gpl[-builder]` | `builder-gpl`, `runtime-gpl` |
 
   Each flavor builds on the previous one's finished dependency stage (`deps` → `full-deps` → `gpl-deps`) with its own pins file (`versions.sh`, `versions-full.sh`, `versions-gpl.sh`) and revision counter, so a change to a later flavor never rebuilds or changes an earlier one. `slim` stays the default.
 - App image is multi-stage: build with the base image, run on `ubuntu:noble` with only the runtime libraries copied; `LD_PRELOAD` jemalloc; UID 65532; `HEALTHCHECK` via the binary's `health` subcommand; ports 8080 (HTTP) and 9090 (metrics).
