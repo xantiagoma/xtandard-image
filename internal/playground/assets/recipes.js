@@ -10,7 +10,7 @@ import { build } from './grammar.js';
 
 // NEEDS explains a recipe need the server does not meet.
 const NEEDS = {
-  watermark: 'Needs a default watermark image: set XI_PROCESSING_WATERMARK_SOURCE (compose.playground.yml uses local:///watermark/logo.png).',
+  watermark: 'Needs the server\'s default watermark image, XI_PROCESSING_WATERMARK_SOURCE (imgproxy compatibility, empty by default), which this server does not configure. The other examples name their watermark in the URL.',
   detection: 'Needs the detection models (the full or gpl image).',
   video: 'Needs FFmpeg (the full or gpl image): video sources and mp4 output.',
 };
