@@ -53,8 +53,20 @@ ships, unmodified or built from unmodified sources:
 - YOLOX-s object detection model yolox_s.onnx
   (https://github.com/Megvii-BaseDetection/YOLOX), Copyright (c) 2021-2022
   Megvii Inc., Apache License 2.0.
+- MobileNetV3-Large ImageNet classification model
+  mobilenetv3_large_100.onnx: timm's mobilenetv3_large_100 weights
+  (https://github.com/huggingface/pytorch-image-models, Copyright 2019 Ross
+  Wightman, Apache License 2.0) exported to ONNX by the ONNX Model Zoo
+  (https://github.com/onnx/models, Apache License 2.0).
 Model licences are shipped next to each model in
 /usr/share/xtandard/models/ and in share/licenses/models/.
+
+The ImageNet class names embedded in the binary
+(internal/detect/imagenet_labels.txt) are imagenet-simple-labels by Anish
+Athalye (https://github.com/anishathalye/imagenet-simple-labels), dedicated
+to the public domain, derived from the WordNet synsets of ImageNet
+(WordNet 3.0, Copyright 2006 Princeton University, WordNet licence:
+permission to use, copy, modify and distribute without fee).
 
 gpl base image flavor (contains GPL and AGPL software)
 ------------------------------------------------------
