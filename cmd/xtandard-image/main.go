@@ -10,6 +10,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/xantiagoma/xtandard-image/internal/ghostscript"
 )
 
 // Build metadata, injected at link time:
@@ -26,6 +28,11 @@ var (
 )
 
 func main() {
+	// The Ghostscript sandbox helper is this binary re-executed: it
+	// confines itself and execs gs, before anything else runs (ADR 0011).
+	if ghostscript.IsSandboxHelper(os.Args) {
+		os.Exit(ghostscript.RunSandboxHelper(os.Args))
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	err := run(ctx, os.Args[1:], os.Environ(), os.Stdout)
 	stop()
