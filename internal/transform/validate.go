@@ -166,6 +166,14 @@ func (v *validator) source(field string, s *SourceSpec, required bool) {
 		v.fail(field+".raw", "must not be empty")
 	}
 	v.enum(field+".encoding", validEnum(s.Encoding, numSourceEncodings))
+	if p := s.Password; p != nil {
+		switch {
+		case len(p.Secret) == 0 || len(p.Secret) > MaxPasswordLen:
+			v.fail(field+".password", "must be 1 to "+strconv.Itoa(MaxPasswordLen)+" bytes")
+		case !isLowerHex(p.Digest, sha256HexLen):
+			v.fail(field+".password.digest", "must be 64 lowercase hex digits")
+		}
+	}
 	if h := s.Hashsum; h != nil {
 		if h.Algorithm == HashUnset || !validEnum(h.Algorithm, numHashAlgorithms) {
 			v.fail(field+".hashsum.algorithm", "unknown value")
@@ -174,6 +182,10 @@ func (v *validator) source(field string, s *SourceSpec, required bool) {
 		}
 	}
 }
+
+// sha256HexLen is the length of a hex SHA-256 or HMAC-SHA256
+// (DocumentPassword.Digest).
+const sha256HexLen = 64
 
 func isLowerHex(s string, n int) bool {
 	if len(s) != n {
