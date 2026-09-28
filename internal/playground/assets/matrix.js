@@ -135,6 +135,10 @@ export class Matrix {
     const { e, cells } = row;
     for (const c of Object.values(cells)) c.replaceChildren();
     cells.result.textContent = '…';
+    // A skeleton holds the thumbnail cell (shown after 150 ms) until the
+    // new thumbnail is decoded or the row fails.
+    cells.thumb.append(el('span', { class: 'mthumb skeleton', 'aria-hidden': 'true' }));
+    row.tr.setAttribute('aria-busy', 'true');
     row.ok = undefined;
     row.ms = undefined;
     const src = escapePlain(e.source);
@@ -159,18 +163,23 @@ export class Matrix {
       cells.time.textContent = fmtMs(elapsed);
       cells.result.replaceChildren();
       if (tres.ok) {
-        cells.thumb.append(el('img', { src: URL.createObjectURL(blob), alt: `${e.name} thumbnail`, class: 'mthumb' }));
+        const img = el('img', { src: URL.createObjectURL(blob), alt: `${e.name} thumbnail`, class: 'mthumb' });
+        await img.decode().catch(() => {});
+        cells.thumb.replaceChildren(img);
         cells.bytes.textContent = `${fmtBytes(Number(tres.headers.get('x-xi-origin-content-length')) || e.bytes)} → ${fmtBytes(blob.size)}`;
         cells.result.append(el('span', { class: 'badge ok', text: 'ok' }));
         row.ok = true;
       } else {
+        cells.thumb.replaceChildren();
         const reason = errorText(await blob.text(), tres.status);
         cells.result.append(el('span', { class: 'badge err', text: `${tres.status}` }), ` ${reason}`);
         row.ok = false;
       }
     } catch (err) {
+      cells.thumb.replaceChildren();
       cells.result.textContent = err.message;
       row.ok = false;
     }
+    row.tr.removeAttribute('aria-busy');
   }
 }

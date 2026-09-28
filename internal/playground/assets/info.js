@@ -522,6 +522,22 @@ export class Info {
     }
     if (!this.state.source) return;
     this.status('Loading…');
+    // Loading state: another source's result is hidden at once and a
+    // skeleton replaces it after 150 ms; the same source's is dimmed.
+    const fresh = box.dataset.source !== this.state.source;
+    box.setAttribute('aria-busy', 'true');
+    box.classList.toggle('stale-new', fresh);
+    box.classList.toggle('stale', !fresh);
+    clearTimeout(this.skeletonTimer);
+    if (fresh) {
+      this.skeletonTimer = setTimeout(() => {
+        if (my !== this.seq) return;
+        box.classList.remove('stale-new');
+        box.replaceChildren(el('div', { class: 'info-loading', 'aria-hidden': 'true' },
+          el('p', { class: 'hint', text: 'Loading the source’s /info…' }),
+          el('span', { class: 'skeleton' }), el('span', { class: 'skeleton' }), el('span', { class: 'skeleton' })));
+      }, 150);
+    }
     try {
       const entries = [...activeEntries(this.entries(), this.index, 'imgproxy')].map(([, e]) => e);
       this.url = await this.infoURL(entries);
@@ -546,9 +562,16 @@ export class Info {
       }
       this.last = res.json;
       this.status(`${res.status} · ${Math.round(res.ms)} ms${failed.size ? ` · ${failed.size} option${failed.size > 1 ? 's' : ''} refused` : ''}`);
-      await this.render(res.json, failed, res.ignored, entries);
+      await this.render(res.json, failed, res.ignored, entries, my);
     } catch (err) {
       if (my === this.seq) this.status(err.message, true);
+    } finally {
+      if (my === this.seq) {
+        clearTimeout(this.skeletonTimer);
+        box.removeAttribute('aria-busy');
+        box.classList.remove('stale-new', 'stale');
+        if (box.querySelector('.info-loading')) box.replaceChildren();
+      }
     }
   }
 
@@ -581,7 +604,7 @@ export class Info {
 
   // ---- result -----------------------------------------------------------
 
-  async render(info, failed, ignored, entries) {
+  async render(info, failed, ignored, entries, my = this.seq) {
     const box = $('info-result');
     const sections = [];
     const notes = [];
@@ -594,6 +617,7 @@ export class Info {
 
     sections.push(this.summary(info));
     const ph = await this.placeholders(info);
+    if (my !== this.seq) return; // a newer run owns the panel
     if (ph) sections.push(ph);
     const colours = this.colours(info);
     if (colours) sections.push(colours);
