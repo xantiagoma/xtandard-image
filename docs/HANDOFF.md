@@ -200,3 +200,8 @@ owner has authorised merging PRs without review.
   sequences, gain maps), WP-106 (12/16-bit JPEG, JPEG-LS), WP-108 (FITS, DICOM, KTX2, MNG/PICT,
   EMF/WMF gpl-only, Leaf MOS sniffing), WP-115 (encrypted per-request PDF password on signed URLs).
   Parallel rule as before: agents build under `xtandard-base:wpNNN*`; one integration bump at the end.
+- **2026-09-28 (later):** merged WP-106 (#112: 12-bit and lossless JPEG; JPEG-LS split out), WP-115
+  (#113: encrypted per-request PDF password on signed URLs), WP-104 (#114: AVIF/HEIF sequences, gain
+  maps, `gain_map` option, PQ AVIF / UltraHDR outputs). None needed a base change. Demo redeployed from
+  main 85164d1. Still running: WP-108 (FITS, DICOM, KTX2, MNG/PICT, EMF/WMF gpl-only, Leaf MOS).
+  Rebase lesson: unioning map literals in tests can duplicate keys; run `go vet` after unions.
