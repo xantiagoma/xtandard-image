@@ -209,7 +209,11 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	logger.LogAttrs(ctx, slog.LevelInfo, "video",
 		slog.Bool("enabled", videoSettings(cfg).Enabled), slog.String("ffmpeg", codec.VideoVersion()),
 		slog.String("encoders", strings.Join(codec.VideoEncoders().Names(), ",")))
-	proc, err := newProcessor(cfg, wm, lim.Reserve)
+	eps, err := buildEPS(ctx, cfg, logger)
+	if err != nil {
+		return err
+	}
+	proc, err := newProcessor(cfg, wm, lim.Reserve, eps)
 	if err != nil {
 		return err
 	}

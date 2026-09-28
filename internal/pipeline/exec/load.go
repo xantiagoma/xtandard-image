@@ -22,6 +22,8 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 		img, err = r.loadGo(ctx)
 	case r.j.Meta.Format == formatRAW:
 		img, err = r.loadRaw(ctx, ls)
+	case r.j.Meta.Format == formatEPS:
+		img, err = r.loadEPS(ctx, ls)
 	case stackable(r.j.Meta.Format):
 		if anim == nil && ls.NPages > 1 {
 			// Stacked pages of a multi-page still may differ in size.

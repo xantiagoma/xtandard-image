@@ -223,6 +223,11 @@ This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS`
 | `XI_FORMATS_PREFERRED` | `jpeg,png,gif` | Fallback order for unencodable sources |
 | `XI_FORMATS_SVG_PASSTHROUGH` | `true` | |
 | `XI_FORMATS_PDF_DPI` | `72` | Resolution of a PDF page's natural size (1–1200; 72 = one pixel per point). Resized pages render directly at the target size |
+| `XI_FORMATS_EPS_ENABLED` | `false` | **Security-sensitive; `gpl` image only.** Render EPS, PostScript and PostScript-based Illustrator sources with Ghostscript (AGPL-3.0), a full PostScript interpreter run on untrusted input in a sandboxed subprocess per request (ADR 0011, FORMATS §1.6). `true` without a usable `gs` stops startup. Off, a DOS EPS file's embedded TIFF preview is used when it has one, and any other EPS answers 422 "EPS needs the gpl image with XI_FORMATS_EPS_ENABLED=true". Enabling it makes the running image AGPL-3.0 software you offer over a network (see the security note below the table) |
+| `XI_FORMATS_EPS_MAX_PROCS` | `2` | Concurrent Ghostscript processes (1–256), on top of the worker limit; a render beyond it fails fast with 429 |
+| `XI_FORMATS_EPS_TIMEOUT` | `10s` | Wall-clock limit of one render (100ms–10m); the process is killed with its process group and the request answers 504. Its CPU-time limit is the same, rounded up, plus one second |
+| `XI_FORMATS_EPS_MAX_DPI` | `600` | Highest render resolution (1–2400); pages are also capped at `XI_LIMITS_MAX_SRC_PIXELS` by lowering the resolution |
+| `XI_FORMATS_EPS_GS_PATH` | `gs` | Ghostscript executable: absolute path or a name looked up in `PATH` (the gpl image has `/opt/xtandard/bin/gs`) |
 | `XI_FORMATS_PSD_REQUIRE_COMPOSITE` | `false` | Refuse (422) PSD/PSB files saved without a merged composite ("Maximize compatibility" off) instead of letting ImageMagick flatten the layers |
 | `XI_FORMATS_HDR_TONEMAP` | `reinhard` | Operator mapping OpenEXR, Radiance and PFM sources to 8-bit sRGB: `reinhard` (extended Reinhard, white at the 99th-percentile luminance; identity for sources within [0, 1]), `aces` (Narkowicz's fitted ACES filmic curve) or `clip`. Skipped with `preserve_hdr` for JPEG XL (float) and AVIF (12-bit) outputs; FORMATS.md §1.4 |
 | `XI_FORMATS_SKIP_PROCESSING` | `` | Source formats streamed unmodified (imgproxy `IMGPROXY_SKIP_PROCESSING_FORMATS`) |
@@ -272,6 +277,9 @@ This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS`
 | `XI_VIDEO_ENCODE_MAX_PIXELS` | `8294400` | Largest frame of a video output, width × height (4K UHD) (422) |
 | `XI_VIPS_CONCURRENCY` | `1` | libvips threads per image; change only with benchmarks |
 | `XI_VIPS_FAIL_ON` | `warning` | |
+
+> [!WARNING]
+> **`XI_FORMATS_EPS_ENABLED=true` runs a PostScript interpreter on untrusted input.** PostScript is a programming language, and Ghostscript's `-dSAFER` sandbox has been bypassed many times (file read/write and command execution from a crafted document, for example CVE-2018-16509, CVE-2021-3781, CVE-2023-36664, CVE-2024-29510). xtandard-image runs each render as a separate `gs` process with `-dSAFER`, a fixed page size, no input or output files, its own process group, a wall-clock and a CPU limit, an address-space, file-size, open-file and process limit, no-new-privileges, the parent-death signal, an unprivileged user and, where the kernel and the container's seccomp profile allow it, an empty network namespace (Docker's default profile does not; startup logs `eps rendering enabled` with the layers that hold). The server process is marked non-dumpable, so a process of the same user cannot read its memory or its environment (`XI_KEY`, storage credentials). What that does **not** stop: a `gs` exploit still runs as the server's user inside the server's container, where it can read every file that user can read (a mounted config file or key, for example), signal the server and, without the network namespace, open network connections. Enable it only for sources you trust, or run the gpl image as a separate, network-restricted deployment for EPS. Ghostscript is **AGPL-3.0**: an instance with it enabled is a network service running AGPL software, and you must offer its corresponding source to its users (the gpl image's `LICENSE-GPL.md` and `SOURCES.md` point to it). ADR 0011 has the details.
 
 ### Detection
 

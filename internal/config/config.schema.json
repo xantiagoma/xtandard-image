@@ -2226,6 +2226,47 @@
           },
           "type": "object"
         },
+        "eps": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "default": false,
+              "description": "**Security-sensitive; gpl image only.** Render EPS, PostScript and PostScript-based Illustrator sources with Ghostscript (AGPL-3.0), a full PostScript interpreter run on untrusted input in a sandboxed subprocess per request (ADR 0011, FORMATS §1.6). true without a usable gs stops startup. Off, a DOS EPS file's embedded TIFF preview is used when it has one, and any other EPS answers 422 \"EPS needs the gpl image with XI_FORMATS_EPS_ENABLED=true\". Enabling it makes the running image AGPL-3.0 software you offer over a network (see the security note below the table)\n\nEnv: XI_FORMATS_EPS_ENABLED",
+              "markdownDescription": "**Security-sensitive; `gpl` image only.** Render EPS, PostScript and PostScript-based Illustrator sources with Ghostscript (AGPL-3.0), a full PostScript interpreter run on untrusted input in a sandboxed subprocess per request (ADR 0011, FORMATS §1.6). `true` without a usable `gs` stops startup. Off, a DOS EPS file's embedded TIFF preview is used when it has one, and any other EPS answers 422 \"EPS needs the gpl image with XI_FORMATS_EPS_ENABLED=true\". Enabling it makes the running image AGPL-3.0 software you offer over a network (see the security note below the table)\n\nEnv: `XI_FORMATS_EPS_ENABLED`",
+              "title": "XI_FORMATS_EPS_ENABLED",
+              "type": "boolean"
+            },
+            "gs_path": {
+              "default": "gs",
+              "description": "Ghostscript executable: absolute path or a name looked up in PATH (the gpl image has /opt/xtandard/bin/gs)\n\nEnv: XI_FORMATS_EPS_GS_PATH",
+              "markdownDescription": "Ghostscript executable: absolute path or a name looked up in `PATH` (the gpl image has `/opt/xtandard/bin/gs`)\n\nEnv: `XI_FORMATS_EPS_GS_PATH`",
+              "title": "XI_FORMATS_EPS_GS_PATH",
+              "type": "string"
+            },
+            "max_dpi": {
+              "default": 600,
+              "description": "Highest render resolution (1–2400); pages are also capped at XI_LIMITS_MAX_SRC_PIXELS by lowering the resolution\n\nEnv: XI_FORMATS_EPS_MAX_DPI",
+              "markdownDescription": "Highest render resolution (1–2400); pages are also capped at `XI_LIMITS_MAX_SRC_PIXELS` by lowering the resolution\n\nEnv: `XI_FORMATS_EPS_MAX_DPI`",
+              "title": "XI_FORMATS_EPS_MAX_DPI",
+              "type": "number"
+            },
+            "max_procs": {
+              "default": 2,
+              "description": "Concurrent Ghostscript processes (1–256), on top of the worker limit; a render beyond it fails fast with 429\n\nEnv: XI_FORMATS_EPS_MAX_PROCS",
+              "markdownDescription": "Concurrent Ghostscript processes (1–256), on top of the worker limit; a render beyond it fails fast with 429\n\nEnv: `XI_FORMATS_EPS_MAX_PROCS`",
+              "title": "XI_FORMATS_EPS_MAX_PROCS",
+              "type": "integer"
+            },
+            "timeout": {
+              "$ref": "#/$defs/duration",
+              "default": "10s",
+              "description": "Wall-clock limit of one render (100ms–10m); the process is killed with its process group and the request answers 504. Its CPU-time limit is the same, rounded up, plus one second\n\nEnv: XI_FORMATS_EPS_TIMEOUT",
+              "markdownDescription": "Wall-clock limit of one render (100ms–10m); the process is killed with its process group and the request answers 504. Its CPU-time limit is the same, rounded up, plus one second\n\nEnv: `XI_FORMATS_EPS_TIMEOUT`",
+              "title": "XI_FORMATS_EPS_TIMEOUT"
+            }
+          },
+          "type": "object"
+        },
         "gif": {
           "additionalProperties": false,
           "properties": {

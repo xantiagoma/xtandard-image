@@ -354,6 +354,7 @@ type Formats struct {
 	JXL  JXLFormat  `yaml:"jxl"  envPrefix:"JXL_"`
 	GIF  GIFFormat  `yaml:"gif"  envPrefix:"GIF_"`
 	PDF  PDFFormat  `yaml:"pdf"  envPrefix:"PDF_"`
+	EPS  EPSFormat  `yaml:"eps"  envPrefix:"EPS_"`
 	PSD  PSDFormat  `yaml:"psd"  envPrefix:"PSD_"`
 	RAW  RAWFormat  `yaml:"raw"  envPrefix:"RAW_"`
 	HDR  HDRFormat  `yaml:"hdr"  envPrefix:"HDR_"`
@@ -437,6 +438,27 @@ type PDFFormat struct {
 	// DPI is the resolution of a page's natural size, used when no size is
 	// requested; resized pages render directly at the target size.
 	DPI float64 `yaml:"dpi" env:"DPI"`
+}
+
+// EPSFormat configures EPS, PostScript and PostScript Illustrator input,
+// rendered by Ghostscript (AGPL-3.0) in a sandboxed subprocess. Only the
+// gpl image ships gs; enabling it without one fails startup (ADR 0011).
+type EPSFormat struct {
+	// Enabled renders EPS/PS/AI sources with Ghostscript. Off, a DOS EPS
+	// file's embedded TIFF preview is used when it has one, and anything
+	// else is refused (422).
+	Enabled bool `yaml:"enabled" env:"ENABLED"`
+	// MaxProcs bounds concurrent Ghostscript processes; more renders fail
+	// fast with 429.
+	MaxProcs int `yaml:"max_procs" env:"MAX_PROCS"`
+	// Timeout bounds one render (wall clock); the process gets the same
+	// CPU time plus one second.
+	Timeout time.Duration `yaml:"timeout" env:"TIMEOUT"`
+	// MaxDPI caps the render resolution.
+	MaxDPI float64 `yaml:"max_dpi" env:"MAX_DPI"`
+	// GSPath is the gs executable: an absolute path or a name looked up
+	// in PATH.
+	GSPath string `yaml:"gs_path" env:"GS_PATH"`
 }
 
 // HDRFormat configures scene-linear inputs (OpenEXR, Radiance, PFM).
@@ -784,6 +806,7 @@ func Defaults() Config {
 			JXL:                  JXLFormat{Quality: 75, Effort: 5},
 			GIF:                  GIFFormat{Effort: 7},
 			PDF:                  PDFFormat{DPI: 72},
+			EPS:                  EPSFormat{MaxProcs: 2, Timeout: 10 * time.Second, MaxDPI: 600, GSPath: "gs"},
 			RAW:                  RAWFormat{PreviewMinRatio: 1},
 			HDR:                  HDRFormat{ToneMap: ToneMapReinhard},
 			Auto:                 FormatSwitches{AVIF: true, WebP: true},
