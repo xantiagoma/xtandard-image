@@ -36,7 +36,8 @@ type SourceMeta struct {
 	// image, Width × Height is the preview's size, and it is always loaded
 	// from the preview (FORMATS.md §2).
 	PreviewOnly bool
-	// HDR marks a scene-linear float source (OpenEXR, Radiance, PFM): it is
+	// HDR marks a scene-linear float source (OpenEXR, Radiance, PFM, DDS
+	// BC6H and float textures): it is
 	// loaded with random access (the tone mapper measures it first) and
 	// costs 4 bytes per sample until it is mapped to 8 bits.
 	HDR bool

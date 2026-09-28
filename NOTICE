@@ -221,3 +221,34 @@ Copyright (c) 2021-2022 Megvii Inc., Apache License 2.0; the COCO class
 names are copied from yolox/data/datasets/coco_classes.py.
 testdata/detect/reference.py copies those YOLOX functions to compute the
 reference detections the tests compare against.
+
+bcdec
+-----
+https://github.com/iOrange/bcdec
+Copyright (c) 2022 Sergii Kudlai
+Licensed under the MIT License (dual-licensed MIT or Unlicense; the MIT
+terms are used here):
+
+  Permission is hereby granted, free of charge, to any person obtaining a
+  copy of this software and associated documentation files (the
+  "Software"), to deal in the Software without restriction, including
+  without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to permit
+  persons to whom the Software is furnished to do so, subject to the
+  following conditions:
+
+  The above copyright notice and this permission notice shall be included
+  in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+  NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+  DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+  USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+internal/codec/dds (bc.go, bc6h.go, tables.go) reimplements in Go the
+BC1-BC3 integer arithmetic, the BC6H per-mode bit layouts and the BC6H/BC7
+partition tables of bcdec.h v0.985. internal/codec/dds/testdata/bcdec holds
+reference decodes made with bcdec (not vendored).

@@ -102,6 +102,16 @@ var goldenCases = []goldenCase{
 	{name: "tga-rle", fixture: "tga/photo-rle.tga", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
 	{name: "pcx", fixture: "pcx/photo.pcx", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
 	{name: "dds-dxt5", fixture: "dds/alpha-dxt5.dds", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	// WP-105: DX10 DDS through the Go BCn decoder, CIE L*a*b* TIFF and
+	// CMYK JPEG XL (black extra channel); libvips 8.18 reads none of them.
+	{name: "dds-bc1-dx10", fixture: "dds/bc1-dx10.dds", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "dds-bc4", fixture: "dds/bc4.dds", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "dds-bc7-alpha", fixture: "dds/bc7-alpha.dds", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "tiff-lab8", fixture: "tiff/lab8.tif", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "tiff-lab8-alpha", fixture: "tiff/lab8-alpha.tif", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "tiff-lab16", fixture: "tiff/lab16.tif", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "jxl-cmyk", fixture: "jxl/cmyk.jxl", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	{name: "jxl-cmyk-alpha", fixture: "jxl/cmyk-alpha.jxl", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
 	{name: "qoi", fixture: "qoi/alpha.qoi", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
 	{name: "sgi", fixture: "sgi/alpha.sgi", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
 	{name: "sun", fixture: "sun/photo.ras", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},

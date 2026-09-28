@@ -203,5 +203,23 @@ if [ -z "${XI_SKIP_DESIGNER:-}" ]; then
 	sh testdata/gen/designer.sh
 fi
 
+# WP-105: DX10 DDS (own BCn encoders), CIE L*a*b* TIFF (own writer) and CMYK
+# JPEG XL (libjxl through gen/jxlcmyk/encode.c; needs libjxl and pkg-config).
+gen dds-bc1 64 48 "$F/dds/bc1-dx10.dds"
+gen dds-bc4 64 48 "$F/dds/bc4.dds"
+gen dds-bc7 64 48 "$F/dds/bc7-alpha.dds"
+gen dds-bc6h 48 32 "$F/dds/bc6h-scene.dds"
+gen lab-tiff8 64 48 "$F/tiff/lab8.tif"
+gen lab-tiff8-alpha 64 48 "$F/tiff/lab8-alpha.tif"
+gen lab-tiff8-icc 64 48 "$F/tiff/lab8-icc.tif"
+gen lab-tiff16 64 48 "$F/tiff/lab16.tif"
+cc -O1 -o "$T/jxlcmyk" testdata/gen/jxlcmyk/encode.c $(pkg-config --cflags --libs libjxl)
+gen cmyk-raw 64 48 opaque "$T/cmyk.raw" "$T/cmyk.icc"
+"$T/jxlcmyk" 64 48 4 "$T/cmyk.raw" "$T/cmyk.icc" "$F/jxl/cmyk.jxl"
+gen cmyk-raw 64 48 alpha "$T/cmyk-alpha.raw" "$T/cmyk.icc"
+"$T/jxlcmyk" 64 48 5 "$T/cmyk-alpha.raw" "$T/cmyk.icc" "$F/jxl/cmyk-alpha.jxl"
+# Reference decodes for internal/codec (Pillow, NumPy): run by hand,
+# testdata/golden/codec/reference.py.
+
 # SSIM reference set for internal/testutil/ssim.
 gen ssim-refs testdata/ssim

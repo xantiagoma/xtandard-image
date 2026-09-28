@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/bmp"
+	"github.com/xantiagoma/xtandard-image/internal/codec/dds"
 	"github.com/xantiagoma/xtandard-image/internal/codec/icns"
 	"github.com/xantiagoma/xtandard-image/internal/codec/ico"
 	"github.com/xantiagoma/xtandard-image/internal/codec/raster"
@@ -38,13 +39,13 @@ func sample(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Li
 		return Raw{}, errs.Newf(errs.KindInternal, "codec: sample size %d", maxSide)
 	}
 	switch f {
-	case FormatBMP, FormatICO, FormatWBMP, FormatICNS:
+	case FormatBMP, FormatICO, FormatWBMP, FormatICNS, FormatDDS:
 		d, err := decodeOwn(buf.Bytes(), f, lim.withDefaults().MaxSrcPixels)
 		if err != nil {
 			return Raw{}, err
 		}
-		if d.Raw != nil {
-			return rgba(d.Raw)
+		if r := ownRaw(d); r != nil {
+			return rgba(r)
 		}
 		emb, err := vips.NewBuffer(len(d.Embedded))
 		if err != nil {
@@ -71,15 +72,64 @@ func sample(ctx context.Context, buf *vips.Buffer, f Format, maxSide int, lim Li
 			return Raw{}, err
 		}
 		return sampleImage(ctx, &a, img)
+	case FormatTIFF:
+		if l, ok := ParseLabTIFF(buf.Bytes()); ok {
+			return sampleLab(ctx, &l, buf, maxSide)
+		}
+		return sampleVips(ctx, buf, maxSide)
 	default:
 		return sampleVips(ctx, buf, maxSide)
 	}
 }
 
+// sampleLab samples the first page of a CIE L*a*b* TIFF: loaded, converted
+// to sRGB (LoadLabTIFF), fitted inside maxSide and exported as RGBA.
+func sampleLab(ctx context.Context, l *LabTIFF, buf *vips.Buffer, maxSide int) (Raw, error) {
+	var a vips.Arena
+	defer a.Close()
+	img, err := labImage(ctx, &a, l, buf, maxSide)
+	if err != nil {
+		return Raw{}, fmt.Errorf("codec: sample: %w", err)
+	}
+	if !img.HasAlpha() {
+		if img, err = a.Add(img.AddAlpha(ctx)); err != nil {
+			return Raw{}, fmt.Errorf("codec: sample: %w", err)
+		}
+	}
+	px, err := img.WriteToMemory(ctx)
+	if err != nil {
+		return Raw{}, fmt.Errorf("codec: sample: %w", err)
+	}
+	return Raw{Width: img.Width(), Height: img.Height(), Bands: 4, Data: px}, nil
+}
+
+// labImage loads the first page of a CIE L*a*b* TIFF as 8-bit sRGB, fitted
+// inside maxSide.
+func labImage(ctx context.Context, a *vips.Arena, l *LabTIFF, buf *vips.Buffer, maxSide int) (*vips.Image, error) {
+	img, err := LoadLabTIFF(ctx, a, l, buf, &vips.LoadOptions{Access: vips.AccessSequential, FailOn: vips.FailOnError})
+	if err != nil {
+		return nil, err
+	}
+	if s := float64(maxSide) / float64(max(img.Width(), img.Height())); s < 1 {
+		return a.Add(img.Resize(ctx, s, s, vips.KernelLanczos3))
+	}
+	return img, nil
+}
+
 // IsOwn reports the formats decoded by the pure-Go loaders (DecodeOwn):
-// BMP, ICO, WBMP and ICNS.
+// BMP, ICO, WBMP, ICNS and DDS.
 func (f Format) IsOwn() bool {
-	return f == FormatBMP || f == FormatICO || f == FormatWBMP || f == FormatICNS
+	return f == FormatBMP || f == FormatICO || f == FormatWBMP || f == FormatICNS || f == FormatDDS
+}
+
+// ownRaw returns the 8-bit pixels of an own loader's result: Raw, or an HDR
+// texture clipped to sRGB (raster.Float.ClippedSRGB). Nil means an
+// embedded stream.
+func ownRaw(d raster.Decoded) *Raw {
+	if d.Float != nil {
+		return d.Float.ClippedSRGB()
+	}
+	return d.Raw
 }
 
 // DecodeOwn runs the pure-Go loader of f (IsOwn), bounded by maxPixels:
@@ -102,6 +152,8 @@ func decodeOwn(data []byte, f Format, maxPixels int64) (raster.Decoded, error) {
 		d, err = wbmp.Decode(data, wbmp.Options{MaxPixels: maxPixels})
 	case FormatICNS:
 		d, err = icns.Decode(data, icns.Options{MaxPixels: maxPixels})
+	case FormatDDS:
+		d, err = dds.Decode(data, dds.Options{MaxPixels: maxPixels})
 	default:
 		return d, errs.Newf(errs.KindInternal, "codec: %s has no own loader", f)
 	}
@@ -113,11 +165,16 @@ func decodeOwn(data []byte, f Format, maxPixels int64) (raster.Decoded, error) {
 			return d, errs.Wrapf(errs.KindCorrupt, err, "codec: sample %s", f)
 		}
 	}
-	if d.Raw == nil && d.Embedded == nil {
+	if d.Raw == nil && d.Float == nil && d.Embedded == nil {
 		return d, errs.Newf(errs.KindCorrupt, "codec: sample %s: decoder returned no pixels", f)
 	}
 	if d.Raw != nil {
 		if err := d.Raw.Validate(); err != nil {
+			return d, errs.Wrap(errs.KindCorrupt, err)
+		}
+	}
+	if d.Float != nil {
+		if err := d.Float.Validate(); err != nil {
 			return d, errs.Wrap(errs.KindCorrupt, err)
 		}
 	}

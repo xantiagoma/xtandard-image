@@ -20,7 +20,8 @@ import (
 // TestProcessNoLeak sends 500 full requests (probe, plan, execute, encode)
 // through the production Prober and Processor, cycling through JPEG, PNG
 // with alpha, BMP, an EXIF-rotated JPEG, animated GIF/WebP, PDF pages
-// (one, and all stacked) and a PSD without a composite, and checks
+// (one, and all stacked), a PSD without a composite and the WP-105 DDS,
+// L*a*b* TIFF and CMYK JPEG XL inputs, and checks
 // that libvips' tracked memory, allocations, open files and live objects
 // return to their baseline.
 //
@@ -77,6 +78,14 @@ func TestProcessNoLeak(t *testing.T) {
 		{"jpeg/baseline.jpg", "rs:fit:120:120/f:best", transform.FormatBest},
 		{"png/palette.png", "f:best/aq:dssim", transform.FormatBest},
 		{"gif/animated.gif", "rs:fill:32:32/f:best", transform.FormatBest},
+		// WP-105: DDS decoded in Go (BC7, BC6H tone-mapped), CIE L*a*b* TIFF
+		// through its relabelled copy, CMYK JPEG XL through the shim's
+		// libjxl loader.
+		{"dds/bc7-alpha.dds", "rs:fit:32:32", transform.FormatPNG},
+		{"dds/bc6h-scene.dds", "rs:fit:32:32", transform.FormatJPEG},
+		{"tiff/lab8-alpha.tif", "rs:fit:32:32", transform.FormatPNG},
+		{"tiff/lab16.tif", "rs:fit:32:32", transform.FormatJPEG},
+		{"jxl/cmyk-alpha.jxl", "rs:fit:32:32", transform.FormatWebP},
 	}
 	negCfg := negotiate.DefaultConfig()
 	accept := negotiate.ParseAccept("image/avif,image/webp,*/*")

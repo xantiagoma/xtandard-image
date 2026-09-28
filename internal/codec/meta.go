@@ -77,7 +77,7 @@ type ImageMeta struct {
 	HasICC     bool
 	ColorSpace ColorSpace
 	// HDR reports scene-linear samples that can exceed 1.0 (OpenEXR,
-	// Radiance, PFM): the executor tone-maps them to 8-bit sRGB unless
+	// Radiance, PFM, DDS BC6H and float textures): the executor tone-maps them to 8-bit sRGB unless
 	// preserve_hdr keeps them (FORMATS.md §1.4).
 	HDR bool
 	// ContentTypeMismatch reports that the Content-Type declared by the
