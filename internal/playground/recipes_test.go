@@ -36,6 +36,10 @@ var recipeMounts = map[string]struct{ grammar, source string }{
 	"imagekit":   {playground.GrammarImagekit, "local"},
 }
 
+// defaultWatermarkRecipe is the one recipe that shows the server's default
+// watermark (imgproxy compatibility, WP-117).
+const defaultWatermarkRecipe = "wm-default"
+
 // TestRecipesParse builds every recipe the way the page does (grammar.js
 // build), checks the result against the recipe's url, parses it with the
 // dialect's strict parser (unknown or unsupported options are a 400;
@@ -71,6 +75,9 @@ func TestRecipesParse(t *testing.T) {
 		info[o.Name] = true
 	}
 	parsers := recipeParsers(t)
+	if !slices.ContainsFunc(recipes, func(r playground.Recipe) bool { return r.ID == defaultWatermarkRecipe }) {
+		t.Errorf("no %s recipe", defaultWatermarkRecipe)
+	}
 	seen := map[string]bool{}
 	for i := range recipes {
 		r := &recipes[i]
@@ -125,17 +132,30 @@ func TestRecipesParse(t *testing.T) {
 				}
 			}
 			checkRef(t, res.Request.Source, m.source, public)
-			marks := 0
+			marks, defaults := 0, 0
 			for _, p := range res.Request.Pipelines {
 				for _, w := range p.Watermarks {
 					marks++
 					if w.Source != nil {
 						checkRef(t, *w.Source, m.source, public)
+					} else if w.Text == "" {
+						defaults++ // the configured default image: nothing in the URL names it
 					}
 				}
 			}
 			if r.Category == "watermark" && marks == 0 {
 				t.Error("a watermark recipe without a watermark")
+			}
+			// WP-117: every watermark is explicit (wmu, wmt or a dialect's
+			// overlay), so the URL names what is drawn; only the one
+			// compatibility recipe shows the server's default image.
+			needsDefault := slices.Contains(r.Needs, playground.NeedWatermark)
+			if r.ID == defaultWatermarkRecipe {
+				if defaults == 0 || !needsDefault {
+					t.Errorf("draws %d default watermarks, needs %v; want the default watermark and the need", defaults, r.Needs)
+				}
+			} else if defaults > 0 || needsDefault {
+				t.Errorf("draws %d default watermarks (needs %v): only %s may depend on XI_PROCESSING_WATERMARK_SOURCE", defaults, r.Needs, defaultWatermarkRecipe)
 			}
 		})
 		if seen[r.ID] {
