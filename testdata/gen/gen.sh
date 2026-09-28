@@ -206,6 +206,13 @@ if [ -z "${XI_SKIP_DESIGNER:-}" ]; then
 	sh testdata/gen/designer.sh
 fi
 
+# High-precision JPEG (WP-106): 12-bit and lossless JPEG and their djpeg
+# reference decodes come from testdata/gen/jpeghp.sh (libjpeg-turbo's tools,
+# built in Docker).
+if [ -z "${XI_SKIP_JPEGHP:-}" ]; then
+	sh testdata/gen/jpeghp.sh
+fi
+
 # WP-105: DX10 DDS (own BCn encoders), CIE L*a*b* TIFF (own writer) and CMYK
 # JPEG XL (libjxl through gen/jxlcmyk/encode.c; needs libjxl and pkg-config).
 gen dds-bc1 64 48 "$F/dds/bc1-dx10.dds"

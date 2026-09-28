@@ -27,48 +27,54 @@ func withPrecision(tb testing.TB, data []byte, sof, precision byte) []byte {
 	return nil
 }
 
-func TestJPEGPrecision(t *testing.T) {
+func TestJPEGFrame(t *testing.T) {
 	t.Parallel()
 	base := readFixture(t, "jpeg/baseline.jpg")
 	for _, tc := range []struct {
 		name string
 		data []byte
+		sof  byte
 		bits int
 		ok   bool
 	}{
-		{"baseline", base, 8, true},
-		{"progressive", readFixture(t, "jpeg/progressive.jpg"), 8, true},
-		{"12-bit extended", withPrecision(t, base, 0xC1, 12), 12, true},
-		{"16-bit lossless", withPrecision(t, base, 0xC3, 16), 16, true},
-		{"8-bit lossless", withPrecision(t, base, 0xC3, 8), 8, true},
-		{"header only", base[:20], 0, false},
-		{"not a jpeg", []byte("GIF89a"), 0, false},
-		{"scan before any frame", []byte{0xFF, 0xD8, 0xFF, 0xDA, 0x00, 0x02}, 0, false},
-		{"bad segment length", []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x01, 0x00}, 0, false},
-		{"fill bytes", []byte{0xFF, 0xD8, 0xFF, 0xFF, 0xFF, 0xC1, 0x00, 0x08, 12, 0, 1, 0, 1, 1}, 12, true},
+		{"baseline", base, 0xC0, 8, true},
+		{"progressive", readFixture(t, "jpeg/progressive.jpg"), 0xC2, 8, true},
+		{"12-bit extended", readFixture(t, "jpeg/rgb12.jpg"), 0xC1, 12, true},
+		{"12-bit progressive", readFixture(t, "jpeg/grey12-progressive.jpg"), 0xC2, 12, true},
+		{"16-bit lossless", readFixture(t, "jpeg/lossless16.jpg"), 0xC3, 16, true},
+		{"6-bit lossless", readFixture(t, "jpeg/lossless6.jpg"), 0xC3, 6, true},
+		{"rewritten 12-bit", withPrecision(t, base, 0xC1, 12), 0xC1, 12, true},
+		{"JPEG-LS", withPrecision(t, base, 0xF7, 8), 0xF7, 8, true},
+		{"header only", base[:20], 0, 0, false},
+		{"not a jpeg", []byte("GIF89a"), 0, 0, false},
+		{"scan before any frame", []byte{0xFF, 0xD8, 0xFF, 0xDA, 0x00, 0x02}, 0, 0, false},
+		{"bad segment length", []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x01, 0x00}, 0, 0, false},
+		{"fill bytes", []byte{0xFF, 0xD8, 0xFF, 0xFF, 0xFF, 0xC1, 0x00, 0x08, 12, 0, 1, 0, 1, 1}, 0xC1, 12, true},
+		{"DHT is no frame", []byte{0xFF, 0xD8, 0xFF, 0xC4, 0x00, 0x03, 0, 0xFF, 0xC3, 0x00, 0x03, 16}, 0xC3, 16, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			bits, ok := codec.JPEGPrecision(tc.data)
-			if bits != tc.bits || ok != tc.ok {
-				t.Errorf("JPEGPrecision = %d, %v; want %d, %v", bits, ok, tc.bits, tc.ok)
+			sof, bits, ok := codec.JPEGFrame(tc.data)
+			if sof != tc.sof || bits != tc.bits || ok != tc.ok {
+				t.Errorf("JPEGFrame = %#x, %d, %v; want %#x, %d, %v", sof, bits, ok, tc.sof, tc.bits, tc.ok)
 			}
 		})
 	}
 }
 
-func FuzzJPEGPrecision(f *testing.F) {
+func FuzzJPEGFrame(f *testing.F) {
 	base := readFixture(f, "jpeg/baseline.jpg")
 	f.Add(base[:512])
 	f.Add(withPrecision(f, base, 0xC1, 12)[:512])
+	f.Add(readFixture(f, "jpeg/lossless16.jpg")[:256])
 	f.Add([]byte{0xFF, 0xD8, 0xFF, 0xFF, 0xFF, 0xC1, 0x00, 0x08, 12, 0, 1, 0, 1, 1})
 	f.Fuzz(func(t *testing.T, b []byte) {
-		bits, ok := codec.JPEGPrecision(b)
-		if ok && (bits < 0 || bits > 255) {
-			t.Fatalf("precision %d out of a byte", bits)
+		sof, bits, ok := codec.JPEGFrame(b)
+		if !ok && (sof != 0 || bits != 0) {
+			t.Fatalf("frame %#x, %d bits without ok", sof, bits)
 		}
-		if !ok && bits != 0 {
-			t.Fatalf("precision %d without ok", bits)
+		if ok && sof != 0xF7 && (sof < 0xC0 || sof > 0xCF || sof == 0xC4 || sof == 0xC8 || sof == 0xCC) {
+			t.Fatalf("marker %#x is no frame header", sof)
 		}
 	})
 }

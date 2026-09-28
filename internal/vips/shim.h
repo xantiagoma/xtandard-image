@@ -236,6 +236,19 @@ gboolean xi_is_jxl_cmyk(const void *buf, size_t len);
 // Live libjxl decoders plus live decoded buffers (leak tests).
 int xi_jxlcmyk_live(void);
 
+// ---- high-precision JPEG (jpeghp.c, libjpeg-turbo) -------------------------
+
+// Registers the jpeghpload_buffer loader class (XiForeignLoadJpegHpBuffer)
+// with libvips; xi_init calls it before applying the loader allowlist.
+void xi_jpeghp_register(void);
+// The SOFn marker and sample precision of the first frame header of a JPEG
+// stream (JPEG-LS SOF55 included); FALSE when there is none before the scan.
+gboolean xi_jpeg_frame(const void *buf, size_t len, int *marker, int *precision);
+// A 12-bit DCT or lossless (Huffman, 2-16 bits) JPEG: what jpeghpload reads.
+gboolean xi_is_jpeghp(const void *buf, size_t len);
+// Live libjpeg decompressors of the loader (leak tests).
+int xi_jpeghp_live(void);
+
 // ---- image accessors and metadata (image.c) ------------------------------
 
 int xi_image_width(VipsImage *img);

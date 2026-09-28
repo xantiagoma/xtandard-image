@@ -5,7 +5,6 @@ package vips_test
 import (
 	"context"
 	"errors"
-	"slices"
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
@@ -19,6 +18,7 @@ func TestErrorAttribution(t *testing.T) {
 	t.Parallel()
 
 	jpeg := readFixture(t, "jpeg/baseline.jpg")
+	jpeg12 := readFixture(t, "jpeg/rgb12.jpg")
 	png := readFixture(t, "png/rgba8.png")
 	type step func(ctx context.Context, a *vips.Arena, buf *vips.Buffer) error
 	load := func(o vips.LoadOptions) step {
@@ -61,10 +61,10 @@ func TestErrorAttribution(t *testing.T) {
 		{"truncated jpeg on save", jpeg[:len(jpeg)/2], loadSave(vips.FormatPNG), errs.KindCorrupt, "pngsave"},
 		{"truncated jpeg via thumbnail", jpeg[:len(jpeg)/2], thumbnailSave, errs.KindCorrupt, "jpegsave"},
 		{"truncated png on save", png[:len(png)*3/4], loadSave(vips.FormatJPEG), errs.KindCorrupt, "jpegsave"},
-		// libjpeg reads a 12-bit header, then refuses the precision when
-		// decoding starts (libvips uses the 8-bit API): the input's fault.
-		{"12-bit jpeg on save", jpegPrecision(t, jpeg, 12), loadSave(vips.FormatPNG), errs.KindCorrupt, "pngsave"},
-		{"12-bit jpeg via thumbnail", jpegPrecision(t, jpeg, 12), thumbnailSave, errs.KindCorrupt, "jpegsave"},
+		// The shim's own sequential loader (jpeghpload, WP-106) fails the
+		// same way on a cut 12-bit stream: the input's fault.
+		{"truncated 12-bit jpeg on save", jpeg12[:len(jpeg12)*2/3], loadSave(vips.FormatPNG), errs.KindCorrupt, "pngsave"},
+		{"truncated 12-bit jpeg via thumbnail", jpeg12[:len(jpeg12)*2/3], thumbnailSave, errs.KindCorrupt, "jpegsave"},
 		{"pixel limit", jpeg, load(vips.LoadOptions{MaxPixels: 100}), errs.KindLimitExceeded, "load"},
 		{"truncated jpeg tolerated", jpeg[:len(jpeg)/2], func(ctx context.Context, a *vips.Arena, buf *vips.Buffer) error {
 			img, err := a.Add(vips.Load(ctx, buf, &vips.LoadOptions{FailOn: vips.FailOnNone}))
@@ -96,26 +96,6 @@ func TestErrorAttribution(t *testing.T) {
 			}
 		})
 	}
-}
-
-// jpegPrecision returns a copy of the baseline JPEG data whose frame header
-// (SOF0) is rewritten as an extended-sequential SOF1 of the given sample
-// precision; the entropy-coded data is left as it is.
-func jpegPrecision(t *testing.T, data []byte, precision byte) []byte {
-	t.Helper()
-	out := slices.Clone(data)
-	for i := 2; i+4 < len(out); {
-		if out[i] != 0xFF {
-			t.Fatalf("jpeg marker expected at %d", i)
-		}
-		if out[i+1] == 0xC0 {
-			out[i+1], out[i+4] = 0xC1, precision
-			return out
-		}
-		i += 2 + (int(out[i+2])<<8 | int(out[i+3]))
-	}
-	t.Fatal("no SOF0 marker")
-	return nil
 }
 
 // TestSaveFailureIsInternal covers a saver rejecting a valid image (WebP's

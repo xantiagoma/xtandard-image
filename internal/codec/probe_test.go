@@ -97,6 +97,27 @@ func TestProbeFixtures(t *testing.T) {
 		"jpeg/metadata-p3.jpg": with(still(codec.FormatJPEG, 120, 160), func(m *codec.ImageMeta) {
 			m.Orientation, m.HasICC = 6, true
 		}),
+		// High-precision JPEG: the shim's jpeghpload (WP-106).
+		"jpeg/rgb12.jpg": with(still(codec.FormatJPEG, 64, 48), func(m *codec.ImageMeta) { m.BitDepth = 12 }),
+		"jpeg/rgb12-exif6-icc.jpg": with(still(codec.FormatJPEG, 48, 64), func(m *codec.ImageMeta) {
+			m.BitDepth, m.Orientation, m.HasICC = 12, 6, true
+		}),
+		"jpeg/grey12-progressive.jpg": with(still(codec.FormatJPEG, 64, 48), func(m *codec.ImageMeta) {
+			m.BitDepth, m.ColorSpace = 12, codec.ColorSpaceGrey
+		}),
+		"jpeg/cmyk12.jpg": with(still(codec.FormatJPEG, 64, 48), func(m *codec.ImageMeta) {
+			m.BitDepth, m.ColorSpace, m.HasICC = 12, codec.ColorSpaceCMYK, true
+		}),
+		"jpeg/lossless16.jpg": with(still(codec.FormatJPEG, 64, 48), func(m *codec.ImageMeta) { m.BitDepth = 16 }),
+		"jpeg/lossless16-cmyk.jpg": with(still(codec.FormatJPEG, 64, 48), func(m *codec.ImageMeta) {
+			m.BitDepth, m.ColorSpace, m.HasICC = 16, codec.ColorSpaceCMYK, true
+		}),
+		"jpeg/lossless12-ycc.jpg": with(still(codec.FormatJPEG, 64, 48), func(m *codec.ImageMeta) { m.BitDepth = 12 }),
+		"jpeg/lossless10-grey.jpg": with(still(codec.FormatJPEG, 64, 48), func(m *codec.ImageMeta) {
+			m.BitDepth, m.ColorSpace = 10, codec.ColorSpaceGrey
+		}),
+		"jpeg/lossless8.jpg":            still(codec.FormatJPEG, 64, 48),
+		"jpeg/lossless6.jpg":            with(still(codec.FormatJPEG, 64, 48), func(m *codec.ImageMeta) { m.BitDepth = 6 }),
 		"png/bordered.png":              still(codec.FormatPNG, 80, 60),
 		"detect/apollo11-crew.jpg":      still(codec.FormatJPEG, 640, 503),
 		"detect/astronaut-dogs.jpg":     still(codec.FormatJPEG, 640, 512),
@@ -300,8 +321,11 @@ func TestProbeErrors(t *testing.T) {
 		// preview and its 96×64 half-size demosaic.
 		{"dng over pixel limit, preview within", readFixture(t, "dng/landscape.dng"), codec.Limits{MaxSrcPixels: 192*128 - 1}, errs.KindUnknown},
 		{"dng over pixel limit", readFixture(t, "dng/landscape.dng"), codec.Limits{MaxSrcPixels: 96*64 - 1}, errs.KindLimitExceeded},
-		{"12-bit jpeg", withPrecision(t, jpeg, 0xC1, 12), codec.Limits{}, errs.KindUnsupported},
-		{"16-bit lossless jpeg", withPrecision(t, jpeg, 0xC3, 16), codec.Limits{}, errs.KindUnsupported},
+		// 12-bit DCT and lossless frames decode (jpeghpload, WP-106); these
+		// frames have no decoder.
+		{"16-bit dct jpeg", withPrecision(t, jpeg, 0xC1, 16), codec.Limits{}, errs.KindUnsupported},
+		{"hierarchical jpeg", withPrecision(t, jpeg, 0xC5, 8), codec.Limits{}, errs.KindUnsupported},
+		{"12-bit jpeg over pixel limit", readFixture(t, "jpeg/rgb12.jpg"), codec.Limits{MaxSrcPixels: 64*48 - 1}, errs.KindLimitExceeded},
 		{"mp4", isobmff("isom", "mp41"), codec.Limits{}, errs.KindUnsupported},
 		{"jpeg header only", jpeg[:24], codec.Limits{}, errs.KindCorrupt},
 		{"png signature only", png[:8], codec.Limits{}, errs.KindCorrupt},

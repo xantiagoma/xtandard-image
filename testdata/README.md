@@ -21,7 +21,8 @@ testdata/
   detect/               expected detections on fixtures/detect (expected.json) and the script that made them
   classify/             reference top 5 of the classifier on fixtures/detect and fixtures/classify (expected.json) and its script
   gen/                  generator: main.go (Go), gen.sh (driver), logo.svg; video.go + video.sh (video fixtures, full base builder);
-                        designer.go (Procreate, Sketch, Paint.NET, SVGZ) and designer.sh (GIMP/Krita in Docker: XCF, ORA, KRA)
+                        designer.go (Procreate, Sketch, Paint.NET, SVGZ) and designer.sh (GIMP/Krita in Docker: XCF, ORA, KRA);
+                        jpeghp.sh + jpeghp/encode.c (12-bit and lossless JPEG, libjpeg-turbo in Docker)
   LICENSES.md           origin and licence of every file
 ```
 
@@ -33,6 +34,10 @@ testdata/
 | `jpeg/metadata-p3.jpg` | JPEG 120x160 | Display P3 ICC, Exif (orientation 6, Make/Model, Artist, Copyright, DateTimeOriginal, GPS IFD), XMP with `exif:GPS*`, IPTC copyright: the metadata policy matrix |
 | `jpeg/progressive.jpg` | JPEG 320x240 | progressive (interlaced) scans |
 | `jpeg/baseline.jpg` | JPEG 320x240 | plain baseline photo, the default "photo" input |
+| `jpeg/rgb12.jpg`, `jpeg/grey12-progressive.jpg` | JPEG 64x48, 12-bit | 12-bit DCT (extended 4:2:0 colour, progressive grey): the shim's `jpeghpload`, djpeg references in `golden/codec` |
+| `jpeg/rgb12-exif6-icc.jpg` | JPEG 48x64, 12-bit | 12-bit with Exif orientation 6 and the sRGB ICC profile |
+| `jpeg/cmyk12.jpg`, `jpeg/lossless16-cmyk.jpg` | JPEG 64x48 | Adobe CMYK, 12-bit DCT and 16-bit lossless, with a CMYK profile |
+| `jpeg/lossless16.jpg`, `lossless10-grey.jpg`, `lossless8.jpg`, `lossless6.jpg`, `lossless12-ycc.jpg` | JPEG 64x48 | lossless (SOF3) RGB at 16, 8 and 6 bits, grey at 10 bits, YCbCr at 12 bits |
 | `png/rgba8.png` | PNG 128x96 | 8-bit RGBA with graded alpha |
 | `png/bordered.png` | PNG 80x60 | 56x42 photo on white, margins top 6, right 20, bottom 12, left 4 (trim, equal_hor/equal_ver) |
 | `png/rgb16.png` | PNG 96x72 | 16 bits per channel |
