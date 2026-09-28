@@ -112,6 +112,8 @@ func buildMetafile(ctx context.Context, cfg *config.Config, logger *slog.Logger)
 		MaxProcs: m.MaxProcs,
 		Timeout:  m.Timeout,
 		MaxBytes: int64(cfg.Limits.MaxSrcBytes),
+		// The SVG must pass XI_LIMITS_MAX_SVG_BYTES next: stop reading there.
+		MaxOutput: int64(cfg.Limits.MaxSVGBytes),
 	})
 	if err != nil {
 		if ctx.Err() != nil {
