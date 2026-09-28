@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"net/http"
 	"regexp"
 	"slices"
@@ -624,12 +625,7 @@ func buildSources(ctx context.Context, cfg *config.Config, client *http.Client, 
 		closers  []io.Closer
 		problems []error
 	)
-	names := make([]string, 0, len(cfg.Sources))
-	for name := range cfg.Sources {
-		names = append(names, name)
-	}
-	slices.Sort(names)
-	for _, name := range names {
+	for _, name := range sourceOrder(cfg) {
 		sc := cfg.Sources[name]
 		src, err := newSource(ctx, name, &sc, cfg, client, userAgent)
 		if err != nil {
@@ -661,6 +657,14 @@ func buildSources(ctx context.Context, cfg *config.Config, client *http.Client, 
 		return nil, closers, err
 	}
 	return reg, closers, nil
+}
+
+// sourceOrder is the registry's configuration order: the source names
+// sorted alphabetically (neither a YAML map nor XI_SOURCES keeps an order).
+// Scheme and http(s) references try the mount's source first, then this
+// order (docs/SOURCES.md).
+func sourceOrder(cfg *config.Config) []string {
+	return slices.Sorted(maps.Keys(cfg.Sources))
 }
 
 func sourceSpec(name string, s *config.Source) source.Spec {

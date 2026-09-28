@@ -1,0 +1,103 @@
+#:schema https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json
+#
+# config.multi-source.yaml in TOML (docs/SOURCES.md). A test in
+# internal/config loads both files and checks they give the same config.
+
+[signing]
+keys = [{ file = "/run/secrets/xi_signing_key" }]
+salts = [{ file = "/run/secrets/xi_signing_salt" }]
+
+# AWS S3 with the default credential chain (IRSA, task role, instance profile).
+[sources.aws]
+type = "s3"
+region = "eu-west-1"
+buckets = ["acme-media", "acme-tenant-*"]
+bucket = "acme-media"
+
+# Cloudflare R2
+[sources.r2]
+type = "s3"
+endpoint = "https://ACCOUNT_ID.r2.cloudflarestorage.com"
+region = "auto"
+buckets = ["assets"]
+bucket = "assets"
+access_key_id = "R2_ACCESS_KEY_ID"
+secret_access_key = { file = "/run/secrets/r2_secret_access_key" }
+
+# Backblaze B2
+[sources.b2]
+type = "s3"
+endpoint = "https://s3.us-west-004.backblazeb2.com"
+region = "us-west-004"
+buckets = ["acme-archive"]
+bucket = "acme-archive"
+access_key_id = "B2_KEY_ID"
+secret_access_key = { file = "/run/secrets/b2_application_key" }
+
+# RustFS or MinIO, path-style; same bucket name as r2 (use xi://rustfs/<key>)
+[sources.rustfs]
+type = "s3"
+endpoint = "http://rustfs:9000"
+region = "us-east-1"
+force_path_style = true
+buckets = ["assets"]
+bucket = "assets"
+prefix = "public/"
+access_key_id = "xi-reader"
+secret_access_key = { file = "/run/secrets/rustfs_secret_key" }
+
+[sources.gcs]
+type = "gcs"
+buckets = ["acme-gcs-images"]
+bucket = "acme-gcs-images"
+credentials_json = { file = "/run/secrets/gcs_service_account.json" }
+
+[sources.azure]
+type = "azure"
+account = "acmeimages"
+buckets = ["media"]
+bucket = "media"
+sas_token = { file = "/run/secrets/azure_sas_token" }
+
+[sources.photos]
+type = "fs"
+root = "/data/photos"
+
+[sources.uploads]
+type = "fs"
+root = "/data/uploads"
+prefix = "public/"
+
+[sources.partner-sftp]
+type = "sftp"
+host = "sftp.partner.example"
+port = 2222
+user = "xi"
+private_key = { file = "/run/secrets/partner_sftp_key" }
+host_key = "sftp.partner.example ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIReplaceWithTheOutputOfSshKeyscan"
+root = "/outgoing/images"
+
+[sources.legacy-ftp]
+type = "ftp"
+host = "ftp.example.com"
+tls = true
+user = "images"
+password = { file = "/run/secrets/legacy_ftp_password" }
+
+[sources.web]
+type = "http"
+allow = ["https://images.unsplash.com", "https://upload.wikimedia.org/wikipedia/commons/"]
+
+[sources.cms]
+type = "http"
+base_url = "https://cms.example.com/media/"
+headers = { Authorization = { file = "/run/secrets/cms_authorization" } }
+
+[dialects.imgproxy]
+source = "r2"
+
+[dialects.imgix]
+enabled = true
+hosts = ["images.example.com"]
+source = "r2"
+mounts = [{ hosts = ["archive-images.example.com"], source = "b2" }]

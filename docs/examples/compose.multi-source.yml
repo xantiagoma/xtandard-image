@@ -1,0 +1,88 @@
+# Several sources configured with environment variables, credentials from
+# Docker secrets through the _FILE variants (docs/SOURCES.md). Works with
+# `docker compose up`, a Dokploy "Docker Compose" service and a Coolify
+# compose resource. A test in internal/config loads this environment.
+#
+# Create the secret files next to this file first, one value each:
+#   mkdir -p secrets && chmod 700 secrets
+#   openssl rand -hex 32 > secrets/xi_signing_key
+#   openssl rand -hex 32 > secrets/xi_signing_salt
+#   printf %s "$R2_SECRET" > secrets/r2_secret_access_key   # etc.
+services:
+  xtandard-image:
+    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:slim}
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      # Admin listener (metrics, /openapi.json, /docs): loopback only.
+      - "127.0.0.1:9090:9090"
+    environment:
+      XI_ADMIN_ADDR: ":9090"
+      XI_ADMIN_DOCS: "true"
+      XI_SIGNING_KEYS_FILE: /run/secrets/xi_signing_key
+      XI_SIGNING_SALTS_FILE: /run/secrets/xi_signing_salt
+
+      XI_SOURCES: aws,r2,b2,photos,web
+
+      # AWS S3 with static keys (on EC2/ECS/EKS drop them and use the role)
+      XI_SOURCES_AWS_TYPE: s3
+      XI_SOURCES_AWS_REGION: eu-west-1
+      XI_SOURCES_AWS_BUCKETS: acme-media
+      XI_SOURCES_AWS_BUCKET: acme-media
+      XI_SOURCES_AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?set AWS_ACCESS_KEY_ID}
+      XI_SOURCES_AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/aws_secret_access_key
+
+      # Cloudflare R2
+      XI_SOURCES_R2_TYPE: s3
+      XI_SOURCES_R2_ENDPOINT: https://${R2_ACCOUNT_ID:?set R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      XI_SOURCES_R2_REGION: auto
+      XI_SOURCES_R2_BUCKETS: assets
+      XI_SOURCES_R2_BUCKET: assets
+      XI_SOURCES_R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:?set R2_ACCESS_KEY_ID}
+      XI_SOURCES_R2_SECRET_ACCESS_KEY_FILE: /run/secrets/r2_secret_access_key
+
+      # Backblaze B2
+      XI_SOURCES_B2_TYPE: s3
+      XI_SOURCES_B2_ENDPOINT: https://s3.us-west-004.backblazeb2.com
+      XI_SOURCES_B2_REGION: us-west-004
+      XI_SOURCES_B2_BUCKETS: acme-archive
+      XI_SOURCES_B2_BUCKET: acme-archive
+      XI_SOURCES_B2_ACCESS_KEY_ID: ${B2_KEY_ID:?set B2_KEY_ID}
+      XI_SOURCES_B2_SECRET_ACCESS_KEY_FILE: /run/secrets/b2_application_key
+
+      # Files on a volume
+      XI_SOURCES_PHOTOS_TYPE: fs
+      XI_SOURCES_PHOTOS_ROOT: /data/photos
+
+      # Public web images, https only
+      XI_SOURCES_WEB_TYPE: http
+      XI_SOURCES_WEB_ALLOW: https://images.unsplash.com,https://upload.wikimedia.org/wikipedia/commons/
+
+      # Relative imgproxy sources (/…/plain/cat.jpg) read r2
+      XI_DIALECTS_IMGPROXY_SOURCE: r2
+    secrets:
+      - xi_signing_key
+      - xi_signing_salt
+      - aws_secret_access_key
+      - r2_secret_access_key
+      - b2_application_key
+    volumes:
+      - photos:/data/photos:ro
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+
+secrets:
+  xi_signing_key:
+    file: ./secrets/xi_signing_key
+  xi_signing_salt:
+    file: ./secrets/xi_signing_salt
+  aws_secret_access_key:
+    file: ./secrets/aws_secret_access_key
+  r2_secret_access_key:
+    file: ./secrets/r2_secret_access_key
+  b2_application_key:
+    file: ./secrets/b2_application_key
+
+volumes:
+  photos:
