@@ -18,11 +18,6 @@ const reasonNotApplicable = "not applicable to info"
 // the centre.
 const reasonCentred = "approximated by the centre"
 
-// reasonNoClassifier marks classify: imgproxy Pro classifies with a model
-// of its own, and no classification model is shipped (WP-73 detects
-// objects only).
-const reasonNoClassifier = "not implemented (no classification model)"
-
 // ParseInfo parses an imgproxy /info request (docs/URL-DIALECTS.md §3.3).
 // in.Path is the escaped path after the "/info" prefix:
 //
@@ -35,9 +30,8 @@ const reasonNoClassifier = "not implemented (no classification model)"
 // objects_position). A source extension is ignored.
 //
 // Info options the model cannot express yet are validated and recorded in
-// Request.Ignored as "not implemented": exif canonical names, alpha
-// check_transparency and the classify top_k and class filter (the model
-// keeps only the Classify flag).
+// Request.Ignored as "not implemented": exif canonical names and alpha
+// check_transparency.
 func (p *Parser) ParseInfo(in *dialect.Input) (*dialect.Result, error) {
 	return p.ParseInfoPath(in.Path)
 }
@@ -62,11 +56,7 @@ func defaultInfo() *transform.InfoOptions {
 //nolint:gocyclo // one flat switch over the option table is the clearest form
 func (st *state) applyInfo(name string, args []string) error {
 	in := st.r.Info
-	var (
-		on        bool
-		err       error
-		milestone string // "" = M1
-	)
+	var err error
 	switch name {
 	// Enabled by default.
 	case "size", "s":
@@ -88,8 +78,7 @@ func (st *state) applyInfo(name string, args []string) error {
 	case "detect_objects", "do":
 		return oneBool("detect_objects", args, &in.DetectObjects) // WP-73
 	case "classify", "cl":
-		on, err = st.infoClassify(args)
-		milestone = reasonNoClassifier
+		return st.infoClassify(args) // WP-110
 	// Header-only values, reported in M1 (WP-35).
 	case "colorspace", "cs":
 		return oneBool("colorspace", args, &in.Colorspace)
@@ -162,13 +151,7 @@ func (st *state) applyInfo(name string, args []string) error {
 		st.ignore(name, reasonUnknown)
 		return nil
 	}
-	if err != nil {
-		return err
-	}
-	if on && milestone != "" {
-		st.ignore(name, milestone)
-	}
-	return nil
+	return err
 }
 
 // infoExif is exif:enabled[:canonical_names].
@@ -215,21 +198,23 @@ func (st *state) infoAlpha(args []string) (bool, error) {
 	return on, nil
 }
 
-// infoClassify is classify:top_k[:class...]; top_k 0 turns it off.
-func (st *state) infoClassify(args []string) (bool, error) {
+// infoClassify is classify:top_k[:class_name...]; top_k 0 turns it off.
+// Class names are the classifier's (ImageNet's by default, matched without
+// regard to case, '_' for a space), checked when the result is rendered.
+func (st *state) infoClassify(args []string) error {
 	k, err := parseIntRange("classify.top_k", args[0], 0, transform.MaxListLen)
 	if err != nil {
-		return false, err
+		return err
 	}
 	classes, err := parseClasses("classify.classes", args[1:])
 	if err != nil {
-		return false, err
+		return err
 	}
-	st.r.Info.Classify = k > 0
-	if k > 0 && (k != 1 || len(classes) > 0) {
-		st.ignore("classify:top_k", reasonNotImplemented)
+	st.r.Info.ClassifyTopK, st.r.Info.ClassifyClasses = k, nil
+	if k > 0 {
+		st.r.Info.ClassifyClasses = classes
 	}
-	return k > 0, nil
+	return nil
 }
 
 // infoPalette is palette:colors, 0 (off) or 2..256.

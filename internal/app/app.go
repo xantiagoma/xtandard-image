@@ -234,6 +234,7 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		fod = h.detector
 	}
 	dets := newDetections(fod, cfg.Detect.CacheSize, cfg.Detect.SmartFaces, formatLimits(cfg), logger)
+	dets.classifyMinScore, dets.classifyTopKMax = cfg.Detect.Classify.Threshold, cfg.Detect.Classify.TopKMax
 	proc.detect = dets
 
 	ready := admin.NewReadiness()

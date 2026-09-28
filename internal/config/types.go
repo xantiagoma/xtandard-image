@@ -584,6 +584,28 @@ func (f *FailOn) UnmarshalText(b []byte) error {
 // failOns lists the FailOn values.
 func failOns() []FailOn { return []FailOn{FailOnNone, FailOnTruncated, FailOnError, FailOnWarning} }
 
+// Normalization scales a classifier's 8-bit input (imgproxy's
+// IMGPROXY_CLASSIFICATION_NORMALIZATION values).
+type Normalization string
+
+// Normalization values.
+const (
+	NormalizeImageNet Normalization = "imagenet" // (v/255 − mean) / std, ImageNet statistics
+	NormalizeFull     Normalization = "full"     // [-1, 1]
+	NormalizeHalf     Normalization = "half"     // [0, 1]
+	NormalizeNone     Normalization = "none"     // 0–255
+)
+
+// UnmarshalText parses imagenet, full, half or none (any case).
+func (n *Normalization) UnmarshalText(b []byte) error {
+	return unmarshalEnum(n, b, normalizations()...)
+}
+
+// normalizations lists the Normalization values.
+func normalizations() []Normalization {
+	return []Normalization{NormalizeImageNet, NormalizeFull, NormalizeHalf, NormalizeNone}
+}
+
 // ToneMap is the HDR tone-mapping operator (XI_FORMATS_HDR_TONEMAP).
 type ToneMap string
 

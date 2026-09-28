@@ -46,6 +46,9 @@ type fakeDetector struct {
 	faces, objs   atomic.Int32
 	failFaces     bool
 	noFaces, noOb bool
+	// classes is what Classify answers; nil: no classifier.
+	classes    *detect.Classification
+	classifies atomic.Int32
 }
 
 func newFakeDetector(t *testing.T) *fakeDetector {
@@ -58,8 +61,18 @@ func newFakeDetector(t *testing.T) *fakeDetector {
 	return f
 }
 
-func (f *fakeDetector) HasFaces() bool   { return !f.noFaces }
-func (f *fakeDetector) HasObjects() bool { return !f.noOb }
+func (f *fakeDetector) HasFaces() bool      { return !f.noFaces }
+func (f *fakeDetector) HasObjects() bool    { return !f.noOb }
+func (f *fakeDetector) HasClassifier() bool { return f.classes != nil }
+
+// Classify answers f.classes whatever the image, counting its calls.
+func (f *fakeDetector) Classify(_ context.Context, img *vips.Image) (*detect.Classification, error) {
+	f.classifies.Add(1)
+	if img.Width() <= 0 {
+		return nil, errs.New(errs.KindInternal, "fake: empty image")
+	}
+	return f.classes, nil
+}
 
 func (f *fakeDetector) Faces(_ context.Context, img *vips.Image) ([]detect.Detection, error) {
 	f.faces.Add(1)
@@ -226,6 +239,147 @@ func TestDetectionsForRequest(t *testing.T) {
 	}
 	if noFaces.faces.Load() != 0 {
 		t.Error("face model called without a face model")
+	}
+}
+
+// fakeClasses is a four-class classification for the fake classifier.
+func fakeClasses() *detect.Classification {
+	return &detect.Classification{
+		Labels: []string{"tench", "Golden Retriever", "tabby cat", "laptop computer"},
+		Scores: []float32{0.05, 0.1, 0.6, 0.25},
+	}
+}
+
+// TestClassifyForRequest: classification is optional (nil without a
+// classifier), shares the detection thumbnail and cache, carries the
+// configured threshold and cap, and a failing classifier is an error.
+func TestClassifyForRequest(t *testing.T) {
+	data, err := os.ReadFile(golden.Fixture(t, detectfix.Cat))
+	if err != nil {
+		t.Fatal(err)
+	}
+	src, err := vips.NewBufferFromReader(bytes.NewReader(data), 1<<26)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer src.Release()
+	ctx := t.Context()
+	log := slog.New(slog.DiscardHandler)
+	needs := plan.DetectionNeeds{Classify: true}
+
+	// No classifier (slim, or detection models only): nothing, no error.
+	for _, d := range []*detections{nil, newDetections(nil, 8, true, codec.Limits{}, log), newDetections(newFakeDetector(t), 8, true, codec.Limits{}, log)} {
+		if got, err := d.forRequest(ctx, imageSource(src, codec.FormatJPEG), needs); got != nil || err != nil {
+			t.Errorf("without a classifier: %+v, %v", got, err)
+		}
+	}
+
+	fake := newFakeDetector(t)
+	fake.classes = fakeClasses()
+	d := newDetections(fake, 8, true, codec.Limits{}, log)
+	d.classifyMinScore, d.classifyTopKMax = 0.01, 3
+	got, err := d.forRequest(ctx, imageSource(src, codec.FormatJPEG), needs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := &plan.Classification{Labels: fake.classes.Labels, Scores: fake.classes.Scores, MinScore: 0.01, MaxTopK: 3}
+	if got.Faces != nil || got.Objects != nil || !cmp.Equal(want, got.Classes) {
+		t.Errorf("classification %+v, want %+v", got, want)
+	}
+	// Detection and classification together: one more model call each,
+	// the classification from the cache.
+	got, err = d.forRequest(ctx, imageSource(src, codec.FormatJPEG), plan.DetectionNeeds{Objects: true, Classify: true})
+	if err != nil || got.Classes == nil || len(got.Objects) == 0 {
+		t.Fatalf("objects and classes: %+v, %v", got, err)
+	}
+	if c, o := fake.classifies.Load(), fake.objs.Load(); c != 1 || o != 1 {
+		t.Errorf("calls: classify %d, objects %d; want 1 and 1", c, o)
+	}
+	if d.cache.len() != 2 {
+		t.Errorf("cache holds %d results", d.cache.len())
+	}
+
+	failing := newFakeDetector(t)
+	failing.classes = fakeClasses()
+	failing.failFaces = true
+	fd := newDetections(failing, 0, true, codec.Limits{}, log)
+	if _, err := fd.forRequest(ctx, imageSource(src, codec.FormatJPEG), plan.DetectionNeeds{Faces: true, Classify: true}); err == nil {
+		t.Error("failing faces with classify: no error")
+	}
+}
+
+// TestClassifyInfo serves /info classify end to end with the fake
+// classifier: imgproxy Pro's shape, the class filter, a 400 for an
+// unknown class, one classification per source (cached), and detection
+// and classification in one request.
+func TestClassifyInfo(t *testing.T) {
+	// Not parallel: see TestDetectDialects.
+	fake := newFakeDetector(t)
+	fake.classes = fakeClasses()
+	a := start(t, detectDialectsConfig(t, ""), hooks{detector: fake})
+	base := "http://" + a.public.String() + "/info/insecure" + noDefaults
+	for _, tc := range []struct {
+		path   string
+		status int
+		want   string
+	}{
+		{
+			"/cl:2/plain/detect/cat-laptop.jpg", http.StatusOK,
+			`{"classification":[{"class_id":2,"name":"tabby cat","confidence":0.6},{"class_id":3,"name":"laptop computer","confidence":0.25}]}`,
+		},
+		{
+			"/classify:5:Golden_Retriever:TENCH/plain/detect/cat-laptop.jpg", http.StatusOK,
+			`{"classification":[{"class_id":1,"name":"Golden Retriever","confidence":0.1},{"class_id":0,"name":"tench","confidence":0.05}]}`,
+		},
+		{"/cl:1:unicorn/plain/detect/cat-laptop.jpg", http.StatusBadRequest, ""},
+		{"/cl:0/plain/detect/cat-laptop.jpg", http.StatusOK, `{}`},
+	} {
+		r := get(t, base+tc.path)
+		if r.status != tc.status {
+			t.Errorf("GET %s: %d %s, want %d", tc.path, r.status, r.body, tc.status)
+			continue
+		}
+		if tc.want == "" {
+			continue
+		}
+		var got, want any
+		if err := json.Unmarshal(r.body, &got); err != nil {
+			t.Fatal(err)
+		}
+		if err := json.Unmarshal([]byte(tc.want), &want); err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(want, got, cmpopts.EquateApprox(0, 1e-6)); diff != "" {
+			t.Errorf("GET %s (-want +got):\n%s", tc.path, diff)
+		}
+		if ig := r.header.Get("X-Xi-Ignored"); ig != "" {
+			t.Errorf("GET %s: X-Xi-Ignored %q", tc.path, ig)
+		}
+	}
+	if n := fake.classifies.Load(); n != 1 {
+		t.Errorf("classifier ran %d times, want once (cached)", n)
+	}
+	r := get(t, base+"/do:1/cl:1/plain/detect/astronaut-dogs.jpg")
+	var body struct {
+		Objects        []json.RawMessage `json:"objects"`
+		Classification []json.RawMessage `json:"classification"`
+	}
+	if err := json.Unmarshal(r.body, &body); r.status != http.StatusOK || err != nil || len(body.Objects) == 0 || len(body.Classification) != 1 {
+		t.Errorf("do:1/cl:1: %d %s", r.status, r.body)
+	}
+	if c := fake.classifies.Load(); c != 2 {
+		t.Errorf("classifier ran %d times, want 2 (two sources)", c)
+	}
+	if !codec.VideoAvailable() {
+		return
+	}
+	// A video is classified on the frame detection uses (WP-91).
+	r = get(t, base+"/cl:1/plain/"+faceVideo)
+	if err := json.Unmarshal(r.body, &body); r.status != http.StatusOK || err != nil || len(body.Classification) != 1 {
+		t.Errorf("video cl:1: %d %s", r.status, r.body)
+	}
+	if c := fake.classifies.Load(); c != 3 {
+		t.Errorf("classifier ran %d times, want 3", c)
 	}
 }
 
@@ -424,6 +578,12 @@ func TestDetectUnavailable(t *testing.T) {
 	if r := get(t, base+"/info/insecure/do:1/plain/detect/astronaut-dogs.jpg"); r.status != http.StatusUnprocessableEntity {
 		t.Errorf("/info do:1: %d %s", r.status, r.body)
 	}
+	// Classification is optional: answered without it, and said so.
+	r := get(t, base+"/info/insecure"+noDefaults+"/cl:3/plain/detect/astronaut-dogs.jpg")
+	if r.status != http.StatusOK || string(r.body) != "{}" ||
+		r.header.Get("X-Xi-Ignored") != "classify (classification needs the full image)" {
+		t.Errorf("/info cl:3: %d %s, X-Xi-Ignored %q", r.status, r.body, r.header.Get("X-Xi-Ignored"))
+	}
 	// An unknown class is a client error before anything is detected.
 	if r := get(t, base+"/insecure/rs:fill:10:10/g:obj:unicorn/plain/detect/astronaut-dogs.jpg"); r.status != http.StatusBadRequest {
 		t.Errorf("unknown class: %d %s", r.status, r.body)
@@ -505,6 +665,21 @@ func TestDetectModels(t *testing.T) {
 	for _, tc := range detectDialectCases(t)[:2] {
 		img := getPNG(t, base+tc.path)
 		golden.Compare(t, "app/detect-"+tc.name, img, golden.Options{Tolerance: 0.05})
+	}
+	// WP-110: the shipped classifier reads the cat on the laptop.
+	r = get(t, base+"/info/insecure"+noDefaults+"/cl:5/plain/detect/cat-laptop.jpg")
+	var classes struct {
+		Classification []struct {
+			ClassID    int     `json:"class_id"`
+			Name       string  `json:"name"`
+			Confidence float64 `json:"confidence"`
+		} `json:"classification"`
+	}
+	if err := json.Unmarshal(r.body, &classes); r.status != http.StatusOK || err != nil || len(classes.Classification) != 5 {
+		t.Fatalf("/info cl:5: %d %s", r.status, r.body)
+	}
+	if c := classes.Classification[0]; c.ClassID != 284 || c.Name != "Siamese cat" || c.Confidence < 0.4 {
+		t.Errorf("top class %+v, want Siamese cat (the reference reading, testdata/classify)", c)
 	}
 	if !codec.VideoAvailable() {
 		return

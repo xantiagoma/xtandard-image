@@ -516,16 +516,16 @@
             "x-xi-syntax": "md5, sha1, sha256, sha512…"
           },
           "classify": {
-            "description": "Classify the image (no classification model is shipped). URL: `classify`, `cl`; arguments top_k:classes…; default 0.",
+            "description": "Classify the image with the ImageNet classifier of the full image and report the top_k classes (ignored on slim). URL: `classify`, `cl`; arguments top_k:class_names…; default 0.",
             "examples": [
               [
                 3
               ]
             ],
             "items": {
-              "description": "face, a COCO object class (person, car, dog, traffic_light, ...) or supercategory (vehicle, animal, ...)",
+              "description": "a classifier class name (ImageNet-1k by default: tabby_cat, golden_retriever, pizza, ...; case-insensitive, _ for a space)",
               "pattern": "^.+$",
-              "title": "class",
+              "title": "class_name",
               "type": "string"
             },
             "minItems": 1,
@@ -543,10 +543,10 @@
               "cl"
             ],
             "x-xi-default": "0",
-            "x-xi-milestone": "not implemented",
+            "x-xi-milestone": "M4 (WP-110)",
             "x-xi-pro": true,
             "x-xi-scope": "request",
-            "x-xi-syntax": "top_k:classes…"
+            "x-xi-syntax": "top_k:class_names…"
           },
           "colorspace": {
             "description": "Report the libvips interpretation. URL: `colorspace`, `cs`; arguments bool; default false.",
@@ -5587,31 +5587,30 @@
         },
         "type": "object"
       },
-      "InfoContainer": {
+      "InfoClass": {
         "additionalProperties": false,
         "properties": {
-          "content": {
-            "description": "What the image is to the document: composite (full-size flattened image), thumbnail (reduced copy), preview (first page) or document (SVGZ: the whole document, decompressed).",
-            "type": "string"
+          "class_id": {
+            "description": "Class index in the classifier's output (the ImageNet-1k class id by default).",
+            "format": "int64",
+            "type": "integer"
           },
-          "entry": {
-            "description": "Where the image was found: the path inside the archive (mergedimage.png, QuickLook/Thumbnail.png, previews/preview.png, ...), gzip for SVGZ, header thumbnail for Paint.NET.",
-            "type": "string"
+          "confidence": {
+            "description": "Class probability, 0-1.",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
           },
-          "format": {
-            "description": "Container format: ora (OpenRaster), kra (Krita), procreate, sketch, svgz or pdn (Paint.NET).",
-            "type": "string"
-          },
-          "mime_type": {
-            "description": "Media type of the container, e.g. image/openraster.",
+          "name": {
+            "description": "Class name (ImageNet-1k: tabby cat, golden retriever, pizza, ...).",
             "type": "string"
           }
         },
         "required": [
-          "format",
-          "mime_type",
-          "entry",
-          "content"
+          "class_id",
+          "name",
+          "confidence"
         ],
         "type": "object"
       },
@@ -5816,13 +5815,19 @@
             "description": "BlurHash string (info option blurhash).",
             "type": "string"
           },
+          "classification": {
+            "description": "The top_k classes of the image classifier (ImageNet-1k by default), best first; absent when no classifier is available (the option is then listed in X-Xi-Ignored) (info option classify).",
+            "items": {
+              "$ref": "#/components/schemas/InfoClass"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "colorspace": {
             "description": "libvips interpretation name: srgb, b-w, rgb16, cmyk, ... (info option colorspace).",
             "type": "string"
-          },
-          "container": {
-            "$ref": "#/components/schemas/InfoContainer",
-            "description": "xtandard-image extension (info option format): the source is a designer document (OpenRaster, Krita, Procreate, Sketch, SVGZ, Paint.NET) and format, dimensions and the other fields describe the image embedded in it; absent otherwise."
           },
           "crop": {
             "$ref": "#/components/schemas/InfoCrop",
@@ -6327,16 +6332,6 @@
               "null"
             ]
           },
-          "info_options": {
-            "description": "imgproxy /info options (internal/apidoc, the ImgproxyInfoOptions schema) for the Info panel's builder.",
-            "items": {
-              "$ref": "#/components/schemas/PlaygroundOption"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
           "max_upload_bytes": {
             "description": "Largest upload in bytes (XI_LIMITS_MAX_SRC_BYTES).",
             "format": "int64",
@@ -6419,7 +6414,6 @@
           "signing",
           "mounts",
           "catalogues",
-          "info_options",
           "presets",
           "sources",
           "formats",
@@ -6545,10 +6539,6 @@
               "null"
             ]
           },
-          "default": {
-            "description": "Value used when the option is absent, as imgproxy documents it (info options).",
-            "type": "string"
-          },
           "doc": {
             "description": "One-line description.",
             "type": "string"
@@ -6568,7 +6558,7 @@
             ]
           },
           "group": {
-            "description": "Builder category; report, hashes and security are Info panel groups.",
+            "description": "Builder category.",
             "enum": [
               "size",
               "gravity",
@@ -6581,10 +6571,7 @@
               "detection",
               "delivery",
               "presets",
-              "other",
-              "report",
-              "hashes",
-              "security"
+              "other"
             ],
             "type": "string"
           },
