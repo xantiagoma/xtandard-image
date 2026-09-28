@@ -45,7 +45,7 @@ func main() {
 
 func run(args []string) error {
 	if len(args) < 2 {
-		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|watermark-badge|gif|gif-anim|ico-png|ico-bmp|icns|eps-preview|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb|exr-rgba-half|exr-rgb-float|radiance|rgbe|pfm|ppm|hdr-stats|dng|video-frames|fits|procreate|sketch|pdn|svgz|dds-bc1|dds-bc4|dds-bc7|dds-bc6h|ktx2-bc1|ktx2-bc4|ktx2-bc7|ktx2-bc6h|ktx2-rgba8|ktx2-rgb8|ktx2-rgba8-zlib|ktx2-rgba8-level|ktx2-rgba8-zstd|lab-tiff8|lab-tiff16|lab-tiff8-alpha|lab-tiff8-icc|cmyk-raw|mng> args...")
+		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|watermark-badge|gif|gif-anim|ico-png|ico-bmp|icns|eps-preview|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb|exr-rgba-half|exr-rgb-float|radiance|rgbe|pfm|ppm|hdr-stats|dng|video-frames|fits|procreate|sketch|pdn|svgz|dds-bc1|dds-bc4|dds-bc7|dds-bc6h|ktx2-bc1|ktx2-bc4|ktx2-bc7|ktx2-bc6h|ktx2-rgba8|ktx2-rgb8|ktx2-rgba8-zlib|ktx2-rgba8-level|ktx2-rgba8-zstd|lab-tiff8|lab-tiff16|lab-tiff8-alpha|lab-tiff8-icc|cmyk-raw|mng|dicom|dicom-phantom> args...")
 	}
 	sizeArgs := func() (int, int, string, error) {
 		if len(args) != 4 {
@@ -196,6 +196,17 @@ func run(args []string) error {
 			return err
 		}
 		return writeFITSFixtures(out, w, h)
+	case "dicom":
+		if len(args) != 2 && len(args) != 3 {
+			return errors.New("dicom: want out-dir [ct.j2k]")
+		}
+		j2k := ""
+		if len(args) == 3 {
+			j2k = args[2]
+		}
+		return writeDICOMFixtures(args[1], j2k)
+	case "dicom-phantom":
+		return writePhantomPNG(args[1])
 	case "procreate":
 		return writeProcreate(args[1])
 	case "sketch":

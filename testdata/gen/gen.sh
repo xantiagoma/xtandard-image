@@ -251,6 +251,14 @@ gen fits 64 48 "$F/fits"
 if [ -z "${XI_SKIP_FPACK:-}" ]; then
 	sh testdata/gen/fits-fpack.sh
 fi
+# WP-108: synthetic DICOM files (testdata/gen/dicom.go): made-up patient
+# elements carrying XIPRIVACYMARKER, pixels from photo() or a CT phantom;
+# ct-j2k.dcm wraps the codestream of a lossless JPEG 2000 of the phantom
+# written by libvips.
+mkdir -p "$F"/dicom
+gen dicom-phantom "$T/phantom.png"
+vips jp2ksave "$T/phantom.png" "$T/phantom.jp2" --lossless
+gen dicom "$F/dicom" "$T/phantom.jp2"
 # Reference decodes for internal/codec (Pillow, NumPy): run by hand,
 # testdata/golden/codec/reference.py.
 
