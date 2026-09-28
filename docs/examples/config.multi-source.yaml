@@ -1,0 +1,127 @@
+# yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json
+#
+# Several sources of the same type side by side (docs/SOURCES.md). Nothing
+# secret is written here: every credential is a {file: …} reference to a
+# Docker or Kubernetes secret, so this file can live in git or a ConfigMap.
+# config.multi-source.toml is the same configuration in TOML; a test in
+# internal/config loads both and checks they are equal.
+
+signing:
+  keys: [{ file: /run/secrets/xi_signing_key }]
+  salts: [{ file: /run/secrets/xi_signing_salt }]
+
+sources:
+  # AWS S3. No keys: the AWS default chain (IRSA, ECS task role, EC2
+  # instance profile, AWS_* variables) signs the requests.
+  aws:
+    type: s3
+    region: eu-west-1
+    buckets: [acme-media, "acme-tenant-*"]
+    bucket: acme-media
+
+  # Cloudflare R2 (S3 API). Replace ACCOUNT_ID with your account id.
+  r2:
+    type: s3
+    endpoint: https://ACCOUNT_ID.r2.cloudflarestorage.com
+    region: auto
+    buckets: [assets]
+    bucket: assets
+    access_key_id: R2_ACCESS_KEY_ID
+    secret_access_key: { file: /run/secrets/r2_secret_access_key }
+
+  # Backblaze B2 (S3-compatible API): the endpoint names the bucket's region.
+  b2:
+    type: s3
+    endpoint: https://s3.us-west-004.backblazeb2.com
+    region: us-west-004
+    buckets: [acme-archive]
+    bucket: acme-archive
+    access_key_id: B2_KEY_ID
+    secret_access_key: { file: /run/secrets/b2_application_key }
+
+  # RustFS or MinIO next to the service: path-style addressing. Its bucket
+  # has the same name as R2's, so it is reached with xi://rustfs/<key>.
+  rustfs:
+    type: s3
+    endpoint: http://rustfs:9000
+    region: us-east-1
+    force_path_style: true
+    buckets: [assets]
+    bucket: assets
+    prefix: public/
+    access_key_id: xi-reader
+    secret_access_key: { file: /run/secrets/rustfs_secret_key }
+
+  # Google Cloud Storage with a service-account key. Without
+  # credentials_json, Application Default Credentials are used (GKE
+  # Workload Identity, GOOGLE_APPLICATION_CREDENTIALS).
+  gcs:
+    type: gcs
+    buckets: [acme-gcs-images]
+    bucket: acme-gcs-images
+    credentials_json: { file: /run/secrets/gcs_service_account.json }
+
+  # Azure Blob Storage with a container SAS token (read + list is enough).
+  azure:
+    type: azure
+    account: acmeimages
+    buckets: [media]
+    bucket: media
+    sas_token: { file: /run/secrets/azure_sas_token }
+
+  # Two local directories. Every fs source is jailed in its root.
+  photos:
+    type: fs
+    root: /data/photos
+  uploads:
+    type: fs
+    root: /data/uploads
+    prefix: public/
+
+  # A partner's SFTP server. host_key is the server's public key
+  # (ssh-keyscan -p 2222 sftp.partner.example); it is mandatory.
+  partner-sftp:
+    type: sftp
+    host: sftp.partner.example
+    port: 2222
+    user: xi
+    private_key: { file: /run/secrets/partner_sftp_key }
+    host_key: "sftp.partner.example ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIReplaceWithTheOutputOfSshKeyscan"
+    root: /outgoing/images
+
+  # A legacy FTP server over explicit TLS.
+  legacy-ftp:
+    type: ftp
+    host: ftp.example.com
+    tls: true
+    user: images
+    password: { file: /run/secrets/legacy_ftp_password }
+
+  # Public web images: https only, two hosts.
+  web:
+    type: http
+    allow:
+      - https://images.unsplash.com
+      - https://upload.wikimedia.org/wikipedia/commons/
+
+  # A private CMS: relative keys are joined to base_url, and every request
+  # carries the Authorization header.
+  cms:
+    type: http
+    base_url: https://cms.example.com/media/
+    headers:
+      Authorization: { file: /run/secrets/cms_authorization }
+
+dialects:
+  # Relative imgproxy sources (/<sig>/rs:fit:300:0/plain/cat.jpg) read the
+  # r2 bucket "assets".
+  imgproxy:
+    source: r2
+  # Host-bound imgix mounts, one source each.
+  imgix:
+    enabled: true
+    hosts: [images.example.com]
+    source: r2
+    mounts:
+      - hosts: [archive-images.example.com]
+        source: b2

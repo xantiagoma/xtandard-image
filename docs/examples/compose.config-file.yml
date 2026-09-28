@@ -1,0 +1,54 @@
+# The sources of config.multi-source.yaml, mounted as the config file, with
+# every credential a Docker secret the file points at with {file: …}
+# (docs/SOURCES.md). A test in internal/config loads this service's
+# environment, config file and secrets.
+#
+# Put the secret files in ./secrets/ (one value each, no quotes) and make
+# them readable by the container user (uid 65532): chmod 0444 secrets/*.
+services:
+  xtandard-image:
+    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:slim}
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "127.0.0.1:9090:9090"
+    environment:
+      XI_CONFIG_FILE: /etc/xtandard/config.yaml
+      XI_ADMIN_ADDR: ":9090"
+      # An environment variable still wins over the file, per field:
+      XI_SOURCES_AWS_REGION: eu-west-1
+    volumes:
+      - ./config.multi-source.yaml:/etc/xtandard/config.yaml:ro
+      - photos:/data/photos:ro
+      - uploads:/data/uploads:ro
+    secrets:
+      - xi_signing_key
+      - xi_signing_salt
+      - r2_secret_access_key
+      - b2_application_key
+      - rustfs_secret_key
+      - source: gcs_service_account
+        target: gcs_service_account.json
+      - azure_sas_token
+      - partner_sftp_key
+      - legacy_ftp_password
+      - cms_authorization
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+
+secrets:
+  xi_signing_key: { file: ./secrets/xi_signing_key }
+  xi_signing_salt: { file: ./secrets/xi_signing_salt }
+  r2_secret_access_key: { file: ./secrets/r2_secret_access_key }
+  b2_application_key: { file: ./secrets/b2_application_key }
+  rustfs_secret_key: { file: ./secrets/rustfs_secret_key }
+  gcs_service_account: { file: ./secrets/gcs_service_account.json }
+  azure_sas_token: { file: ./secrets/azure_sas_token }
+  partner_sftp_key: { file: ./secrets/partner_sftp_key }
+  legacy_ftp_password: { file: ./secrets/legacy_ftp_password }
+  cms_authorization: { file: ./secrets/cms_authorization }
+
+volumes:
+  photos:
+  uploads:
