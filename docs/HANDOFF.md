@@ -84,6 +84,15 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   must decide whether the Adobe DNG SDK (indemnity clause, `LicenseRef-Adobe-DNG-SDK`) ships in all
   flavours or only `gpl` (recommended). Integrate 103 + 107 policy + 110 model in one base revision. Batch 2 (WP-104, 106, 108) not launched.
   Follow-ups renumbered: WP-113 shim float rounding, WP-114 CMYK BPC.
+- **Owner decisions 2026-09-28 (late): Adobe DNG SDK ONLY in `gpl`** (slim/full LibRaw = snapshot +
+  X3F; gpl adds DNG SDK + GPR; slim/full keep WP-101 preview/422 for JPEG XL DNG and GPR). **Owner
+  allowed deleting Docker images not used by any container** (keep `xtandard-base:dev*`,
+  `xtandard-image:main-gpl`, and `wp103*`/`wp110*` until the integrated bases exist); volumes and
+  containers are NOT authorised. **Next action (blocked only by transient permission-classifier
+  errors):** one integration agent: prune images → branch `m4/base-integration` from main with WP-110
+  then WP-103 (DNG SDK/GPR confined to gpl), one revision bump (slim r6 / full r7 / gpl r8), build
+  bases (`dev*`), lint/test on slim/full/gpl, acceptance, by-hand checks, push; then orchestrator
+  merges, rebuilds the demo, and launches batch 2 (WP-104, 106, 108).
 - **Backlog after M3 (WP-91+):** face/object gravity on a single-frame video answers 422 (detection
   hands the container bytes to libvips; fix = detect on the decoded frame; composites already skip
   detection); `classify` has no model; detections are not used in chained pipelines; `/info` capability listing (encoders).
