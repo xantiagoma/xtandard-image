@@ -15,6 +15,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/codec/encode"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/exec"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/ssim"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
@@ -34,6 +35,8 @@ func TestGoldenHDR(t *testing.T) {
 		{c: goldenCase{name: "hdr-radiance", fixture: "hdr/scene.hdr", options: "rs:fit:64:0", out: transform.FormatJPEG, w: 64, h: 43}},
 		{c: goldenCase{name: "hdr-rgbe", fixture: "hdr/rgbe.hdr", out: transform.FormatPNG, w: 48, h: 32}},
 		{c: goldenCase{name: "hdr-pfm", fixture: "pfm/scene.pfm", out: transform.FormatPNG, w: 64, h: 48}},
+		// BC6H (unsigned half floats) decoded in Go (codec/dds, WP-105).
+		{c: goldenCase{name: "hdr-dds-bc6h", fixture: "dds/bc6h-scene.dds", out: transform.FormatPNG, w: 48, h: 32}},
 		{c: goldenCase{name: "ppm-photo", fixture: "ppm/photo.ppm", out: transform.FormatPNG, w: 96, h: 64}},
 		// The other operators on the same source.
 		{c: goldenCase{name: "hdr-radiance-aces", fixture: "hdr/scene.hdr", out: transform.FormatPNG, w: 96, h: 64}, tm: exec.ToneMapACES},
@@ -44,6 +47,30 @@ func TestGoldenHDR(t *testing.T) {
 			o := runToneMap(t, readFixture(t, tc.c.fixture), tc.c.options, tc.c.out, tc.tm)
 			checkOutput(t, &tc.c, &o)
 			golden.Compare(t, "exec/"+tc.c.name, o.img, golden.Options{Tolerance: tc.c.tolerance})
+		})
+	}
+}
+
+// TestDDSBC6HMatchesEXR checks that a BC6H texture is tone-mapped like the
+// OpenEXR path: bc6h-scene.dds is exr/rgb-float.exr's scene (48x32) block
+// compressed, so with every operator both render the same picture up to
+// the compression error (a clipped copy would lose the sun's glow).
+func TestDDSBC6HMatchesEXR(t *testing.T) {
+	t.Parallel()
+	dds, exr := readFixture(t, "dds/bc6h-scene.dds"), readFixture(t, "exr/rgb-float.exr")
+	for _, tm := range []exec.ToneMap{exec.ToneMapReinhard, exec.ToneMapACES, exec.ToneMapClip} {
+		t.Run(tm.String(), func(t *testing.T) {
+			t.Parallel()
+			a := runToneMap(t, dds, "", transform.FormatPNG, tm)
+			b := runToneMap(t, exr, "", transform.FormatPNG, tm)
+			res, err := ssim.Compare(a.img, b.img)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Logf("DSSIM(bc6h, exr) = %.4f", res.DSSIM)
+			if res.DSSIM > 0.02 {
+				t.Errorf("DSSIM(bc6h, exr) = %.4f, want <= 0.02", res.DSSIM)
+			}
 		})
 	}
 }

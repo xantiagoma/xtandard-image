@@ -104,6 +104,18 @@ func inspect(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Setting
 		info.SampleFormat, info.Colorspace = "uchar", "srgb"
 		info.Video = m.Video
 		return info, nil
+	case FormatDDS:
+		// Described from the Go header (codec/dds): 8-bit sRGB, or float
+		// scRGB for HDR textures; grey textures decode to RGB.
+		info.Bands = 3
+		if m.HasAlpha {
+			info.Bands = 4
+		}
+		info.SampleFormat, info.Colorspace = "uchar", "srgb"
+		if m.HDR {
+			info.SampleFormat, info.Colorspace = "float", "scrgb"
+		}
+		return info, nil
 	case FormatEXR:
 		// Described from the Go header: loading would spool the file for
 		// OpenEXR. The pipeline sees float scRGB, alpha only when present.
@@ -117,6 +129,18 @@ func inspect(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Setting
 	}
 	if err := ctxErr(ctx); err != nil {
 		return Info{}, err
+	}
+	lab := false
+	if m.Format == FormatTIFF {
+		// A CIE L*a*b* TIFF is read from its relabelled copy (probeTIFF).
+		if l, ok := ParseLabTIFF(buf.Bytes()); ok {
+			pb, err := l.Patch(buf)
+			if err != nil {
+				return Info{}, err
+			}
+			defer pb.Release()
+			buf, lab = pb, true
+		}
 	}
 	// A header-only load: nothing below requests pixels.
 	img, err := vips.Load(ctx, buf, &vips.LoadOptions{Access: vips.AccessSequential, FailOn: vips.FailOnError})
@@ -139,6 +163,9 @@ func inspect(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Setting
 	}
 	info.SampleFormat = bandFormatName(img.BandFormat())
 	info.Colorspace = interpretationName(img.Interpretation())
+	if lab {
+		info.Colorspace = interpretationName(vips.InterpretationLab)
+	}
 	for _, f := range img.Fields() {
 		ifd, name, ok := imagemeta.EXIFField(string(f))
 		if !ok {

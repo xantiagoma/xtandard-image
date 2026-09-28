@@ -431,6 +431,27 @@ func NewFromMemory(ctx context.Context, pix []byte, width, height, bands int, fo
 	return newImage(out, nil), nil
 }
 
+// NewFromFloats copies band-interleaved float32 samples into a new libvips
+// image of VIPS_FORMAT_FLOAT (codec/dds decodes HDR textures in Go).
+// len(pix) must be width × height × bands.
+func NewFromFloats(ctx context.Context, pix []float32, width, height, bands int) (*Image, error) {
+	if err := ctxError(ctx, "vips: new from floats"); err != nil {
+		return nil, err
+	}
+	if len(pix) == 0 || width <= 0 || height <= 0 || bands <= 0 || len(pix) != width*height*bands {
+		return nil, errs.Newf(errs.KindInternal, "vips: new from floats: %d samples for %dx%dx%d",
+			len(pix), width, height, bands)
+	}
+	var out *C.VipsImage
+	var cerr *C.char
+	rc := C.xi_new_from_memory(unsafe.Pointer(&pix[0]), C.size_t(4*len(pix)), C.int(width),
+		C.int(height), C.int(bands), C.int(BandFormatFloat), &out, &cerr)
+	if err := opError(rc, "new_from_memory", cerr, nil); err != nil {
+		return nil, err
+	}
+	return newImage(out, nil), nil
+}
+
 // NewFromBuffer wraps band-interleaved pixels held in buf as a libvips
 // image without copying (internal/video/ffmpeg decodes frames straight into
 // a Buffer). buf must hold at least width × height × bands × the sample

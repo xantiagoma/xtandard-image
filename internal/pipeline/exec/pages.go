@@ -44,7 +44,7 @@ func (r *runner) loadStack(ctx context.Context, ls *plan.LoadStep) (*vips.Image,
 			return nil, err
 		}
 		one.Page = ls.Page + i
-		p, err := r.a.Add(vips.Load(ctx, r.j.Source, r.loadOptions(&one, nil)))
+		p, err := r.loadSource(ctx, r.loadOptions(&one, nil))
 		if err != nil {
 			return nil, err
 		}

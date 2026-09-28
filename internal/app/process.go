@@ -167,6 +167,7 @@ func (p *codecProber) Probe(ctx context.Context, src fetch.Buffer, lim server.Pr
 		HasAlpha:    m.HasAlpha,
 		IsAnimated:  m.IsAnimated,
 		Orientation: m.Orientation,
+		HDR:         m.HDR,
 		Video:       m.Video,
 		Raw:         m.Raw,
 	}
@@ -512,7 +513,7 @@ func planMeta(f codec.Format, m *server.SourceMeta, pdfDPI float64, eps bool) pl
 		Format:      name,
 		IsVector:    vector,
 		Density:     density,
-		HDR:         f.HDR(),
+		HDR:         f.HDR() || m.HDR,
 		IsVideo:     f.IsVideo(),
 	}
 	if m.Composite && m.Video != nil {

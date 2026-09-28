@@ -28,13 +28,6 @@ type LegacyHeader struct {
 // per side anyway).
 const legacyMaxSide = 1 << 16
 
-// DDS pixel-format flags and FourCCs.
-const (
-	ddpfAlphaPixels = 0x1
-	ddpfFourCC      = 0x4
-	ddpfLuminance   = 0x20000
-)
-
 // ParseLegacyHeader reads the header of f, one of the Format.IsMagick
 // formats. Truncated or inconsistent headers fail with errs.KindCorrupt.
 func ParseLegacyHeader(f Format, b []byte) (LegacyHeader, error) {
@@ -45,8 +38,6 @@ func ParseLegacyHeader(f Format, b []byte) (LegacyHeader, error) {
 		h, err = tgaHeader(b)
 	case FormatPCX:
 		h, err = pcxHeader(b)
-	case FormatDDS:
-		h, err = ddsHeader(b)
 	case FormatQOI:
 		h, err = qoiHeader(b)
 	case FormatSGI:
@@ -118,29 +109,6 @@ func pcxHeader(b []byte) (LegacyHeader, error) {
 		Alpha:  planes == 4 && b[3] == 8,
 		Grey:   planes == 1 && b[3] == 1,
 	}, nil
-}
-
-// ddsHeader: DDS_HEADER after the magic: height at 12, width at 16, the
-// pixel format (flags, FourCC) at 80 and 84 (LE).
-func ddsHeader(b []byte) (LegacyHeader, error) {
-	if len(b) < 128 || !has(b, magicDDS) {
-		return LegacyHeader{}, legacyCorrupt(FormatDDS, "bad header")
-	}
-	le := binary.LittleEndian
-	flags, fourCC := le.Uint32(b[80:]), string(b[84:88])
-	h := LegacyHeader{
-		Width:  int(min(le.Uint32(b[16:]), legacyMaxSide+1)),
-		Height: int(min(le.Uint32(b[12:]), legacyMaxSide+1)),
-		Alpha:  flags&ddpfAlphaPixels != 0,
-		Grey:   flags&ddpfLuminance != 0,
-	}
-	if flags&ddpfFourCC != 0 {
-		switch fourCC {
-		case "DXT2", "DXT3", "DXT4", "DXT5", "DX10":
-			h.Alpha = true
-		}
-	}
-	return h, nil
 }
 
 // qoiHeader: "qoif", width and height (BE), channels (3 or 4).

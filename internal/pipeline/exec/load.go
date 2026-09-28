@@ -34,9 +34,9 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 			img, err = r.loadStack(ctx, ls)
 			break
 		}
-		img, err = r.a.Add(vips.Load(ctx, r.j.Source, r.loadOptions(ls, anim)))
+		img, err = r.loadSource(ctx, r.loadOptions(ls, anim))
 	default:
-		img, err = r.a.Add(vips.Load(ctx, r.j.Source, r.loadOptions(ls, anim)))
+		img, err = r.loadSource(ctx, r.loadOptions(ls, anim))
 	}
 	if err != nil {
 		return nil, err
@@ -66,11 +66,23 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 // formatXCF is the Job.Meta.Format of GIMP XCF sources.
 const formatXCF = "xcf"
 
+// loadSource loads the source through libvips with o. A CIE L*a*b* TIFF,
+// which libvips 8.18 cannot read as such, is loaded from a copy relabelled
+// RGB and converted to 8-bit sRGB (codec.LoadLabTIFF), one page at a time.
+func (r *runner) loadSource(ctx context.Context, o *vips.LoadOptions) (*vips.Image, error) {
+	if r.j.Meta.Format == "tiff" {
+		if l, ok := codec.ParseLabTIFF(r.j.Source.Bytes()); ok {
+			return codec.LoadLabTIFF(ctx, r.a, &l, r.j.Source, o)
+		}
+	}
+	return r.a.Add(vips.Load(ctx, r.j.Source, o))
+}
+
 // ownFormat reports the formats decoded by the pure-Go loaders
-// (codec.DecodeOwn): BMP, ICO, WBMP and ICNS.
+// (codec.DecodeOwn): BMP, ICO, WBMP, ICNS and DDS.
 func ownFormat(format string) bool {
 	switch format {
-	case "bmp", "ico", "wbmp", "icns":
+	case "bmp", "ico", "wbmp", "icns", "dds":
 		return true
 	default:
 		return false
@@ -111,9 +123,10 @@ func (r *runner) loadOptions(ls *plan.LoadStep, anim *plan.AnimationStep) *vips.
 	return o
 }
 
-// loadGo decodes BMP, ICO, WBMP and ICNS with the pure-Go loaders. A PNG,
-// JPEG or JPEG 2000 stream embedded in the container is loaded by libvips
-// from a C copy.
+// loadGo decodes BMP, ICO, WBMP, ICNS and DDS with the pure-Go loaders. A
+// PNG, JPEG or JPEG 2000 stream embedded in the container is loaded by
+// libvips from a C copy; an HDR texture becomes float scRGB, which the
+// colour step tone-maps (fromHDR).
 func (r *runner) loadGo(ctx context.Context) (*vips.Image, error) {
 	f, err := codec.ParseFormat(r.j.Meta.Format)
 	if err != nil {
@@ -131,6 +144,16 @@ func (r *runner) loadGo(ctx context.Context) (*vips.Image, error) {
 		defer buf.Release() // the image keeps its own reference
 		copy(buf.Bytes(), d.Embedded)
 		return r.a.Add(vips.Load(ctx, buf, &vips.LoadOptions{Access: vips.AccessRandom, FailOn: r.e.cfg.FailOn}))
+	}
+	if fl := d.Float; fl != nil {
+		if err := fl.Validate(); err != nil {
+			return nil, errs.Wrap(errs.KindCorrupt, err)
+		}
+		img, err := r.a.Add(vips.NewFromFloats(ctx, fl.Data, fl.Width, fl.Height, fl.Bands))
+		if err != nil {
+			return nil, err
+		}
+		return r.a.Add(img.Copy(ctx, vips.CopyOptions{Interpretation: vips.InterpretationScRGB}))
 	}
 	raw := d.Raw
 	if raw == nil {

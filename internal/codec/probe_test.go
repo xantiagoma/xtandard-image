@@ -160,15 +160,32 @@ func TestProbeFixtures(t *testing.T) {
 		"jxr/gray.jxr":  with(still(codec.FormatJXR, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
 		"jxr/hdr.jxr":   still(codec.FormatJXR, 48, 32),
 		// Legacy formats: headers parsed in Go, decoded by ImageMagick.
-		"tga/alpha.tga":      with(still(codec.FormatTGA, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
-		"tga/photo-rle.tga":  still(codec.FormatTGA, 64, 48),
-		"pcx/photo.pcx":      still(codec.FormatPCX, 64, 48),
+		"tga/alpha.tga":     with(still(codec.FormatTGA, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"tga/photo-rle.tga": still(codec.FormatTGA, 64, 48),
+		"pcx/photo.pcx":     still(codec.FormatPCX, 64, 48),
+		// DDS: header parsed and pixels decoded in Go (codec/dds, WP-105).
 		"dds/photo-dxt1.dds": still(codec.FormatDDS, 64, 48),
 		"dds/alpha-dxt5.dds": with(still(codec.FormatDDS, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
-		"qoi/alpha.qoi":      with(still(codec.FormatQOI, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
-		"sgi/photo.sgi":      still(codec.FormatSGI, 64, 48),
-		"sgi/alpha.sgi":      with(still(codec.FormatSGI, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
-		"sun/photo.ras":      still(codec.FormatSunRaster, 64, 48),
+		"dds/bc1-dx10.dds":   with(still(codec.FormatDDS, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"dds/bc4.dds":        with(still(codec.FormatDDS, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceGrey }),
+		"dds/bc7-alpha.dds":  with(still(codec.FormatDDS, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"dds/bc6h-scene.dds": with(still(codec.FormatDDS, 48, 32), func(m *codec.ImageMeta) {
+			m.BitDepth, m.ColorSpace, m.HDR = 32, codec.ColorSpaceScRGB, true
+		}),
+		// WP-105: CIE L*a*b* TIFF (probed from a copy relabelled RGB) and
+		// CMYK JPEG XL (the shim's jxlcmykload).
+		"tiff/lab8.tif":       with(still(codec.FormatTIFF, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceLab }),
+		"tiff/lab8-icc.tif":   with(still(codec.FormatTIFF, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace, m.HasICC = codec.ColorSpaceLab, true }),
+		"tiff/lab8-alpha.tif": with(still(codec.FormatTIFF, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace, m.HasAlpha = codec.ColorSpaceLab, true }),
+		"tiff/lab16.tif":      with(still(codec.FormatTIFF, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace, m.BitDepth = codec.ColorSpaceLab, 16 }),
+		"jxl/cmyk.jxl":        with(still(codec.FormatJXL, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace, m.HasICC = codec.ColorSpaceCMYK, true }),
+		"jxl/cmyk-alpha.jxl": with(still(codec.FormatJXL, 64, 48), func(m *codec.ImageMeta) {
+			m.ColorSpace, m.HasICC, m.HasAlpha = codec.ColorSpaceCMYK, true, true
+		}),
+		"qoi/alpha.qoi": with(still(codec.FormatQOI, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"sgi/photo.sgi": still(codec.FormatSGI, 64, 48),
+		"sgi/alpha.sgi": with(still(codec.FormatSGI, 64, 48), func(m *codec.ImageMeta) { m.HasAlpha = true }),
+		"sun/photo.ras": still(codec.FormatSunRaster, 64, 48),
 		"xbm/graphic.xbm": with(still(codec.FormatXBM, 48, 36), func(m *codec.ImageMeta) {
 			m.ColorSpace, m.BitDepth = codec.ColorSpaceGrey, 1
 		}),
