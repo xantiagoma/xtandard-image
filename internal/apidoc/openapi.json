@@ -5614,6 +5614,34 @@
         ],
         "type": "object"
       },
+      "InfoContainer": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "description": "What the image is to the document: composite (full-size flattened image), thumbnail (reduced copy), preview (first page) or document (SVGZ: the whole document, decompressed).",
+            "type": "string"
+          },
+          "entry": {
+            "description": "Where the image was found: the path inside the archive (mergedimage.png, QuickLook/Thumbnail.png, previews/preview.png, ...), gzip for SVGZ, header thumbnail for Paint.NET.",
+            "type": "string"
+          },
+          "format": {
+            "description": "Container format: ora (OpenRaster), kra (Krita), procreate, sketch, svgz or pdn (Paint.NET).",
+            "type": "string"
+          },
+          "mime_type": {
+            "description": "Media type of the container, e.g. image/openraster.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "format",
+          "mime_type",
+          "entry",
+          "content"
+        ],
+        "type": "object"
+      },
       "InfoCrop": {
         "additionalProperties": false,
         "properties": {
@@ -5828,6 +5856,10 @@
           "colorspace": {
             "description": "libvips interpretation name: srgb, b-w, rgb16, cmyk, ... (info option colorspace).",
             "type": "string"
+          },
+          "container": {
+            "$ref": "#/components/schemas/InfoContainer",
+            "description": "xtandard-image extension (info option format): the source is a designer document (OpenRaster, Krita, Procreate, Sketch, SVGZ, Paint.NET) and format, dimensions and the other fields describe the image embedded in it; absent otherwise."
           },
           "crop": {
             "$ref": "#/components/schemas/InfoCrop",
@@ -6332,6 +6364,16 @@
               "null"
             ]
           },
+          "info_options": {
+            "description": "imgproxy /info options (internal/apidoc, the ImgproxyInfoOptions schema) for the Info panel's builder.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundOption"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "max_upload_bytes": {
             "description": "Largest upload in bytes (XI_LIMITS_MAX_SRC_BYTES).",
             "format": "int64",
@@ -6414,6 +6456,7 @@
           "signing",
           "mounts",
           "catalogues",
+          "info_options",
           "presets",
           "sources",
           "formats",
@@ -6539,6 +6582,10 @@
               "null"
             ]
           },
+          "default": {
+            "description": "Value used when the option is absent, as imgproxy documents it (info options).",
+            "type": "string"
+          },
           "doc": {
             "description": "One-line description.",
             "type": "string"
@@ -6558,7 +6605,7 @@
             ]
           },
           "group": {
-            "description": "Builder category.",
+            "description": "Builder category; report, hashes and security are Info panel groups.",
             "enum": [
               "size",
               "gravity",
@@ -6571,7 +6618,10 @@
               "detection",
               "delivery",
               "presets",
-              "other"
+              "other",
+              "report",
+              "hashes",
+              "security"
             ],
             "type": "string"
           },
