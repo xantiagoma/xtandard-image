@@ -10,6 +10,7 @@ import { Frames } from './frames.js';
 import { Info } from './info.js';
 import { Matrix } from './matrix.js';
 import { Preview } from './preview.js';
+import { Examples } from './recipes.js';
 import { Sources } from './sources.js';
 import { History, toolFromHash, Tools } from './tools.js';
 import { Translate } from './translate.js';
@@ -28,6 +29,7 @@ const state = {
   free: { path: '', query: '' },
   edits: '',
   info: null, // Info panel entries {name, form, values}; null = recommended
+  raw: false, // the path and query typed by hand (free) on a mount with a builder
 };
 
 let meta;
@@ -42,6 +44,7 @@ let tools;
 let frames;
 let hist;
 let more;
+let examples;
 let lastSigned = null; // {req, url, signed, scheme}
 let seq = 0;
 
@@ -51,7 +54,7 @@ function snapshot() {
   return {
     m: state.mount, s: state.source, l: state.sourceLabel, a: state.alias ? 1 : 0, e: state.encoding, x: state.ext,
     p: state.pipelines.map((p) => p.map((e) => [e.name, e.form, e.values, e.groups, e.on ? 1 : 0])),
-    f: state.free, j: state.edits, ...(state.prefix ? { pf: state.prefix } : {}),
+    f: state.free, j: state.edits, ...(state.prefix ? { pf: state.prefix } : {}), ...(state.raw ? { r: 1 } : {}),
     ...(Array.isArray(state.info) ? { i: state.info.map((e) => [e.name, e.form ?? 0, e.values ?? []]) } : {}),
   };
 }
@@ -72,6 +75,7 @@ function restore(s) {
     : [[]];
   state.free = { path: s.f?.path ?? '', query: s.f?.query ?? '' };
   state.edits = s.j ?? '';
+  state.raw = Boolean(s.r);
   state.info = Array.isArray(s.i)
     ? s.i.filter(Array.isArray).map(([name, form, values]) => ({ name: String(name), form: Number(form) || 0, values: Array.isArray(values) ? values.map(String) : [] }))
     : null;
@@ -201,10 +205,18 @@ function applyMount() {
   const bound = m.source ? ` Keys resolve against source "${m.source}".` : '';
   $('mount-info').textContent = `Unsigned policy ${m.unsigned_policy}; ${signing}.${bound}`;
   const cat = catalogues.get(m.grammar);
-  $('free-builder').hidden = Boolean(cat);
-  $('imgproxy-extra').hidden = m.grammar !== 'imgproxy';
-  $('awssih-extra').hidden = m.grammar !== 'awssih';
-  $('option-search').disabled = !cat;
+  // Raw mode: the builder is set aside (its entries are kept) and the
+  // path and query are typed by hand, on any mount.
+  if (!cat) state.raw = false;
+  const raw = state.raw;
+  $('raw-row').hidden = !cat;
+  $('raw-mode').checked = raw;
+  document.querySelector('section.builder').classList.toggle('raw', raw);
+  $('free-hint').firstChild.textContent = raw ? 'The path and query are written by hand (the builder keeps its options for when you switch back). ' : 'This dialect is built by hand. ';
+  $('free-builder').hidden = Boolean(cat) && !raw;
+  $('imgproxy-extra').hidden = m.grammar !== 'imgproxy' || raw;
+  $('awssih-extra').hidden = m.grammar !== 'awssih' || raw;
+  $('option-search').disabled = !cat || raw;
   if (!cat && !state.free.path) {
     state.free.path = m.example ? m.example.split('?')[0] : '/{src}';
     state.free.query = m.example?.includes('?') ? m.example.split('?').slice(1).join('?') : '';
@@ -218,7 +230,7 @@ function applyMount() {
   builder.pipeline = 0;
   builder.render(m.grammar, cat);
   frames?.render();
-  $('copy-ts').disabled = m.grammar !== 'imgproxy';
+  $('copy-ts').disabled = m.grammar !== 'imgproxy' || raw;
   savePrefs();
 }
 
@@ -392,6 +404,7 @@ function defaults() {
   state.ext = '';
   state.free = { path: '', query: '' };
   state.edits = '';
+  state.raw = false;
   const first = meta.samples?.[0] ?? null;
   const gallery = meta.gallery?.find((g) => g.allowed && g.format === 'jpeg');
   state.source = first?.source ?? gallery?.url ?? '';
@@ -414,7 +427,7 @@ async function main() {
   const imgproxyMount = meta.mounts.find((m) => m.grammar === 'imgproxy' && m.prefix);
   frames = new Frames({
     state,
-    grammar: () => currentMount()?.grammar ?? '',
+    grammar: () => (state.raw ? 'path' : currentMount()?.grammar ?? ''),
     index: () => catalogues.get(currentMount()?.grammar)?.index ?? null,
     onChange: () => update({ render: true }),
     afterEdit: () => builder.render(builder.grammar, builder.cat),
@@ -441,6 +454,7 @@ async function main() {
     onOpen: (name) => {
       if (name === 'matrix') matrix.build();
       if (name === 'history') hist.render();
+      if (name === 'examples' && !$('examples').childElementCount) examples.renderTool();
     },
   });
   hist = new History({
@@ -478,6 +492,35 @@ async function main() {
   });
   sources.show(state.source);
 
+  // Examples (WP-116): a recipe loads as a session hash, so it renders,
+  // stays editable, shares and goes back like any session.
+  examples = new Examples({
+    meta,
+    index: (g) => catalogues.get(g)?.index ?? null,
+    load: (r) => {
+      const h = `#v1:${b64url(JSON.stringify(examples.snapshot(r)))}`;
+      if (location.hash === h) {
+        tools.close();
+        return;
+      }
+      // The Info tab opens once route() has restored the session.
+      if (r.info?.length) window.addEventListener('hashchange', () => more.select('mtab-info'), { once: true });
+      location.hash = h;
+      toast(`Example loaded: ${r.title}.`);
+    },
+    thumb: async (r, st) => {
+      const m = meta.mounts.find((x) => x.id === st.mount);
+      const req = m ? build(m, st, catalogues.get(m.grammar)?.index ?? new Map()) : { error: 'no mount' };
+      if (req.error) return null;
+      const s = await sign(req);
+      const res = await fetch(`api/render?u=${encodeURIComponent(s.url)}`, { headers: { Accept: 'image/avif,image/webp,image/*;q=0.8' } });
+      const type = res.headers.get('Content-Type') ?? '';
+      if (!res.ok || !type.startsWith('image/') || type.includes('svg')) return null;
+      return URL.createObjectURL(await res.blob());
+    },
+  });
+  examples.renderQuick($('examples-quick'));
+
   if (!loadFromHash()) {
     defaults();
     state.mount = meta.mounts.some((m) => m.id === prefs.mount) ? prefs.mount : meta.mounts[0]?.id ?? '';
@@ -508,6 +551,7 @@ async function main() {
     state.prefix = '';
     state.pipelines = [[]];
     state.free = { path: '', query: '' };
+    state.raw = false;
     applyMount();
     update();
   });
@@ -517,6 +561,23 @@ async function main() {
     update();
   });
   $('option-search').addEventListener('input', (e) => builder.applySearch(e.target.value));
+  // Raw mode starts from the URL the builder writes, with the source as
+  // {src}.
+  $('raw-mode').addEventListener('change', (e) => {
+    const m = currentMount();
+    if (e.target.checked && m) {
+      const req = build(m, { ...state, raw: false }, catalogues.get(m.grammar)?.index ?? new Map());
+      if (!req.error) {
+        state.free = {
+          path: req.path.split(escapePlain(state.source)).join('{src}'),
+          query: req.query.split(encodeURIComponent(state.source)).join('{src}'),
+        };
+      }
+    }
+    state.raw = e.target.checked;
+    applyMount();
+    update();
+  });
   $('use-alias').addEventListener('change', (e) => { state.alias = e.target.checked; update(); });
   $('src-encoding').addEventListener('change', (e) => { state.encoding = e.target.value; update(); });
   $('extension').addEventListener('change', (e) => { state.ext = e.target.value; update(); });

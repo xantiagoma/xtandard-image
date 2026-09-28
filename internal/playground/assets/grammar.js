@@ -2,7 +2,7 @@
 // request {mount, path, query} (the path after the mount prefix, without
 // a signature), plus the curl and TypeScript snippets. Pure functions.
 
-import { b64url, escapePlain } from './dom.js';
+import { b64url, escapePlain, escapeValue } from './dom.js';
 
 // argTypes lists the argument of each value position of an entry (the
 // form's args, then its rest group repeated).
@@ -66,7 +66,8 @@ export function build(m, state, index) {
   if (!src) return { error: 'Choose a source.' };
   const pls = state.pipelines;
   const first = pls[0] ?? [];
-  const g = m.grammar;
+  // Raw mode: the path and query typed by hand, on any mount.
+  const g = state.raw ? 'path' : m.grammar;
   const own = keyOn(src, m.source);
   const params = (sep, flagOnly) => [...activeEntries(first, index, g)].map(([o, , v]) =>
     (isFlag(o) ? (flagOnly ? enc(o.name) : `${enc(o.name)}=true`) : `${enc(o.name)}${sep}${enc(v.join(','))}`));
@@ -98,16 +99,23 @@ export function build(m, state, index) {
       if (own !== null) [kind, id] = ['upload', own];
       else if (isHTTP(src)) [kind, id] = ['fetch', escapePlain(src)];
       else return { error: 'Cloudinary takes an http(s) URL (fetch) or a public ID on the mount\'s source (upload).' };
-      const comp = [...activeEntries(first, index, g)].map(([o, , v]) => {
-        if (o.name.startsWith('e_') || o.name.startsWith('fl_')) return v.length ? `${o.name}:${v.join(',')}` : o.name;
-        return `${o.name}_${v.join(',')}`;
-      });
-      return { mount: m.id, path: `/xi/image/${kind}${comp.length ? `/${comp.join(',')}` : ''}/${id}`, query: '' };
+      // Each chained pipeline is one component ("/"): a layer group is
+      // l_… in one component and fl_layer_apply in a later one.
+      const comps = pls.map((p) => [...activeEntries(p, index, g)].map(([o, , v]) => {
+        const val = escapeValue(v.join(','));
+        if (o.name.startsWith('e_') || o.name.startsWith('fl_')) return v.length ? `${o.name}:${val}` : o.name;
+        return `${o.name}_${val}`;
+      }).join(',')).filter((c) => c !== '');
+      return { mount: m.id, path: `/xi/image/${kind}${comps.length ? `/${comps.join('/')}` : ''}/${id}`, query: '' };
     }
     case 'imagekit': {
       if (own === null) return { error: 'ImageKit takes a key on the mount\'s source (its URL endpoint).' };
-      const steps = pls.map((p) => [...activeEntries(p, index, g)].map(([o, , v]) => (v.length ? `${o.name}-${v.join(',')}` : o.name)).join(','))
-        .filter((s) => s !== '');
+      // A layer (l-image, l-text) is written l-<kind>,<its parameters>,l-end.
+      const steps = pls.map((p) => [...activeEntries(p, index, g)].map(([o, , v]) => {
+        if (!v.length) return o.name;
+        const val = escapeValue(v.join(','));
+        return o.name.startsWith('l-') ? `${o.name},${val},l-end` : `${o.name}-${val}`;
+      }).join(',')).filter((s) => s !== '');
       return { mount: m.id, path: (steps.length ? `/tr:${steps.join(':')}` : '') + `/${own}`, query: '' };
     }
     case 'cloudflare': {
