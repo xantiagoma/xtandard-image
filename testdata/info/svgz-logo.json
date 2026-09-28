@@ -1,0 +1,22 @@
+{
+  "alpha": true,
+  "bands": 4,
+  "colorspace": "srgb",
+  "container": {
+    "content": "document",
+    "entry": "gzip",
+    "format": "svgz",
+    "mime_type": "image/svg+xml"
+  },
+  "exif": {},
+  "format": "svg",
+  "height": 72,
+  "iptc": {},
+  "mime_type": "image/svg+xml",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 462,
+  "width": 96,
+  "xmp": {}
+}

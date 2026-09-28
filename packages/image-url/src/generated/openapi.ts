@@ -1844,6 +1844,16 @@ export interface components {
                 number
             ];
         };
+        InfoContainer: {
+            /** @description What the image is to the document: composite (full-size flattened image), thumbnail (reduced copy), preview (first page) or document (SVGZ: the whole document, decompressed). */
+            content: string;
+            /** @description Where the image was found: the path inside the archive (mergedimage.png, QuickLook/Thumbnail.png, previews/preview.png, ...), gzip for SVGZ, header thumbnail for Paint.NET. */
+            entry: string;
+            /** @description Container format: ora (OpenRaster), kra (Krita), procreate, sketch, svgz or pdn (Paint.NET). */
+            format: string;
+            /** @description Media type of the container, e.g. image/openraster. */
+            mime_type: string;
+        };
         InfoCrop: {
             /** Format: double */
             height: number;
@@ -1931,6 +1941,8 @@ export interface components {
             blurhash?: string;
             /** @description libvips interpretation name: srgb, b-w, rgb16, cmyk, ... (info option colorspace). */
             colorspace?: string;
+            /** @description xtandard-image extension (info option format): the source is a designer document (OpenRaster, Krita, Procreate, Sketch, SVGZ, Paint.NET) and format, dimensions and the other fields describe the image embedded in it; absent otherwise. */
+            container?: components["schemas"]["InfoContainer"];
             /** @description Crop rectangle as fractions of the oriented image (info option crop). */
             crop?: components["schemas"]["InfoCrop"];
             /** @description Dominant RGB colours by class; missing classes are left out unless built (info option dominant_colors). */

@@ -24,6 +24,10 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 		img, err = r.loadRaw(ctx, ls)
 	case r.j.Meta.Format == formatEPS:
 		img, err = r.loadEPS(ctx, ls)
+	case r.j.Meta.Format == formatXCF:
+		// No stored composite: the visible layers are decoded one by one
+		// and flattened (codec.FlattenXCF).
+		img, err = codec.FlattenXCF(ctx, r.a, r.j.Source, r.e.cfg.Limits.MaxSrcPixels, r.e.cfg.FailOn)
 	case stackable(r.j.Meta.Format):
 		if anim == nil && ls.NPages > 1 {
 			// Stacked pages of a multi-page still may differ in size.
@@ -58,6 +62,9 @@ func (r *runner) load(ctx context.Context, ls *plan.LoadStep, anim *plan.Animati
 	}
 	return img, nil
 }
+
+// formatXCF is the Job.Meta.Format of GIMP XCF sources.
+const formatXCF = "xcf"
 
 // ownFormat reports the formats decoded by the pure-Go loaders
 // (codec.DecodeOwn): BMP, ICO, WBMP and ICNS.

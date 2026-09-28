@@ -13,7 +13,7 @@
   Installed at /opt/xtandard/etc/ImageMagick-7/policy.xml by docker/base/build-deps.sh.
   ImageMagick is in the base image for libvips' magickload of PSD/PSB (WP-51) and of a
   short list of legacy raster formats without a libvips loader (WP-97): TGA, PCX,
-  DDS, QOI, SGI, Sun raster, XBM, XPM and PAM. Only those coders can read; every other
+  DDS, QOI, SGI, Sun raster, XBM, XPM and PAM, plus GIMP XCF (WP-107, flattened). Only those coders can read; every other
   coder, every delegate, every filter and every indirect read is denied, so a file
   that reaches the magick loader in any other format fails instead of being decoded
   by one of ImageMagick's many built-in coders. Later rules override earlier ones, so
@@ -55,7 +55,7 @@
        can read. Denied modules are never registered, so their coders do not exist
        in the process. -->
   <policy domain="module" rights="none" pattern="*"/>
-  <policy domain="module" rights="read | write" pattern="{PSD,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PNM}"/>
+  <policy domain="module" rights="read | write" pattern="{PSD,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PNM,XCF}"/>
   <policy domain="coder" rights="none" pattern="*"/>
-  <policy domain="coder" rights="read" pattern="{PSD,PSB,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PAM}"/>
+  <policy domain="coder" rights="read" pattern="{PSD,PSB,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PAM,XCF}"/>
 </policymap>

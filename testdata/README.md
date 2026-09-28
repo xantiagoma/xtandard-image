@@ -19,7 +19,8 @@ testdata/
                         from the imgproxy golden tables, URLs built by packages/image-url, parsed
                         back by internal/dialect/imgproxy (task ts:fixtures regenerates it)
   detect/               expected detections on fixtures/detect (expected.json) and the script that made them
-  gen/                  generator: main.go (Go), gen.sh (driver), logo.svg; video.go + video.sh (video fixtures, full base builder)
+  gen/                  generator: main.go (Go), gen.sh (driver), logo.svg; video.go + video.sh (video fixtures, full base builder);
+                        designer.go (Procreate, Sketch, Paint.NET, SVGZ) and designer.sh (GIMP/Krita in Docker: XCF, ORA, KRA)
   LICENSES.md           origin and licence of every file
 ```
 
@@ -55,6 +56,13 @@ testdata/
 | `hdr/scene.hdr`, `hdr/rgbe.hdr` | Radiance 96x64, 48x32 | the same scene as RGBE, `#?RADIANCE` and `#?RGBE` headers |
 | `pfm/scene.pfm` | PFM 64x48 | the same scene as float RGB |
 | `ppm/photo.ppm` | PPM 96x64 | 8-bit binary P6 photo (not HDR) |
+| `xcf/layers.xcf`, `xcf/gray.xcf` | GIMP XCF 160x120 | GIMP 2.10 (v011, RLE): photo, 70 % logo at (60, 40), multiply logo, a group with one logo, a hidden logo; RGB and greyscale. Flattened by `codec.FlattenXCF`, compared with GIMP's render (`golden/codec/xcf-*-gimp.png`) |
+| `xcf/alpha.xcf` | GIMP XCF 64x48 | one 48x32 logo layer at (8, 8) on a transparent canvas |
+| `ora/layers.ora`, `kra/layers.kra` | OpenRaster, Krita 96x72 | Krita 5.2 exports of `psd/layered.psd`: `mergedimage.png`, layers, thumbnail |
+| `procreate/thumbnail.procreate` | Procreate (ZIP) | stand-in document with a 160x120 `QuickLook/Thumbnail.png` |
+| `sketch/preview.sketch` | Sketch (ZIP) | stand-in document with a 192x144 `previews/preview.png` |
+| `pdn/thumbnail.pdn` | Paint.NET | `PDN3` XML header with a 128x96 base64 PNG thumbnail, stand-in body |
+| `svgz/logo.svgz` | SVGZ | the gzipped `svg/logo.svg` |
 | `detect/apollo11-crew.jpg`, `detect/astronaut-dogs.jpg`, `detect/cat-laptop.jpg` | JPEG 640 px wide | real photographs (public domain / CC0, `LICENSES.md` "Detection photos") for face and object detection (WP-71): three faces and three people; a face, a person and two dogs; a cat on a laptop. Expected boxes: `detect/expected.json` |
 
 ### Detection expectations

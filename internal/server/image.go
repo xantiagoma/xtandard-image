@@ -14,6 +14,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/xantiagoma/xtandard-image/internal/cache"
+	"github.com/xantiagoma/xtandard-image/internal/codec/container"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
@@ -223,7 +224,7 @@ func (s *Server) produce(ctx context.Context, r *http.Request, info *requestInfo
 
 	// 11. Probe: sanitise SVG, read the header, enforce input limits.
 	t = s.stage(info, stageProbe)
-	src, meta, err := s.probe(ctx, req, fr.Buffer, &lim.probe)
+	src, meta, err := s.probe(ctx, req, fr.Buffer, &lim.probe, lim.maxSrcBytes)
 	t.done()
 	if err != nil {
 		return nil, err
@@ -371,20 +372,23 @@ func (s *Server) run(ctx context.Context, in *ProcessInput) (*ProcessOutput, err
 	return out, nil
 }
 
-// probe is stage 11. An SVG document (magic-byte sniff) is sanitised into a
-// new buffer before anything parses it, so neither the probe nor librsvg
-// ever sees scripts, external references or entities (ARCHITECTURE §10).
+// probe is stage 11. A designer container (OpenRaster, Krita, Procreate,
+// Sketch, SVGZ, Paint.NET) is replaced by the image it carries, and an SVG
+// document (magic-byte sniff) is sanitised into a new buffer before
+// anything parses it, so neither the probe nor librsvg ever sees scripts,
+// external references or entities (ARCHITECTURE §10).
 // The returned buffer holds one reference owned by the caller.
-func (s *Server) probe(ctx context.Context, req *transform.Request, buf fetch.Buffer, lim *ProbeLimits) (fetch.Buffer, SourceMeta, error) {
+func (s *Server) probe(ctx context.Context, req *transform.Request, buf fetch.Buffer, lim *ProbeLimits, maxSrcBytes int64) (fetch.Buffer, SourceMeta, error) {
 	ctx, span := s.deps.Tracer.Start(ctx, "probe")
 	defer span.End()
 
-	src, sanitised, err := s.sanitize(buf)
+	src, cont, sanitised, err := s.prepare(buf, maxSrcBytes)
 	if err != nil {
 		span.SetStatus(codes.Error, errs.KindOf(err).String())
 		return nil, SourceMeta{}, err
 	}
 	meta, err := s.deps.Prober.Probe(ctx, src, *lim)
+	meta.Container = cont
 	if err == nil && meta.Format == transform.FormatSVG && !sanitised {
 		// The sniffer and the prober disagree: never hand an unsanitised
 		// SVG to librsvg.
@@ -402,7 +406,27 @@ func (s *Server) probe(ctx context.Context, req *transform.Request, buf fetch.Bu
 		return nil, SourceMeta{}, err
 	}
 	span.SetAttributes(attribute.String("xi.source_format", meta.Format.String()))
+	if cont != nil {
+		span.SetAttributes(attribute.String("xi.container", cont.Kind.String()))
+	}
 	return src, meta, nil
+}
+
+// prepare is what every parser of a source sees first: a designer
+// container replaced by the image it carries (unwrap), then an SVG
+// document sanitised (sanitize). The returned buffer holds one reference
+// owned by the caller; cont is nil unless a container was unwrapped.
+func (s *Server) prepare(buf fetch.Buffer, maxSrcBytes int64) (_ fetch.Buffer, cont *container.Source, sanitised bool, _ error) {
+	inner, cont, err := s.unwrap(buf, maxSrcBytes)
+	if err != nil {
+		return nil, nil, false, err
+	}
+	defer inner.Release()
+	src, sanitised, err := s.sanitize(inner)
+	if err != nil {
+		return nil, nil, false, err
+	}
+	return src, cont, sanitised, nil
 }
 
 // sanitize returns buf with one extra reference, or a sanitised copy when
