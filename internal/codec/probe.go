@@ -31,6 +31,11 @@ import (
 //     whole file even for its header);
 //   - OpenEXR headers are parsed by ParseEXRHeader, so the pixel limits hold
 //     before OpenEXR sizes anything from the data window;
+//   - EPS/PostScript headers are parsed by ParseEPSHeader (DSC comments,
+//     never Ghostscript): with Limits.EPSEnabled the page is its bounding
+//     box at 72 DPI; otherwise the embedded TIFF preview of a DOS EPS file
+//     is probed, and a file without one fails with errs.KindUnsupported
+//     (EPSDisabledMessage);
 //   - PDF pages are counted by PDFium's header read (nothing is rendered)
 //     and more than Limits.MaxPDFPages fail with errs.KindLimitExceeded; a
 //     PDF that needs a password fails with errs.KindUnsupported;
@@ -116,6 +121,8 @@ func probeKeep(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Setti
 		m, err = probeEXR(data)
 	case FormatRadiance:
 		m, err = probeRadiance(ctx, buf)
+	case FormatEPS:
+		m, err = probeEPS(ctx, data, lim)
 	case FormatMP4, FormatMOV, FormatWebM, FormatMKV, FormatAVI:
 		m, err = probeVideo(ctx, buf, f, v, keep)
 	default:

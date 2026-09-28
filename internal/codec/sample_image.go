@@ -47,6 +47,16 @@ func SampleImage(ctx context.Context, a *vips.Arena, buf *vips.Buffer, f Format,
 		}
 		return img, nil
 	}
+	if f == FormatEPS {
+		// Detection never runs Ghostscript: it samples the embedded
+		// preview, when there is one.
+		pre, err := EPSPreview(buf.Bytes())
+		if err != nil {
+			return nil, err
+		}
+		defer pre.Release() // the image keeps its own reference
+		return thumbnailImage(ctx, a, pre, maxSide)
+	}
 	return thumbnailImage(ctx, a, buf, maxSide)
 }
 

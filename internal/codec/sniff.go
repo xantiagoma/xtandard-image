@@ -77,6 +77,8 @@ func sniff(b []byte) Format {
 		return FormatJP2
 	case has(b, "%PDF-"):
 		return FormatPDF
+	case isEPS(b):
+		return FormatEPS
 	case len(b) >= 6 && string(b[:4]) == "8BPS" && b[4] == 0 && (b[5] == 1 || b[5] == 2):
 		return FormatPSD
 	case has(b, magicEXR):
