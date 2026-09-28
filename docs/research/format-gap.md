@@ -102,7 +102,7 @@ Legend:
 | Format | Status | Notes |
 |---|---|---|
 | SVG | ✅ all | Sanitised. A DOCTYPE is refused by policy (the "Large SVG map" sample is 422 on purpose) |
-| SVGZ (gzip) | ❌ | Not sniffed. librsvg reads it; gunzip with a byte cap, then the SVG path (WP-107) |
+| SVGZ (gzip) | ✅ (WP-107) | Gunzipped with a byte and ratio cap, then the SVG path (sanitiser, librsvg) |
 | PDF (multi-page, CMYK images, transparency groups, DeviceN, JPX images, `/Rotate`) | ✅ all | PDFium, 8/8 |
 | Illustrator `.ai`, PDF-compatible (AI 9+, the default "Create PDF Compatible File") | ✅ all | It is a PDF, rendered by PDFium |
 | Illustrator `.ai` saved without PDF compatibility | ⚠️ | PDFium renders the placeholder page Illustrator stores ("saved without PDF content"). Nothing better exists without Adobe code |
@@ -111,12 +111,12 @@ Legend:
 | CGM, HPGL, XFig | ❌ | Legacy technical drawing. No plan |
 | Photoshop PSD/PSB: RGB/CMYK/Lab 8/16-bit, 32-bit float, grey, duotone, indexed, bitmap, multichannel, smart objects, artboards, adjustment/fill layers, spot channels | ✅ all | ImageMagick PSD coder reads the stored composite (18/18). A file saved with "Maximize compatibility" off falls back to ImageMagick's layer flattening (FORMATS 1.3) |
 | Layered TIFF (multi-layer, Photoshop-style) | ✅ | Composite IFD first; verified on a LayeredImage sample, not a Photoshop-written file |
-| GIMP `.xcf` | ❌ | No stored composite; layers must be composited. ImageMagick's XCF coder does it for common modes (WP-107) |
-| OpenRaster `.ora` (MyPaint, Krita export) and Krita `.kra` | ❌ | ZIP with `mergedimage.png` (full-size composite) and a thumbnail. A bounded `archive/zip` reader plus `pngload` is enough (WP-107) |
-| Paint.NET `.pdn` | ❌ | The header XML carries a base64 PNG thumbnail. The body is a .NET serialisation. Thumbnail only (WP-107, low) |
-| Procreate `.procreate` | ❌ | ZIP with `QuickLook/Thumbnail.png` (screen size). The full composite needs its LZO tiles and `Document.archive` (NSKeyedArchiver), as axaril/silicate (MIT) does. Thumbnail first (WP-107) |
+| GIMP `.xcf` | ✅ (WP-107) | No stored composite: ImageMagick's XCF coder decodes each visible layer, flattened in Go (8-bit, RLE; FORMATS 1.7) |
+| OpenRaster `.ora` (MyPaint, Krita export) and Krita `.kra` | ✅ (WP-107) | `mergedimage.png` (full-size composite), else the thumbnail, through a bounded pure-Go ZIP reader |
+| Paint.NET `.pdn` | ✅ thumbnail (WP-107) | The header XML's base64 PNG thumbnail (≤ 256 px). The body is a .NET serialisation, not read |
+| Procreate `.procreate` | ✅ thumbnail (WP-107) | `QuickLook/Thumbnail.png` (screen size). The full composite needs its LZO tiles and `Document.archive` (NSKeyedArchiver), as axaril/silicate (MIT) does; not done |
 | Affinity `.afphoto` / `.afdesign` / `.af` (Affinity 2 / 3) | ❌ | Proprietary, undocumented and compressed. Reports of an embedded preview are unverified, and no permissively licensed sample exists. Recommendation: users export PSD/TIFF/PDF. No WP |
-| Sketch `.sketch` | ❌ | ZIP with `previews/preview.png` (first page, ≤ 2048 px). Possible with the same ZIP reader as ORA; low demand |
+| Sketch `.sketch` | ✅ preview (WP-107) | `previews/preview.png` (first page, ≤ 2048 px) through the same ZIP reader |
 | Figma `.fig` | ❌ | Proprietary binary (Kiwi). Figma users export PNG/SVG/PDF, all supported. No WP |
 | InDesign `.indd` / `.idml` | — | Page layout, not images. `.indd` embeds JPEG page thumbnails in XMP (`xmpGImg`). Exported PDFs are supported |
 | Office documents (DOCX, PPTX) | — | Not images. Out of scope |
@@ -321,4 +321,4 @@ In priority order. Each needs an ADR line for any new dependency (ADR 0006) and 
 
 `TestGallery` checks the licence allowlist, variant, tags and the `large` flag. `go test -tags network ./internal/playground -run TestGalleryURLsAlive` HEADs every URL and checks its size.
 
-**Not found under a permissive licence:** Procreate, Krita `.kra`, Affinity, Sketch and Figma files; Apple ProRAW with JPEG XL; Nikon HE\* explicitly labelled; HEIC with an ISO gain map; JPEG XT. These are candidates for synthetic fixtures in the WPs above.
+**Not found under a permissive licence:** Affinity, Sketch and Figma files (Procreate, Krita, XCF, SVGZ and Paint.NET samples were found later, WP-107, and are in the gallery); Apple ProRAW with JPEG XL; Nikon HE\* explicitly labelled; HEIC with an ISO gain map; JPEG XT. These are candidates for synthetic fixtures in the WPs above.
