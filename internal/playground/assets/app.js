@@ -6,15 +6,15 @@
 import { Builder } from './builder.js';
 import { $, b64url, copyText, debounce, el, escapePlain, postJSON, store, tabs, toast, unb64url } from './dom.js';
 import { build, curlSnippet, tsSnippet } from './grammar.js';
+import { Frames } from './frames.js';
 import { Info } from './info.js';
 import { Matrix } from './matrix.js';
 import { Preview } from './preview.js';
 import { Sources } from './sources.js';
+import { History, toolFromHash, Tools } from './tools.js';
 import { Translate } from './translate.js';
 
 const PREFS = 'xi-playground';
-const HISTORY = 'xi-playground-history';
-const HISTORY_MAX = 30;
 
 const state = {
   mount: '',
@@ -38,6 +38,10 @@ let sources;
 let info;
 let translate;
 let matrix;
+let tools;
+let frames;
+let hist;
+let more;
 let lastSigned = null; // {req, url, signed, scheme}
 let seq = 0;
 
@@ -80,8 +84,15 @@ function readHash() {
   try { return JSON.parse(unb64url(h.slice(3))); } catch { return null; }
 }
 
+// sessionHash is the share-link hash of the session; while a tool is
+// open the hash is the tool's route and the session waits in memory.
+const sessionHash = () => `#v1:${b64url(JSON.stringify(snapshot()))}`;
+const shareURL = (hash) => `${location.origin}${location.pathname}${location.search}${hash}`;
+
 const writeHash = debounce(() => {
-  history.replaceState(null, '', `#v1:${b64url(JSON.stringify(snapshot()))}`);
+  if (toolFromHash()) return;
+  history.replaceState(null, '', sessionHash());
+  tools?.refreshNav();
 }, 300);
 
 // ---- helpers -------------------------------------------------------------
@@ -196,6 +207,7 @@ function applyMount() {
   $('sih-edits').value = state.edits;
   builder.pipeline = 0;
   builder.render(m.grammar, cat);
+  frames?.render();
   $('copy-ts').disabled = m.grammar !== 'imgproxy';
   savePrefs();
 }
@@ -248,6 +260,7 @@ function beforeRequest() {
 async function update({ render = $('auto-render').checked } = {}) {
   const my = ++seq;
   writeHash();
+  frames?.sync();
   sources?.show(state.source);
   const m = currentMount();
   const req = m ? build(m, state, catalogues.get(m.grammar)?.index ?? new Map()) : { error: 'No mount.' };
@@ -286,29 +299,59 @@ async function renderPreview() {
   if (before) {
     try { beforePath = (await sign(before)).url; } catch { beforePath = null; }
   }
+  preview.setSource(state.source);
   await preview.render(lastSigned.url, beforePath);
   pushHistory();
 }
 
-function pushHistory() {
-  const url = $('url-out').value;
-  if (!url || (preview.res?.status ?? 500) >= 400) return;
-  const list = store.get(HISTORY, []).filter((h) => h.url !== url);
-  list.unshift({ url, hash: location.hash, when: Date.now(), mount: state.mount, label: state.sourceLabel || state.source });
-  store.set(HISTORY, list.slice(0, HISTORY_MAX));
-  renderHistory();
+// probeSource asks the source's own /info (format, dimensions, size,
+// colour space, bands, pages, alpha; no metadata) for the Source column
+// of the preview's comparison and the page, frame and time selectors.
+async function probeSource(src) {
+  const ip = meta.mounts.find((m) => m.grammar === 'imgproxy' && m.prefix);
+  if (!ip) return null;
+  const prefix = (meta.path_prefix || '').replace(/\/+$/, '') + (ip.prefix || '/').replace(/\/+$/, '');
+  const s = await sign({ mount: ip.id, path: `/exif:0/iptc:0/xmp:0/vm:1/cs:1/b:1/pn:1/a:1/plain/${escapePlain(src)}`, query: '' });
+  const res = await fetch(`api/render?u=${encodeURIComponent(`${prefix}/info${s.url.slice(prefix.length)}`)}`, { headers: { Accept: 'application/json' } });
+  return res.ok ? res.json() : null;
 }
 
-function renderHistory() {
-  const box = $('history');
-  box.replaceChildren();
-  const list = store.get(HISTORY, []);
-  if (!list.length) box.append(el('li', { class: 'hint', text: 'Rendered URLs appear here (kept in this browser only).' }));
-  for (const h of list) {
-    const b = el('button', { type: 'button', class: 'link', text: h.url });
-    b.addEventListener('click', () => { location.hash = h.hash; loadFromHash(); });
-    box.append(el('li', {}, el('span', { class: 'hint', text: `${new Date(h.when).toLocaleString()} · ${h.mount} · ${h.label} ` }), b));
+// thumbnail draws the result into a small WebP data URL for the history
+// (images only; nothing when the browser cannot).
+async function thumbnail() {
+  const img = $('after-media').firstElementChild;
+  if (!(img instanceof HTMLImageElement)) return undefined;
+  try {
+    await img.decode();
+    const k = Math.min(1, 96 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = el('canvas', { width: Math.max(1, Math.round(img.naturalWidth * k)), height: Math.max(1, Math.round(img.naturalHeight * k)) });
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const url = c.toDataURL('image/webp', 0.7);
+    return url.length < 16000 ? url : undefined;
+  } catch {
+    return undefined;
   }
+}
+
+async function pushHistory() {
+  const url = $('url-out').value;
+  if (!url || (preview.res?.status ?? 500) >= 400) return;
+  const entry = { url, hash: sessionHash(), when: Date.now(), mount: state.mount, label: state.sourceLabel || state.source };
+  hist.push({ ...entry, thumb: await thumbnail() });
+}
+
+// route follows the hash: a tool route opens that tool over the session;
+// a session hash closes the tools and, when it is another session than
+// the one in memory, loads it.
+function route() {
+  const tool = toolFromHash();
+  if (tool) {
+    if (tools.current !== tool) tools.open(tool);
+    return;
+  }
+  const same = location.hash === sessionHash();
+  if (tools.current) tools.close({ writeHash: false });
+  if (!same) loadFromHash();
 }
 
 function loadFromHash() {
@@ -358,10 +401,45 @@ async function main() {
   renderMeta(prefs);
   const later = debounce(() => update(), 250);
   builder = new Builder({ state, onChange: later });
-  preview = new Preview({ accept: () => $('accept').value });
+  const imgproxyMount = meta.mounts.find((m) => m.grammar === 'imgproxy' && m.prefix);
+  frames = new Frames({
+    state,
+    grammar: () => currentMount()?.grammar ?? '',
+    index: () => catalogues.get(currentMount()?.grammar)?.index ?? null,
+    onChange: () => update({ render: true }),
+    afterEdit: () => builder.render(builder.grammar, builder.cat),
+    thumb: async (page) => {
+      if (!imgproxyMount) return null;
+      const s = await sign({ mount: imgproxyMount.id, path: `/page:${page}/rs:fit:96:96/f:webp/plain/${escapePlain(state.source)}`, query: '' });
+      const res = await fetch(`api/render?u=${encodeURIComponent(s.url)}`, { headers: { Accept: 'image/webp,*/*' } });
+      return res.ok ? URL.createObjectURL(await res.blob()) : null;
+    },
+  });
+  preview = new Preview({
+    accept: () => $('accept').value,
+    probe: (src) => {
+      frames.setInfo(src, null);
+      return probeSource(src).then((i) => { frames.setInfo(src, i); return i; });
+    },
+  });
+  preview.onResponse = (h) => frames.setResponse(h);
   translate = new Translate({ publicURL, onPreview: (path) => preview.render(path, null) });
   info = new Info({ meta, sign, preview, state, baseURL, onChange: writeHash });
   matrix = new Matrix({ meta, sign });
+  tools = new Tools({
+    sessionHash,
+    onOpen: (name) => {
+      if (name === 'matrix') matrix.build();
+      if (name === 'history') hist.render();
+    },
+  });
+  hist = new History({
+    shareURL,
+    open: (h) => {
+      if (h.hash === sessionHash()) tools.close();
+      else location.hash = h.hash; // route() loads it and closes the tool
+    },
+  });
   sources = new Sources({
     meta,
     onPick: (src, label) => {
@@ -382,6 +460,14 @@ async function main() {
     },
   });
 
+  // The Gallery tool: the same tiles as the Source panel; a pick loads the
+  // sample and returns to the session.
+  sources.renderGallery($('gallery-big'), $('gallery-filter'), (e) => {
+    tools.close();
+    sources.onPick(e.source, e.name);
+  });
+  sources.show(state.source);
+
   if (!loadFromHash()) {
     defaults();
     state.mount = meta.mounts.some((m) => m.id === prefs.mount) ? prefs.mount : meta.mounts[0]?.id ?? '';
@@ -389,12 +475,22 @@ async function main() {
     info.restore(null);
     update({ render: true });
   }
-  renderHistory();
+  if (toolFromHash()) tools.open(toolFromHash());
+  tools.refreshNav();
 
-  tabs('more-tabs', (id) => {
+  more = tabs('more-tabs', (id) => {
     translate.setVisible(id === 'mtab-translate');
-    if (id === 'mtab-matrix') matrix.build();
     if (id === 'mtab-info' && !$('info-result').childElementCount) info.run();
+  });
+  // Cross-links between the source's Info and the result's details.
+  $('goto-result').addEventListener('click', () => {
+    $('result-details').scrollIntoView({ block: 'start' });
+    $('result-details-title').focus({ preventScroll: true });
+  });
+  $('goto-source-info').addEventListener('click', () => {
+    more.select('mtab-info');
+    $('mpane-info').scrollIntoView({ block: 'start' });
+    $('info-caption').focus({ preventScroll: true });
   });
 
   $('mount').addEventListener('change', (e) => {
@@ -428,8 +524,9 @@ async function main() {
     const ts = tsSnippet(m, state, catalogues.get('imgproxy').index, base, $('snippet-signed').checked);
     if (ts) copyText(ts, 'TypeScript copied');
   });
-  $('share').addEventListener('click', () => { writeHash(); setTimeout(() => copyText(location.href, 'Share link copied'), 350); });
+  $('share').addEventListener('click', () => copyText(shareURL(sessionHash()), 'Share link copied'));
   $('reset').addEventListener('click', () => {
+    tools.close({ writeHash: false });
     history.replaceState(null, '', location.pathname);
     defaults();
     applyMount();
@@ -437,19 +534,24 @@ async function main() {
     info.restore(null);
     update({ render: true });
   });
-  $('history-clear').addEventListener('click', () => { store.set(HISTORY, []); renderHistory(); });
   $('theme').addEventListener('change', (e) => setTheme(e.target.value));
   $('help-button').addEventListener('click', () => {
     const h = $('help');
     h.hidden = !h.hidden;
     $('help-button').setAttribute('aria-expanded', String(!h.hidden));
   });
-  window.addEventListener('hashchange', () => loadFromHash());
+  window.addEventListener('hashchange', route);
 
   // Keyboard shortcuts.
   document.addEventListener('keydown', (e) => {
     const t = e.target;
     const typing = t instanceof HTMLElement && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName));
+    // In a tool the session's shortcuts are off: Esc goes back to it.
+    if (tools.current) {
+      if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); tools.close(); }
+      else if (e.key === '?' && !typing) $('help-button').click();
+      return;
+    }
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
       preview.clearBefore();

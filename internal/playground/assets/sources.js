@@ -41,7 +41,7 @@ export class Sources {
         }
       }, { rootMargin: '100px' })
       : null;
-    this.renderGallery();
+    this.renderGallery($('gallery'), $('sample-filter'), (e) => this.onPick(e.source, e.name));
     this.wireUpload();
     this.wireBrowse();
     this.wireURL();
@@ -65,8 +65,10 @@ export class Sources {
     return out;
   }
 
-  renderGallery() {
-    const box = $('gallery');
+  // renderGallery draws the tiles, grouped by format, into box with a
+  // filter input; pick(entry) runs on a click. The Source panel and the
+  // Gallery tool each have one.
+  renderGallery(box, filter, pick) {
     box.replaceChildren();
     const groups = new Map();
     for (const e of this.entries()) {
@@ -75,17 +77,17 @@ export class Sources {
     }
     for (const [name, list] of groups) {
       const grid = el('div', { class: 'tiles' });
-      for (const e of list) grid.append(this.tile(e));
+      for (const e of list) grid.append(this.tile(e, pick));
       box.append(el('section', { class: 'tile-group', 'data-group': name.toLowerCase() }, el('h3', { text: name }), grid));
     }
-    $('sample-filter').addEventListener('input', (ev) => {
+    filter.addEventListener('input', (ev) => {
       const q = ev.target.value.trim().toLowerCase();
       for (const t of box.querySelectorAll('.tile')) t.hidden = q !== '' && !t.dataset.search.includes(q);
       for (const g of box.querySelectorAll('.tile-group')) g.hidden = ![...g.querySelectorAll('.tile')].some((t) => !t.hidden);
     });
   }
 
-  tile(e) {
+  tile(e, pick) {
     const title = [e.name, e.variant, e.bytes ? fmtBytes(e.bytes) : '', `${e.licence}: ${e.attribution}`, e.note, e.why,
       e.tags?.length ? `tags: ${e.tags.join(', ')}` : ''].filter(Boolean).join('\n');
     const img = el('div', { class: 'thumb', 'aria-hidden': 'true' }, el('span', { text: (FORMAT_LABELS[e.format] ?? e.format).slice(0, 8) }));
@@ -97,7 +99,7 @@ export class Sources {
     el('span', { class: 'tile-meta', text: [e.bytes ? fmtBytes(e.bytes) : '', e.licence, e.tags?.includes('gap') ? 'not decoded yet' : ''].filter(Boolean).join(' · ') }));
     if (e.bytes > 5 * 1024 * 1024) b.classList.add('big');
     if (e.tags?.includes('gap')) b.classList.add('gap');
-    b.addEventListener('click', () => this.onPick(e.source, e.name));
+    b.addEventListener('click', () => pick(e));
     // Files over 20 MB (camera RAWs) and formats not decoded yet get no
     // automatic thumbnail: scrolling the gallery must not pull gigabytes.
     if (e.allowed && this.observer && e.bytes <= LARGE && !e.tags?.includes('gap')) {
@@ -249,7 +251,12 @@ export class Sources {
   // show reflects the current source in the pickers.
   show(source) {
     $('current-source').textContent = source || 'none';
-    for (const t of $('gallery').querySelectorAll('.tile')) t.classList.toggle('selected', t.dataset.source === source);
+    for (const t of document.querySelectorAll('.gallery .tile')) {
+      const on = t.dataset.source === source;
+      t.classList.toggle('selected', on);
+      if (on) t.setAttribute('aria-current', 'true');
+      else t.removeAttribute('aria-current');
+    }
     if (source && !source.startsWith('playground://') && document.activeElement !== $('source-input')) $('source-input').value = source;
   }
 
