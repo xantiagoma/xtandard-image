@@ -24,8 +24,8 @@
 #     --build-arg BASE_BUILDER=xtandard-base:dev-builder \
 #     --build-arg BASE_RUNTIME=xtandard-base:dev .            # locally built base
 
-ARG BASE_BUILDER=ghcr.io/xantiagoma/xtandard-image-base:8.18.6-r4-slim-builder
-ARG BASE_RUNTIME=ghcr.io/xantiagoma/xtandard-image-base:8.18.6-r4-slim
+ARG BASE_BUILDER=ghcr.io/xantiagoma/xtandard-image-base:8.18.6-r5-slim-builder
+ARG BASE_RUNTIME=ghcr.io/xantiagoma/xtandard-image-base:8.18.6-r5-slim
 
 # ==============================================================================
 FROM ${BASE_BUILDER} AS source

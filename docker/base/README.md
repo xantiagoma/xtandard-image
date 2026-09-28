@@ -2,10 +2,10 @@
 
 `docker/base` builds libvips 8.18 and every codec it links into `/opt/xtandard` on
 `ubuntu:noble`, in three flavors: `slim` (every still format), `full` (slim plus FFmpeg 8
-under the LGPL, ONNX Runtime and the detection models; WP-70, see [full flavor](#full-flavor-wp-70-revision-5))
+under the LGPL, ONNX Runtime and the detection models; WP-70, see [full flavor](#full-flavor-wp-70-revision-6))
 and `gpl` (full with FFmpeg rebuilt under the GPL to add the x264 H.264 and x265 HEVC
 encoders, plus the Ghostscript `gs` program for EPS input, AGPL, used only with
-`XI_FORMATS_EPS_ENABLED=true`; WP-70b and WP-99, see [gpl flavor](#gpl-flavor-wp-70b-revision-6)). slim and full contain no GPL code; gpl does,
+`XI_FORMATS_EPS_ENABLED=true`; WP-70b and WP-99, see [gpl flavor](#gpl-flavor-wp-70b-revision-7)). slim and full contain no GPL code; gpl does,
 and is labelled and documented as such. It is a fork of
 [imgproxy-docker-base](https://github.com/imgproxy/imgproxy-docker-base) (MIT, Copyright (c)
 2017 Sergey Alexandrovich; kept in `LICENSE.imgproxy-docker-base`, credited in `/NOTICE`).
@@ -26,7 +26,7 @@ Decisions: [ADR 0005](../../docs/adr/0005-docker-image-strategy.md) (image strat
 
 `<vips>` is `VIPS_VERSION` and `<N>` is `XI_BASE_REVISION` from `versions.sh`; `<M>` is
 `XI_BASE_FULL_REVISION` from `versions-full.sh`; `<G>` is `XI_BASE_GPL_REVISION` from
-`versions-gpl.sh` (currently `8.18.6-r4-slim`, `8.18.6-r5-full` and `8.18.6-r6-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
+`versions-gpl.sh` (currently `8.18.6-r5-slim`, `8.18.6-r6-full` and `8.18.6-r7-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
 locally with the `task docker:base:*` tasks (below), which tag `xtandard-base:dev`,
 `xtandard-base:dev-builder`, `xtandard-base:dev-full`, `xtandard-base:dev-full-builder`,
 `xtandard-base:dev-gpl` and `xtandard-base:dev-gpl-builder`. All are
@@ -96,7 +96,7 @@ jemalloc actually honours it (`opt.narenas: 2` in its stats).
 
 | Path | Contents |
 |---|---|
-| `lib/` | libvips (no C++ binding), glib/gobject/gio, libffi, pcre2, zlib-ng, expat, libxml2 (minimal), libjpeg-turbo, libultrahdr, libpng, libspng, libwebp, cgif, quantizr, libtiff, OpenJPEG, libheif + libde265 + dav1d + aom + kvazaar, libjxl + highway + brotli, lcms2, libexif, librsvg + cairo + pixman + pango + harfbuzz + freetype + fontconfig + fribidi, jemalloc; base extras (WP-66): LibRaw (`libraw_r`), PDFium (prebuilt), OpenEXR + Imath, ImageMagick 7 MagickCore (PSD/PSB and the WP-97 legacy coders); jxrlib (`libjpegxr`, `libjxrglue`, WP-97; headers in `include/jxrlib` and `libjxr.pc` in the builder) |
+| `lib/` | libvips (no C++ binding), glib/gobject/gio, libffi, pcre2, zlib-ng, expat, libxml2 (minimal), libjpeg-turbo, libultrahdr, libpng, libspng, libwebp, cgif, quantizr, libtiff + zstd (WP-102), OpenJPEG, libheif + libde265 + dav1d + aom + kvazaar, libjxl + highway + brotli, lcms2, libexif, librsvg + cairo + pixman + pango + harfbuzz + freetype + fontconfig + fribidi, jemalloc; base extras (WP-66): LibRaw (`libraw_r`), PDFium (prebuilt), OpenEXR + Imath, ImageMagick 7 MagickCore (PSD/PSB and the WP-97 legacy coders); jxrlib (`libjpegxr`, `libjxrglue`, WP-97; headers in `include/jxrlib` and `libjxr.pc` in the builder) |
 | `lib/vips-modules-8.18/vips-magick.so` | the only libvips module: magickload (load only, no magicksave). Every other loader is built into `libvips.so`; deleting this file removes ImageMagick from libvips |
 | `lib/pkgconfig/`, `include/` | builder only |
 | `bin/vips` | libvips CLI |
@@ -109,7 +109,7 @@ jemalloc actually honours it (`opt.narenas: 2` in its stats).
 Not in the slim image: poppler (GPL; PDF goes through PDFium), x265 (GPL; HEIC/AVIF encode
 uses kvazaar/aom), FFmpeg and ONNX Runtime (`full` flavor).
 
-## Full flavor (WP-70, revision 5)
+## Full flavor (WP-70, revision 6)
 
 Everything in slim, plus:
 
@@ -147,7 +147,7 @@ licence) and `SHA256SUMS`; the licences and `MODELS.md` are also copied to
 Size: runtime 103.1 MB compressed on linux/arm64 (slim + 48.4 MB; budget ≤ 170 MB), see
 [Sizes](#sizes).
 
-## gpl flavor (WP-70b, revision 6)
+## gpl flavor (WP-70b, revision 7)
 
 > **This image contains GPL and AGPL software.** Its FFmpeg libraries and CLIs are
 > GPL-2.0-or-later, H.264 and HEVC are patent-encumbered, and `bin/gs` is Ghostscript,
@@ -265,6 +265,20 @@ API with `-DNDEBUG` (jxrlib's asserts would abort the process on a hostile file)
 `libjxr.pc` layout. The sample apps (`JxrEncApp`, `JxrDecApp`) and the test library are not
 built; ImageMagick's JXR coder, which runs `JxrDecApp` as a delegate, stays denied.
 
+### zstd for libtiff (WP-102, revision r5)
+
+| Component | Version | Licence | Source | Used by |
+|---|---|---|---|---|
+| zstd (libzstd) | `ZSTD_VERSION` | BSD-3-Clause (dual-licensed BSD-3-Clause OR GPL-2.0-only; used under BSD-3-Clause, so the bundle ships its `LICENSE` only) | GitHub release tarball | libtiff's ZSTD codec (TIFF compression 50000) |
+
+Built as a shared library only (CMake, no CLI, no legacy formats, no multithreading), then
+libtiff with `-Dzstd=ON`; `build-deps.sh` fails when `libtiff.so` does not end up linking
+libzstd, and `verify-image.sh` round-trips a ZSTD, a WebP and a deflate TIFF through
+`tiffsave`/`tiffload` on every flavour. Every flavour gets it (full and gpl start from slim):
+slim r5, full r6, gpl r7. Checked and not added: JPEG XL in TIFF (compression 50002) is a
+GDAL extension that upstream libtiff does not implement; WebP in TIFF was already on; LZMA
+(liblzma, 0BSD) and LERC stay off until a sample needs them.
+
 Compiler flags (`bashrc.sh`): `-Os` baseline (`-O3` for codecs), `-fstack-protector-strong`,
 full RELRO, `-ffunction-sections -fdata-sections -Wl,--gc-sections`, rpath
 `/opt/xtandard/lib`; Ubuntu's GCC adds `-D_FORTIFY_SOURCE=3`. Baseline ISA: x86-64 with SSE4,
@@ -277,12 +291,14 @@ linux/arm64, `docker save | gzip -6` (compressed) and `docker image inspect` (un
 
 | Image | Compressed | Uncompressed | Budget (compressed) |
 |---|---|---|---|
-| slim runtime (`8.18.6-r4-slim`) | 54.9 MB | 165.5 MB | ≤ 110 MB |
-| slim builder | 259.4 MB | 819.2 MB | — |
-| full runtime (`8.18.6-r5-full`) | 103.3 MB | 237.7 MB | ≤ 170 MB |
-| full builder | 308.2 MB | 893.3 MB | — |
-| gpl runtime (`8.18.6-r6-gpl`) | 116.6 MB | 257.0 MB | ≤ 170 MB (as full) |
-| gpl builder | 321.7 MB | 913.4 MB | — |
+| slim runtime (`8.18.6-r5-slim`) | 55.2 MB | 166.4 MB | ≤ 110 MB |
+| slim builder | 259.8 MB | 820.3 MB | — |
+| full runtime (`8.18.6-r6-full`) | 103.7 MB | 238.5 MB | ≤ 170 MB |
+| full builder | 308.8 MB | 895.0 MB | — |
+| gpl runtime (`8.18.6-r7-gpl`) | 117.0 MB | 257.8 MB | ≤ 170 MB (as full) |
+| gpl builder | 322.1 MB | 914.4 MB | — |
+
+zstd (r5, WP-102) adds 0.3–0.4 MB compressed / 0.8 MB uncompressed to every flavor.
 
 jxrlib (r4, WP-97) adds 0.2 MB compressed / 0.4 MB uncompressed to every flavor; the wider
 ImageMagick policy costs nothing (the coders were already compiled in).
@@ -366,10 +382,10 @@ the real `versions-gpl.sh` is refused by the strict gate.
 3. Bump `XI_BASE_REVISION` when the image changes without a libvips version change; reset it
    to `1` when `VIPS_VERSION` changes. `XI_BASE_FULL_REVISION` (`versions-full.sh`) is the
    full flavor's own counter: bump it whenever slim's revision moves or a full-only component
-   changes, including when slim's revision moves (full r5 = slim r4 +
+   changes, including when slim's revision moves (full r6 = slim r5 +
    WP-70).
    `XI_BASE_GPL_REVISION` (`versions-gpl.sh`) is the gpl flavor's counter in the same way:
-   bump it when full's revision moves or x264/x265/Ghostscript change (gpl r6 = full r5 +
+   bump it when full's revision moves or x264/x265/Ghostscript change (gpl r7 = full r6 +
    WP-70b + Ghostscript, WP-99).
 4. Build and verify locally (host architecture: arm64 on Apple silicon, amd64 on x86 hosts;
    slim ~30 min cold, full adds ~10 min, gpl another ~5 min):
