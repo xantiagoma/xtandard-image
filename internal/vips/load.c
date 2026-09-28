@@ -105,7 +105,7 @@ xi_is_tga(const unsigned char *d, size_t n)
 
 // xi_is_magick_input reports whether d starts like a format ImageMagick is
 // allowed to read (magick-policy.xml): the same checks as codec.Sniff for
-// PSD/PSB, DDS, QOI, PCX, SGI, Sun raster, XBM, XPM, PAM and TGA.
+// PSD/PSB, DDS, QOI, PCX, SGI, Sun raster, XBM, XPM, PAM, GIMP XCF and TGA.
 static gboolean
 xi_is_magick_input(const unsigned char *d, size_t n)
 {
@@ -121,6 +121,8 @@ xi_is_magick_input(const unsigned char *d, size_t n)
     return TRUE; // XBM
   if (n >= 9 && memcmp(d, "/* XPM */", 9) == 0)
     return TRUE;
+  if (n >= 14 && memcmp(d, "gimp xcf ", 9) == 0 && d[13] == '\0')
+    return TRUE; // XCF (WP-107): one layer per load, flattened in Go
   if (n >= 3 && d[0] == 'P' && d[1] == '7' && (d[2] == '\n' || d[2] == '\r' || d[2] == ' '))
     return TRUE; // PAM
   return xi_is_tga(d, n);
@@ -149,7 +151,7 @@ xi_check_loader(const char *loader, VipsBlob *blob, char **err)
     return XI_ERR_UNSUPPORTED;
   }
   if (xi_is_magick(loader) && !xi_is_magick_input(area->data, area->length)) {
-    *err = xi_error_new("xi_load", "%s is restricted to PSD/PSB and the legacy formats", loader);
+    *err = xi_error_new("xi_load", "%s is restricted to PSD/PSB, XCF and the legacy formats", loader);
     return XI_ERR_UNSUPPORTED;
   }
   if (g_str_has_prefix(loader, "VipsForeignLoadPpm") && !xi_is_pnm(area->data, area->length)) {

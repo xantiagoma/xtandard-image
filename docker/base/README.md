@@ -101,7 +101,7 @@ jemalloc actually honours it (`opt.narenas: 2` in its stats).
 | `lib/pkgconfig/`, `include/` | builder only |
 | `bin/vips` | libvips CLI |
 | `etc/fonts/` | fontconfig configuration (fonts from `share/fonts`, cache in `/tmp/fontconfig`) |
-| `etc/ImageMagick-7/policy.xml` | `magick-policy.xml`: PSD/PSB, TGA, PCX, DDS, QOI, SGI, SUN, XBM, XPM and PAM read only, everything else denied (see below) |
+| `etc/ImageMagick-7/policy.xml` | `magick-policy.xml`: PSD/PSB, TGA, PCX, DDS, QOI, SGI, SUN, XBM, XPM, PAM and XCF read only, everything else denied (see below) |
 | `share/fonts/dejavu/` | DejaVu Sans (Bitstream Vera license) for SVG text |
 | `share/licenses/` | every dependency's license files + `SOURCES.md` (URL, version, SHA256) |
 | `share/sbom/` | CycloneDX stubs per self-built library for syft/grype |
@@ -219,17 +219,18 @@ unblock the loaders it wants by name (`vips_operation_block_set`).
 
 ImageMagick is in the image for PSD/PSB through libvips' `magickload` and, since WP-97
 (revision r4), for a short list of legacy formats libvips cannot read: TGA, PCX, DDS, QOI,
-SGI, Sun raster, XBM, XPM and PAM (docs/FORMATS.md §1.6). Its coders are compiled in anyway,
+SGI, Sun raster, XBM, XPM and PAM (docs/FORMATS.md §1.6), and since WP-107 for GIMP XCF
+(one layer per call, flattened by the app; FORMATS.md §1.7). Its coders are compiled in anyway,
 so this costs no image size. `magick-policy.xml` is installed as
 `/opt/xtandard/etc/ImageMagick-7/policy.xml`, the configure path compiled into MagickCore
 (the app image also points `MAGICK_CONFIGURE_PATH` there). Rules are evaluated in order,
 later ones override earlier ones:
 
-- `module` domain: deny `*`, allow `{PSD,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PNM}` (read |
+- `module` domain: deny `*`, allow `{PSD,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PNM,XCF}` (read |
   write, which ImageMagick requires to register a module at all). Denied modules are never
   registered, so their coders do not exist in the process: GIF, BMP, PS/EPS, SVG/MVG/MSL,
   TEXT, URL, EPHEMERAL and every other built-in coder are unreachable.
-- `coder` domain: deny `*`, allow `{PSD,PSB,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PAM}` **read**
+- `coder` domain: deny `*`, allow `{PSD,PSB,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PAM,XCF}` **read**
   only (no writing). The aliases the allowed modules also register (ICB, VDA, VST, DCX,
   DXT1, DXT5, RAS, PICON, PM, and PBM/PGM/PPM/PNM/PFM/PHM of the PNM module, which libvips'
   `ppmload` reads instead) stay denied.
@@ -247,8 +248,8 @@ rules. `verify-image.sh` checks the policy: a generated PSD loads through `magic
 `magickload` (GIF and PNM are compiled-in ImageMagick coders, so their refusal proves the
 policy, not a missing delegate) and still load through their native libvips loaders; every
 legacy fixture in `testdata/fixtures` (TGA, PCX, DDS DXT1/DXT5, QOI, SGI, SUN, XBM, XPM, PAM)
-decodes through `magickload` with its own coder, and the ASCII/bitmap Netpbm fixtures through
-`ppmload`.
+decodes through `magickload` with its own coder, `xcf/alpha.xcf` through the XCF coder, and
+the ASCII/bitmap Netpbm fixtures through `ppmload`.
 
 ### jxrlib (WP-97, revision r4)
 

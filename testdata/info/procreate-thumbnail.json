@@ -1,0 +1,22 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "container": {
+    "content": "thumbnail",
+    "entry": "QuickLook/Thumbnail.png",
+    "format": "procreate",
+    "mime_type": "application/x-procreate"
+  },
+  "exif": {},
+  "format": "png",
+  "height": 120,
+  "iptc": {},
+  "mime_type": "image/png",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 30831,
+  "width": 160,
+  "xmp": {}
+}

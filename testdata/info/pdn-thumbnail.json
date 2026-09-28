@@ -1,0 +1,22 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "container": {
+    "content": "thumbnail",
+    "entry": "header thumbnail",
+    "format": "pdn",
+    "mime_type": "image/x-paintnet"
+  },
+  "exif": {},
+  "format": "png",
+  "height": 96,
+  "iptc": {},
+  "mime_type": "image/png",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 27223,
+  "width": 128,
+  "xmp": {}
+}

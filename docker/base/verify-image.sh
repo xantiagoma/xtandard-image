@@ -109,15 +109,15 @@ vips copy in.pdf pdf.png
 echo "ok pdf (pdfium)"
 EOF
 
-echo "== ImageMagick: PSD/PSB and the WP-97 legacy coders only (policy.xml)"
+echo "== ImageMagick: PSD/PSB, the WP-97 legacy coders and XCF only (policy.xml)"
 fixtures="$(cd "$my_dir/../../testdata/fixtures" && pwd)"
 docker run --rm -i -v "$fixtures:/fixtures:ro" "$runtime" bash -euo pipefail <<'EOF'
 cd /tmp
 policy=/opt/xtandard/etc/ImageMagick-7/policy.xml
 grep -q '<policy domain="coder" rights="none" pattern="\*"/>' "$policy"
-grep -q '<policy domain="coder" rights="read" pattern="{PSD,PSB,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PAM}"/>' "$policy"
+grep -q '<policy domain="coder" rights="read" pattern="{PSD,PSB,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PAM,XCF}"/>' "$policy"
 grep -q '<policy domain="delegate" rights="none" pattern="\*"/>' "$policy"
-echo "policy $policy denies every coder except PSD/PSB and TGA, PCX, DDS, QOI, SGI, SUN, XBM, XPM, PAM"
+echo "policy $policy denies every coder except PSD/PSB, TGA, PCX, DDS, QOI, SGI, SUN, XBM, XPM, PAM and XCF"
 
 # WP-97 legacy formats: each decodes through magickload with its own coder.
 for f in tga/alpha.tga:TGA:4 tga/photo-rle.tga:TGA:3 pcx/photo.pcx:PCX:3 dds/photo-dxt1.dds:DDS:3 \
@@ -130,6 +130,13 @@ for f in tga/alpha.tga:TGA:4 tga/photo-rle.tga:TGA:3 pcx/photo.pcx:PCX:3 dds/pho
   vips copy legacy.v legacy.png
 done
 echo "ok legacy coders: TGA, PCX, DDS (DXT1, DXT5), QOI, SGI, SUN, XBM, XPM, PAM"
+# GIMP XCF (WP-107): the coder returns the layers bottom first; the app
+# decodes one layer per call and flattens them itself.
+vips magickload /fixtures/xcf/alpha.xcf xcf.v
+got="$(vipsheader -f magick-format xcf.v) $(vipsheader -f width xcf.v)x$(vipsheader -f height xcf.v)"
+test "$got" = "XCF 48x32" || { echo "xcf/alpha.xcf: $got, want XCF 48x32" >&2; exit 1; }
+vips copy xcf.v xcf.png
+echo "ok xcf coder"
 # ASCII and bitmap Netpbm go through ppmload, not ImageMagick.
 for f in ppm/graphic-ascii.pbm ppm/graphic.pbm ppm/photo-ascii.pgm ppm/photo-ascii.ppm; do
   vips ppmload "/fixtures/$f" pnm.v

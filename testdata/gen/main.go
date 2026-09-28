@@ -45,7 +45,7 @@ func main() {
 
 func run(args []string) error {
 	if len(args) < 2 {
-		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|watermark-badge|gif|gif-anim|ico-png|ico-bmp|icns|eps-preview|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb|exr-rgba-half|exr-rgb-float|radiance|rgbe|pfm|ppm|hdr-stats|dng|video-frames> args...")
+		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|watermark-badge|gif|gif-anim|ico-png|ico-bmp|icns|eps-preview|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb|exr-rgba-half|exr-rgb-float|radiance|rgbe|pfm|ppm|hdr-stats|dng|video-frames|procreate|sketch|pdn|svgz> args...")
 	}
 	sizeArgs := func() (int, int, string, error) {
 		if len(args) != 4 {
@@ -160,6 +160,17 @@ func run(args []string) error {
 		default:
 			return writePPM(out, w, h)
 		}
+	case "procreate":
+		return writeProcreate(args[1])
+	case "sketch":
+		return writeSketch(args[1])
+	case "pdn":
+		return writePDN(args[1])
+	case "svgz":
+		if len(args) != 3 {
+			return errors.New("svgz: want in.svg out.svgz")
+		}
+		return writeSVGZ(args[1], args[2])
 	case "video-frames":
 		if len(args) != 6 {
 			return errors.New("video-frames: want W H FPS FRAMES out.rgb")

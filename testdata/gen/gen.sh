@@ -189,5 +189,19 @@ else
 	echo "JXRENCAPP not set: jxr/*.jxr not regenerated (restore testdata/fixtures/jxr)" >&2
 fi
 
+# Designer containers (WP-107) that no permissive sample exists for, written to
+# the applications' layout by gen (testdata/gen/designer.go). GIMP XCF,
+# OpenRaster and Krita files come from the applications themselves:
+# testdata/gen/designer.sh (Docker) regenerates xcf/, ora/, kra/ and their
+# GIMP renders.
+mkdir -p "$F"/procreate "$F"/sketch "$F"/pdn "$F"/svgz
+gen procreate "$F/procreate/thumbnail.procreate"
+gen sketch "$F/sketch/preview.sketch"
+gen pdn "$F/pdn/thumbnail.pdn"
+gen svgz "$F/svg/logo.svg" "$F/svgz/logo.svgz"
+if [ -z "${XI_SKIP_DESIGNER:-}" ]; then
+	sh testdata/gen/designer.sh
+fi
+
 # SSIM reference set for internal/testutil/ssim.
 gen ssim-refs testdata/ssim
