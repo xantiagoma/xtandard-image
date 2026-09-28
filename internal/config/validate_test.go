@@ -79,7 +79,12 @@ func TestValidate(t *testing.T) {
 			c.Detect.ObjectModel, c.Detect.FaceModel, c.Detect.ModelsDir = "/models/x.onnx", "", ""
 		}, nil},
 		{"http without allow", func(c *Config) { c.Sources["web"] = Source{Type: SourceHTTP} }, []string{"sources.web.allow"}},
-		{"http allow with scheme", func(c *Config) { c.Sources["web"] = Source{Type: SourceHTTP, Allow: []string{"https://a.example"}} }, []string{"sources.web.allow[0]"}},
+		{"http allow with http(s) scheme", func(c *Config) {
+			c.Sources["web"] = Source{Type: SourceHTTP, Allow: []string{"https://a.example", "HTTP://b.example:8080/img/", "https://*"}}
+		}, nil},
+		{"http allow with another scheme", func(c *Config) {
+			c.Sources["web"] = Source{Type: SourceHTTP, Allow: []string{"a.example", "ftp://a.example", "https://", "https:///x", "https://https://a"}}
+		}, []string{"sources.web.allow[1]", "sources.web.allow[2]", "sources.web.allow[3]", "sources.web.allow[4]"}},
 		{
 			"field of another type", func(c *Config) {
 				c.Sources["web"] = Source{Type: SourceHTTP, Allow: []string{"a"}, Root: "/x", Bucket: "b"}

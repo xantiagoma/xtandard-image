@@ -218,7 +218,7 @@ func (c *Config) validateSources(v *validator) {
 		case SourceHTTP:
 			v.check(len(s.Allow) > 0 || s.BaseURL != "", p+".allow", "an http source needs allow patterns or a base_url")
 			for i, a := range s.Allow {
-				v.check(a != "" && !strings.Contains(a, "://"), fmt.Sprintf("%s.allow[%d]", p, i), "want a host glob with an optional path prefix, got %q", a)
+				v.check(validAllowPattern(a), fmt.Sprintf("%s.allow[%d]", p, i), "want [http:// or https://]host-glob[:port][/path/prefix/], got %q", a)
 			}
 			v.check(s.BaseURL == "" || validHTTPURL(s.BaseURL), p+".base_url", "must be an absolute http(s) URL")
 		case SourceS3, SourceGCS, SourceAzure:
@@ -237,6 +237,21 @@ func (c *Config) validateSources(v *validator) {
 			v.check(s.PrivateKeyPassphrase == "" || s.PrivateKey != "", p+".private_key_passphrase", "needs private_key")
 		}
 	}
+}
+
+// validAllowPattern is the syntactic check of an http allow pattern: an
+// optional http:// or https:// scheme (any case) followed by a non-empty
+// host glob; any other scheme is rejected. internal/source compiles the
+// pattern (host glob, port, path prefix) at startup.
+func validAllowPattern(a string) bool {
+	rest := a
+	for _, scheme := range []string{"https://", "http://"} {
+		if len(a) >= len(scheme) && strings.EqualFold(a[:len(scheme)], scheme) {
+			rest = a[len(scheme):]
+			break
+		}
+	}
+	return rest != "" && rest[0] != '/' && !strings.Contains(rest, "://")
 }
 
 func validHTTPURL(s string) bool {
