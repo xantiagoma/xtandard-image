@@ -1,0 +1,50 @@
+# The non-secret configuration (docs/SOURCES.md). Credentials are {file: …}
+# references to the xi-secrets Secret, which deployment.yaml mounts at
+# /run/secrets/xi. A test in internal/config loads this ConfigMap together
+# with deployment.yaml.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xi-config
+data:
+  config.yaml: |
+    # yaml-language-server: $schema=https://xantiagoma.github.io/xtandard-image/schema/v1/config.schema.json
+    sources:
+      # AWS S3 through IRSA / EKS Pod Identity: no keys in the config.
+      aws:
+        type: s3
+        region: eu-west-1
+        buckets: [acme-media]
+        bucket: acme-media
+      # Cloudflare R2: the access key id comes from the environment
+      # (XI_SOURCES_R2_ACCESS_KEY_ID, deployment.yaml), the secret from a file.
+      r2:
+        type: s3
+        endpoint: https://ACCOUNT_ID.r2.cloudflarestorage.com
+        region: auto
+        buckets: [assets]
+        bucket: assets
+        secret_access_key: { file: /run/secrets/xi/r2-secret-access-key }
+      # In-cluster RustFS or MinIO, path-style. Its address is private, which
+      # only http sources care about (the SSRF policy); s3 endpoints are trusted.
+      rustfs:
+        type: s3
+        endpoint: http://rustfs.storage.svc.cluster.local:9000
+        region: us-east-1
+        force_path_style: true
+        buckets: [assets, "tenant-*"]
+        access_key_id: xi-reader
+        secret_access_key: { file: /run/secrets/xi/rustfs-secret-key }
+      # GCS with a service-account key (on GKE prefer Workload Identity and
+      # drop credentials_json).
+      gcs:
+        type: gcs
+        buckets: [acme-gcs-images]
+        bucket: acme-gcs-images
+        credentials_json: { file: /run/secrets/xi/gcs-service-account.json }
+      web:
+        type: http
+        allow: [https://images.unsplash.com]
+    dialects:
+      imgproxy:
+        source: r2

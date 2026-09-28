@@ -1,0 +1,96 @@
+# Deployment for configmap.yaml (docs/SOURCES.md). Create the Secret first;
+# its keys are the file names under /run/secrets/xi:
+#
+#   kubectl create secret generic xi-secrets \
+#     --from-literal=signing-key="$(openssl rand -hex 32)" \
+#     --from-literal=signing-salt="$(openssl rand -hex 32)" \
+#     --from-literal=r2-access-key-id=<R2 access key id> \
+#     --from-literal=r2-secret-access-key=<R2 secret access key> \
+#     --from-literal=rustfs-secret-key=<RustFS secret key> \
+#     --from-file=gcs-service-account.json=./sa.json
+#
+# A test in internal/config loads this Deployment's environment, the
+# ConfigMap and the mounted Secret keys, so every path below must match.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: xtandard-image
+  annotations:
+    # EKS IRSA: the role the aws source uses (no keys in the config).
+    eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/xtandard-image-read
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xtandard-image
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: xtandard-image }
+  template:
+    metadata:
+      labels: { app: xtandard-image }
+    spec:
+      serviceAccountName: xtandard-image
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        fsGroup: 65532
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: xtandard-image
+          image: ghcr.io/xantiagoma/xtandard-image:slim
+          ports:
+            - { name: http, containerPort: 8080 }
+            - { name: admin, containerPort: 9090 }
+          env:
+            - { name: XI_CONFIG_FILE, value: /etc/xtandard/config.yaml }
+            # Admin listener: metrics, /openapi.json, /config.schema.json and,
+            # with XI_ADMIN_DOCS, /docs. Reach it with kubectl port-forward.
+            - { name: XI_ADMIN_ADDR, value: ":9090" }
+            - { name: XI_ADMIN_DOCS, value: "true" }
+            # _FILE variants read a mounted Secret key.
+            - { name: XI_SIGNING_KEYS_FILE, value: /run/secrets/xi/signing-key }
+            - { name: XI_SIGNING_SALTS_FILE, value: /run/secrets/xi/signing-salt }
+            # Or inject the value itself from the Secret.
+            - name: XI_SOURCES_R2_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef: { name: xi-secrets, key: r2-access-key-id }
+          volumeMounts:
+            - { name: config, mountPath: /etc/xtandard, readOnly: true }
+            - { name: secrets, mountPath: /run/secrets/xi, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+          readinessProbe: { httpGet: { path: /readyz, port: http }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 10 }
+          resources:
+            requests: { cpu: "1", memory: 1Gi }
+            limits: { cpu: "2", memory: 2Gi }
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+      volumes:
+        - name: config
+          configMap: { name: xi-config }
+        - name: secrets
+          secret:
+            secretName: xi-secrets
+            defaultMode: 0440
+            items:
+              - { key: signing-key, path: signing-key }
+              - { key: signing-salt, path: signing-salt }
+              - { key: r2-secret-access-key, path: r2-secret-access-key }
+              - { key: rustfs-secret-key, path: rustfs-secret-key }
+              - { key: gcs-service-account.json, path: gcs-service-account.json }
+        - name: tmp
+          emptyDir: { medium: Memory, sizeLimit: 64Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xtandard-image
+spec:
+  selector: { app: xtandard-image }
+  ports:
+    - { name: http, port: 80, targetPort: http }
+    # No admin port here: keep /metrics, /docs and pprof off the public path.
