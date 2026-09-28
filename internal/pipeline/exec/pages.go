@@ -96,7 +96,10 @@ func (r *runner) loadStack(ctx context.Context, ls *plan.LoadStep) (*vips.Image,
 // PDFium lays the pages out without rendering anything.
 func (r *runner) measureSelection(ctx context.Context) error {
 	ls := &r.plan.Load
-	if !r.meta.IsVector || r.meta.Selection || r.plan.Animation != nil || (ls.Page == 0 && ls.NPages <= 1) {
+	// Every page of an EPS/PostScript document renders at the size of its
+	// DSC box (the device is fixed to it), which the header gave.
+	if !r.meta.IsVector || r.meta.Format == formatEPS || r.meta.Selection || r.plan.Animation != nil ||
+		(ls.Page == 0 && ls.NPages <= 1) {
 		return nil
 	}
 	img, err := vips.Load(ctx, r.j.Source, &vips.LoadOptions{

@@ -54,6 +54,12 @@ type Config struct {
 	// without video options gets, best-frame selection and the limits. The
 	// zero value refuses video sources.
 	Video video.Settings
+
+	// EPS renders EPS/PostScript sources with Ghostscript
+	// (ghostscript.Runner, XI_FORMATS_EPS_ENABLED, gpl image only); nil
+	// decodes them from a DOS EPS file's embedded TIFF preview, and one
+	// without is refused (codec.EPSDisabledMessage).
+	EPS EPSRenderer
 }
 
 // noRelease is admit's release when no Admit hook is configured.
