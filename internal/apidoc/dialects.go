@@ -18,6 +18,10 @@ const (
 	groupDelivery  = "delivery"
 	groupPresets   = "presets"
 	groupOther     = "other"
+	// Info panel groups (InfoOptions).
+	groupReport   = "report"
+	groupHashes   = "hashes"
+	groupSecurity = "security"
 )
 
 // dparam is one parameter of a dialect's static catalogue: the playground

@@ -193,6 +193,37 @@ function tsArg(v, type) {
   return JSON.stringify(v);
 }
 
+// curlInfoSnippet asks for an /info URL's JSON.
+export function curlInfoSnippet(url) {
+  return `curl -sS -H 'Accept: application/json' ${shq(url)}`;
+}
+
+// tsInfoSnippet writes the fluent /info call of @xtandard/image-url
+// (img.info(source).<option>(...args).build()) for entries of the info
+// catalogue index.
+export function tsInfoSnippet({ source, entries, index, base, signed, separator, encoding }) {
+  if (!source) return null;
+  const cfg = [`baseUrl: ${JSON.stringify(base)}`, `sourceEncoding: ${JSON.stringify(encoding === 'base64' ? 'base64' : 'plain')}`];
+  if ((separator || ':') !== ':') cfg.push(`separator: ${JSON.stringify(separator)}`);
+  if (signed) cfg.push('signing: { key: process.env.XI_SIGNING_KEY!, salt: process.env.XI_SIGNING_SALT! }');
+  const calls = [];
+  for (const [o, e, v] of activeEntries(entries, index, 'imgproxy')) {
+    const types = argTypes(o, e);
+    const args = v.map((x, j) => tsArg(x, types[j]?.type)).join(', ');
+    calls.push(ident.test(o.name) ? `.${o.name}(${args})` : `.option(${JSON.stringify(o.name)}${args ? `, ${args}` : ''})`);
+  }
+  return [
+    'import { imgproxy } from "@xtandard/image-url";',
+    '',
+    `const img = imgproxy({ ${cfg.join(', ')} });`,
+    'const url = await img',
+    `  .info(${JSON.stringify(source)})`,
+    ...calls.map((c) => `  ${c}`),
+    '  .build();',
+    'const info = await (await fetch(url, { headers: { Accept: "application/json" } })).json();',
+  ].join('\n');
+}
+
 // tsSnippet writes the fluent @xtandard/image-url call for an imgproxy
 // mount (null for other grammars).
 export function tsSnippet(m, state, index, base, signed) {
