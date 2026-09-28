@@ -8,7 +8,8 @@
 #   - Ghostscript (AGPL-3.0-or-later, WP-99): the `gs` program alone, static, minimal
 #     devices, run by the server as a sandboxed subprocess when EPS input is enabled
 # (LibRaw with the Adobe DNG SDK and GoPro GPR SDK is built just before, by
-# `build-libraw.sh --with-sdks`; the notice below lists them.)
+# `build-libraw.sh --with-sdks`, and libwmf, libemf2svg and xi-metafile2svg by
+# build-gpl-metafile.sh (WP-108); the notice below lists them.)
 # then extends the licence bundle and SOURCES.md, writes share/licenses/LICENSE-GPL.md
 # and runs the licence gate in its gpl mode (--allow-gpl versions-gpl.sh).
 #
@@ -213,7 +214,7 @@ add_sbom ghostscript "$GHOSTSCRIPT_VERSION" \
 # --- Cleanup (as in build-full-deps.sh) -------------------------------------------
 rm -rf "$TARGET_PATH"/lib/*.a "$TARGET_PATH"/lib/*.la
 rm -rf "$TARGET_PATH"/share/{doc,man,ffmpeg}
-find "$TARGET_PATH/bin" -type f ! -name 'vips*' ! -name ffmpeg ! -name ffprobe ! -name gs -delete
+find "$TARGET_PATH/bin" -type f ! -name 'vips*' ! -name ffmpeg ! -name ffprobe ! -name gs ! -name xi-metafile2svg -delete
 find "$TARGET_PATH/lib" -maxdepth 1 -type f -name 'libx264.so.*' -exec strip --strip-unneeded {} +
 
 # --- Licences, SOURCES.md and the GPL notice ------------------------------------------
@@ -254,7 +255,10 @@ sed -n '/%%Copyright/p' "$gs_src/Resource/CMap/Identity-H" > "$LICENSES/ghostscr
   echo "GPL-2.0-or-later and FFmpeg is rebuilt from the tarball above with --enable-gpl,"
   echo "so the FFmpeg libraries and CLIs in this image are GPL-2.0-or-later"
   echo "(share/licenses/LICENSE-GPL.md). Ghostscript (bin/gs) is built unmodified from"
-  echo "its release tarball below and is AGPL-3.0-or-later."
+  echo "its release tarball below and is AGPL-3.0-or-later. libwmf (LGPL-2.0-or-later, with"
+  echo "its GPL URW fonts; SVG device patched by docker/base/patches/libwmf) and libemf2svg"
+  echo "(GPL-2.0-only, unmodified) are built by build-gpl-metafile.sh and linked by"
+  echo "bin/xi-metafile2svg (source: docker/base/metafile)."
   echo ""
   echo "| File | Source | SHA256 |"
   echo "|---|---|---|"
@@ -285,6 +289,15 @@ its configuration). Whoever distributes this image, or runs it for users over a 
 with EPS rendering enabled, must be able to offer that corresponding source; changing
 Ghostscript brings AGPL section 13's obligation to offer the modified source to every
 network user. The ADR docs/adr/0011-ghostscript-subprocess.md explains the setup.
+
+The program \`${TARGET_PATH}/bin/xi-metafile2svg\` (WP-108) converts WMF and EMF sources
+to SVG. Its own source (\`docker/base/metafile\`) is MIT, but it links **libwmf
+${LIBWMF_VERSION}** (LGPL-2.0-or-later, \`libwmf/COPYING\`; its SVG device patched, see
+\`docker/base/patches/libwmf\`; the URW Type 1 fonts it installs in \`share/libwmf/fonts\`
+are GPL, \`libwmf/fonts-LICENSE\`) and **libemf2svg
+${LIBEMF2SVG_VERSION}** with its vendored libUEMF (**GPL-2.0-only**, \`libemf2svg/\`), so as
+built it is a GPL-2.0-only work. It is a separate program: the server runs it as a
+sandboxed subprocess (the same sandbox as Ghostscript) and never links either library.
 
 Its LibRaw (\`libraw_r\`) is built with the **Adobe DNG SDK ${DNGSDK_VERSION}** and
 the **GoPro GPR SDK** (Apache-2.0 OR MIT) compiled in, to decode JPEG XL and VC-5
