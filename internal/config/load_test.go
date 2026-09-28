@@ -404,11 +404,13 @@ sources:
 		"XI_SOURCES_BOX_POOL_SIZE=8",
 		"XI_SOURCES_BOX_DIAL_TIMEOUT=5s",
 		"XI_SOURCES_BOX_IDLE_TIMEOUT=2m",
+		"XI_SOURCES_BOX_PDF_PASSWORD=open sesame",
 	)
 	wantBox := Source{
 		Type: SourceSFTP, Host: "sftp.example.com", HostKey: "ssh-ed25519 AAAA", User: "xi",
 		PrivateKey: "pem", PrivateKeyPassphrase: "pass", Root: "/home/xi",
 		PoolSize: 8, DialTimeout: 5 * time.Second, IdleTimeout: 2 * time.Minute,
+		PDFPassword: "open sesame",
 	}
 	if d := diff(map[string]Source{"box": wantBox}, remote.Sources); d != "" {
 		t.Errorf("remote sources (-want +got):\n%s", d)

@@ -223,6 +223,12 @@
           "title": "XI_SOURCES_<NAME>_ENDPOINT",
           "type": "string"
         },
+        "pdf_password": {
+          "$ref": "#/$defs/secret",
+          "description": "every type: default password for password-protected PDFs of this source, used when a request carries no pdf_password of its own ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); a secret (_PDF_PASSWORD_FILE, {file: …}), at most 1024 bytes without control characters. Rotating it does not purge renditions already in the result cache\n\nEnv: XI_SOURCES_<NAME>_PDF_PASSWORD (or XI_SOURCES_<NAME>_PDF_PASSWORD_FILE)",
+          "markdownDescription": "every type: default password for password-protected PDFs of this source, used when a request carries no `pdf_password` of its own ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); a secret (`_PDF_PASSWORD_FILE`, `{file: …}`), at most 1024 bytes without control characters. Rotating it does not purge renditions already in the result cache\n\nEnv: `XI_SOURCES_<NAME>_PDF_PASSWORD` (or `XI_SOURCES_<NAME>_PDF_PASSWORD_FILE`)",
+          "title": "XI_SOURCES_<NAME>_PDF_PASSWORD"
+        },
         "prefix": {
           "description": "object key prefix jail (every type except http)\n\nEnv: XI_SOURCES_<NAME>_PREFIX",
           "markdownDescription": "object key prefix jail (every type except http)\n\nEnv: `XI_SOURCES_<NAME>_PREFIX`",
@@ -256,6 +262,12 @@
           "markdownDescription": "fs: follow symlinks whose target stays inside the root (links leaving it are always refused)\n\nEnv: `XI_SOURCES_<NAME>_FOLLOW_SYMLINKS`",
           "title": "XI_SOURCES_<NAME>_FOLLOW_SYMLINKS",
           "type": "boolean"
+        },
+        "pdf_password": {
+          "$ref": "#/$defs/secret",
+          "description": "every type: default password for password-protected PDFs of this source, used when a request carries no pdf_password of its own ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); a secret (_PDF_PASSWORD_FILE, {file: …}), at most 1024 bytes without control characters. Rotating it does not purge renditions already in the result cache\n\nEnv: XI_SOURCES_<NAME>_PDF_PASSWORD (or XI_SOURCES_<NAME>_PDF_PASSWORD_FILE)",
+          "markdownDescription": "every type: default password for password-protected PDFs of this source, used when a request carries no `pdf_password` of its own ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); a secret (`_PDF_PASSWORD_FILE`, `{file: …}`), at most 1024 bytes without control characters. Rotating it does not purge renditions already in the result cache\n\nEnv: `XI_SOURCES_<NAME>_PDF_PASSWORD` (or `XI_SOURCES_<NAME>_PDF_PASSWORD_FILE`)",
+          "title": "XI_SOURCES_<NAME>_PDF_PASSWORD"
         },
         "prefix": {
           "description": "object key prefix jail (every type except http)\n\nEnv: XI_SOURCES_<NAME>_PREFIX",
@@ -308,6 +320,12 @@
           "description": "ftp/sftp. ftp: empty _USER logs in as anonymous; _TLS=true is explicit TLS (AUTH TLS, PROT P), passive mode only. sftp: _USER plus _PASSWORD and/or _PRIVATE_KEY (PEM/OpenSSH); _HOST_KEY is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: XI_SOURCES_<NAME>_PASSWORD (or XI_SOURCES_<NAME>_PASSWORD_FILE)",
           "markdownDescription": "ftp/sftp. ftp: empty `_USER` logs in as `anonymous`; `_TLS=true` is explicit TLS (`AUTH TLS`, `PROT P`), passive mode only. sftp: `_USER` plus `_PASSWORD` and/or `_PRIVATE_KEY` (PEM/OpenSSH); `_HOST_KEY` is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: `XI_SOURCES_<NAME>_PASSWORD` (or `XI_SOURCES_<NAME>_PASSWORD_FILE`)",
           "title": "XI_SOURCES_<NAME>_PASSWORD"
+        },
+        "pdf_password": {
+          "$ref": "#/$defs/secret",
+          "description": "every type: default password for password-protected PDFs of this source, used when a request carries no pdf_password of its own ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); a secret (_PDF_PASSWORD_FILE, {file: …}), at most 1024 bytes without control characters. Rotating it does not purge renditions already in the result cache\n\nEnv: XI_SOURCES_<NAME>_PDF_PASSWORD (or XI_SOURCES_<NAME>_PDF_PASSWORD_FILE)",
+          "markdownDescription": "every type: default password for password-protected PDFs of this source, used when a request carries no `pdf_password` of its own ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); a secret (`_PDF_PASSWORD_FILE`, `{file: …}`), at most 1024 bytes without control characters. Rotating it does not purge renditions already in the result cache\n\nEnv: `XI_SOURCES_<NAME>_PDF_PASSWORD` (or `XI_SOURCES_<NAME>_PDF_PASSWORD_FILE`)",
+          "title": "XI_SOURCES_<NAME>_PDF_PASSWORD"
         },
         "pool_size": {
           "description": "ftp/sftp: max open connections to the server\n\nEnv: XI_SOURCES_<NAME>_POOL_SIZE",
@@ -388,6 +406,12 @@
           "title": "XI_SOURCES_<NAME>_ENDPOINT",
           "type": "string"
         },
+        "pdf_password": {
+          "$ref": "#/$defs/secret",
+          "description": "every type: default password for password-protected PDFs of this source, used when a request carries no pdf_password of its own ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); a secret (_PDF_PASSWORD_FILE, {file: …}), at most 1024 bytes without control characters. Rotating it does not purge renditions already in the result cache\n\nEnv: XI_SOURCES_<NAME>_PDF_PASSWORD (or XI_SOURCES_<NAME>_PDF_PASSWORD_FILE)",
+          "markdownDescription": "every type: default password for password-protected PDFs of this source, used when a request carries no `pdf_password` of its own ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); a secret (`_PDF_PASSWORD_FILE`, `{file: …}`), at most 1024 bytes without control characters. Rotating it does not purge renditions already in the result cache\n\nEnv: `XI_SOURCES_<NAME>_PDF_PASSWORD` (or `XI_SOURCES_<NAME>_PDF_PASSWORD_FILE`)",
+          "title": "XI_SOURCES_<NAME>_PDF_PASSWORD"
+        },
         "prefix": {
           "description": "object key prefix jail (every type except http)\n\nEnv: XI_SOURCES_<NAME>_PREFIX",
           "markdownDescription": "object key prefix jail (every type except http)\n\nEnv: `XI_SOURCES_<NAME>_PREFIX`",
@@ -433,6 +457,12 @@
           "markdownDescription": "http: extra request headers (`Authorization=…`)\n\nEnv: `XI_SOURCES_<NAME>_HEADERS` (or `XI_SOURCES_<NAME>_HEADERS_FILE`)",
           "title": "XI_SOURCES_<NAME>_HEADERS",
           "type": "object"
+        },
+        "pdf_password": {
+          "$ref": "#/$defs/secret",
+          "description": "every type: default password for password-protected PDFs of this source, used when a request carries no pdf_password of its own ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); a secret (_PDF_PASSWORD_FILE, {file: …}), at most 1024 bytes without control characters. Rotating it does not purge renditions already in the result cache\n\nEnv: XI_SOURCES_<NAME>_PDF_PASSWORD (or XI_SOURCES_<NAME>_PDF_PASSWORD_FILE)",
+          "markdownDescription": "every type: default password for password-protected PDFs of this source, used when a request carries no `pdf_password` of its own ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); a secret (`_PDF_PASSWORD_FILE`, `{file: …}`), at most 1024 bytes without control characters. Rotating it does not purge renditions already in the result cache\n\nEnv: `XI_SOURCES_<NAME>_PDF_PASSWORD` (or `XI_SOURCES_<NAME>_PDF_PASSWORD_FILE`)",
+          "title": "XI_SOURCES_<NAME>_PDF_PASSWORD"
         },
         "type": {
           "const": "http",
@@ -482,6 +512,12 @@
           "markdownDescription": "s3 (R2, Spaces, B2, RustFS and other S3-compatible stores via endpoint). No keys → AWS default chain (env, shared files, IRSA, ECS/EC2 role); `_ROLE_ARN` assumes a role on top. `_REGION` falls back to the SDK chain, then `us-east-1` when an endpoint is set (R2: `auto`). Checksums are sent/validated only when required, so R2/B2 work\n\nEnv: `XI_SOURCES_<NAME>_FORCE_PATH_STYLE`",
           "title": "XI_SOURCES_<NAME>_FORCE_PATH_STYLE",
           "type": "boolean"
+        },
+        "pdf_password": {
+          "$ref": "#/$defs/secret",
+          "description": "every type: default password for password-protected PDFs of this source, used when a request carries no pdf_password of its own ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); a secret (_PDF_PASSWORD_FILE, {file: …}), at most 1024 bytes without control characters. Rotating it does not purge renditions already in the result cache\n\nEnv: XI_SOURCES_<NAME>_PDF_PASSWORD (or XI_SOURCES_<NAME>_PDF_PASSWORD_FILE)",
+          "markdownDescription": "every type: default password for password-protected PDFs of this source, used when a request carries no `pdf_password` of its own ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); a secret (`_PDF_PASSWORD_FILE`, `{file: …}`), at most 1024 bytes without control characters. Rotating it does not purge renditions already in the result cache\n\nEnv: `XI_SOURCES_<NAME>_PDF_PASSWORD` (or `XI_SOURCES_<NAME>_PDF_PASSWORD_FILE`)",
+          "title": "XI_SOURCES_<NAME>_PDF_PASSWORD"
         },
         "prefix": {
           "description": "object key prefix jail (every type except http)\n\nEnv: XI_SOURCES_<NAME>_PREFIX",
@@ -552,6 +588,12 @@
           "description": "ftp/sftp. ftp: empty _USER logs in as anonymous; _TLS=true is explicit TLS (AUTH TLS, PROT P), passive mode only. sftp: _USER plus _PASSWORD and/or _PRIVATE_KEY (PEM/OpenSSH); _HOST_KEY is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: XI_SOURCES_<NAME>_PASSWORD (or XI_SOURCES_<NAME>_PASSWORD_FILE)",
           "markdownDescription": "ftp/sftp. ftp: empty `_USER` logs in as `anonymous`; `_TLS=true` is explicit TLS (`AUTH TLS`, `PROT P`), passive mode only. sftp: `_USER` plus `_PASSWORD` and/or `_PRIVATE_KEY` (PEM/OpenSSH); `_HOST_KEY` is mandatory (authorized_keys or known_hosts lines, several allowed for rotation; no trust-on-first-use)\n\nEnv: `XI_SOURCES_<NAME>_PASSWORD` (or `XI_SOURCES_<NAME>_PASSWORD_FILE`)",
           "title": "XI_SOURCES_<NAME>_PASSWORD"
+        },
+        "pdf_password": {
+          "$ref": "#/$defs/secret",
+          "description": "every type: default password for password-protected PDFs of this source, used when a request carries no pdf_password of its own ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); a secret (_PDF_PASSWORD_FILE, {file: …}), at most 1024 bytes without control characters. Rotating it does not purge renditions already in the result cache\n\nEnv: XI_SOURCES_<NAME>_PDF_PASSWORD (or XI_SOURCES_<NAME>_PDF_PASSWORD_FILE)",
+          "markdownDescription": "every type: default password for password-protected PDFs of this source, used when a request carries no `pdf_password` of its own ([URL-DIALECTS §3.7](URL-DIALECTS.md#37-password-protected-pdfs-wp-115)); a secret (`_PDF_PASSWORD_FILE`, `{file: …}`), at most 1024 bytes without control characters. Rotating it does not purge renditions already in the result cache\n\nEnv: `XI_SOURCES_<NAME>_PDF_PASSWORD` (or `XI_SOURCES_<NAME>_PDF_PASSWORD_FILE`)",
+          "title": "XI_SOURCES_<NAME>_PDF_PASSWORD"
         },
         "pool_size": {
           "description": "ftp/sftp: max open connections to the server\n\nEnv: XI_SOURCES_<NAME>_POOL_SIZE",

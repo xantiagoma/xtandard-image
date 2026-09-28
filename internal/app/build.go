@@ -92,14 +92,8 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		}
 		ipOpts.Verifier = v
 	}
-	if len(cfg.Encryption.Keys) > 0 {
-		hexKeys := make([]string, 0, len(cfg.Encryption.Keys))
-		for _, k := range cfg.Encryption.Keys {
-			hexKeys = append(hexKeys, k.Hex())
-		}
-		if ipOpts.Cipher, err = crypt.New(hexKeys...); err != nil {
-			return nil, nil, fmt.Errorf("encryption keys: %w", err)
-		}
+	if ipOpts.Cipher, err = encryptionCipher(cfg); err != nil {
+		return nil, nil, err
 	}
 	for i, pair := range cfg.Dialects.Imgproxy.URLReplacements {
 		pat, repl, _ := strings.Cut(pair, "=")
@@ -127,6 +121,7 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	}
 
 	qOpts := query.Options{
+		Cipher:               ipOpts.Cipher, // pdf_password (WP-115)
 		ArgumentsSeparator:   cfg.Dialects.Imgproxy.ArgumentsSeparator,
 		Strict:               cfg.Dialects.Strict,
 		AllowSecurityOptions: cfg.Security.AllowSecurityOptions,
@@ -723,6 +718,38 @@ func newSource(ctx context.Context, name string, s *config.Source, cfg *config.C
 	}
 }
 
+// encryptionCipher is the enc/ source and pdf_password cipher
+// (XI_ENCRYPTION_KEYS); nil when no key is configured.
+func encryptionCipher(cfg *config.Config) (*crypt.Cipher, error) {
+	if len(cfg.Encryption.Keys) == 0 {
+		return nil, nil
+	}
+	hexKeys := make([]string, 0, len(cfg.Encryption.Keys))
+	for _, k := range cfg.Encryption.Keys {
+		hexKeys = append(hexKeys, k.Hex())
+	}
+	c, err := crypt.New(hexKeys...)
+	if err != nil {
+		return nil, fmt.Errorf("encryption keys: %w", err)
+	}
+	return c, nil
+}
+
+// sourcePasswords collects the per-source default document passwords
+// (XI_SOURCES_<NAME>_PDF_PASSWORD, WP-115); nil when none is set.
+func sourcePasswords(cfg *config.Config) map[string]transform.Password {
+	var out map[string]transform.Password
+	for name := range cfg.Sources {
+		if pw := cfg.Sources[name].PDFPassword.Reveal(); pw != "" {
+			if out == nil {
+				out = map[string]transform.Password{}
+			}
+			out[name] = transform.Password(pw)
+		}
+	}
+	return out
+}
+
 // serverConfig maps config.Config onto the server's own options.
 func serverConfig(cfg *config.Config) server.Config {
 	fmts := func(in []config.Format) []transform.Format {
@@ -801,6 +828,7 @@ func serverConfig(cfg *config.Config) server.Config {
 			TTL:         cfg.Cache.Result.TTL,
 			AllowBypass: cfg.Cache.AllowBypass,
 		},
+		SourcePasswords: sourcePasswords(cfg),
 	}
 }
 

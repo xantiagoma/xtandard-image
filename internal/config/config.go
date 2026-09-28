@@ -190,6 +190,10 @@ type Source struct {
 	DialTimeout time.Duration `yaml:"dial_timeout,omitempty" env:"DIAL_TIMEOUT"`
 	// IdleTimeout closes pooled connections idle for longer (0 = 1m).
 	IdleTimeout time.Duration `yaml:"idle_timeout,omitempty" env:"IDLE_TIMEOUT"`
+
+	// every type: the password password-protected PDFs of this source open
+	// with when a request carries no pdf_password of its own (WP-115).
+	PDFPassword Secret `yaml:"pdf_password,omitempty" env:"PDF_PASSWORD"`
 }
 
 // Fetch configures origin downloads and the SSRF policy.

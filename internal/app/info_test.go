@@ -167,7 +167,7 @@ func infoGolden(t *testing.T, base, root string) {
 	for name, src := range cases {
 		t.Run(name, func(t *testing.T) {
 			r := get(t, base+"/info/unsafe"+allInfo+"/plain/"+src)
-			if name == "pdf-password" || (strings.HasPrefix(name, "video-") && !codec.VideoAvailable()) {
+			if strings.HasPrefix(name, "pdf-password") || (strings.HasPrefix(name, "video-") && !codec.VideoAvailable()) {
 				// Videos are 422 without FFmpeg (slim).
 				if r.status != http.StatusUnprocessableEntity {
 					t.Errorf("GET: %d %s, want 422", r.status, r.body)

@@ -105,6 +105,20 @@ func vipsBuffer(buf fetch.Buffer) (*vips.Buffer, error) {
 	return vb, nil
 }
 
+// passwordBuffer is vipsBuffer for a request's source: with a document
+// password (WP-115) the result is a per-request view that opens
+// password-protected PDFs with it (vips.Buffer.WithPassword), so a buffer
+// shared with other requests never carries this request's password. One
+// reference, owned by the caller.
+func passwordBuffer(buf fetch.Buffer, password []byte) (*vips.Buffer, error) {
+	vb, err := vipsBuffer(buf)
+	if err != nil || len(password) == 0 {
+		return vb, err
+	}
+	defer vb.Release()
+	return vb.WithPassword(password)
+}
+
 // codecSniffer adapts codec.Sniff to server.Sniffer: the Content-Type of
 // raw and skip-processing responses comes from magic bytes only.
 type codecSniffer struct{}

@@ -142,6 +142,7 @@ func (s *Server) inspect(ctx context.Context, r *http.Request, req *transform.Re
 		return nil, err
 	}
 	info.source = key.Source
+	lim.probe.Password = s.documentPassword(req, key.Source)
 
 	// 9. Fetch (coalesced with concurrent processing requests for the same
 	// source).
