@@ -79,6 +79,10 @@ type Deps struct {
 	FSRoots map[string]FSRoot
 	// Translator answers api/translate; nil answers 404.
 	Translator Translator
+	// EncryptPassword encrypts a document password into a pdf_password
+	// token (crypt.Cipher.Encrypt, the XI_ENCRYPTION_KEYS key); nil makes
+	// api/sign refuse SignRequest.PDFPassword.
+	EncryptPassword func(password []byte) (string, error)
 }
 
 // handler is the playground's handler tree.
@@ -93,6 +97,7 @@ type handler struct {
 	store      *Store
 	fsRoots    map[string]FSRoot
 	translator Translator
+	encrypt    func(password []byte) (string, error)
 	page       []byte
 	version    string
 	files      map[string]asset
@@ -128,6 +133,7 @@ func New(cfg Config, deps *Deps) (http.Handler, error) {
 		store:      deps.Store,
 		fsRoots:    deps.FSRoots,
 		translator: deps.Translator,
+		encrypt:    deps.EncryptPassword,
 		files:      map[string]asset{},
 	}
 	for i := range deps.Meta.Mounts {

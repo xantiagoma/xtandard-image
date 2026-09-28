@@ -84,6 +84,11 @@
         <p class="hint">The server must allow the URL: a bare <code>https://…</code> needs an <code>http</code> source whose allowlist matches the host (or <code>XI_DEV_MODE</code>); <code>xi://&lt;source&gt;/https://…</code> picks which source's allowlist and headers apply.</p>
       </div>
       <p class="current-source">Current: <code id="current-source">none</code></p>
+      <div id="pdf-password-row" hidden>
+        <label for="pdf-password">PDF password</label>
+        <input id="pdf-password" type="password" autocomplete="off" spellcheck="false" maxlength="1024" aria-describedby="pdf-password-hint">
+        <p class="hint" id="pdf-password-hint">For a password-protected PDF. Sent to <code>api/sign</code>, which encrypts it into a <code>pdf_password</code> option on signed imgproxy and query URLs; never stored in the page, its link or history.</p>
+      </div>
     </section>
 
     <section class="panel" aria-labelledby="dialect-title">
