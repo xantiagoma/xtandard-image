@@ -1,0 +1,48 @@
+From: xtandard-image
+Subject: [PATCH] Pad the offset lookup tables
+
+Found by fuzzing (Go FuzzJXR, confirmed with ASan): the output loops index
+the per-row and per-column offset tables by macroblock position, which a
+corrupt stream pushes past the image's size (heap over-read in
+outputNChannel). Allocate whole macroblocks plus a spare, zeroed, so a
+stray index reads offset 0 and writes stay inside the caller's buffer.
+---
+--- a/image/decode/strdec.c
++++ b/image/decode/strdec.c
+@@ -2570,7 +2570,7 @@
+ 
+     CWMImageInfo * pII = &pSC->WMII;
+     size_t cStrideX, cStrideY;
+-    size_t w, h, i, iFirst = 0;
++    size_t w, h, i, iFirst = 0, wAlloc, hAlloc;
+     Bool bReverse;
+ 
+     // lookup tables for rotation and flipping
+@@ -2635,8 +2635,14 @@
+     pSC->m_Dparam->pOffsetX = NULL;
+     free(pSC->m_Dparam->pOffsetY);
+     pSC->m_Dparam->pOffsetY = NULL;
+-    pSC->m_Dparam->pOffsetX = (size_t *)malloc(w * sizeof(size_t));
+-    if(pSC->m_Dparam->pOffsetX == NULL || w * sizeof(size_t) < w)
++    // The output loops index these tables by macroblock rows and columns,
++    // which a corrupt stream can push past the image: allocate whole
++    // macroblocks plus a spare row and column, zeroed, so such an index
++    // reads offset 0 (the start of the caller's buffer) instead of the heap.
++    wAlloc = max(w, (pSC->cmbWidth + 2) * 16);
++    hAlloc = max(h, (pSC->cmbHeight + 2) * 16);
++    pSC->m_Dparam->pOffsetX = (size_t *)calloc(wAlloc, sizeof(size_t));
++    if(pSC->m_Dparam->pOffsetX == NULL)
+         return ICERR_ERROR;
+     /*
+     consider a row in the source image. if it becomes a reversed row in the target, or a reversed (upside-down)column 
+@@ -2651,8 +2657,8 @@
+     (pSC->m_Dparam->cROIRightX - pSC->m_Dparam->cROILeftX + pSC->m_Dparam->cThumbnailScale) / pSC->m_Dparam->cThumbnailScale / ((pII->cfColorFormat == YUV_420 || pII->cfColorFormat == YUV_422) ? 2 : 1)) - 1 - i : i) * cStrideX;
+     }
+ 
+-    pSC->m_Dparam->pOffsetY = (size_t *)malloc(h * sizeof(size_t));
+-    if(pSC->m_Dparam->pOffsetY == NULL || h * sizeof(size_t) < h)
++    pSC->m_Dparam->pOffsetY = (size_t *)calloc(hAlloc, sizeof(size_t));
++    if(pSC->m_Dparam->pOffsetY == NULL)
+         return ICERR_ERROR;
+     /*
+     consider a column in the source image. if it becomes an upside-down column in the target, or a reversed row 
