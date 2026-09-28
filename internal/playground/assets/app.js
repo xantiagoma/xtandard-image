@@ -27,6 +27,7 @@ const state = {
   ext: '',
   free: { path: '', query: '' },
   edits: '',
+  info: null, // Info panel entries {name, form, values}; null = recommended
 };
 
 let meta;
@@ -47,6 +48,7 @@ function snapshot() {
     m: state.mount, s: state.source, l: state.sourceLabel, a: state.alias ? 1 : 0, e: state.encoding, x: state.ext,
     p: state.pipelines.map((p) => p.map((e) => [e.name, e.form, e.values, e.groups, e.on ? 1 : 0])),
     f: state.free, j: state.edits, ...(state.prefix ? { pf: state.prefix } : {}),
+    ...(Array.isArray(state.info) ? { i: state.info.map((e) => [e.name, e.form ?? 0, e.values ?? []]) } : {}),
   };
 }
 
@@ -66,6 +68,9 @@ function restore(s) {
     : [[]];
   state.free = { path: s.f?.path ?? '', query: s.f?.query ?? '' };
   state.edits = s.j ?? '';
+  state.info = Array.isArray(s.i)
+    ? s.i.filter(Array.isArray).map(([name, form, values]) => ({ name: String(name), form: Number(form) || 0, values: Array.isArray(values) ? values.map(String) : [] }))
+    : null;
   return true;
 }
 
@@ -313,6 +318,7 @@ function loadFromHash() {
   applyMount();
   preview.clearBefore();
   info.reset();
+  info.restore(state.info);
   update({ render: true });
   return true;
 }
@@ -337,6 +343,7 @@ function defaults() {
   const gallery = meta.gallery?.find((g) => g.allowed && g.format === 'jpeg');
   state.source = first?.source ?? gallery?.url ?? '';
   state.sourceLabel = first?.label ?? gallery?.name ?? '';
+  state.info = null;
 }
 
 async function main() {
@@ -353,7 +360,7 @@ async function main() {
   builder = new Builder({ state, onChange: later });
   preview = new Preview({ accept: () => $('accept').value });
   translate = new Translate({ publicURL, onPreview: (path) => preview.render(path, null) });
-  info = new Info({ meta, sign, preview, getSource: () => state.source });
+  info = new Info({ meta, sign, preview, state, baseURL, onChange: writeHash });
   matrix = new Matrix({ meta, sign });
   sources = new Sources({
     meta,
@@ -363,6 +370,7 @@ async function main() {
       preview.clearBefore();
       info.reset();
       update({ render: true });
+      info.refresh();
     },
     thumb: async (src) => {
       const ip = meta.mounts.find((m) => m.grammar === 'imgproxy' && m.prefix);
@@ -378,6 +386,7 @@ async function main() {
     defaults();
     state.mount = meta.mounts.some((m) => m.id === prefs.mount) ? prefs.mount : meta.mounts[0]?.id ?? '';
     applyMount();
+    info.restore(null);
     update({ render: true });
   }
   renderHistory();
@@ -385,7 +394,7 @@ async function main() {
   tabs('more-tabs', (id) => {
     translate.setVisible(id === 'mtab-translate');
     if (id === 'mtab-matrix') matrix.build();
-    if (id === 'mtab-info' && !$('info-tree').childElementCount) info.run();
+    if (id === 'mtab-info' && !$('info-result').childElementCount) info.run();
   });
 
   $('mount').addEventListener('change', (e) => {
@@ -424,6 +433,8 @@ async function main() {
     history.replaceState(null, '', location.pathname);
     defaults();
     applyMount();
+    info.reset();
+    info.restore(null);
     update({ render: true });
   });
   $('history-clear').addEventListener('click', () => { store.set(HISTORY, []); renderHistory(); });
