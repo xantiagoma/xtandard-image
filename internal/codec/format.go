@@ -142,11 +142,6 @@ const (
 	// frame, parsed in Go by codec/dicom, compressed frames decoded by
 	// libvips, windowed for display. Patient data is never read (WP-108).
 	FormatDICOM
-	// FormatWMF and FormatEMF are Windows metafiles, converted to SVG by
-	// libwmf's wmf2svg and libemf2svg's emf2svg-conv in a sandboxed
-	// subprocess in the gpl image only (internal/metafile, WP-108).
-	FormatWMF
-	FormatEMF
 
 	numFormats
 )
@@ -254,10 +249,6 @@ func (f Format) info() formatInfo {
 		return formatInfo{"fits", "fits", "image/fits", false, false, true}
 	case FormatDICOM:
 		return formatInfo{"dicom", "dcm", "application/dicom", false, false, true}
-	case FormatWMF:
-		return formatInfo{"wmf", "wmf", "image/wmf", false, true, true}
-	case FormatEMF:
-		return formatInfo{"emf", "emf", "image/emf", false, true, true}
 	default:
 		return formatInfo{"unknown", "", "application/octet-stream", false, false, false}
 	}
@@ -426,10 +417,6 @@ func ParseFormat(s string) (Format, error) {
 		return FormatFITS, nil
 	case "dicom", "dcm":
 		return FormatDICOM, nil
-	case "wmf":
-		return FormatWMF, nil
-	case "emf":
-		return FormatEMF, nil
 	}
 	return FormatUnknown, errs.Newf(errs.KindUnsupported, "codec: unknown format %q", s)
 }
@@ -565,10 +552,6 @@ func (f Format) MatchesContentType(contentType string) bool {
 		return mt == "application/fits" || mt == "image/x-fits"
 	case FormatDICOM:
 		return mt == "application/dicom+json" || mt == "image/dicom" || mt == "application/x-dicom"
-	case FormatWMF:
-		return mt == "image/x-wmf" || mt == "windows/metafile" || mt == "application/x-msmetafile"
-	case FormatEMF:
-		return mt == "image/x-emf" || mt == "application/x-msmetafile"
 	default:
 		return false
 	}

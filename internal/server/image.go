@@ -400,7 +400,7 @@ func (s *Server) probe(ctx context.Context, req *transform.Request, buf fetch.Bu
 	ctx, span := s.deps.Tracer.Start(ctx, "probe")
 	defer span.End()
 
-	src, cont, sanitised, err := s.prepare(buf, maxSrcBytes)
+	src, cont, sanitised, err := s.prepare(ctx, buf, maxSrcBytes)
 	if err != nil {
 		span.SetStatus(codes.Error, errs.KindOf(err).String())
 		return nil, SourceMeta{}, err
@@ -431,11 +431,12 @@ func (s *Server) probe(ctx context.Context, req *transform.Request, buf fetch.Bu
 }
 
 // prepare is what every parser of a source sees first: a designer
-// container replaced by the image it carries (unwrap), then an SVG
-// document sanitised (sanitize). The returned buffer holds one reference
-// owned by the caller; cont is nil unless a container was unwrapped.
-func (s *Server) prepare(buf fetch.Buffer, maxSrcBytes int64) (_ fetch.Buffer, cont *container.Source, sanitised bool, _ error) {
-	inner, cont, err := s.unwrap(buf, maxSrcBytes)
+// container replaced by the image it carries, or a Windows metafile by the
+// SVG the gpl image's converter makes of it (unwrap), then an SVG document
+// sanitised (sanitize). The returned buffer holds one reference owned by
+// the caller; cont is nil unless a container was unwrapped.
+func (s *Server) prepare(ctx context.Context, buf fetch.Buffer, maxSrcBytes int64) (_ fetch.Buffer, cont *container.Source, sanitised bool, _ error) {
+	inner, cont, err := s.unwrap(ctx, buf, maxSrcBytes)
 	if err != nil {
 		return nil, nil, false, err
 	}

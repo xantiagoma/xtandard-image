@@ -199,12 +199,15 @@ func fixtureFormats() map[string]codec.Format {
 		"jng/jng-idat.jng":              codec.FormatUnknown,
 		"jng/jng-jdaa.jng":              codec.FormatUnknown,
 		"jng/jng.jng":                   codec.FormatUnknown,
+		// Windows metafiles: the server converts them to SVG (WP-108).
+		"wmf/shapes.wmf": codec.FormatUnknown,
+		"emf/shapes.emf": codec.FormatUnknown,
 	}
 }
 
 // containerFixtures is the number of fixtures fixtureFormats lists as
 // FormatUnknown.
-const containerFixtures = 13
+const containerFixtures = 15
 
 func TestSniffFixtures(t *testing.T) {
 	t.Parallel()
@@ -237,7 +240,11 @@ func TestSniffFixtures(t *testing.T) {
 			data := readFixture(t, name)
 			got, ok := codec.Sniff(data)
 			if f == codec.FormatUnknown {
-				if _, isContainer := container.Detect(data); !isContainer || ok {
+				_, isContainer := container.Detect(data)
+				if _, isMetafile := container.DetectMetafile(data); isMetafile {
+					isContainer = true
+				}
+				if !isContainer || ok {
 					t.Errorf("container: Detect %v, Sniff = %v, %v", isContainer, got, ok)
 				}
 				return

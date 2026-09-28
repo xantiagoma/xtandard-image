@@ -62,7 +62,7 @@ func (s *Server) fetchWatermarks(ctx context.Context, req *transform.Request, ma
 			}
 			defer fr.Release()
 			// A designer container or SVGZ watermark works like a source.
-			buf, _, _, err := s.prepare(fr.Buffer, maxBytes)
+			buf, _, _, err := s.prepare(gctx, fr.Buffer, maxBytes)
 			if err != nil {
 				return fmt.Errorf("server: watermark: %w", err)
 			}
