@@ -3,9 +3,11 @@
 package codec_test
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/synth"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
@@ -110,4 +112,87 @@ func TestSampleNoLeak(t *testing.T) {
 	if got := vips.LiveObjects(); got != objects {
 		t.Errorf("live objects %d after sampling, want %d", got, objects)
 	}
+}
+
+// TestSampleLongTail samples the WP-108 formats: the Go loaders (KTX2,
+// FITS, DICOM) and ImageMagick's named coders (PICT, and a synthetic Photo
+// CD pack, which is too large to commit).
+func TestSampleLongTail(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name    string
+		maxSide int
+		w, h    int
+	}{
+		{"ktx2/etc1s.ktx2", 512, 64, 48},
+		{"ktx2/uastc-hdr.ktx2", 512, 48, 32},
+		{"ktx2/bc7.ktx2", 512, 64, 48},
+		{"fits/rice-f32.fits.fz", 512, 64, 48},
+		{"dicom/ct-j2k.dcm", 512, 64, 48},
+		{"dicom/jpeg-baseline.dcm", 512, 64, 48},
+		{"pict/photo.pct", 32, 32, 24},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			raw := sample(t, tc.name, tc.maxSide)
+			if raw.Width != tc.w || raw.Height != tc.h || raw.Bands != 4 {
+				t.Errorf("Sample = %dx%d with %d bands, want %dx%d with 4", raw.Width, raw.Height, raw.Bands, tc.w, tc.h)
+			}
+		})
+	}
+	// Lossless and 12-bit JPEG frames (jpeghpload, WP-106) render like the
+	// same pixels stored natively or RLE-compressed: jpeghpload's 0–65535
+	// scaling is undone and signed frames keep their sign.
+	for _, tc := range []struct{ got, want string }{
+		{"dicom/ct-jpegll-signed.dcm", "dicom/ct-bigendian.dcm"},
+		{"dicom/ct-jpegll12.dcm", "dicom/ct-rle.dcm"},
+	} {
+		t.Run(tc.got, func(t *testing.T) {
+			t.Parallel()
+			got, want := sample(t, tc.got, 512), sample(t, tc.want, 512)
+			if got.Width != want.Width || got.Height != want.Height || !bytes.Equal(got.Data, want.Data) {
+				t.Errorf("%s (%dx%d) differs from %s (%dx%d)", tc.got, got.Width, got.Height, tc.want, want.Width, want.Height)
+			}
+		})
+	}
+	t.Run("dicom/jpeg-extended12.dcm", func(t *testing.T) {
+		t.Parallel()
+		got, want := sample(t, "dicom/jpeg-extended12.dcm", 512), sample(t, "jpeg/rgb12.jpg", 512)
+		if got.Width != want.Width || got.Height != want.Height {
+			t.Fatalf("Sample = %dx%d, want %dx%d", got.Width, got.Height, want.Width, want.Height)
+		}
+		worst := 0
+		for i := range got.Data {
+			d := int(got.Data[i]) - int(want.Data[i])
+			worst = max(worst, d, -d)
+		}
+		if worst > 1 {
+			t.Errorf("12-bit JPEG frame differs from the JPEG by up to %d levels, want at most 1", worst)
+		}
+	})
+	t.Run("pcd", func(t *testing.T) {
+		t.Parallel()
+		buf := newBuffer(t, synth.PCD(1))
+		defer buf.Release()
+		err := vips.Run(t.Context(), func() error {
+			m, err := codec.Probe(t.Context(), buf, codec.Limits{}, "")
+			if err != nil {
+				return err
+			}
+			if m.Format != codec.FormatPCD || m.Width != 512 || m.Height != 768 {
+				t.Errorf("Probe = %s %dx%d, want pcd 512x768", m.Format, m.Width, m.Height)
+			}
+			raw, err := codec.Sample(t.Context(), buf, m.Format, 100, codec.Limits{})
+			if err != nil {
+				return err
+			}
+			if raw.Width != 67 || raw.Height != 100 {
+				t.Errorf("Sample = %dx%d, want 67x100", raw.Width, raw.Height)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 }

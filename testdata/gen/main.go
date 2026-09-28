@@ -45,7 +45,7 @@ func main() {
 
 func run(args []string) error {
 	if len(args) < 2 {
-		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|watermark-badge|gif|gif-anim|ico-png|ico-bmp|icns|eps-preview|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb|exr-rgba-half|exr-rgb-float|radiance|rgbe|pfm|ppm|hdr-stats|dng|video-frames|procreate|sketch|pdn|svgz|dds-bc1|dds-bc4|dds-bc7|dds-bc6h|lab-tiff8|lab-tiff16|lab-tiff8-alpha|lab-tiff8-icc|cmyk-raw> args...")
+		return errors.New("usage: gen <photo|photo-alpha|photo16|graphic|palette|watermark|watermark-badge|gif|gif-anim|ico-png|ico-bmp|icns|eps-preview|exif6|metadata|bordered|ssim-refs|pdf|psd|psd-nocomposite|psb|exr-rgba-half|exr-rgb-float|radiance|rgbe|pfm|ppm|hdr-stats|dng|video-frames|fits|procreate|sketch|pdn|svgz|dds-bc1|dds-bc4|dds-bc7|dds-bc6h|ktx2-bc1|ktx2-bc4|ktx2-bc7|ktx2-bc6h|ktx2-rgba8|ktx2-rgb8|ktx2-rgba8-zlib|ktx2-rgba8-level|ktx2-rgba8-zstd|lab-tiff8|lab-tiff16|lab-tiff8-alpha|lab-tiff8-icc|cmyk-raw|mng|dicom|dicom-phantom|metafile> args...")
 	}
 	sizeArgs := func() (int, int, string, error) {
 		if len(args) != 4 {
@@ -151,6 +151,17 @@ func run(args []string) error {
 			return err
 		}
 		return writeCMYKRaw(w, h, args[3] == "alpha", args[4], args[5])
+	case "ktx2-bc1", "ktx2-bc4", "ktx2-bc7", "ktx2-bc6h", "ktx2-rgba8", "ktx2-rgb8", "ktx2-rgba8-zlib",
+		"ktx2-rgba8-level", "ktx2-rgba8-zstd":
+		in := ""
+		if args[0] == "ktx2-rgba8-zstd" && len(args) == 5 {
+			in, args = args[4], args[:4]
+		}
+		w, h, out, err := sizeArgs()
+		if err != nil {
+			return err
+		}
+		return ktx2Fixture(args[0], w, h, out, in)
 	case "dds-bc1", "dds-bc4", "dds-bc7", "dds-bc6h", "lab-tiff8", "lab-tiff16", "lab-tiff8-alpha", "lab-tiff8-icc":
 		w, h, out, err := sizeArgs()
 		if err != nil {
@@ -179,12 +190,39 @@ func run(args []string) error {
 		default:
 			return writePPM(out, w, h)
 		}
+	case "fits":
+		w, h, out, err := sizeArgs()
+		if err != nil {
+			return err
+		}
+		return writeFITSFixtures(out, w, h)
+	case "metafile":
+		return metafileFixtures(args[1])
+	case "dicom":
+		if len(args) < 2 || len(args) > 4 {
+			return errors.New("dicom: want out-dir [ct.j2k [rgb12.jpg]]")
+		}
+		j2k, jpeg12 := "", ""
+		if len(args) >= 3 {
+			j2k = args[2]
+		}
+		if len(args) == 4 {
+			jpeg12 = args[3]
+		}
+		return writeDICOMFixtures(args[1], j2k, jpeg12)
+	case "dicom-phantom":
+		return writePhantomPNG(args[1])
 	case "procreate":
 		return writeProcreate(args[1])
 	case "sketch":
 		return writeSketch(args[1])
 	case "pdn":
 		return writePDN(args[1])
+	case "mng":
+		if len(args) != 3 {
+			return errors.New("mng: want KIND out")
+		}
+		return writeMNG(args[1], args[2])
 	case "svgz":
 		if len(args) != 3 {
 			return errors.New("svgz: want in.svg out.svgz")

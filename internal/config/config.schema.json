@@ -2441,6 +2441,40 @@
           },
           "type": "object"
         },
+        "metafile": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "$ref": "#/$defs/tristate",
+              "default": "auto",
+              "description": "**gpl image only.** Convert Windows metafiles (WMF, EMF and EMF+) to SVG with xi-metafile2svg (libwmf, LGPL-2.0-or-later; libemf2svg, GPL-2.0-only), one sandboxed subprocess per source (the Ghostscript sandbox, ADR 0011), then render the SVG like any other (FORMATS §1.8). auto converts when the converter is found and otherwise answers 422 \"WMF and EMF input needs the gpl image (XI_FORMATS_METAFILE_ENABLED)\"; true without a usable converter stops startup; false always answers that 422\n\nEnv: XI_FORMATS_METAFILE_ENABLED",
+              "markdownDescription": "**`gpl` image only.** Convert Windows metafiles (WMF, EMF and EMF+) to SVG with `xi-metafile2svg` (libwmf, LGPL-2.0-or-later; libemf2svg, GPL-2.0-only), one sandboxed subprocess per source (the Ghostscript sandbox, ADR 0011), then render the SVG like any other (FORMATS §1.8). `auto` converts when the converter is found and otherwise answers 422 \"WMF and EMF input needs the gpl image (XI_FORMATS_METAFILE_ENABLED)\"; `true` without a usable converter stops startup; `false` always answers that 422\n\nEnv: `XI_FORMATS_METAFILE_ENABLED`",
+              "title": "XI_FORMATS_METAFILE_ENABLED"
+            },
+            "max_procs": {
+              "default": 2,
+              "description": "Concurrent conversions (1–256), on top of the worker limit; a conversion beyond it fails fast with 429\n\nEnv: XI_FORMATS_METAFILE_MAX_PROCS",
+              "markdownDescription": "Concurrent conversions (1–256), on top of the worker limit; a conversion beyond it fails fast with 429\n\nEnv: `XI_FORMATS_METAFILE_MAX_PROCS`",
+              "title": "XI_FORMATS_METAFILE_MAX_PROCS",
+              "type": "integer"
+            },
+            "path": {
+              "default": "xi-metafile2svg",
+              "description": "The converter: absolute path or a name looked up in PATH (the gpl image has /opt/xtandard/bin/xi-metafile2svg)\n\nEnv: XI_FORMATS_METAFILE_PATH",
+              "markdownDescription": "The converter: absolute path or a name looked up in `PATH` (the gpl image has `/opt/xtandard/bin/xi-metafile2svg`)\n\nEnv: `XI_FORMATS_METAFILE_PATH`",
+              "title": "XI_FORMATS_METAFILE_PATH",
+              "type": "string"
+            },
+            "timeout": {
+              "$ref": "#/$defs/duration",
+              "default": "10s",
+              "description": "Wall-clock limit of one conversion (100ms–10m); the process is killed with its process group and the request answers 504. Its CPU-time limit is the same, rounded up, plus one second\n\nEnv: XI_FORMATS_METAFILE_TIMEOUT",
+              "markdownDescription": "Wall-clock limit of one conversion (100ms–10m); the process is killed with its process group and the request answers 504. Its CPU-time limit is the same, rounded up, plus one second\n\nEnv: `XI_FORMATS_METAFILE_TIMEOUT`",
+              "title": "XI_FORMATS_METAFILE_TIMEOUT"
+            }
+          },
+          "type": "object"
+        },
         "pdf": {
           "additionalProperties": false,
           "properties": {

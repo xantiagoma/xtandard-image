@@ -76,6 +76,20 @@ The project is MIT. It links many C libraries and may ship ML models. GPL/AGPL c
 - Risk: the three decoders are C/C++ code run in-process on untrusted input. The VC-5 decoder in particular is reference code whose checks are `assert()`s; fuzzing found and fixed memory errors in it (`docker/base/patches/gpr`), and the shim hands the DNG SDK only what LibRaw cannot decode itself (JPEG XL and VC-5 raw data). The residual risk is recorded in `docs/FORMATS.md` §2.
 - Size: see `docker/base/README.md` (Sizes).
 
+## Amendment 2026-09-28 (WP-108): scientific and legacy long tail
+
+- Status: accepted (WP-108; the owner asked for every long-tail item, EMF/WMF in the `gpl` flavor only).
+- **Every flavor (permissive, strict gate unchanged):**
+  - **Basis Universal transcoder 2.50** (Binomial LLC, **Apache-2.0**), compiled with the app's MIT wrapper into `libxibasisu.so` in the `slim` `deps` stage (`docker/base/build-basisu.sh`) for KTX2. Apache-2.0 is on the allowlist; its `NOTICE` (attribution, trademark) is shipped in `share/licenses/basisu` and reproduced in the repository's `NOTICE` (§4(d)); the one modified file (`patches/basisu`) carries a notice of the change (§4(b)). Transcoder only: no encoder, no bundled zstd (the base's BSD-3-Clause libzstd is linked).
+  - **ImageMagick PICT and PCD coders**: already compiled into the base's ImageMagick (ImageMagick licence), only allowed by `policy.xml`; no new code.
+  - **FITS, DICOM, MNG/JNG and the KTX2 container** are read by the app's own Go code (MIT), not by cfitsio (the roadmap's libvips `fitsload`), DCMTK/GDCM or ImageMagick's MNG coder: less C on untrusted input and no new base dependency. JPEG and JPEG 2000 frames inside DICOM go to the base's libjpeg-turbo and OpenJPEG through libvips.
+- **gpl flavor only: WMF and EMF.** No permissive WMF/EMF renderer exists (format-gap §3.2: libwmf is LGPL, libemf2svg and libUEMF are GPL-2.0, LibreOffice and Inkscape are far larger). The `gpl` flavor adds, in `build-gpl-metafile.sh`:
+  - **libwmf 0.2.16**: **LGPL-2.0-or-later**, which strictly the strict gate would allow; it ships with its 13 URW Type 1 fonts (**GPL**; libwmf needs them for text metrics, a conversion fails without them) and it has no use without the GPL program below, so the owner's decision keeps it with that program in `gpl`. Its SVG device is patched (`patches/libwmf`: namespaces, exact colours, escaped text).
+  - **libemf2svg 1.8.1** with its vendored libUEMF: **GPL-2.0-only**. `libemf2svg=GPL-2.0-only` joins `XI_GPL_COMPONENTS`; the strict gate (slim, full) refuses `libemf2svg` by name and by the content markers `libemf2svg.so` and `emf2svg_is_emfplus`, and `verify-image.sh` fails a slim or full image that carries the program, either library or their licences.
+  - **xi-metafile2svg**: the app's MIT driver (`docker/base/metafile`) linking both, a **GPL-2.0-only** work as built. It is a separate program: the server runs it as a sandboxed subprocess (the Ghostscript sandbox of ADR 0011, `internal/sandbox`) and never links either library, so the server binary stays MIT. `LICENSE-GPL.md` and `SOURCES.md` describe it; the image label is unchanged (`AGPL-3.0-or-later AND GPL-2.0-or-later AND MIT` already covers a GPL-2.0-only component under "GPL-2.0").
+- Risk: the Basis Universal transcoder runs in-process on untrusted KTX2 files (fuzzed with libFuzzer + ASan and through `FuzzBasisKTX2`; aborts turned into exceptions); ImageMagick's PICT and PCD coders run in-process behind a Go header parser and the magick limits; libwmf and libemf2svg are old C code, contained by the subprocess sandbox. Details in `docs/FORMATS.md` §1.8.
+- Size: see `docker/base/README.md` (Sizes).
+
 ## Go module register
 
 One line per direct Go dependency (go-standards §10): module, version, licence, last release date, reason.

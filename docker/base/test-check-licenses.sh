@@ -460,6 +460,37 @@ mkdir -p "$dir/licenses/mystery-codec"
 # shellcheck disable=SC2046
 expect_args 1 gpl-dngsdk-licence-elsewhere $(gs_args "$dir")
 
+# --- libemf2svg (WP-108, EMF input): gpl flavor only -----------------------------------
+# add_emf2svg dir: libemf2svg (GPL-2.0-only) in the lib dir, its licence entry and bundle.
+add_emf2svg() {
+  printf '\x7fELF libemf2svg.so.1 emf2svg emf2svg_is_emfplus\n' > "$1/lib/libemf2svg.so.1"
+  printf "XI_COMPONENT_LICENSES=\"\$XI_COMPONENT_LICENSES\nlibemf2svg GPL-2.0-only\n\"\n" >> "$1/versions-gpl.sh"
+  mkdir -p "$1/licenses/libemf2svg"
+}
+
+dir="$(new_fixture strict-libemf2svg)"
+printf '\x7fELF libemf2svg.so.1 emf2svg_is_emfplus\n' > "$dir/lib/libemf2svg.so.1"
+expect 1 strict-libemf2svg "$dir"
+
+dir="$(new_fixture strict-emf2svg-needed)"
+printf '\x7fELF NEEDED libemf2svg.so.1\n' > "$dir/lib/libfoo.so.1"
+expect 1 strict-emf2svg-needed "$dir"
+
+dir="$(new_gs_fixture gpl-libemf2svg-clean "$gs_components libemf2svg=GPL-2.0-only")"
+add_emf2svg "$dir"
+# shellcheck disable=SC2046
+expect_args 0 gpl-libemf2svg-clean $(gs_args "$dir")
+
+dir="$(new_gs_fixture gpl-libemf2svg-not-listed)"
+add_emf2svg "$dir"
+# shellcheck disable=SC2046
+expect_args 1 gpl-libemf2svg-not-listed $(gs_args "$dir")
+
+dir="$(new_gs_fixture gpl-libemf2svg-agpl "$gs_components libemf2svg=AGPL-3.0-or-later")"
+add_emf2svg "$dir"
+# shellcheck disable=SC2046
+expect_args 1 gpl-libemf2svg-agpl $(gs_args "$dir")
+
 # The real versions-gpl.sh is refused by the strict gate and accepted by --allow-gpl.
 if "$gate" "$work/empty-lib" "$my_dir/versions-gpl.sh" > /dev/null 2>&1; then
   echo "FAIL real-versions-gpl.sh passes the strict gate" >&2

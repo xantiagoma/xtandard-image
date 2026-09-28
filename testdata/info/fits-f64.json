@@ -1,0 +1,16 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "exif": {},
+  "format": "fits",
+  "height": 48,
+  "iptc": {},
+  "mime_type": "image/fits",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 28800,
+  "width": 64,
+  "xmp": {}
+}

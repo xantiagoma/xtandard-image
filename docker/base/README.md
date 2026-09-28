@@ -26,7 +26,7 @@ Decisions: [ADR 0005](../../docs/adr/0005-docker-image-strategy.md) (image strat
 
 `<vips>` is `VIPS_VERSION` and `<N>` is `XI_BASE_REVISION` from `versions.sh`; `<M>` is
 `XI_BASE_FULL_REVISION` from `versions-full.sh`; `<G>` is `XI_BASE_GPL_REVISION` from
-`versions-gpl.sh` (currently `8.18.6-r6-slim`, `8.18.6-r7-full` and `8.18.6-r8-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
+`versions-gpl.sh` (currently `8.18.6-r7-slim`, `8.18.6-r8-full` and `8.18.6-r9-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
 locally with the `task docker:base:*` tasks (below), which tag `xtandard-base:dev`,
 `xtandard-base:dev-builder`, `xtandard-base:dev-full`, `xtandard-base:dev-full-builder`,
 `xtandard-base:dev-gpl` and `xtandard-base:dev-gpl-builder`. All are
@@ -43,15 +43,18 @@ base ──► deps-src        download-deps.sh: fetch every tarball, verify SHA
    │                     (pins in versions-gpl.sh; only gpl-deps copies from it)
    ├───► deps            install-rust.sh + pinned meson/ninja/cmake, build-deps.sh → /opt/xtandard,
    │                     license bundle, license gate; build-jxrlib.sh (own layer, patches/jxrlib);
+   │                     build-basisu.sh (own layer: Basis Universal transcoder, patches/basisu);
    │                     build-libraw.sh (own layer: LibRaw again with the X3F tools);
    │                     split-runtime.sh → /runtime
    ├───► full-deps-src   download-full-deps.sh: FFmpeg, libvpx, ONNX Runtime, models (SHA256)
-   └───► gpl-deps-src    download-gpl-deps.sh: x264, x265, Ghostscript (SHA256)
+   └───► gpl-deps-src    download-gpl-deps.sh: x264, x265, Ghostscript, libwmf, libemf2svg (SHA256)
 deps ──► full-deps       build-full-deps.sh: libvpx + FFmpeg into /opt/xtandard, ONNX Runtime into
                          /usr/local, models into /usr/share/xtandard/models, license gate
                          (+ ffmpeg -buildconf, ldd, models), split-runtime.sh → /runtime
 full-deps ──► gpl-deps   build-libraw.sh --with-sdks (LibRaw again with X3F, DNG SDK, GPR SDK;
                          patches/{libraw,dng-sdk,gpr}, gate in gpl mode);
+                         build-gpl-metafile.sh: libwmf (patches/libwmf) + libemf2svg +
+                         xi-metafile2svg (WMF/EMF to SVG);
                          build-gpl-deps.sh: x264 + x265, FFmpeg rebuilt with full's configuration
                          + --enable-gpl --enable-libx264 --enable-libx265, gs (static, 3 devices),
                          LICENSE-GPL.md, gate in
@@ -62,7 +65,7 @@ ubuntu:noble ──► builder-base ──► builder        /opt/xtandard from 
 ubuntu:noble ──► runtime-base ──► runtime        /opt/xtandard/{lib,bin/vips,etc/fonts,share} (default target)
                               ├─► runtime-full   + FFmpeg libs, bin/ffmpeg, bin/ffprobe, ONNX Runtime, models
                               └─► runtime-gpl    same as runtime-full with the GPL FFmpeg + libx264 + libx265,
-                                                 gs, and libraw_r with the DNG and GPR SDKs
+                                                 gs, xi-metafile2svg, and libraw_r with the DNG and GPR SDKs
 ```
 
 `builder-base` holds Go, golangci-lint, go-task and the compilers; `runtime-base` holds
@@ -120,7 +123,7 @@ jemalloc actually honours it (`opt.narenas: 2` in its stats).
 
 | Path | Contents |
 |---|---|
-| `lib/` | libvips (no C++ binding), glib/gobject/gio, libffi, pcre2, zlib-ng, expat, libxml2 (minimal), libjpeg-turbo, libultrahdr, libpng, libspng, libwebp, cgif, quantizr, libtiff + zstd (WP-102), OpenJPEG, libheif + libde265 + dav1d + aom + kvazaar, libjxl + highway + brotli, lcms2, libexif, librsvg + cairo + pixman + pango + harfbuzz + freetype + fontconfig + fribidi, jemalloc; base extras (WP-66): LibRaw (`libraw_r`), PDFium (prebuilt), OpenEXR + Imath, ImageMagick 7 MagickCore (PSD/PSB and the WP-97 legacy coders); jxrlib (`libjpegxr`, `libjxrglue`, WP-97; headers in `include/jxrlib` and `libjxr.pc` in the builder) |
+| `lib/` | libvips (no C++ binding), glib/gobject/gio, libffi, pcre2, zlib-ng, expat, libxml2 (minimal), libjpeg-turbo, libultrahdr, libpng, libspng, libwebp, cgif, quantizr, libtiff + zstd (WP-102), OpenJPEG, libheif + libde265 + dav1d + aom + kvazaar, libjxl + highway + brotli, lcms2, libexif, librsvg + cairo + pixman + pango + harfbuzz + freetype + fontconfig + fribidi, jemalloc; base extras (WP-66): LibRaw (`libraw_r`), PDFium (prebuilt), OpenEXR + Imath, ImageMagick 7 MagickCore (PSD/PSB and the WP-97 legacy coders); jxrlib (`libjpegxr`, `libjxrglue`, WP-97; headers in `include/jxrlib` and `libjxr.pc` in the builder); the Basis Universal transcoder behind the app's wrapper (`libxibasisu`, WP-108; `xibasisu.h` and `xibasisu.pc` in the builder) |
 | `lib/vips-modules-8.18/vips-magick.so` | the only libvips module: magickload (load only, no magicksave). Every other loader is built into `libvips.so`; deleting this file removes ImageMagick from libvips |
 | `lib/pkgconfig/`, `include/` | builder only |
 | `bin/vips` | libvips CLI |
@@ -133,7 +136,7 @@ jemalloc actually honours it (`opt.narenas: 2` in its stats).
 Not in the slim image: poppler (GPL; PDF goes through PDFium), x265 (GPL; HEIC/AVIF encode
 uses kvazaar/aom), FFmpeg and ONNX Runtime (`full` flavor).
 
-## Full flavor (WP-70, revision 7)
+## Full flavor (WP-70, revision 8)
 
 Everything in slim, plus:
 
@@ -169,10 +172,10 @@ The models are laid out as `<name>.onnx` next to `<name>.LICENSE`, with `MODELS.
 licence) and `SHA256SUMS`; the licences and `MODELS.md` are also copied to
 `share/licenses/models/`. Users can mount their own models over the directory (WP-71).
 
-Size: runtime 124.0 MB compressed on linux/arm64 (r7; slim + 68.6 MB; budget ≤ 170 MB), see
+Size: runtime 124.6 MB compressed on linux/arm64 (r8; slim + 68.6 MB; budget ≤ 170 MB), see
 [Sizes](#sizes).
 
-## gpl flavor (WP-70b, revision 8)
+## gpl flavor (WP-70b, revision 9)
 
 > **This image contains GPL and AGPL software.** Its FFmpeg libraries and CLIs are
 > GPL-2.0-or-later, H.264 and HEVC are patent-encumbered, and `bin/gs` is Ghostscript,
@@ -190,11 +193,16 @@ Everything in full, plus:
 | x265 | 4.2 (`X265_VERSION`) | GPL-2.0-or-later | `/opt/xtandard/lib/libx265.so.*`; headers + `x265.pc` in the builder | release tarball from download.videolan.org; library only (`ENABLE_CLI=OFF`), 8-bit Main, no libnuma, no HDR10+ |
 | FFmpeg | as full (`FFMPEG_VERSION`) | **GPL-2.0-or-later** as built | same files as full, rebuilt | the full flavor's tarball, configured with **exactly the full configuration** (read back from `share/licenses/ffmpeg/BUILDCONF.txt`) with `--disable-gpl` swapped for `--enable-gpl`, plus `--enable-libx264 --enable-libx265 --enable-encoder=libx264,libx265` |
 | Ghostscript (WP-99) | 10.08.0 (`GHOSTSCRIPT_VERSION`) | **AGPL-3.0-or-later** (compiles in FreeType FTL, IJG libjpeg, libpng, zlib, lcms2mt MIT, brotli MIT, Droid Sans Fallback Apache-2.0, Adobe CMaps BSD-3-Clause) | `/opt/xtandard/bin/gs` only (no `libgs`, no headers) | release tarball from ghostpdl-downloads (SHA256; checked against its SHA512SUMS), unmodified; `gs` alone, statically linked against its own libraries (libc/libm only), resources and fonts compiled in (`%rom%`); no X11, CUPS, dbus, GTK, fontconfig, libpaper, IJS, threads, contrib drivers, PDF interpreter, JBIG2/JPX, TIFF, OCR or extract; devices `pngalpha`, `png16m`, `bbox` (+ `nullpage`) |
+| libwmf (WP-108) | 0.2.16 (`LIBWMF_VERSION`) | LGPL-2.0-or-later; its 13 URW Type 1 fonts GPL | `lib/libwmf*.so*`, `share/libwmf/fonts` (only `xi-metafile2svg` uses them) | GitHub archive of the release tag (SHA256); `patches/libwmf` (SVG device: SVG/xlink namespaces, no DOCTYPE, viewBox, exact colours, text escaped); no X11, no plotutils, no system or Ghostscript fontmap |
+| libemf2svg (WP-108) | 1.8.1 (`LIBEMF2SVG_VERSION`) | **GPL-2.0-only** (with its vendored libUEMF) | `lib/libemf2svg.so*` | GitHub archive of the release tag (SHA256), unmodified; library only (`LONLY`) |
+| xi-metafile2svg (WP-108) | the app's (`docker/base/metafile`) | MIT source; GPL-2.0-only as built | `bin/xi-metafile2svg` | `metafile/xi-metafile2svg.c`: `wmf\|emf <max-bytes> <max-side>`, metafile on stdin, SVG on stdout; smoke conversions at build time |
 
 So the gpl image has full's demuxers, decoders, filters and VP8/VP9/AV1 encoders and adds
 exactly two encoders: `libx264` (H.264) and `libx265` (HEVC), and one program, `gs`, which
 the server runs as a sandboxed subprocess for EPS/PostScript input when
-`XI_FORMATS_EPS_ENABLED=true` (off by default; `internal/ghostscript`, ADR 0011). Still no audio, network,
+`XI_FORMATS_EPS_ENABLED=true` (off by default; `internal/ghostscript`, ADR 0011), and one more,
+`xi-metafile2svg`, which the server runs in the same sandbox to turn WMF and EMF sources into
+SVG (`internal/metafile`, `XI_FORMATS_METAFILE_ENABLED`, on when found). Still no audio, network,
 nonfree code or `--enable-version3`. HEIC encoding stays on kvazaar (libheif is not
 rebuilt against x265), and poppler, exiv2 and GPL `dssim` stay out: they were replaced
 (PDFium, own metadata code, own SSIM), not just excluded.
@@ -217,10 +225,14 @@ later", and encodes a short H.264 MP4 (High) and an HEVC MP4 (Main, `hvc1`) and 
 back with ffprobe/ffmpeg, plus GIF → H.264 MP4. For Ghostscript it runs the gate's
 `--ghostscript` check, rasterises a test EPS with the server's flags (stdin to a 200×100
 RGBA PNG at 144 DPI, pixel-checked with libvips) as the non-root image user, and checks
-that `-dSAFER` refuses a file read and `%pipe%`; slim and full must have no `gs`.
+that `-dSAFER` refuses a file read and `%pipe%`; slim and full must have no `gs`. It converts
+the WMF and EMF fixtures with `xi-metafile2svg` (namespaced SVG with the exact colours, rendered
+by libvips) and checks the libwmf and libemf2svg licences; slim and full must have neither the
+program nor the libraries.
 
-Size: runtime 137.7 MB compressed on linux/arm64 (r8; full + 13.7 MB: x264/x265 2.2 MB, Ghostscript
-11.1 MB, LibRaw's DNG and GPR SDKs about 0.4 MB), see [Sizes](#sizes).
+Size: runtime 140.5 MB compressed on linux/arm64 (r9; full + 15.9 MB: x264/x265 2.2 MB, Ghostscript
+11.1 MB, LibRaw's DNG and GPR SDKs about 0.4 MB, the WP-108 metafile converter 2.2 MB), see
+[Sizes](#sizes).
 
 ## Base extras (WP-66, revision 2)
 
@@ -245,19 +257,21 @@ unblock the loaders it wants by name (`vips_operation_block_set`).
 ImageMagick is in the image for PSD/PSB through libvips' `magickload` and, since WP-97
 (revision r4), for a short list of legacy formats libvips cannot read: TGA, PCX, DDS, QOI,
 SGI, Sun raster, XBM, XPM and PAM (docs/FORMATS.md §1.6), and since WP-107 for GIMP XCF
-(one layer per call, flattened by the app; FORMATS.md §1.7). Its coders are compiled in anyway,
+(one layer per call, flattened by the app; FORMATS.md §1.7), and since WP-108 for Macintosh PICT
+and Kodak Photo CD (FORMATS.md §1.8; the app names the coder, `PICT:`/`PCD:` on a memfd path,
+because ImageMagick's own sniffing takes PICT's zero header for TGA). Its coders are compiled in anyway,
 so this costs no image size. `magick-policy.xml` is installed as
 `/opt/xtandard/etc/ImageMagick-7/policy.xml`, the configure path compiled into MagickCore
 (the app image also points `MAGICK_CONFIGURE_PATH` there). Rules are evaluated in order,
 later ones override earlier ones:
 
-- `module` domain: deny `*`, allow `{PSD,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PNM,XCF}` (read |
+- `module` domain: deny `*`, allow `{PSD,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PNM,XCF,PICT,PCD}` (read |
   write, which ImageMagick requires to register a module at all). Denied modules are never
   registered, so their coders do not exist in the process: GIF, BMP, PS/EPS, SVG/MVG/MSL,
   TEXT, URL, EPHEMERAL and every other built-in coder are unreachable.
-- `coder` domain: deny `*`, allow `{PSD,PSB,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PAM,XCF}` **read**
+- `coder` domain: deny `*`, allow `{PSD,PSB,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PAM,XCF,PICT,PCD}` **read**
   only (no writing). The aliases the allowed modules also register (ICB, VDA, VST, DCX,
-  DXT1, DXT5, RAS, PICON, PM, and PBM/PGM/PPM/PNM/PFM/PHM of the PNM module, which libvips'
+  DXT1, DXT5, RAS, PICON, PM, PCT, PCDS, and PBM/PGM/PPM/PNM/PFM/PHM of the PNM module, which libvips'
   `ppmload` reads instead) stay denied.
 - `delegate`, `filter`: deny `*`; `path`: deny `@*` (indirect reads), `-`, `fd:`, `|` (pipes).
 - Resources: thread 1, time 10 s (per image), memory 256 MiB, map 256 MiB, disk 0 (never
@@ -273,7 +287,8 @@ rules. `verify-image.sh` checks the policy: a generated PSD loads through `magic
 `magickload` (GIF and PNM are compiled-in ImageMagick coders, so their refusal proves the
 policy, not a missing delegate) and still load through their native libvips loaders; every
 legacy fixture in `testdata/fixtures` (TGA, PCX, DDS DXT1/DXT5, QOI, SGI, SUN, XBM, XPM, PAM)
-decodes through `magickload` with its own coder, `xcf/alpha.xcf` through the XCF coder, and
+decodes through `magickload` with its own coder, `xcf/alpha.xcf` through the XCF coder,
+`pict/photo.pct` through the `PICT:` coder, and
 the ASCII/bitmap Netpbm fixtures through `ppmload`.
 
 ### jxrlib (WP-97, revision r4)
@@ -290,6 +305,22 @@ API with `-DNDEBUG` (jxrlib's asserts would abort the process on a hostile file)
 `libjpegxr.so.0` and `libjxrglue.so.0` (Debian's SONAMEs, 0.4 MB stripped), with Debian's
 `libjxr.pc` layout. The sample apps (`JxrEncApp`, `JxrDecApp`) and the test library are not
 built; ImageMagick's JXR coder, which runs `JxrDecApp` as a delegate, stays denied.
+
+### Basis Universal transcoder (WP-108, revision r7)
+
+| Component | Version | Licence | Source | Used by |
+|---|---|---|---|---|
+| basis_universal (transcoder only) | 2.50 (`BASISU_VERSION`, commit `BASISU_COMMIT`) | Apache-2.0 (its `NOTICE` and `LICENSES/` in `share/licenses/basisu`) | GitHub archive of the pinned commit | the app's KTX2 loader (`internal/vips/ktx2.c` through `libxibasisu`); libvips does not link it |
+
+`build-basisu.sh` runs after `build-jxrlib.sh` in its own layer. It compiles
+`transcoder/basisu_transcoder.cpp` alone (no encoder, tools or OpenCL; KTX2 and Zstandard
+supercompression on, linked against the base's libzstd rather than the copy in the archive)
+with the app's C wrapper `basisu/xibasisu.{h,cpp}` (MIT) into `libxibasisu.so.2` (1.1 MB
+stripped), exporting only `xi_basisu_version`, `xi_basisu_ktx2_info` and
+`xi_basisu_ktx2_decode` (checked at build time); every exception is caught in the wrapper.
+`patches/basisu` makes the containers' `container_abort()` (a failed allocation or an
+out-of-range index) throw `std::bad_alloc` instead of printing and calling
+`std::terminate()`. The builder gets `xibasisu.h` and `xibasisu.pc`.
 
 ### LibRaw snapshot and options (WP-103)
 
@@ -389,12 +420,17 @@ linux/arm64, `docker save | gzip -6` (compressed) and `docker image inspect` (un
 
 | Image | Compressed | Uncompressed | Budget (compressed) |
 |---|---|---|---|
-| slim runtime (`8.18.6-r6-slim`) | 55.4 MB | 166.7 MB | ≤ 110 MB |
-| slim builder | 260.0 MB | 820.7 MB | — |
-| full runtime (`8.18.6-r7-full`) | 124.0 MB | 260.6 MB | ≤ 170 MB |
-| full builder | 329.2 MB | 917.2 MB | — |
-| gpl runtime (`8.18.6-r8-gpl`) | 137.7 MB | 280.7 MB | ≤ 170 MB (as full) |
-| gpl builder | 343.4 MB | 938.3 MB | — |
+| slim runtime (`8.18.6-r7-slim`) | 56.0 MB | 167.8 MB | ≤ 110 MB |
+| slim builder | 260.6 MB | 821.9 MB | — |
+| full runtime (`8.18.6-r8-full`) | 124.6 MB | 261.7 MB | ≤ 170 MB |
+| full builder | 329.8 MB | 918.3 MB | — |
+| gpl runtime (`8.18.6-r9-gpl`) | 140.5 MB | 285.6 MB | ≤ 170 MB (as full) |
+| gpl builder | 346.2 MB | 943.4 MB | — |
+
+r7/r8/r9 over r6/r7/r8 (WP-108): the Basis Universal transcoder (`libxibasisu`) adds 0.6 MB
+compressed / 1.1 MB uncompressed to every flavor; the PICT and PCD coders cost nothing. The gpl
+flavor adds another 2.2 MB compressed / 3.8 MB uncompressed for libwmf with its URW fonts,
+libemf2svg and `xi-metafile2svg`.
 
 r6/r7/r8 over r5/r6/r7: slim +0.2 MB compressed (the LibRaw snapshot with the X3F tools; the
 WP-107 XCF policy costs nothing), full +20.3 MB (the WP-110 classifier), gpl +20.7 MB (the
@@ -487,11 +523,12 @@ the real `versions-gpl.sh` is refused by the strict gate.
 3. Bump `XI_BASE_REVISION` when the image changes without a libvips version change; reset it
    to `1` when `VIPS_VERSION` changes. `XI_BASE_FULL_REVISION` (`versions-full.sh`) is the
    full flavor's own counter: bump it whenever slim's revision moves or a full-only component
-   changes, including when slim's revision moves (full r7 = slim r6 +
+   changes, including when slim's revision moves (full r8 = slim r7 +
    WP-70 + the classifier, WP-110).
    `XI_BASE_GPL_REVISION` (`versions-gpl.sh`) is the gpl flavor's counter in the same way:
-   bump it when full's revision moves or x264/x265/Ghostscript/the LibRaw SDKs change (gpl r8 =
-   full r7 + WP-70b + Ghostscript, WP-99 + the Adobe DNG SDK and GoPro GPR SDK, WP-103).
+   bump it when full's revision moves or x264/x265/Ghostscript/the LibRaw SDKs/the metafile
+   converter change (gpl r9 = full r8 + WP-70b + Ghostscript, WP-99 + the Adobe DNG SDK and
+   GoPro GPR SDK, WP-103 + libwmf, libemf2svg and `xi-metafile2svg`, WP-108).
 4. Build and verify locally (host architecture: arm64 on Apple silicon, amd64 on x86 hosts;
    slim ~30 min cold, full adds ~10 min, gpl another ~5 min):
 
@@ -531,9 +568,11 @@ same libraries.
 | `versions-gpl.sh` | gpl flavor pins: x264, x265; the GPL allowlist (`XI_GPL_COMPONENTS`) and the licence of every bundle entry (`XI_COMPONENT_LICENSES`) |
 | `download-deps.sh` | fetch + verify + unpack sources; `PRINT_CHECKSUMS=1` mode |
 | `download-full-deps.sh` | same for the full flavor |
-| `download-gpl-deps.sh` | same for the gpl flavor (x264, x265) |
+| `download-gpl-deps.sh` | same for the gpl flavor (x264, x265, Ghostscript, libwmf, libemf2svg) |
 | `build-deps.sh` | build into `/opt/xtandard`, license bundle, SBOM stubs, license gate |
 | `build-jxrlib.sh`, `patches/jxrlib/` | jxrlib with its patches (own layer), gate |
+| `build-basisu.sh`, `basisu/`, `patches/basisu/` | Basis Universal transcoder + the app's C wrapper as `libxibasisu` (own layer, WP-108), export check, gate |
+| `build-gpl-metafile.sh`, `metafile/`, `patches/libwmf/` | gpl flavor: libwmf, libemf2svg and the `xi-metafile2svg` driver (WP-108), licences, smoke conversions |
 | `download-libraw-deps.sh` | fetch + verify the Adobe DNG SDK zip and the GoPro GPR SDK (pins in `versions-gpl.sh`), keep only what is compiled (own stage, copied by gpl-deps only) |
 | `build-libraw.sh`, `patches/{libraw,dng-sdk,gpr}/` | LibRaw rebuilt with the X3F tools (every flavor, own layer), and with `--with-sdks` also the DNG SDK and the GPR SDK (gpl-deps); capability check, licences, gate |
 | `build-full-deps.sh` | full flavor: libvpx + FFmpeg, ONNX Runtime, models, licences, gate |
@@ -542,7 +581,7 @@ same libraries.
 | `bashrc.sh` | per-architecture compiler flags (`BASH_ENV`) |
 | `install-rust.sh` | pinned Rust + cargo-c (build time only: quantizr, librsvg) |
 | `install-tools.sh` | Go, golangci-lint, go-task for the builder stage |
-| `magick-policy.xml` | ImageMagick security policy (PSD/PSB and the WP-97 legacy coders, read only) |
+| `magick-policy.xml` | ImageMagick security policy (PSD/PSB, the WP-97 legacy coders, XCF, PICT and PCD, read only) |
 | `check-licenses.sh`, `test-check-licenses.sh` | license gate and its self-test |
 | `update-checksums.sh` | recompute SHA256 lines after a bump |
 | `verify-image.sh` | smoke test used by CI and locally (`--flavor full` adds FFmpeg, ONNX Runtime, model checks; `--flavor gpl` adds the GPL gate, x264/x265 and H.264/HEVC round trips) |

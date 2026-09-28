@@ -10,9 +10,10 @@
 # Bump a version, then run ./update-checksums.sh to refresh the *_SHA256 lines.
 
 # Revision of the gpl flavor. Its tag is <VIPS_VERSION>-r<XI_BASE_GPL_REVISION>-gpl.
-# gpl r8 = full r7 (versions-full.sh XI_BASE_FULL_REVISION) + the components below
-# (r6: Ghostscript, WP-99; r8: LibRaw with the Adobe DNG SDK and GoPro GPR SDK, WP-103).
-export XI_BASE_GPL_REVISION=8
+# gpl r9 = full r8 (versions-full.sh XI_BASE_FULL_REVISION) + the components below
+# (r6: Ghostscript, WP-99; r8: LibRaw with the Adobe DNG SDK and GoPro GPR SDK, WP-103;
+# r9: libwmf, libemf2svg and xi-metafile2svg, WP-108).
+export XI_BASE_GPL_REVISION=9
 
 # --- GPL allowlist read by check-licenses.sh --allow-gpl ----------------------------
 # component=SPDX pairs. Only these GPL components may appear in a gpl image, and only
@@ -22,7 +23,8 @@ export XI_BASE_GPL_REVISION=8
 # GPL-2.0-or-later. dng-sdk is not GPL but is confined to this flavour the same way
 # (owner decision 2026-09-28): the Adobe DNG SDK licence (LicenseRef-Adobe-DNG-SDK,
 # permissive with an indemnity clause) is allowed only here, exactly under that id.
-export XI_GPL_COMPONENTS="x264=GPL-2.0-or-later x265=GPL-2.0-or-later ffmpeg=GPL-2.0-or-later ghostscript=AGPL-3.0-or-later dng-sdk=LicenseRef-Adobe-DNG-SDK"
+# libemf2svg (WP-108, EMF input) is GPL-2.0-only, with the libUEMF copy it vendors.
+export XI_GPL_COMPONENTS="x264=GPL-2.0-or-later x265=GPL-2.0-or-later ffmpeg=GPL-2.0-or-later ghostscript=AGPL-3.0-or-later dng-sdk=LicenseRef-Adobe-DNG-SDK libemf2svg=GPL-2.0-only"
 
 # --- H.264 encoder: x264 (GPL-2.0-or-later) ------------------------------------------
 # x264 publishes no release tarballs; this is the head of its `stable` branch
@@ -43,6 +45,18 @@ export X265_SHA256=40b1ea0453e0309f0eba934e0ddf533f8f6295966679e8894e8f1c1c8d5e1
 # was checked against the release SHA512SUMS.
 export GHOSTSCRIPT_VERSION=10.08.0
 export GHOSTSCRIPT_SHA256=c20492bc8ebb96c87fa2e52a0926e1cda8cde95d66145e018ac713fed5da38cf
+
+# --- Windows metafiles (WP-108): libwmf and libemf2svg ---------------------------------
+# Linked by xi-metafile2svg (docker/base/metafile, the app's MIT driver), a separate
+# program the server runs as a sandboxed subprocess to turn WMF and EMF sources into SVG
+# (build-gpl-metafile.sh). libwmf (WMF) is LGPL-2.0-or-later, with the URW Type 1 fonts
+# it installs for text metrics (GPL); libemf2svg (EMF) and the libUEMF it vendors are
+# GPL-2.0-only, so the program is a GPL-2.0 work and ships in this flavor only. GitHub
+# archives of the release tags.
+export LIBWMF_VERSION=0.2.16
+export LIBWMF_SHA256=50f36f939b751274b5f0abef9fb38c23c101ebf8bba0934cfbf5444ec37011f0
+export LIBEMF2SVG_VERSION=1.8.1
+export LIBEMF2SVG_SHA256=5a4b0051a2e8a7f999ecc1bb3451032833dc4c4f1e4bc6d938e4d5b4bec19c10
 
 # --- LibRaw's SDKs (WP-103): Adobe DNG SDK and GoPro GPR SDK --------------------------
 # Downloaded by download-libraw-deps.sh (stage libraw-deps-src) and compiled into
@@ -66,6 +80,7 @@ export GPR_SHA256=ddb09f4910f07f43e7d93dbda41d20a6af572be5ac7032052f2fa24b33aeeb
 # non-commercial, unknown identifiers).
 XI_COMPONENT_LICENSES='
 aom BSD-2-Clause
+basisu Apache-2.0
 brotli MIT
 cairo LGPL-2.1-only OR MPL-1.1
 cgif MIT
@@ -90,6 +105,7 @@ jxrlib BSD-2-Clause
 kvazaar BSD-3-Clause
 lcms2 MIT
 libde265 LGPL-3.0-or-later
+libemf2svg GPL-2.0-only
 libexif LGPL-2.1-or-later
 libheif LGPL-3.0-or-later
 libjpeg-turbo IJG AND BSD-3-Clause AND Zlib
@@ -102,6 +118,7 @@ libtiff libtiff
 libultrahdr Apache-2.0
 libvpx BSD-3-Clause
 libwebp BSD-3-Clause
+libwmf LGPL-2.0-or-later AND GPL-2.0-or-later
 libxml2 MIT
 models MIT AND Apache-2.0
 onnxruntime MIT

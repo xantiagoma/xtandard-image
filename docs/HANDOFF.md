@@ -210,3 +210,9 @@ owner has authorised merging PRs without review.
   NPROC/execve race fixed; Ghostscript sandbox moved to `internal/sandbox`). Docker hung once and
   recovered by itself. Integration agent running on `m4/wp-108-integration`: rebase onto main, bases
   slim r7 / full r8 / gpl r9, finish gpl verify-image, fuzz and full suites. Then merge + redeploy demo.
+- **2026-09-28 (WP-108 integration), branch `m4/wp-108-integration` (pushed, not merged):** WP-108
+  rebased on main (WP-104/106/115), DICOM lossless and 12-bit JPEG frames now decode through
+  WP-106's `jpeghpload` (no longer 422), one bump: slim r7 / full r8 / gpl r9, root Dockerfile
+  `8.18.6-r7-slim`. Local `xtandard-base:dev*` are these builds (`wp108*` base tags removed).
+  Verified: base checks slim/full/gpl, lint and `-race` tests on the three builders, acceptance
+  133/133 on full and gpl release images. Next: merge, rebuild the demo.

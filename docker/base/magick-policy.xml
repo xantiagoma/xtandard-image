@@ -13,7 +13,9 @@
   Installed at /opt/xtandard/etc/ImageMagick-7/policy.xml by docker/base/build-deps.sh.
   ImageMagick is in the base image for libvips' magickload of PSD/PSB (WP-51) and of a
   short list of legacy raster formats without a libvips loader (WP-97): TGA, PCX,
-  DDS, QOI, SGI, Sun raster, XBM, XPM and PAM, plus GIMP XCF (WP-107, flattened). Only those coders can read; every other
+  DDS, QOI, SGI, Sun raster, XBM, XPM and PAM, GIMP XCF (WP-107, flattened), and
+  Macintosh PICT and Kodak Photo CD (WP-108; the app names these two coders explicitly,
+  internal/vips/load.c xi_load_magick_coder). Only those coders can read; every other
   coder, every delegate, every filter and every indirect read is denied, so a file
   that reaches the magick loader in any other format fails instead of being decoded
   by one of ImageMagick's many built-in coders. Later rules override earlier ones, so
@@ -51,11 +53,11 @@
        restrict it to reading, and to the named coders of each module: PSD registers
        PSD and PSB; TGA also registers ICB, VDA and VST, PCX also DCX, DDS also DXT1
        and DXT5, SUN also RAS, XPM also PICON and PM, PNM also PBM, PGM, PPM, PNM,
-       PFM and PHM (libvips' ppmload reads those): of these only the names below
-       can read. Denied modules are never registered, so their coders do not exist
-       in the process. -->
+       PFM and PHM (libvips' ppmload reads those), PICT also PCT, PCD also PCDS: of
+       these only the names below can read. Denied modules are never registered, so
+       their coders do not exist in the process. -->
   <policy domain="module" rights="none" pattern="*"/>
-  <policy domain="module" rights="read | write" pattern="{PSD,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PNM,XCF}"/>
+  <policy domain="module" rights="read | write" pattern="{PSD,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PNM,XCF,PICT,PCD}"/>
   <policy domain="coder" rights="none" pattern="*"/>
-  <policy domain="coder" rights="read" pattern="{PSD,PSB,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PAM,XCF}"/>
+  <policy domain="coder" rights="read" pattern="{PSD,PSB,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PAM,XCF,PICT,PCD}"/>
 </policymap>

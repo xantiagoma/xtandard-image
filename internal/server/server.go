@@ -425,6 +425,9 @@ type Deps struct {
 	// Allocator holds sanitised SVG documents (vips.NewBuffer in
 	// production, so libvips never sees Go memory).
 	Allocator fetch.Allocator
+	// Metafile converts WMF and EMF sources to SVG (WP-108); nil: they
+	// answer 422 (only the gpl image ships the converter).
+	Metafile MetafileConverter
 	// ResultCache stores encoded responses (cache.go; a cache.AsyncStore
 	// over the configured tiers in production, so Set never blocks); nil
 	// disables the result cache.

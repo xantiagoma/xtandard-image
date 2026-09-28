@@ -1,0 +1,22 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "container": {
+    "content": "frame",
+    "entry": "first frame",
+    "format": "mng",
+    "mime_type": "video/x-mng"
+  },
+  "exif": {},
+  "format": "png",
+  "height": 32,
+  "iptc": {},
+  "mime_type": "image/png",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 3366,
+  "width": 48,
+  "xmp": {}
+}

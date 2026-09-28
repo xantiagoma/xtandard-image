@@ -143,20 +143,74 @@ func fixtureFormats() map[string]codec.Format {
 		"xcf/layers.xcf":               codec.FormatXCF,
 		"xcf/gray.xcf":                 codec.FormatXCF,
 		"xcf/alpha.xcf":                codec.FormatXCF,
+		// WP-108: scientific and legacy long tail.
+		"ktx2/bc1.ktx2":              codec.FormatKTX2,
+		"ktx2/bc4.ktx2":              codec.FormatKTX2,
+		"ktx2/bc6h.ktx2":             codec.FormatKTX2,
+		"ktx2/bc7.ktx2":              codec.FormatKTX2,
+		"ktx2/etc1s.ktx2":            codec.FormatKTX2,
+		"ktx2/rgb8.ktx2":             codec.FormatKTX2,
+		"ktx2/rgba8-zlib.ktx2":       codec.FormatKTX2,
+		"ktx2/rgba8-zstd.ktx2":       codec.FormatKTX2,
+		"ktx2/rgba8.ktx2":            codec.FormatKTX2,
+		"ktx2/uastc-hdr.ktx2":        codec.FormatKTX2,
+		"ktx2/uastc-zstd.ktx2":       codec.FormatKTX2,
+		"fits/dither2-f32.fits.fz":   codec.FormatFITS,
+		"fits/dither2-f32.ref.fits":  codec.FormatFITS,
+		"fits/f32-nan.fits":          codec.FormatFITS,
+		"fits/f64.fits":              codec.FormatFITS,
+		"fits/gzip1-mef-i32.fits.fz": codec.FormatFITS,
+		"fits/gzip2-f32.fits.fz":     codec.FormatFITS,
+		"fits/gzip2-f32.ref.fits":    codec.FormatFITS,
+		"fits/hcompress-u16.fits.fz": codec.FormatFITS,
+		"fits/mef-i32.fits":          codec.FormatFITS,
+		"fits/rgb16.fits":            codec.FormatFITS,
+		"fits/rice-f32.fits.fz":      codec.FormatFITS,
+		"fits/rice-f32.ref.fits":     codec.FormatFITS,
+		"fits/rice-u16.fits.fz":      codec.FormatFITS,
+		"fits/u16.fits":              codec.FormatFITS,
+		"fits/u8.fits":               codec.FormatFITS,
+		"dicom/ct-bigendian.dcm":     codec.FormatDICOM,
+		"dicom/ct-j2k.dcm":           codec.FormatDICOM,
+		"dicom/ct-rle.dcm":           codec.FormatDICOM,
+		"dicom/ct-window.dcm":        codec.FormatDICOM,
+		"dicom/grey-2frames.dcm":     codec.FormatDICOM,
+		"dicom/jpeg-2frames-bot.dcm": codec.FormatDICOM,
+		"dicom/jpeg-baseline.dcm":    codec.FormatDICOM,
+		"dicom/mono1-implicit.dcm":   codec.FormatDICOM,
+		"dicom/palette.dcm":          codec.FormatDICOM,
+		"dicom/rgb-deflated.dcm":     codec.FormatDICOM,
+		"dicom/rgb-planar.dcm":       codec.FormatDICOM,
+		"dicom/rgb-rle.dcm":          codec.FormatDICOM,
+		"dicom/ct-jpegll-signed.dcm": codec.FormatDICOM,
+		"dicom/ct-jpegll12.dcm":      codec.FormatDICOM,
+		"dicom/jpeg-extended12.dcm":  codec.FormatDICOM,
+		"pict/photo.pct":             codec.FormatPICT,
 		// Designer containers are no codec format: the server unwraps them
-		// (codec/container) before anything sniffs the source.
+		// (codec/container) before anything sniffs the source; nor are MNG
+		// and JNG (WP-108).
 		"ora/layers.ora":                codec.FormatUnknown,
 		"kra/layers.kra":                codec.FormatUnknown,
 		"procreate/thumbnail.procreate": codec.FormatUnknown,
 		"sketch/preview.sketch":         codec.FormatUnknown,
 		"svgz/logo.svgz":                codec.FormatUnknown,
 		"pdn/thumbnail.pdn":             codec.FormatUnknown,
+		"mng/frames.mng":                codec.FormatUnknown,
+		"mng/jng.mng":                   codec.FormatUnknown,
+		"mng/palette.mng":               codec.FormatUnknown,
+		"mng/png.mng":                   codec.FormatUnknown,
+		"jng/jng-idat.jng":              codec.FormatUnknown,
+		"jng/jng-jdaa.jng":              codec.FormatUnknown,
+		"jng/jng.jng":                   codec.FormatUnknown,
+		// Windows metafiles: the server converts them to SVG (WP-108).
+		"wmf/shapes.wmf": codec.FormatUnknown,
+		"emf/shapes.emf": codec.FormatUnknown,
 	}
 }
 
 // containerFixtures is the number of fixtures fixtureFormats lists as
 // FormatUnknown.
-const containerFixtures = 6
+const containerFixtures = 15
 
 func TestSniffFixtures(t *testing.T) {
 	t.Parallel()
@@ -189,7 +243,11 @@ func TestSniffFixtures(t *testing.T) {
 			data := readFixture(t, name)
 			got, ok := codec.Sniff(data)
 			if f == codec.FormatUnknown {
-				if _, isContainer := container.Detect(data); !isContainer || ok {
+				_, isContainer := container.Detect(data)
+				if _, isMetafile := container.DetectMetafile(data); isMetafile {
+					isContainer = true
+				}
+				if !isContainer || ok {
 					t.Errorf("container: Detect %v, Sniff = %v, %v", isContainer, got, ok)
 				}
 				return

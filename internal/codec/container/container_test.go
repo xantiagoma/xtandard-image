@@ -478,7 +478,10 @@ func FuzzOpen(f *testing.F) {
 		file{"previews/preview.png", thumb, false}))
 	f.Add(gz(f, []byte(svgDoc)))
 	f.Add(pdnWithThumb(thumb))
-	for _, p := range []string{"ora/layers.ora", "kra/layers.kra"} {
+	for _, p := range []string{
+		"ora/layers.ora", "kra/layers.kra", "mng/png.mng", "mng/palette.mng",
+		"mng/jng.mng", "jng/jng.jng", "jng/jng-idat.jng", "jng/jng-jdaa.jng",
+	} {
 		if b, err := os.ReadFile(filepath.Join("..", "..", "..", "testdata", "fixtures", p)); err == nil {
 			f.Add(b)
 		}

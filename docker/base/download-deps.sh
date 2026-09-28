@@ -5,7 +5,8 @@
 # see LICENSE.imgproxy-docker-base. Changes: SHA256 verification of every tarball,
 # release tarballs instead of git clones, SOURCES.md generation, and the additional
 # libraries libspng, OpenJPEG, libultrahdr and jemalloc (WP-05), LibRaw, Imath,
-# OpenEXR, ImageMagick and prebuilt PDFium (WP-66), jxrlib (WP-97), zstd (WP-102).
+# OpenEXR, ImageMagick and prebuilt PDFium (WP-66), jxrlib (WP-97), zstd (WP-102),
+# the Basis Universal transcoder (WP-108).
 #
 # Environment:
 #   DEPS_SRC          where sources are unpacked (default /root/deps)
@@ -160,6 +161,8 @@ fetch IMAGEMAGICK imagemagick \
   "https://github.com/ImageMagick/ImageMagick/archive/refs/tags/${IMAGEMAGICK_VERSION}.tar.gz"
 fetch JXRLIB jxrlib \
   "https://github.com/4creators/jxrlib/archive/${JXRLIB_COMMIT}.tar.gz"
+fetch BASISU basisu \
+  "https://github.com/BinomialLLC/basis_universal/archive/${BASISU_COMMIT}.tar.gz"
 
 # PDFium is a prebuilt shared library per architecture (flat archive, no top directory).
 pdfium_url() {

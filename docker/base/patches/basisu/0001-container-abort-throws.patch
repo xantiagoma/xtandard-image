@@ -1,0 +1,38 @@
+--- a/transcoder/basisu_containers_impl.h
++++ b/transcoder/basisu_containers_impl.h
+@@ -3,6 +3,7 @@
+ 
+ #include <ctype.h>
+ #include <exception>
++#include <new>
+ 
+ #ifdef _MSC_VER
+ #pragma warning (disable:4127) // warning C4127: conditional expression is constant
+@@ -19,23 +20,10 @@
+ #endif
+ 	void container_abort(const char* pMsg, ...)
+ 	{
+-		assert(0);
+-
+-		va_list args;
+-		va_start(args, pMsg);
+-
+-		char buf[1024] = {};
+-
+-#ifdef _MSC_VER
+-		vsprintf_s(buf, sizeof(buf), pMsg, args);
+-#else
+-		vsnprintf(buf, sizeof(buf), pMsg, args);
+-#endif
+-		va_end(args);
+-
+-		fputs(buf, stderr);
+-
+-		std::terminate();
++		// xtandard-image (patches/basisu): fail the decode with an exception the
++		// wrapper catches, instead of printing to stderr and terminating the process.
++		(void)pMsg;
++		throw std::bad_alloc();
+ 	}
+ 
+ 	bool elemental_vector::increase_capacity(size_t min_new_capacity, bool grow_hint, size_t element_size, object_mover pMover, bool nofail_flag)

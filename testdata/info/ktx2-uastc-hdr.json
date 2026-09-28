@@ -1,0 +1,17 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "scrgb",
+  "exif": {},
+  "format": "ktx2",
+  "hdr": true,
+  "height": 32,
+  "iptc": {},
+  "mime_type": "image/ktx2",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "float",
+  "size": 1706,
+  "width": 48,
+  "xmp": {}
+}

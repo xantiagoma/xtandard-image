@@ -1,0 +1,22 @@
+{
+  "alpha": true,
+  "bands": 4,
+  "colorspace": "srgb",
+  "container": {
+    "content": "composite",
+    "entry": "JDAT+IDAT",
+    "format": "jng",
+    "mime_type": "image/x-jng"
+  },
+  "exif": {},
+  "format": "png",
+  "height": 32,
+  "iptc": {},
+  "mime_type": "image/png",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 2003,
+  "width": 48,
+  "xmp": {}
+}
