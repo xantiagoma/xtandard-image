@@ -2,6 +2,23 @@
 
 Draft reference. Names are stable once M1 ships; until then they may change in the owning work package.
 
+## Configuration methods
+
+There are three ways to configure xtandard-image, and they combine field by field:
+
+| Method | How | Good for |
+|---|---|---|
+| Environment variables | `XI_*`, one per field (`XI_LIMITS_MAX_SRC_BYTES=20MiB`); sources with `XI_SOURCES=a,b` plus `XI_SOURCES_<NAME>_*` | Containers and PaaS (Dokploy, Coolify): no file to mount |
+| Config file | YAML, JSON or TOML with the same keys: `--config <path>`, `XI_CONFIG_FILE`, or `/etc/xtandard/config.{yaml,yml,json,toml}` | Many sources and dialect mounts; a file kept in git or a ConfigMap, checked by editors against the [JSON Schema](#config-file-formats-and-schema-adr-0007) |
+| Secret files | `XI_…_FILE=/run/secrets/x` for any variable; `{file: /run/secrets/x}` for any secret value in the config file | Docker secrets and Kubernetes Secret volumes: the credential never sits in the environment or the file |
+
+- **Precedence**, lowest to highest: built-in defaults, the config file, `IMGPROXY_*` (only with `XI_COMPAT_IMGPROXY_ENV=true`), `XI_*` (a variable and its `_FILE` form count as one). An environment variable replaces one field of the file, so the file can hold the structure and the environment the per-deployment values. Lists and maps replace rather than merge; the source names of `XI_SOURCES` are the exception, added to the file's `sources`. Details in [§1](#1-sources-of-configuration-and-precedence).
+- **Strict**: an unknown key or `XI_*` variable stops startup with a "did you mean" hint. `XI_ALLOW_UNKNOWN_ENV=true` downgrades unknown variables to a startup warning, for an environment shared by several versions (one of them may not know a newer variable); unknown keys in the file stay errors.
+- **Check before deploying**: `xtandard-image config validate [--config file] [--no-env]` loads exactly as the server does and lists every violation with its key path and variable (exit 1); `config print` shows the effective configuration with secrets redacted; `config schema` prints the JSON Schema. Examples: [SOURCES.md §7](SOURCES.md#7-troubleshooting).
+- **Sources** (the allowlist of origins, several of one type included) have their own guide: [SOURCES.md](SOURCES.md) explains how a URL picks a source, gives provider recipes (AWS S3, R2, B2, Wasabi, Spaces, RustFS/MinIO, GCS, Azure, fs, FTP/SFTP, http) and complete env, YAML, TOML, Compose, Dokploy/Coolify and Kubernetes examples ([`docs/examples/`](examples/)).
+
+Every variable of the §2 tables, each `XI_SOURCES_<NAME>_*` key included, is checked against the code in both directions by a test in `internal/config` (names and defaults), and every example in [`docs/examples/`](examples/) is loaded by one.
+
 ## 1. Sources of configuration and precedence
 
 Lowest to highest:
@@ -129,6 +146,8 @@ This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS`
 | `XI_SECURITY_ALLOWED_PROCESSING_OPTIONS` | `` (all) | imgproxy option allowlist |
 
 ### Sources and fetching
+
+Each source is configured by the `XI_SOURCES_<NAME>_*` variables below (`<NAME>` is the source name upper-cased, `-` → `_`) or by `sources.<name>.*` in the file. How a URL picks one of several sources, which keys each type takes, provider recipes and complete examples: [SOURCES.md](SOURCES.md).
 
 | Variable | Default | Meaning |
 |---|---|---|
@@ -548,7 +567,7 @@ XI_SOURCES_ORIGIN_ALLOW=cdn.example.com
 XI_PROCESSING_MEMORY_BUDGET=1GiB
 ```
 
-Health check path `/healthz` (the image also declares a Docker `HEALTHCHECK`). Scale replicas freely: the service is stateless; put a CDN in front for caching.
+Health check path `/healthz` (the image also declares a Docker `HEALTHCHECK`). Scale replicas freely: the service is stateless; put a CDN in front for caching. An environment with several sources (S3, R2, B2, RustFS, SFTP, http) is [`docs/examples/multi-source.env`](examples/multi-source.env) ([SOURCES.md §5.1](SOURCES.md#51-environment-variables-only-dokploy-coolify-docker-run)).
 
 ## 5. Coolify (docker-compose)
 
@@ -579,6 +598,8 @@ services:
 volumes:
   xi-cache:
 ```
+
+Several sources with their credentials in Docker secrets (`_FILE` variables or `{file: …}` in a mounted config file): [SOURCES.md §5.2–5.3](SOURCES.md#52-docker-compose-with-secrets-also-dokploy-and-coolify-compose).
 
 ## 6. Kubernetes
 
@@ -632,4 +653,4 @@ spec:
     #   pods: { metric: { name: xi_queue_depth }, target: { type: AverageValue, averageValue: "4" } }
 ```
 
-Set CPU and memory limits: the worker count follows the CPU limit (GOMAXPROCS) and `GOMEMLIMIT` is derived from the memory limit.
+Set CPU and memory limits: the worker count follows the CPU limit (GOMAXPROCS) and `GOMEMLIMIT` is derived from the memory limit. A ConfigMap with several sources and a Secret mounted as files (`{file: …}`, `_FILE`, `secretKeyRef`, IRSA): [SOURCES.md §5.4](SOURCES.md#54-kubernetes) and [`docs/examples/k8s/`](examples/k8s/).
