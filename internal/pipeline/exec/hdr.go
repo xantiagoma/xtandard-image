@@ -14,7 +14,7 @@ import (
 )
 
 // ToneMap is the operator that maps scene-linear HDR sources (OpenEXR,
-// Radiance, PFM) to 8-bit sRGB (XI_FORMATS_HDR_TONEMAP, FORMATS.md §1.4).
+// Radiance, PFM, DDS BC6H) to 8-bit sRGB (XI_FORMATS_HDR_TONEMAP, FORMATS.md §1.4).
 // Every operator works per channel on linear light, clips the result to
 // [0, 1] and encodes it with the sRGB transfer function.
 type ToneMap uint8
@@ -94,7 +94,7 @@ func (r *runner) hdrPending() bool {
 	case "exr", "radiance", "pfm":
 		return true
 	}
-	return false
+	return r.j.Meta.HDR // DDS BC6H and float textures
 }
 
 // fromHDR converts a scene-linear source to the working space: 8-bit sRGB

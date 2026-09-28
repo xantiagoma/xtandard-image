@@ -79,6 +79,9 @@ type SourceMeta struct {
 	HasAlpha    bool
 	IsAnimated  bool
 	Orientation int // EXIF orientation 1..8 (1 when absent)
+	// HDR marks scene-linear samples (OpenEXR, Radiance, PFM, and DDS
+	// BC6H or float textures, which only the header tells apart).
+	HDR bool
 	// Video describes a video source (container, streams, the display size
 	// and matrix of its frames); nil for images. A video_thumbnail_tile or
 	// _animation request turns the fields above into those of the sprite

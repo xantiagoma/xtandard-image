@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec/bmp"
+	"github.com/xantiagoma/xtandard-image/internal/codec/dds"
 	"github.com/xantiagoma/xtandard-image/internal/codec/icns"
 	"github.com/xantiagoma/xtandard-image/internal/codec/ico"
 	"github.com/xantiagoma/xtandard-image/internal/codec/raw"
@@ -25,9 +26,9 @@ import (
 //   - unrecognised input fails with errs.KindUnsupported, without reaching
 //     a decoder;
 //   - camera RAW headers are read by LibRaw without unpacking (codec/raw);
-//   - BMP, ICO, WBMP and ICNS headers are parsed by the pure-Go loaders'
-//     config functions, PSD/PSB headers by ParsePSDHeader and the legacy
-//     ImageMagick formats (TGA, PCX, DDS, QOI, SGI, Sun raster, XBM, XPM,
+//   - BMP, ICO, WBMP, ICNS and DDS headers are parsed by the pure-Go
+//     loaders' config functions, PSD/PSB headers by ParsePSDHeader and the
+//     legacy ImageMagick formats (TGA, PCX, QOI, SGI, Sun raster, XBM, XPM,
 //     PAM) by ParseLegacyHeader, never by libvips (ImageMagick decodes a
 //     whole file even for its header);
 //   - OpenEXR headers are parsed by ParseEXRHeader, so the pixel limits hold
@@ -115,7 +116,9 @@ func probeKeep(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Setti
 		m, err = probeWBMP(data)
 	case FormatICNS:
 		m, err = probeICNS(data)
-	case FormatTGA, FormatPCX, FormatDDS, FormatQOI, FormatSGI, FormatSunRaster, FormatXBM, FormatXPM, FormatPAM:
+	case FormatDDS:
+		m, err = probeDDS(data)
+	case FormatTGA, FormatPCX, FormatQOI, FormatSGI, FormatSunRaster, FormatXBM, FormatXPM, FormatPAM:
 		m, err = probeLegacy(f, data)
 	case FormatSVG:
 		m, err = probeSVG(ctx, data, lim)
@@ -133,6 +136,8 @@ func probeKeep(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Setti
 		m, err = probeEPS(ctx, data, lim)
 	case FormatXCF:
 		m, err = probeXCF(data)
+	case FormatTIFF:
+		m, err = probeTIFF(ctx, buf)
 	case FormatMP4, FormatMOV, FormatWebM, FormatMKV, FormatAVI:
 		m, err = probeVideo(ctx, buf, f, v, keep)
 	default:
@@ -145,7 +150,7 @@ func probeKeep(ctx context.Context, buf *vips.Buffer, lim Limits, v *video.Setti
 		m.Session.Close()
 		return ImageMeta{}, err
 	}
-	m.HDR = m.Format.HDR()
+	m.HDR = m.HDR || m.Format.HDR()
 	m.ContentTypeMismatch = !m.Format.MatchesContentType(contentType)
 	return m, nil
 }
@@ -280,6 +285,36 @@ func probeICNS(data []byte) (ImageMeta, error) {
 		Loop:        -1,
 		ColorSpace:  ColorSpaceSRGB,
 	}, nil
+}
+
+// probeDDS describes the first image of a DirectDraw Surface (codec/dds):
+// 8-bit sRGB (grey for one-channel textures), or scene-linear float for
+// BC6H and the float formats, which are tone-mapped like OpenEXR (HDR).
+func probeDDS(data []byte) (ImageMeta, error) {
+	c, err := dds.DecodeConfig(data)
+	if err != nil {
+		return ImageMeta{}, err
+	}
+	m := ImageMeta{
+		Format:      FormatDDS,
+		Width:       c.Width,
+		Height:      c.Height,
+		Frames:      1,
+		Pages:       1,
+		PageHeight:  c.Height,
+		HasAlpha:    c.Alpha,
+		Orientation: 1,
+		BitDepth:    8,
+		Loop:        -1,
+		ColorSpace:  ColorSpaceSRGB,
+	}
+	switch {
+	case c.HDR:
+		m.BitDepth, m.ColorSpace, m.HDR = 32, ColorSpaceScRGB, true
+	case c.Grey:
+		m.ColorSpace = ColorSpaceGrey
+	}
+	return m, nil
 }
 
 // probeLegacy reads the header of a format ImageMagick decodes in Go
@@ -421,6 +456,27 @@ func probeEXR(data []byte) (ImageMeta, error) {
 		Loop:        -1,
 		ColorSpace:  ColorSpaceScRGB,
 	}, nil
+}
+
+// probeTIFF probes a TIFF through libvips; a CIE L*a*b* TIFF is probed
+// from a copy relabelled RGB (ParseLabTIFF), which libvips reads, and
+// reported as Lab.
+func probeTIFF(ctx context.Context, buf *vips.Buffer) (ImageMeta, error) {
+	l, ok := ParseLabTIFF(buf.Bytes())
+	if !ok {
+		return probeVips(ctx, buf, FormatTIFF, 0)
+	}
+	pb, err := l.Patch(buf)
+	if err != nil {
+		return ImageMeta{}, err
+	}
+	defer pb.Release()
+	m, err := probeVips(ctx, pb, FormatTIFF, 0)
+	if err != nil {
+		return ImageMeta{}, err
+	}
+	m.ColorSpace = ColorSpaceLab
+	return m, nil
 }
 
 // probeRadiance reads the Radiance header through libvips (text lines and
@@ -565,8 +621,6 @@ func magickFormat(coder string) Format {
 		return FormatTGA
 	case "PCX":
 		return FormatPCX
-	case "DDS":
-		return FormatDDS
 	case "QOI":
 		return FormatQOI
 	case "SGI":
@@ -620,7 +674,7 @@ func colorSpaceOf(i vips.Interpretation) ColorSpace {
 }
 
 // VipsFormat returns the libvips format of f, for the formats libvips loads
-// itself (every supported format except BMP, ICO, WBMP and ICNS, which the
+// itself (every supported format except BMP, ICO, WBMP, ICNS and DDS, which the
 // Go loaders decode, and camera RAW and video). UltraHDR is vips.FormatJPEG
 // and HEIC/HEIF vips.FormatHEIF; PSD is loaded by ImageMagick
 // (vips.FormatPSD) like the legacy formats (vips.FormatMagick), PPM and PFM
@@ -660,7 +714,7 @@ func (f Format) VipsFormat() (vips.Format, bool) {
 		return vips.FormatPPM, true
 	case FormatJXR:
 		return vips.FormatJXR, true
-	case FormatTGA, FormatPCX, FormatDDS, FormatQOI, FormatSGI, FormatSunRaster, FormatXBM, FormatXPM, FormatPAM,
+	case FormatTGA, FormatPCX, FormatQOI, FormatSGI, FormatSunRaster, FormatXBM, FormatXPM, FormatPAM,
 		FormatXCF:
 		return vips.FormatMagick, true
 	default:

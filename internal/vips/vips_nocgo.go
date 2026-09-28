@@ -113,6 +113,11 @@ func NewFromMemory(context.Context, []byte, int, int, int, BandFormat) (*Image, 
 	return nil, ErrUnavailable
 }
 
+// NewFromFloats fails.
+func NewFromFloats(context.Context, []float32, int, int, int) (*Image, error) {
+	return nil, ErrUnavailable
+}
+
 // Arrayjoin fails.
 func Arrayjoin(context.Context, []*Image, int) (*Image, error) { return nil, ErrUnavailable }
 

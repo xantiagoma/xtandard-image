@@ -79,17 +79,19 @@ const (
 	// FormatJXR is JPEG XR / HD Photo (ITU-T T.832), decoded by jxrlib
 	// through the shim's own libvips loader (vips jxr.c, WP-97).
 	FormatJXR
-	// The legacy formats below are decoded by ImageMagick through libvips'
-	// magickload, which the base image's policy.xml restricts to exactly
-	// these coders (and PSD/PSB); their headers are parsed in Go
-	// (ParseLegacyHeader), so probing never runs ImageMagick.
+	// The legacy formats below (except DDS) are decoded by ImageMagick
+	// through libvips' magickload, which the base image's policy.xml
+	// restricts to exactly these coders (and PSD/PSB); their headers are
+	// parsed in Go (ParseLegacyHeader), so probing never runs ImageMagick.
 
 	// FormatTGA is Truevision TGA (Targa), raw or run-length coded.
 	FormatTGA
 	// FormatPCX is ZSoft PCX (versions 2 and 5).
 	FormatPCX
-	// FormatDDS is DirectDraw Surface: uncompressed, DXT1/3/5 (BC1-3) or
-	// DX10 (BC4-BC7) textures; the first image (mipmap level 0).
+	// FormatDDS is DirectDraw Surface: uncompressed, BC1-BC7 (legacy
+	// FourCCs or a DX10 header) and float textures, decoded in pure Go by
+	// codec/dds (WP-105); the first image (mipmap level 0). BC6H and the
+	// float formats are scene-linear HDR (ImageMeta.HDR).
 	FormatDDS
 	// FormatQOI is the Quite OK Image format.
 	FormatQOI
@@ -246,17 +248,19 @@ func (f Format) SupportsAlpha() bool { return f.info().alpha }
 // shared-exponent samples, values above 1.0): OpenEXR, Radiance and PFM. Such
 // sources are tone-mapped to 8-bit sRGB unless preserve_hdr keeps them
 // (FORMATS.md §1.4). 16-bit PPM/PNG and 10/12-bit AVIF are high bit depth,
-// not HDR here.
+// not HDR here. DDS is HDR per file (BC6H and float textures): the probe
+// sets ImageMeta.HDR.
 func (f Format) HDR() bool {
 	return f == FormatEXR || f == FormatRadiance || f == FormatPFM
 }
 
-// IsMagick reports the legacy formats ImageMagick decodes (TGA, PCX, DDS,
-// QOI, SGI, Sun raster, XBM, XPM, PAM). PSD and XCF, which ImageMagick
-// also decodes, have their own paths and are not included.
+// IsMagick reports the legacy formats ImageMagick decodes (TGA, PCX, QOI,
+// SGI, Sun raster, XBM, XPM, PAM). PSD and XCF, which ImageMagick also
+// decodes, have their own paths and are not included; DDS is decoded in Go
+// (codec/dds).
 func (f Format) IsMagick() bool {
 	switch f {
-	case FormatTGA, FormatPCX, FormatDDS, FormatQOI, FormatSGI, FormatSunRaster, FormatXBM,
+	case FormatTGA, FormatPCX, FormatQOI, FormatSGI, FormatSunRaster, FormatXBM,
 		FormatXPM, FormatPAM:
 		return true
 	default:
