@@ -53,6 +53,7 @@ brotli MIT
 cairo LGPL-2.1-only OR MPL-1.1
 cgif MIT
 dav1d BSD-2-Clause
+dng-sdk LicenseRef-Adobe-DNG-SDK
 expat MIT
 ffi MIT
 ffmpeg GPL-2.0-or-later
@@ -62,6 +63,7 @@ freetype FTL
 fribidi LGPL-2.1-or-later
 ghostscript AGPL-3.0-or-later AND Apache-2.0 AND FTL AND IJG AND libpng-2.0 AND Zlib AND MIT
 glib LGPL-2.1-or-later
+gpr Apache-2.0 OR MIT
 harfbuzz MIT-Modern-Variant
 highway Apache-2.0 OR BSD-3-Clause
 imagemagick ImageMagick
@@ -76,7 +78,7 @@ libheif LGPL-3.0-or-later
 libjpeg-turbo IJG AND BSD-3-Clause AND Zlib
 libjxl BSD-3-Clause
 libpng libpng-2.0
-libraw LGPL-2.1-only OR CDDL-1.0
+libraw (LGPL-2.1-only OR CDDL-1.0) AND BSD-3-Clause
 librsvg LGPL-2.1-or-later
 libspng BSD-2-Clause
 libtiff libtiff

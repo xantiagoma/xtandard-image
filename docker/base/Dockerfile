@@ -56,6 +56,17 @@ COPY versions.sh download-deps.sh ./
 RUN ./download-deps.sh
 
 # ==============================================================================
+# LibRaw's SDKs (WP-103): Adobe DNG SDK and GoPro GPR SDK, trimmed to what
+# build-libraw.sh compiles.
+FROM base AS libraw-deps-src
+
+RUN apt-get update \
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends unzip \
+  && rm -rf /var/lib/apt/lists/*
+COPY versions.sh download-libraw-deps.sh ./
+RUN ./download-libraw-deps.sh
+
+# ==============================================================================
 FROM base AS deps
 
 COPY versions.sh install-rust.sh ./
@@ -99,6 +110,11 @@ RUN ./build-deps.sh
 COPY build-jxrlib.sh ./
 COPY patches ./patches
 RUN ./build-jxrlib.sh
+
+# LibRaw rebuilt with X3F tools and the DNG and GPR SDKs (WP-103), in its own layer.
+COPY build-libraw.sh ./
+COPY --from=libraw-deps-src /root/libraw-deps /root/libraw-deps
+RUN ./build-libraw.sh
 
 # Split the prefix into what the runtime needs and what only the builder needs.
 # The runtime keeps the vips and vipsheader CLIs (diagnostics, verify-image.sh) and only

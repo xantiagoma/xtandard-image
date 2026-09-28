@@ -28,6 +28,8 @@ trap 'rm -f "$sums"' EXIT
 
 {
   PRINT_CHECKSUMS=1 DEPS_SRC="$(mktemp -d)" "$my_dir/download-deps.sh"
+  # LibRaw's SDKs (WP-103): Adobe DNG SDK, GoPro GPR SDK.
+  PRINT_CHECKSUMS=1 "$my_dir/download-libraw-deps.sh"
   echo "GOLANG_SHA256_AMD64=$(sha256_url "https://go.dev/dl/go${GOLANG_VERSION}.linux-amd64.tar.gz")"
   echo "GOLANG_SHA256_ARM64=$(sha256_url "https://go.dev/dl/go${GOLANG_VERSION}.linux-arm64.tar.gz")"
   echo "GOLANGCI_LINT_SHA256_AMD64=$(sha256_url "https://github.com/golangci/golangci-lint/releases/download/v${GOLANGCI_LINT_VERSION}/golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64.tar.gz")"

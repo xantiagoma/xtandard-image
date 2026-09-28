@@ -129,11 +129,13 @@ agpl_license=AGPL-3.0-or-later
 # Identifiers an XI_COMPONENT_LICENSES expression may use (--licenses). GPL-* ids are
 # accepted there too (--licenses only runs in gpl mode); AGPL, SSPL and anything not
 # listed fail.
+# LicenseRef-Adobe-DNG-SDK is the Adobe DNG SDK License Agreement (no SPDX identifier;
+# permissive, with an indemnity clause; ADR 0006 amendment WP-103).
 known_license_ids=' MIT MIT-Modern-Variant BSD-2-Clause BSD-3-Clause Apache-2.0 ISC Zlib
   libpng-2.0 IJG libtiff FTL HPND-sell-variant Bitstream-Vera OFL-1.1 ImageMagick MPL-1.1
   MPL-2.0 CDDL-1.0 LGPL-2.0-or-later LGPL-2.1-only LGPL-2.1-or-later LGPL-3.0-only
   LGPL-3.0-or-later PCRE2-exception GPL-2.0-only GPL-2.0-or-later GPL-3.0-only
-  GPL-3.0-or-later '
+  GPL-3.0-or-later LicenseRef-Adobe-DNG-SDK '
 known_license_ids=${known_license_ids//$'\n'/ }
 
 failures=0
