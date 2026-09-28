@@ -1,0 +1,9 @@
+%!PS-Adobe-3.0 EPSF-3.0
+%%BoundingBox: 0 0 300 100
+%%EndComments
+% Tries to read a file outside its input and draw its content.
+/Helvetica findfont 8 scalefont setfont
+5 50 moveto
+(/etc/passwd) (r) file 200 string readstring pop show
+showpage
+%%EOF
