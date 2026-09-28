@@ -13,6 +13,21 @@ import (
 // epsDisabled is the public 422 message of an EPS without Ghostscript.
 const epsDisabled = "EPS needs the gpl image with XI_FORMATS_EPS_ENABLED=true"
 
+// fellBack reports the fallback image: the acceptance app answers a
+// failed request with XI_FALLBACK_SOURCE (200, X-Xi-Fallback: 1).
+func fellBack(r *response) bool {
+	return r.Status == 200 && r.Header.Get("X-Xi-Fallback") == "1"
+}
+
+// wantFailure checks that a request failed with want, or was answered
+// with the fallback image, which hides the status.
+func wantFailure(t *testing.T, r *response, want int) {
+	t.Helper()
+	if !fellBack(r) {
+		r.wantStatus(t, want)
+	}
+}
+
 // TestEPS: EPS/PostScript input (WP-99). scripts/acceptance.sh sets
 // XI_ACC_EPS=true, and XI_FORMATS_EPS_ENABLED on the app, when the image
 // has Ghostscript (the gpl flavour): pages render through the sandboxed gs
@@ -38,8 +53,8 @@ func TestEPS(t *testing.T) {
 	}
 	if !enabled {
 		r := get(t, app+"/unsafe/plain/local:///eps/simple.eps@webp", nil)
-		r.wantStatus(t, 422)
-		if !strings.Contains(string(r.Body), epsDisabled) {
+		wantFailure(t, r, 422)
+		if !fellBack(r) && !strings.Contains(string(r.Body), epsDisabled) {
 			t.Errorf("422 body %q, want %q", r.Body, epsDisabled)
 		}
 		t.Log("no Ghostscript (slim/full, or gpl with EPS off): 422 with the message")
@@ -77,8 +92,15 @@ func TestEPS(t *testing.T) {
 		// beyond it are a 429 by design.
 		start := time.Now()
 		r := get(t, app+"/unsafe/plain/http://fixtures/hostile/"+tc.doc+"@png", nil)
-		if tc.doc != "memory.eps" || r.Status != 504 {
-			r.wantStatus(t, tc.want)
+		switch {
+		case tc.want == 200:
+			r.wantStatus(t, 200)
+			if fellBack(r) {
+				t.Errorf("%s: fallback image, want the render", tc.doc)
+			}
+		case tc.doc == "memory.eps" && r.Status == 504:
+		default:
+			wantFailure(t, r, tc.want)
 		}
 		for _, leak := range []string{"root:", "invalidfileaccess", "ghostscript", "/etc/"} {
 			if r.Status != 200 && strings.Contains(string(r.Body), leak) {
