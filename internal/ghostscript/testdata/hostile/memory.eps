@@ -1,0 +1,8 @@
+%!PS-Adobe-3.0 EPSF-3.0
+%%BoundingBox: 0 0 100 100
+%%EndComments
+% Keeps every 16 MB string it allocates until memory runs out.
+/keep 100000 dict def
+/n 0 def
+{ keep n 16000000 string put /n n 1 add def } loop
+%%EOF

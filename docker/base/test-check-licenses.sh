@@ -326,6 +326,91 @@ rm "$dir/licenses/LICENSE-GPL.md"
 # shellcheck disable=SC2046
 expect_args 1 gpl-no-notice $(gpl_args "$dir")
 
+# --- Ghostscript (WP-99): the one AGPL component, exactly AGPL-3.0-or-later, as gs --
+
+# fake_gs path devices: a stand-in for `gs --version` / `gs -h`.
+fake_gs() {
+  cat > "$1" <<EOF
+#!/bin/bash
+case "\$1" in
+  --version) echo 10.08.0 ;;
+  -h) printf 'GPL Ghostscript 10.08.0\nAvailable devices:\n   %s\nSearch path:\n   %%rom%%Resource/Init/\n' "$2" ;;
+esac
+EOF
+  chmod +x "$1"
+}
+gs_components="x264=GPL-2.0-or-later x265=GPL-2.0-or-later ffmpeg=GPL-2.0-or-later ghostscript=AGPL-3.0-or-later"
+
+# new_gs_fixture name [components]: the gpl fixture plus gs, its licence entry and an
+# AGPL notice.
+new_gs_fixture() {
+  local dir
+  dir="$(new_gpl_fixture "$1")"
+  new_gpl_file "$dir/versions-gpl.sh" "${2:-$gs_components}"
+  printf "XI_COMPONENT_LICENSES=\"\$XI_COMPONENT_LICENSES\nghostscript AGPL-3.0-or-later AND FTL AND MIT\n\"\n" >> "$dir/versions-gpl.sh"
+  printf 'export GHOSTSCRIPT_VERSION=10.08.0\n' >> "$dir/versions-gpl.sh"
+  mkdir -p "$dir/licenses/ghostscript"
+  printf '# GPL notice\nFFmpeg is GPL-2.0-or-later. Ghostscript is AGPL-3.0-or-later.\n' > "$dir/licenses/LICENSE-GPL.md"
+  fake_gs "$dir/gs" "bbox nullpage png16m pngalpha"
+  echo "$dir"
+}
+
+# gs_args dir: gpl_args plus --ghostscript.
+gs_args() {
+  echo --allow-gpl "$1/versions-gpl.sh" --licenses "$1/licenses" --ffmpeg "$1/ffmpeg" --ghostscript "$1/gs" \
+    "$1/lib" "$1/versions.sh" "$1/versions-gpl.sh"
+}
+
+dir="$(new_gs_fixture gpl-ghostscript-clean)"
+# shellcheck disable=SC2046
+expect_args 0 gpl-ghostscript-clean $(gs_args "$dir")
+# gs fails the strict gate (slim and full never ship it), even in a clean tree.
+clean_dir="$(new_fixture strict-ghostscript)"
+fake_gs "$clean_dir/gs" "bbox nullpage png16m pngalpha"
+expect_args 1 strict-ghostscript --ghostscript "$clean_dir/gs" "$clean_dir/lib" "$clean_dir/versions.sh"
+
+dir="$(new_gs_fixture gpl-ghostscript-not-listed "x264=GPL-2.0-or-later x265=GPL-2.0-or-later ffmpeg=GPL-2.0-or-later")"
+# shellcheck disable=SC2046
+expect_args 1 gpl-ghostscript-not-listed $(gs_args "$dir")
+
+dir="$(new_gs_fixture gpl-ghostscript-as-gpl "x264=GPL-2.0-or-later x265=GPL-2.0-or-later ffmpeg=GPL-2.0-or-later ghostscript=GPL-3.0-or-later")"
+# shellcheck disable=SC2046
+expect_args 1 gpl-ghostscript-as-gpl $(gs_args "$dir")
+
+dir="$(new_gs_fixture gpl-ghostscript-agpl-only "x264=GPL-2.0-or-later x265=GPL-2.0-or-later ffmpeg=GPL-2.0-or-later ghostscript=AGPL-3.0-only")"
+# shellcheck disable=SC2046
+expect_args 1 gpl-ghostscript-agpl-only $(gs_args "$dir")
+
+dir="$(new_gs_fixture gpl-x264-agpl "x264=AGPL-3.0-or-later x265=GPL-2.0-or-later ffmpeg=GPL-2.0-or-later ghostscript=AGPL-3.0-or-later")"
+# shellcheck disable=SC2046
+expect_args 1 gpl-x264-agpl $(gs_args "$dir")
+
+dir="$(new_gs_fixture gpl-ghostscript-other-agpl-bundle)"
+printf "XI_COMPONENT_LICENSES=\"\$XI_COMPONENT_LICENSES\nmystery-codec AGPL-3.0-or-later\n\"\n" >> "$dir/versions-gpl.sh"
+mkdir -p "$dir/licenses/mystery-codec"
+# shellcheck disable=SC2046
+expect_args 1 gpl-ghostscript-other-agpl-bundle $(gs_args "$dir")
+
+dir="$(new_gs_fixture gpl-ghostscript-notice-without-agpl)"
+printf '# GPL notice\nFFmpeg is GPL-2.0-or-later.\n' > "$dir/licenses/LICENSE-GPL.md"
+# shellcheck disable=SC2046
+expect_args 1 gpl-ghostscript-notice-without-agpl $(gs_args "$dir")
+
+dir="$(new_gs_fixture gpl-ghostscript-x11)"
+fake_gs "$dir/gs" "bbox nullpage png16m pngalpha x11 cups"
+# shellcheck disable=SC2046
+expect_args 1 gpl-ghostscript-x11 $(gs_args "$dir")
+
+dir="$(new_gs_fixture gpl-libgs)"
+printf '\x7fELF libgs.so.10 gsapi_new_instance\n' > "$dir/lib/libgs.so.10"
+# shellcheck disable=SC2046
+expect_args 1 gpl-libgs $(gs_args "$dir")
+
+dir="$(new_gs_fixture gpl-linked-libgs)"
+printf '\x7fELF NEEDED libgs.so.10\n' > "$dir/lib/libmagick.so.10"
+# shellcheck disable=SC2046
+expect_args 1 gpl-linked-libgs $(gs_args "$dir")
+
 dir="$(new_fixture gpl-licenses-needs-allow)"
 mkdir -p "$dir/licenses"
 expect_args 2 gpl-licenses-needs-allow --licenses "$dir/licenses" "$dir/lib"

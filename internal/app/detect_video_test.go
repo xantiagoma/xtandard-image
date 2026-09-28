@@ -226,7 +226,7 @@ func TestDetectVideoNoLeak(t *testing.T) {
 	if err := vips.Init(&vcfg); err != nil {
 		t.Fatal(err)
 	}
-	proc, err := newProcessor(&cfg, nil, nil)
+	proc, err := newProcessor(&cfg, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -137,6 +137,13 @@ type Limits struct {
 	// instead of letting ImageMagick flatten the layers
 	// (XI_FORMATS_PSD_REQUIRE_COMPOSITE, off by default).
 	PSDRequireComposite bool
+	// EPSEnabled reports that EPS/PostScript sources are rendered by
+	// Ghostscript (XI_FORMATS_EPS_ENABLED in the gpl image, ADR 0011): the
+	// probe describes the page from its DSC bounding box, measured at 72
+	// DPI. Otherwise an EPS is described (and later decoded) from its
+	// embedded TIFF preview, and one without a preview fails with
+	// errs.KindUnsupported and EPSDisabledMessage.
+	EPSEnabled bool
 }
 
 // DefaultLimits returns the XI_LIMITS_* defaults of docs/CONFIG.md.

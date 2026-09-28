@@ -56,8 +56,8 @@ ships, unmodified or built from unmodified sources:
 Model licences are shipped next to each model in
 /usr/share/xtandard/models/ and in share/licenses/models/.
 
-gpl base image flavor (contains GPL software)
----------------------------------------------
+gpl base image flavor (contains GPL and AGPL software)
+------------------------------------------------------
 The opt-in gpl base image flavor (docker/base/versions-gpl.sh; not slim,
 not full) additionally ships, built from unmodified sources:
 - x264 (https://code.videolan.org/videolan/x264), stable branch, GNU
@@ -68,10 +68,20 @@ not full) additionally ships, built from unmodified sources:
   --enable-libx265. As distributed in that image, the FFmpeg libraries
   and the ffmpeg/ffprobe programs are one work under the GNU General
   Public License version 2 or later.
-The image is labelled org.opencontainers.image.licenses="GPL-2.0-or-later
-AND MIT" and carries /opt/xtandard/share/licenses/LICENSE-GPL.md (terms,
-every component's licence, where the corresponding source is) with the
-GPL texts in share/licenses/{ffmpeg,x264,x265}/. H.264 and HEVC are
+- Ghostscript 10.08.0 (https://www.ghostscript.com/), Copyright (c)
+  Artifex Software, Inc., GNU Affero General Public License version 3 or
+  later, as the separate program /opt/xtandard/bin/gs (never linked),
+  which the server runs in a sandboxed subprocess only when
+  XI_FORMATS_EPS_ENABLED=true (off by default; docs/adr/0011). It
+  compiles in FreeType (FTL), IJG libjpeg, libpng, zlib, lcms2mt (MIT),
+  brotli (MIT), the Droid Sans Fallback font (Apache-2.0) and Adobe's
+  CMaps (BSD-3-Clause); their notices are in share/licenses/ghostscript/.
+The image is labelled org.opencontainers.image.licenses="AGPL-3.0-or-later
+AND GPL-2.0-or-later AND MIT" and carries
+/opt/xtandard/share/licenses/LICENSE-GPL.md (terms, every component's
+licence, where the corresponding source is) with the GPL texts in
+share/licenses/{ffmpeg,x264,x265}/ and the AGPL text in
+share/licenses/ghostscript/. H.264 and HEVC are
 subject to patent pools; no patent licence is granted, and reviewing
 licences and patents is the responsibility of whoever deploys or
 distributes the gpl image. The xtandard-image source code in this

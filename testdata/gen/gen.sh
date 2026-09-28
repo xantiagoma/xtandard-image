@@ -160,6 +160,11 @@ magick "$T/g48.png" -threshold 50% XBM:"$F/xbm/graphic.xbm"
 magick "$T/g48.png" -colors 8 XPM:"$F/xpm/graphic.xpm"
 magick "$T/g48.png" -threshold 50% WBMP:"$F/wbmp/graphic.wbmp"
 gen icns "$F/icns/icon.icns"
+# EPS/PostScript (WP-99): hand-written PostScript (testdata/gen/eps) and a DOS
+# EPS binary file with a TIFF preview.
+mkdir -p "$F"/eps
+cp testdata/gen/eps/simple.eps testdata/gen/eps/pages.ps testdata/gen/eps/illustrator.ai "$F/eps/"
+gen eps-preview "$F/eps/preview.eps"
 # JPEG XR needs jxrlib's JxrEncApp, which the base image does not ship: build it
 # from the pinned jxrlib source (docker/base/versions.sh JXRLIB_COMMIT, the same
 # patches) and set JXRENCAPP to it; without it the JPEG XR fixtures are not

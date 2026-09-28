@@ -1,0 +1,31 @@
+%!PS-Adobe-3.0
+%%Creator: Adobe Illustrator(R) 8.0
+%%AI8_CreatorVersion: 8.0.1
+%%For: (xtandard-image test fixture)
+%%Title: (illustrator.ai)
+%%BoundingBox: 100 200 260 320
+%%HiResBoundingBox: 100 200 260 320
+%%DocumentProcessColors: Cyan Magenta Yellow Black
+%AI5_FileFormat 4.0
+%AI3_ColorUsage: Color
+%AI3_TemplateBox: 306 396 306 396
+%AI3_TileBox: 30 31 582 761
+%AI3_DocumentPreview: None
+%%PageOrigin:30 31
+%%AI3_PaperRect:-30 761 582 -31
+%%AI3_Margin:30 -31 -582 761
+%AI7_GridSettings: 72 8 72 8 1 0 0.8 0.8 0.8 0.9 0.9 0.9
+%%EndComments
+%%BeginProlog
+%%EndProlog
+%%BeginSetup
+%%EndSetup
+% A 160 x 120 pt artboard at (100, 200): green background, magenta square.
+0 0.6 0.2 setrgbcolor
+100 200 160 120 rectfill
+0.9 0 0.6 setrgbcolor
+140 230 80 60 rectfill
+%%PageTrailer
+showpage
+%%Trailer
+%%EOF

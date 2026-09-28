@@ -251,6 +251,18 @@ docker run --rm "$runtime" bash -euo pipefail -c '
   test -e /opt/xtandard/lib/libjxrglue.so.0 && test -e /opt/xtandard/lib/libjpegxr.so.0
   echo "licence texts present for LibRaw, ImageMagick, OpenEXR, Imath, PDFium, jxrlib (BSD-2-Clause)"
 '
+# Ghostscript (AGPL) is in the gpl flavor only (WP-99).
+docker run --rm -e "XI_FLAVOR=$flavor" "$runtime" bash -euo pipefail -c '
+  if [ "$XI_FLAVOR" = gpl ]; then
+    test -x /opt/xtandard/bin/gs && echo "gpl: /opt/xtandard/bin/gs present"
+  else
+    if [ -e /opt/xtandard/bin/gs ] || command -v gs > /dev/null || [ -e /opt/xtandard/share/licenses/ghostscript ]; then
+      echo "Ghostscript in a $XI_FLAVOR image" >&2
+      exit 1
+    fi
+    echo "$XI_FLAVOR: no Ghostscript"
+  fi
+'
 
 if [ -n "$builder" ]; then
   echo "== builder toolchain ($builder)"
@@ -329,8 +341,8 @@ if [ "$flavor" = full ] || [ "$flavor" = gpl ]; then
     bash -euo pipefail -c '
       licenses=/opt/xtandard/share/licenses
       bundle=
-      [ "$XI_FLAVOR" = gpl ] && bundle="--licenses $licenses"
-      # shellcheck disable=SC2086 # $XI_GATE_GPL and $bundle are empty or two words
+      [ "$XI_FLAVOR" = gpl ] && bundle="--licenses $licenses --ghostscript /opt/xtandard/bin/gs"
+      # shellcheck disable=SC2086 # $XI_GATE_GPL and $bundle are empty or a few words
       bash /usr/local/bin/check-licenses.sh $XI_GATE_GPL $bundle --ffmpeg /opt/xtandard/bin/ffmpeg \
         --ldd --models /usr/share/xtandard/models /opt/xtandard/lib
       bash /usr/local/bin/check-licenses.sh --ldd /usr/local/lib
@@ -350,7 +362,11 @@ if [ "$flavor" = full ] || [ "$flavor" = gpl ]; then
         grep -q "^| x265 | GPL-2.0-or-later |" $licenses/LICENSE-GPL.md
         grep -q "^| ffmpeg | GPL-2.0-or-later |" $licenses/LICENSE-GPL.md
         grep -q "patent" $licenses/LICENSE-GPL.md
-        echo "GPL texts (FFmpeg, x264, x265), SOURCES.md gpl section and LICENSE-GPL.md present"
+        grep -q "GNU AFFERO GENERAL PUBLIC LICENSE" $licenses/ghostscript/COPYING.AGPLv3
+        grep -q "^| ghostscript | AGPL-3.0-or-later" $licenses/LICENSE-GPL.md
+        grep -q "AGPL-3.0-or-later" $licenses/LICENSE-GPL.md
+        grep -q "ghostscript-.*\.tar\.xz" $licenses/SOURCES.md
+        echo "GPL texts (FFmpeg, x264, x265), Ghostscript AGPL text, SOURCES.md gpl section and LICENSE-GPL.md present"
         echo "LICENSE-GPL.md lists $(grep -c "^| [a-z]" $licenses/LICENSE-GPL.md) components"
       fi
     '
@@ -419,6 +435,44 @@ vips copy grey.v in.gif
 ffmpeg -hide_banner -loglevel error -i in.gif -c:v libx264 -pix_fmt yuv420p -movflags +faststart gif.mp4
 ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 gif.mp4 | grep -qx h264
 echo "ok gif -> h264 mp4"
+EOF
+
+    echo "== gpl: Ghostscript rasterises an EPS (WP-99), -dSAFER holds"
+    docker run --rm -i "$runtime" bash -euo pipefail <<'EOF'
+cd /tmp
+gs=/opt/xtandard/bin/gs
+echo "gs $("$gs" --version), $(stat -c %s "$gs") bytes, runs as uid $(id -u)"
+test "$(id -u)" != 0
+cat > test.eps <<'PS'
+%!PS-Adobe-3.0 EPSF-3.0
+%%BoundingBox: 10 20 110 70
+%%EndComments
+1 0 0 setrgbcolor 10 20 100 50 rectfill
+0 0 1 setrgbcolor 60 45 20 0 360 arc fill
+0 setgray /Helvetica findfont 12 scalefont setfont 15 25 moveto (EPS) show
+showpage
+PS
+# The server's flags (internal/ghostscript): stdin in, PNG out, fixed page, -dSAFER.
+flags=(-q -dSAFER -dBATCH -dNOPAUSE -dNOPROMPT -sstdout=%stderr -sDEVICE=pngalpha
+  -dTextAlphaBits=4 -dGraphicsAlphaBits=4 -r144 -g200x100 -dFIXEDMEDIA -dFirstPage=1 -dLastPage=1
+  -sBandListStorage=memory -sOutputFile=-)
+env -i "$gs" "${flags[@]}" -c "<< /BeginPage { pop -10 -20 translate } >> setpagedevice" -f - < test.eps > out.png
+test "$(vipsheader -f width out.png)x$(vipsheader -f height out.png)x$(vipsheader -f bands out.png)" = 200x100x4
+test "$(vips getpoint out.png 100 50)" = "0 0 255 255 "
+test "$(vips getpoint out.png 8 8)" = "255 0 0 255 "
+echo "ok eps -> 200x100 RGBA PNG at 144 dpi (blue centre, red corner)"
+# -dSAFER: no file outside the interpreter's resources, no %pipe%.
+printf '%%!PS\n(/etc/passwd) (r) file 100 string readstring pop print\n' > read.ps
+printf '%%!PS\n(%%pipe%%id > /tmp/pwned) (w) file closefile\n' > pipe.ps
+for doc in read.ps pipe.ps; do
+  if env -i "$gs" "${flags[@]}" - < "$doc" > /dev/null 2> err.txt; then
+    echo "gs ran $doc" >&2
+    exit 1
+  fi
+  grep -q invalidfileaccess err.txt
+done
+test ! -e /tmp/pwned
+echo "ok -dSAFER refuses file reads and %pipe%"
 EOF
   fi
 

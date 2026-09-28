@@ -1,6 +1,6 @@
 #!/bin/bash
 # Downloads, verifies (SHA256) and unpacks the sources the `gpl` flavor (WP-70b) adds:
-# x264 and x265 (versions-gpl.sh). FFmpeg itself is the full flavor's tarball
+# x264 and x265, and Ghostscript (WP-99) (versions-gpl.sh). FFmpeg itself is the full flavor's tarball
 # (versions-full.sh), reused from the full-deps-src stage.
 #
 # Same conventions as download-full-deps.sh (kept separate so the slim and full stages
@@ -64,3 +64,6 @@ fetch X264_SHA256 x264 \
   "https://code.videolan.org/videolan/x264/-/archive/${X264_COMMIT}/x264-${X264_COMMIT}.tar.bz2"
 fetch X265_SHA256 x265 \
   "https://download.videolan.org/pub/videolan/x265/x265_${X265_VERSION}.tar.gz"
+# Ghostscript's release tags drop the dots: 10.08.0 is gs10080.
+fetch GHOSTSCRIPT_SHA256 ghostscript \
+  "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${GHOSTSCRIPT_VERSION//./}/ghostscript-${GHOSTSCRIPT_VERSION}.tar.xz"

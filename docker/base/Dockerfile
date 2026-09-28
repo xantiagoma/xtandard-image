@@ -10,8 +10,8 @@
 #   runtime       shared libraries only, non-root, jemalloc preloaded (published as *-slim; default)
 #   builder-full  builder + FFmpeg (LGPL) + ONNX Runtime headers/libs + models (*-full-builder)
 #   runtime-full  runtime + FFmpeg (LGPL) libs/CLIs + ONNX Runtime + models (*-full)
-#   builder-gpl   builder-full with FFmpeg rebuilt as GPL + x264 + x265 (*-gpl-builder)
-#   runtime-gpl   runtime-full with FFmpeg rebuilt as GPL + x264 + x265 (*-gpl)
+#   builder-gpl   builder-full with FFmpeg rebuilt as GPL + x264 + x265 + gs (*-gpl-builder)
+#   runtime-gpl   runtime-full with FFmpeg rebuilt as GPL + x264 + x265 + gs (*-gpl)
 #
 # The full stages reuse the slim ones: full-deps starts from the finished slim `deps`
 # stage, so slim and full share every slim layer and the slim image does not change
@@ -145,7 +145,7 @@ COPY --from=full-deps-src /root/full-deps/ffmpeg /root/gpl-deps/ffmpeg
 RUN ./build-gpl-deps.sh
 
 # Same split as full; the gate on the runtime subset runs in its gpl mode.
-RUN XI_ALLOW_GPL=/root/versions-gpl.sh ./split-runtime.sh vips vipsheader ffmpeg ffprobe
+RUN XI_ALLOW_GPL=/root/versions-gpl.sh ./split-runtime.sh vips vipsheader ffmpeg ffprobe gs
 
 # ==============================================================================
 FROM ${UBUNTU_IMAGE} AS builder-base
@@ -262,9 +262,9 @@ FROM builder-base AS builder-gpl
 
 ARG VIPS_VERSION
 LABEL org.opencontainers.image.title="xtandard-image-base (gpl builder)" \
-      org.opencontainers.image.description="Go 1.27 + libvips 8.18 + FFmpeg 8 (GPL, x264, x265) + ONNX Runtime development image for xtandard-image; contains GPL software, see /opt/xtandard/share/licenses/LICENSE-GPL.md" \
+      org.opencontainers.image.description="Go 1.27 + libvips 8.18 + FFmpeg 8 (GPL, x264, x265) + ONNX Runtime + Ghostscript development image for xtandard-image; contains GPL and AGPL software, see /opt/xtandard/share/licenses/LICENSE-GPL.md" \
       org.opencontainers.image.source="https://github.com/xantiagoma/xtandard-image" \
-      org.opencontainers.image.licenses="GPL-2.0-or-later AND MIT" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later AND GPL-2.0-or-later AND MIT" \
       dev.xtandard.vips.version="${VIPS_VERSION}" \
       dev.xtandard.base.flavor="gpl"
 
@@ -277,9 +277,9 @@ FROM runtime-base AS runtime-gpl
 
 ARG VIPS_VERSION
 LABEL org.opencontainers.image.title="xtandard-image-base" \
-      org.opencontainers.image.description="libvips 8.18 + FFmpeg 8 (GPL, x264, x265) + ONNX Runtime runtime libraries for xtandard-image (gpl); contains GPL software, see /opt/xtandard/share/licenses/LICENSE-GPL.md" \
+      org.opencontainers.image.description="libvips 8.18 + FFmpeg 8 (GPL, x264, x265) + ONNX Runtime runtime libraries and Ghostscript for xtandard-image (gpl); contains GPL and AGPL software, see /opt/xtandard/share/licenses/LICENSE-GPL.md" \
       org.opencontainers.image.source="https://github.com/xantiagoma/xtandard-image" \
-      org.opencontainers.image.licenses="GPL-2.0-or-later AND MIT" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later AND GPL-2.0-or-later AND MIT" \
       dev.xtandard.vips.version="${VIPS_VERSION}" \
       dev.xtandard.base.flavor="gpl"
 

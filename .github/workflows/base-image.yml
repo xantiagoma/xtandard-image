@@ -10,13 +10,14 @@ name: base-image
 #   ghcr.io/xantiagoma/xtandard-image-base:full
 #   ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<M>-full-builder
 #   ghcr.io/xantiagoma/xtandard-image-base:full-builder
-#   ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<G>-gpl           (full + GPL FFmpeg, x264, x265)
+#   ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<G>-gpl           (full + GPL FFmpeg, x264, x265, gs)
 #   ghcr.io/xantiagoma/xtandard-image-base:gpl
 #   ghcr.io/xantiagoma/xtandard-image-base:<vips>-r<G>-gpl-builder
 #   ghcr.io/xantiagoma/xtandard-image-base:gpl-builder
 # N is XI_BASE_REVISION (versions.sh), M is XI_BASE_FULL_REVISION (versions-full.sh),
-# G is XI_BASE_GPL_REVISION (versions-gpl.sh). The gpl images contain GPL software and
-# are labelled GPL-2.0-or-later AND MIT (ADR 0006); slim and full stay MIT-only.
+# G is XI_BASE_GPL_REVISION (versions-gpl.sh). The gpl images contain GPL and AGPL
+# (Ghostscript) software and are labelled AGPL-3.0-or-later AND GPL-2.0-or-later AND MIT
+# (ADR 0006, ADR 0011); slim and full stay MIT-only.
 # Pull requests build and verify both architectures and all flavors without pushing.
 
 on:
