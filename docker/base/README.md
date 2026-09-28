@@ -169,7 +169,7 @@ The models are laid out as `<name>.onnx` next to `<name>.LICENSE`, with `MODELS.
 licence) and `SHA256SUMS`; the licences and `MODELS.md` are also copied to
 `share/licenses/models/`. Users can mount their own models over the directory (WP-71).
 
-Size: runtime 103.1 MB compressed on linux/arm64 (slim + 48.4 MB; budget ≤ 170 MB), see
+Size: runtime 124.0 MB compressed on linux/arm64 (r7; slim + 68.6 MB; budget ≤ 170 MB), see
 [Sizes](#sizes).
 
 ## gpl flavor (WP-70b, revision 8)
@@ -219,8 +219,8 @@ back with ffprobe/ffmpeg, plus GIF → H.264 MP4. For Ghostscript it runs the ga
 RGBA PNG at 144 DPI, pixel-checked with libvips) as the non-root image user, and checks
 that `-dSAFER` refuses a file read and `%pipe%`; slim and full must have no `gs`.
 
-Size: runtime 116.6 MB compressed on linux/arm64 (full + 13.3 MB: x264/x265 2.2 MB, Ghostscript
-11.1 MB), see [Sizes](#sizes).
+Size: runtime 137.7 MB compressed on linux/arm64 (r8; full + 13.7 MB: x264/x265 2.2 MB, Ghostscript
+11.1 MB, LibRaw's DNG and GPR SDKs about 0.4 MB), see [Sizes](#sizes).
 
 ## Base extras (WP-66, revision 2)
 
@@ -389,18 +389,18 @@ linux/arm64, `docker save | gzip -6` (compressed) and `docker image inspect` (un
 
 | Image | Compressed | Uncompressed | Budget (compressed) |
 |---|---|---|---|
-| slim runtime (`8.18.6-r5-slim`) | 55.2 MB | 166.4 MB | ≤ 110 MB |
-| slim builder | 259.8 MB | 820.3 MB | — |
-| full runtime (`8.18.6-r6-full`) | 103.7 MB | 238.5 MB | ≤ 170 MB |
-| full builder | 308.8 MB | 895.0 MB | — |
-| gpl runtime (`8.18.6-r7-gpl`) | 117.0 MB | 257.8 MB | ≤ 170 MB (as full) |
-| gpl builder | 322.1 MB | 914.4 MB | — |
+| slim runtime (`8.18.6-r6-slim`) | 55.4 MB | 166.7 MB | ≤ 110 MB |
+| slim builder | 260.0 MB | 820.7 MB | — |
+| full runtime (`8.18.6-r7-full`) | 124.0 MB | 260.6 MB | ≤ 170 MB |
+| full builder | 329.2 MB | 917.2 MB | — |
+| gpl runtime (`8.18.6-r8-gpl`) | 137.7 MB | 280.7 MB | ≤ 170 MB (as full) |
+| gpl builder | 343.4 MB | 938.3 MB | — |
 
-LibRaw's options (WP-103; measured on the `wp103` builds of those revisions) add 0.4–0.6 MB
-compressed / 1.0–1.2 MB uncompressed to every runtime (slim 55.8 / 167.6 MB, full 104.1 /
-239.5 MB, gpl 117.4 / 258.8 MB) and about 1 MB compressed / 2 MB uncompressed to the builders
-(slim 260.8 / 822.5 MB, full 309.7 / 897.0 MB): `libraw_r.so` grows from 1.3 to 2.2 MB (DNG
-SDK, VC-5 decoder, X3F tools), the builders also carry the plain `libraw.so`.
+r6/r7/r8 over r5/r6/r7: slim +0.2 MB compressed (the LibRaw snapshot with the X3F tools; the
+WP-107 XCF policy costs nothing), full +20.3 MB (the WP-110 classifier), gpl +20.7 MB (the
+classifier and LibRaw's SDKs). With the Adobe DNG SDK and the VC-5 decoder (gpl only)
+`libraw_r.so` grows from 1.3 to 2.2 MB (about 0.4–0.6 MB compressed / 1.0–1.2 MB
+uncompressed, measured on the WP-103 builds).
 
 zstd (r5, WP-102) adds 0.3–0.4 MB compressed / 0.8 MB uncompressed to every flavor.
 
@@ -408,9 +408,7 @@ jxrlib (r4, WP-97) adds 0.2 MB compressed / 0.4 MB uncompressed to every flavor;
 ImageMagick policy costs nothing (the coders were already compiled in).
 The full additions are ONNX Runtime 24 MiB, the models 56 MiB (YOLOX-s 34 MiB, MobileNetV3-Large
 21 MiB, YuNet 0.2 MiB) and FFmpeg + libvpx 11 MiB (libraries and both CLIs), uncompressed.
-The classifier (WP-110) adds 20.3 MB compressed / 21.9 MB uncompressed to full and gpl (full
-runtime 103.7 → 124.0 MB compressed and 238.5 → 260.5 MB uncompressed, measured on arm64
-before the next revision bump; the table above still shows the published revisions).
+The classifier (WP-110) adds 20.3 MB compressed / 21.9 MB uncompressed to full and gpl.
 The gpl flavor adds 2.2 MB compressed / 4.8 MB uncompressed over full for libx264, libx265 and
 the two encoders in libavcodec (r5), and Ghostscript another 11.1 MB compressed / 14.5 MB
 uncompressed (r6, WP-99: the 14.4 MB static `gs`, whose compiled-in resources and fonts are
