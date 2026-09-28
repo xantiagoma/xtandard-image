@@ -3,8 +3,10 @@
 #
 # Requirements (tools only; nothing they ship ends up in the fixtures except
 # the pixels we feed them): Go 1.27, libvips >= 8.18 with heif/jxl/jp2k/uhdr
-# savers, ImageMagick 7 (`magick`), qpdf (PDF encryption), and macOS `sips`
-# for HEIC (Apple's HEVC encoder, so no x265/GPL encoder is involved).
+# savers, ImageMagick 7 (`magick`), qpdf (PDF encryption), the `zstd` CLI
+# (KTX2), and macOS `sips` for HEIC (Apple's HEVC encoder, so no x265/GPL
+# encoder is involved). Optional: JXRENCAPP (JPEG XR), BASISU (KTX2 Basis
+# Universal), Docker (FITS fpack, designer files).
 #
 #   sh testdata/gen/gen.sh
 #
@@ -212,6 +214,11 @@ gen procreate "$F/procreate/thumbnail.procreate"
 gen sketch "$F/sketch/preview.sketch"
 gen pdn "$F/pdn/thumbnail.pdn"
 gen svgz "$F/svg/logo.svg" "$F/svgz/logo.svgz"
+
+# MNG and JNG (WP-108): chunk streams around stdlib PNG/JPEG data.
+mkdir -p "$F"/mng "$F"/jng
+for k in png palette frames jng; do gen mng "mng-$k" "$F/mng/$k.mng"; done
+for k in jng jng-idat jng-jdaa; do gen mng "$k" "$F/jng/$k.jng"; done
 if [ -z "${XI_SKIP_DESIGNER:-}" ]; then
 	sh testdata/gen/designer.sh
 fi
@@ -238,6 +245,43 @@ gen cmyk-raw 64 48 opaque "$T/cmyk.raw" "$T/cmyk.icc"
 "$T/jxlcmyk" 64 48 4 "$T/cmyk.raw" "$T/cmyk.icc" "$F/jxl/cmyk.jxl"
 gen cmyk-raw 64 48 alpha "$T/cmyk-alpha.raw" "$T/cmyk.icc"
 "$T/jxlcmyk" 64 48 5 "$T/cmyk-alpha.raw" "$T/cmyk.icc" "$F/jxl/cmyk-alpha.jxl"
+# WP-108: FITS from the photo (own writer, testdata/gen/fits.go) and their
+# tile-compressed variants and funpack references (cfitsio's fpack in Docker,
+# testdata/gen/fits-fpack.sh).
+mkdir -p "$F"/fits
+gen fits 64 48 "$F/fits"
+if [ -z "${XI_SKIP_FPACK:-}" ]; then
+	sh testdata/gen/fits-fpack.sh
+fi
+# WP-108: Windows metafiles (testdata/gen/metafile.go), one scene as WMF and EMF.
+mkdir -p "$F"/wmf "$F"/emf
+gen metafile "$F"
+# WP-108: synthetic DICOM files (testdata/gen/dicom.go): made-up patient
+# elements carrying XIPRIVACYMARKER, pixels from photo() or a CT phantom;
+# ct-j2k.dcm wraps the codestream of a lossless JPEG 2000 of the phantom
+# written by libvips, jpeg-extended12.dcm the 12-bit jpeg/rgb12.jpg above;
+# ct-jpegll*.dcm carry gen's own lossless JPEG encoder's codestreams.
+mkdir -p "$F"/dicom
+gen dicom-phantom "$T/phantom.png"
+vips jp2ksave "$T/phantom.png" "$T/phantom.jp2" --lossless
+gen dicom "$F/dicom" "$T/phantom.jp2" "$F/jpeg/rgb12.jpg"
+# WP-108: PICT (ImageMagick's writer) and KTX2 (own writer, the zstd CLI for
+# the Zstandard level). The Basis Universal textures need the basisu tool of
+# the pinned basis_universal (docker/base/versions.sh BASISU_COMMIT; build it
+# with cmake and set BASISU to it); without it they are not regenerated.
+mkdir -p "$F"/pict "$F"/ktx2
+magick "$T/p64.png" PICT:"$F/pict/photo.pct"
+for k in bc1 bc4 bc7 bc6h rgba8 rgb8 rgba8-zlib; do gen "ktx2-$k" 64 48 "$F/ktx2/$k.ktx2"; done
+gen ktx2-rgba8-level 64 48 "$T/level.raw"
+zstd -q -19 -f --no-check "$T/level.raw" -o "$T/level.zst"
+gen ktx2-rgba8-zstd 64 48 "$F/ktx2/rgba8-zstd.ktx2" "$T/level.zst"
+if [ -n "${BASISU:-}" ]; then
+	"$BASISU" -ktx2 "$T/p64.png" -output_file "$F/ktx2/etc1s.ktx2" -q 128
+	"$BASISU" -ktx2 -uastc "$T/pa64.png" -output_file "$F/ktx2/uastc-zstd.ktx2"
+	"$BASISU" -ktx2 -hdr "$F/exr/rgb-float.exr" -output_file "$F/ktx2/uastc-hdr.ktx2"
+else
+	echo "BASISU not set: ktx2/{etc1s,uastc-zstd,uastc-hdr}.ktx2 not regenerated (restore them)" >&2
+fi
 # Reference decodes for internal/codec (Pillow, NumPy): run by hand,
 # testdata/golden/codec/reference.py.
 

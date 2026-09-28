@@ -53,6 +53,26 @@ func tiff(maker string, entries ...[3]uint32) []byte {
 	return append(append(b, maker...), 0)
 }
 
+// leafTIFF is a big-endian IFD0 without a Make, like a Leaf Aptus back
+// writes it: the compression and a LeafData (0x8606) block of 16 bytes that
+// starts with magic.
+func leafTIFF(compression uint16, magic string) []byte {
+	be := binary.BigEndian
+	b := []byte("MM\x00*\x00\x00\x00\x08")
+	b = be.AppendUint16(b, 2)
+	b = be.AppendUint16(b, 0x103) // Compression, SHORT
+	b = be.AppendUint16(b, 3)
+	b = be.AppendUint32(b, 1)
+	b = be.AppendUint16(b, compression)
+	b = append(b, 0, 0)
+	b = be.AppendUint16(b, 0x8606) // LeafData, ASCII
+	b = be.AppendUint16(b, 2)
+	b = be.AppendUint32(b, 16)
+	b = be.AppendUint32(b, 8+2+2*12+4)
+	b = be.AppendUint32(b, 0)
+	return append(b, (magic + "\x00\x00\x00\x01camera_pr")[:16]...)
+}
+
 func TestSniff(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
@@ -79,6 +99,8 @@ func TestSniff(t *testing.T) {
 		{"erf", tiff("SEIKO EPSON CORP.", [3]uint32{0xFE, 4, 1}), raw.KindERF},
 		{"mef", tiff("Mamiya-OP Co.,Ltd.", [3]uint32{0xFE, 4, 1}), raw.KindMEF},
 		{"mos", tiff("Leaf", [3]uint32{0x14A, 4, 100}), raw.KindMOS},
+		{"mos: leafdata, no make (Aptus 22)", leafTIFF(99, "PKTS"), raw.KindMOS},
+		{"mos: leafdata beyond the head", leafTIFF(99, "PKTS")[:40], raw.KindMOS},
 		{"dcr", tiff("Kodak", [3]uint32{0xFE, 4, 1}), raw.KindDCR},
 		{"dng version tag", tiff("Anything", [3]uint32{0xC612, 1, 0x01040000}), raw.KindDNG},
 		// Not RAW.
@@ -91,6 +113,8 @@ func TestSniff(t *testing.T) {
 		{"short", []byte("II*"), raw.KindUnknown},
 		{"bad ifd offset", []byte("II*\x00\xff\xff\xff\x7f"), raw.KindUnknown},
 		{"make beyond the data", tiff("NIKON CORPORATION", [3]uint32{0xFE, 4, 1})[:40], raw.KindUnknown},
+		{"tag 0x8606 without pkts", leafTIFF(99, "XXXX"), raw.KindUnknown},
+		{"leafdata on a plain lzw tiff", leafTIFF(5, "PKTS"), raw.KindUnknown},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

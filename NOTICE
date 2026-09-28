@@ -37,6 +37,22 @@ docker/base/patches/jxrlib (three from Debian's jxrlib package and two
 from YOKOTA Hiroshi via Debian, the rest ours; README.md there), for the
 JPEG XR loader in internal/vips/jxr.c.
 
+Every base image flavor also ships the Basis Universal transcoder
+(https://github.com/BinomialLLC/basis_universal, 2.50), for the KTX2
+loader (WP-108), compiled with the MIT wrapper in docker/base/basisu into
+libxibasisu.so. Its attribution notice, as its NOTICE file requires:
+
+  Basis Universal(TM) Supercompressed GPU Texture Compression Library
+  Copyright (c) 2016-2026 Binomial LLC.
+  All rights reserved except as granted under the Apache 2.0 license.
+  "Basis Universal" is a trademark of Binomial LLC.
+
+It is licensed under the Apache License, Version 2.0; the LICENSE,
+NOTICE and LICENSES/ files are shipped in share/licenses/basisu. The
+file transcoder/basisu_containers_impl.h is modified by
+docker/base/patches/basisu (container_abort() throws std::bad_alloc
+instead of terminating the process); the change is marked in the file.
+
 Every base image flavor also builds LibRaw (LGPL-2.1, a snapshot of
 https://github.com/LibRaw/LibRaw) with optional decoders compiled into
 libraw_r (WP-103), with the patches in docker/base/patches:
@@ -89,7 +105,7 @@ permission to use, copy, modify and distribute without fee).
 gpl base image flavor (contains GPL and AGPL software)
 ------------------------------------------------------
 The opt-in gpl base image flavor (docker/base/versions-gpl.sh; not slim,
-not full) additionally ships, built from unmodified sources:
+not full) additionally ships, built from unmodified sources unless noted:
 - x264 (https://code.videolan.org/videolan/x264), stable branch, GNU
   General Public License version 2 or later.
 - x265 4.2 (https://www.x265.org/, https://bitbucket.org/multicoreware/x265_git),
@@ -106,6 +122,16 @@ not full) additionally ships, built from unmodified sources:
   compiles in FreeType (FTL), IJG libjpeg, libpng, zlib, lcms2mt (MIT),
   brotli (MIT), the Droid Sans Fallback font (Apache-2.0) and Adobe's
   CMaps (BSD-3-Clause); their notices are in share/licenses/ghostscript/.
+- libwmf 0.2.16 (https://github.com/caolanm/libwmf), GNU Lesser General
+  Public License version 2 or later, with its URW Type 1 fonts (GNU
+  General Public License), its SVG device modified by
+  docker/base/patches/libwmf; and libemf2svg 1.8.1
+  (https://github.com/kakwa/libemf2svg) with its vendored libUEMF, GNU
+  General Public License version 2 only. Both are linked only by the
+  separate program /opt/xtandard/bin/xi-metafile2svg (source:
+  docker/base/metafile, MIT), which is therefore a GPL-2.0-only work and
+  which the server runs in a sandboxed subprocess to convert WMF and EMF
+  input to SVG (WP-108). Licence texts in share/licenses/{libwmf,libemf2svg}/.
 The image is labelled org.opencontainers.image.licenses="AGPL-3.0-or-later
 AND GPL-2.0-or-later AND MIT" and carries
 /opt/xtandard/share/licenses/LICENSE-GPL.md (terms, every component's

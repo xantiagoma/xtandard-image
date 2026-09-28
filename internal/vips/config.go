@@ -52,8 +52,12 @@ func DefaultConfig() Config {
 // untrusted: they are unblocked by name here; the shim refuses
 // ImageMagick for anything but PSD/PSB and the legacy formats of its
 // policy.xml (which registers no other coder) and the PPM loader for
-// anything but a PNM or PFM header. Everything else, including untrusted
-// loaders such as matload, fits or csv, stays blocked.
+// anything but a PNM or PFM header. ImageMagick's file loader is unblocked
+// for the PICT and Photo CD coders the shim names explicitly (WP-108,
+// xi_load_magick_coder, which checks their signatures and hands it a memfd
+// spool); the service loads nothing else by file name but OpenEXR.
+// Everything else, including untrusted loaders such as matload, fits or
+// csv, stays blocked.
 func DefaultLoaders() []string {
 	return []string{
 		"VipsForeignLoadJpeg",
@@ -68,6 +72,7 @@ func DefaultLoaders() []string {
 		"VipsForeignLoadUhdr",
 		"VipsForeignLoadPdfBuffer",
 		"VipsForeignLoadMagick7Buffer",
+		"VipsForeignLoadMagick7File",
 		"VipsForeignLoadOpenexr",
 		"VipsForeignLoadRadBuffer",
 		"VipsForeignLoadPpmBuffer",

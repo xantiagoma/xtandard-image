@@ -1,6 +1,6 @@
 //go:build linux
 
-package ghostscript
+package sandbox
 
 import (
 	"bufio"
@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"syscall"
@@ -33,11 +34,11 @@ const (
 	checkTimeout     = 15 * time.Second
 )
 
-// sandbox starts gs through the helper: this binary re-executed with
-// helperArg, which confines itself and execs gs (RunSandboxHelper).
-type sandbox struct {
+// Sandbox starts the program through the helper: this binary re-executed
+// with HelperArg, which confines itself and execs the program (RunHelper).
+type Sandbox struct {
 	helper string
-	gs     string
+	prog   string
 	// cpu is RLIMIT_CPU in seconds: the wall-clock timeout, rounded up,
 	// plus one.
 	cpu uint64
@@ -48,10 +49,12 @@ type sandbox struct {
 	netns bool
 }
 
-// newSandbox builds the sandbox and checks it: `gs --version` through the
-// helper, first in a new network namespace and, when the kernel or the
-// seccomp profile refuses one (Docker's default profile does), without.
-func newSandbox(ctx context.Context, c *Config) (*sandbox, Isolation, string, error) {
+// New builds the sandbox for c.Program and checks it: `<program>
+// --version` through the helper, first in a new network namespace and,
+// when the kernel or the seccomp profile refuses one (Docker's default
+// profile does), without. It returns the layers that hold and the first
+// line the program printed (its version).
+func New(ctx context.Context, c *Config) (*Sandbox, Isolation, string, error) {
 	helper := c.Helper
 	if helper == "" {
 		exe, err := os.Executable()
@@ -60,10 +63,11 @@ func newSandbox(ctx context.Context, c *Config) (*sandbox, Isolation, string, er
 		}
 		helper = exe
 	}
-	s := &sandbox{helper: helper, gs: c.Path, cpu: uint64(math.Ceil(c.Timeout.Seconds())) + 1, uid: -1, gid: -1}
+	s := &Sandbox{helper: helper, prog: c.Program, cpu: uint64(math.Ceil(c.Timeout.Seconds())) + 1, uid: -1, gid: -1}
 	iso := Isolation{Helper: true, ProcessGroup: true}
-	// gs runs as the server's user when the server is not root: keep that
-	// user from reading the server's memory and environment (secrets).
+	// The program runs as the server's user when the server is not root:
+	// keep that user from reading the server's memory and environment
+	// (secrets).
 	if err := prctl(prSetDumpable, 0); err != nil {
 		return nil, Isolation{}, "", fmt.Errorf("PR_SET_DUMPABLE: %w", err)
 	}
@@ -109,11 +113,11 @@ func (h helperReport) apply(iso Isolation) Isolation {
 	return iso
 }
 
-// check runs `gs --version` through the helper with -report.
-func (s *sandbox) check(ctx context.Context, tempDir string) (helperReport, string, error) {
+// check runs `<program> --version` through the helper with -report.
+func (s *Sandbox) check(ctx context.Context, tempDir string) (helperReport, string, error) {
 	ctx, cancel := context.WithTimeout(ctx, checkTimeout)
 	defer cancel()
-	tmp, err := os.MkdirTemp(tempDir, "xi-gs-")
+	tmp, err := os.MkdirTemp(tempDir, "xi-sandbox-")
 	if err != nil {
 		return helperReport{}, "", err
 	}
@@ -128,7 +132,7 @@ func (s *sandbox) check(ctx context.Context, tempDir string) (helperReport, stri
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	if err := cmd.Run(); err != nil {
 		if cmd.Process != nil {
-			killGroup(cmd.Process.Pid)
+			KillGroup(cmd.Process.Pid)
 		}
 		return helperReport{}, "", fmt.Errorf("%w: %s", err, strings.TrimSpace(stderr.String()))
 	}
@@ -137,7 +141,7 @@ func (s *sandbox) check(ctx context.Context, tempDir string) (helperReport, stri
 	var version string
 	for sc.Scan() {
 		line := sc.Text()
-		if rest, ok := strings.CutPrefix(line, helperArg+" "); ok {
+		if rest, ok := strings.CutPrefix(line, HelperArg+" "); ok {
 			for f := range strings.FieldsSeq(rest) {
 				k, v, _ := strings.Cut(f, "=")
 				n, _ := strconv.Atoi(v)
@@ -161,14 +165,23 @@ func (s *sandbox) check(ctx context.Context, tempDir string) (helperReport, stri
 		}
 	}
 	if version == "" {
-		return helperReport{}, "", errors.New("gs --version printed nothing")
+		return helperReport{}, "", fmt.Errorf("%s --version printed nothing", s.prog)
 	}
 	return rep, version, nil
 }
 
-// command is the helper invocation that runs gs with gsArgs. outLimit
-// sizes the address-space limit (0 for the startup check).
-func (s *sandbox) command(ctx context.Context, tmp string, outLimit int64, gsArgs []string, report bool) (*exec.Cmd, error) {
+// Command is the helper invocation that runs the program with args, in its
+// own process group, with TMPDIR set to tmp (chowned to the sandbox user
+// when the server runs as root). outLimit is the output the caller expects
+// and sizes the address-space limit. Cancelling ctx kills the process group.
+// The caller locks its OS thread from Start to Wait (the parent-death signal
+// follows the thread that forked).
+func (s *Sandbox) Command(ctx context.Context, tmp string, outLimit int64, args []string) (*exec.Cmd, error) {
+	return s.command(ctx, tmp, outLimit, args, false)
+}
+
+// command is Command, with -report for the startup check.
+func (s *Sandbox) command(ctx context.Context, tmp string, outLimit int64, progArgs []string, report bool) (*exec.Cmd, error) {
 	if s.uid >= 0 {
 		if err := os.Chown(tmp, s.uid, s.gid); err != nil {
 			return nil, err
@@ -176,7 +189,7 @@ func (s *sandbox) command(ctx context.Context, tmp string, outLimit int64, gsArg
 	}
 	as := min(baseAddressSpace+2*uint64(max(outLimit, 0)), maxAddressSpace)
 	argv := []string{
-		helperArg,
+		HelperArg,
 		"-as=" + strconv.FormatUint(as, 10),
 		"-cpu=" + strconv.FormatUint(s.cpu, 10),
 		"-nofile=" + strconv.Itoa(maxOpenFiles),
@@ -188,9 +201,9 @@ func (s *sandbox) command(ctx context.Context, tmp string, outLimit int64, gsArg
 	if report {
 		argv = append(argv, "-report")
 	}
-	argv = append(append(argv, "--", s.gs), gsArgs...)
-	// The helper is this binary and gs the resolved executable; every
-	// argument is built here, none comes from the request.
+	argv = append(append(argv, "--", s.prog), progArgs...)
+	// The helper is this binary and the program the resolved executable;
+	// every argument is built by the caller, none comes from the request.
 	cmd := exec.CommandContext(ctx, s.helper, argv...) //nolint:gosec // G204: fixed executables, arguments built by this package
 	attr := &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGKILL}
 	if s.netns {
@@ -206,28 +219,36 @@ func (s *sandbox) command(ctx context.Context, tmp string, outLimit int64, gsArg
 	}
 	cmd.SysProcAttr = attr
 	cmd.Cancel = func() error {
-		killGroup(cmd.Process.Pid)
+		KillGroup(cmd.Process.Pid)
 		return nil
 	}
-	cmd.WaitDelay = waitDelay
+	cmd.WaitDelay = WaitDelay
 	return cmd, nil
 }
 
-// RunSandboxHelper is the sandbox helper (os.Args start with helperArg):
+// RunHelper is the sandbox helper (os.Args start with HelperArg):
 // it switches to the unprivileged user it was given, sets the
 // parent-death signal (and exits if the server is already gone),
 // no-new-privileges and the resource limits (no core file, open files, no
 // file writes, CPU seconds, no new processes, address space), then execs
-// gs with an empty environment but TMPDIR. It returns only on failure,
+// the program with an empty environment but TMPDIR. It returns only on failure,
 // with the status for os.Exit.
-func RunSandboxHelper(args []string) int {
+func RunHelper(args []string) int {
 	// prctl settings are per thread: set them on the thread that execs.
 	runtime.LockOSThread()
+	// RLIMIT_NPROC 0 (below) forbids new threads: a Go runtime that
+	// started one between the limits and execve (for another P, a GC
+	// worker, or to hand off a P stuck in a syscall) would abort with
+	// "pthread_create failed". One P and no GC leave it nothing to start
+	// a thread for, and the limits and the report use raw syscalls, which
+	// never release the P.
+	runtime.GOMAXPROCS(1)
+	debug.SetGCPercent(-1)
 	fail := func(what string, err error) int {
-		fmt.Fprintf(os.Stderr, "%s: %s: %v\n", helperArg, what, err)
+		fmt.Fprintf(os.Stderr, "%s: %s: %v\n", HelperArg, what, err)
 		return helperFailStatus
 	}
-	fs := flag.NewFlagSet(helperArg, flag.ContinueOnError)
+	fs := flag.NewFlagSet(HelperArg, flag.ContinueOnError)
 	as := fs.Uint64("as", 0, "RLIMIT_AS bytes")
 	cpu := fs.Uint64("cpu", 0, "RLIMIT_CPU seconds")
 	nofile := fs.Uint64("nofile", 0, "RLIMIT_NOFILE")
@@ -270,37 +291,61 @@ func RunSandboxHelper(args []string) int {
 	if err := prctl(prSetNoNewPrivs, 1); err != nil {
 		return fail("PR_SET_NO_NEW_PRIVS", err)
 	}
-	limits := []struct {
+	type limit struct {
 		res      int
 		cur, max uint64
-	}{
+	}
+	// Through syscall.Setrlimit: setting RLIMIT_NOFILE there also stops
+	// syscall.Exec from restoring the soft limit the runtime raised.
+	for _, l := range []limit{
 		{syscall.RLIMIT_CORE, 0, 0},
 		{syscall.RLIMIT_NOFILE, *nofile, *nofile},
 		// Output goes to a pipe; no file may grow.
 		{syscall.RLIMIT_FSIZE, 0, 0},
 		// SIGXCPU at the soft limit, SIGKILL one second later.
 		{syscall.RLIMIT_CPU, *cpu, *cpu + 1},
-		// No fork: counted per user, so the server's own threads already
-		// exceed it (root is exempt, hence the switch to nobody).
-		{rlimitNPROC, 0, 0},
-		// Last: nothing below allocates much.
-		{syscall.RLIMIT_AS, *as, *as},
-	}
-	for _, l := range limits {
+	} {
 		if err := syscall.Setrlimit(l.res, &syscall.Rlimit{Cur: l.cur, Max: l.max}); err != nil {
 			return fail("setrlimit "+strconv.Itoa(l.res), err)
 		}
 	}
+	// Last, as raw system calls (see above): nothing after them may start
+	// a thread or grow the heap much.
+	limits := []limit{
+		// No fork: counted per user, so the server's own threads already
+		// exceed it (root is exempt, hence the switch to nobody).
+		{rlimitNPROC, 0, 0},
+		{syscall.RLIMIT_AS, *as, *as},
+	}
+	env := []string{"TMPDIR=" + *tmp, "TEMP=" + *tmp}
+	var line []byte
 	if *report {
 		nnp, _ := prctlGet(prGetNoNewPrivs)
 		var sig int32
 		_, _, _ = syscall.RawSyscall(syscall.SYS_PRCTL, prGetPdeathsig, uintptr(unsafe.Pointer(&sig)), 0)
-		fmt.Fprintf(os.Stdout, "%s nnp=%d pdeathsig=%d uid=%d gid=%d rlimits=1\n",
-			helperArg, nnp, sig, os.Getuid(), os.Getgid())
+		line = fmt.Appendf(nil, "%s nnp=%d pdeathsig=%d uid=%d gid=%d rlimits=1\n",
+			HelperArg, nnp, sig, os.Getuid(), os.Getgid())
 	}
-	env := []string{"TMPDIR=" + *tmp, "TEMP=" + *tmp}
-	err := syscall.Exec(argv[0], argv, env) //nolint:gosec // G204: gs path and arguments come from the parent, never from a request
+	for _, l := range limits {
+		if err := rawSetrlimit(l.res, l.cur, l.max); err != nil {
+			return fail("setrlimit "+strconv.Itoa(l.res), err)
+		}
+	}
+	if len(line) > 0 {
+		_, _, _ = syscall.RawSyscall(syscall.SYS_WRITE, 1, uintptr(unsafe.Pointer(&line[0])), uintptr(len(line)))
+	}
+	err := syscall.Exec(argv[0], argv, env) //nolint:gosec // G204: the program and its arguments come from the parent, never from a request
 	return fail("exec "+argv[0], err)
+}
+
+// rawSetrlimit sets a resource limit of this process with prlimit64(2) as a
+// raw system call (syscall.Setrlimit may release the P, see RunHelper).
+func rawSetrlimit(res int, cur, maxv uint64) error {
+	lim := syscall.Rlimit{Cur: cur, Max: maxv}
+	if _, _, e := syscall.RawSyscall6(syscall.SYS_PRLIMIT64, 0, uintptr(res), uintptr(unsafe.Pointer(&lim)), 0, 0, 0); e != 0 {
+		return e
+	}
+	return nil
 }
 
 // prctl calls prctl(2) with one argument.

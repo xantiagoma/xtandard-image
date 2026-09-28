@@ -109,15 +109,15 @@ vips copy in.pdf pdf.png
 echo "ok pdf (pdfium)"
 EOF
 
-echo "== ImageMagick: PSD/PSB, the WP-97 legacy coders and XCF only (policy.xml)"
+echo "== ImageMagick: PSD/PSB, the WP-97 legacy coders, XCF, PICT and PCD only (policy.xml)"
 fixtures="$(cd "$my_dir/../../testdata/fixtures" && pwd)"
 docker run --rm -i -v "$fixtures:/fixtures:ro" "$runtime" bash -euo pipefail <<'EOF'
 cd /tmp
 policy=/opt/xtandard/etc/ImageMagick-7/policy.xml
 grep -q '<policy domain="coder" rights="none" pattern="\*"/>' "$policy"
-grep -q '<policy domain="coder" rights="read" pattern="{PSD,PSB,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PAM,XCF}"/>' "$policy"
+grep -q '<policy domain="coder" rights="read" pattern="{PSD,PSB,TGA,PCX,DDS,QOI,SGI,SUN,XBM,XPM,PAM,XCF,PICT,PCD}"/>' "$policy"
 grep -q '<policy domain="delegate" rights="none" pattern="\*"/>' "$policy"
-echo "policy $policy denies every coder except PSD/PSB, TGA, PCX, DDS, QOI, SGI, SUN, XBM, XPM, PAM and XCF"
+echo "policy $policy denies every coder except PSD/PSB, TGA, PCX, DDS, QOI, SGI, SUN, XBM, XPM, PAM, XCF, PICT and PCD"
 
 # WP-97 legacy formats: each decodes through magickload with its own coder.
 for f in tga/alpha.tga:TGA:4 tga/photo-rle.tga:TGA:3 pcx/photo.pcx:PCX:3 dds/photo-dxt1.dds:DDS:3 \
@@ -137,6 +137,13 @@ got="$(vipsheader -f magick-format xcf.v) $(vipsheader -f width xcf.v)x$(vipshea
 test "$got" = "XCF 48x32" || { echo "xcf/alpha.xcf: $got, want XCF 48x32" >&2; exit 1; }
 vips copy xcf.v xcf.png
 echo "ok xcf coder"
+# Macintosh PICT (WP-108): the app names the coder (its 512-byte zero header looks
+# like TGA to ImageMagick's sniffer), as the file loader's PICT: prefix.
+vips magickload PICT:/fixtures/pict/photo.pct pict.v
+got="$(vipsheader -f magick-format pict.v) $(vipsheader -f width pict.v)x$(vipsheader -f height pict.v)"
+test "$got" = "PICT 64x48" || { echo "pict/photo.pct: $got, want PICT 64x48" >&2; exit 1; }
+vips copy pict.v pict.png
+echo "ok pict coder"
 # ASCII and bitmap Netpbm go through ppmload, not ImageMagick.
 for f in ppm/graphic-ascii.pbm ppm/graphic.pbm ppm/photo-ascii.pgm ppm/photo-ascii.ppm; do
   vips ppmload "/fixtures/$f" pnm.v
@@ -268,6 +275,11 @@ docker run --rm -e "XI_FLAVOR=$flavor" "$runtime" bash -euo pipefail -c '
   grep -q "Redistribution and use in source and binary forms" /opt/xtandard/share/licenses/jxrlib/LICENSE
   test -e /opt/xtandard/lib/libjxrglue.so.0 && test -e /opt/xtandard/lib/libjpegxr.so.0
   echo "licence texts present for LibRaw, ImageMagick, OpenEXR, Imath, PDFium, jxrlib (BSD-2-Clause)"
+  # Basis Universal transcoder (KTX2, WP-108), Apache-2.0, every flavor.
+  grep -q "Apache License" /opt/xtandard/share/licenses/basisu/LICENSE
+  test -s /opt/xtandard/share/licenses/basisu/NOTICE
+  test -e /opt/xtandard/lib/libxibasisu.so.2
+  echo "Basis Universal: libxibasisu.so.2 and its Apache-2.0 licence and NOTICE present"
   # LibRaw (WP-103): X3F tools (BSD-3-Clause) everywhere; the Adobe DNG SDK and the
   # GoPro GPR SDK in the gpl flavor only (owner decision 2026-09-28).
   grep -q "Redistribution and use" /opt/xtandard/share/licenses/libraw/LICENSE.x3f-tools
@@ -289,6 +301,32 @@ docker run --rm -e "XI_FLAVOR=$flavor" "$runtime" bash -euo pipefail -c '
     echo "$XI_FLAVOR: no Adobe DNG SDK, no GoPro GPR SDK"
   fi
 '
+# WMF/EMF (WP-108): xi-metafile2svg with libwmf and libemf2svg (GPL-2.0-only) in the
+# gpl flavor only; it converts the fixtures to namespaced SVG with the exact colours.
+docker run --rm -i -e "XI_FLAVOR=$flavor" -v "$fixtures:/fixtures:ro" "$runtime" bash -euo pipefail <<'EOF'
+if [ "$XI_FLAVOR" = gpl ]; then
+  m=/opt/xtandard/bin/xi-metafile2svg
+  "$m" --version
+  for k in wmf emf; do
+    "$m" "$k" 1000000 16384 < "/fixtures/$k/shapes.$k" > "/tmp/$k.svg"
+    grep -q 'xmlns="http://www.w3.org/2000/svg"' "/tmp/$k.svg"
+    grep -qi 'f5961e' "/tmp/$k.svg" # the orange ellipse, not a named colour
+    vips copy "/tmp/$k.svg" "/tmp/$k.png"
+  done
+  test -r /opt/xtandard/share/libwmf/fonts/fontmap
+  grep -q "GNU GENERAL PUBLIC LICENSE" /opt/xtandard/share/licenses/libemf2svg/LICENSE
+  test -s /opt/xtandard/share/licenses/libwmf/COPYING
+  grep -q "| libemf2svg | GPL-2.0-only" /opt/xtandard/share/licenses/LICENSE-GPL.md
+  echo "gpl: xi-metafile2svg converts WMF and EMF; libwmf and libemf2svg licences present"
+else
+  if [ -e /opt/xtandard/bin/xi-metafile2svg ] || ls /opt/xtandard/lib/libwmf* /opt/xtandard/lib/libemf2svg* 2> /dev/null ||
+    [ -e /opt/xtandard/share/licenses/libemf2svg ] || [ -e /opt/xtandard/share/licenses/libwmf ]; then
+    echo "WMF/EMF converter or its libraries in a $XI_FLAVOR image" >&2
+    exit 1
+  fi
+  echo "$XI_FLAVOR: no xi-metafile2svg, libwmf or libemf2svg"
+fi
+EOF
 # Ghostscript (AGPL) is in the gpl flavor only (WP-99).
 docker run --rm -e "XI_FLAVOR=$flavor" "$runtime" bash -euo pipefail -c '
   if [ "$XI_FLAVOR" = gpl ]; then

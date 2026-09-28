@@ -14,7 +14,9 @@
 //   - SVGZ: a gzip stream holding an SVG document, returned whole for the
 //     SVG sanitiser;
 //   - Paint.NET (.pdn): the PNG thumbnail (up to 256 px) that the XML
-//     header carries; the layers are a .NET serialisation that is not read.
+//     header carries; the layers are a .NET serialisation that is not read;
+//   - MNG and JNG (mng.go): the first image of an MNG as a standalone PNG
+//     (or JNG), and a JNG's JPEG stream, or a PNG when it has alpha.
 //
 // Detection is by magic bytes and container contents, never the file name.
 // Everything is bounded: the ZIP reader (zip.go) caps entries, sizes and
@@ -31,6 +33,7 @@ import (
 	"errors"
 	"io"
 
+	"github.com/xantiagoma/xtandard-image/internal/codec/raster"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/security/svg"
 )
@@ -53,6 +56,15 @@ const (
 	KindSVGZ
 	// KindPDN is a Paint.NET document.
 	KindPDN
+	// KindMNG is a Multiple-image Network Graphics animation (mng.go).
+	KindMNG
+	// KindJNG is a JPEG Network Graphics image (mng.go).
+	KindJNG
+	// KindWMF and KindEMF are Windows metafiles (metafile.go): the server
+	// converts them to SVG with the gpl image's converter, not this
+	// package.
+	KindWMF
+	KindEMF
 )
 
 // String is the format's short name ("ora", "kra", ...).
@@ -70,6 +82,14 @@ func (k Kind) String() string {
 		return "svgz"
 	case KindPDN:
 		return "pdn"
+	case KindMNG:
+		return "mng"
+	case KindJNG:
+		return "jng"
+	case KindWMF:
+		return "wmf"
+	case KindEMF:
+		return "emf"
 	default:
 		return "none"
 	}
@@ -90,6 +110,14 @@ func (k Kind) MIME() string {
 		return "image/svg+xml"
 	case KindPDN:
 		return "image/x-paintnet"
+	case KindMNG:
+		return "video/x-mng"
+	case KindJNG:
+		return "image/x-jng"
+	case KindWMF:
+		return "image/wmf"
+	case KindEMF:
+		return "image/emf"
 	default:
 		return "application/octet-stream"
 	}
@@ -109,6 +137,10 @@ const (
 	ContentPreview
 	// ContentDocument is the document itself, only compressed (SVGZ).
 	ContentDocument
+	// ContentFrame is the first frame of an animation (MNG).
+	ContentFrame
+	// ContentConverted is the document converted to SVG (WMF, EMF).
+	ContentConverted
 )
 
 // String is the content's name ("composite", "thumbnail", ...).
@@ -122,6 +154,10 @@ func (c Content) String() string {
 		return "preview"
 	case ContentDocument:
 		return "document"
+	case ContentFrame:
+		return "frame"
+	case ContentConverted:
+		return "converted"
 	default:
 		return "unknown"
 	}
@@ -150,6 +186,10 @@ type Limits struct {
 	// MaxSVGBytes bounds a decompressed SVGZ document
 	// (errs.KindLimitExceeded); default DefaultMaxSVGBytes.
 	MaxSVGBytes int64
+	// MaxPixels bounds an image decoded here (a JNG with alpha,
+	// errs.KindLimitExceeded before anything is decoded); default
+	// raster.DefaultMaxPixels.
+	MaxPixels int64
 	// Zip bounds the ZIP containers; its MaxEntrySize is MaxBytes.
 	Zip ZipLimits
 }
@@ -164,6 +204,9 @@ func (l Limits) withDefaults() Limits {
 	}
 	if l.MaxSVGBytes <= 0 {
 		l.MaxSVGBytes = DefaultMaxSVGBytes
+	}
+	if l.MaxPixels <= 0 {
+		l.MaxPixels = raster.DefaultMaxPixels
 	}
 	l.Zip.MaxEntrySize = l.MaxBytes
 	l.Zip = l.Zip.withDefaults()
@@ -215,6 +258,10 @@ func Detect(data []byte) (Kind, bool) {
 		return KindSVGZ, true
 	case isPDN(data):
 		return KindPDN, true
+	case isMNG(data):
+		return KindMNG, true
+	case isJNG(data):
+		return KindJNG, true
 	}
 	return KindNone, false
 }
@@ -234,6 +281,10 @@ func Open(data []byte, lim Limits) (*Embedded, error) {
 		return openSVGZ(data, lim)
 	case isPDN(data):
 		return openPDN(data, lim)
+	case isMNG(data):
+		return openMNG(data, lim)
+	case isJNG(data):
+		return openJNG(data, lim)
 	}
 	return nil, nil
 }
