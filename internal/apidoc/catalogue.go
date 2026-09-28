@@ -51,7 +51,7 @@ var imgproxyGroups = map[string]string{
 	"watermark": groupWatermark, "watermark_url": groupWatermark, "watermark_text": groupWatermark,
 	"watermark_size": groupWatermark, "watermark_rotate": groupWatermark, "watermark_shadow": groupWatermark,
 	"strip_metadata": groupMetadata, "keep_copyright": groupMetadata, "dpi": groupMetadata,
-	"strip_color_profile": groupMetadata, "preserve_hdr": groupMetadata, "enforce_thumbnail": groupMetadata,
+	"strip_color_profile": groupMetadata, "preserve_hdr": groupMetadata, "gain_map": groupMetadata, "enforce_thumbnail": groupMetadata,
 	"strip": groupMetadata,
 	"page":  groupFrames, "pages": groupFrames, "disable_animation": groupFrames, "video_thumbnail_second": groupFrames,
 	"video_thumbnail_keyframes": groupFrames, "video_thumbnail_tile": groupFrames, "video_thumbnail_animation": groupFrames,
