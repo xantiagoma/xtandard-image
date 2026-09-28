@@ -243,6 +243,14 @@ gen cmyk-raw 64 48 opaque "$T/cmyk.raw" "$T/cmyk.icc"
 "$T/jxlcmyk" 64 48 4 "$T/cmyk.raw" "$T/cmyk.icc" "$F/jxl/cmyk.jxl"
 gen cmyk-raw 64 48 alpha "$T/cmyk-alpha.raw" "$T/cmyk.icc"
 "$T/jxlcmyk" 64 48 5 "$T/cmyk-alpha.raw" "$T/cmyk.icc" "$F/jxl/cmyk-alpha.jxl"
+# WP-108: FITS from the photo (own writer, testdata/gen/fits.go) and their
+# tile-compressed variants and funpack references (cfitsio's fpack in Docker,
+# testdata/gen/fits-fpack.sh).
+mkdir -p "$F"/fits
+gen fits 64 48 "$F/fits"
+if [ -z "${XI_SKIP_FPACK:-}" ]; then
+	sh testdata/gen/fits-fpack.sh
+fi
 # Reference decodes for internal/codec (Pillow, NumPy): run by hand,
 # testdata/golden/codec/reference.py.
 
