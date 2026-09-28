@@ -11,13 +11,22 @@
 <script type="module" src="__ASSETS__/app.js"></script>
 </head>
 <body>
-<a class="skip" href="#builder-title">Skip to the option builder</a>
-<a class="skip" href="#preview-title">Skip to the preview</a>
+<a class="skip" href="#builder-title" data-view="session">Skip to the option builder</a>
+<a class="skip" href="#preview-title" data-view="session">Skip to the preview</a>
+<a class="skip" href="#tool-title" data-view="tools" hidden>Skip to the tool</a>
+<a class="skip" href="#tools-nav">Skip to the tools</a>
 <header class="top">
   <div class="brand">
     <h1>xtandard-image <span>playground</span></h1>
     <p class="meta"><span id="version">loading…</span> · signing <span id="signing-mode" class="badge">…</span></p>
   </div>
+  <nav class="tools-nav" id="tools-nav" aria-label="Views" tabindex="-1">
+    <a href="#" id="nav-session" data-view="session" aria-current="page">Session</a>
+    <span class="nav-sep" aria-hidden="true">Tools:</span>
+    <a href="#tools/gallery" data-tool="gallery" title="Every sample as a browsable grid (pick one to load it into the session)">Gallery</a>
+    <a href="#tools/history" data-tool="history" title="Sessions you rendered in this browser">History</a>
+    <a href="#tools/matrix" data-tool="matrix" title="The whole sample gallery run against this server">Format matrix</a>
+  </nav>
   <div class="top-actions">
     <button type="button" id="share" title="Copy a link that restores this session">Share link</button>
     <button type="button" id="reset" title="Start over">Reset</button>
@@ -37,7 +46,7 @@
   <p class="hint">Signing happens on the server: keys never reach this page. Anyone who can open it can sign URLs, so keep it on the private admin listener.</p>
 </aside>
 
-<main class="layout">
+<main class="layout" id="workspace" aria-label="Session workspace">
   <!-- Left column: source, dialect, options -->
   <div class="col">
     <section class="panel" aria-labelledby="source-title">
@@ -174,33 +183,50 @@
           <label class="inline"><input type="checkbox" id="show-detections"> detections</label>
         </div>
       </div>
+      <p class="hint caption" id="preview-caption">The result: the processed output of this URL. Left of the slider is the <strong>source</strong> (the original asset), right is the <strong>result</strong>.</p>
       <div id="stage" class="stage fit checker" data-mode="slider" role="group" aria-label="Source and result comparison (arrow keys pan when zoomed)">
         <div class="pane before" id="pane-before"><span class="tag">Source</span><div class="media" id="before-media"></div><svg class="overlay" id="det-overlay" aria-hidden="true"></svg></div>
         <div class="pane after" id="pane-after"><span class="tag">Result</span><div class="media" id="after-media"></div></div>
         <div class="handle" id="handle" aria-hidden="true"></div>
         <input type="range" id="split" class="split" min="0" max="100" value="50" aria-label="Comparison position">
       </div>
+      <div id="frames" class="frames" role="group" aria-label="Pages, frames and time of the source" hidden></div>
+      <p class="sr" id="preview-busy" role="status" aria-live="polite"></p>
       <p class="error" id="render-error" hidden></p>
-      <div class="stats" id="stats" aria-live="polite"></div>
-      <div class="timing" id="timing" aria-label="Server timing"></div>
-      <details class="headers-box">
-        <summary>Response headers</summary>
-        <table class="headers" aria-label="Result response headers"><tbody id="after-headers"></tbody></table>
-      </details>
+      <div class="result-details" id="result-details" aria-labelledby="result-details-title">
+        <div class="panel-head sub">
+          <h3 id="result-details-title" tabindex="-1">Source vs result</h3>
+          <button type="button" class="link" id="goto-source-info">source info</button>
+        </div>
+        <p class="hint caption" id="result-caption">About the processed output (this response), next to the original asset. Source values come from the source's <code>/info</code> (or the <code>X-Xi-Origin-*</code> headers); result values from the response.</p>
+        <div class="table-wrap"><table class="compare" id="compare" aria-label="Source and result comparison">
+          <thead><tr><th scope="col">Property</th><th scope="col">Source (original)</th><th scope="col">Result (output)</th><th scope="col">Change</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <div class="stats" id="stats" aria-live="polite"></div>
+        <div class="timing" id="timing" aria-label="Server timing of the result request"></div>
+        <details class="headers-box" id="headers-box">
+          <summary><h3 id="headers-title">Result response headers</h3></summary>
+          <p class="hint">Headers of the result response; <code>X-Xi-*</code> debug headers are named in words, the raw name is in each row's tooltip.</p>
+          <table class="headers" aria-labelledby="headers-title"><tbody id="after-headers"></tbody></table>
+        </details>
+      </div>
     </section>
 
     <section class="panel" aria-label="More">
-      <div class="tabs" role="tablist" aria-label="Panels" id="more-tabs">
+      <div class="tabs" role="tablist" aria-label="About this session" id="more-tabs">
         <button type="button" role="tab" id="mtab-translate" aria-controls="mpane-translate" aria-selected="true">Every dialect</button>
-        <button type="button" role="tab" id="mtab-info" aria-controls="mpane-info" aria-selected="false">Info</button>
-        <button type="button" role="tab" id="mtab-history" aria-controls="mpane-history" aria-selected="false">History</button>
-        <button type="button" role="tab" id="mtab-matrix" aria-controls="mpane-matrix" aria-selected="false">Format matrix</button>
+        <button type="button" role="tab" id="mtab-info" aria-controls="mpane-info" aria-selected="false">Info (source)</button>
       </div>
       <div role="tabpanel" id="mpane-translate" aria-labelledby="mtab-translate">
         <p class="hint">The same transform written in every dialect, each URL parsed back by that dialect's parser: what it cannot express is listed.</p>
         <div id="translate" class="translate"></div>
       </div>
       <div role="tabpanel" id="mpane-info" aria-labelledby="mtab-info" hidden>
+        <div class="panel-head sub">
+          <p class="caption" id="info-caption" tabindex="-1"><strong>About the source file (original asset), independent of the processing options.</strong></p>
+          <button type="button" class="link" id="goto-result">see output details</button>
+        </div>
         <p class="hint">imgproxy <code>/info</code> of the current source through the first imgproxy mount. Options left out use the server's default, shown beside each name.</p>
         <div class="row wrap" role="group" aria-label="Info option presets">
           <button type="button" id="info-preset-recommended">Recommended</button>
@@ -225,29 +251,51 @@
         <p id="info-status" class="status" role="status" aria-live="polite"></p>
         <div id="info-result" class="info-result"></div>
       </div>
-      <div role="tabpanel" id="mpane-history" aria-labelledby="mtab-history" hidden>
-        <div class="row"><button type="button" id="history-clear">Clear history</button></div>
-        <ol id="history" class="history"></ol>
-      </div>
-      <div role="tabpanel" id="mpane-matrix" aria-labelledby="mtab-matrix" hidden>
-        <p class="hint">Probes every sample with <code>/info</code> and a 160 px thumbnail through the first imgproxy mount, two at a time. "Run all" runs the rows shown (the format filter); camera RAWs over 20 MB only when included. Rows tagged <em>gap</em> are formats or variants not decoded yet (<code>docs/research/format-gap.md</code>): 422 is the expected answer.</p>
-        <div class="row wrap"><button type="button" id="matrix-run" class="primary">Run all</button>
-          <label class="inline">Format <select id="matrix-format"><option value="">all formats</option></select></label>
-          <label class="inline"><input type="checkbox" id="matrix-large"> include files over 20 MB</label>
-          <span id="matrix-status" class="status" role="status"></span></div>
-        <div class="table-wrap"><table class="matrix" id="matrix"><thead><tr>
-          <th scope="col" data-sort="format" aria-sort="none"><button type="button" class="sort">Format</button></th>
-          <th scope="col" data-sort="name" aria-sort="none"><button type="button" class="sort">Sample</button></th>
-          <th scope="col" data-sort="variant" aria-sort="none"><button type="button" class="sort">Variant</button></th>
-          <th scope="col">Probe</th><th scope="col">Thumbnail</th>
-          <th scope="col" data-sort="time" aria-sort="none"><button type="button" class="sort">Time</button></th>
-          <th scope="col">Bytes</th>
-          <th scope="col" data-sort="status" aria-sort="none"><button type="button" class="sort">Result</button></th>
-          <th scope="col"><span class="sr">Retry</span></th>
-        </tr></thead><tbody></tbody></table></div>
-      </div>
     </section>
   </div>
+</main>
+
+<main class="tools" id="tools" hidden aria-labelledby="tool-title">
+  <div class="tools-head">
+    <div>
+      <h2 id="tool-title" tabindex="-1">Tools</h2>
+      <p class="hint caption" id="tool-caption">Global tools: they do not depend on the current session, which is kept as it is.</p>
+    </div>
+    <button type="button" id="tool-close" title="Esc">&larr; Back to the session</button>
+  </div>
+  <section class="panel tool" id="tool-gallery" aria-labelledby="tool-title" hidden>
+    <p class="hint">Every sample this server knows (built-in fixtures and the public gallery). Pick one to load it into the session.</p>
+    <label for="gallery-filter" class="sr">Filter the gallery</label>
+    <input id="gallery-filter" type="search" placeholder="Filter by format, name, variant or tag" autocomplete="off">
+    <div id="gallery-big" class="gallery big"></div>
+  </section>
+  <section class="panel tool" id="tool-history" aria-labelledby="tool-title" hidden>
+    <p class="hint">Sessions you rendered in this browser (kept in its local storage only, newest first, at most 30).</p>
+    <div class="row wrap">
+      <label for="history-search" class="sr">Search the history</label>
+      <input id="history-search" type="search" placeholder="Search by URL, source or mount" autocomplete="off">
+      <button type="button" id="history-clear">Clear history</button>
+    </div>
+    <p id="history-status" class="status" role="status" aria-live="polite"></p>
+    <ol id="history" class="history"></ol>
+  </section>
+  <section class="panel tool" id="tool-matrix" aria-labelledby="tool-title" hidden>
+    <p class="hint">The whole sample gallery run against this server: probes every sample with <code>/info</code> and a 160 px thumbnail through the first imgproxy mount, two at a time. "Run all" runs the rows shown (the format filter); camera RAWs over 20 MB only when included. Rows tagged <em>gap</em> are formats or variants not decoded yet (<code>docs/research/format-gap.md</code>): 422 is the expected answer.</p>
+    <div class="row wrap"><button type="button" id="matrix-run" class="primary">Run all</button>
+      <label class="inline">Format <select id="matrix-format"><option value="">all formats</option></select></label>
+      <label class="inline"><input type="checkbox" id="matrix-large"> include files over 20 MB</label>
+      <span id="matrix-status" class="status" role="status"></span></div>
+    <div class="table-wrap"><table class="matrix" id="matrix"><thead><tr>
+      <th scope="col" data-sort="format" aria-sort="none"><button type="button" class="sort">Format</button></th>
+      <th scope="col" data-sort="name" aria-sort="none"><button type="button" class="sort">Sample</button></th>
+      <th scope="col" data-sort="variant" aria-sort="none"><button type="button" class="sort">Variant</button></th>
+      <th scope="col">Probe</th><th scope="col">Thumbnail</th>
+      <th scope="col" data-sort="time" aria-sort="none"><button type="button" class="sort">Time</button></th>
+      <th scope="col">Bytes (source → result)</th>
+      <th scope="col" data-sort="status" aria-sort="none"><button type="button" class="sort">Result</button></th>
+      <th scope="col"><span class="sr">Retry</span></th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
 </main>
 
 <datalist id="xi-classes"></datalist>

@@ -7,6 +7,48 @@ import { $, el, errorText, fmtBytes, fmtMs, svg } from './dom.js';
 const SHOWN = ['content-type', 'content-length', 'etag', 'vary', 'cache-control', 'content-dpr', 'content-disposition',
   'accept-ch', 'critical-ch', 'cache-tag', 'surrogate-key', 'x-request-id', 'last-modified', 'expires'];
 
+// HEADER_LABELS names the result response headers in words so no row is
+// ambiguous about its side: X-Xi-Origin-* describe the source, the rest
+// the result. The raw name stays in the row's tooltip.
+const HEADER_LABELS = {
+  'content-type': 'Result content-type',
+  'content-length': 'Result content-length',
+  etag: 'Result ETag',
+  vary: 'Result Vary',
+  'cache-control': 'Result Cache-Control',
+  'content-dpr': 'Result Content-DPR',
+  'content-disposition': 'Result Content-Disposition',
+  'accept-ch': 'Client hints asked for (Accept-CH)',
+  'critical-ch': 'Critical client hints',
+  'cache-tag': 'Result cache tags',
+  'surrogate-key': 'Result surrogate keys',
+  'x-request-id': 'Request ID',
+  'last-modified': 'Result Last-Modified',
+  expires: 'Result Expires',
+  'server-timing': 'Server timing',
+  'x-xi-result-width': 'Result width',
+  'x-xi-result-height': 'Result height',
+  'x-xi-origin-width': 'Source width',
+  'x-xi-origin-height': 'Source height',
+  'x-xi-origin-content-length': 'Source content-length',
+  'x-xi-quality': 'Result quality',
+  'x-xi-raw-path': 'RAW decode path',
+  'x-xi-container-source': 'Container entry used',
+  'x-xi-video-frame': 'Video frame used',
+  'x-xi-video-codec': 'Result video codec',
+  'x-xi-ignored': 'Options ignored',
+  'x-xi-best': 'Best-format choice',
+  'x-xi-cache': 'Result cache status',
+  'x-xi-format': 'Result format',
+  'x-xi-ext': 'Source extension (sniffed)',
+  'x-xi-fallback': 'Fallback image served',
+  'x-xi-source-cache-control': 'Source Cache-Control',
+  'x-xi-source-expires': 'Source Expires',
+};
+
+// rawName writes a lower-case header name the usual way: X-Xi-Result-Width.
+const rawName = (k) => k.replace(/(^|-)([a-z])/g, (_, d, c) => d + c.toUpperCase());
+
 // parseTiming reads Server-Timing entries: [{name, dur, desc}].
 export function parseTiming(header) {
   if (!header) return [];
@@ -23,8 +65,12 @@ export function parseTiming(header) {
 }
 
 export class Preview {
-  constructor({ accept }) {
+  constructor({ accept, probe }) {
     this.accept = accept; // () => Accept header
+    this.probe = probe; // (source) => Promise<the source's /info JSON or null>
+    this.probed = '';
+    this.sourceInfo = null;
+    this.ctrl = { before: null, after: null }; // AbortController per pane
     this.seq = { before: 0, after: 0 };
     this.urls = { before: '', after: '' };
     this.sizes = { before: 0, after: 0 };
@@ -186,86 +232,227 @@ export class Preview {
 
   clearBefore() { this.lastBefore = ''; }
 
+  // begin puts a pane in its loading state as soon as a request starts:
+  // the previous media is hidden at once (it only keeps the stage's size,
+  // so the layout does not jump), an earlier request of the pane is
+  // aborted, and a spinner with a status line appears after 150 ms (CSS
+  // animation-delay: a fast answer never flashes it). The stage is
+  // aria-busy; a polite live region says what is loading.
+  begin(which) {
+    this.ctrl[which]?.abort();
+    this.ctrl[which] = new AbortController();
+    const label = which === 'after' ? 'Processing…' : 'Fetching source…';
+    const pane = $(`pane-${which}`);
+    if (!pane.classList.contains('loading')) {
+      pane.classList.add('loading');
+      pane.append(el('div', { class: 'loader', 'aria-hidden': 'true' }, el('span', { class: 'spinner' }), el('span', { class: 'loader-text', text: label })));
+    }
+    pane.setAttribute('aria-busy', 'true');
+    $('stage').setAttribute('aria-busy', 'true');
+    clearTimeout(this.busyTimer);
+    this.busyTimer = setTimeout(() => {
+      const busy = ['after', 'before'].filter((w) => $(`pane-${w}`).classList.contains('loading'));
+      $('preview-busy').textContent = busy.includes('after') ? 'Processing the result…' : busy.length ? 'Fetching the source…' : '';
+    }, 150);
+    return { seq: ++this.seq[which], signal: this.ctrl[which].signal };
+  }
+
+  // done ends a pane's loading state.
+  done(which) {
+    const pane = $(`pane-${which}`);
+    pane.classList.remove('loading');
+    pane.removeAttribute('aria-busy');
+    pane.querySelector('.loader')?.remove();
+    if (!document.querySelector('.pane.loading')) {
+      $('stage').removeAttribute('aria-busy');
+      clearTimeout(this.busyTimer);
+      $('preview-busy').textContent = '';
+    }
+  }
+
+  // load fetches one pane's media. Only the latest request of a pane may
+  // paint: older ones are aborted, and a response that lost the race is
+  // dropped. The new media replaces the placeholder once decoded.
   async load(which, path) {
-    const seq = ++this.seq[which];
+    const { seq, signal } = this.begin(which);
     const media = $(`${which}-media`);
     const started = performance.now();
+    const stale = () => seq !== this.seq[which];
     let res;
     let blob;
     try {
-      res = await fetch(`api/render?u=${encodeURIComponent(path)}`, { headers: { Accept: this.accept() } });
+      res = await fetch(`api/render?u=${encodeURIComponent(path)}`, { headers: { Accept: this.accept() }, signal });
       blob = await res.blob();
     } catch (err) {
-      if (seq !== this.seq[which]) return;
+      if (stale() || err.name === 'AbortError') return;
       this.error(which, `Request failed: ${err.message}`);
       return;
     }
-    if (seq !== this.seq[which]) return;
+    if (stale()) return;
     const elapsed = performance.now() - started;
-    if (this.urls[which]) URL.revokeObjectURL(this.urls[which]);
-    this.urls[which] = '';
     const type = (res.headers.get('content-type') || '').split(';')[0];
-    this.sizes[which] = blob.size;
-    if (which === 'after') {
-      this.res = { status: res.status, statusText: res.statusText, headers: res.headers, elapsed, type, size: blob.size };
-      this.headers(res.headers);
-      this.timing(res.headers.get('server-timing'), elapsed);
-    }
     if (!res.ok) {
-      media.replaceChildren();
-      this.error(which, `${res.status} ${errorText(await blob.text().catch(() => ''), res.status)}`);
+      const text = await blob.text().catch(() => '');
+      if (stale()) return;
+      this.setResponse(which, res, blob, type, elapsed);
+      this.error(which, `${res.status} ${errorText(text, res.status)}`);
       return;
     }
-    if (which === 'after') $('render-error').hidden = true;
     const url = URL.createObjectURL(blob);
-    this.urls[which] = url;
     let node;
     if (type.startsWith('video/')) {
-      node = el('video', { src: url, controls: true, autoplay: true, loop: true, muted: true, playsinline: true, 'aria-label': `${which} video` });
+      node = el('video', { src: url, controls: true, autoplay: true, loop: true, muted: true, playsinline: true, 'aria-label': which === 'after' ? 'Result video' : 'Source video' });
       node.muted = true;
+      await new Promise((resolve) => {
+        node.addEventListener('loadedmetadata', resolve, { once: true });
+        node.addEventListener('error', resolve, { once: true });
+        setTimeout(resolve, 5000);
+      });
       node.addEventListener('loadedmetadata', () => { this.layout(); this.stats(); });
     } else if (type.startsWith('image/')) {
       node = el('img', { src: url, alt: which === 'after' ? 'Result' : 'Source', decoding: 'async', draggable: 'false' });
-      node.addEventListener('load', () => { this.layout(); this.stats(); });
+      await node.decode().catch(() => {});
     } else {
       node = el('pre', { class: 'text-result', text: (await blob.text()).slice(0, 20000) });
     }
-    media.replaceChildren(node);
-    this.layout();
-  }
-
-  error(which, msg) {
-    if (which === 'before') {
-      $('before-media').replaceChildren(el('p', { class: 'error', text: `Source: ${msg}` }));
-      this.layout();
+    if (stale()) {
+      URL.revokeObjectURL(url);
       return;
     }
+    if (this.urls[which]) URL.revokeObjectURL(this.urls[which]);
+    this.urls[which] = url;
+    this.setResponse(which, res, blob, type, elapsed);
+    if (which === 'after') $('render-error').hidden = true;
+    media.replaceChildren(node);
+    this.done(which);
     this.layout();
+    this.stats();
+  }
+
+  setResponse(which, res, blob, type, elapsed) {
+    this.sizes[which] = blob.size;
+    if (which !== 'after') return;
+    this.res = { status: res.status, statusText: res.statusText, headers: res.headers, elapsed, type, size: blob.size };
+    this.headers(res.headers);
+    this.timing(res.headers.get('server-timing'), elapsed);
+    this.onResponse?.(res.headers);
+  }
+
+  // error replaces the pane's placeholder (and old media) with an error
+  // card.
+  error(which, msg) {
+    if (this.urls[which]) URL.revokeObjectURL(this.urls[which]);
+    this.urls[which] = '';
+    $(`${which}-media`).replaceChildren(el('p', { class: 'error card', text: `${which === 'after' ? 'Result' : 'Source'}: ${msg}` }));
+    this.done(which);
+    this.layout();
+    if (which === 'before') return;
     const e = $('render-error');
     e.hidden = false;
     e.textContent = msg;
     this.stats();
   }
 
+  // setSource starts the source probe (a small /info) when the source
+  // changed, so the Source column has the original's own values rather
+  // than the "before" rendition's.
+  setSource(source) {
+    if (source === this.probed) return;
+    this.probed = source;
+    this.sourceInfo = null;
+    if (!source || !this.probe) return;
+    const done = (info) => {
+      if (this.probed !== source) return;
+      this.sourceInfo = info ?? { error: true };
+      this.stats();
+    };
+    this.probe(source).then(done, () => done(null));
+  }
+
+  // stats fills the Source vs result table (the values both sides have,
+  // with the change) and the result-only stats; every label names its
+  // side.
   stats() {
+    const table = $('compare').tBodies[0];
     const box = $('stats');
+    table.replaceChildren();
     box.replaceChildren();
     const r = this.res;
     if (!r) return;
+    const h = r.headers;
+    const num = (k) => Number(h.get(k)) || 0;
+    const info = this.sourceInfo;
+    const fromInfo = Boolean(info) && !info.error;
+    const infoNote = fromInfo ? 'from the source /info' : info?.error ? 'source /info unavailable' : 'loading the source /info';
     const after = $('after-media').firstElementChild;
-    const before = $('before-media').firstElementChild;
-    const dims = (m) => (m?.naturalWidth ? `${m.naturalWidth}×${m.naturalHeight}` : m?.videoWidth ? `${m.videoWidth}×${m.videoHeight}` : '');
-    const items = [
-      ['Status', `${r.status}`, r.status >= 400 ? 'err' : 'ok'],
-      ['Type', r.type || '–'],
-      ['Result', `${fmtBytes(r.size)}${dims(after) ? ` · ${dims(after)}` : ''}`],
-      ['Source', `${fmtBytes(this.sizes.before)}${dims(before) ? ` · ${dims(before)}` : ''}`],
-    ];
-    if (this.sizes.before && r.status < 400) {
-      const saved = (1 - r.size / this.sizes.before) * 100;
-      items.push(['Saved', `${saved >= 0 ? '' : '+'}${Math.abs(saved).toFixed(1)}%${saved >= 0 ? '' : ' larger'}`, saved >= 0 ? 'ok' : 'warn']);
+    const nat = this.natural('after');
+    const ok = r.status < 400;
+    const res = {
+      w: ok ? nat?.w || num('x-xi-result-width') : 0,
+      h: ok ? nat?.h || num('x-xi-result-height') : 0,
+    };
+    const src = {
+      w: fromInfo && info.width ? info.width : num('x-xi-origin-width'),
+      h: fromInfo && info.height ? info.height : num('x-xi-origin-height'),
+      size: fromInfo && info.size ? info.size : num('x-xi-origin-content-length'),
+    };
+    const srcNote = (field, header) => (fromInfo && info[field] !== undefined ? 'from the source /info'
+      : h.get(header) ? `from the ${rawName(header)} header` : infoNote);
+    const fmtOf = (type) => (type.split('/')[1] ?? type).replace(/^x-/, '').replace('svg+xml', 'svg');
+    const none = (why) => ({ text: 'not reported', why });
+    const notResult = 'not reported for results (only the source has an /info)';
+    const rows = [];
+    rows.push(['Format (MIME type)',
+      fromInfo && info.format ? { text: `${info.format} (${info.mime_type || '?'})`, why: 'from the source /info' } : none(infoNote),
+      ok && r.type ? { text: `${fmtOf(r.type)} (${r.type})`, why: 'from the result content-type' } : none('no result'),
+      fromInfo && info.mime_type && ok && r.type ? (info.mime_type === r.type ? 'same' : 'converted') : '']);
+    const dim = (d) => (d.w && d.h ? `${d.w}×${d.h}` : '');
+    const scale = src.w && res.w ? res.w / src.w : 0;
+    const aspect = src.w && src.h && res.w && res.h && Math.abs(src.w / src.h - res.w / res.h) > 0.01;
+    rows.push(['Dimensions (px)',
+      dim(src) ? { text: dim(src), why: srcNote('width', 'x-xi-origin-width') } : none(infoNote),
+      dim(res) ? { text: dim(res), why: nat ? 'the decoded result' : 'from the X-Xi-Result-Width header' } : none('no result'),
+      scale ? `scale ×${scale.toFixed(scale < 0.1 ? 3 : 2)}${aspect ? ', aspect changed' : ''}` : '']);
+    const mp = (d) => (d.w && d.h ? (d.w * d.h) / 1e6 : 0);
+    rows.push(['Megapixels',
+      mp(src) ? { text: mp(src).toFixed(2), why: srcNote('width', 'x-xi-origin-width') } : none(infoNote),
+      mp(res) ? { text: mp(res).toFixed(2), why: 'from the result dimensions' } : none('no result'),
+      mp(src) && mp(res) ? `${((mp(res) / mp(src)) * 100).toFixed(1)}% of the pixels` : '']);
+    let saved = '';
+    let savedCls = '';
+    if (src.size && ok) {
+      const pct = (1 - r.size / src.size) * 100;
+      saved = pct >= 0 ? `${pct.toFixed(1)}% smaller` : `${Math.abs(pct).toFixed(1)}% larger`;
+      savedCls = pct >= 0 ? 'ok' : 'warn';
     }
-    items.push(['Browser', fmtMs(r.elapsed)]);
+    rows.push(['Bytes',
+      src.size ? { text: fmtBytes(src.size), why: srcNote('size', 'x-xi-origin-content-length') } : none(infoNote),
+      ok ? { text: fmtBytes(r.size), why: 'the result body' } : none('no result'),
+      saved, savedCls]);
+    const srcOnly = (label, v) => rows.push([label,
+      fromInfo && v !== undefined && v !== null && v !== '' ? { text: String(v), why: 'from the source /info' } : none(infoNote),
+      none(notResult), '']);
+    srcOnly('Colour space', info?.colorspace);
+    srcOnly('Bands', info?.bands);
+    const jpegOut = ok && /jpeg/.test(r.type);
+    rows.push(['Alpha',
+      fromInfo && info.alpha !== undefined ? { text: info.alpha ? 'yes' : 'no', why: 'from the source /info' } : none(infoNote),
+      jpegOut ? { text: 'no', why: 'JPEG has no alpha channel' } : none(notResult),
+      fromInfo && info.alpha && jpegOut ? 'alpha flattened' : '']);
+    srcOnly('Pages / frames', info?.pages_number);
+    rows.push(['Orientation (EXIF)',
+      fromInfo && info.orientation ? { text: String(info.orientation), why: 'from the source /info' } : none(infoNote),
+      none('results are written upright, without an EXIF orientation'), '']);
+    const cell = (v) => (typeof v === 'object'
+      ? el('td', { class: v.text === 'not reported' ? 'na' : false, title: v.why, text: v.text })
+      : el('td', { text: v }));
+    for (const [label, s, t, change, cls] of rows) {
+      table.append(el('tr', {}, el('th', { scope: 'row', text: label }), cell(s), cell(t), el('td', { class: cls || false, text: change })));
+    }
+    const items = [['Result status', `${r.status}${r.statusText ? ` ${r.statusText}` : ''}`, r.status >= 400 ? 'err' : 'ok']];
+    if (h.get('x-xi-quality')) items.push(['Result quality', h.get('x-xi-quality')]);
+    items.push(['Result fetch (browser)', fmtMs(r.elapsed)]);
+    if (after?.tagName === 'VIDEO' && after.duration) items.push(['Result duration', `${after.duration.toFixed(2)} s`]);
     for (const [k, v, cls] of items) box.append(el('div', { class: `stat ${cls ?? ''}` }, el('span', { text: k }), el('strong', { text: v })));
   }
 
@@ -274,8 +461,11 @@ export class Preview {
     for (const [k, v] of h) {
       if (SHOWN.includes(k) || k.startsWith('x-xi-') || k === 'server-timing') rows.push([k, v]);
     }
-    rows.sort((a, b) => a[0].localeCompare(b[0]));
-    $('after-headers').replaceChildren(...rows.map(([k, v]) => el('tr', {}, el('th', { scope: 'row', text: k }), el('td', { text: v }))));
+    const label = (k) => HEADER_LABELS[k] ?? (k.startsWith('x-xi-') ? rawName(k) : `Result ${rawName(k)}`);
+    rows.sort((a, b) => label(a[0]).localeCompare(label(b[0])));
+    $('after-headers').replaceChildren(...rows.map(([k, v]) => el('tr', { 'data-header': k },
+      el('th', { scope: 'row', title: `${rawName(k)} header` }, label(k), el('span', { class: 'raw-name', text: rawName(k) })),
+      el('td', { text: v }))));
   }
 
   // timing draws the Server-Timing entries as bars, the total last.
@@ -288,7 +478,7 @@ export class Preview {
     const stages = entries.filter((t) => t !== total);
     const rows = [...stages, ...(total ? [{ name: 'server total', dur: total.dur, total: true }] : []), { name: 'browser', dur: browser, total: true }];
     const maxDur = Math.max(...rows.map((t) => t.dur), 0.001);
-    box.append(el('h3', { text: 'Server-Timing' }));
+    box.append(el('h4', { text: 'Server timing (result request)' }));
     for (const t of rows) {
       const bar = el('span', { class: `bar${t.total ? ' total' : ''}` });
       bar.style.width = `${Math.max(1, (t.dur / maxDur) * 100)}%`;

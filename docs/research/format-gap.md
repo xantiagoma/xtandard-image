@@ -37,7 +37,7 @@ This document does not change a decoder or a base image. It records what the cur
    - Run: `XI_DEV_MODE=true XI_SECURITY_UNSIGNED_POLICY=allow` with an `fs` source over local copies of every URL (downloaded once, 1.9 GB, so fetch timeouts do not count as format failures). `XI_LIMITS_MAX_SRC_BYTES=256MiB`, default pixel limits.
    - Each sample got `/info/unsafe/plain/<src>` and `/unsafe/rs:fit:160:160/f:webp/plain/<src>`.
    - A second run forced the RAW demosaic (`XI_FORMATS_RAW_PREVIEW_MIN_RATIO=100`, pixel limits 250 MP, `XI_OBSERVABILITY_DEBUG_HEADERS=true` to read `X-Xi-Raw-Path`). Suspicious results were rendered at 800 px and inspected by eye.
-   - The playground's Format matrix tab runs the same probe from the browser: filter by format, variant column, large files opt-in.
+   - The playground's Format matrix tool (`#tools/matrix`) runs the same probe from the browser: filter by format, variant column, large files opt-in.
 
 ## 3. Inventory and status
 
