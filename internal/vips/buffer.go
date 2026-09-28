@@ -6,6 +6,7 @@ package vips
 import "C"
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -30,6 +31,10 @@ type Buffer struct {
 	blob *C.VipsBlob
 	data []byte // view over the content; C memory, never Go memory
 	refs atomic.Int32
+	// password opens a password-protected document (WithPassword): a
+	// NUL-terminated C copy, wiped and freed by the final Release. nil:
+	// none.
+	password *C.char
 }
 
 // NewBuffer allocates an n-byte Buffer for the caller to fill through Bytes
@@ -153,10 +158,49 @@ func (b *Buffer) Release() {
 		}
 		if b.refs.CompareAndSwap(n, n-1) {
 			if n == 1 {
+				C.xi_secret_free(b.password)
 				C.xi_blob_unref(b.blob)
-				b.blob, b.data = nil, nil
+				b.blob, b.data, b.password = nil, nil, nil
 			}
 			return
 		}
 	}
 }
+
+// ErrPasswordNUL is returned by WithPassword for a password containing a
+// NUL byte, which PDFium's C string cannot carry.
+var ErrPasswordNUL = errors.New("vips: document password contains a NUL byte")
+
+// WithPassword returns a new Buffer, with one reference, over the same
+// bytes as b (no copy) that opens password-protected documents with
+// password: PDFium gets it when Probe, Load or Thumbnail load a PDF from the
+// returned Buffer; other loaders never see it. A per-request view, so that
+// buffers shared between requests (coalesced fetches) never carry one
+// request's password. The password is copied to C memory, handed to libvips
+// without an intermediate copy, wiped from the loader once it is built, and
+// wiped and freed with the Buffer's final Release; the caller may clear its
+// own slice as soon as WithPassword returns. An empty password returns b
+// with an extra reference. b keeps its references either way.
+//
+// The copy PDFium keeps inside an open document is freed, not wiped, when
+// the document closes (out of our reach).
+func (b *Buffer) WithPassword(password []byte) (*Buffer, error) {
+	if b == nil || b.blob == nil {
+		return nil, errs.New(errs.KindInternal, "vips: password on a released buffer")
+	}
+	if len(password) == 0 {
+		b.Retain()
+		return b, nil
+	}
+	if bytes.IndexByte(password, 0) >= 0 {
+		return nil, errs.Wrap(errs.KindInvalidURL, ErrPasswordNUL)
+	}
+	nb := newBuffer(C.xi_blob_ref(b.blob), len(b.data))
+	// Transient Go pointer: C copies the bytes during the call.
+	nb.password = C.xi_secret_new(unsafe.Pointer(&password[0]), C.size_t(len(password)))
+	return nb, nil
+}
+
+// HasPassword reports whether b opens documents with a password
+// (WithPassword).
+func (b *Buffer) HasPassword() bool { return b != nil && b.password != nil }
