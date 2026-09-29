@@ -88,6 +88,8 @@ type Config struct {
 	// Helper and NoNetNamespace are sandbox.Config's (tests).
 	Helper         string
 	NoNetNamespace bool
+	// AddressSpace configures the sandbox's RLIMIT_AS (XI_SANDBOX_*).
+	AddressSpace sandbox.AddressSpace
 }
 
 func (c *Config) withDefaults() Config {
@@ -137,6 +139,7 @@ func New(ctx context.Context, cfg *Config) (*Converter, error) {
 	c.Path = path
 	sb, iso, version, err := sandbox.New(ctx, &sandbox.Config{
 		Program: path, Timeout: c.Timeout, TempDir: c.TempDir, Helper: c.Helper, NoNetNamespace: c.NoNetNamespace,
+		AddressSpace: c.AddressSpace,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("metafile: %s does not run: %w", path, err)

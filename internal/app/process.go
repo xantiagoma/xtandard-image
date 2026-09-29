@@ -18,6 +18,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/exec"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
+	"github.com/xantiagoma/xtandard-image/internal/sandbox"
 	"github.com/xantiagoma/xtandard-image/internal/security/svg"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
@@ -61,11 +62,12 @@ func buildEPS(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*gh
 		return nil, nil
 	}
 	r, err := ghostscript.New(ctx, &ghostscript.Config{
-		Path:      e.GSPath,
-		MaxProcs:  e.MaxProcs,
-		Timeout:   e.Timeout,
-		MaxDPI:    e.MaxDPI,
-		MaxPixels: cfg.Limits.MaxSrcPixels,
+		Path:         e.GSPath,
+		MaxProcs:     e.MaxProcs,
+		Timeout:      e.Timeout,
+		MaxDPI:       e.MaxDPI,
+		MaxPixels:    cfg.Limits.MaxSrcPixels,
+		AddressSpace: sandboxAddressSpace(cfg),
 	})
 	if err != nil {
 		if ctx.Err() != nil {
@@ -89,14 +91,40 @@ func buildEPS(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*gh
 		logger.LogAttrs(ctx, slog.LevelWarn, "eps rendering without a network namespace",
 			slog.String("reason", iso.NetNamespaceError))
 	}
+	warnAddressSpace(ctx, logger, "eps", &iso)
 	return r, nil
+}
+
+// sandboxAddressSpace maps XI_SANDBOX_MAX_AS and
+// XI_SANDBOX_DETECT_EMULATION onto the sandbox's RLIMIT_AS settings.
+func sandboxAddressSpace(cfg *config.Config) sandbox.AddressSpace {
+	s := &cfg.Sandbox
+	return sandbox.AddressSpace{
+		Base:               uint64(max(s.MaxAS, 0)),
+		Off:                s.MaxAS == 0,
+		KeepUnderEmulation: !s.DetectEmulation,
+	}
+}
+
+// warnAddressSpace warns once per converter when its sandbox runs without
+// an address-space limit on Linux (XI_SANDBOX_MAX_AS=0, or CPU emulation):
+// the other limits still hold (ADR 0011).
+func warnAddressSpace(ctx context.Context, logger *slog.Logger, converter string, iso *sandbox.Isolation) {
+	if !iso.Helper || iso.AddressSpace != 0 {
+		return
+	}
+	logger.LogAttrs(ctx, slog.LevelWarn, "sandbox without an address-space limit",
+		slog.String("converter", converter), slog.String("reason", iso.AddressSpaceOff),
+		slog.String("emulation", string(iso.Emulation)))
 }
 
 // buildMetafile starts WMF/EMF conversion (WP-108): with
 // XI_FORMATS_METAFILE_ENABLED=auto when the converter is found (only the gpl
-// image ships it), with true always, and then the converter must run
-// through the sandbox or startup fails. It logs which isolation layers hold
-// (ADR 0011). nil when conversion is off.
+// image ships it) and passes its sandboxed self-check, with true always,
+// and then the converter must run through the sandbox or startup fails.
+// auto never fails startup: a converter that fails its check is logged as a
+// warning and WMF/EMF answer 422 as without one. It logs which isolation
+// layers hold (ADR 0011). nil when conversion is off.
 func buildMetafile(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*metafile.Converter, error) {
 	m := &cfg.Formats.Metafile
 	if m.Enabled == config.False {
@@ -113,12 +141,21 @@ func buildMetafile(ctx context.Context, cfg *config.Config, logger *slog.Logger)
 		Timeout:  m.Timeout,
 		MaxBytes: int64(cfg.Limits.MaxSrcBytes),
 		// The SVG must pass XI_LIMITS_MAX_SVG_BYTES next: stop reading there.
-		MaxOutput: int64(cfg.Limits.MaxSVGBytes),
+		MaxOutput:    int64(cfg.Limits.MaxSVGBytes),
+		AddressSpace: sandboxAddressSpace(cfg),
 	})
 	if err != nil {
 		if ctx.Err() != nil {
 			// Shutdown requested while starting (see buildEPS).
 			return nil, nil //nolint:nilerr // not a configuration error
+		}
+		if m.Enabled == config.Auto {
+			// Found but not runnable here (a broken install, or a sandbox
+			// the platform refuses): serve without it, like slim and full.
+			logger.LogAttrs(ctx, slog.LevelWarn, "metafile conversion unavailable",
+				slog.String("path", m.Path), slog.String("reason", err.Error()),
+				slog.String("hint", "WMF/EMF answer 422; set XI_FORMATS_METAFILE_ENABLED=false to silence, or true to make this fatal"))
+			return nil, nil
 		}
 		return nil, fmt.Errorf("formats.metafile.enabled (XI_FORMATS_METAFILE_ENABLED) is %s but the converter is not usable: %w; "+
 			"WMF/EMF input needs the gpl image (or XI_FORMATS_METAFILE_PATH), or set it to false", m.Enabled, err)
@@ -131,6 +168,7 @@ func buildMetafile(ctx context.Context, cfg *config.Config, logger *slog.Logger)
 		slog.Duration("timeout", m.Timeout),
 	}, iso.LogAttrs()...)
 	logger.LogAttrs(ctx, slog.LevelInfo, "metafile conversion enabled", attrs...)
+	warnAddressSpace(ctx, logger, "metafile", &iso)
 	return c, nil
 }
 

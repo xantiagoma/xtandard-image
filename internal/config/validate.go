@@ -461,6 +461,9 @@ func (c *Config) validateFormats(v *validator) {
 	v.check(f.Metafile.Timeout >= 100*time.Millisecond && f.Metafile.Timeout <= 10*time.Minute, "formats.metafile.timeout",
 		"must be in [100ms, 10m], got %s", f.Metafile.Timeout)
 	v.check(strings.TrimSpace(f.Metafile.Path) != "", "formats.metafile.path", "must not be empty")
+	as := c.Sandbox.MaxAS
+	v.check(as == 0 || (as >= 64<<20 && as <= 1<<40), "sandbox.max_as",
+		"must be 0 (no limit) or in [64MiB, 1TiB], got %s", as)
 	v.check(f.HDR.ToneMap == ToneMapReinhard || f.HDR.ToneMap == ToneMapACES || f.HDR.ToneMap == ToneMapClip,
 		"formats.hdr.tonemap", "must be reinhard, aces or clip, got %q", f.HDR.ToneMap)
 	v.positive(f.AVIF.MaxPixels, "formats.avif.max_pixels")
