@@ -2447,8 +2447,8 @@
             "enabled": {
               "$ref": "#/$defs/tristate",
               "default": "auto",
-              "description": "**gpl image only.** Convert Windows metafiles (WMF, EMF and EMF+) to SVG with xi-metafile2svg (libwmf, LGPL-2.0-or-later; libemf2svg, GPL-2.0-only), one sandboxed subprocess per source (the Ghostscript sandbox, ADR 0011), then render the SVG like any other (FORMATS §1.8). auto converts when the converter is found and otherwise answers 422 \"WMF and EMF input needs the gpl image (XI_FORMATS_METAFILE_ENABLED)\"; true without a usable converter stops startup; false always answers that 422\n\nEnv: XI_FORMATS_METAFILE_ENABLED",
-              "markdownDescription": "**`gpl` image only.** Convert Windows metafiles (WMF, EMF and EMF+) to SVG with `xi-metafile2svg` (libwmf, LGPL-2.0-or-later; libemf2svg, GPL-2.0-only), one sandboxed subprocess per source (the Ghostscript sandbox, ADR 0011), then render the SVG like any other (FORMATS §1.8). `auto` converts when the converter is found and otherwise answers 422 \"WMF and EMF input needs the gpl image (XI_FORMATS_METAFILE_ENABLED)\"; `true` without a usable converter stops startup; `false` always answers that 422\n\nEnv: `XI_FORMATS_METAFILE_ENABLED`",
+              "description": "**gpl image only.** Convert Windows metafiles (WMF, EMF and EMF+) to SVG with xi-metafile2svg (libwmf, LGPL-2.0-or-later; libemf2svg, GPL-2.0-only), one sandboxed subprocess per source (the Ghostscript sandbox, ADR 0011), then render the SVG like any other (FORMATS §1.8). auto converts when the converter is found and passes its startup check (--version through the sandbox), and otherwise answers 422 \"WMF and EMF input needs the gpl image (XI_FORMATS_METAFILE_ENABLED)\"; a converter that is present but fails the check logs the warning metafile conversion unavailable with the reason and never stops startup. true without a usable converter stops startup; false always answers that 422\n\nEnv: XI_FORMATS_METAFILE_ENABLED",
+              "markdownDescription": "**`gpl` image only.** Convert Windows metafiles (WMF, EMF and EMF+) to SVG with `xi-metafile2svg` (libwmf, LGPL-2.0-or-later; libemf2svg, GPL-2.0-only), one sandboxed subprocess per source (the Ghostscript sandbox, ADR 0011), then render the SVG like any other (FORMATS §1.8). `auto` converts when the converter is found and passes its startup check (`--version` through the sandbox), and otherwise answers 422 \"WMF and EMF input needs the gpl image (XI_FORMATS_METAFILE_ENABLED)\"; a converter that is present but fails the check logs the warning `metafile conversion unavailable` with the reason and never stops startup. `true` without a usable converter stops startup; `false` always answers that 422\n\nEnv: `XI_FORMATS_METAFILE_ENABLED`",
               "title": "XI_FORMATS_METAFILE_ENABLED"
             },
             "max_procs": {
@@ -2931,6 +2931,26 @@
           "markdownDescription": "Concurrent processing jobs (`0` = GOMAXPROCS)\n\nEnv: `XI_PROCESSING_WORKERS`",
           "title": "XI_PROCESSING_WORKERS",
           "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "sandbox": {
+      "additionalProperties": false,
+      "properties": {
+        "detect_emulation": {
+          "default": true,
+          "description": "Drop XI_SANDBOX_MAX_AS when the server runs under CPU emulation (Rosetta for Linux, e.g. an amd64 image on Apple silicon under OrbStack or Docker Desktop; QEMU user mode): the translator maps its own memory inside the subprocess and fails under the limit (rosetta error: mmap_anonymous_rw mmap failed). Startup logs emulation and a warning sandbox without an address-space limit. false keeps the limit everywhere. The trade-off: under emulation a hostile document can make one subprocess allocate up to what the container allows (bounded by its CPU time and the timeout); set a container memory limit\n\nEnv: XI_SANDBOX_DETECT_EMULATION",
+          "markdownDescription": "Drop `XI_SANDBOX_MAX_AS` when the server runs under CPU emulation (Rosetta for Linux, e.g. an amd64 image on Apple silicon under OrbStack or Docker Desktop; QEMU user mode): the translator maps its own memory inside the subprocess and fails under the limit (`rosetta error: mmap_anonymous_rw mmap failed`). Startup logs `emulation` and a warning `sandbox without an address-space limit`. `false` keeps the limit everywhere. The trade-off: under emulation a hostile document can make one subprocess allocate up to what the container allows (bounded by its CPU time and the timeout); set a container memory limit\n\nEnv: `XI_SANDBOX_DETECT_EMULATION`",
+          "title": "XI_SANDBOX_DETECT_EMULATION",
+          "type": "boolean"
+        },
+        "max_as": {
+          "$ref": "#/$defs/byteSize",
+          "default": "1GiB",
+          "description": "Address-space limit (RLIMIT_AS) of each sandboxed subprocess (Ghostscript, the metafile converter; ADR 0011), plus twice the output the render may produce (capped at 16 GiB). 0 turns it off; the CPU-time, process, file-size and open-file limits, the timeout and no-new-privileges stay. Otherwise 64MiB–1TiB. Startup logs the value as rlimit_as (and rlimit_as_off with the reason when there is none)\n\nEnv: XI_SANDBOX_MAX_AS",
+          "markdownDescription": "Address-space limit (`RLIMIT_AS`) of each sandboxed subprocess (Ghostscript, the metafile converter; ADR 0011), plus twice the output the render may produce (capped at 16 GiB). `0` turns it off; the CPU-time, process, file-size and open-file limits, the timeout and no-new-privileges stay. Otherwise 64MiB–1TiB. Startup logs the value as `rlimit_as` (and `rlimit_as_off` with the reason when there is none)\n\nEnv: `XI_SANDBOX_MAX_AS`",
+          "title": "XI_SANDBOX_MAX_AS"
         }
       },
       "type": "object"

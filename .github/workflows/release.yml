@@ -1,19 +1,28 @@
 name: release
 
-# Publishes the slim app image (WP-37, docs/RELEASE.md):
-#   1. meta     version, commit, SOURCE_DATE_EPOCH; base images from
-#               docker/base/versions.sh resolved to digests
-#   2. build    natively on amd64 + arm64 (no QEMU), push by digest, verify
-#               (scripts/verify-app-image.sh: version, health, size ≤ 110 MB,
-#               read-only rootfs, smoke), M1 acceptance suite against the
-#               pushed digest (scripts/acceptance.sh), SBOM (syft) + SLSA provenance
-#               attached to each per-arch manifest, unstripped binary kept
-#   3. merge    multi-arch manifest tagged <ver>-slim, slim, <ver>, latest
-#               (latest/slim/<major.minor> only for non-prerelease versions),
-#               cosign keyless signature (recursive), provenance on the index,
-#               GitHub release with the unstripped binaries
+# Publishes the app image in its three flavors (WP-37, WP-118, docs/RELEASE.md):
+#   1. meta     version, commit, SOURCE_DATE_EPOCH; the slim, full and gpl base
+#               images from docker/base/versions*.sh resolved to digests
+#   2. build    per flavor (slim, full, gpl) natively on amd64 + arm64 (no
+#               QEMU): build on the base of the same flavor (full and gpl with
+#               GO_TAGS=ffmpeg, XI_FLAVOR for the OCI labels), push by digest,
+#               verify (scripts/verify-app-image.sh: version, flavor labels,
+#               health, size ≤ 110 MB slim / 170 MB full and gpl, read-only
+#               rootfs, smoke), M1 acceptance suite against the pushed digest
+#               (scripts/acceptance.sh), SBOM (syft) + SLSA provenance attached
+#               to each per-arch manifest, unstripped binary kept
+#   3. merge    per flavor: multi-arch manifest, cosign keyless signature
+#               (recursive), provenance on the index. Tags:
+#                 slim  <ver>-slim, <ver>  (+ slim, latest for stable releases)
+#                 full  <ver>-full         (+ full for stable releases)
+#                 gpl   <ver>-gpl          (+ gpl for stable releases)
+#   4. release  GitHub release with the unstripped binaries, the SBOMs and
+#               SHA256SUMS (tag pushes only)
 #
-#   ghcr.io/xantiagoma/xtandard-image:{<ver>-slim,slim,<ver>,latest}
+#   ghcr.io/xantiagoma/xtandard-image:{<ver>-slim,<ver>,slim,latest,<ver>-full,full,<ver>-gpl,gpl}
+#
+# Nothing is tagged unless all six builds passed verify-app-image.sh and the
+# acceptance suite: merge needs the whole build matrix.
 
 on:
   push:
@@ -24,7 +33,7 @@ on:
         description: Version to publish, e.g. v0.1.0 (must be an existing tag unless dry_run)
         required: true
       dry_run:
-        description: Build and verify on both architectures without pushing
+        description: Build and verify every flavor on both architectures without pushing
         type: boolean
         default: true
 
@@ -52,8 +61,12 @@ jobs:
       commit: ${{ steps.meta.outputs.commit }}
       epoch: ${{ steps.meta.outputs.epoch }}
       created: ${{ steps.meta.outputs.created }}
-      base_builder: ${{ steps.base.outputs.builder }}
-      base_runtime: ${{ steps.base.outputs.runtime }}
+      slim_builder: ${{ steps.base.outputs.slim_builder }}
+      slim_runtime: ${{ steps.base.outputs.slim_runtime }}
+      full_builder: ${{ steps.base.outputs.full_builder }}
+      full_runtime: ${{ steps.base.outputs.full_runtime }}
+      gpl_builder: ${{ steps.base.outputs.gpl_builder }}
+      gpl_runtime: ${{ steps.base.outputs.gpl_runtime }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -90,28 +103,40 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # <vips>-r<N>-<flavor>[-builder] from versions.sh, versions-full.sh and
+      # versions-gpl.sh, pinned by digest for the whole run.
       - name: Resolve base images to digests
         id: base
         run: |
-          {
-            echo "builder=$(scripts/base-image-ref.sh --digest builder)"
-            echo "runtime=$(scripts/base-image-ref.sh --digest runtime)"
-          } >> "$GITHUB_OUTPUT"
+          for flavor in slim full gpl; do
+            for target in builder runtime; do
+              echo "${flavor}_${target}=$(scripts/base-image-ref.sh --flavor "$flavor" --digest "$target")"
+            done
+          done >> "$GITHUB_OUTPUT"
 
   build:
     needs: meta
     strategy:
       fail-fast: true
       matrix:
+        flavor: [slim, full, gpl]
+        arch: [amd64, arm64]
         include:
-          - platform: linux/amd64
+          - arch: amd64
+            platform: linux/amd64
             runner: ubuntu-24.04
-            arch: amd64
-          - platform: linux/arm64
+          - arch: arm64
+            platform: linux/arm64
             runner: ubuntu-24.04-arm
-            arch: arm64
+          # full and gpl ship FFmpeg (ADR 0010): the app links it.
+          - flavor: slim
+            go_tags: ""
+          - flavor: full
+            go_tags: ffmpeg
+          - flavor: gpl
+            go_tags: ffmpeg
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
+    timeout-minutes: 90
     permissions:
       contents: read
       packages: write
@@ -120,10 +145,13 @@ jobs:
     env:
       SOURCE_DATE_EPOCH: ${{ needs.meta.outputs.epoch }}
       BUILD_ARGS: |
-        BASE_BUILDER=${{ needs.meta.outputs.base_builder }}
-        BASE_RUNTIME=${{ needs.meta.outputs.base_runtime }}
+        BASE_BUILDER=${{ matrix.flavor == 'gpl' && needs.meta.outputs.gpl_builder || matrix.flavor == 'full' && needs.meta.outputs.full_builder || needs.meta.outputs.slim_builder }}
+        BASE_RUNTIME=${{ matrix.flavor == 'gpl' && needs.meta.outputs.gpl_runtime || matrix.flavor == 'full' && needs.meta.outputs.full_runtime || needs.meta.outputs.slim_runtime }}
+        XI_FLAVOR=${{ matrix.flavor }}
+        GO_TAGS=${{ matrix.go_tags }}
         VERSION=${{ needs.meta.outputs.version }}
         COMMIT=${{ needs.meta.outputs.commit }}
+      LOCAL_REF: xtandard-image:release-${{ matrix.flavor }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -150,19 +178,22 @@ jobs:
           labels: org.opencontainers.image.created=${{ needs.meta.outputs.created }}
           provenance: false # SLSA provenance comes from actions/attest-build-provenance
           sbom: false # syft SBOM is attested below
-          cache-from: type=gha,scope=app-slim-${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=app-slim-${{ matrix.arch }}
+          cache-from: type=gha,scope=app-${{ matrix.flavor }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=app-${{ matrix.flavor }}-${{ matrix.arch }}
           outputs: >-
             ${{ env.PUSH == 'true'
               && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true,rewrite-timestamp=true', env.IMAGE)
-              || 'type=docker,name=xtandard-image:release,rewrite-timestamp=true' }}
+              || format('type=docker,name={0},rewrite-timestamp=true', env.LOCAL_REF) }}
 
+      # Size limit by flavor (110 MB slim, 170 MB full/gpl) and the flavor
+      # labels are checked by the script.
       - name: Verify image
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
           XI_EXPECT_VERSION: ${{ needs.meta.outputs.version }}
+          XI_EXPECT_FLAVOR: ${{ matrix.flavor }}
         run: |
-          ref=xtandard-image:release
+          ref="$LOCAL_REF"
           if [ "$PUSH" = "true" ]; then
             ref="$IMAGE@$DIGEST"
             docker pull "$ref"
@@ -170,8 +201,8 @@ jobs:
           scripts/verify-app-image.sh "$ref"
 
       # M1 release gate (WP-39): the acceptance suite against the pushed
-      # digest on this architecture. merge (which tags latest) needs build,
-      # so nothing is tagged unless both architectures pass.
+      # digest on this architecture and flavor. merge (which tags) needs the
+      # whole build matrix, so nothing is tagged unless all six pass.
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -182,12 +213,13 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
           GOTOOLCHAIN: local
         run: |
-          ref=xtandard-image:release
+          ref="$LOCAL_REF"
           if [ "$PUSH" = "true" ]; then
             ref="$IMAGE@$DIGEST"
           fi
           XI_IMAGE="$ref" scripts/acceptance.sh
 
+      # xtandard-image-<ver>-<flavor>-linux-<arch>.debug
       - name: Export unstripped binary
         uses: docker/build-push-action@v7
         with:
@@ -196,12 +228,12 @@ jobs:
           platforms: ${{ matrix.platform }}
           build-args: ${{ env.BUILD_ARGS }}
           provenance: false
-          cache-from: type=gha,scope=app-slim-${{ matrix.arch }}
+          cache-from: type=gha,scope=app-${{ matrix.flavor }}-${{ matrix.arch }}
           outputs: type=local,dest=${{ runner.temp }}/debug
 
       - uses: actions/upload-artifact@v7
         with:
-          name: debug-${{ matrix.arch }}
+          name: debug-${{ matrix.flavor }}-${{ matrix.arch }}
           path: ${{ runner.temp }}/debug/*
           if-no-files-found: error
           retention-days: 90
@@ -212,8 +244,8 @@ jobs:
         with:
           image: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
           format: spdx-json
-          output-file: ${{ runner.temp }}/sbom-${{ matrix.arch }}.spdx.json
-          artifact-name: sbom-${{ matrix.arch }}.spdx.json
+          output-file: ${{ runner.temp }}/sbom-${{ matrix.flavor }}-${{ matrix.arch }}.spdx.json
+          artifact-name: sbom-${{ matrix.flavor }}-${{ matrix.arch }}.spdx.json
           upload-release-assets: false
 
       - uses: sigstore/cosign-installer@v4
@@ -223,10 +255,8 @@ jobs:
         if: env.PUSH == 'true'
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
-        run: |
-          cosign attest --yes --type spdxjson \
-            --predicate "$RUNNER_TEMP/sbom-${{ matrix.arch }}.spdx.json" \
-            "$IMAGE@$DIGEST"
+          SBOM: ${{ runner.temp }}/sbom-${{ matrix.flavor }}-${{ matrix.arch }}.spdx.json
+        run: cosign attest --yes --type spdxjson --predicate "$SBOM" "$IMAGE@$DIGEST"
 
       - name: SLSA provenance (per-arch manifest)
         if: env.PUSH == 'true'
@@ -247,7 +277,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: env.PUSH == 'true'
         with:
-          name: digests-${{ matrix.arch }}
+          name: digests-${{ matrix.flavor }}-${{ matrix.arch }}
           path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -255,9 +285,13 @@ jobs:
   merge:
     if: github.event_name == 'push' || !inputs.dry_run
     needs: [meta, build]
+    strategy:
+      fail-fast: false # a tagged flavor stays tagged; re-run the failed leg
+      matrix:
+        flavor: [slim, full, gpl]
     runs-on: ubuntu-24.04
     permissions:
-      contents: write # GitHub release
+      contents: read
       packages: write
       id-token: write # keyless cosign + GitHub attestations
       attestations: write
@@ -265,7 +299,7 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           path: ${{ runner.temp }}/digests
-          pattern: digests-*
+          pattern: digests-${{ matrix.flavor }}-*
           merge-multiple: true
 
       - uses: docker/setup-buildx-action@v4
@@ -281,20 +315,26 @@ jobs:
         env:
           VERSION: ${{ needs.meta.outputs.version }}
           PRERELEASE: ${{ needs.meta.outputs.prerelease }}
+          FLAVOR: ${{ matrix.flavor }}
         working-directory: ${{ runner.temp }}/digests
         run: |
-          # slim is the default flavor until `full` exists (WP-37): <ver> and
-          # latest point at the slim image. Prereleases only get <ver>[-slim].
-          tags="-t $IMAGE:$VERSION-slim -t $IMAGE:$VERSION"
+          # <ver>-<flavor> always; <ver> and latest name slim (the default
+          # flavor). The moving tags (latest, slim, full, gpl) only for
+          # stable releases.
+          tags="-t $IMAGE:$VERSION-$FLAVOR"
+          if [ "$FLAVOR" = slim ]; then tags="$tags -t $IMAGE:$VERSION"; fi
           if [ "$PRERELEASE" = "false" ]; then
-            tags="$tags -t $IMAGE:slim -t $IMAGE:latest"
+            tags="$tags -t $IMAGE:$FLAVOR"
+            if [ "$FLAVOR" = slim ]; then tags="$tags -t $IMAGE:latest"; fi
           fi
           # shellcheck disable=SC2046,SC2086
           docker buildx imagetools create $tags \
             $(printf "$IMAGE@sha256:%s " $(ls))
-          digest="$(docker buildx imagetools inspect "$IMAGE:$VERSION-slim" | awk '/^Digest:/ { print $2; exit }')"
+          digest="$(docker buildx imagetools inspect "$IMAGE:$VERSION-$FLAVOR" | awk '/^Digest:/ { print $2; exit }')"
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
           docker buildx imagetools inspect "$IMAGE@$digest"
+          mkdir -p "$RUNNER_TEMP/index"
+          echo "$digest" > "$RUNNER_TEMP/index/$FLAVOR"
 
       - uses: sigstore/cosign-installer@v4
 
@@ -310,29 +350,62 @@ jobs:
           subject-digest: ${{ steps.manifest.outputs.digest }}
           push-to-registry: true
 
+      - uses: actions/upload-artifact@v7
+        with:
+          name: index-${{ matrix.flavor }}
+          path: ${{ runner.temp }}/index/*
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    # The GitHub release, once every flavor is tagged and signed.
+    if: github.event_name == 'push'
+    needs: [meta, merge]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # GitHub release
+    steps:
       - uses: actions/download-artifact@v8
         with:
-          path: ${{ runner.temp }}/debug
+          path: ${{ runner.temp }}/assets
           pattern: debug-*
           merge-multiple: true
 
-      - name: GitHub release (unstripped binaries for symbolication)
-        if: github.event_name == 'push'
+      - uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/assets
+          pattern: sbom-*
+          merge-multiple: true
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/index
+          pattern: index-*
+          merge-multiple: true
+
+      - name: GitHub release (unstripped binaries, SBOMs)
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.meta.outputs.tag }}
           PRERELEASE: ${{ needs.meta.outputs.prerelease }}
           VERSION: ${{ needs.meta.outputs.version }}
-          DIGEST: ${{ steps.manifest.outputs.digest }}
         run: |
-          cd "$RUNNER_TEMP/debug"
+          notes="Images (verify with \`cosign verify\`, see docs/RELEASE.md):"
+          for flavor in slim full gpl; do
+            digest="$(cat "$RUNNER_TEMP/index/$flavor")"
+            notes="$notes
+          - \`$IMAGE:$VERSION-$flavor\` (\`$IMAGE@$digest\`)"
+          done
+          notes="$notes
+
+          \`$IMAGE:$VERSION\` is the slim flavor. The gpl flavor contains GPL and AGPL software (see its /opt/xtandard/share/licenses/LICENSE-GPL.md)."
+          cd "$RUNNER_TEMP/assets"
           sha256sum -- * > SHA256SUMS
           flags=""
           if [ "$PRERELEASE" = "true" ]; then flags="--prerelease"; fi
           # shellcheck disable=SC2086
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes $flags \
-            --notes "Image: \`$IMAGE:$VERSION\` (\`$IMAGE@$DIGEST\`). Verify with \`cosign verify\`, see docs/RELEASE.md." \
-            -- *
+            --notes "$notes" -- *
 
   npm:
     # @xtandard/image-url (packages/image-url, WP-84, ADR 0009 decision 6):

@@ -41,7 +41,10 @@ func New(ctx context.Context, c *Config) (*Sandbox, Isolation, string, error) {
 	if version == "" {
 		return nil, Isolation{}, "", fmt.Errorf("%s --version printed nothing", s.prog)
 	}
-	iso := Isolation{ProcessGroup: true, UID: os.Geteuid(), GID: os.Getegid(), NetNamespaceError: "not linux"}
+	iso := Isolation{
+		ProcessGroup: true, UID: os.Geteuid(), GID: os.Getegid(),
+		AddressSpaceOff: "not linux", NetNamespaceError: "not linux",
+	}
 	return s, iso, version, nil
 }
 
@@ -57,6 +60,10 @@ func (s *Sandbox) Command(ctx context.Context, tmp string, _ int64, args []strin
 	cmd.WaitDelay = WaitDelay
 	return cmd, nil
 }
+
+// DetectEmulation reports EmulationNone: the images are Linux, and outside
+// Linux there are no resource limits to relax.
+func DetectEmulation() Emulation { return EmulationNone }
 
 // RunHelper exists on Linux only.
 func RunHelper([]string) int {
