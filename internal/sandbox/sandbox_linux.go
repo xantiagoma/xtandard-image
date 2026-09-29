@@ -94,7 +94,8 @@ func New(ctx context.Context, c *Config) (*Sandbox, Isolation, string, error) {
 		report, version, err := s.check(ctx, c.TempDir)
 		if err == nil {
 			iso.NetNamespace = true
-			return s, report.apply(iso), version, nil
+			report.apply(&iso)
+			return s, iso, version, nil
 		}
 		netErr = err
 		s.netns = false
@@ -108,7 +109,8 @@ func New(ctx context.Context, c *Config) (*Sandbox, Isolation, string, error) {
 	} else {
 		iso.NetNamespaceError = "disabled"
 	}
-	return s, report.apply(iso), version, nil
+	report.apply(&iso)
+	return s, iso, version, nil
 }
 
 // helperReport is what the helper prints with -report: the layers it
@@ -118,12 +120,12 @@ type helperReport struct {
 	rlimits                  bool
 }
 
-func (h helperReport) apply(iso Isolation) Isolation {
+// apply records the layers the helper reported in iso.
+func (h helperReport) apply(iso *Isolation) {
 	iso.NoNewPrivs = h.nnp == 1
 	iso.ParentDeathSignal = h.pdeathsig == int(syscall.SIGKILL)
 	iso.UID, iso.GID = h.uid, h.gid
 	iso.Rlimits = h.rlimits
-	return iso
 }
 
 // check runs `<program> --version` through the helper with -report.
