@@ -4,7 +4,7 @@ How the app image `ghcr.io/xantiagoma/xtandard-image` is built, published and ve
 npm package `@xtandard/image-url` follows it ([npm package](#npm-package)).
 Design context: `docs/ARCHITECTURE.md` §14, `docs/go-standards.md` §9, ADR 0005, ADR 0009.
 
-**Status (2026-09-27):** no release has been tagged yet, nothing is on npm, and the GitHub Pages site is not deployed. All GitHub workflows (`ci`, `base-image`, `nightly`, `release`, `pages`, `ts`) are disabled by owner decision until further notice, so everything below runs only after they are re-enabled (`gh workflow enable <name>`); until then images are built and verified locally (`task docker:*`).
+**Status (2026-09-29):** `v0.1.0-rc.1` is the first prerelease. It was built and pushed **locally**, without Actions, as described in [Local release (no Actions)](#local-release-no-actions): three app flavours, both architectures, and the base images slim r7, full r8 and gpl r9 on GHCR (private packages). The images are not signed. Nothing is on npm yet, and the GitHub Pages site is not deployed. GitHub Actions minutes are exhausted (billing), so the `release` run that the tag push started failed as expected. `ci` and `nightly` are disabled; re-enable them with `gh workflow enable <name>`.
 
 ## What gets published
 
@@ -55,6 +55,25 @@ Build properties (enforced in the `Dockerfile`):
 **Dry run**: Actions → `release` → *Run workflow* with `dry_run` checked (the default) builds and verifies both architectures from the selected branch without pushing. With `dry_run` unchecked, `version` must be an existing tag; it is checked out and published like a tag push, but no GitHub release is created.
 
 **Re-running** a release for the same tag rebuilds and re-tags; the image content is identical (reproducible build), but the digest can differ if the base image digest moved in between.
+
+## Local release (no Actions)
+
+Used for `v0.1.0-rc.1` (2026-09-29) while GitHub Actions was unavailable (billing). It is the same procedure as `base-image.yml` and `release.yml`, run by hand from a macOS arm64 host (8 cores, OrbStack with a 7.8 GiB VM). linux/arm64 builds natively and linux/amd64 builds under Rosetta emulation. Docker was logged in to `ghcr.io` with a token that has `write:packages`.
+
+1. **Clean tree:** `git worktree add ../xi-release origin/main` (commit `8c9d16b`), then `mise trust`. Every build used `SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)`.
+2. **Builder:** `docker buildx create --name xi-release --driver docker-container --bootstrap`, passed explicitly with `--builder xi-release` so the default builder was left alone. It was removed at the end, and its cache went with it.
+3. **Licence gate:** `docker/base/test-check-licenses.sh` passed. shellcheck 0.11 (the `koalaman/shellcheck:stable` container) reports one SC2046 warning in `build-gpl-metafile.sh` and one SC2016 info in `build-libraw.sh` that the older CI shellcheck may not report. These are lint findings only.
+4. **Bases**, one platform at a time (arm64, then amd64). For each flavour and each target (`runtime`/`builder`, `runtime-full`/`builder-full`, `runtime-gpl`/`builder-gpl`):
+   `docker buildx build --platform linux/<arch> --target <t> --build-arg VIPS_VERSION=8.18.6 --label org.opencontainers.image.version=<tag>[-builder] --provenance=false --sbom=false --output type=image,name=ghcr.io/xantiagoma/xtandard-image-base,push-by-digest=true,name-canonical=true,push=true --metadata-file <f> docker/base`.
+   Then `docker/base/verify-image.sh --flavor <f> <runtime@digest> <builder@digest>` ran on each pulled per-arch pair (amd64 under emulation), and `docker buildx imagetools create` tagged `<vips>-r<N>-<flavour>[-builder]` and `<flavour>[-builder]`. Build times, arm64 native: slim 12 min, full 3.5 min and gpl 4 min on top of it. amd64 emulated: slim runtime 2 h 55 min, full 6 min, gpl 12 min. Build cache peaked at 13.2 GB.
+5. **App**, per flavour and platform: the `runtime` target on the new bases, resolved to index digests. The build args were `BASE_BUILDER`/`BASE_RUNTIME` (`<base>:<tag>[-builder]@sha256:…`), `VERSION=0.1.0-rc.1`, `COMMIT` and `GO_TAGS` (`ffmpeg` for full and gpl), with the label `org.opencontainers.image.created`, `--provenance=false --sbom=false` and `push-by-digest=true,rewrite-timestamp=true`. The `debug` target was exported to `xtandard-image-<ver>-<flavour>-linux-<arch>.debug`. PGO came from the committed `default.pgo`.
+6. **Gate:** `scripts/verify-app-image.sh <image@digest>` ran with `XI_EXPECT_VERSION=0.1.0-rc.1`, `XI_MAX_COMPRESSED_MB` 110 for slim and 170 for full/gpl (ARCHITECTURE §14), and `XI_IMAGE=<image@digest> scripts/acceptance.sh`. Results: arm64 133/133 for all three flavours; amd64 133/133 for slim and full. amd64 gpl got 132/133: `TestEPS` fails, and some runs lose `app-tiny` at startup, because Rosetta cannot map memory under the sandbox's `RLIMIT_AS` for `gs` and `xi-metafile2svg` (`rosetta error: mmap_anonymous_rw mmap failed`). This is an emulation artefact. Native amd64 (CI) is the real gate for that image.
+7. **Tags:** `docker buildx imagetools create` created `0.1.0-rc.1` and `0.1.0-rc.1-slim` (slim), `0.1.0-rc.1-full` and `0.1.0-rc.1-gpl`. No moving tags (`latest`, `slim`, `full`, `gpl`) were created for the prerelease.
+8. **SBOMs:** `anchore/syft` (1.52.0) ran as a container against the local daemon (`-v /var/run/docker.sock:/var/run/docker.sock … docker:<image@digest> -o spdx-json=… -o cyclonedx-json=…`) for each per-arch app image, and for the 12 base images, which went into a tarball. They were attached to the GitHub release, not attested.
+9. **No signing or provenance:** cosign keyless signing and `attest-build-provenance` need the workflow's GitHub OIDC identity. The release notes say so, and the CI release re-publishes signed images when Actions is back.
+10. **Release:** `git tag -a v0.1.0-rc.1` on `8c9d16b`, then `git push origin v0.1.0-rc.1`. The push started a `release` run, which failed (billing, expected). Then `gh release create v0.1.0-rc.1 --prerelease --verify-tag --notes-file …` with the debug binaries, the SBOMs and `SHA256SUMS`.
+
+Total wall time was about 4 h 10 min, most of it the emulated amd64 slim base. To do it again, copy these steps. Building each platform separately and joining the per-arch digests with `imagetools create` is more robust than one two-platform invocation, and a failed step can be retried without redoing the other platform.
 
 ## Schema and API site (GitHub Pages)
 
