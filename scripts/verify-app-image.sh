@@ -2,9 +2,13 @@
 # Verifies a built app image against the release contract (WP-37,
 # docs/RELEASE.md):
 #   1. `version` runs and reports the expected version (XI_EXPECT_VERSION)
-#   2. image config: UID 65532, ports 8080/9090, HEALTHCHECK, OCI labels,
-#      ARCHITECTURE §14 environment
-#   3. compressed size ≤ XI_MAX_COMPRESSED_MB (default 110; docker save | gzip)
+#   2. image config: UID 65532, ports 8080/9090, HEALTHCHECK, OCI labels
+#      (per flavor: dev.xtandard.flavor matches the base's
+#      dev.xtandard.base.flavor and XI_EXPECT_FLAVOR when set; licences MIT
+#      for slim/full, the GPL/AGPL expression for gpl; the description names
+#      the flavor), ARCHITECTURE §14 environment
+#   3. compressed size ≤ XI_MAX_COMPRESSED_MB (default 110 for slim, 170 for
+#      full and gpl; docker save | gzip)
 #   4. scripts/check-readonly.sh: read-only rootfs with a tmpfs /tmp, all
 #      capabilities dropped: the server starts, the Docker HEALTHCHECK turns
 #      healthy, `health` exits 0, the rootfs refuses writes and /tmp accepts
@@ -17,7 +21,8 @@ set -eu
 cd "$(dirname "$0")/.."
 
 image="${1:-${XI_IMAGE:-xtandard-image:dev}}"
-max_mb="${XI_MAX_COMPRESSED_MB:-110}"
+# Default by flavor once the labels are read (ARCHITECTURE §14): 110 slim, 170 full/gpl.
+max_mb="${XI_MAX_COMPRESSED_MB:-}"
 failed=0
 
 fail() {
@@ -49,14 +54,38 @@ for label in source version revision licenses description; do
   value="$(inspect "{{index .Config.Labels \"org.opencontainers.image.$label\"}}")"
   [ -n "$value" ] || fail "label org.opencontainers.image.$label missing"
 done
-[ "$(inspect '{{index .Config.Labels "org.opencontainers.image.licenses"}}')" = MIT ] || fail "licenses label is not MIT"
+# Flavor labels (WP-118): dev.xtandard.flavor must match the base the image
+# was built on (its dev.xtandard.base.flavor label, inherited) and
+# XI_EXPECT_FLAVOR when set; the licences and description follow the flavor.
+label() { inspect "{{index .Config.Labels \"$1\"}}"; }
+flavor="$(label dev.xtandard.flavor)"
+base_flavor="$(label dev.xtandard.base.flavor)"
+[ -n "$flavor" ] || fail "label dev.xtandard.flavor missing"
+[ -z "$base_flavor" ] || [ "$flavor" = "$base_flavor" ] ||
+  fail "dev.xtandard.flavor is '$flavor' but the base is '$base_flavor' (build with --build-arg XI_FLAVOR=$base_flavor)"
+[ -z "${XI_EXPECT_FLAVOR:-}" ] || [ "$flavor" = "$XI_EXPECT_FLAVOR" ] ||
+  fail "dev.xtandard.flavor is '$flavor', want XI_EXPECT_FLAVOR=$XI_EXPECT_FLAVOR"
+if [ -z "$max_mb" ]; then
+  case "$flavor" in full | gpl) max_mb=170 ;; *) max_mb=110 ;; esac
+fi
+case "$flavor" in
+  slim | full) want_licenses=MIT ;;
+  gpl) want_licenses="GPL-2.0-or-later AND AGPL-3.0-or-later AND MIT AND LicenseRef-Adobe-DNG-SDK" ;;
+  *) want_licenses="(unknown flavor '$flavor')" ;;
+esac
+licenses="$(label org.opencontainers.image.licenses)"
+[ "$licenses" = "$want_licenses" ] || fail "licenses label '$licenses', want '$want_licenses' for $flavor"
+case "$(label org.opencontainers.image.description)" in
+  *"$flavor flavor"*) ;;
+  *) fail "description does not name the $flavor flavor" ;;
+esac
 env="$(inspect '{{range .Config.Env}}{{println .}}{{end}}')"
 for kv in LD_LIBRARY_PATH=/opt/xtandard/lib LD_PRELOAD=/opt/xtandard/lib/libjemalloc.so.2 \
   MALLOC_ARENA_MAX=2 MALLOC_CONF=narenas:2 MAGICK_CONFIGURE_PATH=/opt/xtandard/etc/ImageMagick-7 \
   FONTCONFIG_PATH=/opt/xtandard/etc/fonts VIPS_BLOCK_UNTRUSTED=1 XI_SERVER_ADDR=:8080; do
   echo "$env" | grep -qxF "$kv" || fail "ENV $kv missing"
 done
-echo "user 65532:65532, ports $ports, healthcheck $hc, labels and env ok"
+echo "user 65532:65532, ports $ports, healthcheck $hc, flavor $flavor ($licenses), labels and env ok"
 
 # 3. compressed size -----------------------------------------------------------------
 echo "== compressed size"

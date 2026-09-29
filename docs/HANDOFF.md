@@ -33,9 +33,10 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   plus the moving `slim`/`full`/`gpl`[-builder] base tags). The images are not signed and have no provenance.
   The SBOMs (syft SPDX/CycloneDX) and the unstripped binaries are release assets. The procedure and results are in
   `docs/RELEASE.md` "Local release (no Actions)". The `release` run that the tag started failed (billing,
-  expected). Open items: once Actions is back, re-run `release` for the tag (it builds slim only, so
-  extend `release.yml` to full/gpl first) to get signed images. amd64 gpl acceptance was 132/133 under
-  Rosetta (`TestEPS`, sandbox `RLIMIT_AS` against Rosetta's mmap), so confirm it on native amd64.
+  expected). Open items: once Actions is back, re-run `release` for the tag to get signed images
+  (since WP-118 it builds, verifies, signs and attests slim, full and gpl). The amd64 gpl `TestEPS`
+  failure under Rosetta is fixed by WP-118 (the sandbox drops only `RLIMIT_AS` under emulation;
+  metafile `auto` no longer stops startup); still confirm gpl on native amd64 in that run.
   Then switch the README quick start to the GHCR image.
 - **M4:** WP-94 playground v2 is **merged (PR #95, owner-run merge; the session classifier denies merges without review, so ask
   the owner to run `gh pr merge`)**. The demo container `xtandard-play` on the tailnet (http://100.102.217.2:8080/_playground/)
@@ -228,3 +229,12 @@ owner has authorised merging PRs without review.
 - **WP-117 merged:** playground watermarks are explicit (`wmu` with the fixture logo); the demo no longer
   sets `XI_PROCESSING_WATERMARK_SOURCE` (owner: the server default stays off; the playground must not
   rely on hidden settings). Demo redeployed. No agents in flight.
+- **WP-118 done** on `m4/wp-118-release-followups` (pushed, not merged): sandbox drops only
+  `RLIMIT_AS` under Rosetta/QEMU (`XI_SANDBOX_MAX_AS`, `XI_SANDBOX_DETECT_EMULATION`, ADR 0011
+  amendment), metafile `auto` never stops startup; `release.yml` builds, verifies, signs and attests
+  slim, full and gpl (flavour × arch matrix, per-flavour merge, a `release` job); app OCI labels per
+  flavour (`XI_FLAVOR`, gpl `GPL-2.0-or-later AND AGPL-3.0-or-later AND MIT AND
+  LicenseRef-Adobe-DNG-SDK`, `dev.xtandard.flavor`), checked by `verify-app-image.sh`. Acceptance
+  133/133 on the three native arm64 images and on an amd64 gpl image under Rosetta. Note: the gpl
+  **base** label is still `AGPL-3.0-or-later AND GPL-2.0-or-later AND MIT` (no DNG SDK LicenseRef);
+  align it at the next base bump. No agents in flight.

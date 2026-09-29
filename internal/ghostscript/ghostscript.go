@@ -101,6 +101,8 @@ type Config struct {
 	Helper string
 	// NoNetNamespace skips the network-namespace attempt (tests).
 	NoNetNamespace bool
+	// AddressSpace configures the sandbox's RLIMIT_AS (XI_SANDBOX_*).
+	AddressSpace sandbox.AddressSpace
 }
 
 func (c *Config) withDefaults() Config {
@@ -147,6 +149,7 @@ func New(ctx context.Context, cfg *Config) (*Runner, error) {
 	c.Path = path
 	sb, iso, version, err := sandbox.New(ctx, &sandbox.Config{
 		Program: c.Path, Timeout: c.Timeout, TempDir: c.TempDir, Helper: c.Helper, NoNetNamespace: c.NoNetNamespace,
+		AddressSpace: c.AddressSpace,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("ghostscript: %s does not run: %w", path, err)

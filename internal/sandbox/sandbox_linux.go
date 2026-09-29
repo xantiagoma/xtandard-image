@@ -47,6 +47,17 @@ type Sandbox struct {
 	uid, gid int
 	// netns runs the helper in new user and network namespaces.
 	netns bool
+	// as is the base RLIMIT_AS, 0 for none (AddressSpace).
+	as uint64
+}
+
+// DetectEmulation reports the CPU emulator this process runs under
+// (EmulationNone when native): /proc/cpuinfo and the Rosetta binfmt_misc
+// handler, read once per call.
+func DetectEmulation() Emulation {
+	cpuinfo, _ := os.ReadFile("/proc/cpuinfo")
+	_, err := os.Stat("/proc/sys/fs/binfmt_misc/rosetta")
+	return detectEmulation(runtime.GOARCH, string(cpuinfo), err == nil)
 }
 
 // New builds the sandbox for c.Program and checks it: `<program>
@@ -64,7 +75,9 @@ func New(ctx context.Context, c *Config) (*Sandbox, Isolation, string, error) {
 		helper = exe
 	}
 	s := &Sandbox{helper: helper, prog: c.Program, cpu: uint64(math.Ceil(c.Timeout.Seconds())) + 1, uid: -1, gid: -1}
-	iso := Isolation{Helper: true, ProcessGroup: true}
+	iso := Isolation{Helper: true, ProcessGroup: true, Emulation: DetectEmulation()}
+	s.as, iso.AddressSpaceOff = c.AddressSpace.base(iso.Emulation)
+	iso.AddressSpace = s.as
 	// The program runs as the server's user when the server is not root:
 	// keep that user from reading the server's memory and environment
 	// (secrets).
@@ -81,7 +94,8 @@ func New(ctx context.Context, c *Config) (*Sandbox, Isolation, string, error) {
 		report, version, err := s.check(ctx, c.TempDir)
 		if err == nil {
 			iso.NetNamespace = true
-			return s, report.apply(iso), version, nil
+			report.apply(&iso)
+			return s, iso, version, nil
 		}
 		netErr = err
 		s.netns = false
@@ -95,7 +109,8 @@ func New(ctx context.Context, c *Config) (*Sandbox, Isolation, string, error) {
 	} else {
 		iso.NetNamespaceError = "disabled"
 	}
-	return s, report.apply(iso), version, nil
+	report.apply(&iso)
+	return s, iso, version, nil
 }
 
 // helperReport is what the helper prints with -report: the layers it
@@ -105,12 +120,12 @@ type helperReport struct {
 	rlimits                  bool
 }
 
-func (h helperReport) apply(iso Isolation) Isolation {
+// apply records the layers the helper reported in iso.
+func (h helperReport) apply(iso *Isolation) {
 	iso.NoNewPrivs = h.nnp == 1
 	iso.ParentDeathSignal = h.pdeathsig == int(syscall.SIGKILL)
 	iso.UID, iso.GID = h.uid, h.gid
 	iso.Rlimits = h.rlimits
-	return iso
 }
 
 // check runs `<program> --version` through the helper with -report.
@@ -187,7 +202,7 @@ func (s *Sandbox) command(ctx context.Context, tmp string, outLimit int64, progA
 			return nil, err
 		}
 	}
-	as := min(baseAddressSpace+2*uint64(max(outLimit, 0)), maxAddressSpace)
+	as := addressSpaceLimit(s.as, outLimit)
 	argv := []string{
 		HelperArg,
 		"-as=" + strconv.FormatUint(as, 10),
@@ -230,7 +245,7 @@ func (s *Sandbox) command(ctx context.Context, tmp string, outLimit int64, progA
 // it switches to the unprivileged user it was given, sets the
 // parent-death signal (and exits if the server is already gone),
 // no-new-privileges and the resource limits (no core file, open files, no
-// file writes, CPU seconds, no new processes, address space), then execs
+// file writes, CPU seconds, no new processes, address space unless -as=0), then execs
 // the program with an empty environment but TMPDIR. It returns only on failure,
 // with the status for os.Exit.
 func RunHelper(args []string) int {
@@ -249,7 +264,7 @@ func RunHelper(args []string) int {
 		return helperFailStatus
 	}
 	fs := flag.NewFlagSet(HelperArg, flag.ContinueOnError)
-	as := fs.Uint64("as", 0, "RLIMIT_AS bytes")
+	as := fs.Uint64("as", 0, "RLIMIT_AS bytes (0 = none)")
 	cpu := fs.Uint64("cpu", 0, "RLIMIT_CPU seconds")
 	nofile := fs.Uint64("nofile", 0, "RLIMIT_NOFILE")
 	uid := fs.Int("uid", -1, "user to switch to")
@@ -264,7 +279,7 @@ func RunHelper(args []string) int {
 		return fail("args", err)
 	}
 	argv := fs.Args()
-	if len(argv) == 0 || *as == 0 || *cpu == 0 || *nofile == 0 {
+	if len(argv) == 0 || *cpu == 0 || *nofile == 0 {
 		return fail("args", errors.New("missing limits or program"))
 	}
 	if *gid >= 0 {
@@ -315,7 +330,10 @@ func RunHelper(args []string) int {
 		// No fork: counted per user, so the server's own threads already
 		// exceed it (root is exempt, hence the switch to nobody).
 		{rlimitNPROC, 0, 0},
-		{syscall.RLIMIT_AS, *as, *as},
+	}
+	// 0: off (XI_SANDBOX_MAX_AS=0) or under CPU emulation (AddressSpace).
+	if *as > 0 {
+		limits = append(limits, limit{syscall.RLIMIT_AS, *as, *as})
 	}
 	env := []string{"TMPDIR=" + *tmp, "TEMP=" + *tmp}
 	var line []byte

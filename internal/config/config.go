@@ -45,6 +45,7 @@ type Config struct {
 	Formats       Formats       `yaml:"formats"       envPrefix:"FORMATS_"`
 	ClientHints   ClientHints   `yaml:"client_hints"  envPrefix:"CLIENT_HINTS_"`
 	Limits        Limits        `yaml:"limits"        envPrefix:"LIMITS_"`
+	Sandbox       Sandbox       `yaml:"sandbox"       envPrefix:"SANDBOX_"`
 	Video         Video         `yaml:"video"         envPrefix:"VIDEO_"`
 	Vips          Vips          `yaml:"vips"          envPrefix:"VIPS_"`
 	Detect        Detect        `yaml:"detect"        envPrefix:"DETECT_"`
@@ -484,6 +485,20 @@ type MetafileFormat struct {
 	Path string `yaml:"path" env:"PATH"`
 }
 
+// Sandbox configures the resource limits of the sandboxed subprocesses
+// (Ghostscript for EPS, the metafile converter; ADR 0011) that depend on the
+// host rather than the input.
+type Sandbox struct {
+	// MaxAS is the base address-space limit (RLIMIT_AS) of a subprocess;
+	// twice the expected output comes on top. 0 turns the limit off (the
+	// CPU time, process, file-size and open-file limits stay).
+	MaxAS ByteSize `yaml:"max_as" env:"MAX_AS"`
+	// DetectEmulation drops the address-space limit when the server runs
+	// under CPU emulation (Rosetta, QEMU user mode), whose translator
+	// cannot map its own memory under it.
+	DetectEmulation bool `yaml:"detect_emulation" env:"DETECT_EMULATION"`
+}
+
 // HDRFormat configures scene-linear inputs (OpenEXR, Radiance, PFM).
 type HDRFormat struct {
 	// ToneMap is the operator that maps them to 8-bit sRGB unless
@@ -881,6 +896,7 @@ func Defaults() Config {
 			MaxPDFPages:             500,
 			MaxWatermarkTextPixels:  16_777_216,
 		},
+		Sandbox: Sandbox{MaxAS: 1 << 30, DetectEmulation: true},
 		Video: Video{
 			MaxBytes:           100 << 20,
 			MaxDuration:        time.Hour,
