@@ -104,7 +104,7 @@ tasks:
   # ---- release (docs/RELEASE.md) --------------------------------------------
 
   release:build:
-    desc: "Build the release app image $XI_IMAGE (default xtandard-image:dev) for the host arch; XI_APP_BASE=xtandard-base:dev uses a local base (builder = <base>-builder), else the versions.sh base pinned by digest; a full base (XI_APP_BASE=xtandard-base:dev-full) builds with -tags ffmpeg"
+    desc: "Build the release app image $XI_IMAGE (default xtandard-image:dev) for the host arch; XI_APP_BASE=xtandard-base:dev uses a local base (builder = <base>-builder), else the versions.sh base pinned by digest; the flavor (XI_FLAVOR build arg, labels) follows the base name or XI_APP_FLAVOR, and a full or gpl base (XI_APP_BASE=xtandard-base:dev-full) builds with -tags ffmpeg"
     vars:
       EPOCH:
         sh: git log -1 --pretty=%ct 2>/dev/null || echo 0
@@ -117,11 +117,18 @@ tasks:
           builder="$(sh scripts/base-image-ref.sh --digest builder)"
           runtime="$(sh scripts/base-image-ref.sh --digest runtime)"
         fi
-        # A full- or gpl-flavor base carries FFmpeg: build with -tags ffmpeg (ADR 0010).
-        case "${XI_IMAGE_FLAVOR:-}:$runtime" in full:*|gpl:*|*:*full*|*:*gpl*) tags=ffmpeg ;; *) tags="" ;; esac
+        # The app flavor follows the base (XI_APP_FLAVOR overrides): it picks
+        # the OCI labels, and full/gpl carry FFmpeg, so -tags ffmpeg (ADR 0010).
+        flavor="${XI_APP_FLAVOR:-}"
+        if [ -z "$flavor" ]; then
+          case "$runtime" in *gpl*) flavor=gpl ;; *full*) flavor=full ;; *) flavor=slim ;; esac
+        fi
+        tags=""
+        [ "$flavor" = slim ] || tags=ffmpeg
+        echo "release:build: flavor $flavor, GO_TAGS='$tags', base $runtime"
         docker build -t "${XI_IMAGE:-xtandard-image:dev}" \
           --build-arg BASE_BUILDER="$builder" --build-arg BASE_RUNTIME="$runtime" \
-          --build-arg GO_TAGS="$tags" \
+          --build-arg XI_FLAVOR="$flavor" --build-arg GO_TAGS="$tags" \
           --build-arg VERSION={{.VERSION}} --build-arg COMMIT={{.COMMIT}} \
           --build-arg SOURCE_DATE_EPOCH={{.EPOCH}} .
 
