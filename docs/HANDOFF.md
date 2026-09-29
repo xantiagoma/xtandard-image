@@ -4,7 +4,7 @@ Read this first when resuming the build with a fresh context. It says where the 
 how work is delivered, and which helper scripts exist. The roadmap with per-package status is
 `docs/ROADMAP.md`; the delivery protocol for coding agents is `docs/AGENT-WORKFLOW.md`.
 
-## State as of 2026-09-28
+## State as of 2026-09-29
 
 - **M1 and M2 are complete on `main`.** M2 landed as one merge commit (#79) of the 27-branch stack
   (per-package PRs #50–#78 closed with a reference; their descriptions document each package). Final
@@ -26,11 +26,17 @@ how work is delivered, and which helper scripts exist. The roadmap with per-pack
   --merge` (893b191) and `gh pr merge` for later PRs.
 - **M3 is complete on `main`** (PR #93 merged, 4e8dc70; 0 open PRs). Every milestone package is
   merged and verified in the container (slim/full/gpl: 65 packages; acceptance 90/90).
-- **Next: first prerelease tag.** `docs/RELEASE.md` needs the `release` and `base-image` workflows
-  (multi-arch GHCR push, cosign, SBOM; the r3 `slim` and r4 `full`/`gpl` base tags (WP-93) are not on GHCR yet). Both are
-  disabled by the owner and the Actions minutes were exhausted until 2026-10-01. Ask the owner to
-  re-enable `base-image` (push to main publishes r3 slim, r4 full/gpl), then `release`, then tag `v0.1.0-rc.1`.
-  A local-only tag without images on GHCR is not useful for a Docker-target project.
+- **First prerelease `v0.1.0-rc.1` is out (2026-09-29), built locally** because Actions is
+  unavailable (billing). Release: https://github.com/xantiagoma/xtandard-image/releases/tag/v0.1.0-rc.1
+  (prerelease, tag on `8c9d16b`). GHCR has private packages `xtandard-image:0.1.0-rc.1[-slim|-full|-gpl]`
+  (amd64 + arm64) and the bases `xtandard-image-base:8.18.6-r7-slim`, `-r8-full`, `-r9-gpl` (and `-builder`,
+  plus the moving `slim`/`full`/`gpl`[-builder] base tags). The images are not signed and have no provenance.
+  The SBOMs (syft SPDX/CycloneDX) and the unstripped binaries are release assets. The procedure and results are in
+  `docs/RELEASE.md` "Local release (no Actions)". The `release` run that the tag started failed (billing,
+  expected). Open items: once Actions is back, re-run `release` for the tag (it builds slim only, so
+  extend `release.yml` to full/gpl first) to get signed images. amd64 gpl acceptance was 132/133 under
+  Rosetta (`TestEPS`, sandbox `RLIMIT_AS` against Rosetta's mmap), so confirm it on native amd64.
+  Then switch the README quick start to the GHCR image.
 - **M4:** WP-94 playground v2 is **merged (PR #95, owner-run merge; the session classifier denies merges without review, so ask
   the owner to run `gh pr merge`)**. The demo container `xtandard-play` on the tailnet (http://100.102.217.2:8080/_playground/)
   runs the v2 build `xtandard-image:wp94-gpl` with the configuration in `compose.playground.yml`
