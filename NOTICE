@@ -78,6 +78,12 @@ ships, unmodified or built from unmodified sources:
   parts; build configuration in share/licenses/ffmpeg/BUILDCONF.txt.
 - libvpx 1.17 (https://chromium.googlesource.com/webm/libvpx), BSD-3-Clause
   with the WebM patent grant.
+- libopus 1.6 (https://opus-codec.org/), Copyright Xiph.Org Foundation,
+  Skype Limited, Octasic, Jean-Marc Valin, Timothy B. Terriberry, CSIRO,
+  Gregory Maxwell, Mark Borgerding, Erik de Castro Lopo, Mozilla, Amazon
+  and others, BSD-3-Clause.
+- LAME 3.100 (https://lame.sourceforge.io/), libmp3lame only, GNU Library
+  General Public License version 2 or later, dynamically linked.
 - ONNX Runtime 1.30 (https://github.com/microsoft/onnxruntime),
   Copyright (c) Microsoft Corporation, MIT License; third-party notices in
   share/licenses/onnxruntime/ThirdPartyNotices.txt.
