@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	jsonv2 "encoding/json/v2"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -104,6 +105,12 @@ type ticketPayload struct {
 	Video  transform.VideoOp    `json:"v"`
 }
 
+// ticketJSON is the encoding of ticket payloads: zero fields omitted (a
+// ticket carries only what the URL set), durations in nanoseconds.
+func ticketJSON() jsonv2.Options {
+	return jsonv2.JoinOptions(jsonv2.OmitZeroStructFields(true), json.FormatDurationAsNano(true))
+}
+
 // streamRequest is the request a stream's keys and tickets are made of:
 // its source and video options, nothing request-specific.
 func streamRequest(spec transform.SourceSpec, op *transform.VideoOp) *transform.Request {
@@ -199,7 +206,8 @@ func (s *Server) streamMasterJob(ctx context.Context, r *http.Request, info *req
 		j.release()
 		return nil, err
 	}
-	payload, err := json.Marshal(ticketPayload{Source: j.req.Source, Video: *j.req.Video})
+	// Zero fields omitted: a ticket carries only what the URL set.
+	payload, err := jsonv2.Marshal(ticketPayload{Source: j.req.Source, Video: *j.req.Video}, ticketJSON())
 	if err != nil {
 		j.release()
 		return nil, errs.Wrapf(errs.KindInternal, err, "server: stream ticket")
@@ -246,7 +254,7 @@ func (s *Server) serveStreamChild(ctx context.Context, w http.ResponseWriter, r 
 		return err
 	}
 	var tp ticketPayload
-	if err := json.Unmarshal(payload, &tp); err != nil || tp.Video.Stream == nil {
+	if err := jsonv2.Unmarshal(payload, &tp, ticketJSON()); err != nil || tp.Video.Stream == nil {
 		return &errs.Error{Kind: errs.KindForbidden, Public: "invalid stream url", Msg: "server: unreadable stream ticket"}
 	}
 	part, err := manifest.ParsePart(path)
@@ -255,7 +263,7 @@ func (s *Server) serveStreamChild(ctx context.Context, w http.ResponseWriter, r 
 	}
 	j := &streamJob{req: streamRequest(tp.Source, &tp.Video), tok: tok, exp: exp}
 	defer j.release()
-	if err := j.req.Validate(); err != nil {
+	if err := j.req.Video.Validate(); err != nil {
 		return err
 	}
 	if err := s.streamPrepare(ctx, r, info, j); err != nil {
@@ -279,6 +287,9 @@ func (s *Server) serveStreamChild(ctx context.Context, w http.ResponseWriter, r 
 		}
 		defer body.Release()
 		info.format = "m4s"
+		if s.cfg.DebugHeaders && info.cache != "" {
+			w.Header().Set(hdrXiCache, info.cache)
+		}
 		s.respondStreamFile(w, r, j, body.Bytes(), ct, s.streamKey(j, part.Path()))
 		return nil
 	}
