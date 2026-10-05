@@ -538,12 +538,12 @@ fi
 # only protocols, and the concat demuxer (it opens the paths named in its input) is off.
 formats="$(ffmpeg -hide_banner -formats)"
 for mux in mp4 mov ipod webm matroska mpegts hls dash segment mp3 ogg opus adts wav flac; do
-  grep -qE "^ [D ]E[^ ]* $mux( |,)" <<< "$formats" || { echo "MISSING muxer $mux" >&2; exit 1; }
+  grep -qE "^ [D ]E[^ ]* +$mux( |$)" <<< "$formats" || { echo "MISSING muxer $mux" >&2; exit 1; }
 done
-for demux in mov,mp4 matroska,webm avi mpegts mp3 aac ac3 eac3 flac ogg wav; do
-  grep -qE "^ D[^ ]* $demux " <<< "$formats" || { echo "MISSING demuxer $demux" >&2; exit 1; }
+for demux in mov,mp4,m4a,3gp,3g2,mj2 matroska,webm avi mpegts mp3 aac ac3 eac3 flac ogg wav; do
+  grep -qE "^ D[^ ]* +$demux( |$)" <<< "$formats" || { echo "MISSING demuxer $demux" >&2; exit 1; }
 done
-if grep -qE "^ D[^ ]* (concat|hls|dash|lavfi) " <<< "$formats"; then
+if grep -qE "^ D[^ ]* +(concat|hls|dash|lavfi)( |$)" <<< "$formats"; then
   echo "UNEXPECTED demuxer (concat, hls, dash or lavfi)" >&2
   exit 1
 fi
