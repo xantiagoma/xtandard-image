@@ -758,3 +758,30 @@ func dialectNames() []DialectName {
 		DialectCloudflareImages, DialectImgix, DialectCloudinary, DialectImagekit, DialectBunny, DialectThumbor, DialectAWSSIH,
 	}
 }
+
+// ParseABRRung parses one XI_VIDEO_TRANSFORM_ABR_LADDER item:
+// "<height>[:<bit rate>]", the height 64–4320 pixels, the bit rate in bits
+// per second with an optional k or m suffix (0: the height's standard
+// rate).
+func ParseABRRung(s string) (height int, bitrate int64, err error) {
+	h, b, hasRate := strings.Cut(strings.TrimSpace(s), ":")
+	height, err = strconv.Atoi(strings.TrimSuffix(h, "p"))
+	if err != nil || height < 64 || height > 4320 {
+		return 0, 0, fmt.Errorf("rung %q: the height must be 64 to 4320 pixels", s)
+	}
+	if !hasRate {
+		return height, 0, nil
+	}
+	mult := int64(1)
+	switch {
+	case strings.HasSuffix(b, "k"), strings.HasSuffix(b, "K"):
+		mult, b = 1_000, b[:len(b)-1]
+	case strings.HasSuffix(b, "m"), strings.HasSuffix(b, "M"):
+		mult, b = 1_000_000, b[:len(b)-1]
+	}
+	n, err := strconv.ParseInt(b, 10, 64)
+	if err != nil || n <= 0 || n > 200_000_000/mult || n*mult < 50_000 {
+		return 0, 0, fmt.Errorf("rung %q: the bit rate must be 50k to 200m bits per second", s)
+	}
+	return height, n * mult, nil
+}
