@@ -85,3 +85,27 @@ func (*Encoder) Finish(context.Context) (*vips.Buffer, error) { return nil, errU
 
 // Close does nothing.
 func (*Encoder) Close() {}
+
+// TranscodeCaps is empty: this build transcodes nothing.
+func TranscodeCaps() video.TranscodeCaps { return video.TranscodeCaps{} }
+
+// Transcoder is never opened without FFmpeg.
+type Transcoder struct{}
+
+// OpenTranscode reports errs.KindUnsupported: this build has no FFmpeg.
+func OpenTranscode(context.Context, *vips.Buffer, video.Limits, int) (*Transcoder, error) {
+	return nil, errs.WithPublic(
+		errs.New(errs.KindUnsupported, "ffmpeg: this build has no video support (build tag ffmpeg)"),
+		"video transformations are not supported by this image")
+}
+
+// Input is empty.
+func (*Transcoder) Input() video.TranscodeInput { return video.TranscodeInput{} }
+
+// Run reports errs.KindUnsupported.
+func (*Transcoder) Run(context.Context, *video.TranscodePlan) (*Output, error) {
+	return nil, errUnavailable()
+}
+
+// Close does nothing.
+func (*Transcoder) Close() {}

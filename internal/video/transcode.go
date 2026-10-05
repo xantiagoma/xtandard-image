@@ -424,12 +424,12 @@ func planVideo(in *TranscodeInput, op *transform.VideoOp, codec Codec, p *Transc
 	var f filterChain
 	f.trim("trim", "setpts", p, op)
 
-	// Anamorphic sources are first scaled to square pixels.
+	// Anamorphic sources are first scaled to square pixels (scale keeps
+	// the display aspect, so the sample aspect ratio becomes 1:1).
 	w, h := in.Width, in.Height
 	if dw, dh := in.DisplaySize(); dw != w || dh != h {
 		w, h = even(dw), even(dh)
 		f.add("scale=" + itoa(w) + ":" + itoa(h) + ":flags=bicubic")
-		f.add("setsar=1")
 	}
 	// Display matrix, then the request's rotation and flips.
 	o := orientation{flip: in.HFlip, rot: in.Rotation}.

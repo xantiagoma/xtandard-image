@@ -3,7 +3,7 @@
 package ffmpeg
 
 /*
-#cgo pkg-config: libavformat libavcodec libavutil libswscale
+#cgo pkg-config: libavformat libavcodec libavutil libswscale libavfilter
 #cgo LDFLAGS: -lm
 #cgo noescape xi_ff_open
 #cgo nocallback xi_ff_new
@@ -57,10 +57,13 @@ func Version() string { return C.GoString(C.xi_ff_version()) }
 
 // ReadStats returns the shim's counters (open handles, glibc heap in use).
 func ReadStats() Stats {
+	tx, out := transcodeStats()
 	return Stats{
-		Handles:   int(C.xi_ff_live()),
-		Encoders:  int(C.xi_ff_live_encoders()),
-		HeapInUse: int64(C.xi_ff_heap_in_use()),
+		Handles:     int(C.xi_ff_live()),
+		Encoders:    int(C.xi_ff_live_encoders()),
+		Transcoders: tx,
+		Outputs:     out,
+		HeapInUse:   int64(C.xi_ff_heap_in_use()),
 	}
 }
 
