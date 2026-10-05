@@ -1461,7 +1461,7 @@ func (a *applier) page(v string) error {
 		}
 		return dialect.InvalidArgument("pg", v, expPage)
 	}
-	if n < 1 {
+	if n < 1 || n > math.MaxInt32 {
 		return dialect.InvalidArgument("pg", v, expPage)
 	}
 	page := n - 1
