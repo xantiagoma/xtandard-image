@@ -450,6 +450,11 @@ linux/arm64, `docker save | gzip -6` (compressed) and `docker image inspect` (un
 | gpl runtime (`8.18.6-r9-gpl`) | 140.5 MB | 285.6 MB | ≤ 170 MB (as full) |
 | gpl builder | 346.2 MB | 943.4 MB | — |
 
+WP-120 (audio and video transformations; the revision bump comes with the integration):
+full and gpl grow by 1.3 MB compressed / 2.5–2.7 MB uncompressed (runtime and builder alike)
+for libswresample, libopus, LAME, the audio decoders and encoders, the extra muxers and
+filters; slim is unchanged (identical file list and sizes).
+
 r7/r8/r9 over r6/r7/r8 (WP-108): the Basis Universal transcoder (`libxibasisu`) adds 0.6 MB
 compressed / 1.1 MB uncompressed to every flavor; the PICT and PCD coders cost nothing. The gpl
 flavor adds another 2.2 MB compressed / 3.8 MB uncompressed for libwmf with its URW fonts,
