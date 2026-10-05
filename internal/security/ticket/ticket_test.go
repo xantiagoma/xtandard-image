@@ -16,11 +16,11 @@ var (
 	now     = time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
 )
 
-func mustNew(t testing.TB, secrets ...[]byte) *Sealer {
-	t.Helper()
+func mustNew(tb testing.TB, secrets ...[]byte) *Sealer {
+	tb.Helper()
 	s, err := New(secrets...)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	return s
 }

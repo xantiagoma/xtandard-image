@@ -41,7 +41,7 @@ func streamOf(t *testing.T, in *TranscodeInput, op *transform.VideoOp, caps Tran
 
 // names lists the renditions as WxH@bitrate.
 func names(l *StreamLayout) []string {
-	var s []string
+	s := make([]string, 0, len(l.Video))
 	for _, r := range l.Video {
 		s = append(s, itoa(r.Width)+"x"+itoa(r.Height)+"@"+itoa(int(r.Bitrate/1000))+"k "+r.Codecs)
 	}
@@ -296,7 +296,7 @@ func TestStreamChainsAreNumeric(t *testing.T) {
 		Stream: &transform.VideoStream{SegmentDuration: 5 * time.Second},
 	}
 	l := streamOf(t, long(), op, gplCaps(), &StreamSettings{})
-	var chains []string
+	chains := make([]string, 0, 3*len(l.Video)+1)
 	for i := range l.Video {
 		for _, n := range []int{0, l.Segments / 2, l.Segments - 1} {
 			p, err := PlanSegment(long(), op, l, &l.Video[i], n, settings())

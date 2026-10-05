@@ -10,7 +10,7 @@ import (
 // mk builds a box of typ around the concatenated payloads.
 func mk(typ string, payload ...[]byte) []byte {
 	body := bytes.Join(payload, nil)
-	b := binary.BigEndian.AppendUint32(nil, uint32(8+len(body)))
+	b := binary.BigEndian.AppendUint32(nil, uint32(8+len(body))) //nolint:gosec // G115: test boxes are small
 	return append(append(b, typ...), body...)
 }
 
@@ -47,9 +47,9 @@ func file(entry []byte, timescale uint32, frags ...[]uint32) []byte {
 		// fragments, the trex default (flags 0x001) for odd ones.
 		var trun []byte
 		if i%2 == 0 {
-			trun = mk("trun", u32(0x000101, uint32(len(durs)), 0), u32(durs...))
+			trun = mk("trun", u32(0x000101, uint32(len(durs)), 0), u32(durs...)) //nolint:gosec // G115: a few samples
 		} else {
-			trun = mk("trun", u32(0x000001, uint32(len(durs)), 0))
+			trun = mk("trun", u32(0x000001, uint32(len(durs)), 0)) //nolint:gosec // G115: a few samples
 		}
 		traf := mk("traf", mk("tfhd", u32(0x020000, 1)), mk("tfdt", u32(1<<24), u64(t)), trun)
 		out = append(out, mk("moof", mk("mfhd", u32(0, uint32(i+1))), traf)...)

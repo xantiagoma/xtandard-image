@@ -35,7 +35,7 @@ func layouts(t *testing.T) map[string]*video.StreamLayout {
 	clip := &video.TranscodeInput{Container: "matroska", Duration: 6.6, Video: true, Width: 640, Height: 360, FPS: 25}
 	s := &video.TranscodeSettings{MaxOutputPixels: 3840 * 2160, MaxFPS: 60}
 	out := map[string]*video.StreamLayout{}
-	for name, c := range map[string]struct {
+	for name, c := range map[string]*struct {
 		in *video.TranscodeInput
 		op transform.VideoOp
 	}{
@@ -105,7 +105,7 @@ func TestManifests(t *testing.T) {
 }
 
 func tracks(l *video.StreamLayout) []string {
-	var out []string
+	out := make([]string, 0, len(l.Video))
 	for _, r := range l.Video {
 		out = append(out, r.Name)
 	}

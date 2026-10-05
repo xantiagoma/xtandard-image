@@ -64,7 +64,9 @@ func (vs *videoState) finishStream() error {
 		name string
 		set  bool
 	}{
-		{"w", op.Width != 0}, {"h", op.Height != 0}, {"l", len(op.Overlays) > 0},
+		{"w", op.Width != 0},
+		{"h", op.Height != 0},
+		{"l", len(op.Overlays) > 0},
 		{"ac", op.AudioCodec != transform.AudioCodecAuto && op.AudioCodec != transform.AudioCodecAAC},
 		{"vc", op.VideoCodec == transform.VideoCodecHEVC},
 	} {
