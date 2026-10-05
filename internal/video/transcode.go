@@ -2,6 +2,7 @@ package video
 
 import (
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -30,10 +31,12 @@ const (
 	AudioAAC             // FFmpeg's native AAC encoder
 	AudioOpus            // libopus
 	AudioMP3             // libmp3lame
+	AudioFLAC            // FFmpeg's FLAC encoder (WP-123)
+	AudioPCM             // 16-bit little-endian PCM (WAV)
 )
 
-// String is the codec's name as ffprobe reports it ("aac", "opus", "mp3");
-// "" for AudioNone.
+// String is the codec's name as ffprobe reports it ("aac", "opus", "mp3",
+// "flac", "pcm_s16le"); "" for AudioNone.
 func (c AudioCodec) String() string {
 	switch c {
 	case AudioAAC:
@@ -42,10 +45,17 @@ func (c AudioCodec) String() string {
 		return "opus"
 	case AudioMP3:
 		return "mp3"
+	case AudioFLAC:
+		return "flac"
+	case AudioPCM:
+		return "pcm_s16le"
 	default:
 		return ""
 	}
 }
+
+// Lossless reports a codec without a bit rate (FLAC, PCM).
+func (c AudioCodec) Lossless() bool { return c == AudioFLAC || c == AudioPCM }
 
 // Encoder is FFmpeg's name of the encoder that writes c.
 func (c AudioCodec) Encoder() string {
@@ -56,6 +66,10 @@ func (c AudioCodec) Encoder() string {
 		return "libopus"
 	case AudioMP3:
 		return "libmp3lame"
+	case AudioFLAC:
+		return "flac"
+	case AudioPCM:
+		return "pcm_s16le"
 	default:
 		return ""
 	}
@@ -63,15 +77,22 @@ func (c AudioCodec) Encoder() string {
 
 // sampleFormat is the sample format c's encoder takes (aformat).
 func (c AudioCodec) sampleFormat() string {
-	if c == AudioOpus {
+	switch c {
+	case AudioOpus:
 		return "flt"
+	case AudioFLAC, AudioPCM:
+		return "s16"
+	default:
+		return "fltp"
 	}
-	return "fltp"
 }
 
-// defaultBitrate is c's bit rate when the request sets none.
+// defaultBitrate is c's bit rate when the request sets none; 0 for the
+// lossless codecs.
 func (c AudioCodec) defaultBitrate(channels int) int64 {
 	switch c {
+	case AudioFLAC, AudioPCM:
+		return 0
 	case AudioOpus:
 		if channels == 1 {
 			return 64_000
@@ -86,23 +107,33 @@ func (c AudioCodec) defaultBitrate(channels int) int64 {
 }
 
 // sampleRate is the output rate of c for a source at rate: Opus is always
-// 48 kHz; AAC and MP3 keep a rate they support, else 48 kHz and 44.1 kHz.
+// 48 kHz; AAC and MP3 keep a rate they support, else 48 kHz and 44.1 kHz;
+// FLAC and PCM keep the source's.
 func (c AudioCodec) sampleRate(rate int) int {
-	switch c {
-	case AudioOpus:
+	switch {
+	case c == AudioOpus:
 		return 48_000
-	case AudioMP3:
-		switch rate {
-		case 8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000:
-			return rate
-		}
+	case c.supportsRate(rate):
+		return rate
+	case c == AudioMP3:
 		return 44_100
 	default:
-		switch rate {
-		case 8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000:
-			return rate
-		}
 		return 48_000
+	}
+}
+
+// supportsRate reports whether c's encoder takes rate (a requested
+// transform.VideoOp.SampleRate).
+func (c AudioCodec) supportsRate(rate int) bool {
+	switch c {
+	case AudioOpus:
+		return slices.Contains([]int{8000, 12000, 16000, 24000, 48000}, rate)
+	case AudioMP3:
+		return slices.Contains([]int{8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000}, rate)
+	case AudioAAC:
+		return slices.Contains([]int{8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000}, rate)
+	default:
+		return rate >= 8000 && rate <= 192_000
 	}
 }
 
@@ -112,10 +143,10 @@ type TranscodeCaps struct {
 	// Video holds the video encoders.
 	Video EncoderSet
 	// AAC, Opus and MP3 are the audio encoders (aac, libopus,
-	// libmp3lame).
-	AAC, Opus, MP3 bool
+	// libmp3lame); FLAC and PCM the lossless ones (flac, pcm_s16le).
+	AAC, Opus, MP3, FLAC, PCM bool
 	// Muxers.
-	MuxMP4, MuxWebM, MuxOgg, MuxMP3 bool
+	MuxMP4, MuxWebM, MuxOgg, MuxMP3, MuxFLAC, MuxWAV bool
 	// VideoFilters and AudioFilters report the libavfilter filters the
 	// plans use (scale, crop, pad, transpose, fps, trim, …; abuffer,
 	// atrim, aresample, aformat, …).
@@ -123,6 +154,12 @@ type TranscodeCaps struct {
 	// Overlays reports the filters of image and text overlays (overlay,
 	// fade); Timecode drawtext (WP-124).
 	Overlays, Timecode bool
+	// AudioEffects reports volume, loudnorm and afade; VideoFade the
+	// fade filter (WP-123).
+	AudioEffects, VideoFade bool
+	// Waveform reports showwavespic with the rawvideo encoder and muxer
+	// (waveform pictures, WP-123).
+	Waveform bool
 }
 
 // HasAudio reports whether c encodes a.
@@ -134,6 +171,10 @@ func (c TranscodeCaps) HasAudio(a AudioCodec) bool {
 		return c.Opus
 	case AudioMP3:
 		return c.MP3
+	case AudioFLAC:
+		return c.FLAC
+	case AudioPCM:
+		return c.PCM
 	default:
 		return false
 	}
@@ -143,10 +184,13 @@ func (c TranscodeCaps) HasAudio(a AudioCodec) bool {
 // startup log.
 func (c TranscodeCaps) Names() []string {
 	out := c.Video.Names()
-	for _, a := range [...]AudioCodec{AudioAAC, AudioOpus, AudioMP3} {
+	for _, a := range [...]AudioCodec{AudioAAC, AudioOpus, AudioMP3, AudioFLAC, AudioPCM} {
 		if c.HasAudio(a) {
 			out = append(out, a.String())
 		}
+	}
+	if c.Waveform {
+		out = append(out, "waveform")
 	}
 	return out
 }
@@ -155,7 +199,9 @@ func (c TranscodeCaps) Names() []string {
 // known before the source is fetched.
 type TranscodeOutput struct {
 	Container transform.VideoContainer
-	// Muxer is FFmpeg's muxer name ("mp4", "webm", "ogg", "mp3").
+	// Muxer is FFmpeg's muxer name ("mp4", "webm", "ogg", "mp3", "flac",
+	// "wav"; "rawvideo" for the pixels of a waveform picture, which the
+	// engine encodes as PNG or WebP).
 	Muxer string
 	// Video is the video codec; CodecNone for audio-only containers.
 	Video Codec
@@ -182,9 +228,33 @@ func unsupported(public string) error {
 
 // Resolve picks the muxer and codecs of op on this build: webm is VP9 (or
 // AV1) with Opus; mp4 is H.264 when libx264 is linked, else AV1, or HEVC on
-// request, with AAC; m4a is AAC, opus is Opus in Ogg, mp3 is LAME.
+// request, with AAC; m4a is AAC, opus and ogg are Opus in Ogg, mp3 is
+// LAME, flac FLAC, wav 16-bit PCM; png and webp are waveform pictures.
 // Something this build cannot write is errs.KindUnsupported (422).
 func (c TranscodeCaps) Resolve(op *transform.VideoOp) (TranscodeOutput, error) {
+	out, err := c.resolve(op)
+	if err != nil {
+		return TranscodeOutput{}, err
+	}
+	if err := c.resolveEffects(op); err != nil {
+		return TranscodeOutput{}, err
+	}
+	return out, nil
+}
+
+// resolveEffects refuses the WP-123 effects this build lacks.
+func (c TranscodeCaps) resolveEffects(op *transform.VideoOp) error {
+	fade := op.FadeIn > 0 || op.FadeOut > 0
+	if (op.Volume != 0 || op.Loudnorm != nil || (fade && !op.Mute)) && !c.AudioEffects {
+		return unsupported("audio effects are not supported by this image")
+	}
+	if fade && op.Container.HasVideoStream() && !c.VideoFade {
+		return unsupported("video fades are not supported by this image")
+	}
+	return nil
+}
+
+func (c TranscodeCaps) resolve(op *transform.VideoOp) (TranscodeOutput, error) {
 	if op == nil {
 		return TranscodeOutput{}, errs.New(errs.KindInternal, "video: no video op")
 	}
@@ -201,6 +271,21 @@ func (c TranscodeCaps) Resolve(op *transform.VideoOp) (TranscodeOutput, error) {
 		out.Muxer, out.ContentType, out.Ext, out.Audio, muxOK = "ogg", "audio/ogg", ".opus", AudioOpus, c.MuxOgg
 	case transform.VideoContainerMP3:
 		out.Muxer, out.ContentType, out.Ext, out.Audio, muxOK = "mp3", "audio/mpeg", ".mp3", AudioMP3, c.MuxMP3
+	case transform.VideoContainerOgg:
+		out.Muxer, out.ContentType, out.Ext, out.Audio, muxOK = "ogg", "audio/ogg", ".ogg", AudioOpus, c.MuxOgg
+	case transform.VideoContainerFLAC:
+		out.Muxer, out.ContentType, out.Ext, out.Audio, muxOK = "flac", "audio/flac", ".flac", AudioFLAC, c.MuxFLAC
+	case transform.VideoContainerWAV:
+		out.Muxer, out.ContentType, out.Ext, out.Audio, muxOK = "wav", "audio/wav", ".wav", AudioPCM, c.MuxWAV
+	case transform.VideoContainerPNG, transform.VideoContainerWebP:
+		if !c.Waveform || !c.AudioFilters {
+			return TranscodeOutput{}, unsupported("waveform pictures are not supported by this image")
+		}
+		out.Muxer, out.ContentType, out.Ext = "rawvideo", "image/png", ".png"
+		if op.Container == transform.VideoContainerWebP {
+			out.ContentType, out.Ext = "image/webp", ".webp"
+		}
+		return out, nil
 	default:
 		return TranscodeOutput{}, errs.Newf(errs.KindInternal, "video: container %s", op.Container)
 	}
@@ -328,6 +413,22 @@ type TranscodePlan struct {
 	// Video and Audio are nil when the output has no such stream.
 	Video *VideoStreamPlan
 	Audio *AudioStreamPlan
+	// Waveform is set instead of Video and Audio for a waveform picture:
+	// the audio is drawn into one RGBA frame of Width × Height that the
+	// engine encodes.
+	Waveform *WaveformPlan
+}
+
+// WaveformPlan is a waveform picture (showwavespic) of the source's audio.
+type WaveformPlan struct {
+	Width, Height int
+	// Background fills the picture when its alpha is not 0.
+	Background transform.Color
+	// Format is the picture's container (png or webp).
+	Format transform.VideoContainer
+	// Filters is the chain from the audio decoder's frames to one RGBA
+	// video frame (trim, sample format and layout, showwavespic, format).
+	Filters string
 }
 
 // VideoStreamPlan is the video stream of a transcode.
@@ -343,7 +444,8 @@ type VideoStreamPlan struct {
 	Speed      int
 	Preset     string
 	MaxBitrate int64
-	// GOP is the keyframe interval in frames (two seconds).
+	// GOP is the keyframe interval in frames (two seconds unless the
+	// request sets KeyframeInterval).
 	GOP int
 	// Filters is the libavfilter chain from the decoder's frames to the
 	// encoder's (trim, orientation, crop, fit, fps, pixel format).
@@ -386,6 +488,17 @@ func PlanTranscode(in *TranscodeInput, op *transform.VideoOp, out TranscodeOutpu
 	if err := p.cut(in, op, s); err != nil {
 		return nil, err
 	}
+	if op.FadeOut > 0 && p.Duration <= 0 {
+		return nil, unsupported("fade out needs a source of known duration")
+	}
+	if op.Container.Image() {
+		w, err := planWaveform(in, op, caps, p, s)
+		if err != nil {
+			return nil, err
+		}
+		p.Waveform = w
+		return p, nil
+	}
 	if out.Video != CodecNone {
 		if !in.Video {
 			return nil, unsupported("the source has no video stream")
@@ -403,7 +516,11 @@ func PlanTranscode(in *TranscodeInput, op *transform.VideoOp, out TranscodeOutpu
 		if !in.AudioDecodable || !caps.HasAudio(out.Audio) || !caps.AudioFilters {
 			return nil, unsupported("this image cannot transcode the audio of this video; mute it")
 		}
-		p.Audio = planAudio(in, op, out.Audio, p)
+		a, err := planAudio(in, op, out.Audio, p)
+		if err != nil {
+			return nil, err
+		}
+		p.Audio = a
 	}
 	if out.Video == CodecNone && p.Audio == nil {
 		return nil, unsupported("the source has no audio stream")
@@ -461,14 +578,21 @@ func planVideo(in *TranscodeInput, op *transform.VideoOp, codec Codec, p *Transc
 		w, h = h, w
 	}
 	if c := op.Crop; c != nil {
+		cw, ch := c.Width, c.Height // 0 is the whole side
+		if cw == 0 || cw > w {
+			cw = w
+		}
+		if ch == 0 || ch > h {
+			ch = h
+		}
 		x, y := c.X, c.Y
 		if c.Gravity != nil {
-			x, y = anchored(*c.Gravity, w, h, min(c.Width, w), min(c.Height, h), c.X, c.Y)
+			x, y = anchored(*c.Gravity, w, h, cw, ch, c.X, c.Y)
 		}
 		if x >= w || y >= h {
 			return nil, limit("the crop is outside the video")
 		}
-		cw, ch := even(min(c.Width, w-x)), even(min(c.Height, h-y))
+		cw, ch = even(min(cw, w-x)), even(min(ch, h-y))
 		f.add("crop=" + itoa(cw) + ":" + itoa(ch) + ":" + itoa(x) + ":" + itoa(y))
 		w, h = cw, ch
 	}
@@ -489,6 +613,12 @@ func planVideo(in *TranscodeInput, op *transform.VideoOp, codec Codec, p *Transc
 		fps = s.MaxFPS
 		f.add("fps=" + ftoa(fps))
 	}
+	if op.FadeIn > 0 {
+		f.add("fade=t=in:st=0:d=" + ftoa(op.FadeIn.Seconds()))
+	}
+	if op.FadeOut > 0 {
+		f.add("fade=t=out:st=" + ftoa(max(p.Duration-op.FadeOut.Seconds(), 0)) + ":d=" + ftoa(op.FadeOut.Seconds()))
+	}
 	f.add("format=yuv420p")
 
 	v := &VideoStreamPlan{
@@ -498,7 +628,11 @@ func planVideo(in *TranscodeInput, op *transform.VideoOp, codec Codec, p *Transc
 	if fps <= 0 {
 		v.FPS = 25 // a rate-control hint only: the timestamps are the source's
 	}
-	v.GOP = min(max(int(math.Round(v.FPS*2)), 1), 300)
+	gop := 2.0
+	if op.KeyframeInterval > 0 {
+		gop = op.KeyframeInterval.Seconds()
+	}
+	v.GOP = min(max(int(math.Round(v.FPS*gop)), 1), maxGOP)
 	def := DefaultCRF(codec)
 	if c, ok := s.Encode.CRF[codec]; ok {
 		def = c
@@ -520,16 +654,34 @@ func planVideo(in *TranscodeInput, op *transform.VideoOp, codec Codec, p *Transc
 	return v, nil
 }
 
-// planAudio computes the audio chain and encoder settings.
-func planAudio(in *TranscodeInput, op *transform.VideoOp, codec AudioCodec, p *TranscodePlan) *AudioStreamPlan {
+// maxGOP bounds the keyframe interval in frames.
+const maxGOP = 7200
+
+// planAudio computes the audio chain and encoder settings: the cut, the
+// gain, the loudness normalisation, the fades, then the resampling to the
+// encoder's rate, sample format and layout.
+func planAudio(in *TranscodeInput, op *transform.VideoOp, codec AudioCodec, p *TranscodePlan) (*AudioStreamPlan, error) {
 	ch := min(max(in.Channels, 1), 2)
+	if op.Channels > 0 {
+		ch = op.Channels
+	}
+	rate := codec.sampleRate(in.SampleRate)
+	if op.SampleRate > 0 {
+		if !codec.supportsRate(op.SampleRate) {
+			return nil, unsupported(codec.String() + " cannot be encoded at " + itoa(op.SampleRate) + " Hz")
+		}
+		rate = op.SampleRate
+	}
 	a := &AudioStreamPlan{
 		Codec:      codec,
-		SampleRate: codec.sampleRate(in.SampleRate),
+		SampleRate: rate,
 		Channels:   ch,
 		Bitrate:    op.AudioBitrate,
 	}
-	if a.Bitrate == 0 {
+	switch {
+	case codec.Lossless():
+		a.Bitrate = 0
+	case a.Bitrate == 0:
 		a.Bitrate = codec.defaultBitrate(ch)
 	}
 	layout := "stereo"
@@ -538,11 +690,62 @@ func planAudio(in *TranscodeInput, op *transform.VideoOp, codec AudioCodec, p *T
 	}
 	var f filterChain
 	f.trim("atrim", "asetpts", p, op)
+	if op.Volume > 0 && op.Volume != 1 {
+		f.add("volume=" + ftoa(op.Volume))
+	}
+	if l := op.Loudnorm; l != nil {
+		f.add("loudnorm=i=" + ftoa(l.Integrated) + ":tp=" + ftoa(l.TruePeak) + ":lra=" + ftoa(l.Range))
+	}
+	if op.FadeIn > 0 {
+		f.add("afade=t=in:st=0:d=" + ftoa(op.FadeIn.Seconds()))
+	}
+	if op.FadeOut > 0 {
+		f.add("afade=t=out:st=" + ftoa(max(p.Duration-op.FadeOut.Seconds(), 0)) + ":d=" + ftoa(op.FadeOut.Seconds()))
+	}
 	f.add("aresample=" + itoa(a.SampleRate))
 	f.add("aformat=sample_fmts=" + codec.sampleFormat() + ":sample_rates=" + itoa(a.SampleRate) +
 		":channel_layouts=" + layout)
 	a.Filters = f.String()
-	return a
+	return a, nil
+}
+
+// planWaveform draws the cut of the source's audio into one RGBA frame.
+func planWaveform(in *TranscodeInput, op *transform.VideoOp, caps TranscodeCaps, p *TranscodePlan, s *TranscodeSettings) (*WaveformPlan, error) {
+	if !in.Audio {
+		return nil, unsupported("the source has no audio stream")
+	}
+	if !in.AudioDecodable || !caps.AudioFilters || !caps.Waveform {
+		return nil, unsupported("this image cannot decode the audio of this source")
+	}
+	wf := op.Waveform
+	if wf == nil {
+		wf = &transform.VideoWaveform{}
+	}
+	w, h := op.Width, op.Height
+	if w == 0 {
+		w = transform.DefaultWaveformWidth
+	}
+	if h == 0 {
+		h = transform.DefaultWaveformHeight
+	}
+	if s.MaxOutputPixels > 0 && int64(w)*int64(h) > s.MaxOutputPixels {
+		return nil, limit(itoa(w) + "x" + itoa(h) + " is over the output pixel limit")
+	}
+	layout, split := "mono", "0"
+	if wf.SplitChannels {
+		layout, split = "stereo", "1"
+	}
+	var f filterChain
+	f.trim("atrim", "asetpts", p, op)
+	if op.Volume > 0 && op.Volume != 1 {
+		f.add("volume=" + ftoa(op.Volume))
+	}
+	c := wf.Color
+	f.add("aformat=sample_fmts=s16:channel_layouts=" + layout)
+	f.add("showwavespic=s=" + itoa(w) + "x" + itoa(h) + ":split_channels=" + split +
+		":colors=0x" + hex2(c.R) + hex2(c.G) + hex2(c.B))
+	f.add("format=rgba")
+	return &WaveformPlan{Width: w, Height: h, Background: wf.Background, Format: op.Container, Filters: f.String()}, nil
 }
 
 // fit scales (and crops or pads) a w × h frame into op's box and returns

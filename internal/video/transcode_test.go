@@ -16,10 +16,18 @@ import (
 func fullCaps() TranscodeCaps {
 	return TranscodeCaps{
 		Video: EncoderSet{VP9: true, AV1: true},
-		AAC:   true, Opus: true, MP3: true,
-		MuxMP4: true, MuxWebM: true, MuxOgg: true, MuxMP3: true,
+		AAC:   true, Opus: true, MP3: true, FLAC: true, PCM: true,
+		MuxMP4: true, MuxWebM: true, MuxOgg: true, MuxMP3: true, MuxFLAC: true, MuxWAV: true,
 		VideoFilters: true, AudioFilters: true, Overlays: true, Timecode: true,
+		AudioEffects: true, VideoFade: true, Waveform: true,
 	}
+}
+
+// noEffects is fullCaps without the WP-123 filters.
+func noEffects() TranscodeCaps {
+	c := fullCaps()
+	c.AudioEffects, c.VideoFade, c.Waveform = false, false, false
+	return c
 }
 
 func TestResolve(t *testing.T) {
@@ -56,6 +64,14 @@ func TestResolve(t *testing.T) {
 		{"overlays without the filters", noOverlays, transform.VideoOp{Overlays: []transform.VideoOverlay{{}}}, "unsupported", ""},
 		{"timecode without drawtext", noTimecode, transform.VideoOp{Overlays: []transform.VideoOverlay{{Timecode: transform.VideoTimecodeHMS}}}, "unsupported", ""},
 		{"image overlay without drawtext", noTimecode, transform.VideoOp{Overlays: []transform.VideoOverlay{{}}}, "mp4:av1:aac", "video/mp4"},
+		{"ogg", fullCaps(), transform.VideoOp{Container: transform.VideoContainerOgg}, "ogg::opus", "audio/ogg"},
+		{"flac", fullCaps(), transform.VideoOp{Container: transform.VideoContainerFLAC}, "flac::flac", "audio/flac"},
+		{"wav", fullCaps(), transform.VideoOp{Container: transform.VideoContainerWAV}, "wav::pcm_s16le", "audio/wav"},
+		{"waveform png", fullCaps(), transform.VideoOp{Container: transform.VideoContainerPNG, Waveform: &transform.VideoWaveform{}}, "png::", "image/png"},
+		{"waveform webp", fullCaps(), transform.VideoOp{Container: transform.VideoContainerWebP, Waveform: &transform.VideoWaveform{}}, "webp::", "image/webp"},
+		{"waveform without showwavespic", noEffects(), transform.VideoOp{Container: transform.VideoContainerPNG, Waveform: &transform.VideoWaveform{}}, "unsupported", ""},
+		{"loudnorm without the filter", noEffects(), transform.VideoOp{Container: transform.VideoContainerM4A, Loudnorm: &transform.VideoLoudnorm{}}, "unsupported", ""},
+		{"video fade without the filter", noEffects(), transform.VideoOp{Mute: true, FadeIn: time.Second}, "unsupported", ""},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -360,6 +376,48 @@ func TestPlanTranscodeAudio(t *testing.T) {
 			err: errs.KindUnsupported,
 		},
 		{
+			name: "sample rate and mono", op: transform.VideoOp{Container: transform.VideoContainerMP3, SampleRate: 22050, Channels: 1, AudioBitrate: 64_000},
+			want: &AudioStreamPlan{
+				Codec: AudioMP3, SampleRate: 22050, Channels: 1, Bitrate: 64_000,
+				Filters: "aresample=22050,aformat=sample_fmts=fltp:sample_rates=22050:channel_layouts=mono",
+			},
+		},
+		{
+			name: "opus at 44.1 kHz", op: transform.VideoOp{Container: transform.VideoContainerOpus, SampleRate: 44100},
+			err: errs.KindUnsupported,
+		},
+		{
+			name: "volume loudnorm fades", video: true,
+			op: transform.VideoOp{
+				Start: 500 * time.Millisecond, Volume: 0.5, Loudnorm: &transform.VideoLoudnorm{Integrated: -16, TruePeak: -1.5, Range: 11},
+				FadeIn: 250 * time.Millisecond, FadeOut: time.Second,
+			},
+			want: &AudioStreamPlan{
+				Codec: AudioAAC, SampleRate: 44100, Channels: 2, Bitrate: 128_000,
+				Filters: "atrim=start=0.5,asetpts=PTS-0.5/TB,volume=0.5,loudnorm=i=-16:tp=-1.5:lra=11," +
+					"afade=t=in:st=0:d=0.25,afade=t=out:st=0.5:d=1," +
+					"aresample=44100,aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo",
+			},
+		},
+		{
+			name: "flac keeps the rate, no bit rate", op: transform.VideoOp{Container: transform.VideoContainerFLAC, AudioBitrate: 64_000},
+			want: &AudioStreamPlan{
+				Codec: AudioFLAC, SampleRate: 44100, Channels: 2,
+				Filters: "aresample=44100,aformat=sample_fmts=s16:sample_rates=44100:channel_layouts=stereo",
+			},
+		},
+		{
+			name: "wav at 8 kHz mono", op: transform.VideoOp{Container: transform.VideoContainerWAV, SampleRate: 8000, Channels: 1},
+			want: &AudioStreamPlan{
+				Codec: AudioPCM, SampleRate: 8000, Channels: 1,
+				Filters: "aresample=8000,aformat=sample_fmts=s16:sample_rates=8000:channel_layouts=mono",
+			},
+		},
+		{
+			name: "fade out of an unknown duration", in: func(in *TranscodeInput) { in.Duration = 0 },
+			op: transform.VideoOp{Container: transform.VideoContainerM4A, FadeOut: time.Second}, err: errs.KindUnsupported,
+		},
+		{
 			name: "audio-only source in m4a", in: func(in *TranscodeInput) { in.Video = false },
 			op: transform.VideoOp{Container: transform.VideoContainerM4A},
 			want: &AudioStreamPlan{
@@ -446,6 +504,18 @@ func TestFilterChainsAreNumeric(t *testing.T) {
 			Fit: transform.VideoFitPad, Background: transform.Color{R: 1, G: 2, B: 3}, Rotate: 270, FlipH: true, FPS: 29.97,
 		},
 		{Crop: &transform.VideoCrop{X: 1, Y: 3, Width: 99, Height: 77}, Fit: transform.VideoFitCover, Width: 64, Height: 48},
+		{
+			Crop:  &transform.VideoCrop{Width: 300, X: 3, Y: 7, Gravity: new(transform.VideoGravityNorthEast)},
+			Width: 160, Height: 90, Fit: transform.VideoFitCover, Gravity: transform.VideoGravitySouthWest,
+			KeyframeInterval: 1500 * time.Millisecond, FadeIn: 333 * time.Millisecond, FadeOut: 777 * time.Millisecond,
+			Volume: 0.123456, Loudnorm: &transform.VideoLoudnorm{Integrated: -14.5, TruePeak: -0.5, Range: 20}, SampleRate: 32000, Channels: 1,
+		},
+		{Container: transform.VideoContainerOgg, Volume: 2.5, FadeOut: time.Second},
+		{Container: transform.VideoContainerWAV, Loudnorm: &transform.VideoLoudnorm{Integrated: -70, TruePeak: -9, Range: 1}},
+		{
+			Container: transform.VideoContainerPNG, Start: 250 * time.Millisecond, Width: 333, Height: 77, Volume: 3,
+			Waveform: &transform.VideoWaveform{Color: transform.Color{R: 1, G: 2, B: 3}, SplitChannels: true},
+		},
 	}
 	for _, op := range ops {
 		out, err := fullCaps().Resolve(&op)
@@ -456,7 +526,20 @@ func TestFilterChainsAreNumeric(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, chain := range []string{p.Video.Filters, p.Audio.Filters} {
+		var chains []string
+		if p.Video != nil {
+			chains = append(chains, p.Video.Filters)
+		}
+		if p.Audio != nil {
+			chains = append(chains, p.Audio.Filters)
+		}
+		if p.Waveform != nil {
+			chains = append(chains, p.Waveform.Filters)
+		}
+		if len(chains) == 0 {
+			t.Fatalf("%+v: no chain", op)
+		}
+		for _, chain := range chains {
 			if i := strings.IndexFunc(chain, func(r rune) bool { return !strings.ContainsRune(allowed, r) }); i >= 0 {
 				t.Errorf("chain %q has %q", chain, chain[i])
 			}
