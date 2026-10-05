@@ -481,20 +481,27 @@ func (g VideoGravity) String() string {
 // Anchor returns where g sits on each axis: 0 is the left (top) edge, 1
 // the centre and 2 the right (bottom) edge.
 func (g VideoGravity) Anchor() (x, y int) {
-	x, y = 1, 1
 	switch g {
-	case VideoGravityNorth, VideoGravityNorthEast, VideoGravityNorthWest:
-		y = 0
-	case VideoGravitySouth, VideoGravitySouthEast, VideoGravitySouthWest:
-		y = 2
+	case VideoGravityCenter:
+		return 1, 1
+	case VideoGravityNorth:
+		return 1, 0
+	case VideoGravitySouth:
+		return 1, 2
+	case VideoGravityEast:
+		return 2, 1
+	case VideoGravityWest:
+		return 0, 1
+	case VideoGravityNorthEast:
+		return 2, 0
+	case VideoGravityNorthWest:
+		return 0, 0
+	case VideoGravitySouthEast:
+		return 2, 2
+	case VideoGravitySouthWest:
+		return 0, 2
 	}
-	switch g {
-	case VideoGravityWest, VideoGravityNorthWest, VideoGravitySouthWest:
-		x = 0
-	case VideoGravityEast, VideoGravityNorthEast, VideoGravitySouthEast:
-		x = 2
-	}
-	return x, y
+	return 1, 1
 }
 
 // ParseVideoGravity parses a canonical VideoGravity name.
