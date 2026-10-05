@@ -117,20 +117,41 @@ func TestTranscodeAudioOutputs(t *testing.T) {
 		rate, ch   int
 		duration   float64
 	}{
-		{"mp3 to m4a mono 22.05 kHz", tones, transform.VideoOp{Container: transform.VideoContainerM4A, SampleRate: 22050, Channels: 1},
-			"mov,mp4,m4a,3gp,3g2,mj2", "aac", 22050, 1, 4.05},
-		{"mp3 to opus, cut", tones, transform.VideoOp{Container: transform.VideoContainerOpus, Start: time.Second, Duration: 2 * time.Second},
-			"ogg", "opus", 48000, 2, 2},
-		{"mp3 to ogg 24 kHz mono", tones, transform.VideoOp{Container: transform.VideoContainerOgg, SampleRate: 24000, Channels: 1},
-			"ogg", "opus", 48000, 1, 4.05}, // Opus streams always declare 48 kHz
-		{"mp3 to flac 48 kHz", tones, transform.VideoOp{Container: transform.VideoContainerFLAC, SampleRate: 48000},
-			"flac", "flac", 48000, 2, 4.05},
-		{"mp3 to wav 8 kHz", tones, transform.VideoOp{Container: transform.VideoContainerWAV, SampleRate: 8000, End: 3 * time.Second},
-			"wav", "pcm_s16le", 8000, 2, 3},
-		{"mp3 to mp3 32 kHz", tones, transform.VideoOp{Container: transform.VideoContainerMP3, SampleRate: 32000, AudioBitrate: 96_000},
-			"mp3", "mp3", 32000, 2, 4.05},
-		{"video audio to stereo m4a", "bbb-h264-aac.mp4", transform.VideoOp{Container: transform.VideoContainerM4A, Channels: 2, SampleRate: 44100},
-			"mov,mp4,m4a,3gp,3g2,mj2", "aac", 44100, 2, 1},
+		{
+			"mp3 to m4a mono 22.05 kHz", tones,
+			transform.VideoOp{Container: transform.VideoContainerM4A, SampleRate: 22050, Channels: 1},
+			"mov,mp4,m4a,3gp,3g2,mj2", "aac", 22050, 1, 4.05,
+		},
+		{
+			"mp3 to opus, cut", tones,
+			transform.VideoOp{Container: transform.VideoContainerOpus, Start: time.Second, Duration: 2 * time.Second},
+			"ogg", "opus", 48000, 2, 2,
+		},
+		{
+			"mp3 to ogg 24 kHz mono", tones,
+			transform.VideoOp{Container: transform.VideoContainerOgg, SampleRate: 24000, Channels: 1},
+			"ogg", "opus", 48000, 1, 4.05,
+		}, // Opus streams always declare 48 kHz
+		{
+			"mp3 to flac 48 kHz", tones,
+			transform.VideoOp{Container: transform.VideoContainerFLAC, SampleRate: 48000},
+			"flac", "flac", 48000, 2, 4.05,
+		},
+		{
+			"mp3 to wav 8 kHz", tones,
+			transform.VideoOp{Container: transform.VideoContainerWAV, SampleRate: 8000, End: 3 * time.Second},
+			"wav", "pcm_s16le", 8000, 2, 3,
+		},
+		{
+			"mp3 to mp3 32 kHz", tones,
+			transform.VideoOp{Container: transform.VideoContainerMP3, SampleRate: 32000, AudioBitrate: 96_000},
+			"mp3", "mp3", 32000, 2, 4.05,
+		},
+		{
+			"video audio to stereo m4a", "bbb-h264-aac.mp4",
+			transform.VideoOp{Container: transform.VideoContainerM4A, Channels: 2, SampleRate: 44100},
+			"mov,mp4,m4a,3gp,3g2,mj2", "aac", 44100, 2, 1,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -220,8 +241,10 @@ func TestTranscodeLoudness(t *testing.T) {
 // TestTranscodeFades: the audio fades in from silence and out to it.
 func TestTranscodeFades(t *testing.T) {
 	t.Parallel()
-	op := &transform.VideoOp{Container: transform.VideoContainerWAV, Channels: 1, SampleRate: 8000,
-		FadeIn: time.Second, FadeOut: time.Second}
+	op := &transform.VideoOp{
+		Container: transform.VideoContainerWAV, Channels: 1, SampleRate: 8000,
+		FadeIn: time.Second, FadeOut: time.Second,
+	}
 	out, err := transcode(t.Context(), source(t, tones), op, txSettings(), video.Limits{})
 	if err != nil {
 		t.Fatal(err)
@@ -250,8 +273,8 @@ func wavSamples(t *testing.T, b []byte) []int16 {
 		if id == "data" {
 			data := b[i+8 : min(i+8+n, len(b))]
 			out := make([]int16, len(data)/2)
-			for k := range out {
-				out[k] = int16(binary.LittleEndian.Uint16(data[2*k:]))
+			if _, err := binary.Decode(data[:2*len(out)], binary.LittleEndian, out); err != nil {
+				t.Fatal(err)
 			}
 			return out
 		}

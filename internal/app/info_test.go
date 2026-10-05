@@ -167,8 +167,10 @@ func infoGolden(t *testing.T, base, root string) {
 	for name, src := range cases {
 		t.Run(name, func(t *testing.T) {
 			r := get(t, base+"/info/unsafe"+allInfo+"/plain/"+src)
-			if strings.HasPrefix(name, "pdf-password") || (strings.HasPrefix(name, "video-") && !codec.VideoAvailable()) {
-				// Videos are 422 without FFmpeg (slim).
+			if strings.HasPrefix(name, "pdf-password") || strings.HasPrefix(name, "audio-") ||
+				(strings.HasPrefix(name, "video-") && !codec.VideoAvailable()) {
+				// Videos are 422 without FFmpeg (slim); audio-only files
+				// are sources of /video transformations, not of /info.
 				if r.status != http.StatusUnprocessableEntity {
 					t.Errorf("GET: %d %s, want 422", r.status, r.body)
 				}
