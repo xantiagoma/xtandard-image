@@ -599,20 +599,18 @@ func av1Level(w, h int, fps float64) int {
 }
 
 // vp9Levels is the VP9 level table as FFmpeg's vpcc.c applies it: level
-// (×10), max luma sample rate and max picture size.
-var vp9Levels = [...][3]int64{
-	{10, 829_440, 36_864}, {11, 2_764_800, 73_728}, {20, 4_608_000, 122_880}, {21, 9_216_000, 245_760},
-	{30, 20_736_000, 552_960}, {31, 36_864_000, 983_040}, {40, 83_558_400, 2_228_224},
-	{41, 160_432_128, 2_228_224}, {50, 311_951_360, 8_912_896}, {51, 588_251_136, 8_912_896},
-	{52, 1_176_502_272, 8_912_896}, {60, 1_176_502_272, 35_651_584}, {61, 2_353_004_544, 35_651_584},
-	{62, 4_706_009_088, 35_651_584},
+// (×10) and max picture size. The MP4 muxer passes vpcc.c no frame rate,
+// so the luma sample rate never decides: the first level whose picture
+// size holds the frame is written.
+var vp9Levels = [...][2]int64{
+	{10, 36_864}, {11, 73_728}, {20, 122_880}, {21, 245_760}, {30, 552_960}, {31, 983_040},
+	{40, 2_228_224}, {50, 8_912_896}, {60, 35_651_584},
 }
 
-func vp9Level(w, h int, fps float64) int {
+func vp9Level(w, h int, _ float64) int {
 	pic := int64(w) * int64(h)
-	rate := int64(float64(pic) * fps)
 	for _, l := range vp9Levels {
-		if rate <= l[1] && pic <= l[2] {
+		if pic <= l[1] {
 			return int(l[0])
 		}
 	}

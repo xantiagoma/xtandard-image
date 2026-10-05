@@ -236,9 +236,6 @@ func TestStreamAudioTrack(t *testing.T) {
 		t.Fatal(err)
 	}
 	f := mustParse(t, o)
-	for _, fr := range f.Fragments {
-		t.Logf("fragment at %d lasting %d (%d samples)", fr.DecodeTime, fr.Duration, fr.Samples)
-	}
 	if f.Timescale != 48000 || len(f.Fragments) != l.Segments {
 		t.Fatalf("timescale %d, %d fragments, want 48000 and %d", f.Timescale, len(f.Fragments), l.Segments)
 	}
