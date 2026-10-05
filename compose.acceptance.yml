@@ -142,6 +142,9 @@ services:
       # flavour; scripts/acceptance.sh sets XI_ACC_EPS), off otherwise.
       XI_FORMATS_EPS_ENABLED: ${XI_ACC_EPS:-false}
       XI_FORMATS_EPS_TIMEOUT: 3s
+      # WP-122/123: video transformations, on when the image has FFmpeg
+      # (full, gpl; scripts/acceptance.sh sets XI_ACC_VIDEO), signed only.
+      XI_VIDEO_TRANSFORM_ENABLED: ${XI_ACC_VIDEO:-false}
     ports:
       - "127.0.0.1::8080"
       - "127.0.0.1::9090"

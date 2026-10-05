@@ -1,8 +1,10 @@
 // Package query parses the query dialect (docs/URL-DIALECTS.md §4), mounted
-// at /q/ by default. It has two shapes, chosen by the path after the mount:
+// at /q/ by default. It has three shapes, chosen by the path after the
+// mount:
 //
 //	/?url=<source>&w=300&h=200&fit=cover&g=smart&f=webp&q=80&o=<imgproxy options>
 //	/<endpoint>?url=<source>&width=300&height=200&type=webp   (imaginary)
+//	/video?url=<source>&start=1&duration=5&width=640&format=webm&mute=1 (video.go)
 //
 // Native mode (empty path) maps each key to the equivalent imgproxy option
 // through imgproxy.Builder, so argument rules and semantics are imgproxy's;
@@ -156,12 +158,18 @@ func (p *Parser) ParseURL(path, rawQuery string) (*dialect.Result, error) {
 	}
 
 	b := p.opt.NewBuilder(Name)
+	if decoded == videoEndpoint {
+		b = p.opt.NewVideoBuilder(Name)
+	}
 	// pdf_password is refused unless the signature was verified, before
 	// its token is decrypted.
 	b.SetVerified(sigResult == sign.Verified)
-	if decoded == "" {
+	switch decoded {
+	case "":
 		err = p.native(b, params)
-	} else {
+	case videoEndpoint:
+		err = p.video(b, params)
+	default:
 		err = p.imaginary(b, decoded, params)
 	}
 	if err == nil {

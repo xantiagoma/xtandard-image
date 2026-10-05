@@ -141,13 +141,15 @@ func buildFixture() (*fixture, error) {
 // Paths may contain ENC[plaintext] (replaced by a fresh encrypted token)
 // and a leading SIG segment (replaced by the signature of the rest).
 type testCase struct {
-	name string
-	cfg  string // "" = default
-	path string
-	info bool // parse with ParseInfo (the path after "/info")
+	name  string
+	cfg   string // "" = default
+	path  string
+	info  bool // parse with ParseInfo (the path after "/info")
+	video bool // parse with ParseVideo (the path after "/video")
 }
 
-// expand resolves the ENC[...] and SIG placeholders of path.
+// expand resolves the ENC[...] and SIG placeholders of path; VSIG is the
+// signature of a /video URL ("/video/" + the rest).
 func (f *fixture) expand(tb testing.TB, path string) string {
 	tb.Helper()
 	for {
@@ -169,6 +171,13 @@ func (f *fixture) expand(tb testing.TB, path string) string {
 		}
 		path = "/" + sig + "/" + rest
 	}
+	if rest, ok := strings.CutPrefix(path, "/VSIG/"); ok {
+		sig, err := f.signer.Sign("/video/" + rest)
+		if err != nil {
+			tb.Fatal(err)
+		}
+		path = "/" + sig + "/" + rest
+	}
 	return path
 }
 
@@ -177,6 +186,9 @@ func outcome(tc testCase, res *dialect.Result, err error) map[string]any {
 	out := map[string]any{"path": tc.path}
 	if tc.info {
 		out["endpoint"] = "info"
+	}
+	if tc.video {
+		out["endpoint"] = "video"
 	}
 	if tc.cfg != "" {
 		out["config"] = tc.cfg
@@ -306,14 +318,20 @@ func runGolden(t *testing.T, group string, cases []testCase) {
 				t.Fatalf("unknown config %q", cfg)
 			}
 			parse := p.Parse
-			if tc.info {
+			switch {
+			case tc.info:
 				parse = p.ParseInfo
+			case tc.video:
+				parse = p.ParseVideo
 			}
 			res, err := parse(&dialect.Input{Path: f.expand(t, tc.path)})
 			if err == nil {
 				checkResult(t, res)
 				if isInfo := res.Request.Kind == transform.KindInfo && res.Request.Info != nil; isInfo != tc.info {
 					t.Errorf("info request = %v, want %v", isInfo, tc.info)
+				}
+				if isVideo := res.Request.Kind == transform.KindVideo && res.Request.Video != nil; isVideo != tc.video {
+					t.Errorf("video request = %v, want %v", isVideo, tc.video)
 				}
 			}
 			out := outcome(tc, res, err)

@@ -39,7 +39,7 @@ func (p *Parser) ParseInfo(in *dialect.Input) (*dialect.Result, error) {
 // ParseInfoPath is ParseInfo for a bare path such as
 // "/unsafe/s/f/d/bh:4:3/plain/https://example.com/a.jpg".
 func (p *Parser) ParseInfoPath(path string) (*dialect.Result, error) {
-	return p.parsePath(path, true)
+	return p.parsePath(path, parseInfo)
 }
 
 // defaultInfo returns imgproxy's defaults: size, format, dimensions, EXIF,

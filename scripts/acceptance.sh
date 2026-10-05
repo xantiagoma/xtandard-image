@@ -79,6 +79,16 @@ fi
 export XI_ACC_EPS
 echo "acceptance: EPS rendering (Ghostscript in the image): $XI_ACC_EPS"
 
+# Video transformations (WP-122/123): only an image with FFmpeg (the full and
+# gpl flavours, from the image label) starts with XI_VIDEO_TRANSFORM_ENABLED;
+# TestVideoTransform then transcodes, otherwise it checks the 404.
+case "$(docker image inspect -f '{{index .Config.Labels "dev.xtandard.flavor"}}' "$XI_IMAGE" 2>/dev/null)" in
+  full | gpl) XI_ACC_VIDEO=true ;;
+  *) XI_ACC_VIDEO=false ;;
+esac
+export XI_ACC_VIDEO
+echo "acceptance: video transformations (FFmpeg in the image): $XI_ACC_VIDEO"
+
 # 1. read-only posture ------------------------------------------------------------
 echo "== read-only rootfs (scripts/check-readonly.sh)"
 sh scripts/check-readonly.sh "$XI_IMAGE" || fail "read-only rootfs check"

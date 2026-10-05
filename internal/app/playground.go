@@ -221,16 +221,17 @@ func playgroundMeta(cfg *config.Config, rt *router.Router, version string) (*pla
 	}
 
 	meta := &playground.Meta{
-		Version:     version,
-		PathPrefix:  cfg.Server.PathPrefix,
-		PublicAddr:  cfg.Server.Addr,
-		Public:      cfg.Playground.Public,
-		Signing:     playground.Signing{Mode: mode, UnsignedPolicy: string(cfg.Security.UnsignedPolicy)},
-		Mounts:      []playground.Mount{},
-		Catalogues:  apidoc.Catalogues(),
-		InfoOptions: apidoc.InfoOptions(),
-		Sources:     []playground.Source{},
-		Formats:     outputFormats(cfg),
+		Version:      version,
+		PathPrefix:   cfg.Server.PathPrefix,
+		PublicAddr:   cfg.Server.Addr,
+		Public:       cfg.Playground.Public,
+		Signing:      playground.Signing{Mode: mode, UnsignedPolicy: string(cfg.Security.UnsignedPolicy)},
+		Mounts:       []playground.Mount{},
+		Catalogues:   apidoc.Catalogues(),
+		InfoOptions:  apidoc.InfoOptions(),
+		VideoOptions: apidoc.VideoOptions(),
+		Sources:      []playground.Source{},
+		Formats:      outputFormats(cfg),
 	}
 	signers := map[string]*sign.Signer{}
 	mounts := rt.Mounts()

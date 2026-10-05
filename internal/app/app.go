@@ -58,9 +58,6 @@ type hooks struct {
 	// detector replaces the detector built from XI_DETECT_* (tests inject
 	// fakes; the detection cache and XI_DETECT_SMART_FACES still apply).
 	detector faceObjectDetector
-	// router wraps the dialect router (tests add routes no dialect has
-	// yet, such as video transformations before WP-122).
-	router func(server.Router) server.Router
 }
 
 // Run starts the service and blocks until ctx is cancelled (SIGINT/SIGTERM
@@ -272,12 +269,8 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	scfg.ResultCache.Build = opts.Version
 	scfg.Role = serverRole(cfg.Role)
 	scfg.Video = videoServerConfig(cfg)
-	var srvRouter server.Router = rt
-	if h.router != nil {
-		srvRouter = h.router(rt)
-	}
 	deps := &server.Deps{
-		Router:    srvRouter,
+		Router:    rt,
 		Resolver:  reg,
 		Fetcher:   fetcher,
 		Admitter:  lim,

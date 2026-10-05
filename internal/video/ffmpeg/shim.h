@@ -59,6 +59,7 @@ typedef struct {
   int hflip;
   int sample_rate;
   char layout[64];
+  int channels; // audio channels (WP-123)
 } XiFFStream;
 
 // xi_ff_new allocates a handle over data[0..size) (C memory that must
@@ -198,6 +199,8 @@ enum {
   XI_TX_AAC = 1,
   XI_TX_OPUS = 2,
   XI_TX_MP3 = 3,
+  XI_TX_FLAC = 4, // WP-123
+  XI_TX_PCM = 5,  // pcm_s16le (WAV)
 };
 
 // XiTxOverlay is one overlay drawn over the video chain's output (WP-124),
@@ -226,7 +229,7 @@ typedef struct {
 // XiTxParams is one plan (internal/video.TranscodePlan); strings are
 // NUL-terminated or fill their array.
 typedef struct {
-  char muxer[16]; // "mp4", "webm", "ogg", "mp3"
+  char muxer[16]; // "mp4", "webm", "ogg", "mp3", "flac", "wav", "rawvideo"
   int faststart;
   int64_t max_bytes; // the output may not grow past it; 0 = unlimited
   double start, end; // the cut on the source timeline, seconds; end <= 0 = none
@@ -245,6 +248,9 @@ typedef struct {
   int acodec;
   int64_t abitrate;
   char afilters[512];
+  // Waveform picture (WP-123): afilters turns the audio into one RGBA
+  // video frame, written by the rawvideo encoder; vcodec and acodec are 0.
+  int waveform;
 } XiTxParams;
 
 // Capabilities (xi_tx_caps).
@@ -260,6 +266,13 @@ enum {
   XI_TX_CAP_AFILTERS = 256,
   XI_TX_CAP_OVERLAYS = 512, // overlay and fade (image and text overlays)
   XI_TX_CAP_DRAWTEXT = 1024, // drawtext (timecodes)
+  XI_TX_CAP_FLAC = 2048,       // WP-123: flac encoder
+  XI_TX_CAP_PCM = 4096,        // pcm_s16le encoder
+  XI_TX_CAP_MUX_FLAC = 8192,   // flac muxer
+  XI_TX_CAP_MUX_WAV = 16384,   // wav muxer
+  XI_TX_CAP_AEFFECTS = 32768,  // volume, loudnorm, afade
+  XI_TX_CAP_VFADE = 65536,     // fade
+  XI_TX_CAP_WAVEFORM = 131072, // showwavespic, rawvideo encoder and muxer
 };
 
 // xi_tx_caps probes the audio encoders, muxers and filters transcodes use

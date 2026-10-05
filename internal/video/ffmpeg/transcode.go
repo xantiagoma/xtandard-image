@@ -50,6 +50,13 @@ func TranscodeCaps() video.TranscodeCaps {
 		AudioFilters: m&C.XI_TX_CAP_AFILTERS != 0,
 		Overlays:     m&C.XI_TX_CAP_OVERLAYS != 0,
 		Timecode:     m&C.XI_TX_CAP_DRAWTEXT != 0,
+		FLAC:         m&C.XI_TX_CAP_FLAC != 0,
+		PCM:          m&C.XI_TX_CAP_PCM != 0,
+		MuxFLAC:      m&C.XI_TX_CAP_MUX_FLAC != 0,
+		MuxWAV:       m&C.XI_TX_CAP_MUX_WAV != 0,
+		AudioEffects: m&C.XI_TX_CAP_AEFFECTS != 0,
+		VideoFade:    m&C.XI_TX_CAP_VFADE != 0,
+		Waveform:     m&C.XI_TX_CAP_WAVEFORM != 0,
 	}
 }
 
@@ -171,6 +178,10 @@ func (t *Transcoder) Run(ctx context.Context, p *video.TranscodePlan, pixels ...
 	if data == nil || n <= 0 {
 		return nil, errs.New(errs.KindInternal, "ffmpeg: empty output")
 	}
+	if w := p.Waveform; w != nil && int64(n) != int64(w.Width)*int64(w.Height)*4 {
+		C.xi_tx_out_free(data)
+		return nil, errs.Newf(errs.KindInternal, "ffmpeg: waveform of %d bytes, want %dx%d RGBA", int64(n), w.Width, w.Height)
+	}
 	return newOutput(unsafe.Pointer(data), int(n), func(p unsafe.Pointer) { C.xi_tx_out_free((*C.uint8_t)(p)) }), nil
 }
 
@@ -217,6 +228,10 @@ func params(cp *C.XiTxParams, p *video.TranscodePlan, pixels []*vips.Buffer) err
 			codec = C.XI_TX_OPUS
 		case video.AudioMP3:
 			codec = C.XI_TX_MP3
+		case video.AudioFLAC:
+			codec = C.XI_TX_FLAC
+		case video.AudioPCM:
+			codec = C.XI_TX_PCM
 		case video.AudioNone: // refused below
 		}
 		if codec == 0 || !cstr(cp.afilters[:], a.Filters) {
@@ -224,6 +239,13 @@ func params(cp *C.XiTxParams, p *video.TranscodePlan, pixels []*vips.Buffer) err
 		}
 		cp.acodec = codec
 		cp.abitrate = C.int64_t(a.Bitrate)
+	}
+	if w := p.Waveform; w != nil {
+		if p.Video != nil || p.Audio != nil || !cstr(cp.afilters[:], w.Filters) {
+			return errs.Newf(errs.KindInternal, "ffmpeg: waveform plan %q", w.Filters)
+		}
+		cp.waveform = 1
+		return nil
 	}
 	if p.Video == nil && p.Audio == nil {
 		return errs.New(errs.KindInternal, "ffmpeg: empty plan")

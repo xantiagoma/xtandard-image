@@ -1,0 +1,2782 @@
+{
+  "aliases_vs_vd": {
+    "endpoint": "video",
+    "path": "/unsafe/vs:2/vd:3/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Duration": 3000000000,
+        "Fit": "scale-down",
+        "Start": 2000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "audio_bitrate": {
+    "endpoint": "video",
+    "path": "/unsafe/ab:128k/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "AudioBitrate": 128000,
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "audio_bitrate_high": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.audio_bitrate: must be between 8000 and 512000",
+      "status": 400
+    },
+    "path": "/unsafe/ab:1M/plain/https://example.com/clip.mov"
+  },
+  "audio_bitrate_long": {
+    "endpoint": "video",
+    "path": "/unsafe/audio_bitrate:96000/f:m4a/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "AudioBitrate": 96000,
+        "Container": "m4a",
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "audio_channels": {
+    "endpoint": "video",
+    "path": "/unsafe/ach:1/f:m4a/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Channels": 1,
+        "Container": "m4a",
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "audio_channels_6": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.channels: must be between 0 and 2",
+      "status": 400
+    },
+    "path": "/unsafe/ach:6/plain/https://example.com/clip.mov"
+  },
+  "audio_channels_long": {
+    "endpoint": "video",
+    "path": "/unsafe/audio_channels:2/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Channels": 2,
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "audio_codec": {
+    "endpoint": "video",
+    "path": "/unsafe/ac:aac/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "AudioCodec": "aac",
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "audio_codec_bad": {
+    "endpoint": "video",
+    "error": {
+      "field": "audio_codec",
+      "kind": "invalid_url",
+      "public": "invalid audio_codec: expected auto, aac, opus, mp3, flac or pcm",
+      "status": 400
+    },
+    "path": "/unsafe/ac:vorbis/plain/https://example.com/clip.mov"
+  },
+  "audio_codec_flac": {
+    "endpoint": "video",
+    "path": "/unsafe/audio_codec:flac/f:flac/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "AudioCodec": "flac",
+        "Container": "flac",
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "audio_codec_mismatch": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.audio_codec: opus cannot be muxed into mp4",
+      "status": 400
+    },
+    "path": "/unsafe/ac:opus/plain/https://example.com/clip.mov"
+  },
+  "background": {
+    "endpoint": "video",
+    "path": "/unsafe/background:ff0000/rs:fit:300:300:0:1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Background": {
+          "A": 255,
+          "R": 255
+        },
+        "Fit": "pad",
+        "Height": 300,
+        "Width": 300
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "background_bad": {
+    "endpoint": "video",
+    "error": {
+      "field": "background",
+      "kind": "invalid_url",
+      "public": "invalid background: expected hex color (rgb or rrggbb)",
+      "status": 400
+    },
+    "path": "/unsafe/bg:zzz/plain/https://example.com/clip.mov"
+  },
+  "background_empty": {
+    "endpoint": "video",
+    "path": "/unsafe/bg:fff/bg:/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "background_short": {
+    "endpoint": "video",
+    "path": "/unsafe/bg:0f0/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Background": {
+          "A": 255,
+          "G": 255
+        },
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "base64_source_ext": {
+    "endpoint": "video",
+    "path": "/unsafe/w:320/aHR0cHM6Ly9leGFtcGxlLmNvbS9jbGlwLm1vdg.webm",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "base64",
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "webm",
+        "Fit": "scale-down",
+        "Width": 320
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "cache_tags": {
+    "endpoint": "video",
+    "path": "/unsafe/ct:a:b/plain/https://example.com/clip.mov",
+    "request": {
+      "Delivery": {
+        "CacheTags": [
+          "a",
+          "b"
+        ]
+      },
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "cachebuster": {
+    "endpoint": "video",
+    "path": "/unsafe/cb:v2/plain/https://example.com/clip.mov",
+    "request": {
+      "Delivery": {
+        "CacheBuster": "v2"
+      },
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "chained": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: chained pipelines in video url",
+      "status": 400
+    },
+    "path": "/unsafe/w:100/-/w:50/plain/https://example.com/clip.mov"
+  },
+  "crf": {
+    "endpoint": "video",
+    "path": "/unsafe/crf:30/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "CRF": 30,
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "crf_bad": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.crf: must be between 0 and 63",
+      "status": 400
+    },
+    "path": "/unsafe/crf:64/plain/https://example.com/clip.mov"
+  },
+  "crop_fp_refused": {
+    "endpoint": "video",
+    "error": {
+      "field": "crop.gravity.type",
+      "kind": "invalid_url",
+      "public": "invalid crop.gravity.type: expected ce, no, so, ea, we, noea, nowe, soea or sowe",
+      "status": 400
+    },
+    "path": "/unsafe/c:100:0:fp:0.1:0.9/plain/https://example.com/clip.mov"
+  },
+  "crop_gravity": {
+    "endpoint": "video",
+    "path": "/unsafe/crop:640:360:nowe:10:20/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Crop": {
+          "Gravity": "north-west",
+          "Height": 360,
+          "Width": 640,
+          "X": 10,
+          "Y": 20
+        },
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "crop_pixels": {
+    "endpoint": "video",
+    "path": "/unsafe/c:640:360/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Crop": {
+          "Gravity": "center",
+          "Height": 360,
+          "Width": 640
+        },
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "crop_relative": {
+    "endpoint": "video",
+    "error": {
+      "field": "crop.width",
+      "kind": "invalid_url",
+      "public": "invalid crop.width: expected integer pixels between 0 and 8192",
+      "status": 400
+    },
+    "path": "/unsafe/c:0.5:0.5/plain/https://example.com/clip.mov"
+  },
+  "crop_takes_gravity": {
+    "endpoint": "video",
+    "path": "/unsafe/g:soea/c:100:100/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Crop": {
+          "Gravity": "south-east",
+          "Height": 100,
+          "Width": 100
+        },
+        "Fit": "scale-down",
+        "Gravity": "south-east"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "crop_takes_gravity_offsets": {
+    "endpoint": "video",
+    "path": "/unsafe/g:soea:10:5/c:100:100/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Crop": {
+          "Gravity": "south-east",
+          "Height": 100,
+          "Width": 100,
+          "X": 10,
+          "Y": 5
+        },
+        "Fit": "scale-down",
+        "Gravity": "south-east"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "crop_width_only": {
+    "endpoint": "video",
+    "path": "/unsafe/c:100/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Crop": {
+          "Gravity": "center",
+          "Width": 100
+        },
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "defaults": {
+    "endpoint": "video",
+    "path": "/unsafe/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "duration_too_many_args": {
+    "endpoint": "video",
+    "error": {
+      "field": "duration",
+      "kind": "invalid_url",
+      "public": "invalid duration: expected at most 1 arguments",
+      "status": 400
+    },
+    "path": "/unsafe/vd:1:2/plain/https://example.com/clip.mov"
+  },
+  "enc_source": {
+    "config": "enc",
+    "endpoint": "video",
+    "path": "/unsafe/w:320/enc/ENC[https://example.com/clip.mov].m4a",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "encrypted",
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "m4a",
+        "Fit": "scale-down",
+        "Width": 320
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "end_and_duration": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.end: end and duration are mutually exclusive",
+      "status": 400
+    },
+    "path": "/unsafe/ve:3/vd:2/plain/https://example.com/clip.mov"
+  },
+  "end_before_start": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.end: must be after start",
+      "status": 400
+    },
+    "path": "/unsafe/vs:3/ve:2/plain/https://example.com/clip.mov"
+  },
+  "enlarge_el": {
+    "endpoint": "video",
+    "path": "/unsafe/el:1/w:4000/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Width": 4000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "expires_future": {
+    "endpoint": "video",
+    "path": "/unsafe/exp:1893456000/plain/https://example.com/clip.mov",
+    "request": {
+      "Delivery": {
+        "Expires": "2030-01-01T00:00:00Z"
+      },
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "expires_past": {
+    "endpoint": "video",
+    "error": {
+      "kind": "expired",
+      "public": "url expired",
+      "status": 404
+    },
+    "path": "/unsafe/exp:1000/plain/https://example.com/clip.mov"
+  },
+  "extend_ex": {
+    "endpoint": "video",
+    "path": "/unsafe/ex:1/w:100/h:100/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "pad",
+        "Height": 100,
+        "Width": 100
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "extension_unknown": {
+    "endpoint": "video",
+    "error": {
+      "field": "extension",
+      "kind": "invalid_url",
+      "public": "invalid extension: expected mp4, webm, m4a, mp3, opus, ogg, flac, wav, png or webp",
+      "status": 400
+    },
+    "path": "/unsafe/plain/https://example.com/clip.mov@avi"
+  },
+  "extension_upper": {
+    "endpoint": "video",
+    "path": "/unsafe/plain/https://example.com/clip.mov@MP3",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "mp3",
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "extension_webm": {
+    "endpoint": "video",
+    "path": "/unsafe/plain/https://example.com/clip.mov@webm",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "webm",
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "fade": {
+    "endpoint": "video",
+    "path": "/unsafe/fade:1:2/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "FadeIn": 1000000000,
+        "FadeOut": 2000000000,
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "fade_bad": {
+    "endpoint": "video",
+    "error": {
+      "field": "fade.in",
+      "kind": "invalid_url",
+      "public": "invalid fade.in: expected seconds \u003e= 0",
+      "status": 400
+    },
+    "path": "/unsafe/fd:-1/plain/https://example.com/clip.mov"
+  },
+  "fade_in_only": {
+    "endpoint": "video",
+    "path": "/unsafe/fd:0.5/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "FadeIn": 500000000,
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "fade_out_only": {
+    "endpoint": "video",
+    "path": "/unsafe/fd::1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "FadeOut": 1000000000,
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "filename": {
+    "endpoint": "video",
+    "path": "/unsafe/fn:clip/att:1/plain/https://example.com/clip.mov",
+    "request": {
+      "Delivery": {
+        "Attachment": true,
+        "Filename": "clip"
+      },
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "flip": {
+    "endpoint": "video",
+    "path": "/unsafe/fl:1:1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "FlipH": true,
+        "FlipV": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "flip_vertical_only": {
+    "endpoint": "video",
+    "path": "/unsafe/flip::1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "FlipV": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "format": {
+    "endpoint": "video",
+    "path": "/unsafe/format:webm/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "webm",
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "format_bad": {
+    "endpoint": "video",
+    "error": {
+      "field": "format",
+      "kind": "invalid_url",
+      "public": "invalid format: expected mp4, webm, m4a, mp3, opus, ogg, flac, wav, png or webp",
+      "status": 400
+    },
+    "path": "/unsafe/f:gif/plain/https://example.com/clip.mov"
+  },
+  "format_ext": {
+    "endpoint": "video",
+    "path": "/unsafe/ext:opus/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "opus",
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "format_extension_wins": {
+    "endpoint": "video",
+    "path": "/unsafe/f:webm/plain/https://example.com/clip.mov@mp3",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "mp3",
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "format_f": {
+    "endpoint": "video",
+    "path": "/unsafe/f:m4a/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "m4a",
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "fps": {
+    "endpoint": "video",
+    "path": "/unsafe/fps:24/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "FPS": 24,
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "fps_fraction": {
+    "endpoint": "video",
+    "path": "/unsafe/fps:29.97/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "FPS": 29.97,
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "fps_huge": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.fps: must be between 1 and 240",
+      "status": 400
+    },
+    "path": "/unsafe/fps:500/plain/https://example.com/clip.mov"
+  },
+  "fps_zero_keeps_source": {
+    "endpoint": "video",
+    "path": "/unsafe/fps:0/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "gravity_alias": {
+    "endpoint": "video",
+    "path": "/unsafe/gravity:no/rt:fill/s:200:100/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "cover",
+        "Gravity": "north",
+        "Height": 100,
+        "Width": 200
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "gravity_compass": {
+    "endpoint": "video",
+    "path": "/unsafe/g:soea:10:5/rs:fill:200:200/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "cover",
+        "Gravity": "south-east",
+        "Height": 200,
+        "Width": 200
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "gravity_fp_missing_y": {
+    "endpoint": "video",
+    "error": {
+      "field": "gravity.type",
+      "kind": "invalid_url",
+      "public": "invalid gravity.type: expected ce, no, so, ea, we, noea, nowe, soea or sowe",
+      "status": 400
+    },
+    "path": "/unsafe/g:fp:0.25/plain/https://example.com/clip.mov"
+  },
+  "gravity_fp_refused": {
+    "endpoint": "video",
+    "error": {
+      "field": "gravity.type",
+      "kind": "invalid_url",
+      "public": "invalid gravity.type: expected ce, no, so, ea, we, noea, nowe, soea or sowe",
+      "status": 400
+    },
+    "path": "/unsafe/g:fp:0.25:0.75/rs:fill:200:200/plain/https://example.com/clip.mov"
+  },
+  "gravity_offset_fraction": {
+    "endpoint": "video",
+    "error": {
+      "field": "gravity.x_offset",
+      "kind": "invalid_url",
+      "public": "invalid gravity.x_offset: expected integer pixels between 0 and 8192",
+      "status": 400
+    },
+    "path": "/unsafe/g:no:0.5/plain/https://example.com/clip.mov"
+  },
+  "gravity_offsets_kept": {
+    "endpoint": "video",
+    "path": "/unsafe/g:no:3:4/g:ea/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Gravity": "east"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "gravity_smart": {
+    "endpoint": "video",
+    "error": {
+      "field": "gravity.type",
+      "kind": "invalid_url",
+      "public": "invalid gravity.type: expected ce, no, so, ea, we, noea, nowe, soea or sowe",
+      "status": 400
+    },
+    "path": "/unsafe/g:sm/plain/https://example.com/clip.mov"
+  },
+  "hashsum": {
+    "endpoint": "video",
+    "path": "/unsafe/hs:sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Hashsum": {
+          "Algorithm": "sha256",
+          "Digest": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+        },
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "image_option_strict": {
+    "config": "strict",
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/unsafe/bl:5/plain/https://example.com/clip.mov"
+  },
+  "image_option_unknown": {
+    "endpoint": "video",
+    "path": "/unsafe/bl:5/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "bl",
+          "Reason": "unknown option"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "image_signature_rejected": {
+    "config": "signed",
+    "endpoint": "video",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/SIG/rs:fit:320:0/vd:2/plain/https://example.com/clip.mov@webm"
+  },
+  "keyframe_interval": {
+    "endpoint": "video",
+    "path": "/unsafe/ki:1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "KeyframeInterval": 1000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "keyframe_interval_long": {
+    "endpoint": "video",
+    "path": "/unsafe/keyframe_interval:0.5/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "KeyframeInterval": 500000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "keyframe_interval_tiny": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.keyframe_interval: must be between 100ms and 1m0s",
+      "status": 400
+    },
+    "path": "/unsafe/ki:0.01/plain/https://example.com/clip.mov"
+  },
+  "loudnorm": {
+    "endpoint": "video",
+    "path": "/unsafe/ln:1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Loudnorm": {
+          "Integrated": -23,
+          "Range": 7,
+          "TruePeak": -1
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "loudnorm_bad": {
+    "endpoint": "video",
+    "error": {
+      "field": "loudnorm.integrated",
+      "kind": "invalid_url",
+      "public": "invalid loudnorm.integrated: expected number",
+      "status": 400
+    },
+    "path": "/unsafe/ln:1:loud/plain/https://example.com/clip.mov"
+  },
+  "loudnorm_off": {
+    "endpoint": "video",
+    "path": "/unsafe/ln:1/ln:0/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "loudnorm_out_of_range": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.loudnorm.integrated: must be between -70 and -5",
+      "status": 400
+    },
+    "path": "/unsafe/ln:1:-80/plain/https://example.com/clip.mov"
+  },
+  "loudnorm_partial": {
+    "endpoint": "video",
+    "path": "/unsafe/ln:1:-14/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Loudnorm": {
+          "Integrated": -14,
+          "Range": 7,
+          "TruePeak": -1
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "loudnorm_target": {
+    "endpoint": "video",
+    "path": "/unsafe/loudnorm:1:-16:-1.5:11/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Loudnorm": {
+          "Integrated": -16,
+          "Range": 11,
+          "TruePeak": -1.5
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "mu": {
+    "endpoint": "video",
+    "path": "/unsafe/mu:t/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Mute": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "mute": {
+    "endpoint": "video",
+    "path": "/unsafe/mute:1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Mute": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "mute_audio_only": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.mute: mp3 has no video",
+      "status": 400
+    },
+    "path": "/unsafe/mu:1/f:mp3/plain/https://example.com/clip.mov"
+  },
+  "overlay_default_image": {
+    "endpoint": "video",
+    "path": "/unsafe/watermark:0.5/overlay_window:1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Overlays": [
+          {
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 0.5
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "overlay_fades_too_long": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.overlays[0].fade_out: the fades are longer than the overlay",
+      "status": 400
+    },
+    "path": "/unsafe/wm:1/ow:0:1/of:0.6:0.6/plain/https://example.com/clip.mov"
+  },
+  "overlay_image": {
+    "endpoint": "video",
+    "path": "/unsafe/wm:0.8:soea:8:8/wmu:eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n/wms:48:0/ow:0.3:0.7/of:0.1:0.1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Overlays": [
+          {
+            "End": 700000000,
+            "FadeIn": 100000000,
+            "FadeOut": 100000000,
+            "Start": 300000000,
+            "Watermark": {
+              "Opacity": 0.8,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 8,
+                "YOffset": 8
+              },
+              "Source": {
+                "Encoding": "base64",
+                "Raw": "xi://fixtures/watermark/badge.png"
+              },
+              "Width": 48
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "overlay_on_audio": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.overlays: m4a has no video",
+      "status": 400
+    },
+    "path": "/unsafe/wm:1/f:m4a/plain/https://example.com/clip.mov"
+  },
+  "overlay_text": {
+    "endpoint": "video",
+    "path": "/unsafe/wm:1:nowe:6:6/wmt:PGI-aGk8L2I-/wmr:15/wmsh:2/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 6,
+                "YOffset": 6
+              },
+              "Rotate": 15,
+              "Shadow": 2,
+              "Text": "\u003cb\u003ehi\u003c/b\u003e"
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "overlay_window_without_watermark": {
+    "endpoint": "video",
+    "path": "/unsafe/ow:1:2/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "overlay_window",
+          "Reason": "no watermark overlay"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "overlay_zero_opacity": {
+    "endpoint": "video",
+    "path": "/unsafe/wm:0/wmu:eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "pad_gravity": {
+    "endpoint": "video",
+    "path": "/unsafe/rs:fit:300:300:0:1/g:so/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "pad",
+        "Gravity": "south",
+        "Height": 300,
+        "Width": 300
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "png_extension": {
+    "endpoint": "video",
+    "path": "/unsafe/w:600/plain/https://example.com/clip.mov@png",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "png",
+        "Fit": "scale-down",
+        "Waveform": {},
+        "Width": 600
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "png_implies_waveform": {
+    "endpoint": "video",
+    "path": "/unsafe/f:png/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "png",
+        "Fit": "scale-down",
+        "Waveform": {}
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "preset_unknown": {
+    "endpoint": "video",
+    "path": "/unsafe/pr:thumb/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "pr",
+          "Reason": "unknown option"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "quality": {
+    "endpoint": "video",
+    "path": "/unsafe/q:70/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Quality": 70
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "quality_bad": {
+    "endpoint": "video",
+    "error": {
+      "field": "quality",
+      "kind": "invalid_url",
+      "public": "invalid quality: expected integer in range 0-100",
+      "status": 400
+    },
+    "path": "/unsafe/q:101/plain/https://example.com/clip.mov"
+  },
+  "quality_long": {
+    "endpoint": "video",
+    "path": "/unsafe/quality:100/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Quality": 100
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "resize_auto": {
+    "endpoint": "video",
+    "error": {
+      "field": "resize.type",
+      "kind": "invalid_url",
+      "public": "invalid resize.type: expected fit, fill, fill-down or force",
+      "status": 400
+    },
+    "path": "/unsafe/rs:auto:640:360/plain/https://example.com/clip.mov"
+  },
+  "resize_fill": {
+    "endpoint": "video",
+    "path": "/unsafe/rs:fill:640:360/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "cover",
+        "Height": 360,
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "resize_fill_down": {
+    "endpoint": "video",
+    "path": "/unsafe/rs:fill-down:640:360/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "cover",
+        "Height": 360,
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "resize_fill_one_side": {
+    "endpoint": "video",
+    "path": "/unsafe/rs:fill:640/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "resize_fit": {
+    "endpoint": "video",
+    "path": "/unsafe/rs:fit:640:360/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Height": 360,
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "resize_fit_enlarge": {
+    "endpoint": "video",
+    "path": "/unsafe/rs:fit:640:360:1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Height": 360,
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "resize_fit_extend": {
+    "endpoint": "video",
+    "path": "/unsafe/rs:fit:640:360:0:1/bg:ffffff/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Background": {
+          "A": 255,
+          "B": 255,
+          "G": 255,
+          "R": 255
+        },
+        "Fit": "pad",
+        "Height": 360,
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "resize_force": {
+    "endpoint": "video",
+    "path": "/unsafe/rs:force:640:360/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "fill",
+        "Height": 360,
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "resize_too_many_args": {
+    "endpoint": "video",
+    "error": {
+      "field": "resize",
+      "kind": "invalid_url",
+      "public": "invalid resize: expected at most 5 arguments",
+      "status": 400
+    },
+    "path": "/unsafe/rs:fit:1:2:0:0:ce/plain/https://example.com/clip.mov"
+  },
+  "resize_type_only": {
+    "endpoint": "video",
+    "path": "/unsafe/rs:fill/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "resizing_type_bad": {
+    "endpoint": "video",
+    "error": {
+      "field": "resizing_type",
+      "kind": "invalid_url",
+      "public": "invalid resizing_type: expected fit, fill, fill-down or force",
+      "status": 400
+    },
+    "path": "/unsafe/rt:crop/plain/https://example.com/clip.mov"
+  },
+  "resizing_type_rt": {
+    "endpoint": "video",
+    "path": "/unsafe/rt:fill/w:200/h:200/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "cover",
+        "Height": 200,
+        "Width": 200
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "rotate": {
+    "endpoint": "video",
+    "path": "/unsafe/rot:90/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Rotate": 90
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "rotate_45": {
+    "endpoint": "video",
+    "error": {
+      "field": "rotate",
+      "kind": "invalid_url",
+      "public": "invalid rotate: expected multiple of 90",
+      "status": 400
+    },
+    "path": "/unsafe/rot:45/plain/https://example.com/clip.mov"
+  },
+  "rotate_450": {
+    "endpoint": "video",
+    "path": "/unsafe/rot:450/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Rotate": 90
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "rotate_negative": {
+    "endpoint": "video",
+    "path": "/unsafe/rotate:-90/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Rotate": 270
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "sample_rate": {
+    "endpoint": "video",
+    "path": "/unsafe/sr:44100/f:mp3/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "mp3",
+        "Fit": "scale-down",
+        "SampleRate": 44100
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "sample_rate_long": {
+    "endpoint": "video",
+    "path": "/unsafe/sample_rate:48000/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "SampleRate": 48000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "sample_rate_odd": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.sample_rate: must be one of 8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 88200, 96000",
+      "status": 400
+    },
+    "path": "/unsafe/sr:44000/plain/https://example.com/clip.mov"
+  },
+  "signed": {
+    "config": "signed",
+    "endpoint": "video",
+    "path": "/VSIG/rs:fit:320:0/vd:2/plain/https://example.com/clip.mov@webm",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "webm",
+        "Duration": 2000000000,
+        "Fit": "scale-down",
+        "Width": 320
+      }
+    },
+    "signature": "verified",
+    "source": "https://example.com/clip.mov"
+  },
+  "size": {
+    "endpoint": "video",
+    "path": "/unsafe/s:320:180:1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Height": 180,
+        "Width": 320
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "size_extend": {
+    "endpoint": "video",
+    "path": "/unsafe/size:320:180::1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "pad",
+        "Height": 180,
+        "Width": 320
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "start_end": {
+    "endpoint": "video",
+    "path": "/unsafe/start:1.5/end:4/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "End": 4000000000,
+        "Fit": "scale-down",
+        "Start": 1500000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "start_microseconds": {
+    "endpoint": "video",
+    "path": "/unsafe/vs:0.0000015/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Start": 2000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "start_negative": {
+    "endpoint": "video",
+    "error": {
+      "field": "start",
+      "kind": "invalid_url",
+      "public": "invalid start: expected seconds \u003e= 0",
+      "status": 400
+    },
+    "path": "/unsafe/vs:-1/plain/https://example.com/clip.mov"
+  },
+  "start_not_a_number": {
+    "endpoint": "video",
+    "error": {
+      "field": "start",
+      "kind": "invalid_url",
+      "public": "invalid start: expected seconds \u003e= 0",
+      "status": 400
+    },
+    "path": "/unsafe/vs:abc/plain/https://example.com/clip.mov"
+  },
+  "timecode": {
+    "endpoint": "video",
+    "path": "/unsafe/tc:hms/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Overlays": [
+          {
+            "Timecode": "hms",
+            "Watermark": {
+              "Color": {
+                "A": 255,
+                "B": 255,
+                "G": 255,
+                "R": 255
+              },
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-west"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "timecode_bad_format": {
+    "endpoint": "video",
+    "error": {
+      "field": "timecode.format",
+      "kind": "invalid_url",
+      "public": "invalid timecode.format: expected hms, seconds or none",
+      "status": 400
+    },
+    "path": "/unsafe/tc:frames/plain/https://example.com/clip.mov"
+  },
+  "timecode_bad_position": {
+    "endpoint": "video",
+    "error": {
+      "field": "timecode.position",
+      "kind": "invalid_url",
+      "public": "invalid timecode.position: expected ce, no, so, ea, we, noea, nowe, soea or sowe",
+      "status": 400
+    },
+    "path": "/unsafe/tc:hms:fp/plain/https://example.com/clip.mov"
+  },
+  "timecode_full": {
+    "endpoint": "video",
+    "path": "/unsafe/timecode:seconds:noea:4:4:24:ffff00:0.8/wm:1/wmt:PGI-aGk8L2I-/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Text": "\u003cb\u003ehi\u003c/b\u003e"
+            }
+          },
+          {
+            "Timecode": "seconds",
+            "TimecodeSize": 24,
+            "Watermark": {
+              "Color": {
+                "A": 255,
+                "G": 255,
+                "R": 255
+              },
+              "Opacity": 0.8,
+              "Position": {
+                "Type": "north-east",
+                "XOffset": 4,
+                "YOffset": 4
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "timecode_none": {
+    "endpoint": "video",
+    "path": "/unsafe/tc:hms/tc:none/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "timecode_size_huge": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.overlays[0].timecode_size: must be between 0 and 512",
+      "status": 400
+    },
+    "path": "/unsafe/tc:hms:sowe:0:0:9999/plain/https://example.com/clip.mov"
+  },
+  "trusted": {
+    "config": "signed",
+    "endpoint": "video",
+    "path": "/trusted-signature/vd:2/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Duration": 2000000000,
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "trusted",
+    "source": "https://example.com/clip.mov"
+  },
+  "unsigned_on_signed": {
+    "config": "signed",
+    "endpoint": "video",
+    "path": "/unsafe/vd:2/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Duration": 2000000000,
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "ve": {
+    "endpoint": "video",
+    "path": "/unsafe/ve:0.25/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "End": 250000000,
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "video_bitrate": {
+    "endpoint": "video",
+    "path": "/unsafe/vb:2M/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "MaxBitrate": 2000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "video_bitrate_bad": {
+    "endpoint": "video",
+    "error": {
+      "field": "video_bitrate",
+      "kind": "invalid_url",
+      "public": "invalid video_bitrate: expected bits per second (an integer, or a number with k or M)",
+      "status": 400
+    },
+    "path": "/unsafe/vb:fast/plain/https://example.com/clip.mov"
+  },
+  "video_bitrate_decimal": {
+    "endpoint": "video",
+    "path": "/unsafe/vb:1.5M/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "MaxBitrate": 1500000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "video_bitrate_k": {
+    "endpoint": "video",
+    "path": "/unsafe/video_bitrate:800k/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "MaxBitrate": 800000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "video_bitrate_low": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.max_bitrate: must be between 50000 and 200000000",
+      "status": 400
+    },
+    "path": "/unsafe/vb:10k/plain/https://example.com/clip.mov"
+  },
+  "video_bitrate_plain": {
+    "endpoint": "video",
+    "path": "/unsafe/vb:1500000/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "MaxBitrate": 1500000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "video_codec": {
+    "endpoint": "video",
+    "path": "/unsafe/vc:av1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "VideoCodec": "av1"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "video_codec_bad": {
+    "endpoint": "video",
+    "error": {
+      "field": "video_codec",
+      "kind": "invalid_url",
+      "public": "invalid video_codec: expected auto, h264, av1, vp9, hevc or h265",
+      "status": 400
+    },
+    "path": "/unsafe/vc:mpeg2/plain/https://example.com/clip.mov"
+  },
+  "video_codec_h265": {
+    "endpoint": "video",
+    "path": "/unsafe/video_codec:h265/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "VideoCodec": "hevc"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "video_codec_vp9_mp4": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.video_codec: vp9 cannot be muxed into mp4",
+      "status": 400
+    },
+    "path": "/unsafe/vc:vp9/plain/https://example.com/clip.mov"
+  },
+  "video_codec_vp9_webm": {
+    "endpoint": "video",
+    "path": "/unsafe/vc:vp9/f:webm/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "webm",
+        "Fit": "scale-down",
+        "VideoCodec": "vp9"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "volume_bad": {
+    "endpoint": "video",
+    "error": {
+      "field": "volume",
+      "kind": "invalid_url",
+      "public": "invalid volume: expected a gain factor (0.5) or decibels (-6dB)",
+      "status": 400
+    },
+    "path": "/unsafe/vol:loud/plain/https://example.com/clip.mov"
+  },
+  "volume_db": {
+    "endpoint": "video",
+    "path": "/unsafe/volume:-6dB/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Volume": 0.5011872336272722
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "volume_db_low": {
+    "endpoint": "video",
+    "error": {
+      "field": "volume",
+      "kind": "invalid_url",
+      "public": "invalid volume: expected a gain factor (0.5) or decibels (-6dB)",
+      "status": 400
+    },
+    "path": "/unsafe/vol:-80dB/plain/https://example.com/clip.mov"
+  },
+  "volume_db_positive": {
+    "endpoint": "video",
+    "path": "/unsafe/vol:+3db/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Volume": 1.4125375446227544
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "volume_factor": {
+    "endpoint": "video",
+    "path": "/unsafe/vol:0.5/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Volume": 0.5
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "volume_muted": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.mute: a muted output has no audio options",
+      "status": 400
+    },
+    "path": "/unsafe/vol:2/mu:1/plain/https://example.com/clip.mov"
+  },
+  "w_h": {
+    "endpoint": "video",
+    "path": "/unsafe/w:640/h:0/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "waveform": {
+    "endpoint": "video",
+    "path": "/unsafe/wf:1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "png",
+        "Fit": "scale-down",
+        "Waveform": {}
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "waveform_bad_color": {
+    "endpoint": "video",
+    "error": {
+      "field": "waveform.color",
+      "kind": "invalid_url",
+      "public": "invalid waveform.color: expected hex color (rgb or rrggbb)",
+      "status": 400
+    },
+    "path": "/unsafe/wf:1:blue/plain/https://example.com/clip.mov"
+  },
+  "waveform_colours": {
+    "endpoint": "video",
+    "path": "/unsafe/waveform:1:2266cc:ffffff:1/w:800/h:200/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "png",
+        "Fit": "scale-down",
+        "Height": 200,
+        "Waveform": {
+          "Background": {
+            "A": 255,
+            "B": 255,
+            "G": 255,
+            "R": 255
+          },
+          "Color": {
+            "A": 255,
+            "B": 204,
+            "G": 102,
+            "R": 34
+          },
+          "SplitChannels": true
+        },
+        "Width": 800
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "waveform_mp4": {
+    "endpoint": "video",
+    "error": {
+      "field": "waveform",
+      "kind": "invalid_url",
+      "public": "invalid waveform: expected a png or webp output",
+      "status": 400
+    },
+    "path": "/unsafe/wf:1/f:mp4/plain/https://example.com/clip.mov"
+  },
+  "waveform_off": {
+    "endpoint": "video",
+    "path": "/unsafe/wf:1/wf:0/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "waveform_webp": {
+    "endpoint": "video",
+    "path": "/unsafe/wf:1/f:webp/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "webp",
+        "Fit": "scale-down",
+        "Waveform": {}
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "width_fraction": {
+    "endpoint": "video",
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected integer pixels between 0 and 8192",
+      "status": 400
+    },
+    "path": "/unsafe/w:0.5/plain/https://example.com/clip.mov"
+  },
+  "width_height": {
+    "endpoint": "video",
+    "path": "/unsafe/width:640/height:360/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Height": 360,
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "width_huge": {
+    "endpoint": "video",
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected integer pixels between 0 and 8192",
+      "status": 400
+    },
+    "path": "/unsafe/w:9000/plain/https://example.com/clip.mov"
+  }
+}

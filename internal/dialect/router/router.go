@@ -36,6 +36,8 @@
 // segment and calls ParseInfo instead of Parse ("/info/sig/opts/plain/src"
 // on a root mount, "/p/info/sig/..." under mount "/p/"). The signature and
 // unsigned policy apply unchanged (restricted rejects info requests).
+// "/video" selects [VideoParser] the same way (video transformations,
+// which restricted rejects too).
 //
 // # Source binding
 //
@@ -340,29 +342,54 @@ type InfoParser interface {
 	ParseInfo(in *dialect.Input) (*dialect.Result, error)
 }
 
-// infoSegment is the first path segment (after the mount prefix) that
-// selects InfoParser.ParseInfo.
-const infoSegment = "/info"
+// VideoParser is implemented by dialects with a video transformation
+// endpoint under "<mount>/video" (the imgproxy dialect's /video URLs,
+// docs/URL-DIALECTS.md §3.4, WP-122). ParseVideo receives the path after
+// the "/video" segment and returns a request of Kind transform.KindVideo.
+type VideoParser interface {
+	ParseVideo(in *dialect.Input) (*dialect.Result, error)
+}
+
+// infoSegment and videoSegment are the first path segments (after the
+// mount prefix) that select InfoParser.ParseInfo and
+// VideoParser.ParseVideo.
+const (
+	infoSegment  = "/info"
+	videoSegment = "/video"
+)
 
 // parse runs d on in: a path under "/info" goes to ParseInfo when d
-// implements InfoParser, with the "/info" segment removed; everything else
-// goes to Parse. Dialects without an info endpoint see "/info/..." as an
-// ordinary path.
+// implements InfoParser, one under "/video" to ParseVideo when d
+// implements VideoParser, with the segment removed; everything else goes
+// to Parse. Dialects without such an endpoint see "/info/..." and
+// "/video/..." as ordinary paths.
 func parse(d dialect.Dialect, in *dialect.Input) (*dialect.Result, error) {
-	ip, ok := d.(InfoParser)
-	if !ok {
-		return d.Parse(in)
+	if ip, ok := d.(InfoParser); ok {
+		if sub, ok := under(in, infoSegment); ok {
+			return ip.ParseInfo(sub)
+		}
 	}
-	rest, ok := strings.CutPrefix(in.Path, infoSegment)
+	if vp, ok := d.(VideoParser); ok {
+		if sub, ok := under(in, videoSegment); ok {
+			return vp.ParseVideo(sub)
+		}
+	}
+	return d.Parse(in)
+}
+
+// under returns in with its path made relative to segment, when the path
+// is segment or starts with segment + "/".
+func under(in *dialect.Input, segment string) (*dialect.Input, bool) {
+	rest, ok := strings.CutPrefix(in.Path, segment)
 	switch {
 	case !ok || (rest != "" && rest[0] != '/'):
-		return d.Parse(in)
+		return nil, false
 	case rest == "":
 		rest = "/"
 	}
-	info := *in
-	info.Path = rest
-	return ip.ParseInfo(&info)
+	sub := *in
+	sub.Path = rest
+	return &sub, true
 }
 
 // Route selects the mount for r, parses the URL with the mount's dialect

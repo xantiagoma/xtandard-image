@@ -5,9 +5,12 @@
 import {
   buildImgproxyInfoUrl,
   buildImgproxyUrl,
+  buildImgproxyVideoUrl,
   type ImgproxyInfoOptions,
   type ImgproxyProcessingArgsOf,
   type ImgproxyProcessingOptions,
+  type ImgproxyVideoArgsOf,
+  type ImgproxyVideoOptions,
   imgproxy,
 } from "../src/index.ts";
 import { createClient, type ErrorKind, type InfoResponse, XtandardError } from "../src/client.ts";
@@ -39,6 +42,35 @@ const info: ImgproxyInfoOptions = { size: true, format: [true], dominant_colors:
 void info;
 
 assertType<Equal<ImgproxyProcessingArgsOf<"rs">, ImgproxyProcessingArgsOf<"resize">>>(true);
+
+const video: ImgproxyVideoOptions = {
+  start: 1.5,
+  vd: 5,
+  resize: ["fill", 640, 360],
+  gravity: ["soea", 10, 10],
+  format: "webm",
+  video_codec: "av1",
+  vb: "2M",
+  loudnorm: [true, -16, -1.5, 11],
+  waveform: [true, "2266cc", null, true],
+  fade: [1, 2],
+};
+void video;
+void buildImgproxyVideoUrl({ source: "s3://b/clip.mp4", options: video, extension: "webm" });
+void imgproxy().video("s3://b/clip.mp4").vs(1).rs("fit", 320).sr(44100).extension("m4a").build();
+assertType<Equal<ImgproxyVideoArgsOf<"vs">, ImgproxyVideoArgsOf<"start">>>(true);
+
+// @ts-expect-error auto is not a video resizing type
+const videoAuto: ImgproxyVideoOptions = { resize: ["auto", 1, 1] };
+void videoAuto;
+
+// @ts-expect-error an image-only option is not a video option
+const videoBlur: ImgproxyVideoOptions = { blur: 2 };
+void videoBlur;
+
+// @ts-expect-error not a video container
+const videoGif: ImgproxyVideoOptions = { format: "gif" };
+void videoGif;
 
 // ---- unknown options ---------------------------------------------------------
 

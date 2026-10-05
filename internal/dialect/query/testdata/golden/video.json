@@ -1,0 +1,592 @@
+{
+  "audio": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026f=mp3\u0026sr=44100\u0026ach=1\u0026vol=-6dB\u0026ln=1,-16,-1.5,11\u0026fade=1,2",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Channels": 1,
+        "Container": "mp3",
+        "FadeIn": 1000000000,
+        "FadeOut": 2000000000,
+        "Fit": "scale-down",
+        "Loudnorm": {
+          "Integrated": -16,
+          "Range": 11,
+          "TruePeak": -1.5
+        },
+        "SampleRate": 44100,
+        "Volume": 0.5011872336272722
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "bad_sample_rate": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.sample_rate: must be one of 8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 88200, 96000",
+      "status": 400
+    },
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026sr=44000"
+  },
+  "bad_volume": {
+    "error": {
+      "field": "volume",
+      "kind": "invalid_url",
+      "public": "invalid volume: expected a gain factor (0.5) or decibels (-6dB)",
+      "status": 400
+    },
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026vol=loud"
+  },
+  "cb_attachment_filename": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026cb=2\u0026attachment=1\u0026filename=clip",
+    "request": {
+      "Delivery": {
+        "Attachment": true,
+        "CacheBuster": "2",
+        "Filename": "clip"
+      },
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "codecs_bitrates": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026f=webm\u0026vc=av1\u0026ac=opus\u0026vb=2M\u0026ab=96k\u0026crf=30\u0026ki=1\u0026fps=24",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "AudioBitrate": 96000,
+        "AudioCodec": "opus",
+        "CRF": 30,
+        "Container": "webm",
+        "FPS": 24,
+        "Fit": "scale-down",
+        "KeyframeInterval": 1000000000,
+        "MaxBitrate": 2000000,
+        "VideoCodec": "av1"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "crop_wh_gravity": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026crop=100,50\u0026g=north",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Crop": {
+          "Gravity": "north",
+          "Height": 50,
+          "Width": 100
+        },
+        "Fit": "scale-down",
+        "Gravity": "north"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "crop_whxy": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026crop=100,50,10,20",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Crop": {
+          "Gravity": "north-west",
+          "Height": 50,
+          "Width": 100,
+          "X": 10,
+          "Y": 20
+        },
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "defaults": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "example": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026start=1\u0026duration=5\u0026width=640\u0026format=webm\u0026mute=1",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "webm",
+        "Duration": 5000000000,
+        "Fit": "scale-down",
+        "Mute": true,
+        "Start": 1000000000,
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "fit_cover_gravity_words": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026w=200\u0026h=200\u0026fit=cover\u0026g=southeast:10:5",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "cover",
+        "Gravity": "south-east",
+        "Height": 200,
+        "Width": 200
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "fit_invalid": {
+    "error": {
+      "field": "fit",
+      "kind": "invalid_url",
+      "public": "invalid fit: expected fit, contain, inside, fill, cover, fill-down, force or stretch",
+      "status": 400
+    },
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026fit=auto"
+  },
+  "fit_outside": {
+    "error": {
+      "field": "fit",
+      "kind": "invalid_url",
+      "public": "invalid fit: expected fit, contain, inside, fill, cover, fill-down, force or stretch",
+      "status": 400
+    },
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026fit=outside"
+  },
+  "fit_stretch": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026w=200\u0026h=200\u0026fit=stretch",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "fill",
+        "Height": 200,
+        "Width": 200
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "flip_hv": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026flip=hv\u0026rot=90",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "FlipH": true,
+        "FlipV": true,
+        "Rotate": 90
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "gravity_fp_commas": {
+    "error": {
+      "field": "gravity.type",
+      "kind": "invalid_url",
+      "public": "invalid gravity.type: expected ce, no, so, ea, we, noea, nowe, soea or sowe",
+      "status": 400
+    },
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026w=200\u0026h=200\u0026fit=fill\u0026g=fp,0.2,0.8"
+  },
+  "o_path": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026o=rs:fill:320:180/vd:2",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Duration": 2000000000,
+        "Fit": "cover",
+        "Height": 180,
+        "Width": 320
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "overlay": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026wm=0.8,soea,8,8\u0026wmu=eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n\u0026wms=48\u0026ow=0.3,0.7\u0026of=0.1,0.1\u0026tc=hms,sowe,8,8,20",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Overlays": [
+          {
+            "End": 700000000,
+            "FadeIn": 100000000,
+            "FadeOut": 100000000,
+            "Start": 300000000,
+            "Watermark": {
+              "Opacity": 0.8,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 8,
+                "YOffset": 8
+              },
+              "Source": {
+                "Encoding": "base64",
+                "Raw": "xi://fixtures/watermark/badge.png"
+              },
+              "Width": 48
+            }
+          },
+          {
+            "Timecode": "hms",
+            "TimecodeSize": 20,
+            "Watermark": {
+              "Color": {
+                "A": 255,
+                "B": 255,
+                "G": 255,
+                "R": 255
+              },
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-west",
+                "XOffset": 8,
+                "YOffset": 8
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "overlay_o_path": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026o=wm:1:nowe:6:6/wmt:PGI-aGk8L2I-/ow:0.2",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Overlays": [
+          {
+            "Start": 200000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 6,
+                "YOffset": 6
+              },
+              "Text": "\u003cb\u003ehi\u003c/b\u003e"
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "pdf_password_refused": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026pdp=abc",
+    "request": {
+      "Dialect": "query",
+      "Ignored": [
+        {
+          "Option": "pdp",
+          "Reason": "unknown option"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "resize_option": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026rs=fit,640,360,0,1\u0026bg=ffffff",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Background": {
+          "A": 255,
+          "B": 255,
+          "G": 255,
+          "R": 255
+        },
+        "Fit": "pad",
+        "Height": 360,
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "short_names": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026vs=1\u0026ve=3\u0026w=320\u0026h=180\u0026f=m4a\u0026q=70",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "m4a",
+        "End": 3000000000,
+        "Fit": "scale-down",
+        "Height": 180,
+        "Quality": 70,
+        "Start": 1000000000,
+        "Width": 320
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "trailing_slash": {
+    "path": "/video/",
+    "query": "url=https://example.com/clip.mov\u0026w=320",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Width": 320
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "unknown_key": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026blur=5",
+    "request": {
+      "Dialect": "query",
+      "Ignored": [
+        {
+          "Option": "blur",
+          "Reason": "unknown option"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "unknown_key_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026blur=5"
+  },
+  "url_missing": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing source url",
+      "status": 400
+    },
+    "path": "/video",
+    "query": "w=10"
+  },
+  "waveform": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026waveform=1,2266cc,ffffff,1\u0026w=800\u0026h=200\u0026f=webp",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "webp",
+        "Fit": "scale-down",
+        "Height": 200,
+        "Waveform": {
+          "Background": {
+            "A": 255,
+            "B": 255,
+            "G": 255,
+            "R": 255
+          },
+          "Color": {
+            "A": 255,
+            "B": 204,
+            "G": 102,
+            "R": 34
+          },
+          "SplitChannels": true
+        },
+        "Width": 800
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "waveform_in_mp4": {
+    "error": {
+      "field": "waveform",
+      "kind": "invalid_url",
+      "public": "invalid waveform: expected a png or webp output",
+      "status": 400
+    },
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026wf=1\u0026f=mp4"
+  }
+}

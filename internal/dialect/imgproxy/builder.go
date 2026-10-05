@@ -25,6 +25,15 @@ func (p *Parser) NewBuilder(dialectName string) *Builder {
 	return &Builder{st: st}
 }
 
+// NewVideoBuilder returns a builder for one video transformation tagged
+// with dialectName: Kind KindVideo, options from the /video table
+// (docs/URL-DIALECTS.md §3.8). Finish validates the video options.
+func (p *Parser) NewVideoBuilder(dialectName string) *Builder {
+	st := newVideoState(p)
+	st.r.Dialect = dialectName
+	return &Builder{st: st}
+}
+
 // SetVerified records that the URL the options come from carries a
 // verified signature (sign.Verified). Only then does pdf_password apply;
 // a builder that is never told refuses it with 403.
@@ -42,6 +51,9 @@ func (b *Builder) Pipeline() *transform.Pipeline { return b.st.pipeline() }
 func (b *Builder) Apply(name string, args ...string) error {
 	if len(args) == 0 {
 		args = []string{""}
+	}
+	if b.st.video != nil {
+		return b.st.applyVideo(name, args)
 	}
 	return b.st.apply(name, args)
 }

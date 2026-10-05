@@ -6,7 +6,6 @@ import (
 	"image"
 	"math"
 	"net/http"
-	"net/url"
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/config"
@@ -54,9 +53,10 @@ func regionDiff(a, b *image.NRGBA, r image.Rectangle) float64 {
 }
 
 // TestVideoOverlays serves image, text and timecode overlays end to end
-// (router, overlay fetch through the source registry, libvips rendering,
-// FFmpeg compositing) and checks extracted frames: the overlay is where
-// and when it was asked for, the rest of the frame is the plain
+// through signed production /video URLs (imgproxy watermark options with
+// ow/of/tc, WP-122/124; overlay fetch through the source registry, libvips
+// rendering, FFmpeg compositing) and checks extracted frames: the overlay
+// is where and when it was asked for, the rest of the frame is the plain
 // transcode's, and the frames inside the window match their goldens
 // (testdata/golden/app/video-overlay-*.png, compared perceptually).
 func TestVideoOverlays(t *testing.T) {
@@ -64,8 +64,17 @@ func TestVideoOverlays(t *testing.T) {
 		t.Skip("this image has no FFmpeg")
 	}
 	a := startVideo(t, videoConfig(t, config.RoleAll, true))
-	clip := "http://" + a.public.String() + "/_video/video/clip-vp9.webm?w=320&c=webm&start=0.5&dur=1"
-	plain := get(t, clip)
+	s := newVideoSigner(t)
+	base := "http://" + a.public.String()
+	// clip is the signed URL of the 320 px WebM cut with the given
+	// options ("" for none).
+	clip := func(opts string) string {
+		if opts != "" {
+			opts = "/" + opts
+		}
+		return base + s.video(t, "/w:320/vs:0.5/vd:1"+opts+"/plain/video/clip-vp9.webm@webm")
+	}
+	plain := get(t, clip(""))
 	if plain.status != http.StatusOK {
 		t.Fatalf("plain: %d %s", plain.status, plain.body)
 	}
@@ -82,13 +91,13 @@ func TestVideoOverlays(t *testing.T) {
 		inside []float64 // seconds where the overlay shows
 		out    []float64 // seconds where it does not
 	}{
-		{"wmu", "o=" + url.QueryEscape("wm:0.8:soea:8:8/wmu:"+badge+"/wms:48:0") + "&ovs=0.3&ove=0.7", mark, []float64{0.4, 0.6}, []float64{0.1, 0.9}},
-		{"wmu-fade", "o=" + url.QueryEscape("wm:1:soea:8:8/wmu:"+badge+"/wms:48:0") + "&ovfi=0.4&ovfo=0.4", mark, []float64{0.5}, nil},
-		{"wmt", "o=" + url.QueryEscape("wm:1:nowe:6:6/wmt:"+b64(hostile)) + "&ovs=0.2", image.Rect(6, 6, 200, 20), []float64{0.4, 0.8}, []float64{0.1}},
-		{"timecode", "tc=hms&tcg=south-west&tcs=20", image.Rect(0, 150, 140, 180), []float64{0.2, 0.8}, nil},
+		{"wmu", "wm:0.8:soea:8:8/wmu:" + badge + "/wms:48:0/ow:0.3:0.7", mark, []float64{0.4, 0.6}, []float64{0.1, 0.9}},
+		{"wmu-fade", "wm:1:soea:8:8/wmu:" + badge + "/wms:48:0/of:0.4:0.4", mark, []float64{0.5}, nil},
+		{"wmt", "wm:1:nowe:6:6/wmt:" + b64(hostile) + "/ow:0.2", image.Rect(6, 6, 200, 20), []float64{0.4, 0.8}, []float64{0.1}},
+		{"timecode", "tc:hms:sowe:0:0:20", image.Rect(0, 150, 140, 180), []float64{0.2, 0.8}, nil},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			r := get(t, clip+"&"+tc.query)
+			r := get(t, clip(tc.query))
 			if r.status != http.StatusOK || r.ctype != "video/webm" {
 				t.Fatalf("%d %q %s", r.status, r.ctype, r.body)
 			}
@@ -115,7 +124,7 @@ func TestVideoOverlays(t *testing.T) {
 
 	// The hostile text is pixels: drawn literally, the same at every
 	// frame, never expanded into a timecode.
-	r := get(t, clip+"&o="+url.QueryEscape("wm:1:nowe:6:6/wmt:"+b64(hostile)))
+	r := get(t, clip("wm:1:nowe:6:6/wmt:"+b64(hostile)))
 	if r.status != http.StatusOK {
 		t.Fatalf("hostile text: %d %s", r.status, r.body)
 	}
@@ -126,7 +135,7 @@ func TestVideoOverlays(t *testing.T) {
 
 	// Markup that is not plain text styling is refused, not passed on.
 	for _, bad := range []string{`<span font_file="/etc/passwd">x</span>`, `<img src="x"/>`} {
-		r := get(t, clip+"&o="+url.QueryEscape("wm:1:ce/wmt:"+b64(bad)))
+		r := get(t, clip("wm:1:ce/wmt:"+b64(bad)))
 		if r.status != http.StatusBadRequest {
 			t.Errorf("%s: %d %s, want 400", bad, r.status, r.body)
 		}
@@ -136,9 +145,23 @@ func TestVideoOverlays(t *testing.T) {
 		"s3://bucket/w.png":                   http.StatusForbidden,
 		"xi://fixtures/watermark/missing.png": http.StatusNotFound,
 	} {
-		r := get(t, clip+"&o="+url.QueryEscape("wm:1:ce/wmu:"+b64(src)))
+		r := get(t, clip("wm:1:ce/wmu:"+b64(src)))
 		if r.status != status {
 			t.Errorf("overlay %s: %d, want %d", src, r.status, status)
 		}
+	}
+	// Overlays need a video stream: an audio-only output refuses them.
+	if r := get(t, base+s.video(t, "/wm:1:ce/wmu:"+badge+"/plain/video/bbb-h264-aac.mp4@m4a")); r.status != http.StatusBadRequest {
+		t.Errorf("overlay on m4a: %d %s, want 400", r.status, r.body)
+	}
+	// The query dialect carries the same options.
+	q, err := s.xi.SignXIQuery("/video", "url=video/clip-vp9.webm&w=320&vs=0.5&vd=1&f=webm&wm=0.8,soea,8,8&wmu="+badge+"&wms=48,0&ow=0.3,0.7")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := get(t, base+"/q/video?"+q); r.status != http.StatusOK {
+		t.Fatalf("query overlay: %d %s", r.status, r.body)
+	} else if d := regionDiff(videoFrame(t, r.body, 0.5), videoFrame(t, plain.body, 0.5), mark); d < 8 {
+		t.Errorf("query overlay missing (difference %.1f)", d)
 	}
 }

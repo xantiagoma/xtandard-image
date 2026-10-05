@@ -353,9 +353,29 @@ and a 4530-byte HEVC MP4 (gpl), all 6 frames and 0.600 s long.
 - The `gpl` flavor exists for these encoders only. Its licensing and patent caveats are in
   `docker/base/README.md` and the image's `/opt/xtandard/share/licenses/LICENSE-GPL.md`.
 
-### 5.2 Video transformations (M5, planned)
+### 5.2 Video transformations (M5: WP-121 core, WP-122 options, WP-123 audio)
 
-Transforming a video into a video or an audio file (trim, resize/crop/fit, fps, rotate, bitrate, MP4/WebM, mute, M4A/MP3/Opus audio-only, watermarks, then HLS/DASH with just-in-time segments) is M5 work in a separate subsystem with its own worker pool and limits, off by default and in the `full`/`gpl` images only: design in [ADR 0012](adr/0012-video-transformations.md), work packages WP-121 to WP-127 in [ROADMAP](ROADMAP.md#m5-video-transformations). The base images already carry what it needs (WP-120): libswresample, the common audio decoders, the AAC (native), Opus (libopus), MP3 (LAME) and FLAC encoders, the M4A/MPEG-TS/HLS/DASH/MP3/Ogg/ADTS/WAV/FLAC muxers and the filters (`docker/base/README.md`, Full flavor). Until those WPs land, the outputs of this section (§5.1) are the only video outputs.
+A video (or audio) source transformed into a video file, an audio file or a waveform picture, in a subsystem of its own (`internal/media`: own worker pool, limits, coalescing; [ADR 0012](adr/0012-video-transformations.md)), off by default (`XI_VIDEO_TRANSFORM_ENABLED`), `full` and `gpl` images only. URLs: `/video/<signature>/<options>/<source>@<container>` in the imgproxy dialect and `/q/video?url=…` in the query dialect ([URL-DIALECTS §3.8](URL-DIALECTS.md#38-video-transformations-wp-122-wp-123)); signed only by default. Image, text and timecode overlays (WP-124) use the watermark options with `ow`/`of`/`tc` there; the other dialects (WP-125) and HLS/DASH (WP-126) follow.
+
+| Output | Container / codecs (`full`) | `gpl` | Content type |
+|---|---|---|---|
+| `mp4` (default) | MP4: AV1 + AAC (`vc:av1`) | H.264 + AAC; `vc:hevc` HEVC (`hvc1`) | `video/mp4` |
+| `webm` | WebM: VP9 (or `vc:av1`) + Opus | same | `video/webm` |
+| `m4a` | MP4 audio: AAC | same | `audio/mp4` |
+| `mp3` | MP3: LAME | same | `audio/mpeg` |
+| `opus`, `ogg` | Ogg: Opus | same | `audio/ogg` |
+| `flac` | FLAC | same | `audio/flac` |
+| `wav` | WAV: 16-bit PCM | same | `audio/wav` |
+| `png`, `webp` | waveform picture (FFmpeg `showwavespic` → RGBA → libvips, lossless) | same | `image/png`, `image/webp` |
+
+- **Inputs:** the video containers of §1.5 (MP4/MOV, Matroska/WebM, AVI) and, for audio outputs and waveforms, audio files (MP3, AAC/ADTS, AC-3, E-AC-3, Ogg Vorbis/Opus, FLAC, WAV); decoders as in ADR 0012 §7. The shim's demuxer and decoder whitelists name exactly these; no protocol is enabled.
+- **Video:** exact cut (seek to the keyframe before the start, frames dropped up to it), display matrix, `rot`/`fl`, gravity-placed crop, fit/fill/force/pad with gravity, frame rate (capped by `XI_VIDEO_TRANSFORM_MAX_FPS`), fade in from and out to black, 4:2:0 8-bit (`yuv420p`), even sizes, CRF (`q` mapped as for animations, or `crf`) with an optional bit-rate cap, keyframe interval (`ki`, default 2 s). MP4 has `+faststart`, WebM its Cues first, so players can start with a `Range` request.
+- **Audio:** decoded, cut, gain (`vol`), EBU R128 loudness normalisation (`ln`, single-pass `loudnorm`, target -23 LUFS / -1 dBTP / 7 LU by default, measured within ±1 LU on the test fixtures), fades, resampled (`sr`; AAC 8–96 kHz, MP3 8–48 kHz, Opus 8/12/16/24/48 kHz, FLAC/WAV any listed rate; else the source's rate when the codec takes it, 48 kHz otherwise, 44.1 kHz for MP3) and mixed to mono or stereo (`ach`; more channels are downmixed to stereo). Bit rates default to 128 kbit/s stereo / 96 kbit/s mono (AAC, MP3), 96/64 kbit/s (Opus); FLAC and WAV are lossless. `mu:1` drops the stream; a source without audio has none in a video output and is a 422 for audio-only outputs and waveforms.
+- **Waveforms:** `width` × `height` (default 1024 × 256) of the cut, in `color` on `background` (transparent by default; any opaque colour is flattened by libvips), mono or one band per channel (`split_channels`), linear amplitude scale. Golden: `testdata/golden/video/waveform-tones.png` (perceptual).
+- **Responses:** `Accept-Ranges: bytes`, `Range`/`If-Range`/206/416, ETag and the result cache keyed by the canonical request plus the resolved output (`<container>:<video codec>:<audio codec>`), `X-Xi-Video-Codec` (`av1+aac`, `vp9`, `opus`; empty for a waveform) with debug headers.
+- **Limits:** `XI_VIDEO_TRANSFORM_MAX_*` ([CONFIG.md](CONFIG.md)): input bytes, duration and frame pixels; output bytes, duration, frame pixels (also the waveform's) and frame rate (422), plus the pool's 429/503 and the transcode timeout's 504.
+
+The outputs of §5.1 (GIF and animations → MP4/WebM through the image pipeline) are unchanged.
 
 #### Overlays (WP-124)
 

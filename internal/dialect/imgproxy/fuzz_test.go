@@ -77,6 +77,34 @@ func FuzzParseInfo(f *testing.F) {
 	})
 }
 
+// FuzzParseVideo is FuzzParse for the /video grammar (WP-122, WP-123):
+// results must be video requests that validate.
+func FuzzParseVideo(f *testing.F) {
+	for _, s := range []string{
+		"/unsafe/plain/https://example.com/a.mov@webm",
+		"/unsafe/vs:1.5/vd:3/rs:fill:640:360/g:soea:10:5/fps:24/vc:av1/vb:2M/ki:1/plain/x.mp4",
+		"/unsafe/c:100:50:fp:0.1:0.9/rot:-90/fl:1:0/bg:fff/ex:1/el:1/s:320:180::1/aGk.webm",
+		"/unsafe/mu:1/q:70/crf:30/ve:4/f:mp4/plain/x",
+		"/unsafe/f:mp3/sr:44100/ach:1/ab:128k/vol:-6dB/ln:1:-16:-1.5:11/fd:1:2/plain/x",
+		"/unsafe/wf:1:2266cc:ffffff:1/w:800/h:200/plain/x@webp",
+		"/unsafe/cb:1/exp:1/fn:eA:1/att:1/hs:md5:" + strings.Repeat("0", 32) + "/bc:1/ct:a/enc/" + encToken + ".ogg",
+		"/unsafe/w:1/-/w:2/plain/x",
+		"/unsafe/vol:1e999/vb:1e20M/plain/x@flac",
+		"",
+		"/",
+		"/unsafe/:/::/plain/@@",
+	} {
+		f.Add(s)
+	}
+	fx := getFixture(f)
+	f.Fuzz(func(t *testing.T, path string) {
+		for name, p := range fx.parsers {
+			res, err := p.ParseVideoPath(path)
+			checkFuzz(t, name, path, res, err, transform.KindVideo)
+		}
+	})
+}
+
 // checkFuzz asserts the invariants of one fuzzed parse.
 func checkFuzz(t *testing.T, name, path string, res *dialect.Result, err error, kind transform.Kind) {
 	t.Helper()
@@ -109,6 +137,16 @@ func checkFuzz(t *testing.T, name, path string, res *dialect.Result, err error, 
 	}
 	if kind != transform.KindInfo && (r.Kind == transform.KindInfo || r.Info != nil) {
 		t.Fatalf("%s: %q: info request from the processing grammar", name, path)
+	}
+	if (kind == transform.KindVideo) != (r.Kind == transform.KindVideo && r.Video != nil) {
+		t.Fatalf("%s: %q: video request %v from the %s grammar", name, path, r.Video != nil, kind)
+	}
+	if kind == transform.KindVideo {
+		// The /video grammar validates while parsing.
+		r.ApplyDefaults(transform.StandardDefaults())
+		if err := r.Validate(); err != nil {
+			t.Fatalf("%s: %q: invalid video request: %v", name, path, err)
+		}
 	}
 	// The request must survive defaults and canonical encoding.
 	r.ApplyDefaults(transform.StandardDefaults())

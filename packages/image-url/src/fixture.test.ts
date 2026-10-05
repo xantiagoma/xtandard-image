@@ -12,7 +12,7 @@ import { type Arg, type ImgproxyUrlConfig, imgproxy, type SourceEncoding } from 
 interface FixtureCase {
   name: string;
   config?: string;
-  endpoint?: "info";
+  endpoint?: "info" | "video";
   separator?: string;
   signature_size?: number;
   encoding: SourceEncoding;
@@ -57,6 +57,14 @@ async function fluent(c: FixtureCase, given: boolean): Promise<string> {
     }
     return chain.build();
   }
+  if (c.endpoint === "video") {
+    const chain = b.video(c.source).encoding(c.encoding);
+    for (const entry of c.pipelines.flat()) {
+      for (const [name, args] of Object.entries(entry)) (chain as unknown as Loose).option(name, ...args);
+    }
+    if (c.extension) chain.extension(c.extension);
+    return chain.build();
+  }
   const chain = b.from(c.source).encoding(c.encoding);
   c.pipelines.forEach((pl, i) => {
     if (i > 0) chain.chain();
@@ -84,6 +92,14 @@ async function objectForm(c: FixtureCase, given: boolean): Promise<string | unde
   const b = imgproxy(config(c, given));
   if (c.endpoint === "info") {
     return b.infoUrl({ source: c.source, sourceEncoding: c.encoding, options: (objects[0] ?? {}) as never });
+  }
+  if (c.endpoint === "video") {
+    return b.videoUrl({
+      source: c.source,
+      sourceEncoding: c.encoding,
+      options: (objects[0] ?? {}) as never,
+      ...(c.extension ? { extension: c.extension } : {}),
+    });
   }
   return b.url({
     source: c.source,

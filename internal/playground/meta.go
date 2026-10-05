@@ -88,6 +88,9 @@ type Meta struct {
 	// InfoOptions is the imgproxy /info option catalogue for the Info
 	// panel's builder.
 	InfoOptions []Option `json:"info_options" doc:"imgproxy /info options (internal/apidoc, the ImgproxyInfoOptions schema) for the Info panel's builder."`
+	// VideoOptions is the imgproxy-style /video option catalogue (WP-122,
+	// WP-123).
+	VideoOptions []Option `json:"video_options" doc:"imgproxy-style /video options (internal/apidoc, the ImgproxyVideoOptions schema): video transformations, audio and waveforms."`
 	// Presets are the configured preset names.
 	Presets []string `json:"presets" doc:"Configured preset names."`
 	// Sources are the configured named sources (names and types only).
