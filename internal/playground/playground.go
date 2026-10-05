@@ -16,6 +16,8 @@
 //	POST /api/translate             TranslateRequest → the transform in every dialect (WP-94)
 //	POST /api/upload                a file for playground://uploads/<id> (XI_PLAYGROUND_UPLOADS)
 //	GET  /api/sources/<n>/list      one directory of an fs source (WP-94)
+//	POST /api/probe                 ProbeRequest → MediaInfo of a source (WP-127)
+//	POST /api/probe/result          a media body → its MediaInfo (WP-127)
 //
 // app mounts the handler on the admin listener, and on the public listener
 // only with XI_PLAYGROUND_PUBLIC. The package never sees key bytes: it holds
@@ -83,6 +85,9 @@ type Deps struct {
 	// token (crypt.Cipher.Encrypt, the XI_ENCRYPTION_KEYS key); nil makes
 	// api/sign refuse SignRequest.PDFPassword.
 	EncryptPassword func(password []byte) (string, error)
+	// Prober describes media files for the video mode (api/probe); nil
+	// answers 404 (no video transformations or no FFmpeg).
+	Prober MediaProber
 }
 
 // handler is the playground's handler tree.
@@ -98,6 +103,7 @@ type handler struct {
 	fsRoots    map[string]FSRoot
 	translator Translator
 	encrypt    func(password []byte) (string, error)
+	prober     *prober
 	page       []byte
 	version    string
 	files      map[string]asset
@@ -136,6 +142,9 @@ func New(cfg Config, deps *Deps) (http.Handler, error) {
 		encrypt:    deps.EncryptPassword,
 		files:      map[string]asset{},
 	}
+	if deps.Prober != nil {
+		h.prober = newProber(deps.Prober, deps.Logger)
+	}
 	for i := range deps.Meta.Mounts {
 		m := &deps.Meta.Mounts[i]
 		h.mounts[m.ID] = m
@@ -157,6 +166,10 @@ func New(cfg Config, deps *Deps) (http.Handler, error) {
 		mux.Handle("POST "+p+"/api/upload", http.NewCrossOriginProtection().Handler(http.HandlerFunc(h.upload)))
 	}
 	mux.HandleFunc("GET "+p+"/api/sources/{name}/list", h.list)
+	if h.prober != nil {
+		mux.Handle("POST "+p+"/api/probe", http.NewCrossOriginProtection().Handler(http.HandlerFunc(h.prober.source)))
+		mux.Handle("POST "+p+"/api/probe/result", http.NewCrossOriginProtection().Handler(http.HandlerFunc(h.prober.result)))
+	}
 	// Anything else under p is the ServeMux 404 (or 405 for a known path
 	// with another method).
 	mux.HandleFunc(p, func(w http.ResponseWriter, r *http.Request) {

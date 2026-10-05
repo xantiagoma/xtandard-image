@@ -65,7 +65,8 @@ export class Frames {
 
   kind() {
     const i = this.info;
-    if (!i) return null;
+    // A video transformation (WP-127) has its own trim timeline.
+    if (!i || this.state.video) return null;
     if (i.video_meta?.duration > 0) return 'video';
     if ((i.pages_number ?? 1) > 1) return ANIMATED.has(i.format) ? 'frames' : 'pages';
     return null;

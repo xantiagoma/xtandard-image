@@ -13,15 +13,16 @@ const NEEDS = {
   watermark: 'Needs the server\'s default watermark image, XI_PROCESSING_WATERMARK_SOURCE (imgproxy compatibility, empty by default), which this server does not configure. The other examples name their watermark in the URL.',
   detection: 'Needs the detection models (the full or gpl image).',
   video: 'Needs FFmpeg (the full or gpl image): video sources and mp4 output.',
+  video_transform: 'Needs video transformations: XI_VIDEO_TRANSFORM_ENABLED=true on the full or gpl image (compose.playground.yml turns them on).',
 };
 
 const has = (meta, need) => ({
-  watermark: meta.watermark, detection: meta.detection, video: meta.video,
+  watermark: meta.watermark, detection: meta.detection, video: meta.video, video_transform: Boolean(meta.video_transform),
 })[need] ?? false;
 
 // dialectLabel names a recipe's dialect as people know it.
 export const dialectLabel = (r) => (r.dialect === 'query' && r.raw ? 'imaginary' : {
-  imgproxy: 'imgproxy', query: 'query', imgix: 'imgix', cloudinary: 'Cloudinary', imagekit: 'ImageKit',
+  imgproxy: 'imgproxy', query: 'query', imgix: 'imgix', cloudinary: 'Cloudinary', imagekit: 'ImageKit', cloudflare_media: 'Cloudflare media',
 }[r.dialect] ?? r.dialect);
 
 // FILTERS are the tool's filter chips.
@@ -35,6 +36,7 @@ const FILTERS = [
   ['cloudinary', 'Cloudinary', (r) => r.dialect === 'cloudinary'],
   ['imagekit', 'ImageKit', (r) => r.dialect === 'imagekit'],
   ['imaginary', 'imaginary', (r) => dialectLabel(r) === 'imaginary'],
+  ['video', 'Video and audio', (r) => r.category === 'video'],
   ['showcase', 'Beyond watermarks', (r) => r.category === 'showcase'],
 ];
 
@@ -72,7 +74,7 @@ export class Examples {
 
   // entries turns a recipe pipeline into builder entries.
   entries(r, grammar, pipeline) {
-    const index = this.index(grammar) ?? new Map();
+    const index = this.index(grammar, r.video) ?? new Map();
     return pipeline.map(([name, ...values]) => {
       const o = index.get(name);
       if (!o || !values.length) return { name, form: 0, values: [], groups: 1, on: true };
@@ -92,7 +94,7 @@ export class Examples {
       mount: m?.id ?? '', prefix: '', source: r.source, sourceLabel: r.title,
       pipelines: (r.pipelines?.length ? r.pipelines : [[]]).map((p) => this.entries(r, grammar, p)),
       alias: false, encoding: 'plain', ext: r.ext ?? '', edits: '',
-      raw: Boolean(r.raw), free: { path: r.raw?.path ?? '', query: r.raw?.query ?? '' },
+      raw: Boolean(r.raw), video: Boolean(r.video), free: { path: r.raw?.path ?? '', query: r.raw?.query ?? '' },
       info: r.info?.length ? r.info.map(([name, ...values]) => ({ name, form: 0, values })) : null,
     };
   }
@@ -103,7 +105,7 @@ export class Examples {
     return {
       m: s.mount, s: s.source, l: s.sourceLabel, a: 0, e: 'plain', x: s.ext,
       p: s.pipelines.map((p) => p.map((e) => [e.name, e.form, e.values, e.groups, e.on ? 1 : 0])),
-      f: s.free, j: '', ...(s.raw ? { r: 1 } : {}),
+      f: s.free, j: '', ...(s.raw ? { r: 1 } : {}), ...(s.video ? { v: 1 } : {}),
       ...(s.info ? { i: s.info.map((e) => [e.name, e.form, e.values]) } : {}),
     };
   }
@@ -123,13 +125,13 @@ export class Examples {
       const g = this.meta.gallery?.find((x) => x.url === src);
       if (g && !g.allowed) return 'Needs an http source that allows this public sample URL (or XI_DEV_MODE).';
     }
-    const req = build(m, this.state(r), this.index(m.grammar) ?? new Map());
+    const req = build(m, this.state(r), this.index(m.grammar, r.video) ?? new Map());
     return req.error ? `${req.error} (mount ${m.id})` : '';
   }
 
   // renderQuick fills the Options panel's quick menu.
   renderQuick(select) {
-    const groups = [['watermark', 'Watermarks'], ['showcase', 'Beyond watermarks']];
+    const groups = [['watermark', 'Watermarks'], ['video', 'Video and audio'], ['showcase', 'Beyond watermarks']];
     select.replaceChildren(el('option', { value: '', text: 'Load an example…' }), ...groups.map(([cat, label]) => el('optgroup', { label },
       ...this.recipes.filter((r) => r.category === cat).map((r) => {
         const reason = this.why(r);
@@ -221,10 +223,22 @@ export class Examples {
       this.running++;
       const media = card.querySelector('.recipe-media');
       Promise.resolve(this.thumb(card._recipe, this.state(card._recipe)))
-        .then((url) => {
-          media.replaceChildren(url
-            ? el('img', { src: url, alt: '', loading: 'lazy', decoding: 'async' })
-            : el('span', { class: 'hint', text: 'no preview' }));
+        .then((t) => {
+          // An image URL, or {url, type} for a video or audio result.
+          const url = typeof t === 'string' ? t : t?.url;
+          const type = typeof t === 'string' ? 'image/' : t?.type ?? '';
+          let node = el('span', { class: 'hint', text: 'no preview' });
+          if (url && type.startsWith('video/')) {
+            node = el('video', { src: url, muted: true, loop: true, autoplay: true, playsinline: true, preload: 'auto', 'aria-label': `${card._recipe.title}: result` });
+            node.muted = true;
+          } else if (url && type.startsWith('audio/')) {
+            node = el('div', { class: 'recipe-audio' }, el('span', { class: 'hint', text: `audio result (${type})` }),
+              el('audio', { src: url, controls: true, preload: 'metadata', 'aria-label': `${card._recipe.title}: result` }));
+          } else if (url) {
+            node = el('img', { src: url, alt: '', loading: 'lazy', decoding: 'async' });
+          }
+          media.replaceChildren(node);
+          card.dataset.result = url ? type.split('/')[0] : 'none';
         })
         .catch(() => media.replaceChildren(el('span', { class: 'hint', text: 'no preview' })))
         .finally(() => { this.running--; this.pump(); });

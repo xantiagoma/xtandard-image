@@ -12,7 +12,12 @@
 // explicit (the demo has no default watermark: only the compatibility
 // recipe needs one and is disabled with its reason), wmu shows its image,
 // the preview names the source and watermark origins, and the builder's
-// default-watermark notice and its one-click wmu action work.
+// default-watermark notice and its one-click wmu action work; §10 checks
+// the video mode (WP-127): the Video and audio panel appears for video and
+// audio sources, the trim handles write start and end, a WebM result plays
+// for the requested duration, an audio-only result plays, Cancel aborts a
+// slow transcode, the media table and the video translate cards render,
+// every video recipe renders, and the panel fits 390 px.
 //
 // Playwright is not a dependency of the repository: run it from a
 // throwaway directory against a server with the demo configuration
@@ -39,8 +44,8 @@ const check = (ok: boolean, what: string) => {
 
 const b64url = (s: string) => Buffer.from(s).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 type Entry = [string, number, string[], number, number];
-const hash = (source: string, opts: Entry[], mount = 'imgproxy') =>
-  `#v1:${b64url(JSON.stringify({ m: mount, s: source, l: '', a: 0, e: 'plain', x: '', p: [opts], f: { path: '', query: '' }, j: '' }))}`;
+const hash = (source: string, opts: Entry[], mount = 'imgproxy', extra: Record<string, unknown> = {}) =>
+  `#v1:${b64url(JSON.stringify({ m: mount, s: source, l: '', a: 0, e: 'plain', x: '', p: [opts], f: { path: '', query: '' }, j: '', ...extra }))}`;
 
 const SRC = 'xi://local/jpeg/baseline.jpg'; // 320×240
 
@@ -856,6 +861,136 @@ if (blur) {
   await loadExample('blurhash-info', 'tool');
   await page.waitForFunction(() => document.getElementById('mtab-info')!.getAttribute('aria-selected') === 'true' && document.getElementById('info-result')!.dataset.options?.includes('blurhash'), undefined, { timeout: 30000 })
     .then(() => check(true, 'example blurhash-info: opens the Info tab with blurhash'), () => check(false, 'example blurhash-info: opens the Info tab with blurhash'));
+}
+
+// 10. Video mode (WP-127): the Video and audio panel, the trim timeline,
+// media results that play, Cancel, the media table, video translate cards,
+// the video recipes and the 390 px layout.
+const vt = pm.video_transform;
+if (!vt) {
+  notes.push('video mode skipped: video transformations are off on this server (XI_VIDEO_TRANSFORM_ENABLED)');
+} else {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  const url = () => page.inputValue('#url-out');
+  const waitURL = (part: string, timeout = 10000) => page.waitForFunction((p) => (document.getElementById('url-out') as HTMLTextAreaElement).value.includes(p), part, { timeout })
+    .then(() => true, () => false);
+  // media waits for a playable result element of tag with readyState >= 2.
+  const media = (tag: 'video' | 'audio', timeout = 60000) => page.waitForFunction((t) => {
+    const m = document.querySelector(`#after-media > ${t}`) as HTMLMediaElement | null;
+    return m && !document.querySelector('#pane-after.loading') && (m.readyState >= 2 || m.error) ? { rs: m.readyState, d: m.duration, err: m.error?.code ?? 0, w: (m as HTMLVideoElement).videoWidth ?? 0 } : false;
+  }, tag, { timeout }).then((h) => h.jsonValue() as Promise<{ rs: number; d: number; err: number; w: number }>, () => null);
+
+  await page.click('#mtab-translate');
+  // a. A video source in image mode shows the panel; video mode builds /video.
+  await page.evaluate((x) => { location.hash = x; }, hash('xi://local/video/clip-vp9.webm', []));
+  await page.waitForSelector('#video-panel:not([hidden])', { timeout: 20000 })
+    .then(() => check(true, 'video: the Video and audio panel appears for a video source'), () => check(false, 'video: the Video and audio panel appears for a video source'));
+  check(/2\.00 s/.test(await page.textContent('#video-facts') ?? ''), `video: the panel knows the duration (${await page.textContent('#video-facts')})`);
+  check((await page.textContent('#video-caps') ?? '').includes(vt.mp4_video === 'h264' ? 'H.264' : 'AV1'), `video: the panel says what this build writes (${(await page.textContent('#video-caps'))?.slice(0, 80)}…)`);
+  await page.check('#video-mode-video');
+  check(await waitURL('/video/'), `video: video mode writes a /video URL (${await url()})`);
+  check(await page.isVisible('#timeline') && await page.isHidden('#frames'), 'video: the trim timeline replaces the thumbnail time selector');
+  // b. The trim handles write start and end.
+  await page.$eval('#trim-start', (r: HTMLInputElement) => { r.value = '0.5'; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change')); });
+  check(await waitURL('/start:0.5/'), 'video: the start handle writes start:0.5');
+  await page.$eval('#trim-end', (r: HTMLInputElement) => { r.value = '1.5'; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change')); });
+  check(await waitURL('/end:1.5/'), 'video: the end handle writes end:1.5');
+  check(await page.inputValue('#trim-start-n') === '0.5' && /1\.00 s of 2\.00 s/.test(await page.textContent('#trim-readout') ?? ''),
+    `video: the readout follows the handles (${await page.textContent('#trim-readout')})`);
+  await page.selectOption('#video-container', 'webm');
+  check(await waitURL('@webm'), 'video: the container select writes @webm');
+  // c. The result plays for the requested duration.
+  const played = await media('video');
+  check(Boolean(played) && played!.rs >= 2 && !played!.err && Math.abs(played!.d - 1) < 0.15,
+    `video: the WebM result plays (readyState ${played?.rs}, duration ${played?.d?.toFixed(3)} s ≈ 1 s)`);
+  await page.waitForFunction(() => [...document.querySelectorAll('#compare tbody tr')].some((r) => r.firstElementChild?.textContent === 'Video codec' && r.children[2].textContent === 'vp9'), undefined, { timeout: 15000 }).catch(() => {});
+  const vrows = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#compare tbody tr')].map((r) => [r.querySelector('th')!.textContent, [...r.querySelectorAll('td')].map((t) => t.textContent)])));
+  for (const row of ['Container (MIME type)', 'Video codec', 'Audio codec', 'Duration', 'Dimensions (px)', 'Frame rate', 'Bit rate (average)', 'Sample rate', 'Channels', 'Bytes']) {
+    check(Array.isArray(vrows[row]), `video table: row ${row} (${vrows[row]?.join(' | ')})`);
+  }
+  check(vrows['Video codec']?.[1] === 'vp9' && vrows['Duration']?.[0] === '2.00 s' && /cut to/.test(vrows['Duration']?.[2] ?? ''),
+    `video table: source and result from the probes (${vrows['Video codec']?.join(' | ')}; ${vrows['Duration']?.join(' | ')})`);
+  if (shots) await page.screenshot({ path: `${shots}/video-mode.png`, fullPage: true });
+  // Translate cards for the video dialects.
+  await page.waitForFunction(() => [...document.querySelectorAll('#translate article')].some((a) => a.getAttribute('aria-label') === 'Cloudflare Media Transformations'), undefined, { timeout: 15000 }).catch(() => {});
+  const vcards = await page.evaluate(() => [...document.querySelectorAll('#translate article')].map((a) => ({
+    label: a.getAttribute('aria-label') ?? '', url: a.querySelector('.turl')?.textContent ?? '', reason: a.querySelector('.treason')?.textContent ?? '',
+  })));
+  check(vcards.every((c) => c.url || c.reason.length > 20), `video translate: ${vcards.length} cards, each with a URL or a reason`);
+  for (const [label, part] of [['imgproxy', '/video/'], ['Cloudinary', '/video/upload/'], ['ImageKit', '/tr:'], ['Cloudflare Media Transformations', '/cdn-cgi/media/mode=video']]) {
+    const c = vcards.find((x) => x.label === label);
+    check(Boolean(c?.url.includes(part)), `video translate: ${label} writes ${part} (${c?.url ?? c?.reason})`);
+  }
+  if (shots) await page.locator('#translate').screenshot({ path: `${shots}/video-translate.png` });
+  // Copy as TypeScript uses the video builder.
+  await page.click('#copy-ts');
+  const vts = await page.evaluate(() => navigator.clipboard.readText());
+  check(vts.includes('.video("xi://local/video/clip-vp9.webm")') && vts.includes('.start(0.5)') && vts.includes('.extension("webm")'), `video: TypeScript snippet (${vts.split('\n').slice(4, 8).join(' ')})`);
+  // d. Cancel aborts a slow transcode.
+  let aborted = false;
+  page.on('requestfailed', (r) => { if (/u=%2Fvideo%2F/.test(r.url()) && /ABORTED/.test(r.failure()?.errorText ?? '')) aborted = true; });
+  const slowVideo = (u: URL) => u.pathname.endsWith('/api/render') && (u.searchParams.get('u') ?? '').startsWith('/video/');
+  await page.route(slowVideo, async (route) => {
+    await new Promise((r) => setTimeout(r, 2500));
+    try { await route.continue(); } catch { /* aborted by Cancel */ }
+  });
+  await page.$eval('#trim-start', (r: HTMLInputElement) => { r.value = '0.2'; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change')); });
+  await page.waitForSelector('#render-cancel', { state: 'visible', timeout: 10000 }).catch(() => {});
+  await page.waitForTimeout(700);
+  const elapsed = await page.textContent('#loader-elapsed').catch(() => '');
+  aborted = false; // only the cancelled request counts
+  const cancelErr = await page.click('#render-cancel', { timeout: 5000 }).then(() => '', (e) => String(e.message).split('\n')[0]);
+  if (cancelErr) notes.push(`cancel click: ${cancelErr}`);
+  await page.waitForFunction(() => /Cancelled after/.test(document.getElementById('render-error')!.textContent ?? '') && !document.querySelector('#pane-after.loading'), undefined, { timeout: 10000 })
+    .then(() => check(true, `video: Cancel aborts the transcode request (elapsed shown: ${elapsed})`), () => check(false, 'video: Cancel aborts the transcode request'));
+  await page.waitForTimeout(2500);
+  check(aborted && /\d\.\d s/.test(elapsed ?? ''), `video: the request was aborted in the browser (${aborted}) and the loader counted seconds (${elapsed})`);
+  await page.unroute(slowVideo);
+  // e. An audio file: video mode on its own, an audio player, its waveform as the source.
+  await page.evaluate((x) => { location.hash = x; }, hash('xi://local/audio/tones-stereo.mp3', []));
+  check(await waitURL('/video/', 20000) && await page.isChecked('#video-mode-video') && await page.isDisabled('#video-mode-image'),
+    `video: an audio source switches to video mode, image mode disabled (${await url()})`);
+  const audio = await media('audio');
+  check(Boolean(audio) && audio!.rs >= 2 && !audio!.err && Math.abs(audio!.d - 4) < 0.2, `video: the audio-only result plays (readyState ${audio?.rs}, duration ${audio?.d?.toFixed(2)} s)`);
+  await page.waitForFunction(() => (document.querySelector('#before-media img') as HTMLImageElement | null)?.naturalWidth === 960, undefined, { timeout: 20000 })
+    .then(() => check(true, 'video: the source side of an audio file is its waveform'), () => check(false, 'video: the source side of an audio file is its waveform'));
+  await page.check('#video-loudnorm');
+  check(await waitURL('/loudnorm:1/'), 'video: the loudness checkbox writes loudnorm:1');
+  if (shots) await page.screenshot({ path: `${shots}/video-audio.png`, fullPage: true });
+  // f. Every video recipe renders.
+  const vrecipes = recipes.filter((r) => r.category === 'video');
+  check(vrecipes.length >= 8, `video recipes: ${vrecipes.length}`);
+  for (const r of vrecipes) {
+    await page.evaluate((x) => { location.hash = x; }, '#tools/examples');
+    await page.waitForSelector('#tool-examples:not([hidden])');
+    await page.click(`button[data-recipe="${r.id}"]`);
+    await page.waitForSelector('#workspace:not([hidden])');
+    // imgproxy URLs carry the signature segment after /video.
+    const urlOk = await waitURL(r.url.split('?')[0].replace(/^\/video\//, '/'), 15000);
+    const done = await page.waitForFunction(() => {
+      const m = document.querySelector('#after-media > *') as (HTMLMediaElement & HTMLImageElement) | null;
+      if (!m || document.querySelector('#pane-after.loading')) return false;
+      if (m.tagName === 'IMG') return m.naturalWidth > 0 ? `image ${m.naturalWidth}×${m.naturalHeight}` : false;
+      if (m.tagName === 'VIDEO' || m.tagName === 'AUDIO') return m.readyState >= 2 ? `${m.tagName.toLowerCase()} ${m.duration.toFixed(2)} s` : m.error ? `${m.tagName.toLowerCase()} (not playable here)` : false;
+      return m.tagName === 'P' ? `error ${m.textContent}` : false;
+    }, undefined, { timeout: 60000 }).then((h) => h.jsonValue() as Promise<string>, () => 'timeout');
+    const status = await page.textContent('#stats .stat strong').catch(() => '');
+    check(urlOk && status?.startsWith('200') === true && !done.startsWith('error') && done !== 'timeout', `video recipe ${r.id}: ${done} (${status})`);
+    if (shots) await page.locator('#stage').screenshot({ path: `${shots}/example-${r.id}.png` });
+  }
+  // g. 390 px: the panel fits without horizontal scroll.
+  await page.evaluate((x) => { location.hash = x; }, hash('xi://local/video/clip-av1.mp4', [], 'imgproxy', { v: 1, x: 'webm' }));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForSelector('#timeline', { timeout: 20000 }).catch(() => {});
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const vo = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
+  if (shots) await page.screenshot({ path: `${shots}/video-390.png`, fullPage: true });
+  check(vo.sw <= vo.cw + 1, `video 390px: no horizontal scroll (${vo.sw} ≤ ${vo.cw})`);
+  const vunnamed = await page.evaluate(() => [...document.querySelectorAll('#video-panel input, #video-panel select, #video-panel button')]
+    .filter((e) => !(e.getAttribute('aria-label') || (e as HTMLInputElement).labels?.length || e.textContent?.trim() || e.getAttribute('title')))
+    .map((e) => e.outerHTML.slice(0, 80)));
+  check(vunnamed.length === 0, `video: every control is labelled${vunnamed.length ? `: ${vunnamed.join(' | ')}` : ''}`);
+  await page.setViewportSize({ width: 1400, height: 900 });
 }
 
 const csp = await page.evaluate(() => (window as any).__csp ?? []);

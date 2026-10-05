@@ -26,7 +26,7 @@
     <a href="#tools/gallery" data-tool="gallery" title="Every sample as a browsable grid (pick one to load it into the session)">Gallery</a>
     <a href="#tools/history" data-tool="history" title="Sessions you rendered in this browser">History</a>
     <a href="#tools/matrix" data-tool="matrix" title="The whole sample gallery run against this server">Format matrix</a>
-    <a href="#tools/examples" data-tool="examples" title="Ready-made sessions: watermarks in every dialect, crops, video, PDF, RAW, HDR">Examples</a>
+    <a href="#tools/examples" data-tool="examples" title="Ready-made sessions: watermarks in every dialect, video and audio transforms, crops, PDF, RAW, HDR">Examples</a>
   </nav>
   <div class="top-actions">
     <button type="button" id="share" title="Copy a link that restores this session">Share link</button>
@@ -65,10 +65,10 @@
       </div>
       <div role="tabpanel" id="spane-upload" aria-labelledby="stab-upload" hidden>
         <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-describedby="drop-hint">
-          <p><strong>Drop an image, video or PDF here</strong> or press to choose a file.</p>
+          <p><strong>Drop an image, video, audio file or PDF here</strong> or press to choose a file.</p>
           <p class="hint" id="drop-hint">Kept in memory for 10 minutes and only visible to this playground.</p>
         </div>
-        <input type="file" id="file" class="sr" accept="image/*,video/*,application/pdf,.dng,.cr2,.nef,.arw,.heic,.jxl,.exr,.hdr,.psd">
+        <input type="file" id="file" class="sr" accept="image/*,video/*,audio/*,application/pdf,.dng,.cr2,.nef,.arw,.heic,.jxl,.exr,.hdr,.psd">
         <p id="upload-status" class="status" role="status" aria-live="polite"></p>
       </div>
       <div role="tabpanel" id="spane-browse" aria-labelledby="stab-browse" hidden>
@@ -114,6 +114,17 @@
           <option value="*/*">*/*</option>
         </select>
       </details>
+    </section>
+
+    <section class="panel video-panel" id="video-panel" aria-labelledby="video-title" hidden>
+      <h2 id="video-title">Video and audio</h2>
+      <p class="hint" id="video-facts"></p>
+      <div class="row wrap" role="radiogroup" aria-label="What to make of the source">
+        <label class="inline" id="video-mode-image-label"><input type="radio" name="video-mode" id="video-mode-image" value="image"> Image (thumbnail, frames)</label>
+        <label class="inline" id="video-mode-video-label"><input type="radio" name="video-mode" id="video-mode-video" value="video"> Video transform (<code>/video</code>)</label>
+      </div>
+      <div id="video-caps" class="video-caps"></div>
+      <div id="video-body" class="video-body" hidden></div>
     </section>
 
     <section class="panel builder" aria-labelledby="builder-title">
@@ -206,6 +217,7 @@
         <input type="range" id="split" class="split" min="0" max="100" value="50" aria-label="Comparison position">
       </div>
       <div id="frames" class="frames" role="group" aria-label="Pages, frames and time of the source" hidden></div>
+      <p class="hint media-note" id="media-note" role="status" aria-live="polite" hidden></p>
       <p class="sr" id="preview-busy" role="status" aria-live="polite"></p>
       <p class="error" id="render-error" hidden></p>
       <div class="result-details" id="result-details" aria-labelledby="result-details-title">
@@ -286,7 +298,7 @@
     <div id="gallery-big" class="gallery big"></div>
   </section>
   <section class="panel tool" id="tool-examples" aria-labelledby="tool-title" hidden>
-    <p class="hint">Ready-made sessions: pick one to load its source, dialect and options into the builder and render it. Watermarks in imgproxy (an image named in the URL, text, size, rotation, shadow, tiles, chessboard), imgix, Cloudinary, ImageKit and imaginary, and a few other things this server does. Each card shows the live result.</p>
+    <p class="hint">Ready-made sessions: pick one to load its source, dialect and options into the builder and render it. Watermarks in imgproxy (an image named in the URL, text, size, rotation, shadow, tiles, chessboard), imgix, Cloudinary, ImageKit and imaginary; video and audio transformations (trim, WebM, MP3 with loudness normalisation, overlays, timecodes, waveforms, and the Cloudinary, ImageKit and Cloudflare video URLs); and a few other things this server does. Each card shows the live result.</p>
     <p class="notice" id="examples-watermark-note" hidden>Every watermark example names its image (<code>wmu</code>, <code>mark</code>, <code>l_fetch</code>, <code>l-image</code>) or its text in the URL. The one example that uses the server's default watermark image (<code>XI_PROCESSING_WATERMARK_SOURCE</code>, an imgproxy-compatibility option, empty by default) is disabled: this server does not configure it.</p>
     <div class="row wrap">
       <label for="examples-search" class="sr">Search the examples</label>

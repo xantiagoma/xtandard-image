@@ -131,6 +131,9 @@ var videoGroups = map[string]string{
 	"video_bitrate": groupFormat, "keyframe_interval": groupFormat,
 	"mute": groupAudio, "audio_bitrate": groupAudio, "sample_rate": groupAudio, "audio_channels": groupAudio,
 	"volume": groupAudio, "loudnorm": groupAudio, "fade": groupAudio, "waveform": groupAudio,
+	"watermark": groupWatermark, "watermark_url": groupWatermark, "watermark_text": groupWatermark, "watermark_size": groupWatermark,
+	"watermark_rotate": groupWatermark, "watermark_shadow": groupWatermark,
+	"overlay_window": groupWatermark, "overlay_fade": groupWatermark, "timecode": groupWatermark,
 	"cachebuster": groupDelivery, "expires": groupDelivery, "filename": groupDelivery, "return_attachment": groupDelivery,
 	"bypass_cache": groupDelivery, "cache_tags": groupDelivery, "hashsum": groupSecurity,
 }

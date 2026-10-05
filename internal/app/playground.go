@@ -12,6 +12,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/apidoc"
 	"github.com/xantiagoma/xtandard-image/internal/config"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/cloudflare"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/router"
 	"github.com/xantiagoma/xtandard-image/internal/playground"
 	"github.com/xantiagoma/xtandard-image/internal/playground/translate"
@@ -72,6 +73,9 @@ func buildPlayground(ctx context.Context, cfg *config.Config, rt *router.Router,
 		Meta: meta, Signers: signers, Image: image, Logger: logger,
 		Store: env.store, FSRoots: fsRoots(cfg), Translator: tr,
 	}
+	if env.prober != nil {
+		deps.Prober = env.prober
+	}
 	// api/sign encrypts a pdf_password with the enc/ key (WP-115).
 	enc, err := encryptionCipher(cfg)
 	if err != nil {
@@ -104,6 +108,10 @@ type playgroundEnv struct {
 	store     *playground.Store
 	detection bool // the detector is loaded
 	video     bool // video sources decode
+	// videoTransform describes the video subsystem (nil when it is not
+	// served) and prober probes media files for the video mode (WP-127).
+	videoTransform *playground.VideoTransform
+	prober         playground.MediaProber
 }
 
 // playgroundStore is the playground:// source (WP-94): the built-in
@@ -140,6 +148,7 @@ func (e *playgroundEnv) extend(meta *playground.Meta, cfg *config.Config) error 
 		meta.MaxUploadBytes = e.store.MaxBytes()
 	}
 	meta.Detection, meta.Video = e.detection, e.video
+	meta.VideoTransform = e.videoTransform
 	// Whether a default watermark is configured, never its source string.
 	meta.Watermark = cfg.Processing.WatermarkSource != ""
 	if meta.Recipes, err = playground.Recipes(); err != nil {
@@ -255,6 +264,8 @@ func playgroundMeta(cfg *config.Config, rt *router.Router, version string) (*pla
 			m.Scheme, m.Example, s = playground.SchemeXI, "/?url={src}&w=300", xiSigner
 		case "cloudflare":
 			m.Scheme, m.Example, s = playground.SchemeXI, "/width=300,fit=cover/{src}", xiSigner
+		case cloudflare.MediaName: // /cdn-cgi/media/ (WP-125): xi_sig over the path after the prefix
+			m.Scheme, m.Example, s = playground.SchemeXI, "/mode=video,duration=5s,width=480/{src}", xiSigner
 		case "thumbor":
 			m.Scheme, m.Example = playground.SchemeThumbor, "/300x200/smart/{src}"
 			var err error

@@ -639,3 +639,50 @@ input.num-short { width: 4.5rem; }
 }
 .source-origin { font-size: .85rem; margin: 0 0 .5rem; overflow-wrap: anywhere; }
 .source-origin p { margin: .1rem 0; }
+
+/* ---- Video mode (WP-127): the Video and audio panel, its trim timeline,
+   audio results, the transcode loader and media notes. */
+.video-panel h2 { margin-bottom: .2rem; }
+.video-panel #video-facts { margin: 0 0 .2rem; }
+.video-caps { margin: .3rem 0 0; font-size: .85rem; }
+.video-body { display: grid; gap: .6rem; margin-top: .5rem; }
+fieldset.vgroup { border: 1px solid var(--border); border-radius: var(--radius); margin: 0; padding: .3rem .7rem .6rem; min-width: 0; background: var(--panel-2); }
+fieldset.vgroup legend { font-weight: 600; font-size: .9rem; padding: 0 .25rem; }
+fieldset.vgroup .hint { margin: .35rem 0 0; }
+.vgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 7.5rem), 1fr)); gap: .1rem .6rem; }
+.vgrid label { font-weight: 500; font-size: .8rem; margin: .4rem 0 .15rem; }
+.vgroup .row output { font-variant-numeric: tabular-nums; font-size: .85rem; }
+.vgroup .row input[type="range"] { flex: 1 1 8rem; width: auto; min-width: 6rem; }
+
+/* Two range inputs share one track: only their thumbs take the pointer. */
+.timeline { --a: 0%; --b: 100%; position: relative; height: 2.2rem; margin: .4rem .5rem 0; }
+.tl-track { position: absolute; left: 0; right: 0; top: 50%; height: .55rem; margin-top: -.275rem; border-radius: 999px; background: var(--border); }
+.tl-sel { position: absolute; top: 0; bottom: 0; left: var(--a); right: calc(100% - var(--b)); border-radius: 999px; background: var(--accent); }
+.timeline input[type="range"] {
+  position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; background: none; pointer-events: none;
+  -webkit-appearance: none; appearance: none;
+}
+.timeline input[type="range"]::-webkit-slider-runnable-track { background: none; }
+.timeline input[type="range"]::-moz-range-track { background: none; }
+.timeline input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; pointer-events: auto; width: 1rem; height: 1.6rem; border-radius: 4px; cursor: ew-resize;
+  background: var(--panel); border: 2px solid var(--accent);
+}
+.timeline input[type="range"]::-moz-range-thumb {
+  pointer-events: auto; width: .8rem; height: 1.4rem; border-radius: 4px; cursor: ew-resize; background: var(--panel); border: 2px solid var(--accent);
+}
+.timeline input[type="range"]:focus-visible { outline: none; }
+.timeline input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--accent); }
+.timeline.unknown .tl-track { background: repeating-linear-gradient(90deg, var(--border) 0 6px, transparent 6px 10px); }
+
+.media > audio { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(92%, 34rem); }
+.loader-elapsed {
+  font-variant-numeric: tabular-nums; font-size: .85rem; padding: .05rem .5rem; border-radius: 999px; background: rgb(0 0 0 / .55); color: #fff;
+}
+.loader-cancel { pointer-events: auto; }
+.media-note { margin: .4rem 0 0; color: var(--warn); }
+.stream-result { font-size: .82rem; }
+.stream-list { margin: .3rem 0; padding-left: 1.4rem; }
+.recipe-media video { width: 100%; height: 100%; object-fit: contain; }
+.recipe-audio { display: grid; gap: .3rem; justify-items: center; width: 92%; }
+.recipe-audio audio { width: 100%; }

@@ -13,6 +13,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/apidoc"
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/cloudflare"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/cloudinary"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imagekit"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgix"
@@ -32,8 +33,10 @@ var recipeMounts = map[string]struct{ grammar, source string }{
 	"imgproxy":   {playground.GrammarImgproxy, ""},
 	"query":      {playground.GrammarQuery, ""},
 	"imgix":      {playground.GrammarImgix, "web"},
-	"cloudinary": {playground.GrammarCloudinary, "web"},
+	"cloudinary": {playground.GrammarCloudinary, "local"},
 	"imagekit":   {playground.GrammarImagekit, "local"},
+	// /cdn-cgi/media/ next to the Cloudflare mount, bound to the fixtures.
+	"cloudflare_media": {playground.GrammarPath, "local"},
 }
 
 // defaultWatermarkRecipe is the one recipe that shows the server's default
@@ -74,6 +77,11 @@ func TestRecipesParse(t *testing.T) {
 	for _, o := range apidoc.InfoOptions() {
 		info[o.Name] = true
 	}
+	videoIdx := map[string]*playground.Option{}
+	videoOpts := apidoc.VideoOptions()
+	for i := range videoOpts {
+		videoIdx[videoOpts[i].Name] = &videoOpts[i]
+	}
 	parsers := recipeParsers(t)
 	if !slices.ContainsFunc(recipes, func(r playground.Recipe) bool { return r.ID == defaultWatermarkRecipe }) {
 		t.Errorf("no %s recipe", defaultWatermarkRecipe)
@@ -86,11 +94,11 @@ func TestRecipesParse(t *testing.T) {
 			if r.ID == "" || r.Title == "" || r.Description == "" || len(r.Tags) == 0 || len(r.Pipelines) == 0 {
 				t.Fatalf("incomplete recipe %+v", r)
 			}
-			if r.Category != "watermark" && r.Category != "showcase" {
+			if !slices.Contains([]string{"watermark", "video", "showcase"}, r.Category) {
 				t.Errorf("category %q", r.Category)
 			}
 			for _, n := range r.Needs {
-				if !slices.Contains([]string{playground.NeedWatermark, playground.NeedDetection, playground.NeedVideo}, n) {
+				if !slices.Contains([]string{playground.NeedWatermark, playground.NeedDetection, playground.NeedVideo, playground.NeedVideoTransform}, n) {
 					t.Errorf("unknown need %q", n)
 				}
 			}
@@ -103,7 +111,14 @@ func TestRecipesParse(t *testing.T) {
 			if !ok {
 				t.Fatalf("dialect %q has no demo mount", r.Dialect)
 			}
-			path, rawQuery, err := buildRecipe(r, m.grammar, m.source, indexes[m.grammar])
+			idx := indexes[m.grammar]
+			if r.Video {
+				if m.grammar != playground.GrammarImgproxy && m.grammar != playground.GrammarQuery {
+					t.Fatalf("video recipe on the %s grammar", m.grammar)
+				}
+				idx = videoIdx
+			}
+			path, rawQuery, err := buildRecipe(r, m.grammar, m.source, idx)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -115,14 +130,26 @@ func TestRecipesParse(t *testing.T) {
 				t.Errorf("url = %q, want the recipe's %q", got, r.URL)
 			}
 			in := &dialect.Input{Path: path, RawQuery: rawQuery, Mount: dialect.Mount{Name: r.Dialect, Source: m.source}}
-			if m.grammar == playground.GrammarImgproxy {
+			switch {
+			case m.grammar == playground.GrammarImgproxy && r.Video:
+				in.Path = "/_" + strings.TrimPrefix(path, "/video") // the signature segment, after /video
+			case m.grammar == playground.GrammarImgproxy:
 				in.Path = "/_" + path // the signature segment
 			}
 			in.Query, err = url.ParseQuery(rawQuery)
 			if err != nil {
 				t.Fatal(err)
 			}
-			res, err := parsers[r.Dialect].Parse(in)
+			var res *dialect.Result
+			if r.Video && m.grammar == playground.GrammarImgproxy {
+				ip, ok := parsers[r.Dialect].(*imgproxy.Parser)
+				if !ok {
+					t.Fatalf("%s is not the imgproxy parser", r.Dialect)
+				}
+				res, err = ip.ParseVideo(in)
+			} else {
+				res, err = parsers[r.Dialect].Parse(in)
+			}
 			if err != nil {
 				t.Fatalf("%s?%s: %v", in.Path, in.RawQuery, err)
 			}
@@ -131,7 +158,24 @@ func TestRecipesParse(t *testing.T) {
 					t.Errorf("ignored %+v", ig)
 				}
 			}
+			if m.source != "" && res.Request.Source.Mount == "" {
+				res.Request.Source.Mount = m.source // the router binds it
+			}
 			checkRef(t, res.Request.Source, m.source, public)
+			isVideo := res.Request.Kind == transform.KindVideo
+			if r.Video && !isVideo {
+				t.Errorf("a video recipe parses as %v", res.Request.Kind)
+			}
+			if isVideo != slices.Contains(r.Needs, playground.NeedVideoTransform) {
+				t.Errorf("kind %v, needs %v: video transformations need %s", res.Request.Kind, r.Needs, playground.NeedVideoTransform)
+			}
+			if isVideo {
+				for _, o := range res.Request.Video.Overlays {
+					if o.Source != nil {
+						checkRef(t, *o.Source, m.source, public)
+					}
+				}
+			}
 			marks, defaults := 0, 0
 			for _, p := range res.Request.Pipelines {
 				for _, w := range p.Watermarks {
@@ -187,7 +231,11 @@ func recipeParsers(t *testing.T) map[string]dialect.Dialect {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return map[string]dialect.Dialect{"imgproxy": ip, "query": q, "imgix": ix, "cloudinary": cl, "imagekit": ik}
+	cfm, err := cloudflare.NewMedia(&cloudflare.Options{Strict: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return map[string]dialect.Dialect{"imgproxy": ip, "query": q, "imgix": ix, "cloudinary": cl, "imagekit": ik, "cloudflare_media": cfm}
 }
 
 // checkRef fails unless s names a repository fixture (on the local source)
@@ -340,7 +388,10 @@ func keyOn(src, name string) (string, bool) {
 func buildRecipe(r *playground.Recipe, g, source string, idx map[string]*playground.Option) (path, rawQuery string, err error) {
 	src := r.Source
 	if r.Raw != nil {
-		fill := func(s string) string { return strings.ReplaceAll(s, "{src}", escapePlain(src)) }
+		key, _ := keyOn(src, source)
+		fill := func(s string) string {
+			return strings.ReplaceAll(strings.ReplaceAll(s, "{src}", escapePlain(src)), "{key}", key)
+		}
 		path = fill(strings.TrimSpace(r.Raw.Path))
 		if !strings.HasPrefix(path, "/") {
 			path = "/" + path
@@ -420,9 +471,16 @@ func buildRecipe(r *playground.Recipe, g, source string, idx map[string]*playgro
 		if r.Ext != "" {
 			path += "@" + r.Ext
 		}
+		if r.Video {
+			path = "/video" + path
+		}
 		return path, "", nil
 	case playground.GrammarQuery:
-		return "/", strings.Join(append([]string{"url=" + encodeURIComponent(src)}, params...), "&"), nil
+		path = "/"
+		if r.Video {
+			path = "/video"
+		}
+		return path, strings.Join(append([]string{"url=" + encodeURIComponent(src)}, params...), "&"), nil
 	case playground.GrammarImgix:
 		switch {
 		case isOwn:

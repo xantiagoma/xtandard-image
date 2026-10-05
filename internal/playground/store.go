@@ -95,7 +95,7 @@ type Sample struct {
 	// Label is a human-readable description.
 	Label string `json:"label" doc:"Description."`
 	// Kind groups the samples in the gallery.
-	Kind string `json:"kind" enum:"photo,alpha,animated,raw,document,video,vector,detection" doc:"Gallery group."`
+	Kind string `json:"kind" enum:"photo,alpha,animated,raw,document,video,audio,vector,detection" doc:"Gallery group."`
 	// Source is the source string to use in URLs.
 	Source string `json:"source" doc:"Source string (playground://samples/<name>)."`
 	// Full reports that the sample needs the full image (video decoding
@@ -117,6 +117,7 @@ func Samples() []Sample {
 		s("raw.dng", "Camera RAW (DNG), 192×128", "raw", false),
 		s("document.pdf", "PDF, 3 pages", "document", false),
 		s("video.mp4", "Video (AV1 in MP4), 2 s", "video", true),
+		s("audio.mp3", "Audio (MP3), 4 s stereo tones", "audio", true),
 		s("faces.jpg", "Apollo 11 crew: three faces (NASA, public domain)", "detection", true),
 		s("people-dogs.jpg", "Astronaut with two dogs (NASA, public domain)", "detection", true),
 		s("cat.jpg", "Cat on a laptop (CC0)", "detection", true),
