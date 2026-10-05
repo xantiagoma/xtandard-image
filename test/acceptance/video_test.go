@@ -51,6 +51,7 @@ func TestVideoTransform(t *testing.T) {
 		{"waveform png", "/wf:1:2266cc:ffffff/w:400/h:100/plain/local:///audio/tones-stereo.mp3@png", "image/png", []byte("\x89PNG"), 0},
 	} {
 		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
 			r := get(t, video(c.rest), nil)
 			r.wantStatus(t, http.StatusOK)
 			if ct := r.Header.Get("Content-Type"); ct != c.ctype || r.Header.Get("Accept-Ranges") != "bytes" {
@@ -63,6 +64,7 @@ func TestVideoTransform(t *testing.T) {
 	}
 
 	t.Run("range", func(t *testing.T) {
+		t.Parallel()
 		u := video("/w:256/vd:1" + clip + "@webm")
 		full := get(t, u, nil)
 		full.wantStatus(t, http.StatusOK)
@@ -74,6 +76,7 @@ func TestVideoTransform(t *testing.T) {
 	})
 
 	t.Run("refused", func(t *testing.T) {
+		t.Parallel()
 		get(t, app+"/video/unsafe/w:320"+clip+"@webm", nil).wantStatus(t, http.StatusForbidden)
 		// An image signature does not sign the same path as a video.
 		get(t, app+"/video"+k.sign("/w:320"+clip+"@webm"), nil).wantStatus(t, http.StatusForbidden)
