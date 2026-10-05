@@ -35,7 +35,12 @@ func TestShutdownDrains(t *testing.T) {
 
 	entered := make(chan struct{})
 	unblock := make(chan struct{})
-	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	const probeMarker = "lifecycle-test-server"
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/probe" {
+			_, _ = io.WriteString(w, probeMarker)
+			return
+		}
 		close(entered)
 		<-unblock
 		record("request done")
@@ -101,10 +106,19 @@ func TestShutdownDrains(t *testing.T) {
 	if ready.State() != admin.Draining {
 		t.Errorf("readiness = %v, want draining", ready.State())
 	}
-	d := net.Dialer{Timeout: 5 * time.Second}
-	if c, err := d.DialContext(t.Context(), "tcp", addr); err == nil {
-		_ = c.Close()
-		t.Error("new connection accepted while draining")
+	// A new request must not reach this server. A connection alone does not
+	// prove that: go test runs packages in parallel, and a wildcard
+	// listener (":0") of another test process may be given the freed port
+	// and accept the dial. Only an answer carrying this server's marker
+	// fails the test.
+	probe, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+addr+"/probe", http.NoBody)
+	probeClient := &http.Client{Timeout: 5 * time.Second, Transport: &http.Transport{DisableKeepAlives: true}}
+	if r, err := probeClient.Do(probe); err == nil {
+		b, _ := io.ReadAll(r.Body)
+		_ = r.Body.Close()
+		if string(b) == probeMarker {
+			t.Error("new request served while draining")
+		}
 	}
 	select {
 	case err := <-done:
