@@ -1,27 +1,34 @@
 // The option types the URL builder is typed by, derived from the generated
 // catalogue (src/generated/options.ts, from the OpenAPI
-// ImgproxyProcessingOptions / ImgproxyInfoOptions schemas), and their
-// serialisation into imgproxy option segments.
+// ImgproxyProcessingOptions / ImgproxyInfoOptions / ImgproxyVideoOptions
+// schemas), and their serialisation into imgproxy option segments.
 
 import {
   type ImgproxyInfoArgs,
   type ImgproxyProcessingArgs,
+  type ImgproxyVideoArgs,
   imgproxyInfoAliases,
   imgproxyInfoOptionNames,
   imgproxyProcessingAliases,
   imgproxyProcessingOptionNames,
+  imgproxyVideoAliases,
+  imgproxyVideoOptionNames,
 } from "./generated/options.ts";
 
-export type { ImgproxyInfoArgs, ImgproxyProcessingArgs };
+export type { ImgproxyInfoArgs, ImgproxyProcessingArgs, ImgproxyVideoArgs };
 
 type ProcessingAliases = typeof imgproxyProcessingAliases;
 type InfoAliases = typeof imgproxyInfoAliases;
+type VideoAliases = typeof imgproxyVideoAliases;
 
 /** Every processing option name: canonical names and aliases (`resize`, `rs`, …). */
 export type ImgproxyProcessingOptionName = keyof ImgproxyProcessingArgs | keyof ProcessingAliases;
 
 /** Every info option name: canonical names and aliases. */
 export type ImgproxyInfoOptionName = keyof ImgproxyInfoArgs | keyof InfoAliases;
+
+/** Every `/video` option name: canonical names and aliases (`start`, `vs`, …). */
+export type ImgproxyVideoOptionName = keyof ImgproxyVideoArgs | keyof VideoAliases;
 
 /** The argument tuple of a processing option, by canonical name or alias. */
 export type ImgproxyProcessingArgsOf<K extends ImgproxyProcessingOptionName> = K extends keyof ImgproxyProcessingArgs
@@ -35,6 +42,13 @@ export type ImgproxyInfoArgsOf<K extends ImgproxyInfoOptionName> = K extends key
   ? ImgproxyInfoArgs[K]
   : K extends keyof InfoAliases
     ? ImgproxyInfoArgs[InfoAliases[K]]
+    : never;
+
+/** The argument tuple of a `/video` option, by canonical name or alias. */
+export type ImgproxyVideoArgsOf<K extends ImgproxyVideoOptionName> = K extends keyof ImgproxyVideoArgs
+  ? ImgproxyVideoArgs[K]
+  : K extends keyof VideoAliases
+    ? ImgproxyVideoArgs[VideoAliases[K]]
     : never;
 
 /**
@@ -58,6 +72,15 @@ export type ImgproxyProcessingOptions = {
 /** imgproxy `/info` options, keyed by canonical name or alias. */
 export type ImgproxyInfoOptions = {
   [K in ImgproxyInfoOptionName]?: OptionValue<ImgproxyInfoArgsOf<K>>;
+};
+
+/**
+ * Video transformation options (`/video`, WP-122, WP-123), keyed by
+ * canonical name or alias. `{ rs: ["fill", 640, 360], vs: 1, vd: 5 }` is
+ * `/rs:fill:640:360/vs:1/vd:5/`.
+ */
+export type ImgproxyVideoOptions = {
+  [K in ImgproxyVideoOptionName]?: OptionValue<ImgproxyVideoArgsOf<K>>;
 };
 
 /**
@@ -87,6 +110,7 @@ function catalogue(names: readonly string[], aliases: Readonly<Record<string, st
 
 export const processingCatalogue: Catalogue = catalogue(imgproxyProcessingOptionNames, imgproxyProcessingAliases);
 export const infoCatalogue: Catalogue = catalogue(imgproxyInfoOptionNames, imgproxyInfoAliases);
+export const videoCatalogue: Catalogue = catalogue(imgproxyVideoOptionNames, imgproxyVideoAliases);
 
 /** One option occurrence: a name (canonical or alias) and its arguments. */
 export type OptionEntry = readonly [name: string, args: readonly Arg[]];

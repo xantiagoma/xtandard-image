@@ -1,6 +1,8 @@
 // imgproxy-dialect URL builder (docs/URL-DIALECTS.md §3.1):
 //
 //   {baseUrl}[/info]/{signature}/{option}/…[/-/{option}/…]/{source}
+//   {baseUrl}/video/{signature}/{video option}/…/{source}   (§3.8: the
+//       signature covers "/video" + the path after it)
 //
 // Sources are base64url (default), `plain/` (percent-escaped, `@ext`) or
 // `enc/` (AES-CBC, see encrypt.ts); base64 and enc sources take `.ext`.
@@ -17,12 +19,16 @@ import {
   type ImgproxyProcessingArgsOf,
   type ImgproxyProcessingOptionName,
   type ImgproxyProcessingOptions,
+  type ImgproxyVideoArgsOf,
+  type ImgproxyVideoOptionName,
+  type ImgproxyVideoOptions,
   infoCatalogue,
   type OptionEntry,
   type OptionNameStyle,
   processingCatalogue,
+  videoCatalogue,
 } from "./options.ts";
-import { type SigningKey, signImgproxyPath } from "./sign.ts";
+import { type SigningKey, sign, signImgproxyPath } from "./sign.ts";
 
 /** How the source URL is written. */
 export type SourceEncoding = "base64" | "plain" | "encrypted";
@@ -78,6 +84,18 @@ export interface ImgproxyUrlRequest<O = ImgproxyProcessingOptions> {
 export type ImgproxyInfoUrlRequest = Omit<ImgproxyUrlRequest<ImgproxyInfoOptions>, "options" | "extension"> & {
   readonly options?: ImgproxyInfoOptions;
 };
+
+/**
+ * One `/video` URL (video transformation, audio or waveform), in the plain
+ * object form. `extension` is the output container: mp4, webm, m4a, mp3,
+ * opus, ogg, flac, wav, or png/webp for a waveform.
+ */
+export type ImgproxyVideoUrlRequest = Omit<ImgproxyUrlRequest<ImgproxyVideoOptions>, "options" | "pdfPassword"> & {
+  readonly options?: ImgproxyVideoOptions;
+};
+
+/** Which grammar a URL uses: processing, `/info` or `/video`. */
+type Endpoint = "process" | "info" | "video";
 
 // Characters kept verbatim in a plain source: RFC 3986 unreserved, the
 // sub-delims, ":" and "/". Everything else, notably "%", "@" (the extension
@@ -141,13 +159,21 @@ function checkSeparator(sep: string): string {
   return sep;
 }
 
-/** Joins the base URL, the endpoint, the signature and the path. */
-async function finish(cfg: ImgproxyUrlConfig, info: boolean, path: string): Promise<string> {
+/**
+ * Joins the base URL, the endpoint, the signature and the path. A `/video`
+ * signature covers "/video" + the path, so no image signature is valid for
+ * a video transformation.
+ */
+async function finish(cfg: ImgproxyUrlConfig, endpoint: Endpoint, path: string): Promise<string> {
   const base = (cfg.baseUrl ?? "").replace(/\/+$/, "");
+  if (endpoint === "video") {
+    const sig = cfg.signing ? await sign(`/video${path}`, cfg.signing) : (cfg.unsignedSignature ?? "insecure");
+    return `${base}/video/${sig}${path}`;
+  }
   const signed = cfg.signing
     ? await signImgproxyPath(path, cfg.signing)
     : `/${cfg.unsignedSignature ?? "insecure"}${path}`;
-  return `${base}${info ? "/info" : ""}${signed}`;
+  return `${base}${endpoint === "info" ? "/info" : ""}${signed}`;
 }
 
 /**
@@ -165,7 +191,7 @@ async function passwordSegment(cfg: ImgproxyUrlConfig, password: string, sep: st
 /** Builds a URL from option pipelines (entries) and a source. */
 async function build(
   cfg: ImgproxyUrlConfig,
-  info: boolean,
+  endpoint: Endpoint,
   pipelines: readonly (readonly OptionEntry[])[],
   source: string,
   encoding: SourceEncoding | undefined,
@@ -174,10 +200,11 @@ async function build(
 ): Promise<string> {
   const sep = checkSeparator(cfg.separator ?? ":");
   const style = cfg.optionNames ?? "short";
-  const cat = info ? infoCatalogue : processingCatalogue;
+  const cat = endpoint === "info" ? infoCatalogue : endpoint === "video" ? videoCatalogue : processingCatalogue;
   // Empty pipelines (an unused chain()) are dropped: the server rejects them.
   const nonEmpty = pipelines.filter((p) => p.length > 0);
-  if (info && nonEmpty.length > 1) throw new TypeError("/info URLs have no chained pipelines");
+  if (endpoint !== "process" && nonEmpty.length > 1) throw new TypeError(`/${endpoint} URLs have no chained pipelines`);
+  if (endpoint === "video" && pdfPassword !== undefined) throw new TypeError("/video URLs take no pdfPassword");
   const segments: string[] = [];
   if (pdfPassword !== undefined) segments.push(await passwordSegment(cfg, pdfPassword, sep, style));
   nonEmpty.forEach((p, i) => {
@@ -185,7 +212,7 @@ async function build(
     for (const e of p) segments.push(formatEntry(cat, e, sep, style));
   });
   segments.push(await sourceSegment(cfg, source, encoding ?? cfg.sourceEncoding ?? "base64", ext));
-  return finish(cfg, info, `/${segments.join("/")}`);
+  return finish(cfg, endpoint, `/${segments.join("/")}`);
 }
 
 function pipelinesOf(options: object | readonly object[] | undefined): OptionEntry[][] {
@@ -198,7 +225,7 @@ function pipelinesOf(options: object | readonly object[] | undefined): OptionEnt
 export function buildImgproxyUrl(request: ImgproxyUrlRequest, config: ImgproxyUrlConfig = {}): Promise<string> {
   return build(
     config,
-    false,
+    "process",
     pipelinesOf(request.options),
     request.source,
     request.sourceEncoding,
@@ -211,12 +238,28 @@ export function buildImgproxyUrl(request: ImgproxyUrlRequest, config: ImgproxyUr
 export function buildImgproxyInfoUrl(request: ImgproxyInfoUrlRequest, config: ImgproxyUrlConfig = {}): Promise<string> {
   return build(
     config,
-    true,
+    "info",
     pipelinesOf(request.options),
     request.source,
     request.sourceEncoding,
     undefined,
     request.pdfPassword,
+  );
+}
+
+/**
+ * Builds a `/video` URL (video transformation, audio or waveform) from the
+ * plain object form. The server serves it with XI_VIDEO_TRANSFORM_ENABLED
+ * on the full or gpl image, signed by default.
+ */
+export function buildImgproxyVideoUrl(request: ImgproxyVideoUrlRequest, config: ImgproxyUrlConfig = {}): Promise<string> {
+  return build(
+    config,
+    "video",
+    pipelinesOf(request.options),
+    request.source,
+    request.sourceEncoding,
+    request.extension,
   );
 }
 
@@ -230,17 +273,25 @@ type InfoMethods = {
   readonly [K in ImgproxyInfoOptionName]: (...args: ImgproxyInfoArgsOf<K>) => ImgproxyInfoUrlChain;
 };
 
-interface ChainControl<Self, Options, Name extends string, ArgsOf extends Record<Name, readonly Arg[]>> {
+type VideoMethods = {
+  readonly [K in ImgproxyVideoOptionName]: (...args: ImgproxyVideoArgsOf<K>) => ImgproxyVideoUrlChain;
+};
+
+interface BaseControl<Self, Options, Name extends string, ArgsOf extends Record<Name, readonly Arg[]>> {
   /** Appends one option occurrence (same as the per-option method). */
   option<K extends Name>(name: K, ...args: ArgsOf[K]): Self;
   /** Appends every option of an options object, in key order. */
   options(options: Options): Self;
   /** Overrides the source encoding. */
   encoding(encoding: SourceEncoding): Self;
-  /** Opens a password-protected PDF: see ImgproxyUrlRequest.pdfPassword. */
-  pdfPassword(password: string): Self;
   /** Builds the URL (async: signing and encryption use WebCrypto). */
   build(): Promise<string>;
+}
+
+interface ChainControl<Self, Options, Name extends string, ArgsOf extends Record<Name, readonly Arg[]>>
+  extends BaseControl<Self, Options, Name, ArgsOf> {
+  /** Opens a password-protected PDF: see ImgproxyUrlRequest.pdfPassword. */
+  pdfPassword(password: string): Self;
 }
 
 /**
@@ -269,18 +320,33 @@ export type ImgproxyInfoUrlChain = InfoMethods &
     { [K in ImgproxyInfoOptionName]: ImgproxyInfoArgsOf<K> }
   >;
 
+/**
+ * A fluent `/video` URL: one method per video option name and alias
+ * (`start`, `vs`, `resize`, `loudnorm`, `waveform`, …).
+ */
+export type ImgproxyVideoUrlChain = VideoMethods &
+  BaseControl<
+    ImgproxyVideoUrlChain,
+    ImgproxyVideoOptions,
+    ImgproxyVideoOptionName,
+    { [K in ImgproxyVideoOptionName]: ImgproxyVideoArgsOf<K> }
+  > & {
+    /** Sets the output container (`@webm`, `.mp3`, `@png` for a waveform). */
+    extension(ext: string): ImgproxyVideoUrlChain;
+  };
+
 class Chain {
   readonly #cfg: ImgproxyUrlConfig;
-  readonly #info: boolean;
+  readonly #endpoint: Endpoint;
   readonly #source: string;
   readonly #pipelines: OptionEntry[][] = [[]];
   #encoding: SourceEncoding | undefined;
   #ext: string | undefined;
   #pdfPassword: string | undefined;
 
-  constructor(cfg: ImgproxyUrlConfig, info: boolean, source: string) {
+  constructor(cfg: ImgproxyUrlConfig, endpoint: Endpoint, source: string) {
     this.#cfg = cfg;
-    this.#info = info;
+    this.#endpoint = endpoint;
     this.#source = source;
   }
 
@@ -315,7 +381,7 @@ class Chain {
   }
 
   build(): Promise<string> {
-    return build(this.#cfg, this.#info, this.#pipelines, this.#source, this.#encoding, this.#ext, this.#pdfPassword);
+    return build(this.#cfg, this.#endpoint, this.#pipelines, this.#source, this.#encoding, this.#ext, this.#pdfPassword);
   }
 }
 
@@ -339,6 +405,7 @@ function withOptionMethods(names: Iterable<string>): typeof Chain {
 
 const ProcessingChain = withOptionMethods(processingCatalogue.canonical.keys());
 const InfoChain = withOptionMethods(infoCatalogue.canonical.keys());
+const VideoChain = withOptionMethods(videoCatalogue.canonical.keys());
 
 /** A URL builder bound to a config (base URL, keys, encoding). */
 export interface ImgproxyUrlBuilder {
@@ -351,6 +418,10 @@ export interface ImgproxyUrlBuilder {
   from(source: string): ImgproxyUrlChain;
   /** Starts a fluent `/info` URL for source. */
   info(source: string): ImgproxyInfoUrlChain;
+  /** Builds a `/video` URL from the plain object form. */
+  videoUrl(request: ImgproxyVideoUrlRequest): Promise<string>;
+  /** Starts a fluent `/video` URL (video transformation, audio, waveform) for source. */
+  video(source: string): ImgproxyVideoUrlChain;
 }
 
 /**
@@ -360,6 +431,7 @@ export interface ImgproxyUrlBuilder {
  * const img = imgproxy({ baseUrl: "https://img.example.com", signing: { key, salt } });
  * await img.url({ source: "s3://bucket/cat.jpg", options: { rs: ["fill", 300, 400], q: 80 }, extension: "webp" });
  * await img.from("s3://bucket/cat.jpg").resize("fill", 300, 400).quality(80).extension("webp").build();
+ * await img.video("s3://bucket/talk.mov").resize("fill", 640, 360).start(12).duration(8).extension("webm").build();
  * ```
  */
 export function imgproxy(config: ImgproxyUrlConfig = {}): ImgproxyUrlBuilder {
@@ -368,7 +440,9 @@ export function imgproxy(config: ImgproxyUrlConfig = {}): ImgproxyUrlBuilder {
     config: cfg,
     url: (request) => buildImgproxyUrl(request, cfg),
     infoUrl: (request) => buildImgproxyInfoUrl(request, cfg),
-    from: (source) => new ProcessingChain(cfg, false, source) as unknown as ImgproxyUrlChain,
-    info: (source) => new InfoChain(cfg, true, source) as unknown as ImgproxyInfoUrlChain,
+    from: (source) => new ProcessingChain(cfg, "process", source) as unknown as ImgproxyUrlChain,
+    info: (source) => new InfoChain(cfg, "info", source) as unknown as ImgproxyInfoUrlChain,
+    videoUrl: (request) => buildImgproxyVideoUrl(request, cfg),
+    video: (source) => new VideoChain(cfg, "video", source) as unknown as ImgproxyVideoUrlChain,
   };
 }

@@ -404,6 +404,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/q/video": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Transform a video (query dialect)
+         * @description The /video options as query keys (aliases too), in query order, mounted at /q/ when XI_DIALECTS_QUERY_ENABLED=true; fit, gravity, crop and flip also take the native spellings.
+         */
+        get: operations["getQueryVideo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/q/{endpoint}": {
         parameters: {
             query?: never;
@@ -436,6 +456,26 @@ export interface paths {
          * @description 200 when ready for traffic; 503 while starting or draining (load balancers deregister). Served on both listeners.
          */
         get: operations["getReadyz"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/video/{signature}/{options}/{source}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Transform a video or its audio (imgproxy-style /video, WP-122, WP-123)
+         * @description Trims, resizes, crops, rotates and transcodes a video into MP4 or WebM, its audio into M4A, MP3, Opus, Ogg, FLAC or WAV, or draws its audio as a PNG or WebP waveform. {options} is zero or more video options separated by / (rs:fill:640:360/vs:1/vd:5), typed by the ImgproxyVideoOptions schema; the source extension (@webm) picks the container. The signature covers "/video" + the path after it, so image signatures are not valid here. Needs XI_VIDEO_TRANSFORM_ENABLED (404 otherwise, and on XI_ROLE=image); unsigned requests are 403 unless XI_VIDEO_TRANSFORM_UNSIGNED_POLICY=allow. Supports Range.
+         */
+        get: operations["getImgproxyVideo"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1871,6 +1911,401 @@ export interface components {
                 number
             ];
         };
+        /** @description imgproxy-style /video options (docs/URL-DIALECTS.md §3.8, video transformations), encoded like ImgproxyProcessingOptions. Video options have their own namespace: geometry names (rs, s, w, h, g, c, rot, fl, bg, q, f) follow imgproxy's argument rules with video semantics. */
+        ImgproxyVideoOptions: {
+            /**
+             * @description Audio bit rate (8k..512k; ignored by flac and wav). URL: `audio_bitrate`, `ab`; arguments bit/s (k); default codec default.
+             * @example [
+             *       "128k"
+             *     ]
+             */
+            audio_bitrate?: [
+                string
+            ];
+            /**
+             * @description Downmix to mono or stereo. URL: `audio_channels`, `ach`; arguments 1 or 2; default source.
+             * @example [
+             *       1
+             *     ]
+             */
+            audio_channels?: [
+                number
+            ];
+            /**
+             * @description Audio codec (must suit the container). URL: `audio_codec`, `ac`; arguments auto, aac, opus, mp3, flac, pcm; default auto.
+             * @example [
+             *       "aac"
+             *     ]
+             */
+            audio_codec?: [
+                "aac" | "auto" | "flac" | "mp3" | "opus" | "pcm"
+            ];
+            /**
+             * @description Colour of the bars of extend. URL: `background`, `bg`; arguments hex; default 000000.
+             * @example [
+             *       "ffffff"
+             *     ]
+             */
+            background?: [
+                string | null
+            ];
+            /**
+             * @description Skip the result cache (XI_CACHE_ALLOW_BYPASS). URL: `bypass_cache`, `bc`; arguments bool; default false.
+             * @example [
+             *       true
+             *     ]
+             */
+            bypass_cache?: [
+                boolean | null
+            ];
+            /**
+             * @description Tags for the Cache-Tag response header. URL: `cache_tags`, `ct`; arguments tags… (visible ASCII, no commas; replaces earlier tags); default —.
+             * @example [
+             *       "product",
+             *       "hero"
+             *     ]
+             */
+            cache_tags?: (string | null)[];
+            /**
+             * @description Changes the URL, the cache key and the ETag. URL: `cachebuster`, `cb`; arguments string; default —.
+             * @example [
+             *       "v2"
+             *     ]
+             */
+            cachebuster?: [
+                string | null
+            ];
+            /**
+             * @description Constant rate factor (wins over quality). URL: `crf`; arguments 0..63; default 0.
+             * @example [
+             *       30
+             *     ]
+             */
+            crf?: [
+                number
+            ];
+            /**
+             * @description Crop a rectangle (pixels) of the rotated frame before the resize. URL: `crop`, `c`; arguments w:h:gravity; default —.
+             * @example [
+             *       640,
+             *       360,
+             *       "nowe"
+             *     ]
+             */
+            crop?: unknown[] | [
+                number,
+                number | null,
+                "ce" | "no" | "so" | "ea" | "we" | "noea" | "nowe" | "soea" | "sowe" | null,
+                number | null,
+                number | null
+            ] | [
+                number,
+                number | null,
+                "fp",
+                number,
+                number
+            ];
+            /**
+             * @description Length of the output from start (exclusive with end). URL: `duration`, `vd`; arguments seconds; default to the end.
+             * @example [
+             *       3
+             *     ]
+             */
+            duration?: [
+                number
+            ];
+            /**
+             * @description End the output at this time of the source (exclusive with duration). URL: `end`, `ve`; arguments seconds; default end of the source.
+             * @example [
+             *       4
+             *     ]
+             */
+            end?: [
+                number
+            ];
+            /**
+             * @description Let fit enlarge a smaller source. URL: `enlarge`, `el`; arguments bool; default false.
+             * @example [
+             *       true
+             *     ]
+             */
+            enlarge?: [
+                boolean | null
+            ];
+            /**
+             * @description URL expiry (404 afterwards). URL: `expires`, `exp`; arguments unix ts; default —.
+             * @example [
+             *       4102444800
+             *     ]
+             */
+            expires?: [
+                number
+            ];
+            /**
+             * @description Pad a fit to the whole box with the background colour. URL: `extend`, `ex`; arguments bool; default false.
+             * @example [
+             *       true
+             *     ]
+             */
+            extend?: [
+                boolean | null
+            ];
+            /**
+             * @description Fade in from black and silence, and out to them (seconds). URL: `fade`, `fd`; arguments in:out; default 0:0.
+             * @example [
+             *       1,
+             *       2
+             *     ]
+             */
+            fade?: [
+                number | null,
+                number | null
+            ];
+            /**
+             * @description Content-Disposition file name. URL: `filename`, `fn`; arguments name:encoded; default source basename.
+             * @example [
+             *       "photo"
+             *     ]
+             */
+            filename?: [
+                string | null,
+                boolean | null
+            ];
+            /**
+             * @description Mirror after the rotation. URL: `flip`, `fl`; arguments h:v; default false:false.
+             * @example [
+             *       true,
+             *       false
+             *     ]
+             */
+            flip?: [
+                boolean | null,
+                boolean | null
+            ];
+            /**
+             * @description Output container (the source extension sets it too); png and webp are waveform pictures. URL: `format`, `f`, `ext`; arguments mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp; default mp4.
+             * @example [
+             *       "webm"
+             *     ]
+             */
+            format?: [
+                "mp4" | "webm" | "m4a" | "mp3" | "opus" | "ogg" | "flac" | "wav" | "png" | "webp"
+            ];
+            /**
+             * @description Output frame rate (capped by XI_VIDEO_TRANSFORM_MAX_FPS). URL: `fps`; arguments rate; default source.
+             * @example [
+             *       24
+             *     ]
+             */
+            fps?: [
+                number
+            ];
+            /**
+             * @description Anchor of fill crops and crops (compass with pixel offsets, or a focus point). URL: `gravity`, `g`; arguments type:x:y or fp:x:y; default ce:0:0.
+             * @example [
+             *       "soea",
+             *       10,
+             *       10
+             *     ]
+             */
+            gravity?: unknown[] | [
+                "ce" | "no" | "so" | "ea" | "we" | "noea" | "nowe" | "soea" | "sowe",
+                number | null,
+                number | null
+            ] | [
+                "fp",
+                number,
+                number
+            ];
+            /**
+             * @description Check the source bytes against a digest. URL: `hashsum`, `hs`; arguments none, or md5/sha1/sha256/sha512:hex; default none.
+             * @example [
+             *       "sha256",
+             *       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+             *     ]
+             */
+            hashsum?: [
+                "none" | "md5" | "sha1" | "sha256" | "sha512" | null,
+                string | null
+            ];
+            /**
+             * @description Output height (rounded down to even). URL: `height`, `h`; arguments px; default 0.
+             * @example [
+             *       360
+             *     ]
+             */
+            height?: [
+                number
+            ];
+            /**
+             * @description Time between keyframes (GOP length, 0.1..60 s). URL: `keyframe_interval`, `ki`; arguments seconds; default 2.
+             * @example [
+             *       1
+             *     ]
+             */
+            keyframe_interval?: [
+                number
+            ];
+            /**
+             * @description EBU R128 loudness normalisation (single-pass loudnorm). URL: `loudnorm`, `ln`; arguments enabled:I:TP:LRA; default false:-23:-1:7.
+             * @example [
+             *       true,
+             *       -16,
+             *       -1.5,
+             *       11
+             *     ]
+             */
+            loudnorm?: [
+                boolean | null,
+                number | null,
+                number | null,
+                number | null
+            ];
+            /**
+             * @description Drop the audio stream. URL: `mute`, `mu`; arguments bool; default false.
+             * @example [
+             *       true
+             *     ]
+             */
+            mute?: [
+                boolean | null
+            ];
+            /**
+             * @description Video quality, mapped onto the codec's CRF scale. URL: `quality`, `q`; arguments 1..100; default 0.
+             * @example [
+             *       70
+             *     ]
+             */
+            quality?: [
+                number
+            ];
+            /**
+             * @description Resize like imgproxy: fit (scale-down, or contain with enlarge; extend pads), fill and fill-down (cover, cropped by gravity), force (stretch). URL: `resize`, `rs`; arguments type:w:h:enlarge:extend; default fit:0:0:false:false.
+             * @example [
+             *       "fill",
+             *       640,
+             *       360
+             *     ]
+             */
+            resize?: [
+                "fit" | "fill" | "fill-down" | "force" | null,
+                number | null,
+                number | null,
+                boolean | null,
+                boolean | null
+            ];
+            /**
+             * @description Resizing type (auto is not available for video). URL: `resizing_type`, `rt`; arguments fit, fill, fill-down, force; default fit.
+             * @example [
+             *       "fill"
+             *     ]
+             */
+            resizing_type?: [
+                "fit" | "fill" | "fill-down" | "force"
+            ];
+            /**
+             * @description Download instead of inline display. URL: `return_attachment`, `att`; arguments bool; default config.
+             * @example [
+             *       true
+             *     ]
+             */
+            return_attachment?: [
+                boolean | null
+            ];
+            /**
+             * @description Rotate clockwise after the display matrix. URL: `rotate`, `rot`; arguments multiple of 90; default 0.
+             * @example [
+             *       90
+             *     ]
+             */
+            rotate?: [
+                number
+            ];
+            /**
+             * @description Output sample rate (the codec must support it: Opus 8/12/16/24/48 kHz). URL: `sample_rate`, `sr`; arguments Hz; default source.
+             * @example [
+             *       44100
+             *     ]
+             */
+            sample_rate?: [
+                number
+            ];
+            /**
+             * @description Resize without the type. URL: `size`, `s`; arguments w:h:enlarge:extend; default 0:0:false:false.
+             * @example [
+             *       640,
+             *       360,
+             *       false,
+             *       true
+             *     ]
+             */
+            size?: [
+                number | null,
+                number | null,
+                boolean | null,
+                boolean | null
+            ];
+            /**
+             * @description Start the output at this time of the source (exact, from the keyframe before it). URL: `start`, `vs`; arguments seconds; default 0.
+             * @example [
+             *       1.5
+             *     ]
+             */
+            start?: [
+                number
+            ];
+            /**
+             * @description Cap the video bit rate (50k..200M). URL: `video_bitrate`, `vb`; arguments bit/s (k, M); default uncapped.
+             * @example [
+             *       "2M"
+             *     ]
+             */
+            video_bitrate?: [
+                string
+            ];
+            /**
+             * @description Video codec (h264 and hevc need the gpl image). URL: `video_codec`, `vc`; arguments auto, h264, av1, vp9, hevc; default auto.
+             * @example [
+             *       "av1"
+             *     ]
+             */
+            video_codec?: [
+                "auto" | "av1" | "h264" | "h265" | "hevc" | "vp9"
+            ];
+            /**
+             * @description Change the audio level (-60 dB..+20 dB). URL: `volume`, `vol`; arguments factor or NdB; default 1.
+             * @example [
+             *       "-6dB"
+             *     ]
+             */
+            volume?: [
+                string
+            ];
+            /**
+             * @description Render the audio as a width × height (default 1024×256) PNG or WebP picture. URL: `waveform`, `wf`; arguments enabled:color:background:split; default false:000000::false.
+             * @example [
+             *       true,
+             *       "2266cc",
+             *       "ffffff",
+             *       false
+             *     ]
+             */
+            waveform?: [
+                boolean | null,
+                string | null,
+                string | null,
+                boolean | null
+            ];
+            /**
+             * @description Output width (rounded down to even). URL: `width`, `w`; arguments px; default 0.
+             * @example [
+             *       640
+             *     ]
+             */
+            width?: [
+                number
+            ];
+        };
         InfoClass: {
             /**
              * Format: int64
@@ -2068,6 +2503,11 @@ export interface components {
              * @description Bit rate in bits per second, when known.
              */
             bps?: number;
+            /**
+             * Format: int64
+             * @description xtandard-image extension: channel count of an audio stream.
+             */
+            channels?: number;
             /** @description FFmpeg codec name: h264, hevc, vp9, av1, aac, ... */
             codec: string;
             /**
@@ -2250,6 +2690,8 @@ export interface components {
             version: string;
             /** @description Video sources are decoded (FFmpeg, full image). */
             video: boolean;
+            /** @description imgproxy-style /video options (internal/apidoc, the ImgproxyVideoOptions schema): video transformations, audio and waveforms. */
+            video_options: components["schemas"]["PlaygroundOption"][] | null;
             /** @description A default watermark image is configured (XI_PROCESSING_WATERMARK_SOURCE; the source itself is never included): imgproxy wm without wmu or wmt draws it. */
             watermark: boolean;
         };
@@ -3674,6 +4116,140 @@ export interface operations {
             504: components["responses"]["Error504"];
         };
     };
+    getQueryVideo: {
+        parameters: {
+            query: {
+                /**
+                 * @description Source URL or xi://<source>/<key>.
+                 * @example https://example.com/clip.mp4
+                 */
+                url: string;
+                /** @description Start the output at this time of the source (exact, from the keyframe before it). Arguments joined by , or : (seconds). */
+                start?: string;
+                /** @description End the output at this time of the source (exclusive with duration). Arguments joined by , or : (seconds). */
+                end?: string;
+                /** @description Length of the output from start (exclusive with end). Arguments joined by , or : (seconds). */
+                duration?: string;
+                /** @description Resize like imgproxy: fit (scale-down, or contain with enlarge; extend pads), fill and fill-down (cover, cropped by gravity), force (stretch). Arguments joined by , or : (type:w:h:enlarge:extend). */
+                resize?: string;
+                /** @description Resize without the type. Arguments joined by , or : (w:h:enlarge:extend). */
+                size?: string;
+                /** @description Resizing type (auto is not available for video). Arguments joined by , or : (fit, fill, fill-down, force). */
+                resizing_type?: string;
+                /** @description Output width (rounded down to even). Arguments joined by , or : (px). */
+                width?: string;
+                /** @description Output height (rounded down to even). Arguments joined by , or : (px). */
+                height?: string;
+                /** @description Let fit enlarge a smaller source. Arguments joined by , or : (bool). */
+                enlarge?: string;
+                /** @description Pad a fit to the whole box with the background colour. Arguments joined by , or : (bool). */
+                extend?: string;
+                /** @description Anchor of fill crops and crops (compass with pixel offsets, or a focus point). Arguments joined by , or : (type:x:y or fp:x:y). */
+                gravity?: string;
+                /** @description Crop a rectangle (pixels) of the rotated frame before the resize. Arguments joined by , or : (w:h:gravity). */
+                crop?: string;
+                /** @description Rotate clockwise after the display matrix. Arguments joined by , or : (multiple of 90). */
+                rotate?: string;
+                /** @description Mirror after the rotation. Arguments joined by , or : (h:v). */
+                flip?: string;
+                /** @description Colour of the bars of extend. Arguments joined by , or : (hex). */
+                background?: string;
+                /** @description Output frame rate (capped by XI_VIDEO_TRANSFORM_MAX_FPS). Arguments joined by , or : (rate). */
+                fps?: string;
+                /** @description Output container (the source extension sets it too); png and webp are waveform pictures. Arguments joined by , or : (mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp). */
+                format?: string;
+                /** @description Video codec (h264 and hevc need the gpl image). Arguments joined by , or : (auto, h264, av1, vp9, hevc). */
+                video_codec?: string;
+                /** @description Audio codec (must suit the container). Arguments joined by , or : (auto, aac, opus, mp3, flac, pcm). */
+                audio_codec?: string;
+                /** @description Video quality, mapped onto the codec's CRF scale. Arguments joined by , or : (1..100). */
+                quality?: string;
+                /** @description Constant rate factor (wins over quality). Arguments joined by , or : (0..63). */
+                crf?: string;
+                /** @description Cap the video bit rate (50k..200M). Arguments joined by , or : (bit/s (k, M)). */
+                video_bitrate?: string;
+                /** @description Time between keyframes (GOP length, 0.1..60 s). Arguments joined by , or : (seconds). */
+                keyframe_interval?: string;
+                /** @description Drop the audio stream. Arguments joined by , or : (bool). */
+                mute?: string;
+                /** @description Audio bit rate (8k..512k; ignored by flac and wav). Arguments joined by , or : (bit/s (k)). */
+                audio_bitrate?: string;
+                /** @description Output sample rate (the codec must support it: Opus 8/12/16/24/48 kHz). Arguments joined by , or : (Hz). */
+                sample_rate?: string;
+                /** @description Downmix to mono or stereo. Arguments joined by , or : (1 or 2). */
+                audio_channels?: string;
+                /** @description Change the audio level (-60 dB..+20 dB). Arguments joined by , or : (factor or NdB). */
+                volume?: string;
+                /** @description EBU R128 loudness normalisation (single-pass loudnorm). Arguments joined by , or : (enabled:I:TP:LRA). */
+                loudnorm?: string;
+                /** @description Fade in from black and silence, and out to them (seconds). Arguments joined by , or : (in:out). */
+                fade?: string;
+                /** @description Render the audio as a width × height (default 1024×256) PNG or WebP picture. Arguments joined by , or : (enabled:color:background:split). */
+                waveform?: string;
+                /** @description A /video option path (rs:fill:640:360/vd:5). */
+                o?: string;
+                /** @description Signature over "/video" + the query (sign.XIMessage). */
+                xi_sig?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The transcoded file: video/mp4, video/webm, audio/mp4, audio/mpeg, audio/ogg, audio/flac, audio/wav, or image/png and image/webp for a waveform picture. */
+            200: {
+                headers: {
+                    /** @description bytes */
+                    "Accept-Ranges"?: string;
+                    /** @description XI_CACHE_HEADERS_* policy, or the URL's expires. */
+                    "Cache-Control"?: string;
+                    /** @description Strong entity tag (also the If-Range validator). */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "audio/*": string;
+                    "image/png": string;
+                    "image/webp": string;
+                    "video/*": string;
+                };
+            };
+            /** @description Partial content: the Range of the file (multipart/byteranges for several ranges). */
+            206: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not modified: If-None-Match matched the ETag. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Error400"];
+            403: components["responses"]["Error403"];
+            404: components["responses"]["Error404"];
+            406: components["responses"]["Error406"];
+            414: components["responses"]["Error414"];
+            /** @description Range not satisfiable. */
+            416: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: components["responses"]["Error422"];
+            429: components["responses"]["Error429"];
+            500: components["responses"]["Error500"];
+            501: components["responses"]["Error501"];
+            502: components["responses"]["Error502"];
+            503: components["responses"]["Error503"];
+            504: components["responses"]["Error504"];
+        };
+    };
     getImaginaryImage: {
         parameters: {
             query: {
@@ -3834,6 +4410,84 @@ export interface operations {
                     "text/plain": string;
                 };
             };
+        };
+    };
+    getImgproxyVideo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description URL signature, or any value (conventionally unsafe) when signing is off.
+                 * @example unsafe
+                 */
+                signature: string;
+                /**
+                 * @description Video options joined by /, each name:arg:arg (ImgproxyVideoOptions).
+                 * @example rs:fit:640:0/vd:5
+                 */
+                options: string;
+                /**
+                 * @description The source: plain/<percent-encoded URL>[@ext], <url-safe base64 URL>[.ext] (may be split with /) or enc/<AES-CBC token>[.ext]. Schemes: http(s), s3, gs, abs, local, ftp, sftp, xi://<source>/.
+                 * @example plain/https://example.com/a.jpg@webp
+                 */
+                source: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The transcoded file: video/mp4, video/webm, audio/mp4, audio/mpeg, audio/ogg, audio/flac, audio/wav, or image/png and image/webp for a waveform picture. */
+            200: {
+                headers: {
+                    /** @description bytes */
+                    "Accept-Ranges"?: string;
+                    /** @description XI_CACHE_HEADERS_* policy, or the URL's expires. */
+                    "Cache-Control"?: string;
+                    /** @description Strong entity tag (also the If-Range validator). */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "audio/*": string;
+                    "image/png": string;
+                    "image/webp": string;
+                    "video/*": string;
+                };
+            };
+            /** @description Partial content: the Range of the file (multipart/byteranges for several ranges). */
+            206: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not modified: If-None-Match matched the ETag. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Error400"];
+            403: components["responses"]["Error403"];
+            404: components["responses"]["Error404"];
+            406: components["responses"]["Error406"];
+            414: components["responses"]["Error414"];
+            /** @description Range not satisfiable. */
+            416: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: components["responses"]["Error422"];
+            429: components["responses"]["Error429"];
+            500: components["responses"]["Error500"];
+            501: components["responses"]["Error501"];
+            502: components["responses"]["Error502"];
+            503: components["responses"]["Error503"];
+            504: components["responses"]["Error504"];
         };
     };
     getImgproxyImage: {

@@ -9926,6 +9926,1785 @@
       ],
       "url": "/info/unsafe/xmp:0/plain/https://example.com/a.jpg",
       "url_short": "/info/unsafe/xmp:0/plain/https://example.com/a.jpg"
+    },
+    {
+      "name": "video/aliases_vs_vd",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "vs": [
+              2
+            ]
+          },
+          {
+            "vd": [
+              3
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/vs:2/vd:3/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/vs:2/vd:3/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/audio_bitrate",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "ab": [
+              "128k"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/ab:128k/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/ab:128k/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/audio_bitrate_long",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "audio_bitrate": [
+              "96000"
+            ]
+          },
+          {
+            "f": [
+              "m4a"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/audio_bitrate:96000/f:m4a/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/ab:96000/f:m4a/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/audio_channels",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "ach": [
+              1
+            ]
+          },
+          {
+            "f": [
+              "m4a"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/ach:1/f:m4a/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/ach:1/f:m4a/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/audio_channels_long",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "audio_channels": [
+              2
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/audio_channels:2/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/ach:2/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/audio_codec",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "ac": [
+              "aac"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/ac:aac/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/ac:aac/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/audio_codec_flac",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "audio_codec": [
+              "flac"
+            ]
+          },
+          {
+            "f": [
+              "flac"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/audio_codec:flac/f:flac/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/ac:flac/f:flac/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/background",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "background": [
+              "ff0000"
+            ]
+          },
+          {
+            "rs": [
+              "fit",
+              300,
+              300,
+              false,
+              true
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/background:ff0000/rs:fit:300:300:0:1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/bg:ff0000/rs:fit:300:300:0:1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/background_empty",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "bg": [
+              "fff"
+            ]
+          },
+          {
+            "bg": [
+              null
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/bg:fff/bg:/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/bg:fff/bg:/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/background_short",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "bg": [
+              "0f0"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/bg:0f0/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/bg:0f0/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/base64_source_ext",
+      "endpoint": "video",
+      "encoding": "base64",
+      "source": "https://example.com/clip.mov",
+      "extension": "webm",
+      "pipelines": [
+        [
+          {
+            "w": [
+              320
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/w:320/aHR0cHM6Ly9leGFtcGxlLmNvbS9jbGlwLm1vdg.webm",
+      "url_short": "/video/unsafe/w:320/aHR0cHM6Ly9leGFtcGxlLmNvbS9jbGlwLm1vdg.webm"
+    },
+    {
+      "name": "video/cache_tags",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "ct": [
+              "a",
+              "b"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/ct:a:b/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/ct:a:b/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/cachebuster",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "cb": [
+              "v2"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/cb:v2/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/cb:v2/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/crf",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "crf": [
+              30
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/crf:30/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/crf:30/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/crop_fp",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "c": [
+              100,
+              0,
+              "fp",
+              0.1,
+              0.9
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/c:100:0:fp:0.1:0.9/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/c:100:0:fp:0.1:0.9/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/crop_gravity",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "crop": [
+              640,
+              360,
+              "nowe",
+              10,
+              20
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/crop:640:360:nowe:10:20/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/c:640:360:nowe:10:20/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/crop_pixels",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "c": [
+              640,
+              360
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/c:640:360/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/c:640:360/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/crop_takes_gravity",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "g": [
+              "soea"
+            ]
+          },
+          {
+            "c": [
+              100,
+              100
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/g:soea/c:100:100/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/g:soea/c:100:100/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/crop_width_only",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "c": [
+              100
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/c:100/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/c:100/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/defaults",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [],
+      "url": "/video/unsafe/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/enc_source",
+      "config": "enc",
+      "endpoint": "video",
+      "encoding": "encrypted",
+      "source": "https://example.com/clip.mov",
+      "extension": "m4a",
+      "pipelines": [
+        [
+          {
+            "w": [
+              320
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/w:320/enc/MDEyMzQ1Njc4OWFiY2RlZlCnHoxM-FYigjog_TOOb0J6tR9ZFBr2gcPknlM8_638.m4a",
+      "url_short": "/video/unsafe/w:320/enc/MDEyMzQ1Njc4OWFiY2RlZlCnHoxM-FYigjog_TOOb0J6tR9ZFBr2gcPknlM8_638.m4a"
+    },
+    {
+      "name": "video/enlarge_el",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "el": [
+              true
+            ]
+          },
+          {
+            "w": [
+              4000
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/el:1/w:4000/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/el:1/w:4000/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/expires_future",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "exp": [
+              1893456000
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/exp:1893456000/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/exp:1893456000/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/extend_ex",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "ex": [
+              true
+            ]
+          },
+          {
+            "w": [
+              100
+            ]
+          },
+          {
+            "h": [
+              100
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/ex:1/w:100/h:100/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/ex:1/w:100/h:100/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/extension_upper",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "extension": "MP3",
+      "pipelines": [],
+      "url": "/video/unsafe/plain/https://example.com/clip.mov@MP3",
+      "url_short": "/video/unsafe/plain/https://example.com/clip.mov@MP3"
+    },
+    {
+      "name": "video/extension_webm",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "extension": "webm",
+      "pipelines": [],
+      "url": "/video/unsafe/plain/https://example.com/clip.mov@webm",
+      "url_short": "/video/unsafe/plain/https://example.com/clip.mov@webm"
+    },
+    {
+      "name": "video/fade",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "fade": [
+              1,
+              2
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/fade:1:2/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/fd:1:2/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/fade_in_only",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "fd": [
+              0.5
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/fd:0.5/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/fd:0.5/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/fade_out_only",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "fd": [
+              null,
+              1
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/fd::1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/fd::1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/filename",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "fn": [
+              "clip"
+            ]
+          },
+          {
+            "att": [
+              true
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/fn:clip/att:1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/fn:clip/att:1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/flip",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "fl": [
+              true,
+              true
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/fl:1:1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/fl:1:1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/flip_vertical_only",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "flip": [
+              null,
+              true
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/flip::1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/fl::1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/format",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "format": [
+              "webm"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/format:webm/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/f:webm/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/format_ext",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "ext": [
+              "opus"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/ext:opus/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/f:opus/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/format_extension_wins",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "extension": "mp3",
+      "pipelines": [
+        [
+          {
+            "f": [
+              "webm"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/f:webm/plain/https://example.com/clip.mov@mp3",
+      "url_short": "/video/unsafe/f:webm/plain/https://example.com/clip.mov@mp3"
+    },
+    {
+      "name": "video/format_f",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "f": [
+              "m4a"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/f:m4a/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/f:m4a/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/fps",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "fps": [
+              24
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/fps:24/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/fps:24/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/fps_fraction",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "fps": [
+              29.97
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/fps:29.97/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/fps:29.97/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/fps_zero_keeps_source",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "fps": [
+              0
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/fps:0/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/fps:0/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/gravity_alias",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "gravity": [
+              "no"
+            ]
+          },
+          {
+            "rt": [
+              "fill"
+            ]
+          },
+          {
+            "s": [
+              200,
+              100
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/gravity:no/rt:fill/s:200:100/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/g:no/rt:fill/s:200:100/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/gravity_compass",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "g": [
+              "soea",
+              10,
+              5
+            ]
+          },
+          {
+            "rs": [
+              "fill",
+              200,
+              200
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/g:soea:10:5/rs:fill:200:200/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/g:soea:10:5/rs:fill:200:200/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/gravity_fp",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "g": [
+              "fp",
+              0.25,
+              0.75
+            ]
+          },
+          {
+            "rs": [
+              "fill",
+              200,
+              200
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/g:fp:0.25:0.75/rs:fill:200:200/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/g:fp:0.25:0.75/rs:fill:200:200/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/gravity_offsets_kept",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "g": [
+              "no",
+              3,
+              4
+            ]
+          },
+          {
+            "g": [
+              "ea"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/g:no:3:4/g:ea/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/g:no:3:4/g:ea/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/hashsum",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "hs": [
+              "sha256",
+              "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/hs:sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/hs:sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/keyframe_interval",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "ki": [
+              1
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/ki:1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/ki:1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/keyframe_interval_long",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "keyframe_interval": [
+              0.5
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/keyframe_interval:0.5/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/ki:0.5/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/loudnorm",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "ln": [
+              true
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/ln:1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/ln:1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/loudnorm_off",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "ln": [
+              true
+            ]
+          },
+          {
+            "ln": [
+              false
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/ln:1/ln:0/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/ln:1/ln:0/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/loudnorm_partial",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "ln": [
+              true,
+              -14
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/ln:1:-14/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/ln:1:-14/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/loudnorm_target",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "loudnorm": [
+              true,
+              -16,
+              -1.5,
+              11
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/loudnorm:1:-16:-1.5:11/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/ln:1:-16:-1.5:11/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/mu",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "mu": [
+              true
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/mu:1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/mu:1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/mute",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "mute": [
+              true
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/mute:1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/mu:1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/png_extension",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "extension": "png",
+      "pipelines": [
+        [
+          {
+            "w": [
+              600
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/w:600/plain/https://example.com/clip.mov@png",
+      "url_short": "/video/unsafe/w:600/plain/https://example.com/clip.mov@png"
+    },
+    {
+      "name": "video/png_implies_waveform",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "f": [
+              "png"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/f:png/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/f:png/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/quality",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "q": [
+              70
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/q:70/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/q:70/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/quality_long",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "quality": [
+              100
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/quality:100/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/q:100/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/resize_fill",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "rs": [
+              "fill",
+              640,
+              360
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/rs:fill:640:360/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/rs:fill:640:360/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/resize_fill_down",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "rs": [
+              "fill-down",
+              640,
+              360
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/rs:fill-down:640:360/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/rs:fill-down:640:360/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/resize_fill_one_side",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "rs": [
+              "fill",
+              640
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/rs:fill:640/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/rs:fill:640/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/resize_fit",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "rs": [
+              "fit",
+              640,
+              360
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/rs:fit:640:360/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/rs:fit:640:360/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/resize_fit_enlarge",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "rs": [
+              "fit",
+              640,
+              360,
+              true
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/rs:fit:640:360:1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/rs:fit:640:360:1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/resize_fit_extend",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "rs": [
+              "fit",
+              640,
+              360,
+              false,
+              true
+            ]
+          },
+          {
+            "bg": [
+              "ffffff"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/rs:fit:640:360:0:1/bg:ffffff/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/rs:fit:640:360:0:1/bg:ffffff/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/resize_force",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "rs": [
+              "force",
+              640,
+              360
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/rs:force:640:360/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/rs:force:640:360/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/resize_type_only",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "rs": [
+              "fill"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/rs:fill/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/rs:fill/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/resizing_type_rt",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "rt": [
+              "fill"
+            ]
+          },
+          {
+            "w": [
+              200
+            ]
+          },
+          {
+            "h": [
+              200
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/rt:fill/w:200/h:200/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/rt:fill/w:200/h:200/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/rotate",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "rot": [
+              90
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/rot:90/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/rot:90/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/rotate_450",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "rot": [
+              450
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/rot:450/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/rot:450/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/rotate_negative",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "rotate": [
+              -90
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/rotate:-90/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/rot:-90/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/sample_rate",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "sr": [
+              44100
+            ]
+          },
+          {
+            "f": [
+              "mp3"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/sr:44100/f:mp3/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/sr:44100/f:mp3/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/sample_rate_long",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "sample_rate": [
+              48000
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/sample_rate:48000/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/sr:48000/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/signed",
+      "config": "signed",
+      "endpoint": "video",
+      "signature_size": 32,
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "extension": "webm",
+      "pipelines": [
+        [
+          {
+            "rs": [
+              "fit",
+              320,
+              0
+            ]
+          },
+          {
+            "vd": [
+              2
+            ]
+          }
+        ]
+      ],
+      "url": "/video/2FEmh8TStOl73FQdyA_a-TMSmNnVJDLCOX4jeE4xe1c/rs:fit:320:0/vd:2/plain/https://example.com/clip.mov@webm",
+      "url_short": "/video/2FEmh8TStOl73FQdyA_a-TMSmNnVJDLCOX4jeE4xe1c/rs:fit:320:0/vd:2/plain/https://example.com/clip.mov@webm"
+    },
+    {
+      "name": "video/size",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "s": [
+              320,
+              180,
+              true
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/s:320:180:1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/s:320:180:1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/size_extend",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "size": [
+              320,
+              180,
+              null,
+              true
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/size:320:180::1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/s:320:180::1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/start_end",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "start": [
+              1.5
+            ]
+          },
+          {
+            "end": [
+              4
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/start:1.5/end:4/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/vs:1.5/ve:4/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/start_microseconds",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "vs": [
+              0.0000015
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/vs:0.0000015/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/vs:0.0000015/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/unsigned_on_signed",
+      "config": "signed",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "vd": [
+              2
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/vd:2/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/vd:2/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/ve",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "ve": [
+              0.25
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/ve:0.25/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/ve:0.25/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/video_bitrate",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "vb": [
+              "2M"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/vb:2M/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/vb:2M/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/video_bitrate_decimal",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "vb": [
+              "1.5M"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/vb:1.5M/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/vb:1.5M/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/video_bitrate_k",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "video_bitrate": [
+              "800k"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/video_bitrate:800k/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/vb:800k/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/video_bitrate_plain",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "vb": [
+              "1500000"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/vb:1500000/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/vb:1500000/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/video_codec",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "vc": [
+              "av1"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/vc:av1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/vc:av1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/video_codec_h265",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "video_codec": [
+              "h265"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/video_codec:h265/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/vc:h265/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/video_codec_vp9_webm",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "vc": [
+              "vp9"
+            ]
+          },
+          {
+            "f": [
+              "webm"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/vc:vp9/f:webm/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/vc:vp9/f:webm/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/volume_db",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "volume": [
+              "-6dB"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/volume:-6dB/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/vol:-6dB/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/volume_db_positive",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "vol": [
+              "+3db"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/vol:+3db/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/vol:+3db/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/volume_factor",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "vol": [
+              "0.5"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/vol:0.5/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/vol:0.5/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/w_h",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "w": [
+              640
+            ]
+          },
+          {
+            "h": [
+              0
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/w:640/h:0/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/w:640/h:0/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/waveform",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "wf": [
+              true
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/wf:1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/wf:1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/waveform_colours",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "waveform": [
+              true,
+              "2266cc",
+              "ffffff",
+              true
+            ]
+          },
+          {
+            "w": [
+              800
+            ]
+          },
+          {
+            "h": [
+              200
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/waveform:1:2266cc:ffffff:1/w:800/h:200/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/wf:1:2266cc:ffffff:1/w:800/h:200/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/waveform_off",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "wf": [
+              true
+            ]
+          },
+          {
+            "wf": [
+              false
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/wf:1/wf:0/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/wf:1/wf:0/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/waveform_webp",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "wf": [
+              true
+            ]
+          },
+          {
+            "f": [
+              "webp"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/wf:1/f:webp/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/wf:1/f:webp/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/width_height",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "width": [
+              640
+            ]
+          },
+          {
+            "height": [
+              360
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/width:640/height:360/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/w:640/h:360/plain/https://example.com/clip.mov"
     }
   ]
 }

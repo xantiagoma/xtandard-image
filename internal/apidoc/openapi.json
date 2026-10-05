@@ -5678,6 +5678,1454 @@
         },
         "type": "object"
       },
+      "ImgproxyVideoOptions": {
+        "additionalProperties": false,
+        "description": "imgproxy-style /video options (docs/URL-DIALECTS.md §3.8, video transformations), encoded like ImgproxyProcessingOptions. Video options have their own namespace: geometry names (rs, s, w, h, g, c, rot, fl, bg, q, f) follow imgproxy's argument rules with video semantics.",
+        "properties": {
+          "audio_bitrate": {
+            "description": "Audio bit rate (8k..512k; ignored by flac and wav). URL: `audio_bitrate`, `ab`; arguments bit/s (k); default codec default.",
+            "examples": [
+              [
+                "128k"
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "bits per second, k suffix",
+                "pattern": "^([0-9]+(\\.[0-9]+)?[kKmM]?)?$",
+                "title": "bitrate",
+                "type": "string"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "ab"
+            ],
+            "x-xi-default": "codec default",
+            "x-xi-milestone": "M5 (WP-123)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "bit/s (k)"
+          },
+          "audio_channels": {
+            "description": "Downmix to mono or stereo. URL: `audio_channels`, `ach`; arguments 1 or 2; default source.",
+            "examples": [
+              [
+                1
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "1 mono, 2 stereo; 0 = source (at most 2)",
+                "maximum": 2,
+                "minimum": 0,
+                "title": "channels",
+                "type": "integer"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "ach"
+            ],
+            "x-xi-default": "source",
+            "x-xi-milestone": "M5 (WP-123)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "1 or 2"
+          },
+          "audio_codec": {
+            "description": "Audio codec (must suit the container). URL: `audio_codec`, `ac`; arguments auto, aac, opus, mp3, flac, pcm; default auto.",
+            "examples": [
+              [
+                "aac"
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "audio codec",
+                "enum": [
+                  "aac",
+                  "auto",
+                  "flac",
+                  "mp3",
+                  "opus",
+                  "pcm"
+                ],
+                "title": "codec",
+                "type": "string"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "ac"
+            ],
+            "x-xi-default": "auto",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "auto, aac, opus, mp3, flac, pcm"
+          },
+          "background": {
+            "description": "Colour of the bars of extend. URL: `background`, `bg`; arguments hex; default 000000.",
+            "examples": [
+              [
+                "ffffff"
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "hex colour",
+                "pattern": "^([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+                "title": "color",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "bg"
+            ],
+            "x-xi-default": "000000",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "hex"
+          },
+          "bypass_cache": {
+            "description": "Skip the result cache (XI_CACHE_ALLOW_BYPASS). URL: `bypass_cache`, `bc`; arguments bool; default false.",
+            "examples": [
+              [
+                true
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "skip the result cache",
+                "title": "bypass",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "bc"
+            ],
+            "x-xi-default": "false",
+            "x-xi-milestone": "M2 (WP-52)",
+            "x-xi-pro": true,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "bool"
+          },
+          "cache_tags": {
+            "description": "Tags for the Cache-Tag response header. URL: `cache_tags`, `ct`; arguments tags… (visible ASCII, no commas; replaces earlier tags); default —.",
+            "examples": [
+              [
+                "product",
+                "hero"
+              ]
+            ],
+            "items": {
+              "description": "visible ASCII without commas; a single empty tag clears",
+              "pattern": "^[!-+\\--~]*$",
+              "title": "tag",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "minItems": 1,
+            "type": "array",
+            "x-xi-aliases": [
+              "ct"
+            ],
+            "x-xi-default": "—",
+            "x-xi-milestone": "M2 (WP-34b, WP-64 end-to-end test)",
+            "x-xi-pro": true,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "tags… (visible ASCII, no commas; replaces earlier tags)"
+          },
+          "cachebuster": {
+            "description": "Changes the URL, the cache key and the ETag. URL: `cachebuster`, `cb`; arguments string; default —.",
+            "examples": [
+              [
+                "v2"
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "any string",
+                "title": "value",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "cb"
+            ],
+            "x-xi-default": "—",
+            "x-xi-milestone": "M1",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "string"
+          },
+          "crf": {
+            "description": "Constant rate factor (wins over quality). URL: `crf`; arguments 0..63; default 0.",
+            "examples": [
+              [
+                30
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "constant rate factor; 0 = default",
+                "maximum": 63,
+                "minimum": 0,
+                "title": "crf",
+                "type": "integer"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [],
+            "x-xi-default": "0",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "0..63"
+          },
+          "crop": {
+            "anyOf": [
+              {
+                "maxItems": 5,
+                "minItems": 1,
+                "prefixItems": [
+                  {
+                    "description": "pixels; 0 = full width",
+                    "maximum": 8192,
+                    "minimum": 0,
+                    "title": "width",
+                    "type": "integer"
+                  },
+                  {
+                    "description": "pixels; 0 = full height",
+                    "maximum": 8192,
+                    "minimum": 0,
+                    "title": "height",
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  {
+                    "description": "compass gravity",
+                    "enum": [
+                      "ce",
+                      "no",
+                      "so",
+                      "ea",
+                      "we",
+                      "noea",
+                      "nowe",
+                      "soea",
+                      "sowe",
+                      null
+                    ],
+                    "title": "type",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  {
+                    "description": "offset in pixels (a fraction of the frame when \u003c 1)",
+                    "title": "x_offset",
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  {
+                    "description": "offset in pixels (a fraction of the frame when \u003c 1)",
+                    "title": "y_offset",
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "maxItems": 5,
+                "minItems": 5,
+                "prefixItems": [
+                  {
+                    "description": "pixels; 0 = full width",
+                    "maximum": 8192,
+                    "minimum": 0,
+                    "title": "width",
+                    "type": "integer"
+                  },
+                  {
+                    "description": "pixels; 0 = full height",
+                    "maximum": 8192,
+                    "minimum": 0,
+                    "title": "height",
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  {
+                    "enum": [
+                      "fp"
+                    ],
+                    "title": "type",
+                    "type": "string"
+                  },
+                  {
+                    "description": "focus point x (0..1)",
+                    "maximum": 1,
+                    "minimum": 0,
+                    "title": "x",
+                    "type": "number"
+                  },
+                  {
+                    "description": "focus point y (0..1)",
+                    "maximum": 1,
+                    "minimum": 0,
+                    "title": "y",
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              }
+            ],
+            "description": "Crop a rectangle (pixels) of the rotated frame before the resize. URL: `crop`, `c`; arguments w:h:gravity; default —.",
+            "examples": [
+              [
+                640,
+                360,
+                "nowe"
+              ]
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "c"
+            ],
+            "x-xi-default": "—",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "w:h:gravity"
+          },
+          "duration": {
+            "description": "Length of the output from start (exclusive with end). URL: `duration`, `vd`; arguments seconds; default to the end.",
+            "examples": [
+              [
+                3
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "length of the output",
+                "maximum": 86400,
+                "minimum": 0,
+                "title": "seconds",
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "vd"
+            ],
+            "x-xi-default": "to the end",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "seconds"
+          },
+          "end": {
+            "description": "End the output at this time of the source (exclusive with duration). URL: `end`, `ve`; arguments seconds; default end of the source.",
+            "examples": [
+              [
+                4
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "end of the output in the source",
+                "maximum": 86400,
+                "minimum": 0,
+                "title": "seconds",
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "ve"
+            ],
+            "x-xi-default": "end of the source",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "seconds"
+          },
+          "enlarge": {
+            "description": "Let fit enlarge a smaller source. URL: `enlarge`, `el`; arguments bool; default false.",
+            "examples": [
+              [
+                true
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "fit may enlarge",
+                "title": "enlarge",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "el"
+            ],
+            "x-xi-default": "false",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "bool"
+          },
+          "expires": {
+            "description": "URL expiry (404 afterwards). URL: `expires`, `exp`; arguments unix ts; default —.",
+            "examples": [
+              [
+                4102444800
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "unix seconds; ≤ 0 never expires",
+                "title": "timestamp",
+                "type": "integer"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "exp"
+            ],
+            "x-xi-default": "—",
+            "x-xi-milestone": "M1",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "unix ts"
+          },
+          "extend": {
+            "description": "Pad a fit to the whole box with the background colour. URL: `extend`, `ex`; arguments bool; default false.",
+            "examples": [
+              [
+                true
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "pad to the box",
+                "title": "extend",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "ex"
+            ],
+            "x-xi-default": "false",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "bool"
+          },
+          "fade": {
+            "description": "Fade in from black and silence, and out to them (seconds). URL: `fade`, `fd`; arguments in:out; default 0:0.",
+            "examples": [
+              [
+                1,
+                2
+              ]
+            ],
+            "maxItems": 2,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "fade-in seconds",
+                "maximum": 86400,
+                "minimum": 0,
+                "title": "in",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              {
+                "description": "fade-out seconds",
+                "maximum": 86400,
+                "minimum": 0,
+                "title": "out",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "fd"
+            ],
+            "x-xi-default": "0:0",
+            "x-xi-milestone": "M5 (WP-123)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "in:out"
+          },
+          "filename": {
+            "description": "Content-Disposition file name. URL: `filename`, `fn`; arguments name:encoded; default source basename.",
+            "examples": [
+              [
+                "photo"
+              ]
+            ],
+            "maxItems": 2,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "file name without extension",
+                "title": "name",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              {
+                "description": "name is url-safe base64",
+                "title": "encoded",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "fn"
+            ],
+            "x-xi-default": "source basename",
+            "x-xi-milestone": "M1",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "name:encoded"
+          },
+          "flip": {
+            "description": "Mirror after the rotation. URL: `flip`, `fl`; arguments h:v; default false:false.",
+            "examples": [
+              [
+                true,
+                false
+              ]
+            ],
+            "maxItems": 2,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "mirror left-right",
+                "title": "horizontal",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              {
+                "description": "mirror top-bottom",
+                "title": "vertical",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "fl"
+            ],
+            "x-xi-default": "false:false",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "h:v"
+          },
+          "format": {
+            "description": "Output container (the source extension sets it too); png and webp are waveform pictures. URL: `format`, `f`, `ext`; arguments mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp; default mp4.",
+            "examples": [
+              [
+                "webm"
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "output container",
+                "enum": [
+                  "mp4",
+                  "webm",
+                  "m4a",
+                  "mp3",
+                  "opus",
+                  "ogg",
+                  "flac",
+                  "wav",
+                  "png",
+                  "webp"
+                ],
+                "title": "format",
+                "type": "string"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "f",
+              "ext"
+            ],
+            "x-xi-default": "mp4",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp"
+          },
+          "fps": {
+            "description": "Output frame rate (capped by XI_VIDEO_TRANSFORM_MAX_FPS). URL: `fps`; arguments rate; default source.",
+            "examples": [
+              [
+                24
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "frames per second; 0 keeps the source's",
+                "maximum": 240,
+                "minimum": 0,
+                "title": "fps",
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [],
+            "x-xi-default": "source",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "rate"
+          },
+          "gravity": {
+            "anyOf": [
+              {
+                "maxItems": 3,
+                "minItems": 1,
+                "prefixItems": [
+                  {
+                    "description": "compass gravity",
+                    "enum": [
+                      "ce",
+                      "no",
+                      "so",
+                      "ea",
+                      "we",
+                      "noea",
+                      "nowe",
+                      "soea",
+                      "sowe"
+                    ],
+                    "title": "type",
+                    "type": "string"
+                  },
+                  {
+                    "description": "offset in pixels (a fraction of the frame when \u003c 1)",
+                    "title": "x_offset",
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  {
+                    "description": "offset in pixels (a fraction of the frame when \u003c 1)",
+                    "title": "y_offset",
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "maxItems": 3,
+                "minItems": 3,
+                "prefixItems": [
+                  {
+                    "enum": [
+                      "fp"
+                    ],
+                    "title": "type",
+                    "type": "string"
+                  },
+                  {
+                    "description": "focus point x (0..1)",
+                    "maximum": 1,
+                    "minimum": 0,
+                    "title": "x",
+                    "type": "number"
+                  },
+                  {
+                    "description": "focus point y (0..1)",
+                    "maximum": 1,
+                    "minimum": 0,
+                    "title": "y",
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              }
+            ],
+            "description": "Anchor of fill crops and crops (compass with pixel offsets, or a focus point). URL: `gravity`, `g`; arguments type:x:y or fp:x:y; default ce:0:0.",
+            "examples": [
+              [
+                "soea",
+                10,
+                10
+              ]
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "g"
+            ],
+            "x-xi-default": "ce:0:0",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "type:x:y or fp:x:y"
+          },
+          "hashsum": {
+            "description": "Check the source bytes against a digest. URL: `hashsum`, `hs`; arguments none, or md5/sha1/sha256/sha512:hex; default none.",
+            "examples": [
+              [
+                "sha256",
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              ]
+            ],
+            "maxItems": 2,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "hash algorithm; none or empty removes the check",
+                "enum": [
+                  "none",
+                  "md5",
+                  "sha1",
+                  "sha256",
+                  "sha512",
+                  null
+                ],
+                "title": "type",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              {
+                "description": "hex digest",
+                "pattern": "^[0-9a-fA-F]*$",
+                "title": "hashsum",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "hs"
+            ],
+            "x-xi-default": "none",
+            "x-xi-milestone": "M2 (WP-64)",
+            "x-xi-pro": true,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "none, or md5/sha1/sha256/sha512:hex"
+          },
+          "height": {
+            "description": "Output height (rounded down to even). URL: `height`, `h`; arguments px; default 0.",
+            "examples": [
+              [
+                360
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "pixels",
+                "maximum": 8192,
+                "minimum": 0,
+                "title": "height",
+                "type": "integer"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "h"
+            ],
+            "x-xi-default": "0",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "px"
+          },
+          "keyframe_interval": {
+            "description": "Time between keyframes (GOP length, 0.1..60 s). URL: `keyframe_interval`, `ki`; arguments seconds; default 2.",
+            "examples": [
+              [
+                1
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "seconds between keyframes",
+                "maximum": 60,
+                "minimum": 0,
+                "title": "seconds",
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "ki"
+            ],
+            "x-xi-default": "2",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "seconds"
+          },
+          "loudnorm": {
+            "description": "EBU R128 loudness normalisation (single-pass loudnorm). URL: `loudnorm`, `ln`; arguments enabled:I:TP:LRA; default false:-23:-1:7.",
+            "examples": [
+              [
+                true,
+                -16,
+                -1.5,
+                11
+              ]
+            ],
+            "maxItems": 4,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "normalise the loudness",
+                "title": "enabled",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              {
+                "description": "integrated loudness target, LUFS",
+                "maximum": -5,
+                "minimum": -70,
+                "title": "integrated",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              {
+                "description": "true peak, dBTP",
+                "maximum": 0,
+                "minimum": -9,
+                "title": "true_peak",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              {
+                "description": "loudness range, LU",
+                "maximum": 50,
+                "minimum": 1,
+                "title": "range",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "ln"
+            ],
+            "x-xi-default": "false:-23:-1:7",
+            "x-xi-milestone": "M5 (WP-123)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "enabled:I:TP:LRA"
+          },
+          "mute": {
+            "description": "Drop the audio stream. URL: `mute`, `mu`; arguments bool; default false.",
+            "examples": [
+              [
+                true
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "drop the audio",
+                "title": "mute",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "mu"
+            ],
+            "x-xi-default": "false",
+            "x-xi-milestone": "M5 (WP-123)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "bool"
+          },
+          "quality": {
+            "description": "Video quality, mapped onto the codec's CRF scale. URL: `quality`, `q`; arguments 1..100; default 0.",
+            "examples": [
+              [
+                70
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "1..100; 0 = default",
+                "maximum": 100,
+                "minimum": 0,
+                "title": "quality",
+                "type": "integer"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "q"
+            ],
+            "x-xi-default": "0",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "1..100"
+          },
+          "resize": {
+            "description": "Resize like imgproxy: fit (scale-down, or contain with enlarge; extend pads), fill and fill-down (cover, cropped by gravity), force (stretch). URL: `resize`, `rs`; arguments type:w:h:enlarge:extend; default fit:0:0:false:false.",
+            "examples": [
+              [
+                "fill",
+                640,
+                360
+              ]
+            ],
+            "maxItems": 5,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "resizing type",
+                "enum": [
+                  "fit",
+                  "fill",
+                  "fill-down",
+                  "force",
+                  null
+                ],
+                "title": "type",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              {
+                "description": "output width in pixels; 0 keeps the aspect ratio",
+                "maximum": 8192,
+                "minimum": 0,
+                "title": "width",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              {
+                "description": "output height in pixels; 0 keeps the aspect ratio",
+                "maximum": 8192,
+                "minimum": 0,
+                "title": "height",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              {
+                "description": "fit may enlarge",
+                "title": "enlarge",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              {
+                "description": "pad to the box with the background",
+                "title": "extend",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "rs"
+            ],
+            "x-xi-default": "fit:0:0:false:false",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "type:w:h:enlarge:extend"
+          },
+          "resizing_type": {
+            "description": "Resizing type (auto is not available for video). URL: `resizing_type`, `rt`; arguments fit, fill, fill-down, force; default fit.",
+            "examples": [
+              [
+                "fill"
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "resizing type",
+                "enum": [
+                  "fit",
+                  "fill",
+                  "fill-down",
+                  "force"
+                ],
+                "title": "type",
+                "type": "string"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "rt"
+            ],
+            "x-xi-default": "fit",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "fit, fill, fill-down, force"
+          },
+          "return_attachment": {
+            "description": "Download instead of inline display. URL: `return_attachment`, `att`; arguments bool; default config.",
+            "examples": [
+              [
+                true
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "Content-Disposition: attachment",
+                "title": "attachment",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "att"
+            ],
+            "x-xi-default": "config",
+            "x-xi-milestone": "M1",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "bool"
+          },
+          "rotate": {
+            "description": "Rotate clockwise after the display matrix. URL: `rotate`, `rot`; arguments multiple of 90; default 0.",
+            "examples": [
+              [
+                90
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "clockwise degrees, a multiple of 90",
+                "multipleOf": 90,
+                "title": "angle",
+                "type": "integer"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "rot"
+            ],
+            "x-xi-default": "0",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "multiple of 90"
+          },
+          "sample_rate": {
+            "description": "Output sample rate (the codec must support it: Opus 8/12/16/24/48 kHz). URL: `sample_rate`, `sr`; arguments Hz; default source.",
+            "examples": [
+              [
+                44100
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 88200 or 96000",
+                "maximum": 96000,
+                "minimum": 0,
+                "title": "hz",
+                "type": "integer"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "sr"
+            ],
+            "x-xi-default": "source",
+            "x-xi-milestone": "M5 (WP-123)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "Hz"
+          },
+          "size": {
+            "description": "Resize without the type. URL: `size`, `s`; arguments w:h:enlarge:extend; default 0:0:false:false.",
+            "examples": [
+              [
+                640,
+                360,
+                false,
+                true
+              ]
+            ],
+            "maxItems": 4,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "output width in pixels; 0 keeps the aspect ratio",
+                "maximum": 8192,
+                "minimum": 0,
+                "title": "width",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              {
+                "description": "output height in pixels; 0 keeps the aspect ratio",
+                "maximum": 8192,
+                "minimum": 0,
+                "title": "height",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              {
+                "description": "fit may enlarge",
+                "title": "enlarge",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              {
+                "description": "pad to the box with the background",
+                "title": "extend",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "s"
+            ],
+            "x-xi-default": "0:0:false:false",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "w:h:enlarge:extend"
+          },
+          "start": {
+            "description": "Start the output at this time of the source (exact, from the keyframe before it). URL: `start`, `vs`; arguments seconds; default 0.",
+            "examples": [
+              [
+                1.5
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "start of the output in the source",
+                "maximum": 86400,
+                "minimum": 0,
+                "title": "seconds",
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "vs"
+            ],
+            "x-xi-default": "0",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "seconds"
+          },
+          "video_bitrate": {
+            "description": "Cap the video bit rate (50k..200M). URL: `video_bitrate`, `vb`; arguments bit/s (k, M); default uncapped.",
+            "examples": [
+              [
+                "2M"
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "bits per second, k or M suffix",
+                "pattern": "^([0-9]+(\\.[0-9]+)?[kKmM]?)?$",
+                "title": "bitrate",
+                "type": "string"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "vb"
+            ],
+            "x-xi-default": "uncapped",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "bit/s (k, M)"
+          },
+          "video_codec": {
+            "description": "Video codec (h264 and hevc need the gpl image). URL: `video_codec`, `vc`; arguments auto, h264, av1, vp9, hevc; default auto.",
+            "examples": [
+              [
+                "av1"
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "video codec",
+                "enum": [
+                  "auto",
+                  "av1",
+                  "h264",
+                  "h265",
+                  "hevc",
+                  "vp9"
+                ],
+                "title": "codec",
+                "type": "string"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "vc"
+            ],
+            "x-xi-default": "auto",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "auto, h264, av1, vp9, hevc"
+          },
+          "volume": {
+            "description": "Change the audio level (-60 dB..+20 dB). URL: `volume`, `vol`; arguments factor or NdB; default 1.",
+            "examples": [
+              [
+                "-6dB"
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "a factor (0.5) or decibels (-6dB)",
+                "pattern": "^([0-9]+(\\.[0-9]+)?|[-+]?[0-9]+(\\.[0-9]+)?[dD][bB])?$",
+                "title": "gain",
+                "type": "string"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "vol"
+            ],
+            "x-xi-default": "1",
+            "x-xi-milestone": "M5 (WP-123)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "factor or NdB"
+          },
+          "waveform": {
+            "description": "Render the audio as a width × height (default 1024×256) PNG or WebP picture. URL: `waveform`, `wf`; arguments enabled:color:background:split; default false:000000::false.",
+            "examples": [
+              [
+                true,
+                "2266cc",
+                "ffffff",
+                false
+              ]
+            ],
+            "maxItems": 4,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "render a waveform picture",
+                "title": "enabled",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              {
+                "description": "wave colour",
+                "pattern": "^([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+                "title": "color",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              {
+                "description": "background colour; empty is transparent",
+                "pattern": "^([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+                "title": "background",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              {
+                "description": "one band per channel",
+                "title": "split_channels",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "wf"
+            ],
+            "x-xi-default": "false:000000::false",
+            "x-xi-milestone": "M5 (WP-123)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "enabled:color:background:split"
+          },
+          "width": {
+            "description": "Output width (rounded down to even). URL: `width`, `w`; arguments px; default 0.",
+            "examples": [
+              [
+                640
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "pixels",
+                "maximum": 8192,
+                "minimum": 0,
+                "title": "width",
+                "type": "integer"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "w"
+            ],
+            "x-xi-default": "0",
+            "x-xi-milestone": "M5 (WP-122)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "px"
+          }
+        },
+        "type": "object"
+      },
       "InfoClass": {
         "additionalProperties": false,
         "properties": {
@@ -6091,6 +7539,11 @@
         "properties": {
           "bps": {
             "description": "Bit rate in bits per second, when known.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "channels": {
+            "description": "xtandard-image extension: channel count of an audio stream.",
             "format": "int64",
             "type": "integer"
           },
@@ -6556,6 +8009,16 @@
             "description": "Video sources are decoded (FFmpeg, full image).",
             "type": "boolean"
           },
+          "video_options": {
+            "description": "imgproxy-style /video options (internal/apidoc, the ImgproxyVideoOptions schema): video transformations, audio and waveforms.",
+            "items": {
+              "$ref": "#/components/schemas/PlaygroundOption"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "watermark": {
             "description": "A default watermark image is configured (XI_PROCESSING_WATERMARK_SOURCE; the source itself is never included): imgproxy wm without wmu or wmt draws it.",
             "type": "boolean"
@@ -6570,6 +8033,7 @@
           "mounts",
           "catalogues",
           "info_options",
+          "video_options",
           "presets",
           "sources",
           "formats",
@@ -9063,7 +10527,7 @@
           "$ref": "#/components/schemas/ImgproxyInfoOptions"
         },
         "x-xi-listener": "public",
-        "x-xi-path-grammar": "/%signature/%options.../plain/%source_url[@%extension]\n/%signature/%options.../%base64url_source_url[.%extension]      (may be split with \"/\")\n/%signature/%options.../enc/%aes_cbc_source[.%extension]        (may be split with \"/\")\n/info/%signature/%info_options.../{plain/…|%base64…|enc/…}\n\noption      = name \":\" arg *(\":\" arg)        ; separator configurable (XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR)\npipeline    = option *(\"/\" option)\npipelines   = pipeline *(\"/-/\" pipeline)       ; chained pipelines\nbool        = \"1\" | \"t\" | \"true\" | \"0\" | \"f\" | \"false\"",
+        "x-xi-path-grammar": "/%signature/%options.../plain/%source_url[@%extension]\n/%signature/%options.../%base64url_source_url[.%extension]      (may be split with \"/\")\n/%signature/%options.../enc/%aes_cbc_source[.%extension]        (may be split with \"/\")\n/info/%signature/%info_options.../{plain/…|%base64…|enc/…}\n/video/%signature/%video_options.../{plain/…[@%container]|%base64…|enc/…}\n\noption      = name \":\" arg *(\":\" arg)        ; separator configurable (XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR)\npipeline    = option *(\"/\" option)\npipelines   = pipeline *(\"/-/\" pipeline)       ; chained pipelines\nbool        = \"1\" | \"t\" | \"true\" | \"0\" | \"f\" | \"false\"",
         "x-xi-signing": {
           "description": "HMAC-SHA256(key, salt ‖ path after the signature, starting with /), url-safe base64 without padding, optionally truncated to XI_SIGNING_SIZE bytes; any value (conventionally unsafe) when signing is off.",
           "docs": "https://docs.imgproxy.net/usage/signing_url",
@@ -9525,6 +10989,396 @@
         "summary": "Process an image (query dialect)",
         "tags": [
           "image"
+        ],
+        "x-xi-dialect": "query",
+        "x-xi-listener": "public"
+      }
+    },
+    "/q/video": {
+      "get": {
+        "description": "The /video options as query keys (aliases too), in query order, mounted at /q/ when XI_DIALECTS_QUERY_ENABLED=true; fit, gravity, crop and flip also take the native spellings.",
+        "externalDocs": {
+          "url": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#4-query-dialect-native--imaginary"
+        },
+        "operationId": "getQueryVideo",
+        "parameters": [
+          {
+            "description": "Source URL or xi://\u003csource\u003e/\u003ckey\u003e.",
+            "example": "https://example.com/clip.mp4",
+            "in": "query",
+            "name": "url",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start the output at this time of the source (exact, from the keyframe before it). Arguments joined by , or : (seconds).",
+            "in": "query",
+            "name": "start",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "End the output at this time of the source (exclusive with duration). Arguments joined by , or : (seconds).",
+            "in": "query",
+            "name": "end",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Length of the output from start (exclusive with end). Arguments joined by , or : (seconds).",
+            "in": "query",
+            "name": "duration",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Resize like imgproxy: fit (scale-down, or contain with enlarge; extend pads), fill and fill-down (cover, cropped by gravity), force (stretch). Arguments joined by , or : (type:w:h:enlarge:extend).",
+            "in": "query",
+            "name": "resize",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Resize without the type. Arguments joined by , or : (w:h:enlarge:extend).",
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Resizing type (auto is not available for video). Arguments joined by , or : (fit, fill, fill-down, force).",
+            "in": "query",
+            "name": "resizing_type",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Output width (rounded down to even). Arguments joined by , or : (px).",
+            "in": "query",
+            "name": "width",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Output height (rounded down to even). Arguments joined by , or : (px).",
+            "in": "query",
+            "name": "height",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Let fit enlarge a smaller source. Arguments joined by , or : (bool).",
+            "in": "query",
+            "name": "enlarge",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Pad a fit to the whole box with the background colour. Arguments joined by , or : (bool).",
+            "in": "query",
+            "name": "extend",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Anchor of fill crops and crops (compass with pixel offsets, or a focus point). Arguments joined by , or : (type:x:y or fp:x:y).",
+            "in": "query",
+            "name": "gravity",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Crop a rectangle (pixels) of the rotated frame before the resize. Arguments joined by , or : (w:h:gravity).",
+            "in": "query",
+            "name": "crop",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Rotate clockwise after the display matrix. Arguments joined by , or : (multiple of 90).",
+            "in": "query",
+            "name": "rotate",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Mirror after the rotation. Arguments joined by , or : (h:v).",
+            "in": "query",
+            "name": "flip",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Colour of the bars of extend. Arguments joined by , or : (hex).",
+            "in": "query",
+            "name": "background",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Output frame rate (capped by XI_VIDEO_TRANSFORM_MAX_FPS). Arguments joined by , or : (rate).",
+            "in": "query",
+            "name": "fps",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Output container (the source extension sets it too); png and webp are waveform pictures. Arguments joined by , or : (mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp).",
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Video codec (h264 and hevc need the gpl image). Arguments joined by , or : (auto, h264, av1, vp9, hevc).",
+            "in": "query",
+            "name": "video_codec",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Audio codec (must suit the container). Arguments joined by , or : (auto, aac, opus, mp3, flac, pcm).",
+            "in": "query",
+            "name": "audio_codec",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Video quality, mapped onto the codec's CRF scale. Arguments joined by , or : (1..100).",
+            "in": "query",
+            "name": "quality",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Constant rate factor (wins over quality). Arguments joined by , or : (0..63).",
+            "in": "query",
+            "name": "crf",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Cap the video bit rate (50k..200M). Arguments joined by , or : (bit/s (k, M)).",
+            "in": "query",
+            "name": "video_bitrate",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Time between keyframes (GOP length, 0.1..60 s). Arguments joined by , or : (seconds).",
+            "in": "query",
+            "name": "keyframe_interval",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Drop the audio stream. Arguments joined by , or : (bool).",
+            "in": "query",
+            "name": "mute",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Audio bit rate (8k..512k; ignored by flac and wav). Arguments joined by , or : (bit/s (k)).",
+            "in": "query",
+            "name": "audio_bitrate",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Output sample rate (the codec must support it: Opus 8/12/16/24/48 kHz). Arguments joined by , or : (Hz).",
+            "in": "query",
+            "name": "sample_rate",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Downmix to mono or stereo. Arguments joined by , or : (1 or 2).",
+            "in": "query",
+            "name": "audio_channels",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Change the audio level (-60 dB..+20 dB). Arguments joined by , or : (factor or NdB).",
+            "in": "query",
+            "name": "volume",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "EBU R128 loudness normalisation (single-pass loudnorm). Arguments joined by , or : (enabled:I:TP:LRA).",
+            "in": "query",
+            "name": "loudnorm",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Fade in from black and silence, and out to them (seconds). Arguments joined by , or : (in:out).",
+            "in": "query",
+            "name": "fade",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Render the audio as a width × height (default 1024×256) PNG or WebP picture. Arguments joined by , or : (enabled:color:background:split).",
+            "in": "query",
+            "name": "waveform",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A /video option path (rs:fill:640:360/vd:5).",
+            "in": "query",
+            "name": "o",
+            "schema": {
+              "type": "string"
+            },
+            "x-xi-options-schema": {
+              "$ref": "#/components/schemas/ImgproxyVideoOptions"
+            }
+          },
+          {
+            "description": "Signature over \"/video\" + the query (sign.XIMessage).",
+            "in": "query",
+            "name": "xi_sig",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "audio/*": {
+                "schema": {
+                  "contentEncoding": "binary",
+                  "type": "string"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "contentEncoding": "binary",
+                  "type": "string"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "contentEncoding": "binary",
+                  "type": "string"
+                }
+              },
+              "video/*": {
+                "schema": {
+                  "contentEncoding": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The transcoded file: video/mp4, video/webm, audio/mp4, audio/mpeg, audio/ogg, audio/flac, audio/wav, or image/png and image/webp for a waveform picture.",
+            "headers": {
+              "Accept-Ranges": {
+                "description": "bytes",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "description": "XI_CACHE_HEADERS_* policy, or the URL's expires.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Strong entity tag (also the If-Range validator).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "206": {
+            "description": "Partial content: the Range of the file (multipart/byteranges for several ranges)."
+          },
+          "304": {
+            "description": "Not modified: If-None-Match matched the ETag."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "406": {
+            "$ref": "#/components/responses/Error406"
+          },
+          "414": {
+            "$ref": "#/components/responses/Error414"
+          },
+          "416": {
+            "description": "Range not satisfiable."
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "501": {
+            "$ref": "#/components/responses/Error501"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          }
+        },
+        "summary": "Transform a video (query dialect)",
+        "tags": [
+          "video"
         ],
         "x-xi-dialect": "query",
         "x-xi-listener": "public"
@@ -10026,6 +11880,161 @@
         "x-xi-listener": "public+admin"
       }
     },
+    "/video/{signature}/{options}/{source}": {
+      "get": {
+        "description": "Trims, resizes, crops, rotates and transcodes a video into MP4 or WebM, its audio into M4A, MP3, Opus, Ogg, FLAC or WAV, or draws its audio as a PNG or WebP waveform. {options} is zero or more video options separated by / (rs:fill:640:360/vs:1/vd:5), typed by the ImgproxyVideoOptions schema; the source extension (@webm) picks the container. The signature covers \"/video\" + the path after it, so image signatures are not valid here. Needs XI_VIDEO_TRANSFORM_ENABLED (404 otherwise, and on XI_ROLE=image); unsigned requests are 403 unless XI_VIDEO_TRANSFORM_UNSIGNED_POLICY=allow. Supports Range.",
+        "externalDocs": {
+          "url": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#38-video-transformations-wp-122-wp-123"
+        },
+        "operationId": "getImgproxyVideo",
+        "parameters": [
+          {
+            "description": "URL signature, or any value (conventionally unsafe) when signing is off.",
+            "example": "unsafe",
+            "in": "path",
+            "name": "signature",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Video options joined by /, each name:arg:arg (ImgproxyVideoOptions).",
+            "example": "rs:fit:640:0/vd:5",
+            "in": "path",
+            "name": "options",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-xi-options-schema": {
+              "$ref": "#/components/schemas/ImgproxyVideoOptions"
+            }
+          },
+          {
+            "description": "The source: plain/\u003cpercent-encoded URL\u003e[@ext], \u003curl-safe base64 URL\u003e[.ext] (may be split with /) or enc/\u003cAES-CBC token\u003e[.ext]. Schemes: http(s), s3, gs, abs, local, ftp, sftp, xi://\u003csource\u003e/.",
+            "example": "plain/https://example.com/a.jpg@webp",
+            "in": "path",
+            "name": "source",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "audio/*": {
+                "schema": {
+                  "contentEncoding": "binary",
+                  "type": "string"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "contentEncoding": "binary",
+                  "type": "string"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "contentEncoding": "binary",
+                  "type": "string"
+                }
+              },
+              "video/*": {
+                "schema": {
+                  "contentEncoding": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The transcoded file: video/mp4, video/webm, audio/mp4, audio/mpeg, audio/ogg, audio/flac, audio/wav, or image/png and image/webp for a waveform picture.",
+            "headers": {
+              "Accept-Ranges": {
+                "description": "bytes",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "description": "XI_CACHE_HEADERS_* policy, or the URL's expires.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "description": "Strong entity tag (also the If-Range validator).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "206": {
+            "description": "Partial content: the Range of the file (multipart/byteranges for several ranges)."
+          },
+          "304": {
+            "description": "Not modified: If-None-Match matched the ETag."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "406": {
+            "$ref": "#/components/responses/Error406"
+          },
+          "414": {
+            "$ref": "#/components/responses/Error414"
+          },
+          "416": {
+            "description": "Range not satisfiable."
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "501": {
+            "$ref": "#/components/responses/Error501"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error502"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          }
+        },
+        "summary": "Transform a video or its audio (imgproxy-style /video, WP-122, WP-123)",
+        "tags": [
+          "video"
+        ],
+        "x-xi-dialect": "imgproxy",
+        "x-xi-listener": "public",
+        "x-xi-path-grammar": "/%signature/%options.../plain/%source_url[@%extension]\n/%signature/%options.../%base64url_source_url[.%extension]      (may be split with \"/\")\n/%signature/%options.../enc/%aes_cbc_source[.%extension]        (may be split with \"/\")\n/info/%signature/%info_options.../{plain/…|%base64…|enc/…}\n/video/%signature/%video_options.../{plain/…[@%container]|%base64…|enc/…}\n\noption      = name \":\" arg *(\":\" arg)        ; separator configurable (XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR)\npipeline    = option *(\"/\" option)\npipelines   = pipeline *(\"/-/\" pipeline)       ; chained pipelines\nbool        = \"1\" | \"t\" | \"true\" | \"0\" | \"f\" | \"false\"",
+        "x-xi-signing": {
+          "description": "HMAC-SHA256(key, salt ‖ \"/video\" ‖ path after the signature), url-safe base64 without padding, optionally truncated to XI_SIGNING_SIZE bytes; any value (conventionally unsafe) when signing is off.",
+          "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#38-video-transformations-wp-122-wp-123",
+          "scheme": "imgproxy"
+        },
+        "x-xi-video-options": {
+          "$ref": "#/components/schemas/ImgproxyVideoOptions"
+        }
+      }
+    },
     "/{signature}/{processingOptions}/{source}": {
       "get": {
         "description": "imgproxy URL: {processingOptions} is zero or more options separated by / (rs:fill:300:400:0/g:sm), with /-/ chaining pipelines, typed by the ImgproxyProcessingOptions schema (x-xi-processing-options). Grammar: x-xi-path-grammar; the mount prefix is configurable (XI_DIALECTS_IMGPROXY_PREFIX).",
@@ -10146,7 +12155,7 @@
         ],
         "x-xi-dialect": "imgproxy",
         "x-xi-listener": "public",
-        "x-xi-path-grammar": "/%signature/%options.../plain/%source_url[@%extension]\n/%signature/%options.../%base64url_source_url[.%extension]      (may be split with \"/\")\n/%signature/%options.../enc/%aes_cbc_source[.%extension]        (may be split with \"/\")\n/info/%signature/%info_options.../{plain/…|%base64…|enc/…}\n\noption      = name \":\" arg *(\":\" arg)        ; separator configurable (XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR)\npipeline    = option *(\"/\" option)\npipelines   = pipeline *(\"/-/\" pipeline)       ; chained pipelines\nbool        = \"1\" | \"t\" | \"true\" | \"0\" | \"f\" | \"false\"",
+        "x-xi-path-grammar": "/%signature/%options.../plain/%source_url[@%extension]\n/%signature/%options.../%base64url_source_url[.%extension]      (may be split with \"/\")\n/%signature/%options.../enc/%aes_cbc_source[.%extension]        (may be split with \"/\")\n/info/%signature/%info_options.../{plain/…|%base64…|enc/…}\n/video/%signature/%video_options.../{plain/…[@%container]|%base64…|enc/…}\n\noption      = name \":\" arg *(\":\" arg)        ; separator configurable (XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR)\npipeline    = option *(\"/\" option)\npipelines   = pipeline *(\"/-/\" pipeline)       ; chained pipelines\nbool        = \"1\" | \"t\" | \"true\" | \"0\" | \"f\" | \"false\"",
         "x-xi-processing-options": {
           "$ref": "#/components/schemas/ImgproxyProcessingOptions"
         },
