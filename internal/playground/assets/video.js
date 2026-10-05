@@ -31,6 +31,9 @@ const CONTAINERS = {
   wav: { mime: 'audio/wav', audio: 'pcm', label: 'WAV (audio)' },
   png: { mime: 'image/png', image: true, label: 'PNG waveform' },
   webp: { mime: 'image/webp', image: true, label: 'WebP waveform' },
+  // HLS and DASH (WP-126): a manifest of renditions, CMAF segments.
+  m3u8: { mime: 'application/vnd.apple.mpegurl', video: true, stream: true, audio: 'aac', label: 'HLS stream' },
+  mpd: { mime: 'application/dash+xml', video: true, stream: true, audio: 'aac', label: 'DASH stream' },
 };
 
 // CODEC_TYPES are canPlayType strings of the result codecs.
@@ -41,8 +44,8 @@ const CODEC_TYPES = {
   vp9: 'video/webm; codecs="vp9, opus"',
 };
 
-const VIDEO_CODECS = { mp4: ['h264', 'av1', 'hevc'], webm: ['vp9', 'av1'] };
-const AUDIO_CODECS = { mp4: ['aac'], m4a: ['aac'], webm: ['opus'], opus: ['opus'], ogg: ['opus'], mp3: ['mp3'], flac: ['flac'], wav: ['pcm'] };
+const VIDEO_CODECS = { mp4: ['h264', 'av1', 'hevc'], webm: ['vp9', 'av1'], m3u8: ['h264', 'av1', 'vp9'], mpd: ['h264', 'av1', 'vp9'] };
+const AUDIO_CODECS = { mp4: ['aac'], m3u8: ['aac'], mpd: ['aac'], m4a: ['aac'], webm: ['opus'], opus: ['opus'], ogg: ['opus'], mp3: ['mp3'], flac: ['flac'], wav: ['pcm'] };
 const SAMPLE_RATES = [8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 88200, 96000];
 
 // mediaKind classifies a source from the server's probe (api/probe),
@@ -553,9 +556,10 @@ export class VideoPanel {
     // for the one-click overlay).
     const local = (this.meta.sources ?? []).some((s) => s.name === 'local');
     const logo = $('video-add-logo');
-    logo.disabled = !info.video || !this.caps.overlays || (!local && !this.entry('watermark'));
+    logo.disabled = !info.video || info.stream || !this.caps.overlays || (!local && !this.entry('watermark'));
     const tc = $('video-timecode');
-    tc.disabled = !info.video || !this.caps.timecode;
+    tc.disabled = !info.video || info.stream || !this.caps.timecode;
     if (!info.video) logo.title = tc.title = 'Overlays draw on video outputs only.';
+    if (info.stream) logo.title = tc.title = 'Overlays are not drawn on streams.';
   }
 }
