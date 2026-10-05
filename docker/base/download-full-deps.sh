@@ -1,6 +1,6 @@
 #!/bin/bash
 # Downloads, verifies (SHA256) and unpacks the components of the `full` flavor
-# (WP-70) listed in versions-full.sh: libvpx and FFmpeg sources, the prebuilt ONNX
+# (WP-70) listed in versions-full.sh: libvpx, FFmpeg, libopus and LAME sources, the prebuilt ONNX
 # Runtime for this architecture, and the detection and classification models with
 # their licences.
 #
@@ -84,6 +84,11 @@ fetch LIBVPX_SHA256 libvpx \
   "https://github.com/webmproject/libvpx/archive/refs/tags/v${LIBVPX_VERSION}.tar.gz"
 fetch FFMPEG_SHA256 ffmpeg \
   "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz"
+# Audio encoders (WP-120): Opus (BSD-3-Clause) and LAME (LGPL-2.0-or-later).
+fetch OPUS_SHA256 opus \
+  "https://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz"
+fetch LAME_SHA256 lame \
+  "https://downloads.sourceforge.net/project/lame/lame/${LAME_VERSION}/lame-${LAME_VERSION}.tar.gz"
 
 # ONNX Runtime: the official CPU build per architecture.
 onnxruntime_url() {

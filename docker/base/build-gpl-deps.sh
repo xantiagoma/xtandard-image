@@ -115,8 +115,8 @@ cd "$GPL_DEPS_SRC/ffmpeg"
 # The full build's exact configure line (the switches in BUILDCONF.txt; `-buildconf`
 # does not always print one per line, so it is split on whitespace), with
 # --disable-gpl swapped for --enable-gpl and the two GPL encoders added. Everything
-# else (demuxers, decoders, filters, no audio, no network, no nonfree, no version3)
-# stays identical to full by construction.
+# else (demuxers, muxers, decoders, audio encoders, filters, no network, no nonfree,
+# no version3) stays identical to full by construction.
 # `-buildconf` shell-quotes values with commas (--enable-demuxer=''\''mov,...'\''');
 # no switch value contains a quote or a backslash, so both are stripped.
 full_conf=()
@@ -271,7 +271,8 @@ notice="$LICENSES/LICENSE-GPL.md"
 # xtandard-image base image, gpl flavor (revision ${XI_BASE_GPL_REVISION})
 
 This image contains GPL software. As distributed, the FFmpeg libraries
-(\`libavcodec\`, \`libavformat\`, \`libavutil\`, \`libswscale\`, \`libavfilter\`) and the
+(\`libavcodec\`, \`libavformat\`, \`libavutil\`, \`libswscale\`, \`libswresample\`,
+\`libavfilter\`) and the
 \`ffmpeg\`/\`ffprobe\` programs in \`${TARGET_PATH}\` are one combined work under the
 **GNU General Public License, version 2 or later (GPL-2.0-or-later)**: FFmpeg
 ${FFMPEG_VERSION} is configured with \`--enable-gpl\` and links x264 and x265, which are
