@@ -8,6 +8,7 @@
 // read during xi_ff_enc_frame only.
 
 #include "shim.h"
+#include "internal.h"
 
 #include <math.h>
 #include <stdatomic.h>
@@ -20,13 +21,6 @@
 #include <libavutil/imgutils.h>
 #include <libswscale/swscale.h>
 
-// Write buffer of the muxer's AVIOContext, first capacity of the output, and
-// read buffer of the context the MP4 muxer reopens the output with to move
-// the moov box to the front (faststart).
-#define XI_FF_OUT_IO (64 * 1024)
-#define XI_FF_OUT_INITIAL (64 * 1024)
-#define XI_FF_OUT_READ (32 * 1024)
-
 struct XiFFEnc {
   AVFormatContext *oc;
   AVCodecContext *enc;
@@ -36,10 +30,7 @@ struct XiFFEnc {
   struct SwsContext *sws;
   int bands;
   atomic_int abort;
-  // Output: size bytes of data (cap allocated), written at pos.
-  uint8_t *data;
-  int64_t size, cap, pos, max_bytes;
-  int over; // a write went past max_bytes
+  XiFFOut out; // the muxed file
   // Timestamps (ms) and durations of the frames sent, to give each packet
   // the duration of its frame (the last sample's duration in MP4).
   int64_t *pts, *dur;
@@ -76,163 +67,6 @@ xi_ff_live_encoders(void)
 }
 
 static int
-xi_ff_out_reserve(XiFFEnc *e, int64_t need)
-{
-  if (need <= e->cap)
-    return 0;
-  if (e->max_bytes > 0 && need > e->max_bytes) {
-    e->over = 1;
-    return AVERROR(EFBIG);
-  }
-  int64_t cap = e->cap ? e->cap : XI_FF_OUT_INITIAL;
-  while (cap < need)
-    cap *= 2;
-  if (e->max_bytes > 0 && cap > e->max_bytes)
-    cap = e->max_bytes;
-  uint8_t *p = av_realloc(e->data, (size_t)cap);
-  if (!p)
-    return AVERROR(ENOMEM);
-  e->data = p;
-  e->cap = cap;
-  return 0;
-}
-
-static int
-xi_ff_out_write(void *opaque, const uint8_t *buf, int n)
-{
-  XiFFEnc *e = opaque;
-  if (atomic_load(&e->abort))
-    return AVERROR_EXIT;
-  if (n <= 0)
-    return 0;
-  int ret = xi_ff_out_reserve(e, e->pos + n);
-  if (ret < 0)
-    return ret;
-  if (e->pos > e->size) // a seek past the end leaves a hole: zero it
-    memset(e->data + e->size, 0, (size_t)(e->pos - e->size));
-  memcpy(e->data + e->pos, buf, (size_t)n);
-  e->pos += n;
-  if (e->pos > e->size)
-    e->size = e->pos;
-  return n;
-}
-
-static int64_t
-xi_ff_out_seek(void *opaque, int64_t offset, int whence)
-{
-  XiFFEnc *e = opaque;
-  int64_t pos;
-  switch (whence & ~AVSEEK_FORCE) {
-  case AVSEEK_SIZE:
-    return e->size;
-  case SEEK_SET:
-    pos = offset;
-    break;
-  case SEEK_CUR:
-    pos = e->pos + offset;
-    break;
-  case SEEK_END:
-    pos = e->size + offset;
-    break;
-  default:
-    return AVERROR(EINVAL);
-  }
-  if (pos < 0)
-    return AVERROR(EINVAL);
-  e->pos = pos;
-  return pos;
-}
-
-// A read-only view of the output, for the muxer's second pass (movenc's
-// faststart reopens the "file" to shift the media data behind the moov box).
-typedef struct {
-  XiFFEnc *e;
-  int64_t pos;
-} XiFFOutReader;
-
-static int
-xi_ff_out_read(void *opaque, uint8_t *buf, int n)
-{
-  XiFFOutReader *r = opaque;
-  if (atomic_load(&r->e->abort))
-    return AVERROR_EXIT;
-  int64_t left = r->e->size - r->pos;
-  if (left <= 0)
-    return AVERROR_EOF;
-  if (n > left)
-    n = (int)left;
-  memcpy(buf, r->e->data + r->pos, (size_t)n);
-  r->pos += n;
-  return n;
-}
-
-static int64_t
-xi_ff_out_read_seek(void *opaque, int64_t offset, int whence)
-{
-  XiFFOutReader *r = opaque;
-  int64_t pos;
-  switch (whence & ~AVSEEK_FORCE) {
-  case AVSEEK_SIZE:
-    return r->e->size;
-  case SEEK_SET:
-    pos = offset;
-    break;
-  case SEEK_CUR:
-    pos = r->pos + offset;
-    break;
-  case SEEK_END:
-    pos = r->e->size + offset;
-    break;
-  default:
-    return AVERROR(EINVAL);
-  }
-  if (pos < 0 || pos > r->e->size)
-    return AVERROR(EINVAL);
-  r->pos = pos;
-  return pos;
-}
-
-// io_open of the output context: only reading the output back is allowed;
-// no file or URL is ever opened.
-static int
-xi_ff_io_open(struct AVFormatContext *s, AVIOContext **pb, const char *url, int flags,
-    AVDictionary **options)
-{
-  (void)url;
-  (void)options;
-  XiFFEnc *e = s->opaque;
-  if (!e || (flags & AVIO_FLAG_WRITE))
-    return AVERROR(EPERM);
-  XiFFOutReader *r = av_mallocz(sizeof(*r));
-  uint8_t *buf = av_malloc(XI_FF_OUT_READ);
-  if (!r || !buf) {
-    av_free(r);
-    av_free(buf);
-    return AVERROR(ENOMEM);
-  }
-  r->e = e;
-  *pb = avio_alloc_context(buf, XI_FF_OUT_READ, 0, r, xi_ff_out_read, NULL, xi_ff_out_read_seek);
-  if (!*pb) {
-    av_free(r);
-    av_free(buf);
-    return AVERROR(ENOMEM);
-  }
-  return 0;
-}
-
-static int
-xi_ff_io_close2(struct AVFormatContext *s, AVIOContext *pb)
-{
-  (void)s;
-  if (!pb)
-    return 0;
-  av_free(pb->opaque);
-  av_freep(&pb->buffer);
-  avio_context_free(&pb);
-  return 0;
-}
-
-static int
 xi_ff_enc_interrupt(void *opaque)
 {
   XiFFEnc *e = opaque;
@@ -255,14 +89,10 @@ xi_ff_enc_free(XiFFEnc *e)
   av_packet_free(&e->pkt);
   avcodec_free_context(&e->enc);
   if (e->oc) {
-    // avformat_free_context does not free a custom AVIOContext.
-    if (e->oc->pb) {
-      av_freep(&e->oc->pb->buffer);
-      avio_context_free(&e->oc->pb);
-    }
+    xi_ff_out_detach(e->oc);
     avformat_free_context(e->oc);
   }
-  av_free(e->data);
+  xi_ff_out_free(&e->out);
   av_free(e->pts);
   av_free(e->dur);
   av_free(e);
@@ -274,7 +104,7 @@ xi_ff_enc_code(XiFFEnc *e, int averr)
 {
   if (atomic_load(&e->abort) || averr == AVERROR_EXIT)
     return XI_FF_ERR_ABORTED;
-  if (e->over)
+  if (e->out.over)
     return XI_FF_ERR_LIMIT;
   if (averr == AVERROR(ENOMEM))
     return XI_FF_ERR_NOMEM;
@@ -350,7 +180,8 @@ xi_ff_enc_new(const XiFFEncParams *p, int *code, char *err, size_t errlen)
     return NULL;
   atomic_fetch_add(&xi_ff_encoders_live, 1);
   e->bands = p->bands;
-  e->max_bytes = p->max_bytes;
+  e->out.max_bytes = p->max_bytes;
+  e->out.abort = &e->abort;
   int ret;
 
   const char *name = xi_ff_enc_name(p->codec);
@@ -371,16 +202,8 @@ xi_ff_enc_new(const XiFFEncParams *p, int *code, char *err, size_t errlen)
     xi_ff_set_err(err, errlen, "muxer", ret);
     return xi_ff_enc_fail(e, code, XI_FF_ERR_UNSUPPORTED);
   }
-  uint8_t *iobuf = av_malloc(XI_FF_OUT_IO);
-  if (iobuf)
-    e->oc->pb = avio_alloc_context(iobuf, XI_FF_OUT_IO, 1, e, NULL, xi_ff_out_write, xi_ff_out_seek);
-  if (!e->oc->pb) {
-    av_free(iobuf);
+  if (xi_ff_out_attach(e->oc, &e->out) < 0)
     return xi_ff_enc_fail(e, code, XI_FF_ERR_NOMEM);
-  }
-  e->oc->opaque = e;
-  e->oc->io_open = xi_ff_io_open;
-  e->oc->io_close2 = xi_ff_io_close2;
   e->oc->interrupt_callback.callback = xi_ff_enc_interrupt;
   e->oc->interrupt_callback.opaque = e;
   // No library version strings in the output: the same input gives the
@@ -594,12 +417,12 @@ xi_ff_enc_finish(XiFFEnc *e, char *err, size_t errlen)
 size_t
 xi_ff_enc_size(XiFFEnc *e)
 {
-  return (size_t)e->size;
+  return (size_t)e->out.size;
 }
 
 void
 xi_ff_enc_copy(XiFFEnc *e, uint8_t *dst)
 {
-  if (e->size > 0)
-    memcpy(dst, e->data, (size_t)e->size);
+  if (e->out.size > 0)
+    memcpy(dst, e->out.data, (size_t)e->out.size);
 }

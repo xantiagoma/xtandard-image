@@ -178,7 +178,7 @@ func TestPlanTranscodeVideo(t *testing.T) {
 		{
 			name: "anamorphic", in: func(in *TranscodeInput) { in.Width, in.SARNum, in.SARDen = 960, 4, 3 },
 			w: 1280, h: 720, fps: 25, length: 2,
-			chain: "scale=1280:720:flags=bicubic,setsar=1,format=yuv420p",
+			chain: "scale=1280:720:flags=bicubic,format=yuv420p",
 		},
 		{
 			name: "odd source", in: func(in *TranscodeInput) { in.Height = 503 },
