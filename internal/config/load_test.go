@@ -23,6 +23,7 @@ func TestLoadDefaultsOnly(t *testing.T) {
 	want.Server.WriteTimeout = 25 * time.Second
 	want.Processing.Workers = 4
 	want.Processing.QueueSize = 64
+	want.Video.Transform.Workers = 1
 	want.Signing.Required = False
 	want.Playground.Uploads = False
 	if d := diff(want, cfg); d != "" {
@@ -100,6 +101,7 @@ formats:
 			want.Observability.LogLevel = LogDebug
 			want.Processing.Workers = 3
 			want.Processing.QueueSize = 48
+			want.Video.Transform.Workers = 1
 			want.Formats.AVIF.Quality = 50
 			want.Signing.Required = False
 			want.Playground.Uploads = False

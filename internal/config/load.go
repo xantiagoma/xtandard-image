@@ -341,6 +341,15 @@ func (c *Config) resolveDerived(gomaxprocs int) {
 	if c.Processing.QueueSize < 0 && c.Processing.Workers > 0 {
 		c.Processing.QueueSize = c.Processing.Workers * 16
 	}
+	if c.Video.Transform.Workers == 0 {
+		if gomaxprocs <= 0 {
+			gomaxprocs = runtime.GOMAXPROCS(0)
+		}
+		c.Video.Transform.Workers = max(gomaxprocs/4, 1)
+	}
+	if c.Role == "" {
+		c.Role = RoleAll
+	}
 	if c.Playground.Uploads == Auto {
 		c.Playground.Uploads = False
 		if c.Playground.Enabled {

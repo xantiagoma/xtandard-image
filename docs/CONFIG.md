@@ -112,6 +112,7 @@ This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS`
 | Variable | Default | Meaning |
 |---|---|---|
 | `XI_DEV_MODE` | `false` | Allow any http(s) source (SSRF rules still apply), pretty errors, no signature requirement warnings |
+| `XI_ROLE` | `all` | What this instance serves (ADR 0012): `all`; `image` (video transformations answer 404, so a load balancer routes them elsewhere); `video` (only video transformations, plus `/healthz`, `/readyz` and the admin listener; every other request answers 404; needs `XI_VIDEO_TRANSFORM_ENABLED`). One binary and image serve every role |
 | `XI_SERVER_ADDR` | `:8080` | Listen address |
 | `XI_SERVER_PATH_PREFIX` | `` | Global prefix stripped before routing |
 | `XI_SERVER_REQUEST_TIMEOUT` | `20s` | Whole-request deadline |
@@ -301,6 +302,19 @@ Each source is configured by the `XI_SOURCES_<NAME>_*` variables below (`<NAME>`
 | `XI_VIDEO_ENCODE_MAX_FRAMES` | `1000` | Most frames a video output may have (422) |
 | `XI_VIDEO_ENCODE_MAX_DURATION` | `1m` | Longest video output, the sum of the frame delays (422) |
 | `XI_VIDEO_ENCODE_MAX_PIXELS` | `8294400` | Largest frame of a video output, width × height (4K UHD) (422) |
+| `XI_VIDEO_TRANSFORM_ENABLED` | `false` | Video transformations (WP-121, ADR 0012): a video source trimmed, resized, cropped, rotated and transcoded into MP4, WebM, M4A, Opus or MP3. Off: they answer 404. `true` fails startup on an image without FFmpeg (`slim`). Which codecs exist depends on the image: MP4 is H.264 in `gpl` and AV1 in `full`; audio needs the WP-120 FFmpeg |
+| `XI_VIDEO_TRANSFORM_WORKERS` | GOMAXPROCS / 4 (≥ 1) | Transcodes run at once, in a pool of their own (the image pool is `XI_PROCESSING_WORKERS`) |
+| `XI_VIDEO_TRANSFORM_QUEUE` | `8` | Transcodes that may wait for a worker; beyond it 429 + `Retry-After` |
+| `XI_VIDEO_TRANSFORM_QUEUE_TIMEOUT` | `30s` | How long a transcode waits for a worker before 503 + `Retry-After` |
+| `XI_VIDEO_TRANSFORM_TIMEOUT` | `2m` | Wall time of one transcode from admission (504). A video request's budget is `XI_FETCH_TIMEOUT` + queue timeout + this, instead of `XI_SERVER_REQUEST_TIMEOUT`, and its write deadline is extended to match |
+| `XI_VIDEO_TRANSFORM_THREADS` | `1` | Decoder and encoder threads of one transcode (1–64) |
+| `XI_VIDEO_TRANSFORM_MAX_INPUT_BYTES` | `512MiB` | Largest video source of a transformation (422); the fetcher accepts the larger of this and `XI_LIMITS_MAX_SRC_BYTES` for video requests. The source is held in memory while it is transcoded |
+| `XI_VIDEO_TRANSFORM_MAX_INPUT_DURATION` | `1h` | Longest video source, from its header (422) |
+| `XI_VIDEO_TRANSFORM_MAX_INPUT_PIXELS` | `33177600` | Width × height of the source's video stream (8K UHD); the decoder refuses larger frames too (422) |
+| `XI_VIDEO_TRANSFORM_MAX_OUTPUT_BYTES` | `256MiB` | Largest output file; the muxer stops past it (422) |
+| `XI_VIDEO_TRANSFORM_MAX_OUTPUT_DURATION` | `5m` | Longest output (the cut, or the whole source) (422) |
+| `XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS` | `8294400` | Largest output frame, width × height (4K UHD) (422) |
+| `XI_VIDEO_TRANSFORM_MAX_FPS` | `60` | Highest output frame rate: a faster source is reduced to it, a faster request refused (422) (1–240) |
 | `XI_VIPS_CONCURRENCY` | `1` | libvips threads per image; change only with benchmarks |
 | `XI_VIPS_FAIL_ON` | `warning` | |
 
