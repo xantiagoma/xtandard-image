@@ -214,6 +214,12 @@ func (c *Converter) ToSVG(ctx context.Context, kind string, data []byte) ([]byte
 		return nil, errs.Wrapf(errs.KindInternal, err, "metafile: stdout")
 	}
 	if err := cmd.Start(); err != nil {
+		// Start fails with the context's error when the deadline passed
+		// before the fork (a loaded machine): that is the timeout, not an
+		// internal error.
+		if cerr := c.endErr(ctx, rctx); cerr != nil {
+			return nil, cerr
+		}
 		return nil, errs.Wrapf(errs.KindInternal, err, "metafile: start %s", c.cfg.Path)
 	}
 	pgid := cmd.Process.Pid
@@ -225,12 +231,10 @@ func (c *Converter) ToSVG(ctx context.Context, kind string, data []byte) ([]byte
 	}
 	waitErr := cmd.Wait()
 	sandbox.KillGroup(pgid) // anything the process left in its group
+	if cerr := c.endErr(ctx, rctx); cerr != nil {
+		return nil, cerr
+	}
 	switch {
-	case ctx.Err() != nil:
-		return nil, ctxErr(ctx)
-	case errors.Is(context.Cause(rctx), errTimeout):
-		return nil, errs.WithPublic(errs.Wrapf(errs.KindTimeout, errTimeout, "metafile: no SVG after %s", c.cfg.Timeout),
-			"WMF/EMF conversion timed out")
 	case overflow:
 		return nil, errs.Newf(errs.KindLimitExceeded, "metafile: SVG over %d bytes", c.cfg.MaxOutput)
 	case waitErr != nil:
@@ -243,6 +247,20 @@ func (c *Converter) ToSVG(ctx context.Context, kind string, data []byte) ([]byte
 		return nil, errs.Newf(errs.KindCorrupt, "metafile: %s: no SVG document on stdout", k)
 	}
 	return svg, nil
+}
+
+// endErr is the error of a conversion whose context ended: the caller's
+// (canceled, or its own deadline) or rctx's conversion timeout; nil while
+// both are live.
+func (c *Converter) endErr(ctx, rctx context.Context) error {
+	switch {
+	case ctx.Err() != nil:
+		return ctxErr(ctx)
+	case errors.Is(context.Cause(rctx), errTimeout):
+		return errs.WithPublic(errs.Wrapf(errs.KindTimeout, errTimeout, "metafile: no SVG after %s", c.cfg.Timeout),
+			"WMF/EMF conversion timed out")
+	}
+	return nil
 }
 
 // ctxErr maps a finished ctx to its errs kind.

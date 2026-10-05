@@ -255,8 +255,8 @@ func RunHelper(args []string) int {
 	// started one between the limits and execve (for another P, a GC
 	// worker, or to hand off a P stuck in a syscall) would abort with
 	// "pthread_create failed". One P and no GC leave it nothing to start
-	// a thread for, and the limits and the report use raw syscalls, which
-	// never release the P.
+	// a thread for, and execConfined sets the last limits and execs
+	// without a point where the goroutine could be preempted.
 	runtime.GOMAXPROCS(1)
 	debug.SetGCPercent(-1)
 	fail := func(what string, err error) int {
@@ -324,16 +324,17 @@ func RunHelper(args []string) int {
 			return fail("setrlimit "+strconv.Itoa(l.res), err)
 		}
 	}
-	// Last, as raw system calls (see above): nothing after them may start
-	// a thread or grow the heap much.
-	limits := []limit{
+	// Last (execConfined): nothing after them may start a thread.
+	final := finalLimits{
 		// No fork: counted per user, so the server's own threads already
 		// exceed it (root is exempt, hence the switch to nobody).
-		{rlimitNPROC, 0, 0},
+		lims: [2]rawLimit{{res: rlimitNPROC}},
+		n:    1,
 	}
 	// 0: off (XI_SANDBOX_MAX_AS=0) or under CPU emulation (AddressSpace).
 	if *as > 0 {
-		limits = append(limits, limit{syscall.RLIMIT_AS, *as, *as})
+		final.lims[1] = rawLimit{syscall.RLIMIT_AS, syscall.Rlimit{Cur: *as, Max: *as}}
+		final.n = 2
 	}
 	env := []string{"TMPDIR=" + *tmp, "TEMP=" + *tmp}
 	var line []byte
@@ -344,26 +345,70 @@ func RunHelper(args []string) int {
 		line = fmt.Appendf(nil, "%s nnp=%d pdeathsig=%d uid=%d gid=%d rlimits=1\n",
 			HelperArg, nnp, sig, os.Getuid(), os.Getgid())
 	}
-	for _, l := range limits {
-		if err := rawSetrlimit(l.res, l.cur, l.max); err != nil {
-			return fail("setrlimit "+strconv.Itoa(l.res), err)
-		}
+	// Everything execve needs is built before the limits.
+	argv0p, err := syscall.BytePtrFromString(argv[0])
+	if err != nil {
+		return fail("exec "+argv[0], err)
 	}
-	if len(line) > 0 {
-		_, _, _ = syscall.RawSyscall(syscall.SYS_WRITE, 1, uintptr(unsafe.Pointer(&line[0])), uintptr(len(line)))
+	argvp, err := syscall.SlicePtrFromStrings(argv)
+	if err != nil {
+		return fail("exec "+argv[0], err)
 	}
-	err := syscall.Exec(argv[0], argv, env) //nolint:gosec // G204: the program and its arguments come from the parent, never from a request
-	return fail("exec "+argv[0], err)
+	envp, err := syscall.SlicePtrFromStrings(env)
+	if err != nil {
+		return fail("exec "+argv[0], err)
+	}
+	failed, errno := execConfined(&final, line, argv0p, &argvp[0], &envp[0])
+	if failed < final.n {
+		return fail("setrlimit "+strconv.Itoa(final.lims[failed].res), errno)
+	}
+	return fail("exec "+argv[0], errno)
 }
 
-// rawSetrlimit sets a resource limit of this process with prlimit64(2) as a
-// raw system call (syscall.Setrlimit may release the P, see RunHelper).
-func rawSetrlimit(res int, cur, maxv uint64) error {
-	lim := syscall.Rlimit{Cur: cur, Max: maxv}
-	if _, _, e := syscall.RawSyscall6(syscall.SYS_PRLIMIT64, 0, uintptr(res), uintptr(unsafe.Pointer(&lim)), 0, 0, 0); e != 0 {
-		return e
+// rawLimit is one resource limit for execConfined.
+type rawLimit struct {
+	res int
+	lim syscall.Rlimit
+}
+
+// finalLimits are the limits execConfined sets, lims[:n].
+type finalLimits struct {
+	lims [2]rawLimit
+	n    int
+}
+
+// execConfined sets the final limits, writes report (if any) to stdout and
+// execs argv0 with argv and envv (NULL-terminated), all as raw system
+// calls. It returns only on failure: the index of the limit that failed,
+// or l.n when execve did.
+//
+// Once RLIMIT_NPROC is 0 the runtime must not start a thread, and
+// GOMAXPROCS(1) alone does not ensure that: if the goroutine is preempted
+// (sysmon preempts any goroutine running for 10 ms of wall time, which a
+// descheduled thread on a loaded machine reaches), the locked thread hands
+// its P to another M so the scheduler can run, and when no idle M exists
+// the runtime creates one and aborts with "pthread_create failed". This
+// function is not preemptible: it is nosplit (no stack check, so no
+// cooperative preemption point, and the compiler marks its body unsafe for
+// asynchronous preemption but for the call instructions themselves) and
+// calls only nosplit raw system calls and the assembly beneath them.
+// norace keeps the race detector's instrumentation calls out of it.
+//
+//go:nosplit
+//go:norace
+func execConfined(l *finalLimits, report []byte, argv0 *byte, argv, envv **byte) (int, syscall.Errno) {
+	for i := 0; i < l.n && i < len(l.lims); i++ {
+		if _, _, e := syscall.RawSyscall6(syscall.SYS_PRLIMIT64, 0, uintptr(l.lims[i].res),
+			uintptr(unsafe.Pointer(&l.lims[i].lim)), 0, 0, 0); e != 0 {
+			return i, e
+		}
 	}
-	return nil
+	if len(report) > 0 {
+		_, _, _ = syscall.RawSyscall(syscall.SYS_WRITE, 1, uintptr(unsafe.Pointer(&report[0])), uintptr(len(report)))
+	}
+	_, _, e := syscall.RawSyscall(syscall.SYS_EXECVE, uintptr(unsafe.Pointer(argv0)),
+		uintptr(unsafe.Pointer(argv)), uintptr(unsafe.Pointer(envv)))
+	return l.n, e
 }
 
 // prctl calls prctl(2) with one argument.

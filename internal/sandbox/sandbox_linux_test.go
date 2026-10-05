@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/xantiagoma/xtandard-image/internal/testutil/execscript"
 )
 
 // openDir returns a t.TempDir() that other users can traverse: when the
@@ -33,10 +35,7 @@ func TestAddressSpaceApplied(t *testing.T) {
 	t.Parallel()
 	dir := openDir(t)
 	prog := filepath.Join(dir, "probe")
-	script := "#!/bin/sh\necho 'probe 1.0'\nulimit -v\n"
-	if err := os.WriteFile(prog, []byte(script), 0o755); err != nil { //nolint:gosec // G306: the probe must be executable
-		t.Fatal(err)
-	}
+	execscript.Write(t, prog, "#!/bin/sh\necho 'probe 1.0'\nulimit -v\n")
 	emulated := DetectEmulation() != EmulationNone
 	kib := func(b uint64) string { return strconv.FormatUint(b>>10, 10) }
 	wantDefault := kib(DefaultAddressSpace)

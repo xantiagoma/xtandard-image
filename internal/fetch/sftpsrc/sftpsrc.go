@@ -313,18 +313,22 @@ type body struct {
 
 func (b *body) Read(p []byte) (int, error) {
 	n, err := b.f.Read(p)
-	switch {
-	case err == nil:
+	if err == nil {
 		return n, nil
-	case errors.Is(err, io.EOF):
+	}
+	// Only the bare io.EOF of the io.Reader contract is the end of the
+	// file. pkg/sftp wraps the EOF of a connection that is already closed
+	// ("failed to send packet: EOF"), which is what a read issued after a
+	// cancellation closed it returns: that is a broken transfer, not a
+	// complete one.
+	if err == io.EOF { //nolint:errorlint // see above: a wrapped EOF is a failure
 		b.done(nil)
 		return n, io.EOF
-	default:
-		cerr := b.c.readErr(err)
-		b.c.abort(err)
-		b.done(err)
-		return n, cerr
 	}
+	cerr := b.c.readErr(err)
+	b.c.abort(err)
+	b.done(err)
+	return n, cerr
 }
 
 // done closes the remote handle and returns the connection to the pool
