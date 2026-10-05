@@ -827,6 +827,14 @@ func emitFinish(p *transform.Pipeline, g *geo, b *builder, outFmt transform.Form
 	}
 }
 
+// WatermarkFor plans w alone on one frame at device pixel ratio 1, as
+// Pipelines[0].Watermarks[0]: a video overlay (WP-124) rendered by the
+// executor for an output frame. w's position must be defaulted
+// (transform.Request.ApplyDefaults).
+func WatermarkFor(w *transform.Watermark) WatermarkStep {
+	return watermarkStep(w, 0, 1, 1)
+}
+
 // watermarkStep plans watermark i of a pipeline whose pixel sizes scale by
 // dpr: sizes, the shadow and the text resolution are in device pixels.
 func watermarkStep(w *transform.Watermark, i int, dpr float64, frames int) WatermarkStep {
