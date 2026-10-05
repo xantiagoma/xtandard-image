@@ -106,9 +106,8 @@ func assertField(t *testing.T, err error, field string) {
 	if err == nil {
 		t.Fatalf("no error, want one for %s", field)
 	}
-	var list interface{ Unwrap() []error }
 	all := []error{err}
-	if errors.As(err, &list) {
+	if list, ok := errors.AsType[interface{ Unwrap() []error }](err); ok {
 		all = list.Unwrap()
 	}
 	for _, e := range all {
