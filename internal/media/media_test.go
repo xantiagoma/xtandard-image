@@ -38,6 +38,8 @@ type engine struct {
 	err    error
 	in     video.TranscodeInput
 	outs   []*buf
+	plans  []*video.TranscodePlan
+	pixels [][]Buffer
 }
 
 func (e *engine) Open(_ context.Context, src Buffer, _ video.Limits, _ int) (Job, error) {
@@ -58,7 +60,11 @@ type job struct {
 
 func (j *job) Input() video.TranscodeInput { return j.e.in }
 
-func (j *job) Run(ctx context.Context, p *video.TranscodePlan) (Buffer, error) {
+func (j *job) Run(ctx context.Context, p *video.TranscodePlan, pixels []Buffer) (Buffer, error) {
+	j.e.mu.Lock()
+	j.e.plans = append(j.e.plans, p)
+	j.e.pixels = append(j.e.pixels, pixels)
+	j.e.mu.Unlock()
 	if j.e.gate != nil {
 		select {
 		case <-j.e.gate:
@@ -99,6 +105,7 @@ func (m *metrics) Coalesced() {
 func caps() video.TranscodeCaps {
 	return video.TranscodeCaps{
 		Video: video.EncoderSet{VP9: true, AV1: true}, MuxMP4: true, MuxWebM: true, VideoFilters: true,
+		Overlays: true, Timecode: true,
 	}
 }
 
@@ -130,7 +137,7 @@ func TestTransform(t *testing.T) {
 		e := &engine{}
 		s, m := newService(t, e, nil)
 		src := newBuf("video")
-		res, err := s.Transform(t.Context(), "k", src, &transform.VideoOp{Width: 640, Mute: true})
+		res, err := s.Transform(t.Context(), "k", src, &transform.VideoOp{Width: 640, Mute: true}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -155,7 +162,7 @@ func TestTransformUnsupported(t *testing.T) {
 	t.Parallel()
 	e := &engine{}
 	s, _ := newService(t, e, nil)
-	_, err := s.Transform(t.Context(), "k", newBuf("v"), &transform.VideoOp{VideoCodec: transform.VideoCodecHEVC})
+	_, err := s.Transform(t.Context(), "k", newBuf("v"), &transform.VideoOp{VideoCodec: transform.VideoCodecHEVC}, nil)
 	if errs.KindOf(err) != errs.KindUnsupported || e.opens != 0 {
 		t.Fatalf("err %v, opens %d", err, e.opens)
 	}
@@ -164,7 +171,7 @@ func TestTransformUnsupported(t *testing.T) {
 func TestTransformPanic(t *testing.T) {
 	t.Parallel()
 	s, m := newService(t, &engine{panics: true}, nil)
-	_, err := s.Transform(t.Context(), "k", newBuf("v"), &transform.VideoOp{Mute: true})
+	_, err := s.Transform(t.Context(), "k", newBuf("v"), &transform.VideoOp{Mute: true}, nil)
 	if errs.KindOf(err) != errs.KindInternal {
 		t.Fatalf("err %v", err)
 	}
@@ -184,7 +191,7 @@ func TestTransformCoalesced(t *testing.T) {
 		results := make([]*Result, n)
 		for i := range n {
 			wg.Go(func() {
-				res, err := s.Transform(t.Context(), "same", src, &transform.VideoOp{Mute: true})
+				res, err := s.Transform(t.Context(), "same", src, &transform.VideoOp{Mute: true}, nil)
 				if err != nil {
 					t.Error(err)
 					return
@@ -228,7 +235,7 @@ func TestTransformCancel(t *testing.T) {
 		errc := make(chan error, 2)
 		for _, ctx := range []context.Context{ctx1, ctx2} {
 			go func() {
-				_, err := s.Transform(ctx, "k", src, &transform.VideoOp{Mute: true})
+				_, err := s.Transform(ctx, "k", src, &transform.VideoOp{Mute: true}, nil)
 				errc <- err
 			}()
 		}
@@ -262,7 +269,7 @@ func TestTransformTimeout(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		e := &engine{gate: make(chan struct{})}
 		s, m := newService(t, e, func(c *Config) { c.Timeout = 30 * time.Second })
-		_, err := s.Transform(t.Context(), "k", newBuf("v"), &transform.VideoOp{Mute: true})
+		_, err := s.Transform(t.Context(), "k", newBuf("v"), &transform.VideoOp{Mute: true}, nil)
 		if errs.KindOf(err) != errs.KindTimeout {
 			t.Fatalf("err %v, want timeout", err)
 		}
@@ -281,7 +288,7 @@ func TestTransformAdmission(t *testing.T) {
 		s, _ := newService(t, e, func(c *Config) { c.Workers, c.Queue = 1, 0 })
 		done := make(chan error, 1)
 		go func() {
-			res, err := s.Transform(t.Context(), "a", newBuf("v"), &transform.VideoOp{Mute: true})
+			res, err := s.Transform(t.Context(), "a", newBuf("v"), &transform.VideoOp{Mute: true}, nil)
 			if err == nil {
 				res.Body.Release()
 			}
@@ -291,7 +298,7 @@ func TestTransformAdmission(t *testing.T) {
 		if st := s.Stats(); st.InFlight != 1 {
 			t.Fatalf("in flight %d", st.InFlight)
 		}
-		_, err := s.Transform(t.Context(), "b", newBuf("v"), &transform.VideoOp{Mute: true})
+		_, err := s.Transform(t.Context(), "b", newBuf("v"), &transform.VideoOp{Mute: true}, nil)
 		if errs.KindOf(err) != errs.KindOverloaded {
 			t.Fatalf("second transcode: %v, want overloaded", err)
 		}

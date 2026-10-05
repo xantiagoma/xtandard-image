@@ -44,9 +44,29 @@ type Engine interface {
 // Job is one opened source.
 type Job interface {
 	Input() video.TranscodeInput
-	// Run transcodes once; the caller releases the result.
-	Run(ctx context.Context, p *video.TranscodePlan) (Buffer, error)
+	// Run transcodes once; pixels[i] are the RGBA pixels of image overlay
+	// p.Video.Overlays[i] (nil for a timecode), read during the call. The
+	// caller releases the result.
+	Run(ctx context.Context, p *video.TranscodePlan, pixels []Buffer) (Buffer, error)
 	Close()
+}
+
+// OverlayRenderer renders image and text overlays (WP-124):
+// internal/pipeline/exec.Executor.RenderOverlay in production (app adapts
+// it), the image watermark code.
+type OverlayRenderer interface {
+	// Render draws o for a w × h output frame. img is its fetched image
+	// (nil for text and the configured watermark). ok is false when
+	// nothing would be drawn.
+	Render(ctx context.Context, o *transform.VideoOverlay, img Buffer, w, h int) (l Layer, ok bool, err error)
+}
+
+// Layer is a rendered overlay: straight 8-bit RGBA pixels (C memory,
+// Width × Height × 4 bytes, one reference owned by the caller) to draw at
+// X, Y inside the frame.
+type Layer struct {
+	Pixels              Buffer
+	X, Y, Width, Height int
 }
 
 // Metrics receives transcode observations. Implementations must be safe
@@ -116,6 +136,7 @@ type Service struct {
 	engine  Engine
 	lim     *limiter.Limiter
 	metrics Metrics
+	render  OverlayRenderer // nil: image and text overlays are unsupported
 	flights group
 	limOpts []limiter.Option // New only
 }
@@ -130,6 +151,12 @@ func WithMetrics(m Metrics) Option {
 			s.metrics = m
 		}
 	}
+}
+
+// WithOverlayRenderer renders image and text overlays with r; without
+// one, a request with any is errs.KindUnsupported.
+func WithOverlayRenderer(r OverlayRenderer) Option {
+	return func(s *Service) { s.render = r }
 }
 
 // WithLimiterMetrics reports the pool's queue and workers to m.
@@ -169,40 +196,59 @@ func (s *Service) Stats() limiter.Stats { return s.lim.Stats() }
 
 // Resolve picks the output of op on this build before anything is
 // fetched (video.TranscodeCaps.Resolve): errs.KindUnsupported when it
-// cannot be written.
+// cannot be written, or has image or text overlays and no renderer.
 func (s *Service) Resolve(op *transform.VideoOp) (video.TranscodeOutput, error) {
-	return s.caps.Resolve(op)
+	out, err := s.caps.Resolve(op)
+	if err != nil {
+		return out, err
+	}
+	if s.render == nil {
+		for i := range op.Overlays {
+			if op.Overlays[i].Kind() != transform.VideoOverlayTimecode {
+				return video.TranscodeOutput{}, errs.WithPublic(errs.New(errs.KindUnsupported, "media: no overlay renderer"),
+					"video overlays are not supported by this image")
+			}
+		}
+	}
+	return out, nil
 }
 
 // errTimeout is the cause of a transcode that ran out of
 // XI_VIDEO_TRANSFORM_TIMEOUT.
 var errTimeout = errors.New("media: transcode timeout")
 
-// Transform applies op to src. Requests with the same key (the result
-// cache key: the canonical request, the source and the build) share one
-// transcode: the first starts it, later ones wait for it, and it is
-// cancelled only when every one of them has gone. src is retained while
-// the transcode needs it. The caller releases Result.Body.
+// Transform applies op to src. overlays[i] is the fetched image of image
+// overlay op.Overlays[i] (nil for the others; nil or shorter when there
+// are none). Requests with the same key (the result cache key: the
+// canonical request, the source and the build) share one transcode: the
+// first starts it, later ones wait for it, and it is cancelled only when
+// every one of them has gone. src and the overlays are retained while the
+// transcode needs them. The caller releases Result.Body.
 //
 // Errors: the errs kinds of admission (KindOverloaded 429,
 // KindUnavailable 503), of the limits and the plan (KindLimitExceeded,
 // KindUnsupported 422), of the source (KindCorrupt), and KindTimeout when
 // the transcode outlives XI_VIDEO_TRANSFORM_TIMEOUT.
-func (s *Service) Transform(ctx context.Context, key string, src Buffer, op *transform.VideoOp) (*Result, error) {
+func (s *Service) Transform(ctx context.Context, key string, src Buffer, op *transform.VideoOp, overlays []Buffer) (*Result, error) {
 	out, err := s.Resolve(op)
 	if err != nil {
 		return nil, err
 	}
+	if len(overlays) > len(op.Overlays) {
+		return nil, errs.Newf(errs.KindInternal, "media: %d overlay images for %d overlays", len(overlays), len(op.Overlays))
+	}
 	// The transcode may outlive this call (others wait for it): it holds
-	// its own reference to the source, dropped when it ends. A call that
-	// joins a transcode in flight drops it at once.
-	src.Retain()
+	// its own references to the source and the overlay images, dropped
+	// when it ends. A call that joins a transcode in flight drops them at
+	// once.
+	in := append([]Buffer{src}, overlays...)
+	retain(in)
 	res, shared, err := s.flights.do(ctx, key, func(ctx context.Context) (*Result, error) {
-		defer src.Release()
-		return s.run(ctx, src, op, out)
+		defer release(in)
+		return s.run(ctx, src, op, overlays, out)
 	})
 	if shared {
-		src.Release()
+		release(in)
 		s.metrics.Coalesced()
 	}
 	if err != nil {
@@ -212,8 +258,25 @@ func (s *Service) Transform(ctx context.Context, key string, src Buffer, op *tra
 	return res, nil
 }
 
-// run is one transcode: admission, open, plan, transcode.
-func (s *Service) run(ctx context.Context, src Buffer, op *transform.VideoOp, out video.TranscodeOutput) (*Result, error) {
+// retain and release take and drop a reference to every non-nil buffer.
+func retain(bs []Buffer) {
+	for _, b := range bs {
+		if b != nil {
+			b.Retain()
+		}
+	}
+}
+
+func release(bs []Buffer) {
+	for _, b := range bs {
+		if b != nil {
+			b.Release()
+		}
+	}
+}
+
+// run is one transcode: admission, open, plan, overlays, transcode.
+func (s *Service) run(ctx context.Context, src Buffer, op *transform.VideoOp, overlays []Buffer, out video.TranscodeOutput) (*Result, error) {
 	release, err := s.lim.Acquire(ctx, 0)
 	if err != nil {
 		return nil, err
@@ -222,7 +285,7 @@ func (s *Service) run(ctx context.Context, src Buffer, op *transform.VideoOp, ou
 	start := time.Now()
 	ctx, cancel := context.WithTimeoutCause(ctx, s.cfg.Timeout, errTimeout)
 	defer cancel()
-	res, err := s.transcode(ctx, src, op, out)
+	res, err := s.transcode(ctx, src, op, overlays, out)
 	result := "ok"
 	var n int64
 	if err != nil {
@@ -238,7 +301,7 @@ func (s *Service) run(ctx context.Context, src Buffer, op *transform.VideoOp, ou
 	return res, err
 }
 
-func (s *Service) transcode(ctx context.Context, src Buffer, op *transform.VideoOp, out video.TranscodeOutput) (*Result, error) {
+func (s *Service) transcode(ctx context.Context, src Buffer, op *transform.VideoOp, overlays []Buffer, out video.TranscodeOutput) (*Result, error) {
 	job, err := s.engine.Open(ctx, src, s.cfg.Input, s.cfg.Transcode.Threads)
 	if err != nil {
 		return nil, err
@@ -249,10 +312,17 @@ func (s *Service) transcode(ctx context.Context, src Buffer, op *transform.Video
 	if err != nil {
 		return nil, err
 	}
+	var pixels []Buffer
+	if p.Video != nil && len(p.Video.Overlays) > 0 {
+		if pixels, err = s.renderOverlays(ctx, p.Video, op, overlays); err != nil {
+			return nil, err
+		}
+		defer release(pixels)
+	}
 	if err := ctx.Err(); err != nil {
 		return nil, errs.Wrap(errs.KindOf(err), context.Cause(ctx))
 	}
-	body, err := job.Run(ctx, p)
+	body, err := job.Run(ctx, p, pixels)
 	if err != nil {
 		return nil, err
 	}
@@ -264,4 +334,47 @@ func (s *Service) transcode(ctx context.Context, src Buffer, op *transform.Video
 		r.Width, r.Height = p.Video.Width, p.Video.Height
 	}
 	return r, nil
+}
+
+// renderOverlays renders the image and text overlays of v for its output
+// size and places them; one that draws nothing is removed from v. It
+// returns the pixels of each remaining overlay (nil for a timecode); the
+// caller releases them.
+func (s *Service) renderOverlays(ctx context.Context, v *video.VideoStreamPlan, op *transform.VideoOp, imgs []Buffer) ([]Buffer, error) {
+	kept := v.Overlays[:0:0]
+	var pixels []Buffer
+	for _, o := range v.Overlays {
+		if err := ctx.Err(); err != nil {
+			release(pixels)
+			return nil, errs.Wrap(errs.KindOf(err), context.Cause(ctx))
+		}
+		if !o.Image() {
+			kept, pixels = append(kept, o), append(pixels, nil)
+			continue
+		}
+		if s.render == nil {
+			release(pixels)
+			return nil, errs.New(errs.KindUnsupported, "media: no overlay renderer")
+		}
+		var img Buffer
+		if o.Index < len(imgs) {
+			img = imgs[o.Index]
+		}
+		l, ok, err := s.render.Render(ctx, &op.Overlays[o.Index], img, v.Width, v.Height)
+		if err != nil {
+			release(pixels)
+			return nil, err
+		}
+		if !ok {
+			continue
+		}
+		o.Place(l.X, l.Y, l.Width, l.Height)
+		kept, pixels = append(kept, o), append(pixels, l.Pixels)
+	}
+	v.Overlays = kept
+	if err := v.CheckOverlays(); err != nil {
+		release(pixels)
+		return nil, err
+	}
+	return pixels, nil
 }
