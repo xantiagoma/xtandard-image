@@ -40,6 +40,10 @@ type Stats struct {
 	Handles int
 	// Encoders is the number of open video encoders.
 	Encoders int
+	// Transcoders is the number of open transcoders, and Outputs the
+	// transcoded files not released yet.
+	Transcoders int
+	Outputs     int
 	// HeapInUse is glibc's in-use heap in bytes (mallinfo2), 0 where it is
 	// not available.
 	HeapInUse int64

@@ -532,6 +532,32 @@ func sourceTypes() []SourceType {
 	return []SourceType{SourceHTTP, SourceS3, SourceGCS, SourceAzure, SourceFS, SourceFTP, SourceSFTP}
 }
 
+// Role is what an instance serves (XI_ROLE).
+type Role string
+
+// Roles.
+const (
+	// RoleAll serves images and, when enabled, video transformations.
+	RoleAll Role = "all"
+	// RoleImage serves images only: video transformations answer 404.
+	RoleImage Role = "image"
+	// RoleVideo serves video transformations only (and health and
+	// metrics): every other request answers 404.
+	RoleVideo Role = "video"
+)
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (r *Role) UnmarshalText(b []byte) error { return unmarshalEnum(r, b, roles()...) }
+
+// roles lists the Role values.
+func roles() []Role { return []Role{RoleAll, RoleImage, RoleVideo} }
+
+// Images reports whether r serves images.
+func (r Role) Images() bool { return r != RoleVideo }
+
+// Videos reports whether r serves video transformations.
+func (r Role) Videos() bool { return r != RoleImage }
+
 // LogLevel is the minimum slog level.
 type LogLevel string
 

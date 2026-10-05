@@ -2935,6 +2935,18 @@
       },
       "type": "object"
     },
+    "role": {
+      "default": "all",
+      "description": "What this instance serves (ADR 0012): all; image (video transformations answer 404, so a load balancer routes them elsewhere); video (only video transformations, plus /healthz, /readyz and the admin listener; every other request answers 404; needs XI_VIDEO_TRANSFORM_ENABLED). One binary and image serve every role\n\nEnv: XI_ROLE",
+      "enum": [
+        "all",
+        "image",
+        "video"
+      ],
+      "markdownDescription": "What this instance serves (ADR 0012): `all`; `image` (video transformations answer 404, so a load balancer routes them elsewhere); `video` (only video transformations, plus `/healthz`, `/readyz` and the admin listener; every other request answers 404; needs `XI_VIDEO_TRANSFORM_ENABLED`). One binary and image serve every role\n\nEnv: `XI_ROLE`",
+      "title": "XI_ROLE",
+      "type": "string"
+    },
     "sandbox": {
       "additionalProperties": false,
       "properties": {
@@ -3377,6 +3389,102 @@
               "description": "How much of the start of a video best-frame selection samples\n\nEnv: XI_VIDEO_THUMBNAIL_SPAN",
               "markdownDescription": "How much of the start of a video best-frame selection samples\n\nEnv: `XI_VIDEO_THUMBNAIL_SPAN`",
               "title": "XI_VIDEO_THUMBNAIL_SPAN"
+            }
+          },
+          "type": "object"
+        },
+        "transform": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "default": false,
+              "description": "Video transformations (WP-121, ADR 0012): a video source trimmed, resized, cropped, rotated and transcoded into MP4, WebM, M4A, Opus or MP3. Off: they answer 404. true fails startup on an image without FFmpeg (slim). Which codecs exist depends on the image: MP4 is H.264 in gpl and AV1 in full; audio needs the WP-120 FFmpeg\n\nEnv: XI_VIDEO_TRANSFORM_ENABLED",
+              "markdownDescription": "Video transformations (WP-121, ADR 0012): a video source trimmed, resized, cropped, rotated and transcoded into MP4, WebM, M4A, Opus or MP3. Off: they answer 404. `true` fails startup on an image without FFmpeg (`slim`). Which codecs exist depends on the image: MP4 is H.264 in `gpl` and AV1 in `full`; audio needs the WP-120 FFmpeg\n\nEnv: `XI_VIDEO_TRANSFORM_ENABLED`",
+              "title": "XI_VIDEO_TRANSFORM_ENABLED",
+              "type": "boolean"
+            },
+            "max_fps": {
+              "default": 60,
+              "description": "Highest output frame rate: a faster source is reduced to it, a faster request refused (422) (1–240)\n\nEnv: XI_VIDEO_TRANSFORM_MAX_FPS",
+              "markdownDescription": "Highest output frame rate: a faster source is reduced to it, a faster request refused (422) (1–240)\n\nEnv: `XI_VIDEO_TRANSFORM_MAX_FPS`",
+              "title": "XI_VIDEO_TRANSFORM_MAX_FPS",
+              "type": "number"
+            },
+            "max_input_bytes": {
+              "$ref": "#/$defs/byteSize",
+              "default": "512MiB",
+              "description": "Largest video source of a transformation (422); the fetcher accepts the larger of this and XI_LIMITS_MAX_SRC_BYTES for video requests. The source is held in memory while it is transcoded\n\nEnv: XI_VIDEO_TRANSFORM_MAX_INPUT_BYTES",
+              "markdownDescription": "Largest video source of a transformation (422); the fetcher accepts the larger of this and `XI_LIMITS_MAX_SRC_BYTES` for video requests. The source is held in memory while it is transcoded\n\nEnv: `XI_VIDEO_TRANSFORM_MAX_INPUT_BYTES`",
+              "title": "XI_VIDEO_TRANSFORM_MAX_INPUT_BYTES"
+            },
+            "max_input_duration": {
+              "$ref": "#/$defs/duration",
+              "default": "1h0m0s",
+              "description": "Longest video source, from its header (422)\n\nEnv: XI_VIDEO_TRANSFORM_MAX_INPUT_DURATION",
+              "markdownDescription": "Longest video source, from its header (422)\n\nEnv: `XI_VIDEO_TRANSFORM_MAX_INPUT_DURATION`",
+              "title": "XI_VIDEO_TRANSFORM_MAX_INPUT_DURATION"
+            },
+            "max_input_pixels": {
+              "default": 33177600,
+              "description": "Width × height of the source's video stream (8K UHD); the decoder refuses larger frames too (422)\n\nEnv: XI_VIDEO_TRANSFORM_MAX_INPUT_PIXELS",
+              "markdownDescription": "Width × height of the source's video stream (8K UHD); the decoder refuses larger frames too (422)\n\nEnv: `XI_VIDEO_TRANSFORM_MAX_INPUT_PIXELS`",
+              "title": "XI_VIDEO_TRANSFORM_MAX_INPUT_PIXELS",
+              "type": "integer"
+            },
+            "max_output_bytes": {
+              "$ref": "#/$defs/byteSize",
+              "default": "256MiB",
+              "description": "Largest output file; the muxer stops past it (422)\n\nEnv: XI_VIDEO_TRANSFORM_MAX_OUTPUT_BYTES",
+              "markdownDescription": "Largest output file; the muxer stops past it (422)\n\nEnv: `XI_VIDEO_TRANSFORM_MAX_OUTPUT_BYTES`",
+              "title": "XI_VIDEO_TRANSFORM_MAX_OUTPUT_BYTES"
+            },
+            "max_output_duration": {
+              "$ref": "#/$defs/duration",
+              "default": "5m0s",
+              "description": "Longest output (the cut, or the whole source) (422)\n\nEnv: XI_VIDEO_TRANSFORM_MAX_OUTPUT_DURATION",
+              "markdownDescription": "Longest output (the cut, or the whole source) (422)\n\nEnv: `XI_VIDEO_TRANSFORM_MAX_OUTPUT_DURATION`",
+              "title": "XI_VIDEO_TRANSFORM_MAX_OUTPUT_DURATION"
+            },
+            "max_output_pixels": {
+              "default": 8294400,
+              "description": "Largest output frame, width × height (4K UHD) (422)\n\nEnv: XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS",
+              "markdownDescription": "Largest output frame, width × height (4K UHD) (422)\n\nEnv: `XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS`",
+              "title": "XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS",
+              "type": "integer"
+            },
+            "queue": {
+              "default": 8,
+              "description": "Transcodes that may wait for a worker; beyond it 429 + Retry-After\n\nEnv: XI_VIDEO_TRANSFORM_QUEUE",
+              "markdownDescription": "Transcodes that may wait for a worker; beyond it 429 + `Retry-After`\n\nEnv: `XI_VIDEO_TRANSFORM_QUEUE`",
+              "title": "XI_VIDEO_TRANSFORM_QUEUE",
+              "type": "integer"
+            },
+            "queue_timeout": {
+              "$ref": "#/$defs/duration",
+              "default": "30s",
+              "description": "How long a transcode waits for a worker before 503 + Retry-After\n\nEnv: XI_VIDEO_TRANSFORM_QUEUE_TIMEOUT",
+              "markdownDescription": "How long a transcode waits for a worker before 503 + `Retry-After`\n\nEnv: `XI_VIDEO_TRANSFORM_QUEUE_TIMEOUT`",
+              "title": "XI_VIDEO_TRANSFORM_QUEUE_TIMEOUT"
+            },
+            "threads": {
+              "default": 1,
+              "description": "Decoder and encoder threads of one transcode (1–64)\n\nEnv: XI_VIDEO_TRANSFORM_THREADS",
+              "markdownDescription": "Decoder and encoder threads of one transcode (1–64)\n\nEnv: `XI_VIDEO_TRANSFORM_THREADS`",
+              "title": "XI_VIDEO_TRANSFORM_THREADS",
+              "type": "integer"
+            },
+            "timeout": {
+              "$ref": "#/$defs/duration",
+              "default": "2m0s",
+              "description": "Wall time of one transcode from admission (504). A video request's budget is XI_FETCH_TIMEOUT + queue timeout + this, instead of XI_SERVER_REQUEST_TIMEOUT, and its write deadline is extended to match\n\nEnv: XI_VIDEO_TRANSFORM_TIMEOUT",
+              "markdownDescription": "Wall time of one transcode from admission (504). A video request's budget is `XI_FETCH_TIMEOUT` + queue timeout + this, instead of `XI_SERVER_REQUEST_TIMEOUT`, and its write deadline is extended to match\n\nEnv: `XI_VIDEO_TRANSFORM_TIMEOUT`",
+              "title": "XI_VIDEO_TRANSFORM_TIMEOUT"
+            },
+            "workers": {
+              "description": "Transcodes run at once, in a pool of their own (the image pool is XI_PROCESSING_WORKERS)\n\nDefault: GOMAXPROCS / 4 (≥ 1)\n\nEnv: XI_VIDEO_TRANSFORM_WORKERS",
+              "markdownDescription": "Transcodes run at once, in a pool of their own (the image pool is `XI_PROCESSING_WORKERS`)\n\nDefault: GOMAXPROCS / 4 (≥ 1)\n\nEnv: `XI_VIDEO_TRANSFORM_WORKERS`",
+              "title": "XI_VIDEO_TRANSFORM_WORKERS",
+              "type": "integer"
             }
           },
           "type": "object"
