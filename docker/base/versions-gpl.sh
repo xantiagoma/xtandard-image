@@ -103,6 +103,7 @@ imath BSD-3-Clause
 jemalloc BSD-2-Clause
 jxrlib BSD-2-Clause
 kvazaar BSD-3-Clause
+lame LGPL-2.0-or-later
 lcms2 MIT
 libde265 LGPL-3.0-or-later
 libemf2svg GPL-2.0-only
@@ -122,6 +123,7 @@ libwmf LGPL-2.0-or-later AND GPL-2.0-or-later
 libxml2 MIT
 models MIT AND Apache-2.0
 onnxruntime MIT
+opus BSD-3-Clause
 openexr BSD-3-Clause
 openjpeg BSD-2-Clause
 pango LGPL-2.0-or-later
