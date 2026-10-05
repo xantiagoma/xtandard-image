@@ -45,8 +45,10 @@ func (f *fakeProber) ProbeSource(ctx context.Context, src string) (*MediaInfo, e
 		if !source.IsPlaygroundRequest(ctx) {
 			return nil, errors.New("not a playground request")
 		}
-		return &MediaInfo{Container: "mov,mp4,m4a,3gp,3g2,mj2", Duration: 2, Size: 1000, BitRate: 4000,
-			Video: &MediaVideo{Codec: "av1", Width: 1280, Height: 720, FPS: 25}}, nil
+		return &MediaInfo{
+			Container: "mov,mp4,m4a,3gp,3g2,mj2", Duration: 2, Size: 1000, BitRate: 4000,
+			Video: &MediaVideo{Codec: "av1", Width: 1280, Height: 720, FPS: 25},
+		}, nil
 	case "xi://local/text.txt":
 		return nil, errs.WithPublic(errs.New(errs.KindUnsupported, "ffmpeg: secret detail"), "unsupported video format")
 	default:
@@ -92,18 +94,28 @@ func TestProbeEndpoints(t *testing.T) {
 		want       *MediaInfo
 		errContain string
 	}{
-		{"source", probeReq(t, "probe", "application/json", `{"source":"xi://local/clip.mp4"}`), http.StatusOK,
-			&MediaInfo{Container: "mov,mp4,m4a,3gp,3g2,mj2", Duration: 2, Size: 1000, BitRate: 4000,
-				Video: &MediaVideo{Codec: "av1", Width: 1280, Height: 720, FPS: 25}}, ""},
-		{"source error is public", probeReq(t, "probe", "application/json", `{"source":"xi://local/text.txt"}`),
-			http.StatusUnprocessableEntity, nil, "unsupported video format"},
-		{"internal error is hidden", probeReq(t, "probe", "application/json", `{"source":"xi://local/x"}`),
-			http.StatusInternalServerError, nil, "probe failed"},
+		{
+			"source", probeReq(t, "probe", "application/json", `{"source":"xi://local/clip.mp4"}`), http.StatusOK,
+			&MediaInfo{
+				Container: "mov,mp4,m4a,3gp,3g2,mj2", Duration: 2, Size: 1000, BitRate: 4000,
+				Video: &MediaVideo{Codec: "av1", Width: 1280, Height: 720, FPS: 25},
+			}, "",
+		},
+		{
+			"source error is public", probeReq(t, "probe", "application/json", `{"source":"xi://local/text.txt"}`),
+			http.StatusUnprocessableEntity, nil, "unsupported video format",
+		},
+		{
+			"internal error is hidden", probeReq(t, "probe", "application/json", `{"source":"xi://local/x"}`),
+			http.StatusInternalServerError, nil, "probe failed",
+		},
 		{"empty source", probeReq(t, "probe", "application/json", `{"source":""}`), http.StatusBadRequest, nil, "source"},
 		{"unescaped source", probeReq(t, "probe", "application/json", `{"source":"a b"}`), http.StatusBadRequest, nil, "source"},
 		{"not json", probeReq(t, "probe", "text/plain", `x`), http.StatusUnsupportedMediaType, nil, ""},
-		{"result", probeReq(t, "probe/result", "audio/mpeg", "ID3-some-bytes"), http.StatusOK,
-			&MediaInfo{Container: "mp3", Duration: 4, Size: 14, Audio: &MediaAudio{Codec: "mp3", SampleRate: 44100, Channels: 2}}, ""},
+		{
+			"result", probeReq(t, "probe/result", "audio/mpeg", "ID3-some-bytes"), http.StatusOK,
+			&MediaInfo{Container: "mp3", Duration: 4, Size: 14, Audio: &MediaAudio{Codec: "mp3", SampleRate: 44100, Channels: 2}}, "",
+		},
 		{"result too large", probeReq(t, "probe/result", "video/mp4", strings.Repeat("x", 65)), http.StatusRequestEntityTooLarge, nil, ""},
 		{"empty result", probeReq(t, "probe/result", "video/mp4", ""), http.StatusBadRequest, nil, "empty"},
 	}

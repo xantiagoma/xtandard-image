@@ -640,7 +640,7 @@ func emitVideoCloudflareMedia(e *emitter) (string, string, error) {
 	case v.Container.HasVideoStream():
 		opts = append(opts, "mode=video")
 	default:
-		return "", "", fmt.Errorf("Cloudflare Media Transformations write MP4 video or M4A audio, not %s", v.Container)
+		return "", "", fmt.Errorf("Cloudflare Media Transformations write MP4 video or M4A audio, not %s", v.Container) //nolint:staticcheck // a provider name
 	}
 	if v.Start > 0 {
 		opts = append(opts, "time="+cloudflareSeconds(v.Start))
