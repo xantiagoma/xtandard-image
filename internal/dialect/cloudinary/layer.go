@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
@@ -187,13 +188,17 @@ func (a *applier) textLayer(wm *transform.Watermark, spec string) error {
 	if t, err := url.PathUnescape(text); err == nil {
 		text = t
 	}
+	if !utf8.ValidString(text) {
+		return dialect.InvalidArgument("l_text", spec, expTextLayer)
+	}
 	tokens := strings.Split(style, "_")
 	if len(tokens) < 2 {
 		return dialect.InvalidArgument("l_text", style, expTextLayer)
 	}
 	family := strings.TrimSpace(tokens[0])
 	size, err := strconv.Atoi(tokens[1])
-	if family == "" || err != nil || size < 1 || size > 1000 {
+	if family == "" || err != nil || size < 1 || size > 1000 || strings.ContainsAny(family, "<>&\"\x00") ||
+		!utf8.ValidString(family) {
 		return dialect.InvalidArgument("l_text", style, expTextLayer)
 	}
 	font := []string{family}

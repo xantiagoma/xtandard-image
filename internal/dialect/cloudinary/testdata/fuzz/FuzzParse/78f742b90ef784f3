@@ -1,0 +1,2 @@
+go test fuzz v1
+string("video/upload/c_crop,w_1,h_1/0")

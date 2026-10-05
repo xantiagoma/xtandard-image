@@ -1,0 +1,2673 @@
+{
+  "ac_aac": {
+    "path": "/demo/video/upload/ac_aac/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "AudioCodec": "aac"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "ac_bad": {
+    "error": {
+      "field": "ac",
+      "kind": "invalid_url",
+      "public": "invalid ac: expected none, aac, mp3, opus or vorbis, holdable by the output format",
+      "status": 400
+    },
+    "path": "/demo/video/upload/ac_flac/dog.mp4"
+  },
+  "ac_mp3_audio": {
+    "path": "/demo/video/upload/ac_mp3/dog.mp3",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp3"
+      },
+      "Video": {
+        "AudioCodec": "mp3",
+        "Container": "mp3"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp3"
+  },
+  "ac_none": {
+    "path": "/demo/video/upload/ac_none/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Mute": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "ac_none_audio_only": {
+    "error": {
+      "field": "ac",
+      "kind": "invalid_url",
+      "public": "invalid ac: expected an audio codec for audio-only output",
+      "status": 400
+    },
+    "path": "/demo/video/upload/ac_none/dog.mp3"
+  },
+  "ac_opus_mp4": {
+    "error": {
+      "field": "ac",
+      "kind": "invalid_url",
+      "public": "invalid ac: expected none, aac, mp3, opus or vorbis, holdable by the output format",
+      "status": 400
+    },
+    "path": "/demo/video/upload/ac_opus/dog.mp4"
+  },
+  "ac_vorbis": {
+    "path": "/demo/video/upload/ac_vorbis/dog.webm",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "ac_vorbis",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.webm"
+      },
+      "Video": {
+        "AudioCodec": "opus",
+        "Container": "webm"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.webm"
+  },
+  "af": {
+    "path": "/demo/video/upload/af_22050/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "af",
+          "Reason": "M5 (WP-123)"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "ar_alone": {
+    "path": "/demo/video/upload/ar_1:1,c_fill/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "ar",
+          "Reason": "needs the source size or duration"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "ar_decimal": {
+    "path": "/demo/video/upload/ar_1.0,c_fill,h_300/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Fit": "cover",
+        "Height": 300,
+        "Width": 300
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "ar_fill": {
+    "path": "/demo/video/upload/ar_16:9,c_fill,w_400/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Fit": "cover",
+        "Height": 225,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "authenticated_unsigned": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "signature required",
+      "status": 403
+    },
+    "path": "/demo/video/authenticated/w_100/dog.mp4"
+  },
+  "br_250k": {
+    "path": "/demo/video/upload/br_250k/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "MaxBitrate": 250000
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "br_2m_constant": {
+    "path": "/demo/video/upload/br_2m:constant/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "br",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "MaxBitrate": 2000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "br_low": {
+    "error": {
+      "field": "br",
+      "kind": "invalid_url",
+      "public": "invalid br: expected bits per second, optionally with k or m (500k, 2m)",
+      "status": 400
+    },
+    "path": "/demo/video/upload/br_10/dog.mp4"
+  },
+  "br_plain": {
+    "path": "/demo/video/upload/br_800000/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "MaxBitrate": 800000
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "combined": {
+    "path": "/demo/video/upload/so_2,du_5/c_fill,g_north,w_640,h_360/q_auto:good,vc_h264,ac_aac,br_1m,fps_30/v1700000000/folder/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "folder/dog.mp4"
+      },
+      "Video": {
+        "AudioCodec": "aac",
+        "Duration": 5000000000,
+        "FPS": 30,
+        "Fit": "cover",
+        "Gravity": "north",
+        "Height": 360,
+        "MaxBitrate": 1000000,
+        "Quality": 65,
+        "Start": 2000000000,
+        "VideoCodec": "h264",
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "folder/dog.mp4"
+  },
+  "crop_center": {
+    "path": "/demo/video/upload/c_crop,h_100,w_100/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Crop": {
+          "Gravity": "center",
+          "Height": 100,
+          "Width": 100
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "crop_gravity": {
+    "path": "/demo/video/upload/c_crop,g_north,h_200,w_300/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Crop": {
+          "Gravity": "north",
+          "Height": 200,
+          "Width": 300
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "crop_mode_bad": {
+    "error": {
+      "field": "c",
+      "kind": "invalid_url",
+      "public": "invalid c: expected crop mode (scale, fit, limit, mfit, fill, lfill, fill_pad, pad, lpad, mpad, crop, thumb, auto, auto_pad)",
+      "status": 400
+    },
+    "path": "/demo/video/upload/c_wobble,w_100/dog.mp4"
+  },
+  "crop_one_side": {
+    "path": "/demo/video/upload/c_crop,w_100/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "c_crop",
+          "Reason": "needs the source size or duration"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "crop_then_scale": {
+    "path": "/demo/video/upload/c_crop,h_400,w_400/c_scale,w_200/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Crop": {
+          "Gravity": "center",
+          "Height": 400,
+          "Width": 400
+        },
+        "Width": 200
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "crop_xy": {
+    "path": "/demo/video/upload/c_crop,h_100,w_100,x_20,y_40/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Crop": {
+          "Height": 100,
+          "Width": 100,
+          "X": 20,
+          "Y": 40
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "default_scale_wh": {
+    "path": "/demo/video/upload/w_400,h_200/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Fit": "fill",
+        "Height": 200,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "dpr": {
+    "path": "/demo/video/upload/dpr_2.0,c_scale,w_300/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Width": 600
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "dpr_auto": {
+    "path": "/demo/video/upload/dpr_auto,w_300/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "dpr_auto",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Width": 300
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "effect_reverse": {
+    "path": "/demo/video/upload/e_reverse/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_reverse",
+          "Reason": "unsupported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "effect_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported option",
+      "status": 400
+    },
+    "path": "/demo/video/upload/e_boomerang/dog.mp4"
+  },
+  "expression_width": {
+    "path": "/demo/video/upload/w_iw_div_2/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "w",
+          "Reason": "needs the source size or duration"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "ext_jpg_thumbnail": {
+    "path": "/demo/video/upload/so_2/dog.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Video": {
+            "Second": 2
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.jpg"
+  },
+  "ext_m4a": {
+    "path": "/demo/video/upload/dog.m4a",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.m4a"
+      },
+      "Video": {
+        "Container": "m4a"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.m4a"
+  },
+  "ext_mov": {
+    "path": "/demo/video/upload/dog.mov",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "f_mov",
+          "Reason": "unsupported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mov"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mov"
+  },
+  "ext_mov_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported option",
+      "status": 400
+    },
+    "path": "/demo/video/upload/dog.mov"
+  },
+  "ext_mp3": {
+    "path": "/demo/video/upload/dog.mp3",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp3"
+      },
+      "Video": {
+        "Container": "mp3"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp3"
+  },
+  "ext_ogg": {
+    "path": "/demo/video/upload/dog.ogg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "f_ogg",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.ogg"
+      },
+      "Video": {
+        "Container": "opus"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.ogg"
+  },
+  "ext_webm": {
+    "path": "/demo/video/upload/dog.webm",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.webm"
+      },
+      "Video": {
+        "Container": "webm"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.webm"
+  },
+  "f_auto": {
+    "path": "/demo/video/upload/f_auto/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "f_auto_h264": {
+    "path": "/demo/video/upload/f_auto,vc_h264/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "VideoCodec": "h264"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "f_auto_jpg_thumbnail": {
+    "path": "/demo/video/upload/so_3,f_auto/dog.jpg",
+    "request": {
+      "Dialect": "cloudinary",
+      "Pipelines": [
+        {
+          "Video": {
+            "Second": 3
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.jpg"
+  },
+  "f_auto_q_auto": {
+    "path": "/demo/video/upload/f_auto,q_auto/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Quality": 65
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "f_auto_vp9": {
+    "path": "/demo/video/upload/f_auto,vc_vp9/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Container": "webm",
+        "VideoCodec": "vp9"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "f_bad": {
+    "error": {
+      "field": "f",
+      "kind": "invalid_url",
+      "public": "invalid f: expected auto, mp4, webm, m4a, mp3, ogg, opus or an image format",
+      "status": 400
+    },
+    "path": "/demo/video/upload/f_xyz/dog.mp4"
+  },
+  "f_jpg_thumbnail": {
+    "path": "/demo/video/upload/so_2,f_jpg/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Video": {
+            "Second": 2
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "f_m3u8": {
+    "path": "/demo/video/upload/sp_hd/f_m3u8/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "sp",
+          "Reason": "M5 (WP-126)"
+        },
+        {
+          "Option": "f_m3u8",
+          "Reason": "M5 (WP-126)"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "f_m4a": {
+    "path": "/demo/video/upload/f_m4a/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Container": "m4a"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "f_mp3": {
+    "path": "/demo/video/upload/f_mp3/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Container": "mp3"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "f_opus": {
+    "path": "/demo/video/upload/f_opus/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Container": "opus"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "f_wav": {
+    "path": "/demo/video/upload/f_wav/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "f_wav",
+          "Reason": "M5 (WP-123)"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "f_webm": {
+    "path": "/demo/video/upload/f_webm/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Container": "webm"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "fade": {
+    "path": "/demo/video/upload/e_fade:2000/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_fade",
+          "Reason": "M5 (WP-123)"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "fetch": {
+    "path": "/demo/video/fetch/w_300,f_webm/https://example.com/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/dog.mp4"
+      },
+      "Video": {
+        "Container": "webm",
+        "Width": 300
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/dog.mp4"
+  },
+  "fetch_auto": {
+    "path": "/demo/video/fetch/so_3,f_auto/https://example.com/dog.webm",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/dog.webm"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Start": 3000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/dog.webm"
+  },
+  "fill": {
+    "path": "/demo/video/upload/c_fill,h_250,w_250/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Fit": "cover",
+        "Height": 250,
+        "Width": 250
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "fill_auto_gravity": {
+    "path": "/demo/video/upload/c_fill,g_auto,h_250,w_250/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "g_auto",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Fit": "cover",
+        "Height": 250,
+        "Width": 250
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "fill_gravity": {
+    "path": "/demo/video/upload/c_fill,g_south_east,h_250,w_250/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Fit": "cover",
+        "Gravity": "south-east",
+        "Height": 250,
+        "Width": 250
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "fill_one_side": {
+    "path": "/demo/video/upload/c_fill,w_250/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Width": 250
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "fit": {
+    "path": "/demo/video/upload/c_fit,w_400,h_400/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Height": 400,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "fl_attachment": {
+    "path": "/demo/video/upload/fl_attachment:my_clip/dog.mp4",
+    "request": {
+      "Delivery": {
+        "Attachment": true,
+        "Filename": "my_clip"
+      },
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "fl_keep_dar": {
+    "path": "/demo/video/upload/fl_keep_dar,w_300/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Width": 300
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "fl_lossy": {
+    "path": "/demo/video/upload/fl_lossy/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "fl_lossy",
+          "Reason": "not applicable to video"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "fl_splice": {
+    "path": "/demo/video/upload/fl_splice,l_video:kitten/fl_layer_apply/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "fl_splice",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "l_video",
+          "Reason": "M5 (WP-124)"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "fl_unknown": {
+    "path": "/demo/video/upload/fl_sparkles/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "fl_sparkles",
+          "Reason": "unknown option"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "fl_waveform": {
+    "path": "/demo/video/upload/fl_waveform/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "fl_waveform",
+          "Reason": "M5 (WP-123)"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "fps_15": {
+    "path": "/demo/video/upload/fps_15/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "FPS": 15
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "fps_bad": {
+    "error": {
+      "field": "fps",
+      "kind": "invalid_url",
+      "public": "invalid fps: expected frames per second (1-240) or a range min-max",
+      "status": 400
+    },
+    "path": "/demo/video/upload/fps_500/dog.mp4"
+  },
+  "fps_min": {
+    "path": "/demo/video/upload/fps_25-/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "fps",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "fps_range": {
+    "path": "/demo/video/upload/fps_20-30/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "fps",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "FPS": 30
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "gravity_bad": {
+    "path": "/demo/video/upload/c_fill,g_up,w_10,h_10/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "g_up",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Fit": "cover",
+        "Height": 10,
+        "Width": 10
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "if": {
+    "path": "/demo/video/upload/if_du_gt_10,du_10/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "if",
+          "Reason": "unsupported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Duration": 10000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "lfill": {
+    "path": "/demo/video/upload/c_lfill,h_250,w_250/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "c_lfill",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Fit": "cover",
+        "Height": 250,
+        "Width": 250
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "limit": {
+    "path": "/demo/video/upload/c_limit,w_500/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Width": 500
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "named": {
+    "path": "/demo/video/upload/t_thumb/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "t",
+          "Reason": "unsupported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "no_extension": {
+    "path": "/demo/video/upload/dog",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog"
+  },
+  "only_presets": {
+    "config": "only",
+    "error": {
+      "kind": "forbidden",
+      "public": "only presets are allowed",
+      "status": 403
+    },
+    "path": "/demo/video/upload/w_100/dog.mp4"
+  },
+  "overlay_image": {
+    "path": "/demo/video/upload/l_cloudinary_icon,w_100/fl_layer_apply,g_north_east/w_640/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "l_cloudinary_icon",
+          "Reason": "M5 (WP-124)"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "overlay_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported option",
+      "status": 400
+    },
+    "path": "/demo/video/upload/l_cloudinary_icon/dog.mp4"
+  },
+  "overlay_text": {
+    "path": "/demo/video/upload/l_text:arial_40:Hello,co_white/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "l_text",
+          "Reason": "M5 (WP-124)"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "pad": {
+    "path": "/demo/video/upload/c_pad,h_320,w_480,b_black/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Background": {
+          "A": 255
+        },
+        "Fit": "pad",
+        "Height": 320,
+        "Width": 480
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "pad_background_component": {
+    "path": "/demo/video/upload/c_pad,h_320,w_480/b_rgb:ff0000/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Background": {
+          "A": 255,
+          "R": 255
+        },
+        "Fit": "pad",
+        "Height": 320,
+        "Width": 480
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "pad_blurred": {
+    "path": "/demo/video/upload/c_pad,h_320,w_480,b_blurred/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "b_blurred",
+          "Reason": "unsupported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Fit": "pad",
+        "Height": 320,
+        "Width": 480
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "plain_mp4": {
+    "path": "/demo/video/upload/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "private_cdn": {
+    "path": "/video/upload/w_100/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "mounted",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Width": 100
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "q_70": {
+    "path": "/demo/video/upload/q_70/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Quality": 70
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "q_auto_eco": {
+    "path": "/demo/video/upload/q_auto:eco/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Quality": 50
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "q_bad": {
+    "error": {
+      "field": "q",
+      "kind": "invalid_url",
+      "public": "invalid q: expected 1-100 or auto[:best|good|eco|low]",
+      "status": 400
+    },
+    "path": "/demo/video/upload/q_auto:great/dog.mp4"
+  },
+  "q_qmax": {
+    "path": "/demo/video/upload/q_70:qmax_80/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "q",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Quality": 70
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "relative_width": {
+    "path": "/demo/video/upload/w_0.5/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "w",
+          "Reason": "needs the source size or duration"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "rotate_45": {
+    "path": "/demo/video/upload/a_45/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "a",
+          "Reason": "unsupported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "rotate_90": {
+    "path": "/demo/video/upload/a_90/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Rotate": 90
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "rotate_bad": {
+    "error": {
+      "field": "a",
+      "kind": "invalid_url",
+      "public": "invalid a: expected 0, 90, 180, 270 (or negative), hflip or vflip",
+      "status": 400
+    },
+    "path": "/demo/video/upload/a_left/dog.mp4"
+  },
+  "rotate_flips": {
+    "path": "/demo/video/upload/a_hflip/a_vflip/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "FlipH": true,
+        "FlipV": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "rotate_negative": {
+    "path": "/demo/video/upload/a_-90/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Rotate": 270
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "scale_then_crop": {
+    "path": "/demo/video/upload/c_scale,w_200/c_crop,h_100,w_100/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "c_crop",
+          "Reason": "unsupported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Width": 200
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "scale_twice": {
+    "path": "/demo/video/upload/c_scale,w_200/c_fit,w_300,h_300/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "c_fit",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Height": 300,
+        "Width": 300
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "scale_w": {
+    "path": "/demo/video/upload/c_scale,w_400/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "scale_wh": {
+    "path": "/demo/video/upload/c_scale,w_400,h_200/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Fit": "fill",
+        "Height": 200,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "signed": {
+    "config": "signed",
+    "path": "/demo/video/upload/s--B11zBYPy--/c_fill,h_250,w_250/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Fit": "cover",
+        "Height": 250,
+        "Width": 250
+      }
+    },
+    "signature": "verified",
+    "source": "dog.mp4"
+  },
+  "signed_tampered": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/demo/video/upload/s--B11zBYPy--/c_fill,h_260,w_250/dog.mp4"
+  },
+  "streaming_profile": {
+    "path": "/demo/video/upload/sp_hd/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "sp",
+          "Reason": "M5 (WP-126)"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "trim_bad": {
+    "error": {
+      "field": "so",
+      "kind": "invalid_url",
+      "public": "invalid so: expected seconds (a non-negative number)",
+      "status": 400
+    },
+    "path": "/demo/video/upload/so_soon/dog.mp4"
+  },
+  "trim_du": {
+    "path": "/demo/video/upload/du_10/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Duration": 10000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "trim_eo_before_so": {
+    "error": {
+      "field": "eo",
+      "kind": "invalid_url",
+      "public": "invalid eo: expected a time after so_",
+      "status": 400
+    },
+    "path": "/demo/video/upload/so_5,eo_2/dog.mp4"
+  },
+  "trim_eo_du": {
+    "path": "/demo/video/upload/so_1,eo_5,du_3/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "du",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "End": 5000000000,
+        "Start": 1000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "trim_negative": {
+    "error": {
+      "field": "du",
+      "kind": "invalid_url",
+      "public": "invalid du: expected seconds (a non-negative number)",
+      "status": 400
+    },
+    "path": "/demo/video/upload/du_-1/dog.mp4"
+  },
+  "trim_percent": {
+    "path": "/demo/video/upload/so_10p,du_30p/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "so",
+          "Reason": "needs the source size or duration"
+        },
+        {
+          "Option": "du",
+          "Reason": "needs the source size or duration"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "trim_percent_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported option",
+      "status": 400
+    },
+    "path": "/demo/video/upload/so_10p/dog.mp4"
+  },
+  "trim_so_auto": {
+    "path": "/demo/video/upload/so_auto/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "so_auto",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "trim_so_du": {
+    "path": "/demo/video/upload/so_6.5,du_4/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Duration": 4000000000,
+        "Start": 6500000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "trim_so_eo": {
+    "path": "/demo/video/upload/so_6.5,eo_10/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "End": 10000000000,
+        "Start": 6500000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "underlay": {
+    "path": "/demo/video/upload/u_bg/fl_layer_apply/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "u",
+          "Reason": "M5 (WP-124)"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "unknown_key": {
+    "path": "/demo/video/upload/zz_1,w_100/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "zz",
+          "Reason": "unknown option"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Width": 100
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "unknown_key_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/demo/video/upload/zz_1,w_100/dog.mp4"
+  },
+  "variable": {
+    "path": "/demo/video/upload/$w_300,w_$w/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "$w",
+          "Reason": "unsupported"
+        },
+        {
+          "Option": "w",
+          "Reason": "unsupported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "vc_auto": {
+    "path": "/demo/video/upload/vc_auto/dog.webm",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.webm"
+      },
+      "Video": {
+        "Container": "webm"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.webm"
+  },
+  "vc_av1": {
+    "path": "/demo/video/upload/vc_av1/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "VideoCodec": "av1"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "vc_bad": {
+    "error": {
+      "field": "vc",
+      "kind": "invalid_url",
+      "public": "invalid vc: expected auto, h264, h265, vp9, av1 or none, holdable by the output format",
+      "status": 400
+    },
+    "path": "/demo/video/upload/vc_mpeg2/dog.mp4"
+  },
+  "vc_h264_profile": {
+    "path": "/demo/video/upload/vc_h264:baseline:3.1/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "vc",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "VideoCodec": "h264"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "vc_h265": {
+    "path": "/demo/video/upload/vc_h265/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "VideoCodec": "hevc"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "vc_none": {
+    "path": "/demo/video/upload/vc_none/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Container": "m4a"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "vc_none_auto": {
+    "path": "/demo/video/upload/vc_none,f_auto/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Container": "m4a"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "vc_none_mp3": {
+    "path": "/demo/video/upload/vc_none,ac_mp3/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "AudioCodec": "mp3",
+        "Container": "mp3"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "vc_none_webm": {
+    "path": "/demo/video/upload/vc_none/dog.webm",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.webm"
+      },
+      "Video": {
+        "Container": "opus"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.webm"
+  },
+  "vc_on_audio": {
+    "path": "/demo/video/upload/vc_h264/dog.m4a",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "vc",
+          "Reason": "not applicable to video"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.m4a"
+      },
+      "Video": {
+        "Container": "m4a"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.m4a"
+  },
+  "vc_prores": {
+    "path": "/demo/video/upload/vc_prores/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "vc_prores",
+          "Reason": "unsupported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "vc_vp9_mp4": {
+    "error": {
+      "field": "vc",
+      "kind": "invalid_url",
+      "public": "invalid vc: expected auto, h264, h265, vp9, av1 or none, holdable by the output format",
+      "status": 400
+    },
+    "path": "/demo/video/upload/vc_vp9/dog.mp4"
+  },
+  "vc_vp9_webm": {
+    "path": "/demo/video/upload/vc_vp9/dog.webm",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.webm"
+      },
+      "Video": {
+        "Container": "webm",
+        "VideoCodec": "vp9"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.webm"
+  },
+  "volume_bad": {
+    "error": {
+      "field": "e_volume",
+      "kind": "invalid_url",
+      "public": "invalid e_volume: expected mute, a percentage -100..400 or \u003cn\u003edb",
+      "status": 400
+    },
+    "path": "/demo/video/upload/e_volume:loud/dog.mp4"
+  },
+  "volume_db": {
+    "path": "/demo/video/upload/e_volume:-10dB/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_volume",
+          "Reason": "M5 (WP-123)"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "volume_mute": {
+    "path": "/demo/video/upload/e_volume:mute/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Mute": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "volume_percent": {
+    "path": "/demo/video/upload/e_volume:50/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "e_volume",
+          "Reason": "M5 (WP-123)"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "volume_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported option",
+      "status": 400
+    },
+    "path": "/demo/video/upload/e_volume:50/dog.mp4"
+  },
+  "width_bad": {
+    "error": {
+      "field": "w",
+      "kind": "invalid_url",
+      "public": "invalid w: expected integer pixels \u003e 0",
+      "status": 400
+    },
+    "path": "/demo/video/upload/w_0/dog.mp4"
+  }
+}
