@@ -4,13 +4,15 @@ package acceptance
 
 import (
 	"bytes"
+	"encoding/base64"
 	"net/http"
 	"os"
 	"strings"
 	"testing"
 )
 
-// TestVideoTransform: video transformations and audio (WP-122, WP-123)
+// TestVideoTransform: video transformations, overlays and audio (WP-122,
+// WP-123, WP-124)
 // against the image under test. scripts/acceptance.sh enables them
 // (XI_ACC_VIDEO=true) on an image with FFmpeg (full, gpl); there signed
 // /video and /q/video URLs transcode, cut ranges and draw waveforms, and
@@ -44,6 +46,8 @@ func TestVideoTransform(t *testing.T) {
 		{"mp3 loudnorm", "/ln:1/vd:2/plain/local:///audio/tones-stereo.mp3@mp3", "audio/mpeg", nil, 0},
 		{"flac", "/vol:-6dB/plain/local:///audio/tones-stereo.mp3@flac", "audio/flac", []byte("fLaC"), 0},
 		{"wav", "/sr:8000/vd:1/plain/local:///audio/tones-stereo.mp3@wav", "audio/wav", []byte("RIFF"), 0},
+		{"image overlay with a window", "/w:320/vd:1/wm:0.8:soea:8:8/wmu:" + base64.RawURLEncoding.EncodeToString([]byte("local:///watermark/badge.png")) +
+			"/wms:48:0/ow:0.2:0.8/of:0.1:0.1/tc:hms" + clip + "@webm", "video/webm", []byte{0x1a, 0x45, 0xdf, 0xa3}, 0},
 		{"waveform png", "/wf:1:2266cc:ffffff/w:400/h:100/plain/local:///audio/tones-stereo.mp3@png", "image/png", []byte("\x89PNG"), 0},
 	} {
 		t.Run(c.name, func(t *testing.T) {

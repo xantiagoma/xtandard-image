@@ -32,6 +32,8 @@ func TestVideoKeys(t *testing.T) {
 		v("audio", "&f=mp3&sr=44100&ach=1&vol=-6dB&ln=1,-16,-1.5,11&fade=1,2"),
 		v("waveform", "&waveform=1,2266cc,ffffff,1&w=800&h=200&f=webp"),
 		v("o_path", "&o=rs:fill:320:180/vd:2"),
+		v("overlay", "&wm=0.8,soea,8,8&wmu=eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n&wms=48&ow=0.3,0.7&of=0.1,0.1&tc=hms,sowe,8,8,20"),
+		v("overlay_o_path", "&o=wm:1:nowe:6:6/wmt:PGI-aGk8L2I-/ow:0.2"),
 		v("cb_attachment_filename", "&cb=2&attachment=1&filename=clip"),
 		v("unknown_key", "&blur=5"),
 		{name: "unknown_key_strict", cfg: "strict", path: "/video", query: vsrc + "&blur=5"},

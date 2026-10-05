@@ -338,7 +338,7 @@ func TestTransformWaveform(t *testing.T) {
 	}
 	e.in = video.TranscodeInput{Duration: 4, Audio: true, AudioDecodable: true, SampleRate: 44100, Channels: 2}
 	op := &transform.VideoOp{Container: transform.VideoContainerPNG, Width: 400, Height: 100, Waveform: &transform.VideoWaveform{}}
-	res, err := s.Transform(t.Context(), "w", newBuf("audio"), op)
+	res, err := s.Transform(t.Context(), "w", newBuf("audio"), op, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

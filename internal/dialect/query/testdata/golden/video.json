@@ -336,6 +336,97 @@
     "signature": "unsigned",
     "source": "https://example.com/clip.mov"
   },
+  "overlay": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026wm=0.8,soea,8,8\u0026wmu=eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n\u0026wms=48\u0026ow=0.3,0.7\u0026of=0.1,0.1\u0026tc=hms,sowe,8,8,20",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Overlays": [
+          {
+            "End": 700000000,
+            "FadeIn": 100000000,
+            "FadeOut": 100000000,
+            "Start": 300000000,
+            "Watermark": {
+              "Opacity": 0.8,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 8,
+                "YOffset": 8
+              },
+              "Source": {
+                "Encoding": "base64",
+                "Raw": "xi://fixtures/watermark/badge.png"
+              },
+              "Width": 48
+            }
+          },
+          {
+            "Timecode": "hms",
+            "TimecodeSize": 20,
+            "Watermark": {
+              "Color": {
+                "A": 255,
+                "B": 255,
+                "G": 255,
+                "R": 255
+              },
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-west",
+                "XOffset": 8,
+                "YOffset": 8
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "overlay_o_path": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026o=wm:1:nowe:6:6/wmt:PGI-aGk8L2I-/ow:0.2",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Overlays": [
+          {
+            "Start": 200000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 6,
+                "YOffset": 6
+              },
+              "Text": "\u003cb\u003ehi\u003c/b\u003e"
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
   "pdf_password_refused": {
     "path": "/video",
     "query": "url=https://example.com/clip.mov\u0026pdp=abc",
