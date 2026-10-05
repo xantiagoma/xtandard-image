@@ -68,6 +68,9 @@ type imageResult struct {
 	// stored is the cached entry's header of a result-cache hit (cache.go);
 	// nil for a response produced now.
 	stored http.Header
+	// mediaType is the Content-Type known before the body exists (a video
+	// transformation's resolved container, for HEAD); "" for images.
+	mediaType string
 }
 
 // containerSource is the X-Xi-Container-Source value: the container the
@@ -86,6 +89,9 @@ func (res *imageResult) containerSource() string {
 func (res *imageResult) contentType() string {
 	if res.out != nil && res.out.ContentType != "" {
 		return res.out.ContentType
+	}
+	if res.mediaType != "" {
+		return res.mediaType
 	}
 	return negotiate.ContentType(res.format)
 }

@@ -32,6 +32,7 @@ type Request struct {
 	ClientHints ClientHints    // which client hints this URL opts into; the server resolves them before CanonicalKey
 	Limits      LimitOverrides // honoured only with XI_SECURITY_ALLOW_SECURITY_OPTIONS
 	Info        *InfoOptions   // Kind == KindInfo
+	Video       *VideoOp       // Kind == KindVideo
 	Ignored     []Ignored      `key:"-"` // options understood syntactically but not applied (debug header)
 }
 

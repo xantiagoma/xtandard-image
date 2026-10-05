@@ -306,6 +306,8 @@ func (g *schemaGen) typeSchema(t reflect.Type, path string, def reflect.Value) j
 		return enumSchema(unsignedPolicies())
 	case reflect.TypeFor[SourceType]():
 		return enumSchema(sourceTypes())
+	case reflect.TypeFor[Role]():
+		return enumSchema(roles())
 	case reflect.TypeFor[LogLevel]():
 		return enumSchema(logLevels())
 	case reflect.TypeFor[Normalization]():

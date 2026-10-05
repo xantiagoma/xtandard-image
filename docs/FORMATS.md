@@ -110,7 +110,7 @@ Input only (§5); the items of the WP-108 proposal in `docs/research/format-gap.
 
 ### 1.5 Video thumbnails (WP-74)
 
-A frame of a video becomes the image, which the pipeline then processes like any still (imgproxy Pro's video thumbnails). Only the `full` image decodes video; the design is ADR 0010.
+A frame of a video becomes the image, which the pipeline then processes like any still (imgproxy Pro's video thumbnails). Only the `full` image decodes video; the design is ADR 0010. Video → video and video → audio transformations are M5 (§5.2, ADR 0012).
 
 - **Availability.** `internal/video/ffmpeg` is built against FFmpeg with the build tag `ffmpeg` (the full image, `-tags ffmpeg`); without it the same API answers `Unsupported`. `XI_VIDEO_ENABLED=auto` (default) decodes video when the build can; `true` fails startup without FFmpeg; `false` refuses video everywhere. A video on the slim image, or with video off, is 422 `unsupported` with the public message "video sources are not supported by this image" (or "… are disabled"), never a crash or "unrecognised format".
 - **Reading the source.** The bytes stay in the C memory of the fetched buffer and FFmpeg reads them through a custom `AVIOContext` (no temporary file, no protocol: QuickTime references and playlists cannot open anything). Demuxers are limited to `mov`, `matroska` and `avi`, decoders to `h264`, `hevc`, `vp8`, `vp9`, `libdav1d` (AV1), `mpeg4`, `mjpeg`, `png` and `rawvideo`. Every decoder runs single-threaded (parallelism comes from the worker semaphore) with `max_pixels` = `XI_VIDEO_MAX_PIXELS`.
@@ -352,6 +352,10 @@ single-threaded in their realtime modes. With the ffprobe tests: the 6-frame 96�
 and a 4530-byte HEVC MP4 (gpl), all 6 frames and 0.600 s long.
 - The `gpl` flavor exists for these encoders only. Its licensing and patent caveats are in
   `docker/base/README.md` and the image's `/opt/xtandard/share/licenses/LICENSE-GPL.md`.
+
+### 5.2 Video transformations (M5, planned)
+
+Transforming a video into a video or an audio file (trim, resize/crop/fit, fps, rotate, bitrate, MP4/WebM, mute, M4A/MP3/Opus audio-only, watermarks, then HLS/DASH with just-in-time segments) is M5 work in a separate subsystem with its own worker pool and limits, off by default and in the `full`/`gpl` images only: design in [ADR 0012](adr/0012-video-transformations.md), work packages WP-121 to WP-127 in [ROADMAP](ROADMAP.md#m5-video-transformations). The base images already carry what it needs (WP-120): libswresample, the common audio decoders, the AAC (native), Opus (libopus), MP3 (LAME) and FLAC encoders, the M4A/MPEG-TS/HLS/DASH/MP3/Ogg/ADTS/WAV/FLAC muxers and the filters (`docker/base/README.md`, Full flavor). Until those WPs land, the outputs of this section (§5.1) are the only video outputs.
 
 ## 6. Format negotiation and best-format
 

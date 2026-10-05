@@ -278,6 +278,18 @@ linters:
             - pkg: github.com/xantiagoma/xtandard-image/internal/vips
               desc: internal/video is pure Go; decoding lives in internal/video/ffmpeg (ADR 0010)
 
+        # ADR 0012: internal/media (video transformations) is pure Go; FFmpeg
+        # is reached through its Engine, which app implements.
+        media:
+          files: ["**/internal/media/**"]
+          deny:
+            - pkg: github.com/xantiagoma/xtandard-image/internal/vips
+              desc: internal/media is pure Go; app adapts internal/video/ffmpeg to media.Engine (ADR 0012)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/video/ffmpeg
+              desc: internal/media is pure Go; app adapts internal/video/ffmpeg to media.Engine (ADR 0012)
+            - pkg: github.com/xantiagoma/xtandard-image/internal/server
+              desc: the server consumes media through server.VideoTransformer (ARCHITECTURE §3)
+
         # ARCHITECTURE §3: only cmd imports the composition root.
         app-only-from-cmd:
           files: ["**/internal/**", "!**/internal/app/**"]

@@ -1,7 +1,8 @@
 # shellcheck shell=bash
 # Pinned versions and SHA256 checksums of the components that only the `full`
-# flavor adds on top of slim (WP-70): FFmpeg (LGPL, video only), libvpx, ONNX Runtime
-# (prebuilt, CPU only) and the detection and classification models.
+# flavor adds on top of slim (WP-70): FFmpeg (LGPL; video, and audio since WP-120),
+# libvpx, libopus, LAME, ONNX Runtime (prebuilt, CPU only) and the detection and
+# classification models.
 #
 # Kept apart from versions.sh so that pinning or bumping a full-only component never
 # invalidates the slim build (the slim stages COPY versions.sh, not this file).
@@ -9,8 +10,10 @@
 # Forbidden components are listed in check-licenses.sh (ADR 0006); never add them here.
 
 # Revision of the full flavor. Its tag is <VIPS_VERSION>-r<XI_BASE_FULL_REVISION>-full.
-# Full r8 = slim r7 (versions.sh XI_BASE_REVISION) + the components below.
-export XI_BASE_FULL_REVISION=8
+# Full r9 = slim r7 (versions.sh XI_BASE_REVISION) + the components below
+# (r9: FFmpeg audio, libswresample, libopus, LAME and the video-transformation
+# muxers and filters, WP-120, ADR 0012).
+export XI_BASE_FULL_REVISION=9
 
 # --- Video (FFmpeg under LGPL-2.1+, GPL and nonfree parts disabled) ---------------
 # AV1 is decoded by dav1d and encoded by libaom; both are already built for slim
@@ -19,6 +22,17 @@ export LIBVPX_VERSION=1.17.0
 export LIBVPX_SHA256=1020f184046187baa2985dbde38e0691f49c44088bca7a1842b0236c6081dc0a
 export FFMPEG_VERSION=8.1.3
 export FFMPEG_SHA256=7138d28c96d9d3e3af4ee3d8cad72741f8ffb40da90c1112235dea3ecd3178a3
+
+# --- Audio encoders for FFmpeg (WP-120, ADR 0012) ----------------------------------
+# AAC is FFmpeg's native encoder and FLAC/PCM are native too; these two add Opus and
+# MP3. libopus is BSD-3-Clause (Xiph release tarball; the SHA256 matches the release
+# SHA256SUMS.txt). LAME is LGPL-2.0-or-later, built as the library only (no frontend,
+# no mpglib decoder; FFmpeg decodes MP3 natively); 3.100 is its last release (2017),
+# fetched from SourceForge (the SHA256 is Debian's lame_3.100.orig.tar.gz).
+export OPUS_VERSION=1.6.1
+export OPUS_SHA256=6ffcb593207be92584df15b32466ed64bbec99109f007c82205f0194572411a1
+export LAME_VERSION=3.100
+export LAME_SHA256=ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e
 
 # --- ONNX Runtime (MIT), official prebuilt release, CPU execution provider ---------
 export ONNXRUNTIME_VERSION=1.30.0

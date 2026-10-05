@@ -1,6 +1,7 @@
 //go:build ffmpeg && cgo
 
 #include "shim.h"
+#include "internal.h"
 
 #include <math.h>
 #include <pthread.h>
@@ -189,7 +190,7 @@ xi_ff_code(XiFF *h, int averr)
 
 // Rotation (clockwise, after the mirror) and mirror of a display matrix,
 // the way fftools/ffmpeg applies them.
-static void
+void
 xi_ff_display(const AVCodecParameters *par, int *rotation, int *hflip)
 {
   *rotation = 0;

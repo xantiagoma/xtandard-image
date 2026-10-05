@@ -99,6 +99,8 @@ type Metrics struct {
 	rawDecodes *prometheus.CounterVec
 
 	detectDuration *prometheus.HistogramVec
+
+	video *videoMetrics
 }
 
 // New builds the metric set on a fresh private registry, including the Go
@@ -110,7 +112,8 @@ func New(opts Options) (*Metrics, error) {
 	}
 
 	m := &Metrics{
-		reg: prometheus.NewRegistry(),
+		reg:   prometheus.NewRegistry(),
+		video: newVideoMetrics(),
 		requests: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: Namespace,
 			Name:      "requests_total",
@@ -236,6 +239,7 @@ func New(opts Options) (*Metrics, error) {
 		collectors.NewGoCollector(),
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 	}
+	cs = append(cs, m.video.collectors()...)
 	if opts.Vips != nil {
 		cs = append(cs, vipsGauges(opts.Vips)...)
 	}
