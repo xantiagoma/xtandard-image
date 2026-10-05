@@ -50,6 +50,7 @@ The xtandard-image column is the state as of 2026-09-28: **done (M1)** / **done 
 | GIF → MP4/WebM | done (M3: WebM/VP9 and AV1-in-MP4 in `full`, H.264 MP4 and HEVC in `gpl`) | no | paid (MP4) | no | no | no |
 | Video transformations (`/video` and `/q/video`: trim, resize/crop/pad with gravity, fps, rotate/flip, fades, CRF or bit-rate cap, keyframe interval, MP4/WebM, codec choice; `Range`; signed only by default) | done (M5, `full`/`gpl` image, `XI_VIDEO_TRANSFORM_ENABLED`) | no | — | no | no | no |
 | Audio (mute; M4A, MP3, Opus/Ogg, FLAC, WAV outputs from video or audio sources; sample rate, channels, volume, EBU R128 loudness normalisation, fades) and waveform pictures (PNG/WebP) | done (M5, `full`/`gpl` image) | no | — | no | no | no |
+| HLS and DASH (VOD): ABR ladders, CMAF segments transcoded on request with prefetch, signed manifests with ticketed child URLs (imgproxy `/video …@m3u8`, Cloudinary `sp_`, ImageKit `ik-master`) | done (M5, `full`/`gpl` image) | no | — | no | no | no |
 | **Processing** | | | | | | |
 | Resize, crop, gravity, smart crop, focus point (fractions or source pixels) | done (M1, M2) | yes | yes | yes | yes | yes |
 | Extend, padding, trim | done (M1) | yes | yes | — | — | — |
