@@ -246,3 +246,10 @@ owner has authorised merging PRs without review.
   with audio/filters/libopus/LAME/HLS muxers under `xtandard-base:wp120*`), WP-121 (core subsystem,
   transcode shim, Range serving, singleflight, role) building against wp120 bases when ready.
   Next: WP-122 options, WP-123 audio, WP-124 overlays, WP-125 dialects, WP-126 HLS/DASH, WP-127 playground.
+- **M5 foundation merged (#120):** WP-120 (ADR 0012, FFmpeg audio/filters/HLS muxers) + WP-121 (video
+  subsystem `internal/media`, transcode shim, Range, coalescing, `XI_ROLE`, `XI_VIDEO_TRANSFORM_*`,
+  unsigned video denied by default); bases slim r7 (unchanged), full r9, gpl r10 (local `dev-full*`,
+  `dev-gpl*`). Planned: WP-121b spool to disk, WP-121c cost-based admission. **In flight:** WP-122/123
+  (imgproxy/query video URL syntax + audio features, TS builder), WP-124 (image/text overlays on
+  video), WP-125 (Cloudinary/Cloudflare/ImageKit video dialects). Next: integrate these three, then
+  WP-126 (HLS/DASH), WP-127 (playground video tools), WP-121b/c.
