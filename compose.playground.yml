@@ -1,5 +1,6 @@
 # Local demo: every dialect mounted, every unpic provider, playground public, unsigned requests
-# allowed, repo fixtures as the `local` source and any http(s) URL through `web`.
+# allowed (video transformations too, demo only), repo fixtures as the `local` source and any
+# http(s) URL through `web`.
 # DEV ONLY (dev mode + open policy). Build the image first, e.g.
 #   XI_APP_BASE=xtandard-base:dev-gpl XI_IMAGE=xtandard-image:dev-gpl task release:build
 #   XI_IMAGE=xtandard-image:dev-gpl docker compose -f compose.playground.yml up -d
@@ -29,12 +30,16 @@ services:
       XI_DIALECTS_QUERY_ENABLED: "true"
       XI_DIALECTS_WSRV_ENABLED: "true"
       XI_DIALECTS_CLOUDFLARE_ENABLED: "true"
+      # Bound to the fixtures so /cdn-cgi/media/ (and /cdn-cgi/image/) address them by path; http(s)
+      # sources stay absolute URLs.
+      XI_DIALECTS_CLOUDFLARE_SOURCE: local
       XI_DIALECTS_CLOUDFLARE_IMAGES_ENABLED: "true"
       XI_DIALECTS_CLOUDFLARE_IMAGES_SOURCE: web
       XI_DIALECTS_IMGIX_ENABLED: "true"
       XI_DIALECTS_IMGIX_SOURCE: web
       XI_DIALECTS_CLOUDINARY_ENABLED: "true"
-      XI_DIALECTS_CLOUDINARY_SOURCE: web
+      # Public IDs are fixture keys (/video/upload/video/clip-av1.mp4); /fetch/ takes any http(s) URL.
+      XI_DIALECTS_CLOUDINARY_SOURCE: local
       XI_DIALECTS_IMAGEKIT_ENABLED: "true"
       # ImageKit addresses images by key, so it is bound to the fixtures (web has no base_url).
       XI_DIALECTS_IMAGEKIT_SOURCE: local
@@ -47,3 +52,20 @@ services:
       XI_DIALECTS_SIMPLE_SOURCE: web
       # gpl image only: EPS/PS/AI through the sandboxed Ghostscript subprocess (WP-99, ADR 0011)
       XI_FORMATS_EPS_ENABLED: "true"
+      # Video transformations (WP-121 to WP-127): /video, /q/video, Cloudinary /video/, ImageKit video
+      # files and /cdn-cgi/media/, with the playground's video mode. full and gpl images only (slim
+      # refuses to start with this on). DEMO ONLY: unsigned video transformations are allowed so the
+      # playground works without XI_SIGNING_KEYS; the default (deny) answers 403 to unsigned video
+      # URLs, and a public deployment must keep it (ADR 0012 §8).
+      XI_VIDEO_TRANSFORM_ENABLED: "true"
+      XI_VIDEO_TRANSFORM_UNSIGNED_POLICY: allow
+      # Demo limits: small clips, quick answers.
+      XI_VIDEO_TRANSFORM_WORKERS: "2"
+      XI_VIDEO_TRANSFORM_QUEUE: "8"
+      XI_VIDEO_TRANSFORM_TIMEOUT: 60s
+      XI_VIDEO_TRANSFORM_MAX_INPUT_BYTES: 128MiB
+      XI_VIDEO_TRANSFORM_MAX_INPUT_DURATION: 10m
+      XI_VIDEO_TRANSFORM_MAX_OUTPUT_DURATION: 60s
+      XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS: "2073600"
+      XI_VIDEO_TRANSFORM_MAX_OUTPUT_BYTES: 64MiB
+      XI_VIDEO_TRANSFORM_MAX_FPS: "60"

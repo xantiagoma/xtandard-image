@@ -300,9 +300,14 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	if err != nil {
 		return err
 	}
-	pg, err := buildPlayground(ctx, cfg, rt, srv.Handler(), opts.Version, logger, &playgroundEnv{
+	pgEnv := &playgroundEnv{
 		registry: reg, store: pgStore, detection: det != nil || h.detector != nil, video: videoSettings(cfg).Enabled,
-	})
+	}
+	if vt != nil {
+		pgEnv.prober = newMediaProber(cfg, reg, fetcher)
+		pgEnv.videoTransform = playgroundVideoTransform(cfg, vt.Caps(), true)
+	}
+	pg, err := buildPlayground(ctx, cfg, rt, srv.Handler(), opts.Version, logger, pgEnv)
 	if err != nil {
 		return err
 	}

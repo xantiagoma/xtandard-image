@@ -94,7 +94,7 @@ func TestSamplesMatchFixtures(t *testing.T) {
 	copies := map[string]string{
 		"photo.jpg": "jpeg/baseline.jpg", "alpha.png": "png/rgba8.png", "animated.gif": "gif/animated.gif",
 		"logo.svg": "svg/logo.svg", "raw.dng": "dng/landscape.dng", "document.pdf": "pdf/pages.pdf",
-		"video.mp4": "video/clip-av1.mp4", "faces.jpg": "detect/apollo11-crew.jpg",
+		"video.mp4": "video/clip-av1.mp4", "audio.mp3": "audio/tones-stereo.mp3", "faces.jpg": "detect/apollo11-crew.jpg",
 		"people-dogs.jpg": "detect/astronaut-dogs.jpg", "cat.jpg": "detect/cat-laptop.jpg",
 	}
 	s := NewStore(StoreOptions{})

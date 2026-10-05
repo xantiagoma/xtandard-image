@@ -78,6 +78,8 @@ func Build() (*huma.OpenAPI, error) {
 	reg.Schema(reflect.TypeFor[playground.TranslateResponse](), true, "")
 	reg.Schema(reflect.TypeFor[playground.Upload](), true, "")
 	reg.Schema(reflect.TypeFor[playground.ListResponse](), true, "")
+	reg.Schema(reflect.TypeFor[playground.ProbeRequest](), true, "")
+	reg.Schema(reflect.TypeFor[playground.MediaInfo](), true, "")
 	schemas := reg.Map()
 	body, ok := schemas[schemaErrorBody]
 	if !ok || body.Properties["kind"] == nil {
@@ -398,6 +400,8 @@ func operations() []*huma.Operation {
 		playgroundTranslateOperation(),
 		playgroundUploadOperation(),
 		playgroundListOperation(),
+		playgroundProbeOperation(),
+		playgroundProbeResultOperation(),
 		queryOperation(),
 		queryVideoOperation(),
 		imaginaryOperation(),
