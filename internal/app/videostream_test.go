@@ -55,7 +55,7 @@ func ffprobePackets(t *testing.T, data []byte) []probePacket {
 	if err := json.Unmarshal(b, &out); err != nil {
 		t.Fatal(err)
 	}
-	var ps []probePacket
+	ps := make([]probePacket, 0, len(out.Packets))
 	for _, p := range out.Packets {
 		pts, err1 := strconv.ParseFloat(p.PTS, 64)
 		dur, err2 := strconv.ParseFloat(p.Dur, 64)

@@ -66,7 +66,7 @@ func boxes(b []byte, off, end int) ([]box, error) {
 			if end-off < 16 {
 				return nil, fmt.Errorf("%w: truncated large box at %d", ErrMalformed, off)
 			}
-			size = int64(binary.BigEndian.Uint64(b[off+8:]))
+			size = int64(binary.BigEndian.Uint64(b[off+8:])) //nolint:gosec // G115: a size past MaxInt64 turns negative and is refused below
 			hdr = 16
 		case 0:
 			size = int64(end - off)

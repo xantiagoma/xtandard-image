@@ -27,7 +27,7 @@ import (
 // box builds an MP4 box.
 func box(typ string, payload ...[]byte) []byte {
 	body := bytes.Join(payload, nil)
-	b := binary.BigEndian.AppendUint32(nil, uint32(8+len(body)))
+	b := binary.BigEndian.AppendUint32(nil, uint32(8+len(body))) //nolint:gosec // G115: test boxes are small
 	return append(append(b, typ...), body...)
 }
 
@@ -110,13 +110,13 @@ func (f *fakeStream) result(op *transform.VideoOp, part StreamPart) *VideoResult
 	}
 	var data []byte
 	if part.Track == "" {
-		var starts []uint64
+		starts := make([]uint64, 0, l.Segments)
 		for n := range l.Segments {
 			starts = append(starts, uint64(n*96000))
 		}
 		data = fakeFMP4("audio", 48000, starts...)
 	} else {
-		data = fakeFMP4(part.Track+":"+strconv.Itoa(part.Segment), 90000, uint64(part.Segment*180000))
+		data = fakeFMP4(part.Track+":"+strconv.Itoa(part.Segment), 90000, uint64(part.Segment)*180000) //nolint:gosec // G115: a segment number is not negative
 	}
 	b := &refBuf{b: data}
 	b.refs.Store(1)
@@ -162,7 +162,7 @@ func (f *fakeStream) checkBodies(t *testing.T) {
 	}
 }
 
-func newStreamHarness(tb testing.TB, op transform.VideoOp, mutate func(*harness)) (*harness, *fakeStream) {
+func newStreamHarness(tb testing.TB, op *transform.VideoOp, mutate func(*harness)) (*harness, *fakeStream) {
 	tb.Helper()
 	fs := newFakeStream()
 	sealer, err := ticket.New([]byte("0123456789abcdef0123456789abcdef"))
@@ -178,7 +178,7 @@ func newStreamHarness(tb testing.TB, op transform.VideoOp, mutate func(*harness)
 		h.video = &fakeVideo{out: mp4Output, body: videoFile}
 		h.stream, h.tickets, h.streamCache = fs, sealer, mem
 		h.router.sig = sign.Verified
-		h.router.mutate = videoRequest(&op)
+		h.router.mutate = videoRequest(op)
 		h.f.data = []byte("source video")
 		h.cfg.Video = VideoConfig{Budget: time.Minute}
 		h.cfg.Stream = StreamConfig{TTL: 4 * time.Hour, Prefetch: 2}
@@ -190,8 +190,8 @@ func newStreamHarness(tb testing.TB, op transform.VideoOp, mutate func(*harness)
 	return h, fs
 }
 
-func hlsOp() transform.VideoOp {
-	return transform.VideoOp{Stream: &transform.VideoStream{Renditions: []int{360, 240}}}
+func hlsOp() *transform.VideoOp {
+	return &transform.VideoOp{Stream: &transform.VideoStream{Renditions: []int{360, 240}}}
 }
 
 // uris lists a playlist's URIs (the lines that are not tags, and the URI
@@ -290,7 +290,7 @@ func TestStreamHLS(t *testing.T) {
 // TestStreamDASH: the MPD names its segments by template under the base.
 func TestStreamDASH(t *testing.T) {
 	t.Parallel()
-	op := transform.VideoOp{Mute: true, Stream: &transform.VideoStream{Protocol: transform.StreamDASH}}
+	op := &transform.VideoOp{Mute: true, Stream: &transform.VideoStream{Protocol: transform.StreamDASH}}
 	h, _ := newStreamHarness(t, op, nil)
 	r := mustGet(t, h, videoPath, http.StatusOK)
 	if ct := r.header.Get("Content-Type"); ct != "application/dash+xml" {
@@ -366,21 +366,28 @@ func TestStreamChildErrors(t *testing.T) {
 		{"leading zero", base + "v0/01.m4s", http.StatusNotFound},
 		{"master", base + "master.m3u8", http.StatusOK},
 	}
+	t.Cleanup(func() {
+		if parts := fs.streamed(); len(parts) != 0 {
+			t.Errorf("errors transcoded %v", parts)
+		}
+	})
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			mustGet(t, h, tc.path, tc.status)
 		})
 	}
-	if parts := fs.streamed(); len(parts) != 0 {
-		t.Fatalf("errors transcoded %v", parts)
-	}
+}
 
-	// Expiry: the ticket of a stream works until its expiry (4h TTL from
-	// a quarter-hour step), then answers like an expired URL.
+// TestStreamTicketExpiry: a stream's ticket works until its expiry (a 4h
+// TTL from a quarter-TTL step), then answers like an expired URL.
+func TestStreamTicketExpiry(t *testing.T) {
+	t.Parallel()
+	h, _ := newStreamHarness(t, hlsOp(), nil)
+	base := streamBase(t, h)
+	mustGet(t, h, base+"v0.m3u8", http.StatusOK)
 	h.srv.now = func() time.Time { return time.Now().Add(5 * time.Hour) }
 	mustGet(t, h, base+"v0.m3u8", http.StatusNotFound)
-	h.srv.now = time.Now
-	mustGet(t, h, base+"v0.m3u8", http.StatusOK)
 	h.checkReleased(t)
 }
 

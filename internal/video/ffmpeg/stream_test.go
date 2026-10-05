@@ -122,6 +122,7 @@ func TestStreamSegments(t *testing.T) {
 }
 
 func checkRendition(t *testing.T, src *vips.Buffer, op *transform.VideoOp, l *video.StreamLayout, r *video.Rendition) {
+	t.Helper()
 	var init []byte
 	var all bytes.Buffer
 	var next uint64
@@ -137,7 +138,7 @@ func checkRendition(t *testing.T, src *vips.Buffer, op *transform.VideoOp, l *vi
 		}
 		fr := f.Fragments[0]
 		if n == 0 {
-			if fr.DecodeTime > uint64(l.Offset90k) {
+			if fr.DecodeTime > uint64(l.Offset90k) { //nolint:gosec // G115: the offset is not negative
 				t.Fatalf("segment 0 decodes from %d, after the stream's offset %d", fr.DecodeTime, l.Offset90k)
 			}
 			next = fr.DecodeTime
@@ -154,7 +155,7 @@ func checkRendition(t *testing.T, src *vips.Buffer, op *transform.VideoOp, l *vi
 			t.Fatalf("segment %d starts at %d, the previous one ended at %d", n, fr.DecodeTime, next)
 		}
 		want := int(math.Round(l.SegmentDuration(n) * r.FPS()))
-		if fr.Samples != want || fr.Duration != uint64(want)*90000*uint64(r.FPSDen)/uint64(r.FPSNum) {
+		if fr.Samples != want || fr.Duration != uint64(want)*90000*uint64(r.FPSDen)/uint64(r.FPSNum) { //nolint:gosec // G115: small positive numbers
 			t.Fatalf("segment %d: %d frames lasting %d, want %d", n, fr.Samples, fr.Duration, want)
 		}
 		next = fr.DecodeTime + fr.Duration
@@ -244,7 +245,7 @@ func TestStreamAudioTrack(t *testing.T) {
 		t.Fatalf("audio codec %q (%v), manifest says %q", codec, err, l.Audio.Codecs)
 	}
 	off := l.Offset90k * 48000 / 90000
-	next := uint64(off - 1024) // the priming packet
+	next := uint64(off - 1024) //nolint:gosec // G115: the offset holds the priming; the priming packet starts here
 	var all bytes.Buffer
 	all.Write(f.Init)
 	for k, fr := range f.Fragments {
@@ -253,13 +254,15 @@ func TestStreamAudioTrack(t *testing.T) {
 		}
 		// Every packet but the priming one is 1024 samples of the source
 		// starting at DecodeTime - the offset.
-		if src := int64(fr.DecodeTime) - off; k > 0 && (src < int64(k*2*48000) || src >= int64(k*2*48000+1024)) {
+		src := int64(fr.DecodeTime) - off //nolint:gosec // G115: seconds of 48 kHz ticks
+		if k > 0 && (src < int64(k*2*48000) || src >= int64(k*2*48000+1024)) {
 			t.Fatalf("fragment %d starts at source sample %d, want the first packet at or after %d", k, src, k*2*48000)
 		}
 		next = fr.DecodeTime + fr.Duration
 		all.Write(fr.Data)
 	}
-	if got, want := float64(next-uint64(off))/48000, l.Duration; math.Abs(got-want) > 1024.0/48000 {
+	got, want := float64(next-uint64(off))/48000, l.Duration //nolint:gosec // G115: the offset is not negative
+	if math.Abs(got-want) > 1024.0/48000 {
 		t.Fatalf("audio of %.4f s, want %.4f", got, want)
 	}
 	p := ffprobe(t, all.Bytes())
