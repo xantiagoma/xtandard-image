@@ -26,7 +26,7 @@ Decisions: [ADR 0005](../../docs/adr/0005-docker-image-strategy.md) (image strat
 
 `<vips>` is `VIPS_VERSION` and `<N>` is `XI_BASE_REVISION` from `versions.sh`; `<M>` is
 `XI_BASE_FULL_REVISION` from `versions-full.sh`; `<G>` is `XI_BASE_GPL_REVISION` from
-`versions-gpl.sh` (currently `8.18.6-r7-slim`, `8.18.6-r8-full` and `8.18.6-r9-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
+`versions-gpl.sh` (currently `8.18.6-r7-slim`, `8.18.6-r9-full` and `8.18.6-r10-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
 locally with the `task docker:base:*` tasks (below), which tag `xtandard-base:dev`,
 `xtandard-base:dev-builder`, `xtandard-base:dev-full`, `xtandard-base:dev-full-builder`,
 `xtandard-base:dev-gpl` and `xtandard-base:dev-gpl-builder`. All are
@@ -136,7 +136,7 @@ jemalloc actually honours it (`opt.narenas: 2` in its stats).
 Not in the slim image: poppler (GPL; PDF goes through PDFium), x265 (GPL; HEIC/AVIF encode
 uses kvazaar/aom), FFmpeg and ONNX Runtime (`full` flavor).
 
-## Full flavor (WP-70, revision 8)
+## Full flavor (WP-70, revision 9)
 
 Everything in slim, plus:
 
@@ -194,10 +194,10 @@ The models are laid out as `<name>.onnx` next to `<name>.LICENSE`, with `MODELS.
 licence) and `SHA256SUMS`; the licences and `MODELS.md` are also copied to
 `share/licenses/models/`. Users can mount their own models over the directory (WP-71).
 
-Size: runtime 124.6 MB compressed on linux/arm64 (r8; slim + 68.6 MB; budget ≤ 170 MB), see
+Size: runtime 125.9 MB compressed on linux/arm64 (r9; slim + 70.0 MB; budget ≤ 170 MB), see
 [Sizes](#sizes).
 
-## gpl flavor (WP-70b, revision 9)
+## gpl flavor (WP-70b, revision 10)
 
 > **This image contains GPL and AGPL software.** Its FFmpeg libraries and CLIs are
 > GPL-2.0-or-later, H.264 and HEVC are patent-encumbered, and `bin/gs` is Ghostscript,
@@ -253,7 +253,7 @@ the WMF and EMF fixtures with `xi-metafile2svg` (namespaced SVG with the exact c
 by libvips) and checks the libwmf and libemf2svg licences; slim and full must have neither the
 program nor the libraries.
 
-Size: runtime 140.5 MB compressed on linux/arm64 (r9; full + 15.9 MB: x264/x265 2.2 MB, Ghostscript
+Size: runtime 141.7 MB compressed on linux/arm64 (r10; full + 15.8 MB: x264/x265 2.2 MB, Ghostscript
 11.1 MB, LibRaw's DNG and GPR SDKs about 0.4 MB, the WP-108 metafile converter 2.2 MB), see
 [Sizes](#sizes).
 
@@ -445,15 +445,15 @@ linux/arm64, `docker save | gzip -6` (compressed) and `docker image inspect` (un
 |---|---|---|---|
 | slim runtime (`8.18.6-r7-slim`) | 56.0 MB | 167.8 MB | ≤ 110 MB |
 | slim builder | 260.6 MB | 821.9 MB | — |
-| full runtime (`8.18.6-r8-full`) | 124.6 MB | 261.7 MB | ≤ 170 MB |
-| full builder | 329.8 MB | 918.3 MB | — |
-| gpl runtime (`8.18.6-r9-gpl`) | 140.5 MB | 285.6 MB | ≤ 170 MB (as full) |
-| gpl builder | 346.2 MB | 943.4 MB | — |
+| full runtime (`8.18.6-r9-full`) | 125.9 MB | 264.1 MB | ≤ 170 MB |
+| full builder | 331.1 MB | 921.0 MB | — |
+| gpl runtime (`8.18.6-r10-gpl`) | 141.7 MB | 288.1 MB | ≤ 170 MB (as full) |
+| gpl builder | 347.5 MB | 946.0 MB | — |
 
-WP-120 (audio and video transformations; the revision bump comes with the integration):
-full and gpl grow by 1.3 MB compressed / 2.5–2.7 MB uncompressed (runtime and builder alike)
-for libswresample, libopus, LAME, the audio decoders and encoders, the extra muxers and
-filters; slim is unchanged (identical file list and sizes).
+full r9 / gpl r10 over r8 / r9 (WP-120, audio and video transformations, ADR 0012): full and
+gpl grow by 1.2–1.3 MB compressed / 2.4–2.6 MB uncompressed (runtime and builder alike) for
+libswresample, libopus, LAME, the audio decoders and encoders, the extra muxers and filters;
+slim is unchanged (identical file list and sizes, still r7).
 
 r7/r8/r9 over r6/r7/r8 (WP-108): the Basis Universal transcoder (`libxibasisu`) adds 0.6 MB
 compressed / 1.1 MB uncompressed to every flavor; the PICT and PCD coders cost nothing. The gpl
@@ -551,11 +551,11 @@ the real `versions-gpl.sh` is refused by the strict gate.
 3. Bump `XI_BASE_REVISION` when the image changes without a libvips version change; reset it
    to `1` when `VIPS_VERSION` changes. `XI_BASE_FULL_REVISION` (`versions-full.sh`) is the
    full flavor's own counter: bump it whenever slim's revision moves or a full-only component
-   changes, including when slim's revision moves (full r8 = slim r7 +
-   WP-70 + the classifier, WP-110).
+   changes, including when slim's revision moves (full r9 = slim r7 +
+   WP-70 + the classifier, WP-110 + the audio and video-transformation FFmpeg build, WP-120).
    `XI_BASE_GPL_REVISION` (`versions-gpl.sh`) is the gpl flavor's counter in the same way:
    bump it when full's revision moves or x264/x265/Ghostscript/the LibRaw SDKs/the metafile
-   converter change (gpl r9 = full r8 + WP-70b + Ghostscript, WP-99 + the Adobe DNG SDK and
+   converter change (gpl r10 = full r9 + WP-70b + Ghostscript, WP-99 + the Adobe DNG SDK and
    GoPro GPR SDK, WP-103 + libwmf, libemf2svg and `xi-metafile2svg`, WP-108).
 4. Build and verify locally (host architecture: arm64 on Apple silicon, amd64 on x86 hosts;
    slim ~30 min cold, full adds ~10 min, gpl another ~5 min):
