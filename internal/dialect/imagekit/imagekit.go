@@ -36,7 +36,8 @@
 //   - <gif>/ik-gif-video.mp4 is the animated image <gif> as an MP4 video
 //     (WP-76; H.264 in the gpl image, AV1 in full), like f-mp4.
 //   - A file with a video extension (mp4, webm, mov, …) and <video>/
-//     ik-video.mp4 are video transformations (KindVideo, video.go): w-, h-,
+//     ik-video.mp4 are video transformations (KindVideo, video.go; an
+//     image f- keeps the frame path): w-, h-,
 //     ar-, c-, cm-, fo-, x-, y-, bg-, so-, eo-, du-, f-, vc-, ac-, q-, fps-,
 //     rt-, dpr-; layers wait for WP-124 and ik-master manifests for WP-126.
 //
@@ -237,7 +238,7 @@ func (p *Parser) parse(path, rawQuery, mountSource string) (*dialect.Result, err
 	if err != nil {
 		return nil, err
 	}
-	if ikVideo || (!thumb && !gif && isVideoFile(key)) {
+	if ikVideo || (!thumb && !gif && isVideoFile(key) && !imageOutput(tr)) {
 		// A video transformation (video.go).
 		if err := ps.video(tr, ikVideo); err != nil {
 			return nil, err
