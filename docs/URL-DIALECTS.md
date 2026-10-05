@@ -27,6 +27,7 @@ Default mounts (all dialects other than imgproxy are disabled until enabled in c
 | wsrv | `/` when query has `url=` and path is `/` or empty; also `/wsrv/` | Router checks `?url=` before falling back to imgproxy |
 | cloudflare | `/cdn-cgi/image/` | Exact Cloudflare path shape, no config needed besides enabling |
 | cloudflare-images | `/cdn-cgi/imagedelivery/` (and host-bound `imagedelivery.net` shape) | WP-79 (M2) |
+| cloudflare_media | `/cdn-cgi/media/` (next to a Cloudflare mount whose prefix ends in `/cdn-cgi/image/`; host-bound and other prefixes reach it through `<prefix>/cdn-cgi/media/`) | Media Transformations, §8.2 (WP-125, M5) |
 | imgix | `/imgix/<mount>/` | Usually host-bound |
 | cloudinary | `/cloudinary/` then `/<cloud>/image/{upload,fetch}/…` | Or host-bound as `res.cloudinary.com`-like |
 | imagekit | `/imagekit/<mount>/` | Or host-bound |
@@ -49,6 +50,7 @@ Default mounts (all dialects other than imgproxy are disabled until enabled in c
 | cloudflare `/cdn-cgi/image` | none upstream | — | https://developers.cloudflare.com/images/transform-images/transform-via-url/ |
 | cloudflare-images | `sig` = hex(HMAC-SHA256(key, path ‖ "?" ‖ query-without-sig)), i.e. `path?exp=<unix>` for Cloudflare's own URLs; raw key; `exp` checked after the signature (expired → 404) | query | https://developers.cloudflare.com/images/optimization/hosted-images/serve-private-images/ |
 | cloudflare `/cdn-cgi/image` (xi) | optional `xi_sig` | query | — |
+| cloudflare `/cdn-cgi/media` (xi) | optional `xi_sig` over the path after `/cdn-cgi/media` (none upstream) | query | §8.2 |
 | awssih | `signature` = hex(HMAC-SHA256(secret, path [‖ "?" ‖ query])), secret used verbatim; query = decoded parameters without `signature`, last value per key, sorted by "key,value" (UTF-16), joined `k=v&…` unescaped; optional `expires=YYYYMMDDTHHmmssZ` | query | §13, SIH `image-request.ts` `validateRequestSignature` |
 | wsrv, simple:* | none upstream | — | — |
 
@@ -408,7 +410,7 @@ Reference: https://cloudinary.com/documentation/transformation_reference, https:
 /<cloud>/image/fetch/w_400,f_auto/https://example.com/a.jpg
 ```
 
-Grammar: `/<cloud>/<asset_type>/<delivery_type>/[s--SIG--/][<tx>/]*[v<digits>/]<public_id>[.<ext>]`. When host-bound as a private CDN or custom domain (`<cloud>-res.cloudinary.com`-style, unpic `privateRegex`), the `<cloud>/` segment is absent and the source comes from the mount: the first segment is read as the asset type when it is `image`/`video`/`raw` and the second is a delivery type, otherwise it is the cloud name. `asset_type` = `image`, or `video` for a thumbnail of a video source in an image format (WP-74; `so_` picks the frame; a video output format is 400); `raw` is 400. `delivery_type` = `upload` (public ID = key under the cloud's source, extension included, as written) or `fetch` (absolute http(s) URL, percent-decoded, a proxy-collapsed `https:/` repaired; the source allowlist applies); `private`/`authenticated` are `upload` that require a verified signature (403 `signature required` otherwise, also when signing is off); other delivery types are 400. `<cloud>` maps to a named source via `dialects.cloudinary.clouds`; with a non-empty map an unmapped cloud is 403, with an empty map the mount's source applies to every cloud. Public IDs, layer IDs and `d_` IDs whose first segment contains `:` (`https:`, `s3:`) are 400, so an `upload` URL can never name an absolute source. The query string (SDK `_a=` analytics) is ignored.
+Grammar: `/<cloud>/<asset_type>/<delivery_type>/[s--SIG--/][<tx>/]*[v<digits>/]<public_id>[.<ext>]`. When host-bound as a private CDN or custom domain (`<cloud>-res.cloudinary.com`-style, unpic `privateRegex`), the `<cloud>/` segment is absent and the source comes from the mount: the first segment is read as the asset type when it is `image`/`video`/`raw` and the second is a delivery type, otherwise it is the cloud name. `asset_type` = `image`, or `video`: a video transformation (§6.1, WP-125) unless the output is an image format (`f_jpg`, or an image extension on the public ID), which is a thumbnail of the video (WP-74; `so_` picks the frame); `raw` is 400. `delivery_type` = `upload` (public ID = key under the cloud's source, extension included, as written) or `fetch` (absolute http(s) URL, percent-decoded, a proxy-collapsed `https:/` repaired; the source allowlist applies); `private`/`authenticated` are `upload` that require a verified signature (403 `signature required` otherwise, also when signing is off); other delivery types are 400. `<cloud>` maps to a named source via `dialects.cloudinary.clouds`; with a non-empty map an unmapped cloud is 403, with an empty map the mount's source applies to every cloud. Public IDs, layer IDs and `d_` IDs whose first segment contains `:` (`https:`, `s3:`) are 400, so an `upload` URL can never name an absolute source. The query string (SDK `_a=` analytics) is ignored.
 
 Components: a path segment is a transformation component when every comma-separated part is `key_value` with a lower-case key (or `$variable`) and at least one key is a Cloudinary parameter; the first segment that is not, or a `v<digits>` segment, starts the public ID (the SDKs add `v1` to foldered IDs for exactly this ambiguity). Components apply in URL order. A component with pipeline parameters (`w h c g x y ar z a bo e o r t`) starts a chained pipeline once the current one holds anything; components with only `f_`, `q_`, `fl_`, `dpr_`, `b_`, `cs_`, `d_`, `pg_` modify the current pipeline / the request, so `c_fill,w_400/q_auto/f_auto` is one pipeline and `c_fill,w_400/e_blur` two. The extension sets `O.Format` unless `f_` is given. In `XI_DIALECTS_STRICT` mode unknown and unsupported parameters are 400.
 
@@ -461,11 +463,51 @@ Signature: `s--SIG--` right after the delivery type; the signed message is the r
 | `t_<name>[.<name>…]` | presets expanded in place (imgproxy option syntax); only-presets mode allows nothing but `t_` | |
 | `d_<public_id>` (`:` = folder) | Fallback (same cloud source) | honoured with `XI_FALLBACK_ALLOW_REQUEST_URL` |
 | `l_<id>` (`:` = folder), `l_fetch:<base64url>`, `l_text:<family>_<size>[_<style>…]:<text>` with `g_`, `x_`, `y_`, `o_`, `a_`, `co_` (text), `w_`/`h_` px, relative `w_` + `fl_relative` (scale), `fl_tiled`; legacy single component or `l_…/…/fl_layer_apply,…` group | Watermark on the current pipeline: `l_<id>` is an image on the cloud's source (the base image's storage), `l_fetch:` a remote URL; `a_` → Rotate (clockwise); a text layer's `w_` is its wrap width (`c_fit`), its `h_` approximated. `l_text`: Font = family + weight/style tokens (`bold`, `italic`, …) + size, `underline`/`strikethrough` → markup, the text (double-escaped commas decoded) escaped for Pango; alignment, `letter_spacing_N`, `line_spacing_N`, `stroke`, antialias and hinting approximated | M3 (WP-77/78); `l_video`, `l_subtitles`, `l_lut`, `l_audio` unsupported; other parameters in a layer group (`co_` on an image layer, `e_`, `b_`, …) approximated |
-| `u_` underlays, `if_` (skips its component, or the block up to `if_end`), `$var`, `fn_`, `dn_`, video/audio `vc_`/`ac_`/`du_`/`so_`/`eo_`/`fps_`/… | Unsupported | |
+| `u_` underlays, `if_` (skips its component, or the block up to `if_end`), `$var`, `fn_`, `dn_`, video/audio `vc_`/`ac_`/`du_`/`eo_`/`fps_`/… on the `image` asset type | Unsupported (on the `video` asset type: §6.1) | |
 | `d_<public_id>` (`:` = folder) | Fallback (same cloud source) | M2 |
 | `l_<id>` (`:` = folder), `l_fetch:<base64url>` with `g_`, `x_`, `y_`, `o_`, `a_`, `w_`/`h_` px, relative `w_` + `fl_relative` (scale), `fl_tiled`; legacy single component or `l_…/…/fl_layer_apply,…` group | Watermark (image / URL) on the current pipeline | M3; `l_text`, `l_video`, `l_subtitles`, `l_lut` unsupported; other parameters in a layer group approximated |
-| `so_<seconds>`, `so_auto` | Video.Second (the frame of a video source, WP-74); `so_auto` keeps the configured selection (best frame by default) | percentages (`so_10p`) unsupported; the `video` asset type delivers a thumbnail in an image format: `/video/upload/so_2,f_jpg/dog.mp4`, `/video/fetch/so_2,f_auto/<url>`; a video output format there is 400 (no transcoding) |
-| `u_` underlays, `if_` (skips its component, or the block up to `if_end`), `$var`, `fn_`, `dn_`, video/audio `vc_`/`ac_`/`du_`/`eo_`/`fps_`/… | Unsupported | |
+| `so_<seconds>`, `so_auto` | Video.Second (the frame of a video source, WP-74); `so_auto` keeps the configured selection (best frame by default) | percentages (`so_10p`) unsupported; the `video` asset type delivers a thumbnail when the output is an image format: `/video/upload/so_2,f_jpg/dog.mp4`, `/video/upload/so_2/dog.jpg`, `/video/fetch/so_2,f_jpg/<url>`; otherwise it transcodes (§6.1) |
+| `u_` underlays, `if_` (skips its component, or the block up to `if_end`), `$var`, `fn_`, `dn_`, video/audio `vc_`/`ac_`/`du_`/`eo_`/`fps_`/… on the `image` asset type | Unsupported (on the `video` asset type: §6.1) | |
+
+### 6.1 Video transformations (`/video/upload/`, WP-125)
+
+**Status:** M5 (WP-125; `internal/dialect/cloudinary/video.go`). Needs `XI_VIDEO_TRANSFORM_ENABLED=true` (full and gpl images) and, by default, a signed URL (`XI_VIDEO_TRANSFORM_UNSIGNED_POLICY=deny`).
+
+Reference: https://cloudinary.com/documentation/video_manipulation_and_delivery, https://cloudinary.com/documentation/video_transformation_reference.
+
+```
+/<cloud>/video/upload/so_6.5,eo_10/dog.mp4
+/<cloud>/video/upload/s--SIG--/c_fill,g_north,w_640,h_360/q_auto,vc_h264,br_1m/dog.mp4
+/<cloud>/video/upload/vc_none,so_2,du_5/dog.m4a            (audio only)
+/<cloud>/video/fetch/w_480,f_auto/https://example.com/a.mp4
+```
+
+A `video` asset URL is a `KindVideo` request (`transform.VideoOp`) when its output is a video or audio format: the last `f_`, else the public ID's extension (for `fetch`, the URL path's), else MP4; an image output format keeps the thumbnail path (§6, `so_`). The public ID is the source key as written, extension included, like the image asset type. Components apply in URL order onto one VideoOp: trimming, codecs and audio accumulate (later values win); geometry is at most one `c_crop` followed by one resize (a later resize replaces an earlier one, recorded "approximated"). Signatures (`s--…--`), `private`/`authenticated`, clouds and `fetch` work as for images. Parameters not applied are recorded in `Ignored` with their reason, and are 400 in strict mode (approximations excepted).
+
+| Cloudinary | VideoOp | Notes |
+|---|---|---|
+| `so_<s>`, `eo_<s>`, `du_<s>` (seconds) | Start, End, Duration | `eo_` and `du_` together: `eo_` wins (`du_` approximated); `eo_` ≤ `so_` is 400; percentages (`so_10p`, `du_30%`) recorded "needs the source size or duration"; `so_auto` approximated (start 0) |
+| `w_`, `h_` (px) with `c_scale` (default) | Width/Height; both → Fill (stretch), one → Contain | relative (`w_0.5`) and expressions recorded "needs the source size or duration" |
+| `c_fit`, `c_limit`, `c_mfit` | Contain, ScaleDown, Contain (approximated) | |
+| `c_fill`, `c_lfill`/`c_thumb`/`c_auto` | Cover (+ Gravity); the last three approximated | one side only → Contain |
+| `c_pad` (+ `b_<colour>`), `c_lpad`/`c_mpad`/`c_fill_pad`/`c_auto_pad` | Pad + Background; the others approximated | `b_auto`, `b_blurred`, `b_gen_fill` unsupported; `b_` alone in a later component sets the pad colour |
+| `c_crop` with `w_`,`h_` and `g_` and/or `x_`,`y_` | Crop (in the rotated frame, before the resize); `x_`/`y_` alone = from the top-left corner, with `g_` = offsets from that anchor, neither = centred | a crop after a resize, or a second crop, unsupported; one side only recorded "needs the source size" |
+| `g_<compass>`, `g_center` | Gravity (cover crop, pad position) or the crop anchor | `g_auto`, `g_face(s)`, objects, `xy_center`: approximated (centre) |
+| `ar_<w>:<h>` / `ar_<n>` | derives the missing side from `w_` or `h_` | alone: needs the source size |
+| `dpr_<n>` | multiplies the sizes | `dpr_auto` approximated (1) |
+| `a_<90k>`, `a_-90`, `a_hflip`, `a_vflip` | Rotate, FlipH, FlipV | other angles, `a_auto_right/left`, `a_exif`, `a_ignore` unsupported |
+| `q_<1..100>`, `q_auto[:best\|good\|eco\|low]` | Quality (80/65/50/35 for the `q_auto` levels), mapped onto the codec's CRF scale | `q_70:qmax_80` approximated |
+| `br_<n>[k\|m][:constant]` | MaxBitrate (bits/s) | `:constant` approximated (capped); outside 50 kb/s – 200 Mb/s is 400 |
+| `fps_<n>`, `fps_<min>-<max>` | FPS (a range takes its maximum, approximated) | `fps_<min>-` approximated (source rate) |
+| `ac_none`, `ac_aac`, `ac_mp3`, `ac_opus`, `ac_vorbis` | Mute, AudioCodec | `ac_vorbis` → Opus (approximated); a codec the container cannot hold is 400 |
+| `vc_auto`, `vc_h264[:profile[:level]]`, `vc_h265`, `vc_vp9`, `vc_av1`, `vc_none` | VideoCodec; `vc_none` = audio only (M4A, Ogg Opus or MP3 by the audio codec) | profile/level approximated; `vc_vp8`, `vc_prores`, `vc_theora` unsupported; a codec the container cannot hold (`vc_vp9` in `.mp4`) is 400; H.264/HEVC encode only in gpl images (422 elsewhere) |
+| `f_mp4`, `f_webm`, `f_m4a`, `f_mp3`, `f_opus`, `f_ogg` (and the same extensions) | Container | `f_ogg` → Ogg Opus audio (approximated); `f_mov`/`mkv`/`flv`/`avi`/… recorded unsupported (MP4 is delivered); `f_m3u8`/`f_mpd` "M5 (WP-126)"; `f_wav`/`flac`/`aac` "M5 (WP-123)"; unknown formats 400 |
+| `f_auto` | AutoContainer: WebM when the client names `video/webm` in `Accept`, else MP4; `Vary: Accept` | an explicit codec decides the container instead (`vc_vp9`/`ac_opus` → WebM, `vc_h264`/`ac_aac` → MP4) |
+| `e_volume:mute` / `e_volume:-100` | Mute | other volumes, `e_fade`, `e_noise_reduction`, `af_`, `fl_waveform`, `fl_mono`: "M5 (WP-123)" |
+| `fl_attachment[:name]`, `fl_streaming_attachment`, `fl_immutable_cache` | Delivery | `fl_keep_dar`, `fl_truncate_ts`, `fl_no_stream`, `fl_animated` are the default; `fl_lossy` and other image flags "not applicable to video"; `fl_splice`, `fl_hlsv3` unsupported |
+| `l_…` (image, text, video, audio layers and their `fl_layer_apply` group), `u_` | — | "M5 (WP-124)" |
+| `sp_<profile>` | — | "M5 (WP-126)" |
+| `e_<effect>` (accelerate, reverse, boomerang, loop, deshake, …), `t_`, `d_`, `o_`, `r_`, `bo_`, `co_`, `z_`, `if_`, `$var`, `ki_`, `vs_`, `dl_`, `fn_`, `p_` | — | unsupported |
 
 Fixtures: `internal/dialect/cloudinary/testdata/urlgen/generate.ts` builds the corpus with `@cloudinary/url-gen` 1.22.0 and the `cloudinary` Node SDK 2.11.0 (including signed URLs, i.e. the signature vectors); unpic's `cloudinary.test.ts` URLs are asserted in `compat_test.go`.
 
@@ -531,8 +573,43 @@ Grammar: the path after the mount is the file path, relative to the mount's boun
 | `l-text,i-<text>|ie-<b64>,fs,ff,co,tg,al,w,rt,…,l-end` | Text watermark (escaped for Pango): Font = `ff` + `tg` (`b` bold, `i` italic) + `fs`, `tg` `strikethrough` → markup, Color = `co`, Opacity = `al`/10, TextWidth = `w` (wrap width; `h` approximated), `rt` rotation; `ff` naming a font file on the media library (`fonts@@x.ttf`) approximated (configured font) (WP-78) |
 | `l-image,i-ik_canvas`, `l-video`, `l-subtitles`, nested layers, in-layer transformations, `lxc`, `lyc`, `lap`, `lm` | Unsupported |
 | `<video>/ik-thumbnail.jpg`, `so-<seconds>` | A thumbnail of the video `<video>` (JPEG unless `f-` says otherwise); `so-` = Video.Second (WP-74), arithmetic expressions unsupported |
-| `e-bgremove`, `e-removedotbg`, `e-upscale`, `e-retouch`, `e-genvar`, `e-dropshadow`, `e-shadow`, `e-gradient`, `e-changebg`, `e-edit`, `e-distort`, `e-colorize`, `cr`, `dn`, video `vc`,`ac`,`eo`,`du`,`sr` | Unsupported |
+| `e-bgremove`, `e-removedotbg`, `e-upscale`, `e-retouch`, `e-genvar`, `e-dropshadow`, `e-shadow`, `e-gradient`, `e-changebg`, `e-edit`, `e-distort`, `e-colorize`, `cr`, `dn` | Unsupported |
+| a file with a video extension, `<video>/ik-video.mp4` | A video transformation (§7.1) |
 | `ik-s`, `ik-t` | signature, Expires |
+
+### 7.1 Video transformations (WP-125)
+
+**Status:** M5 (WP-125; `internal/dialect/imagekit/video.go`). Needs `XI_VIDEO_TRANSFORM_ENABLED=true` (full and gpl images) and, by default, a signed URL.
+
+Reference: https://imagekit.io/docs/video-transformation, video-resize-and-crop, trim-videos, video-optimization.
+
+```
+/imagekit/<mount>/sample-video.mp4?tr=so-5,du-5,w-640,h-360,fo-top
+/imagekit/<mount>/tr:w-300,h-300/sample-video.mp4
+/imagekit/<mount>/clips/a.mov/ik-video.mp4?tr=vc-none          (audio only)
+```
+
+A file whose extension is a video one (`mp4`, `webm`, `mov`, `m4v`, `mkv`, `avi`, `ogv`, `3gp`, `mpeg`/`mpg`, `ts`, `flv`, `wmv`, `qt`), or any file followed by `/ik-video.mp4`, is a `KindVideo` request; `<video>/ik-thumbnail.jpg` stays the thumbnail path and `ik-master.m3u8`/`.mpd` is 400 until WP-126. Steps (`:`) apply in order onto one VideoOp, like Cloudinary's components (§6.1); signing, `ik-t`, `ik-attachment` and the cache-busting query work as for images. Without `f-` the output follows ImageKit's default `f-auto`.
+
+| ImageKit | VideoOp | Notes |
+|---|---|---|
+| `so-`, `eo-`, `du-` (seconds, up to 2 decimals) | Start, End, Duration | `eo-` with `du-`: `eo-` wins; arithmetic expressions (`idu_mul_0.4`) recorded unsupported |
+| `w-`, `h-` (px), `ar-<w>-<h>` (or `_`) | Width/Height | fractions, `auto` and expressions: "needs the source size or duration" |
+| `c-maintain_ratio` (default with both sides) / `c-force` / `c-at_max` / `c-at_max_enlarge` | Cover / Fill / ScaleDown / Contain | `c-maintain_ratio_no_enlarge`, `c-at_least` approximated (Cover); one side → Contain |
+| `fo-<compass>` | Gravity (cover crop, pad position, extract anchor) | `fo-auto`, `fo-face`, objects approximated (centre) |
+| `cm-pad_resize` (+ `bg-<colour>`) | Pad + Background | `cm-pad_resize_no_enlarge` approximated; `bg-blurred`/`dominant`/`gradient` unsupported; `cm-pad_extract` unsupported |
+| `cm-extract` with `w-`,`h-` and `fo-` or `x-`,`y-` | Crop (before the resize) | `xc-`/`yc-` unsupported; an extract after a resize unsupported |
+| `f-auto` (default), `f-mp4`, `f-webm`, `ik-video.mp4` | AutoContainer (WebM for `Accept: video/webm`, else MP4; `Vary: Accept`), MP4, WebM | `f-orig` approximated (auto); image formats are 400 (use `ik-thumbnail.jpg`) |
+| `vc-h264`, `vc-vp9`, `vc-av1`, `vc-none` | VideoCodec; `vc-none` = audio only (M4A, or Ogg Opus with `ac-opus`) | a codec the container cannot hold is 400 |
+| `ac-aac`, `ac-opus`, `ac-none` | AudioCodec, Mute | |
+| `q-<1..100>` | Quality | |
+| `fps-<1..240>` | FPS | |
+| `rt-<90k>`, `rt-N<deg>` | Rotate | other angles and `rt-auto` unsupported |
+| `dpr-<0.1..5>` | multiplies the sizes | `dpr-auto` approximated (1) |
+| `l-image`, `l-text`, `l-video`, `l-subtitles` … `l-end` | — | "M5 (WP-124)" |
+| `sr-<…>` | — | "M5 (WP-126)" |
+| `br-` | — | unsupported (the unit is not documented) |
+| image-only parameters (`b-`, `r-`, `bl-`, `o-`, `t-`, `z-`, `fl-`, `e-*`, `pr-`, `lo-`, `md-`, `cp-`, `orig-`, `di-`, `pg-`), `n-` | — | "not applicable to video" / unsupported |
 
 Signing (imagekit-nodejs `getSignature`): `ik-s` = hex(HMAC-SHA1(private key, path-relative-to-endpoint ‖ ["?" query without `ik-s`/`ik-t`] ‖ expiry)), expiry = the `ik-t` value or `9999999999` when absent (the SDK signs but does not write it). The private key is used as written (`XI_DIALECTS_IMAGEKIT_KEYS`, one list per mount). An `ik-t` in the past is 404 (`KindExpired`), checked after the signature.
 
@@ -560,7 +637,7 @@ Grammar: `/cdn-cgi/image/<k=v(,k=v)*>/<source>`. Keys are case-insensitive; comm
 | `zoom`/`face-zoom` (0–1) with `gravity=face` | How closely the crop frames the faces: 0 (default) = face gravity only places the crop, z > 0 cuts the faces' box × 1/z first (FacePad, WP-72); without `gravity=face` → `Ignored` |
 | `quality`/`q` = 1–100 or `high` / `medium-high` / `medium-low` / `low` | Quality (90 / 80 / 65 / 50) |
 | `slow-connection-quality`/`scq` (same values) | SlowConnectionQuality + `ClientHints.SaveData` (used when Save-Data/ECT hints say slow) |
-| `format`/`f` = `auto` / `avif` / `webp` / `jpeg` / `baseline-jpeg` / `png` / `gif` | negotiate (FormatUnset) / Format / JPEG+Progressive / JPEG+Progressive=false / … (Cloudflare Images has no video output value; video is its separate Media Transformations product, not mapped) |
+| `format`/`f` = `auto` / `avif` / `webp` / `jpeg` / `baseline-jpeg` / `png` / `gif` | negotiate (FormatUnset) / Format / JPEG+Progressive / JPEG+Progressive=false / … (Cloudflare Images has no video output value; video is its separate Media Transformations product, §8.2) |
 | `format=json` | Ignored "not implemented" (Cloudflare's JSON is not the /info schema; the image is served) |
 | `dpr` (> 0) | DPR |
 | `anim=false` / `true` | DisableAnimation |
@@ -598,6 +675,37 @@ Dialect `cloudflare_images`, mounted at `/cdn-cgi/imagedelivery/`; bind the host
 - Last segment containing `=` → flexible variant, parsed with the §8 option table (`onerror` is Ignored: not supported for hosted images); 403 in only-presets mode (`XI_PRESETS_ONLY`, Cloudflare "flexible variants" off).
 - Otherwise → a named variant, expanded as the preset of that name (imgproxy syntax, `XI_PRESETS`). `public`, or no last segment, without a preset of that name serves the image unchanged; any other unknown variant is 400.
 - Signing: `sig` = hex(HMAC-SHA256(key, path ‖ "?" ‖ query without `sig`)) over the path after the prefix (`/<hash>/<id>/<variant>`, as for imagedelivery.net), keys from `XI_DIALECTS_CLOUDFLARE_IMAGES_KEYS` used raw. Then `exp` (unix seconds) must be in the future, else 404 (`KindExpired`). Unsigned requests follow the mount's unsigned policy.
+
+### 8.2 Media Transformations (`/cdn-cgi/media/`, WP-125)
+
+**Status:** M5 (WP-125; dialect `cloudflare_media`, `internal/dialect/cloudflare/media.go`). `mode=video` and `mode=audio` need `XI_VIDEO_TRANSFORM_ENABLED=true` (full and gpl images) and, by default, a signed URL (`xi_sig`); `frame` and `spritesheet` are images (full image) and follow the mount's unsigned policy.
+
+Reference: https://developers.cloudflare.com/stream/transform-videos/.
+
+```
+/cdn-cgi/media/mode=video,time=5s,duration=5s,width=500,height=500,fit=crop,audio=false/https://example.com/a.mp4
+/cdn-cgi/media/mode=frame,time=3s,width=640,format=png/videos/a.mp4
+/cdn-cgi/media/mode=spritesheet,duration=10s,width=160/videos/a.mp4
+/cdn-cgi/media/mode=audio,time=1m,duration=30s/videos/a.mp4
+```
+
+Mounted at `/cdn-cgi/media/` next to every Cloudflare mount whose prefix ends in `/cdn-cgi/image/` (the default), with that mount's source and unsigned policy; on a host-bound or differently prefixed Cloudflare mount, a path continuing with `/cdn-cgi/media/` is handed to the media parser. Sources are those of `/cdn-cgi/image/` (an absolute URL, possibly percent-encoded, or a path on the mount's source). Options are a comma-separated `key=value` list; a later value of a key wins.
+
+| Option | Mapping | Notes |
+|---|---|---|
+| `mode=video` | `KindVideo`, MP4 (H.264 in gpl images, AV1 in full; Cloudflare: H.264/AAC) | |
+| `mode=audio` | `KindVideo`, M4A (AAC) | `audio=false` is 400; `format` other than `m4a` is 400 |
+| `mode=frame` | the video thumbnail path: `Video.Second` = `time`, JPEG (`format=jpg`) or PNG (`format=png`) | other formats 400 |
+| `mode=spritesheet` | the `video_thumbnail_tile` path: `imageCount` frames (default 10, 1–100; an xtandard extension) spread over `duration` (or the whole video) in a near-square grid, JPEG, cells of `width`×`height` (`fit=cover` fills them) | `time` > 0 recorded "sprite sheets start at the beginning of the video" |
+| `time` (`5s`, `1.5s`, `2m`; 0–10m) | Start (frame: the frame) | other forms and ranges 400 |
+| `duration` (1s–60s) | Duration; default 60 s, clamped to the source as Cloudflare does | |
+| `width`, `height` (10–2000) | Width/Height (frame: the resize) | |
+| `fit=contain` / `scale-down` / `cover` (`crop`, as in Cloudflare's example) | Contain / ScaleDown / Cover; one side only → Contain | other values 400 |
+| `audio=false` (video mode) | Mute | |
+| `filename` (letters, digits, `-`, `_`; ≤ 120) | Delivery.Filename (Content-Disposition) | |
+| an option of another mode, an unknown option | `Ignored` ("not applicable in this mode" / "unknown option"); 400 in strict mode | |
+
+Limits beyond the URL ranges are the video subsystem's (`XI_VIDEO_TRANSFORM_MAX_*`; Cloudflare caps inputs at 100 MB and 10 minutes, here `XI_VIDEO_TRANSFORM_MAX_INPUT_*` decide).
 
 ## 9. Bunny Optimizer
 
