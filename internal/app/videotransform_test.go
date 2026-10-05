@@ -27,7 +27,11 @@ import (
 // videoTestRouter is the minimal internal URL syntax of video
 // transformations until the dialects have theirs (WP-122, WP-125):
 // /_video/<source path>?w=&h=&start=&dur=&c=&mute=1, with the source
-// resolved by the imgproxy mount.
+// resolved by the imgproxy mount. Overlays (WP-124) are imgproxy
+// watermark options in o= (wm, wmu, wmt, wms, wmr, wmsh, …: each
+// watermark of the first pipeline becomes an overlay), shown from ovs= to
+// ove= seconds with fades ovfi= and ovfo=; tc=hms|seconds adds a timecode
+// (tcg= gravity, tcs= size).
 type videoTestRouter struct{ next server.Router }
 
 func (v videoTestRouter) Route(r *http.Request) (*dialect.Result, *router.Mount, error) {
@@ -36,12 +40,16 @@ func (v videoTestRouter) Route(r *http.Request) (*dialect.Result, *router.Mount,
 		return v.next.Route(r)
 	}
 	r2 := r.Clone(r.Context())
-	r2.URL.Path, r2.URL.RawPath, r2.URL.RawQuery = "/unsafe/plain/"+rest, "", ""
+	q := r.URL.Query()
+	opts := ""
+	if o := q.Get("o"); o != "" {
+		opts = strings.Trim(o, "/") + "/"
+	}
+	r2.URL.Path, r2.URL.RawPath, r2.URL.RawQuery = "/unsafe/"+opts+"plain/"+rest, "", ""
 	res, m, err := v.next.Route(r2)
 	if err != nil {
 		return res, m, err
 	}
-	q := r.URL.Query()
 	num := func(k string) float64 { f, _ := strconv.ParseFloat(q.Get(k), 64); return f }
 	op := &transform.VideoOp{
 		Width: int(num("w")), Height: int(num("h")),
@@ -54,7 +62,28 @@ func (v videoTestRouter) Route(r *http.Request) (*dialect.Result, *router.Mount,
 			return nil, m, err
 		}
 	}
+	at := func(k string) time.Duration { return time.Duration(num(k) * float64(time.Second)) }
+	for _, pl := range res.Request.Pipelines {
+		for _, w := range pl.Watermarks {
+			op.Overlays = append(op.Overlays, transform.VideoOverlay{
+				Watermark: w, Start: at("ovs"), End: at("ove"), FadeIn: at("ovfi"), FadeOut: at("ovfo"),
+			})
+		}
+	}
+	if tc := q.Get("tc"); tc != "" {
+		o := transform.VideoOverlay{Watermark: transform.Watermark{Opacity: 1}, TimecodeSize: int(num("tcs"))}
+		if o.Timecode, err = transform.ParseVideoTimecode(tc); err != nil {
+			return nil, m, err
+		}
+		if g := q.Get("tcg"); g != "" {
+			if o.Position.Type, err = transform.ParseGravityType(g); err != nil {
+				return nil, m, err
+			}
+		}
+		op.Overlays = append(op.Overlays, o)
+	}
 	res.Request.Kind, res.Request.Video, res.Request.Output = transform.KindVideo, op, transform.Output{}
+	res.Request.Pipelines = nil
 	return res, m, nil
 }
 
@@ -178,7 +207,7 @@ func TestVideoTransformDisabled(t *testing.T) {
 			t.Skip("this image has no FFmpeg")
 		}
 		cfg := videoConfig(t, config.RoleImage, true)
-		vt, err := buildVideoTransform(cfg, nil)
+		vt, err := buildVideoTransform(cfg, nil, nil)
 		if err != nil || vt != nil {
 			t.Fatalf("buildVideoTransform = %v, %v; want no service", vt, err)
 		}
