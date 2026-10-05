@@ -1,0 +1,2244 @@
+{
+  "ac_aac": {
+    "path": "/sample-video.mp4",
+    "query": "tr=ac-aac",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AudioCodec": "aac"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "ac_bad": {
+    "error": {
+      "field": "ac",
+      "kind": "invalid_url",
+      "public": "invalid ac: expected aac, opus or none, holdable by the output format",
+      "status": 400
+    },
+    "path": "/sample-video.mp4",
+    "query": "tr=ac-mp3"
+  },
+  "ac_none": {
+    "path": "/sample-video.mp4",
+    "query": "tr=ac-none",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Mute": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "ac_none_vc_none": {
+    "error": {
+      "field": "ac",
+      "kind": "invalid_url",
+      "public": "invalid ac: expected an audio codec for audio-only output",
+      "status": 400
+    },
+    "path": "/sample-video.mp4",
+    "query": "tr=vc-none,ac-none"
+  },
+  "ac_opus": {
+    "path": "/sample-video.mp4",
+    "query": "tr=ac-opus",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AudioCodec": "opus",
+        "Container": "webm"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "approximated_strict": {
+    "config": "strict",
+    "path": "/sample-video.mp4",
+    "query": "tr=w-400,h-300,fo-face",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "fo-face",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Fit": "cover",
+        "Height": 300,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "aspect_ratio": {
+    "path": "/sample-video.mp4",
+    "query": "tr=ar-4-1,w-400",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Fit": "cover",
+        "Height": 100,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "aspect_ratio_alone": {
+    "path": "/sample-video.mp4",
+    "query": "tr=ar-1-1",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "ar",
+          "Reason": "needs the source size or duration"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "aspect_ratio_underscore": {
+    "path": "/sample-video.mp4",
+    "query": "tr=ar-16_9,h-360",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Fit": "cover",
+        "Height": 360,
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "at_least": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-400,h-300,c-at_least",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "c-at_least",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Fit": "cover",
+        "Height": 300,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "at_max": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-400,h-300,c-at_max",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Fit": "scale-down",
+        "Height": 300,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "at_max_enlarge": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-400,h-300,c-at_max_enlarge",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Height": 300,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "attachment": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-100\u0026ik-attachment=true\u0026v=2",
+    "request": {
+      "Delivery": {
+        "Attachment": true,
+        "CacheBuster": "v=2"
+      },
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Width": 100
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "bitrate": {
+    "path": "/sample-video.mp4",
+    "query": "tr=br-500",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "br",
+          "Reason": "not supported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "border": {
+    "path": "/sample-video.mp4",
+    "query": "tr=b-5_FF0000",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "b",
+          "Reason": "not applicable to video"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "combined": {
+    "path": "/sample-video.mp4",
+    "query": "tr=so-2,du-5,w-640,h-360,fo-top,q-60,vc-h264,ac-aac,fps-30:rt-180",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AudioCodec": "aac",
+        "Duration": 5000000000,
+        "FPS": 30,
+        "Fit": "cover",
+        "Gravity": "north",
+        "Height": 360,
+        "Quality": 60,
+        "Rotate": 180,
+        "Start": 2000000000,
+        "VideoCodec": "h264",
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "dpr": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-300,dpr-2",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Width": 600
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "dpr_auto": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-300,dpr-auto",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "dpr-auto",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Width": 300
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "expression_width": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-iw_div_2",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "w",
+          "Reason": "needs the source size or duration"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "ext_mov": {
+    "path": "/clips/a.MOV",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "clips/a.MOV"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "clips/a.MOV"
+  },
+  "ext_webm": {
+    "path": "/clips/a.webm",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "clips/a.webm"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "clips/a.webm"
+  },
+  "extract": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-200,h-200,cm-extract",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Crop": {
+          "Gravity": "center",
+          "Height": 200,
+          "Width": 200
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "extract_focus": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-200,h-200,cm-extract,fo-right",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Crop": {
+          "Gravity": "east",
+          "Height": 200,
+          "Width": 200
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "extract_then_resize": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-400,h-400,cm-extract:w-200",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Crop": {
+          "Gravity": "center",
+          "Height": 400,
+          "Width": 400
+        },
+        "Width": 200
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "extract_xy": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-200,h-200,cm-extract,x-10,y-20",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Crop": {
+          "Height": 200,
+          "Width": 200,
+          "X": 10,
+          "Y": 20
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "f_auto": {
+    "path": "/sample-video.mp4",
+    "query": "tr=f-auto",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "f_jpg_frame": {
+    "path": "/sample-video.mp4",
+    "query": "tr=f-jpg,w-100",
+    "request": {
+      "Dialect": "imagekit",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "f_mp4": {
+    "path": "/sample-video.mp4",
+    "query": "tr=f-mp4",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "f_orig": {
+    "path": "/sample-video.mp4",
+    "query": "tr=f-orig",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "f-orig",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "f_png_last_wins": {
+    "path": "/sample-video.mp4",
+    "query": "tr=f-mp4:f-png",
+    "request": {
+      "Dialect": "imagekit",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {},
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "f_webm": {
+    "path": "/sample-video.mp4",
+    "query": "tr=f-webm",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "Container": "webm"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "focus_auto": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-400,h-300,fo-auto",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "fo-auto",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Fit": "cover",
+        "Height": 300,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "force": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-400,h-300,c-force",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Fit": "fill",
+        "Height": 300,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "fps": {
+    "path": "/sample-video.mp4",
+    "query": "tr=fps-24",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "FPS": 24
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "fps_bad": {
+    "error": {
+      "field": "fps",
+      "kind": "invalid_url",
+      "public": "invalid fps: expected frames per second 1-240",
+      "status": 400
+    },
+    "path": "/sample-video.mp4",
+    "query": "tr=fps-1000"
+  },
+  "ik_master": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: adaptive bitrate streaming (ik-master) is not supported yet",
+      "status": 400
+    },
+    "path": "/clips/a.mp4/ik-master.m3u8",
+    "query": "tr=sr-240_360_480"
+  },
+  "ik_video_mp4": {
+    "path": "/clips/a.mov/ik-video.mp4",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "clips/a.mov"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "clips/a.mov"
+  },
+  "ik_video_mp4_f_webm": {
+    "path": "/clips/a.mov/ik-video.mp4",
+    "query": "tr=f-webm",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "f",
+          "Reason": "not applicable here"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "clips/a.mov"
+      },
+      "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "clips/a.mov"
+  },
+  "image_effect": {
+    "path": "/sample-video.mp4",
+    "query": "tr=e-grayscale",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "e-grayscale",
+          "Reason": "not applicable to video"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_audio_only": {
+    "error": {
+      "field": "vc",
+      "kind": "invalid_url",
+      "public": "invalid vc: expected a video output for layers",
+      "status": 400
+    },
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-logo.png,l-end,vc-none"
+  },
+  "layer_duration": {
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-logos@@brand.png,lfo-top_right,lso-2,ldu-1.5,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "End": 3500000000,
+            "Start": 2000000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-east"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logos/brand.png"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_expression": {
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-logo.png,lso-idu_mul_0.5,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "lso",
+          "Reason": "arithmetic expressions not supported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_image": {
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-logo.png,w-100,l-end,w-640",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              },
+              "Width": 100
+            }
+          }
+        ],
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_leo_before_lso": {
+    "error": {
+      "field": "leo",
+      "kind": "invalid_url",
+      "public": "invalid leo: expected a layer end after its lso",
+      "status": 400
+    },
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-logo.png,lso-3,leo-2,l-end"
+  },
+  "layer_leo_ldu": {
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-logo.png,lso-1,leo-2,ldu-5,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "ldu",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "End": 2000000000,
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_nested": {
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-a.png,l-text,i-x,l-end,lso-1,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image:l-text",
+          "Reason": "not supported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "a.png"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_strict": {
+    "config": "strict",
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-logo.png,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_text": {
+    "path": "/sample-video.mp4",
+    "query": "tr=l-text,i-Hello,fs-32,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "Watermark": {
+              "Font": "32",
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Text": "Hello"
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_text_window": {
+    "path": "/sample-video.mp4",
+    "query": "tr=l-text,i-Hello%20World,fs-32,co-FFFF00,tg-b,lfo-bottom,ldu-2,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "End": 2000000000,
+            "Watermark": {
+              "Color": {
+                "A": 255,
+                "G": 255,
+                "R": 255
+              },
+              "Font": "sans bold 32",
+              "Opacity": 1,
+              "Position": {
+                "Type": "south"
+              },
+              "Text": "Hello World"
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_too_many": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: too many layers",
+      "status": 400
+    },
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-a.png,l-end,l-image,i-a.png,l-end,l-image,i-a.png,l-end,l-image,i-a.png,l-end,l-image,i-a.png,l-end,l-image,i-a.png,l-end,l-image,i-a.png,l-end,l-image,i-a.png,l-end,l-image,i-a.png,l-end,"
+  },
+  "layer_two_steps": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-640:l-image,i-a.png,lfo-top_left,l-end:l-text,i-hi,lfo-bottom_right,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "a.png"
+              }
+            }
+          },
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east"
+              },
+              "Text": "hi"
+            }
+          }
+        ],
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_video": {
+    "path": "/sample-video.mp4",
+    "query": "tr=l-video,i-intro.mp4,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-video",
+          "Reason": "not supported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_window": {
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-logo.png,lx-10,ly-N10,w-80,o-60,lso-1,leo-3,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "End": 3000000000,
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 0.6,
+              "Position": {
+                "Type": "south-west",
+                "XOffset": 10,
+                "YOffset": 10
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              },
+              "Width": 80
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "maintain_ratio_focus": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-400,h-300,c-maintain_ratio,fo-top_left",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Fit": "cover",
+        "Gravity": "north-west",
+        "Height": 300,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "named": {
+    "path": "/sample-video.mp4",
+    "query": "tr=n-thumb",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "n",
+          "Reason": "not supported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "pad_blurred": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-400,h-300,cm-pad_resize,bg-blurred",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "bg-blurred",
+          "Reason": "not supported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Fit": "pad",
+        "Height": 300,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "pad_extract": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-400,h-400,cm-pad_extract",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "cm-pad_extract",
+          "Reason": "not supported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Height": 400,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "pad_resize": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-400,h-300,cm-pad_resize,bg-F3F3F3",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Background": {
+          "A": 255,
+          "B": 243,
+          "G": 243,
+          "R": 243
+        },
+        "Fit": "pad",
+        "Height": 300,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "pad_resize_focus": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-400,h-300,cm-pad_resize,fo-bottom",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Fit": "pad",
+        "Gravity": "south",
+        "Height": 300,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "path_tr": {
+    "path": "/tr:w-300,h-300/sample-video.mp4",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Fit": "cover",
+        "Height": 300,
+        "Width": 300
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "plain": {
+    "path": "/sample-video.mp4",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "quality": {
+    "path": "/sample-video.mp4",
+    "query": "tr=q-90",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Quality": 90
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "quality_bad": {
+    "error": {
+      "field": "q",
+      "kind": "invalid_url",
+      "public": "invalid q: expected integer 1-100",
+      "status": 400
+    },
+    "path": "/sample-video.mp4",
+    "query": "tr=q-0"
+  },
+  "relative_width": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-0.5",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "w",
+          "Reason": "needs the source size or duration"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "resize_then_extract": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-400:w-200,h-200,cm-extract",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "cm-extract",
+          "Reason": "not supported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Width": 400
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "rotate": {
+    "path": "/sample-video.mp4",
+    "query": "tr=rt-90",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Rotate": 90
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "rotate_45": {
+    "path": "/sample-video.mp4",
+    "query": "tr=rt-45",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "rt",
+          "Reason": "not supported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "rotate_auto": {
+    "path": "/sample-video.mp4",
+    "query": "tr=rt-auto",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "rt-auto",
+          "Reason": "not supported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "rotate_negative": {
+    "path": "/sample-video.mp4",
+    "query": "tr=rt-N90",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Rotate": 270
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "signed": {
+    "config": "signed",
+    "path": "/sample-video.mp4",
+    "query": "tr=w-300,so-1\u0026ik-s=28e75423fddc221d30bccbd1d8acc83fe9d119c5",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Start": 1000000000,
+        "Width": 300
+      }
+    },
+    "signature": "verified",
+    "source": "sample-video.mp4"
+  },
+  "signed_layer": {
+    "config": "signed",
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-logo.png,lfo-top_left,lso-1,l-end\u0026ik-s=ff2254654b4ca0888d88062cef361e5996bf3c0e",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "verified",
+    "source": "sample-video.mp4"
+  },
+  "signed_path": {
+    "config": "signed",
+    "path": "/tr:w-300/sample-video.mp4",
+    "query": "ik-s=77dece7d43aa2442a373c20750445c979f2cccf3",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Width": 300
+      }
+    },
+    "signature": "verified",
+    "source": "sample-video.mp4"
+  },
+  "signed_tampered": {
+    "config": "signed",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/sample-video.mp4",
+    "query": "tr=w-301\u0026ik-s=28e75423fddc221d30bccbd1d8acc83fe9d119c5"
+  },
+  "streaming": {
+    "path": "/sample-video.mp4",
+    "query": "tr=sr-240_360",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "sr",
+          "Reason": "M5 (WP-126)"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "thumbnail_stays_image": {
+    "path": "/clips/a.mp4/ik-thumbnail.jpg",
+    "query": "tr=so-2",
+    "request": {
+      "Dialect": "imagekit",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Video": {
+            "Second": 2
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "clips/a.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "clips/a.mp4"
+  },
+  "trim_bad": {
+    "error": {
+      "field": "so",
+      "kind": "invalid_url",
+      "public": "invalid so: expected seconds (a non-negative number with up to 2 decimals)",
+      "status": 400
+    },
+    "path": "/sample-video.mp4",
+    "query": "tr=so-soon"
+  },
+  "trim_eo_before_so": {
+    "error": {
+      "field": "eo",
+      "kind": "invalid_url",
+      "public": "invalid eo: expected a time after so-",
+      "status": 400
+    },
+    "path": "/sample-video.mp4",
+    "query": "tr=so-5,eo-2"
+  },
+  "trim_eo_du": {
+    "path": "/sample-video.mp4",
+    "query": "tr=so-1,eo-5,du-3",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "du",
+          "Reason": "approximated"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "End": 5000000000,
+        "Start": 1000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "trim_expression": {
+    "path": "/sample-video.mp4",
+    "query": "tr=so-idu_mul_0.1,du-idu_mul_0.4",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "so",
+          "Reason": "arithmetic expressions not supported"
+        },
+        {
+          "Option": "du",
+          "Reason": "arithmetic expressions not supported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "trim_expression_eo": {
+    "path": "/sample-video.mp4",
+    "query": "tr=eo-idu_sub_20",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "eo",
+          "Reason": "arithmetic expressions not supported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "trim_so_du": {
+    "path": "/sample-video.mp4",
+    "query": "tr=so-5,du-5",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Duration": 5000000000,
+        "Start": 5000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "trim_so_eo": {
+    "path": "/sample-video.mp4",
+    "query": "tr=so-10.55,eo-20",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "End": 20000000000,
+        "Start": 10550000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "unknown": {
+    "path": "/sample-video.mp4",
+    "query": "tr=zz-1",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "zz",
+          "Reason": "unknown option"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "unknown_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/sample-video.mp4",
+    "query": "tr=zz-1"
+  },
+  "unsigned_required": {
+    "config": "required",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/sample-video.mp4",
+    "query": "tr=w-300"
+  },
+  "vc_av1": {
+    "path": "/sample-video.mp4",
+    "query": "tr=vc-av1",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "VideoCodec": "av1"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "vc_bad": {
+    "error": {
+      "field": "vc",
+      "kind": "invalid_url",
+      "public": "invalid vc: expected h264, vp9, av1 or none, holdable by the output format",
+      "status": 400
+    },
+    "path": "/sample-video.mp4",
+    "query": "tr=vc-mpeg2"
+  },
+  "vc_h264": {
+    "path": "/sample-video.mp4",
+    "query": "tr=vc-h264",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "VideoCodec": "h264"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "vc_none": {
+    "path": "/sample-video.mp4",
+    "query": "tr=vc-none",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "Container": "m4a"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "vc_none_opus": {
+    "path": "/sample-video.mp4",
+    "query": "tr=vc-none,ac-opus",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AudioCodec": "opus",
+        "Container": "opus"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "vc_vp9": {
+    "path": "/sample-video.mp4",
+    "query": "tr=vc-vp9",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "Container": "webm",
+        "VideoCodec": "vp9"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "vc_vp9_mp4": {
+    "error": {
+      "field": "vc",
+      "kind": "invalid_url",
+      "public": "invalid vc: expected h264, vp9, av1 or none, holdable by the output format",
+      "status": 400
+    },
+    "path": "/sample-video.mp4",
+    "query": "tr=vc-vp9,f-mp4"
+  },
+  "width": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-300",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Width": 300
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "width_bad": {
+    "error": {
+      "field": "w",
+      "kind": "invalid_url",
+      "public": "invalid w: expected integer pixels \u003e 0",
+      "status": 400
+    },
+    "path": "/sample-video.mp4",
+    "query": "tr=w-0"
+  },
+  "width_height": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-300,h-300",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Fit": "cover",
+        "Height": 300,
+        "Width": 300
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "xc": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-100,h-100,cm-extract,xc-50",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "xc",
+          "Reason": "not supported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Crop": {
+          "Gravity": "center",
+          "Height": 100,
+          "Width": 100
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  }
+}

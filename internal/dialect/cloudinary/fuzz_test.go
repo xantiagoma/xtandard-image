@@ -26,6 +26,11 @@ func FuzzParse(f *testing.F) {
 		"/image/upload/w_auto:100:400,dpr_auto/%zz",
 		"/demo/image/upload/b_rgb:,bo_px_solid_,r_:,e_trim:1:rgb:/x",
 		"/demo/image/upload/w_,h_,c_,g_,x_,y_,ar_,z_/x",
+		"/demo/video/upload/so_2,du_5/c_fill,g_north,w_640,h_360/q_auto:good,vc_h264,ac_aac,br_1m,fps_20-30/v1/dog.mp4",
+		"/demo/video/upload/c_crop,w_100,h_100,x_1,y_2/c_pad,w_10,h_10/b_red/e_volume:-5dB/a_hflip.90/dog.webm",
+		"/demo/video/upload/vc_none,f_auto/l_logo/fl_layer_apply/dpr_3/dog",
+		"/demo/video/upload/l_logo,e_fade:500/e_fade:-750,fl_layer_apply,g_south_east,x_8,y_8,so_1,du_3,o_50/l_text:Arial_20:hi/fl_layer_apply/dog.mp4",
+		"/demo/video/fetch/so_auto,eo_1p,ar_16:9,w_10/https://e.com/a.mov",
 		"//", "", "/demo/image/upload/v1/",
 	} {
 		f.Add(s)

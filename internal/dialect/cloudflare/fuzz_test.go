@@ -24,6 +24,10 @@ func FuzzParse(f *testing.F) {
 		{delivery + "/thumbnail", "exp=" + expFuture + "&sig=00"},
 		{delivery + "/w=400,sharpen=3", "exp=" + expPast},
 		{"/cdn-cgi/imagedelivery/h/a/b/c/public", "sig=a&sig=b"},
+		{"/cdn-cgi/media/mode=video,time=5s,duration=5s,width=500,height=500,fit=crop,audio=false/https://e.com/v.mp4", ""},
+		{"/mode=frame,time=1.5s,width=320,format=png/v.mp4", ""},
+		{"/mode=spritesheet,duration=10s,imageCount=12,width=160,fit=cover/v.mp4", ""},
+		{"/mode=audio,time=2m,duration=1m,format=m4a,filename=clip_1/v.mp4", "xi_sig=AAAA"},
 		{"/((((,)))/x", "exp=-1"},
 		{"//", "&&&"},
 		{"", ""},
@@ -57,6 +61,9 @@ func FuzzParse(f *testing.F) {
 			}
 			if n := len(r.Pipelines); n < 1 || n > transform.MaxPipelines {
 				t.Fatalf("%s: %q?%q: %d pipelines", name, path, query, n)
+			}
+			if (r.Kind == transform.KindVideo) != (r.Video != nil) {
+				t.Fatalf("%s: %q?%q: kind %v with video %v", name, path, query, r.Kind, r.Video)
 			}
 			r.ApplyDefaults(transform.StandardDefaults())
 			if err := r.Validate(); err != nil {
