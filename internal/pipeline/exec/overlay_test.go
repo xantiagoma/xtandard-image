@@ -208,8 +208,11 @@ func TestRenderOverlayErrors(t *testing.T) {
 	}
 }
 
-// TestRenderOverlayNoLeak: rendering and releasing overlays keeps
-// libvips's tracked memory flat.
+// TestRenderOverlayNoLeak: rendering and releasing overlays leaves no
+// libvips object behind, and libvips's tracked memory does not grow with
+// the number of overlays (each is 300 KiB of pixels; the threadpool's
+// per-thread buffers come and go on their own, so a little slack is
+// allowed).
 func TestRenderOverlayNoLeak(t *testing.T) {
 	e := newExecutor(t)
 	wm := &transform.Watermark{
@@ -225,11 +228,14 @@ func TestRenderOverlayNoLeak(t *testing.T) {
 		o.Release() // idempotent
 	}
 	render()
-	mem := vips.ReadMemStats().Mem
+	objects, mem := vips.LiveObjects(), vips.ReadMemStats().Mem
 	for range 50 {
 		render()
 	}
-	if m := vips.ReadMemStats().Mem; m != mem {
-		t.Errorf("libvips tracked memory %d → %d bytes over 50 overlays", mem, m)
+	if n := vips.LiveObjects(); n > objects {
+		t.Errorf("libvips objects %d → %d over 50 overlays", objects, n)
+	}
+	if m := vips.ReadMemStats().Mem; m > mem+2<<20 {
+		t.Errorf("libvips tracked memory grew %d → %d bytes over 50 overlays", mem, m)
 	}
 }
