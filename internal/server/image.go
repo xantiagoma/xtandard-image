@@ -15,6 +15,8 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/codec/container"
+	"github.com/xantiagoma/xtandard-image/internal/dialect"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/router"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
@@ -29,10 +31,19 @@ import (
 // writeError; nothing below writes an error itself.
 func (s *Server) image(w http.ResponseWriter, r *http.Request) {
 	info := infoOf(w)
+	// 2–4. Route first: a video transformation has a budget of its own.
+	parsed, err := s.route(r, info)
+	if err == nil && parsed.Request.Kind == transform.KindVideo {
+		s.videoTransform(w, r, info, parsed) // transcode.go
+		return
+	}
 	ctx, cancel := context.WithTimeoutCause(r.Context(), s.cfg.RequestTimeout, errRequestTimeout)
 	defer cancel()
 
-	res, err := s.process(ctx, r, info)
+	var res *imageResult
+	if err == nil {
+		res, err = s.process(ctx, r, info, parsed)
+	}
 	if info.cache != "" && s.cfg.DebugHeaders {
 		w.Header().Set(hdrXiCache, info.cache)
 	}
@@ -87,24 +98,11 @@ func (s *Server) image(w http.ResponseWriter, r *http.Request) {
 // (which revalidates cached originals with the origin itself). When the URL
 // fixes the output format the 304 is answered before admission; otherwise
 // after the header probe and negotiation. HEAD stops after negotiation.
-func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo) (*imageResult, error) {
-	// 2–4. Route, parse (presets are expanded by the dialect), authenticate
-	// and apply the unsigned policy.
-	t := s.stage(info, stageRoute)
-	rr, ok := s.stripPathPrefix(r)
-	if !ok {
-		t.done()
-		return nil, &errs.Error{Kind: errs.KindNotFound, Public: "not found", Msg: "server: outside path prefix"}
+func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo, parsed *routed) (*imageResult, error) {
+	if !s.cfg.Role.Images() {
+		return nil, errNotServed("server: image request on a video-only instance")
 	}
-	parsed, mount, err := s.deps.Router.Route(rr)
-	if mount != nil {
-		info.dialect = mount.Dialect
-	}
-	t.done()
-	if err != nil {
-		return nil, err
-	}
-	req := parsed.Request
+	req, mount := parsed.Request, parsed.mount
 	signed := parsed.Signature != sign.Unsigned
 	if req.Source.Password != nil {
 		// The request owns its decrypted pdf_password: wiped once served.
@@ -132,10 +130,10 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 
 	// 6. Normalise: client hints become concrete values, then defaults,
 	// then validation, so the canonical key only holds effective values.
-	t = s.stage(info, stageNormalize)
+	t := s.stage(info, stageNormalize)
 	hints := s.resolveHints(r, req, mount, signed)
 	req.ApplyDefaults(s.cfg.Defaults)
-	err = req.Validate()
+	err := req.Validate()
 	lim := s.limits(&req.Limits)
 	if err == nil {
 		err = checkResultDimension(req, lim.maxResultDimension)
@@ -169,6 +167,31 @@ func (s *Server) process(ctx context.Context, r *http.Request, info *requestInfo
 	}
 	res.cacheKey = j.cacheKey
 	return res, nil
+}
+
+// routed is a parsed request and the mount that parsed it.
+type routed struct {
+	*dialect.Result
+	mount *router.Mount
+}
+
+// route is stages 2–4: route, parse (presets are expanded by the
+// dialect), authenticate and apply the unsigned policy.
+func (s *Server) route(r *http.Request, info *requestInfo) (*routed, error) {
+	t := s.stage(info, stageRoute)
+	defer t.done()
+	rr, ok := s.stripPathPrefix(r)
+	if !ok {
+		return nil, &errs.Error{Kind: errs.KindNotFound, Public: "not found", Msg: "server: outside path prefix"}
+	}
+	parsed, mount, err := s.deps.Router.Route(rr)
+	if mount != nil {
+		info.dialect = mount.Dialect
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &routed{Result: parsed, mount: mount}, nil
 }
 
 // produce runs stages 9–13 of one job: the requested source, or the

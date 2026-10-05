@@ -33,7 +33,7 @@ import (
 // are recomputed, so a hit's headers equal the miss's. 304 and HEAD are
 // answered from the entry. Cache errors are logged and treated as misses.
 //
-// Stored: 200 responses of a GET for KindProcess requests, produced from
+// Stored: 200 responses of a GET for KindProcess and KindVideo requests, produced from
 // the request's own source (never a fallback, a 304 or a HEAD), whose
 // Cache-Control allows storing (no no-store or private) and whose TTL is
 // positive. bypass_cache (with XI_CACHE_ALLOW_BYPASS) skips both the lookup
@@ -85,7 +85,9 @@ func (s *Server) resultKey(r *http.Request, j *job) string {
 		Buster:       s.cfg.ETagBuster,
 		Build:        s.cfg.ResultCache.Build,
 	}
-	if d, ok := fixedDecision(j.req, &s.cfg.Negotiate); ok {
+	if j.video != "" {
+		k.Format = "v:" + j.video
+	} else if d, ok := fixedDecision(j.req, &s.cfg.Negotiate); ok {
 		k.Format = "f:" + d.Format.String()
 	} else {
 		k.Format = "a:" + negotiate.ParseAcceptHeader(r.Header).Key()
@@ -97,7 +99,7 @@ func (s *Server) resultKey(r *http.Request, j *job) string {
 // (or a bypass) it records the status and, when the response may be
 // stored, the key in j.
 func (s *Server) cacheLookup(ctx context.Context, r *http.Request, info *requestInfo, j *job) (*imageResult, bool) {
-	if s.deps.ResultCache == nil || j.req.Kind != transform.KindProcess {
+	if s.deps.ResultCache == nil || (j.req.Kind != transform.KindProcess && j.req.Kind != transform.KindVideo) {
 		return nil, false
 	}
 	if j.req.Delivery.BypassCache && s.cfg.ResultCache.AllowBypass {
@@ -167,6 +169,7 @@ func (s *Server) resultFromEntry(r *http.Request, info *requestInfo, j *job, e *
 		Height:      atoiHeader(h, "X-Xi-Result-Height"),
 		Quality:     atoiHeader(h, "X-Xi-Quality"),
 		Best:        h.Get(hdrBest),
+		VideoCodec:  h.Get("X-Xi-Video-Codec"),
 	}
 	info.width, info.height = res.out.Width, res.out.Height
 	return res, nil
@@ -242,6 +245,9 @@ func (s *Server) entryHeader(res *imageResult) http.Header {
 	}
 	if res.out.Best != "" {
 		h.Set(hdrBest, res.out.Best)
+	}
+	if res.out.VideoCodec != "" && res.req.Kind == transform.KindVideo {
+		h.Set("X-Xi-Video-Codec", res.out.VideoCodec)
 	}
 	if v := res.containerSource(); v != "" {
 		h.Set(hdrContainerSource, v)
