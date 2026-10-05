@@ -138,3 +138,28 @@ func BenchmarkOpen(b *testing.B) {
 		}
 	}
 }
+
+// TestOneSpelling: a ticket has one spelling; base64's unused trailing
+// bits set differently do not open it (a tampered last character is
+// always refused).
+func TestOneSpelling(t *testing.T) {
+	t.Parallel()
+	s := mustNew(t, secretA)
+	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+	tried := 0
+	for n := range 3 {
+		tok := s.Seal([]byte(strings.Repeat("p", n+1)), now.Add(time.Hour))
+		if len(tok)%4 == 0 {
+			continue // no unused bits
+		}
+		last := strings.IndexByte(alphabet, tok[len(tok)-1])
+		alt := tok[:len(tok)-1] + string(alphabet[last^1]) // the lowest bit is never used
+		if _, _, err := s.Open(alt, now); errs.KindOf(err) != errs.KindForbidden {
+			t.Fatalf("%q opened as %q: %v", alt, tok, err)
+		}
+		tried++
+	}
+	if tried == 0 {
+		t.Fatal("no ticket with unused bits")
+	}
+}

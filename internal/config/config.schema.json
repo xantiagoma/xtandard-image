@@ -3095,11 +3095,11 @@
           "type": "string"
         },
         "cors_origins": {
-          "description": "Allowed CORS origins (* allowed)\n\nEnv: XI_SERVER_CORS_ORIGINS",
+          "description": "Origins browsers may read responses from (* for any): a request whose Origin is listed gets Access-Control-Allow-Origin (*, or the origin with Vary: Origin) and the range and validator headers exposed, so HLS and DASH players in another origin's page can load playlists and segments; a preflight (OPTIONS for GET/HEAD) is answered 204. Empty: no CORS headers\n\nEnv: XI_SERVER_CORS_ORIGINS",
           "items": {
             "type": "string"
           },
-          "markdownDescription": "Allowed CORS origins (`*` allowed)\n\nEnv: `XI_SERVER_CORS_ORIGINS`",
+          "markdownDescription": "Origins browsers may read responses from (`*` for any): a request whose `Origin` is listed gets `Access-Control-Allow-Origin` (`*`, or the origin with `Vary: Origin`) and the range and validator headers exposed, so HLS and DASH players in another origin's page can load playlists and segments; a preflight (`OPTIONS` for `GET`/`HEAD`) is answered 204. Empty: no CORS headers\n\nEnv: `XI_SERVER_CORS_ORIGINS`",
           "title": "XI_SERVER_CORS_ORIGINS",
           "type": "array"
         },

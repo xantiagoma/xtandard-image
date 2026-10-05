@@ -801,6 +801,7 @@ func serverConfig(cfg *config.Config) server.Config {
 		WriteTimeout:         cfg.Server.WriteTimeout,
 		IdleTimeout:          cfg.Server.IdleTimeout,
 		MaxHeaderBytes:       int(cfg.Server.MaxHeaderBytes),
+		CORSOrigins:          cfg.Server.CORSOrigins,
 		CompatImgproxyStatus: cfg.Compat.ImgproxyStatus,
 		Defaults: transform.Defaults{
 			AutoRotate:        cfg.Processing.AutoRotate,

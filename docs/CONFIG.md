@@ -125,7 +125,7 @@ This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS`
 | `XI_SERVER_SHUTDOWN_DELAY` | `5s` | Readiness goes 503 this long before listener closes |
 | `XI_SERVER_SHUTDOWN_TIMEOUT` | `30s` | Drain limit |
 | `XI_SERVER_READY_QUEUE_THRESHOLD` | `0` (off) | `/readyz` 503 when queue fill % ≥ value |
-| `XI_SERVER_CORS_ORIGINS` | `` | Allowed CORS origins (`*` allowed) |
+| `XI_SERVER_CORS_ORIGINS` | `` | Origins browsers may read responses from (`*` for any): a request whose `Origin` is listed gets `Access-Control-Allow-Origin` (`*`, or the origin with `Vary: Origin`) and the range and validator headers exposed, so HLS and DASH players in another origin's page can load playlists and segments; a preflight (`OPTIONS` for `GET`/`HEAD`) is answered 204. Empty: no CORS headers |
 
 ### Security, signing, encryption
 
