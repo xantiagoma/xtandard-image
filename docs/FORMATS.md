@@ -353,9 +353,9 @@ and a 4530-byte HEVC MP4 (gpl), all 6 frames and 0.600 s long.
 - The `gpl` flavor exists for these encoders only. Its licensing and patent caveats are in
   `docker/base/README.md` and the image's `/opt/xtandard/share/licenses/LICENSE-GPL.md`.
 
-### 5.2 Video transformations (M5: WP-121 core, WP-122 options, WP-123 audio)
+### 5.2 Video transformations (M5: WP-121 core, WP-122 options, WP-123 audio, WP-126 streams)
 
-A video (or audio) source transformed into a video file, an audio file or a waveform picture, in a subsystem of its own (`internal/media`: own worker pool, limits, coalescing; [ADR 0012](adr/0012-video-transformations.md)), off by default (`XI_VIDEO_TRANSFORM_ENABLED`), `full` and `gpl` images only. URLs: `/video/<signature>/<options>/<source>@<container>` in the imgproxy dialect and `/q/video?url=…` in the query dialect ([URL-DIALECTS §3.8](URL-DIALECTS.md#38-video-transformations-wp-122-wp-123)); signed only by default. Image, text and timecode overlays (WP-124) use the watermark options with `ow`/`of`/`tc` there; the other dialects (WP-125) and HLS/DASH (WP-126) follow.
+A video (or audio) source transformed into a video file, an audio file or a waveform picture, in a subsystem of its own (`internal/media`: own worker pool, limits, coalescing; [ADR 0012](adr/0012-video-transformations.md)), off by default (`XI_VIDEO_TRANSFORM_ENABLED`), `full` and `gpl` images only. URLs: `/video/<signature>/<options>/<source>@<container>` in the imgproxy dialect and `/q/video?url=…` in the query dialect ([URL-DIALECTS §3.8](URL-DIALECTS.md#38-video-transformations-wp-122-wp-123)); signed only by default. Image, text and timecode overlays (WP-124) use the watermark options with `ow`/`of`/`tc` there; the Cloudinary, ImageKit and Cloudflare video syntaxes (WP-125) map onto the same model; HLS and DASH streams (WP-126) are below.
 
 | Output | Container / codecs (`full`) | `gpl` | Content type |
 |---|---|---|---|
@@ -394,6 +394,24 @@ The outputs of §5.1 (GIF and animations → MP4/WebM through the image pipeline
 - **Errors**: invalid markup 400, markup over the size limits or text that cannot fit 422, an overlay source outside the allowlist 403 or missing 404 (like `wmu`), an image whose FFmpeg lacks `overlay`/`fade` (or `drawtext` for timecodes) 422 before anything is fetched.
 
 How overlays enter FFmpeg's graph without any request text reaching filter syntax is in [ADR 0012 §3](adr/0012-video-transformations.md#3-overlays).
+
+#### HLS and DASH streams (WP-126)
+
+A stream request ([URL-DIALECTS §3.10](URL-DIALECTS.md#310-hls-and-dash-streams-wp-126-every-dialect)) answers a manifest whose parts are transcoded on request (design: [ADR 0012 §6](adr/0012-video-transformations.md#6-phase-b-hls-and-dash-by-just-in-time-segments)).
+
+| | `full` | `gpl` |
+|---|---|---|
+| Manifests | HLS version 7 (`EXT-X-MAP`, `EXT-X-PLAYLIST-TYPE:VOD`, `EXT-X-INDEPENDENT-SEGMENTS`, audio as an `EXT-X-MEDIA` group) and DASH static MPD (isoff-live, `SegmentTemplate` with `$Number$`, `presentationTimeOffset`) | same |
+| Segments | CMAF fragmented MP4: an init segment per rendition (`ftyp` + empty `moov`), media segments `moof` + `mdat` | same |
+| Video | AV1 Main (`av01.0.LLM.08`), or VP9 profile 0 (`vp09.00.LL.08`) with `vc:vp9` | H.264 High (`avc1.6400LL`, the level the manifest names is the encoder's), or AV1/VP9 on request |
+| Audio | AAC-LC 48 kHz (`mp4a.40.2`), mono or stereo | same |
+
+- **Renditions:** the ladder's rungs (`XI_VIDEO_TRANSFORM_ABR_LADDER`, default 1080/720/480/360/240 at 5000/2800/1400/800/400 kbit/s, or the URL's) no larger than the source's short side, each the source's aspect ratio rounded to even sizes (854×480), at the stream's constant frame rate. Each rung's bit rate caps the encoder (x264 VBV with a 2× buffer; AV1 and VP9 constrained quality); `BANDWIDTH` is that cap plus a quarter, plus the audio's.
+- **Video segments** are independent transcodes of `[n·d, (n+1)·d)` of the stream (`d` = `XI_VIDEO_TRANSFORM_SEGMENT_DURATION`): the demuxer seeks to the keyframe before `n·d` and reads one second past the end, so a segment decodes its window plus at most one source GOP. Its frames are those of the stream's constant-rate grid (`k / fps` from the stream's start) inside the window, the first an IDR/keyframe, closed GOPs (one per segment, or `ki` apart). The fragment's decode time (`tfdt`) is its place on the stream's timeline, so segments encoded on their own join without a gap or an overlap, and every rendition and the audio share that timeline. Composition offsets are never negative (every MP4 reader agrees on them), so every timestamp is moved by a fixed stream offset of at least the audio priming and the H.264 reordering delay (about 0.1 s; the DASH `presentationTimeOffset` removes it).
+- **Audio** is one AAC encode of the whole stream, cut into fragments on the segment grid (a fragment starts with the first packet at or after `k·d` of the source): the encoder's 1024-sample priming exists once, at the start, and no segment boundary has a gap, an overlap or a click. The audio track is one transcode, bounded by `XI_VIDEO_TRANSFORM_TIMEOUT` and `_MAX_OUTPUT_BYTES` (a 6.6 s track takes ~0.25 s on the benchmark machine).
+- **Cost:** a 2 s 360p segment takes ~0.12 s (VP9), ~0.25 s (H.264), ~0.44 s (AV1) on one thread of the benchmark machine (`internal/video/ffmpeg/testdata/bench-stream.txt`, `-count=10`). A player's first segment waits for one such transcode (plus the probe and the fetch on the master's first request, cached afterwards); the next `XI_VIDEO_TRANSFORM_PREFETCH_SEGMENTS` (default 2) are transcoded on idle workers while it plays.
+- **Caching:** the probe, the init segments, the media segments and the audio track are kept in the stream cache (memory, `XI_VIDEO_TRANSFORM_STREAM_CACHE_BYTES`) and in the result cache; a persistent tier (disk, S3) keeps them across restarts and instances. The source is fetched for each part that is transcoded (the origin cache, `XI_CACHE_ORIGIN_*`, should hold it).
+- **Tested:** the init segment's codec string equals the manifest's for every codec up to 1080p60; the segments of every rendition join into the source's frame count on the frame grid with a keyframe per segment; the audio joins without gaps into the stream's length, in sync with the video; manifests against goldens; tampered and expired tickets; leaks over 40 stream transcodes.
 
 ## 6. Format negotiation and best-format
 

@@ -1,0 +1,234 @@
+//go:build cgo
+
+package app
+
+import (
+	"bytes"
+	"cmp"
+	"encoding/json"
+	"encoding/xml"
+	"math"
+	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"slices"
+	"strconv"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/xantiagoma/xtandard-image/internal/config"
+	"github.com/xantiagoma/xtandard-image/internal/video/ffmpeg"
+)
+
+// probePacket is one packet ffprobe reads.
+type probePacket struct {
+	pts, dur float64
+	key      bool
+}
+
+// ffprobePackets lists the packets of data's first stream, in
+// presentation order.
+func ffprobePackets(t *testing.T, data []byte) []probePacket {
+	t.Helper()
+	bin, err := exec.LookPath("ffprobe")
+	if err != nil {
+		t.Skip("no ffprobe")
+	}
+	f := filepath.Join(t.TempDir(), "joined.mp4")
+	if err := os.WriteFile(f, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	b, err := exec.CommandContext(t.Context(), bin, "-v", "error", "-show_entries", "packet=pts_time,duration_time,flags",
+		"-of", "json", f).Output()
+	if err != nil {
+		t.Fatalf("ffprobe: %v", err)
+	}
+	var out struct {
+		Packets []struct {
+			PTS   string `json:"pts_time"`
+			Dur   string `json:"duration_time"`
+			Flags string `json:"flags"`
+		} `json:"packets"`
+	}
+	if err := json.Unmarshal(b, &out); err != nil {
+		t.Fatal(err)
+	}
+	ps := make([]probePacket, 0, len(out.Packets))
+	for _, p := range out.Packets {
+		pts, err1 := strconv.ParseFloat(p.PTS, 64)
+		dur, err2 := strconv.ParseFloat(p.Dur, 64)
+		if err1 != nil || err2 != nil {
+			t.Fatalf("packet %+v", p)
+		}
+		ps = append(ps, probePacket{pts: pts, dur: dur, key: strings.HasPrefix(p.Flags, "K")})
+	}
+	slices.SortFunc(ps, func(a, b probePacket) int { return cmp.Compare(a.pts, b.pts) })
+	return ps
+}
+
+// playlistURIs lists a playlist's URIs (lines that are not tags, and the
+// URI attributes of tags).
+func playlistURIs(pl []byte) []string {
+	var out []string
+	for line := range strings.SplitSeq(string(pl), "\n") {
+		if _, after, ok := strings.Cut(line, `URI="`); ok {
+			out = append(out, strings.TrimSuffix(after, `"`))
+		} else if line != "" && line[0] != '#' {
+			out = append(out, line)
+		}
+	}
+	return out
+}
+
+// TestStreamEndToEnd plays a signed HLS URL through the real router,
+// server, media service and FFmpeg the way a player does (master, media
+// playlists, init and media segments), stores the files in a directory
+// tree as a player's cache would, and checks that the segments of every
+// rendition, transcoded on their own, join into one video with the
+// source's 165 frames on the 25 fps grid, a keyframe at every segment,
+// and that the audio track joins into the stream's length, in sync with
+// the video. Then DASH, ranges, signing and tickets.
+func TestStreamEndToEnd(t *testing.T) {
+	if !ffmpeg.Available() {
+		t.Skip("this image has no FFmpeg")
+	}
+	cfg := videoConfig(t, config.RoleAll, true)
+	cfg.Video.Transform.UnsignedPolicy = config.Defaults().Video.Transform.UnsignedPolicy
+	cfg.Video.Transform.SegmentDuration = 2 * time.Second
+	a := startVideo(t, cfg)
+	base := "http://" + a.public.String()
+	s := newVideoSigner(t)
+	const src = "/plain/video/stream-vp9-opus.webm"
+
+	master := get(t, base+s.video(t, "/st:hls:360:240"+src+"@m3u8"))
+	if master.status != http.StatusOK || master.ctype != "application/vnd.apple.mpegurl" {
+		t.Fatalf("master: %d %q %s", master.status, master.ctype, master.body)
+	}
+	if again := get(t, base+s.video(t, "/st:hls:360:240"+src+"@m3u8")); !bytes.Equal(again.body, master.body) {
+		t.Fatal("the master playlist changed between two requests")
+	}
+	dir := t.TempDir()
+	tracks := map[string][]byte{} // track playlist URI → its init and segments joined
+	for _, pl := range playlistURIs(master.body) {
+		media := get(t, base+pl)
+		if media.status != http.StatusOK {
+			t.Fatalf("%s: %d %s", pl, media.status, media.body)
+		}
+		writeTree(t, dir, pl, media.body)
+		prefix := pl[:strings.LastIndexByte(pl, '/')+1]
+		var joined []byte
+		for _, u := range playlistURIs(media.body) {
+			r := get(t, base+prefix+u)
+			if r.status != http.StatusOK {
+				t.Fatalf("%s: %d %s", u, r.status, r.body)
+			}
+			writeTree(t, dir, prefix+u, r.body)
+			joined = append(joined, r.body...)
+		}
+		tracks[pl] = joined
+	}
+	writeTree(t, dir, "/master.m3u8", master.body)
+	t.Logf("stream written to %s", dir)
+	if len(tracks) != 3 {
+		t.Fatalf("%d tracks: %s", len(tracks), master.body)
+	}
+
+	var audioStart float64
+	var videoStarts []float64
+	for pl, joined := range tracks {
+		pk := ffprobePackets(t, joined)
+		if strings.HasSuffix(pl, "/a.m3u8") {
+			last := pk[len(pk)-1]
+			if got := last.pts + last.dur - pk[0].pts; math.Abs(got-(6.6+1024.0/48000)) > 0.03 {
+				t.Errorf("audio of %.4f s, want 6.6 s and the priming", got)
+			}
+			for i := 1; i < len(pk); i++ {
+				if math.Abs(pk[i].pts-pk[i-1].pts-pk[i-1].dur) > 1e-5 { // ffprobe rounds to microseconds
+					t.Fatalf("audio gap or overlap at packet %d (%.6f after %.6f+%.6f)", i, pk[i].pts, pk[i-1].pts, pk[i-1].dur)
+				}
+			}
+			audioStart = pk[0].pts
+			continue
+		}
+		if len(pk) != 165 {
+			t.Fatalf("%s: %d frames, want 165", pl, len(pk))
+		}
+		for i, p := range pk {
+			if want := pk[0].pts + float64(i)/25; math.Abs(p.pts-want) > 1e-4 {
+				t.Fatalf("%s: frame %d at %.5f, want %.5f", pl, i, p.pts, want)
+			}
+			if i%50 == 0 && !p.key {
+				t.Fatalf("%s: frame %d starts a segment without a keyframe", pl, i)
+			}
+		}
+		videoStarts = append(videoStarts, pk[0].pts)
+	}
+	// The priming packet comes 1024 samples before the source's first
+	// sample, which plays with the first frame.
+	for _, v := range videoStarts {
+		if math.Abs(v-audioStart-1024.0/48000) > 1e-3 {
+			t.Errorf("video starts at %.5f, audio at %.5f: out of sync", v, audioStart)
+		}
+	}
+
+	// DASH: the MPD of the same source, its first rendition's segment 1.
+	mpdResp := get(t, base+s.video(t, "/st:dash:240"+src+"@mpd"))
+	var mpd struct {
+		BaseURL string `xml:"BaseURL"`
+	}
+	if mpdResp.status != http.StatusOK || xml.Unmarshal(mpdResp.body, &mpd) != nil || mpd.BaseURL == "" {
+		t.Fatalf("mpd: %d %s", mpdResp.status, mpdResp.body)
+	}
+	for _, p := range []string{"v0/init.mp4", "v0/1.m4s", "a/init.mp4", "a/2.m4s"} {
+		if r := get(t, base+mpd.BaseURL+p); r.status != http.StatusOK {
+			t.Fatalf("dash %s: %d %s", p, r.status, r.body)
+		}
+	}
+
+	// Ranges, signing and tickets.
+	media := playlistURIs(master.body)[1]
+	seg := media[:strings.LastIndexByte(media, '/')+1] + "v0/2.m4s"
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, base+seg, http.NoBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Range", "bytes=0-15")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusPartialContent {
+		t.Fatalf("range: %d", resp.StatusCode)
+	}
+	tampered := []byte(seg)
+	tampered[len("/_stream/")+5] ^= 1
+	for _, tc := range []struct {
+		name, url string
+		status    int
+	}{
+		{"unsigned master", "/video/unsafe/st:hls" + src + "@m3u8", http.StatusForbidden},
+		{"tampered ticket", string(tampered), http.StatusForbidden},
+		{"segment past the end", strings.Replace(seg, "/2.m4s", "/4.m4s", 1), http.StatusNotFound},
+		{"rendition the stream lacks", strings.Replace(seg, "v0/2.m4s", "v5/0.m4s", 1), http.StatusNotFound},
+		{"size on a stream", s.video(t, "/w:320"+src+"@m3u8"), http.StatusBadRequest},
+	} {
+		if r := get(t, base+tc.url); r.status != tc.status {
+			t.Errorf("%s: %d, want %d: %s", tc.name, r.status, tc.status, r.body)
+		}
+	}
+}
+
+// writeTree stores body at its URL path under dir.
+func writeTree(t *testing.T, dir, urlPath string, body []byte) {
+	t.Helper()
+	p := filepath.Join(dir, filepath.FromSlash(strings.TrimPrefix(urlPath, "/")))
+	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(p, body, 0o600); err != nil {
+		t.Fatal(err)
+	}
+}

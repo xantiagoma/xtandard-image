@@ -314,7 +314,8 @@ token = base64url_unpadded( IV[16] ‖ AES-CBC(key, IV, PKCS#7(password)) )
 - **Waveform** (WP-123, like Cloudinary `fl_waveform`): `waveform:1` (or the `png`/`webp` container) draws the cut of the audio with FFmpeg `showwavespic` into a `width` × `height` RGBA picture (default 1024×256) in `color` (default black) on `background` (empty: transparent), mono or one band per channel; libvips encodes it as lossless PNG or WebP. A video source's audio track works too.
 - **Overlays** (WP-124): imgproxy's watermark options (`wm`, `wmu`, `wmt`, `wms`, `wmr`, `wmsh`) parse exactly as in §3.2 and become one image or text overlay (`TR.Video.Overlays`), drawn on every frame of its window: `ow:start:end` (seconds of the output; 0 end = the end) and `of:in:out` fades. `wm` with an opacity above 0 is required, as on images (`ow`/`of` alone are recorded in `TR.Ignored`); `wm` without `wmu`/`wmt` is the configured watermark image. `tc:hms|seconds[:position:x:y:size:color:opacity]` adds a running timecode (FFmpeg `drawtext` with a fixed expansion; no request text). Overlay images are fetched like sources (allowlists, signing). Audio-only outputs and waveforms refuse overlays (400).
 - **Query dialect:** `/q/video?url=…` takes the same options as query keys ([§4](#4-query-dialect-native--imaginary)).
-- **Not yet:** keyframe-only ("fast") cuts, the other dialects' video syntax (WP-125), HLS/DASH (WP-126); `/info` reports the source's streams, not the planned output.
+- **Streams** (WP-126, [§3.10](#310-hls-and-dash-streams-wp-126-every-dialect)): the `m3u8` or `mpd` extension (or `format`), or `st:hls|dash[:height…]`, answers an HLS master playlist or a DASH MPD instead of a file; `sgd` sets the segment length. Everything else applies to every rendition, except a size (`w`, `h`, `s`, `rs` sizes), `vb` and watermarks, which are 400 on a stream (the renditions decide sizes and bit rates); `ki` sets keyframes within segments (default: one per segment).
+- **Not yet:** keyframe-only ("fast") cuts; `/info` reports the source's streams, not the planned output.
 
 | Option (aliases) | Args | Meaning (`TR.Video` field) | Default | Milestone |
 |---|---|---|---|---|
@@ -334,7 +335,7 @@ token = base64url_unpadded( IV[16] ‖ AES-CBC(key, IV, PKCS#7(password)) )
 | `flip` (`fl`) | h:v | Mirror after the rotation. | false:false | M5 (WP-122) |
 | `background` (`bg`) | hex | Colour of the bars of extend. | 000000 | M5 (WP-122) |
 | `fps` | rate | Output frame rate (capped by XI_VIDEO_TRANSFORM_MAX_FPS). | source | M5 (WP-122) |
-| `format` (`f`, `ext`) | mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp | Output container (the source extension sets it too); png and webp are waveform pictures. | mp4 | M5 (WP-122) |
+| `format` (`f`, `ext`) | mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp, m3u8, mpd | Output container (the source extension sets it too); png and webp are waveform pictures, m3u8 and mpd streams (WP-126). | mp4 | M5 (WP-122) |
 | `video_codec` (`vc`) | auto, h264, av1, vp9, hevc | Video codec (h264 and hevc need the gpl image). | auto | M5 (WP-122) |
 | `audio_codec` (`ac`) | auto, aac, opus, mp3, flac, pcm | Audio codec (must suit the container). | auto | M5 (WP-122) |
 | `quality` (`q`) | 1..100 | Video quality, mapped onto the codec's CRF scale. | 0 | M5 (WP-122) |
@@ -352,6 +353,8 @@ token = base64url_unpadded( IV[16] ‖ AES-CBC(key, IV, PKCS#7(password)) )
 | `overlay_window` (`ow`) | start:end | Show the watermark overlay (wm, wmu, wmt) from start to end seconds of the output. | 0:0 | M5 (WP-124) |
 | `overlay_fade` (`of`) | in:out | Fade the watermark overlay in and out (seconds, within its window). | 0:0 | M5 (WP-124) |
 | `timecode` (`tc`) | format:position:x:y:size:color:opacity | Draw the output's running time (FFmpeg drawtext with a fixed expansion). | none:sowe:0:0:0:ffffff:1 | M5 (WP-124) |
+| `stream` (`st`) | protocol:height… | Deliver an HLS or DASH stream (as the m3u8 or mpd extension does) with these renditions (at most 8; none: the configured ladder). Rungs above the source are dropped. | none (a file) | M5 (WP-126) |
+| `segment_duration` (`sgd`) | seconds | Length of a stream's segments (1..30 s). | XI_VIDEO_TRANSFORM_SEGMENT_DURATION (6) | M5 (WP-126) |
 | `watermark` (`wm`), `watermark_url` (`wmu`), `watermark_text` (`wmt`), `watermark_size` (`wms`), `watermark_rotate` (`wm_rot`, `wmr`), `watermark_shadow` (`wmsh`), `cachebuster` (`cb`), `bypass_cache` (`bc`), `cache_tags` (`ct`), `expires` (`exp`), `filename` (`fn`), `return_attachment` (`att`), `hashsum` (`hs`) | as in §3.2 | as in §3.2 | as in §3.2 | as in §3.2 |
 
 ### 3.9 Video outputs and limits
@@ -378,6 +381,24 @@ Examples:
 /video/<sig>/wf:1:2266cc:ffffff/w:800/h:160/plain/https://example.com/podcast.mp3@png
 /q/video?url=https://example.com/clip.mp4&start=1&duration=5&width=640&format=webm&mute=1&xi_sig=<sig>
 ```
+
+### 3.10 HLS and DASH streams (WP-126; every dialect)
+
+**Status:** M5 (WP-126), `full` and `gpl` images with `XI_VIDEO_TRANSFORM_ENABLED=true`. Design: [ADR 0012 §6](adr/0012-video-transformations.md). A video URL that asks for a stream (imgproxy `/video` with `@m3u8`/`@mpd` or `st`, query `/q/video?format=m3u8`, Cloudinary `.m3u8`/`.mpd`/`f_m3u8` with `sp_`, ImageKit `ik-master.m3u8`/`.mpd` with `sr-`) answers an HLS master playlist (`application/vnd.apple.mpegurl`) or a DASH MPD (`application/dash+xml`) instead of a file. It is a video transformation for signing (signed only by default), roles, limits and the unsigned policy.
+
+```
+/video/<sig>/st:hls:360:720/plain/https://example.com/talk.mp4@m3u8       (imgproxy)
+/video/<sig>/vs:60/vd:300/plain/s3://media/talk.mov@mpd                   (a 5-minute DASH stream of a cut)
+/<cloud>/video/upload/s--SIG--/sp_hd/talk.m3u8                            (Cloudinary)
+/imagekit/<mount>/talk.mp4/ik-master.m3u8?tr=sr-240_360_720&ik-s=…       (ImageKit)
+```
+
+- **Renditions** are rungs of the ABR ladder by the short side of the frame (`720` is 1280×720 for 16:9 landscape, 720×1280 for portrait): the URL's (`st:hls:360:720`, `sr-240_360_720`, a Cloudinary profile), else `XI_VIDEO_TRANSFORM_ABR_LADDER`, at the ladder's bit rates (or the standard rate of a height the ladder lacks). Rungs larger than the source are dropped; a source smaller than every rung gets one rendition of its own size. Every rendition has the stream's frame rate (the source's, `fps`, capped by `XI_VIDEO_TRANSFORM_MAX_FPS`). Everything else of the URL (cut, crop, rotation, flips, quality, codec, keyframe interval, fades, audio options) applies to every rendition; sizes, video bit rates and overlays do not (Cloudinary and ImageKit record them as not applied, 400 in strict mode; imgproxy and query answer 400).
+- **Codecs:** CMAF (fragmented MP4) segments: H.264 High in `gpl`, AV1 in `full` (`vc` may pick `av1` or `vp9`; HEVC is not streamed), AAC-LC 48 kHz audio (muted streams have none). The manifests' `CODECS`/`codecs` strings (`avc1.64001f`, `av01.0.05M.08`, `vp09.00.31.08`, `mp4a.40.2`) are known before encoding and match the encoders' init segments (tested).
+- **Segments** are `XI_VIDEO_TRANSFORM_SEGMENT_DURATION` long (whole seconds; `sgd` per URL), the last one shorter; each video segment is transcoded when a player asks for it, starting with a keyframe (one per segment unless `ki` asks for more), and the next `XI_VIDEO_TRANSFORM_PREFETCH_SEGMENTS` are transcoded ahead on idle video workers. The audio track is transcoded once and cut into segments on the same grid.
+- **Child URLs:** the manifest lists its media playlists, init segments and media segments under `<XI_SERVER_PATH_PREFIX>/_stream/<ticket>/`: `master.m3u8`, `manifest.mpd`, `v<i>.m3u8` and `a.m3u8` (media playlists), `v<i>/init.mp4`, `a/init.mp4`, `v<i>/<n>.m4s`, `a/<n>.m4s` (`v0` is the largest rendition). The ticket seals the stream's source and options with an expiry (`XI_VIDEO_TRANSFORM_STREAM_TTL`, capped by the URL's own `expires`) under `XI_VIDEO_TRANSFORM_STREAM_KEYS` (AES-256-GCM): a player needs no signing key, the source stays hidden (an `enc/` source too), and an altered ticket is 403, an expired one 404 (`url expired`), a rendition or segment the stream does not have 404. A ticket only opens its own stream's parts.
+- **Responses:** playlists and segments support `Range`, `If-None-Match` and `HEAD`; they may be cached until their ticket expires (manifests a quarter of the TTL). Parts are cached in memory (`XI_VIDEO_TRANSFORM_STREAM_CACHE_BYTES`) and in the result cache (a persistent tier keeps them across instances and restarts). CORS for browser players comes from `XI_SERVER_CORS_ORIGINS`.
+- **Not supported:** live streams, DRM, MPEG-TS segments, subtitles, I-frame playlists, byte-range (single-file) playlists, Cloudflare Stream's `/manifest/video.m3u8` URLs (another product: stored videos with an upload API).
 
 ## 4. Query dialect (native + imaginary)
 
@@ -588,12 +609,12 @@ A `video` asset URL is a `KindVideo` request (`transform.VideoOp`) when its outp
 | `fps_<n>`, `fps_<min>-<max>` | FPS (a range takes its maximum, approximated) | `fps_<min>-` approximated (source rate) |
 | `ac_none`, `ac_aac`, `ac_mp3`, `ac_opus`, `ac_vorbis` | Mute, AudioCodec | `ac_vorbis` → Opus (approximated); a codec the container cannot hold is 400 |
 | `vc_auto`, `vc_h264[:profile[:level]]`, `vc_h265`, `vc_vp9`, `vc_av1`, `vc_none` | VideoCodec; `vc_none` = audio only (M4A, Ogg Opus or MP3 by the audio codec) | profile/level approximated; `vc_vp8`, `vc_prores`, `vc_theora` unsupported; a codec the container cannot hold (`vc_vp9` in `.mp4`) is 400; H.264/HEVC encode only in gpl images (422 elsewhere) |
-| `f_mp4`, `f_webm`, `f_m4a`, `f_mp3`, `f_opus`, `f_ogg` (and the same extensions) | Container | `f_ogg` → Ogg Opus audio (approximated); `f_mov`/`mkv`/`flv`/`avi`/… recorded unsupported (MP4 is delivered); `f_m3u8`/`f_mpd` "M5 (WP-126)"; `f_wav`/`flac`/`aac` "M5 (WP-123)"; unknown formats 400 |
+| `f_mp4`, `f_webm`, `f_m4a`, `f_mp3`, `f_opus`, `f_ogg` (and the same extensions) | Container | `f_ogg` → Ogg Opus audio (approximated); `f_mov`/`mkv`/`flv`/`avi`/… recorded unsupported (MP4 is delivered); `f_m3u8`/`f_mpd` (and the `.m3u8`/`.mpd` extensions) are streams (row below); `f_wav`/`flac`/`aac` "M5 (WP-123)"; unknown formats 400 |
 | `f_auto` | AutoContainer: WebM when the client names `video/webm` in `Accept`, else MP4; `Vary: Accept` | an explicit codec decides the container instead (`vc_vp9`/`ac_opus` → WebM, `vc_h264`/`ac_aac` → MP4) |
 | `e_volume:mute` / `e_volume:-100` | Mute | other volumes, `e_fade`, `e_noise_reduction`, `af_`, `fl_waveform`, `fl_mono`: "M5 (WP-123)" |
 | `fl_attachment[:name]`, `fl_streaming_attachment`, `fl_immutable_cache` | Delivery | `fl_keep_dar`, `fl_truncate_ts`, `fl_no_stream`, `fl_animated` are the default; `fl_lossy` and other image flags "not applicable to video"; `fl_splice`, `fl_hlsv3` unsupported |
 | `l_<public_id>` (`:` = folder), `l_fetch:<base64url>`, `l_text:<style>:<text>` and their `fl_layer_apply` group (or the legacy single component) | Overlays (WP-124, FORMATS §5.2): the layer and its placement as on images (§6: `g_`, `x_`, `y_`, `w_`/`h_` px, relative `w_` + `fl_relative`, `fl_tiled`, `o_`, `a_`, `co_`, text style); the group's `so_`/`eo_`/`du_` → Start/End on the output's timeline, `e_fade[:ms]` → FadeIn (positive, default 2000) / FadeOut (negative) | at most 8; an overlay on an audio-only output is 400; `eo_` with `du_`: `eo_` wins; `l_video`, `l_subtitles`, `l_lut`, `l_audio`, `fl_splice` and `u_` underlays unsupported |
-| `sp_<profile>` | — | "M5 (WP-126)" |
+| `.m3u8` / `.mpd` (or `f_m3u8` / `f_mpd`) with `sp_<profile>` | Stream (HLS / DASH, §3.10): `sp_auto` and no `sp_` = the configured ladder; `sp_4k` = 2160/1440/1080/720/480/360/240, `sp_full_hd` = 1080/720/480/360/240, `sp_hd` = 720/480/360/240, `sp_sd` = 480/360/240, `sp_full_hd_wifi` = 1080/720/480, `sp_full_hd_lean` = 1080/720/360, `sp_hd_lean` = 720/360/240 (heights, at this server's bit rates; never above the source) | custom (account) profiles recorded unsupported (the ladder is used); `sp_` with another output recorded "applies to m3u8 and mpd output only"; resizes, `br_`, layers and non-AAC audio recorded "not applied to streams" (400 in strict mode); `vc_none` is 400 |
 | `e_<effect>` (accelerate, reverse, boomerang, loop, deshake, …), `t_`, `d_`, `o_`, `r_`, `bo_`, `co_`, `z_`, `if_`, `$var`, `ki_`, `vs_`, `dl_`, `fn_`, `p_` | — | unsupported |
 
 Fixtures: `internal/dialect/cloudinary/testdata/urlgen/generate.ts` builds the corpus with `@cloudinary/url-gen` 1.22.0 and the `cloudinary` Node SDK 2.11.0 (including signed URLs, i.e. the signature vectors); unpic's `cloudinary.test.ts` URLs are asserted in `compat_test.go`.
@@ -676,7 +697,7 @@ Reference: https://imagekit.io/docs/video-transformation, video-resize-and-crop,
 /imagekit/<mount>/clips/a.mov/ik-video.mp4?tr=vc-none          (audio only)
 ```
 
-A file whose extension is a video one (`mp4`, `webm`, `mov`, `m4v`, `mkv`, `avi`, `ogv`, `3gp`, `mpeg`/`mpg`, `ts`, `flv`, `wmv`, `qt`), or any file followed by `/ik-video.mp4`, is a `KindVideo` request unless `f-` asks for an image format; `<video>/ik-thumbnail.jpg` stays the thumbnail path and `ik-master.m3u8`/`.mpd` is 400 until WP-126. Steps (`:`) apply in order onto one VideoOp, like Cloudinary's components (§6.1); signing, `ik-t`, `ik-attachment` and the cache-busting query work as for images. Without `f-` the output follows ImageKit's default `f-auto`.
+A file whose extension is a video one (`mp4`, `webm`, `mov`, `m4v`, `mkv`, `avi`, `ogv`, `3gp`, `mpeg`/`mpg`, `ts`, `flv`, `wmv`, `qt`), or any file followed by `/ik-video.mp4`, is a `KindVideo` request unless `f-` asks for an image format; `<video>/ik-thumbnail.jpg` stays the thumbnail path, and `<video>/ik-master.m3u8` / `.mpd` is an HLS / DASH stream (§3.10) with the renditions of `sr-`. Steps (`:`) apply in order onto one VideoOp, like Cloudinary's components (§6.1); signing, `ik-t`, `ik-attachment` and the cache-busting query work as for images. Without `f-` the output follows ImageKit's default `f-auto`.
 
 | ImageKit | VideoOp | Notes |
 |---|---|---|
@@ -694,7 +715,7 @@ A file whose extension is a video one (`mp4`, `webm`, `mov`, `m4v`, `mkv`, `avi`
 | `rt-<90k>`, `rt-N<deg>` | Rotate | other angles and `rt-auto` unsupported |
 | `dpr-<0.1..5>` | multiplies the sizes | `dpr-auto` approximated (1) |
 | `l-image`, `l-text` … `l-end` | Overlays (WP-124, FORMATS §5.2): the layer as on images (§7: `i`/`ie`, `lx`/`ly` with `N`, `lfo`, `w`/`h`, `o`, `rt`, and for text `ff`, `fs`, `tg`, `co`, `al`); `lso`/`leo`/`ldu` (seconds) → Start/End on the output's timeline | at most 8; an overlay on an audio-only output (`vc-none`) is 400; `leo` with `ldu`: `leo` wins; `l-video`, `l-subtitles` and nested layers unsupported |
-| `sr-<…>` | — | "M5 (WP-126)" |
+| `sr-<h>_<h>…` with `ik-master.m3u8` / `.mpd` | Stream renditions (heights 64–4320, at most 8; without `sr-`, the configured ladder) | other `ik-master.*` suffixes are 400; `sr-` on another output recorded "applies to ik-master.m3u8 and ik-master.mpd only"; `w-`, `h-`, layers, `ac-opus` and `vc-h265` recorded "not applied to streams" (400 in strict mode); `vc-none` is 400 |
 | `br-` | — | unsupported (the unit is not documented) |
 | image-only parameters (`b-`, `r-`, `bl-`, `o-`, `t-`, `z-`, `fl-`, `e-*`, `pr-`, `lo-`, `md-`, `cp-`, `orig-`, `di-`, `pg-`), `n-` | — | "not applicable to video" / unsupported |
 
@@ -793,6 +814,8 @@ Mounted at `/cdn-cgi/media/` next to every Cloudflare mount whose prefix ends in
 | an option of another mode, an unknown option | `Ignored` ("not applicable in this mode" / "unknown option"); 400 in strict mode | |
 
 Limits beyond the URL ranges are the video subsystem's (`XI_VIDEO_TRANSFORM_MAX_*`; Cloudflare caps inputs at 100 MB and 10 minutes, here `XI_VIDEO_TRANSFORM_MAX_INPUT_*` decide).
+
+Cloudflare Stream's manifests (`customer-<code>.cloudflarestream.com/<video id>/manifest/video.m3u8`) belong to a different product (videos uploaded to Cloudflare and addressed by id) and are not mapped; HLS and DASH of a source URL are the other dialects' streams (§3.10).
 
 ## 9. Bunny Optimizer
 

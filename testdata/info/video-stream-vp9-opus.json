@@ -1,0 +1,44 @@
+{
+  "alpha": false,
+  "bands": 3,
+  "colorspace": "srgb",
+  "exif": {},
+  "format": "webm",
+  "height": 360,
+  "iptc": {},
+  "mime_type": "video/webm",
+  "orientation": 1,
+  "pages_number": 1,
+  "sample_format": "uchar",
+  "size": 119340,
+  "video_meta": {
+    "ENCODER": "Lavf62.12.103",
+    "bit_rate": 144479,
+    "codec": "vp9",
+    "container": "matroska",
+    "duration": 6.608,
+    "fps": 25,
+    "frames": 165,
+    "height": 360,
+    "rotation": 0,
+    "width": 640
+  },
+  "video_streams": [
+    {
+      "codec": "vp9",
+      "fps": 25,
+      "height": 360,
+      "type": "video",
+      "width": 640
+    },
+    {
+      "channels": 2,
+      "codec": "opus",
+      "frequency": 48000,
+      "layout": "stereo",
+      "type": "audio"
+    }
+  ],
+  "width": 640,
+  "xmp": {}
+}

@@ -11506,6 +11506,176 @@
       "url_short": "/video/unsafe/vs:0.0000015/plain/https://example.com/clip.mov"
     },
     {
+      "name": "video/stream_alias_segment",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "stream": [
+              "hls"
+            ]
+          },
+          {
+            "sgd": [
+              4
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/stream:hls/sgd:4/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/st:hls/sgd:4/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/stream_crop_codec_ki",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "extension": "m3u8",
+      "pipelines": [
+        [
+          {
+            "c": [
+              640,
+              360,
+              "ce"
+            ]
+          },
+          {
+            "rot": [
+              90
+            ]
+          },
+          {
+            "fps": [
+              25
+            ]
+          },
+          {
+            "vc": [
+              "vp9"
+            ]
+          },
+          {
+            "q": [
+              60
+            ]
+          },
+          {
+            "ki": [
+              2
+            ]
+          },
+          {
+            "ab": [
+              "96k"
+            ]
+          },
+          {
+            "ach": [
+              1
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/c:640:360:ce/rot:90/fps:25/vc:vp9/q:60/ki:2/ab:96k/ach:1/plain/https://example.com/clip.mov@m3u8",
+      "url_short": "/video/unsafe/c:640:360:ce/rot:90/fps:25/vc:vp9/q:60/ki:2/ab:96k/ach:1/plain/https://example.com/clip.mov@m3u8"
+    },
+    {
+      "name": "video/stream_ext_after_option",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "extension": "m3u8",
+      "pipelines": [
+        [
+          {
+            "st": [
+              "dash",
+              360
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/st:dash:360/plain/https://example.com/clip.mov@m3u8",
+      "url_short": "/video/unsafe/st:dash:360/plain/https://example.com/clip.mov@m3u8"
+    },
+    {
+      "name": "video/stream_ext_m3u8",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "extension": "m3u8",
+      "pipelines": [],
+      "url": "/video/unsafe/plain/https://example.com/clip.mov@m3u8",
+      "url_short": "/video/unsafe/plain/https://example.com/clip.mov@m3u8"
+    },
+    {
+      "name": "video/stream_ext_mpd",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "extension": "mpd",
+      "pipelines": [
+        [
+          {
+            "vs": [
+              5
+            ]
+          },
+          {
+            "vd": [
+              60
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/vs:5/vd:60/plain/https://example.com/clip.mov@mpd",
+      "url_short": "/video/unsafe/vs:5/vd:60/plain/https://example.com/clip.mov@mpd"
+    },
+    {
+      "name": "video/stream_option",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "st": [
+              "dash",
+              240,
+              720,
+              480
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/st:dash:240:720:480/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/st:dash:240:720:480/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/stream_signed",
+      "config": "signed",
+      "endpoint": "video",
+      "signature_size": 32,
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "extension": "m3u8",
+      "pipelines": [
+        [
+          {
+            "st": [
+              "hls",
+              360
+            ]
+          }
+        ]
+      ],
+      "url": "/video/wKv36wW-P4wDVNqTEZB4fxbBrmRDBGFmXwo1CZ0EZbo/st:hls:360/plain/https://example.com/clip.mov@m3u8",
+      "url_short": "/video/wKv36wW-P4wDVNqTEZB4fxbBrmRDBGFmXwo1CZ0EZbo/st:hls:360/plain/https://example.com/clip.mov@m3u8"
+    },
+    {
       "name": "video/timecode",
       "endpoint": "video",
       "encoding": "plain",

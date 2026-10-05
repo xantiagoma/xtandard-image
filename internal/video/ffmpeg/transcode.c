@@ -102,6 +102,11 @@ struct XiTx {
   XiFFOut out;
   AVPacket *pkt, *opkt;
   AVFrame *frame, *filt, *mid;
+  // Fragmented output (WP-126): see XiTxParams.
+  int frag;
+  int64_t frag_offset; // added to every timestamp, in the output stream's time base
+  int64_t frag_len;    // audio fragment length, encoder time base; 0 = one fragment
+  int64_t frag_seg;    // index of the fragment being written; -1 before the first
 };
 
 static atomic_int xi_tx_handles;
@@ -821,6 +826,8 @@ xi_tx_encoder(XiTx *h, XiTxStream *s, const char *name, const XiTxParams *p, int
     case XI_FF_ENC_H264:
       av_dict_set(&opts, "preset", p->preset, 0);
       av_dict_set(&opts, "profile", "high", 0);
+      if (p->level > 0) // the level the manifest's CODECS names (WP-126)
+        c->level = p->level;
       if (p->max_bitrate > 0) {
         c->rc_max_rate = p->max_bitrate;
         c->rc_buffer_size = (int)FFMIN(p->max_bitrate * 2, INT32_MAX);
@@ -848,10 +855,19 @@ xi_tx_encoder(XiTx *h, XiTxStream *s, const char *name, const XiTxParams *p, int
     return ret;
   if (audio && c->frame_size > 0 && !(codec->capabilities & AV_CODEC_CAP_VARIABLE_FRAME_SIZE))
     av_buffersink_set_frame_size(s->sink, (unsigned)c->frame_size);
+  if (audio && p->frag) {
+    // The fragments are cut on the source's timeline, so the priming
+    // the encoder adds must be the one the plan expects (WP-126).
+    if (c->initial_padding != p->audio_priming)
+      return AVERROR(EINVAL);
+    h->frag_len = (int64_t)p->frag_seconds * c->sample_rate;
+  }
   s->ost = avformat_new_stream(h->oc, NULL);
   if (!s->ost)
     return AVERROR(ENOMEM);
   s->ost->time_base = c->time_base;
+  if (!audio && p->frag) // HLS's clock: every frame rate and the offset are exact
+    s->ost->time_base = (AVRational) { 1, 90000 };
   if (!audio)
     s->ost->avg_frame_rate = c->framerate;
   if ((ret = avcodec_parameters_from_context(s->ost->codecpar, c)) < 0)
@@ -860,6 +876,43 @@ xi_tx_encoder(XiTx *h, XiTxStream *s, const char *name, const XiTxParams *p, int
     s->ost->codecpar->codec_tag = MKTAG('h', 'v', 'c', '1');
   s->active = 1;
   return 0;
+}
+
+// Writes h->opkt (encoder time base) into fragmented output (WP-126). The
+// output has one stream, so packets go straight to the muxer
+// (av_write_frame), and an audio fragment is flushed before the first
+// packet of each frag_len of the source: a packet belongs to the fragment
+// its source time falls in (the priming packet, before 0, to the first).
+// Then every timestamp moves by frag_offset, which is at least the audio
+// priming and the video encoder's reordering delay, so no decode time is
+// negative and the source's instant t plays at t + offset in every
+// segment of every rendition, audio and video alike.
+static int
+xi_tx_write_frag(XiTx *h, XiTxStream *s)
+{
+  AVPacket *pkt = h->opkt;
+  int ret;
+  if (h->frag_len > 0 && pkt->pts != AV_NOPTS_VALUE) {
+    int64_t seg = pkt->pts < 0 ? 0 : pkt->pts / h->frag_len;
+    if (seg > h->frag_seg) {
+      if (h->frag_seg >= 0 && (ret = av_write_frame(h->oc, NULL)) < 0)
+        return ret;
+      h->frag_seg = seg;
+    }
+  }
+  av_packet_rescale_ts(pkt, s->enc->time_base, s->ost->time_base);
+  if (pkt->pts != AV_NOPTS_VALUE)
+    pkt->pts += h->frag_offset;
+  if (pkt->dts != AV_NOPTS_VALUE)
+    pkt->dts += h->frag_offset;
+  if ((pkt->dts != AV_NOPTS_VALUE && pkt->dts < 0) || (pkt->pts != AV_NOPTS_VALUE && pkt->pts < 0)) {
+    av_packet_unref(pkt);
+    return AVERROR(EINVAL); // an offset below the encoder's delay
+  }
+  pkt->stream_index = s->ost->index;
+  ret = av_write_frame(h->oc, pkt);
+  av_packet_unref(pkt);
+  return ret;
 }
 
 // Muxes every packet s's encoder has ready (frame NULL flushes it first;
@@ -889,6 +942,11 @@ xi_tx_encode(XiTx *h, XiTxStream *s, AVFrame *frame)
           break;
         }
       }
+    }
+    if (h->frag) {
+      if ((ret = xi_tx_write_frag(h, s)) < 0)
+        return ret;
+      continue;
     }
     av_packet_rescale_ts(h->opkt, s->enc->time_base, s->ost->time_base);
     h->opkt->stream_index = s->ost->index;
@@ -1099,6 +1157,17 @@ xi_tx_run(XiTx *h, const XiTxParams *p, char *err, size_t errlen)
   h->oc->interrupt_callback.callback = xi_tx_interrupt;
   h->oc->interrupt_callback.opaque = h;
   h->oc->flags |= AVFMT_FLAG_BITEXACT; // no library version strings
+  if (p->frag) {
+    if (strcmp(muxer, "mp4") || !p->vcodec == !p->acodec || p->frag_seconds < 0) {
+      xi_ff_set_err(err, errlen, "fragmented output takes one stream in mp4", 0);
+      return XI_FF_ERR_INTERNAL;
+    }
+    h->frag = 1;
+    h->frag_seg = -1;
+    // Timestamps are the plan's (the segment's place on the stream's
+    // timeline): never shifted to start at zero.
+    h->oc->avoid_negative_ts = AVFMT_AVOID_NEG_TS_DISABLED;
+  }
 
   char chain[sizeof(p->vfilters) + 1] = { 0 };
   if (p->vcodec) {
@@ -1146,7 +1215,21 @@ xi_tx_run(XiTx *h, const XiTxParams *p, char *err, size_t errlen)
   }
 
   AVDictionary *mopts = NULL;
-  if (p->faststart)
+  if (p->frag) {
+    // An empty moov, fragments that end where xi_tx_write_frag (or the
+    // trailer) flushes them, based on their moof, with non-negative
+    // composition offsets (every reader agrees on them), and no mfra
+    // index at the end. frag_discont: the first fragment's decode time
+    // is its first packet's, not 0. A video segment is one fragment whose
+    // moov waits for it (delay_moov: AV1's configuration only arrives with
+    // its first packet); the audio's configuration is known up front, and
+    // a delayed moov would swallow its first fragment boundary.
+    char flags[128];
+    snprintf(flags, sizeof(flags), "+empty_moov+default_base_moof+frag_custom+skip_trailer%s%s",
+        p->frag_discont ? "+frag_discont" : "", h->v.active ? "+delay_moov" : "");
+    av_dict_set(&mopts, "movflags", flags, 0);
+    av_dict_set(&mopts, "use_editlist", "0", 0);
+  } else if (p->faststart)
     av_dict_set(&mopts, "movflags", "+faststart", 0);
   if (!strcmp(muxer, "webm")) // the index first, for players that read ranges
     av_dict_set(&mopts, "cues_to_front", "1", 0);
@@ -1154,6 +1237,16 @@ xi_tx_run(XiTx *h, const XiTxParams *p, char *err, size_t errlen)
   av_dict_free(&mopts);
   if (ret < 0)
     return xi_tx_fail(h, ret, "write header", err, errlen);
+  if (h->frag) { // the header fixed the stream's time base
+    AVStream *ost = h->v.active ? h->v.ost : h->a.ost;
+    h->frag_offset = av_rescale_q(p->frag_offset, (AVRational) { 1, 90000 }, ost->time_base);
+    if (h->a.active
+        && h->frag_offset < av_rescale_q(h->a.enc->initial_padding,
+               (AVRational) { 1, h->a.enc->sample_rate }, ost->time_base)) {
+      xi_ff_set_err(err, errlen, "stream offset below the audio priming", 0);
+      return XI_FF_ERR_INTERNAL;
+    }
+  }
 
   if (p->start > 0) {
     // The keyframe at or before the cut; trim drops what precedes it.

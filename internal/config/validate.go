@@ -82,6 +82,22 @@ func (c *Config) validateVideoTransform(v *validator) {
 	v.check(t.MaxFPS >= 1 && t.MaxFPS <= 240, "video.transform.max_fps", "must be between 1 and 240, got %g", t.MaxFPS)
 	v.check(t.UnsignedPolicy == UnsignedDeny || t.UnsignedPolicy == UnsignedAllow,
 		"video.transform.unsigned_policy", "must be deny or allow, got %q", t.UnsignedPolicy)
+	v.check(len(t.ABRLadder) >= 1 && len(t.ABRLadder) <= 8, "video.transform.abr_ladder", "must list 1 to 8 rungs, got %d", len(t.ABRLadder))
+	seen := map[int]bool{}
+	for _, item := range t.ABRLadder {
+		h, _, err := ParseABRRung(item)
+		v.check(err == nil, "video.transform.abr_ladder", "%v", err)
+		v.check(err != nil || !seen[h], "video.transform.abr_ladder", "rung %d listed twice", h)
+		seen[h] = true
+	}
+	v.check(t.SegmentDuration >= time.Second && t.SegmentDuration <= 30*time.Second && t.SegmentDuration%time.Second == 0,
+		"video.transform.segment_duration", "must be whole seconds from 1s to 30s, got %s", t.SegmentDuration)
+	v.between(t.PrefetchSegments, 0, 16, "video.transform.prefetch_segments")
+	v.check(t.StreamTTL >= time.Minute, "video.transform.stream_ttl", "must be at least 1m, got %s", t.StreamTTL)
+	for i, k := range t.StreamKeys {
+		v.check(len(k) >= 16, "video.transform.stream_keys", "key %d is %d bytes, want at least 16", i, len(k))
+	}
+	v.nonNegative(int64(t.StreamCacheBytes), "video.transform.stream_cache_bytes")
 }
 
 func (c *Config) validateServer(v *validator) {
@@ -647,6 +663,10 @@ func (c *Config) warnings() []string {
 	}
 	if c.DevMode {
 		w = append(w, "dev mode is on: any http(s) source is allowed; do not use in production")
+	}
+	if t := &c.Video.Transform; t.Enabled && c.Role.Videos() && len(t.StreamKeys) == 0 && len(c.Signing.Keys) == 0 {
+		w = append(w, "no video.transform.stream_keys and no signing keys: the child URLs of HLS and DASH manifests "+
+			"work only on the instance that wrote them, until it restarts")
 	}
 	return w
 }

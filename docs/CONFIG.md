@@ -112,7 +112,7 @@ This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS`
 | Variable | Default | Meaning |
 |---|---|---|
 | `XI_DEV_MODE` | `false` | Allow any http(s) source (SSRF rules still apply), pretty errors, no signature requirement warnings |
-| `XI_ROLE` | `all` | What this instance serves (ADR 0012): `all`; `image` (video transformations answer 404, so a load balancer routes them elsewhere); `video` (only video transformations, plus `/healthz`, `/readyz` and the admin listener; every other request answers 404; needs `XI_VIDEO_TRANSFORM_ENABLED`). One binary and image serve every role |
+| `XI_ROLE` | `all` | What this instance serves (ADR 0012): `all`; `image` (video transformations answer 404, so a load balancer routes them elsewhere); `video` (only video transformations and the parts of their HLS and DASH streams under `/_stream/`, plus `/healthz`, `/readyz` and the admin listener; every other request answers 404; needs `XI_VIDEO_TRANSFORM_ENABLED`). One binary and image serve every role |
 | `XI_SERVER_ADDR` | `:8080` | Listen address |
 | `XI_SERVER_PATH_PREFIX` | `` | Global prefix stripped before routing |
 | `XI_SERVER_REQUEST_TIMEOUT` | `20s` | Whole-request deadline |
@@ -125,7 +125,7 @@ This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS`
 | `XI_SERVER_SHUTDOWN_DELAY` | `5s` | Readiness goes 503 this long before listener closes |
 | `XI_SERVER_SHUTDOWN_TIMEOUT` | `30s` | Drain limit |
 | `XI_SERVER_READY_QUEUE_THRESHOLD` | `0` (off) | `/readyz` 503 when queue fill % ≥ value |
-| `XI_SERVER_CORS_ORIGINS` | `` | Allowed CORS origins (`*` allowed) |
+| `XI_SERVER_CORS_ORIGINS` | `` | Origins browsers may read responses from (`*` for any): a request whose `Origin` is listed gets `Access-Control-Allow-Origin` (`*`, or the origin with `Vary: Origin`) and the range and validator headers exposed, so HLS and DASH players in another origin's page can load playlists and segments; a preflight (`OPTIONS` for `GET`/`HEAD`) is answered 204. Empty: no CORS headers |
 
 ### Security, signing, encryption
 
@@ -316,6 +316,12 @@ Each source is configured by the `XI_SOURCES_<NAME>_*` variables below (`<NAME>`
 | `XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS` | `8294400` | Largest output frame, width × height (4K UHD) (422) |
 | `XI_VIDEO_TRANSFORM_MAX_FPS` | `60` | Highest output frame rate: a faster source is reduced to it, a faster request refused (422) (1–240) |
 | `XI_VIDEO_TRANSFORM_UNSIGNED_POLICY` | `deny` | Video transformations without a verified signature: `deny` answers them 403 even on a mount whose `XI_SECURITY_UNSIGNED_POLICY` (or dialect policy) is `allow`; `allow` leaves them to the mount's policy (a `restricted` mount still refuses them, its allowlists describe images). Only `deny` and `allow` are accepted (ADR 0012 §8) |
+| `XI_VIDEO_TRANSFORM_ABR_LADDER` | `1080:5000k,720:2800k,480:1400k,360:800k,240:400k` | Renditions of HLS and DASH streams (WP-126, ADR 0012 §6), as `<height>[:<bit rate>]` items: the short side of the frame (64–4320; `720` is 1280×720 for a 16:9 landscape source and 720×1280 for a portrait one) and its peak video bit rate in bits per second with an optional `k`/`m` suffix (left out: the standard rate of that height). 1–8 rungs; rungs larger than the source are dropped (a smaller source gets one rendition of its own size). A URL may name its own subset (Cloudinary `sp_`, ImageKit `sr-`, imgproxy `st`) |
+| `XI_VIDEO_TRANSFORM_SEGMENT_DURATION` | `6s` | Length of a stream's segments, whole seconds from `1s` to `30s`; the last one is shorter. A video segment has one keyframe (its first) unless the request sets a keyframe interval |
+| `XI_VIDEO_TRANSFORM_PREFETCH_SEGMENTS` | `2` | Segments after a requested one that are transcoded ahead (0–16), only on video workers that are idle at that moment: a prefetch never queues and never delays a request |
+| `XI_VIDEO_TRANSFORM_STREAM_TTL` | `12h` | How long the child URLs of a manifest (`/_stream/<ticket>/…`: playlists and segments) work; a manifest is cacheable for a quarter of it (its tickets move in quarter steps). At least `1m` |
+| `XI_VIDEO_TRANSFORM_STREAM_KEYS` | — | Hex keys (at least 16 bytes) that seal the tickets of child URLs (AES-256-GCM: they cannot be forged and do not show the source); the first seals, every one opens (rotation). Empty derives one from the first `XI_SIGNING_KEYS` key, else a random key per process (child URLs then work only on the instance that wrote the manifest, until it restarts; a startup warning says so). Set it on every instance of a fleet |
+| `XI_VIDEO_TRANSFORM_STREAM_CACHE_BYTES` | `256MiB` | In-memory cache of stream probes and segments (prefetched ones included), in front of the result cache, which keeps them too (a persistent tier is recommended for streams). `0` is off: then prefetching only helps with a result cache |
 | `XI_VIPS_CONCURRENCY` | `1` | libvips threads per image; change only with benchmarks |
 | `XI_VIPS_FAIL_ON` | `warning` | |
 

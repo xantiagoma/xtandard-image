@@ -6,12 +6,13 @@ const (
 	msVideo   = "M5 (WP-122)"
 	msAudio   = "M5 (WP-123)"
 	msOverlay = "M5 (WP-124)"
+	msStream  = "M5 (WP-126)"
 )
 
 // videoFormatNames are the containers of /video URLs, in videoContainers
 // (format option and extension).
 func videoFormatNames() []string {
-	return []string{"mp4", "webm", "m4a", "mp3", "opus", "ogg", "flac", "wav", "png", "webp"}
+	return []string{"mp4", "webm", "m4a", "mp3", "opus", "ogg", "flac", "wav", "png", "webp", "m3u8", "mpd"}
 }
 
 func secondsArg(name, doc string) Arg {
@@ -131,8 +132,8 @@ func VideoOptions() []Option {
 		}),
 		video(Option{
 			Name: "format", Aliases: []string{"f", "ext"}, Forms: single(enumArg("format", videoFormatNames(), "output container")),
-			Syntax: "mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp", Default: "mp4",
-			Doc: "Output container (the source extension sets it too); png and webp are waveform pictures.", Example: "webm",
+			Syntax: "mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp, m3u8, mpd", Default: "mp4",
+			Doc: "Output container (the source extension sets it too); png and webp are waveform pictures, m3u8 and mpd streams (WP-126).", Example: "webm",
 		}),
 		video(Option{
 			Name: "video_codec", Aliases: []string{"vc"}, Forms: single(enumArg("codec", sortedKeys(videoCodecs), "video codec")),
@@ -209,6 +210,21 @@ func VideoOptions() []Option {
 			Name: "overlay_fade", Aliases: []string{"of"}, Milestone: msOverlay,
 			Forms:  []Form{form(secondsArg("in", "fade-in seconds").opt(), secondsArg("out", "fade-out seconds").opt())},
 			Syntax: "in:out", Default: "0:0", Doc: "Fade the watermark overlay in and out (seconds, within its window).", Example: "0.5:0.5",
+		}),
+		video(Option{
+			Name: "stream", Aliases: []string{"st"}, Milestone: msStream,
+			Forms: []Form{{
+				Args: []Arg{enumArg("protocol", []string{"dash", "hls"}, "manifest: HLS (m3u8) or DASH (mpd)")},
+				Rest: []Arg{intArg("height", transform.MinRendition, transform.MaxRendition, "a rendition by the short side of its frame").opt()},
+			}},
+			Syntax: "protocol:height…", Default: "none (a file)",
+			Doc:     "Deliver an HLS or DASH stream (as the m3u8 or mpd extension does) with these renditions (at most 8; none: the configured ladder). Rungs above the source are dropped.",
+			Example: "hls:360:720",
+		}),
+		video(Option{
+			Name: "segment_duration", Aliases: []string{"sgd"}, Milestone: msStream,
+			Forms:  single(intArg("seconds", 1, transform.MaxSegmentDuration.Seconds(), "whole seconds")),
+			Syntax: "seconds", Default: "XI_VIDEO_TRANSFORM_SEGMENT_DURATION (6)", Doc: "Length of a stream's segments (1..30 s).", Example: "4",
 		}),
 		video(Option{
 			Name: "timecode", Aliases: []string{"tc"}, Milestone: msOverlay,

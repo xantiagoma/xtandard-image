@@ -77,6 +77,7 @@ func mediaConfig(cfg *config.Config) media.Config {
 			MaxFPS:            t.MaxFPS,
 			MaxOutputBytes:    int64(t.MaxOutputBytes),
 		},
+		Stream: streamSettings(cfg),
 	}
 }
 

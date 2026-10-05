@@ -249,6 +249,10 @@ type Config struct {
 	WriteTimeout      time.Duration
 	IdleTimeout       time.Duration
 	MaxHeaderBytes    int
+	// CORSOrigins are the origins browsers may read responses from
+	// (XI_SERVER_CORS_ORIGINS; "*" for any, cors.go); empty sends no CORS
+	// headers.
+	CORSOrigins []string
 
 	// CompatImgproxyStatus answers invalid URLs (400) and forbidden sources
 	// or options (403 KindForbidden) with 404 like imgproxy
@@ -288,6 +292,9 @@ type Config struct {
 	// Video configures video transformations (transcode.go); used only
 	// when Deps.Video is set.
 	Video VideoConfig
+	// Stream configures HLS and DASH (stream.go); used only when
+	// Deps.Stream is set.
+	Stream StreamConfig
 	// SourcePasswords are the default document passwords of named sources
 	// (XI_SOURCES_<NAME>_PDF_PASSWORD), used when a request carries no
 	// pdf_password of its own. Read-only; never cleared by the server.
@@ -437,6 +444,13 @@ type Deps struct {
 	// Video runs video transformations (transcode.go, internal/media);
 	// nil: they answer 404 (XI_VIDEO_TRANSFORM_ENABLED off).
 	Video VideoTransformer
+	// Stream runs HLS and DASH (stream.go, internal/media) and Tickets
+	// seals their child URLs; either nil: streams answer 404.
+	Stream  StreamService
+	Tickets TicketSealer
+	// StreamCache keeps stream probes and segments in memory (a
+	// cache/memory store), in front of ResultCache; nil keeps none.
+	StreamCache cache.Store
 	// ResultCache stores encoded responses (cache.go; a cache.AsyncStore
 	// over the configured tiers in production, so Set never blocks); nil
 	// disables the result cache.

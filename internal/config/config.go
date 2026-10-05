@@ -630,6 +630,32 @@ type VideoTransform struct {
 	// (security.unsigned_policy or the dialect's own). restricted is not
 	// accepted: its allowlists describe images.
 	UnsignedPolicy UnsignedPolicy `yaml:"unsigned_policy" env:"UNSIGNED_POLICY"`
+
+	// HLS and DASH (WP-126, ADR 0012 §6).
+	//
+	// ABRLadder lists the renditions a stream offers, as <height>[:<bit
+	// rate>] items ("1080:5000k", "720"): the short side of the frame in
+	// pixels and the peak video bit rate in bits per second (k and m
+	// suffixes; without one, the standard rate of that height). Rungs
+	// larger than the source are dropped.
+	ABRLadder []string `yaml:"abr_ladder" env:"ABR_LADDER"`
+	// SegmentDuration is the length of a stream's segments, whole seconds
+	// from 1 to 30.
+	SegmentDuration time.Duration `yaml:"segment_duration" env:"SEGMENT_DURATION"`
+	// PrefetchSegments is how many segments after a requested one are
+	// transcoded ahead, on idle workers only (0 is off).
+	PrefetchSegments int `yaml:"prefetch_segments" env:"PREFETCH_SEGMENTS"`
+	// StreamTTL is how long the child URLs of a manifest (its playlists
+	// and segments) work.
+	StreamTTL time.Duration `yaml:"stream_ttl" env:"STREAM_TTL"`
+	// StreamKeys seal the tickets of child URLs (hex, at least 16 bytes;
+	// the first seals, every one opens). Empty derives a key from the first
+	// signing key, else a random one per process (then child URLs work only
+	// on the instance that wrote the manifest, until it restarts).
+	StreamKeys []HexKey `yaml:"stream_keys" env:"STREAM_KEYS"`
+	// StreamCacheBytes bounds the in-memory cache of stream probes and
+	// segments in front of the result cache (0 is off).
+	StreamCacheBytes ByteSize `yaml:"stream_cache_bytes" env:"STREAM_CACHE_BYTES"`
 }
 
 // VideoEncode configures MP4, WebM and HEVC output (docs/FORMATS.md §5.1):
@@ -960,6 +986,9 @@ func Defaults() Config {
 				MaxInputBytes: 512 << 20, MaxInputDuration: time.Hour, MaxInputPixels: 7680 * 4320,
 				MaxOutputBytes: 256 << 20, MaxOutputDuration: 5 * time.Minute, MaxOutputPixels: 3840 * 2160,
 				MaxFPS: 60, UnsignedPolicy: UnsignedDeny,
+				ABRLadder:       []string{"1080:5000k", "720:2800k", "480:1400k", "360:800k", "240:400k"},
+				SegmentDuration: 6 * time.Second, PrefetchSegments: 2, StreamTTL: 12 * time.Hour,
+				StreamCacheBytes: 256 << 20,
 			},
 		},
 		Vips: Vips{Concurrency: 1, FailOn: FailOnWarning},
