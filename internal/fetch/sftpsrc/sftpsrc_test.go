@@ -179,54 +179,89 @@ func TestAuth(t *testing.T) {
 	}
 }
 
+// cancelOrder is one order of a cancellation during the body: the next
+// read already waiting on the server when the context's AfterFunc closes
+// the connection, or issued only after it did. The second is a send on a
+// closed connection, which pkg/sftp reports as a wrapped io.EOF that Read
+// once took for a clean end of file; which order happened depended on
+// scheduling, so closedFirst forces it.
+type cancelOrder struct {
+	name        string
+	closedFirst bool
+}
+
+func cancelOrders() []cancelOrder {
+	return []cancelOrder{{"read in flight", false}, {"connection already closed", true}}
+}
+
+// cancelBody runs cancel and, when closedFirst, applies the context's
+// AfterFunc at once instead of waiting for its goroutine (abort is
+// idempotent and keeps the first cause).
+func cancelBody(ctx context.Context, obj *source.Object, cancel func(), closedFirst bool) {
+	cancel()
+	if closedFirst {
+		obj.Body.(*body).c.abort(context.Cause(ctx)) //nolint:forcetypeassert // this package's body
+	}
+}
+
 func TestCancelDuringBody(t *testing.T) {
 	t.Parallel()
-	f := newFakeSFTP(t, testFiles(), nil)
-	s := newTestSource(t, new(f.config()))
+	for _, tc := range cancelOrders() {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			f := newFakeSFTP(t, testFiles(), nil)
+			s := newTestSource(t, new(f.config()))
 
-	ctx, cancel := context.WithCancel(t.Context())
-	obj, err := s.Fetch(ctx, key("slow.jpg"), source.FetchOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := io.ReadFull(obj.Body, make([]byte, 1024)); err != nil {
-		t.Fatalf("first chunk: %v", err)
-	}
-	cancel()
-	_, err = io.ReadAll(obj.Body)
-	wantKind(t, err, errs.KindCanceled)
-	if !errors.Is(err, context.Canceled) {
-		t.Errorf("err = %v, want it to wrap context.Canceled", err)
-	}
-	_ = obj.Body.Close()
+			ctx, cancel := context.WithCancel(t.Context())
+			obj, err := s.Fetch(ctx, key("slow.jpg"), source.FetchOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := io.ReadFull(obj.Body, make([]byte, 1024)); err != nil {
+				t.Fatalf("first chunk: %v", err)
+			}
+			cancelBody(ctx, obj, cancel, tc.closedFirst)
+			_, err = io.ReadAll(obj.Body)
+			wantKind(t, err, errs.KindCanceled)
+			if !errors.Is(err, context.Canceled) {
+				t.Errorf("err = %v, want it to wrap context.Canceled", err)
+			}
+			_ = obj.Body.Close()
 
-	obj, err = s.Fetch(t.Context(), key("a.jpg"), source.FetchOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	_ = readAll(t, obj)
-	if n := f.loginCount(); n != 2 {
-		t.Errorf("%d logins, want 2 (the canceled connection must be dropped)", n)
+			obj, err = s.Fetch(t.Context(), key("a.jpg"), source.FetchOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			_ = readAll(t, obj)
+			if n := f.loginCount(); n != 2 {
+				t.Errorf("%d logins, want 2 (the canceled connection must be dropped)", n)
+			}
+		})
 	}
 }
 
 func TestDeadlineDuringBody(t *testing.T) {
 	t.Parallel()
-	f := newFakeSFTP(t, testFiles(), nil)
-	s := newTestSource(t, new(f.config()))
-	ctx, cancel := context.WithCancelCause(t.Context())
-	defer cancel(nil)
-	obj, err := s.Fetch(ctx, key("slow.jpg"), source.FetchOptions{})
-	if err != nil {
-		t.Fatal(err)
+	for _, tc := range cancelOrders() {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			f := newFakeSFTP(t, testFiles(), nil)
+			s := newTestSource(t, new(f.config()))
+			ctx, cancel := context.WithCancelCause(t.Context())
+			defer cancel(nil)
+			obj, err := s.Fetch(ctx, key("slow.jpg"), source.FetchOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer obj.Body.Close()
+			if _, err := io.ReadFull(obj.Body, make([]byte, 1024)); err != nil {
+				t.Fatal(err)
+			}
+			cancelBody(ctx, obj, func() { cancel(context.DeadlineExceeded) }, tc.closedFirst)
+			_, err = io.ReadAll(obj.Body)
+			wantKind(t, err, errs.KindUpstreamTimeout)
+		})
 	}
-	defer obj.Body.Close()
-	if _, err := io.ReadFull(obj.Body, make([]byte, 1024)); err != nil {
-		t.Fatal(err)
-	}
-	cancel(context.DeadlineExceeded)
-	_, err = io.ReadAll(obj.Body)
-	wantKind(t, err, errs.KindUpstreamTimeout)
 }
 
 func TestCancelBeforeFetch(t *testing.T) {
