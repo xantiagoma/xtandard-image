@@ -200,6 +200,29 @@ enum {
   XI_TX_MP3 = 3,
 };
 
+// XiTxOverlay is one overlay drawn over the video chain's output (WP-124),
+// in order. Strings are NUL-terminated and are AVOption values of filters
+// the shim creates, never filter-graph syntax.
+typedef struct {
+  // Image overlay (rgba != NULL): straight 8-bit RGBA, width x height x 4
+  // bytes of C memory, read during xi_tx_run only (copied into a frame),
+  // drawn at x, y inside the frame.
+  const uint8_t *rgba;
+  int x, y, width, height;
+  // Timecode (rgba == NULL): drawtext options.
+  char text[16];
+  char tx[64], ty[64]; // position expressions
+  char color[16];      // "0xRRGGBB"
+  char alpha[192];     // opacity expression
+  int size, shadow;
+  // Timeline expression ("" = every frame) and fades on the output
+  // timeline, microseconds (a duration 0 is no fade).
+  char enable[64];
+  int64_t fade_in_start, fade_in_dur, fade_out_start, fade_out_dur;
+} XiTxOverlay;
+
+#define XI_TX_MAX_OVERLAYS 8
+
 // XiTxParams is one plan (internal/video.TranscodePlan); strings are
 // NUL-terminated or fill their array.
 typedef struct {
@@ -216,6 +239,8 @@ typedef struct {
   int64_t max_bitrate;
   int gop;
   char vfilters[1024];
+  int noverlays;
+  XiTxOverlay overlays[XI_TX_MAX_OVERLAYS];
   // Audio (acodec: an XI_TX_* value; 0 = no audio stream).
   int acodec;
   int64_t abitrate;
@@ -233,6 +258,8 @@ enum {
   XI_TX_CAP_MUX_MP3 = 64,
   XI_TX_CAP_VFILTERS = 128,
   XI_TX_CAP_AFILTERS = 256,
+  XI_TX_CAP_OVERLAYS = 512, // overlay and fade (image and text overlays)
+  XI_TX_CAP_DRAWTEXT = 1024, // drawtext (timecodes)
 };
 
 // xi_tx_caps probes the audio encoders, muxers and filters transcodes use

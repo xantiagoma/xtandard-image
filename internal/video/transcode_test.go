@@ -18,7 +18,7 @@ func fullCaps() TranscodeCaps {
 		Video: EncoderSet{VP9: true, AV1: true},
 		AAC:   true, Opus: true, MP3: true,
 		MuxMP4: true, MuxWebM: true, MuxOgg: true, MuxMP3: true,
-		VideoFilters: true, AudioFilters: true,
+		VideoFilters: true, AudioFilters: true, Overlays: true, Timecode: true,
 	}
 }
 
@@ -28,6 +28,8 @@ func TestResolve(t *testing.T) {
 	gpl.Video.H264, gpl.Video.HEVC = true, true
 	noAudio := fullCaps()
 	noAudio.AAC, noAudio.Opus, noAudio.MP3, noAudio.MuxOgg, noAudio.MuxMP3, noAudio.AudioFilters = false, false, false, false, false, false
+	noOverlays, noTimecode := fullCaps(), fullCaps()
+	noOverlays.Overlays, noTimecode.Timecode = false, false
 	tests := []struct {
 		name string
 		caps TranscodeCaps
@@ -50,6 +52,10 @@ func TestResolve(t *testing.T) {
 		{"mp3 without muxer", noAudio, transform.VideoOp{Container: transform.VideoContainerMP3}, "unsupported", ""},
 		{"webm without audio encoders", noAudio, transform.VideoOp{Container: transform.VideoContainerWebM}, "webm:vp9:opus", "video/webm"},
 		{"slim", TranscodeCaps{}, transform.VideoOp{}, "unsupported", ""},
+		{"overlays", fullCaps(), transform.VideoOp{Overlays: []transform.VideoOverlay{{}, {Timecode: transform.VideoTimecodeHMS}}}, "mp4:av1:aac", "video/mp4"},
+		{"overlays without the filters", noOverlays, transform.VideoOp{Overlays: []transform.VideoOverlay{{}}}, "unsupported", ""},
+		{"timecode without drawtext", noTimecode, transform.VideoOp{Overlays: []transform.VideoOverlay{{Timecode: transform.VideoTimecodeHMS}}}, "unsupported", ""},
+		{"image overlay without drawtext", noTimecode, transform.VideoOp{Overlays: []transform.VideoOverlay{{}}}, "mp4:av1:aac", "video/mp4"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
