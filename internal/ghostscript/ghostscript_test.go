@@ -19,6 +19,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/ghostscript"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/execscript"
 )
 
 // TestMain doubles as the sandbox helper: on Linux the runner re-executes
@@ -47,14 +48,13 @@ func openDir(t *testing.T) string {
 
 // fakeGS writes a shell script that answers `--version` and otherwise runs
 // body. The sandbox forbids fork (RLIMIT_NPROC) and file writes
-// (RLIMIT_FSIZE), so bodies use shell builtins and exec only.
+// (RLIMIT_FSIZE), so bodies use shell builtins and exec only. execscript
+// keeps the parallel tests' forks from inheriting the write descriptor
+// (an exec would then fail with "text file busy").
 func fakeGS(t *testing.T, body string) string {
 	t.Helper()
 	path := filepath.Join(openDir(t), "gs")
-	script := "#!/bin/sh\nif [ \"$1\" = --version ]; then echo 10.99.0; exit 0; fi\n" + body + "\n"
-	if err := os.WriteFile(path, []byte(script), 0o755); err != nil { //nolint:gosec // G306: the fake gs must be executable
-		t.Fatal(err)
-	}
+	execscript.Write(t, path, "#!/bin/sh\nif [ \"$1\" = --version ]; then echo 10.99.0; exit 0; fi\n"+body+"\n")
 	return path
 }
 
@@ -167,7 +167,15 @@ func TestRenderFake(t *testing.T) {
 func TestRenderFork(t *testing.T) {
 	t.Parallel()
 	r, tmp := newRunner(t, fakeGS(t, "echo pid $$; sleep 30 & echo child $!; exec sleep 30"),
-		func(c *ghostscript.Config) { c.Timeout = 300 * time.Millisecond })
+		func(c *ghostscript.Config) {
+			// On Linux the failed fork ends the script at once: keep the
+			// default timeout, which a loaded machine starting the helper
+			// and the shell cannot reach (300 ms could, and turned the
+			// expected failure into a timeout).
+			if runtime.GOOS != "linux" {
+				c.Timeout = 300 * time.Millisecond
+			}
+		})
 	var c collect
 	_, err := r.Render(t.Context(), []byte("%!PS\n"), &ghostscript.Page{Width: 10, Height: 10}, c.read)
 	want := errs.KindTimeout

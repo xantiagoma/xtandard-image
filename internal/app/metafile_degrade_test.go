@@ -14,6 +14,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/sandbox"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/execscript"
 )
 
 // brokenConverter writes a converter that is found but fails its startup
@@ -28,10 +29,7 @@ func brokenConverter(t *testing.T) string {
 		}
 	}
 	path := filepath.Join(dir, "xi-metafile2svg")
-	script := "#!/bin/sh\necho 'rosetta error: mmap_anonymous_rw mmap failed' >&2\nexit 1\n"
-	if err := os.WriteFile(path, []byte(script), 0o755); err != nil { //nolint:gosec // G306: the fake converter must be executable
-		t.Fatal(err)
-	}
+	execscript.Write(t, path, "#!/bin/sh\necho 'rosetta error: mmap_anonymous_rw mmap failed' >&2\nexit 1\n")
 	return path
 }
 

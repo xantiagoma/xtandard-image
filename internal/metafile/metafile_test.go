@@ -11,6 +11,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/metafile"
 	"github.com/xantiagoma/xtandard-image/internal/sandbox"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/execscript"
 )
 
 // TestMain doubles as the sandbox helper: on Linux the converter re-executes
@@ -42,10 +43,7 @@ func openDir(t *testing.T) string {
 func fakeConverter(t *testing.T, body string) string {
 	t.Helper()
 	path := filepath.Join(openDir(t), "xi-metafile2svg")
-	script := "#!/bin/sh\nif [ \"$1\" = --version ]; then echo 'xi-metafile2svg test'; exit 0; fi\n" + body + "\n"
-	if err := os.WriteFile(path, []byte(script), 0o755); err != nil { //nolint:gosec // G306: the fake converter must be executable
-		t.Fatal(err)
-	}
+	execscript.Write(t, path, "#!/bin/sh\nif [ \"$1\" = --version ]; then echo 'xi-metafile2svg test'; exit 0; fi\n"+body+"\n")
 	return path
 }
 
@@ -154,9 +152,7 @@ func TestNewErrors(t *testing.T) {
 		t.Error("New with a missing converter succeeded")
 	}
 	broken := fakeConverter(t, "")
-	if err := os.WriteFile(broken, []byte("#!/bin/sh\nexit 3\n"), 0o755); err != nil { //nolint:gosec // G306: executable fake
-		t.Fatal(err)
-	}
+	execscript.Write(t, broken, "#!/bin/sh\nexit 3\n")
 	if _, err := metafile.New(t.Context(), &metafile.Config{Path: broken, NoNetNamespace: true}); err == nil {
 		t.Error("New with a converter failing --version succeeded")
 	}
