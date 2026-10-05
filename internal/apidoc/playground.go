@@ -22,6 +22,8 @@ const (
 	schemaPlaygroundTranslateRes = "PlaygroundTranslateResponse"
 	schemaPlaygroundUpload       = "PlaygroundUpload"
 	schemaPlaygroundList         = "PlaygroundListResponse"
+	schemaPlaygroundProbeReq     = "PlaygroundProbeRequest"
+	schemaPlaygroundMediaInfo    = "PlaygroundMediaInfo"
 )
 
 // schemaNamer is huma's default namer, with "Playground" in front of the
@@ -227,6 +229,52 @@ func playgroundListOperation() *huma.Operation {
 			},
 		},
 		Responses:  rs,
+		Extensions: playgroundExtensions(),
+	}
+}
+
+func playgroundProbeResponses() map[string]*huma.Response {
+	rs := playgroundErrors(http.StatusBadRequest, http.StatusRequestEntityTooLarge, http.StatusUnprocessableEntity,
+		http.StatusTooManyRequests, http.StatusInternalServerError)
+	rs["200"] = &huma.Response{
+		Description: "The media file's container, duration, average bit rate and streams.",
+		Content:     map[string]*huma.MediaType{"application/json": {Schema: ref(schemaPlaygroundMediaInfo)}},
+	}
+	rs["403"] = &huma.Response{Description: "Cross-origin request rejected (http.CrossOriginProtection), or a source the allowlists refuse."}
+	rs["404"] = &huma.Response{Description: "The playground is disabled, or video transformations are off (no prober), or the source does not exist."}
+	return rs
+}
+
+func playgroundProbeOperation() *huma.Operation {
+	return &huma.Operation{
+		OperationID: "postPlaygroundProbe", Method: http.MethodPost, Path: playgroundPath + "/api/probe", Tags: []string{"playground"}, Servers: adminServers(),
+		Summary: "Describe a media source (video mode)",
+		Description: "Resolves and fetches a source like a request's (allowlists, the SSRF-safe fetcher, " +
+			"XI_VIDEO_TRANSFORM_MAX_INPUT_BYTES; playground:// samples and uploads resolve) and reads its container and stream " +
+			"headers with FFmpeg: container, duration, codecs, size, frame rate, sample rate and channels. Unlike /info it reads " +
+			"audio files. Only with video transformations on (XI_VIDEO_TRANSFORM_ENABLED); two probes at a time, more answer 429. " +
+			"Cross-origin requests are rejected.",
+		RequestBody: &huma.RequestBody{
+			Required: true,
+			Content:  map[string]*huma.MediaType{"application/json": {Schema: ref(schemaPlaygroundProbeReq)}},
+		},
+		Responses:  playgroundProbeResponses(),
+		Extensions: playgroundExtensions(),
+	}
+}
+
+func playgroundProbeResultOperation() *huma.Operation {
+	return &huma.Operation{
+		OperationID: "postPlaygroundProbeResult", Method: http.MethodPost, Path: playgroundPath + "/api/probe/result", Tags: []string{"playground"}, Servers: adminServers(),
+		Summary: "Describe a media body (video mode)",
+		Description: "Reads the container and stream headers of the request body (a result the page fetched, at most " +
+			"XI_VIDEO_TRANSFORM_MAX_OUTPUT_BYTES) with FFmpeg, for the Source vs result table. Only with video transformations on; " +
+			"two probes at a time, more answer 429. Cross-origin requests are rejected.",
+		RequestBody: &huma.RequestBody{
+			Required: true,
+			Content:  map[string]*huma.MediaType{"application/octet-stream": {Schema: &huma.Schema{Type: "string", ContentEncoding: "binary"}}},
+		},
+		Responses:  playgroundProbeResponses(),
 		Extensions: playgroundExtensions(),
 	}
 }

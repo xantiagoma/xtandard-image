@@ -59,8 +59,13 @@ function decodedKeyOn(src, name) {
 
 const enc = encodeURIComponent;
 
+// VIDEO_GRAMMARS build video transformations (/video, /q/video).
+export const VIDEO_GRAMMARS = ['imgproxy', 'query'];
+
 // build returns {mount, path, query}, or {error} when the state cannot be
 // written for the mount (for example a source form the dialect lacks).
+// state.video builds a video transformation (WP-127): /video on imgproxy
+// mounts and /q/video on query mounts, from the video catalogue (index).
 export function build(m, state, index) {
   const src = state.source;
   if (!src) return { error: 'Choose a source.' };
@@ -69,6 +74,11 @@ export function build(m, state, index) {
   // Raw mode: the path and query typed by hand, on any mount.
   const g = state.raw ? 'path' : m.grammar;
   const own = keyOn(src, m.source);
+  const video = Boolean(state.video) && !state.raw;
+  if (video && !VIDEO_GRAMMARS.includes(g)) {
+    return { error: 'Video transformations are built on an imgproxy or query mount (/video, /q/video); "Every dialect" writes them for Cloudinary, ImageKit and Cloudflare.' };
+  }
+  if (video && pls.slice(1).some((p) => p.length)) return { error: 'Video URLs have no chained pipelines: remove pipeline 2 and later.' };
   const params = (sep, flagOnly) => [...activeEntries(first, index, g)].map(([o, , v]) =>
     (isFlag(o) ? (flagOnly ? enc(o.name) : `${enc(o.name)}=true`) : `${enc(o.name)}${sep}${enc(v.join(','))}`));
   switch (g) {
@@ -85,10 +95,15 @@ export function build(m, state, index) {
       const source = state.encoding === 'base64'
         ? `/${b64url(src)}${ext ? `.${ext}` : ''}`
         : `/plain/${escapePlain(src)}${ext ? `@${ext}` : ''}`;
-      return { mount: m.id, path: (optPath ? `/${optPath}` : '') + source, query: '' };
+      return { mount: m.id, path: (video ? '/video' : '') + (optPath ? `/${optPath}` : '') + source, query: '' };
     }
-    case 'query':
-      return { mount: m.id, path: '/', query: [`url=${enc(src)}`, ...params('=', false)].join('&') };
+    case 'query': {
+      if (!video) return { mount: m.id, path: '/', query: [`url=${enc(src)}`, ...params('=', false)].join('&') };
+      // /q/video: every /video option is a key with its arguments joined
+      // by ","; base64 arguments (wmu, wmt) are encoded as in /video paths.
+      const keys = [...activeEntries(first, index, 'imgproxy')].map(([o, , v]) => `${enc(o.name)}=${enc(v.join(','))}`);
+      return { mount: m.id, path: '/video', query: [`url=${enc(src)}`, ...keys].join('&') };
+    }
     case 'imgix': {
       const path = own ?? (isHTTP(src) ? enc(src) : null);
       if (path === null) return { error: 'imgix takes an http(s) URL or a key on the mount\'s source.' };
@@ -165,7 +180,11 @@ export function build(m, state, index) {
       return { mount: m.id, path: `/${btoa(bin)}`, query: params('=', false).join('&') };
     }
     default: {
-      const fill = (s) => s.replaceAll('{src}', escapePlain(src));
+      // {src} is the source, {key} its key on the mount's source.
+      if (`${state.free.path}${state.free.query}`.includes('{key}') && own === null) {
+        return { error: `{key} needs a source on the mount's source (xi://${m.source || '<source>'}/…).` };
+      }
+      const fill = (s) => s.replaceAll('{src}', escapePlain(src)).replaceAll('{key}', own ?? '');
       const path = fill(state.free.path.trim() || '/');
       return { mount: m.id, path: path.startsWith('/') ? path : `/${path}`, query: fill(state.free.query.trim()) };
     }
@@ -236,11 +255,13 @@ export function tsInfoSnippet({ source, entries, index, base, signed, separator,
 // mount (null for other grammars).
 export function tsSnippet(m, state, index, base, signed) {
   if (m.grammar !== 'imgproxy' || !state.source) return null;
+  const video = Boolean(state.video);
   const cfg = [`baseUrl: ${JSON.stringify(base)}`, `sourceEncoding: ${JSON.stringify(state.encoding === 'base64' ? 'base64' : 'plain')}`];
   if ((m.arguments_separator || ':') !== ':') cfg.push(`separator: ${JSON.stringify(m.arguments_separator)}`);
   if (signed) cfg.push('signing: { key: process.env.XI_SIGNING_KEY!, salt: process.env.XI_SIGNING_SALT! }');
   const calls = [];
   state.pipelines.forEach((p, i) => {
+    if (i > 0 && video) return;
     if (i > 0) calls.push('.chain()');
     for (const [o, e, v] of activeEntries(p, index, 'imgproxy')) {
       const types = argTypes(o, e);
@@ -254,7 +275,7 @@ export function tsSnippet(m, state, index, base, signed) {
     '',
     `const img = imgproxy({ ${cfg.join(', ')} });`,
     `const url = await img`,
-    `  .from(${JSON.stringify(state.source)})`,
+    `  .${video ? 'video' : 'from'}(${JSON.stringify(state.source)})`,
     ...calls.map((c) => `  ${c}`),
     '  .build();',
   ].join('\n');

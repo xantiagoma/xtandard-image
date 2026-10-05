@@ -7,9 +7,11 @@ import { $, debounce, el, toast, uid } from './dom.js';
 import { argTypes, colorValue, isActive, isFlag } from './grammar.js';
 
 const GROUPS = [
+  ['time', 'Trim (start, end, duration)'],
   ['size', 'Resize, crop and rotate'],
   ['gravity', 'Gravity and focus'],
   ['format', 'Format and quality'],
+  ['audio', 'Audio and waveform'],
   ['color', 'Colour'],
   ['effects', 'Effects'],
   ['watermark', 'Watermarks'],
@@ -453,7 +455,8 @@ export class Builder {
   // imgproxy (/-/), ImageKit steps (:) and Cloudinary components (/).
   renderPipelines() {
     const box = $('pipelines');
-    const hint = PIPELINE_HINTS[this.grammar];
+    // Video transformations have no chained pipelines.
+    const hint = this.state.video ? null : PIPELINE_HINTS[this.grammar];
     box.hidden = !hint;
     if (!hint) {
       this.pipeline = 0;

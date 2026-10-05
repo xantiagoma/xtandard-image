@@ -29,6 +29,10 @@ const (
 	// NeedVideo: FFmpeg is in the image (Meta.Video): video sources
 	// decode and animations encode to mp4 and webm.
 	NeedVideo = "video"
+	// NeedVideoTransform: video transformations are served
+	// (Meta.VideoTransform: XI_VIDEO_TRANSFORM_ENABLED on the full or gpl
+	// image).
+	NeedVideoTransform = "video_transform"
 )
 
 // Recipe is one ready-made session of the Examples tool.
@@ -39,7 +43,7 @@ type Recipe struct {
 	Title       string `json:"title" doc:"Card title."`
 	Description string `json:"description" doc:"What the recipe shows."`
 	// Category groups the cards ("watermark", "showcase").
-	Category string `json:"category" enum:"watermark,showcase" doc:"Card group."`
+	Category string `json:"category" enum:"watermark,video,showcase" doc:"Card group."`
 	// Dialect picks the mount: the first mount of this dialect.
 	Dialect string `json:"dialect" doc:"Dialect of the mount the recipe is built on (its first mount)."`
 	// Source is the source string: a repository fixture on the local fs
@@ -51,11 +55,14 @@ type Recipe struct {
 	// values (a flag is its name alone). Text and URL arguments of the
 	// imgproxy grammar are written plain; the page encodes them.
 	Pipelines [][][]string `json:"pipelines" doc:"Builder entries per chained pipeline: [name, value…] (catalogue names; base64 arguments plain)."`
-	// Ext is the imgproxy source extension (@webp).
-	Ext string `json:"ext,omitempty" doc:"imgproxy source extension."`
+	// Ext is the imgproxy source extension (@webp; a /video container).
+	Ext string `json:"ext,omitempty" doc:"imgproxy source extension (the output container of a video recipe)."`
+	// Video builds the recipe on the video endpoint (/video on imgproxy
+	// mounts, /q/video on query mounts) with the video option catalogue.
+	Video bool `json:"video,omitempty" doc:"A video transformation: built on /video (imgproxy) or /q/video (query) from the video option catalogue."`
 	// Raw writes the path by hand instead of the builder (dialects the
 	// builder cannot express, such as imaginary endpoints).
-	Raw *RecipeRaw `json:"raw,omitempty" doc:"Path and query written by hand ({src} is the source); the builder is bypassed."`
+	Raw *RecipeRaw `json:"raw,omitempty" doc:"Path and query written by hand ({src} is the source, {key} its key on the mount's source); the builder is bypassed."`
 	// Info are Info panel entries ([name, value…]); with them the recipe
 	// opens the Info tab.
 	Info [][]string `json:"info,omitempty" doc:"Info panel options ([name, value…]); the recipe opens the Info (source) tab."`
@@ -65,13 +72,13 @@ type Recipe struct {
 	// Tags are lower-case keywords for filtering.
 	Tags []string `json:"tags" doc:"Lower-case keywords for the filter."`
 	// Needs are server features the recipe needs (Need*).
-	Needs []string `json:"needs,omitempty" enum:"watermark,detection,video" doc:"Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output)."`
+	Needs []string `json:"needs,omitempty" enum:"watermark,detection,video,video_transform" doc:"Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output), video_transform (video transformations, XI_VIDEO_TRANSFORM_ENABLED)."`
 }
 
 // RecipeRaw is a hand-written path and query.
 type RecipeRaw struct {
-	Path  string `json:"path" doc:"Path after the mount prefix; {src} is the source."`
-	Query string `json:"query,omitempty" doc:"Query without ?; {src} is the source."`
+	Path  string `json:"path" doc:"Path after the mount prefix; {src} is the source, {key} its key on the mount's source."`
+	Query string `json:"query,omitempty" doc:"Query without ?; {src} is the source, {key} its key on the mount's source."`
 }
 
 // Recipes returns the Examples list.

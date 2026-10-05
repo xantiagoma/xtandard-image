@@ -19,6 +19,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/playground"
 	"github.com/xantiagoma/xtandard-image/internal/security/sign"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
+	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
 
 const (
@@ -183,6 +184,8 @@ func TestPlaygroundSignsForEveryScheme(t *testing.T) {
 		"cloudflare": {"/width=300,fit=cover/https://example.com/a.jpg", ""},
 		"thumbor":    {"/300x200/smart/example.com/a.jpg", ""},
 		"imgix":      {"/photos/a.jpg", "w=300&h=200&fit=crop"},
+		// /cdn-cgi/media/ (WP-125): xi_sig over the path after its prefix.
+		"cloudflare_media": {"/mode=frame,time=1s/https://example.com/a.mp4", ""},
 	}
 	seen := map[string]bool{}
 	for i := range meta.Mounts {
@@ -217,6 +220,17 @@ func TestPlaygroundSignsForEveryScheme(t *testing.T) {
 		if !seen[id] {
 			t.Errorf("mount %s missing from meta", id)
 		}
+	}
+	// /video on the imgproxy mount (WP-127): signed over "/video" + the
+	// path, verified by the video endpoint.
+	ip := &meta.Mounts[slices.IndexFunc(meta.Mounts, func(m playground.Mount) bool { return m.ID == "imgproxy" })]
+	out, err := playground.SignURL(ip, signers["imgproxy"], "/video/w:320/vs:1/plain/https://example.com/a.mp4@webm", "")
+	if err != nil || !out.Signed || !strings.HasPrefix(out.URL, "/video/") {
+		t.Fatalf("video: %+v, %v", out, err)
+	}
+	r := httptest.NewRequestWithContext(t.Context(), http.MethodGet, out.URL, http.NoBody)
+	if res, _, err := rt.Route(r); err != nil || res.Signature != sign.Verified || res.Request.Kind != transform.KindVideo {
+		t.Errorf("video: route %s: %v (%+v)", out.URL, err, res)
 	}
 	for _, m := range meta.Mounts {
 		if m.ID == "imagekit" && (m.Scheme != playground.SchemeNone || m.Keyed) {
