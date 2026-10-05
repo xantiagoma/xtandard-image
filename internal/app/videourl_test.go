@@ -76,12 +76,20 @@ func TestVideoURLs(t *testing.T) {
 		magic       []byte
 		magicOffset int
 	}{
-		{"webm resize cut", "/rs:fill:160:160/g:ea/vs:0.5/vd:1/ki:0.5/plain/video/clip-vp9.webm@webm",
-			"video/webm", "vp9", []byte{0x1a, 0x45, 0xdf, 0xa3}, 0},
-		{"m4a from a video", "/sr:22050/ach:2/ab:96k/plain/video/bbb-h264-aac.mp4@m4a",
-			"audio/mp4", "aac", []byte("ftyp"), 4},
-		{"mp3 loudnorm and fades", "/ln:1/fd:0.5:0.5/vd:2/plain/audio/tones-stereo.mp3@mp3",
-			"audio/mpeg", "mp3", nil, 0},
+		{
+			"webm resize cut", "/rs:fill:160:160/g:ea/vs:0.5/vd:1/ki:0.5/plain/video/clip-vp9.webm@webm",
+			"video/webm", "vp9",
+			[]byte{0x1a, 0x45, 0xdf, 0xa3},
+			0,
+		},
+		{
+			"m4a from a video", "/sr:22050/ach:2/ab:96k/plain/video/bbb-h264-aac.mp4@m4a",
+			"audio/mp4", "aac", []byte("ftyp"), 4,
+		},
+		{
+			"mp3 loudnorm and fades", "/ln:1/fd:0.5:0.5/vd:2/plain/audio/tones-stereo.mp3@mp3",
+			"audio/mpeg", "mp3", nil, 0,
+		},
 		{"flac", "/vol:-6dB/plain/audio/tones-stereo.mp3@flac", "audio/flac", "flac", []byte("fLaC"), 0},
 		{"wav", "/sr:8000/ach:1/vd:1/plain/audio/tones-stereo.mp3@wav", "audio/wav", "pcm_s16le", []byte("RIFF"), 0},
 		{"ogg", "/f:ogg/plain/audio/tones-stereo.mp3", "audio/ogg", "opus", []byte("OggS"), 0},

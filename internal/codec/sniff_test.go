@@ -224,6 +224,11 @@ func TestSniffFixtures(t *testing.T) {
 		if err != nil || d.IsDir() || filepath.Ext(p) == ".md" {
 			return err
 		}
+		// Audio files are sources of video transformations only (WP-123),
+		// never sniffed as images.
+		if filepath.Base(filepath.Dir(p)) == "audio" {
+			return nil
+		}
 		rel, err := filepath.Rel(root, p)
 		if err != nil {
 			return err

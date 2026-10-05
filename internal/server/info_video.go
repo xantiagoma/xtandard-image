@@ -63,7 +63,8 @@ func infoVideo(o *transform.InfoOptions, m *video.Meta) InfoVideoResponse {
 		meta["frames"] = m.Frames
 	}
 	streams := make([]InfoVideoStream, len(m.Streams))
-	for i, s := range m.Streams {
+	for i := range m.Streams {
+		s := &m.Streams[i]
 		streams[i] = InfoVideoStream{
 			Type: s.Type, Codec: s.Codec, BPS: s.BitRate, FPS: round3(s.FPS), Duration: round3(s.Duration),
 			Language: s.Language, Width: s.Width, Height: s.Height, Rotation: s.Rotation,
