@@ -46,9 +46,13 @@ func TestShutdownDrains(t *testing.T) {
 	bound := make(chan net.Addr, 1)
 	shutdownStarted := make(chan struct{})
 	lc := &lifecycle{
-		logger:     slog.New(slog.DiscardHandler),
-		ready:      ready,
-		publicAddr: "127.0.0.1:0",
+		logger: slog.New(slog.DiscardHandler),
+		ready:  ready,
+		// A loopback address of its own (Linux routes all of 127/8): the
+		// dial below proves the closed listener refuses connections, and
+		// on 127.0.0.1 a listener of a parallel test or package that the
+		// kernel gave the freed port would accept it instead.
+		publicAddr: "127.0.0.119:0",
 		public: func(ctx context.Context) *http.Server {
 			return &http.Server{
 				Handler: handler, ReadHeaderTimeout: time.Minute,
