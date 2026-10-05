@@ -10202,27 +10202,6 @@
       "url_short": "/video/unsafe/crf:30/plain/https://example.com/clip.mov"
     },
     {
-      "name": "video/crop_fp",
-      "endpoint": "video",
-      "encoding": "plain",
-      "source": "https://example.com/clip.mov",
-      "pipelines": [
-        [
-          {
-            "c": [
-              100,
-              0,
-              "fp",
-              0.1,
-              0.9
-            ]
-          }
-        ]
-      ],
-      "url": "/video/unsafe/c:100:0:fp:0.1:0.9/plain/https://example.com/clip.mov",
-      "url_short": "/video/unsafe/c:100:0:fp:0.1:0.9/plain/https://example.com/clip.mov"
-    },
-    {
       "name": "video/crop_gravity",
       "endpoint": "video",
       "encoding": "plain",
@@ -10283,6 +10262,31 @@
       ],
       "url": "/video/unsafe/g:soea/c:100:100/plain/https://example.com/clip.mov",
       "url_short": "/video/unsafe/g:soea/c:100:100/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/crop_takes_gravity_offsets",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "g": [
+              "soea",
+              10,
+              5
+            ]
+          },
+          {
+            "c": [
+              100,
+              100
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/g:soea:10:5/c:100:100/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/g:soea:10:5/c:100:100/plain/https://example.com/clip.mov"
     },
     {
       "name": "video/crop_width_only",
@@ -10701,32 +10705,6 @@
       "url_short": "/video/unsafe/g:soea:10:5/rs:fill:200:200/plain/https://example.com/clip.mov"
     },
     {
-      "name": "video/gravity_fp",
-      "endpoint": "video",
-      "encoding": "plain",
-      "source": "https://example.com/clip.mov",
-      "pipelines": [
-        [
-          {
-            "g": [
-              "fp",
-              0.25,
-              0.75
-            ]
-          },
-          {
-            "rs": [
-              "fill",
-              200,
-              200
-            ]
-          }
-        ]
-      ],
-      "url": "/video/unsafe/g:fp:0.25:0.75/rs:fill:200:200/plain/https://example.com/clip.mov",
-      "url_short": "/video/unsafe/g:fp:0.25:0.75/rs:fill:200:200/plain/https://example.com/clip.mov"
-    },
-    {
       "name": "video/gravity_offsets_kept",
       "endpoint": "video",
       "encoding": "plain",
@@ -11052,6 +11030,32 @@
       ],
       "url": "/video/unsafe/wm:0/wmu:eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n/plain/https://example.com/clip.mov",
       "url_short": "/video/unsafe/wm:0/wmu:eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/pad_gravity",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "rs": [
+              "fit",
+              300,
+              300,
+              false,
+              true
+            ]
+          },
+          {
+            "g": [
+              "so"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/rs:fit:300:300:0:1/g:so/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/rs:fit:300:300:0:1/g:so/plain/https://example.com/clip.mov"
     },
     {
       "name": "video/png_extension",

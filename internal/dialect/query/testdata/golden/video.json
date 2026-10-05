@@ -113,16 +113,12 @@
       },
       "Video": {
         "Crop": {
-          "Gravity": {
-            "Type": "north"
-          },
+          "Gravity": "north",
           "Height": 50,
           "Width": 100
         },
         "Fit": "scale-down",
-        "Gravity": {
-          "Type": "north"
-        }
+        "Gravity": "north"
       }
     },
     "signature": "unsigned",
@@ -142,13 +138,11 @@
       },
       "Video": {
         "Crop": {
-          "Gravity": {
-            "Type": "north-west",
-            "X": 10,
-            "Y": 20
-          },
+          "Gravity": "north-west",
           "Height": 50,
-          "Width": 100
+          "Width": 100,
+          "X": 10,
+          "Y": 20
         },
         "Fit": "scale-down"
       }
@@ -213,11 +207,7 @@
       },
       "Video": {
         "Fit": "cover",
-        "Gravity": {
-          "Type": "south-east",
-          "X": 10,
-          "Y": 5
-        },
+        "Gravity": "south-east",
         "Height": 200,
         "Width": 200
       }
@@ -289,30 +279,14 @@
     "source": "https://example.com/clip.mov"
   },
   "gravity_fp_commas": {
-    "path": "/video",
-    "query": "url=https://example.com/clip.mov\u0026w=200\u0026h=200\u0026fit=fill\u0026g=fp,0.2,0.8",
-    "request": {
-      "Dialect": "query",
-      "Kind": "video",
-      "Pipelines": [
-        {}
-      ],
-      "Source": {
-        "Raw": "https://example.com/clip.mov"
-      },
-      "Video": {
-        "Fit": "cover",
-        "Gravity": {
-          "Type": "focus-point",
-          "X": 0.2,
-          "Y": 0.8
-        },
-        "Height": 200,
-        "Width": 200
-      }
+    "error": {
+      "field": "gravity.type",
+      "kind": "invalid_url",
+      "public": "invalid gravity.type: expected ce, no, so, ea, we, noea, nowe, soea or sowe",
+      "status": 400
     },
-    "signature": "unsigned",
-    "source": "https://example.com/clip.mov"
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026w=200\u0026h=200\u0026fit=fill\u0026g=fp,0.2,0.8"
   },
   "o_path": {
     "path": "/video",

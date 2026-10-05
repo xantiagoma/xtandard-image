@@ -34,18 +34,10 @@ func videoGravityForms(lead ...Arg) []Form {
 	if len(lead) > 0 {
 		typ = typ.opt()
 	}
-	off := func(n string) Arg { return anyNum(n, "offset in pixels (a fraction of the frame when < 1)").opt() }
-	with := func(f Form) Form {
-		f.Args = append(append([]Arg{}, lead...), f.Args...)
-		if f.MinItems > 0 {
-			f.MinItems += len(lead)
-		}
-		return f
+	off := func(n string) Arg {
+		return intArg(n, 0, transform.MaxVideoDimension, "offset in pixels towards the inside of the frame (moves crops)").opt()
 	}
-	return []Form{
-		with(form(typ, off("x_offset"), off("y_offset"))),
-		with(Form{Args: []Arg{constArg("fp"), unitArg("x", "focus point x (0..1)"), unitArg("y", "focus point y (0..1)")}, MinItems: 3}),
-	}
+	return []Form{form(append(append([]Arg{}, lead...), typ, off("x_offset"), off("y_offset"))...)}
 }
 
 // VideoOptions returns the /video option catalogue (docs/URL-DIALECTS.md
@@ -114,7 +106,7 @@ func VideoOptions() []Option {
 		}),
 		video(Option{
 			Name: "gravity", Aliases: []string{"g"}, Forms: videoGravityForms(),
-			Syntax: "type:x:y or fp:x:y", Default: "ce:0:0", Doc: "Anchor of fill crops and crops (compass with pixel offsets, or a focus point).", Example: "soea:10:10",
+			Syntax: "type:x:y", Default: "ce:0:0", Doc: "Anchor of fill crops, pads and crops (a compass point; the pixel offsets move crops).", Example: "soea:10:10",
 		}),
 		video(Option{
 			Name: "crop", Aliases: []string{"c"},

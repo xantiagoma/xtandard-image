@@ -5914,113 +5914,6 @@
             "x-xi-syntax": "0..63"
           },
           "crop": {
-            "anyOf": [
-              {
-                "maxItems": 5,
-                "minItems": 1,
-                "prefixItems": [
-                  {
-                    "description": "pixels; 0 = full width",
-                    "maximum": 8192,
-                    "minimum": 0,
-                    "title": "width",
-                    "type": "integer"
-                  },
-                  {
-                    "description": "pixels; 0 = full height",
-                    "maximum": 8192,
-                    "minimum": 0,
-                    "title": "height",
-                    "type": [
-                      "integer",
-                      "null"
-                    ]
-                  },
-                  {
-                    "description": "compass gravity",
-                    "enum": [
-                      "ce",
-                      "no",
-                      "so",
-                      "ea",
-                      "we",
-                      "noea",
-                      "nowe",
-                      "soea",
-                      "sowe",
-                      null
-                    ],
-                    "title": "type",
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  {
-                    "description": "offset in pixels (a fraction of the frame when \u003c 1)",
-                    "title": "x_offset",
-                    "type": [
-                      "number",
-                      "null"
-                    ]
-                  },
-                  {
-                    "description": "offset in pixels (a fraction of the frame when \u003c 1)",
-                    "title": "y_offset",
-                    "type": [
-                      "number",
-                      "null"
-                    ]
-                  }
-                ],
-                "type": "array"
-              },
-              {
-                "maxItems": 5,
-                "minItems": 5,
-                "prefixItems": [
-                  {
-                    "description": "pixels; 0 = full width",
-                    "maximum": 8192,
-                    "minimum": 0,
-                    "title": "width",
-                    "type": "integer"
-                  },
-                  {
-                    "description": "pixels; 0 = full height",
-                    "maximum": 8192,
-                    "minimum": 0,
-                    "title": "height",
-                    "type": [
-                      "integer",
-                      "null"
-                    ]
-                  },
-                  {
-                    "enum": [
-                      "fp"
-                    ],
-                    "title": "type",
-                    "type": "string"
-                  },
-                  {
-                    "description": "focus point x (0..1)",
-                    "maximum": 1,
-                    "minimum": 0,
-                    "title": "x",
-                    "type": "number"
-                  },
-                  {
-                    "description": "focus point y (0..1)",
-                    "maximum": 1,
-                    "minimum": 0,
-                    "title": "y",
-                    "type": "number"
-                  }
-                ],
-                "type": "array"
-              }
-            ],
             "description": "Crop a rectangle (pixels) of the rotated frame before the resize. URL: `crop`, `c`; arguments w:h:gravity; default —.",
             "examples": [
               [
@@ -6028,6 +5921,67 @@
                 360,
                 "nowe"
               ]
+            ],
+            "maxItems": 5,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "pixels; 0 = full width",
+                "maximum": 8192,
+                "minimum": 0,
+                "title": "width",
+                "type": "integer"
+              },
+              {
+                "description": "pixels; 0 = full height",
+                "maximum": 8192,
+                "minimum": 0,
+                "title": "height",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              {
+                "description": "compass gravity",
+                "enum": [
+                  "ce",
+                  "no",
+                  "so",
+                  "ea",
+                  "we",
+                  "noea",
+                  "nowe",
+                  "soea",
+                  "sowe",
+                  null
+                ],
+                "title": "type",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              {
+                "description": "offset in pixels towards the inside of the frame (moves crops)",
+                "maximum": 8192,
+                "minimum": 0,
+                "title": "x_offset",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              {
+                "description": "offset in pixels towards the inside of the frame (moves crops)",
+                "maximum": 8192,
+                "minimum": 0,
+                "title": "y_offset",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
             ],
             "type": "array",
             "x-xi-aliases": [
@@ -6362,82 +6316,53 @@
             "x-xi-syntax": "rate"
           },
           "gravity": {
-            "anyOf": [
-              {
-                "maxItems": 3,
-                "minItems": 1,
-                "prefixItems": [
-                  {
-                    "description": "compass gravity",
-                    "enum": [
-                      "ce",
-                      "no",
-                      "so",
-                      "ea",
-                      "we",
-                      "noea",
-                      "nowe",
-                      "soea",
-                      "sowe"
-                    ],
-                    "title": "type",
-                    "type": "string"
-                  },
-                  {
-                    "description": "offset in pixels (a fraction of the frame when \u003c 1)",
-                    "title": "x_offset",
-                    "type": [
-                      "number",
-                      "null"
-                    ]
-                  },
-                  {
-                    "description": "offset in pixels (a fraction of the frame when \u003c 1)",
-                    "title": "y_offset",
-                    "type": [
-                      "number",
-                      "null"
-                    ]
-                  }
-                ],
-                "type": "array"
-              },
-              {
-                "maxItems": 3,
-                "minItems": 3,
-                "prefixItems": [
-                  {
-                    "enum": [
-                      "fp"
-                    ],
-                    "title": "type",
-                    "type": "string"
-                  },
-                  {
-                    "description": "focus point x (0..1)",
-                    "maximum": 1,
-                    "minimum": 0,
-                    "title": "x",
-                    "type": "number"
-                  },
-                  {
-                    "description": "focus point y (0..1)",
-                    "maximum": 1,
-                    "minimum": 0,
-                    "title": "y",
-                    "type": "number"
-                  }
-                ],
-                "type": "array"
-              }
-            ],
-            "description": "Anchor of fill crops and crops (compass with pixel offsets, or a focus point). URL: `gravity`, `g`; arguments type:x:y or fp:x:y; default ce:0:0.",
+            "description": "Anchor of fill crops, pads and crops (a compass point; the pixel offsets move crops). URL: `gravity`, `g`; arguments type:x:y; default ce:0:0.",
             "examples": [
               [
                 "soea",
                 10,
                 10
               ]
+            ],
+            "maxItems": 3,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "compass gravity",
+                "enum": [
+                  "ce",
+                  "no",
+                  "so",
+                  "ea",
+                  "we",
+                  "noea",
+                  "nowe",
+                  "soea",
+                  "sowe"
+                ],
+                "title": "type",
+                "type": "string"
+              },
+              {
+                "description": "offset in pixels towards the inside of the frame (moves crops)",
+                "maximum": 8192,
+                "minimum": 0,
+                "title": "x_offset",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              {
+                "description": "offset in pixels towards the inside of the frame (moves crops)",
+                "maximum": 8192,
+                "minimum": 0,
+                "title": "y_offset",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
             ],
             "type": "array",
             "x-xi-aliases": [
@@ -6447,7 +6372,7 @@
             "x-xi-milestone": "M5 (WP-122)",
             "x-xi-pro": false,
             "x-xi-scope": "request",
-            "x-xi-syntax": "type:x:y or fp:x:y"
+            "x-xi-syntax": "type:x:y"
           },
           "hashsum": {
             "description": "Check the source bytes against a digest. URL: `hashsum`, `hs`; arguments none, or md5/sha1/sha256/sha512:hex; default none.",
@@ -11513,7 +11438,7 @@
             }
           },
           {
-            "description": "Anchor of fill crops and crops (compass with pixel offsets, or a focus point). Arguments joined by , or : (type:x:y or fp:x:y).",
+            "description": "Anchor of fill crops, pads and crops (a compass point; the pixel offsets move crops). Arguments joined by , or : (type:x:y).",
             "in": "query",
             "name": "gravity",
             "schema": {
