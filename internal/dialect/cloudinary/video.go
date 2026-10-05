@@ -28,7 +28,6 @@ import (
 
 // Reasons of the video mapping.
 const (
-	reasonOverlays  = "M5 (WP-124)"
 	reasonAudio     = "M5 (WP-123)"
 	reasonStreaming = "M5 (WP-126)"
 	reasonRelative  = "needs the source size or duration"
@@ -151,14 +150,7 @@ func (a *applier) video(u *parsedURL) error {
 		if ok {
 			// An overlay (or underlay) and its layer group, as the image
 			// path delimits it: up to the next fl_layer_apply, if any.
-			if c.hasFlag("splice") {
-				if err := va.skip("fl_splice", reasonUnsupported); err != nil {
-					return err
-				}
-			}
-			if err := va.skip(optionName(key, lv), reasonOverlays); err != nil {
-				return err
-			}
+			start := i
 			if !c.hasFlag("layer_apply") {
 				for j := i + 1; j < len(u.comps); j++ {
 					if strings.Contains(u.comps[j], "layer_apply") {
@@ -166,6 +158,17 @@ func (a *applier) video(u *parsedURL) error {
 						break
 					}
 				}
+			}
+			group := []*component{c}
+			for _, seg := range u.comps[start+1 : i+1] {
+				gc, err := parseComponent(seg)
+				if err != nil {
+					return err
+				}
+				group = append(group, gc)
+			}
+			if err := va.overlay(key, lv, group); err != nil {
+				return err
 			}
 			continue
 		}
@@ -182,6 +185,104 @@ func (a *applier) video(u *parsedURL) error {
 	r := a.b.Request()
 	op := va.op
 	r.Kind, r.Video, r.Output = transform.KindVideo, &op, transform.Output{}
+	return nil
+}
+
+// defaultFade is the length of e_fade without a value.
+const defaultFade = 2 * time.Second
+
+// overlay maps an l_ layer group onto a VideoOverlay (WP-124): the layer
+// and its placement are parsed by the image path (applier.layer: image,
+// l_fetch: and l_text: layers with g_, x_, y_, w_, h_, o_, a_, co_,
+// fl_relative and fl_tiled), and the group's so_/eo_/du_ set the window on
+// the output's timeline and e_fade[:±ms] the fades (positive fades in,
+// negative out). Video, subtitle, LUT and audio layers, fl_splice and
+// underlays are not supported.
+func (va *videoApplier) overlay(key, v string, comps []*component) error {
+	if comps[0].hasFlag("splice") {
+		if err := va.skip("fl_splice", reasonUnsupported); err != nil {
+			return err
+		}
+	}
+	kind, _, _ := strings.Cut(v, ":")
+	switch {
+	case key == "u":
+		return va.skip("u", reasonUnsupported)
+	case kind == "video" || kind == "subtitles" || kind == "lut" || kind == "audio":
+		return va.skip("l_"+kind, reasonUnsupported)
+	}
+	var ov transform.VideoOverlay
+	var du time.Duration
+	var eoSet bool
+	rest := make([]*component, len(comps))
+	for i, c := range comps {
+		kept := &component{params: make([]param, 0, len(c.params))}
+		for _, p := range c.params {
+			var err error
+			switch {
+			case p.key == "so":
+				err = va.offset("so", p.value, &ov.Start)
+			case p.key == "eo":
+				eoSet = true
+				err = va.offset("eo", p.value, &ov.End)
+			case p.key == "du":
+				err = va.offset("du", p.value, &du)
+			case p.key == "e" && (p.value == "fade" || strings.HasPrefix(p.value, "fade:")):
+				err = va.fade(p.value, &ov)
+			default:
+				kept.params = append(kept.params, p)
+			}
+			if err != nil {
+				return err
+			}
+		}
+		rest[i] = kept
+	}
+	if du > 0 && !eoSet {
+		ov.End = ov.Start + du
+	} else if du > 0 {
+		if err := va.skip("l_du", reasonApproximated); err != nil { // eo_ wins
+			return err
+		}
+	}
+	if ov.End > 0 && ov.End <= ov.Start {
+		return dialect.InvalidArgument("eo", strconv.FormatFloat(ov.End.Seconds(), 'f', -1, 64), "a layer end after its so_")
+	}
+	pl := va.a.b.Pipeline()
+	before := len(pl.Watermarks)
+	if err := va.a.layer("l", v, rest); err != nil {
+		return err
+	}
+	if len(pl.Watermarks) == before {
+		return nil // recorded by layer
+	}
+	ov.Watermark = pl.Watermarks[before]
+	pl.Watermarks = pl.Watermarks[:before]
+	if len(va.op.Overlays) >= transform.MaxVideoOverlays {
+		return dialect.InvalidURL("too many layers")
+	}
+	va.op.Overlays = append(va.op.Overlays, ov)
+	return nil
+}
+
+// fade parses a layer's e_fade[:<ms>]: positive fades in, negative out.
+func (va *videoApplier) fade(v string, ov *transform.VideoOverlay) error {
+	d := defaultFade
+	out := false
+	if _, arg, ok := strings.Cut(v, ":"); ok {
+		ms, err := strconv.Atoi(arg)
+		if err != nil || ms == 0 || ms < -int(transform.MaxVideoTime.Milliseconds()) ||
+			ms > int(transform.MaxVideoTime.Milliseconds()) {
+			return dialect.InvalidArgument("e_fade", arg, "milliseconds, negative to fade out")
+		}
+		out = ms < 0
+		d = time.Duration(max(ms, -ms)) * time.Millisecond
+	}
+	if out {
+		ov.FadeOut = d
+	} else {
+		ov.FadeIn = d
+	}
 	return nil
 }
 
@@ -765,6 +866,9 @@ func (va *videoApplier) finish() error {
 		op.AutoContainer = false
 	}
 	if op.Container.AudioOnly() {
+		if len(op.Overlays) > 0 {
+			return dialect.InvalidArgument("l", op.Container.String(), "a video output for layers")
+		}
 		if va.vcSet {
 			if err := va.skip("vc", reasonNotVideo); err != nil {
 				return err

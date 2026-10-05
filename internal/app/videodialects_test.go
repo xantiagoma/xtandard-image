@@ -4,6 +4,7 @@ package app
 
 import (
 	"encoding/json"
+	"image"
 	"io"
 	"net/http"
 	"os"
@@ -67,7 +68,9 @@ func ffprobeBody(t *testing.T, data []byte) ffprobeResult {
 // (/cdn-cgi/media/), Cloudinary (/video/upload/) and ImageKit (WP-125)
 // through the whole service with signed URLs, video transformations
 // enabled and unsigned ones denied (the default), and checks each output
-// with ffprobe: container, codecs, size and duration.
+// with ffprobe: container, codecs, size and duration, and that Cloudinary
+// and ImageKit layers are drawn as video overlays (WP-124) where and when
+// they ask.
 func TestVideoDialects(t *testing.T) {
 	if !ffmpeg.Available() {
 		t.Skip("this image has no FFmpeg")
@@ -277,5 +280,51 @@ video:
 				t.Errorf("Content-Type %q, want %q", r.ctype, tc.ctype)
 			}
 		})
+	}
+
+	// Overlays (WP-124) through each dialect's layer syntax: the badge,
+	// 48 px wide, 8 px from the bottom-right corner of the 320×180 output,
+	// from 0.3 s to 0.7 s, drawn over the plain transcode of the same URL
+	// without the layer. Cloudflare Media Transformations has no overlays.
+	mark := image.Rect(264, 124, 312, 172)
+	untouched := image.Rect(8, 60, 120, 120)
+	for _, tc := range []struct {
+		name, plain, overlay string
+	}{
+		{
+			name:    "cloudinary layer",
+			plain:   cloudinary("du_1,w_320,f_webm", "video/clip-vp9.webm"),
+			overlay: cloudinary("du_1,w_320,f_webm/l_watermark:badge.png,w_48/fl_layer_apply,g_south_east,x_8,y_8,so_0.3,eo_0.7", "video/clip-vp9.webm"),
+		},
+		{
+			name:    "imagekit layer",
+			plain:   imagekit("/video/clip-vp9.webm", "tr=du-1,w-320,f-webm"),
+			overlay: imagekit("/video/clip-vp9.webm", "tr=du-1,w-320,f-webm,l-image,i-watermark@@badge.png,w-48,lx-N8,ly-N8,lso-0.3,leo-0.7,l-end"),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			plain, over := get(t, base+tc.plain), get(t, base+tc.overlay)
+			if plain.status != http.StatusOK || over.status != http.StatusOK {
+				t.Fatalf("plain %d %s, overlay %d %s", plain.status, plain.body, over.status, over.body)
+			}
+			for _, sec := range []float64{0.4, 0.6} {
+				got, want := videoFrame(t, over.body, sec), videoFrame(t, plain.body, sec)
+				if d := regionDiff(got, want, mark); d < 8 {
+					t.Errorf("at %g s the overlay is missing (difference %.1f)", sec, d)
+				}
+				if d := regionDiff(got, want, untouched); d > 3 {
+					t.Errorf("at %g s the rest of the frame changed (difference %.1f)", sec, d)
+				}
+			}
+			for _, sec := range []float64{0.1, 0.9} {
+				if d := regionDiff(videoFrame(t, over.body, sec), videoFrame(t, plain.body, sec), mark); d > 3 {
+					t.Errorf("at %g s, outside its window, the overlay shows (difference %.1f)", sec, d)
+				}
+			}
+		})
+	}
+	// Overlays on an audio-only output are refused.
+	if r := get(t, base+cloudinary("vc_none/l_watermark:badge.png/fl_layer_apply", "video/bbb-h264-aac.mp4")); r.status != http.StatusBadRequest {
+		t.Errorf("overlay on audio: %d %s, want 400", r.status, r.body)
 	}
 }

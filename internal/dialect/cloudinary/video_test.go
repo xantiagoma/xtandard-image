@@ -1,6 +1,9 @@
 package cloudinary_test
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // vu is the video upload prefix of the demo cloud.
 const vu = "/demo/video/upload/"
@@ -141,6 +144,22 @@ func TestVideo(t *testing.T) {
 		{name: "overlay_image", path: vu + "l_cloudinary_icon,w_100/fl_layer_apply,g_north_east/w_640/dog.mp4"},
 		{name: "overlay_text", path: vu + "l_text:arial_40:Hello,co_white/dog.mp4"},
 		{name: "overlay_strict", cfg: "strict", path: vu + "l_cloudinary_icon/dog.mp4"},
+		{name: "overlay_window", path: vu + "l_logos:brand,w_120/fl_layer_apply,g_south_east,x_10,y_10,o_50,so_1,eo_3/dog.mp4"},
+		{name: "overlay_duration", path: vu + "l_logo/fl_layer_apply,g_north_west,so_2,du_1.5/dog.mp4"},
+		{name: "overlay_fades", path: vu + "l_logo,e_fade:500/e_fade:-750,fl_layer_apply,so_1,du_3/dog.mp4"},
+		{name: "overlay_fade_default", path: vu + "l_logo/e_fade,fl_layer_apply/dog.mp4"},
+		{name: "overlay_fade_bad", path: vu + "l_logo/e_fade:soon,fl_layer_apply/dog.mp4"},
+		{name: "overlay_fetch", path: vu + "l_fetch:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw==/fl_layer_apply,g_north,y_20/dog.mp4"},
+		{name: "overlay_text_styled", path: vu + "l_text:Arial_48_bold:Hello%20World,co_yellow/fl_layer_apply,g_south,y_30,so_0.5/w_640/dog.mp4"},
+		{name: "overlay_relative_tiled", path: vu + "l_logo,w_0.2,fl_relative.tiled/fl_layer_apply/dog.mp4"},
+		{name: "overlay_legacy", path: vu + "l_logo,g_east,x_5,so_1/dog.mp4"},
+		{name: "overlay_eo_du", path: vu + "l_logo/fl_layer_apply,so_1,eo_2,du_5/dog.mp4"},
+		{name: "overlay_eo_before_so", path: vu + "l_logo/fl_layer_apply,so_3,eo_2/dog.mp4"},
+		{name: "overlay_audio_only", path: vu + "l_logo/fl_layer_apply/vc_none/dog.mp4"},
+		{name: "overlay_two", path: vu + "l_a/fl_layer_apply,g_north_west/l_text:Arial_20:hi/fl_layer_apply,g_south_east/dog.mp4"},
+		{name: "overlay_too_many", path: vu + strings.Repeat("l_a/fl_layer_apply/", 9) + "dog.mp4"},
+		{name: "overlay_video_layer", path: vu + "l_video:intro/fl_layer_apply/dog.mp4"},
+		{name: "overlay_signed", cfg: "signed", path: "/demo/video/upload/" + signPath(t, "sha1", "l_logo/fl_layer_apply,g_north_east,so_1/dog.mp4") + "/l_logo/fl_layer_apply,g_north_east,so_1/dog.mp4"},
 		{name: "underlay", path: vu + "u_bg/fl_layer_apply/dog.mp4"},
 		{name: "streaming_profile", path: vu + "sp_hd/dog.mp4"},
 		{name: "named", path: vu + "t_thumb/dog.mp4"},

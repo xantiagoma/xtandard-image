@@ -39,7 +39,8 @@
 //     ik-video.mp4 are video transformations (KindVideo, video.go; an
 //     image f- keeps the frame path): w-, h-,
 //     ar-, c-, cm-, fo-, x-, y-, bg-, so-, eo-, du-, f-, vc-, ac-, q-, fps-,
-//     rt-, dpr-; layers wait for WP-124 and ik-master manifests for WP-126.
+//     rt-, dpr-, l-image/l-text overlays with lso-/leo-/ldu- windows;
+//     ik-master manifests wait for WP-126.
 //
 // Signing: ik-s = hex(HMAC-SHA1(private key, url-relative-to-endpoint ‖
 // ik-t)) as in imagekit-nodejs (sign.ImageKitMessage). An ik-t in the past

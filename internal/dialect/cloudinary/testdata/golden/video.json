@@ -1237,7 +1237,7 @@
         },
         {
           "Option": "l_video",
-          "Reason": "M5 (WP-124)"
+          "Reason": "unsupported"
         }
       ],
       "Kind": "video",
@@ -1535,14 +1535,68 @@
     },
     "path": "/demo/video/upload/w_100/dog.mp4"
   },
-  "overlay_image": {
-    "path": "/demo/video/upload/l_cloudinary_icon,w_100/fl_layer_apply,g_north_east/w_640/dog.mp4",
+  "overlay_audio_only": {
+    "error": {
+      "field": "l",
+      "kind": "invalid_url",
+      "public": "invalid l: expected a video output for layers",
+      "status": 400
+    },
+    "path": "/demo/video/upload/l_logo/fl_layer_apply/vc_none/dog.mp4"
+  },
+  "overlay_duration": {
+    "path": "/demo/video/upload/l_logo/fl_layer_apply,g_north_west,so_2,du_1.5/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "End": 3500000000,
+            "Start": 2000000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "logo"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "overlay_eo_before_so": {
+    "error": {
+      "field": "eo",
+      "kind": "invalid_url",
+      "public": "invalid eo: expected a layer end after its so_",
+      "status": 400
+    },
+    "path": "/demo/video/upload/l_logo/fl_layer_apply,so_3,eo_2/dog.mp4"
+  },
+  "overlay_eo_du": {
+    "path": "/demo/video/upload/l_logo/fl_layer_apply,so_1,eo_2,du_5/dog.mp4",
     "request": {
       "Dialect": "cloudinary",
       "Ignored": [
         {
-          "Option": "l_cloudinary_icon",
-          "Reason": "M5 (WP-124)"
+          "Option": "l_du",
+          "Reason": "approximated"
         }
       ],
       "Kind": "video",
@@ -1555,29 +1609,440 @@
         "Raw": "dog.mp4"
       },
       "Video": {
+        "Overlays": [
+          {
+            "End": 2000000000,
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "logo"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "overlay_fade_bad": {
+    "error": {
+      "field": "e_fade",
+      "kind": "invalid_url",
+      "public": "invalid e_fade: expected milliseconds, negative to fade out",
+      "status": 400
+    },
+    "path": "/demo/video/upload/l_logo/e_fade:soon,fl_layer_apply/dog.mp4"
+  },
+  "overlay_fade_default": {
+    "path": "/demo/video/upload/l_logo/e_fade,fl_layer_apply/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "FadeIn": 2000000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "logo"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "overlay_fades": {
+    "path": "/demo/video/upload/l_logo,e_fade:500/e_fade:-750,fl_layer_apply,so_1,du_3/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "End": 4000000000,
+            "FadeIn": 500000000,
+            "FadeOut": 750000000,
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "logo"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "overlay_fetch": {
+    "path": "/demo/video/upload/l_fetch:aHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZw==/fl_layer_apply,g_north,y_20/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north",
+                "YOffset": 20
+              },
+              "Source": {
+                "Raw": "https://example.com/logo.png"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "overlay_image": {
+    "path": "/demo/video/upload/l_cloudinary_icon,w_100/fl_layer_apply,g_north_east/w_640/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-east"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "cloudinary_icon"
+              },
+              "Width": 100
+            }
+          }
+        ],
         "Width": 640
       }
     },
     "signature": "unsigned",
     "source": "dog.mp4"
   },
+  "overlay_legacy": {
+    "path": "/demo/video/upload/l_logo,g_east,x_5,so_1/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "east",
+                "XOffset": 5
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "logo"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "overlay_relative_tiled": {
+    "path": "/demo/video/upload/l_logo,w_0.2,fl_relative.tiled/fl_layer_apply/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Scale": 0.2,
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "logo"
+              },
+              "Tile": "repeat"
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "overlay_signed": {
+    "config": "signed",
+    "path": "/demo/video/upload/s--tPO-V-hE--/l_logo/fl_layer_apply,g_north_east,so_1/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-east"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "logo"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "verified",
+    "source": "dog.mp4"
+  },
   "overlay_strict": {
     "config": "strict",
-    "error": {
-      "kind": "invalid_url",
-      "public": "invalid url: unsupported option",
-      "status": 400
+    "path": "/demo/video/upload/l_cloudinary_icon/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "cloudinary_icon"
+              }
+            }
+          }
+        ]
+      }
     },
-    "path": "/demo/video/upload/l_cloudinary_icon/dog.mp4"
+    "signature": "unsigned",
+    "source": "dog.mp4"
   },
   "overlay_text": {
     "path": "/demo/video/upload/l_text:arial_40:Hello,co_white/dog.mp4",
     "request": {
       "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "Watermark": {
+              "Color": {
+                "A": 255,
+                "B": 255,
+                "G": 255,
+                "R": 255
+              },
+              "Font": "arial 40",
+              "Opacity": 1,
+              "Text": "Hello"
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "overlay_text_styled": {
+    "path": "/demo/video/upload/l_text:Arial_48_bold:Hello%20World,co_yellow/fl_layer_apply,g_south,y_30,so_0.5/w_640/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "Start": 500000000,
+            "Watermark": {
+              "Color": {
+                "A": 255,
+                "G": 255,
+                "R": 255
+              },
+              "Font": "Arial bold 48",
+              "Opacity": 1,
+              "Position": {
+                "Type": "south",
+                "YOffset": 30
+              },
+              "Text": "Hello World"
+            }
+          }
+        ],
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "overlay_too_many": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: too many layers",
+      "status": 400
+    },
+    "path": "/demo/video/upload/l_a/fl_layer_apply/l_a/fl_layer_apply/l_a/fl_layer_apply/l_a/fl_layer_apply/l_a/fl_layer_apply/l_a/fl_layer_apply/l_a/fl_layer_apply/l_a/fl_layer_apply/l_a/fl_layer_apply/dog.mp4"
+  },
+  "overlay_two": {
+    "path": "/demo/video/upload/l_a/fl_layer_apply,g_north_west/l_text:Arial_20:hi/fl_layer_apply,g_south_east/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "a"
+              }
+            }
+          },
+          {
+            "Watermark": {
+              "Font": "Arial 20",
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east"
+              },
+              "Text": "hi"
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "overlay_video_layer": {
+    "path": "/demo/video/upload/l_video:intro/fl_layer_apply/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
       "Ignored": [
         {
-          "Option": "l_text",
-          "Reason": "M5 (WP-124)"
+          "Option": "l_video",
+          "Reason": "unsupported"
         }
       ],
       "Kind": "video",
@@ -1590,6 +2055,45 @@
         "Raw": "dog.mp4"
       },
       "Video": {}
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "overlay_window": {
+    "path": "/demo/video/upload/l_logos:brand,w_120/fl_layer_apply,g_south_east,x_10,y_10,o_50,so_1,eo_3/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "End": 3000000000,
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 0.5,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 10,
+                "YOffset": 10
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "logos/brand"
+              },
+              "Width": 120
+            }
+          }
+        ]
+      }
     },
     "signature": "unsigned",
     "source": "dog.mp4"
@@ -2239,7 +2743,7 @@
       "Ignored": [
         {
           "Option": "u",
-          "Reason": "M5 (WP-124)"
+          "Reason": "unsupported"
         }
       ],
       "Kind": "video",
