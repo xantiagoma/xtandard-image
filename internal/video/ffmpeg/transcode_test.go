@@ -31,24 +31,23 @@ func txSettings() *video.TranscodeSettings {
 }
 
 // transcode opens src, plans op and runs it.
-func transcode(ctx context.Context, src *vips.Buffer, op *transform.VideoOp, s *video.TranscodeSettings, lim video.Limits) (*ffmpeg.Output, *video.TranscodePlan, error) {
+func transcode(ctx context.Context, src *vips.Buffer, op *transform.VideoOp, s *video.TranscodeSettings, lim video.Limits) (*ffmpeg.Output, error) {
 	caps := ffmpeg.TranscodeCaps()
 	out, err := caps.Resolve(op)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	t, err := ffmpeg.OpenTranscode(ctx, src, lim, s.Threads)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer t.Close()
 	in := t.Input()
 	p, err := video.PlanTranscode(&in, op, out, caps, s)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	o, err := t.Run(ctx, p)
-	return o, p, err
+	return t.Run(ctx, p)
 }
 
 // probe is ffprobe's view of a file.
@@ -124,8 +123,10 @@ func TestTranscode(t *testing.T) {
 		},
 		{
 			name: "av1 mp4 to webm, end and cover", file: "clip-av1.mp4",
-			op: transform.VideoOp{Start: 400 * time.Millisecond, End: 1200 * time.Millisecond, Width: 200, Height: 200,
-				Fit: transform.VideoFitCover, Container: transform.VideoContainerWebM},
+			op: transform.VideoOp{
+				Start: 400 * time.Millisecond, End: 1200 * time.Millisecond, Width: 200, Height: 200,
+				Fit: transform.VideoFitCover, Container: transform.VideoContainerWebM,
+			},
 			format: "matroska,webm", codec: "vp9", w: 200, h: 200, duration: 0.8, frames: 20,
 		},
 		{
@@ -140,8 +141,10 @@ func TestTranscode(t *testing.T) {
 		},
 		{
 			name: "rotate and pad", file: "clip-vp8.webm",
-			op: transform.VideoOp{Rotate: 90, Width: 200, Height: 200, Fit: transform.VideoFitPad,
-				Container: transform.VideoContainerWebM},
+			op: transform.VideoOp{
+				Rotate: 90, Width: 200, Height: 200, Fit: transform.VideoFitPad,
+				Container: transform.VideoContainerWebM,
+			},
 			format: "matroska,webm", codec: "vp9", w: 200, h: 200, duration: 1, frames: 10,
 		},
 		{
@@ -156,15 +159,17 @@ func TestTranscode(t *testing.T) {
 		},
 		{
 			name: "raw avi crop", file: "clip-raw.avi",
-			op: transform.VideoOp{Crop: &transform.VideoCrop{X: 10, Y: 10, Width: 40, Height: 30},
-				Container: transform.VideoContainerWebM},
+			op: transform.VideoOp{
+				Crop:      &transform.VideoCrop{X: 10, Y: 10, Width: 40, Height: 30},
+				Container: transform.VideoContainerWebM,
+			},
 			format: "matroska,webm", codec: "vp9", w: 40, h: 30, duration: 1, frames: 10,
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			out, _, err := transcode(t.Context(), source(t, tc.file), &tc.op, txSettings(), video.Limits{})
+			out, err := transcode(t.Context(), source(t, tc.file), &tc.op, txSettings(), video.Limits{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -209,7 +214,7 @@ func TestTranscodeAudio(t *testing.T) {
 	if !in.AudioDecodable || !caps.AudioFilters {
 		// The base before WP-120 has no audio: a request that keeps it is
 		// refused, a muted one works (TestTranscode).
-		_, _, err := transcode(t.Context(), src, &transform.VideoOp{}, txSettings(), video.Limits{})
+		_, err := transcode(t.Context(), src, &transform.VideoOp{}, txSettings(), video.Limits{})
 		if errs.KindOf(err) != errs.KindUnsupported {
 			t.Fatalf("audio without decoders: %v, want unsupported", err)
 		}
@@ -233,7 +238,7 @@ func TestTranscodeAudio(t *testing.T) {
 			if !tc.ok {
 				t.Skip("encoder or muxer missing")
 			}
-			out, _, err := transcode(t.Context(), src, &tc.op, txSettings(), video.Limits{})
+			out, err := transcode(t.Context(), src, &tc.op, txSettings(), video.Limits{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -257,13 +262,13 @@ func TestTranscodeCancel(t *testing.T) {
 	src := source(t, "clip-vp9.webm")
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	if _, _, err := transcode(ctx, src, &transform.VideoOp{Mute: true}, txSettings(), video.Limits{}); errs.KindOf(err) != errs.KindCanceled {
+	if _, err := transcode(ctx, src, &transform.VideoOp{Mute: true}, txSettings(), video.Limits{}); errs.KindOf(err) != errs.KindCanceled {
 		t.Fatalf("canceled context: %v", err)
 	}
 	ctx, cancel = context.WithTimeout(t.Context(), time.Millisecond)
 	defer cancel()
 	<-ctx.Done()
-	if _, _, err := transcode(ctx, src, &transform.VideoOp{}, txSettings(), video.Limits{}); errs.KindOf(err) != errs.KindTimeout {
+	if _, err := transcode(ctx, src, &transform.VideoOp{}, txSettings(), video.Limits{}); errs.KindOf(err) != errs.KindTimeout {
 		t.Fatalf("deadline: %v", err)
 	}
 }
@@ -295,7 +300,7 @@ func TestTranscodeLimits(t *testing.T) {
 			}
 			op := tc.op
 			op.Container = transform.VideoContainerWebM
-			out, _, err := transcode(t.Context(), src, &op, s, tc.lim)
+			out, err := transcode(t.Context(), src, &op, s, tc.lim)
 			if err == nil {
 				out.Release()
 			}
@@ -316,7 +321,7 @@ func TestTranscodeNoLeak(t *testing.T) {
 		if i%3 == 2 {
 			s.MaxOutputBytes = 512 // fails in the muxer
 		}
-		out, _, err := transcode(t.Context(), src, op, s, video.Limits{})
+		out, err := transcode(t.Context(), src, op, s, video.Limits{})
 		if err == nil {
 			out.Release()
 		} else if errs.KindOf(err) != errs.KindLimitExceeded {
@@ -349,13 +354,13 @@ func BenchmarkTranscode720p(b *testing.B) {
 	caps := ffmpeg.TranscodeCaps()
 	for _, c := range []struct {
 		name string
-		op   transform.VideoOp
+		op   *transform.VideoOp
 		ok   bool
 	}{
-		{"vp9", transform.VideoOp{Container: transform.VideoContainerWebM, Mute: true}, true},
-		{"av1", transform.VideoOp{VideoCodec: transform.VideoCodecAV1, Mute: true}, true},
-		{"h264", transform.VideoOp{VideoCodec: transform.VideoCodecH264, Mute: true}, caps.Video.H264},
-		{"vp9-360p", transform.VideoOp{Container: transform.VideoContainerWebM, Mute: true, Width: 640}, true},
+		{"vp9", &transform.VideoOp{Container: transform.VideoContainerWebM, Mute: true}, true},
+		{"av1", &transform.VideoOp{VideoCodec: transform.VideoCodecAV1, Mute: true}, true},
+		{"h264", &transform.VideoOp{VideoCodec: transform.VideoCodecH264, Mute: true}, caps.Video.H264},
+		{"vp9-360p", &transform.VideoOp{Container: transform.VideoContainerWebM, Mute: true, Width: 640}, true},
 	} {
 		b.Run(c.name, func(b *testing.B) {
 			if !c.ok {
@@ -363,7 +368,7 @@ func BenchmarkTranscode720p(b *testing.B) {
 			}
 			b.ReportAllocs()
 			for b.Loop() {
-				out, _, err := transcode(b.Context(), src, &c.op, txSettings(), video.Limits{})
+				out, err := transcode(b.Context(), src, c.op, txSettings(), video.Limits{})
 				if err != nil {
 					b.Fatal(err)
 				}

@@ -17,13 +17,6 @@ type Output struct {
 	free func(unsafe.Pointer)
 }
 
-// newOutput wraps n bytes at p with one reference; free releases them.
-func newOutput(p unsafe.Pointer, n int, free func(unsafe.Pointer)) *Output {
-	o := &Output{p: p, n: n, free: free}
-	o.refs.Store(1)
-	return o
-}
-
 // Bytes is the file. It must not be written.
 func (o *Output) Bytes() []byte {
 	if o == nil || o.p == nil {

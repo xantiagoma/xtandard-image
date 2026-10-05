@@ -32,7 +32,8 @@ func buildVideoTransform(cfg *config.Config, met *metrics.Metrics) (*media.Servi
 		return nil, errors.New("video.transform.enabled (XI_VIDEO_TRANSFORM_ENABLED) is true but this image has no FFmpeg; use the full or gpl image")
 	}
 	obs := met.Video()
-	return media.New(mediaConfig(cfg), ffmpeg.TranscodeCaps(), ffmpegEngine{},
+	mc := mediaConfig(cfg)
+	return media.New(&mc, ffmpeg.TranscodeCaps(), ffmpegEngine{},
 		media.WithMetrics(obs), media.WithLimiterMetrics(&videoLimiterMetrics{obs: obs}))
 }
 

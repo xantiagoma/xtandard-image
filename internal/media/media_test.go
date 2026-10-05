@@ -117,7 +117,7 @@ func newService(t *testing.T, e *engine, set func(*Config)) (*Service, *metrics)
 	}
 	e.in = input()
 	m := &metrics{}
-	s, err := New(cfg, caps(), e, WithMetrics(m))
+	s, err := New(&cfg, caps(), e, WithMetrics(m))
 	if err != nil {
 		t.Fatal(err)
 	}
