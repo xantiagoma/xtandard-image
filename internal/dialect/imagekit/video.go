@@ -55,6 +55,26 @@ func isVideoFile(key string) bool {
 	return videoExtensions[ext]
 }
 
+// imageOutput reports whether the transformation string asks for an image
+// format (its last f-): a video file then gets the image path (a frame,
+// as with ik-thumbnail.jpg), so detection and image options keep working
+// on video sources.
+func imageOutput(tr string) bool {
+	format := ""
+	for step := range strings.SplitSeq(tr, ":") {
+		for param := range strings.SplitSeq(step, ",") {
+			if v, ok := strings.CutPrefix(param, "f-"); ok {
+				format = v
+			}
+		}
+	}
+	switch format {
+	case "jpg", "jpeg", "png", "webp", "avif", "gif", "jxl":
+		return true
+	}
+	return false
+}
+
 // videoState collects one video request.
 type videoState struct {
 	ps      *parseState

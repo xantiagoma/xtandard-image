@@ -37,7 +37,8 @@ func TestVideo(t *testing.T) {
 		vq("f_webm", "f-webm"),
 		vq("f_auto", "f-auto"),
 		vq("f_orig", "f-orig"),
-		vq("f_jpg", "f-jpg"),
+		vq("f_jpg_frame", "f-jpg,w-100"),
+		vq("f_png_last_wins", "f-mp4:f-png"),
 		// Trimming.
 		vq("trim_so_du", "so-5,du-5"),
 		vq("trim_so_eo", "so-10.55,eo-20"),

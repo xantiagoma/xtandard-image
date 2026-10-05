@@ -600,15 +600,32 @@
     "signature": "unsigned",
     "source": "sample-video.mp4"
   },
-  "f_jpg": {
-    "error": {
-      "field": "f",
-      "kind": "invalid_url",
-      "public": "invalid f: expected auto, mp4 or webm",
-      "status": 400
-    },
+  "f_jpg_frame": {
     "path": "/sample-video.mp4",
-    "query": "tr=f-jpg"
+    "query": "tr=f-jpg,w-100",
+    "request": {
+      "Dialect": "imagekit",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fill",
+            "Width": {
+              "Px": 100
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
   },
   "f_mp4": {
     "path": "/sample-video.mp4",
@@ -649,6 +666,26 @@
       },
       "Video": {
         "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "f_png_last_wins": {
+    "path": "/sample-video.mp4",
+    "query": "tr=f-mp4:f-png",
+    "request": {
+      "Dialect": "imagekit",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {},
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
       }
     },
     "signature": "unsigned",

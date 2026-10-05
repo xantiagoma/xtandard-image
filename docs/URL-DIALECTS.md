@@ -589,7 +589,7 @@ Reference: https://imagekit.io/docs/video-transformation, video-resize-and-crop,
 /imagekit/<mount>/clips/a.mov/ik-video.mp4?tr=vc-none          (audio only)
 ```
 
-A file whose extension is a video one (`mp4`, `webm`, `mov`, `m4v`, `mkv`, `avi`, `ogv`, `3gp`, `mpeg`/`mpg`, `ts`, `flv`, `wmv`, `qt`), or any file followed by `/ik-video.mp4`, is a `KindVideo` request; `<video>/ik-thumbnail.jpg` stays the thumbnail path and `ik-master.m3u8`/`.mpd` is 400 until WP-126. Steps (`:`) apply in order onto one VideoOp, like Cloudinary's components (§6.1); signing, `ik-t`, `ik-attachment` and the cache-busting query work as for images. Without `f-` the output follows ImageKit's default `f-auto`.
+A file whose extension is a video one (`mp4`, `webm`, `mov`, `m4v`, `mkv`, `avi`, `ogv`, `3gp`, `mpeg`/`mpg`, `ts`, `flv`, `wmv`, `qt`), or any file followed by `/ik-video.mp4`, is a `KindVideo` request unless `f-` asks for an image format; `<video>/ik-thumbnail.jpg` stays the thumbnail path and `ik-master.m3u8`/`.mpd` is 400 until WP-126. Steps (`:`) apply in order onto one VideoOp, like Cloudinary's components (§6.1); signing, `ik-t`, `ik-attachment` and the cache-busting query work as for images. Without `f-` the output follows ImageKit's default `f-auto`.
 
 | ImageKit | VideoOp | Notes |
 |---|---|---|
@@ -599,7 +599,7 @@ A file whose extension is a video one (`mp4`, `webm`, `mov`, `m4v`, `mkv`, `avi`
 | `fo-<compass>` | Gravity (cover crop, pad position, extract anchor) | `fo-auto`, `fo-face`, objects approximated (centre) |
 | `cm-pad_resize` (+ `bg-<colour>`) | Pad + Background | `cm-pad_resize_no_enlarge` approximated; `bg-blurred`/`dominant`/`gradient` unsupported; `cm-pad_extract` unsupported |
 | `cm-extract` with `w-`,`h-` and `fo-` or `x-`,`y-` | Crop (before the resize) | `xc-`/`yc-` unsupported; an extract after a resize unsupported |
-| `f-auto` (default), `f-mp4`, `f-webm`, `ik-video.mp4` | AutoContainer (WebM for `Accept: video/webm`, else MP4; `Vary: Accept`), MP4, WebM | `f-orig` approximated (auto); image formats are 400 (use `ik-thumbnail.jpg`) |
+| `f-auto` (default), `f-mp4`, `f-webm`, `ik-video.mp4` | AutoContainer (WebM for `Accept: video/webm`, else MP4; `Vary: Accept`), MP4, WebM | `f-orig` approximated (auto); an image format (`f-jpg`, `f-png`, …, the last `f-` of the string) keeps the frame path, as `ik-thumbnail.jpg` does |
 | `vc-h264`, `vc-vp9`, `vc-av1`, `vc-none` | VideoCodec; `vc-none` = audio only (M4A, or Ogg Opus with `ac-opus`) | a codec the container cannot hold is 400 |
 | `ac-aac`, `ac-opus`, `ac-none` | AudioCodec, Mute | |
 | `q-<1..100>` | Quality | |
