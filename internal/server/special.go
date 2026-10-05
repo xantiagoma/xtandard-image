@@ -50,6 +50,9 @@ type job struct {
 	// response may be stored (cache.go); process copies it to the result,
 	// never the fallback.
 	cacheKey string
+	// video is the resolved output of a video transformation
+	// (video.TranscodeOutput.Key); "" for images.
+	video string
 }
 
 // newResult starts the result of j from its fetched source: what the

@@ -69,6 +69,9 @@ func (r *Request) Validate() error {
 	if r.Info != nil && r.Kind != KindInfo {
 		v.fail("info", "set but kind is not info")
 	}
+	if (r.Video != nil) != (r.Kind == KindVideo) {
+		v.fail("video", "set if and only if kind is video")
+	}
 	v.source("source", &r.Source, true)
 
 	switch n := len(r.Pipelines); {
@@ -90,6 +93,9 @@ func (r *Request) Validate() error {
 	r.Limits.validate(v, "limits")
 	if r.Info != nil {
 		r.Info.validate(v, "info")
+	}
+	if r.Video != nil {
+		r.Video.validate(v, "video")
 	}
 	return errors.Join(v.errs...)
 }

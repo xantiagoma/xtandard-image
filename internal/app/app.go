@@ -57,6 +57,9 @@ type hooks struct {
 	// detector replaces the detector built from XI_DETECT_* (tests inject
 	// fakes; the detection cache and XI_DETECT_SMART_FACES still apply).
 	detector faceObjectDetector
+	// router wraps the dialect router (tests add routes no dialect has
+	// yet, such as video transformations before WP-122).
+	router func(server.Router) server.Router
 }
 
 // Run starts the service and blocks until ctx is cancelled (SIGINT/SIGTERM
@@ -173,7 +176,7 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	}
 	fetcher, err := fetch.New(reg, vipsAllocator, fetch.Config{
 		Timeout:     cfg.Fetch.Timeout,
-		MaxBytes:    int64(cfg.Limits.MaxSrcBytes),
+		MaxBytes:    fetchMaxBytes(cfg),
 		CacheBytes:  int64(cfg.Cache.Origin.MemoryBytes),
 		CacheTTL:    cfg.Cache.Origin.TTL,
 		NegativeTTL: cfg.Cache.Origin.NegativeTTL,
@@ -209,6 +212,26 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	logger.LogAttrs(ctx, slog.LevelInfo, "video",
 		slog.Bool("enabled", videoSettings(cfg).Enabled), slog.String("ffmpeg", codec.VideoVersion()),
 		slog.String("encoders", strings.Join(codec.VideoEncoders().Names(), ",")))
+	vt, err := buildVideoTransform(cfg, met)
+	if err != nil {
+		return err
+	}
+	if vt != nil {
+		t := &cfg.Video.Transform
+		logger.LogAttrs(ctx, slog.LevelInfo, "video transformations",
+			slog.String("role", string(cfg.Role)), slog.Int("workers", t.Workers), slog.Int("queue", t.Queue),
+			slog.String("outputs", strings.Join(vt.Caps().Names(), ",")))
+		// A transcode holds its source (libvips memory) until it ends: like
+		// the image pool, libvips is shut down only once none runs.
+		inFlight := cleanups[0]
+		cleanups[0] = func(ctx context.Context) error {
+			if n := vt.Stats().InFlight; n > 0 {
+				logger.LogAttrs(ctx, slog.LevelWarn, "skipping vips shutdown with transcodes in flight", slog.Int64("in_flight", n))
+				return nil
+			}
+			return inFlight(ctx)
+		}
+	}
 	eps, err := buildEPS(ctx, cfg, logger)
 	if err != nil {
 		return err
@@ -244,8 +267,14 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	ready := admin.NewReadiness()
 	scfg := serverConfig(cfg)
 	scfg.ResultCache.Build = opts.Version
+	scfg.Role = serverRole(cfg.Role)
+	scfg.Video = videoServerConfig(cfg)
+	var srvRouter server.Router = rt
+	if h.router != nil {
+		srvRouter = h.router(rt)
+	}
 	deps := &server.Deps{
-		Router:    rt,
+		Router:    srvRouter,
 		Resolver:  reg,
 		Fetcher:   fetcher,
 		Admitter:  lim,
@@ -267,6 +296,9 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	}
 	if mf != nil {
 		deps.Metafile = mf
+	}
+	if vt != nil {
+		deps.Video = mediaTransformer{s: vt}
 	}
 	srv, err := server.New(&scfg, deps)
 	if err != nil {

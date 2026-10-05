@@ -1,0 +1,45 @@
+goos: linux
+goarch: arm64
+pkg: github.com/xantiagoma/xtandard-image/internal/video/ffmpeg
+BenchmarkTranscode720p/vp9-8         	       4	 296807670 ns/op	    1684 B/op	      23 allocs/op
+BenchmarkTranscode720p/vp9-8         	       4	 293693695 ns/op	    1688 B/op	      24 allocs/op
+BenchmarkTranscode720p/vp9-8         	       4	 313927258 ns/op	    1684 B/op	      23 allocs/op
+BenchmarkTranscode720p/vp9-8         	       4	 322578377 ns/op	    1684 B/op	      23 allocs/op
+BenchmarkTranscode720p/vp9-8         	       3	 430831957 ns/op	    1717 B/op	      24 allocs/op
+BenchmarkTranscode720p/vp9-8         	       3	 375748541 ns/op	    1717 B/op	      24 allocs/op
+BenchmarkTranscode720p/vp9-8         	       3	 352340786 ns/op	    1717 B/op	      24 allocs/op
+BenchmarkTranscode720p/vp9-8         	       3	 339489757 ns/op	    1717 B/op	      24 allocs/op
+BenchmarkTranscode720p/vp9-8         	       3	 345263003 ns/op	    1717 B/op	      24 allocs/op
+BenchmarkTranscode720p/vp9-8         	       3	 386783754 ns/op	    1717 B/op	      24 allocs/op
+BenchmarkTranscode720p/av1-8         	       2	 858664702 ns/op	    1776 B/op	      24 allocs/op
+BenchmarkTranscode720p/av1-8         	       1	1071568167 ns/op	    1968 B/op	      26 allocs/op
+BenchmarkTranscode720p/av1-8         	       1	1096555174 ns/op	    1968 B/op	      26 allocs/op
+BenchmarkTranscode720p/av1-8         	       2	 933155860 ns/op	    1776 B/op	      24 allocs/op
+BenchmarkTranscode720p/av1-8         	       1	1308004445 ns/op	    1968 B/op	      26 allocs/op
+BenchmarkTranscode720p/av1-8         	       1	1182000227 ns/op	    1968 B/op	      26 allocs/op
+BenchmarkTranscode720p/av1-8         	       1	1585161424 ns/op	    1968 B/op	      26 allocs/op
+BenchmarkTranscode720p/av1-8         	       1	1601999883 ns/op	    1968 B/op	      26 allocs/op
+BenchmarkTranscode720p/av1-8         	       1	1689033814 ns/op	    1968 B/op	      26 allocs/op
+BenchmarkTranscode720p/av1-8         	       1	1876520426 ns/op	    1968 B/op	      26 allocs/op
+BenchmarkTranscode720p/h264-8        	       2	 757819218 ns/op	    1776 B/op	      24 allocs/op
+BenchmarkTranscode720p/h264-8        	       2	 688746280 ns/op	    1776 B/op	      24 allocs/op
+BenchmarkTranscode720p/h264-8        	       2	 550253642 ns/op	    1784 B/op	      24 allocs/op
+BenchmarkTranscode720p/h264-8        	       2	 555071002 ns/op	    1776 B/op	      24 allocs/op
+BenchmarkTranscode720p/h264-8        	       2	 750665957 ns/op	    1784 B/op	      24 allocs/op
+BenchmarkTranscode720p/h264-8        	       3	 470084791 ns/op	    1722 B/op	      24 allocs/op
+BenchmarkTranscode720p/h264-8        	       3	 405673537 ns/op	    1717 B/op	      24 allocs/op
+BenchmarkTranscode720p/h264-8        	       3	 470877286 ns/op	    1717 B/op	      24 allocs/op
+BenchmarkTranscode720p/h264-8        	       3	 393662570 ns/op	    1717 B/op	      24 allocs/op
+BenchmarkTranscode720p/h264-8        	       2	 507835774 ns/op	    1784 B/op	      24 allocs/op
+BenchmarkTranscode720p/vp9-360p-8    	       6	 198170037 ns/op	    1773 B/op	      28 allocs/op
+BenchmarkTranscode720p/vp9-360p-8    	       6	 182333178 ns/op	    1773 B/op	      28 allocs/op
+BenchmarkTranscode720p/vp9-360p-8    	       8	 139201641 ns/op	    1758 B/op	      28 allocs/op
+BenchmarkTranscode720p/vp9-360p-8    	       8	 142297189 ns/op	    1760 B/op	      28 allocs/op
+BenchmarkTranscode720p/vp9-360p-8    	       8	 141419841 ns/op	    1758 B/op	      28 allocs/op
+BenchmarkTranscode720p/vp9-360p-8    	       7	 149061260 ns/op	    1764 B/op	      28 allocs/op
+BenchmarkTranscode720p/vp9-360p-8    	       7	 155913650 ns/op	    1764 B/op	      28 allocs/op
+BenchmarkTranscode720p/vp9-360p-8    	       7	 165059936 ns/op	    1764 B/op	      28 allocs/op
+BenchmarkTranscode720p/vp9-360p-8    	       7	 159848059 ns/op	    1764 B/op	      28 allocs/op
+BenchmarkTranscode720p/vp9-360p-8    	       7	 148439525 ns/op	    1764 B/op	      28 allocs/op
+PASS
+ok  	github.com/xantiagoma/xtandard-image/internal/video/ffmpeg	51.183s

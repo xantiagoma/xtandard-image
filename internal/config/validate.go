@@ -64,6 +64,24 @@ func (c *Config) Validate() error {
 	return errors.Join(v.errs...)
 }
 
+func (c *Config) validateVideoTransform(v *validator) {
+	t := c.Video.Transform
+	v.check(slices.Contains(roles(), c.Role), "role", "must be all, image or video, got %q", c.Role)
+	v.check(c.Role != RoleVideo || t.Enabled, "role", "video needs video.transform.enabled")
+	v.check(t.Workers >= 1 && t.Workers <= 1024, "video.transform.workers", "must be between 1 and 1024, got %d", t.Workers)
+	v.between(t.Queue, 0, 1_000_000, "video.transform.queue")
+	v.nonNegative(int64(t.QueueTimeout), "video.transform.queue_timeout")
+	v.positive(int64(t.Timeout), "video.transform.timeout")
+	v.between(t.Threads, 1, 64, "video.transform.threads")
+	v.positive(int64(t.MaxInputBytes), "video.transform.max_input_bytes")
+	v.positive(int64(t.MaxInputDuration), "video.transform.max_input_duration")
+	v.positive(t.MaxInputPixels, "video.transform.max_input_pixels")
+	v.positive(int64(t.MaxOutputBytes), "video.transform.max_output_bytes")
+	v.positive(int64(t.MaxOutputDuration), "video.transform.max_output_duration")
+	v.positive(t.MaxOutputPixels, "video.transform.max_output_pixels")
+	v.check(t.MaxFPS >= 1 && t.MaxFPS <= 240, "video.transform.max_fps", "must be between 1 and 240, got %g", t.MaxFPS)
+}
+
 func (c *Config) validateServer(v *validator) {
 	s := c.Server
 	v.check(s.Addr != "", "server.addr", "must not be empty")
@@ -561,6 +579,7 @@ func (c *Config) validateVideo(v *validator) {
 	_, isNumber := vd.Thumbnail.Second.Seconds()
 	v.check(isNumber || vd.Thumbnail.Second == VideoSecondAuto || vd.Thumbnail.Second == "",
 		"video.thumbnail.second", "%q is not a number of seconds or auto", vd.Thumbnail.Second)
+	c.validateVideoTransform(v)
 }
 
 func (c *Config) validateCache(v *validator) {

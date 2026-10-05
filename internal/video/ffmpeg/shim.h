@@ -169,7 +169,98 @@ void xi_ff_enc_free(XiFFEnc *e);
 // xi_ff_live_encoders counts open encoders (leak tests).
 int xi_ff_live_encoders(void);
 
-// Shared by shim.c and encode.c.
+// ---------------------------------------------------------------------------
+// Video transformations (transcode.c, WP-121): a source in C memory ->
+// demux -> decode -> libavfilter chain per stream -> encode -> mux into a
+// buffer the handle owns, handed over with xi_tx_take.
+
+typedef struct XiTx XiTx;
+
+// XiTxInfo describes a source for the plan (internal/video.TranscodeInput).
+typedef struct {
+  char container[32];
+  double duration;   // seconds; < 0 when unknown
+  double start_time; // seconds: the container's first timestamp
+  int video;         // a video stream was found and its decoder opened
+  char vcodec[32];
+  int width, height;
+  int sar_num, sar_den;
+  int rotation, hflip; // display matrix: mirror, then clockwise rotation
+  double fps;          // average frame rate; 0 when unknown
+  int audio;           // an audio stream was found
+  char acodec[32];
+  int audio_decodable; // and this build decodes it
+  int sample_rate, channels;
+} XiTxInfo;
+
+// Audio encoders of XiTxParams.acodec.
+enum {
+  XI_TX_AAC = 1,
+  XI_TX_OPUS = 2,
+  XI_TX_MP3 = 3,
+};
+
+// XiTxParams is one plan (internal/video.TranscodePlan); strings are
+// NUL-terminated or fill their array.
+typedef struct {
+  char muxer[16]; // "mp4", "webm", "ogg", "mp3"
+  int faststart;
+  int64_t max_bytes; // the output may not grow past it; 0 = unlimited
+  double start, end; // the cut on the source timeline, seconds; end <= 0 = none
+  int threads;
+  // Video (vcodec: an XI_FF_ENC_* value; 0 = no video stream).
+  int vcodec;
+  double fps; // rate-control hint when the chain sets no rate
+  int crf, speed;
+  char preset[16];
+  int64_t max_bitrate;
+  int gop;
+  char vfilters[1024];
+  // Audio (acodec: an XI_TX_* value; 0 = no audio stream).
+  int acodec;
+  int64_t abitrate;
+  char afilters[512];
+} XiTxParams;
+
+// Capabilities (xi_tx_caps).
+enum {
+  XI_TX_CAP_AAC = 1,
+  XI_TX_CAP_OPUS = 2,
+  XI_TX_CAP_MP3 = 4,
+  XI_TX_CAP_MUX_MP4 = 8,
+  XI_TX_CAP_MUX_WEBM = 16,
+  XI_TX_CAP_MUX_OGG = 32,
+  XI_TX_CAP_MUX_MP3 = 64,
+  XI_TX_CAP_VFILTERS = 128,
+  XI_TX_CAP_AFILTERS = 256,
+};
+
+// xi_tx_caps probes the audio encoders, muxers and filters transcodes use
+// (the video encoders are xi_ff_encoders').
+int xi_tx_caps(void);
+// xi_tx_new allocates a handle over data[0..size) (C memory that must
+// outlive the handle); decoders refuse frames over max_pixels (> 0) and run
+// threads threads. NULL when out of memory; free it with xi_tx_free.
+XiTx *xi_tx_new(const uint8_t *data, size_t size, int64_t max_pixels, int threads);
+// xi_tx_open demuxes the source, probes it and opens its decoders.
+int xi_tx_open(XiTx *h, XiTxInfo *info, char *err, size_t errlen);
+// xi_tx_run transcodes the opened source once. p is read during the call
+// only.
+int xi_tx_run(XiTx *h, const XiTxParams *p, char *err, size_t errlen);
+// xi_tx_take hands the output over (NULL when empty): the caller frees it
+// with xi_tx_out_free.
+uint8_t *xi_tx_take(XiTx *h, int64_t *size);
+void xi_tx_out_free(uint8_t *data);
+// xi_tx_abort makes the running and later calls fail with
+// XI_FF_ERR_ABORTED (polled per packet, per frame and by all I/O).
+void xi_tx_abort(XiTx *h, int on);
+void xi_tx_free(XiTx *h);
+// xi_tx_live and xi_tx_live_outputs count open handles and outputs not
+// freed yet (leak tests).
+int xi_tx_live(void);
+int xi_tx_live_outputs(void);
+
+// Shared by shim.c, encode.c and transcode.c.
 void xi_ff_setup(void);
 void xi_ff_set_err(char *err, size_t errlen, const char *what, int averr);
 
