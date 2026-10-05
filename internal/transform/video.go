@@ -10,10 +10,11 @@ import (
 // Cloudflare Media Transformations. A request of KindVideo carries a
 // VideoOp; the image fields (Pipelines, Output) do not apply to it.
 //
-// The model is plain data like the rest of the package. Every value is a
-// number or an enum: the filter graph FFmpeg runs is built from these
-// numbers only (internal/video.TranscodePlan), never from text a URL
-// carried.
+// The model is plain data like the rest of the package. Every value of the
+// transcode itself is a number or an enum: the filter graph FFmpeg runs is
+// built from these numbers only (internal/video.TranscodePlan), never from
+// text a URL carried. The only text, an overlay's source and markup
+// (Overlays), is rendered into pixels by libvips before the graph exists.
 
 // VideoOp describes one video transformation. The zero value transcodes
 // the whole source into MP4 at its own size and frame rate, with its
@@ -74,8 +75,8 @@ type VideoOp struct {
 	// codec's default.
 	AudioBitrate int64
 
-	// Overlays are images or text drawn over the video (WP-124). Not
-	// implemented yet: a request with any is refused.
+	// Overlays are images, text or a timecode drawn over the video, in
+	// order (WP-124). Audio-only containers take none.
 	Overlays []VideoOverlay
 }
 
@@ -84,14 +85,75 @@ type VideoCrop struct {
 	X, Y, Width, Height int
 }
 
-// VideoOverlay is a placeholder for WP-124 (image and text overlays).
+// VideoOverlay is an image, text or a running timecode drawn over the
+// output video during a time window (WP-124, ADR 0012 §3), like an image
+// watermark drawn on every frame.
+//
+// The embedded Watermark says what is drawn and how, with the image
+// pipeline's semantics so that dialects map the same options onto both
+// (imgproxy wm/wmu/wmt/wms/wmr/wmsh, Cloudinary l_, ImageKit l-image and
+// l-text): Source is an image fetched like a source, Text is Pango markup
+// (sanitised before rendering), neither is the configured watermark image
+// (XI_PROCESSING_WATERMARK_SOURCE). Opacity 0 draws nothing, as on images.
+// Sizes and offsets are output pixels (the frame after the fit), and the
+// overlay is fitted, rotated, shadowed and placed (or tiled) on that frame
+// exactly as on an image of the same size: libvips renders it once into
+// RGBA pixels that FFmpeg composites over every frame of the window.
+//
+// A Timecode overlay draws the output's running time instead (FFmpeg
+// drawtext with a fixed expansion); it uses Position, Opacity, Color and
+// Shadow of the Watermark and TimecodeSize, and nothing a request says
+// becomes its text.
 type VideoOverlay struct {
-	Source SourceSpec
-	// X and Y place the overlay's top-left corner in output pixels.
-	X, Y int
-	// Start and End limit when it is shown; 0 is the whole output.
+	Watermark
+	// Start and End bound when the overlay is shown, on the output's
+	// timeline (0 is the first frame of the output, after the trim); End 0
+	// is the end of the output.
 	Start, End time.Duration
+	// FadeIn and FadeOut fade the overlay in from Start and out to End
+	// (FadeOut needs an end: End, or the output's known length).
+	FadeIn, FadeOut time.Duration
+	// Timecode draws the running time in this format instead of an image
+	// or text; VideoTimecodeNone (the zero value) is off.
+	Timecode VideoTimecode
+	// TimecodeSize is the timecode's font size in output pixels; 0 is
+	// DefaultTimecodeSize.
+	TimecodeSize int
 }
+
+// VideoOverlayKind is what a VideoOverlay draws.
+type VideoOverlayKind uint8
+
+// VideoOverlayKind values.
+const (
+	// VideoOverlayDefault is the configured watermark image
+	// (XI_PROCESSING_WATERMARK_SOURCE): neither source nor text.
+	VideoOverlayDefault VideoOverlayKind = iota
+	// VideoOverlayImage is the overlay's own image (Watermark.Source).
+	VideoOverlayImage
+	// VideoOverlayText is rendered Pango markup (Watermark.Text).
+	VideoOverlayText
+	// VideoOverlayTimecode is the running time (Timecode).
+	VideoOverlayTimecode
+)
+
+// Kind is what o draws.
+func (o *VideoOverlay) Kind() VideoOverlayKind {
+	switch {
+	case o.Timecode != VideoTimecodeNone:
+		return VideoOverlayTimecode
+	case o.Source != nil:
+		return VideoOverlayImage
+	case o.Text != "":
+		return VideoOverlayText
+	default:
+		return VideoOverlayDefault
+	}
+}
+
+// DefaultTimecodeSize is a timecode's font size in pixels when the overlay
+// sets none.
+const DefaultTimecodeSize = 24
 
 // Video limits of the model (independent of configuration, which can only
 // lower them).
@@ -109,6 +171,11 @@ const (
 	MaxVideoBitrate = 200_000_000
 	MinAudioBitrate = 8_000
 	MaxAudioBitrate = 512_000
+	// MaxVideoOverlays bounds Overlays: each image or text overlay is held
+	// as RGBA pixels of at most the output frame for the whole transcode.
+	MaxVideoOverlays = 8
+	// MaxTimecodeSize bounds VideoOverlay.TimecodeSize (pixels).
+	MaxTimecodeSize = 512
 )
 
 // EndTime returns where the output ends in the source: End, Start + Duration,
@@ -190,9 +257,100 @@ func (o *VideoOp) validate(v *validator, f string) {
 	if o.AudioBitrate != 0 && (o.AudioBitrate < MinAudioBitrate || o.AudioBitrate > MaxAudioBitrate) {
 		v.fail(f+".audio_bitrate", between(strconv.Itoa(MinAudioBitrate), strconv.Itoa(MaxAudioBitrate)))
 	}
-	if len(o.Overlays) > 0 {
-		v.fail(f+".overlays", "video overlays are not supported yet")
+	if len(o.Overlays) > MaxVideoOverlays {
+		v.fail(f+".overlays", "at most "+strconv.Itoa(MaxVideoOverlays)+" overlays")
+	} else if len(o.Overlays) > 0 && validEnum(o.Container, numVideoContainers) && o.Container.AudioOnly() {
+		v.fail(f+".overlays", o.Container.String()+" is audio only")
 	}
+	for i := range min(len(o.Overlays), MaxVideoOverlays) {
+		o.Overlays[i].validate(v, f+".overlays["+strconv.Itoa(i)+"]")
+	}
+}
+
+func (o *VideoOverlay) validate(v *validator, f string) {
+	wm := o.Watermark
+	if o.Timecode != VideoTimecodeNone {
+		wm.Color = nil // the timecode's colour, not a text's
+	}
+	wm.validate(v, f)
+	for _, t := range []struct {
+		name string
+		d    time.Duration
+	}{{"start", o.Start}, {"end", o.End}, {"fade_in", o.FadeIn}, {"fade_out", o.FadeOut}} {
+		if t.d < 0 || t.d > MaxVideoTime {
+			v.fail(f+"."+t.name, between("0", MaxVideoTime.String()))
+		}
+	}
+	switch {
+	case o.End != 0 && o.End <= o.Start:
+		v.fail(f+".end", "must be after start")
+	case o.End != 0 && o.FadeIn+o.FadeOut > o.End-o.Start:
+		v.fail(f+".fade_out", "the fades are longer than the overlay")
+	}
+	v.enum(f+".timecode", validEnum(o.Timecode, numVideoTimecodes))
+	v.intRange(f+".timecode_size", o.TimecodeSize, 0, MaxTimecodeSize)
+	if o.Timecode == VideoTimecodeNone {
+		if o.TimecodeSize != 0 {
+			v.fail(f+".timecode_size", "needs a timecode")
+		}
+		return
+	}
+	// FFmpeg draws the timecode: only what drawtext does from numbers
+	// applies.
+	if o.Source != nil || o.Text != "" || o.Font != "" || o.TextWidth != 0 {
+		v.fail(f+".timecode", "a timecode has no source, text, font or text width")
+	}
+	if o.Tile != TileNone || o.Scale != 0 || o.Width != 0 || o.Height != 0 || o.Rotate != 0 {
+		v.fail(f+".timecode", "a timecode is not tiled, scaled, sized or rotated")
+	}
+	switch o.Position.Type {
+	case GravityUnset, GravityCenter, GravityNorth, GravitySouth, GravityEast, GravityWest,
+		GravityNorthEast, GravityNorthWest, GravitySouthEast, GravitySouthWest:
+	default:
+		v.fail(f+".position.type", "a timecode takes a compass gravity")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// VideoTimecode
+
+// VideoTimecode is the format of a timecode overlay.
+type VideoTimecode uint8
+
+// VideoTimecode values. The zero value is no timecode.
+const (
+	VideoTimecodeNone    VideoTimecode = iota
+	VideoTimecodeHMS                   // HH:MM:SS.mmm
+	VideoTimecodeSeconds               // seconds with milliseconds: 12.345
+)
+
+const numVideoTimecodes = 3
+
+func (t VideoTimecode) String() string {
+	switch t {
+	case VideoTimecodeNone:
+		return "none"
+	case VideoTimecodeHMS:
+		return "hms"
+	case VideoTimecodeSeconds:
+		return "seconds"
+	}
+	return invalidEnum("VideoTimecode", uint8(t))
+}
+
+// ParseVideoTimecode parses a canonical VideoTimecode name.
+func ParseVideoTimecode(s string) (VideoTimecode, error) {
+	return parseEnum[VideoTimecode]("VideoTimecode", s, numVideoTimecodes)
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (t VideoTimecode) MarshalText() ([]byte, error) {
+	return marshalEnum("VideoTimecode", t, numVideoTimecodes)
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (t *VideoTimecode) UnmarshalText(b []byte) error {
+	return unmarshalEnum("VideoTimecode", t, b, numVideoTimecodes)
 }
 
 // ---------------------------------------------------------------------------
