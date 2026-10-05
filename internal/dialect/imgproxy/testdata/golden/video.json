@@ -1389,6 +1389,169 @@
     },
     "path": "/unsafe/mu:1/f:mp3/plain/https://example.com/clip.mov"
   },
+  "overlay_default_image": {
+    "endpoint": "video",
+    "path": "/unsafe/watermark:0.5/overlay_window:1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Overlays": [
+          {
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 0.5
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "overlay_fades_too_long": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.overlays[0].fade_out: the fades are longer than the overlay",
+      "status": 400
+    },
+    "path": "/unsafe/wm:1/ow:0:1/of:0.6:0.6/plain/https://example.com/clip.mov"
+  },
+  "overlay_image": {
+    "endpoint": "video",
+    "path": "/unsafe/wm:0.8:soea:8:8/wmu:eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n/wms:48:0/ow:0.3:0.7/of:0.1:0.1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Overlays": [
+          {
+            "End": 700000000,
+            "FadeIn": 100000000,
+            "FadeOut": 100000000,
+            "Start": 300000000,
+            "Watermark": {
+              "Opacity": 0.8,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 8,
+                "YOffset": 8
+              },
+              "Source": {
+                "Encoding": "base64",
+                "Raw": "xi://fixtures/watermark/badge.png"
+              },
+              "Width": 48
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "overlay_on_audio": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.overlays: m4a has no video",
+      "status": 400
+    },
+    "path": "/unsafe/wm:1/f:m4a/plain/https://example.com/clip.mov"
+  },
+  "overlay_text": {
+    "endpoint": "video",
+    "path": "/unsafe/wm:1:nowe:6:6/wmt:PGI-aGk8L2I-/wmr:15/wmsh:2/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 6,
+                "YOffset": 6
+              },
+              "Rotate": 15,
+              "Shadow": 2,
+              "Text": "\u003cb\u003ehi\u003c/b\u003e"
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "overlay_window_without_watermark": {
+    "endpoint": "video",
+    "path": "/unsafe/ow:1:2/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Ignored": [
+        {
+          "Option": "overlay_window",
+          "Reason": "no watermark overlay"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "overlay_zero_opacity": {
+    "endpoint": "video",
+    "path": "/unsafe/wm:0/wmu:eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
   "png_extension": {
     "endpoint": "video",
     "path": "/unsafe/w:600/plain/https://example.com/clip.mov@png",
@@ -1972,6 +2135,134 @@
       "status": 400
     },
     "path": "/unsafe/vs:abc/plain/https://example.com/clip.mov"
+  },
+  "timecode": {
+    "endpoint": "video",
+    "path": "/unsafe/tc:hms/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Overlays": [
+          {
+            "Timecode": "hms",
+            "Watermark": {
+              "Color": {
+                "A": 255,
+                "B": 255,
+                "G": 255,
+                "R": 255
+              },
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-west"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "timecode_bad_format": {
+    "endpoint": "video",
+    "error": {
+      "field": "timecode.format",
+      "kind": "invalid_url",
+      "public": "invalid timecode.format: expected hms, seconds or none",
+      "status": 400
+    },
+    "path": "/unsafe/tc:frames/plain/https://example.com/clip.mov"
+  },
+  "timecode_bad_position": {
+    "endpoint": "video",
+    "error": {
+      "field": "timecode.position",
+      "kind": "invalid_url",
+      "public": "invalid timecode.position: expected ce, no, so, ea, we, noea, nowe, soea, sowe",
+      "status": 400
+    },
+    "path": "/unsafe/tc:hms:fp/plain/https://example.com/clip.mov"
+  },
+  "timecode_full": {
+    "endpoint": "video",
+    "path": "/unsafe/timecode:seconds:noea:4:4:24:ffff00:0.8/wm:1/wmt:PGI-aGk8L2I-/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Text": "\u003cb\u003ehi\u003c/b\u003e"
+            }
+          },
+          {
+            "Timecode": "seconds",
+            "TimecodeSize": 24,
+            "Watermark": {
+              "Color": {
+                "A": 255,
+                "G": 255,
+                "R": 255
+              },
+              "Opacity": 0.8,
+              "Position": {
+                "Type": "north-east",
+                "XOffset": 4,
+                "YOffset": 4
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "timecode_none": {
+    "endpoint": "video",
+    "path": "/unsafe/tc:hms/tc:none/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "timecode_size_huge": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.overlays[0].timecode_size: must be between 0 and 512",
+      "status": 400
+    },
+    "path": "/unsafe/tc:hms:sowe:0:0:9999/plain/https://example.com/clip.mov"
   },
   "trusted": {
     "config": "signed",

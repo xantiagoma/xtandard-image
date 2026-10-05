@@ -2171,6 +2171,28 @@ export interface components {
                 boolean | null
             ];
             /**
+             * @description Fade the watermark overlay in and out (seconds, within its window). URL: `overlay_fade`, `of`; arguments in:out; default 0:0.
+             * @example [
+             *       0.5,
+             *       0.5
+             *     ]
+             */
+            overlay_fade?: [
+                number | null,
+                number | null
+            ];
+            /**
+             * @description Show the watermark overlay (wm, wmu, wmt) from start to end seconds of the output. URL: `overlay_window`, `ow`; arguments start:end; default 0:0.
+             * @example [
+             *       1,
+             *       4
+             *     ]
+             */
+            overlay_window?: [
+                number | null,
+                number | null
+            ];
+            /**
              * @description Video quality, mapped onto the codec's CRF scale. URL: `quality`, `q`; arguments 1..100; default 0.
              * @example [
              *       70
@@ -2255,6 +2277,25 @@ export interface components {
                 number
             ];
             /**
+             * @description Draw the output's running time (FFmpeg drawtext with a fixed expansion). URL: `timecode`, `tc`; arguments format:position:x:y:size:color:opacity; default none:sowe:0:0:0:ffffff:1.
+             * @example [
+             *       "hms",
+             *       "sowe",
+             *       8,
+             *       8,
+             *       20
+             *     ]
+             */
+            timecode?: [
+                "hms" | "seconds" | "none",
+                "ce" | "no" | "so" | "ea" | "we" | "noea" | "nowe" | "soea" | "sowe" | null,
+                number | null,
+                number | null,
+                number | null,
+                string | null,
+                number | null
+            ];
+            /**
              * @description Cap the video bit rate (50k..200M). URL: `video_bitrate`, `vb`; arguments bit/s (k, M); default uncapped.
              * @example [
              *       "2M"
@@ -2280,6 +2321,70 @@ export interface components {
              */
             volume?: [
                 string
+            ];
+            /**
+             * @description Draw the watermark. URL: `watermark`, `wm`; arguments opacity:pos:x:y:scale; pos incl. `re` (tile), `ch` (chessboard, Pro); default off.
+             * @example [
+             *       0.5,
+             *       "soea",
+             *       10,
+             *       10,
+             *       0.2
+             *     ]
+             */
+            watermark?: [
+                number,
+                "ce" | "no" | "so" | "ea" | "we" | "noea" | "nowe" | "soea" | "sowe" | "re" | "ch" | null,
+                number | null,
+                number | null,
+                number | null
+            ];
+            /**
+             * @description Watermark rotation, clockwise. URL: `watermark_rotate`, `wm_rot`, `wmr`; arguments degrees; default 0.
+             * @example [
+             *       45
+             *     ]
+             */
+            watermark_rotate?: [
+                number
+            ];
+            /**
+             * @description Watermark shadow: its alpha blurred with sigma, in black. URL: `watermark_shadow`, `wmsh`; arguments sigma; default off.
+             * @example [
+             *       2
+             *     ]
+             */
+            watermark_shadow?: [
+                number
+            ];
+            /**
+             * @description Watermark size in pixels (fit, enlarging; used when the wm scale is 0). URL: `watermark_size`, `wms`; arguments w:h; default 0:0.
+             * @example [
+             *       100,
+             *       0
+             *     ]
+             */
+            watermark_size?: [
+                number | null,
+                number | null
+            ];
+            /**
+             * @description Text watermark (replaces watermark_url); markup is sanitised to a whitelist, font `sans 16` by default. URL: `watermark_text`, `wmt`; arguments base64url Pango markup; default —.
+             * @example [
+             *       "SGVsbG8"
+             *     ]
+             */
+            watermark_text?: [
+                string | null
+            ];
+            /**
+             * @description Watermark image source, fetched like a source (allowlist, SSRF policy, byte limit, origin cache). URL: `watermark_url`, `wmu`; arguments base64url URL; default config image.
+             * @example [
+             *       "aHR0cHM6Ly9leGFtcGxlLmNvbS93LnBuZw"
+             *     ]
+             */
+            watermark_url?: [
+                string | null
             ];
             /**
              * @description Render the audio as a width × height (default 1024×256) PNG or WebP picture. URL: `waveform`, `wf`; arguments enabled:color:background:split; default false:000000::false.
@@ -4186,6 +4291,12 @@ export interface operations {
                 fade?: string;
                 /** @description Render the audio as a width × height (default 1024×256) PNG or WebP picture. Arguments joined by , or : (enabled:color:background:split). */
                 waveform?: string;
+                /** @description Show the watermark overlay (wm, wmu, wmt) from start to end seconds of the output. Arguments joined by , or : (start:end). */
+                overlay_window?: string;
+                /** @description Fade the watermark overlay in and out (seconds, within its window). Arguments joined by , or : (in:out). */
+                overlay_fade?: string;
+                /** @description Draw the output's running time (FFmpeg drawtext with a fixed expansion). Arguments joined by , or : (format:position:x:y:size:color:opacity). */
+                timecode?: string;
                 /** @description A /video option path (rs:fill:640:360/vd:5). */
                 o?: string;
                 /** @description Signature over "/video" + the query (sign.XIMessage). */

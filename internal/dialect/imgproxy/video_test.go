@@ -163,6 +163,21 @@ func TestVideo(t *testing.T) {
 		vid("png_implies_waveform", "f:png"),
 		vidPath("png_extension", "", "/unsafe/w:600"+videoSrc+"@png"),
 
+		// Overlays (WP-124).
+		vid("overlay_image", "wm:0.8:soea:8:8/wmu:eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n/wms:48:0/ow:0.3:0.7/of:0.1:0.1"),
+		vid("overlay_text", "wm:1:nowe:6:6/wmt:PGI-aGk8L2I-/wmr:15/wmsh:2"),
+		vid("overlay_default_image", "watermark:0.5/overlay_window:1"),
+		vid("overlay_zero_opacity", "wm:0/wmu:eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n"),
+		vid("overlay_window_without_watermark", "ow:1:2"),
+		vid("overlay_fades_too_long", "wm:1/ow:0:1/of:0.6:0.6"),
+		vid("overlay_on_audio", "wm:1/f:m4a"),
+		vid("timecode", "tc:hms"),
+		vid("timecode_full", "timecode:seconds:noea:4:4:24:ffff00:0.8/wm:1/wmt:PGI-aGk8L2I-"),
+		vid("timecode_none", "tc:hms/tc:none"),
+		vid("timecode_bad_format", "tc:frames"),
+		vid("timecode_bad_position", "tc:hms:fp"),
+		vid("timecode_size_huge", "tc:hms:sowe:0:0:9999"),
+
 		// Shared delivery options.
 		vid("cachebuster", "cb:v2"),
 		vid("expires_future", "exp:1893456000"),

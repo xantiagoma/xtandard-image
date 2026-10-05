@@ -6643,6 +6643,90 @@
             "x-xi-scope": "request",
             "x-xi-syntax": "bool"
           },
+          "overlay_fade": {
+            "description": "Fade the watermark overlay in and out (seconds, within its window). URL: `overlay_fade`, `of`; arguments in:out; default 0:0.",
+            "examples": [
+              [
+                0.5,
+                0.5
+              ]
+            ],
+            "maxItems": 2,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "fade-in seconds",
+                "maximum": 86400,
+                "minimum": 0,
+                "title": "in",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              {
+                "description": "fade-out seconds",
+                "maximum": 86400,
+                "minimum": 0,
+                "title": "out",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "of"
+            ],
+            "x-xi-default": "0:0",
+            "x-xi-milestone": "M5 (WP-124)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "in:out"
+          },
+          "overlay_window": {
+            "description": "Show the watermark overlay (wm, wmu, wmt) from start to end seconds of the output. URL: `overlay_window`, `ow`; arguments start:end; default 0:0.",
+            "examples": [
+              [
+                1,
+                4
+              ]
+            ],
+            "maxItems": 2,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "first second of the overlay on the output",
+                "maximum": 86400,
+                "minimum": 0,
+                "title": "start",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              {
+                "description": "end of the overlay; 0 = the end",
+                "maximum": 86400,
+                "minimum": 0,
+                "title": "end",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "ow"
+            ],
+            "x-xi-default": "0:0",
+            "x-xi-milestone": "M5 (WP-124)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "start:end"
+          },
           "quality": {
             "description": "Video quality, mapped onto the codec's CRF scale. URL: `quality`, `q`; arguments 1..100; default 0.",
             "examples": [
@@ -6949,6 +7033,106 @@
             "x-xi-scope": "request",
             "x-xi-syntax": "seconds"
           },
+          "timecode": {
+            "description": "Draw the output's running time (FFmpeg drawtext with a fixed expansion). URL: `timecode`, `tc`; arguments format:position:x:y:size:color:opacity; default none:sowe:0:0:0:ffffff:1.",
+            "examples": [
+              [
+                "hms",
+                "sowe",
+                8,
+                8,
+                20
+              ]
+            ],
+            "maxItems": 7,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "HH:MM:SS.mmm, seconds, or none",
+                "enum": [
+                  "hms",
+                  "seconds",
+                  "none"
+                ],
+                "title": "format",
+                "type": "string"
+              },
+              {
+                "description": "compass position",
+                "enum": [
+                  "ce",
+                  "no",
+                  "so",
+                  "ea",
+                  "we",
+                  "noea",
+                  "nowe",
+                  "soea",
+                  "sowe",
+                  null
+                ],
+                "title": "position",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              {
+                "description": "offset in pixels",
+                "title": "x_offset",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              {
+                "description": "offset in pixels",
+                "title": "y_offset",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              {
+                "description": "font size in pixels; 0 = default",
+                "maximum": 512,
+                "minimum": 0,
+                "title": "size",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              {
+                "description": "text colour (white)",
+                "pattern": "^([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+                "title": "color",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              {
+                "description": "opacity (1)",
+                "maximum": 1,
+                "minimum": 0,
+                "title": "opacity",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "tc"
+            ],
+            "x-xi-default": "none:sowe:0:0:0:ffffff:1",
+            "x-xi-milestone": "M5 (WP-124)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "format:position:x:y:size:color:opacity"
+          },
           "video_bitrate": {
             "description": "Cap the video bit rate (50k..200M). URL: `video_bitrate`, `vb`; arguments bit/s (k, M); default uncapped.",
             "examples": [
@@ -7036,6 +7220,242 @@
             "x-xi-pro": false,
             "x-xi-scope": "request",
             "x-xi-syntax": "factor or NdB"
+          },
+          "watermark": {
+            "description": "Draw the watermark. URL: `watermark`, `wm`; arguments opacity:pos:x:y:scale; pos incl. `re` (tile), `ch` (chessboard, Pro); default off.",
+            "examples": [
+              [
+                0.5,
+                "soea",
+                10,
+                10,
+                0.2
+              ]
+            ],
+            "maxItems": 5,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "opacity (0..1); 0 disables",
+                "maximum": 1,
+                "minimum": 0,
+                "title": "opacity",
+                "type": "number"
+              },
+              {
+                "description": "compass position, re (tile) or ch (chessboard)",
+                "enum": [
+                  "ce",
+                  "no",
+                  "so",
+                  "ea",
+                  "we",
+                  "noea",
+                  "nowe",
+                  "soea",
+                  "sowe",
+                  "re",
+                  "ch",
+                  null
+                ],
+                "title": "position",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              {
+                "description": "x offset",
+                "title": "x_offset",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              {
+                "description": "y offset",
+                "title": "y_offset",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              {
+                "description": "scale relative to the image",
+                "exclusiveMinimum": 0,
+                "title": "scale",
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "wm"
+            ],
+            "x-xi-default": "off",
+            "x-xi-milestone": "M1 (`re` M1, `ch` M3 WP-77)",
+            "x-xi-pro": false,
+            "x-xi-scope": "pipeline",
+            "x-xi-syntax": "opacity:pos:x:y:scale; pos incl. `re` (tile), `ch` (chessboard, Pro)"
+          },
+          "watermark_rotate": {
+            "description": "Watermark rotation, clockwise. URL: `watermark_rotate`, `wm_rot`, `wmr`; arguments degrees; default 0.",
+            "examples": [
+              [
+                45
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "degrees",
+                "title": "angle",
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "wm_rot",
+              "wmr"
+            ],
+            "x-xi-default": "0",
+            "x-xi-milestone": "M3 (WP-77)",
+            "x-xi-pro": true,
+            "x-xi-scope": "pipeline",
+            "x-xi-syntax": "degrees"
+          },
+          "watermark_shadow": {
+            "description": "Watermark shadow: its alpha blurred with sigma, in black. URL: `watermark_shadow`, `wmsh`; arguments sigma; default off.",
+            "examples": [
+              [
+                2
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "shadow blur sigma",
+                "maximum": 1000,
+                "minimum": 0,
+                "title": "sigma",
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "wmsh"
+            ],
+            "x-xi-default": "off",
+            "x-xi-milestone": "M3 (WP-77)",
+            "x-xi-pro": true,
+            "x-xi-scope": "pipeline",
+            "x-xi-syntax": "sigma"
+          },
+          "watermark_size": {
+            "description": "Watermark size in pixels (fit, enlarging; used when the wm scale is 0). URL: `watermark_size`, `wms`; arguments w:h; default 0:0.",
+            "examples": [
+              [
+                100,
+                0
+              ]
+            ],
+            "maxItems": 2,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "width; 0 = auto",
+                "maximum": 65536,
+                "minimum": 0,
+                "title": "width",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              {
+                "description": "height; 0 = auto",
+                "maximum": 65536,
+                "minimum": 0,
+                "title": "height",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "wms"
+            ],
+            "x-xi-default": "0:0",
+            "x-xi-milestone": "M3 (WP-77)",
+            "x-xi-pro": true,
+            "x-xi-scope": "pipeline",
+            "x-xi-syntax": "w:h"
+          },
+          "watermark_text": {
+            "description": "Text watermark (replaces watermark_url); markup is sanitised to a whitelist, font `sans 16` by default. URL: `watermark_text`, `wmt`; arguments base64url Pango markup; default —.",
+            "examples": [
+              [
+                "SGVsbG8"
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "url-safe base64 of Pango markup",
+                "pattern": "^[A-Za-z0-9_-]*=*$",
+                "title": "text",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "wmt"
+            ],
+            "x-xi-default": "—",
+            "x-xi-milestone": "M3 (WP-78)",
+            "x-xi-pro": true,
+            "x-xi-scope": "pipeline",
+            "x-xi-syntax": "base64url Pango markup"
+          },
+          "watermark_url": {
+            "description": "Watermark image source, fetched like a source (allowlist, SSRF policy, byte limit, origin cache). URL: `watermark_url`, `wmu`; arguments base64url URL; default config image.",
+            "examples": [
+              [
+                "aHR0cHM6Ly9leGFtcGxlLmNvbS93LnBuZw"
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "url-safe base64 of the watermark source URL; empty = configured image",
+                "pattern": "^[A-Za-z0-9_-]*=*$",
+                "title": "url",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "wmu"
+            ],
+            "x-xi-default": "config image",
+            "x-xi-milestone": "M3 (WP-77)",
+            "x-xi-pro": true,
+            "x-xi-scope": "pipeline",
+            "x-xi-syntax": "base64url URL"
           },
           "waveform": {
             "description": "Render the audio as a width × height (default 1024×256) PNG or WebP picture. URL: `waveform`, `wf`; arguments enabled:color:background:split; default false:000000::false.",
@@ -11256,6 +11676,30 @@
             "description": "Render the audio as a width × height (default 1024×256) PNG or WebP picture. Arguments joined by , or : (enabled:color:background:split).",
             "in": "query",
             "name": "waveform",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Show the watermark overlay (wm, wmu, wmt) from start to end seconds of the output. Arguments joined by , or : (start:end).",
+            "in": "query",
+            "name": "overlay_window",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Fade the watermark overlay in and out (seconds, within its window). Arguments joined by , or : (in:out).",
+            "in": "query",
+            "name": "overlay_fade",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Draw the output's running time (FFmpeg drawtext with a fixed expansion). Arguments joined by , or : (format:position:x:y:size:color:opacity).",
+            "in": "query",
+            "name": "timecode",
             "schema": {
               "type": "string"
             }

@@ -355,7 +355,7 @@ and a 4530-byte HEVC MP4 (gpl), all 6 frames and 0.600 s long.
 
 ### 5.2 Video transformations (M5: WP-121 core, WP-122 options, WP-123 audio)
 
-A video (or audio) source transformed into a video file, an audio file or a waveform picture, in a subsystem of its own (`internal/media`: own worker pool, limits, coalescing; [ADR 0012](adr/0012-video-transformations.md)), off by default (`XI_VIDEO_TRANSFORM_ENABLED`), `full` and `gpl` images only. URLs: `/video/<signature>/<options>/<source>@<container>` in the imgproxy dialect and `/q/video?url=…` in the query dialect ([URL-DIALECTS §3.8](URL-DIALECTS.md#38-video-transformations-wp-122-wp-123)); signed only by default. Overlays (WP-124), the other dialects (WP-125) and HLS/DASH (WP-126) follow.
+A video (or audio) source transformed into a video file, an audio file or a waveform picture, in a subsystem of its own (`internal/media`: own worker pool, limits, coalescing; [ADR 0012](adr/0012-video-transformations.md)), off by default (`XI_VIDEO_TRANSFORM_ENABLED`), `full` and `gpl` images only. URLs: `/video/<signature>/<options>/<source>@<container>` in the imgproxy dialect and `/q/video?url=…` in the query dialect ([URL-DIALECTS §3.8](URL-DIALECTS.md#38-video-transformations-wp-122-wp-123)); signed only by default. Image, text and timecode overlays (WP-124) use the watermark options with `ow`/`of`/`tc` there; the other dialects (WP-125) and HLS/DASH (WP-126) follow.
 
 | Output | Container / codecs (`full`) | `gpl` | Content type |
 |---|---|---|---|

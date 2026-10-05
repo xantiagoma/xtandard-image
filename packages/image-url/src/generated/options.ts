@@ -1665,6 +1665,24 @@ export interface ImgproxyVideoArgs {
   "mute":
     | [mute: boolean | null];
   /**
+   * Fade the watermark overlay in and out (seconds, within its window). URL: `overlay_fade`, `of`; arguments in:out; default 0:0.
+   *
+   * URL names: `overlay_fade`, `of`.
+   * milestone M5 (WP-124); scope request.
+   * @example [0.5,0.5]
+   */
+  "overlay_fade":
+    | [in_: number | null, out?: number | null];
+  /**
+   * Show the watermark overlay (wm, wmu, wmt) from start to end seconds of the output. URL: `overlay_window`, `ow`; arguments start:end; default 0:0.
+   *
+   * URL names: `overlay_window`, `ow`.
+   * milestone M5 (WP-124); scope request.
+   * @example [1,4]
+   */
+  "overlay_window":
+    | [start: number | null, end?: number | null];
+  /**
    * Video quality, mapped onto the codec's CRF scale. URL: `quality`, `q`; arguments 1..100; default 0.
    *
    * URL names: `quality`, `q`.
@@ -1737,6 +1755,15 @@ export interface ImgproxyVideoArgs {
   "start":
     | [seconds: number];
   /**
+   * Draw the output's running time (FFmpeg drawtext with a fixed expansion). URL: `timecode`, `tc`; arguments format:position:x:y:size:color:opacity; default none:sowe:0:0:0:ffffff:1.
+   *
+   * URL names: `timecode`, `tc`.
+   * milestone M5 (WP-124); scope request.
+   * @example ["hms","sowe",8,8,20]
+   */
+  "timecode":
+    | [format: "hms" | "seconds" | "none", position?: "ce" | "no" | "so" | "ea" | "we" | "noea" | "nowe" | "soea" | "sowe" | null, x_offset?: number | null, y_offset?: number | null, size?: number | null, color?: string | null, opacity?: number | null];
+  /**
    * Cap the video bit rate (50k..200M). URL: `video_bitrate`, `vb`; arguments bit/s (k, M); default uncapped.
    *
    * URL names: `video_bitrate`, `vb`.
@@ -1763,6 +1790,60 @@ export interface ImgproxyVideoArgs {
    */
   "volume":
     | [gain: string];
+  /**
+   * Draw the watermark. URL: `watermark`, `wm`; arguments opacity:pos:x:y:scale; pos incl. `re` (tile), `ch` (chessboard, Pro); default off.
+   *
+   * URL names: `watermark`, `wm`.
+   * milestone M1 (`re` M1, `ch` M3 WP-77); scope pipeline.
+   * @example [0.5,"soea",10,10,0.2]
+   */
+  "watermark":
+    | [opacity: number, position?: "ce" | "no" | "so" | "ea" | "we" | "noea" | "nowe" | "soea" | "sowe" | "re" | "ch" | null, x_offset?: number | null, y_offset?: number | null, scale?: number | null];
+  /**
+   * Watermark rotation, clockwise. URL: `watermark_rotate`, `wm_rot`, `wmr`; arguments degrees; default 0.
+   *
+   * URL names: `watermark_rotate`, `wm_rot`, `wmr`.
+   * milestone M3 (WP-77); scope pipeline; imgproxy Pro option (free here).
+   * @example [45]
+   */
+  "watermark_rotate":
+    | [angle: number];
+  /**
+   * Watermark shadow: its alpha blurred with sigma, in black. URL: `watermark_shadow`, `wmsh`; arguments sigma; default off.
+   *
+   * URL names: `watermark_shadow`, `wmsh`.
+   * milestone M3 (WP-77); scope pipeline; imgproxy Pro option (free here).
+   * @example [2]
+   */
+  "watermark_shadow":
+    | [sigma: number];
+  /**
+   * Watermark size in pixels (fit, enlarging; used when the wm scale is 0). URL: `watermark_size`, `wms`; arguments w:h; default 0:0.
+   *
+   * URL names: `watermark_size`, `wms`.
+   * milestone M3 (WP-77); scope pipeline; imgproxy Pro option (free here).
+   * @example [100,0]
+   */
+  "watermark_size":
+    | [width: number | null, height?: number | null];
+  /**
+   * Text watermark (replaces watermark_url); markup is sanitised to a whitelist, font `sans 16` by default. URL: `watermark_text`, `wmt`; arguments base64url Pango markup; default —.
+   *
+   * URL names: `watermark_text`, `wmt`.
+   * milestone M3 (WP-78); scope pipeline; imgproxy Pro option (free here).
+   * @example ["SGVsbG8"]
+   */
+  "watermark_text":
+    | [text: string | null];
+  /**
+   * Watermark image source, fetched like a source (allowlist, SSRF policy, byte limit, origin cache). URL: `watermark_url`, `wmu`; arguments base64url URL; default config image.
+   *
+   * URL names: `watermark_url`, `wmu`.
+   * milestone M3 (WP-77); scope pipeline; imgproxy Pro option (free here).
+   * @example ["aHR0cHM6Ly9leGFtcGxlLmNvbS93LnBuZw"]
+   */
+  "watermark_url":
+    | [url: string | null];
   /**
    * Render the audio as a width × height (default 1024×256) PNG or WebP picture. URL: `waveform`, `wf`; arguments enabled:color:background:split; default false:000000::false.
    *
@@ -1808,12 +1889,15 @@ export const imgproxyVideoAliases = {
   "ki": "keyframe_interval",
   "ln": "loudnorm",
   "mu": "mute",
+  "of": "overlay_fade",
+  "ow": "overlay_window",
   "q": "quality",
   "rot": "rotate",
   "rs": "resize",
   "rt": "resizing_type",
   "s": "size",
   "sr": "sample_rate",
+  "tc": "timecode",
   "vb": "video_bitrate",
   "vc": "video_codec",
   "vd": "duration",
@@ -1822,6 +1906,13 @@ export const imgproxyVideoAliases = {
   "vs": "start",
   "w": "width",
   "wf": "waveform",
+  "wm": "watermark",
+  "wm_rot": "watermark_rotate",
+  "wmr": "watermark_rotate",
+  "wms": "watermark_size",
+  "wmsh": "watermark_shadow",
+  "wmt": "watermark_text",
+  "wmu": "watermark_url",
 } as const;
 
 /** Canonical names of every imgproxy video option. */
@@ -1851,6 +1942,8 @@ export const imgproxyVideoOptionNames = [
   "keyframe_interval",
   "loudnorm",
   "mute",
+  "overlay_fade",
+  "overlay_window",
   "quality",
   "resize",
   "resizing_type",
@@ -1859,9 +1952,16 @@ export const imgproxyVideoOptionNames = [
   "sample_rate",
   "size",
   "start",
+  "timecode",
   "video_bitrate",
   "video_codec",
   "volume",
+  "watermark",
+  "watermark_rotate",
+  "watermark_shadow",
+  "watermark_size",
+  "watermark_text",
+  "watermark_url",
   "waveform",
   "width",
 ] as const;

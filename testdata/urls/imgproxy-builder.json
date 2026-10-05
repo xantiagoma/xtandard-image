@@ -10914,6 +10914,146 @@
       "url_short": "/video/unsafe/mu:1/plain/https://example.com/clip.mov"
     },
     {
+      "name": "video/overlay_default_image",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "watermark": [
+              0.5
+            ]
+          },
+          {
+            "overlay_window": [
+              1
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/watermark:0.5/overlay_window:1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/wm:0.5/ow:1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/overlay_image",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "wm": [
+              0.8,
+              "soea",
+              8,
+              8
+            ]
+          },
+          {
+            "wmu": [
+              "eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n"
+            ]
+          },
+          {
+            "wms": [
+              48,
+              0
+            ]
+          },
+          {
+            "ow": [
+              0.3,
+              0.7
+            ]
+          },
+          {
+            "of": [
+              0.1,
+              0.1
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/wm:0.8:soea:8:8/wmu:eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n/wms:48:0/ow:0.3:0.7/of:0.1:0.1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/wm:0.8:soea:8:8/wmu:eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n/wms:48:0/ow:0.3:0.7/of:0.1:0.1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/overlay_text",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "wm": [
+              1,
+              "nowe",
+              6,
+              6
+            ]
+          },
+          {
+            "wmt": [
+              "PGI-aGk8L2I-"
+            ]
+          },
+          {
+            "wmr": [
+              15
+            ]
+          },
+          {
+            "wmsh": [
+              2
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/wm:1:nowe:6:6/wmt:PGI-aGk8L2I-/wmr:15/wmsh:2/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/wm:1:nowe:6:6/wmt:PGI-aGk8L2I-/wmr:15/wmsh:2/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/overlay_window_without_watermark",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "ow": [
+              1,
+              2
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/ow:1:2/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/ow:1:2/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/overlay_zero_opacity",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "wm": [
+              0
+            ]
+          },
+          {
+            "wmu": [
+              "eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/wm:0/wmu:eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/wm:0/wmu:eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n/plain/https://example.com/clip.mov"
+    },
+    {
       "name": "video/png_extension",
       "endpoint": "video",
       "encoding": "plain",
@@ -11360,6 +11500,78 @@
       ],
       "url": "/video/unsafe/vs:0.0000015/plain/https://example.com/clip.mov",
       "url_short": "/video/unsafe/vs:0.0000015/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/timecode",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "tc": [
+              "hms"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/tc:hms/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/tc:hms/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/timecode_full",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "timecode": [
+              "seconds",
+              "noea",
+              4,
+              4,
+              24,
+              "ffff00",
+              0.8
+            ]
+          },
+          {
+            "wm": [
+              1
+            ]
+          },
+          {
+            "wmt": [
+              "PGI-aGk8L2I-"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/timecode:seconds:noea:4:4:24:ffff00:0.8/wm:1/wmt:PGI-aGk8L2I-/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/tc:seconds:noea:4:4:24:ffff00:0.8/wm:1/wmt:PGI-aGk8L2I-/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/timecode_none",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "tc": [
+              "hms"
+            ]
+          },
+          {
+            "tc": [
+              "none"
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/tc:hms/tc:none/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/tc:hms/tc:none/plain/https://example.com/clip.mov"
     },
     {
       "name": "video/unsigned_on_signed",

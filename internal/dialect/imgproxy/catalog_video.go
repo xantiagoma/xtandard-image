@@ -3,8 +3,9 @@ package imgproxy
 import "github.com/xantiagoma/xtandard-image/internal/transform"
 
 const (
-	msVideo = "M5 (WP-122)"
-	msAudio = "M5 (WP-123)"
+	msVideo   = "M5 (WP-122)"
+	msAudio   = "M5 (WP-123)"
+	msOverlay = "M5 (WP-124)"
 )
 
 // videoFormatNames are the containers of /video URLs, in videoContainers
@@ -207,12 +208,33 @@ func VideoOptions() []Option {
 			Syntax: "enabled:color:background:split", Default: "false:000000::false",
 			Doc: "Render the audio as a width × height (default 1024×256) PNG or WebP picture.", Example: "1:2266cc:ffffff:0",
 		}),
+		video(Option{
+			Name: "overlay_window", Aliases: []string{"ow"}, Milestone: msOverlay,
+			Forms:  []Form{form(secondsArg("start", "first second of the overlay on the output").opt(), secondsArg("end", "end of the overlay; 0 = the end").opt())},
+			Syntax: "start:end", Default: "0:0", Doc: "Show the watermark overlay (wm, wmu, wmt) from start to end seconds of the output.", Example: "1:4",
+		}),
+		video(Option{
+			Name: "overlay_fade", Aliases: []string{"of"}, Milestone: msOverlay,
+			Forms:  []Form{form(secondsArg("in", "fade-in seconds").opt(), secondsArg("out", "fade-out seconds").opt())},
+			Syntax: "in:out", Default: "0:0", Doc: "Fade the watermark overlay in and out (seconds, within its window).", Example: "0.5:0.5",
+		}),
+		video(Option{
+			Name: "timecode", Aliases: []string{"tc"}, Milestone: msOverlay,
+			Forms: []Form{form(enumArg("format", []string{"hms", "seconds", "none"}, "HH:MM:SS.mmm, seconds, or none"),
+				enumArg("position", compassNames(), "compass position").opt(),
+				anyNum("x_offset", "offset in pixels").opt(), anyNum("y_offset", "offset in pixels").opt(),
+				intArg("size", 0, transform.MaxTimecodeSize, "font size in pixels; 0 = default").opt(),
+				colorArg("color", "text colour (white)").opt(), unitArg("opacity", "opacity (1)").opt())},
+			Syntax: "format:position:x:y:size:color:opacity", Default: "none:sowe:0:0:0:ffffff:1",
+			Doc: "Draw the output's running time (FFmpeg drawtext with a fixed expansion).", Example: "hms:sowe:8:8:20",
+		}),
 	}
 	proc := ProcessingOptions()
 	for i := range proc {
 		o := proc[i]
 		switch o.Name {
-		case "cachebuster", "expires", "filename", "return_attachment", "hashsum", "bypass_cache", "cache_tags":
+		case "watermark", "watermark_url", "watermark_text", "watermark_size", "watermark_rotate", "watermark_shadow",
+			"cachebuster", "expires", "filename", "return_attachment", "hashsum", "bypass_cache", "cache_tags":
 			o.Shared = true
 			opts = append(opts, o)
 		}

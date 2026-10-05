@@ -312,8 +312,9 @@ token = base64url_unpadded( IV[16] ‖ AES-CBC(key, IV, PKCS#7(password)) )
 - **Time:** `start`/`end`/`duration` in seconds (microsecond precision). The cut is exact: the demuxer seeks to the keyframe before `start` and frames before it are dropped. `end` and `duration` are exclusive. A cut past the end of the source, an output longer than `XI_VIDEO_TRANSFORM_MAX_OUTPUT_DURATION` and a `fade` out of a source of unknown duration are 422.
 - **Audio** (WP-123): `mute` drops the stream; audio-only containers drop the video, and a source without audio gives 422 `the source has no audio stream`. The audio chain is the cut, `volume`, `loudnorm` (EBU R128, single-pass FFmpeg `loudnorm`; the target is per request within FFmpeg's bounds: -70..-5 LUFS, -9..0 dBTP, 1..50 LU), the fades (`afade`), then resampling to `sample_rate` and the `audio_channels` layout (a source with more than two channels is downmixed to stereo). Audio sources (MP3, AAC/ADTS, AC-3, E-AC-3, Ogg, FLAC, WAV) are accepted as well as video containers with audio.
 - **Waveform** (WP-123, like Cloudinary `fl_waveform`): `waveform:1` (or the `png`/`webp` container) draws the cut of the audio with FFmpeg `showwavespic` into a `width` × `height` RGBA picture (default 1024×256) in `color` (default black) on `background` (empty: transparent), mono or one band per channel; libvips encodes it as lossless PNG or WebP. A video source's audio track works too.
+- **Overlays** (WP-124): imgproxy's watermark options (`wm`, `wmu`, `wmt`, `wms`, `wmr`, `wmsh`) parse exactly as in §3.2 and become one image or text overlay (`TR.Video.Overlays`), drawn on every frame of its window: `ow:start:end` (seconds of the output; 0 end = the end) and `of:in:out` fades. `wm` with an opacity above 0 is required, as on images (`ow`/`of` alone are recorded in `TR.Ignored`); `wm` without `wmu`/`wmt` is the configured watermark image. `tc:hms|seconds[:position:x:y:size:color:opacity]` adds a running timecode (FFmpeg `drawtext` with a fixed expansion; no request text). Overlay images are fetched like sources (allowlists, signing). Audio-only outputs and waveforms refuse overlays (400).
 - **Query dialect:** `/q/video?url=…` takes the same options as query keys ([§4](#4-query-dialect-native--imaginary)).
-- **Not yet:** keyframe-only ("fast") cuts, overlays (WP-124), the other dialects' video syntax (WP-125), HLS/DASH (WP-126); `/info` reports the source's streams, not the planned output.
+- **Not yet:** keyframe-only ("fast") cuts, the other dialects' video syntax (WP-125), HLS/DASH (WP-126); `/info` reports the source's streams, not the planned output.
 
 | Option (aliases) | Args | Meaning (`TR.Video` field) | Default | Milestone |
 |---|---|---|---|---|
@@ -348,7 +349,10 @@ token = base64url_unpadded( IV[16] ‖ AES-CBC(key, IV, PKCS#7(password)) )
 | `loudnorm` (`ln`) | enabled:I:TP:LRA | EBU R128 loudness normalisation (single-pass loudnorm). | false:-23:-1:7 | M5 (WP-123) |
 | `fade` (`fd`) | in:out | Fade in from black and silence, and out to them (seconds). | 0:0 | M5 (WP-123) |
 | `waveform` (`wf`) | enabled:color:background:split | Render the audio as a width × height (default 1024×256) PNG or WebP picture. | false:000000::false | M5 (WP-123) |
-| `cachebuster` (`cb`), `bypass_cache` (`bc`), `cache_tags` (`ct`), `expires` (`exp`), `filename` (`fn`), `return_attachment` (`att`), `hashsum` (`hs`) | as in §3.2 | as in §3.2 | as in §3.2 | as in §3.2 |
+| `overlay_window` (`ow`) | start:end | Show the watermark overlay (wm, wmu, wmt) from start to end seconds of the output. | 0:0 | M5 (WP-124) |
+| `overlay_fade` (`of`) | in:out | Fade the watermark overlay in and out (seconds, within its window). | 0:0 | M5 (WP-124) |
+| `timecode` (`tc`) | format:position:x:y:size:color:opacity | Draw the output's running time (FFmpeg drawtext with a fixed expansion). | none:sowe:0:0:0:ffffff:1 | M5 (WP-124) |
+| `watermark` (`wm`), `watermark_url` (`wmu`), `watermark_text` (`wmt`), `watermark_size` (`wms`), `watermark_rotate` (`wm_rot`, `wmr`), `watermark_shadow` (`wmsh`), `cachebuster` (`cb`), `bypass_cache` (`bc`), `cache_tags` (`ct`), `expires` (`exp`), `filename` (`fn`), `return_attachment` (`att`), `hashsum` (`hs`) | as in §3.2 | as in §3.2 | as in §3.2 | as in §3.2 |
 
 ### 3.9 Video outputs and limits
 

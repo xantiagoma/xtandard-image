@@ -36,6 +36,12 @@ type videoState struct {
 	cropGravity bool
 	// containerSet reports an explicit format or extension.
 	containerSet bool
+	// overlay holds the window and fades of the watermark overlay
+	// (overlay_window, overlay_fade); overlaySet reports either.
+	overlay    transform.VideoOverlay
+	overlaySet bool
+	// timecode is the timecode overlay (timecode); nil is none.
+	timecode *transform.VideoOverlay
 }
 
 // ParseVideo parses an imgproxy-style video transformation
@@ -257,6 +263,45 @@ func (st *state) applyVideo(name string, args []string) error {
 	case "waveform", "wf":
 		return videoWaveform(op, args)
 
+	// Overlays (WP-124): imgproxy's watermark options build one image or
+	// text overlay, as on images; overlay_window and overlay_fade time it;
+	// timecode adds a running timecode.
+	case "watermark", "wm",
+		"watermark_url", "wmu",
+		"watermark_text", "wmt",
+		"watermark_size", "wms",
+		"watermark_rotate", "wm_rot", "wmr",
+		"watermark_shadow", "wmsh":
+		return st.apply(name, args)
+	case "overlay_window", "ow":
+		if err := maxArgs("overlay_window", args, 2); err != nil {
+			return err
+		}
+		vs.overlaySet = true
+		if args[0] != "" {
+			if err := oneSeconds("overlay_window.start", args[:1], &vs.overlay.Start); err != nil {
+				return err
+			}
+		}
+		if len(args) > 1 && args[1] != "" {
+			return oneSeconds("overlay_window.end", args[1:2], &vs.overlay.End)
+		}
+	case "overlay_fade", "of":
+		if err := maxArgs("overlay_fade", args, 2); err != nil {
+			return err
+		}
+		vs.overlaySet = true
+		if args[0] != "" {
+			if err := oneSeconds("overlay_fade.in", args[:1], &vs.overlay.FadeIn); err != nil {
+				return err
+			}
+		}
+		if len(args) > 1 && args[1] != "" {
+			return oneSeconds("overlay_fade.out", args[1:2], &vs.overlay.FadeOut)
+		}
+	case "timecode", "tc":
+		return st.videoTimecode(args)
+
 	// Delivery and source options shared with processing URLs.
 	case "cachebuster", "cb",
 		"expires", "exp",
@@ -386,6 +431,9 @@ func (st *state) videoCrop(args []string) error {
 // out-of-range value is a 400 naming its field before anything else runs.
 func (st *state) finishVideo() error {
 	op, vs := st.r.Video, st.video
+	if err := st.finishOverlays(); err != nil {
+		return err
+	}
 	box := op.Width > 0 && op.Height > 0
 	switch {
 	case box && (vs.resizingType == "fill" || vs.resizingType == "fill-down"):
@@ -424,6 +472,87 @@ func (st *state) finishVideo() error {
 	if e := st.r.Delivery.Expires; !e.IsZero() && e.Before(st.p.o.Now()) {
 		return dialect.Expired()
 	}
+	return nil
+}
+
+// reasonNoOverlay marks overlay_window and overlay_fade without a drawn
+// watermark.
+const reasonNoOverlay = "no watermark overlay"
+
+// finishOverlays moves the watermark of the pipeline (wm, wmu, wmt, wms,
+// wmr, wmsh, parsed exactly as for images) into an overlay timed by
+// overlay_window and overlay_fade, and appends the timecode. As on images,
+// a watermark is drawn only with an opacity above 0.
+func (st *state) finishOverlays() error {
+	op, vs := st.r.Video, st.video
+	pl := st.pipeline()
+	wms := pl.Watermarks
+	pl.Watermarks = nil
+	switch {
+	case len(wms) > 0 && wms[0].Opacity > 0:
+		o := vs.overlay
+		o.Watermark = wms[0]
+		op.Overlays = append(op.Overlays, o)
+	case vs.overlaySet:
+		st.ignore("overlay_window", reasonNoOverlay)
+	}
+	if vs.timecode != nil {
+		op.Overlays = append(op.Overlays, *vs.timecode)
+	}
+	return nil
+}
+
+// videoTimecode is tc:format[:position:x:y:size:color:opacity]: hms or
+// seconds (none removes it), a compass position with pixel offsets (the
+// bottom-left corner by default), the font size, the colour (white) and
+// the opacity (1).
+func (st *state) videoTimecode(args []string) error {
+	if err := maxArgs("timecode", args, 7); err != nil {
+		return err
+	}
+	f, err := transform.ParseVideoTimecode(args[0])
+	if err != nil {
+		return dialect.InvalidArgument("timecode.format", args[0], "hms, seconds or none")
+	}
+	if f == transform.VideoTimecodeNone {
+		st.video.timecode = nil
+		return nil
+	}
+	white := transform.Color{R: 255, G: 255, B: 255, A: 255}
+	o := transform.VideoOverlay{Timecode: f}
+	o.Opacity, o.Color, o.Position.Type = 1, &white, transform.GravitySouthWest
+	if len(args) > 1 && args[1] != "" {
+		gt, ok := compass[args[1]]
+		if !ok {
+			return dialect.InvalidArgument("timecode.position", args[1], expVideoGravity[:len(expVideoGravity)-len(" or fp")])
+		}
+		o.Position.Type = gt
+	}
+	for i, dst := range []*float64{&o.Position.XOffset, &o.Position.YOffset} {
+		if len(args) > 2+i && args[2+i] != "" {
+			if *dst, err = parseFloat([]string{"timecode.x_offset", "timecode.y_offset"}[i], args[2+i]); err != nil {
+				return err
+			}
+		}
+	}
+	if len(args) > 4 && args[4] != "" {
+		if err := oneNonNegInt("timecode.size", args[4:5], &o.TimecodeSize); err != nil {
+			return err
+		}
+	}
+	if len(args) > 5 && args[5] != "" {
+		c, err := parseHexColor("timecode.color", args[5])
+		if err != nil {
+			return err
+		}
+		o.Color = &c
+	}
+	if len(args) > 6 && args[6] != "" {
+		if o.Opacity, err = parseUnitFloat("timecode.opacity", args[6]); err != nil {
+			return err
+		}
+	}
+	st.video.timecode = &o
 	return nil
 }
 
