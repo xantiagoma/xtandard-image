@@ -17,6 +17,16 @@ func valid(t *testing.T) Config {
 	return cfg
 }
 
+// TestVideoTransformSecureDefaults: video transformations are off and,
+// once on, refuse unsigned URLs unless told otherwise (ADR 0012 §8).
+func TestVideoTransformSecureDefaults(t *testing.T) {
+	t.Parallel()
+	got := valid(t).Video.Transform
+	if got.Enabled || got.UnsignedPolicy != UnsignedDeny {
+		t.Errorf("enabled %v, unsigned_policy %q; want false, deny", got.Enabled, got.UnsignedPolicy)
+	}
+}
+
 func TestValidate(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -58,6 +68,9 @@ func TestValidate(t *testing.T) {
 		{"dpr 0", func(c *Config) { c.Security.AllowedDPRs = []float64{1, 0} }, []string{"security.allowed_dprs (XI_SECURITY_ALLOWED_DPRS)"}},
 		{"dpr 9", func(c *Config) { c.Security.AllowedDPRs = []float64{9} }, []string{"security.allowed_dprs"}},
 		{"dprs ok", func(c *Config) { c.Security.AllowedDPRs = []float64{1, 1.5, 2, 3} }, nil},
+		{"video unsigned allow", func(c *Config) { c.Video.Transform.UnsignedPolicy = UnsignedAllow }, nil},
+		{"video unsigned restricted", func(c *Config) { c.Video.Transform.UnsignedPolicy = UnsignedRestricted }, []string{"video.transform.unsigned_policy (XI_VIDEO_TRANSFORM_UNSIGNED_POLICY): must be deny or allow"}},
+		{"video role without transform", func(c *Config) { c.Role = RoleVideo }, []string{"role (XI_ROLE): video needs video.transform.enabled"}},
 		{"negative ttl", func(c *Config) { c.Cache.Origin.NegativeTTL = -time.Second }, []string{"cache.origin.negative_ttl (XI_CACHE_ORIGIN_NEGATIVE_TTL)"}},
 		{"gcs and azure endpoints", func(c *Config) {
 			c.Sources["g"] = Source{Type: SourceGCS, Bucket: "b", Endpoint: "http://fake-gcs:4443/storage/v1/"}

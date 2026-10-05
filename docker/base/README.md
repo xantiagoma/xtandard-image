@@ -26,7 +26,7 @@ Decisions: [ADR 0005](../../docs/adr/0005-docker-image-strategy.md) (image strat
 
 `<vips>` is `VIPS_VERSION` and `<N>` is `XI_BASE_REVISION` from `versions.sh`; `<M>` is
 `XI_BASE_FULL_REVISION` from `versions-full.sh`; `<G>` is `XI_BASE_GPL_REVISION` from
-`versions-gpl.sh` (currently `8.18.6-r7-slim`, `8.18.6-r8-full` and `8.18.6-r9-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
+`versions-gpl.sh` (currently `8.18.6-r7-slim`, `8.18.6-r9-full` and `8.18.6-r10-gpl`). GitHub Actions is disabled for now, so nothing is published yet: build
 locally with the `task docker:base:*` tasks (below), which tag `xtandard-base:dev`,
 `xtandard-base:dev-builder`, `xtandard-base:dev-full`, `xtandard-base:dev-full-builder`,
 `xtandard-base:dev-gpl` and `xtandard-base:dev-gpl-builder`. All are
@@ -136,14 +136,17 @@ jemalloc actually honours it (`opt.narenas: 2` in its stats).
 Not in the slim image: poppler (GPL; PDF goes through PDFium), x265 (GPL; HEIC/AVIF encode
 uses kvazaar/aom), FFmpeg and ONNX Runtime (`full` flavor).
 
-## Full flavor (WP-70, revision 8)
+## Full flavor (WP-70, revision 9)
 
 Everything in slim, plus:
 
 | Component | Version | Licence | Where | Obtained |
 |---|---|---|---|---|
-| FFmpeg | 8.1.x (`FFMPEG_VERSION`) | LGPL-2.1-or-later (built with `--disable-gpl --disable-nonfree`, no `--enable-version3`) | `/opt/xtandard/lib/lib{avcodec,avformat,avutil,swscale,avfilter}.so.*`, `bin/ffmpeg`, `bin/ffprobe`; headers + `.pc` in the builder | source tarball from ffmpeg.org, built by `build-full-deps.sh` |
+| FFmpeg | 8.1.x (`FFMPEG_VERSION`) | LGPL-2.1-or-later (built with `--disable-gpl --disable-nonfree`, no `--enable-version3`) | `/opt/xtandard/lib/lib{avcodec,avformat,avutil,swscale,swresample,avfilter}.so.*`, `bin/ffmpeg`, `bin/ffprobe`; headers + `.pc` in the builder | source tarball from ffmpeg.org, built by `build-full-deps.sh` |
 | libvpx | 1.17.x (`LIBVPX_VERSION`) | BSD-3-Clause (+ WebM patent grant) | `/opt/xtandard/lib/libvpx.so.*` | GitHub release tag, built |
+| libopus | 1.6.x (`OPUS_VERSION`) | BSD-3-Clause | `/opt/xtandard/lib/libopus.so.*` | Xiph release tarball (SHA256 matches the release `SHA256SUMS.txt`), built without the deep-learning extensions (WP-120) |
+| LAME | 3.100 (`LAME_VERSION`) | LGPL-2.0-or-later | `/opt/xtandard/lib/libmp3lame.so.*` | SourceForge release tarball, `libmp3lame` only (no frontend, no mpglib decoder; WP-120) |
+| FreeType, HarfBuzz, FriBidi, Fontconfig, DejaVu fonts | as slim | FTL, MIT, LGPL-2.1+, HPND-sell-variant, Bitstream Vera | already in slim | FFmpeg's `drawtext` links the slim builds and finds the slim fonts through `FONTCONFIG_PATH` (WP-120) |
 | dav1d, libaom | as slim (`DAV1D_VERSION`, `AOM_VERSION`) | BSD-2-Clause (+ AOM patent licence) | already in slim | FFmpeg links the slim builds: dav1d decodes AV1, libaom encodes it |
 | ONNX Runtime | 1.30.x (`ONNXRUNTIME_VERSION`) | MIT (bundled third-party notices in `share/licenses/onnxruntime/ThirdPartyNotices.txt`) | `/usr/local/lib/libonnxruntime.so.1*` (+ `ldconfig`); headers in `/usr/local/include/onnxruntime` and `libonnxruntime.pc` in the builder | official prebuilt `onnxruntime-linux-{x64,aarch64}-<v>.tgz` from GitHub releases, one SHA256 per architecture; CPU execution provider only (`libonnxruntime_providers_shared.so` is not shipped) |
 | YuNet | `face_detection_yunet_2023mar.onnx` | MIT | `/usr/share/xtandard/models/` + `.LICENSE` | opencv_zoo at a pinned commit (`YUNET_COMMIT`), Git LFS media URL, SHA256-pinned model and licence |
@@ -151,19 +154,38 @@ Everything in slim, plus:
 | MobileNetV3-Large | `mobilenetv3_large_100.onnx` (ImageNet-1k classifier, 1000 classes; timm `mobilenetv3_large_100`, 75.8% top-1; WP-110) | Apache-2.0 | `/usr/share/xtandard/models/` + `.LICENSE` | ONNX Model Zoo (`onnx/models`) at a pinned commit (`CLASSIFIER_COMMIT`), Git LFS media URL, SHA256-pinned model and licence (the zoo's LICENSE) |
 
 FFmpeg is configured with `--disable-everything --disable-autodetect` and then only what the
-video WPs need (WP-74/75/76), video only:
+video WPs need: the thumbnails, sprites and GIF → video of WP-74/75/76 and, since WP-120,
+the video and audio transformations of M5 ([ADR 0012](../../docs/adr/0012-video-transformations.md)):
 
-- demuxers `mov` (mp4/mov/m4v), `matroska` (mkv/webm), `avi`, `gif`, `ivf`, `rawvideo`,
-  `image2`, `image2pipe`; protocols `file`, `pipe` (no network);
-- decoders `h264`, `hevc`, `vp8`, `vp9`, `libdav1d` (AV1), `gif`, `mpeg4`, `mjpeg`, `png`,
-  `rawvideo`; no audio decoder;
-- encoders `libvpx` (VP8), `libvpx-vp9`, `libaom-av1`, `png`, `rawvideo`, `wrapped_avframe`;
-  no H.264/HEVC encoder of any kind (open questions 1 and 2 in `docs/ROADMAP.md`);
-- muxers `mp4`, `mov`, `webm`, `matroska`, `ivf`, `null`, `rawvideo`, `image2`, `image2pipe`;
-- filters `scale`, `format`, `fps`, `select`, `thumbnail`, `crop`, `pad`, `transpose`,
-  `hflip`, `vflip`, `rotate`, `trim`, `setpts`, `settb`, `tile`, `palettegen`, `paletteuse`,
-  `split`, `overlay`, `color`, `null` (and the ones the `ffmpeg` CLI selects);
-- `--disable-avdevice --disable-swresample --disable-network --disable-doc`.
+- protocols `file`, `pipe` only (no network; the server reads and writes through its own
+  AVIO callbacks); no `concat`, `hls`, `dash` or `lavfi` demuxer (nothing that opens other
+  files or URLs named in an input);
+- demuxers `mov` (mp4/mov/m4a), `matroska` (mkv/webm), `avi`, `gif`, `ivf`, `mpegts`,
+  `rawvideo`, `image2`, `image2pipe`; audio `mp3`, `aac` (ADTS), `ac3`, `eac3`, `flac`, `ogg`,
+  `wav`;
+- video decoders `h264`, `hevc`, `vp8`, `vp9`, `libdav1d` (AV1), `gif`, `mpeg4`, `mjpeg`, `png`,
+  `rawvideo`; audio decoders `aac`, `aac_latm`, `mp3`, `mp3float`, `mp2`, `mp2float`, `opus`,
+  `vorbis`, `flac`, `alac`, `ac3`, `eac3` and PCM (`pcm_s16le/be`, `pcm_s24le/be`, `pcm_s32le`,
+  `pcm_f32le`, `pcm_f64le`, `pcm_u8`, `pcm_alaw`, `pcm_mulaw`);
+- video encoders `libvpx` (VP8), `libvpx-vp9`, `libaom-av1`, `png`, `rawvideo`,
+  `wrapped_avframe`, and no H.264/HEVC encoder of any kind (open questions 1 and 2 in
+  `docs/ROADMAP.md`; the gpl flavor adds libx264/libx265); audio encoders exactly `aac`
+  (native), `libopus`, `libmp3lame`, `flac`, `pcm_s16le` (no FDK-AAC: nonfree);
+- muxers `mp4`, `mov`, `ipod` (m4a), `webm`, `matroska`, `ivf`, `mpegts`, `hls`, `dash`,
+  `segment`, `mp3`, `ogg`, `opus`, `adts`, `wav`, `flac`, `null`, `rawvideo`, `image2`,
+  `image2pipe` (fragmented MP4/CMAF through the `mp4` muxer's `movflags`);
+- parsers for every decoded codec (`h264`, `hevc`, `vp8`, `vp9`, `av1`, `mpeg4video`, `mjpeg`,
+  `png`, `gif`, `aac`, `aac_latm`, `mpegaudio`, `opus`, `vorbis`, `flac`, `ac3`) and the bsfs
+  `h264_mp4toannexb`, `hevc_mp4toannexb`, `aac_adtstoasc`, `vp9_superframe(_split)`,
+  `av1_metadata`, `extract_extradata`;
+- video filters `scale`, `format`, `fps`, `select`, `thumbnail`, `crop`, `pad`, `transpose`,
+  `hflip`, `vflip`, `rotate`, `trim`, `setpts`, `settb`, `setsar`, `setdar`, `tile`,
+  `palettegen`, `paletteuse`, `split`, `overlay`, `color`, `fade`, `colorchannelmixer`
+  (watermark opacity), `drawtext` (FreeType, HarfBuzz, FriBidi, Fontconfig), `concat`, `null`;
+  audio filters `aformat`, `anull`, `anullsrc`, `aresample`, `atrim`, `asetpts`, `asettb`,
+  `asplit`, `volume`, `loudnorm`, `amix`, `apad`, `afade`, and `showwavespic` (waveform
+  image); plus `buffer`/`abuffer` and `buffersink`/`abuffersink`;
+- `--enable-swresample --disable-avdevice --disable-network --disable-doc`.
 
 `ffmpeg -buildconf` is saved as `share/licenses/ffmpeg/BUILDCONF.txt`; FFmpeg's GPL/LGPLv3
 licence texts are removed from the bundle because this build is LGPL-2.1+ only.
@@ -172,10 +194,10 @@ The models are laid out as `<name>.onnx` next to `<name>.LICENSE`, with `MODELS.
 licence) and `SHA256SUMS`; the licences and `MODELS.md` are also copied to
 `share/licenses/models/`. Users can mount their own models over the directory (WP-71).
 
-Size: runtime 124.6 MB compressed on linux/arm64 (r8; slim + 68.6 MB; budget ≤ 170 MB), see
+Size: runtime 125.9 MB compressed on linux/arm64 (r9; slim + 70.0 MB; budget ≤ 170 MB), see
 [Sizes](#sizes).
 
-## gpl flavor (WP-70b, revision 9)
+## gpl flavor (WP-70b, revision 10)
 
 > **This image contains GPL and AGPL software.** Its FFmpeg libraries and CLIs are
 > GPL-2.0-or-later, H.264 and HEVC are patent-encumbered, and `bin/gs` is Ghostscript,
@@ -197,12 +219,13 @@ Everything in full, plus:
 | libemf2svg (WP-108) | 1.8.1 (`LIBEMF2SVG_VERSION`) | **GPL-2.0-only** (with its vendored libUEMF) | `lib/libemf2svg.so*` | GitHub archive of the release tag (SHA256), unmodified; library only (`LONLY`) |
 | xi-metafile2svg (WP-108) | the app's (`docker/base/metafile`) | MIT source; GPL-2.0-only as built | `bin/xi-metafile2svg` | `metafile/xi-metafile2svg.c`: `wmf\|emf <max-bytes> <max-side>`, metafile on stdin, SVG on stdout; smoke conversions at build time |
 
-So the gpl image has full's demuxers, decoders, filters and VP8/VP9/AV1 encoders and adds
+So the gpl image has full's demuxers, muxers, decoders, filters, VP8/VP9/AV1 encoders and audio
+encoders (AAC, Opus, MP3, FLAC; WP-120) and adds
 exactly two encoders: `libx264` (H.264) and `libx265` (HEVC), and one program, `gs`, which
 the server runs as a sandboxed subprocess for EPS/PostScript input when
 `XI_FORMATS_EPS_ENABLED=true` (off by default; `internal/ghostscript`, ADR 0011), and one more,
 `xi-metafile2svg`, which the server runs in the same sandbox to turn WMF and EMF sources into
-SVG (`internal/metafile`, `XI_FORMATS_METAFILE_ENABLED`, on when found). Still no audio, network,
+SVG (`internal/metafile`, `XI_FORMATS_METAFILE_ENABLED`, on when found). Still no network,
 nonfree code or `--enable-version3`. HEIC encoding stays on kvazaar (libheif is not
 rebuilt against x265), and poppler, exiv2 and GPL `dssim` stay out: they were replaced
 (PDFium, own metadata code, own SSIM), not just excluded.
@@ -230,7 +253,7 @@ the WMF and EMF fixtures with `xi-metafile2svg` (namespaced SVG with the exact c
 by libvips) and checks the libwmf and libemf2svg licences; slim and full must have neither the
 program nor the libraries.
 
-Size: runtime 140.5 MB compressed on linux/arm64 (r9; full + 15.9 MB: x264/x265 2.2 MB, Ghostscript
+Size: runtime 141.7 MB compressed on linux/arm64 (r10; full + 15.8 MB: x264/x265 2.2 MB, Ghostscript
 11.1 MB, LibRaw's DNG and GPR SDKs about 0.4 MB, the WP-108 metafile converter 2.2 MB), see
 [Sizes](#sizes).
 
@@ -422,10 +445,15 @@ linux/arm64, `docker save | gzip -6` (compressed) and `docker image inspect` (un
 |---|---|---|---|
 | slim runtime (`8.18.6-r7-slim`) | 56.0 MB | 167.8 MB | ≤ 110 MB |
 | slim builder | 260.6 MB | 821.9 MB | — |
-| full runtime (`8.18.6-r8-full`) | 124.6 MB | 261.7 MB | ≤ 170 MB |
-| full builder | 329.8 MB | 918.3 MB | — |
-| gpl runtime (`8.18.6-r9-gpl`) | 140.5 MB | 285.6 MB | ≤ 170 MB (as full) |
-| gpl builder | 346.2 MB | 943.4 MB | — |
+| full runtime (`8.18.6-r9-full`) | 125.9 MB | 264.1 MB | ≤ 170 MB |
+| full builder | 331.1 MB | 921.0 MB | — |
+| gpl runtime (`8.18.6-r10-gpl`) | 141.7 MB | 288.1 MB | ≤ 170 MB (as full) |
+| gpl builder | 347.5 MB | 946.0 MB | — |
+
+full r9 / gpl r10 over r8 / r9 (WP-120, audio and video transformations, ADR 0012): full and
+gpl grow by 1.2–1.3 MB compressed / 2.4–2.6 MB uncompressed (runtime and builder alike) for
+libswresample, libopus, LAME, the audio decoders and encoders, the extra muxers and filters;
+slim is unchanged (identical file list and sizes, still r7).
 
 r7/r8/r9 over r6/r7/r8 (WP-108): the Basis Universal transcoder (`libxibasisu`) adds 0.6 MB
 compressed / 1.1 MB uncompressed to every flavor; the PICT and PCD coders cost nothing. The gpl
@@ -523,11 +551,11 @@ the real `versions-gpl.sh` is refused by the strict gate.
 3. Bump `XI_BASE_REVISION` when the image changes without a libvips version change; reset it
    to `1` when `VIPS_VERSION` changes. `XI_BASE_FULL_REVISION` (`versions-full.sh`) is the
    full flavor's own counter: bump it whenever slim's revision moves or a full-only component
-   changes, including when slim's revision moves (full r8 = slim r7 +
-   WP-70 + the classifier, WP-110).
+   changes, including when slim's revision moves (full r9 = slim r7 +
+   WP-70 + the classifier, WP-110 + the audio and video-transformation FFmpeg build, WP-120).
    `XI_BASE_GPL_REVISION` (`versions-gpl.sh`) is the gpl flavor's counter in the same way:
    bump it when full's revision moves or x264/x265/Ghostscript/the LibRaw SDKs/the metafile
-   converter change (gpl r9 = full r8 + WP-70b + Ghostscript, WP-99 + the Adobe DNG SDK and
+   converter change (gpl r10 = full r9 + WP-70b + Ghostscript, WP-99 + the Adobe DNG SDK and
    GoPro GPR SDK, WP-103 + libwmf, libemf2svg and `xi-metafile2svg`, WP-108).
 4. Build and verify locally (host architecture: arm64 on Apple silicon, amd64 on x86 hosts;
    slim ~30 min cold, full adds ~10 min, gpl another ~5 min):

@@ -474,12 +474,14 @@ if [ "$flavor" = full ] || [ "$flavor" = gpl ]; then
       bash /usr/local/bin/check-licenses.sh $XI_GATE_GPL $bundle --ffmpeg /opt/xtandard/bin/ffmpeg \
         --ldd --models /usr/share/xtandard/models /opt/xtandard/lib
       bash /usr/local/bin/check-licenses.sh --ldd /usr/local/lib
-      for name in ffmpeg libvpx onnxruntime models; do
+      for name in ffmpeg libvpx opus lame onnxruntime models; do
         test -n "$(ls -A "$licenses/$name")"
       done
       grep -q "GNU LESSER GENERAL PUBLIC LICENSE" $licenses/ffmpeg/COPYING.LGPLv2.1
       grep -q "^## full flavor" $licenses/SOURCES.md
-      echo "licence texts present for FFmpeg (LGPL-2.1), libvpx, ONNX Runtime and the models"
+      grep -q "GNU LIBRARY GENERAL PUBLIC LICENSE" $licenses/lame/COPYING
+      grep -q "Redistribution and use in source and binary forms" $licenses/opus/COPYING
+      echo "licence texts present for FFmpeg (LGPL-2.1), libvpx, libopus (BSD-3-Clause), LAME (LGPL-2.0), ONNX Runtime and the models"
       if [ "$XI_FLAVOR" = gpl ]; then
         grep -q "GNU GENERAL PUBLIC LICENSE" $licenses/ffmpeg/COPYING.GPLv2
         grep -q "GNU GENERAL PUBLIC LICENSE" $licenses/x264/COPYING
@@ -521,16 +523,51 @@ if grep -E "^ V[^ ]* ($unexpected)" <<< "$encoders"; then
   echo "UNEXPECTED H.264/HEVC encoder" >&2
   exit 1
 fi
-# Video only: no audio decoders or encoders.
-if grep -E "^ A[^ ]* [^= ]" <<< "$decoders$encoders"; then
-  echo "UNEXPECTED audio codec" >&2
+# Audio (WP-120, ADR 0012): the common input decoders, and exactly the AAC (native),
+# Opus (libopus), MP3 (LAME), FLAC and PCM encoders; never FDK-AAC (nonfree).
+audio_dec="aac aac_latm mp3 mp3float mp2 mp2float opus vorbis flac alac ac3 eac3 pcm_s16le pcm_s24le pcm_f32le pcm_alaw pcm_mulaw"
+for dec in $audio_dec; do
+  grep -qE "^ A[^ ]* $dec " <<< "$decoders" || { echo "MISSING audio decoder $dec" >&2; exit 1; }
+done
+got_audio_enc="$(grep -E "^ A[^ ]* [^= ]" <<< "$encoders" | awk '{print $2}' | sort | xargs)"
+if [ "$got_audio_enc" != "aac flac libmp3lame libopus pcm_s16le" ]; then
+  echo "UNEXPECTED audio encoders: $got_audio_enc" >&2
   exit 1
 fi
-if [ "$XI_FLAVOR" = gpl ]; then
-  echo "decoders: h264 hevc vp8 vp9 av1(dav1d) gif mpeg4 mjpeg png rawvideo; encoders: vp8 vp9 av1(aom) h264(x264) hevc(x265) png rawvideo; no audio"
-else
-  echo "decoders: h264 hevc vp8 vp9 av1(dav1d) gif mpeg4 mjpeg png rawvideo; encoders: vp8 vp9 av1(aom) png rawvideo; no H.264/HEVC/audio"
+# Muxers, demuxers and filters the video transformations use; file and pipe are the
+# only protocols, and the concat demuxer (it opens the paths named in its input) is off.
+formats="$(ffmpeg -hide_banner -formats)"
+for mux in mp4 mov ipod webm matroska mpegts hls dash segment mp3 ogg opus adts wav flac; do
+  grep -qE "^ [D ]E[^ ]* +$mux( |$)" <<< "$formats" || { echo "MISSING muxer $mux" >&2; exit 1; }
+done
+for demux in mov,mp4,m4a,3gp,3g2,mj2 matroska,webm avi mpegts mp3 aac ac3 eac3 flac ogg wav; do
+  grep -qE "^ D[^ ]* +$demux( |$)" <<< "$formats" || { echo "MISSING demuxer $demux" >&2; exit 1; }
+done
+if grep -qE "^ D[^ ]* +(concat|hls|dash|lavfi)( |$)" <<< "$formats"; then
+  echo "UNEXPECTED demuxer (concat, hls, dash or lavfi)" >&2
+  exit 1
 fi
+protocols="$(ffmpeg -hide_banner -protocols | sed '/:$/d' | sort -u | xargs)"
+if [ "$protocols" != "file pipe" ]; then
+  echo "UNEXPECTED protocols: $protocols" >&2
+  exit 1
+fi
+filters="$(ffmpeg -hide_banner -filters)"
+for f in scale crop pad fps trim setpts transpose rotate hflip vflip format overlay drawtext split concat \
+  fade colorchannelmixer setsar aresample aformat atrim asetpts volume loudnorm amix anull apad afade showwavespic; do
+  grep -qE "^ [^ ]+ $f " <<< "$filters" || { echo "MISSING filter $f" >&2; exit 1; }
+done
+bsfs="$(ffmpeg -hide_banner -bsfs)"
+for b in h264_mp4toannexb hevc_mp4toannexb aac_adtstoasc vp9_superframe extract_extradata; do
+  grep -qx "$b" <<< "$bsfs" || { echo "MISSING bsf $b" >&2; exit 1; }
+done
+if [ "$XI_FLAVOR" = gpl ]; then
+  echo "decoders: h264 hevc vp8 vp9 av1(dav1d) gif mpeg4 mjpeg png rawvideo; encoders: vp8 vp9 av1(aom) h264(x264) hevc(x265) png rawvideo"
+else
+  echo "decoders: h264 hevc vp8 vp9 av1(dav1d) gif mpeg4 mjpeg png rawvideo; encoders: vp8 vp9 av1(aom) png rawvideo; no H.264/HEVC"
+fi
+echo "audio decoders: $audio_dec; audio encoders: $got_audio_enc"
+echo "protocols: $protocols; muxers, demuxers (no concat/hls/dash/lavfi), filters and bsfs: ok"
 EOF
 
   if [ "$flavor" = gpl ]; then
@@ -643,6 +680,114 @@ test "$(vipsheader -f width thumb.png)x$(vipsheader -f height thumb.png)" = 32x2
 echo "ok thumbnail (scale filter, png encoder) read by libvips"
 EOF
 
+  echo "== $flavor: audio and video transformations (WP-120): A/V mux, audio-only, filter graph, drawtext, HLS, DASH"
+  docker run --rm -i -e "XI_FLAVOR=$flavor" "$runtime" bash -euo pipefail <<'EOF'
+cd /tmp
+w=160 h=120 n=24
+head -c $((w * h * 3 * n)) /dev/urandom > frames.rgb
+# One second of 48 kHz stereo s16le noise in a WAV file (there is no lavfi device to
+# generate it). le value bytes: the value as little-endian bytes.
+le() {
+  local v=$1 b=$2 i out=
+  for ((i = 0; i < b; i++)); do out+="\\x$(printf %02x $(((v >> (8 * i)) & 255)))"; done
+  printf "$out"
+}
+rate=48000 ch=2 data=$((48000 * 2 * 2))
+{
+  printf RIFF; le $((36 + data)) 4; printf 'WAVEfmt '; le 16 4; le 1 2; le $ch 2; le $rate 4
+  le $((rate * ch * 2)) 4; le $((ch * 2)) 2; le 16 2; printf data; le $data 4
+  head -c $data /dev/urandom
+} > tone.wav
+ff=(ffmpeg -nostdin -hide_banner -loglevel error)
+in=(-f rawvideo -pix_fmt rgb24 -s "${w}x${h}" -r 24 -i frames.rgb -i tone.wav)
+# MP4 video: AV1 (libaom) in full, H.264 (libx264) in gpl.
+mp4v=(-c:v libaom-av1 -cpu-used 8 -usage realtime) mp4codec=av1
+if [ "$XI_FLAVOR" = gpl ]; then mp4v=(-c:v libx264 -preset veryfast) mp4codec=h264; fi
+# check file "codecs" format: the streams and container are as expected, and the file
+# decodes to the end.
+check() {
+  local got fmt
+  # MPEG-TS lists each stream once more under its program: keep one line per index.
+  got="$(ffprobe -v error -show_entries stream=index,codec_name -of csv=p=0 "$1" | awk -F, '!seen[$1]++ { print $2 }' | xargs)"
+  fmt="$(ffprobe -v error -show_entries format=format_name -of csv=p=0 "$1")"
+  if [ "$got" != "$2" ] || [[ $fmt != *"$3"* ]]; then
+    echo "$1: streams '$got' format '$fmt', want '$2' in $3" >&2
+    exit 1
+  fi
+  "${ff[@]}" -i "$1" -f null -
+  echo "ok $1: $got ($fmt)"
+}
+"${ff[@]}" "${in[@]}" "${mp4v[@]}" -pix_fmt yuv420p -g 12 -c:a aac -b:a 96k -movflags +faststart -shortest av.mp4
+check av.mp4 "$mp4codec aac" mp4
+"${ff[@]}" "${in[@]}" -c:v libvpx-vp9 -deadline realtime -pix_fmt yuv420p -g 12 -c:a libopus -b:a 64k -shortest av.webm
+check av.webm "vp9 opus" webm
+# Audio only: MP3, M4A (AAC), Opus, FLAC, ADTS AAC.
+"${ff[@]}" -i tone.wav -c:a libmp3lame -b:a 128k a.mp3
+check a.mp3 mp3 mp3
+"${ff[@]}" -i tone.wav -c:a aac -b:a 96k a.m4a
+check a.m4a aac mp4
+"${ff[@]}" -i tone.wav -c:a libopus -b:a 64k a.opus
+check a.opus opus ogg
+"${ff[@]}" -i tone.wav -c:a flac a.flac
+check a.flac flac flac
+"${ff[@]}" -i tone.wav -c:a aac -f adts a.aac
+check a.aac aac aac
+# Mute: the video stream alone.
+"${ff[@]}" -i av.mp4 -an -c copy mute.mp4
+check mute.mp4 "$mp4codec" mp4
+
+# One filter graph: trim, resize, image watermark at 50% opacity (a libvips PNG), text
+# overlay, loudness normalisation and resampling, into VP9/Opus WebM.
+vips black logo.v 32 32 --bands 4
+vips linear logo.v logo.png "1 1 1 1" "255 0 0 255" --uchar
+graph="[0:v]trim=start=0.25:end=0.75,setpts=PTS-STARTPTS,scale=320:-2,format=yuv420p[b]"
+graph+=";[1:v]format=rgba,colorchannelmixer=aa=0.5[l];[b][l]overlay=W-w-8:8[o]"
+graph+=";[o]drawtext=text='xtandard':fontsize=20:fontcolor=white:x=8:y=h-th-8[v]"
+graph+=";[0:a]atrim=start=0.25:end=0.75,asetpts=PTS-STARTPTS,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[a]"
+"${ff[@]}" -i av.webm -i logo.png -filter_complex "$graph" -map '[v]' -map '[a]' \
+  -c:v libvpx-vp9 -deadline realtime -c:a libopus fx.webm
+check fx.webm "vp9 opus" webm
+test "$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 fx.webm)" = 320,240
+dur="$(ffprobe -v error -show_entries format=duration -of csv=p=0 fx.webm)"
+if ! awk -v d="$dur" 'BEGIN { exit !(d > 0.4 && d < 0.65) }'; then
+  echo "fx.webm lasts $dur s, want about 0.5" >&2
+  exit 1
+fi
+echo "ok trim + scale + overlay + drawtext + loudnorm: 320x240, ${dur}s"
+# drawtext finds a font through fontconfig (the base's DejaVu fonts) and draws it.
+head -c $((160 * 40 * 3)) /dev/zero > black.rgb
+"${ff[@]}" -f rawvideo -pix_fmt rgb24 -s 160x40 -i black.rgb \
+  -vf "drawtext=text='Hg':fontsize=28:fontcolor=white:x=8:y=4" -frames:v 1 text.png
+max="$(vips max text.png)"
+awk -v m="$max" 'BEGIN { exit !(m >= 200) }'
+echo "ok drawtext rendered with fontconfig (max $max)"
+"${ff[@]}" -i tone.wav -filter_complex "showwavespic=s=200x50" -frames:v 1 wave.png
+test "$(vipsheader -f width wave.png)x$(vipsheader -f height wave.png)" = 200x50
+echo "ok showwavespic waveform image"
+
+# HLS (CMAF, fMP4 segments) and DASH packaging of the 1 s A/V MP4 (keyframe every 0.5 s).
+mkdir hls dash
+"${ff[@]}" -i av.mp4 -c copy -f hls -hls_segment_type fmp4 -hls_time 0.5 -hls_playlist_type vod \
+  -hls_fmp4_init_filename init.mp4 -hls_segment_filename 'hls/seg%d.m4s' hls/index.m3u8
+grep -q '^#EXT-X-MAP:URI="init.mp4"' hls/index.m3u8
+grep -q '^#EXT-X-ENDLIST' hls/index.m3u8
+segs=$(grep -c '^#EXTINF' hls/index.m3u8)
+test "$segs" -ge 2
+cat hls/init.mp4 hls/seg*.m4s > hls-joined.mp4
+check hls-joined.mp4 "$mp4codec aac" mp4
+echo "ok HLS fMP4: $segs segments"
+"${ff[@]}" -i av.mp4 -c copy -f dash -seg_duration 0.5 -use_template 1 -use_timeline 0 dash/manifest.mpd
+test "$(grep -c '<AdaptationSet' dash/manifest.mpd)" -eq 2
+ls dash/init-stream0.m4s dash/init-stream1.m4s > /dev/null
+echo "ok DASH: 2 adaptation sets, $(find dash -name '*.m4s' | wc -l) segment files"
+if [ "$XI_FLAVOR" = gpl ]; then
+  "${ff[@]}" -i av.mp4 -c copy -f hls -hls_segment_type mpegts -hls_time 0.5 -hls_playlist_type vod \
+    -hls_segment_filename 'hls/ts%d.ts' hls/ts.m3u8
+  check hls/ts0.ts "h264 aac" mpegts
+  echo "ok HLS MPEG-TS (H.264 to Annex B)"
+fi
+EOF
+
   echo "== $flavor: ONNX Runtime and models ($runtime)"
   docker run --rm "$runtime" bash -euo pipefail -c '
     ldconfig -p | grep -q "libonnxruntime.so.1 " && echo "ldconfig: $(ldconfig -p | grep libonnxruntime.so.1 | head -n 1 | sed "s/^[[:space:]]*//")"
@@ -665,7 +810,7 @@ cat > main.go <<'GO'
 package main
 
 /*
-#cgo pkg-config: libavformat libavcodec libavutil libswscale libavfilter libonnxruntime
+#cgo pkg-config: libavformat libavcodec libavutil libswscale libswresample libavfilter libonnxruntime
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -674,6 +819,7 @@ package main
 #include <libavfilter/avfilter.h>
 #include <libavutil/avutil.h>
 #include <libswscale/swscale.h>
+#include <libswresample/swresample.h>
 #include <onnxruntime_c_api.h>
 
 static int has_encoder(const char *name) { return avcodec_find_encoder_by_name(name) != NULL; }
@@ -684,6 +830,15 @@ static int has_sws(void) {
 	sws_freeContext(c);
 	return 1;
 }
+static int has_swr(void) {
+	AVChannelLayout stereo = AV_CHANNEL_LAYOUT_STEREO, mono = AV_CHANNEL_LAYOUT_MONO;
+	SwrContext *c = NULL;
+	if (swr_alloc_set_opts2(&c, &mono, AV_SAMPLE_FMT_FLTP, 48000, &stereo, AV_SAMPLE_FMT_S16, 44100, 0, NULL) < 0) return 0;
+	int ok = swr_init(c) == 0;
+	swr_free(&c);
+	return ok;
+}
+static int has_filter(const char *name) { return avfilter_get_by_name(name) != NULL; }
 
 static const OrtApi *ort;
 
@@ -773,7 +928,7 @@ func main() {
 		"avfilter", C.avfilter_version())
 	license := C.GoString(C.avcodec_license())
 	fmt.Println("license", license)
-	encoders := []string{"libvpx", "libvpx-vp9", "libaom-av1"}
+	encoders := []string{"libvpx", "libvpx-vp9", "libaom-av1", "aac", "libopus", "libmp3lame", "flac"}
 	wantLicense := "LGPL version 2.1 or later"
 	if os.Getenv("XI_FLAVOR") == "gpl" {
 		encoders = append(encoders, "libx264", "libx265")
@@ -796,10 +951,27 @@ func main() {
 		}
 		C.free(unsafe.Pointer(cs))
 	}
+	for _, name := range []string{"aac", "mp3float", "opus", "vorbis", "flac"} {
+		cs := C.CString(name)
+		if C.has_decoder(cs) == 0 {
+			panic("missing decoder " + name)
+		}
+		C.free(unsafe.Pointer(cs))
+	}
+	for _, name := range []string{"scale", "overlay", "drawtext", "aresample", "loudnorm", "abuffersink"} {
+		cs := C.CString(name)
+		if C.has_filter(cs) == 0 {
+			panic("missing filter " + name)
+		}
+		C.free(unsafe.Pointer(cs))
+	}
 	if C.has_sws() == 0 {
 		panic("sws_getContext failed")
 	}
-	fmt.Println("encoders", encoders, "decoders h264/hevc/vp8/vp9/dav1d, swscale: ok")
+	if C.has_swr() == 0 {
+		panic("swr_init failed")
+	}
+	fmt.Println("encoders", encoders, "decoders h264/hevc/vp8/vp9/dav1d/aac/mp3/opus/vorbis/flac, filters, swscale, swresample: ok")
 
 	if msg := C.ort_init(); msg != nil {
 		panic(C.GoString(msg))

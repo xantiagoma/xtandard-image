@@ -10,10 +10,11 @@
 # Bump a version, then run ./update-checksums.sh to refresh the *_SHA256 lines.
 
 # Revision of the gpl flavor. Its tag is <VIPS_VERSION>-r<XI_BASE_GPL_REVISION>-gpl.
-# gpl r9 = full r8 (versions-full.sh XI_BASE_FULL_REVISION) + the components below
+# gpl r10 = full r9 (versions-full.sh XI_BASE_FULL_REVISION) + the components below
 # (r6: Ghostscript, WP-99; r8: LibRaw with the Adobe DNG SDK and GoPro GPR SDK, WP-103;
-# r9: libwmf, libemf2svg and xi-metafile2svg, WP-108).
-export XI_BASE_GPL_REVISION=9
+# r9: libwmf, libemf2svg and xi-metafile2svg, WP-108; r10: full r9's FFmpeg audio and
+# video-transformation build, WP-120).
+export XI_BASE_GPL_REVISION=10
 
 # --- GPL allowlist read by check-licenses.sh --allow-gpl ----------------------------
 # component=SPDX pairs. Only these GPL components may appear in a gpl image, and only
@@ -103,6 +104,7 @@ imath BSD-3-Clause
 jemalloc BSD-2-Clause
 jxrlib BSD-2-Clause
 kvazaar BSD-3-Clause
+lame LGPL-2.0-or-later
 lcms2 MIT
 libde265 LGPL-3.0-or-later
 libemf2svg GPL-2.0-only
@@ -122,6 +124,7 @@ libwmf LGPL-2.0-or-later AND GPL-2.0-or-later
 libxml2 MIT
 models MIT AND Apache-2.0
 onnxruntime MIT
+opus BSD-3-Clause
 openexr BSD-3-Clause
 openjpeg BSD-2-Clause
 pango LGPL-2.0-or-later
