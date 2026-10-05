@@ -417,6 +417,27 @@ type TranscodePlan struct {
 	// the audio is drawn into one RGBA frame of Width × Height that the
 	// engine encodes.
 	Waveform *WaveformPlan
+	// Fragment makes the output fragmented MP4 (CMAF) for a stream (WP-126):
+	// one segment of a rendition (PlanSegment) or a whole audio track cut
+	// into segments (PlanAudioTrack). nil is a plain file.
+	Fragment *FragmentPlan
+}
+
+// FragmentPlan is how a stream's output is fragmented (ADR 0012 §6).
+type FragmentPlan struct {
+	// Discont gives the first fragment the decode time of its first
+	// sample (tfdt) instead of 0, so independently encoded segments join
+	// on the stream's timeline.
+	Discont bool
+	// Offset90k moves every timestamp later by this many 1/90000 s (the
+	// stream's offset, StreamLayout.Offset90k), the same for every segment
+	// of every rendition and the audio, so they keep in sync.
+	Offset90k int64
+	// Seconds starts a new audio fragment every that many seconds of the
+	// source (the segment grid); Priming is the encoder's priming in
+	// samples, which the shim checks.
+	Seconds int
+	Priming int
 }
 
 // WaveformPlan is a waveform picture (showwavespic) of the source's audio.
@@ -447,6 +468,10 @@ type VideoStreamPlan struct {
 	// GOP is the keyframe interval in frames (two seconds unless the
 	// request sets KeyframeInterval).
 	GOP int
+	// Level is the H.264 level_idc (x 10) the encoder signals, so a
+	// stream's manifest can name it before encoding (WP-126); 0 lets the
+	// encoder choose.
+	Level int
 	// Filters is the libavfilter chain from the decoder's frames to the
 	// encoder's (trim, orientation, crop, fit, fps, pixel format).
 	Filters string
@@ -563,38 +588,9 @@ func planVideo(in *TranscodeInput, op *transform.VideoOp, codec Codec, p *Transc
 	var f filterChain
 	f.trim("trim", "setpts", p, op)
 
-	// Anamorphic sources are first scaled to square pixels (scale keeps
-	// the display aspect, so the sample aspect ratio becomes 1:1).
-	w, h := in.Width, in.Height
-	if dw, dh := in.DisplaySize(); dw != w || dh != h {
-		w, h = even(dw), even(dh)
-		f.add("scale=" + itoa(w) + ":" + itoa(h) + ":flags=bicubic")
-	}
-	// Display matrix, then the request's rotation and flips.
-	o := orientation{flip: in.HFlip, rot: in.Rotation}.
-		rotate(op.Rotate).flipH(op.FlipH).flipV(op.FlipV)
-	f.add(o.filters()...)
-	if o.rot%180 != 0 {
-		w, h = h, w
-	}
-	if c := op.Crop; c != nil {
-		cw, ch := c.Width, c.Height // 0 is the whole side
-		if cw == 0 || cw > w {
-			cw = w
-		}
-		if ch == 0 || ch > h {
-			ch = h
-		}
-		x, y := c.X, c.Y
-		if c.Gravity != nil {
-			x, y = anchored(*c.Gravity, w, h, cw, ch, c.X, c.Y)
-		}
-		if x >= w || y >= h {
-			return nil, limit("the crop is outside the video")
-		}
-		cw, ch = even(min(cw, w-x)), even(min(ch, h-y))
-		f.add("crop=" + itoa(cw) + ":" + itoa(ch) + ":" + itoa(x) + ":" + itoa(y))
-		w, h = cw, ch
+	w, h, err := orientCrop(&f, in, op)
+	if err != nil {
+		return nil, err
 	}
 	ow, oh := fit(&f, w, h, op)
 	if s.MaxOutputPixels > 0 && int64(ow)*int64(oh) > s.MaxOutputPixels {
@@ -633,6 +629,53 @@ func planVideo(in *TranscodeInput, op *transform.VideoOp, codec Codec, p *Transc
 		gop = op.KeyframeInterval.Seconds()
 	}
 	v.GOP = min(max(int(math.Round(v.FPS*gop)), 1), maxGOP)
+	encoderSettings(v, op, s)
+	return v, nil
+}
+
+// orientCrop adds the square-pixel scale, the orientation and the crop of
+// op to f and returns the frame size they leave.
+func orientCrop(f *filterChain, in *TranscodeInput, op *transform.VideoOp) (w, h int, err error) {
+	// Anamorphic sources are first scaled to square pixels (scale keeps
+	// the display aspect, so the sample aspect ratio becomes 1:1).
+	w, h = in.Width, in.Height
+	if dw, dh := in.DisplaySize(); dw != w || dh != h {
+		w, h = even(dw), even(dh)
+		f.add("scale=" + itoa(w) + ":" + itoa(h) + ":flags=bicubic")
+	}
+	// Display matrix, then the request's rotation and flips.
+	o := orientation{flip: in.HFlip, rot: in.Rotation}.
+		rotate(op.Rotate).flipH(op.FlipH).flipV(op.FlipV)
+	f.add(o.filters()...)
+	if o.rot%180 != 0 {
+		w, h = h, w
+	}
+	if c := op.Crop; c != nil {
+		cw, ch := c.Width, c.Height // 0 is the whole side
+		if cw == 0 || cw > w {
+			cw = w
+		}
+		if ch == 0 || ch > h {
+			ch = h
+		}
+		x, y := c.X, c.Y
+		if c.Gravity != nil {
+			x, y = anchored(*c.Gravity, w, h, cw, ch, c.X, c.Y)
+		}
+		if x >= w || y >= h {
+			return 0, 0, limit("the crop is outside the video")
+		}
+		cw, ch = even(min(cw, w-x)), even(min(ch, h-y))
+		f.add("crop=" + itoa(cw) + ":" + itoa(ch) + ":" + itoa(x) + ":" + itoa(y))
+		w, h = cw, ch
+	}
+	return w, h, nil
+}
+
+// encoderSettings sets v's CRF (op's quality or CRF, else the configured
+// default of its codec), speed and preset.
+func encoderSettings(v *VideoStreamPlan, op *transform.VideoOp, s *TranscodeSettings) {
+	codec := v.Codec
 	def := DefaultCRF(codec)
 	if c, ok := s.Encode.CRF[codec]; ok {
 		def = c
@@ -651,7 +694,6 @@ func planVideo(in *TranscodeInput, op *transform.VideoOp, codec Codec, p *Transc
 	if pr, ok := s.Encode.Preset[codec]; ok && pr != "" {
 		v.Preset = pr
 	}
-	return v, nil
 }
 
 // maxGOP bounds the keyframe interval in frames.
