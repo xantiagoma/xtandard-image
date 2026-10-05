@@ -1517,8 +1517,7 @@ export interface ImgproxyVideoArgs {
    * @example [640,360,"nowe"]
    */
   "crop":
-    | [width: number, height?: number | null, type?: "ce" | "no" | "so" | "ea" | "we" | "noea" | "nowe" | "soea" | "sowe" | null, x_offset?: number | null, y_offset?: number | null]
-    | [width: number, height: number | null, type: "fp", x: number, y: number];
+    | [width: number, height?: number | null, type?: "ce" | "no" | "so" | "ea" | "we" | "noea" | "nowe" | "soea" | "sowe" | null, x_offset?: number | null, y_offset?: number | null];
   /**
    * Length of the output from start (exclusive with end). URL: `duration`, `vd`; arguments seconds; default to the end.
    *
@@ -1610,15 +1609,14 @@ export interface ImgproxyVideoArgs {
   "fps":
     | [fps: number];
   /**
-   * Anchor of fill crops and crops (compass with pixel offsets, or a focus point). URL: `gravity`, `g`; arguments type:x:y or fp:x:y; default ce:0:0.
+   * Anchor of fill crops, pads and crops (a compass point; the pixel offsets move crops). URL: `gravity`, `g`; arguments type:x:y; default ce:0:0.
    *
    * URL names: `gravity`, `g`.
    * milestone M5 (WP-122); scope request.
    * @example ["soea",10,10]
    */
   "gravity":
-    | [type: "ce" | "no" | "so" | "ea" | "we" | "noea" | "nowe" | "soea" | "sowe", x_offset?: number | null, y_offset?: number | null]
-    | [type: "fp", x: number, y: number];
+    | [type: "ce" | "no" | "so" | "ea" | "we" | "noea" | "nowe" | "soea" | "sowe", x_offset?: number | null, y_offset?: number | null];
   /**
    * Check the source bytes against a digest. URL: `hashsum`, `hs`; arguments none, or md5/sha1/sha256/sha512:hex; default none.
    *

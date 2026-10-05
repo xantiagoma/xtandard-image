@@ -47,7 +47,7 @@ const video: ImgproxyVideoOptions = {
   start: 1.5,
   vd: 5,
   resize: ["fill", 640, 360],
-  gravity: ["fp", 0.5, 0.5],
+  gravity: ["soea", 10, 10],
   format: "webm",
   video_codec: "av1",
   vb: "2M",

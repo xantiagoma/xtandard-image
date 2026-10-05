@@ -364,32 +364,15 @@
     },
     "path": "/unsafe/crf:64/plain/https://example.com/clip.mov"
   },
-  "crop_fp": {
+  "crop_fp_refused": {
     "endpoint": "video",
-    "path": "/unsafe/c:100:0:fp:0.1:0.9/plain/https://example.com/clip.mov",
-    "request": {
-      "Dialect": "imgproxy",
-      "Kind": "video",
-      "Pipelines": [
-        {}
-      ],
-      "Source": {
-        "Raw": "https://example.com/clip.mov"
-      },
-      "Video": {
-        "Crop": {
-          "Gravity": {
-            "Type": "focus-point",
-            "X": 0.1,
-            "Y": 0.9
-          },
-          "Width": 100
-        },
-        "Fit": "scale-down"
-      }
+    "error": {
+      "field": "crop.gravity.type",
+      "kind": "invalid_url",
+      "public": "invalid crop.gravity.type: expected ce, no, so, ea, we, noea, nowe, soea or sowe",
+      "status": 400
     },
-    "signature": "unsigned",
-    "source": "https://example.com/clip.mov"
+    "path": "/unsafe/c:100:0:fp:0.1:0.9/plain/https://example.com/clip.mov"
   },
   "crop_gravity": {
     "endpoint": "video",
@@ -405,13 +388,11 @@
       },
       "Video": {
         "Crop": {
-          "Gravity": {
-            "Type": "north-west",
-            "X": 10,
-            "Y": 20
-          },
+          "Gravity": "north-west",
           "Height": 360,
-          "Width": 640
+          "Width": 640,
+          "X": 10,
+          "Y": 20
         },
         "Fit": "scale-down"
       }
@@ -433,9 +414,7 @@
       },
       "Video": {
         "Crop": {
-          "Gravity": {
-            "Type": "center"
-          },
+          "Gravity": "center",
           "Height": 360,
           "Width": 640
         },
@@ -469,16 +448,39 @@
       },
       "Video": {
         "Crop": {
-          "Gravity": {
-            "Type": "south-east"
-          },
+          "Gravity": "south-east",
           "Height": 100,
           "Width": 100
         },
         "Fit": "scale-down",
-        "Gravity": {
-          "Type": "south-east"
-        }
+        "Gravity": "south-east"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "crop_takes_gravity_offsets": {
+    "endpoint": "video",
+    "path": "/unsafe/g:soea:10:5/c:100:100/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Crop": {
+          "Gravity": "south-east",
+          "Height": 100,
+          "Width": 100,
+          "X": 10,
+          "Y": 5
+        },
+        "Fit": "scale-down",
+        "Gravity": "south-east"
       }
     },
     "signature": "unsigned",
@@ -498,9 +500,7 @@
       },
       "Video": {
         "Crop": {
-          "Gravity": {
-            "Type": "center"
-          },
+          "Gravity": "center",
           "Width": 100
         },
         "Fit": "scale-down"
@@ -1007,9 +1007,7 @@
       },
       "Video": {
         "Fit": "cover",
-        "Gravity": {
-          "Type": "north"
-        },
+        "Gravity": "north",
         "Height": 100,
         "Width": 200
       }
@@ -1031,37 +1029,7 @@
       },
       "Video": {
         "Fit": "cover",
-        "Gravity": {
-          "Type": "south-east",
-          "X": 10,
-          "Y": 5
-        },
-        "Height": 200,
-        "Width": 200
-      }
-    },
-    "signature": "unsigned",
-    "source": "https://example.com/clip.mov"
-  },
-  "gravity_fp": {
-    "endpoint": "video",
-    "path": "/unsafe/g:fp:0.25:0.75/rs:fill:200:200/plain/https://example.com/clip.mov",
-    "request": {
-      "Dialect": "imgproxy",
-      "Kind": "video",
-      "Pipelines": [
-        {}
-      ],
-      "Source": {
-        "Raw": "https://example.com/clip.mov"
-      },
-      "Video": {
-        "Fit": "cover",
-        "Gravity": {
-          "Type": "focus-point",
-          "X": 0.25,
-          "Y": 0.75
-        },
+        "Gravity": "south-east",
         "Height": 200,
         "Width": 200
       }
@@ -1072,12 +1040,32 @@
   "gravity_fp_missing_y": {
     "endpoint": "video",
     "error": {
-      "field": "gravity",
+      "field": "gravity.type",
       "kind": "invalid_url",
-      "public": "invalid gravity: expected fp:x:y",
+      "public": "invalid gravity.type: expected ce, no, so, ea, we, noea, nowe, soea or sowe",
       "status": 400
     },
     "path": "/unsafe/g:fp:0.25/plain/https://example.com/clip.mov"
+  },
+  "gravity_fp_refused": {
+    "endpoint": "video",
+    "error": {
+      "field": "gravity.type",
+      "kind": "invalid_url",
+      "public": "invalid gravity.type: expected ce, no, so, ea, we, noea, nowe, soea or sowe",
+      "status": 400
+    },
+    "path": "/unsafe/g:fp:0.25:0.75/rs:fill:200:200/plain/https://example.com/clip.mov"
+  },
+  "gravity_offset_fraction": {
+    "endpoint": "video",
+    "error": {
+      "field": "gravity.x_offset",
+      "kind": "invalid_url",
+      "public": "invalid gravity.x_offset: expected integer pixels between 0 and 8192",
+      "status": 400
+    },
+    "path": "/unsafe/g:no:0.5/plain/https://example.com/clip.mov"
   },
   "gravity_offsets_kept": {
     "endpoint": "video",
@@ -1093,11 +1081,7 @@
       },
       "Video": {
         "Fit": "scale-down",
-        "Gravity": {
-          "Type": "east",
-          "X": 3,
-          "Y": 4
-        }
+        "Gravity": "east"
       }
     },
     "signature": "unsigned",
@@ -1108,7 +1092,7 @@
     "error": {
       "field": "gravity.type",
       "kind": "invalid_url",
-      "public": "invalid gravity.type: expected ce, no, so, ea, we, noea, nowe, soea, sowe or fp",
+      "public": "invalid gravity.type: expected ce, no, so, ea, we, noea, nowe, soea or sowe",
       "status": 400
     },
     "path": "/unsafe/g:sm/plain/https://example.com/clip.mov"
@@ -1547,6 +1531,28 @@
       },
       "Video": {
         "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "pad_gravity": {
+    "endpoint": "video",
+    "path": "/unsafe/rs:fit:300:300:0:1/g:so/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "pad",
+        "Gravity": "south",
+        "Height": 300,
+        "Width": 300
       }
     },
     "signature": "unsigned",
@@ -2187,7 +2193,7 @@
     "error": {
       "field": "timecode.position",
       "kind": "invalid_url",
-      "public": "invalid timecode.position: expected ce, no, so, ea, we, noea, nowe, soea, sowe",
+      "public": "invalid timecode.position: expected ce, no, so, ea, we, noea, nowe, soea or sowe",
       "status": 400
     },
     "path": "/unsafe/tc:hms:fp/plain/https://example.com/clip.mov"

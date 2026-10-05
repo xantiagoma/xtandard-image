@@ -32,8 +32,9 @@ type videoState struct {
 	enlarge      bool
 	extend       bool
 	// cropGravity reports a crop that names its own gravity; otherwise it
-	// takes the gravity option's.
+	// takes the gravity option's, with gx and gy (its offsets).
 	cropGravity bool
+	gx, gy      int
 	// containerSet reports an explicit format or extension.
 	containerSet bool
 	// overlay holds the window and fades of the watermark overlay
@@ -138,7 +139,7 @@ func (st *state) applyVideo(name string, args []string) error {
 	case "extend", "ex":
 		return oneBool("extend", args, &vs.extend)
 	case "gravity", "g":
-		return videoGravity(&op.Gravity, "gravity", args)
+		return videoGravity(&op.Gravity, &vs.gx, &vs.gy, "gravity", args)
 	case "crop", "c":
 		return st.videoCrop(args)
 	case "rotate", "rot":
@@ -330,7 +331,8 @@ const (
 	expVideoFormat  = "mp4, webm, m4a, mp3, opus, ogg, flac, wav, png or webp"
 	expBitrate      = "bits per second (an integer, or a number with k or M)"
 	expVolume       = "a gain factor (0.5) or decibels (-6dB)"
-	expVideoGravity = "ce, no, so, ea, we, noea, nowe, soea, sowe or fp"
+	expVideoGravity = "ce, no, so, ea, we, noea, nowe, soea or sowe"
+	expOffset       = "integer pixels between 0 and 8192"
 )
 
 // videoResizingTypes are the imgproxy resizing types a video accepts;
@@ -415,9 +417,14 @@ func (st *state) videoCrop(args []string) error {
 		}
 	}
 	if len(args) > 2 {
-		if err := videoGravity(&c.Gravity, "crop.gravity", args[2:]); err != nil {
+		g := transform.VideoGravityCenter
+		if c.Gravity != nil {
+			g = *c.Gravity
+		}
+		if err := videoGravity(&g, &c.X, &c.Y, "crop.gravity", args[2:]); err != nil {
 			return err
 		}
+		c.Gravity = &g
 		st.video.cropGravity = true
 	}
 	st.r.Video.Crop = &c
@@ -448,10 +455,8 @@ func (st *state) finishVideo() error {
 		op.Fit = transform.VideoFitScaleDown
 	}
 	if c := op.Crop; c != nil && !vs.cropGravity {
-		c.Gravity = op.Gravity
-		if c.Gravity.Type == transform.GravityUnset {
-			c.Gravity.Type = transform.GravityCenter
-		}
+		c.Gravity = new(op.Gravity)
+		c.X, c.Y = vs.gx, vs.gy
 	}
 	switch {
 	case op.Waveform != nil && !op.Container.Image():
@@ -524,7 +529,7 @@ func (st *state) videoTimecode(args []string) error {
 	if len(args) > 1 && args[1] != "" {
 		gt, ok := compass[args[1]]
 		if !ok {
-			return dialect.InvalidArgument("timecode.position", args[1], expVideoGravity[:len(expVideoGravity)-len(" or fp")])
+			return dialect.InvalidArgument("timecode.position", args[1], expVideoGravity)
 		}
 		o.Position.Type = gt
 	}
@@ -634,51 +639,35 @@ func parseVolume(field, s string) (float64, error) {
 	return v, nil
 }
 
-// videoGravity parses type[:x:y] for a compass point (offsets in pixels,
-// or fractions of the frame below 1) or fp:x:y (0..1).
-func videoGravity(g *transform.VideoGravity, field string, args []string) error {
+// videoCompass maps imgproxy's compass codes to video anchors.
+var videoCompass = map[string]transform.VideoGravity{
+	"ce": transform.VideoGravityCenter, "no": transform.VideoGravityNorth, "so": transform.VideoGravitySouth,
+	"ea": transform.VideoGravityEast, "we": transform.VideoGravityWest, "noea": transform.VideoGravityNorthEast,
+	"nowe": transform.VideoGravityNorthWest, "soea": transform.VideoGravitySouthEast, "sowe": transform.VideoGravitySouthWest,
+}
+
+// videoGravity parses type[:x:y]: a compass point and offsets in whole
+// pixels towards the inside of the frame (they move crops; empty keeps the
+// previous ones, as in imgproxy). Focus points and content-aware
+// gravities are not video anchors.
+func videoGravity(g *transform.VideoGravity, x, y *int, field string, args []string) error {
 	if err := maxArgs(field, args, 3); err != nil {
 		return err
 	}
-	t := args[0]
-	if t == "fp" {
-		if len(args) != 3 {
-			return dialect.InvalidArgument(field, joinArgs(args), "fp:x:y")
-		}
-		x, err := parseUnitFloat(field+".x", args[1])
-		if err != nil {
-			return err
-		}
-		y, err := parseUnitFloat(field+".y", args[2])
-		if err != nil {
-			return err
-		}
-		*g = transform.VideoGravity{Type: transform.GravityFocusPoint, X: x, Y: y}
-		return nil
-	}
-	gt, ok := compass[t]
+	vg, ok := videoCompass[args[0]]
 	if !ok {
-		return dialect.InvalidArgument(field+".type", t, expVideoGravity)
+		return dialect.InvalidArgument(field+".type", args[0], expVideoGravity)
 	}
-	ng := transform.VideoGravity{Type: gt}
-	if g.Type != transform.GravityFocusPoint {
-		ng.X, ng.Y = g.X, g.Y
-	}
-	if len(args) > 1 && args[1] != "" {
-		x, err := parseFloat(field+".x_offset", args[1])
-		if err != nil {
-			return err
+	for i, dst := range []*int{x, y} {
+		if len(args) > 1+i && args[1+i] != "" {
+			v, err := strconv.Atoi(args[1+i])
+			if err != nil || v < 0 || v > transform.MaxVideoDimension {
+				return dialect.InvalidArgument(field+[]string{".x_offset", ".y_offset"}[i], args[1+i], expOffset)
+			}
+			*dst = v
 		}
-		ng.X = x
 	}
-	if len(args) > 2 && args[2] != "" {
-		y, err := parseFloat(field+".y_offset", args[2])
-		if err != nil {
-			return err
-		}
-		ng.Y = y
-	}
-	*g = ng
+	*g = vg
 	return nil
 }
 

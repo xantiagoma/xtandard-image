@@ -1992,18 +1992,12 @@ export interface components {
              *       "nowe"
              *     ]
              */
-            crop?: unknown[] | [
+            crop?: [
                 number,
                 number | null,
                 "ce" | "no" | "so" | "ea" | "we" | "noea" | "nowe" | "soea" | "sowe" | null,
                 number | null,
                 number | null
-            ] | [
-                number,
-                number | null,
-                "fp",
-                number,
-                number
             ];
             /**
              * @description Length of the output from start (exclusive with end). URL: `duration`, `vd`; arguments seconds; default to the end.
@@ -2101,21 +2095,17 @@ export interface components {
                 number
             ];
             /**
-             * @description Anchor of fill crops and crops (compass with pixel offsets, or a focus point). URL: `gravity`, `g`; arguments type:x:y or fp:x:y; default ce:0:0.
+             * @description Anchor of fill crops, pads and crops (a compass point; the pixel offsets move crops). URL: `gravity`, `g`; arguments type:x:y; default ce:0:0.
              * @example [
              *       "soea",
              *       10,
              *       10
              *     ]
              */
-            gravity?: unknown[] | [
+            gravity?: [
                 "ce" | "no" | "so" | "ea" | "we" | "noea" | "nowe" | "soea" | "sowe",
                 number | null,
                 number | null
-            ] | [
-                "fp",
-                number,
-                number
             ];
             /**
              * @description Check the source bytes against a digest. URL: `hashsum`, `hs`; arguments none, or md5/sha1/sha256/sha512:hex; default none.
@@ -4249,7 +4239,7 @@ export interface operations {
                 enlarge?: string;
                 /** @description Pad a fit to the whole box with the background colour. Arguments joined by , or : (bool). */
                 extend?: string;
-                /** @description Anchor of fill crops and crops (compass with pixel offsets, or a focus point). Arguments joined by , or : (type:x:y or fp:x:y). */
+                /** @description Anchor of fill crops, pads and crops (a compass point; the pixel offsets move crops). Arguments joined by , or : (type:x:y). */
                 gravity?: string;
                 /** @description Crop a rectangle (pixels) of the rotated frame before the resize. Arguments joined by , or : (w:h:gravity). */
                 crop?: string;
