@@ -410,6 +410,11 @@ func TestStreamMasterPolicy(t *testing.T) {
 		mustGet(t, h, videoPath, http.StatusNotFound)
 		mustGet(t, h, StreamPath+"x/v0.m3u8", http.StatusNotFound)
 	})
+	t.Run("video role", func(t *testing.T) {
+		t.Parallel()
+		h, _ := newStreamHarness(t, hlsOp(), func(h *harness) { h.cfg.Role = RoleVideo })
+		mustGet(t, h, streamBase(t, h)+"v0/0.m4s", http.StatusOK)
+	})
 	t.Run("streams off", func(t *testing.T) {
 		t.Parallel()
 		h, _ := newStreamHarness(t, hlsOp(), func(h *harness) { h.stream = nil })
