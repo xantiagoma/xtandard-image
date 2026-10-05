@@ -707,7 +707,8 @@ if [ "$XI_FLAVOR" = gpl ]; then mp4v=(-c:v libx264 -preset veryfast) mp4codec=h2
 # decodes to the end.
 check() {
   local got fmt
-  got="$(ffprobe -v error -show_entries stream=codec_name -of csv=p=0 "$1" | xargs)"
+  # MPEG-TS lists each stream once more under its program: keep one line per index.
+  got="$(ffprobe -v error -show_entries stream=index,codec_name -of csv=p=0 "$1" | awk -F, '!seen[$1]++ { print $2 }' | xargs)"
   fmt="$(ffprobe -v error -show_entries format=format_name -of csv=p=0 "$1")"
   if [ "$got" != "$2" ] || [[ $fmt != *"$3"* ]]; then
     echo "$1: streams '$got' format '$fmt', want '$2' in $3" >&2
