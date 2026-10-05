@@ -13,7 +13,6 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
-	"github.com/xantiagoma/xtandard-image/internal/security/sign"
 	"github.com/xantiagoma/xtandard-image/internal/source"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/video"
@@ -69,6 +68,19 @@ type VideoConfig struct {
 	// MaxSrcBytes caps a video source at fetch
 	// (XI_VIDEO_TRANSFORM_MAX_INPUT_BYTES); 0 is the image limit.
 	MaxSrcBytes int64
+	// AllowUnsigned leaves unsigned video transformations to the mount's
+	// unsigned policy (XI_VIDEO_TRANSFORM_UNSIGNED_POLICY=allow); false
+	// (the default) answers them 403 whatever that policy is (ADR 0012 §8).
+	AllowUnsigned bool
+}
+
+// errVideoUnsigned is the 403 of an unsigned video transformation while
+// XI_VIDEO_TRANSFORM_UNSIGNED_POLICY is deny.
+func errVideoUnsigned() error {
+	return &errs.Error{
+		Kind: errs.KindForbidden, Public: "unsigned request not allowed",
+		Msg: "server: unsigned video transformation (video.transform.unsigned_policy deny)",
+	}
 }
 
 // Role is what an instance serves (XI_ROLE).
@@ -130,7 +142,10 @@ func (s *Server) videoProcess(ctx context.Context, r *http.Request, info *reques
 		return nil, errNotServed("server: video transformations are not served by this instance")
 	}
 	req := parsed.Request
-	signed := parsed.Signature != sign.Unsigned
+	signed := parsed.Signature.Signed()
+	if !signed && !s.cfg.Video.AllowUnsigned {
+		return nil, errVideoUnsigned()
+	}
 	if e := req.Delivery.Expires; !e.IsZero() && !s.now().Before(e) {
 		return nil, errs.New(errs.KindExpired, "server: url expired")
 	}
