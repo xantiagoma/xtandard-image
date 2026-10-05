@@ -22,6 +22,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/limiter"
+	"github.com/xantiagoma/xtandard-image/internal/media"
 	"github.com/xantiagoma/xtandard-image/internal/obs/admin"
 	"github.com/xantiagoma/xtandard-image/internal/obs/logging"
 	"github.com/xantiagoma/xtandard-image/internal/obs/metrics"
@@ -198,10 +199,12 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	if err != nil {
 		return err
 	}
-	// Requests read the watermark's pixels until they finish: like libvips
-	// itself, it is released only once none is in flight.
+	// Requests (and video overlays) read the watermark's pixels until they
+	// finish: like libvips itself, it is released only once none is in
+	// flight.
+	var vt *media.Service
 	cleanups = append(cleanups, func(context.Context) error {
-		if lim.Stats().InFlight == 0 {
+		if lim.Stats().InFlight == 0 && (vt == nil || vt.Stats().InFlight == 0) {
 			wm.Close()
 		}
 		return nil
@@ -212,7 +215,15 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	logger.LogAttrs(ctx, slog.LevelInfo, "video",
 		slog.Bool("enabled", videoSettings(cfg).Enabled), slog.String("ffmpeg", codec.VideoVersion()),
 		slog.String("encoders", strings.Join(codec.VideoEncoders().Names(), ",")))
-	vt, err := buildVideoTransform(cfg, met)
+	eps, err := buildEPS(ctx, cfg, logger)
+	if err != nil {
+		return err
+	}
+	proc, err := newProcessor(cfg, wm, lim.Reserve, eps)
+	if err != nil {
+		return err
+	}
+	vt, err = buildVideoTransform(cfg, met, proc.exec)
 	if err != nil {
 		return err
 	}
@@ -231,14 +242,6 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 			}
 			return inFlight(ctx)
 		}
-	}
-	eps, err := buildEPS(ctx, cfg, logger)
-	if err != nil {
-		return err
-	}
-	proc, err := newProcessor(cfg, wm, lim.Reserve, eps)
-	if err != nil {
-		return err
 	}
 	mf, err := buildMetafile(ctx, cfg, logger)
 	if err != nil {
