@@ -256,6 +256,14 @@ func goldenCases() []goldenCase {
 				CalcHashsums: []HashAlgorithm{HashMD5, HashSHA256},
 			}}
 		}},
+		{"kind_video", func() Request {
+			return Request{Kind: KindVideo, Source: src(img), Video: &VideoOp{
+				Start: 1500 * time.Millisecond, Duration: 3 * time.Second, Width: 640, Height: 360,
+				Fit: VideoFitPad, Background: Color{R: 255, A: 255}, Rotate: 90, FlipH: true, FPS: 24,
+				Container: VideoContainerWebM, VideoCodec: VideoCodecVP9, AudioCodec: AudioCodecOpus,
+				Quality: 70, MaxBitrate: 1_000_000, AudioBitrate: 96_000, Crop: &VideoCrop{Width: 100, Height: 100},
+			}}
+		}},
 		{"kind_info_thumbor", func() Request {
 			return Request{Kind: KindInfo, Source: src(img), Info: &InfoOptions{Schema: InfoSchemaThumbor}}
 		}},
