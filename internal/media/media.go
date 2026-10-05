@@ -257,6 +257,9 @@ func (s *Service) transcode(ctx context.Context, src Buffer, op *transform.Video
 		return nil, err
 	}
 	r := &Result{Body: body, Output: out, Duration: p.Duration}
+	if p.Audio == nil { // the source had no audio: none was written
+		r.Output.Audio = video.AudioNone
+	}
 	if p.Video != nil {
 		r.Width, r.Height = p.Video.Width, p.Video.Height
 	}
