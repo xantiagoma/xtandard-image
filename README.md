@@ -15,7 +15,7 @@ A self-hosted image processing proxy in Go and libvips. The goal is to offer eve
 
 ## Status and comparison
 
-The xtandard-image column is the state as of 2026-09-28: **done (M1)** / **done (M2)** / **done (M3)** means merged on `main` and working in the image you build today (**full image** means only the `full`/`gpl` images have it); **in progress** and **planned** follow the [roadmap](docs/ROADMAP.md), which tracks every work package with its status. Competitor legend: **yes**, **paid** (paid tier only), **partial**, **no**, **—** (not compared yet). Competitor data comes from their public docs and source as of September 2026.
+The xtandard-image column is the state as of 2026-09-28: **done (M1)** / **done (M2)** / **done (M3)** / **done (M5)** means merged on `main` and working in the image you build today (**full image** means only the `full`/`gpl` images have it); **in progress** and **planned** follow the [roadmap](docs/ROADMAP.md), which tracks every work package with its status. Competitor legend: **yes**, **paid** (paid tier only), **partial**, **no**, **—** (not compared yet). Competitor data comes from their public docs and source as of September 2026.
 
 | Feature | xtandard-image | imgproxy OSS | imgproxy Pro | thumbor | imaginary | weserv |
 |---|---|---|---|---|---|---|
@@ -48,6 +48,8 @@ The xtandard-image column is the state as of 2026-09-28: **done (M1)** / **done 
 | Video thumbnails (frame at a time, keyframe, best frame; `/info` video metadata) | done (M3, `full` image) | no | paid | partial (ffmpeg engine) | no | no |
 | Video sprites and animations (`vtt`, `vta`) | done (M3, `full` image) | no | paid | no | no | no |
 | GIF → MP4/WebM | done (M3: WebM/VP9 and AV1-in-MP4 in `full`, H.264 MP4 and HEVC in `gpl`) | no | paid (MP4) | no | no | no |
+| Video transformations (`/video` and `/q/video`: trim, resize/crop/pad with gravity, fps, rotate/flip, fades, CRF or bit-rate cap, keyframe interval, MP4/WebM, codec choice; `Range`; signed only by default) | done (M5, `full`/`gpl` image, `XI_VIDEO_TRANSFORM_ENABLED`) | no | — | no | no | no |
+| Audio (mute; M4A, MP3, Opus/Ogg, FLAC, WAV outputs from video or audio sources; sample rate, channels, volume, EBU R128 loudness normalisation, fades) and waveform pictures (PNG/WebP) | done (M5, `full`/`gpl` image) | no | — | no | no | no |
 | **Processing** | | | | | | |
 | Resize, crop, gravity, smart crop, focus point (fractions or source pixels) | done (M1, M2) | yes | yes | yes | yes | yes |
 | Extend, padding, trim | done (M1) | yes | yes | — | — | — |

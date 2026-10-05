@@ -91,6 +91,7 @@ func TestCatalogMatchesParser(t *testing.T) {
 	}{
 		{"processing", imgproxy.ProcessingOptions(), []string{"apply", "applyLater"}, []string{"options.go", "later.go"}},
 		{"info", imgproxy.InfoOptions(), []string{"applyInfo"}, []string{"info.go"}},
+		{"video", imgproxy.VideoOptions(), []string{"applyVideo"}, []string{"video.go"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -121,6 +122,7 @@ func TestCatalogAccepted(t *testing.T) {
 	}{
 		{"processing", imgproxy.ProcessingOptions(), func(s string) error { _, err := p.ParsePath(s); return err }},
 		{"info", imgproxy.InfoOptions(), func(s string) error { _, err := p.ParseInfoPath(s); return err }},
+		{"video", imgproxy.VideoOptions(), func(s string) error { _, err := p.ParseVideoPath(s); return err }},
 	} {
 		for _, o := range tc.opts {
 			if o.Name == "pdf_password" {
@@ -209,6 +211,7 @@ func TestCatalogMatchesURLDialects(t *testing.T) {
 	}{
 		{"### 3.2 Processing options → TR", imgproxy.ProcessingOptions()},
 		{"### 3.3 Info options", imgproxy.InfoOptions()},
+		{"### 3.8 Video transformations (WP-122, WP-123)", imgproxy.VideoOptions()},
 	} {
 		t.Run(tc.heading, func(t *testing.T) {
 			t.Parallel()
@@ -326,17 +329,20 @@ type goldenCase struct {
 // validates them against the generated schema; the catalogue examples too.
 func TestSchemaAcceptsTableURLs(t *testing.T) {
 	t.Parallel()
-	proc, info := imgproxy.ProcessingOptions(), imgproxy.InfoOptions()
-	schemas := map[bool]*jsonschema.Schema{
-		false: compileSchema(t, "processing", imgproxy.ProcessingOptionsSchema()),
-		true:  compileSchema(t, "info", imgproxy.InfoOptionsSchema()),
+	// Keyed by the golden case's endpoint: "" (processing), info, video.
+	schemas := map[string]*jsonschema.Schema{
+		"":      compileSchema(t, "processing", imgproxy.ProcessingOptionsSchema()),
+		"info":  compileSchema(t, "info", imgproxy.InfoOptionsSchema()),
+		"video": compileSchema(t, "video", imgproxy.VideoOptionsSchema()),
 	}
-	catalogues := map[bool][]imgproxy.Option{false: proc, true: info}
-	index := map[bool]map[string]*imgproxy.Option{false: {}, true: {}}
-	for isInfo, opts := range catalogues {
+	catalogues := map[string][]imgproxy.Option{
+		"": imgproxy.ProcessingOptions(), "info": imgproxy.InfoOptions(), "video": imgproxy.VideoOptions(),
+	}
+	index := map[string]map[string]*imgproxy.Option{"": {}, "info": {}, "video": {}}
+	for endpoint, opts := range catalogues {
 		for i := range opts {
 			for _, n := range opts[i].Names() {
-				index[isInfo][n] = &opts[i]
+				index[endpoint][n] = &opts[i]
 			}
 		}
 	}
@@ -366,24 +372,23 @@ func TestSchemaAcceptsTableURLs(t *testing.T) {
 			if c.Config == "sep" {
 				sep = ","
 			}
-			isInfo := c.Endpoint == "info"
 			for _, occ := range urlOptions(c.Path, sep) {
-				o, ok := index[isInfo][occ.name]
+				o, ok := index[c.Endpoint][occ.name]
 				if !ok {
 					continue // unknown option, recorded in Ignored
 				}
 				obj := map[string]any{o.Name: o.Decode(occ.args)}
-				if err := validate(t, schemas[isInfo], obj); err != nil {
+				if err := validate(t, schemas[c.Endpoint], obj); err != nil {
 					t.Errorf("%s/%s: %s:%s decoded to %v: %v", filepath.Base(file), name, occ.name, strings.Join(occ.args, sep), obj, err)
 				}
 				checked++
 			}
 		}
 	}
-	for isInfo, opts := range catalogues {
+	for endpoint, opts := range catalogues {
 		for i := range opts {
 			obj := map[string]any{opts[i].Name: opts[i].Decode(strings.Split(opts[i].Example, ":"))}
-			if err := validate(t, schemas[isInfo], obj); err != nil {
+			if err := validate(t, schemas[endpoint], obj); err != nil {
 				t.Errorf("example %v: %v", obj, err)
 			}
 			checked++

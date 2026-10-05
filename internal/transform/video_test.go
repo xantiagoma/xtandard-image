@@ -49,6 +49,20 @@ func TestValidateVideo(t *testing.T) {
 		}}},
 		{"cover_gravity_auto", VideoOp{Width: 64, Height: 64, Fit: VideoFitCover, Gravity: VideoGravitySouthEast, AutoContainer: true}},
 		{"crop_gravity", VideoOp{Crop: &VideoCrop{X: 4, Width: 64, Height: 64, Gravity: new(VideoGravityNorth)}}},
+		{"gravity_gop_fades", VideoOp{
+			Width: 320, Height: 320, Fit: VideoFitCover, Gravity: VideoGravitySouthEast,
+			KeyframeInterval: time.Second, FadeIn: time.Second, FadeOut: 500 * time.Millisecond,
+		}},
+		{"crop_whole_height", VideoOp{Crop: &VideoCrop{Width: 100, Gravity: new(VideoGravityEast)}}},
+		{"audio_options", VideoOp{
+			Container: VideoContainerM4A, SampleRate: 44100, Channels: 1, Volume: 0.5,
+			Loudnorm: &VideoLoudnorm{Integrated: -16, TruePeak: -1.5, Range: 11},
+		}},
+		{"ogg", VideoOp{Container: VideoContainerOgg, AudioCodec: AudioCodecOpus}},
+		{"flac", VideoOp{Container: VideoContainerFLAC, AudioCodec: AudioCodecFLAC}},
+		{"wav", VideoOp{Container: VideoContainerWAV, AudioCodec: AudioCodecPCM, SampleRate: 8000}},
+		{"waveform_png", VideoOp{Container: VideoContainerPNG, Width: 800, Height: 200, Waveform: &VideoWaveform{}}},
+		{"waveform_webp", VideoOp{Container: VideoContainerWebP, Waveform: &VideoWaveform{Background: Color{R: 255, G: 255, B: 255, A: 255}}}},
 	}
 	for _, tc := range valid {
 		t.Run("valid/"+tc.name, func(t *testing.T) {
@@ -133,6 +147,21 @@ func TestValidateVideo(t *testing.T) {
 			o.Overlays = []VideoOverlay{{Timecode: VideoTimecodeHMS, TimecodeSize: MaxTimecodeSize + 1}}
 		}, "video.overlays[0].timecode_size"},
 		{"overlay size without timecode", func(o *VideoOp) { o.Overlays = []VideoOverlay{{TimecodeSize: 20}} }, "video.overlays[0].timecode_size"},
+		{"keyframe interval tiny", func(o *VideoOp) { o.KeyframeInterval = time.Millisecond }, "video.keyframe_interval"},
+		{"keyframe interval huge", func(o *VideoOp) { o.KeyframeInterval = 2 * time.Minute }, "video.keyframe_interval"},
+		{"fade negative", func(o *VideoOp) { o.FadeOut = -time.Second }, "video.fade_out"},
+		{"sample rate odd", func(o *VideoOp) { o.SampleRate = 44000 }, "video.sample_rate"},
+		{"channels 6", func(o *VideoOp) { o.Channels = 6 }, "video.channels"},
+		{"volume huge", func(o *VideoOp) { o.Volume = 11 }, "video.volume"},
+		{"volume negative", func(o *VideoOp) { o.Volume = -1 }, "video.volume"},
+		{"loudnorm low", func(o *VideoOp) { o.Loudnorm = &VideoLoudnorm{Integrated: -80, TruePeak: -1, Range: 7} }, "video.loudnorm.integrated"},
+		{"loudnorm peak", func(o *VideoOp) { o.Loudnorm = &VideoLoudnorm{Integrated: -23, TruePeak: 1, Range: 7} }, "video.loudnorm.true_peak"},
+		{"loudnorm range", func(o *VideoOp) { o.Loudnorm = &VideoLoudnorm{Integrated: -23, TruePeak: -1} }, "video.loudnorm.range"},
+		{"muted volume", func(o *VideoOp) { o.Mute, o.Volume = true, 2 }, "video.mute"},
+		{"muted wav", func(o *VideoOp) { o.Container, o.Mute = VideoContainerWAV, true }, "video.mute"},
+		{"opus in flac", func(o *VideoOp) { o.Container, o.AudioCodec = VideoContainerFLAC, AudioCodecOpus }, "video.audio_codec"},
+		{"png without waveform", func(o *VideoOp) { o.Container = VideoContainerPNG }, "video.waveform"},
+		{"waveform in mp4", func(o *VideoOp) { o.Waveform = &VideoWaveform{} }, "video.waveform"},
 	}
 	for _, tc := range invalid {
 		t.Run("invalid/"+tc.name, func(t *testing.T) {

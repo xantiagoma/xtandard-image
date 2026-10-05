@@ -162,10 +162,19 @@ func (p *Parser) Parse(in *dialect.Input) (*dialect.Result, error) {
 // ParsePath parses an escaped request path such as
 // "/unsafe/rs:fit:300:300/plain/https://example.com/a.jpg".
 func (p *Parser) ParsePath(path string) (*dialect.Result, error) {
-	return p.parsePath(path, false)
+	return p.parsePath(path, parseProcess)
 }
 
-func (p *Parser) parsePath(path string, info bool) (*dialect.Result, error) {
+// parseKind selects the grammar parsePath applies.
+type parseKind uint8
+
+const (
+	parseProcess parseKind = iota // processing URLs
+	parseInfo                     // /info URLs (info.go)
+	parseVideo                    // /video URLs (video.go)
+)
+
+func (p *Parser) parsePath(path string, kind parseKind) (*dialect.Result, error) {
 	path, _, _ = strings.Cut(path, "?")
 	path = strings.TrimPrefix(path, "/")
 	signature, rest, _ := strings.Cut(path, "/")
@@ -177,12 +186,23 @@ func (p *Parser) parsePath(path string, info bool) (*dialect.Result, error) {
 		return nil, dialect.InvalidURL("missing path")
 	}
 	// imgproxy signs "/" + the redenormalised path; sign adds the slash.
-	sigResult, err := p.verifier.Verify(signature, rest)
+	// Video URLs sign "/video/" + the path, so no signature of an image
+	// URL is valid for a video transformation (video.go).
+	signed := rest
+	if kind == parseVideo {
+		signed = videoSigningPrefix + rest
+	}
+	sigResult, err := p.verifier.Verify(signature, signed)
 	if err != nil {
 		return nil, err
 	}
 
-	st := newState(p, info)
+	var st *state
+	if kind == parseVideo {
+		st = newVideoState(p)
+	} else {
+		st = newState(p, kind == parseInfo)
+	}
 	st.verified = sigResult == sign.Verified
 	if err := st.parse(rest); err != nil {
 		st.r.Source.Password.Clear()
@@ -256,6 +276,8 @@ type state struct {
 	// verified is set when the URL's signature was verified (not unsigned,
 	// not a trusted signature): only then is pdf_password accepted.
 	verified bool
+	// video holds the /video option state (video.go); nil otherwise.
+	video *videoState
 }
 
 func newState(p *Parser, info bool) *state {
@@ -282,6 +304,9 @@ func (st *state) parse(rest string) error {
 	// keeps separate info presets, so there a preset option is only
 	// recorded (applyPresets) and neither the default preset nor
 	// only-presets mode applies.
+	if st.video != nil {
+		return st.parseVideo(rest)
+	}
 	if !st.info {
 		var err error
 		if rest, err = st.presetPrologue(rest); err != nil {
@@ -321,6 +346,9 @@ func (st *state) parseOptions(rest string) (string, error) {
 			if st.info {
 				return "", dialect.InvalidURL("chained pipelines in info url")
 			}
+			if st.video != nil {
+				return "", dialect.InvalidURL("chained pipelines in video url")
+			}
 			if !sawOption {
 				return "", dialect.InvalidURL("empty pipeline")
 			}
@@ -337,8 +365,11 @@ func (st *state) parseOptions(rest string) (string, error) {
 		}
 		st.args = splitArgs(st.args[:0], argStr, st.p.sep)
 		apply := st.apply
-		if st.info {
+		switch {
+		case st.info:
 			apply = st.applyInfo
+		case st.video != nil:
+			apply = st.applyVideo
 		}
 		if err := apply(name, st.args); err != nil {
 			return "", err
@@ -371,6 +402,9 @@ func splitArgs(dst []string, s, sep string) []string {
 
 // finish applies cross-option rules once every option is known.
 func (st *state) finish() error {
+	if st.video != nil {
+		return st.finishVideo()
+	}
 	for i := range st.r.Pipelines {
 		pl := &st.r.Pipelines[i]
 		if a := st.bgAlpha[i]; a >= 0 && pl.Background != nil {

@@ -163,6 +163,10 @@ func (j ffmpegJob) Run(ctx context.Context, p *video.TranscodePlan, pixels []med
 	if err != nil {
 		return nil, err
 	}
+	if p.Waveform != nil {
+		defer out.Release()
+		return encodeWaveform(ctx, out.Bytes(), p.Waveform)
+	}
 	return out, nil
 }
 
@@ -195,6 +199,46 @@ func (r overlayRenderer) Render(ctx context.Context, o *transform.VideoOverlay, 
 		return media.Layer{}, false, err
 	}
 	return media.Layer{Pixels: ov.Pixels, X: ov.X, Y: ov.Y, Width: ov.Width, Height: ov.Height}, true, nil
+}
+
+// encodeWaveform encodes the RGBA pixels of a waveform picture (WP-123)
+// with libvips: flattened onto the background when it is opaque, saved as
+// PNG or WebP (lossless).
+func encodeWaveform(ctx context.Context, rgba []byte, w *video.WaveformPlan) (media.Buffer, error) {
+	buf, err := vips.NewBuffer(len(rgba))
+	if err != nil {
+		return nil, err
+	}
+	copy(buf.Bytes(), rgba)
+	defer buf.Release()
+	format := vips.FormatPNG
+	if w.Format == transform.VideoContainerWebP {
+		format = vips.FormatWebP
+	}
+	var blob *vips.Blob
+	err = vips.Run(ctx, func() error {
+		img, err := vips.NewFromBuffer(ctx, buf, w.Width, w.Height, 4, vips.BandFormatUchar)
+		if err != nil {
+			return err
+		}
+		defer img.Close()
+		if bg := w.Background; bg.A != 0 {
+			flat, err := img.Flatten(ctx, []float64{float64(bg.R), float64(bg.G), float64(bg.B)})
+			if err != nil {
+				return err
+			}
+			defer flat.Close()
+			img = flat
+		}
+		o := vips.DefaultSaveOptions()
+		o.WebP.Lossless = true
+		blob, err = img.Save(ctx, format, &o)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return blob, nil
 }
 
 func (j ffmpegJob) Close() { j.t.Close() }

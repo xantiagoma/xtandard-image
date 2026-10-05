@@ -36,7 +36,7 @@ import (
 const builderFixtureFile = "../../../testdata/urls/imgproxy-builder.json"
 
 // builderGroups are the golden tables the fixture is derived from.
-var builderGroups = []string{"grammar", "options", "signing", "jscore", "later", "info"}
+var builderGroups = []string{"grammar", "options", "signing", "jscore", "later", "info", "video"}
 
 type builderFixture struct {
 	Comment    string        `json:"comment"`
@@ -155,14 +155,17 @@ func readGolden(t *testing.T, group string) map[string]json.RawMessage {
 	return m
 }
 
-// optionIndex maps every name and alias to its catalogue entry, for the
-// processing (false) and info (true) catalogues.
-func optionIndex() map[bool]map[string]*imgproxy.Option {
-	idx := map[bool]map[string]*imgproxy.Option{false: {}, true: {}}
-	for isInfo, opts := range map[bool][]imgproxy.Option{false: imgproxy.ProcessingOptions(), true: imgproxy.InfoOptions()} {
+// optionIndex maps every name and alias to its catalogue entry, per
+// endpoint: "" (processing), "info" and "video".
+func optionIndex() map[string]map[string]*imgproxy.Option {
+	idx := map[string]map[string]*imgproxy.Option{}
+	for endpoint, opts := range map[string][]imgproxy.Option{
+		"": imgproxy.ProcessingOptions(), "info": imgproxy.InfoOptions(), "video": imgproxy.VideoOptions(),
+	} {
+		idx[endpoint] = map[string]*imgproxy.Option{}
 		for i := range opts {
 			for _, n := range opts[i].Names() {
-				idx[isInfo][n] = &opts[i]
+				idx[endpoint][n] = &opts[i]
 			}
 		}
 	}
@@ -212,7 +215,7 @@ func deriveBuilderCases(t *testing.T) []builderCase {
 				}
 				entries := make([]map[string][]any, 0, len(pl))
 				for _, occ := range pl {
-					o, ok := idx[g.Endpoint == "info"][occ.name]
+					o, ok := idx[g.Endpoint][occ.name]
 					if !ok {
 						continue cases // unknown option: nothing a typed builder emits
 					}
@@ -368,30 +371,33 @@ func TestBuilderFixture(t *testing.T) {
 			if cfg == "" {
 				cfg = "default"
 			}
-			info := c.Endpoint == "info"
+			info, video := c.Endpoint == "info", c.Endpoint == "video"
 			for _, u := range []struct {
 				url       string
 				canonical bool
 			}{{c.URL, false}, {c.URLShort, true}} {
 				path := u.url
-				if info {
+				if info || video {
 					var ok bool
-					if path, ok = strings.CutPrefix(path, "/info"); !ok {
-						t.Fatalf("info url %q lacks /info", u.url)
+					if path, ok = strings.CutPrefix(path, "/"+c.Endpoint); !ok {
+						t.Fatalf("%s url %q lacks /%s", c.Endpoint, u.url, c.Endpoint)
 					}
 				}
-				tc := testCase{name: c.Name, cfg: c.Config, path: path, info: info}
+				tc := testCase{name: c.Name, cfg: c.Config, path: path, info: info, video: video}
 				parse := f.parsers[cfg].Parse
-				if info {
+				switch {
+				case info:
 					parse = f.parsers[cfg].ParseInfo
+				case video:
+					parse = f.parsers[cfg].ParseVideo
 				}
 				res, err := parse(&dialect.Input{Path: path})
 				got, _ := jsonValue(t, outcome(tc, res, err)).(map[string]any)
 				delete(got, "path")
 				w, _ := jsonValue(t, want).(map[string]any) // a fresh copy per URL
 				if u.canonical {
-					canonicalIgnored(w, idx[info])
-					canonicalIgnored(got, idx[info])
+					canonicalIgnored(w, idx[c.Endpoint])
+					canonicalIgnored(got, idx[c.Endpoint])
 				}
 				if d := cmp.Diff(w, got); d != "" {
 					t.Errorf("%s parses differently from the table case (-golden +got):\n%s", u.url, d)

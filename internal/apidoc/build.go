@@ -33,6 +33,7 @@ const (
 	schemaErrorBody         = "ErrorBody"
 	schemaProcessingOptions = "ImgproxyProcessingOptions"
 	schemaInfoOptions       = "ImgproxyInfoOptions"
+	schemaVideoOptions      = "ImgproxyVideoOptions"
 	schemaRefPrefix         = "#/components/schemas/"
 	docsBase                = "https://github.com/xantiagoma/xtandard-image/blob/main/docs/"
 	urlDialectsDoc          = docsBase + "URL-DIALECTS.md"
@@ -46,6 +47,7 @@ const imgproxyGrammar = `/%signature/%options.../plain/%source_url[@%extension]
 /%signature/%options.../%base64url_source_url[.%extension]      (may be split with "/")
 /%signature/%options.../enc/%aes_cbc_source[.%extension]        (may be split with "/")
 /info/%signature/%info_options.../{plain/…|%base64…|enc/…}
+/video/%signature/%video_options.../{plain/…[@%container]|%base64…|enc/…}
 
 option      = name ":" arg *(":" arg)        ; separator configurable (XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR)
 pipeline    = option *("/" option)
@@ -92,6 +94,7 @@ func Build() (*huma.OpenAPI, error) {
 	// with only Extensions marshals as exactly that map.
 	schemas[schemaProcessingOptions] = &huma.Schema{Extensions: imgproxy.ProcessingOptionsSchema()}
 	schemas[schemaInfoOptions] = &huma.Schema{Extensions: imgproxy.InfoOptionsSchema()}
+	schemas[schemaVideoOptions] = &huma.Schema{Extensions: imgproxy.VideoOptionsSchema()}
 
 	doc := &huma.OpenAPI{
 		OpenAPI: "3.1.0",
@@ -385,6 +388,7 @@ func operations() []*huma.Operation {
 			Extensions: map[string]any{"x-xi-listener": ListenerAdmin},
 		},
 		infoOperation(),
+		videoOperation(),
 		imgproxyOperation(),
 		playgroundPageOperation(),
 		playgroundAssetOperation(),
@@ -395,6 +399,7 @@ func operations() []*huma.Operation {
 		playgroundUploadOperation(),
 		playgroundListOperation(),
 		queryOperation(),
+		queryVideoOperation(),
 		imaginaryOperation(),
 		imagekitOperation(),
 		imgixOperation(),
@@ -437,6 +442,88 @@ func infoOperation() *huma.Operation {
 			"x-xi-info-options": map[string]any{"$ref": schemaRefPrefix + schemaInfoOptions},
 			"x-xi-signing":      signingExtension(),
 		},
+	}
+}
+
+// videoResponses are the responses of a video transformation: the file
+// (byte ranges supported), 304, 206 and 416, and the errors.
+func videoResponses() map[string]*huma.Response {
+	binary := &huma.Schema{Type: "string", ContentEncoding: "binary"}
+	return withErrors(map[string]*huma.Response{
+		"200": {
+			Description: "The transcoded file: video/mp4, video/webm, audio/mp4, audio/mpeg, audio/ogg, audio/flac, audio/wav, " +
+				"or image/png and image/webp for a waveform picture.",
+			Headers: map[string]*huma.Param{
+				"ETag":          {Description: "Strong entity tag (also the If-Range validator).", Schema: &huma.Schema{Type: "string"}},
+				"Accept-Ranges": {Description: "bytes", Schema: &huma.Schema{Type: "string"}},
+				"Cache-Control": {Description: "XI_CACHE_HEADERS_* policy, or the URL's expires.", Schema: &huma.Schema{Type: "string"}},
+			},
+			Content: map[string]*huma.MediaType{
+				"video/*": {Schema: binary}, "audio/*": {Schema: binary}, "image/png": {Schema: binary}, "image/webp": {Schema: binary},
+			},
+		},
+		"206": {Description: "Partial content: the Range of the file (multipart/byteranges for several ranges)."},
+		"304": {Description: "Not modified: If-None-Match matched the ETag."},
+		"416": {Description: "Range not satisfiable."},
+	})
+}
+
+func videoOperation() *huma.Operation {
+	return &huma.Operation{
+		OperationID: "getImgproxyVideo", Method: http.MethodGet, Path: "/video/{signature}/{options}/{source}", Tags: []string{"video"},
+		Summary: "Transform a video or its audio (imgproxy-style /video, WP-122, WP-123)",
+		Description: "Trims, resizes, crops, rotates and transcodes a video into MP4 or WebM, its audio into M4A, MP3, Opus, Ogg, " +
+			"FLAC or WAV, or draws its audio as a PNG or WebP waveform. {options} is zero or more video options separated by / " +
+			"(rs:fill:640:360/vs:1/vd:5), typed by the ImgproxyVideoOptions schema; the source extension (@webm) picks the container. " +
+			"The signature covers \"/video\" + the path after it, so image signatures are not valid here. Needs " +
+			"XI_VIDEO_TRANSFORM_ENABLED (404 otherwise, and on XI_ROLE=image); unsigned requests are 403 unless " +
+			"XI_VIDEO_TRANSFORM_UNSIGNED_POLICY=allow. Supports Range.",
+		Parameters:   imgproxyParams("options", "Video options joined by /, each name:arg:arg (ImgproxyVideoOptions).", "rs:fit:640:0/vd:5", schemaVideoOptions),
+		Responses:    videoResponses(),
+		ExternalDocs: &huma.ExternalDocs{URL: urlDialectsDoc + "#38-video-transformations-wp-122-wp-123"},
+		Extensions: map[string]any{
+			"x-xi-listener":      ListenerPublic,
+			"x-xi-dialect":       imgproxy.Name,
+			"x-xi-path-grammar":  imgproxyGrammar,
+			"x-xi-video-options": map[string]any{"$ref": schemaRefPrefix + schemaVideoOptions},
+			"x-xi-signing":       videoSigningExtension(),
+		},
+	}
+}
+
+func videoSigningExtension() map[string]any {
+	return map[string]any{
+		"scheme": "imgproxy",
+		"description": "HMAC-SHA256(key, salt ‖ \"/video\" ‖ path after the signature), url-safe base64 without padding, " +
+			"optionally truncated to XI_SIGNING_SIZE bytes; any value (conventionally unsafe) when signing is off.",
+		"docs": urlDialectsDoc + "#38-video-transformations-wp-122-wp-123",
+	}
+}
+
+func queryVideoOperation() *huma.Operation {
+	opts := imgproxy.VideoOptions()
+	ps := []*huma.Param{{
+		Name: "url", In: "query", Required: true, Example: "https://example.com/clip.mp4",
+		Description: "Source URL or xi://<source>/<key>.", Schema: &huma.Schema{Type: "string"},
+	}}
+	for i := range opts {
+		if opts[i].Shared {
+			continue
+		}
+		ps = append(ps, queryParam(opts[i].Name, opts[i].Doc+" Arguments joined by , or : ("+opts[i].Syntax+")."))
+	}
+	o := queryParam("o", "A /video option path (rs:fill:640:360/vd:5).")
+	o.Extensions = map[string]any{"x-xi-options-schema": map[string]any{"$ref": schemaRefPrefix + schemaVideoOptions}}
+	ps = append(ps, o, queryParam("xi_sig", "Signature over \"/video\" + the query (sign.XIMessage)."))
+	return &huma.Operation{
+		OperationID: "getQueryVideo", Method: http.MethodGet, Path: "/q/video", Tags: []string{"video"},
+		Summary: "Transform a video (query dialect)",
+		Description: "The /video options as query keys (aliases too), in query order, mounted at /q/ when " +
+			"XI_DIALECTS_QUERY_ENABLED=true; fit, gravity, crop and flip also take the native spellings.",
+		Parameters:   ps,
+		Responses:    videoResponses(),
+		ExternalDocs: &huma.ExternalDocs{URL: urlDialectsDoc + "#4-query-dialect-native--imaginary"},
+		Extensions:   map[string]any{"x-xi-listener": ListenerPublic, "x-xi-dialect": "query"},
 	}
 }
 

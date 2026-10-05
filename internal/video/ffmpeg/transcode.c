@@ -36,10 +36,13 @@
 
 // Demuxers and decoders a source may use; no protocol at all (every byte
 // comes from the custom AVIOContext).
-#define XI_TX_FORMATS "mov,matroska,avi"
+// The audio demuxers (mp3, aac, ac3, eac3, ogg, flac, wav) admit audio
+// sources for audio-only outputs and waveforms (WP-123).
+#define XI_TX_FORMATS "mov,matroska,avi,mp3,aac,ac3,eac3,ogg,flac,wav"
 #define XI_TX_CODECS                                                                               \
-  "h264,hevc,vp8,vp9,libdav1d,mpeg4,mjpeg,png,rawvideo,aac,aac_fixed,opus,libopus,mp3,mp3float,"   \
-  "vorbis,flac,alac,pcm_s16le,pcm_s16be,pcm_s24le,pcm_s32le,pcm_f32le"
+  "h264,hevc,vp8,vp9,libdav1d,mpeg4,mjpeg,png,rawvideo,aac,aac_fixed,aac_latm,opus,libopus,mp3,"   \
+  "mp3float,mp2,mp2float,ac3,eac3,vorbis,flac,alac,pcm_s16le,pcm_s16be,pcm_s24le,pcm_s24be,"       \
+  "pcm_s32le,pcm_f32le,pcm_f64le,pcm_u8,pcm_alaw,pcm_mulaw"
 #define XI_TX_IO (64 * 1024)
 // Packets a decoder may reject in a row before the source is corrupt.
 #define XI_TX_MAX_BAD_PACKETS 64
@@ -157,6 +160,24 @@ xi_tx_caps(void)
     m |= XI_TX_CAP_OVERLAYS;
   if (avfilter_get_by_name("drawtext"))
     m |= XI_TX_CAP_DRAWTEXT;
+  static const char *const effects[] = { "volume", "loudnorm", "afade", NULL };
+  static const char *const vfade[] = { "fade", NULL };
+  static const char *const wave[] = { "showwavespic", NULL };
+  if (avcodec_find_encoder_by_name("flac"))
+    m |= XI_TX_CAP_FLAC;
+  if (avcodec_find_encoder_by_name("pcm_s16le"))
+    m |= XI_TX_CAP_PCM;
+  if (av_guess_format("flac", NULL, NULL))
+    m |= XI_TX_CAP_MUX_FLAC;
+  if (av_guess_format("wav", NULL, NULL))
+    m |= XI_TX_CAP_MUX_WAV;
+  if (xi_tx_has_filters(effects))
+    m |= XI_TX_CAP_AEFFECTS;
+  if (xi_tx_has_filters(vfade))
+    m |= XI_TX_CAP_VFADE;
+  if (xi_tx_has_filters(wave) && xi_tx_has_filters(vf) && avcodec_find_encoder_by_name("rawvideo")
+      && av_guess_format("rawvideo", NULL, NULL))
+    m |= XI_TX_CAP_WAVEFORM;
   return m;
 }
 
@@ -439,9 +460,10 @@ xi_tx_open(XiTx *h, XiTxInfo *info, char *err, size_t errlen)
 // Filters and encoders
 
 // Builds s's graph: a buffer source configured from the decoder, chain,
-// and a buffer sink.
+// and a buffer sink. The sink is audio when audio is set, unless
+// video_sink is (a waveform: the chain turns audio into video frames).
 static int
-xi_tx_graph(XiTx *h, XiTxStream *s, int audio, const char *chain, int threads)
+xi_tx_graph(XiTx *h, XiTxStream *s, int audio, int video_sink, const char *chain, int threads)
 {
   AVStream *st = h->fmt->streams[s->index];
   AVCodecContext *dec = s->dec;
@@ -450,7 +472,7 @@ xi_tx_graph(XiTx *h, XiTxStream *s, int audio, const char *chain, int threads)
     return AVERROR(ENOMEM);
   s->graph->nb_threads = threads;
   const AVFilter *fsrc = avfilter_get_by_name(audio ? "abuffer" : "buffer");
-  const AVFilter *fsink = avfilter_get_by_name(audio ? "abuffersink" : "buffersink");
+  const AVFilter *fsink = avfilter_get_by_name(audio && !video_sink ? "abuffersink" : "buffersink");
   if (!fsrc || !fsink)
     return AVERROR_FILTER_NOT_FOUND;
   s->src = avfilter_graph_alloc_filter(s->graph, fsrc, "in");
@@ -733,6 +755,10 @@ xi_tx_aencoder(int codec)
     return "libopus";
   case XI_TX_MP3:
     return "libmp3lame";
+  case XI_TX_FLAC:
+    return "flac";
+  case XI_TX_PCM:
+    return "pcm_s16le";
   default:
     return NULL;
   }
@@ -1081,7 +1107,7 @@ xi_tx_run(XiTx *h, const XiTxParams *p, char *err, size_t errlen)
       return XI_FF_ERR_UNSUPPORTED;
     }
     memcpy(chain, p->vfilters, sizeof(p->vfilters));
-    if ((ret = xi_tx_graph(h, &h->v, 0, chain, p->threads)) < 0)
+    if ((ret = xi_tx_graph(h, &h->v, 0, 0, chain, p->threads)) < 0)
       return xi_tx_fail(h, ret, "video filters", err, errlen);
     if (p->noverlays > 0 && (ret = xi_tx_overlays(&h->v, p)) < 0)
       return xi_tx_fail(h, ret, "video overlays", err, errlen);
@@ -1095,10 +1121,24 @@ xi_tx_run(XiTx *h, const XiTxParams *p, char *err, size_t errlen)
     }
     memset(chain, 0, sizeof(chain));
     memcpy(chain, p->afilters, sizeof(p->afilters));
-    if ((ret = xi_tx_graph(h, &h->a, 1, chain, 1)) < 0)
+    if ((ret = xi_tx_graph(h, &h->a, 1, 0, chain, 1)) < 0)
       return xi_tx_fail(h, ret, "audio filters", err, errlen);
     if ((ret = xi_tx_encoder(h, &h->a, xi_tx_aencoder(p->acodec), p, 1)) < 0)
       return xi_tx_fail(h, ret, "audio encoder", err, errlen);
+  }
+  if (p->waveform && !p->vcodec && !p->acodec) {
+    // The audio stream's chain ends in one RGBA picture (showwavespic),
+    // written as raw pixels the Go side encodes.
+    if (h->a.index < 0 || !h->audio_decodable) {
+      xi_ff_set_err(err, errlen, "no decodable audio stream", 0);
+      return XI_FF_ERR_UNSUPPORTED;
+    }
+    memset(chain, 0, sizeof(chain));
+    memcpy(chain, p->afilters, sizeof(p->afilters));
+    if ((ret = xi_tx_graph(h, &h->a, 1, 1, chain, 1)) < 0)
+      return xi_tx_fail(h, ret, "waveform filters", err, errlen);
+    if ((ret = xi_tx_encoder(h, &h->a, "rawvideo", p, 0)) < 0)
+      return xi_tx_fail(h, ret, "waveform encoder", err, errlen);
   }
   if (!h->v.active && !h->a.active) {
     xi_ff_set_err(err, errlen, "nothing to transcode", 0);
