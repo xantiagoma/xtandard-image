@@ -63,15 +63,16 @@ func (v videoTestRouter) Route(r *http.Request) (*dialect.Result, *router.Mount,
 		}
 	}
 	at := func(k string) time.Duration { return time.Duration(num(k) * float64(time.Second)) }
-	for _, pl := range res.Request.Pipelines {
-		for _, w := range pl.Watermarks {
+	for i := range res.Request.Pipelines {
+		wms := res.Request.Pipelines[i].Watermarks
+		for k := range wms {
 			op.Overlays = append(op.Overlays, transform.VideoOverlay{
-				Watermark: w, Start: at("ovs"), End: at("ove"), FadeIn: at("ovfi"), FadeOut: at("ovfo"),
+				Watermark: wms[k], Start: at("ovs"), End: at("ove"), FadeIn: at("ovfi"), FadeOut: at("ovfo"),
 			})
 		}
 	}
 	if tc := q.Get("tc"); tc != "" {
-		o := transform.VideoOverlay{Watermark: transform.Watermark{Opacity: 1}, TimecodeSize: int(num("tcs"))}
+		o := transform.VideoOverlay{Opacity: 1, TimecodeSize: int(num("tcs"))}
 		if o.Timecode, err = transform.ParseVideoTimecode(tc); err != nil {
 			return nil, m, err
 		}

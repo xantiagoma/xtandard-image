@@ -16,12 +16,12 @@ func overlayOp(srcs ...string) *transform.VideoOp {
 	op := &transform.VideoOp{Width: 640}
 	for i, s := range srcs {
 		op.Overlays = append(op.Overlays, transform.VideoOverlay{
-			Watermark: transform.Watermark{Opacity: 1, Source: &transform.SourceSpec{Raw: s}},
+			Opacity: 1, Source: &transform.SourceSpec{Raw: s},
 		})
 		if i == 0 {
 			op.Overlays = append(op.Overlays,
-				transform.VideoOverlay{Watermark: transform.Watermark{Opacity: 1, Text: "text"}},
-				transform.VideoOverlay{Watermark: transform.Watermark{Opacity: 1}, Timecode: transform.VideoTimecodeHMS})
+				transform.VideoOverlay{Opacity: 1, Text: "text"},
+				transform.VideoOverlay{Opacity: 1, Timecode: transform.VideoTimecodeHMS})
 		}
 	}
 	return op

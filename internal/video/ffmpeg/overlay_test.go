@@ -148,8 +148,8 @@ func TestTranscodeOverlays(t *testing.T) {
 	timecode := image.Rect(160, 140, 320, 180) // south-east quarter, bottom band
 	if tc {
 		op.Overlays = append(op.Overlays, transform.VideoOverlay{
-			Watermark: transform.Watermark{Opacity: 1, Position: transform.Gravity{Type: transform.GravitySouthEast, XOffset: 4, YOffset: 4}},
-			Timecode:  transform.VideoTimecodeHMS, TimecodeSize: 24,
+			Opacity: 1, Position: transform.Gravity{Type: transform.GravitySouthEast, XOffset: 4, YOffset: 4},
+			Timecode: transform.VideoTimecodeHMS, TimecodeSize: 24,
 		})
 	}
 
@@ -215,7 +215,7 @@ func TestTranscodeOverlayErrors(t *testing.T) {
 	}
 	src := source(t, "clip-vp8.webm") // 320×180
 	op := transform.VideoOp{Container: transform.VideoContainerWebM, Overlays: []transform.VideoOverlay{
-		{Watermark: transform.Watermark{Opacity: 1, Source: &transform.SourceSpec{Raw: "x.png"}}},
+		{Opacity: 1, Source: &transform.SourceSpec{Raw: "x.png"}},
 	}}
 	for _, tc := range []struct {
 		name   string
@@ -246,11 +246,11 @@ func TestTranscodeOverlayNoLeak(t *testing.T) {
 	pix := solid(t, 64, 32, 255, 255, 255, 200)
 	run := func(i int) {
 		op := &transform.VideoOp{Width: 160, Container: transform.VideoContainerWebM, Overlays: []transform.VideoOverlay{
-			{Watermark: transform.Watermark{Opacity: 1, Source: &transform.SourceSpec{Raw: "x"}}, FadeIn: 200 * time.Millisecond, End: 800 * time.Millisecond},
-			{Watermark: transform.Watermark{Opacity: 1, Source: &transform.SourceSpec{Raw: "x"}}, Start: 300 * time.Millisecond},
+			{Opacity: 1, Source: &transform.SourceSpec{Raw: "x"}, FadeIn: 200 * time.Millisecond, End: 800 * time.Millisecond},
+			{Opacity: 1, Source: &transform.SourceSpec{Raw: "x"}, Start: 300 * time.Millisecond},
 		}}
 		if caps.Timecode {
-			op.Overlays = append(op.Overlays, transform.VideoOverlay{Watermark: transform.Watermark{Opacity: 1}, Timecode: transform.VideoTimecodeSeconds})
+			op.Overlays = append(op.Overlays, transform.VideoOverlay{Opacity: 1, Timecode: transform.VideoTimecodeSeconds})
 		}
 		layers := []overlayLayer{{image.Rect(0, 0, 64, 32), pix}, {image.Rect(96, 58, 160, 90), pix}}
 		ctx := t.Context()
