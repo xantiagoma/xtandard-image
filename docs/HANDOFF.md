@@ -253,3 +253,9 @@ owner has authorised merging PRs without review.
   (imgproxy/query video URL syntax + audio features, TS builder), WP-124 (image/text overlays on
   video), WP-125 (Cloudinary/Cloudflare/ImageKit video dialects). Next: integrate these three, then
   WP-126 (HLS/DASH), WP-127 (playground video tools), WP-121b/c.
+- **M5 progress (2026-10-05):** merged WP-124 overlays (#121), WP-125 video dialects (#122: Cloudflare
+  `/cdn-cgi/media`, Cloudinary `/video`, ImageKit video, with overlays), WP-122/123 (#123: imgproxy
+  `/video/...` and `/q/video` URLs, audio features, waveform). **In flight:** WP-126 HLS/DASH JIT
+  (told to rebase onto #123 and live under the `/video` family), WP-127 playground video tools (enables
+  video in the demo compose), WP-119 test stabilisation (recurring leak/ghostscript/sftp flakes).
+  Planned: WP-121b spool to disk, WP-121c cost-based admission.
