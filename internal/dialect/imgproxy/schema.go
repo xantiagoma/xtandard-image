@@ -27,6 +27,14 @@ const processingDescription = "imgproxy processing options (docs/URL-DIALECTS.md
 const infoDescription = "imgproxy /info options (docs/URL-DIALECTS.md §3.3), encoded like ImgproxyProcessingOptions. " +
 	"Info options have their own namespace: s, f, a, c, p and ph mean something else in processing URLs."
 
+const videoDescription = "imgproxy-style /video options (docs/URL-DIALECTS.md §3.8, video transformations), encoded like ImgproxyProcessingOptions. " +
+	"Video options have their own namespace: geometry names (rs, s, w, h, g, c, rot, fl, bg, q, f) follow imgproxy's argument rules with video semantics."
+
+// VideoOptionsSchema returns the ImgproxyVideoOptions schema.
+func VideoOptionsSchema() map[string]any {
+	return optionsSchema(VideoOptions(), videoDescription)
+}
+
 // ProcessingOptionsSchema returns the ImgproxyProcessingOptions schema.
 func ProcessingOptionsSchema() map[string]any {
 	return optionsSchema(ProcessingOptions(), processingDescription)

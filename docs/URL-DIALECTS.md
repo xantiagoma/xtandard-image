@@ -69,6 +69,7 @@ Reference: https://docs.imgproxy.net/usage/processing (imgproxy v4.0.x docs, sou
 /%signature/%options.../%base64url_source_url[.%extension]      (may be split with "/")
 /%signature/%options.../enc/%aes_cbc_source[.%extension]        (may be split with "/")
 /info/%signature/%info_options.../{plain/…|%base64…|enc/…}
+/video/%signature/%video_options.../{plain/…[@%container]|%base64…|enc/…}   (§3.8)
 
 option      = name ":" arg *(":" arg)        ; separator configurable (XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR)
 pipeline    = option *("/" option)
@@ -294,6 +295,86 @@ token = base64url_unpadded( IV[16] ‖ AES-CBC(key, IV, PKCS#7(password)) )
 - Wrong password → 422 `wrong document password`, never replaced by the fallback image (a client error, like a hashsum mismatch); no password → the existing 422, which a configured fallback image answers like any unreadable source. A password on a document that needs none, or on another format, is ignored (only the digest changes the key).
 - A source may carry a default password (`XI_SOURCES_<NAME>_PDF_PASSWORD`, or `_FILE` / `{file: …}`; [CONFIG.md](CONFIG.md)), used when the request has none; the request's own password wins.
 
+### 3.8 Video transformations (WP-122, WP-123)
+
+**Status:** M5 (WP-122 video options, WP-123 audio), `full` and `gpl` images with `XI_VIDEO_TRANSFORM_ENABLED=true` (off by default; the `slim` image refuses to start with it). Design: [ADR 0012](adr/0012-video-transformations.md). imgproxy has no video transcoding: this endpoint borrows its URL shape, its signing and the names and argument rules of its geometry options, and adds time, codec and audio options. Parsed by `imgproxy.Parser.ParseVideo` (the path after `/video`) into `TR.Kind = Video` and `TR.Video` (`transform.VideoOp`).
+
+```
+/video/%signature/%video_options.../plain/%source_url[@%container]
+/video/%signature/%video_options.../%base64url_source_url[.%container]
+/video/%signature/%video_options.../enc/%aes_cbc_source[.%container]
+```
+
+- **Signature:** the HMAC covers `/video/` + the path after the signature segment (`/video/rs:fit:640:0/plain/…@webm` is signed as that string), so a signed image URL (a poster of the same source, for example) is never a valid video transformation. Trusted signatures (`XI_SIGNING_TRUSTED`) pass as for images. **Signed only by default:** an unsigned video URL is 403 before anything is fetched unless `XI_VIDEO_TRANSFORM_UNSIGNED_POLICY=allow`, and even then a `restricted` mount refuses it ([CONFIG.md](CONFIG.md)).
+- **Output:** the source extension (`@webm`, `.m4a`) or `format` picks the container, `mp4` by default; [§3.9](#39-video-outputs-and-limits) lists what each container holds on each image. `png` and `webp` render a waveform picture of the audio instead of a media file.
+- **Options:** the table below; each later occurrence overrides the previous one argument by argument, like processing options. Video options have their own namespace: image-only options (`bl`, `wm`, `pd`, …) are unknown here (recorded in `TR.Ignored`, 400 with `XI_DIALECTS_STRICT=true`). No chained pipelines (400), no presets (`pr` is unknown; in only-presets mode every `/video` URL is 403). Values are validated while parsing: an out-of-range one (`crf:64`, `sr:44000`, `vol:2` with `mu:1`, `vc:vp9` in MP4) is a 400 naming the field (`invalid video.crf: …`).
+- **Geometry** follows ADR 0012 §2 and the image pipeline: the display matrix is applied first, then `rot` and `fl`, then `c` (a rectangle of the rotated frame, placed by its gravity, else by `g`, centred by default), then the resize. Resizing types map to the video fits: `fit` is scale-down (contain with `el:1`, padded with `bg` to the box with `ex:1`), `fill` and `fill-down` cover the box and crop it at `g`, `force` stretches; a fill without both sides is a fit; `auto` is 400 (it needs the probe). Sizes are pixels (no fractions) and are rounded down to even for 4:2:0 video.
+- **Time:** `start`/`end`/`duration` in seconds (microsecond precision). The cut is exact: the demuxer seeks to the keyframe before `start` and frames before it are dropped. `end` and `duration` are exclusive. A cut past the end of the source, an output longer than `XI_VIDEO_TRANSFORM_MAX_OUTPUT_DURATION` and a `fade` out of a source of unknown duration are 422.
+- **Audio** (WP-123): `mute` drops the stream; audio-only containers drop the video, and a source without audio gives 422 `the source has no audio stream`. The audio chain is the cut, `volume`, `loudnorm` (EBU R128, single-pass FFmpeg `loudnorm`; the target is per request within FFmpeg's bounds: -70..-5 LUFS, -9..0 dBTP, 1..50 LU), the fades (`afade`), then resampling to `sample_rate` and the `audio_channels` layout (a source with more than two channels is downmixed to stereo). Audio sources (MP3, AAC/ADTS, AC-3, E-AC-3, Ogg, FLAC, WAV) are accepted as well as video containers with audio.
+- **Waveform** (WP-123, like Cloudinary `fl_waveform`): `waveform:1` (or the `png`/`webp` container) draws the cut of the audio with FFmpeg `showwavespic` into a `width` × `height` RGBA picture (default 1024×256) in `color` (default black) on `background` (empty: transparent), mono or one band per channel; libvips encodes it as lossless PNG or WebP. A video source's audio track works too.
+- **Query dialect:** `/q/video?url=…` takes the same options as query keys ([§4](#4-query-dialect-native--imaginary)).
+- **Not yet:** keyframe-only ("fast") cuts, overlays (WP-124), the other dialects' video syntax (WP-125), HLS/DASH (WP-126); `/info` reports the source's streams, not the planned output.
+
+| Option (aliases) | Args | Meaning (`TR.Video` field) | Default | Milestone |
+|---|---|---|---|---|
+| `start` (`vs`) | seconds | Start the output at this time of the source (exact, from the keyframe before it). | 0 | M5 (WP-122) |
+| `end` (`ve`) | seconds | End the output at this time of the source (exclusive with duration). | end of the source | M5 (WP-122) |
+| `duration` (`vd`) | seconds | Length of the output from start (exclusive with end). | to the end | M5 (WP-122) |
+| `resize` (`rs`) | type:w:h:enlarge:extend | Resize like imgproxy: fit (scale-down, or contain with enlarge; extend pads), fill and fill-down (cover, cropped by gravity), force (stretch). | fit:0:0:false:false | M5 (WP-122) |
+| `size` (`s`) | w:h:enlarge:extend | Resize without the type. | 0:0:false:false | M5 (WP-122) |
+| `resizing_type` (`rt`) | fit, fill, fill-down, force | Resizing type (auto is not available for video). | fit | M5 (WP-122) |
+| `width` (`w`) | px | Output width (rounded down to even). | 0 | M5 (WP-122) |
+| `height` (`h`) | px | Output height (rounded down to even). | 0 | M5 (WP-122) |
+| `enlarge` (`el`) | bool | Let fit enlarge a smaller source. | false | M5 (WP-122) |
+| `extend` (`ex`) | bool | Pad a fit to the whole box with the background colour. | false | M5 (WP-122) |
+| `gravity` (`g`) | type:x:y or fp:x:y | Anchor of fill crops and crops (compass with pixel offsets, or a focus point). | ce:0:0 | M5 (WP-122) |
+| `crop` (`c`) | w:h:gravity | Crop a rectangle (pixels) of the rotated frame before the resize. | — | M5 (WP-122) |
+| `rotate` (`rot`) | multiple of 90 | Rotate clockwise after the display matrix. | 0 | M5 (WP-122) |
+| `flip` (`fl`) | h:v | Mirror after the rotation. | false:false | M5 (WP-122) |
+| `background` (`bg`) | hex | Colour of the bars of extend. | 000000 | M5 (WP-122) |
+| `fps` | rate | Output frame rate (capped by XI_VIDEO_TRANSFORM_MAX_FPS). | source | M5 (WP-122) |
+| `format` (`f`, `ext`) | mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp | Output container (the source extension sets it too); png and webp are waveform pictures. | mp4 | M5 (WP-122) |
+| `video_codec` (`vc`) | auto, h264, av1, vp9, hevc | Video codec (h264 and hevc need the gpl image). | auto | M5 (WP-122) |
+| `audio_codec` (`ac`) | auto, aac, opus, mp3, flac, pcm | Audio codec (must suit the container). | auto | M5 (WP-122) |
+| `quality` (`q`) | 1..100 | Video quality, mapped onto the codec's CRF scale. | 0 | M5 (WP-122) |
+| `crf` | 0..63 | Constant rate factor (wins over quality). | 0 | M5 (WP-122) |
+| `video_bitrate` (`vb`) | bit/s (k, M) | Cap the video bit rate (50k..200M). | uncapped | M5 (WP-122) |
+| `keyframe_interval` (`ki`) | seconds | Time between keyframes (GOP length, 0.1..60 s). | 2 | M5 (WP-122) |
+| `mute` (`mu`) | bool | Drop the audio stream. | false | M5 (WP-123) |
+| `audio_bitrate` (`ab`) | bit/s (k) | Audio bit rate (8k..512k; ignored by flac and wav). | codec default | M5 (WP-123) |
+| `sample_rate` (`sr`) | Hz | Output sample rate (the codec must support it: Opus 8/12/16/24/48 kHz). | source | M5 (WP-123) |
+| `audio_channels` (`ach`) | 1 or 2 | Downmix to mono or stereo. | source | M5 (WP-123) |
+| `volume` (`vol`) | factor or NdB | Change the audio level (-60 dB..+20 dB). | 1 | M5 (WP-123) |
+| `loudnorm` (`ln`) | enabled:I:TP:LRA | EBU R128 loudness normalisation (single-pass loudnorm). | false:-23:-1:7 | M5 (WP-123) |
+| `fade` (`fd`) | in:out | Fade in from black and silence, and out to them (seconds). | 0:0 | M5 (WP-123) |
+| `waveform` (`wf`) | enabled:color:background:split | Render the audio as a width × height (default 1024×256) PNG or WebP picture. | false:000000::false | M5 (WP-123) |
+| `cachebuster` (`cb`), `bypass_cache` (`bc`), `cache_tags` (`ct`), `expires` (`exp`), `filename` (`fn`), `return_attachment` (`att`), `hashsum` (`hs`) | as in §3.2 | as in §3.2 | as in §3.2 | as in §3.2 |
+
+### 3.9 Video outputs and limits
+
+| Container | Content type | Video | Audio | Notes |
+|---|---|---|---|---|
+| mp4 (default) | `video/mp4` | H.264 (`gpl`), else AV1; `vc:hevc` on `gpl` | AAC | `moov` first (faststart) |
+| webm | `video/webm` | VP9; `vc:av1` | Opus | Cues first |
+| m4a | `audio/mp4` | — | AAC | |
+| mp3 | `audio/mpeg` | — | MP3 (LAME) | |
+| opus, ogg | `audio/ogg` | — | Opus | same file, `.opus` or `.ogg` name |
+| flac | `audio/flac` | — | FLAC | `ab` ignored |
+| wav | `audio/wav` | — | 16-bit PCM | `ab` ignored |
+| png, webp | `image/png`, `image/webp` | — | — | waveform picture (lossless) |
+
+Codec choices (`vc`, `ac`) must suit the container (400 otherwise); one the image cannot encode (H.264 or HEVC on `full`) is 422 before the source is fetched. Sample rates: AAC 8–96 kHz, MP3 8–48 kHz, Opus 8, 12, 16, 24 or 48 kHz (the stream always declares 48 kHz), FLAC and WAV any listed rate; an unsupported pair is 422. Bit rates: video 50 kbit/s–200 Mbit/s (`vb` caps it; with `crf`/`q` it is constrained quality), audio 8–512 kbit/s. The server limits (`XI_VIDEO_TRANSFORM_MAX_*`: input bytes, duration and pixels; output bytes, duration, pixels and frame rate) answer 422; queue overflow 429, queue timeout 503, a transcode over `XI_VIDEO_TRANSFORM_TIMEOUT` 504. Responses support `Range` (206, 416, `If-Range`) and are cached with the resolved output (`<container>:<video codec>:<audio codec>`) in the key ([FORMATS.md §5.2](FORMATS.md)).
+
+Examples:
+
+```
+/video/<sig>/rs:fill:640:360/g:soea/vs:12/vd:8/plain/s3://media/talk.mov@webm
+/video/<sig>/w:1280/q:70/ki:1/fd:0.5:1/ln:1/plain/https://example.com/clip.mp4@mp4
+/video/<sig>/vs:30/vd:60/sr:44100/ach:1/ab:96k/plain/https://example.com/clip.mp4@mp3
+/video/<sig>/wf:1:2266cc:ffffff/w:800/h:160/plain/https://example.com/podcast.mp3@png
+/q/video?url=https://example.com/clip.mp4&start=1&duration=5&width=640&format=webm&mute=1&xi_sig=<sig>
+```
+
 ## 4. Query dialect (native + imaginary)
 
 **Status:** on `main` (WP-23, M1; `pipeline` M2). imaginary's `/watermark` (text) and `/watermarkimage` are on `main` (WP-77/78, M3).
@@ -308,6 +389,8 @@ Two shapes:
 ```
 
 Video sources (WP-74): `vts`/`video_thumbnail_second` and `vtk`/`video_thumbnail_keyframes` are accepted as query keys like every imgproxy option (`/q/?url=<video>&w=320&vts=1.5`).
+
+Video transformations (WP-122, WP-123): `/q/video?url=<source>&start=1&duration=5&width=640&format=webm&mute=1`. Every key is the [§3.8](#38-video-transformations-wp-122-wp-123) option of the same name or alias, with `,` or `:` between arguments (`ln=1,-16`, `fade=1,2`, `waveform=1,2266cc`); `fit` (`fit|contain|inside`, `fill|cover`, `fill-down`, `force|stretch`), `gravity|g` (compass words, `fp:x:y`), `crop` (`w,h` placed by `g`, or `w,h,x,y` from the top-left), `flip` (`h|v|hv`), `cb` and `attachment` take their native spellings, and `o=` applies a `/video` option path. Signing: `xi_sig` covers `/video` + the query (or `sign`, imaginary's scheme, over the decoded path `/video` + the sorted query), so an image signature is not valid here; unsigned requests follow `XI_VIDEO_TRANSFORM_UNSIGNED_POLICY`. `pdf_password` is not a video option.
 
 Native keys (long and short): `url`, `width|w`, `height|h`, `fit` (`fit|contain|inside` → Fit, `fill|cover` → Fill, `fill-down`, `force|stretch` → Force, `outside`), `gravity|g` (compass words, `smart`, `entropy`, `fp:x:y`), `crop` (`w,h[,x,y]`), `dpr`, `enlarge`, `format|f`, `quality|q`, `lossless`, `progressive`, `blur`, `sharpen`, `pixelate`, `rotate|rot`, `flip` (`h|v|hv`), `bg`, `strip`, `trim`, `pad`, `preset`, `page`, `pages`, `cb`, `filename`, `attachment`, `expires`, `pdf_password|pdp` (signed URLs only, [§3.7](#37-password-protected-pdfs-wp-115)), `sign`. Semantics are those of the equivalent imgproxy option; anything imgproxy can do is reachable via `o=<imgproxy option path>` (for example `o=rs:fill:300:200/g:sm`) so the query dialect is complete by construction.
 

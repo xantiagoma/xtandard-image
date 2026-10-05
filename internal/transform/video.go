@@ -1,6 +1,7 @@
 package transform
 
 import (
+	"errors"
 	"slices"
 	"strconv"
 	"time"
@@ -290,6 +291,14 @@ func (o *VideoOp) HasVideo() bool { return !o.Container.AudioOnly() && !o.Contai
 // HasAudio reports whether the output asks for an audio stream (the source
 // may still have none).
 func (o *VideoOp) HasAudio() bool { return !o.Mute }
+
+// Validate checks op on its own: the "video" fields of Request.Validate,
+// for dialects that refuse an out-of-range video option while parsing.
+func (o *VideoOp) Validate() error {
+	v := &validator{}
+	o.validate(v, "video")
+	return errors.Join(v.errs...)
+}
 
 func (o *VideoOp) validate(v *validator, f string) {
 	for _, t := range []struct {
