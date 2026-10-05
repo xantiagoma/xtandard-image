@@ -2937,13 +2937,13 @@
     },
     "role": {
       "default": "all",
-      "description": "What this instance serves (ADR 0012): all; image (video transformations answer 404, so a load balancer routes them elsewhere); video (only video transformations, plus /healthz, /readyz and the admin listener; every other request answers 404; needs XI_VIDEO_TRANSFORM_ENABLED). One binary and image serve every role\n\nEnv: XI_ROLE",
+      "description": "What this instance serves (ADR 0012): all; image (video transformations answer 404, so a load balancer routes them elsewhere); video (only video transformations and the parts of their HLS and DASH streams under /_stream/, plus /healthz, /readyz and the admin listener; every other request answers 404; needs XI_VIDEO_TRANSFORM_ENABLED). One binary and image serve every role\n\nEnv: XI_ROLE",
       "enum": [
         "all",
         "image",
         "video"
       ],
-      "markdownDescription": "What this instance serves (ADR 0012): `all`; `image` (video transformations answer 404, so a load balancer routes them elsewhere); `video` (only video transformations, plus `/healthz`, `/readyz` and the admin listener; every other request answers 404; needs `XI_VIDEO_TRANSFORM_ENABLED`). One binary and image serve every role\n\nEnv: `XI_ROLE`",
+      "markdownDescription": "What this instance serves (ADR 0012): `all`; `image` (video transformations answer 404, so a load balancer routes them elsewhere); `video` (only video transformations and the parts of their HLS and DASH streams under `/_stream/`, plus `/healthz`, `/readyz` and the admin listener; every other request answers 404; needs `XI_VIDEO_TRANSFORM_ENABLED`). One binary and image serve every role\n\nEnv: `XI_ROLE`",
       "title": "XI_ROLE",
       "type": "string"
     },

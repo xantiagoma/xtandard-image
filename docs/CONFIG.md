@@ -112,7 +112,7 @@ This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS`
 | Variable | Default | Meaning |
 |---|---|---|
 | `XI_DEV_MODE` | `false` | Allow any http(s) source (SSRF rules still apply), pretty errors, no signature requirement warnings |
-| `XI_ROLE` | `all` | What this instance serves (ADR 0012): `all`; `image` (video transformations answer 404, so a load balancer routes them elsewhere); `video` (only video transformations, plus `/healthz`, `/readyz` and the admin listener; every other request answers 404; needs `XI_VIDEO_TRANSFORM_ENABLED`). One binary and image serve every role |
+| `XI_ROLE` | `all` | What this instance serves (ADR 0012): `all`; `image` (video transformations answer 404, so a load balancer routes them elsewhere); `video` (only video transformations and the parts of their HLS and DASH streams under `/_stream/`, plus `/healthz`, `/readyz` and the admin listener; every other request answers 404; needs `XI_VIDEO_TRANSFORM_ENABLED`). One binary and image serve every role |
 | `XI_SERVER_ADDR` | `:8080` | Listen address |
 | `XI_SERVER_PATH_PREFIX` | `` | Global prefix stripped before routing |
 | `XI_SERVER_REQUEST_TIMEOUT` | `20s` | Whole-request deadline |
