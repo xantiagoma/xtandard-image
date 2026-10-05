@@ -142,7 +142,11 @@ func TestRecipesParse(t *testing.T) {
 			}
 			var res *dialect.Result
 			if r.Video && m.grammar == playground.GrammarImgproxy {
-				res, err = parsers[r.Dialect].(*imgproxy.Parser).ParseVideo(in)
+				ip, ok := parsers[r.Dialect].(*imgproxy.Parser)
+				if !ok {
+					t.Fatalf("%s is not the imgproxy parser", r.Dialect)
+				}
+				res, err = ip.ParseVideo(in)
 			} else {
 				res, err = parsers[r.Dialect].Parse(in)
 			}

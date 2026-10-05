@@ -66,8 +66,8 @@ func TestVideoRoundTrip(t *testing.T) {
 			if err != nil {
 				t.Fatalf("%s: %v", tc.name, err)
 			}
-			if k := res.Canonical.(map[string]any)["Kind"]; k != transform.KindVideo.String() {
-				t.Fatalf("%s: canonical kind %v", tc.name, k)
+			if canon, ok := res.Canonical.(map[string]any); !ok || canon["Kind"] != transform.KindVideo.String() {
+				t.Fatalf("%s: canonical %v", tc.name, res.Canonical)
 			}
 			row := roundTripResult{Case: tc.name, Source: src, Targets: map[string]roundTripTarget{}}
 			for _, tg := range res.Targets {
@@ -129,18 +129,30 @@ func TestVideoInputs(t *testing.T) {
 		name, mount, path, query string
 		imgproxy                 string
 	}{
-		{"imgproxy", "imgproxy", "/video/vs:1/vd:2/rs:fit:640:0/plain/xi://local/v/a.mp4@webm", "",
-			"/video/vs:1/vd:2/rs:fit:640/plain/xi://local/v/a.mp4@webm"},
-		{"query", "query", "/video", "url=xi%3A%2F%2Flocal%2Fv%2Fa.mp4&start=1&duration=2&width=640&format=webm",
-			"/video/vs:1/vd:2/rs:fit:640/plain/xi://local/v/a.mp4@webm"},
-		{"cloudinary upload", "cloudinary", "/xi/video/upload/so_1,du_2/v/a.mp4", "",
-			"/video/vs:1/vd:2/plain/xi://local/v/a.mp4"},
-		{"cloudinary audio", "cloudinary", "/xi/video/upload/vc_none,so_2,du_5/v/a.m4a", "",
-			"/video/vs:2/vd:5/plain/xi://local/v/a.m4a@m4a"},
-		{"imagekit resize", "imagekit", "/tr:w-320,h-180,f-webm/v/a.mp4", "",
-			"/video/rs:fill:320:180/plain/xi://local/v/a.mp4@webm"},
-		{"cloudflare audio", "cloudflare_media", "/mode=audio,time=1s,duration=2s/v/a.mp4", "",
-			"/video/vs:1/vd:2/ac:aac/plain/xi://local/v/a.mp4@m4a"},
+		{
+			"imgproxy", "imgproxy", "/video/vs:1/vd:2/rs:fit:640:0/plain/xi://local/v/a.mp4@webm", "",
+			"/video/vs:1/vd:2/rs:fit:640/plain/xi://local/v/a.mp4@webm",
+		},
+		{
+			"query", "query", "/video", "url=xi%3A%2F%2Flocal%2Fv%2Fa.mp4&start=1&duration=2&width=640&format=webm",
+			"/video/vs:1/vd:2/rs:fit:640/plain/xi://local/v/a.mp4@webm",
+		},
+		{
+			"cloudinary upload", "cloudinary", "/xi/video/upload/so_1,du_2/v/a.mp4", "",
+			"/video/vs:1/vd:2/plain/xi://local/v/a.mp4",
+		},
+		{
+			"cloudinary audio", "cloudinary", "/xi/video/upload/vc_none,so_2,du_5/v/a.m4a", "",
+			"/video/vs:2/vd:5/plain/xi://local/v/a.m4a@m4a",
+		},
+		{
+			"imagekit resize", "imagekit", "/tr:w-320,h-180,f-webm/v/a.mp4", "",
+			"/video/rs:fill:320:180/plain/xi://local/v/a.mp4@webm",
+		},
+		{
+			"cloudflare audio", "cloudflare_media", "/mode=audio,time=1s,duration=2s/v/a.mp4", "",
+			"/video/vs:1/vd:2/ac:aac/plain/xi://local/v/a.mp4@m4a",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
