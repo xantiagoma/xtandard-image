@@ -303,6 +303,12 @@ func (st *state) applyVideo(name string, args []string) error {
 	case "timecode", "tc":
 		return st.videoTimecode(args)
 
+	// Adaptive streaming (videostream.go, WP-126).
+	case "stream", "st":
+		return st.videoStream(args)
+	case "segment_duration", "sgd":
+		return st.videoSegmentDuration(args)
+
 	// Delivery and source options shared with processing URLs.
 	case "cachebuster", "cb",
 		"expires", "exp",
@@ -328,7 +334,7 @@ const (
 	expVideoResize  = "fit, fill, fill-down or force"
 	expVideoCodec   = "auto, h264, av1, vp9, hevc or h265"
 	expAudioCodec   = "auto, aac, opus, mp3, flac or pcm"
-	expVideoFormat  = "mp4, webm, m4a, mp3, opus, ogg, flac, wav, png or webp"
+	expVideoFormat  = "mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp, m3u8 or mpd"
 	expBitrate      = "bits per second (an integer, or a number with k or M)"
 	expVolume       = "a gain factor (0.5) or decibels (-6dB)"
 	expVideoGravity = "ce, no, so, ea, we, noea, nowe, soea or sowe"
@@ -359,6 +365,9 @@ var audioCodecs = map[string]transform.AudioCodec{
 }
 
 func (st *state) videoContainer(field, s string) error {
+	if st.streamContainer(s) {
+		return nil
+	}
 	c, ok := videoContainers[strings.ToLower(s)]
 	if !ok {
 		return dialect.InvalidArgument(field, s, expVideoFormat)
@@ -457,6 +466,9 @@ func (st *state) finishVideo() error {
 	if c := op.Crop; c != nil && !vs.cropGravity {
 		c.Gravity = new(op.Gravity)
 		c.X, c.Y = vs.gx, vs.gy
+	}
+	if op.Stream != nil {
+		op.Fit = transform.VideoFitContain // the renditions are the sizes
 	}
 	switch {
 	case op.Waveform != nil && !op.Container.Image():

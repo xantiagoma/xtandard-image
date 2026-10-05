@@ -82,6 +82,8 @@ func FuzzParseInfo(f *testing.F) {
 func FuzzParseVideo(f *testing.F) {
 	for _, s := range []string{
 		"/unsafe/plain/https://example.com/a.mov@webm",
+		"/unsafe/st:dash:240:720/sgd:4/vs:1/plain/https://example.com/a.mov@mpd",
+		"/unsafe/aGk.m3u8",
 		"/unsafe/vs:1.5/vd:3/rs:fill:640:360/g:soea:10:5/fps:24/vc:av1/vb:2M/ki:1/plain/x.mp4",
 		"/unsafe/c:100:50:fp:0.1:0.9/rot:-90/fl:1:0/bg:fff/ex:1/el:1/s:320:180::1/aGk.webm",
 		"/unsafe/mu:1/q:70/crf:30/ve:4/f:mp4/plain/x",

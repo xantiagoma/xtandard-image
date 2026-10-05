@@ -364,7 +364,7 @@ func (o *VideoOp) validate(v *validator, f string) {
 	v.enum(f+".audio_codec", validEnum(o.AudioCodec, numAudioCodecs))
 	if validEnum(o.Container, numVideoContainers) && validEnum(o.VideoCodec, numVideoCodecs) &&
 		validEnum(o.AudioCodec, numAudioCodecs) {
-		if !o.Container.AllowsVideo(o.VideoCodec) {
+		if !o.Container.AllowsVideo(o.VideoCodec) && (o.Stream == nil || o.VideoCodec != VideoCodecVP9) { // CMAF carries VP9 (vp09)
 			v.fail(f+".video_codec", o.VideoCodec.String()+" cannot be muxed into "+o.Container.String())
 		}
 		if !o.Container.AllowsAudio(o.AudioCodec) {

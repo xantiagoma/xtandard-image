@@ -40,7 +40,8 @@
 //     image f- keeps the frame path): w-, h-,
 //     ar-, c-, cm-, fo-, x-, y-, bg-, so-, eo-, du-, f-, vc-, ac-, q-, fps-,
 //     rt-, dpr-, l-image/l-text overlays with lso-/leo-/ldu- windows;
-//     ik-master manifests wait for WP-126.
+//     <video>/ik-master.m3u8 and .mpd are HLS and DASH streams of it
+//     (WP-126), their renditions from sr-.
 //
 // Signing: ik-s = hex(HMAC-SHA1(private key, url-relative-to-endpoint ‖
 // ik-t)) as in imagekit-nodejs (sign.ImageKitMessage). An ik-t in the past
@@ -230,7 +231,13 @@ func (p *Parser) parse(path, rawQuery, mountSource string) (*dialect.Result, err
 	gif := len(segs) > 1 && last == gifVideo
 	ikVideo := len(segs) > 1 && last == videoMP4
 	if len(segs) > 1 && strings.HasPrefix(last, videoMaster) {
-		return nil, dialect.InvalidURL("adaptive bitrate streaming (ik-master) is not supported yet")
+		// Adaptive bitrate streaming (videostream.go).
+		proto, ok := masterProtocols[strings.TrimPrefix(last, videoMaster)]
+		if !ok {
+			return nil, dialect.InvalidURL("ik-master must be ik-master.m3u8 or ik-master.mpd")
+		}
+		ps.stream = &transform.VideoStream{Protocol: proto}
+		ikVideo = true
 	}
 	if thumb || gif || ikVideo {
 		segs = segs[:len(segs)-1]

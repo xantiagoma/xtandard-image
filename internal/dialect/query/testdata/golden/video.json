@@ -478,6 +478,62 @@
     "signature": "unsigned",
     "source": "https://example.com/clip.mov"
   },
+  "stream_dash_renditions": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026stream=dash,240,720\u0026sgd=4\u0026vc=av1",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Stream": {
+          "Protocol": "dash",
+          "Renditions": [
+            240,
+            720
+          ],
+          "SegmentDuration": 4000000000
+        },
+        "VideoCodec": "av1"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "stream_format_m3u8": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026format=m3u8\u0026start=2",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Start": 2000000000,
+        "Stream": {}
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "stream_size_rejected": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.stream: a stream's sizes are its renditions'",
+      "status": 400
+    },
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026f=mpd\u0026w=640"
+  },
   "trailing_slash": {
     "path": "/video/",
     "query": "url=https://example.com/clip.mov\u0026w=320",

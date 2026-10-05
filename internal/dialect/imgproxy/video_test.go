@@ -189,6 +189,23 @@ func TestVideo(t *testing.T) {
 		vid("hashsum", "hs:sha256:"+sha256Hex),
 		vid("cache_tags", "ct:a:b"),
 
+		// Adaptive streaming (WP-126).
+		vidPath("stream_ext_m3u8", "", "/unsafe"+videoSrc+"@m3u8"),
+		vidPath("stream_ext_mpd", "", "/unsafe/vs:5/vd:60"+videoSrc+"@mpd"),
+		vid("stream_option", "st:dash:240:720:480"),
+		vid("stream_alias_segment", "stream:hls/sgd:4"),
+		vidPath("stream_ext_after_option", "", "/unsafe/st:dash:360"+videoSrc+"@m3u8"),
+		vidPath("stream_crop_codec_ki", "", "/unsafe/c:640:360:ce/rot:90/fps:25/vc:vp9/q:60/ki:2/ab:96k/ach:1"+videoSrc+"@m3u8"),
+		vidPath("stream_size_rejected", "", "/unsafe/w:640"+videoSrc+"@m3u8"),
+		vidPath("stream_bitrate_rejected", "", "/unsafe/vb:1m"+videoSrc+"@m3u8"),
+		vidPath("stream_webm_rejected", "", "/unsafe/st:hls/f:webm"+videoSrc),
+		vid("stream_bad_protocol", "st:smooth"),
+		vid("stream_bad_rung", "st:hls:32"),
+		vid("stream_too_many_rungs", "st:hls:1:2:3:4:5:6:7:8:9"),
+		vid("segment_duration_bad", "sgd:1.5"),
+		vid("segment_duration_long", "sgd:60"),
+		vidPath("stream_signed", "signed", "/VSIG/st:hls:360"+videoSrc+"@m3u8"),
+
 		// Rejected and unknown.
 		vid("chained", "w:100/-/w:50"),
 		vid("image_option_unknown", "bl:5"),
