@@ -9259,7 +9259,7 @@
             ]
           },
           "containers": {
-            "description": "Output containers this build writes (mp4, webm, m4a, mp3, opus, ogg, flac, wav; png and webp are waveform pictures).",
+            "description": "Output containers this build writes (mp4, webm, m4a, mp3, opus, ogg, flac, wav; png and webp are waveform pictures; m3u8 and mpd are HLS and DASH streams).",
             "items": {
               "type": "string"
             },

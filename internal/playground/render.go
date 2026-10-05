@@ -54,7 +54,10 @@ func (h *handler) render(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.Header().Set("Content-Security-Policy", renderCSP)
-	h.image.ServeHTTP(&timingWriter{ResponseWriter: w, start: time.Now()}, req)
+	// A stream's manifest names its parts through api/stream (stream.go).
+	mw := h.rewriteManifests(&timingWriter{ResponseWriter: w, start: time.Now()})
+	h.image.ServeHTTP(mw, req)
+	mw.finish()
 }
 
 // timingWriter adds Server-Timing with the time to the first header write.

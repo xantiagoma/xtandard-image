@@ -17,7 +17,9 @@
 // audio sources, the trim handles write start and end, a WebM result plays
 // for the requested duration, an audio-only result plays, Cancel aborts a
 // slow transcode, the media table and the video translate cards render,
-// every video recipe renders, and the panel fits 390 px.
+// every video recipe renders, and the panel fits 390 px; an HLS recipe's
+// master playlist loads and its first segment fetches through api/stream
+// (WP-126).
 //
 // Playwright is not a dependency of the repository: run it from a
 // throwaway directory against a server with the demo configuration
@@ -972,11 +974,39 @@ if (!vt) {
       if (!m || document.querySelector('#pane-after.loading')) return false;
       if (m.tagName === 'IMG') return m.naturalWidth > 0 ? `image ${m.naturalWidth}×${m.naturalHeight}` : false;
       if (m.tagName === 'VIDEO' || m.tagName === 'AUDIO') return m.readyState >= 2 ? `${m.tagName.toLowerCase()} ${m.duration.toFixed(2)} s` : m.error ? `${m.tagName.toLowerCase()} (not playable here)` : false;
+      if (m.classList.contains('stream-result')) return `stream of ${m.querySelectorAll('.stream-list li').length} entries`;
       return m.tagName === 'P' ? `error ${m.textContent}` : false;
     }, undefined, { timeout: 60000 }).then((h) => h.jsonValue() as Promise<string>, () => 'timeout');
     const status = await page.textContent('#stats .stat strong').catch(() => '');
     check(urlOk && status?.startsWith('200') === true && !done.startsWith('error') && done !== 'timeout', `video recipe ${r.id}: ${done} (${status})`);
     if (shots) await page.locator('#stage').screenshot({ path: `${shots}/example-${r.id}.png` });
+  }
+  // h. HLS (WP-126): the stream recipe's master playlist loads through
+  // api/render with its playlists under api/stream, a media playlist
+  // lists init and segments, and the first segment fetches.
+  const hls = recipes.find((r) => r.id === 'video-hls-ladder');
+  if (hls) {
+    await page.evaluate((x) => { location.hash = x; }, '#tools/examples');
+    await page.waitForSelector('#tool-examples:not([hidden])');
+    await page.click(`button[data-recipe="${hls.id}"]`);
+    await waitURL('@m3u8', 15000);
+    const out = await page.evaluate(async () => {
+      const v = (document.getElementById('url-out') as HTMLTextAreaElement).value.trim();
+      const u = new URL(v, location.href);
+      const lines = (t: string) => t.split(/\r?\n/).map((l) => (l.match(/URI="([^"]+)"/)?.[1] ?? l).trim()).filter((l) => l && !l.startsWith('#'));
+      const master = await fetch(`api/render?u=${encodeURIComponent(u.pathname + u.search)}`);
+      const variants = lines(await master.text());
+      if (!master.ok || variants.length < 2 || !variants.every((x) => x.includes('/api/stream/'))) return `master ${master.status}: ${variants.join(' ')}`;
+      const pl = variants.find((x) => /\/v0\.m3u8$/.test(x))!;
+      const media = await fetch(pl);
+      const parts = lines(await media.text());
+      const dir = pl.slice(0, pl.lastIndexOf('/') + 1);
+      const init = await fetch(dir + parts[0]);
+      const seg = await fetch(dir + parts[1]);
+      const size = (await seg.arrayBuffer()).byteLength;
+      return media.ok && init.ok && seg.ok && size > 0 ? `ok: ${variants.length} playlists, ${parts.length - 1} segments, first ${size} bytes` : `media ${media.status}, init ${init.status}, segment ${seg.status}`;
+    });
+    check(out.startsWith('ok'), `hls: master playlist, media playlist and first segment through the playground (${out})`);
   }
   // g. 390 px: the panel fits without horizontal scroll.
   await page.evaluate((x) => { location.hash = x; }, hash('xi://local/video/clip-av1.mp4', [], 'imgproxy', { v: 1, x: 'webm' }));

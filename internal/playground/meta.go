@@ -135,7 +135,7 @@ type VideoTransform struct {
 	// Codecs are the encoders of this build (video.TranscodeCaps.Names).
 	Codecs []string `json:"codecs" doc:"Encoders of this build: vp9, av1, h264, hevc (video), aac, opus, mp3, flac, pcm (audio), and waveform when waveform pictures can be drawn."`
 	// Containers are the output containers this build can write.
-	Containers []string `json:"containers" doc:"Output containers this build writes (mp4, webm, m4a, mp3, opus, ogg, flac, wav; png and webp are waveform pictures)."`
+	Containers []string `json:"containers" doc:"Output containers this build writes (mp4, webm, m4a, mp3, opus, ogg, flac, wav; png and webp are waveform pictures; m3u8 and mpd are HLS and DASH streams)."`
 	// MP4Video is the video codec of mp4 with video_codec auto.
 	MP4Video string `json:"mp4_video,omitempty" doc:"Video codec of an mp4 output with video_codec auto: h264 (gpl image) or av1 (full image)."`
 	// Overlays, Timecode and AudioEffects report the optional filters.

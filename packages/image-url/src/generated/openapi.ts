@@ -3145,7 +3145,7 @@ export interface components {
             audio_effects?: boolean;
             /** @description Encoders of this build: vp9, av1, h264, hevc (video), aac, opus, mp3, flac, pcm (audio), and waveform when waveform pictures can be drawn. */
             codecs: string[] | null;
-            /** @description Output containers this build writes (mp4, webm, m4a, mp3, opus, ogg, flac, wav; png and webp are waveform pictures). */
+            /** @description Output containers this build writes (mp4, webm, m4a, mp3, opus, ogg, flac, wav; png and webp are waveform pictures; m3u8 and mpd are HLS and DASH streams). */
             containers: string[] | null;
             /**
              * Format: double
