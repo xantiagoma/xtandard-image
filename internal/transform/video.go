@@ -40,6 +40,10 @@ type VideoOp struct {
 	Width, Height int
 	// Fit is how the source fills the box.
 	Fit VideoFit
+	// Gravity is the part of the frame VideoFitCover keeps (the centre by
+	// default) and where VideoFitPad places the frame in the box (WP-125:
+	// Cloudinary g_, ImageKit fo-).
+	Gravity VideoGravity
 	// Crop cuts a rectangle of the (rotated) source before the fit.
 	Crop *VideoCrop
 	// Background fills the bars of VideoFitPad; the zero value is black.
@@ -56,6 +60,11 @@ type VideoOp struct {
 
 	// Container is the output file format.
 	Container VideoContainer
+	// AutoContainer lets the server pick the container from the request's
+	// Accept header (Cloudinary f_auto, ImageKit f-auto; WP-125): WebM
+	// when the client accepts video/webm and the codecs allow it,
+	// otherwise Container (MP4). The response then varies on Accept.
+	AutoContainer bool
 	// VideoCodec and AudioCodec pick the codecs; auto takes the
 	// container's default for this build (VideoContainer.DefaultCodecs).
 	VideoCodec VideoCodec
@@ -83,6 +92,12 @@ type VideoOp struct {
 // VideoCrop is a rectangle of the source in pixels, after the rotation.
 type VideoCrop struct {
 	X, Y, Width, Height int
+	// Gravity anchors the rectangle (WP-125: Cloudinary c_crop with g_,
+	// ImageKit cm-extract with fo-): nil places it with X, Y from the
+	// top-left corner; otherwise X and Y are offsets from that anchor
+	// towards the inside of the frame (from the centre for
+	// VideoGravityCenter, where they move right and down).
+	Gravity *VideoGravity
 }
 
 // VideoOverlay is an image, text or a running timecode drawn over the
@@ -217,6 +232,7 @@ func (o *VideoOp) validate(v *validator, f string) {
 	v.intRange(f+".width", o.Width, 0, MaxVideoDimension)
 	v.intRange(f+".height", o.Height, 0, MaxVideoDimension)
 	v.enum(f+".fit", validEnum(o.Fit, numVideoFits))
+	v.enum(f+".gravity", validEnum(o.Gravity, numVideoGravities))
 	if o.Fit.NeedsBox() && (o.Width == 0 || o.Height == 0) {
 		v.fail(f+".fit", o.Fit.String()+" needs both width and height")
 	}
@@ -225,6 +241,9 @@ func (o *VideoOp) validate(v *validator, f string) {
 		v.intRange(f+".crop.y", c.Y, 0, MaxVideoDimension)
 		v.intRange(f+".crop.width", c.Width, 2, MaxVideoDimension)
 		v.intRange(f+".crop.height", c.Height, 2, MaxVideoDimension)
+		if c.Gravity != nil {
+			v.enum(f+".crop.gravity", validEnum(*c.Gravity, numVideoGravities))
+		}
 	}
 	switch o.Rotate {
 	case 0, 90, 180, 270:
@@ -247,6 +266,9 @@ func (o *VideoOp) validate(v *validator, f string) {
 		}
 		if o.Mute && o.Container.AudioOnly() {
 			v.fail(f+".mute", o.Container.String()+" is audio only")
+		}
+		if o.AutoContainer && o.Container != VideoContainerMP4 {
+			v.fail(f+".auto_container", "the automatic container starts from mp4")
 		}
 	}
 	v.intRange(f+".quality", o.Quality, 0, 100)
@@ -409,6 +431,85 @@ func (f VideoFit) MarshalText() ([]byte, error) { return marshalEnum("VideoFit",
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (f *VideoFit) UnmarshalText(b []byte) error {
 	return unmarshalEnum("VideoFit", f, b, numVideoFits)
+}
+
+// ---------------------------------------------------------------------------
+// VideoGravity
+
+// VideoGravity is an anchor in the frame: the centre, an edge or a corner.
+type VideoGravity uint8
+
+// VideoGravity values. The zero value is VideoGravityCenter.
+const (
+	VideoGravityCenter VideoGravity = iota
+	VideoGravityNorth
+	VideoGravitySouth
+	VideoGravityEast
+	VideoGravityWest
+	VideoGravityNorthEast
+	VideoGravityNorthWest
+	VideoGravitySouthEast
+	VideoGravitySouthWest
+)
+
+const numVideoGravities = 9
+
+func (g VideoGravity) String() string {
+	switch g {
+	case VideoGravityCenter:
+		return "center"
+	case VideoGravityNorth:
+		return "north"
+	case VideoGravitySouth:
+		return "south"
+	case VideoGravityEast:
+		return "east"
+	case VideoGravityWest:
+		return "west"
+	case VideoGravityNorthEast:
+		return "north-east"
+	case VideoGravityNorthWest:
+		return "north-west"
+	case VideoGravitySouthEast:
+		return "south-east"
+	case VideoGravitySouthWest:
+		return "south-west"
+	}
+	return invalidEnum("VideoGravity", uint8(g))
+}
+
+// Anchor returns where g sits on each axis: 0 is the left (top) edge, 1
+// the centre and 2 the right (bottom) edge.
+func (g VideoGravity) Anchor() (x, y int) {
+	x, y = 1, 1
+	switch g {
+	case VideoGravityNorth, VideoGravityNorthEast, VideoGravityNorthWest:
+		y = 0
+	case VideoGravitySouth, VideoGravitySouthEast, VideoGravitySouthWest:
+		y = 2
+	}
+	switch g {
+	case VideoGravityWest, VideoGravityNorthWest, VideoGravitySouthWest:
+		x = 0
+	case VideoGravityEast, VideoGravityNorthEast, VideoGravitySouthEast:
+		x = 2
+	}
+	return x, y
+}
+
+// ParseVideoGravity parses a canonical VideoGravity name.
+func ParseVideoGravity(s string) (VideoGravity, error) {
+	return parseEnum[VideoGravity]("VideoGravity", s, numVideoGravities)
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (g VideoGravity) MarshalText() ([]byte, error) {
+	return marshalEnum("VideoGravity", g, numVideoGravities)
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (g *VideoGravity) UnmarshalText(b []byte) error {
+	return unmarshalEnum("VideoGravity", g, b, numVideoGravities)
 }
 
 // ---------------------------------------------------------------------------

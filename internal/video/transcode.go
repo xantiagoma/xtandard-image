@@ -461,11 +461,15 @@ func planVideo(in *TranscodeInput, op *transform.VideoOp, codec Codec, p *Transc
 		w, h = h, w
 	}
 	if c := op.Crop; c != nil {
-		if c.X >= w || c.Y >= h {
+		x, y := c.X, c.Y
+		if c.Gravity != nil {
+			x, y = anchored(*c.Gravity, w, h, min(c.Width, w), min(c.Height, h), c.X, c.Y)
+		}
+		if x >= w || y >= h {
 			return nil, limit("the crop is outside the video")
 		}
-		cw, ch := even(min(c.Width, w-c.X)), even(min(c.Height, h-c.Y))
-		f.add("crop=" + itoa(cw) + ":" + itoa(ch) + ":" + itoa(c.X) + ":" + itoa(c.Y))
+		cw, ch := even(min(c.Width, w-x)), even(min(c.Height, h-y))
+		f.add("crop=" + itoa(cw) + ":" + itoa(ch) + ":" + itoa(x) + ":" + itoa(y))
 		w, h = cw, ch
 	}
 	ow, oh := fit(&f, w, h, op)
@@ -573,7 +577,8 @@ func fit(f *filterChain, w, h int, op *transform.VideoOp) (int, int) {
 		sw, sh := max(evenCeil(float64(w)*k), ow), max(evenCeil(float64(h)*k), oh)
 		scale(sw, sh)
 		if sw != ow || sh != oh {
-			f.add("crop=" + itoa(ow) + ":" + itoa(oh) + ":" + itoa(((sw-ow)/2)&^1) + ":" + itoa(((sh-oh)/2)&^1))
+			x, y := place(op.Gravity, sw-ow, sh-oh)
+			f.add("crop=" + itoa(ow) + ":" + itoa(oh) + ":" + itoa(x) + ":" + itoa(y))
 		}
 		return ow, oh
 	case op.Fit == transform.VideoFitPad:
@@ -584,7 +589,8 @@ func fit(f *filterChain, w, h int, op *transform.VideoOp) (int, int) {
 		if sw != ow || sh != oh {
 			b := op.Background
 			color := "0x" + hex2(b.R) + hex2(b.G) + hex2(b.B)
-			f.add("pad=" + itoa(ow) + ":" + itoa(oh) + ":" + itoa(((ow-sw)/2)&^1) + ":" + itoa(((oh-sh)/2)&^1) +
+			x, y := place(op.Gravity, ow-sw, oh-sh)
+			f.add("pad=" + itoa(ow) + ":" + itoa(oh) + ":" + itoa(x) + ":" + itoa(y) +
 				":color=" + color)
 		}
 		return ow, oh
@@ -612,6 +618,33 @@ func fit(f *filterChain, w, h int, op *transform.VideoOp) (int, int) {
 		scale(ow, oh)
 		return ow, oh
 	}
+}
+
+// place splits the slack (dx, dy ≥ 0) of a cover crop or a pad by g: the
+// even offset of the kept area (or of the frame in the box).
+func place(g transform.VideoGravity, dx, dy int) (x, y int) {
+	ax, ay := g.Anchor()
+	return (dx * ax / 2) &^ 1, (dy * ay / 2) &^ 1
+}
+
+// anchored is the top-left corner of a cw × ch crop of a w × h frame
+// anchored at g and moved by the offsets x, y towards the inside (right
+// and down from the centre), clamped to the frame.
+func anchored(g transform.VideoGravity, w, h, cw, ch, x, y int) (int, int) {
+	ax, ay := g.Anchor()
+	axis := func(a, size, c, off int) int {
+		var p int
+		switch a {
+		case 0:
+			p = off
+		case 1:
+			p = (size-c)/2 + off
+		default:
+			p = size - c - off
+		}
+		return min(max(p, 0), max(size-c, 0)) &^ 1
+	}
+	return axis(ax, w, cw, x), axis(ay, h, ch, y)
 }
 
 // orientation is a mirror followed by a clockwise rotation: the display

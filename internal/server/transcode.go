@@ -13,6 +13,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
+	"github.com/xantiagoma/xtandard-image/internal/negotiate"
 	"github.com/xantiagoma/xtandard-image/internal/source"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/video"
@@ -158,7 +159,9 @@ func (s *Server) videoProcess(ctx context.Context, r *http.Request, info *reques
 	req.ApplyDefaults(s.cfg.Defaults)
 	err := req.Validate()
 	var out video.TranscodeOutput
+	var vary negotiate.VarySet
 	if err == nil {
+		vary = s.videoContainer(r, req.Video)
 		out, err = s.deps.Video.Resolve(req.Video)
 	}
 	t.done()
@@ -194,6 +197,7 @@ func (s *Server) videoProcess(ctx context.Context, r *http.Request, info *reques
 	defer fr.Release()
 
 	res := newResult(j, fr)
+	res.decision.Vary = vary
 	res.cacheKey = j.cacheKey
 	res.ext = strings.TrimPrefix(out.Ext, ".")
 	res.mediaType = out.ContentType
@@ -225,6 +229,25 @@ func (s *Server) videoProcess(ctx context.Context, r *http.Request, info *reques
 	}
 	info.width, info.height = vr.Width, vr.Height
 	return res, nil
+}
+
+// videoContainer resolves an automatic container (Cloudinary f_auto,
+// ImageKit f-auto): WebM when the client names video/webm in Accept and
+// this build can write the request as WebM, otherwise the request's MP4.
+// It returns the Vary members the choice depends on.
+func (s *Server) videoContainer(r *http.Request, op *transform.VideoOp) negotiate.VarySet {
+	if !op.AutoContainer {
+		return 0
+	}
+	webm := *op
+	webm.Container = transform.VideoContainerWebM
+	if webm.Container.AllowsVideo(op.VideoCodec) && webm.Container.AllowsAudio(op.AudioCodec) &&
+		negotiate.ParseAcceptHeader(r.Header).Explicit("video", "webm") > 0 {
+		if _, err := s.deps.Video.Resolve(&webm); err == nil {
+			op.Container = transform.VideoContainerWebM
+		}
+	}
+	return negotiate.VaryAccept
 }
 
 // transcode runs Deps.Video.Transform in its span.
