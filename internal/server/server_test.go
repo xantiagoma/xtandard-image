@@ -269,7 +269,12 @@ type harness struct {
 	allocFr atomic.Int32
 	cache   cache.Store      // result cache; nil: off
 	video   VideoTransformer // nil: video transformations off
-	srv     *Server
+	// stream, tickets and streamCache are the HLS and DASH dependencies
+	// (stream_test.go); nil: off.
+	stream      StreamService
+	tickets     TicketSealer
+	streamCache cache.Store
+	srv         *Server
 }
 
 func newHarness(tb testing.TB, mutate func(*harness)) *harness {
@@ -301,6 +306,9 @@ func newHarness(tb testing.TB, mutate func(*harness)) *harness {
 		Readiness:   admin.NewReadiness(),
 		ResultCache: h.cache,
 		Video:       h.video,
+		Stream:      h.stream,
+		Tickets:     h.tickets,
+		StreamCache: h.streamCache,
 	})
 	if err != nil {
 		tb.Fatal(err)
