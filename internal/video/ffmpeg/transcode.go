@@ -23,6 +23,7 @@ import "C"
 
 import (
 	"context"
+	"math"
 	"time"
 	"unsafe"
 
@@ -47,6 +48,8 @@ func TranscodeCaps() video.TranscodeCaps {
 		MuxMP3:       m&C.XI_TX_CAP_MUX_MP3 != 0,
 		VideoFilters: m&C.XI_TX_CAP_VFILTERS != 0,
 		AudioFilters: m&C.XI_TX_CAP_AFILTERS != 0,
+		Overlays:     m&C.XI_TX_CAP_OVERLAYS != 0,
+		Timecode:     m&C.XI_TX_CAP_DRAWTEXT != 0,
 	}
 }
 
@@ -133,10 +136,12 @@ func checkInput(in *video.TranscodeInput, lim video.Limits) error {
 func (t *Transcoder) Input() video.TranscodeInput { return t.in }
 
 // Run transcodes the source with p (video.PlanTranscode) and returns the
-// file. ctx aborts the work in C at its next packet, frame or write; a
-// file over p.MaxBytes is errs.KindLimitExceeded. A transcoder runs once.
-// The caller releases the output.
-func (t *Transcoder) Run(ctx context.Context, p *video.TranscodePlan) (*Output, error) {
+// file. pixels[i] holds the rendered RGBA pixels of image overlay
+// p.Video.Overlays[i] (nil for a timecode; exec.RenderOverlay), read
+// during the call only. ctx aborts the work in C at its next packet,
+// frame or write; a file over p.MaxBytes is errs.KindLimitExceeded. A
+// transcoder runs once. The caller releases the output.
+func (t *Transcoder) Run(ctx context.Context, p *video.TranscodePlan, pixels ...*vips.Buffer) (*Output, error) {
 	if t == nil || t.h == nil {
 		return nil, errs.New(errs.KindInternal, "ffmpeg: closed transcoder")
 	}
@@ -144,7 +149,7 @@ func (t *Transcoder) Run(ctx context.Context, p *video.TranscodePlan) (*Output, 
 		return nil, err
 	}
 	var cp C.XiTxParams
-	if err := params(&cp, p); err != nil {
+	if err := params(&cp, p, pixels); err != nil {
 		return nil, err
 	}
 	t.setAbort(false)
@@ -177,7 +182,7 @@ func newOutput(p unsafe.Pointer, n int, free func(unsafe.Pointer)) *Output {
 }
 
 // params copies p into the C parameters, checking what C relies on.
-func params(cp *C.XiTxParams, p *video.TranscodePlan) error {
+func params(cp *C.XiTxParams, p *video.TranscodePlan, pixels []*vips.Buffer) error {
 	if !cstr(cp.muxer[:], p.Output.Muxer) {
 		return errs.Newf(errs.KindInternal, "ffmpeg: muxer %q", p.Output.Muxer)
 	}
@@ -197,6 +202,11 @@ func params(cp *C.XiTxParams, p *video.TranscodePlan) error {
 		cp.speed = C.int(v.Speed)
 		cp.max_bitrate = C.int64_t(v.MaxBitrate)
 		cp.gop = C.int(max(v.GOP, 1))
+		if err := overlayParams(cp, v, pixels); err != nil {
+			return err
+		}
+	} else if len(pixels) > 0 {
+		return errs.New(errs.KindInternal, "ffmpeg: overlay pixels without a video stream")
 	}
 	if a := p.Audio; a != nil {
 		var codec C.int
@@ -220,6 +230,49 @@ func params(cp *C.XiTxParams, p *video.TranscodePlan) error {
 	}
 	return nil
 }
+
+// overlayParams copies the video stream's overlays and their pixels.
+// The pixels stay where they are (C memory owned by libvips): C copies
+// them into frames during the call.
+func overlayParams(cp *C.XiTxParams, v *video.VideoStreamPlan, pixels []*vips.Buffer) error {
+	if err := v.CheckOverlays(); err != nil {
+		return err
+	}
+	if len(pixels) != len(v.Overlays) || len(v.Overlays) > len(cp.overlays) {
+		return errs.Newf(errs.KindInternal, "ffmpeg: %d overlays with %d pixel buffers", len(v.Overlays), len(pixels))
+	}
+	cp.noverlays = C.int(len(v.Overlays))
+	for i := range v.Overlays {
+		o, co := &v.Overlays[i], &cp.overlays[i]
+		if !cstr(co.enable[:], o.Enable) {
+			return errs.Newf(errs.KindInternal, "ffmpeg: overlay %d enable %q", o.Index, o.Enable)
+		}
+		if o.FadeIn > 0 {
+			co.fade_in_start, co.fade_in_dur = micros(o.Start), micros(o.FadeIn)
+		}
+		if o.FadeOut > 0 {
+			co.fade_out_start, co.fade_out_dur = micros(o.FadeEnd-o.FadeOut), micros(o.FadeOut)
+		}
+		if tc := o.Timecode; tc != nil {
+			if pixels[i] != nil || tc.Size <= 0 || !cstr(co.text[:], tc.Text) || !cstr(co.tx[:], tc.X) || !cstr(co.ty[:], tc.Y) ||
+				!cstr(co.color[:], tc.Color) || !cstr(co.alpha[:], tc.Alpha) {
+				return errs.Newf(errs.KindInternal, "ffmpeg: timecode overlay %d %+v", o.Index, tc)
+			}
+			co.size, co.shadow = C.int(tc.Size), C.int(max(tc.Shadow, 0))
+			continue
+		}
+		px := pixels[i]
+		if px == nil || px.Len() < o.Width*o.Height*4 {
+			return errs.Newf(errs.KindInternal, "ffmpeg: overlay %d: %dx%d without its pixels", o.Index, o.Width, o.Height)
+		}
+		co.rgba = (*C.uint8_t)(unsafe.Pointer(&px.Bytes()[0]))
+		co.x, co.y, co.width, co.height = C.int(o.X), C.int(o.Y), C.int(o.Width), C.int(o.Height)
+	}
+	return nil
+}
+
+// micros is seconds in microseconds (AVOption durations).
+func micros(s float64) C.int64_t { return C.int64_t(math.Round(s * 1e6)) }
 
 // cstr copies s into dst, NUL-terminated; false when it does not fit or
 // holds a NUL.

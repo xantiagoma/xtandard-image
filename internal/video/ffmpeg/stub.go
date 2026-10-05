@@ -103,7 +103,7 @@ func OpenTranscode(context.Context, *vips.Buffer, video.Limits, int) (*Transcode
 func (*Transcoder) Input() video.TranscodeInput { return video.TranscodeInput{} }
 
 // Run reports errs.KindUnsupported.
-func (*Transcoder) Run(context.Context, *video.TranscodePlan) (*Output, error) {
+func (*Transcoder) Run(context.Context, *video.TranscodePlan, ...*vips.Buffer) (*Output, error) {
 	return nil, errUnavailable()
 }
 

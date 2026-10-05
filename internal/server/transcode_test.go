@@ -46,6 +46,7 @@ type fakeVideo struct {
 	keys   []string
 	ops    []transform.VideoOp
 	src    [][]byte
+	marks  [][][]byte // the overlays' bytes per call (nil entries kept)
 	bodies []*refBuf
 }
 
@@ -53,11 +54,20 @@ func (f *fakeVideo) Resolve(*transform.VideoOp) (video.TranscodeOutput, error) {
 	return f.out, f.resolveErr
 }
 
-func (f *fakeVideo) Transform(ctx context.Context, key string, src fetch.Buffer, op *transform.VideoOp) (*VideoResult, error) {
+func (f *fakeVideo) Transform(ctx context.Context, key string, src fetch.Buffer, op *transform.VideoOp, overlays []fetch.Buffer) (*VideoResult, error) {
 	f.mu.Lock()
 	f.keys = append(f.keys, key)
 	f.ops = append(f.ops, *op)
 	f.src = append(f.src, bytes.Clone(src.Bytes()))
+	var marks [][]byte
+	for _, o := range overlays {
+		if o == nil {
+			marks = append(marks, nil)
+		} else {
+			marks = append(marks, bytes.Clone(o.Bytes()))
+		}
+	}
+	f.marks = append(f.marks, marks)
 	f.mu.Unlock()
 	if f.fn != nil {
 		if err := f.fn(ctx); err != nil {

@@ -264,6 +264,17 @@ func goldenCases() []goldenCase {
 				Quality: 70, MaxBitrate: 1_000_000, AudioBitrate: 96_000, Crop: &VideoCrop{Width: 100, Height: 100},
 			}}
 		}},
+		{"kind_video_overlays", func() Request {
+			return Request{Kind: KindVideo, Source: src(img), Video: &VideoOp{Overlays: []VideoOverlay{
+				{
+					Opacity: 0.5, Source: &SourceSpec{Raw: "logo.png"}, Scale: 0.2,
+					Position: Gravity{Type: GravitySouthEast, XOffset: 10, YOffset: 10},
+					Start:    time.Second, End: 3 * time.Second, FadeIn: 500 * time.Millisecond,
+				},
+				{Opacity: 1, Text: "<b>hi</b>"},
+				{Opacity: 1, Timecode: VideoTimecodeHMS, TimecodeSize: 32},
+			}}}
+		}},
 		{"kind_info_thumbor", func() Request {
 			return Request{Kind: KindInfo, Source: src(img), Info: &InfoOptions{Schema: InfoSchemaThumbor}}
 		}},

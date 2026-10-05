@@ -32,7 +32,8 @@ func StandardDefaults() Defaults {
 //
 //   - at least one Pipeline exists;
 //   - Resize.Type → fit, Resize.Algorithm → lanczos3, Zoom and DPR → 1;
-//   - Gravity, Extend/ExtendAR gravity and watermark positions → center;
+//   - Gravity, Extend/ExtendAR gravity, watermark and video overlay
+//     positions → center;
 //     an unset Crop gravity inherits the pipeline gravity;
 //   - Rotate is reduced to 0/90/180/270 and multiples of 90 in RotateAny are
 //     folded into Rotate; RotateAny is reduced to (−180, 180];
@@ -59,6 +60,15 @@ func (r *Request) ApplyDefaults(d Defaults) {
 	setBool(&o.PreserveHDR, d.PreserveHDR)
 	setBool(&o.EnforceThumbnail, d.EnforceThumbnail)
 	setBool(&r.Delivery.Attachment, d.ReturnAttachment)
+
+	if v := r.Video; v != nil && len(v.Overlays) > 0 {
+		op := *v
+		op.Overlays = slices.Clone(v.Overlays)
+		for i := range op.Overlays {
+			defaultGravity(&op.Overlays[i].Position)
+		}
+		r.Video = &op
+	}
 }
 
 func (p *Pipeline) applyDefaults(d Defaults) {
