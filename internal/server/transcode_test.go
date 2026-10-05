@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
+	"github.com/xantiagoma/xtandard-image/internal/security/sign"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/video"
 )
@@ -118,6 +120,7 @@ func newVideoHarness(tb testing.TB, cached bool, mutate func(*harness)) (*harnes
 	fv := &fakeVideo{out: mp4Output, body: videoFile}
 	m := func(h *harness) {
 		h.video = fv
+		h.router.sig = sign.Verified // unsigned video is denied by default
 		h.router.mutate = videoRequest(&transform.VideoOp{Width: 640, Start: time.Second})
 		h.f.data = []byte("source video")
 		h.cfg.Video = VideoConfig{Budget: time.Minute}
@@ -371,6 +374,44 @@ func TestVideoErrors(t *testing.T) {
 			}
 			if fetched := h.f.calls.Load() > 0; fetched != tc.fetch {
 				t.Errorf("fetched %v, want %v", fetched, tc.fetch)
+			}
+			h.checkReleased(t)
+		})
+	}
+}
+
+// TestVideoUnsignedPolicy: an unsigned video transformation is 403 before
+// anything is fetched unless XI_VIDEO_TRANSFORM_UNSIGNED_POLICY is allow
+// (ADR 0012 §8); signed and trusted URLs pass either way.
+func TestVideoUnsignedPolicy(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		sig    sign.Result
+		allow  bool
+		status int
+	}{
+		{sign.Unsigned, false, http.StatusForbidden},
+		{sign.Unsigned, true, http.StatusOK},
+		{sign.Verified, false, http.StatusOK},
+		{sign.Trusted, false, http.StatusOK},
+	} {
+		t.Run(tc.sig.String()+"/allow="+strconv.FormatBool(tc.allow), func(t *testing.T) {
+			t.Parallel()
+			h, fv := newVideoHarness(t, false, func(h *harness) {
+				h.router.sig = tc.sig
+				h.cfg.Video.AllowUnsigned = tc.allow
+			})
+			rec := h.do(t, http.MethodGet, videoPath, nil)
+			if rec.Code != tc.status {
+				t.Fatalf("status %d, want %d: %s", rec.Code, tc.status, rec.Body.String())
+			}
+			if tc.status == http.StatusForbidden {
+				if !strings.Contains(rec.Body.String(), "unsigned request not allowed") {
+					t.Errorf("body %q", rec.Body.String())
+				}
+				if h.f.calls.Load() != 0 || fv.calls() != 0 {
+					t.Error("a refused request fetched or transcoded")
+				}
 			}
 			h.checkReleased(t)
 		})

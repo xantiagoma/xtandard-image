@@ -84,6 +84,7 @@ video:
   transform:
     enabled: ` + strconv.FormatBool(enabled) + `
     workers: 2
+    unsigned_policy: allow
 `
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	if err := os.WriteFile(path, []byte(yml), 0o600); err != nil {
@@ -155,6 +156,31 @@ func TestVideoTransformDisabled(t *testing.T) {
 		a := startVideo(t, videoConfig(t, config.RoleAll, false))
 		if r := get(t, "http://"+a.public.String()+videoClip); r.status != http.StatusNotFound {
 			t.Fatalf("video: %d, want 404", r.status)
+		}
+	})
+	t.Run("unsigned denied by default", func(t *testing.T) {
+		if !ffmpeg.Available() {
+			t.Skip("this image has no FFmpeg")
+		}
+		cfg := videoConfig(t, config.RoleAll, true)
+		cfg.Video.Transform.UnsignedPolicy = config.Defaults().Video.Transform.UnsignedPolicy
+		a := startVideo(t, cfg)
+		r := get(t, "http://"+a.public.String()+videoClip)
+		if r.status != http.StatusForbidden || !strings.Contains(string(r.body), "unsigned request not allowed") {
+			t.Fatalf("video: %d %s, want 403", r.status, r.body)
+		}
+		if r := get(t, "http://"+a.public.String()+videoImage); r.status != http.StatusOK {
+			t.Errorf("unsigned image on the allow mount: %d, want 200", r.status)
+		}
+	})
+	t.Run("image role builds no pool", func(t *testing.T) {
+		if !ffmpeg.Available() {
+			t.Skip("this image has no FFmpeg")
+		}
+		cfg := videoConfig(t, config.RoleImage, true)
+		vt, err := buildVideoTransform(cfg, nil)
+		if err != nil || vt != nil {
+			t.Fatalf("buildVideoTransform = %v, %v; want no service", vt, err)
 		}
 	})
 	t.Run("no ffmpeg", func(t *testing.T) {

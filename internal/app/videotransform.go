@@ -21,8 +21,9 @@ import (
 // transcoder, adapted to server.VideoTransformer.
 
 // buildVideoTransform returns the video transformation service, or nil
-// when XI_VIDEO_TRANSFORM_ENABLED is off. Enabled on an image without
-// FFmpeg fails startup.
+// when XI_VIDEO_TRANSFORM_ENABLED is off or XI_ROLE is image (that role
+// never creates the video pool, ADR 0012 §4). Enabled on an image without
+// FFmpeg fails startup, whatever the role.
 func buildVideoTransform(cfg *config.Config, met *metrics.Metrics) (*media.Service, error) {
 	t := &cfg.Video.Transform
 	if !t.Enabled {
@@ -30,6 +31,9 @@ func buildVideoTransform(cfg *config.Config, met *metrics.Metrics) (*media.Servi
 	}
 	if !ffmpeg.Available() {
 		return nil, errors.New("video.transform.enabled (XI_VIDEO_TRANSFORM_ENABLED) is true but this image has no FFmpeg; use the full or gpl image")
+	}
+	if !videoTransformServed(cfg) {
+		return nil, nil
 	}
 	obs := met.Video()
 	mc := mediaConfig(cfg)
@@ -72,9 +76,16 @@ func mediaConfig(cfg *config.Config) media.Config {
 func videoServerConfig(cfg *config.Config) server.VideoConfig {
 	t := &cfg.Video.Transform
 	return server.VideoConfig{
-		Budget:      cfg.Fetch.Timeout + t.QueueTimeout + t.Timeout,
-		MaxSrcBytes: int64(t.MaxInputBytes),
+		Budget:        cfg.Fetch.Timeout + t.QueueTimeout + t.Timeout,
+		MaxSrcBytes:   int64(t.MaxInputBytes),
+		AllowUnsigned: t.UnsignedPolicy == config.UnsignedAllow,
 	}
+}
+
+// videoTransformServed reports whether this instance runs video
+// transformations: enabled, and a role that serves them.
+func videoTransformServed(cfg *config.Config) bool {
+	return cfg.Video.Transform.Enabled && cfg.Role.Videos()
 }
 
 // serverRole maps XI_ROLE.
@@ -94,7 +105,7 @@ func serverRole(r config.Role) server.Role {
 // (smaller) limit per request.
 func fetchMaxBytes(cfg *config.Config) int64 {
 	n := int64(cfg.Limits.MaxSrcBytes)
-	if t := &cfg.Video.Transform; t.Enabled && int64(t.MaxInputBytes) > n {
+	if t := &cfg.Video.Transform; videoTransformServed(cfg) && int64(t.MaxInputBytes) > n {
 		n = int64(t.MaxInputBytes)
 	}
 	return n

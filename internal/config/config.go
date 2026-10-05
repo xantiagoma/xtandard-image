@@ -624,6 +624,12 @@ type VideoTransform struct {
 	MaxOutputDuration time.Duration `yaml:"max_output_duration" env:"MAX_OUTPUT_DURATION"`
 	MaxOutputPixels   int64         `yaml:"max_output_pixels"   env:"MAX_OUTPUT_PIXELS"`
 	MaxFPS            float64       `yaml:"max_fps"             env:"MAX_FPS"`
+	// UnsignedPolicy governs video transformations without a verified
+	// signature (ADR 0012 §8): deny (the default) answers them 403 whatever
+	// the mount's unsigned policy; allow leaves them to the mount's policy
+	// (security.unsigned_policy or the dialect's own). restricted is not
+	// accepted: its allowlists describe images.
+	UnsignedPolicy UnsignedPolicy `yaml:"unsigned_policy" env:"UNSIGNED_POLICY"`
 }
 
 // VideoEncode configures MP4, WebM and HEVC output (docs/FORMATS.md §5.1):
@@ -953,7 +959,7 @@ func Defaults() Config {
 				Queue: 8, QueueTimeout: 30 * time.Second, Timeout: 2 * time.Minute, Threads: 1,
 				MaxInputBytes: 512 << 20, MaxInputDuration: time.Hour, MaxInputPixels: 7680 * 4320,
 				MaxOutputBytes: 256 << 20, MaxOutputDuration: 5 * time.Minute, MaxOutputPixels: 3840 * 2160,
-				MaxFPS: 60,
+				MaxFPS: 60, UnsignedPolicy: UnsignedDeny,
 			},
 		},
 		Vips: Vips{Concurrency: 1, FailOn: FailOnWarning},

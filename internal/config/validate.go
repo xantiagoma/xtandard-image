@@ -80,6 +80,8 @@ func (c *Config) validateVideoTransform(v *validator) {
 	v.positive(int64(t.MaxOutputDuration), "video.transform.max_output_duration")
 	v.positive(t.MaxOutputPixels, "video.transform.max_output_pixels")
 	v.check(t.MaxFPS >= 1 && t.MaxFPS <= 240, "video.transform.max_fps", "must be between 1 and 240, got %g", t.MaxFPS)
+	v.check(t.UnsignedPolicy == UnsignedDeny || t.UnsignedPolicy == UnsignedAllow,
+		"video.transform.unsigned_policy", "must be deny or allow, got %q", t.UnsignedPolicy)
 }
 
 func (c *Config) validateServer(v *validator) {

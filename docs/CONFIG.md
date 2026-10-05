@@ -302,7 +302,7 @@ Each source is configured by the `XI_SOURCES_<NAME>_*` variables below (`<NAME>`
 | `XI_VIDEO_ENCODE_MAX_FRAMES` | `1000` | Most frames a video output may have (422) |
 | `XI_VIDEO_ENCODE_MAX_DURATION` | `1m` | Longest video output, the sum of the frame delays (422) |
 | `XI_VIDEO_ENCODE_MAX_PIXELS` | `8294400` | Largest frame of a video output, width × height (4K UHD) (422) |
-| `XI_VIDEO_TRANSFORM_ENABLED` | `false` | Video transformations (WP-121, ADR 0012): a video source trimmed, resized, cropped, rotated and transcoded into MP4, WebM, M4A, Opus or MP3. Off: they answer 404. `true` fails startup on an image without FFmpeg (`slim`). Which codecs exist depends on the image: MP4 is H.264 in `gpl` and AV1 in `full`; audio needs the WP-120 FFmpeg |
+| `XI_VIDEO_TRANSFORM_ENABLED` | `false` | Video transformations (WP-121, ADR 0012): a video source trimmed, resized, cropped, rotated and transcoded into MP4, WebM, M4A, Opus or MP3. Off: they answer 404. `true` fails startup on an image without FFmpeg (`slim`); with `XI_ROLE=image` the pool is not created. Unsigned requests are refused by default (`XI_VIDEO_TRANSFORM_UNSIGNED_POLICY`). Which codecs exist depends on the image: MP4 is H.264 in `gpl` and AV1 in `full`; audio needs the WP-120 FFmpeg |
 | `XI_VIDEO_TRANSFORM_WORKERS` | GOMAXPROCS / 4 (≥ 1) | Transcodes run at once, in a pool of their own (the image pool is `XI_PROCESSING_WORKERS`) |
 | `XI_VIDEO_TRANSFORM_QUEUE` | `8` | Transcodes that may wait for a worker; beyond it 429 + `Retry-After` |
 | `XI_VIDEO_TRANSFORM_QUEUE_TIMEOUT` | `30s` | How long a transcode waits for a worker before 503 + `Retry-After` |
@@ -315,6 +315,7 @@ Each source is configured by the `XI_SOURCES_<NAME>_*` variables below (`<NAME>`
 | `XI_VIDEO_TRANSFORM_MAX_OUTPUT_DURATION` | `5m` | Longest output (the cut, or the whole source) (422) |
 | `XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS` | `8294400` | Largest output frame, width × height (4K UHD) (422) |
 | `XI_VIDEO_TRANSFORM_MAX_FPS` | `60` | Highest output frame rate: a faster source is reduced to it, a faster request refused (422) (1–240) |
+| `XI_VIDEO_TRANSFORM_UNSIGNED_POLICY` | `deny` | Video transformations without a verified signature: `deny` answers them 403 even on a mount whose `XI_SECURITY_UNSIGNED_POLICY` (or dialect policy) is `allow`; `allow` leaves them to the mount's policy (a `restricted` mount still refuses them, its allowlists describe images). Only `deny` and `allow` are accepted (ADR 0012 §8) |
 | `XI_VIPS_CONCURRENCY` | `1` | libvips threads per image; change only with benchmarks |
 | `XI_VIPS_FAIL_ON` | `warning` | |
 
