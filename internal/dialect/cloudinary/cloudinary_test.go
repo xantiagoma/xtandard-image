@@ -111,7 +111,7 @@ func TestGrammar(t *testing.T) {
 		{name: "video_param_strict", cfg: "strict", path: up + "so_2/sample.jpg"},
 		{name: "video_thumbnail", path: "/demo/video/upload/so_1.5,f_jpg/dog.mp4"},
 		{name: "video_thumbnail_best", path: "/demo/video/upload/so_auto,w_300,f_webp/dog.mp4"},
-		{name: "video_thumbnail_fetch", path: "/demo/video/fetch/so_3,f_auto/https://example.com/dog.webm"},
+		{name: "video_thumbnail_fetch", path: "/demo/video/fetch/so_3,f_jpg/https://example.com/dog.webm"},
 		{name: "video_thumbnail_percent", path: "/demo/video/upload/so_10p,f_jpg/dog.mp4"},
 		{name: "video_thumbnail_bad_offset", path: "/demo/video/upload/so_soon,f_jpg/dog.mp4"},
 		{name: "if_component", path: up + "if_w_gt_1000,c_scale,w_1000/e_grayscale/sample.jpg"},

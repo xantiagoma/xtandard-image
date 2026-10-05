@@ -144,6 +144,10 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	if err != nil {
 		return nil, nil, fmt.Errorf("cloudflare dialect: %w", err)
 	}
+	cfMedia, err := cloudflare.NewMedia(&cfOpts)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cloudflare media dialect: %w", err)
+	}
 
 	wsOpts := wsrv.Options{Strict: cfg.Dialects.Strict}
 	if ring != nil || len(trusted) > 0 {
@@ -162,7 +166,7 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	}
 
 	dialects := map[string]dialect.Dialect{
-		imgproxy.Name: ip, infoDialect: infoParser{ip}, query.Name: q, cloudflare.Name: cf, wsrv.Name: ws, thumbor.Name: th,
+		imgproxy.Name: ip, infoDialect: infoParser{ip}, query.Name: q, cloudflare.Name: cf, cloudflare.MediaName: cfMedia, wsrv.Name: ws, thumbor.Name: th,
 	}
 	if sih := &cfg.Dialects.AWSSIH; sih.Enabled {
 		p, warn, err := buildAWSSIH(cfg)
@@ -211,6 +215,7 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		return nil, nil, err
 	}
 	addMounts(cloudflare.Name, &cfg.Dialects.Cloudflare)
+	addCloudflareMedia(&cfg.Dialects.Cloudflare, opts)
 	if err := addCloudflareImages(cfg, opts, dialects, ipOpts.Presets); err != nil {
 		return nil, nil, err
 	}
@@ -258,6 +263,32 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		return nil, nil, err
 	}
 	return rt, warnings, nil
+}
+
+// addCloudflareMedia mounts Media Transformations (/cdn-cgi/media/, WP-125)
+// next to every Cloudflare mount whose prefix ends in /cdn-cgi/image/ (the
+// default), with that mount's source and unsigned policy. Host-bound
+// mounts and other prefixes need no mount of their own: the
+// /cdn-cgi/image/ parser hands a path that continues with /cdn-cgi/media/
+// to the media parser.
+func addCloudflareMedia(m *config.Mount, opts *router.Options) {
+	if !m.Enabled {
+		return
+	}
+	for i, mo := range append([]config.MountOptions{m.MountOptions}, m.Mounts...) {
+		base, ok := strings.CutSuffix(strings.TrimSuffix(mo.Prefix, "/"), "/cdn-cgi/image")
+		if !ok {
+			continue
+		}
+		label := cloudflare.MediaName
+		if i > 0 {
+			label = fmt.Sprintf("%s[%d]", cloudflare.MediaName, i)
+		}
+		opts.Mounts = append(opts.Mounts, router.Mount{
+			Name: label, Dialect: cloudflare.MediaName, Prefix: base + cloudflare.MediaPrefix + "/",
+			Source: mo.Source, Policy: router.Policy(mo.UnsignedPolicy),
+		})
+	}
 }
 
 // primaryMount is the primary mount configuration of a dialect whose

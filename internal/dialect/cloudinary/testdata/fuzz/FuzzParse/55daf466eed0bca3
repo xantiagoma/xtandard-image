@@ -1,0 +1,2 @@
+go test fuzz v1
+string("image/upload/l_text:0_1:\xff/0")

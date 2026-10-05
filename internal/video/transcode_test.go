@@ -142,6 +142,26 @@ func TestPlanTranscodeVideo(t *testing.T) {
 			chain: "scale=712:400:flags=bicubic,crop=400:400:156:0,format=yuv420p",
 		},
 		{
+			name: "cover keeps the gravity's side", op: transform.VideoOp{Width: 400, Height: 400, Fit: transform.VideoFitCover, Gravity: transform.VideoGravityEast},
+			w: 400, h: 400, fps: 25, length: 2,
+			chain: "scale=712:400:flags=bicubic,crop=400:400:312:0,format=yuv420p",
+		},
+		{
+			name: "pad at the gravity", op: transform.VideoOp{Width: 400, Height: 400, Fit: transform.VideoFitPad, Gravity: transform.VideoGravityNorth},
+			w: 400, h: 400, fps: 25, length: 2,
+			chain: "scale=400:224:flags=bicubic,pad=400:400:0:0:color=0x000000,format=yuv420p",
+		},
+		{
+			name: "crop at the centre", op: transform.VideoOp{Crop: &transform.VideoCrop{Width: 400, Height: 400, Gravity: new(transform.VideoGravityCenter)}},
+			w: 400, h: 400, fps: 25, length: 2,
+			chain: "crop=400:400:440:160,format=yuv420p",
+		},
+		{
+			name: "crop from the bottom-right corner", op: transform.VideoOp{Crop: &transform.VideoCrop{X: 10, Y: 20, Width: 400, Height: 400, Gravity: new(transform.VideoGravitySouthEast)}},
+			w: 400, h: 400, fps: 25, length: 2,
+			chain: "crop=400:400:870:300,format=yuv420p",
+		},
+		{
 			name: "pad", op: transform.VideoOp{Width: 400, Height: 400, Fit: transform.VideoFitPad, Background: transform.Color{R: 255, B: 16}},
 			w: 400, h: 400, fps: 25, length: 2,
 			chain: "scale=400:224:flags=bicubic,pad=400:400:0:88:color=0xff0010,format=yuv420p",

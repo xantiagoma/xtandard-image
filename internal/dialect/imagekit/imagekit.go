@@ -35,6 +35,12 @@
 //     video_thumbnail_second), else the configured selection applies.
 //   - <gif>/ik-gif-video.mp4 is the animated image <gif> as an MP4 video
 //     (WP-76; H.264 in the gpl image, AV1 in full), like f-mp4.
+//   - A file with a video extension (mp4, webm, mov, …) and <video>/
+//     ik-video.mp4 are video transformations (KindVideo, video.go; an
+//     image f- keeps the frame path): w-, h-,
+//     ar-, c-, cm-, fo-, x-, y-, bg-, so-, eo-, du-, f-, vc-, ac-, q-, fps-,
+//     rt-, dpr-, l-image/l-text overlays with lso-/leo-/ldu- windows;
+//     ik-master manifests wait for WP-126.
 //
 // Signing: ik-s = hex(HMAC-SHA1(private key, url-relative-to-endpoint ‖
 // ik-t)) as in imagekit-nodejs (sign.ImageKitMessage). An ik-t in the past
@@ -74,6 +80,12 @@ const (
 	// gifVideo is the path suffix that asks for an animated image as an
 	// MP4 video (<gif>/ik-gif-video.mp4).
 	gifVideo = "ik-gif-video.mp4"
+	// videoMP4 is the path suffix that asks for a video as MP4
+	// (<video>/ik-video.mp4, WP-125).
+	videoMP4 = "ik-video.mp4"
+	// videoMaster starts the adaptive-streaming manifest suffixes
+	// (ik-master.m3u8, ik-master.mpd; WP-126).
+	videoMaster = "ik-master."
 )
 
 // Reasons recorded in Request.Ignored.
@@ -193,15 +205,12 @@ func (p *Parser) parse(path, rawQuery, mountSource string) (*dialect.Result, err
 
 	b := p.opt.NewBuilder(Name)
 	ps := &parseState{p: p, b: b, mountSource: mountSource}
+	var tr string
 	switch {
 	case trIdx >= 0:
 		raw, _ := trSegment(segs[trIdx])
-		tr, err := url.PathUnescape(raw)
-		if err != nil {
+		if tr, err = url.PathUnescape(raw); err != nil {
 			return nil, dialect.InvalidURL("invalid path escaping")
-		}
-		if err := ps.transformations(tr); err != nil {
-			return nil, err
 		}
 		if len(q.tr) > 0 {
 			if p.o.Strict {
@@ -211,21 +220,41 @@ func (p *Parser) parse(path, rawQuery, mountSource string) (*dialect.Result, err
 		}
 		segs = append(segs[:trIdx], segs[trIdx+1:]...)
 	case len(q.tr) == 1:
-		if err := ps.transformations(q.tr[0]); err != nil {
-			return nil, err
-		}
+		tr = q.tr[0]
 	case len(q.tr) > 1:
 		return nil, dialect.InvalidURL("multiple tr parameters")
 	}
 
-	thumb := len(segs) > 1 && segs[len(segs)-1] == videoThumbnail
-	gif := len(segs) > 1 && segs[len(segs)-1] == gifVideo
-	if thumb || gif {
+	last := segs[len(segs)-1]
+	thumb := len(segs) > 1 && last == videoThumbnail
+	gif := len(segs) > 1 && last == gifVideo
+	ikVideo := len(segs) > 1 && last == videoMP4
+	if len(segs) > 1 && strings.HasPrefix(last, videoMaster) {
+		return nil, dialect.InvalidURL("adaptive bitrate streaming (ik-master) is not supported yet")
+	}
+	if thumb || gif || ikVideo {
 		segs = segs[:len(segs)-1]
 	}
 	key, err := sourceKey(segs)
 	if err != nil {
 		return nil, err
+	}
+	if ikVideo || (!thumb && !gif && isVideoFile(key) && !imageOutput(tr)) {
+		// A video transformation (video.go).
+		if err := ps.video(tr, ikVideo); err != nil {
+			return nil, err
+		}
+		r := b.Request()
+		if err := applyQuery(r, &q, expires); err != nil {
+			return nil, err
+		}
+		r.Source = transform.SourceSpec{Raw: key, Encoding: transform.SourceRelative}
+		return &dialect.Result{Request: r, SourceString: key, Signature: sigResult}, nil
+	}
+	if tr != "" {
+		if err := ps.transformations(tr); err != nil {
+			return nil, err
+		}
 	}
 	r := b.Request()
 	if thumb && r.Output.Format == transform.FormatUnset {

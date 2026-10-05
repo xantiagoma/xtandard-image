@@ -494,3 +494,42 @@ func TestVideoBudget(t *testing.T) {
 		}
 	})
 }
+
+// TestVideoAutoContainer: f_auto (VideoOp.AutoContainer) picks WebM only
+// for a client that names video/webm, keeps MP4 for codecs WebM cannot hold,
+// and the response varies on Accept.
+func TestVideoAutoContainer(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name   string
+		op     transform.VideoOp
+		accept string
+		want   transform.VideoContainer
+	}{
+		{"webm named", transform.VideoOp{AutoContainer: true}, "video/webm,video/mp4;q=0.9,*/*;q=0.5", transform.VideoContainerWebM},
+		{"wildcard keeps mp4", transform.VideoOp{AutoContainer: true}, "*/*", transform.VideoContainerMP4},
+		{"no accept keeps mp4", transform.VideoOp{AutoContainer: true}, "", transform.VideoContainerMP4},
+		{"h264 stays in mp4", transform.VideoOp{AutoContainer: true, VideoCodec: transform.VideoCodecH264}, "video/webm", transform.VideoContainerMP4},
+		{"aac stays in mp4", transform.VideoOp{AutoContainer: true, AudioCodec: transform.AudioCodecAAC}, "video/webm", transform.VideoContainerMP4},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			h, fv := newVideoHarness(t, false, func(h *harness) { h.router.mutate = videoRequest(&tc.op) })
+			hdr := http.Header{}
+			if tc.accept != "" {
+				hdr.Set("Accept", tc.accept)
+			}
+			rec := h.do(t, http.MethodGet, videoPath, hdr)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
+			}
+			if fv.calls() != 1 || fv.ops[0].Container != tc.want {
+				t.Fatalf("transcoded %+v, want container %v", fv.ops, tc.want)
+			}
+			if got := rec.Header().Get("Vary"); got != "Accept" {
+				t.Errorf("Vary = %q, want Accept", got)
+			}
+		})
+	}
+}

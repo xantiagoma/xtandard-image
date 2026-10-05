@@ -1,7 +1,8 @@
-// Package cloudflare parses the two Cloudflare Images URL grammars
-// (docs/URL-DIALECTS.md §8):
+// Package cloudflare parses the two Cloudflare Images URL grammars and
+// Cloudflare Media Transformations (docs/URL-DIALECTS.md §8):
 //
 //	/cdn-cgi/image/<options>/<source>                                   (dialect "cloudflare")
+//	/cdn-cgi/media/<options>/<source>                                   (dialect "cloudflare_media", MediaParser)
 //	/cdn-cgi/imagedelivery/<account_hash>/<image_id>/<variant|options>  (dialect "cloudflare_images")
 //	https://imagedelivery.net/<account_hash>/<image_id>/<variant|options>
 //
@@ -70,8 +71,9 @@ type Options struct {
 
 // Parser is the /cdn-cgi/image/ dialect. It is safe for concurrent use.
 type Parser struct {
-	o   Options
-	opt *imgproxy.Parser // request construction only; never parses a path
+	o     Options
+	opt   *imgproxy.Parser // request construction only; never parses a path
+	media *MediaParser     // paths that continue with /cdn-cgi/media/
 }
 
 var _ dialect.Dialect = (*Parser)(nil)
@@ -86,7 +88,11 @@ func New(opts *Options) (*Parser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Parser{o: o, opt: ip}, nil
+	media, err := NewMedia(&o)
+	if err != nil {
+		return nil, err
+	}
+	return &Parser{o: o, opt: ip, media: media}, nil
 }
 
 // Name implements dialect.Dialect.
@@ -102,7 +108,14 @@ func (p *Parser) Parse(in *dialect.Input) (*dialect.Result, error) {
 
 // ParseURL parses the escaped path after the mount prefix, for example
 // "/width=400,fit=cover/uploads/a.jpg", and the raw query.
+//
+// A path that continues with /cdn-cgi/media/ (a host-bound mount, or any
+// mount prefix followed by it) is a Media Transformations URL, parsed by
+// MediaParser.
 func (p *Parser) ParseURL(path, rawQuery string) (*dialect.Result, error) {
+	if rest, ok := strings.CutPrefix(path, MediaPrefix); ok && (rest == "" || rest[0] == '/') {
+		return p.media.ParseURL(path, rawQuery)
+	}
 	if rest, ok := strings.CutPrefix(path, imagePrefix); ok && (rest == "" || rest[0] == '/') {
 		path = rest
 	}

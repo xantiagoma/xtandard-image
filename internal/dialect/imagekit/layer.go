@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
@@ -114,13 +115,16 @@ func (ps *parseState) layer(kind string, params []string) error {
 func (ps *parseState) layerParam(spec *layerSpec, kind string, text bool, key, v string) error {
 	switch key {
 	case "i":
+		if !utf8.ValidString(v) {
+			return dialect.InvalidArgument(kind+".i", v, "UTF-8 text or a path")
+		}
 		spec.input, spec.hasInput = v, true
 		if !text {
 			spec.input = decodeLayerPath(v)
 		}
 	case "ie":
 		b, err := decodeBase64(v)
-		if err != nil {
+		if err != nil || !utf8.Valid(b) {
 			return dialect.InvalidArgument(kind+".ie", v, expBase64)
 		}
 		spec.input, spec.hasInput = string(b), true
