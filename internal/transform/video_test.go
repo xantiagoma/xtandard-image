@@ -47,6 +47,8 @@ func TestValidateVideo(t *testing.T) {
 				Timecode: VideoTimecodeHMS, TimecodeSize: 32,
 			},
 		}}},
+		{"cover_gravity_auto", VideoOp{Width: 64, Height: 64, Fit: VideoFitCover, Gravity: VideoGravitySouthEast, AutoContainer: true}},
+		{"crop_gravity", VideoOp{Crop: &VideoCrop{X: 4, Width: 64, Height: 64, Gravity: new(VideoGravityNorth)}}},
 	}
 	for _, tc := range valid {
 		t.Run("valid/"+tc.name, func(t *testing.T) {
@@ -73,6 +75,12 @@ func TestValidateVideo(t *testing.T) {
 		{"fit unknown", func(o *VideoOp) { o.Fit = numVideoFits }, "video.fit"},
 		{"cover without height", func(o *VideoOp) { o.Fit, o.Width = VideoFitCover, 100 }, "video.fit"},
 		{"pad without box", func(o *VideoOp) { o.Fit = VideoFitPad }, "video.fit"},
+		{"gravity unknown", func(o *VideoOp) { o.Gravity = numVideoGravities }, "video.gravity"},
+		{"crop gravity unknown", func(o *VideoOp) {
+			g := VideoGravity(numVideoGravities)
+			o.Crop = &VideoCrop{Width: 10, Height: 10, Gravity: &g}
+		}, "video.crop.gravity"},
+		{"auto container from webm", func(o *VideoOp) { o.AutoContainer, o.Container = true, VideoContainerWebM }, "video.auto_container"},
 		{"crop tiny", func(o *VideoOp) { o.Crop = &VideoCrop{Width: 1, Height: 10} }, "video.crop.width"},
 		{"crop negative", func(o *VideoOp) { o.Crop = &VideoCrop{X: -1, Width: 10, Height: 10} }, "video.crop.x"},
 		{"rotate 45", func(o *VideoOp) { o.Rotate = 45 }, "video.rotate"},

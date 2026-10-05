@@ -101,6 +101,7 @@ func allEnumCases() []enumCase {
 		enumCheck[InfoSchema]("InfoSchema", numInfoSchemas, ParseInfoSchema),
 		enumCheck[GainMapMode]("GainMapMode", numGainMapModes, ParseGainMapMode),
 		enumCheck[VideoFit]("VideoFit", numVideoFits, ParseVideoFit),
+		enumCheck[VideoGravity]("VideoGravity", numVideoGravities, ParseVideoGravity),
 		enumCheck[VideoContainer]("VideoContainer", numVideoContainers, ParseVideoContainer),
 		enumCheck[VideoCodec]("VideoCodec", numVideoCodecs, ParseVideoCodec),
 		enumCheck[AudioCodec]("AudioCodec", numAudioCodecs, ParseAudioCodec),
