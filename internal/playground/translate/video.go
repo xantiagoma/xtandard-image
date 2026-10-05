@@ -96,6 +96,10 @@ func normalizeVideo(c *transform.Request) {
 	if v.Container.Image() {
 		v.AudioCodec = transform.AudioCodecAuto
 	}
+	if v.End > 0 {
+		// end and start+duration are the same cut.
+		v.Duration, v.End = v.End-v.Start, 0
+	}
 	if v.Width == 0 && v.Height == 0 {
 		v.Fit = transform.VideoFitScaleDown // no box: nothing to fit
 	}

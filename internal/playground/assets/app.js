@@ -5,7 +5,7 @@
 
 import { Builder, imageArg } from './builder.js';
 import { $, b64url, copyText, debounce, el, escapePlain, postJSON, store, tabs, toast, unb64url } from './dom.js';
-import { build, curlSnippet, tsSnippet } from './grammar.js';
+import { build, curlSnippet, tsSnippet, VIDEO_GRAMMARS } from './grammar.js';
 import { Frames } from './frames.js';
 import { Info } from './info.js';
 import { Matrix } from './matrix.js';
@@ -14,6 +14,7 @@ import { Examples } from './recipes.js';
 import { Sources } from './sources.js';
 import { History, toolFromHash, Tools } from './tools.js';
 import { Translate } from './translate.js';
+import { canPlay, mediaKind, VideoPanel } from './video.js';
 
 const PREFS = 'xi-playground';
 
@@ -30,6 +31,7 @@ const state = {
   edits: '',
   info: null, // Info panel entries {name, form, values}; null = recommended
   raw: false, // the path and query typed by hand (free) on a mount with a builder
+  video: false, // a video transformation (/video, /q/video) instead of an image (WP-127)
 };
 
 let meta;
@@ -45,6 +47,7 @@ let frames;
 let hist;
 let more;
 let examples;
+let video;
 let lastSigned = null; // {req, url, signed, scheme}
 let seq = 0;
 
@@ -55,6 +58,7 @@ function snapshot() {
     m: state.mount, s: state.source, l: state.sourceLabel, a: state.alias ? 1 : 0, e: state.encoding, x: state.ext,
     p: state.pipelines.map((p) => p.map((e) => [e.name, e.form, e.values, e.groups, e.on ? 1 : 0])),
     f: state.free, j: state.edits, ...(state.prefix ? { pf: state.prefix } : {}), ...(state.raw ? { r: 1 } : {}),
+    ...(state.video ? { v: 1 } : {}),
     ...(Array.isArray(state.info) ? { i: state.info.map((e) => [e.name, e.form ?? 0, e.values ?? []]) } : {}),
   };
 }
@@ -76,6 +80,7 @@ function restore(s) {
   state.free = { path: s.f?.path ?? '', query: s.f?.query ?? '' };
   state.edits = s.j ?? '';
   state.raw = Boolean(s.r);
+  state.video = Boolean(s.v);
   state.info = Array.isArray(s.i)
     ? s.i.filter(Array.isArray).map(([name, form, values]) => ({ name: String(name), form: Number(form) || 0, values: Array.isArray(values) ? values.map(String) : [] }))
     : null;
@@ -102,6 +107,11 @@ const writeHash = debounce(() => {
 // ---- helpers -------------------------------------------------------------
 
 const currentMount = () => meta.mounts.find((m) => m.id === state.mount);
+// catFor is the option catalogue a session builds from on mount m: the
+// /video catalogue for a video transformation on an imgproxy or query
+// mount, else the mount's grammar's.
+const catFor = (m, st = state) => (m && st.video && VIDEO_GRAMMARS.includes(m.grammar) ? catalogues.get('video') : catalogues.get(m?.grammar));
+const indexFor = (m, st = state) => catFor(m, st)?.index ?? new Map();
 const baseURL = () => $('base-url').value.replace(/\/+$/, '');
 const publicURL = (path) => baseURL() + path;
 // sign asks the server to sign a URL. The PDF password field (WP-115)
@@ -109,7 +119,8 @@ const publicURL = (path) => baseURL() + path;
 // imgproxy and query mounts); the server encrypts it into the URL. It is
 // never written to the hash, the preferences or the history.
 const sign = (body) => {
-  const pw = meta?.pdf_passwords ? $('pdf-password').value : '';
+  const isVideo = body.path === '/video' || body.path?.startsWith('/video/');
+  const pw = meta?.pdf_passwords && !isVideo ? $('pdf-password').value : '';
   const m = meta?.mounts.find((x) => x.id === body.mount);
   const capable = m?.keyed && (m.scheme === 'imgproxy' || (m.scheme === 'xi_sig' && m.grammar === 'query'));
   return postJSON('api/sign', pw && capable ? { ...body, pdf_password: pw } : body);
@@ -139,6 +150,13 @@ async function loadMeta() {
     }
     catalogues.set(cat.grammar, { options: cat.options, index });
   }
+  // The /video options (WP-122/123/124): the video mode's catalogue.
+  const vindex = new Map();
+  for (const o of meta.video_options ?? []) {
+    vindex.set(o.name, o);
+    for (const a of o.aliases ?? []) if (!vindex.has(a)) vindex.set(a, o);
+  }
+  catalogues.set('video', { options: meta.video_options ?? [], index: vindex });
 }
 
 function renderMeta(prefs) {
@@ -150,7 +168,6 @@ function renderMeta(prefs) {
   $('base-url').value = prefs.base || (meta.public ? location.origin : `${location.protocol}//${location.hostname}:${port}`);
   if (prefs.accept) $('accept').value = prefs.accept;
   renderMounts();
-  for (const f of meta.formats ?? []) $('extension').append(el('option', { value: f, text: f }));
   for (const c of meta.classes ?? []) $('xi-classes').append(el('option', { value: c }));
   for (const p of meta.presets ?? []) $('xi-presets').append(el('option', { value: p }));
   $('pdf-password-row').hidden = !meta.pdf_passwords;
@@ -194,17 +211,32 @@ function applyPrefixes(m) {
   $('mount-prefix').value = mountPrefix(m);
 }
 
+// fillExtensions lists the imgproxy source extensions: the output formats,
+// or the containers of a video transformation.
+let extensionsFor = null;
+function fillExtensions() {
+  const list = state.video ? meta.video_transform?.containers ?? [] : meta.formats ?? [];
+  const key = list.join();
+  if (extensionsFor === key) return;
+  extensionsFor = key;
+  $('extension').replaceChildren(el('option', { value: '', text: state.video ? 'mp4 (default)' : '(none)' }),
+    ...list.filter((f) => !state.video || f !== 'mp4').map((f) => el('option', { value: f, text: f })));
+}
+
 function applyMount() {
   const m = currentMount();
   if (!m) return;
   $('mount').value = m.id;
   applyPrefixes(m);
+  fillExtensions();
   const signing = m.scheme === 'none'
     ? 'the playground cannot sign this dialect; URLs are unsigned'
     : m.keyed ? `signed with the ${m.scheme} scheme` : `${m.scheme} scheme, no key configured: unsigned`;
   const bound = m.source ? ` Keys resolve against source "${m.source}".` : '';
-  $('mount-info').textContent = `Unsigned policy ${m.unsigned_policy}; ${signing}.${bound}`;
-  const cat = catalogues.get(m.grammar);
+  const videoPolicy = state.video && meta.video_transform
+    ? ` Video transformations: unsigned ones are ${meta.video_transform.unsigned_policy === 'allow' ? 'left to the mount\'s policy' : 'refused (XI_VIDEO_TRANSFORM_UNSIGNED_POLICY=deny)'}.` : '';
+  $('mount-info').textContent = `Unsigned policy ${m.unsigned_policy}; ${signing}.${bound}${videoPolicy}`;
+  const cat = catFor(m);
   // Raw mode: the builder is set aside (its entries are kept) and the
   // path and query are typed by hand, on any mount.
   if (!cat) state.raw = false;
@@ -230,8 +262,70 @@ function applyMount() {
   builder.pipeline = 0;
   builder.render(m.grammar, cat);
   frames?.render();
+  video?.render();
   $('copy-ts').disabled = m.grammar !== 'imgproxy' || raw;
   savePrefs();
+}
+
+// setVideoMode switches the session between an image of the source and a
+// video transformation of it (WP-127). The options of one mode mean
+// nothing in the other, so the builder starts empty; a video
+// transformation needs an imgproxy or query mount.
+function setVideoMode(on) {
+  if (Boolean(state.video) === Boolean(on)) return;
+  if (on && !meta.video_transform) return;
+  state.video = Boolean(on);
+  state.pipelines = [[]];
+  state.raw = false;
+  state.ext = '';
+  if (on) {
+    const m = currentMount();
+    if (!m || !VIDEO_GRAMMARS.includes(m.grammar)) {
+      const vm = meta.mounts.find((x) => x.grammar === 'imgproxy' && x.prefix) ?? meta.mounts.find((x) => VIDEO_GRAMMARS.includes(x.grammar));
+      if (vm) {
+        state.mount = vm.id;
+        state.prefix = '';
+        toast(`Video transformations are built on the ${vm.dialect} mount (${vm.prefix}).`);
+      }
+    }
+    // Start from what this browser plays: audio → MP3; video → WebM when
+    // this build's MP4 codec (H.264 or AV1) does not play here.
+    const vt = meta.video_transform;
+    const audio = video.kind() === 'audio';
+    const pick = audio ? (vt.containers.includes('mp3') && canPlay('mp3') ? 'mp3' : 'm4a')
+      : canPlay('mp4', vt.mp4_video) ? 'mp4' : 'webm';
+    if (pick !== 'mp4' && vt.containers.includes(pick)) {
+      if (currentMount()?.grammar === 'imgproxy') state.ext = pick;
+      else state.pipelines[0].push({ name: 'format', form: 0, groups: 1, values: [pick], on: true });
+    }
+  }
+  preview.clearBefore();
+  applyMount();
+  update({ render: true });
+}
+
+// probeMedia asks api/probe what the source is (WP-127): container,
+// duration and streams, audio files included. One answer per source.
+let mediaFor = '';
+function probeMedia(src) {
+  if (src === mediaFor || src !== state.source) return;
+  mediaFor = src;
+  if (!src || !meta.video_transform?.probe) return;
+  fetch('api/probe', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ source: src }),
+  }).then(async (res) => (res.ok ? res.json() : { error: res.status }), () => ({ error: 0 })).then((mi) => {
+    if (mediaFor !== src) return;
+    video.setProbe(src, mi);
+    preview.setSourceMedia(mi.error ? { error: mi.error } : mi);
+    if (!mi.error && !mi.video && mi.audio && !state.video) {
+      // An audio file has no image: its session is a video transformation.
+      setVideoMode(true);
+    } else if (mi.error === 422 && state.video && !video.kind()) {
+      // Not a media file (an image): back to the image builder.
+      setVideoMode(false);
+      toast('This source is not a video or audio file: back to the image builder.');
+    }
+  });
 }
 
 // ---- URL -------------------------------------------------------------------
@@ -250,6 +344,8 @@ function urlView(full, m) {
   box.append(el('span', { class: 'u-prefix', text: prefix }));
   const segs = rest.split('/').slice(1);
   let i = 0;
+  // /video/<signature>/…: the endpoint, then the signature.
+  if (m.scheme === 'imgproxy' && segs[0] === 'video' && segs.length > 2) box.append('/', el('span', { class: 'u-path', title: 'video endpoint', text: segs[i++] }));
   if (m.scheme === 'imgproxy' || m.scheme === 'thumbor') box.append('/', el('span', { class: 'u-sig', title: 'signature', text: segs[i++] ?? '' }));
   const srcAt = segs.findIndex((s, j) => j >= i && (s === 'plain' || /^https?:/i.test(decodeURIComponent(s))));
   for (; i < segs.length; i++) {
@@ -273,6 +369,10 @@ function beforeRequest() {
   const src = state.source;
   if (!src) return null;
   const ip = meta.mounts.find((m) => m.grammar === 'imgproxy' && m.prefix);
+  // An audio file has no frame: the source side is its waveform (WP-127).
+  if (video?.kind() === 'audio') {
+    return ip && meta.video_transform ? { mount: ip.id, path: `/video/wf:1:2456c7::1/w:960/h:240/plain/${escapePlain(src)}@png`, query: '' } : null;
+  }
   if (ip) return { mount: ip.id, path: `/plain/${escapePlain(src)}`, query: '' };
   const q = meta.mounts.find((m) => m.grammar === 'query' && m.prefix);
   if (q) return { mount: q.id, path: '/', query: `url=${encodeURIComponent(src)}` };
@@ -363,9 +463,18 @@ async function update({ render = $('auto-render').checked } = {}) {
   writeHash();
   frames?.sync();
   sources?.show(state.source);
+  // Media sources are probed (api/probe) when their name says so; others
+  // once their /info reports a video or fails (an audio file).
+  if (video.source !== state.source) {
+    video.setSource(state.source);
+    mediaFor = '';
+    preview.setSourceMedia(null);
+    if (mediaKind(null, null, state.source)) probeMedia(state.source);
+  }
+  video?.sync();
   renderOrigin();
   const m = currentMount();
-  const req = m ? build(m, state, catalogues.get(m.grammar)?.index ?? new Map()) : { error: 'No mount.' };
+  const req = m ? build(m, state, indexFor(m)) : { error: 'No mount.' };
   if (m && !req.error && mountPrefix(m) !== (m.prefix || '')) req.prefix = mountPrefix(m);
   if (req.error) {
     $('url-out').value = '';
@@ -402,8 +511,20 @@ async function renderPreview() {
     try { beforePath = (await sign(before)).url; } catch { beforePath = null; }
   }
   preview.setSource(state.source);
-  await preview.render(lastSigned.url, beforePath);
+  await preview.render(lastSigned.url, beforePath, { video: state.video });
   pushHistory();
+}
+
+// probeResult asks api/probe/result what the result body is (container,
+// codecs, frame rate, sample rate, channels) for the media table.
+async function probeResult(blob, type, forSeq) {
+  if (!meta.video_transform?.probe || blob.size > (meta.video_transform.max_output_bytes || Infinity)) return;
+  try {
+    const res = await fetch('api/probe/result', { method: 'POST', headers: { 'Content-Type': type || 'application/octet-stream', Accept: 'application/json' }, body: blob });
+    preview.setResultMedia(res.ok ? await res.json() : { error: res.status }, forSeq);
+  } catch {
+    preview.setResultMedia({ error: 'failed' }, forSeq);
+  }
 }
 
 // probeSource asks the source's own /info (format, dimensions, size,
@@ -485,6 +606,7 @@ function defaults() {
   state.free = { path: '', query: '' };
   state.edits = '';
   state.raw = false;
+  state.video = false;
   const first = meta.samples?.[0] ?? null;
   const gallery = meta.gallery?.find((g) => g.allowed && g.format === 'jpeg');
   state.source = first?.source ?? gallery?.url ?? '';
@@ -521,7 +643,7 @@ async function main() {
   frames = new Frames({
     state,
     grammar: () => (state.raw ? 'path' : currentMount()?.grammar ?? ''),
-    index: () => catalogues.get(currentMount()?.grammar)?.index ?? null,
+    index: () => catFor(currentMount())?.index ?? null,
     onChange: () => update({ render: true }),
     afterEdit: () => builder.render(builder.grammar, builder.cat),
     thumb: async (page) => {
@@ -531,15 +653,28 @@ async function main() {
       return res.ok ? URL.createObjectURL(await res.blob()) : null;
     },
   });
+  video = new VideoPanel({
+    meta, state,
+    grammar: () => (state.raw ? null : currentMount()?.grammar ?? null),
+    afterEdit: () => builder.render(builder.grammar, builder.cat),
+    onChange: () => update({ render: true }),
+    onMode: (on) => setVideoMode(on),
+  });
   preview = new Preview({
     accept: () => $('accept').value,
     probe: (src) => {
       frames.setInfo(src, null);
-      return probeSource(src).then((i) => { frames.setInfo(src, i); return i; });
+      return probeSource(src).then((i) => {
+        frames.setInfo(src, i);
+        video.setInfo(src, i);
+        if (!i || i.error || i.video_meta) probeMedia(src);
+        return i;
+      });
     },
   });
   preview.onResponse = (h) => frames.setResponse(h);
-  translate = new Translate({ publicURL, onPreview: (path) => preview.render(path, null) });
+  preview.onMedia = (blob, type, forSeq) => probeResult(blob, type, forSeq);
+  translate = new Translate({ publicURL, onPreview: (path) => preview.render(path, null, { video: state.video }) });
   info = new Info({ meta, sign, preview, state, baseURL, onChange: writeHash });
   matrix = new Matrix({ meta, sign });
   tools = new Tools({
@@ -589,7 +724,7 @@ async function main() {
   // stays editable, shares and goes back like any session.
   examples = new Examples({
     meta,
-    index: (g) => catalogues.get(g)?.index ?? null,
+    index: (g, isVideo) => (isVideo && VIDEO_GRAMMARS.includes(g) ? catalogues.get('video') : catalogues.get(g))?.index ?? null,
     load: (r) => {
       const h = `#v1:${b64url(JSON.stringify(examples.snapshot(r)))}`;
       if (location.hash === h) {
@@ -603,12 +738,15 @@ async function main() {
     },
     thumb: async (r, st) => {
       const m = meta.mounts.find((x) => x.id === st.mount);
-      const req = m ? build(m, st, catalogues.get(m.grammar)?.index ?? new Map()) : { error: 'no mount' };
+      const req = m ? build(m, st, indexFor(m, st)) : { error: 'no mount' };
       if (req.error) return null;
       const s = await sign(req);
       const res = await fetch(`api/render?u=${encodeURIComponent(s.url)}`, { headers: { Accept: 'image/avif,image/webp,image/*;q=0.8' } });
-      const type = res.headers.get('Content-Type') ?? '';
-      if (!res.ok || !type.startsWith('image/') || type.includes('svg')) return null;
+      const type = (res.headers.get('Content-Type') ?? '').split(';')[0];
+      if (!res.ok || type.includes('svg')) return null;
+      // Video recipes (WP-127) answer media: the card plays it.
+      if (/^(video|audio)\//.test(type)) return { url: URL.createObjectURL(await res.blob()), type };
+      if (!type.startsWith('image/')) return null;
       return URL.createObjectURL(await res.blob());
     },
   });
@@ -645,6 +783,13 @@ async function main() {
     state.pipelines = [[]];
     state.free = { path: '', query: '' };
     state.raw = false;
+    // Video transformations are built on imgproxy and query mounts; the
+    // others write them through "Every dialect" or by hand.
+    if (state.video && !VIDEO_GRAMMARS.includes(currentMount()?.grammar)) {
+      state.video = false;
+      state.ext = '';
+      toast('This mount has no video builder: back to an image of the source (its video URLs are in "Every dialect").');
+    }
     applyMount();
     update();
   });
@@ -659,7 +804,7 @@ async function main() {
   $('raw-mode').addEventListener('change', (e) => {
     const m = currentMount();
     if (e.target.checked && m) {
-      const req = build(m, { ...state, raw: false }, catalogues.get(m.grammar)?.index ?? new Map());
+      const req = build(m, { ...state, raw: false }, indexFor(m));
       if (!req.error) {
         state.free = {
           path: req.path.split(escapePlain(state.source)).join('{src}'),
@@ -686,7 +831,7 @@ async function main() {
   $('copy-ts').addEventListener('click', () => {
     const m = currentMount();
     const base = baseURL() + (meta.path_prefix || '').replace(/\/+$/, '') + (mountPrefix(m) || '/').replace(/\/+$/, '');
-    const ts = tsSnippet(m, state, catalogues.get('imgproxy').index, base, $('snippet-signed').checked);
+    const ts = tsSnippet(m, state, indexFor(m), base, $('snippet-signed').checked);
     if (ts) copyText(ts, 'TypeScript copied');
   });
   $('share').addEventListener('click', () => copyText(shareURL(sessionHash()), 'Share link copied'));
