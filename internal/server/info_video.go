@@ -32,6 +32,7 @@ type InfoVideoStream struct {
 	Rotation  int     `json:"rotation,omitempty"  doc:"xtandard-image extension: clockwise display rotation of a video stream (0, 90, 180, 270)."`
 	Frequency int     `json:"frequency,omitempty" doc:"Sample rate of an audio stream in Hz."`
 	Layout    string  `json:"layout,omitempty"    doc:"Channel layout of an audio stream: mono, stereo, 5.1(side), ..."`
+	Channels  int     `json:"channels,omitempty"  doc:"xtandard-image extension: channel count of an audio stream."`
 }
 
 // infoVideo renders the video fields for o; zero for images or when
@@ -66,7 +67,7 @@ func infoVideo(o *transform.InfoOptions, m *video.Meta) InfoVideoResponse {
 		streams[i] = InfoVideoStream{
 			Type: s.Type, Codec: s.Codec, BPS: s.BitRate, FPS: round3(s.FPS), Duration: round3(s.Duration),
 			Language: s.Language, Width: s.Width, Height: s.Height, Rotation: s.Rotation,
-			Frequency: s.SampleRate, Layout: s.Layout,
+			Frequency: s.SampleRate, Layout: s.Layout, Channels: s.Channels,
 		}
 	}
 	return InfoVideoResponse{VideoMeta: meta, VideoStreams: streams}

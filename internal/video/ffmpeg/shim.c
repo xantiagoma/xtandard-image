@@ -420,6 +420,7 @@ xi_ff_stream(XiFF *h, int i, XiFFStream *out)
     xi_ff_display(par, &out->rotation, &out->hflip);
   } else if (par->codec_type == AVMEDIA_TYPE_AUDIO) {
     out->sample_rate = par->sample_rate;
+    out->channels = par->ch_layout.nb_channels;
     if (par->ch_layout.nb_channels > 0) {
       AVChannelLayout layout = { 0 };
       if (par->ch_layout.order == AV_CHANNEL_ORDER_UNSPEC)

@@ -13,80 +13,11 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/xantiagoma/xtandard-image/internal/config"
-	"github.com/xantiagoma/xtandard-image/internal/dialect"
-	"github.com/xantiagoma/xtandard-image/internal/dialect/router"
-	"github.com/xantiagoma/xtandard-image/internal/server"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
-	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/video/ffmpeg"
 )
-
-// videoTestRouter is the minimal internal URL syntax of video
-// transformations until the dialects have theirs (WP-122, WP-125):
-// /_video/<source path>?w=&h=&start=&dur=&c=&mute=1, with the source
-// resolved by the imgproxy mount. Overlays (WP-124) are imgproxy
-// watermark options in o= (wm, wmu, wmt, wms, wmr, wmsh, …: each
-// watermark of the first pipeline becomes an overlay), shown from ovs= to
-// ove= seconds with fades ovfi= and ovfo=; tc=hms|seconds adds a timecode
-// (tcg= gravity, tcs= size).
-type videoTestRouter struct{ next server.Router }
-
-func (v videoTestRouter) Route(r *http.Request) (*dialect.Result, *router.Mount, error) {
-	rest, ok := strings.CutPrefix(r.URL.Path, "/_video/")
-	if !ok {
-		return v.next.Route(r)
-	}
-	r2 := r.Clone(r.Context())
-	q := r.URL.Query()
-	opts := ""
-	if o := q.Get("o"); o != "" {
-		opts = strings.Trim(o, "/") + "/"
-	}
-	r2.URL.Path, r2.URL.RawPath, r2.URL.RawQuery = "/unsafe/"+opts+"plain/"+rest, "", ""
-	res, m, err := v.next.Route(r2)
-	if err != nil {
-		return res, m, err
-	}
-	num := func(k string) float64 { f, _ := strconv.ParseFloat(q.Get(k), 64); return f }
-	op := &transform.VideoOp{
-		Width: int(num("w")), Height: int(num("h")),
-		Start:    time.Duration(num("start") * float64(time.Second)),
-		Duration: time.Duration(num("dur") * float64(time.Second)),
-		Mute:     q.Get("mute") == "1",
-	}
-	if c := q.Get("c"); c != "" {
-		if op.Container, err = transform.ParseVideoContainer(c); err != nil {
-			return nil, m, err
-		}
-	}
-	at := func(k string) time.Duration { return time.Duration(num(k) * float64(time.Second)) }
-	for i := range res.Request.Pipelines {
-		wms := res.Request.Pipelines[i].Watermarks
-		for k := range wms {
-			op.Overlays = append(op.Overlays, transform.VideoOverlay{
-				Watermark: wms[k], Start: at("ovs"), End: at("ove"), FadeIn: at("ovfi"), FadeOut: at("ovfo"),
-			})
-		}
-	}
-	if tc := q.Get("tc"); tc != "" {
-		o := transform.VideoOverlay{Opacity: 1, TimecodeSize: int(num("tcs"))}
-		if o.Timecode, err = transform.ParseVideoTimecode(tc); err != nil {
-			return nil, m, err
-		}
-		if g := q.Get("tcg"); g != "" {
-			if o.Position.Type, err = transform.ParseGravityType(g); err != nil {
-				return nil, m, err
-			}
-		}
-		op.Overlays = append(op.Overlays, o)
-	}
-	res.Request.Kind, res.Request.Video, res.Request.Output = transform.KindVideo, op, transform.Output{}
-	res.Request.Pipelines = nil
-	return res, m, nil
-}
 
 func videoConfig(t *testing.T, role config.Role, enabled bool) *config.Config {
 	t.Helper()
@@ -98,6 +29,8 @@ server:
 admin:
   addr: "127.0.0.2:0"
 signing:
+  keys: [` + videoKey + `]
+  salts: [` + videoSalt + `]
   required: "false"
 security:
   unsigned_policy: allow
@@ -109,6 +42,9 @@ sources:
     root: ` + strconv.Quote(fixtures) + `
 dialects:
   imgproxy:
+    source: fixtures
+  query:
+    enabled: true
     source: fixtures
 video:
   transform:
@@ -129,14 +65,17 @@ video:
 
 func startVideo(t *testing.T, cfg *config.Config) addrs {
 	t.Helper()
-	return start(t, cfg, hooks{
-		keepVips: true,
-		router:   func(next server.Router) server.Router { return videoTestRouter{next: next} },
-	})
+	return start(t, cfg, hooks{keepVips: true})
 }
 
+// The signing key and salt of videoConfig (imgproxy's docs example).
 const (
-	videoClip  = "/_video/video/clip-vp9.webm?w=320&start=0.5&dur=1&c=webm"
+	videoKey  = "736563726574"
+	videoSalt = "68656c6c6f"
+)
+
+const (
+	videoClip  = "/video/unsafe/w:320/vs:0.5/vd:1/plain/video/clip-vp9.webm@webm"
 	videoImage = "/unsafe/rs:fit:64:64/plain/jpeg/baseline.jpg@png"
 )
 
@@ -255,7 +194,7 @@ func TestVideoTransformService(t *testing.T) {
 
 	// Another output, asked for by eight clients at once.
 	const n = 8
-	u := base + "/_video/video/clip-av1.mp4?w=256&c=webm&dur=1.5"
+	u := base + "/video/unsafe/w:256/vd:1.5/plain/video/clip-av1.mp4@webm"
 	var wg sync.WaitGroup
 	bodies := make([][]byte, n)
 	for i := range n {
