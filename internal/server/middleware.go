@@ -80,6 +80,9 @@ func (s *Server) ingress(mux *http.ServeMux) http.Handler {
 			}
 		}()
 
+		if s.cors(sw, r) {
+			return // a preflight, answered
+		}
 		switch {
 		case len(r.RequestURI) > maxURLLength:
 			s.writeError(sw, r, &httpError{status: http.StatusRequestURITooLong, msg: "url too long"})
@@ -296,16 +299,28 @@ type statusWriter struct {
 	status int
 	bytes  int64
 	timing bool // add Server-Timing with the stage durations
+	// varyOrigin adds Vary: Origin when the headers are written (a CORS
+	// response for one origin, cors.go).
+	varyOrigin bool
 }
 
 func (w *statusWriter) WriteHeader(code int) {
 	if w.status == 0 {
 		w.status = code
-		if w.timing {
-			w.serverTiming()
-		}
+		w.beforeHeaders()
 	}
 	w.ResponseWriter.WriteHeader(code)
+}
+
+// beforeHeaders adds what goes with every response once the handler has
+// set its own headers.
+func (w *statusWriter) beforeHeaders() {
+	if w.timing {
+		w.serverTiming()
+	}
+	if w.varyOrigin {
+		w.Header().Add("Vary", "Origin")
+	}
 }
 
 // serverTiming adds one Server-Timing entry per stage that ran
@@ -323,9 +338,7 @@ func (w *statusWriter) serverTiming() {
 func (w *statusWriter) Write(p []byte) (int, error) {
 	if w.status == 0 {
 		w.status = http.StatusOK
-		if w.timing {
-			w.serverTiming()
-		}
+		w.beforeHeaders()
 	}
 	n, err := w.ResponseWriter.Write(p)
 	w.bytes += int64(n)

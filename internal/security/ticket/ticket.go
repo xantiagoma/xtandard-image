@@ -114,7 +114,7 @@ func (s *Sealer) Open(tok string, now time.Time) ([]byte, time.Time, error) {
 	if len(tok) > MaxToken {
 		return nil, time.Time{}, invalid("ticket too long")
 	}
-	raw, err := base64.RawURLEncoding.DecodeString(tok)
+	raw, err := base64.RawURLEncoding.Strict().DecodeString(tok) // one spelling per ticket
 	if err != nil || len(raw) < 1+nonceSize || raw[0] != version {
 		return nil, time.Time{}, invalid("malformed ticket")
 	}

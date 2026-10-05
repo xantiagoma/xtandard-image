@@ -249,6 +249,10 @@ type Config struct {
 	WriteTimeout      time.Duration
 	IdleTimeout       time.Duration
 	MaxHeaderBytes    int
+	// CORSOrigins are the origins browsers may read responses from
+	// (XI_SERVER_CORS_ORIGINS; "*" for any, cors.go); empty sends no CORS
+	// headers.
+	CORSOrigins []string
 
 	// CompatImgproxyStatus answers invalid URLs (400) and forbidden sources
 	// or options (403 KindForbidden) with 404 like imgproxy
