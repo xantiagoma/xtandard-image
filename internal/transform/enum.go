@@ -83,9 +83,10 @@ const (
 	KindProcess Kind = iota // transform and encode an image
 	KindInfo                // return metadata as JSON (/info, fm=json, fl_getinfo, thumbor meta)
 	KindRaw                 // stream the source unmodified (imgproxy raw, imagekit orig-true)
+	KindVideo               // transcode a video source (Request.Video, WP-121)
 )
 
-const numKinds = 3
+const numKinds = 4
 
 func (k Kind) String() string {
 	switch k {
@@ -95,6 +96,8 @@ func (k Kind) String() string {
 		return "info"
 	case KindRaw:
 		return "raw"
+	case KindVideo:
+		return "video"
 	}
 	return invalidEnum("Kind", uint8(k))
 }
