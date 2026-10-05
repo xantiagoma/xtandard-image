@@ -304,6 +304,12 @@ func (r *Runner) Render(ctx context.Context, ps []byte, p *Page, read func(r io.
 		return Raster{}, errs.Wrapf(errs.KindInternal, err, "ghostscript: stdout")
 	}
 	if err := cmd.Start(); err != nil {
+		// Start fails with the context's error when the deadline passed
+		// before the fork (a loaded machine): that is the render timeout,
+		// not an internal error.
+		if cerr := r.endErr(ctx, rctx); cerr != nil {
+			return Raster{}, cerr
+		}
 		return Raster{}, errs.Wrapf(errs.KindInternal, err, "ghostscript: start %s", r.cfg.Path)
 	}
 	pgid := cmd.Process.Pid
@@ -318,12 +324,10 @@ func (r *Runner) Render(ctx context.Context, ps []byte, p *Page, read func(r io.
 	// Anything the process left in its group goes with it.
 	sandbox.KillGroup(pgid)
 
+	if cerr := r.endErr(ctx, rctx); cerr != nil {
+		return Raster{}, cerr
+	}
 	switch {
-	case ctx.Err() != nil:
-		return Raster{}, ctxErr(ctx)
-	case errors.Is(context.Cause(rctx), errRenderTimeout):
-		return Raster{}, errs.WithPublic(errs.Wrapf(errs.KindTimeout, errRenderTimeout,
-			"ghostscript: no page after %s", r.cfg.Timeout), "EPS rendering timed out")
 	case out.overflow:
 		return Raster{}, errs.Newf(errs.KindLimitExceeded, "ghostscript: output over %d bytes for a %dx%d page",
 			limit, g.Width, g.Height)
@@ -335,6 +339,20 @@ func (r *Runner) Render(ctx context.Context, ps []byte, p *Page, read func(r io.
 		return Raster{}, errs.Newf(errs.KindCorrupt, "ghostscript: no PNG on stdout (%s)", stderr.String())
 	}
 	return g, nil
+}
+
+// endErr is the error of a render whose context ended: the caller's
+// (canceled, or its own deadline) or rctx's render timeout; nil while
+// both are live.
+func (r *Runner) endErr(ctx, rctx context.Context) error {
+	switch {
+	case ctx.Err() != nil:
+		return ctxErr(ctx)
+	case errors.Is(context.Cause(rctx), errRenderTimeout):
+		return errs.WithPublic(errs.Wrapf(errs.KindTimeout, errRenderTimeout,
+			"ghostscript: no page after %s", r.cfg.Timeout), "EPS rendering timed out")
+	}
+	return nil
 }
 
 // errRenderTimeout is the cause of the per-render deadline.
