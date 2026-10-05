@@ -181,7 +181,10 @@ func (m *mediaState) read(escaped string) error {
 			return err
 		}
 		key = strings.ToLower(strings.TrimSpace(key))
-		if !ok {
+		switch {
+		case key == "":
+			return dialect.InvalidURL("empty option name")
+		case !ok:
 			return dialect.InvalidArgument(key, "", "key=value")
 		}
 		value, err := unescape(v)
