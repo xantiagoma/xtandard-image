@@ -26,9 +26,12 @@ func transparentPNG(tb testing.TB, w, h int) []byte {
 	return b.Bytes()
 }
 
+// The video frame size of these tests.
+const frameW, frameH = 200, 150
+
 // renderOverlay renders the first watermark of options as a video overlay
-// on a w×h frame, with the badge as its image.
-func renderOverlay(tb testing.TB, e *exec.Executor, options string, w, h int) *exec.Overlay {
+// on a frameW×frameH frame, with the badge as its image.
+func renderOverlay(tb testing.TB, e *exec.Executor, options string) *exec.Overlay {
 	tb.Helper()
 	req := parse(tb, options)
 	wm := &req.Pipelines[0].Watermarks[0]
@@ -38,7 +41,7 @@ func renderOverlay(tb testing.TB, e *exec.Executor, options string, w, h int) *e
 		defer badge.Release()
 		img = &exec.OverlayImage{Source: badge, Format: "png"}
 	}
-	o, err := e.RenderOverlay(tb.Context(), wm, img, w, h)
+	o, err := e.RenderOverlay(tb.Context(), wm, img, frameW, frameH)
 	if err != nil {
 		tb.Fatalf("RenderOverlay %q: %v", options, err)
 	}
@@ -64,7 +67,7 @@ func canvas(o *exec.Overlay, w, h int) *image.NRGBA {
 func TestRenderOverlayMatchesImage(t *testing.T) {
 	t.Parallel()
 	e := newWatermarkExecutor(t, newWatermark(t, watermarkLogo, "png", 1))
-	const w, h = 200, 150
+	const w, h = frameW, frameH
 	src := transparentPNG(t, w, h)
 	for _, tc := range []struct{ name, options string }{
 		{"wmu-center", "wm:1:ce/" + wmu},
@@ -83,7 +86,7 @@ func TestRenderOverlayMatchesImage(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			o := renderOverlay(t, e, tc.options, w, h)
+			o := renderOverlay(t, e, tc.options)
 			if o == nil {
 				t.Fatal("nothing rendered")
 			}
@@ -106,7 +109,11 @@ func TestRenderOverlayMatchesImage(t *testing.T) {
 			}
 			defer res.Body.Release()
 			want, _ := decode(t, res.Body.Bytes())
-			comparePixels(t, got, want.(*image.NRGBA))
+			nrgba, ok := want.(*image.NRGBA)
+			if !ok {
+				t.Fatalf("decoded %T", want)
+			}
+			comparePixels(t, got, nrgba)
 		})
 	}
 }
@@ -147,23 +154,23 @@ func absDiff8(a, b uint8) int {
 func TestRenderOverlayNothing(t *testing.T) {
 	t.Parallel()
 	e := newWatermarkExecutor(t, newWatermark(t, watermarkLogo, "png", 1))
-	if o := renderOverlay(t, e, "wm:1:ce/"+wmt("<b></b>"), 200, 150); o != nil {
+	if o := renderOverlay(t, e, "wm:1:ce/"+wmt("<b></b>")); o != nil {
 		o.Release()
 		t.Errorf("empty text rendered a %dx%d overlay", o.Width, o.Height)
 	}
 	// Placed far outside, a watermark keeps one pixel inside (imgproxy
 	// calcPosition with overflow), clipped to it.
-	if o := renderOverlay(t, e, "wm:1:nowe:400:400/"+wmu, 200, 150); o == nil || o.Width != 1 || o.Height != 1 || o.X != 199 || o.Y != 149 {
+	if o := renderOverlay(t, e, "wm:1:nowe:400:400/"+wmu); o == nil || o.Width != 1 || o.Height != 1 || o.X != 199 || o.Y != 149 {
 		t.Errorf("overflowing overlay %+v, want the corner pixel", o)
 	} else {
 		o.Release()
 	}
 	transparent := &transform.Watermark{Text: "x", Position: transform.Gravity{Type: transform.GravityCenter}}
-	if o, err := e.RenderOverlay(t.Context(), transparent, nil, 200, 150); o != nil || err != nil {
+	if o, err := e.RenderOverlay(t.Context(), transparent, nil, frameW, frameH); o != nil || err != nil {
 		t.Errorf("opacity 0: %v, %v", o, err)
 	}
 	// Without a configured watermark, the default overlay is skipped.
-	if o := renderOverlay(t, newExecutor(t), "wm:1:ce", 200, 150); o != nil {
+	if o := renderOverlay(t, newExecutor(t), "wm:1:ce"); o != nil {
 		o.Release()
 		t.Error("the missing configured watermark rendered")
 	}
@@ -205,8 +212,10 @@ func TestRenderOverlayErrors(t *testing.T) {
 // libvips's tracked memory flat.
 func TestRenderOverlayNoLeak(t *testing.T) {
 	e := newExecutor(t)
-	wm := &transform.Watermark{Opacity: 0.7, Text: "<b>leak</b>", Tile: transform.TileRepeat,
-		Position: transform.Gravity{Type: transform.GravityCenter, XOffset: 4, YOffset: 4}}
+	wm := &transform.Watermark{
+		Opacity: 0.7, Text: "<b>leak</b>", Tile: transform.TileRepeat,
+		Position: transform.Gravity{Type: transform.GravityCenter, XOffset: 4, YOffset: 4},
+	}
 	render := func() {
 		o, err := e.RenderOverlay(t.Context(), wm, nil, 320, 240)
 		if err != nil || o == nil {

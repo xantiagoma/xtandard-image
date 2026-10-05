@@ -37,7 +37,7 @@ func (r *renderer) Render(_ context.Context, o *transform.VideoOverlay, img Buff
 }
 
 func overlay(text string) transform.VideoOverlay {
-	return transform.VideoOverlay{Watermark: transform.Watermark{Opacity: 1, Text: text}}
+	return transform.VideoOverlay{Opacity: 1, Text: text}
 }
 
 func overlayConfig() *Config {
@@ -59,8 +59,8 @@ func TestTransformOverlays(t *testing.T) {
 	op := &transform.VideoOp{Width: 640, Mute: true, Overlays: []transform.VideoOverlay{
 		overlay("a"),
 		overlay("none"),
-		{Watermark: transform.Watermark{Opacity: 1}, Timecode: transform.VideoTimecodeHMS},
-		{Watermark: transform.Watermark{Opacity: 1, Source: &transform.SourceSpec{Raw: "logo.png"}}},
+		{Opacity: 1, Timecode: transform.VideoTimecodeHMS},
+		{Opacity: 1, Source: &transform.SourceSpec{Raw: "logo.png"}},
 	}}
 	res, err := s.Transform(t.Context(), "k", newBuf("v"), op, []Buffer{nil, nil, nil, logo})
 	if err != nil {
@@ -118,7 +118,7 @@ func TestTransformOverlayErrors(t *testing.T) {
 		t.Fatalf("no renderer: %v", err)
 	}
 	tc := &transform.VideoOp{Mute: true, Overlays: []transform.VideoOverlay{
-		{Watermark: transform.Watermark{Opacity: 1}, Timecode: transform.VideoTimecodeSeconds},
+		{Opacity: 1, Timecode: transform.VideoTimecodeSeconds},
 	}}
 	res, err := bare.Transform(t.Context(), "tc", newBuf("v"), tc, nil)
 	if err != nil {
