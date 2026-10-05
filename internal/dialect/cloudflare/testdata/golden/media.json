@@ -1,0 +1,1024 @@
+{
+  "audio_bad": {
+    "config": "media",
+    "error": {
+      "field": "audio",
+      "kind": "invalid_url",
+      "public": "invalid audio: expected true or false",
+      "status": 400
+    },
+    "path": "/mode=video,audio=no/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "audio_default": {
+    "config": "media",
+    "path": "/mode=audio/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "AudioCodec": "aac",
+        "Container": "m4a",
+        "Duration": 60000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "audio_false": {
+    "config": "media",
+    "error": {
+      "field": "audio",
+      "kind": "invalid_url",
+      "public": "invalid audio: expected true in audio mode",
+      "status": 400
+    },
+    "path": "/mode=audio,audio=false/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "audio_format_mp3": {
+    "config": "media",
+    "error": {
+      "field": "format",
+      "kind": "invalid_url",
+      "public": "invalid format: expected m4a",
+      "status": 400
+    },
+    "path": "/mode=audio,format=mp3/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "audio_width_ignored": {
+    "config": "media",
+    "path": "/mode=audio,width=100/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Ignored": [
+        {
+          "Option": "width",
+          "Reason": "not applicable in this mode"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "AudioCodec": "aac",
+        "Container": "m4a",
+        "Duration": 60000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "doc_audio": {
+    "config": "media",
+    "path": "/mode=audio,time=5s,duration=10s,format=m4a/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "AudioCodec": "aac",
+        "Container": "m4a",
+        "Duration": 10000000000,
+        "Start": 5000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "doc_frame": {
+    "config": "media",
+    "path": "/mode=frame,time=3s,width=500,height=500,fit=cover,format=jpg/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 500
+            },
+            "Type": "fill",
+            "Width": {
+              "Px": 500
+            }
+          },
+          "Video": {
+            "Second": 3
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "doc_spritesheet": {
+    "config": "media",
+    "path": "/mode=spritesheet,duration=10s,width=200,height=100,fit=cover/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Video": {
+            "Tile": {
+              "Columns": 4,
+              "Fill": true,
+              "FocusX": 0.5,
+              "FocusY": 0.5,
+              "Rows": 3,
+              "Step": 1,
+              "TileHeight": 100,
+              "TileWidth": 200,
+              "Trim": true
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "doc_video": {
+    "config": "media",
+    "path": "/cdn-cgi/media/mode=video,time=5s,duration=5s,width=500,height=500,fit=crop,audio=false/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "Duration": 5000000000,
+        "Fit": "cover",
+        "Height": 500,
+        "Mute": true,
+        "Start": 5000000000,
+        "Width": 500
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "duration_long": {
+    "config": "media",
+    "error": {
+      "field": "duration",
+      "kind": "invalid_url",
+      "public": "invalid duration: expected time such as 5s or 1m, in 1s..60s",
+      "status": 400
+    },
+    "path": "/mode=video,duration=61s/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "duration_short": {
+    "config": "media",
+    "error": {
+      "field": "duration",
+      "kind": "invalid_url",
+      "public": "invalid duration: expected time such as 5s or 1m, in 1s..60s",
+      "status": 400
+    },
+    "path": "/mode=video,duration=0.5s/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "filename_bad": {
+    "config": "media",
+    "error": {
+      "field": "filename",
+      "kind": "invalid_url",
+      "public": "invalid filename: expected up to 120 letters, digits, - or _",
+      "status": 400
+    },
+    "path": "/mode=video,filename=a.mp4/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "fit_pad": {
+    "config": "media",
+    "error": {
+      "field": "fit",
+      "kind": "invalid_url",
+      "public": "invalid fit: expected contain, scale-down or cover",
+      "status": 400
+    },
+    "path": "/mode=video,width=100,height=100,fit=pad/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "frame_audio_ignored": {
+    "config": "media",
+    "path": "/mode=frame,audio=false,duration=5s/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Ignored": [
+        {
+          "Option": "audio",
+          "Reason": "not applicable in this mode"
+        },
+        {
+          "Option": "duration",
+          "Reason": "not applicable in this mode"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit"
+          },
+          "Video": {
+            "Second": 0
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "frame_default": {
+    "config": "media",
+    "path": "/mode=frame/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit"
+          },
+          "Video": {
+            "Second": 0
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "frame_format_bad": {
+    "config": "media",
+    "error": {
+      "field": "format",
+      "kind": "invalid_url",
+      "public": "invalid format: expected jpg or png",
+      "status": 400
+    },
+    "path": "/mode=frame,format=webp/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "frame_png": {
+    "config": "media",
+    "path": "/mode=frame,time=2m,format=png,height=240/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Output": {
+        "Format": "png"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Height": {
+              "Px": 240
+            },
+            "Type": "fit"
+          },
+          "Video": {
+            "Second": 120
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "frame_scale_down": {
+    "config": "media",
+    "path": "/mode=frame,width=320,height=320,fit=scale-down/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Height": {
+              "Px": 320
+            },
+            "Type": "fit",
+            "Width": {
+              "Px": 320
+            }
+          },
+          "Video": {
+            "Second": 0
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "height_text": {
+    "config": "media",
+    "error": {
+      "field": "height",
+      "kind": "invalid_url",
+      "public": "invalid height: expected integer 10..2000",
+      "status": 400
+    },
+    "path": "/mode=video,height=tall/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "item_no_value": {
+    "config": "media",
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected key=value",
+      "status": 400
+    },
+    "path": "/mode=video,width/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "missing_options": {
+    "config": "media",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing options",
+      "status": 400
+    },
+    "path": "//v.mp4"
+  },
+  "missing_source": {
+    "config": "media",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing source",
+      "status": 400
+    },
+    "path": "/mode=video"
+  },
+  "mode_bad": {
+    "config": "media",
+    "error": {
+      "field": "mode",
+      "kind": "invalid_url",
+      "public": "invalid mode: expected video, frame, spritesheet or audio",
+      "status": 400
+    },
+    "path": "/mode=gif/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "mode_missing": {
+    "config": "media",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: missing mode",
+      "status": 400
+    },
+    "path": "/width=100/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "sprite_count": {
+    "config": "media",
+    "path": "/mode=spritesheet,imageCount=12,duration=6s,width=160/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Video": {
+            "Tile": {
+              "Columns": 4,
+              "FocusX": 0.5,
+              "FocusY": 0.5,
+              "Rows": 3,
+              "Step": 0.5,
+              "TileWidth": 160,
+              "Trim": true
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "sprite_count_bad": {
+    "config": "media",
+    "error": {
+      "field": "imageCount",
+      "kind": "invalid_url",
+      "public": "invalid imageCount: expected integer 1..100",
+      "status": 400
+    },
+    "path": "/mode=spritesheet,imageCount=0/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "sprite_count_huge": {
+    "config": "media",
+    "error": {
+      "field": "imageCount",
+      "kind": "invalid_url",
+      "public": "invalid imageCount: expected integer 1..100",
+      "status": 400
+    },
+    "path": "/mode=spritesheet,imageCount=101/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "sprite_default": {
+    "config": "media",
+    "path": "/mode=spritesheet/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Video": {
+            "Tile": {
+              "Columns": 4,
+              "FocusX": 0.5,
+              "FocusY": 0.5,
+              "Rows": 3,
+              "Trim": true
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "sprite_time": {
+    "config": "media",
+    "path": "/mode=spritesheet,time=5s/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Ignored": [
+        {
+          "Option": "time",
+          "Reason": "sprite sheets start at the beginning of the video"
+        }
+      ],
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Video": {
+            "Tile": {
+              "Columns": 4,
+              "FocusX": 0.5,
+              "FocusY": 0.5,
+              "Rows": 3,
+              "Trim": true
+            }
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "sprite_time_strict": {
+    "config": "media_strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported option",
+      "status": 400
+    },
+    "path": "/mode=spritesheet,time=5s/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "time_max": {
+    "config": "media",
+    "path": "/mode=video,time=10m/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "Duration": 60000000000,
+        "Start": 600000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "time_ms": {
+    "config": "media",
+    "error": {
+      "field": "time",
+      "kind": "invalid_url",
+      "public": "invalid time: expected time such as 5s, 1.5s or 2m, in 0..10m",
+      "status": 400
+    },
+    "path": "/mode=video,time=500ms/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "time_negative": {
+    "config": "media",
+    "error": {
+      "field": "time",
+      "kind": "invalid_url",
+      "public": "invalid time: expected time such as 5s, 1.5s or 2m, in 0..10m",
+      "status": 400
+    },
+    "path": "/mode=video,time=-1s/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "time_no_unit": {
+    "config": "media",
+    "error": {
+      "field": "time",
+      "kind": "invalid_url",
+      "public": "invalid time: expected time such as 5s, 1.5s or 2m, in 0..10m",
+      "status": 400
+    },
+    "path": "/mode=video,time=5/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "time_over": {
+    "config": "media",
+    "error": {
+      "field": "time",
+      "kind": "invalid_url",
+      "public": "invalid time: expected time such as 5s, 1.5s or 2m, in 0..10m",
+      "status": 400
+    },
+    "path": "/mode=video,time=11m/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "via_image_parser": {
+    "path": "/cdn-cgi/media/mode=video,width=320/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "Duration": 60000000000,
+        "Width": 320
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "via_image_parser_strict": {
+    "config": "strict",
+    "path": "/cdn-cgi/media/mode=frame,time=1s/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Output": {
+        "Format": "jpeg"
+      },
+      "Pipelines": [
+        {
+          "Resize": {
+            "Enlarge": true,
+            "Type": "fit"
+          },
+          "Video": {
+            "Second": 1
+          }
+        }
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "video_contain": {
+    "config": "media",
+    "path": "/mode=video,width=640,height=360,fit=contain,audio=true/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "Duration": 60000000000,
+        "Height": 360,
+        "Width": 640
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "video_cover_one_side": {
+    "config": "media",
+    "path": "/mode=video,width=480,fit=cover/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "Duration": 60000000000,
+        "Width": 480
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "video_decimal_seconds": {
+    "config": "media",
+    "path": "/mode=video,time=0.25s,duration=1.5s/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "Duration": 1500000000,
+        "Start": 250000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "video_defaults": {
+    "config": "media",
+    "path": "/mode=video/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "Duration": 60000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "video_encoded_source": {
+    "config": "media",
+    "path": "/mode=video/https%3A%2F%2Fexample.com%2Fv.mp4%3Fx%3D1",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/v.mp4?x=1"
+      },
+      "Video": {
+        "Duration": 60000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/v.mp4?x=1"
+  },
+  "video_filename": {
+    "config": "media",
+    "path": "/mode=video,filename=my-clip_01/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Delivery": {
+        "Filename": "my-clip_01"
+      },
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "Duration": 60000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "video_format_ignored": {
+    "config": "media",
+    "path": "/mode=video,format=jpg/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Ignored": [
+        {
+          "Option": "format",
+          "Reason": "not applicable in this mode"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "Duration": 60000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "video_format_strict": {
+    "config": "media_strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported option",
+      "status": 400
+    },
+    "path": "/mode=video,format=jpg/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "video_later_wins": {
+    "config": "media",
+    "path": "/mode=frame,width=100,mode=video,width=200/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "Duration": 60000000000,
+        "Width": 200
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "video_minutes": {
+    "config": "media",
+    "path": "/mode=video,time=1.5m,duration=1m/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "Duration": 60000000000,
+        "Start": 90000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "video_relative_source": {
+    "config": "media",
+    "path": "/mode=video/videos/a.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/videos/a.mp4"
+      },
+      "Video": {
+        "Duration": 60000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "/videos/a.mp4"
+  },
+  "video_scale_down": {
+    "config": "media",
+    "path": "/mode=video,width=480,height=480,fit=scale-down/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "Duration": 60000000000,
+        "Fit": "scale-down",
+        "Height": 480,
+        "Width": 480
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "video_unknown": {
+    "config": "media",
+    "path": "/mode=video,quality=80/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Ignored": [
+        {
+          "Option": "quality",
+          "Reason": "unknown option"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "Duration": 60000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "video_unknown_strict": {
+    "config": "media_strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/mode=video,quality=80/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "video_width_only": {
+    "config": "media",
+    "path": "/mode=video,width=480/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+      },
+      "Video": {
+        "Duration": 60000000000,
+        "Width": 480
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "width_large": {
+    "config": "media",
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected integer 10..2000",
+      "status": 400
+    },
+    "path": "/mode=video,width=2001/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "width_small": {
+    "config": "media",
+    "error": {
+      "field": "width",
+      "kind": "invalid_url",
+      "public": "invalid width: expected integer 10..2000",
+      "status": 400
+    },
+    "path": "/mode=video,width=9/https://pub-8613b7f94d6146408add8fefb52c52e8.r2.dev/aus-mobile-demo.mp4"
+  },
+  "xi_signed": {
+    "config": "media_xi",
+    "path": "/mode=video/v.mp4",
+    "query": "xi_sig=VIIft7BZOQ9tHYHIXL7j4baxX9LsaqQ8UI7HbmGZk9A",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/v.mp4"
+      },
+      "Video": {
+        "Duration": 60000000000
+      }
+    },
+    "signature": "verified",
+    "source": "/v.mp4"
+  },
+  "xi_signed_native_prefix": {
+    "config": "media_xi",
+    "path": "/cdn-cgi/media/mode=video/v.mp4",
+    "query": "xi_sig=VIIft7BZOQ9tHYHIXL7j4baxX9LsaqQ8UI7HbmGZk9A",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/v.mp4"
+      },
+      "Video": {
+        "Duration": 60000000000
+      }
+    },
+    "signature": "verified",
+    "source": "/v.mp4"
+  },
+  "xi_tampered": {
+    "config": "media_xi",
+    "error": {
+      "kind": "unauthorized",
+      "public": "invalid signature",
+      "status": 403
+    },
+    "path": "/mode=audio/v.mp4",
+    "query": "xi_sig=VIIft7BZOQ9tHYHIXL7j4baxX9LsaqQ8UI7HbmGZk9A"
+  },
+  "xi_unsigned": {
+    "config": "media_xi",
+    "path": "/mode=video/v.mp4",
+    "request": {
+      "Dialect": "cloudflare_media",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "/v.mp4"
+      },
+      "Video": {
+        "Duration": 60000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "/v.mp4"
+  }
+}

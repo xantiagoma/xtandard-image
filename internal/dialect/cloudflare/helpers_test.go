@@ -140,6 +140,18 @@ func buildFixture() (*fixture, error) {
 		}
 		f.parsers[name] = p
 	}
+	for name, o := range map[string]cloudflare.Options{
+		"media":        {},
+		"media_strict": {Strict: true},
+		"media_xi":     {XIVerifier: xiV},
+	} {
+		o.Now = clock
+		p, err := cloudflare.NewMedia(&o)
+		if err != nil {
+			return nil, err
+		}
+		f.parsers[name] = p
+	}
 	return f, nil
 }
 
@@ -327,7 +339,7 @@ func runGolden(t *testing.T, group string, cases []testCase) {
 func checkResult(t *testing.T, res *dialect.Result) {
 	t.Helper()
 	r := res.Request
-	if r.Dialect != cloudflare.Name && r.Dialect != cloudflare.ImagesName {
+	if r.Dialect != cloudflare.Name && r.Dialect != cloudflare.ImagesName && r.Dialect != cloudflare.MediaName {
 		t.Errorf("Dialect = %q", r.Dialect)
 	}
 	if res.SourceString == "" || res.SourceString != r.Source.Raw {
