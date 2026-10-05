@@ -403,6 +403,7 @@ func (d *decoder) readMeta() video.Meta {
 			Rotation:   int(s.rotation),
 			SampleRate: int(s.sample_rate),
 			Layout:     C.GoString(&s.layout[0]),
+			Channels:   int(s.channels),
 		})
 	}
 	for i := 0; ; i++ {

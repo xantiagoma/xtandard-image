@@ -321,3 +321,29 @@ func TestConfigValidate(t *testing.T) {
 		}
 	}
 }
+
+// TestTransformWaveform: a waveform picture reports its size and no codec.
+func TestTransformWaveform(t *testing.T) {
+	t.Parallel()
+	e := &engine{}
+	cfg := Config{
+		Workers: 1, QueueTimeout: time.Second, Timeout: time.Minute,
+		Transcode: video.TranscodeSettings{Threads: 1},
+	}
+	c := caps()
+	c.AudioFilters, c.Waveform = true, true
+	s, err := New(&cfg, c, e)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.in = video.TranscodeInput{Duration: 4, Audio: true, AudioDecodable: true, SampleRate: 44100, Channels: 2}
+	op := &transform.VideoOp{Container: transform.VideoContainerPNG, Width: 400, Height: 100, Waveform: &transform.VideoWaveform{}}
+	res, err := s.Transform(t.Context(), "w", newBuf("audio"), op)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Release()
+	if res.Width != 400 || res.Height != 100 || res.Output.Key() != "png::" || res.Output.ContentType != "image/png" {
+		t.Fatalf("result %+v", res)
+	}
+}

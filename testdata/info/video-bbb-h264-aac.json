@@ -43,6 +43,7 @@
     },
     {
       "bps": 25977,
+      "channels": 1,
       "codec": "aac",
       "duration": 1,
       "frequency": 16000,

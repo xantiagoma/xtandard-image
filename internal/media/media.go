@@ -121,7 +121,8 @@ type Result struct {
 	// Body is the file; the caller owns one reference.
 	Body   Buffer
 	Output video.TranscodeOutput
-	// Width and Height are the video stream's (0 for audio only);
+	// Width and Height are the video stream's or the waveform picture's
+	// (0 for audio only);
 	// Duration is the expected length in seconds (0 when unknown).
 	Width, Height int
 	Duration      float64
@@ -330,8 +331,11 @@ func (s *Service) transcode(ctx context.Context, src Buffer, op *transform.Video
 	if p.Audio == nil { // the source had no audio: none was written
 		r.Output.Audio = video.AudioNone
 	}
-	if p.Video != nil {
+	switch {
+	case p.Video != nil:
 		r.Width, r.Height = p.Video.Width, p.Video.Height
+	case p.Waveform != nil:
+		r.Width, r.Height = p.Waveform.Width, p.Waveform.Height
 	}
 	return r, nil
 }

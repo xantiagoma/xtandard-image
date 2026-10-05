@@ -59,6 +59,7 @@ typedef struct {
   int hflip;
   int sample_rate;
   char layout[64];
+  int channels; // audio channels (WP-123)
 } XiFFStream;
 
 // xi_ff_new allocates a handle over data[0..size) (C memory that must

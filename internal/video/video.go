@@ -104,6 +104,8 @@ type Stream struct {
 	// "stereo", "5.1(side)", ...).
 	SampleRate int
 	Layout     string
+	// Channels is the channel count of an audio stream (WP-123).
+	Channels int
 }
 
 // FrameRequest selects the frame a thumbnail is made of and the size it is
