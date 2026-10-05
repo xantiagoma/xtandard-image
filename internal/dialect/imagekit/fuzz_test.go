@@ -25,6 +25,7 @@ func FuzzParse(f *testing.F) {
 		{"/tr:vc-none,ac-opus,f-webm,ar-16_9,dpr-2/a.webm/ik-video.mp4", "ik-attachment=true"},
 		{"/a.mov", "tr=l-video,i-x.mp4,l-end,cm-pad_resize,bg-blurred,w-1,h-1,eo-idu_sub_2"},
 		{"/a.mp4/ik-master.m3u8", "tr=sr-240"},
+		{"/tr:so-1,du-9,sr-240_360_720/a.mov/ik-master.mpd", ""},
 		{"/v.webm", "tr=du-1,l-image,i-a@@b.png,lx-N8,ly-N8,w-48,lso-0.3,leo-0.7,l-end:l-text,i-hi,ldu-2,l-end"},
 		{"/tr%3A/x", "tr=%zz"},
 		{"", ""},

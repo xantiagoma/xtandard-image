@@ -26,7 +26,6 @@ import (
 
 // Reasons of the video mapping.
 const (
-	reasonStreaming   = "M5 (WP-126)"
 	reasonRelative    = "needs the source size or duration"
 	reasonNotForVideo = "not applicable to video"
 )
@@ -84,6 +83,7 @@ type videoState struct {
 	resized bool
 	dpr     float64
 	eo, du  bool
+	sr      bool // an sr- (WP-126)
 }
 
 // video applies a video transformation string. forceMP4 is ik-video.mp4.
@@ -264,7 +264,7 @@ func (vs *videoState) step(params []string) error {
 			}
 			vs.dpr = f
 		case "sr":
-			err = vs.skip("sr", reasonStreaming)
+			err = vs.renditions(v)
 		case "br":
 			err = vs.skip("br", reasonUnsupported) // the unit is not documented
 		case "n":
@@ -569,6 +569,14 @@ func (vs *videoState) finish() error {
 		op.Width, op.Height = scale(op.Width), scale(op.Height)
 		if c := op.Crop; c != nil {
 			c.X, c.Y, c.Width, c.Height = scale(c.X), scale(c.Y), scale(c.Width), scale(c.Height)
+		}
+	}
+	if vs.ps.stream != nil {
+		return vs.finishStream()
+	}
+	if vs.sr {
+		if err := vs.skip("sr", reasonNoStream); err != nil {
+			return err
 		}
 	}
 	switch {

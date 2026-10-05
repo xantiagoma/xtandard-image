@@ -29,6 +29,8 @@ func FuzzParse(f *testing.F) {
 		"/demo/video/upload/so_2,du_5/c_fill,g_north,w_640,h_360/q_auto:good,vc_h264,ac_aac,br_1m,fps_20-30/v1/dog.mp4",
 		"/demo/video/upload/c_crop,w_100,h_100,x_1,y_2/c_pad,w_10,h_10/b_red/e_volume:-5dB/a_hflip.90/dog.webm",
 		"/demo/video/upload/vc_none,f_auto/l_logo/fl_layer_apply/dpr_3/dog",
+		"/demo/video/upload/so_2,du_10/c_crop,w_640,h_360/sp_full_hd_lean/dog.m3u8",
+		"/demo/video/upload/sp_auto/f_mpd/dog.mp4",
 		"/demo/video/upload/l_logo,e_fade:500/e_fade:-750,fl_layer_apply,g_south_east,x_8,y_8,so_1,du_3,o_50/l_text:Arial_20:hi/fl_layer_apply/dog.mp4",
 		"/demo/video/fetch/so_auto,eo_1p,ar_16:9,w_10/https://e.com/a.mov",
 		"//", "", "/demo/image/upload/v1/",

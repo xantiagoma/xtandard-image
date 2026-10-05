@@ -6251,7 +6251,7 @@
             "x-xi-syntax": "h:v"
           },
           "format": {
-            "description": "Output container (the source extension sets it too); png and webp are waveform pictures. URL: `format`, `f`, `ext`; arguments mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp; default mp4.",
+            "description": "Output container (the source extension sets it too); png and webp are waveform pictures, m3u8 and mpd streams (WP-126). URL: `format`, `f`, `ext`; arguments mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp, m3u8, mpd; default mp4.",
             "examples": [
               [
                 "webm"
@@ -6272,7 +6272,9 @@
                   "flac",
                   "wav",
                   "png",
-                  "webp"
+                  "webp",
+                  "m3u8",
+                  "mpd"
                 ],
                 "title": "format",
                 "type": "string"
@@ -6287,7 +6289,7 @@
             "x-xi-milestone": "M5 (WP-122)",
             "x-xi-pro": false,
             "x-xi-scope": "request",
-            "x-xi-syntax": "mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp"
+            "x-xi-syntax": "mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp, m3u8, mpd"
           },
           "fps": {
             "description": "Output frame rate (capped by XI_VIDEO_TRANSFORM_MAX_FPS). URL: `fps`; arguments rate; default source.",
@@ -6870,6 +6872,34 @@
             "x-xi-scope": "request",
             "x-xi-syntax": "Hz"
           },
+          "segment_duration": {
+            "description": "Length of a stream's segments (1..30 s). URL: `segment_duration`, `sgd`; arguments seconds; default XI_VIDEO_TRANSFORM_SEGMENT_DURATION (6).",
+            "examples": [
+              [
+                4
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "whole seconds",
+                "maximum": 30,
+                "minimum": 1,
+                "title": "seconds",
+                "type": "integer"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "sgd"
+            ],
+            "x-xi-default": "XI_VIDEO_TRANSFORM_SEGMENT_DURATION (6)",
+            "x-xi-milestone": "M5 (WP-126)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "seconds"
+          },
           "size": {
             "description": "Resize without the type. URL: `size`, `s`; arguments w:h:enlarge:extend; default 0:0:false:false.",
             "examples": [
@@ -6957,6 +6987,47 @@
             "x-xi-pro": false,
             "x-xi-scope": "request",
             "x-xi-syntax": "seconds"
+          },
+          "stream": {
+            "description": "Deliver an HLS or DASH stream (as the m3u8 or mpd extension does) with these renditions (at most 8; none: the configured ladder). Rungs above the source are dropped. URL: `stream`, `st`; arguments protocol:height…; default none (a file).",
+            "examples": [
+              [
+                "hls",
+                360,
+                720
+              ]
+            ],
+            "items": {
+              "description": "a rendition by the short side of its frame",
+              "maximum": 4320,
+              "minimum": 64,
+              "title": "height",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "manifest: HLS (m3u8) or DASH (mpd)",
+                "enum": [
+                  "dash",
+                  "hls"
+                ],
+                "title": "protocol",
+                "type": "string"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "st"
+            ],
+            "x-xi-default": "none (a file)",
+            "x-xi-milestone": "M5 (WP-126)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "protocol:height…"
           },
           "timecode": {
             "description": "Draw the output's running time (FFmpeg drawtext with a fixed expansion). URL: `timecode`, `tc`; arguments format:position:x:y:size:color:opacity; default none:sowe:0:0:0:ffffff:1.",
@@ -11876,7 +11947,7 @@
             }
           },
           {
-            "description": "Output container (the source extension sets it too); png and webp are waveform pictures. Arguments joined by , or : (mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp).",
+            "description": "Output container (the source extension sets it too); png and webp are waveform pictures, m3u8 and mpd streams (WP-126). Arguments joined by , or : (mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp, m3u8, mpd).",
             "in": "query",
             "name": "format",
             "schema": {
@@ -12007,6 +12078,22 @@
             "description": "Fade the watermark overlay in and out (seconds, within its window). Arguments joined by , or : (in:out).",
             "in": "query",
             "name": "overlay_fade",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Deliver an HLS or DASH stream (as the m3u8 or mpd extension does) with these renditions (at most 8; none: the configured ladder). Rungs above the source are dropped. Arguments joined by , or : (protocol:height…).",
+            "in": "query",
+            "name": "stream",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Length of a stream's segments (1..30 s). Arguments joined by , or : (seconds).",
+            "in": "query",
+            "name": "segment_duration",
             "schema": {
               "type": "string"
             }

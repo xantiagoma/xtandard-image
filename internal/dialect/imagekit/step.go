@@ -75,6 +75,8 @@ type parseState struct {
 	b           *imgproxy.Builder
 	mountSource string
 	params      []string // scratch
+	// stream is set for <video>/ik-master.m3u8 and .mpd (videostream.go).
+	stream *transform.VideoStream
 }
 
 // dimArg is a parsed w- or h- value.

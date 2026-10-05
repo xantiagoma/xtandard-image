@@ -314,7 +314,8 @@ token = base64url_unpadded( IV[16] ‖ AES-CBC(key, IV, PKCS#7(password)) )
 - **Waveform** (WP-123, like Cloudinary `fl_waveform`): `waveform:1` (or the `png`/`webp` container) draws the cut of the audio with FFmpeg `showwavespic` into a `width` × `height` RGBA picture (default 1024×256) in `color` (default black) on `background` (empty: transparent), mono or one band per channel; libvips encodes it as lossless PNG or WebP. A video source's audio track works too.
 - **Overlays** (WP-124): imgproxy's watermark options (`wm`, `wmu`, `wmt`, `wms`, `wmr`, `wmsh`) parse exactly as in §3.2 and become one image or text overlay (`TR.Video.Overlays`), drawn on every frame of its window: `ow:start:end` (seconds of the output; 0 end = the end) and `of:in:out` fades. `wm` with an opacity above 0 is required, as on images (`ow`/`of` alone are recorded in `TR.Ignored`); `wm` without `wmu`/`wmt` is the configured watermark image. `tc:hms|seconds[:position:x:y:size:color:opacity]` adds a running timecode (FFmpeg `drawtext` with a fixed expansion; no request text). Overlay images are fetched like sources (allowlists, signing). Audio-only outputs and waveforms refuse overlays (400).
 - **Query dialect:** `/q/video?url=…` takes the same options as query keys ([§4](#4-query-dialect-native--imaginary)).
-- **Not yet:** keyframe-only ("fast") cuts, the other dialects' video syntax (WP-125), HLS/DASH (WP-126); `/info` reports the source's streams, not the planned output.
+- **Streams** (WP-126, [§3.10](#310-hls-and-dash-streams)): the `m3u8` or `mpd` extension (or `format`), or `st:hls|dash[:height…]`, answers an HLS master playlist or a DASH MPD instead of a file; `sgd` sets the segment length. Everything else applies to every rendition, except a size (`w`, `h`, `s`, `rs` sizes), `vb` and watermarks, which are 400 on a stream (the renditions decide sizes and bit rates); `ki` sets keyframes within segments (default: one per segment).
+- **Not yet:** keyframe-only ("fast") cuts; `/info` reports the source's streams, not the planned output.
 
 | Option (aliases) | Args | Meaning (`TR.Video` field) | Default | Milestone |
 |---|---|---|---|---|
@@ -334,7 +335,7 @@ token = base64url_unpadded( IV[16] ‖ AES-CBC(key, IV, PKCS#7(password)) )
 | `flip` (`fl`) | h:v | Mirror after the rotation. | false:false | M5 (WP-122) |
 | `background` (`bg`) | hex | Colour of the bars of extend. | 000000 | M5 (WP-122) |
 | `fps` | rate | Output frame rate (capped by XI_VIDEO_TRANSFORM_MAX_FPS). | source | M5 (WP-122) |
-| `format` (`f`, `ext`) | mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp | Output container (the source extension sets it too); png and webp are waveform pictures. | mp4 | M5 (WP-122) |
+| `format` (`f`, `ext`) | mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp, m3u8, mpd | Output container (the source extension sets it too); png and webp are waveform pictures, m3u8 and mpd streams (WP-126). | mp4 | M5 (WP-122) |
 | `video_codec` (`vc`) | auto, h264, av1, vp9, hevc | Video codec (h264 and hevc need the gpl image). | auto | M5 (WP-122) |
 | `audio_codec` (`ac`) | auto, aac, opus, mp3, flac, pcm | Audio codec (must suit the container). | auto | M5 (WP-122) |
 | `quality` (`q`) | 1..100 | Video quality, mapped onto the codec's CRF scale. | 0 | M5 (WP-122) |
@@ -352,6 +353,8 @@ token = base64url_unpadded( IV[16] ‖ AES-CBC(key, IV, PKCS#7(password)) )
 | `overlay_window` (`ow`) | start:end | Show the watermark overlay (wm, wmu, wmt) from start to end seconds of the output. | 0:0 | M5 (WP-124) |
 | `overlay_fade` (`of`) | in:out | Fade the watermark overlay in and out (seconds, within its window). | 0:0 | M5 (WP-124) |
 | `timecode` (`tc`) | format:position:x:y:size:color:opacity | Draw the output's running time (FFmpeg drawtext with a fixed expansion). | none:sowe:0:0:0:ffffff:1 | M5 (WP-124) |
+| `stream` (`st`) | protocol:height… | Deliver an HLS or DASH stream (as the m3u8 or mpd extension does) with these renditions (at most 8; none: the configured ladder). Rungs above the source are dropped. | none (a file) | M5 (WP-126) |
+| `segment_duration` (`sgd`) | seconds | Length of a stream's segments (1..30 s). | XI_VIDEO_TRANSFORM_SEGMENT_DURATION (6) | M5 (WP-126) |
 | `watermark` (`wm`), `watermark_url` (`wmu`), `watermark_text` (`wmt`), `watermark_size` (`wms`), `watermark_rotate` (`wm_rot`, `wmr`), `watermark_shadow` (`wmsh`), `cachebuster` (`cb`), `bypass_cache` (`bc`), `cache_tags` (`ct`), `expires` (`exp`), `filename` (`fn`), `return_attachment` (`att`), `hashsum` (`hs`) | as in §3.2 | as in §3.2 | as in §3.2 | as in §3.2 |
 
 ### 3.9 Video outputs and limits
