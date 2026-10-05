@@ -37,7 +37,7 @@ func TestPlaygroundVideo(t *testing.T) {
 	}
 	vt := m.VideoTransform
 	if vt == nil || !vt.Probe || !slices.Contains(vt.Containers, "webm") || !slices.Contains(vt.Containers, "mp3") ||
-		!slices.Contains(vt.Codecs, "vp9") || (vt.MP4Video != "h264" && vt.MP4Video != "av1") || vt.MaxOutputDuration <= 0 {
+		!slices.Contains(vt.Codecs, "vp9") || !slices.Contains(vt.Codecs, "pcm") || (vt.MP4Video != "h264" && vt.MP4Video != "av1") || vt.MaxOutputDuration <= 0 {
 		t.Fatalf("video_transform %+v", vt)
 	}
 	if slices.Contains(vt.Codecs, "h264") != (vt.MP4Video == "h264") {

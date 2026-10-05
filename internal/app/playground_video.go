@@ -49,6 +49,11 @@ func playgroundVideoTransform(cfg *config.Config, caps video.TranscodeCaps, prob
 			vt.MP4Video = out.Video.String()
 		}
 	}
+	for i, n := range vt.Codecs {
+		if n == video.AudioPCM.String() {
+			vt.Codecs[i] = "pcm" // the URL's name (audio_codec:pcm), not the encoder's
+		}
+	}
 	if vt.Codecs == nil {
 		vt.Codecs = []string{}
 	}
