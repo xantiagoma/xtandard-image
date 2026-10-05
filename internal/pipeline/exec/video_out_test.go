@@ -22,6 +22,7 @@ import (
 	xexec "github.com/xantiagoma/xtandard-image/internal/pipeline/exec"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/leakcheck"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/video"
 	"github.com/xantiagoma/xtandard-image/internal/video/ffmpeg"
@@ -657,16 +658,15 @@ func TestVideoOutputNoLeak(t *testing.T) {
 		res.Body.Release()
 	}
 	run()
-	objects, mem := vips.LiveObjects(), vips.ReadMemStats().Mem
+	before := leakcheck.Take()
 	for range 200 {
 		run()
 	}
-	if n := vips.LiveObjects(); n > objects {
-		t.Errorf("libvips objects %d → %d", objects, n)
-	}
-	if m := vips.ReadMemStats().Mem; m > mem {
-		t.Errorf("libvips tracked memory %d → %d bytes", mem, m)
-	}
+	// Within leakcheck's tolerance once settled, not exactly equal: the
+	// last jobs' buffers are released asynchronously by libvips' worker
+	// threads (see package leakcheck). One leaked object, allocation or
+	// frame per run is still far above it after 200.
+	leakcheck.Check(t, before, leakcheck.Default, "200 encodes and sprites")
 	if s := ffmpeg.ReadStats(); s.Encoders != 0 {
 		t.Errorf("%d FFmpeg encoders open", s.Encoders)
 	}

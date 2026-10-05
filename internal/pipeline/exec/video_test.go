@@ -17,6 +17,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/exec"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/plan"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/leakcheck"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/ssim"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/video"
@@ -299,16 +300,16 @@ func TestVideoNoLeak(t *testing.T) {
 		res.Body.Release()
 	}
 	run() // warm up libvips' and FFmpeg's one-time allocations
-	objects, mem := vips.LiveObjects(), vips.ReadMemStats().Mem
+	before := leakcheck.Take()
 	for range 200 {
 		run()
 	}
-	if n := vips.LiveObjects(); n > objects {
-		t.Errorf("libvips objects %d → %d after 200 thumbnails", objects, n)
-	}
-	if m := vips.ReadMemStats().Mem; m > mem {
-		t.Errorf("libvips tracked memory %d → %d bytes after 200 thumbnails", mem, m)
-	}
+	// Not an exact comparison: the last jobs' pixel buffers sit on libvips
+	// worker threads until they are released asynchronously (see package
+	// leakcheck), which flaked on loaded machines. One leaked object,
+	// allocation or 160×90 frame per thumbnail is still far above the
+	// tolerance after 200.
+	leakcheck.Check(t, before, leakcheck.Default, "200 thumbnails")
 }
 
 // BenchmarkVideoPipeline measures a 320×180 JPEG thumbnail of a 720p video
