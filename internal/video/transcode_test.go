@@ -286,25 +286,33 @@ func TestPlanTranscodeAudio(t *testing.T) {
 	}{
 		{
 			name: "mp4 keeps 44.1 kHz", op: transform.VideoOp{Start: time.Second}, video: true,
-			want: &AudioStreamPlan{Codec: AudioAAC, SampleRate: 44100, Channels: 2, Bitrate: 128_000,
-				Filters: "atrim=start=1,asetpts=PTS-1/TB,aresample=44100,aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo"},
+			want: &AudioStreamPlan{
+				Codec: AudioAAC, SampleRate: 44100, Channels: 2, Bitrate: 128_000,
+				Filters: "atrim=start=1,asetpts=PTS-1/TB,aresample=44100,aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo",
+			},
 		},
 		{
 			name: "webm resamples to 48 kHz", op: transform.VideoOp{Container: transform.VideoContainerWebM}, video: true,
-			want: &AudioStreamPlan{Codec: AudioOpus, SampleRate: 48000, Channels: 2, Bitrate: 96_000,
-				Filters: "aresample=48000,aformat=sample_fmts=flt:sample_rates=48000:channel_layouts=stereo"},
+			want: &AudioStreamPlan{
+				Codec: AudioOpus, SampleRate: 48000, Channels: 2, Bitrate: 96_000,
+				Filters: "aresample=48000,aformat=sample_fmts=flt:sample_rates=48000:channel_layouts=stereo",
+			},
 		},
 		{
 			name: "mono m4a", in: func(in *TranscodeInput) { in.Channels, in.SampleRate = 1, 16000 },
 			op: transform.VideoOp{Container: transform.VideoContainerM4A, AudioBitrate: 64_000},
-			want: &AudioStreamPlan{Codec: AudioAAC, SampleRate: 16000, Channels: 1, Bitrate: 64_000,
-				Filters: "aresample=16000,aformat=sample_fmts=fltp:sample_rates=16000:channel_layouts=mono"},
+			want: &AudioStreamPlan{
+				Codec: AudioAAC, SampleRate: 16000, Channels: 1, Bitrate: 64_000,
+				Filters: "aresample=16000,aformat=sample_fmts=fltp:sample_rates=16000:channel_layouts=mono",
+			},
 		},
 		{
 			name: "5.1 mp3 downmixes", in: func(in *TranscodeInput) { in.Channels, in.SampleRate = 6, 96000 },
 			op: transform.VideoOp{Container: transform.VideoContainerMP3, End: 1500 * time.Millisecond},
-			want: &AudioStreamPlan{Codec: AudioMP3, SampleRate: 44100, Channels: 2, Bitrate: 128_000,
-				Filters: "atrim=end=1.5,aresample=44100,aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo"},
+			want: &AudioStreamPlan{
+				Codec: AudioMP3, SampleRate: 44100, Channels: 2, Bitrate: 128_000,
+				Filters: "atrim=end=1.5,aresample=44100,aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo",
+			},
 		},
 		{
 			name: "no audio stream in a video", in: func(in *TranscodeInput) { in.Audio = false }, video: true,
@@ -328,8 +336,10 @@ func TestPlanTranscodeAudio(t *testing.T) {
 		{
 			name: "audio-only source in m4a", in: func(in *TranscodeInput) { in.Video = false },
 			op: transform.VideoOp{Container: transform.VideoContainerM4A},
-			want: &AudioStreamPlan{Codec: AudioAAC, SampleRate: 44100, Channels: 2, Bitrate: 128_000,
-				Filters: "aresample=44100,aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo"},
+			want: &AudioStreamPlan{
+				Codec: AudioAAC, SampleRate: 44100, Channels: 2, Bitrate: 128_000,
+				Filters: "aresample=44100,aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo",
+			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -405,8 +415,10 @@ func TestFilterChainsAreNumeric(t *testing.T) {
 	t.Parallel()
 	const allowed = "abcdefghijklmnopqrstuvwxyz_0123456789=:,.-+/PTSB"
 	ops := []transform.VideoOp{
-		{Start: 1234567 * time.Microsecond, End: 1987654 * time.Microsecond, Width: 333, Height: 222,
-			Fit: transform.VideoFitPad, Background: transform.Color{R: 1, G: 2, B: 3}, Rotate: 270, FlipH: true, FPS: 29.97},
+		{
+			Start: 1234567 * time.Microsecond, End: 1987654 * time.Microsecond, Width: 333, Height: 222,
+			Fit: transform.VideoFitPad, Background: transform.Color{R: 1, G: 2, B: 3}, Rotate: 270, FlipH: true, FPS: 29.97,
+		},
 		{Crop: &transform.VideoCrop{X: 1, Y: 3, Width: 99, Height: 77}, Fit: transform.VideoFitCover, Width: 64, Height: 48},
 	}
 	for _, op := range ops {

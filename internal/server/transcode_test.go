@@ -105,10 +105,11 @@ var mp4Output = video.TranscodeOutput{
 	ContentType: "video/mp4", Ext: ".mp4",
 }
 
-func videoRequest(op transform.VideoOp) func(*transform.Request) {
+func videoRequest(op *transform.VideoOp) func(*transform.Request) {
 	return func(r *transform.Request) {
 		r.Kind = transform.KindVideo
-		r.Video = &op
+		o := *op
+		r.Video = &o
 	}
 }
 
@@ -117,7 +118,7 @@ func newVideoHarness(tb testing.TB, cached bool, mutate func(*harness)) (*harnes
 	fv := &fakeVideo{out: mp4Output, body: videoFile}
 	m := func(h *harness) {
 		h.video = fv
-		h.router.mutate = videoRequest(transform.VideoOp{Width: 640, Start: time.Second})
+		h.router.mutate = videoRequest(&transform.VideoOp{Width: 640, Start: time.Second})
 		h.f.data = []byte("source video")
 		h.cfg.Video = VideoConfig{Budget: time.Minute}
 		if mutate != nil {
@@ -287,7 +288,10 @@ func TestVideoConditional(t *testing.T) {
 func TestVideoResultCache(t *testing.T) {
 	t.Parallel()
 	h, fv := newVideoHarness(t, true, nil)
-	store := h.cache.(interface{ Wait() })
+	store, ok := h.cache.(interface{ Wait() })
+	if !ok {
+		t.Fatal("the result cache is not asynchronous")
+	}
 	miss := h.do(t, http.MethodGet, videoPath, nil)
 	if miss.Code != http.StatusOK || miss.Header().Get(hdrXiCache) != cacheMiss {
 		t.Fatalf("miss: %d %q", miss.Code, miss.Header().Get(hdrXiCache))
@@ -319,7 +323,7 @@ func TestVideoKeys(t *testing.T) {
 	t.Parallel()
 	op := transform.VideoOp{Width: 640}
 	h, fv := newVideoHarness(t, false, func(h *harness) {
-		h.router.mutate = func(r *transform.Request) { videoRequest(op)(r) }
+		h.router.mutate = func(r *transform.Request) { videoRequest(&op)(r) }
 	})
 	h.do(t, http.MethodGet, videoPath, nil)
 	h.do(t, http.MethodGet, videoPath, nil)
@@ -342,7 +346,7 @@ func TestVideoErrors(t *testing.T) {
 			fv.resolveErr = errs.New(errs.KindUnsupported, "no hevc")
 		}, http.StatusUnprocessableEntity, false},
 		{"invalid op", func(h *harness, _ *fakeVideo) {
-			h.router.mutate = videoRequest(transform.VideoOp{Rotate: 45})
+			h.router.mutate = videoRequest(&transform.VideoOp{Rotate: 45})
 		}, http.StatusBadRequest, false},
 		{"limit", func(_ *harness, fv *fakeVideo) {
 			fv.err = errs.New(errs.KindLimitExceeded, "too long")
@@ -358,7 +362,7 @@ func TestVideoErrors(t *testing.T) {
 			t.Parallel()
 
 			h, _ := newVideoHarness(t, false, func(h *harness) {
-				fv := h.video.(*fakeVideo)
+				fv, _ := h.video.(*fakeVideo)
 				tc.mutate(h, fv)
 			})
 			rec := h.do(t, http.MethodGet, videoPath, nil)

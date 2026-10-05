@@ -33,4 +33,14 @@ func TestStub(t *testing.T) {
 		t.Errorf("stats %+v", s)
 	}
 	f.Release() // nil-safe
+
+	// Video transformations (WP-121): nothing to write, a 422 to open.
+	if c := ffmpeg.TranscodeCaps(); c != (video.TranscodeCaps{}) {
+		t.Errorf("transcode caps %+v", c)
+	}
+	tr, err := ffmpeg.OpenTranscode(t.Context(), nil, video.Limits{}, 1)
+	if errs.KindOf(err) != errs.KindUnsupported || tr != nil {
+		t.Errorf("OpenTranscode: %v, %v, want unsupported", tr, err)
+	}
+	tr.Close() // nil-safe
 }

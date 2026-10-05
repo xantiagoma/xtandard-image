@@ -139,14 +139,14 @@ func WithLimiterMetrics(m limiter.Metrics) Option {
 
 // New validates cfg and builds the service over engine for a build that
 // can write caps.
-func New(cfg Config, caps video.TranscodeCaps, engine Engine, opts ...Option) (*Service, error) {
+func New(cfg *Config, caps video.TranscodeCaps, engine Engine, opts ...Option) (*Service, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
 	if engine == nil {
 		return nil, errors.New("media: nil engine")
 	}
-	s := &Service{cfg: cfg, caps: caps, engine: engine, metrics: nopMetrics{}}
+	s := &Service{cfg: *cfg, caps: caps, engine: engine, metrics: nopMetrics{}}
 	for _, o := range opts {
 		o(s)
 	}

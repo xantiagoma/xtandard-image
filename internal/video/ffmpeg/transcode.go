@@ -169,6 +169,13 @@ func (t *Transcoder) Run(ctx context.Context, p *video.TranscodePlan) (*Output, 
 	return newOutput(unsafe.Pointer(data), int(n), func(p unsafe.Pointer) { C.xi_tx_out_free((*C.uint8_t)(p)) }), nil
 }
 
+// newOutput wraps n bytes at p with one reference; free releases them.
+func newOutput(p unsafe.Pointer, n int, free func(unsafe.Pointer)) *Output {
+	o := &Output{p: p, n: n, free: free}
+	o.refs.Store(1)
+	return o
+}
+
 // params copies p into the C parameters, checking what C relies on.
 func params(cp *C.XiTxParams, p *video.TranscodePlan) error {
 	if !cstr(cp.muxer[:], p.Output.Muxer) {
@@ -200,6 +207,7 @@ func params(cp *C.XiTxParams, p *video.TranscodePlan) error {
 			codec = C.XI_TX_OPUS
 		case video.AudioMP3:
 			codec = C.XI_TX_MP3
+		case video.AudioNone: // refused below
 		}
 		if codec == 0 || !cstr(cp.afilters[:], a.Filters) {
 			return errs.Newf(errs.KindInternal, "ffmpeg: audio plan %s %q", a.Codec, a.Filters)

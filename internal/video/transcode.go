@@ -319,6 +319,8 @@ type TranscodePlan struct {
 }
 
 // VideoStreamPlan is the video stream of a transcode.
+//
+//nolint:revive // "video stream" is the domain term; AudioStreamPlan is its sibling
 type VideoStreamPlan struct {
 	Codec         Codec
 	Width, Height int
