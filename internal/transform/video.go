@@ -321,7 +321,7 @@ type VideoTimecode uint8
 const (
 	VideoTimecodeNone    VideoTimecode = iota
 	VideoTimecodeHMS                   // HH:MM:SS.mmm
-	VideoTimecodeSeconds               // seconds with milliseconds: 12.345
+	VideoTimecodeSeconds               // seconds with microseconds: 12.345678
 )
 
 const numVideoTimecodes = 3

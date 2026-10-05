@@ -336,6 +336,11 @@ type VideoStreamPlan struct {
 	// Filters is the libavfilter chain from the decoder's frames to the
 	// encoder's (trim, orientation, crop, fit, fps, pixel format).
 	Filters string
+	// Overlays are drawn in order over the chain's output (WP-124). Image
+	// and text overlays must be placed (OverlayPlan.Place) with their
+	// rendered pixels before the transcode; one that renders nothing is
+	// removed.
+	Overlays []OverlayPlan
 }
 
 // AudioStreamPlan is the audio stream of a transcode.
@@ -375,6 +380,9 @@ func PlanTranscode(in *TranscodeInput, op *transform.VideoOp, out TranscodeOutpu
 		}
 		v, err := planVideo(in, op, out.Video, p, s)
 		if err != nil {
+			return nil, err
+		}
+		if v.Overlays, err = planOverlays(op, v.Width, v.Height, p.Duration); err != nil {
 			return nil, err
 		}
 		p.Video = v
