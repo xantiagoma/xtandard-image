@@ -104,6 +104,7 @@ func allEnumCases() []enumCase {
 		enumCheck[VideoContainer]("VideoContainer", numVideoContainers, ParseVideoContainer),
 		enumCheck[VideoCodec]("VideoCodec", numVideoCodecs, ParseVideoCodec),
 		enumCheck[AudioCodec]("AudioCodec", numAudioCodecs, ParseAudioCodec),
+		enumCheck[VideoTimecode]("VideoTimecode", numVideoTimecodes, ParseVideoTimecode),
 	}
 }
 
