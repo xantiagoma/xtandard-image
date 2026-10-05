@@ -282,6 +282,12 @@ type Config struct {
 	// ResultCache configures the result cache (cache.go); used only when
 	// Deps.ResultCache is set.
 	ResultCache ResultCacheConfig
+	// Role is what this instance serves (XI_ROLE): an image-only instance
+	// answers video transformations 404, a video-only one everything else.
+	Role Role
+	// Video configures video transformations (transcode.go); used only
+	// when Deps.Video is set.
+	Video VideoConfig
 	// SourcePasswords are the default document passwords of named sources
 	// (XI_SOURCES_<NAME>_PDF_PASSWORD), used when a request carries no
 	// pdf_password of its own. Read-only; never cleared by the server.
@@ -428,6 +434,9 @@ type Deps struct {
 	// Metafile converts WMF and EMF sources to SVG (WP-108); nil: they
 	// answer 422 (only the gpl image ships the converter).
 	Metafile MetafileConverter
+	// Video runs video transformations (transcode.go, internal/media);
+	// nil: they answer 404 (XI_VIDEO_TRANSFORM_ENABLED off).
+	Video VideoTransformer
 	// ResultCache stores encoded responses (cache.go; a cache.AsyncStore
 	// over the configured tiers in production, so Set never blocks); nil
 	// disables the result cache.

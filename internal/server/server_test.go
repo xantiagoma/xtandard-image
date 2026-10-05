@@ -267,7 +267,8 @@ type harness struct {
 	logger  *slog.Logger
 	allocs  atomic.Int32
 	allocFr atomic.Int32
-	cache   cache.Store // result cache; nil: off
+	cache   cache.Store      // result cache; nil: off
+	video   VideoTransformer // nil: video transformations off
 	srv     *Server
 }
 
@@ -299,6 +300,7 @@ func newHarness(tb testing.TB, mutate func(*harness)) *harness {
 		Logger:      h.logger,
 		Readiness:   admin.NewReadiness(),
 		ResultCache: h.cache,
+		Video:       h.video,
 	})
 	if err != nil {
 		tb.Fatal(err)
