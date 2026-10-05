@@ -31,9 +31,18 @@ import (
 // writeError; nothing below writes an error itself.
 func (s *Server) image(w http.ResponseWriter, r *http.Request) {
 	info := infoOf(w)
+	// The parts of an HLS or DASH stream (stream.go) are no dialect's.
+	if rest, ok := s.streamChildPath(r); ok {
+		s.streamChild(w, r, info, rest)
+		return
+	}
 	// 2–4. Route first: a video transformation has a budget of its own.
 	parsed, err := s.route(r, info)
 	if err == nil && parsed.Request.Kind == transform.KindVideo {
+		if parsed.Request.Video != nil && parsed.Request.Video.Stream != nil {
+			s.streamMaster(w, r, info, parsed) // stream.go
+			return
+		}
 		s.videoTransform(w, r, info, parsed) // transcode.go
 		return
 	}
