@@ -2937,13 +2937,13 @@
     },
     "role": {
       "default": "all",
-      "description": "What this instance serves (ADR 0012): all; image (video transformations answer 404, so a load balancer routes them elsewhere); video (only video transformations, plus /healthz, /readyz and the admin listener; every other request answers 404; needs XI_VIDEO_TRANSFORM_ENABLED). One binary and image serve every role\n\nEnv: XI_ROLE",
+      "description": "What this instance serves (ADR 0012): all; image (video transformations answer 404, so a load balancer routes them elsewhere); video (only video transformations and the parts of their HLS and DASH streams under /_stream/, plus /healthz, /readyz and the admin listener; every other request answers 404; needs XI_VIDEO_TRANSFORM_ENABLED). One binary and image serve every role\n\nEnv: XI_ROLE",
       "enum": [
         "all",
         "image",
         "video"
       ],
-      "markdownDescription": "What this instance serves (ADR 0012): `all`; `image` (video transformations answer 404, so a load balancer routes them elsewhere); `video` (only video transformations, plus `/healthz`, `/readyz` and the admin listener; every other request answers 404; needs `XI_VIDEO_TRANSFORM_ENABLED`). One binary and image serve every role\n\nEnv: `XI_ROLE`",
+      "markdownDescription": "What this instance serves (ADR 0012): `all`; `image` (video transformations answer 404, so a load balancer routes them elsewhere); `video` (only video transformations and the parts of their HLS and DASH streams under `/_stream/`, plus `/healthz`, `/readyz` and the admin listener; every other request answers 404; needs `XI_VIDEO_TRANSFORM_ENABLED`). One binary and image serve every role\n\nEnv: `XI_ROLE`",
       "title": "XI_ROLE",
       "type": "string"
     },
@@ -3095,11 +3095,11 @@
           "type": "string"
         },
         "cors_origins": {
-          "description": "Allowed CORS origins (* allowed)\n\nEnv: XI_SERVER_CORS_ORIGINS",
+          "description": "Origins browsers may read responses from (* for any): a request whose Origin is listed gets Access-Control-Allow-Origin (*, or the origin with Vary: Origin) and the range and validator headers exposed, so HLS and DASH players in another origin's page can load playlists and segments; a preflight (OPTIONS for GET/HEAD) is answered 204. Empty: no CORS headers\n\nEnv: XI_SERVER_CORS_ORIGINS",
           "items": {
             "type": "string"
           },
-          "markdownDescription": "Allowed CORS origins (`*` allowed)\n\nEnv: `XI_SERVER_CORS_ORIGINS`",
+          "markdownDescription": "Origins browsers may read responses from (`*` for any): a request whose `Origin` is listed gets `Access-Control-Allow-Origin` (`*`, or the origin with `Vary: Origin`) and the range and validator headers exposed, so HLS and DASH players in another origin's page can load playlists and segments; a preflight (`OPTIONS` for `GET`/`HEAD`) is answered 204. Empty: no CORS headers\n\nEnv: `XI_SERVER_CORS_ORIGINS`",
           "title": "XI_SERVER_CORS_ORIGINS",
           "type": "array"
         },
@@ -3396,6 +3396,22 @@
         "transform": {
           "additionalProperties": false,
           "properties": {
+            "abr_ladder": {
+              "default": [
+                "1080:5000k",
+                "720:2800k",
+                "480:1400k",
+                "360:800k",
+                "240:400k"
+              ],
+              "description": "Renditions of HLS and DASH streams (WP-126, ADR 0012 §6), as <height>[:<bit rate>] items: the short side of the frame (64–4320; 720 is 1280×720 for a 16:9 landscape source and 720×1280 for a portrait one) and its peak video bit rate in bits per second with an optional k/m suffix (left out: the standard rate of that height). 1–8 rungs; rungs larger than the source are dropped (a smaller source gets one rendition of its own size). A URL may name its own subset (Cloudinary sp_, ImageKit sr-, imgproxy st)\n\nEnv: XI_VIDEO_TRANSFORM_ABR_LADDER",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Renditions of HLS and DASH streams (WP-126, ADR 0012 §6), as `<height>[:<bit rate>]` items: the short side of the frame (64–4320; `720` is 1280×720 for a 16:9 landscape source and 720×1280 for a portrait one) and its peak video bit rate in bits per second with an optional `k`/`m` suffix (left out: the standard rate of that height). 1–8 rungs; rungs larger than the source are dropped (a smaller source gets one rendition of its own size). A URL may name its own subset (Cloudinary `sp_`, ImageKit `sr-`, imgproxy `st`)\n\nEnv: `XI_VIDEO_TRANSFORM_ABR_LADDER`",
+              "title": "XI_VIDEO_TRANSFORM_ABR_LADDER",
+              "type": "array"
+            },
             "enabled": {
               "default": false,
               "description": "Video transformations (WP-121 to WP-123, ADR 0012): /video/<signature>/<options>/<source>@<container> and /q/video?url=… (URL-DIALECTS §3.8) trim, resize, crop, rotate and transcode a video into MP4 or WebM, its audio (or an audio file's) into M4A, MP3, Opus, Ogg, FLAC or WAV with volume, loudness normalisation and fades, or draw it as a PNG or WebP waveform. Off: they answer 404. true fails startup on an image without FFmpeg (slim); with XI_ROLE=image the pool is not created. Unsigned requests are refused by default (XI_VIDEO_TRANSFORM_UNSIGNED_POLICY). Which codecs exist depends on the image: MP4 is H.264 in gpl and AV1 in full; audio needs the WP-120 FFmpeg\n\nEnv: XI_VIDEO_TRANSFORM_ENABLED",
@@ -3452,6 +3468,13 @@
               "title": "XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS",
               "type": "integer"
             },
+            "prefetch_segments": {
+              "default": 2,
+              "description": "Segments after a requested one that are transcoded ahead (0–16), only on video workers that are idle at that moment: a prefetch never queues and never delays a request\n\nEnv: XI_VIDEO_TRANSFORM_PREFETCH_SEGMENTS",
+              "markdownDescription": "Segments after a requested one that are transcoded ahead (0–16), only on video workers that are idle at that moment: a prefetch never queues and never delays a request\n\nEnv: `XI_VIDEO_TRANSFORM_PREFETCH_SEGMENTS`",
+              "title": "XI_VIDEO_TRANSFORM_PREFETCH_SEGMENTS",
+              "type": "integer"
+            },
             "queue": {
               "default": 8,
               "description": "Transcodes that may wait for a worker; beyond it 429 + Retry-After\n\nEnv: XI_VIDEO_TRANSFORM_QUEUE",
@@ -3465,6 +3488,36 @@
               "description": "How long a transcode waits for a worker before 503 + Retry-After\n\nEnv: XI_VIDEO_TRANSFORM_QUEUE_TIMEOUT",
               "markdownDescription": "How long a transcode waits for a worker before 503 + `Retry-After`\n\nEnv: `XI_VIDEO_TRANSFORM_QUEUE_TIMEOUT`",
               "title": "XI_VIDEO_TRANSFORM_QUEUE_TIMEOUT"
+            },
+            "segment_duration": {
+              "$ref": "#/$defs/duration",
+              "default": "6s",
+              "description": "Length of a stream's segments, whole seconds from 1s to 30s; the last one is shorter. A video segment has one keyframe (its first) unless the request sets a keyframe interval\n\nEnv: XI_VIDEO_TRANSFORM_SEGMENT_DURATION",
+              "markdownDescription": "Length of a stream's segments, whole seconds from `1s` to `30s`; the last one is shorter. A video segment has one keyframe (its first) unless the request sets a keyframe interval\n\nEnv: `XI_VIDEO_TRANSFORM_SEGMENT_DURATION`",
+              "title": "XI_VIDEO_TRANSFORM_SEGMENT_DURATION"
+            },
+            "stream_cache_bytes": {
+              "$ref": "#/$defs/byteSize",
+              "default": "256MiB",
+              "description": "In-memory cache of stream probes and segments (prefetched ones included), in front of the result cache, which keeps them too (a persistent tier is recommended for streams). 0 is off: then prefetching only helps with a result cache\n\nEnv: XI_VIDEO_TRANSFORM_STREAM_CACHE_BYTES",
+              "markdownDescription": "In-memory cache of stream probes and segments (prefetched ones included), in front of the result cache, which keeps them too (a persistent tier is recommended for streams). `0` is off: then prefetching only helps with a result cache\n\nEnv: `XI_VIDEO_TRANSFORM_STREAM_CACHE_BYTES`",
+              "title": "XI_VIDEO_TRANSFORM_STREAM_CACHE_BYTES"
+            },
+            "stream_keys": {
+              "description": "Hex keys (at least 16 bytes) that seal the tickets of child URLs (AES-256-GCM: they cannot be forged and do not show the source); the first seals, every one opens (rotation). Empty derives one from the first XI_SIGNING_KEYS key, else a random key per process (child URLs then work only on the instance that wrote the manifest, until it restarts; a startup warning says so). Set it on every instance of a fleet\n\nEnv: XI_VIDEO_TRANSFORM_STREAM_KEYS (or XI_VIDEO_TRANSFORM_STREAM_KEYS_FILE)",
+              "items": {
+                "$ref": "#/$defs/hexKey"
+              },
+              "markdownDescription": "Hex keys (at least 16 bytes) that seal the tickets of child URLs (AES-256-GCM: they cannot be forged and do not show the source); the first seals, every one opens (rotation). Empty derives one from the first `XI_SIGNING_KEYS` key, else a random key per process (child URLs then work only on the instance that wrote the manifest, until it restarts; a startup warning says so). Set it on every instance of a fleet\n\nEnv: `XI_VIDEO_TRANSFORM_STREAM_KEYS` (or `XI_VIDEO_TRANSFORM_STREAM_KEYS_FILE`)",
+              "title": "XI_VIDEO_TRANSFORM_STREAM_KEYS",
+              "type": "array"
+            },
+            "stream_ttl": {
+              "$ref": "#/$defs/duration",
+              "default": "12h0m0s",
+              "description": "How long the child URLs of a manifest (/_stream/<ticket>/…: playlists and segments) work; a manifest is cacheable for a quarter of it (its tickets move in quarter steps). At least 1m\n\nEnv: XI_VIDEO_TRANSFORM_STREAM_TTL",
+              "markdownDescription": "How long the child URLs of a manifest (`/_stream/<ticket>/…`: playlists and segments) work; a manifest is cacheable for a quarter of it (its tickets move in quarter steps). At least `1m`\n\nEnv: `XI_VIDEO_TRANSFORM_STREAM_TTL`",
+              "title": "XI_VIDEO_TRANSFORM_STREAM_TTL"
             },
             "threads": {
               "default": 1,

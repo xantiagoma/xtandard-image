@@ -159,6 +159,7 @@ func New(cfg Config, deps *Deps) (http.Handler, error) {
 	mux.HandleFunc("GET "+p+"/api/meta", h.serveMeta)
 	mux.Handle("POST "+p+"/api/sign", http.NewCrossOriginProtection().Handler(http.HandlerFunc(h.sign)))
 	mux.HandleFunc("GET "+p+"/api/render", h.render)
+	mux.HandleFunc("GET "+p+"/api/stream/{part...}", h.stream)
 	if h.translator != nil {
 		mux.Handle("POST "+p+"/api/translate", http.NewCrossOriginProtection().Handler(http.HandlerFunc(h.translate)))
 	}

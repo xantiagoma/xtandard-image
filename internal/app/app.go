@@ -239,6 +239,8 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 			}
 			return inFlight(ctx)
 		}
+		// Prefetches hold sources (libvips memory) too: stopped first.
+		cleanups = append(cleanups, func(context.Context) error { vt.Close(); return nil })
 	}
 	mf, err := buildMetafile(ctx, cfg, logger)
 	if err != nil {
@@ -295,6 +297,21 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	}
 	if vt != nil {
 		deps.Video = mediaTransformer{s: vt}
+		deps.Stream = mediaStreamer{s: vt}
+		scfg.Stream = streamServerConfig(cfg)
+		if deps.Tickets, err = buildTickets(ctx, cfg, logger); err != nil {
+			return fmt.Errorf("stream tickets: %w", err)
+		}
+		sc, err := buildStreamCache(cfg, met)
+		if err != nil {
+			return fmt.Errorf("stream cache: %w", err)
+		}
+		if sc != nil {
+			// It may hold segments in libvips memory: closed before
+			// libvips shuts down (cleanups run in reverse).
+			cleanups = append(cleanups, func(context.Context) error { return sc.Close() })
+			deps.StreamCache = sc
+		}
 	}
 	srv, err := server.New(&scfg, deps)
 	if err != nil {

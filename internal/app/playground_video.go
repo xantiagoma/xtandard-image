@@ -49,6 +49,10 @@ func playgroundVideoTransform(cfg *config.Config, caps video.TranscodeCaps, prob
 			vt.MP4Video = out.Video.String()
 		}
 	}
+	// HLS and DASH (WP-126) where the build writes streams.
+	if _, err := caps.ResolveStream(&transform.VideoOp{Stream: &transform.VideoStream{}}); err == nil {
+		vt.Containers = append(vt.Containers, "m3u8", "mpd")
+	}
 	for i, n := range vt.Codecs {
 		if n == video.AudioPCM.String() {
 			vt.Codecs[i] = "pcm" // the URL's name (audio_codec:pcm), not the encoder's

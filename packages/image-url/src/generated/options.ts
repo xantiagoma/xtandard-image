@@ -1591,14 +1591,14 @@ export interface ImgproxyVideoArgs {
   "flip":
     | [horizontal: boolean | null, vertical?: boolean | null];
   /**
-   * Output container (the source extension sets it too); png and webp are waveform pictures. URL: `format`, `f`, `ext`; arguments mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp; default mp4.
+   * Output container (the source extension sets it too); png and webp are waveform pictures, m3u8 and mpd streams (WP-126). URL: `format`, `f`, `ext`; arguments mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp, m3u8, mpd; default mp4.
    *
    * URL names: `format`, `f`, `ext`.
    * milestone M5 (WP-122); scope request.
    * @example ["webm"]
    */
   "format":
-    | [format: "mp4" | "webm" | "m4a" | "mp3" | "opus" | "ogg" | "flac" | "wav" | "png" | "webp"];
+    | [format: "mp4" | "webm" | "m4a" | "mp3" | "opus" | "ogg" | "flac" | "wav" | "png" | "webp" | "m3u8" | "mpd"];
   /**
    * Output frame rate (capped by XI_VIDEO_TRANSFORM_MAX_FPS). URL: `fps`; arguments rate; default source.
    *
@@ -1735,6 +1735,15 @@ export interface ImgproxyVideoArgs {
   "sample_rate":
     | [hz: number];
   /**
+   * Length of a stream's segments (1..30 s). URL: `segment_duration`, `sgd`; arguments seconds; default XI_VIDEO_TRANSFORM_SEGMENT_DURATION (6).
+   *
+   * URL names: `segment_duration`, `sgd`.
+   * milestone M5 (WP-126); scope request.
+   * @example [4]
+   */
+  "segment_duration":
+    | [seconds: number];
+  /**
    * Resize without the type. URL: `size`, `s`; arguments w:h:enlarge:extend; default 0:0:false:false.
    *
    * URL names: `size`, `s`.
@@ -1752,6 +1761,15 @@ export interface ImgproxyVideoArgs {
    */
   "start":
     | [seconds: number];
+  /**
+   * Deliver an HLS or DASH stream (as the m3u8 or mpd extension does) with these renditions (at most 8; none: the configured ladder). Rungs above the source are dropped. URL: `stream`, `st`; arguments protocol:height…; default none (a file).
+   *
+   * URL names: `stream`, `st`.
+   * milestone M5 (WP-126); scope request.
+   * @example ["hls",360,720]
+   */
+  "stream":
+    | [protocol: "dash" | "hls", ...heights: Array<number | null>];
   /**
    * Draw the output's running time (FFmpeg drawtext with a fixed expansion). URL: `timecode`, `tc`; arguments format:position:x:y:size:color:opacity; default none:sowe:0:0:0:ffffff:1.
    *
@@ -1894,7 +1912,9 @@ export const imgproxyVideoAliases = {
   "rs": "resize",
   "rt": "resizing_type",
   "s": "size",
+  "sgd": "segment_duration",
   "sr": "sample_rate",
+  "st": "stream",
   "tc": "timecode",
   "vb": "video_bitrate",
   "vc": "video_codec",
@@ -1948,8 +1968,10 @@ export const imgproxyVideoOptionNames = [
   "return_attachment",
   "rotate",
   "sample_rate",
+  "segment_duration",
   "size",
   "start",
+  "stream",
   "timecode",
   "video_bitrate",
   "video_codec",

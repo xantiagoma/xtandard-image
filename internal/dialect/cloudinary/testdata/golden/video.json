@@ -856,16 +856,6 @@
     "path": "/demo/video/upload/sp_hd/f_m3u8/dog.mp4",
     "request": {
       "Dialect": "cloudinary",
-      "Ignored": [
-        {
-          "Option": "sp",
-          "Reason": "M5 (WP-126)"
-        },
-        {
-          "Option": "f_m3u8",
-          "Reason": "M5 (WP-126)"
-        }
-      ],
       "Kind": "video",
       "Pipelines": [
         {}
@@ -875,7 +865,16 @@
         "Mount": "assets",
         "Raw": "dog.mp4"
       },
-      "Video": {}
+      "Video": {
+        "Stream": {
+          "Renditions": [
+            720,
+            480,
+            360,
+            240
+          ]
+        }
+      }
     },
     "signature": "unsigned",
     "source": "dog.mp4"
@@ -2535,14 +2534,289 @@
     },
     "path": "/demo/video/upload/s--B11zBYPy--/c_fill,h_260,w_250/dog.mp4"
   },
+  "stream_custom_profile": {
+    "path": "/demo/video/upload/sp_my_profile/dog.m3u8",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "sp_my_profile",
+          "Reason": "unsupported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.m3u8"
+      },
+      "Video": {
+        "Stream": {}
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.m3u8"
+  },
+  "stream_custom_profile_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported option",
+      "status": 400
+    },
+    "path": "/demo/video/upload/sp_my_profile/dog.m3u8"
+  },
+  "stream_ext_m3u8": {
+    "path": "/demo/video/upload/dog.m3u8",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.m3u8"
+      },
+      "Video": {
+        "Stream": {}
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.m3u8"
+  },
+  "stream_ext_mpd_full_hd": {
+    "path": "/demo/video/upload/sp_full_hd/dog.mpd",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mpd"
+      },
+      "Video": {
+        "Stream": {
+          "Protocol": "dash",
+          "Renditions": [
+            1080,
+            720,
+            480,
+            360,
+            240
+          ]
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mpd"
+  },
+  "stream_fetch": {
+    "path": "/demo/video/fetch/sp_sd/f_m3u8/https://example.com/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/dog.mp4"
+      },
+      "Video": {
+        "Stream": {
+          "Renditions": [
+            480,
+            360,
+            240
+          ]
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/dog.mp4"
+  },
+  "stream_resize_dropped": {
+    "path": "/demo/video/upload/c_scale,w_640,br_1m/sp_hd/dog.m3u8",
+    "request": {
+      "Dialect": "cloudinary",
+      "Ignored": [
+        {
+          "Option": "w",
+          "Reason": "not applied to streams"
+        },
+        {
+          "Option": "br",
+          "Reason": "not applied to streams"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.m3u8"
+      },
+      "Video": {
+        "Stream": {
+          "Renditions": [
+            720,
+            480,
+            360,
+            240
+          ]
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.m3u8"
+  },
+  "stream_resize_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unsupported option",
+      "status": 400
+    },
+    "path": "/demo/video/upload/c_scale,w_640/sp_hd/dog.m3u8"
+  },
+  "stream_signed": {
+    "config": "signed",
+    "path": "/demo/video/upload/s--LxOX4EGF--/sp_hd/dog.m3u8",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.m3u8"
+      },
+      "Video": {
+        "Stream": {
+          "Renditions": [
+            720,
+            480,
+            360,
+            240
+          ]
+        }
+      }
+    },
+    "signature": "verified",
+    "source": "dog.m3u8"
+  },
+  "stream_sp_auto": {
+    "path": "/demo/video/upload/sp_auto/dog.m3u8",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.m3u8"
+      },
+      "Video": {
+        "Stream": {}
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.m3u8"
+  },
+  "stream_sp_hd_lean_f_mpd": {
+    "path": "/demo/video/upload/sp_hd_lean/f_mpd/dog.mp4",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.mp4"
+      },
+      "Video": {
+        "Stream": {
+          "Protocol": "dash",
+          "Renditions": [
+            720,
+            360,
+            240
+          ]
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.mp4"
+  },
+  "stream_trim_crop_codec": {
+    "path": "/demo/video/upload/so_2,du_10/c_crop,w_640,h_360/vc_vp9,q_auto:good,fps_25/sp_hd/dog.m3u8",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.m3u8"
+      },
+      "Video": {
+        "Crop": {
+          "Gravity": "center",
+          "Height": 360,
+          "Width": 640
+        },
+        "Duration": 10000000000,
+        "FPS": 25,
+        "Quality": 65,
+        "Start": 2000000000,
+        "Stream": {
+          "Renditions": [
+            720,
+            480,
+            360,
+            240
+          ]
+        },
+        "VideoCodec": "vp9"
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.m3u8"
+  },
+  "stream_vc_none": {
+    "error": {
+      "field": "vc",
+      "kind": "invalid_url",
+      "public": "invalid vc: expected a video codec for m3u8 and mpd",
+      "status": 400
+    },
+    "path": "/demo/video/upload/vc_none/sp_hd/dog.m3u8"
+  },
   "streaming_profile": {
     "path": "/demo/video/upload/sp_hd/dog.mp4",
     "request": {
       "Dialect": "cloudinary",
       "Ignored": [
         {
-          "Option": "sp",
-          "Reason": "M5 (WP-126)"
+          "Option": "sp_hd",
+          "Reason": "applies to m3u8 and mpd output only"
         }
       ],
       "Kind": "video",

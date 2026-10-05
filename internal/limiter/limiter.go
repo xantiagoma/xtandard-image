@@ -242,6 +242,24 @@ func (l *Limiter) Acquire(ctx context.Context, cost int64) (release func(), err 
 	return p.release, nil
 }
 
+// TryAcquire admits one job only when a worker is free at once and no
+// other job waits for one, without queueing: for work that may be
+// skipped, such as prefetching (WP-126), which must never delay or
+// displace a request. ok is false when nothing was admitted.
+func (l *Limiter) TryAcquire() (release func(), ok bool) {
+	if !l.queue.TryAcquire(1) {
+		return nil, false
+	}
+	if !l.workers.TryAcquire(1) {
+		l.queue.Release(1)
+		return nil, false
+	}
+	l.inFlight.Add(1)
+	l.metrics.AddInFlight(1)
+	p := &permit{l: l, start: time.Now()}
+	return p.release, true
+}
+
 // noRelease is Reserve's release when nothing was reserved: a package-level
 // func value, so the common case (no memory budget) does not allocate.
 var noRelease = func() {}

@@ -28,10 +28,9 @@ import (
 
 // Reasons of the video mapping.
 const (
-	reasonAudio     = "M5 (WP-123)"
-	reasonStreaming = "M5 (WP-126)"
-	reasonRelative  = "needs the source size or duration"
-	reasonNotVideo  = "not applicable to video"
+	reasonAudio    = "M5 (WP-123)"
+	reasonRelative = "needs the source size or duration"
+	reasonNotVideo = "not applicable to video"
 )
 
 // Expectations of the video parameters.
@@ -80,7 +79,7 @@ var unsupportedVideoFormats = map[string]string{
 	"mov": reasonUnsupported, "mkv": reasonUnsupported, "flv": reasonUnsupported,
 	"avi": reasonUnsupported, "wmv": reasonUnsupported, "ogv": reasonUnsupported,
 	"3gp": reasonUnsupported, "ts": reasonUnsupported, "m2ts": reasonUnsupported,
-	"mts": reasonUnsupported, "mpd": reasonStreaming, "m3u8": reasonStreaming,
+	"mts": reasonUnsupported,
 	"wav": reasonAudio, "flac": reasonAudio, "aac": reasonAudio, "aiff": reasonAudio,
 	"amr": reasonUnsupported, "wma": reasonUnsupported,
 }
@@ -128,6 +127,10 @@ type videoApplier struct {
 	dpr       float64
 	eoGiven   bool
 	duGiven   bool
+	// stream is set by an m3u8 or mpd output, profile by sp_ (WP-126,
+	// videostream.go).
+	stream  *transform.VideoStream
+	profile string
 }
 
 // video parses the components of a video transcode into r.
@@ -354,7 +357,7 @@ func (va *videoApplier) component(c *component) error {
 		case "af":
 			err = va.skip("af", reasonAudio)
 		case "sp":
-			err = va.skip("sp", reasonStreaming)
+			err = va.streamingProfile(p.value)
 		case "if":
 			err = va.skip("if", reasonUnsupported)
 		case "t", "d", "pg", "z", "o", "r", "bo", "co", "cs", "dl", "dn", "fn", "ki", "p", "vs":
@@ -852,6 +855,14 @@ func (va *videoApplier) finish() error {
 	if va.auto {
 		va.autoContainer()
 	}
+	if va.stream != nil {
+		return va.finishStream()
+	}
+	if va.profile != "" {
+		if err := va.skip("sp_"+va.profile, reasonNoStream); err != nil {
+			return err
+		}
+	}
 	if va.vcNone && !op.Container.AudioOnly() {
 		// Audio only: the container's audio counterpart, or the one the
 		// audio codec needs.
@@ -900,6 +911,10 @@ func (va *videoApplier) container() error {
 		return nil
 	}
 	if name == "" {
+		return nil
+	}
+	if p, ok := streamProtocols[strings.ToLower(name)]; ok {
+		va.stream = &transform.VideoStream{Protocol: p}
 		return nil
 	}
 	if c, ok := videoContainers[strings.ToLower(name)]; ok {

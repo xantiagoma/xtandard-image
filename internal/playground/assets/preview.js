@@ -403,7 +403,7 @@ export class Preview {
       node.addEventListener('loadedmetadata', () => { this.layout(); this.stats(); });
       if (node.error && which === 'after') this.unplayable(type, res.headers.get('x-xi-video-codec'));
     } else if (STREAM_TYPES.includes(type)) {
-      node = await this.stream(type, url, blob);
+      node = await this.stream(type, blob, path);
     } else if (type.startsWith('image/')) {
       node = el('img', { src: url, alt: label, decoding: 'async', draggable: 'false' });
       await node.decode().catch(() => {});
@@ -433,21 +433,35 @@ export class Preview {
     n.textContent = `This browser cannot play ${type}${codecs ? ` (${codecs})` : ''}. The file is valid: copy the URL or the curl command to get it, or pick WebM (VP9 + Opus) to watch it here.`;
   }
 
-  // stream shows an HLS playlist or a DASH manifest (WP-126 hook): native
-  // HLS where the browser has it (Safari), else the manifest and its
-  // segment list. No player library is loaded (no CDN, CSP 'self').
-  async stream(type, url, blob) {
+  // stream shows an HLS playlist or a DASH manifest (WP-126): the
+  // playground rewrites a manifest's parts to api/stream (stream.go), so the
+  // master playlist's own api/render URL plays natively where the browser
+  // has HLS (Safari); elsewhere the manifest and its entries are listed,
+  // each a link to the part. No player library is loaded (no CDN, CSP
+  // 'self').
+  async stream(type, blob, path) {
     const text = (await blob.text()).slice(0, 200000);
     const lines = streamLines(type, text);
+    const dash = type === 'application/dash+xml';
+    const entry = (l) => (l.startsWith('/') ? el('a', { href: l, target: '_blank', rel: 'noopener' }, el('code', { text: l })) : el('code', { text: l }));
     const box = el('div', { class: 'stream-result text-result' },
-      el('p', { class: 'hint', text: `${type === 'application/dash+xml' ? 'DASH manifest' : 'HLS playlist'}: ${lines.length} entries.` }),
-      el('ol', { class: 'stream-list' }, ...lines.slice(0, 200).map((l) => el('li', {}, el('code', { text: l })))),
+      el('p', { class: 'hint', text: `${dash ? 'DASH manifest' : 'HLS playlist'}: ${lines.length} entries.` }),
+      el('ol', { class: 'stream-list' }, ...lines.slice(0, 200).map((l) => el('li', {}, entry(l)))),
       el('details', {}, el('summary', { text: 'Manifest' }), el('pre', { text })));
     const probe = document.createElement('video');
-    if (type !== 'application/dash+xml' && probe.canPlayType('application/vnd.apple.mpegurl')) {
-      // WP-126 hook: native HLS needs the playlist's own URL (its segment
-      // URIs are relative to it), not a blob: the preview path will pass it.
-      box.prepend(el('p', { class: 'hint', text: 'This browser plays HLS natively: open the URL in a new tab to watch it.' }));
+    if (!dash && probe.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS: the playlist's own URL, whose parts the playground
+      // serves (api/stream).
+      const video = el('video', {
+        src: `api/render?u=${encodeURIComponent(path)}`, controls: true, playsinline: true, muted: true, autoplay: true,
+        preload: 'auto', 'aria-label': 'Result stream',
+      });
+      video.muted = true;
+      box.prepend(video);
+    } else {
+      box.prepend(el('p', { class: 'hint', text: dash
+        ? 'DASH plays in a player such as dash.js; its segments are linked below.'
+        : 'This browser has no native HLS: play the URL with hls.js, Safari or ffplay; its playlists are linked below.' }));
     }
     return box;
   }

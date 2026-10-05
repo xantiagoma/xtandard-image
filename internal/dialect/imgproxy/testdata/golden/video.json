@@ -655,7 +655,7 @@
     "error": {
       "field": "extension",
       "kind": "invalid_url",
-      "public": "invalid extension: expected mp4, webm, m4a, mp3, opus, ogg, flac, wav, png or webp",
+      "public": "invalid extension: expected mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp, m3u8 or mpd",
       "status": 400
     },
     "path": "/unsafe/plain/https://example.com/clip.mov@avi"
@@ -860,7 +860,7 @@
     "error": {
       "field": "format",
       "kind": "invalid_url",
-      "public": "invalid format: expected mp4, webm, m4a, mp3, opus, ogg, flac, wav, png or webp",
+      "public": "invalid format: expected mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp, m3u8 or mpd",
       "status": 400
     },
     "path": "/unsafe/f:gif/plain/https://example.com/clip.mov"
@@ -2017,6 +2017,26 @@
     },
     "path": "/unsafe/sr:44000/plain/https://example.com/clip.mov"
   },
+  "segment_duration_bad": {
+    "endpoint": "video",
+    "error": {
+      "field": "segment_duration",
+      "kind": "invalid_url",
+      "public": "invalid segment_duration: expected whole seconds between 1 and 30",
+      "status": 400
+    },
+    "path": "/unsafe/sgd:1.5/plain/https://example.com/clip.mov"
+  },
+  "segment_duration_long": {
+    "endpoint": "video",
+    "error": {
+      "field": "segment_duration",
+      "kind": "invalid_url",
+      "public": "invalid segment_duration: expected whole seconds between 1 and 30",
+      "status": 400
+    },
+    "path": "/unsafe/sgd:60/plain/https://example.com/clip.mov"
+  },
   "signed": {
     "config": "signed",
     "endpoint": "video",
@@ -2141,6 +2161,230 @@
       "status": 400
     },
     "path": "/unsafe/vs:abc/plain/https://example.com/clip.mov"
+  },
+  "stream_alias_segment": {
+    "endpoint": "video",
+    "path": "/unsafe/stream:hls/sgd:4/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Stream": {
+          "SegmentDuration": 4000000000
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "stream_bad_protocol": {
+    "endpoint": "video",
+    "error": {
+      "field": "stream",
+      "kind": "invalid_url",
+      "public": "invalid stream: expected hls or dash, then rendition heights between 64 and 4320 (at most 8)",
+      "status": 400
+    },
+    "path": "/unsafe/st:smooth/plain/https://example.com/clip.mov"
+  },
+  "stream_bad_rung": {
+    "endpoint": "video",
+    "error": {
+      "field": "stream",
+      "kind": "invalid_url",
+      "public": "invalid stream: expected hls or dash, then rendition heights between 64 and 4320 (at most 8)",
+      "status": 400
+    },
+    "path": "/unsafe/st:hls:32/plain/https://example.com/clip.mov"
+  },
+  "stream_bitrate_rejected": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.stream: a stream's bit rates are its renditions'",
+      "status": 400
+    },
+    "path": "/unsafe/vb:1m/plain/https://example.com/clip.mov@m3u8"
+  },
+  "stream_crop_codec_ki": {
+    "endpoint": "video",
+    "path": "/unsafe/c:640:360:ce/rot:90/fps:25/vc:vp9/q:60/ki:2/ab:96k/ach:1/plain/https://example.com/clip.mov@m3u8",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "AudioBitrate": 96000,
+        "Channels": 1,
+        "Crop": {
+          "Gravity": "center",
+          "Height": 360,
+          "Width": 640
+        },
+        "FPS": 25,
+        "KeyframeInterval": 2000000000,
+        "Quality": 60,
+        "Rotate": 90,
+        "Stream": {},
+        "VideoCodec": "vp9"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "stream_ext_after_option": {
+    "endpoint": "video",
+    "path": "/unsafe/st:dash:360/plain/https://example.com/clip.mov@m3u8",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Stream": {
+          "Renditions": [
+            360
+          ]
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "stream_ext_m3u8": {
+    "endpoint": "video",
+    "path": "/unsafe/plain/https://example.com/clip.mov@m3u8",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Stream": {}
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "stream_ext_mpd": {
+    "endpoint": "video",
+    "path": "/unsafe/vs:5/vd:60/plain/https://example.com/clip.mov@mpd",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Duration": 60000000000,
+        "Start": 5000000000,
+        "Stream": {
+          "Protocol": "dash"
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "stream_option": {
+    "endpoint": "video",
+    "path": "/unsafe/st:dash:240:720:480/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Stream": {
+          "Protocol": "dash",
+          "Renditions": [
+            240,
+            720,
+            480
+          ]
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "stream_signed": {
+    "config": "signed",
+    "endpoint": "video",
+    "path": "/VSIG/st:hls:360/plain/https://example.com/clip.mov@m3u8",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Stream": {
+          "Renditions": [
+            360
+          ]
+        }
+      }
+    },
+    "signature": "verified",
+    "source": "https://example.com/clip.mov"
+  },
+  "stream_size_rejected": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.stream: a stream's sizes are its renditions'",
+      "status": 400
+    },
+    "path": "/unsafe/w:640/plain/https://example.com/clip.mov@m3u8"
+  },
+  "stream_too_many_rungs": {
+    "endpoint": "video",
+    "error": {
+      "field": "stream",
+      "kind": "invalid_url",
+      "public": "invalid stream: expected hls or dash, then rendition heights between 64 and 4320 (at most 8)",
+      "status": 400
+    },
+    "path": "/unsafe/st:hls:1:2:3:4:5:6:7:8:9/plain/https://example.com/clip.mov"
+  },
+  "stream_webm_rejected": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.stream: a stream is CMAF (mp4)",
+      "status": 400
+    },
+    "path": "/unsafe/st:hls/f:webm/plain/https://example.com/clip.mov"
   },
   "timecode": {
     "endpoint": "video",

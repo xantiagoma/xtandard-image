@@ -108,3 +108,11 @@ func call(ctx context.Context, fn func(context.Context) (*Result, error)) (res *
 	}
 	return res, err
 }
+
+// busy reports whether a transcode for key is in flight.
+func (g *group) busy(key string) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	_, ok := g.m[key]
+	return ok
+}

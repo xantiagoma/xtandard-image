@@ -110,6 +110,11 @@ type VideoOp struct {
 	// Overlays are images, text or a timecode drawn over the video, in
 	// order (WP-124). Audio-only containers take none.
 	Overlays []VideoOverlay
+
+	// Stream delivers the output as adaptive streaming (HLS or DASH, WP-126)
+	// instead of one file: a manifest of renditions whose segments are
+	// transcoded on request. nil is a file.
+	Stream *VideoStream
 }
 
 // VideoCrop is a rectangle of the source in pixels, after the rotation.
@@ -359,7 +364,7 @@ func (o *VideoOp) validate(v *validator, f string) {
 	v.enum(f+".audio_codec", validEnum(o.AudioCodec, numAudioCodecs))
 	if validEnum(o.Container, numVideoContainers) && validEnum(o.VideoCodec, numVideoCodecs) &&
 		validEnum(o.AudioCodec, numAudioCodecs) {
-		if !o.Container.AllowsVideo(o.VideoCodec) {
+		if !o.Container.AllowsVideo(o.VideoCodec) && (o.Stream == nil || o.VideoCodec != VideoCodecVP9) { // CMAF carries VP9 (vp09)
 			v.fail(f+".video_codec", o.VideoCodec.String()+" cannot be muxed into "+o.Container.String())
 		}
 		if !o.Container.AllowsAudio(o.AudioCodec) {
@@ -384,6 +389,9 @@ func (o *VideoOp) validate(v *validator, f string) {
 		v.fail(f+".audio_bitrate", between(strconv.Itoa(MinAudioBitrate), strconv.Itoa(MaxAudioBitrate)))
 	}
 	o.validateAudio(v, f)
+	if o.Stream != nil {
+		o.validateStream(v, f)
+	}
 	if len(o.Overlays) > MaxVideoOverlays {
 		v.fail(f+".overlays", "at most "+strconv.Itoa(MaxVideoOverlays)+" overlays")
 	} else if len(o.Overlays) > 0 && validEnum(o.Container, numVideoContainers) && !o.Container.HasVideoStream() {

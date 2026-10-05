@@ -17,6 +17,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
@@ -99,6 +100,9 @@ type Config struct {
 	Input video.Limits
 	// Transcode holds the encoder defaults, threads and output limits.
 	Transcode video.TranscodeSettings
+	// Stream holds the ABR ladder and the segment duration of HLS and
+	// DASH (WP-126).
+	Stream video.StreamSettings
 }
 
 // Validate reports every invalid field.
@@ -140,6 +144,12 @@ type Service struct {
 	render  OverlayRenderer // nil: image and text overlays are unsupported
 	flights group
 	limOpts []limiter.Option // New only
+
+	// Background prefetches of stream segments (stream.go): Close stops
+	// them (done) and waits for them (prefetches).
+	prefetches sync.WaitGroup
+	done       chan struct{}
+	closeOnce  sync.Once
 }
 
 // Option configures New.
@@ -174,7 +184,7 @@ func New(cfg *Config, caps video.TranscodeCaps, engine Engine, opts ...Option) (
 	if engine == nil {
 		return nil, errors.New("media: nil engine")
 	}
-	s := &Service{cfg: *cfg, caps: caps, engine: engine, metrics: nopMetrics{}}
+	s := &Service{cfg: *cfg, caps: caps, engine: engine, metrics: nopMetrics{}, done: make(chan struct{})}
 	for _, o := range opts {
 		o(s)
 	}
@@ -278,15 +288,29 @@ func release(bs []Buffer) {
 
 // run is one transcode: admission, open, plan, overlays, transcode.
 func (s *Service) run(ctx context.Context, src Buffer, op *transform.VideoOp, overlays []Buffer, out video.TranscodeOutput) (*Result, error) {
+	return s.admitted(ctx, src, func(ctx context.Context) (*Result, error) {
+		return s.transcode(ctx, src, op, overlays, out)
+	})
+}
+
+// admitted runs work on a worker of the pool (waiting in its queue), under
+// the transcode timeout (timed).
+func (s *Service) admitted(ctx context.Context, src Buffer, work func(context.Context) (*Result, error)) (*Result, error) {
 	release, err := s.lim.Acquire(ctx, 0)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
+	return s.timed(ctx, src, work)
+}
+
+// timed runs work under XI_VIDEO_TRANSFORM_TIMEOUT (errs.KindTimeout past
+// it) and observes it.
+func (s *Service) timed(ctx context.Context, src Buffer, work func(context.Context) (*Result, error)) (*Result, error) {
 	start := time.Now()
 	ctx, cancel := context.WithTimeoutCause(ctx, s.cfg.Timeout, errTimeout)
 	defer cancel()
-	res, err := s.transcode(ctx, src, op, overlays, out)
+	res, err := work(ctx)
 	result := "ok"
 	var n int64
 	if err != nil {

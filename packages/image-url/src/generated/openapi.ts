@@ -2117,13 +2117,13 @@ export interface components {
                 boolean | null
             ];
             /**
-             * @description Output container (the source extension sets it too); png and webp are waveform pictures. URL: `format`, `f`, `ext`; arguments mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp; default mp4.
+             * @description Output container (the source extension sets it too); png and webp are waveform pictures, m3u8 and mpd streams (WP-126). URL: `format`, `f`, `ext`; arguments mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp, m3u8, mpd; default mp4.
              * @example [
              *       "webm"
              *     ]
              */
             format?: [
-                "mp4" | "webm" | "m4a" | "mp3" | "opus" | "ogg" | "flac" | "wav" | "png" | "webp"
+                "mp4" | "webm" | "m4a" | "mp3" | "opus" | "ogg" | "flac" | "wav" | "png" | "webp" | "m3u8" | "mpd"
             ];
             /**
              * @description Output frame rate (capped by XI_VIDEO_TRANSFORM_MAX_FPS). URL: `fps`; arguments rate; default source.
@@ -2283,6 +2283,15 @@ export interface components {
                 number
             ];
             /**
+             * @description Length of a stream's segments (1..30 s). URL: `segment_duration`, `sgd`; arguments seconds; default XI_VIDEO_TRANSFORM_SEGMENT_DURATION (6).
+             * @example [
+             *       4
+             *     ]
+             */
+            segment_duration?: [
+                number
+            ];
+            /**
              * @description Resize without the type. URL: `size`, `s`; arguments w:h:enlarge:extend; default 0:0:false:false.
              * @example [
              *       640,
@@ -2305,6 +2314,17 @@ export interface components {
              */
             start?: [
                 number
+            ];
+            /**
+             * @description Deliver an HLS or DASH stream (as the m3u8 or mpd extension does) with these renditions (at most 8; none: the configured ladder). Rungs above the source are dropped. URL: `stream`, `st`; arguments protocol:height…; default none (a file).
+             * @example [
+             *       "hls",
+             *       360,
+             *       720
+             *     ]
+             */
+            stream?: [
+                "dash" | "hls"
             ];
             /**
              * @description Draw the output's running time (FFmpeg drawtext with a fixed expansion). URL: `timecode`, `tc`; arguments format:position:x:y:size:color:opacity; default none:sowe:0:0:0:ffffff:1.
@@ -3125,7 +3145,7 @@ export interface components {
             audio_effects?: boolean;
             /** @description Encoders of this build: vp9, av1, h264, hevc (video), aac, opus, mp3, flac, pcm (audio), and waveform when waveform pictures can be drawn. */
             codecs: string[] | null;
-            /** @description Output containers this build writes (mp4, webm, m4a, mp3, opus, ogg, flac, wav; png and webp are waveform pictures). */
+            /** @description Output containers this build writes (mp4, webm, m4a, mp3, opus, ogg, flac, wav; png and webp are waveform pictures; m3u8 and mpd are HLS and DASH streams). */
             containers: string[] | null;
             /**
              * Format: double
@@ -4562,7 +4582,7 @@ export interface operations {
                 background?: string;
                 /** @description Output frame rate (capped by XI_VIDEO_TRANSFORM_MAX_FPS). Arguments joined by , or : (rate). */
                 fps?: string;
-                /** @description Output container (the source extension sets it too); png and webp are waveform pictures. Arguments joined by , or : (mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp). */
+                /** @description Output container (the source extension sets it too); png and webp are waveform pictures, m3u8 and mpd streams (WP-126). Arguments joined by , or : (mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp, m3u8, mpd). */
                 format?: string;
                 /** @description Video codec (h264 and hevc need the gpl image). Arguments joined by , or : (auto, h264, av1, vp9, hevc). */
                 video_codec?: string;
@@ -4596,6 +4616,10 @@ export interface operations {
                 overlay_window?: string;
                 /** @description Fade the watermark overlay in and out (seconds, within its window). Arguments joined by , or : (in:out). */
                 overlay_fade?: string;
+                /** @description Deliver an HLS or DASH stream (as the m3u8 or mpd extension does) with these renditions (at most 8; none: the configured ladder). Rungs above the source are dropped. Arguments joined by , or : (protocol:height…). */
+                stream?: string;
+                /** @description Length of a stream's segments (1..30 s). Arguments joined by , or : (seconds). */
+                segment_duration?: string;
                 /** @description Draw the output's running time (FFmpeg drawtext with a fixed expansion). Arguments joined by , or : (format:position:x:y:size:color:opacity). */
                 timecode?: string;
                 /** @description A /video option path (rs:fill:640:360/vd:5). */

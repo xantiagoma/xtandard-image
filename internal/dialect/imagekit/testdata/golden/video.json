@@ -795,13 +795,222 @@
     "query": "tr=fps-1000"
   },
   "ik_master": {
+    "path": "/clips/a.mp4/ik-master.m3u8",
+    "query": "tr=sr-240_360_480",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "clips/a.mp4"
+      },
+      "Video": {
+        "Stream": {
+          "Renditions": [
+            240,
+            360,
+            480
+          ]
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "clips/a.mp4"
+  },
+  "ik_master_bad_ext": {
     "error": {
       "kind": "invalid_url",
-      "public": "invalid url: adaptive bitrate streaming (ik-master) is not supported yet",
+      "public": "invalid url: ik-master must be ik-master.m3u8 or ik-master.mpd",
+      "status": 400
+    },
+    "path": "/clips/a.mp4/ik-master.ts",
+    "query": ""
+  },
+  "ik_master_mpd_all": {
+    "path": "/clips/a.mp4/ik-master.mpd",
+    "query": "tr=sr-240_360_480_720_1080_1440_2160",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "clips/a.mp4"
+      },
+      "Video": {
+        "Stream": {
+          "Protocol": "dash",
+          "Renditions": [
+            240,
+            360,
+            480,
+            720,
+            1080,
+            1440,
+            2160
+          ]
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "clips/a.mp4"
+  },
+  "ik_master_no_sr": {
+    "path": "/clips/a.mov/ik-master.m3u8",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "clips/a.mov"
+      },
+      "Video": {
+        "Stream": {}
+      }
+    },
+    "signature": "unsigned",
+    "source": "clips/a.mov"
+  },
+  "ik_master_path_tr": {
+    "path": "/tr:so-5,du-30,sr-360_720/clips/a.mp4/ik-master.m3u8",
+    "query": "",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "clips/a.mp4"
+      },
+      "Video": {
+        "Duration": 30000000000,
+        "Start": 5000000000,
+        "Stream": {
+          "Renditions": [
+            360,
+            720
+          ]
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "clips/a.mp4"
+  },
+  "ik_master_resize_dropped": {
+    "path": "/clips/a.mp4/ik-master.m3u8",
+    "query": "tr=w-640,sr-240",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "w",
+          "Reason": "not applied to streams"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "clips/a.mp4"
+      },
+      "Video": {
+        "Stream": {
+          "Renditions": [
+            240
+          ]
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "clips/a.mp4"
+  },
+  "ik_master_resize_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
       "status": 400
     },
     "path": "/clips/a.mp4/ik-master.m3u8",
-    "query": "tr=sr-240_360_480"
+    "query": "tr=w-640,sr-240"
+  },
+  "ik_master_sr_bad": {
+    "error": {
+      "field": "sr",
+      "kind": "invalid_url",
+      "public": "invalid sr: expected heights joined by _ (240_360_480_720_1080), from 64 to 4320, at most 8",
+      "status": 400
+    },
+    "path": "/clips/a.mp4/ik-master.m3u8",
+    "query": "tr=sr-240_abc"
+  },
+  "ik_master_sr_tiny": {
+    "error": {
+      "field": "sr",
+      "kind": "invalid_url",
+      "public": "invalid sr: expected heights joined by _ (240_360_480_720_1080), from 64 to 4320, at most 8",
+      "status": 400
+    },
+    "path": "/clips/a.mp4/ik-master.m3u8",
+    "query": "tr=sr-32"
+  },
+  "ik_master_trim_crop_codec": {
+    "path": "/clips/a.mp4/ik-master.m3u8",
+    "query": "tr=so-2,du-10,cm-extract,w-640,h-360,vc-av1,q-60,fps-25,sr-240_480",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "clips/a.mp4"
+      },
+      "Video": {
+        "Crop": {
+          "Gravity": "center",
+          "Height": 360,
+          "Width": 640
+        },
+        "Duration": 10000000000,
+        "FPS": 25,
+        "Quality": 60,
+        "Start": 2000000000,
+        "Stream": {
+          "Renditions": [
+            240,
+            480
+          ]
+        },
+        "VideoCodec": "av1"
+      }
+    },
+    "signature": "unsigned",
+    "source": "clips/a.mp4"
+  },
+  "ik_master_vc_none": {
+    "error": {
+      "field": "vc",
+      "kind": "invalid_url",
+      "public": "invalid vc: expected a video codec for ik-master",
+      "status": 400
+    },
+    "path": "/clips/a.mp4/ik-master.m3u8",
+    "query": "tr=vc-none"
   },
   "ik_video_mp4": {
     "path": "/clips/a.mov/ik-video.mp4",
@@ -1790,6 +1999,42 @@
     "path": "/sample-video.mp4",
     "query": "tr=w-301\u0026ik-s=28e75423fddc221d30bccbd1d8acc83fe9d119c5"
   },
+  "sr_without_master": {
+    "path": "/clips/a.mp4",
+    "query": "tr=sr-240_360",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "sr",
+          "Reason": "applies to ik-master.m3u8 and ik-master.mpd only"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "clips/a.mp4"
+      },
+      "Video": {
+        "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "clips/a.mp4"
+  },
+  "sr_without_master_strict": {
+    "config": "strict",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: unknown option",
+      "status": 400
+    },
+    "path": "/clips/a.mp4",
+    "query": "tr=sr-240_360"
+  },
   "streaming": {
     "path": "/sample-video.mp4",
     "query": "tr=sr-240_360",
@@ -1798,7 +2043,7 @@
       "Ignored": [
         {
           "Option": "sr",
-          "Reason": "M5 (WP-126)"
+          "Reason": "applies to ik-master.m3u8 and ik-master.mpd only"
         }
       ],
       "Kind": "video",
