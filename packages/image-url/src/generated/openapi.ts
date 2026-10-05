@@ -44,6 +44,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/_playground/api/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Describe a media source (video mode)
+         * @description Resolves and fetches a source like a request's (allowlists, the SSRF-safe fetcher, XI_VIDEO_TRANSFORM_MAX_INPUT_BYTES; playground:// samples and uploads resolve) and reads its container and stream headers with FFmpeg: container, duration, codecs, size, frame rate, sample rate and channels. Unlike /info it reads audio files. Only with video transformations on (XI_VIDEO_TRANSFORM_ENABLED); two probes at a time, more answer 429. Cross-origin requests are rejected.
+         */
+        post: operations["postPlaygroundProbe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/_playground/api/probe/result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Describe a media body (video mode)
+         * @description Reads the container and stream headers of the request body (a result the page fetched, at most XI_VIDEO_TRANSFORM_MAX_OUTPUT_BYTES) with FFmpeg, for the Source vs result table. Only with video transformations on; two probes at a time, more answer 429. Cross-origin requests are rejected.
+         */
+        post: operations["postPlaygroundProbeResult"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/_playground/api/render": {
         parameters: {
             query?: never;
@@ -2741,6 +2781,67 @@ export interface components {
             /** @description More than 500 entries: only the first 500 are listed. */
             truncated?: boolean;
         };
+        PlaygroundMediaAudio: {
+            /**
+             * Format: int64
+             * @description Channel count.
+             */
+            channels?: number;
+            /** @description FFmpeg codec name: aac, opus, mp3, flac, pcm_s16le, ... */
+            codec: string;
+            /**
+             * Format: int64
+             * @description Sample rate in Hz.
+             */
+            sample_rate?: number;
+        };
+        PlaygroundMediaInfo: {
+            /** @description The audio stream; absent for silent files. */
+            audio?: components["schemas"]["PlaygroundMediaAudio"];
+            /**
+             * Format: int64
+             * @description Average bit rate in bits per second (size × 8 / duration).
+             */
+            bit_rate?: number;
+            /** @description FFmpeg demuxer that read the file (mov,mp4,m4a,3gp,3g2,mj2; matroska,webm; mp3; ogg; flac; wav). */
+            container: string;
+            /**
+             * Format: double
+             * @description Duration in seconds; absent when unknown.
+             */
+            duration?: number;
+            /**
+             * Format: int64
+             * @description File size in bytes.
+             */
+            size: number;
+            /** @description The video stream; absent for audio files. */
+            video?: components["schemas"]["PlaygroundMediaVideo"];
+        };
+        PlaygroundMediaVideo: {
+            /** @description FFmpeg codec name: h264, hevc, av1, vp9, ... */
+            codec: string;
+            /**
+             * Format: double
+             * @description Average frame rate.
+             */
+            fps?: number;
+            /**
+             * Format: int64
+             * @description Coded height in pixels.
+             */
+            height: number;
+            /**
+             * Format: int64
+             * @description Display rotation, clockwise degrees.
+             */
+            rotation?: number;
+            /**
+             * Format: int64
+             * @description Coded width in pixels.
+             */
+            width: number;
+        };
         PlaygroundMeta: {
             /** @description Option catalogues (internal/apidoc), one per URL grammar. */
             catalogues: components["schemas"]["PlaygroundCatalogue"][] | null;
@@ -2787,6 +2888,8 @@ export interface components {
             video: boolean;
             /** @description imgproxy-style /video options (internal/apidoc, the ImgproxyVideoOptions schema): video transformations, audio and waveforms. */
             video_options: components["schemas"]["PlaygroundOption"][] | null;
+            /** @description Video transformations (/video, /q/video and the dialects' video URLs) this server runs: what this build can write and the output limits. Absent when XI_VIDEO_TRANSFORM_ENABLED is off or XI_ROLE=image. */
+            video_transform?: components["schemas"]["PlaygroundVideoTransform"];
             /** @description A default watermark image is configured (XI_PROCESSING_WATERMARK_SOURCE; the source itself is never included): imgproxy wm without wmu or wmt draws it. */
             watermark: boolean;
         };
@@ -2837,10 +2940,10 @@ export interface components {
             /** @description Accepted argument shapes; most options have one. */
             forms: components["schemas"]["PlaygroundForm"][] | null;
             /**
-             * @description Builder category; report, hashes and security are Info panel groups.
+             * @description Builder category; report, hashes and security are Info panel groups, time and audio video builder groups.
              * @enum {string}
              */
-            group?: "size" | "gravity" | "format" | "color" | "effects" | "watermark" | "metadata" | "frames" | "detection" | "delivery" | "presets" | "other" | "report" | "hashes" | "security";
+            group?: "size" | "gravity" | "format" | "color" | "effects" | "watermark" | "metadata" | "frames" | "detection" | "delivery" | "presets" | "other" | "report" | "hashes" | "security" | "time" | "audio";
             /** @description Milestone that implements the option. */
             milestone?: string;
             /** @description Canonical name. */
@@ -2848,27 +2951,31 @@ export interface components {
             /** @description Needs XI_SECURITY_ALLOW_SECURITY_OPTIONS. */
             security?: boolean;
         };
+        PlaygroundProbeRequest: {
+            /** @description Source string (as in a URL: https://…, xi://<source>/<key>, playground://…), resolved and fetched like a request's source. */
+            source: string;
+        };
         PlaygroundRecipe: {
             /**
              * @description Card group.
              * @enum {string}
              */
-            category: "watermark" | "showcase";
+            category: "watermark" | "video" | "showcase";
             /** @description What the recipe shows. */
             description: string;
             /** @description Dialect of the mount the recipe is built on (its first mount). */
             dialect: string;
-            /** @description imgproxy source extension. */
+            /** @description imgproxy source extension (the output container of a video recipe). */
             ext?: string;
             /** @description Stable identifier. */
             id: string;
             /** @description Info panel options ([name, value…]); the recipe opens the Info (source) tab. */
             info?: (string[] | null)[] | null;
-            /** @description Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output). */
-            needs?: ("watermark" | "detection" | "video")[] | null;
+            /** @description Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output), video_transform (video transformations, XI_VIDEO_TRANSFORM_ENABLED). */
+            needs?: ("watermark" | "detection" | "video" | "video_transform")[] | null;
             /** @description Builder entries per chained pipeline: [name, value…] (catalogue names; base64 arguments plain). */
             pipelines: ((string[] | null)[] | null)[] | null;
-            /** @description Path and query written by hand ({src} is the source); the builder is bypassed. */
+            /** @description Path and query written by hand ({src} is the source, {key} its key on the mount's source); the builder is bypassed. */
             raw?: components["schemas"]["PlaygroundRecipeRaw"];
             /** @description Source string: xi://local/<fixture> or a public gallery URL. */
             source: string;
@@ -2878,11 +2985,13 @@ export interface components {
             title: string;
             /** @description Path and query after the mount prefix (and the imgproxy signature segment), unsigned. */
             url: string;
+            /** @description A video transformation: built on /video (imgproxy) or /q/video (query) from the video option catalogue. */
+            video?: boolean;
         };
         PlaygroundRecipeRaw: {
-            /** @description Path after the mount prefix; {src} is the source. */
+            /** @description Path after the mount prefix; {src} is the source, {key} its key on the mount's source. */
             path: string;
-            /** @description Query without ?; {src} is the source. */
+            /** @description Query without ?; {src} is the source, {key} its key on the mount's source. */
             query?: string;
         };
         PlaygroundSample: {
@@ -2892,7 +3001,7 @@ export interface components {
              * @description Gallery group.
              * @enum {string}
              */
-            kind: "photo" | "alpha" | "animated" | "raw" | "document" | "video" | "vector" | "detection";
+            kind: "photo" | "alpha" | "animated" | "raw" | "document" | "video" | "audio" | "vector" | "detection";
             /** @description Description. */
             label: string;
             /** @description File name (playground://samples/<name>). */
@@ -3010,6 +3119,42 @@ export interface components {
             size: number;
             /** @description Source string for URLs (playground://uploads/<id>). */
             source: string;
+        };
+        PlaygroundVideoTransform: {
+            /** @description Audio volume, loudnorm and fades. */
+            audio_effects?: boolean;
+            /** @description Encoders of this build: vp9, av1, h264, hevc (video), aac, opus, mp3, flac, pcm (audio), and waveform when waveform pictures can be drawn. */
+            codecs: string[] | null;
+            /** @description Output containers this build writes (mp4, webm, m4a, mp3, opus, ogg, flac, wav; png and webp are waveform pictures). */
+            containers: string[] | null;
+            /**
+             * Format: double
+             * @description XI_VIDEO_TRANSFORM_MAX_FPS.
+             */
+            max_fps?: number;
+            /**
+             * Format: double
+             * @description XI_VIDEO_TRANSFORM_MAX_OUTPUT_DURATION in seconds.
+             */
+            max_output_duration?: number;
+            /**
+             * Format: int64
+             * @description XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS.
+             */
+            max_output_pixels?: number;
+            /** @description Video codec of an mp4 output with video_codec auto: h264 (gpl image) or av1 (full image). */
+            mp4_video?: string;
+            /** @description Image and text overlays (wm, wmu, wmt with overlay_window and overlay_fade). */
+            overlays?: boolean;
+            /** @description api/probe (a source) and api/probe/result (a result body) describe media files: container, duration, codecs, frame rate, sample rate and channels. */
+            probe?: boolean;
+            /** @description Timecode overlays (timecode, FFmpeg drawtext). */
+            timecode?: boolean;
+            /**
+             * @description XI_VIDEO_TRANSFORM_UNSIGNED_POLICY: deny refuses unsigned video URLs (403) whatever the mount's policy.
+             * @enum {string}
+             */
+            unsigned_policy: "allow" | "deny";
         };
     };
     responses: {
@@ -3192,6 +3337,172 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    postPlaygroundProbe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaygroundProbeRequest"];
+            };
+        };
+        responses: {
+            /** @description The media file's container, duration, average bit rate and streams. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundMediaInfo"];
+                };
+            };
+            /** @description Bad Request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Cross-origin request rejected (http.CrossOriginProtection), or a source the allowlists refuse. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The playground is disabled, or video transformations are off (no prober), or the source does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request Entity Too Large. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+        };
+    };
+    postPlaygroundProbeResult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description The media file's container, duration, average bit rate and streams. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundMediaInfo"];
+                };
+            };
+            /** @description Bad Request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Cross-origin request rejected (http.CrossOriginProtection), or a source the allowlists refuse. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The playground is disabled, or video transformations are off (no prober), or the source does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request Entity Too Large. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaygroundErrorResponse"];
+                };
             };
         };
     };

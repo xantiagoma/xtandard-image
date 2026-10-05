@@ -1,0 +1,1293 @@
+[
+  {
+    "case": "trim and resize to webm",
+    "source": "https://example.com/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video,time=1s,duration=2s,width=640,fit=scale-down/https://example.com/clips/a.mp4",
+        "unsupported": [
+          "video.container"
+        ],
+        "approximated": [
+          "video.audio_codec"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/fetch/w_640,c_limit/so_1,du_2,f_webm/https://example.com/clips/a.mp4"
+      },
+      "imagekit": {
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/vs:1/vd:2/rs:fit:640/plain/https://example.com/clips/a.mp4@webm"
+      },
+      "query": {
+        "url": "/video?url=https%3A%2F%2Fexample.com%2Fclips%2Fa.mp4\u0026vs=1\u0026vd=2\u0026rs=fit%3A640\u0026format=webm"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "trim and resize to webm",
+    "source": "xi://local/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video,time=1s,duration=2s,width=640,fit=scale-down/clips/a.mp4",
+        "unsupported": [
+          "video.container"
+        ],
+        "approximated": [
+          "video.audio_codec"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/upload/w_640,c_limit/so_1,du_2,f_webm/clips/a.mp4"
+      },
+      "imagekit": {
+        "url": "/tr:w-640,c-at_max,so-1,du-2,f-webm/clips/a.mp4"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/vs:1/vd:2/rs:fit:640/plain/xi://local/clips/a.mp4@webm"
+      },
+      "query": {
+        "url": "/video?url=xi%3A%2F%2Flocal%2Fclips%2Fa.mp4\u0026vs=1\u0026vd=2\u0026rs=fit%3A640\u0026format=webm"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "fill with gravity",
+    "source": "https://example.com/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video,width=640,height=360,fit=cover/https://example.com/clips/a.mp4",
+        "unsupported": [
+          "video.gravity"
+        ],
+        "approximated": [
+          "video.duration"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/fetch/w_640,h_360,c_fill,g_south_east/f_mp4/https://example.com/clips/a.mp4"
+      },
+      "imagekit": {
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/rs:fill:640:360/g:soea/plain/https://example.com/clips/a.mp4"
+      },
+      "query": {
+        "url": "/video?url=https%3A%2F%2Fexample.com%2Fclips%2Fa.mp4\u0026rs=fill%3A640%3A360\u0026o=g%3Asoea"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "fill with gravity",
+    "source": "xi://local/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video,width=640,height=360,fit=cover/clips/a.mp4",
+        "unsupported": [
+          "video.gravity"
+        ],
+        "approximated": [
+          "video.duration"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/upload/w_640,h_360,c_fill,g_south_east/f_mp4/clips/a.mp4"
+      },
+      "imagekit": {
+        "url": "/tr:w-640,h-360,fo-bottom_right,f-mp4/clips/a.mp4"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/rs:fill:640:360/g:soea/plain/xi://local/clips/a.mp4"
+      },
+      "query": {
+        "url": "/video?url=xi%3A%2F%2Flocal%2Fclips%2Fa.mp4\u0026rs=fill%3A640%3A360\u0026o=g%3Asoea"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "cover box",
+    "source": "https://example.com/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video,time=2s,duration=5s,width=480,height=270,fit=cover/https://example.com/clips/a.mp4"
+      },
+      "cloudinary": {
+        "url": "/xi/video/fetch/w_480,h_270,c_fill/so_2,du_5,f_mp4/https://example.com/clips/a.mp4"
+      },
+      "imagekit": {
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/vs:2/vd:5/rs:fill:480:270/plain/https://example.com/clips/a.mp4"
+      },
+      "query": {
+        "url": "/video?url=https%3A%2F%2Fexample.com%2Fclips%2Fa.mp4\u0026vs=2\u0026vd=5\u0026rs=fill%3A480%3A270"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "cover box",
+    "source": "xi://local/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video,time=2s,duration=5s,width=480,height=270,fit=cover/clips/a.mp4"
+      },
+      "cloudinary": {
+        "url": "/xi/video/upload/w_480,h_270,c_fill/so_2,du_5,f_mp4/clips/a.mp4"
+      },
+      "imagekit": {
+        "url": "/tr:w-480,h-270,so-2,du-5,f-mp4/clips/a.mp4"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/vs:2/vd:5/rs:fill:480:270/plain/xi://local/clips/a.mp4"
+      },
+      "query": {
+        "url": "/video?url=xi%3A%2F%2Flocal%2Fclips%2Fa.mp4\u0026vs=2\u0026vd=5\u0026rs=fill%3A480%3A270"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "m4a audio",
+    "source": "https://example.com/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=audio,duration=3s/https://example.com/clips/a.mp4"
+      },
+      "cloudinary": {
+        "url": "/xi/video/fetch/du_3,f_m4a/https://example.com/clips/a.mp4"
+      },
+      "imagekit": {
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/vd:3/plain/https://example.com/clips/a.mp4@m4a"
+      },
+      "query": {
+        "url": "/video?url=https%3A%2F%2Fexample.com%2Fclips%2Fa.mp4\u0026vd=3\u0026format=m4a"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "m4a audio",
+    "source": "xi://local/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=audio,duration=3s/clips/a.mp4"
+      },
+      "cloudinary": {
+        "url": "/xi/video/upload/du_3,f_m4a/clips/a.mp4"
+      },
+      "imagekit": {
+        "url": "/tr:du-3,vc-none/clips/a.mp4"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/vd:3/plain/xi://local/clips/a.mp4@m4a"
+      },
+      "query": {
+        "url": "/video?url=xi%3A%2F%2Flocal%2Fclips%2Fa.mp4\u0026vd=3\u0026format=m4a"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "mp3 with loudnorm",
+    "source": "https://example.com/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "error": "Cloudflare Media Transformations write MP4 video or M4A audio, not mp3"
+      },
+      "cloudinary": {
+        "url": "/xi/video/fetch/so_1,du_2,f_mp3/https://example.com/clips/a.mp4",
+        "unsupported": [
+          "video.audio_bitrate",
+          "video.sample_rate",
+          "video.channels",
+          "video.loudnorm"
+        ]
+      },
+      "imagekit": {
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/vs:1/vd:2/ab:96000/sr:44100/ach:1/ln:1:-16:-1.5:11/plain/https://example.com/clips/a.mp4@mp3"
+      },
+      "query": {
+        "url": "/video?url=https%3A%2F%2Fexample.com%2Fclips%2Fa.mp4\u0026vs=1\u0026vd=2\u0026ab=96000\u0026sr=44100\u0026ach=1\u0026ln=1%3A-16%3A-1.5%3A11\u0026format=mp3"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "mp3 with loudnorm",
+    "source": "xi://local/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "error": "Cloudflare Media Transformations write MP4 video or M4A audio, not mp3"
+      },
+      "cloudinary": {
+        "url": "/xi/video/upload/so_1,du_2,f_mp3/clips/a.mp4",
+        "unsupported": [
+          "video.audio_bitrate",
+          "video.sample_rate",
+          "video.channels",
+          "video.loudnorm"
+        ]
+      },
+      "imagekit": {
+        "error": "ImageKit has no mp3 output: its video API writes MP4, WebM, M4A and Ogg Opus"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/vs:1/vd:2/ab:96000/sr:44100/ach:1/ln:1:-16:-1.5:11/plain/xi://local/clips/a.mp4@mp3"
+      },
+      "query": {
+        "url": "/video?url=xi%3A%2F%2Flocal%2Fclips%2Fa.mp4\u0026vs=1\u0026vd=2\u0026ab=96000\u0026sr=44100\u0026ach=1\u0026ln=1%3A-16%3A-1.5%3A11\u0026format=mp3"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "rotate, flip, fps and quality",
+    "source": "https://example.com/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video/https://example.com/clips/a.mp4",
+        "unsupported": [
+          "video.rotate",
+          "video.flip_h",
+          "video.fps",
+          "video.quality"
+        ],
+        "approximated": [
+          "video.duration"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/fetch/a_90.hflip,fps_15,q_60,f_mp4/https://example.com/clips/a.mp4"
+      },
+      "imagekit": {
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/rot:90/fl:1/fps:15/q:60/plain/https://example.com/clips/a.mp4"
+      },
+      "query": {
+        "url": "/video?url=https%3A%2F%2Fexample.com%2Fclips%2Fa.mp4\u0026rot=90\u0026fps=15\u0026q=60\u0026o=fl%3A1"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "rotate, flip, fps and quality",
+    "source": "xi://local/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video/clips/a.mp4",
+        "unsupported": [
+          "video.rotate",
+          "video.flip_h",
+          "video.fps",
+          "video.quality"
+        ],
+        "approximated": [
+          "video.duration"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/upload/a_90.hflip,fps_15,q_60,f_mp4/clips/a.mp4"
+      },
+      "imagekit": {
+        "url": "/tr:rt-90,fps-15,q-60,f-mp4/clips/a.mp4",
+        "unsupported": [
+          "video.flip_h"
+        ]
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/rot:90/fl:1/fps:15/q:60/plain/xi://local/clips/a.mp4"
+      },
+      "query": {
+        "url": "/video?url=xi%3A%2F%2Flocal%2Fclips%2Fa.mp4\u0026rot=90\u0026fps=15\u0026q=60\u0026o=fl%3A1"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "mute, codec and bit rate",
+    "source": "https://example.com/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video,audio=false/https://example.com/clips/a.mp4",
+        "unsupported": [
+          "video.keyframe_interval",
+          "video.container",
+          "video.video_codec",
+          "video.max_bitrate"
+        ],
+        "approximated": [
+          "video.duration",
+          "video.audio_codec"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/fetch/br_800000,vc_vp9,ac_none,f_webm/https://example.com/clips/a.mp4",
+        "unsupported": [
+          "video.keyframe_interval"
+        ]
+      },
+      "imagekit": {
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/vc:vp9/vb:800000/ki:1/mu:1/plain/https://example.com/clips/a.mp4@webm"
+      },
+      "query": {
+        "url": "/video?url=https%3A%2F%2Fexample.com%2Fclips%2Fa.mp4\u0026vc=vp9\u0026vb=800000\u0026ki=1\u0026mu=1\u0026format=webm"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "mute, codec and bit rate",
+    "source": "xi://local/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video,audio=false/clips/a.mp4",
+        "unsupported": [
+          "video.keyframe_interval",
+          "video.container",
+          "video.video_codec",
+          "video.max_bitrate"
+        ],
+        "approximated": [
+          "video.duration",
+          "video.audio_codec"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/upload/br_800000,vc_vp9,ac_none,f_webm/clips/a.mp4",
+        "unsupported": [
+          "video.keyframe_interval"
+        ]
+      },
+      "imagekit": {
+        "url": "/tr:vc-vp9,f-webm,ac-none/clips/a.mp4",
+        "unsupported": [
+          "video.keyframe_interval",
+          "video.max_bitrate"
+        ]
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/vc:vp9/vb:800000/ki:1/mu:1/plain/xi://local/clips/a.mp4@webm"
+      },
+      "query": {
+        "url": "/video?url=xi%3A%2F%2Flocal%2Fclips%2Fa.mp4\u0026vc=vp9\u0026vb=800000\u0026ki=1\u0026mu=1\u0026format=webm"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "crop at a corner",
+    "source": "https://example.com/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video/https://example.com/clips/a.mp4",
+        "unsupported": [
+          "video.crop"
+        ],
+        "approximated": [
+          "video.duration"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/fetch/c_crop,w_320,h_240,g_north_west,x_10,y_20/f_mp4/https://example.com/clips/a.mp4"
+      },
+      "imagekit": {
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/c:320:240:nowe:10:20/plain/https://example.com/clips/a.mp4"
+      },
+      "query": {
+        "url": "/video?url=https%3A%2F%2Fexample.com%2Fclips%2Fa.mp4\u0026o=c%3A320%3A240%3Anowe%3A10%3A20"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "crop at a corner",
+    "source": "xi://local/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video/clips/a.mp4",
+        "unsupported": [
+          "video.crop"
+        ],
+        "approximated": [
+          "video.duration"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/upload/c_crop,w_320,h_240,g_north_west,x_10,y_20/f_mp4/clips/a.mp4"
+      },
+      "imagekit": {
+        "url": "/tr:w-320,h-240,cm-extract,fo-top_left,x-10,y-20:f-mp4/clips/a.mp4"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/c:320:240:nowe:10:20/plain/xi://local/clips/a.mp4"
+      },
+      "query": {
+        "url": "/video?url=xi%3A%2F%2Flocal%2Fclips%2Fa.mp4\u0026o=c%3A320%3A240%3Anowe%3A10%3A20"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "pad with a background",
+    "source": "https://example.com/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video,width=640,height=360/https://example.com/clips/a.mp4",
+        "unsupported": [
+          "video.fit",
+          "video.background"
+        ],
+        "approximated": [
+          "video.duration"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/fetch/w_640,h_360,c_pad,b_rgb:00ff00/f_mp4/https://example.com/clips/a.mp4"
+      },
+      "imagekit": {
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/rs:fit:640:360::1/bg:00ff00/plain/https://example.com/clips/a.mp4"
+      },
+      "query": {
+        "url": "/video?url=https%3A%2F%2Fexample.com%2Fclips%2Fa.mp4\u0026rs=fit%3A640%3A360%3A%3A1\u0026bg=00ff00"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "pad with a background",
+    "source": "xi://local/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video,width=640,height=360/clips/a.mp4",
+        "unsupported": [
+          "video.fit",
+          "video.background"
+        ],
+        "approximated": [
+          "video.duration"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/upload/w_640,h_360,c_pad,b_rgb:00ff00/f_mp4/clips/a.mp4"
+      },
+      "imagekit": {
+        "url": "/tr:w-640,h-360,cm-pad_resize,bg-00FF00,f-mp4/clips/a.mp4"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/rs:fit:640:360::1/bg:00ff00/plain/xi://local/clips/a.mp4"
+      },
+      "query": {
+        "url": "/video?url=xi%3A%2F%2Flocal%2Fclips%2Fa.mp4\u0026rs=fit%3A640%3A360%3A%3A1\u0026bg=00ff00"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "watermark with a window and fades",
+    "source": "https://example.com/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video/https://example.com/clips/a.mp4",
+        "unsupported": [
+          "video.overlays[0]"
+        ],
+        "approximated": [
+          "video.duration"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/fetch/f_mp4/https://example.com/clips/a.mp4",
+        "unsupported": [
+          "video.overlays[0]"
+        ]
+      },
+      "imagekit": {
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/wm:0.8:soea:10:10:0.2/wmu:eGk6Ly9sb2NhbC93YXRlcm1hcmsvbG9nby5wbmc/ow:1:3/of:0.5:0.5/plain/https://example.com/clips/a.mp4"
+      },
+      "query": {
+        "url": "/video?url=https%3A%2F%2Fexample.com%2Fclips%2Fa.mp4\u0026wm=0.8%3Asoea%3A10%3A10%3A0.2\u0026wmu=eGk6Ly9sb2NhbC93YXRlcm1hcmsvbG9nby5wbmc\u0026ow=1%3A3\u0026of=0.5%3A0.5"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "watermark with a window and fades",
+    "source": "xi://local/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video/clips/a.mp4",
+        "unsupported": [
+          "video.overlays[0]"
+        ],
+        "approximated": [
+          "video.duration"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/upload/f_mp4/clips/a.mp4",
+        "unsupported": [
+          "video.overlays[0]"
+        ]
+      },
+      "imagekit": {
+        "url": "/tr:f-mp4/clips/a.mp4",
+        "unsupported": [
+          "video.overlays[0]"
+        ]
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/wm:0.8:soea:10:10:0.2/wmu:eGk6Ly9sb2NhbC93YXRlcm1hcmsvbG9nby5wbmc/ow:1:3/of:0.5:0.5/plain/xi://local/clips/a.mp4"
+      },
+      "query": {
+        "url": "/video?url=xi%3A%2F%2Flocal%2Fclips%2Fa.mp4\u0026wm=0.8%3Asoea%3A10%3A10%3A0.2\u0026wmu=eGk6Ly9sb2NhbC93YXRlcm1hcmsvbG9nby5wbmc\u0026ow=1%3A3\u0026of=0.5%3A0.5"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "text overlay and timecode",
+    "source": "https://example.com/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video/https://example.com/clips/a.mp4",
+        "unsupported": [
+          "video.container",
+          "video.overlays[0]",
+          "video.overlays[1]"
+        ],
+        "approximated": [
+          "video.duration",
+          "video.audio_codec"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/fetch/f_webm/https://example.com/clips/a.mp4",
+        "unsupported": [
+          "video.overlays[0]",
+          "video.overlays[1]"
+        ]
+      },
+      "imagekit": {
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/wm:1:nowe:12:12/wmt:wqkgMjAyNg/tc:hms:soea:8:8:20:ffcc00:0.8/plain/https://example.com/clips/a.mp4@webm"
+      },
+      "query": {
+        "url": "/video?url=https%3A%2F%2Fexample.com%2Fclips%2Fa.mp4\u0026wm=1%3Anowe%3A12%3A12\u0026wmt=wqkgMjAyNg\u0026tc=hms%3Asoea%3A8%3A8%3A20%3Affcc00%3A0.8\u0026format=webm"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "text overlay and timecode",
+    "source": "xi://local/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video/clips/a.mp4",
+        "unsupported": [
+          "video.container",
+          "video.overlays[0]",
+          "video.overlays[1]"
+        ],
+        "approximated": [
+          "video.duration",
+          "video.audio_codec"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/upload/f_webm/clips/a.mp4",
+        "unsupported": [
+          "video.overlays[0]",
+          "video.overlays[1]"
+        ]
+      },
+      "imagekit": {
+        "url": "/tr:f-webm/clips/a.mp4",
+        "unsupported": [
+          "video.overlays[0]",
+          "video.overlays[1]"
+        ]
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/wm:1:nowe:12:12/wmt:wqkgMjAyNg/tc:hms:soea:8:8:20:ffcc00:0.8/plain/xi://local/clips/a.mp4@webm"
+      },
+      "query": {
+        "url": "/video?url=xi%3A%2F%2Flocal%2Fclips%2Fa.mp4\u0026wm=1%3Anowe%3A12%3A12\u0026wmt=wqkgMjAyNg\u0026tc=hms%3Asoea%3A8%3A8%3A20%3Affcc00%3A0.8\u0026format=webm"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "fades and volume",
+    "source": "https://example.com/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video/https://example.com/clips/a.mp4",
+        "unsupported": [
+          "video.fade_in",
+          "video.fade_out",
+          "video.container",
+          "video.volume"
+        ],
+        "approximated": [
+          "video.duration",
+          "video.audio_codec"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/fetch/f_webm/https://example.com/clips/a.mp4",
+        "unsupported": [
+          "video.fade_in",
+          "video.fade_out",
+          "video.volume"
+        ]
+      },
+      "imagekit": {
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/vol:0.5/fd:0.5:1/plain/https://example.com/clips/a.mp4@webm"
+      },
+      "query": {
+        "url": "/video?url=https%3A%2F%2Fexample.com%2Fclips%2Fa.mp4\u0026vol=0.5\u0026fd=0.5%3A1\u0026format=webm"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "fades and volume",
+    "source": "xi://local/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "url": "/mode=video/clips/a.mp4",
+        "unsupported": [
+          "video.fade_in",
+          "video.fade_out",
+          "video.container",
+          "video.volume"
+        ],
+        "approximated": [
+          "video.duration",
+          "video.audio_codec"
+        ]
+      },
+      "cloudinary": {
+        "url": "/xi/video/upload/f_webm/clips/a.mp4",
+        "unsupported": [
+          "video.fade_in",
+          "video.fade_out",
+          "video.volume"
+        ]
+      },
+      "imagekit": {
+        "url": "/tr:f-webm/clips/a.mp4",
+        "unsupported": [
+          "video.fade_in",
+          "video.fade_out",
+          "video.volume"
+        ]
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/vol:0.5/fd:0.5:1/plain/xi://local/clips/a.mp4@webm"
+      },
+      "query": {
+        "url": "/video?url=xi%3A%2F%2Flocal%2Fclips%2Fa.mp4\u0026vol=0.5\u0026fd=0.5%3A1\u0026format=webm"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "waveform",
+    "source": "https://example.com/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "error": "Cloudflare Media Transformations write MP4 video or M4A audio, not png"
+      },
+      "cloudinary": {
+        "error": "Cloudinary video URLs write MP4, WebM, M4A, MP3 and Opus here, not png (f_wav, f_flac and fl_waveform are not mapped)"
+      },
+      "imagekit": {
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/rs:fit:800:160/wf:1:2266cc:ffffff:1/plain/https://example.com/clips/a.mp4@png"
+      },
+      "query": {
+        "url": "/video?url=https%3A%2F%2Fexample.com%2Fclips%2Fa.mp4\u0026rs=fit%3A800%3A160\u0026wf=1%3A2266cc%3Affffff%3A1\u0026format=png"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "waveform",
+    "source": "xi://local/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "error": "Cloudflare Media Transformations write MP4 video or M4A audio, not png"
+      },
+      "cloudinary": {
+        "error": "Cloudinary video URLs write MP4, WebM, M4A, MP3 and Opus here, not png (f_wav, f_flac and fl_waveform are not mapped)"
+      },
+      "imagekit": {
+        "error": "ImageKit has no png output: its video API writes MP4, WebM, M4A and Ogg Opus"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/rs:fit:800:160/wf:1:2266cc:ffffff:1/plain/xi://local/clips/a.mp4@png"
+      },
+      "query": {
+        "url": "/video?url=xi%3A%2F%2Flocal%2Fclips%2Fa.mp4\u0026rs=fit%3A800%3A160\u0026wf=1%3A2266cc%3Affffff%3A1\u0026format=png"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "flac",
+    "source": "https://example.com/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "error": "Cloudflare Media Transformations write MP4 video or M4A audio, not flac"
+      },
+      "cloudinary": {
+        "error": "Cloudinary video URLs write MP4, WebM, M4A, MP3 and Opus here, not flac (f_wav, f_flac and fl_waveform are not mapped)"
+      },
+      "imagekit": {
+        "error": "ImageKit addresses images by path on its mount's source \"local\", and this source is not a key on it: pick a key on it (xi://local/\u003ckey\u003e, a local or keyed source), or bind the mount to an http source with base_url so URLs under it translate"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/vs:0.5/vol:-6dB/plain/https://example.com/clips/a.mp4@flac"
+      },
+      "query": {
+        "url": "/video?url=https%3A%2F%2Fexample.com%2Fclips%2Fa.mp4\u0026vs=0.5\u0026vol=-6dB\u0026format=flac"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  },
+  {
+    "case": "flac",
+    "source": "xi://local/clips/a.mp4",
+    "targets": {
+      "awssih": {
+        "error": "AWS Serverless Image Handler has no video transformations: it serves images only"
+      },
+      "bunny": {
+        "error": "Bunny Optimizer has no video transformations: video is Bunny Stream, another product"
+      },
+      "cloudflare": {
+        "error": "/cdn-cgi/image/ has no video transformations: video is /cdn-cgi/media/ (Media Transformations)"
+      },
+      "cloudflare_media": {
+        "error": "Cloudflare Media Transformations write MP4 video or M4A audio, not flac"
+      },
+      "cloudinary": {
+        "error": "Cloudinary video URLs write MP4, WebM, M4A, MP3 and Opus here, not flac (f_wav, f_flac and fl_waveform are not mapped)"
+      },
+      "imagekit": {
+        "error": "ImageKit has no flac output: its video API writes MP4, WebM, M4A and Ogg Opus"
+      },
+      "imgix": {
+        "error": "imgix has no video transformations: its video API is a separate product; here a video source gives frames (frame=, fm=mp4 for animations)"
+      },
+      "imgproxy": {
+        "url": "/video/vs:0.5/vol:-6dB/plain/xi://local/clips/a.mp4@flac"
+      },
+      "query": {
+        "url": "/video?url=xi%3A%2F%2Flocal%2Fclips%2Fa.mp4\u0026vs=0.5\u0026vol=-6dB\u0026format=flac"
+      },
+      "thumbor": {
+        "error": "Thumbor has no video transformations: it serves images only"
+      },
+      "wsrv": {
+        "error": "wsrv.nl has no video transformations: it serves images only"
+      }
+    }
+  }
+]

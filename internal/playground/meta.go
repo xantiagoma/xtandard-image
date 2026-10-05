@@ -120,6 +120,36 @@ type Meta struct {
 	Watermark bool `json:"watermark" doc:"A default watermark image is configured (XI_PROCESSING_WATERMARK_SOURCE; the source itself is never included): imgproxy wm without wmu or wmt draws it."`
 	// Recipes are the Examples tool's ready-made sessions.
 	Recipes []Recipe `json:"recipes" doc:"Ready-made sessions of the Examples tool (internal/playground/recipes.json): source, dialect and options, loaded into the builder with one click."`
+	// VideoTransform describes the video transformations this server runs
+	// (WP-127); nil when they are off (XI_VIDEO_TRANSFORM_ENABLED, XI_ROLE).
+	VideoTransform *VideoTransform `json:"video_transform,omitempty" doc:"Video transformations (/video, /q/video and the dialects' video URLs) this server runs: what this build can write and the output limits. Absent when XI_VIDEO_TRANSFORM_ENABLED is off or XI_ROLE=image."`
+}
+
+// VideoTransform is what the video subsystem of this server can do, for
+// the playground's video mode: the codecs the build encodes (the gpl image
+// has H.264 and HEVC, the full image AV1 for MP4), the containers, the
+// optional filters and the output limits. It names no key or source.
+type VideoTransform struct {
+	// UnsignedPolicy is XI_VIDEO_TRANSFORM_UNSIGNED_POLICY.
+	UnsignedPolicy string `json:"unsigned_policy" enum:"allow,deny" doc:"XI_VIDEO_TRANSFORM_UNSIGNED_POLICY: deny refuses unsigned video URLs (403) whatever the mount's policy."`
+	// Codecs are the encoders of this build (video.TranscodeCaps.Names).
+	Codecs []string `json:"codecs" doc:"Encoders of this build: vp9, av1, h264, hevc (video), aac, opus, mp3, flac, pcm (audio), and waveform when waveform pictures can be drawn."`
+	// Containers are the output containers this build can write.
+	Containers []string `json:"containers" doc:"Output containers this build writes (mp4, webm, m4a, mp3, opus, ogg, flac, wav; png and webp are waveform pictures)."`
+	// MP4Video is the video codec of mp4 with video_codec auto.
+	MP4Video string `json:"mp4_video,omitempty" doc:"Video codec of an mp4 output with video_codec auto: h264 (gpl image) or av1 (full image)."`
+	// Overlays, Timecode and AudioEffects report the optional filters.
+	Overlays     bool `json:"overlays,omitempty" doc:"Image and text overlays (wm, wmu, wmt with overlay_window and overlay_fade)."`
+	Timecode     bool `json:"timecode,omitempty" doc:"Timecode overlays (timecode, FFmpeg drawtext)."`
+	AudioEffects bool `json:"audio_effects,omitempty" doc:"Audio volume, loudnorm and fades."`
+	// MaxOutputDuration, MaxOutputPixels and MaxFPS are the output limits
+	// (XI_VIDEO_TRANSFORM_MAX_*); 0 is unlimited.
+	MaxOutputDuration float64 `json:"max_output_duration,omitempty" doc:"XI_VIDEO_TRANSFORM_MAX_OUTPUT_DURATION in seconds."`
+	MaxOutputPixels   int     `json:"max_output_pixels,omitempty" doc:"XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS."`
+	MaxFPS            float64 `json:"max_fps,omitempty" doc:"XI_VIDEO_TRANSFORM_MAX_FPS."`
+	// Probe reports that api/probe and api/probe/result describe media
+	// files (FFmpeg).
+	Probe bool `json:"probe,omitempty" doc:"api/probe (a source) and api/probe/result (a result body) describe media files: container, duration, codecs, frame rate, sample rate and channels."`
 }
 
 // Signing is the signing configuration without key material.
@@ -232,7 +262,7 @@ type Option struct {
 	Milestone string   `json:"milestone,omitempty" doc:"Milestone that implements the option."`
 	Security  bool     `json:"security,omitempty" doc:"Needs XI_SECURITY_ALLOW_SECURITY_OPTIONS."`
 	// Group is the builder category.
-	Group string `json:"group,omitempty" enum:"size,gravity,format,color,effects,watermark,metadata,frames,detection,delivery,presets,other,report,hashes,security" doc:"Builder category; report, hashes and security are Info panel groups."`
+	Group string `json:"group,omitempty" enum:"size,gravity,format,color,effects,watermark,metadata,frames,detection,delivery,presets,other,report,hashes,security,time,audio" doc:"Builder category; report, hashes and security are Info panel groups, time and audio video builder groups."`
 	// Default is the value the server uses when the option is absent
 	// (info options only).
 	Default string `json:"default,omitempty" doc:"Value used when the option is absent, as imgproxy documents it (info options)."`

@@ -148,6 +148,8 @@ func parsers(sep string, presets *preset.Store, now func() time.Time) (map[strin
 	add(m, "imagekit", ik, err)
 	cf, err := cloudflare.New(&cloudflare.Options{Now: now})
 	add(m, "cloudflare", cf, err)
+	cfm, err := cloudflare.NewMedia(&cloudflare.Options{Now: now})
+	add(m, cloudflare.MediaName, cfm, err)
 	ws, err := wsrv.New(&wsrv.Options{Now: now})
 	add(m, "wsrv", ws, err)
 	add(m, "thumbor", thumbor.New(&thumbor.Options{}), nil)
@@ -177,8 +179,12 @@ func (t *Translator) Translate(in *playground.TranslateRequest) (*playground.Tra
 	if err != nil {
 		return nil, err
 	}
-	if req.Kind != transform.KindProcess {
-		return nil, badRequest("only processing URLs translate (not info or raw)")
+	tgs := targets()
+	switch {
+	case req.Kind == transform.KindVideo && req.Video != nil:
+		tgs = videoTargets()
+	case req.Kind != transform.KindProcess:
+		return nil, badRequest("only processing and video URLs translate (not info or raw)")
 	}
 	norm := t.normalize(req)
 	canon, err := toMap(req)
@@ -187,7 +193,7 @@ func (t *Translator) Translate(in *playground.TranslateRequest) (*playground.Tra
 	}
 	out := &playground.Translation{Canonical: canon}
 	emit := forEmit(req)
-	for _, tg := range targets() {
+	for _, tg := range tgs {
 		out.Targets = append(out.Targets, t.target(tg, emit, norm))
 	}
 	return out, nil
@@ -223,6 +229,9 @@ func (t *Translator) canonical(in *playground.TranslateRequest) (*transform.Requ
 	p := in.Path
 	switch m.Scheme {
 	case playground.SchemeImgproxy:
+		if r, ok, err := parseVideoPath(d, p, in.Query, m.Source); ok {
+			return r, err
+		}
 		p = "/insecure" + p
 	case playground.SchemeThumbor:
 		p = "/unsafe" + p
@@ -285,7 +294,14 @@ func (t *Translator) target(tg target, req, norm *transform.Request) playground.
 	case "thumbor":
 		pathForParse = "/unsafe" + p
 	}
-	back, err := parse(t.check[tg.name], pathForParse, q, mountSource)
+	var back *transform.Request
+	isVideo := false
+	if tg.name == "imgproxy" {
+		back, isVideo, err = parseVideoPath(t.check[tg.name], p, q, mountSource)
+	}
+	if !isVideo {
+		back, err = parse(t.check[tg.name], pathForParse, q, mountSource)
+	}
 	if err != nil {
 		out.Error = "the emitted URL does not parse: " + publicText(err)
 		out.Path, out.Query = "", ""
@@ -400,6 +416,9 @@ func (t *Translator) normalize(r *transform.Request) *transform.Request {
 		c.Source = transform.SourceSpec{Raw: t.absolute(&s), Hashsum: c.Source.Hashsum}
 	}
 	c.ApplyDefaults(transform.StandardDefaults())
+	if c.Kind == transform.KindVideo {
+		normalizeVideo(&c)
+	}
 	for i := range c.Pipelines {
 		p := &c.Pipelines[i]
 		faceClass(&p.Gravity)

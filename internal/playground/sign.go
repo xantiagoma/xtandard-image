@@ -108,6 +108,9 @@ func (h *handler) withPDFPassword(m *Mount, password, path, query string) (strin
 	if !m.passwordCapable() {
 		return "", "", badRequest("pdf_password is an imgproxy and query dialect option")
 	}
+	if path == videoEndpoint || strings.HasPrefix(path, videoEndpoint+"/") {
+		return "", "", badRequest("pdf_password is not a video option")
+	}
 	if len(password) > maxPDFPassword {
 		return "", "", badRequest("pdf_password is longer than 1024 bytes")
 	}
@@ -184,15 +187,22 @@ func SignURL(m *Mount, s *sign.Signer, path, query string) (SignResponse, error)
 	res := SignResponse{Scheme: m.Scheme}
 	switch m.Scheme {
 	case SchemeImgproxy:
+		// A video transformation (WP-122) is /video/<signature>/<path>, its
+		// signature over "/video" + the path (domain-separated from image
+		// signatures): path "/video/rs:…/plain/…" names it.
+		endpoint := ""
+		if rest, ok := strings.CutPrefix(path, videoEndpoint+"/"); ok {
+			endpoint, path = videoEndpoint, "/"+rest
+		}
 		if s == nil {
-			res.URL = withQuery(prefix+"/insecure"+path, query)
+			res.URL = withQuery(prefix+endpoint+"/insecure"+path, query)
 			return res, nil
 		}
-		p, err := s.SignImgproxyPath(path)
+		sig, err := s.Sign(endpoint + path)
 		if err != nil {
 			return SignResponse{}, err
 		}
-		res.URL, res.Signed = withQuery(prefix+p, query), true
+		res.URL, res.Signed = withQuery(prefix+endpoint+"/"+sig+path, query), true
 	case SchemeThumbor:
 		rest := strings.TrimPrefix(path, "/")
 		if s == nil {
@@ -236,6 +246,10 @@ func SignURL(m *Mount, s *sign.Signer, path, query string) (SignResponse, error)
 	}
 	return res, nil
 }
+
+// videoEndpoint is the first segment of an imgproxy mount's video
+// transformation paths (router.VideoParser).
+const videoEndpoint = "/video"
 
 // checkPart rejects oversize parts and control characters, which no URL
 // may carry unescaped.
