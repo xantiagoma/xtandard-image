@@ -1,6 +1,7 @@
 package transform
 
 import (
+	"slices"
 	"strconv"
 	"time"
 )
@@ -57,6 +58,12 @@ type VideoOp struct {
 	// FPS is the output frame rate; 0 keeps the source's (bounded by the
 	// configured maximum).
 	FPS float64
+	// KeyframeInterval is the time between keyframes (the GOP length,
+	// WP-122); 0 is two seconds.
+	KeyframeInterval time.Duration
+	// FadeIn and FadeOut fade the start of the output in from black and
+	// silence and its end out to them (WP-123); 0 is no fade.
+	FadeIn, FadeOut time.Duration
 
 	// Container is the output file format.
 	Container VideoContainer
@@ -83,6 +90,21 @@ type VideoOp struct {
 	// AudioBitrate is the audio bit rate in bits per second; 0 is the
 	// codec's default.
 	AudioBitrate int64
+	// SampleRate is the output sample rate in Hz (WP-123); 0 keeps the
+	// source's when the codec supports it.
+	SampleRate int
+	// Channels is the output channel count, 1 (mono) or 2 (stereo); 0 keeps
+	// the source's, downmixed to stereo.
+	Channels int
+	// Volume multiplies the audio amplitude (1 unchanged, 0.5 is -6 dB); 0
+	// is unset.
+	Volume float64
+	// Loudnorm normalises the loudness (EBU R128, single-pass loudnorm);
+	// nil is off.
+	Loudnorm *VideoLoudnorm
+	// Waveform renders the audio as a waveform image instead of
+	// transcoding it; set exactly when Container is an image (png, webp).
+	Waveform *VideoWaveform
 
 	// Overlays are images, text or a timecode drawn over the video, in
 	// order (WP-124). Audio-only containers take none.
@@ -90,6 +112,8 @@ type VideoOp struct {
 }
 
 // VideoCrop is a rectangle of the source in pixels, after the rotation.
+// Width or Height 0 is the whole side; a rectangle larger than the frame
+// is cut to it.
 type VideoCrop struct {
 	X, Y, Width, Height int
 	// Gravity anchors the rectangle (WP-125: Cloudinary c_crop with g_,
@@ -99,6 +123,50 @@ type VideoCrop struct {
 	// VideoGravityCenter, where they move right and down).
 	Gravity *VideoGravity
 }
+
+// VideoLoudnorm is a loudness target (EBU R128, FFmpeg loudnorm): the
+// integrated loudness in LUFS, the true peak in dBTP and the loudness
+// range in LU.
+type VideoLoudnorm struct {
+	Integrated, TruePeak, Range float64
+}
+
+// Loudness target bounds (FFmpeg loudnorm's) and defaults (EBU R128).
+const (
+	MinLoudnessIntegrated     = -70.0
+	MaxLoudnessIntegrated     = -5.0
+	DefaultLoudnessIntegrated = -23.0
+	MinLoudnessTruePeak       = -9.0
+	MaxLoudnessTruePeak       = 0.0
+	DefaultLoudnessTruePeak   = -1.0
+	MinLoudnessRange          = 1.0
+	MaxLoudnessRange          = 50.0
+	DefaultLoudnessRange      = 7.0
+)
+
+// DefaultLoudnorm returns the EBU R128 target: -23 LUFS, -1 dBTP, 7 LU.
+func DefaultLoudnorm() VideoLoudnorm {
+	return VideoLoudnorm{Integrated: DefaultLoudnessIntegrated, TruePeak: DefaultLoudnessTruePeak, Range: DefaultLoudnessRange}
+}
+
+// VideoWaveform is a picture of the audio (FFmpeg showwavespic, like
+// Cloudinary's fl_waveform), Width × Height of VideoOp (default
+// DefaultWaveformWidth × DefaultWaveformHeight).
+type VideoWaveform struct {
+	// Color draws the wave (alpha ignored); the zero value is black.
+	Color Color
+	// Background fills the picture; alpha 0 (the zero value) leaves it
+	// transparent, any other alpha makes it opaque.
+	Background Color
+	// SplitChannels draws each channel in its own band.
+	SplitChannels bool
+}
+
+// Waveform size defaults.
+const (
+	DefaultWaveformWidth  = 1024
+	DefaultWaveformHeight = 256
+)
 
 // VideoOverlay is an image, text or a running timecode drawn over the
 // output video during a time window (WP-124, ADR 0012 §3), like an image
@@ -191,7 +259,16 @@ const (
 	MaxVideoOverlays = 8
 	// MaxTimecodeSize bounds VideoOverlay.TimecodeSize (pixels).
 	MaxTimecodeSize = 512
+	// Keyframe interval bounds.
+	MinKeyframeInterval = 100 * time.Millisecond
+	MaxKeyframeInterval = time.Minute
+	// MaxVolume bounds Volume (+20 dB); MinVolume is -60 dB.
+	MinVolume = 0.001
+	MaxVolume = 10.0
 )
+
+// SampleRates are the output sample rates a request may ask for.
+var SampleRates = []int{8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 88200, 96000}
 
 // EndTime returns where the output ends in the source: End, Start + Duration,
 // or 0 (the end of the source).
@@ -208,7 +285,7 @@ func (o *VideoOp) EndTime() time.Duration {
 
 // HasVideo reports whether the output has a video stream: false for the
 // audio-only containers.
-func (o *VideoOp) HasVideo() bool { return !o.Container.AudioOnly() }
+func (o *VideoOp) HasVideo() bool { return !o.Container.AudioOnly() && !o.Container.Image() }
 
 // HasAudio reports whether the output asks for an audio stream (the source
 // may still have none).
@@ -239,8 +316,12 @@ func (o *VideoOp) validate(v *validator, f string) {
 	if c := o.Crop; c != nil {
 		v.intRange(f+".crop.x", c.X, 0, MaxVideoDimension)
 		v.intRange(f+".crop.y", c.Y, 0, MaxVideoDimension)
-		v.intRange(f+".crop.width", c.Width, 2, MaxVideoDimension)
-		v.intRange(f+".crop.height", c.Height, 2, MaxVideoDimension)
+		if c.Width != 0 {
+			v.intRange(f+".crop.width", c.Width, 2, MaxVideoDimension)
+		}
+		if c.Height != 0 {
+			v.intRange(f+".crop.height", c.Height, 2, MaxVideoDimension)
+		}
 		if c.Gravity != nil {
 			v.enum(f+".crop.gravity", validEnum(*c.Gravity, numVideoGravities))
 		}
@@ -253,6 +334,17 @@ func (o *VideoOp) validate(v *validator, f string) {
 	if o.FPS != 0 {
 		v.floatRange(f+".fps", o.FPS, 1, MaxVideoFPS)
 	}
+	if k := o.KeyframeInterval; k != 0 && (k < MinKeyframeInterval || k > MaxKeyframeInterval) {
+		v.fail(f+".keyframe_interval", between(MinKeyframeInterval.String(), MaxKeyframeInterval.String()))
+	}
+	for _, t := range []struct {
+		name string
+		d    time.Duration
+	}{{"fade_in", o.FadeIn}, {"fade_out", o.FadeOut}} {
+		if t.d < 0 || t.d > MaxVideoTime {
+			v.fail(f+"."+t.name, between("0", MaxVideoTime.String()))
+		}
+	}
 	v.enum(f+".container", validEnum(o.Container, numVideoContainers))
 	v.enum(f+".video_codec", validEnum(o.VideoCodec, numVideoCodecs))
 	v.enum(f+".audio_codec", validEnum(o.AudioCodec, numAudioCodecs))
@@ -264,8 +356,11 @@ func (o *VideoOp) validate(v *validator, f string) {
 		if !o.Container.AllowsAudio(o.AudioCodec) {
 			v.fail(f+".audio_codec", o.AudioCodec.String()+" cannot be muxed into "+o.Container.String())
 		}
-		if o.Mute && o.Container.AudioOnly() {
-			v.fail(f+".mute", o.Container.String()+" is audio only")
+		if o.Mute && !o.Container.HasVideoStream() {
+			v.fail(f+".mute", o.Container.String()+" has no video")
+		}
+		if (o.Waveform != nil) != o.Container.Image() {
+			v.fail(f+".waveform", "set if and only if the container is an image")
 		}
 		if o.AutoContainer && o.Container != VideoContainerMP4 {
 			v.fail(f+".auto_container", "the automatic container starts from mp4")
@@ -279,10 +374,11 @@ func (o *VideoOp) validate(v *validator, f string) {
 	if o.AudioBitrate != 0 && (o.AudioBitrate < MinAudioBitrate || o.AudioBitrate > MaxAudioBitrate) {
 		v.fail(f+".audio_bitrate", between(strconv.Itoa(MinAudioBitrate), strconv.Itoa(MaxAudioBitrate)))
 	}
+	o.validateAudio(v, f)
 	if len(o.Overlays) > MaxVideoOverlays {
 		v.fail(f+".overlays", "at most "+strconv.Itoa(MaxVideoOverlays)+" overlays")
-	} else if len(o.Overlays) > 0 && validEnum(o.Container, numVideoContainers) && o.Container.AudioOnly() {
-		v.fail(f+".overlays", o.Container.String()+" is audio only")
+	} else if len(o.Overlays) > 0 && validEnum(o.Container, numVideoContainers) && !o.Container.HasVideoStream() {
+		v.fail(f+".overlays", o.Container.String()+" has no video")
 	}
 	for i := range min(len(o.Overlays), MaxVideoOverlays) {
 		o.Overlays[i].validate(v, f+".overlays["+strconv.Itoa(i)+"]")
@@ -373,6 +469,25 @@ func (t VideoTimecode) MarshalText() ([]byte, error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (t *VideoTimecode) UnmarshalText(b []byte) error {
 	return unmarshalEnum("VideoTimecode", t, b, numVideoTimecodes)
+}
+
+// validateAudio checks the audio options of WP-123.
+func (o *VideoOp) validateAudio(v *validator, f string) {
+	if o.SampleRate != 0 && !slices.Contains(SampleRates, o.SampleRate) {
+		v.fail(f+".sample_rate", "must be one of 8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 88200, 96000")
+	}
+	v.intRange(f+".channels", o.Channels, 0, 2)
+	if o.Volume != 0 {
+		v.floatRange(f+".volume", o.Volume, MinVolume, MaxVolume)
+	}
+	if l := o.Loudnorm; l != nil {
+		v.floatRange(f+".loudnorm.integrated", l.Integrated, MinLoudnessIntegrated, MaxLoudnessIntegrated)
+		v.floatRange(f+".loudnorm.true_peak", l.TruePeak, MinLoudnessTruePeak, MaxLoudnessTruePeak)
+		v.floatRange(f+".loudnorm.range", l.Range, MinLoudnessRange, MaxLoudnessRange)
+	}
+	if o.Mute && (o.Volume != 0 || o.Loudnorm != nil || o.SampleRate != 0 || o.Channels != 0) {
+		v.fail(f+".mute", "a muted output has no audio options")
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -532,9 +647,14 @@ const (
 	VideoContainerM4A                        // MP4 audio only: AAC
 	VideoContainerOpus                       // Ogg Opus, audio only
 	VideoContainerMP3                        // MP3, audio only
+	VideoContainerOgg                        // Ogg Opus with the .ogg name, audio only (WP-123)
+	VideoContainerFLAC                       // FLAC, audio only
+	VideoContainerWAV                        // WAV (16-bit PCM), audio only
+	VideoContainerPNG                        // a waveform picture (VideoOp.Waveform)
+	VideoContainerWebP                       // a waveform picture (VideoOp.Waveform)
 )
 
-const numVideoContainers = 5
+const numVideoContainers = 10
 
 func (c VideoContainer) String() string {
 	switch c {
@@ -548,14 +668,37 @@ func (c VideoContainer) String() string {
 		return "opus"
 	case VideoContainerMP3:
 		return "mp3"
+	case VideoContainerOgg:
+		return "ogg"
+	case VideoContainerFLAC:
+		return "flac"
+	case VideoContainerWAV:
+		return "wav"
+	case VideoContainerPNG:
+		return "png"
+	case VideoContainerWebP:
+		return "webp"
 	}
 	return invalidEnum("VideoContainer", uint8(c))
 }
 
-// AudioOnly reports a container without a video stream.
+// AudioOnly reports an audio file: a container without a video stream.
 func (c VideoContainer) AudioOnly() bool {
-	return c == VideoContainerM4A || c == VideoContainerOpus || c == VideoContainerMP3
+	switch c {
+	case VideoContainerM4A, VideoContainerOpus, VideoContainerMP3, VideoContainerOgg, VideoContainerFLAC, VideoContainerWAV:
+		return true
+	default:
+		return false
+	}
 }
+
+// Image reports a picture of the audio (a waveform) instead of a media
+// file.
+func (c VideoContainer) Image() bool { return c == VideoContainerPNG || c == VideoContainerWebP }
+
+// HasVideoStream reports a container that holds a video stream (MP4,
+// WebM).
+func (c VideoContainer) HasVideoStream() bool { return !c.AudioOnly() && !c.Image() }
 
 // AllowsVideo reports whether c can hold vc (auto always; nothing but auto
 // in an audio-only container).
@@ -580,10 +723,14 @@ func (c VideoContainer) AllowsAudio(ac AudioCodec) bool {
 		return true
 	case c == VideoContainerMP4 || c == VideoContainerM4A:
 		return ac == AudioCodecAAC
-	case c == VideoContainerWebM || c == VideoContainerOpus:
+	case c == VideoContainerWebM || c == VideoContainerOpus || c == VideoContainerOgg:
 		return ac == AudioCodecOpus
 	case c == VideoContainerMP3:
 		return ac == AudioCodecMP3
+	case c == VideoContainerFLAC:
+		return ac == AudioCodecFLAC
+	case c == VideoContainerWAV:
+		return ac == AudioCodecPCM
 	default:
 		return false
 	}
@@ -664,9 +811,11 @@ const (
 	AudioCodecAAC                    // FFmpeg's native AAC encoder
 	AudioCodecOpus                   // libopus
 	AudioCodecMP3                    // LAME
+	AudioCodecFLAC                   // FFmpeg's FLAC encoder (WP-123)
+	AudioCodecPCM                    // 16-bit little-endian PCM (WAV)
 )
 
-const numAudioCodecs = 4
+const numAudioCodecs = 6
 
 func (c AudioCodec) String() string {
 	switch c {
@@ -678,6 +827,10 @@ func (c AudioCodec) String() string {
 		return "opus"
 	case AudioCodecMP3:
 		return "mp3"
+	case AudioCodecFLAC:
+		return "flac"
+	case AudioCodecPCM:
+		return "pcm"
 	}
 	return invalidEnum("AudioCodec", uint8(c))
 }
