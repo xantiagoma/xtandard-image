@@ -32,6 +32,8 @@ import (
 //   - there is no probe, negotiation or fallback image; admission is the
 //     video pool's, inside Deps.Video, which also coalesces identical
 //     transcodes;
+//   - the images of image overlays (WP-124) are fetched like watermark
+//     images, after the cache lookup and only when a transcode runs;
 //   - the response supports byte ranges (Accept-Ranges, Range → 206,
 //     If-Range, 416) through http.ServeContent, so players can seek;
 //   - a HEAD that misses the result cache is answered from the fetch, like
@@ -46,9 +48,11 @@ type VideoTransformer interface {
 	// Resolve picks the output of op on this build before anything is
 	// fetched: errs.KindUnsupported when it cannot be written.
 	Resolve(op *transform.VideoOp) (video.TranscodeOutput, error)
-	// Transform applies op to src. Calls with the same key share one
-	// transcode. The caller releases the result's body.
-	Transform(ctx context.Context, key string, src fetch.Buffer, op *transform.VideoOp) (*VideoResult, error)
+	// Transform applies op to src. overlays[i] is the fetched image of
+	// image overlay op.Overlays[i] (nil for the others; nil when there are
+	// none). Calls with the same key share one transcode. The caller
+	// releases the result's body.
+	Transform(ctx context.Context, key string, src fetch.Buffer, op *transform.VideoOp, overlays []fetch.Buffer) (*VideoResult, error)
 }
 
 // VideoResult is a transcoded file.
@@ -204,8 +208,13 @@ func (s *Server) videoProcess(ctx context.Context, r *http.Request, info *reques
 	if err := ctx.Err(); err != nil {
 		return nil, errs.Wrap(errs.KindOf(err), context.Cause(ctx))
 	}
+	overlays, err := s.fetchOverlays(ctx, req.Video, lim.maxSrcBytes)
+	if err != nil {
+		return nil, err
+	}
+	defer releaseBuffers(overlays)
 	t = s.stage(info, stageProcess)
-	vr, err := s.transcode(ctx, s.videoKey(r, j), fr.Buffer, req.Video)
+	vr, err := s.transcode(ctx, s.videoKey(r, j), fr.Buffer, req.Video, overlays)
 	t.done()
 	if err != nil {
 		return nil, err
@@ -219,10 +228,10 @@ func (s *Server) videoProcess(ctx context.Context, r *http.Request, info *reques
 }
 
 // transcode runs Deps.Video.Transform in its span.
-func (s *Server) transcode(ctx context.Context, key string, src fetch.Buffer, op *transform.VideoOp) (*VideoResult, error) {
+func (s *Server) transcode(ctx context.Context, key string, src fetch.Buffer, op *transform.VideoOp, overlays []fetch.Buffer) (*VideoResult, error) {
 	ctx, span := s.deps.Tracer.Start(ctx, "transcode")
 	defer span.End()
-	vr, err := s.deps.Video.Transform(ctx, key, src, op)
+	vr, err := s.deps.Video.Transform(ctx, key, src, op, overlays)
 	if err != nil {
 		span.SetStatus(codes.Error, errs.KindOf(err).String())
 		return nil, err

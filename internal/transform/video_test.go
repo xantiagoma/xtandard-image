@@ -2,6 +2,7 @@ package transform
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"time"
 )
@@ -33,6 +34,19 @@ func TestValidateVideo(t *testing.T) {
 		{"mp3", VideoOp{Container: VideoContainerMP3, AudioCodec: AudioCodecMP3}},
 		{"mp4_av1_muted", VideoOp{VideoCodec: VideoCodecAV1, Mute: true, Quality: 100}},
 		{"webm_av1", VideoOp{Container: VideoContainerWebM, VideoCodec: VideoCodecAV1}},
+		{"overlays", VideoOp{Overlays: []VideoOverlay{
+			{
+				Opacity: 0.5, Source: &SourceSpec{Raw: "logo.png"}, Scale: 0.2,
+				Position: Gravity{Type: GravitySouthEast, XOffset: 10, YOffset: 10}, Start: time.Second, End: 3 * time.Second,
+				FadeIn: time.Second, FadeOut: time.Second,
+			},
+			{Opacity: 1, Text: "<b>hi</b>", Font: "sans 20", Color: &Color{R: 255, A: 255}, Tile: TileRepeat, Rotate: 30},
+			{Opacity: 1, FadeOut: time.Second},
+			{
+				Opacity: 0.8, Color: &Color{G: 255, A: 255}, Position: Gravity{Type: GravityNorthWest},
+				Timecode: VideoTimecodeHMS, TimecodeSize: 32,
+			},
+		}}},
 	}
 	for _, tc := range valid {
 		t.Run("valid/"+tc.name, func(t *testing.T) {
@@ -75,7 +89,42 @@ func TestValidateVideo(t *testing.T) {
 		{"crf", func(o *VideoOp) { o.CRF = 64 }, "video.crf"},
 		{"bitrate low", func(o *VideoOp) { o.MaxBitrate = 1000 }, "video.max_bitrate"},
 		{"audio bitrate high", func(o *VideoOp) { o.AudioBitrate = 1 << 30 }, "video.audio_bitrate"},
-		{"overlays", func(o *VideoOp) { o.Overlays = []VideoOverlay{{Source: src("logo.png")}} }, "video.overlays"},
+		{"too many overlays", func(o *VideoOp) {
+			o.Overlays = make([]VideoOverlay, MaxVideoOverlays+1)
+		}, "video.overlays"},
+		{"overlay on audio", func(o *VideoOp) {
+			o.Container, o.Overlays = VideoContainerM4A, []VideoOverlay{{Opacity: 1}}
+		}, "video.overlays"},
+		{"overlay source and text", func(o *VideoOp) {
+			o.Overlays = []VideoOverlay{{Source: &SourceSpec{Raw: "a.png"}, Text: "x"}}
+		}, "video.overlays[0].text"},
+		{"overlay text too long", func(o *VideoOp) {
+			o.Overlays = []VideoOverlay{{Text: strings.Repeat("a", MaxWatermarkText+1)}}
+		}, "video.overlays[0].text"},
+		{"overlay opacity", func(o *VideoOp) {
+			o.Overlays = []VideoOverlay{{Opacity: 2}}
+		}, "video.overlays[0].opacity"},
+		{"overlay end before start", func(o *VideoOp) {
+			o.Overlays = []VideoOverlay{{Start: 2 * time.Second, End: time.Second}}
+		}, "video.overlays[0].end"},
+		{"overlay negative start", func(o *VideoOp) { o.Overlays = []VideoOverlay{{Start: -1}} }, "video.overlays[0].start"},
+		{"overlay fades too long", func(o *VideoOp) {
+			o.Overlays = []VideoOverlay{{End: time.Second, FadeIn: 600 * time.Millisecond, FadeOut: 500 * time.Millisecond}}
+		}, "video.overlays[0].fade_out"},
+		{"overlay timecode unknown", func(o *VideoOp) { o.Overlays = []VideoOverlay{{Timecode: numVideoTimecodes}} }, "video.overlays[0].timecode"},
+		{"overlay timecode with text", func(o *VideoOp) {
+			o.Overlays = []VideoOverlay{{Timecode: VideoTimecodeHMS, Text: "%{pts}"}}
+		}, "video.overlays[0].timecode"},
+		{"overlay timecode tiled", func(o *VideoOp) {
+			o.Overlays = []VideoOverlay{{Timecode: VideoTimecodeHMS, Tile: TileRepeat}}
+		}, "video.overlays[0].timecode"},
+		{"overlay timecode smart", func(o *VideoOp) {
+			o.Overlays = []VideoOverlay{{Timecode: VideoTimecodeHMS, Position: Gravity{Type: GravitySmart}}}
+		}, "video.overlays[0].position.type"},
+		{"overlay timecode size", func(o *VideoOp) {
+			o.Overlays = []VideoOverlay{{Timecode: VideoTimecodeHMS, TimecodeSize: MaxTimecodeSize + 1}}
+		}, "video.overlays[0].timecode_size"},
+		{"overlay size without timecode", func(o *VideoOp) { o.Overlays = []VideoOverlay{{TimecodeSize: 20}} }, "video.overlays[0].timecode_size"},
 	}
 	for _, tc := range invalid {
 		t.Run("invalid/"+tc.name, func(t *testing.T) {
@@ -152,5 +201,42 @@ func TestVideoCanonicalKeyDistinct(t *testing.T) {
 	img := validBase()
 	if img.CanonicalKey() == a.CanonicalKey() {
 		t.Fatal("an image request and a video request share a key")
+	}
+}
+
+// TestVideoOverlayDefaults: overlay positions default to the centre, like
+// image watermarks, without writing through the caller's op.
+func TestVideoOverlayDefaults(t *testing.T) {
+	t.Parallel()
+	op := &VideoOp{Overlays: []VideoOverlay{{Opacity: 1, Text: "x"}}}
+	r := Request{Kind: KindVideo, Source: src("clip.mp4"), Video: op}
+	r.ApplyDefaults(StandardDefaults())
+	if got := r.Video.Overlays[0].Position.Type; got != GravityCenter {
+		t.Fatalf("position %s, want center", got)
+	}
+	if op.Overlays[0].Position.Type != GravityUnset || r.Video == op {
+		t.Fatal("ApplyDefaults wrote through the caller's op")
+	}
+	k := r.CanonicalKey()
+	r.ApplyDefaults(StandardDefaults())
+	if r.CanonicalKey() != k {
+		t.Fatal("ApplyDefaults is not idempotent")
+	}
+}
+
+func TestVideoOverlayKind(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		o    VideoOverlay
+		want VideoOverlayKind
+	}{
+		{VideoOverlay{}, VideoOverlayDefault},
+		{VideoOverlay{Source: &SourceSpec{Raw: "a.png"}}, VideoOverlayImage},
+		{VideoOverlay{Text: "a"}, VideoOverlayText},
+		{VideoOverlay{Timecode: VideoTimecodeSeconds}, VideoOverlayTimecode},
+	} {
+		if got := tc.o.Kind(); got != tc.want {
+			t.Errorf("%+v: kind %d, want %d", tc.o, got, tc.want)
+		}
 	}
 }

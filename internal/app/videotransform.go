@@ -6,15 +6,19 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/xantiagoma/xtandard-image/internal/codec"
 	"github.com/xantiagoma/xtandard-image/internal/config"
+	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/limiter"
 	"github.com/xantiagoma/xtandard-image/internal/media"
 	"github.com/xantiagoma/xtandard-image/internal/obs/metrics"
+	"github.com/xantiagoma/xtandard-image/internal/pipeline/exec"
 	"github.com/xantiagoma/xtandard-image/internal/server"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/video"
 	"github.com/xantiagoma/xtandard-image/internal/video/ffmpeg"
+	"github.com/xantiagoma/xtandard-image/internal/vips"
 )
 
 // Video transformations (WP-121, ADR 0012): internal/media over the FFmpeg
@@ -23,8 +27,10 @@ import (
 // buildVideoTransform returns the video transformation service, or nil
 // when XI_VIDEO_TRANSFORM_ENABLED is off or XI_ROLE is image (that role
 // never creates the video pool, ADR 0012 §4). Enabled on an image without
-// FFmpeg fails startup, whatever the role.
-func buildVideoTransform(cfg *config.Config, met *metrics.Metrics) (*media.Service, error) {
+// FFmpeg fails startup, whatever the role. ex renders image and text
+// overlays (WP-124) with the image watermark code; nil leaves them
+// unsupported.
+func buildVideoTransform(cfg *config.Config, met *metrics.Metrics, ex *exec.Executor) (*media.Service, error) {
 	t := &cfg.Video.Transform
 	if !t.Enabled {
 		return nil, nil
@@ -37,8 +43,11 @@ func buildVideoTransform(cfg *config.Config, met *metrics.Metrics) (*media.Servi
 	}
 	obs := met.Video()
 	mc := mediaConfig(cfg)
-	return media.New(&mc, ffmpeg.TranscodeCaps(), ffmpegEngine{},
-		media.WithMetrics(obs), media.WithLimiterMetrics(&videoLimiterMetrics{obs: obs}))
+	opts := []media.Option{media.WithMetrics(obs), media.WithLimiterMetrics(&videoLimiterMetrics{obs: obs})}
+	if ex != nil {
+		opts = append(opts, media.WithOverlayRenderer(overlayRenderer{ex: ex}))
+	}
+	return media.New(&mc, ffmpeg.TranscodeCaps(), ffmpegEngine{}, opts...)
 }
 
 // mediaConfig maps XI_VIDEO_TRANSFORM_* and XI_VIDEO_ENCODE_*.
@@ -131,12 +140,61 @@ type ffmpegJob struct{ t *ffmpeg.Transcoder }
 
 func (j ffmpegJob) Input() video.TranscodeInput { return j.t.Input() }
 
-func (j ffmpegJob) Run(ctx context.Context, p *video.TranscodePlan) (media.Buffer, error) {
-	out, err := j.t.Run(ctx, p)
+func (j ffmpegJob) Run(ctx context.Context, p *video.TranscodePlan, pixels []media.Buffer) (media.Buffer, error) {
+	px := make([]*vips.Buffer, len(pixels))
+	defer func() {
+		for _, b := range px {
+			if b != nil {
+				b.Release()
+			}
+		}
+	}()
+	for i, b := range pixels {
+		if b == nil {
+			continue
+		}
+		vb, err := vipsBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		px[i] = vb
+	}
+	out, err := j.t.Run(ctx, p, px...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
+}
+
+// overlayRenderer is media.OverlayRenderer over the image watermark code
+// (exec.Executor.RenderOverlay): the configured watermark, the fonts and
+// XI_PROCESSING_WATERMARK_OPACITY apply as on images.
+type overlayRenderer struct{ ex *exec.Executor }
+
+func (r overlayRenderer) Render(ctx context.Context, o *transform.VideoOverlay, img media.Buffer, w, h int) (media.Layer, bool, error) {
+	var oi *exec.OverlayImage
+	if img != nil {
+		f, ok := codec.Sniff(img.Bytes())
+		if !ok {
+			return media.Layer{}, false, errs.WithPublic(errs.New(errs.KindUnsupported, "app: unrecognised overlay format"),
+				"unsupported overlay image format")
+		}
+		vb, err := vipsBuffer(img)
+		if err != nil {
+			return media.Layer{}, false, err
+		}
+		defer vb.Release()
+		name := f.String()
+		if f == codec.FormatUHDR {
+			name = "jpeg"
+		}
+		oi = &exec.OverlayImage{Source: vb, Format: name}
+	}
+	ov, err := r.ex.RenderOverlay(ctx, &o.Watermark, oi, w, h)
+	if err != nil || ov == nil {
+		return media.Layer{}, false, err
+	}
+	return media.Layer{Pixels: ov.Pixels, X: ov.X, Y: ov.Y, Width: ov.Width, Height: ov.Height}, true, nil
 }
 
 func (j ffmpegJob) Close() { j.t.Close() }
@@ -148,8 +206,16 @@ func (m mediaTransformer) Resolve(op *transform.VideoOp) (video.TranscodeOutput,
 	return m.s.Resolve(op)
 }
 
-func (m mediaTransformer) Transform(ctx context.Context, key string, src fetch.Buffer, op *transform.VideoOp) (*server.VideoResult, error) {
-	r, err := m.s.Transform(ctx, key, src, op)
+func (m mediaTransformer) Transform(ctx context.Context, key string, src fetch.Buffer, op *transform.VideoOp, overlays []fetch.Buffer) (*server.VideoResult, error) {
+	var imgs []media.Buffer
+	for _, o := range overlays {
+		if o == nil {
+			imgs = append(imgs, nil)
+		} else {
+			imgs = append(imgs, o)
+		}
+	}
+	r, err := m.s.Transform(ctx, key, src, op, imgs)
 	if err != nil {
 		return nil, err
 	}

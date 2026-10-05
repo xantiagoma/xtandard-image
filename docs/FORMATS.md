@@ -357,6 +357,24 @@ and a 4530-byte HEVC MP4 (gpl), all 6 frames and 0.600 s long.
 
 Transforming a video into a video or an audio file (trim, resize/crop/fit, fps, rotate, bitrate, MP4/WebM, mute, M4A/MP3/Opus audio-only, watermarks, then HLS/DASH with just-in-time segments) is M5 work in a separate subsystem with its own worker pool and limits, off by default and in the `full`/`gpl` images only: design in [ADR 0012](adr/0012-video-transformations.md), work packages WP-121 to WP-127 in [ROADMAP](ROADMAP.md#m5-video-transformations). The base images already carry what it needs (WP-120): libswresample, the common audio decoders, the AAC (native), Opus (libopus), MP3 (LAME) and FLAC encoders, the M4A/MPEG-TS/HLS/DASH/MP3/Ogg/ADTS/WAV/FLAC muxers and the filters (`docker/base/README.md`, Full flavor). Until those WPs land, the outputs of this section (§5.1) are the only video outputs.
 
+#### Overlays (WP-124)
+
+`transform.VideoOp.Overlays` draws up to 8 overlays, in order, over the output video (after the trim, geometry and frame rate; never on audio-only outputs, 400). Each is a `transform.Watermark` (the image watermark model, so the same dialect options map onto both) plus a time window and fades on the **output** timeline:
+
+| Kind | From | Rendered by |
+|---|---|---|
+| Image | `Watermark.Source`, fetched like `wmu` (source allowlist, SSRF-safe fetcher, `XI_LIMITS_MAX_SRC_BYTES`, SVG sanitised) | libvips, once per transcode |
+| Text | `Watermark.Text`, Pango markup sanitised by `security/pango` (as `wmt`), `Font`, `Color`, `TextWidth` | libvips/Pango, once per transcode: the same fonts, shaping and size limits as image text watermarks |
+| Configured | neither: `XI_PROCESSING_WATERMARK_SOURCE` (skipped when none is configured) | libvips |
+| Timecode | `Timecode` = `hms` (`HH:MM:SS.mmm`) or `seconds` (`12.345678`), `TimecodeSize` px, `Color`, `Opacity`, `Shadow`, compass `Position` | FFmpeg `drawtext` with a fixed expansion (`%{pts:hms}`, `%{pts:flt}`) and the default fontconfig `Sans` |
+
+- **Geometry** is the image watermark's at DPR 1 on a frame of the output's size: `Scale` (fraction of the frame), `Width`/`Height` (fit box), `Rotate`, `Shadow`, `Opacity` × `XI_PROCESSING_WATERMARK_OPACITY`, `Position` gravity and offsets (pixels when ≥ 1, else fractions of the frame), `Tile` repeat or chessboard (the offsets are the spacing). The rendered pixels are clipped to the frame; overlays whose opacity is 0, or whose text is empty, are left out.
+- **Time**: `Start`/`End` (0 = from the first / to the last frame of the output), `FadeIn` from `Start`, `FadeOut` ending at `End` (or the output's end when known). A window that starts after the output ends is dropped; one that ends after it runs to the end.
+- **Compositing**: straight-alpha RGBA over 4:2:0 (FFmpeg `overlay`, `format=yuv420`), so edges of thin text are chroma-subsampled like any other 4:2:0 content. Image and text overlays cost one RGBA buffer of at most the output frame each for the transcode; a fading one also converts its pixels on every frame of the output.
+- **Errors**: invalid markup 400, markup over the size limits or text that cannot fit 422, an overlay source outside the allowlist 403 or missing 404 (like `wmu`), an image whose FFmpeg lacks `overlay`/`fade` (or `drawtext` for timecodes) 422 before anything is fetched.
+
+How overlays enter FFmpeg's graph without any request text reaching filter syntax is in [ADR 0012 §3](adr/0012-video-transformations.md#3-overlays).
+
 ## 6. Format negotiation and best-format
 
 ### 6.1 Inputs to the decision
