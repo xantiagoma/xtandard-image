@@ -20,6 +20,10 @@ import (
 // Config is the whole service configuration. Build it with Load.
 type Config struct {
 	DevMode bool `yaml:"dev_mode" env:"DEV_MODE"`
+	// Role is what this instance serves: all (default), image (no video
+	// transformations) or video (only video transformations, plus health
+	// and metrics), so video can run as a dedicated deployment (ADR 0012).
+	Role Role `yaml:"role" env:"ROLE"`
 
 	Server     Server     `yaml:"server"     envPrefix:"SERVER_"`
 	Admin      Admin      `yaml:"admin"      envPrefix:"ADMIN_"`
@@ -584,6 +588,42 @@ type Video struct {
 
 	Thumbnail VideoThumbnail `yaml:"thumbnail" envPrefix:"THUMBNAIL_"`
 	Encode    VideoEncode    `yaml:"encode"    envPrefix:"ENCODE_"`
+	Transform VideoTransform `yaml:"transform" envPrefix:"TRANSFORM_"`
+}
+
+// VideoTransform configures video transformations (WP-121, ADR 0012): a
+// video source transcoded into MP4, WebM or an audio file. They run in a
+// worker pool of their own, separate from processing.workers, and only in
+// images with FFmpeg (full, gpl).
+type VideoTransform struct {
+	// Enabled serves video transformations; true fails startup on an
+	// image without FFmpeg (slim).
+	Enabled bool `yaml:"enabled" env:"ENABLED"`
+	// Workers is the transcodes run at once; 0 is a quarter of GOMAXPROCS
+	// (at least 1).
+	Workers int `yaml:"workers" env:"WORKERS"`
+	// Queue is how many transcodes may wait for a worker (429 beyond).
+	Queue int `yaml:"queue" env:"QUEUE"`
+	// QueueTimeout is how long one waits for a worker (503 after).
+	QueueTimeout time.Duration `yaml:"queue_timeout" env:"QUEUE_TIMEOUT"`
+	// Timeout bounds one transcode, from admission (504 after); a video
+	// request's whole budget is fetch.timeout + queue_timeout + timeout.
+	Timeout time.Duration `yaml:"timeout" env:"TIMEOUT"`
+	// Threads is the decoder and encoder threads of one transcode.
+	Threads int `yaml:"threads" env:"THREADS"`
+	// MaxInputBytes, MaxInputDuration and MaxInputPixels bound the source
+	// (422); the fetcher accepts sources up to the larger of this and
+	// limits.max_src_bytes for video requests.
+	MaxInputBytes    ByteSize      `yaml:"max_input_bytes"    env:"MAX_INPUT_BYTES"`
+	MaxInputDuration time.Duration `yaml:"max_input_duration" env:"MAX_INPUT_DURATION"`
+	MaxInputPixels   int64         `yaml:"max_input_pixels"   env:"MAX_INPUT_PIXELS"`
+	// MaxOutputBytes, MaxOutputDuration and MaxOutputPixels bound the
+	// output (422); MaxFPS caps the frame rate (a faster source is reduced
+	// to it, a faster request refused).
+	MaxOutputBytes    ByteSize      `yaml:"max_output_bytes"    env:"MAX_OUTPUT_BYTES"`
+	MaxOutputDuration time.Duration `yaml:"max_output_duration" env:"MAX_OUTPUT_DURATION"`
+	MaxOutputPixels   int64         `yaml:"max_output_pixels"   env:"MAX_OUTPUT_PIXELS"`
+	MaxFPS            float64       `yaml:"max_fps"             env:"MAX_FPS"`
 }
 
 // VideoEncode configures MP4, WebM and HEVC output (docs/FORMATS.md §5.1):
@@ -804,6 +844,7 @@ type Compat struct {
 func Defaults() Config {
 	qualities, _ := ParseIntList("5-100/5")
 	return Config{
+		Role: RoleAll,
 		Server: Server{
 			Addr:              ":8080",
 			RequestTimeout:    20 * time.Second,
@@ -907,6 +948,12 @@ func Defaults() Config {
 				VP9CRF: 36, AV1CRF: 36, H264CRF: 25, HEVCCRF: 28,
 				VP9Speed: 8, AV1Speed: 8, H264Preset: "veryfast", HEVCPreset: "veryfast",
 				MaxFrames: 1000, MaxDuration: time.Minute, MaxPixels: 3840 * 2160,
+			},
+			Transform: VideoTransform{
+				Queue: 8, QueueTimeout: 30 * time.Second, Timeout: 2 * time.Minute, Threads: 1,
+				MaxInputBytes: 512 << 20, MaxInputDuration: time.Hour, MaxInputPixels: 7680 * 4320,
+				MaxOutputBytes: 256 << 20, MaxOutputDuration: 5 * time.Minute, MaxOutputPixels: 3840 * 2160,
+				MaxFPS: 60,
 			},
 		},
 		Vips: Vips{Concurrency: 1, FailOn: FailOnWarning},
