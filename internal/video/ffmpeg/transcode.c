@@ -5,16 +5,19 @@
 // muxed into a growable buffer (XiFFOut), with no temporary file. The
 // chains come from the Go side (internal/video.TranscodePlan), written
 // from validated numbers only; the buffer source and sink are configured
-// here from the decoders' parameters. Nothing here calls into Go or keeps
-// a pointer to Go memory: the parameters are read during xi_tx_run only,
-// and the output is handed over with xi_tx_take and freed with
-// xi_tx_out_free.
+// here from the decoders' parameters. Overlays (WP-124) run in a second
+// graph the shim builds filter by filter with AVOption values (see
+// "Overlays" below). Nothing here calls into Go or keeps a pointer to Go
+// memory: the parameters (overlay pixels included, copied into frames)
+// are read during xi_tx_run only, and the output is handed over with
+// xi_tx_take and freed with xi_tx_out_free.
 
 #include "internal.h"
 #include "shim.h"
 
 #include <math.h>
 #include <stdatomic.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -28,6 +31,8 @@
 #include <libavutil/channel_layout.h>
 #include <libavutil/mathematics.h>
 #include <libavutil/mem.h>
+#include <libavutil/opt.h>
+#include <libavutil/pixdesc.h>
 
 // Demuxers and decoders a source may use; no protocol at all (every byte
 // comes from the custom AVIOContext).
@@ -44,11 +49,29 @@
 // Frames whose duration the video encoder may still hold (reordering).
 #define XI_TX_DURATIONS 256
 
+// An overlay drawn from pixels: its buffer source in the overlay graph
+// and the frame pushed into it (once, or with every video frame while it
+// fades).
+typedef struct {
+  AVFilterContext *src;
+  AVFrame *frame;
+  int fade;
+  int closed;
+} XiTxOv;
+
 typedef struct {
   int index; // input stream; -1 when none
   AVCodecContext *dec;
   AVFilterGraph *graph;
+  // sink is the stream's last sink, which the encoder reads. With
+  // overlays (WP-124) it is the overlay graph's: mid is then the chain's
+  // sink, whose frames are moved into the overlay graph's main source.
   AVFilterContext *src, *sink;
+  AVFilterGraph *ograph;
+  AVFilterContext *mid, *osrc;
+  XiTxOv ov[XI_TX_MAX_OVERLAYS];
+  int nov;
+  int ov_closed;
   AVCodecContext *enc;
   AVStream *ost;
   int active;  // this stream is transcoded
@@ -75,7 +98,7 @@ struct XiTx {
   AVFormatContext *oc;
   XiFFOut out;
   AVPacket *pkt, *opkt;
-  AVFrame *frame, *filt;
+  AVFrame *frame, *filt, *mid;
 };
 
 static atomic_int xi_tx_handles;
@@ -110,6 +133,7 @@ xi_tx_caps(void)
     "crop", "pad", "transpose", "hflip", "vflip", "fps", "format", NULL };
   static const char *const af[]
       = { "abuffer", "abuffersink", "atrim", "asetpts", "aresample", "aformat", NULL };
+  static const char *const ovf[] = { "buffer", "buffersink", "overlay", "fade", "format", NULL };
   int m = 0;
   if (avcodec_find_encoder_by_name("aac"))
     m |= XI_TX_CAP_AAC;
@@ -129,6 +153,10 @@ xi_tx_caps(void)
     m |= XI_TX_CAP_VFILTERS;
   if (xi_tx_has_filters(af))
     m |= XI_TX_CAP_AFILTERS;
+  if (xi_tx_has_filters(ovf))
+    m |= XI_TX_CAP_OVERLAYS;
+  if (avfilter_get_by_name("drawtext"))
+    m |= XI_TX_CAP_DRAWTEXT;
   return m;
 }
 
@@ -193,6 +221,11 @@ xi_tx_abort(XiTx *h, int on)
 static void
 xi_tx_stream_free(XiTxStream *s)
 {
+  for (int i = 0; i < s->nov; i++)
+    av_frame_free(&s->ov[i].frame);
+  s->nov = 0;
+  avfilter_graph_free(&s->ograph);
+  s->mid = s->osrc = NULL;
   avfilter_graph_free(&s->graph);
   avcodec_free_context(&s->dec);
   avcodec_free_context(&s->enc);
@@ -209,6 +242,7 @@ xi_tx_free(XiTx *h)
   xi_tx_stream_free(&h->a);
   av_frame_free(&h->frame);
   av_frame_free(&h->filt);
+  av_frame_free(&h->mid);
   av_packet_free(&h->pkt);
   av_packet_free(&h->opkt);
   if (h->oc) {
@@ -245,11 +279,12 @@ xi_tx_new(const uint8_t *data, size_t size, int64_t max_pixels, int threads)
   h->opkt = av_packet_alloc();
   h->frame = av_frame_alloc();
   h->filt = av_frame_alloc();
+  h->mid = av_frame_alloc();
   if (iobuf)
     h->avio = avio_alloc_context(iobuf, XI_TX_IO, 0, h, xi_tx_read, NULL, xi_tx_seek);
   if (!h->avio)
     av_free(iobuf);
-  if (!h->avio || !h->fmt || !h->pkt || !h->opkt || !h->frame || !h->filt) {
+  if (!h->avio || !h->fmt || !h->pkt || !h->opkt || !h->frame || !h->filt || !h->mid) {
     xi_tx_free(h);
     return NULL;
   }
@@ -477,6 +512,200 @@ xi_tx_graph(XiTx *h, XiTxStream *s, int audio, const char *chain, int threads)
   return avfilter_graph_config(s->graph, NULL);
 }
 
+// ---------------------------------------------------------------------------
+// Overlays (WP-124, ADR 0012 §3)
+//
+// The overlays run in a second graph after the chain's sink, so that every
+// frame entering it has its final timestamp: an image overlay's frame is
+// pushed with the timestamp of the video frame it goes on. The graph is
+// built here, filter by filter, every option an AVOption value (no graph
+// syntax is parsed): main buffer source -> overlay (one per image, its
+// pixels from a buffer source, faded by fade filters) or drawtext (one per
+// timecode) -> format -> buffer sink.
+
+// Allocates filter name as inst in g.
+static int
+xi_tx_alloc(AVFilterGraph *g, const char *name, const char *inst, AVFilterContext **out)
+{
+  const AVFilter *f = avfilter_get_by_name(name);
+  if (!f)
+    return AVERROR_FILTER_NOT_FOUND;
+  *out = avfilter_graph_alloc_filter(g, f, inst);
+  return *out ? 0 : AVERROR(ENOMEM);
+}
+
+// Configures and initialises buffer source src with the chain's output
+// time base, rate and colour, for frames of format, w x h.
+static int
+xi_tx_buffer_init(XiTxStream *s, AVFilterContext *src, int format, int w, int h, int colour)
+{
+  AVBufferSrcParameters *par = av_buffersrc_parameters_alloc();
+  if (!par)
+    return AVERROR(ENOMEM);
+  par->format = format;
+  par->width = w;
+  par->height = h;
+  par->time_base = av_buffersink_get_time_base(s->mid);
+  par->frame_rate = av_buffersink_get_frame_rate(s->mid);
+  par->sample_aspect_ratio = (AVRational) { 1, 1 };
+  if (colour) {
+    par->color_space = av_buffersink_get_colorspace(s->mid);
+    par->color_range = av_buffersink_get_color_range(s->mid);
+  }
+  int ret = av_buffersrc_parameters_set(src, par);
+  av_free(par);
+  if (ret < 0)
+    return ret;
+  return avfilter_init_dict(src, NULL);
+}
+
+// Adds a fade of the overlay's alpha (type 0 in, 1 out) after *last.
+static int
+xi_tx_fade(AVFilterGraph *g, AVFilterContext **last, const char *inst, int type, int64_t start,
+    int64_t dur)
+{
+  AVFilterContext *f;
+  int ret = xi_tx_alloc(g, "fade", inst, &f);
+  if (ret < 0 || (ret = av_opt_set_int(f, "type", type, AV_OPT_SEARCH_CHILDREN)) < 0
+      || (ret = av_opt_set_int(f, "start_time", start, AV_OPT_SEARCH_CHILDREN)) < 0
+      || (ret = av_opt_set_int(f, "duration", dur, AV_OPT_SEARCH_CHILDREN)) < 0
+      || (ret = av_opt_set_int(f, "alpha", 1, AV_OPT_SEARCH_CHILDREN)) < 0
+      || (ret = avfilter_init_dict(f, NULL)) < 0 || (ret = avfilter_link(*last, 0, f, 0)) < 0)
+    return ret;
+  *last = f;
+  return 0;
+}
+
+// Adds image overlay o (index i) after *last.
+static int
+xi_tx_overlay_image(XiTxStream *s, const XiTxOverlay *o, int i, AVFilterContext **last)
+{
+  AVFilterGraph *g = s->ograph;
+  XiTxOv *ov = &s->ov[s->nov++];
+  AVFrame *f = ov->frame = av_frame_alloc();
+  if (!f)
+    return AVERROR(ENOMEM);
+  f->format = AV_PIX_FMT_RGBA;
+  f->width = o->width;
+  f->height = o->height;
+  f->sample_aspect_ratio = (AVRational) { 1, 1 };
+  int ret = av_frame_get_buffer(f, 0);
+  if (ret < 0)
+    return ret;
+  for (int y = 0; y < o->height; y++)
+    memcpy(f->data[0] + (ptrdiff_t)y * f->linesize[0], o->rgba + (size_t)y * o->width * 4,
+        (size_t)o->width * 4);
+
+  char inst[32];
+  snprintf(inst, sizeof(inst), "pixels%d", i);
+  if ((ret = xi_tx_alloc(g, "buffer", inst, &ov->src)) < 0
+      || (ret = xi_tx_buffer_init(s, ov->src, AV_PIX_FMT_RGBA, o->width, o->height, 0)) < 0)
+    return ret;
+  AVFilterContext *branch = ov->src;
+  if (o->fade_in_dur > 0) {
+    snprintf(inst, sizeof(inst), "fadein%d", i);
+    if ((ret = xi_tx_fade(g, &branch, inst, 0, o->fade_in_start, o->fade_in_dur)) < 0)
+      return ret;
+  }
+  if (o->fade_out_dur > 0) {
+    snprintf(inst, sizeof(inst), "fadeout%d", i);
+    if ((ret = xi_tx_fade(g, &branch, inst, 1, o->fade_out_start, o->fade_out_dur)) < 0)
+      return ret;
+  }
+  // A faded overlay changes with time: its frame goes with every video
+  // frame. Otherwise one frame, repeated by the overlay filter.
+  ov->fade = o->fade_in_dur > 0 || o->fade_out_dur > 0;
+
+  AVFilterContext *mix;
+  char x[16], y[16];
+  snprintf(inst, sizeof(inst), "overlay%d", i);
+  snprintf(x, sizeof(x), "%d", o->x);
+  snprintf(y, sizeof(y), "%d", o->y);
+  if ((ret = xi_tx_alloc(g, "overlay", inst, &mix)) < 0
+      || (ret = av_opt_set(mix, "x", x, AV_OPT_SEARCH_CHILDREN)) < 0
+      || (ret = av_opt_set(mix, "y", y, AV_OPT_SEARCH_CHILDREN)) < 0
+      || (ret = av_opt_set_int(mix, "eof_action", 0, AV_OPT_SEARCH_CHILDREN)) < 0 // repeat
+      || (o->enable[0] && (ret = av_opt_set(mix, "enable", o->enable, AV_OPT_SEARCH_CHILDREN)) < 0)
+      || (ret = avfilter_init_dict(mix, NULL)) < 0 || (ret = avfilter_link(*last, 0, mix, 0)) < 0
+      || (ret = avfilter_link(branch, 0, mix, 1)) < 0)
+    return ret;
+  *last = mix;
+  return 0;
+}
+
+// Adds timecode o (index i) after *last.
+static int
+xi_tx_overlay_timecode(XiTxStream *s, const XiTxOverlay *o, int i, AVFilterContext **last)
+{
+  AVFilterContext *dt;
+  char inst[32], size[16];
+  snprintf(inst, sizeof(inst), "timecode%d", i);
+  snprintf(size, sizeof(size), "%d", o->size);
+  int ret = xi_tx_alloc(s->ograph, "drawtext", inst, &dt);
+  if (ret < 0 || (ret = av_opt_set(dt, "text", o->text, AV_OPT_SEARCH_CHILDREN)) < 0
+      || (ret = av_opt_set(dt, "expansion", "normal", AV_OPT_SEARCH_CHILDREN)) < 0
+      || (ret = av_opt_set(dt, "fontsize", size, AV_OPT_SEARCH_CHILDREN)) < 0
+      || (ret = av_opt_set(dt, "fontcolor", o->color, AV_OPT_SEARCH_CHILDREN)) < 0
+      || (ret = av_opt_set(dt, "x", o->tx, AV_OPT_SEARCH_CHILDREN)) < 0
+      || (ret = av_opt_set(dt, "y", o->ty, AV_OPT_SEARCH_CHILDREN)) < 0
+      || (ret = av_opt_set(dt, "alpha", o->alpha, AV_OPT_SEARCH_CHILDREN)) < 0
+      || (ret = av_opt_set_int(dt, "shadowx", o->shadow, AV_OPT_SEARCH_CHILDREN)) < 0
+      || (ret = av_opt_set_int(dt, "shadowy", o->shadow, AV_OPT_SEARCH_CHILDREN)) < 0
+      || (o->enable[0] && (ret = av_opt_set(dt, "enable", o->enable, AV_OPT_SEARCH_CHILDREN)) < 0)
+      || (ret = avfilter_init_dict(dt, NULL)) < 0 || (ret = avfilter_link(*last, 0, dt, 0)) < 0)
+    return ret;
+  *last = dt;
+  return 0;
+}
+
+// Builds s's overlay graph after its chain (s->sink becomes the overlay
+// graph's sink).
+static int
+xi_tx_overlays(XiTxStream *s, const XiTxParams *p)
+{
+  if (p->noverlays < 0 || p->noverlays > XI_TX_MAX_OVERLAYS)
+    return AVERROR(EINVAL);
+  s->mid = s->sink;
+  s->sink = NULL;
+  AVFilterGraph *g = s->ograph = avfilter_graph_alloc();
+  if (!g)
+    return AVERROR(ENOMEM);
+  g->nb_threads = p->threads;
+  int format = av_buffersink_get_format(s->mid);
+  int w = av_buffersink_get_w(s->mid), h = av_buffersink_get_h(s->mid);
+  int ret = xi_tx_alloc(g, "buffer", "main", &s->osrc);
+  if (ret < 0 || (ret = xi_tx_buffer_init(s, s->osrc, format, w, h, 1)) < 0)
+    return ret;
+  AVFilterContext *last = s->osrc;
+  for (int i = 0; i < p->noverlays; i++) {
+    const XiTxOverlay *o = &p->overlays[i];
+    if (o->rgba) {
+      if (o->width <= 0 || o->height <= 0 || o->x < 0 || o->y < 0 || o->x + o->width > w
+          || o->y + o->height > h)
+        return AVERROR(EINVAL);
+      ret = xi_tx_overlay_image(s, o, i, &last);
+    } else {
+      ret = xi_tx_overlay_timecode(s, o, i, &last);
+    }
+    if (ret < 0)
+      return ret;
+  }
+  // The overlays write 4:2:0 already; the format filter pins the
+  // encoder's input to the chain's.
+  AVFilterContext *fmt;
+  const char *name = av_get_pix_fmt_name(format);
+  if (!name)
+    return AVERROR(EINVAL);
+  if ((ret = xi_tx_alloc(g, "format", "pixfmt", &fmt)) < 0
+      || (ret = av_opt_set(fmt, "pix_fmts", name, AV_OPT_SEARCH_CHILDREN)) < 0
+      || (ret = avfilter_init_dict(fmt, NULL)) < 0 || (ret = avfilter_link(last, 0, fmt, 0)) < 0
+      || (ret = xi_tx_alloc(g, "buffersink", "out", &s->sink)) < 0
+      || (ret = avfilter_init_dict(s->sink, NULL)) < 0
+      || (ret = avfilter_link(fmt, 0, s->sink, 0)) < 0)
+    return ret;
+  return avfilter_graph_config(g, NULL);
+}
+
 static const char *
 xi_tx_vencoder(int codec)
 {
@@ -536,7 +765,7 @@ xi_tx_encoder(XiTx *h, XiTxStream *s, const char *name, const XiTxParams *p, int
     c->pix_fmt = av_buffersink_get_format(s->sink);
     c->sample_aspect_ratio = (AVRational) { 1, 1 };
     c->time_base = av_buffersink_get_time_base(s->sink);
-    AVRational fr = av_buffersink_get_frame_rate(s->sink);
+    AVRational fr = av_buffersink_get_frame_rate(s->mid ? s->mid : s->sink);
     c->framerate = fr.num > 0 && fr.den > 0 ? fr : av_d2q(p->fps > 0 ? p->fps : 25, 100000);
     s->frame_dur = av_rescale_q(1, av_inv_q(c->framerate), c->time_base);
     c->gop_size = p->gop;
@@ -644,7 +873,7 @@ xi_tx_encode(XiTx *h, XiTxStream *s, AVFrame *frame)
 
 // Encodes every frame s's sink has ready.
 static int
-xi_tx_pull(XiTx *h, XiTxStream *s)
+xi_tx_drain(XiTx *h, XiTxStream *s)
 {
   AVRational tb = av_buffersink_get_time_base(s->sink);
   for (;;) {
@@ -672,6 +901,77 @@ xi_tx_pull(XiTx *h, XiTxStream *s)
     if (ret < 0)
       return ret;
   }
+}
+
+// Ends the overlay graph's inputs once the chain has ended.
+static int
+xi_tx_overlay_close(XiTxStream *s)
+{
+  if (s->ov_closed)
+    return 0;
+  s->ov_closed = 1;
+  for (int i = 0; i < s->nov; i++) {
+    XiTxOv *ov = &s->ov[i];
+    if (!ov->closed) {
+      ov->closed = 1;
+      int ret = av_buffersrc_add_frame(ov->src, NULL);
+      if (ret < 0 && ret != AVERROR_EOF)
+        return ret;
+    }
+  }
+  int ret = av_buffersrc_add_frame(s->osrc, NULL);
+  return ret == AVERROR_EOF ? 0 : ret;
+}
+
+// Moves every frame the chain has ready into the overlay graph, each with
+// the overlays' frames at its timestamp, and encodes what comes out.
+static int
+xi_tx_overlay_feed(XiTx *h, XiTxStream *s)
+{
+  for (;;) {
+    if (atomic_load(&h->abort))
+      return AVERROR_EXIT;
+    int ret = av_buffersink_get_frame(s->mid, h->mid);
+    if (ret == AVERROR(EAGAIN))
+      return 0;
+    if (ret == AVERROR_EOF)
+      return xi_tx_overlay_close(s);
+    if (ret < 0)
+      return ret;
+    for (int i = 0; i < s->nov; i++) {
+      XiTxOv *ov = &s->ov[i];
+      if (ov->closed)
+        continue;
+      ov->frame->pts = h->mid->pts;
+      ret = av_buffersrc_add_frame_flags(ov->src, ov->frame, AV_BUFFERSRC_FLAG_KEEP_REF);
+      if (ret >= 0 && !ov->fade) {
+        ov->closed = 1; // the overlay filter repeats it
+        ret = av_buffersrc_add_frame(ov->src, NULL);
+      }
+      if (ret < 0) {
+        av_frame_unref(h->mid);
+        return ret;
+      }
+    }
+    if ((ret = av_buffersrc_add_frame(s->osrc, h->mid)) < 0) {
+      av_frame_unref(h->mid);
+      return ret;
+    }
+    if ((ret = xi_tx_drain(h, s)) < 0)
+      return ret;
+  }
+}
+
+// Encodes every frame s's graphs have ready.
+static int
+xi_tx_pull(XiTx *h, XiTxStream *s)
+{
+  if (s->mid) {
+    int ret = xi_tx_overlay_feed(h, s);
+    if (ret < 0)
+      return ret;
+  }
+  return xi_tx_drain(h, s);
 }
 
 // Sends a decoded frame (NULL: end of stream) through s's graph and
@@ -783,6 +1083,8 @@ xi_tx_run(XiTx *h, const XiTxParams *p, char *err, size_t errlen)
     memcpy(chain, p->vfilters, sizeof(p->vfilters));
     if ((ret = xi_tx_graph(h, &h->v, 0, chain, p->threads)) < 0)
       return xi_tx_fail(h, ret, "video filters", err, errlen);
+    if (p->noverlays > 0 && (ret = xi_tx_overlays(&h->v, p)) < 0)
+      return xi_tx_fail(h, ret, "video overlays", err, errlen);
     if ((ret = xi_tx_encoder(h, &h->v, xi_tx_vencoder(p->vcodec), p, 0)) < 0)
       return xi_tx_fail(h, ret, "video encoder", err, errlen);
   }

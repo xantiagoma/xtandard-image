@@ -120,6 +120,9 @@ type TranscodeCaps struct {
 	// plans use (scale, crop, pad, transpose, fps, trim, …; abuffer,
 	// atrim, aresample, aformat, …).
 	VideoFilters, AudioFilters bool
+	// Overlays reports the filters of image and text overlays (overlay,
+	// fade); Timecode drawtext (WP-124).
+	Overlays, Timecode bool
 }
 
 // HasAudio reports whether c encodes a.
@@ -239,6 +242,15 @@ func (c TranscodeCaps) Resolve(op *transform.VideoOp) (TranscodeOutput, error) {
 	}
 	if !c.Video.Has(out.Video) {
 		return TranscodeOutput{}, unsupported(out.Video.String() + " video output is not supported by this image")
+	}
+	for i := range op.Overlays {
+		if op.Overlays[i].Kind() == transform.VideoOverlayTimecode {
+			if !c.Timecode {
+				return TranscodeOutput{}, unsupported("timecode overlays are not supported by this image")
+			}
+		} else if !c.Overlays {
+			return TranscodeOutput{}, unsupported("video overlays are not supported by this image")
+		}
 	}
 	return out, nil
 }
