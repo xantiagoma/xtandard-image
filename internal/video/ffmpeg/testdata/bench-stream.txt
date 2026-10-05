@@ -1,0 +1,45 @@
+goos: linux
+goarch: arm64
+pkg: github.com/xantiagoma/xtandard-image/internal/video/ffmpeg
+BenchmarkStreamSegment/vp9-360p-8         	      14	  72180628 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/vp9-360p-8         	      13	  85359470 ns/op	    1929 B/op	      30 allocs/op
+BenchmarkStreamSegment/vp9-360p-8         	      10	 102754106 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/vp9-360p-8         	      13	 115133066 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/vp9-360p-8         	       5	 209618790 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/vp9-360p-8         	      10	 110948154 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/vp9-360p-8         	      10	 132654325 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/vp9-360p-8         	       8	 134669589 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/vp9-360p-8         	       7	 161803422 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/vp9-360p-8         	       6	 179540036 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/av1-360p-8         	       3	 369983087 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/av1-360p-8         	       2	 540017558 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/av1-360p-8         	       3	 615310155 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/av1-360p-8         	       2	 689769823 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/av1-360p-8         	       2	 730385453 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/av1-360p-8         	       3	 427298262 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/av1-360p-8         	       3	 441104860 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/av1-360p-8         	       3	 437848975 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/av1-360p-8         	       3	 382968715 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/av1-360p-8         	       3	 349195367 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/h264-360p-8        	       4	 256455903 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/h264-360p-8        	       4	 264512180 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/h264-360p-8        	       5	 238640000 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/h264-360p-8        	       5	 265688354 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/h264-360p-8        	       4	 283724344 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/h264-360p-8        	       7	 209117743 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/h264-360p-8        	       5	 217095891 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/h264-360p-8        	       4	 252896349 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/h264-360p-8        	       4	 260308129 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/h264-360p-8        	       7	 212036722 ns/op	    1928 B/op	      30 allocs/op
+BenchmarkStreamSegment/aac-track-8        	       4	 287676586 ns/op	    1936 B/op	      33 allocs/op
+BenchmarkStreamSegment/aac-track-8        	       4	 282307054 ns/op	    1936 B/op	      33 allocs/op
+BenchmarkStreamSegment/aac-track-8        	       5	 247756774 ns/op	    1942 B/op	      33 allocs/op
+BenchmarkStreamSegment/aac-track-8        	       4	 308915852 ns/op	    1936 B/op	      33 allocs/op
+BenchmarkStreamSegment/aac-track-8        	       6	 274689278 ns/op	    1936 B/op	      33 allocs/op
+BenchmarkStreamSegment/aac-track-8        	       4	 301668636 ns/op	    1936 B/op	      33 allocs/op
+BenchmarkStreamSegment/aac-track-8        	       5	 217581899 ns/op	    1936 B/op	      33 allocs/op
+BenchmarkStreamSegment/aac-track-8        	       5	 205944740 ns/op	    1936 B/op	      33 allocs/op
+BenchmarkStreamSegment/aac-track-8        	       4	 256980032 ns/op	    1936 B/op	      33 allocs/op
+BenchmarkStreamSegment/aac-track-8        	       5	 227942142 ns/op	    1936 B/op	      33 allocs/op
+PASS
+ok  	github.com/xantiagoma/xtandard-image/internal/video/ffmpeg	49.552s
