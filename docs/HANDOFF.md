@@ -196,6 +196,13 @@ owner has authorised merging PRs without review.
 - The memory budget (`XI_PROCESSING_MEMORY_BUDGET`) is charged after the probe and plan
   (`limiter.Reserve` through `exec.Config.Admit`): a job waiting for memory holds its worker slot
   for up to `XI_PROCESSING_QUEUE_TIMEOUT`.
+- The recurring load-only test flakes are fixed (WP-119): video leak tests (`leakcheck`), fake
+  executables written without the ETXTBSY race (`internal/testutil/execscript`), Ghostscript and
+  EPS timeouts that a loaded machine could reach, the sandbox helper's last limits and exec made
+  unpreemptible (`pthread_create failed` / `cannot allocate memory`), gs/metafile deadlines passed
+  before the fork reported as timeouts instead of 500s, and sftp bodies ending early without an
+  error after a cancellation (a product bug). `TestShutdownDrains` never reproduced; its dial now
+  uses a loopback address of its own against port reuse.
 - First release tag pending (`docs/RELEASE.md`); the WP-81b Pages site is built (`task pages:build`)
   but not deployed until the owner enables GitHub Pages and the workflows.
 

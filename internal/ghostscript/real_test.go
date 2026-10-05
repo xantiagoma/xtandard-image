@@ -157,7 +157,11 @@ func TestRealOffsetPages(t *testing.T) {
 // and write nothing.
 func TestRealHostile(t *testing.T) {
 	t.Parallel()
-	r, tmp := realGS(t, func(c *ghostscript.Config) { c.Timeout, c.MaxProcs = 2*time.Second, 16 })
+	// Documents that must fail on their own get a timeout a loaded machine
+	// does not reach (2 s turned slow but correct refusals into
+	// timeouts); the endless loop gets a runner with a short one.
+	r, tmp := realGS(t, func(c *ghostscript.Config) { c.Timeout, c.MaxProcs = 15*time.Second, 16 })
+	short, shortTmp := realGS(t, func(c *ghostscript.Config) { c.Timeout, c.MaxProcs = time.Second, 16 })
 	dir := filepath.Join("testdata", "hostile")
 	tests := []struct {
 		file string
@@ -176,7 +180,11 @@ func TestRealHostile(t *testing.T) {
 		t.Run(tt.file, func(t *testing.T) {
 			t.Parallel()
 			start := time.Now()
-			_, out, err := renderPNG(t, r, filepath.Join(dir, tt.file), &ghostscript.Page{Width: 100, Height: 100})
+			rr := r
+			if tt.want == errs.KindTimeout {
+				rr = short
+			}
+			_, out, err := renderPNG(t, rr, filepath.Join(dir, tt.file), &ghostscript.Page{Width: 100, Height: 100})
 			if got := errs.KindOf(err); got != tt.want && (tt.alt == 0 || got != tt.alt) {
 				t.Errorf("error kind = %s (%v), want %s", got, err, tt.want)
 			}
@@ -201,5 +209,8 @@ func TestRealHostile(t *testing.T) {
 	if _, err := os.Stat("/tmp/xi-gs-pwned"); err == nil {
 		t.Error("the pipe device document ran a command")
 	}
-	t.Cleanup(func() { assertGone(t, nil, tmp) })
+	t.Cleanup(func() {
+		assertGone(t, nil, tmp)
+		assertGone(t, nil, shortTmp)
+	})
 }

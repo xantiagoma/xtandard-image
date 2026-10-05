@@ -23,8 +23,8 @@ import (
 
 // epsConfig serves testdata/fixtures on the imgproxy mount, the Ghostscript
 // hostile documents as source "hostile" and dir as source "synth", with
-// EPS rendering on or off.
-func epsConfig(t *testing.T, enabled bool, dir string) *config.Config {
+// EPS rendering on or off and timeout per render.
+func epsConfig(t *testing.T, enabled bool, dir string, timeout time.Duration) *config.Config {
 	t.Helper()
 	root := golden.ModuleRoot(t)
 	yml := `server:
@@ -39,7 +39,7 @@ observability:
 formats:
   eps:
     enabled: ` + strconv.FormatBool(enabled) + `
-    timeout: 2s
+    timeout: ` + timeout.String() + `
     max_procs: 8
 sources:
   fixtures:
@@ -90,7 +90,7 @@ func closeTo(c color.Color, want color.NRGBA) bool {
 // image, and gpl by default) an EPS is 422 with the message naming the
 // switch, unless it is a DOS EPS with a TIFF preview.
 func TestEPSDisabled(t *testing.T) {
-	a := start(t, epsConfig(t, false, t.TempDir()), hooks{})
+	a := start(t, epsConfig(t, false, t.TempDir(), 2*time.Second), hooks{})
 	base := "http://" + a.public.String()
 	for _, src := range []string{"eps/simple.eps", "eps/pages.ps", "eps/illustrator.ai"} {
 		r := get(t, base+"/insecure/plain/"+src+"@webp")
@@ -116,8 +116,14 @@ func TestEPS(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(synth, "huge.eps"), []byte("%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 30000 30000\n%%EndComments\nshowpage\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	a := start(t, epsConfig(t, true, synth), hooks{})
+	// Renders that must succeed or fail on their own (VMerror, invalid
+	// access, ...) get a timeout no loaded machine reaches (below the
+	// 20 s request timeout); a 2 s budget turned slow but healthy renders
+	// into 504s when the suite ran alongside other packages. The endless
+	// loop runs on a second instance with a short timeout.
+	a := start(t, epsConfig(t, true, synth, 15*time.Second), hooks{})
 	base := "http://" + a.public.String()
+	short := "http://" + start(t, epsConfig(t, true, synth, time.Second), hooks{}).public.String()
 
 	t.Run("webp", func(t *testing.T) {
 		r := get(t, base+"/insecure/plain/eps/simple.eps@webp")
@@ -170,7 +176,7 @@ func TestEPS(t *testing.T) {
 		{"xi://hostile/pipe.eps", http.StatusUnprocessableEntity},
 		{"xi://hostile/recursion.eps", http.StatusUnprocessableEntity},
 		{"xi://hostile/memory.eps", http.StatusUnprocessableEntity}, // or 504 on a loaded machine
-		{"xi://hostile/loop.eps", http.StatusGatewayTimeout},
+		{"xi://hostile/loop.eps", http.StatusGatewayTimeout},        // on the short-timeout instance
 		{"xi://synth/huge.eps", http.StatusUnprocessableEntity},
 		// The document asks for a 100000 pt page; the device stays at its
 		// 100 pt box.
@@ -178,7 +184,11 @@ func TestEPS(t *testing.T) {
 	} {
 		t.Run(tc.src, func(t *testing.T) {
 			start := time.Now()
-			r := get(t, base+"/insecure/plain/"+tc.src+"@png")
+			u := base
+			if tc.want == http.StatusGatewayTimeout {
+				u = short
+			}
+			r := get(t, u+"/insecure/plain/"+tc.src+"@png")
 			slow := tc.src == "xi://hostile/memory.eps" && r.status == http.StatusGatewayTimeout
 			if r.status != tc.want && !slow {
 				t.Errorf("%d %.300s, want %d", r.status, r.body, tc.want)
