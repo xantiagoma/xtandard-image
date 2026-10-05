@@ -2,12 +2,16 @@ import { describe, expect, test } from "bun:test";
 import {
   buildImgproxyInfoUrl,
   buildImgproxyUrl,
+  buildImgproxyVideoUrl,
   escapePlainSource,
   imgproxy,
   imgproxyInfoAliases,
   imgproxyInfoOptionNames,
   imgproxyProcessingAliases,
   imgproxyProcessingOptionNames,
+  imgproxyVideoAliases,
+  imgproxyVideoOptionNames,
+  sign,
 } from "./index.ts";
 
 const src = "https://example.com/a.jpg";
@@ -182,5 +186,68 @@ describe("/info", () => {
 
   test("no chained pipelines", async () => {
     await expect(buildImgproxyInfoUrl({ source: src, options: [{ s: true }, { f: true }] as never })).rejects.toThrow();
+  });
+});
+
+describe("/video", () => {
+  const clip = "https://example.com/clip.mov";
+  const clip64 = "aHR0cHM6Ly9leGFtcGxlLmNvbS9jbGlwLm1vdg";
+
+  test("object and fluent forms, container extension", async () => {
+    const object = await buildImgproxyVideoUrl({
+      source: clip,
+      options: { resize: ["fill", 640, 360], gravity: "soea", start: 1.5, duration: 5, mute: true, video_bitrate: "2M" },
+      extension: "webm",
+    });
+    expect(object).toBe(`/video/insecure/rs:fill:640:360/g:soea/vs:1.5/vd:5/mu:1/vb:2M/${clip64}.webm`);
+    const fluent = await imgproxy()
+      .video(clip)
+      .resize("fill", 640, 360)
+      .gravity("soea")
+      .start(1.5)
+      .duration(5)
+      .mute(true)
+      .video_bitrate("2M")
+      .extension("webm")
+      .build();
+    expect(fluent).toBe(object);
+  });
+
+  test("audio options and waveforms", async () => {
+    expect(
+      await buildImgproxyVideoUrl(
+        {
+          source: clip,
+          options: { sample_rate: 44100, audio_channels: 1, volume: "-6dB", loudnorm: [true, -16, -1.5, 11], fade: [1, 2] },
+          extension: "mp3",
+          sourceEncoding: "plain",
+        },
+        { optionNames: "canonical" },
+      ),
+    ).toBe(`/video/insecure/sample_rate:44100/audio_channels:1/volume:-6dB/loudnorm:1:-16:-1.5:11/fade:1:2/plain/${clip}@mp3`);
+    expect(await imgproxy().video(clip).wf(true, "2266cc", "ffffff").w(800).h(160).extension("png").encoding("plain").build()).toBe(
+      `/video/insecure/wf:1:2266cc:ffffff/w:800/h:160/plain/${clip}@png`,
+    );
+  });
+
+  test("the signature covers /video + the path", async () => {
+    const k = { key: "736563726574", salt: "68656C6C6F" };
+    const url = await buildImgproxyVideoUrl({ source: clip, options: { w: 320 } }, { signing: k });
+    const sig = await sign(`/video/w:320/${clip64}`, k);
+    expect(url).toBe(`/video/${sig}/w:320/${clip64}`);
+    const image = await buildImgproxyUrl({ source: clip, options: { w: 320 } }, { signing: k });
+    expect(image.startsWith(`/${sig}/`)).toBe(false);
+  });
+
+  test("every video option name and alias is a fluent method", () => {
+    const v = imgproxy().video(clip) as unknown as Record<string, unknown>;
+    for (const n of [...imgproxyVideoOptionNames, ...Object.keys(imgproxyVideoAliases)]) {
+      expect(typeof v[n]).toBe("function");
+    }
+  });
+
+  test("video namespace: image options and pdfPassword are refused", async () => {
+    await expect(buildImgproxyVideoUrl({ source: clip, options: { blur: 2 } as never })).rejects.toThrow(/unknown imgproxy option/);
+    await expect(buildImgproxyVideoUrl({ source: clip, options: [{ w: 1 }, { h: 1 }] as never })).rejects.toThrow();
   });
 });

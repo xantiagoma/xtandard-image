@@ -69,6 +69,8 @@ Set the encoding on the builder (`imgproxy({ sourceEncoding: "plain" })`), on a 
 
 **`/info`.** `img.infoUrl({ source, options: { size: true, format: true } })` and `img.info(source).size(true).build()` use the info option catalogue. There, `a` means `alpha`, not `adjust`.
 
+**`/video`** (video transformations, audio and waveforms; [URL-DIALECTS §3.8](../../docs/URL-DIALECTS.md#38-video-transformations-wp-122-wp-123)). `img.videoUrl({ source, options: { resize: ["fill", 640, 360], start: 1.5, duration: 5 }, extension: "webm" })` and `img.video(source).rs("fill", 640, 360).vs(1.5).vd(5).extension("webm").build()` use the video option catalogue (`ImgproxyVideoOptions`); the extension is the container (`mp4`, `webm`, `m4a`, `mp3`, `opus`, `ogg`, `flac`, `wav`, or `png`/`webp` for a waveform). The signature covers `/video` + the path, so the builder signs it differently from an image URL; servers refuse unsigned video URLs by default.
+
 ## Signing
 
 Use the same hex key and salt as the server's `XI_SIGNING_KEYS` / `XI_SIGNING_SALTS` (imgproxy `IMGPROXY_KEY` / `IMGPROXY_SALT`). Sign only on a server. A key in browser code can sign any URL.

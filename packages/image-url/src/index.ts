@@ -6,6 +6,7 @@
 export {
   buildImgproxyInfoUrl,
   buildImgproxyUrl,
+  buildImgproxyVideoUrl,
   escapePlainSource,
   imgproxy,
   type ImgproxyInfoUrlChain,
@@ -14,6 +15,8 @@ export {
   type ImgproxyUrlChain,
   type ImgproxyUrlConfig,
   type ImgproxyUrlRequest,
+  type ImgproxyVideoUrlChain,
+  type ImgproxyVideoUrlRequest,
   type SourceEncoding,
 } from "./builder.ts";
 export type { KeyMaterial } from "./bytes.ts";
@@ -23,6 +26,8 @@ export {
   imgproxyInfoOptionNames,
   imgproxyProcessingAliases,
   imgproxyProcessingOptionNames,
+  imgproxyVideoAliases,
+  imgproxyVideoOptionNames,
 } from "./generated/options.ts";
 export type {
   Arg,
@@ -34,6 +39,10 @@ export type {
   ImgproxyProcessingArgsOf,
   ImgproxyProcessingOptionName,
   ImgproxyProcessingOptions,
+  ImgproxyVideoArgs,
+  ImgproxyVideoArgsOf,
+  ImgproxyVideoOptionName,
+  ImgproxyVideoOptions,
   OptionNameStyle,
   OptionValue,
 } from "./options.ts";

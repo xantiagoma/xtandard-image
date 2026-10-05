@@ -121,6 +121,36 @@ func InfoOptions() []playground.Option {
 	return opts
 }
 
+// videoGroups is the builder group of each /video option.
+var videoGroups = map[string]string{
+	"start": groupTime, "end": groupTime, "duration": groupTime,
+	"resize": groupSize, "size": groupSize, "resizing_type": groupSize, "width": groupSize, "height": groupSize,
+	"enlarge": groupSize, "extend": groupSize, "crop": groupSize, "rotate": groupSize, "flip": groupSize, "fps": groupSize,
+	"gravity": groupGravity, "background": groupColor,
+	"format": groupFormat, "video_codec": groupFormat, "audio_codec": groupFormat, "quality": groupFormat, "crf": groupFormat,
+	"video_bitrate": groupFormat, "keyframe_interval": groupFormat,
+	"mute": groupAudio, "audio_bitrate": groupAudio, "sample_rate": groupAudio, "audio_channels": groupAudio,
+	"volume": groupAudio, "loudnorm": groupAudio, "fade": groupAudio, "waveform": groupAudio,
+	"cachebuster": groupDelivery, "expires": groupDelivery, "filename": groupDelivery, "return_attachment": groupDelivery,
+	"bypass_cache": groupDelivery, "cache_tags": groupDelivery, "hashsum": groupSecurity,
+}
+
+// VideoOptions returns the imgproxy-style /video option catalogue (the
+// ImgproxyVideoOptions schema) for the playground (GET
+// /_playground/api/meta, video_options; the video builder is WP-127).
+func VideoOptions() []playground.Option {
+	src := imgproxy.VideoOptions()
+	opts := make([]playground.Option, 0, len(src))
+	for i := range src {
+		o := &src[i]
+		opts = append(opts, playground.Option{
+			Name: o.Name, Aliases: o.Aliases, Doc: o.Doc, Forms: forms(o.Forms), Example: o.Example,
+			Milestone: o.Milestone, Group: groupOf(videoGroups, o.Name), Default: o.Default,
+		})
+	}
+	return opts
+}
+
 func forms(in []imgproxy.Form) []playground.Form {
 	out := make([]playground.Form, 0, len(in))
 	for j := range in {

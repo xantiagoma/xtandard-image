@@ -22,6 +22,9 @@ const (
 	groupReport   = "report"
 	groupHashes   = "hashes"
 	groupSecurity = "security"
+	// Video groups (VideoOptions).
+	groupTime  = "time"
+	groupAudio = "audio"
 )
 
 // dparam is one parameter of a dialect's static catalogue: the playground
