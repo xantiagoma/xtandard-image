@@ -479,7 +479,7 @@ func (m *mediaState) imageBox() error {
 // filename sets the Content-Disposition file name.
 func (m *mediaState) filename(v string) error {
 	if v == "" || len(v) > mediaMaxFilename || strings.IndexFunc(v, func(r rune) bool {
-		return !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-' || r == '_')
+		return (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && (r < '0' || r > '9') && r != '-' && r != '_'
 	}) >= 0 {
 		return dialect.InvalidArgument("filename", v, expFilename)
 	}
