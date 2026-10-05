@@ -238,3 +238,11 @@ owner has authorised merging PRs without review.
   133/133 on the three native arm64 images and on an amd64 gpl image under Rosetta. Note: the gpl
   **base** label is still `AGPL-3.0-or-later AND GPL-2.0-or-later AND MIT` (no DNG SDK LicenseRef);
   align it at the next base bump. No agents in flight.
+- **M5 video started (2026-10-04, owner decision):** video transformations like Cloudinary video and
+  Cloudflare Media Transformations (incl. audio-only), same binary/images (full/gpl), separate
+  subsystem with its own pool, off by default, `XI_ROLE=all|image|video`. Phase A sync short
+  transforms (trim/resize/crop/fps/rotate/quality, mp4/webm, mute, audio-only, overlays) cached +
+  Range; Phase B HLS/DASH JIT packaging. In flight: WP-120 (ADR 0012, ROADMAP M5 table, FFmpeg base
+  with audio/filters/libopus/LAME/HLS muxers under `xtandard-base:wp120*`), WP-121 (core subsystem,
+  transcode shim, Range serving, singleflight, role) building against wp120 bases when ready.
+  Next: WP-122 options, WP-123 audio, WP-124 overlays, WP-125 dialects, WP-126 HLS/DASH, WP-127 playground.
