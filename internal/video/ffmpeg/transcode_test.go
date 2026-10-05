@@ -3,6 +3,7 @@
 package ffmpeg_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"math"
@@ -191,6 +192,16 @@ func TestTranscode(t *testing.T) {
 			d, _ := strconv.ParseFloat(p.Format.Duration, 64)
 			if math.Abs(d-tc.duration) > 0.08 {
 				t.Errorf("duration %.3f s, want %.3f s", d, tc.duration)
+			}
+			// The index is in front of the media data, for players that
+			// read byte ranges: MP4's moov before mdat (faststart), WebM's
+			// Cues before the first Cluster (cues_to_front).
+			index, media := []byte("moov"), []byte("mdat")
+			if tc.op.Container == transform.VideoContainerWebM {
+				index, media = []byte{0x1c, 0x53, 0xbb, 0x6b}, []byte{0x1f, 0x43, 0xb6, 0x75}
+			}
+			if i, m := bytes.Index(out.Bytes(), index), bytes.Index(out.Bytes(), media); i < 0 || m < 0 || i > m {
+				t.Errorf("index at %d, media data at %d: the index is not first", i, m)
 			}
 		})
 	}
