@@ -871,15 +871,62 @@
     "signature": "unsigned",
     "source": "sample-video.mp4"
   },
-  "layer_image": {
+  "layer_audio_only": {
+    "error": {
+      "field": "vc",
+      "kind": "invalid_url",
+      "public": "invalid vc: expected a video output for layers",
+      "status": 400
+    },
     "path": "/sample-video.mp4",
-    "query": "tr=l-image,i-logo.png,w-100,l-end,w-640",
+    "query": "tr=l-image,i-logo.png,l-end,vc-none"
+  },
+  "layer_duration": {
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-logos@@brand.png,lfo-top_right,lso-2,ldu-1.5,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "End": 3500000000,
+            "Start": 2000000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-east"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logos/brand.png"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_expression": {
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-logo.png,lso-idu_mul_0.5,l-end",
     "request": {
       "Dialect": "imagekit",
       "Ignored": [
         {
-          "Option": "l-image",
-          "Reason": "M5 (WP-124)"
+          "Option": "lso",
+          "Reason": "arithmetic expressions not supported"
         }
       ],
       "Kind": "video",
@@ -892,31 +939,82 @@
       },
       "Video": {
         "AutoContainer": true,
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_image": {
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-logo.png,w-100,l-end,w-640",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              },
+              "Width": 100
+            }
+          }
+        ],
         "Width": 640
       }
     },
     "signature": "unsigned",
     "source": "sample-video.mp4"
   },
-  "layer_strict": {
-    "config": "strict",
+  "layer_leo_before_lso": {
     "error": {
+      "field": "leo",
       "kind": "invalid_url",
-      "public": "invalid url: unknown option",
+      "public": "invalid leo: expected a layer end after its lso",
       "status": 400
     },
     "path": "/sample-video.mp4",
-    "query": "tr=l-image,i-logo.png,l-end"
+    "query": "tr=l-image,i-logo.png,lso-3,leo-2,l-end"
   },
-  "layer_text": {
+  "layer_leo_ldu": {
     "path": "/sample-video.mp4",
-    "query": "tr=l-text,i-Hello,fs-32,l-end",
+    "query": "tr=l-image,i-logo.png,lso-1,leo-2,ldu-5,l-end",
     "request": {
       "Dialect": "imagekit",
       "Ignored": [
         {
-          "Option": "l-text",
-          "Reason": "M5 (WP-124)"
+          "Option": "ldu",
+          "Reason": "approximated"
         }
       ],
       "Kind": "video",
@@ -928,7 +1026,226 @@
         "Raw": "sample-video.mp4"
       },
       "Video": {
-        "AutoContainer": true
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "End": 2000000000,
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_nested": {
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-a.png,l-text,i-x,l-end,lso-1,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Ignored": [
+        {
+          "Option": "l-image:l-text",
+          "Reason": "not supported"
+        }
+      ],
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "a.png"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_strict": {
+    "config": "strict",
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-logo.png,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_text": {
+    "path": "/sample-video.mp4",
+    "query": "tr=l-text,i-Hello,fs-32,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "Watermark": {
+              "Font": "32",
+              "Opacity": 1,
+              "Position": {
+                "Type": "center"
+              },
+              "Text": "Hello"
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_text_window": {
+    "path": "/sample-video.mp4",
+    "query": "tr=l-text,i-Hello%20World,fs-32,co-FFFF00,tg-b,lfo-bottom,ldu-2,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "End": 2000000000,
+            "Watermark": {
+              "Color": {
+                "A": 255,
+                "G": 255,
+                "R": 255
+              },
+              "Font": "sans bold 32",
+              "Opacity": 1,
+              "Position": {
+                "Type": "south"
+              },
+              "Text": "Hello World"
+            }
+          }
+        ]
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_too_many": {
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid url: too many layers",
+      "status": 400
+    },
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-a.png,l-end,l-image,i-a.png,l-end,l-image,i-a.png,l-end,l-image,i-a.png,l-end,l-image,i-a.png,l-end,l-image,i-a.png,l-end,l-image,i-a.png,l-end,l-image,i-a.png,l-end,l-image,i-a.png,l-end,"
+  },
+  "layer_two_steps": {
+    "path": "/sample-video.mp4",
+    "query": "tr=w-640:l-image,i-a.png,lfo-top_left,l-end:l-text,i-hi,lfo-bottom_right,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "a.png"
+              }
+            }
+          },
+          {
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east"
+              },
+              "Text": "hi"
+            }
+          }
+        ],
+        "Width": 640
       }
     },
     "signature": "unsigned",
@@ -942,7 +1259,7 @@
       "Ignored": [
         {
           "Option": "l-video",
-          "Reason": "M5 (WP-124)"
+          "Reason": "not supported"
         }
       ],
       "Kind": "video",
@@ -955,6 +1272,46 @@
       },
       "Video": {
         "AutoContainer": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "sample-video.mp4"
+  },
+  "layer_window": {
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-logo.png,lx-10,ly-N10,w-80,o-60,lso-1,leo-3,l-end",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "End": 3000000000,
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 0.6,
+              "Position": {
+                "Type": "south-west",
+                "XOffset": 10,
+                "YOffset": 10
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              },
+              "Width": 80
+            }
+          }
+        ]
       }
     },
     "signature": "unsigned",
@@ -1359,6 +1716,43 @@
         "AutoContainer": true,
         "Start": 1000000000,
         "Width": 300
+      }
+    },
+    "signature": "verified",
+    "source": "sample-video.mp4"
+  },
+  "signed_layer": {
+    "config": "signed",
+    "path": "/sample-video.mp4",
+    "query": "tr=l-image,i-logo.png,lfo-top_left,lso-1,l-end\u0026ik-s=ff2254654b4ca0888d88062cef361e5996bf3c0e",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "sample-video.mp4"
+      },
+      "Video": {
+        "AutoContainer": true,
+        "Overlays": [
+          {
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west"
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              }
+            }
+          }
+        ]
       }
     },
     "signature": "verified",

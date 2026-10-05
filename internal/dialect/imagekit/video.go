@@ -16,7 +16,8 @@ import (
 // transform.KindVideo request. The steps of the transformation string
 // (":"-separated) apply in order onto one VideoOp: trimming, codecs and
 // output accumulate (a later value wins); geometry is at most one
-// cm-extract crop followed by one resize. Parameters without an
+// cm-extract crop followed by one resize; l-image and l-text layers are
+// overlays (WP-124). Parameters without an
 // equivalent are recorded in Request.Ignored (400 in strict mode).
 //
 // The output format defaults to ImageKit's f-auto: the server answers
@@ -25,7 +26,6 @@ import (
 
 // Reasons of the video mapping.
 const (
-	reasonOverlays    = "M5 (WP-124)"
 	reasonStreaming   = "M5 (WP-126)"
 	reasonRelative    = "needs the source size or duration"
 	reasonNotForVideo = "not applicable to video"
@@ -151,10 +151,11 @@ func (vs *videoState) step(params []string) error {
 			if key == "l-end" {
 				return dialect.InvalidURL("l-end without a layer")
 			}
-			if err := vs.skip(key, reasonOverlays); err != nil {
+			end := layerEnd(params, i)
+			if err := vs.overlay(key, params[i+1:min(end, len(params))]); err != nil {
 				return err
 			}
-			i = layerEnd(params, i)
+			i = end
 			continue
 		}
 		var err error
@@ -280,6 +281,74 @@ func (vs *videoState) step(params []string) error {
 		}
 	}
 	return vs.geometry(&st)
+}
+
+// overlay maps an l-image or l-text layer onto a VideoOverlay (WP-124):
+// the layer is parsed by the image path (parseState.layer: lx, ly, lfo, w,
+// h, o, rt, and for text ff, fs, tg, co, al), and lso, leo and ldu set its
+// window on the output's timeline in seconds. l-video and l-subtitles are
+// not supported.
+func (vs *videoState) overlay(kind string, params []string) error {
+	if kind != "l-image" && kind != "l-text" {
+		return vs.skip(kind, reasonUnsupported)
+	}
+	var ov transform.VideoOverlay
+	var du time.Duration
+	var leo bool
+	rest := make([]string, 0, len(params))
+	depth := 0
+	for _, param := range params {
+		key, v := splitParam(param)
+		var err error
+		switch {
+		case strings.HasPrefix(key, "l-"):
+			// A nested layer's parameters stay with it.
+			if key == "l-end" {
+				depth--
+			} else {
+				depth++
+			}
+			rest = append(rest, param)
+		case depth > 0:
+			rest = append(rest, param)
+		case key == "lso":
+			err = vs.time("lso", v, &ov.Start)
+		case key == "leo":
+			leo = true
+			err = vs.time("leo", v, &ov.End)
+		case key == "ldu":
+			err = vs.time("ldu", v, &du)
+		default:
+			rest = append(rest, param)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	switch {
+	case du > 0 && !leo:
+		ov.End = ov.Start + du
+	case du > 0:
+		vs.approx("ldu") // leo wins
+	}
+	if ov.End > 0 && ov.End <= ov.Start {
+		return dialect.InvalidArgument("leo", strconv.FormatFloat(ov.End.Seconds(), 'f', -1, 64), "a layer end after its lso")
+	}
+	pl := vs.ps.b.Pipeline()
+	before := len(pl.Watermarks)
+	if err := vs.ps.layer(kind, rest); err != nil {
+		return err
+	}
+	if len(pl.Watermarks) == before {
+		return nil // recorded by layer
+	}
+	ov.Watermark = pl.Watermarks[before]
+	pl.Watermarks = pl.Watermarks[:before]
+	if len(vs.op.Overlays) >= transform.MaxVideoOverlays {
+		return dialect.InvalidURL("too many layers")
+	}
+	vs.op.Overlays = append(vs.op.Overlays, ov)
+	return nil
 }
 
 // dim parses w-/h- in pixels; relative values and expressions are
@@ -511,6 +580,9 @@ func (vs *videoState) finish() error {
 		}
 		if op.Mute {
 			return dialect.InvalidArgument("ac", "none", "an audio codec for audio-only output")
+		}
+		if len(op.Overlays) > 0 {
+			return dialect.InvalidArgument("vc", "none", "a video output for layers")
 		}
 		op.Width, op.Height, op.Fit, op.Crop, op.FPS = 0, 0, 0, nil, 0
 	case vs.format == "mp4":

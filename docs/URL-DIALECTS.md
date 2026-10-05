@@ -482,7 +482,7 @@ Reference: https://cloudinary.com/documentation/video_manipulation_and_delivery,
 /<cloud>/video/fetch/w_480,f_auto/https://example.com/a.mp4
 ```
 
-A `video` asset URL is a `KindVideo` request (`transform.VideoOp`) when its output is a video or audio format: the last `f_`, else the public ID's extension (for `fetch`, the URL path's), else MP4; an image output format keeps the thumbnail path (§6, `so_`). The public ID is the source key as written, extension included, like the image asset type. Components apply in URL order onto one VideoOp: trimming, codecs and audio accumulate (later values win); geometry is at most one `c_crop` followed by one resize (a later resize replaces an earlier one, recorded "approximated"). Signatures (`s--…--`), `private`/`authenticated`, clouds and `fetch` work as for images. Parameters not applied are recorded in `Ignored` with their reason, and are 400 in strict mode (approximations excepted).
+A `video` asset URL is a `KindVideo` request (`transform.VideoOp`) when its output is a video or audio format: the last `f_`, else the public ID's extension (for `fetch`, the URL path's), else MP4; an image output format keeps the thumbnail path (§6, `so_`). The public ID is the source key as written, extension included, like the image asset type. Components apply in URL order onto one VideoOp: trimming, codecs and audio accumulate (later values win); `l_` layer groups become overlays; geometry is at most one `c_crop` followed by one resize (a later resize replaces an earlier one, recorded "approximated"). Signatures (`s--…--`), `private`/`authenticated`, clouds and `fetch` work as for images. Parameters not applied are recorded in `Ignored` with their reason, and are 400 in strict mode (approximations excepted).
 
 | Cloudinary | VideoOp | Notes |
 |---|---|---|
@@ -505,7 +505,7 @@ A `video` asset URL is a `KindVideo` request (`transform.VideoOp`) when its outp
 | `f_auto` | AutoContainer: WebM when the client names `video/webm` in `Accept`, else MP4; `Vary: Accept` | an explicit codec decides the container instead (`vc_vp9`/`ac_opus` → WebM, `vc_h264`/`ac_aac` → MP4) |
 | `e_volume:mute` / `e_volume:-100` | Mute | other volumes, `e_fade`, `e_noise_reduction`, `af_`, `fl_waveform`, `fl_mono`: "M5 (WP-123)" |
 | `fl_attachment[:name]`, `fl_streaming_attachment`, `fl_immutable_cache` | Delivery | `fl_keep_dar`, `fl_truncate_ts`, `fl_no_stream`, `fl_animated` are the default; `fl_lossy` and other image flags "not applicable to video"; `fl_splice`, `fl_hlsv3` unsupported |
-| `l_…` (image, text, video, audio layers and their `fl_layer_apply` group), `u_` | — | "M5 (WP-124)" |
+| `l_<public_id>` (`:` = folder), `l_fetch:<base64url>`, `l_text:<style>:<text>` and their `fl_layer_apply` group (or the legacy single component) | Overlays (WP-124, FORMATS §5.2): the layer and its placement as on images (§6: `g_`, `x_`, `y_`, `w_`/`h_` px, relative `w_` + `fl_relative`, `fl_tiled`, `o_`, `a_`, `co_`, text style); the group's `so_`/`eo_`/`du_` → Start/End on the output's timeline, `e_fade[:ms]` → FadeIn (positive, default 2000) / FadeOut (negative) | at most 8; an overlay on an audio-only output is 400; `eo_` with `du_`: `eo_` wins; `l_video`, `l_subtitles`, `l_lut`, `l_audio`, `fl_splice` and `u_` underlays unsupported |
 | `sp_<profile>` | — | "M5 (WP-126)" |
 | `e_<effect>` (accelerate, reverse, boomerang, loop, deshake, …), `t_`, `d_`, `o_`, `r_`, `bo_`, `co_`, `z_`, `if_`, `$var`, `ki_`, `vs_`, `dl_`, `fn_`, `p_` | — | unsupported |
 
@@ -606,7 +606,7 @@ A file whose extension is a video one (`mp4`, `webm`, `mov`, `m4v`, `mkv`, `avi`
 | `fps-<1..240>` | FPS | |
 | `rt-<90k>`, `rt-N<deg>` | Rotate | other angles and `rt-auto` unsupported |
 | `dpr-<0.1..5>` | multiplies the sizes | `dpr-auto` approximated (1) |
-| `l-image`, `l-text`, `l-video`, `l-subtitles` … `l-end` | — | "M5 (WP-124)" |
+| `l-image`, `l-text` … `l-end` | Overlays (WP-124, FORMATS §5.2): the layer as on images (§7: `i`/`ie`, `lx`/`ly` with `N`, `lfo`, `w`/`h`, `o`, `rt`, and for text `ff`, `fs`, `tg`, `co`, `al`); `lso`/`leo`/`ldu` (seconds) → Start/End on the output's timeline | at most 8; an overlay on an audio-only output (`vc-none`) is 400; `leo` with `ldu`: `leo` wins; `l-video`, `l-subtitles` and nested layers unsupported |
 | `sr-<…>` | — | "M5 (WP-126)" |
 | `br-` | — | unsupported (the unit is not documented) |
 | image-only parameters (`b-`, `r-`, `bl-`, `o-`, `t-`, `z-`, `fl-`, `e-*`, `pr-`, `lo-`, `md-`, `cp-`, `orig-`, `di-`, `pg-`), `n-` | — | "not applicable to video" / unsupported |

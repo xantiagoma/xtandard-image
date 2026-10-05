@@ -101,6 +101,16 @@ func TestVideo(t *testing.T) {
 		vq("layer_image", "l-image,i-logo.png,w-100,l-end,w-640"),
 		vq("layer_text", "l-text,i-Hello,fs-32,l-end"),
 		vq("layer_video", "l-video,i-intro.mp4,l-end"),
+		vq("layer_window", "l-image,i-logo.png,lx-10,ly-N10,w-80,o-60,lso-1,leo-3,l-end"),
+		vq("layer_duration", "l-image,i-logos@@brand.png,lfo-top_right,lso-2,ldu-1.5,l-end"),
+		vq("layer_text_window", "l-text,i-Hello%20World,fs-32,co-FFFF00,tg-b,lfo-bottom,ldu-2,l-end"),
+		vq("layer_leo_ldu", "l-image,i-logo.png,lso-1,leo-2,ldu-5,l-end"),
+		vq("layer_leo_before_lso", "l-image,i-logo.png,lso-3,leo-2,l-end"),
+		vq("layer_expression", "l-image,i-logo.png,lso-idu_mul_0.5,l-end"),
+		vq("layer_audio_only", "l-image,i-logo.png,l-end,vc-none"),
+		vq("layer_nested", "l-image,i-a.png,l-text,i-x,l-end,lso-1,l-end"),
+		vq("layer_two_steps", "w-640:l-image,i-a.png,lfo-top_left,l-end:l-text,i-hi,lfo-bottom_right,l-end"),
+		vq("layer_too_many", strings.Repeat("l-image,i-a.png,l-end,", 9)),
 		vq("image_effect", "e-grayscale"),
 		vq("border", "b-5_FF0000"),
 		vq("named", "n-thumb"),
@@ -115,6 +125,7 @@ func TestVideo(t *testing.T) {
 		{name: "signed_path", cfg: "signed", path: "/tr:w-300/sample-video.mp4", query: signed("/tr:w-300/sample-video.mp4", "")},
 		{name: "signed_tampered", cfg: "signed", path: vid, query: "tr=w-301&" + sigParam(signed(vid, "tr=w-300,so-1"))},
 		{name: "unsigned_required", cfg: "required", path: vid, query: "tr=w-300"},
+		{name: "signed_layer", cfg: "signed", path: vid, query: signed(vid, "tr=l-image,i-logo.png,lfo-top_left,lso-1,l-end")},
 	})
 }
 
