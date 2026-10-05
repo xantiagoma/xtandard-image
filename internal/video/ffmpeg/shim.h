@@ -251,6 +251,24 @@ typedef struct {
   // Waveform picture (WP-123): afilters turns the audio into one RGBA
   // video frame, written by the rawvideo encoder; vcodec and acodec are 0.
   int waveform;
+  // Fragmented MP4 for HLS and DASH (WP-126): with frag set the output
+  // has exactly one stream and is CMAF (an empty moov, the init segment,
+  // then moof/mdat fragments, with negative composition offsets so the
+  // first sample's decode time is its presentation time); Go cuts the
+  // segments at fragment boundaries.
+  int frag;
+  // Video: the fragment's tfdt is its first sample's own decode time (a
+  // segment encoded on its own), frag_offset is added to every timestamp
+  // (1/90000 s, the stream's time base) and level is the H.264 level_idc
+  // (x 10; 0 = the encoder's choice).
+  int frag_discont;
+  int64_t frag_offset;
+  int level;
+  // Audio: a new fragment starts with the first packet of every
+  // frag_seconds of the source, and every timestamp moves by the
+  // encoder's priming, which must equal audio_priming samples.
+  int frag_seconds;
+  int audio_priming;
 } XiTxParams;
 
 // Capabilities (xi_tx_caps).

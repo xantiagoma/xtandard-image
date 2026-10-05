@@ -250,6 +250,19 @@ func params(cp *C.XiTxParams, p *video.TranscodePlan, pixels []*vips.Buffer) err
 	if p.Video == nil && p.Audio == nil {
 		return errs.New(errs.KindInternal, "ffmpeg: empty plan")
 	}
+	if f := p.Fragment; f != nil {
+		if (p.Video == nil) == (p.Audio == nil) || p.Output.Muxer != "mp4" {
+			return errs.New(errs.KindInternal, "ffmpeg: fragmented output takes one stream in mp4")
+		}
+		cp.frag = 1
+		cp.frag_discont = cbool(f.Discont)
+		cp.frag_offset = C.int64_t(f.Offset90k)
+		cp.frag_seconds = C.int(f.Seconds)
+		cp.audio_priming = C.int(f.Priming)
+		if p.Video != nil {
+			cp.level = C.int(p.Video.Level)
+		}
+	}
 	return nil
 }
 
