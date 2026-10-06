@@ -280,3 +280,6 @@ owner has authorised merging PRs without review.
   float rounding, WP-114 CMYK BPC, `config validate` Azure/SFTP, gpl licence label (DNG SDK/GPR),
   imgproxy allowed-sources scheme (`m5/wp-130-polish`). 121b and 121c both touch `internal/media`:
   merge 121b first, then rebase 121c.
+- **Merged 2026-10-06:** WP-121c cost-based video admission (#130), WP-130 polish (#131: WP-113, WP-114,
+  Azure/SFTP validate, imgproxy allowed-source scheme, gpl licence labels; base labels need a base
+  revision bump to take effect). Still in flight: WP-121b spool (told to rebase onto WP-121c).
