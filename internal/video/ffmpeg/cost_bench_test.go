@@ -42,7 +42,7 @@ func BenchmarkTranscodeCost(b *testing.B) {
 		// (Auto: file as it is), so every decoder reads the same content.
 		from transform.VideoCodec
 	}
-	var cases []bench
+	cases := make([]bench, 0, 48)
 	tiny := func() *transform.VideoOp {
 		return &transform.VideoOp{Container: transform.VideoContainerWebM, Width: 128, Height: 72, Fit: transform.VideoFitFill, Mute: true}
 	}

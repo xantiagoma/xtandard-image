@@ -232,7 +232,7 @@ func TestAdmissionMaxJobs(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		e := newCostEngine()
 		s, _ := newCostService(t, e, func(c *Config) { c.MaxJobs = 2 })
-		var jobs []*bgJob
+		jobs := make([]*bgJob, 0, 3)
 		for _, n := range []string{"a", "b", "c"} {
 			jobs = append(jobs, startJob(t.Context(), s, n, 1))
 			synctest.Wait()
@@ -382,7 +382,7 @@ func TestAdmissionCancel(t *testing.T) {
 
 		// Cancelled while waiting for the probe slot (Workers probes).
 		gate := e.holdOpens()
-		var probing []*bgJob
+		probing := make([]*bgJob, 0, 3)
 		for _, n := range []string{"p1", "p2", "p3"} {
 			probing = append(probing, startJob(t.Context(), s, n, 1))
 		}
