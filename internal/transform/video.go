@@ -115,6 +115,12 @@ type VideoOp struct {
 	// instead of one file: a manifest of renditions whose segments are
 	// transcoded on request. nil is a file.
 	Stream *VideoStream
+
+	// Raw streams the source unmodified (imgproxy raw on /video, WP-128):
+	// the media file as fetched, with Range, under the video endpoint's
+	// signing, unsigned policy, role and input limits. Every other field
+	// is ignored; the result is not cached.
+	Raw bool
 }
 
 // VideoCrop is a rectangle of the source in pixels, after the rotation.

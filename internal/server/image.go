@@ -39,7 +39,7 @@ func (s *Server) image(w http.ResponseWriter, r *http.Request) {
 	// 2–4. Route first: a video transformation has a budget of its own.
 	parsed, err := s.route(r, info)
 	if err == nil && parsed.Request.Kind == transform.KindVideo {
-		if parsed.Request.Video != nil && parsed.Request.Video.Stream != nil {
+		if v := parsed.Request.Video; v != nil && v.Stream != nil && !v.Raw {
 			s.streamMaster(w, r, info, parsed) // stream.go
 			return
 		}

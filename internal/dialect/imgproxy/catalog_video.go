@@ -242,7 +242,7 @@ func VideoOptions() []Option {
 		o := proc[i]
 		switch o.Name {
 		case "watermark", "watermark_url", "watermark_text", "watermark_size", "watermark_rotate", "watermark_shadow",
-			"cachebuster", "expires", "filename", "return_attachment", "hashsum", "bypass_cache", "cache_tags":
+			"cachebuster", "expires", "filename", "return_attachment", "hashsum", "bypass_cache", "cache_tags", "raw":
 			o.Shared = true
 			opts = append(opts, o)
 		}

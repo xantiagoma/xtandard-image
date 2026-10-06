@@ -80,6 +80,8 @@ type fakeFetcher struct {
 	fn    func(ctx context.Context) error
 	freed atomic.Int32
 	calls atomic.Int32
+	// maxBytes is the last FetchOptions.MaxBytes.
+	maxBytes atomic.Int64
 	// other answers every path but the request's (fallback images);
 	// nil: same as the request's.
 	other *fakeReply
@@ -93,7 +95,8 @@ type fakeReply struct {
 	err  error
 }
 
-func (f *fakeFetcher) Fetch(ctx context.Context, key source.Key, _ source.FetchOptions) (*fetch.Result, error) {
+func (f *fakeFetcher) Fetch(ctx context.Context, key source.Key, opts source.FetchOptions) (*fetch.Result, error) {
+	f.maxBytes.Store(opts.MaxBytes)
 	f.mu.Lock()
 	f.paths = append(f.paths, key.Path)
 	f.mu.Unlock()
