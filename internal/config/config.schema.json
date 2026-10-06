@@ -3463,8 +3463,8 @@
             },
             "max_output_pixels": {
               "default": 8294400,
-              "description": "Largest output frame, width × height (4K UHD) (422)\n\nEnv: XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS",
-              "markdownDescription": "Largest output frame, width × height (4K UHD) (422)\n\nEnv: `XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS`",
+              "description": "Largest output frame, width × height (4K UHD). A request that names no size is scaled down to fit it (aspect kept); an explicit size over it is 422\n\nEnv: XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS",
+              "markdownDescription": "Largest output frame, width × height (4K UHD). A request that names no size is scaled down to fit it (aspect kept); an explicit size over it is 422\n\nEnv: `XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS`",
               "title": "XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS",
               "type": "integer"
             },
