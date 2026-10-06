@@ -658,15 +658,18 @@ xi_affine(VipsImage *in, double a, double b, double c, double d, const double *b
   return XI_OK;
 }
 
-// xi_round_cast_to rounds float pixels to nearest before casting to format,
-// since vips_cast truncates. Integer inputs are cast directly.
+// xi_round_cast_to rounds float pixels to nearest before casting them to an
+// integer format, since vips_cast truncates. Integer inputs, and any cast to
+// a float or complex format, are cast directly: rounding there would drop the
+// fraction a float (scRGB, HDR) result must keep.
 static int
 xi_round_cast_to(VipsImage *in, VipsBandFormat format, VipsImage **out)
 {
   VipsImage *r = NULL;
   int rc;
 
-  if (!vips_band_format_isfloat(in->BandFmt) && !vips_band_format_iscomplex(in->BandFmt))
+  if ((!vips_band_format_isfloat(in->BandFmt) && !vips_band_format_iscomplex(in->BandFmt)) ||
+      vips_band_format_isfloat(format) || vips_band_format_iscomplex(format))
     return vips_cast(in, out, format, NULL);
   if (vips_rint(in, &r, NULL))
     return -1;
