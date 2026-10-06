@@ -68,6 +68,12 @@ services:
       - b2_application_key
     volumes:
       - photos:/data/photos:ro
+      # Video transformations (full/gpl image, XI_VIDEO_TRANSFORM_ENABLED):
+      # large sources and outputs go to spool files, which need a
+      # disk-backed volume (the tmpfs below is RAM and too small); set
+      # XI_VIDEO_TRANSFORM_SPOOL_DIR: /spool and _SPOOL_MAX_BYTES below its
+      # size (docs/RELEASE.md "Running read-only").
+      # - video-spool:/spool
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m

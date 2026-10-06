@@ -18,7 +18,7 @@ func mapFile(f *os.File, off, n int64) (mapping, view []byte, err error) {
 	}
 	var m []byte
 	cerr := rc.Control(func(fd uintptr) {
-		m, err = syscall.Mmap(int(fd), start, int(off-start+n), syscall.PROT_READ, syscall.MAP_SHARED) //nolint:gosec // G115: a descriptor and a mapped length fit an int
+		m, err = syscall.Mmap(int(fd), start, int(off-start+n), syscall.PROT_READ, syscall.MAP_SHARED)
 	})
 	if cerr != nil {
 		return nil, nil, cerr

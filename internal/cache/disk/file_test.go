@@ -17,7 +17,7 @@ func TestConformanceFileBodies(t *testing.T) {
 	t.Parallel()
 	cachetest.Run(t, func(t *testing.T, now func() time.Time) cache.Store {
 		t.Helper()
-		return open(t, Options{Dir: t.TempDir(), MaxBytes: 1 << 20, Now: now, FileBodyBytes: 1})
+		return open(t, &Options{Dir: t.TempDir(), MaxBytes: 1 << 20, Now: now, FileBodyBytes: 1})
 	})
 }
 
@@ -52,7 +52,7 @@ func TestFileBodies(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			s := open(t, Options{Dir: t.TempDir(), MaxBytes: 1 << 20, FileBodyBytes: tc.fileMin})
+			s := open(t, &Options{Dir: t.TempDir(), MaxBytes: 1 << 20, FileBodyBytes: tc.fileMin})
 			body := spooled(t, data)
 			e := cache.Entry{Body: body, Status: 200, Header: map[string][]string{"Content-Type": {"video/mp4"}}}
 			if err := s.Set(t.Context(), cache.NSResult, "v1/video", &e, time.Hour); err != nil {
@@ -99,7 +99,7 @@ func TestFileBodies(t *testing.T) {
 func TestFileBodyCorrupt(t *testing.T) {
 	t.Parallel()
 	m := &metricsRec{}
-	s := open(t, Options{Dir: t.TempDir(), MaxBytes: 1 << 20, FileBodyBytes: 1024, Metrics: m})
+	s := open(t, &Options{Dir: t.TempDir(), MaxBytes: 1 << 20, FileBodyBytes: 1024, Metrics: m})
 	cachetest.Set(t, s, cache.NSResult, "v1/big", bytes.Repeat([]byte("z"), 8192), nil, time.Hour)
 	p := s.path(fileName(string(cache.NSResult) + "v1/big"))
 	if err := os.Truncate(p, 4000); err != nil {

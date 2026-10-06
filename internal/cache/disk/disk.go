@@ -120,7 +120,7 @@ type item struct {
 // New opens (creating it if needed) the cache directory, checks that it
 // is writable, rebuilds the index from the files already there and starts
 // the janitor, which Close stops.
-func New(opts Options) (*Store, error) {
+func New(opts *Options) (*Store, error) {
 	if opts.MaxBytes <= 0 {
 		return nil, fmt.Errorf("disk cache: max bytes must be > 0, got %d", opts.MaxBytes)
 	}
@@ -269,7 +269,7 @@ func (s *Store) Get(_ context.Context, ns cache.Namespace, key string) (cache.En
 // done is false when the file is missing, small or unreadable, which Get
 // then handles as before.
 func (s *Store) getFile(name, p, full string) (e cache.Entry, ok, done bool) {
-	f, err := os.Open(p) //nolint:gosec // G304: p is <dir>/<hex>/<hex>/<sha256 hex>, never request text
+	f, err := os.Open(p)
 	if err != nil {
 		return cache.Entry{}, false, false
 	}

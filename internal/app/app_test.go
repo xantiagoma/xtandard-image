@@ -30,26 +30,26 @@ type addrs struct{ public, admin net.Addr }
 
 // start runs the service with cfg until the test ends and returns its
 // addresses.
-func start(t *testing.T, cfg *config.Config, h hooks) addrs {
-	t.Helper()
-	a, _ := startStoppable(t, cfg, h)
+func start(tb testing.TB, cfg *config.Config, h hooks) addrs {
+	tb.Helper()
+	a, _ := startStoppable(tb, cfg, h)
 	return a
 }
 
 // startStoppable is start plus a stop function that shuts the service
 // down and waits for run to return (idempotent; the test's cleanup calls
 // it too).
-func startStoppable(t *testing.T, cfg *config.Config, h hooks) (addrs, func()) {
-	t.Helper()
-	return startLogged(t, cfg, h, slog.New(slog.DiscardHandler))
+func startStoppable(tb testing.TB, cfg *config.Config, h hooks) (addrs, func()) {
+	tb.Helper()
+	return startLogged(tb, cfg, h, slog.New(slog.DiscardHandler))
 }
 
 // startLogged is startStoppable with the service logging to logger.
-func startLogged(t *testing.T, cfg *config.Config, h hooks, logger *slog.Logger) (addrs, func()) {
-	t.Helper()
+func startLogged(tb testing.TB, cfg *config.Config, h hooks, logger *slog.Logger) (addrs, func()) {
+	tb.Helper()
 	bound := make(chan addrs, 1)
 	h.listening = func(p, a net.Addr) { bound <- addrs{p, a} }
-	ctx, cancel := context.WithCancelCause(context.WithoutCancel(t.Context()))
+	ctx, cancel := context.WithCancelCause(context.WithoutCancel(tb.Context()))
 	done := make(chan error, 1)
 	go func() { done <- run(ctx, cfg, logger, Options{Version: "test"}, h) }()
 	var once sync.Once
@@ -57,17 +57,17 @@ func startLogged(t *testing.T, cfg *config.Config, h hooks, logger *slog.Logger)
 		once.Do(func() {
 			cancel(errors.New("test shutdown"))
 			if err := <-done; err != nil {
-				t.Errorf("run after shutdown: %v", err)
+				tb.Errorf("run after shutdown: %v", err)
 			}
 		})
 	}
-	t.Cleanup(stop)
+	tb.Cleanup(stop)
 	select {
 	case a := <-bound:
 		return a, stop
 	case err := <-done:
 		once.Do(func() {})
-		t.Fatalf("run exited early: %v", err)
+		tb.Fatalf("run exited early: %v", err)
 		return addrs{}, nil
 	}
 }
@@ -79,20 +79,20 @@ type response struct {
 	header http.Header
 }
 
-func get(t *testing.T, u string) response {
-	t.Helper()
-	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, u, http.NoBody)
+func get(tb testing.TB, u string) response {
+	tb.Helper()
+	req, err := http.NewRequestWithContext(tb.Context(), http.MethodGet, u, http.NoBody)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	return response{status: resp.StatusCode, ctype: resp.Header.Get("Content-Type"), body: body, header: resp.Header}
 }

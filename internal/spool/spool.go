@@ -217,10 +217,10 @@ func (*BudgetError) RetryAfterHint() time.Duration { return RetryAfter }
 
 // budgetError is the request error of a refused reservation: 503 with a
 // public message and the *BudgetError (Retry-After) in its chain.
-func budgetError(need, max int64) error {
+func budgetError(need, limit int64) error {
 	return &errs.Error{
 		Kind: errs.KindUnavailable, Public: "temporarily out of video spool space",
-		Msg: "spool: over budget", Err: &BudgetError{Need: need, Max: max},
+		Msg: "spool: over budget", Err: &BudgetError{Need: need, Max: limit},
 	}
 }
 

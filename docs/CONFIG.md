@@ -693,4 +693,4 @@ spec:
     #   pods: { metric: { name: xi_queue_depth }, target: { type: AverageValue, averageValue: "4" } }
 ```
 
-Set CPU and memory limits: the worker count follows the CPU limit (GOMAXPROCS) and `GOMEMLIMIT` is derived from the memory limit. A ConfigMap with several sources and a Secret mounted as files (`{file: …}`, `_FILE`, `secretKeyRef`, IRSA): [SOURCES.md §5.4](SOURCES.md#54-kubernetes) and [`docs/examples/k8s/`](examples/k8s/).
+Set CPU and memory limits: the worker count follows the CPU limit (GOMAXPROCS) and `GOMEMLIMIT` is derived from the memory limit. A deployment that runs video transformations (`XI_ROLE=video` or `all` with `XI_VIDEO_TRANSFORM_ENABLED`) also needs a disk-backed volume for its spool files (an `emptyDir` without `medium: Memory`, with a `sizeLimit` above `XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES`) at `XI_VIDEO_TRANSFORM_SPOOL_DIR`: [RELEASE.md "Running read-only"](RELEASE.md#running-read-only). A ConfigMap with several sources and a Secret mounted as files (`{file: …}`, `_FILE`, `secretKeyRef`, IRSA): [SOURCES.md §5.4](SOURCES.md#54-kubernetes) and [`docs/examples/k8s/`](examples/k8s/).
