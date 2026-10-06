@@ -12,6 +12,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand/v2"
 	"sync/atomic"
 	"time"
@@ -119,6 +120,11 @@ type Fetcher struct {
 
 	store    cache.Store // optional shared origin store (WithStore)
 	storeTTL time.Duration
+
+	// FetchLarge (large.go, WithSpool): nil spool fetches like Fetch.
+	spool   Spooler
+	spooled *spoolCache
+	large   flightGroup
 }
 
 // New returns a Fetcher over sources that stores originals in buffers from
@@ -209,16 +215,21 @@ func (f *Fetcher) Fetch(ctx context.Context, key source.Key, opt source.FetchOpt
 // result wraps a buffer reference the caller already owns, enforcing the
 // caller's byte limit.
 func (f *Fetcher) result(buf Buffer, meta *source.Object, fromCache bool, limit int64) (*Result, error) {
-	if n := int64(len(buf.Bytes())); n > limit {
+	if n := cache.BodyLen(buf); n > limit {
 		buf.Release()
 		return nil, tooLarge(n, limit)
 	}
 	return &Result{Buffer: buf, Object: *meta, FromCache: fromCache}, nil
 }
 
-// Purge drops every cached original. Buffers still held by callers stay
-// valid until their own Release.
-func (f *Fetcher) Purge() { f.cache.purge() }
+// Purge drops every cached original, spooled ones included. Buffers
+// still held by callers stay valid until their own Release.
+func (f *Fetcher) Purge() {
+	f.cache.purge()
+	if f.spooled != nil {
+		f.spooled.reclaim()
+	}
+}
 
 // CacheUsage reports the bytes and entries held by the origin cache.
 func (f *Fetcher) CacheUsage() (bytes int64, entries int) { return f.cache.usage() }
@@ -259,7 +270,7 @@ func (f *Fetcher) load(ctx context.Context, ck string, src source.Source, key so
 		}
 	}
 
-	obj, buf, err := f.fetchWithRetry(ctx, src, key, opt)
+	obj, buf, err := f.fetchWithRetry(ctx, src, key, opt, f.readMemory)
 	switch {
 	case err != nil:
 		if stale {
@@ -283,7 +294,7 @@ func (f *Fetcher) load(ctx context.Context, ck string, src source.Source, key so
 	}
 	meta := *obj
 	meta.Body = nil
-	meta.Size = int64(len(buf.Bytes()))
+	meta.Size = cache.BodyLen(buf)
 	f.cache.put(ck, buf, &meta, time.Now())
 	if f.store != nil {
 		f.storePut(ctx, ck, buf, &meta)
@@ -293,8 +304,8 @@ func (f *Fetcher) load(ctx context.Context, ck string, src source.Source, key so
 
 // fetchWithRetry runs one attempt and, when enabled, retries a transient
 // failure exactly once after a jittered backoff.
-func (f *Fetcher) fetchWithRetry(ctx context.Context, src source.Source, key source.Key, opt source.FetchOptions) (*source.Object, Buffer, error) {
-	obj, buf, err := f.attempt(ctx, src, key, opt)
+func (f *Fetcher) fetchWithRetry(ctx context.Context, src source.Source, key source.Key, opt source.FetchOptions, read readFunc) (*source.Object, Buffer, error) {
+	obj, buf, err := f.attempt(ctx, src, key, opt, read)
 	if err == nil || !f.cfg.Retry || !transient(err) {
 		return obj, buf, err
 	}
@@ -307,11 +318,20 @@ func (f *Fetcher) fetchWithRetry(ctx context.Context, src source.Source, key sou
 	case <-ctx.Done():
 		return nil, nil, err
 	}
-	return f.attempt(ctx, src, key, opt)
+	return f.attempt(ctx, src, key, opt, read)
+}
+
+// readFunc reads a body of size bytes (-1 unknown) up to maxBytes.
+type readFunc func(r io.Reader, size, maxBytes int64) (Buffer, error)
+
+// readMemory is Fetch's readFunc: the body into a Buffer from the
+// allocator.
+func (f *Fetcher) readMemory(r io.Reader, size, maxBytes int64) (Buffer, error) {
+	return readBody(f.alloc, r, size, maxBytes)
 }
 
 // attempt performs one download bounded by the configured timeout.
-func (f *Fetcher) attempt(ctx context.Context, src source.Source, key source.Key, opt source.FetchOptions) (_ *source.Object, _ Buffer, err error) {
+func (f *Fetcher) attempt(ctx context.Context, src source.Source, key source.Key, opt source.FetchOptions, read readFunc) (_ *source.Object, _ Buffer, err error) {
 	timeout := errs.Newf(errs.KindUpstreamTimeout, "fetch %s: no response within %s", source.RedactKey(key), f.cfg.Timeout)
 	actx, cancel := context.WithTimeoutCause(ctx, f.cfg.Timeout, timeout)
 	defer cancel()
@@ -341,11 +361,11 @@ func (f *Fetcher) attempt(ctx context.Context, src source.Source, key source.Key
 		return nil, nil, errs.Newf(errs.KindInternal, "fetch %s: source returned no body", source.RedactKey(key))
 	}
 	defer func() { _ = obj.Body.Close() }() // read-only body: the read error is what matters
-	buf, err := readBody(f.alloc, obj.Body, obj.Size, f.cfg.MaxBytes)
+	buf, err := read(obj.Body, obj.Size, f.cfg.MaxBytes)
 	if err != nil {
 		return nil, nil, classify(actx, timeout, err)
 	}
-	n = int64(len(buf.Bytes()))
+	n = cache.BodyLen(buf)
 	return obj, buf, nil
 }
 
