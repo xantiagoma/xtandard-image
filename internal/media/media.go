@@ -380,7 +380,7 @@ func (s *Service) execute(ctx context.Context, t *ticket, src Buffer, plan plann
 		if !try && ctx.Err() == nil && errors.Is(context.Cause(wait), errQueueTimeout) {
 			return nil, s.pool.waitError(ctx) // the probe outlived the queue timeout
 		}
-		s.metrics.Transcoded(errs.KindOf(err).String(), time.Since(start), int64(len(src.Bytes())), 0)
+		s.metrics.Transcoded(errs.KindOf(err).String(), time.Since(start), cache.BodyLen(src), 0)
 		return nil, err
 	}
 	defer tk.job.Close()
