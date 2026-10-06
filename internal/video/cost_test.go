@@ -6,8 +6,10 @@ import (
 )
 
 func costInput(codec string, w, h int, fps, dur float64) *TranscodeInput {
-	return &TranscodeInput{Duration: dur, Video: true, VideoCodec: codec, Width: w, Height: h, FPS: fps,
-		Audio: true, AudioDecodable: true, SampleRate: 48000, Channels: 2}
+	return &TranscodeInput{
+		Duration: dur, Video: true, VideoCodec: codec, Width: w, Height: h, FPS: fps,
+		Audio: true, AudioDecodable: true, SampleRate: 48000, Channels: 2,
+	}
 }
 
 func videoPlan(codec Codec, w, h int, fps, dur float64) *TranscodePlan {
@@ -44,8 +46,10 @@ func TestEstimateCost(t *testing.T) {
 		},
 		{
 			"a stream segment is its window, plus pre-roll and tail",
-			in720, &TranscodePlan{Start: 12, End: 18, Duration: 60, Fragment: &FragmentPlan{Discont: true},
-				Video: &VideoStreamPlan{Codec: CodecH264, Width: 1280, Height: 720, FPS: 30}},
+			in720, &TranscodePlan{
+				Start: 12, End: 18, Duration: 60, Fragment: &FragmentPlan{Discont: true},
+				Video: &VideoStreamPlan{Codec: CodecH264, Width: 1280, Height: 720, FPS: 30},
+			},
 			baseMs + (6+prerollSec+segmentTailSec)*30*px720*decodeNsPerPixel["h264"]/1e6 + 6*30*px720*encodeNsPerPixel[CodecH264]/1e6,
 		},
 		{
