@@ -24,7 +24,11 @@
 // control plays both and keeps them within tolerance after seeks, the wipe
 // slider clips the result video, unlinking gives each player its controls,
 // and for audio both waveforms render and the A/B switch moves the sound
-// at the same position.
+// at the same position. WP-129: gpl-only media recipes (needs h264/hevc)
+// are disabled with their reason on the full image, every other video
+// recipe renders (load-to-result times are listed as a note), and a sample
+// of the media recipes (public trailers, a portrait clip, speech, the
+// local pan sweep) loads with both the source and the result players ready.
 //
 // Playwright is not a dependency of the repository: run it from a
 // throwaway directory against a server with the demo configuration
@@ -873,7 +877,7 @@ await page.click('#examples-filters .chip[data-filter="imgix"]');
 const imgixShown = await page.$$eval('#examples article.recipe:not([hidden])', (a) => a.map((x) => x.querySelector('.badge.dialect')!.textContent));
 check(imgixShown.length === recipes.filter((r) => r.dialect === 'imgix').length && imgixShown.every((d) => d === 'imgix'), `examples: the imgix chip filters (${imgixShown.length} cards)`);
 await page.click('#examples-filters .chip[data-filter="all"]');
-await page.fill('#examples-search', 'chessboard');
+await page.fill('#examples-search', 'chessboard (ch)');
 check(await page.$$eval('#examples article.recipe:not([hidden])', (a) => a.length) === 1, 'examples: the search filters');
 await page.fill('#examples-search', '');
 // Cards that need a default watermark follow api/meta.
@@ -1138,16 +1142,34 @@ if (!vt) {
   // f. Every video recipe renders.
   const vrecipes = recipes.filter((r) => r.category === 'video');
   check(vrecipes.length >= 8, `video recipes: ${vrecipes.length}`);
+  const timings: string[] = [];
   for (const r of vrecipes) {
     await page.evaluate((x) => { location.hash = x; }, '#tools/examples');
     await page.waitForSelector('#tool-examples:not([hidden])');
-    await page.click(`button[data-recipe="${r.id}"]`);
+    // WP-129: gpl-only recipes (h264, hevc) are disabled with a reason on
+    // the full image and absent on slim.
+    const btn = await page.$(`button[data-recipe="${r.id}"]`);
+    const gplOnly = (r.needs ?? []).some((n: string) => n === 'h264' || n === 'hevc');
+    if (!btn) {
+      check(gplOnly && !pm.video, `video recipe ${r.id}: listed`);
+      continue;
+    }
+    if (await btn.isDisabled()) {
+      const why = await btn.getAttribute('title') ?? '';
+      check(gplOnly && !vt.codecs.includes('h264') && /gpl image/.test(why), `video recipe ${r.id}: disabled only for a gpl codec on a non-gpl image (${why})`);
+      continue;
+    }
+    // The previous recipe's result must not count: mark it with its URL.
+    await page.evaluate(() => { for (const m of document.querySelectorAll<HTMLElement>('#before-media > *, #after-media > *')) m.dataset.stale = (m as HTMLMediaElement).currentSrc || (m as HTMLImageElement).src || 'x'; });
+    const t0 = Date.now();
+    await btn.click();
     await page.waitForSelector('#workspace:not([hidden])');
     // imgproxy URLs carry the signature segment after /video.
     const urlOk = await waitURL(r.url.split('?')[0].replace(/^\/video\//, '/'), 15000);
     const done = await page.waitForFunction(() => {
       const m = document.querySelector('#after-media > *') as (HTMLMediaElement & HTMLImageElement) | null;
       if (!m || document.querySelector('#pane-after.loading')) return false;
+      if (m.dataset.stale !== undefined && (m.currentSrc || m.src || 'x') === m.dataset.stale) return false;
       if (m.tagName === 'IMG') return m.naturalWidth > 0 ? `image ${m.naturalWidth}×${m.naturalHeight}` : false;
       if (m.tagName === 'VIDEO' || m.tagName === 'AUDIO') return m.readyState >= 2 ? `${m.tagName.toLowerCase()} ${m.duration.toFixed(2)} s` : m.error ? `${m.tagName.toLowerCase()} (not playable here)` : false;
       if (m.classList.contains('stream-result')) return `stream of ${m.querySelectorAll('.stream-list li').length} entries`;
@@ -1155,7 +1177,37 @@ if (!vt) {
     }, undefined, { timeout: 60000 }).then((h) => h.jsonValue() as Promise<string>, () => 'timeout');
     const status = await page.textContent('#stats .stat strong').catch(() => '');
     check(urlOk && status?.startsWith('200') === true && !done.startsWith('error') && done !== 'timeout', `video recipe ${r.id}: ${done} (${status})`);
+    timings.push(`${r.id} ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     if (shots) await page.locator('#stage').screenshot({ path: `${shots}/example-${r.id}.png` });
+  }
+  notes.push(`video recipe load-to-result times: ${timings.join(', ')}`);
+  // f2. WP-129 media recipes: a sample (public video sources, a portrait
+  // clip, a quiet speech MP3, the local pan sweep) loads with both the
+  // source and the result players ready for the comparison.
+  for (const id of ['media-trim-middle', 'media-portrait-rotate', 'media-lower-third', 'audio-loudnorm-speech', 'audio-mono-downmix', 'audio-extract-m4a']) {
+    if (!recipes.some((r) => r.id === id)) {
+      check(false, `media recipe ${id} exists`);
+      continue;
+    }
+    await page.evaluate((x) => { location.hash = x; }, '#tools/examples');
+    await page.waitForSelector('#tool-examples:not([hidden])');
+    // The previous recipe's result must not count: mark it with its URL.
+    await page.evaluate(() => { for (const m of document.querySelectorAll<HTMLElement>('#before-media > *, #after-media > *')) m.dataset.stale = (m as HTMLMediaElement).currentSrc || (m as HTMLImageElement).src || 'x'; });
+    await page.click(`button[data-recipe="${id}"]`);
+    await page.waitForSelector('#workspace:not([hidden])');
+    const both = await page.waitForFunction(() => {
+      const s = document.querySelector('#before-media > video, #before-media > audio') as HTMLMediaElement | null;
+      const r = document.querySelector('#after-media > video, #after-media > audio') as HTMLMediaElement | null;
+      if (!s || !r || document.querySelector('#pane-after.loading, #pane-before.loading')) return false;
+      if ([r].some((m) => m.dataset.stale !== undefined && (m.currentSrc || 'x') === m.dataset.stale)) return false;
+      // An audio source shows its waveform (of the first minute when the
+      // file is longer than the demo's output limit).
+      const wave = document.querySelector('#before-media .wave-box img') as HTMLImageElement | null;
+      if (s.tagName === 'AUDIO' && !(wave && wave.naturalWidth > 0)) return false;
+      return s.readyState >= 2 && r.readyState >= 2 ? `${s.tagName.toLowerCase()} ${s.duration.toFixed(1)} s / ${r.tagName.toLowerCase()} ${r.duration.toFixed(1)} s${wave ? ', source waveform shown' : ''}` : false;
+    }, undefined, { timeout: 90000 }).then((h) => h.jsonValue() as Promise<string>, () => 'timeout');
+    check(both !== 'timeout', `media recipe ${id}: source and result players ready (${both})`);
+    if (shots) await page.locator('#stage').screenshot({ path: `${shots}/media-${id}.png` });
   }
   // h. HLS (WP-126): the stream recipe's master playlist loads through
   // api/render with its playlists under api/stream, a media playlist

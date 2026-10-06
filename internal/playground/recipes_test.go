@@ -98,7 +98,7 @@ func TestRecipesParse(t *testing.T) {
 				t.Errorf("category %q", r.Category)
 			}
 			for _, n := range r.Needs {
-				if !slices.Contains([]string{playground.NeedWatermark, playground.NeedDetection, playground.NeedVideo, playground.NeedVideoTransform}, n) {
+				if !slices.Contains([]string{playground.NeedWatermark, playground.NeedDetection, playground.NeedVideo, playground.NeedVideoTransform, playground.NeedH264, playground.NeedHEVC}, n) {
 					t.Errorf("unknown need %q", n)
 				}
 			}
@@ -170,6 +170,13 @@ func TestRecipesParse(t *testing.T) {
 				t.Errorf("kind %v, needs %v: video transformations need %s", res.Request.Kind, r.Needs, playground.NeedVideoTransform)
 			}
 			if isVideo {
+				// WP-129: a recipe that asks for a gpl-only encoder says so,
+				// so the page disables it on the full image.
+				vc := res.Request.Video.VideoCodec
+				if (vc == transform.VideoCodecH264) != slices.Contains(r.Needs, playground.NeedH264) ||
+					(vc == transform.VideoCodecHEVC) != slices.Contains(r.Needs, playground.NeedHEVC) {
+					t.Errorf("video codec %v, needs %v: H.264 and HEVC output need %s / %s", vc, r.Needs, playground.NeedH264, playground.NeedHEVC)
+				}
 				for _, o := range res.Request.Video.Overlays {
 					if o.Source != nil {
 						checkRef(t, *o.Source, m.source, public)

@@ -3000,8 +3000,8 @@ export interface components {
             id: string;
             /** @description Info panel options ([name, value…]); the recipe opens the Info (source) tab. */
             info?: (string[] | null)[] | null;
-            /** @description Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output), video_transform (video transformations, XI_VIDEO_TRANSFORM_ENABLED). */
-            needs?: ("watermark" | "detection" | "video" | "video_transform")[] | null;
+            /** @description Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output), video_transform (video transformations, XI_VIDEO_TRANSFORM_ENABLED), h264 and hevc (the gpl image's H.264 and HEVC encoders, video_transform.codecs). */
+            needs?: ("watermark" | "detection" | "video" | "video_transform" | "h264" | "hevc")[] | null;
             /** @description Builder entries per chained pipeline: [name, value…] (catalogue names; base64 arguments plain). */
             pipelines: ((string[] | null)[] | null)[] | null;
             /** @description Path and query written by hand ({src} is the source, {key} its key on the mount's source); the builder is bypassed. */

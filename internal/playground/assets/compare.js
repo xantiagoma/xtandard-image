@@ -96,7 +96,7 @@ export class MediaCompare {
     this.listen = 'result';
     this.userMuted = null; // the Sound button's choice; null: videos start muted, audio not
     this.rate = 1;
-    this.timing = { start: 0, end: null, duration: 0, fps: 0 };
+    this.timing = { start: 0, end: null, duration: 0, fps: 0, waveSpan: 0 };
     this.drift = 0; // smoothed drift (s)
     this.fresh = true; // the next sample restarts the average
     this.resyncs = [];
@@ -167,10 +167,12 @@ export class MediaCompare {
     this.kick();
   }
 
-  // setTiming takes the trim and the source facts: {start, end, duration, fps}.
+  // setTiming takes the trim and the source facts: {start, end, duration,
+  // fps, waveSpan}; waveSpan > 0 when the source waveform covers only its
+  // first waveSpan seconds (a long audio file, WP-129).
   setTiming(t) {
     if (!t) return;
-    this.timing = { start: t.start || 0, end: t.end ?? null, duration: t.duration || 0, fps: t.fps || 0 };
+    this.timing = { start: t.start || 0, end: t.end ?? null, duration: t.duration || 0, fps: t.fps || 0, waveSpan: t.waveSpan || 0 };
     if (this.active() && this.linked) this.syncTo();
     this.ui();
   }
@@ -292,7 +294,7 @@ export class MediaCompare {
       this.seek(frac * this.resDuration());
       return;
     }
-    const s = frac * this.srcDuration();
+    const s = frac * (this.timing.waveSpan || this.srcDuration());
     if (this.active() && this.linked) this.seek(clamp(this.unmap(s), 0, this.resDuration()));
     else if (this.src) this.src.currentTime = s;
     this.ui();
@@ -439,9 +441,12 @@ export class MediaCompare {
     // Audio panes: the trim on the source waveform and both playheads.
     const wb = $('before-media').querySelector('.wave-box');
     if (wb) {
-      wb.style.setProperty('--a', pct(start));
-      wb.style.setProperty('--w', sd && end ? `${clamp(((end - start) / sd) * 100, 0, 100)}%` : '100%');
-      wb.style.setProperty('--h', pct(src?.currentTime ?? 0));
+      // The waveform spans the whole source, or its first waveSpan seconds.
+      const ws = this.timing.waveSpan || sd;
+      const wpct = (s) => `${ws ? clamp((s / ws) * 100, 0, 100) : 0}%`;
+      wb.style.setProperty('--a', wpct(start));
+      wb.style.setProperty('--w', ws && end ? `${clamp(((Math.min(end, ws) - start) / ws) * 100, 0, 100)}%` : '100%');
+      wb.style.setProperty('--h', wpct(src?.currentTime ?? 0));
     }
     const wa = $('after-media').querySelector('.wave-box');
     if (wa && res) wa.style.setProperty('--h', `${rd ? clamp((res.currentTime / rd) * 100, 0, 100) : 0}%`);
