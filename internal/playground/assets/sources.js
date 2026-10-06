@@ -7,7 +7,7 @@ export const FORMAT_LABELS = {
   jpeg: 'JPEG', png: 'PNG', apng: 'APNG', gif: 'GIF', webp: 'WebP', avif: 'AVIF', heic: 'HEIC', jxl: 'JPEG XL',
   tiff: 'TIFF', bmp: 'BMP', ico: 'ICO', icns: 'ICNS', svg: 'SVG', pdf: 'PDF', psd: 'PSD', jp2: 'JPEG 2000', jxr: 'JPEG XR',
   exr: 'OpenEXR', hdr: 'Radiance HDR', pfm: 'PFM', raw: 'Camera RAW', pnm: 'PNM', qoi: 'QOI', tga: 'TGA', pcx: 'PCX',
-  dds: 'DDS', sgi: 'SGI', sun: 'Sun raster', xbm: 'XBM', xpm: 'XPM', wbmp: 'WBMP', eps: 'EPS', mp4: 'MP4', webm: 'WebM', mkv: 'Matroska',
+  dds: 'DDS', sgi: 'SGI', sun: 'Sun raster', xbm: 'XBM', xpm: 'XPM', wbmp: 'WBMP', eps: 'EPS', mp4: 'MP4', webm: 'WebM', mkv: 'Matroska', mov: 'QuickTime MOV', mp3: 'MP3 audio',
   // Formats not decoded yet (tag "gap"): kept in the gallery so the format
   // matrix shows the gaps of docs/research/format-gap.md.
   svgz: 'SVGZ', mpo: 'MPO', jls: 'JPEG-LS', ljpeg: 'Lossless JPEG', jxs: 'JPEG XS', xcf: 'GIMP XCF', ora: 'OpenRaster',
@@ -54,12 +54,13 @@ export class Sources {
       note: s.full ? 'Full image: needs FFmpeg or the detection models.' : '', licence: 'CC0 / public domain', attribution: 'xtandard-image test fixtures',
     }));
     for (const g of this.meta.gallery ?? []) {
-      const video = ['mp4', 'webm', 'mkv'].includes(g.format);
+      // Video and audio files need FFmpeg (the full or gpl image).
+      const video = ['mp4', 'webm', 'mkv', 'mov', 'mp3'].includes(g.format);
       out.push({
         group: FORMAT_LABELS[g.format] ?? g.format, format: g.format, name: g.name, source: g.url, bytes: g.bytes,
         allowed: g.allowed && (!video || this.meta.video), licence: g.licence, attribution: g.source, note: g.notes,
         variant: g.variant ?? '', tags: g.tags ?? [],
-        why: !g.allowed ? 'No http source allows this host: add one or set XI_DEV_MODE=true.' : video && !this.meta.video ? 'Video sources need the full image (FFmpeg).' : '',
+        why: !g.allowed ? 'No http source allows this host: add one or set XI_DEV_MODE=true.' : video && !this.meta.video ? 'Video and audio sources need the full or gpl image (FFmpeg).' : '',
       });
     }
     return out;
