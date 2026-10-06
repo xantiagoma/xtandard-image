@@ -72,7 +72,7 @@ func imgproxyVars() []imgproxyVar {
 		// Sources. ALLOWED_SOURCES comes first: the USE_* switches read it.
 		{
 			"IMGPROXY_ALLOWED_SOURCES", ts("XI_SOURCES", src(compatSourceHTTP, "TYPE"), src(compatSourceHTTP, "ALLOW"), src(compatSourceLocal, "PREFIX")),
-			"`http(s)://host[:port][/path/]` patterns become the allow list of an http source named `http` (scheme dropped, `*` in the host kept as a host glob, the path kept as a directory prefix, `*` in the path rejected). `s3://`, `gs://`, `abs://` patterns restrict the buckets of the matching source (bucket names only). `local:///dir/` becomes the `local` source prefix. Unset: no http source is created (imgproxy would fetch any URL), a startup warning says so",
+			"`http(s)://host[:port][/path/]` patterns become the allow list of an http source named `http` (scheme kept, so `https://` never allows `http://`; without a port only the scheme's default port, as imgproxy's prefix match allows; `*` in the host kept as a host glob, the path kept as a directory prefix, `*` in the path rejected). `s3://`, `gs://`, `abs://` patterns restrict the buckets of the matching source (bucket names only). `local:///dir/` becomes the `local` source prefix. Unset: no http source is created (imgproxy would fetch any URL), a startup warning says so",
 			(*imgproxyTranslator).allowedSources,
 		},
 		{"IMGPROXY_USE_S3", ts("XI_SOURCES", src(compatSourceS3, "TYPE"), src(compatSourceS3, "BUCKETS")), "Creates an s3 source named `s3`. xtandard-image needs a bucket allowlist: `IMGPROXY_S3_ALLOWED_BUCKETS` or `s3://` patterns in `IMGPROXY_ALLOWED_SOURCES`. Credentials come from the standard `AWS_*` chain as in imgproxy", blobSwitch(blobS3)},
@@ -497,7 +497,7 @@ func (t *imgproxyTranslator) allowedSources(v string) error {
 			if host == "" || strings.Contains(path, "*") {
 				return fmt.Errorf("pattern %q: want http(s)://host-glob[:port][/path/] without * in the path", p)
 			}
-			allow = append(allow, strings.TrimSuffix(host+"/"+path, "/"))
+			allow = append(allow, httpAllowPattern(scheme, host, path))
 		case "s3", "gs", "abs":
 			bucket, path, _ := strings.Cut(rest, "/")
 			if bucket == "" || path != "" {
@@ -519,6 +519,30 @@ func (t *imgproxyTranslator) allowedSources(v string) error {
 		t.add(sourceEnvPrefix(compatSourceHTTP)+"ALLOW", allow...)
 	}
 	return nil
+}
+
+// httpAllowPattern turns an imgproxy http(s) source pattern into an http
+// allow pattern with the same reach. imgproxy matches the whole source URL
+// against the pattern as a prefix (env.RegexpFromPattern), so the scheme
+// is part of it: https://host/ never allows http://host/. A pattern
+// without a port only matches URLs without one, which is the scheme's
+// default port here, unless the host ends in *, which in imgproxy also
+// swallows a port.
+func httpAllowPattern(scheme, host, path string) string {
+	if !strings.HasSuffix(host, "*") && !hasPort(host) {
+		host += ":" + map[string]string{"http": "80", "https": "443"}[scheme]
+	}
+	return strings.TrimSuffix(scheme+"://"+host+"/"+path, "/")
+}
+
+// hasPort reports whether host ("name", "name:port", "[v6]", "[v6]:port")
+// carries a port.
+func hasPort(host string) bool {
+	if strings.HasPrefix(host, "[") {
+		_, after, _ := strings.Cut(host, "]")
+		return strings.HasPrefix(after, ":")
+	}
+	return strings.Contains(host, ":")
 }
 
 // blobSwitch translates IMGPROXY_USE_S3/GCS/ABS.
