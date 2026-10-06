@@ -12,7 +12,7 @@
 //	GET  /assets/<version>/<f>      the ES modules and the stylesheet (immutable; version is their hash)
 //	GET  /api/meta                  Meta as JSON (no key material)
 //	POST /api/sign                  SignRequest → SignResponse, signed with the server's keys
-//	GET  /api/render?u=<url>        runs Deps.Image on a public path and query in-process
+//	GET  /api/render?u=<url>        runs Deps.Image on a public path and query in-process (ranges=1: with Range, WP-128)
 //	POST /api/translate             TranslateRequest → the transform in every dialect (WP-94)
 //	POST /api/upload                a file for playground://uploads/<id> (XI_PLAYGROUND_UPLOADS)
 //	GET  /api/sources/<n>/list      one directory of an fs source (WP-94)

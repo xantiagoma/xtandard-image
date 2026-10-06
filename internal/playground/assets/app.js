@@ -511,8 +511,31 @@ async function renderPreview() {
     try { beforePath = (await sign(before)).url; } catch { beforePath = null; }
   }
   preview.setSource(state.source);
-  await preview.render(lastSigned.url, beforePath, { video: state.video });
+  await preview.render(lastSigned.url, beforePath, { video: state.video, media: await sourceMedia(beforePath) });
   pushHistory();
+}
+
+// sourceMedia describes the playable original of a video or audio source
+// for the comparison (WP-128): /video/raw:1/plain/<source> on the first
+// imgproxy mount, signed like any video URL (so it passes the server's
+// signing, unsigned policy, allowlists and input limits), played through
+// api/render with byte ranges; its still (a frame, or the waveform) is the
+// poster. null in image mode or when no such URL can be built.
+async function sourceMedia(beforePath) {
+  const kind = video?.kind();
+  const ip = meta.mounts.find((m) => m.grammar === 'imgproxy' && m.prefix);
+  if (!state.video || !kind || !ip || !meta.video_transform || !state.source) return null;
+  let raw;
+  try {
+    raw = (await sign({ mount: ip.id, path: `/video/raw:1/plain/${escapePlain(state.source)}`, query: '' })).url;
+  } catch {
+    return null;
+  }
+  const [start, end] = video.cut();
+  return {
+    kind, src: `api/render?ranges=1&u=${encodeURIComponent(raw)}`, poster: beforePath ? `api/render?u=${encodeURIComponent(beforePath)}` : '',
+    start, end, duration: video.duration(), fps: video.probe?.video?.fps || 0,
+  };
 }
 
 // probeResult asks api/probe/result what the result body is (container,
@@ -878,6 +901,8 @@ async function main() {
       case '/': e.preventDefault(); $('option-search').focus(); break;
       case 'c': copyText($('url-out').value, 'URL copied'); break;
       case 's': preview.toggleMode(); break;
+      case 'k': if (preview.compare.res) { e.preventDefault(); preview.compare.toggle(); } break;
+      case 'x': if (preview.compare.active()) { e.preventDefault(); preview.compare.ab(); } break;
       case '1': preview.setZoom('1'); break;
       case '2': preview.setZoom('2'); break;
       case '0': preview.setZoom('fit'); break;
