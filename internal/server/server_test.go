@@ -277,7 +277,9 @@ type harness struct {
 	stream      StreamService
 	tickets     TicketSealer
 	streamCache cache.Store
-	srv         *Server
+	// fetcher replaces f as Deps.Fetcher when set (spool_test.go).
+	fetcher Fetcher
+	srv     *Server
 }
 
 func newHarness(tb testing.TB, mutate func(*harness)) *harness {
@@ -298,8 +300,12 @@ func newHarness(tb testing.TB, mutate func(*harness)) *harness {
 	if mutate != nil {
 		mutate(h)
 	}
+	var fetcher Fetcher = h.f
+	if h.fetcher != nil {
+		fetcher = h.fetcher
+	}
 	srv, err := New(&h.cfg, &Deps{
-		Router: h.router, Resolver: h.res, Fetcher: h.f, Admitter: h.a, Prober: h.pr, Processor: h.p, Sniffer: h.sniffer,
+		Router: h.router, Resolver: h.res, Fetcher: fetcher, Admitter: h.a, Prober: h.pr, Processor: h.p, Sniffer: h.sniffer,
 		Allocator: func(n int) (fetch.Buffer, error) {
 			h.allocs.Add(1)
 			return fetch.NewGoBuffer(n, func() { h.allocFr.Add(1) }), nil
