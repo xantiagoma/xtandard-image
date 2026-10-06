@@ -7229,7 +7229,7 @@
             "prefixItems": [
               {
                 "description": "a factor (0.5) or decibels (-6dB)",
-                "pattern": "^([0-9]+(\\.[0-9]+)?|[-+]?[0-9]+(\\.[0-9]+)?[dD][bB])?$",
+                "pattern": "^([0-9]+(\\.[0-9]+)?|[+\\-]?[0-9]+(\\.[0-9]+)?[dD][bB])?$",
                 "title": "gain",
                 "type": "string"
               }
@@ -8828,13 +8828,15 @@
             ]
           },
           "needs": {
-            "description": "Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output), video_transform (video transformations, XI_VIDEO_TRANSFORM_ENABLED).",
+            "description": "Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output), video_transform (video transformations, XI_VIDEO_TRANSFORM_ENABLED), h264 and hevc (the gpl image's H.264 and HEVC encoders, video_transform.codecs).",
             "items": {
               "enum": [
                 "watermark",
                 "detection",
                 "video",
-                "video_transform"
+                "video_transform",
+                "h264",
+                "hevc"
               ],
               "type": "string"
             },
