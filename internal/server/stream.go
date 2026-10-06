@@ -60,9 +60,9 @@ type StreamService interface {
 	// (calls with the same key share one transcode). The caller releases
 	// the body.
 	Stream(ctx context.Context, key string, src fetch.Buffer, op *transform.VideoOp, part StreamPart) (*VideoResult, error)
-	// Prefetch runs Stream in the background on an idle worker, if any,
-	// and hands the result (or nil) to done, which owns its body. It
-	// reports whether it started.
+	// Prefetch runs Stream in the background when the video pool has room
+	// for it at once (it never queues), and hands the result (or nil) to
+	// done, which owns its body. It reports whether it started.
 	Prefetch(key string, src fetch.Buffer, op *transform.VideoOp, part StreamPart, done func(*VideoResult)) bool
 }
 
@@ -526,7 +526,7 @@ func (s *Server) prefetch(j *streamJob, track string, n int) {
 				media.Release()
 			}
 		}) {
-			return // no idle worker: the next ones would not start either
+			return // the pool is busy: the next ones would not start either
 		}
 	}
 }

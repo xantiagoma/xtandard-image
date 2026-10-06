@@ -6,16 +6,26 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// videoMetrics are the xi_video_transform_* metrics (WP-121): the video
-// transformation pool, separate from the image pool's xi_queue_depth and
-// xi_workers_busy.
+// videoMetrics are the xi_video_transform_* metrics (WP-121, WP-121c):
+// the video transformation pool, separate from the image pool's
+// xi_queue_depth and xi_workers_busy, and its cost-weighted admission.
 type videoMetrics struct {
-	duration  *prometheus.HistogramVec
-	bytes     *prometheus.CounterVec
-	coalesced prometheus.Counter
-	queue     prometheus.Gauge
-	busy      prometheus.Gauge
-	overload  *prometheus.CounterVec
+	duration     *prometheus.HistogramVec
+	bytes        *prometheus.CounterVec
+	coalesced    prometheus.Counter
+	queue        prometheus.Gauge
+	busy         prometheus.Gauge
+	overload     *prometheus.CounterVec
+	cost         prometheus.Histogram
+	capacity     prometheus.Gauge
+	capacityUsed prometheus.Gauge
+	queuedCost   prometheus.Gauge
+}
+
+// videoCostBuckets span an audio extraction (tens of units) to a clip
+// costing hours of work (cost units are milliseconds of one core).
+func videoCostBuckets() []float64 {
+	return prometheus.ExponentialBuckets(10, 4, 11) // 10 … ~10.5M
 }
 
 // videoDurationBuckets span short clips to the default 2 min transcode
@@ -45,23 +55,47 @@ func newVideoMetrics() *videoMetrics {
 		queue: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: Namespace,
 			Name:      "video_transform_queue_depth",
-			Help:      "Video transformations admitted to their pool (waiting or running).",
+			Help:      "Video transformations holding a place in their pool (probing, waiting or running).",
 		}),
 		busy: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: Namespace,
 			Name:      "video_transform_workers_busy",
-			Help:      "Video transformation worker slots currently held.",
+			Help:      "Video transformations running (admitted).",
 		}),
 		overload: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: Namespace,
 			Name:      "video_transform_overload_total",
-			Help:      "Video transformations rejected by their pool's admission by reason.",
+			Help:      "Video transformations rejected by their pool's admission by reason (queue_full, queue_cost, wait_timeout).",
 		}, []string{"reason"}),
+		cost: prometheus.NewHistogram(prometheus.HistogramOpts{
+			Namespace: Namespace,
+			Name:      "video_transform_job_cost",
+			Help:      "Estimated cost of probed video transformations in cost units (about a millisecond of one core's work), before clamping to the capacity.",
+			Buckets:   videoCostBuckets(),
+		}),
+		capacity: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "video_transform_capacity",
+			Help:      "Cost units the video pool's running transformations may hold together.",
+		}),
+		capacityUsed: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "video_transform_capacity_used",
+			Help:      "Cost units held by the running video transformations.",
+		}),
+		queuedCost: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: Namespace,
+			Name:      "video_transform_queued_cost",
+			Help:      "Cost units of the video transformations waiting for admission.",
+		}),
 	}
 }
 
 func (v *videoMetrics) collectors() []prometheus.Collector {
-	return []prometheus.Collector{v.duration, v.bytes, v.coalesced, v.queue, v.busy, v.overload}
+	return []prometheus.Collector{
+		v.duration, v.bytes, v.coalesced, v.queue, v.busy, v.overload,
+		v.cost, v.capacity, v.capacityUsed, v.queuedCost,
+	}
 }
 
 // VideoObserver is the hook set of the video transformation subsystem
@@ -73,9 +107,16 @@ type VideoObserver interface {
 	Coalesced()
 	QueueDepth(n int)
 	WorkersBusy(n int)
-	// Rejected counts an admission rejection; reason is one of the
-	// Overload* constants, anything else is "other".
+	// Rejected counts an admission rejection; reason is
+	// OverloadQueueFull, OverloadQueueCost or OverloadWaitTimeout,
+	// anything else is "other".
 	Rejected(reason string)
+	// JobCost observes a job's estimated cost in cost units; Capacity,
+	// CapacityUsed and QueuedCost set the pool's gauges (cost units).
+	JobCost(units float64)
+	Capacity(units int64)
+	CapacityUsed(units int64)
+	QueuedCost(units int64)
 }
 
 // Video returns the VideoObserver backed by m.
@@ -93,9 +134,14 @@ func (h videoHooks) Coalesced()        { h.v.coalesced.Inc() }
 func (h videoHooks) QueueDepth(n int)  { h.v.queue.Set(float64(n)) }
 func (h videoHooks) WorkersBusy(n int) { h.v.busy.Set(float64(n)) }
 
+func (h videoHooks) JobCost(units float64)    { h.v.cost.Observe(units) }
+func (h videoHooks) Capacity(units int64)     { h.v.capacity.Set(float64(units)) }
+func (h videoHooks) CapacityUsed(units int64) { h.v.capacityUsed.Set(float64(units)) }
+func (h videoHooks) QueuedCost(units int64)   { h.v.queuedCost.Set(float64(units)) }
+
 func (h videoHooks) Rejected(reason string) {
 	switch reason {
-	case OverloadQueueFull, OverloadWaitTimeout:
+	case OverloadQueueFull, OverloadQueueCost, OverloadWaitTimeout:
 	default:
 		reason = "other"
 	}
