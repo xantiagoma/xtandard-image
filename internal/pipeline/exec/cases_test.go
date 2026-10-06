@@ -112,6 +112,9 @@ var goldenCases = []goldenCase{
 	{name: "tiff-lab16", fixture: "tiff/lab16.tif", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
 	{name: "jxl-cmyk", fixture: "jxl/cmyk.jxl", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
 	{name: "jxl-cmyk-alpha", fixture: "jxl/cmyk-alpha.jxl", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
+	// WP-114: press CMYK without a profile (libvips' built-in CMYK): its black
+	// maps to sRGB black (black point compensation), not to a lifted grey.
+	{name: "tiff-cmyk-press", fixture: "tiff/cmyk-press.tif", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
 	{name: "qoi", fixture: "qoi/alpha.qoi", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
 	{name: "sgi", fixture: "sgi/alpha.sgi", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},
 	{name: "sun", fixture: "sun/photo.ras", options: "rs:fit:32:32", out: transform.FormatPNG, w: 32, h: 24, noImgproxy: true},

@@ -245,6 +245,11 @@ gen cmyk-raw 64 48 opaque "$T/cmyk.raw" "$T/cmyk.icc"
 "$T/jxlcmyk" 64 48 4 "$T/cmyk.raw" "$T/cmyk.icc" "$F/jxl/cmyk.jxl"
 gen cmyk-raw 64 48 alpha "$T/cmyk-alpha.raw" "$T/cmyk.icc"
 "$T/jxlcmyk" 64 48 5 "$T/cmyk-alpha.raw" "$T/cmyk.icc" "$F/jxl/cmyk-alpha.jxl"
+# WP-114: press CMYK (libvips' built-in public-domain "Chemical proof"
+# profile, whose black is a dark grey) without an embedded profile.
+gen photo 64 48 "$T/p64-cmyk.png"
+vips icc_transform "$T/p64-cmyk.png" "$T/press.v" cmyk --input-profile srgb --intent relative --black-point-compensation
+vips tiffsave "$T/press.v" "$F/tiff/cmyk-press.tif" --compression deflate --predictor horizontal --keep none
 # WP-108: FITS from the photo (own writer, testdata/gen/fits.go) and their
 # tile-compressed variants and funpack references (cfitsio's fpack in Docker,
 # testdata/gen/fits-fpack.sh).
