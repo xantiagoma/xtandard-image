@@ -369,14 +369,26 @@ function beforeRequest() {
   const src = state.source;
   if (!src) return null;
   const ip = meta.mounts.find((m) => m.grammar === 'imgproxy' && m.prefix);
-  // An audio file has no frame: the source side is its waveform (WP-127).
+  // An audio file has no frame: the source side is its waveform (WP-127),
+  // of its first waveSpan() seconds when it is longer than the server's
+  // output limit (WP-129).
   if (video?.kind() === 'audio') {
-    return ip && meta.video_transform ? { mount: ip.id, path: `/video/wf:1:2456c7::1/w:960/h:240/plain/${escapePlain(src)}@png`, query: '' } : null;
+    const span = waveSpan();
+    return ip && meta.video_transform ? { mount: ip.id, path: `/video/wf:1:2456c7::1/w:960/h:240${span ? `/vd:${span}` : ''}/plain/${escapePlain(src)}@png`, query: '' } : null;
   }
   if (ip) return { mount: ip.id, path: `/plain/${escapePlain(src)}`, query: '' };
   const q = meta.mounts.find((m) => m.grammar === 'query' && m.prefix);
   if (q) return { mount: q.id, path: '/', query: `url=${encodeURIComponent(src)}` };
   return null;
+}
+
+// waveSpan is the length the source waveform covers when the audio is
+// longer than XI_VIDEO_TRANSFORM_MAX_OUTPUT_DURATION (a waveform is an
+// output too), else 0: the whole file.
+function waveSpan() {
+  const max = meta.video_transform?.max_output_duration || 0;
+  const d = video?.duration() || 0;
+  return max && d > max ? max : 0;
 }
 
 // plainPath signs src without options (opts: imgproxy options before
@@ -534,7 +546,7 @@ async function sourceMedia(beforePath) {
   const [start, end] = video.cut();
   return {
     kind, src: `api/render?ranges=1&u=${encodeURIComponent(raw)}`, poster: beforePath ? `api/render?u=${encodeURIComponent(beforePath)}` : '',
-    start, end, duration: video.duration(), fps: video.probe?.video?.fps || 0,
+    start, end, duration: video.duration(), fps: video.probe?.video?.fps || 0, waveSpan: kind === 'audio' ? waveSpan() : 0,
   };
 }
 
