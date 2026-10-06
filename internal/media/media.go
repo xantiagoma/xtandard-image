@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/limiter"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
@@ -28,7 +29,10 @@ import (
 )
 
 // Buffer is reference-counted bytes (a vips.Buffer source, an
-// ffmpeg.Output result): the shape of fetch.Buffer and cache.Buffer.
+// ffmpeg.Output result): the shape of fetch.Buffer and cache.Buffer. A
+// large source or output is a *cache.FileBuffer in a spool file
+// (WP-121b): the engine reads it with ReadAt, and Bytes is not called on
+// it here.
 type Buffer interface {
 	Bytes() []byte
 	Retain()
@@ -424,9 +428,9 @@ func (s *Service) timed(ctx context.Context, src Buffer, work func(context.Conte
 		}
 		result = errs.KindOf(err).String()
 	} else {
-		n = int64(len(res.Body.Bytes()))
+		n = cache.BodyLen(res.Body)
 	}
-	s.metrics.Transcoded(result, time.Since(start), int64(len(src.Bytes())), n)
+	s.metrics.Transcoded(result, time.Since(start), cache.BodyLen(src), n)
 	return res, err
 }
 

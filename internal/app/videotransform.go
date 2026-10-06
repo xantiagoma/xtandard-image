@@ -14,6 +14,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/obs/metrics"
 	"github.com/xantiagoma/xtandard-image/internal/pipeline/exec"
 	"github.com/xantiagoma/xtandard-image/internal/server"
+	"github.com/xantiagoma/xtandard-image/internal/spool"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/video"
 	"github.com/xantiagoma/xtandard-image/internal/video/ffmpeg"
@@ -29,7 +30,8 @@ import (
 // FFmpeg fails startup, whatever the role. ex renders image and text
 // overlays (WP-124) with the image watermark code; nil leaves them
 // unsupported.
-func buildVideoTransform(cfg *config.Config, met *metrics.Metrics, ex *exec.Executor) (*media.Service, error) {
+// sp, when set, holds large outputs (WP-121b).
+func buildVideoTransform(cfg *config.Config, met *metrics.Metrics, ex *exec.Executor, sp *spool.Spool) (*media.Service, error) {
 	t := &cfg.Video.Transform
 	if !t.Enabled {
 		return nil, nil
@@ -46,7 +48,7 @@ func buildVideoTransform(cfg *config.Config, met *metrics.Metrics, ex *exec.Exec
 	if ex != nil {
 		opts = append(opts, media.WithOverlayRenderer(overlayRenderer{ex: ex}))
 	}
-	s, err := media.New(&mc, ffmpeg.TranscodeCaps(), ffmpegEngine{}, opts...)
+	s, err := media.New(&mc, ffmpeg.TranscodeCaps(), ffmpegEngine{spool: sp}, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -128,10 +130,20 @@ func fetchMaxBytes(cfg *config.Config) int64 {
 	return n
 }
 
-// ffmpegEngine is media.Engine over ffmpeg.OpenTranscode.
-type ffmpegEngine struct{}
+// ffmpegEngine is media.Engine over ffmpeg.OpenTranscode: a spooled
+// source (a *cache.FileBuffer) is read from its file, and an output
+// larger than the spool's threshold is written into a spool file
+// (WP-121b). A nil spool keeps every output in memory.
+type ffmpegEngine struct{ spool *spool.Spool }
 
-func (ffmpegEngine) Open(ctx context.Context, src media.Buffer, lim video.Limits, threads int) (media.Job, error) {
+func (e ffmpegEngine) Open(ctx context.Context, src media.Buffer, lim video.Limits, threads int) (media.Job, error) {
+	if fs, ok := src.(ffmpeg.FileSource); ok {
+		t, err := ffmpeg.OpenTranscodeFile(ctx, fs, lim, threads)
+		if err != nil {
+			return nil, err
+		}
+		return ffmpegJob{t: t, spool: e.spool}, nil
+	}
 	vb, err := vipsBuffer(src)
 	if err != nil {
 		return nil, err
@@ -141,10 +153,13 @@ func (ffmpegEngine) Open(ctx context.Context, src media.Buffer, lim video.Limits
 	if err != nil {
 		return nil, err
 	}
-	return ffmpegJob{t: t}, nil
+	return ffmpegJob{t: t, spool: e.spool}, nil
 }
 
-type ffmpegJob struct{ t *ffmpeg.Transcoder }
+type ffmpegJob struct {
+	t     *ffmpeg.Transcoder
+	spool *spool.Spool
+}
 
 func (j ffmpegJob) Input() video.TranscodeInput { return j.t.Input() }
 
@@ -166,6 +181,9 @@ func (j ffmpegJob) Run(ctx context.Context, p *video.TranscodePlan, pixels []med
 			return nil, err
 		}
 		px[i] = vb
+	}
+	if j.spills(p) {
+		return j.runSpill(ctx, p, px)
 	}
 	out, err := j.t.Run(ctx, p, px...)
 	if err != nil {
@@ -250,6 +268,40 @@ func encodeWaveform(ctx context.Context, rgba []byte, w *video.WaveformPlan) (me
 }
 
 func (j ffmpegJob) Close() { j.t.Close() }
+
+// spills reports whether p's output may go to a spool file: a whole file
+// (not a stream part, which is cut in memory, nor a waveform's pixels)
+// whose limit passes the threshold (or that has none).
+func (j ffmpegJob) spills(p *video.TranscodePlan) bool {
+	return j.spool.Threshold() > 0 && p.Fragment == nil && p.Waveform == nil &&
+		(p.MaxBytes <= 0 || j.spool.Spills(p.MaxBytes))
+}
+
+// runSpill transcodes with a spool file ready: the shim writes the output
+// into it once it outgrows the threshold. The file reserves the output
+// limit of the spool budget while it runs (a full budget is 503 before
+// any work), then only its size; an output that stayed small is returned
+// in memory and the file discarded.
+func (j ffmpegJob) runSpill(ctx context.Context, p *video.TranscodePlan, px []*vips.Buffer) (media.Buffer, error) {
+	w, err := j.spool.Create(spool.KindOutput, max(p.MaxBytes, 0))
+	if err != nil {
+		return nil, err
+	}
+	out, n, err := j.t.RunSpill(ctx, p, w.File(), j.spool.Threshold(), px...)
+	switch {
+	case err != nil:
+		w.Abort()
+		return nil, err
+	case out != nil:
+		w.Abort()
+		return out, nil
+	}
+	fb, err := w.Finish(n)
+	if err != nil {
+		return nil, err
+	}
+	return fb, nil
+}
 
 // mediaTransformer adapts media.Service to server.VideoTransformer.
 type mediaTransformer struct{ s *media.Service }

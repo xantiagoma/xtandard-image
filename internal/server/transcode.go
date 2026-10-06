@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"net/http"
 	"strings"
@@ -9,6 +8,7 @@ import (
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
@@ -189,7 +189,7 @@ func (s *Server) videoProcess(ctx context.Context, r *http.Request, info *reques
 	}
 
 	t = s.stage(info, stageFetch)
-	fr, err := s.fetch(ctx, key, source.FetchOptions{MaxBytes: s.videoMaxSrcBytes(lim), Header: r.Header}, j.hashsum)
+	fr, err := s.fetchVideo(ctx, key, source.FetchOptions{MaxBytes: s.videoMaxSrcBytes(lim), Header: r.Header}, j.hashsum)
 	t.done()
 	if err != nil {
 		return nil, err
@@ -201,7 +201,7 @@ func (s *Server) videoProcess(ctx context.Context, r *http.Request, info *reques
 	res.cacheKey = j.cacheKey
 	res.ext = strings.TrimPrefix(out.Ext, ".")
 	res.mediaType = out.ContentType
-	res.etag = etag(req.CanonicalKey()+"\x00video:"+out.Key(), transform.FormatUnset, 0, &fr.Object, fr.Bytes(), s.cfg.ETagBuster)
+	res.etag = etagBody(req.CanonicalKey()+"\x00video:"+out.Key(), transform.FormatUnset, 0, &fr.Object, fr.Buffer, s.cfg.ETagBuster)
 	if res.notModified = notModified(r, res.etag, fr.Object.LastModified); res.notModified {
 		return res, nil
 	}
@@ -229,6 +229,40 @@ func (s *Server) videoProcess(ctx context.Context, r *http.Request, info *reques
 	}
 	info.width, info.height = vr.Width, vr.Height
 	return res, nil
+}
+
+// LargeFetcher fetches sources that may be large: *fetch.Fetcher's
+// FetchLarge keeps one over the spool threshold in a spool file (WP-121b).
+// Video requests use it when Deps.Fetcher has it.
+type LargeFetcher interface {
+	FetchLarge(ctx context.Context, key source.Key, opt source.FetchOptions) (*fetch.Result, error)
+}
+
+// fetchVideo is fetch for a video source: through FetchLarge when the
+// fetcher has it, the hashsum checked from the file of a spooled source.
+func (s *Server) fetchVideo(ctx context.Context, key source.Key, opt source.FetchOptions, want *transform.Hashsum) (*fetch.Result, error) {
+	lf, ok := s.deps.Fetcher.(LargeFetcher)
+	if !ok {
+		return s.fetch(ctx, key, opt, want)
+	}
+	ctx, span := s.deps.Tracer.Start(ctx, "fetch", trace.WithAttributes(attribute.String("xi.source", key.Source)))
+	defer span.End()
+	fr, err := lf.FetchLarge(ctx, key, opt)
+	if err != nil {
+		span.SetStatus(codes.Error, errs.KindOf(err).String())
+		return nil, err
+	}
+	if fr == nil || fr.Buffer == nil {
+		return nil, errs.New(errs.KindInternal, "server: fetcher returned no buffer")
+	}
+	span.SetAttributes(attribute.Int64("xi.source_bytes", cache.BodyLen(fr.Buffer)),
+		attribute.Bool("xi.spooled", cache.IsFileBody(fr.Buffer)))
+	if err := verifyHashsumBody(want, fr.Buffer); err != nil {
+		fr.Release()
+		span.SetStatus(codes.Error, errs.KindOf(err).String())
+		return nil, err
+	}
+	return fr, nil
 }
 
 // videoMaxSrcBytes is the fetch limit of a video source: the request's
@@ -273,7 +307,7 @@ func (s *Server) transcode(ctx context.Context, key string, src fetch.Buffer, op
 		return nil, errs.New(errs.KindInternal, "server: video transformer returned no output")
 	}
 	span.SetAttributes(attribute.String("xi.video_output", vr.Output.Key()),
-		attribute.Int("xi.result_bytes", len(vr.Body.Bytes())), attribute.Bool("xi.coalesced", vr.Shared))
+		attribute.Int64("xi.result_bytes", cache.BodyLen(vr.Body)), attribute.Bool("xi.coalesced", vr.Shared))
 	return vr, nil
 }
 
@@ -323,8 +357,10 @@ func (s *Server) respondVideo(w http.ResponseWriter, r *http.Request, res *image
 		return
 	}
 	// ServeContent sets Content-Length, Content-Range and the status;
-	// the ETag above is its If-Range validator.
-	http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(res.out.Body.Bytes()))
+	// the ETag above is its If-Range validator. A spooled output or a
+	// large disk-cache hit (WP-121b) is read from its file, only the
+	// requested ranges.
+	http.ServeContent(w, r, "", time.Time{}, cache.BodyReader(res.out.Body))
 }
 
 // bodyBuffer is the output's body as a cache buffer (a transcoded file

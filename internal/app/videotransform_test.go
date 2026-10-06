@@ -60,6 +60,7 @@ video:
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
+	cfg.Video.Transform.SpoolDir = filepath.Join(t.TempDir(), "spool")
 	return &cfg
 }
 
@@ -147,7 +148,7 @@ func TestVideoTransformDisabled(t *testing.T) {
 			t.Skip("this image has no FFmpeg")
 		}
 		cfg := videoConfig(t, config.RoleImage, true)
-		vt, err := buildVideoTransform(cfg, nil, nil)
+		vt, err := buildVideoTransform(cfg, nil, nil, nil)
 		if err != nil || vt != nil {
 			t.Fatalf("buildVideoTransform = %v, %v; want no service", vt, err)
 		}

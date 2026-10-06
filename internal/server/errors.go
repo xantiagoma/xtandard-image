@@ -27,6 +27,14 @@ type statusError interface {
 	PublicMessage() string
 }
 
+// retryHinter is an error that carries a Retry-After hint besides the
+// limiter's OverloadError: *spool.BudgetError, the 503 of a full video
+// spool (WP-121b).
+type retryHinter interface {
+	error
+	RetryAfterHint() time.Duration
+}
+
 // httpError is an ingress failure that has a status but no errs kind
 // (414, 405).
 type httpError struct {
@@ -125,6 +133,8 @@ func (s *Server) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	h.Set("X-Content-Type-Options", "nosniff")
 	if oe, ok := errors.AsType[*limiter.OverloadError](err); ok {
 		h.Set("Retry-After", strconv.Itoa(int(max(oe.RetryAfter, time.Second)/time.Second)))
+	} else if rh, ok := errors.AsType[retryHinter](err); ok {
+		h.Set("Retry-After", strconv.Itoa(int(max(rh.RetryAfterHint(), time.Second)/time.Second)))
 	}
 	w.WriteHeader(status)
 	if r.Method != http.MethodHead {

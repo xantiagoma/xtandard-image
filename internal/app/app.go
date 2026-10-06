@@ -172,6 +172,13 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	if cs.origin != nil {
 		fetchOpts = append(fetchOpts, fetch.WithStore(cs.origin, cfg.Cache.Origin.StoreTTL))
 	}
+	sp, err := buildSpool(ctx, cfg, met, logger)
+	if err != nil {
+		return fmt.Errorf("video spool: %w", err)
+	}
+	if sp != nil {
+		fetchOpts = append(fetchOpts, fetch.WithSpool(fetchSpooler{s: sp}, cfg.Video.Transform.SpoolTTL))
+	}
 	fetcher, err := fetch.New(reg, vipsAllocator, fetch.Config{
 		Timeout:     cfg.Fetch.Timeout,
 		MaxBytes:    fetchMaxBytes(cfg),
@@ -220,7 +227,7 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 	if err != nil {
 		return err
 	}
-	vt, err = buildVideoTransform(cfg, met, proc.exec)
+	vt, err = buildVideoTransform(cfg, met, proc.exec, sp)
 	if err != nil {
 		return err
 	}
