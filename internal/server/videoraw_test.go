@@ -128,7 +128,9 @@ func TestVideoRawChecks(t *testing.T) {
 		{"source not allowed", func(h *harness) { h.res.deny = map[string]bool{"http://origin/a.jpg": true} }, http.StatusForbidden, ""},
 		{"source too large", func(h *harness) { h.f.err = errs.New(errs.KindLimitExceeded, "fetch: too large") }, http.StatusUnprocessableEntity, ""},
 		{"an image is not served", func(h *harness) { h.f.data = jpegSource }, http.StatusUnprocessableEntity, ""},
-		{"svg is not served", func(h *harness) { h.f.data = []byte(`<svg xmlns="http://www.w3.org/2000/svg"><script>x</script></svg>`) }, http.StatusUnprocessableEntity, ""},
+		{"svg is not served", func(h *harness) {
+			h.f.data = []byte(`<svg xmlns="http://www.w3.org/2000/svg"><script>x</script></svg>`)
+		}, http.StatusUnprocessableEntity, ""},
 		{"a stream option is ignored", func(h *harness) {
 			h.router.mutate = videoRequest(&transform.VideoOp{Raw: true, Stream: &transform.VideoStream{}})
 		}, http.StatusOK, ""},
