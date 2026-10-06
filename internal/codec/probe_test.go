@@ -254,6 +254,7 @@ func TestProbeFixtures(t *testing.T) {
 		"tiff/lab8-icc.tif":   with(still(codec.FormatTIFF, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace, m.HasICC = codec.ColorSpaceLab, true }),
 		"tiff/lab8-alpha.tif": with(still(codec.FormatTIFF, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace, m.HasAlpha = codec.ColorSpaceLab, true }),
 		"tiff/lab16.tif":      with(still(codec.FormatTIFF, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace, m.BitDepth = codec.ColorSpaceLab, 16 }),
+		"tiff/cmyk-press.tif": with(still(codec.FormatTIFF, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace = codec.ColorSpaceCMYK }),
 		"jxl/cmyk.jxl":        with(still(codec.FormatJXL, 64, 48), func(m *codec.ImageMeta) { m.ColorSpace, m.HasICC = codec.ColorSpaceCMYK, true }),
 		"jxl/cmyk-alpha.jxl": with(still(codec.FormatJXL, 64, 48), func(m *codec.ImageMeta) {
 			m.ColorSpace, m.HasICC, m.HasAlpha = codec.ColorSpaceCMYK, true, true

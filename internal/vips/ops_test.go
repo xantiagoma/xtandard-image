@@ -5,11 +5,14 @@ package vips_test
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"image"
+	"math"
 	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/vips"
@@ -483,6 +486,75 @@ func TestPixelValues(t *testing.T) {
 					return err
 				}
 				if diff := cmp.Diff(tc.want, got); diff != "" {
+					t.Errorf("pixels (-want +got):\n%s", diff)
+				}
+				return nil
+			})
+		})
+	}
+}
+
+// TestFloatOpsKeepFractions checks that ops returning the input's band
+// format keep fractional results for float inputs (scRGB, HDR) instead of
+// rounding them like integer outputs.
+func TestFloatOpsKeepFractions(t *testing.T) {
+	t.Parallel()
+
+	floats := func(vs ...float32) []byte {
+		b := make([]byte, 0, 4*len(vs))
+		for _, v := range vs {
+			b = binary.NativeEndian.AppendUint32(b, math.Float32bits(v))
+		}
+		return b
+	}
+	tests := []struct {
+		name  string
+		pix   []float32
+		bands int
+		op    opFunc
+		want  []float32
+	}{
+		{"recomb luminance", []float32{0.25, 0.5, 0.125}, 3, func(ctx context.Context, _ *vips.Arena, img *vips.Image) (*vips.Image, error) {
+			return img.Recomb(ctx, []float64{0.2126, 0.7152, 0.0722}, 1)
+		}, []float32{0.2126*0.25 + 0.7152*0.5 + 0.0722*0.125}},
+		{"recomb above one", []float32{1.75, 3.5, 0.25}, 3, func(ctx context.Context, _ *vips.Arena, img *vips.Image) (*vips.Image, error) {
+			return img.Recomb(ctx, []float64{0.5, 0.5, 0, 0, 0, 1}, 2)
+		}, []float32{2.625, 0.25}},
+		{"mix", []float32{0.1, 2.5, 0}, 3, func(ctx context.Context, a *vips.Arena, img *vips.Image) (*vips.Image, error) {
+			other, err := a.Add(vips.NewFromMemory(ctx, floats(0.9, 0.5, 0.3), 1, 1, 3, vips.BandFormatFloat))
+			if err != nil {
+				return nil, err
+			}
+			return img.Mix(ctx, other, 0.25)
+		}, []float32{0.3, 2, 0.075}},
+		{"cast round to float keeps fractions", []float32{0.4, 1.6}, 2, func(ctx context.Context, _ *vips.Arena, img *vips.Image) (*vips.Image, error) {
+			return img.CastRound(ctx, vips.BandFormatFloat)
+		}, []float32{0.4, 1.6}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			job(t, func(ctx context.Context, a *vips.Arena) error {
+				img, err := a.Add(vips.NewFromMemory(ctx, floats(tc.pix...), 1, 1, tc.bands, vips.BandFormatFloat))
+				if err != nil {
+					return err
+				}
+				out, err := a.Add(tc.op(ctx, a, img))
+				if err != nil {
+					return err
+				}
+				if out.BandFormat() != vips.BandFormatFloat {
+					t.Errorf("band format = %v, want float", out.BandFormat())
+				}
+				raw, err := out.WriteToMemory(ctx)
+				if err != nil {
+					return err
+				}
+				got := make([]float32, len(raw)/4)
+				for i := range got {
+					got[i] = math.Float32frombits(binary.NativeEndian.Uint32(raw[4*i:]))
+				}
+				if diff := cmp.Diff(tc.want, got, cmpopts.EquateApprox(0, 1e-6)); diff != "" {
 					t.Errorf("pixels (-want +got):\n%s", diff)
 				}
 				return nil

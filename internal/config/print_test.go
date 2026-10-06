@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -20,23 +21,29 @@ func TestRedaction(t *testing.T) {
 		salt    = "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
 		encKey  = "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3"
 	)
+	// Secrets Validate parses: a base64 account key, a connection string and
+	// an SSH private key, each distinct from every other secret.
+	azureKey := base64.StdEncoding.EncodeToString([]byte("azure-account-key-secret"))
+	azureConn := "AccountName=connacct;AccountKey=" + base64.StdEncoding.EncodeToString([]byte("azure-conn-string-secret")) +
+		";BlobEndpoint=http://azurite:10000/connacct"
+	sftpKey := testSSHPrivateKey(false)
 	secrets := []string{
 		"trusted-sig-secret", "bearer-secret-value", "s3-secret-key-value", "gcs-json-secret",
-		"azure-account-key-secret", "azure-conn-string-secret", "sftp-password-secret",
-		"sftp-private-key-secret", "imgix-token-secret", "redis-pw-secret", "etag-buster-secret",
+		azureKey, azureConn, "sftp-password-secret",
+		sftpKey, "imgix-token-secret", "redis-pw-secret", "etag-buster-secret",
 		"header-secret-value",
 	}
 	env := []string{
 		"XI_SIGNING_KEYS=" + signKey, "XI_SIGNING_SALTS=" + salt, "XI_ENCRYPTION_KEYS=" + encKey,
 		"XI_SIGNING_TRUSTED=trusted-sig-secret",
 		"XI_SECURITY_SECRET=bearer-secret-value",
-		"XI_SOURCES=s3,gcs,az,ftp,web",
+		"XI_SOURCES=s3,gcs,az,azc,ftp,web",
 		"XI_SOURCES_S3_TYPE=s3", "XI_SOURCES_S3_BUCKETS=b", "XI_SOURCES_S3_SECRET_ACCESS_KEY=s3-secret-key-value",
 		"XI_SOURCES_GCS_TYPE=gcs", "XI_SOURCES_GCS_BUCKETS=b", "XI_SOURCES_GCS_CREDENTIALS_JSON=gcs-json-secret",
-		"XI_SOURCES_AZ_TYPE=azure", "XI_SOURCES_AZ_BUCKETS=b", "XI_SOURCES_AZ_ACCOUNT_KEY=azure-account-key-secret",
-		"XI_SOURCES_AZ_CONNECTION_STRING=azure-conn-string-secret",
-		"XI_SOURCES_FTP_TYPE=sftp", "XI_SOURCES_FTP_HOST=h", "XI_SOURCES_FTP_HOST_KEY=k",
-		"XI_SOURCES_FTP_PASSWORD=sftp-password-secret", "XI_SOURCES_FTP_PRIVATE_KEY=sftp-private-key-secret",
+		"XI_SOURCES_AZ_TYPE=azure", "XI_SOURCES_AZ_BUCKETS=imgs", "XI_SOURCES_AZ_ACCOUNT=acct", "XI_SOURCES_AZ_ACCOUNT_KEY=" + azureKey,
+		"XI_SOURCES_AZC_TYPE=azure", "XI_SOURCES_AZC_BUCKETS=imgs", "XI_SOURCES_AZC_CONNECTION_STRING=" + azureConn,
+		"XI_SOURCES_FTP_TYPE=sftp", "XI_SOURCES_FTP_HOST=h", "XI_SOURCES_FTP_USER=u", "XI_SOURCES_FTP_HOST_KEY=" + testSSHHostKey(),
+		"XI_SOURCES_FTP_PASSWORD=sftp-password-secret", "XI_SOURCES_FTP_PRIVATE_KEY=" + sftpKey,
 		"XI_SOURCES_WEB_TYPE=http", "XI_SOURCES_WEB_ALLOW=a.example", "XI_SOURCES_WEB_HEADERS=Authorization=header-secret-value",
 		"XI_DIALECTS_IMGIX_KEYS=imgix-token-secret",
 		"XI_CACHE_RESULT_REDIS_URL=redis://:redis-pw-secret@r:6379",
@@ -87,7 +94,7 @@ func TestRedaction(t *testing.T) {
 	}
 	// Non-secret settings stay visible.
 	out := cfg.Redacted()
-	for _, want := range []string{"addr: :8080", "allowed_qualities: 5-100/5", "cors_origins: []", "max_src_bytes: 50MiB", "request_timeout: 20s", "host_key: k"} {
+	for _, want := range []string{"addr: :8080", "allowed_qualities: 5-100/5", "cors_origins: []", "max_src_bytes: 50MiB", "request_timeout: 20s", "host_key: ssh-ed25519 AAAA"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("Redacted output lacks %q:\n%s", want, out)
 		}

@@ -28,8 +28,8 @@ const (
 	readmeDoc   = "../../README.md"
 )
 
-// fakeFS reads every absolute path as a fake secret (hex, which is
-// also a valid secret string) unless strict lists the files that exist.
+// fakeFS reads every absolute path as a fake secret (fakeSecret) unless
+// strict lists the files that exist.
 type fakeFS struct {
 	files  files
 	strict bool
@@ -40,9 +40,24 @@ func (f fakeFS) read(name string) ([]byte, error) {
 		return []byte(v), nil
 	}
 	if !f.strict && filepath.IsAbs(name) && !strings.HasPrefix(name, defaultConfigDir+"/config.") {
-		return []byte(testHexKey + "\n"), nil
+		return []byte(fakeSecret(name)), nil
 	}
 	return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
+}
+
+// fakeSecret is what a mounted secret file holds in the examples: an SSH
+// private key for sftp keys and an Azure connection string for
+// connection_string files (Validate parses both), else hex, which is also
+// a valid secret string and base64 account key.
+func fakeSecret(name string) string {
+	base := path.Base(name)
+	switch {
+	case strings.Contains(base, "sftp_key"):
+		return testSSHPrivateKey(false) + "\n"
+	case strings.Contains(base, "connection_string"):
+		return testAzureConnectionString() + "\n"
+	}
+	return testHexKey + "\n"
 }
 
 func loadWith(t *testing.T, f fakeFS, configFile string, environ []string) Config {
@@ -238,7 +253,7 @@ func TestExampleCompose(t *testing.T) {
 			if !path.IsAbs(target) {
 				target = "/run/secrets/" + target
 			}
-			vfs.files[target] = testHexKey + "\n"
+			vfs.files[target] = fakeSecret(target)
 		}
 		cfg := loadWith(t, vfs, "", svc.environ(t))
 		if len(cfg.Sources) < 3 {

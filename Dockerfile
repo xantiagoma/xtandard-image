@@ -145,6 +145,7 @@ ENV LD_LIBRARY_PATH=/opt/xtandard/lib \
     XI_SERVER_ADDR=:8080
 
 COPY --from=build --chmod=0555 /out/xtandard-image /usr/local/bin/xtandard-image
+COPY LICENSE NOTICE /usr/share/doc/xtandard-image/
 
 USER 65532:65532
 WORKDIR /tmp
@@ -158,9 +159,12 @@ CMD ["serve"]
 # Flavor labels (docs/RELEASE.md, ADR 0006). The labels override the base's.
 # slim and full contain only permissive third-party code (MIT, BSD, Apache,
 # LGPL libraries used as shared objects: the base's check-licenses.sh gate);
-# gpl adds GPL FFmpeg/x264/x265, the GPL metafile converter, Ghostscript
-# (AGPL) and the Adobe DNG SDK, as its /opt/xtandard/share/licenses/LICENSE-GPL.md
-# lists.
+# gpl adds GPL FFmpeg/x264/x265 (GPL-2.0-or-later), the metafile converter
+# (GPL-2.0-only), Ghostscript (AGPL), and LibRaw built with the Adobe DNG SDK
+# (LicenseRef-Adobe-DNG-SDK) and the GoPro GPR SDK (Apache-2.0 OR MIT), which
+# only gpl ships, as its /opt/xtandard/share/licenses/LICENSE-GPL.md lists.
+# Every flavour ships this project's LICENSE and NOTICE (third-party notices,
+# including what only gpl contains) in /usr/share/doc/xtandard-image/.
 FROM runtime-common AS runtime-slim
 LABEL org.opencontainers.image.description="Self-hosted image processing proxy (Go + libvips), slim flavor" \
       org.opencontainers.image.licenses="MIT" \
@@ -172,8 +176,8 @@ LABEL org.opencontainers.image.description="Self-hosted image processing proxy (
       dev.xtandard.flavor="full"
 
 FROM runtime-common AS runtime-gpl
-LABEL org.opencontainers.image.description="Self-hosted image processing proxy (Go + libvips), gpl flavor: full plus GPL FFmpeg (x264, x265), EPS (Ghostscript), WMF/EMF and DNG SDK raw; contains GPL and AGPL software, see /opt/xtandard/share/licenses/LICENSE-GPL.md" \
-      org.opencontainers.image.licenses="GPL-2.0-or-later AND AGPL-3.0-or-later AND MIT AND LicenseRef-Adobe-DNG-SDK" \
+LABEL org.opencontainers.image.description="Self-hosted image processing proxy (Go + libvips), gpl flavor: full plus GPL FFmpeg (x264, x265), EPS (Ghostscript), WMF/EMF, and JPEG XL DNG and GoPro GPR raw (Adobe DNG SDK, GoPro GPR SDK); contains GPL and AGPL software and the Adobe DNG SDK, see /opt/xtandard/share/licenses/LICENSE-GPL.md" \
+      org.opencontainers.image.licenses="GPL-2.0-or-later AND GPL-2.0-only AND AGPL-3.0-or-later AND MIT AND LicenseRef-Adobe-DNG-SDK AND (Apache-2.0 OR MIT)" \
       dev.xtandard.flavor="gpl"
 
 # docker build --target runtime (the default: last stage) --build-arg XI_FLAVOR=…
