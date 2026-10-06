@@ -583,6 +583,21 @@ func (p *TranscodePlan) cut(in *TranscodeInput, op *transform.VideoOp, s *Transc
 	return nil
 }
 
+// fitPixels is the largest even w×h with the aspect of w×h whose area is at
+// most maxPixels (at least 2×2).
+func fitPixels(w, h int, maxPixels int64) (int, int) {
+	k := math.Sqrt(float64(maxPixels) / (float64(w) * float64(h)))
+	bw, bh := max(even(int(float64(w)*k)), 2), max(even(int(float64(h)*k)), 2)
+	for int64(bw)*int64(bh) > maxPixels && bw > 2 && bh > 2 {
+		if bw >= bh {
+			bw -= 2
+		} else {
+			bh -= 2
+		}
+	}
+	return bw, bh
+}
+
 // planVideo computes the geometry, rate and encoder settings.
 func planVideo(in *TranscodeInput, op *transform.VideoOp, codec Codec, p *TranscodePlan, s *TranscodeSettings) (*VideoStreamPlan, error) {
 	var f filterChain
@@ -592,7 +607,17 @@ func planVideo(in *TranscodeInput, op *transform.VideoOp, codec Codec, p *Transc
 	if err != nil {
 		return nil, err
 	}
-	ow, oh := fit(&f, w, h, op)
+	// A request that names no output size gets the source's size, scaled
+	// down to fit the output pixel limit (aspect kept); only an explicit
+	// size over the limit is refused.
+	fop := op
+	if op.Width == 0 && op.Height == 0 && s.MaxOutputPixels > 0 && int64(even(w))*int64(even(h)) > s.MaxOutputPixels {
+		bw, bh := fitPixels(w, h, s.MaxOutputPixels)
+		auto := *op
+		auto.Width, auto.Height, auto.Fit = bw, bh, transform.VideoFitFill
+		fop = &auto
+	}
+	ow, oh := fit(&f, w, h, fop)
 	if s.MaxOutputPixels > 0 && int64(ow)*int64(oh) > s.MaxOutputPixels {
 		return nil, limit(itoa(ow) + "x" + itoa(oh) + " is over the output pixel limit")
 	}
