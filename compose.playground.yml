@@ -24,6 +24,9 @@ services:
       XI_SOURCES_LOCAL_ROOT: /fixtures
       XI_SOURCES_WEB_TYPE: http
       XI_SOURCES_WEB_ALLOW: "*"
+      # The media Examples (WP-129) fetch public trailers and NASA clips of up to 25 MB; 30 s per
+      # attempt instead of the default 10 s keeps a slow link from failing them.
+      XI_FETCH_TIMEOUT: 30s
       # No XI_PROCESSING_WATERMARK_SOURCE (WP-117): the playground's watermarks are all explicit
       # in the URL (wmu, wmt, dialect overlays); the default image is an imgproxy-compatibility
       # option, shown by one Example that stays disabled here.
