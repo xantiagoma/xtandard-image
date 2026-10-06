@@ -32,7 +32,7 @@ and never push to `main`.
    The Docker image is the product; a host-only pass (Homebrew libvips) proves nothing and is not
    accepted as verification. Pure-Go packages may additionally run on the host for speed.
 5. **Commit** in small, focused commits with imperative subjects, and end each message with the
-   attribution trailer `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
+   attribution trailer `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` (the model doing the work; the orchestrator states the current one in each brief).
    Set the author with `git -c user.name="Santiago Montoya" -c user.email=santi@snappr.com`.
 6. **Push** `git push -u origin <branch>`. Do not open a PR; the orchestrator does.
 7. **Report** (final message, under 300 words): branch name, files added, how the done criteria in
