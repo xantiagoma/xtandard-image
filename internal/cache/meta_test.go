@@ -16,7 +16,7 @@ func TestFrameRoundTrip(t *testing.T) {
 	b := NewBuffer(body, nil)
 	defer b.Release()
 	in := &Entry{Body: b, Status: http.StatusOK, Header: http.Header{"Content-Type": {"image/jpeg"}}}
-	m := NewMeta("res/v1/k", in, now, time.Hour)
+	m := mustMeta(t, "res/v1/k", in, now, time.Hour)
 	frame, err := AppendFrame([]byte("junk-before"), &m)
 	if err != nil {
 		t.Fatal(err)
@@ -40,7 +40,7 @@ func TestFrameRoundTrip(t *testing.T) {
 	if got.Expired(now.Add(time.Hour-1)) || !got.Expired(now.Add(time.Hour)) {
 		t.Error("expiry boundary wrong")
 	}
-	never := NewMeta("k", in, now, 0)
+	never := mustMeta(t, "k", in, now, 0)
 	if never.ExpiresAt != 0 || never.Expired(now.Add(1e6*time.Hour)) || !never.Entry(nil).ExpiresAt.IsZero() {
 		t.Error("ttl 0 must never expire")
 	}
@@ -50,7 +50,7 @@ func TestFrameCorrupt(t *testing.T) {
 	t.Parallel()
 	b := NewBuffer([]byte("abc"), nil)
 	defer b.Release()
-	m := NewMeta("res/k", &Entry{Body: b, Status: 200}, time.Unix(0, 0), 0)
+	m := mustMeta(t, "res/k", &Entry{Body: b, Status: 200}, time.Unix(0, 0), 0)
 	good, err := AppendFrame(nil, &m)
 	if err != nil {
 		t.Fatal(err)
@@ -79,7 +79,7 @@ func TestFrameCorrupt(t *testing.T) {
 
 func FuzzParseFrame(f *testing.F) {
 	b := NewBuffer([]byte("seed"), nil)
-	m := NewMeta("res/v1/seed", &Entry{Body: b, Status: 200, Header: http.Header{"Etag": {`"x"`}}}, time.Unix(1, 0), time.Minute)
+	m := mustMeta(f, "res/v1/seed", &Entry{Body: b, Status: 200, Header: http.Header{"Etag": {`"x"`}}}, time.Unix(1, 0), time.Minute)
 	b.Release()
 	seed, err := AppendFrame(nil, &m)
 	if err != nil {
@@ -100,4 +100,13 @@ func FuzzParseFrame(f *testing.F) {
 		}
 		_ = m.Check(data[off:])
 	})
+}
+
+func mustMeta(tb testing.TB, full string, e *Entry, now time.Time, ttl time.Duration) Meta {
+	tb.Helper()
+	m, err := NewMeta(full, e, now, ttl)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	return m
 }
