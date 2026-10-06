@@ -10,8 +10,10 @@ import "math"
 // base builder (linux/arm64 under Docker on an Apple M-series host), one
 // codec thread, the default encoder settings of XI_VIDEO_ENCODE_* (libvpx
 // and libaom speed 8, x264 and x265 preset veryfast). The factors are
-// fitted to the medians of BenchmarkTranscodeCost (internal/video/ffmpeg;
-// -count=10 in internal/video/ffmpeg/testdata/bench-transcode-cost.txt):
+// fitted to the medians of BenchmarkTranscodeCost (internal/video/ffmpeg,
+// -count=10: testdata/bench-transcode-cost-fit.txt is the run they were
+// fitted to, bench-transcode-cost.txt a run of this model reporting
+// est-ms and est/measured):
 //
 //	cost = base
 //	     + decoded seconds × source fps × source pixels × decode(source codec)
@@ -24,7 +26,9 @@ import "math"
 // video. On real footage (Big Buck Bunny, 180p to 1080p outputs) the
 // estimate is 0.78–0.96 of the measured time for every encoder; on the
 // procedural fixtures, which are much cheaper to decode and encode, it is
-// up to 1.93 of it (2 s HLS segments); audio within 0.85–1.15. Only the
+// up to 1.93 of it (2 s HLS segments); audio within 0.85–1.15. (The
+// check run was taken on a busier host: 0.52–1.75, every point within 2×
+// but x265 at 360p, 0.43, which a quiet re-run measured at 0.79–0.89.) Only the
 // relative weights matter for admission: the absolute scale makes the
 // capacity and the cost metrics read as milliseconds of work.
 //
