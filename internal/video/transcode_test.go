@@ -492,6 +492,49 @@ func TestPlanTranscodeLimits(t *testing.T) {
 	}
 }
 
+// TestPlanTranscodeAutoFit: with no requested size, a source over the
+// output pixel limit is scaled down to fit it, keeping its aspect; an
+// explicit size over the limit stays a 422 (TestPlanTranscodeLimits).
+func TestPlanTranscodeAutoFit(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name         string
+		w, h         int
+		maxPixels    int64
+		wantW, wantH int
+	}{
+		{"landscape 720p into 360p", 1280, 720, 640 * 360, 640, 360},
+		{"portrait phone into 1080p", 1440, 1920, 1920 * 1080, 1246, 1662},
+		{"under the limit untouched", 1280, 720, 1920 * 1080, 1280, 720},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			s := settings()
+			s.MaxOutputPixels = tc.maxPixels
+			in := hd()
+			in.Width, in.Height = tc.w, tc.h
+			op := transform.VideoOp{Mute: true}
+			out, err := fullCaps().Resolve(&op)
+			if err != nil {
+				t.Fatal(err)
+			}
+			p, err := PlanTranscode(in, &op, out, fullCaps(), s)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if p.Video.Width != tc.wantW || p.Video.Height != tc.wantH {
+				t.Errorf("output %dx%d, want %dx%d", p.Video.Width, p.Video.Height, tc.wantW, tc.wantH)
+			}
+			if int64(p.Video.Width)*int64(p.Video.Height) > tc.maxPixels {
+				t.Errorf("output %dx%d over the limit %d", p.Video.Width, p.Video.Height, tc.maxPixels)
+			}
+			if op.Width != 0 || op.Height != 0 {
+				t.Errorf("request mutated: %dx%d", op.Width, op.Height)
+			}
+		})
+	}
+}
+
 // TestFilterChainsAreNumeric: whatever the request, a chain holds only
 // the fixed filter vocabulary and numbers (no request text reaches
 // FFmpeg's filter syntax).
