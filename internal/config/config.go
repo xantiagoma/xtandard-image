@@ -599,12 +599,24 @@ type VideoTransform struct {
 	// Enabled serves video transformations; true fails startup on an
 	// image without FFmpeg (slim).
 	Enabled bool `yaml:"enabled" env:"ENABLED"`
-	// Workers is the transcodes run at once; 0 is a quarter of GOMAXPROCS
-	// (at least 1).
+	// Workers sizes the pool: 0 is a quarter of GOMAXPROCS (at least 1).
+	// It bounds the probes run at once and gives the defaults of Capacity
+	// and MaxJobs.
 	Workers int `yaml:"workers" env:"WORKERS"`
-	// Queue is how many transcodes may wait for a worker (429 beyond).
+	// Capacity is the cost units (estimated milliseconds of one core's
+	// work, WP-121c) the running transcodes may hold together; 0 is
+	// Workers × 10000. A transcode costing more runs alone.
+	Capacity int64 `yaml:"capacity" env:"CAPACITY"`
+	// MaxJobs bounds the transcodes running at once whatever their cost;
+	// 0 is 2 × Workers.
+	MaxJobs int `yaml:"max_jobs" env:"MAX_JOBS"`
+	// Queue is how many transcodes may wait beyond MaxJobs (429 beyond).
 	Queue int `yaml:"queue" env:"QUEUE"`
-	// QueueTimeout is how long one waits for a worker (503 after).
+	// QueueCost bounds the cost units the waiting transcodes add up to
+	// (429 beyond; one always waits behind nothing); 0 is
+	// max(Queue, 1) × 10000.
+	QueueCost int64 `yaml:"queue_cost" env:"QUEUE_COST"`
+	// QueueTimeout is how long one waits, probe included (503 after).
 	QueueTimeout time.Duration `yaml:"queue_timeout" env:"QUEUE_TIMEOUT"`
 	// Timeout bounds one transcode, from admission (504 after); a video
 	// request's whole budget is fetch.timeout + queue_timeout + timeout.
@@ -643,7 +655,8 @@ type VideoTransform struct {
 	// from 1 to 30.
 	SegmentDuration time.Duration `yaml:"segment_duration" env:"SEGMENT_DURATION"`
 	// PrefetchSegments is how many segments after a requested one are
-	// transcoded ahead, on idle workers only (0 is off).
+	// transcoded ahead, only when the video pool has room for them at
+	// once (0 is off).
 	PrefetchSegments int `yaml:"prefetch_segments" env:"PREFETCH_SEGMENTS"`
 	// StreamTTL is how long the child URLs of a manifest (its playlists
 	// and segments) work.

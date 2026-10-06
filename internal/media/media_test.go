@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/limiter"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/video"
 )
@@ -88,6 +89,32 @@ type metrics struct {
 	mu        sync.Mutex
 	results   []string
 	coalesced int
+	costs     []float64
+	rejected  []limiter.Reason
+	load      Load
+	peak      Load // the largest value of each field
+}
+
+func (m *metrics) JobCost(units float64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.costs = append(m.costs, units)
+}
+
+func (m *metrics) Rejected(r limiter.Reason) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.rejected = append(m.rejected, r)
+}
+
+func (m *metrics) Load(l Load) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.load = l
+	m.peak = Load{
+		Jobs: max(m.peak.Jobs, l.Jobs), Queued: max(m.peak.Queued, l.Queued), Running: max(m.peak.Running, l.Running),
+		CapacityUsed: max(m.peak.CapacityUsed, l.CapacityUsed), QueuedCost: max(m.peak.QueuedCost, l.QueuedCost),
+	}
 }
 
 func (m *metrics) Transcoded(result string, _ time.Duration, _, _ int64) {
@@ -285,7 +312,7 @@ func TestTransformAdmission(t *testing.T) {
 	t.Parallel()
 	synctest.Test(t, func(t *testing.T) {
 		e := &engine{gate: make(chan struct{})}
-		s, _ := newService(t, e, func(c *Config) { c.Workers, c.Queue = 1, 0 })
+		s, _ := newService(t, e, func(c *Config) { c.Workers, c.MaxJobs, c.Queue = 1, 1, 0 })
 		done := make(chan error, 1)
 		go func() {
 			res, err := s.Transform(t.Context(), "a", newBuf("v"), &transform.VideoOp{Mute: true}, nil)
