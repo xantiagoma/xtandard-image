@@ -74,7 +74,7 @@ host = "sftp.partner.example"
 port = 2222
 user = "xi"
 private_key = { file = "/run/secrets/partner_sftp_key" }
-host_key = "sftp.partner.example ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIReplaceWithTheOutputOfSshKeyscan"
+host_key = "sftp.partner.example ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPleaseReplaceWithTheOutputOfSshKeyscanKey01"
 root = "/outgoing/images"
 
 [sources.legacy-ftp]

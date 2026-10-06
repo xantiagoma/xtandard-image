@@ -4,6 +4,9 @@ package app
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"os"
 	"path/filepath"
@@ -75,6 +78,16 @@ func resolutionTables(t *testing.T, doc string) map[string][]resolutionRow {
 	return out
 }
 
+// testSSHKeyPEM is a throwaway Ed25519 private key in PKCS #8 PEM form.
+func testSSHKeyPEM(t *testing.T) []byte {
+	t.Helper()
+	der, err := x509.MarshalPKCS8PrivateKey(ed25519.NewKeyFromSeed(make([]byte, ed25519.SeedSize)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der})
+}
+
 // TestSourcesDocResolution checks the resolution tables of docs/SOURCES.md:
 // each config example is loaded, its sources registered in the order the
 // app uses (sourceOrder), and every row's source string resolved with the
@@ -95,6 +108,9 @@ func TestSourcesDocResolution(t *testing.T) {
 			ReadFile: func(name string) ([]byte, error) {
 				if name == cfgPath {
 					return os.ReadFile(name)
+				}
+				if strings.Contains(filepath.Base(name), "sftp_key") {
+					return testSSHKeyPEM(t), nil // config validate parses private keys
 				}
 				return []byte("00112233445566778899aabbccddeeff"), nil // secrets
 			},
