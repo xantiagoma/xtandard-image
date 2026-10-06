@@ -27,8 +27,14 @@ func forwarded(name string) bool {
 // headers from its own origin (no CORS, no CSP exception), and the timing
 // of the public handler is reported in Server-Timing. The request passes
 // every public-listener check; render adds no privilege.
+//
+// With ranges=1 the Range and If-Range headers are forwarded too (WP-128):
+// a <video> or <audio> element whose src is api/render (the comparison's
+// raw source, /video/…/raw:1/…) seeks with byte ranges. Results the page
+// fetches whole (and manifests, which are rewritten whole) omit it.
 func (h *handler) render(w http.ResponseWriter, r *http.Request) {
-	u := r.URL.Query().Get("u")
+	q := r.URL.Query()
+	u := q.Get("u")
 	if len(u) > maxRenderURL || !strings.HasPrefix(u, "/") || strings.HasPrefix(u, "//") {
 		writeJSONError(w, http.StatusBadRequest, "u must be a path on the public listener, starting with a single /")
 		return
@@ -51,6 +57,13 @@ func (h *handler) render(w http.ResponseWriter, r *http.Request) {
 	for name, vs := range r.Header {
 		if forwarded(name) {
 			req.Header[name] = vs
+		}
+	}
+	if q.Get("ranges") == "1" {
+		for _, name := range []string{"Range", "If-Range"} {
+			if v := r.Header.Values(name); len(v) > 0 {
+				req.Header[name] = v
+			}
 		}
 	}
 	w.Header().Set("Content-Security-Policy", renderCSP)

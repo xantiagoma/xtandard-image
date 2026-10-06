@@ -43,7 +43,8 @@
 
 <aside id="help" class="notice" hidden aria-label="Keyboard shortcuts">
   <p><kbd>/</kbd> search options · <kbd>Enter</kbd> (in the builder) render now · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> render from anywhere ·
-    <kbd>c</kbd> copy the URL · <kbd>s</kbd> toggle slider / side by side · <kbd>1</kbd> <kbd>2</kbd> <kbd>0</kbd> zoom 1×, 2×, fit · arrow keys pan the zoomed preview (focus it first) · <kbd>?</kbd> this help</p>
+    <kbd>c</kbd> copy the URL · <kbd>s</kbd> toggle slider / side by side · <kbd>1</kbd> <kbd>2</kbd> <kbd>0</kbd> zoom 1×, 2×, fit · arrow keys pan the zoomed preview (focus it first) ·
+    video and audio: <kbd>k</kbd> play / pause both · <kbd>x</kbd> A/B: hear the source or the result at the same position · <kbd>?</kbd> this help</p>
   <p class="hint">Signing happens on the server: keys never reach this page. Anyone who can open it can sign URLs, so keep it on the private admin listener.</p>
 </aside>
 
@@ -215,6 +216,27 @@
         <div class="pane after" id="pane-after"><span class="tag">Result</span><div class="media" id="after-media"></div></div>
         <div class="handle" id="handle" aria-hidden="true"></div>
         <input type="range" id="split" class="split" min="0" max="100" value="50" aria-label="Comparison position">
+      </div>
+      <div class="media-bar" id="media-bar" role="group" aria-label="Playback of the source and the result" hidden>
+        <div class="row wrap mb-row">
+          <button type="button" id="mb-play" class="small primary" title="Play or pause both (k)">Play</button>
+          <input type="range" id="mb-seek" min="0" max="0" step="0.01" value="0" aria-label="Position in the result (seconds)">
+          <output id="mb-time" for="mb-seek" aria-label="Result position and duration">0:00.00 / 0:00.00</output>
+        </div>
+        <div class="row wrap mb-row">
+          <label class="inline" for="mb-rate">Speed</label>
+          <select id="mb-rate">
+            <option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="0.75">0.75×</option>
+            <option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option>
+          </select>
+          <label class="inline" title="One control drives both players; off: each player has its own controls"><input type="checkbox" id="mb-link" checked> linked playback</label>
+          <button type="button" id="mb-ab" class="small" aria-pressed="false" title="Switch between hearing the source and the result at the same position (x)">Hearing: result</button>
+          <button type="button" id="mb-mute" class="small" aria-pressed="false">Sound off</button>
+          <span class="mb-sync hint" id="mb-sync" title="Drift of the source from the result's mapped time"></span>
+        </div>
+        <div class="src-tl" id="mb-timeline" aria-hidden="true"><div class="src-tl-trim"></div><div class="src-tl-head res"></div><div class="src-tl-head src"></div></div>
+        <p class="hint mb-trim" id="mb-trim"></p>
+        <p class="hint mb-status" id="mb-status" role="status" aria-live="polite"></p>
       </div>
       <div id="frames" class="frames" role="group" aria-label="Pages, frames and time of the source" hidden></div>
       <p class="hint media-note" id="media-note" role="status" aria-live="polite" hidden></p>

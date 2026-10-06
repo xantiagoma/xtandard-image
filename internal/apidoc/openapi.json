@@ -6682,6 +6682,33 @@
             "x-xi-scope": "request",
             "x-xi-syntax": "1..100"
           },
+          "raw": {
+            "description": "Stream the source without processing. URL: `raw`; arguments bool; default false.",
+            "examples": [
+              [
+                true
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "stream the source unprocessed",
+                "title": "raw",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [],
+            "x-xi-default": "false",
+            "x-xi-milestone": "M1",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "bool"
+          },
           "resize": {
             "description": "Resize like imgproxy: fit (scale-down, or contain with enlarge; extend pads), fill and fill-down (cover, cropped by gravity), force (stretch). URL: `resize`, `rs`; arguments type:w:h:enlarge:extend; default fit:0:0:false:false.",
             "examples": [

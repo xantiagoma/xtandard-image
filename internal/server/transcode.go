@@ -155,6 +155,10 @@ func (s *Server) videoProcess(ctx context.Context, r *http.Request, info *reques
 		return nil, errs.New(errs.KindExpired, "server: url expired")
 	}
 
+	if req.Video != nil && req.Video.Raw {
+		return s.videoRaw(ctx, r, info, req, signed) // videoraw.go
+	}
+
 	t := s.stage(info, stageNormalize)
 	req.ApplyDefaults(s.cfg.Defaults)
 	err := req.Validate()
@@ -185,11 +189,7 @@ func (s *Server) videoProcess(ctx context.Context, r *http.Request, info *reques
 	}
 
 	t = s.stage(info, stageFetch)
-	maxBytes := lim.maxSrcBytes
-	if v := s.cfg.Video.MaxSrcBytes; v > 0 && (maxBytes <= 0 || v > maxBytes) {
-		maxBytes = v
-	}
-	fr, err := s.fetch(ctx, key, source.FetchOptions{MaxBytes: maxBytes, Header: r.Header}, j.hashsum)
+	fr, err := s.fetch(ctx, key, source.FetchOptions{MaxBytes: s.videoMaxSrcBytes(lim), Header: r.Header}, j.hashsum)
 	t.done()
 	if err != nil {
 		return nil, err
@@ -229,6 +229,16 @@ func (s *Server) videoProcess(ctx context.Context, r *http.Request, info *reques
 	}
 	info.width, info.height = vr.Width, vr.Height
 	return res, nil
+}
+
+// videoMaxSrcBytes is the fetch limit of a video source: the request's
+// image limit, raised to XI_VIDEO_TRANSFORM_MAX_INPUT_BYTES.
+func (s *Server) videoMaxSrcBytes(lim requestLimits) int64 {
+	maxBytes := lim.maxSrcBytes
+	if v := s.cfg.Video.MaxSrcBytes; v > 0 && (maxBytes <= 0 || v > maxBytes) {
+		maxBytes = v
+	}
+	return maxBytes
 }
 
 // videoContainer resolves an automatic container (Cloudinary f_auto,

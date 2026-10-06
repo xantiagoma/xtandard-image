@@ -456,6 +456,8 @@ func TestRender(t *testing.T) {
 	req.Header.Set("Sec-Ch-Dpr", "2")
 	req.Header.Set("Cookie", "session=secret")
 	req.Header.Set("Authorization", "Basic eDp5")
+	req.Header.Set("Range", "bytes=0-1")
+	req.Header.Set("If-Range", `"e1"`)
 	res, body := f.do(t, req)
 	if res.StatusCode != http.StatusOK || string(body) != "\x89PNG" {
 		t.Fatalf("status %d body %q", res.StatusCode, body)
@@ -470,11 +472,26 @@ func TestRender(t *testing.T) {
 	if got.Header.Get("Cookie") != "" || got.Header.Get("Authorization") != "" {
 		t.Errorf("credentials forwarded: %v", got.Header)
 	}
+	if got.Header.Get("Range") != "" || got.Header.Get("If-Range") != "" {
+		t.Errorf("Range forwarded without ranges=1: %v", got.Header)
+	}
 	if !strings.HasPrefix(res.Header.Get("Server-Timing"), "xi;") || res.Header.Get("X-Xi-Result-Width") != "10" {
 		t.Errorf("headers %v", res.Header)
 	}
 	if csp := res.Header.Get("Content-Security-Policy"); !strings.Contains(csp, "sandbox") {
 		t.Errorf("render CSP %q", csp)
+	}
+	// ranges=1 (a media element's src) forwards Range and If-Range.
+	req = get(t, "/_playground/api/render?ranges=1&u="+strings.ReplaceAll(strings.ReplaceAll(u, "%", "%25"), "?", "%3F"))
+	req.Header.Set("Range", "bytes=0-1")
+	req.Header.Set("If-Range", `"e1"`)
+	req.Header.Set("Cookie", "session=secret")
+	if res, _ := f.do(t, req); res.StatusCode != http.StatusOK {
+		t.Fatalf("ranges=1: status %d", res.StatusCode)
+	}
+	got = f.image.got
+	if got.Header.Get("Range") != "bytes=0-1" || got.Header.Get("If-Range") != `"e1"` || got.Header.Get("Cookie") != "" {
+		t.Errorf("ranges=1 forwarded %v", got.Header)
 	}
 	for _, bad := range []string{"", "insecure/a", "//evil.example/a", "/a%20b%0A", "/a%23frag"} {
 		if res, _ := f.do(t, get(t, "/_playground/api/render?u="+bad)); res.StatusCode != http.StatusBadRequest {
