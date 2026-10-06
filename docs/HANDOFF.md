@@ -275,3 +275,8 @@ owner has authorised merging PRs without review.
   fix: unsized video output scaled down to `XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS` instead of 422 (#128),
   WP-129 55 video/audio recipes with public samples (#129; demo shows 104 recipes). Open: Cloudinary
   `e_volume` levels other than mute not mapped; no HDR/10-bit or rotation-metadata sample yet.
+- **In flight (2026-10-06):** WP-121b video spool to disk + shared stream source (`m5/wp-121b-video-spool`),
+  WP-121c cost-based video admission (`m5/wp-121c-video-admission`), WP-130 polish batch: WP-113 shim
+  float rounding, WP-114 CMYK BPC, `config validate` Azure/SFTP, gpl licence label (DNG SDK/GPR),
+  imgproxy allowed-sources scheme (`m5/wp-130-polish`). 121b and 121c both touch `internal/media`:
+  merge 121b first, then rebase 121c.
