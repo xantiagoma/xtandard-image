@@ -189,6 +189,13 @@ func TestVideo(t *testing.T) {
 		vid("hashsum", "hs:sha256:"+sha256Hex),
 		vid("cache_tags", "ct:a:b"),
 
+		// Raw source (WP-128): stays a video request; other options are kept
+		// but ignored by the server.
+		vid("raw", "raw:1"),
+		vid("raw_off", "raw:0/w:320"),
+		vidPath("raw_audio", "", "/unsafe/raw:true/vs:1"+videoSrc+"@mp3"),
+		vid("raw_bad", "raw:maybe"),
+
 		// Adaptive streaming (WP-126).
 		vidPath("stream_ext_m3u8", "", "/unsafe"+videoSrc+"@m3u8"),
 		vidPath("stream_ext_mpd", "", "/unsafe/vs:5/vd:60"+videoSrc+"@mpd"),

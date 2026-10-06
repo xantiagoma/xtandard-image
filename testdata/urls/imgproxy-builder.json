@@ -11127,6 +11127,68 @@
       "url_short": "/video/unsafe/q:100/plain/https://example.com/clip.mov"
     },
     {
+      "name": "video/raw",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "raw": [
+              true
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/raw:1/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/raw:1/plain/https://example.com/clip.mov"
+    },
+    {
+      "name": "video/raw_audio",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "extension": "mp3",
+      "pipelines": [
+        [
+          {
+            "raw": [
+              true
+            ]
+          },
+          {
+            "vs": [
+              1
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/raw:1/vs:1/plain/https://example.com/clip.mov@mp3",
+      "url_short": "/video/unsafe/raw:1/vs:1/plain/https://example.com/clip.mov@mp3"
+    },
+    {
+      "name": "video/raw_off",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "raw": [
+              false
+            ]
+          },
+          {
+            "w": [
+              320
+            ]
+          }
+        ]
+      ],
+      "url": "/video/unsafe/raw:0/w:320/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/raw:0/w:320/plain/https://example.com/clip.mov"
+    },
+    {
       "name": "video/resize_fill",
       "endpoint": "video",
       "encoding": "plain",

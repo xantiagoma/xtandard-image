@@ -1676,6 +1676,78 @@
     "signature": "unsigned",
     "source": "https://example.com/clip.mov"
   },
+  "raw": {
+    "endpoint": "video",
+    "path": "/unsafe/raw:1/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Raw": true
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "raw_audio": {
+    "endpoint": "video",
+    "path": "/unsafe/raw:true/vs:1/plain/https://example.com/clip.mov@mp3",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "mp3",
+        "Fit": "scale-down",
+        "Raw": true,
+        "Start": 1000000000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "raw_bad": {
+    "endpoint": "video",
+    "error": {
+      "field": "raw",
+      "kind": "invalid_url",
+      "public": "invalid raw: expected boolean (1, t, true, 0, f, false)",
+      "status": 400
+    },
+    "path": "/unsafe/raw:maybe/plain/https://example.com/clip.mov"
+  },
+  "raw_off": {
+    "endpoint": "video",
+    "path": "/unsafe/raw:0/w:320/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down",
+        "Width": 320
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
   "resize_auto": {
     "endpoint": "video",
     "error": {
