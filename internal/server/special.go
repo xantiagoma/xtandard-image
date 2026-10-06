@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/fetch"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
@@ -59,7 +60,7 @@ type job struct {
 // response headers (ETag, Cache-Control, Last-Modified, debug headers)
 // derive from.
 func newResult(j *job, fr *fetch.Result) *imageResult {
-	res := &imageResult{req: j.req, key: j.key, object: fr.Object, hints: j.hints, signed: j.signed, srcLen: len(fr.Bytes())}
+	res := &imageResult{req: j.req, key: j.key, object: fr.Object, hints: j.hints, signed: j.signed, srcLen: int(cache.BodyLen(fr.Buffer))}
 	res.object.Body = nil
 	return res
 }

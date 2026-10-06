@@ -102,6 +102,7 @@ type Metrics struct {
 	detectDuration *prometheus.HistogramVec
 
 	video *videoMetrics
+	spool *spoolMetrics
 }
 
 // New builds the metric set on a fresh private registry, including the Go
@@ -115,6 +116,7 @@ func New(opts Options) (*Metrics, error) {
 	m := &Metrics{
 		reg:   prometheus.NewRegistry(),
 		video: newVideoMetrics(),
+		spool: newSpoolMetrics(),
 		requests: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: Namespace,
 			Name:      "requests_total",
@@ -241,6 +243,7 @@ func New(opts Options) (*Metrics, error) {
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 	}
 	cs = append(cs, m.video.collectors()...)
+	cs = append(cs, m.spool.collectors()...)
 	if opts.Vips != nil {
 		cs = append(cs, vipsGauges(opts.Vips)...)
 	}
