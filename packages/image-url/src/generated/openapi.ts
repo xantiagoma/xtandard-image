@@ -2232,6 +2232,15 @@ export interface components {
                 number
             ];
             /**
+             * @description Stream the source without processing. URL: `raw`; arguments bool; default false.
+             * @example [
+             *       true
+             *     ]
+             */
+            raw?: [
+                boolean | null
+            ];
+            /**
              * @description Resize like imgproxy: fit (scale-down, or contain with enlarge; extend pads), fill and fill-down (cover, cropped by gravity), force (stretch). URL: `resize`, `rs`; arguments type:w:h:enlarge:extend; default fit:0:0:false:false.
              * @example [
              *       "fill",

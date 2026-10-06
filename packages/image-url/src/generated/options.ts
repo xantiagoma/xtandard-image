@@ -1690,6 +1690,15 @@ export interface ImgproxyVideoArgs {
   "quality":
     | [quality: number];
   /**
+   * Stream the source without processing. URL: `raw`; arguments bool; default false.
+   *
+   * URL names: `raw`.
+   * milestone M1; scope request.
+   * @example [true]
+   */
+  "raw":
+    | [raw: boolean | null];
+  /**
    * Resize like imgproxy: fit (scale-down, or contain with enlarge; extend pads), fill and fill-down (cover, cropped by gravity), force (stretch). URL: `resize`, `rs`; arguments type:w:h:enlarge:extend; default fit:0:0:false:false.
    *
    * URL names: `resize`, `rs`.
@@ -1963,6 +1972,7 @@ export const imgproxyVideoOptionNames = [
   "overlay_fade",
   "overlay_window",
   "quality",
+  "raw",
   "resize",
   "resizing_type",
   "return_attachment",

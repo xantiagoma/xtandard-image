@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"image/png"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -13,6 +15,7 @@ import (
 
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/security/sign"
+	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
 	"github.com/xantiagoma/xtandard-image/internal/video/ffmpeg"
 )
 
@@ -150,6 +153,54 @@ func TestVideoURLs(t *testing.T) {
 		_ = resp.Body.Close()
 		if resp.StatusCode != http.StatusPartialContent || !bytes.Equal(part.Bytes(), full.body[500:]) {
 			t.Fatalf("range: %d, %d bytes", resp.StatusCode, part.Len())
+		}
+	})
+
+	// raw:1 (WP-128): the source file itself, signed like a transformation,
+	// with Range; only media files.
+	t.Run("raw source", func(t *testing.T) {
+		fixtures := filepath.Join(golden.ModuleRoot(t), "testdata", "fixtures")
+		for _, c := range []struct{ file, ctype string }{
+			{"video/clip-vp9.webm", "video/webm"},
+			{"video/bbb-h264-aac.mp4", "video/mp4"},
+			{"audio/tones-stereo.mp3", "audio/mpeg"},
+		} {
+			want, err := os.ReadFile(filepath.Join(fixtures, c.file))
+			if err != nil {
+				t.Fatal(err)
+			}
+			u := base + s.video(t, "/raw:1/w:160/vd:1/plain/"+c.file)
+			r := get(t, u)
+			if r.status != http.StatusOK || r.ctype != c.ctype || !bytes.Equal(r.body, want) || r.header.Get("X-Xi-Video-Codec") != "" {
+				t.Fatalf("%s: %d %s, %d bytes (want %d), codec %q", c.file, r.status, r.ctype, len(r.body), len(want), r.header.Get("X-Xi-Video-Codec"))
+			}
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, u, http.NoBody)
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set("Range", "bytes=100-199")
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var part bytes.Buffer
+			_, _ = part.ReadFrom(resp.Body)
+			_ = resp.Body.Close()
+			if resp.StatusCode != http.StatusPartialContent || !bytes.Equal(part.Bytes(), want[100:200]) {
+				t.Errorf("%s range: %d, %d bytes", c.file, resp.StatusCode, part.Len())
+			}
+		}
+		for _, c := range []struct {
+			name, path string
+			want       int
+		}{
+			{"unsigned", "/video/unsafe/raw:1/plain/video/clip-vp9.webm", http.StatusForbidden},
+			{"image signature", strings.Replace(s.video(t, "/raw:1/plain/video/clip-vp9.webm"), "/video/", "/", 1), http.StatusForbidden},
+			{"an image source", s.video(t, "/raw:1/plain/jpeg/baseline.jpg"), http.StatusUnprocessableEntity},
+		} {
+			if r := get(t, base+c.path); r.status != c.want {
+				t.Errorf("%s: %d %s, want %d", c.name, r.status, r.body, c.want)
+			}
 		}
 	})
 

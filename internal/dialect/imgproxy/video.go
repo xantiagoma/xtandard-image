@@ -309,6 +309,11 @@ func (st *state) applyVideo(name string, args []string) error {
 	case "segment_duration", "sgd":
 		return st.videoSegmentDuration(args)
 
+	// raw streams the media source unmodified (WP-128): it stays a video
+	// request (its signing, policy, role and limits), not KindRaw.
+	case "raw":
+		return oneBool("raw", args, &op.Raw)
+
 	// Delivery and source options shared with processing URLs.
 	case "cachebuster", "cb",
 		"expires", "exp",
