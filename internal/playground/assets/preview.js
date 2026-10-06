@@ -1,7 +1,9 @@
 // The preview: source and result fetched through api/render, compared with
 // a draggable slider (or side by side), zoom and pan, a checkerboard for
 // alpha, sizes, response headers, the Server-Timing breakdown and errors.
+// In the video mode the source plays too (compare.js, WP-128).
 
+import { autoplays, drawWave, MediaCompare, waveBox } from './compare.js';
 import { $, el, errorText, fmtBytes, fmtMs, svg } from './dom.js';
 
 const SHOWN = ['content-type', 'content-length', 'etag', 'vary', 'cache-control', 'content-dpr', 'content-disposition',
@@ -12,6 +14,17 @@ const STREAM_TYPES = ['application/vnd.apple.mpegurl', 'application/x-mpegurl', 
 
 // fmtRate writes a bit rate: 812 kbit/s, 2.4 Mbit/s.
 const fmtRate = (bps) => (bps >= 1e6 ? `${(bps / 1e6).toFixed(2)} Mbit/s` : `${Math.round(bps / 1000)} kbit/s`);
+
+// times writes a ratio as a factor: ×0.38, ×2.40, ×0.004.
+const times = (r) => `×${r.toFixed(r < 0.1 ? 3 : 2)}`;
+
+// delta compares a result value with the source's as the image table does:
+// "62.1% smaller (×0.38)" (less: words[0]) or "12.0% larger (×1.12)"; cls
+// is ok when the result is smaller.
+export function delta(src, res, words = ['smaller', 'larger']) {
+  const p = (1 - res / src) * 100;
+  return { text: `${Math.abs(p).toFixed(1)}% ${p >= 0 ? words[0] : words[1]} (${times(res / src)})`, cls: p >= 0 ? 'ok' : 'warn' };
+}
 const fmtSec = (s) => `${s.toFixed(2)} s`;
 const channelName = (n) => ({ 1: 'mono', 2: 'stereo' })[n] ?? `${n} channels`;
 
@@ -120,6 +133,10 @@ export class Preview {
     this.sourceMedia = null;
     this.resultMedia = null;
     this.cancelled = false;
+    // The media comparison (WP-128): the source's playable original and the
+    // trim it is compared over ({kind, src, poster, start, end, duration, fps}).
+    this.mediaOpts = null;
+    this.compare = new MediaCompare({ onSourceError: (m) => this.sourceFallback(m) });
     this.wire();
     this.layout();
   }
@@ -140,7 +157,8 @@ export class Preview {
     stage.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || e.target === split) return;
       if (e.target.closest('video') && e.offsetY > e.target.clientHeight - 40) return; // video controls
-      if (e.target.closest('audio, button, .stream-result')) return; // audio controls, Cancel, a manifest
+      if (e.target.closest('audio, button, .stream-result, .wave-box')) return; // audio controls, Cancel, a manifest, a waveform
+      if (stage.dataset.media === 'audio') return; // stacked players: no slider
       e.preventDefault();
       const r = stage.getBoundingClientRect();
       const x = ((e.clientX - r.left) / r.width) * 100;
@@ -190,6 +208,7 @@ export class Preview {
     $('view-mode').value = mode;
     $('stage').dataset.mode = mode;
     this.layout();
+    this.bindMedia();
   }
 
   toggleMode() { this.setMode($('stage').dataset.mode === 'slider' ? 'side' : 'slider'); }
@@ -220,7 +239,8 @@ export class Preview {
   // letterboxed on the checkerboard and the slider compares the same area.
   layout() {
     const stage = $('stage');
-    const size = this.natural('after') ?? this.natural('before');
+    // Stacked audio players (WP-128) take the CSS height, never a zoom.
+    const size = stage.dataset.media === 'audio' ? null : this.natural('after') ?? this.natural('before');
     const cols = stage.dataset.mode === 'side' ? 2 : 1;
     const ar = size ? size.w / size.h : 16 / 10;
     stage.style.setProperty('--stage-ar', String(ar * cols));
@@ -262,12 +282,21 @@ export class Preview {
   // render fetches path (after) and, when it changed, before. opts.video
   // marks a video transformation: the loader counts the seconds and can
   // cancel the request.
+  //
+  // opts.media (WP-128) plays the source: {kind: 'video'|'audio', src (its
+  // api/render?ranges=1 URL), poster (beforePath's), start, end, duration,
+  // fps}; null shows beforePath; undefined (a translate preview) keeps the
+  // source the session has.
   async render(afterPath, beforePath, opts = {}) {
     this.videoMode = Boolean(opts.video);
+    if (opts.media !== undefined) this.mediaOpts = opts.media;
+    const media = this.videoMode ? this.mediaOpts : null;
+    if (media) this.compare.setTiming(media);
     const jobs = [this.load('after', afterPath)];
-    if (beforePath && beforePath !== this.lastBefore) {
-      this.lastBefore = beforePath;
-      jobs.push(this.load('before', beforePath));
+    const key = media ? `media ${media.src} ${media.poster}` : beforePath;
+    if (key && key !== this.lastBefore) {
+      this.lastBefore = key;
+      jobs.push(media ? this.loadSource(media) : this.load('before', beforePath));
     }
     await Promise.all(jobs);
     this.stats();
@@ -298,6 +327,8 @@ export class Preview {
       el('span', { class: 'spinner' }), el('span', { class: 'loader-text', text: label }));
     if (!keep) pane.append(loader);
     if (which === 'after') clearInterval(this.elapsedTimer);
+    // The source stays (and pauses) while a new result transcodes.
+    this.bindMedia();
     if (video) {
       // A transcode takes seconds: count them, and offer to stop.
       const started = performance.now();
@@ -389,7 +420,7 @@ export class Preview {
     if (type.startsWith('video/') || type.startsWith('audio/')) {
       const audio = type.startsWith('audio/');
       node = el(audio ? 'audio' : 'video', {
-        src: url, controls: true, preload: 'auto', playsinline: !audio, autoplay: !audio, loop: !audio, muted: !audio,
+        src: url, controls: true, preload: 'auto', playsinline: !audio, autoplay: !audio && autoplays(), loop: !audio, muted: !audio,
         'aria-label': `${label} ${audio ? 'audio' : 'video'}`,
       });
       node.muted = !audio;
@@ -420,9 +451,90 @@ export class Preview {
     if (which === 'after') $('render-error').hidden = true;
     media.replaceChildren(node);
     this.done(which);
+    this.bindMedia();
     this.layout();
     this.stats();
     if (which === 'after' && /^(video|audio)\//.test(type)) this.onMedia?.(blob, type, seq);
+    // An audio result shows its waveform under its player (WP-128).
+    if (which === 'after' && type.startsWith('audio/') && this.videoMode) {
+      const canvas = await drawWave(blob);
+      if (canvas && !stale() && media.firstElementChild === node) {
+        media.append(waveBox(canvas));
+        this.compare.ui();
+      }
+    }
+  }
+
+  // bindMedia hands the players of both panes to the comparison: the
+  // source's when it is media, the result's once it is loaded (a hidden
+  // source in Result only mode is left out).
+  bindMedia() {
+    const stage = $('stage');
+    const pick = (w) => {
+      const m = $(`${w}-media`).firstElementChild;
+      return this.videoMode && m && (m.tagName === 'VIDEO' || m.tagName === 'AUDIO') && !$(`pane-${w}`).classList.contains('loading') ? m : null;
+    };
+    const was = stage.dataset.media;
+    this.compare.bind(stage.dataset.mode === 'result' ? null : pick('before'), pick('after'),
+      { loading: $('pane-after').classList.contains('loading') });
+    if (stage.dataset.media !== was) this.layout();
+  }
+
+  // loadSource puts the playable original in the Source pane (WP-128): a
+  // <video> with its still as the poster, or an <audio> over its waveform.
+  // The element streams from api/render?ranges=1 (the server's raw video
+  // passthrough), so the browser seeks with byte ranges; the pane shows
+  // its own loader until the first frame (or audio) is decodable.
+  async loadSource(desc) {
+    const { seq } = this.begin('before');
+    const stale = () => seq !== this.seq.before;
+    const audio = desc.kind === 'audio';
+    const node = el(audio ? 'audio' : 'video', {
+      src: desc.src, preload: 'auto', playsinline: !audio, muted: true, poster: !audio && desc.poster ? desc.poster : false,
+      'data-poster': desc.poster || false, 'aria-label': `Source ${audio ? 'audio' : 'video'} (the original file)`,
+    });
+    node.muted = true;
+    const ok = await new Promise((resolve) => {
+      node.addEventListener('loadeddata', () => resolve(true), { once: true });
+      node.addEventListener('error', () => resolve(false), { once: true });
+      setTimeout(() => resolve(node.readyState >= 2), 20000);
+    });
+    if (stale()) return;
+    if (!ok) {
+      await this.sourceFallback(node, seq);
+      return;
+    }
+    if (this.urls.before) URL.revokeObjectURL(this.urls.before);
+    this.urls.before = '';
+    const wave = audio && desc.poster ? waveBox(el('img', { src: desc.poster, alt: '', class: 'wave', draggable: 'false' }), { trim: true }) : null;
+    $('before-media').replaceChildren(node, ...(wave ? [wave] : []));
+    $('media-note').hidden = true;
+    this.done('before');
+    this.bindMedia();
+    this.layout();
+  }
+
+  // sourceFallback shows the source's still (a frame or its waveform) when
+  // the browser cannot play the original, says why, and lets the result
+  // play alone. seq is the pane request it answers (a playing source that
+  // fails later passes none).
+  async sourceFallback(node, seq = this.seq.before) {
+    let why = node.error ? `this browser cannot play it (media error ${node.error.code})` : 'it did not load in time';
+    try {
+      const res = await fetch(node.currentSrc || node.src, { headers: { Range: 'bytes=0-0' } });
+      if (!res.ok) why = `${res.status} ${errorText(await res.text(), res.status)}`;
+    } catch { /* keep the media error */ }
+    const media = $('before-media');
+    if (seq !== this.seq.before || (node.isConnected && node.parentElement !== media)) return;
+    const poster = node.dataset.poster;
+    media.replaceChildren(poster ? el('img', { src: poster, alt: 'Source (still: the original does not play here)', decoding: 'async', draggable: 'false' })
+      : el('p', { class: 'error card', text: `Source: ${why}` }));
+    const n = $('media-note');
+    n.hidden = false;
+    n.textContent = `The original source does not play here (${why}): its still is shown and the result plays alone.`;
+    this.done('before');
+    this.bindMedia();
+    this.layout();
   }
 
   // unplayable says that the browser cannot play the result (an H.264 or
@@ -572,13 +684,9 @@ export class Preview {
       mp(src) ? { text: mp(src).toFixed(2), why: srcNote('width', 'x-xi-origin-width') } : none(infoNote),
       mp(res) ? { text: mp(res).toFixed(2), why: 'from the result dimensions' } : none('no result'),
       mp(src) && mp(res) ? `${((mp(res) / mp(src)) * 100).toFixed(1)}% of the pixels` : '']);
-    let saved = '';
-    let savedCls = '';
-    if (src.size && ok) {
-      const pct = (1 - r.size / src.size) * 100;
-      saved = pct >= 0 ? `${pct.toFixed(1)}% smaller` : `${Math.abs(pct).toFixed(1)}% larger`;
-      savedCls = pct >= 0 ? 'ok' : 'warn';
-    }
+    const sv = src.size && ok ? delta(src.size, r.size) : null;
+    const saved = sv?.text ?? '';
+    const savedCls = sv?.cls ?? '';
     rows.push(['Bytes',
       src.size ? { text: fmtBytes(src.size), why: srcNote('size', 'x-xi-origin-content-length') } : none(infoNote),
       ok ? { text: fmtBytes(r.size), why: 'the result body' } : none('no result'),
@@ -678,26 +786,21 @@ export class Preview {
       res ? { text: res.acodec || 'none', why: res.why } : none('no result'),
       codecChange(src?.acodec, res?.acodec, r.type.startsWith('image/') ? 'drawn as a waveform' : 'muted')]);
     rows.push(['Duration', cell(src, src?.duration, fmtSec), cellR(res?.duration, fmtSec),
-      src?.duration && res?.duration ? (Math.abs(src.duration - res.duration) < 0.05 ? 'same' : `cut to ${pct(src.duration, res.duration)} (${fmtSec(res.duration - src.duration)})`) : '']);
+      src?.duration && res?.duration ? (Math.abs(src.duration - res.duration) < 0.05 ? 'same'
+        : `${res.duration < src.duration ? 'cut to' : 'extended to'} ${pct(src.duration, res.duration)} (${fmtSec(res.duration - src.duration)}, ${times(res.duration / src.duration)})`) : '']);
     const dim = (f) => (f?.w && f?.h ? `${f.w}×${f.h}` : '');
     rows.push(['Dimensions (px)', cell(src, dim(src)), cellR(dim(res)),
       dim(src) && dim(res) ? (dim(src) === dim(res) ? 'same' : `scale ×${(res.w / src.w).toFixed(2)}`) : '']);
     rows.push(['Frame rate', cell(src, src?.fps, (v) => `${v} fps`), cellR(res?.fps, (v) => `${v} fps`),
       src?.fps && res?.fps ? (Math.abs(src.fps - res.fps) < 0.01 ? 'same' : 'changed') : '']);
-    rows.push(['Bit rate (average)', cell(src, src?.bitrate, fmtRate), cellR(res?.bitrate, fmtRate),
-      src?.bitrate && res?.bitrate ? `${pct(src.bitrate, res.bitrate)} of the source` : '']);
+    const rate = src?.bitrate && res?.bitrate ? delta(src.bitrate, res.bitrate, ['lower', 'higher']) : null;
+    rows.push(['Bit rate (average)', cell(src, src?.bitrate, fmtRate), cellR(res?.bitrate, fmtRate), rate?.text ?? '', rate?.cls]);
     rows.push(['Sample rate', cell(src, src?.rate, (v) => `${v / 1000} kHz`), cellR(res?.rate, (v) => `${v / 1000} kHz`),
       src?.rate && res?.rate ? (src.rate === res.rate ? 'same' : 'resampled') : '']);
     rows.push(['Channels', cell(src, src?.channels, channelName), cellR(res?.channels, channelName),
       src?.channels && res?.channels ? (src.channels === res.channels ? 'same' : res.channels < src.channels ? 'downmixed' : 'upmixed') : '']);
-    let saved = '';
-    let savedCls = '';
-    if (src?.size && ok) {
-      const p = (1 - r.size / src.size) * 100;
-      saved = p >= 0 ? `${p.toFixed(1)}% smaller` : `${Math.abs(p).toFixed(1)}% larger`;
-      savedCls = p >= 0 ? 'ok' : 'warn';
-    }
-    rows.push(['Bytes', cell(src, src?.size, fmtBytes), ok ? { text: fmtBytes(r.size), why: 'the result body' } : none('no result'), saved, savedCls]);
+    const saved = src?.size && ok ? delta(src.size, r.size) : null;
+    rows.push(['Bytes', cell(src, src?.size, fmtBytes), ok ? { text: fmtBytes(r.size), why: 'the result body' } : none('no result'), saved?.text ?? '', saved?.cls]);
     const td = (v) => (typeof v === 'object'
       ? el('td', { class: v.text === 'not reported' ? 'na' : false, title: v.why, text: v.text })
       : el('td', { text: v }));

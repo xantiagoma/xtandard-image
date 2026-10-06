@@ -19,7 +19,12 @@
 // slow transcode, the media table and the video translate cards render,
 // every video recipe renders, and the panel fits 390 px; an HLS recipe's
 // master playlist loads and its first segment fetches through api/stream
-// (WP-126).
+// (WP-126). §11 checks the media comparison (WP-128): the source plays
+// (same origin, through api/render?ranges=1, answered 206), the shared
+// control plays both and keeps them within tolerance after seeks, the wipe
+// slider clips the result video, unlinking gives each player its controls,
+// and for audio both waveforms render and the A/B switch moves the sound
+// at the same position.
 //
 // Playwright is not a dependency of the repository: run it from a
 // throwaway directory against a server with the demo configuration
@@ -98,7 +103,167 @@ async function fitChecks(page: Page, label: string, { aspect = true } = {}) {
   return m;
 }
 
-const browser = await chromium.launch(exe ? { executablePath: exe } : {});
+// ---- §11 Media comparison (WP-128) ------------------------------------------
+
+type Pair = { st: number; rt: number; sp: boolean; rp: boolean; srs: number; rrs: number; sm: boolean; rm: boolean; sc: boolean; rc: boolean };
+// pair reads both players: times, paused, readyState, muted, controls.
+const pair = (page: Page) => page.evaluate(() => {
+  const s = document.querySelector('#before-media > video, #before-media > audio') as HTMLMediaElement | null;
+  const r = document.querySelector('#after-media > video, #after-media > audio') as HTMLMediaElement | null;
+  if (!s || !r) return null;
+  return { st: s.currentTime, rt: r.currentTime, sp: s.paused, rp: r.paused, srs: s.readyState, rrs: r.readyState, sm: s.muted, rm: r.muted, sc: s.controls, rc: r.controls };
+}) as Promise<Pair | null>;
+
+// driftWhilePlaying samples |source − (start + result)| while both play,
+// leaving out samples next to the result's loop point; the largest and the
+// median in seconds.
+async function driftWhilePlaying(page: Page, start: number, n = 12, every = 120) {
+  const d: number[] = [];
+  for (let i = 0; i < n; i++) {
+    await page.waitForTimeout(every);
+    const p = await page.evaluate(() => {
+      const s = document.querySelector('#before-media > video, #before-media > audio') as HTMLMediaElement;
+      const r = document.querySelector('#after-media > video, #after-media > audio') as HTMLMediaElement;
+      return { st: s.currentTime, rt: r.currentTime, rd: r.duration, sp: s.paused, rp: r.paused, seeking: s.seeking || r.seeking };
+    });
+    if (p.sp || p.rp || p.seeking || p.rt < 0.15 || p.rt > p.rd - 0.1) continue;
+    d.push(Math.abs(p.st - (start + p.rt)));
+  }
+  d.sort((a, b) => a - b);
+  return { n: d.length, max: d.at(-1) ?? NaN, median: d[Math.floor(d.length / 2)] ?? NaN };
+}
+
+const seekTo = (page: Page, t: number) => page.$eval('#mb-seek', (r: HTMLInputElement, v) => {
+  r.value = String(v);
+  r.dispatchEvent(new Event('input'));
+  r.dispatchEvent(new Event('change'));
+}, t);
+
+// compareVideo runs on the WebM recipe of §10 (trim 0.5–1.5 s of a 2 s clip).
+async function compareVideo(page: Page) {
+  const start = 0.5;
+  const tol = 0.1; // seconds: three frames at 30 fps
+  const ready = await page.waitForFunction(() => {
+    const s = document.querySelector('#before-media > video') as HTMLVideoElement | null;
+    return s && s.readyState >= 2 && !document.querySelector('#pane-before.loading') ? { rs: s.readyState, src: s.currentSrc, w: s.videoWidth, poster: s.poster } : false;
+  }, undefined, { timeout: 30000 }).then((h) => h.jsonValue() as Promise<{ rs: number; src: string; w: number; poster: string }>, () => null);
+  check(Boolean(ready) && ready!.rs >= 2 && ready!.w > 0, `compare: the source plays as a video (readyState ${ready?.rs}, ${ready?.w} px wide, poster ${ready?.poster ? 'set' : 'none'})`);
+  const su = ready ? new URL(ready.src) : null;
+  check(Boolean(su) && su!.origin === new URL(base).origin && su!.pathname.endsWith('/api/render') && su!.searchParams.get('ranges') === '1' && /\/raw:1\//.test(su!.searchParams.get('u') ?? ''),
+    `compare: the source streams same-origin through api/render (raw:1) (${su ? `${su.pathname}?ranges=${su.searchParams.get('ranges')}&u=${su.searchParams.get('u')}` : 'none'})`);
+  check(ranged.includes(206), `compare: the source answers byte ranges (statuses ${[...new Set(ranged)].join(', ')})`);
+  check(await page.isVisible('#media-bar') && await page.getAttribute('#media-bar', 'data-linked') === 'true', 'compare: the shared control bar is shown, linked');
+  const tl = await page.evaluate(() => { const t = document.getElementById('mb-timeline')!; return [t.style.getPropertyValue('--a'), t.style.getPropertyValue('--w')]; });
+  check(tl[0] === '25%' && tl[1] === '50%', `compare: the trim window is highlighted on the source timeline (left ${tl[0]}, width ${tl[1]})`);
+  const ctl = await pair(page);
+  check(Boolean(ctl) && !ctl!.sc && !ctl!.rc, 'compare: linked, the players hide their own controls');
+  // Pause, seek, then play from the bar.
+  if (ctl && !ctl.rp) await page.click('#mb-play');
+  await page.waitForFunction(() => (document.querySelector('#after-media > video') as HTMLVideoElement).paused, undefined, { timeout: 3000 }).catch(() => {});
+  await seekTo(page, 0.6);
+  await page.waitForTimeout(400);
+  const paused = await pair(page);
+  check(Boolean(paused) && paused!.sp && paused!.rp && Math.abs(paused!.st - (start + paused!.rt)) < 0.02,
+    `compare: a paused seek puts the source at start + result (${paused?.st.toFixed(3)} vs ${(start + (paused?.rt ?? 0)).toFixed(3)})`);
+  await page.click('#mb-play');
+  await page.waitForTimeout(500);
+  const playing = await pair(page);
+  check(Boolean(playing) && !playing!.sp && !playing!.rp, `compare: the shared Play plays both (source paused ${playing?.sp}, result paused ${playing?.rp})`);
+  const d1 = await driftWhilePlaying(page, start);
+  check(d1.n >= 3 && d1.max <= tol, `compare: in sync while playing (max drift ${(d1.max * 1000).toFixed(0)} ms, median ${(d1.median * 1000).toFixed(0)} ms over ${d1.n} samples; tolerance ${tol * 1000} ms)`);
+  notes.push(`compare video drift: max ${(d1.max * 1000).toFixed(1)} ms, median ${(d1.median * 1000).toFixed(1)} ms (${d1.n} samples)`);
+  await seekTo(page, 0.2);
+  await page.waitForTimeout(300);
+  const d2 = await driftWhilePlaying(page, start);
+  check(d2.n >= 3 && d2.max <= tol, `compare: in sync after a seek while playing (max drift ${(d2.max * 1000).toFixed(0)} ms, median ${(d2.median * 1000).toFixed(0)} ms over ${d2.n} samples)`);
+  notes.push(`compare video drift after a seek: max ${(d2.max * 1000).toFixed(1)} ms, median ${(d2.median * 1000).toFixed(1)} ms (${d2.n} samples)`);
+  // Speed: both follow.
+  await page.selectOption('#mb-rate', '0.5');
+  await page.waitForTimeout(300);
+  const rates = await page.evaluate(() => [(document.querySelector('#before-media > video') as HTMLVideoElement).playbackRate, (document.querySelector('#after-media > video') as HTMLVideoElement).playbackRate]);
+  check(Math.abs(rates[0] - 0.5) <= 0.06 && rates[1] === 0.5, `compare: the speed applies to both (${rates.map((r) => r.toFixed(3)).join(', ')})`);
+  await page.selectOption('#mb-rate', '1');
+  // The wipe slider clips the result video.
+  await preview(page, 'slider');
+  await page.$eval('#split', (r: HTMLInputElement) => { r.value = '30'; r.dispatchEvent(new Event('input')); });
+  const wipe = await page.evaluate(() => ({
+    clip: getComputedStyle(document.getElementById('pane-after')!).clipPath,
+    a: document.querySelector('#after-media > video')!.getBoundingClientRect().toJSON(),
+    b: document.querySelector('#before-media > video')!.getBoundingClientRect().toJSON(),
+  }));
+  check(/inset\(0(px)? 0(px)? 0(px)? 30%\)/.test(wipe.clip) && Math.abs(wipe.a.width - wipe.b.width) < 1 && Math.abs(wipe.a.x - wipe.b.x) < 1,
+    `compare: the wipe slider clips the result video over the source in one box (${wipe.clip}; boxes ${wipe.a.width.toFixed(0)}×${wipe.a.height.toFixed(0)} at ${wipe.a.x.toFixed(0)} and ${wipe.b.x.toFixed(0)})`);
+  await page.$eval('#split', (r: HTMLInputElement) => { r.value = '50'; r.dispatchEvent(new Event('input')); });
+  if (shots) await page.locator('#stage').screenshot({ path: `${shots}/compare-wipe.png` });
+  // Side by side stays linked.
+  await preview(page, 'side');
+  await page.waitForTimeout(300);
+  const d3 = await driftWhilePlaying(page, start, 8);
+  check(d3.n >= 2 && d3.max <= tol, `compare: side by side in sync (max drift ${(d3.max * 1000).toFixed(0)} ms over ${d3.n} samples)`);
+  if (shots) await page.screenshot({ path: `${shots}/compare-side.png`, fullPage: false });
+  // Unlink: each player gets its controls and the result plays alone.
+  await page.uncheck('#mb-link');
+  await page.evaluate(() => { for (const m of document.querySelectorAll<HTMLMediaElement>('#before-media > video, #after-media > video')) m.pause(); });
+  await page.evaluate(() => (document.querySelector('#after-media > video') as HTMLVideoElement).play());
+  await page.waitForTimeout(600);
+  const un = await pair(page);
+  check(Boolean(un) && un!.sc && un!.rc && un!.sp && !un!.rp, `compare: unlinked, each has its controls and the result plays alone (source paused ${un?.sp}, result paused ${un?.rp}, controls ${un?.sc}/${un?.rc})`);
+  await page.check('#mb-link');
+  await page.waitForTimeout(400);
+  const re = await pair(page);
+  check(Boolean(re) && !re!.sp && !re!.rp && !re!.sc, `compare: linking again resumes the source with the result (source paused ${re?.sp})`);
+  await preview(page, 'slider');
+}
+
+// preview sets the comparison view.
+const preview = (page: Page, mode: string) => page.selectOption('#view-mode', mode);
+
+// compareAudio runs on the audio source of §10 (tones-stereo.mp3, 4 s, no trim).
+async function compareAudio(page: Page) {
+  // Shortcuts are off while a form control has the focus.
+  const key = async (k: string) => { await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur()); await page.keyboard.press(k); };
+  const ready = await page.waitForFunction(() => {
+    const s = document.querySelector('#before-media > audio') as HTMLAudioElement | null;
+    const c = document.querySelector('#after-media .wave-box canvas') as HTMLCanvasElement | null;
+    return s && s.readyState >= 2 && c ? { rs: s.readyState, cw: c.width, media: document.getElementById('stage')!.dataset.media } : false;
+  }, undefined, { timeout: 30000 }).then((h) => h.jsonValue() as Promise<{ rs: number; cw: number; media: string }>, () => null);
+  check(Boolean(ready) && ready!.media === 'audio', `compare audio: the source plays and the result's waveform is drawn (readyState ${ready?.rs}, canvas ${ready?.cw} px, layout ${ready?.media})`);
+  const boxes = await page.evaluate(() => {
+    const r = (sel: string) => document.querySelector(sel)!.getBoundingClientRect();
+    const a = r('#pane-before');
+    const b = r('#pane-after');
+    return { stacked: a.bottom <= b.top + 1 && Math.abs(a.width - b.width) < 1, trim: Boolean(document.querySelector('#before-media .wave-trim')) };
+  });
+  check(boxes.stacked && boxes.trim, `compare audio: source and result waveforms one above the other, the trim window on the source (${JSON.stringify(boxes)})`);
+  if (shots) await page.locator('#stage').screenshot({ path: `${shots}/compare-audio.png` });
+  await page.click('#mb-play');
+  await page.waitForTimeout(700);
+  const before = await pair(page);
+  check(Boolean(before) && !before!.sp && !before!.rp && !before!.rm && before!.sm, `compare audio: Play plays both, the result is heard (muted source ${before?.sm}, result ${before?.rm})`);
+  await key('x');
+  await page.waitForTimeout(150);
+  const after = await pair(page);
+  const gap = after ? Math.abs(after.st - after.rt) : NaN;
+  check(Boolean(after) && !after!.sm && after!.rm && !after!.sp && !after!.rp && gap < 0.15,
+    `compare audio: the x key (A/B) switches to the source at the same position (Δ ${(gap * 1000).toFixed(0)} ms; ${await page.textContent('#mb-ab')})`);
+  await page.click('#mb-ab');
+  const back = await pair(page);
+  check(Boolean(back) && back!.sm && !back!.rm, `compare audio: A/B back to the result (${await page.textContent('#mb-ab')})`);
+  // Unlinked A/B moves the playback to the other player at its mapped time.
+  await page.uncheck('#mb-link');
+  await key('x');
+  await page.waitForTimeout(200);
+  const ul = await pair(page);
+  // The source continues from where the result stopped (200 ms later).
+  check(Boolean(ul) && ul!.rp && !ul!.sp && ul!.st >= ul!.rt - 0.05 && ul!.st - ul!.rt < 0.45,
+    `compare audio: unlinked, A/B pauses the result and plays the source from the same time (source ${ul?.st.toFixed(2)} s, result stopped at ${ul?.rt.toFixed(2)} s)`);
+  await page.check('#mb-link');
+  await page.click('#mb-play').catch(() => {});
+}
+
+// Media elements play without a click (the comparison checks press Play
+// themselves too; muted autoplay works either way).
+const browser = await chromium.launch({ ...(exe ? { executablePath: exe } : {}), args: ['--autoplay-policy=no-user-gesture-required'] });
 const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
 const errors: string[] = [];
 // Failed renders are part of the checks (they log a resource error): they
@@ -111,6 +276,13 @@ page.on('response', (r) => {
   else if (r.status() >= 400) notes.push(`${r.status()} ${decodeURIComponent(r.url()).slice(0, 160)}`);
 });
 page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`));
+// Every request stays on the playground's origin (WP-128: the source plays
+// through the server, never straight from its origin).
+const foreign: string[] = [];
+page.on('request', (r) => { if (!/^(data|blob):/.test(r.url()) && new URL(r.url()).origin !== new URL(base).origin) foreign.push(r.url()); });
+// Answers to the comparison's source requests (api/render?ranges=1).
+const ranged: number[] = [];
+page.on('response', (r) => { if (r.url().includes('/api/render?ranges=1&')) ranged.push(r.status()); });
 await page.addInitScript(() => {
   document.addEventListener('securitypolicyviolation', (e) => {
     ((window as any).__csp ??= []).push(`${e.violatedDirective} ${e.blockedURI}`);
@@ -910,8 +1082,11 @@ if (!vt) {
   for (const row of ['Container (MIME type)', 'Video codec', 'Audio codec', 'Duration', 'Dimensions (px)', 'Frame rate', 'Bit rate (average)', 'Sample rate', 'Channels', 'Bytes']) {
     check(Array.isArray(vrows[row]), `video table: row ${row} (${vrows[row]?.join(' | ')})`);
   }
-  check(vrows['Video codec']?.[1] === 'vp9' && vrows['Duration']?.[0] === '2.00 s' && /cut to/.test(vrows['Duration']?.[2] ?? ''),
+  check(vrows['Video codec']?.[1] === 'vp9' && vrows['Duration']?.[0] === '2.00 s' && /cut to \d+% \(.*, ×0\.\d+\)/.test(vrows['Duration']?.[2] ?? ''),
     `video table: source and result from the probes (${vrows['Video codec']?.join(' | ')}; ${vrows['Duration']?.join(' | ')})`);
+  check(/% (smaller|larger) \(×[\d.]+\)/.test(vrows['Bytes']?.[2] ?? '') && /% (lower|higher) \(×[\d.]+\)/.test(vrows['Bit rate (average)']?.[2] ?? ''),
+    `video table: bytes and bit rate deltas as % and × (${vrows['Bytes']?.[2]}; ${vrows['Bit rate (average)']?.[2]})`);
+  await compareVideo(page);
   if (shots) await page.screenshot({ path: `${shots}/video-mode.png`, fullPage: true });
   // Translate cards for the video dialects.
   await page.waitForFunction(() => [...document.querySelectorAll('#translate article')].some((a) => a.getAttribute('aria-label') === 'Cloudflare Media Transformations'), undefined, { timeout: 15000 }).catch(() => {});
@@ -950,12 +1125,13 @@ if (!vt) {
   await page.unroute(slowVideo);
   // e. An audio file: video mode on its own, an audio player, its waveform as the source.
   await page.evaluate((x) => { location.hash = x; }, hash('xi://local/audio/tones-stereo.mp3', []));
-  check(await waitURL('/video/', 20000) && await page.isChecked('#video-mode-video') && await page.isDisabled('#video-mode-image'),
+  check(await waitURL('tones-stereo.mp3', 20000) && await waitURL('/video/', 20000) && await page.isChecked('#video-mode-video') && await page.isDisabled('#video-mode-image'),
     `video: an audio source switches to video mode, image mode disabled (${await url()})`);
   const audio = await media('audio');
   check(Boolean(audio) && audio!.rs >= 2 && !audio!.err && Math.abs(audio!.d - 4) < 0.2, `video: the audio-only result plays (readyState ${audio?.rs}, duration ${audio?.d?.toFixed(2)} s)`);
-  await page.waitForFunction(() => (document.querySelector('#before-media img') as HTMLImageElement | null)?.naturalWidth === 960, undefined, { timeout: 20000 })
-    .then(() => check(true, 'video: the source side of an audio file is its waveform'), () => check(false, 'video: the source side of an audio file is its waveform'));
+  await page.waitForFunction(() => (document.querySelector('#before-media .wave-box img') as HTMLImageElement | null)?.naturalWidth === 960, undefined, { timeout: 20000 })
+    .then(() => check(true, 'video: the source side of an audio file shows its waveform'), () => check(false, 'video: the source side of an audio file shows its waveform'));
+  await compareAudio(page);
   await page.check('#video-loudnorm');
   check(await waitURL('/loudnorm:1/'), 'video: the loudness checkbox writes loudnorm:1');
   if (shots) await page.screenshot({ path: `${shots}/video-audio.png`, fullPage: true });
@@ -1023,6 +1199,7 @@ if (!vt) {
   await page.setViewportSize({ width: 1400, height: 900 });
 }
 
+check(foreign.length === 0, `every request stays on the playground's origin${foreign.length ? `: ${foreign.slice(0, 3).join(' | ')}` : ''}`);
 const csp = await page.evaluate(() => (window as any).__csp ?? []);
 check(errors.length === 0, `no console errors${errors.length ? `: ${errors.join(' | ')}` : ''}`);
 check(csp.length === 0, `no CSP violations${csp.length ? `: ${csp.join(' | ')}` : ''}`);
