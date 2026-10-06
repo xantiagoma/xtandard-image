@@ -178,7 +178,7 @@ func VideoOptions() []Option {
 		}),
 		video(Option{
 			Name: "volume", Aliases: []string{"vol"}, Milestone: msAudio,
-			Forms:  single(Arg{Name: "gain", Type: TypeString, Pattern: `^([0-9]+(\.[0-9]+)?|[-+]?[0-9]+(\.[0-9]+)?[dD][bB])?$`, Doc: "a factor (0.5) or decibels (-6dB)"}),
+			Forms:  single(Arg{Name: "gain", Type: TypeString, Pattern: `^([0-9]+(\.[0-9]+)?|[+\-]?[0-9]+(\.[0-9]+)?[dD][bB])?$`, Doc: "a factor (0.5) or decibels (-6dB)"}),
 			Syntax: "factor or NdB", Default: "1", Doc: "Change the audio level (-60 dB..+20 dB).", Example: "-6dB",
 		}),
 		video(Option{

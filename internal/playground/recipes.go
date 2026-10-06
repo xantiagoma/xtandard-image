@@ -33,6 +33,12 @@ const (
 	// (Meta.VideoTransform: XI_VIDEO_TRANSFORM_ENABLED on the full or gpl
 	// image).
 	NeedVideoTransform = "video_transform"
+	// NeedH264 and NeedHEVC: the build encodes H.264 (libx264) or HEVC
+	// (libx265), which only the gpl image has (VideoTransform.Codecs). The
+	// page disables such a recipe with the reason on the full image and
+	// hides it where the image has no FFmpeg at all (slim) (WP-129).
+	NeedH264 = "h264"
+	NeedHEVC = "hevc"
 )
 
 // Recipe is one ready-made session of the Examples tool.
@@ -72,7 +78,7 @@ type Recipe struct {
 	// Tags are lower-case keywords for filtering.
 	Tags []string `json:"tags" doc:"Lower-case keywords for the filter."`
 	// Needs are server features the recipe needs (Need*).
-	Needs []string `json:"needs,omitempty" enum:"watermark,detection,video,video_transform" doc:"Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output), video_transform (video transformations, XI_VIDEO_TRANSFORM_ENABLED)."`
+	Needs []string `json:"needs,omitempty" enum:"watermark,detection,video,video_transform,h264,hevc" doc:"Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output), video_transform (video transformations, XI_VIDEO_TRANSFORM_ENABLED), h264 and hevc (the gpl image's H.264 and HEVC encoders, video_transform.codecs)."`
 }
 
 // RecipeRaw is a hand-written path and query.

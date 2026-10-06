@@ -14,11 +14,22 @@ const NEEDS = {
   detection: 'Needs the detection models (the full or gpl image).',
   video: 'Needs FFmpeg (the full or gpl image): video sources and mp4 output.',
   video_transform: 'Needs video transformations: XI_VIDEO_TRANSFORM_ENABLED=true on the full or gpl image (compose.playground.yml turns them on).',
+  h264: 'Needs the gpl image: H.264 is encoded by libx264 (GPL), which the full image leaves out (its MP4 is AV1).',
+  hevc: 'Needs the gpl image: HEVC is encoded by libx265 (GPL), which the full image leaves out.',
 };
 
-const has = (meta, need) => ({
+// CODEC_NEEDS are the gpl image's encoders (WP-129): a recipe that needs
+// one is disabled with its reason on the full image and hidden where the
+// image has no FFmpeg at all (slim).
+const CODEC_NEEDS = ['h264', 'hevc'];
+
+const has = (meta, need) => (CODEC_NEEDS.includes(need) ? Boolean(meta.video_transform?.codecs?.includes(need)) : ({
   watermark: meta.watermark, detection: meta.detection, video: meta.video, video_transform: Boolean(meta.video_transform),
-})[need] ?? false;
+})[need] ?? false);
+
+// hidden reports a recipe this image can never run: a gpl encoder on an
+// image without FFmpeg.
+export const hidden = (meta, r) => !meta.video && (r.needs ?? []).some((n) => CODEC_NEEDS.includes(n));
 
 // dialectLabel names a recipe's dialect as people know it.
 export const dialectLabel = (r) => (r.dialect === 'query' && r.raw ? 'imaginary' : {
@@ -37,6 +48,7 @@ const FILTERS = [
   ['imagekit', 'ImageKit', (r) => r.dialect === 'imagekit'],
   ['imaginary', 'imaginary', (r) => dialectLabel(r) === 'imaginary'],
   ['video', 'Video and audio', (r) => r.category === 'video'],
+  ['audio', 'Audio', (r) => r.category === 'video' && r.tags.includes('audio')],
   ['showcase', 'Beyond watermarks', (r) => r.category === 'showcase'],
 ];
 
@@ -61,7 +73,7 @@ export class Examples {
     this.index = index;
     this.load = load;
     this.thumb = thumb;
-    this.recipes = meta.recipes ?? [];
+    this.recipes = (meta.recipes ?? []).filter((r) => !hidden(meta, r));
     this.filter = 'all';
     this.observer = null;
     this.queue = [];
@@ -187,7 +199,7 @@ export class Examples {
         el('h3', { id: `${id}-title`, text: r.title }),
         el('p', { class: 'recipe-tags' },
           el('span', { class: 'badge dialect', text: dialectLabel(r) }),
-          ...(r.needs ?? []).map((n) => el('span', { class: `badge ${has(this.meta, n) ? 'ok' : 'warn'}`, title: NEEDS[n] ?? '', text: n === 'watermark' ? 'default watermark' : n }))),
+          ...(r.needs ?? []).map((n) => el('span', { class: `badge ${has(this.meta, n) ? 'ok' : 'warn'}`, title: NEEDS[n] ?? '', text: n === 'watermark' ? 'default watermark' : CODEC_NEEDS.includes(n) ? `${n === 'h264' ? 'H.264' : 'HEVC'} (gpl)` : n }))),
         el('p', { id: `${id}-desc`, class: 'recipe-desc', text: r.description }),
         el('code', { class: 'recipe-url', title: 'URL after the mount prefix (unsigned)', text: r.url }),
         reason ? el('p', { id: `${id}-why`, class: 'hint recipe-why', text: reason }) : null,
