@@ -208,6 +208,16 @@ docker run --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m --cap-drop ALL \
 
 Compose: `read_only: true` and `tmpfs: [/tmp]`. Kubernetes: `readOnlyRootFilesystem: true` and an `emptyDir` (`medium: Memory` is fine) mounted at `/tmp` (`docs/CONFIG.md` §6).
 
+**Video transformations** (`XI_VIDEO_TRANSFORM_ENABLED`, full and gpl images) also write their spool files (WP-121b): video sources and outputs larger than `XI_VIDEO_TRANSFORM_SPOOL_THRESHOLD` (32 MiB) live in `XI_VIDEO_TRANSFORM_SPOOL_DIR` (default `/tmp/xtandard-video`) instead of memory. A 64 MiB tmpfs is too small for them, and a tmpfs (or `emptyDir` with `medium: Memory`) is RAM, which is what the spool saves: mount a disk-backed volume there instead (Compose: a named volume; Kubernetes: an `emptyDir` without `medium`, with a `sizeLimit`, or an ephemeral volume) and set `XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES` below its size, so a full volume is a 503 with `Retry-After` rather than a failed write:
+
+```sh
+docker run --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m -v xi-spool:/spool \
+  -e XI_VIDEO_TRANSFORM_ENABLED=true -e XI_VIDEO_TRANSFORM_SPOOL_DIR=/spool \
+  -e XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES=8GiB --cap-drop ALL ghcr.io/xantiagoma/xtandard-image:full
+```
+
+The directory must be writable by the image's user (65532; Kubernetes `fsGroup` does it for an `emptyDir`): an instance that serves video transformations fails to start otherwise. Its files are unlinked as soon as they are opened, so a crash leaves nothing behind; at start the server still removes `xi-spool-*` files an earlier process might have left. With `XI_VIDEO_TRANSFORM_SPOOL_THRESHOLD=0` everything stays in memory and nothing is written there.
+
 ## Refreshing the PGO profile
 
 `cmd/xtandard-image/default.pgo` is a CPU profile of the server under a mixed resize/convert load over `testdata/fixtures` (every M1 decoder and encoder). `-pgo=auto` picks it up for the main package. The Go side is a minority of CPU time (libvips, libaom, libjxl and libwebp dominate), so the expected gain is small; confirm with benchstat before claiming one (go-standards §9).

@@ -144,64 +144,62 @@ func (errReader) Read([]byte) (int, error) { return 0, errors.New("connection re
 // (the segments of a stream) from one spool file; Fetch never sees it.
 func TestFetchLargeShares(t *testing.T) {
 	t.Parallel()
-	synctest.Test(t, func(t *testing.T) { testFetchLargeShares(t) })
-}
-
-func testFetchLargeShares(t *testing.T) {
-	data := payload(4000)
-	gate := make(chan struct{})
-	h, sp := newLarge(t, Config{}, time.Minute, 0, gated(gate, data, nil))
-	const n = 8
-	results := make([]*Result, n)
-	var wg sync.WaitGroup
-	for i := range n {
-		wg.Go(func() {
-			r, err := h.f.FetchLarge(t.Context(), testKey("v.mp4"), source.FetchOptions{})
-			if err != nil {
-				t.Error(err)
-				return
-			}
-			results[i] = r
-		})
-	}
-	synctest.Wait() // all eight wait on one flight
-	close(gate)
-	wg.Wait()
-	later, err := h.f.FetchLarge(t.Context(), testKey("v.mp4"), source.FetchOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	results = append(results, later)
-	for _, r := range results {
-		if r == nil || r.Buffer != results[0].Buffer {
-			t.Fatal("callers got different buffers")
+	synctest.Test(t, func(t *testing.T) {
+		data := payload(4000)
+		gate := make(chan struct{})
+		h, sp := newLarge(t, Config{}, time.Minute, 0, gated(gate, data, nil))
+		const n = 8
+		results := make([]*Result, n, n+1)
+		var wg sync.WaitGroup
+		for i := range n {
+			wg.Go(func() {
+				r, err := h.f.FetchLarge(t.Context(), testKey("v.mp4"), source.FetchOptions{})
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				results[i] = r
+			})
 		}
-	}
-	if !later.FromCache {
-		t.Error("the later call did not come from the shared file")
-	}
-	if c := h.src.calls.Load(); c != 1 {
-		t.Errorf("%d origin fetches, want 1", c)
-	}
-	if got, _, _ := h.rec.snapshot(); got[CacheSpoolHit] != 1 {
-		t.Errorf("cache results %v", got)
-	}
-	// Fetch (images) does not share the spool file.
-	img := mustFetch(t, h.f, testKey("v.mp4"))
-	if cache.IsFileBody(img.Buffer) {
-		t.Error("Fetch returned a spool file")
-	}
-	img.Release()
-	for _, r := range results {
-		r.Release()
-	}
-	if spoolFiles(sp) != 1 || h.f.SpooledUsage() != 1 {
-		t.Errorf("%d spool files, %d kept; want the shared one", spoolFiles(sp), h.f.SpooledUsage())
-	}
-	h.f.Purge()
-	if spoolFiles(sp) != 0 {
-		t.Errorf("%d spool files after Purge", spoolFiles(sp))
-	}
+		synctest.Wait() // all eight wait on one flight
+		close(gate)
+		wg.Wait()
+		later, err := h.f.FetchLarge(t.Context(), testKey("v.mp4"), source.FetchOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		results = append(results, later)
+		for _, r := range results {
+			if r == nil || r.Buffer != results[0].Buffer {
+				t.Fatal("callers got different buffers")
+			}
+		}
+		if !later.FromCache {
+			t.Error("the later call did not come from the shared file")
+		}
+		if c := h.src.calls.Load(); c != 1 {
+			t.Errorf("%d origin fetches, want 1", c)
+		}
+		if got, _, _ := h.rec.snapshot(); got[CacheSpoolHit] != 1 {
+			t.Errorf("cache results %v", got)
+		}
+		// Fetch (images) does not share the spool file.
+		img := mustFetch(t, h.f, testKey("v.mp4"))
+		if cache.IsFileBody(img.Buffer) {
+			t.Error("Fetch returned a spool file")
+		}
+		img.Release()
+		for _, r := range results {
+			r.Release()
+		}
+		if spoolFiles(sp) != 1 || h.f.SpooledUsage() != 1 {
+			t.Errorf("%d spool files, %d kept; want the shared one", spoolFiles(sp), h.f.SpooledUsage())
+		}
+		h.f.Purge()
+		if spoolFiles(sp) != 0 {
+			t.Errorf("%d spool files after Purge", spoolFiles(sp))
+		}
+	})
 }
 
 // TestFetchLargeTTL: a spooled original is reused without the origin for

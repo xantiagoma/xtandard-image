@@ -113,7 +113,7 @@ func OpenTranscodeFile(ctx context.Context, src FileSource, lim video.Limits, th
 			src.Len(), lim.MaxBytes), "the video is larger than the size limit")
 	}
 	f, off := src.File()
-	h := C.xi_tx_new_fd(C.int(f.Fd()), C.int64_t(off), C.int64_t(src.Len()), C.int64_t(lim.MaxPixels), C.int(max(threads, 1))) //nolint:gosec // G115: a descriptor fits a C int
+	h := C.xi_tx_new_fd(C.int(f.Fd()), C.int64_t(off), C.int64_t(src.Len()), C.int64_t(lim.MaxPixels), C.int(max(threads, 1)))
 	runtime.KeepAlive(f)
 	if h == nil {
 		return nil, errs.New(errs.KindInternal, "ffmpeg: out of memory or descriptors")
@@ -204,7 +204,7 @@ func (t *Transcoder) RunSpill(ctx context.Context, p *video.TranscodePlan, spill
 	}
 	cp.spill_fd = -1
 	if spill != nil && spillBytes > 0 {
-		cp.spill_fd = C.int(spill.Fd()) //nolint:gosec // G115: a descriptor fits a C int
+		cp.spill_fd = C.int(spill.Fd())
 		cp.spill_bytes = C.int64_t(spillBytes)
 	}
 	t.setAbort(false)

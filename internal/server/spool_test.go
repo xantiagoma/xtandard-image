@@ -63,7 +63,7 @@ func (f *fileVideo) Transform(ctx context.Context, key string, src fetch.Buffer,
 // by ranges) from the file without mapping it, and closed afterwards.
 func TestVideoSpooledOutput(t *testing.T) {
 	t.Parallel()
-	fv := &fileVideo{fakeVideo: fakeVideo{out: mp4Output, body: videoFile}, tb: t}
+	fv := &fileVideo{out: mp4Output, body: videoFile, tb: t}
 	h, _ := newVideoHarness(t, false, func(h *harness) { h.video = fv })
 	for _, tc := range []struct {
 		rng    string
@@ -106,7 +106,7 @@ func TestVideoSpooledCache(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dsk, err := disk.New(disk.Options{Dir: t.TempDir(), MaxBytes: 1 << 20, FileBodyBytes: 16})
+	dsk, err := disk.New(&disk.Options{Dir: t.TempDir(), MaxBytes: 1 << 20, FileBodyBytes: 16})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func TestVideoSpooledCache(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = store.Close() })
-	fv := &fileVideo{fakeVideo: fakeVideo{out: mp4Output, body: videoFile}, tb: t}
+	fv := &fileVideo{out: mp4Output, body: videoFile, tb: t}
 	h, _ := newVideoHarness(t, false, func(h *harness) {
 		h.video = fv
 		h.cache = store
@@ -147,11 +147,10 @@ func TestVideoSpooledCache(t *testing.T) {
 // TestVideoSpoolFull: a full spool budget is a 503 with Retry-After.
 func TestVideoSpoolFull(t *testing.T) {
 	t.Parallel()
-	h, _ := newVideoHarness(t, false, func(h *harness) {
-		h.video.(*fakeVideo).err = &errs.Error{
-			Kind: errs.KindUnavailable, Msg: "spool: over budget", Err: &spool.BudgetError{Need: 10, Max: 5},
-		}
-	})
+	h, fv := newVideoHarness(t, false, nil)
+	fv.err = &errs.Error{
+		Kind: errs.KindUnavailable, Msg: "spool: over budget", Err: &spool.BudgetError{Need: 10, Max: 5},
+	}
 	rec := h.do(t, http.MethodGet, videoPath, nil)
 	if rec.Code != http.StatusServiceUnavailable || rec.Header().Get("Retry-After") != "5" {
 		t.Fatalf("status %d, Retry-After %q", rec.Code, rec.Header().Get("Retry-After"))

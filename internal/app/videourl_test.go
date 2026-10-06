@@ -23,37 +23,37 @@ import (
 // queries.
 type videoSigner struct{ ip, xi *sign.Signer }
 
-func newVideoSigner(t *testing.T) videoSigner {
-	t.Helper()
+func newVideoSigner(tb testing.TB) videoSigner {
+	tb.Helper()
 	keys, err := sign.ParseHexKeyring([]string{videoKey}, []string{videoSalt})
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	ipScheme, err := sign.NewImgproxyScheme(32)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	ip, err := sign.NewSigner(ipScheme, keys)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	xiScheme, err := sign.NewXIScheme(32)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	xi, err := sign.NewSigner(xiScheme, keys)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	return videoSigner{ip: ip, xi: xi}
 }
 
 // video returns the signed /video URL path of rest ("/w:320/plain/…").
-func (s videoSigner) video(t *testing.T, rest string) string {
-	t.Helper()
+func (s videoSigner) video(tb testing.TB, rest string) string {
+	tb.Helper()
 	sig, err := s.ip.Sign("/video" + rest)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	return "/video/" + sig + rest
 }

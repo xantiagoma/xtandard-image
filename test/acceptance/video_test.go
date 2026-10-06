@@ -75,6 +75,25 @@ func TestVideoTransform(t *testing.T) {
 		}
 	})
 
+	// WP-121b: compose.acceptance.yml spools sources and outputs over 64
+	// KiB, on the read-only image's /tmp tmpfs.
+	t.Run("spooled", func(t *testing.T) {
+		t.Parallel()
+		u := video("/w:320/vd:1/plain/local:///video/bbb-h264-aac.mp4@webm")
+		full := get(t, u, nil)
+		full.wantStatus(t, http.StatusOK)
+		part := get(t, u, http.Header{"Range": {"bytes=100-199"}})
+		part.wantStatus(t, http.StatusPartialContent)
+		if len(full.Body) < 200 || !bytes.Equal(part.Body, full.Body[100:200]) {
+			t.Errorf("range of a spooled transcode differs: %d bytes", len(part.Body))
+		}
+		metrics := string(get(t, base(t, "XI_ACC_ADMIN")+"/metrics", nil).Body)
+		if !strings.Contains(metrics, `xi_video_spool_spills_total{kind="input"} `) ||
+			strings.Contains(metrics, `xi_video_spool_spills_total{kind="input"} 0`+"\n") {
+			t.Error("no video source was spooled")
+		}
+	})
+
 	t.Run("refused", func(t *testing.T) {
 		t.Parallel()
 		get(t, app+"/video/unsafe/w:320"+clip+"@webm", nil).wantStatus(t, http.StatusForbidden)

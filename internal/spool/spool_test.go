@@ -64,7 +64,7 @@ func names(t *testing.T, dir string) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var out []string
+	out := make([]string, 0, len(entries))
 	for _, e := range entries {
 		out = append(out, e.Name())
 	}

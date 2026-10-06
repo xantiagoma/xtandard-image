@@ -590,6 +590,12 @@ services:
       - b2_application_key
     volumes:
       - photos:/data/photos:ro
+      # Video transformations (full/gpl image, XI_VIDEO_TRANSFORM_ENABLED):
+      # large sources and outputs go to spool files, which need a
+      # disk-backed volume (the tmpfs below is RAM and too small); set
+      # XI_VIDEO_TRANSFORM_SPOOL_DIR: /spool and _SPOOL_MAX_BYTES below its
+      # size (docs/RELEASE.md "Running read-only").
+      # - video-spool:/spool
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m
@@ -1032,6 +1038,11 @@ spec:
             - { name: config, mountPath: /etc/xtandard, readOnly: true }
             - { name: secrets, mountPath: /run/secrets/xi, readOnly: true }
             - { name: tmp, mountPath: /tmp }
+            # Video transformations (full/gpl image): spool files of large
+            # sources and outputs, on disk rather than in the RAM-backed /tmp,
+            # with XI_VIDEO_TRANSFORM_SPOOL_DIR=/spool and
+            # XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES below the sizeLimit (docs/RELEASE.md).
+            # - { name: video-spool, mountPath: /spool }
           readinessProbe: { httpGet: { path: /readyz, port: http }, periodSeconds: 5 }
           livenessProbe: { httpGet: { path: /healthz, port: http }, periodSeconds: 10 }
           resources:
@@ -1056,6 +1067,8 @@ spec:
               - { key: gcs-service-account.json, path: gcs-service-account.json }
         - name: tmp
           emptyDir: { medium: Memory, sizeLimit: 64Mi }
+        # - name: video-spool
+        #   emptyDir: { sizeLimit: 10Gi }   # node disk, not memory
 ---
 apiVersion: v1
 kind: Service
