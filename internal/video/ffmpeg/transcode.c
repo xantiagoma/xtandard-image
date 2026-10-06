@@ -1,8 +1,11 @@
 //go:build ffmpeg && cgo
 
-// Video transformations (WP-121, ADR 0012): a source in C memory is
-// demuxed, decoded, run through a libavfilter chain per stream, encoded and
-// muxed into a growable buffer (XiFFOut), with no temporary file. The
+// Video transformations (WP-121, ADR 0012): a source in C memory (or, past
+// the spool threshold, a spool file read with pread through a duplicated
+// descriptor, WP-121b) is demuxed, decoded, run through a libavfilter
+// chain per stream, encoded and muxed into a growable buffer (XiFFOut),
+// which moves into a spool file the Go side opened when it outgrows
+// XiTxParams.spill_bytes. FFmpeg never opens a file or URL itself. The
 // chains come from the Go side (internal/video.TranscodePlan), written
 // from validated numbers only; the buffer source and sink are configured
 // here from the decoders' parameters. Overlays (WP-124) run in a second
@@ -20,6 +23,8 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include <libavcodec/avcodec.h>
 #include <libavfilter/avfilter.h>
@@ -92,6 +97,8 @@ struct XiTx {
   AVFormatContext *fmt;
   AVIOContext *avio;
   const uint8_t *data;
+  int fd;      // a spooled source (xi_tx_new_fd): owned duplicate; -1 for data
+  int64_t off; // the source's offset in fd
   int64_t size, pos;
   atomic_int abort;
   int64_t max_pixels;
@@ -200,7 +207,12 @@ xi_tx_read(void *opaque, uint8_t *buf, int n)
     return AVERROR_EOF;
   if (n > left)
     n = (int)left;
-  memcpy(buf, h->data + h->pos, (size_t)n);
+  if (h->fd >= 0) {
+    n = xi_ff_pread(h->fd, buf, n, h->off + h->pos);
+    if (n < 0)
+      return n;
+  } else
+    memcpy(buf, h->data + h->pos, (size_t)n);
   h->pos += n;
   return n;
 }
@@ -281,20 +293,28 @@ xi_tx_free(XiTx *h)
     av_freep(&h->avio->buffer);
     avio_context_free(&h->avio);
   }
+  if (h->fd >= 0)
+    close(h->fd);
   av_free(h);
   atomic_fetch_sub(&xi_tx_handles, 1);
 }
 
-XiTx *
-xi_tx_new(const uint8_t *data, size_t size, int64_t max_pixels, int threads)
+static XiTx *
+xi_tx_new_handle(const uint8_t *data, int fd, int64_t off, int64_t size, int64_t max_pixels, int threads)
 {
   xi_ff_setup();
   XiTx *h = av_mallocz(sizeof(*h));
-  if (!h)
+  if (!h) {
+    if (fd >= 0)
+      close(fd);
     return NULL;
+  }
   atomic_fetch_add(&xi_tx_handles, 1);
   h->data = data;
-  h->size = (int64_t)size;
+  h->fd = fd;
+  h->off = off;
+  h->size = size;
+  h->out.spill_fd = -1;
   h->max_pixels = max_pixels;
   h->threads = threads > 0 ? threads : 1;
   h->v.index = h->a.index = -1;
@@ -315,6 +335,23 @@ xi_tx_new(const uint8_t *data, size_t size, int64_t max_pixels, int threads)
     return NULL;
   }
   return h;
+}
+
+XiTx *
+xi_tx_new(const uint8_t *data, size_t size, int64_t max_pixels, int threads)
+{
+  return xi_tx_new_handle(data, -1, 0, (int64_t)size, max_pixels, threads);
+}
+
+XiTx *
+xi_tx_new_fd(int fd, int64_t off, int64_t size, int64_t max_pixels, int threads)
+{
+  if (fd < 0 || off < 0 || size <= 0)
+    return NULL;
+  int dup_fd = fcntl(fd, F_DUPFD_CLOEXEC, 0); // never inherited by a subprocess
+  if (dup_fd < 0)
+    return NULL;
+  return xi_tx_new_handle(NULL, dup_fd, off, size, max_pixels, threads);
 }
 
 // Classifies an FFmpeg error of the demuxer or a decoder.
@@ -1152,6 +1189,13 @@ xi_tx_run(XiTx *h, const XiTxParams *p, char *err, size_t errlen)
     return xi_tx_fail(h, ret < 0 ? ret : AVERROR_MUXER_NOT_FOUND, "muxer", err, errlen);
   }
   h->out.max_bytes = p->max_bytes;
+  if (p->spill_bytes > 0) {
+    if ((h->out.spill_fd = fcntl(p->spill_fd, F_DUPFD_CLOEXEC, 0)) < 0) {
+      xi_ff_set_err(err, errlen, "spool file", 0);
+      return XI_FF_ERR_INTERNAL;
+    }
+    h->out.spill = p->spill_bytes;
+  }
   if ((ret = xi_ff_out_attach(h->oc, &h->out)) < 0)
     return xi_tx_fail(h, ret, "output", err, errlen);
   h->oc->interrupt_callback.callback = xi_tx_interrupt;
@@ -1310,11 +1354,18 @@ xi_tx_run(XiTx *h, const XiTxParams *p, char *err, size_t errlen)
   return XI_FF_OK;
 }
 
+int
+xi_tx_spilled(XiTx *h, int64_t *size)
+{
+  *size = h->out.size;
+  return h->out.file;
+}
+
 uint8_t *
 xi_tx_take(XiTx *h, int64_t *size)
 {
   *size = h->out.size;
-  if (!h->out.data || h->out.size <= 0)
+  if (h->out.file || !h->out.data || h->out.size <= 0)
     return NULL;
   uint8_t *data = h->out.data;
   // Give the slack of the last doubling back.

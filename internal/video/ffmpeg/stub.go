@@ -4,6 +4,7 @@ package ffmpeg
 
 import (
 	"context"
+	"os"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/video"
@@ -99,12 +100,22 @@ func OpenTranscode(context.Context, *vips.Buffer, video.Limits, int) (*Transcode
 		"video transformations are not supported by this image")
 }
 
+// OpenTranscodeFile reports errs.KindUnsupported, like OpenTranscode.
+func OpenTranscodeFile(ctx context.Context, _ FileSource, lim video.Limits, threads int) (*Transcoder, error) {
+	return OpenTranscode(ctx, nil, lim, threads)
+}
+
 // Input is empty.
 func (*Transcoder) Input() video.TranscodeInput { return video.TranscodeInput{} }
 
 // Run reports errs.KindUnsupported.
 func (*Transcoder) Run(context.Context, *video.TranscodePlan, ...*vips.Buffer) (*Output, error) {
 	return nil, errUnavailable()
+}
+
+// RunSpill reports errs.KindUnsupported.
+func (*Transcoder) RunSpill(context.Context, *video.TranscodePlan, *os.File, int64, ...*vips.Buffer) (*Output, int64, error) {
+	return nil, 0, errUnavailable()
 }
 
 // Close does nothing.
