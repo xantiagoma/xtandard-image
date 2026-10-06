@@ -75,14 +75,14 @@ func TestStreamNotFound(t *testing.T) {
 	}
 }
 
-// TestPrefetch: a prefetch runs only on an idle worker, never for a part
-// already in flight, never queues, hands its result to done, and Close
-// stops and waits for it.
+// TestPrefetch: a prefetch runs only when a run slot is idle, never for a
+// part already in flight, never queues, hands its result to done, and
+// Close stops and waits for it.
 func TestPrefetch(t *testing.T) {
 	t.Parallel()
 	synctest.Test(t, func(t *testing.T) {
 		e := &engine{gate: make(chan struct{})}
-		s, _ := newService(t, e, func(c *Config) { c.Workers = 2 })
+		s, _ := newService(t, e, func(c *Config) { c.Workers, c.MaxJobs = 2, 2 })
 		src := newBuf("video")
 		got := make(chan *Result, 4)
 		done := func(r *Result) { got <- r }
@@ -106,7 +106,7 @@ func TestPrefetch(t *testing.T) {
 		if s.Prefetch("v1/1", src, streamOp(), StreamPart{Track: "v1", Segment: 1}, done) {
 			t.Fatal("prefetched with every worker busy")
 		}
-		if st := s.Stats(); st.InFlight != 2 || st.Waiting != 0 {
+		if st := s.Stats(); st.InFlight != 2 || st.Running != 2 || st.Queued != 0 {
 			t.Fatalf("pool %+v", st)
 		}
 		close(e.gate)

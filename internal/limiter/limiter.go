@@ -75,6 +75,7 @@ const (
 	ReasonQueueTimeout                     // no worker (or memory) within QueueTimeout → 503
 	ReasonMemoryTooLarge                   // estimate above the whole budget → 422
 	ReasonCanceled                         // caller's context done while waiting
+	ReasonQueueCost                        // queued cost over its bound → 429 (the video pool, WP-121c)
 )
 
 // String returns the snake_case metric label.
@@ -88,6 +89,8 @@ func (r Reason) String() string {
 		return "memory_too_large"
 	case ReasonCanceled:
 		return "canceled"
+	case ReasonQueueCost:
+		return "queue_cost"
 	default:
 		return "unknown"
 	}

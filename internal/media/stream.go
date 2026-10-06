@@ -2,6 +2,7 @@ package media
 
 import (
 	"context"
+	"errors"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
@@ -13,8 +14,8 @@ import (
 // (Stream): one video segment of one rendition, or the whole audio track,
 // which the caller cuts into the init segment and its media segments
 // (internal/media/fmp4). Stream coalesces and admits like Transform;
-// Prefetch transcodes the segments a player will ask for next on a worker
-// that is idle, never queueing.
+// Prefetch transcodes the segments a player will ask for next only when
+// the pool is idle enough for them, never queueing.
 
 // StreamPart is what one stream transcode writes.
 type StreamPart struct {
@@ -35,20 +36,34 @@ func (s *Service) ResolveStream(op *transform.VideoOp) (video.TranscodeOutput, e
 	return s.caps.ResolveStream(op)
 }
 
-// Probe opens src on a worker of the pool and returns what it holds, for
-// Layout. The input limits apply (errs.KindLimitExceeded).
+// Probe opens src under the pool's probe bound (holding a place in the
+// pool, as every job does: 429 when it is full, 503 past the queue
+// timeout) and returns what it holds, for Layout. The input limits apply
+// (errs.KindLimitExceeded).
 func (s *Service) Probe(ctx context.Context, src Buffer) (video.TranscodeInput, error) {
-	release, err := s.lim.Acquire(ctx, 0)
+	t, err := s.pool.enter(ctx)
 	if err != nil {
 		return video.TranscodeInput{}, err
 	}
-	defer release()
-	job, err := s.engine.Open(ctx, src, s.cfg.Input, 1)
-	if err != nil {
-		return video.TranscodeInput{}, err
+	defer t.leave()
+	wait, cancel := s.pool.waitContext(ctx)
+	defer cancel()
+	var in video.TranscodeInput
+	var probeErr error
+	err = t.probe(ctx, wait, func() error {
+		job, err := s.engine.Open(wait, src, s.cfg.Input, 1)
+		if err != nil {
+			probeErr = err
+			return err
+		}
+		in = job.Input()
+		job.Close()
+		return nil
+	})
+	if probeErr != nil && ctx.Err() == nil && errors.Is(context.Cause(wait), errQueueTimeout) {
+		return in, s.pool.waitError(ctx)
 	}
-	defer job.Close()
-	return job.Input(), nil
+	return in, err
 }
 
 // Layout lays op out as a stream over the probed source in
@@ -66,32 +81,39 @@ func (s *Service) Layout(in *video.TranscodeInput, op *transform.VideoOp) (*vide
 // (its init segment and one fragment per segment). Calls with the same key
 // share one transcode, admitted and bounded like Transform's. The caller
 // releases the result's body. errs.KindNotFound for a part the stream does
-// not have.
+// not have. A call that joins a prefetch which then finds the pool busy
+// starts the transcode itself.
 func (s *Service) Stream(ctx context.Context, key string, src Buffer, op *transform.VideoOp, part StreamPart) (*Result, error) {
-	src.Retain()
-	res, shared, err := s.flights.do(ctx, key, func(ctx context.Context) (*Result, error) {
-		defer src.Release()
-		return s.admitted(ctx, src, func(ctx context.Context) (*Result, error) {
-			return s.streamPart(ctx, src, op, part)
+	for {
+		src.Retain()
+		res, shared, err := s.flights.do(ctx, key, func(ctx context.Context) (*Result, error) {
+			defer src.Release()
+			return s.run(ctx, src, s.streamPlan(op, part), streamRun)
 		})
-	})
-	if shared {
-		src.Release()
-		s.metrics.Coalesced()
+		if shared {
+			src.Release()
+		}
+		if shared && errors.Is(err, errBusy) {
+			continue // joined a prefetch that found the pool busy: run it ourselves
+		}
+		if shared {
+			s.metrics.Coalesced()
+		}
+		if err != nil {
+			return nil, err
+		}
+		res.Shared = shared
+		return res, nil
 	}
-	if err != nil {
-		return nil, err
-	}
-	res.Shared = shared
-	return res, nil
 }
 
 // Prefetch transcodes part (as Stream does for key) in the background when
-// a worker is idle and nobody waits for one, and no transcode for key is
-// in flight: it never queues, so it never delays a request or takes a
-// place in the queue. done receives the result (the callee owns one
-// reference; nil when the transcode failed). It reports whether the
-// prefetch started. Close waits for the prefetches.
+// the pool is idle (nobody queued, a run slot and the part's cost in
+// capacity free at once, after its probe) and no transcode for key is in
+// flight: it never queues, so it never delays a request. done receives
+// the result (the callee owns one reference; nil when the transcode
+// failed or the pool was busy). It reports whether the prefetch started.
+// Close waits for the prefetches.
 func (s *Service) Prefetch(key string, src Buffer, op *transform.VideoOp, part StreamPart, done func(*Result)) bool {
 	select {
 	case <-s.done:
@@ -101,14 +123,13 @@ func (s *Service) Prefetch(key string, src Buffer, op *transform.VideoOp, part S
 	if s.flights.busy(key) {
 		return false
 	}
-	release, ok := s.lim.TryAcquire()
+	t, ok := s.pool.tryEnter()
 	if !ok {
 		return false
 	}
 	src.Retain() // this prefetch's
 	s.prefetches.Go(func() {
 		defer src.Release()
-		defer release()
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		stop := make(chan struct{})
@@ -121,14 +142,17 @@ func (s *Service) Prefetch(key string, src Buffer, op *transform.VideoOp, part S
 			}
 		}()
 		src.Retain() // the flight's, if this call starts it
+		// The ticket belongs to the flight's function when this call
+		// starts the flight (it leaves when the transcode ends), and is
+		// given back here when the call joins another one.
 		res, shared, err := s.flights.do(ctx, key, func(ctx context.Context) (*Result, error) {
 			defer src.Release()
-			return s.timed(ctx, src, func(ctx context.Context) (*Result, error) {
-				return s.streamPart(ctx, src, op, part)
-			})
+			defer t.leave()
+			return s.execute(ctx, t, src, s.streamPlan(op, part), streamRun, true)
 		})
 		if shared {
 			src.Release()
+			t.leave()
 		}
 		if err != nil {
 			res = nil
@@ -145,45 +169,36 @@ func (s *Service) Close() {
 	s.prefetches.Wait()
 }
 
-// streamPart opens src, lays the stream out and transcodes part.
-func (s *Service) streamPart(ctx context.Context, src Buffer, op *transform.VideoOp, part StreamPart) (*Result, error) {
-	job, err := s.engine.Open(ctx, src, s.cfg.Input, s.cfg.Transcode.Threads)
-	if err != nil {
-		return nil, err
-	}
-	defer job.Close()
-	in := job.Input()
-	l, err := s.Layout(&in, op)
-	if err != nil {
-		return nil, err
-	}
-	var p *video.TranscodePlan
-	r := &Result{Output: l.Output, Duration: l.Duration}
-	if part.Audio() {
-		if l.Audio == nil {
-			return nil, errs.New(errs.KindNotFound, "media: the stream has no audio")
+// streamPlan lays the stream out over the probed source and plans part.
+func (s *Service) streamPlan(op *transform.VideoOp, part StreamPart) planner {
+	return func(in *video.TranscodeInput) (*video.TranscodePlan, Result, error) {
+		l, err := s.Layout(in, op)
+		if err != nil {
+			return nil, Result{}, err
 		}
-		p, err = video.PlanAudioTrack(&in, op, l, &s.cfg.Transcode)
-		r.Output.Video = video.CodecNone
-	} else {
-		rd, ok := l.Rendition(part.Track)
-		if !ok {
-			return nil, errs.Newf(errs.KindNotFound, "media: the stream has no rendition %q", part.Track)
+		var p *video.TranscodePlan
+		r := Result{Output: l.Output, Duration: l.Duration}
+		if part.Audio() {
+			if l.Audio == nil {
+				return nil, Result{}, errs.New(errs.KindNotFound, "media: the stream has no audio")
+			}
+			p, err = video.PlanAudioTrack(in, op, l, &s.cfg.Transcode)
+			r.Output.Video = video.CodecNone
+		} else {
+			rd, ok := l.Rendition(part.Track)
+			if !ok {
+				return nil, Result{}, errs.Newf(errs.KindNotFound, "media: the stream has no rendition %q", part.Track)
+			}
+			p, err = video.PlanSegment(in, op, l, rd, part.Segment, &s.cfg.Transcode)
+			r.Output.Audio = video.AudioNone
+			r.Width, r.Height = rd.Width, rd.Height
 		}
-		p, err = video.PlanSegment(&in, op, l, rd, part.Segment, &s.cfg.Transcode)
-		r.Output.Audio = video.AudioNone
-		r.Width, r.Height = rd.Width, rd.Height
+		if err != nil {
+			return nil, Result{}, err
+		}
+		return p, r, nil
 	}
-	if err != nil {
-		return nil, err
-	}
-	if err := ctx.Err(); err != nil {
-		return nil, errs.Wrap(errs.KindOf(err), context.Cause(ctx))
-	}
-	body, err := job.Run(ctx, p, nil)
-	if err != nil {
-		return nil, err
-	}
-	r.Body = body
-	return r, nil
 }
+
+// streamRun transcodes a stream part.
+func streamRun(ctx context.Context, t *task) (*Result, error) { return runTask(ctx, t, nil) }
