@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"errors"
-	"sync/atomic"
 	"time"
 
 	"github.com/xantiagoma/xtandard-image/internal/codec"
@@ -43,11 +42,16 @@ func buildVideoTransform(cfg *config.Config, met *metrics.Metrics, ex *exec.Exec
 	}
 	obs := met.Video()
 	mc := mediaConfig(cfg)
-	opts := []media.Option{media.WithMetrics(obs), media.WithLimiterMetrics(&videoLimiterMetrics{obs: obs})}
+	opts := []media.Option{media.WithMetrics(videoMetrics{obs: obs})}
 	if ex != nil {
 		opts = append(opts, media.WithOverlayRenderer(overlayRenderer{ex: ex}))
 	}
-	return media.New(&mc, ffmpeg.TranscodeCaps(), ffmpegEngine{}, opts...)
+	s, err := media.New(&mc, ffmpeg.TranscodeCaps(), ffmpegEngine{}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	obs.Capacity(s.Stats().Capacity)
+	return s, nil
 }
 
 // mediaConfig maps XI_VIDEO_TRANSFORM_* and XI_VIDEO_ENCODE_*.
@@ -55,7 +59,10 @@ func mediaConfig(cfg *config.Config) media.Config {
 	t, e := &cfg.Video.Transform, &cfg.Video.Encode
 	return media.Config{
 		Workers:      t.Workers,
+		Capacity:     t.Capacity,
+		MaxJobs:      t.MaxJobs,
 		Queue:        t.Queue,
+		QueueCost:    t.QueueCost,
 		QueueTimeout: t.QueueTimeout,
 		Timeout:      t.Timeout,
 		Input: video.Limits{
@@ -267,34 +274,31 @@ func (m mediaTransformer) Transform(ctx context.Context, key string, src fetch.B
 	return &server.VideoResult{Body: r.Body, Output: r.Output, Width: r.Width, Height: r.Height, Shared: r.Shared}, nil
 }
 
-// videoLimiterMetrics adapts limiter.Metrics to the xi_video_transform_*
-// queue gauges and overload counter.
-type videoLimiterMetrics struct {
-	obs      metrics.VideoObserver
-	waiting  atomic.Int64
-	inFlight atomic.Int64
+// videoMetrics adapts media.Metrics to the xi_video_transform_* metrics.
+type videoMetrics struct{ obs metrics.VideoObserver }
+
+func (m videoMetrics) Transcoded(result string, d time.Duration, in, out int64) {
+	m.obs.Transcoded(result, d, in, out)
 }
 
-func (m *videoLimiterMetrics) OnQueued()                {}
-func (m *videoLimiterMetrics) OnAdmitted(time.Duration) {}
+func (m videoMetrics) Coalesced()            { m.obs.Coalesced() }
+func (m videoMetrics) JobCost(units float64) { m.obs.JobCost(units) }
 
-func (m *videoLimiterMetrics) OnRejected(r limiter.Reason) {
+func (m videoMetrics) Rejected(r limiter.Reason) {
 	switch r {
 	case limiter.ReasonQueueFull:
 		m.obs.Rejected(metrics.OverloadQueueFull)
+	case limiter.ReasonQueueCost:
+		m.obs.Rejected(metrics.OverloadQueueCost)
 	case limiter.ReasonQueueTimeout:
 		m.obs.Rejected(metrics.OverloadWaitTimeout)
 	default: // canceled: not an overload
 	}
 }
 
-func (m *videoLimiterMetrics) AddQueueDepth(delta int64) {
-	w := m.waiting.Add(delta)
-	m.obs.QueueDepth(int(w + m.inFlight.Load()))
-}
-
-func (m *videoLimiterMetrics) AddInFlight(delta int64) {
-	n := m.inFlight.Add(delta)
-	m.obs.WorkersBusy(int(n))
-	m.obs.QueueDepth(int(n + m.waiting.Load()))
+func (m videoMetrics) Load(l media.Load) {
+	m.obs.QueueDepth(int(l.Jobs))
+	m.obs.WorkersBusy(int(l.Running))
+	m.obs.CapacityUsed(l.CapacityUsed)
+	m.obs.QueuedCost(l.QueuedCost)
 }

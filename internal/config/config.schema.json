@@ -3412,6 +3412,12 @@
               "title": "XI_VIDEO_TRANSFORM_ABR_LADDER",
               "type": "array"
             },
+            "capacity": {
+              "description": "Cost units the running transcodes may hold together. A transcode's cost is estimated from its probe and plan (decode + encode pixels × frames × a measured per-codec factor, audio seconds; HLS/DASH per segment): one unit is about a millisecond of one core's work, so 10000 is ten seconds of work per worker. A transcode costing more than the whole capacity is not refused: it runs alone\n\nDefault: workers × 10000\n\nEnv: XI_VIDEO_TRANSFORM_CAPACITY",
+              "markdownDescription": "Cost units the running transcodes may hold together. A transcode's cost is estimated from its probe and plan (decode + encode pixels × frames × a measured per-codec factor, audio seconds; HLS/DASH per segment): one unit is about a millisecond of one core's work, so `10000` is ten seconds of work per worker. A transcode costing more than the whole capacity is not refused: it runs alone\n\nDefault: workers × 10000\n\nEnv: `XI_VIDEO_TRANSFORM_CAPACITY`",
+              "title": "XI_VIDEO_TRANSFORM_CAPACITY",
+              "type": "integer"
+            },
             "enabled": {
               "default": false,
               "description": "Video transformations (WP-121 to WP-123, ADR 0012): /video/<signature>/<options>/<source>@<container> and /q/video?url=… (URL-DIALECTS §3.8) trim, resize, crop, rotate and transcode a video into MP4 or WebM, its audio (or an audio file's) into M4A, MP3, Opus, Ogg, FLAC or WAV with volume, loudness normalisation and fades, or draw it as a PNG or WebP waveform. Off: they answer 404. true fails startup on an image without FFmpeg (slim); with XI_ROLE=image the pool is not created. Unsigned requests are refused by default (XI_VIDEO_TRANSFORM_UNSIGNED_POLICY). Which codecs exist depends on the image: MP4 is H.264 in gpl and AV1 in full; audio needs the WP-120 FFmpeg\n\nEnv: XI_VIDEO_TRANSFORM_ENABLED",
@@ -3447,6 +3453,12 @@
               "title": "XI_VIDEO_TRANSFORM_MAX_INPUT_PIXELS",
               "type": "integer"
             },
+            "max_jobs": {
+              "description": "Most transcodes running at once whatever their cost, so cheap ones (audio, small segments) can run beside a heavy one but never more than this (0–4096; 0 is the default)\n\nDefault: 2 × workers\n\nEnv: XI_VIDEO_TRANSFORM_MAX_JOBS",
+              "markdownDescription": "Most transcodes running at once whatever their cost, so cheap ones (audio, small segments) can run beside a heavy one but never more than this (0–4096; 0 is the default)\n\nDefault: 2 × workers\n\nEnv: `XI_VIDEO_TRANSFORM_MAX_JOBS`",
+              "title": "XI_VIDEO_TRANSFORM_MAX_JOBS",
+              "type": "integer"
+            },
             "max_output_bytes": {
               "$ref": "#/$defs/byteSize",
               "default": "256MiB",
@@ -3470,23 +3482,29 @@
             },
             "prefetch_segments": {
               "default": 2,
-              "description": "Segments after a requested one that are transcoded ahead (0–16), only on video workers that are idle at that moment: a prefetch never queues and never delays a request\n\nEnv: XI_VIDEO_TRANSFORM_PREFETCH_SEGMENTS",
-              "markdownDescription": "Segments after a requested one that are transcoded ahead (0–16), only on video workers that are idle at that moment: a prefetch never queues and never delays a request\n\nEnv: `XI_VIDEO_TRANSFORM_PREFETCH_SEGMENTS`",
+              "description": "Segments after a requested one that are transcoded ahead (0–16), only when the video pool has a free slot and the segment's cost in free capacity at that moment and nobody waits: a prefetch never queues and never delays a request\n\nEnv: XI_VIDEO_TRANSFORM_PREFETCH_SEGMENTS",
+              "markdownDescription": "Segments after a requested one that are transcoded ahead (0–16), only when the video pool has a free slot and the segment's cost in free capacity at that moment and nobody waits: a prefetch never queues and never delays a request\n\nEnv: `XI_VIDEO_TRANSFORM_PREFETCH_SEGMENTS`",
               "title": "XI_VIDEO_TRANSFORM_PREFETCH_SEGMENTS",
               "type": "integer"
             },
             "queue": {
               "default": 8,
-              "description": "Transcodes that may wait for a worker; beyond it 429 + Retry-After\n\nEnv: XI_VIDEO_TRANSFORM_QUEUE",
-              "markdownDescription": "Transcodes that may wait for a worker; beyond it 429 + `Retry-After`\n\nEnv: `XI_VIDEO_TRANSFORM_QUEUE`",
+              "description": "Transcodes that may wait beyond XI_VIDEO_TRANSFORM_MAX_JOBS (a place is taken from the probe on); beyond it 429 + Retry-After\n\nEnv: XI_VIDEO_TRANSFORM_QUEUE",
+              "markdownDescription": "Transcodes that may wait beyond `XI_VIDEO_TRANSFORM_MAX_JOBS` (a place is taken from the probe on); beyond it 429 + `Retry-After`\n\nEnv: `XI_VIDEO_TRANSFORM_QUEUE`",
               "title": "XI_VIDEO_TRANSFORM_QUEUE",
+              "type": "integer"
+            },
+            "queue_cost": {
+              "description": "Cost units the waiting transcodes may add up to; a transcode that would go over it is refused with 429 + Retry-After (one always waits behind an empty queue)\n\nDefault: max(queue, 1) × 10000\n\nEnv: XI_VIDEO_TRANSFORM_QUEUE_COST",
+              "markdownDescription": "Cost units the waiting transcodes may add up to; a transcode that would go over it is refused with 429 + `Retry-After` (one always waits behind an empty queue)\n\nDefault: max(queue, 1) × 10000\n\nEnv: `XI_VIDEO_TRANSFORM_QUEUE_COST`",
+              "title": "XI_VIDEO_TRANSFORM_QUEUE_COST",
               "type": "integer"
             },
             "queue_timeout": {
               "$ref": "#/$defs/duration",
               "default": "30s",
-              "description": "How long a transcode waits for a worker before 503 + Retry-After\n\nEnv: XI_VIDEO_TRANSFORM_QUEUE_TIMEOUT",
-              "markdownDescription": "How long a transcode waits for a worker before 503 + `Retry-After`\n\nEnv: `XI_VIDEO_TRANSFORM_QUEUE_TIMEOUT`",
+              "description": "How long a transcode waits for its probe and for capacity before 503 + Retry-After. Waiting is first come, first served: a large transcode at the head of the queue is not overtaken by smaller ones\n\nEnv: XI_VIDEO_TRANSFORM_QUEUE_TIMEOUT",
+              "markdownDescription": "How long a transcode waits for its probe and for capacity before 503 + `Retry-After`. Waiting is first come, first served: a large transcode at the head of the queue is not overtaken by smaller ones\n\nEnv: `XI_VIDEO_TRANSFORM_QUEUE_TIMEOUT`",
               "title": "XI_VIDEO_TRANSFORM_QUEUE_TIMEOUT"
             },
             "segment_duration": {
@@ -3546,8 +3564,8 @@
               "type": "string"
             },
             "workers": {
-              "description": "Transcodes run at once, in a pool of their own (the image pool is XI_PROCESSING_WORKERS)\n\nDefault: GOMAXPROCS / 4 (≥ 1)\n\nEnv: XI_VIDEO_TRANSFORM_WORKERS",
-              "markdownDescription": "Transcodes run at once, in a pool of their own (the image pool is `XI_PROCESSING_WORKERS`)\n\nDefault: GOMAXPROCS / 4 (≥ 1)\n\nEnv: `XI_VIDEO_TRANSFORM_WORKERS`",
+              "description": "Size of the video pool, separate from the image pool (XI_PROCESSING_WORKERS): the probes run at once, and the defaults of XI_VIDEO_TRANSFORM_CAPACITY (WORKERS × 10000) and XI_VIDEO_TRANSFORM_MAX_JOBS (2 × WORKERS). Transcodes are admitted by cost, not one per worker (WP-121c, ADR 0012 §4)\n\nDefault: GOMAXPROCS / 4 (≥ 1)\n\nEnv: XI_VIDEO_TRANSFORM_WORKERS",
+              "markdownDescription": "Size of the video pool, separate from the image pool (`XI_PROCESSING_WORKERS`): the probes run at once, and the defaults of `XI_VIDEO_TRANSFORM_CAPACITY` (`WORKERS × 10000`) and `XI_VIDEO_TRANSFORM_MAX_JOBS` (`2 × WORKERS`). Transcodes are admitted by cost, not one per worker (WP-121c, ADR 0012 §4)\n\nDefault: GOMAXPROCS / 4 (≥ 1)\n\nEnv: `XI_VIDEO_TRANSFORM_WORKERS`",
               "title": "XI_VIDEO_TRANSFORM_WORKERS",
               "type": "integer"
             }

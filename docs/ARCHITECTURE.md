@@ -754,19 +754,22 @@ request ─► route (before the budget: a video request gets XI_FETCH_TIMEOUT +
         ─► media.Service.Transform(key, source, op)
               ├─ coalescing: one transcode per key; joiners wait on it; it runs on a context of its own,
               │  cancelled only when every waiting request has gone
-              ├─ video limiter (x/sync/semaphore, own pool): XI_VIDEO_TRANSFORM_WORKERS / _QUEUE (429) / _QUEUE_TIMEOUT (503)
+              ├─ place in the video pool (x/sync/semaphore, own pool): MAX_JOBS + _QUEUE places, TryAcquire (429)
+              ├─ probe under the probe bound (WORKERS at once): ffmpeg.OpenTranscode (headers, input limits) → video.PlanTranscode
+              ├─ cost admission (WP-121c): video.EstimateCost, clamped to XI_VIDEO_TRANSFORM_CAPACITY; a run slot
+              │  (_MAX_JOBS) and the cost in units, FIFO; queued cost over _QUEUE_COST → 429; probe + wait over _QUEUE_TIMEOUT → 503
               ├─ timeout XI_VIDEO_TRANSFORM_TIMEOUT (504)
-              └─ Engine: ffmpeg.OpenTranscode (probe, input limits) → video.PlanTranscode → Transcoder.Run
+              └─ Transcoder.Run
         ─► respond: http.ServeContent (Accept-Ranges, Range → 206, multipart ranges, If-Range, 416), result cache store
 ```
 
 - The cgo half (`video/ffmpeg/transcode.c`) reads the source from its C memory through a custom AVIOContext (demuxers `mov,matroska,avi`, a fixed decoder whitelist, no protocol), decodes with `XI_VIDEO_TRANSFORM_THREADS` threads under the pixel limit, runs one libavfilter chain per stream (buffer source configured from the decoder; the chain text comes from `video.PlanTranscode`, which writes only fixed filter names and numbers), encodes (libvpx-vp9 and libaom-av1 in realtime mode, libx264/libx265 with a preset, constant quality with an optional bit-rate cap; AAC, libopus, LAME) and muxes into the growable buffer the animation encoder already uses (`output.c`): MP4 with `+faststart` and WebM with `cues_to_front`, both rewritten in that buffer through `io_open`, so the index is at the front for range requests. The file is handed to Go without a copy (`ffmpeg.Output`, refcounted, freed with `av_free`); C keeps no pointer to Go memory. Cancellation is the abort flag (polled per packet, per frame and by every read and write). `TestTranscodeNoLeak` checks handles, outputs, libvips memory and the glibc heap over 100 transcodes.
 - Limits (422): input bytes, duration and frame pixels (`XI_VIDEO_TRANSFORM_MAX_INPUT_*`), output bytes (the muxer stops), duration (the cut, or the whole source), frame pixels and frame rate (`XI_VIDEO_TRANSFORM_MAX_OUTPUT_*`, `_MAX_FPS`); wall time is the timeout. A cut starting past the end is 422; audio this build cannot decode or encode is 422 unless the request mutes it.
-- Memory: a transcode holds its source and its output in memory (no temporary files). Workers × (max input + max output) bounds it; size the pool and the limits together, or run the video role on its own instances (`XI_ROLE=video`) behind a router that sends video paths there. Spooling to disk is WP-121b; cost-based admission (a 4K job weighing more than a 360p one) is WP-121c.
+- Memory: a transcode holds its source and its output in memory (no temporary files). Workers × (max input + max output) bounds it; size the pool and the limits together, or run the video role on its own instances (`XI_ROLE=video`) behind a router that sends video paths there. Spooling to disk is WP-121b. Admission is by cost since WP-121c (ADR 0012 §4): up to `XI_VIDEO_TRANSFORM_MAX_JOBS` transcodes run at once, so the bound is `MAX_JOBS` outputs and `MAX_JOBS + QUEUE` sources.
 - Roles: `XI_ROLE=image` builds no video pool even with `XI_VIDEO_TRANSFORM_ENABLED=true` (which still fails startup on an image without FFmpeg); `XI_ROLE=video` requires it.
 - Result cache: video results use the same tiers as images. The memory tier holds whole files and a large one evicts many images: give video results the disk or S3 tier (`XI_CACHE_RESULT_STORES=disk` or `s3`), or a video-role instance with its own cache settings. Redis skips entries over `XI_CACHE_RESULT_REDIS_MAX_VALUE_BYTES`.
 - HEAD on a miss is answered from the fetch (every header but `Content-Length`), like an image HEAD; on a hit it has the length.
-- Metrics: `xi_video_transform_duration_seconds{result}`, `xi_video_transform_bytes_total{direction}`, `xi_video_transform_coalesced_total`, `xi_video_transform_queue_depth`, `xi_video_transform_workers_busy`, `xi_video_transform_overload_total{reason}`; the transcode is a `transcode` span.
+- Metrics: `xi_video_transform_duration_seconds{result}`, `xi_video_transform_bytes_total{direction}`, `xi_video_transform_coalesced_total`, `xi_video_transform_queue_depth` (jobs holding a place), `xi_video_transform_workers_busy` (running), `xi_video_transform_overload_total{reason}` (`queue_full`, `queue_cost`, `wait_timeout`), `xi_video_transform_job_cost` (estimated cost units), `xi_video_transform_capacity`, `_capacity_used`, `_queued_cost`; the transcode is a `transcode` span.
 - URL syntax: none yet beyond tests (WP-122 adds the options, WP-125 the dialects); `app` tests route `/_video/<path>?w=&start=&dur=&c=` through a test-only router hook.
 
 ## 12. Failure modes and status codes

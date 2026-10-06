@@ -228,6 +228,8 @@ func run(ctx context.Context, cfg *config.Config, logger *slog.Logger, opts Opti
 		t := &cfg.Video.Transform
 		logger.LogAttrs(ctx, slog.LevelInfo, "video transformations",
 			slog.String("role", string(cfg.Role)), slog.Int("workers", t.Workers), slog.Int("queue", t.Queue),
+			slog.Int64("capacity", vt.Stats().Capacity), slog.Int64("max_jobs", vt.Stats().MaxJobs),
+			slog.Int64("queue_cost", vt.Stats().QueueCost),
 			slog.String("outputs", strings.Join(vt.Caps().Names(), ",")))
 		// A transcode holds its source (libvips memory) until it ends: like
 		// the image pool, libvips is shut down only once none runs.

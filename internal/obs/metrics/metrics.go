@@ -35,6 +35,7 @@ const (
 	OverloadQueueFull    = "queue_full"
 	OverloadWaitTimeout  = "wait_timeout"
 	OverloadMemoryBudget = "memory_budget"
+	OverloadQueueCost    = "queue_cost" // the video pool's queued cost (WP-121c)
 )
 
 // VipsStats is one snapshot of libvips' tracked allocations.
