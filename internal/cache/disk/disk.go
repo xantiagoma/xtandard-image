@@ -55,6 +55,9 @@ const Name = "disk"
 // when Options.JanitorInterval is zero.
 const DefaultJanitorInterval = time.Minute
 
+// DefaultFileBodyBytes is Options.FileBodyBytes when zero.
+const DefaultFileBodyBytes = 8 << 20
+
 const (
 	nameLen = 2 * sha256.Size // hex file name
 	tmpExt  = ".tmp"
@@ -77,6 +80,13 @@ type Options struct {
 	JanitorInterval time.Duration
 	// Now is the clock for TTLs; nil uses time.Now.
 	Now func() time.Time
+	// FileBodyBytes: a hit whose body has at least this many bytes is
+	// returned as a cache.FileBuffer over the entry's file (read on
+	// demand, so a Range request on a large video reads only its range)
+	// instead of being read into memory; its length is checked, its
+	// CRC-32C is not (a torn file is caught by the length). 0 uses
+	// DefaultFileBodyBytes; negative never.
+	FileBodyBytes int64
 }
 
 // Store is the disk cache. It is safe for concurrent use.
@@ -86,6 +96,7 @@ type Store struct {
 	metrics cache.Metrics
 	max     int64
 	low     int64 // eviction target: 90 % of max
+	fileMin int64 // Options.FileBodyBytes; < 0 never
 	now     func() time.Time
 
 	mu     sync.Mutex
@@ -109,7 +120,7 @@ type item struct {
 // New opens (creating it if needed) the cache directory, checks that it
 // is writable, rebuilds the index from the files already there and starts
 // the janitor, which Close stops.
-func New(opts Options) (*Store, error) {
+func New(opts *Options) (*Store, error) {
 	if opts.MaxBytes <= 0 {
 		return nil, fmt.Errorf("disk cache: max bytes must be > 0, got %d", opts.MaxBytes)
 	}
@@ -122,6 +133,7 @@ func New(opts Options) (*Store, error) {
 		metrics: opts.Metrics,
 		max:     opts.MaxBytes,
 		low:     opts.MaxBytes - opts.MaxBytes/10,
+		fileMin: opts.FileBodyBytes,
 		now:     opts.Now,
 		items:   make(map[string]*list.Element),
 		kick:    make(chan struct{}, 1),
@@ -132,6 +144,9 @@ func New(opts Options) (*Store, error) {
 	}
 	if s.now == nil {
 		s.now = time.Now
+	}
+	if s.fileMin == 0 {
+		s.fileMin = DefaultFileBodyBytes
 	}
 	if err := os.MkdirAll(s.dir, dirPerm); err != nil {
 		return nil, fmt.Errorf("disk cache: %w (the directory must be a writable volume)", err)
@@ -217,6 +232,11 @@ func (s *Store) Get(_ context.Context, ns cache.Namespace, key string) (cache.En
 	full := string(ns) + key
 	name := fileName(full)
 	p := s.path(name)
+	if s.fileMin > 0 {
+		if e, ok, done := s.getFile(name, p, full); done {
+			return e, ok, nil
+		}
+	}
 	b, err := os.ReadFile(p)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
@@ -244,6 +264,43 @@ func (s *Store) Get(_ context.Context, ns cache.Namespace, key string) (cache.En
 	return m.Entry(cache.NewBuffer(body, nil)), true, nil
 }
 
+// getFile answers a hit whose body has at least fileMin bytes with a
+// cache.FileBuffer over the entry's file, after reading only its frame:
+// done is false when the file is missing, small or unreadable, which Get
+// then handles as before.
+func (s *Store) getFile(name, p, full string) (e cache.Entry, ok, done bool) {
+	f, err := os.Open(p)
+	if err != nil {
+		return cache.Entry{}, false, false
+	}
+	keep := false
+	defer func() {
+		if !keep {
+			_ = f.Close() // read-only
+		}
+	}()
+	info, err := f.Stat()
+	if err != nil || info.Size() < s.fileMin+int64(cache.FramePrefixLen) {
+		return cache.Entry{}, false, false
+	}
+	m, off, err := cache.ReadFrame(f)
+	if err != nil || m.Key != full || off+m.Size != info.Size() {
+		s.remove(name)
+		s.metrics.ObserveCacheSkip(s.name, cache.SkipCorrupt)
+		s.metrics.ObserveCache(s.name, false)
+		return cache.Entry{}, false, true
+	}
+	if m.Expired(s.now()) {
+		s.remove(name)
+		s.metrics.ObserveCache(s.name, false)
+		return cache.Entry{}, false, true
+	}
+	s.touch(name, info.Size(), m.ExpiresAt)
+	s.metrics.ObserveCache(s.name, true)
+	keep = true
+	return m.Entry(cache.NewFileBuffer(f, off, m.Size, nil)), true, true
+}
+
 // Set implements cache.Store: the entry is written to a temporary file
 // and renamed into place. An entry larger than MaxBytes is skipped (not an
 // error). The caller keeps its reference to e.Body.
@@ -255,20 +312,26 @@ func (s *Store) Set(_ context.Context, ns cache.Namespace, key string, e *cache.
 		return cache.ErrClosed
 	}
 	full := string(ns) + key
-	m := cache.NewMeta(full, e, s.now(), ttl)
+	if cache.BodyLen(e.Body) > s.max {
+		s.metrics.ObserveCacheSkip(s.name, cache.SkipTooLarge)
+		return nil
+	}
+	m, err := cache.NewMeta(full, e, s.now(), ttl)
+	if err != nil {
+		return err
+	}
 	head, err := cache.AppendFrame(nil, &m)
 	if err != nil {
 		return err
 	}
-	body := e.Body.Bytes()
-	size := int64(len(head) + len(body))
+	size := int64(len(head)) + m.Size
 	if size > s.max {
 		s.metrics.ObserveCacheSkip(s.name, cache.SkipTooLarge)
 		return nil
 	}
 	name := fileName(full)
 	p := s.path(name)
-	tmp, err := s.writeTemp(filepath.Dir(p), name, head, body)
+	tmp, err := s.writeTemp(filepath.Dir(p), name, head, e.Body)
 	if err != nil {
 		return err
 	}
@@ -302,8 +365,8 @@ func (s *Store) Set(_ context.Context, ns cache.Namespace, key string, e *cache.
 }
 
 // writeTemp writes head and body to a new temporary file in dir and
-// returns its path.
-func (s *Store) writeTemp(dir, name string, head, body []byte) (string, error) {
+// returns its path. A file body is streamed from its file.
+func (s *Store) writeTemp(dir, name string, head []byte, body cache.Buffer) (string, error) {
 	if err := os.MkdirAll(dir, dirPerm); err != nil {
 		return "", fmt.Errorf("disk cache: %w", err)
 	}
@@ -313,7 +376,7 @@ func (s *Store) writeTemp(dir, name string, head, body []byte) (string, error) {
 	}
 	_, err = f.Write(head)
 	if err == nil {
-		_, err = f.Write(body)
+		err = cache.WriteBody(f, body)
 	}
 	if cerr := f.Close(); err == nil {
 		err = cerr

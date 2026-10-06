@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"hash"
 
+	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
@@ -25,6 +26,12 @@ import (
 // The hashsum is part of Request.CanonicalKey, so a result-cache hit was
 // verified when it was produced.
 func verifyHashsum(want *transform.Hashsum, data []byte) error {
+	return verifyHashsumBody(want, bytesBlob(data))
+}
+
+// verifyHashsumBody is verifyHashsum over a source buffer: a spooled one
+// (WP-121b) is hashed from its file.
+func verifyHashsumBody(want *transform.Hashsum, body interface{ Bytes() []byte }) error {
 	if want == nil || want.Algorithm == transform.HashUnset {
 		return nil
 	}
@@ -32,7 +39,9 @@ func verifyHashsum(want *transform.Hashsum, data []byte) error {
 	if !ok {
 		return errs.Newf(errs.KindInternal, "server: hashsum algorithm %d", want.Algorithm)
 	}
-	_, _ = h.Write(data) // hash.Hash.Write never fails
+	if err := cache.WriteBody(h, body); err != nil { // hash.Hash.Write never fails; a file read may
+		return errs.Wrapf(errs.KindInternal, err, "server: hash the source")
+	}
 	var buf [sha512.Size * 2]byte
 	sum := h.Sum(buf[:0])
 	got := hex.AppendEncode(make([]byte, 0, len(sum)*2), sum)

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/crc32"
+	"io"
 	"net/http"
 	"time"
 )
@@ -50,8 +51,8 @@ type Meta struct {
 
 // NewMeta describes e stored under fullKey (ns + key) at now for ttl: it
 // keeps e.StoredAt (now when zero), derives ExpiresAt with Expiry and
-// checksums the body.
-func NewMeta(fullKey string, e *Entry, now time.Time, ttl time.Duration) Meta {
+// checksums the body (streaming a file body, which can fail to read).
+func NewMeta(fullKey string, e *Entry, now time.Time, ttl time.Duration) (Meta, error) {
 	m := Meta{Key: fullKey, Status: e.Status, Header: e.Header}
 	stored := e.StoredAt
 	if stored.IsZero() {
@@ -61,12 +62,21 @@ func NewMeta(fullKey string, e *Entry, now time.Time, ttl time.Duration) Meta {
 	if exp := Expiry(now, ttl); !exp.IsZero() {
 		m.ExpiresAt = exp.UnixNano()
 	}
-	if e.Body != nil {
+	if e.Body == nil {
+		return m, nil
+	}
+	if !IsFileBody(e.Body) {
 		b := e.Body.Bytes()
 		m.Size = int64(len(b))
 		m.CRC = crc32.Checksum(b, castagnoli)
+		return m, nil
 	}
-	return m
+	h := crc32.New(castagnoli)
+	if err := WriteBody(h, e.Body); err != nil {
+		return Meta{}, err
+	}
+	m.Size, m.CRC = BodyLen(e.Body), h.Sum32()
+	return m, nil
 }
 
 // Expired reports whether the entry is past its ExpiresAt at now.
@@ -141,6 +151,29 @@ func ParseEntry(b []byte, full string) (m Meta, body []byte, ok bool) {
 		return Meta{}, nil, false
 	}
 	return m, b[off:], true
+}
+
+// ReadFrame reads the frame at the start of r and returns its metadata
+// and the offset of the body, reading nothing of the body (the disk
+// store's file bodies).
+func ReadFrame(r io.Reader) (Meta, int64, error) {
+	var pre [FramePrefixLen]byte
+	if _, err := io.ReadFull(r, pre[:]); err != nil || string(pre[:len(frameMagic)]) != frameMagic {
+		return Meta{}, 0, fmt.Errorf("%w: bad frame header", ErrCorrupt)
+	}
+	n := binary.BigEndian.Uint32(pre[len(frameMagic):])
+	if n > maxMetaLen {
+		return Meta{}, 0, fmt.Errorf("%w: metadata length %d out of range", ErrCorrupt, n)
+	}
+	j := make([]byte, n)
+	if _, err := io.ReadFull(r, j); err != nil {
+		return Meta{}, 0, fmt.Errorf("%w: truncated metadata", ErrCorrupt)
+	}
+	m, err := DecodeMeta(j)
+	if err != nil {
+		return Meta{}, 0, err
+	}
+	return m, int64(FramePrefixLen) + int64(n), nil
 }
 
 // ParseFrame decodes the frame at the start of b and returns its metadata

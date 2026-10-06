@@ -17,7 +17,6 @@
 package s3cache
 
 import (
-	"bytes"
 	"cmp"
 	"context"
 	"encoding/base64"
@@ -152,7 +151,10 @@ func (s *Store) Set(ctx context.Context, ns cache.Namespace, key string, e *cach
 		return cache.ErrClosed
 	}
 	full := string(ns) + key
-	m := cache.NewMeta(full, e, s.now(), ttl)
+	m, err := cache.NewMeta(full, e, s.now(), ttl)
+	if err != nil {
+		return err
+	}
 	j, err := cache.EncodeMeta(&m)
 	if err != nil {
 		return err
@@ -162,12 +164,12 @@ func (s *Store) Set(ctx context.Context, ns cache.Namespace, key string, e *cach
 		s.metrics.ObserveCacheSkip(s.name, cache.SkipTooLarge)
 		return nil
 	}
-	body := e.Body.Bytes()
+	// A file body (a spooled video, WP-121b) is streamed from its file.
 	in := &s3.PutObjectInput{
 		Bucket:        aws.String(s.bucket),
 		Key:           aws.String(s.objectKey(full)),
-		Body:          bytes.NewReader(body),
-		ContentLength: aws.Int64(int64(len(body))),
+		Body:          cache.BodyReader(e.Body),
+		ContentLength: aws.Int64(cache.BodyLen(e.Body)),
 		Metadata:      map[string]string{metaKey: meta},
 	}
 	if ct := e.Header.Get("Content-Type"); ct != "" {

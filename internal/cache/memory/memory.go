@@ -107,6 +107,13 @@ func (s *Store) Set(_ context.Context, ns cache.Namespace, key string, in *cache
 	if in.Body == nil {
 		return errors.New("memory cache: entry without body")
 	}
+	if cache.IsFileBody(in.Body) {
+		// A body spooled to a file (a large video, WP-121b) belongs in the
+		// disk or S3 tier: holding it here would pin the file and its
+		// spool budget, and mapping it would bring it into memory.
+		s.metrics.ObserveCacheSkip(s.name, cache.SkipTooLarge)
+		return nil
+	}
 	e := *in
 	now := time.Now()
 	if e.StoredAt.IsZero() {

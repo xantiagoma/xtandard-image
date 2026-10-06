@@ -102,7 +102,7 @@ func newBackend(ctx context.Context, kind config.StoreKind, cfg *config.Config, 
 	case config.StoreMemory:
 		return memory.New(memory.Options{MaxBytes: int64(rc.MemoryBytes), Metrics: m})
 	case config.StoreDisk:
-		return disk.New(disk.Options{Dir: rc.Disk.Path, MaxBytes: int64(rc.Disk.Bytes), Metrics: m})
+		return disk.New(&disk.Options{Dir: rc.Disk.Path, MaxBytes: int64(rc.Disk.Bytes), Metrics: m})
 	case config.StoreRedis:
 		return redis.New(&redis.Options{
 			URL: rc.Redis.URL.Reveal(), Prefix: rc.Redis.Prefix, MaxValueBytes: int(rc.Redis.MaxValueBytes), Metrics: m,
