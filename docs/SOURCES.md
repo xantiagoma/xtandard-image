@@ -385,8 +385,8 @@ sources:
     user: xi
     private_key: { file: /run/secrets/partner_sftp_key }
     host_key: |
-      sftp.partner.example ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIReplaceWithTheOutputOfSshKeyscan
-      sftp.partner.example ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYReplaceWithTheOutputOfSshKeyscan
+      sftp.partner.example ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPleaseReplaceWithTheOutputOfSshKeyscanKey01
+      sftp.partner.example ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPleaseReplaceWithTheOutputOfSshKeyscanKey02
     root: /outgoing/images
     pool_size: 8
   legacy-ftp:
@@ -497,7 +497,7 @@ XI_SOURCES_PARTNER_SFTP_HOST=sftp.partner.example
 XI_SOURCES_PARTNER_SFTP_PORT=2222
 XI_SOURCES_PARTNER_SFTP_USER=xi
 XI_SOURCES_PARTNER_SFTP_PASSWORD=CHANGE_ME
-XI_SOURCES_PARTNER_SFTP_HOST_KEY=sftp.partner.example ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIReplaceWithTheOutputOfSshKeyscan
+XI_SOURCES_PARTNER_SFTP_HOST_KEY=sftp.partner.example ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPleaseReplaceWithTheOutputOfSshKeyscanKey01
 XI_SOURCES_PARTNER_SFTP_ROOT=/outgoing/images
 
 # Public web images, https only
@@ -703,7 +703,7 @@ sources:
     port: 2222
     user: xi
     private_key: { file: /run/secrets/partner_sftp_key }
-    host_key: "sftp.partner.example ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIReplaceWithTheOutputOfSshKeyscan"
+    host_key: "sftp.partner.example ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPleaseReplaceWithTheOutputOfSshKeyscanKey01"
     root: /outgoing/images
 
   # A legacy FTP server over explicit TLS.
@@ -824,7 +824,7 @@ host = "sftp.partner.example"
 port = 2222
 user = "xi"
 private_key = { file = "/run/secrets/partner_sftp_key" }
-host_key = "sftp.partner.example ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIReplaceWithTheOutputOfSshKeyscan"
+host_key = "sftp.partner.example ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPleaseReplaceWithTheOutputOfSshKeyscanKey01"
 root = "/outgoing/images"
 
 [sources.legacy-ftp]

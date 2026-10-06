@@ -1,7 +1,12 @@
 package config
 
 import (
+	"bytes"
 	"cmp"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/binary"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"maps"
@@ -267,18 +272,271 @@ func (c *Config) validateSources(v *validator) {
 			v.check(len(s.Buckets) > 0 || s.Bucket != "", p+".buckets", "must list at least one bucket")
 			v.check(s.Bucket == "" || len(s.Buckets) == 0 || slices.Contains(s.Buckets, s.Bucket), p+".bucket", "%q is not in buckets", s.Bucket)
 			v.check(s.Endpoint == "" || validHTTPURL(s.Endpoint), p+".endpoint", "must be an absolute http(s) URL")
+			if s.Type == SourceAzure {
+				validateAzure(v, p, &s)
+			}
 		case SourceFS:
 			v.check(filepath.IsAbs(s.Root), p+".root", "must be an absolute path")
 		case SourceFTP, SourceSFTP:
 			v.check(s.Host != "", p+".host", "must be set")
+			v.check(!strings.ContainsAny(s.Host, "/ \t\r\n"), p+".host", "must be a host name or IP address without scheme, path or spaces, got %q", s.Host)
 			v.between(s.Port, 0, 65535, p+".port")
-			v.check(s.Type != SourceSFTP || s.HostKey != "", p+".host_key", "is mandatory for sftp (no trust on first use)")
+			if s.Type == SourceSFTP {
+				validateSFTP(v, p, &s)
+			}
 			v.check(s.PoolSize >= 0, p+".pool_size", "must not be negative")
 			v.check(s.DialTimeout >= 0, p+".dial_timeout", "must not be negative")
 			v.check(s.IdleTimeout >= 0, p+".idle_timeout", "must not be negative")
 			v.check(s.PrivateKeyPassphrase == "" || s.PrivateKey != "", p+".private_key_passphrase", "needs private_key")
 		}
 	}
+}
+
+// validateAzure checks what azuresrc.New and the Azure SDK would refuse at
+// startup, plus the account and container naming rules the service
+// enforces (Azure: "Naming and referencing containers, blobs, and
+// metadata").
+func validateAzure(v *validator, p string, s *Source) {
+	cs := s.ConnectionString.Reveal()
+	v.check(s.Account != "" || s.Endpoint != "" || cs != "", p+".account",
+		"an azure source needs account, endpoint or connection_string")
+	v.check(s.Account == "" || validAzureAccount(s.Account), p+".account",
+		"must be a storage account name: 3-24 lowercase letters and digits, got %q", s.Account)
+	const containerRule = "must be a container name: 3-63 lowercase letters, digits and single hyphens, starting and ending with a letter or digit, or $root / $web, got %q"
+	for i, b := range s.Buckets {
+		v.check(validAzureContainer(b), fmt.Sprintf("%s.buckets[%d]", p, i), containerRule, b)
+	}
+	v.check(len(s.Buckets) > 0 || s.Bucket == "" || validAzureContainer(s.Bucket), p+".bucket", containerRule, s.Bucket)
+	if cs != "" {
+		v.check(s.Account == "" && s.AccountKey == "" && s.SASToken == "" && s.Endpoint == "", p+".connection_string",
+			"carries the endpoint and credentials itself: do not combine it with account, account_key, sas_token or endpoint")
+		if err := checkAzureConnectionString(cs); err != nil {
+			v.add(p+".connection_string", "%v", err)
+		}
+		return
+	}
+	v.check(s.AccountKey == "" || s.SASToken == "", p+".sas_token", "account_key and sas_token are exclusive: set one")
+	if s.AccountKey != "" {
+		v.check(s.Account != "", p+".account_key", "needs account (the shared key signs for a named account)")
+		_, err := base64.StdEncoding.DecodeString(s.AccountKey.Reveal())
+		v.check(err == nil, p+".account_key", "must be the base64 key from the storage account's access keys")
+	}
+	if s.SASToken != "" {
+		v.check(!strings.Contains(s.Endpoint, "?"), p+".endpoint", "must not carry a query when sas_token is set")
+		v.check(!strings.Contains(s.SASToken.Reveal(), "://"), p+".sas_token", "must be the token (sv=…&sig=…), not a SAS URL")
+	}
+}
+
+// validAzureAccount is the storage account naming rule: 3-24 lowercase
+// letters and digits.
+func validAzureAccount(s string) bool {
+	if len(s) < 3 || len(s) > 24 {
+		return false
+	}
+	for _, c := range s {
+		if (c < 'a' || c > 'z') && (c < '0' || c > '9') {
+			return false
+		}
+	}
+	return true
+}
+
+// validAzureContainer is the container naming rule: 3-63 characters of
+// lowercase letters, digits and hyphens, starting and ending with a letter
+// or digit, no consecutive hyphens; $root and $web are the special
+// containers.
+func validAzureContainer(s string) bool {
+	if s == "$root" || s == "$web" {
+		return true
+	}
+	if len(s) < 3 || len(s) > 63 || s[0] == '-' || s[len(s)-1] == '-' || strings.Contains(s, "--") {
+		return false
+	}
+	for _, c := range s {
+		if (c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '-' {
+			return false
+		}
+	}
+	return true
+}
+
+// checkAzureConnectionString applies the Azure SDK's parser rules
+// (azblob ParseConnectionString): Key=Value pairs separated by ';', with
+// BlobEndpoint or AccountName, and AccountName+AccountKey or
+// SharedAccessSignature. UseDevelopmentStorage=true is not understood by
+// the Go SDK: Azurite needs the explicit form.
+func checkAzureConnectionString(cs string) error {
+	kv := map[string]string{}
+	for part := range strings.SplitSeq(strings.TrimRight(cs, ";"), ";") {
+		k, val, ok := strings.Cut(part, "=")
+		if !ok {
+			return errors.New("must be Key=Value pairs separated by ';' (copy it from the storage account's access keys)")
+		}
+		kv[strings.TrimSpace(k)] = val
+	}
+	_, hasName := kv["AccountName"]
+	_, hasKey := kv["AccountKey"]
+	_, hasSAS := kv["SharedAccessSignature"]
+	blob, hasBlob := kv["BlobEndpoint"]
+	switch {
+	case !hasName && !hasBlob:
+		if _, dev := kv["UseDevelopmentStorage"]; dev {
+			return errors.New("UseDevelopmentStorage=true is not supported: give Azurite's AccountName, AccountKey and BlobEndpoint")
+		}
+		return errors.New("needs AccountName or BlobEndpoint")
+	case (!hasName || !hasKey) && !hasSAS:
+		return errors.New("needs AccountName with AccountKey, or SharedAccessSignature")
+	case hasBlob && !validHTTPURL(blob):
+		return errors.New("BlobEndpoint must be an absolute http(s) URL")
+	case hasKey:
+		if _, err := base64.StdEncoding.DecodeString(kv["AccountKey"]); err != nil {
+			return errors.New("AccountKey must be base64")
+		}
+	}
+	return nil
+}
+
+// validateSFTP checks the credentials and pinned host keys sftpsrc.New
+// parses at startup.
+func validateSFTP(v *validator, p string, s *Source) {
+	v.check(s.User != "", p+".user", "must be set for sftp")
+	v.check(s.Password != "" || s.PrivateKey != "", p+".password", "an sftp source needs a password or a private_key")
+	if s.HostKey == "" {
+		v.add(p+".host_key", "is mandatory for sftp (no trust on first use): paste the server's key, e.g. the output of ssh-keyscan -p PORT HOST")
+	} else if err := checkHostKeys(s.HostKey); err != nil {
+		v.add(p+".host_key", "%v", err)
+	}
+	if s.PrivateKey != "" {
+		if err := checkPrivateKey(s.PrivateKey.Reveal(), s.PrivateKeyPassphrase.Reveal()); err != nil {
+			v.add(p+".private_key", "%v", err)
+		}
+	}
+}
+
+// checkHostKeys checks pinned host keys as sftpsrc reads them: one per
+// non-empty, non-comment line, in authorized_keys ("ssh-ed25519 AAAA…") or
+// known_hosts ("host ssh-ed25519 AAAA…") form. config imports no SSH
+// library (ARCHITECTURE §3), so this is the structural part of that parse:
+// a known key type followed by base64 wire data that names the same type;
+// sftpsrc still parses the keys themselves at startup.
+func checkHostKeys(keys string) error {
+	n, i := 0, 0
+	for line := range strings.Lines(keys) {
+		i++
+		if line = strings.TrimSpace(line); line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if !hostKeyLine(line) {
+			return fmt.Errorf("line %d is not an SSH public key in authorized_keys or known_hosts form (ssh-keyscan output)", i)
+		}
+		n++
+	}
+	if n == 0 {
+		return errors.New("has no key: paste the server's key, e.g. the output of ssh-keyscan -p PORT HOST")
+	}
+	return nil
+}
+
+// hostKeyLine reports whether line holds "<type> <base64>" whose wire
+// encoding starts with the same type string (RFC 4253 §6.6).
+func hostKeyLine(line string) bool {
+	fields := strings.Fields(line)
+	for i := 0; i+1 < len(fields); i++ {
+		if !sshKeyType(fields[i]) {
+			continue
+		}
+		blob, err := base64.StdEncoding.DecodeString(fields[i+1])
+		if err != nil {
+			return false
+		}
+		typ, rest, ok := sshWireString(blob)
+		return ok && string(typ) == fields[i] && len(rest) > 0
+	}
+	return false
+}
+
+// sshWireString splits an SSH wire-format string (uint32 length, bytes)
+// off the front of b.
+func sshWireString(b []byte) (s, rest []byte, ok bool) {
+	if len(b) < 4 {
+		return nil, nil, false
+	}
+	n := int64(binary.BigEndian.Uint32(b))
+	if n > int64(len(b)-4) {
+		return nil, nil, false
+	}
+	return b[4 : 4+n], b[4+n:], true
+}
+
+// sshKeyType reports whether t is a public key algorithm x/crypto/ssh
+// parses, certificates included.
+func sshKeyType(t string) bool {
+	switch strings.TrimSuffix(t, "-cert-v01@openssh.com") {
+	case "ssh-ed25519", "ssh-rsa", "ssh-dss", "ecdsa-sha2-nistp256", "ecdsa-sha2-nistp384", "ecdsa-sha2-nistp521",
+		"sk-ssh-ed25519@openssh.com", "sk-ecdsa-sha2-nistp256@openssh.com":
+		return true
+	}
+	return false
+}
+
+// checkPrivateKey checks an SSH private key as x/crypto/ssh, which sftpsrc
+// uses, would read it: a PEM block of a type it supports, decoded with the
+// standard library where it can be (PKCS #1, PKCS #8, SEC 1), and a
+// passphrase exactly when the key is encrypted (an OpenSSH key whose
+// cipher is not "none", or a legacy PEM block with Proc-Type ENCRYPTED).
+// A wrong passphrase is only found at startup.
+func checkPrivateKey(key, passphrase string) error {
+	const notKey = "is not an SSH private key (PEM or OpenSSH format; with a _FILE variable or {file: …}, the file's content)"
+	block, _ := pem.Decode([]byte(key))
+	if block == nil {
+		return errors.New(notKey)
+	}
+	encrypted := strings.Contains(block.Headers["Proc-Type"], "ENCRYPTED")
+	var err error
+	switch block.Type {
+	case "OPENSSH PRIVATE KEY":
+		encrypted, err = opensshEncrypted(block.Bytes)
+	case "RSA PRIVATE KEY":
+		if !encrypted {
+			_, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+		}
+	case "EC PRIVATE KEY":
+		if !encrypted {
+			_, err = x509.ParseECPrivateKey(block.Bytes)
+		}
+	case "PRIVATE KEY":
+		_, err = x509.ParsePKCS8PrivateKey(block.Bytes)
+	case "DSA PRIVATE KEY":
+	case "ENCRYPTED PRIVATE KEY":
+		return errors.New("is an encrypted PKCS #8 key, which the SSH client cannot read: convert it with ssh-keygen -p -f KEY (OpenSSH format)")
+	default:
+		return errors.New(notKey)
+	}
+	switch {
+	case err != nil:
+		return errors.New(notKey)
+	case encrypted && passphrase == "":
+		return errors.New("is encrypted: set private_key_passphrase")
+	case !encrypted && passphrase != "":
+		return errors.New("is not encrypted: remove private_key_passphrase")
+	}
+	return nil
+}
+
+// opensshEncrypted reads the header of an "openssh-key-v1" private key
+// (OpenSSH PROTOCOL.key): the magic, then the cipher name, which is "none"
+// for an unencrypted key.
+func opensshEncrypted(b []byte) (bool, error) {
+	const magic = "openssh-key-v1\x00"
+	rest, ok := bytes.CutPrefix(b, []byte(magic))
+	if !ok {
+		return false, errors.New("not an openssh-key-v1 key")
+	}
+	cipher, _, ok := sshWireString(rest)
+	if !ok || len(cipher) == 0 {
+		return false, errors.New("bad cipher name")
+	}
+	return string(cipher) != "none", nil
 }
 
 // validPDFPassword checks a source's default document password: what a
