@@ -56,22 +56,35 @@ func readKnown(alloc Allocator, r io.Reader, n int) (Buffer, error) {
 }
 
 func readUnknown(alloc Allocator, r io.Reader, maxBytes int64) (Buffer, error) {
-	limit := maxBytes + 1 // one byte past the limit proves the body is too large
-	buf, err := allocate(alloc, int(min(initialChunk, limit)))
+	// One byte past the limit proves the body is too large.
+	buf, n, full, err := readPrefix(alloc, r, maxBytes+1)
 	if err != nil {
 		return nil, err
 	}
-	n := 0
+	if full {
+		buf.Release()
+		return nil, tooLarge(-1, maxBytes)
+	}
+	return exactBuffer(alloc, buf, n)
+}
+
+// readPrefix reads r into a Buffer from alloc, growing in doubling chunks,
+// until EOF or limit bytes; full reports that limit bytes were read (the
+// body may go on). The caller owns buf, of which n bytes are the data.
+func readPrefix(alloc Allocator, r io.Reader, limit int64) (buf Buffer, n int, full bool, err error) {
+	buf, err = allocate(alloc, int(min(initialChunk, limit)))
+	if err != nil {
+		return nil, 0, false, err
+	}
 	for {
 		if n == len(buf.Bytes()) {
 			if int64(n) >= limit {
-				buf.Release()
-				return nil, tooLarge(-1, maxBytes)
+				return buf, n, true, nil
 			}
 			bigger, err := allocate(alloc, int(min(2*int64(n), limit)))
 			if err != nil {
 				buf.Release()
-				return nil, err
+				return nil, 0, false, err
 			}
 			copy(bigger.Bytes(), buf.Bytes()[:n])
 			buf.Release()
@@ -80,17 +93,19 @@ func readUnknown(alloc Allocator, r io.Reader, maxBytes int64) (Buffer, error) {
 		m, err := r.Read(buf.Bytes()[n:])
 		n += m
 		if errors.Is(err, io.EOF) {
-			break
+			return buf, n, false, nil
 		}
 		if err != nil {
 			buf.Release()
-			return nil, readError(err)
+			return nil, 0, false, readError(err)
 		}
 	}
+}
+
+// exactBuffer returns the n bytes of buf in a buffer of exactly n bytes
+// (buf itself when it fits), taking over the caller's reference.
+func exactBuffer(alloc Allocator, buf Buffer, n int) (Buffer, error) {
 	switch {
-	case int64(n) > maxBytes:
-		buf.Release()
-		return nil, tooLarge(-1, maxBytes)
 	case n == 0:
 		buf.Release()
 		return nil, errs.New(errs.KindCorrupt, "empty source body")
