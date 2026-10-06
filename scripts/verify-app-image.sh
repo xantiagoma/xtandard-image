@@ -6,7 +6,9 @@
 #      (per flavor: dev.xtandard.flavor matches the base's
 #      dev.xtandard.base.flavor and XI_EXPECT_FLAVOR when set; licences MIT
 #      for slim/full, the GPL/AGPL expression for gpl; the description names
-#      the flavor), ARCHITECTURE §14 environment
+#      the flavor), LICENSE and NOTICE in /usr/share/doc/xtandard-image (gpl:
+#      both NOTICE and LICENSE-GPL.md name the Adobe DNG SDK and GoPro GPR
+#      SDK), ARCHITECTURE §14 environment
 #   3. compressed size ≤ XI_MAX_COMPRESSED_MB (default 110 for slim, 170 for
 #      full and gpl; docker save | gzip)
 #   4. scripts/check-readonly.sh: read-only rootfs with a tmpfs /tmp, all
@@ -70,7 +72,7 @@ if [ -z "$max_mb" ]; then
 fi
 case "$flavor" in
   slim | full) want_licenses=MIT ;;
-  gpl) want_licenses="GPL-2.0-or-later AND AGPL-3.0-or-later AND MIT AND LicenseRef-Adobe-DNG-SDK" ;;
+  gpl) want_licenses="GPL-2.0-or-later AND GPL-2.0-only AND AGPL-3.0-or-later AND MIT AND LicenseRef-Adobe-DNG-SDK AND (Apache-2.0 OR MIT)" ;;
   *) want_licenses="(unknown flavor '$flavor')" ;;
 esac
 licenses="$(label org.opencontainers.image.licenses)"
@@ -79,6 +81,19 @@ case "$(label org.opencontainers.image.description)" in
   *"$flavor flavor"*) ;;
   *) fail "description does not name the $flavor flavor" ;;
 esac
+# This project's LICENSE and NOTICE ship in every flavour; the gpl NOTICE and
+# licence listing name the Adobe DNG SDK and GoPro GPR SDK only gpl contains.
+notice="$(docker run --rm --entrypoint cat "$image" /usr/share/doc/xtandard-image/LICENSE /usr/share/doc/xtandard-image/NOTICE)" ||
+  fail "LICENSE or NOTICE missing in /usr/share/doc/xtandard-image"
+case "$notice" in *"MIT License"*"Third-party notices"*) ;; *) fail "/usr/share/doc/xtandard-image: not the MIT LICENSE and NOTICE" ;; esac
+if [ "$flavor" = gpl ]; then
+  gpl_md="$(docker run --rm --entrypoint cat "$image" /opt/xtandard/share/licenses/LICENSE-GPL.md)" ||
+    fail "LICENSE-GPL.md missing"
+  for sdk in "Adobe DNG SDK" "GoPro GPR SDK"; do
+    case "$notice" in *"$sdk"*) ;; *) fail "NOTICE does not mention the $sdk" ;; esac
+    case "$gpl_md" in *"$sdk"*) ;; *) fail "LICENSE-GPL.md does not mention the $sdk" ;; esac
+  done
+fi
 env="$(inspect '{{range .Config.Env}}{{println .}}{{end}}')"
 for kv in LD_LIBRARY_PATH=/opt/xtandard/lib LD_PRELOAD=/opt/xtandard/lib/libjemalloc.so.2 \
   MALLOC_ARENA_MAX=2 MALLOC_CONF=narenas:2 MAGICK_CONFIGURE_PATH=/opt/xtandard/etc/ImageMagick-7 \

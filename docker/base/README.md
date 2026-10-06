@@ -239,7 +239,7 @@ Licences: `share/licenses/x264/COPYING`, `share/licenses/x265/COPYING`,
 GPL-2.0-or-later, that `gs` is AGPL-3.0-or-later and what that means for distributing or
 serving it, the patent caveat, where the corresponding source is, and a table of every
 component in the bundle with its SPDX licence (from `XI_COMPONENT_LICENSES` in
-`versions-gpl.sh`). Image labels: `org.opencontainers.image.licenses="AGPL-3.0-or-later AND GPL-2.0-or-later AND MIT"`,
+`versions-gpl.sh`). Image labels: `org.opencontainers.image.licenses="AGPL-3.0-or-later AND GPL-2.0-or-later AND GPL-2.0-only AND MIT AND LicenseRef-Adobe-DNG-SDK AND (Apache-2.0 OR MIT)"` (FFmpeg/x264/x265, the GPL-2.0-only metafile converter, Ghostscript, and the Adobe DNG SDK and GoPro GPR SDK compiled into LibRaw, which only gpl ships),
 `dev.xtandard.base.flavor="gpl"` (slim and full keep `MIT`).
 
 `verify-image.sh --flavor gpl` runs every full check with the gate in its gpl mode, requires
