@@ -5,10 +5,11 @@
 // them in a dedicated role, XI_ROLE=video).
 //
 // Service.Transform coalesces identical requests (one transcode per key at
-// a time, shared by everyone waiting for it), admits the work through its
-// own limiter (XI_VIDEO_TRANSFORM_WORKERS, _QUEUE, _QUEUE_TIMEOUT: 429 or
-// 503 when full), bounds it by XI_VIDEO_TRANSFORM_TIMEOUT, and runs the
-// Engine: probe, plan (internal/video.PlanTranscode) and transcode
+// a time, shared by everyone waiting for it), probes and plans the job
+// (Engine.Open, internal/video.PlanTranscode), admits it by its estimated
+// cost through a pool of its own (admission.go: XI_VIDEO_TRANSFORM_CAPACITY,
+// _MAX_JOBS, _QUEUE, _QUEUE_COST, _QUEUE_TIMEOUT: 429 or 503 when full),
+// bounds it by XI_VIDEO_TRANSFORM_TIMEOUT and transcodes
 // (internal/video/ffmpeg in production). The package is pure Go; tests use
 // a fake Engine.
 package media
@@ -70,8 +71,8 @@ type Layer struct {
 	X, Y, Width, Height int
 }
 
-// Metrics receives transcode observations. Implementations must be safe
-// for concurrent use and must not block.
+// Metrics receives transcode and admission observations. Implementations
+// must be safe for concurrent use and must not block.
 type Metrics interface {
 	// Transcoded observes one transcode: result is "ok" or the errs kind
 	// of its failure; in and out are the source and output bytes (out 0 on
@@ -80,19 +81,40 @@ type Metrics interface {
 	// Coalesced counts a request answered by joining an identical
 	// transcode in flight.
 	Coalesced()
+	// JobCost observes a probed job's estimated cost in cost units
+	// (before clamping to the capacity).
+	JobCost(units float64)
+	// Rejected counts a job the pool did not admit.
+	Rejected(r limiter.Reason)
+	// Load reports the pool's occupancy after every change.
+	Load(l Load)
 }
 
 type nopMetrics struct{}
 
 func (nopMetrics) Transcoded(string, time.Duration, int64, int64) {}
 func (nopMetrics) Coalesced()                                     {}
+func (nopMetrics) JobCost(float64)                                {}
+func (nopMetrics) Rejected(limiter.Reason)                        {}
+func (nopMetrics) Load(Load)                                      {}
 
 // Config sizes and bounds the subsystem (XI_VIDEO_TRANSFORM_*).
 type Config struct {
-	// Workers is the transcodes run at once; Queue how many may wait;
-	// QueueTimeout how long one waits for a worker.
-	Workers      int
+	// Workers sizes the pool: the probes run at once and, when they are
+	// 0, the defaults of Capacity (Workers × WorkerShare) and MaxJobs
+	// (2 × Workers).
+	Workers int
+	// Capacity is the cost units the running jobs may hold together
+	// (video.EstimateCost); MaxJobs bounds the running jobs whatever
+	// their cost.
+	Capacity int64
+	MaxJobs  int
+	// Queue is how many jobs may wait beyond MaxJobs (a place is held
+	// from the probe on); QueueCost bounds the cost they wait for
+	// (0: Queue × WorkerShare); QueueTimeout how long one waits, probe
+	// included.
 	Queue        int
+	QueueCost    int64
 	QueueTimeout time.Duration
 	// Timeout bounds one transcode (wall time, from admission).
 	Timeout time.Duration
@@ -113,6 +135,10 @@ func (c *Config) Validate() error {
 	}
 	if c.Queue < 0 {
 		list = append(list, fmt.Errorf("media: queue must be >= 0, got %d", c.Queue))
+	}
+	if c.Capacity < 0 || c.MaxJobs < 0 || c.QueueCost < 0 {
+		list = append(list, fmt.Errorf("media: capacity, max jobs and queue cost must be >= 0, got %d, %d and %d",
+			c.Capacity, c.MaxJobs, c.QueueCost))
 	}
 	if c.QueueTimeout < 0 || c.Timeout <= 0 {
 		list = append(list, fmt.Errorf("media: queue timeout must be >= 0 and timeout > 0, got %s and %s", c.QueueTimeout, c.Timeout))
@@ -139,11 +165,12 @@ type Service struct {
 	cfg     Config
 	caps    video.TranscodeCaps
 	engine  Engine
-	lim     *limiter.Limiter
+	pool    *pool
 	metrics Metrics
 	render  OverlayRenderer // nil: image and text overlays are unsupported
 	flights group
-	limOpts []limiter.Option // New only
+	// estimate is the cost model (video.EstimateCost; tests replace it).
+	estimate func(*video.TranscodeInput, *video.TranscodePlan) float64
 
 	// Background prefetches of stream segments (stream.go): Close stops
 	// them (done) and waits for them (prefetches).
@@ -170,11 +197,6 @@ func WithOverlayRenderer(r OverlayRenderer) Option {
 	return func(s *Service) { s.render = r }
 }
 
-// WithLimiterMetrics reports the pool's queue and workers to m.
-func WithLimiterMetrics(m limiter.Metrics) Option {
-	return func(s *Service) { s.limOpts = append(s.limOpts, limiter.WithMetrics(m)) }
-}
-
 // New validates cfg and builds the service over engine for a build that
 // can write caps.
 func New(cfg *Config, caps video.TranscodeCaps, engine Engine, opts ...Option) (*Service, error) {
@@ -184,26 +206,41 @@ func New(cfg *Config, caps video.TranscodeCaps, engine Engine, opts ...Option) (
 	if engine == nil {
 		return nil, errors.New("media: nil engine")
 	}
-	s := &Service{cfg: *cfg, caps: caps, engine: engine, metrics: nopMetrics{}, done: make(chan struct{})}
+	s := &Service{
+		cfg: *cfg, caps: caps, engine: engine, metrics: nopMetrics{}, done: make(chan struct{}),
+		estimate: video.EstimateCost,
+	}
 	for _, o := range opts {
 		o(s)
 	}
-	lim, err := limiter.New(limiter.Config{
-		Workers: cfg.Workers, QueueSize: cfg.Queue, QueueTimeout: cfg.QueueTimeout,
-	}, s.limOpts...)
-	if err != nil {
-		return nil, err
-	}
-	s.lim = lim
-	s.limOpts = nil
+	s.pool = newPool(poolSizes(cfg), s.metrics)
 	return s, nil
+}
+
+// poolSizes is cfg's pool with the defaults applied.
+func poolSizes(cfg *Config) poolConfig {
+	w := int64(cfg.Workers)
+	p := poolConfig{
+		MaxJobs: int64(cfg.MaxJobs), Queue: int64(cfg.Queue), Probes: w,
+		Capacity: cfg.Capacity, QueueCost: cfg.QueueCost, QueueTimeout: cfg.QueueTimeout,
+	}
+	if p.MaxJobs == 0 {
+		p.MaxJobs = 2 * w
+	}
+	if p.Capacity == 0 {
+		p.Capacity = w * WorkerShare
+	}
+	if p.QueueCost == 0 {
+		p.QueueCost = max(p.Queue, 1) * WorkerShare
+	}
+	return p
 }
 
 // Caps is what this build can write.
 func (s *Service) Caps() video.TranscodeCaps { return s.caps }
 
-// Stats is the pool's admission snapshot.
-func (s *Service) Stats() limiter.Stats { return s.lim.Stats() }
+// Stats is the pool's sizes and occupancy.
+func (s *Service) Stats() Stats { return s.pool.stats() }
 
 // Resolve picks the output of op on this build before anything is
 // fetched (video.TranscodeCaps.Resolve): errs.KindUnsupported when it
@@ -256,7 +293,7 @@ func (s *Service) Transform(ctx context.Context, key string, src Buffer, op *tra
 	retain(in)
 	res, shared, err := s.flights.do(ctx, key, func(ctx context.Context) (*Result, error) {
 		defer release(in)
-		return s.run(ctx, src, op, overlays, out)
+		return s.run(ctx, src, s.transformPlan(op, out), s.transcode(op, overlays))
 	})
 	if shared {
 		release(in)
@@ -286,22 +323,89 @@ func release(bs []Buffer) {
 	}
 }
 
-// run is one transcode: admission, open, plan, overlays, transcode.
-func (s *Service) run(ctx context.Context, src Buffer, op *transform.VideoOp, overlays []Buffer, out video.TranscodeOutput) (*Result, error) {
-	return s.admitted(ctx, src, func(ctx context.Context) (*Result, error) {
-		return s.transcode(ctx, src, op, overlays, out)
-	})
+// task is a probed job: its opened source, what the probe read, its plan
+// and the result it will make (without its Body).
+type task struct {
+	job  Job
+	in   video.TranscodeInput
+	plan *video.TranscodePlan
+	res  Result
 }
 
-// admitted runs work on a worker of the pool (waiting in its queue), under
-// the transcode timeout (timed).
-func (s *Service) admitted(ctx context.Context, src Buffer, work func(context.Context) (*Result, error)) (*Result, error) {
-	release, err := s.lim.Acquire(ctx, 0)
+// A planner plans a job over what the probe read (the second half of the
+// probe); a worker runs an admitted task.
+type (
+	planner func(in *video.TranscodeInput) (*video.TranscodePlan, Result, error)
+	worker  func(ctx context.Context, t *task) (*Result, error)
+)
+
+// run is one job in the pool: a place, then execute.
+func (s *Service) run(ctx context.Context, src Buffer, plan planner, work worker) (*Result, error) {
+	t, err := s.pool.enter(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer release()
-	return s.timed(ctx, src, work)
+	defer t.leave()
+	return s.execute(ctx, t, src, plan, work, false)
+}
+
+// execute probes and plans the job of t (under the probe bound), admits
+// it by its estimated cost, then runs work under the transcode timeout.
+// The probe and the wait for admission together have the queue timeout;
+// a prefetch (try) never waits for either.
+func (s *Service) execute(ctx context.Context, t *ticket, src Buffer, plan planner, work worker, try bool) (*Result, error) {
+	wait, cancel := s.pool.waitContext(ctx)
+	defer cancel()
+	start := time.Now()
+	var tk *task
+	var probeErr error
+	probe := func() error {
+		tk, probeErr = s.open(wait, src, plan)
+		return probeErr
+	}
+	var err error
+	if try {
+		err = t.tryProbe(probe)
+	} else {
+		err = t.probe(ctx, wait, probe)
+	}
+	if err != nil {
+		if probeErr == nil { // the pool's error
+			return nil, err
+		}
+		if !try && ctx.Err() == nil && errors.Is(context.Cause(wait), errQueueTimeout) {
+			return nil, s.pool.waitError(ctx) // the probe outlived the queue timeout
+		}
+		s.metrics.Transcoded(errs.KindOf(err).String(), time.Since(start), int64(len(src.Bytes())), 0)
+		return nil, err
+	}
+	defer tk.job.Close()
+	cost := s.estimate(&tk.in, tk.plan)
+	if try {
+		err = t.tryAdmit(cost)
+	} else {
+		err = t.admit(ctx, wait, cost)
+	}
+	if err != nil {
+		return nil, err
+	}
+	cancel()
+	return s.timed(ctx, src, func(ctx context.Context) (*Result, error) { return work(ctx, tk) })
+}
+
+// open probes src (Engine.Open: the container's headers and FFmpeg's
+// stream analysis, no decoding of the cut) and plans the job.
+func (s *Service) open(ctx context.Context, src Buffer, plan planner) (*task, error) {
+	job, err := s.engine.Open(ctx, src, s.cfg.Input, s.cfg.Transcode.Threads)
+	if err != nil {
+		return nil, err
+	}
+	t := &task{job: job, in: job.Input()}
+	if t.plan, t.res, err = plan(&t.in); err != nil {
+		job.Close()
+		return nil, err
+	}
+	return t, nil
 }
 
 // timed runs work under XI_VIDEO_TRANSFORM_TIMEOUT (errs.KindTimeout past
@@ -326,42 +430,55 @@ func (s *Service) timed(ctx context.Context, src Buffer, work func(context.Conte
 	return res, err
 }
 
-func (s *Service) transcode(ctx context.Context, src Buffer, op *transform.VideoOp, overlays []Buffer, out video.TranscodeOutput) (*Result, error) {
-	job, err := s.engine.Open(ctx, src, s.cfg.Input, s.cfg.Transcode.Threads)
-	if err != nil {
-		return nil, err
-	}
-	defer job.Close()
-	in := job.Input()
-	p, err := video.PlanTranscode(&in, op, out, s.caps, &s.cfg.Transcode)
-	if err != nil {
-		return nil, err
-	}
-	var pixels []Buffer
-	if p.Video != nil && len(p.Video.Overlays) > 0 {
-		if pixels, err = s.renderOverlays(ctx, p.Video, op, overlays); err != nil {
-			return nil, err
+// transformPlan plans op for out (PlanTranscode) and the result's shape.
+func (s *Service) transformPlan(op *transform.VideoOp, out video.TranscodeOutput) planner {
+	return func(in *video.TranscodeInput) (*video.TranscodePlan, Result, error) {
+		p, err := video.PlanTranscode(in, op, out, s.caps, &s.cfg.Transcode)
+		if err != nil {
+			return nil, Result{}, err
 		}
-		defer release(pixels)
+		r := Result{Output: out, Duration: p.Duration}
+		if p.Audio == nil { // the source had no audio: none is written
+			r.Output.Audio = video.AudioNone
+		}
+		switch {
+		case p.Video != nil:
+			r.Width, r.Height = p.Video.Width, p.Video.Height
+		case p.Waveform != nil:
+			r.Width, r.Height = p.Waveform.Width, p.Waveform.Height
+		}
+		return p, r, nil
 	}
+}
+
+// transcode renders the overlays of an admitted task and runs it.
+func (s *Service) transcode(op *transform.VideoOp, overlays []Buffer) worker {
+	return func(ctx context.Context, t *task) (*Result, error) {
+		p := t.plan
+		var pixels []Buffer
+		if p.Video != nil && len(p.Video.Overlays) > 0 {
+			var err error
+			if pixels, err = s.renderOverlays(ctx, p.Video, op, overlays); err != nil {
+				return nil, err
+			}
+			defer release(pixels)
+		}
+		return runTask(ctx, t, pixels)
+	}
+}
+
+// runTask runs t's plan with the overlay pixels.
+func runTask(ctx context.Context, t *task, pixels []Buffer) (*Result, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, errs.Wrap(errs.KindOf(err), context.Cause(ctx))
 	}
-	body, err := job.Run(ctx, p, pixels)
+	body, err := t.job.Run(ctx, t.plan, pixels)
 	if err != nil {
 		return nil, err
 	}
-	r := &Result{Body: body, Output: out, Duration: p.Duration}
-	if p.Audio == nil { // the source had no audio: none was written
-		r.Output.Audio = video.AudioNone
-	}
-	switch {
-	case p.Video != nil:
-		r.Width, r.Height = p.Video.Width, p.Video.Height
-	case p.Waveform != nil:
-		r.Width, r.Height = p.Waveform.Width, p.Waveform.Height
-	}
-	return r, nil
+	r := t.res
+	r.Body = body
+	return &r, nil
 }
 
 // renderOverlays renders the image and text overlays of v for its output
