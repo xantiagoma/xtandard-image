@@ -271,3 +271,7 @@ owner has authorised merging PRs without review.
   TestShutdownDrains: a parallel wildcard listener took the freed port). Demo redeployed with video
   enabled. Remaining M5: WP-121b spool to disk, WP-121c cost-based admission; open issues from WP-126:
   MPEG-TS segments, overlays on streams, chunked audio for long sources, segments refetch the source.
+- **2026-10-06:** WP-128 playground media before/after with `raw:1` source passthrough (#127),
+  fix: unsized video output scaled down to `XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS` instead of 422 (#128),
+  WP-129 55 video/audio recipes with public samples (#129; demo shows 104 recipes). Open: Cloudinary
+  `e_volume` levels other than mute not mapped; no HDR/10-bit or rotation-metadata sample yet.
