@@ -152,13 +152,16 @@ func (s *Store) Set(ctx context.Context, ns cache.Namespace, key string, e *cach
 	if s.closed.Load() {
 		return cache.ErrClosed
 	}
-	body := e.Body.Bytes()
-	if len(body) > s.maxValue {
+	if cache.BodyLen(e.Body) > int64(s.maxValue) {
 		s.metrics.ObserveCacheSkip(s.name, cache.SkipTooLarge)
 		return nil
 	}
+	body := e.Body.Bytes()
 	full := string(ns) + key
-	m := cache.NewMeta(full, e, s.now(), ttl)
+	m, err := cache.NewMeta(full, e, s.now(), ttl)
+	if err != nil {
+		return err
+	}
 	v, err := cache.AppendFrame(make([]byte, 0, 512+len(body)), &m)
 	if err != nil {
 		return err
