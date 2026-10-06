@@ -46,6 +46,7 @@ func fixtureFormats() map[string]codec.Format {
 		"tiff/lab8-alpha.tif":             codec.FormatTIFF,
 		"tiff/lab8-icc.tif":               codec.FormatTIFF,
 		"tiff/lab16.tif":                  codec.FormatTIFF,
+		"tiff/cmyk-press.tif":             codec.FormatTIFF,
 		"qoi/alpha.qoi":                   codec.FormatQOI,
 		"sgi/photo.sgi":                   codec.FormatSGI,
 		"sgi/alpha.sgi":                   codec.FormatSGI,

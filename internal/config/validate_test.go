@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"errors"
 	"strings"
 	"testing"
@@ -24,6 +25,196 @@ func TestVideoTransformSecureDefaults(t *testing.T) {
 	got := valid(t).Video.Transform
 	if got.Enabled || got.UnsignedPolicy != UnsignedDeny {
 		t.Errorf("enabled %v, unsigned_policy %q; want false, deny", got.Enabled, got.UnsignedPolicy)
+	}
+}
+
+// TestValidateAzureSFTP covers what azuresrc and sftpsrc would refuse at
+// startup (and the service naming rules), so config validate reports it.
+func TestValidateAzureSFTP(t *testing.T) {
+	t.Parallel()
+	key := base64.StdEncoding.EncodeToString([]byte("0123456789abcdef"))
+	hostKey := testSSHHostKey()
+	azure := func(mod func(*Source)) func(*Config) {
+		return func(c *Config) {
+			s := Source{Type: SourceAzure, Buckets: []string{"media"}, Account: "acmeimages", SASToken: "sv=2024&sig=x"} //nolint:gosec // G101: test fixture, not a credential
+			mod(&s)
+			c.Sources["az"] = s
+		}
+	}
+	sftp := func(mod func(*Source)) func(*Config) {
+		return func(c *Config) {
+			s := Source{Type: SourceSFTP, Host: "sftp.example", User: "xi", Password: "pw", HostKey: hostKey}
+			mod(&s)
+			c.Sources["sf"] = s
+		}
+	}
+	tests := []struct {
+		name   string
+		mutate func(*Config)
+		want   []string // substrings; empty means valid
+	}{
+		{"azure sas", azure(func(*Source) {}), nil},
+		{"azure account key", azure(func(s *Source) { s.SASToken, s.AccountKey = "", Secret(key) }), nil},
+		{"azure default credential", azure(func(s *Source) { s.SASToken = "" }), nil},
+		{"azure endpoint only", azure(func(s *Source) { s.Account, s.Endpoint = "", "http://azurite:10000/devstoreaccount1" }), nil},
+		{"azure connection string", azure(func(s *Source) {
+			s.Account, s.SASToken, s.ConnectionString = "", "", Secret(testAzureConnectionString())
+		}), nil},
+		{"azure connection string with sas", azure(func(s *Source) {
+			s.Account, s.SASToken, s.ConnectionString = "", "", "BlobEndpoint=https://acct.blob.core.windows.net/;SharedAccessSignature=sv=2024&sig=x"
+		}), nil},
+		{"azure special containers", azure(func(s *Source) { s.Buckets = []string{"$root", "$web", "a-b-1"} }), nil},
+		{
+			"azure nothing to connect to", azure(func(s *Source) { s.Account, s.SASToken = "", "" }),
+			[]string{"sources.az.account (XI_SOURCES_AZ_ACCOUNT): an azure source needs account, endpoint or connection_string"},
+		},
+		{
+			"azure account name", azure(func(s *Source) { s.Account = "Acme_Images" }),
+			[]string{`sources.az.account (XI_SOURCES_AZ_ACCOUNT): must be a storage account name: 3-24 lowercase letters and digits, got "Acme_Images"`},
+		},
+		{"azure account too long", azure(func(s *Source) { s.Account = strings.Repeat("a", 25) }), []string{"sources.az.account"}},
+		{
+			"azure container names", azure(func(s *Source) { s.Buckets = []string{"ok1", "Media", "a--b", "-ab", "ab", strings.Repeat("a", 64)} }),
+			[]string{"sources.az.buckets[1]", "sources.az.buckets[2]", "sources.az.buckets[3]", "sources.az.buckets[4]", "sources.az.buckets[5]"},
+		},
+		{"azure single bucket name", azure(func(s *Source) { s.Buckets, s.Bucket = nil, "My Bucket" }), []string{"sources.az.bucket (XI_SOURCES_AZ_BUCKET): must be a container name"}},
+		{
+			"azure key and sas", azure(func(s *Source) { s.AccountKey = Secret(key) }),
+			[]string{"sources.az.sas_token (XI_SOURCES_AZ_SAS_TOKEN): account_key and sas_token are exclusive"},
+		},
+		{"azure key without account", azure(func(s *Source) {
+			s.Account, s.SASToken, s.AccountKey, s.Endpoint = "", "", Secret(key), "http://azurite:10000/x"
+		}), []string{"sources.az.account_key (XI_SOURCES_AZ_ACCOUNT_KEY): needs account"}},
+		{
+			"azure key not base64", azure(func(s *Source) { s.SASToken, s.AccountKey = "", "not-base64!" }),
+			[]string{"sources.az.account_key (XI_SOURCES_AZ_ACCOUNT_KEY): must be the base64 key"},
+		},
+		{
+			"azure sas with endpoint query", azure(func(s *Source) { s.Endpoint = "https://acmeimages.blob.core.windows.net/?sv=1" }),
+			[]string{"sources.az.endpoint (XI_SOURCES_AZ_ENDPOINT): must not carry a query when sas_token is set"},
+		},
+		{
+			"azure sas url", azure(func(s *Source) { s.SASToken = "https://acmeimages.blob.core.windows.net/?sv=1&sig=x" }),
+			[]string{"sources.az.sas_token (XI_SOURCES_AZ_SAS_TOKEN): must be the token"},
+		},
+		{
+			"azure connection string with account", azure(func(s *Source) { s.SASToken, s.ConnectionString = "", Secret(testAzureConnectionString()) }),
+			[]string{"sources.az.connection_string (XI_SOURCES_AZ_CONNECTION_STRING): carries the endpoint and credentials itself"},
+		},
+		{
+			"azure connection string syntax", azure(func(s *Source) { s.Account, s.SASToken, s.ConnectionString = "", "", "acct:key" }),
+			[]string{"sources.az.connection_string (XI_SOURCES_AZ_CONNECTION_STRING): must be Key=Value pairs"},
+		},
+		{
+			"azure connection string without account", azure(func(s *Source) { s.Account, s.SASToken, s.ConnectionString = "", "", "AccountKey="+Secret(key) }),
+			[]string{"needs AccountName or BlobEndpoint"},
+		},
+		{
+			"azure connection string without credentials", azure(func(s *Source) { s.Account, s.SASToken, s.ConnectionString = "", "", "AccountName=acct" }),
+			[]string{"needs AccountName with AccountKey, or SharedAccessSignature"},
+		},
+		{
+			"azure development storage", azure(func(s *Source) { s.Account, s.SASToken, s.ConnectionString = "", "", "UseDevelopmentStorage=true" }),
+			[]string{"UseDevelopmentStorage=true is not supported"},
+		},
+		{"azure connection string bad endpoint", azure(func(s *Source) {
+			s.Account, s.SASToken, s.ConnectionString = "", "", "BlobEndpoint=azurite:10000;SharedAccessSignature=sv=1"
+		}), []string{"BlobEndpoint must be an absolute http(s) URL"}},
+		{
+			"azure connection string bad key", azure(func(s *Source) { s.Account, s.SASToken, s.ConnectionString = "", "", "AccountName=a;AccountKey=%%%" }),
+			[]string{"AccountKey must be base64"},
+		},
+
+		{"sftp password", sftp(func(*Source) {}), nil},
+		{"sftp private key", sftp(func(s *Source) { s.Password, s.PrivateKey = "", Secret(testSSHPrivateKey(false)) }), nil},
+		{"sftp encrypted private key", sftp(func(s *Source) {
+			s.Password, s.PrivateKey, s.PrivateKeyPassphrase = "", Secret(testSSHPrivateKey(true)), "open sesame"
+		}), nil},
+		{"sftp known_hosts lines and comments", sftp(func(s *Source) {
+			s.HostKey = "# ssh-keyscan -p 2222 sftp.example\n[sftp.example]:2222 " + hostKey + "\n\n" + hostKey + " comment\n"
+		}), nil},
+		{
+			"sftp host with scheme", sftp(func(s *Source) { s.Host = "sftp://sftp.example" }),
+			[]string{`sources.sf.host (XI_SOURCES_SF_HOST): must be a host name or IP address without scheme, path or spaces, got "sftp://sftp.example"`},
+		},
+		{"ftp host with path", func(c *Config) { c.Sources["f"] = Source{Type: SourceFTP, Host: "ftp.example/pub"} }, []string{"sources.f.host (XI_SOURCES_F_HOST)"}},
+		{"sftp without user", sftp(func(s *Source) { s.User = "" }), []string{"sources.sf.user (XI_SOURCES_SF_USER): must be set for sftp"}},
+		{
+			"sftp without credentials", sftp(func(s *Source) { s.Password = "" }),
+			[]string{"sources.sf.password (XI_SOURCES_SF_PASSWORD): an sftp source needs a password or a private_key"},
+		},
+		{
+			"sftp without host key", sftp(func(s *Source) { s.HostKey = "" }),
+			[]string{"sources.sf.host_key (XI_SOURCES_SF_HOST_KEY): is mandatory for sftp (no trust on first use)"},
+		},
+		{"sftp comment-only host key", sftp(func(s *Source) { s.HostKey = "# nothing\n" }), []string{"sources.sf.host_key (XI_SOURCES_SF_HOST_KEY): has no key"}},
+		{
+			"sftp fingerprint as host key", sftp(func(s *Source) { s.HostKey = hostKey + "\nSHA256:abcdef" }),
+			[]string{"sources.sf.host_key (XI_SOURCES_SF_HOST_KEY): line 2 is not an SSH public key"},
+		},
+		{
+			"sftp private key path", sftp(func(s *Source) { s.Password, s.PrivateKey = "", "/run/secrets/key" }),
+			[]string{"sources.sf.private_key (XI_SOURCES_SF_PRIVATE_KEY): is not an SSH private key"},
+		},
+		{
+			"sftp encrypted key without passphrase", sftp(func(s *Source) { s.PrivateKey = Secret(testSSHPrivateKey(true)) }),
+			[]string{"sources.sf.private_key (XI_SOURCES_SF_PRIVATE_KEY): is encrypted: set private_key_passphrase"},
+		},
+		{"sftp passphrase on an unencrypted key", sftp(func(s *Source) {
+			s.PrivateKey, s.PrivateKeyPassphrase = Secret(testSSHPrivateKey(false)), "open sesame"
+		}), []string{"sources.sf.private_key (XI_SOURCES_SF_PRIVATE_KEY): is not encrypted: remove private_key_passphrase"}},
+		{
+			"sftp legacy encrypted PEM", sftp(func(s *Source) {
+				s.PrivateKey = "-----BEGIN RSA PRIVATE KEY-----\nProc-Type: 4,ENCRYPTED\nDEK-Info: AES-128-CBC,00112233445566778899AABBCCDDEEFF\n\nAAAA\n-----END RSA PRIVATE KEY-----\n"
+			}),
+			[]string{"sources.sf.private_key (XI_SOURCES_SF_PRIVATE_KEY): is encrypted"},
+		},
+		{"sftp legacy encrypted PEM with passphrase", sftp(func(s *Source) {
+			s.PrivateKey, s.PrivateKeyPassphrase = "-----BEGIN RSA PRIVATE KEY-----\nProc-Type: 4,ENCRYPTED\nDEK-Info: AES-128-CBC,00112233445566778899AABBCCDDEEFF\n\nAAAA\n-----END RSA PRIVATE KEY-----\n", "open sesame"
+		}), nil},
+		{
+			"sftp encrypted PKCS #8", sftp(func(s *Source) {
+				s.PrivateKey, s.PrivateKeyPassphrase = "-----BEGIN ENCRYPTED PRIVATE KEY-----\nAAAA\n-----END ENCRYPTED PRIVATE KEY-----\n", "x"
+			}),
+			[]string{"sources.sf.private_key (XI_SOURCES_SF_PRIVATE_KEY): is an encrypted PKCS #8 key"},
+		},
+		{
+			"sftp corrupt PKCS #8", sftp(func(s *Source) { s.PrivateKey = "-----BEGIN PRIVATE KEY-----\nAAAA\n-----END PRIVATE KEY-----\n" }),
+			[]string{"sources.sf.private_key (XI_SOURCES_SF_PRIVATE_KEY): is not an SSH private key"},
+		},
+		{
+			"sftp host key type mismatch", sftp(func(s *Source) { s.HostKey = "ecdsa-sha2-nistp256" + strings.TrimPrefix(hostKey, "ssh-ed25519") }),
+			[]string{"sources.sf.host_key (XI_SOURCES_SF_HOST_KEY): line 1 is not an SSH public key"},
+		},
+		{
+			"sftp host key not base64", sftp(func(s *Source) { s.HostKey = "sftp.example ssh-ed25519 not-base64!" }),
+			[]string{"sources.sf.host_key (XI_SOURCES_SF_HOST_KEY): line 1 is not an SSH public key"},
+		},
+		{"sftp known_hosts with marker and hashed host", sftp(func(s *Source) {
+			s.HostKey = "@cert-authority *.example " + hostKey + "\n|1|c2FsdA==|aGFzaA== " + hostKey
+		}), nil},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			cfg := valid(t)
+			tc.mutate(&cfg)
+			err := cfg.Validate()
+			if len(tc.want) == 0 {
+				if err != nil {
+					t.Fatalf("Validate: %v", err)
+				}
+				return
+			}
+			if !errors.Is(err, ErrInvalid) {
+				t.Fatalf("err = %v, want ErrInvalid", err)
+			}
+			for _, w := range tc.want {
+				if !strings.Contains(err.Error(), w) {
+					t.Errorf("err = %v\nwant it to contain %q", err, w)
+				}
+			}
+		})
 	}
 }
 
@@ -74,7 +265,7 @@ func TestValidate(t *testing.T) {
 		{"negative ttl", func(c *Config) { c.Cache.Origin.NegativeTTL = -time.Second }, []string{"cache.origin.negative_ttl (XI_CACHE_ORIGIN_NEGATIVE_TTL)"}},
 		{"gcs and azure endpoints", func(c *Config) {
 			c.Sources["g"] = Source{Type: SourceGCS, Bucket: "b", Endpoint: "http://fake-gcs:4443/storage/v1/"}
-			c.Sources["a"] = Source{Type: SourceAzure, Bucket: "b", Endpoint: "http://127.0.0.1:10000/devstoreaccount1", SASToken: "sv=1"}
+			c.Sources["a"] = Source{Type: SourceAzure, Bucket: "imgs", Endpoint: "http://127.0.0.1:10000/devstoreaccount1", SASToken: "sv=1"}
 		}, nil},
 		{"azure and fs fields elsewhere", func(c *Config) {
 			c.Sources["s"] = Source{Type: SourceS3, Bucket: "b", SASToken: "x", FollowSymlinks: true}

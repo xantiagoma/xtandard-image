@@ -14,7 +14,7 @@ A tag `vX.Y.Z` runs `.github/workflows/release.yml`. It builds three flavours of
 |---|---|---|---|---|
 | `slim` | `…-base:<vips>-r<N>-slim` | `XI_FLAVOR=slim` | 110 MB | `MIT` |
 | `full` | `…-base:<vips>-r<M>-full` | `XI_FLAVOR=full GO_TAGS=ffmpeg` | 170 MB | `MIT` |
-| `gpl` | `…-base:<vips>-r<G>-gpl` | `XI_FLAVOR=gpl GO_TAGS=ffmpeg` | 170 MB | `GPL-2.0-or-later AND AGPL-3.0-or-later AND MIT AND LicenseRef-Adobe-DNG-SDK` |
+| `gpl` | `…-base:<vips>-r<G>-gpl` | `XI_FLAVOR=gpl GO_TAGS=ffmpeg` | 170 MB | `GPL-2.0-or-later AND GPL-2.0-only AND AGPL-3.0-or-later AND MIT AND LicenseRef-Adobe-DNG-SDK AND (Apache-2.0 OR MIT)` |
 
 `N`, `M` and `G` are `XI_BASE_REVISION` (`docker/base/versions.sh`), `XI_BASE_FULL_REVISION` (`versions-full.sh`) and `XI_BASE_GPL_REVISION` (`versions-gpl.sh`); `scripts/base-image-ref.sh --flavor <f> [--digest] runtime|builder` prints them.
 

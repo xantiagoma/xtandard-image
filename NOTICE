@@ -138,8 +138,13 @@ not full) additionally ships, built from unmodified sources unless noted:
   docker/base/metafile, MIT), which is therefore a GPL-2.0-only work and
   which the server runs in a sandboxed subprocess to convert WMF and EMF
   input to SVG (WP-108). Licence texts in share/licenses/{libwmf,libemf2svg}/.
-The image is labelled org.opencontainers.image.licenses="AGPL-3.0-or-later
-AND GPL-2.0-or-later AND MIT" and carries
+- LibRaw rebuilt with the Adobe DNG SDK (LicenseRef-Adobe-DNG-SDK) and
+  the GoPro GPR SDK (Apache-2.0 OR MIT) compiled in, listed with LibRaw
+  above; only this flavor ships them.
+The base image is labelled org.opencontainers.image.licenses=
+"AGPL-3.0-or-later AND GPL-2.0-or-later AND GPL-2.0-only AND MIT AND
+LicenseRef-Adobe-DNG-SDK AND (Apache-2.0 OR MIT)" (the gpl app image
+lists the same licences) and carries
 /opt/xtandard/share/licenses/LICENSE-GPL.md (terms, every component's
 licence, where the corresponding source is) with the GPL texts in
 share/licenses/{ffmpeg,x264,x265}/ and the AGPL text in

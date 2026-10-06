@@ -340,9 +340,42 @@ xi_unpremultiply(VipsImage *in, VipsImage **out, char **err)
 int
 xi_colourspace(VipsImage *in, int interpretation, VipsImage **out, char **err)
 {
-  if (vips_colourspace(in, out, interpretation, NULL))
-    XI_FAIL();
+  VipsImage *base;
+  VipsImage **t;
+
+  // CMYK leaves through libvips' CMYK2XYZ, which imports with the embedded
+  // (else built-in) CMYK profile but without black point compensation and
+  // has no option for it. Do the same import here with BPC (see
+  // xi_icc_import), keeping CMYK2XYZ's band handling: the extra bands are
+  // split off and cast to the PCS format; vips_colourspace takes it from XYZ.
+  if (vips_image_guess_interpretation(in) != VIPS_INTERPRETATION_CMYK || in->Bands < 4 ||
+      interpretation == VIPS_INTERPRETATION_CMYK) {
+    if (vips_colourspace(in, out, interpretation, NULL))
+      XI_FAIL();
+    return XI_OK;
+  }
+  base = vips_image_new();
+  t = (VipsImage **) vips_object_local_array(VIPS_OBJECT(base), 5);
+  if (vips_extract_band(in, &t[0], 0, "n", 4, NULL) ||
+      vips_icc_import(t[0], &t[1], "input_profile", "cmyk", "embedded", TRUE, "pcs",
+          VIPS_PCS_XYZ, "black_point_compensation", TRUE, NULL))
+    goto fail;
+  if (in->Bands > 4) {
+    if (vips_extract_band(in, &t[2], 4, "n", in->Bands - 4, NULL) ||
+        vips_cast(t[2], &t[3], t[1]->BandFmt, NULL) || vips_bandjoin2(t[1], t[3], &t[4], NULL))
+      goto fail;
+  }
+  else
+    t[4] = g_object_ref(t[1]);
+  if (vips_colourspace(t[4], out, interpretation, NULL))
+    goto fail;
+  g_object_unref(base);
   return XI_OK;
+
+fail:
+  *err = xi_error_copy();
+  g_object_unref(base);
+  return XI_ERR_OP;
 }
 
 // xi_icc_pcs is the connection space of the embedded profile (imgproxy
@@ -361,6 +394,12 @@ xi_icc_pcs(VipsImage *in)
   return VIPS_PCS_LAB;
 }
 
+// Every ICC conversion here runs with lcms black point compensation
+// (cmsFLAGS_BLACKPOINTCOMPENSATION): the source profile's black maps to the
+// destination's instead of being clipped, so CMYK and other profiles whose
+// darkest ink is above L* 0 keep their shadow detail on the way to sRGB.
+// It is a no-op between profiles that share a zero black point (matrix RGB).
+
 int
 xi_icc_import(VipsImage *in, const char *profile, int intent, int embedded,
     VipsImage **out, char **err)
@@ -369,10 +408,11 @@ xi_icc_import(VipsImage *in, const char *profile, int intent, int embedded,
   VipsPCS pcs = embedded ? xi_icc_pcs(in) : VIPS_PCS_LAB;
 
   if (profile)
-    rc = vips_icc_import(in, out, "intent", intent, "embedded", embedded,
-        "input_profile", profile, "pcs", pcs, NULL);
+    rc = vips_icc_import(in, out, "intent", intent, "black_point_compensation", TRUE,
+        "embedded", embedded, "input_profile", profile, "pcs", pcs, NULL);
   else
-    rc = vips_icc_import(in, out, "intent", intent, "embedded", embedded, "pcs", pcs, NULL);
+    rc = vips_icc_import(in, out, "intent", intent, "black_point_compensation", TRUE,
+        "embedded", embedded, "pcs", pcs, NULL);
   if (rc)
     XI_FAIL();
   return XI_OK;
@@ -385,10 +425,11 @@ xi_icc_export(VipsImage *in, const char *profile, int intent, int depth, VipsIma
   int rc;
 
   if (profile)
-    rc = vips_icc_export(in, out, "intent", intent, "depth", depth, "output_profile",
-        profile, NULL);
+    rc = vips_icc_export(in, out, "intent", intent, "black_point_compensation", TRUE, "depth",
+        depth, "output_profile", profile, NULL);
   else
-    rc = vips_icc_export(in, out, "intent", intent, "depth", depth, NULL);
+    rc = vips_icc_export(in, out, "intent", intent, "black_point_compensation", TRUE, "depth",
+        depth, NULL);
   if (rc)
     XI_FAIL();
   return XI_OK;
@@ -398,8 +439,8 @@ int
 xi_icc_transform(VipsImage *in, const char *profile, int intent, int embedded, int depth,
     VipsImage **out, char **err)
 {
-  if (vips_icc_transform(in, out, profile, "intent", intent, "embedded", embedded, "depth",
-          depth, NULL))
+  if (vips_icc_transform(in, out, profile, "intent", intent, "black_point_compensation", TRUE,
+          "embedded", embedded, "depth", depth, NULL))
     XI_FAIL();
   return XI_OK;
 }
@@ -658,15 +699,18 @@ xi_affine(VipsImage *in, double a, double b, double c, double d, const double *b
   return XI_OK;
 }
 
-// xi_round_cast_to rounds float pixels to nearest before casting to format,
-// since vips_cast truncates. Integer inputs are cast directly.
+// xi_round_cast_to rounds float pixels to nearest before casting them to an
+// integer format, since vips_cast truncates. Integer inputs, and any cast to
+// a float or complex format, are cast directly: rounding there would drop the
+// fraction a float (scRGB, HDR) result must keep.
 static int
 xi_round_cast_to(VipsImage *in, VipsBandFormat format, VipsImage **out)
 {
   VipsImage *r = NULL;
   int rc;
 
-  if (!vips_band_format_isfloat(in->BandFmt) && !vips_band_format_iscomplex(in->BandFmt))
+  if ((!vips_band_format_isfloat(in->BandFmt) && !vips_band_format_iscomplex(in->BandFmt)) ||
+      vips_band_format_isfloat(format) || vips_band_format_iscomplex(format))
     return vips_cast(in, out, format, NULL);
   if (vips_rint(in, &r, NULL))
     return -1;

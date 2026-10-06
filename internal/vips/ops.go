@@ -183,7 +183,10 @@ func (img *Image) Unpremultiply(ctx context.Context) (*Image, error) {
 	return img.op(ctx, "unpremultiply", rc, out, cerr)
 }
 
-// Colourspace converts to interpretation (no ICC; see ICCTransform).
+// Colourspace converts to interpretation (no ICC; see ICCTransform), except
+// that CMYK is imported with its embedded profile, else libvips' built-in
+// CMYK profile, as libvips does, but with black point compensation like
+// every ICC conversion of this package (ICCImport).
 func (img *Image) Colourspace(ctx context.Context, interpretation Interpretation) (*Image, error) {
 	if err := ctxError(ctx, "vips: colourspace"); err != nil {
 		return nil, err
@@ -198,6 +201,12 @@ func (img *Image) Colourspace(ctx context.Context, interpretation Interpretation
 // true and present, else profile (a path or built-in name such as "srgb";
 // empty: libvips' default for the interpretation). The PCS is the embedded
 // profile's own (XYZ or Lab, as imgproxy picks it); Lab otherwise.
+//
+// ICCImport, ICCExport and ICCTransform always use lcms black point
+// compensation (Photoshop's "relative colorimetric + BPC" default): a
+// source black above L* 0, as in press CMYK profiles, maps to the
+// destination's black instead of leaving lifted, flat shadows. It changes
+// nothing between profiles whose black points are both zero.
 func (img *Image) ICCImport(ctx context.Context, profile string, intent Intent, embedded bool) (*Image, error) {
 	if err := ctxError(ctx, "vips: icc_import"); err != nil {
 		return nil, err

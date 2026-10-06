@@ -308,9 +308,9 @@ FROM builder-base AS builder-gpl
 
 ARG VIPS_VERSION
 LABEL org.opencontainers.image.title="xtandard-image-base (gpl builder)" \
-      org.opencontainers.image.description="Go 1.27 + libvips 8.18 + FFmpeg 8 (GPL, x264, x265) + ONNX Runtime + Ghostscript development image for xtandard-image; contains GPL and AGPL software, see /opt/xtandard/share/licenses/LICENSE-GPL.md" \
+      org.opencontainers.image.description="Go 1.27 + libvips 8.18 + FFmpeg 8 (GPL, x264, x265) + ONNX Runtime + Ghostscript + LibRaw with the Adobe DNG SDK and GoPro GPR SDK development image for xtandard-image; contains GPL and AGPL software and the Adobe DNG SDK, see /opt/xtandard/share/licenses/LICENSE-GPL.md" \
       org.opencontainers.image.source="https://github.com/xantiagoma/xtandard-image" \
-      org.opencontainers.image.licenses="AGPL-3.0-or-later AND GPL-2.0-or-later AND MIT" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later AND GPL-2.0-or-later AND GPL-2.0-only AND MIT AND LicenseRef-Adobe-DNG-SDK AND (Apache-2.0 OR MIT)" \
       dev.xtandard.vips.version="${VIPS_VERSION}" \
       dev.xtandard.base.flavor="gpl"
 
@@ -323,9 +323,9 @@ FROM runtime-base AS runtime-gpl
 
 ARG VIPS_VERSION
 LABEL org.opencontainers.image.title="xtandard-image-base" \
-      org.opencontainers.image.description="libvips 8.18 + FFmpeg 8 (GPL, x264, x265) + ONNX Runtime runtime libraries and Ghostscript for xtandard-image (gpl); contains GPL and AGPL software, see /opt/xtandard/share/licenses/LICENSE-GPL.md" \
+      org.opencontainers.image.description="libvips 8.18 + FFmpeg 8 (GPL, x264, x265) + ONNX Runtime runtime libraries, Ghostscript and LibRaw with the Adobe DNG SDK and GoPro GPR SDK for xtandard-image (gpl); contains GPL and AGPL software and the Adobe DNG SDK, see /opt/xtandard/share/licenses/LICENSE-GPL.md" \
       org.opencontainers.image.source="https://github.com/xantiagoma/xtandard-image" \
-      org.opencontainers.image.licenses="AGPL-3.0-or-later AND GPL-2.0-or-later AND MIT" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later AND GPL-2.0-or-later AND GPL-2.0-only AND MIT AND LicenseRef-Adobe-DNG-SDK AND (Apache-2.0 OR MIT)" \
       dev.xtandard.vips.version="${VIPS_VERSION}" \
       dev.xtandard.base.flavor="gpl"
 
