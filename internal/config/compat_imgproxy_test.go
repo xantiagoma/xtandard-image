@@ -56,7 +56,7 @@ func imgproxyCases() map[string]compatCase {
 		"IMGPROXY_ALLOW_SECURITY_OPTIONS":     one("IMGPROXY_ALLOW_SECURITY_OPTIONS=true", "XI_SECURITY_ALLOW_SECURITY_OPTIONS", "true"),
 		"IMGPROXY_ALLOWED_SOURCES": {
 			[]string{"IMGPROXY_ALLOWED_SOURCES=https://cdn.example.com/, http://*.example.org/img/,https://a.example.net:8443"},
-			map[string]string{"XI_SOURCES": "http", "XI_SOURCES_HTTP_TYPE": "http", "XI_SOURCES_HTTP_ALLOW": "cdn.example.com,*.example.org/img,a.example.net:8443"},
+			map[string]string{"XI_SOURCES": "http", "XI_SOURCES_HTTP_TYPE": "http", "XI_SOURCES_HTTP_ALLOW": "https://cdn.example.com:443,http://*.example.org:80/img,https://a.example.net:8443"},
 		},
 		"IMGPROXY_USE_S3": {
 			[]string{"IMGPROXY_USE_S3=true", "IMGPROXY_ALLOWED_SOURCES=s3://assets/,s3://logos-*/"},
@@ -443,7 +443,7 @@ func TestImgproxySources(t *testing.T) {
 		{
 			name:     "allowed sources without s3 keeps s3 closed",
 			env:      []string{"IMGPROXY_ALLOWED_SOURCES=https://a.example.com/", "IMGPROXY_USE_S3=true", "IMGPROXY_S3_REGION=x"},
-			want:     map[string]string{"XI_SOURCES": "http", "XI_SOURCES_HTTP_TYPE": "http", "XI_SOURCES_HTTP_ALLOW": "a.example.com"},
+			want:     map[string]string{"XI_SOURCES": "http", "XI_SOURCES_HTTP_TYPE": "http", "XI_SOURCES_HTTP_ALLOW": "https://a.example.com:443"},
 			warnings: []string{`source "s3" not created`},
 		},
 		{
@@ -469,13 +469,13 @@ func TestImgproxySources(t *testing.T) {
 		{
 			name:     "watermark outside root",
 			env:      []string{"IMGPROXY_ALLOWED_SOURCES=https://a.example.com/", "IMGPROXY_WATERMARK_PATH=/etc/wm.png"},
-			want:     map[string]string{"XI_SOURCES": "http", "XI_SOURCES_HTTP_TYPE": "http", "XI_SOURCES_HTTP_ALLOW": "a.example.com"},
+			want:     map[string]string{"XI_SOURCES": "http", "XI_SOURCES_HTTP_TYPE": "http", "XI_SOURCES_HTTP_ALLOW": "https://a.example.com:443"},
 			warnings: []string{"IMGPROXY_WATERMARK_PATH"},
 		},
 		{
 			name:     "format quality without per-format setting",
 			env:      []string{"IMGPROXY_ALLOWED_SOURCES=https://a.example.com/", "IMGPROXY_FORMAT_QUALITY=png=50"},
-			want:     map[string]string{"XI_SOURCES": "http", "XI_SOURCES_HTTP_TYPE": "http", "XI_SOURCES_HTTP_ALLOW": "a.example.com"},
+			want:     map[string]string{"XI_SOURCES": "http", "XI_SOURCES_HTTP_TYPE": "http", "XI_SOURCES_HTTP_ALLOW": "https://a.example.com:443"},
 			warnings: []string{"png has no per-format quality"},
 		},
 		{
@@ -521,7 +521,7 @@ func TestImgproxyMigration(t *testing.T) {
 	}
 	if len(cfg.Signing.Keys) != 1 || cfg.Sources["s3"].Region != "auto" || !cfg.Sources["s3"].ForcePathStyle ||
 		cfg.Limits.MaxSrcPixels != 40_000_000 || cfg.Formats.JPEG.Quality != 85 || cfg.Presets["thumb"] == "" ||
-		!slices.Equal(cfg.Sources["http"].Allow, []string{"cdn.example.com"}) {
+		!slices.Equal(cfg.Sources["http"].Allow, []string{"https://cdn.example.com:443"}) {
 		t.Errorf("migration not applied: %s", cfg.Redacted())
 	}
 	if d := diff([]string{"IMGPROXY_ENABLE_WEBP_DETECTION"}, meta.UnmappedImgproxyEnv); d != "" {

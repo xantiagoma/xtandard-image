@@ -1,6 +1,7 @@
 package source
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -95,5 +96,73 @@ func TestRedactKey(t *testing.T) {
 	long := RedactKey(Key{Source: "s", Path: strings.Repeat("a", 2000)})
 	if len(long) != maxRedactedLen+3 {
 		t.Errorf("long key not capped: len %d", len(long))
+	}
+}
+
+// imgproxyAllowed is imgproxy's IMGPROXY_ALLOWED_SOURCES check
+// (env.RegexpFromPattern): the source URL must start with the pattern,
+// each * matching [^/]*.
+func imgproxyAllowed(pattern, url string) bool {
+	parts := strings.Split(pattern, "*")
+	for i, p := range parts {
+		parts[i] = regexp.QuoteMeta(p)
+	}
+	return regexp.MustCompile("^" + strings.Join(parts, "([^/]*)")).MatchString(url)
+}
+
+// TestImgproxyAllowedSources checks the http allow patterns the imgproxy
+// compatibility layer writes for IMGPROXY_ALLOWED_SOURCES (config
+// httpAllowPattern) against imgproxy's own check: same verdict on scheme,
+// host, port, path prefix and wildcard cases. Where imgproxy's plain
+// prefix match is looser (a path prefix without its trailing slash, a
+// wildcard spanning labels inside a host), the allow pattern is stricter
+// on purpose; those rows say so.
+func TestImgproxyAllowedSources(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		imgproxy, allow string // the IMGPROXY_ALLOWED_SOURCES entry and its translation
+		url             string
+		want            bool
+		stricter        bool // imgproxy allows it, the translation does not
+	}{
+		{"https://cdn.example.com/", "https://cdn.example.com:443", "https://cdn.example.com/a.jpg", true, false},
+		{"https://cdn.example.com/", "https://cdn.example.com:443", "http://cdn.example.com/a.jpg", false, false},
+		{"https://cdn.example.com/", "https://cdn.example.com:443", "https://cdn.example.com:8443/a.jpg", false, false},
+		{"https://cdn.example.com/", "https://cdn.example.com:443", "https://cdn.example.com.evil.com/a.jpg", false, false},
+		{"https://cdn.example.com/", "https://cdn.example.com:443", "https://other.example.com/a.jpg", false, false},
+		{"http://cdn.example.com/", "http://cdn.example.com:80", "http://cdn.example.com/a.jpg", true, false},
+		{"http://cdn.example.com/", "http://cdn.example.com:80", "https://cdn.example.com/a.jpg", false, false},
+		{"https://cdn.example.com:8443/", "https://cdn.example.com:8443", "https://cdn.example.com:8443/a.jpg", true, false},
+		{"https://cdn.example.com:8443/", "https://cdn.example.com:8443", "https://cdn.example.com/a.jpg", false, false},
+		{"https://cdn.example.com/img/", "https://cdn.example.com:443/img", "https://cdn.example.com/img/a.jpg", true, false},
+		{"https://cdn.example.com/img/", "https://cdn.example.com:443/img", "https://cdn.example.com/img/sub/a.jpg", true, false},
+		{"https://cdn.example.com/img/", "https://cdn.example.com:443/img", "https://cdn.example.com/a.jpg", false, false},
+		{"https://cdn.example.com/img/", "https://cdn.example.com:443/img", "http://cdn.example.com/img/a.jpg", false, false},
+		{"https://cdn.example.com/img", "https://cdn.example.com:443/img", "https://cdn.example.com/img-private/a.jpg", false, true},
+		{"https://*.example.com/", "https://*.example.com:443", "https://a.example.com/x.jpg", true, false},
+		{"https://*.example.com/", "https://*.example.com:443", "https://a.b.example.com/x.jpg", true, false},
+		{"https://*.example.com/", "https://*.example.com:443", "https://example.com/x.jpg", false, false},
+		{"https://*.example.com/", "https://*.example.com:443", "http://a.example.com/x.jpg", false, false},
+		{"https://*.example.com/", "https://*.example.com:443", "https://a.example.org/x.jpg", false, false},
+		{"https://img-*.example.com/", "https://img-*.example.com:443", "https://img-eu.example.com/x.jpg", true, false},
+		{"https://img-*.example.com/", "https://img-*.example.com:443", "https://img-eu.cdn.example.com/x.jpg", false, true},
+		{"https://*/", "https://*", "https://any.host.example:8443/x.jpg", true, false},
+		{"https://*/", "https://*", "http://any.host.example/x.jpg", false, false},
+	}
+	for _, tc := range tests {
+		ref, err := ParseRef(tc.url)
+		if err != nil {
+			t.Fatalf("ParseRef(%q): %v", tc.url, err)
+		}
+		rule, err := compileAllow(tc.allow)
+		if err != nil {
+			t.Fatalf("compileAllow(%q): %v", tc.allow, err)
+		}
+		if got := rule.matchURL(&ref); got != tc.want {
+			t.Errorf("allow %q, url %q: allowed = %v, want %v", tc.allow, tc.url, got, tc.want)
+		}
+		if got := imgproxyAllowed(tc.imgproxy, tc.url); got != (tc.want || tc.stricter) {
+			t.Errorf("imgproxy %q, url %q: allowed = %v; the table is wrong", tc.imgproxy, tc.url, got)
+		}
 	}
 }
