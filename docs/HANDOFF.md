@@ -283,3 +283,7 @@ owner has authorised merging PRs without review.
 - **Merged 2026-10-06:** WP-121c cost-based video admission (#130), WP-130 polish (#131: WP-113, WP-114,
   Azure/SFTP validate, imgproxy allowed-source scheme, gpl licence labels; base labels need a base
   revision bump to take effect). Still in flight: WP-121b spool (told to rebase onto WP-121c).
+- **Merged 2026-10-06:** WP-121b video spool + shared stream sources (#132). M5 robustness done.
+  Remaining M5: MPEG-TS segments, overlays on streams, chunked audio for long streams, video preset
+  whitelist for unsigned URLs, Cloudinary `e_volume` levels, `raw:1` still fetches into memory, S3 cache
+  hits read whole. Nothing in flight.
