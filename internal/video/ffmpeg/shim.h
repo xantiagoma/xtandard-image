@@ -171,9 +171,10 @@ void xi_ff_enc_free(XiFFEnc *e);
 int xi_ff_live_encoders(void);
 
 // ---------------------------------------------------------------------------
-// Video transformations (transcode.c, WP-121): a source in C memory ->
-// demux -> decode -> libavfilter chain per stream -> encode -> mux into a
-// buffer the handle owns, handed over with xi_tx_take.
+// Video transformations (transcode.c, WP-121): a source in C memory (or a
+// spool file, WP-121b) -> demux -> decode -> libavfilter chain per stream
+// -> encode -> mux into a buffer the handle owns, handed over with
+// xi_tx_take (or into a spool file past XiTxParams.spill_bytes).
 
 typedef struct XiTx XiTx;
 
@@ -269,6 +270,12 @@ typedef struct {
   // encoder's priming, which must equal audio_priming samples.
   int frag_seconds;
   int audio_priming;
+  // Spool (WP-121b): with spill_bytes > 0 the output moves from memory
+  // into the file spill_fd (a descriptor the shim duplicates, written with
+  // pwrite from offset 0) as soon as it would grow past spill_bytes;
+  // xi_tx_spilled then reports its size instead of xi_tx_take.
+  int spill_fd;
+  int64_t spill_bytes;
 } XiTxParams;
 
 // Capabilities (xi_tx_caps).
@@ -300,6 +307,11 @@ int xi_tx_caps(void);
 // outlive the handle); decoders refuse frames over max_pixels (> 0) and run
 // threads threads. NULL when out of memory; free it with xi_tx_free.
 XiTx *xi_tx_new(const uint8_t *data, size_t size, int64_t max_pixels, int threads);
+// xi_tx_new_fd is xi_tx_new over size bytes of a file at offset off
+// (WP-121b: a spooled source), read with pread through a duplicate of fd
+// that the handle owns and closes; no protocol or path is involved. NULL
+// when out of memory or the descriptor cannot be duplicated.
+XiTx *xi_tx_new_fd(int fd, int64_t off, int64_t size, int64_t max_pixels, int threads);
 // xi_tx_open demuxes the source, probes it and opens its decoders.
 int xi_tx_open(XiTx *h, XiTxInfo *info, char *err, size_t errlen);
 // xi_tx_run transcodes the opened source once. p is read during the call
@@ -308,6 +320,9 @@ int xi_tx_run(XiTx *h, const XiTxParams *p, char *err, size_t errlen);
 // xi_tx_take hands the output over (NULL when empty): the caller frees it
 // with xi_tx_out_free.
 uint8_t *xi_tx_take(XiTx *h, int64_t *size);
+// xi_tx_spilled reports whether the output went to the spill file
+// (XiTxParams.spill_fd) and its size there.
+int xi_tx_spilled(XiTx *h, int64_t *size);
 void xi_tx_out_free(uint8_t *data);
 // xi_tx_abort makes the running and later calls fail with
 // XI_FF_ERR_ABORTED (polled per packet, per frame and by all I/O).

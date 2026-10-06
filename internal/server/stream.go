@@ -352,7 +352,9 @@ func (s *Server) streamSource(ctx context.Context, r *http.Request, info *reques
 		maxBytes = v
 	}
 	t := s.stage(info, stageFetch)
-	fr, err := s.fetch(ctx, j.key, source.FetchOptions{MaxBytes: maxBytes, Header: r.Header}, j.req.Source.Hashsum)
+	// FetchLarge: a source over the spool threshold is shared, as one
+	// spool file, by every segment transcode of the stream (WP-121b).
+	fr, err := s.fetchVideo(ctx, j.key, source.FetchOptions{MaxBytes: maxBytes, Header: r.Header}, j.req.Source.Hashsum)
 	t.done()
 	if err != nil {
 		return nil, err

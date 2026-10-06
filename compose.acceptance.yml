@@ -145,6 +145,10 @@ services:
       # WP-122/123: video transformations, on when the image has FFmpeg
       # (full, gpl; scripts/acceptance.sh sets XI_ACC_VIDEO), signed only.
       XI_VIDEO_TRANSFORM_ENABLED: ${XI_ACC_VIDEO:-false}
+      # WP-121b: spool every video source and output over 64 KiB (the
+      # fixtures are larger), in the default /tmp/xtandard-video on the
+      # read-only image's tmpfs.
+      XI_VIDEO_TRANSFORM_SPOOL_THRESHOLD: 64KiB
     ports:
       - "127.0.0.1::8080"
       - "127.0.0.1::9090"

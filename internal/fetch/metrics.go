@@ -15,6 +15,7 @@ const (
 	CacheNegativeHit                    // fresh not-found served from memory
 	CacheRevalidated                    // stale original confirmed by a 304
 	CacheStoreHit                       // original served from the shared store (WithStore)
+	CacheSpoolHit                       // large original shared from its spool file (FetchLarge)
 )
 
 // String returns the metric label value.
@@ -30,6 +31,8 @@ func (r CacheResult) String() string {
 		return "revalidated"
 	case CacheStoreHit:
 		return "store_hit"
+	case CacheSpoolHit:
+		return "spool_hit"
 	default:
 		return "CacheResult(" + strconv.Itoa(int(r)) + ")"
 	}

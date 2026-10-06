@@ -13,6 +13,8 @@
 package config
 
 import (
+	"os"
+	"path/filepath"
 	"slices"
 	"time"
 )
@@ -669,6 +671,34 @@ type VideoTransform struct {
 	// StreamCacheBytes bounds the in-memory cache of stream probes and
 	// segments in front of the result cache (0 is off).
 	StreamCacheBytes ByteSize `yaml:"stream_cache_bytes" env:"STREAM_CACHE_BYTES"`
+
+	// Spool files (WP-121b, ADR 0012 §5).
+	//
+	// SpoolDir holds the temporary files of large sources and outputs
+	// (created 0700 if missing, cleared of the files a previous process
+	// left at start); it must be writable (a tmpfs or emptyDir with a
+	// read-only root file system). Empty is <os.TempDir()>/xtandard-video
+	// (SpoolPath).
+	SpoolDir string `yaml:"spool_dir" env:"SPOOL_DIR"`
+	// SpoolThreshold: a source or an output larger than this goes to a
+	// spool file instead of memory; 0 keeps everything in memory.
+	SpoolThreshold ByteSize `yaml:"spool_threshold" env:"SPOOL_THRESHOLD"`
+	// SpoolMaxBytes bounds the spool files' bytes at once (a request that
+	// would exceed it answers 503 with Retry-After); 0 is no bound.
+	SpoolMaxBytes ByteSize `yaml:"spool_max_bytes" env:"SPOOL_MAX_BYTES"`
+	// SpoolTTL is how long a spooled source is shared (the segments of a
+	// stream, repeated transformations) before the origin is asked again,
+	// and how long it is kept without use; 0 shares nothing.
+	SpoolTTL time.Duration `yaml:"spool_ttl" env:"SPOOL_TTL"`
+}
+
+// SpoolPath is the spool directory: SpoolDir, or xtandard-video in the
+// system's temporary directory.
+func (t *VideoTransform) SpoolPath() string {
+	if t.SpoolDir != "" {
+		return t.SpoolDir
+	}
+	return filepath.Join(os.TempDir(), "xtandard-video")
 }
 
 // VideoEncode configures MP4, WebM and HEVC output (docs/FORMATS.md §5.1):
@@ -1002,6 +1032,7 @@ func Defaults() Config {
 				ABRLadder:       []string{"1080:5000k", "720:2800k", "480:1400k", "360:800k", "240:400k"},
 				SegmentDuration: 6 * time.Second, PrefetchSegments: 2, StreamTTL: 12 * time.Hour,
 				StreamCacheBytes: 256 << 20,
+				SpoolThreshold:   32 << 20, SpoolTTL: time.Minute,
 			},
 		},
 		Vips: Vips{Concurrency: 1, FailOn: FailOnWarning},

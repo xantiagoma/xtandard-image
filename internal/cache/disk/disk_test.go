@@ -63,7 +63,7 @@ func (m *metricsRec) skipped(reason string) int {
 	return m.skips[reason]
 }
 
-func open(t *testing.T, opts Options) *Store {
+func open(t *testing.T, opts *Options) *Store {
 	t.Helper()
 	s, err := New(opts)
 	if err != nil {
@@ -77,7 +77,7 @@ func TestConformance(t *testing.T) {
 	t.Parallel()
 	cachetest.Run(t, func(t *testing.T, now func() time.Time) cache.Store {
 		t.Helper()
-		return open(t, Options{Dir: t.TempDir(), MaxBytes: 1 << 20, Now: now})
+		return open(t, &Options{Dir: t.TempDir(), MaxBytes: 1 << 20, Now: now})
 	})
 }
 
@@ -108,7 +108,7 @@ func TestSurvivesRestart(t *testing.T) {
 	body := bytes.Repeat([]byte{0xAB}, 4096)
 	h := http.Header{"Content-Type": {"image/avif"}}
 
-	first := open(t, Options{Dir: dir, MaxBytes: 1 << 20})
+	first := open(t, &Options{Dir: dir, MaxBytes: 1 << 20})
 	cachetest.Set(t, first, cache.NSResult, "v1/keep", body, h, time.Hour)
 	cachetest.Set(t, first, cache.NSOrigin, "v1/orig", []byte("original"), nil, 0)
 	used, n := first.Usage()
@@ -116,7 +116,7 @@ func TestSurvivesRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	second := open(t, Options{Dir: dir, MaxBytes: 1 << 20})
+	second := open(t, &Options{Dir: dir, MaxBytes: 1 << 20})
 	if u, m := second.Usage(); u != used || m != n {
 		t.Errorf("rebuilt index %d bytes/%d entries, want %d/%d", u, m, used, n)
 	}
@@ -132,7 +132,7 @@ func TestSurvivesRestart(t *testing.T) {
 func TestScanRemovesTempFilesAndIgnoresStrangers(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	s := open(t, Options{Dir: dir, MaxBytes: 1 << 20})
+	s := open(t, &Options{Dir: dir, MaxBytes: 1 << 20})
 	cachetest.Set(t, s, cache.NSResult, "v1/a", []byte("a"), nil, time.Hour)
 	if err := s.Close(); err != nil {
 		t.Fatal(err)
@@ -147,7 +147,7 @@ func TestScanRemovesTempFilesAndIgnoresStrangers(t *testing.T) {
 		}
 	}
 
-	s2 := open(t, Options{Dir: dir, MaxBytes: 1 << 20})
+	s2 := open(t, &Options{Dir: dir, MaxBytes: 1 << 20})
 	if _, err := os.Stat(tmp); !os.IsNotExist(err) {
 		t.Errorf("temporary file survived the scan: %v", err)
 	}
@@ -210,7 +210,7 @@ func TestCorruptEntries(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			m := &metricsRec{}
-			s := open(t, Options{Dir: t.TempDir(), MaxBytes: 1 << 20, Metrics: m})
+			s := open(t, &Options{Dir: t.TempDir(), MaxBytes: 1 << 20, Metrics: m})
 			p := valid(s, "v1/victim")
 			tc.corrupt(t, s, p)
 			if _, _, ok := cachetest.Get(t, s, cache.NSResult, "v1/victim"); ok {
@@ -234,7 +234,7 @@ func TestCorruptEntries(t *testing.T) {
 func TestTooLargeSkipped(t *testing.T) {
 	t.Parallel()
 	m := &metricsRec{}
-	s := open(t, Options{Dir: t.TempDir(), MaxBytes: 1024, Metrics: m})
+	s := open(t, &Options{Dir: t.TempDir(), MaxBytes: 1024, Metrics: m})
 	cachetest.Set(t, s, cache.NSResult, "v1/big", make([]byte, 2048), nil, time.Hour)
 	if _, _, ok := cachetest.Get(t, s, cache.NSResult, "v1/big"); ok {
 		t.Error("entry over MaxBytes stored")
@@ -253,14 +253,14 @@ func TestNewRejectsUnwritableDir(t *testing.T) {
 	if err := os.Mkdir(dir, 0o500); err != nil {
 		t.Fatal(err)
 	}
-	_, err := New(Options{Dir: dir, MaxBytes: 1 << 20})
+	_, err := New(&Options{Dir: dir, MaxBytes: 1 << 20})
 	if err == nil || !strings.Contains(err.Error(), "not writable") {
 		t.Errorf("New on a read-only dir: %v", err)
 	}
-	if _, err := New(Options{Dir: "relative", MaxBytes: 1}); err == nil {
+	if _, err := New(&Options{Dir: "relative", MaxBytes: 1}); err == nil {
 		t.Error("relative dir accepted")
 	}
-	if _, err := New(Options{Dir: dir, MaxBytes: 0}); err == nil {
+	if _, err := New(&Options{Dir: dir, MaxBytes: 0}); err == nil {
 		t.Error("zero MaxBytes accepted")
 	}
 }
@@ -274,7 +274,7 @@ func TestJanitorBoundsUsage(t *testing.T) {
 		dir := t.TempDir()
 		const maxBytes = 16 << 10
 		m := &metricsRec{}
-		s, err := New(Options{Dir: dir, MaxBytes: maxBytes, Metrics: m})
+		s, err := New(&Options{Dir: dir, MaxBytes: maxBytes, Metrics: m})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -317,7 +317,7 @@ func TestJanitorSweepsExpired(t *testing.T) {
 	t.Parallel()
 	synctest.Test(t, func(t *testing.T) {
 		dir := t.TempDir()
-		s, err := New(Options{Dir: dir, MaxBytes: 1 << 20, JanitorInterval: time.Minute})
+		s, err := New(&Options{Dir: dir, MaxBytes: 1 << 20, JanitorInterval: time.Minute})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -338,7 +338,7 @@ func TestJanitorSweepsExpired(t *testing.T) {
 // with -race).
 func TestConcurrent(t *testing.T) {
 	t.Parallel()
-	s := open(t, Options{Dir: t.TempDir(), MaxBytes: 64 << 10})
+	s := open(t, &Options{Dir: t.TempDir(), MaxBytes: 64 << 10})
 	var wg sync.WaitGroup
 	for g := range 8 {
 		wg.Go(func() {
@@ -361,7 +361,7 @@ func TestConcurrent(t *testing.T) {
 func BenchmarkGetHit(b *testing.B) {
 	for _, size := range []int{16 << 10, 256 << 10} {
 		b.Run(strconv.Itoa(size>>10)+"KiB", func(b *testing.B) {
-			s, err := New(Options{Dir: b.TempDir(), MaxBytes: 1 << 30})
+			s, err := New(&Options{Dir: b.TempDir(), MaxBytes: 1 << 30})
 			if err != nil {
 				b.Fatal(err)
 			}

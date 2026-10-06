@@ -1,0 +1,35 @@
+# BenchmarkVideoSpool (internal/app/videospool_bench_test.go): memory (old) vs spool (new),
+# each of 10 runs per variant in its own process (peak RSS is per process), gpl builder, arm64.
+# Raw runs: go test -c, then app.test -test.bench 'VideoSpool/<variant>$' -test.benchtime 3x -test.benchmem, x10.
+
+goos: linux
+goarch: arm64
+pkg: github.com/xantiagoma/xtandard-image/internal/app
+             │ .bench-memory.txt │       .bench-spool.txt        │
+             │      sec/op       │   sec/op     vs base          │
+VideoSpool-8         670.9m ± 4%   694.8m ± 6%  ~ (p=0.315 n=10)
+
+             │ .bench-memory.txt │        .bench-spool.txt        │
+             │        B/s        │     B/s       vs base          │
+VideoSpool-8        147.4Mi ± 4%   142.3Mi ± 7%  ~ (p=0.325 n=10)
+
+             │ .bench-memory.txt │            .bench-spool.txt            │
+             │  RSS-growth-MiB   │ RSS-growth-MiB  vs base                │
+VideoSpool-8         266.9 ± 18%      168.3 ± 24%  -36.95% (p=0.000 n=10)
+
+             │ .bench-memory.txt │        .bench-spool.txt        │
+             │      out-MiB      │  out-MiB    vs base            │
+VideoSpool-8          3.213 ± 0%   3.213 ± 0%  ~ (p=1.000 n=10) ¹
+¹ all samples are equal
+
+             │ .bench-memory.txt │           .bench-spool.txt           │
+             │   peak-RSS-MiB    │ peak-RSS-MiB  vs base                │
+VideoSpool-8         398.6 ± 12%    300.5 ± 13%  -24.62% (p=0.000 n=10)
+
+             │ .bench-memory.txt │          .bench-spool.txt           │
+             │       B/op        │     B/op      vs base               │
+VideoSpool-8        7.037Mi ± 0%   7.048Mi ± 0%  +0.16% (p=0.000 n=10)
+
+             │ .bench-memory.txt │       .bench-spool.txt       │
+             │     allocs/op     │ allocs/op   vs base          │
+VideoSpool-8          569.0 ± 1%   570.0 ± 2%  ~ (p=0.170 n=10)

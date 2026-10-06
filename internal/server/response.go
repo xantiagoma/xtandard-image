@@ -11,6 +11,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/negotiate"
 	"github.com/xantiagoma/xtandard-image/internal/source"
@@ -358,6 +359,27 @@ const etagLen = 22
 // raw SHA-256 of the source bytes. qualityDelta (Save-Data) changes the
 // output without appearing in the canonical key, so it is mixed in too.
 func etag(canonicalKey string, format transform.Format, qualityDelta int, obj *source.Object, src []byte, buster string) string {
+	return etagWith(canonicalKey, format, qualityDelta, obj, func() [sha256.Size]byte { return sha256.Sum256(src) }, buster)
+}
+
+// etagBody is etag over a source buffer: a spooled one (WP-121b) is hashed
+// from its file, and only when the origin sent no validator.
+func etagBody(canonicalKey string, format transform.Format, qualityDelta int, obj *source.Object, src interface{ Bytes() []byte }, buster string) string {
+	return etagWith(canonicalKey, format, qualityDelta, obj, func() [sha256.Size]byte {
+		if !cache.IsFileBody(src) {
+			return sha256.Sum256(src.Bytes())
+		}
+		h := sha256.New()
+		_ = cache.WriteBody(h, src) // a read error leaves a digest no other source has
+		var sum [sha256.Size]byte
+		h.Sum(sum[:0])
+		return sum
+	}, buster)
+}
+
+// etagWith is etag with the source's SHA-256 computed by srcSum when it
+// is needed.
+func etagWith(canonicalKey string, format transform.Format, qualityDelta int, obj *source.Object, srcSum func() [sha256.Size]byte, buster string) string {
 	d := sha256.New()
 	field := func(b []byte) {
 		var n [20]byte
@@ -374,7 +396,7 @@ func etag(canonicalKey string, format transform.Format, qualityDelta int, obj *s
 	case obj != nil && !obj.LastModified.IsZero():
 		field([]byte("m" + obj.LastModified.UTC().Format(http.TimeFormat)))
 	default:
-		sum := sha256.Sum256(src)
+		sum := srcSum()
 		field(append([]byte("h"), sum[:]...))
 	}
 	field([]byte(buster))

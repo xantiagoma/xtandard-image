@@ -19,9 +19,9 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/video/ffmpeg"
 )
 
-func videoConfig(t *testing.T, role config.Role, enabled bool) *config.Config {
-	t.Helper()
-	fixtures := filepath.Join(golden.ModuleRoot(t), "testdata", "fixtures")
+func videoConfig(tb testing.TB, role config.Role, enabled bool) *config.Config {
+	tb.Helper()
+	fixtures := filepath.Join(golden.ModuleRoot(tb), "testdata", "fixtures")
 	yml := `role: ` + string(role) + `
 server:
   addr: "127.0.0.1:0"
@@ -52,14 +52,15 @@ video:
     workers: 2
     unsigned_policy: allow
 `
-	path := filepath.Join(t.TempDir(), "config.yaml")
+	path := filepath.Join(tb.TempDir(), "config.yaml")
 	if err := os.WriteFile(path, []byte(yml), 0o600); err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	cfg, _, err := config.Load(config.LoadOptions{ConfigFile: path})
 	if err != nil {
-		t.Fatalf("load: %v", err)
+		tb.Fatalf("load: %v", err)
 	}
+	cfg.Video.Transform.SpoolDir = filepath.Join(tb.TempDir(), "spool")
 	return &cfg
 }
 
@@ -147,7 +148,7 @@ func TestVideoTransformDisabled(t *testing.T) {
 			t.Skip("this image has no FFmpeg")
 		}
 		cfg := videoConfig(t, config.RoleImage, true)
-		vt, err := buildVideoTransform(cfg, nil, nil)
+		vt, err := buildVideoTransform(cfg, nil, nil, nil)
 		if err != nil || vt != nil {
 			t.Fatalf("buildVideoTransform = %v, %v; want no service", vt, err)
 		}
@@ -223,15 +224,15 @@ func TestVideoTransformService(t *testing.T) {
 }
 
 // metricValue reads one sample of a Prometheus text exposition.
-func metricValue(t *testing.T, text, name string) float64 {
-	t.Helper()
+func metricValue(tb testing.TB, text, name string) float64 {
+	tb.Helper()
 	m := regexp.MustCompile(`(?m)^` + regexp.QuoteMeta(name) + ` (\S+)$`).FindStringSubmatch(text)
 	if m == nil {
-		t.Fatalf("no %s in /metrics", name)
+		tb.Fatalf("no %s in /metrics", name)
 	}
 	v, err := strconv.ParseFloat(m[1], 64)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	return v
 }

@@ -96,7 +96,7 @@ func (e *Entry) Size() int64 {
 	const overhead = 128
 	n := int64(overhead)
 	if e.Body != nil {
-		n += int64(len(e.Body.Bytes()))
+		n += BodyLen(e.Body)
 	}
 	for k, vs := range e.Header {
 		n += int64(len(k))

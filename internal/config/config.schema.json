@@ -3435,8 +3435,8 @@
             "max_input_bytes": {
               "$ref": "#/$defs/byteSize",
               "default": "512MiB",
-              "description": "Largest video source of a transformation (422); the fetcher accepts the larger of this and XI_LIMITS_MAX_SRC_BYTES for video requests. The source is held in memory while it is transcoded\n\nEnv: XI_VIDEO_TRANSFORM_MAX_INPUT_BYTES",
-              "markdownDescription": "Largest video source of a transformation (422); the fetcher accepts the larger of this and `XI_LIMITS_MAX_SRC_BYTES` for video requests. The source is held in memory while it is transcoded\n\nEnv: `XI_VIDEO_TRANSFORM_MAX_INPUT_BYTES`",
+              "description": "Largest video source of a transformation (422); the fetcher accepts the larger of this and XI_LIMITS_MAX_SRC_BYTES for video requests. A source over XI_VIDEO_TRANSFORM_SPOOL_THRESHOLD is downloaded into a spool file instead of memory\n\nEnv: XI_VIDEO_TRANSFORM_MAX_INPUT_BYTES",
+              "markdownDescription": "Largest video source of a transformation (422); the fetcher accepts the larger of this and `XI_LIMITS_MAX_SRC_BYTES` for video requests. A source over `XI_VIDEO_TRANSFORM_SPOOL_THRESHOLD` is downloaded into a spool file instead of memory\n\nEnv: `XI_VIDEO_TRANSFORM_MAX_INPUT_BYTES`",
               "title": "XI_VIDEO_TRANSFORM_MAX_INPUT_BYTES"
             },
             "max_input_duration": {
@@ -3462,8 +3462,8 @@
             "max_output_bytes": {
               "$ref": "#/$defs/byteSize",
               "default": "256MiB",
-              "description": "Largest output file; the muxer stops past it (422)\n\nEnv: XI_VIDEO_TRANSFORM_MAX_OUTPUT_BYTES",
-              "markdownDescription": "Largest output file; the muxer stops past it (422)\n\nEnv: `XI_VIDEO_TRANSFORM_MAX_OUTPUT_BYTES`",
+              "description": "Largest output file; the muxer stops past it (422). An output growing past XI_VIDEO_TRANSFORM_SPOOL_THRESHOLD moves into a spool file; while it is written it reserves this much of XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES\n\nEnv: XI_VIDEO_TRANSFORM_MAX_OUTPUT_BYTES",
+              "markdownDescription": "Largest output file; the muxer stops past it (422). An output growing past `XI_VIDEO_TRANSFORM_SPOOL_THRESHOLD` moves into a spool file; while it is written it reserves this much of `XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES`\n\nEnv: `XI_VIDEO_TRANSFORM_MAX_OUTPUT_BYTES`",
               "title": "XI_VIDEO_TRANSFORM_MAX_OUTPUT_BYTES"
             },
             "max_output_duration": {
@@ -3513,6 +3513,33 @@
               "description": "Length of a stream's segments, whole seconds from 1s to 30s; the last one is shorter. A video segment has one keyframe (its first) unless the request sets a keyframe interval\n\nEnv: XI_VIDEO_TRANSFORM_SEGMENT_DURATION",
               "markdownDescription": "Length of a stream's segments, whole seconds from `1s` to `30s`; the last one is shorter. A video segment has one keyframe (its first) unless the request sets a keyframe interval\n\nEnv: `XI_VIDEO_TRANSFORM_SEGMENT_DURATION`",
               "title": "XI_VIDEO_TRANSFORM_SEGMENT_DURATION"
+            },
+            "spool_dir": {
+              "description": "Directory of the spool files (WP-121b): video sources and outputs larger than the threshold live there instead of memory. Created 0700 if missing; it must be writable, so with a read-only root file system mount a tmpfs or an emptyDir there (DEPLOY.md). Files are unlinked as soon as they are created (an open descriptor is their only name), so they vanish on every path, a crash included; at start, files named xi-spool-* that a previous process left are removed. Absolute path\n\nDefault: temporary directory + /xtandard-video (/tmp/xtandard-video in the images)\n\nEnv: XI_VIDEO_TRANSFORM_SPOOL_DIR",
+              "markdownDescription": "Directory of the spool files (WP-121b): video sources and outputs larger than the threshold live there instead of memory. Created `0700` if missing; it must be writable, so with a read-only root file system mount a `tmpfs` or an `emptyDir` there (DEPLOY.md). Files are unlinked as soon as they are created (an open descriptor is their only name), so they vanish on every path, a crash included; at start, files named `xi-spool-*` that a previous process left are removed. Absolute path\n\nDefault: temporary directory + `/xtandard-video` (`/tmp/xtandard-video` in the images)\n\nEnv: `XI_VIDEO_TRANSFORM_SPOOL_DIR`",
+              "title": "XI_VIDEO_TRANSFORM_SPOOL_DIR",
+              "type": "string"
+            },
+            "spool_max_bytes": {
+              "$ref": "#/$defs/byteSize",
+              "default": "0",
+              "description": "Bound on the bytes of all spool files at once: a download reserves its declared length (or grows while it reads), an encode reserves XI_VIDEO_TRANSFORM_MAX_OUTPUT_BYTES until it ends; a reservation that does not fit, after dropping the shared sources nobody reads, answers 503 with Retry-After: 5. 0 is no bound (the file system's size is). Needs a threshold above 0\n\nEnv: XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES",
+              "markdownDescription": "Bound on the bytes of all spool files at once: a download reserves its declared length (or grows while it reads), an encode reserves `XI_VIDEO_TRANSFORM_MAX_OUTPUT_BYTES` until it ends; a reservation that does not fit, after dropping the shared sources nobody reads, answers 503 with `Retry-After: 5`. `0` is no bound (the file system's size is). Needs a threshold above 0\n\nEnv: `XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES`",
+              "title": "XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES"
+            },
+            "spool_threshold": {
+              "$ref": "#/$defs/byteSize",
+              "default": "32MiB",
+              "description": "A video source (declared length, or found while reading one of unknown length) or a transcode output larger than this goes to a spool file instead of memory, so a transcode's memory no longer grows with MAX_INPUT_BYTES + MAX_OUTPUT_BYTES. The file is read and written by the FFmpeg shim through a duplicate of its descriptor, served with Range from the file and streamed into the disk and S3 result-cache tiers (the memory tier skips it; redis keeps only values up to XI_CACHE_RESULT_REDIS_MAX_VALUE_BYTES). Stream segments and waveforms stay in memory. 0 keeps everything in memory (the WP-121 behaviour)\n\nEnv: XI_VIDEO_TRANSFORM_SPOOL_THRESHOLD",
+              "markdownDescription": "A video source (declared length, or found while reading one of unknown length) or a transcode output larger than this goes to a spool file instead of memory, so a transcode's memory no longer grows with `MAX_INPUT_BYTES + MAX_OUTPUT_BYTES`. The file is read and written by the FFmpeg shim through a duplicate of its descriptor, served with `Range` from the file and streamed into the disk and S3 result-cache tiers (the memory tier skips it; redis keeps only values up to `XI_CACHE_RESULT_REDIS_MAX_VALUE_BYTES`). Stream segments and waveforms stay in memory. `0` keeps everything in memory (the WP-121 behaviour)\n\nEnv: `XI_VIDEO_TRANSFORM_SPOOL_THRESHOLD`",
+              "title": "XI_VIDEO_TRANSFORM_SPOOL_THRESHOLD"
+            },
+            "spool_ttl": {
+              "$ref": "#/$defs/duration",
+              "default": "1m0s",
+              "description": "A spooled source is shared by the requests that need it (the segments of an HLS or DASH stream, repeated transformations): reused without asking the origin for this long after its download, kept while it is used at least once per period (then revalidated, with If-None-Match/If-Modified-Since when the origin sent an ETag or Last-Modified), and removed after a period without use. 0 shares nothing (concurrent requests still share one download)\n\nEnv: XI_VIDEO_TRANSFORM_SPOOL_TTL",
+              "markdownDescription": "A spooled source is shared by the requests that need it (the segments of an HLS or DASH stream, repeated transformations): reused without asking the origin for this long after its download, kept while it is used at least once per period (then revalidated, with `If-None-Match`/`If-Modified-Since` when the origin sent an ETag or Last-Modified), and removed after a period without use. `0` shares nothing (concurrent requests still share one download)\n\nEnv: `XI_VIDEO_TRANSFORM_SPOOL_TTL`",
+              "title": "XI_VIDEO_TRANSFORM_SPOOL_TTL"
             },
             "stream_cache_bytes": {
               "$ref": "#/$defs/byteSize",

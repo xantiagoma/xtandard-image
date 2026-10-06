@@ -106,6 +106,11 @@ func (c *Config) validateVideoTransform(v *validator) {
 		v.check(len(k) >= 16, "video.transform.stream_keys", "key %d is %d bytes, want at least 16", i, len(k))
 	}
 	v.nonNegative(int64(t.StreamCacheBytes), "video.transform.stream_cache_bytes")
+	v.check(t.SpoolDir == "" || filepath.IsAbs(t.SpoolDir), "video.transform.spool_dir", "must be an absolute path, got %q", t.SpoolDir)
+	v.nonNegative(int64(t.SpoolThreshold), "video.transform.spool_threshold")
+	v.nonNegative(int64(t.SpoolMaxBytes), "video.transform.spool_max_bytes")
+	v.check(t.SpoolMaxBytes == 0 || t.SpoolThreshold > 0, "video.transform.spool_max_bytes", "needs video.transform.spool_threshold > 0")
+	v.nonNegative(int64(t.SpoolTTL), "video.transform.spool_ttl")
 }
 
 func (c *Config) validateServer(v *validator) {
