@@ -5,6 +5,9 @@ package ffmpeg
 /*
 #cgo nocallback xi_tx_caps
 #cgo nocallback xi_tx_new
+#cgo nocallback xi_tx_new_fd
+#cgo nocallback xi_tx_spilled
+#cgo noescape xi_tx_spilled
 #cgo noescape xi_tx_open
 #cgo nocallback xi_tx_open
 #cgo noescape xi_tx_run
@@ -24,6 +27,8 @@ import "C"
 import (
 	"context"
 	"math"
+	"os"
+	"runtime"
 	"time"
 	"unsafe"
 
@@ -65,7 +70,7 @@ func TranscodeCaps() video.TranscodeCaps {
 // not safe for concurrent use.
 type Transcoder struct {
 	h   *C.XiTx
-	src *vips.Buffer
+	src interface{ Release() }
 	in  video.TranscodeInput
 }
 
@@ -90,7 +95,36 @@ func OpenTranscode(ctx context.Context, src *vips.Buffer, lim video.Limits, thre
 		src.Release()
 		return nil, errs.New(errs.KindInternal, "ffmpeg: out of memory")
 	}
-	t := &Transcoder{h: h, src: src}
+	return openTranscoder(ctx, &Transcoder{h: h, src: src}, lim)
+}
+
+// OpenTranscodeFile is OpenTranscode over a source in a file (WP-121b):
+// the shim reads it with pread through a duplicate of its descriptor, so
+// no FFmpeg protocol is enabled and no pointer or path crosses into C.
+func OpenTranscodeFile(ctx context.Context, src FileSource, lim video.Limits, threads int) (*Transcoder, error) {
+	if err := ctxErr(ctx); err != nil {
+		return nil, err
+	}
+	if src == nil || src.Len() <= 0 {
+		return nil, errs.New(errs.KindCorrupt, "ffmpeg: empty source")
+	}
+	if lim.MaxBytes > 0 && src.Len() > lim.MaxBytes {
+		return nil, errs.WithPublic(errs.Newf(errs.KindLimitExceeded, "ffmpeg: video of %d bytes exceeds the limit of %d",
+			src.Len(), lim.MaxBytes), "the video is larger than the size limit")
+	}
+	f, off := src.File()
+	h := C.xi_tx_new_fd(C.int(f.Fd()), C.int64_t(off), C.int64_t(src.Len()), C.int64_t(lim.MaxPixels), C.int(max(threads, 1))) //nolint:gosec // G115: a descriptor fits a C int
+	runtime.KeepAlive(f)
+	if h == nil {
+		return nil, errs.New(errs.KindInternal, "ffmpeg: out of memory or descriptors")
+	}
+	src.Retain() // released by Close, like a memory source
+	return openTranscoder(ctx, &Transcoder{h: h, src: src}, lim)
+}
+
+// openTranscoder probes t's source and checks lim; it closes t on failure.
+func openTranscoder(ctx context.Context, t *Transcoder, lim video.Limits) (*Transcoder, error) {
+	h := t.h
 	stop := watch(ctx, t.setAbort)
 	defer stop()
 	var info C.XiTxInfo
@@ -149,40 +183,62 @@ func (t *Transcoder) Input() video.TranscodeInput { return t.in }
 // frame or write; a file over p.MaxBytes is errs.KindLimitExceeded. A
 // transcoder runs once. The caller releases the output.
 func (t *Transcoder) Run(ctx context.Context, p *video.TranscodePlan, pixels ...*vips.Buffer) (*Output, error) {
+	out, _, err := t.RunSpill(ctx, p, nil, 0, pixels...)
+	return out, err
+}
+
+// RunSpill is Run that moves the output into spill (a spool file, written
+// from offset 0 through a duplicate of its descriptor) once it grows past
+// spillBytes (WP-121b): the output is then nil and spilled is its size in
+// the file. With a nil spill or spillBytes ≤ 0 it is Run.
+func (t *Transcoder) RunSpill(ctx context.Context, p *video.TranscodePlan, spill *os.File, spillBytes int64, pixels ...*vips.Buffer) (out *Output, spilled int64, err error) {
 	if t == nil || t.h == nil {
-		return nil, errs.New(errs.KindInternal, "ffmpeg: closed transcoder")
+		return nil, 0, errs.New(errs.KindInternal, "ffmpeg: closed transcoder")
 	}
 	if err := ctxErr(ctx); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	var cp C.XiTxParams
 	if err := params(&cp, p, pixels); err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+	cp.spill_fd = -1
+	if spill != nil && spillBytes > 0 {
+		cp.spill_fd = C.int(spill.Fd()) //nolint:gosec // G115: a descriptor fits a C int
+		cp.spill_bytes = C.int64_t(spillBytes)
 	}
 	t.setAbort(false)
 	stop := watch(ctx, t.setAbort)
 	defer stop()
 	var cerr [256]C.char
-	if rc := C.xi_tx_run(t.h, &cp, &cerr[0], C.size_t(len(cerr))); rc != C.XI_FF_OK {
+	rc := C.xi_tx_run(t.h, &cp, &cerr[0], C.size_t(len(cerr)))
+	runtime.KeepAlive(spill) // the shim duplicated its descriptor during the call
+	if rc != C.XI_FF_OK {
 		if rc == C.XI_FF_ERR_LIMIT {
 			if err := ctxErr(ctx); err != nil {
-				return nil, err
+				return nil, 0, err
 			}
-			return nil, errs.WithPublic(errs.Newf(errs.KindLimitExceeded, "ffmpeg: transcode: output over %d bytes", p.MaxBytes),
+			return nil, 0, errs.WithPublic(errs.Newf(errs.KindLimitExceeded, "ffmpeg: transcode: output over %d bytes", p.MaxBytes),
 				"the output is larger than the size limit")
 		}
-		return nil, t.check(ctx, rc, &cerr[0], "transcode")
+		return nil, 0, t.check(ctx, rc, &cerr[0], "transcode")
 	}
 	var n C.int64_t
+	if C.xi_tx_spilled(t.h, &n) != 0 {
+		if n <= 0 || p.Waveform != nil {
+			return nil, 0, errs.New(errs.KindInternal, "ffmpeg: empty or waveform output in the spool file")
+		}
+		return nil, int64(n), nil
+	}
 	data := C.xi_tx_take(t.h, &n)
 	if data == nil || n <= 0 {
-		return nil, errs.New(errs.KindInternal, "ffmpeg: empty output")
+		return nil, 0, errs.New(errs.KindInternal, "ffmpeg: empty output")
 	}
 	if w := p.Waveform; w != nil && int64(n) != int64(w.Width)*int64(w.Height)*4 {
 		C.xi_tx_out_free(data)
-		return nil, errs.Newf(errs.KindInternal, "ffmpeg: waveform of %d bytes, want %dx%d RGBA", int64(n), w.Width, w.Height)
+		return nil, 0, errs.Newf(errs.KindInternal, "ffmpeg: waveform of %d bytes, want %dx%d RGBA", int64(n), w.Width, w.Height)
 	}
-	return newOutput(unsafe.Pointer(data), int(n), func(p unsafe.Pointer) { C.xi_tx_out_free((*C.uint8_t)(p)) }), nil
+	return newOutput(unsafe.Pointer(data), int(n), func(p unsafe.Pointer) { C.xi_tx_out_free((*C.uint8_t)(p)) }), 0, nil
 }
 
 // newOutput wraps n bytes at p with one reference; free releases them.
