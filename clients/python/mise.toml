@@ -1,0 +1,7 @@
+# Toolchain of the Python client (ADR 0013): `mise install` in this
+# directory. CI tests every supported Python (3.10 to 3.14) through uv;
+# this pin is the development interpreter. uv manages the virtualenv and
+# the lockfile (uv.lock).
+[tools]
+python = "3.14.8"
+uv = "0.13.1"
