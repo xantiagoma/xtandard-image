@@ -1,0 +1,5 @@
+# Build output of the .NET client (dotnet build, dotnet pack).
+bin/
+obj/
+artifacts/
+TestResults/

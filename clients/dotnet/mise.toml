@@ -1,0 +1,11 @@
+# Toolchain of the .NET client (ADR 0013): `mise install` in this directory.
+# The .NET 10 SDK builds every target framework; the .NET 8 SDK brings the
+# net8.0 runtime the tests also run on. mise installs both into one shared
+# DOTNET_ROOT, so `dotnet test` finds both runtimes.
+[tools]
+dotnet = ["10.0.402", "8.0.426"]
+
+[env]
+DOTNET_CLI_TELEMETRY_OPTOUT = "1"
+DOTNET_NOLOGO = "1"
+DOTNET_SKIP_FIRST_TIME_EXPERIENCE = "1"

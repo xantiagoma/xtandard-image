@@ -1,0 +1,47 @@
+# https://taskfile.dev — the .NET client's tasks (ADR 0013). The root
+# Taskfile runs `ci` here from `task clients:test`; run them in this
+# directory directly too (`task ci`). Commands go through mise (this
+# directory's mise.toml pins the .NET 10 and .NET 8 SDKs); CI sets
+# XI_DOTNET=dotnet after installing the SDKs itself.
+version: "3"
+
+vars:
+  DOTNET: '{{.XI_DOTNET | default "mise exec -- dotnet"}}'
+  SLN: Xtandard.Image.slnx
+
+tasks:
+  install:
+    desc: Install the pinned SDKs and restore the locked packages
+    cmds:
+      - mise install
+      - "{{.DOTNET}} restore {{.SLN}} --locked-mode"
+
+  format:
+    desc: dotnet format (whitespace, style and analyzers) in verify mode; Generated/*.g.cs is skipped
+    cmds: ["{{.DOTNET}} format {{.SLN}} --verify-no-changes --no-restore"]
+
+  build:
+    desc: "Release build of every target framework: nullable, analyzers (latest-recommended, trimming and AOT), warnings as errors"
+    cmds: ["{{.DOTNET}} build {{.SLN}} -c Release --no-restore"]
+
+  test:
+    desc: "xUnit on net8.0 and net10.0: conformance fixture, builder fixture, vectors, unit, stand-in HTTP and DI tests (XI_SMOKE_URL=http://127.0.0.1:8080 adds the smoke tests)"
+    cmds: ["{{.DOTNET}} test --solution {{.SLN}} -c Release --no-build {{.CLI_ARGS}}"]
+
+  licenses:
+    desc: Package dependency closure against the ADR 0006 allowlist
+    cmds: ["{{.DOTNET}} run scripts/check-licenses.cs"]
+
+  pack:
+    desc: Pack Xtandard.Image and Xtandard.Image.Extensions (.nupkg and .snupkg) into artifacts/; nothing is pushed
+    cmds: ["{{.DOTNET}} pack {{.SLN}} -c Release --no-build -o artifacts"]
+
+  ci:
+    desc: Everything CI runs for the .NET client
+    cmds:
+      - "{{.DOTNET}} restore {{.SLN}} --locked-mode"
+      - task: format
+      - task: build
+      - task: test
+      - task: licenses
+      - task: pack

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <RootNamespace>Xtandard.Image</RootNamespace>
+    <IsAotCompatible>true</IsAotCompatible>
+    <IsPackable>true</IsPackable>
+    <PackageId>Xtandard.Image</PackageId>
+    <Description>Official .NET client of xtandard-image: typed, signed URL builders for the imgproxy dialect (processing, /info, /video, HLS and DASH) and the query dialect, imgproxy and xi_sig signing, enc/ source and PDF password encryption, and an async HttpClient-based client. No package dependencies; trimming- and AOT-safe.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <InternalsVisibleTo Include="Xtandard.Image.Tests" />
+  </ItemGroup>
+
+</Project>

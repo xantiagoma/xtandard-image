@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Xtandard.Image.Extensions/Xtandard.Image.Extensions.csproj" />
+    <Project Path="src/Xtandard.Image/Xtandard.Image.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Xtandard.Image.Tests/Xtandard.Image.Tests.csproj" />
+  </Folder>
+</Solution>
