@@ -6654,6 +6654,30 @@
             "x-xi-scope": "request",
             "x-xi-syntax": "start:end"
           },
+          "preset": {
+            "description": "Expand video presets (XI_VIDEO_TRANSFORM_PRESETS) in place. URL: `preset`, `pr`; arguments names…; default —.",
+            "examples": [
+              [
+                "web"
+              ]
+            ],
+            "items": {
+              "description": "video preset name",
+              "pattern": "^.+$",
+              "title": "name",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array",
+            "x-xi-aliases": [
+              "pr"
+            ],
+            "x-xi-default": "—",
+            "x-xi-milestone": "M5 (WP-132)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "names…"
+          },
           "quality": {
             "description": "Video quality, mapped onto the codec's CRF scale. URL: `quality`, `q`; arguments 1..100; default 0.",
             "examples": [
@@ -8828,7 +8852,7 @@
             ]
           },
           "needs": {
-            "description": "Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output), video_transform (video transformations, XI_VIDEO_TRANSFORM_ENABLED), h264 and hevc (the gpl image's H.264 and HEVC encoders, video_transform.codecs).",
+            "description": "Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output), video_transform (video transformations, XI_VIDEO_TRANSFORM_ENABLED), h264 and hevc (the gpl image's H.264 and HEVC encoders, video_transform.codecs), video_presets (the demo's video presets web and preview, video_transform.presets).",
             "items": {
               "enum": [
                 "watermark",
@@ -8836,7 +8860,8 @@
                 "video",
                 "video_transform",
                 "h264",
-                "hevc"
+                "hevc",
+                "video_presets"
               ],
               "type": "string"
             },
@@ -9320,6 +9345,16 @@
             "description": "Image and text overlays (wm, wmu, wmt with overlay_window and overlay_fade).",
             "type": "boolean"
           },
+          "presets": {
+            "description": "Video preset names (XI_VIDEO_TRANSFORM_PRESETS; their options are not shown): pr:\u003cname\u003e in /video, preset=\u003cname\u003e in /q/video, t_\u003cname\u003e on Cloudinary videos, n-\u003cname\u003e on ImageKit videos.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "probe": {
             "description": "api/probe (a source) and api/probe/result (a result body) describe media files: container, duration, codecs, frame rate, sample rate and channels.",
             "type": "boolean"
@@ -9329,9 +9364,10 @@
             "type": "boolean"
           },
           "unsigned_policy": {
-            "description": "XI_VIDEO_TRANSFORM_UNSIGNED_POLICY: deny refuses unsigned video URLs (403) whatever the mount's policy.",
+            "description": "XI_VIDEO_TRANSFORM_UNSIGNED_POLICY: deny refuses unsigned video URLs (403) whatever the mount's policy; restricted admits only what their video presets make of them.",
             "enum": [
               "allow",
+              "restricted",
               "deny"
             ],
             "type": "string"
@@ -12187,6 +12223,14 @@
             "description": "Draw the output's running time (FFmpeg drawtext with a fixed expansion). Arguments joined by , or : (format:position:x:y:size:color:opacity).",
             "in": "query",
             "name": "timecode",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Expand video presets (XI_VIDEO_TRANSFORM_PRESETS) in place. Arguments joined by , or : (names…).",
+            "in": "query",
+            "name": "preset",
             "schema": {
               "type": "string"
             }
