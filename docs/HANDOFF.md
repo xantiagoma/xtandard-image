@@ -309,7 +309,12 @@ owner has authorised merging PRs without review.
     audio-clock artefact, not a server regression. Needs a check in a real browser; then either fix
     compare.js sync for audio or loosen/skip the check headless.
 - **M6 clients (owner 2026-10-15):** official clients for Python, Go, PHP, Ruby, Rust, Java, .NET,
-  Elixir (+ existing TS); no Bazel (mise + Taskfile, native tooling, path-filtered CI). In flight:
-  WP-134 foundation (ADR, `clients/spec` JSON from the Go catalogues, conformance fixture, generator,
-  `task clients:*`) + Python reference client (`m6/wp-134-clients-foundation`). After it merges, fan out
-  the other languages in parallel reusing its spec/fixture/generator.
+  Elixir (+ existing TS); no Bazel (mise + Taskfile, native tooling, path-filtered CI). **WP-134 done**
+  (`m6/wp-134-clients-foundation`, pushed, PR not opened): ADR 0013, `clients/spec/spec.json` (from
+  `internal/apidoc` `BuildClientSpec`, `TestClientSpec`), `clients/spec/conformance.json` (150 cases,
+  values by the TS client, held to the server by `TestConformanceFixture`), `clients/codegen` (Bun,
+  emitters discovered per file), `task clients:{spec,generate,fixtures,check,test,python:test}`,
+  `clients/python` (PyPI `xtandard-image`), workflows `clients.yml` + `client-python.yml` (gated by
+  `vars.XI_CLIENTS_WORKFLOW`). Next: fan out WP-135..141 in parallel; each agent follows
+  `clients/README.md` "Adding a language" and touches only `clients/<lang>/`, its emitter, its
+  workflow, its ROADMAP/README rows and `ci.yml` paths-ignore.

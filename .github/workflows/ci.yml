@@ -3,9 +3,9 @@ name: ci
 on:
   push:
     branches: [main]
-    paths-ignore: ['docs/**', '**.md', 'bench/**', 'packages/**', 'package.json', 'bun.lock', 'tsconfig.base.json']
+    paths-ignore: ['docs/**', '**.md', 'bench/**', 'packages/**', 'package.json', 'bun.lock', 'tsconfig.base.json', 'clients/codegen/**', 'clients/python/**']
   pull_request:
-    paths-ignore: ['docs/**', '**.md', 'bench/**', 'packages/**', 'package.json', 'bun.lock', 'tsconfig.base.json']
+    paths-ignore: ['docs/**', '**.md', 'bench/**', 'packages/**', 'package.json', 'bun.lock', 'tsconfig.base.json', 'clients/codegen/**', 'clients/python/**']
 
 permissions:
   contents: read
