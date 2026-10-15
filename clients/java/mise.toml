@@ -1,0 +1,8 @@
+# Toolchain of the Java client (ADR 0013): `mise install` in this directory.
+# JDK 21 builds (javac --release 17, Error Prone with NullAway,
+# google-java-format, Javadoc) and runs the tests; JDK 17, the oldest
+# supported runtime, runs them again (`task test17`, part of `task ci`).
+# Maven builds; mise pins it, so there is no wrapper jar in the repository.
+[tools]
+java = ["temurin-21.0.12+8.0.LTS", "temurin-17.0.20+8"]
+maven = "3.9.16"
