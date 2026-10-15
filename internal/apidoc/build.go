@@ -628,20 +628,37 @@ func queryOperation() *huma.Operation {
 	}
 }
 
-func imaginaryOperation() *huma.Operation {
-	params := []string{
+// imaginaryEndpoints are the imaginary operations served under the query
+// dialect mount (/q/<endpoint>).
+func imaginaryEndpoints() []string {
+	return []string{
+		"resize", "enlarge", "extract", "crop", "smartcrop", "rotate", "autorotate", "flip", "flop", "thumbnail",
+		"zoom", "convert", "fit", "blur", "watermark", "watermarkimage", "info", "pipeline",
+	}
+}
+
+// imaginaryParams are the query parameters of the imaginary endpoints,
+// the signature parameters included.
+func imaginaryParams() []string {
+	return []string{
 		"url", "width", "height", "areawidth", "areaheight", "quality", "compression", "type", "force", "rotate", "embed",
 		"norotation", "noprofile", "stripmeta", "flip", "flop", "extend", "background", "gravity", "top", "left", "factor",
 		"dpi", "interlace", "aspectratio", "palette", "sigma", "minampl", "text", "font", "textwidth", "opacity", "margin",
 		"color", "noreplicate", "image", "nocrop", "colorspace", "operations", "sign", "xi_sig",
 	}
+}
+
+func imaginaryOperation() *huma.Operation {
+	params := imaginaryParams()
+	endpoints := imaginaryEndpoints()
+	enum := make([]any, len(endpoints))
+	for i, e := range endpoints {
+		enum[i] = e
+	}
 	ps := make([]*huma.Param, 0, 1+len(params))
 	ps = append(ps, &huma.Param{
 		Name: "endpoint", In: "path", Required: true, Description: "imaginary operation.",
-		Schema: &huma.Schema{Type: "string", Enum: []any{
-			"resize", "enlarge", "extract", "crop", "smartcrop", "rotate", "autorotate", "flip", "flop", "thumbnail",
-			"zoom", "convert", "fit", "blur", "watermark", "watermarkimage", "info", "pipeline",
-		}},
+		Schema: &huma.Schema{Type: "string", Enum: enum},
 	})
 	for _, k := range params {
 		p := queryParam(k, "imaginary parameter "+k+" (URL-DIALECTS §4).")
