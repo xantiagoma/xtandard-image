@@ -1,0 +1,88 @@
+# golangci-lint v2.14.0 for the Go client (clients/go, ADR 0013): the server's
+# linter set (docs/go-standards.md §1) where it applies to a library, plus a
+# depguard rule that keeps the runtime on the standard library (no
+# third-party module, nothing from the server's internal/). Generated files
+# (zz_generated*.go, "Code generated … DO NOT EDIT.") are excluded.
+version: "2"
+
+run:
+  go: "1.26"
+
+linters:
+  default: standard # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - bodyclose
+    - canonicalheader
+    - containedctx
+    - depguard
+    - durationcheck
+    - errname
+    - errorlint
+    - exhaustive
+    - forcetypeassert
+    - gocheckcompilerdirectives
+    - gochecknoinits
+    - gocritic
+    - gosec
+    - iface
+    - intrange
+    - makezero
+    - misspell
+    - modernize
+    - nilerr
+    - nilnesserr
+    - noctx
+    - nolintlint
+    - perfsprint
+    - prealloc
+    - recvcheck
+    - revive
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+
+  settings:
+    govet:
+      enable-all: true
+      disable: [fieldalignment, shadow]
+    gocritic:
+      enabled-tags: [diagnostic, performance]
+      # Config and params structs are passed by value on purpose: the API reads
+      # b.URL(src, imgproxy.Params{…}), and URL building is not a hot path.
+      disabled-checks: [hugeParam]
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    exhaustive:
+      default-signifies-exhaustive: true
+    misspell:
+      # imgproxy's gravity code for north-west (URL-DIALECTS §3.2).
+      ignore-rules: [nowe]
+    depguard:
+      rules:
+        # ADR 0013: the client's runtime is the standard library only.
+        stdlib-only:
+          list-mode: strict
+          files: [$all]
+          allow:
+            - $gostd
+            - github.com/xantiagoma/xtandard-image/clients/go
+          deny:
+            - pkg: github.com/xantiagoma/xtandard-image/internal
+              desc: the client is a separate module and imports nothing from the server
+
+  exclusions:
+    generated: strict
+    presets: [std-error-handling, common-false-positives]
+
+formatters:
+  enable: [gofumpt, goimports]
+  settings:
+    goimports:
+      local-prefixes: [github.com/xantiagoma/xtandard-image/clients/go]
+  exclusions:
+    generated: strict
