@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    // The generator is not a workspace package: it borrows the Bun types
+    // installed for packages/image-url (bun install at the root).
+    "typeRoots": ["../../packages/image-url/node_modules/@types"],
+    "types": ["bun"]
+  },
+  "include": ["*.ts", "emitters/*.ts"]
+}

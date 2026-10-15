@@ -253,6 +253,19 @@ await img.from("https://images.unsplash.com/photo-1506744038136-46273834b3fb")
 // https://img.example.com/<signature>/rs:fill:1200:630/g:sm/aHR0cHM6….jpg
 ```
 
+## Other languages
+
+Official clients for Python, Go, PHP, Ruby, Rust, Java, .NET and Elixir share one spec generated from the server's catalogues, one conformance fixture and one code generator ([`clients/`](clients/README.md), [ADR 0013](docs/adr/0013-official-clients.md)). The first is **Python**, [`clients/python`](clients/python/README.md) (`xtandard-image` on PyPI after the first release). It has typed builders for imgproxy, `/info`, `/video`, HLS/DASH and the query dialect, signing, encryption, and sync and async clients on httpx:
+
+```python
+from xtandard_image import SigningKey, imgproxy
+
+img = imgproxy(base_url="https://img.example.com", signing=SigningKey(key=KEY, salt=SALT))
+img.url("s3://photos/cat.jpg", {"rs": ("fill", 1200, 630), "g": "sm"}, extension="jpg")
+```
+
+The other languages are planned (M6 in the [roadmap](docs/ROADMAP.md)).
+
 ## Playground
 
 A small web UI ships inside the binary, **off by default**. Turn it on and open it on the admin listener (with an image built from `main`):
@@ -295,7 +308,8 @@ URLs are signed on the server (`POST /_playground/api/sign`), so keys never reac
 - [Release](docs/RELEASE.md): how the image and the npm package are built, published and verified.
 - [Benchmarks](docs/BENCHMARKS.md): methodology and how to reproduce [bench/RESULTS.md](bench/RESULTS.md).
 - [Roadmap](docs/ROADMAP.md): the M1, M2 and M3 work packages.
-- [ADRs](docs/adr/): language and engine, URL dialects, security model, caching, Docker images, license policy, config schema and file formats, OpenAPI, the TypeScript workspace, and ONNX Runtime via purego.
+- [ADRs](docs/adr/): language and engine, URL dialects, security model, caching, Docker images, license policy, config schema and file formats, OpenAPI, the TypeScript workspace, ONNX Runtime via purego, video, and the official clients.
+- [Clients](clients/README.md): the official clients, their shared spec and conformance fixture, and how a language plugs in.
 - [Go standards](docs/go-standards.md) and [stack research](docs/research/stack.md).
 
 ## Contributing

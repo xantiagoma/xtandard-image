@@ -1,0 +1,99 @@
+[project]
+name = "xtandard-image"
+# Lockstep with the server's release tags (ADR 0013); 0.0.0 until the first
+# release. The release job sets it from the tag.
+version = "0.0.0"
+description = "Typed URL builder (imgproxy, /info, /video, HLS/DASH, query dialect), signing, source encryption and HTTP client for xtandard-image."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Santiago Montoya" }]
+requires-python = ">=3.10"
+keywords = ["xtandard-image", "imgproxy", "image", "url", "signing", "video", "hls"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Multimedia :: Graphics",
+  "Typing :: Typed",
+]
+dependencies = [
+  "cryptography>=43",
+  "httpx>=0.28,<1",
+  "typing-extensions>=4.12; python_version < '3.11'",
+]
+
+[project.urls]
+Homepage = "https://github.com/xantiagoma/xtandard-image/tree/main/clients/python#readme"
+Repository = "https://github.com/xantiagoma/xtandard-image"
+Issues = "https://github.com/xantiagoma/xtandard-image/issues"
+
+[dependency-groups]
+dev = [
+  "mypy>=2.4",
+  "packaging>=25",
+  "pyright>=1.1.414",
+  "pytest>=9.1",
+  "ruff>=0.17",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/xtandard_image"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/xtandard_image", "README.md", "LICENSE", "pyproject.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+xfail_strict = true
+filterwarnings = ["error"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["src", "tests"]
+extend-exclude = ["src/xtandard_image/_generated"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PL", "PT", "N", "S", "C4", "PIE", "RET", "TID", "TC", "ANN", "D"]
+ignore = [
+  "D105",    # magic methods
+  "D107",    # __init__: the class docstring documents it
+  "D203",    # one-blank-line-before-class (conflicts with D211)
+  "D213",    # multi-line-summary-second-line (conflicts with D212)
+  "PLR0913", # builders take many keyword arguments by design
+  "PLR2004", # magic values in comparisons
+  "PLR0911", # many returns in dispatch functions
+  "PLR0912",
+  "PLR0917", # internal builders take the URL parts positionally
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "D", "ANN", "PLR", "S105", "S106"]
+"scripts/**" = ["D", "T201", "S"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pyright]
+include = ["src", "tests", "scripts"]
+typeCheckingMode = "strict"
+pythonVersion = "3.10"
+
+[tool.mypy]
+strict = true
+python_version = "3.10"
+files = ["src", "tests", "scripts"]
+warn_unreachable = true

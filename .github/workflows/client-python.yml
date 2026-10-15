@@ -1,0 +1,61 @@
+name: client-python
+
+# The Python client (clients/python, ADR 0013): ruff, pyright and mypy
+# (strict), pytest (conformance fixture, builder fixture, shared vectors,
+# unit and client tests) on every supported Python, the licence check and
+# the build. Runs when the client, the shared spec and fixtures, or this
+# workflow change.
+#
+# DISABLED while Actions minutes are exhausted (docs/HANDOFF.md): the jobs
+# run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
+# Locally: `task clients:python:test`.
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - 'clients/python/**'
+      - 'clients/spec/**'
+      - 'testdata/urls/**'
+      - 'testdata/security/**'
+      - '.github/workflows/client-python.yml'
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-python-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: clients/python
+
+jobs:
+  test:
+    name: python ${{ matrix.python }}
+    if: vars.XI_CLIENTS_WORKFLOW == 'enabled'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.11', '3.12', '3.13', '3.14']
+    env:
+      UV_PYTHON: ${{ matrix.python }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: '0.13.1' # = clients/python/mise.toml
+          enable-cache: true
+          cache-dependency-glob: clients/python/uv.lock
+      - run: uv sync --locked
+      - run: uv run --locked ruff check .
+      - run: uv run --locked ruff format --check .
+      - run: uv run --locked pyright
+      - run: uv run --locked mypy
+      - run: uv run --locked pytest
+      - run: uv run --locked python scripts/check_licenses.py
+      - if: matrix.python == '3.14'
+        run: uv build --out-dir dist

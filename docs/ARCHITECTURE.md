@@ -114,7 +114,7 @@ internal/
   spool/                    (WP-121b) spool files of large video sources and outputs: unlinked temp files, byte budget, cache.FileBuffer results; pure Go
   obs/                      slog setup, Prometheus registry, OpenTelemetry, admin mux (metrics, /openapi.json, /docs, pprof, playground mount)
   server/                   http.Server + http.ServeMux, middleware, handlers (process, info, health), respond, writeError
-  apidoc/                   OpenAPI 3.1 document (huma v2 as builder only) + the committed openapi.json it embeds (ADR 0008)
+  apidoc/                   OpenAPI 3.1 document (huma v2 as builder only) + the committed openapi.json it embeds (ADR 0008); the clients' language-neutral spec clients/spec/spec.json (BuildClientSpec, ADR 0013)
   playground/               embedded playground UI (go:embed HTML/CSS/JS, no build step) + its JSON API: meta, server-side signing, in-process render (WP-80)
 ```
 
@@ -129,7 +129,7 @@ Dependency rules (enforced by a `depguard`/`go-arch-lint` config in CI):
 - `pipeline/exec`, `codec` loaders/encoders → `vips`.
 - `detect` → `detect/ort`, `vips`, `errs`; `detect/ort` imports nothing internal and is the only importer of purego (depguard, ADR 0010).
 - `server` → everything above via interfaces; `app` is the only package that constructs concrete types. Exception: `server` calls the pure-Go `pipeline/plan.Build` directly for the thumbor `meta` response (WP-86b), with the executor's limits passed in `InfoConfig.PlanLimits`, and `plan.InfoCrop` for the imgproxy /info `crop` coordinates (WP-63). `imageinfo` is a pure-Go leaf (stdlib only); `server` and `app` use it.
-- `apidoc` → `server`, `dialect/imgproxy`, `playground`, `errs` (types and catalogues only); nothing imports `apidoc` except `app`, which passes its bytes to the admin mux and its option catalogues (`apidoc.Catalogues`) to the playground. huma is confined to `apidoc` (depguard).
+- `apidoc` → `server`, `dialect/imgproxy`, `playground`, `errs`, and for the client spec `source`, `security/sign`, `transform` (types, catalogues and constants only); nothing imports `apidoc` except `app`, which passes its bytes to the admin mux and its option catalogues (`apidoc.Catalogues`) to the playground. huma is confined to `apidoc` (depguard).
 - `playground` → `security/sign` (a `*sign.Signer` per mount, never key bytes), `obs/logging`. It sees the public handler only as an `http.Handler`; `app` builds its metadata from `dialect/router` mounts and config.
 - `media` → `limiter`, `video`, `transform`, `errs` (depguard: never `vips`, `video/ffmpeg` or `server`); `server` sees it as `server.VideoTransformer`, `app` adapts it and implements its `Engine` with `video/ffmpeg`.
 - `config` imports nothing internal except `errs`. Each component declares its own `Options` struct; `app` maps `config.Config` into those options. This keeps component packages testable without the whole config tree.

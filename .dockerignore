@@ -31,3 +31,5 @@ node_modules
 package.json
 bun.lock
 tsconfig.base.json
+# The official clients (ADR 0013) are not part of the Go build either.
+clients
