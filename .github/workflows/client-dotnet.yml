@@ -1,0 +1,68 @@
+name: client-dotnet
+
+# The .NET client (clients/dotnet, ADR 0013): locked restore, dotnet format,
+# the Release build (nullable, analyzers, trimming and AOT analysis, warnings
+# as errors), the xUnit tests (conformance fixture, builder fixture, shared
+# vectors, unit, stand-in HTTP and DI tests) on every supported runtime, the
+# licence check and the pack. Runs when the client, the shared spec and
+# fixtures, or this workflow change.
+#
+# DISABLED while Actions minutes are exhausted (docs/HANDOFF.md): the jobs
+# run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
+# Locally: `task -d clients/dotnet ci`.
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - 'clients/dotnet/**'
+      - 'clients/spec/**'
+      - 'testdata/urls/**'
+      - 'testdata/security/**'
+      - '.github/workflows/client-dotnet.yml'
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-dotnet-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: clients/dotnet
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+jobs:
+  test:
+    # Each job builds both target frameworks with the pinned .NET 10 SDK and
+    # runs the tests on one runtime (the .NET 8 SDK brings the net8.0 one).
+    name: dotnet ${{ matrix.framework }}
+    if: vars.XI_CLIENTS_WORKFLOW == 'enabled'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        framework: [net8.0, net10.0]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.426
+            10.0.402
+          global-json-file: clients/dotnet/global.json # = clients/dotnet/mise.toml
+          cache: true
+          cache-dependency-path: clients/dotnet/**/packages.lock.json
+      - run: dotnet restore Xtandard.Image.slnx --locked-mode
+      - run: dotnet format Xtandard.Image.slnx --verify-no-changes --no-restore
+      - run: dotnet build Xtandard.Image.slnx -c Release --no-restore
+      - run: dotnet test --solution Xtandard.Image.slnx -c Release --no-build --framework ${{ matrix.framework }}
+      - run: dotnet run scripts/check-licenses.cs
+      - if: matrix.framework == 'net10.0'
+        run: dotnet pack Xtandard.Image.slnx -c Release --no-build -o artifacts

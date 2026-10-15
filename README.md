@@ -270,6 +270,8 @@ img.url("s3://photos/cat.jpg", {"rs": ("fill", 1200, 630), "g": "sm"}, extension
 
 **Elixir**: [`clients/elixir`](clients/elixir/README.md) (`xtandard_image` on Hex after the first release), with keyword-list and pipe-friendly builders, signing and encryption on `:crypto`, and an HTTP client on Req.
 
+**.NET** is [`clients/dotnet`](clients/dotnet/README.md) (`Xtandard.Image` on NuGet after the first release, .NET 8+, no package dependencies, AOT-compatible): typed option records and fluent builders, signing, encryption, an async `HttpClient` client, and `AddXtandardImage()` for ASP.NET Core in `Xtandard.Image.Extensions`.
+
 The other languages are planned (M6 in the [roadmap](docs/ROADMAP.md)).
 
 ## Playground
