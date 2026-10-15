@@ -19,6 +19,7 @@ import {
   type ImgproxyProcessingArgsOf,
   type ImgproxyProcessingOptionName,
   type ImgproxyProcessingOptions,
+  type ImgproxyVideoArgs,
   type ImgproxyVideoArgsOf,
   type ImgproxyVideoOptionName,
   type ImgproxyVideoOptions,
@@ -28,6 +29,16 @@ import {
   processingCatalogue,
   videoCatalogue,
 } from "./options.ts";
+import {
+  buildImaginary,
+  buildQueryImage,
+  buildQueryVideo,
+  type ImaginaryEndpoint,
+  type ImaginaryParams,
+  type QueryImageParams,
+  type QueryUrlConfig,
+  type QueryValue,
+} from "./query.ts";
 import { type SigningKey, sign, signImgproxyPath } from "./sign.ts";
 
 /** How the source URL is written. */
@@ -93,6 +104,55 @@ export type ImgproxyInfoUrlRequest = Omit<ImgproxyUrlRequest<ImgproxyInfoOptions
 export type ImgproxyVideoUrlRequest = Omit<ImgproxyUrlRequest<ImgproxyVideoOptions>, "options" | "pdfPassword"> & {
   readonly options?: ImgproxyVideoOptions;
 };
+
+/**
+ * A `/video` output container, from the video catalogue's `format` enum:
+ * mp4, webm, m4a, mp3, opus, ogg, flac, wav, png, webp, m3u8, mpd.
+ */
+export type VideoContainer = NonNullable<ImgproxyVideoArgs["format"][0]>;
+
+/** A stream protocol, from the video catalogue's `stream` option: hls or dash. */
+export type StreamProtocol = NonNullable<ImgproxyVideoArgs["stream"][0]>;
+
+/**
+ * The manifest container of each stream protocol. Typed against the
+ * catalogue: a protocol added on the Go side fails to compile here until
+ * it has its container.
+ */
+const streamManifests: { readonly [P in StreamProtocol]: VideoContainer } = { hls: "m3u8", dash: "mpd" };
+
+/**
+ * An HLS or DASH stream of a video source (URL-DIALECTS §3.10): a
+ * `/video` URL with the `m3u8` or `mpd` container. The manifest's child
+ * URLs (`/_stream/<ticket>/…`) carry a ticket, so a player needs no key.
+ */
+export type ImgproxyStreamUrlRequest = Omit<ImgproxyVideoUrlRequest, "extension"> & {
+  /** hls (`@m3u8`) or dash (`@mpd`). */
+  readonly protocol: StreamProtocol;
+  /**
+   * Renditions by the short side of the frame (`[360, 720]`, at most 8);
+   * default: the server's XI_VIDEO_TRANSFORM_ABR_LADDER.
+   */
+  readonly renditions?: readonly number[];
+  /** Segment length in whole seconds (1..30); default XI_VIDEO_TRANSFORM_SEGMENT_DURATION. */
+  readonly segmentDuration?: number;
+};
+
+/** The video options and container of a stream request. */
+function streamParts(req: ImgproxyStreamUrlRequest): { entries: OptionEntry[]; ext: string } {
+  const entries = pipelinesOf(req.options).flat();
+  for (const [name] of entries) {
+    const c = videoCatalogue.canonical.get(name);
+    if (c === "stream" || c === "segment_duration" || c === "format") {
+      throw new TypeError(`stream requests set ${name} through protocol, renditions and segmentDuration`);
+    }
+  }
+  const ext = Object.hasOwn(streamManifests, req.protocol) ? streamManifests[req.protocol] : undefined;
+  if (ext === undefined) throw new TypeError(`unknown stream protocol ${JSON.stringify(req.protocol)}`);
+  if (req.renditions?.length) entries.push(["stream", [req.protocol, ...req.renditions]]);
+  if (req.segmentDuration !== undefined) entries.push(["segment_duration", [req.segmentDuration]]);
+  return { entries, ext };
+}
 
 /** Which grammar a URL uses: processing, `/info` or `/video`. */
 type Endpoint = "process" | "info" | "video";
@@ -263,11 +323,89 @@ export function buildImgproxyVideoUrl(request: ImgproxyVideoUrlRequest, config: 
   );
 }
 
+/** Builds an HLS or DASH stream manifest URL (`/video/…@m3u8`, `@mpd`). */
+export async function buildImgproxyStreamUrl(request: ImgproxyStreamUrlRequest, config: ImgproxyUrlConfig = {}): Promise<string> {
+  const { entries, ext } = streamParts(request);
+  return build(config, "video", [entries], request.source, request.sourceEncoding, ext);
+}
+
+// ---- query dialect -----------------------------------------------------------
+
+/**
+ * One native query dialect URL (`/q/?url=…`, URL-DIALECTS §4): native keys
+ * in `params`, and any imgproxy processing options in `options`, written
+ * as one `o=` option path (an array chains pipelines).
+ */
+export interface QueryUrlRequest {
+  /** The source URL (http(s)://, s3://, xi://<source>/<key>, …), written as is. */
+  readonly source: string;
+  /** Native keys (`w`, `fit`, `g`, `f`, `q`, `preset`, `vts`, …), in key order, before `o=`. */
+  readonly params?: QueryImageParams;
+  /** imgproxy processing options, written as `o=<option path>`. */
+  readonly options?: ImgproxyProcessingOptions | readonly ImgproxyProcessingOptions[];
+  /** Output format, written as a last `format=` key. */
+  readonly extension?: string;
+  /** Plain-text PDF password, encrypted into `pdp=` (needs `encryption` and `signing`). */
+  readonly pdfPassword?: string;
+}
+
+/**
+ * One `/q/video` URL: every `/video` option is a query key with its
+ * arguments joined by "," (`rs=fill,640,360&vs=1`). An array of option
+ * objects is written in order, so a key may repeat (later wins argument by
+ * argument). `crop` and `flip` are written `c` and `fl`, since their query
+ * spellings are native.
+ */
+export interface QueryVideoUrlRequest {
+  readonly source: string;
+  readonly options?: ImgproxyVideoOptions | readonly ImgproxyVideoOptions[];
+  /** Output container, written as a last `format=` key. */
+  readonly extension?: VideoContainer | (string & {});
+}
+
+/** One `/q/video` HLS or DASH stream manifest URL. */
+export type QueryStreamUrlRequest = Omit<ImgproxyStreamUrlRequest, "sourceEncoding">;
+
+/** One imaginary endpoint URL (`/q/resize?url=…&width=300`). */
+export interface ImaginaryUrlRequest {
+  readonly endpoint: ImaginaryEndpoint;
+  readonly source: string;
+  readonly params?: ImaginaryParams;
+}
+
+/** Builds a native query dialect URL (`/q/?url=…`). */
+export function buildQueryUrl(request: QueryUrlRequest, config: QueryUrlConfig = {}): Promise<string> {
+  return buildQueryImage(config, pipelinesOf(request.options), request.source, request.params, request.extension, request.pdfPassword);
+}
+
+/** Builds a `/q/video` URL. */
+export function buildQueryVideoUrl(request: QueryVideoUrlRequest, config: QueryUrlConfig = {}): Promise<string> {
+  return buildQueryVideo(config, pipelinesOf(request.options).flat(), request.source, request.extension);
+}
+
+/** Builds a `/q/video` HLS or DASH stream manifest URL (`format=m3u8|mpd`). */
+export async function buildQueryStreamUrl(request: QueryStreamUrlRequest, config: QueryUrlConfig = {}): Promise<string> {
+  const { entries, ext } = streamParts(request);
+  return buildQueryVideo(config, entries, request.source, ext);
+}
+
+/** Builds an imaginary endpoint URL (`/q/<endpoint>?url=…`). */
+export function buildImaginaryUrl(request: ImaginaryUrlRequest, config: QueryUrlConfig = {}): Promise<string> {
+  return buildImaginary(config, request.endpoint, request.source, request.params);
+}
+
 // ---- fluent form -------------------------------------------------------------
 
 type ProcessingMethods = {
   readonly [K in ImgproxyProcessingOptionName]: (...args: ImgproxyProcessingArgsOf<K>) => ImgproxyUrlChain;
 };
+
+type ProcessingMethodsOf<Self> = {
+  readonly [K in ImgproxyProcessingOptionName]: (...args: ImgproxyProcessingArgsOf<K>) => Self;
+};
+
+// Interfaces defer their members, which lets the query chains refer to themselves.
+interface QueryProcessingMethods extends ProcessingMethodsOf<QueryUrlChain> {}
 
 type InfoMethods = {
   readonly [K in ImgproxyInfoOptionName]: (...args: ImgproxyInfoArgsOf<K>) => ImgproxyInfoUrlChain;
@@ -277,15 +415,25 @@ type VideoMethods = {
   readonly [K in ImgproxyVideoOptionName]: (...args: ImgproxyVideoArgsOf<K>) => ImgproxyVideoUrlChain;
 };
 
-interface BaseControl<Self, Options, Name extends string, ArgsOf extends Record<Name, readonly Arg[]>> {
+type VideoMethodsOf<Self> = {
+  readonly [K in ImgproxyVideoOptionName]: (...args: ImgproxyVideoArgsOf<K>) => Self;
+};
+
+interface QueryVideoMethods extends VideoMethodsOf<QueryVideoUrlChain> {}
+
+interface OptionControl<Self, Options, Name extends string, ArgsOf extends Record<Name, readonly Arg[]>> {
   /** Appends one option occurrence (same as the per-option method). */
   option<K extends Name>(name: K, ...args: ArgsOf[K]): Self;
   /** Appends every option of an options object, in key order. */
   options(options: Options): Self;
-  /** Overrides the source encoding. */
-  encoding(encoding: SourceEncoding): Self;
   /** Builds the URL (async: signing and encryption use WebCrypto). */
   build(): Promise<string>;
+}
+
+interface BaseControl<Self, Options, Name extends string, ArgsOf extends Record<Name, readonly Arg[]>>
+  extends OptionControl<Self, Options, Name, ArgsOf> {
+  /** Overrides the source encoding. */
+  encoding(encoding: SourceEncoding): Self;
 }
 
 interface ChainControl<Self, Options, Name extends string, ArgsOf extends Record<Name, readonly Arg[]>>
@@ -294,17 +442,15 @@ interface ChainControl<Self, Options, Name extends string, ArgsOf extends Record
   pdfPassword(password: string): Self;
 }
 
+type ProcessingArgsTable = { [K in ImgproxyProcessingOptionName]: ImgproxyProcessingArgsOf<K> };
+type VideoArgsTable = { [K in ImgproxyVideoOptionName]: ImgproxyVideoArgsOf<K> };
+
 /**
  * A fluent processing URL: one method per option name and alias, each typed
  * by the option's argument tuples, plus `chain()` for `/-/`.
  */
 export type ImgproxyUrlChain = ProcessingMethods &
-  ChainControl<
-    ImgproxyUrlChain,
-    ImgproxyProcessingOptions,
-    ImgproxyProcessingOptionName,
-    { [K in ImgproxyProcessingOptionName]: ImgproxyProcessingArgsOf<K> }
-  > & {
+  ChainControl<ImgproxyUrlChain, ImgproxyProcessingOptions, ImgproxyProcessingOptionName, ProcessingArgsTable> & {
     /** Starts the next chained pipeline (`/-/`). */
     chain(): ImgproxyUrlChain;
     /** Sets the output extension (`@webp` / `.webp`). */
@@ -325,63 +471,92 @@ export type ImgproxyInfoUrlChain = InfoMethods &
  * (`start`, `vs`, `resize`, `loudnorm`, `waveform`, …).
  */
 export type ImgproxyVideoUrlChain = VideoMethods &
-  BaseControl<
-    ImgproxyVideoUrlChain,
-    ImgproxyVideoOptions,
-    ImgproxyVideoOptionName,
-    { [K in ImgproxyVideoOptionName]: ImgproxyVideoArgsOf<K> }
-  > & {
-    /** Sets the output container (`@webm`, `.mp3`, `@png` for a waveform). */
-    extension(ext: string): ImgproxyVideoUrlChain;
+  BaseControl<ImgproxyVideoUrlChain, ImgproxyVideoOptions, ImgproxyVideoOptionName, VideoArgsTable> & {
+    /** Sets the output container (`@webm`, `.mp3`, `@png` for a waveform, `@m3u8`/`@mpd` for a stream). */
+    extension(ext: VideoContainer | (string & {})): ImgproxyVideoUrlChain;
   };
 
-class Chain {
-  readonly #cfg: ImgproxyUrlConfig;
-  readonly #endpoint: Endpoint;
-  readonly #source: string;
-  readonly #pipelines: OptionEntry[][] = [[]];
-  #encoding: SourceEncoding | undefined;
-  #ext: string | undefined;
-  #pdfPassword: string | undefined;
+/**
+ * A fluent native query dialect URL (`/q/?url=…`): the processing option
+ * methods write `o=`, `param()` writes a native key.
+ */
+export type QueryUrlChain = QueryProcessingMethods &
+  OptionControl<QueryUrlChain, ImgproxyProcessingOptions, ImgproxyProcessingOptionName, ProcessingArgsTable> & {
+    /** Appends a native key (`w`, `fit`, `g`, …), written before `o=`. */
+    param<K extends keyof QueryImageParams>(key: K, value: QueryValue): QueryUrlChain;
+    /** Starts the next chained pipeline inside `o=` (`/-/`). */
+    chain(): QueryUrlChain;
+    /** Sets the output format (a last `format=` key). */
+    extension(ext: string): QueryUrlChain;
+    /** Opens a password-protected PDF (`pdp=`). */
+    pdfPassword(password: string): QueryUrlChain;
+  };
 
-  constructor(cfg: ImgproxyUrlConfig, endpoint: Endpoint, source: string) {
-    this.#cfg = cfg;
-    this.#endpoint = endpoint;
-    this.#source = source;
+/** A fluent `/q/video` URL: one method per video option name and alias. */
+export type QueryVideoUrlChain = QueryVideoMethods &
+  OptionControl<QueryVideoUrlChain, ImgproxyVideoOptions, ImgproxyVideoOptionName, VideoArgsTable> & {
+    /** Sets the output container (a last `format=` key). */
+    extension(ext: VideoContainer | (string & {})): QueryVideoUrlChain;
+  };
+
+/** What a fluent chain collected; `run` turns it into a URL. */
+interface ChainState {
+  readonly source: string;
+  readonly pipelines: OptionEntry[][];
+  readonly params: [string, QueryValue][];
+  encoding: SourceEncoding | undefined;
+  ext: string | undefined;
+  pdfPassword: string | undefined;
+}
+
+type Run = (s: ChainState) => Promise<string>;
+
+class Chain {
+  readonly #run: Run;
+  readonly #s: ChainState;
+
+  constructor(run: Run, source: string) {
+    this.#run = run;
+    this.#s = { source, pipelines: [[]], params: [], encoding: undefined, ext: undefined, pdfPassword: undefined };
   }
 
   option(name: string, ...args: Arg[]): this {
-    this.#pipelines.at(-1)!.push([name, args]);
+    this.#s.pipelines.at(-1)!.push([name, args]);
     return this;
   }
 
   options(options: object): this {
-    this.#pipelines.at(-1)!.push(...entriesOf(options));
+    this.#s.pipelines.at(-1)!.push(...entriesOf(options));
+    return this;
+  }
+
+  param(key: string, value: QueryValue): this {
+    this.#s.params.push([key, value]);
     return this;
   }
 
   chain(): this {
-    this.#pipelines.push([]);
+    this.#s.pipelines.push([]);
     return this;
   }
 
   extension(ext: string): this {
-    this.#ext = ext;
+    this.#s.ext = ext;
     return this;
   }
 
   encoding(encoding: SourceEncoding): this {
-    this.#encoding = encoding;
+    this.#s.encoding = encoding;
     return this;
   }
 
   pdfPassword(password: string): this {
-    this.#pdfPassword = password;
+    this.#s.pdfPassword = password;
     return this;
   }
 
   build(): Promise<string> {
-    return build(this.#cfg, this.#endpoint, this.#pipelines, this.#source, this.#encoding, this.#ext, this.#pdfPassword);
+    return this.#run(this.#s);
   }
 }
 
@@ -407,6 +582,10 @@ const ProcessingChain = withOptionMethods(processingCatalogue.canonical.keys());
 const InfoChain = withOptionMethods(infoCatalogue.canonical.keys());
 const VideoChain = withOptionMethods(videoCatalogue.canonical.keys());
 
+function imgproxyRun(cfg: ImgproxyUrlConfig, endpoint: Endpoint): Run {
+  return (s) => build(cfg, endpoint, s.pipelines, s.source, s.encoding, s.ext, s.pdfPassword);
+}
+
 /** A URL builder bound to a config (base URL, keys, encoding). */
 export interface ImgproxyUrlBuilder {
   readonly config: ImgproxyUrlConfig;
@@ -422,6 +601,8 @@ export interface ImgproxyUrlBuilder {
   videoUrl(request: ImgproxyVideoUrlRequest): Promise<string>;
   /** Starts a fluent `/video` URL (video transformation, audio, waveform) for source. */
   video(source: string): ImgproxyVideoUrlChain;
+  /** Builds an HLS or DASH stream manifest URL (`/video/…@m3u8`, `@mpd`). */
+  streamUrl(request: ImgproxyStreamUrlRequest): Promise<string>;
 }
 
 /**
@@ -432,6 +613,7 @@ export interface ImgproxyUrlBuilder {
  * await img.url({ source: "s3://bucket/cat.jpg", options: { rs: ["fill", 300, 400], q: 80 }, extension: "webp" });
  * await img.from("s3://bucket/cat.jpg").resize("fill", 300, 400).quality(80).extension("webp").build();
  * await img.video("s3://bucket/talk.mov").resize("fill", 640, 360).start(12).duration(8).extension("webm").build();
+ * await img.streamUrl({ source: "s3://bucket/talk.mov", protocol: "hls", renditions: [360, 720] });
  * ```
  */
 export function imgproxy(config: ImgproxyUrlConfig = {}): ImgproxyUrlBuilder {
@@ -440,9 +622,57 @@ export function imgproxy(config: ImgproxyUrlConfig = {}): ImgproxyUrlBuilder {
     config: cfg,
     url: (request) => buildImgproxyUrl(request, cfg),
     infoUrl: (request) => buildImgproxyInfoUrl(request, cfg),
-    from: (source) => new ProcessingChain(cfg, "process", source) as unknown as ImgproxyUrlChain,
-    info: (source) => new InfoChain(cfg, "info", source) as unknown as ImgproxyInfoUrlChain,
+    from: (source) => new ProcessingChain(imgproxyRun(cfg, "process"), source) as unknown as ImgproxyUrlChain,
+    info: (source) => new InfoChain(imgproxyRun(cfg, "info"), source) as unknown as ImgproxyInfoUrlChain,
     videoUrl: (request) => buildImgproxyVideoUrl(request, cfg),
-    video: (source) => new VideoChain(cfg, "video", source) as unknown as ImgproxyVideoUrlChain,
+    video: (source) => new VideoChain(imgproxyRun(cfg, "video"), source) as unknown as ImgproxyVideoUrlChain,
+    streamUrl: (request) => buildImgproxyStreamUrl(request, cfg),
+  };
+}
+
+/** A query dialect URL builder bound to a config (base URL, mount, keys). */
+export interface QueryUrlBuilder {
+  readonly config: QueryUrlConfig;
+  /** Builds a native `/q/?url=…` URL from the plain object form. */
+  url(request: QueryUrlRequest): Promise<string>;
+  /** Starts a fluent native `/q/?url=…` URL for source. */
+  from(source: string): QueryUrlChain;
+  /** Builds a `/q/video` URL from the plain object form. */
+  videoUrl(request: QueryVideoUrlRequest): Promise<string>;
+  /** Starts a fluent `/q/video` URL for source. */
+  video(source: string): QueryVideoUrlChain;
+  /** Builds a `/q/video` HLS or DASH stream manifest URL. */
+  streamUrl(request: QueryStreamUrlRequest): Promise<string>;
+  /** Builds an imaginary endpoint URL (`/q/resize?url=…`). */
+  imaginaryUrl(request: ImaginaryUrlRequest): Promise<string>;
+}
+
+/**
+ * Returns a query dialect URL builder (URL-DIALECTS §4; the server needs
+ * XI_DIALECTS_QUERY_ENABLED=true). With `signing` every URL ends in an
+ * `xi_sig` over the path after the mount and the query.
+ *
+ * ```ts
+ * const q = queryUrls({ baseUrl: "https://img.example.com", signing: { key, salt } });
+ * await q.url({ source: "s3://bucket/cat.jpg", params: { w: 300, f: "webp" }, options: { bl: 2 } });
+ * // https://img.example.com/q/?url=s3://bucket/cat.jpg&w=300&f=webp&o=bl:2&xi_sig=…
+ * await q.video("s3://bucket/talk.mov").vs(1).vd(5).rs("fill", 640, 360).extension("webm").build();
+ * ```
+ */
+export function queryUrls(config: QueryUrlConfig = {}): QueryUrlBuilder {
+  const cfg = Object.freeze({ ...config });
+  const image: Run = (s) => buildQueryImage(cfg, s.pipelines, s.source, s.params, s.ext, s.pdfPassword);
+  const video: Run = (s) => {
+    if (s.pipelines.filter((p) => p.length > 0).length > 1) throw new TypeError("/q/video URLs have no chained pipelines");
+    return buildQueryVideo(cfg, s.pipelines.flat(), s.source, s.ext);
+  };
+  return {
+    config: cfg,
+    url: (request) => buildQueryUrl(request, cfg),
+    from: (source) => new ProcessingChain(image, source) as unknown as QueryUrlChain,
+    videoUrl: (request) => buildQueryVideoUrl(request, cfg),
+    video: (source) => new VideoChain(video, source) as unknown as QueryVideoUrlChain,
+    streamUrl: (request) => buildQueryStreamUrl(request, cfg),
+    imaginaryUrl: (request) => buildImaginaryUrl(request, cfg),
   };
 }
