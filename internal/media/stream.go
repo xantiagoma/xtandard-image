@@ -22,9 +22,11 @@ import (
 // StreamPart is what one stream transcode writes.
 type StreamPart struct {
 	// Track is a video rendition's name ("v0", …), or "" for the audio
-	// track (every audio segment at once).
+	// track.
 	Track string
-	// Segment is the video segment's number.
+	// Segment is the video segment's number, or for the audio the chunk's
+	// (WP-131: video.StreamLayout.AudioChunk; 0 when the track is one
+	// chunk).
 	Segment int
 	// CopyAudio is, for a video segment of an MPEG-TS stream (WP-131), the
 	// audio of the same segment as the audio track's CMAF init segment
@@ -103,8 +105,9 @@ func (s *Service) Layout(in *video.TranscodeInput, op *transform.VideoOp) (*vide
 }
 
 // Stream transcodes part of the stream op of src into fragmented MP4: a
-// video segment (its init segment and one fragment) or the audio track
-// (its init segment and one fragment per segment). Calls with the same key
+// video segment (its init segment and one fragment, or an MPEG-TS
+// segment) or a chunk of the audio track (its init segment and one
+// fragment per segment of the chunk). Calls with the same key
 // share one transcode, admitted and bounded like Transform's. The caller
 // releases the result's body. errs.KindNotFound for a part the stream does
 // not have. A call that joins a prefetch which then finds the pool busy
@@ -216,7 +219,7 @@ func (s *Service) streamPlan(op *transform.VideoOp, part StreamPart) planner {
 			if l.Audio == nil {
 				return nil, Result{}, errs.New(errs.KindNotFound, "media: the stream has no audio")
 			}
-			p, err = video.PlanAudioTrack(in, op, l, &s.cfg.Transcode)
+			p, err = video.PlanAudioChunk(in, op, l, part.Segment, &s.cfg.Transcode)
 			r.Output.Video = video.CodecNone
 		} else {
 			rd, ok := l.Rendition(part.Track)

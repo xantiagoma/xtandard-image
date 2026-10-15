@@ -101,6 +101,8 @@ func (c *Config) validateVideoTransform(v *validator) {
 	}
 	v.check(t.SegmentDuration >= time.Second && t.SegmentDuration <= 30*time.Second && t.SegmentDuration%time.Second == 0,
 		"video.transform.segment_duration", "must be whole seconds from 1s to 30s, got %s", t.SegmentDuration)
+	v.check(t.AudioChunk == 0 || (t.AudioChunk >= time.Second && t.AudioChunk <= time.Hour && t.AudioChunk%time.Second == 0),
+		"video.transform.audio_chunk", "must be 0 or whole seconds from 1s to 1h, got %s", t.AudioChunk)
 	v.between(t.PrefetchSegments, 0, 16, "video.transform.prefetch_segments")
 	v.check(t.StreamTTL >= time.Minute, "video.transform.stream_ttl", "must be at least 1m, got %s", t.StreamTTL)
 	for i, k := range t.StreamKeys {

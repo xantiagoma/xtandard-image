@@ -371,6 +371,19 @@ func TestStreamChainsAreNumeric(t *testing.T) {
 		t.Fatal(err)
 	}
 	chains = append(chains, a.Audio.Filters)
+	// Chunked audio (WP-131), with and without loudnorm (one chunk).
+	for _, ln := range []*transform.VideoLoudnorm{nil, op.Loudnorm} {
+		cop := *op
+		cop.Loudnorm = ln
+		lc := streamOf(t, exactLong(), &cop, gplCaps(), &StreamSettings{AudioChunk: 10 * time.Second})
+		for c := range lc.AudioChunks() {
+			p, err := PlanAudioChunk(exactLong(), &cop, lc, c, settings())
+			if err != nil {
+				t.Fatal(err)
+			}
+			chains = append(chains, p.Audio.Filters)
+		}
+	}
 	for _, chain := range chains {
 		if i := strings.IndexFunc(chain, func(r rune) bool { return !strings.ContainsRune(allowed, r) }); i >= 0 {
 			t.Errorf("chain %q has %q", chain, chain[i])

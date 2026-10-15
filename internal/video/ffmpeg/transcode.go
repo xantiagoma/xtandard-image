@@ -153,6 +153,9 @@ func openTranscoder(ctx context.Context, t *Transcoder, lim video.Limits) (*Tran
 		AudioDecodable: info.audio_decodable != 0,
 		SampleRate:     int(info.sample_rate),
 		Channels:       int(info.channels),
+		AudioTBNum:     int(info.audio_tb_num),
+		AudioTBDen:     int(info.audio_tb_den),
+		AudioStart:     float64(info.audio_start),
 	}
 	if err := checkInput(&t.in, lim); err != nil {
 		t.Close()
@@ -329,6 +332,7 @@ func params(cp *C.XiTxParams, p *video.TranscodePlan, pixels []*vips.Buffer) err
 		cp.frag_offset = C.int64_t(f.Offset90k)
 		cp.frag_seconds = C.int(f.Seconds)
 		cp.audio_priming = C.int(f.Priming)
+		cp.frag_first, cp.frag_end, cp.frag_final = C.int(f.First), C.int(f.End), C.int(f.Final)
 		if p.Video != nil {
 			cp.level = C.int(p.Video.Level)
 		}

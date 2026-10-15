@@ -682,6 +682,10 @@ type VideoTransform struct {
 	// SegmentDuration is the length of a stream's segments, whole seconds
 	// from 1 to 30.
 	SegmentDuration time.Duration `yaml:"segment_duration" env:"SEGMENT_DURATION"`
+	// AudioChunk is how much of a stream's audio one transcode encodes
+	// (WP-131), rounded down to whole segments: 0 or whole seconds up to
+	// 1h; 0 encodes each stream's audio track at once.
+	AudioChunk time.Duration `yaml:"audio_chunk" env:"AUDIO_CHUNK"`
 	// PrefetchSegments is how many segments after a requested one are
 	// transcoded ahead, only when the video pool has room for them at
 	// once (0 is off).
@@ -1056,7 +1060,7 @@ func Defaults() Config {
 				MaxOutputBytes: 256 << 20, MaxOutputDuration: 5 * time.Minute, MaxOutputPixels: 3840 * 2160,
 				MaxFPS: 60, UnsignedPolicy: UnsignedDeny, UnsignedFormats: []string{"mp4", "webm"},
 				ABRLadder:       []string{"1080:5000k", "720:2800k", "480:1400k", "360:800k", "240:400k"},
-				SegmentDuration: 6 * time.Second, PrefetchSegments: 2, StreamTTL: 12 * time.Hour,
+				SegmentDuration: 6 * time.Second, AudioChunk: 30 * time.Second, PrefetchSegments: 2, StreamTTL: 12 * time.Hour,
 				StreamCacheBytes: 256 << 20,
 				SpoolThreshold:   32 << 20, SpoolTTL: time.Minute,
 			},

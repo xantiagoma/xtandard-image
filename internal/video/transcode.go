@@ -379,6 +379,11 @@ type TranscodeInput struct {
 	AudioDecodable bool
 	SampleRate     int
 	Channels       int
+	// AudioTBNum / AudioTBDen is the audio stream's time base, and
+	// AudioStart its first timestamp in seconds (WP-131: chunked stream
+	// audio needs timestamps that name samples exactly, AudioExact).
+	AudioTBNum, AudioTBDen int
+	AudioStart             float64
 }
 
 // DisplaySize is the frame size with the sample aspect ratio applied,
@@ -486,6 +491,15 @@ type FragmentPlan struct {
 	// samples, which the shim checks.
 	Seconds int
 	Priming int
+	// First and End keep the audio packets of segments [First, End) only
+	// (End 0: to the end): a chunk of the track (WP-131) drops those of
+	// its pre-roll and post-roll.
+	First, End int
+	// Final is the stream's segment count when this output holds its last
+	// segment (0 otherwise): if no audio packet falls into that segment (a
+	// last segment shorter than a packet), the final packet goes there, so
+	// every segment has audio.
+	Final int
 }
 
 // WaveformPlan is a waveform picture (showwavespic) of the source's audio.

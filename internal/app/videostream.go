@@ -23,7 +23,7 @@ import (
 // (validated by config).
 func streamSettings(cfg *config.Config) video.StreamSettings {
 	t := &cfg.Video.Transform
-	s := video.StreamSettings{SegmentDuration: t.SegmentDuration}
+	s := video.StreamSettings{SegmentDuration: t.SegmentDuration, AudioChunk: t.AudioChunk}
 	for _, item := range t.ABRLadder {
 		if h, b, err := config.ParseABRRung(item); err == nil {
 			s.Ladder = append(s.Ladder, video.Rung{Height: h, Bitrate: b})

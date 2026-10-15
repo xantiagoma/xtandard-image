@@ -65,6 +65,10 @@ type StreamSettings struct {
 	// (XI_VIDEO_TRANSFORM_SEGMENT_DURATION, whole seconds); 0 is
 	// DefaultSegmentDuration.
 	SegmentDuration time.Duration
+	// AudioChunk is how much of a stream's audio one transcode encodes
+	// (XI_VIDEO_TRANSFORM_AUDIO_CHUNK, rounded down to whole segments, at
+	// least one); 0 is the whole track at once.
+	AudioChunk time.Duration
 }
 
 // DefaultSegmentDuration is the segment length when nothing sets one.
@@ -189,6 +193,11 @@ type AudioRendition struct {
 	Codecs string
 	// Priming is the encoder's priming in samples.
 	Priming int
+	// ChunkSegments is how many segments one audio transcode covers
+	// (WP-131): the configured chunk, or every segment when the track is
+	// encoded at once (sources with coarse timestamps, loudnorm, chunks
+	// off).
+	ChunkSegments int
 }
 
 // StreamLayout is a stream as the manifests describe it: everything known
@@ -341,6 +350,7 @@ func PlanStream(in *TranscodeInput, op *transform.VideoOp, out TranscodeOutput, 
 		if a.Bitrate == 0 {
 			a.Bitrate = AudioAAC.defaultBitrate(ch)
 		}
+		a.ChunkSegments = audioChunkSegments(in, op, l.SegmentSeconds, l.Segments, ss.AudioChunk.Seconds())
 		l.Audio = a
 	}
 	l.Offset90k = streamOffset(l, out.Video, num, den)
@@ -555,14 +565,16 @@ func PlanAudioTrack(in *TranscodeInput, op *transform.VideoOp, l *StreamLayout, 
 	out := l.Output
 	out.Muxer = "mp4" // CMAF, also for MPEG-TS streams, whose segments copy it in
 	p := &TranscodePlan{
-		Output: out,
-		Start:  l.Start,
-		End:    l.Start + l.Duration,
-
+		Output:   out,
+		Start:    l.Start,
+		End:      l.Start + l.Duration,
 		Duration: l.Duration,
 		MaxBytes: s.MaxOutputBytes,
 		Threads:  max(s.Threads, 1),
-		Fragment: &FragmentPlan{Discont: true, Seconds: l.SegmentSeconds, Priming: l.Audio.Priming, Offset90k: l.Offset90k},
+		Fragment: &FragmentPlan{
+			Discont: true, Seconds: l.SegmentSeconds, Priming: l.Audio.Priming, Offset90k: l.Offset90k,
+			Final: l.Segments,
+		},
 	}
 	// planAudio cuts [p.Start, p.End) (from op's start) and puts the
 	// stream's start at 0, as for a file.
