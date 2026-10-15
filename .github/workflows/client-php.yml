@@ -1,0 +1,69 @@
+name: client-php
+
+# The PHP client (clients/php, ADR 0013): php-cs-fixer, PHPStan at level max
+# and the static type checks, PHPUnit (conformance fixture, builder fixture,
+# shared vectors, unit tests, client tests against a stand-in server) on
+# every supported PHP, the licence check, and composer validate + archive.
+# Runs when the client, the shared spec and fixtures, or this workflow
+# change.
+#
+# DISABLED while Actions minutes are exhausted (docs/HANDOFF.md): the jobs
+# run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
+# Locally: `task -d clients/php ci`.
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - 'clients/php/**'
+      - 'clients/spec/**'
+      - 'testdata/urls/**'
+      - 'testdata/security/**'
+      - '.github/workflows/client-php.yml'
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-php-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: clients/php
+
+jobs:
+  test:
+    name: php ${{ matrix.php }}
+    if: vars.XI_CLIENTS_WORKFLOW == 'enabled'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4', '8.5']
+    env:
+      PHP_CS_FIXER_IGNORE_ENV: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: openssl
+          tools: composer:v2
+          coverage: none
+      - name: Composer cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ matrix.php }}-${{ hashFiles('clients/php/composer.lock') }}
+      - run: composer install --no-interaction --no-progress
+      - run: vendor/bin/php-cs-fixer check --diff
+      - run: vendor/bin/phpstan analyse --memory-limit=2G --no-progress
+      - run: php scripts/check-static-types.php
+      - run: vendor/bin/phpunit
+      - run: php scripts/check-licenses.php
+      - if: matrix.php == '8.5'
+        run: |
+          composer validate --strict --no-interaction
+          composer archive --format=zip --dir=dist --file=xtandard-image --no-interaction
