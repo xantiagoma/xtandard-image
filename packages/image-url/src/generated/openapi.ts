@@ -4494,6 +4494,16 @@ export interface operations {
                 preset?: string;
                 /** @description First page. */
                 page?: string;
+                /** @description Number of pages or frames to load. */
+                pages?: string;
+                /** @description Second of a video source to take the frame from. */
+                video_thumbnail_second?: string;
+                /** @description Alias of video_thumbnail_second. */
+                vts?: string;
+                /** @description Take the frame from the keyframe before the second (bool). */
+                video_thumbnail_keyframes?: string;
+                /** @description Alias of video_thumbnail_keyframes. */
+                vtk?: string;
                 /** @description Cache buster. */
                 cb?: string;
                 /** @description Content-Disposition file name. */
@@ -4502,6 +4512,10 @@ export interface operations {
                 attachment?: string;
                 /** @description Unix expiry. */
                 expires?: string;
+                /** @description Encrypted password of a password-protected PDF (the enc/ token format); signed URLs only. */
+                pdf_password?: string;
+                /** @description Alias of pdf_password. */
+                pdp?: string;
                 /** @description An imgproxy option path (rs:fill:300:200/g:sm), typed by ImgproxyProcessingOptions; makes the dialect complete. */
                 o?: string;
                 /** @description imaginary signature over the path and the sorted query. */
