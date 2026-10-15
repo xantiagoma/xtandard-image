@@ -2256,6 +2256,16 @@
     },
     "path": "/unsafe/sgd:60/plain/https://example.com/clip.mov"
   },
+  "segment_format_bad": {
+    "endpoint": "video",
+    "error": {
+      "field": "segment_format",
+      "kind": "invalid_url",
+      "public": "invalid segment_format: expected fmp4 (cmaf) or ts (mpegts)",
+      "status": 400
+    },
+    "path": "/unsafe/sgf:mp4/plain/https://example.com/clip.mov"
+  },
   "signed": {
     "config": "signed",
     "endpoint": "video",
@@ -2527,6 +2537,25 @@
     "signature": "unsigned",
     "source": "https://example.com/clip.mov"
   },
+  "stream_fmp4": {
+    "endpoint": "video",
+    "path": "/unsafe/st:hls/sgf:fmp4/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Stream": {}
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
   "stream_option": {
     "endpoint": "video",
     "path": "/unsafe/st:dash:240:720:480/plain/https://example.com/clip.mov",
@@ -2595,6 +2624,70 @@
       "status": 400
     },
     "path": "/unsafe/st:hls:1:2:3:4:5:6:7:8:9/plain/https://example.com/clip.mov"
+  },
+  "stream_ts": {
+    "endpoint": "video",
+    "path": "/unsafe/sgf:ts/sgd:4/plain/https://example.com/clip.mov@m3u8",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Stream": {
+          "Format": "ts",
+          "SegmentDuration": 4000000000
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "stream_ts_dash_rejected": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.stream.format: mpeg-ts segments are hls only",
+      "status": 400
+    },
+    "path": "/unsafe/sgf:ts/plain/https://example.com/clip.mov@mpd"
+  },
+  "stream_ts_long_name": {
+    "endpoint": "video",
+    "path": "/unsafe/stream:hls:360/segment_format:mpegts/plain/https://example.com/clip.mov",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Stream": {
+          "Format": "ts",
+          "Renditions": [
+            360
+          ]
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "stream_ts_vp9_rejected": {
+    "endpoint": "video",
+    "error": {
+      "kind": "invalid_url",
+      "public": "invalid video.stream.format: mpeg-ts segments are h264",
+      "status": 400
+    },
+    "path": "/unsafe/sgf:ts/vc:vp9/plain/https://example.com/clip.mov@m3u8"
   },
   "stream_webm_rejected": {
     "endpoint": "video",

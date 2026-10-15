@@ -21,6 +21,7 @@ import (
 // Reasons of the stream mapping.
 const (
 	reasonNoStream      = "applies to m3u8 and mpd output only"
+	reasonNoHLS         = "applies to m3u8 output only"
 	reasonStreamApplied = "not applied to streams"
 )
 
@@ -106,6 +107,22 @@ func (va *videoApplier) finishStream() error {
 			return err
 		}
 		op.SampleRate = 0
+	}
+	if va.hlsv3 {
+		// HLS version 3: MPEG-TS segments with H.264 (WP-131).
+		if st.Protocol != transform.StreamHLS {
+			if err := va.skip("fl_hlsv3", reasonNoHLS); err != nil {
+				return err
+			}
+		} else {
+			st.Format = transform.SegmentTS
+			if op.VideoCodec != transform.VideoCodecAuto && op.VideoCodec != transform.VideoCodecH264 {
+				if err := va.skip("vc", "mpeg-ts segments are h264"); err != nil {
+					return err
+				}
+				op.VideoCodec = transform.VideoCodecAuto
+			}
+		}
 	}
 	op.Container, op.AutoContainer, op.Stream = transform.VideoContainerMP4, false, st
 	return nil

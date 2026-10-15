@@ -10,9 +10,10 @@ import (
 // delivered as an HLS master playlist or a DASH MPD instead of a file. The
 // renditions come from the configured ABR ladder (or the subset a URL
 // names), never larger than the source; their segments are CMAF fragments
-// of a fixed grid, transcoded when a player asks for them. Everything else
-// in the VideoOp (the cut, the crop, rotation, frame rate, quality, the
-// audio options) applies to every rendition.
+// (or, for HLS, MPEG-TS, WP-131) of a fixed grid, transcoded when a player
+// asks for them. Everything else in the VideoOp (the cut, the crop,
+// rotation, frame rate, quality, the audio options) applies to every
+// rendition.
 
 // VideoStream asks for adaptive streaming.
 type VideoStream struct {
@@ -30,6 +31,10 @@ type VideoStream struct {
 	// SegmentDuration is the length of every segment but the last, in
 	// whole seconds; 0 is the configured one.
 	SegmentDuration time.Duration
+	// Format is the segments' container: CMAF (fragmented MP4, the zero
+	// value) or MPEG-TS (HLS only: H.264 and AAC muxed in each segment,
+	// for players older than HLS version 7; WP-131).
+	Format SegmentFormat
 }
 
 // Stream limits.
@@ -47,12 +52,21 @@ const (
 
 // validateStream checks the stream and what a stream cannot combine with:
 // the renditions decide the size and the bit rate, the output is CMAF
-// (MP4 with AAC), and overlays (placed in pixels of one output size) are
-// not drawn on streams.
+// (MP4 with AAC) or, for HLS, MPEG-TS with H.264 and AAC, and overlays
+// (placed in pixels of one output size) are not drawn on streams.
 func (o *VideoOp) validateStream(v *validator, f string) {
 	st := o.Stream
 	f += ".stream"
 	v.enum(f+".protocol", validEnum(st.Protocol, numStreamProtocols))
+	v.enum(f+".format", validEnum(st.Format, numSegmentFormats))
+	if st.Format == SegmentTS {
+		switch {
+		case st.Protocol != StreamHLS:
+			v.fail(f+".format", "mpeg-ts segments are hls only")
+		case o.VideoCodec != VideoCodecAuto && o.VideoCodec != VideoCodecH264:
+			v.fail(f+".format", "mpeg-ts segments are h264")
+		}
+	}
 	if len(st.Renditions) > MaxRenditions {
 		v.fail(f+".renditions", "at most "+strconv.Itoa(MaxRenditions)+" renditions")
 	}
@@ -126,4 +140,43 @@ func (p StreamProtocol) MarshalText() ([]byte, error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (p *StreamProtocol) UnmarshalText(b []byte) error {
 	return unmarshalEnum("StreamProtocol", p, b, numStreamProtocols)
+}
+
+// ---------------------------------------------------------------------------
+// SegmentFormat
+
+// SegmentFormat is the container of a stream's segments.
+type SegmentFormat uint8
+
+// SegmentFormat values. The zero value is CMAF.
+const (
+	SegmentCMAF SegmentFormat = iota // fragmented MP4 (.m4s): HLS 7 and DASH
+	SegmentTS                        // MPEG-TS (.ts): HLS 3, H.264 and AAC muxed
+)
+
+const numSegmentFormats = 2
+
+func (f SegmentFormat) String() string {
+	switch f {
+	case SegmentCMAF:
+		return "cmaf"
+	case SegmentTS:
+		return "ts"
+	}
+	return invalidEnum("SegmentFormat", uint8(f))
+}
+
+// ParseSegmentFormat parses a canonical SegmentFormat name.
+func ParseSegmentFormat(s string) (SegmentFormat, error) {
+	return parseEnum[SegmentFormat]("SegmentFormat", s, numSegmentFormats)
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (f SegmentFormat) MarshalText() ([]byte, error) {
+	return marshalEnum("SegmentFormat", f, numSegmentFormats)
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (f *SegmentFormat) UnmarshalText(b []byte) error {
+	return unmarshalEnum("SegmentFormat", f, b, numSegmentFormats)
 }

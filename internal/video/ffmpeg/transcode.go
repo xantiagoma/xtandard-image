@@ -62,6 +62,7 @@ func TranscodeCaps() video.TranscodeCaps {
 		AudioEffects: m&C.XI_TX_CAP_AEFFECTS != 0,
 		VideoFade:    m&C.XI_TX_CAP_VFADE != 0,
 		Waveform:     m&C.XI_TX_CAP_WAVEFORM != 0,
+		MuxMPEGTS:    m&C.XI_TX_CAP_MUX_MPEGTS != 0,
 	}
 }
 
@@ -202,6 +203,11 @@ func (t *Transcoder) RunSpill(ctx context.Context, p *video.TranscodePlan, spill
 	if err := params(&cp, p, pixels); err != nil {
 		return nil, 0, err
 	}
+	free, err := copyAudioParams(&cp, p)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer free()
 	cp.spill_fd = -1
 	if spill != nil && spillBytes > 0 {
 		cp.spill_fd = C.int(spill.Fd())
@@ -306,6 +312,14 @@ func params(cp *C.XiTxParams, p *video.TranscodePlan, pixels []*vips.Buffer) err
 	if p.Video == nil && p.Audio == nil {
 		return errs.New(errs.KindInternal, "ffmpeg: empty plan")
 	}
+	if ts := p.TS; ts != nil {
+		if p.Video == nil || p.Audio != nil || p.Fragment != nil || p.Output.Muxer != "mpegts" {
+			return errs.New(errs.KindInternal, "ffmpeg: an mpeg-ts segment takes one video stream and copied audio")
+		}
+		cp.ts = 1
+		cp.frag_offset = C.int64_t(ts.Offset90k)
+		cp.level = C.int(p.Video.Level)
+	}
 	if f := p.Fragment; f != nil {
 		if (p.Video == nil) == (p.Audio == nil) || p.Output.Muxer != "mp4" {
 			return errs.New(errs.KindInternal, "ffmpeg: fragmented output takes one stream in mp4")
@@ -322,7 +336,60 @@ func params(cp *C.XiTxParams, p *video.TranscodePlan, pixels []*vips.Buffer) err
 	return nil
 }
 
+// copyAudioParams copies the packets of an MPEG-TS segment's audio
+// (TSPlan.Audio) into C memory for the call; free releases it.
+func copyAudioParams(cp *C.XiTxParams, p *video.TranscodePlan) (free func(), err error) {
+	free = func() {}
+	if p.TS == nil || p.TS.Audio == nil {
+		return free, nil
+	}
+	a := p.TS.Audio
+	cp.copy_rate, cp.copy_channels = C.int(a.SampleRate), C.int(a.Channels)
+	n := len(a.Packets)
+	if n == 0 {
+		return free, nil
+	}
+	var total int64
+	for _, pk := range a.Packets {
+		if len(pk.Data) == 0 || len(pk.Data) > math.MaxInt32 || pk.PTS < 0 || pk.Duration < 0 {
+			return free, errs.New(errs.KindInternal, "ffmpeg: copied audio packet")
+		}
+		total += int64(len(pk.Data))
+	}
+	data := C.malloc(C.size_t(total))
+	sizes := C.malloc(C.size_t(n) * 4)
+	pts := C.malloc(C.size_t(n) * 8)
+	durs := C.malloc(C.size_t(n) * 8)
+	free = func() {
+		C.free(data)
+		C.free(sizes)
+		C.free(pts)
+		C.free(durs)
+	}
+	if data == nil || sizes == nil || pts == nil || durs == nil {
+		free()
+		return func() {}, errs.New(errs.KindInternal, "ffmpeg: out of memory")
+	}
+	buf := unsafe.Slice((*byte)(data), total)
+	sz := unsafe.Slice((*C.int32_t)(sizes), n)
+	ps := unsafe.Slice((*C.int64_t)(pts), n)
+	ds := unsafe.Slice((*C.int64_t)(durs), n)
+	off := 0
+	for i, pk := range a.Packets {
+		off += copy(buf[off:], pk.Data)
+		sz[i], ps[i], ds[i] = C.int32_t(len(pk.Data)), C.int64_t(pk.PTS), C.int64_t(pk.Duration)
+	}
+	cp.ncopy = C.int(n)
+	cp.copy_data = (*C.uint8_t)(data)
+	cp.copy_bytes = C.int64_t(total)
+	cp.copy_size = (*C.int32_t)(sizes)
+	cp.copy_pts = (*C.int64_t)(pts)
+	cp.copy_dur = (*C.int64_t)(durs)
+	return free, nil
+}
+
 // overlayParams copies the video stream's overlays and their pixels.
+
 // The pixels stay where they are (C memory owned by libvips): C copies
 // them into frames during the call.
 func overlayParams(cp *C.XiTxParams, v *video.VideoStreamPlan, pixels []*vips.Buffer) error {

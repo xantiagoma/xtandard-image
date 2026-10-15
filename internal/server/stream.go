@@ -71,6 +71,10 @@ type StreamService interface {
 type StreamPart struct {
 	Track   string
 	Segment int
+	// CopyAudio is, for an MPEG-TS video segment (WP-131), the audio
+	// track's init segment followed by the segment's audio fragment, whose
+	// packets the transcode copies in; nil otherwise.
+	CopyAudio cache.Buffer
 }
 
 // TicketSealer seals and opens the tickets of child URLs
@@ -287,6 +291,9 @@ func (s *Server) serveStreamChild(ctx context.Context, w http.ResponseWriter, r 
 		}
 		defer body.Release()
 		info.format = "m4s"
+		if part.TS {
+			info.format = "ts"
+		}
 		if s.cfg.DebugHeaders && info.cache != "" {
 			w.Header().Set(hdrXiCache, info.cache)
 		}
@@ -445,6 +452,17 @@ func (s *Server) streamSegment(ctx context.Context, r *http.Request, info *reque
 	if part.Kind == manifest.PartSegment && n >= l.Segments {
 		return nil, "", errNoPart()
 	}
+	if tsLayout := l.Format == transform.SegmentTS; tsLayout {
+		// An MPEG-TS stream has video segments only (its audio is in
+		// them); a CMAF stream has no .ts segments.
+		if part.Kind != manifest.PartSegment || !part.TS || part.Track == manifest.Audio {
+			return nil, "", errNoPart()
+		}
+		b, err := s.streamTS(ctx, r, info, j, part)
+		return b, manifest.ContentTypeTS, err
+	} else if part.TS {
+		return nil, "", errNoPart()
+	}
 	if part.Track == manifest.Audio {
 		if l.Audio == nil {
 			return nil, "", errNoPart()
@@ -490,6 +508,87 @@ func (s *Server) streamSegment(ctx context.Context, r *http.Request, info *reque
 	return media, manifest.ContentTypeMP4, nil
 }
 
+// streamTS returns MPEG-TS segment part of j's stream (WP-131): cached, or
+// transcoded with the audio of the same segment copied in from the audio
+// track (itself cached, or transcoded first as its own job), cached and
+// followed by the prefetch of the next segments. The caller releases the
+// body.
+func (s *Server) streamTS(ctx context.Context, r *http.Request, info *requestInfo, j *streamJob, part manifest.Part) (cache.Buffer, error) {
+	rd, ok := j.layout.Rendition(part.Track)
+	if !ok {
+		return nil, errNoPart()
+	}
+	info.width, info.height = rd.Width, rd.Height
+	key := s.streamKey(j, part.Path())
+	if b, ok := s.streamGet(ctx, key); ok {
+		info.cache = cacheHit
+		return b, nil
+	}
+	info.cache = cacheMiss
+	var audio cache.Buffer
+	if j.layout.Audio != nil {
+		var err error
+		if audio, err = s.tsAudio(ctx, r, info, j, part.Segment); err != nil {
+			return nil, err
+		}
+		defer audio.Release()
+	}
+	src, err := s.streamSource(ctx, r, info, j)
+	if err != nil {
+		return nil, err
+	}
+	t := s.stage(info, stageProcess)
+	res, err := s.deps.Stream.Stream(ctx, key, src, j.req.Video, StreamPart{Track: part.Track, Segment: part.Segment, CopyAudio: audio})
+	t.done()
+	if err != nil {
+		return nil, err
+	}
+	s.streamPut(ctx, key, res.Body, manifest.ContentTypeTS)
+	s.prefetch(j, part.Track, part.Segment)
+	return res.Body, nil
+}
+
+// tsAudio returns the audio of segment n of j's stream for an MPEG-TS
+// segment: the audio track's init segment followed by fragment n. The
+// caller releases it.
+func (s *Server) tsAudio(ctx context.Context, r *http.Request, info *requestInfo, j *streamJob, n int) (cache.Buffer, error) {
+	cacheState := info.cache
+	defer func() { info.cache = cacheState }() // the segment's, not the audio's
+	init, err := s.streamAudio(ctx, r, info, j, manifest.Part{Kind: manifest.PartInit, Track: manifest.Audio})
+	if err != nil {
+		return nil, err
+	}
+	defer init.Release()
+	frag, err := s.streamAudio(ctx, r, info, j, manifest.Part{Kind: manifest.PartSegment, Track: manifest.Audio, Segment: n})
+	if err != nil {
+		return nil, err
+	}
+	defer frag.Release()
+	return joinBuffers(init, frag), nil
+}
+
+// cachedTSAudio is tsAudio from the caches only (for a prefetch); ok is
+// false when the audio is not there.
+func (s *Server) cachedTSAudio(ctx context.Context, j *streamJob, n int) (cache.Buffer, bool) {
+	track, ok := s.streamGet(ctx, s.streamKey(j, manifest.Audio+"/track"))
+	if !ok {
+		return nil, false
+	}
+	defer track.Release()
+	f, err := fmp4.Parse(track.Bytes())
+	if err != nil || n >= len(f.Fragments) {
+		return nil, false
+	}
+	return cache.NewBuffer(append(bytes.Clone(f.Init), f.Fragments[n].Data...), nil), true
+}
+
+// joinBuffers copies a and b into one buffer.
+func joinBuffers(a, b cache.Buffer) cache.Buffer {
+	out := make([]byte, 0, len(a.Bytes())+len(b.Bytes()))
+	out = append(append(out, a.Bytes()...), b.Bytes()...)
+	return cache.NewBuffer(out, nil)
+}
+
 // storeSegment cuts a video segment's transcode into its init segment and
 // its media segment and caches both. The caller releases them.
 func (s *Server) storeSegment(ctx context.Context, j *streamJob, seg manifest.Part, body cache.Buffer) (initSeg, media cache.Buffer, err error) {
@@ -512,22 +611,41 @@ func (s *Server) prefetch(j *streamJob, track string, n int) {
 	}
 	// Detached from the request: the prefetch outlives it.
 	ctx := context.Background()
+	ts := j.layout.Format == transform.SegmentTS
 	for i := n + 1; i <= n+s.cfg.Stream.Prefetch && i < j.layout.Segments; i++ {
-		seg := manifest.Part{Kind: manifest.PartSegment, Track: track, Segment: i}
+		seg := manifest.Part{Kind: manifest.PartSegment, Track: track, Segment: i, TS: ts}
 		key := s.streamKey(j, seg.Path())
 		if s.streamHas(ctx, key) {
 			continue
 		}
-		if !s.deps.Stream.Prefetch(key, j.src.Buffer, j.req.Video, StreamPart{Track: track, Segment: i}, func(res *VideoResult) {
+		part := StreamPart{Track: track, Segment: i}
+		if ts && j.layout.Audio != nil {
+			// An MPEG-TS segment needs its audio: prefetched only when the
+			// audio track already has it.
+			audio, ok := s.cachedTSAudio(ctx, j, i)
+			if !ok {
+				return
+			}
+			part.CopyAudio = audio
+		}
+		started := s.deps.Stream.Prefetch(key, j.src.Buffer, j.req.Video, part, func(res *VideoResult) {
 			if res == nil {
 				return
 			}
 			defer res.Body.Release()
+			if ts {
+				s.streamPut(ctx, key, res.Body, manifest.ContentTypeTS)
+				return
+			}
 			if initSeg, media, err := s.storeSegment(ctx, j, seg, res.Body); err == nil {
 				initSeg.Release()
 				media.Release()
 			}
-		}) {
+		})
+		if part.CopyAudio != nil {
+			part.CopyAudio.Release() // the prefetch holds its own
+		}
+		if !started {
 			return // the pool is busy: the next ones would not start either
 		}
 	}

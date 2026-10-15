@@ -5,6 +5,8 @@
 // its samples (trun). The server cuts a transcode's output into the init
 // segment and media segments with it, and the tests check the timeline of
 // independently encoded segments and the codec strings of the manifests.
+// Samples lists a fragment's samples, so the encoded audio of a segment
+// can be copied into an MPEG-TS segment (WP-131).
 //
 // It reads; it never writes or rewrites boxes. Only the boxes on the paths
 // it needs are parsed, with every size checked against its parent.
@@ -29,6 +31,18 @@ type File struct {
 	Timescale uint32
 	// Fragments are the moof+mdat pairs in order.
 	Fragments []Fragment
+
+	// trex's default sample duration and size.
+	defDuration, defSize uint32
+}
+
+// Sample is one sample of a fragment.
+type Sample struct {
+	// Data is the sample's bytes; it aliases the parsed bytes.
+	Data []byte
+	// DecodeTime and Duration are in Timescale ticks.
+	DecodeTime uint64
+	Duration   uint32
 }
 
 // Fragment is one moof and the mdat after it.
@@ -153,11 +167,12 @@ func Parse(b []byte) (*File, error) {
 			i = j
 		}
 		if bx.typ == "moov" {
-			ts, def, err := track(b, bx)
+			ts, def, size, err := track(b, bx)
 			if err != nil {
 				return nil, err
 			}
 			f.Timescale, trexDuration = ts, def
+			f.defDuration, f.defSize = def, size
 		}
 	}
 	if moov == nil {
@@ -171,27 +186,30 @@ func Parse(b []byte) (*File, error) {
 }
 
 // track reads the track's timescale (mdhd) and default sample duration
-// (trex) from moov.
-func track(b []byte, moov box) (timescale, defDuration uint32, err error) {
+// and size (trex) from moov.
+func track(b []byte, moov box) (timescale, defDuration, defSize uint32, err error) {
 	mdhd, err := path(b, moov, "trak", "mdia", "mdhd")
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
 	off := mdhd.body + 12 // version/flags, creation and modification times (v0)
 	if mdhd.body < mdhd.end && b[mdhd.body] == 1 {
 		off = mdhd.body + 20
 	}
 	if off+4 > mdhd.end {
-		return 0, 0, fmt.Errorf("%w: short mdhd", ErrMalformed)
+		return 0, 0, 0, fmt.Errorf("%w: short mdhd", ErrMalformed)
 	}
 	timescale = binary.BigEndian.Uint32(b[off:])
 	if timescale == 0 {
-		return 0, 0, fmt.Errorf("%w: timescale 0", ErrMalformed)
+		return 0, 0, 0, fmt.Errorf("%w: timescale 0", ErrMalformed)
 	}
 	if trex, err := path(b, moov, "mvex", "trex"); err == nil && trex.body+16 <= trex.end {
 		defDuration = binary.BigEndian.Uint32(b[trex.body+12:])
+		if trex.body+20 <= trex.end {
+			defSize = binary.BigEndian.Uint32(b[trex.body+16:])
+		}
 	}
-	return timescale, defDuration, nil
+	return timescale, defDuration, defSize, nil
 }
 
 // trun and tfhd flags.
@@ -199,6 +217,7 @@ const (
 	tfhdBaseDataOffset  = 0x01
 	tfhdSampleDescIndex = 0x02
 	tfhdDefaultDuration = 0x08
+	tfhdDefaultSize     = 0x10
 	trunDataOffset      = 0x001
 	trunFirstFlags      = 0x004
 	trunDuration        = 0x100
@@ -295,6 +314,123 @@ func trun(b []byte, t box, def uint32, fr *Fragment) error {
 	}
 	fr.Samples += n
 	return nil
+}
+
+// Samples lists the samples of fragment i: their bytes in its mdat, decode
+// times and durations. Only what the transcoder writes is read: one traf
+// whose data offsets count from the moof (default-base-is-moof, no
+// base-data-offset). Errors wrap ErrMalformed.
+func (f *File) Samples(i int) ([]Sample, error) {
+	if i < 0 || i >= len(f.Fragments) {
+		return nil, fmt.Errorf("%w: no fragment %d", ErrMalformed, i)
+	}
+	fr := f.Fragments[i]
+	b := fr.Data
+	top, err := boxes(b, 0, len(b))
+	if err != nil {
+		return nil, err
+	}
+	if len(top) == 0 || top[0].typ != "moof" {
+		return nil, fmt.Errorf("%w: fragment without moof", ErrMalformed)
+	}
+	moof := top[0]
+	traf, err := path(b, moof, "traf")
+	if err != nil {
+		return nil, err
+	}
+	tfhd, err := path(b, traf, "tfhd")
+	if err != nil {
+		return nil, err
+	}
+	if tfhd.body+8 > tfhd.end {
+		return nil, fmt.Errorf("%w: short tfhd", ErrMalformed)
+	}
+	flags := binary.BigEndian.Uint32(b[tfhd.body:]) & 0xffffff
+	if flags&tfhdBaseDataOffset != 0 {
+		return nil, fmt.Errorf("%w: base data offset", ErrMalformed)
+	}
+	defDur, defSize := f.defDuration, f.defSize
+	off := tfhd.body + 8
+	if flags&tfhdSampleDescIndex != 0 {
+		off += 4
+	}
+	for _, d := range []struct {
+		flag uint32
+		v    *uint32
+	}{{tfhdDefaultDuration, &defDur}, {tfhdDefaultSize, &defSize}} {
+		if flags&d.flag == 0 {
+			continue
+		}
+		if off+4 > tfhd.end {
+			return nil, fmt.Errorf("%w: short tfhd", ErrMalformed)
+		}
+		*d.v = binary.BigEndian.Uint32(b[off:])
+		off += 4
+	}
+	list, err := boxes(b, traf.body, traf.end)
+	if err != nil {
+		return nil, err
+	}
+	var out []Sample
+	t := fr.DecodeTime
+	pos := int64(moof.end) // where the samples of a trun without a data offset start
+	for _, tr := range list {
+		if tr.typ != "trun" {
+			continue
+		}
+		if out, pos, t, err = trunSamples(b, tr, moof, defDur, defSize, pos, t, out); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}
+
+// trunSamples appends the samples of trun tr (data at pos unless it has
+// an offset from the moof) starting at decode time t.
+func trunSamples(b []byte, tr, moof box, defDur, defSize uint32, pos int64, t uint64, out []Sample) ([]Sample, int64, uint64, error) {
+	if tr.body+8 > tr.end {
+		return nil, 0, 0, fmt.Errorf("%w: short trun", ErrMalformed)
+	}
+	flags := binary.BigEndian.Uint32(b[tr.body:]) & 0xffffff
+	n := int(binary.BigEndian.Uint32(b[tr.body+4:]))
+	off := tr.body + 8
+	if flags&trunDataOffset != 0 {
+		if off+4 > tr.end {
+			return nil, 0, 0, fmt.Errorf("%w: short trun", ErrMalformed)
+		}
+		pos = int64(moof.start) + int64(int32(binary.BigEndian.Uint32(b[off:]))) //nolint:gosec // G115: a signed offset by definition
+		off += 4
+	}
+	if flags&trunFirstFlags != 0 {
+		off += 4
+	}
+	per := 0
+	for _, f := range []uint32{trunDuration, trunSize, trunFlags, trunCTS} {
+		if flags&f != 0 {
+			per += 4
+		}
+	}
+	if n < 0 || off > tr.end || (per > 0 && n > (tr.end-off)/per) || (per == 0 && n > len(b)) {
+		return nil, 0, 0, fmt.Errorf("%w: trun of %d samples", ErrMalformed, n)
+	}
+	for i := range n {
+		d, size := defDur, defSize
+		f := off + i*per
+		if flags&trunDuration != 0 {
+			d = binary.BigEndian.Uint32(b[f:])
+			f += 4
+		}
+		if flags&trunSize != 0 {
+			size = binary.BigEndian.Uint32(b[f:])
+		}
+		if pos < int64(moof.end) || pos+int64(size) > int64(len(b)) {
+			return nil, 0, 0, fmt.Errorf("%w: sample %d of %d bytes at %d", ErrMalformed, i, size, pos)
+		}
+		out = append(out, Sample{Data: b[pos : pos+int64(size)], DecodeTime: t, Duration: d})
+		pos += int64(size)
+		t += uint64(d)
+	}
+	return out, pos, t, nil
 }
 
 // CodecString returns the RFC 6381 codec string of the init segment's

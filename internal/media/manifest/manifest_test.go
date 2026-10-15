@@ -25,7 +25,7 @@ const base = "/_stream/TICKET/"
 func layouts(t *testing.T) map[string]*video.StreamLayout {
 	t.Helper()
 	caps := video.TranscodeCaps{
-		Video: video.EncoderSet{VP9: true, AV1: true, H264: true}, AAC: true, MuxMP4: true,
+		Video: video.EncoderSet{VP9: true, AV1: true, H264: true}, AAC: true, MuxMP4: true, MuxMPEGTS: true,
 		VideoFilters: true, AudioFilters: true,
 	}
 	hd := &video.TranscodeInput{
@@ -44,6 +44,7 @@ func layouts(t *testing.T) map[string]*video.StreamLayout {
 		"clip-av1-muted": {clip, transform.VideoOp{
 			VideoCodec: transform.VideoCodecAV1, Stream: &transform.VideoStream{SegmentDuration: 2 * time.Second},
 		}},
+		"hd-ts": {hd, transform.VideoOp{Stream: &transform.VideoStream{Format: transform.SegmentTS, Renditions: []int{720, 360}}}},
 	} {
 		o, err := caps.ResolveStream(&c.op)
 		if err != nil {
@@ -85,15 +86,19 @@ func TestManifests(t *testing.T) {
 			golden(t, name+".m3u8", HLSMaster(l, base))
 			for _, track := range append(tracks(l), Audio) {
 				pl, ok := HLSMedia(l, track)
-				if ok != (track != Audio || l.Audio != nil) {
+				if ok != (track != Audio || (l.Audio != nil && l.Format != transform.SegmentTS)) {
 					t.Fatalf("track %s: ok %v", track, ok)
 				}
 				if ok && track != "v2" && track != "v3" { // keep the goldens short
 					golden(t, name+"."+track+".m3u8", pl)
 				}
 			}
+			if l.Format == transform.SegmentTS {
+				return // HLS only
+			}
 			mpd := DASH(l, base)
 			golden(t, name+".mpd", mpd)
+
 			var doc struct {
 				XMLName xml.Name `xml:"MPD"`
 			}
@@ -137,7 +142,7 @@ func TestHLSMediaRules(t *testing.T) {
 					total += d
 				case line != "" && line[0] != '#':
 					p, err := ParsePart(line)
-					if err != nil || p.Kind != PartSegment || p.Track != track || p.Segment != n {
+					if err != nil || p.Kind != PartSegment || p.Track != track || p.Segment != n || p.TS != (l.Format == transform.SegmentTS) {
 						t.Errorf("%s %s: %q is %+v %v", name, track, line, p, err)
 					}
 					n++
@@ -170,6 +175,7 @@ func TestParsePart(t *testing.T) {
 		"a/init.mp4":   {Kind: PartInit, Track: "a"},
 		"v3/0.m4s":     {Kind: PartSegment, Track: "v3"},
 		"a/86400.m4s":  {Kind: PartSegment, Track: "a", Segment: 86400},
+		"v1/7.ts":      {Kind: PartSegment, Track: "v1", Segment: 7, TS: true},
 	}
 	for p, want := range good {
 		got, err := ParsePart(p)
@@ -183,6 +189,7 @@ func TestParsePart(t *testing.T) {
 	for _, p := range []string{
 		"", "v.m3u8", "v01.m3u8", "v123.m3u8", "x0.m3u8", "v0/init.mp", "v0/01.m4s", "v0/-1.m4s", "v0/86401.m4s",
 		"v0/1.m4s/x", "../v0.m3u8", "v0/.m4s", "a/b/1.m4s", "v0/1e3.m4s", "master.m3u", "v0/+1.m4s",
+		"a/1.ts", "v0/01.ts", "v0/.ts", "v0/init.ts", "v0/1.m4s.ts",
 	} {
 		if got, err := ParsePart(p); err == nil {
 			t.Errorf("ParsePart(%q) = %+v", p, got)
@@ -191,7 +198,7 @@ func TestParsePart(t *testing.T) {
 }
 
 func FuzzParsePart(f *testing.F) {
-	for _, s := range []string{"master.m3u8", "v0.m3u8", "a/init.mp4", "v7/123.m4s", "v0/01.m4s"} {
+	for _, s := range []string{"master.m3u8", "v0.m3u8", "a/init.mp4", "v7/123.m4s", "v0/01.m4s", "v1/9.ts"} {
 		f.Add(s)
 	}
 	f.Fuzz(func(t *testing.T, s string) {
@@ -211,6 +218,27 @@ func TestMasterNamesEverything(t *testing.T) {
 	for _, r := range l.Video {
 		if !bytes.Contains(m, []byte(base+r.Name+".m3u8")) || !bytes.Contains(m, []byte(`CODECS="`+r.Codecs+`,mp4a.40.2"`)) {
 			t.Fatalf("master playlist lacks %s:\n%s", r.Name, m)
+		}
+	}
+}
+
+// TestMasterTS: an MPEG-TS stream's master playlist is version 3 and
+// names the audio codec on every rendition (its segments carry the audio),
+// with no audio group, and its media playlists have no EXT-X-MAP.
+func TestMasterTS(t *testing.T) {
+	t.Parallel()
+	l := layouts(t)["hd-ts"]
+	m := string(HLSMaster(l, base))
+	if !strings.Contains(m, "#EXT-X-VERSION:3\n") || strings.Contains(m, "EXT-X-MEDIA") || strings.Contains(m, "AUDIO=") {
+		t.Fatalf("master playlist:\n%s", m)
+	}
+	for _, r := range l.Video {
+		if !strings.Contains(m, `CODECS="`+r.Codecs+`,mp4a.40.2"`) {
+			t.Fatalf("master playlist lacks %s's codecs:\n%s", r.Name, m)
+		}
+		pl, _ := HLSMedia(l, r.Name)
+		if bytes.Contains(pl, []byte("EXT-X-MAP")) || !bytes.Contains(pl, []byte("\n"+r.Name+"/0.ts\n")) {
+			t.Fatalf("media playlist:\n%s", pl)
 		}
 	}
 }

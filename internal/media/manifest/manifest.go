@@ -7,6 +7,7 @@
 //	<base>v<i>.m3u8, <base>a.m3u8            media playlists (video i, audio)
 //	<base>v<i>/init.mp4, <base>a/init.mp4    init segments
 //	<base>v<i>/<n>.m4s, <base>a/<n>.m4s      media segments (n from 0)
+//	<base>v<i>/<n>.ts                        MPEG-TS segments (WP-131)
 //
 // base is an absolute path ending in "/" ("/_stream/<ticket>/"); the
 // master playlist and the MPD name everything from it, the media
@@ -19,6 +20,10 @@
 // (isoff-live: one SegmentTemplate with $Number$ per adaptation set), its
 // presentationTimeOffset the stream's offset, so media time maps onto the
 // period's timeline exactly.
+//
+// HLS with MPEG-TS segments (WP-131): version 3 playlists for older
+// players, one EXT-X-STREAM-INF per video rendition whose segments carry
+// the audio too (CODECS names both), no EXT-X-MAP and no audio playlist.
 package manifest
 
 import (
@@ -28,6 +33,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/video"
 )
 
@@ -37,6 +43,7 @@ const (
 	ContentTypeDASH = "application/dash+xml"
 	ContentTypeMP4  = "video/mp4"
 	ContentTypeM4A  = "audio/mp4"
+	ContentTypeTS   = "video/mp2t"
 )
 
 // Audio is the audio track's name in child paths.
@@ -51,7 +58,7 @@ const (
 	PartMPD                      // manifest.mpd
 	PartPlaylist                 // <track>.m3u8
 	PartInit                     // <track>/init.mp4
-	PartSegment                  // <track>/<n>.m4s
+	PartSegment                  // <track>/<n>.m4s or <track>/<n>.ts
 )
 
 // Part is one file of a stream.
@@ -61,6 +68,8 @@ type Part struct {
 	Track string
 	// Segment is the media segment's number (PartSegment).
 	Segment int
+	// TS marks an MPEG-TS segment (<n>.ts) of a video rendition.
+	TS bool
 }
 
 // ErrNotFound is the error of a path that names no part.
@@ -88,6 +97,11 @@ func ParsePart(p string) (Part, error) {
 		return Part{Kind: PartInit, Track: track}, nil
 	}
 	num, ok := strings.CutSuffix(file, ".m4s")
+	ts := false
+	if !ok && track != Audio {
+		num, ts = strings.CutSuffix(file, ".ts")
+		ok = ts
+	}
 	if !ok || !decimal(num, 5) {
 		return Part{}, ErrNotFound
 	}
@@ -95,7 +109,7 @@ func ParsePart(p string) (Part, error) {
 	if err != nil || n > maxSegment {
 		return Part{}, ErrNotFound
 	}
-	return Part{Kind: PartSegment, Track: track, Segment: n}, nil
+	return Part{Kind: PartSegment, Track: track, Segment: n, TS: ts}, nil
 }
 
 // validTrack reports "a" or "v" followed by a decimal index without
@@ -133,17 +147,26 @@ func (p Part) Path() string {
 	case PartInit:
 		return p.Track + "/init.mp4"
 	default:
+		if p.TS {
+			return p.Track + "/" + strconv.Itoa(p.Segment) + ".ts"
+		}
 		return p.Track + "/" + strconv.Itoa(p.Segment) + ".m4s"
 	}
 }
+
+// ts reports a layout of MPEG-TS segments.
+func ts(l *video.StreamLayout) bool { return l.Format == transform.SegmentTS }
 
 // HLSMaster writes the master playlist of l, its media playlists under
 // base.
 func HLSMaster(l *video.StreamLayout, base string) []byte {
 	var b strings.Builder
-	b.WriteString("#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-INDEPENDENT-SEGMENTS\n")
+	b.WriteString("#EXTM3U\n#EXT-X-VERSION:" + version(l) + "\n#EXT-X-INDEPENDENT-SEGMENTS\n")
 	codecs := func(r *video.Rendition) string { return r.Codecs }
-	if a := l.Audio; a != nil {
+	if a := l.Audio; a != nil && ts(l) {
+		// MPEG-TS segments carry the audio: no rendition group.
+		codecs = func(r *video.Rendition) string { return r.Codecs + "," + a.Codecs }
+	} else if a != nil {
 		b.WriteString(`#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="audio",DEFAULT=YES,AUTOSELECT=YES,CHANNELS="` +
 			strconv.Itoa(a.Channels) + `",URI="` + base + Audio + `.m3u8"` + "\n")
 		codecs = func(r *video.Rendition) string { return r.Codecs + "," + a.Codecs }
@@ -153,7 +176,7 @@ func HLSMaster(l *video.StreamLayout, base string) []byte {
 		b.WriteString("#EXT-X-STREAM-INF:BANDWIDTH=" + strconv.FormatInt(l.Bandwidth(r), 10) +
 			`,CODECS="` + codecs(r) + `",RESOLUTION=` + strconv.Itoa(r.Width) + "x" + strconv.Itoa(r.Height) +
 			",FRAME-RATE=" + strconv.FormatFloat(r.FPS(), 'f', 3, 64))
-		if l.Audio != nil {
+		if l.Audio != nil && !ts(l) {
 			b.WriteString(`,AUDIO="audio"`)
 		}
 		b.WriteString("\n" + base + r.Name + ".m3u8\n")
@@ -165,6 +188,9 @@ func HLSMaster(l *video.StreamLayout, base string) []byte {
 // Audio), its init and media segments relative to it. ok is false for a
 // track l does not have.
 func HLSMedia(l *video.StreamLayout, track string) ([]byte, bool) {
+	if ts(l) && track == Audio {
+		return nil, false // in the video segments
+	}
 	durations, ok := segmentDurations(l, track)
 	if !ok {
 		return nil, false
@@ -174,14 +200,26 @@ func HLSMedia(l *video.StreamLayout, track string) ([]byte, bool) {
 		target = max(target, int(math.Round(d)))
 	}
 	var b strings.Builder
-	b.WriteString("#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-TARGETDURATION:" + strconv.Itoa(target) +
+	b.WriteString("#EXTM3U\n#EXT-X-VERSION:" + version(l) + "\n#EXT-X-TARGETDURATION:" + strconv.Itoa(target) +
 		"\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-INDEPENDENT-SEGMENTS\n")
-	b.WriteString(`#EXT-X-MAP:URI="` + track + `/init.mp4"` + "\n")
+	if !ts(l) {
+		b.WriteString(`#EXT-X-MAP:URI="` + track + `/init.mp4"` + "\n")
+	}
 	for n, d := range durations {
-		b.WriteString("#EXTINF:" + strconv.FormatFloat(d, 'f', 6, 64) + ",\n" + track + "/" + strconv.Itoa(n) + ".m4s\n")
+		seg := Part{Kind: PartSegment, Track: track, Segment: n, TS: ts(l)}
+		b.WriteString("#EXTINF:" + strconv.FormatFloat(d, 'f', 6, 64) + ",\n" + seg.Path() + "\n")
 	}
 	b.WriteString("#EXT-X-ENDLIST\n")
 	return []byte(b.String()), true
+}
+
+// version is the playlists' EXT-X-VERSION: 7 for CMAF (EXT-X-MAP in a
+// media playlist needs 6), 3 for MPEG-TS (decimal EXTINF durations).
+func version(l *video.StreamLayout) string {
+	if ts(l) {
+		return "3"
+	}
+	return "7"
 }
 
 // segmentDurations lists the segments' durations of track: a video

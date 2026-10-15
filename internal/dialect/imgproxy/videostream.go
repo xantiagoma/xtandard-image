@@ -18,6 +18,7 @@ import (
 //
 //	stream:%protocol[:%height...]       (st)  hls or dash, then the rungs
 //	segment_duration:%seconds           (sgd) whole seconds, 1–30
+//	segment_format:%format              (sgf) fmp4 (CMAF) or ts (MPEG-TS, HLS)
 //
 // The rungs are the short sides of the renditions (360 is 640×360 for a
 // landscape 16:9 source); none is the configured ladder
@@ -36,7 +37,14 @@ var streamProtocols = map[string]transform.StreamProtocol{
 const (
 	expStream          = "hls or dash, then rendition heights between 64 and 4320 (at most 8)"
 	expSegmentDuration = "whole seconds between 1 and 30"
+	expSegmentFormat   = "fmp4 (cmaf) or ts (mpegts)"
 )
+
+// segmentFormats are segment_format's values.
+var segmentFormats = map[string]transform.SegmentFormat{
+	"fmp4": transform.SegmentCMAF, "cmaf": transform.SegmentCMAF,
+	"ts": transform.SegmentTS, "mpegts": transform.SegmentTS,
+}
 
 // streamOp returns the request's stream, created on first use.
 func (st *state) streamOp() *transform.VideoStream {
@@ -94,5 +102,19 @@ func (st *state) videoSegmentDuration(args []string) error {
 		return dialect.InvalidArgument("segment_duration", args[0], expSegmentDuration)
 	}
 	st.streamOp().SegmentDuration = time.Duration(n) * time.Second
+	return nil
+}
+
+// videoSegmentFormat parses segment_format:%format (WP-131): MPEG-TS
+// segments for HLS players older than version 7, H.264 only.
+func (st *state) videoSegmentFormat(args []string) error {
+	if err := maxArgs("segment_format", args, 1); err != nil {
+		return err
+	}
+	f, ok := segmentFormats[strings.ToLower(args[0])]
+	if !ok {
+		return dialect.InvalidArgument("segment_format", args[0], expSegmentFormat)
+	}
+	st.streamOp().Format = f
 	return nil
 }

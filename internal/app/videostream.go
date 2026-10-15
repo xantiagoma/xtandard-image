@@ -86,7 +86,7 @@ func (m mediaStreamer) Layout(in *video.TranscodeInput, op *transform.VideoOp) (
 }
 
 func (m mediaStreamer) Stream(ctx context.Context, key string, src fetch.Buffer, op *transform.VideoOp, part server.StreamPart) (*server.VideoResult, error) {
-	r, err := m.s.Stream(ctx, key, src, op, media.StreamPart{Track: part.Track, Segment: part.Segment})
+	r, err := m.s.Stream(ctx, key, src, op, mediaPart(part))
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (m mediaStreamer) Stream(ctx context.Context, key string, src fetch.Buffer,
 }
 
 func (m mediaStreamer) Prefetch(key string, src fetch.Buffer, op *transform.VideoOp, part server.StreamPart, done func(*server.VideoResult)) bool {
-	return m.s.Prefetch(key, src, op, media.StreamPart{Track: part.Track, Segment: part.Segment}, func(r *media.Result) {
+	return m.s.Prefetch(key, src, op, mediaPart(part), func(r *media.Result) {
 		if r == nil {
 			done(nil)
 			return
@@ -106,4 +106,13 @@ func (m mediaStreamer) Prefetch(key string, src fetch.Buffer, op *transform.Vide
 // videoResult is the server's view of a media result.
 func videoResult(r *media.Result) *server.VideoResult {
 	return &server.VideoResult{Body: r.Body, Output: r.Output, Width: r.Width, Height: r.Height, Shared: r.Shared}
+}
+
+// mediaPart is the media view of a stream part.
+func mediaPart(p server.StreamPart) media.StreamPart {
+	mp := media.StreamPart{Track: p.Track, Segment: p.Segment}
+	if p.CopyAudio != nil {
+		mp.CopyAudio = p.CopyAudio
+	}
+	return mp
 }
