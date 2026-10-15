@@ -11,7 +11,7 @@ URL builders and HTTP clients for xtandard-image in the main backend languages (
 | Ruby | `clients/ruby` | RubyGems `xtandard-image` | planned (WP-137) |
 | Rust | `clients/rust` | crates.io `xtandard-image` | planned (WP-138) |
 | Java | `clients/java` | Maven Central `io.github.xantiagoma:xtandard-image` | planned (WP-139) |
-| .NET | `clients/dotnet` | NuGet `Xtandard.Image` | planned (WP-140) |
+| .NET | [`clients/dotnet`](dotnet) | NuGet `Xtandard.Image` (+ `Xtandard.Image.Extensions` for DI) | WP-140 |
 | Elixir | [`clients/elixir`](elixir) | Hex `xtandard_image` | WP-141 |
 
 Nothing is published yet. Every client is versioned in lockstep with the server's release tags (`0.x`).
