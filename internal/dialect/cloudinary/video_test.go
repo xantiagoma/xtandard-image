@@ -47,6 +47,13 @@ func TestVideo(t *testing.T) {
 		{name: "stream_trim_crop_codec", path: vu + "so_2,du_10/c_crop,w_640,h_360/vc_vp9,q_auto:good,fps_25/sp_hd/dog.m3u8"},
 		{name: "stream_resize_dropped", path: vu + "c_scale,w_640,br_1m/sp_hd/dog.m3u8"},
 		{name: "stream_resize_strict", cfg: "strict", path: vu + "c_scale,w_640/sp_hd/dog.m3u8"},
+		// fl_hlsv3: HLS version 3, MPEG-TS segments (WP-131).
+		{name: "stream_hlsv3", path: vu + "sp_hd/fl_hlsv3/dog.m3u8"},
+		{name: "stream_hlsv3_vp9", path: vu + "vc_vp9/sp_sd/fl_hlsv3/dog.m3u8"},
+		{name: "stream_hlsv3_mpd", path: vu + "fl_hlsv3/dog.mpd"},
+		{name: "stream_hlsv3_mpd_strict", cfg: "strict", path: vu + "fl_hlsv3/dog.mpd"},
+		{name: "hlsv3_file", path: vu + "fl_hlsv3/dog.mp4"},
+
 		{name: "stream_vc_none", path: vu + "vc_none/sp_hd/dog.m3u8"},
 		{name: "stream_fetch", path: "/demo/video/fetch/sp_sd/f_m3u8/https://example.com/dog.mp4"},
 		{name: "stream_signed", cfg: "signed", path: "/demo/video/upload/" + signPath(t, "sha1", "sp_hd/dog.m3u8") + "/sp_hd/dog.m3u8"},

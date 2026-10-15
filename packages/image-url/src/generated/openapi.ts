@@ -2308,6 +2308,15 @@ export interface components {
                 number
             ];
             /**
+             * @description Container of a stream's segments: fmp4 (CMAF, HLS 7 and DASH) or ts (MPEG-TS for older HLS players: HLS only, H.264 and AAC muxed in each segment; images with libx264 only). URL: `segment_format`, `sgf`; arguments format; default fmp4.
+             * @example [
+             *       "ts"
+             *     ]
+             */
+            segment_format?: [
+                "cmaf" | "fmp4" | "mpegts" | "ts"
+            ];
+            /**
              * @description Resize without the type. URL: `size`, `s`; arguments w:h:enlarge:extend; default 0:0:false:false.
              * @example [
              *       640,
@@ -4652,6 +4661,8 @@ export interface operations {
                 stream?: string;
                 /** @description Length of a stream's segments (1..30 s). Arguments joined by , or : (seconds). */
                 segment_duration?: string;
+                /** @description Container of a stream's segments: fmp4 (CMAF, HLS 7 and DASH) or ts (MPEG-TS for older HLS players: HLS only, H.264 and AAC muxed in each segment; images with libx264 only). Arguments joined by , or : (format). */
+                segment_format?: string;
                 /** @description Draw the output's running time (FFmpeg drawtext with a fixed expansion). Arguments joined by , or : (format:position:x:y:size:color:opacity). */
                 timecode?: string;
                 /** @description Expand video presets (XI_VIDEO_TRANSFORM_PRESETS) in place. Arguments joined by , or : (names…). */

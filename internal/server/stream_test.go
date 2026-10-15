@@ -109,13 +109,23 @@ func (f *fakeStream) result(op *transform.VideoOp, part StreamPart) *VideoResult
 		panic(err)
 	}
 	var data []byte
-	if part.Track == "" {
+	switch {
+	case op.Stream.Format == transform.SegmentTS && part.Track != "":
+		// An MPEG-TS segment: its name and the audio it was given.
+		n := -1
+		if part.CopyAudio != nil {
+			if f, err := fmp4.Parse(part.CopyAudio.Bytes()); err == nil && len(f.Fragments) == 1 {
+				n = int(f.Fragments[0].DecodeTime / 96000) //nolint:gosec // G115: a small test timeline
+			}
+		}
+		data = []byte("ts " + part.Track + "/" + strconv.Itoa(part.Segment) + " audio " + strconv.Itoa(n))
+	case part.Track == "":
 		starts := make([]uint64, 0, l.Segments)
 		for n := range l.Segments {
 			starts = append(starts, uint64(n*96000))
 		}
 		data = fakeFMP4("audio", 48000, starts...)
-	} else {
+	default:
 		data = fakeFMP4(part.Track+":"+strconv.Itoa(part.Segment), 90000, uint64(part.Segment)*180000) //nolint:gosec // G115: a segment number is not negative
 	}
 	b := &refBuf{b: data}
@@ -524,4 +534,64 @@ func TestStreamResultCache(t *testing.T) {
 		t.Fatalf("second instance probed %d times, transcoded %v", fs2.probes.Load(), fs2.streamed())
 	}
 	_ = fs1
+}
+
+// TestStreamTS: an MPEG-TS stream (WP-131) lists only video playlists of
+// .ts segments, each transcoded with the audio of its segment cut from
+// the audio track (transcoded once); CMAF parts are not served for it,
+// nor .ts parts for a CMAF stream; prefetches carry the cached audio.
+func TestStreamTS(t *testing.T) {
+	t.Parallel()
+	op := &transform.VideoOp{Stream: &transform.VideoStream{Format: transform.SegmentTS, Renditions: []int{360, 240}}}
+	h, fs := newStreamHarness(t, op, nil)
+	fs.caps.Video.H264, fs.caps.MuxMPEGTS = true, true
+	fs.prefetchOK = true
+	master := mustGet(t, h, videoPath, http.StatusOK)
+	list := uris(string(master.body))
+	if len(list) != 2 || !strings.HasSuffix(list[0], "/v0.m3u8") || !strings.Contains(string(master.body), "#EXT-X-VERSION:3") ||
+		!strings.Contains(string(master.body), `,mp4a.40.2"`) {
+		t.Fatalf("master playlist:\n%s", master.body)
+	}
+	base := list[0][:strings.LastIndexByte(list[0], '/')+1]
+	segs := uris(string(mustGet(t, h, list[1], http.StatusOK).body))
+	if len(segs) != 4 || segs[0] != "v1/0.ts" {
+		t.Fatalf("media playlist URIs %q", segs)
+	}
+	for _, n := range []int{0, 3} {
+		r := mustGet(t, h, base+"v1/"+strconv.Itoa(n)+".ts", http.StatusOK)
+		if ct := r.header.Get("Content-Type"); ct != "video/mp2t" || string(r.body) != "ts v1/"+strconv.Itoa(n)+" audio "+strconv.Itoa(n) {
+			t.Fatalf("segment %d: %q %q", n, ct, r.body)
+		}
+	}
+	// Segment 0 prefetched 1 and 2 with their audio; they are cached.
+	for _, n := range []string{"1", "2"} {
+		if r := mustGet(t, h, base+"v1/"+n+".ts", http.StatusOK); r.header.Get(hdrXiCache) != cacheHit || string(r.body) != "ts v1/"+n+" audio "+n {
+			t.Errorf("prefetched segment %s: %q %q", n, r.header.Get(hdrXiCache), r.body)
+		}
+	}
+	audio := 0
+	for _, p := range fs.streamed() {
+		if p.Track == "" {
+			audio++
+		}
+	}
+	if audio != 1 {
+		t.Fatalf("the audio track was transcoded %d times", audio)
+	}
+	for _, p := range []string{"v0/init.mp4", "v0/0.m4s", "a.m3u8", "a/init.mp4", "a/0.m4s", "a/0.ts"} {
+		mustGet(t, h, base+p, http.StatusNotFound)
+	}
+	h.checkReleased(t)
+	_ = h.streamCache.Close()
+	fs.checkBodies(t)
+
+	// A CMAF stream has no .ts segments.
+	hc, _ := newStreamHarness(t, hlsOp(), nil)
+	mustGet(t, hc, streamBase(t, hc)+"v0/0.ts", http.StatusNotFound)
+	// MPEG-TS needs H.264: refused before anything is fetched.
+	hf, _ := newStreamHarness(t, op, nil)
+	mustGet(t, hf, videoPath, http.StatusUnprocessableEntity)
+	if hf.f.calls.Load() != 0 {
+		t.Fatal("fetched before refusing")
+	}
 }

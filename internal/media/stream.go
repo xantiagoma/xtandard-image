@@ -5,6 +5,8 @@ import (
 	"errors"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/media/fmp4"
+
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/video"
 )
@@ -24,6 +26,12 @@ type StreamPart struct {
 	Track string
 	// Segment is the video segment's number.
 	Segment int
+	// CopyAudio is, for a video segment of an MPEG-TS stream (WP-131), the
+	// audio of the same segment as the audio track's CMAF init segment
+	// followed by its fragment: its packets are copied into the segment.
+	// nil for a muted stream or a source without audio. It is retained
+	// while the transcode needs it.
+	CopyAudio Buffer
 }
 
 // Audio reports the audio track.
@@ -84,14 +92,15 @@ func (s *Service) Layout(in *video.TranscodeInput, op *transform.VideoOp) (*vide
 // not have. A call that joins a prefetch which then finds the pool busy
 // starts the transcode itself.
 func (s *Service) Stream(ctx context.Context, key string, src Buffer, op *transform.VideoOp, part StreamPart) (*Result, error) {
+	in := []Buffer{src, part.CopyAudio}
 	for {
-		src.Retain()
+		retain(in)
 		res, shared, err := s.flights.do(ctx, key, func(ctx context.Context) (*Result, error) {
-			defer src.Release()
+			defer release(in)
 			return s.run(ctx, src, s.streamPlan(op, part), streamRun)
 		})
 		if shared {
-			src.Release()
+			release(in)
 		}
 		if shared && errors.Is(err, errBusy) {
 			continue // joined a prefetch that found the pool busy: run it ourselves
@@ -127,9 +136,10 @@ func (s *Service) Prefetch(key string, src Buffer, op *transform.VideoOp, part S
 	if !ok {
 		return false
 	}
-	src.Retain() // this prefetch's
+	in := []Buffer{src, part.CopyAudio}
+	retain(in) // this prefetch's
 	s.prefetches.Go(func() {
-		defer src.Release()
+		defer release(in)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		stop := make(chan struct{})
@@ -141,17 +151,17 @@ func (s *Service) Prefetch(key string, src Buffer, op *transform.VideoOp, part S
 			case <-stop:
 			}
 		}()
-		src.Retain() // the flight's, if this call starts it
+		retain(in) // the flight's, if this call starts it
 		// The ticket belongs to the flight's function when this call
 		// starts the flight (it leaves when the transcode ends), and is
 		// given back here when the call joins another one.
 		res, shared, err := s.flights.do(ctx, key, func(ctx context.Context) (*Result, error) {
-			defer src.Release()
+			defer release(in)
 			defer t.leave()
 			return s.execute(ctx, t, src, s.streamPlan(op, part), streamRun, true)
 		})
 		if shared {
-			src.Release()
+			release(in)
 			t.leave()
 		}
 		if err != nil {
@@ -190,7 +200,11 @@ func (s *Service) streamPlan(op *transform.VideoOp, part StreamPart) planner {
 				return nil, Result{}, errs.Newf(errs.KindNotFound, "media: the stream has no rendition %q", part.Track)
 			}
 			p, err = video.PlanSegment(in, op, l, rd, part.Segment, &s.cfg.Transcode)
-			r.Output.Audio = video.AudioNone
+			if err == nil && p.TS != nil {
+				err = copyAudio(p.TS, part.CopyAudio)
+			} else {
+				r.Output.Audio = video.AudioNone
+			}
 			r.Width, r.Height = rd.Width, rd.Height
 		}
 		if err != nil {
@@ -198,6 +212,33 @@ func (s *Service) streamPlan(op *transform.VideoOp, part StreamPart) planner {
 		}
 		return p, r, nil
 	}
+}
+
+// copyAudio gives an MPEG-TS segment the packets of its audio (the audio
+// track's init segment and the segment's fragment).
+func copyAudio(ts *video.TSPlan, audio Buffer) error {
+	if ts.Audio == nil {
+		return nil
+	}
+	if audio == nil {
+		return errs.New(errs.KindInternal, "media: an mpeg-ts segment without its audio")
+	}
+	f, err := fmp4.Parse(audio.Bytes())
+	if err != nil || len(f.Fragments) != 1 || int(f.Timescale) != ts.Audio.SampleRate {
+		return errs.Newf(errs.KindInternal, "media: the audio of an mpeg-ts segment: %v", err)
+	}
+	samples, err := f.Samples(0)
+	if err != nil {
+		return errs.Wrapf(errs.KindInternal, err, "media: the audio of an mpeg-ts segment")
+	}
+	pk := make([]video.AudioPacket, len(samples))
+	for i, s := range samples {
+		pk[i] = video.AudioPacket{Data: s.Data, PTS: int64(s.DecodeTime), Duration: int64(s.Duration)} //nolint:gosec // G115: 48 kHz ticks of a stream
+	}
+	a := *ts.Audio
+	a.Packets = pk
+	ts.Audio = &a
+	return nil
 }
 
 // streamRun transcodes a stream part.

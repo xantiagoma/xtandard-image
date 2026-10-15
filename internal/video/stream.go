@@ -80,8 +80,9 @@ const (
 
 // ResolveStream picks the codecs of a stream on this build: the video is
 // H.264 when libx264 is linked, else AV1 (or the VP9 or AV1 the request
-// names); the audio is AAC; both in CMAF (fragmented MP4).
-// errs.KindUnsupported (422) when the build cannot write it.
+// names); the audio is AAC; both in CMAF (fragmented MP4). MPEG-TS
+// segments (WP-131) are H.264 only, so only images with libx264 (gpl)
+// write them. errs.KindUnsupported (422) when the build cannot write it.
 func (c TranscodeCaps) ResolveStream(op *transform.VideoOp) (TranscodeOutput, error) {
 	if op == nil || op.Stream == nil {
 		return TranscodeOutput{}, errs.New(errs.KindInternal, "video: not a stream")
@@ -90,6 +91,14 @@ func (c TranscodeCaps) ResolveStream(op *transform.VideoOp) (TranscodeOutput, er
 		return TranscodeOutput{}, unsupported("adaptive streaming is not supported by this image")
 	}
 	out := TranscodeOutput{Container: transform.VideoContainerMP4, Muxer: "mp4", Audio: AudioAAC}
+	if op.Stream.Format == transform.SegmentTS {
+		// HLS carries H.264 (and HEVC, not streamed here) in MPEG-TS; AV1
+		// and VP9 have no HLS mapping into it.
+		if !c.MuxMPEGTS || !c.Video.H264 {
+			return TranscodeOutput{}, unsupported("mpeg-ts segments need h264, which this image cannot write")
+		}
+		out.Muxer, out.Video = "mpegts", CodecH264
+	}
 	switch op.Stream.Protocol {
 	case transform.StreamDASH:
 		out.ContentType, out.Ext = "application/dash+xml", ".mpd"
@@ -98,6 +107,9 @@ func (c TranscodeCaps) ResolveStream(op *transform.VideoOp) (TranscodeOutput, er
 	}
 	switch op.VideoCodec {
 	case transform.VideoCodecAuto:
+		if out.Video != CodecNone {
+			break // MPEG-TS: H.264
+		}
 		out.Video = CodecAV1
 		if c.Video.H264 {
 			out.Video = CodecH264
@@ -114,6 +126,9 @@ func (c TranscodeCaps) ResolveStream(op *transform.VideoOp) (TranscodeOutput, er
 	if !c.Video.Has(out.Video) {
 		return TranscodeOutput{}, unsupported(out.Video.String() + " video output is not supported by this image")
 	}
+	if out.Muxer == "mpegts" && out.Video != CodecH264 {
+		return TranscodeOutput{}, unsupported("mpeg-ts segments are h264")
+	}
 	if op.Mute {
 		out.Audio = AudioNone
 	} else if !c.AAC || !c.AudioFilters {
@@ -125,10 +140,16 @@ func (c TranscodeCaps) ResolveStream(op *transform.VideoOp) (TranscodeOutput, er
 	return out, nil
 }
 
-// Key identifies a stream's output in cache keys: the stream's codecs.
-// Its form differs from a file's ("s:" first), so a stream and a file of
-// the same request never share an entry.
-func (o TranscodeOutput) streamKey() string { return "s:" + o.Key() }
+// Key identifies a stream's output in cache keys: the stream's codecs
+// and, for MPEG-TS, the muxer. Its form differs from a file's ("s:"
+// first), so a stream and a file of the same request never share an
+// entry.
+func (o TranscodeOutput) streamKey() string {
+	if o.Muxer == "mpegts" {
+		return "s:ts:" + o.Key()
+	}
+	return "s:" + o.Key()
+}
 
 // StreamKey is TranscodeOutput.Key for a stream (ResolveStream's output).
 func (o TranscodeOutput) StreamKey() string { return o.streamKey() }
@@ -171,7 +192,10 @@ type AudioRendition struct {
 // from the probe before any segment is encoded.
 type StreamLayout struct {
 	Protocol transform.StreamProtocol
-	Output   TranscodeOutput
+	// Format is the segments' container: CMAF, or MPEG-TS (HLS only) whose
+	// video segments carry the audio of the same span (WP-131).
+	Format transform.SegmentFormat
+	Output TranscodeOutput
 	// Start is where the stream begins on the source's timeline in seconds
 	// (the container's start time and the request's cut included).
 	Start float64
@@ -202,11 +226,16 @@ func (l *StreamLayout) SegmentDuration(n int) float64 {
 
 // Bandwidth is the peak bit rate of rendition r with the audio, for the
 // manifests' BANDWIDTH and bandwidth: the video cap with a quarter of
-// headroom (encoder buffering and container overhead) plus the audio.
+// headroom (encoder buffering and container overhead) plus the audio,
+// and a tenth more for MPEG-TS packetisation (188-byte packets, PES
+// headers, PAT and PMT).
 func (l *StreamLayout) Bandwidth(r *Rendition) int64 {
 	b := r.Bitrate + r.Bitrate/4
 	if l.Audio != nil {
 		b += l.Audio.Bitrate + l.Audio.Bitrate/10
+	}
+	if l.Format == transform.SegmentTS {
+		b += b / 10
 	}
 	return b
 }
@@ -245,7 +274,7 @@ func PlanStream(in *TranscodeInput, op *transform.VideoOp, out TranscodeOutput, 
 	if in.Duration <= 0 {
 		return nil, unsupported("streaming needs a source of known duration")
 	}
-	l := &StreamLayout{Protocol: st.Protocol, Output: out}
+	l := &StreamLayout{Protocol: st.Protocol, Format: st.Format, Output: out}
 	start := op.Start.Seconds()
 	end := op.EndTime().Seconds()
 	if start >= in.Duration {
@@ -432,7 +461,9 @@ func ladder(st *transform.VideoStream, ss *StreamSettings, short int) []Rung {
 // PlanSegment plans segment n of rendition r of layout l: the frames of
 // [n·d, (n+1)·d) of the stream on its frame-rate grid, oriented, cropped
 // and scaled to the rendition, encoded on their own with a keyframe first
-// into a CMAF fragment placed on the stream's timeline.
+// into a CMAF fragment placed on the stream's timeline, or (MPEG-TS) into
+// a transport stream with the audio packets of the same span, which the
+// caller copies in from the audio track (TSPlan.Audio).
 func PlanSegment(in *TranscodeInput, op *transform.VideoOp, l *StreamLayout, r *Rendition, n int, s *TranscodeSettings) (*TranscodePlan, error) {
 	if n < 0 || n >= l.Segments {
 		return nil, errs.Newf(errs.KindNotFound, "video: segment %d of %d", n, l.Segments)
@@ -445,8 +476,16 @@ func PlanSegment(in *TranscodeInput, op *transform.VideoOp, l *StreamLayout, r *
 		Duration: l.Duration,
 		MaxBytes: s.MaxOutputBytes,
 		Threads:  max(s.Threads, 1),
-		Fragment: &FragmentPlan{Discont: true, Offset90k: l.Offset90k},
 	}
+	if l.Format == transform.SegmentTS {
+		p.TS = &TSPlan{Offset90k: l.Offset90k}
+		if a := l.Audio; a != nil {
+			p.TS.Audio = &CopyAudioPlan{SampleRate: a.SampleRate, Channels: a.Channels}
+		}
+	} else {
+		p.Fragment = &FragmentPlan{Discont: true, Offset90k: l.Offset90k}
+	}
+
 	var f filterChain
 	// The segment's frames on the source's timeline, then the stream's
 	// clock: 0 is the stream's start, for every segment alike.
@@ -499,10 +538,13 @@ func PlanAudioTrack(in *TranscodeInput, op *transform.VideoOp, l *StreamLayout, 
 	if l.Audio == nil {
 		return nil, errs.New(errs.KindNotFound, "video: the stream has no audio")
 	}
+	out := l.Output
+	out.Muxer = "mp4" // CMAF, also for MPEG-TS streams, whose segments copy it in
 	p := &TranscodePlan{
-		Output:   l.Output,
-		Start:    l.Start,
-		End:      l.Start + l.Duration,
+		Output: out,
+		Start:  l.Start,
+		End:    l.Start + l.Duration,
+
 		Duration: l.Duration,
 		MaxBytes: s.MaxOutputBytes,
 		Threads:  max(s.Threads, 1),

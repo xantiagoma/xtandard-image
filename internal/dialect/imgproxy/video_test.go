@@ -218,6 +218,14 @@ func TestVideo(t *testing.T) {
 		vid("stream_too_many_rungs", "st:hls:1:2:3:4:5:6:7:8:9"),
 		vid("segment_duration_bad", "sgd:1.5"),
 		vid("segment_duration_long", "sgd:60"),
+		// MPEG-TS segments (WP-131).
+		vidPath("stream_ts", "", "/unsafe/sgf:ts/sgd:4"+videoSrc+"@m3u8"),
+		vid("stream_ts_long_name", "stream:hls:360/segment_format:mpegts"),
+		vid("stream_fmp4", "st:hls/sgf:fmp4"),
+		vidPath("stream_ts_dash_rejected", "", "/unsafe/sgf:ts"+videoSrc+"@mpd"),
+		vidPath("stream_ts_vp9_rejected", "", "/unsafe/sgf:ts/vc:vp9"+videoSrc+"@m3u8"),
+		vid("segment_format_bad", "sgf:mp4"),
+
 		vidPath("stream_signed", "signed", "/VSIG/st:hls:360"+videoSrc+"@m3u8"),
 
 		// Rejected and unknown.

@@ -237,6 +237,23 @@ func TestPlanStreamErrors(t *testing.T) {
 			t.Errorf("%s: %v", tc.name, err)
 		}
 	}
+	// MPEG-TS segments are H.264: the full image (no libx264) and a build
+	// without the mpegts muxer refuse them.
+	for _, tc := range []struct {
+		name string
+		op   transform.VideoOp
+		caps TranscodeCaps
+	}{
+		{"ts on full", transform.VideoOp{}, fullCaps()},
+		{"ts without the muxer", transform.VideoOp{}, func() TranscodeCaps { c := gplCaps(); c.MuxMPEGTS = false; return c }()},
+		{"ts vp9", transform.VideoOp{VideoCodec: transform.VideoCodecVP9}, gplCaps()},
+	} {
+		op := tc.op
+		op.Stream = &transform.VideoStream{Format: transform.SegmentTS}
+		if _, err := tc.caps.ResolveStream(&op); errs.KindOf(err) != errs.KindUnsupported {
+			t.Errorf("%s: %v", tc.name, err)
+		}
+	}
 }
 
 // TestPlanSegment: a segment's chain cuts its window on the source's
@@ -284,7 +301,50 @@ func TestPlanSegment(t *testing.T) {
 	}
 }
 
+// TestPlanSegmentTS: an MPEG-TS segment is H.264 in the mpegts muxer with
+// the stream's offset and the audio to copy in; its cache key differs
+// from the CMAF stream's, and its bandwidth counts the TS overhead.
+func TestPlanSegmentTS(t *testing.T) {
+	t.Parallel()
+	op := &transform.VideoOp{Stream: &transform.VideoStream{Format: transform.SegmentTS, Renditions: []int{720, 360}}}
+	l := streamOf(t, long(), op, gplCaps(), &StreamSettings{})
+	if l.Format != transform.SegmentTS || l.Output.Muxer != "mpegts" || l.Output.Video != CodecH264 || l.Audio == nil {
+		t.Fatalf("layout %+v", l)
+	}
+	cmaf := *op
+	cmaf.Stream = &transform.VideoStream{Renditions: []int{720, 360}}
+	lc := streamOf(t, long(), &cmaf, gplCaps(), &StreamSettings{})
+	if l.Output.StreamKey() == lc.Output.StreamKey() || lc.Output.Muxer != "mp4" {
+		t.Fatalf("stream keys %q and %q", l.Output.StreamKey(), lc.Output.StreamKey())
+	}
+	if b, bc := l.Bandwidth(&l.Video[0]), lc.Bandwidth(&lc.Video[0]); b != bc+bc/10 {
+		t.Fatalf("ts bandwidth %d, cmaf %d", b, bc)
+	}
+	p, err := PlanSegment(long(), op, l, &l.Video[1], 2, settings())
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := &TranscodePlan{
+		Output: l.Output, Start: 12.1, End: 18.1, Duration: 61.5, MaxBytes: p.MaxBytes, Threads: 1,
+		TS: &TSPlan{Offset90k: l.Offset90k, Audio: &CopyAudioPlan{SampleRate: 48000, Channels: 2}},
+	}
+	if p.Fragment != nil || p.Video == nil || p.Video.Codec != CodecH264 || p.Video.Level != l.Video[1].Level || p.Audio != nil {
+		t.Fatalf("plan %+v video %+v", p, p.Video)
+	}
+	p.Video = nil
+	if d := cmp.Diff(want, p); d != "" {
+		t.Fatalf("plan (-want +got):\n%s", d)
+	}
+	muted := *op
+	muted.Mute = true
+	lm := streamOf(t, long(), &muted, gplCaps(), &StreamSettings{})
+	if p, err := PlanSegment(long(), &muted, lm, &lm.Video[0], 0, settings()); err != nil || p.TS == nil || p.TS.Audio != nil {
+		t.Fatalf("muted ts segment %+v %v", p, err)
+	}
+}
+
 // TestStreamChainsAreNumeric: the stream chains keep the filter-name and
+
 // number alphabet of every other chain (TestFilterChainsAreNumeric).
 func TestStreamChainsAreNumeric(t *testing.T) {
 	t.Parallel()

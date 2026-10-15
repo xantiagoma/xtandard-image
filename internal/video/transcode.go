@@ -147,6 +147,9 @@ type TranscodeCaps struct {
 	AAC, Opus, MP3, FLAC, PCM bool
 	// Muxers.
 	MuxMP4, MuxWebM, MuxOgg, MuxMP3, MuxFLAC, MuxWAV bool
+	// MuxMPEGTS reports the mpegts muxer (HLS MPEG-TS segments, WP-131).
+	MuxMPEGTS bool
+
 	// VideoFilters and AudioFilters report the libavfilter filters the
 	// plans use (scale, crop, pad, transpose, fps, trim, …; abuffer,
 	// atrim, aresample, aformat, …).
@@ -421,6 +424,43 @@ type TranscodePlan struct {
 	// one segment of a rendition (PlanSegment) or a whole audio track cut
 	// into segments (PlanAudioTrack). nil is a plain file.
 	Fragment *FragmentPlan
+	// TS makes the output an MPEG-TS segment of an HLS stream (WP-131):
+	// the video of one segment with the audio packets of the same span
+	// copied in. nil otherwise.
+	TS *TSPlan
+}
+
+// TSPlan is an MPEG-TS segment (ADR 0012 §6, WP-131). Each segment is
+// muxed on its own: it starts with a PAT and a PMT, its video with an IDR
+// frame, and the first packet of every PID carries the discontinuity
+// indicator, since continuity counters cannot run on across segments that
+// are encoded independently. Timestamps are the stream's (90 kHz, moved
+// by the stream offset like the CMAF segments'), so the joined segments
+// form one timeline.
+type TSPlan struct {
+	// Offset90k moves every video timestamp later by this many 1/90000 s
+	// (StreamLayout.Offset90k).
+	Offset90k int64
+	// Audio is the audio of the segment, copied in as encoded; nil for a
+	// muted stream or a source without audio.
+	Audio *CopyAudioPlan
+}
+
+// CopyAudioPlan is encoded AAC-LC copied into a transcode's output: the
+// packets of the stream's audio track that fall in the segment, with
+// their timestamps (the stream offset included).
+type CopyAudioPlan struct {
+	SampleRate, Channels int
+	// Packets are set before the transcode runs (they are data, not part
+	// of the plan): raw AAC frames in order.
+	Packets []AudioPacket
+}
+
+// AudioPacket is one encoded audio frame: Data is its bytes (read during
+// the transcode only); PTS and Duration are in 1/SampleRate s.
+type AudioPacket struct {
+	Data          []byte
+	PTS, Duration int64
 }
 
 // FragmentPlan is how a stream's output is fragmented (ADR 0012 §6).

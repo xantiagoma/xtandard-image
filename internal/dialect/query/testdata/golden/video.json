@@ -534,6 +534,27 @@
     "path": "/video",
     "query": "url=https://example.com/clip.mov\u0026f=mpd\u0026w=640"
   },
+  "stream_ts": {
+    "path": "/video",
+    "query": "url=https://example.com/clip.mov\u0026format=m3u8\u0026sgf=ts",
+    "request": {
+      "Dialect": "query",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Stream": {
+          "Format": "ts"
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
   "trailing_slash": {
     "path": "/video/",
     "query": "url=https://example.com/clip.mov\u0026w=320",
