@@ -75,12 +75,12 @@ from xtandard_image import AsyncClient, ByteRange, Client, ForbiddenError, Signi
 
 with Client("http://localhost:8080", signing=SigningKey(key=KEY, salt=SALT)) as xi:
     xi.healthz()
-    info = xi.info("s3://photos/cat.jpg", {"size": True, "format": True})   # typed InfoResponse
+    info = xi.info("s3://photos/cat.jpg", {"size": True, "format": True})  # typed InfoResponse
     res = xi.image("s3://photos/cat.jpg", {"w": 300}, accept="image/avif,image/webp")
     part = xi.video("s3://media/talk.mov", {"vd": 5}, extension="webm", range=ByteRange(0, 1023))
     head = xi.video("s3://media/talk.mov", {"vd": 5}, extension="webm", method="HEAD")
     manifest = xi.stream("s3://media/talk.mov", protocol="hls", renditions=[360, 720])
-    segment = xi.media(manifest.body.splitlines()[-1])   # ticket child URLs need no signing
+    segment = xi.media(manifest.body.splitlines()[-1])  # ticket child URLs need no signing
 
 async with AsyncClient("http://localhost:8080") as xi:
     info = await xi.info("s3://photos/cat.jpg", {"size": True})
