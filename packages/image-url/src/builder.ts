@@ -327,6 +327,8 @@ export function buildImgproxyVideoUrl(request: ImgproxyVideoUrlRequest, config: 
     request.source,
     request.sourceEncoding,
     request.extension,
+    // Not in the type: an untyped caller's password is refused, not dropped.
+    (request as { readonly pdfPassword?: string }).pdfPassword,
   );
 }
 

@@ -1,0 +1,48 @@
+name: clients
+
+# The official clients' shared foundation (ADR 0013): the generated files of
+# every client must match clients/spec/spec.json, and the generator
+# (clients/codegen, Bun) must typecheck. spec.json against the Go
+# catalogues and conformance.json against the server's parsers are Go tests
+# (TestClientSpec, TestConformanceFixture) that ci.yml runs, since it does
+# not ignore clients/spec/**. Each client has its own workflow
+# (client-<lang>.yml) for its native toolchain.
+#
+# DISABLED while Actions minutes are exhausted (docs/HANDOFF.md): the job
+# runs only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
+# Locally: `task clients:check`.
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - 'clients/**'
+      - 'package.json'
+      - 'bun.lock'
+      - 'tsconfig.base.json'
+      - 'LICENSE'
+      - '.github/workflows/clients.yml'
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clients-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  generate:
+    name: generated files are current (spec.json → clients/*)
+    if: vars.XI_CLIENTS_WORKFLOW == 'enabled'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bun clients/codegen/generate.ts --check
+      - run: packages/image-url/node_modules/.bin/tsc -p clients/codegen/tsconfig.json
+      - name: every client ships the root LICENSE
+        run: for f in clients/*/LICENSE; do cmp LICENSE "$f"; done

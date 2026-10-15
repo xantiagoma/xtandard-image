@@ -12,6 +12,7 @@
 #                           # -tags integration tests in the builder on their network
 #   task acceptance         # black-box M1 suite against the app image $XI_IMAGE (WP-39)
 #   task ts:check           # the TypeScript workspace (packages/*, ADR 0009); host Bun, no Docker
+#   task clients:check clients:test   # the official clients (clients/*, ADR 0013); host toolchains
 #
 # The host tasks (lint, test, ...) run the same scripts with the toolchain
 # pinned in .mise.toml (`mise install`); CI and the docker:* tasks are canonical.
@@ -279,3 +280,53 @@ tasks:
       - go test ./internal/dialect/imgproxy -run TestBuilderFixture -count=1 -update
       - cd packages/image-url && XI_UPDATE_FIXTURES=1 bun test src/fixture.test.ts
       - go test ./internal/dialect/imgproxy -run TestBuilderFixture -count=1
+
+  # ---- official clients (clients/*, ADR 0013) --------------------------------
+  # Language-neutral spec (clients/spec/spec.json, from the Go catalogues),
+  # conformance fixture (clients/spec/conformance.json) and one generator
+  # (clients/codegen, Bun) with an emitter per language. Each client has its
+  # own Taskfile with a `ci` task and pins its toolchain in its own mise.toml.
+
+  clients:spec:
+    desc: "Rewrite clients/spec/spec.json from the Go catalogues (internal/apidoc BuildClientSpec)"
+    cmds:
+      - go test ./internal/apidoc -run '^TestClientSpec$' -count=1 -update
+
+  clients:generate:
+    desc: "Regenerate every client's typed tables from clients/spec/spec.json; ONLY=python for one"
+    cmds:
+      - bun clients/codegen/generate.ts {{if .ONLY}}--only {{.ONLY}}{{end}}
+
+  clients:fixtures:
+    desc: "Fill clients/spec/conformance.json expect.value from the reference client (TypeScript), then check every URL with the server's parsers"
+    cmds:
+      - cd packages/image-url && XI_UPDATE_FIXTURES=1 bun test src/conformance.test.ts
+      - go test ./internal/dialect/imgproxy -run '^TestConformanceFixture$' -count=1
+
+  clients:check:
+    desc: "No drift: spec.json against the catalogues, generated files against spec.json, the codegen typechecks, every client's LICENSE is the root one"
+    cmds:
+      - go test ./internal/apidoc -run '^TestClientSpec' -count=1
+      - go test ./internal/dialect/imgproxy -run '^TestConformanceFixture$' -count=1
+      - bun clients/codegen/generate.ts --check
+      - bun install --frozen-lockfile
+      - packages/image-url/node_modules/.bin/tsc -p clients/codegen/tsconfig.json
+      - |
+        for f in clients/*/LICENSE; do
+          cmp -s LICENSE "$f" || { echo "$f differs from LICENSE" >&2; exit 1; }
+        done
+
+  clients:test:
+    desc: "Run `task ci` of every client present (clients/*/Taskfile.yml)"
+    cmds:
+      - |
+        for t in clients/*/Taskfile.yml; do
+          d="$(dirname "$t")"
+          echo "== $d"
+          task -d "$d" ci
+        done
+
+  clients:python:test:
+    desc: "The Python client: install, lint, types, tests, licences, build (clients/python)"
+    cmds:
+      - task -d clients/python ci

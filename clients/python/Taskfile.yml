@@ -1,0 +1,50 @@
+# https://taskfile.dev — the Python client's tasks (ADR 0013). The root
+# Taskfile runs `ci` here from `task clients:test` and
+# `task clients:python:test`; run them in this directory directly too
+# (`task ci`). Commands go through mise (this directory's mise.toml pins
+# Python and uv); CI sets XI_UV=uv after installing uv itself.
+version: "3"
+
+vars:
+  UV: '{{.XI_UV | default "mise exec -- uv"}}'
+
+tasks:
+  install:
+    desc: Install the pinned toolchain and the locked environment
+    cmds:
+      - mise install
+      - "{{.UV}} sync --locked"
+
+  test:
+    desc: "pytest: conformance fixture, builder fixture, vectors, unit and client tests (XI_SMOKE_URL=http://127.0.0.1:8080 adds the smoke test)"
+    cmds: ["{{.UV}} run --locked pytest {{.CLI_ARGS}}"]
+
+  lint:
+    desc: ruff lint and format check
+    cmds:
+      - "{{.UV}} run --locked ruff check ."
+      - "{{.UV}} run --locked ruff format --check ."
+
+  types:
+    desc: pyright and mypy, both strict
+    cmds:
+      - "{{.UV}} run --locked pyright"
+      - "{{.UV}} run --locked mypy"
+
+  licenses:
+    desc: Runtime dependency licences against the ADR 0006 allowlist
+    cmds: ["{{.UV}} run --locked python scripts/check_licenses.py"]
+
+  build:
+    desc: Build the sdist and wheel into dist/
+    cmds: ["{{.UV}} build --out-dir dist"]
+
+  ci:
+    desc: Everything CI runs for the Python client
+    cmds:
+      - "{{.UV}} sync --locked"
+      - task: lint
+      - task: types
+      - task: test
+      - task: licenses
+      - task: build

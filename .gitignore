@@ -29,3 +29,11 @@ node_modules/
 packages/*/dist/
 *.tsbuildinfo
 packages/*/LICENSE
+
+# Official clients (clients/*, ADR 0013)
+__pycache__/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+clients/*/dist/
