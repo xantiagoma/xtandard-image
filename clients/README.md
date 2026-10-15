@@ -6,7 +6,7 @@ URL builders and HTTP clients for xtandard-image in the main backend languages (
 |---|---|---|---|
 | TypeScript | [`packages/image-url`](../packages/image-url) | npm `@xtandard/image-url` | reference implementation (ADR 0009) |
 | Python | [`clients/python`](python) | PyPI `xtandard-image` | WP-134 |
-| Go | `clients/go` | `github.com/xantiagoma/xtandard-image/clients/go` | planned (WP-135) |
+| Go | [`clients/go`](go) | module `github.com/xantiagoma/xtandard-image/clients/go` (tags `clients/go/vX.Y.Z`) | WP-135 |
 | PHP | [`clients/php`](php) | Packagist `xtandard/image` | WP-136 |
 | Ruby | `clients/ruby` | RubyGems `xtandard-image` | planned (WP-137) |
 | Rust | `clients/rust` | crates.io `xtandard-image` | planned (WP-138) |
