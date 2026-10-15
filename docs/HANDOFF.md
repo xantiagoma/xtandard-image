@@ -318,3 +318,8 @@ owner has authorised merging PRs without review.
   `vars.XI_CLIENTS_WORKFLOW`). Next: fan out WP-135..141 in parallel; each agent follows
   `clients/README.md` "Adding a language" and touches only `clients/<lang>/`, its emitter, its
   workflow, its ROADMAP/README rows and `ci.yml` paths-ignore.
+- **Merged 2026-10-15:** WP-134 clients foundation + Python (#136; ADR 0013, `clients/spec`,
+  `clients/codegen`, `task clients:*`). **In flight:** WP-135 Go, WP-136 PHP, WP-137 Ruby, WP-138 Rust,
+  WP-139 Java, WP-140 .NET, WP-141 Elixir (`m6/wp-13N-<lang>-client`). Each touches only its client dir,
+  emitter and workflow plus one row in clients/README, ROADMAP, README and ci.yml paths-ignore: merge one
+  at a time, unioning those shared rows. Note: ADR numbering has two 0010s.
