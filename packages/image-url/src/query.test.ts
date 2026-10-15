@@ -102,6 +102,17 @@ describe("streams on /video", () => {
     );
   });
 
+  test("MPEG-TS segments are HLS only", async () => {
+    expect(await img.streamUrl({ source: "s3://m/talk.mov", protocol: "hls", segmentFormat: "ts" })).toBe(
+      "/video/insecure/sgf:ts/plain/s3://m/talk.mov@m3u8",
+    );
+    expect(await img.streamUrl({ source: "s3://m/talk.mov", protocol: "hls", segmentFormat: "fmp4" })).toBe(
+      "/video/insecure/plain/s3://m/talk.mov@m3u8",
+    );
+    expect(img.streamUrl({ source: "s3://m/talk.mov", protocol: "dash", segmentFormat: "ts" })).rejects.toThrow("HLS only");
+    expect(img.streamUrl({ source: "s3://m/talk.mov", protocol: "hls", options: { sgf: ["ts"] } })).rejects.toThrow("segmentFormat");
+  });
+
   test("stream options belong to the request fields", async () => {
     await expect(buildImgproxyStreamUrl({ source: "a", protocol: "hls", options: { st: "dash" } })).rejects.toThrow(TypeError);
     await expect(buildImgproxyStreamUrl({ source: "a", protocol: "hls", options: { f: "mp4" } })).rejects.toThrow(TypeError);
