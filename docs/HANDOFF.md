@@ -323,3 +323,8 @@ owner has authorised merging PRs without review.
   WP-139 Java, WP-140 .NET, WP-141 Elixir (`m6/wp-13N-<lang>-client`). Each touches only its client dir,
   emitter and workflow plus one row in clients/README, ROADMAP, README and ci.yml paths-ignore: merge one
   at a time, unioning those shared rows. Note: ADR numbering has two 0010s.
+- **M6 clients done (2026-10-15):** PHP #137, Go #138, Elixir #139, .NET #140, Rust #141, Java #142,
+  Ruby #143 (plus Python #136). On main `task clients:test` and `task clients:check` pass for all eight.
+  Not published to any registry (owner decision pending). Release notes: PHP needs a split repo for
+  Packagist; Go client tags `clients/go/vX.Y.Z`; client workflows run only when repo variable
+  `XI_CLIENTS_WORKFLOW=enabled`. Nothing in flight.
