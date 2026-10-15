@@ -73,6 +73,33 @@ func TestVideoStream(t *testing.T) {
 		t.Fatalf("mpd %q:\n%s", ct, mpd.Body)
 	}
 
+	// WP-131: MPEG-TS segments on the gpl image (422 elsewhere), and a
+	// timecode drawn on every segment of a stream.
+	ts := get(t, video("/st:hls:240/sgd:2/sgf:ts"+src+"@m3u8"), nil)
+	if os.Getenv("XI_ACC_FLAVOR") != "gpl" {
+		ts.wantStatus(t, http.StatusUnprocessableEntity)
+	} else {
+		ts.wantStatus(t, http.StatusOK)
+		if !bytes.Contains(ts.Body, []byte("#EXT-X-VERSION:3")) {
+			t.Fatalf("mpeg-ts master:\n%s", ts.Body)
+		}
+		pl := lines(ts.Body)[0]
+		media := get(t, app+pl, nil)
+		media.wantStatus(t, http.StatusOK)
+		parts := lines(media.Body)
+		r := get(t, app+pl[:strings.LastIndexByte(pl, '/')+1]+parts[1], nil)
+		r.wantStatus(t, http.StatusOK)
+		if ct := r.Header.Get("Content-Type"); ct != "video/mp2t" || len(r.Body)%188 != 0 || len(r.Body) == 0 || r.Body[0] != 0x47 {
+			t.Fatalf("%s: %q, %d bytes", parts[1], ct, len(r.Body))
+		}
+	}
+	tc := get(t, video("/st:hls:240/sgd:2/tc:hms:sowe:4:4:16"+src+"@m3u8"), nil)
+	tc.wantStatus(t, http.StatusOK)
+	tcpl := lines(tc.Body)[1]
+	tcMedia := get(t, app+tcpl, nil)
+	tcMedia.wantStatus(t, http.StatusOK)
+	get(t, app+tcpl[:strings.LastIndexByte(tcpl, '/')+1]+lines(tcMedia.Body)[2], nil).wantStatus(t, http.StatusOK)
+
 	seg := pls[1][:strings.LastIndexByte(pls[1], '/')+1] + "v0/1.m4s"
 	bad := []byte(seg)
 	bad[len("/_stream/")+3] ^= 1

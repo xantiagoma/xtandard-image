@@ -1236,6 +1236,49 @@ if (!vt) {
     });
     check(out.startsWith('ok'), `hls: master playlist, media playlist and first segment through the playground (${out})`);
   }
+  // h2. WP-131: an MPEG-TS stream (gpl only: disabled with its reason on
+  // full) lists version 3 playlists of .ts segments that carry their audio,
+  // and a stream with a logo and a timecode serves its segments.
+  for (const id of ['video-hls-ts', 'video-hls-overlay']) {
+    const rec = recipes.find((r) => r.id === id);
+    if (!rec) {
+      check(false, `recipe ${id} is listed`);
+      continue;
+    }
+    await page.evaluate((x) => { location.hash = x; }, '#tools/examples');
+    await page.waitForSelector('#tool-examples:not([hidden])');
+    const disabled = await page.evaluate((rid) => (document.querySelector(`button[data-recipe="${rid}"]`) as HTMLButtonElement | null)?.disabled ?? true, id);
+    if (disabled) {
+      notes.push(`${id} disabled on this image (needs ${rec.needs?.join(', ')})`);
+      check(id === 'video-hls-ts', `${id}: enabled`);
+      continue;
+    }
+    await page.click(`button[data-recipe="${id}"]`);
+    // The recipe's own URL (the previous one was a stream too).
+    await waitURL(id === 'video-hls-ts' ? 'segment_format:ts' : 'timecode:hms', 15000);
+    const out = await page.evaluate(async (ts) => {
+      const v = (document.getElementById('url-out') as HTMLTextAreaElement).value.trim();
+      const u = new URL(v, location.href);
+      const lines = (t: string) => t.split(/\r?\n/).map((l) => (l.match(/URI="([^"]+)"/)?.[1] ?? l).trim()).filter((l) => l && !l.startsWith('#'));
+      const master = await fetch(`api/render?u=${encodeURIComponent(u.pathname + u.search)}`);
+      const text = await master.text();
+      const variants = lines(text);
+      if (!master.ok || variants.length < 2 || !variants.every((x) => x.includes('/api/stream/'))) return `master ${master.status}: ${variants.join(' ')}`;
+      if (ts && (!text.includes('#EXT-X-VERSION:3') || text.includes('EXT-X-MEDIA') || !text.includes(',mp4a.40.2"'))) return `master is not an MPEG-TS one: ${text}`;
+      const pl = variants.find((x) => /\/v1\.m3u8$/.test(x))!;
+      const media = await fetch(pl);
+      const parts = lines(await media.text());
+      const dir = pl.slice(0, pl.lastIndexOf('/') + 1);
+      const segs = ts ? parts : parts.slice(1);
+      if (ts && !segs.every((p) => p.endsWith('.ts'))) return `media playlist ${parts.join(' ')}`;
+      const seg = await fetch(dir + segs[1]);
+      const b = new Uint8Array(await seg.arrayBuffer());
+      if (!seg.ok || b.length === 0) return `segment ${seg.status}`;
+      if (ts && (seg.headers.get('Content-Type') !== 'video/mp2t' || b.length % 188 !== 0 || b[0] !== 0x47)) return `segment ${seg.headers.get('Content-Type')} of ${b.length} bytes`;
+      return `ok: ${variants.length} playlists, ${segs.length} segments, segment 1 ${b.length} bytes`;
+    }, id === 'video-hls-ts');
+    check(out.startsWith('ok'), `${id}: master playlist, media playlist and a segment through the playground (${out})`);
+  }
   // g. 390 px: the panel fits without horizontal scroll.
   await page.evaluate((x) => { location.hash = x; }, hash('xi://local/video/clip-av1.mp4', [], 'imgproxy', { v: 1, x: 'webm' }));
   await page.setViewportSize({ width: 390, height: 844 });
