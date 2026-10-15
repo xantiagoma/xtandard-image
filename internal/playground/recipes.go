@@ -39,6 +39,10 @@ const (
 	// hides it where the image has no FFmpeg at all (slim) (WP-129).
 	NeedH264 = "h264"
 	NeedHEVC = "hevc"
+	// NeedVideoPresets: the demo's video presets (web, preview) are
+	// configured (VideoTransform.Presets, XI_VIDEO_TRANSFORM_PRESETS in
+	// compose.playground.yml; WP-132).
+	NeedVideoPresets = "video_presets"
 )
 
 // Recipe is one ready-made session of the Examples tool.
@@ -78,7 +82,7 @@ type Recipe struct {
 	// Tags are lower-case keywords for filtering.
 	Tags []string `json:"tags" doc:"Lower-case keywords for the filter."`
 	// Needs are server features the recipe needs (Need*).
-	Needs []string `json:"needs,omitempty" enum:"watermark,detection,video,video_transform,h264,hevc" doc:"Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output), video_transform (video transformations, XI_VIDEO_TRANSFORM_ENABLED), h264 and hevc (the gpl image's H.264 and HEVC encoders, video_transform.codecs)."`
+	Needs []string `json:"needs,omitempty" enum:"watermark,detection,video,video_transform,h264,hevc,video_presets" doc:"Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output), video_transform (video transformations, XI_VIDEO_TRANSFORM_ENABLED), h264 and hevc (the gpl image's H.264 and HEVC encoders, video_transform.codecs), video_presets (the demo's video presets web and preview, video_transform.presets)."`
 }
 
 // RecipeRaw is a hand-written path and query.

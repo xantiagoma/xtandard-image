@@ -88,8 +88,9 @@ func (c *Config) validateVideoTransform(v *validator) {
 	v.positive(int64(t.MaxOutputDuration), "video.transform.max_output_duration")
 	v.positive(t.MaxOutputPixels, "video.transform.max_output_pixels")
 	v.check(t.MaxFPS >= 1 && t.MaxFPS <= 240, "video.transform.max_fps", "must be between 1 and 240, got %g", t.MaxFPS)
-	v.check(t.UnsignedPolicy == UnsignedDeny || t.UnsignedPolicy == UnsignedAllow,
-		"video.transform.unsigned_policy", "must be deny or allow, got %q", t.UnsignedPolicy)
+	v.check(slices.Contains(unsignedPolicies(), t.UnsignedPolicy),
+		"video.transform.unsigned_policy", "must be deny, allow or restricted, got %q", t.UnsignedPolicy)
+	c.validateVideoPresets(v)
 	v.check(len(t.ABRLadder) >= 1 && len(t.ABRLadder) <= 8, "video.transform.abr_ladder", "must list 1 to 8 rungs, got %d", len(t.ABRLadder))
 	seen := map[int]bool{}
 	for _, item := range t.ABRLadder {
@@ -111,6 +112,63 @@ func (c *Config) validateVideoTransform(v *validator) {
 	v.nonNegative(int64(t.SpoolMaxBytes), "video.transform.spool_max_bytes")
 	v.check(t.SpoolMaxBytes == 0 || t.SpoolThreshold > 0, "video.transform.spool_max_bytes", "needs video.transform.spool_threshold > 0")
 	v.nonNegative(int64(t.SpoolTTL), "video.transform.spool_ttl")
+}
+
+// VideoUnsignedOptions are the values of
+// video.transform.unsigned_allowed_options.
+func VideoUnsignedOptions() []string { return []string{"start", "end", "duration", "mute"} }
+
+// videoContainers are the container names of video transformations
+// (transform.VideoContainer).
+func videoContainers() []string {
+	return []string{"mp4", "webm", "m4a", "mp3", "opus", "ogg", "flac", "wav", "png", "webp"}
+}
+
+// validateVideoPresets checks the video presets' syntax and the restricted
+// policy's settings. What each option means is checked when the dialects
+// are built (internal/app), which fails startup too.
+func (c *Config) validateVideoPresets(v *validator) {
+	t := c.Video.Transform
+	const path = "video.transform.presets"
+	sep := cmp.Or(c.Dialects.Imgproxy.ArgumentsSeparator, ":")
+	for _, name := range sortedKeys(t.Presets) {
+		v.check(name != "" && !strings.ContainsAny(name, "/,= ") && !strings.Contains(name, sep), path, "bad video preset name %q", name)
+		value := strings.TrimSpace(t.Presets[name])
+		if value == "" {
+			v.add(path, "video preset %q is empty", name)
+			continue
+		}
+		for seg := range strings.SplitSeq(value, "/") {
+			if seg == "-" {
+				v.add(path, "video preset %q: chained pipelines are not video options", name)
+				break
+			}
+			if opt, _, ok := strings.Cut(seg, sep); !ok || opt == "" {
+				v.add(path, "video preset %q: %q is not an option (name%sargs)", name, truncateValue(seg), sep)
+				break
+			}
+		}
+	}
+	for i, o := range t.UnsignedAllowedOptions {
+		v.check(slices.Contains(VideoUnsignedOptions(), o), fmt.Sprintf("video.transform.unsigned_allowed_options[%d]", i),
+			"%q is not one of %s", o, strings.Join(VideoUnsignedOptions(), ", "))
+	}
+	for i, f := range t.UnsignedFormats {
+		v.check(slices.Contains(videoContainers(), f), fmt.Sprintf("video.transform.unsigned_formats[%d]", i),
+			"%q is not one of %s", f, strings.Join(videoContainers(), ", "))
+	}
+	v.nonNegative(int64(t.UnsignedMaxDuration), "video.transform.unsigned_max_duration")
+	v.check(t.UnsignedPolicy != UnsignedRestricted || len(t.Presets) > 0, "video.transform.unsigned_policy",
+		"restricted needs video.transform.presets")
+}
+
+// truncateValue bounds a configuration value quoted in an error.
+func truncateValue(s string) string {
+	const maxQuoted = 64
+	if len(s) > maxQuoted {
+		return s[:maxQuoted]
+	}
+	return s
 }
 
 func (c *Config) validateServer(v *validator) {
@@ -920,6 +978,10 @@ func (c *Config) warnings() []string {
 	if c.Security.UnsignedPolicy == UnsignedRestricted {
 		w = append(w, fmt.Sprintf("unsigned requests are restricted to widths %v and qualities %v (security.unsigned_policy=restricted)",
 			[]int(c.Security.AllowedWidths), []int(c.Security.AllowedQualities)))
+	}
+	if t := &c.Video.Transform; t.Enabled && t.UnsignedPolicy == UnsignedRestricted {
+		w = append(w, fmt.Sprintf("unsigned video transformations are restricted to video presets %v with options %v and formats %v (video.transform.unsigned_policy=restricted)",
+			sortedKeys(t.Presets), t.UnsignedAllowedOptions, t.UnsignedFormats))
 	}
 	if c.Security.UnsignedPolicy == UnsignedAllow && len(c.Signing.Keys) == 0 {
 		w = append(w, "no signing keys and security.unsigned_policy=allow: any client can request any transformation")

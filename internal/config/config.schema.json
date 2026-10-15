@@ -3487,6 +3487,15 @@
               "title": "XI_VIDEO_TRANSFORM_PREFETCH_SEGMENTS",
               "type": "integer"
             },
+            "presets": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Video presets (WP-132): name=options,name2=options, the options in /video syntax (URL-DIALECTS §3.8: /-separated name:args with XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR, no chained pipelines, no delivery options such as cb, exp or fn); YAML video.transform.presets: {name: options}. URLs use them with pr:name (imgproxy /video, nested references allowed, expanded in place: later options override), preset=name (/q/video), t_name (Cloudinary video) and n-name (ImageKit video), where the presets are the starting point and the URL's own parameters override them. default applies to every video transformation first. Separate from XI_PRESETS (image options). Validated at startup: a bad name or syntax, an unknown option, a bad value or a preset over XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS, _MAX_FPS or _MAX_OUTPUT_DURATION fails it, naming the preset. Names (not contents) are listed in the playground's video meta. With XI_PRESETS_ONLY=true, /video URLs may hold video preset references only\n\nEnv: XI_VIDEO_TRANSFORM_PRESETS",
+              "markdownDescription": "Video presets (WP-132): `name=options,name2=options`, the options in `/video` syntax (URL-DIALECTS §3.8: `/`-separated `name:args` with `XI_DIALECTS_IMGPROXY_ARGUMENTS_SEPARATOR`, no chained pipelines, no delivery options such as `cb`, `exp` or `fn`); YAML `video.transform.presets: {name: options}`. URLs use them with `pr:name` (imgproxy `/video`, nested references allowed, expanded in place: later options override), `preset=name` (`/q/video`), `t_name` (Cloudinary video) and `n-name` (ImageKit video), where the presets are the starting point and the URL's own parameters override them. `default` applies to every video transformation first. Separate from `XI_PRESETS` (image options). Validated at startup: a bad name or syntax, an unknown option, a bad value or a preset over `XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS`, `_MAX_FPS` or `_MAX_OUTPUT_DURATION` fails it, naming the preset. Names (not contents) are listed in the playground's video meta. With `XI_PRESETS_ONLY=true`, `/video` URLs may hold video preset references only\n\nEnv: `XI_VIDEO_TRANSFORM_PRESETS`",
+              "title": "XI_VIDEO_TRANSFORM_PRESETS",
+              "type": "object"
+            },
             "queue": {
               "default": 8,
               "description": "Transcodes that may wait beyond XI_VIDEO_TRANSFORM_MAX_JOBS (a place is taken from the probe on); beyond it 429 + Retry-After\n\nEnv: XI_VIDEO_TRANSFORM_QUEUE",
@@ -3578,15 +3587,44 @@
               "markdownDescription": "Wall time of one transcode from admission (504). A video request's budget is `XI_FETCH_TIMEOUT` + queue timeout + this, instead of `XI_SERVER_REQUEST_TIMEOUT`, and its write deadline is extended to match\n\nEnv: `XI_VIDEO_TRANSFORM_TIMEOUT`",
               "title": "XI_VIDEO_TRANSFORM_TIMEOUT"
             },
+            "unsigned_allowed_options": {
+              "description": "Options an unsigned request may set besides its presets under the restricted video policy: any of start, end, duration, mute (by meaning, in every dialect: imgproxy vs, Cloudinary so_, ImageKit so-, …). Empty: none\n\nEnv: XI_VIDEO_TRANSFORM_UNSIGNED_ALLOWED_OPTIONS",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Options an unsigned request may set besides its presets under the `restricted` video policy: any of `start`, `end`, `duration`, `mute` (by meaning, in every dialect: imgproxy `vs`, Cloudinary `so_`, ImageKit `so-`, …). Empty: none\n\nEnv: `XI_VIDEO_TRANSFORM_UNSIGNED_ALLOWED_OPTIONS`",
+              "title": "XI_VIDEO_TRANSFORM_UNSIGNED_ALLOWED_OPTIONS",
+              "type": "array"
+            },
+            "unsigned_formats": {
+              "default": [
+                "mp4",
+                "webm"
+              ],
+              "description": "Containers an unsigned restricted request may pick (extension, format, f_, f-) instead of its presets' one, of the same kind: a file with video, audio only (m4a, mp3, opus, ogg, flac, wav) or a waveform picture (png, webp). An automatic choice (Cloudinary f_auto, ImageKit's default) needs mp4 and webm. Empty: the presets' container only\n\nEnv: XI_VIDEO_TRANSFORM_UNSIGNED_FORMATS",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Containers an unsigned `restricted` request may pick (extension, `format`, `f_`, `f-`) instead of its presets' one, of the same kind: a file with video, audio only (`m4a`, `mp3`, `opus`, `ogg`, `flac`, `wav`) or a waveform picture (`png`, `webp`). An automatic choice (Cloudinary `f_auto`, ImageKit's default) needs `mp4` and `webm`. Empty: the presets' container only\n\nEnv: `XI_VIDEO_TRANSFORM_UNSIGNED_FORMATS`",
+              "title": "XI_VIDEO_TRANSFORM_UNSIGNED_FORMATS",
+              "type": "array"
+            },
+            "unsigned_max_duration": {
+              "$ref": "#/$defs/duration",
+              "default": "0s",
+              "description": "When an unsigned restricted request changes the cut with start, end or duration, the cut must have a duration or an end and be at most this long (403 otherwise). 0: only XI_VIDEO_TRANSFORM_MAX_OUTPUT_DURATION\n\nEnv: XI_VIDEO_TRANSFORM_UNSIGNED_MAX_DURATION",
+              "markdownDescription": "When an unsigned `restricted` request changes the cut with `start`, `end` or `duration`, the cut must have a duration or an end and be at most this long (403 otherwise). `0`: only `XI_VIDEO_TRANSFORM_MAX_OUTPUT_DURATION`\n\nEnv: `XI_VIDEO_TRANSFORM_UNSIGNED_MAX_DURATION`",
+              "title": "XI_VIDEO_TRANSFORM_UNSIGNED_MAX_DURATION"
+            },
             "unsigned_policy": {
               "default": "deny",
-              "description": "Video transformations without a verified signature: deny answers them 403 even on a mount whose XI_SECURITY_UNSIGNED_POLICY (or dialect policy) is allow; allow leaves them to the mount's policy (a restricted mount still refuses them, its allowlists describe images). Only deny and allow are accepted (ADR 0012 §8)\n\nEnv: XI_VIDEO_TRANSFORM_UNSIGNED_POLICY",
+              "description": "Video transformations without a verified signature (ADR 0012 §8), in every dialect: deny answers them 403 even on a mount whose XI_SECURITY_UNSIGNED_POLICY (or dialect policy) is allow; allow leaves them to the mount's policy (a restricted mount still refuses them, its allowlists describe images); restricted (WP-132) admits only what the URL's video presets make of it, on any mount whose policy is not deny: the URL must name at least one of XI_VIDEO_TRANSFORM_PRESETS (imgproxy and query pr/preset, Cloudinary t_, ImageKit n-), and its result must equal what those presets alone give, except for XI_VIDEO_TRANSFORM_UNSIGNED_ALLOWED_OPTIONS and a container of XI_VIDEO_TRANSFORM_UNSIGNED_FORMATS. So HLS/DASH streams and raw:1 come only from presets; no cache buster or cache bypass, security options or chained pipelines. Refusals are 403 unsigned request not allowed (404 with XI_COMPAT_IMGPROXY_STATUS), before anything is fetched. restricted needs at least one video preset. Signed requests are never affected\n\nEnv: XI_VIDEO_TRANSFORM_UNSIGNED_POLICY",
               "enum": [
                 "allow",
                 "restricted",
                 "deny"
               ],
-              "markdownDescription": "Video transformations without a verified signature: `deny` answers them 403 even on a mount whose `XI_SECURITY_UNSIGNED_POLICY` (or dialect policy) is `allow`; `allow` leaves them to the mount's policy (a `restricted` mount still refuses them, its allowlists describe images). Only `deny` and `allow` are accepted (ADR 0012 §8)\n\nEnv: `XI_VIDEO_TRANSFORM_UNSIGNED_POLICY`",
+              "markdownDescription": "Video transformations without a verified signature (ADR 0012 §8), in every dialect: `deny` answers them 403 even on a mount whose `XI_SECURITY_UNSIGNED_POLICY` (or dialect policy) is `allow`; `allow` leaves them to the mount's policy (a `restricted` mount still refuses them, its allowlists describe images); `restricted` (WP-132) admits only what the URL's video presets make of it, on any mount whose policy is not `deny`: the URL must name at least one of `XI_VIDEO_TRANSFORM_PRESETS` (imgproxy and query `pr`/`preset`, Cloudinary `t_`, ImageKit `n-`), and its result must equal what those presets alone give, except for `XI_VIDEO_TRANSFORM_UNSIGNED_ALLOWED_OPTIONS` and a container of `XI_VIDEO_TRANSFORM_UNSIGNED_FORMATS`. So HLS/DASH streams and `raw:1` come only from presets; no cache buster or cache bypass, security options or chained pipelines. Refusals are 403 `unsigned request not allowed` (404 with `XI_COMPAT_IMGPROXY_STATUS`), before anything is fetched. `restricted` needs at least one video preset. Signed requests are never affected\n\nEnv: `XI_VIDEO_TRANSFORM_UNSIGNED_POLICY`",
               "title": "XI_VIDEO_TRANSFORM_UNSIGNED_POLICY",
               "type": "string"
             },

@@ -63,8 +63,12 @@ func buildPlayground(ctx context.Context, cfg *config.Config, rt *router.Router,
 			bases[name] = s.BaseURL
 		}
 	}
+	videoPresets, err := videoPresets(cfg)
+	if err != nil {
+		return playgroundHandlers{}, fmt.Errorf("playground: %w", err)
+	}
 	tr, err := translate.New(translate.Options{
-		Mounts: meta.Mounts, Separator: cfg.Dialects.Imgproxy.ArgumentsSeparator, Presets: presets, SourceBases: bases,
+		Mounts: meta.Mounts, Separator: cfg.Dialects.Imgproxy.ArgumentsSeparator, Presets: presets, VideoPresets: videoPresets, SourceBases: bases,
 	})
 	if err != nil {
 		return playgroundHandlers{}, fmt.Errorf("playground: %w", err)

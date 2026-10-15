@@ -72,3 +72,8 @@ services:
       XI_VIDEO_TRANSFORM_MAX_OUTPUT_PIXELS: "2073600"
       XI_VIDEO_TRANSFORM_MAX_OUTPUT_BYTES: 64MiB
       XI_VIDEO_TRANSFORM_MAX_FPS: "60"
+      # Video presets (WP-132) for the preset Examples: pr:preview (imgproxy, /q/video preset=),
+      # t_web (Cloudinary), n-web (ImageKit). The demo keeps the allow policy above; a public
+      # deployment without signing would set XI_VIDEO_TRANSFORM_UNSIGNED_POLICY=restricted to
+      # admit only these (plus XI_VIDEO_TRANSFORM_UNSIGNED_ALLOWED_OPTIONS).
+      XI_VIDEO_TRANSFORM_PRESETS: "web=resize:fit:854:0/quality:60/format:webm,preview=duration:2/resize:fit:320:0/mute:1/format:webm"
