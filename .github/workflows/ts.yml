@@ -22,6 +22,7 @@ on:
       - 'internal/apidoc/openapi.json'
       - 'testdata/urls/**'
       - 'testdata/security/**'
+      - 'clients/spec/conformance.json'
       - '.github/workflows/ts.yml'
   pull_request:
     paths: *paths

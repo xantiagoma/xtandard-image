@@ -64,6 +64,7 @@ No repo uses `clients/`. Every in-repo precedent uses `packages/*` behind a root
 - The repo root gains `package.json`, `bun.lock` and `tsconfig.base.json`. That is the usual cost of a mixed Go/TS repo (Grafana, terraform-cdk).
 - A Go-side change to `openapi.json` or to the shared fixtures now triggers the TS workflow, so a Go PR can fail on TS drift. That is intended.
 - Adding a package means adding a directory under `packages/`, with no workflow change. The `image-` prefix keeps names clear within the shared `@xtandard` scope.
+- Clients in other languages live in `clients/<lang>/` and share a spec, a conformance fixture and a generator; this package stays here and is their reference implementation ([ADR 0013](0013-official-clients.md)).
 - If a package ever needs its own cadence or maintainers (a large React component library, say), moving it to its own repo stays possible. The npm name does not change.
 
 ## Implementation notes (WP-84)

@@ -73,7 +73,7 @@ testdata/                     # golden images, fuzz corpora
 
 `docs/ARCHITECTURE.md` §3 is authoritative for package names and dependency direction; this list is a summary.
 
-Everything lives under `internal/`. Add `pkg/` only when an external consumer really exists, and write an ADR first. Keep one package per concept. Never create `util`, `common` or `helpers` packages. `main` stays under 100 lines and calls `run(ctx, args, getenv, stdout) error`.
+Everything lives under `internal/`. Add `pkg/` only when an external consumer really exists, and write an ADR first. The one exception so far is the official Go client, a separate module in `clients/go` that imports nothing from `internal/` (ADR 0013). Keep one package per concept. Never create `util`, `common` or `helpers` packages. `main` stays under 100 lines and calls `run(ctx, args, getenv, stdout) error`.
 
 ## 2. HTTP server
 
