@@ -1,0 +1,8 @@
+# Toolchain of the PHP client (ADR 0013): `mise install` in this directory.
+# mise builds PHP from source (asdf-php plugin; on macOS it needs the
+# Homebrew build dependencies such as icu4c, libxml2, openssl, pkg-config)
+# and installs Composer next to it. CI tests every supported PHP (8.2 to
+# 8.5) with shivammathur/setup-php; this pin is the development
+# interpreter.
+[tools]
+php = "8.5.11"

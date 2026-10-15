@@ -1,0 +1,59 @@
+{
+    "name": "xtandard/image",
+    "description": "Typed URL builder (imgproxy, /info, /video, HLS/DASH, query dialect), signing, source encryption and PSR-18 HTTP client for xtandard-image.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["xtandard-image", "imgproxy", "image", "url", "signing", "video", "hls", "psr-18"],
+    "homepage": "https://github.com/xantiagoma/xtandard-image/tree/main/clients/php#readme",
+    "authors": [
+        {"name": "Santiago Montoya"}
+    ],
+    "support": {
+        "issues": "https://github.com/xantiagoma/xtandard-image/issues",
+        "source": "https://github.com/xantiagoma/xtandard-image"
+    },
+    "require": {
+        "php": ">=8.2",
+        "ext-openssl": "*",
+        "psr/http-client": "^1.0",
+        "psr/http-factory": "^1.0",
+        "psr/http-message": "^1.1 || ^2.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "guzzlehttp/guzzle": "^7.9",
+        "phpstan/phpstan": "^2.1",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpunit/phpunit": "^11.5"
+    },
+    "suggest": {
+        "guzzlehttp/guzzle": "A PSR-18 client and PSR-17 factory (GuzzleHttp\\Client, GuzzleHttp\\Psr7\\HttpFactory)",
+        "symfony/http-client": "A PSR-18 client that is also a PSR-17 factory (Symfony\\Component\\HttpClient\\Psr18Client, with nyholm/psr7)"
+    },
+    "autoload": {
+        "psr-4": {
+            "Xtandard\\Image\\": ["src/", "generated/"]
+        },
+        "files": ["src/functions.php"]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Xtandard\\Image\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "platform": {
+            "php": "8.2.0"
+        },
+        "sort-packages": true,
+        "allow-plugins": false
+    },
+    "scripts": {
+        "lint": "php-cs-fixer check --diff",
+        "fix": "php-cs-fixer fix",
+        "analyse": "phpstan analyse --memory-limit=2G",
+        "test": "phpunit",
+        "licenses": "@php scripts/check-licenses.php"
+    }
+}

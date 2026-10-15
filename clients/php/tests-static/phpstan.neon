@@ -1,0 +1,10 @@
+# Configuration of scripts/check-static-types.php: tests-static/usage.php at
+# level max, where the expected errors are part of the test.
+parameters:
+    level: max
+    phpVersion:
+        min: 80200
+        max: 80599
+    paths:
+        - usage.php
+    tmpDir: ../.phpstan.cache/static
