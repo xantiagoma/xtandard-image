@@ -67,13 +67,18 @@ type builderCase struct {
 	// Pipelines holds, per chained pipeline, the option occurrences in URL
 	// order, each a single-key object {name as written: typed arguments}.
 	Pipelines [][]map[string][]any `json:"pipelines"`
-	URL       string               `json:"url,omitempty"`
-	URLShort  string               `json:"url_short,omitempty"`
+	// Query marks a case the TS builder also writes in the query dialect
+	// (/q/?url=…&o=… or /q/video?url=…&key=…, signed with xi_sig):
+	// QueryURL must parse to the same request (canonical key) as URL.
+	Query    bool   `json:"query,omitempty"`
+	URL      string `json:"url,omitempty"`
+	URLShort string `json:"url_short,omitempty"`
+	QueryURL string `json:"query_url,omitempty"`
 }
 
 func (c *builderCase) input() builderCase {
 	in := *c
-	in.URL, in.URLShort = "", ""
+	in.URL, in.URLShort, in.QueryURL = "", "", ""
 	return in
 }
 
@@ -230,6 +235,7 @@ func deriveBuilderCases(t *testing.T) []builderCase {
 			if c.Endpoint == "info" && c.Extension != "" {
 				continue // ignored by /info; the builder writes none there
 			}
+			c.Query = queryEligible(&c)
 			out = append(out, c)
 		}
 	}
@@ -322,7 +328,7 @@ func TestBuilderFixture(t *testing.T) {
 		}
 		for i := range derived {
 			if o, ok := old[derived[i].Name]; ok && cmp.Equal(jsonValue(t, o.input()), jsonValue(t, derived[i])) {
-				derived[i].URL, derived[i].URLShort = o.URL, o.URLShort
+				derived[i].URL, derived[i].URLShort, derived[i].QueryURL = o.URL, o.URLShort, o.QueryURL
 			}
 		}
 		writeBuilderFixture(t, &builderFixture{
@@ -350,6 +356,7 @@ func TestBuilderFixture(t *testing.T) {
 	}
 
 	f := getFixture(t)
+	qf := queryParsers(t)
 	idx := optionIndex()
 	goldens := map[string]map[string]json.RawMessage{}
 	for _, g := range builderGroups {
@@ -360,6 +367,9 @@ func TestBuilderFixture(t *testing.T) {
 			t.Parallel()
 			if c.URL == "" || c.URLShort == "" {
 				t.Fatalf("no TS-built url; %s", regen)
+			}
+			if c.Query {
+				checkQueryURL(t, f, qf, &c, regen)
 			}
 			group, name, _ := strings.Cut(c.Name, "/")
 			var want map[string]any

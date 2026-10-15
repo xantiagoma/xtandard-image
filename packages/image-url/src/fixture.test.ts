@@ -7,7 +7,7 @@
 // the URLs instead.
 
 import { describe, expect, test } from "bun:test";
-import { type Arg, type ImgproxyUrlConfig, imgproxy, type SourceEncoding } from "./index.ts";
+import { type Arg, type ImgproxyUrlConfig, imgproxy, queryUrls, type SourceEncoding } from "./index.ts";
 
 interface FixtureCase {
   name: string;
@@ -19,8 +19,10 @@ interface FixtureCase {
   source: string;
   extension?: string;
   pipelines: Record<string, Arg[]>[][];
+  query?: boolean;
   url?: string;
   url_short?: string;
+  query_url?: string;
 }
 
 interface Fixture {
@@ -76,6 +78,31 @@ async function fluent(c: FixtureCase, given: boolean): Promise<string> {
   return chain.build();
 }
 
+/**
+ * The query dialect form of a case (query: true): processing options in
+ * o=, /video options as keys, signed with xi_sig when the case is signed.
+ */
+async function queryForm(c: FixtureCase): Promise<string> {
+  const q = queryUrls(c.signature_size ? { signing: { ...fixture.signing, size: c.signature_size } } : {});
+  if (c.endpoint === "video") {
+    const chain = q.video(c.source);
+    for (const entry of c.pipelines.flat()) {
+      for (const [name, args] of Object.entries(entry)) (chain as unknown as Loose).option(name, ...args);
+    }
+    if (c.extension) chain.extension(c.extension);
+    return chain.build();
+  }
+  const chain = q.from(c.source);
+  c.pipelines.forEach((pl, i) => {
+    if (i > 0) chain.chain();
+    for (const entry of pl) {
+      for (const [name, args] of Object.entries(entry)) (chain as unknown as Loose).option(name, ...args);
+    }
+  });
+  if (c.extension) chain.extension(c.extension);
+  return chain.build();
+}
+
 /** Object form, when no pipeline repeats an option (objects cannot). */
 async function objectForm(c: FixtureCase, given: boolean): Promise<string | undefined> {
   const objects: Record<string, Arg[]>[] = [];
@@ -117,14 +144,17 @@ describe("imgproxy-builder.json", () => {
       const url = await fluent(c, true);
       const short = await fluent(c, false);
       const obj = await objectForm(c, true);
+      const query = c.query ? await queryForm(c) : undefined;
       if (obj !== undefined) expect(obj).toBe(url);
       if (update) {
         c.url = url;
         c.url_short = short;
+        if (query !== undefined) c.query_url = query;
         return;
       }
       expect(url).toBe(c.url!);
       expect(short).toBe(c.url_short!);
+      if (query !== undefined) expect(query).toBe(c.query_url!);
     });
   }
 });

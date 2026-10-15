@@ -179,6 +179,10 @@ func TestLaterOptions(t *testing.T) {
 		opt("format_best", "f:best/aq:dssim"),
 		// preserve_hdr / ph, enforce_thumbnail / eth (M2), page / pg, pages / pgs
 		opt("hdr_thumbnail_pages", "ph:1/eth:1/pg:1/pgs:2"),
+		// gain_map / gm (M4, WP-104)
+		opt("gain_map", "gain_map:hdr"),
+		opt("gm_sdr", "gm:sdr/ph:1"),
+		opt("gm_bad", "gm:on"),
 		// video_thumbnail_second / vts, video_thumbnail_keyframes / vtk (M3)
 		opt("video_thumbnail_second", "video_thumbnail_second:5"),
 		opt("vts_fraction", "vts:2.5"),
