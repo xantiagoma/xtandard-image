@@ -11690,6 +11690,46 @@
             }
           },
           {
+            "description": "Number of pages or frames to load.",
+            "in": "query",
+            "name": "pages",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Second of a video source to take the frame from.",
+            "in": "query",
+            "name": "video_thumbnail_second",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Alias of video_thumbnail_second.",
+            "in": "query",
+            "name": "vts",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Take the frame from the keyframe before the second (bool).",
+            "in": "query",
+            "name": "video_thumbnail_keyframes",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Alias of video_thumbnail_keyframes.",
+            "in": "query",
+            "name": "vtk",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "Cache buster.",
             "in": "query",
             "name": "cb",
@@ -11717,6 +11757,22 @@
             "description": "Unix expiry.",
             "in": "query",
             "name": "expires",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Encrypted password of a password-protected PDF (the enc/ token format); signed URLs only.",
+            "in": "query",
+            "name": "pdf_password",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Alias of pdf_password.",
+            "in": "query",
+            "name": "pdp",
             "schema": {
               "type": "string"
             }
