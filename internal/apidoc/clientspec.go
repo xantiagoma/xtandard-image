@@ -513,6 +513,7 @@ func specSigning() SpecSigning {
 }
 
 func specEncryption(pdp *imgproxy.Option) SpecEncryption {
+	//nolint:gosec // G101: documentation of the token format, no credential
 	return SpecEncryption{
 		Cipher:               "AES-CBC, PKCS#7 padding",
 		KeySizes:             []int{16, 24, 32},

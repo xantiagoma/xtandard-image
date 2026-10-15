@@ -17,7 +17,6 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/query"
 	"github.com/xantiagoma/xtandard-image/internal/security/sign"
-	"github.com/xantiagoma/xtandard-image/internal/source"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
 
@@ -257,8 +256,10 @@ func checkConformance(t *testing.T, f *fixture, c *conformanceCase, cfg *conform
 			t.Errorf("token decrypts to %q, %v", pt, err)
 		}
 	case "xi_source", "source_url":
-		if _, err := source.ParseRef(value); err != nil {
-			t.Errorf("%s: %v", value, err)
+		// Dialects do not import source (ARCHITECTURE §3): the reference must
+		// at least be a URL with a scheme, and is what the dialects accept.
+		if u, err := url.Parse(value); err != nil || u.Scheme == "" || !imgproxy.PlausibleSource(value) {
+			t.Errorf("%s is not a source reference: %v", value, err)
 		}
 	case "escape_plain_source":
 		if got, err := url.PathUnescape(value); err != nil || got != inputString(c, "value") {
