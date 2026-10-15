@@ -1,0 +1,57 @@
+# https://taskfile.dev — the Ruby client's tasks (ADR 0013). The root
+# Taskfile runs `ci` here from `task clients:test`; run them in this
+# directory directly too (`task ci`). Commands go through mise (this
+# directory's mise.toml pins Ruby, which ships Bundler); CI sets
+# XI_BUNDLE=bundle after ruby/setup-ruby installs Ruby itself.
+version: "3"
+
+vars:
+  BUNDLE: '{{.XI_BUNDLE | default "mise exec -- bundle"}}'
+  RUBY: '{{.XI_RUBY | default "mise exec -- ruby"}}'
+
+env:
+  BUNDLE_FROZEN: "true"
+
+tasks:
+  install:
+    desc: Install the pinned toolchain and the locked development gems
+    cmds:
+      - mise install
+      - "{{.BUNDLE}} install"
+
+  test:
+    desc: "Minitest: conformance fixture, builder fixture, vectors, unit, type-usage and client tests (XI_SMOKE_URL=http://127.0.0.1:8080 adds the smoke test)"
+    cmds: ["{{.BUNDLE}} exec rake test {{.CLI_ARGS}}"]
+
+  test:bare:
+    desc: "The tests without Bundler, on the Ruby's bundled minitest (CI runs this on Ruby 3.2, which the locked dev tools do not support)"
+    cmds:
+      - "{{.RUBY}} -w -Ilib -Itest -e 'Dir.glob(\"test/**/*_test.rb\").sort.each { |f| require File.expand_path(f) }'"
+
+  lint:
+    desc: RuboCop
+    cmds: ["{{.BUNDLE}} exec rubocop"]
+
+  types:
+    desc: "Steep (strict) on lib/ and on the typical calls of test/typecheck/, against the RBS in sig/"
+    cmds: ["{{.BUNDLE}} exec steep check"]
+
+  licenses:
+    desc: Runtime dependency licences against the ADR 0006 allowlist
+    cmds: ["{{.BUNDLE}} exec ruby scripts/check_licenses.rb"]
+
+  build:
+    desc: Build the gem into dist/
+    cmds:
+      - mkdir -p dist
+      - "{{.BUNDLE}} exec gem build xtandard-image.gemspec --strict --output dist/xtandard-image.gem"
+
+  ci:
+    desc: Everything CI runs for the Ruby client
+    cmds:
+      - "{{.BUNDLE}} install"
+      - task: lint
+      - task: types
+      - task: test
+      - task: licenses
+      - task: build

@@ -1,0 +1,28 @@
+# frozen_string_literal: true
+
+# Steep type-checks lib/ against sig/ (the hand-written runtime signatures
+# and the generated option, method, constant and response types), and the
+# typical calls of test/typecheck/usage.rb against the same signatures.
+D = Steep::Diagnostic
+
+LIBRARIES = %w[json net-http openssl uri zlib timeout socket].freeze
+
+target :lib do
+  signature "sig"
+  check "lib"
+  # The per-option method bodies are one-line forwards to Chain#option;
+  # their typed overloads (sig/generated/methods.rbs) still check callers.
+  ignore "lib/xtandard_image/generated/methods.rb"
+
+  library(*LIBRARIES)
+  configure_code_diagnostics(D::Ruby.strict)
+end
+
+# The generated overloads and records must accept what users write.
+target :usage do
+  signature "sig", "test/typecheck/sig"
+  check "test/typecheck"
+
+  library(*LIBRARIES)
+  configure_code_diagnostics(D::Ruby.strict)
+end
