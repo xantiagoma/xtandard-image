@@ -1,0 +1,14 @@
+# frozen_string_literal: true
+
+require "minitest/test_task"
+
+# rake test: the conformance fixture, the builder fixture, the shared
+# vectors, unit and client tests (XI_SMOKE_URL=http://127.0.0.1:8080 adds
+# the smoke test).
+Minitest::TestTask.create(:test) do |t|
+  t.libs << "lib"
+  t.test_globs = ["test/**/*_test.rb"]
+  t.warning = true
+end
+
+task default: :test
