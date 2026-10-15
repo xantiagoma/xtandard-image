@@ -84,17 +84,45 @@ type videoState struct {
 	dpr     float64
 	eo, du  bool
 	sr      bool // an sr- (WP-126)
+
+	// Video presets (WP-132): n-<name> names video presets
+	// (XI_VIDEO_TRANSFORM_PRESETS), which are the op's starting point
+	// wherever they appear, after the "default" video preset; the steps
+	// override them. presetContainer reports a preset that chose the
+	// container (it applies unless f- or ik-video.mp4 says otherwise).
+	presetContainer bool
 }
 
-// video applies a video transformation string. forceMP4 is ik-video.mp4.
-func (ps *parseState) video(tr string, forceMP4 bool) error {
-	vs := &videoState{ps: ps}
+// videoSteps splits a transformation string into its steps' parameters.
+func videoSteps(tr string) [][]string {
+	var steps [][]string
 	for s := range strings.SplitSeq(tr, ":") {
 		var params []string
 		for param := range strings.SplitSeq(s, ",") {
 			if param != "" {
 				params = append(params, param)
 			}
+		}
+		steps = append(steps, params)
+	}
+	return steps
+}
+
+// video applies a video transformation string. forceMP4 is ik-video.mp4.
+// presetsOnly applies its video presets alone (no other parameter, f-,
+// ik-video.mp4 or ik-master), for the restricted unsigned video policy.
+func (ps *parseState) video(tr string, forceMP4, presetsOnly bool) error {
+	vs := &videoState{ps: ps}
+	steps := videoSteps(tr)
+	if presetsOnly {
+		ps.stream, forceMP4 = nil, false
+	}
+	if err := vs.videoPresets(steps); err != nil {
+		return err
+	}
+	for _, params := range steps {
+		if presetsOnly {
+			break
 		}
 		if err := vs.step(params); err != nil {
 			return err
@@ -268,7 +296,9 @@ func (vs *videoState) step(params []string) error {
 		case "br":
 			err = vs.skip("br", reasonUnsupported) // the unit is not documented
 		case "n":
-			err = vs.skip("n", reasonUnsupported) // named transformations use image syntax
+			if vs.ps.p.o.VideoPresets == nil {
+				err = vs.skip("n", reasonUnsupported) // no video presets
+			} // else applied first (videoPresets)
 		case "b", "r", "bl", "blur", "o", "t", "z", "fl", "pr", "lo", "md", "cp", "orig", "di", "pg", "e-sharpen",
 			"e-usm", "e-grayscale", "e-contrast", "e-shadow", "e-gradient", "e-bgremove", "e-removedotbg",
 			"e-upscale", "e-retouch", "e-genvar", "e-dropshadow", "e-changebg", "e-edit", "e-distort", "e-colorize":
@@ -597,6 +627,8 @@ func (vs *videoState) finish() error {
 		op.Container = transform.VideoContainerMP4
 	case vs.format == "webm":
 		op.Container = transform.VideoContainerWebM
+	case vs.format == "" && vs.presetContainer:
+		// The video preset's container.
 	case op.VideoCodec == transform.VideoCodecVP9 || op.AudioCodec == transform.AudioCodecOpus:
 		op.Container = transform.VideoContainerWebM
 	case op.VideoCodec == transform.VideoCodecH264 || op.AudioCodec == transform.AudioCodecAAC:
@@ -609,6 +641,47 @@ func (vs *videoState) finish() error {
 	}
 	if !op.Container.AllowsAudio(op.AudioCodec) {
 		return dialect.InvalidArgument("ac", op.AudioCodec.String(), expACodec)
+	}
+	return nil
+}
+
+// videoPresets starts the op from the n- video presets of the steps (and
+// the default video preset). A preset's stream becomes the request's
+// stream, or fills the renditions and segment duration of an ik-master
+// one.
+func (vs *videoState) videoPresets(steps [][]string) error {
+	ps := vs.ps
+	if ps.p.o.VideoPresets == nil {
+		return nil
+	}
+	var names []string
+	for _, params := range steps {
+		for _, param := range params {
+			if key, v := splitParam(param); key == "n" {
+				if v == "" {
+					return dialect.InvalidArgument("n", v, "named transformation")
+				}
+				names = append(names, v)
+			}
+		}
+	}
+	op, containerSet, err := ps.p.opt.VideoPresetOp(names)
+	if err != nil || op == nil {
+		return err
+	}
+	ps.videoReferenced = len(names) > 0
+	vs.op, vs.presetContainer = *op, containerSet
+	switch st := op.Stream; {
+	case st == nil:
+	case ps.stream == nil:
+		ps.stream = st
+	default:
+		if len(ps.stream.Renditions) == 0 {
+			ps.stream.Renditions = st.Renditions
+		}
+		if ps.stream.SegmentDuration == 0 {
+			ps.stream.SegmentDuration = st.SegmentDuration
+		}
 	}
 	return nil
 }

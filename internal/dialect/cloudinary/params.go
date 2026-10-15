@@ -203,9 +203,11 @@ type applier struct {
 	r     *transform.Request
 	mount string
 
-	used           bool // the current pipeline holds pipeline parameters
-	explicitFormat bool // f_ was given
-	extFormat      transform.Format
+	used bool // the current pipeline holds pipeline parameters
+	// videoReferenced: a video transformation named a video preset (t_).
+	videoReferenced bool
+	explicitFormat  bool // f_ was given
+	extFormat       transform.Format
 }
 
 func newApplier(p *Parser, b *imgproxy.Builder, mount string) *applier {

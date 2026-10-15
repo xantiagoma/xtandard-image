@@ -37,7 +37,7 @@
 // on a root mount, "/p/info/sig/..." under mount "/p/"). The signature and
 // unsigned policy apply unchanged (restricted rejects info requests).
 // "/video" selects [VideoParser] the same way (video transformations,
-// which restricted rejects too).
+// which follow [VideoPolicy] as well).
 //
 // # Source binding
 //
@@ -55,7 +55,13 @@
 //   - deny: 403.
 //   - restricted: only the cheap option set described in [Restrictions]
 //     (allowlisted width, height, dpr and quality; no watermarks, fallback
-//     URLs, security options, raw, info or effects). Everything else is 403.
+//     URLs, security options, raw, info, video or effects). Everything
+//     else is 403.
+//
+// Video transformations (Kind video, from any dialect) are checked against
+// Options.Video as well ([VideoPolicy]): deny by default, allow leaves
+// them to the mount's policy, restricted admits what the URL's video
+// presets make of it.
 //
 // Denials are errs.KindForbidden with the public message "unsigned request
 // not allowed" and wrap [ErrUnsignedNotAllowed]; the internal message names
@@ -123,6 +129,9 @@ type Options struct {
 	Policy Policy
 	// Restrictions are the allowlists of the restricted policy.
 	Restrictions Restrictions
+	// Video is the unsigned policy of video transformations
+	// (videopolicy.go); its zero value denies them.
+	Video VideoPolicy
 }
 
 // ErrNoRoute is wrapped by the 404 returned when no mount matches.
@@ -140,6 +149,7 @@ type Router struct {
 	all      []*Mount // opts.Mounts in order, effective policy filled in
 	dialects map[string]dialect.Dialect
 	restrict *restrictions
+	video    *videoPolicy
 }
 
 type hostSuffix struct {
@@ -165,10 +175,15 @@ func New(opts *Options, dialects map[string]dialect.Dialect) (*Router, error) {
 	if !validPolicy(global) {
 		return nil, fmt.Errorf("router: unknown unsigned policy %q", global)
 	}
+	vp, err := newVideoPolicy(&opts.Video)
+	if err != nil {
+		return nil, err
+	}
 	rt := &Router{
 		exact:    make(map[string]*Mount),
 		dialects: make(map[string]dialect.Dialect, len(dialects)),
 		restrict: newRestrictions(&opts.Restrictions),
+		video:    vp,
 	}
 	for name, d := range dialects {
 		if d != nil {

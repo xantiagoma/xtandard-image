@@ -224,7 +224,7 @@ func TestVideo(t *testing.T) {
 		vid("chained", "w:100/-/w:50"),
 		vid("image_option_unknown", "bl:5"),
 		vidPath("image_option_strict", "strict", "/unsafe/bl:5"+videoSrc),
-		vid("preset_unknown", "pr:thumb"),
+		vid("preset_unexpanded", "pr:thumb"), // no video preset store: recorded only
 
 		// Signing: /video signs "/video" + the path.
 		vidPath("signed", "signed", "/VSIG/rs:fit:320:0/vd:2"+videoSrc+"@webm"),

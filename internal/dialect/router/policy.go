@@ -87,6 +87,9 @@ func (rt *Router) enforce(m *Mount, res *dialect.Result) error {
 	if res.Signature.Signed() {
 		return nil
 	}
+	if res.Request.Kind == transform.KindVideo {
+		return rt.enforceVideo(m, res)
+	}
 	switch m.Policy {
 	case PolicyAllow:
 		return nil
