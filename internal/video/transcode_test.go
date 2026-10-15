@@ -17,7 +17,7 @@ func fullCaps() TranscodeCaps {
 	return TranscodeCaps{
 		Video: EncoderSet{VP9: true, AV1: true},
 		AAC:   true, Opus: true, MP3: true, FLAC: true, PCM: true,
-		MuxMP4: true, MuxWebM: true, MuxOgg: true, MuxMP3: true, MuxFLAC: true, MuxWAV: true,
+		MuxMP4: true, MuxWebM: true, MuxOgg: true, MuxMP3: true, MuxFLAC: true, MuxWAV: true, MuxMPEGTS: true,
 		VideoFilters: true, AudioFilters: true, Overlays: true, Timecode: true,
 		AudioEffects: true, VideoFade: true, Waveform: true,
 	}

@@ -147,6 +147,9 @@ type TranscodeCaps struct {
 	AAC, Opus, MP3, FLAC, PCM bool
 	// Muxers.
 	MuxMP4, MuxWebM, MuxOgg, MuxMP3, MuxFLAC, MuxWAV bool
+	// MuxMPEGTS reports the mpegts muxer (HLS MPEG-TS segments, WP-131).
+	MuxMPEGTS bool
+
 	// VideoFilters and AudioFilters report the libavfilter filters the
 	// plans use (scale, crop, pad, transpose, fps, trim, …; abuffer,
 	// atrim, aresample, aformat, …).
@@ -328,16 +331,24 @@ func (c TranscodeCaps) resolve(op *transform.VideoOp) (TranscodeOutput, error) {
 	if !c.Video.Has(out.Video) {
 		return TranscodeOutput{}, unsupported(out.Video.String() + " video output is not supported by this image")
 	}
+	if err := c.resolveOverlays(op); err != nil {
+		return TranscodeOutput{}, err
+	}
+	return out, nil
+}
+
+// resolveOverlays refuses the overlays this build cannot draw.
+func (c TranscodeCaps) resolveOverlays(op *transform.VideoOp) error {
 	for i := range op.Overlays {
 		if op.Overlays[i].Kind() == transform.VideoOverlayTimecode {
 			if !c.Timecode {
-				return TranscodeOutput{}, unsupported("timecode overlays are not supported by this image")
+				return unsupported("timecode overlays are not supported by this image")
 			}
 		} else if !c.Overlays {
-			return TranscodeOutput{}, unsupported("video overlays are not supported by this image")
+			return unsupported("video overlays are not supported by this image")
 		}
 	}
-	return out, nil
+	return nil
 }
 
 // TranscodeInput is what the transcoder probed from a source.
@@ -368,6 +379,11 @@ type TranscodeInput struct {
 	AudioDecodable bool
 	SampleRate     int
 	Channels       int
+	// AudioTBNum / AudioTBDen is the audio stream's time base, and
+	// AudioStart its first timestamp in seconds (WP-131: chunked stream
+	// audio needs timestamps that name samples exactly, AudioExact).
+	AudioTBNum, AudioTBDen int
+	AudioStart             float64
 }
 
 // DisplaySize is the frame size with the sample aspect ratio applied,
@@ -421,6 +437,43 @@ type TranscodePlan struct {
 	// one segment of a rendition (PlanSegment) or a whole audio track cut
 	// into segments (PlanAudioTrack). nil is a plain file.
 	Fragment *FragmentPlan
+	// TS makes the output an MPEG-TS segment of an HLS stream (WP-131):
+	// the video of one segment with the audio packets of the same span
+	// copied in. nil otherwise.
+	TS *TSPlan
+}
+
+// TSPlan is an MPEG-TS segment (ADR 0012 §6, WP-131). Each segment is
+// muxed on its own: it starts with a PAT and a PMT, its video with an IDR
+// frame, and the first packet of every PID carries the discontinuity
+// indicator, since continuity counters cannot run on across segments that
+// are encoded independently. Timestamps are the stream's (90 kHz, moved
+// by the stream offset like the CMAF segments'), so the joined segments
+// form one timeline.
+type TSPlan struct {
+	// Offset90k moves every video timestamp later by this many 1/90000 s
+	// (StreamLayout.Offset90k).
+	Offset90k int64
+	// Audio is the audio of the segment, copied in as encoded; nil for a
+	// muted stream or a source without audio.
+	Audio *CopyAudioPlan
+}
+
+// CopyAudioPlan is encoded AAC-LC copied into a transcode's output: the
+// packets of the stream's audio track that fall in the segment, with
+// their timestamps (the stream offset included).
+type CopyAudioPlan struct {
+	SampleRate, Channels int
+	// Packets are set before the transcode runs (they are data, not part
+	// of the plan): raw AAC frames in order.
+	Packets []AudioPacket
+}
+
+// AudioPacket is one encoded audio frame: Data is its bytes (read during
+// the transcode only); PTS and Duration are in 1/SampleRate s.
+type AudioPacket struct {
+	Data          []byte
+	PTS, Duration int64
 }
 
 // FragmentPlan is how a stream's output is fragmented (ADR 0012 §6).
@@ -438,6 +491,15 @@ type FragmentPlan struct {
 	// samples, which the shim checks.
 	Seconds int
 	Priming int
+	// First and End keep the audio packets of segments [First, End) only
+	// (End 0: to the end): a chunk of the track (WP-131) drops those of
+	// its pre-roll and post-roll.
+	First, End int
+	// Final is the stream's segment count when this output holds its last
+	// segment (0 otherwise): if no audio packet falls into that segment (a
+	// last segment shorter than a packet), the final packet goes there, so
+	// every segment has audio.
+	Final int
 }
 
 // WaveformPlan is a waveform picture (showwavespic) of the source's audio.
@@ -480,6 +542,18 @@ type VideoStreamPlan struct {
 	// rendered pixels before the transcode; one that renders nothing is
 	// removed.
 	Overlays []OverlayPlan
+	// OverlayRefWidth × OverlayRefHeight is the frame the image and text
+	// overlays are laid out on before they are scaled to this one (a
+	// stream's largest rendition, WP-131); 0 is this frame.
+	OverlayRefWidth, OverlayRefHeight int
+}
+
+// OverlayRef is the frame v's image and text overlays are laid out on.
+func (v *VideoStreamPlan) OverlayRef() (w, h int) {
+	if v.OverlayRefWidth > 0 && v.OverlayRefHeight > 0 {
+		return v.OverlayRefWidth, v.OverlayRefHeight
+	}
+	return v.Width, v.Height
 }
 
 // AudioStreamPlan is the audio stream of a transcode.

@@ -5,6 +5,8 @@ import (
 	"errors"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/media/fmp4"
+
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 	"github.com/xantiagoma/xtandard-image/internal/video"
 )
@@ -20,10 +22,29 @@ import (
 // StreamPart is what one stream transcode writes.
 type StreamPart struct {
 	// Track is a video rendition's name ("v0", …), or "" for the audio
-	// track (every audio segment at once).
+	// track.
 	Track string
-	// Segment is the video segment's number.
+	// Segment is the video segment's number, or for the audio the chunk's
+	// (WP-131: video.StreamLayout.AudioChunk; 0 when the track is one
+	// chunk).
 	Segment int
+	// CopyAudio is, for a video segment of an MPEG-TS stream (WP-131), the
+	// audio of the same segment as the audio track's CMAF init segment
+	// followed by its fragment: its packets are copied into the segment.
+	// nil for a muted stream or a source without audio. It is retained
+	// while the transcode needs it.
+	CopyAudio Buffer
+	// Overlays[i] is the fetched image of image overlay i of the stream's
+	// VideoOp (nil for the others; nil or shorter when there are none),
+	// drawn on video segments (WP-131). Retained while the transcode needs
+	// them.
+	Overlays []Buffer
+}
+
+// buffers lists what a transcode of p holds: the source, the copied
+// audio and the overlay images.
+func (p StreamPart) buffers(src Buffer) []Buffer {
+	return append([]Buffer{src, p.CopyAudio}, p.Overlays...)
 }
 
 // Audio reports the audio track.
@@ -33,7 +54,14 @@ func (p StreamPart) Audio() bool { return p.Track == "" }
 // fetched (video.TranscodeCaps.ResolveStream): errs.KindUnsupported when
 // it cannot be written.
 func (s *Service) ResolveStream(op *transform.VideoOp) (video.TranscodeOutput, error) {
-	return s.caps.ResolveStream(op)
+	out, err := s.caps.ResolveStream(op)
+	if err != nil {
+		return out, err
+	}
+	if err := s.canRender(op); err != nil {
+		return video.TranscodeOutput{}, err
+	}
+	return out, nil
 }
 
 // Probe opens src under the pool's probe bound (holding a place in the
@@ -77,21 +105,26 @@ func (s *Service) Layout(in *video.TranscodeInput, op *transform.VideoOp) (*vide
 }
 
 // Stream transcodes part of the stream op of src into fragmented MP4: a
-// video segment (its init segment and one fragment) or the audio track
-// (its init segment and one fragment per segment). Calls with the same key
+// video segment (its init segment and one fragment, or an MPEG-TS
+// segment) or a chunk of the audio track (its init segment and one
+// fragment per segment of the chunk). Calls with the same key
 // share one transcode, admitted and bounded like Transform's. The caller
 // releases the result's body. errs.KindNotFound for a part the stream does
 // not have. A call that joins a prefetch which then finds the pool busy
 // starts the transcode itself.
 func (s *Service) Stream(ctx context.Context, key string, src Buffer, op *transform.VideoOp, part StreamPart) (*Result, error) {
+	if len(part.Overlays) > len(op.Overlays) {
+		return nil, errs.Newf(errs.KindInternal, "media: %d overlay images for %d overlays", len(part.Overlays), len(op.Overlays))
+	}
+	in := part.buffers(src)
 	for {
-		src.Retain()
+		retain(in)
 		res, shared, err := s.flights.do(ctx, key, func(ctx context.Context) (*Result, error) {
-			defer src.Release()
-			return s.run(ctx, src, s.streamPlan(op, part), streamRun)
+			defer release(in)
+			return s.run(ctx, src, s.streamPlan(op, part), s.transcode(op, part.Overlays))
 		})
 		if shared {
-			src.Release()
+			release(in)
 		}
 		if shared && errors.Is(err, errBusy) {
 			continue // joined a prefetch that found the pool busy: run it ourselves
@@ -127,9 +160,13 @@ func (s *Service) Prefetch(key string, src Buffer, op *transform.VideoOp, part S
 	if !ok {
 		return false
 	}
-	src.Retain() // this prefetch's
+	if len(part.Overlays) > len(op.Overlays) {
+		return false
+	}
+	in := part.buffers(src)
+	retain(in) // this prefetch's
 	s.prefetches.Go(func() {
-		defer src.Release()
+		defer release(in)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		stop := make(chan struct{})
@@ -141,17 +178,17 @@ func (s *Service) Prefetch(key string, src Buffer, op *transform.VideoOp, part S
 			case <-stop:
 			}
 		}()
-		src.Retain() // the flight's, if this call starts it
+		retain(in) // the flight's, if this call starts it
 		// The ticket belongs to the flight's function when this call
 		// starts the flight (it leaves when the transcode ends), and is
 		// given back here when the call joins another one.
 		res, shared, err := s.flights.do(ctx, key, func(ctx context.Context) (*Result, error) {
-			defer src.Release()
+			defer release(in)
 			defer t.leave()
-			return s.execute(ctx, t, src, s.streamPlan(op, part), streamRun, true)
+			return s.execute(ctx, t, src, s.streamPlan(op, part), s.transcode(op, part.Overlays), true)
 		})
 		if shared {
-			src.Release()
+			release(in)
 			t.leave()
 		}
 		if err != nil {
@@ -182,7 +219,7 @@ func (s *Service) streamPlan(op *transform.VideoOp, part StreamPart) planner {
 			if l.Audio == nil {
 				return nil, Result{}, errs.New(errs.KindNotFound, "media: the stream has no audio")
 			}
-			p, err = video.PlanAudioTrack(in, op, l, &s.cfg.Transcode)
+			p, err = video.PlanAudioChunk(in, op, l, part.Segment, &s.cfg.Transcode)
 			r.Output.Video = video.CodecNone
 		} else {
 			rd, ok := l.Rendition(part.Track)
@@ -190,7 +227,11 @@ func (s *Service) streamPlan(op *transform.VideoOp, part StreamPart) planner {
 				return nil, Result{}, errs.Newf(errs.KindNotFound, "media: the stream has no rendition %q", part.Track)
 			}
 			p, err = video.PlanSegment(in, op, l, rd, part.Segment, &s.cfg.Transcode)
-			r.Output.Audio = video.AudioNone
+			if err == nil && p.TS != nil {
+				err = copyAudio(p.TS, part.CopyAudio)
+			} else {
+				r.Output.Audio = video.AudioNone
+			}
 			r.Width, r.Height = rd.Width, rd.Height
 		}
 		if err != nil {
@@ -200,5 +241,29 @@ func (s *Service) streamPlan(op *transform.VideoOp, part StreamPart) planner {
 	}
 }
 
-// streamRun transcodes a stream part.
-func streamRun(ctx context.Context, t *task) (*Result, error) { return runTask(ctx, t, nil) }
+// copyAudio gives an MPEG-TS segment the packets of its audio (the audio
+// track's init segment and the segment's fragment).
+func copyAudio(ts *video.TSPlan, audio Buffer) error {
+	if ts.Audio == nil {
+		return nil
+	}
+	if audio == nil {
+		return errs.New(errs.KindInternal, "media: an mpeg-ts segment without its audio")
+	}
+	f, err := fmp4.Parse(audio.Bytes())
+	if err != nil || len(f.Fragments) != 1 || int(f.Timescale) != ts.Audio.SampleRate {
+		return errs.Newf(errs.KindInternal, "media: the audio of an mpeg-ts segment: %v", err)
+	}
+	samples, err := f.Samples(0)
+	if err != nil {
+		return errs.Wrapf(errs.KindInternal, err, "media: the audio of an mpeg-ts segment")
+	}
+	pk := make([]video.AudioPacket, len(samples))
+	for i, s := range samples {
+		pk[i] = video.AudioPacket{Data: s.Data, PTS: int64(s.DecodeTime), Duration: int64(s.Duration)} //nolint:gosec // G115: 48 kHz ticks of a stream
+	}
+	a := *ts.Audio
+	a.Packets = pk
+	ts.Audio = &a
+	return nil
+}

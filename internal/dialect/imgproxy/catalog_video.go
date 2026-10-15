@@ -8,6 +8,7 @@ const (
 	msOverlay = "M5 (WP-124)"
 	msStream  = "M5 (WP-126)"
 	msPresets = "M5 (WP-132)"
+	msHLSX    = "M5 (WP-131)"
 )
 
 // videoFormatNames are the containers of /video URLs, in videoContainers
@@ -227,6 +228,15 @@ func VideoOptions() []Option {
 			Forms:  single(intArg("seconds", 1, transform.MaxSegmentDuration.Seconds(), "whole seconds")),
 			Syntax: "seconds", Default: "XI_VIDEO_TRANSFORM_SEGMENT_DURATION (6)", Doc: "Length of a stream's segments (1..30 s).", Example: "4",
 		}),
+		video(Option{
+			Name: "segment_format", Aliases: []string{"sgf"}, Milestone: msHLSX,
+
+			Forms:  single(enumArg("format", []string{"cmaf", "fmp4", "mpegts", "ts"}, "CMAF (fragmented MP4: fmp4, cmaf) or MPEG-TS (ts, mpegts)")),
+			Syntax: "format", Default: "fmp4",
+			Doc:     "Container of a stream's segments: fmp4 (CMAF, HLS 7 and DASH) or ts (MPEG-TS for older HLS players: HLS only, H.264 and AAC muxed in each segment; images with libx264 only).",
+			Example: "ts",
+		}),
+
 		video(Option{
 			Name: "timecode", Aliases: []string{"tc"}, Milestone: msOverlay,
 			Forms: []Form{form(enumArg("format", []string{"hms", "seconds", "none"}, "HH:MM:SS.mmm, seconds, or none"),

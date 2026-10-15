@@ -58,13 +58,21 @@ type Job interface {
 }
 
 // OverlayRenderer renders image and text overlays (WP-124):
-// internal/pipeline/exec.Executor.RenderOverlay in production (app adapts
-// it), the image watermark code.
+// internal/pipeline/exec.Executor.RenderOverlayScaled in production (app
+// adapts it), the image watermark code.
 type OverlayRenderer interface {
-	// Render draws o for a w × h output frame. img is its fetched image
-	// (nil for text and the configured watermark). ok is false when
-	// nothing would be drawn.
-	Render(ctx context.Context, o *transform.VideoOverlay, img Buffer, w, h int) (l Layer, ok bool, err error)
+	// Render draws o for output frame f. img is its fetched image (nil
+	// for text and the configured watermark). ok is false when nothing
+	// would be drawn.
+	Render(ctx context.Context, o *transform.VideoOverlay, img Buffer, f Frame) (l Layer, ok bool, err error)
+}
+
+// Frame is the output frame an overlay is rendered for: Width × Height,
+// laid out as on a RefWidth × RefHeight frame and scaled to it (a
+// stream's rendition, laid out on the largest, WP-131); for a file the
+// two are the same.
+type Frame struct {
+	Width, Height, RefWidth, RefHeight int
 }
 
 // Layer is a rendered overlay: straight 8-bit RGBA pixels (C memory,
@@ -254,15 +262,24 @@ func (s *Service) Resolve(op *transform.VideoOp) (video.TranscodeOutput, error) 
 	if err != nil {
 		return out, err
 	}
-	if s.render == nil {
-		for i := range op.Overlays {
-			if op.Overlays[i].Kind() != transform.VideoOverlayTimecode {
-				return video.TranscodeOutput{}, errs.WithPublic(errs.New(errs.KindUnsupported, "media: no overlay renderer"),
-					"video overlays are not supported by this image")
-			}
-		}
+	if err := s.canRender(op); err != nil {
+		return video.TranscodeOutput{}, err
 	}
 	return out, nil
+}
+
+// canRender refuses image and text overlays without a renderer.
+func (s *Service) canRender(op *transform.VideoOp) error {
+	if s.render != nil {
+		return nil
+	}
+	for i := range op.Overlays {
+		if op.Overlays[i].Kind() != transform.VideoOverlayTimecode {
+			return errs.WithPublic(errs.New(errs.KindUnsupported, "media: no overlay renderer"),
+				"video overlays are not supported by this image")
+		}
+	}
+	return nil
 }
 
 // errTimeout is the cause of a transcode that ran out of
@@ -455,7 +472,8 @@ func (s *Service) transformPlan(op *transform.VideoOp, out video.TranscodeOutput
 	}
 }
 
-// transcode renders the overlays of an admitted task and runs it.
+// transcode renders the overlays of an admitted task and runs it (files,
+// and the video segments of streams).
 func (s *Service) transcode(op *transform.VideoOp, overlays []Buffer) worker {
 	return func(ctx context.Context, t *task) (*Result, error) {
 		p := t.plan
@@ -509,7 +527,8 @@ func (s *Service) renderOverlays(ctx context.Context, v *video.VideoStreamPlan, 
 		if o.Index < len(imgs) {
 			img = imgs[o.Index]
 		}
-		l, ok, err := s.render.Render(ctx, &op.Overlays[o.Index], img, v.Width, v.Height)
+		rw, rh := v.OverlayRef()
+		l, ok, err := s.render.Render(ctx, &op.Overlays[o.Index], img, Frame{Width: v.Width, Height: v.Height, RefWidth: rw, RefHeight: rh})
 		if err != nil {
 			release(pixels)
 			return nil, err

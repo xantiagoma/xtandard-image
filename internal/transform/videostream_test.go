@@ -19,6 +19,12 @@ func TestValidateVideoStream(t *testing.T) {
 			VideoCodec: VideoCodecAV1, Mute: true, FPS: 30, KeyframeInterval: 2 * time.Second, Stream: &VideoStream{},
 		}},
 		{"audio_options", VideoOp{AudioCodec: AudioCodecAAC, SampleRate: 48000, Channels: 1, Volume: 0.5, Stream: &VideoStream{}}},
+		{"ts", VideoOp{Stream: &VideoStream{Format: SegmentTS}}},
+		{"overlays", VideoOp{Stream: &VideoStream{}, Overlays: []VideoOverlay{
+			{Opacity: 1, Start: time.Second, End: 3 * time.Second, FadeIn: time.Second},
+			{Opacity: 1, Timecode: VideoTimecodeHMS},
+		}}},
+		{"ts_h264", VideoOp{VideoCodec: VideoCodecH264, Stream: &VideoStream{Format: SegmentTS, Renditions: []int{360}}}},
 	}
 	for _, tc := range valid {
 		t.Run("valid/"+tc.name, func(t *testing.T) {
@@ -48,9 +54,12 @@ func TestValidateVideoStream(t *testing.T) {
 		{"auto container", VideoStream{}, func(o *VideoOp) { o.AutoContainer = true }, "video.stream"},
 		{"width", VideoStream{}, func(o *VideoOp) { o.Width = 640 }, "video.stream"},
 		{"bitrate", VideoStream{}, func(o *VideoOp) { o.MaxBitrate = 1_000_000 }, "video.stream"},
-		{"overlay", VideoStream{}, func(o *VideoOp) { o.Overlays = []VideoOverlay{{Opacity: 1}} }, "video.stream"},
 		{"hevc", VideoStream{}, func(o *VideoOp) { o.VideoCodec = VideoCodecHEVC }, "video.stream"},
 		{"sample rate", VideoStream{}, func(o *VideoOp) { o.SampleRate = 44100 }, "video.stream"},
+		{"format", VideoStream{Format: numSegmentFormats}, nil, "video.stream.format"},
+		{"ts dash", VideoStream{Protocol: StreamDASH, Format: SegmentTS}, nil, "video.stream.format"},
+		{"ts vp9", VideoStream{Format: SegmentTS}, func(o *VideoOp) { o.VideoCodec = VideoCodecVP9 }, "video.stream.format"},
+		{"ts av1", VideoStream{Format: SegmentTS}, func(o *VideoOp) { o.VideoCodec = VideoCodecAV1 }, "video.stream.format"},
 	}
 	for _, tc := range invalid {
 		t.Run("invalid/"+tc.name, func(t *testing.T) {
@@ -76,6 +85,7 @@ func TestVideoStreamKey(t *testing.T) {
 		"dash": {Protocol: StreamDASH},
 		"240":  {Renditions: []int{240}},
 		"seg4": {SegmentDuration: 4 * time.Second},
+		"ts":   {Format: SegmentTS},
 	} {
 		r := videoBase()
 		r.Video.Stream = st

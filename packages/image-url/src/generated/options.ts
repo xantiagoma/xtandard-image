@@ -1762,6 +1762,15 @@ export interface ImgproxyVideoArgs {
   "segment_duration":
     | [seconds: number];
   /**
+   * Container of a stream's segments: fmp4 (CMAF, HLS 7 and DASH) or ts (MPEG-TS for older HLS players: HLS only, H.264 and AAC muxed in each segment; images with libx264 only). URL: `segment_format`, `sgf`; arguments format; default fmp4.
+   *
+   * URL names: `segment_format`, `sgf`.
+   * milestone M5 (WP-131); scope request.
+   * @example ["ts"]
+   */
+  "segment_format":
+    | [format: "cmaf" | "fmp4" | "mpegts" | "ts"];
+  /**
    * Resize without the type. URL: `size`, `s`; arguments w:h:enlarge:extend; default 0:0:false:false.
    *
    * URL names: `size`, `s`.
@@ -1932,6 +1941,7 @@ export const imgproxyVideoAliases = {
   "rt": "resizing_type",
   "s": "size",
   "sgd": "segment_duration",
+  "sgf": "segment_format",
   "sr": "sample_rate",
   "st": "stream",
   "tc": "timecode",
@@ -1990,6 +2000,7 @@ export const imgproxyVideoOptionNames = [
   "rotate",
   "sample_rate",
   "segment_duration",
+  "segment_format",
   "size",
   "start",
   "stream",

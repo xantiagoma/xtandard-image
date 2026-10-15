@@ -23,7 +23,7 @@ import (
 // (validated by config).
 func streamSettings(cfg *config.Config) video.StreamSettings {
 	t := &cfg.Video.Transform
-	s := video.StreamSettings{SegmentDuration: t.SegmentDuration}
+	s := video.StreamSettings{SegmentDuration: t.SegmentDuration, AudioChunk: t.AudioChunk}
 	for _, item := range t.ABRLadder {
 		if h, b, err := config.ParseABRRung(item); err == nil {
 			s.Ladder = append(s.Ladder, video.Rung{Height: h, Bitrate: b})
@@ -86,7 +86,7 @@ func (m mediaStreamer) Layout(in *video.TranscodeInput, op *transform.VideoOp) (
 }
 
 func (m mediaStreamer) Stream(ctx context.Context, key string, src fetch.Buffer, op *transform.VideoOp, part server.StreamPart) (*server.VideoResult, error) {
-	r, err := m.s.Stream(ctx, key, src, op, media.StreamPart{Track: part.Track, Segment: part.Segment})
+	r, err := m.s.Stream(ctx, key, src, op, mediaPart(part))
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (m mediaStreamer) Stream(ctx context.Context, key string, src fetch.Buffer,
 }
 
 func (m mediaStreamer) Prefetch(key string, src fetch.Buffer, op *transform.VideoOp, part server.StreamPart, done func(*server.VideoResult)) bool {
-	return m.s.Prefetch(key, src, op, media.StreamPart{Track: part.Track, Segment: part.Segment}, func(r *media.Result) {
+	return m.s.Prefetch(key, src, op, mediaPart(part), func(r *media.Result) {
 		if r == nil {
 			done(nil)
 			return
@@ -106,4 +106,22 @@ func (m mediaStreamer) Prefetch(key string, src fetch.Buffer, op *transform.Vide
 // videoResult is the server's view of a media result.
 func videoResult(r *media.Result) *server.VideoResult {
 	return &server.VideoResult{Body: r.Body, Output: r.Output, Width: r.Width, Height: r.Height, Shared: r.Shared}
+}
+
+// mediaPart is the media view of a stream part (its own slice of the
+// overlay images, which the server may clear after the call).
+func mediaPart(p server.StreamPart) media.StreamPart {
+	mp := media.StreamPart{Track: p.Track, Segment: p.Segment}
+	if p.CopyAudio != nil {
+		mp.CopyAudio = p.CopyAudio
+	}
+	if len(p.Overlays) > 0 {
+		mp.Overlays = make([]media.Buffer, len(p.Overlays))
+		for i, b := range p.Overlays {
+			if b != nil {
+				mp.Overlays[i] = b
+			}
+		}
+	}
+	return mp
 }

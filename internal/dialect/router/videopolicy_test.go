@@ -23,8 +23,11 @@ var videoPresetDefs = map[string]string{
 	"cut":  "vd:4",
 	"long": "w:320",
 	"hls":  "st:hls:360:240",
-	"raw":  "raw:1",
-	"aud":  "f:m4a",
+	// WP-131: MPEG-TS segments and overlays on a stream, from presets.
+	"hlsts":   "st:hls:360:240/sgf:ts",
+	"hlsmark": "st:hls:360:240/wm:1:soea/wmt:aGk/tc:hms",
+	"raw":     "raw:1",
+	"aud":     "f:m4a",
 }
 
 // videoDialects builds the four dialects with video presets: imgproxy
@@ -138,6 +141,11 @@ func TestVideoPolicyMatrix(t *testing.T) {
 		{"restricted stream other renditions", router.PolicyRestricted, restricted, "/video/unsafe/pr:hls/st:hls:1080" + vsrc, false},
 		{"restricted raw preset", router.PolicyRestricted, restricted, "/video/unsafe/pr:raw" + vsrc, true},
 		{"restricted raw option", router.PolicyRestricted, restricted, "/video/unsafe/pr:clip/raw:1" + vsrc, false},
+		{"restricted ts preset", router.PolicyRestricted, restricted, "/video/unsafe/pr:hlsts" + vsrc + "@m3u8", true},
+		{"restricted ts by option", router.PolicyRestricted, restricted, "/video/unsafe/pr:hls/sgf:ts" + vsrc + "@m3u8", false},
+		{"restricted stream overlays preset", router.PolicyRestricted, restricted, "/video/unsafe/pr:hlsmark" + vsrc + "@m3u8", true},
+		{"restricted stream overlay by option", router.PolicyRestricted, restricted, "/video/unsafe/pr:hls/tc:hms" + vsrc + "@m3u8", false},
+		{"restricted stream watermark by option", router.PolicyRestricted, restricted, "/video/unsafe/pr:hls/wm:1:soea/wmt:aGk" + vsrc + "@m3u8", false},
 
 		// Query dialect.
 		{"query restricted preset", router.PolicyRestricted, restricted, "/q/video?url=https://example.com/a.mov&preset=web", true},
@@ -151,6 +159,8 @@ func TestVideoPolicyMatrix(t *testing.T) {
 		{"cloudinary restricted no preset", router.PolicyRestricted, restricted, "/cld/demo/video/upload/w_320/clip.mp4", false},
 		{"cloudinary restricted stream extension", router.PolicyRestricted, restricted, "/cld/demo/video/upload/t_clip/clip.m3u8", false},
 		{"cloudinary restricted stream preset", router.PolicyRestricted, restricted, "/cld/demo/video/upload/t_hls/clip.m3u8", true},
+		{"cloudinary restricted ts preset", router.PolicyRestricted, restricted, "/cld/demo/video/upload/t_hlsts/clip.m3u8", true},
+		{"cloudinary restricted fl_hlsv3", router.PolicyRestricted, restricted, "/cld/demo/video/upload/t_hls,fl_hlsv3/clip.m3u8", false},
 		{"imagekit restricted n-", router.PolicyRestricted, restricted, "/ik/clip.mp4?tr=n-clip", true},
 		{"imagekit restricted extra", router.PolicyRestricted, restricted, "/ik/clip.mp4?tr=n-clip,w-1920", false},
 		{"imagekit restricted ik-master without stream preset", router.PolicyRestricted, restricted, "/ik/clip.mp4/ik-master.m3u8?tr=n-clip", false},

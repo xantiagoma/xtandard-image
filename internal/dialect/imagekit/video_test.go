@@ -40,6 +40,7 @@ func TestVideo(t *testing.T) {
 		{name: "ik_master_resize_dropped", path: "/clips/a.mp4/ik-master.m3u8", query: "tr=w-640,sr-240"},
 		{name: "ik_master_resize_strict", cfg: "strict", path: "/clips/a.mp4/ik-master.m3u8", query: "tr=w-640,sr-240"},
 		{name: "ik_master_vc_none", path: "/clips/a.mp4/ik-master.m3u8", query: "tr=vc-none"},
+		{name: "ik_master_layer", path: "/clips/a.mp4/ik-master.m3u8", query: "tr=l-image,i-logo.png,lx-10,ly-N10,w-80,lso-1,leo-3,l-end,sr-240_360"},
 		{name: "ik_master_bad_ext", path: "/clips/a.mp4/ik-master.ts"},
 		{name: "ik_master_sr_bad", path: "/clips/a.mp4/ik-master.m3u8", query: "tr=sr-240_abc"},
 		{name: "ik_master_sr_tiny", path: "/clips/a.mp4/ik-master.m3u8", query: "tr=sr-32"},

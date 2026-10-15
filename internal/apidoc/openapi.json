@@ -6951,6 +6951,38 @@
             "x-xi-scope": "request",
             "x-xi-syntax": "seconds"
           },
+          "segment_format": {
+            "description": "Container of a stream's segments: fmp4 (CMAF, HLS 7 and DASH) or ts (MPEG-TS for older HLS players: HLS only, H.264 and AAC muxed in each segment; images with libx264 only). URL: `segment_format`, `sgf`; arguments format; default fmp4.",
+            "examples": [
+              [
+                "ts"
+              ]
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "description": "CMAF (fragmented MP4: fmp4, cmaf) or MPEG-TS (ts, mpegts)",
+                "enum": [
+                  "cmaf",
+                  "fmp4",
+                  "mpegts",
+                  "ts"
+                ],
+                "title": "format",
+                "type": "string"
+              }
+            ],
+            "type": "array",
+            "x-xi-aliases": [
+              "sgf"
+            ],
+            "x-xi-default": "fmp4",
+            "x-xi-milestone": "M5 (WP-131)",
+            "x-xi-pro": false,
+            "x-xi-scope": "request",
+            "x-xi-syntax": "format"
+          },
           "size": {
             "description": "Resize without the type. URL: `size`, `s`; arguments w:h:enlarge:extend; default 0:0:false:false.",
             "examples": [
@@ -12215,6 +12247,14 @@
             "description": "Length of a stream's segments (1..30 s). Arguments joined by , or : (seconds).",
             "in": "query",
             "name": "segment_duration",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Container of a stream's segments: fmp4 (CMAF, HLS 7 and DASH) or ts (MPEG-TS for older HLS players: HLS only, H.264 and AAC muxed in each segment; images with libx264 only). Arguments joined by , or : (format).",
+            "in": "query",
+            "name": "segment_format",
             "schema": {
               "type": "string"
             }
