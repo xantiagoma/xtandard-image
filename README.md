@@ -268,6 +268,8 @@ img.url("s3://photos/cat.jpg", {"rs": ("fill", 1200, 630), "g": "sm"}, extension
 
 **Go**: [`clients/go`](clients/go/README.md) (module `github.com/xantiagoma/xtandard-image/clients/go`, standard library only) has the same builders as params structs and fluent chains, typed option structs per catalogue, and a `net/http` client with `context.Context`, Range and HEAD.
 
+**Elixir**: [`clients/elixir`](clients/elixir/README.md) (`xtandard_image` on Hex after the first release), with keyword-list and pipe-friendly builders, signing and encryption on `:crypto`, and an HTTP client on Req.
+
 The other languages are planned (M6 in the [roadmap](docs/ROADMAP.md)).
 
 ## Playground
