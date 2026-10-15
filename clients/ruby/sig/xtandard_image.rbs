@@ -1,0 +1,482 @@
+# Signatures of the hand-written runtime. The option tables, per-option
+# methods, constants and response records are in sig/generated/.
+module XtandardImage
+  VERSION: String
+
+  # ---- shared types --------------------------------------------------------
+
+  # One argument as written in a URL: booleans are 1/0, nil is empty.
+  type arg = String | Symbol | Integer | Float | bool | nil
+
+  # One option occurrence: a name (canonical or alias) and its arguments.
+  type entry = [String, Array[arg]]
+
+  # The options of a URL: one Hash, or an Array of Hashes chaining pipelines.
+  type processing_input = processing_options | Array[processing_options]
+
+  # Native query keys: a Hash, or [key, value] pairs (keys may repeat).
+  type params_input = query_image_params | imaginary_params | Array[[String | Symbol, query_value?]]
+
+  type name_style = :short | :canonical | :given | "short" | "canonical" | "given"
+
+  type error_code = :unknown_option | :invalid_argument | :invalid_source | :invalid_extension | :invalid_separator
+                  | :missing_signing | :missing_encryption | :invalid_key | :invalid_password | :invalid_request
+                  | :invalid_name | :invalid_endpoint | :invalid_range
+
+  type http_method = :get | :head | "GET" | "HEAD" | "get" | "head"
+
+  type range_input = String | Range[Integer?] | ByteSuffix | Hash[Symbol | String, Integer?]
+
+  # ---- errors --------------------------------------------------------------
+
+  class Error < StandardError
+  end
+
+  class URLBuildError < Error
+    CODES: Array[Symbol]
+    attr_reader code: error_code
+    def initialize: (error_code code, String message) -> void
+  end
+
+  class TransportError < Error
+  end
+
+  class HTTPError < Error
+    attr_reader status: Integer
+    attr_reader url: String
+    attr_reader body: error_response?
+    attr_reader kind: String
+    attr_reader request_id: String?
+    def initialize: (Integer status, String url, String message, ?error_response? body) -> void
+  end
+
+  class BadRequestError < HTTPError
+  end
+
+  class ForbiddenError < HTTPError
+  end
+
+  class NotFoundError < HTTPError
+  end
+
+  class NotAcceptableError < HTTPError
+  end
+
+  class UnprocessableError < HTTPError
+  end
+
+  class TooManyRequestsError < HTTPError
+  end
+
+  class ServerError < HTTPError
+  end
+
+  class ServiceUnavailableError < ServerError
+  end
+
+  class GatewayError < ServerError
+  end
+
+  HTTP_ERROR_CLASSES: Hash[Integer, singleton(HTTPError)]
+
+  def self.http_error_class: (Integer status) -> singleton(HTTPError)
+
+  # ---- text ----------------------------------------------------------------
+
+  module Text
+    def self?.key_bytes: (untyped material, String what) -> String
+    def self?.b64url: (String bytes) -> String
+    def self?.utf8: (String str) -> String
+    def self?.control_char?: (String str) -> bool
+    def self?.check_text: (untyped str, error_code code, String what) -> String
+    def self?.check_extension: (String | Symbol ext) -> String
+    def self?.escape_plain_source: (String source) -> String
+    def self?.escape_query_value: (String value) -> String
+    def self?.format_number: (Integer | Float value, String where) -> String
+
+
+    def self?.escape: (String str, String safe) -> String
+    def self?.number_float: (untyped value, String where) -> (Float | String)
+    def self?.shortest: (Float float) -> String
+    def self?.layout: (String digits, Integer n) -> String
+
+    HEX: Regexp
+    CONTROL: Regexp
+    ALNUM: Regexp
+    MAX_EXACT_INTEGER: Integer
+  end
+
+  # ---- options -------------------------------------------------------------
+
+  module Options
+    class Catalogue < Data
+      attr_reader kind: String
+      attr_reader names: Hash[String, String]
+      attr_reader short: Hash[String, String]
+      def self.new: (kind: String, names: Hash[String, String], short: Hash[String, String]) -> instance
+    end
+
+    PROCESSING: Catalogue
+    INFO: Catalogue
+    VIDEO: Catalogue
+    NAME_STYLES: Array[Symbol]
+    BAD_ARG: Regexp
+
+    def self?.name_style: (name_style style) -> Symbol
+    def self?.entries_of: (untyped options) -> Array[entry]
+    def self?.pipelines_of: (untyped options) -> Array[Array[entry]]
+    def self?.format_arg: (untyped arg, String sep, String where) -> String
+    def self?.written_name: (Catalogue cat, String name, Symbol style) -> String
+    def self?.format_entry: (Catalogue cat, entry entry, String sep, Symbol style) -> String
+  end
+
+  # ---- signing and encryption ----------------------------------------------
+
+  class SigningKey < Data
+    attr_reader key: String
+    attr_reader salt: String
+    attr_reader size: Integer
+    def self.new: (key: String, salt: String, ?size: Integer) -> instance
+                | (String key, String salt, ?Integer size) -> instance
+    def initialize: (key: String, salt: String, ?size: Integer) -> void
+  end
+
+  class EncryptionKey < Data
+    attr_reader key: String
+    attr_reader iv: String?
+    def self.new: (key: String, ?iv: String?) -> instance
+                | (String key, ?String? iv) -> instance
+    def initialize: (key: String, ?iv: String?) -> void
+  end
+
+  module Signing
+    ABSOLUTE: Regexp
+
+    def self?.sign: (String message, SigningKey key) -> String
+    def self?.sign_imgproxy_path: (String path, SigningKey key) -> String
+    def self?.xi_message: (String path, String raw_query) -> [String?, String]
+    def self?.sign_xi_query: (String path, String raw_query, SigningKey key) -> String
+    def self?.sign_xi_url: (String url, SigningKey key, ?mount: String) -> String
+
+
+    def self?.split_origin: (String head) -> [String, String]
+  end
+
+  module Encryption
+    def self?.encrypt_source: (String source, EncryptionKey key) -> String
+    def self?.encrypt_pdf_password: (String password, EncryptionKey key) -> String
+
+
+    def self?.seal: (String plaintext, EncryptionKey key) -> String
+  end
+
+  module Sources
+    BAD_AUTHORITY: Regexp
+
+    def self?.xi_source: (String name, String key) -> String
+    def self?.source_url: (source_scheme | String scheme, String authority, String key) -> String
+  end
+
+  # ---- fluent chains -------------------------------------------------------
+
+  class ChainState < Struct[untyped]
+    attr_accessor source: String
+    attr_accessor pipelines: Array[Array[entry]]
+    attr_accessor params: Array[[String | Symbol, query_value?]]
+    attr_accessor encoding: (source_encoding | String)?
+    attr_accessor ext: (String | Symbol)?
+    attr_accessor pdf_password: String?
+    def self.new: (String source, Array[Array[entry]] pipelines, Array[[String | Symbol, query_value?]] params,
+                   (source_encoding | String)? encoding, (String | Symbol)? ext, String? pdf_password) -> instance
+  end
+
+  type runner = ^(ChainState) -> String
+
+  class Chain
+    attr_reader chain_state: ChainState
+    @runner: runner
+
+    def initialize: (String source, runner runner) -> void
+    def option: (String | Symbol name, *arg args) -> self
+    def options: (Hash[String | Symbol, untyped] options) -> self
+    def build: () -> String
+    def to_s: () -> String
+    def inspect: () -> String
+
+    private
+
+    def current_pipeline: () -> Array[entry]
+  end
+
+  interface _HasChainState
+    def chain_state: () -> ChainState
+  end
+
+  module WithEncoding : _HasChainState
+    def encoding: (source_encoding | String encoding) -> self
+  end
+
+  module WithExtension : _HasChainState
+    def extension: (String | Symbol ext) -> self
+  end
+
+  module WithPipeline : _HasChainState
+    def pipeline: () -> self
+  end
+
+  module WithPassword : _HasChainState
+    def with_pdf_password: (String password) -> self
+  end
+
+  # ---- imgproxy dialect ----------------------------------------------------
+
+  class ImgproxyConfig < Data
+    attr_reader base_url: String
+    attr_reader signing: SigningKey?
+    attr_reader unsigned_signature: String
+    attr_reader encryption: EncryptionKey?
+    attr_reader source_encoding: source_encoding | String
+    attr_reader split_source: Integer?
+    attr_reader separator: String
+    attr_reader option_names: Symbol
+    def self.new: (base_url: String, signing: SigningKey?, unsigned_signature: String, encryption: EncryptionKey?,
+                   source_encoding: source_encoding | String, split_source: Integer?, separator: String,
+                   option_names: Symbol) -> instance
+  end
+
+  class ImgproxyURLChain < Chain
+    include WithEncoding
+    include WithExtension
+    include WithPipeline
+    include WithPassword
+    include ProcessingMethods
+  end
+
+  class ImgproxyInfoURLChain < Chain
+    include WithEncoding
+    include WithPassword
+    include InfoMethods
+  end
+
+  class ImgproxyVideoURLChain < Chain
+    include WithEncoding
+    include WithExtension
+    include VideoMethods
+  end
+
+  class ImgproxyURLBuilder
+    attr_reader config: ImgproxyConfig
+
+    def initialize: (?base_url: String, ?signing: SigningKey?, ?unsigned_signature: String,
+                     ?encryption: EncryptionKey?, ?source_encoding: source_encoding | String,
+                     ?split_source: Integer?, ?separator: String, ?option_names: name_style) -> void
+    def url: (String source, ?processing_input? options, ?extension: (image_format | String)?,
+              ?source_encoding: (source_encoding | String)?, ?pdf_password: String?) -> String
+    def info_url: (String source, ?info_options? options, ?source_encoding: (source_encoding | String)?,
+                   ?pdf_password: String?) -> String
+    def video_url: (String source, ?video_options? options, ?extension: (video_container | String)?,
+                    ?source_encoding: (source_encoding | String)?) -> String
+    def stream_url: (String source, protocol: stream_protocol | String, ?renditions: Array[Integer]?,
+                     ?segment_duration: Integer?, ?segment_format: (segment_format | String)?,
+                     ?options: video_options?, ?source_encoding: (source_encoding | String)?) -> String
+    def image: (String source) -> ImgproxyURLChain
+    def info: (String source) -> ImgproxyInfoURLChain
+    def video: (String source) -> ImgproxyVideoURLChain
+    def inspect: () -> String
+
+    private
+
+    def runner: (Symbol endpoint) -> runner
+  end
+
+  module URLs
+    STREAM_OPTIONS: Array[String]
+
+    def self?.check_separator: (untyped sep, Array[String] forbidden) -> String
+    def self?.password_token: (EncryptionKey? encryption, SigningKey? signing, String password) -> String
+    def self?.trim_slashes: (String str) -> String
+    def self?.imgproxy: (ImgproxyConfig cfg, Symbol endpoint, Array[Array[entry]] pipelines, String source,
+                        (source_encoding | String)? encoding, (String | Symbol)? ext, String? pdf_password) -> String
+    def self?.stream_parts: (Array[Array[entry]] pipelines, stream_protocol | String protocol,
+                            Array[Integer]? renditions, Integer? segment_duration,
+                            (segment_format | String)? segment_format) -> [Array[entry], String]
+
+
+    def self?.source_segment: (ImgproxyConfig cfg, String source, source_encoding | String encoding,
+                              (String | Symbol)? ext) -> String
+    def self?.split: (String token, Integer? size) -> String
+    def self?.finish: (ImgproxyConfig cfg, Symbol endpoint, String path) -> String
+    def self?.append_segment_format: (Array[entry] entries, String proto, segment_format | String segment_format) -> void
+  end
+
+  # ---- query dialect -------------------------------------------------------
+
+  class QueryConfig < Data
+    attr_reader base_url: String
+    attr_reader mount: String
+    attr_reader signing: SigningKey?
+    attr_reader encryption: EncryptionKey?
+    attr_reader separator: String
+    attr_reader option_names: Symbol
+    def self.new: (base_url: String, mount: String, signing: SigningKey?, encryption: EncryptionKey?,
+                   separator: String, option_names: Symbol) -> instance
+  end
+
+  class QueryURLChain < Chain
+    include WithExtension
+    include WithPipeline
+    include WithPassword
+    include ProcessingMethods
+    def param: (String | Symbol key, query_value? value) -> self
+  end
+
+  class QueryVideoURLChain < Chain
+    include WithExtension
+    include VideoMethods
+  end
+
+  class QueryURLBuilder
+    attr_reader config: QueryConfig
+
+    def initialize: (?base_url: String, ?mount: String, ?signing: SigningKey?, ?encryption: EncryptionKey?,
+                     ?separator: String, ?option_names: name_style) -> void
+    def url: (String source, ?params: params_input?, ?options: processing_input?,
+              ?extension: (image_format | String)?, ?pdf_password: String?) -> String
+    def video_url: (String source, ?(video_options | Array[video_options])? options,
+                    ?extension: (video_container | String)?) -> String
+    def stream_url: (String source, protocol: stream_protocol | String, ?renditions: Array[Integer]?,
+                     ?segment_duration: Integer?, ?segment_format: (segment_format | String)?,
+                     ?options: video_options?) -> String
+    def imaginary_url: (imaginary_endpoint | String endpoint, String source, ?params_input? params) -> String
+    def image: (String source) -> QueryURLChain
+    def video: (String source) -> QueryVideoURLChain
+    def inspect: () -> String
+  end
+
+  module QueryURLs
+    ENDPOINT: Regexp
+
+    def self?.image: (QueryConfig cfg, Array[Array[entry]] pipelines, String source, untyped params,
+                     (String | Symbol)? ext, String? pdf_password) -> String
+    def self?.single_pipeline: (Array[Array[entry]] pipelines) -> Array[entry]
+    def self?.video: (QueryConfig cfg, Array[entry] entries, String source, (String | Symbol)? ext) -> String
+    def self?.imaginary: (QueryConfig cfg, imaginary_endpoint | String endpoint, String source, untyped params) -> String
+
+
+    def self?.native_value: (String | Symbol key, untyped value) -> String
+    def self?.param_pairs: (untyped params) -> Array[[String, String]]
+    def self?.finish: (QueryConfig cfg, String path, Array[[String, String]] pairs) -> String
+  end
+
+  # ---- HTTP client ---------------------------------------------------------
+
+  class ByteSuffix < Data
+    attr_reader length: Integer
+    def self.new: (length: Integer) -> instance
+                | (Integer length) -> instance
+  end
+
+  class Readiness < Data
+    attr_reader ready: bool
+    attr_reader state: String
+    def self.new: (ready: bool, state: String) -> instance
+    def ready?: () -> bool
+  end
+
+  class StreamManifest < Data
+    attr_reader url: String
+    attr_reader content_type: String
+    attr_reader body: String
+    def self.new: (url: String, content_type: String, body: String) -> instance
+  end
+
+  class Response < Data
+    attr_reader status: Integer
+    attr_reader headers: Hash[String, String]
+    attr_reader body: String?
+    attr_reader url: String
+    def self.new: (status: Integer, headers: Hash[String, String], body: String?, url: String) -> instance
+    def []: (String | Symbol name) -> String?
+    def content_type: () -> String?
+  end
+
+  def self.range_header: (range_input range) -> String
+
+  module RangeHeader
+    def self?.format: (untyped range) -> String
+    def self?.from_range: (Range[untyped] range) -> String
+    def self?.from_hash: (Hash[untyped, untyped] hash) -> String
+    def self?.bytes: (Integer start, Integer last) -> String
+    def self?.non_negative: (untyped value, String what) -> Integer
+  end
+
+  class Client
+    TRANSPORT_ERRORS: Array[singleton(Exception)]
+    SCHEME: Regexp
+    READY_STATES: Array[String]
+
+    attr_reader base_url: String
+    attr_reader urls: ImgproxyURLBuilder
+
+    def initialize: (String base_url, ?signing: SigningKey?, ?encryption: EncryptionKey?,
+                     ?unsigned_signature: String, ?source_encoding: source_encoding | String,
+                     ?split_source: Integer?, ?separator: String, ?option_names: name_style,
+                     ?headers: Hash[String | Symbol, String], ?open_timeout: Numeric?, ?read_timeout: Numeric?,
+                     ?write_timeout: Numeric?, ?playground_base_url: String?, ?playground_path: String) -> void
+    def healthz: () -> nil
+    def readyz: () -> Readiness
+    def info: (String source, ?info_options? options, ?source_encoding: (source_encoding | String)?,
+               ?pdf_password: String?) -> info_response
+    def info_at: (String url) -> info_response
+    def media: (String url, ?method: http_method, ?range: range_input?, ?accept: String,
+                ?headers: Hash[String | Symbol, String]?) ?{ (String chunk) -> void } -> Response
+    def image: (String source, ?processing_input? options, ?extension: (image_format | String)?,
+                ?source_encoding: (source_encoding | String)?, ?pdf_password: String?, ?method: http_method,
+                ?range: range_input?, ?accept: String, ?headers: Hash[String | Symbol, String]?)
+               ?{ (String chunk) -> void } -> Response
+    def video: (String source, ?video_options? options, ?extension: (video_container | String)?,
+                ?source_encoding: (source_encoding | String)?, ?method: http_method, ?range: range_input?,
+                ?accept: String, ?headers: Hash[String | Symbol, String]?) ?{ (String chunk) -> void } -> Response
+    def stream: (String source, protocol: stream_protocol | String, ?renditions: Array[Integer]?,
+                 ?segment_duration: Integer?, ?segment_format: (segment_format | String)?,
+                 ?options: video_options?, ?source_encoding: (source_encoding | String)?,
+                 ?headers: Hash[String | Symbol, String]?) -> StreamManifest
+    def playground_meta: () -> Hash[String, untyped]
+    def inspect: () -> String
+
+    private
+
+    @headers: Hash[String, String]
+    @open_timeout: Numeric?
+    @read_timeout: Numeric?
+    @write_timeout: Numeric?
+    @playground_meta: String
+
+    def absolute: (String url) -> String
+    def request_headers: (String accept, range_input? range, Hash[String | Symbol, String]? headers) -> Hash[String, String]
+    def json: (String url) -> untyped
+    def fetch: (http_method method, String url, Hash[String, String] headers) ?{ (String chunk) -> void } -> Response
+    def perform: (http_method method, String url, Hash[String, String] headers) ?{ (String chunk) -> void }
+               -> [Integer, Hash[String, String], String?]
+    def request_class: (http_method method) -> (singleton(Net::HTTP::Get) | singleton(Net::HTTP::Head))
+    def res_headers: (Net::HTTPResponse res) -> Hash[String, String]
+    def http_error: (Integer status, String url, String? body) -> HTTPError
+    def parse_envelope: (String text) -> error_response?
+  end
+
+  # ---- module functions ----------------------------------------------------
+
+  def self.imgproxy: (**untyped) -> ImgproxyURLBuilder
+  def self.query_urls: (**untyped) -> QueryURLBuilder
+  def self.sign: (String message, SigningKey key) -> String
+  def self.sign_imgproxy_path: (String path, SigningKey key) -> String
+  def self.xi_message: (String path, String raw_query) -> [String?, String]
+  def self.sign_xi_query: (String path, String raw_query, SigningKey key) -> String
+  def self.sign_xi_url: (String url, SigningKey key, ?mount: String) -> String
+  def self.encrypt_source: (String source, EncryptionKey key) -> String
+  def self.encrypt_pdf_password: (String password, EncryptionKey key) -> String
+  def self.xi_source: (String name, String key) -> String
+  def self.source_url: (source_scheme | String scheme, String authority, String key) -> String
+  def self.escape_plain_source: (String source) -> String
+  def self.escape_query_value: (String value) -> String
+end
