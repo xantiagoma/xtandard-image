@@ -1,0 +1,9 @@
+/_build/
+/deps/
+/doc/
+/dist/
+/priv/plts/
+/cover/
+*.ez
+erl_crash.dump
+xtandard_image-*.tar
