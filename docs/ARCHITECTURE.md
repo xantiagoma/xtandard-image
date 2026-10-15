@@ -748,7 +748,8 @@ A `transform.KindVideo` request (a `transform.VideoOp`: cut, geometry, frame rat
 request ─► route (before the budget: a video request gets XI_FETCH_TIMEOUT + queue timeout + XI_VIDEO_TRANSFORM_TIMEOUT,
         │         and http.ResponseController extends its write deadline)
         ─► role check (XI_ROLE: image-only answers 404; video-only answers 404 to everything else)
-        ─► unsigned policy: unsigned → 403 unless XI_VIDEO_TRANSFORM_UNSIGNED_POLICY=allow (then the mount's policy, already applied)
+        ─► unsigned policy (router): unsigned → 403 unless XI_VIDEO_TRANSFORM_UNSIGNED_POLICY=allow (then the mount's policy)
+        │         or restricted (only what the URL's video presets make of it, WP-132; dialect.Result.PresetVideo)
         ─► normalise, validate, Resolve (container → muxer + codecs for this build; 422 before any fetch)
         ─► result cache lookup (key: canonical request + source + "v:" output + build)
         ─► fetch (up to XI_VIDEO_TRANSFORM_MAX_INPUT_BYTES) ─► ETag (canonical + output + source validator) → 304 / HEAD
