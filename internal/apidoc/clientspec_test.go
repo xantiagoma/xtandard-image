@@ -99,7 +99,7 @@ func TestClientSpecCoversCatalogues(t *testing.T) {
 	}
 	keys = append(keys, s.Query.BuilderKeys...)
 	slices.Sort(keys)
-	var documented []string
+	documented := make([]string, 0, len(queryKeys()))
 	for _, kv := range queryKeys() {
 		documented = append(documented, kv[0])
 	}
