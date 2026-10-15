@@ -97,7 +97,7 @@ func videoServerConfig(cfg *config.Config) server.VideoConfig {
 	return server.VideoConfig{
 		Budget:        cfg.Fetch.Timeout + t.QueueTimeout + t.Timeout,
 		MaxSrcBytes:   int64(t.MaxInputBytes),
-		AllowUnsigned: t.UnsignedPolicy == config.UnsignedAllow,
+		AllowUnsigned: t.UnsignedPolicy != config.UnsignedDeny, // the router applies allow and restricted
 	}
 }
 

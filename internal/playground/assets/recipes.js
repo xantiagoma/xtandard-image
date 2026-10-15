@@ -16,6 +16,7 @@ const NEEDS = {
   video_transform: 'Needs video transformations: XI_VIDEO_TRANSFORM_ENABLED=true on the full or gpl image (compose.playground.yml turns them on).',
   h264: 'Needs the gpl image: H.264 is encoded by libx264 (GPL), which the full image leaves out (its MP4 is AV1).',
   hevc: 'Needs the gpl image: HEVC is encoded by libx265 (GPL), which the full image leaves out.',
+  video_presets: 'Needs the demo\'s video presets web and preview (XI_VIDEO_TRANSFORM_PRESETS, set in compose.playground.yml).',
 };
 
 // CODEC_NEEDS are the gpl image's encoders (WP-129): a recipe that needs
@@ -25,6 +26,7 @@ const CODEC_NEEDS = ['h264', 'hevc'];
 
 const has = (meta, need) => (CODEC_NEEDS.includes(need) ? Boolean(meta.video_transform?.codecs?.includes(need)) : ({
   watermark: meta.watermark, detection: meta.detection, video: meta.video, video_transform: Boolean(meta.video_transform),
+  video_presets: ['web', 'preview'].every((n) => meta.video_transform?.presets?.includes(n)),
 })[need] ?? false);
 
 // hidden reports a recipe this image can never run: a gpl encoder on an

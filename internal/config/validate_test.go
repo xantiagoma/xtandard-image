@@ -260,7 +260,20 @@ func TestValidate(t *testing.T) {
 		{"dpr 9", func(c *Config) { c.Security.AllowedDPRs = []float64{9} }, []string{"security.allowed_dprs"}},
 		{"dprs ok", func(c *Config) { c.Security.AllowedDPRs = []float64{1, 1.5, 2, 3} }, nil},
 		{"video unsigned allow", func(c *Config) { c.Video.Transform.UnsignedPolicy = UnsignedAllow }, nil},
-		{"video unsigned restricted", func(c *Config) { c.Video.Transform.UnsignedPolicy = UnsignedRestricted }, []string{"video.transform.unsigned_policy (XI_VIDEO_TRANSFORM_UNSIGNED_POLICY): must be deny or allow"}},
+		{"video unsigned restricted", func(c *Config) {
+			t := &c.Video.Transform
+			t.UnsignedPolicy, t.Presets = UnsignedRestricted, map[string]string{"web": "rs:fit:1280:0/q:70", "default": "ki:2"}
+			t.UnsignedAllowedOptions, t.UnsignedFormats, t.UnsignedMaxDuration = []string{"start", "duration"}, []string{"mp4"}, time.Minute
+		}, nil},
+		{"video unsigned restricted without presets", func(c *Config) { c.Video.Transform.UnsignedPolicy = UnsignedRestricted }, []string{"video.transform.unsigned_policy (XI_VIDEO_TRANSFORM_UNSIGNED_POLICY): restricted needs video.transform.presets"}},
+		{"video unsigned policy unknown", func(c *Config) { c.Video.Transform.UnsignedPolicy = "open" }, []string{"video.transform.unsigned_policy (XI_VIDEO_TRANSFORM_UNSIGNED_POLICY): must be deny, allow or restricted"}},
+		{"video preset empty", func(c *Config) { c.Video.Transform.Presets = map[string]string{"web": " "} }, []string{`video.transform.presets (XI_VIDEO_TRANSFORM_PRESETS): video preset "web" is empty`}},
+		{"video preset bad name", func(c *Config) { c.Video.Transform.Presets = map[string]string{"a/b": "q:70"} }, []string{`video.transform.presets (XI_VIDEO_TRANSFORM_PRESETS): bad video preset name "a/b"`}},
+		{"video preset not an option", func(c *Config) { c.Video.Transform.Presets = map[string]string{"web": "q:70/plain"} }, []string{`video.transform.presets (XI_VIDEO_TRANSFORM_PRESETS): video preset "web": "plain" is not an option`}},
+		{"video preset chained", func(c *Config) { c.Video.Transform.Presets = map[string]string{"web": "q:70/-/w:10"} }, []string{`video preset "web": chained pipelines are not video options`}},
+		{"video unsigned option", func(c *Config) { c.Video.Transform.UnsignedAllowedOptions = []string{"start", "width"} }, []string{`video.transform.unsigned_allowed_options[1] (XI_VIDEO_TRANSFORM_UNSIGNED_ALLOWED_OPTIONS): "width" is not one of start, end, duration, mute`}},
+		{"video unsigned format", func(c *Config) { c.Video.Transform.UnsignedFormats = []string{"mkv"} }, []string{`video.transform.unsigned_formats[0] (XI_VIDEO_TRANSFORM_UNSIGNED_FORMATS): "mkv" is not one of`}},
+		{"video unsigned max duration", func(c *Config) { c.Video.Transform.UnsignedMaxDuration = -time.Second }, []string{"video.transform.unsigned_max_duration (XI_VIDEO_TRANSFORM_UNSIGNED_MAX_DURATION): must be >= 0"}},
 		{"video role without transform", func(c *Config) { c.Role = RoleVideo }, []string{"role (XI_ROLE): video needs video.transform.enabled"}},
 		{"negative ttl", func(c *Config) { c.Cache.Origin.NegativeTTL = -time.Second }, []string{"cache.origin.negative_ttl (XI_CACHE_ORIGIN_NEGATIVE_TTL)"}},
 		{"gcs and azure endpoints", func(c *Config) {

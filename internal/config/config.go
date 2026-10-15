@@ -641,9 +641,35 @@ type VideoTransform struct {
 	// UnsignedPolicy governs video transformations without a verified
 	// signature (ADR 0012 §8): deny (the default) answers them 403 whatever
 	// the mount's unsigned policy; allow leaves them to the mount's policy
-	// (security.unsigned_policy or the dialect's own). restricted is not
-	// accepted: its allowlists describe images.
+	// (security.unsigned_policy or the dialect's own; restricted refuses
+	// them, its allowlists describe images); restricted admits only what
+	// the URL's video presets make of it (WP-132), plus the
+	// UnsignedAllowedOptions and a container of UnsignedFormats, on a
+	// mount whose policy is not deny.
 	UnsignedPolicy UnsignedPolicy `yaml:"unsigned_policy" env:"UNSIGNED_POLICY"`
+
+	// Video presets (WP-132, ADR 0012 §8).
+	//
+	// Presets maps a video preset name to /video options in imgproxy's
+	// preset syntax, "/"-separated name:args with the imgproxy dialect's
+	// arguments separator
+	// (XI_VIDEO_TRANSFORM_PRESETS="web=rs:fit:1280:0/q:70,clip=vd:10/f:webm").
+	// URLs name them with pr: (imgproxy /video, query preset=), t_
+	// (Cloudinary) or n- (ImageKit); "default" applies to every video
+	// transformation first. Separate from presets (image options).
+	Presets map[string]string `yaml:"presets" env:"PRESETS" envKeyValSeparator:"="`
+	// UnsignedAllowedOptions are the options an unsigned request may set
+	// besides its presets under the restricted policy: start, end,
+	// duration, mute. Empty allows none.
+	UnsignedAllowedOptions []string `yaml:"unsigned_allowed_options" env:"UNSIGNED_ALLOWED_OPTIONS"`
+	// UnsignedFormats are the containers an unsigned restricted request
+	// may pick (extension or format) instead of its presets' one, of the
+	// same kind (video, audio only, waveform picture).
+	UnsignedFormats []string `yaml:"unsigned_formats" env:"UNSIGNED_FORMATS"`
+	// UnsignedMaxDuration bounds the cut an unsigned restricted request
+	// sets with start, end or duration (it must then have a duration or an
+	// end); 0 leaves only max_output_duration.
+	UnsignedMaxDuration time.Duration `yaml:"unsigned_max_duration" env:"UNSIGNED_MAX_DURATION"`
 
 	// HLS and DASH (WP-126, ADR 0012 §6).
 	//
@@ -1028,7 +1054,7 @@ func Defaults() Config {
 				Queue: 8, QueueTimeout: 30 * time.Second, Timeout: 2 * time.Minute, Threads: 1,
 				MaxInputBytes: 512 << 20, MaxInputDuration: time.Hour, MaxInputPixels: 7680 * 4320,
 				MaxOutputBytes: 256 << 20, MaxOutputDuration: 5 * time.Minute, MaxOutputPixels: 3840 * 2160,
-				MaxFPS: 60, UnsignedPolicy: UnsignedDeny,
+				MaxFPS: 60, UnsignedPolicy: UnsignedDeny, UnsignedFormats: []string{"mp4", "webm"},
 				ABRLadder:       []string{"1080:5000k", "720:2800k", "480:1400k", "360:800k", "240:400k"},
 				SegmentDuration: 6 * time.Second, PrefetchSegments: 2, StreamTTL: 12 * time.Hour,
 				StreamCacheBytes: 256 << 20,

@@ -131,7 +131,9 @@ type Meta struct {
 // optional filters and the output limits. It names no key or source.
 type VideoTransform struct {
 	// UnsignedPolicy is XI_VIDEO_TRANSFORM_UNSIGNED_POLICY.
-	UnsignedPolicy string `json:"unsigned_policy" enum:"allow,deny" doc:"XI_VIDEO_TRANSFORM_UNSIGNED_POLICY: deny refuses unsigned video URLs (403) whatever the mount's policy."`
+	UnsignedPolicy string `json:"unsigned_policy" enum:"allow,restricted,deny" doc:"XI_VIDEO_TRANSFORM_UNSIGNED_POLICY: deny refuses unsigned video URLs (403) whatever the mount's policy; restricted admits only what their video presets make of them."`
+	// Presets are the video preset names (XI_VIDEO_TRANSFORM_PRESETS).
+	Presets []string `json:"presets,omitempty" doc:"Video preset names (XI_VIDEO_TRANSFORM_PRESETS; their options are not shown): pr:<name> in /video, preset=<name> in /q/video, t_<name> on Cloudinary videos, n-<name> on ImageKit videos."`
 	// Codecs are the encoders of this build (video.TranscodeCaps.Names).
 	Codecs []string `json:"codecs" doc:"Encoders of this build: vp9, av1, h264, hevc (video), aac, opus, mp3, flac, pcm (audio), and waveform when waveform pictures can be drawn."`
 	// Containers are the output containers this build can write.

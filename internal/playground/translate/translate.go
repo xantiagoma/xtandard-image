@@ -48,6 +48,9 @@ type Options struct {
 	Separator string
 	// Presets expands presets in input URLs; nil means none are defined.
 	Presets *preset.Store
+	// VideoPresets expands video presets in input video URLs
+	// (XI_VIDEO_TRANSFORM_PRESETS); nil means none are defined.
+	VideoPresets *preset.Store
 	// Now is the clock of expiring URLs; nil means time.Now.
 	Now func() time.Time
 	// SourceBases maps named http sources to their base_url: an http(s)
@@ -106,11 +109,11 @@ func New(o Options) (*Translator, error) {
 	if now == nil {
 		now = time.Now
 	}
-	input, err := parsers(sep, o.Presets, now)
+	input, err := parsers(sep, o.Presets, o.VideoPresets, now)
 	if err != nil {
 		return nil, err
 	}
-	check, err := parsers(sep, nil, now)
+	check, err := parsers(sep, nil, nil, now)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +129,7 @@ func New(o Options) (*Translator, error) {
 }
 
 // parsers builds one unsigned parser per dialect.
-func parsers(sep string, presets *preset.Store, now func() time.Time) (map[string]dialect.Dialect, error) {
+func parsers(sep string, presets, videoPresets *preset.Store, now func() time.Time) (map[string]dialect.Dialect, error) {
 	var problems []error
 	add := func(m map[string]dialect.Dialect, name string, d dialect.Dialect, err error) {
 		if err != nil {
@@ -136,15 +139,15 @@ func parsers(sep string, presets *preset.Store, now func() time.Time) (map[strin
 		m[name] = d
 	}
 	m := map[string]dialect.Dialect{}
-	ip, err := imgproxy.New(&imgproxy.Options{ArgumentsSeparator: sep, Presets: presets, Now: now})
+	ip, err := imgproxy.New(&imgproxy.Options{ArgumentsSeparator: sep, Presets: presets, VideoPresets: videoPresets, Now: now})
 	add(m, "imgproxy", ip, err)
-	q, err := query.New(&query.Options{ArgumentsSeparator: sep, Now: now})
+	q, err := query.New(&query.Options{ArgumentsSeparator: sep, VideoPresets: videoPresets, Now: now})
 	add(m, "query", q, err)
 	ix, err := imgix.New(&imgix.Options{Now: now})
 	add(m, "imgix", ix, err)
-	cl, err := cloudinary.New(&cloudinary.Options{Presets: presets, ArgumentsSeparator: sep})
+	cl, err := cloudinary.New(&cloudinary.Options{Presets: presets, VideoPresets: videoPresets, ArgumentsSeparator: sep})
 	add(m, "cloudinary", cl, err)
-	ik, err := imagekit.New(&imagekit.Options{Presets: presets, Now: now})
+	ik, err := imagekit.New(&imagekit.Options{Presets: presets, VideoPresets: videoPresets, Now: now})
 	add(m, "imagekit", ik, err)
 	cf, err := cloudflare.New(&cloudflare.Options{Now: now})
 	add(m, "cloudflare", cf, err)
