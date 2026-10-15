@@ -1,0 +1,67 @@
+# https://taskfile.dev — the Elixir client's tasks (ADR 0013). The root
+# Taskfile runs `ci` here from `task clients:test`; run them in this
+# directory directly too (`task ci`). Commands go through mise (this
+# directory's mise.toml pins Erlang/OTP and Elixir); CI sets XI_MIX=mix after
+# installing the toolchain itself.
+version: "3"
+
+vars:
+  MIX: '{{.XI_MIX | default "mise exec -- mix"}}'
+
+env:
+  # Do not let `mise exec` install unrelated tools of a global config.
+  MISE_EXEC_AUTO_INSTALL: "0"
+
+tasks:
+  install:
+    desc: Install the pinned toolchain (mise), then Hex, rebar3 and the locked dependencies
+    cmds:
+      - mise install erlang elixir
+      - task: setup
+
+  setup:
+    desc: Hex, rebar3 and the locked dependencies
+    cmds:
+      - "{{.MIX}} local.hex --force --if-missing"
+      - "{{.MIX}} local.rebar --force --if-missing"
+      - "{{.MIX}} deps.get --check-locked"
+
+  test:
+    desc: "ExUnit: conformance fixture, builder fixture, vectors, unit tests, doctests and client tests (XI_SMOKE_URL=http://127.0.0.1:8080 adds the smoke test)"
+    cmds: ["{{.MIX}} test --warnings-as-errors {{.CLI_ARGS}}"]
+
+  lint:
+    desc: mix format check and Credo (strict)
+    cmds:
+      - "{{.MIX}} format --check-formatted"
+      - "{{.MIX}} compile --warnings-as-errors --force"
+      - "{{.MIX}} credo --strict"
+
+  types:
+    desc: Dialyzer
+    cmds: ["{{.MIX}} dialyzer --format short"]
+
+  licenses:
+    desc: Runtime dependency licences against the ADR 0006 allowlist
+    cmds: ["{{.MIX}} run --no-start --no-compile scripts/check_licenses.exs"]
+
+  docs:
+    desc: ExDoc into doc/
+    cmds: ["{{.MIX}} docs --warnings-as-errors"]
+
+  build:
+    desc: Build the Hex package into dist/ (no publish)
+    cmds:
+      - mkdir -p dist
+      - "{{.MIX}} hex.build --output dist/xtandard_image.tar"
+
+  ci:
+    desc: Everything CI runs for the Elixir client
+    cmds:
+      - task: setup
+      - task: lint
+      - task: types
+      - task: test
+      - task: licenses
+      - task: docs
+      - task: build
