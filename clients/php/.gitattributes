@@ -1,0 +1,18 @@
+# Left out of the Packagist dist archive (composer archive, git export).
+/.github export-ignore
+/scripts export-ignore
+/tests export-ignore
+/tests-static export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/.php-cs-fixer.dist.php export-ignore
+/phpstan.neon.dist export-ignore
+/phpunit.xml.dist export-ignore
+/Taskfile.yml export-ignore
+/mise.toml export-ignore
+/composer.lock export-ignore
+/vendor export-ignore
+/dist export-ignore
+/.phpstan.cache export-ignore
+/.phpunit.cache export-ignore
+/.php-cs-fixer.cache export-ignore

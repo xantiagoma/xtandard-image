@@ -1,0 +1,60 @@
+# https://taskfile.dev — the PHP client's tasks (ADR 0013). The root
+# Taskfile runs `ci` here from `task clients:test`; run them in this
+# directory directly too (`task ci`, or `task -d clients/php ci`). Commands
+# go through mise (this directory's mise.toml pins PHP, which brings
+# Composer); CI sets XI_PHP=php and XI_COMPOSER=composer after installing
+# them itself.
+version: "3"
+
+vars:
+  PHP: '{{.XI_PHP | default "mise exec -- php"}}'
+  COMPOSER: '{{.XI_COMPOSER | default "mise exec -- composer"}}'
+
+env:
+  # php-cs-fixer warns on PHP versions newer than the ones it has tested.
+  PHP_CS_FIXER_IGNORE_ENV: "1"
+
+tasks:
+  install:
+    desc: Install the pinned toolchain and the locked dependencies
+    cmds:
+      - mise install
+      - "{{.COMPOSER}} install --no-interaction --no-progress"
+
+  test:
+    desc: "PHPUnit: conformance fixture, builder fixture, vectors, unit and client tests (XI_SMOKE_URL=http://127.0.0.1:8080 adds the smoke test)"
+    cmds: ["{{.PHP}} vendor/bin/phpunit {{.CLI_ARGS}}"]
+
+  lint:
+    desc: php-cs-fixer (PER-CS 2.0, the successor of PSR-12) in check mode
+    cmds: ["{{.PHP}} vendor/bin/php-cs-fixer check --diff"]
+
+  fmt:
+    desc: php-cs-fixer, fixing
+    cmds: ["{{.PHP}} vendor/bin/php-cs-fixer fix"]
+
+  types:
+    desc: PHPStan at level max (strict rules), then the static checks of the generated types
+    cmds:
+      - "{{.PHP}} vendor/bin/phpstan analyse --memory-limit=2G --no-progress"
+      - "{{.PHP}} scripts/check-static-types.php"
+
+  licenses:
+    desc: Runtime dependency licences against the ADR 0006 allowlist
+    cmds: ["{{.PHP}} scripts/check-licenses.php"]
+
+  build:
+    desc: Validate composer.json and the lock file, and build the dist archive into dist/
+    cmds:
+      - "{{.COMPOSER}} validate --strict --no-interaction"
+      - "{{.COMPOSER}} archive --format=zip --dir=dist --file=xtandard-image --no-interaction"
+
+  ci:
+    desc: Everything CI runs for the PHP client
+    cmds:
+      - "{{.COMPOSER}} install --no-interaction --no-progress"
+      - task: lint
+      - task: types
+      - task: test
+      - task: licenses
+      - task: build
