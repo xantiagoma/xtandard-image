@@ -1,0 +1,59 @@
+# https://taskfile.dev — the Java client's tasks (ADR 0013). The root
+# Taskfile runs `ci` here from `task clients:test`; run them in this
+# directory directly too (`task ci`). Commands go through mise (this
+# directory's mise.toml pins JDK 21, JDK 17 and Maven); CI sets XI_MVN=mvn
+# and XI_JAVA17 after installing the toolchain itself.
+version: "3"
+
+vars:
+  MVN: '{{.XI_MVN | default "mise exec -- mvn -B"}}'
+  JAVA: '{{.XI_JAVA | default "mise exec -- java"}}'
+  # The JDK 17 launcher for `test17` (the oldest supported runtime).
+  JAVA17:
+    sh: '{{if .XI_JAVA17}}echo {{.XI_JAVA17}}{{else}}echo "$(mise where java@temurin-17.0.20+8)/bin/java"{{end}}'
+
+tasks:
+  install:
+    desc: Install the pinned toolchain (JDK 21, JDK 17, Maven) and resolve the build
+    cmds:
+      - mise install
+      - "{{.MVN}} -q dependency:go-offline"
+
+  fmt:
+    desc: google-java-format (Spotless) on src/main, src/test and scripts; src/generated is the generator's
+    cmds: ["{{.MVN}} -q spotless:apply"]
+
+  lint:
+    desc: Format check, then compile with Error Prone and NullAway (warnings are errors)
+    cmds:
+      - "{{.MVN}} spotless:check"
+      - "{{.MVN}} test-compile"
+
+  test:
+    desc: "JUnit on JDK 21: conformance fixture, builder fixture, vectors, unit and client tests (XI_SMOKE_URL=http://127.0.0.1:8080 adds the smoke test)"
+    cmds: ["{{.MVN}} test {{.CLI_ARGS}}"]
+
+  test17:
+    desc: The same tests again on JDK 17, the oldest supported runtime (after `test`)
+    cmds: ["{{.MVN}} surefire:test -Dtest.jvm={{.JAVA17}}"]
+
+  licenses:
+    desc: The runtime closure must be empty; compile-only dependencies against the ADR 0006 allowlist
+    cmds:
+      - "{{.MVN}} -q dependency:list -DincludeScope=runtime -DoutputFile=target/dependencies-runtime.txt"
+      - "{{.MVN}} -q dependency:list -DincludeScope=provided -DoutputFile=target/dependencies-provided.txt"
+      - "{{.JAVA}} scripts/CheckLicenses.java target/dependencies-runtime.txt target/dependencies-provided.txt"
+
+  build:
+    desc: The jar, the sources jar and the javadoc jar (doclint, warnings are errors) into target/
+    cmds: ["{{.MVN}} verify -DskipTests"]
+
+  ci:
+    desc: Everything CI runs for the Java client
+    cmds:
+      - "{{.MVN}} clean"
+      - task: lint
+      - task: test
+      - task: test17
+      - task: licenses
+      - task: build
