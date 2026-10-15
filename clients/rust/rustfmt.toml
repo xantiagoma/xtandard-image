@@ -1,0 +1,5 @@
+# rustfmt (stable options only). src/generated/ is #[rustfmt::skip] in lib.rs:
+# the generator owns its layout (`task clients:check` fails on drift).
+edition = "2024"
+max_width = 120
+use_small_heuristics = "Max"
