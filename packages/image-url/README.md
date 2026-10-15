@@ -97,6 +97,8 @@ await img.streamUrl({ source: "s3://media/talk.mov", protocol: "hls", renditions
 // https://img.example.com/video/<sig>/vs:60/vd:300/st:hls:360:720/sgd:4/czM6Ly9tZWRpYS90YWxrLm1vdg.m3u8
 ```
 
+`segmentFormat: "ts"` asks for MPEG-TS segments (HLS only, H.264 + AAC, for older players; `sgf:ts`); the default is CMAF/fMP4.
+
 The manifest lists its playlists and segments under `/_stream/<ticket>/…`. The ticket seals the stream, so a player (hls.js, Safari, dash.js, ffmpeg) fetches them without any key. Only the manifest URL is signed.
 
 ## Query dialect

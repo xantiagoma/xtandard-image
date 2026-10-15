@@ -136,6 +136,11 @@ export type ImgproxyStreamUrlRequest = Omit<ImgproxyVideoUrlRequest, "extension"
   readonly renditions?: readonly number[];
   /** Segment length in whole seconds (1..30); default XI_VIDEO_TRANSFORM_SEGMENT_DURATION. */
   readonly segmentDuration?: number;
+  /**
+   * Segment container: "fmp4" (CMAF, default) or "ts" (MPEG-TS for older
+   * HLS players; HLS only, H.264 + AAC, so images with libx264 only).
+   */
+  readonly segmentFormat?: "fmp4" | "ts";
 };
 
 /** The video options and container of a stream request. */
@@ -143,14 +148,16 @@ function streamParts(req: ImgproxyStreamUrlRequest): { entries: OptionEntry[]; e
   const entries = pipelinesOf(req.options).flat();
   for (const [name] of entries) {
     const c = videoCatalogue.canonical.get(name);
-    if (c === "stream" || c === "segment_duration" || c === "format") {
-      throw new TypeError(`stream requests set ${name} through protocol, renditions and segmentDuration`);
+    if (c === "stream" || c === "segment_duration" || c === "segment_format" || c === "format") {
+      throw new TypeError(`stream requests set ${name} through protocol, renditions, segmentDuration and segmentFormat`);
     }
   }
   const ext = Object.hasOwn(streamManifests, req.protocol) ? streamManifests[req.protocol] : undefined;
   if (ext === undefined) throw new TypeError(`unknown stream protocol ${JSON.stringify(req.protocol)}`);
   if (req.renditions?.length) entries.push(["stream", [req.protocol, ...req.renditions]]);
   if (req.segmentDuration !== undefined) entries.push(["segment_duration", [req.segmentDuration]]);
+  if (req.segmentFormat === "ts" && req.protocol !== "hls") throw new TypeError("MPEG-TS segments are HLS only");
+  if (req.segmentFormat !== undefined && req.segmentFormat !== "fmp4") entries.push(["segment_format", [req.segmentFormat]]);
   return { entries, ext };
 }
 
