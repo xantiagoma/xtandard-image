@@ -1,0 +1,83 @@
+name: client-rust
+
+# The Rust client (clients/rust, ADR 0013): rustfmt, clippy -D warnings for
+# every feature set, cargo test (conformance fixture, builder fixture, shared
+# vectors, unit, doc and stand-in HTTP tests of both clients) on the MSRV and
+# the pinned stable, rustdoc with warnings as errors, cargo-deny (licences,
+# advisories, bans, sources) and a publish dry run. Runs when the client, the
+# shared spec and fixtures, or this workflow change.
+#
+# DISABLED while Actions minutes are exhausted (docs/HANDOFF.md): the jobs
+# run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
+# Locally: `task clients:test` (or `task -d clients/rust ci`).
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - 'clients/rust/**'
+      - 'clients/spec/**'
+      - 'testdata/urls/**'
+      - 'testdata/security/**'
+      - '.github/workflows/client-rust.yml'
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-rust-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: clients/rust
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: rust ${{ matrix.rust }}
+    if: vars.XI_CLIENTS_WORKFLOW == 'enabled'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # The MSRV (Cargo.toml rust-version) and the pinned stable (mise.toml).
+        rust: ['1.89.0', '1.99.0']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: clients/rust
+          key: ${{ matrix.rust }}
+      - run: cargo test --locked --all-features
+      - run: cargo test --locked --no-default-features
+      - if: matrix.rust == '1.99.0'
+        run: cargo fmt --check
+      - if: matrix.rust == '1.99.0'
+        run: |
+          cargo clippy --locked --all-targets --no-default-features -- -D warnings
+          cargo clippy --locked --all-targets --no-default-features --features serde -- -D warnings
+          cargo clippy --locked --all-targets --no-default-features --features async -- -D warnings
+          cargo clippy --locked --all-targets --no-default-features --features blocking -- -D warnings
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+      - if: matrix.rust == '1.99.0'
+        run: cargo doc --locked --all-features --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+      - if: matrix.rust == '1.99.0'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny@0.20.2 # = clients/rust/mise.toml
+      - if: matrix.rust == '1.99.0'
+        run: cargo deny --locked check
+      - if: matrix.rust == '1.99.0'
+        run: |
+          cargo package --locked --list
+          cargo publish --locked --dry-run
