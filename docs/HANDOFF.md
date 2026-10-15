@@ -308,3 +308,8 @@ owner has authorised merging PRs without review.
     identical in duration/sample rate and raw Range requests take <10 ms, so it looks like a headless
     audio-clock artefact, not a server regression. Needs a check in a real browser; then either fix
     compare.js sync for audio or loosen/skip the check headless.
+- **M6 clients (owner 2026-10-15):** official clients for Python, Go, PHP, Ruby, Rust, Java, .NET,
+  Elixir (+ existing TS); no Bazel (mise + Taskfile, native tooling, path-filtered CI). In flight:
+  WP-134 foundation (ADR, `clients/spec` JSON from the Go catalogues, conformance fixture, generator,
+  `task clients:*`) + Python reference client (`m6/wp-134-clients-foundation`). After it merges, fan out
+  the other languages in parallel reusing its spec/fixture/generator.
