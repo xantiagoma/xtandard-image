@@ -1,0 +1,5 @@
+vendor/
+dist/
+.phpunit.cache/
+.php-cs-fixer.cache
+.phpstan.cache/

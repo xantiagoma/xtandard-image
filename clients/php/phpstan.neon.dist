@@ -1,0 +1,33 @@
+# PHPStan at level max with the strict rules, over the library, the generated
+# files, the tests and the scripts (`task types`).
+includes:
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+    - vendor/phpstan/phpstan-phpunit/extension.neon
+    - vendor/phpstan/phpstan-phpunit/rules.neon
+
+parameters:
+    level: max
+    phpVersion:
+        min: 80200
+        max: 80599
+    paths:
+        - src
+        - generated
+        - tests
+        - scripts
+    checkUninitializedProperties: true
+    checkImplicitMixed: true
+    checkBenevolentUnionTypes: true
+    reportPossiblyNonexistentGeneralArrayOffset: true
+    reportPossiblyNonexistentConstantArrayOffset: true
+    reportAnyTypeWideningInVarTag: true
+    tmpDir: .phpstan.cache
+    ignoreErrors:
+        # The fixture-driven tests feed untyped JSON (option names, enum values
+        # as strings) into the typed API on purpose: the runtime checks are
+        # what they test. Everything else in the tests is checked at max.
+        -
+            identifier: argument.type
+            paths:
+                - tests/ConformanceTest.php
+                - tests/BuilderFixtureTest.php
