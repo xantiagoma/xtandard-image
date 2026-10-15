@@ -53,6 +53,9 @@ func TestVideo(t *testing.T) {
 		{name: "stream_hlsv3_mpd", path: vu + "fl_hlsv3/dog.mpd"},
 		{name: "stream_hlsv3_mpd_strict", cfg: "strict", path: vu + "fl_hlsv3/dog.mpd"},
 		{name: "hlsv3_file", path: vu + "fl_hlsv3/dog.mp4"},
+		// Layers on streams (WP-131): drawn on every rendition.
+		{name: "stream_overlay", path: vu + "l_logos:brand,w_120/fl_layer_apply,g_south_east,x_10,y_10,so_1,eo_3/sp_hd/dog.m3u8"},
+		{name: "stream_overlay_text_ts", path: vu + "l_text:arial_40:Hello,co_white/fl_layer_apply,g_north/sp_sd/fl_hlsv3/dog.m3u8"},
 
 		{name: "stream_vc_none", path: vu + "vc_none/sp_hd/dog.m3u8"},
 		{name: "stream_fetch", path: "/demo/video/fetch/sp_sd/f_m3u8/https://example.com/dog.mp4"},

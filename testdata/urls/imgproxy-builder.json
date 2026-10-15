@@ -12888,6 +12888,41 @@
       "query_url": "/q/video?url=https://example.com/clip.mov&st=hls,360&format=m3u8&xi_sig=EFsN4EPpEDdLAcGGmvbsuyRN4SsTIDY9Q8-Ja5SH1q0"
     },
     {
+      "name": "video/stream_timecode_ts",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "extension": "m3u8",
+      "pipelines": [
+        [
+          {
+            "tc": [
+              "hms",
+              "nowe",
+              8,
+              8,
+              24
+            ]
+          },
+          {
+            "sgf": [
+              "ts"
+            ]
+          },
+          {
+            "st": [
+              "hls",
+              360
+            ]
+          }
+        ]
+      ],
+      "query": true,
+      "url": "/video/unsafe/tc:hms:nowe:8:8:24/sgf:ts/st:hls:360/plain/https://example.com/clip.mov@m3u8",
+      "url_short": "/video/unsafe/tc:hms:nowe:8:8:24/sgf:ts/st:hls:360/plain/https://example.com/clip.mov@m3u8",
+      "query_url": "/q/video?url=https://example.com/clip.mov&tc=hms,nowe,8,8,24&sgf=ts&st=hls,360&format=m3u8"
+    },
+    {
       "name": "video/stream_ts",
       "endpoint": "video",
       "encoding": "plain",
@@ -12936,6 +12971,46 @@
       "url": "/video/unsafe/stream:hls:360/segment_format:mpegts/plain/https://example.com/clip.mov",
       "url_short": "/video/unsafe/st:hls:360/sgf:mpegts/plain/https://example.com/clip.mov",
       "query_url": "/q/video?url=https://example.com/clip.mov&st=hls,360&sgf=mpegts"
+    },
+    {
+      "name": "video/stream_watermark",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "extension": "m3u8",
+      "pipelines": [
+        [
+          {
+            "wm": [
+              0.8,
+              "soea",
+              8,
+              8
+            ]
+          },
+          {
+            "wmu": [
+              "eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n"
+            ]
+          },
+          {
+            "wms": [
+              48,
+              0
+            ]
+          },
+          {
+            "ow": [
+              1,
+              4
+            ]
+          }
+        ]
+      ],
+      "query": true,
+      "url": "/video/unsafe/wm:0.8:soea:8:8/wmu:eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n/wms:48:0/ow:1:4/plain/https://example.com/clip.mov@m3u8",
+      "url_short": "/video/unsafe/wm:0.8:soea:8:8/wmu:eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n/wms:48:0/ow:1:4/plain/https://example.com/clip.mov@m3u8",
+      "query_url": "/q/video?url=https://example.com/clip.mov&wm=0.8,soea,8,8&wmu=eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n&wms=48,0&ow=1,4&format=m3u8"
     },
     {
       "name": "video/timecode",

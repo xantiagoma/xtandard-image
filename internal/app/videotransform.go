@@ -197,11 +197,11 @@ func (j ffmpegJob) Run(ctx context.Context, p *video.TranscodePlan, pixels []med
 }
 
 // overlayRenderer is media.OverlayRenderer over the image watermark code
-// (exec.Executor.RenderOverlay): the configured watermark, the fonts and
+// (exec.Executor.RenderOverlayScaled): the configured watermark, the fonts and
 // XI_PROCESSING_WATERMARK_OPACITY apply as on images.
 type overlayRenderer struct{ ex *exec.Executor }
 
-func (r overlayRenderer) Render(ctx context.Context, o *transform.VideoOverlay, img media.Buffer, w, h int) (media.Layer, bool, error) {
+func (r overlayRenderer) Render(ctx context.Context, o *transform.VideoOverlay, img media.Buffer, f media.Frame) (media.Layer, bool, error) {
 	var oi *exec.OverlayImage
 	if img != nil {
 		f, ok := codec.Sniff(img.Bytes())
@@ -220,7 +220,11 @@ func (r overlayRenderer) Render(ctx context.Context, o *transform.VideoOverlay, 
 		}
 		oi = &exec.OverlayImage{Source: vb, Format: name}
 	}
-	ov, err := r.ex.RenderOverlay(ctx, &o.Watermark, oi, w, h)
+	refW, refH := f.RefWidth, f.RefHeight
+	if refW <= 0 || refH <= 0 {
+		refW, refH = f.Width, f.Height
+	}
+	ov, err := r.ex.RenderOverlayScaled(ctx, &o.Watermark, oi, refW, refH, f.Width, f.Height)
 	if err != nil || ov == nil {
 		return media.Layer{}, false, err
 	}

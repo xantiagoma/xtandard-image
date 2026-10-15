@@ -137,6 +137,9 @@ func (c TranscodeCaps) ResolveStream(op *transform.VideoOp) (TranscodeOutput, er
 	if err := c.resolveEffects(op); err != nil {
 		return TranscodeOutput{}, err
 	}
+	if err := c.resolveOverlays(op); err != nil {
+		return TranscodeOutput{}, err
+	}
 	return out, nil
 }
 
@@ -516,6 +519,17 @@ func PlanSegment(in *TranscodeInput, op *transform.VideoOp, l *StreamLayout, r *
 	v := &VideoStreamPlan{
 		Codec: r.Codec, Width: r.Width, Height: r.Height, FPS: r.FPS(),
 		MaxBitrate: r.Bitrate, Filters: f.String(),
+	}
+	// Overlays (WP-131) on the stream's timeline (every frame enters the
+	// overlay graph with its time from the stream's start), laid out on
+	// the largest rendition and scaled to this one, so they keep their
+	// place and size when a player switches renditions.
+	ref := &l.Video[0]
+	if v.Overlays, err = planOverlaysOn(op, r.Height, ref.Width, ref.Height, l.Duration); err != nil {
+		return nil, err
+	}
+	if len(v.Overlays) > 0 {
+		v.OverlayRefWidth, v.OverlayRefHeight = ref.Width, ref.Height
 	}
 	// One keyframe per segment (its first frame), or every
 	// KeyframeInterval within it.

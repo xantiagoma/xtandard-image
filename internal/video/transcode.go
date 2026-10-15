@@ -331,16 +331,24 @@ func (c TranscodeCaps) resolve(op *transform.VideoOp) (TranscodeOutput, error) {
 	if !c.Video.Has(out.Video) {
 		return TranscodeOutput{}, unsupported(out.Video.String() + " video output is not supported by this image")
 	}
+	if err := c.resolveOverlays(op); err != nil {
+		return TranscodeOutput{}, err
+	}
+	return out, nil
+}
+
+// resolveOverlays refuses the overlays this build cannot draw.
+func (c TranscodeCaps) resolveOverlays(op *transform.VideoOp) error {
 	for i := range op.Overlays {
 		if op.Overlays[i].Kind() == transform.VideoOverlayTimecode {
 			if !c.Timecode {
-				return TranscodeOutput{}, unsupported("timecode overlays are not supported by this image")
+				return unsupported("timecode overlays are not supported by this image")
 			}
 		} else if !c.Overlays {
-			return TranscodeOutput{}, unsupported("video overlays are not supported by this image")
+			return unsupported("video overlays are not supported by this image")
 		}
 	}
-	return out, nil
+	return nil
 }
 
 // TranscodeInput is what the transcoder probed from a source.
@@ -520,6 +528,18 @@ type VideoStreamPlan struct {
 	// rendered pixels before the transcode; one that renders nothing is
 	// removed.
 	Overlays []OverlayPlan
+	// OverlayRefWidth × OverlayRefHeight is the frame the image and text
+	// overlays are laid out on before they are scaled to this one (a
+	// stream's largest rendition, WP-131); 0 is this frame.
+	OverlayRefWidth, OverlayRefHeight int
+}
+
+// OverlayRef is the frame v's image and text overlays are laid out on.
+func (v *VideoStreamPlan) OverlayRef() (w, h int) {
+	if v.OverlayRefWidth > 0 && v.OverlayRefHeight > 0 {
+		return v.OverlayRefWidth, v.OverlayRefHeight
+	}
+	return v.Width, v.Height
 }
 
 // AudioStreamPlan is the audio stream of a transcode.

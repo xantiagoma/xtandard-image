@@ -9,6 +9,7 @@ import (
 	jsonv2 "encoding/json/v2"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -75,6 +76,10 @@ type StreamPart struct {
 	// track's init segment followed by the segment's audio fragment, whose
 	// packets the transcode copies in; nil otherwise.
 	CopyAudio cache.Buffer
+	// Overlays[i] is the fetched image of image overlay i of the stream
+	// (nil for the others; nil when there are none), drawn on video
+	// segments (WP-131).
+	Overlays []fetch.Buffer
 }
 
 // TicketSealer seals and opens the tickets of child URLs
@@ -132,14 +137,19 @@ type streamJob struct {
 	layout    *video.StreamLayout
 	tok       string
 	exp       time.Time
-	// src is the fetched source once a part needed it; release drops it.
-	src *fetch.Result
+	// src is the fetched source once a part needed it; overlays the
+	// images of its image overlays once a video segment needed them;
+	// release drops them.
+	src      *fetch.Result
+	overlays []fetch.Buffer
+	fetched  bool // overlays are fetched
 }
 
 func (j *streamJob) release() {
 	if j.src != nil {
 		j.src.Release()
 	}
+	releaseBuffers(j.overlays)
 }
 
 // streamChildPath returns the part of r's path after StreamPath (and the
@@ -209,6 +219,16 @@ func (s *Server) streamMasterJob(ctx context.Context, r *http.Request, info *req
 	if err := s.streamPrepare(ctx, r, info, j); err != nil {
 		j.release()
 		return nil, err
+	}
+	// The overlay images are fetched by the segments that draw them; their
+	// sources must pass the allowlist now, before a ticket names them.
+	for i := range req.Video.Overlays {
+		if o := &req.Video.Overlays[i]; o.Kind() == transform.VideoOverlayImage {
+			if _, err := s.resolve(ctx, *o.Source); err != nil {
+				j.release()
+				return nil, err
+			}
+		}
 	}
 	// Zero fields omitted: a ticket carries only what the URL set.
 	payload, err := jsonv2.Marshal(ticketPayload{Source: j.req.Source, Video: *j.req.Video}, ticketJSON())
@@ -370,6 +390,20 @@ func (s *Server) streamSource(ctx context.Context, r *http.Request, info *reques
 	return fr.Buffer, nil
 }
 
+// streamOverlays fetches the images of j's image overlays once (like
+// watermarks: allowlists, the fetcher, the source byte limit).
+func (s *Server) streamOverlays(ctx context.Context, j *streamJob) ([]fetch.Buffer, error) {
+	if j.fetched {
+		return j.overlays, nil
+	}
+	ov, err := s.fetchOverlays(ctx, j.req.Video, s.limits(&j.req.Limits).maxSrcBytes)
+	if err != nil {
+		return nil, err
+	}
+	j.overlays, j.fetched = ov, true
+	return ov, nil
+}
+
 // streamKey is the cache and coalescing key of part of j's stream: the
 // result key of its request with the stream's codecs and the part.
 func (s *Server) streamKey(j *streamJob, part string) string {
@@ -487,9 +521,13 @@ func (s *Server) streamSegment(ctx context.Context, r *http.Request, info *reque
 	if err != nil {
 		return nil, "", err
 	}
+	ov, err := s.streamOverlays(ctx, j)
+	if err != nil {
+		return nil, "", err
+	}
 	seg := manifest.Part{Kind: manifest.PartSegment, Track: part.Track, Segment: n}
 	t := s.stage(info, stageProcess)
-	res, err := s.deps.Stream.Stream(ctx, s.streamKey(j, seg.Path()), src, j.req.Video, StreamPart{Track: part.Track, Segment: n})
+	res, err := s.deps.Stream.Stream(ctx, s.streamKey(j, seg.Path()), src, j.req.Video, StreamPart{Track: part.Track, Segment: n, Overlays: slices.Clone(ov)})
 	t.done()
 	if err != nil {
 		return nil, "", err
@@ -537,8 +575,12 @@ func (s *Server) streamTS(ctx context.Context, r *http.Request, info *requestInf
 	if err != nil {
 		return nil, err
 	}
+	ov, err := s.streamOverlays(ctx, j)
+	if err != nil {
+		return nil, err
+	}
 	t := s.stage(info, stageProcess)
-	res, err := s.deps.Stream.Stream(ctx, key, src, j.req.Video, StreamPart{Track: part.Track, Segment: part.Segment, CopyAudio: audio})
+	res, err := s.deps.Stream.Stream(ctx, key, src, j.req.Video, StreamPart{Track: part.Track, Segment: part.Segment, CopyAudio: audio, Overlays: slices.Clone(ov)})
 	t.done()
 	if err != nil {
 		return nil, err
@@ -618,7 +660,7 @@ func (s *Server) prefetch(j *streamJob, track string, n int) {
 		if s.streamHas(ctx, key) {
 			continue
 		}
-		part := StreamPart{Track: track, Segment: i}
+		part := StreamPart{Track: track, Segment: i, Overlays: slices.Clone(j.overlays)}
 		if ts && j.layout.Audio != nil {
 			// An MPEG-TS segment needs its audio: prefetched only when the
 			// audio track already has it.

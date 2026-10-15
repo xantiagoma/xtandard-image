@@ -16,8 +16,9 @@ import (
 // renditions the heights of sr-<h>_<h>… (240, 360, 480, 720, 1080, 1440,
 // 2160; without sr-, the configured ladder) at this server's bit rates.
 // The video's other transformations (trimming, cm-extract, rotation, fps,
-// quality, codecs) apply to every rendition; a resize (the renditions are
-// the sizes) and layers are recorded and not applied.
+// quality, codecs, and since WP-131 l-image/l-text layers, laid out on the
+// largest rendition and scaled to the others) apply to every rendition; a
+// resize (the renditions are the sizes) is recorded and not applied.
 
 // Reasons of the stream mapping.
 const (
@@ -66,7 +67,7 @@ func (vs *videoState) finishStream() error {
 	}{
 		{"w", op.Width != 0},
 		{"h", op.Height != 0},
-		{"l", len(op.Overlays) > 0},
+
 		{"ac", op.AudioCodec != transform.AudioCodecAuto && op.AudioCodec != transform.AudioCodecAAC},
 		{"vc", op.VideoCodec == transform.VideoCodecHEVC},
 	} {
@@ -76,7 +77,7 @@ func (vs *videoState) finishStream() error {
 			}
 		}
 	}
-	op.Width, op.Height, op.Fit, op.Gravity, op.MaxBitrate, op.Overlays = 0, 0, transform.VideoFitContain, 0, 0, nil
+	op.Width, op.Height, op.Fit, op.Gravity, op.MaxBitrate = 0, 0, transform.VideoFitContain, 0, 0
 	if op.AudioCodec != transform.AudioCodecAAC {
 		op.AudioCodec = transform.AudioCodecAuto
 	}

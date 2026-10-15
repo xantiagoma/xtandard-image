@@ -6,7 +6,9 @@ import (
 	"image"
 	"math"
 	"net/http"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
@@ -50,6 +52,88 @@ func regionDiff(a, b *image.NRGBA, r image.Rectangle) float64 {
 		}
 	}
 	return sum / float64(3*r.Dx()*r.Dy())
+}
+
+// joinedRenditions fetches a signed HLS master URL and returns each video
+// rendition's init and media segments joined, by playlist name.
+func joinedRenditions(t *testing.T, base, master string) map[string][]byte {
+	t.Helper()
+	m := get(t, base+master)
+	if m.status != http.StatusOK {
+		t.Fatalf("master: %d %s", m.status, m.body)
+	}
+	out := map[string][]byte{}
+	for _, pl := range playlistURIs(m.body) {
+		if strings.HasSuffix(pl, "/a.m3u8") {
+			continue
+		}
+		media := get(t, base+pl)
+		if media.status != http.StatusOK {
+			t.Fatalf("%s: %d %s", pl, media.status, media.body)
+		}
+		prefix := pl[:strings.LastIndexByte(pl, '/')+1]
+		var joined []byte
+		for _, u := range playlistURIs(media.body) {
+			r := get(t, base+prefix+u)
+			if r.status != http.StatusOK {
+				t.Fatalf("%s: %d %s", u, r.status, r.body)
+			}
+			joined = append(joined, r.body...)
+		}
+		out[pl[strings.LastIndexByte(pl, '/')+1:]] = joined
+	}
+	return out
+}
+
+// TestStreamOverlaysEndToEnd draws an image overlay and a timecode on an
+// HLS stream (WP-131) through signed URLs: in every rendition the badge is
+// in the frames of its window (1–4 s of the stream, across the 2 s
+// segment boundaries) and nowhere else, at the same place relative to the
+// frame (laid out on the 640×360 rendition, scaled on the 426×240 one),
+// and the rest of the frame is the plain stream's.
+func TestStreamOverlaysEndToEnd(t *testing.T) {
+	if !ffmpeg.Available() {
+		t.Skip("this image has no FFmpeg")
+	}
+	cfg := videoConfig(t, config.RoleAll, true)
+	cfg.Video.Transform.SegmentDuration = 2 * time.Second
+	a := startVideo(t, cfg)
+	s := newVideoSigner(t)
+	base := "http://" + a.public.String()
+	const src = "/plain/video/stream-vp9-opus.webm@m3u8"
+	badge := b64("xi://fixtures/watermark/badge.png")
+	plain := joinedRenditions(t, base, s.video(t, "/st:hls:360:240/mu:1/q:90"+src))
+	marked := joinedRenditions(t, base, s.video(t, "/st:hls:360:240/mu:1/q:90/wm:0.9:soea:8:8/wmu:"+badge+"/wms:48:0/ow:1:4/tc:hms:nowe:4:4:24"+src))
+	// The badge, 48 px wide, 8 px from the bottom-right corner of the
+	// 640×360 rendition; scaled by 426/640 on the other.
+	for name, mark := range map[string]image.Rectangle{
+		"v0.m3u8": image.Rect(584, 304, 632, 352),
+		"v1.m3u8": image.Rect(389, 202, 421, 234),
+	} {
+		got, want := marked[name], plain[name]
+		if len(got) == 0 || len(want) == 0 {
+			t.Fatalf("%s missing: %d and %d bytes", name, len(got), len(want))
+		}
+		pk := ffprobePackets(t, got)
+		if len(pk) != 165 {
+			t.Fatalf("%s: %d frames, want 165", name, len(pk))
+		}
+		off := pk[0].pts
+		inner := mark.Inset(4)
+		untouched := image.Rect(mark.Min.X/4, mark.Min.Y/2, mark.Min.X/2, mark.Min.Y*3/4)
+		for _, at := range []float64{0.5, 1.5, 2.5, 3.9, 4.6} {
+			g, w := videoFrame(t, got, off+at), videoFrame(t, want, off+at)
+			d := regionDiff(g, w, inner)
+			if in := at > 1 && at < 4; in && d < 8 {
+				t.Errorf("%s at %.1f s: the badge is missing (difference %.1f)", name, at, d)
+			} else if !in && d > 3 {
+				t.Errorf("%s at %.1f s, outside the window: the badge shows (difference %.1f)", name, at, d)
+			}
+			if d := regionDiff(g, w, untouched); d > 3 {
+				t.Errorf("%s at %.1f s: the rest of the frame changed (difference %.1f)", name, at, d)
+			}
+		}
+	}
 }
 
 // TestVideoOverlays serves image, text and timecode overlays end to end
