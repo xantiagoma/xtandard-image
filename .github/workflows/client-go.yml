@@ -1,0 +1,65 @@
+name: client-go
+
+# The Go client (clients/go, ADR 0013): golangci-lint (fmt and run), go vet,
+# go fix -diff, go mod tidy -diff, go test -race (conformance fixture,
+# builder fixture, shared vectors, unit, stand-in server and Example tests)
+# on every supported Go, the licence check and the build. Runs when the
+# client, the shared spec and fixtures, or this workflow change.
+#
+# DISABLED while Actions minutes are exhausted (docs/HANDOFF.md): the jobs
+# run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
+# Locally: `task -d clients/go ci` (or `task clients:test`).
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - 'clients/go/**'
+      - 'clients/spec/**'
+      - 'testdata/urls/**'
+      - 'testdata/security/**'
+      - '.github/workflows/client-go.yml'
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-go-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: clients/go
+
+jobs:
+  test:
+    name: go ${{ matrix.go }}
+    if: vars.XI_CLIENTS_WORKFLOW == 'enabled'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # go.mod's minimum (go 1.26.0) and the development toolchain (mise.toml).
+        go: ['1.26.9', '1.27.1']
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ matrix.go }}
+          cache-dependency-path: clients/go/go.mod
+      # golangci-lint's release binary (never through go get or a tool
+      # directive; go-standards §1), the version of clients/go/mise.toml.
+      - if: matrix.go == '1.27.1'
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b "$(go env GOPATH)/bin" v2.14.0
+          golangci-lint fmt --diff
+          golangci-lint run ./...
+          test -z "$(go fix -diff ./...)"
+      - run: go vet ./...
+      - run: go mod tidy -diff
+      - run: go test -race -shuffle=on -count=1 ./...
+      - run: sh scripts/check-licenses.sh
+      - run: go build ./...

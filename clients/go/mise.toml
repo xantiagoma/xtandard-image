@@ -1,0 +1,6 @@
+# Toolchain of the Go client (ADR 0013): `mise install` in this directory.
+# go.mod's `go 1.26.0` is the oldest release users need; this pin is the
+# development toolchain, the server's (root .mise.toml). CI tests 1.26 and 1.27.
+[tools]
+go = "1.27.1"
+golangci-lint = "2.14.0"
