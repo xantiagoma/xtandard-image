@@ -84,6 +84,15 @@ func timecodeText(t transform.VideoTimecode) string {
 // expressions, and the timecodes' drawtext options. An overlay with no
 // opacity, or whose window starts after the output ends, is left out.
 func planOverlays(op *transform.VideoOp, w, h int, duration float64) ([]OverlayPlan, error) {
+	return planOverlaysOn(op, h, w, h, duration)
+}
+
+// planOverlaysOn is planOverlays for a frame h pixels high (of the same
+// aspect) whose overlays are laid out on a refW × refH one and scaled (a
+// stream's renditions, laid out on the largest, WP-131): a timecode's
+// offsets, size and shadow scale with the frame. The windows are on the
+// output's (the stream's) timeline.
+func planOverlaysOn(op *transform.VideoOp, h, refW, refH int, duration float64) ([]OverlayPlan, error) {
 	var out []OverlayPlan
 	for i := range op.Overlays {
 		o := &op.Overlays[i]
@@ -119,7 +128,7 @@ func planOverlays(op *transform.VideoOp, w, h int, duration float64) ([]OverlayP
 			p.Enable = "gte(t," + ftoa(start) + ")"
 		}
 		if o.Timecode != transform.VideoTimecodeNone {
-			tc, err := planTimecode(o, &p, w, h)
+			tc, err := planTimecode(o, &p, refW, refH, float64(h)/float64(refH))
 			if err != nil {
 				return nil, err
 			}
@@ -130,8 +139,10 @@ func planOverlays(op *transform.VideoOp, w, h int, duration float64) ([]OverlayP
 	return out, nil
 }
 
-// planTimecode writes the drawtext options of a timecode overlay.
-func planTimecode(o *transform.VideoOverlay, p *OverlayPlan, w, h int) (*TimecodePlan, error) {
+// planTimecode writes the drawtext options of a timecode overlay laid out
+// on a w × h frame and drawn k times as large (k 1 but on a stream's
+// smaller renditions).
+func planTimecode(o *transform.VideoOverlay, p *OverlayPlan, w, h int, k float64) (*TimecodePlan, error) {
 	text := timecodeText(o.Timecode)
 	if text == "" {
 		return nil, errs.Newf(errs.KindInternal, "video: timecode %s", o.Timecode)
@@ -140,15 +151,17 @@ func planTimecode(o *transform.VideoOverlay, p *OverlayPlan, w, h int) (*Timecod
 	if tc.Size <= 0 {
 		tc.Size = transform.DefaultTimecodeSize
 	}
+	scale := func(n int) int { return int(math.Round(float64(n) * k)) }
+	tc.Size = max(scale(tc.Size), 1)
 	alpha := o.Opacity
 	if c := o.Color; c != nil {
 		tc.Color = "0x" + hex2(c.R) + hex2(c.G) + hex2(c.B)
 		alpha *= float64(c.A) / 255
 	}
 	if o.Shadow > 0 {
-		tc.Shadow = max(int(math.Round(o.Shadow)), 1)
+		tc.Shadow = max(int(math.Round(o.Shadow*k)), 1)
 	}
-	ox, oy := offsetPx(o.Position.XOffset, w), offsetPx(o.Position.YOffset, h)
+	ox, oy := scale(offsetPx(o.Position.XOffset, w)), scale(offsetPx(o.Position.YOffset, h))
 	g := o.Position.Type
 	switch g {
 	case transform.GravityWest, transform.GravityNorthWest, transform.GravitySouthWest:

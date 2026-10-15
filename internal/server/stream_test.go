@@ -60,7 +60,8 @@ func fakeFMP4(tag string, timescale uint32, starts ...uint64) []byte {
 type fakeStream struct {
 	in         video.TranscodeInput
 	caps       video.TranscodeCaps
-	prefetchOK bool // Prefetch starts (and finishes at once)
+	prefetchOK bool          // Prefetch starts (and finishes at once)
+	audioChunk time.Duration // StreamSettings.AudioChunk
 
 	probes   atomic.Int32
 	mu       sync.Mutex
@@ -100,7 +101,7 @@ func (f *fakeStream) Layout(in *video.TranscodeInput, op *transform.VideoOp) (*v
 		return nil, err
 	}
 	return video.PlanStream(in, op, out, f.caps, &video.TranscodeSettings{MaxFPS: 60},
-		&video.StreamSettings{SegmentDuration: 2 * time.Second})
+		&video.StreamSettings{SegmentDuration: 2 * time.Second, AudioChunk: f.audioChunk})
 }
 
 func (f *fakeStream) result(op *transform.VideoOp, part StreamPart) *VideoResult {
@@ -109,13 +110,24 @@ func (f *fakeStream) result(op *transform.VideoOp, part StreamPart) *VideoResult
 		panic(err)
 	}
 	var data []byte
-	if part.Track == "" {
-		starts := make([]uint64, 0, l.Segments)
-		for n := range l.Segments {
-			starts = append(starts, uint64(n*96000))
+	switch {
+	case op.Stream.Format == transform.SegmentTS && part.Track != "":
+		// An MPEG-TS segment: its name and the audio it was given.
+		n := -1
+		if part.CopyAudio != nil {
+			if f, err := fmp4.Parse(part.CopyAudio.Bytes()); err == nil && len(f.Fragments) == 1 {
+				n = int(f.Fragments[0].DecodeTime / 96000) //nolint:gosec // G115: a small test timeline
+			}
+		}
+		data = []byte("ts " + part.Track + "/" + strconv.Itoa(part.Segment) + " audio " + strconv.Itoa(n))
+	case part.Track == "":
+		first, end := l.AudioChunkSegments(part.Segment)
+		starts := make([]uint64, 0, end-first)
+		for n := first; n < end; n++ {
+			starts = append(starts, uint64(n*96000)) //nolint:gosec // G115: a segment number is not negative
 		}
 		data = fakeFMP4("audio", 48000, starts...)
-	} else {
+	default:
 		data = fakeFMP4(part.Track+":"+strconv.Itoa(part.Segment), 90000, uint64(part.Segment)*180000) //nolint:gosec // G115: a segment number is not negative
 	}
 	b := &refBuf{b: data}
@@ -454,7 +466,7 @@ func TestStreamPrefetch(t *testing.T) {
 	fs.mu.Lock()
 	got := append([]StreamPart(nil), fs.prefetch...)
 	fs.mu.Unlock()
-	if len(got) != 2 || got[0] != (StreamPart{Track: "v1", Segment: 2}) || got[1] != (StreamPart{Track: "v1", Segment: 3}) {
+	if len(got) != 2 || got[0].Track != "v1" || got[0].Segment != 2 || got[1].Track != "v1" || got[1].Segment != 3 {
 		t.Fatalf("prefetched %v", got)
 	}
 	for _, n := range []string{"2", "3"} {
@@ -524,4 +536,179 @@ func TestStreamResultCache(t *testing.T) {
 		t.Fatalf("second instance probed %d times, transcoded %v", fs2.probes.Load(), fs2.streamed())
 	}
 	_ = fs1
+}
+
+// TestStreamTS: an MPEG-TS stream (WP-131) lists only video playlists of
+// .ts segments, each transcoded with the audio of its segment cut from
+// the audio track (transcoded once); CMAF parts are not served for it,
+// nor .ts parts for a CMAF stream; prefetches carry the cached audio.
+func TestStreamTS(t *testing.T) {
+	t.Parallel()
+	op := &transform.VideoOp{Stream: &transform.VideoStream{Format: transform.SegmentTS, Renditions: []int{360, 240}}}
+	h, fs := newStreamHarness(t, op, nil)
+	fs.caps.Video.H264, fs.caps.MuxMPEGTS = true, true
+	fs.prefetchOK = true
+	master := mustGet(t, h, videoPath, http.StatusOK)
+	list := uris(string(master.body))
+	if len(list) != 2 || !strings.HasSuffix(list[0], "/v0.m3u8") || !strings.Contains(string(master.body), "#EXT-X-VERSION:3") ||
+		!strings.Contains(string(master.body), `,mp4a.40.2"`) {
+		t.Fatalf("master playlist:\n%s", master.body)
+	}
+	base := list[0][:strings.LastIndexByte(list[0], '/')+1]
+	segs := uris(string(mustGet(t, h, list[1], http.StatusOK).body))
+	if len(segs) != 4 || segs[0] != "v1/0.ts" {
+		t.Fatalf("media playlist URIs %q", segs)
+	}
+	for _, n := range []int{0, 3} {
+		r := mustGet(t, h, base+"v1/"+strconv.Itoa(n)+".ts", http.StatusOK)
+		if ct := r.header.Get("Content-Type"); ct != "video/mp2t" || string(r.body) != "ts v1/"+strconv.Itoa(n)+" audio "+strconv.Itoa(n) {
+			t.Fatalf("segment %d: %q %q", n, ct, r.body)
+		}
+	}
+	// Segment 0 prefetched 1 and 2 with their audio; they are cached.
+	for _, n := range []string{"1", "2"} {
+		if r := mustGet(t, h, base+"v1/"+n+".ts", http.StatusOK); r.header.Get(hdrXiCache) != cacheHit || string(r.body) != "ts v1/"+n+" audio "+n {
+			t.Errorf("prefetched segment %s: %q %q", n, r.header.Get(hdrXiCache), r.body)
+		}
+	}
+	audio := 0
+	for _, p := range fs.streamed() {
+		if p.Track == "" {
+			audio++
+		}
+	}
+	if audio != 1 {
+		t.Fatalf("the audio track was transcoded %d times", audio)
+	}
+	for _, p := range []string{"v0/init.mp4", "v0/0.m4s", "a.m3u8", "a/init.mp4", "a/0.m4s", "a/0.ts"} {
+		mustGet(t, h, base+p, http.StatusNotFound)
+	}
+	h.checkReleased(t)
+	_ = h.streamCache.Close()
+	fs.checkBodies(t)
+
+	// A CMAF stream has no .ts segments.
+	hc, _ := newStreamHarness(t, hlsOp(), nil)
+	mustGet(t, hc, streamBase(t, hc)+"v0/0.ts", http.StatusNotFound)
+	// MPEG-TS needs H.264: refused before anything is fetched.
+	hf, _ := newStreamHarness(t, op, nil)
+	mustGet(t, hf, videoPath, http.StatusUnprocessableEntity)
+	if hf.f.calls.Load() != 0 {
+		t.Fatal("fetched before refusing")
+	}
+}
+
+// TestStreamOverlays: a stream's overlays (WP-131) travel in its ticket;
+// the overlay image is fetched once per child request that transcodes a
+// video segment (not for playlists or audio), handed to the transcode and
+// to its prefetches, and released; a disallowed overlay source is refused
+// at the manifest, before any ticket names it.
+func TestStreamOverlays(t *testing.T) {
+	t.Parallel()
+	op := hlsOp()
+	op.Overlays = []transform.VideoOverlay{
+		{Opacity: 1, Source: &transform.SourceSpec{Raw: "logo.png"}, Start: time.Second},
+		{Opacity: 1, Timecode: transform.VideoTimecodeHMS},
+	}
+	h, fs := newStreamHarness(t, op, nil)
+	fs.prefetchOK = true
+	fs.caps.Overlays, fs.caps.Timecode = true, true
+	base := streamBase(t, h)
+	before := h.f.calls.Load()
+	mustGet(t, h, base+"v0.m3u8", http.StatusOK)
+	mustGet(t, h, base+"a/0.m4s", http.StatusOK)
+	audioCalls := h.f.calls.Load()
+	mustGet(t, h, base+"v0/0.m4s", http.StatusOK)
+	if got := h.f.calls.Load() - audioCalls; got != 2 { // the source and the overlay image
+		t.Fatalf("a video segment fetched %d times (playlist and audio: %d)", got, audioCalls-before)
+	}
+	fs.mu.Lock()
+	parts := append(append([]StreamPart(nil), fs.parts...), fs.prefetch...)
+	fs.mu.Unlock()
+	video := 0
+	for _, p := range parts {
+		if p.Track == "" {
+			if p.Overlays != nil {
+				t.Errorf("the audio was given overlays %v", p.Overlays)
+			}
+			continue
+		}
+		video++
+		if len(p.Overlays) != 2 || p.Overlays[0] == nil || p.Overlays[1] != nil {
+			t.Errorf("segment %s/%d was given overlays %v", p.Track, p.Segment, p.Overlays)
+		}
+	}
+	if video != 3 { // segment 0 and its two prefetches
+		t.Fatalf("%d video transcodes: %+v", video, parts)
+	}
+	h.checkReleased(t)
+
+	denied, dfs := newStreamHarness(t, op, func(h *harness) { h.res.deny = map[string]bool{"logo.png": true} })
+	dfs.caps.Overlays, dfs.caps.Timecode = true, true
+	mustGet(t, denied, videoPath, http.StatusForbidden)
+}
+
+// TestStreamAudioChunks: with sample-exact audio timestamps the audio is
+// transcoded in chunks of whole segments (WP-131): a segment's request
+// transcodes only its chunk, caches every part of it (the init segment
+// with each chunk) and prefetches the next chunk; the parts join into one
+// track of every segment.
+func TestStreamAudioChunks(t *testing.T) {
+	t.Parallel()
+	h, fs := newStreamHarness(t, hlsOp(), nil)
+	fs.in.AudioTBNum, fs.in.AudioTBDen = 1, 48000
+	fs.audioChunk = 4 * time.Second // two 2 s segments a chunk
+	base := streamBase(t, h)
+	r := mustGet(t, h, base+"a/3.m4s", http.StatusOK)
+	if r.header.Get(hdrXiCache) != cacheMiss {
+		t.Fatalf("X-Xi-Cache %q", r.header.Get(hdrXiCache))
+	}
+	audio := func() []int {
+		var out []int
+		for _, p := range fs.streamed() {
+			if p.Track == "" {
+				out = append(out, p.Segment)
+			}
+		}
+		return out
+	}
+	if got := audio(); len(got) != 1 || got[0] != 1 {
+		t.Fatalf("audio chunks transcoded %v, want [1]", got)
+	}
+	if r := mustGet(t, h, base+"a/2.m4s", http.StatusOK); r.header.Get(hdrXiCache) != cacheHit {
+		t.Fatalf("segment 2 of the same chunk: X-Xi-Cache %q", r.header.Get(hdrXiCache))
+	}
+	joined := make([]byte, 0, 1024)
+	for _, p := range []string{"a/init.mp4", "a/0.m4s", "a/1.m4s", "a/2.m4s", "a/3.m4s"} {
+		joined = append(joined, mustGet(t, h, base+p, http.StatusOK).body...)
+	}
+	f, err := fmp4.Parse(joined)
+	if err != nil || len(f.Fragments) != 4 {
+		t.Fatalf("joined audio: %v", err)
+	}
+	for i, fr := range f.Fragments {
+		if fr.DecodeTime != uint64(i*96000) {
+			t.Fatalf("fragment %d at %d", i, fr.DecodeTime)
+		}
+	}
+	if got := audio(); len(got) != 2 || got[1] != 0 {
+		t.Fatalf("audio chunks transcoded %v, want [1 0]", got)
+	}
+	h.checkReleased(t)
+
+	// Chunk 0 on request prefetches chunk 1.
+	hp, fp := newStreamHarness(t, hlsOp(), nil)
+	fp.in.AudioTBNum, fp.in.AudioTBDen = 1, 48000
+	fp.audioChunk, fp.prefetchOK = 4*time.Second, true
+	pbase := streamBase(t, hp)
+	mustGet(t, hp, pbase+"a/0.m4s", http.StatusOK)
+	if r := mustGet(t, hp, pbase+"a/2.m4s", http.StatusOK); r.header.Get(hdrXiCache) != cacheHit {
+		t.Fatalf("the next chunk was not prefetched: X-Xi-Cache %q", r.header.Get(hdrXiCache))
+	}
+	fp.mu.Lock()
+	pre := append([]StreamPart(nil), fp.prefetch...)
+	fp.mu.Unlock()
+	if len(pre) != 1 || pre[0].Track != "" || pre[0].Segment != 1 {
+		t.Fatalf("prefetched %+v", pre)
+	}
 }

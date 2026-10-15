@@ -193,6 +193,8 @@ typedef struct {
   char acodec[32];
   int audio_decodable; // and this build decodes it
   int sample_rate, channels;
+  int audio_tb_num, audio_tb_den; // the audio stream's time base
+  double audio_start;             // its first timestamp, seconds
 } XiTxInfo;
 
 // Audio encoders of XiTxParams.acodec.
@@ -270,6 +272,26 @@ typedef struct {
   // encoder's priming, which must equal audio_priming samples.
   int frag_seconds;
   int audio_priming;
+  // Audio chunks (WP-131): only packets of fragments [frag_first,
+  // frag_end) are written (frag_end 0: no end); with frag_final > 0 (the
+  // stream's segment count, when this output holds its last segment) the
+  // final packet goes into fragment frag_final - 1 if no packet reached it.
+  int frag_first, frag_end, frag_final;
+  // MPEG-TS segment of an HLS stream (WP-131): muxer "mpegts", one video
+  // stream whose timestamps move by frag_offset (1/90000 s) like a CMAF
+  // segment's, never shifted to zero; the first packet of every PID has
+  // the discontinuity indicator. With copy_rate > 0 an AAC-LC stream of
+  // copy_rate Hz and copy_channels channels is added and its ncopy packets
+  // (copy_size[i] bytes each, one after the other in copy_data; pts and
+  // durations in 1/copy_rate s, the offset included) are interleaved with
+  // the video by decode time. The arrays are C memory read during the
+  // call only.
+  int ts;
+  int copy_rate, copy_channels, ncopy;
+  const uint8_t *copy_data;
+  int64_t copy_bytes;
+  const int32_t *copy_size;
+  const int64_t *copy_pts, *copy_dur;
   // Spool (WP-121b): with spill_bytes > 0 the output moves from memory
   // into the file spill_fd (a descriptor the shim duplicates, written with
   // pwrite from offset 0) as soon as it would grow past spill_bytes;
@@ -298,6 +320,8 @@ enum {
   XI_TX_CAP_AEFFECTS = 32768,  // volume, loudnorm, afade
   XI_TX_CAP_VFADE = 65536,     // fade
   XI_TX_CAP_WAVEFORM = 131072, // showwavespic, rawvideo encoder and muxer
+  XI_TX_CAP_MUX_MPEGTS = 262144, // mpegts muxer (HLS MPEG-TS segments, WP-131)
+
 };
 
 // xi_tx_caps probes the audio encoders, muxers and filters transcodes use

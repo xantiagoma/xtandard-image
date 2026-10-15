@@ -34,3 +34,13 @@ ffmpeg -hide_banner -loglevel error -y -fflags +bitexact \
   -c:a libopus -b:a 48k -map_metadata -1 /out/stream-vp9-opus.webm
 '
 ls -l "$F/stream-vp9-opus.webm"
+
+# stream-vp9-aac44k.mp4 (WP-131: chunked stream audio): the same video
+# stream copied into MP4 with the tone at 44.1 kHz in AAC-LC (the host
+# ffmpeg's native encoder, LGPL), so the audio's timestamps name its samples
+# (time base 1/44100) and chunks go through the resampler.
+ffmpeg -hide_banner -loglevel error -y -fflags +bitexact -i "$F/stream-vp9-opus.webm" -f lavfi \
+  -i "aevalsrc=0.1*sin(2*PI*440*t)|0.1*sin(2*PI*660*t):s=44100:d=6.6" \
+  -map 0:v -map 1:a -c:v copy -c:a aac -b:a 64k -map_metadata -1 -movflags +faststart \
+  "$F/stream-vp9-aac44k.mp4"
+ls -l "$F/stream-vp9-aac44k.mp4"

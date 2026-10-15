@@ -173,9 +173,12 @@ func TestRecipesParse(t *testing.T) {
 			}
 			if isVideo {
 				// WP-129: a recipe that asks for a gpl-only encoder says so,
-				// so the page disables it on the full image.
+				// so the page disables it on the full image (MPEG-TS
+				// segments are H.264, WP-131).
 				vc := res.Request.Video.VideoCodec
-				if (vc == transform.VideoCodecH264) != slices.Contains(r.Needs, playground.NeedH264) ||
+				st := res.Request.Video.Stream
+				h264 := vc == transform.VideoCodecH264 || (st != nil && st.Format == transform.SegmentTS)
+				if h264 != slices.Contains(r.Needs, playground.NeedH264) ||
 					(vc == transform.VideoCodecHEVC) != slices.Contains(r.Needs, playground.NeedHEVC) {
 					t.Errorf("video codec %v, needs %v: H.264 and HEVC output need %s / %s", vc, r.Needs, playground.NeedH264, playground.NeedHEVC)
 				}

@@ -37,6 +37,8 @@ func TestVideoKeys(t *testing.T) {
 		v("cb_attachment_filename", "&cb=2&attachment=1&filename=clip"),
 		v("stream_format_m3u8", "&format=m3u8&start=2"),
 		v("stream_dash_renditions", "&stream=dash,240,720&sgd=4&vc=av1"),
+		v("stream_ts", "&format=m3u8&sgf=ts"),
+
 		v("stream_size_rejected", "&f=mpd&w=640"),
 		v("unknown_key", "&blur=5"),
 		{name: "unknown_key_strict", cfg: "strict", path: "/video", query: vsrc + "&blur=5"},

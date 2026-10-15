@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 // mk builds a box of typ around the concatenated payloads.
@@ -152,9 +155,71 @@ func TestParseMalformed(t *testing.T) {
 	}
 }
 
+// audioFile is an init segment and one fragment of samples whose sizes
+// and data are payloads, the sizes in the trun (data offset from the
+// moof) and the durations the tfhd's default (1024).
+func audioFile(decodeTime uint64, payloads ...string) []byte {
+	init := file(sampleEntry("mp4a", audioEntry, mk("esds", u32(0))), 48000)
+	sizes := make([]uint32, len(payloads))
+	for i, p := range payloads {
+		sizes[i] = uint32(len(p)) //nolint:gosec // G115: tiny test payloads
+	}
+	moof := func(off uint32) []byte {
+		traf := mk("traf", mk("tfhd", u32(0x020008, 1, 1024)), mk("tfdt", u32(1<<24), u64(decodeTime)),
+			mk("trun", u32(0x000201, uint32(len(payloads)), off), u32(sizes...))) //nolint:gosec // G115: a few samples
+		return mk("moof", mk("mfhd", u32(0, 1)), traf)
+	}
+	m := moof(0)
+	m = moof(uint32(len(m) + 8)) //nolint:gosec // G115: a small moof
+	return append(append(init, m...), mk("mdat", []byte(strings.Join(payloads, "")))...)
+}
+
+func TestSamples(t *testing.T) {
+	t.Parallel()
+	f, err := Parse(audioFile(5000, "ab", "cde", "f"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := f.Samples(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []Sample{
+		{Data: []byte("ab"), DecodeTime: 5000, Duration: 1024},
+		{Data: []byte("cde"), DecodeTime: 6024, Duration: 1024},
+		{Data: []byte("f"), DecodeTime: 7048, Duration: 1024},
+	}
+	if d := cmp.Diff(want, got); d != "" {
+		t.Fatalf("samples (-want +got):\n%s", d)
+	}
+	if f.Fragments[0].Duration != 3072 || f.Fragments[0].Samples != 3 {
+		t.Fatalf("fragment %+v", f.Fragments[0])
+	}
+	if _, err := f.Samples(1); !errors.Is(err, ErrMalformed) {
+		t.Fatalf("Samples(1): %v", err)
+	}
+	// A sample past the mdat, and one inside the moof, are malformed.
+	b := audioFile(0, "abc")
+	short, err := Parse(append(b[:len(b)-1:len(b)-1], mk("free")...))
+	if err == nil {
+		if _, err := short.Samples(0); !errors.Is(err, ErrMalformed) {
+			t.Fatalf("truncated mdat: %v", err)
+		}
+	}
+	// The trex defaults apply when the tfhd has none.
+	g, err := Parse(file(sampleEntry("mp4a", audioEntry, mk("esds", u32(0))), 48000, []uint32{0}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := g.Samples(0); !errors.Is(err, ErrMalformed) { // trex size 0, data offset 0: inside the moof
+		t.Fatalf("sample inside the moof: %v", err)
+	}
+}
+
 func FuzzParse(f *testing.F) {
 	f.Add(file(sampleEntry("avc1", visualEntry, mk("avcC", []byte{1, 0x64, 0, 0x1f})), 90000, []uint32{1, 2}, []uint32{3}))
 	f.Add(file(sampleEntry("mp4a", audioEntry, mk("esds", u32(0))), 48000, []uint32{1024}))
+	f.Add(audioFile(1920, "abc", "de"))
 	f.Fuzz(func(t *testing.T, b []byte) {
 		fl, err := Parse(b)
 		if err != nil {
@@ -168,5 +233,18 @@ func FuzzParse(f *testing.F) {
 			t.Fatalf("parts of %d bytes from %d", n, len(b))
 		}
 		_, _ = CodecString(fl.Init)
+		for i := range fl.Fragments {
+			samples, err := fl.Samples(i)
+			if err != nil {
+				continue
+			}
+			total := 0
+			for _, s := range samples {
+				total += len(s.Data)
+			}
+			if total > len(fl.Fragments[i].Data) {
+				t.Fatalf("samples of %d bytes in a fragment of %d", total, len(fl.Fragments[i].Data))
+			}
+		}
 	})
 }

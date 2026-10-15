@@ -16,14 +16,16 @@ import (
 type renderer struct {
 	mu     sync.Mutex
 	sizes  [][2]int
+	refs   [][2]int
 	imgs   []Buffer
 	layers []*buf
 }
 
-func (r *renderer) Render(_ context.Context, o *transform.VideoOverlay, img Buffer, w, h int) (Layer, bool, error) {
+func (r *renderer) Render(_ context.Context, o *transform.VideoOverlay, img Buffer, f Frame) (Layer, bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.sizes = append(r.sizes, [2]int{w, h})
+	r.sizes = append(r.sizes, [2]int{f.Width, f.Height})
+	r.refs = append(r.refs, [2]int{f.RefWidth, f.RefHeight})
 	r.imgs = append(r.imgs, img)
 	switch o.Text {
 	case "none":
@@ -67,8 +69,8 @@ func TestTransformOverlays(t *testing.T) {
 		t.Fatal(err)
 	}
 	res.Body.Release()
-	if len(r.sizes) != 3 || r.sizes[0] != [2]int{640, 360} || r.imgs[0] != nil || r.imgs[2] != Buffer(logo) {
-		t.Fatalf("renders %v with %v", r.sizes, r.imgs)
+	if len(r.sizes) != 3 || r.sizes[0] != [2]int{640, 360} || r.refs[0] != r.sizes[0] || r.imgs[0] != nil || r.imgs[2] != Buffer(logo) {
+		t.Fatalf("renders %v (laid out on %v) with %v", r.sizes, r.refs, r.imgs)
 	}
 	p, px := e.plans[0], e.pixels[0]
 	got := p.Video.Overlays
@@ -125,4 +127,47 @@ func TestTransformOverlayErrors(t *testing.T) {
 		t.Fatalf("timecode without a renderer: %v", err)
 	}
 	res.Body.Release()
+}
+
+// TestStreamOverlays: a stream's video segments (WP-131) draw its
+// overlays: rendered for the segment's rendition, laid out on the largest
+// one, with the overlay images retained for the transcode only; the
+// windows stay on the stream's timeline. Without a renderer, image and
+// text overlays on a stream are refused before anything runs.
+func TestStreamOverlays(t *testing.T) {
+	t.Parallel()
+	e, r := &engine{}, &renderer{}
+	e.in = input()
+	s, err := New(overlayConfig(), caps(), e, WithOverlayRenderer(r))
+	if err != nil {
+		t.Fatal(err)
+	}
+	logo := newBuf("png")
+	op := streamOp()
+	op.Overlays = []transform.VideoOverlay{
+		{Opacity: 1, Source: &transform.SourceSpec{Raw: "logo.png"}, Start: 500 * time.Millisecond},
+		{Opacity: 1, Timecode: transform.VideoTimecodeHMS, TimecodeSize: 40},
+	}
+	res, err := s.Stream(t.Context(), "v2/1", newBuf("v"), op, StreamPart{Track: "v2", Segment: 1, Overlays: []Buffer{logo}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Release()
+	if len(r.sizes) != 1 || r.sizes[0] != [2]int{640, 360} || r.refs[0] != [2]int{1280, 720} || r.imgs[0] != Buffer(logo) {
+		t.Fatalf("renders %v laid out on %v with %v", r.sizes, r.refs, r.imgs)
+	}
+	ov := e.plans[0].Video.Overlays
+	if len(ov) != 2 || ov[0].Enable != "gte(t,0.5)" || ov[0].Width != 10 || ov[1].Timecode == nil || ov[1].Timecode.Size != 20 {
+		t.Fatalf("planned overlays %+v", ov)
+	}
+	if n := logo.refs.Load(); n != 1 {
+		t.Errorf("overlay image has %d references, want the caller's", n)
+	}
+	bare, err := New(overlayConfig(), caps(), e)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := bare.ResolveStream(op); errs.KindOf(err) != errs.KindUnsupported {
+		t.Fatalf("no renderer: %v", err)
+	}
 }

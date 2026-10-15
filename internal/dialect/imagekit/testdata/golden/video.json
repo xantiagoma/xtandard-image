@@ -829,6 +829,51 @@
     "path": "/clips/a.mp4/ik-master.ts",
     "query": ""
   },
+  "ik_master_layer": {
+    "path": "/clips/a.mp4/ik-master.m3u8",
+    "query": "tr=l-image,i-logo.png,lx-10,ly-N10,w-80,lso-1,leo-3,l-end,sr-240_360",
+    "request": {
+      "Dialect": "imagekit",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Raw": "clips/a.mp4"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "End": 3000000000,
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-west",
+                "XOffset": 10,
+                "YOffset": 10
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "media",
+                "Raw": "logo.png"
+              },
+              "Width": 80
+            }
+          }
+        ],
+        "Stream": {
+          "Renditions": [
+            240,
+            360
+          ]
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "clips/a.mp4"
+  },
   "ik_master_mpd_all": {
     "path": "/clips/a.mp4/ik-master.mpd",
     "query": "tr=sr-240_360_480_720_1080_1440_2160",

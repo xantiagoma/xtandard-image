@@ -14,13 +14,15 @@ import (
 // sp_auto (and no sp_) is the configured ladder (XI_VIDEO_TRANSFORM_ABR_LADDER);
 // the predefined profiles are their sets of heights, at this server's bit
 // rates (the ladder's, else the standard ones of each height). Everything
-// else of the URL (trimming, c_crop, rotation, fps, quality, codecs, audio)
-// applies to every rendition; a resize (the renditions are the sizes), a
-// bit rate (theirs) and layers are recorded and not applied.
+// else of the URL (trimming, c_crop, rotation, fps, quality, codecs, audio,
+// and since WP-131 l_ layers, laid out on the largest rendition and scaled
+// to the others) applies to every rendition; a resize (the renditions are
+// the sizes) and a bit rate (theirs) are recorded and not applied.
 
 // Reasons of the stream mapping.
 const (
 	reasonNoStream      = "applies to m3u8 and mpd output only"
+	reasonNoHLS         = "applies to m3u8 output only"
 	reasonStreamApplied = "not applied to streams"
 )
 
@@ -85,16 +87,14 @@ func (va *videoApplier) finishStream() error {
 	if err := drop("br", op.MaxBitrate != 0); err != nil {
 		return err
 	}
-	if err := drop("l", len(op.Overlays) > 0); err != nil {
-		return err
-	}
+
 	if err := drop("ac", op.AudioCodec != transform.AudioCodecAuto && op.AudioCodec != transform.AudioCodecAAC); err != nil {
 		return err
 	}
 	if err := drop("vc", op.VideoCodec == transform.VideoCodecHEVC); err != nil {
 		return err
 	}
-	op.Width, op.Height, op.Fit, op.Gravity, op.MaxBitrate, op.Overlays = 0, 0, transform.VideoFitContain, 0, 0, nil
+	op.Width, op.Height, op.Fit, op.Gravity, op.MaxBitrate = 0, 0, transform.VideoFitContain, 0, 0
 	if op.AudioCodec != transform.AudioCodecAAC {
 		op.AudioCodec = transform.AudioCodecAuto
 	}
@@ -106,6 +106,22 @@ func (va *videoApplier) finishStream() error {
 			return err
 		}
 		op.SampleRate = 0
+	}
+	if va.hlsv3 {
+		// HLS version 3: MPEG-TS segments with H.264 (WP-131).
+		if st.Protocol != transform.StreamHLS {
+			if err := va.skip("fl_hlsv3", reasonNoHLS); err != nil {
+				return err
+			}
+		} else {
+			st.Format = transform.SegmentTS
+			if op.VideoCodec != transform.VideoCodecAuto && op.VideoCodec != transform.VideoCodecH264 {
+				if err := va.skip("vc", "mpeg-ts segments are h264"); err != nil {
+					return err
+				}
+				op.VideoCodec = transform.VideoCodecAuto
+			}
+		}
 	}
 	op.Container, op.AutoContainer, op.Stream = transform.VideoContainerMP4, false, st
 	return nil

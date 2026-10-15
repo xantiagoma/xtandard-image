@@ -141,6 +141,7 @@ func fixtureFormats() map[string]codec.Format {
 		"video/clip-vp8-matroska.mkv":  codec.FormatMKV,
 		"video/clip-vp8.webm":          codec.FormatWebM,
 		"video/clip-vp9.webm":          codec.FormatWebM,
+		"video/stream-vp9-aac44k.mp4":  codec.FormatMP4,
 		"video/stream-vp9-opus.webm":   codec.FormatWebM,
 		"xcf/layers.xcf":               codec.FormatXCF,
 		"xcf/gray.xcf":                 codec.FormatXCF,

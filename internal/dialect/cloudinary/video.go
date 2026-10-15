@@ -132,6 +132,7 @@ type videoApplier struct {
 	// videostream.go).
 	stream  *transform.VideoStream
 	profile string
+	hlsv3   bool // fl_hlsv3: MPEG-TS segments (WP-131)
 
 	// Video presets (WP-132): t_<name> names video presets
 	// (XI_VIDEO_TRANSFORM_PRESETS), which are the op's starting point
@@ -892,7 +893,9 @@ func (va *videoApplier) flags(v string) error {
 			err = va.skip("fl_"+name, reasonNotVideo)
 		case "waveform", "mono":
 			err = va.skip("fl_"+name, reasonAudio)
-		case "splice", "hlsv3", "getinfo", "relative", "replace_image":
+		case "hlsv3":
+			va.hlsv3 = true
+		case "splice", "getinfo", "relative", "replace_image":
 			err = va.skip("fl_"+name, reasonUnsupported)
 		default:
 			err = va.skip(truncate("fl_"+name), reasonUnknown)
@@ -955,6 +958,12 @@ func (va *videoApplier) finish() error {
 			return err
 		}
 	}
+	if va.hlsv3 {
+		if err := va.skip("fl_hlsv3", reasonNoHLS); err != nil {
+			return err
+		}
+	}
+
 	if va.vcNone && !op.Container.AudioOnly() {
 		// Audio only: the container's audio counterpart, or the one the
 		// audio codec needs.

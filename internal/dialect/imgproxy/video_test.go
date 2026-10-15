@@ -218,6 +218,17 @@ func TestVideo(t *testing.T) {
 		vid("stream_too_many_rungs", "st:hls:1:2:3:4:5:6:7:8:9"),
 		vid("segment_duration_bad", "sgd:1.5"),
 		vid("segment_duration_long", "sgd:60"),
+		// MPEG-TS segments (WP-131).
+		vidPath("stream_ts", "", "/unsafe/sgf:ts/sgd:4"+videoSrc+"@m3u8"),
+		vid("stream_ts_long_name", "stream:hls:360/segment_format:mpegts"),
+		vid("stream_fmp4", "st:hls/sgf:fmp4"),
+		vidPath("stream_ts_dash_rejected", "", "/unsafe/sgf:ts"+videoSrc+"@mpd"),
+		vidPath("stream_ts_vp9_rejected", "", "/unsafe/sgf:ts/vc:vp9"+videoSrc+"@m3u8"),
+		vid("segment_format_bad", "sgf:mp4"),
+		// Overlays on streams (WP-131).
+		vidPath("stream_watermark", "", "/unsafe/wm:0.8:soea:8:8/wmu:eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n/wms:48:0/ow:1:4"+videoSrc+"@m3u8"),
+		vidPath("stream_timecode_ts", "", "/unsafe/tc:hms:nowe:8:8:24/sgf:ts/st:hls:360"+videoSrc+"@m3u8"),
+
 		vidPath("stream_signed", "signed", "/VSIG/st:hls:360"+videoSrc+"@m3u8"),
 
 		// Rejected and unknown.
