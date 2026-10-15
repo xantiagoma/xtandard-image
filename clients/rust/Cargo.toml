@@ -1,0 +1,70 @@
+[package]
+name = "xtandard-image"
+# Lockstep with the server's release tags (ADR 0013); 0.0.0 until the first
+# release. The release job sets it from the tag.
+version = "0.0.0"
+edition = "2024"
+# MSRV: aes 0.9 needs 1.89. CI tests it next to the pinned stable (mise.toml).
+rust-version = "1.89"
+description = "Typed URL builder (imgproxy, /info, /video, HLS/DASH, query dialect), signing, source encryption and HTTP client for xtandard-image."
+license = "MIT"
+authors = ["Santiago Montoya"]
+repository = "https://github.com/xantiagoma/xtandard-image"
+homepage = "https://github.com/xantiagoma/xtandard-image/tree/main/clients/rust#readme"
+documentation = "https://docs.rs/xtandard-image"
+readme = "README.md"
+keywords = ["imgproxy", "image", "url", "signing", "video"]
+categories = ["multimedia::images", "web-programming::http-client", "api-bindings"]
+# The tests read the shared fixtures from the repository (clients/spec,
+# testdata/), so they are not packaged.
+include = ["src/**/*.rs", "Cargo.toml", "README.md", "LICENSE"]
+
+[lib]
+name = "xtandard_image"
+
+[features]
+default = ["async"]
+## HTTP client on reqwest (async, tokio), rustls with the ring provider.
+async = ["dep:reqwest", "dep:rustls", "dep:rustls-platform-verifier", "serde"]
+## Blocking HTTP client (reqwest::blocking).
+blocking = ["dep:reqwest", "reqwest/blocking", "dep:rustls", "dep:rustls-platform-verifier", "serde"]
+## serde types of the JSON responses (InfoResponse, ErrorResponse).
+serde = ["dep:serde", "dep:serde_json"]
+
+[dependencies]
+# URL building, signing and encryption: no I/O besides the OS random source
+# for encryption IVs.
+aes = "0.9"
+base64 = "0.23"
+cbc = { version = "0.2", features = ["alloc"] }
+getrandom = "0.4"
+hmac = "0.13"
+sha2 = "0.11"
+thiserror = "2"
+
+reqwest = { version = "0.13", optional = true, default-features = false, features = ["rustls-no-provider", "http2", "system-proxy"] }
+rustls = { version = "0.23", optional = true, default-features = false, features = ["ring", "std", "tls12", "logging"] }
+rustls-platform-verifier = { version = "0.7", optional = true }
+serde = { version = "1", optional = true, features = ["derive"] }
+serde_json = { version = "1", optional = true }
+
+[dev-dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(docsrs)"] }
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+# Builder methods return Self by design; #[must_use] on every one is noise.
+must_use_candidate = "allow"
+return_self_not_must_use = "allow"
+module_name_repetitions = "allow"

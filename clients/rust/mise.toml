@@ -1,0 +1,6 @@
+# Toolchain of the Rust client (ADR 0013): `mise install` in this directory.
+# The pin is the development toolchain (stable); Cargo.toml's rust-version is
+# the MSRV, which CI tests too. cargo-deny checks licences and advisories.
+[tools]
+rust = { version = "1.99.0", components = "clippy,rustfmt" }
+"aqua:EmbarkStudios/cargo-deny" = "0.20.2"
