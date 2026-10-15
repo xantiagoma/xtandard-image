@@ -120,6 +120,13 @@ struct XiTx {
   int64_t frag_offset; // added to every timestamp, in the output stream's time base
   int64_t frag_len;    // audio fragment length, encoder time base; 0 = one fragment
   int64_t frag_seg;    // index of the fragment being written; -1 before the first
+  // Audio chunks (WP-131): the fragments kept and the stream's count (see
+  // XiTxParams), and the packet held back until the next one shows it is
+  // not the final one.
+  int64_t frag_first, frag_end, frag_final;
+  AVPacket *pend;
+  int64_t pend_seg;
+  int has_pend;
   // MPEG-TS segment (WP-131): the copied audio stream and the next of its
   // packets to write (XiTxParams.copy_*, valid during xi_tx_run).
   int ts;
@@ -300,6 +307,7 @@ xi_tx_free(XiTx *h)
   av_packet_free(&h->pkt);
   av_packet_free(&h->opkt);
   av_packet_free(&h->cpkt);
+  av_packet_free(&h->pend);
   if (h->oc) {
     xi_ff_out_detach(h->oc);
     avformat_free_context(h->oc);
@@ -343,6 +351,7 @@ xi_tx_new_handle(const uint8_t *data, int fd, int64_t off, int64_t size, int64_t
   h->pkt = av_packet_alloc();
   h->opkt = av_packet_alloc();
   h->cpkt = av_packet_alloc();
+  h->pend = av_packet_alloc();
   h->frame = av_frame_alloc();
   h->filt = av_frame_alloc();
   h->mid = av_frame_alloc();
@@ -350,7 +359,8 @@ xi_tx_new_handle(const uint8_t *data, int fd, int64_t off, int64_t size, int64_t
     h->avio = avio_alloc_context(iobuf, XI_TX_IO, 0, h, xi_tx_read, NULL, xi_tx_seek);
   if (!h->avio)
     av_free(iobuf);
-  if (!h->avio || !h->fmt || !h->pkt || !h->opkt || !h->cpkt || !h->frame || !h->filt || !h->mid) {
+  if (!h->avio || !h->fmt || !h->pkt || !h->opkt || !h->cpkt || !h->pend || !h->frame || !h->filt
+      || !h->mid) {
     xi_tx_free(h);
     return NULL;
   }
@@ -496,8 +506,13 @@ xi_tx_open(XiTx *h, XiTxInfo *info, char *err, size_t errlen)
   ret = av_find_best_stream(h->fmt, AVMEDIA_TYPE_AUDIO, -1, h->v.index, NULL, 0);
   if (ret >= 0) {
     h->a.index = ret;
-    AVCodecParameters *par = h->fmt->streams[ret]->codecpar;
+    AVStream *ast = h->fmt->streams[ret];
+    AVCodecParameters *par = ast->codecpar;
     info->audio = 1;
+    info->audio_tb_num = ast->time_base.num;
+    info->audio_tb_den = ast->time_base.den;
+    info->audio_start = ast->start_time != AV_NOPTS_VALUE ? ast->start_time * av_q2d(ast->time_base)
+                                                          : info->start_time;
     snprintf(info->acodec, sizeof(info->acodec), "%s", avcodec_get_name(par->codec_id));
     info->sample_rate = par->sample_rate;
     info->channels = par->ch_layout.nb_channels;
@@ -918,6 +933,12 @@ xi_tx_encoder(XiTx *h, XiTxStream *s, const char *name, const XiTxParams *p, int
     if (c->initial_padding != p->audio_priming)
       return AVERROR(EINVAL);
     h->frag_len = (int64_t)p->frag_seconds * c->sample_rate;
+    if (p->frag_first < 0 || p->frag_end < 0 || p->frag_final < 0
+        || (p->frag_end > 0 && p->frag_end <= p->frag_first))
+      return AVERROR(EINVAL);
+    h->frag_first = p->frag_first;
+    h->frag_end = p->frag_end;
+    h->frag_final = p->frag_final;
   }
   s->ost = avformat_new_stream(h->oc, NULL);
   if (!s->ost)
@@ -935,27 +956,24 @@ xi_tx_encoder(XiTx *h, XiTxStream *s, const char *name, const XiTxParams *p, int
   return 0;
 }
 
-// Writes h->opkt (encoder time base) into fragmented output (WP-126). The
+// Writes pkt (encoder time base) into fragmented output (WP-126). The
 // output has one stream, so packets go straight to the muxer
 // (av_write_frame), and an audio fragment is flushed before the first
-// packet of each frag_len of the source: a packet belongs to the fragment
-// its source time falls in (the priming packet, before 0, to the first).
-// Then every timestamp moves by frag_offset, which is at least the audio
-// priming and the video encoder's reordering delay, so no decode time is
-// negative and the source's instant t plays at t + offset in every
-// segment of every rendition, audio and video alike.
+// packet of fragment seg (>= 0 for audio). Then every timestamp moves by
+// frag_offset, which is at least the audio priming and the video
+// encoder's reordering delay, so no decode time is negative and the
+// source's instant t plays at t + offset in every segment of every
+// rendition, audio and video alike.
 static int
-xi_tx_write_frag(XiTx *h, XiTxStream *s)
+xi_tx_put_frag(XiTx *h, XiTxStream *s, AVPacket *pkt, int64_t seg)
 {
-  AVPacket *pkt = h->opkt;
   int ret;
-  if (h->frag_len > 0 && pkt->pts != AV_NOPTS_VALUE) {
-    int64_t seg = pkt->pts < 0 ? 0 : pkt->pts / h->frag_len;
-    if (seg > h->frag_seg) {
-      if (h->frag_seg >= 0 && (ret = av_write_frame(h->oc, NULL)) < 0)
-        return ret;
-      h->frag_seg = seg;
+  if (seg > h->frag_seg) {
+    if (h->frag_seg >= 0 && (ret = av_write_frame(h->oc, NULL)) < 0) {
+      av_packet_unref(pkt);
+      return ret;
     }
+    h->frag_seg = seg;
   }
   av_packet_rescale_ts(pkt, s->enc->time_base, s->ost->time_base);
   if (pkt->pts != AV_NOPTS_VALUE)
@@ -970,6 +988,54 @@ xi_tx_write_frag(XiTx *h, XiTxStream *s)
   ret = av_write_frame(h->oc, pkt);
   av_packet_unref(pkt);
   return ret;
+}
+
+// Writes h->opkt into fragmented output. An audio packet belongs to the
+// fragment its source time falls in (the priming packet, before 0, to the
+// first); packets of fragments outside [frag_first, frag_end) are dropped
+// (a chunk's pre-roll and post-roll, WP-131), and each one is held back
+// until the next arrives, so the final one can still move (xi_tx_frag_end).
+static int
+xi_tx_write_frag(XiTx *h, XiTxStream *s)
+{
+  AVPacket *pkt = h->opkt;
+  if (h->frag_len <= 0)
+    return xi_tx_put_frag(h, s, pkt, -1);
+  int64_t seg = pkt->pts == AV_NOPTS_VALUE ? FFMAX(h->frag_seg, h->frag_first)
+      : pkt->pts < 0                       ? 0
+                                           : pkt->pts / h->frag_len;
+  if (seg < h->frag_first || (h->frag_end > 0 && seg >= h->frag_end)) {
+    av_packet_unref(pkt);
+    return 0;
+  }
+  if (h->has_pend) {
+    h->has_pend = 0;
+    int ret = xi_tx_put_frag(h, s, h->pend, h->pend_seg);
+    if (ret < 0) {
+      av_packet_unref(pkt);
+      return ret;
+    }
+  }
+  av_packet_move_ref(h->pend, pkt);
+  h->pend_seg = seg;
+  h->has_pend = 1;
+  return 0;
+}
+
+// Writes the audio packet held back, the stream's final one when this
+// output holds the last segment: into that segment's fragment if no
+// packet reached it (a last segment shorter than a packet), so every
+// segment has audio.
+static int
+xi_tx_frag_end(XiTx *h, XiTxStream *s)
+{
+  if (!h->has_pend)
+    return 0;
+  h->has_pend = 0;
+  int64_t seg = h->pend_seg;
+  if (h->frag_final > 0 && seg < h->frag_final - 1)
+    seg = h->frag_final - 1;
+  return xi_tx_put_frag(h, s, h->pend, seg);
 }
 
 // Writes the copied audio packets (MPEG-TS, WP-131) whose decode time is
@@ -1489,6 +1555,8 @@ xi_tx_run(XiTx *h, const XiTxParams *p, char *err, size_t errlen)
     return xi_tx_fail(h, ret, "flush", err, errlen);
   if (h->ts && (ret = xi_tx_copy_audio(h, INT64_MAX)) < 0)
     return xi_tx_fail(h, ret, "copied audio", err, errlen);
+  if (h->frag && h->a.active && (ret = xi_tx_frag_end(h, &h->a)) < 0)
+    return xi_tx_fail(h, ret, "flush", err, errlen);
 
   if (h->v.active && h->v.packets == 0) {
     xi_ff_set_err(err, errlen, "no video frame in the cut", 0);

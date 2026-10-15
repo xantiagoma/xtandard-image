@@ -60,7 +60,8 @@ func fakeFMP4(tag string, timescale uint32, starts ...uint64) []byte {
 type fakeStream struct {
 	in         video.TranscodeInput
 	caps       video.TranscodeCaps
-	prefetchOK bool // Prefetch starts (and finishes at once)
+	prefetchOK bool          // Prefetch starts (and finishes at once)
+	audioChunk time.Duration // StreamSettings.AudioChunk
 
 	probes   atomic.Int32
 	mu       sync.Mutex
@@ -100,7 +101,7 @@ func (f *fakeStream) Layout(in *video.TranscodeInput, op *transform.VideoOp) (*v
 		return nil, err
 	}
 	return video.PlanStream(in, op, out, f.caps, &video.TranscodeSettings{MaxFPS: 60},
-		&video.StreamSettings{SegmentDuration: 2 * time.Second})
+		&video.StreamSettings{SegmentDuration: 2 * time.Second, AudioChunk: f.audioChunk})
 }
 
 func (f *fakeStream) result(op *transform.VideoOp, part StreamPart) *VideoResult {
@@ -120,9 +121,10 @@ func (f *fakeStream) result(op *transform.VideoOp, part StreamPart) *VideoResult
 		}
 		data = []byte("ts " + part.Track + "/" + strconv.Itoa(part.Segment) + " audio " + strconv.Itoa(n))
 	case part.Track == "":
-		starts := make([]uint64, 0, l.Segments)
-		for n := range l.Segments {
-			starts = append(starts, uint64(n*96000))
+		first, end := l.AudioChunkSegments(part.Segment)
+		starts := make([]uint64, 0, end-first)
+		for n := first; n < end; n++ {
+			starts = append(starts, uint64(n*96000)) //nolint:gosec // G115: a segment number is not negative
 		}
 		data = fakeFMP4("audio", 48000, starts...)
 	default:
@@ -644,4 +646,69 @@ func TestStreamOverlays(t *testing.T) {
 	denied, dfs := newStreamHarness(t, op, func(h *harness) { h.res.deny = map[string]bool{"logo.png": true} })
 	dfs.caps.Overlays, dfs.caps.Timecode = true, true
 	mustGet(t, denied, videoPath, http.StatusForbidden)
+}
+
+// TestStreamAudioChunks: with sample-exact audio timestamps the audio is
+// transcoded in chunks of whole segments (WP-131): a segment's request
+// transcodes only its chunk, caches every part of it (the init segment
+// with each chunk) and prefetches the next chunk; the parts join into one
+// track of every segment.
+func TestStreamAudioChunks(t *testing.T) {
+	t.Parallel()
+	h, fs := newStreamHarness(t, hlsOp(), nil)
+	fs.in.AudioTBNum, fs.in.AudioTBDen = 1, 48000
+	fs.audioChunk = 4 * time.Second // two 2 s segments a chunk
+	base := streamBase(t, h)
+	r := mustGet(t, h, base+"a/3.m4s", http.StatusOK)
+	if r.header.Get(hdrXiCache) != cacheMiss {
+		t.Fatalf("X-Xi-Cache %q", r.header.Get(hdrXiCache))
+	}
+	audio := func() []int {
+		var out []int
+		for _, p := range fs.streamed() {
+			if p.Track == "" {
+				out = append(out, p.Segment)
+			}
+		}
+		return out
+	}
+	if got := audio(); len(got) != 1 || got[0] != 1 {
+		t.Fatalf("audio chunks transcoded %v, want [1]", got)
+	}
+	if r := mustGet(t, h, base+"a/2.m4s", http.StatusOK); r.header.Get(hdrXiCache) != cacheHit {
+		t.Fatalf("segment 2 of the same chunk: X-Xi-Cache %q", r.header.Get(hdrXiCache))
+	}
+	joined := make([]byte, 0, 1024)
+	for _, p := range []string{"a/init.mp4", "a/0.m4s", "a/1.m4s", "a/2.m4s", "a/3.m4s"} {
+		joined = append(joined, mustGet(t, h, base+p, http.StatusOK).body...)
+	}
+	f, err := fmp4.Parse(joined)
+	if err != nil || len(f.Fragments) != 4 {
+		t.Fatalf("joined audio: %v", err)
+	}
+	for i, fr := range f.Fragments {
+		if fr.DecodeTime != uint64(i*96000) {
+			t.Fatalf("fragment %d at %d", i, fr.DecodeTime)
+		}
+	}
+	if got := audio(); len(got) != 2 || got[1] != 0 {
+		t.Fatalf("audio chunks transcoded %v, want [1 0]", got)
+	}
+	h.checkReleased(t)
+
+	// Chunk 0 on request prefetches chunk 1.
+	hp, fp := newStreamHarness(t, hlsOp(), nil)
+	fp.in.AudioTBNum, fp.in.AudioTBDen = 1, 48000
+	fp.audioChunk, fp.prefetchOK = 4*time.Second, true
+	pbase := streamBase(t, hp)
+	mustGet(t, hp, pbase+"a/0.m4s", http.StatusOK)
+	if r := mustGet(t, hp, pbase+"a/2.m4s", http.StatusOK); r.header.Get(hdrXiCache) != cacheHit {
+		t.Fatalf("the next chunk was not prefetched: X-Xi-Cache %q", r.header.Get(hdrXiCache))
+	}
+	fp.mu.Lock()
+	pre := append([]StreamPart(nil), fp.prefetch...)
+	fp.mu.Unlock()
+	if len(pre) != 1 || pre[0].Track != "" || pre[0].Segment != 1 {
+		t.Fatalf("prefetched %+v", pre)
+	}
 }

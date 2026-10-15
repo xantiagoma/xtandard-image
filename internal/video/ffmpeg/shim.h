@@ -193,6 +193,8 @@ typedef struct {
   char acodec[32];
   int audio_decodable; // and this build decodes it
   int sample_rate, channels;
+  int audio_tb_num, audio_tb_den; // the audio stream's time base
+  double audio_start;             // its first timestamp, seconds
 } XiTxInfo;
 
 // Audio encoders of XiTxParams.acodec.
@@ -270,6 +272,11 @@ typedef struct {
   // encoder's priming, which must equal audio_priming samples.
   int frag_seconds;
   int audio_priming;
+  // Audio chunks (WP-131): only packets of fragments [frag_first,
+  // frag_end) are written (frag_end 0: no end); with frag_final > 0 (the
+  // stream's segment count, when this output holds its last segment) the
+  // final packet goes into fragment frag_final - 1 if no packet reached it.
+  int frag_first, frag_end, frag_final;
   // MPEG-TS segment of an HLS stream (WP-131): muxer "mpegts", one video
   // stream whose timestamps move by frag_offset (1/90000 s) like a CMAF
   // segment's, never shifted to zero; the first packet of every PID has

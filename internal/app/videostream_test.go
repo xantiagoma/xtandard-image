@@ -341,6 +341,84 @@ func TestStreamTSEndToEnd(t *testing.T) {
 	}
 }
 
+// TestStreamAudioChunksEndToEnd: with XI_VIDEO_TRANSFORM_AUDIO_CHUNK, a
+// long track's audio segments are transcoded chunk by chunk (WP-131); the
+// segments a player fetches join into gapless audio of the stream's
+// length, as with one encode, for HLS and DASH alike.
+func TestStreamAudioChunksEndToEnd(t *testing.T) {
+	if !ffmpeg.Available() {
+		t.Skip("this image has no FFmpeg")
+	}
+	cfg := videoConfig(t, config.RoleAll, true)
+	cfg.Video.Transform.SegmentDuration = time.Second
+	cfg.Video.Transform.AudioChunk = 2 * time.Second
+	a := startVideo(t, cfg)
+	base := "http://" + a.public.String()
+	s := newVideoSigner(t)
+	const src = "/plain/video/stream-vp9-aac44k.mp4"
+	master := get(t, base+s.video(t, "/st:hls:240"+src+"@m3u8"))
+	if master.status != http.StatusOK {
+		t.Fatalf("master: %d %s", master.status, master.body)
+	}
+	var audio string
+	for _, pl := range playlistURIs(master.body) {
+		if strings.HasSuffix(pl, "/a.m3u8") {
+			audio = pl
+		}
+	}
+	media := get(t, base+audio)
+	prefix := audio[:strings.LastIndexByte(audio, '/')+1]
+	uris := playlistURIs(media.body)
+	if len(uris) != 8 { // init and 7 segments
+		t.Fatalf("audio playlist %s", media.body)
+	}
+	joined := make([]byte, 0, 64<<10)
+	// Fetched out of order first, as a player seeking would: the last
+	// chunk before the others.
+	for _, i := range []int{0, 7, 1, 2, 3, 4, 5, 6} {
+		if r := get(t, base+prefix+uris[i]); r.status != http.StatusOK {
+			t.Fatalf("%s: %d %s", uris[i], r.status, r.body)
+		}
+	}
+	for _, u := range uris {
+		joined = append(joined, get(t, base+prefix+u).body...)
+	}
+	pk := ffprobePackets(t, joined)
+	for i := 1; i < len(pk); i++ {
+		if math.Abs(pk[i].pts-pk[i-1].pts-pk[i-1].dur) > 1e-5 {
+			t.Fatalf("audio gap or overlap at packet %d (%.6f after %.6f+%.6f)", i, pk[i].pts, pk[i-1].pts, pk[i-1].dur)
+		}
+	}
+	if got := pk[len(pk)-1].pts + pk[len(pk)-1].dur - pk[0].pts; math.Abs(got-(6.6+1024.0/48000)) > 0.03 {
+		t.Errorf("audio of %.4f s, want 6.6 s and the priming", got)
+	}
+
+	// MPEG-TS segments copy the chunks' audio: still gapless.
+	if !ffmpeg.TranscodeCaps().Video.H264 {
+		return
+	}
+	ts := get(t, base+s.video(t, "/st:hls:240/sgf:ts"+src+"@m3u8"))
+	pl := playlistURIs(ts.body)[0]
+	tsMedia := get(t, base+pl)
+	var tsJoined []byte
+	for _, u := range playlistURIs(tsMedia.body) {
+		r := get(t, base+pl[:strings.LastIndexByte(pl, '/')+1]+u)
+		if r.status != http.StatusOK {
+			t.Fatalf("%s: %d %s", u, r.status, r.body)
+		}
+		tsJoined = append(tsJoined, r.body...)
+	}
+	au := ffprobeTypedPackets(t, tsJoined, "ts")["audio"]
+	for i := 1; i < len(au); i++ {
+		if math.Abs(au[i].pts-au[i-1].pts-au[i-1].dur) > 2e-5 {
+			t.Fatalf("ts audio gap or overlap at packet %d (%.6f after %.6f+%.6f)", i, au[i].pts, au[i-1].pts, au[i-1].dur)
+		}
+	}
+	if len(au) != len(pk) {
+		t.Errorf("ts segments carry %d audio packets, the audio playlist %d", len(au), len(pk))
+	}
+}
+
 // writeTree stores body at its URL path under dir.
 
 func writeTree(t *testing.T, dir, urlPath string, body []byte) {

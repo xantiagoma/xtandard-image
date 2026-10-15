@@ -3412,6 +3412,13 @@
               "title": "XI_VIDEO_TRANSFORM_ABR_LADDER",
               "type": "array"
             },
+            "audio_chunk": {
+              "$ref": "#/$defs/duration",
+              "default": "30s",
+              "description": "How much of a stream's audio one transcode encodes (WP-131), rounded down to whole segments (at least one): a segment's request encodes its chunk, every chunk starts with a pre-roll of the source so the chunks join without gaps or clicks, and the next chunk is prefetched. Only sources whose audio timestamps name samples exactly (MP4, MOV, Ogg, FLAC, WAV, MP3; not Matroska/WebM, which count milliseconds) and streams without loudnorm are chunked; the others encode their track at once. 0 (or whole seconds up to 1h): 0 encodes every track at once (the WP-126 behaviour), which needs XI_VIDEO_TRANSFORM_TIMEOUT to cover the whole track's encode\n\nEnv: XI_VIDEO_TRANSFORM_AUDIO_CHUNK",
+              "markdownDescription": "How much of a stream's audio one transcode encodes (WP-131), rounded down to whole segments (at least one): a segment's request encodes its chunk, every chunk starts with a pre-roll of the source so the chunks join without gaps or clicks, and the next chunk is prefetched. Only sources whose audio timestamps name samples exactly (MP4, MOV, Ogg, FLAC, WAV, MP3; not Matroska/WebM, which count milliseconds) and streams without `loudnorm` are chunked; the others encode their track at once. `0` (or whole seconds up to `1h`): `0` encodes every track at once (the WP-126 behaviour), which needs `XI_VIDEO_TRANSFORM_TIMEOUT` to cover the whole track's encode\n\nEnv: `XI_VIDEO_TRANSFORM_AUDIO_CHUNK`",
+              "title": "XI_VIDEO_TRANSFORM_AUDIO_CHUNK"
+            },
             "capacity": {
               "description": "Cost units the running transcodes may hold together. A transcode's cost is estimated from its probe and plan (decode + encode pixels × frames × a measured per-codec factor, audio seconds; HLS/DASH per segment): one unit is about a millisecond of one core's work, so 10000 is ten seconds of work per worker. A transcode costing more than the whole capacity is not refused: it runs alone\n\nDefault: workers × 10000\n\nEnv: XI_VIDEO_TRANSFORM_CAPACITY",
               "markdownDescription": "Cost units the running transcodes may hold together. A transcode's cost is estimated from its probe and plan (decode + encode pixels × frames × a measured per-codec factor, audio seconds; HLS/DASH per segment): one unit is about a millisecond of one core's work, so `10000` is ten seconds of work per worker. A transcode costing more than the whole capacity is not refused: it runs alone\n\nDefault: workers × 10000\n\nEnv: `XI_VIDEO_TRANSFORM_CAPACITY`",

@@ -275,6 +275,8 @@ func TestValidate(t *testing.T) {
 		{"video unsigned format", func(c *Config) { c.Video.Transform.UnsignedFormats = []string{"mkv"} }, []string{`video.transform.unsigned_formats[0] (XI_VIDEO_TRANSFORM_UNSIGNED_FORMATS): "mkv" is not one of`}},
 		{"video unsigned max duration", func(c *Config) { c.Video.Transform.UnsignedMaxDuration = -time.Second }, []string{"video.transform.unsigned_max_duration (XI_VIDEO_TRANSFORM_UNSIGNED_MAX_DURATION): must be >= 0"}},
 		{"video role without transform", func(c *Config) { c.Role = RoleVideo }, []string{"role (XI_ROLE): video needs video.transform.enabled"}},
+		{"audio chunk fraction", func(c *Config) { c.Video.Transform.AudioChunk = 1500 * time.Millisecond }, []string{"video.transform.audio_chunk (XI_VIDEO_TRANSFORM_AUDIO_CHUNK): must be 0 or whole seconds from 1s to 1h"}},
+		{"audio chunk long", func(c *Config) { c.Video.Transform.AudioChunk = 2 * time.Hour }, []string{"video.transform.audio_chunk (XI_VIDEO_TRANSFORM_AUDIO_CHUNK): must be 0 or whole seconds from 1s to 1h"}},
 		{"negative ttl", func(c *Config) { c.Cache.Origin.NegativeTTL = -time.Second }, []string{"cache.origin.negative_ttl (XI_CACHE_ORIGIN_NEGATIVE_TTL)"}},
 		{"gcs and azure endpoints", func(c *Config) {
 			c.Sources["g"] = Source{Type: SourceGCS, Bucket: "b", Endpoint: "http://fake-gcs:4443/storage/v1/"}

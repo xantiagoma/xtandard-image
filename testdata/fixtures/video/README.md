@@ -16,6 +16,7 @@ most 200 KiB.
 | `faces-vp9.webm` | WebM / VP9 (libvpx, CRF 32, keyframe every 5 frames), BT.709 tagged | 640×503 (odd height), 1 s, 10 fps, a still | `detect/apollo11-crew.jpg` (`sh testdata/gen/video-faces.sh`) | Public domain (NASA) |
 | `faces-av1-rotate90.mp4` | MP4 / AV1 (libaom, CRF 28), stored rotated 90° counter-clockwise with a display matrix that shows it upright | 503×640 stored, 640×503 shown, 1 s, 10 fps, a still | `detect/apollo11-crew.jpg` | Public domain (NASA) |
 | `bbb-h264-aac.mp4` | MP4 / H.264 High (stream copy) + AAC mono 16 kHz | 1280×720, 1 s, 30 fps | first second of *Big Buck Bunny* (see below) + a 440 Hz tone | video: **CC-BY 3.0**; audio: CC0 |
+| `stream-vp9-aac44k.mp4` | MP4 / the video of `stream-vp9-opus.webm` (stream copy) + AAC-LC stereo 44.1 kHz, 64 kbit/s (FFmpeg's native encoder; 440 Hz left, 660 Hz right, -20 dBFS) | 640×360, 6.6 s, 25 fps | `sh testdata/gen/video-stream.sh`: chunked stream audio (WP-131), sample-exact audio timestamps through the resampler | CC0 |
 | `stream-vp9-opus.webm` | WebM / VP9 (libvpx, CRF 50, keyframe every 25 frames, not on the 2 s segment grid) + Opus stereo 48 kHz (440 Hz left, 660 Hz right, -20 dBFS) | 640×360, 6.6 s, 25 fps | procedural clip + `aevalsrc` tone (`sh testdata/gen/video-stream.sh`): HLS/DASH segment and audio continuity tests (WP-126) | CC0 |
 
 The procedural clip pans across the landscape of `testdata/gen/main.go`, with a red disc moving
