@@ -36,26 +36,41 @@ func TestVideoPresets(t *testing.T) {
 		want       transform.VideoOp
 		preset     *transform.VideoOp // PresetVideo
 	}{
-		{"preset", "/demo/video/upload/t_web/clip.mp4",
+		{
+			"preset", "/demo/video/upload/t_web/clip.mp4",
 			transform.VideoOp{KeyframeInterval: ki, Width: 640, Quality: 60, Fit: transform.VideoFitScaleDown, Container: transform.VideoContainerWebM},
-			&transform.VideoOp{KeyframeInterval: ki, Width: 640, Quality: 60, Fit: transform.VideoFitScaleDown, Container: transform.VideoContainerWebM}},
-		{"parameters override", "/demo/video/upload/t_web,q_80,so_1/clip.mp4",
+			&transform.VideoOp{KeyframeInterval: ki, Width: 640, Quality: 60, Fit: transform.VideoFitScaleDown, Container: transform.VideoContainerWebM},
+		},
+		{
+			"parameters override", "/demo/video/upload/t_web,q_80,so_1/clip.mp4",
 			transform.VideoOp{KeyframeInterval: ki, Start: time.Second, Width: 640, Quality: 80, Fit: transform.VideoFitScaleDown, Container: transform.VideoContainerWebM},
-			&transform.VideoOp{KeyframeInterval: ki, Width: 640, Quality: 60, Fit: transform.VideoFitScaleDown, Container: transform.VideoContainerWebM}},
-		{"f_ over the preset's format", "/demo/video/upload/t_web/f_mp4/clip.mp4",
+			&transform.VideoOp{KeyframeInterval: ki, Width: 640, Quality: 60, Fit: transform.VideoFitScaleDown, Container: transform.VideoContainerWebM},
+		},
+		{
+			"f_ over the preset's format", "/demo/video/upload/t_web/f_mp4/clip.mp4",
 			transform.VideoOp{KeyframeInterval: ki, Width: 640, Quality: 60, Fit: transform.VideoFitScaleDown},
-			&transform.VideoOp{KeyframeInterval: ki, Width: 640, Quality: 60, Fit: transform.VideoFitScaleDown, Container: transform.VideoContainerWebM}},
-		{"two presets", "/demo/video/upload/t_short.web/clip.mov",
+			&transform.VideoOp{KeyframeInterval: ki, Width: 640, Quality: 60, Fit: transform.VideoFitScaleDown, Container: transform.VideoContainerWebM},
+		},
+		{
+			"two presets", "/demo/video/upload/t_short.web/clip.mov",
 			transform.VideoOp{KeyframeInterval: ki, Duration: 4 * time.Second, Width: 640, Quality: 60, Fit: transform.VideoFitScaleDown, Container: transform.VideoContainerWebM},
-			&transform.VideoOp{KeyframeInterval: ki, Duration: 4 * time.Second, Width: 640, Quality: 60, Fit: transform.VideoFitScaleDown, Container: transform.VideoContainerWebM}},
-		{"extension without a preset format", "/demo/video/upload/t_short/clip.webm",
+			&transform.VideoOp{KeyframeInterval: ki, Duration: 4 * time.Second, Width: 640, Quality: 60, Fit: transform.VideoFitScaleDown, Container: transform.VideoContainerWebM},
+		},
+		{
+			"extension without a preset format", "/demo/video/upload/t_short/clip.webm",
 			transform.VideoOp{KeyframeInterval: ki, Duration: 4 * time.Second, Fit: transform.VideoFitScaleDown, Container: transform.VideoContainerWebM},
-			&transform.VideoOp{KeyframeInterval: ki, Duration: 4 * time.Second, Fit: transform.VideoFitScaleDown}},
-		{"stream preset", "/demo/video/upload/t_hls/clip.m3u8",
+			&transform.VideoOp{KeyframeInterval: ki, Duration: 4 * time.Second, Fit: transform.VideoFitScaleDown},
+		},
+		{
+			"stream preset", "/demo/video/upload/t_hls/clip.m3u8",
 			transform.VideoOp{KeyframeInterval: ki, Fit: transform.VideoFitContain, Stream: &transform.VideoStream{Protocol: transform.StreamHLS, Renditions: []int{360, 240}}},
-			&transform.VideoOp{KeyframeInterval: ki, Fit: transform.VideoFitContain, Stream: &transform.VideoStream{Protocol: transform.StreamHLS, Renditions: []int{360, 240}}}},
-		{"no preset", "/demo/video/upload/w_320/clip.mp4",
-			transform.VideoOp{KeyframeInterval: ki, Width: 320, Fit: transform.VideoFitContain}, nil},
+			&transform.VideoOp{KeyframeInterval: ki, Fit: transform.VideoFitContain, Stream: &transform.VideoStream{Protocol: transform.StreamHLS, Renditions: []int{360, 240}}},
+		},
+		{
+			"no preset", "/demo/video/upload/w_320/clip.mp4",
+			transform.VideoOp{KeyframeInterval: ki, Width: 320, Fit: transform.VideoFitContain},
+			nil,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
