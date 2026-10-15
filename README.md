@@ -264,6 +264,8 @@ img = imgproxy(base_url="https://img.example.com", signing=SigningKey(key=KEY, s
 img.url("s3://photos/cat.jpg", {"rs": ("fill", 1200, 630), "g": "sm"}, extension="jpg")
 ```
 
+**PHP** is [`clients/php`](clients/php/README.md) (`xtandard/image` on Packagist after the first release): the same builders, signing and encryption, PHPStan-typed option shapes and fluent methods, and a client on any PSR-18 HTTP client.
+
 The other languages are planned (M6 in the [roadmap](docs/ROADMAP.md)).
 
 ## Playground
