@@ -296,3 +296,15 @@ owner has authorised merging PRs without review.
   Local bases: `xtandard-base:dev-gpl*`/`dev-full*` were found rebuilt (same IDs as `wp132-gpl*`, from
   main's `docker/base`); `dev-slim` is missing. Origin unconfirmed (WP-132 denies retagging). Still in
   flight: WP-131 HLS extras.
+- **Merged 2026-10-15:** WP-131 HLS extras (#135: MPEG-TS `sgf:ts`, overlays on streams, chunked
+  stream audio `XI_VIDEO_TRANSFORM_AUDIO_CHUNK`) + TS client `streamUrl({ segmentFormat })`. Demo
+  redeployed; TS master/segment verified (video/mp2t, sync byte 0x47). Nothing in flight.
+  - **Base images:** the WP-131 agent rebuilt `xtandard-base:dev-gpl*`/`dev-full*` with
+    `task docker:base:*` from main's `docker/base` (rule broken; contents match main). `dev-slim` was
+    already missing; rebuild it with `task docker:base:slim` when needed.
+  - **Open (playground-check):** "compare audio: A/B at the same position" fails in headless Chrome
+    (Δ 130–230 ms; WP-128 measured 20 ms). Probing shows the audible player's clock runs ~5-7% faster
+    than the muted one and the source's 1.1× rate nudge doesn't close it; source and result MP3s are
+    identical in duration/sample rate and raw Range requests take <10 ms, so it looks like a headless
+    audio-clock artefact, not a server regression. Needs a check in a real browser; then either fix
+    compare.js sync for audio or loosen/skip the check headless.
