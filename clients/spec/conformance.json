@@ -1,0 +1,2917 @@
+{
+  "$comment": "Conformance fixture of the official clients (ADR 0013, clients/README.md). Every client runs every case. Inputs are written by hand; expect.value is written by the reference implementation (TypeScript, packages/image-url src/conformance.test.ts with XI_UPDATE_FIXTURES=1: task clients:fixtures) and every URL is checked by the server's parsers (internal/dialect/imgproxy TestConformanceFixture). expect.error is the language-neutral error code a client must raise (clients/README.md).",
+  "keys": {
+    "signing": {
+      "key": "943b421c9eb07c830af81030552c86009268de4e532ba2ee2eab8247c6da0881",
+      "salt": "520f986b998545b4785e0defbc4f3c1203f22de2374a3d53cb7a7fe9fea309c5"
+    },
+    "encryption": {
+      "key": "1eb5b0e971ad7f45324c1bb15c947cb207c43152fa5c6c7f35c4f36e0c18e0f1",
+      "iv": "30313233343536373839616263646566"
+    }
+  },
+  "cases": [
+    {
+      "name": "basic_base64",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "rs",
+              [
+                "fill",
+                300,
+                400
+              ]
+            ],
+            [
+              "q",
+              [
+                80
+              ]
+            ]
+          ]
+        ],
+        "extension": "webp"
+      },
+      "expect": {
+        "value": "/insecure/rs:fill:300:400/q:80/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw.webp"
+      }
+    },
+    {
+      "name": "no_options",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg"
+      },
+      "expect": {
+        "value": "/insecure/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "signed_base_url_trailing_slash",
+      "op": "imgproxy.url",
+      "config": {
+        "base_url": "https://img.example.com/",
+        "signing": true
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "rs",
+              [
+                "fit",
+                300,
+                300
+              ]
+            ]
+          ]
+        ],
+        "extension": "png"
+      },
+      "expect": {
+        "value": "https://img.example.com/3kUTYFkXjSOKZ0vB6jAnVMUscg3Qa5k63uXjN9ru1MQ/rs:fit:300:300/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw.png"
+      }
+    },
+    {
+      "name": "signed_size_8",
+      "op": "imgproxy.url",
+      "config": {
+        "signing": true,
+        "signature_size": 8
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "w",
+              [
+                300
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/M0su8R81baQ/w:300/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "unsigned_placeholder_unsafe",
+      "op": "imgproxy.url",
+      "config": {
+        "unsigned_signature": "unsafe"
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "w",
+              [
+                300
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/unsafe/w:300/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "unsigned_placeholder_underscore",
+      "op": "imgproxy.url",
+      "config": {
+        "unsigned_signature": "_"
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg"
+      },
+      "expect": {
+        "value": "/_/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "plain_escapes",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/a b/ü@x.jpg?v=1&w=2#frag",
+        "source_encoding": "plain",
+        "extension": "png"
+      },
+      "expect": {
+        "value": "/insecure/plain/https://example.com/a%20b/%C3%BC%40x.jpg%3Fv=1&w=2%23frag@png"
+      }
+    },
+    {
+      "name": "plain_config_default",
+      "op": "imgproxy.url",
+      "config": {
+        "source_encoding": "plain"
+      },
+      "input": {
+        "source": "s3://bucket/key with space.jpg",
+        "options": [
+          [
+            [
+              "h",
+              [
+                200
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/insecure/h:200/plain/s3://bucket/key%20with%20space.jpg"
+      }
+    },
+    {
+      "name": "plain_percent_escaped",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/100%25.jpg",
+        "source_encoding": "plain"
+      },
+      "expect": {
+        "value": "/insecure/plain/https://example.com/100%2525.jpg"
+      }
+    },
+    {
+      "name": "encrypted_deterministic",
+      "op": "imgproxy.url",
+      "config": {
+        "signing": true,
+        "encryption": true
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "source_encoding": "encrypted",
+        "extension": "jpg",
+        "options": [
+          [
+            [
+              "w",
+              [
+                640
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/poegq-tPx616BI9d2cG3_8aZ8Q2RSdDRMZFBzaNAEJM/w:640/enc/MDEyMzQ1Njc4OWFiY2RlZlCnHoxM-FYigjog_TOOb0Ju_RiyysDwGaswBgh_dPfEc7CjMZ_rE2sIEoIYZ0lwsw.jpg"
+      }
+    },
+    {
+      "name": "encrypted_split_16",
+      "op": "imgproxy.url",
+      "config": {
+        "encryption": true,
+        "split_source": 16
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "source_encoding": "encrypted"
+      },
+      "expect": {
+        "value": "/insecure/enc/MDEyMzQ1Njc4OWFi/Y2RlZlCnHoxM-FYi/gjog_TOOb0Ju_Riy/ysDwGaswBgh_dPfE/c7CjMZ_rE2sIEoIY/Z0lwsw"
+      }
+    },
+    {
+      "name": "base64_split_16_signed",
+      "op": "imgproxy.url",
+      "config": {
+        "signing": true,
+        "split_source": 16
+      },
+      "input": {
+        "source": "http://example.com/images/curiosity.jpg",
+        "options": [
+          [
+            [
+              "resize",
+              [
+                "fill",
+                300,
+                400,
+                false
+              ]
+            ],
+            [
+              "gravity",
+              [
+                "sm"
+              ]
+            ]
+          ]
+        ],
+        "extension": "png"
+      },
+      "expect": {
+        "value": "/90UxdwGRAI2bpLSHKkZculJau5ahfxfS0h3fMuQAf40/rs:fill:300:400:0/g:sm/aHR0cDovL2V4YW1w/bGUuY29tL2ltYWdl/cy9jdXJpb3NpdHku/anBn.png"
+      }
+    },
+    {
+      "name": "split_longer_than_token",
+      "op": "imgproxy.url",
+      "config": {
+        "split_source": 1000
+      },
+      "input": {
+        "source": "https://e.co/a"
+      },
+      "expect": {
+        "value": "/insecure/aHR0cHM6Ly9lLmNvL2E"
+      }
+    },
+    {
+      "name": "names_short_default",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "resize",
+              [
+                "fit",
+                300,
+                0
+              ]
+            ],
+            [
+              "quality",
+              [
+                75
+              ]
+            ],
+            [
+              "gravity",
+              [
+                "ce"
+              ]
+            ],
+            [
+              "format",
+              [
+                "avif"
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/insecure/rs:fit:300:0/q:75/g:ce/f:avif/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "names_canonical",
+      "op": "imgproxy.url",
+      "config": {
+        "option_names": "canonical"
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "rs",
+              [
+                "fit",
+                300,
+                0
+              ]
+            ],
+            [
+              "g",
+              [
+                "sm"
+              ]
+            ],
+            [
+              "q",
+              [
+                80
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/insecure/resize:fit:300:0/gravity:sm/quality:80/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "names_given",
+      "op": "imgproxy.url",
+      "config": {
+        "option_names": "given"
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "resize",
+              [
+                "fit",
+                300,
+                0
+              ]
+            ],
+            [
+              "q",
+              [
+                80
+              ]
+            ],
+            [
+              "min-width",
+              [
+                100
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/insecure/resize:fit:300:0/q:80/min-width:100/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "booleans_and_nulls",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "rs",
+              [
+                "fill",
+                300,
+                null,
+                true
+              ]
+            ],
+            [
+              "el",
+              [
+                false
+              ]
+            ],
+            [
+              "sm",
+              [
+                true
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/insecure/rs:fill:300::1/el:0/sm:1/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "numbers",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "bl",
+              [
+                0.5
+              ]
+            ],
+            [
+              "dpr",
+              [
+                1.25
+              ]
+            ],
+            [
+              "sh",
+              [
+                2
+              ]
+            ],
+            [
+              "w",
+              [
+                10000000
+              ]
+            ],
+            [
+              "rot",
+              [
+                -90
+              ]
+            ],
+            [
+              "br",
+              [
+                -12
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/insecure/bl:0.5/dpr:1.25/sh:2/w:10000000/rot:-90/br:-12/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "number_fractions",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "sa",
+              [
+                0.1
+              ]
+            ],
+            [
+              "co",
+              [
+                1.05
+              ]
+            ],
+            [
+              "br",
+              [
+                0
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/insecure/sa:0.1/co:1.05/br:0/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "chained_pipelines",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "rs",
+              [
+                "fit",
+                500,
+                500
+              ]
+            ]
+          ],
+          [
+            [
+              "bl",
+              [
+                2
+              ]
+            ]
+          ],
+          [
+            [
+              "q",
+              [
+                60
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/insecure/rs:fit:500:500/-/bl:2/-/q:60/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "empty_pipelines_dropped",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [],
+          [
+            [
+              "q",
+              [
+                50
+              ]
+            ]
+          ],
+          []
+        ]
+      },
+      "expect": {
+        "value": "/insecure/q:50/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "separator_comma",
+      "op": "imgproxy.url",
+      "config": {
+        "separator": ","
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "rs",
+              [
+                "fill",
+                300,
+                400
+              ]
+            ],
+            [
+              "g",
+              [
+                "fp",
+                0.5,
+                0.25
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/insecure/rs,fill,300,400/g,fp,0.5,0.25/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "rest_arguments",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "fq",
+              [
+                "jpeg",
+                70,
+                "webp",
+                60
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/insecure/fq:jpeg:70:webp:60/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "gravity_focus_point",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "g",
+              [
+                "fp",
+                0.3,
+                0.7
+              ]
+            ],
+            [
+              "c",
+              [
+                400,
+                400
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/insecure/g:fp:0.3:0.7/c:400:400/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "xi_source",
+      "op": "imgproxy.url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "source": "xi://photos/2026/cat.jpg",
+        "options": [
+          [
+            [
+              "w",
+              [
+                320
+              ]
+            ]
+          ]
+        ],
+        "extension": "webp"
+      },
+      "expect": {
+        "value": "/JB-v8Yduy_oJTQeZEMUygOsF1V_qwwAxiL-gkJozVX4/w:320/eGk6Ly9waG90b3MvMjAyNi9jYXQuanBn.webp"
+      }
+    },
+    {
+      "name": "s3_plain_signed",
+      "op": "imgproxy.url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "source": "s3://bucket/a/b.png",
+        "source_encoding": "plain",
+        "options": [
+          [
+            [
+              "w",
+              [
+                100
+              ]
+            ]
+          ]
+        ],
+        "extension": "jpg"
+      },
+      "expect": {
+        "value": "/GDeNkjkk69drlL1GcQ8sRqusvV9cLLYIsTueJjwLz74/w:100/plain/s3://bucket/a/b.png@jpg"
+      }
+    },
+    {
+      "name": "pdf_password",
+      "op": "imgproxy.url",
+      "config": {
+        "signing": true,
+        "encryption": true
+      },
+      "input": {
+        "source": "s3://docs/report.pdf",
+        "options": [
+          [
+            [
+              "rs",
+              [
+                "fit",
+                800,
+                0
+              ]
+            ]
+          ]
+        ],
+        "pdf_password": "secret"
+      },
+      "expect": {
+        "value": "/5qAfRC1LolW1-WCPXy-Ztz7uQYuPuAALk1ww7iUPo98/pdp:MDEyMzQ1Njc4OWFiY2RlZlsN0ZQuFO2sitmy5C87M2o/rs:fit:800:0/czM6Ly9kb2NzL3JlcG9ydC5wZGY"
+      }
+    },
+    {
+      "name": "pdf_password_canonical_plain",
+      "op": "imgproxy.url",
+      "config": {
+        "signing": true,
+        "encryption": true,
+        "option_names": "canonical",
+        "source_encoding": "plain"
+      },
+      "input": {
+        "source": "s3://docs/report.pdf",
+        "options": [
+          [
+            [
+              "width",
+              [
+                300
+              ]
+            ]
+          ]
+        ],
+        "pdf_password": "s3cret pässword"
+      },
+      "expect": {
+        "value": "/hyb8mu7y8ooaZmMe81RzJY_VnEhjRhpLbaJi1qWS-qU/pdf_password:MDEyMzQ1Njc4OWFiY2RlZvumx_My-OZg3oD-fwfiZA-_a56r5eCiQzd_zHynQoNp/width:300/plain/s3://docs/report.pdf"
+      }
+    },
+    {
+      "name": "pdf_password_chained",
+      "op": "imgproxy.url",
+      "config": {
+        "signing": true,
+        "encryption": true
+      },
+      "input": {
+        "source": "s3://docs/report.pdf",
+        "options": [
+          [
+            [
+              "w",
+              [
+                300
+              ]
+            ]
+          ],
+          [
+            [
+              "bl",
+              [
+                1
+              ]
+            ]
+          ]
+        ],
+        "pdf_password": "secret",
+        "extension": "png"
+      },
+      "expect": {
+        "value": "/1Cd_MrC-VpEqO35JASO184pOLs1n1GNKUYhJ5bQfxNo/pdp:MDEyMzQ1Njc4OWFiY2RlZlsN0ZQuFO2sitmy5C87M2o/w:300/-/bl:1/czM6Ly9kb2NzL3JlcG9ydC5wZGY.png"
+      }
+    },
+    {
+      "name": "pdf_password_separator_comma",
+      "op": "imgproxy.url",
+      "config": {
+        "signing": true,
+        "encryption": true,
+        "separator": ","
+      },
+      "input": {
+        "source": "s3://docs/report.pdf",
+        "pdf_password": "secret"
+      },
+      "expect": {
+        "value": "/KhvFkfNAIAn4vsXcHRWc17K-pA6fyBh5nYVyLf9HLno/pdp,MDEyMzQ1Njc4OWFiY2RlZlsN0ZQuFO2sitmy5C87M2o/czM6Ly9kb2NzL3JlcG9ydC5wZGY"
+      }
+    },
+    {
+      "name": "err_unknown_option",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "nope",
+              [
+                1
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "unknown_option"
+      }
+    },
+    {
+      "name": "err_option_without_arguments",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "q",
+              []
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "invalid_argument"
+      }
+    },
+    {
+      "name": "err_argument_slash",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "fn",
+              [
+                "a/b"
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "invalid_argument"
+      }
+    },
+    {
+      "name": "err_argument_separator",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "fn",
+              [
+                "a:b"
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "invalid_argument"
+      }
+    },
+    {
+      "name": "err_argument_space",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "fn",
+              [
+                "a b"
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "invalid_argument"
+      }
+    },
+    {
+      "name": "err_argument_question",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "fn",
+              [
+                "a?b"
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "invalid_argument"
+      }
+    },
+    {
+      "name": "err_empty_source",
+      "op": "imgproxy.url",
+      "input": {
+        "source": ""
+      },
+      "expect": {
+        "error": "invalid_source"
+      }
+    },
+    {
+      "name": "err_control_char_source",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://e.com/a\nb.jpg"
+      },
+      "expect": {
+        "error": "invalid_source"
+      }
+    },
+    {
+      "name": "err_extension",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "extension": "we.bp"
+      },
+      "expect": {
+        "error": "invalid_extension"
+      }
+    },
+    {
+      "name": "err_extension_plain",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "extension": "a/b",
+        "source_encoding": "plain"
+      },
+      "expect": {
+        "error": "invalid_extension"
+      }
+    },
+    {
+      "name": "err_separator_slash",
+      "op": "imgproxy.url",
+      "config": {
+        "separator": "/"
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg"
+      },
+      "expect": {
+        "error": "invalid_separator"
+      }
+    },
+    {
+      "name": "err_separator_dash",
+      "op": "imgproxy.url",
+      "config": {
+        "separator": "-"
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg"
+      },
+      "expect": {
+        "error": "invalid_separator"
+      }
+    },
+    {
+      "name": "err_separator_long",
+      "op": "imgproxy.url",
+      "config": {
+        "separator": "::"
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg"
+      },
+      "expect": {
+        "error": "invalid_separator"
+      }
+    },
+    {
+      "name": "err_encrypted_without_key",
+      "op": "imgproxy.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "source_encoding": "encrypted"
+      },
+      "expect": {
+        "error": "missing_encryption"
+      }
+    },
+    {
+      "name": "err_pdf_password_without_encryption",
+      "op": "imgproxy.url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "source": "s3://docs/report.pdf",
+        "pdf_password": "x"
+      },
+      "expect": {
+        "error": "missing_encryption"
+      }
+    },
+    {
+      "name": "err_pdf_password_without_signing",
+      "op": "imgproxy.url",
+      "config": {
+        "encryption": true
+      },
+      "input": {
+        "source": "s3://docs/report.pdf",
+        "pdf_password": "x"
+      },
+      "expect": {
+        "error": "missing_signing"
+      }
+    },
+    {
+      "name": "err_pdf_password_empty",
+      "op": "imgproxy.url",
+      "config": {
+        "signing": true,
+        "encryption": true
+      },
+      "input": {
+        "source": "s3://docs/report.pdf",
+        "pdf_password": ""
+      },
+      "expect": {
+        "error": "invalid_password"
+      }
+    },
+    {
+      "name": "err_pdf_password_control",
+      "op": "imgproxy.url",
+      "config": {
+        "signing": true,
+        "encryption": true
+      },
+      "input": {
+        "source": "s3://docs/report.pdf",
+        "pdf_password": "a\tb"
+      },
+      "expect": {
+        "error": "invalid_password"
+      }
+    },
+    {
+      "name": "err_pdf_password_too_long",
+      "op": "imgproxy.url",
+      "config": {
+        "signing": true,
+        "encryption": true
+      },
+      "input": {
+        "source": "s3://docs/report.pdf",
+        "pdf_password": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+      },
+      "expect": {
+        "error": "invalid_password"
+      }
+    },
+    {
+      "name": "err_signature_size_0",
+      "op": "imgproxy.url",
+      "config": {
+        "signing": true,
+        "signature_size": 0
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg"
+      },
+      "expect": {
+        "error": "invalid_key"
+      }
+    },
+    {
+      "name": "err_signature_size_33",
+      "op": "imgproxy.url",
+      "config": {
+        "signing": true,
+        "signature_size": 33
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg"
+      },
+      "expect": {
+        "error": "invalid_key"
+      }
+    },
+    {
+      "name": "err_signing_key_not_hex",
+      "op": "imgproxy.url",
+      "config": {
+        "signing": {
+          "key": "zz",
+          "salt": "00"
+        }
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg"
+      },
+      "expect": {
+        "error": "invalid_key"
+      }
+    },
+    {
+      "name": "err_encryption_key_size",
+      "op": "imgproxy.url",
+      "config": {
+        "encryption": {
+          "key": "00112233445566778899aabbccddee"
+        }
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "source_encoding": "encrypted"
+      },
+      "expect": {
+        "error": "invalid_key"
+      }
+    },
+    {
+      "name": "err_encryption_iv_size",
+      "op": "imgproxy.url",
+      "config": {
+        "encryption": {
+          "key": "1eb5b0e971ad7f45324c1bb15c947cb207c43152fa5c6c7f35c4f36e0c18e0f1",
+          "iv": "0011"
+        }
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "source_encoding": "encrypted"
+      },
+      "expect": {
+        "error": "invalid_key"
+      }
+    },
+    {
+      "name": "info_basic",
+      "op": "imgproxy.info_url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "s",
+              [
+                true
+              ]
+            ],
+            [
+              "f",
+              [
+                true
+              ]
+            ],
+            [
+              "d",
+              [
+                true
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/info/insecure/s:1/f:1/d:1/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "info_signed_canonical",
+      "op": "imgproxy.info_url",
+      "config": {
+        "signing": true,
+        "option_names": "canonical",
+        "base_url": "https://img.example.com"
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "size",
+              [
+                true
+              ]
+            ],
+            [
+              "exif",
+              [
+                true
+              ]
+            ],
+            [
+              "bh",
+              [
+                4,
+                3
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "https://img.example.com/info/e-6wDP3gfVJqVbzOaI1wpNvSPGC1IS_H8fxi_wZTt6Y/size:1/exif:1/blurhash:4:3/aHR0cHM6Ly9leGFtcGxlLmNvbS9pbWFnZXMvY2F0LmpwZw"
+      }
+    },
+    {
+      "name": "info_pdf_password",
+      "op": "imgproxy.info_url",
+      "config": {
+        "signing": true,
+        "encryption": true
+      },
+      "input": {
+        "source": "s3://docs/report.pdf",
+        "options": [
+          [
+            [
+              "s",
+              [
+                true
+              ]
+            ]
+          ]
+        ],
+        "pdf_password": "secret"
+      },
+      "expect": {
+        "value": "/info/T8H6tfPkRq8M5nNQTW0oGxiwatbVvC-86mcZKRy1Bvw/pdp:MDEyMzQ1Njc4OWFiY2RlZlsN0ZQuFO2sitmy5C87M2o/s:1/czM6Ly9kb2NzL3JlcG9ydC5wZGY"
+      }
+    },
+    {
+      "name": "info_encrypted",
+      "op": "imgproxy.info_url",
+      "config": {
+        "signing": true,
+        "encryption": true
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "source_encoding": "encrypted",
+        "options": [
+          [
+            [
+              "pn",
+              [
+                true
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/info/2GYLybCytthEg4GT99uenMPhi_QOere9OJQqb2YvhwY/pn:1/enc/MDEyMzQ1Njc4OWFiY2RlZlCnHoxM-FYigjog_TOOb0Ju_RiyysDwGaswBgh_dPfEc7CjMZ_rE2sIEoIYZ0lwsw"
+      }
+    },
+    {
+      "name": "err_info_chained",
+      "op": "imgproxy.info_url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "s",
+              [
+                true
+              ]
+            ]
+          ],
+          [
+            [
+              "f",
+              [
+                true
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "invalid_request"
+      }
+    },
+    {
+      "name": "err_info_unknown_option",
+      "op": "imgproxy.info_url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "rs",
+              [
+                "fit",
+                1,
+                1
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "unknown_option"
+      }
+    },
+    {
+      "name": "video_basic_signed",
+      "op": "imgproxy.video_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "source": "s3://media/talk.mov",
+        "options": [
+          [
+            [
+              "rs",
+              [
+                "fill",
+                640,
+                360
+              ]
+            ],
+            [
+              "vs",
+              [
+                1
+              ]
+            ],
+            [
+              "vd",
+              [
+                5
+              ]
+            ]
+          ]
+        ],
+        "extension": "webm"
+      },
+      "expect": {
+        "value": "/video/w_DS6zHLyJJCh_u637csrcpmHnG8vKaR31d5OaQjqGQ/rs:fill:640:360/vs:1/vd:5/czM6Ly9tZWRpYS90YWxrLm1vdg.webm"
+      }
+    },
+    {
+      "name": "video_unsigned",
+      "op": "imgproxy.video_url",
+      "input": {
+        "source": "s3://media/talk.mov",
+        "options": [
+          [
+            [
+              "start",
+              [
+                12
+              ]
+            ],
+            [
+              "duration",
+              [
+                8
+              ]
+            ]
+          ]
+        ],
+        "extension": "mp4"
+      },
+      "expect": {
+        "value": "/video/insecure/vs:12/vd:8/czM6Ly9tZWRpYS90YWxrLm1vdg.mp4"
+      }
+    },
+    {
+      "name": "video_audio_only",
+      "op": "imgproxy.video_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "source": "s3://media/talk.mov",
+        "options": [
+          [
+            [
+              "ab",
+              [
+                128000
+              ]
+            ],
+            [
+              "ach",
+              [
+                1
+              ]
+            ]
+          ]
+        ],
+        "extension": "mp3"
+      },
+      "expect": {
+        "value": "/video/z6VbKIw5ACda6ICl1Y8sBDJiuioGfhFxHVHDa14Czq4/ab:128000/ach:1/czM6Ly9tZWRpYS90YWxrLm1vdg.mp3"
+      }
+    },
+    {
+      "name": "video_waveform",
+      "op": "imgproxy.video_url",
+      "config": {
+        "signing": true,
+        "option_names": "canonical"
+      },
+      "input": {
+        "source": "s3://media/talk.mov",
+        "options": [
+          [
+            [
+              "w",
+              [
+                800
+              ]
+            ],
+            [
+              "h",
+              [
+                200
+              ]
+            ]
+          ]
+        ],
+        "extension": "png"
+      },
+      "expect": {
+        "value": "/video/3wpxaELYYaGiuJvDX6SsImMzrXCir70yTq8tXi9EA_Y/width:800/height:200/czM6Ly9tZWRpYS90YWxrLm1vdg.png"
+      }
+    },
+    {
+      "name": "video_raw",
+      "op": "imgproxy.video_url",
+      "config": {
+        "signing": true,
+        "base_url": "https://media.example.com/"
+      },
+      "input": {
+        "source": "s3://media/talk.mov",
+        "options": [
+          [
+            [
+              "raw",
+              [
+                true
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "https://media.example.com/video/Z7xdey32Rb9cuump6PtSAliZQuTFXIRHgKAF7uTYSvs/raw:1/czM6Ly9tZWRpYS90YWxrLm1vdg"
+      }
+    },
+    {
+      "name": "video_plain_source",
+      "op": "imgproxy.video_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "source": "s3://media/talk.mov",
+        "source_encoding": "plain",
+        "options": [
+          [
+            [
+              "mu",
+              [
+                true
+              ]
+            ]
+          ]
+        ],
+        "extension": "webm"
+      },
+      "expect": {
+        "value": "/video/4iqwDGU1wFdJzt_jXdN-URHGq3VPsNjcPFX2ph8n88s/mu:1/plain/s3://media/talk.mov@webm"
+      }
+    },
+    {
+      "name": "err_video_pdf_password",
+      "op": "imgproxy.video_url",
+      "config": {
+        "signing": true,
+        "encryption": true
+      },
+      "input": {
+        "source": "s3://media/talk.mov",
+        "pdf_password": "x"
+      },
+      "expect": {
+        "error": "invalid_request"
+      }
+    },
+    {
+      "name": "err_video_chained",
+      "op": "imgproxy.video_url",
+      "input": {
+        "source": "s3://media/talk.mov",
+        "options": [
+          [
+            [
+              "vs",
+              [
+                1
+              ]
+            ]
+          ],
+          [
+            [
+              "vd",
+              [
+                2
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "invalid_request"
+      }
+    },
+    {
+      "name": "err_video_unknown_option",
+      "op": "imgproxy.video_url",
+      "input": {
+        "source": "s3://media/talk.mov",
+        "options": [
+          [
+            [
+              "bl",
+              [
+                2
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "unknown_option"
+      }
+    },
+    {
+      "name": "stream_hls_renditions",
+      "op": "imgproxy.stream_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "source": "s3://media/talk.mov",
+        "protocol": "hls",
+        "renditions": [
+          360,
+          720
+        ]
+      },
+      "expect": {
+        "value": "/video/w46lMNeGPoIqrfCpjFpA4SIrciRmKDIbrEu7JBpEzH4/st:hls:360:720/czM6Ly9tZWRpYS90YWxrLm1vdg.m3u8"
+      }
+    },
+    {
+      "name": "stream_dash_segment_duration",
+      "op": "imgproxy.stream_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "source": "s3://media/talk.mov",
+        "protocol": "dash",
+        "segment_duration": 4
+      },
+      "expect": {
+        "value": "/video/2F9ap7tpmTnhTqiVze27XB7QqMqJdvz3-ut7TfV--us/sgd:4/czM6Ly9tZWRpYS90YWxrLm1vdg.mpd"
+      }
+    },
+    {
+      "name": "stream_hls_ts",
+      "op": "imgproxy.stream_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "source": "s3://media/talk.mov",
+        "protocol": "hls",
+        "segment_format": "ts",
+        "renditions": [
+          480
+        ]
+      },
+      "expect": {
+        "value": "/video/2jkfJBFW96Uu7setJasAC3_HGkyWpytrNMW9lFYmmW8/st:hls:480/sgf:ts/czM6Ly9tZWRpYS90YWxrLm1vdg.m3u8"
+      }
+    },
+    {
+      "name": "stream_fmp4_default_not_written",
+      "op": "imgproxy.stream_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "source": "s3://media/talk.mov",
+        "protocol": "hls",
+        "segment_format": "fmp4"
+      },
+      "expect": {
+        "value": "/video/vHvF_BTnONS4Wrwd9r-z-Zi3CYz4TXLSInZq8Twwfg0/czM6Ly9tZWRpYS90YWxrLm1vdg.m3u8"
+      }
+    },
+    {
+      "name": "stream_with_options",
+      "op": "imgproxy.stream_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "source": "s3://media/talk.mov",
+        "protocol": "hls",
+        "options": [
+          [
+            [
+              "vs",
+              [
+                10
+              ]
+            ],
+            [
+              "vd",
+              [
+                30
+              ]
+            ]
+          ]
+        ],
+        "renditions": [
+          360
+        ]
+      },
+      "expect": {
+        "value": "/video/c8bCWu7Wa187-QyQGO5PQ3z7lVVo9pBMGuy8oSXU2AY/vs:10/vd:30/st:hls:360/czM6Ly9tZWRpYS90YWxrLm1vdg.m3u8"
+      }
+    },
+    {
+      "name": "stream_canonical_names",
+      "op": "imgproxy.stream_url",
+      "config": {
+        "signing": true,
+        "option_names": "canonical"
+      },
+      "input": {
+        "source": "s3://media/talk.mov",
+        "protocol": "dash",
+        "renditions": [
+          240,
+          360
+        ],
+        "segment_duration": 6
+      },
+      "expect": {
+        "value": "/video/xm-eSl8SAS22JaOtBaITHL80__BB73dMegARftha62o/stream:dash:240:360/segment_duration:6/czM6Ly9tZWRpYS90YWxrLm1vdg.mpd"
+      }
+    },
+    {
+      "name": "stream_unsigned_plain",
+      "op": "imgproxy.stream_url",
+      "input": {
+        "source": "s3://media/talk.mov",
+        "protocol": "hls",
+        "source_encoding": "plain"
+      },
+      "expect": {
+        "value": "/video/insecure/plain/s3://media/talk.mov@m3u8"
+      }
+    },
+    {
+      "name": "err_stream_ts_on_dash",
+      "op": "imgproxy.stream_url",
+      "input": {
+        "source": "s3://media/talk.mov",
+        "protocol": "dash",
+        "segment_format": "ts"
+      },
+      "expect": {
+        "error": "invalid_request"
+      }
+    },
+    {
+      "name": "err_stream_option_stream",
+      "op": "imgproxy.stream_url",
+      "input": {
+        "source": "s3://media/talk.mov",
+        "protocol": "hls",
+        "options": [
+          [
+            [
+              "st",
+              [
+                "hls",
+                360
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "invalid_request"
+      }
+    },
+    {
+      "name": "err_stream_option_format",
+      "op": "imgproxy.stream_url",
+      "input": {
+        "source": "s3://media/talk.mov",
+        "protocol": "hls",
+        "options": [
+          [
+            [
+              "format",
+              [
+                "mp4"
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "invalid_request"
+      }
+    },
+    {
+      "name": "err_stream_option_segment_duration",
+      "op": "imgproxy.stream_url",
+      "input": {
+        "source": "s3://media/talk.mov",
+        "protocol": "hls",
+        "options": [
+          [
+            [
+              "sgd",
+              [
+                4
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "invalid_request"
+      }
+    },
+    {
+      "name": "err_stream_unknown_protocol",
+      "op": "imgproxy.stream_url",
+      "input": {
+        "source": "s3://media/talk.mov",
+        "protocol": "smooth"
+      },
+      "expect": {
+        "error": "invalid_request"
+      }
+    },
+    {
+      "name": "query_basic",
+      "op": "query.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "params": [
+          [
+            "w",
+            300
+          ],
+          [
+            "f",
+            "webp"
+          ]
+        ],
+        "options": [
+          [
+            [
+              "bl",
+              [
+                2
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/q/?url=https://example.com/images/cat.jpg&w=300&f=webp&o=bl:2"
+      }
+    },
+    {
+      "name": "query_signed",
+      "op": "query.url",
+      "config": {
+        "signing": true,
+        "base_url": "https://img.example.com"
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "params": [
+          [
+            "w",
+            300
+          ],
+          [
+            "h",
+            200
+          ],
+          [
+            "fit",
+            "cover"
+          ]
+        ]
+      },
+      "expect": {
+        "value": "https://img.example.com/q/?url=https://example.com/images/cat.jpg&w=300&h=200&fit=cover&xi_sig=YsIapOJ6BVEwgRLHrRMXUEXDsjbGFjJJH9LjlY8MHKU"
+      }
+    },
+    {
+      "name": "query_custom_mount",
+      "op": "query.url",
+      "config": {
+        "mount": "/img/q/",
+        "signing": true
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "params": [
+          [
+            "q",
+            70
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/img/q/?url=https://example.com/images/cat.jpg&q=70&xi_sig=wZTwn5de1OCAgz6XOQE5OZMlA4L_S3FjxCYvIgF9g-s"
+      }
+    },
+    {
+      "name": "query_booleans_and_null",
+      "op": "query.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "params": [
+          [
+            "enlarge",
+            true
+          ],
+          [
+            "strip",
+            false
+          ],
+          [
+            "w",
+            null
+          ],
+          [
+            "dpr",
+            1.5
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/q/?url=https://example.com/images/cat.jpg&enlarge=true&strip=false&dpr=1.5"
+      }
+    },
+    {
+      "name": "query_escaped_source",
+      "op": "query.url",
+      "input": {
+        "source": "https://example.com/a b&c=d+e.jpg?x=1#y",
+        "params": [
+          [
+            "w",
+            100
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/q/?url=https://example.com/a%20b%26c%3Dd%2Be.jpg%3Fx%3D1%23y&w=100"
+      }
+    },
+    {
+      "name": "query_chained_o",
+      "op": "query.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "rs",
+              [
+                "fit",
+                300,
+                300
+              ]
+            ]
+          ],
+          [
+            [
+              "bl",
+              [
+                2
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/q/?url=https://example.com/images/cat.jpg&o=rs:fit:300:300/-/bl:2"
+      }
+    },
+    {
+      "name": "query_o_canonical",
+      "op": "query.url",
+      "config": {
+        "option_names": "canonical"
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "rs",
+              [
+                "fit",
+                300,
+                300
+              ]
+            ],
+            [
+              "q",
+              [
+                80
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/q/?url=https://example.com/images/cat.jpg&o=resize:fit:300:300/quality:80"
+      }
+    },
+    {
+      "name": "query_extension",
+      "op": "query.url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "params": [
+          [
+            "w",
+            300
+          ]
+        ],
+        "extension": "png"
+      },
+      "expect": {
+        "value": "/q/?url=https://example.com/images/cat.jpg&w=300&format=png&xi_sig=fxk06lH5unwShHZ_y1va8wAI0HrSkYqcfFinHTZzhDU"
+      }
+    },
+    {
+      "name": "query_pdf_password",
+      "op": "query.url",
+      "config": {
+        "signing": true,
+        "encryption": true
+      },
+      "input": {
+        "source": "s3://docs/report.pdf",
+        "params": [
+          [
+            "w",
+            600
+          ]
+        ],
+        "pdf_password": "secret"
+      },
+      "expect": {
+        "value": "/q/?url=s3://docs/report.pdf&w=600&pdp=MDEyMzQ1Njc4OWFiY2RlZlsN0ZQuFO2sitmy5C87M2o&xi_sig=_p2h0JnM0nsNrTB1rJt18oSnnFxZrqXM5Z9uqcxeqT4"
+      }
+    },
+    {
+      "name": "query_xi_source",
+      "op": "query.url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "source": "xi://photos/cat.jpg",
+        "params": [
+          [
+            "w",
+            300
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/q/?url=xi://photos/cat.jpg&w=300&xi_sig=hfF77ppvueu2Rj6fYUwzu2Q_rkYV0CAUQQSaB24vJT0"
+      }
+    },
+    {
+      "name": "query_separator_comma",
+      "op": "query.url",
+      "config": {
+        "separator": ","
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "rs",
+              [
+                "fill",
+                300,
+                400
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/q/?url=https://example.com/images/cat.jpg&o=rs,fill,300,400"
+      }
+    },
+    {
+      "name": "err_query_pdf_without_signing",
+      "op": "query.url",
+      "config": {
+        "encryption": true
+      },
+      "input": {
+        "source": "s3://docs/report.pdf",
+        "pdf_password": "x"
+      },
+      "expect": {
+        "error": "missing_signing"
+      }
+    },
+    {
+      "name": "err_query_separator_ampersand",
+      "op": "query.url",
+      "config": {
+        "separator": "&"
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "w",
+              [
+                1
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "invalid_separator"
+      }
+    },
+    {
+      "name": "err_query_unknown_option",
+      "op": "query.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "nope",
+              [
+                1
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "unknown_option"
+      }
+    },
+    {
+      "name": "err_query_empty_source",
+      "op": "query.url",
+      "input": {
+        "source": ""
+      },
+      "expect": {
+        "error": "invalid_source"
+      }
+    },
+    {
+      "name": "err_query_extension",
+      "op": "query.url",
+      "input": {
+        "source": "https://example.com/images/cat.jpg",
+        "extension": "p.ng"
+      },
+      "expect": {
+        "error": "invalid_extension"
+      }
+    },
+    {
+      "name": "query_video_basic",
+      "op": "query.video_url",
+      "input": {
+        "source": "s3://media/talk.mov",
+        "options": [
+          [
+            [
+              "rs",
+              [
+                "fill",
+                640,
+                360
+              ]
+            ],
+            [
+              "vs",
+              [
+                1
+              ]
+            ],
+            [
+              "vd",
+              [
+                5
+              ]
+            ]
+          ]
+        ],
+        "extension": "webm"
+      },
+      "expect": {
+        "value": "/q/video?url=s3://media/talk.mov&rs=fill,640,360&vs=1&vd=5&format=webm"
+      }
+    },
+    {
+      "name": "query_video_native_keys",
+      "op": "query.video_url",
+      "config": {
+        "option_names": "canonical"
+      },
+      "input": {
+        "source": "s3://media/talk.mov",
+        "options": [
+          [
+            [
+              "crop",
+              [
+                100,
+                100
+              ]
+            ],
+            [
+              "flip",
+              [
+                true,
+                false
+              ]
+            ],
+            [
+              "start",
+              [
+                2
+              ]
+            ]
+          ]
+        ],
+        "extension": "mp4"
+      },
+      "expect": {
+        "value": "/q/video?url=s3://media/talk.mov&c=100,100&fl=1,0&start=2&format=mp4"
+      }
+    },
+    {
+      "name": "query_video_signed",
+      "op": "query.video_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "source": "s3://media/talk.mov",
+        "options": [
+          [
+            [
+              "mu",
+              [
+                true
+              ]
+            ],
+            [
+              "q",
+              [
+                70
+              ]
+            ]
+          ]
+        ],
+        "extension": "webm"
+      },
+      "expect": {
+        "value": "/q/video?url=s3://media/talk.mov&mu=1&q=70&format=webm&xi_sig=T1ZPUikPM8Y3Pk5sodBGPYmqg2RxxroHOtOTSM_hnLI"
+      }
+    },
+    {
+      "name": "err_query_video_colon",
+      "op": "query.video_url",
+      "input": {
+        "source": "s3://media/talk.mov",
+        "options": [
+          [
+            [
+              "fn",
+              [
+                "a:b"
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "invalid_argument"
+      }
+    },
+    {
+      "name": "query_video_repeated_keys",
+      "op": "query.video_url",
+      "input": {
+        "source": "s3://media/talk.mov",
+        "options": [
+          [
+            [
+              "vs",
+              [
+                1
+              ]
+            ],
+            [
+              "vd",
+              [
+                5
+              ]
+            ]
+          ],
+          [
+            [
+              "vs",
+              [
+                2
+              ]
+            ]
+          ]
+        ],
+        "extension": "webm"
+      },
+      "expect": {
+        "value": "/q/video?url=s3://media/talk.mov&vs=1&vd=5&vs=2&format=webm"
+      }
+    },
+    {
+      "name": "query_stream_hls",
+      "op": "query.stream_url",
+      "input": {
+        "source": "s3://media/talk.mov",
+        "protocol": "hls",
+        "renditions": [
+          360,
+          720
+        ]
+      },
+      "expect": {
+        "value": "/q/video?url=s3://media/talk.mov&st=hls,360,720&format=m3u8"
+      }
+    },
+    {
+      "name": "query_stream_dash_signed",
+      "op": "query.stream_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "source": "s3://media/talk.mov",
+        "protocol": "dash",
+        "segment_duration": 4
+      },
+      "expect": {
+        "value": "/q/video?url=s3://media/talk.mov&sgd=4&format=mpd&xi_sig=GCSDuhi4FHWvCmsyz3J_azdG6UiJdFC5LuVN3pZRcQ8"
+      }
+    },
+    {
+      "name": "query_stream_hls_ts",
+      "op": "query.stream_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "source": "s3://media/talk.mov",
+        "protocol": "hls",
+        "segment_format": "ts"
+      },
+      "expect": {
+        "value": "/q/video?url=s3://media/talk.mov&sgf=ts&format=m3u8&xi_sig=w4yg5mkYZFc8gI2inKl3nURHt0Av-JGJbhRT6PhpvbA"
+      }
+    },
+    {
+      "name": "imaginary_resize",
+      "op": "query.imaginary_url",
+      "input": {
+        "endpoint": "resize",
+        "source": "https://example.com/images/cat.jpg",
+        "params": [
+          [
+            "width",
+            300
+          ],
+          [
+            "height",
+            200
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/q/resize?url=https://example.com/images/cat.jpg&width=300&height=200"
+      }
+    },
+    {
+      "name": "imaginary_signed",
+      "op": "query.imaginary_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "endpoint": "smartcrop",
+        "source": "https://example.com/images/cat.jpg",
+        "params": [
+          [
+            "width",
+            300
+          ],
+          [
+            "height",
+            300
+          ],
+          [
+            "nocrop",
+            false
+          ]
+        ]
+      },
+      "expect": {
+        "value": "/q/smartcrop?url=https://example.com/images/cat.jpg&width=300&height=300&nocrop=false&xi_sig=sFwXR2SqLAvL9-XfteDb7VsG-RuAfBcjnCE2nvLy2ao"
+      }
+    },
+    {
+      "name": "err_imaginary_video",
+      "op": "query.imaginary_url",
+      "input": {
+        "endpoint": "video",
+        "source": "https://example.com/images/cat.jpg"
+      },
+      "expect": {
+        "error": "invalid_endpoint"
+      }
+    },
+    {
+      "name": "err_imaginary_upper",
+      "op": "query.imaginary_url",
+      "input": {
+        "endpoint": "Resize",
+        "source": "https://example.com/images/cat.jpg"
+      },
+      "expect": {
+        "error": "invalid_endpoint"
+      }
+    },
+    {
+      "name": "sign_examples_vector",
+      "op": "sign",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "message": "/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg"
+      },
+      "expect": {
+        "value": "m3k5QADfcKPDj-SDI2AIogZbC3FlAXszuwhtWXYqavc"
+      }
+    },
+    {
+      "name": "sign_without_leading_slash",
+      "op": "sign",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "message": "rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg"
+      },
+      "expect": {
+        "value": "m3k5QADfcKPDj-SDI2AIogZbC3FlAXszuwhtWXYqavc"
+      }
+    },
+    {
+      "name": "sign_size_8",
+      "op": "sign",
+      "config": {
+        "signing": true,
+        "signature_size": 8
+      },
+      "input": {
+        "message": "/w:300/aHR0cHM6Ly9lLmNvbS9h"
+      },
+      "expect": {
+        "value": "KDqNosT3Egk"
+      }
+    },
+    {
+      "name": "sign_video_message",
+      "op": "sign",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "message": "/video/vs:1/czM6Ly9tZWRpYS90YWxrLm1vdg.webm"
+      },
+      "expect": {
+        "value": "hAU2fzS_tjY-b73pakINjsRrSmSWFBRH7DtRdfNsmWE"
+      }
+    },
+    {
+      "name": "xi_url_basic",
+      "op": "sign_xi_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "url": "https://img.example.com/q/?url=https://e.com/a.jpg&w=300",
+        "mount": "/q"
+      },
+      "expect": {
+        "value": "https://img.example.com/q/?url=https://e.com/a.jpg&w=300&xi_sig=afiB-jQ0HZarWEz5jFaZkCpQnyN52x0IFSiPmFydQPk"
+      }
+    },
+    {
+      "name": "xi_url_resign",
+      "op": "sign_xi_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "url": "https://img.example.com/q/?url=https://e.com/a.jpg&xi_sig=old&w=300",
+        "mount": "/q"
+      },
+      "expect": {
+        "value": "https://img.example.com/q/?url=https://e.com/a.jpg&w=300&xi_sig=afiB-jQ0HZarWEz5jFaZkCpQnyN52x0IFSiPmFydQPk"
+      }
+    },
+    {
+      "name": "xi_url_no_query",
+      "op": "sign_xi_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "url": "https://img.example.com/q/",
+        "mount": "/q"
+      },
+      "expect": {
+        "value": "https://img.example.com/q/?xi_sig=bkP1OxEoHMfshKR1qwcgBO-gjdFul2l51w-mWxdmP8k"
+      }
+    },
+    {
+      "name": "xi_url_relative_video",
+      "op": "sign_xi_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "url": "/q/video?url=s3://m/a.mov&vs=1&&vd=2",
+        "mount": "/q"
+      },
+      "expect": {
+        "value": "/q/video?url=s3://m/a.mov&vs=1&vd=2&xi_sig=t9R2YdVZC1MgjDxE1ntnbdTyFlLO3ow1vu427gBEr7s"
+      }
+    },
+    {
+      "name": "xi_url_fragment_dropped",
+      "op": "sign_xi_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "url": "https://img.example.com/q/?url=x#frag",
+        "mount": "/q/"
+      },
+      "expect": {
+        "value": "https://img.example.com/q/?url=x&xi_sig=ksEKM-22mNhCCqhwbwnTlCuFVUCX2fQM443z56s2rF8"
+      }
+    },
+    {
+      "name": "xi_url_no_mount",
+      "op": "sign_xi_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "url": "https://img.example.com/custom/path?a=1"
+      },
+      "expect": {
+        "value": "https://img.example.com/custom/path?a=1&xi_sig=3_k5fJTGsycy5rGdH3FGMxS8Gq8y0AQIDNnk0ZY_61I"
+      }
+    },
+    {
+      "name": "err_xi_url_outside_mount",
+      "op": "sign_xi_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "url": "https://img.example.com/other/?url=x",
+        "mount": "/q"
+      },
+      "expect": {
+        "error": "invalid_request"
+      }
+    },
+    {
+      "name": "err_xi_url_two_signatures",
+      "op": "sign_xi_url",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "url": "/q/?url=x&xi_sig=a&xi_sig=b",
+        "mount": "/q"
+      },
+      "expect": {
+        "error": "invalid_request"
+      }
+    },
+    {
+      "name": "encrypt_source",
+      "op": "encrypt_source",
+      "config": {
+        "encryption": true
+      },
+      "input": {
+        "source": "https://example.com/images/cat.jpg"
+      },
+      "expect": {
+        "value": "MDEyMzQ1Njc4OWFiY2RlZlCnHoxM-FYigjog_TOOb0Ju_RiyysDwGaswBgh_dPfEc7CjMZ_rE2sIEoIYZ0lwsw"
+      }
+    },
+    {
+      "name": "encrypt_source_unicode",
+      "op": "encrypt_source",
+      "config": {
+        "encryption": true
+      },
+      "input": {
+        "source": "local:///fotos/año/ñandú.jpg"
+      },
+      "expect": {
+        "value": "MDEyMzQ1Njc4OWFiY2RlZtnI76ymo9nwZVJBKvczSqqN_XpOg9YJ-0bCc3mNkDai"
+      }
+    },
+    {
+      "name": "err_encrypt_source_empty",
+      "op": "encrypt_source",
+      "config": {
+        "encryption": true
+      },
+      "input": {
+        "source": ""
+      },
+      "expect": {
+        "error": "invalid_source"
+      }
+    },
+    {
+      "name": "err_encrypt_source_control",
+      "op": "encrypt_source",
+      "config": {
+        "encryption": true
+      },
+      "input": {
+        "source": "ab"
+      },
+      "expect": {
+        "error": "invalid_source"
+      }
+    },
+    {
+      "name": "encrypt_pdf_password",
+      "op": "encrypt_pdf_password",
+      "config": {
+        "encryption": true
+      },
+      "input": {
+        "password": "secret"
+      },
+      "expect": {
+        "value": "MDEyMzQ1Njc4OWFiY2RlZlsN0ZQuFO2sitmy5C87M2o"
+      }
+    },
+    {
+      "name": "encrypt_pdf_password_1024_bytes",
+      "op": "encrypt_pdf_password",
+      "config": {
+        "encryption": true
+      },
+      "input": {
+        "password": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+      },
+      "expect": {
+        "value": "MDEyMzQ1Njc4OWFiY2RlZo5XymOj4PpfkEDhQlNpxwuwj-pdp3rM_CXhA3fn_aUq1ob6b8Qy_zvsiAlzQHnJxsMTFYxGnNYbHqma93xTnqJjPEI-VR6iVu0u4LLyZDETy-O9lW-uLcqTGwclzZwG3KxAlnB0lcavwIvLlRByA5NGgiHwAMLtjPw7zhKt3mppiBz5kQzjeEH7OehUUtXmCs1Y-KZtfGAE4GnP_6XL_iMWjS8d5QYfUrkC2YGVF6XruLz2sQ66NaLR_v-yBZ6ovJbjKQ7G89U9MbuSZxV6D6l1x8n9XXS2yBdlc9h0SWvOh5rRGqpWXXVPTGqKvApMIe9aRlIl0RwbObnyttn0IZ9p6R5CDgQjlKDCuSMx4oj5Cp6_GxxjJjenwuHLOmnmBOWmllRl2Zw9zHPYh465VwscXmJ5hEeQKnOS1r9XcY2lj5mFZHiodLr2l9D1cVGmGTU35sFi-TeNUoHAHBiMKsY8ilbbu0OOtUybj7q-bi_g9yy0afN1Nk6Ro2F6lVDYFlI61Too-Koym50FGWFo_04wCF9dvRbCqoy24_NyWlNtUCKLnDI4l7valGS2RftegAlVVmD-S9YVHZ8DPh1dHxiTtj_jiHEIICrDnxCJ_I6vA1R4Rw5OBhQV8DtEsOf7rvNqD6L5td-eFddk7QLMLH6AogJmwhxODqeL61SjXrIoxLZ3MJF9W1fYyF76NTvcmZtLTAbrirjCAXA36vUazcrteJ5m3hbDNr_N8I8fVktYEE28f8v5JP2Af1zle6cTJkwSXWLTdA4Io5pwGbKh569LFj2Wa1kCDfUR-IDWhvXpV6nP5GcQQ68PVfE2EylvAUBQ4eETYruomNKHX55-W7soxTlkmt7RaTzDjncFhXXItwPNbsYJkFA1wRpTuBlwnu83ArkaPVlKaUBn8N0gzUV3Y-ZWuLLhFEbdFbOfMz6XOPz__fKoH0PLta2NcQKuvbrfVUlt_YHpt5nJ89tw5ELnIJ4l_J843JWEKYA1Jcita9PyANb1hrXXClmovFUxkbpRg5UXaOzLwaui3iyUnDzrlIN5QBta4-Gy2UycTJvPyY8W8LaWl6QLTxz6u-7DEut2FrVbxBT6bDB2ylr-J5CxridSN6oDa6bOP6LpKtgkf_rOe1Iac57Nx7w7ozdwve3IFbaDV4hrBGRC-YU_7Wnw6Zu2uzcYivfvDUftHDsto3hykeG0jNgZkN8MpNYeMka56UCReqlcM5CR1dfgjZku5PKwjg8DOAtiZfAa2Txddn7UURXy0T0kak9oxFAqutpVupi5wba_IhGPsEAjp_l0uI0ZNS9gMg1lgr2Rbs2nQST1DWRN-sR5RCrZw4XGa5Nbb0ehvnSrX-3qMQyPXBtuorR4XFFw6HnWnNTfWNgN"
+      }
+    },
+    {
+      "name": "err_encrypt_pdf_password_empty",
+      "op": "encrypt_pdf_password",
+      "config": {
+        "encryption": true
+      },
+      "input": {
+        "password": ""
+      },
+      "expect": {
+        "error": "invalid_password"
+      }
+    },
+    {
+      "name": "xi_source_relative",
+      "op": "xi_source",
+      "input": {
+        "name": "photos",
+        "key": "2026/cat.jpg"
+      },
+      "expect": {
+        "value": "xi://photos/2026/cat.jpg"
+      }
+    },
+    {
+      "name": "xi_source_absolute_key",
+      "op": "xi_source",
+      "input": {
+        "name": "web",
+        "key": "https://cdn.example.com/a.jpg"
+      },
+      "expect": {
+        "value": "xi://web/https://cdn.example.com/a.jpg"
+      }
+    },
+    {
+      "name": "xi_source_leading_slashes",
+      "op": "xi_source",
+      "input": {
+        "name": "photos-v2",
+        "key": "//a.jpg"
+      },
+      "expect": {
+        "value": "xi://photos-v2/a.jpg"
+      }
+    },
+    {
+      "name": "err_xi_source_space",
+      "op": "xi_source",
+      "input": {
+        "name": "bad name",
+        "key": "a.jpg"
+      },
+      "expect": {
+        "error": "invalid_name"
+      }
+    },
+    {
+      "name": "err_xi_source_leading_dash",
+      "op": "xi_source",
+      "input": {
+        "name": "-x",
+        "key": "a.jpg"
+      },
+      "expect": {
+        "error": "invalid_name"
+      }
+    },
+    {
+      "name": "source_url_s3",
+      "op": "source_url",
+      "input": {
+        "scheme": "s3",
+        "authority": "bucket",
+        "key": "/cat.jpg"
+      },
+      "expect": {
+        "value": "s3://bucket/cat.jpg"
+      }
+    },
+    {
+      "name": "source_url_local",
+      "op": "source_url",
+      "input": {
+        "scheme": "local",
+        "authority": "",
+        "key": "img/cat.jpg"
+      },
+      "expect": {
+        "value": "local:///img/cat.jpg"
+      }
+    },
+    {
+      "name": "source_url_xi",
+      "op": "source_url",
+      "input": {
+        "scheme": "xi",
+        "authority": "photos",
+        "key": "a.jpg"
+      },
+      "expect": {
+        "value": "xi://photos/a.jpg"
+      }
+    },
+    {
+      "name": "source_url_https",
+      "op": "source_url",
+      "input": {
+        "scheme": "https",
+        "authority": "cdn.example.com:8443",
+        "key": "a/b.jpg"
+      },
+      "expect": {
+        "value": "https://cdn.example.com:8443/a/b.jpg"
+      }
+    },
+    {
+      "name": "err_source_url_local_authority",
+      "op": "source_url",
+      "input": {
+        "scheme": "local",
+        "authority": "x",
+        "key": "a"
+      },
+      "expect": {
+        "error": "invalid_name"
+      }
+    },
+    {
+      "name": "err_source_url_empty_authority",
+      "op": "source_url",
+      "input": {
+        "scheme": "s3",
+        "authority": "",
+        "key": "a"
+      },
+      "expect": {
+        "error": "invalid_name"
+      }
+    },
+    {
+      "name": "err_source_url_slash_authority",
+      "op": "source_url",
+      "input": {
+        "scheme": "gs",
+        "authority": "b/c",
+        "key": "a"
+      },
+      "expect": {
+        "error": "invalid_name"
+      }
+    },
+    {
+      "name": "range_open",
+      "op": "range_header",
+      "input": {
+        "range": {
+          "start": 0
+        }
+      },
+      "expect": {
+        "value": "bytes=0-"
+      }
+    },
+    {
+      "name": "range_closed",
+      "op": "range_header",
+      "input": {
+        "range": {
+          "start": 5,
+          "end": 9
+        }
+      },
+      "expect": {
+        "value": "bytes=5-9"
+      }
+    },
+    {
+      "name": "range_suffix",
+      "op": "range_header",
+      "input": {
+        "range": {
+          "suffix": 100
+        }
+      },
+      "expect": {
+        "value": "bytes=-100"
+      }
+    },
+    {
+      "name": "range_string",
+      "op": "range_header",
+      "input": {
+        "range": "bytes=1-2"
+      },
+      "expect": {
+        "value": "bytes=1-2"
+      }
+    },
+    {
+      "name": "err_range_end_before_start",
+      "op": "range_header",
+      "input": {
+        "range": {
+          "start": 5,
+          "end": 4
+        }
+      },
+      "expect": {
+        "error": "invalid_range"
+      }
+    },
+    {
+      "name": "err_range_negative",
+      "op": "range_header",
+      "input": {
+        "range": {
+          "start": -1
+        }
+      },
+      "expect": {
+        "error": "invalid_range"
+      }
+    },
+    {
+      "name": "escape_plain",
+      "op": "escape_plain_source",
+      "input": {
+        "value": "https://e.com/a b@c%d?e#f;g=h"
+      },
+      "expect": {
+        "value": "https://e.com/a%20b%40c%25d%3Fe%23f;g=h"
+      }
+    },
+    {
+      "name": "escape_plain_unicode",
+      "op": "escape_plain_source",
+      "input": {
+        "value": "s3://b/ñ/😀.jpg"
+      },
+      "expect": {
+        "value": "s3://b/%C3%B1/%F0%9F%98%80.jpg"
+      }
+    },
+    {
+      "name": "escape_query",
+      "op": "escape_query_value",
+      "input": {
+        "value": "a&b=c+d e/f:g,h@i;j#k?l%m"
+      },
+      "expect": {
+        "value": "a%26b%3Dc%2Bd%20e/f:g,h@i%3Bj%23k%3Fl%25m"
+      }
+    },
+    {
+      "name": "escape_query_unicode",
+      "op": "escape_query_value",
+      "input": {
+        "value": "ü😀"
+      },
+      "expect": {
+        "value": "%C3%BC%F0%9F%98%80"
+      }
+    }
+  ]
+}
