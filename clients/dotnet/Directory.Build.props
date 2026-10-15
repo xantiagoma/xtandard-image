@@ -1,0 +1,28 @@
+<Project>
+  <!-- Shared build settings of the .NET client (ADR 0013). -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Deterministic>true</Deterministic>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <RestoreLockedMode Condition="'$(CI)' == 'true'">true</RestoreLockedMode>
+
+    <Version>0.0.0</Version>
+    <Authors>Santiago Montoya</Authors>
+    <Copyright>Copyright (c) 2026 Santiago Montoya</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/xantiagoma/xtandard-image/tree/main/clients/dotnet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/xantiagoma/xtandard-image</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>image;imgproxy;image-processing;video;hls;dash;url-builder;signing</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+</Project>
