@@ -12,8 +12,10 @@ import {
   type ImgproxyVideoArgsOf,
   type ImgproxyVideoOptions,
   imgproxy,
+  queryUrls,
+  type VideoContainer,
 } from "../src/index.ts";
-import { createClient, type ErrorKind, type InfoResponse, XtandardError } from "../src/client.ts";
+import { createClient, type ErrorKind, type InfoResponse, type PlaygroundMeta, XtandardError } from "../src/client.ts";
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 function assertType<T extends true>(_: T): void {}
@@ -159,3 +161,38 @@ void badKind;
 const e = new XtandardError(400, "u", undefined, "m");
 const status: number = e.status;
 void status;
+
+// ---- streams, the query dialect and media fetches (WP-133) -------------------------
+
+const container: VideoContainer = "m3u8";
+void container;
+// @ts-expect-error not a /video container
+const badContainer: VideoContainer = "avi";
+void badContainer;
+
+void img.streamUrl({ source: "s3://m/a.mov", protocol: "hls", renditions: [360, 720], segmentDuration: 4, options: { vs: 1 } });
+// @ts-expect-error hls or dash
+void img.streamUrl({ source: "s3://m/a.mov", protocol: "smooth" });
+
+const q = queryUrls({ signing: { key: "00", salt: "00" } });
+void q.url({ source: "s3://b/k.jpg", params: { w: 300, fit: "cover", vts: 1.5 }, options: { bl: 2 } });
+// @ts-expect-error not a native query key
+void q.url({ source: "s3://b/k.jpg", params: { nope: 1 } });
+// @ts-expect-error pdf_password goes through pdfPassword (encrypted)
+void q.url({ source: "s3://b/k.pdf", params: { pdp: "plain" } });
+void q.from("x").param("w", 300).resize("fill", 1, 1).chain().q(80).build();
+// @ts-expect-error param() checks the key
+q.from("x").param("nope", 1);
+void q.video("x").vs(1).crop(10, 10, "nowe").extension("webm").build();
+// @ts-expect-error video options are typed in the query form too
+q.video("x").vs("one");
+void q.imaginaryUrl({ endpoint: "resize", source: "x", params: { width: 300 } });
+// @ts-expect-error not an imaginary endpoint
+void q.imaginaryUrl({ endpoint: "nope", source: "x" });
+
+const media: Promise<Response> = client.video({ source: "x", options: { vd: 5 } }, { method: "HEAD", range: { start: 0, end: 99 } });
+void media;
+// @ts-expect-error GET or HEAD
+void client.media("/x", { method: "POST" });
+const meta: Promise<PlaygroundMeta> = client.playgroundMeta();
+void meta;
