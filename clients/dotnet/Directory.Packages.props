@@ -1,0 +1,12 @@
+<Project>
+  <!-- Central package versions. The core package Xtandard.Image has no package dependencies. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Xtandard.Image.Extensions (MIT, first-party Microsoft). The lowest line both target frameworks accept. -->
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="8.0.1" />
+    <!-- Tests only. -->
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+  </ItemGroup>
+</Project>
