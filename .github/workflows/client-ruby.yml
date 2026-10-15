@@ -1,0 +1,63 @@
+name: client-ruby
+
+# The Ruby client (clients/ruby, ADR 0013): Minitest (conformance fixture,
+# builder fixture, shared vectors, unit, type-usage and client tests) on
+# every supported Ruby; RuboCop, Steep (strict), the licence check and the
+# gem build on the Rubies the locked development tools support (3.3+).
+# Ruby 3.2 runs the tests without Bundler, on its bundled minitest. Runs when
+# the client, the shared spec and fixtures, or this workflow change.
+#
+# DISABLED while Actions minutes are exhausted (docs/HANDOFF.md): the jobs
+# run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
+# Locally: `task -d clients/ruby ci`.
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - 'clients/ruby/**'
+      - 'clients/spec/**'
+      - 'testdata/urls/**'
+      - 'testdata/security/**'
+      - '.github/workflows/client-ruby.yml'
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-ruby-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: clients/ruby
+
+jobs:
+  test:
+    name: ruby ${{ matrix.ruby }}
+    if: vars.XI_CLIENTS_WORKFLOW == 'enabled'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ['3.2', '3.3', '3.4', '4.0']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: ${{ matrix.ruby != '3.2' }} # bundle install from Gemfile.lock, cached
+          working-directory: clients/ruby
+      - if: matrix.ruby == '3.2'
+        run: ruby -w -Ilib -Itest -e 'Dir.glob("test/**/*_test.rb").sort.each { |f| require File.expand_path(f) }'
+      - if: matrix.ruby != '3.2'
+        run: bundle exec rubocop
+      - if: matrix.ruby != '3.2'
+        run: bundle exec steep check
+      - if: matrix.ruby != '3.2'
+        run: bundle exec rake test
+      - if: matrix.ruby != '3.2'
+        run: bundle exec ruby scripts/check_licenses.rb
+      - if: matrix.ruby == '4.0'
+        run: mkdir -p dist && gem build xtandard-image.gemspec --strict --output dist/xtandard-image.gem
