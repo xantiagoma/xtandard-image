@@ -32,6 +32,17 @@ type StreamPart struct {
 	// nil for a muted stream or a source without audio. It is retained
 	// while the transcode needs it.
 	CopyAudio Buffer
+	// Overlays[i] is the fetched image of image overlay i of the stream's
+	// VideoOp (nil for the others; nil or shorter when there are none),
+	// drawn on video segments (WP-131). Retained while the transcode needs
+	// them.
+	Overlays []Buffer
+}
+
+// buffers lists what a transcode of p holds: the source, the copied
+// audio and the overlay images.
+func (p StreamPart) buffers(src Buffer) []Buffer {
+	return append([]Buffer{src, p.CopyAudio}, p.Overlays...)
 }
 
 // Audio reports the audio track.
@@ -41,7 +52,14 @@ func (p StreamPart) Audio() bool { return p.Track == "" }
 // fetched (video.TranscodeCaps.ResolveStream): errs.KindUnsupported when
 // it cannot be written.
 func (s *Service) ResolveStream(op *transform.VideoOp) (video.TranscodeOutput, error) {
-	return s.caps.ResolveStream(op)
+	out, err := s.caps.ResolveStream(op)
+	if err != nil {
+		return out, err
+	}
+	if err := s.canRender(op); err != nil {
+		return video.TranscodeOutput{}, err
+	}
+	return out, nil
 }
 
 // Probe opens src under the pool's probe bound (holding a place in the
@@ -92,12 +110,15 @@ func (s *Service) Layout(in *video.TranscodeInput, op *transform.VideoOp) (*vide
 // not have. A call that joins a prefetch which then finds the pool busy
 // starts the transcode itself.
 func (s *Service) Stream(ctx context.Context, key string, src Buffer, op *transform.VideoOp, part StreamPart) (*Result, error) {
-	in := []Buffer{src, part.CopyAudio}
+	if len(part.Overlays) > len(op.Overlays) {
+		return nil, errs.Newf(errs.KindInternal, "media: %d overlay images for %d overlays", len(part.Overlays), len(op.Overlays))
+	}
+	in := part.buffers(src)
 	for {
 		retain(in)
 		res, shared, err := s.flights.do(ctx, key, func(ctx context.Context) (*Result, error) {
 			defer release(in)
-			return s.run(ctx, src, s.streamPlan(op, part), streamRun)
+			return s.run(ctx, src, s.streamPlan(op, part), s.transcode(op, part.Overlays))
 		})
 		if shared {
 			release(in)
@@ -136,7 +157,10 @@ func (s *Service) Prefetch(key string, src Buffer, op *transform.VideoOp, part S
 	if !ok {
 		return false
 	}
-	in := []Buffer{src, part.CopyAudio}
+	if len(part.Overlays) > len(op.Overlays) {
+		return false
+	}
+	in := part.buffers(src)
 	retain(in) // this prefetch's
 	s.prefetches.Go(func() {
 		defer release(in)
@@ -158,7 +182,7 @@ func (s *Service) Prefetch(key string, src Buffer, op *transform.VideoOp, part S
 		res, shared, err := s.flights.do(ctx, key, func(ctx context.Context) (*Result, error) {
 			defer release(in)
 			defer t.leave()
-			return s.execute(ctx, t, src, s.streamPlan(op, part), streamRun, true)
+			return s.execute(ctx, t, src, s.streamPlan(op, part), s.transcode(op, part.Overlays), true)
 		})
 		if shared {
 			release(in)
@@ -240,6 +264,3 @@ func copyAudio(ts *video.TSPlan, audio Buffer) error {
 	ts.Audio = &a
 	return nil
 }
-
-// streamRun transcodes a stream part.
-func streamRun(ctx context.Context, t *task) (*Result, error) { return runTask(ctx, t, nil) }

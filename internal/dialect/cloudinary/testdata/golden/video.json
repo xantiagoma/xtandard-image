@@ -2764,6 +2764,98 @@
     "signature": "unsigned",
     "source": "dog.m3u8"
   },
+  "stream_overlay": {
+    "path": "/demo/video/upload/l_logos:brand,w_120/fl_layer_apply,g_south_east,x_10,y_10,so_1,eo_3/sp_hd/dog.m3u8",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.m3u8"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "End": 3000000000,
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 1,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 10,
+                "YOffset": 10
+              },
+              "Source": {
+                "Encoding": "relative",
+                "Mount": "assets",
+                "Raw": "logos/brand"
+              },
+              "Width": 120
+            }
+          }
+        ],
+        "Stream": {
+          "Renditions": [
+            720,
+            480,
+            360,
+            240
+          ]
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.m3u8"
+  },
+  "stream_overlay_text_ts": {
+    "path": "/demo/video/upload/l_text:arial_40:Hello,co_white/fl_layer_apply,g_north/sp_sd/fl_hlsv3/dog.m3u8",
+    "request": {
+      "Dialect": "cloudinary",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Encoding": "relative",
+        "Mount": "assets",
+        "Raw": "dog.m3u8"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "Watermark": {
+              "Color": {
+                "A": 255,
+                "B": 255,
+                "G": 255,
+                "R": 255
+              },
+              "Font": "arial 40",
+              "Opacity": 1,
+              "Position": {
+                "Type": "north"
+              },
+              "Text": "Hello"
+            }
+          }
+        ],
+        "Stream": {
+          "Format": "ts",
+          "Renditions": [
+            480,
+            360,
+            240
+          ]
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "dog.m3u8"
+  },
   "stream_resize_dropped": {
     "path": "/demo/video/upload/c_scale,w_640,br_1m/sp_hd/dog.m3u8",
     "request": {

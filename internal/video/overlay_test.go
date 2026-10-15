@@ -163,6 +163,24 @@ func TestOverlayGraphIsNumeric(t *testing.T) {
 	if len(ovs) != 3 {
 		t.Fatalf("%d overlays", len(ovs))
 	}
+	// The same overlays on every segment of every rendition of a stream
+	// (WP-131): laid out on the largest rendition, scaled to each.
+	sop := op
+	sop.Width = 0
+	sop.Stream = &transform.VideoStream{SegmentDuration: time.Second, Renditions: []int{720, 360, 144}}
+	l := streamOf(t, hd(), &sop, gplCaps(), &StreamSettings{})
+	for i := range l.Video {
+		for n := range l.Segments {
+			p, err := PlanSegment(hd(), &sop, l, &l.Video[i], n, settings())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(p.Video.Overlays) != 3 {
+				t.Fatalf("%s/%d: %d overlays", l.Video[i].Name, n, len(p.Video.Overlays))
+			}
+			ovs = append(ovs, p.Video.Overlays...)
+		}
+	}
 	const expr = "abcdefghijklmnopqrstuvwxyz0123456789()+-*/.,"
 	words := []string{"between", "gte", "lte", "clip", "min", "t", "w", "h", "tw", "th", "x"}
 	for _, o := range ovs {
@@ -183,6 +201,55 @@ func TestOverlayGraphIsNumeric(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// TestStreamOverlayPlans: a stream's overlays keep the output's timeline
+// in every segment (windows and fades from the stream's start, not the
+// segment's) and scale with the rendition: a timecode laid out on the
+// largest one has its size, offsets and shadow scaled on the others.
+func TestStreamOverlayPlans(t *testing.T) {
+	t.Parallel()
+	op := &transform.VideoOp{
+		Stream: &transform.VideoStream{SegmentDuration: time.Second, Renditions: []int{720, 360}},
+		Overlays: []transform.VideoOverlay{
+			mark(&transform.VideoOverlay{Source: &transform.SourceSpec{Raw: "logo.png"}, Start: 500 * time.Millisecond, End: 1500 * time.Millisecond, FadeIn: 250 * time.Millisecond}),
+			mark(&transform.VideoOverlay{
+				Position: transform.Gravity{Type: transform.GravitySouthEast, XOffset: 20, YOffset: 0.05},
+				Timecode: transform.VideoTimecodeHMS, TimecodeSize: 40,
+			}),
+		},
+	}
+	op.Overlays[1].Shadow = 4
+	l := streamOf(t, hd(), op, gplCaps(), &StreamSettings{})
+	for i, want := range []struct {
+		size, shadow int
+		x, y         string
+	}{{40, 4, "w-tw-20", "h-th-36"}, {20, 2, "w-tw-10", "h-th-18"}} {
+		r := &l.Video[i]
+		for n := range l.Segments {
+			p, err := PlanSegment(hd(), op, l, r, n, settings())
+			if err != nil {
+				t.Fatal(err)
+			}
+			v := p.Video
+			if w, h := v.OverlayRef(); w != 1280 || h != 720 {
+				t.Fatalf("%s: overlays laid out on %dx%d", r.Name, w, h)
+			}
+			img, tc := v.Overlays[0], v.Overlays[1].Timecode
+			if img.Enable != "between(t,0.5,1.5)" || img.Start != 0.5 || img.FadeIn != 0.25 {
+				t.Errorf("%s/%d: image overlay %+v", r.Name, n, img)
+			}
+			if tc == nil || tc.Size != want.size || tc.Shadow != want.shadow || tc.X != want.x || tc.Y != want.y {
+				t.Errorf("%s/%d: timecode %+v, want %+v", r.Name, n, tc, want)
+			}
+		}
+	}
+	// A file's overlays are laid out on its own frame.
+	file := &transform.VideoOp{Width: 640, Overlays: op.Overlays}
+	if p, err := PlanTranscode(hd(), file, TranscodeOutput{Video: CodecVP9, Muxer: "webm"}, gplCaps(), settings()); err != nil ||
+		p.Video.OverlayRefWidth != 0 || p.Video.Overlays[1].Timecode.Size != 40 {
+		t.Fatalf("file plan %+v %v", p, err)
 	}
 }
 

@@ -464,7 +464,7 @@ func TestStreamPrefetch(t *testing.T) {
 	fs.mu.Lock()
 	got := append([]StreamPart(nil), fs.prefetch...)
 	fs.mu.Unlock()
-	if len(got) != 2 || got[0] != (StreamPart{Track: "v1", Segment: 2}) || got[1] != (StreamPart{Track: "v1", Segment: 3}) {
+	if len(got) != 2 || got[0].Track != "v1" || got[0].Segment != 2 || got[1].Track != "v1" || got[1].Segment != 3 {
 		t.Fatalf("prefetched %v", got)
 	}
 	for _, n := range []string{"2", "3"} {
@@ -594,4 +594,54 @@ func TestStreamTS(t *testing.T) {
 	if hf.f.calls.Load() != 0 {
 		t.Fatal("fetched before refusing")
 	}
+}
+
+// TestStreamOverlays: a stream's overlays (WP-131) travel in its ticket;
+// the overlay image is fetched once per child request that transcodes a
+// video segment (not for playlists or audio), handed to the transcode and
+// to its prefetches, and released; a disallowed overlay source is refused
+// at the manifest, before any ticket names it.
+func TestStreamOverlays(t *testing.T) {
+	t.Parallel()
+	op := hlsOp()
+	op.Overlays = []transform.VideoOverlay{
+		{Opacity: 1, Source: &transform.SourceSpec{Raw: "logo.png"}, Start: time.Second},
+		{Opacity: 1, Timecode: transform.VideoTimecodeHMS},
+	}
+	h, fs := newStreamHarness(t, op, nil)
+	fs.prefetchOK = true
+	fs.caps.Overlays, fs.caps.Timecode = true, true
+	base := streamBase(t, h)
+	before := h.f.calls.Load()
+	mustGet(t, h, base+"v0.m3u8", http.StatusOK)
+	mustGet(t, h, base+"a/0.m4s", http.StatusOK)
+	audioCalls := h.f.calls.Load()
+	mustGet(t, h, base+"v0/0.m4s", http.StatusOK)
+	if got := h.f.calls.Load() - audioCalls; got != 2 { // the source and the overlay image
+		t.Fatalf("a video segment fetched %d times (playlist and audio: %d)", got, audioCalls-before)
+	}
+	fs.mu.Lock()
+	parts := append(append([]StreamPart(nil), fs.parts...), fs.prefetch...)
+	fs.mu.Unlock()
+	video := 0
+	for _, p := range parts {
+		if p.Track == "" {
+			if p.Overlays != nil {
+				t.Errorf("the audio was given overlays %v", p.Overlays)
+			}
+			continue
+		}
+		video++
+		if len(p.Overlays) != 2 || p.Overlays[0] == nil || p.Overlays[1] != nil {
+			t.Errorf("segment %s/%d was given overlays %v", p.Track, p.Segment, p.Overlays)
+		}
+	}
+	if video != 3 { // segment 0 and its two prefetches
+		t.Fatalf("%d video transcodes: %+v", video, parts)
+	}
+	h.checkReleased(t)
+
+	denied, dfs := newStreamHarness(t, op, func(h *harness) { h.res.deny = map[string]bool{"logo.png": true} })
+	dfs.caps.Overlays, dfs.caps.Timecode = true, true
+	mustGet(t, denied, videoPath, http.StatusForbidden)
 }

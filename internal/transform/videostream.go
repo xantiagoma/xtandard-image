@@ -12,8 +12,8 @@ import (
 // names), never larger than the source; their segments are CMAF fragments
 // (or, for HLS, MPEG-TS, WP-131) of a fixed grid, transcoded when a player
 // asks for them. Everything else in the VideoOp (the cut, the crop,
-// rotation, frame rate, quality, the audio options) applies to every
-// rendition.
+// rotation, frame rate, quality, the audio options, the overlays) applies
+// to every rendition.
 
 // VideoStream asks for adaptive streaming.
 type VideoStream struct {
@@ -52,8 +52,8 @@ const (
 
 // validateStream checks the stream and what a stream cannot combine with:
 // the renditions decide the size and the bit rate, the output is CMAF
-// (MP4 with AAC) or, for HLS, MPEG-TS with H.264 and AAC, and overlays
-// (placed in pixels of one output size) are not drawn on streams.
+// (MP4 with AAC) or, for HLS, MPEG-TS with H.264 and AAC. Overlays are
+// drawn on every rendition (WP-131): laid out on the largest and scaled.
 func (o *VideoOp) validateStream(v *validator, f string) {
 	st := o.Stream
 	f += ".stream"
@@ -92,8 +92,6 @@ func (o *VideoOp) validateStream(v *validator, f string) {
 		v.fail(f, "a stream's sizes are its renditions'")
 	case o.MaxBitrate != 0:
 		v.fail(f, "a stream's bit rates are its renditions'")
-	case len(o.Overlays) > 0:
-		v.fail(f, "overlays are not drawn on streams")
 	case o.VideoCodec == VideoCodecHEVC:
 		v.fail(f, "hevc streams are not supported")
 	case o.AudioCodec != AudioCodecAuto && o.AudioCodec != AudioCodecAAC:

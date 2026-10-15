@@ -2615,6 +2615,50 @@
     },
     "path": "/unsafe/w:640/plain/https://example.com/clip.mov@m3u8"
   },
+  "stream_timecode_ts": {
+    "endpoint": "video",
+    "path": "/unsafe/tc:hms:nowe:8:8:24/sgf:ts/st:hls:360/plain/https://example.com/clip.mov@m3u8",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "Timecode": "hms",
+            "TimecodeSize": 24,
+            "Watermark": {
+              "Color": {
+                "A": 255,
+                "B": 255,
+                "G": 255,
+                "R": 255
+              },
+              "Opacity": 1,
+              "Position": {
+                "Type": "north-west",
+                "XOffset": 8,
+                "YOffset": 8
+              }
+            }
+          }
+        ],
+        "Stream": {
+          "Format": "ts",
+          "Renditions": [
+            360
+          ]
+        }
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
   "stream_too_many_rungs": {
     "endpoint": "video",
     "error": {
@@ -2688,6 +2732,44 @@
       "status": 400
     },
     "path": "/unsafe/sgf:ts/vc:vp9/plain/https://example.com/clip.mov@m3u8"
+  },
+  "stream_watermark": {
+    "endpoint": "video",
+    "path": "/unsafe/wm:0.8:soea:8:8/wmu:eGk6Ly9maXh0dXJlcy93YXRlcm1hcmsvYmFkZ2UucG5n/wms:48:0/ow:1:4/plain/https://example.com/clip.mov@m3u8",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Overlays": [
+          {
+            "End": 4000000000,
+            "Start": 1000000000,
+            "Watermark": {
+              "Opacity": 0.8,
+              "Position": {
+                "Type": "south-east",
+                "XOffset": 8,
+                "YOffset": 8
+              },
+              "Source": {
+                "Encoding": "base64",
+                "Raw": "xi://fixtures/watermark/badge.png"
+              },
+              "Width": 48
+            }
+          }
+        ],
+        "Stream": {}
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
   },
   "stream_webm_rejected": {
     "endpoint": "video",

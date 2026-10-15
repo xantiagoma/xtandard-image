@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"image"
 	"image/png"
+	"math"
 	"testing"
 
 	"github.com/xantiagoma/xtandard-image/internal/errs"
@@ -173,6 +174,72 @@ func TestRenderOverlayNothing(t *testing.T) {
 	if o := renderOverlay(t, newExecutor(t), "wm:1:ce"); o != nil {
 		o.Release()
 		t.Error("the missing configured watermark rendered")
+	}
+}
+
+// TestRenderOverlayScaled: an overlay laid out on the top rendition of a
+// stream (WP-131) and scaled to a smaller one keeps its place and size
+// relative to the frame (an absolute-pixel watermark does not grow on
+// small renditions), and its pixels are the reference's, downscaled
+// (premultiplied: mean alpha within a few levels of a box filter).
+func TestRenderOverlayScaled(t *testing.T) {
+	t.Parallel()
+	e := newWatermarkExecutor(t, newWatermark(t, watermarkLogo, "png", 1))
+	req := parse(t, "wm:0.8:soea:20:12/"+wmu)
+	wm := &req.Pipelines[0].Watermarks[0]
+	badge := newBuffer(t, readFixture(t, watermarkBadge))
+	defer badge.Release()
+	img := &exec.OverlayImage{Source: badge, Format: "png"}
+	const refW, refH = 640, 360
+	ref, err := e.RenderOverlay(t.Context(), wm, img, refW, refH)
+	if err != nil || ref == nil {
+		t.Fatalf("reference: %v", err)
+	}
+	defer ref.Release()
+	for _, tw := range []int{320, 426, 256} {
+		th := tw * refH / refW / 2 * 2
+		o, err := e.RenderOverlayScaled(t.Context(), wm, img, refW, refH, tw, th)
+		if err != nil || o == nil {
+			t.Fatalf("%d: %v", tw, err)
+		}
+		k := float64(tw) / refW
+		for _, c := range []struct {
+			name      string
+			got, want float64
+		}{
+			{"x", float64(o.X), float64(ref.X) * k},
+			{"y", float64(o.Y), float64(ref.Y) * float64(th) / refH},
+			{"width", float64(o.Width), float64(ref.Width) * k},
+			{"height", float64(o.Height), float64(ref.Height) * float64(th) / refH},
+		} {
+			if c.got < c.want-1 || c.got > c.want+1 {
+				t.Errorf("%dx%d: %s %v, want %.1f", tw, th, c.name, c.got, c.want)
+			}
+		}
+		if o.X+o.Width > tw || o.Y+o.Height > th || len(o.Pixels.Bytes()) != o.Width*o.Height*4 {
+			t.Fatalf("%dx%d: %+v outside the frame", tw, th, o)
+		}
+		if tw == 320 { // exactly half: compare with a 2×2 box filter of the reference
+			got, want := canvas(o, tw, th), canvas(ref, refW, refH)
+			var diff, n float64
+			for y := range th {
+				for x := range tw {
+					var a float64
+					for _, d := range [][2]int{{0, 0}, {1, 0}, {0, 1}, {1, 1}} {
+						a += float64(want.NRGBAAt(2*x+d[0], 2*y+d[1]).A)
+					}
+					diff += math.Abs(float64(got.NRGBAAt(x, y).A) - a/4)
+					n++
+				}
+			}
+			if mean := diff / n; mean > 2 {
+				t.Errorf("mean alpha difference %.2f from the downscaled reference", mean)
+			}
+		}
+		o.Release()
+	}
+	if _, err := e.RenderOverlayScaled(t.Context(), wm, img, 0, 360, 320, 180); errs.KindOf(err) != errs.KindInternal {
+		t.Errorf("empty reference frame: %v", err)
 	}
 }
 

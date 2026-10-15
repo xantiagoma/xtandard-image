@@ -108,11 +108,20 @@ func videoResult(r *media.Result) *server.VideoResult {
 	return &server.VideoResult{Body: r.Body, Output: r.Output, Width: r.Width, Height: r.Height, Shared: r.Shared}
 }
 
-// mediaPart is the media view of a stream part.
+// mediaPart is the media view of a stream part (its own slice of the
+// overlay images, which the server may clear after the call).
 func mediaPart(p server.StreamPart) media.StreamPart {
 	mp := media.StreamPart{Track: p.Track, Segment: p.Segment}
 	if p.CopyAudio != nil {
 		mp.CopyAudio = p.CopyAudio
+	}
+	if len(p.Overlays) > 0 {
+		mp.Overlays = make([]media.Buffer, len(p.Overlays))
+		for i, b := range p.Overlays {
+			if b != nil {
+				mp.Overlays[i] = b
+			}
+		}
 	}
 	return mp
 }
