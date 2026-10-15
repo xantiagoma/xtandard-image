@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <RootNamespace>Xtandard.Image.Extensions</RootNamespace>
+    <IsAotCompatible>true</IsAotCompatible>
+    <IsPackable>true</IsPackable>
+    <PackageId>Xtandard.Image.Extensions</PackageId>
+    <Description>ASP.NET Core and Generic Host integration of Xtandard.Image: AddXtandardImage() registers the typed XtandardClient through IHttpClientFactory and the URL builders as singletons.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Xtandard.Image/Xtandard.Image.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>
