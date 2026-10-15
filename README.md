@@ -274,6 +274,8 @@ img.url("s3://photos/cat.jpg", {"rs": ("fill", 1200, 630), "g": "sm"}, extension
 
 **Rust**: [`clients/rust`](clients/rust/README.md) (crate `xtandard-image`): typed builders with one fluent method per option, signing, encryption, async and blocking clients on reqwest (rustls).
 
+**Java** 17+, [`clients/java`](clients/java/README.md) (`io.github.xantiagoma:xtandard-image` on Maven Central after the first release), has the same surface with no runtime dependencies: typed option methods generated from the catalogues, fluent chains, and a `java.net.http` client with `CompletableFuture` async.
+
 The other languages are planned (M6 in the [roadmap](docs/ROADMAP.md)).
 
 ## Playground

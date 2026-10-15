@@ -1,0 +1,66 @@
+name: client-java
+
+# The Java client (clients/java, ADR 0013): Spotless (google-java-format),
+# javac with Error Prone and NullAway (warnings are errors), JUnit (conformance
+# fixture, builder fixture, shared vectors, unit and client tests) on every
+# supported runtime, the licence check, and the jar, sources jar and javadoc
+# jar. JDK 21 builds (--release 17); the matrix JDK runs the tests. Runs when
+# the client, the shared spec and fixtures, or this workflow change.
+#
+# DISABLED while Actions minutes are exhausted (docs/HANDOFF.md): the jobs
+# run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
+# Locally: `task -d clients/java ci`.
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - 'clients/java/**'
+      - 'clients/spec/**'
+      - 'testdata/urls/**'
+      - 'testdata/security/**'
+      - '.github/workflows/client-java.yml'
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-java-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: clients/java
+
+jobs:
+  test:
+    name: java ${{ matrix.java }}
+    if: vars.XI_CLIENTS_WORKFLOW == 'enabled'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['17', '21', '25']
+    steps:
+      - uses: actions/checkout@v7
+      # The last version listed is the default JAVA_HOME (the build JDK);
+      # the matrix version runs the tests through -Dtest.jvm.
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: |
+            ${{ matrix.java }}
+            21
+          cache: maven
+          cache-dependency-path: clients/java/pom.xml
+      - uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: '3.9.16' # = clients/java/mise.toml
+      - name: Test JVM
+        run: echo "TEST_JVM=$(printenv JAVA_HOME_${{ matrix.java }}_X64)/bin/java" >> "$GITHUB_ENV"
+      - run: mvn -B spotless:check
+      - run: mvn -B verify "-Dtest.jvm=$TEST_JVM"
+      - run: mvn -B -q dependency:list -DincludeScope=runtime -DoutputFile=target/dependencies-runtime.txt
+      - run: mvn -B -q dependency:list -DincludeScope=provided -DoutputFile=target/dependencies-provided.txt
+      - run: java scripts/CheckLicenses.java target/dependencies-runtime.txt target/dependencies-provided.txt
