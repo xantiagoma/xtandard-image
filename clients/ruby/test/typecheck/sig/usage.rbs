@@ -1,0 +1,5 @@
+module Usage
+  def self?.urls: () -> Array[String]
+  def self?.helpers: () -> Array[String]
+  def self?.client: (String base) -> Array[untyped]
+end
