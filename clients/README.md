@@ -8,7 +8,7 @@ URL builders and HTTP clients for xtandard-image in the main backend languages (
 | Python | [`clients/python`](python) | PyPI `xtandard-image` | WP-134 |
 | Go | [`clients/go`](go) | module `github.com/xantiagoma/xtandard-image/clients/go` (tags `clients/go/vX.Y.Z`) | WP-135 |
 | PHP | [`clients/php`](php) | Packagist `xtandard/image` | WP-136 |
-| Ruby | `clients/ruby` | RubyGems `xtandard-image` | planned (WP-137) |
+| Ruby | [`clients/ruby`](ruby) | RubyGems `xtandard-image` | WP-137 |
 | Rust | [`clients/rust`](rust) | crates.io `xtandard-image` | WP-138 |
 | Java | [`clients/java`](java) | Maven Central `io.github.xantiagoma:xtandard-image` | WP-139 |
 | .NET | [`clients/dotnet`](dotnet) | NuGet `Xtandard.Image` (+ `Xtandard.Image.Extensions` for DI) | WP-140 |
