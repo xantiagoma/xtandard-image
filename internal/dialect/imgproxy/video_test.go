@@ -30,6 +30,12 @@ func TestVideo(t *testing.T) {
 		vidPath("defaults", "", "/unsafe"+videoSrc),
 		vidPath("extension_webm", "", "/unsafe"+videoSrc+"@webm"),
 		vidPath("extension_upper", "", "/unsafe"+videoSrc+"@MP3"),
+		vidPath("extension_mp4", "", "/unsafe/vd:2"+videoSrc+"@mp4"),
+		vidPath("extension_opus", "", "/unsafe"+videoSrc+"@opus"),
+		vidPath("extension_ogg", "", "/unsafe/ab:64k"+videoSrc+"@ogg"),
+		vidPath("extension_flac", "", "/unsafe/sr:48000"+videoSrc+"@flac"),
+		vidPath("extension_wav", "", "/unsafe/ach:1"+videoSrc+"@wav"),
+		vidPath("extension_webp_waveform", "", "/unsafe/w:400/h:100"+videoSrc+"@webp"),
 		vidPath("extension_unknown", "", "/unsafe"+videoSrc+"@avi"),
 		vidPath("base64_source_ext", "", "/unsafe/w:320/aHR0cHM6Ly9leGFtcGxlLmNvbS9jbGlwLm1vdg.webm"),
 		vidPath("enc_source", "enc", "/unsafe/w:320/enc/ENC[https://example.com/clip.mov].m4a"),
@@ -188,6 +194,7 @@ func TestVideo(t *testing.T) {
 		vid("filename", "fn:clip/att:1"),
 		vid("hashsum", "hs:sha256:"+sha256Hex),
 		vid("cache_tags", "ct:a:b"),
+		vid("bypass_cache", "bc:1"),
 
 		// Raw source (WP-128): stays a video request; other options are kept
 		// but ignored by the server.
