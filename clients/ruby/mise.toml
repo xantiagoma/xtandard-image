@@ -1,0 +1,6 @@
+# Toolchain of the Ruby client (ADR 0013): `mise install` in this
+# directory. CI tests every supported Ruby (3.2 to 4.0) through
+# ruby/setup-ruby; this pin is the development interpreter. Bundler ships
+# with Ruby and manages the development gems (Gemfile.lock).
+[tools]
+ruby = "4.0.7"
