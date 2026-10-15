@@ -291,3 +291,8 @@ owner has authorised merging PRs without review.
   (`m5/wp-131-hls-extras`); WP-132 unsigned video presets / restricted policy (`m5/wp-132-video-presets`);
   WP-133 TypeScript client audit + video/info/query builders (`m5/wp-133-ts-client`). After 131/132 merge,
   add their new options to the TS client (WP-133 lists what is needed).
+- **Merged 2026-10-15:** WP-133 TS client catch-up + drift tests (#133), WP-132 video presets and
+  restricted unsigned video policy (#134). Demo redeployed (106 recipes, presets `web`/`preview`).
+  Local bases: `xtandard-base:dev-gpl*`/`dev-full*` were found rebuilt (same IDs as `wp132-gpl*`, from
+  main's `docker/base`); `dev-slim` is missing. Origin unconfirmed (WP-132 denies retagging). Still in
+  flight: WP-131 HLS extras.
