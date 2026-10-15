@@ -272,6 +272,8 @@ img.url("s3://photos/cat.jpg", {"rs": ("fill", 1200, 630), "g": "sm"}, extension
 
 **.NET** is [`clients/dotnet`](clients/dotnet/README.md) (`Xtandard.Image` on NuGet after the first release, .NET 8+, no package dependencies, AOT-compatible): typed option records and fluent builders, signing, encryption, an async `HttpClient` client, and `AddXtandardImage()` for ASP.NET Core in `Xtandard.Image.Extensions`.
 
+**Rust**: [`clients/rust`](clients/rust/README.md) (crate `xtandard-image`): typed builders with one fluent method per option, signing, encryption, async and blocking clients on reqwest (rustls).
+
 The other languages are planned (M6 in the [roadmap](docs/ROADMAP.md)).
 
 ## Playground
