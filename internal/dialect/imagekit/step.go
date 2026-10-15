@@ -77,6 +77,8 @@ type parseState struct {
 	params      []string // scratch
 	// stream is set for <video>/ik-master.m3u8 and .mpd (videostream.go).
 	stream *transform.VideoStream
+	// videoReferenced: a video transformation named a video preset (n-).
+	videoReferenced bool
 }
 
 // dimArg is a parsed w- or h- value.

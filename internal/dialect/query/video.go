@@ -3,6 +3,7 @@ package query
 import (
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
+	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
 
 // videoEndpoint is the path after the mount that selects video
@@ -24,6 +25,20 @@ func (p *Parser) video(b *imgproxy.Builder, params []param) error {
 		}
 	}
 	return nil
+}
+
+// presetVideo builds the request again from its preset= keys alone (the
+// restricted unsigned video policy compares the two): the VideoOp the
+// presets produce, or nil when that fails.
+func (p *Parser) presetVideo(params []param) *transform.VideoOp {
+	b := p.opt.NewVideoPresetsBuilder(Name)
+	if err := p.video(b, params); err != nil {
+		return nil
+	}
+	if err := b.Finish(); err != nil {
+		return nil
+	}
+	return b.Request().Video
 }
 
 func (p *Parser) videoKey(b *imgproxy.Builder, key, v string) error {

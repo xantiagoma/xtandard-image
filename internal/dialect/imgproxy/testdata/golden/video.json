@@ -1749,17 +1749,16 @@
     "signature": "unsigned",
     "source": "https://example.com/clip.mov"
   },
-  "preset_unknown": {
+  "preset_unexpanded": {
     "endpoint": "video",
     "path": "/unsafe/pr:thumb/plain/https://example.com/clip.mov",
     "request": {
+      "Delivery": {
+        "Presets": [
+          "thumb"
+        ]
+      },
       "Dialect": "imgproxy",
-      "Ignored": [
-        {
-          "Option": "pr",
-          "Reason": "unknown option"
-        }
-      ],
       "Kind": "video",
       "Pipelines": [
         {}

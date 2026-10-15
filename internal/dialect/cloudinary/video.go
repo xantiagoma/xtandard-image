@@ -2,6 +2,7 @@ package cloudinary
 
 import (
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -131,17 +132,72 @@ type videoApplier struct {
 	// videostream.go).
 	stream  *transform.VideoStream
 	profile string
+
+	// Video presets (WP-132): t_<name> names video presets
+	// (XI_VIDEO_TRANSFORM_PRESETS), which are the op's starting point
+	// wherever they appear (a named transformation is the defaults of its
+	// component, and video components accumulate onto one op), after the
+	// "default" video preset. presetContainer reports a preset that chose
+	// the container: it wins over the public ID's extension, f_ over it.
+	// presetsOnly applies the presets alone (no other parameter, layer,
+	// f_ or extension) for the restricted unsigned video policy.
+	presetContainer bool
+	presetsOnly     bool
 }
 
 // video parses the components of a video transcode into r.
-func (a *applier) video(u *parsedURL) error {
-	va := &videoApplier{a: a, extension: sourceExt(u.source)}
+func (a *applier) video(u *parsedURL) error { return a.videoOp(u, false) }
+
+// presetVideo parses u again with its video presets alone: the VideoOp
+// the restricted unsigned video policy compares the URL's with, or nil.
+func (p *Parser) presetVideo(u *parsedURL, mount string) *transform.VideoOp {
+	a := newApplier(p, p.opt.NewBuilder(Name), mount)
+	if err := a.videoOp(u, true); err != nil {
+		return nil
+	}
+	return a.r.Video
+}
+
+// videoPresets starts the op from the URL's t_ video presets (and the
+// default video preset). It records whether the URL named one.
+func (va *videoApplier) videoPresets(u *parsedURL) error {
+	if va.a.p.o.VideoPresets == nil {
+		return nil
+	}
+	var names []string
+	err := walkVideoComponents(u, func(c *component) error {
+		for _, p := range c.params {
+			if p.key != "t" {
+				continue
+			}
+			ns := strings.Split(p.value, ".")
+			if slices.Contains(ns, "") {
+				return dialect.InvalidArgument("t", p.value, "named transformation")
+			}
+			names = append(names, ns...)
+		}
+		return nil
+	}, nil)
+	if err != nil {
+		return err
+	}
+	op, containerSet, err := va.a.p.opt.VideoPresetOp(names)
+	if err != nil || op == nil {
+		return err
+	}
+	va.a.videoReferenced = len(names) > 0
+	va.op, va.stream, va.presetContainer = *op, op.Stream, containerSet
+	return nil
+}
+
+// walkVideoComponents calls base for every component that is not part of
+// a layer group and layer for every layer group (its first component and
+// the ones up to its fl_layer_apply), in URL order; a nil layer skips
+// layer groups.
+func walkVideoComponents(u *parsedURL, base func(*component) error, layer func(key, value string, group []*component) error) error {
 	for i := 0; i < len(u.comps); i++ {
 		c, err := parseComponent(u.comps[i])
 		if err != nil {
-			return err
-		}
-		if err := a.checkOnlyPresets(c); err != nil {
 			return err
 		}
 		key := "l"
@@ -162,6 +218,9 @@ func (a *applier) video(u *parsedURL) error {
 					}
 				}
 			}
+			if layer == nil {
+				continue
+			}
 			group := []*component{c}
 			for _, seg := range u.comps[start+1 : i+1] {
 				gc, err := parseComponent(seg)
@@ -170,12 +229,41 @@ func (a *applier) video(u *parsedURL) error {
 				}
 				group = append(group, gc)
 			}
-			if err := va.overlay(key, lv, group); err != nil {
+			if err := layer(key, lv, group); err != nil {
 				return err
 			}
 			continue
 		}
-		if err := va.component(c); err != nil {
+		if err := base(c); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// videoOp maps the components onto the request's VideoOp; presetsOnly
+// keeps the video presets alone (presetVideo).
+func (a *applier) videoOp(u *parsedURL, presetsOnly bool) error {
+	va := &videoApplier{a: a, extension: sourceExt(u.source), presetsOnly: presetsOnly}
+	if presetsOnly {
+		va.extension = ""
+	}
+	if err := va.videoPresets(u); err != nil {
+		return err
+	}
+	if !presetsOnly {
+		err := walkVideoComponents(u, func(c *component) error {
+			if err := a.checkOnlyPresets(c); err != nil {
+				return err
+			}
+			return va.component(c)
+		}, func(key, value string, group []*component) error {
+			if err := a.checkOnlyPresets(group[0]); err != nil {
+				return err
+			}
+			return va.overlay(key, value, group)
+		})
+		if err != nil {
 			return err
 		}
 	}
@@ -360,7 +448,11 @@ func (va *videoApplier) component(c *component) error {
 			err = va.streamingProfile(p.value)
 		case "if":
 			err = va.skip("if", reasonUnsupported)
-		case "t", "d", "pg", "z", "o", "r", "bo", "co", "cs", "dl", "dn", "fn", "ki", "p", "vs":
+		case "t":
+			if va.a.p.o.VideoPresets == nil {
+				err = va.skip("t", reasonUnsupported)
+			} // else applied first (videoPresets)
+		case "d", "pg", "z", "o", "r", "bo", "co", "cs", "dl", "dn", "fn", "ki", "p", "vs":
 			err = va.skip(optionName(p.key, p.value), reasonUnsupported)
 		default:
 			err = va.skip(optionName(p.key, p.value), reasonUnknown)
@@ -902,6 +994,9 @@ func (va *videoApplier) finish() error {
 
 // container sets the container from f_ (else the extension, else MP4).
 func (va *videoApplier) container() error {
+	if va.format == "" && va.presetContainer {
+		return nil // the preset's container (or stream) wins over the extension
+	}
 	name, key := va.format, "f"
 	if name == "" {
 		name, key = va.extension, "extension"
