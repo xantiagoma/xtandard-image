@@ -143,8 +143,12 @@ services:
       XI_FORMATS_EPS_ENABLED: ${XI_ACC_EPS:-false}
       XI_FORMATS_EPS_TIMEOUT: 3s
       # WP-122/123: video transformations, on when the image has FFmpeg
-      # (full, gpl; scripts/acceptance.sh sets XI_ACC_VIDEO), signed only.
+      # (full, gpl; scripts/acceptance.sh sets XI_ACC_VIDEO), signed, or
+      # unsigned as one video preset makes them (WP-132).
       XI_VIDEO_TRANSFORM_ENABLED: ${XI_ACC_VIDEO:-false}
+      XI_VIDEO_TRANSFORM_UNSIGNED_POLICY: restricted
+      XI_VIDEO_TRANSFORM_PRESETS: "accclip=w:160/vd:1/f:webm"
+      XI_VIDEO_TRANSFORM_UNSIGNED_ALLOWED_OPTIONS: start
       # WP-121b: spool every video source and output over 64 KiB (the
       # fixtures are larger), in the default /tmp/xtandard-video on the
       # read-only image's tmpfs.

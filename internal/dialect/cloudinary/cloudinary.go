@@ -89,6 +89,11 @@ type Options struct {
 	// syntax). nil records the names in Delivery.Presets unexpanded. In
 	// only-presets mode every parameter other than t_ is 403.
 	Presets *preset.Store
+	// VideoPresets expands t_<name> in video transformations
+	// (XI_VIDEO_TRANSFORM_PRESETS, imgproxy /video option syntax): the
+	// presets are the starting point of the VideoOp and the URL's own
+	// parameters override them. nil leaves t_ unsupported on videos.
+	VideoPresets *preset.Store
 	// ArgumentsSeparator is the separator Presets are written with (the
 	// imgproxy dialect's); "" means ":".
 	ArgumentsSeparator string
@@ -117,6 +122,7 @@ func New(opts *Options) (*Parser, error) {
 		ArgumentsSeparator: o.ArgumentsSeparator,
 		Strict:             o.Strict,
 		Presets:            o.Presets,
+		VideoPresets:       o.VideoPresets,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("cloudinary: %w", err)
@@ -179,7 +185,11 @@ func (p *Parser) ParsePath(path, mountSource string) (*dialect.Result, error) {
 		}
 		r := b.Request()
 		r.Source = src
-		return &dialect.Result{Request: r, SourceString: src.Raw, Signature: sigResult}, nil
+		res := &dialect.Result{Request: r, SourceString: src.Raw, Signature: sigResult}
+		if !sigResult.Signed() && a.videoReferenced {
+			res.PresetVideo = p.presetVideo(u, mount)
+		}
+		return res, nil
 	}
 	if err := a.presetPrologue(); err != nil {
 		return nil, err

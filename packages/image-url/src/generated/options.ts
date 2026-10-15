@@ -1681,6 +1681,15 @@ export interface ImgproxyVideoArgs {
   "overlay_window":
     | [start: number | null, end?: number | null];
   /**
+   * Expand video presets (XI_VIDEO_TRANSFORM_PRESETS) in place. URL: `preset`, `pr`; arguments names…; default —.
+   *
+   * URL names: `preset`, `pr`.
+   * milestone M5 (WP-132); scope request.
+   * @example ["web"]
+   */
+  "preset":
+    | [name: string, ...names: Array<string>];
+  /**
    * Video quality, mapped onto the codec's CRF scale. URL: `quality`, `q`; arguments 1..100; default 0.
    *
    * URL names: `quality`, `q`.
@@ -1916,6 +1925,7 @@ export const imgproxyVideoAliases = {
   "mu": "mute",
   "of": "overlay_fade",
   "ow": "overlay_window",
+  "pr": "preset",
   "q": "quality",
   "rot": "rotate",
   "rs": "resize",
@@ -1971,6 +1981,7 @@ export const imgproxyVideoOptionNames = [
   "mute",
   "overlay_fade",
   "overlay_window",
+  "preset",
   "quality",
   "raw",
   "resize",

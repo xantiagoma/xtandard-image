@@ -121,6 +121,11 @@ type Options struct {
 	// Presets expands n-<name> named transformations. nil records the
 	// names in Delivery.Presets unexpanded.
 	Presets *preset.Store
+	// VideoPresets expands n-<name> in video transformations
+	// (XI_VIDEO_TRANSFORM_PRESETS, imgproxy /video option syntax): the
+	// presets are the starting point of the VideoOp and the URL's own
+	// parameters override them. nil leaves n- unsupported on videos.
+	VideoPresets *preset.Store
 	// Strict rejects unknown and unsupported parameters with 400
 	// (XI_DIALECTS_STRICT).
 	Strict bool
@@ -153,7 +158,7 @@ func New(opts *Options) (*Parser, error) {
 	if ep != "" {
 		ep = "/" + ep
 	}
-	ip, err := imgproxy.New(&imgproxy.Options{Strict: o.Strict, Now: o.Now, Presets: o.Presets})
+	ip, err := imgproxy.New(&imgproxy.Options{Strict: o.Strict, Now: o.Now, Presets: o.Presets, VideoPresets: o.VideoPresets})
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +253,7 @@ func (p *Parser) parse(path, rawQuery, mountSource string) (*dialect.Result, err
 	}
 	if ikVideo || (!thumb && !gif && isVideoFile(key) && !imageOutput(tr)) {
 		// A video transformation (video.go).
-		if err := ps.video(tr, ikVideo); err != nil {
+		if err := ps.video(tr, ikVideo, false); err != nil {
 			return nil, err
 		}
 		r := b.Request()
@@ -256,7 +261,11 @@ func (p *Parser) parse(path, rawQuery, mountSource string) (*dialect.Result, err
 			return nil, err
 		}
 		r.Source = transform.SourceSpec{Raw: key, Encoding: transform.SourceRelative}
-		return &dialect.Result{Request: r, SourceString: key, Signature: sigResult}, nil
+		res := &dialect.Result{Request: r, SourceString: key, Signature: sigResult}
+		if !sigResult.Signed() && ps.videoReferenced {
+			res.PresetVideo = p.presetVideo(tr, mountSource)
+		}
+		return res, nil
 	}
 	if tr != "" {
 		if err := ps.transformations(tr); err != nil {
@@ -279,6 +288,17 @@ func (p *Parser) parse(path, rawQuery, mountSource string) (*dialect.Result, err
 	}
 	r.Source = transform.SourceSpec{Raw: key, Encoding: transform.SourceRelative}
 	return &dialect.Result{Request: r, SourceString: key, Signature: sigResult}, nil
+}
+
+// presetVideo applies the transformation string's video presets alone:
+// the VideoOp the restricted unsigned video policy compares the URL's
+// with, or nil.
+func (p *Parser) presetVideo(tr, mountSource string) *transform.VideoOp {
+	ps := &parseState{p: p, b: p.opt.NewBuilder(Name), mountSource: mountSource}
+	if err := ps.video(tr, false, true); err != nil {
+		return nil
+	}
+	return ps.b.Request().Video
 }
 
 // stripEndpoint removes Options.EndpointPath from path.

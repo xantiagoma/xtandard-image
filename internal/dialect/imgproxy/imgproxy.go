@@ -100,6 +100,12 @@ type Options struct {
 	// "default" preset first and enforces only-presets mode. New validates
 	// every preset. nil records preset names in Delivery.Presets unexpanded.
 	Presets *preset.Store
+	// VideoPresets expands preset (pr) references in /video URLs
+	// (XI_VIDEO_TRANSFORM_PRESETS, the /video option table) and applies its
+	// "default" preset first. New validates every one. nil records the
+	// names in Delivery.Presets unexpanded. In only-presets mode (Presets)
+	// a /video URL may hold video preset references only.
+	VideoPresets *preset.Store
 }
 
 // Parser is the imgproxy dialect. It is safe for concurrent use.
@@ -143,6 +149,9 @@ func New(opts *Options) (*Parser, error) {
 	}
 	p := &Parser{o: o, sep: sep, verifier: v}
 	if err := p.validatePresets(); err != nil {
+		return nil, err
+	}
+	if err := p.validateVideoPresets(); err != nil {
 		return nil, err
 	}
 	return p, nil
@@ -208,7 +217,11 @@ func (p *Parser) parsePath(path string, kind parseKind) (*dialect.Result, error)
 		st.r.Source.Password.Clear()
 		return nil, err
 	}
-	return &dialect.Result{Request: st.r, SourceString: st.r.Source.Raw, Signature: sigResult}, nil
+	res := &dialect.Result{Request: st.r, SourceString: st.r.Source.Raw, Signature: sigResult}
+	if kind == parseVideo && !sigResult.Signed() {
+		res.PresetVideo = p.presetVideo(rest, st.video.referenced)
+	}
+	return res, nil
 }
 
 // redenormalizePath undoes normalisation applied by some browsers and

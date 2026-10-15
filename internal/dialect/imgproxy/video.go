@@ -43,6 +43,15 @@ type videoState struct {
 	overlaySet bool
 	// timecode is the timecode overlay (timecode); nil is none.
 	timecode *transform.VideoOverlay
+
+	// Video presets (videopresets.go). presetDepth counts the presets
+	// being expanded; referenced reports a preset named by the URL (not
+	// the default one); presetsOnly skips every URL option but preset
+	// references, and the extension (the restricted unsigned policy
+	// compares the two parses).
+	presetDepth int
+	referenced  bool
+	presetsOnly bool
 }
 
 // ParseVideo parses an imgproxy-style video transformation
@@ -73,13 +82,15 @@ func newVideoState(p *Parser) *state {
 	return st
 }
 
-// parseVideo consumes the options and the source of a /video URL: no
-// presets, no chained pipelines, and the extension is a container.
+// parseVideo consumes the options and the source of a /video URL: video
+// presets (the default one first; only presets in only-presets mode), no
+// chained pipelines, and the extension is a container.
 func (st *state) parseVideo(rest string) error {
-	if st.p.o.Presets.Only() {
-		return onlyPresetsError()
+	rest, err := st.videoPresetPrologue(rest)
+	if err != nil {
+		return err
 	}
-	rest, err := st.parseOptions(rest)
+	rest, err = st.parseOptions(rest)
 	if err != nil {
 		return err
 	}
@@ -87,7 +98,7 @@ func (st *state) parseVideo(rest string) error {
 	if err != nil {
 		return err
 	}
-	if ext != "" {
+	if ext != "" && !st.video.presetsOnly {
 		if err := st.videoContainer("extension", ext); err != nil {
 			return err
 		}
@@ -100,7 +111,14 @@ func (st *state) parseVideo(rest string) error {
 //nolint:gocyclo // one flat switch over the option table is the clearest form
 func (st *state) applyVideo(name string, args []string) error {
 	op, vs := st.r.Video, st.video
+	if st.skipInPresetsOnly(name) {
+		return nil
+	}
 	switch name {
+	// Video presets (videopresets.go).
+	case "preset", "pr":
+		return st.applyVideoPresets(args)
+
 	// Time.
 	case "start", "vs":
 		return oneSeconds("start", args, &op.Start)
@@ -322,6 +340,9 @@ func (st *state) applyVideo(name string, args []string) error {
 		"hashsum", "hs",
 		"bypass_cache", "bc",
 		"cache_tags", "ct":
+		if err := st.inPresetOption(name); err != nil {
+			return err
+		}
 		return st.apply(name, args)
 	default:
 		if st.p.o.Strict {

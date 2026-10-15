@@ -7,6 +7,7 @@ const (
 	msAudio   = "M5 (WP-123)"
 	msOverlay = "M5 (WP-124)"
 	msStream  = "M5 (WP-126)"
+	msPresets = "M5 (WP-132)"
 )
 
 // videoFormatNames are the containers of /video URLs, in videoContainers
@@ -235,6 +236,12 @@ func VideoOptions() []Option {
 				colorArg("color", "text colour (white)").opt(), unitArg("opacity", "opacity (1)").opt())},
 			Syntax: "format:position:x:y:size:color:opacity", Default: "none:sowe:0:0:0:ffffff:1",
 			Doc: "Draw the output's running time (FFmpeg drawtext with a fixed expansion).", Example: "hms:sowe:8:8:20",
+		}),
+		video(Option{
+			Name: "preset", Aliases: []string{"pr"}, Milestone: msPresets,
+			Forms:  []Form{{Rest: []Arg{{Name: "name", Type: TypeString, Pattern: `^.+$`, Doc: "video preset name"}}}},
+			Syntax: "names…", Default: "—",
+			Doc: "Expand video presets (XI_VIDEO_TRANSFORM_PRESETS) in place.", Example: "web",
 		}),
 	}
 	proc := ProcessingOptions()

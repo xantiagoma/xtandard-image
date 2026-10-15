@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"maps"
 	"math"
+	"slices"
 
 	"github.com/xantiagoma/xtandard-image/internal/config"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
@@ -33,7 +35,7 @@ func playgroundVideoTransform(cfg *config.Config, caps video.TranscodeCaps, prob
 		UnsignedPolicy: string(t.UnsignedPolicy), Codecs: caps.Names(), Containers: []string{},
 		Overlays: caps.Overlays, Timecode: caps.Timecode, AudioEffects: caps.AudioEffects,
 		MaxOutputDuration: t.MaxOutputDuration.Seconds(), MaxOutputPixels: int(t.MaxOutputPixels), MaxFPS: t.MaxFPS,
-		Probe: probe,
+		Probe: probe, Presets: slices.Sorted(maps.Keys(t.Presets)),
 	}
 	for _, c := range videoContainers {
 		op := transform.VideoOp{Container: c}

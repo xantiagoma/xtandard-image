@@ -2223,6 +2223,13 @@ export interface components {
                 number | null
             ];
             /**
+             * @description Expand video presets (XI_VIDEO_TRANSFORM_PRESETS) in place. URL: `preset`, `pr`; arguments names…; default —.
+             * @example [
+             *       "web"
+             *     ]
+             */
+            preset?: string[];
+            /**
              * @description Video quality, mapped onto the codec's CRF scale. URL: `quality`, `q`; arguments 1..100; default 0.
              * @example [
              *       70
@@ -3000,8 +3007,8 @@ export interface components {
             id: string;
             /** @description Info panel options ([name, value…]); the recipe opens the Info (source) tab. */
             info?: (string[] | null)[] | null;
-            /** @description Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output), video_transform (video transformations, XI_VIDEO_TRANSFORM_ENABLED), h264 and hevc (the gpl image's H.264 and HEVC encoders, video_transform.codecs). */
-            needs?: ("watermark" | "detection" | "video" | "video_transform" | "h264" | "hevc")[] | null;
+            /** @description Server features the recipe needs: watermark (a default watermark image), detection (the models), video (FFmpeg: video sources and mp4/webm output), video_transform (video transformations, XI_VIDEO_TRANSFORM_ENABLED), h264 and hevc (the gpl image's H.264 and HEVC encoders, video_transform.codecs), video_presets (the demo's video presets web and preview, video_transform.presets). */
+            needs?: ("watermark" | "detection" | "video" | "video_transform" | "h264" | "hevc" | "video_presets")[] | null;
             /** @description Builder entries per chained pipeline: [name, value…] (catalogue names; base64 arguments plain). */
             pipelines: ((string[] | null)[] | null)[] | null;
             /** @description Path and query written by hand ({src} is the source, {key} its key on the mount's source); the builder is bypassed. */
@@ -3175,15 +3182,17 @@ export interface components {
             mp4_video?: string;
             /** @description Image and text overlays (wm, wmu, wmt with overlay_window and overlay_fade). */
             overlays?: boolean;
+            /** @description Video preset names (XI_VIDEO_TRANSFORM_PRESETS; their options are not shown): pr:<name> in /video, preset=<name> in /q/video, t_<name> on Cloudinary videos, n-<name> on ImageKit videos. */
+            presets?: string[] | null;
             /** @description api/probe (a source) and api/probe/result (a result body) describe media files: container, duration, codecs, frame rate, sample rate and channels. */
             probe?: boolean;
             /** @description Timecode overlays (timecode, FFmpeg drawtext). */
             timecode?: boolean;
             /**
-             * @description XI_VIDEO_TRANSFORM_UNSIGNED_POLICY: deny refuses unsigned video URLs (403) whatever the mount's policy.
+             * @description XI_VIDEO_TRANSFORM_UNSIGNED_POLICY: deny refuses unsigned video URLs (403) whatever the mount's policy; restricted admits only what their video presets make of them.
              * @enum {string}
              */
-            unsigned_policy: "allow" | "deny";
+            unsigned_policy: "allow" | "restricted" | "deny";
         };
     };
     responses: {
@@ -4645,6 +4654,8 @@ export interface operations {
                 segment_duration?: string;
                 /** @description Draw the output's running time (FFmpeg drawtext with a fixed expansion). Arguments joined by , or : (format:position:x:y:size:color:opacity). */
                 timecode?: string;
+                /** @description Expand video presets (XI_VIDEO_TRANSFORM_PRESETS) in place. Arguments joined by , or : (names…). */
+                preset?: string;
                 /** @description A /video option path (rs:fill:640:360/vd:5). */
                 o?: string;
                 /** @description Signature over "/video" + the query (sign.XIMessage). */
