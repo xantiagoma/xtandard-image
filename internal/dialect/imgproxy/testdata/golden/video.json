@@ -279,6 +279,28 @@
     "signature": "unsigned",
     "source": "https://example.com/clip.mov"
   },
+  "bypass_cache": {
+    "endpoint": "video",
+    "path": "/unsafe/bc:1/plain/https://example.com/clip.mov",
+    "request": {
+      "Delivery": {
+        "BypassCache": true
+      },
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
   "cache_tags": {
     "endpoint": "video",
     "path": "/unsafe/ct:a:b/plain/https://example.com/clip.mov",
@@ -650,6 +672,88 @@
     "signature": "unsigned",
     "source": "https://example.com/clip.mov"
   },
+  "extension_flac": {
+    "endpoint": "video",
+    "path": "/unsafe/sr:48000/plain/https://example.com/clip.mov@flac",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "flac",
+        "Fit": "scale-down",
+        "SampleRate": 48000
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "extension_mp4": {
+    "endpoint": "video",
+    "path": "/unsafe/vd:2/plain/https://example.com/clip.mov@mp4",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Duration": 2000000000,
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "extension_ogg": {
+    "endpoint": "video",
+    "path": "/unsafe/ab:64k/plain/https://example.com/clip.mov@ogg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "AudioBitrate": 64000,
+        "Container": "ogg",
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "extension_opus": {
+    "endpoint": "video",
+    "path": "/unsafe/plain/https://example.com/clip.mov@opus",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "opus",
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
   "extension_unknown": {
     "endpoint": "video",
     "error": {
@@ -680,6 +784,27 @@
     "signature": "unsigned",
     "source": "https://example.com/clip.mov"
   },
+  "extension_wav": {
+    "endpoint": "video",
+    "path": "/unsafe/ach:1/plain/https://example.com/clip.mov@wav",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Channels": 1,
+        "Container": "wav",
+        "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
   "extension_webm": {
     "endpoint": "video",
     "path": "/unsafe/plain/https://example.com/clip.mov@webm",
@@ -695,6 +820,29 @@
       "Video": {
         "Container": "webm",
         "Fit": "scale-down"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/clip.mov"
+  },
+  "extension_webp_waveform": {
+    "endpoint": "video",
+    "path": "/unsafe/w:400/h:100/plain/https://example.com/clip.mov@webp",
+    "request": {
+      "Dialect": "imgproxy",
+      "Kind": "video",
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/clip.mov"
+      },
+      "Video": {
+        "Container": "webp",
+        "Fit": "scale-down",
+        "Height": 100,
+        "Waveform": {},
+        "Width": 400
       }
     },
     "signature": "unsigned",

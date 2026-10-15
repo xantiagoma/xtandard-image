@@ -59,6 +59,10 @@ function decodedKeyOn(src, name) {
 
 const enc = encodeURIComponent;
 
+// QUERY_VIDEO_KEYS: /video options whose /q/video key is native, written
+// by their alias (@xtandard/image-url does the same).
+const QUERY_VIDEO_KEYS = { crop: 'c', flip: 'fl' };
+
 // VIDEO_GRAMMARS build video transformations (/video, /q/video).
 export const VIDEO_GRAMMARS = ['imgproxy', 'query'];
 
@@ -101,7 +105,10 @@ export function build(m, state, index) {
       if (!video) return { mount: m.id, path: '/', query: [`url=${enc(src)}`, ...params('=', false)].join('&') };
       // /q/video: every /video option is a key with its arguments joined
       // by ","; base64 arguments (wmu, wmt) are encoded as in /video paths.
-      const keys = [...activeEntries(first, index, 'imgproxy')].map(([o, , v]) => `${enc(o.name)}=${enc(v.join(','))}`);
+      // crop and flip have native query spellings (w,h[,x,y] and h|v|hv),
+      // so the imgproxy arguments go under their aliases c and fl.
+      const keys = [...activeEntries(first, index, 'imgproxy')].map(([o, , v]) =>
+        `${enc(QUERY_VIDEO_KEYS[o.name] ?? o.name)}=${enc(v.join(','))}`);
       return { mount: m.id, path: '/video', query: [`url=${enc(src)}`, ...keys].join('&') };
     }
     case 'imgix': {

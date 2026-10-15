@@ -1364,6 +1364,50 @@
     "signature": "unsigned",
     "source": "https://example.com/a.jpg"
   },
+  "gain_map": {
+    "path": "/unsafe/gain_map:hdr/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Output": {
+        "GainMap": "hdr"
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
+  "gm_bad": {
+    "error": {
+      "field": "gain_map",
+      "kind": "invalid_url",
+      "public": "invalid gain_map: expected auto, hdr or sdr",
+      "status": 400
+    },
+    "path": "/unsafe/gm:on/plain/https://example.com/a.jpg"
+  },
+  "gm_sdr": {
+    "path": "/unsafe/gm:sdr/ph:1/plain/https://example.com/a.jpg",
+    "request": {
+      "Dialect": "imgproxy",
+      "Output": {
+        "GainMap": "sdr",
+        "PreserveHDR": true
+      },
+      "Pipelines": [
+        {}
+      ],
+      "Source": {
+        "Raw": "https://example.com/a.jpg"
+      }
+    },
+    "signature": "unsigned",
+    "source": "https://example.com/a.jpg"
+  },
   "gr_angle": {
     "path": "/unsafe/gr:0.8::45/plain/https://example.com/a.jpg",
     "request": {

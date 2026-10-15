@@ -4,11 +4,18 @@
 // "@xtandard/image-url/client" entry point.
 
 export {
+  buildImaginaryUrl,
   buildImgproxyInfoUrl,
+  buildImgproxyStreamUrl,
   buildImgproxyUrl,
   buildImgproxyVideoUrl,
+  buildQueryStreamUrl,
+  buildQueryUrl,
+  buildQueryVideoUrl,
   escapePlainSource,
+  type ImaginaryUrlRequest,
   imgproxy,
+  type ImgproxyStreamUrlRequest,
   type ImgproxyInfoUrlChain,
   type ImgproxyInfoUrlRequest,
   type ImgproxyUrlBuilder,
@@ -17,8 +24,27 @@ export {
   type ImgproxyUrlRequest,
   type ImgproxyVideoUrlChain,
   type ImgproxyVideoUrlRequest,
+  type QueryStreamUrlRequest,
+  type QueryUrlBuilder,
+  type QueryUrlChain,
+  type QueryUrlRequest,
+  type QueryVideoUrlChain,
+  type QueryVideoUrlRequest,
+  queryUrls,
   type SourceEncoding,
+  type StreamProtocol,
+  type VideoContainer,
 } from "./builder.ts";
+export {
+  escapeQueryValue,
+  type ImaginaryEndpoint,
+  type ImaginaryParams,
+  type ParamList,
+  type QueryImageParams,
+  type QueryUrlConfig,
+  type QueryValue,
+} from "./query.ts";
+export { type SourceScheme, sourceUrl, xiSource } from "./source.ts";
 export type { KeyMaterial } from "./bytes.ts";
 export { type EncryptionKey, encryptPdfPassword, encryptSource, MAX_PDF_PASSWORD_BYTES } from "./encrypt.ts";
 export {
