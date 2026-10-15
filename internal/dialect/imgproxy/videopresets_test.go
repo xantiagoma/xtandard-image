@@ -15,7 +15,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
 
-func videoPresetParser(t testing.TB, defs map[string]string, only bool) *imgproxy.Parser {
+func videoPresetParser(t *testing.T, defs map[string]string, only bool) *imgproxy.Parser {
 	t.Helper()
 	vp, err := preset.New(preset.Options{Definitions: defs})
 	if err != nil {

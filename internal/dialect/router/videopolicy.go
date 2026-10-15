@@ -185,7 +185,7 @@ func (vp *videoPolicy) checkOp(got, presets *transform.VideoOp) string {
 		}
 	}
 	if !reflect.DeepEqual(g, p) {
-		return "video." + firstDiff(g, p) + " not from a preset"
+		return "video." + firstDiff(&g, &p) + " not from a preset"
 	}
 	return ""
 }
@@ -210,8 +210,8 @@ func (vp *videoPolicy) checkContainer(g, p *transform.VideoOp) string {
 }
 
 // firstDiff names the first field of two VideoOps that differs.
-func firstDiff(a, b transform.VideoOp) string {
-	va, vb := reflect.ValueOf(a), reflect.ValueOf(b)
+func firstDiff(a, b *transform.VideoOp) string {
+	va, vb := reflect.ValueOf(a).Elem(), reflect.ValueOf(b).Elem()
 	for i := range va.NumField() {
 		if !reflect.DeepEqual(va.Field(i).Interface(), vb.Field(i).Interface()) {
 			return va.Type().Field(i).Name
