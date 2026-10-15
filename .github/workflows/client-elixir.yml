@@ -1,0 +1,81 @@
+name: client-elixir
+
+# The Elixir client (clients/elixir, ADR 0013): mix format and Credo
+# (strict), Dialyzer, ExUnit (conformance fixture, builder fixture, shared
+# vectors, unit tests, doctests and client tests against a stand-in server)
+# on the oldest and newest supported Elixir/OTP, the licence check, ExDoc and
+# the Hex package build. Runs when the client, the shared spec and fixtures,
+# or this workflow change.
+#
+# DISABLED while Actions minutes are exhausted (docs/HANDOFF.md): the jobs
+# run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
+# Locally: `task -d clients/elixir ci`.
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - 'clients/elixir/**'
+      - 'clients/spec/**'
+      - 'testdata/urls/**'
+      - 'testdata/security/**'
+      - '.github/workflows/client-elixir.yml'
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-elixir-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: clients/elixir
+
+jobs:
+  test:
+    name: elixir ${{ matrix.elixir }} / otp ${{ matrix.otp }}
+    if: vars.XI_CLIENTS_WORKFLOW == 'enabled'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - elixir: '1.17.3' # oldest supported
+            otp: '27.3.4.19'
+          - elixir: '1.20.4' # = clients/elixir/mise.toml
+            otp: '29.1.2'
+            latest: true
+    env:
+      MIX_ENV: test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ matrix.elixir }}
+          otp-version: ${{ matrix.otp }}
+      - uses: actions/cache@v6
+        with:
+          path: |
+            clients/elixir/deps
+            clients/elixir/_build
+            clients/elixir/priv/plts
+          key: client-elixir-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('clients/elixir/mix.lock') }}
+      - run: mix deps.get --check-locked
+      # The formatter's output can change between Elixir versions: check it on the pinned one.
+      - if: matrix.latest
+        run: mix format --check-formatted
+      - run: mix compile --warnings-as-errors
+      - run: mix credo --strict
+      - run: mix dialyzer --format github
+      - run: mix test --warnings-as-errors
+      - run: mix run --no-start --no-compile scripts/check_licenses.exs
+      - if: matrix.latest
+        env:
+          MIX_ENV: dev
+        run: |
+          mix deps.get --check-locked
+          mix docs --warnings-as-errors
+          mkdir -p dist
+          mix hex.build --output dist/xtandard_image.tar
