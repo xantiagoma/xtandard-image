@@ -287,3 +287,7 @@ owner has authorised merging PRs without review.
   Remaining M5: MPEG-TS segments, overlays on streams, chunked audio for long streams, video preset
   whitelist for unsigned URLs, Cloudinary `e_volume` levels, `raw:1` still fetches into memory, S3 cache
   hits read whole. Nothing in flight.
+- **In flight (2026-10-15):** WP-131 HLS extras: MPEG-TS, overlays on streams, chunked audio
+  (`m5/wp-131-hls-extras`); WP-132 unsigned video presets / restricted policy (`m5/wp-132-video-presets`);
+  WP-133 TypeScript client audit + video/info/query builders (`m5/wp-133-ts-client`). After 131/132 merge,
+  add their new options to the TS client (WP-133 lists what is needed).
