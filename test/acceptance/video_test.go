@@ -16,8 +16,9 @@ import (
 // against the image under test. scripts/acceptance.sh enables them
 // (XI_ACC_VIDEO=true) on an image with FFmpeg (full, gpl); there signed
 // /video and /q/video URLs transcode, cut ranges and draw waveforms, and
-// unsigned ones are 403 (XI_VIDEO_TRANSFORM_UNSIGNED_POLICY=deny, the
-// default). On slim they are off, and every video URL answers 404.
+// unsigned ones are served only as the video preset accclip makes them
+// (XI_VIDEO_TRANSFORM_UNSIGNED_POLICY=restricted, WP-132), 403 otherwise.
+// On slim they are off, and every video URL answers 404.
 func TestVideoTransform(t *testing.T) {
 	t.Parallel()
 	app := base(t, "XI_ACC_APP")
@@ -92,6 +93,19 @@ func TestVideoTransform(t *testing.T) {
 			strings.Contains(metrics, `xi_video_spool_spills_total{kind="input"} 0`+"\n") {
 			t.Error("no video source was spooled")
 		}
+	})
+
+	t.Run("unsigned preset", func(t *testing.T) {
+		t.Parallel()
+		r := get(t, app+"/video/unsafe/pr:accclip"+clip, nil)
+		r.wantStatus(t, http.StatusOK)
+		if ct := r.Header.Get("Content-Type"); ct != "video/webm" {
+			t.Errorf("Content-Type %q, want video/webm", ct)
+		}
+		get(t, app+"/video/unsafe/pr:accclip/vs:0.5"+clip, nil).wantStatus(t, http.StatusOK)
+		get(t, app+"/q/video?url=local:///video/clip-vp9.webm&preset=accclip", nil).wantStatus(t, http.StatusOK)
+		get(t, app+"/video/unsafe/pr:accclip/w:320"+clip, nil).wantStatus(t, http.StatusForbidden)
+		get(t, app+"/video/unsafe/pr:accclip/raw:1"+clip, nil).wantStatus(t, http.StatusForbidden)
 	})
 
 	t.Run("refused", func(t *testing.T) {

@@ -72,6 +72,13 @@ type Result struct {
 	SourceString string
 	// Signature is the outcome of signature verification.
 	Signature sign.Result
+	// PresetVideo is, for an unsigned video transformation that names at
+	// least one video preset, the VideoOp the same URL produces with every
+	// option but its preset references left out (the default preset
+	// included; no format or extension). The restricted unsigned video
+	// policy (XI_VIDEO_TRANSFORM_UNSIGNED_POLICY) compares it with
+	// Request.Video. nil otherwise, which that policy refuses.
+	PresetVideo *transform.VideoOp
 }
 
 // Sentinel causes wrapped by dialect errors; match them with errors.Is.

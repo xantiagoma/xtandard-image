@@ -51,6 +51,7 @@ The xtandard-image column is the state as of 2026-09-28: **done (M1)** / **done 
 | Video transformations (`/video` and `/q/video`: trim, resize/crop/pad with gravity, fps, rotate/flip, fades, CRF or bit-rate cap, keyframe interval, MP4/WebM, codec choice; `Range`; signed only by default) | done (M5, `full`/`gpl` image, `XI_VIDEO_TRANSFORM_ENABLED`) | no | — | no | no | no |
 | Audio (mute; M4A, MP3, Opus/Ogg, FLAC, WAV outputs from video or audio sources; sample rate, channels, volume, EBU R128 loudness normalisation, fades) and waveform pictures (PNG/WebP) | done (M5, `full`/`gpl` image) | no | — | no | no | no |
 | HLS and DASH (VOD): ABR ladders, CMAF segments transcoded on request with prefetch, signed manifests with ticketed child URLs (imgproxy `/video …@m3u8`, Cloudinary `sp_`, ImageKit `ik-master`) | done (M5, `full`/`gpl` image) | no | — | no | no | no |
+| Video presets (`XI_VIDEO_TRANSFORM_PRESETS`: `pr:` on `/video`, `preset=`, Cloudinary `t_`, ImageKit `n-`) and public video without signing every URL (`XI_VIDEO_TRANSFORM_UNSIGNED_POLICY=restricted`: unsigned URLs only as their presets make them; streams and raw only from presets) | done (M5, WP-132) | no | no | no | no | no |
 | **Processing** | | | | | | |
 | Resize, crop, gravity, smart crop, focus point (fractions or source pixels) | done (M1, M2) | yes | yes | yes | yes | yes |
 | Extend, padding, trim | done (M1) | yes | yes | — | — | — |

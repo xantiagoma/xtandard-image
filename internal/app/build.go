@@ -115,6 +115,9 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		}
 		ipOpts.Presets = store
 	}
+	if ipOpts.VideoPresets, err = videoPresets(cfg); err != nil {
+		return nil, nil, err
+	}
 	ip, err := imgproxy.New(&ipOpts)
 	if err != nil {
 		return nil, nil, fmt.Errorf("imgproxy dialect: %w", err)
@@ -125,6 +128,7 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		ArgumentsSeparator:   cfg.Dialects.Imgproxy.ArgumentsSeparator,
 		Strict:               cfg.Dialects.Strict,
 		AllowSecurityOptions: cfg.Security.AllowSecurityOptions,
+		VideoPresets:         ipOpts.VideoPresets,
 	}
 	if ring != nil || len(trusted) > 0 {
 		if qOpts.ImaginaryVerifier, err = sign.NewImaginaryVerifier(sign.ImaginaryOptions{Keys: ring, Trusted: trusted, Required: required}); err != nil {
@@ -184,6 +188,12 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 			DPRs:      cfg.Security.AllowedDPRs,
 			Qualities: cfg.Security.AllowedQualities,
 		},
+		Video: router.VideoPolicy{
+			Policy:         router.Policy(cfg.Video.Transform.UnsignedPolicy),
+			AllowedOptions: cfg.Video.Transform.UnsignedAllowedOptions,
+			Formats:        cfg.Video.Transform.UnsignedFormats,
+			MaxDuration:    cfg.Video.Transform.UnsignedMaxDuration,
+		},
 	}
 	addMounts := func(name string, m *config.Mount) {
 		if !m.Enabled {
@@ -211,7 +221,7 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 	if err := addImgix(cfg, required, dialects, opts); err != nil {
 		return nil, nil, err
 	}
-	if err := addImageKit(cfg, ipOpts.Presets, required, dialects, opts); err != nil {
+	if err := addImageKit(cfg, ipOpts.Presets, ipOpts.VideoPresets, required, dialects, opts); err != nil {
 		return nil, nil, err
 	}
 	addMounts(cloudflare.Name, &cfg.Dialects.Cloudflare)
@@ -227,7 +237,7 @@ func buildRouter(cfg *config.Config) (rt *router.Router, warnings []string, err 
 		return nil, nil, err
 	}
 	addMounts(awssih.Name, &cfg.Dialects.AWSSIH.Mount)
-	if err := addCloudinary(cfg, ipOpts.Presets, required, dialects, opts); err != nil {
+	if err := addCloudinary(cfg, ipOpts.Presets, ipOpts.VideoPresets, required, dialects, opts); err != nil {
 		return nil, nil, err
 	}
 	if err := addSimpleDialects(cfg, qOpts.XIVerifier, dialects, opts); err != nil {
@@ -361,7 +371,7 @@ func addImgix(cfg *config.Config, required bool, dialects map[string]dialect.Dia
 // verifying ik-s with that mount's private keys (XI_DIALECTS_IMAGEKIT_KEYS,
 // raw strings) and stripping XI_DIALECTS_IMAGEKIT_ENDPOINT_PATH, and its
 // router mount. Mount i > 0 is keyed "imagekit[i]".
-func addImageKit(cfg *config.Config, presets *preset.Store, required bool, dialects map[string]dialect.Dialect, opts *router.Options) error {
+func addImageKit(cfg *config.Config, presets, videoPresets *preset.Store, required bool, dialects map[string]dialect.Dialect, opts *router.Options) error {
 	m := &cfg.Dialects.Imagekit
 	if !m.Enabled {
 		return nil
@@ -371,7 +381,7 @@ func addImageKit(cfg *config.Config, presets *preset.Store, required bool, diale
 		if i > 0 {
 			key = fmt.Sprintf("%s[%d]", imagekit.Name, i)
 		}
-		o := imagekit.Options{Strict: cfg.Dialects.Strict, Presets: presets, EndpointPath: m.EndpointPath}
+		o := imagekit.Options{Strict: cfg.Dialects.Strict, Presets: presets, VideoPresets: videoPresets, EndpointPath: m.EndpointPath}
 		if len(mo.Keys) > 0 {
 			keys := make([]sign.Key, 0, len(mo.Keys))
 			for _, k := range mo.Keys {
@@ -585,7 +595,7 @@ func buildAWSSIH(cfg *config.Config) (*awssih.Parser, []string, error) {
 // addCloudinary registers one Cloudinary parser per enabled mount: each
 // mount's keys are its api secrets (dialects.cloudinary.keys), so mounts
 // cannot share a parser. The dialect key is the mount label.
-func addCloudinary(cfg *config.Config, presets *preset.Store, required bool, dialects map[string]dialect.Dialect, opts *router.Options) error {
+func addCloudinary(cfg *config.Config, presets, videoPresets *preset.Store, required bool, dialects map[string]dialect.Dialect, opts *router.Options) error {
 	c := &cfg.Dialects.Cloudinary
 	if !c.Enabled {
 		return nil
@@ -599,6 +609,7 @@ func addCloudinary(cfg *config.Config, presets *preset.Store, required bool, dia
 			Clouds:             c.Clouds,
 			Strict:             cfg.Dialects.Strict,
 			Presets:            presets,
+			VideoPresets:       videoPresets,
 			ArgumentsSeparator: cfg.Dialects.Imgproxy.ArgumentsSeparator,
 		}
 		if len(mo.Keys) > 0 {

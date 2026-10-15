@@ -12138,6 +12138,25 @@
       "query_url": "/q/video?url=https://example.com/clip.mov&f=png"
     },
     {
+      "name": "video/preset_unexpanded",
+      "endpoint": "video",
+      "encoding": "plain",
+      "source": "https://example.com/clip.mov",
+      "pipelines": [
+        [
+          {
+            "pr": [
+              "thumb"
+            ]
+          }
+        ]
+      ],
+      "query": true,
+      "url": "/video/unsafe/pr:thumb/plain/https://example.com/clip.mov",
+      "url_short": "/video/unsafe/pr:thumb/plain/https://example.com/clip.mov",
+      "query_url": "/q/video?url=https://example.com/clip.mov&pr=thumb"
+    },
+    {
       "name": "video/quality",
       "endpoint": "video",
       "encoding": "plain",

@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -20,6 +21,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/query"
 	"github.com/xantiagoma/xtandard-image/internal/playground"
+	"github.com/xantiagoma/xtandard-image/internal/preset"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
 
@@ -98,7 +100,7 @@ func TestRecipesParse(t *testing.T) {
 				t.Errorf("category %q", r.Category)
 			}
 			for _, n := range r.Needs {
-				if !slices.Contains([]string{playground.NeedWatermark, playground.NeedDetection, playground.NeedVideo, playground.NeedVideoTransform, playground.NeedH264, playground.NeedHEVC}, n) {
+				if !slices.Contains([]string{playground.NeedWatermark, playground.NeedDetection, playground.NeedVideo, playground.NeedVideoTransform, playground.NeedH264, playground.NeedHEVC, playground.NeedVideoPresets}, n) {
 					t.Errorf("unknown need %q", n)
 				}
 			}
@@ -218,11 +220,12 @@ func TestRecipesParse(t *testing.T) {
 
 func recipeParsers(t *testing.T) map[string]dialect.Dialect {
 	t.Helper()
-	ip, err := imgproxy.New(&imgproxy.Options{Strict: true})
+	vp := demoVideoPresets(t)
+	ip, err := imgproxy.New(&imgproxy.Options{Strict: true, VideoPresets: vp})
 	if err != nil {
 		t.Fatal(err)
 	}
-	q, err := query.New(&query.Options{Strict: true})
+	q, err := query.New(&query.Options{Strict: true, VideoPresets: vp})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -230,11 +233,11 @@ func recipeParsers(t *testing.T) map[string]dialect.Dialect {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cl, err := cloudinary.New(&cloudinary.Options{Strict: true})
+	cl, err := cloudinary.New(&cloudinary.Options{Strict: true, VideoPresets: vp})
 	if err != nil {
 		t.Fatal(err)
 	}
-	ik, err := imagekit.New(&imagekit.Options{Strict: true})
+	ik, err := imagekit.New(&imagekit.Options{Strict: true, VideoPresets: vp})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,6 +246,35 @@ func recipeParsers(t *testing.T) map[string]dialect.Dialect {
 		t.Fatal(err)
 	}
 	return map[string]dialect.Dialect{"imgproxy": ip, "query": q, "imgix": ix, "cloudinary": cl, "imagekit": ik, "cloudflare_media": cfm}
+}
+
+// demoVideoPresets are the video presets of compose.playground.yml
+// (XI_VIDEO_TRANSFORM_PRESETS), which the preset recipes use (WP-132).
+func demoVideoPresets(t *testing.T) *preset.Store {
+	t.Helper()
+	b, err := os.ReadFile("../../compose.playground.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`(?m)^\s*XI_VIDEO_TRANSFORM_PRESETS: "([^"]*)"`).FindSubmatch(b)
+	if m == nil {
+		t.Fatal("compose.playground.yml sets no XI_VIDEO_TRANSFORM_PRESETS")
+	}
+	defs := map[string]string{}
+	for item := range strings.SplitSeq(string(m[1]), ",") {
+		name, value, _ := strings.Cut(item, "=")
+		defs[name] = value
+	}
+	for _, name := range []string{"web", "preview"} {
+		if defs[name] == "" {
+			t.Fatalf("compose.playground.yml has no video preset %q (the recipes' video_presets need)", name)
+		}
+	}
+	s, err := preset.New(preset.Options{Definitions: defs})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
 }
 
 // checkRef fails unless s names a repository fixture (on the local source)

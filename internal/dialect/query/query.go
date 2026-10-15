@@ -40,6 +40,7 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/dialect"
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
+	"github.com/xantiagoma/xtandard-image/internal/preset"
 	"github.com/xantiagoma/xtandard-image/internal/security/crypt"
 	"github.com/xantiagoma/xtandard-image/internal/security/sign"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
@@ -94,6 +95,10 @@ type Options struct {
 	AllowSecurityOptions bool
 	// Now is the clock for expires; nil means time.Now.
 	Now func() time.Time
+	// VideoPresets expands preset= in /video requests
+	// (XI_VIDEO_TRANSFORM_PRESETS, imgproxy /video option syntax with
+	// ArgumentsSeparator); nil records the names unexpanded.
+	VideoPresets *preset.Store
 }
 
 // Parser is the query dialect. It is safe for concurrent use.
@@ -116,6 +121,7 @@ func New(opts *Options) (*Parser, error) {
 		Strict:               o.Strict,
 		AllowSecurityOptions: o.AllowSecurityOptions,
 		Now:                  o.Now,
+		VideoPresets:         o.VideoPresets,
 	})
 	if err != nil {
 		return nil, err
@@ -182,7 +188,11 @@ func (p *Parser) ParseURL(path, rawQuery string) (*dialect.Result, error) {
 	}
 	// Options may have set the source's hashsum or password: keep them.
 	r.Source.Raw, r.Source.Encoding = src, transform.SourcePlain
-	return &dialect.Result{Request: r, SourceString: src, Signature: sigResult}, nil
+	res := &dialect.Result{Request: r, SourceString: src, Signature: sigResult}
+	if decoded == videoEndpoint && !sigResult.Signed() && b.ReferencedVideoPresets() {
+		res.PresetVideo = p.presetVideo(params)
+	}
+	return res, nil
 }
 
 // param is one decoded query parameter.
