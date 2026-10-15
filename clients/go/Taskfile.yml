@@ -1,0 +1,57 @@
+# https://taskfile.dev — the Go client's tasks (ADR 0013). The root Taskfile
+# runs `ci` here from `task clients:test`; run them in this directory directly
+# too (`task ci`). Commands go through mise (this directory's mise.toml pins
+# Go and golangci-lint); XI_MISE=env runs them with the toolchain on PATH
+# instead. CI (client-go.yml) runs the same commands directly.
+version: "3"
+
+vars:
+  RUN: '{{.XI_MISE | default "mise exec --"}}'
+
+tasks:
+  install:
+    desc: Install the pinned toolchain (the module has no dependencies to download)
+    cmds:
+      - mise install
+      - "{{.RUN}} go mod download"
+
+  fmt:
+    desc: Format with gofumpt and goimports (golangci-lint formatters)
+    cmds: ["{{.RUN}} golangci-lint fmt"]
+
+  lint:
+    desc: "golangci-lint fmt --diff and run (staticcheck, govet, …), go vet, go fix -diff, go mod tidy -diff"
+    cmds:
+      - "{{.RUN}} golangci-lint fmt --diff"
+      - "{{.RUN}} golangci-lint run ./..."
+      - "{{.RUN}} go vet ./..."
+      - |
+        out=$({{.RUN}} go fix -diff ./...)
+        if [ -n "$out" ]; then echo "$out"; echo "go fix -diff is not empty" >&2; exit 1; fi
+      - "{{.RUN}} go mod tidy -diff"
+
+  test:
+    desc: "go test -race: conformance fixture, builder fixture, vectors, unit, stand-in server and Example tests (XI_SMOKE_URL=http://127.0.0.1:8080 adds the smoke test)"
+    cmds: ["{{.RUN}} go test -race -shuffle=on -count=1 {{.CLI_ARGS}} ./..."]
+
+  smoke:
+    desc: The smoke test against a running server (default the playground demo)
+    env:
+      XI_SMOKE_URL: '{{.XI_SMOKE_URL | default "http://127.0.0.1:8080"}}'
+    cmds: ["{{.RUN}} go test -count=1 -run Smoke -v ./client"]
+
+  licenses:
+    desc: Runtime dependency licences against the ADR 0006 allowlist
+    cmds: ["{{.RUN}} sh scripts/check-licenses.sh"]
+
+  build:
+    desc: Build every package
+    cmds: ["{{.RUN}} go build ./..."]
+
+  ci:
+    desc: Everything CI runs for the Go client
+    cmds:
+      - task: lint
+      - task: test
+      - task: licenses
+      - task: build
