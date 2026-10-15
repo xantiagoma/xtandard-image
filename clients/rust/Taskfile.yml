@@ -1,0 +1,61 @@
+# https://taskfile.dev — the Rust client's tasks (ADR 0013). The root
+# Taskfile runs `ci` here from `task clients:test` (or `task -d clients/rust ci`);
+# run them in this directory directly too (`task ci`). Commands go through
+# mise (this directory's mise.toml pins Rust and cargo-deny); CI sets
+# XI_CARGO=cargo after installing the toolchain itself.
+version: "3"
+
+vars:
+  CARGO: '{{.XI_CARGO | default "mise exec -- cargo"}}'
+
+tasks:
+  install:
+    desc: Install the pinned toolchain and fetch the locked dependencies
+    cmds:
+      - mise install
+      - "{{.CARGO}} fetch --locked"
+
+  fmt:
+    desc: rustfmt check (src/generated is #[rustfmt::skip])
+    cmds: ["{{.CARGO}} fmt --check"]
+
+  lint:
+    desc: "clippy -D warnings (pedantic) for every feature set: core only, serde, async, blocking, all"
+    cmds:
+      - "{{.CARGO}} clippy --locked --all-targets --no-default-features -- -D warnings"
+      - "{{.CARGO}} clippy --locked --all-targets --no-default-features --features serde -- -D warnings"
+      - "{{.CARGO}} clippy --locked --all-targets --no-default-features --features async -- -D warnings"
+      - "{{.CARGO}} clippy --locked --all-targets --no-default-features --features blocking -- -D warnings"
+      - "{{.CARGO}} clippy --locked --all-targets --all-features -- -D warnings"
+
+  test:
+    desc: "cargo test: conformance fixture, builder fixture, vectors, unit, doc and stand-in HTTP tests of both clients (XI_SMOKE_URL=http://127.0.0.1:8080 adds the smoke test)"
+    cmds:
+      - "{{.CARGO}} test --locked --all-features {{.CLI_ARGS}}"
+      - "{{.CARGO}} test --locked --no-default-features {{.CLI_ARGS}}"
+
+  doc:
+    desc: rustdoc with warnings as errors
+    env:
+      RUSTDOCFLAGS: -D warnings
+    cmds: ["{{.CARGO}} doc --locked --all-features --no-deps"]
+
+  licenses:
+    desc: Licences (ADR 0006 allowlist), advisories, bans and sources of the runtime closure (deny.toml)
+    cmds: ["{{.CARGO}} deny --locked check"]
+
+  package:
+    desc: "The crate's file list and a publish dry run (builds the packaged crate; publishes nothing)"
+    cmds:
+      - "{{.CARGO}} package --locked --list --allow-dirty"
+      - "{{.CARGO}} publish --locked --dry-run --allow-dirty"
+
+  ci:
+    desc: Everything CI runs for the Rust client
+    cmds:
+      - task: fmt
+      - task: lint
+      - task: test
+      - task: doc
+      - task: licenses
+      - task: package
