@@ -54,7 +54,8 @@ const str = (s: string) => JSON.stringify(s);
 
 function doc(text: string, indent: string): string {
   const t = text.replaceAll("\\", "\\\\").replaceAll('"""', '\\"\\"\\"').trim();
-  return `${indent}"""${t}"""`;
+  const lines = t.split("\n").map((l, i) => (i === 0 || l === "" ? l : indent + l));
+  return `${indent}"""${lines.join("\n")}${lines.length > 1 ? `\n${indent}` : ""}"""`;
 }
 
 function union(parts: string[]): string {
@@ -401,6 +402,7 @@ function emitResponses(spec: Spec): string {
   const names = Object.keys(spec.response_schemas).sort();
   for (const name of names) {
     const s = spec.response_schemas[name]!;
+    out.push("");
     out.push("");
     out.push(`class ${name}(TypedDict, total=False):`);
     out.push(doc(s.description ?? name, "    "));

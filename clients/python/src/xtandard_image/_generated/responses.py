@@ -15,6 +15,7 @@ else:
     from typing_extensions import Required
 
 
+
 class ErrorBody(TypedDict, total=False):
     """ErrorBody"""
 
@@ -25,34 +26,37 @@ class ErrorBody(TypedDict, total=False):
     request_id: str
     """Request ID, also in the logs."""
 
+
 class ErrorResponse(TypedDict, total=False):
     """JSON error body, sent when Accept lists application/json (text/plain otherwise). Status per kind (docs/ARCHITECTURE.md §12; XI_COMPAT_IMGPROXY_STATUS=true answers 400 and forbidden 403 with 404, like imgproxy):
 
-| kind | status | message |
-|---|---|---|
-| unknown | 500 | internal server error |
-| invalid_url | 400 | invalid url |
-| unauthorized | 403 | invalid signature |
-| forbidden | 403 | forbidden |
-| expired | 404 | url expired |
-| not_found | 404 | source image not found |
-| source_too_large | 422 | source image too large |
-| limit_exceeded | 422 | image exceeds processing limits |
-| unsupported | 422 | unsupported image format |
-| corrupt | 422 | image cannot be decoded |
-| hash_mismatch | 422 | source hash mismatch |
-| not_acceptable | 406 | no acceptable image format |
-| upstream_error | 502 | upstream error |
-| upstream_timeout | 504 | upstream timeout |
-| overloaded | 429 | too many requests |
-| unavailable | 503 | service unavailable |
-| timeout | 504 | processing timeout |
-| canceled | 499 | request canceled |
-| internal | 500 | internal server error |
+    | kind | status | message |
+    |---|---|---|
+    | unknown | 500 | internal server error |
+    | invalid_url | 400 | invalid url |
+    | unauthorized | 403 | invalid signature |
+    | forbidden | 403 | forbidden |
+    | expired | 404 | url expired |
+    | not_found | 404 | source image not found |
+    | source_too_large | 422 | source image too large |
+    | limit_exceeded | 422 | image exceeds processing limits |
+    | unsupported | 422 | unsupported image format |
+    | corrupt | 422 | image cannot be decoded |
+    | hash_mismatch | 422 | source hash mismatch |
+    | not_acceptable | 406 | no acceptable image format |
+    | upstream_error | 502 | upstream error |
+    | upstream_timeout | 504 | upstream timeout |
+    | overloaded | 429 | too many requests |
+    | unavailable | 503 | service unavailable |
+    | timeout | 504 | processing timeout |
+    | canceled | 499 | request canceled |
+    | internal | 500 | internal server error |
 
-499 (canceled) is logged, never written."""
+    499 (canceled) is logged, never written.
+    """
 
     error: Required[ErrorBody]
+
 
 class InfoClass(TypedDict, total=False):
     """InfoClass"""
@@ -63,6 +67,7 @@ class InfoClass(TypedDict, total=False):
     """Class probability, 0-1."""
     name: Required[str]
     """Class name (ImageNet-1k: tabby cat, golden retriever, pizza, ...)."""
+
 
 class InfoContainer(TypedDict, total=False):
     """InfoContainer"""
@@ -76,6 +81,7 @@ class InfoContainer(TypedDict, total=False):
     mime_type: Required[str]
     """Media type of the container, e.g. image/openraster."""
 
+
 class InfoCrop(TypedDict, total=False):
     """InfoCrop"""
 
@@ -83,6 +89,7 @@ class InfoCrop(TypedDict, total=False):
     left: Required[float]
     top: Required[float]
     width: Required[float]
+
 
 class InfoDominant(TypedDict, total=False):
     """InfoDominant"""
@@ -93,6 +100,7 @@ class InfoDominant(TypedDict, total=False):
     light_vibrant: InfoRGB
     muted: InfoRGB
     vibrant: InfoRGB
+
 
 class InfoObject(TypedDict, total=False):
     """InfoObject"""
@@ -114,12 +122,14 @@ class InfoObject(TypedDict, total=False):
     width: Required[float]
     """Box width, as a fraction of the image width."""
 
+
 class InfoRGB(TypedDict, total=False):
     """InfoRGB"""
 
     B: Required[int]
     G: Required[int]
     R: Required[int]
+
 
 class InfoRGBA(TypedDict, total=False):
     """InfoRGBA"""
@@ -128,6 +138,7 @@ class InfoRGBA(TypedDict, total=False):
     B: Required[int]
     G: Required[int]
     R: Required[int]
+
 
 class InfoResponse(TypedDict, total=False):
     """imgproxy-compatible /info body (docs/URL-DIALECTS.md §3.3). Each section is present exactly when its info option is on; a requested exif, iptc or xmp section is {} when the source has none."""
@@ -192,6 +203,7 @@ class InfoResponse(TypedDict, total=False):
     """Width of one page or frame in pixels, EXIF orientation applied (info option dimensions)."""
     xmp: dict[str, dict[str, Any]]
     """XMP properties grouped by namespace prefix; {} when the source has none (info option xmp)."""
+
 
 class InfoVideoStream(TypedDict, total=False):
     """InfoVideoStream"""
