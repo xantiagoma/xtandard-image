@@ -266,6 +266,8 @@ img.url("s3://photos/cat.jpg", {"rs": ("fill", 1200, 630), "g": "sm"}, extension
 
 **PHP** is [`clients/php`](clients/php/README.md) (`xtandard/image` on Packagist after the first release): the same builders, signing and encryption, PHPStan-typed option shapes and fluent methods, and a client on any PSR-18 HTTP client.
 
+**Go**: [`clients/go`](clients/go/README.md) (module `github.com/xantiagoma/xtandard-image/clients/go`, standard library only) has the same builders as params structs and fluent chains, typed option structs per catalogue, and a `net/http` client with `context.Context`, Range and HEAD.
+
 The other languages are planned (M6 in the [roadmap](docs/ROADMAP.md)).
 
 ## Playground
