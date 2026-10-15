@@ -82,11 +82,14 @@ echo "acceptance: EPS rendering (Ghostscript in the image): $XI_ACC_EPS"
 # Video transformations (WP-122/123): only an image with FFmpeg (the full and
 # gpl flavours, from the image label) starts with XI_VIDEO_TRANSFORM_ENABLED;
 # TestVideoTransform then transcodes, otherwise it checks the 404.
-case "$(docker image inspect -f '{{index .Config.Labels "dev.xtandard.flavor"}}' "$XI_IMAGE" 2>/dev/null)" in
+XI_ACC_FLAVOR="$(docker image inspect -f '{{index .Config.Labels "dev.xtandard.flavor"}}' "$XI_IMAGE" 2>/dev/null || true)"
+case "$XI_ACC_FLAVOR" in
   full | gpl) XI_ACC_VIDEO=true ;;
   *) XI_ACC_VIDEO=false ;;
 esac
-export XI_ACC_VIDEO
+# The flavour decides what video can be written (MPEG-TS segments need the
+# gpl image's H.264 encoder, WP-131).
+export XI_ACC_VIDEO XI_ACC_FLAVOR
 echo "acceptance: video transformations (FFmpeg in the image): $XI_ACC_VIDEO"
 
 # 1. read-only posture ------------------------------------------------------------
