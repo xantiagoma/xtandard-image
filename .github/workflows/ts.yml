@@ -15,6 +15,12 @@ on:
     paths: &paths
       - 'packages/**'
       - 'clients/typescript/**'
+      # scripts/generate.ts prints options.ts with the clients' code model.
+      - 'clients/codegen/model.ts'
+      - 'clients/codegen/printer.ts'
+      - 'clients/codegen/doc.ts'
+      - 'clients/codegen/lang/typescript.ts'
+      - 'internal/playground/assets/snippets/doc.js'
       - 'package.json'
       - 'bun.lock'
       - 'tsconfig.base.json'
