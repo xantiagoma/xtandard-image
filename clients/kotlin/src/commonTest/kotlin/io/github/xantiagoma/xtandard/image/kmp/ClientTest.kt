@@ -9,6 +9,7 @@ import io.ktor.client.request.HttpResponseData
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import io.ktor.utils.io.readBuffer
 import kotlinx.coroutines.test.runTest
@@ -199,6 +200,78 @@ class ClientTest {
             val xi = client { respond("""{"version":"1.2.3"}""") }
             assertEquals("1.2.3", xi.playgroundMeta()["version"]!!.jsonPrimitive.content)
             assertEquals("http://admin.test/_playground/api/meta", requests[0].url.toString())
+        }
+
+    @Test
+    fun queryMethodOptIn() =
+        runTest {
+            val url = QueryUrlBuilder().url("s3://b/cat.jpg", queryParams { w(300) })
+            val query = url.substringAfter('?')
+
+            fun xiClient(
+                on: Boolean,
+                mount: String = "/q",
+            ) = XtandardClient(
+                "http://xi.test",
+                headers = mapOf("X-Team" to "media"),
+                httpClient =
+                    HttpClient(
+                        MockEngine { req ->
+                            requests += req
+                            respond("q")
+                        },
+                    ),
+                queryMethod = on,
+                queryMount = mount,
+            )
+
+            fun HttpRequestData.text() = (body as? TextContent)?.text
+
+            // Off by default: a query URL goes out as GET.
+            val off = xiClient(false)
+            off.media(url)
+            assertEquals(HttpMethod.Get, requests[0].method)
+            assertEquals("http://xi.test/q/?$query", requests[0].url.toString())
+            assertNull(requests[0].text())
+
+            // One call as QUERY.
+            val res = off.media(url, MediaRequest(MediaMethod.QUERY, accept = "image/webp"))
+            assertEquals("q", res.body.decodeToString())
+            val q = requests[1]
+            assertEquals(HttpMethod("QUERY"), q.method)
+            assertEquals("http://xi.test/q/", q.url.toString())
+            assertEquals("application/x-www-form-urlencoded", q.body.contentType.toString())
+            assertEquals(query, q.text())
+            assertEquals("image/webp", q.headers[HttpHeaders.Accept])
+            assertEquals("media", q.headers["X-Team"])
+
+            // queryMethod: URLs under the mount go out as QUERY unless the call names a method.
+            val on = xiClient(true)
+            on.media(url)
+            assertEquals(HttpMethod("QUERY") to query, requests[2].method to requests[2].text())
+            on.media(url, MediaRequest(MediaMethod.HEAD))
+            assertEquals(HttpMethod.Head, requests[3].method)
+            on.media(url, MediaRequest(MediaMethod.GET))
+            assertEquals(HttpMethod.Get, requests[4].method)
+            on.mediaStream(url) { it.status }
+            assertEquals(HttpMethod("QUERY"), requests[5].method)
+            on.image("s3://b/cat.jpg")
+            assertEquals(HttpMethod.Get, requests[6].method)
+            on.healthz()
+            assertEquals(HttpMethod.Get, requests[7].method)
+
+            // A custom mount.
+            val mounted = xiClient(true, "/img/q/")
+            mounted.media("/img/q/watermark?url=s3://b/a.jpg&text=hi")
+            assertEquals("http://xi.test/img/q/watermark", requests[8].url.toString())
+            assertEquals("url=s3://b/a.jpg&text=hi", requests[8].text())
+            mounted.media(url)
+            assertEquals(HttpMethod.Get, requests[9].method)
+
+            // QUERY needs a URL with a query.
+            val e = assertFailsWith<UrlBuildException> { off.media("/q/", MediaRequest(MediaMethod.QUERY)) }
+            assertEquals(ErrorCode.INVALID_REQUEST, e.code)
+            assertEquals(10, requests.size)
         }
 
     @Test

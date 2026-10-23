@@ -217,6 +217,18 @@ class BuilderTest {
     }
 
     @Test
+    fun queryMethodRequestSplitsAtTheFirstQuestionMark() {
+        assertEquals(
+            QueryMethodRequest("QUERY", "https://img.example.com/q/", QueryMethodRequest.CONTENT_TYPE, "url=s3://b/a.jpg?x=1&w=3"),
+            queryMethodRequest("https://img.example.com/q/?url=s3://b/a.jpg?x=1&w=3"),
+        )
+        assertEquals("application/x-www-form-urlencoded", QueryMethodRequest.CONTENT_TYPE)
+        for (bad in listOf("/q/", "/q/?", "/q/?url=a#f")) {
+            assertEquals(ErrorCode.INVALID_REQUEST, assertFailsWith<UrlBuildException> { queryMethodRequest(bad) }.code, bad)
+        }
+    }
+
+    @Test
     fun splitSources() {
         val b = ImgproxyUrlBuilder(unsignedSignature = "unsafe", splitSource = 4)
         assertEquals("/unsafe/aHR0/cHM6/Ly9l/LmNv/bS9h/Lmpw/Zw.png", b.url("https://e.com/a.jpg", extension = "png"))

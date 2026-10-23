@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -308,6 +309,13 @@ class ConformanceTest {
       case "query.stream_url" -> query(cfg).streamUrl(source, stream(in));
       case "query.imaginary_url" ->
           query(cfg).imaginaryUrl(str(in, "endpoint"), source, imaginaryParams(in));
+      case "query.query_request" -> {
+        // input.build names the query op that builds the URL from the other inputs.
+        Map<String, Object> built = new LinkedHashMap<>(c);
+        built.put("op", str(in, "build"));
+        QueryMethodRequest q = Xtandard.queryMethodRequest(mapping(built));
+        yield q.method() + " " + q.url() + "\nContent-Type: " + q.contentType() + "\n\n" + q.body();
+      }
       case "sign" -> Signing.sign(str(in, "message"), signing(cfg));
       case "sign_xi_url" ->
           Signing.signXiUrl(

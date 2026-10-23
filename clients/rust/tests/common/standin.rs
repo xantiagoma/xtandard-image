@@ -60,6 +60,10 @@ pub fn start() -> Server {
             }
             return Reply::new(200, "video/webm", all);
         }
+        if path == "/q" || path.starts_with("/q/") {
+            // The query dialect answers GET and QUERY alike (RFC 10008).
+            return Reply::new(200, "image/webp", "q");
+        }
         if path == "/_admin/play/api/meta" {
             return Reply::json(200, &json!({"version": "test"}));
         }
