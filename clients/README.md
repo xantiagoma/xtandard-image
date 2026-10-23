@@ -27,7 +27,7 @@ Nothing is published yet. Every client is versioned in lockstep with the server'
 | `clients/spec/conformance.json` | About 150 cases: inputs to expected URL or value, or to an error code | inputs by hand; values by the TypeScript client (`task clients:fixtures`) | Go `TestConformanceFixture` (server parsers), every client's tests |
 | `testdata/urls/imgproxy-builder.json` | 400+ cases derived from the Go golden tables: `url` (names as given), `url_short` (short names), `query_url` | Go `TestBuilderFixture -update` + TypeScript (`task ts:fixtures`) | Go and every client |
 | `testdata/security/vectors.json` | imgproxy, `xi_sig`, `enc/` and PDF password vectors | by hand, from imgproxy's docs and examples | Go and every client |
-| `clients/codegen/` | The generator: `generate.ts` runs every `emitters/<lang>.ts` on `spec.json`; `lib.ts` has the shared shape rules | — | `task clients:check` |
+| `clients/codegen/` | The generator: `generate.ts` runs every `emitters/<lang>.ts` (a refiner) on `spec.json`; `build.ts` is the language-neutral model, `model.ts` the code model, `printer.ts` and `lang/<lang>.ts` the printers on the playground's Doc algebra (`doc.ts`); `lib.ts` has the shared shape rules | — | `task clients:check` (drift, `bun test clients/codegen/test`, typecheck) |
 
 ## Commands
 
@@ -35,7 +35,7 @@ Nothing is published yet. Every client is versioned in lockstep with the server'
 task clients:spec          # rewrite spec.json from the Go catalogues (after a server option change)
 task clients:generate      # regenerate every client's generated files (ONLY=python for one)
 task clients:fixtures      # fill conformance.json expect.value from TypeScript, then check every URL against the server
-task clients:check         # no drift: spec.json, generated files, codegen typecheck, LICENSE copies
+task clients:check         # no drift: spec.json, generated files, codegen tests and typecheck, LICENSE copies
 task clients:test          # `task ci` in every clients/*/ that has a Taskfile.yml
 task clients:python:test   # one client
 ```
@@ -51,16 +51,19 @@ Follow these steps in order. Python (`clients/python`) is the worked example. Co
    - a `README.md` with install instructions, examples and a coverage table like Python's;
    - a `mise.toml` pinning the toolchain (ADR 0013 §5; use the official language Docker image only if mise cannot install it, and never `xtandard-base:*`);
    - a `Taskfile.yml` whose `ci` task installs, lints, type-checks, tests, checks licences and builds. `task clients:test` finds it automatically.
-2. **Emitter.** Add `clients/codegen/emitters/<lang>.ts`, which exports `emitter: Emitter` (`spec.ts`):
+2. **Generator: refiner, printer, leaf tokens.** Generated files are never built by concatenating strings or template literals (WP-146): a language is a **refiner** that builds typed nodes, a **printer** that turns them into a layout document, and its **leaf tokens**.
 
-   ```ts
-   export const emitter: Emitter = { language: "<lang>", emit: (spec) => ({ "clients/<lang>/…/generated/options.x": "…" }) };
+   ```
+   spec.json ──build.ts──▶ neutral model ──emitters/<lang>.ts (refiner)──▶ nodes (model.ts)
+             ──lang/<lang>.ts (printer)──▶ Doc (doc.ts) ──layout──▶ text ──official formatter (optional)──▶ file
    ```
 
-   It must write only under `clients/<lang>/`. Use `lib.ts`:
-   - `shapes(option)` gives the argument-list shapes (fixed elements plus an optional repeated tail);
-   - `bareArgs(option)` gives the argument types that may stand alone (`q: 80`);
-   - `allArgs`, `nameTable`, `pascal`, `snake`.
+   - **Neutral model** (`build.ts`, shared, do not fork it): `catalogues(spec)` gives each catalogue's options with `names` (canonical, then aliases), `short`, `shapes` (argument lists: fixed elements plus an optional repeated tail, from `lib.ts`), `bare` (the argument types that may stand alone, `q: 80`), `args` and `tags` (milestone, scope, flags as doc phrases), plus the sorted `names` table and `byName`. Also `enums(spec)`, `imaginaryParams`, `queryKeyNames`, `nativeVideoKeys`, `defaultSegmentFormat` and `responseSchemas` (sorted, with sorted properties and `required`).
+   - **Refiner** (`clients/codegen/emitters/<lang>.ts`): exports `emitter: Emitter` (`spec.ts`), `{ language, emit(spec) }`, which returns `{path: text}` for files under `clients/<lang>/` only. It lowers the neutral model into the nodes of `model.ts`, built with `N`: files, comments (`N.doc`, `N.line`), imports, namespaces, type aliases, constants, enums and members, classes/structs/records/interfaces/traits/protocols/mixins (`N.type`), fields, functions and parameters, annotations; statements (`ret`, `stmt`, `let`, `if`, `switch`/`case`, `forEach`, `throw`); expressions (literals, `id`, `get`, `call`/`invoke`, `new`, `index`, `named`, `list`/`tuple`, `map`/`entry`, `binary`, `unary`, `lambda`, `spread`, `typeExpr`); type references (`tref` with type arguments and nullability, `tunion`, `tlit`, `ttuple`). Constructs only one language has are its own kinds, `N.ext("<lang>.<kind>", fields)`. Spacing between declarations is `N.blank()`; a collection, call or type-argument list takes `layout: "expanded"` to be one item per line (tables), else the layout breaks it only past the printer's width. Then `printer.print(file)` per file.
+   - **Printer** (`clients/codegen/lang/<lang>.ts`): a subclass of `Printer` (`printer.ts`) that maps nodes to a Doc with the algebra of `doc.ts` (`concat`, `group`, `indent`, `line`, `softline`, `hardline`, `ifBreak`, `join`, plus `lines`, `block`, `bracket`). The base prints expressions and types the C-like way and throws for declarations a language must define; override what your language writes differently, and print your `<lang>.*` kinds in `ext()`. It sets `unit` (indentation) and `width` (`Infinity` keeps every group flat, which is what the committed clients were written with). Never write `"\n"`: lines come from `hardline`, groups and `block`.
+   - **Leaf tokens** (in the same file): string escaping for the language's literals (quotes, backslashes, and its interpolation markers: `$` in Kotlin and Dart, `#{` in Ruby and Elixir, `\(` in Swift), number formatting (JavaScript's, the spec's rule), identifier casing and reserved words, comment and docstring escaping. These and the text of one comment line are the only strings a refiner or printer composes.
+   - **Official formatter** (optional): the printed text may go through the language's formatter when it is on `PATH` with the client's toolchain. Go pipes through `gofmt`; the others print the formatted shape directly. A formatter step must not change committed output without regenerating it.
+   - **Tests** in `clients/codegen/test/` (`bun test clients/codegen/test`, part of `task clients:check`): `<lang>.test.ts` for the leaf tokens (escaping, casing, keywords, numbers) and a narrow-width layout; `golden.test.ts` prints every emitter's files for the small spec of `fixture.ts` into `test/golden/<lang>/` (`XI_UPDATE_GOLDEN=1` rewrites them).
 
    Generate at least the per-catalogue name tables (name or alias to canonical, canonical to short). Where the language can express them, also generate:
    - the typed option values (one type per option);
@@ -68,7 +71,7 @@ Follow these steps in order. Python (`clients/python`) is the worked example. Co
    - the constants (formats, containers, stream manifests, segment formats, signature sizes, key sizes, separators, safe sets);
    - the response types (`InfoResponse`, `ErrorResponse`).
 
-   Mark generated files `DO NOT EDIT` and keep them out of formatters and linters that would fight the generator. `task clients:generate` writes them and `task clients:check` fails on drift. Never import the TypeScript package or read `openapi.json` directly.
+   Mark generated files `DO NOT EDIT` and keep them out of formatters and linters that would fight the generator. `task clients:generate` writes them and `task clients:check` fails on drift. Never import the TypeScript package or read `openapi.json` directly. `emitters/python.ts` with `lang/python.ts` is the smallest complete example.
 3. **Runtime.** Implement the API surface below by hand on the generated tables. Use the language's standard HMAC-SHA256, AES-CBC (or its most-used crypto library) and HTTP client (one that is idiomatic, and async where the ecosystem expects it).
 4. **Tests.** Run all three shared fixtures from the repository by relative path, plus unit tests and HTTP client tests against a stand-in server. Add a smoke test against a real server, skipped unless `XI_SMOKE_URL` is set; the playground demo at `http://127.0.0.1:8080` has unsigned URLs allowed, `xi://local/jpeg/baseline.jpg` and `xi://local/video/bbb-h264-aac.mp4`.
 5. **Licences.** Add a script that checks the runtime dependency closure against MIT, BSD, Apache-2.0 and ISC (ADR 0006). Document any exception with its reason, in the script and in the README.
