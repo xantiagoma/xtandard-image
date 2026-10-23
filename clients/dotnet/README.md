@@ -108,6 +108,18 @@ builder.Services.AddXtandardImage(o =>
 // Inject XtandardClient (a typed client), ImgproxyUrlBuilder or QueryUrlBuilder (singletons).
 ```
 
+### HTTP QUERY (opt-in)
+
+Query dialect URLs can go out with the HTTP QUERY method (RFC 10008): the URL's query, `xi_sig` included, becomes the request content (`application/x-www-form-urlencoded`), so long option chains or encrypted sources stay out of URLs. It is off by default, because many CDNs and proxies neither cache nor forward QUERY; the server accepts it unless `XI_SERVER_QUERY_METHOD=false`.
+
+```csharp
+QueryMethodRequest req = QueryMethodRequest.FromUrl(xi.QueryUrls.Url("s3://photos/cat.jpg", new() { { "w", 300 } })); // Method, Url, ContentType, Body
+using var one = await xi.MediaAsync(xi.QueryUrls.Url("s3://photos/cat.jpg"), new() { Method = QueryMethodRequest.HttpMethod }, ct);
+using var all = new XtandardClient(new XtandardClientOptions { BaseUrl = "https://img.example.com", QueryMethod = true }); // URLs under QueryMount, when no Method is given
+```
+
+A URL without a query (or with a fragment) throws `UrlBuildException` with `invalid_request`.
+
 Non-2xx responses throw an `XtandardHttpException` subclass chosen by status:
 
 - `BadRequestException` (400)
@@ -133,6 +145,7 @@ Each carries `Status`, `Kind`, `Message` and `RequestId` from the server's JSON 
 | Password-protected PDFs (`pdp`) | `pdfPassword:` / `WithPdfPassword()`, `Encryption.EncryptPdfPassword()` |
 | Sources: base64, `plain/`, `enc/`, split; `xi://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://` | `SourceEncoding`, `SplitSource`, `Sources.XiSource()`, `Sources.SourceUrl()` |
 | Query dialect `/q/`, `/q/video`, imaginary; `xi_sig` | `QueryUrlBuilder` (`QueryParams`, `QueryKeys`, `ImaginaryEndpoints`), `Signing.SignXiUrl()` |
+| HTTP QUERY on the query dialect (opt-in) | `QueryMethodRequest.FromUrl()`, `XtandardClientOptions.QueryMethod`, `MediaRequest.Method = QueryMethodRequest.HttpMethod` |
 | `/healthz`, `/readyz`, playground `api/meta` | `HealthzAsync()`, `ReadyzAsync()`, `PlaygroundMetaAsync()` |
 
 Not covered, on purpose (as in the TypeScript and Python clients):

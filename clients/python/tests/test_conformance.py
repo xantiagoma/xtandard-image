@@ -25,6 +25,7 @@ from xtandard_image import (
     encrypt_source,
     escape_plain_source,
     escape_query_value,
+    query_method_request,
     range_header,
     sign,
     sign_xi_url,
@@ -134,6 +135,7 @@ def run_mapping(case: dict[str, Any]) -> str:
         "query.imaginary_url": lambda: _query(cfg).imaginary_url(
             inp["endpoint"], inp["source"], [tuple(p) for p in inp.get("params", [])]
         ),
+        "query.query_request": lambda: _query_request(case),
         "sign": lambda: sign(inp["message"], _required(_signing(cfg))),
         "sign_xi_url": lambda: sign_xi_url(inp["url"], _required(_signing(cfg)), mount=inp.get("mount", "")),
         "encrypt_source": lambda: encrypt_source(inp["source"], _required(_encryption(cfg))),
@@ -145,6 +147,16 @@ def run_mapping(case: dict[str, Any]) -> str:
         "escape_query_value": lambda: escape_query_value(inp["value"]),
     }
     return ops[op]()
+
+
+def _query_request(case: dict[str, Any]) -> str:
+    # input.build names the query op that builds the URL from the other inputs.
+    return _format_query_request(run_mapping({**case, "op": case["input"]["build"]}))
+
+
+def _format_query_request(url: str) -> str:
+    q = query_method_request(url)
+    return f"{q.method} {q.url}\nContent-Type: {q.content_type}\n\n{q.body}"
 
 
 def _video_url(cfg: dict[str, Any], inp: dict[str, Any]) -> str:
@@ -166,6 +178,9 @@ def run_fluent(case: dict[str, Any]) -> str | None:
     inp: dict[str, Any] = case["input"]
     pipelines: list[list[list[Any]]] = inp.get("options", [])
     op: str = case["op"]
+    if op == "query.query_request":
+        url = run_fluent({**case, "op": inp["build"]})
+        return None if url is None else _format_query_request(url)
     chain: Any
     if op == "imgproxy.url":
         chain = _imgproxy(cfg).image(inp["source"])

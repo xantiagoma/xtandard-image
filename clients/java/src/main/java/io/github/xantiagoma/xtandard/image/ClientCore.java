@@ -23,19 +23,48 @@ final class ClientCore {
   final Map<String, String> headers;
   final Duration timeout;
   final String playgroundMeta;
+  final boolean queryMethod;
+  final String queryMount;
 
   ClientCore(
       HttpClient http,
       ImgproxyUrlBuilder urls,
       Map<String, String> headers,
       Duration timeout,
-      String playgroundMeta) {
+      String playgroundMeta,
+      boolean queryMethod,
+      String queryMount) {
     this.http = http;
     this.urls = urls;
     this.baseUrl = urls.baseUrl();
     this.headers = Map.copyOf(headers);
     this.timeout = timeout;
     this.playgroundMeta = playgroundMeta;
+    this.queryMethod = queryMethod;
+    this.queryMount = Signing.stripTrailingSlashes(queryMount);
+  }
+
+  /**
+   * The method a request is sent with: the given one, or for none {@code QUERY} when queryMethod is
+   * on and the URL is under the query mount, {@code GET} otherwise.
+   */
+  String method(String url, MediaRequest m) {
+    String method = m.method();
+    if (method != null) {
+      return method;
+    }
+    return queryMethod && underQueryMount(url) ? "QUERY" : "GET";
+  }
+
+  /** Whether an absolute URL's path is the query mount or under it. */
+  private boolean underQueryMount(String url) {
+    String path;
+    try {
+      path = URI.create(url).getRawPath();
+    } catch (IllegalArgumentException e) {
+      return false;
+    }
+    return path != null && (path.equals(queryMount) || path.startsWith(queryMount + "/"));
   }
 
   /** An absolute URL for a URL or a server path. */
@@ -47,14 +76,21 @@ final class ClientCore {
   }
 
   HttpRequest request(String url, MediaRequest m) {
+    String method = method(url, m);
+    @Nullable QueryMethodRequest q = method.equals("QUERY") ? QueryMethodRequest.from(url) : null;
+    String target = q == null ? url : q.url();
     HttpRequest.Builder b;
     try {
-      b = HttpRequest.newBuilder(URI.create(url));
+      b = HttpRequest.newBuilder(URI.create(target));
     } catch (IllegalArgumentException e) {
-      throw new TransportException("invalid request URL " + url, e);
+      throw new TransportException("invalid request URL " + target, e);
     }
     b.timeout(timeout);
-    b.method(m.method(), HttpRequest.BodyPublishers.noBody());
+    b.method(
+        method,
+        q == null
+            ? HttpRequest.BodyPublishers.noBody()
+            : HttpRequest.BodyPublishers.ofString(q.body(), StandardCharsets.UTF_8));
     Map<String, String> h = new LinkedHashMap<>();
     h.put("User-Agent", "xtandard-image-java");
     h.putAll(headers);
@@ -63,6 +99,9 @@ final class ClientCore {
     ByteRange r = m.range();
     if (r != null) {
       h.put("Range", r.header());
+    }
+    if (q != null) {
+      h.put("Content-Type", q.contentType());
     }
     h.forEach(b::setHeader);
     return b.build();

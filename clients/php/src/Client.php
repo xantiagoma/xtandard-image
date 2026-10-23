@@ -8,6 +8,7 @@ use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\StreamFactoryInterface;
 use Xtandard\Image\Exception\HttpException;
 use Xtandard\Image\Exception\TransportException;
 use Xtandard\Image\Exception\UrlBuildException;
@@ -29,6 +30,12 @@ use Xtandard\Image\Exception\UrlBuildException;
  *
  * Symfony's Psr18Client is both the client and the request factory: new Client($url, new Psr18Client()).
  *
+ * HTTP QUERY (RFC 10008) is opt-in: media($url, method: 'QUERY') sends one
+ * query dialect URL as a QUERY request (QueryMethodRequest), and
+ * queryMethod: true does so for every media() URL under $queryMount when no
+ * method is given. Off by default: the server needs XI_SERVER_QUERY_METHOD
+ * (on by default), and many CDNs and proxies neither cache nor forward QUERY.
+ *
  * @phpstan-import-type ProcessingOptions from OptionTypes
  * @phpstan-import-type InfoOptions from OptionTypes
  * @phpstan-import-type VideoOptions from OptionTypes
@@ -47,6 +54,10 @@ final readonly class Client
 
     private string $playgroundMeta;
 
+    private ?StreamFactoryInterface $streams;
+
+    private string $queryMount;
+
     /**
      * @param string $baseUrl server origin, plus the imgproxy mount prefix if any
      * @param ClientInterface $http any PSR-18 client (Guzzle, Symfony HttpClient, …)
@@ -58,6 +69,9 @@ final readonly class Client
      * @param array<string, string> $headers headers sent with every request
      * @param string|null $playgroundBaseUrl origin of the admin listener for playgroundMeta(); default $baseUrl
      * @param string $playgroundPath XI_PLAYGROUND_PATH
+     * @param bool $queryMethod send media() URLs under $queryMount with HTTP QUERY when no method is given (off by default)
+     * @param string $queryMount the query dialect's mount (XI_DIALECTS_QUERY_PREFIX), for $queryMethod
+     * @param StreamFactoryInterface|null $streamFactory a PSR-17 stream factory for QUERY content; default: $requestFactory or $http when it is one
      *
      * @throws \InvalidArgumentException when no request factory is given and $http is not one
      * @throws UrlBuildException for an unknown source encoding
@@ -76,12 +90,18 @@ final readonly class Client
         private array $headers = [],
         ?string $playgroundBaseUrl = null,
         string $playgroundPath = '/_playground/',
+        private bool $queryMethod = false,
+        string $queryMount = Constants::QUERY_MOUNT,
+        ?StreamFactoryInterface $streamFactory = null,
     ) {
         $factory = $requestFactory ?? ($http instanceof RequestFactoryInterface ? $http : null);
         if (null === $factory) {
             throw new \InvalidArgumentException('pass a PSR-17 RequestFactoryInterface: the PSR-18 client is not one');
         }
         $this->requests = $factory;
+        $this->streams = $streamFactory
+            ?? ($factory instanceof StreamFactoryInterface ? $factory : ($http instanceof StreamFactoryInterface ? $http : null));
+        $this->queryMount = rtrim($queryMount, '/');
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->urls = new ImgproxyUrlBuilder(
             baseUrl: $this->baseUrl,
@@ -176,15 +196,18 @@ final readonly class Client
      * GET (or HEAD) any URL or server path: an image or video URL, a query URL, a stream part.
      *
      * The body is whatever the PSR-18 client gives: read it with getBody().
+     * 'QUERY' sends a query dialect URL's query as the request content (RFC 10008);
+     * with no $method, the client's queryMethod picks QUERY for URLs under its
+     * queryMount and GET for the rest.
      *
-     * @param 'GET'|'HEAD' $method
+     * @param 'GET'|'HEAD'|'QUERY'|null $method
      * @param array<string, string> $headers
      *
      * @throws UrlBuildException|HttpException|TransportException
      */
     public function media(
         string $url,
-        string $method = 'GET',
+        ?string $method = null,
         ByteRange|ByteSuffix|string|null $range = null,
         string $accept = '*/*',
         array $headers = [],
@@ -194,8 +217,13 @@ final readonly class Client
         }
 
         $abs = $this->absolute($url);
+        if ('QUERY' === $method || (null === $method && $this->queryMethod && $this->underQueryMount($abs))) {
+            $q = QueryMethodRequest::fromUrl($abs);
 
-        return $this->checked($this->send($method, $abs, $accept, $headers), $abs);
+            return $this->checked($this->send($q->method, $q->url, $accept, [...$headers, 'Content-Type' => $q->contentType], $q->body), $abs);
+        }
+
+        return $this->checked($this->send($method ?? 'GET', $abs, $accept, $headers), $abs);
     }
 
     /**
@@ -313,6 +341,15 @@ final readonly class Client
         return $data;
     }
 
+    /** Whether an absolute URL's path is under the query dialect mount (for queryMethod). */
+    private function underQueryMount(string $url): bool
+    {
+        // Not parse_url(): it fails on imgproxy paths such as /info/<sig>/s:1/<source>.
+        $path = (string) preg_replace('~^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*~', '', explode('#', explode('?', $url, 2)[0], 2)[0]);
+
+        return $path === $this->queryMount || str_starts_with($path, $this->queryMount . '/');
+    }
+
     private function absolute(string $url): string
     {
         if (1 === preg_match('/^[a-zA-Z][a-zA-Z0-9+.-]*:/', $url)) {
@@ -327,11 +364,20 @@ final readonly class Client
      *
      * @throws TransportException
      */
-    private function send(string $method, string $url, string $accept, array $headers = []): ResponseInterface
+    private function send(string $method, string $url, string $accept, array $headers = [], ?string $body = null): ResponseInterface
     {
         $req = $this->requests->createRequest($method, $url);
         foreach ([...$this->headers, ...$headers, 'Accept' => $accept] as $name => $value) {
             $req = $req->withHeader($name, $value);
+        }
+        if (null !== $body) {
+            if (null !== $this->streams) {
+                $req = $req->withBody($this->streams->createStream($body));
+            } elseif ($req->getBody()->isWritable()) {
+                $req->getBody()->write($body);
+            } else {
+                throw new \LogicException("{$method} {$url}: pass a PSR-17 StreamFactoryInterface to send request content");
+            }
         }
         try {
             return $this->http->sendRequest($req);

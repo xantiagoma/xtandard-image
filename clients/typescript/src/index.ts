@@ -41,6 +41,9 @@ export {
   type ImaginaryParams,
   type ParamList,
   type QueryImageParams,
+  QUERY_CONTENT_TYPE,
+  type QueryMethodRequest,
+  queryMethodRequest,
   type QueryUrlConfig,
   type QueryValue,
 } from "./query.ts";

@@ -222,6 +222,8 @@ func checkConformance(t *testing.T, f *fixture, c *conformanceCase, cfg *conform
 			t.Fatalf("%s: %v", value, err)
 		}
 		checkConformanceResult(t, c, res, signed, value)
+	case "query.query_request":
+		checkQueryRequest(t, f, c, cfg, value)
 	case "sign":
 		if want := fixtureMAC(t, inputString(c, "message"), size); value != want {
 			t.Errorf("signature %s, server %s", value, want)
@@ -319,5 +321,63 @@ func checkConformanceResult(t *testing.T, c *conformanceCase, res *dialect.Resul
 	}
 	if (v.Stream.Format == transform.SegmentTS) != (inputString(c, "segment_format") == "ts") {
 		t.Errorf("%s: segment format %v", value, v.Stream.Format)
+	}
+}
+
+// checkQueryRequest checks a query.query_request value, an HTTP QUERY
+// request ("QUERY <url>\nContent-Type: …\n\n<content>", WP-147): the
+// server turns its form content into the query the GET URL would carry
+// (query.ContentQuery), which must parse like the URL built by
+// input.build, signature included; the same parameters as JSON content
+// must give the same query, so they carry the same xi_sig.
+func checkQueryRequest(t *testing.T, f *fixture, c *conformanceCase, cfg *conformanceConfig, value string) {
+	t.Helper()
+	head, content, ok := strings.Cut(value, "\n\n")
+	line, header, _ := strings.Cut(head, "\n")
+	target, isQuery := strings.CutPrefix(line, "QUERY ")
+	if !ok || !isQuery || header != "Content-Type: "+query.MediaTypeForm || strings.Contains(target, "?") {
+		t.Fatalf("%q is not a QUERY request with form content", value)
+	}
+	raw, err := query.ContentQuery(query.MediaTypeForm, []byte(content))
+	if err != nil {
+		t.Fatalf("%s: content: %v", value, err)
+	}
+	built := *c
+	built.Op = inputString(c, "build")
+	if !strings.HasPrefix(built.Op, "query.") || built.Op == c.Op {
+		t.Fatalf("input.build %q is not a query URL op", built.Op)
+	}
+	checkConformance(t, f, &built, cfg, target+"?"+raw)
+
+	var obj strings.Builder
+	seen := map[string]bool{}
+	obj.WriteByte('{')
+	for i, part := range strings.Split(raw, "&") {
+		k, v, _ := strings.Cut(part, "=")
+		k, errK := url.QueryUnescape(k)
+		v, errV := url.QueryUnescape(v)
+		if errK != nil || errV != nil {
+			t.Fatalf("%s: escaping", value)
+		}
+		if seen[k] {
+			return // a repeated key has no JSON object form
+		}
+		seen[k] = true
+		if i > 0 {
+			obj.WriteByte(',')
+		}
+		kb, _ := json.Marshal(k)
+		vb, _ := json.Marshal(v)
+		obj.Write(kb)
+		obj.WriteByte(':')
+		obj.Write(vb)
+	}
+	obj.WriteByte('}')
+	fromJSON, err := query.ContentQuery(query.MediaTypeJSON, []byte(obj.String()))
+	if err != nil {
+		t.Fatalf("%s: json content %s: %v", value, obj.String(), err)
+	}
+	if fromJSON != raw {
+		t.Errorf("json content gives %q, form %q", fromJSON, raw)
 	}
 }

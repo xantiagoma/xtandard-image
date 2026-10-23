@@ -70,6 +70,7 @@ defmodule XtandardImage.MixProject do
         "URL builders": [
           XtandardImage.Imgproxy,
           XtandardImage.Query,
+          XtandardImage.QueryMethodRequest,
           XtandardImage.Chain,
           XtandardImage.Processing,
           XtandardImage.Info,

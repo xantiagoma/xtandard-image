@@ -218,6 +218,12 @@ class ConformanceTest {
                 query(cfg).imaginaryUrl(str(input, "endpoint")!!, source, params(input, ImaginaryParams()))
             }
 
+            "query.query_request" -> {
+                // input.build names the query op that builds the URL from the other inputs.
+                val q = queryMethodRequest(mapping(c + ("op" to str(input, "build"))))
+                "${q.method} ${q.url}\nContent-Type: ${q.contentType}\n\n${q.body}"
+            }
+
             "sign" -> {
                 Signing.sign(str(input, "message")!!, signing(cfg)!!)
             }

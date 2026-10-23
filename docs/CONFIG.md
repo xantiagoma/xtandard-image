@@ -126,6 +126,9 @@ This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS`
 | `XI_SERVER_SHUTDOWN_TIMEOUT` | `30s` | Drain limit |
 | `XI_SERVER_READY_QUEUE_THRESHOLD` | `0` (off) | `/readyz` 503 when queue fill % ≥ value |
 | `XI_SERVER_CORS_ORIGINS` | `` | Origins browsers may read responses from (`*` for any): a request whose `Origin` is listed gets `Access-Control-Allow-Origin` (`*`, or the origin with `Vary: Origin`) and the range and validator headers exposed, so HLS and DASH players in another origin's page can load playlists and segments; a preflight (`OPTIONS` for `GET`/`HEAD`) is answered 204. Empty: no CORS headers |
+| `XI_SERVER_QUERY_METHOD` | `true` | Accept the HTTP `QUERY` method (RFC 10008) on the query dialect's endpoints (`/q/`, `/q/video`, `/q/<imaginary endpoint>`): the parameters travel in the request content (`application/x-www-form-urlencoded` or `application/json`) instead of the URL, with the same signing, unsigned policy, limits and result cache entry as the equivalent `GET` ([URL-DIALECTS §4.4](URL-DIALECTS.md#44-http-query)). `false`: `QUERY` is 405 everywhere, as before |
+| `XI_SERVER_QUERY_MAX_BODY_BYTES` | `64KiB` | Largest `QUERY` content; more is 413 |
+| `XI_SERVER_QUERY_LOCATION_MAX_LENGTH` | `2048` | Longest equivalent `GET` URL (path and query) a `QUERY` response carries as `Location`; longer, or a query with `pdf_password`, sends none. `0`: never. At most `8192` (the URL limit) |
 
 ### Security, signing, encryption
 

@@ -263,13 +263,22 @@ public sealed class ConformanceTests
     }
 
     /// <summary>The case through options collections.</summary>
-    private static string RunMapping(JsonElement c)
+    private static string RunMapping(JsonElement c) => RunMapping(c, c.GetProperty("op").GetString()!);
+
+    /// <summary>The case as op (query.query_request runs its input.build op first).</summary>
+    private static string RunMapping(JsonElement c, string op)
     {
         var cfg = c.Get("config");
         var input = c.GetProperty("input");
         var source = input.Str("source")!;
-        switch (c.GetProperty("op").GetString())
+        switch (op)
         {
+            case "query.query_request":
+                {
+                    var q = QueryMethodRequest.FromUrl(RunMapping(c, input.Str("build")!));
+                    return $"{q.Method} {q.Url}\nContent-Type: {q.ContentType}\n\n{q.Body}";
+                }
+
             case "imgproxy.url":
                 {
                     var pipelines = Pipelines<ProcessingOptions>(input);

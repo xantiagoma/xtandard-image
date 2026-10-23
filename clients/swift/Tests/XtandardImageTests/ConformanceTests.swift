@@ -107,12 +107,28 @@ private func encoding(_ input: JSONValue) throws(URLBuildError) -> SourceEncodin
 
 /// The case through the mapping form (``Options``, parameters, free functions), or the reason it is skipped.
 private func runMapping(_ f: Fixture, _ c: JSONValue) -> Run {
+  runMapping(f, c, op: c["op"]!.string)
+}
+
+/// The case as `op` (`query.query_request` runs its `input.build` op first).
+private func runMapping(_ f: Fixture, _ c: JSONValue, op: String) -> Run {
   let cfg = c["config"] ?? .object([:])
   let input = c["input"]!
   let source = input["source"]?.stringValue ?? ""
   let ext = input["extension"]?.stringValue
   let pdf = input["pdf_password"]?.stringValue
-  switch c["op"]!.string {
+  switch op {
+  case "query.query_request":
+    guard case .success(let built) = runMapping(f, c, op: input["build"]!.string) else {
+      return .skip("the build op is skipped")
+    }
+    return .success(
+      built.flatMap { url in
+        attempt { () throws(URLBuildError) -> String in
+          let q = try queryMethodRequest(url)
+          return "\(q.method) \(q.url)\nContent-Type: \(q.contentType)\n\n\(q.body)"
+        }
+      })
   case "imgproxy.url":
     return .success(
       attempt { () throws(URLBuildError) -> String in

@@ -32,3 +32,16 @@ func ExampleBuilder_ImaginaryURL() {
 	fmt.Println(url)
 	// Output: /q/resize?url=s3://photos/cat.jpg&width=300&height=200&xi_sig=3maa5jzKMQ2qhuNRWAxw3msmG88vFanE-OZ9YLxZlr0
 }
+
+func ExampleMethodRequest() {
+	q, _ := query.New(query.Config{BaseURL: "https://img.example.com"})
+	url, _ := q.URL("s3://photos/cat.jpg", query.Params{Params: []query.Param{query.P(xtandard.QueryKeyW, 300)}})
+	r, _ := query.MethodRequest(url)
+	fmt.Println(r.Method, r.URL)
+	fmt.Println("Content-Type:", r.ContentType)
+	fmt.Println(r.Body)
+	// Output:
+	// QUERY https://img.example.com/q/
+	// Content-Type: application/x-www-form-urlencoded
+	// url=s3://photos/cat.jpg&w=300
+}

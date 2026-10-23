@@ -97,6 +97,7 @@ Names follow each language's conventions. The table uses the TypeScript and Pyth
 | encryption | `encryptSource`, `encryptPdfPassword`, `EncryptionKey { key, iv? }` | `encrypt_source`, `encrypt_pdf_password`, `EncryptionKey` | random IV unless one is fixed |
 | sources | `xiSource`, `sourceUrl`, `escapePlainSource`, `escapeQueryValue` | `xi_source`, `source_url`, `escape_plain_source`, `escape_query_value` | |
 | HTTP client | `createClient(…)`: `healthz`, `readyz`, `info`, `infoUrl`, `image`, `video`, `stream`, `media`, `playgroundMeta`, `rangeHeader` | `Client` and `AsyncClient`: `healthz`, `readyz`, `info`, `info_at`, `image`, `video`, `stream`, `media`, `playground_meta`; `range_header` | Range and HEAD on media; non-2xx raises a typed error with `status`, `kind`, `message`, `request_id` |
+| HTTP QUERY (opt-in) | `queryMethodRequest(url)` → `{ method: "QUERY", url, contentType, body }`; `createClient({ queryMethod: true, queryMount })`, `media(url, { method: "QUERY" })` | `query_method_request(url)` → `QueryMethodRequest(method, url, content_type, body)`; `Client(query_method=True, query_mount=…)`, `media(url, method="QUERY")` | Off by default (WP-147, [URL-DIALECTS §4.4](../docs/URL-DIALECTS.md#44-http-query)). The request is the built query dialect URL split at the first `?`: the URL without its query, `Content-Type: application/x-www-form-urlencoded`, and the query as written (`xi_sig` included) as the content. A URL without a query (or with a fragment) is an `invalid_request` error. URL builders are unchanged |
 | errors | `TypeError`/`RangeError`/`Error`; `XtandardError` (HTTP) | `URLBuildError(code)`; `HTTPError` subclasses by status; `TransportError` | builder errors carry the conformance error code |
 
 Naming conventions:
@@ -159,6 +160,7 @@ Naming conventions:
 | `query.video_url` | `source`, `options` (several pipelines are written in order: keys may repeat), `extension` | URL |
 | `query.stream_url` | as `imgproxy.stream_url` without `source_encoding` | URL |
 | `query.imaginary_url` | `endpoint`, `source`, `params` | URL |
+| `query.query_request` | `build` (`query.url`, `query.video_url`, `query.stream_url` or `query.imaginary_url`) plus that op's inputs; the case's `config` applies | the URL that `build` produces, as an HTTP QUERY request: `"QUERY " + url without its query + "\nContent-Type: application/x-www-form-urlencoded\n\n" + query` |
 | `sign` | `message` | signature |
 | `sign_xi_url` | `url`, `mount` | URL |
 | `encrypt_source` | `source` | token |

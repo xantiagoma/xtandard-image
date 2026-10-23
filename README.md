@@ -23,6 +23,7 @@ The xtandard-image column is the state as of 2026-09-28: **done (M1)** / **done 
 | **URLs and security** | | | | | | |
 | imgproxy URL dialect (every option parsed; detection and video options need the `full` image) | done (M1, M2, M3) | yes | yes | no | no | no |
 | Query-string dialect (`?url=…&w=…`, imaginary endpoints) | done (M1) | no | no | no | yes | partial (own parameters) |
+| HTTP `QUERY` (RFC 10008) on the query dialect: the parameters in the request body (form or JSON), same signature, limits and cache entry as the GET URL ([URL-DIALECTS §4.4](docs/URL-DIALECTS.md#44-http-query)); opt-in in the clients, since many CDNs do not cache or forward QUERY | done (M6) | no | no | no | no | no |
 | Presets, only-presets mode | done (M1) | yes | yes | — | — | — |
 | Signed URLs (imgproxy HMAC, `xi_sig`, imaginary `sign`) | done (M1) | yes | yes | yes | yes | no |
 | Encrypted source URLs (`enc/`) | done (M1) | no | paid | no | no | no |

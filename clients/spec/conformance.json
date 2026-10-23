@@ -2912,6 +2912,253 @@
       "expect": {
         "value": "%C3%BC%F0%9F%98%80"
       }
+    },
+    {
+      "name": "query_method_basic",
+      "op": "query.query_request",
+      "input": {
+        "build": "query.url",
+        "source": "https://example.com/images/cat.jpg",
+        "params": [
+          [
+            "w",
+            300
+          ],
+          [
+            "f",
+            "webp"
+          ]
+        ],
+        "options": [
+          [
+            [
+              "bl",
+              [
+                2
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "QUERY /q/\nContent-Type: application/x-www-form-urlencoded\n\nurl=https://example.com/images/cat.jpg&w=300&f=webp&o=bl:2"
+      }
+    },
+    {
+      "name": "query_method_signed",
+      "op": "query.query_request",
+      "config": {
+        "signing": true,
+        "base_url": "https://img.example.com"
+      },
+      "input": {
+        "build": "query.url",
+        "source": "https://example.com/images/cat.jpg",
+        "params": [
+          [
+            "w",
+            300
+          ],
+          [
+            "h",
+            200
+          ],
+          [
+            "fit",
+            "cover"
+          ]
+        ]
+      },
+      "expect": {
+        "value": "QUERY https://img.example.com/q/\nContent-Type: application/x-www-form-urlencoded\n\nurl=https://example.com/images/cat.jpg&w=300&h=200&fit=cover&xi_sig=YsIapOJ6BVEwgRLHrRMXUEXDsjbGFjJJH9LjlY8MHKU"
+      }
+    },
+    {
+      "name": "query_method_custom_mount",
+      "op": "query.query_request",
+      "config": {
+        "mount": "/img/q/",
+        "signing": true
+      },
+      "input": {
+        "build": "query.url",
+        "source": "https://example.com/images/cat.jpg",
+        "params": [
+          [
+            "q",
+            70
+          ]
+        ]
+      },
+      "expect": {
+        "value": "QUERY /img/q/\nContent-Type: application/x-www-form-urlencoded\n\nurl=https://example.com/images/cat.jpg&q=70&xi_sig=wZTwn5de1OCAgz6XOQE5OZMlA4L_S3FjxCYvIgF9g-s"
+      }
+    },
+    {
+      "name": "query_method_escaped_source",
+      "op": "query.query_request",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "build": "query.url",
+        "source": "https://example.com/a b&c=d+e.jpg?x=1#y",
+        "params": [
+          [
+            "w",
+            100
+          ]
+        ],
+        "options": [
+          [
+            [
+              "rs",
+              [
+                "fill",
+                300,
+                200
+              ]
+            ]
+          ],
+          [
+            [
+              "bl",
+              [
+                2
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "value": "QUERY /q/\nContent-Type: application/x-www-form-urlencoded\n\nurl=https://example.com/a%20b%26c%3Dd%2Be.jpg%3Fx%3D1%23y&w=100&o=rs:fill:300:200/-/bl:2&xi_sig=vfwOKmZuMjsLu4C3L44BftcXZ0lZ-l0hbyWq9emo5cA"
+      }
+    },
+    {
+      "name": "query_method_pdf_password",
+      "op": "query.query_request",
+      "config": {
+        "signing": true,
+        "encryption": true
+      },
+      "input": {
+        "build": "query.url",
+        "source": "s3://docs/report.pdf",
+        "params": [
+          [
+            "w",
+            600
+          ]
+        ],
+        "pdf_password": "secret"
+      },
+      "expect": {
+        "value": "QUERY /q/\nContent-Type: application/x-www-form-urlencoded\n\nurl=s3://docs/report.pdf&w=600&pdp=MDEyMzQ1Njc4OWFiY2RlZlsN0ZQuFO2sitmy5C87M2o&xi_sig=_p2h0JnM0nsNrTB1rJt18oSnnFxZrqXM5Z9uqcxeqT4"
+      }
+    },
+    {
+      "name": "query_method_video_signed",
+      "op": "query.query_request",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "build": "query.video_url",
+        "source": "s3://media/talk.mov",
+        "options": [
+          [
+            [
+              "rs",
+              [
+                "fill",
+                640,
+                360
+              ]
+            ],
+            [
+              "vs",
+              [
+                1
+              ]
+            ],
+            [
+              "vd",
+              [
+                5
+              ]
+            ]
+          ]
+        ],
+        "extension": "webm"
+      },
+      "expect": {
+        "value": "QUERY /q/video\nContent-Type: application/x-www-form-urlencoded\n\nurl=s3://media/talk.mov&rs=fill,640,360&vs=1&vd=5&format=webm&xi_sig=efTP-5frrqgxOI342o_LH2iVS8PqZ-9zJOK5fvBbvBY"
+      }
+    },
+    {
+      "name": "query_method_stream_signed",
+      "op": "query.query_request",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "build": "query.stream_url",
+        "source": "s3://media/talk.mov",
+        "protocol": "hls",
+        "renditions": [
+          360,
+          720
+        ]
+      },
+      "expect": {
+        "value": "QUERY /q/video\nContent-Type: application/x-www-form-urlencoded\n\nurl=s3://media/talk.mov&st=hls,360,720&format=m3u8&xi_sig=aOUmK6OrsaiytIx7VEOKG1u-OBssKqRHDt2x61OOKZo"
+      }
+    },
+    {
+      "name": "query_method_imaginary_signed",
+      "op": "query.query_request",
+      "config": {
+        "signing": true
+      },
+      "input": {
+        "build": "query.imaginary_url",
+        "endpoint": "watermark",
+        "source": "https://example.com/images/cat.jpg",
+        "params": [
+          [
+            "text",
+            "50% off & more"
+          ],
+          [
+            "opacity",
+            0.5
+          ]
+        ]
+      },
+      "expect": {
+        "value": "QUERY /q/watermark\nContent-Type: application/x-www-form-urlencoded\n\nurl=https://example.com/images/cat.jpg&text=50%25%20off%20%26%20more&opacity=0.5&xi_sig=lbs7NPbryhHbqA3oJ3gPncYDK6oSn6Uu-llSPbFdIJM"
+      }
+    },
+    {
+      "name": "err_query_method_unknown_option",
+      "op": "query.query_request",
+      "input": {
+        "build": "query.url",
+        "source": "https://example.com/images/cat.jpg",
+        "options": [
+          [
+            [
+              "nope",
+              [
+                1
+              ]
+            ]
+          ]
+        ]
+      },
+      "expect": {
+        "error": "unknown_option"
+      }
     }
   ]
 }

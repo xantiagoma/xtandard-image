@@ -69,7 +69,15 @@ from .errors import (
     XtandardError,
 )
 from .options import OptionNameStyle
-from .query import QueryURLBuilder, QueryURLChain, QueryVideoURLChain, query_urls
+from .query import (
+    QUERY_CONTENT_TYPE,
+    QueryMethodRequest,
+    QueryURLBuilder,
+    QueryURLChain,
+    QueryVideoURLChain,
+    query_method_request,
+    query_urls,
+)
 from .signing import SigningKey, sign, sign_imgproxy_path, sign_xi_query, sign_xi_url, xi_message
 from .sources import escape_plain_source, source_url, xi_source
 
@@ -78,6 +86,7 @@ __version__ = "0.0.0"
 __all__ = [
     "IMAGE_FORMATS",
     "MAX_PDF_PASSWORD_BYTES",
+    "QUERY_CONTENT_TYPE",
     "VIDEO_CONTAINERS",
     "XI_SIG_PARAM",
     "Arg",
@@ -111,6 +120,7 @@ __all__ = [
     "ProcessingOptionName",
     "ProcessingOptions",
     "QueryImageParams",
+    "QueryMethodRequest",
     "QueryURLBuilder",
     "QueryURLChain",
     "QueryValue",
@@ -138,6 +148,7 @@ __all__ = [
     "escape_plain_source",
     "escape_query_value",
     "imgproxy",
+    "query_method_request",
     "query_urls",
     "range_header",
     "sign",

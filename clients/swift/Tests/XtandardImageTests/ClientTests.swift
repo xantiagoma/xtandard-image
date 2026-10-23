@@ -183,3 +183,75 @@ private func client(_ base: String) -> XtandardClient {
     }
   }
 }
+
+@Suite struct QueryMethodTests {
+  private static let q = "/q/?url=https://e.com/a.jpg&w=300&xi_sig=abc"
+  private static let form = QueryMethodRequest.formContentType
+
+  private func sent(_ srv: StandInServer) -> [String] {
+    srv.requests.map { "\($0.method) \($0.target) \($0.headers["content-type"] ?? "-") \($0.body)" }
+  }
+
+  @Test func offByDefault() async throws {
+    let srv = StandInServer { _ in Reply(200, "image/webp", "img") }
+    defer { srv.stop() }
+    let xi = XtandardClient(baseURL: srv.base, session: URLSession(configuration: .ephemeral))
+    _ = try await xi.media(Self.q)
+    #expect(sent(srv) == ["GET \(Self.q) - "])
+  }
+
+  @Test func queryMethodSendsURLsUnderTheMountAsQuery() async throws {
+    let srv = StandInServer { _ in Reply(200, "image/webp", "img") }
+    defer { srv.stop() }
+    let xi = XtandardClient(
+      baseURL: srv.base, session: URLSession(configuration: .ephemeral), queryMethod: true)
+    _ = try await xi.media(Self.q)
+    _ = try await xi.media("/q/video?url=s3://m/a.mov&vd=5")
+    _ = try await xi.media("/insecure/rs:fit:300:300/plain/https://e.com/a.jpg")
+    _ = try await xi.media(Self.q, MediaOptions(method: .head))
+    _ = try await xi.media(Self.q, MediaOptions(method: .get))
+    #expect(
+      sent(srv) == [
+        "QUERY /q/ \(Self.form) url=https://e.com/a.jpg&w=300&xi_sig=abc",
+        "QUERY /q/video \(Self.form) url=s3://m/a.mov&vd=5",
+        "GET /insecure/rs:fit:300:300/plain/https://e.com/a.jpg - ",
+        "HEAD \(Self.q) - ",
+        "GET \(Self.q) - ",
+      ])
+  }
+
+  @Test func methodQueryOnOneCallWithACustomMount() async throws {
+    let srv = StandInServer { _ in Reply(200, "image/webp", "img") }
+    defer { srv.stop() }
+    let xi = XtandardClient(
+      baseURL: srv.base, session: URLSession(configuration: .ephemeral), queryMount: "/img/q/")
+    _ = try await xi.media("/img/q/resize?url=x&width=1", MediaOptions(method: .query))
+    #expect(sent(srv) == ["QUERY /img/q/resize \(Self.form) url=x&width=1"])
+    do {
+      _ = try await xi.media("/img/q/", MediaOptions(method: .query))
+      Issue.record("no error")
+    } catch {
+      guard case .build(let e) = error else {
+        Issue.record("want build, got \(error)")
+        return
+      }
+      #expect(e.code == .invalidRequest)
+    }
+  }
+
+  @Test func queryMethodRequestSplitsTheURL() throws {
+    let q = try queryMethodRequest("https://h/q/?url=x&w=1")
+    #expect(q.method == "QUERY")
+    #expect(q.url == "https://h/q/")
+    #expect(q.contentType == Self.form)
+    #expect(q.body == "url=x&w=1")
+    for bad in ["/q/", "/q/?", "/q/?url=x#f"] {
+      do {
+        _ = try queryMethodRequest(bad)
+        Issue.record("no error for \(bad)")
+      } catch {
+        #expect(error.code == .invalidRequest)
+      }
+    }
+  }
+}

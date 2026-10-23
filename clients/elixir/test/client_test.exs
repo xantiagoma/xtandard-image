@@ -3,7 +3,7 @@ defmodule XtandardImage.ClientTest do
   use ExUnit.Case, async: true
 
   alias XtandardImage.{Client, Error, HTTPError, Imgproxy, InfoResponse, Readiness}
-  alias XtandardImage.{SigningKey, StandIn, StreamManifest, TransportError}
+  alias XtandardImage.{QueryMethodRequest, SigningKey, StandIn, StreamManifest, TransportError}
 
   @body for i <- 0..999, into: <<>>, do: <<rem(i, 256)>>
 
@@ -17,7 +17,7 @@ defmodule XtandardImage.ClientTest do
 
     {base, listen} = StandIn.start(&handle(&1, test_pid, video_path))
     on_exit(fn -> StandIn.stop(listen) end)
-    %{client: Client.new(base, signing: key, playground_path: "/_admin/play/")}
+    %{base: base, client: Client.new(base, signing: key, playground_path: "/_admin/play/")}
   end
 
   @json [{"content-type", "application/json"}]
@@ -53,6 +53,8 @@ defmodule XtandardImage.ClientTest do
   end
 
   defp route(%{path: "/_stream/" <> _} = req, _video_path), do: media(req)
+  defp route(%{path: "/q/" <> _}, _video_path), do: {200, [], "img"}
+  defp route(%{path: "/img/q/" <> _}, _video_path), do: {200, [], "img"}
 
   defp route(_req, _video_path),
     do: {404, @json, ~s({"error":{"kind":"not_found","message":"source image not found"}})}
@@ -201,6 +203,81 @@ defmodule XtandardImage.ClientTest do
 
   test "playground meta", %{client: c} do
     assert Client.playground_meta(c) == {:ok, %{"version" => "test"}}
+  end
+
+  # Every request the stand-in saw, oldest first: {method, target, content type, body}.
+  defp seen(acc \\ []) do
+    receive do
+      {:request, r} ->
+        target = if r.query == "", do: r.path, else: "#{r.path}?#{r.query}"
+        seen([{r.method, target, r.headers["content-type"], r.body} | acc])
+    after
+      0 -> Enum.reverse(acc)
+    end
+  end
+
+  describe "HTTP QUERY (opt-in)" do
+    @q "/q/?url=https://e.com/a.jpg&w=300&xi_sig=abc"
+    @form "application/x-www-form-urlencoded"
+
+    test "off by default: query dialect URLs go out as GET", %{client: c} do
+      assert {:ok, %{status: 200}} = Client.media(c, @q)
+      assert seen() == [{"GET", @q, nil, ""}]
+    end
+
+    test "query_method sends URLs under the mount as QUERY, others as GET", %{base: base} do
+      c = Client.new(base, query_method: true)
+      assert {:ok, %{body: "img"}} = Client.media(c, @q)
+      assert {:ok, _} = Client.media(c, base <> "/q/video?url=s3://m/a.mov&vd=5")
+      assert {:ok, _} = Client.media(c, "/_stream/T/v0.m3u8")
+      assert {:error, %HTTPError{status: 404}} = Client.media(c, "/qq?url=x")
+      assert {:ok, %{body: ""}} = Client.media(c, "/q/?url=x", method: :head)
+      assert {:ok, _} = Client.media(c, "/q/?url=x", method: :get)
+
+      assert seen() == [
+               {"QUERY", "/q/", @form, "url=https://e.com/a.jpg&w=300&xi_sig=abc"},
+               {"QUERY", "/q/video", @form, "url=s3://m/a.mov&vd=5"},
+               {"GET", "/_stream/T/v0.m3u8", nil, ""},
+               {"GET", "/qq?url=x", nil, ""},
+               {"HEAD", "/q/?url=x", nil, ""},
+               {"GET", "/q/?url=x", nil, ""}
+             ]
+
+      # A URL under the mount without a query cannot be a QUERY request.
+      assert {:error, %Error{code: :invalid_request}} = Client.media(c, "/q/")
+      assert_raise Error, fn -> Client.media!(c, "/q/") end
+      assert seen() == []
+    end
+
+    test "method: :query on one call, with a custom mount", %{base: base} do
+      c = Client.new(base, query_mount: "/img/q/")
+      assert {:ok, %{body: "img"}} = Client.media(c, "/img/q/resize?url=x&width=1", method: :query)
+      assert {:ok, _} = Client.media(c, "/img/q/resize?url=x")
+
+      assert seen() == [
+               {"QUERY", "/img/q/resize", @form, "url=x&width=1"},
+               {"GET", "/img/q/resize?url=x", nil, ""}
+             ]
+    end
+
+    test "query_method_request splits a built URL" do
+      assert {:ok, q} =
+               XtandardImage.query_method_request(
+                 "https://xi.test/q/watermark?url=a&text=50%25%20off"
+               )
+
+      assert {q.method, q.url, q.content_type, q.body} ==
+               {"QUERY", "https://xi.test/q/watermark", @form, "url=a&text=50%25%20off"}
+
+      assert QueryMethodRequest.from_url!("/q/?a=1?b").body == "a=1?b"
+      assert QueryMethodRequest.content_type() == @form
+
+      for bad <- ["/q/", "/q/?", "/q/?url=x#frag"] do
+        assert {:error, %Error{code: :invalid_request}} = QueryMethodRequest.from_url(bad)
+      end
+
+      assert_raise Error, fn -> XtandardImage.query_method_request!("/q/") end
+    end
   end
 
   test "a refused connection is a transport error" do

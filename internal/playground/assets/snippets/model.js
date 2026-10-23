@@ -63,7 +63,16 @@ export const D = {
   request: (client, op, data) => ({ k: 'request', client, op, data }),
   signXiUrl: (url, mount) => ({ k: 'sign-xi-url', url, mount, key: D.signingKey() }),
   print: (expr) => ({ k: 'print', expr }),
+  // queryRequest splits a query dialect URL into an HTTP QUERY request
+  // (the client's queryMethodRequest, WP-147); printRequest prints it on
+  // one line: "QUERY <url> <content>".
+  queryRequest: (url) => ({ k: 'query-request', url }),
+  printRequest: (req) => ({ k: 'print-request', req }),
 };
+
+// QUERY_LANGUAGES are the languages whose refiners lower queryRequest and
+// printRequest; the others show the GET snippet with a note.
+export const QUERY_LANGUAGES = new Set(['typescript', 'python', 'go']);
 
 export const ENV = {
   key: 'XI_SIGNING_KEY',
@@ -107,11 +116,11 @@ export function neutral(r, { fixedIv = false } = {}) {
     endpoint: r.endpoint ?? null,
     catalogue: r.kind === 'info' ? 'info' : ['video', 'stream', 'q-video', 'q-stream'].includes(r.kind) ? 'video' : 'processing',
   };
-  return N.program([
-    N.let(client, D.client(query ? 'query' : 'imgproxy', config)),
-    N.let('url', D.request(client, OPS[r.kind], data)),
-    D.print(N.id('url')),
-  ]);
+  const build = [N.let(client, D.client(query ? 'query' : 'imgproxy', config)), N.let('url', D.request(client, OPS[r.kind], data))];
+  if (query && r.queryMethod) {
+    return N.program([...build, N.let('req', D.queryRequest(N.id('url'))), D.printRequest(N.id('req'))]);
+  }
+  return N.program([...build, D.print(N.id('url'))]);
 }
 
 // ---- helpers for refiners ------------------------------------------------------

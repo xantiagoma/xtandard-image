@@ -4,8 +4,8 @@
 mod common;
 
 use xtandard_image::{
-    ByteRange, Client, ClientError, HttpErrorClass, InfoUrlParams, MediaOptions, Options, ReadyState, StreamParams,
-    StreamProtocol, UrlParams, VideoUrlParams,
+    ByteRange, Client, ClientError, HttpErrorClass, InfoUrlParams, MediaOptions, Method, Options, QueryUrlBuilder,
+    QueryUrlParams, ReadyState, StreamParams, StreamProtocol, UrlParams, VideoUrlParams,
 };
 
 use common::standin::{self, body, key};
@@ -165,4 +165,65 @@ async fn own_reqwest_client() {
         format!("{}/info/insecure/czM6Ly9iL2EuanBn", srv.base)
     );
     xi.healthz().await.expect("healthz");
+}
+
+/// A signed `/q/` URL path and its query.
+fn query_url() -> (String, String) {
+    let url = QueryUrlBuilder::new()
+        .signing(key())
+        .url("s3://b/cat.jpg", Options::new().set("bl", 2), QueryUrlParams::new().param("w", 300))
+        .expect("url");
+    let (path, query) = url.split_once('?').expect("a query");
+    assert_eq!(path, "/q/");
+    (url.clone(), query.to_owned())
+}
+
+#[tokio::test]
+async fn query_method_opt_in() {
+    let srv = standin::start();
+    let (url, query) = query_url();
+
+    // Off by default: a query URL goes out as GET.
+    let xi = client(&srv.base);
+    xi.media(&url, &MediaOptions::new()).await.expect("get");
+    let seen = srv.last();
+    assert_eq!((seen.method.as_str(), seen.target.as_str(), seen.body.as_str()), ("GET", url.as_str(), ""));
+    assert!(!seen.headers.contains_key("content-type"));
+
+    // One call as QUERY.
+    let res = xi.media(&url, &MediaOptions::new().query().accept("image/webp")).await.expect("query");
+    assert_eq!(res.bytes().await.expect("body").as_ref(), b"q");
+    let seen = srv.last();
+    assert_eq!((seen.method.as_str(), seen.target.as_str()), ("QUERY", "/q/"));
+    assert_eq!(seen.headers["content-type"], "application/x-www-form-urlencoded");
+    assert_eq!((seen.headers["accept"].as_str(), seen.headers["x-test"].as_str()), ("image/webp", "1"));
+    assert_eq!(seen.body, query);
+
+    // query_method: URLs under the mount go out as QUERY unless the call names a method.
+    let on = Client::builder(&srv.base).signing(key()).query_method(true).build().expect("client");
+    on.media(&url, &MediaOptions::new()).await.expect("query");
+    assert_eq!((srv.last().method.as_str(), srv.last().body), ("QUERY", query.clone()));
+    on.media(&url, &MediaOptions::new().head()).await.expect("head");
+    assert_eq!((srv.last().method.as_str(), srv.last().target), ("HEAD", url.clone()));
+    on.media(&url, &MediaOptions::new().method(Method::Get)).await.expect("get");
+    assert_eq!(srv.last().method, "GET");
+    on.media("/busy", &MediaOptions::new()).await.expect_err("429");
+    assert_eq!((srv.last().method.as_str(), srv.last().target.as_str()), ("GET", "/busy"));
+    on.video("s3://m/clip.mov", clip(), webm(), &MediaOptions::new()).await.expect("video");
+    assert_eq!(srv.last().method, "GET");
+
+    // A custom mount.
+    let mounted = Client::builder(&srv.base).query_method(true).query_mount("/img/q/").build().expect("client");
+    mounted.media("/img/q/watermark?url=s3://b/a.jpg&text=hi", &MediaOptions::new()).await.expect_err("404");
+    let seen = srv.last();
+    assert_eq!(
+        (seen.method.as_str(), seen.target.as_str(), seen.body.as_str()),
+        ("QUERY", "/img/q/watermark", "url=s3://b/a.jpg&text=hi")
+    );
+    mounted.media(&url, &MediaOptions::new()).await.expect("get");
+    assert_eq!(srv.last().method, "GET");
+
+    // QUERY needs a URL with a query.
+    let err = xi.media("/q/", &MediaOptions::new().query()).await.expect_err("no query");
+    assert!(matches!(&err, ClientError::Build(e) if e.code() == "invalid_request"), "{err:?}");
 }

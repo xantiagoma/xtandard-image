@@ -121,6 +121,21 @@ Errors come back as `{:error, error}` (or are raised by the bang variants):
 
 `req_options:` passes options to Req (timeouts, `:retry`, `:plug` in tests). The client sets `retry: false` and `decode_body: false` unless you override them.
 
+### HTTP QUERY (opt-in)
+
+The query dialect also accepts the HTTP QUERY method (RFC 10008): the URL's query moves into the request content, so long option chains, watermark text or encrypted sources stay out of URLs. It is off by default, because many CDNs and proxies neither cache nor forward QUERY; the server needs `XI_SERVER_QUERY_METHOD` (on by default).
+
+```elixir
+{:ok, r} = XtandardImage.query_method_request(Query.url!(q, "s3://photos/cat.jpg", params: [w: 300]))
+# %XtandardImage.QueryMethodRequest{method: "QUERY", url: "https://img.example.com/q/",
+#   content_type: "application/x-www-form-urlencoded", body: "url=s3://photos/cat.jpg&w=300&xi_sig=…"}
+
+{:ok, resp} = Client.media(xi, signed_query_url, method: :query)    # one call
+xi = Client.new("http://localhost:8080", query_method: true)        # every media/3 URL under :query_mount ("/q")
+```
+
+The content is the built URL's query as written, `xi_sig` included (the signature does not cover the method). A URL without a query, or with a fragment, is `{:error, %XtandardImage.Error{code: :invalid_request}}`. `method: :head` and an explicit `method: :get` are unchanged.
+
 ## Phoenix
 
 Build URLs in a function component, so templates never see the keys:
@@ -180,6 +195,7 @@ end
 | Password-protected PDFs (`pdp`) | `pdf_password:` / `with_pdf_password/2`, `XtandardImage.encrypt_pdf_password/2` |
 | Sources: base64, `plain/`, `enc/`, split; `xi://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://` | `source_encoding:`, `split_source:`, `xi_source/2`, `source_url/3` |
 | Query dialect `/q/`, `/q/video`, imaginary; `xi_sig` | `XtandardImage.Query`, `XtandardImage.sign_xi_url/3` |
+| HTTP QUERY on the query dialect (opt-in) | `XtandardImage.query_method_request/1` (`XtandardImage.QueryMethodRequest`), `Client.media(c, url, method: :query)`, `Client.new(url, query_method: true, query_mount: …)` |
 | `/healthz`, `/readyz`, playground `api/meta` | `Client.healthz/1`, `readyz/1`, `playground_meta/1` |
 
 Not covered, on purpose (as in the TypeScript and Python clients):

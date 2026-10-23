@@ -265,4 +265,23 @@ class BuilderTest {
         Xtandard.imgproxy().baseUrl("https://i.example.com/").build().image(SRC).w(1).build());
     assertEquals("/q/?url=x", Xtandard.queryUrls().build().url("x", QueryParams.create()));
   }
+
+  @Test
+  void queryMethodRequestSplitsAtTheFirstQuestionMark() {
+    assertEquals(
+        new QueryMethodRequest(
+            "QUERY",
+            "https://img.example.com/q/",
+            QueryMethodRequest.CONTENT_TYPE,
+            "url=s3://b/a.jpg?x=1&w=3"),
+        Xtandard.queryMethodRequest("https://img.example.com/q/?url=s3://b/a.jpg?x=1&w=3"));
+    assertEquals("application/x-www-form-urlencoded", QueryMethodRequest.CONTENT_TYPE);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"/q/", "/q/?", "/q/?url=a#f"})
+  void queryMethodRequestNeedsAQueryAndNoFragment(String url) {
+    UrlBuildException e = assertThrows(UrlBuildException.class, () -> QueryMethodRequest.from(url));
+    assertEquals(ErrorCode.INVALID_REQUEST, e.code());
+  }
 }

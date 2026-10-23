@@ -103,6 +103,18 @@ for try await byte in bytes { /* … */ }
 
 Errors are typed: builders throw `URLBuildError` (`error.code` is the shared code: `.unknownOption`, `.invalidArgument`, …); the client throws `ClientError`: `.build`, `.http(HTTPError)` (status, `kind`, `message`, `requestID`, `category`), `.transport` or `.decode`.
 
+### HTTP QUERY (opt-in)
+
+Query dialect URLs can go out with the HTTP QUERY method (RFC 10008): the URL's query, `xi_sig` included, becomes the request content (`application/x-www-form-urlencoded`), so long option chains or encrypted sources stay out of URLs. It is off by default, because many CDNs and proxies neither cache nor forward QUERY; the server accepts it unless `XI_SERVER_QUERY_METHOD=false`.
+
+```swift
+let req = try queryMethodRequest(try q.url("s3://photos/cat.jpg", params: ["w": 300]))  // method, url, contentType, body
+let one = try await xi.media(try q.url("s3://photos/cat.jpg"), MediaOptions(method: .query))
+let all = XtandardClient(baseURL: "https://img.example.com", queryMethod: true)        // URLs under queryMount, when no method is given
+```
+
+A URL without a query (or with a fragment) throws `URLBuildError` with `.invalidRequest` (`ClientError.build` from `media()`).
+
 ### Vapor
 
 ```swift
@@ -152,6 +164,7 @@ Both paths run the same shared vectors. The manifest depends on swift-crypto `3.
 | Password-protected PDFs (`pdp`) | `pdfPassword:` / `withPDFPassword()`, `encryptPDFPassword()` |
 | Sources: base64, `plain/`, `enc/`, split; `xi://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://` | `sourceEncoding`, `splitSource`, `xiSource()`, `sourceURL()` |
 | Query dialect `/q/`, `/q/video`, imaginary; `xi_sig` | `QueryURLBuilder`, `ImaginaryEndpoint`, `signXiURL()` |
+| HTTP QUERY on the query dialect (opt-in) | `queryMethodRequest()` (`QueryMethodRequest`), `XtandardClient(queryMethod:queryMount:)`, `MediaOptions(method: .query)` |
 | `/healthz`, `/readyz`, playground `api/meta` | `healthz()`, `readyz()`, `playgroundMeta()` |
 | Streaming bodies | `bytes(_:_:)` (`URLSession.AsyncBytes`) on Apple platforms; `media()` reads the whole body everywhere |
 

@@ -198,4 +198,34 @@ module XtandardImage
       finish(cfg, "/#{ep}", [["url", Text.check_text(source, :invalid_source, "source")], *param_pairs(params)])
     end
   end
+
+  # The content type of an HTTP QUERY request's content.
+  QUERY_CONTENT_TYPE = "application/x-www-form-urlencoded"
+
+  # A query dialect request sent with the HTTP QUERY method (RFC 10008,
+  # URL-DIALECTS §4.4): +http_method+ "QUERY", +url+ the URL without its query,
+  # +content_type+ application/x-www-form-urlencoded, and +body+ the URL's
+  # query exactly as built, xi_sig included (the server signs, limits and
+  # caches it as the GET URL, since xi_sig does not cover the method).
+  QueryMethodRequest = Data.define(:http_method, :url, :content_type, :body)
+
+  # Splitting a built query dialect URL.
+  class QueryMethodRequest
+    # Splits a built query dialect URL (/q/…?url=…) at its first "?": the
+    # parameters move from the URL to the content, so long option chains,
+    # watermark text or encrypted sources stay out of URLs. The server must
+    # have XI_SERVER_QUERY_METHOD on (the default); many CDNs and proxies
+    # neither cache nor forward QUERY.
+    #
+    # Raises URLBuildError (:invalid_request) for a URL without a query, with
+    # an empty one, or with a fragment.
+    def self.from_url(url)
+      path, query = url.split("?", 2)
+      if path.nil? || query.nil? || query.empty? || url.include?("#")
+        raise URLBuildError.new(:invalid_request, "a QUERY request needs a query dialect URL with a query and no fragment")
+      end
+
+      new(http_method: "QUERY", url: path, content_type: QUERY_CONTENT_TYPE, body: query)
+    end
+  end
 end

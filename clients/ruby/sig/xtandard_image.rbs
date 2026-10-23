@@ -23,7 +23,7 @@ module XtandardImage
                   | :missing_signing | :missing_encryption | :invalid_key | :invalid_password | :invalid_request
                   | :invalid_name | :invalid_endpoint | :invalid_range
 
-  type http_method = :get | :head | "GET" | "HEAD" | "get" | "head"
+  type http_method = :get | :head | :query | "GET" | "HEAD" | "QUERY" | "get" | "head" | "query"
 
   type range_input = String | Range[Integer?] | ByteSuffix | Hash[Symbol | String, Integer?]
 
@@ -335,6 +335,17 @@ module XtandardImage
     include VideoMethods
   end
 
+  QUERY_CONTENT_TYPE: String
+
+  class QueryMethodRequest < Data
+    attr_reader http_method: String
+    attr_reader url: String
+    attr_reader content_type: String
+    attr_reader body: String
+    def self.new: (http_method: String, url: String, content_type: String, body: String) -> instance
+    def self.from_url: (String url) -> QueryMethodRequest
+  end
+
   class QueryURLBuilder
     attr_reader config: QueryConfig
 
@@ -411,8 +422,15 @@ module XtandardImage
   end
 
   class Client
+    class QueryRequest < Net::HTTPRequest
+      METHOD: String
+      REQUEST_HAS_BODY: bool
+      RESPONSE_HAS_BODY: bool
+    end
+
     TRANSPORT_ERRORS: Array[singleton(Exception)]
     SCHEME: Regexp
+    ORIGIN: Regexp
     READY_STATES: Array[String]
 
     attr_reader base_url: String
@@ -422,13 +440,14 @@ module XtandardImage
                      ?unsigned_signature: String, ?source_encoding: source_encoding | String,
                      ?split_source: Integer?, ?separator: String, ?option_names: name_style,
                      ?headers: Hash[String | Symbol, String], ?open_timeout: Numeric?, ?read_timeout: Numeric?,
-                     ?write_timeout: Numeric?, ?playground_base_url: String?, ?playground_path: String) -> void
+                     ?write_timeout: Numeric?, ?playground_base_url: String?, ?playground_path: String,
+                     ?query_method: bool, ?query_mount: String) -> void
     def healthz: () -> nil
     def readyz: () -> Readiness
     def info: (String source, ?info_options? options, ?source_encoding: (source_encoding | String)?,
                ?pdf_password: String?) -> info_response
     def info_at: (String url) -> info_response
-    def media: (String url, ?method: http_method, ?range: range_input?, ?accept: String,
+    def media: (String url, ?method: http_method?, ?range: range_input?, ?accept: String,
                 ?headers: Hash[String | Symbol, String]?) ?{ (String chunk) -> void } -> Response
     def image: (String source, ?processing_input? options, ?extension: (image_format | String)?,
                 ?source_encoding: (source_encoding | String)?, ?pdf_password: String?, ?method: http_method,
@@ -451,14 +470,21 @@ module XtandardImage
     @read_timeout: Numeric?
     @write_timeout: Numeric?
     @playground_meta: String
+    @query_method: bool
+    @query_mount: String
+
+    def query?: (http_method? method, String url) -> bool
 
     def absolute: (String url) -> String
     def request_headers: (String accept, range_input? range, Hash[String | Symbol, String]? headers) -> Hash[String, String]
     def json: (String url) -> untyped
-    def fetch: (http_method method, String url, Hash[String, String] headers) ?{ (String chunk) -> void } -> Response
-    def perform: (http_method method, String url, Hash[String, String] headers) ?{ (String chunk) -> void }
+    def fetch: (http_method method, String url, Hash[String, String] headers, ?String? content)
+             ?{ (String chunk) -> void } -> Response
+    def perform: (http_method method, String url, Hash[String, String] headers, ?String? content)
+               ?{ (String chunk) -> void }
                -> [Integer, Hash[String, String], String?]
-    def request_class: (http_method method) -> (singleton(Net::HTTP::Get) | singleton(Net::HTTP::Head))
+    def request_class: (http_method method)
+                     -> (singleton(Net::HTTP::Get) | singleton(Net::HTTP::Head) | singleton(QueryRequest))
     def res_headers: (Net::HTTPResponse res) -> Hash[String, String]
     def http_error: (Integer status, String url, String? body) -> HTTPError
     def parse_envelope: (String text) -> error_response?
@@ -479,4 +505,5 @@ module XtandardImage
   def self.source_url: (source_scheme | String scheme, String authority, String key) -> String
   def self.escape_plain_source: (String source) -> String
   def self.escape_query_value: (String value) -> String
+  def self.query_method_request: (String url) -> QueryMethodRequest
 end

@@ -136,6 +136,23 @@ Each carries `status()`, `kind()`, `getMessage()` and `requestId()` from the ser
 
 Pass your own `HttpClient` with `.httpClient(...)` (proxy, TLS, executor, HTTP/2 settings). `MediaRequest` also takes extra headers, and `playgroundMeta()` reads the playground's `api/meta` (`playgroundBaseUrl` and `playgroundPath` point it at the admin listener).
 
+### HTTP QUERY (opt-in)
+
+The query dialect endpoints also accept the HTTP QUERY method (RFC 10008, server toggle `XI_SERVER_QUERY_METHOD`, on by default): the URL's query goes out as `application/x-www-form-urlencoded` content, so long option chains, watermark text or encrypted sources stay out of URLs. `xi_sig` does not cover the method, so the content is the query of the signed GET URL. It is **off by default** in the client, because many CDNs and proxies neither cache nor forward QUERY.
+
+```java
+String url = q.url("s3://photos/cat.jpg", QueryParams.create().w(300));
+QueryMethodRequest req = Xtandard.queryMethodRequest(url);   // or QueryMethodRequest.from(url)
+// req.method() "QUERY", req.url() ".../q/", req.contentType(), req.body() "url=...&w=300&xi_sig=..."
+xi.media(url, MediaRequest.query());                          // this call as QUERY
+
+XtandardClient xq = XtandardClient.builder("http://localhost:8080").queryMethod(true).queryMount("/q").build();
+xq.media(url);                        // URLs under the mount go out as QUERY (MediaRequest.of(): no method named)
+xq.media(url, MediaRequest.get());    // an explicit GET (or HEAD) stays as it is
+```
+
+A URL without a query, or with a fragment, throws `UrlBuildException` with `ErrorCode.INVALID_REQUEST`. URL builders are unchanged.
+
 ## Coverage
 
 | Server feature | Java |
@@ -147,6 +164,7 @@ Pass your own `HttpClient` with `.httpClient(...)` (proxy, TLS, executor, HTTP/2
 | Password-protected PDFs (`pdp`) | `UrlParams.withPdfPassword()`, `withPdfPassword()` on the chains, `Encryption.encryptPdfPassword()` |
 | Sources: base64, `plain/`, `enc/`, split; `xi://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://` | `SourceEncoding`, `splitSource()`, `Sources.xiSource()`, `Sources.sourceUrl()` |
 | Query dialect `/q/`, `/q/video`, imaginary; `xi_sig` | `QueryUrlBuilder` (native keys typed in `QueryParams`), `Signing.signXiUrl()` |
+| HTTP QUERY on the query dialect (opt-in, off by default) | `QueryMethodRequest.from()` / `Xtandard.queryMethodRequest()`, `MediaRequest.query()`, `XtandardClient.Builder.queryMethod()` and `queryMount()` |
 | `/healthz`, `/readyz`, playground `api/meta` | `healthz()`, `readyz()`, `playgroundMeta()` |
 
 Not covered, on purpose (as in the TypeScript client):

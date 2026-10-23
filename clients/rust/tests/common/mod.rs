@@ -51,6 +51,8 @@ pub struct Seen {
     pub target: String,
     /// Lower-case header names.
     pub headers: HashMap<String, String>,
+    /// The request content (`Content-Length` bytes), as text.
+    pub body: String,
 }
 
 /// A response of the stand-in server.
@@ -122,11 +124,12 @@ fn serve(stream: TcpStream, handler: &impl Fn(&Seen) -> Reply) -> Option<Seen> {
             headers.insert(k.trim().to_ascii_lowercase(), v.trim().to_owned());
         }
     }
+    let mut body = Vec::new();
     if let Some(n) = headers.get("content-length").and_then(|v| v.parse::<usize>().ok()) {
-        let mut body = vec![0; n];
+        body = vec![0; n];
         reader.read_exact(&mut body).ok()?;
     }
-    let req = Seen { method, target, headers };
+    let req = Seen { method, target, headers, body: String::from_utf8_lossy(&body).into_owned() };
     let reply = handler(&req);
     let mut out =
         format!("HTTP/1.1 {} X\r\nConnection: close\r\nContent-Length: {}\r\n", reply.status, reply.body.len());

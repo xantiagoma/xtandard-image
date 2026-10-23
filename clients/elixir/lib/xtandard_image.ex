@@ -102,6 +102,15 @@ defmodule XtandardImage do
   @spec escape_query_value(String.t()) :: String.t()
   defdelegate escape_query_value(value), to: Sources
 
+  @doc "See `XtandardImage.QueryMethodRequest.from_url/1`."
+  @spec query_method_request(String.t()) ::
+          {:ok, XtandardImage.QueryMethodRequest.t()} | {:error, XtandardImage.Error.t()}
+  defdelegate query_method_request(url), to: XtandardImage.QueryMethodRequest, as: :from_url
+
+  @doc "See `XtandardImage.QueryMethodRequest.from_url!/1`."
+  @spec query_method_request!(String.t()) :: XtandardImage.QueryMethodRequest.t()
+  defdelegate query_method_request!(url), to: XtandardImage.QueryMethodRequest, as: :from_url!
+
   @doc "See `XtandardImage.Range.header/1`."
   @spec range_header(XtandardImage.Range.t()) ::
           {:ok, String.t()} | {:error, XtandardImage.Error.t()}

@@ -32,3 +32,38 @@ func TestMounts(t *testing.T) {
 		t.Error("Mounts shares the Hosts slice with the router")
 	}
 }
+
+func TestMountFor(t *testing.T) {
+	t.Parallel()
+	_, ds := fakes("imgproxy", "query", "wsrv")
+	rt := newRouter(t, &router.Options{
+		Mounts: []router.Mount{
+			{Name: "imgproxy", Dialect: "imgproxy", Prefix: "/"},
+			{Name: "query", Dialect: "query", Prefix: "/q/", Hosts: []string{"q.example.com"}},
+		},
+		RootURL: &router.Mount{Name: "root", Dialect: "wsrv"},
+	}, ds)
+	tests := []struct {
+		host, path string
+		hasURL     bool
+		want       string // dialect; "" for no mount
+	}{
+		{"x.com", "/q", true, "query"},
+		{"x.com", "/q/resize", true, "query"},
+		{"x.com", "/q/video", false, "query"},
+		{"x.com", "/qx", true, "imgproxy"},
+		{"x.com", "/", true, "wsrv"},
+		{"x.com", "/", false, "imgproxy"},
+		{"q.example.com", "/anything", true, "query"},
+	}
+	for _, tc := range tests {
+		m := rt.MountFor(tc.host, tc.path, tc.hasURL)
+		got := ""
+		if m != nil {
+			got = m.Dialect
+		}
+		if got != tc.want {
+			t.Errorf("MountFor(%q, %q, %t) = %q, want %q", tc.host, tc.path, tc.hasURL, got, tc.want)
+		}
+	}
+}

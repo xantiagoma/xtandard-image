@@ -86,7 +86,10 @@ pub use imgproxy::{
     UrlParams, VideoUrlParams, imgproxy,
 };
 pub use options::OptionNames;
-pub use query::{QueryUrlBuilder, QueryUrlChain, QueryUrlParams, QueryVideoUrlChain, query_urls};
+pub use query::{
+    QUERY_CONTENT_TYPE, QueryMethodRequest, QueryUrlBuilder, QueryUrlChain, QueryUrlParams, QueryVideoUrlChain,
+    query_method_request, query_urls,
+};
 pub use range::{ByteRange, range_header};
 pub use signing::{SigningKey, sign, sign_imgproxy_path, sign_xi_query, sign_xi_url, xi_message};
 pub use sources::{source_url, xi_source};
