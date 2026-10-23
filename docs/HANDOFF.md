@@ -332,3 +332,8 @@ owner has authorised merging PRs without review.
   renamed `@xtandard/image` (never published, so no npm name was released). Bun workspaces are
   `clients/typescript` + `packages/*` (kept for future React/middleware packages); ADR 0013 updated, ADRs
   0008/0009 carry an amendment note. Also fixed the scheduled base-image shellcheck failure (#144).
+- **2026-10-22, no mirror repos:** PHP publishes from a root `composer.json` (#146; `/testdata`
+  export-ignore; `scripts/check-root-manifests.ts` in `task clients:check`). **In flight:** WP-142 Swift
+  (root `Package.swift`, `m6/wp-142-swift-client`), WP-143 Kotlin Multiplatform
+  (`m6/wp-143-kotlin-client`), WP-144 Dart (`m6/wp-144-dart-client`). Merge with the client helpers
+  (shared rows union); ci.yml paths-ignore needs `clients/swift|kotlin|dart/**` and `Package.swift`.
