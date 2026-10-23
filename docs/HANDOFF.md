@@ -362,3 +362,8 @@ owner has authorised merging PRs without review.
 - **In flight (2026-10-23):** WP-147 HTTP QUERY method (RFC 10008) on `/q` and `/q/video`: form and
   JSON bodies, `Accept-Query`, `xi_sig` over method+path+canonical params, cache shared with GET, CORS,
   opt-in in the clients, playground toggle (`m6/wp-147-http-query`).
+- **Merged 2026-10-23:** Rust `ctutils` 0.4.5 for RUSTSEC-2026-0385 (#153); WP-147 HTTP QUERY (#154, ADR
+  0014): additive, verified on the demo (GET/HEAD of 9 URLs byte-identical before/after incl. ETags;
+  QUERY form/JSON 200 with `Location`, `Accept-Query`, `Vary`). Follow-ups: QUERY snippet refiners for
+  the 9 other languages; Swift/Dart method enums gained `.query`. Headless check: audio A/B (known) and an
+  intermittent `audio-loudnorm-speech` recipe timeout (external archive.org sample). Nothing in flight.
