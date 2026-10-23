@@ -174,6 +174,14 @@ String runMapping(Json keys, Json c) {
   final inp = c['input']! as Json;
   final source = inp['source'] as String?;
   switch (c['op']) {
+    case 'query.query_request':
+      // input.build names the query op that builds the URL from the other
+      // inputs.
+      final q = queryMethodRequest(
+        runMapping(keys, {...c, 'op': inp['build']}),
+      );
+      return '${q.method} ${q.url}\n'
+          'Content-Type: ${q.contentType}\n\n${q.body}';
     case 'imgproxy.url':
       final (options, pipelines) = _split(inp);
       return _imgproxy(keys, cfg).url(

@@ -313,4 +313,70 @@ void main() {
     expect((err.kind, err.message, err.url),
         ('invalid_url', 'invalid url', '$base/x'));
   });
+
+  group('HTTP QUERY (opt-in)', () {
+    const q = '/q/?url=https://e.com/a.jpg&w=300&xi_sig=abc';
+    const form = 'application/x-www-form-urlencoded';
+
+    /// A stand-in that answers 200 and records "METHOD url type body".
+    MockClient recorder(List<String> sent) => MockClient((req) async {
+          sent.add('${req.method} ${req.url} '
+              '${req.headers['content-type'] ?? '-'} ${req.body}');
+          return http.Response('img', 200);
+        });
+
+    test('off by default: query dialect URLs go out as GET', () async {
+      final sent = <String>[];
+      await XtandardClient(base, httpClient: recorder(sent)).media(q);
+      expect(sent, ['GET $base$q - ']);
+    });
+
+    test('queryMethod sends URLs under the mount as QUERY, others unchanged',
+        () async {
+      final sent = <String>[];
+      final xi =
+          XtandardClient(base, httpClient: recorder(sent), queryMethod: true);
+      await xi.media(q);
+      await xi.mediaStreamed('/q/video?url=s3://m/a.mov&vd=5');
+      await xi.media('/insecure/rs:fit:300:300/plain/https://e.com/a.jpg');
+      await xi.media(q, method: HttpMethod.head);
+      await xi.media(q, method: HttpMethod.get);
+      expect(sent, [
+        'QUERY $base/q/ $form url=https://e.com/a.jpg&w=300&xi_sig=abc',
+        'QUERY $base/q/video $form url=s3://m/a.mov&vd=5',
+        'GET $base/insecure/rs:fit:300:300/plain/https://e.com/a.jpg - ',
+        'HEAD $base$q - ',
+        'GET $base$q - ',
+      ]);
+    });
+
+    test('method QUERY on one call, with a custom mount', () async {
+      final sent = <String>[];
+      final xi = XtandardClient(
+        base,
+        httpClient: recorder(sent),
+        queryMount: '/img/q/',
+      );
+      await xi.media('/img/q/resize?url=x&width=1', method: HttpMethod.query);
+      expect(sent, ['QUERY $base/img/q/resize $form url=x&width=1']);
+      await expectLater(
+        xi.media('/img/q/', method: HttpMethod.query),
+        throwsA(isA<UrlBuildException>()
+            .having((e) => e.code, 'code', ErrorCode.invalidRequest)),
+      );
+    });
+
+    test('queryMethodRequest splits the URL', () {
+      final r = queryMethodRequest('https://h/q/?url=x&w=1');
+      expect((r.method, r.url, r.contentType, r.body),
+          ('QUERY', 'https://h/q/', form, 'url=x&w=1'));
+      for (final bad in ['/q/', '/q/?', '/q/?url=x#f']) {
+        expect(
+          () => queryMethodRequest(bad),
+          throwsA(isA<UrlBuildException>()
+              .having((e) => e.code, 'code', ErrorCode.invalidRequest)),
+        );
+      }
+    });
+  });
 }
