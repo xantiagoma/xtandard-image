@@ -1,6 +1,6 @@
 # Official clients
 
-URL builders and HTTP clients for xtandard-image in the main backend languages ([ADR 0013](../docs/adr/0013-official-clients.md)). They all share one language-neutral spec, one conformance fixture and one code generator. Build and sign URLs **on a server**: the signing key signs everything, and the encryption key decrypts every `enc/` source and PDF password. There are no mobile SDKs.
+URL builders and HTTP clients for xtandard-image in the main backend languages ([ADR 0013](../docs/adr/0013-official-clients.md)). They all share one language-neutral spec, one conformance fixture and one code generator. Build and sign URLs **on a server**: the signing key signs everything, and the encryption key decrypts every `enc/` source and PDF password. The Swift, Kotlin Multiplatform and Dart clients also run in apps: signing and encryption stay optional there, because keys shipped in an app can be extracted; use the server's `restricted` unsigned policy (presets, allowed sizes) or URLs signed by your backend.
 
 | Language | Directory | Package | Status |
 |---|---|---|---|

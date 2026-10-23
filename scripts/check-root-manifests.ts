@@ -19,8 +19,15 @@ const want = {
   files: (php.autoload.files as string[]).map(prefix),
 };
 if (!eq(root.autoload, want)) errors.push(`composer.json autoload should be ${JSON.stringify(want)}`);
+// The root Package.swift publishes the Swift client (ADR 0013): every target
+// path must stay under clients/swift/.
+const swift = await Bun.file("Package.swift").text();
+const paths = [...swift.matchAll(/path:\s*"([^"]+)"/g)].map((m) => m[1]);
+if (paths.length === 0) errors.push("Package.swift has no target paths");
+for (const p of paths) if (!p.startsWith("clients/swift/")) errors.push(`Package.swift target path ${p} is outside clients/swift/`);
+
 if (errors.length) {
   for (const e of errors) console.error(e);
   process.exit(1);
 }
-console.log("root composer.json matches clients/php/composer.json");
+console.log("root composer.json matches clients/php/composer.json; Package.swift targets stay in clients/swift/");
