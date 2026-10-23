@@ -9,15 +9,41 @@
 // Docs: a string (text without newlines), concat(...), group(doc),
 // indent(doc), line, softline, hardline, ifBreak(broken, flat), and
 // join(sep, docs).
+//
+// This module is the one Doc algebra of the repository: the playground's
+// snippet printers import it here, and the official clients' code generator
+// (clients/codegen/doc.ts, WP-146) imports this same file by relative path.
+// It stays under internal/playground because go:embed only reads files
+// below the package directory. The JSDoc types are what TypeScript callers
+// see (clients/codegen compiles with allowJs).
 
+/**
+ * @typedef {{ t: 'line', soft?: boolean, hard?: boolean }} Line
+ * @typedef {string | Line | { t: 'concat', parts: Doc[] } | { t: 'group', doc: Doc, break: boolean }
+ *   | { t: 'indent', doc: Doc } | { t: 'if-break', broken: Doc, flat: Doc }} Doc
+ * @typedef {Doc | Doc[] | '' | null | undefined | false} Part
+ */
+
+/** @type {Line} */
 export const line = { t: 'line' };
+/** @type {Line} */
 export const softline = { t: 'line', soft: true };
+/** @type {Line} */
 export const hardline = { t: 'line', hard: true };
 
+/** @type {(...parts: Part[]) => Doc} */
 export const concat = (...parts) => ({ t: 'concat', parts: parts.flat().filter((p) => p !== '' && p !== null && p !== undefined && p !== false) });
+/** @type {(doc: Doc, opts?: { shouldBreak?: boolean }) => Doc} */
 export const group = (doc, { shouldBreak = false } = {}) => ({ t: 'group', doc, break: shouldBreak });
+/** @type {(doc: Doc) => Doc} */
 export const indent = (doc) => ({ t: 'indent', doc });
+/** @type {(broken: Doc, flat?: Doc) => Doc} */
 export const ifBreak = (broken, flat = '') => ({ t: 'if-break', broken, flat });
+/**
+ * @param {Doc} sep
+ * @param {readonly Doc[]} docs
+ * @returns {Doc}
+ */
 export function join(sep, docs) {
   const out = [];
   docs.forEach((d, i) => {
@@ -81,6 +107,11 @@ function fits(next, rest, width, tabWidth) {
 
 // print lays doc out in width columns, indenting with unit (a tab counts
 // tabWidth columns).
+/**
+ * @param {Doc} doc
+ * @param {{ width?: number, unit?: string, tabWidth?: number }} [opts]
+ * @returns {string}
+ */
 export function print(doc, { width = 80, unit = '  ', tabWidth = 4 } = {}) {
   propagate(doc);
   const unitWidth = unit === '\t' ? tabWidth : unit.length;

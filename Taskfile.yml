@@ -316,12 +316,13 @@ tasks:
       - go test ./internal/dialect/imgproxy -run '^TestConformanceFixture$' -count=1
 
   clients:check:
-    desc: "No drift: spec.json against the catalogues, generated files against spec.json, the codegen typechecks, every client's LICENSE is the root one"
+    desc: "No drift: spec.json against the catalogues, generated files against spec.json, the codegen tests and typechecks, every client's LICENSE is the root one"
     cmds:
       - go test ./internal/apidoc -run '^TestClientSpec' -count=1
       - go test ./internal/dialect/imgproxy -run '^TestConformanceFixture$' -count=1
       - bun clients/codegen/generate.ts --check
       - bun install --frozen-lockfile
+      - bun test clients/codegen/test
       - clients/typescript/node_modules/.bin/tsc -p clients/codegen/tsconfig.json
       - bun scripts/check-root-manifests.ts
       - |
