@@ -342,3 +342,9 @@ owner has authorised merging PRs without review.
   (`xtandard-image-kmp`; JVM, macOS, iOS; no androidTarget/JS yet). Twelve clients now:
   TS, Python, Go, PHP, Ruby, Rust, Java, .NET, Elixir, Swift, Kotlin MP, Dart. Nothing in flight.
   Unverified: `client-kotlin.yml` uses simulator "iPhone 16" on the macOS runner.
+- **Codegen design (owner, 2026-10-23): no code built by string concatenation.** Pattern: code model
+  (CodeDOM) → per-language refiners → per-language printers on a Wadler/Leijen Doc algebra (group,
+  indent, line, softline) → official formatter. In flight: WP-145 playground snippets for all 12 clients
+  with highlighting, built this way + an execution check per language (`m6/wp-145-playground-snippets`).
+  Next: WP-146 migrates `clients/codegen` emitters (~7k lines of template strings) to the same design,
+  reusing WP-145's Doc module, with byte-identical generated output as the gate.
