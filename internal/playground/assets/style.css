@@ -266,6 +266,7 @@ details.group > summary > span:first-child { flex: 1; }
 .u-opt { color: var(--u-opt); font-weight: 600; }
 .u-src { color: var(--u-src); }
 #url-out { margin-top: .5rem; font-size: .8rem; }
+.query-request { margin: .5rem 0 0; padding: .5rem; font-size: .8rem; white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid var(--border); border-radius: 6px; }
 
 /* ---- code snippets (WP-145) --------------------------------------------------
    Token colours keep 4.5:1 or more on --panel-2 in both themes. */

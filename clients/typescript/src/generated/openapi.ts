@@ -2917,6 +2917,8 @@ export interface components {
             public: boolean;
             /** @description XI_SERVER_ADDR (the page derives a default public base URL from its port). */
             public_addr: string;
+            /** @description XI_SERVER_QUERY_METHOD: the query dialect's endpoints accept HTTP QUERY (RFC 10008), its parameters in the request content. */
+            query_method: boolean;
             /** @description Ready-made sessions of the Examples tool (internal/playground/recipes.json): source, dialect and options, loaded into the builder with one click. */
             recipes: components["schemas"]["PlaygroundRecipe"][] | null;
             /** @description Built-in sample images (repository fixtures), served as playground://samples/<name> to the playground only; they work offline. */

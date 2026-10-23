@@ -813,11 +813,6 @@ func serverConfig(cfg *config.Config) server.Config {
 		IdleTimeout:          cfg.Server.IdleTimeout,
 		MaxHeaderBytes:       int(cfg.Server.MaxHeaderBytes),
 		CORSOrigins:          cfg.Server.CORSOrigins,
-		Query: server.QueryMethodConfig{
-			Enabled:           cfg.Server.QueryMethod,
-			MaxBodyBytes:      int64(cfg.Server.QueryMaxBodyBytes),
-			LocationMaxLength: cfg.Server.QueryLocationMaxLength,
-		},
 		CompatImgproxyStatus: cfg.Compat.ImgproxyStatus,
 		Defaults: transform.Defaults{
 			AutoRotate:        cfg.Processing.AutoRotate,
@@ -877,6 +872,11 @@ func serverConfig(cfg *config.Config) server.Config {
 			AllowBypass: cfg.Cache.AllowBypass,
 		},
 		SourcePasswords: sourcePasswords(cfg),
+		Query: server.QueryMethodConfig{
+			Enabled:           cfg.Server.QueryMethod,
+			MaxBodyBytes:      int64(cfg.Server.QueryMaxBodyBytes),
+			LocationMaxLength: cfg.Server.QueryLocationMaxLength,
+		},
 	}
 }
 

@@ -182,7 +182,9 @@
       <div class="row wrap">
         <button type="button" id="copy" class="primary">Copy URL</button>
         <span id="signed" class="badge"></span>
+        <label class="inline" id="query-method-row" hidden title="Send the parameters in the request content with the HTTP QUERY method (RFC 10008, XI_SERVER_QUERY_METHOD): same signature, result and cache entry as the GET URL. Many CDNs and proxies neither cache nor forward QUERY."><input type="checkbox" id="query-method"> send as QUERY</label>
       </div>
+      <pre id="query-request" class="query-request" hidden aria-label="HTTP QUERY request"></pre>
       <p id="status" class="status" role="status" aria-live="polite"></p>
       <details class="snippet-box" id="snippet-box">
         <summary><h3 id="snippet-title">Code</h3> <span class="hint">curl, TypeScript, Python, Go, PHP, Ruby, Rust, Java, Kotlin, C#, Elixir, Swift, Dart</span></summary>
