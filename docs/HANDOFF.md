@@ -337,3 +337,8 @@ owner has authorised merging PRs without review.
   (root `Package.swift`, `m6/wp-142-swift-client`), WP-143 Kotlin Multiplatform
   (`m6/wp-143-kotlin-client`), WP-144 Dart (`m6/wp-144-dart-client`). Merge with the client helpers
   (shared rows union); ci.yml paths-ignore needs `clients/swift|kotlin|dart/**` and `Package.swift`.
+- **Merged 2026-10-22:** Dart #147, Swift #148 (root `Package.swift`; root `.gitignore` ignores SwiftPM
+  state; `scripts/check-root-manifests.ts` checks its target paths), Kotlin Multiplatform #149
+  (`xtandard-image-kmp`; JVM, macOS, iOS; no androidTarget/JS yet). Twelve clients now:
+  TS, Python, Go, PHP, Ruby, Rust, Java, .NET, Elixir, Swift, Kotlin MP, Dart. Nothing in flight.
+  Unverified: `client-kotlin.yml` uses simulator "iPhone 16" on the macOS runner.
