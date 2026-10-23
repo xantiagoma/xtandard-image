@@ -1,0 +1,10 @@
+# Toolchain of the Kotlin Multiplatform client (ADR 0013): `mise install` in
+# this directory. JDK 21 runs Gradle and the JVM tests (the JVM artifact is
+# Java 11 bytecode, which Android's D8 accepts too). Gradle is pinned here
+# rather than through a committed wrapper jar, as the Java client pins Maven.
+# ktlint lints the hand-written sources. The Kotlin Gradle plugin downloads
+# Kotlin/Native (the Apple targets) into ~/.konan; it needs Xcode.
+[tools]
+java = "temurin-21.0.12+8.0.LTS"
+gradle = "9.8.2"
+ktlint = "1.8.0"
