@@ -311,6 +311,7 @@ tasks:
       - bun clients/codegen/generate.ts --check
       - bun install --frozen-lockfile
       - clients/typescript/node_modules/.bin/tsc -p clients/codegen/tsconfig.json
+      - bun scripts/check-root-manifests.ts
       - |
         for f in clients/*/LICENSE; do
           cmp -s LICENSE "$f" || { echo "$f differs from LICENSE" >&2; exit 1; }
