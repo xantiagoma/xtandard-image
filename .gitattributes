@@ -1,0 +1,4 @@
+
+# Release archives (GitHub zipballs, which Composer downloads for the PHP client from
+# the root composer.json, ADR 0013) leave out the large shared test fixtures.
+/testdata export-ignore

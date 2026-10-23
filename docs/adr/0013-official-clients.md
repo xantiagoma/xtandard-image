@@ -113,6 +113,8 @@ All clients follow the server's release line in lockstep, `0.x` before 1.0. The 
 | .NET | NuGet | `Xtandard.Image` |
 | Elixir | Hex | `xtandard_image` |
 
+**No mirror repositories (owner, 2026-10-22).** Registries that read a manifest at the repository root are served from this repository's root instead of a split repo: PHP through a root `composer.json` that autoloads `clients/php/src` and `clients/php/generated` (Packagist), and Swift through a root `Package.swift` whose targets use `path: "clients/swift/…"` (SwiftPM). Both take their versions from the repository's own `vX.Y.Z` tags, which is the lockstep versioning above. Composer downloads release zips, so `.gitattributes` marks `/testdata` `export-ignore` (about 20 MB down to 6 MB); SwiftPM clones the repository (about 24 MB with history). Development manifests stay in each client's directory (`clients/php/composer.json` with tests and tools); a release checklist item keeps the root `require`/`autoload` in sync.
+
 Each language's work package checks that its name is free on the registry and records the result in its README.
 
 ### 7. CI: one workflow per client, path-filtered

@@ -13,16 +13,25 @@ It is not on Packagist yet. The package `xtandard/image` (the name is free; chec
 
 **Build and sign URLs on a server.** The signing key signs every URL, and the encryption key decrypts every `enc/` source and PDF password.
 
-## Install (from the repository, until the first release)
+## Install
 
-Packagist reads `composer.json` at a repository's root, so the release will publish a split of `clients/php`. Until then, use a path repository on a checkout:
+Packagist reads this repository's **root `composer.json`**, which describes this package and autoloads `clients/php/src` and `clients/php/generated` (ADR 0013); there is no split or mirror repository. After the first release:
+
+```sh
+composer require xtandard/image
+```
+
+Release zips leave out the shared test fixtures (`/testdata export-ignore` in `.gitattributes`), so an install downloads about 6 MB instead of 20 MB. Before a release, use a path repository on a checkout (the repository root, or `clients/php` for development):
 
 ```json
 {
-    "repositories": [{"type": "path", "url": "../xtandard-image/clients/php"}],
-    "require": {"xtandard/image": "@dev"}
+    "repositories": [{"type": "path", "url": "../xtandard-image"}],
+    "require": {"xtandard/image": "@dev"},
+    "minimum-stability": "dev"
 }
 ```
+
+`clients/php/composer.json` is the development manifest (tests, PHPStan, php-cs-fixer); keep its `require` and `autoload` in sync with the root one.
 
 For the HTTP client, also install a PSR-18 client, for example `guzzlehttp/guzzle` or `symfony/http-client` with `nyholm/psr7`.
 
