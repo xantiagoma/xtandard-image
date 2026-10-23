@@ -267,6 +267,48 @@ details.group > summary > span:first-child { flex: 1; }
 .u-src { color: var(--u-src); }
 #url-out { margin-top: .5rem; font-size: .8rem; }
 
+/* ---- code snippets (WP-145) --------------------------------------------------
+   Token colours keep 4.5:1 or more on --panel-2 in both themes. */
+
+:root {
+  --tk-k: #8a2b9e; --tk-s: #1d6b34; --tk-n: #8f4f00; --tk-c: #5b6370; --tk-t: #2456c7;
+  --tk-f: #0a6378; --tk-l: #a12c4f; --tk-a: #5c3fb0; --tk-v: #8f4f00;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --tk-k: #d7a6f7; --tk-s: #79d696; --tk-n: #e9b25a; --tk-c: #9aa2ad; --tk-t: #95b5ff;
+    --tk-f: #6fd3ea; --tk-l: #ffa3b8; --tk-a: #c2b2ff; --tk-v: #f2bb85;
+  }
+}
+:root[data-theme="dark"] {
+  --tk-k: #d7a6f7; --tk-s: #79d696; --tk-n: #e9b25a; --tk-c: #9aa2ad; --tk-t: #95b5ff;
+  --tk-f: #6fd3ea; --tk-l: #ffa3b8; --tk-a: #c2b2ff; --tk-v: #f2bb85;
+}
+.snippet-box summary { cursor: pointer; margin-top: .6rem; }
+.snippet-box summary h3 { display: inline; margin: 0; font-size: .9rem; color: var(--muted); font-weight: 600; }
+.snippet-box summary .hint { font-size: .8rem; }
+.snippet { margin-top: .4rem; min-width: 0; }
+.snippet-bar { gap: .4rem .6rem; align-items: center; }
+.snippet-bar select { width: auto; min-width: 9rem; }
+.snippet-note { margin: .4rem 0 0; }
+.snippet-pre {
+  margin: .5rem 0 0; padding: .6rem .7rem; max-height: 28rem; overflow: auto;
+  background: var(--panel-2); color: var(--fg); border: 1px solid var(--border); border-radius: 6px;
+  font: .8rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; tab-size: 4; white-space: pre;
+}
+.snippet-pre.wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
+.snippet-pre:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tk-k { color: var(--tk-k); font-weight: 600; }
+.tk-s { color: var(--tk-s); }
+.tk-n { color: var(--tk-n); }
+.tk-c { color: var(--tk-c); font-style: italic; }
+.tk-t { color: var(--tk-t); }
+.tk-f { color: var(--tk-f); }
+.tk-l { color: var(--tk-l); }
+.tk-a { color: var(--tk-a); }
+.tk-v { color: var(--tk-v); }
+@media (forced-colors: active) { .snippet-pre span { color: CanvasText; } }
+
 /* ---- preview --------------------------------------------------------------- */
 
 .toolbar select { width: auto; }

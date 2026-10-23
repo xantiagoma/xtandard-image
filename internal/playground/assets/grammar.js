@@ -1,6 +1,6 @@
 // URL grammars: the builder state of one mount turned into the sign
 // request {mount, path, query} (the path after the mount prefix, without
-// a signature), plus the curl and TypeScript snippets. Pure functions.
+// a signature). Pure functions; the code snippets are in snippets/.
 
 import { b64url, escapePlain, escapeValue } from './dom.js';
 
@@ -207,83 +207,4 @@ export function colorValue(grammar, hex) {
     case 'cloudflare': return `%23${h}`;
     default: return h;
   }
-}
-
-// ---- snippets ---------------------------------------------------------
-
-const shq = (s) => `'${s.replaceAll("'", "'\\''")}'`;
-
-export function curlSnippet(url, accept) {
-  return `curl -sS -D - -o result.bin -H ${shq(`Accept: ${accept}`)} ${shq(url)}`;
-}
-
-const ident = /^[A-Za-z_$][\w$]*$/;
-
-// tsArg writes one argument as a TypeScript literal of its catalogue type.
-function tsArg(v, type) {
-  if (v === '') return 'null';
-  if ((type === 'integer' || type === 'number') && /^-?\d+(\.\d+)?$/.test(v)) return v;
-  if (type === 'boolean') return ['1', 't', 'true'].includes(v) ? 'true' : 'false';
-  return JSON.stringify(v);
-}
-
-// curlInfoSnippet asks for an /info URL's JSON.
-export function curlInfoSnippet(url) {
-  return `curl -sS -H 'Accept: application/json' ${shq(url)}`;
-}
-
-// tsInfoSnippet writes the fluent /info call of @xtandard/image
-// (img.info(source).<option>(...args).build()) for entries of the info
-// catalogue index.
-export function tsInfoSnippet({ source, entries, index, base, signed, separator, encoding }) {
-  if (!source) return null;
-  const cfg = [`baseUrl: ${JSON.stringify(base)}`, `sourceEncoding: ${JSON.stringify(encoding === 'base64' ? 'base64' : 'plain')}`];
-  if ((separator || ':') !== ':') cfg.push(`separator: ${JSON.stringify(separator)}`);
-  if (signed) cfg.push('signing: { key: process.env.XI_SIGNING_KEY!, salt: process.env.XI_SIGNING_SALT! }');
-  const calls = [];
-  for (const [o, e, v] of activeEntries(entries, index, 'imgproxy')) {
-    const types = argTypes(o, e);
-    const args = v.map((x, j) => tsArg(x, types[j]?.type)).join(', ');
-    calls.push(ident.test(o.name) ? `.${o.name}(${args})` : `.option(${JSON.stringify(o.name)}${args ? `, ${args}` : ''})`);
-  }
-  return [
-    'import { imgproxy } from "@xtandard/image";',
-    '',
-    `const img = imgproxy({ ${cfg.join(', ')} });`,
-    'const url = await img',
-    `  .info(${JSON.stringify(source)})`,
-    ...calls.map((c) => `  ${c}`),
-    '  .build();',
-    'const info = await (await fetch(url, { headers: { Accept: "application/json" } })).json();',
-  ].join('\n');
-}
-
-// tsSnippet writes the fluent @xtandard/image call for an imgproxy
-// mount (null for other grammars).
-export function tsSnippet(m, state, index, base, signed) {
-  if (m.grammar !== 'imgproxy' || !state.source) return null;
-  const video = Boolean(state.video);
-  const cfg = [`baseUrl: ${JSON.stringify(base)}`, `sourceEncoding: ${JSON.stringify(state.encoding === 'base64' ? 'base64' : 'plain')}`];
-  if ((m.arguments_separator || ':') !== ':') cfg.push(`separator: ${JSON.stringify(m.arguments_separator)}`);
-  if (signed) cfg.push('signing: { key: process.env.XI_SIGNING_KEY!, salt: process.env.XI_SIGNING_SALT! }');
-  const calls = [];
-  state.pipelines.forEach((p, i) => {
-    if (i > 0 && video) return;
-    if (i > 0) calls.push('.chain()');
-    for (const [o, e, v] of activeEntries(p, index, 'imgproxy')) {
-      const types = argTypes(o, e);
-      const args = v.map((x, j) => tsArg(x, types[j]?.type)).join(', ');
-      calls.push(ident.test(o.name) ? `.${o.name}(${args})` : `.option(${JSON.stringify(o.name)}${args ? `, ${args}` : ''})`);
-    }
-  });
-  if (state.ext) calls.push(`.extension(${JSON.stringify(state.ext)})`);
-  return [
-    'import { imgproxy } from "@xtandard/image";',
-    '',
-    `const img = imgproxy({ ${cfg.join(', ')} });`,
-    `const url = await img`,
-    `  .${video ? 'video' : 'from'}(${JSON.stringify(state.source)})`,
-    ...calls.map((c) => `  ${c}`),
-    '  .build();',
-  ].join('\n');
 }
