@@ -15,6 +15,8 @@
 //   bun scripts/generate.ts --check   exit 1 if a committed file is stale
 
 import openapiTS, { astToString, COMMENT_HEADER } from "openapi-typescript";
+import { label, TS, TypeScriptPrinter } from "../../codegen/lang/typescript.ts";
+import { type Comment, N, type Node, type TypeRef, union } from "../../codegen/model.ts";
 
 const here = new URL("../", import.meta.url);
 const specURL = new URL("../../internal/apidoc/openapi.json", here);
@@ -48,75 +50,60 @@ const spec = (await Bun.file(specURL).json()) as {
 
 // ---- openapi.ts ------------------------------------------------------------
 
+// openapi-typescript builds this file as a TypeScript AST and prints it with
+// the compiler's printer (astToString): no template strings here either.
 const openapiSource =
   COMMENT_HEADER + astToString(await openapiTS(await Bun.file(specURL).text()));
 
 // ---- options.ts ------------------------------------------------------------
+//
+// Built as nodes of the clients' code model (clients/codegen/model.ts, WP-146)
+// and printed by clients/codegen/lang/typescript.ts.
 
-const scalar: Record<string, string> = {
-  string: "string",
-  integer: "number",
-  number: "number",
-  boolean: "boolean",
-  null: "null",
+const scalar: Record<string, TypeRef> = {
+  string: N.tref("string"),
+  integer: N.tref("number"),
+  number: N.tref("number"),
+  boolean: N.tref("boolean"),
+  null: N.tref("null"),
 };
+const unknown = N.tref("unknown");
 
-function typeOf(s: Schema): string {
+function typeOf(s: Schema): TypeRef {
   if (s.anyOf) return union(s.anyOf.map(typeOf));
-  if (s.enum) return union(s.enum.map((v) => (v === null ? "null" : JSON.stringify(v))));
+  if (s.enum) return union(s.enum.map((v) => (v === null ? N.tref("null") : N.tlit(N.scalar(v as string | number)))));
   const types = s.type === undefined ? [] : Array.isArray(s.type) ? s.type : [s.type];
-  if (types.length === 0) return "unknown";
-  return union(types.map((t) => scalar[t] ?? "unknown"));
+  if (types.length === 0) return unknown;
+  return union(types.map((t) => scalar[t] ?? unknown));
 }
 
-function union(parts: string[]): string {
-  return [...new Set(parts)].join(" | ");
-}
-
-// Words a tuple label cannot be (Bun's transpiler rejects them even where
-// tsc accepts them).
-const reserved = new Set(
-  ("break case catch class const continue debugger default delete do else enum export extends false " +
-    "finally for function if import in instanceof new null return super switch this throw true try " +
-    "typeof var void while with").split(" "),
-);
-
-function label(s: Schema, used: Map<string, number>, fallback: string, rest = false): string {
+function labelOf(s: Schema, used: Map<string, number>, fallback: string, rest = false): string {
   const titles = s.anyOf?.map((a) => a.title);
   let name = s.title ?? (titles && titles.length <= 2 && titles.every(Boolean) ? titles.join("_or_") : fallback);
   if (rest) name = /(s|x|ch|sh)$/.test(name) ? `${name}es` : `${name}s`;
-  name = name.replace(/[^A-Za-z0-9_$]/g, "_");
-  if (/^[0-9]/.test(name) || reserved.has(name)) name = `${name}_`;
+  name = label(name);
   const n = used.get(name) ?? 0;
   used.set(name, n + 1);
   return n === 0 ? name : `${name}_${n + 1}`;
 }
 
-// tuple renders one argument form as a labelled TypeScript tuple.
-function tuple(f: Schema): string {
+// tuple is one argument form as a labelled TypeScript tuple.
+function tuple(f: Schema): TypeRef {
   const prefix = f.prefixItems ?? [];
   const min = f.minItems ?? 0;
   const max = f.items ? Number.POSITIVE_INFINITY : (f.maxItems ?? prefix.length);
   const used = new Map<string, number>();
-  const elems: string[] = [];
+  const elems: TypeRef[] = [];
   for (let i = 0; i < Math.max(prefix.length, f.items ? min : 0); i++) {
     const s = prefix[i] ?? f.items;
     if (!s || i >= max) break;
-    const opt = i >= min ? "?" : "";
-    elems.push(`${label(s, used, "arg")}${opt}: ${typeOf(s)}`);
+    elems.push(TS.element(labelOf(s, used, "arg"), typeOf(s), { optional: i >= min }));
   }
-  if (f.items) {
-    elems.push(`...${label(f.items, used, "arg", true)}: Array<${typeOf(f.items)}>`);
-  }
-  return `[${elems.join(", ")}]`;
+  if (f.items) elems.push(TS.element(labelOf(f.items, used, "arg", true), N.tref("Array", [typeOf(f.items)]), { rest: true }));
+  return N.ttuple(elems);
 }
 
-function argsType(s: Schema): string {
-  const forms = s.anyOf ?? [s];
-  return forms.map(tuple).join("\n    | ");
-}
-
-function doc(name: string, s: Schema, indent: string): string {
+function optionDoc(name: string, s: Schema): Comment {
   const lines: string[] = [];
   if (s.description) lines.push(s.description);
   const aliases = s["x-xi-aliases"] ?? [];
@@ -129,53 +116,66 @@ function doc(name: string, s: Schema, indent: string): string {
   if (s["x-xi-security"]) tags.push("security option (needs XI_SECURITY_ALLOW_SECURITY_OPTIONS)");
   if (tags.length) lines.push(`${tags.join("; ")}.`);
   for (const ex of s.examples ?? []) lines.push(`@example ${JSON.stringify(ex)}`);
-  const body = lines.map((l) => (l ? `${indent} * ${l.replaceAll("*/", "*\\/")}` : `${indent} *`));
-  return `${indent}/**\n${body.join("\n")}\n${indent} */`;
+  return N.comment("doc", lines);
 }
 
-function catalogue(kind: "Processing" | "Info" | "Video", schema: Schema): string {
+const byCode = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+
+function catalogue(kind: "Processing" | "Info" | "Video", schema: Schema): Node[] {
   const props = schema.properties ?? {};
   const names = Object.keys(props).sort();
-  const out: string[] = [];
-  out.push(`/**`);
-  out.push(` * Argument tuples of every imgproxy ${kind.toLowerCase()} option, by canonical name.`);
-  out.push(` * \`/rs:fill:300:400/\` is \`{ resize: ["fill", 300, 400] }\`: \`null\` is an empty`);
-  out.push(` * argument, booleans are written \`1\`/\`0\`.`);
-  out.push(` */`);
-  out.push(`export interface Imgproxy${kind}Args {`);
-  for (const n of names) {
-    const s = props[n]!;
-    out.push(doc(n, s, "  "));
-    out.push(`  ${JSON.stringify(n)}:\n    | ${argsType(s)};`);
-  }
-  out.push(`}`);
-  out.push("");
-  out.push(`/** Alias → canonical name of every imgproxy ${kind.toLowerCase()} option. */`);
-  out.push(`export const imgproxy${kind}Aliases = {`);
+  const what = kind.toLowerCase();
   const aliasPairs: [string, string][] = [];
   for (const n of names) for (const a of props[n]!["x-xi-aliases"] ?? []) aliasPairs.push([a, n]);
-  aliasPairs.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-  for (const [a, n] of aliasPairs) out.push(`  ${JSON.stringify(a)}: ${JSON.stringify(n)},`);
-  out.push(`} as const;`);
-  out.push("");
-  out.push(`/** Canonical names of every imgproxy ${kind.toLowerCase()} option. */`);
-  out.push(`export const imgproxy${kind}OptionNames = [`);
-  for (const n of names) out.push(`  ${JSON.stringify(n)},`);
-  out.push(`] as const;`);
-  out.push("");
-  return out.join("\n");
+  aliasPairs.sort(([a], [b]) => byCode(a, b));
+  const exported = { mods: ["export"] };
+  return [
+    N.type(
+      "interface",
+      `Imgproxy${kind}Args`,
+      names.map((n) => {
+        const s = props[n]!;
+        return N.field(n, TS.linesUnion((s.anyOf ?? [s]).map(tuple)), { mods: ["quoted"], doc: optionDoc(n, s) });
+      }),
+      {
+        ...exported,
+        doc: N.comment("doc", [
+          `Argument tuples of every imgproxy ${what} option, by canonical name.`,
+          "`/rs:fill:300:400/` is `{ resize: [\"fill\", 300, 400] }`: `null` is an empty",
+          "argument, booleans are written `1`/`0`.",
+        ]),
+      },
+    ),
+    N.blank(),
+    N.const(
+      `imgproxy${kind}Aliases`,
+      TS.asConst(N.map(aliasPairs.map(([a, n]) => N.entry(N.str(a), N.str(n))), { layout: "expanded" })),
+      { ...exported, doc: N.doc(`Alias → canonical name of every imgproxy ${what} option.`) },
+    ),
+    N.blank(),
+    N.const(`imgproxy${kind}OptionNames`, TS.asConst(N.list(names.map(N.str), { layout: "expanded" })), {
+      ...exported,
+      doc: N.doc(`Canonical names of every imgproxy ${what} option.`),
+    }),
+  ];
 }
 
 const schemas = spec.components.schemas;
-const optionsSource = [
-  "// Code generated by clients/typescript/scripts/generate.ts from",
-  "// internal/apidoc/openapi.json (ImgproxyProcessingOptions, ImgproxyInfoOptions, ImgproxyVideoOptions).",
-  "// DO NOT EDIT. Run `bun run generate`.",
-  "",
-  catalogue("Processing", schemas["ImgproxyProcessingOptions"]!),
-  catalogue("Info", schemas["ImgproxyInfoOptions"]!),
-  catalogue("Video", schemas["ImgproxyVideoOptions"]!),
-].join("\n");
+const optionsSource = new TypeScriptPrinter().print(
+  N.file([
+    N.comment("line", [
+      "Code generated by clients/typescript/scripts/generate.ts from",
+      "internal/apidoc/openapi.json (ImgproxyProcessingOptions, ImgproxyInfoOptions, ImgproxyVideoOptions).",
+      "DO NOT EDIT. Run `bun run generate`.",
+    ]),
+    N.blank(),
+    ...catalogue("Processing", schemas["ImgproxyProcessingOptions"]!),
+    N.blank(),
+    ...catalogue("Info", schemas["ImgproxyInfoOptions"]!),
+    N.blank(),
+    ...catalogue("Video", schemas["ImgproxyVideoOptions"]!),
+  ]),
+);
 
 // ---- write or check ----------------------------------------------------------
 

@@ -3,7 +3,10 @@
 // and runs every emitter in clients/codegen/emitters/, each of which
 // returns the generated files of one client (typed option tables, response
 // types, constants). Emitters are discovered by file name, so a new
-// language adds one file and no line here.
+// language adds one file and no line here. An emitter is a refiner: it
+// builds the client's files as a code model (model.ts) from the neutral
+// model (build.ts) and prints them with its language's printer
+// (lang/<lang>.ts) on the Doc algebra (doc.ts); see model.ts.
 //
 //   bun clients/codegen/generate.ts                  write every client's files
 //   bun clients/codegen/generate.ts --check          exit 1 if a committed file is stale

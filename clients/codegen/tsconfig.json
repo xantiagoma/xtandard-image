@@ -6,7 +6,11 @@
     // The generator is not a workspace package: it borrows the Bun types
     // installed for clients/typescript (bun install at the root).
     "typeRoots": ["../../clients/typescript/node_modules/@types"],
-    "types": ["bun"]
+    "types": ["bun"],
+    // doc.ts imports the playground's Doc algebra (a JavaScript module with
+    // JSDoc types); it is read for its types, not checked.
+    "allowJs": true,
+    "checkJs": false
   },
-  "include": ["*.ts", "emitters/*.ts"]
+  "include": ["*.ts", "emitters/*.ts", "lang/*.ts", "test/*.ts"]
 }

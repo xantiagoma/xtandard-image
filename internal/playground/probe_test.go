@@ -86,7 +86,6 @@ func probeReq(t *testing.T, path, contentType, body string) *http.Request {
 // keep their public text only.
 func TestProbeEndpoints(t *testing.T) {
 	t.Parallel()
-	h := newProbeFixture(t, &fakeProber{})
 	tests := []struct {
 		name       string
 		req        *http.Request
@@ -122,6 +121,9 @@ func TestProbeEndpoints(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+			// A handler per case: the probe slots are shared per handler, and
+			// parallel cases on one handler could get 429 instead of their status.
+			h := newProbeFixture(t, &fakeProber{})
 			code, body := serve(t, h, tc.req)
 			if code != tc.code {
 				t.Fatalf("status %d, want %d: %s", code, tc.code, body)
@@ -146,7 +148,7 @@ func TestProbeEndpoints(t *testing.T) {
 	}
 	cross := probeReq(t, "probe", "application/json", `{"source":"xi://local/clip.mp4"}`)
 	cross.Header.Set("Sec-Fetch-Site", "cross-site")
-	if code, _ := serve(t, h, cross); code != http.StatusForbidden {
+	if code, _ := serve(t, newProbeFixture(t, &fakeProber{}), cross); code != http.StatusForbidden {
 		t.Errorf("cross-site probe = %d, want 403", code)
 	}
 }
