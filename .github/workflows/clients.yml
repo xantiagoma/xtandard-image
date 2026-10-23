@@ -16,6 +16,8 @@ on:
     branches: [main]
     paths: &paths
       - 'clients/**'
+      # The generator's Doc algebra (clients/codegen/doc.ts imports it).
+      - 'internal/playground/assets/snippets/doc.js'
       - 'package.json'
       - 'bun.lock'
       - 'tsconfig.base.json'
@@ -43,6 +45,7 @@ jobs:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
       - run: bun clients/codegen/generate.ts --check
+      - run: bun test clients/codegen/test
       - run: clients/typescript/node_modules/.bin/tsc -p clients/codegen/tsconfig.json
       - name: every client ships the root LICENSE
         run: for f in clients/*/LICENSE; do cmp LICENSE "$f"; done

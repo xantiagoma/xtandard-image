@@ -84,10 +84,20 @@ Every client also runs the two existing shared fixtures, which stay where they a
 
 Why Bun rather than Go:
 
-- The generator is development tooling, never shipped, and writes source for eight languages. Template strings in TypeScript are shorter to write and review than `text/template`.
+- The generator is development tooling, never shipped, and writes source for eight languages. ~~Template strings in TypeScript are shorter to write and review than `text/template`.~~ *Amended 2026-10-23 (owner, WP-146):* the emitters no longer write template strings (below); TypeScript is still the better host, because the code model, the printers and the playground's snippet generator share one Doc algebra.
 - A Go generator under `internal/` would put eight languages' emitters under golangci-lint and the Go standards, and the Go module would have to change every time a language is added.
 - Bun is already pinned in the root `.mise.toml` and runs on the host with no Docker. The Go half (the spec export) stays in Go because only Go can read the catalogues.
 - Discovery by file name means the parallel language work packages add one file each and never edit a shared registry, so they never conflict.
+
+**Amendment 2026-10-23 (owner, WP-146): a code model, refiners and Doc printers instead of template strings.** The owner ruled out source built by concatenating strings or template literals: it does not scale to later changes (a new modifier, a wrapped signature, a different doc comment style means editing hundreds of interpolations across eleven emitters). The generator now has the same design as the playground's snippet generator (WP-145, Kiota's CodeDOM → refiner → writer):
+
+- `build.ts` turns the spec into a language-neutral model: the catalogues with each option's names, aliases, short name, argument shapes (`lib.ts`), bare arguments and documentation tags; the enumerations and constants; the response schemas with sorted properties.
+- `model.ts` is a declaration-level code model of typed nodes: files, comments, imports, namespaces, type aliases, constants, enums, class-like declarations (class, struct, record, interface, trait, protocol, mixin, extension), fields, functions and parameters, annotations; the statements and expressions their bodies need; type references (generic, nullable, union, literal, tuple). A language adds kinds of its own as `<lang>.<kind>` nodes.
+- Each `emitters/<lang>.ts` is the language's **refiner**: it lowers the neutral model into nodes in the shape its client wants. Each `lang/<lang>.ts` is the **printer** (a subclass of `printer.ts`) with the language's **leaf tokens**: string escaping against its interpolation markers, numbers as JavaScript writes them (the spec's rule), identifier casing and reserved words, comment escaping. Only leaf tokens, and the text of one comment line, are strings.
+- Printers produce a Doc in the Wadler/Leijen algebra (`text`, `concat`, `group`, `indent`, `line`, `softline`, `hardline`, `ifBreak`, `join`), and the layout decides the line breaks from the printer's width. There is one implementation: `clients/codegen/doc.ts` re-exports `internal/playground/assets/snippets/doc.js`, which cannot move because `go:embed` reads only below `internal/playground`; it carries JSDoc types for the generator (compiled with `allowJs`), and a test checks that the generator and the playground's printers use that same module.
+- An official formatter may follow the printer when the client's toolchain has it: Go keeps `gofmt`. The migration kept every committed file byte-identical (`generate --check`), so printers set an unbounded width where the committed files have long lines; a client that adopts its formatter later changes the width and regenerates.
+- `clients/codegen/test/` (part of `task clients:check`) tests the Doc helpers, the model, the printer base, each language's leaf tokens and narrow-width layout, and one golden per language for a small spec (`test/fixture.ts`).
+- The TypeScript client's `scripts/generate.ts` writes `options.ts` with the same model and a TypeScript printer; `openapi.ts` stays openapi-typescript's output (it prints from an AST already).
 
 ### 5. Toolchains: a `mise.toml` per client directory, Docker where mise has none
 
