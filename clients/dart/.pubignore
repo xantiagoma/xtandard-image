@@ -1,0 +1,10 @@
+# Replaces .gitignore for `dart pub publish`. The tests read the
+# repository's shared fixtures (../../clients/spec, ../../testdata), so
+# they stay in the repository with the tooling.
+.dart_tool/
+build/
+doc/api/
+mise.toml
+Taskfile.yml
+scripts/
+test/
