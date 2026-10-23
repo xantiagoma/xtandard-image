@@ -278,6 +278,8 @@ img.url("s3://photos/cat.jpg", {"rs": ("fill", 1200, 630), "g": "sm"}, extension
 
 **Ruby**: [`clients/ruby`](clients/ruby/README.md) (gem `xtandard-image`), with no runtime dependencies, RBS signatures for every option, a Net::HTTP client and a Rails helper.
 
+**Dart** 3.5+, [`clients/dart`](clients/dart/README.md) (`xtandard_image` on pub.dev after the first release), is pure Dart for Flutter apps (iOS, Android, web, desktop) and Dart servers: typed option methods and sealed option values generated from the catalogues, signing, encryption, and a client on any `package:http` client.
+
 The other languages are planned (M6 in the [roadmap](docs/ROADMAP.md)).
 
 ## Playground

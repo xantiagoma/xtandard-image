@@ -1,0 +1,61 @@
+# https://taskfile.dev — the Dart client's tasks (ADR 0013). The root
+# Taskfile runs `ci` here from `task clients:test`; run them in this
+# directory directly too (`task ci`). Commands go through mise (this
+# directory's mise.toml pins the Dart SDK); CI sets XI_DART=dart after
+# installing the SDK itself.
+version: "3"
+
+vars:
+  DART: '{{.XI_DART | default "mise exec -- dart"}}'
+  # Hand-written sources; lib/src/generated/ is the generator's (task
+  # clients:generate) and is not run through dart format.
+  FORMAT_PATHS: lib/xtandard_image.dart lib/src/*.dart test example scripts
+
+tasks:
+  install:
+    desc: Install the pinned SDK and the locked dependencies
+    cmds:
+      - mise install
+      - "{{.DART}} pub get --enforce-lockfile"
+
+  format:
+    desc: dart format check of the hand-written sources
+    cmds: ["{{.DART}} format --output=none --set-exit-if-changed {{.FORMAT_PATHS}}"]
+
+  analyze:
+    desc: dart analyze, infos fatal (package:lints recommended plus the stricter set in analysis_options.yaml)
+    cmds: ["{{.DART}} analyze --fatal-infos"]
+
+  test:
+    desc: "VM tests: conformance fixture, builder fixture, vectors, unit and client tests (XI_SMOKE_URL=http://127.0.0.1:8080 adds the smoke test)"
+    cmds: ["{{.DART}} test {{.CLI_ARGS}}"]
+
+  test:web:
+    desc: The same tests in Chrome, compiled with dart2js and dart2wasm (needs Chrome; CHROME_EXECUTABLE overrides the path)
+    cmds:
+      - "{{.DART}} test -p chrome"
+      - "{{.DART}} test -p chrome -c dart2wasm"
+
+  licenses:
+    desc: Runtime dependency licences against the ADR 0006 allowlist
+    cmds: ["{{.DART}} run scripts/check_licenses.dart"]
+
+  doc:
+    desc: dart doc into build/doc (fails on errors)
+    cmds: ["{{.DART}} doc --output build/doc"]
+
+  publish:dry-run:
+    desc: Validate the package as pub.dev would (never publishes)
+    cmds: ["{{.DART}} pub publish --dry-run"]
+
+  ci:
+    desc: Everything CI runs for the Dart client
+    cmds:
+      - "{{.DART}} pub get --enforce-lockfile"
+      - task: format
+      - task: analyze
+      - task: test
+      - task: test:web
+      - task: licenses
+      - task: doc
+      - task: publish:dry-run

@@ -1,0 +1,70 @@
+name: client-dart
+
+# The Dart client (clients/dart, ADR 0013): dart format, dart analyze
+# (infos fatal), dart test (conformance fixture, builder fixture, shared
+# vectors, unit and client tests) on the VM and in Chrome (dart2js and
+# dart2wasm), the licence check, dart doc and `dart pub publish --dry-run`
+# on the pinned SDK; the tests again on the oldest supported SDK (3.5,
+# with the newest dependencies it resolves; its analyzer is not run). Runs
+# when the client, the shared spec and fixtures, or this workflow change.
+#
+# DISABLED while Actions minutes are exhausted (docs/HANDOFF.md): the jobs
+# run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
+# Locally: `task -d clients/dart ci`.
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - 'clients/dart/**'
+      - 'clients/spec/**'
+      - 'testdata/urls/**'
+      - 'testdata/security/**'
+      - '.github/workflows/client-dart.yml'
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-dart-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: clients/dart
+
+jobs:
+  test:
+    name: dart ${{ matrix.sdk }}
+    if: vars.XI_CLIENTS_WORKFLOW == 'enabled'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.13.7 = clients/dart/mise.toml; 3.5.4 = the pubspec's lower bound.
+        sdk: ['3.13.7', '3.5.4']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ matrix.sdk }}
+      - if: matrix.sdk != '3.5.4'
+        run: dart pub get --enforce-lockfile
+      # The lockfile's dev dependencies need a newer SDK.
+      - if: matrix.sdk == '3.5.4'
+        run: dart pub upgrade
+      - if: matrix.sdk != '3.5.4'
+        run: dart format --output=none --set-exit-if-changed lib/xtandard_image.dart lib/src/*.dart test example scripts
+      - if: matrix.sdk != '3.5.4'
+        run: dart analyze --fatal-infos
+      - run: dart test
+      - run: dart test -p chrome
+      - if: matrix.sdk != '3.5.4'
+        run: dart test -p chrome -c dart2wasm
+      - if: matrix.sdk != '3.5.4'
+        run: dart run scripts/check_licenses.dart
+      - if: matrix.sdk != '3.5.4'
+        run: dart doc --output build/doc
+      - if: matrix.sdk != '3.5.4'
+        run: dart pub publish --dry-run

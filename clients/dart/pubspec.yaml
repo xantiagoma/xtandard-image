@@ -1,0 +1,38 @@
+name: xtandard_image
+description: >-
+  Official client of xtandard-image, the self-hosted image and video proxy:
+  typed imgproxy and query-dialect URL builders, signing, enc/ encryption and
+  an HTTP client. Pure Dart, for Flutter apps and Dart servers.
+version: 0.0.0
+repository: https://github.com/xantiagoma/xtandard-image/tree/main/clients/dart
+issue_tracker: https://github.com/xantiagoma/xtandard-image/issues
+documentation: https://github.com/xantiagoma/xtandard-image/blob/main/clients/dart/README.md
+topics:
+  - image
+  - imgproxy
+  - video
+  - cdn
+  - url
+
+# Dart 3.5 (Flutter 3.24, August 2024) is the oldest SDK the runtime
+# dependency closure supports (http 1.x, crypto and typed_data 1.4 need
+# 3.4 or 3.5). The package itself needs Dart 3.0 features (records,
+# patterns, sealed and final classes). CI tests 3.5 with
+# `dart pub downgrade` as well as the pinned SDK.
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  # BSD-3-Clause, Dart team: HMAC-SHA256.
+  crypto: ^3.0.6
+  # BSD-3-Clause, Dart team: the HTTP client (any http.Client: IOClient,
+  # BrowserClient, cronet_http, cupertino_http, …).
+  http: ^1.5.0
+  # MIT, pure Dart (VM, AOT, dart2js, dart2wasm): AES-256-CBC with PKCS#7.
+  pointycastle: ^4.0.0
+
+dev_dependencies:
+  lints: ">=5.0.0 <7.0.0"
+  test: ^1.25.8
+  # Read by scripts/check_licenses.dart (the dependencies' pubspecs).
+  yaml: ^3.1.2
