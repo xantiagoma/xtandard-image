@@ -1,0 +1,12 @@
+# Toolchain of the Swift client (ADR 0013 §5).
+#
+# mise's swift backend is experimental (it needs `mise settings
+# experimental=true`) and on macOS installs a swift.org .pkg without the Apple
+# SDKs, so Swift is not pinned as a mise tool:
+#
+# - macOS: the Xcode toolchain (Xcode 26, Swift 6.2 or later; `swift` on PATH),
+#   which also has swift-format and docc.
+# - Linux: the official swift image pinned below (`task linux`, and the Linux
+#   job of .github/workflows/client-swift.yml). Never an xtandard-base image.
+[env]
+XI_SWIFT_IMAGE = "swift:6.3.3"
