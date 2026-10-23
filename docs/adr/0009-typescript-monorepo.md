@@ -1,5 +1,8 @@
 # ADR 0009: TypeScript packages live in `packages/*`, a Bun workspace at the repo root
 
+> **Amended 2026-10-22 (ADR 0013):** the package moved to `clients/typescript` and is named `@xtandard/image`. The text below keeps the original `packages/image-url` / `@xtandard/image-url` names as decided at the time.
+
+
 - Status: accepted (first package: WP-84)
 - Date: 2026-09-26
 

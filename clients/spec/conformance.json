@@ -1,5 +1,5 @@
 {
-  "$comment": "Conformance fixture of the official clients (ADR 0013, clients/README.md). Every client runs every case. Inputs are written by hand; expect.value is written by the reference implementation (TypeScript, packages/image-url src/conformance.test.ts with XI_UPDATE_FIXTURES=1: task clients:fixtures) and every URL is checked by the server's parsers (internal/dialect/imgproxy TestConformanceFixture). expect.error is the language-neutral error code a client must raise (clients/README.md).",
+  "$comment": "Conformance fixture of the official clients (ADR 0013, clients/README.md). Every client runs every case. Inputs are written by hand; expect.value is written by the reference implementation (TypeScript, clients/typescript src/conformance.test.ts with XI_UPDATE_FIXTURES=1: task clients:fixtures) and every URL is checked by the server's parsers (internal/dialect/imgproxy TestConformanceFixture). expect.error is the language-neutral error code a client must raise (clients/README.md).",
   "keys": {
     "signing": {
       "key": "943b421c9eb07c830af81030552c86009268de4e532ba2ee2eab8247c6da0881",

@@ -32,7 +32,7 @@ if ! mise exec -- go mod tidy >/tmp/tidy.log 2>&1; then echo 'TIDY FAILED'; tail
 git diff --name-only --diff-filter=U
 
 # Generated artefacts: take the branch's copy; the adopter regenerates on the stack top
-# (`bun run generate` for packages/image-url/src/generated/*, `task` targets for the schema/openapi).
-for f in $(git diff --name-only --diff-filter=U | grep -E '^(packages/image-url/src/generated/|internal/config/config\.schema\.json$|internal/apidoc/openapi\.json$)'); do
+# (`bun run generate` for clients/typescript/src/generated/*, `task` targets for the schema/openapi).
+for f in $(git diff --name-only --diff-filter=U | grep -E '^(clients/typescript/src/generated/|internal/config/config\.schema\.json$|internal/apidoc/openapi\.json$)'); do
   git checkout --theirs "$f" && git add "$f"
 done

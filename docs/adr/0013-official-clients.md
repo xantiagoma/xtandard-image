@@ -5,7 +5,7 @@
 
 ## Context
 
-The owner (2026-10-15) asked for official URL builders and clients in the main backend languages: **Python, Go, PHP, Ruby, Rust, Java, .NET and Elixir**, next to the TypeScript package `@xtandard/image-url` (ADR 0009, WP-84, WP-133). The constraints he set:
+The owner (2026-10-15) asked for official URL builders and clients in the main backend languages: **Python, Go, PHP, Ruby, Rust, Java, .NET and Elixir**, next to the TypeScript package `@xtandard/image` (ADR 0009, WP-84, WP-133). The constraints he set:
 
 - No Bazel. Keep mise and Taskfile, use each language's native tooling, and run CI only for what changed.
 - Signing belongs on servers. There are no mobile SDKs: a key in an app signs and decrypts everything.
@@ -27,10 +27,10 @@ clients/
   codegen/             the one generator (Bun): generate.ts, lib.ts, spec.ts, emitters/<lang>.ts
   python/              PyPI xtandard-image (WP-134)
   go/  php/  ruby/  rust/  java/  dotnet/  elixir/   (WP-135 …)
-packages/image-url/    the TypeScript client (unchanged, ADR 0009)
+  typescript/          npm @xtandard/image, the reference client (moved from packages/image-url, 2026-10-22)
 ```
 
-- **TypeScript stays in `packages/image-url`.** It is a Bun workspace package with a lockfile, a licence check and a release job (ADR 0009), and it is the reference implementation of the conformance fixture (below). Moving it to `clients/ts` would change the npm `repository.directory`, ADR 0009, `ts.yml`, `bun.lock` and the release job, and buy nothing. `clients/README.md` lists it as the TypeScript client.
+- **TypeScript lives in `clients/typescript`** (npm `@xtandard/image`). It was first `packages/image-url` (`@xtandard/image-url`, ADR 0009) and stayed there when this ADR was written; on 2026-10-22 the owner asked to move it next to the other clients and drop the `-url` suffix, before anything was published, so no npm name was ever released. It is still a Bun workspace package with a lockfile, a licence check and a release job, and the reference implementation of the conformance fixture (below). `packages/*` stays a Bun workspace for future TypeScript integrations (React components, framework middlewares) that depend on `@xtandard/image`.
 - **One directory per language**: `clients/<lang>/`, where `<lang>` is `python`, `go`, `php`, `ruby`, `rust`, `java`, `dotnet` or `elixir`. Each directory is a self-contained project in its ecosystem's layout (`pyproject.toml`, `go.mod`, `composer.json`, `*.gemspec`, `Cargo.toml`, `pom.xml` or Gradle, `*.csproj`, `mix.exs`). It has a copy of the root `LICENSE` (checked by `task clients:check`), a `README.md` with a coverage table, a `mise.toml` and a `Taskfile.yml` whose `ci` task runs everything.
 - **The Go client is a separate Go module**, `clients/go` with module path `github.com/xantiagoma/xtandard-image/clients/go`, released with tags `clients/go/vX.Y.Z`. It imports nothing from `internal/` (the Go toolchain forbids that across modules anyway) and has no cgo. It is **the sanctioned exception to CLAUDE.md non-negotiable 2** ("all code lives under `internal/`, no `pkg/` without an ADR"). That rule is about the server's code. The client is a public library for other people's programs, so it is public by definition. The root `go.mod` gains `ignore ./clients`, so `./...` in the server module never walks the clients (a nested `go.mod` already excludes `clients/go`). The Go client follows `docs/go-standards.md` where it applies to a library: Go 1.27, stdlib first, `go-cmp` in tests, golangci-lint. It has no dependencies except possibly `go-cmp` for tests.
 - `.dockerignore` drops `clients`. The server image never sees them.
@@ -103,7 +103,7 @@ All clients follow the server's release line in lockstep, `0.x` before 1.0. The 
 
 | Language | Registry | Name |
 |---|---|---|
-| TypeScript | npm | `@xtandard/image-url` |
+| TypeScript | npm | `@xtandard/image` |
 | Python | PyPI (trusted publishing, OIDC) | `xtandard-image` (import `xtandard_image`) |
 | Go | pkg.go.dev (module proxy, tag `clients/go/vX.Y.Z`) | `github.com/xantiagoma/xtandard-image/clients/go` |
 | PHP | Packagist | `xtandard/image` |

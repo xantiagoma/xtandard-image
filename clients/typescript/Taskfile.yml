@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# The TypeScript client (@xtandard/image, ADR 0009, ADR 0013). `task ci` is what
+# `task clients:test` runs; the root `task ts:check` runs the same steps for
+# the whole Bun workspace.
+version: "3"
+
+tasks:
+  ci:
+    desc: "Install, check generated files, typecheck, test, licences, build and pack (dry run)"
+    cmds:
+      - bun install --frozen-lockfile
+      - bun run generate:check
+      - bun run typecheck
+      - bun test
+      - bun ../../scripts/check-ts-licenses.ts
+      - bun run build
+      - bun pm pack --dry-run --quiet

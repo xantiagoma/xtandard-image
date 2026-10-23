@@ -4,7 +4,7 @@ URL builders and HTTP clients for xtandard-image in the main backend languages (
 
 | Language | Directory | Package | Status |
 |---|---|---|---|
-| TypeScript | [`packages/image-url`](../packages/image-url) | npm `@xtandard/image-url` | reference implementation (ADR 0009) |
+| TypeScript | [`clients/typescript`](../clients/typescript) | npm `@xtandard/image` | reference implementation (ADR 0009) |
 | Python | [`clients/python`](python) | PyPI `xtandard-image` | WP-134 |
 | Go | [`clients/go`](go) | module `github.com/xantiagoma/xtandard-image/clients/go` (tags `clients/go/vX.Y.Z`) | WP-135 |
 | PHP | [`clients/php`](php) | Packagist `xtandard/image` | WP-136 |
@@ -37,7 +37,7 @@ task clients:test          # `task ci` in every clients/*/ that has a Taskfile.y
 task clients:python:test   # one client
 ```
 
-After changing a Go option: `task clients:spec clients:generate`, then `bun run generate` in `packages/image-url`, then commit everything.
+After changing a Go option: `task clients:spec clients:generate`, then `bun run generate` in `clients/typescript`, then commit everything.
 
 ## Adding a language
 
