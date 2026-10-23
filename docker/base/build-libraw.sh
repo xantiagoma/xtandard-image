@@ -113,6 +113,7 @@ if [ "$with_sdks" = 1 ]; then
     esac
     dng_files+=("$src")
   done
+  # shellcheck disable=SC2016 # $@ and $(basename …) expand in the inner sh, per file
   printf '%s\n' "${dng_files[@]}" | xargs -P"$jobs" -I{} sh -c \
     'g++ "$@" -c "{}" -o "'"$BUILD"'/obj/dng-sdk/$(basename "{}" .cpp).o"' _ \
     "${SDK_CXXFLAGS[@]}" "${DNG_DEFS[@]}" -I"$TARGET_PATH/include"

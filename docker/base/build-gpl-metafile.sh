@@ -125,7 +125,7 @@ cd /
 rm -rf /tmp/libemf2svg
 
 print_build_stage xi-metafile2svg "$LIBWMF_VERSION/$LIBEMF2SVG_VERSION"
-# shellcheck disable=SC2086 # CFLAGS and LDFLAGS are lists of flags
+# shellcheck disable=SC2086,SC2046 # CFLAGS, LDFLAGS and pkg-config output are lists of flags
 cc $CFLAGS $LDFLAGS -O2 -Wall -Werror -o "$TARGET_PATH/bin/xi-metafile2svg" "$my_dir/metafile/xi-metafile2svg.c" \
   -DXI_METAFILE_VERSION="\"libwmf $LIBWMF_VERSION, libemf2svg $LIBEMF2SVG_VERSION\"" \
   -I"$TARGET_PATH/include" $(pkg-config --cflags freetype2) -L"$TARGET_PATH/lib" -lwmf -lwmflite -lemf2svg -lm
