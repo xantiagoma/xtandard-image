@@ -181,12 +181,14 @@
       <textarea id="url-out" rows="2" readonly spellcheck="false"></textarea>
       <div class="row wrap">
         <button type="button" id="copy" class="primary">Copy URL</button>
-        <button type="button" id="copy-curl">Copy as curl</button>
-        <button type="button" id="copy-ts" title="@xtandard/image fluent builder (imgproxy mounts)">Copy as TypeScript</button>
-        <label class="inline"><input type="checkbox" id="snippet-signed" checked> signed snippet</label>
         <span id="signed" class="badge"></span>
       </div>
       <p id="status" class="status" role="status" aria-live="polite"></p>
+      <details class="snippet-box" id="snippet-box">
+        <summary><h3 id="snippet-title">Code</h3> <span class="hint">curl, TypeScript, Python, Go, PHP, Ruby, Rust, Java, Kotlin, C#, Elixir, Swift, Dart</span></summary>
+        <p class="hint">This URL as a curl command or with an official client (<code>clients/</code>). Keys never appear: the code reads them from the environment.</p>
+        <div class="snippet" id="snippet"></div>
+      </details>
     </section>
 
     <section class="panel" aria-labelledby="preview-title">
@@ -295,9 +297,8 @@
           <button type="button" id="info-run" class="primary">Load /info</button>
           <label class="inline"><input type="checkbox" id="info-live" checked> live</label>
           <button type="button" id="info-copy">Copy URL</button>
-          <button type="button" id="info-copy-curl">Copy as curl</button>
-          <button type="button" id="info-copy-ts" title="@xtandard/image info builder">Copy as TypeScript</button>
         </div>
+        <div class="snippet" id="info-snippet" aria-label="/info code snippet" role="group"></div>
         <p id="info-status" class="status" role="status" aria-live="polite"></p>
         <div id="info-result" class="info-result"></div>
       </div>
