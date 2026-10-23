@@ -40,6 +40,9 @@ import (
 // implements it.
 type Router interface {
 	Route(r *http.Request) (*dialect.Result, *router.Mount, error)
+	// MountFor returns the mount Route would select, without parsing
+	// (router.Router.MountFor); nil when none.
+	MountFor(host, escapedPath string, hasURL bool) *router.Mount
 }
 
 // Resolver maps a source spec to a source key; it is the allowlist
@@ -295,6 +298,8 @@ type Config struct {
 	// Stream configures HLS and DASH (stream.go); used only when
 	// Deps.Stream is set.
 	Stream StreamConfig
+	// Query configures the HTTP QUERY method (query.go).
+	Query QueryMethodConfig
 	// SourcePasswords are the default document passwords of named sources
 	// (XI_SOURCES_<NAME>_PDF_PASSWORD), used when a request carries no
 	// pdf_password of its own. Read-only; never cleared by the server.
@@ -353,6 +358,7 @@ func DefaultConfig() Config {
 		CacheTagsHeader: "Cache-Tag",
 		Fallback:        Fallback{Status: http.StatusOK, TTL: time.Minute},
 		Info:            InfoConfig{CacheTTL: 365 * 24 * time.Hour},
+		Query:           DefaultQueryMethodConfig(),
 	}
 }
 
@@ -393,6 +399,12 @@ func (c *Config) Validate() error {
 	}
 	if c.Fallback.TTL < 0 {
 		list = append(list, fmt.Errorf("server: fallback ttl must be >= 0, got %s", c.Fallback.TTL))
+	}
+	if c.Query.MaxBodyBytes <= 0 {
+		list = append(list, fmt.Errorf("server: query max body bytes must be > 0, got %d", c.Query.MaxBodyBytes))
+	}
+	if l := c.Query.LocationMaxLength; l < 0 || l > maxURLLength {
+		list = append(list, fmt.Errorf("server: query location max length must be in 0..%d, got %d", maxURLLength, l))
 	}
 	if err := c.Negotiate.Validate(); err != nil {
 		list = append(list, err)
