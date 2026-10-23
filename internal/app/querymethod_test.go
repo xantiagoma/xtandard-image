@@ -18,10 +18,10 @@ import (
 	"github.com/xantiagoma/xtandard-image/internal/testutil/golden"
 )
 
-// send makes one request with an optional body and content type.
-func send(tb testing.TB, method, u, ctype, body string) response {
+// send makes one HTTP QUERY request with content of type ctype.
+func send(tb testing.TB, u, ctype, body string) response {
 	tb.Helper()
-	req, err := http.NewRequestWithContext(tb.Context(), method, u, strings.NewReader(body))
+	req, err := http.NewRequestWithContext(tb.Context(), "QUERY", u, strings.NewReader(body))
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func TestQueryMethodEndToEnd(t *testing.T) {
 	}
 	store.Wait()
 
-	form := send(t, "QUERY", base+"/q/", query.MediaTypeForm, signed)
+	form := send(t, base+"/q/", query.MediaTypeForm, signed)
 	checkJPEG(t, form, 120, 90)
 	if form.header.Get("X-Xi-Cache") != "HIT" || form.header.Get("ETag") != getRes.header.Get("ETag") || !bytes.Equal(form.body, getRes.body) {
 		t.Errorf("QUERY after GET: cache %q, ETag %q vs %q, same body %t",
@@ -123,7 +123,7 @@ func TestQueryMethodEndToEnd(t *testing.T) {
 
 	sig := signed[strings.LastIndex(signed, "=")+1:]
 	jsonBody := `{"url":"xi://docs/jpeg/baseline.jpg","w":120,"h":90,"fit":"cover","f":"jpeg","xi_sig":"` + sig + `"}`
-	js := send(t, "QUERY", base+"/q/", query.MediaTypeJSON, jsonBody)
+	js := send(t, base+"/q/", query.MediaTypeJSON, jsonBody)
 	checkJPEG(t, js, 120, 90)
 	if js.header.Get("X-Xi-Cache") != "HIT" {
 		t.Errorf("JSON QUERY cache %q, want HIT", js.header.Get("X-Xi-Cache"))
@@ -135,7 +135,7 @@ func TestQueryMethodEndToEnd(t *testing.T) {
 	if r := get(t, base+"/q/?"+long); r.status != http.StatusRequestURITooLong {
 		t.Errorf("long GET: %d, want 414", r.status)
 	}
-	lr := send(t, "QUERY", base+"/q/", query.MediaTypeForm, long)
+	lr := send(t, base+"/q/", query.MediaTypeForm, long)
 	checkJPEG(t, lr, 64, 64)
 	if lr.header.Get("Location") != "" {
 		t.Error("Location on a query longer than the limit")
@@ -150,12 +150,12 @@ func TestQueryMethodEndToEnd(t *testing.T) {
 		{"text", "text/plain", signed, http.StatusUnsupportedMediaType},
 		{"bad json", query.MediaTypeJSON, "{", http.StatusBadRequest},
 	} {
-		r := send(t, "QUERY", base+"/q/", tc.ctype, tc.body)
+		r := send(t, base+"/q/", tc.ctype, tc.body)
 		if r.status != tc.status || r.header.Get("Accept-Query") != query.AcceptQuery {
 			t.Errorf("%s: %d (Accept-Query %q), want %d", tc.name, r.status, r.header.Get("Accept-Query"), tc.status)
 		}
 	}
-	if r := send(t, "QUERY", base+"/insecure/rs:fit:64:64/plain/xi://docs/jpeg/baseline.jpg", query.MediaTypeForm, "x=1"); r.status != http.StatusMethodNotAllowed || r.header.Get("Allow") != "GET, HEAD" {
+	if r := send(t, base+"/insecure/rs:fit:64:64/plain/xi://docs/jpeg/baseline.jpg", query.MediaTypeForm, "x=1"); r.status != http.StatusMethodNotAllowed || r.header.Get("Allow") != "GET, HEAD" {
 		t.Errorf("QUERY on imgproxy: %d Allow %q", r.status, r.header.Get("Allow"))
 	}
 }
@@ -167,7 +167,7 @@ func TestQueryMethodDisabled(t *testing.T) {
 	cfg := queryMethodConfig(t, "XI_SERVER_QUERY_METHOD=false", "XI_SECURITY_UNSIGNED_POLICY=allow")
 	a := start(t, &cfg, hooks{})
 	base := "http://" + a.public.String()
-	r := send(t, "QUERY", base+"/q/", query.MediaTypeForm, "url=xi://docs/jpeg/baseline.jpg&w=64")
+	r := send(t, base+"/q/", query.MediaTypeForm, "url=xi://docs/jpeg/baseline.jpg&w=64")
 	if r.status != http.StatusMethodNotAllowed || r.header.Get("Allow") != "GET, HEAD" || r.header.Get("Accept-Query") != "" {
 		t.Errorf("QUERY: %d Allow %q Accept-Query %q", r.status, r.header.Get("Allow"), r.header.Get("Accept-Query"))
 	}
