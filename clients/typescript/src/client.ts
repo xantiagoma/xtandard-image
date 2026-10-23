@@ -18,6 +18,7 @@ import {
   type ImgproxyVideoUrlRequest,
 } from "./builder.ts";
 import type { components } from "./generated/openapi.ts";
+import { queryMethodRequest } from "./query.ts";
 
 export type { components, operations, paths } from "./generated/openapi.ts";
 
@@ -50,6 +51,16 @@ export interface XtandardClientOptions {
    * (default "/_playground/").
    */
   readonly playground?: { readonly baseUrl?: string; readonly path?: string };
+  /**
+   * Send query dialect URLs (those under `queryMount`) passed to `media()`
+   * with the HTTP QUERY method (RFC 10008): the query moves into the
+   * request content. Off by default: the server needs XI_SERVER_QUERY_METHOD
+   * (on by default), and many CDNs and proxies neither cache nor forward
+   * QUERY. `{ method: "QUERY" }` on one call does the same for that call.
+   */
+  readonly queryMethod?: boolean;
+  /** The query dialect's mount (XI_DIALECTS_QUERY_PREFIX), for `queryMethod`. Default "/q". */
+  readonly queryMount?: string;
 }
 
 /** Per-call options. */
@@ -66,8 +77,12 @@ export type ByteRange = string | { readonly start: number; readonly end?: number
 
 /** Options of a media request (image, video, audio, stream part). */
 export interface MediaOptions extends CallOptions {
-  /** GET (default) or HEAD: HEAD answers the headers (type, length, ETag) without the body. */
-  readonly method?: "GET" | "HEAD";
+  /**
+   * GET (default) or HEAD: HEAD answers the headers (type, length, ETag)
+   * without the body. QUERY sends a query dialect URL's query as the
+   * request content (RFC 10008; see XtandardClientOptions.queryMethod).
+   */
+  readonly method?: "GET" | "HEAD" | "QUERY";
   /** Ask for part of the body (206 Partial Content): `/video` results and stream parts support it. */
   readonly range?: ByteRange;
   /** The Accept header (format negotiation for images). Default `*\/*`. */
@@ -178,6 +193,8 @@ export interface XtandardClient {
   /**
    * GET (or HEAD) any URL or server path: a prebuilt image or video URL, a
    * query dialect URL, or a stream part (`/_stream/<ticket>/v0/1.m4s`).
+   * A query dialect URL goes out as QUERY with `{ method: "QUERY" }`, or
+   * by default with the client's `queryMethod`.
    */
   media(url: string, opts?: MediaOptions): Promise<Response>;
   /** GET the playground's `api/meta` (needs XI_PLAYGROUND_ENABLED; on the admin listener by default). */
@@ -200,6 +217,13 @@ export function createClient(options: XtandardClientOptions): XtandardClient {
   const abs = (url: string): string =>
     /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url) ? url : `${base}${url.startsWith("/") ? "" : "/"}${url}`;
 
+  const queryMount = (options.queryMount ?? "/q").replace(/\/+$/, "");
+  /** Whether url is under the query dialect mount (for `queryMethod`). */
+  const underQueryMount = (url: string): boolean => {
+    const path = new URL(url, "http://x").pathname;
+    return path === queryMount || path.startsWith(`${queryMount}/`);
+  };
+
   async function get(url: string, accept: string, opts: MediaOptions | undefined): Promise<Response> {
     const headers = new Headers(options.headers);
     new Headers(opts?.headers).forEach((v, k) => headers.set(k, v));
@@ -207,6 +231,13 @@ export function createClient(options: XtandardClientOptions): XtandardClient {
     if (opts?.range !== undefined) headers.set("Range", rangeHeader(opts.range));
     const init: RequestInit = { method: opts?.method ?? "GET", headers };
     if (opts?.signal) init.signal = opts.signal;
+    if (opts?.method === "QUERY" || (opts?.method === undefined && options.queryMethod === true && underQueryMount(url))) {
+      const q = queryMethodRequest(url);
+      init.method = q.method;
+      headers.set("Content-Type", q.contentType);
+      init.body = q.body;
+      return doFetch(q.url, init);
+    }
     return doFetch(url, init);
   }
 

@@ -23,6 +23,7 @@ import {
   escapePlainSource,
   escapeQueryValue,
   type ImgproxyUrlConfig,
+  queryMethodRequest,
   type QueryUrlConfig,
   sign,
   signXiUrl,
@@ -124,6 +125,11 @@ async function run(c: Case): Promise<string> {
       return buildQueryStreamUrl({ ...common(input), ...(opts ? { options: opts } : {}) } as never, cfg);
     case "query.imaginary_url":
       return buildImaginaryUrl({ endpoint: input["endpoint"], source: input["source"], ...(params ? { params } : {}) } as never, cfg);
+    case "query.query_request": {
+      // input.build names the query op that builds the URL from the other inputs.
+      const q = queryMethodRequest(await run({ ...c, op: input["build"] as string }));
+      return `${q.method} ${q.url}\nContent-Type: ${q.contentType}\n\n${q.body}`;
+    }
     case "sign":
       return sign(input["message"] as string, cfg.signing!);
     case "sign_xi_url":
