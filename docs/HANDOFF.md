@@ -353,3 +353,9 @@ owner has authorised merging PRs without review.
   `task playground:snippets` 156/156; also `TestSniffFixtures` skips hidden files (.DS_Store). Demo
   redeployed (assets under `assets/<hash>/`). **In flight:** WP-146 migrates `clients/codegen` to the same
   design, byte-identical generated output as the gate (`m6/wp-146-codegen-model`).
+- **Merged 2026-10-23:** WP-146 (#152): `clients/codegen` on code model → refiner → Doc printer, one
+  Doc module (`internal/playground/assets/snippets/doc.js`, re-exported by `clients/codegen/doc.ts`),
+  generated output byte-identical for all 12 clients. Also fixed `TestProbeEndpoints` flake (shared probe
+  slots). Proposed model follow-ups in the WP-146 report (generic `N.ext` kinds, conditional/initializer
+  nodes, Param docs, module inner docs, PHP docblock tags). Nothing in flight. Pending owner answer:
+  HTTP QUERY (RFC 10008) as WP-147.
