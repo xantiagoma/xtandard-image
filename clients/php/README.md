@@ -140,6 +140,22 @@ Responses are PSR-7 `ResponseInterface`s; read large bodies through `getBody()` 
 
 Each carries `$status`, `$kind`, the message, `$requestId` from the server's JSON error envelope, and the `$response`. Connection failures throw `TransportException`, with the PSR-18 exception as the previous one. Every exception implements `Xtandard\Image\Exception\XtandardException`.
 
+### HTTP QUERY (opt-in)
+
+The query dialect also accepts the HTTP QUERY method (RFC 10008): the URL's query moves into the request content, so long option chains, watermark text or encrypted sources stay out of URLs. It is off by default, because many CDNs and proxies neither cache nor forward QUERY; the server needs `XI_SERVER_QUERY_METHOD` (on by default).
+
+```php
+use Xtandard\Image\QueryMethodRequest;
+
+$q = QueryMethodRequest::fromUrl($queryUrls->url('s3://photos/cat.jpg', ['w' => 300]));   // or queryMethodRequest($url)
+// $q->method 'QUERY', $q->url '/q/', $q->contentType 'application/x-www-form-urlencoded', $q->body 'url=…&w=300&xi_sig=…'
+
+$res = $xi->media($signedQueryUrl, 'QUERY');                    // one call
+$xi = new Client($origin, $http, $factory, queryMethod: true);  // every media() URL under queryMount ('/q') with no method given
+```
+
+The content is the built URL's query as written, `xi_sig` included (the signature does not cover the method). A URL without a query, or with a fragment, throws `UrlBuildException` with `ErrorCode::InvalidRequest`. HEAD and explicit GET are unchanged. The content stream comes from a PSR-17 `StreamFactoryInterface`: the `streamFactory:` argument, or the request factory or PSR-18 client when it is one (Guzzle's `HttpFactory` and Symfony's `Psr18Client` are).
+
 ## Frameworks
 
 ### Laravel
@@ -217,6 +233,7 @@ add_filter('wp_get_attachment_image_src', static function ($image, $attachmentId
 | Password-protected PDFs (`pdp`) | `pdfPassword:` / `withPdfPassword()`, `Encryption::encryptPdfPassword()` |
 | Sources: base64, `plain/`, `enc/`, split; `xi://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://` | `sourceEncoding`, `splitSource`, `Sources::xiSource()`, `Sources::sourceUrl()` |
 | Query dialect `/q/`, `/q/video`, imaginary; `xi_sig` | `QueryUrlBuilder` (native keys typed as `QueryImageParams`), `Signing::signXiUrl()` |
+| HTTP QUERY on the query dialect (opt-in) | `QueryMethodRequest::fromUrl()` / `queryMethodRequest()`, `Client::media($url, 'QUERY')`, `Client(queryMethod: true, queryMount: …)` |
 | `/healthz`, `/readyz`, playground `api/meta` | `healthz()`, `readyz()`, `playgroundMeta()` |
 
 Not covered, on purpose (as in the TypeScript client):

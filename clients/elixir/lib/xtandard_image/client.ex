@@ -66,13 +66,28 @@ if Code.ensure_loaded?(Req) do
         `retry: false` and `decode_body: false` unless you override them;
       * `:playground_base_url` - origin of the admin listener for
         `playground_meta/1`; default the base URL;
-      * `:playground_path` - `XI_PLAYGROUND_PATH`, default `"/_playground/"`.
+      * `:playground_path` - `XI_PLAYGROUND_PATH`, default `"/_playground/"`;
+      * `:query_method` - send `media/3` URLs under `:query_mount` with the HTTP
+        QUERY method when no `:method` is given (default `false`);
+      * `:query_mount` - the query dialect's mount (`XI_DIALECTS_QUERY_PREFIX`),
+        for `:query_method`; default `"/q"`.
+
+    ## HTTP QUERY (opt-in)
+
+    `media(c, url, method: :query)` sends a query dialect URL as an HTTP QUERY
+    request (RFC 10008, `XtandardImage.QueryMethodRequest`): the URL without
+    its query, `Content-Type: application/x-www-form-urlencoded`, and the
+    query as the content. `query_method: true` does so for every `media/3` URL
+    under `:query_mount` when no method is given. Off by default: the server
+    needs `XI_SERVER_QUERY_METHOD` (on by default), and many CDNs and proxies
+    neither cache nor forward QUERY.
     """
 
     alias XtandardImage.Error
     alias XtandardImage.HTTPError
     alias XtandardImage.Imgproxy
     alias XtandardImage.InfoResponse
+    alias XtandardImage.QueryMethodRequest
     alias XtandardImage.Readiness
     alias XtandardImage.Spec
     alias XtandardImage.StreamManifest
@@ -82,7 +97,9 @@ if Code.ensure_loaded?(Req) do
             base_url: String.t(),
             urls: Imgproxy.t(),
             req: Req.Request.t(),
-            playground_meta_url: String.t()
+            playground_meta_url: String.t(),
+            query_method: boolean(),
+            query_mount: String.t()
           }
 
     @typedoc "Any error a client function returns."
@@ -90,14 +107,14 @@ if Code.ensure_loaded?(Req) do
 
     @typedoc "Options of the media functions."
     @type media_option ::
-            {:method, :get | :head}
+            {:method, :get | :head | :query}
             | {:range, XtandardImage.Range.t()}
             | {:accept, String.t()}
             | {:headers, [{String.t(), String.t()}] | %{optional(String.t()) => String.t()}}
             | {:into, term()}
 
     @enforce_keys [:base_url, :urls, :req, :playground_meta_url]
-    defstruct [:base_url, :urls, :req, :playground_meta_url]
+    defstruct [:base_url, :urls, :req, :playground_meta_url, query_method: false, query_mount: "/q"]
 
     @builder_opts [
       :signing,
@@ -124,7 +141,9 @@ if Code.ensure_loaded?(Req) do
               headers: [],
               req_options: [],
               playground_base_url: nil,
-              playground_path: "/_playground/"
+              playground_path: "/_playground/",
+              query_method: false,
+              query_mount: XtandardImage.Spec.query_mount()
             ]
         )
 
@@ -142,7 +161,9 @@ if Code.ensure_loaded?(Req) do
         base_url: base,
         urls: urls,
         req: req,
-        playground_meta_url: "#{origin}/#{path}/api/meta"
+        playground_meta_url: "#{origin}/#{path}/api/meta",
+        query_method: opts[:query_method] == true,
+        query_mount: String.trim_trailing(opts[:query_mount], "/")
       }
     end
 
@@ -221,8 +242,12 @@ if Code.ensure_loaded?(Req) do
 
     @doc """
     `GET` (or `HEAD`) any URL or server path: an image or `/video` URL, a query
-    URL, a stream part. `opts`: `:method` (`:get` or `:head`), `:range`
+    URL, a stream part. `opts`: `:method` (`:get`, `:head` or `:query`), `:range`
     (`t:XtandardImage.Range.t/0`), `:accept` (default `*/*`), `:headers`, `:into`.
+
+    `:query` sends a query dialect URL's query as the request content (RFC
+    10008); with no `:method`, the client's `:query_method` picks QUERY for URLs
+    under its `:query_mount` and GET for the rest.
     """
     @spec media(t(), String.t(), [media_option()]) :: {:ok, Req.Response.t()} | {:error, error()}
     def media(%__MODULE__{} = c, url, opts \\ []) do
@@ -232,7 +257,12 @@ if Code.ensure_loaded?(Req) do
         url = absolute(c, url)
         h = headers(opts[:accept] || "*/*", range, opts[:headers])
         extra = if opts[:into] == nil, do: [], else: [into: opts[:into]]
-        c |> send_request(opts[:method] || :get, url, h, extra) |> check(url)
+
+        if query?(c, opts[:method], url) do
+          query_request(c, url, h, extra)
+        else
+          c |> send_request(opts[:method] || :get, url, h, extra) |> check(url)
+        end
       end
     end
 
@@ -318,6 +348,23 @@ if Code.ensure_loaded?(Req) do
     def playground_meta!(c), do: c |> playground_meta() |> bang()
 
     # ---- internals -------------------------------------------------------------
+
+    defp query?(_c, :query, _url), do: true
+    defp query?(%__MODULE__{query_method: true} = c, nil, url), do: under_query_mount?(c, url)
+    defp query?(_c, _method, _url), do: false
+
+    defp under_query_mount?(c, url) do
+      [path | _] = String.split(url, ["?", "#"], parts: 2)
+      path = String.replace(path, ~r{^[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*}, "")
+      path == c.query_mount or String.starts_with?(path, c.query_mount <> "/")
+    end
+
+    defp query_request(c, url, headers, extra) do
+      with {:ok, q} <- QueryMethodRequest.from_url(url) do
+        headers = [{"content-type", q.content_type} | List.keydelete(headers, "content-type", 0)]
+        c |> send_request(:query, q.url, headers, [body: q.body] ++ extra) |> check(q.url)
+      end
+    end
 
     defp json(c, url) do
       with {:ok, resp} <- checked(c, :get, url, "application/json") do

@@ -38,6 +38,7 @@ class ClientTest < Minitest::Test
     when "/_admin/play/api/meta" then [200, json, JSON.generate({ version: "test" })]
     when "/proxy-error" then [502, { "Content-Type" => "text/html" }, "<html>bad gateway</html>"]
     when "/busy" then [429, json, envelope.call("overloaded", "too many requests", request_id: "r1")]
+    when %r{\A/(img/)?q(/|\z)} then [200, {}, "img"]
     else [404, json, envelope.call("not_found", "source image not found")]
     end
   end
@@ -165,6 +166,57 @@ class ClientTest < Minitest::Test
     assert_equal "bytes=3-", X.range_header({ start: 3 })
     [5..4, 5...5, -1.., X::ByteSuffix.new(length: -1), { start: 1.5 }, 42].each do |bad|
       assert_equal :invalid_range, assert_raises(X::URLBuildError) { X.range_header(bad) }.code
+    end
+  end
+
+  def seen_query = SERVER.seen.map { |r| [r["method"], r["target"], r["headers"]["content-type"], r["body"]] }
+
+  def test_query_method_off_by_default
+    q = "/q/?url=https://e.com/a.jpg&w=300&xi_sig=abc"
+    assert_equal 200, @xi.media(q).status
+    assert_equal [["GET", q, nil, ""]], seen_query
+  end
+
+  def test_query_method_option
+    xi = X::Client.new(SERVER.base_url, query_method: true)
+    form = X::QUERY_CONTENT_TYPE
+    xi.media("/q/?url=https://e.com/a.jpg&w=300&xi_sig=abc")
+    xi.media("#{SERVER.base_url}/q/video?url=s3://m/a.mov&vd=5")
+    xi.media("/_stream/T/v0.m3u8")
+    assert_raises(X::NotFoundError) { xi.media("/qq?url=x") }
+    res = xi.media("/q/?url=x", method: :head)
+    xi.media("/q/?url=x", method: :get)
+    assert_nil res.body
+    assert_equal [
+      ["QUERY", "/q/", form, "url=https://e.com/a.jpg&w=300&xi_sig=abc"],
+      ["QUERY", "/q/video", form, "url=s3://m/a.mov&vd=5"],
+      ["GET", "/_stream/T/v0.m3u8", nil, ""],
+      ["GET", "/qq?url=x", nil, ""],
+      ["HEAD", "/q/?url=x", nil, ""],
+      ["GET", "/q/?url=x", nil, ""],
+    ], seen_query
+    # A URL under the mount without a query cannot be a QUERY request.
+    assert_equal :invalid_request, assert_raises(X::URLBuildError) { xi.media("/q/") }.code
+  end
+
+  def test_query_method_per_call_with_custom_mount
+    xi = X::Client.new(SERVER.base_url, query_mount: "/img/q/")
+    res = xi.media("/img/q/resize?url=x&width=1", method: "QUERY")
+    xi.media("/img/q/resize?url=x")
+    assert_equal ["img", "#{SERVER.base_url}/img/q/resize"], [res.body, res.url]
+    assert_equal [
+      ["QUERY", "/img/q/resize", X::QUERY_CONTENT_TYPE, "url=x&width=1"],
+      ["GET", "/img/q/resize?url=x", nil, ""],
+    ], seen_query
+  end
+
+  def test_query_method_request
+    q = X.query_method_request("https://xi.test/q/watermark?url=a&text=50%25%20off")
+    assert_equal ["QUERY", "https://xi.test/q/watermark", "application/x-www-form-urlencoded", "url=a&text=50%25%20off"],
+                 [q.http_method, q.url, q.content_type, q.body]
+    assert_equal "a=1?b", X::QueryMethodRequest.from_url("/q/?a=1?b").body
+    ["/q/", "/q/?", "/q/?url=x#frag"].each do |bad|
+      assert_equal :invalid_request, assert_raises(X::URLBuildError) { X.query_method_request(bad) }.code, bad
     end
   end
 
