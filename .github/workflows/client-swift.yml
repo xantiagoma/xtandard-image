@@ -1,0 +1,68 @@
+name: client-swift
+
+# The Swift client (clients/swift, ADR 0013; manifest at the repository root):
+# swift-format, the build (warnings as errors on macOS), Swift Testing
+# (conformance fixture, builder fixture, shared vectors, unit and stand-in
+# HTTP tests), the licence check and DocC, on macOS (Xcode: CryptoKit and
+# CommonCrypto) and on Linux in the official swift images (swift-crypto),
+# from the oldest supported toolchain (6.2) to the pinned one. Runs when the
+# client, the root Package.swift, the shared spec and fixtures, or this
+# workflow change.
+#
+# DISABLED while Actions minutes are exhausted (docs/HANDOFF.md): the jobs
+# run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
+# Locally: `task -d clients/swift ci` and `task -d clients/swift linux`.
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - 'clients/swift/**'
+      - 'Package.swift'
+      - 'clients/spec/**'
+      - 'testdata/urls/**'
+      - 'testdata/security/**'
+      - '.github/workflows/client-swift.yml'
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-swift-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: clients/swift
+
+jobs:
+  macos:
+    name: macOS (the runner's default Xcode 26)
+    if: vars.XI_CLIENTS_WORKFLOW == 'enabled'
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - run: swift --version
+      - run: swift format lint --strict --configuration .swift-format Sources/XtandardImage/*.swift Tests/XtandardImageTests/*.swift ../../Package.swift
+      - run: swift build --package-path ../.. --scratch-path .build -Xswiftc -warnings-as-errors
+      - run: swift test --package-path ../.. --scratch-path .build -Xswiftc -warnings-as-errors
+      - run: sh scripts/check-licenses.sh .build
+      - run: sh scripts/docs.sh .build
+
+  linux:
+    name: Linux (swift ${{ matrix.swift }})
+    if: vars.XI_CLIENTS_WORKFLOW == 'enabled'
+    runs-on: ubuntu-24.04
+    container: swift:${{ matrix.swift }} # official image; = clients/swift/mise.toml for 6.3.3
+    strategy:
+      fail-fast: false
+      matrix:
+        swift: ['6.2', '6.3.3']
+    steps:
+      - uses: actions/checkout@v7
+      - run: swift build --package-path ../.. --scratch-path .build
+      - run: swift test --package-path ../.. --scratch-path .build
+      - run: sh scripts/check-licenses.sh .build
+      - if: matrix.swift == '6.3.3'
+        run: sh scripts/docs.sh .build

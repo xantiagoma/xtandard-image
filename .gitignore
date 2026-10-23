@@ -39,3 +39,9 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 clients/*/dist/
+
+# SwiftPM at the repository root (Package.swift publishes clients/swift, ADR 0013).
+# A library does not commit Package.resolved; the client's own tasks build in clients/swift/.build.
+/Package.resolved
+/.build/
+/.swiftpm/

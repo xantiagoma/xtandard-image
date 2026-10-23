@@ -1,6 +1,6 @@
 # Official clients
 
-URL builders and HTTP clients for xtandard-image in the main backend languages ([ADR 0013](../docs/adr/0013-official-clients.md)). They all share one language-neutral spec, one conformance fixture and one code generator. Build and sign URLs **on a server**: the signing key signs everything, and the encryption key decrypts every `enc/` source and PDF password. There are no mobile SDKs.
+URL builders and HTTP clients for xtandard-image in the main backend languages ([ADR 0013](../docs/adr/0013-official-clients.md)). They all share one language-neutral spec, one conformance fixture and one code generator. Build and sign URLs **on a server**: the signing key signs everything, and the encryption key decrypts every `enc/` source and PDF password. The Swift, Kotlin Multiplatform and Dart clients also run in apps: signing and encryption stay optional there, because keys shipped in an app can be extracted; use the server's `restricted` unsigned policy (presets, allowed sizes) or URLs signed by your backend.
 
 | Language | Directory | Package | Status |
 |---|---|---|---|
@@ -13,6 +13,7 @@ URL builders and HTTP clients for xtandard-image in the main backend languages (
 | Java | [`clients/java`](java) | Maven Central `io.github.xantiagoma:xtandard-image` | WP-139 |
 | .NET | [`clients/dotnet`](dotnet) | NuGet `Xtandard.Image` (+ `Xtandard.Image.Extensions` for DI) | WP-140 |
 | Elixir | [`clients/elixir`](elixir) | Hex `xtandard_image` | WP-141 |
+| Swift | [`clients/swift`](swift) | SwiftPM product `XtandardImage`, from this repository's root `Package.swift` (tags `vX.Y.Z`) | WP-142 |
 | Dart (Flutter and servers) | [`clients/dart`](dart) | pub.dev `xtandard_image` | WP-144 |
 
 Nothing is published yet. Every client is versioned in lockstep with the server's release tags (`0.x`).
@@ -103,6 +104,7 @@ Naming conventions:
 - **Java:** package `io.github.xantiagoma.xtandard.image`.
 - **.NET:** namespace `Xtandard.Image`, async with `Task`.
 - **Elixir:** `XtandardImage`, `{:ok, url} | {:error, %XtandardImage.Error{code: :invalid_source}}`.
+- **Swift:** module `XtandardImage`, `ImgproxyURLBuilder`/`QueryURLBuilder` (factories `imgproxy(…)`, `queryURLs(…)`), lowerCamelCase option methods on `Sendable` value chains, `Options` dictionary literals, typed throws `URLBuildError` with `code == .invalidSource`, `XtandardClient` with `async throws(ClientError)`.
 - **Dart:** library `package:xtandard_image/xtandard_image.dart`, `ImgproxyUrlBuilder`/`QueryUrlBuilder` with named parameters, lowerCamelCase option methods (reserved words get `_`: `do_`), sealed `OptionValue`, `UrlBuildException(ErrorCode.invalidSource)`, `XtandardClient` returning `Future`s.
 
 ## URL rules that bite
