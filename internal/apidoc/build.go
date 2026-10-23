@@ -34,6 +34,7 @@ const (
 	schemaProcessingOptions = "ImgproxyProcessingOptions"
 	schemaInfoOptions       = "ImgproxyInfoOptions"
 	schemaVideoOptions      = "ImgproxyVideoOptions"
+	schemaQueryContent      = "QueryContent"
 	schemaRefPrefix         = "#/components/schemas/"
 	docsBase                = "https://github.com/xantiagoma/xtandard-image/blob/main/docs/"
 	urlDialectsDoc          = docsBase + "URL-DIALECTS.md"
@@ -97,6 +98,7 @@ func Build() (*huma.OpenAPI, error) {
 	schemas[schemaProcessingOptions] = &huma.Schema{Extensions: imgproxy.ProcessingOptionsSchema()}
 	schemas[schemaInfoOptions] = &huma.Schema{Extensions: imgproxy.InfoOptionsSchema()}
 	schemas[schemaVideoOptions] = &huma.Schema{Extensions: imgproxy.VideoOptionsSchema()}
+	schemas[schemaQueryContent] = queryContentSchema()
 
 	doc := &huma.OpenAPI{
 		OpenAPI: "3.1.0",
@@ -523,11 +525,11 @@ func queryVideoOperation() *huma.Operation {
 		OperationID: "getQueryVideo", Method: http.MethodGet, Path: "/q/video", Tags: []string{"video"},
 		Summary: "Transform a video (query dialect)",
 		Description: "The /video options as query keys (aliases too), in query order, mounted at /q/ when " +
-			"XI_DIALECTS_QUERY_ENABLED=true; fit, gravity, crop and flip also take the native spellings.",
+			"XI_DIALECTS_QUERY_ENABLED=true; fit, gravity, crop and flip also take the native spellings." + queryMethodDoc,
 		Parameters:   ps,
 		Responses:    videoResponses(),
 		ExternalDocs: &huma.ExternalDocs{URL: urlDialectsDoc + "#4-query-dialect-native--imaginary"},
-		Extensions:   map[string]any{"x-xi-listener": ListenerPublic, "x-xi-dialect": "query"},
+		Extensions:   map[string]any{"x-xi-listener": ListenerPublic, "x-xi-dialect": "query", "x-xi-query-method": queryMethodExtension()},
 	}
 }
 
@@ -620,11 +622,76 @@ func queryOperation() *huma.Operation {
 		OperationID: "getQueryImage", Method: http.MethodGet, Path: "/q", Tags: []string{"image"},
 		Summary: "Process an image (query dialect)",
 		Description: "Native query dialect, mounted at /q/ when XI_DIALECTS_QUERY_ENABLED=true. Keys apply in query order " +
-			"through the imgproxy option parser, so later keys override earlier ones.",
+			"through the imgproxy option parser, so later keys override earlier ones." + queryMethodDoc,
 		Parameters:   ps,
 		Responses:    imageResponses(),
 		ExternalDocs: &huma.ExternalDocs{URL: urlDialectsDoc + "#4-query-dialect-native--imaginary"},
-		Extensions:   map[string]any{"x-xi-listener": ListenerPublic, "x-xi-dialect": "query"},
+		Extensions:   map[string]any{"x-xi-listener": ListenerPublic, "x-xi-dialect": "query", "x-xi-query-method": queryMethodExtension()},
+	}
+}
+
+// queryMethodDoc is the sentence the query dialect operations add about
+// HTTP QUERY.
+const queryMethodDoc = " The same request may be sent with the HTTP QUERY method (RFC 10008; XI_SERVER_QUERY_METHOD, on by default), " +
+	"its parameters in the content instead of the URL: OpenAPI 3.1 has no QUERY operation, so x-xi-query-method describes it."
+
+// queryMethodExtension is the x-xi-query-method extension of the query
+// dialect operations: the HTTP QUERY form of the same request (WP-147,
+// internal/server/query.go).
+func queryMethodExtension() map[string]any {
+	return map[string]any{
+		"method": "QUERY",
+		"rfc":    "https://www.rfc-editor.org/rfc/rfc10008",
+		"config": "XI_SERVER_QUERY_METHOD",
+		"docs":   urlDialectsDoc + "#44-http-query",
+		"description": "The parameters of the GET operation travel in the request content; the URL has no query (a query is 400). " +
+			"Signing (xi_sig or sign as a parameter in the content, over the same message as the GET URL), the unsigned policy, " +
+			"limits, conditional requests and the result cache entry are those of the equivalent GET request.",
+		"content": map[string]any{
+			"application/x-www-form-urlencoded": map[string]any{"schema": map[string]any{
+				"type":        "string",
+				"description": "Exactly the query string of the equivalent GET URL (same keys, order and escaping).",
+				"example":     "url=https%3A%2F%2Fexample.com%2Fa.jpg&w=300&f=webp",
+			}},
+			"application/json": map[string]any{"schema": map[string]any{"$ref": schemaRefPrefix + schemaQueryContent}},
+		},
+		"response_headers": map[string]any{
+			"Accept-Query": "The media types above, as a Structured Field list; also on GET, HEAD and 405 responses of these endpoints.",
+			"Location":     "On 2xx: the equivalent GET URL when it fits XI_SERVER_QUERY_LOCATION_MAX_LENGTH and carries no pdf_password.",
+			"Vary":         "Adds Content-Type.",
+		},
+		"errors": map[string]any{
+			"400": "Malformed content, or a URL with a query.",
+			"405": "XI_SERVER_QUERY_METHOD=false, or an endpoint of another dialect (Allow lists the methods).",
+			"413": "Content over XI_SERVER_QUERY_MAX_BODY_BYTES.",
+			"415": "Missing or unsupported Content-Type, a charset other than UTF-8, or a Content-Encoding.",
+		},
+	}
+}
+
+// queryContentSchema is the application/json content of a QUERY request.
+func queryContentSchema() *huma.Schema {
+	scalar := []*huma.Schema{{Type: "string"}, {Type: "number"}, {Type: "boolean"}}
+	return &huma.Schema{
+		Type: "object",
+		Description: "HTTP QUERY content of the query dialect as JSON: one member per parameter, in document order " +
+			"(later members override earlier ones, like later keys of a query string). Strings are used as they are, " +
+			"numbers as written, booleans as true/false, arrays joined with \",\"; null skips the member. " +
+			"Objects, nested arrays and duplicate names are 400. The canonical query (signed by xi_sig) writes each member " +
+			"as key=value, keys and values percent-encoded except letters, digits and -._~:/,@!$'()* (UTF-8, upper-case hex), joined with &.",
+		Properties: map[string]*huma.Schema{
+			"url":    {Type: "string", Description: "Source URL or xi://<source>/<key>."},
+			"o":      {Type: "string", Description: "imgproxy option path."},
+			"xi_sig": {Type: "string", Description: "xi signature over the path after the mount, ? and the canonical query without xi_sig."},
+			"sign":   {Type: "string", Description: "imaginary signature."},
+		},
+		Required: []string{"url"},
+		AdditionalProperties: &huma.Schema{OneOf: []*huma.Schema{
+			scalar[0], scalar[1], scalar[2],
+			{Type: "null"},
+			{Type: "array", Items: &huma.Schema{OneOf: scalar}},
+		}},
+		Examples: []any{map[string]any{"url": "https://example.com/a.jpg", "w": 300, "crop": []any{10, 20, 300, 200}, "strip_metadata": true}},
 	}
 }
 
@@ -670,11 +737,11 @@ func imaginaryOperation() *huma.Operation {
 	return &huma.Operation{
 		OperationID: "getImaginaryImage", Method: http.MethodGet, Path: "/q/{endpoint}", Tags: []string{"image"},
 		Summary:      "Process an image (imaginary endpoints, query dialect)",
-		Description:  "imaginary's GET API under the query dialect mount. POST uploads and the file parameter are not supported.",
+		Description:  "imaginary's GET API under the query dialect mount. POST uploads and the file parameter are not supported." + queryMethodDoc,
 		Parameters:   ps,
 		Responses:    imageResponses(),
 		ExternalDocs: &huma.ExternalDocs{URL: urlDialectsDoc + "#4-query-dialect-native--imaginary"},
-		Extensions:   map[string]any{"x-xi-listener": ListenerPublic, "x-xi-dialect": "query"},
+		Extensions:   map[string]any{"x-xi-listener": ListenerPublic, "x-xi-dialect": "query", "x-xi-query-method": queryMethodExtension()},
 	}
 }
 
