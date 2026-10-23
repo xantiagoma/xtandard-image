@@ -72,7 +72,7 @@ export const D = {
 
 // QUERY_LANGUAGES are the languages whose refiners lower queryRequest and
 // printRequest; the others show the GET snippet with a note.
-export const QUERY_LANGUAGES = new Set(['typescript', 'python']);
+export const QUERY_LANGUAGES = new Set(['typescript', 'python', 'go']);
 
 export const ENV = {
   key: 'XI_SIGNING_KEY',

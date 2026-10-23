@@ -7,6 +7,7 @@
 import { concat, hardline, ifBreak, indent, join, line, softline, group } from '../doc.js';
 import { lower, N, words } from '../model.js';
 import { Printer } from '../printer.js';
+import { requestText } from './typescript.js';
 
 const MODULE = 'github.com/xantiagoma/xtandard-image/clients/go';
 
@@ -102,6 +103,12 @@ const rules = {
     return N.call(pkg('xtandard', 'SignXiURL'), [N.str(e.url), e.key, N.str(e.mount)]);
   },
   print: (e, ctx) => (ctx.uses.add('fmt'), N.stmt(N.call(pkg('fmt', 'Println'), [e.expr]))),
+  'query-request': (e, ctx) => (ctx.uses.add('query'), N.call(pkg('query', 'MethodRequest'), [e.url])),
+  'print-request': (e, ctx) => {
+    ctx.uses.add('fmt');
+    const field = (f) => N.member(e.req, { method: 'Method', url: 'URL', body: 'Body' }[f]);
+    return N.stmt(N.call(pkg('fmt', 'Println'), [requestText(e.req, field)]));
+  },
 };
 
 const errCheck = () => N.if(N.binary('!=', N.id('err'), N.type('nil')), [N.stmt(N.call(pkg('log', 'Fatal'), [N.id('err')]))]);

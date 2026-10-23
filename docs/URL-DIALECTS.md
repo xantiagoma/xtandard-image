@@ -421,15 +421,75 @@ Two shapes:
 /q/resize?url=<source>&width=300&height=200&type=webp          (imaginary endpoint)
 ```
 
+### 4.1 Video sources and transformations
+
 Video sources (WP-74): `vts`/`video_thumbnail_second` and `vtk`/`video_thumbnail_keyframes` are accepted as query keys like every imgproxy option (`/q/?url=<video>&w=320&vts=1.5`).
 
 Video transformations (WP-122, WP-123): `/q/video?url=<source>&start=1&duration=5&width=640&format=webm&mute=1`. Every key is the [§3.8](#38-video-transformations-wp-122-wp-123) option of the same name or alias, with `,` or `:` between arguments (`ln=1,-16`, `fade=1,2`, `waveform=1,2266cc`); `fit` (`fit|contain|inside`, `fill|cover`, `fill-down`, `force|stretch`), `gravity|g` (compass words), `crop` (`w,h` placed by `g`, or `w,h,x,y` from the top-left), `flip` (`h|v|hv`), `cb` and `attachment` take their native spellings, and `o=` applies a `/video` option path. Signing: `xi_sig` covers `/video` + the query (or `sign`, imaginary's scheme, over the decoded path `/video` + the sorted query), so an image signature is not valid here; unsigned requests follow `XI_VIDEO_TRANSFORM_UNSIGNED_POLICY`. `preset=` (`pr=`) expands video presets in query order (WP-132). `pdf_password` is not a video option.
 
+### 4.2 Native keys
+
 Native keys (long and short): `url`, `width|w`, `height|h`, `fit` (`fit|contain|inside` → Fit, `fill|cover` → Fill, `fill-down`, `force|stretch` → Force, `outside`), `gravity|g` (compass words, `smart`, `entropy`, `fp:x:y`), `crop` (`w,h[,x,y]`), `dpr`, `enlarge`, `format|f`, `quality|q`, `lossless`, `progressive`, `blur`, `sharpen`, `pixelate`, `rotate|rot`, `flip` (`h|v|hv`), `bg`, `strip`, `trim`, `pad`, `preset`, `page`, `pages`, `cb`, `filename`, `attachment`, `expires`, `pdf_password|pdp` (signed URLs only, [§3.7](#37-password-protected-pdfs-wp-115)), `sign`. Semantics are those of the equivalent imgproxy option; anything imgproxy can do is reachable via `o=<imgproxy option path>` (for example `o=rs:fill:300:200/g:sm`) so the query dialect is complete by construction.
+
+### 4.3 imaginary endpoints
 
 imaginary endpoints: `resize`, `enlarge`, `extract`, `crop`, `smartcrop`, `rotate`, `autorotate`, `flip`, `flop`, `thumbnail`, `zoom`, `convert`, `fit`, `blur`, `watermark` (text, WP-78), `watermarkimage` (WP-77), `info`, `pipeline` (JSON `operations` → chained pipelines, M2). imaginary params: `width`, `height`, `areawidth`, `areaheight`, `quality`, `compression`, `type`, `force`, `rotate`, `embed`, `norotation`, `noprofile`, `stripmeta`, `flip`, `flop`, `extend`, `background`, `gravity`, `top`, `left`, `factor`, `dpi`, `interlace`, `aspectratio`, `palette`, `sigma`, `minampl`, `url`. Watermark params: `text` (Pango markup, as bimg passes it to `vips_text`), `font` (default `sans 10`), `dpi` (default 150: the font size is scaled by dpi/72, xi renders at 72 DPI per CSS pixel), `textwidth` (wrap width; bimg's default of a sixth of the image width is approximated by the image width), `opacity` (0 = 0.25 for text, 1 for images), `margin` (tile spacing, default `textwidth`), `color` (text colour), `noreplicate` (one watermark at the top-left instead of tiles), `image` (watermark image URL, placed at `left`/`top`). Also accepted: `nocrop`, `colorspace`, `operations` (JSON, `pipeline` endpoint). Unsupported: POST/multipart uploads (form field `file`), the `file` query param for local paths (use an `fs` source with `xi://` instead), `speed`. Params verified against `.refs/imaginary/params.go` and `server.go`.
 
 Implementation notes (WP-23, `internal/dialect/query`): native keys are applied in query order through the imgproxy option parser, so a later key overrides an earlier one and keys after an `o=` that chains pipelines (`-`) apply to the last pipeline; `o=` must contain options only (a source in it is a 400). Multi-argument native values (`crop`, `pad`, `trim`, `bg` as `r,g,b`, `preset`, `g=fp:x:y`) accept `,` or `:` as separator, and `crop=w,h,x,y` places the top-left corner. Signing: `sign` covers the decoded path after the mount (`/resize`, or `/` for native mode) plus the sorted query; `xi_sig` covers the escaped path after the mount plus the query; both present is a 403. imaginary params are stricter than upstream (malformed or negative values are a 400 instead of silently falling back); `extend=mirror` is approximated as `copy`, `/extract` crops before resizing, `/zoom` scales by `factor+1` like bimg, `/info` uses the imgproxy info schema, and text/image watermarks are applied (WP-77/78).
+
+### 4.4 HTTP QUERY
+
+**Status:** WP-147 ([ADR 0014](adr/0014-http-query.md)). On by default in the server (`XI_SERVER_QUERY_METHOD`), opt-in in the official clients.
+
+Every query dialect endpoint (`/q/`, `/q/video` and the imaginary endpoints, on every mount of the dialect, its host bindings and the root `?url=` rule included) also accepts the HTTP `QUERY` method ([RFC 10008](https://www.rfc-editor.org/rfc/rfc10008)): the parameters travel in the request content instead of the URL, so long option chains, watermark text, encrypted sources and video overlays need not fit in a URL, and stay out of URL logs. QUERY is safe and idempotent like GET, and the server answers it exactly as the equivalent GET: the same parser, signature, unsigned policy, presets, source allowlist, SSRF rules, limits, conditional requests (`If-None-Match` → 304), `Cache-Control` and result cache entry.
+
+```
+QUERY /q/ HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+
+url=https://example.com/cat.jpg&w=300&f=webp&o=rs:fill:300:200/wmt:SGVsbG8&xi_sig=…
+```
+
+```
+QUERY /q/video HTTP/1.1
+Content-Type: application/json
+
+{"url": "s3://media/talk.mov", "start": 1, "duration": 5, "width": 640, "format": "webm", "fade": [1, 2]}
+```
+
+```sh
+# The query string of a (signed) GET URL, sent verbatim: --data-binary, not
+# --data-urlencode, which would escape it again and break xi_sig.
+curl -X QUERY -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-binary 'url=https://example.com/cat.jpg&w=300&xi_sig=…' https://img.example.com/q/
+```
+
+**Content.** Two media types (both listed in `Accept-Query`):
+
+| Media type | Content |
+|---|---|
+| `application/x-www-form-urlencoded` (`charset`, if any, must be UTF-8) | Exactly the query string of the equivalent GET URL: same keys, order and escaping. A trailing newline is dropped; characters a URL query may not hold (spaces, `#`, non-ASCII) are a 400 (escape them). |
+| `application/json` | An object with one member per parameter, in document order (later members override earlier ones, as later keys do). Values: strings as they are, numbers as written in the document (`1.50` stays `1.50`), `true`/`false`, arrays of those joined with `,` (`"crop": [10, 20, 300, 200]`); `null` skips the member. Objects, nested arrays, duplicate names and invalid UTF-8 are a 400. The schema is `QueryContent` in the OpenAPI document. |
+
+JSON content stands for its **canonical query**: each member as `key=value`, keys and values percent-encoded except ASCII letters, digits and ``-._~:/,@!$'()*`` (UTF-8, upper-case hex; the official clients' query encoding, `url.query_safe` in `clients/spec/spec.json`), joined with `&`. Form content is used as written. The server parses that query exactly like a GET URL's.
+
+**Signing.** `xi_sig` (or imaginary's `sign`) is a parameter of the content, like it is a parameter of the GET query, and signs the same message: the path after the mount, `?`, and the (canonical) query without `xi_sig`. The method is not signed, so the content of a signed QUERY is the query of the signed GET URL and the other way round: a client signs once (`signXiQuery`) and sends either. Binding the method would add nothing (both methods are safe and give the same result) and would forbid answering with the equivalent GET URL. Form and JSON content with the same parameters sign identically when the form content uses the canonical escaping (the clients' does). A signature as a header was rejected: it would be a second place to look for it, and the GET URL could not carry it.
+
+**URL.** A QUERY request's URL has no query of its own (the content is the whole query; a URL query is a 400), so a parameter can never be in two places with two meanings.
+
+**Responses.** The GET response, plus:
+
+- `Accept-Query: application/x-www-form-urlencoded, application/json` (also on GET, HEAD and 405 responses of these endpoints while QUERY is on);
+- `Vary: Content-Type`;
+- on a 2xx, `Location` with the equivalent GET URL (path + `?` + canonical query) when it is at most `XI_SERVER_QUERY_LOCATION_MAX_LENGTH` (default 2048) bytes and carries no `pdf_password`. It echoes the client's own parameters and signature; the server never signs on anyone's behalf, so an unsigned request under `restricted` or `deny` gets a URL with exactly the same rights. There is no `Content-Location`: the representation depends on `Accept` and client hints, and no per-result resource is kept.
+
+**Caching.** The result cache key is computed from the parsed request (canonical options, source, negotiated format), never from the method or the raw bytes, so GET and QUERY for the same parameters share one entry and one ETag, whichever came first; GET keys are unchanged. Shared caches must key QUERY on the content (RFC 10008 §2.7).
+
+**Errors.** Missing or unsupported `Content-Type`, another charset, or a `Content-Encoding` → 415 with `Accept-Query`; content over `XI_SERVER_QUERY_MAX_BODY_BYTES` (default 64 KiB) → 413; malformed content or a URL query → 400; QUERY on any other endpoint, or with `XI_SERVER_QUERY_METHOD=false` → 405 (`Allow: GET, HEAD`, as before WP-147); other methods on these endpoints → 405 with `Allow: GET, HEAD, QUERY`. Parse, signature and policy errors are those of GET.
+
+**CORS.** With `XI_SERVER_CORS_ORIGINS`, a preflight for `QUERY` on these endpoints is answered with `Access-Control-Allow-Methods: GET, HEAD, QUERY` and `Content-Type` among the allowed headers; QUERY responses also expose `Location` and `Accept-Query`. GET preflights are unchanged.
+
+**Caveat.** QUERY is new: many CDNs, proxies and WAFs neither cache it nor forward it (some answer 405 or 501 themselves). Use it where the path from the client to xtandard-image is known to pass it, typically server to server; that is why the official clients send GET unless asked (`queryMethod` / `query_method`, clients/README.md).
 
 ## 5. imgix
 
