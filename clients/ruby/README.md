@@ -115,6 +115,23 @@ Errors form one hierarchy under `XtandardImage::Error`:
 - `TransportError` (connection, TLS, timeout; `cause` is the underlying exception);
 - `HTTPError`, with `status`, `kind`, `message`, `request_id` and `body` from the server's JSON error envelope, and a subclass by status: `BadRequestError` (400), `ForbiddenError` (403), `NotFoundError` (404), `NotAcceptableError` (406), `UnprocessableError` (422), `TooManyRequestsError` (429), `ServerError` (5xx) with `ServiceUnavailableError` (503) and `GatewayError` (502, 504).
 
+### HTTP QUERY (opt-in)
+
+The query dialect also accepts the HTTP QUERY method (RFC 10008): the URL's query moves into the request content, so long option chains, watermark text or encrypted sources stay out of URLs. It is off by default, because many CDNs and proxies neither cache nor forward QUERY; the server needs `XI_SERVER_QUERY_METHOD` (on by default).
+
+```ruby
+r = XtandardImage.query_method_request(q.url("s3://photos/cat.jpg", params: { w: 300 }))
+r.http_method  # "QUERY"
+r.url          # "https://img.example.com/q/"
+r.content_type # "application/x-www-form-urlencoded"
+r.body         # "url=s3://photos/cat.jpg&w=300&xi_sig=…"
+
+xi.media(signed_query_url, method: :query)                                  # one call
+xi = XtandardImage::Client.new("http://localhost:8080", query_method: true) # every media URL under query_mount ("/q")
+```
+
+The content is the built URL's query as written, `xi_sig` included (the signature does not cover the method). A URL without a query, or with a fragment, raises `URLBuildError` with code `:invalid_request`. HEAD and an explicit `method: :get` are unchanged. The member is `http_method`, not `method`, so `Object#method` keeps working.
+
 ## Rails
 
 Build URLs in a helper. This one mirrors Active Storage's `variant` and `url_for`, and reads the keys from credentials:
@@ -175,6 +192,7 @@ Use this gem for what imgproxy does not have: `/video`, HLS and DASH, the query 
 | Password-protected PDFs (`pdp`) | `pdf_password:` / `with_pdf_password`, `encrypt_pdf_password` |
 | Sources: base64, `plain/`, `enc/`, split; `xi://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://` | `source_encoding:`, `split_source:`, `xi_source`, `source_url` |
 | Query dialect `/q/`, `/q/video`, imaginary; `xi_sig` | `QueryURLBuilder` (`query_image_params`, `imaginary_params`), `sign_xi_url` |
+| HTTP QUERY on the query dialect (opt-in) | `query_method_request` / `QueryMethodRequest.from_url`, `Client#media(url, method: :query)`, `Client.new(query_method: true, query_mount: …)` |
 | `/healthz`, `/readyz`, playground `api/meta` | `healthz`, `readyz`, `playground_meta` |
 
 Not covered, on purpose (as in the TypeScript client):

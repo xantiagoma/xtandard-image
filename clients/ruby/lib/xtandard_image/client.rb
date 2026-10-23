@@ -107,16 +107,31 @@ module XtandardImage
   #     xi.video("s3://bucket/talk.mov", { vd: 5 }, extension: "webm") { |chunk| f.write(chunk) }
   #   end
   #
+  # HTTP QUERY (RFC 10008) is opt-in: <tt>media(url, method: :query)</tt>
+  # sends one query dialect URL as a QUERY request (QueryMethodRequest), and
+  # <tt>query_method: true</tt> does so for every #media URL under
+  # +query_mount+ when no method is given. Off by default: the server needs
+  # XI_SERVER_QUERY_METHOD (on by default), and many CDNs and proxies
+  # neither cache nor forward QUERY.
+  #
   # Each request opens its own connection, so a Client is safe to share
   # between threads.
   class Client
+    # Net::HTTP has no request class for QUERY (RFC 10008): safe, with content.
+    class QueryRequest < Net::HTTPRequest
+      METHOD = "QUERY"
+      REQUEST_HAS_BODY = true
+      RESPONSE_HAS_BODY = true
+    end
+
     TRANSPORT_ERRORS = [
       IOError, SystemCallError, SocketError, Timeout::Error, OpenSSL::SSL::SSLError, Net::HTTPBadResponse,
       Net::ProtocolError, Zlib::Error,
     ].freeze
     SCHEME = /\A[a-zA-Z][a-zA-Z0-9+.-]*:/
+    ORIGIN = %r{\A[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]*}
     READY_STATES = %w[ready starting draining].freeze
-    private_constant :TRANSPORT_ERRORS, :SCHEME, :READY_STATES
+    private_constant :TRANSPORT_ERRORS, :SCHEME, :ORIGIN, :READY_STATES, :QueryRequest
 
     # The server origin (plus the imgproxy mount prefix, if any), without a trailing "/".
     attr_reader :base_url
@@ -130,10 +145,12 @@ module XtandardImage
     # open_timeout, read_timeout, write_timeout:: Net::HTTP timeouts in seconds.
     # playground_base_url:: Origin of the admin listener for #playground_meta; default +base_url+.
     # playground_path:: XI_PLAYGROUND_PATH. Default "/_playground/".
+    # query_method:: Send #media URLs under +query_mount+ with HTTP QUERY when no method is given. Default false.
+    # query_mount:: The query dialect's mount (XI_DIALECTS_QUERY_PREFIX), for +query_method+. Default "/q".
     def initialize(base_url, signing: nil, encryption: nil, unsigned_signature: DEFAULT_UNSIGNED,
                    source_encoding: :base64, split_source: nil, separator: DEFAULT_SEPARATOR, option_names: :short,
                    headers: {}, open_timeout: 10, read_timeout: 60, write_timeout: 60, playground_base_url: nil,
-                   playground_path: "/_playground/")
+                   playground_path: "/_playground/", query_method: false, query_mount: QUERY_MOUNT)
       @base_url = URLs.trim_slashes(base_url)
       @urls = ImgproxyURLBuilder.new(
         base_url: @base_url, signing: signing, unsigned_signature: unsigned_signature, encryption: encryption,
@@ -145,6 +162,8 @@ module XtandardImage
       @write_timeout = write_timeout
       origin = URLs.trim_slashes(playground_base_url || @base_url)
       @playground_meta = "#{origin}/#{playground_path.gsub(%r{\A/+|/+\z}, "")}/api/meta"
+      @query_method = query_method
+      @query_mount = URLs.trim_slashes(query_mount)
     end
 
     # GET /healthz: returns nil while the process can serve HTTP.
@@ -177,9 +196,18 @@ module XtandardImage
     # GET (or HEAD) any URL or server path: an image or video URL, a query
     # URL, a stream part. +range+ asks for part of it (206; see
     # XtandardImage.range_header). With a block, the body is streamed to it
-    # in chunks and the Response has no body.
-    def media(url, method: :get, range: nil, accept: "*/*", headers: nil, &)
-      fetch(method, absolute(url), request_headers(accept, range, headers), &)
+    # in chunks and the Response has no body. +method+ :query sends a query
+    # dialect URL's query as the request content (RFC 10008); with no
+    # +method+, the client's +query_method+ picks QUERY for URLs under its
+    # +query_mount+ and GET for the rest.
+    def media(url, method: nil, range: nil, accept: "*/*", headers: nil, &)
+      abs = absolute(url)
+      h = request_headers(accept, range, headers)
+      return fetch(method || :get, abs, h, &) unless query?(method, abs)
+
+      q = QueryMethodRequest.from_url(abs)
+      h["Content-Type"] = q.content_type
+      fetch(:query, q.url, h, q.body, &)
     end
 
     # GET (or HEAD) a processed image; +accept+ drives format negotiation.
@@ -215,6 +243,14 @@ module XtandardImage
 
     private
 
+    def query?(method, url)
+      return method.to_s.casecmp?("query") unless method.nil?
+      return false unless @query_method
+
+      path = url.split(/[?#]/, 2).first.to_s.sub(ORIGIN, "")
+      path == @query_mount || path.start_with?("#{@query_mount}/")
+    end
+
     def absolute(url)
       return url if SCHEME.match?(url)
 
@@ -234,8 +270,8 @@ module XtandardImage
     end
 
     # Sends a request and raises HTTPError unless it is 2xx.
-    def fetch(method, url, headers, &)
-      status, res_headers, body = perform(method, url, headers, &)
+    def fetch(method, url, headers, content = nil, &)
+      status, res_headers, body = perform(method, url, headers, content, &)
       raise http_error(status, url, body) unless (200..299).cover?(status)
 
       Response.new(status: status, headers: res_headers, body: body, url: url)
@@ -243,12 +279,13 @@ module XtandardImage
 
     # [status, headers, body]: the body is nil for HEAD and when a block
     # took a 2xx body; error bodies are always read.
-    def perform(method, url, headers, &block)
+    def perform(method, url, headers, content = nil, &block)
       uri = URI.parse(url)
       host = uri.host
       raise ArgumentError, "#{url.inspect} is not an absolute http(s) URL" if host.nil?
 
       req = request_class(method).new(uri, headers)
+      req.body = content unless content.nil?
       # @type var user_error: Exception?
       user_error = nil
       begin
@@ -280,7 +317,8 @@ module XtandardImage
       case method.to_s.downcase
       when "get" then Net::HTTP::Get
       when "head" then Net::HTTP::Head
-      else raise ArgumentError, "method must be :get or :head, not #{method.inspect}"
+      when "query" then QueryRequest
+      else raise ArgumentError, "method must be :get, :head or :query, not #{method.inspect}"
       end
     end
 

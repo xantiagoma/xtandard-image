@@ -108,6 +108,10 @@ class ConformanceTest < Minitest::Test
     when "query.video_url" then query(cfg).video_url(inp["source"], hashes(inp), extension: inp["extension"])
     when "query.stream_url" then query(cfg).stream_url(inp["source"], options: one(inp), **stream_kw(inp))
     when "query.imaginary_url" then query(cfg).imaginary_url(inp["endpoint"], inp["source"], inp.fetch("params", []))
+    when "query.query_request"
+      # input.build names the query op that builds the URL from the other inputs.
+      q = X.query_method_request(run_hash(c.merge("op" => inp.fetch("build"))))
+      "#{q.http_method} #{q.url}\nContent-Type: #{q.content_type}\n\n#{q.body}"
     when "sign" then X.sign(inp["message"], signing(cfg))
     when "sign_xi_url" then X.sign_xi_url(inp["url"], signing(cfg), mount: inp.fetch("mount", ""))
     when "encrypt_source" then X.encrypt_source(inp["source"], encryption(cfg))
