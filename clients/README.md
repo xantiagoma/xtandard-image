@@ -4,7 +4,7 @@ URL builders and HTTP clients for xtandard-image in the main backend languages (
 
 | Language | Directory | Package | Status |
 |---|---|---|---|
-| TypeScript | [`clients/typescript`](../clients/typescript) | npm `@xtandard/image` | reference implementation (ADR 0009) |
+| TypeScript | [`clients/typescript`](typescript) | npm `@xtandard/image` | reference implementation (ADR 0009, ADR 0013) |
 | Python | [`clients/python`](python) | PyPI `xtandard-image` | WP-134 |
 | Go | [`clients/go`](go) | module `github.com/xantiagoma/xtandard-image/clients/go` (tags `clients/go/vX.Y.Z`) | WP-135 |
 | PHP | [`clients/php`](php) | Packagist `xtandard/image` | WP-136 |
