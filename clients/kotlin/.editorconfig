@@ -1,0 +1,9 @@
+# Kotlin style of the Kotlin Multiplatform client: ktlint's default (ktlint_official, 4 spaces), with a longer
+# line for KDoc-heavy builder signatures. src/generated/ is the generator's and is not linted.
+[*.{kt,kts}]
+indent_size = 4
+max_line_length = 140
+ktlint_code_style = ktlint_official
+
+[src/generated/**.kt]
+ktlint = disabled

@@ -1,0 +1,63 @@
+# https://taskfile.dev — the Kotlin Multiplatform client's tasks (ADR 0013).
+# The root Taskfile runs `ci` here from `task clients:test`; run them in this
+# directory directly too (`task ci`). Commands go through mise (this
+# directory's mise.toml pins JDK 21, Gradle and ktlint); CI sets XI_GRADLE and
+# XI_KTLINT after installing the toolchain itself. The Apple targets compile
+# and test on macOS only (Xcode); elsewhere Gradle skips them.
+version: "3"
+
+vars:
+  GRADLE: '{{.XI_GRADLE | default "mise exec -- gradle --console=plain"}}'
+  KTLINT: '{{.XI_KTLINT | default "mise exec -- ktlint"}}'
+  # Hand-written sources only: src/generated/ is the generator's (task clients:generate).
+  KT_FILES: '"src/*Main/**/*.kt" "src/*Test/**/*.kt" "*.gradle.kts"'
+
+tasks:
+  install:
+    desc: Install the pinned toolchain (JDK 21, Gradle, ktlint) and resolve the build
+    cmds:
+      - mise install
+      - "{{.GRADLE}} -q help"
+
+  fmt:
+    desc: ktlint --format on the hand-written sources
+    cmds: ["{{.KTLINT}} -F {{.KT_FILES}}"]
+
+  lint:
+    desc: ktlint (ktlint_official style); the compiler's warnings are errors in `build`
+    cmds: ["{{.KTLINT}} {{.KT_FILES}}"]
+
+  build:
+    desc: Every target's library (JVM jar, iosArm64, iosSimulatorArm64 and macosArm64 klibs), explicit API, warnings are errors
+    cmds: ["{{.GRADLE}} assemble"]
+
+  test:
+    desc: "commonTest on the JVM, macOS and the iOS simulator, plus jvmTest: the three shared fixtures, unit and stand-in HTTP tests (XI_SMOKE_URL=http://127.0.0.1:8080 adds the smoke test)"
+    cmds: ["{{.GRADLE}} allTests {{.CLI_ARGS}}"]
+
+  test-jvm:
+    desc: The JVM tests only (fast; with XI_SMOKE_URL the smoke test too)
+    cmds: ["{{.GRADLE}} jvmTest {{.CLI_ARGS}}"]
+
+  licenses:
+    desc: The runtime closure of every target against the ADR 0006 allowlist (report in build/reports/licenses.txt)
+    cmds: ["{{.GRADLE}} checkLicenses"]
+
+  docs:
+    desc: Dokka HTML into build/dokka/html
+    cmds: ["{{.GRADLE}} dokkaGeneratePublicationHtml"]
+
+  publish-dry-run:
+    desc: Every publication (POM, sources, Dokka javadoc jar) into build/repo; nothing leaves the machine
+    cmds: ["{{.GRADLE}} publishAllPublicationsToBuildRepository"]
+
+  ci:
+    desc: Everything CI runs for the Kotlin client
+    cmds:
+      - "{{.GRADLE}} clean"
+      - task: lint
+      - task: build
+      - task: test
+      - task: licenses
+      - task: docs
+      - task: publish-dry-run
