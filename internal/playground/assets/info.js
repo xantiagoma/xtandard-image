@@ -13,7 +13,9 @@
 // the server's X-Xi-Ignored header, which api/render requests always get.
 
 import { $, copyText, debounce, el, errorText, escapePlain, fmtBytes, svg, uid } from './dom.js';
-import { activeEntries, curlInfoSnippet, tsInfoSnippet } from './grammar.js';
+import { activeEntries } from './grammar.js';
+import { infoModel } from './snippets/index.js';
+import { SnippetPanel } from './snippetpanel.js';
 import { blurhashSize, decodeBlurhash, decodeThumbhash, paint } from './placeholder.js';
 
 const GROUPS = [
@@ -176,13 +178,15 @@ export class Info {
     $('info-preset-all').addEventListener('click', () => this.setEntries(this.selectAll()));
     $('info-preset-defaults').addEventListener('click', () => this.setEntries([]));
     $('info-copy').addEventListener('click', () => copyText(this.publicURL(), '/info URL copied'));
-    $('info-copy-curl').addEventListener('click', () => copyText(curlInfoSnippet(this.publicURL()), 'curl command copied'));
-    $('info-copy-ts').addEventListener('click', () => {
-      const ts = tsInfoSnippet({
-        source: this.state.source, entries: this.entries(), index: this.index, base: this.mountBase(),
-        signed: $('snippet-signed').checked, separator: this.mount?.arguments_separator, encoding: 'plain',
-      });
-      if (ts) copyText(ts, 'TypeScript copied');
+    // The /info request as code (WP-145); the base URL is the server's,
+    // the mount prefix comes from the mount.
+    this.snippets = new SnippetPanel($('info-snippet'), {
+      id: 'info-snippet',
+      model: ({ signed, encrypt }) => infoModel({
+        m: this.mount, source: this.state.source, entries: this.entries(), index: this.index, signed, encrypt,
+        pdf: Boolean(this.meta.pdf_passwords && $('pdf-password').value),
+        base: this.baseURL() + (this.meta.path_prefix || '').replace(/\/+$/, ''), url: this.publicURL(),
+      }),
     });
     $('show-detections').addEventListener('change', () => {
       if ($('show-detections').checked && !this.objects && meta.detection) {
@@ -468,11 +472,13 @@ export class Info {
   async refresh(load = true) {
     if (!this.mount || !this.state.source) {
       $('info-url').value = '';
+      this.snippets?.refresh();
       return;
     }
     try {
       this.url = await this.infoURL(this.entries());
       $('info-url').value = this.publicURL();
+      this.snippets?.refresh();
       if (load && $('info-live').checked && this.visible()) await this.run();
     } catch (err) {
       this.status(err.message, true);
@@ -542,6 +548,7 @@ export class Info {
       const entries = [...activeEntries(this.entries(), this.index, 'imgproxy')].map(([, e]) => e);
       this.url = await this.infoURL(entries);
       $('info-url').value = this.publicURL();
+      this.snippets?.refresh();
       let res = await this.fetchInfo(entries);
       let failed = new Map();
       if (!res.ok && entries.length > 1) {
