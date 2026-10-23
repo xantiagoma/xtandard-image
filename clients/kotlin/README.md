@@ -154,6 +154,24 @@ Each carries `status`, `kind`, `message` and `requestId` from the server's JSON 
 
 Pass your own Ktor client with `httpClient = HttpClient(Darwin) { … }` (engine, proxy, TLS, logging). Its own timeouts apply, and `close()` leaves it open. `MediaRequest` also takes extra headers. `playgroundMeta()` reads the playground's `api/meta`; `playgroundBaseUrl` and `playgroundPath` point it at the admin listener. `XtandardJson.decodeFromString<InfoResponse>(text)` decodes an answer fetched another way.
 
+### HTTP QUERY (opt-in)
+
+The query dialect endpoints also accept the HTTP QUERY method (RFC 10008, server toggle `XI_SERVER_QUERY_METHOD`, on by default): the URL's query goes out as `application/x-www-form-urlencoded` content, so long option chains, watermark text or encrypted sources stay out of URLs. `xi_sig` does not cover the method, so the content is the query of the signed GET URL. It is **off by default** in the client, because many CDNs and proxies neither cache nor forward QUERY.
+
+```kotlin
+val url = q.url("s3://photos/cat.jpg", queryParams { w(300) })
+val req = queryMethodRequest(url)
+// QueryMethodRequest(method=QUERY, url=…/q/, contentType=application/x-www-form-urlencoded, body=url=…&w=300&xi_sig=…)
+xi.media(url, MediaRequest(MediaMethod.QUERY))                 // this call as QUERY
+
+XtandardClient("http://localhost:8080", queryMethod = true, queryMount = "/q").use { xq ->
+    xq.media(url)                                              // URLs under the mount go out as QUERY
+    xq.media(url, MediaRequest(MediaMethod.GET))               // an explicit GET (or HEAD) stays as it is
+}
+```
+
+`MediaRequest.method` is null by default (the client's choice: GET, or QUERY with `queryMethod`). A URL without a query, or with a fragment, throws `UrlBuildException` with `ErrorCode.INVALID_REQUEST`. URL builders are unchanged.
+
 ## Coverage
 
 | Server feature | Kotlin |
@@ -165,6 +183,7 @@ Pass your own Ktor client with `httpClient = HttpClient(Darwin) { … }` (engine
 | Password-protected PDFs (`pdp`) | `pdfPassword =` on `url()` and `infoUrl()`, `withPdfPassword()` on the chains, `Encryption.encryptPdfPassword()` |
 | Sources: base64, `plain/`, `enc/`, split; `xi://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://` | `SourceEncoding`, `splitSource`, `Sources.xiSource()`, `Sources.sourceUrl()` |
 | Query dialect `/q/`, `/q/video`, imaginary; `xi_sig` | `QueryUrlBuilder` (native keys typed in `QueryParams`), `Signing.signXiUrl()` |
+| HTTP QUERY on the query dialect (opt-in, off by default) | `queryMethodRequest()`, `MediaMethod.QUERY`, `XtandardClient(queryMethod = true, queryMount = …)` |
 | `/healthz`, `/readyz`, playground `api/meta` | `healthz()`, `readyz()`, `playgroundMeta()` |
 
 Not covered, on purpose (as in the TypeScript client):

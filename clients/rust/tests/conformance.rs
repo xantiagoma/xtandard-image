@@ -13,7 +13,7 @@ use xtandard_image::{
     Arg, ByteRange, EncryptionKey, Error, ImgproxyUrlBuilder, InfoUrlParams, OptionNames, Options, Params,
     QueryUrlBuilder, QueryUrlParams, SegmentFormat, SigningKey, SourceEncoding, SourceScheme, StreamParams,
     StreamProtocol, UrlParams, VideoUrlParams, encrypt_pdf_password, encrypt_source, escape_plain_source,
-    escape_query_value, range_header, sign, sign_xi_url, source_url, xi_source,
+    escape_query_value, query_method_request, range_header, sign, sign_xi_url, source_url, xi_source,
 };
 
 use common::{arg, load_json};
@@ -250,6 +250,14 @@ fn run_mapping(f: &Fixture, case: &Value) -> Outcome {
         "query.stream_url" => query(f, cfg)?.and_then(|b| b.stream_url(source(), &stream(inp)?)),
         "query.imaginary_url" => {
             query(f, cfg)?.and_then(|b| b.imaginary_url(s(&inp["endpoint"]), source(), params(inp)))
+        }
+        "query.query_request" => {
+            // input.build names the query op that builds the URL from the other inputs.
+            let mut built = case.clone();
+            built["op"] = inp["build"].clone();
+            run_mapping(f, &built)?
+                .and_then(|url| query_method_request(&url))
+                .map(|q| format!("{} {}\nContent-Type: {}\n\n{}", q.method, q.url, q.content_type, q.body))
         }
         "sign" => f.signing(cfg).map(|k| sign(s(&inp["message"]), &k.expect("a key"))),
         "sign_xi_url" => f

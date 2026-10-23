@@ -7,8 +7,8 @@ use std::io::Read as _;
 
 use xtandard_image::blocking::Client;
 use xtandard_image::{
-    ByteRange, ClientError, HttpErrorClass, InfoUrlParams, MediaOptions, Options, ReadyState, StreamParams,
-    StreamProtocol, UrlParams, VideoUrlParams,
+    ByteRange, ClientError, HttpErrorClass, InfoUrlParams, MediaOptions, Options, QueryUrlBuilder, QueryUrlParams,
+    ReadyState, StreamParams, StreamProtocol, UrlParams, VideoUrlParams,
 };
 
 use common::standin::{self, body, key};
@@ -79,4 +79,33 @@ fn stream_and_errors() {
     assert_eq!(busy.as_http().and_then(|h| h.request_id.clone()).as_deref(), Some("r1"));
     let down = client(&common::closed_base()).healthz().expect_err("down");
     assert!(matches!(down, ClientError::Transport { .. }), "{down:?}");
+}
+
+#[test]
+fn query_method_opt_in() {
+    let srv = standin::start();
+    let url = QueryUrlBuilder::new()
+        .signing(key())
+        .url("s3://b/cat.jpg", (), QueryUrlParams::new().param("w", 300))
+        .expect("url");
+    let query = url.split_once('?').expect("a query").1.to_owned();
+
+    client(&srv.base).media(&url, &MediaOptions::new()).expect("get");
+    assert_eq!((srv.last().method.as_str(), srv.last().target), ("GET", url.clone()));
+
+    let mut res = client(&srv.base).media(&url, &MediaOptions::new().query()).expect("query");
+    let mut got = String::new();
+    res.read_to_string(&mut got).expect("body");
+    assert_eq!(got, "q");
+    let seen = srv.last();
+    assert_eq!((seen.method.as_str(), seen.target.as_str(), seen.body.as_str()), ("QUERY", "/q/", query.as_str()));
+    assert_eq!(seen.headers["content-type"], "application/x-www-form-urlencoded");
+
+    let on = Client::builder(&srv.base).query_method(true).build().expect("client");
+    on.media(&url, &MediaOptions::new()).expect("query");
+    assert_eq!((srv.last().method.as_str(), srv.last().body), ("QUERY", query));
+    on.media(&url, &MediaOptions::new().head()).expect("head");
+    assert_eq!(srv.last().method, "HEAD");
+    on.video("s3://m/clip.mov", clip(), webm(), &MediaOptions::new()).expect_err("403");
+    assert_eq!(srv.last().method, "GET");
 }

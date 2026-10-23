@@ -36,8 +36,9 @@ class ClientTest {
   private static final byte[] BODY = new byte[1000];
   private static final Pattern RANGE = Pattern.compile("bytes=(\\d+)-(\\d*)");
 
-  /** What the stand-in saw: method, path, headers of each request. */
-  record Seen(String method, String path, Map<String, List<String>> headers) {
+  /** What the stand-in saw: method, path, raw query, headers and content of each request. */
+  record Seen(
+      String method, String path, String query, Map<String, List<String>> headers, String body) {
     String header(String name) {
       for (Map.Entry<String, List<String>> e : headers.entrySet()) {
         if (e.getKey().equalsIgnoreCase(name)) {
@@ -114,8 +115,16 @@ class ClientTest {
   private static void handle(HttpExchange ex) throws IOException {
     String path = ex.getRequestURI().getRawPath();
     String query = ex.getRequestURI().getRawQuery();
-    SEEN.add(new Seen(ex.getRequestMethod(), path, Map.copyOf(ex.getRequestHeaders())));
-    if (path.equals("/healthz")) {
+    String content;
+    try (InputStream in = ex.getRequestBody()) {
+      content = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+    }
+    SEEN.add(
+        new Seen(ex.getRequestMethod(), path, query, Map.copyOf(ex.getRequestHeaders()), content));
+    if (path.equals("/q") || path.startsWith("/q/")) {
+      // The query dialect answers GET and QUERY alike (RFC 10008).
+      send(ex, 200, "image/webp", "q".getBytes(StandardCharsets.UTF_8), Map.of());
+    } else if (path.equals("/healthz")) {
       text(ex, 200, "ok\n");
     } else if (path.equals("/readyz")) {
       text(ex, 503, "draining\n");
@@ -219,6 +228,68 @@ class ClientTest {
     try (InputStream in = streamed.body()) {
       assertArrayEquals(BODY, in.readAllBytes());
     }
+  }
+
+  @Test
+  void queryMethodOptIn() {
+    String url =
+        QueryUrlBuilder.builder()
+            .signing(KEY)
+            .build()
+            .url("s3://b/cat.jpg", QueryParams.create().w(300));
+    String query = url.substring(url.indexOf('?') + 1);
+
+    // Off by default: a query URL goes out as GET.
+    client.media(url);
+    Seen s = last();
+    assertEquals(
+        List.of("GET", "/q/", query, ""), List.of(s.method(), s.path(), s.query(), s.body()));
+    assertNull(s.header("Content-Type"));
+
+    // One call as QUERY.
+    MediaResponse<byte[]> res = client.media(url, MediaRequest.query().withAccept("image/webp"));
+    assertEquals("q", new String(res.body(), StandardCharsets.UTF_8));
+    s = last();
+    assertEquals("QUERY", s.method());
+    assertEquals("/q/", s.path());
+    assertNull(s.query());
+    assertEquals("application/x-www-form-urlencoded", s.header("Content-Type"));
+    assertEquals("image/webp", s.header("Accept"));
+    assertEquals("1", s.header("X-Test"));
+    assertEquals(query, s.body());
+
+    // queryMethod: URLs under the mount go out as QUERY unless the call names a method.
+    XtandardClient on = XtandardClient.builder(base).queryMethod(true).build();
+    on.media(url);
+    assertEquals(List.of("QUERY", query), List.of(last().method(), last().body()));
+    on.media(url, MediaRequest.head());
+    assertEquals("HEAD", last().method());
+    on.media(url, MediaRequest.get());
+    assertEquals("GET", last().method());
+    assertThrows(HttpException.class, () -> on.media("/busy"));
+    assertEquals("GET", last().method());
+    on.async().media(url).join();
+    assertEquals("QUERY", last().method());
+
+    // A custom mount.
+    XtandardClient mounted =
+        XtandardClient.builder(base).queryMethod(true).queryMount("/img/q/").build();
+    assertThrows(
+        HttpException.NotFound.class,
+        () -> mounted.media("/img/q/watermark?url=s3://b/a.jpg&text=hi"));
+    s = last();
+    assertEquals(
+        List.of("QUERY", "/img/q/watermark", "url=s3://b/a.jpg&text=hi"),
+        List.of(s.method(), s.path(), s.body()));
+    mounted.media(url);
+    assertEquals("GET", last().method());
+
+    // QUERY needs a URL with a query.
+    UrlBuildException e =
+        assertThrows(UrlBuildException.class, () -> client.media("/q/", MediaRequest.query()));
+    assertEquals(ErrorCode.INVALID_REQUEST, e.code());
+    assertThrows(
+        IllegalArgumentException.class, () -> new MediaRequest("POST", null, "*/*", Map.of()));
   }
 
   @Test

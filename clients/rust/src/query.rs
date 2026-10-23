@@ -405,3 +405,55 @@ impl QueryVideoUrlChain<'_> {
         self.b.build_video(&entries, &s.source, s.ext.as_deref())
     }
 }
+
+/// The content type of an HTTP QUERY request's content ([`query_method_request`]).
+pub const QUERY_CONTENT_TYPE: &str = "application/x-www-form-urlencoded";
+
+/// A query dialect request sent with the HTTP QUERY method (RFC 10008, URL-DIALECTS §4.4).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct QueryMethodRequest {
+    /// `"QUERY"`.
+    pub method: &'static str,
+    /// The URL without its query.
+    pub url: String,
+    /// [`QUERY_CONTENT_TYPE`].
+    pub content_type: &'static str,
+    /// The URL's query exactly as built, `xi_sig` included: the server signs,
+    /// limits and caches it as the GET URL, since `xi_sig` does not cover the method.
+    pub body: String,
+}
+
+/// Splits a built query dialect URL (`/q/…?url=…`) into an HTTP QUERY request:
+/// the parameters move from the URL to the content, so long option chains,
+/// watermark text or encrypted sources stay out of URLs.
+///
+/// The server must have `XI_SERVER_QUERY_METHOD` on (the default); many CDNs
+/// and proxies neither cache nor forward QUERY.
+///
+/// ```
+/// use xtandard_image::{Options, QueryUrlBuilder, QueryUrlParams, query_method_request};
+///
+/// let url = QueryUrlBuilder::new().url("s3://b/cat.jpg", Options::new(), QueryUrlParams::new().param("w", 300))?;
+/// let q = query_method_request(&url)?;
+/// assert_eq!((q.method, q.url.as_str(), q.body.as_str()), ("QUERY", "/q/", "url=s3://b/cat.jpg&w=300"));
+/// assert_eq!(q.content_type, "application/x-www-form-urlencoded");
+/// # Ok::<(), xtandard_image::Error>(())
+/// ```
+///
+/// # Errors
+///
+/// [`Error::InvalidRequest`] when the URL has no query, an empty query, or a fragment.
+pub fn query_method_request(url: &str) -> Result<QueryMethodRequest> {
+    match url.split_once('?') {
+        Some((path, query)) if !query.is_empty() && !url.contains('#') => Ok(QueryMethodRequest {
+            method: "QUERY",
+            url: path.to_owned(),
+            content_type: QUERY_CONTENT_TYPE,
+            body: query.to_owned(),
+        }),
+        _ => Err(Error::InvalidRequest(
+            "a QUERY request needs a query dialect URL with a query and no fragment".to_owned(),
+        )),
+    }
+}

@@ -44,6 +44,17 @@ public final class Xtandard {
   }
 
   /**
+   * Splits a built query dialect URL into an HTTP QUERY request ({@link
+   * QueryMethodRequest#from(String)}).
+   *
+   * @param url a query dialect URL with a query
+   * @return the QUERY request
+   */
+  public static QueryMethodRequest queryMethodRequest(String url) {
+    return QueryMethodRequest.from(url);
+  }
+
+  /**
    * A named source reference ({@link Sources#xiSource(String, String)}).
    *
    * @param name the source name

@@ -112,6 +112,22 @@ The media methods return the `reqwest::Response` with the body unread: stream it
 - `ClientError::Build`: the URL could not be built.
 - `ClientError::Decode`: a 2xx body that is not what the endpoint returns.
 
+### HTTP QUERY (opt-in)
+
+The query dialect endpoints also accept the HTTP QUERY method (RFC 10008, server toggle `XI_SERVER_QUERY_METHOD`, on by default): the URL's query goes out as `application/x-www-form-urlencoded` content, so long option chains, watermark text or encrypted sources stay out of URLs. `xi_sig` does not cover the method, so the content is the query of the signed GET URL. It is **off by default** in the client, because many CDNs and proxies neither cache nor forward QUERY.
+
+```rust
+use xtandard_image::{MediaOptions, query_method_request};
+
+let url = q.url("s3://photos/cat.jpg", Options::new().set("bl", 2), QueryUrlParams::new().param("w", 300))?;
+let req = query_method_request(&url)?; // QueryMethodRequest { method: "QUERY", url: ".../q/", content_type, body: "url=…&w=300&o=bl:2&xi_sig=…" }
+xi.media(&url, &MediaOptions::new().query()).await?; // this call as QUERY
+let xi = Client::builder("http://localhost:8080").query_method(true).query_mount("/q").build()?;
+xi.media(&url, &MediaOptions::new()).await?; // URLs under the mount go out as QUERY unless the call names a method (HEAD, GET)
+```
+
+A URL without a query, or with a fragment, is `Error::InvalidRequest` (`invalid_request`). URL builders are unchanged.
+
 TLS is rustls with the ring provider and the platform's certificate verifier (no OpenSSL, no aws-lc). `build_with(reqwest::Client)` uses a reqwest client of your own; install a rustls `CryptoProvider` (or configure its TLS) before creating it. `xtandard_image::reqwest` re-exports the reqwest version the crate uses.
 
 ## Coverage
@@ -125,6 +141,7 @@ TLS is rustls with the ring provider and the platform's certificate verifier (no
 | Password-protected PDFs (`pdp`) | `UrlParams::pdf_password`, `with_pdf_password()`, `encrypt_pdf_password()` |
 | Sources: base64, `plain/`, `enc/`, split; `xi://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://` | `SourceEncoding`, `split_source()`, `xi_source()`, `source_url()` |
 | Query dialect `/q/`, `/q/video`, imaginary; `xi_sig` | `QueryUrlBuilder`, `sign_xi_url()` |
+| HTTP QUERY on the query dialect (opt-in, off by default) | `query_method_request()`, `MediaOptions::query()`, `ClientBuilder::query_method()` and `query_mount()` |
 | `/healthz`, `/readyz`, playground `api/meta` | `healthz()`, `readyz()`, `playground_meta()` |
 
 Not covered, on purpose (as in the TypeScript and Python clients):

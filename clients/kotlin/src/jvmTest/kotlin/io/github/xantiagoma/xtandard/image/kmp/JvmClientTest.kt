@@ -39,6 +39,17 @@ class JvmClientTest {
                     ex.responseBody.use { it.write("ok".toByteArray()) }
                 }
 
+                path.startsWith("/q/") -> {
+                    // Echoes the method, content type and content (QUERY) or query (GET).
+                    val content = ex.requestBody.use { it.readBytes().decodeToString() }
+                    val echo = "${ex.requestMethod} ${ex.requestHeaders.getFirst(
+                        "Content-Type",
+                    )} ${content.ifEmpty { ex.requestURI.rawQuery }}"
+                    val bytes = echo.toByteArray()
+                    ex.sendResponseHeaders(200, bytes.size.toLong())
+                    ex.responseBody.use { it.write(bytes) }
+                }
+
                 path.startsWith("/video/") -> {
                     ex.responseHeaders.add("Content-Type", "video/webm")
                     ex.responseHeaders.add("Accept-Ranges", "bytes")
@@ -98,6 +109,24 @@ class JvmClientTest {
             }
             assertTrue(seen.any { it.startsWith("HEAD /video/insecure/vd:1/") }, seen.toString())
             assertTrue(seen.any { it.endsWith("range=bytes=0-99") }, seen.toString())
+        }
+
+    @Test
+    fun queryMethodOverASocket() =
+        runTest {
+            val url = QueryUrlBuilder().url("s3://b/cat.jpg", queryParams { w(300) })
+            val query = url.substringAfter('?')
+            XtandardClient(base(), timeout = 10.seconds, queryMethod = true).use { xi ->
+                assertEquals("QUERY application/x-www-form-urlencoded $query", xi.media(url).body.decodeToString())
+                assertEquals("GET null $query", xi.media(url, MediaRequest(MediaMethod.GET)).body.decodeToString())
+            }
+            XtandardClient(base(), timeout = 10.seconds).use { xi ->
+                assertEquals("GET null $query", xi.media(url).body.decodeToString())
+                assertEquals(
+                    "QUERY application/x-www-form-urlencoded $query",
+                    xi.media(url, MediaRequest(MediaMethod.QUERY)).body.decodeToString(),
+                )
+            }
         }
 
     @Test

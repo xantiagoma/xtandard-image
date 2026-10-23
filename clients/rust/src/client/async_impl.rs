@@ -176,7 +176,7 @@ impl Client {
         self.json(&self.core.abs(url)).await
     }
 
-    /// `GET` (or `HEAD`) any URL or server path: an image or video URL, a query URL, a stream part.
+    /// `GET` (or `HEAD`, or `QUERY` for a query URL) any URL or server path: an image or video URL, a query URL, a stream part.
     ///
     /// The body is not read: use [`reqwest::Response::bytes`] or
     /// [`reqwest::Response::chunk`] to stream it.
@@ -185,9 +185,17 @@ impl Client {
     ///
     /// [`ClientError::Http`] (the body is read for the error) or [`ClientError::Transport`].
     pub async fn media(&self, url: &str, opts: &MediaOptions) -> Result<reqwest::Response, ClientError> {
-        let url = self.core.abs(url);
-        let res = self.send(opts.method, &url, self.core.media_headers(opts)?).await?;
-        Self::checked(res, opts.method).await
+        let r = self.core.media_request(url, opts)?;
+        let mut req = self.http.request(r.method.reqwest(), &r.url).headers(r.headers);
+        if let Some(body) = r.body {
+            req = req.body(body);
+        }
+        let res = req.send().await.map_err(|source| ClientError::Transport {
+            method: r.method.as_str(),
+            url: r.url.clone(),
+            source,
+        })?;
+        Self::checked(res, r.method).await
     }
 
     /// `GET` (or `HEAD`) a processed image; the `Accept` header drives format negotiation.

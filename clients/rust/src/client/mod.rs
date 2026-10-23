@@ -5,14 +5,15 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
 
-use reqwest::header::{ACCEPT, HeaderMap, HeaderName, HeaderValue, RANGE};
+use reqwest::header::{ACCEPT, CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue, RANGE};
 
 use crate::encryption::EncryptionKey;
 use crate::error::Error;
-use crate::generated::constants::SourceEncoding;
+use crate::generated::constants::{QUERY_MOUNT, SourceEncoding};
 use crate::generated::responses::ErrorResponse;
 use crate::imgproxy::ImgproxyUrlBuilder;
 use crate::options::OptionNames;
+use crate::query::query_method_request;
 use crate::range::{ByteRange, range_header};
 use crate::signing::SigningKey;
 
@@ -207,6 +208,11 @@ pub enum Method {
     Get,
     /// `HEAD`: the headers only.
     Head,
+    /// `QUERY` (RFC 10008): a query dialect URL's query goes out as the request
+    /// content ([`query_method_request`](crate::query_method_request)). The
+    /// server needs `XI_SERVER_QUERY_METHOD` (on by default); many CDNs and
+    /// proxies neither cache nor forward QUERY.
+    Query,
 }
 
 impl Method {
@@ -214,6 +220,7 @@ impl Method {
         match self {
             Self::Get => "GET",
             Self::Head => "HEAD",
+            Self::Query => "QUERY",
         }
     }
 
@@ -221,6 +228,8 @@ impl Method {
         match self {
             Self::Get => reqwest::Method::GET,
             Self::Head => reqwest::Method::HEAD,
+            // "QUERY" is a valid token, so this never falls back.
+            Self::Query => reqwest::Method::from_bytes(b"QUERY").unwrap_or(reqwest::Method::GET),
         }
     }
 }
@@ -228,27 +237,34 @@ impl Method {
 /// How a media request (image, video, stream part) is sent.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct MediaOptions {
-    method: Method,
+    method: Option<Method>,
     range: Option<ByteRange>,
     accept: Option<String>,
     headers: Vec<(String, String)>,
 }
 
 impl MediaOptions {
-    /// `GET`, the whole body, `Accept: */*`.
+    /// `GET` (or `QUERY` under the client's [`query_method`](ClientBuilder::query_method)),
+    /// the whole body, `Accept: */*`.
     pub fn new() -> Self {
         Self::default()
     }
 
     /// `HEAD` instead of `GET`.
     pub fn head(mut self) -> Self {
-        self.method = Method::Head;
+        self.method = Some(Method::Head);
         self
     }
 
-    /// The method.
+    /// `QUERY` instead of `GET`: the URL must be a query dialect URL with a query.
+    pub fn query(mut self) -> Self {
+        self.method = Some(Method::Query);
+        self
+    }
+
+    /// The method; an explicit [`Method::Get`] is never turned into `QUERY`.
     pub fn method(mut self, method: Method) -> Self {
-        self.method = method;
+        self.method = Some(method);
         self
     }
 
@@ -281,6 +297,8 @@ pub struct ClientBuilder<C> {
     timeout: Option<Duration>,
     playground_base_url: Option<String>,
     playground_path: String,
+    query_method: bool,
+    query_mount: String,
     client: PhantomData<fn() -> C>,
 }
 
@@ -293,6 +311,8 @@ impl<C> ClientBuilder<C> {
             timeout: Some(Duration::from_secs(60)),
             playground_base_url: None,
             playground_path: "/_playground/".to_owned(),
+            query_method: false,
+            query_mount: QUERY_MOUNT.to_owned(),
             client: PhantomData,
         }
     }
@@ -363,6 +383,24 @@ impl<C> ClientBuilder<C> {
         self
     }
 
+    /// Sends query dialect URLs (those under [`query_mount`](Self::query_mount))
+    /// passed to `media()` with the HTTP QUERY method (RFC 10008) when the call
+    /// names no method: the query moves into the request content.
+    ///
+    /// Off by default: the server needs `XI_SERVER_QUERY_METHOD` (on by
+    /// default), and many CDNs and proxies neither cache nor forward QUERY.
+    /// [`MediaOptions::query`] does the same for one call.
+    pub fn query_method(mut self, on: bool) -> Self {
+        self.query_method = on;
+        self
+    }
+
+    /// The query dialect's mount (`XI_DIALECTS_QUERY_PREFIX`), for [`query_method`](Self::query_method). Default `/q`.
+    pub fn query_mount(mut self, mount: impl Into<String>) -> Self {
+        self.query_mount = mount.into();
+        self
+    }
+
     pub(crate) fn core(self) -> Result<Core, ClientError> {
         let mut headers = HeaderMap::new();
         for (k, v) in &self.headers {
@@ -379,6 +417,8 @@ impl<C> ClientBuilder<C> {
             headers,
             playground_meta,
             timeout: self.timeout,
+            query_method: self.query_method,
+            query_mount: self.query_mount.trim_end_matches('/').to_owned(),
         })
     }
 }
@@ -391,6 +431,16 @@ pub(crate) struct Core {
     pub(crate) headers: HeaderMap,
     pub(crate) playground_meta: String,
     pub(crate) timeout: Option<Duration>,
+    pub(crate) query_method: bool,
+    pub(crate) query_mount: String,
+}
+
+/// A media request as sent: method, URL, headers and, for QUERY, the content.
+pub(crate) struct MediaRequest {
+    pub(crate) method: Method,
+    pub(crate) url: String,
+    pub(crate) headers: HeaderMap,
+    pub(crate) body: Option<String>,
 }
 
 impl Core {
@@ -428,8 +478,32 @@ impl Core {
         Ok(h)
     }
 
-    pub(crate) fn media_headers(&self, opts: &MediaOptions) -> Result<HeaderMap, ClientError> {
-        self.headers_for(opts.accept.as_deref().unwrap_or("*/*"), opts.range.as_ref(), &opts.headers)
+    /// The request `media()` sends for a URL or server path: QUERY for
+    /// [`Method::Query`], or with `query_method` for a URL under the query mount
+    /// when no method was given; otherwise GET (or the given method) unchanged.
+    pub(crate) fn media_request(&self, url: &str, opts: &MediaOptions) -> Result<MediaRequest, ClientError> {
+        let url = self.abs(url);
+        let mut headers =
+            self.headers_for(opts.accept.as_deref().unwrap_or("*/*"), opts.range.as_ref(), &opts.headers)?;
+        let method = opts.method.unwrap_or(if self.query_method && self.under_query_mount(&url) {
+            Method::Query
+        } else {
+            Method::Get
+        });
+        if method != Method::Query {
+            return Ok(MediaRequest { method, url, headers, body: None });
+        }
+        let q = query_method_request(&url)?;
+        headers.insert(CONTENT_TYPE, HeaderValue::from_static(q.content_type));
+        Ok(MediaRequest { method, url: q.url, headers, body: Some(q.body) })
+    }
+
+    /// Whether an absolute URL's path is the query mount or under it.
+    fn under_query_mount(&self, url: &str) -> bool {
+        let Ok(u) = reqwest::Url::parse(url) else { return false };
+        let path = u.path();
+        let mount = self.query_mount.as_str();
+        path == mount || path.strip_prefix(mount).is_some_and(|rest| rest.starts_with('/'))
     }
 }
 

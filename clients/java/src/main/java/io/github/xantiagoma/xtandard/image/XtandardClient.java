@@ -56,6 +56,8 @@ public final class XtandardClient {
     private @Nullable HttpClient httpClient;
     private @Nullable String playgroundBaseUrl;
     private String playgroundPath = "/_playground/";
+    private boolean queryMethod;
+    private String queryMount = Constants.QUERY_MOUNT;
 
     private Builder(String baseUrl) {
       this.baseUrl = baseUrl;
@@ -197,6 +199,33 @@ public final class XtandardClient {
     }
 
     /**
+     * Sends query dialect URLs (those under {@link #queryMount(String)}) passed to {@code media()}
+     * with the HTTP QUERY method (RFC 10008) when the call names no method ({@link
+     * MediaRequest#of()}): the query moves into the request content. Off by default: the server
+     * needs {@code XI_SERVER_QUERY_METHOD} (on by default), and many CDNs and proxies neither cache
+     * nor forward QUERY. {@link MediaRequest#query()} does the same for one call.
+     *
+     * @param on whether to send query dialect URLs as QUERY
+     * @return this
+     */
+    public Builder queryMethod(boolean on) {
+      this.queryMethod = on;
+      return this;
+    }
+
+    /**
+     * The query dialect's mount (XI_DIALECTS_QUERY_PREFIX), for {@link #queryMethod(boolean)}.
+     * Default {@code /q}.
+     *
+     * @param mount the mount
+     * @return this
+     */
+    public Builder queryMount(String mount) {
+      this.queryMount = mount;
+      return this;
+    }
+
+    /**
      * Builds the client.
      *
      * @return the client
@@ -214,7 +243,13 @@ public final class XtandardClient {
       String origin = playgroundBaseUrl == null ? baseUrl : playgroundBaseUrl;
       return new XtandardClient(
           new ClientCore(
-              h, u, headers, timeout, ClientCore.playgroundMeta(origin, playgroundPath)));
+              h,
+              u,
+              headers,
+              timeout,
+              ClientCore.playgroundMeta(origin, playgroundPath),
+              queryMethod,
+              queryMount));
     }
   }
 
@@ -254,10 +289,10 @@ public final class XtandardClient {
           core.http.send(core.request(url, m), ClientCore.checked(handler));
       return ClientCore.unwrap(res);
     } catch (IOException e) {
-      throw new TransportException(m.method() + " " + url + ": " + e, e);
+      throw new TransportException(core.method(url, m) + " " + url + ": " + e, e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new TransportException(m.method() + " " + url + ": interrupted", e);
+      throw new TransportException(core.method(url, m) + " " + url + ": interrupted", e);
     }
   }
 
@@ -265,10 +300,10 @@ public final class XtandardClient {
     try {
       return core.http.send(core.request(url, m), BodyHandlers.ofByteArray());
     } catch (IOException e) {
-      throw new TransportException(m.method() + " " + url + ": " + e, e);
+      throw new TransportException(core.method(url, m) + " " + url + ": " + e, e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new TransportException(m.method() + " " + url + ": interrupted", e);
+      throw new TransportException(core.method(url, m) + " " + url + ": interrupted", e);
     }
   }
 
@@ -343,17 +378,19 @@ public final class XtandardClient {
   }
 
   /**
-   * {@code GET} any URL or server path: an image or video URL, a query URL, a stream part.
+   * {@code GET} any URL or server path: an image or video URL, a query URL, a stream part. With the
+   * client's {@code queryMethod}, a query dialect URL goes out as {@code QUERY} ({@link
+   * MediaRequest#of()}).
    *
    * @param url the path or URL
    * @return the response
    */
   public MediaResponse<byte[]> media(String url) {
-    return media(url, MediaRequest.get());
+    return media(url, MediaRequest.of());
   }
 
   /**
-   * {@code GET} or {@code HEAD} any URL or server path.
+   * {@code GET}, {@code HEAD} or {@code QUERY} any URL or server path.
    *
    * @param url the path or URL
    * @param request the method, range, Accept and headers
