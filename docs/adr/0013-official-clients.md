@@ -8,7 +8,7 @@
 The owner (2026-10-15) asked for official URL builders and clients in the main backend languages: **Python, Go, PHP, Ruby, Rust, Java, .NET and Elixir**, next to the TypeScript package `@xtandard/image` (ADR 0009, WP-84, WP-133). The constraints he set:
 
 - No Bazel. Keep mise and Taskfile, use each language's native tooling, and run CI only for what changed.
-- Signing belongs on servers. There are no mobile SDKs: a key in an app signs and decrypts everything.
+- Signing belongs on servers: a key in an app signs and decrypts everything. *Amended 2026-10-22 (owner):* Swift (WP-142), Kotlin Multiplatform (WP-143) and Dart (WP-144) clients exist for apps too; signing and encryption stay optional there, and their docs recommend the server's `restricted` unsigned policy or backend-signed URLs because keys shipped in an app can be extracted.
 - WP-134 builds the shared foundation and the Python client. The other languages follow in parallel work packages (WP-135 onwards) that reuse the foundation unchanged, so it has to be easy to plug into and documented for an agent who has never seen the TypeScript package.
 
 Each client has to know the same things the TypeScript package knows: three option catalogues (processing, `/info`, `/video`: about 90, 35 and 50 options, with aliases, positional arguments, enums and ranges), the query dialect's keys, the stream protocols and segment formats, the source schemes, two signature schemes (imgproxy, with `/video` signing `"/video" + path`, and `xi_sig`), the `enc/` token format and PDF passwords. They must also make the same URLs: a signature covers the bytes of the path, so `300` against `300.0` or a different percent-encoding is a different URL and a 403.

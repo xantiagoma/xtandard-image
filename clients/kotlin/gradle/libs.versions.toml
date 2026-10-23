@@ -1,0 +1,27 @@
+# Versions of the Kotlin Multiplatform client's plugins and libraries.
+# Runtime: Ktor client (core + one engine per platform) and kotlinx.serialization
+# (JSON for /info and error bodies); both Apache-2.0. Everything else is build
+# or test tooling. `task licenses` checks the runtime closure of every target.
+[versions]
+kotlin = "2.4.21"
+ktor = "3.6.0"
+serialization = "1.12.0"
+coroutines = "1.11.0"
+kotlinx-io = "0.9.1"
+dokka = "2.2.0"
+maven-publish = "0.37.0"
+
+[libraries]
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
+serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+kotlinx-io = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinx-io" }
+
+[plugins]
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
+maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
