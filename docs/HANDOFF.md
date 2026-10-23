@@ -348,3 +348,8 @@ owner has authorised merging PRs without review.
   with highlighting, built this way + an execution check per language (`m6/wp-145-playground-snippets`).
   Next: WP-146 migrates `clients/codegen` emitters (~7k lines of template strings) to the same design,
   reusing WP-145's Doc module, with byte-identical generated output as the gate.
+- **Merged 2026-10-23:** WP-145 playground snippets (#151): 13 targets, code model → refiner → Doc
+  printer in `internal/playground/assets/snippets/`, own tokenizer for highlighting, execution check
+  `task playground:snippets` 156/156; also `TestSniffFixtures` skips hidden files (.DS_Store). Demo
+  redeployed (assets under `assets/<hash>/`). **In flight:** WP-146 migrates `clients/codegen` to the same
+  design, byte-identical generated output as the gate (`m6/wp-146-codegen-model`).
