@@ -359,3 +359,6 @@ owner has authorised merging PRs without review.
   slots). Proposed model follow-ups in the WP-146 report (generic `N.ext` kinds, conditional/initializer
   nodes, Param docs, module inner docs, PHP docblock tags). Nothing in flight. Pending owner answer:
   HTTP QUERY (RFC 10008) as WP-147.
+- **In flight (2026-10-23):** WP-147 HTTP QUERY method (RFC 10008) on `/q` and `/q/video`: form and
+  JSON bodies, `Accept-Query`, `xi_sig` over method+path+canonical params, cache shared with GET, CORS,
+  opt-in in the clients, playground toggle (`m6/wp-147-http-query`).
