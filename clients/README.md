@@ -15,6 +15,7 @@ URL builders and HTTP clients for xtandard-image in the main backend languages (
 | Elixir | [`clients/elixir`](elixir) | Hex `xtandard_image` | WP-141 |
 | Swift | [`clients/swift`](swift) | SwiftPM product `XtandardImage`, from this repository's root `Package.swift` (tags `vX.Y.Z`) | WP-142 |
 | Dart (Flutter and servers) | [`clients/dart`](dart) | pub.dev `xtandard_image` | WP-144 |
+| Kotlin Multiplatform | [`clients/kotlin`](kotlin) | Maven Central `io.github.xantiagoma:xtandard-image-kmp` (JVM, Android, iOS, macOS) | WP-143 |
 
 Nothing is published yet. Every client is versioned in lockstep with the server's release tags (`0.x`).
 
