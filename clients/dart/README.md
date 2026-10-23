@@ -119,6 +119,18 @@ Non-2xx responses throw an `XtandardHttpException` subclass chosen by status:
 
 Each carries `status`, `kind`, `message`, `requestId` and the parsed `body` from the server's JSON error envelope. Connection failures, timeouts and aborts throw `TransportException`. `XtandardException` is the sealed base of all three kinds, so a `switch` over it is exhaustive.
 
+### HTTP QUERY (opt-in)
+
+Query dialect URLs can go out with the HTTP QUERY method (RFC 10008): the URL's query, `xi_sig` included, becomes the request content (`application/x-www-form-urlencoded`), so long option chains or encrypted sources stay out of URLs. It is off by default, because many CDNs and proxies neither cache nor forward QUERY; the server accepts it unless `XI_SERVER_QUERY_METHOD=false`.
+
+```dart
+final req = queryMethodRequest(q.url('s3://photos/cat.jpg', params: {'w': 300})); // method, url, contentType, body
+final one = await xi.media(q.url('s3://photos/cat.jpg'), method: HttpMethod.query);
+final all = XtandardClient('https://img.example.com', queryMethod: true); // URLs under queryMount, when no method is given
+```
+
+A URL without a query (or with a fragment) throws `UrlBuildException` with `ErrorCode.invalidRequest`.
+
 ## Flutter
 
 The builders return strings, so they work with any image widget. This helper builds a width-bucketed URL for `Image.network`, so nearby layout sizes share one cached image and an unsigned URL stays within the widths a `restricted` server allows:
@@ -163,6 +175,7 @@ For HLS, hand `streamUrl(...)` to a player such as `video_player`.
 | Password-protected PDFs (`pdp`) | `pdfPassword:` / `withPdfPassword()`, `encryptPdfPassword()` |
 | Sources: base64, `plain/`, `enc/`, split; `xi://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://` | `sourceEncoding`, `splitSource`, `xiSource()`, `sourceUrl()` |
 | Query dialect `/q/`, `/q/video`, imaginary; `xi_sig` | `QueryUrlBuilder`, `signXiUrl()`, `signXiQuery()` |
+| HTTP QUERY on the query dialect (opt-in) | `queryMethodRequest()` (`QueryMethodRequest`), `XtandardClient(queryMethod:, queryMount:)`, `media(url, method: HttpMethod.query)` |
 | `/healthz`, `/readyz`, playground `api/meta` | `healthz()`, `readyz()`, `playgroundMeta()` |
 
 The shared conformance fixture skips 4 of its 150 cases because the typed API cannot express them: chained `/info` and `/video` pipelines (`infoUrl()` and `videoUrl()` take one options map), a PDF password on `/video` (no such parameter), and an unknown stream protocol (`StreamProtocol` is an enum).

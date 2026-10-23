@@ -32,6 +32,11 @@ public struct XtandardClient: Sendable {
   public let headers: [String: String]
   /// The timeout of each request, or `nil` for the session's.
   public let timeout: TimeInterval?
+  /// Whether ``media(_:_:)`` sends query dialect URLs (those under ``queryMount``)
+  /// with the HTTP QUERY method when no method is given (RFC 10008). Off by default.
+  public let queryMethod: Bool
+  /// The query dialect's mount (`XI_DIALECTS_QUERY_PREFIX`), for ``queryMethod``. Default `/q`.
+  public let queryMount: String
   let playgroundMetaURL: String
 
   /// A client of the server at `baseURL`.
@@ -50,6 +55,11 @@ public struct XtandardClient: Sendable {
   ///   - session: The `URLSession` (default `.shared`).
   ///   - playgroundBaseURL: The origin of the admin listener for ``playgroundMeta()``; default `baseURL`.
   ///   - playgroundPath: `XI_PLAYGROUND_PATH`. Default `/_playground/`.
+  ///   - queryMethod: Send query dialect URLs passed to ``media(_:_:)`` without a method
+  ///     as HTTP QUERY (RFC 10008): the query moves into the request content. Off by default:
+  ///     the server needs `XI_SERVER_QUERY_METHOD` (on by default), and many CDNs and proxies
+  ///     neither cache nor forward QUERY. `MediaOptions(method: .query)` does it for one call.
+  ///   - queryMount: The query dialect's mount, for `queryMethod`. Default `/q`.
   public init(
     baseURL: String,
     signing: SigningKey? = nil,
@@ -63,7 +73,9 @@ public struct XtandardClient: Sendable {
     timeout: TimeInterval? = 60,
     session: URLSession = .shared,
     playgroundBaseURL: String? = nil,
-    playgroundPath: String = "/_playground/"
+    playgroundPath: String = "/_playground/",
+    queryMethod: Bool = false,
+    queryMount: String = SpecConstants.queryMount
   ) {
     var base = baseURL
     while base.hasSuffix("/") { base.removeLast() }
@@ -79,6 +91,10 @@ public struct XtandardClient: Sendable {
     while origin.hasSuffix("/") { origin.removeLast() }
     let path = playgroundPath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
     playgroundMetaURL = "\(origin)/\(path)/api/meta"
+    self.queryMethod = queryMethod
+    var mount = queryMount
+    while mount.hasSuffix("/") { mount.removeLast() }
+    self.queryMount = mount
   }
 
   // MARK: Endpoints
@@ -144,13 +160,18 @@ public struct XtandardClient: Sendable {
 
   /// `GET` (or `HEAD`) any URL or server path: an image or video URL, a query URL, a stream part.
   ///
-  /// - Throws: ``ClientError/http(_:)`` or ``ClientError/transport(_:)``.
+  /// A query dialect URL goes out as HTTP QUERY with `MediaOptions(method: .query)`,
+  /// or, when no method is given, with the client's ``queryMethod``.
+  ///
+  /// - Throws: ``ClientError/http(_:)`` or ``ClientError/transport(_:)``; ``ClientError/build(_:)``
+  ///   (`invalid_request`) for a QUERY request of a URL without a query.
   public func media(_ url: String, _ media: MediaOptions = MediaOptions()) async throws(ClientError)
     -> MediaResponse
   {
+    let (method, target, query) = try resolve(url, media)
     let r = try await send(
-      media.method, absolute(url), accept: media.accept ?? "*/*", range: media.range,
-      extra: media.headers)
+      method, target, accept: media.accept ?? "*/*", range: media.range, extra: media.headers,
+      query: query)
     try checked(r)
     return r
   }
@@ -222,16 +243,16 @@ public struct XtandardClient: Sendable {
       async throws(ClientError)
       -> (URLSession.AsyncBytes, MediaResponse)
     {
-      let target = absolute(url)
+      let (method, target, query) = try resolve(url, media)
       let request = try makeRequest(
-        media.method, target, accept: media.accept ?? "*/*", range: media.range,
-        extra: media.headers)
+        method, target, accept: media.accept ?? "*/*", range: media.range,
+        extra: media.headers, query: query)
       let bytes: URLSession.AsyncBytes
       let response: URLResponse
       do {
         (bytes, response) = try await session.bytes(for: request)
       } catch {
-        throw .transport(TransportError(method: media.method.rawValue, url: target, error: error))
+        throw .transport(TransportError(method: method.rawValue, url: target, error: error))
       }
       let head = MediaResponse(url: target, response: response, body: Data())
       if !(200..<300).contains(head.status) {
@@ -239,7 +260,7 @@ public struct XtandardClient: Sendable {
         do {
           for try await b in bytes { body.append(b) }
         } catch {
-          throw .transport(TransportError(method: media.method.rawValue, url: target, error: error))
+          throw .transport(TransportError(method: method.rawValue, url: target, error: error))
         }
         try checked(MediaResponse(url: target, response: response, body: body))
       }
@@ -272,14 +293,45 @@ public struct XtandardClient: Sendable {
     do { return try make() } catch { throw .build(error) }
   }
 
+  /// The method and absolute URL of a media request, and its QUERY content when it goes out as QUERY.
+  private func resolve(_ url: String, _ media: MediaOptions) throws(ClientError) -> (
+    HTTPMethod, String, QueryMethodRequest?
+  ) {
+    let target = absolute(url)
+    guard media.method == .query || (!media.methodGiven && queryMethod && underQueryMount(target))
+    else { return (media.method, target, nil) }
+    do {
+      let q = try queryMethodRequest(target)
+      return (.query, q.url, q)
+    } catch {
+      throw .build(error)
+    }
+  }
+
+  /// Whether an absolute URL's path is under the query dialect mount (for ``queryMethod``).
+  private func underQueryMount(_ url: String) -> Bool {
+    var rest = Substring(url)
+    if let scheme = rest.range(of: "://") {
+      rest = rest[scheme.upperBound...]
+      rest = rest.firstIndex(of: "/").map { rest[$0...] } ?? ""
+    }
+    let path = rest.prefix { $0 != "?" && $0 != "#" }
+    return path == queryMount || path.hasPrefix(queryMount + "/")
+  }
+
   private func makeRequest(
-    _ method: HTTPMethod, _ url: String, accept: String, range: ByteRange?, extra: [String: String]
+    _ method: HTTPMethod, _ url: String, accept: String, range: ByteRange?, extra: [String: String],
+    query: QueryMethodRequest? = nil
   ) throws(ClientError) -> URLRequest {
     guard let u = URL(string: url) else {
       throw .transport(TransportError(method: method.rawValue, url: url, message: "invalid URL"))
     }
     var req = URLRequest(url: u)
     req.httpMethod = method.rawValue
+    if let query {
+      req.httpBody = Data(query.body.utf8)
+      req.setValue(query.contentType, forHTTPHeaderField: "Content-Type")
+    }
     if let timeout { req.timeoutInterval = timeout }
     for (k, v) in headers { req.setValue(v, forHTTPHeaderField: k) }
     for (k, v) in extra { req.setValue(v, forHTTPHeaderField: k) }
@@ -294,9 +346,10 @@ public struct XtandardClient: Sendable {
 
   private func send(
     _ method: HTTPMethod, _ url: String, accept: String, range: ByteRange? = nil,
-    extra: [String: String] = [:]
+    extra: [String: String] = [:], query: QueryMethodRequest? = nil
   ) async throws(ClientError) -> MediaResponse {
-    let request = try makeRequest(method, url, accept: accept, range: range, extra: extra)
+    let request = try makeRequest(
+      method, url, accept: accept, range: range, extra: extra, query: query)
     do {
       let (data, response) = try await session.data(for: request)
       return MediaResponse(url: url, response: response, body: data)
@@ -328,12 +381,21 @@ public enum HTTPMethod: String, Sendable, Hashable {
   case get = "GET"
   /// `HEAD`: the headers only.
   case head = "HEAD"
+  /// `QUERY` (RFC 10008): a query dialect URL's query as the request content
+  /// (``queryMethodRequest(_:)``; see ``XtandardClient/queryMethod``).
+  case query = "QUERY"
 }
 
 /// How a media request (image, video, stream part) is sent.
 public struct MediaOptions: Sendable, Hashable {
-  /// `GET` or `HEAD`.
-  public var method: HTTPMethod
+  private var givenMethod: HTTPMethod?
+  /// `GET` (default), `HEAD`, or `QUERY` for a query dialect URL.
+  public var method: HTTPMethod {
+    get { givenMethod ?? .get }
+    set { givenMethod = newValue }
+  }
+  /// Whether a method was given (else ``XtandardClient/queryMethod`` may pick `QUERY`).
+  var methodGiven: Bool { givenMethod != nil }
   /// Part of the body (206): `.bytes(0, 1023)`, `.from(100)`, `.suffix(500)`.
   public var range: ByteRange?
   /// The `Accept` header, which drives format negotiation (`image/avif,image/webp`); default `*/*`.
@@ -341,12 +403,12 @@ public struct MediaOptions: Sendable, Hashable {
   /// Extra request headers.
   public var headers: [String: String]
 
-  /// `GET`, the whole body, `Accept: */*`.
+  /// `GET` (unless the client's ``XtandardClient/queryMethod`` picks `QUERY`), the whole body, `Accept: */*`.
   public init(
-    method: HTTPMethod = .get, range: ByteRange? = nil, accept: String? = nil,
+    method: HTTPMethod? = nil, range: ByteRange? = nil, accept: String? = nil,
     headers: [String: String] = [:]
   ) {
-    self.method = method
+    givenMethod = method
     self.range = range
     self.accept = accept
     self.headers = headers
