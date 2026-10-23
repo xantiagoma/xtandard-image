@@ -3,7 +3,13 @@
   "compilerOptions": {
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "types": ["bun"]
+    "types": ["bun"],
+    // scripts/generate.ts builds options.ts with the clients' code model
+    // (clients/codegen), whose Doc algebra is the playground's doc.js: read
+    // for its JSDoc types, not checked. src/ has no JavaScript, and the
+    // package build (tsconfig.build.json) compiles src/ alone.
+    "allowJs": true,
+    "checkJs": false
   },
   "include": ["src", "test-d", "scripts"]
 }
