@@ -1,0 +1,93 @@
+name: client-kotlin
+
+# The Kotlin Multiplatform client (clients/kotlin, ADR 0013). The JVM job
+# lints (ktlint), builds, runs the JVM tests (conformance fixture, builder
+# fixture, shared vectors, unit and stand-in HTTP tests) on every supported
+# JDK, checks the licences of every target's runtime closure, builds the
+# Dokka docs and publishes into build/repo (a dry run). The Apple job builds
+# the iosArm64, iosSimulatorArm64 and macosArm64 libraries and runs the
+# common tests on macOS and the iOS simulator. JDK 21 runs Gradle; the
+# matrix JDK runs the JVM tests (-Pxi.testJdk). Runs when the client, the
+# shared spec and fixtures, or this workflow change.
+#
+# DISABLED while Actions minutes are exhausted (docs/HANDOFF.md): the jobs
+# run only when the repository variable XI_CLIENTS_WORKFLOW is "enabled".
+# Locally: `task -d clients/kotlin ci`.
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - 'clients/kotlin/**'
+      - 'clients/spec/**'
+      - 'testdata/urls/**'
+      - 'testdata/security/**'
+      - '.github/workflows/client-kotlin.yml'
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-kotlin-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: clients/kotlin
+
+env:
+  GRADLE_VERSION: '9.8.2' # = clients/kotlin/mise.toml
+  KTLINT_VERSION: '1.8.0' # = clients/kotlin/mise.toml
+
+jobs:
+  jvm:
+    name: jvm ${{ matrix.java }}
+    if: vars.XI_CLIENTS_WORKFLOW == 'enabled'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['11', '17', '21', '25']
+    steps:
+      - uses: actions/checkout@v7
+      # The last version listed is JAVA_HOME (Gradle's JDK); Gradle finds the
+      # matrix JDK as a toolchain for the tests.
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: |
+            ${{ matrix.java }}
+            21
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+      - name: ktlint
+        if: matrix.java == '21'
+        run: |
+          curl -sSLf -o "$RUNNER_TEMP/ktlint" "https://github.com/pinterest/ktlint/releases/download/${KTLINT_VERSION}/ktlint"
+          chmod +x "$RUNNER_TEMP/ktlint"
+          "$RUNNER_TEMP/ktlint" "src/*Main/**/*.kt" "src/*Test/**/*.kt" "*.gradle.kts"
+      - run: gradle --console=plain jvmTest -Pxi.testJdk=${{ matrix.java }}
+      - if: matrix.java == '21'
+        run: gradle --console=plain jvmJar checkLicenses dokkaGeneratePublicationHtml publishAllPublicationsToBuildRepository
+
+  apple:
+    name: apple (macOS, iOS simulator)
+    if: vars.XI_CLIENTS_WORKFLOW == 'enabled'
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+      - uses: actions/cache@v6
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('clients/kotlin/gradle/libs.versions.toml') }}
+      # The simulator must exist on the runner image (`xcrun simctl list devices available`).
+      - run: gradle --console=plain assemble allTests "-Pxi.simulator=iPhone 16"
