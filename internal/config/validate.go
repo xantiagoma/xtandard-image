@@ -192,6 +192,8 @@ func (c *Config) validateServer(v *validator) {
 	v.positive(int64(s.MaxHeaderBytes), "server.max_header_bytes")
 	v.positive(int64(s.MaxConnections), "server.max_connections")
 	v.between(s.ReadyQueueThreshold, 0, 100, "server.ready_queue_threshold")
+	v.positive(int64(s.QueryMaxBodyBytes), "server.query_max_body_bytes")
+	v.between(s.QueryLocationMaxLength, 0, 8192, "server.query_location_max_length")
 	for i, o := range s.CORSOrigins {
 		v.check(o == "*" || validOrigin(o), fmt.Sprintf("server.cors_origins[%d]", i), "%q is not * or scheme://host[:port]", o)
 	}

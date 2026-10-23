@@ -3131,6 +3131,27 @@
           "title": "XI_SERVER_PATH_PREFIX",
           "type": "string"
         },
+        "query_location_max_length": {
+          "default": 2048,
+          "description": "Longest equivalent GET URL (path and query) a QUERY response carries as Location; longer, or a query with pdf_password, sends none. 0: never. At most 8192 (the URL limit)\n\nEnv: XI_SERVER_QUERY_LOCATION_MAX_LENGTH",
+          "markdownDescription": "Longest equivalent `GET` URL (path and query) a `QUERY` response carries as `Location`; longer, or a query with `pdf_password`, sends none. `0`: never. At most `8192` (the URL limit)\n\nEnv: `XI_SERVER_QUERY_LOCATION_MAX_LENGTH`",
+          "title": "XI_SERVER_QUERY_LOCATION_MAX_LENGTH",
+          "type": "integer"
+        },
+        "query_max_body_bytes": {
+          "$ref": "#/$defs/byteSize",
+          "default": "64KiB",
+          "description": "Largest QUERY content; more is 413\n\nEnv: XI_SERVER_QUERY_MAX_BODY_BYTES",
+          "markdownDescription": "Largest `QUERY` content; more is 413\n\nEnv: `XI_SERVER_QUERY_MAX_BODY_BYTES`",
+          "title": "XI_SERVER_QUERY_MAX_BODY_BYTES"
+        },
+        "query_method": {
+          "default": true,
+          "description": "Accept the HTTP QUERY method (RFC 10008) on the query dialect's endpoints (/q/, /q/video, /q/<imaginary endpoint>): the parameters travel in the request content (application/x-www-form-urlencoded or application/json) instead of the URL, with the same signing, unsigned policy, limits and result cache entry as the equivalent GET ([URL-DIALECTS §4.4](URL-DIALECTS.md#44-http-query)). false: QUERY is 405 everywhere, as before\n\nEnv: XI_SERVER_QUERY_METHOD",
+          "markdownDescription": "Accept the HTTP `QUERY` method (RFC 10008) on the query dialect's endpoints (`/q/`, `/q/video`, `/q/<imaginary endpoint>`): the parameters travel in the request content (`application/x-www-form-urlencoded` or `application/json`) instead of the URL, with the same signing, unsigned policy, limits and result cache entry as the equivalent `GET` ([URL-DIALECTS §4.4](URL-DIALECTS.md#44-http-query)). `false`: `QUERY` is 405 everywhere, as before\n\nEnv: `XI_SERVER_QUERY_METHOD`",
+          "title": "XI_SERVER_QUERY_METHOD",
+          "type": "boolean"
+        },
         "read_header_timeout": {
           "$ref": "#/$defs/duration",
           "default": "5s",

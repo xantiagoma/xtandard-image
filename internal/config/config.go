@@ -77,6 +77,13 @@ type Server struct {
 	ShutdownTimeout     time.Duration `yaml:"shutdown_timeout"      env:"SHUTDOWN_TIMEOUT"`
 	ReadyQueueThreshold int           `yaml:"ready_queue_threshold" env:"READY_QUEUE_THRESHOLD"`
 	CORSOrigins         []string      `yaml:"cors_origins"          env:"CORS_ORIGINS"`
+	// QueryMethod accepts HTTP QUERY (RFC 10008) on the query dialect's
+	// endpoints; QueryMaxBodyBytes bounds its content and
+	// QueryLocationMaxLength the equivalent GET URL sent as Location (0:
+	// none). WP-147.
+	QueryMethod            bool     `yaml:"query_method"              env:"QUERY_METHOD"`
+	QueryMaxBodyBytes      ByteSize `yaml:"query_max_body_bytes"      env:"QUERY_MAX_BODY_BYTES"`
+	QueryLocationMaxLength int      `yaml:"query_location_max_length" env:"QUERY_LOCATION_MAX_LENGTH"`
 }
 
 // Admin configures the private listener (/metrics, /openapi.json, pprof).
@@ -960,6 +967,10 @@ func Defaults() Config {
 			MaxConnections:    4096,
 			ShutdownDelay:     5 * time.Second,
 			ShutdownTimeout:   30 * time.Second,
+			// HTTP QUERY (WP-147).
+			QueryMethod:            true,
+			QueryMaxBodyBytes:      64 << 10,
+			QueryLocationMaxLength: 2048,
 		},
 		Admin:      Admin{Addr: "127.0.0.1:9090"},
 		Playground: Playground{Path: "/_playground"},
