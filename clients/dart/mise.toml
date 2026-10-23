@@ -1,0 +1,5 @@
+# Toolchain of the Dart client (ADR 0013): `mise install` in this
+# directory. The package supports Dart 3.5 and later (pubspec.yaml); this
+# pin is the development SDK. CI also tests the oldest supported SDK.
+[tools]
+dart = "3.13.7"
