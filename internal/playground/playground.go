@@ -9,7 +9,7 @@
 // default-src 'self'. Routes, relative to Config.Path:
 //
 //	GET  /                          the page (Cache-Control: no-store)
-//	GET  /assets/<version>/<f>      the ES modules and the stylesheet (immutable; version is their hash)
+//	GET  /assets/<version>/<path>   the ES modules (snippets/… in subdirectories) and the stylesheet (immutable; version is their hash)
 //	GET  /api/meta                  Meta as JSON (no key material)
 //	POST /api/sign                  SignRequest → SignResponse, signed with the server's keys
 //	GET  /api/render?u=<url>        runs Deps.Image on a public path and query in-process (ranges=1: with Range, WP-128)
@@ -155,7 +155,7 @@ func New(cfg Config, deps *Deps) (http.Handler, error) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET "+p+"/{$}", h.servePage)
-	mux.HandleFunc("GET "+p+"/assets/{version}/{name}", h.serveAsset)
+	mux.HandleFunc("GET "+p+"/assets/{version}/{name...}", h.serveAsset)
 	mux.HandleFunc("GET "+p+"/api/meta", h.serveMeta)
 	mux.Handle("POST "+p+"/api/sign", http.NewCrossOriginProtection().Handler(http.HandlerFunc(h.sign)))
 	mux.HandleFunc("GET "+p+"/api/render", h.render)
@@ -180,17 +180,18 @@ func New(cfg Config, deps *Deps) (http.Handler, error) {
 }
 
 // loadAssets reads the embedded files (every .js module and .css
-// stylesheet under assets/), derives the asset version from their hash and
-// fills the page template. The modules import each other with relative
-// URLs, so they all live under one versioned directory.
+// stylesheet under assets/, subdirectories included: the code snippets are
+// assets/snippets/…), derives the asset version from their hash and fills
+// the page template. The modules import each other with relative URLs, so
+// they all live under one versioned directory.
 func (h *handler) loadAssets() error {
 	sum := sha256.New()
-	entries, err := fs.ReadDir(assets, "assets")
-	if err != nil {
-		return fmt.Errorf("playground: %w", err)
-	}
-	for _, e := range entries { // sorted by name: the hash is deterministic
-		name := e.Name()
+	// WalkDir visits in lexical order: the hash is deterministic.
+	err := fs.WalkDir(assets, "assets", func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		name := strings.TrimPrefix(path, "assets/")
 		var contentType string
 		switch {
 		case strings.HasSuffix(name, ".js"):
@@ -198,15 +199,19 @@ func (h *handler) loadAssets() error {
 		case strings.HasSuffix(name, ".css"):
 			contentType = "text/css; charset=utf-8"
 		default:
-			continue
+			return nil
 		}
-		b, err := fs.ReadFile(assets, "assets/"+name)
+		b, err := fs.ReadFile(assets, path)
 		if err != nil {
-			return fmt.Errorf("playground: %w", err)
+			return err
 		}
 		sum.Write([]byte(name))
 		sum.Write(b)
 		h.files[name] = asset{body: b, contentType: contentType}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("playground: %w", err)
 	}
 	h.version = hex.EncodeToString(sum.Sum(nil))[:12]
 	page, err := fs.ReadFile(assets, "assets/index.html")

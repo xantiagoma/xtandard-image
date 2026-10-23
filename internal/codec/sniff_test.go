@@ -227,6 +227,11 @@ func TestSniffFixtures(t *testing.T) {
 		if err != nil || d.IsDir() || filepath.Ext(p) == ".md" {
 			return err
 		}
+		// Hidden files (.DS_Store from Finder, editor swap files) are not
+		// fixtures; they are gitignored but may exist in a checkout.
+		if strings.HasPrefix(d.Name(), ".") {
+			return nil
+		}
 		// Audio files are sources of video transformations only (WP-123),
 		// never sniffed as images.
 		if filepath.Base(filepath.Dir(p)) == "audio" {

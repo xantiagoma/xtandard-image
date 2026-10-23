@@ -5,12 +5,14 @@
 
 import { Builder, imageArg } from './builder.js';
 import { $, b64url, copyText, debounce, el, escapePlain, postJSON, store, tabs, toast, unb64url } from './dom.js';
-import { build, curlSnippet, tsSnippet, VIDEO_GRAMMARS } from './grammar.js';
+import { build, VIDEO_GRAMMARS } from './grammar.js';
 import { Frames } from './frames.js';
 import { Info } from './info.js';
 import { Matrix } from './matrix.js';
 import { Preview } from './preview.js';
 import { Examples } from './recipes.js';
+import { snippetModel } from './snippets/index.js';
+import { rememberOpen, SnippetPanel } from './snippetpanel.js';
 import { Sources } from './sources.js';
 import { History, toolFromHash, Tools } from './tools.js';
 import { Translate } from './translate.js';
@@ -48,6 +50,7 @@ let hist;
 let more;
 let examples;
 let video;
+let snippets;
 let lastSigned = null; // {req, url, signed, scheme}
 let seq = 0;
 
@@ -125,6 +128,19 @@ const sign = (body) => {
   const capable = m?.keyed && (m.scheme === 'imgproxy' || (m.scheme === 'xi_sig' && m.grammar === 'query'));
   return postJSON('api/sign', pw && capable ? { ...body, pdf_password: pw } : body);
 };
+
+// sessionSnippet is the snippet model of the session's URL (WP-145): the
+// builder state on the current mount and prefix, with the PDF password
+// field's presence (never its value).
+function sessionSnippet({ signed, encrypt }) {
+  const m = currentMount();
+  if (!m) return null;
+  const pdf = Boolean(meta?.pdf_passwords && $('pdf-password').value && !state.video);
+  return snippetModel({
+    m: { ...m, prefix: mountPrefix(m) || '/' }, state, index: indexFor(m), signed, encrypt, pdf,
+    base: baseURL() + (meta.path_prefix || '').replace(/\/+$/, ''), url: $('url-out').value, accept: $('accept').value,
+  });
+}
 
 function setStatus(msg, isError = false) {
   const s = $('status');
@@ -263,7 +279,6 @@ function applyMount() {
   builder.render(m.grammar, cat);
   frames?.render();
   video?.render();
-  $('copy-ts').disabled = m.grammar !== 'imgproxy' || raw;
   savePrefs();
 }
 
@@ -494,6 +509,7 @@ async function update({ render = $('auto-render').checked } = {}) {
     $('signed').textContent = '';
     lastSigned = null;
     setStatus(req.error);
+    snippets?.refresh();
     return;
   }
   try {
@@ -503,6 +519,7 @@ async function update({ render = $('auto-render').checked } = {}) {
     const full = publicURL(signed.url);
     $('url-out').value = full;
     urlView(full, m);
+    snippets?.refresh();
     const badge = $('signed');
     badge.textContent = signed.signed ? `signed (${signed.scheme})` : 'unsigned';
     badge.className = `badge ${signed.signed ? 'ok' : 'warn'}`;
@@ -711,6 +728,8 @@ async function main() {
   preview.onMedia = (blob, type, forSeq) => probeResult(blob, type, forSeq);
   translate = new Translate({ publicURL, onPreview: (path) => preview.render(path, null, { video: state.video }) });
   info = new Info({ meta, sign, preview, state, baseURL, onChange: writeHash });
+  snippets = new SnippetPanel($('snippet'), { id: 'snippet', model: sessionSnippet });
+  rememberOpen($('snippet-box'));
   matrix = new Matrix({ meta, sign });
   tools = new Tools({
     sessionHash,
@@ -862,13 +881,6 @@ async function main() {
   $('accept').addEventListener('change', () => { savePrefs(); preview.clearBefore(); renderPreview(); });
   $('render').addEventListener('click', () => { preview.clearBefore(); renderPreview(); });
   $('copy').addEventListener('click', () => copyText($('url-out').value, 'URL copied'));
-  $('copy-curl').addEventListener('click', () => copyText(curlSnippet($('url-out').value, $('accept').value), 'curl command copied'));
-  $('copy-ts').addEventListener('click', () => {
-    const m = currentMount();
-    const base = baseURL() + (meta.path_prefix || '').replace(/\/+$/, '') + (mountPrefix(m) || '/').replace(/\/+$/, '');
-    const ts = tsSnippet(m, state, indexFor(m), base, $('snippet-signed').checked);
-    if (ts) copyText(ts, 'TypeScript copied');
-  });
   $('share').addEventListener('click', () => copyText(shareURL(sessionHash()), 'Share link copied'));
   $('reset').addEventListener('click', () => {
     tools.close({ writeHash: false });

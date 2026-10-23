@@ -787,12 +787,15 @@ const filtered = await page.evaluate(() => {
   return { before, after };
 });
 check(filtered.before > 1 && filtered.after === 0, `info jpeg: EXIF filter (${filtered.before} rows → ${filtered.after})`);
-// Copy as TypeScript: the @xtandard/image info builder.
-await page.click('#info-copy-ts');
+// The code panel (WP-145): the @xtandard/image /info call, and curl.
+await page.selectOption('#info-snippet-lang', 'typescript');
+await page.click('#info-snippet-copy');
 const ts = await page.evaluate(() => navigator.clipboard.readText());
-check(ts.includes('.info(') && ts.includes('.blurhash(4, 3)') && ts.includes('.calc_hashsums("md5", "sha1", "sha256", "sha512")'), `info: TypeScript snippet (${ts.split('\n').slice(4, 7).join(' ')}…)`);
-await page.click('#info-copy-curl');
-check((await page.evaluate(() => navigator.clipboard.readText())).startsWith("curl -sS -H 'Accept: application/json' "), 'info: curl snippet');
+check(ts.includes('.infoUrl({') && ts.includes('blurhash: [4, 3]') && ts.includes('calc_hashsums: ["md5", "sha1", "sha256", "sha512"]'), `info: TypeScript snippet (${ts.split('\n').slice(8, 11).join(' ')}…)`);
+await page.selectOption('#info-snippet-lang', 'curl');
+await page.click('#info-snippet-copy');
+check((await page.evaluate(() => navigator.clipboard.readText())).startsWith("curl -sS -D - -H 'Accept: application/json' "), 'info: curl snippet');
+await page.selectOption('#info-snippet-lang', 'typescript');
 // Share link: the info options survive a reload.
 const shared = await page.evaluate(() => location.href);
 const page2 = await browser.newPage();
@@ -1103,10 +1106,12 @@ if (!vt) {
     check(Boolean(c?.url.includes(part)), `video translate: ${label} writes ${part} (${c?.url ?? c?.reason})`);
   }
   if (shots) await page.locator('#translate').screenshot({ path: `${shots}/video-translate.png` });
-  // Copy as TypeScript uses the video builder.
-  await page.click('#copy-ts');
+  // The TypeScript snippet uses the /video builder (WP-145).
+  await page.evaluate(() => { (document.getElementById('snippet-box') as HTMLDetailsElement).open = true; });
+  await page.selectOption('#snippet-lang', 'typescript');
+  await page.click('#snippet-copy');
   const vts = await page.evaluate(() => navigator.clipboard.readText());
-  check(vts.includes('.video("xi://local/video/clip-vp9.webm")') && vts.includes('.start(0.5)') && vts.includes('.extension("webm")'), `video: TypeScript snippet (${vts.split('\n').slice(4, 8).join(' ')})`);
+  check(vts.includes('.videoUrl({') && vts.includes('source: "xi://local/video/clip-vp9.webm"') && /start: 0\.5\b/.test(vts) && vts.includes('extension: "webm"'), `video: TypeScript snippet (${vts.split('\n').slice(8, 12).join(' ')})`);
   // d. Cancel aborts a slow transcode.
   let aborted = false;
   page.on('requestfailed', (r) => { if (/u=%2Fvideo%2F/.test(r.url()) && /ABORTED/.test(r.failure()?.errorText ?? '')) aborted = true; });
@@ -1293,6 +1298,106 @@ if (!vt) {
   check(vunnamed.length === 0, `video: every control is labelled${vunnamed.length ? `: ${vunnamed.join(' | ')}` : ''}`);
   await page.setViewportSize({ width: 1400, height: 900 });
 }
+
+// 12. Code snippets (WP-145): the URL panel's code for curl and every
+// official client, highlighted, live with the builder, copied, remembered
+// per browser, wrapped on request; on the query dialect, video, streams
+// and /info; a note for dialects without a client builder; 390 px, dark
+// mode, keyboard.
+await page.setViewportSize({ width: 1400, height: 900 });
+await page.selectOption('#theme', 'auto');
+const snippetText = () => page.evaluate(() => document.getElementById('snippet-code')!.textContent ?? '');
+const waitSnippet = (part: string) => page.waitForFunction((p) => (document.getElementById('snippet-code')!.textContent ?? '').includes(p), part, { timeout: 15000 }).then(() => true, () => false);
+await page.evaluate((x) => { location.hash = x; }, hash(SRC, [['resize', 0, ['fill', '300', '200'], 1, 1]]));
+await page.waitForFunction(() => (document.getElementById('url-out') as HTMLTextAreaElement).value.includes('resize:fill:300:200'));
+// The Code block is a <details> under the URL (closed until opened; the
+// state is remembered per browser).
+await page.evaluate(() => { (document.getElementById('snippet-box') as HTMLDetailsElement).open = false; });
+await page.click('#snippet-box summary');
+check(await page.evaluate(() => (document.getElementById('snippet-box') as HTMLDetailsElement).open), 'snippets: the Code block opens from its summary');
+const langs = await page.evaluate(() => [...(document.getElementById('snippet-lang') as HTMLSelectElement).options].map((o) => o.value));
+check(langs.length === 13 && ['curl', 'typescript', 'python', 'go', 'php', 'ruby', 'rust', 'java', 'kotlin', 'csharp', 'elixir', 'swift', 'dart'].every((l) => langs.includes(l)), `snippets: 13 languages in the picker (${langs.join(', ')})`);
+const perLang: string[] = [];
+for (const lang of langs) {
+  await page.selectOption('#snippet-lang', lang);
+  const got = await page.evaluate(() => ({
+    text: document.getElementById('snippet-code')!.textContent ?? '',
+    spans: document.querySelectorAll('#snippet-code span[class^="tk-"]').length,
+    kinds: new Set([...document.querySelectorAll('#snippet-code span[class^="tk-"]')].map((s) => s.className)).size,
+    lang: document.getElementById('snippet-code')!.dataset.lang,
+  }));
+  const ok = got.lang === lang && got.text.includes(lang === 'curl' ? 'resize:fill:300:200' : SRC) && got.spans >= 5 && got.kinds >= (lang === 'curl' ? 2 : 3);
+  if (!ok) perLang.push(`${lang} (${got.spans} spans, ${got.kinds} kinds)`);
+}
+check(perLang.length === 0, `snippets: each language switches the code, names the source and is highlighted${perLang.length ? `: ${perLang.join(', ')}` : ''}`);
+await page.selectOption('#snippet-lang', 'python');
+check((await snippetText()).includes('from xtandard_image import') && (await snippetText()).includes('"resize": ("fill", 300, 200)'), 'snippets: Python uses the options mapping');
+// Live: editing the builder rewrites the snippet.
+await page.evaluate((x) => { location.hash = x; }, hash(SRC, [['resize', 0, ['fill', '320', '200'], 1, 1], ['quality', 0, ['70'], 1, 1]]));
+check(await waitSnippet('"quality": 70'), 'snippets: the code follows the builder (quality added)');
+// Copy.
+await page.click('#snippet-copy');
+check(await page.evaluate(() => navigator.clipboard.readText()) === await snippetText(), 'snippets: Copy code copies the snippet');
+// Signed and encrypted: keys come from the environment, never the page.
+await page.check('#snippet-enc');
+const encText = await snippetText();
+check(encText.includes('source_encoding="encrypted"') && encText.includes('os.environ["XI_ENCRYPTION_KEY"]') && encText.includes('os.environ["XI_SIGNING_KEY"]'), 'snippets: enc/ source and signing read their keys from the environment');
+await page.uncheck('#snippet-enc');
+// Wrap.
+await page.check('#snippet-wrap');
+check(await page.evaluate(() => getComputedStyle(document.getElementById('snippet-code')!).whiteSpace) === 'pre-wrap', 'snippets: wrap toggles line wrapping');
+await page.uncheck('#snippet-wrap');
+// Remembered per viewer: the language survives a reload, for both panels.
+await page.selectOption('#snippet-lang', 'rust');
+await page.reload();
+await page.waitForSelector('#snippet-lang');
+check(await page.inputValue('#snippet-lang') === 'rust' && await page.inputValue('#info-snippet-lang') === 'rust', 'snippets: the language is remembered (local storage) and shared by the Info panel');
+check(await page.evaluate(() => (document.getElementById('snippet-box') as HTMLDetailsElement).open), 'snippets: the Code block stays open after a reload');
+// Keyboard: the picker takes type-ahead (and the arrow keys); the code is focusable.
+await page.focus('#snippet-lang');
+await page.keyboard.press('j'); // type-ahead: Java
+check(await page.inputValue('#snippet-lang') === 'java', `snippets: the picker works from the keyboard (type-ahead) (${await page.inputValue('#snippet-lang')})`);
+await page.focus('#snippet-code');
+check(await page.evaluate(() => document.activeElement?.id === 'snippet-code'), 'snippets: the code block takes focus (scrolls with the keyboard)');
+const sunnamed = await page.evaluate(() => [...document.querySelectorAll('#snippet input, #snippet select, #snippet button, #info-snippet input, #info-snippet select, #info-snippet button')]
+  .filter((e) => !(e.getAttribute('aria-label') || (e as HTMLInputElement).labels?.length || e.textContent?.trim() || e.getAttribute('title')))
+  .map((e) => e.outerHTML.slice(0, 80)));
+check(sunnamed.length === 0, `snippets: every control is labelled${sunnamed.length ? `: ${sunnamed.join(' | ')}` : ''}`);
+// The query dialect, its /q/video, streams, and a dialect without a builder.
+await page.selectOption('#snippet-lang', 'typescript');
+await page.evaluate((x) => { location.hash = x; }, hash(SRC, [['width', 0, ['300'], 1, 1]], 'query'));
+check(await waitSnippet('queryUrls(') && (await snippetText()).includes('params: { width: 300 }'), 'snippets: query dialect (queryUrls, native keys)');
+if (hasVideo) {
+  await page.evaluate((x) => { location.hash = x; }, hash('xi://local/video/clip-vp9.webm', [['duration', 0, ['1'], 1, 1]], 'query', { v: 1 }));
+  check(await waitSnippet('q.videoUrl('), 'snippets: /q/video (videoUrl on the query builder)');
+  await page.evaluate((x) => { location.hash = x; }, hash('xi://local/video/clip-vp9.webm', [['segment_duration', 0, ['4'], 1, 1]], 'imgproxy', { v: 1, x: 'm3u8' }));
+  check(await waitSnippet('streamUrl(') && (await snippetText()).includes('protocol: "hls"') && (await snippetText()).includes('segmentDuration: 4'), 'snippets: HLS stream (streamUrl with segmentDuration)');
+}
+await page.evaluate((x) => { location.hash = x; }, hash('https://images.unsplash.com/photo-1.jpg', [], 'imgix'));
+await page.waitForFunction(() => (document.getElementById('snippet-note')!.textContent ?? '').includes('Official clients build'), undefined, { timeout: 15000 }).catch(() => {});
+const inote = await page.evaluate(() => ({ note: document.getElementById('snippet-note')!.textContent, hidden: (document.getElementById('snippet-code') as HTMLElement).hidden }));
+check(inote.hidden && (inote.note ?? '').includes('Official clients build'), `snippets: imgix has a note instead of invented client code (${inote.note?.slice(0, 60)}…)`);
+await page.selectOption('#snippet-lang', 'curl');
+check((await snippetText()).startsWith('curl -sS'), 'snippets: curl still works on imgix');
+// 390 px and dark mode.
+await page.evaluate((x) => { location.hash = x; }, hash(SRC, [['resize', 0, ['fill', '300', '200'], 1, 1]]));
+await page.selectOption('#snippet-lang', 'kotlin');
+await page.setViewportSize({ width: 390, height: 844 });
+await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+const so = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, pre: document.getElementById('snippet-code')!.getBoundingClientRect().right }));
+if (shots) await page.locator('section[aria-labelledby="url-title"]').screenshot({ path: `${shots}/snippets-390.png` });
+check(so.sw <= so.cw + 1 && so.pre <= so.cw + 1, `snippets 390px: no horizontal page scroll, the code scrolls in its box (${so.sw} ≤ ${so.cw})`);
+await page.setViewportSize({ width: 1400, height: 900 });
+await page.selectOption('#theme', 'dark');
+const sdark = await page.evaluate(() => ({
+  bg: getComputedStyle(document.getElementById('snippet-code')!).backgroundColor,
+  kw: getComputedStyle(document.querySelector('#snippet-code .tk-k')!).color,
+}));
+check(sdark.bg === 'rgb(34, 38, 44)' && sdark.kw === 'rgb(215, 166, 247)', `snippets: dark theme colours (${sdark.bg}, keyword ${sdark.kw})`);
+if (shots) await page.locator('section[aria-labelledby="url-title"]').screenshot({ path: `${shots}/snippets-dark.png` });
+await page.selectOption('#theme', 'auto');
+await page.selectOption('#snippet-lang', 'typescript');
+await page.click('#snippet-box summary');
 
 check(foreign.length === 0, `every request stays on the playground's origin${foreign.length ? `: ${foreign.slice(0, 3).join(' | ')}` : ''}`);
 const csp = await page.evaluate(() => (window as any).__csp ?? []);
