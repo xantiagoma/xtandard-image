@@ -280,6 +280,8 @@ img.url("s3://photos/cat.jpg", {"rs": ("fill", 1200, 630), "g": "sm"}, extension
 
 **Dart** 3.5+, [`clients/dart`](clients/dart/README.md) (`xtandard_image` on pub.dev after the first release), is pure Dart for Flutter apps (iOS, Android, web, desktop) and Dart servers: typed option methods and sealed option values generated from the catalogues, signing, encryption, and a client on any `package:http` client.
 
+**Swift**: [`clients/swift`](clients/swift/README.md) (SwiftPM product `XtandardImage`, straight from this repository's root `Package.swift`) for iOS, macOS, tvOS, watchOS, visionOS and Linux: typed builders and fluent methods, signing and encryption (CryptoKit/CommonCrypto, swift-crypto on Linux), and an async `URLSession` client.
+
 The other languages are planned (M6 in the [roadmap](docs/ROADMAP.md)).
 
 ## Playground
