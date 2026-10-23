@@ -282,6 +282,8 @@ img.url("s3://photos/cat.jpg", {"rs": ("fill", 1200, 630), "g": "sm"}, extension
 
 **Swift**: [`clients/swift`](clients/swift/README.md) (SwiftPM product `XtandardImage`, straight from this repository's root `Package.swift`) for iOS, macOS, tvOS, watchOS, visionOS and Linux: typed builders and fluent methods, signing and encryption (CryptoKit/CommonCrypto, swift-crypto on Linux), and an async `URLSession` client.
 
+**Kotlin Multiplatform**: [`clients/kotlin`](clients/kotlin/README.md) (`io.github.xantiagoma:xtandard-image-kmp` on Maven Central after the first release) runs on the JVM, Android, iOS and macOS: typed builders with DSLs, signing and encryption on the platform's crypto, and a suspend client on Ktor.
+
 The other languages are planned (M6 in the [roadmap](docs/ROADMAP.md)).
 
 ## Playground
