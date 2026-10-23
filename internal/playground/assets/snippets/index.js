@@ -27,7 +27,7 @@ import { swift } from './lang/swift.js';
 import { dart } from './lang/dart.js';
 
 export { infoModel, snippetModel, typedValue } from './request.js';
-export { ENV } from './model.js';
+export { ENV, QUERY_LANGUAGES } from './model.js';
 
 const ALL = [curl, typescript, python, go, php, ruby, rust, java, kotlin, csharp, elixir, swift, dart];
 const BY_ID = new Map(ALL.map((l) => [l.id, l]));

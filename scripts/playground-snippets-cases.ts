@@ -151,9 +151,9 @@ const paramsOf = (ps: any[]) => ps.map(([k, a]: [string, any]) => [k, lit(a)]);
 
 export async function reference(model: any, optionNames: "short" | "canonical" = "short", placeholderSig = false): Promise<string> {
   if (model.queryMethod) {
-    // An HTTP QUERY snippet prints the request: "QUERY <url>", a newline, the content.
+    // An HTTP QUERY snippet prints the request on one line: "QUERY <url> <content>".
     const q = queryMethodRequest(await reference({ ...model, queryMethod: false }, optionNames, placeholderSig));
-    return `${q.method} ${q.url}\n${q.body}`;
+    return `${q.method} ${q.url} ${q.body}`;
   }
   const signing = model.signed && !placeholderSig ? { key: KEYS.signing.key, salt: KEYS.signing.salt } : undefined;
   const encryption = model.encryption ? { key: KEYS.encryption.key, iv: KEYS.encryption.iv } : undefined;

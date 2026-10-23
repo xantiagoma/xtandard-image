@@ -29,7 +29,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { BASE, CASES, CLIENTS, ENV, normalise, reference, ROOT } from "./playground-snippets-cases.ts";
 // @ts-expect-error: plain ES module without types
-import { LANGUAGES, renderSnippet } from "../internal/playground/assets/snippets/index.js";
+import { LANGUAGES, QUERY_LANGUAGES, renderSnippet } from "../internal/playground/assets/snippets/index.js";
 
 const WORK = process.env.XI_SNIPPETS_DIR ?? join(tmpdir(), "xi-snippets");
 const ONLY = (process.env.ONLY ?? "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -195,7 +195,9 @@ const LANGS: Record<string, Lang> = {
 
 const models = await Promise.all(CASES.map(async (c) => {
   const model = c.model();
-  return { c, model, expect: await reference(model) };
+  // An HTTP QUERY case prints the request in the languages that lower it
+  // (QUERY_LANGUAGES) and the GET URL in the others.
+  return { c, model, expect: await reference(model), get: await reference({ ...model, queryMethod: false }) };
 }));
 
 console.log(`Cases (${models.length}):`);
@@ -203,7 +205,7 @@ for (const { c, model, expect } of models) {
   let pg = "";
   const p = model._playground;
   if (p && !model.encryption && !model.pdf && model.kind !== "xisig") {
-    const unsigned = await reference({ ...model, signed: false }, "canonical", true);
+    const unsigned = await reference({ ...model, signed: false, queryMethod: false }, "canonical", true);
     const page = `${BASE}${p.m.prefix.replace(/\/+$/, "")}${p.req.path.startsWith("/video") && p.m.grammar === "imgproxy" ? "/video/insecure" + p.req.path.slice(6) : (p.m.grammar === "imgproxy" ? "/insecure" : "") + p.req.path}${p.req.query ? `?${p.req.query}` : ""}`;
     pg = normalise(page) === normalise(unsigned) ? (page === unsigned ? "page URL identical" : "page URL equivalent") : `PAGE URL DIFFERS:\n      page ${page}\n      ref  ${unsigned}`;
   }
@@ -245,7 +247,8 @@ for (const lang of langs) {
     continue;
   }
   console.log(`\n${lang}:`);
-  for (const { c, model, expect } of models) {
+  for (const { c, model, expect: query, get } of models) {
+    const expect = model.queryMethod && !QUERY_LANGUAGES.has(lang) ? get : query;
     const { code, note } = renderSnippet(lang, model, { fixedIv: true });
     if (!code) {
       results[lang]![c.name] = "note";

@@ -64,8 +64,8 @@ export const D = {
   signXiUrl: (url, mount) => ({ k: 'sign-xi-url', url, mount, key: D.signingKey() }),
   print: (expr) => ({ k: 'print', expr }),
   // queryRequest splits a query dialect URL into an HTTP QUERY request
-  // (the client's queryMethodRequest, WP-147); printRequest prints it as
-  // "QUERY <url>", a newline and the content.
+  // (the client's queryMethodRequest, WP-147); printRequest prints it on
+  // one line: "QUERY <url> <content>".
   queryRequest: (url) => ({ k: 'query-request', url }),
   printRequest: (req) => ({ k: 'print-request', req }),
 };
