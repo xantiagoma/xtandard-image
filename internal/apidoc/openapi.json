@@ -8557,6 +8557,10 @@
             "description": "XI_SERVER_ADDR (the page derives a default public base URL from its port).",
             "type": "string"
           },
+          "query_method": {
+            "description": "XI_SERVER_QUERY_METHOD: the query dialect's endpoints accept HTTP QUERY (RFC 10008), its parameters in the request content.",
+            "type": "boolean"
+          },
           "recipes": {
             "description": "Ready-made sessions of the Examples tool (internal/playground/recipes.json): source, dialect and options, loaded into the builder with one click.",
             "items": {
@@ -8642,6 +8646,7 @@
           "detection",
           "video",
           "classes",
+          "query_method",
           "pdf_passwords",
           "watermark",
           "recipes"

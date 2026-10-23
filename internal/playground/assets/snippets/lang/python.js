@@ -5,6 +5,7 @@
 import { concat, hardline, join } from '../doc.js';
 import { lower, N, snake, uniqueNames } from '../model.js';
 import { Printer } from '../printer.js';
+import { requestText } from './typescript.js';
 
 const lit = (a) => N.lit(a);
 const value = (args) => (args.length === 1 ? lit(args[0]) : N.list(args.map(lit), 'tuple'));
@@ -48,6 +49,8 @@ const rules = {
   },
   'sign-xi-url': (e, ctx) => (ctx.names.add('sign_xi_url'), N.call(N.type('sign_xi_url'), [N.str(e.url), e.key, N.named('mount', N.str(e.mount))])),
   print: (e) => N.stmt(N.call(N.type('print'), [e.expr])),
+  'query-request': (e, ctx) => (ctx.names.add('query_method_request'), N.call(N.type('query_method_request'), [e.url])),
+  'print-request': (e) => N.stmt(N.call(N.type('print'), [requestText(e.req, (f) => N.member(e.req, f))])),
 };
 
 export function refine(program) {

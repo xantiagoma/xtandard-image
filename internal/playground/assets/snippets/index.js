@@ -11,7 +11,7 @@
 // XI_ENCRYPTION_KEY and XI_PDF_PASSWORD from the environment.
 // scripts/playground-snippets-check.ts runs every snippet with its client.
 
-import { neutral, Unexpressible } from './model.js';
+import { neutral, QUERY_LANGUAGES, Unexpressible } from './model.js';
 import { curl, program as curlProgram } from './lang/curl.js';
 import { typescript } from './lang/typescript.js';
 import { python } from './lang/python.js';
@@ -38,6 +38,12 @@ export const LANGUAGES = ALL.map(({ id, label }) => ({ id, label }));
 // {code, note}; code is '' when the language cannot express it (the note
 // says why). opts.fixedIv reads a fixed IV from XI_ENCRYPTION_IV.
 export function renderSnippet(lang, r, opts = {}) {
+  if (r.queryMethod && lang !== 'curl' && !QUERY_LANGUAGES.has(lang)) {
+    const label = LANGUAGES.find((l) => l.id === lang)?.label ?? lang;
+    const get = renderSnippet(lang, { ...r, queryMethod: false }, opts);
+    const why = `The ${label} snippet builds the GET URL: send it as QUERY with the client's query method request helper (its README, "HTTP QUERY").`;
+    return { code: get.code, note: [get.note, why].filter(Boolean).join(' ') };
+  }
   const note = r.note ?? '';
   if (lang === 'curl') return { code: r.url ? curl.printer.print(curlProgram(r)).trimEnd() : '', note };
   if (r.kind === 'none') return { code: '', note };

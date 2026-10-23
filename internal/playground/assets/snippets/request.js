@@ -74,7 +74,8 @@ const stripSlash = (s) => (s || '').replace(/\/+$/, '');
 //   index (the video one when state.video); base: the public origin plus
 //   the server's path prefix; signed/encrypt/pdf: the snippet settings;
 //   url: the URL the page shows (for curl and notes).
-export function snippetModel({ m, state, index, base, signed, encrypt = false, pdf = false, url = '', accept = '' }) {
+//   queryMethod: send a query dialect request with HTTP QUERY (WP-147).
+export function snippetModel({ m, state, index, base, signed, encrypt = false, pdf = false, url = '', accept = '', queryMethod = false }) {
   const model = { kind: 'none', url, signed: Boolean(signed), base: stripSlash(base), note: '', accept };
   if (!m || !state?.source) return { ...model, note: 'Choose a source.' };
   const prefix = stripSlash(m.prefix || '/');
@@ -95,7 +96,7 @@ export function snippetModel({ m, state, index, base, signed, encrypt = false, p
     return finish({ ...common, kind: 'video', options: pls[0] ?? [], extension: state.ext || '' });
   }
   if (m.grammar === 'query') {
-    const common = { ...model, baseUrl: model.base, mount: prefix, separator: '', source: state.source };
+    const common = { ...model, baseUrl: model.base, mount: prefix, separator: '', source: state.source, queryMethod: Boolean(queryMethod) };
     if (state.raw) {
       const ep = /^\/([a-z]+)\/?$/.exec((state.free?.path || '').trim());
       const q = new URLSearchParams((state.free?.query || '').trim());
