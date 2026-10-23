@@ -1,5 +1,5 @@
 {
-  "name": "@xtandard/image-url",
+  "name": "@xtandard/image",
   "version": "0.0.0",
   "description": "Typed imgproxy-dialect URL builder (signing, source encryption) and fetch client for xtandard-image.",
   "keywords": [
@@ -12,12 +12,12 @@
   ],
   "license": "MIT",
   "author": "Santiago Montoya",
-  "homepage": "https://github.com/xantiagoma/xtandard-image/tree/main/packages/image-url#readme",
+  "homepage": "https://github.com/xantiagoma/xtandard-image/tree/main/clients/typescript#readme",
   "bugs": "https://github.com/xantiagoma/xtandard-image/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xantiagoma/xtandard-image.git",
-    "directory": "packages/image-url"
+    "directory": "clients/typescript"
   },
   "type": "module",
   "sideEffects": false,

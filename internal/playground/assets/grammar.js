@@ -60,7 +60,7 @@ function decodedKeyOn(src, name) {
 const enc = encodeURIComponent;
 
 // QUERY_VIDEO_KEYS: /video options whose /q/video key is native, written
-// by their alias (@xtandard/image-url does the same).
+// by their alias (@xtandard/image does the same).
 const QUERY_VIDEO_KEYS = { crop: 'c', flip: 'fl' };
 
 // VIDEO_GRAMMARS build video transformations (/video, /q/video).
@@ -232,7 +232,7 @@ export function curlInfoSnippet(url) {
   return `curl -sS -H 'Accept: application/json' ${shq(url)}`;
 }
 
-// tsInfoSnippet writes the fluent /info call of @xtandard/image-url
+// tsInfoSnippet writes the fluent /info call of @xtandard/image
 // (img.info(source).<option>(...args).build()) for entries of the info
 // catalogue index.
 export function tsInfoSnippet({ source, entries, index, base, signed, separator, encoding }) {
@@ -247,7 +247,7 @@ export function tsInfoSnippet({ source, entries, index, base, signed, separator,
     calls.push(ident.test(o.name) ? `.${o.name}(${args})` : `.option(${JSON.stringify(o.name)}${args ? `, ${args}` : ''})`);
   }
   return [
-    'import { imgproxy } from "@xtandard/image-url";',
+    'import { imgproxy } from "@xtandard/image";',
     '',
     `const img = imgproxy({ ${cfg.join(', ')} });`,
     'const url = await img',
@@ -258,7 +258,7 @@ export function tsInfoSnippet({ source, entries, index, base, signed, separator,
   ].join('\n');
 }
 
-// tsSnippet writes the fluent @xtandard/image-url call for an imgproxy
+// tsSnippet writes the fluent @xtandard/image call for an imgproxy
 // mount (null for other grammars).
 export function tsSnippet(m, state, index, base, signed) {
   if (m.grammar !== 'imgproxy' || !state.source) return null;
@@ -278,7 +278,7 @@ export function tsSnippet(m, state, index, base, signed) {
   });
   if (state.ext) calls.push(`.extension(${JSON.stringify(state.ext)})`);
   return [
-    'import { imgproxy } from "@xtandard/image-url";',
+    'import { imgproxy } from "@xtandard/image";',
     '',
     `const img = imgproxy({ ${cfg.join(', ')} });`,
     `const url = await img`,

@@ -10,7 +10,7 @@ import (
 
 // TestSharedVectors checks the encryption vectors of
 // testdata/security/vectors.json, which the TypeScript package
-// (packages/image-url) checks too.
+// (clients/typescript) checks too.
 func TestSharedVectors(t *testing.T) {
 	t.Parallel()
 	b, err := os.ReadFile(filepath.Join("..", "..", "..", "testdata", "security", "vectors.json"))

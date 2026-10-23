@@ -60,7 +60,15 @@ for (const pattern of patterns) {
 
 // Published workspace packages ship no runtime dependencies.
 let runtimeDeps = 0;
-for await (const file of new Bun.Glob("packages/*/package.json").scan({ cwd: root })) {
+const workspaceManifests: string[] = [];
+for (const pattern of ["clients/typescript/package.json", "packages/*/package.json"]) {
+  for await (const file of new Bun.Glob(pattern).scan({ cwd: root })) workspaceManifests.push(file);
+}
+if (!workspaceManifests.includes("clients/typescript/package.json")) {
+  console.error("clients/typescript/package.json not found");
+  process.exit(1);
+}
+for (const file of workspaceManifests) {
   const m = (await Bun.file(`${root}${file}`).json()) as Manifest & { dependencies?: Record<string, string> };
   if (m.private) continue;
   for (const dep of Object.keys(m.dependencies ?? {})) {

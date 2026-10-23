@@ -14,7 +14,7 @@ The API reference, the OpenAPI document and the config JSON Schema are served by
 | The same files without a server | `xtandard-image openapi > openapi.json`, `xtandard-image config schema > config.schema.json` (in Docker: `docker run --rm <image> openapi`) | Nothing |
 | The committed files | [`internal/apidoc/openapi.json`](../internal/apidoc/openapi.json), [`internal/config/config.schema.json`](../internal/config/config.schema.json) | Nothing |
 | Published copies | `https://xantiagoma.github.io/xtandard-image/api/` (reference), `…/schema/v1/openapi.json`, `…/schema/v1/config.schema.json` | **Not live yet**: GitHub Pages is built (`task pages:build`) but deploys once the owner enables Pages |
-| TypeScript client | [`@xtandard/image-url`](../packages/image-url/README.md), generated from the document | In the repository; **not on npm** until the first release |
+| TypeScript client | [`@xtandard/image`](../clients/typescript/README.md), generated from the document | In the repository; **not on npm** until the first release |
 
 The admin default `127.0.0.1:9090` is loopback *inside the container*, so publishing the port alone does not reach it: set `XI_ADMIN_ADDR=:9090` and publish it on the host's loopback only.
 
@@ -80,7 +80,7 @@ Handlers are plain functions on our `ServeMux`es, so tests keep the document hon
 - `TestRouteCoverage` maps every registered public and admin pattern to an operation and back.
 - Contract tests validate real `/info` bodies (`testdata/info`), every error kind's body, `/healthz` and `/readyz` against the schemas, and real playground `api/meta`, `api/sign` and error bodies against the `Playground*` schemas.
 - The catalogue tests check the imgproxy option catalogue against the parser's `apply` switches, the URL-DIALECTS §3.2/§3.3 tables and every golden-table URL.
-- CI runs `@redocly/cli lint` (a pinned `bunx` version) on the committed file. The `ts` workflow regenerates the TypeScript types from it with the pinned `openapi-typescript` devDependency of `packages/image-url` and fails on drift (below).
+- CI runs `@redocly/cli lint` (a pinned `bunx` version) on the committed file. The `ts` workflow regenerates the TypeScript types from it with the pinned `openapi-typescript` devDependency of `clients/typescript` and fails on drift (below).
 
 To reproduce the CI steps locally:
 
@@ -91,10 +91,10 @@ bun install && bun run generate:check   # or: task ts:check
 
 ## TypeScript
 
-[`@xtandard/image-url`](../packages/image-url/README.md) (WP-84, [ADR 0009](adr/0009-typescript-monorepo.md)) is generated from this document by `bun run generate`:
+[`@xtandard/image`](../clients/typescript/README.md) (WP-84, [ADR 0009](adr/0009-typescript-monorepo.md)) is generated from this document by `bun run generate`:
 
-- `packages/image-url/src/generated/openapi.ts` is the `openapi-typescript` output (`paths`, `components`, `operations`). The package's client (`@xtandard/image-url/client`) takes `InfoResponse`, `ErrorResponse` and the `ErrorBody.kind` enum from it.
-- `packages/image-url/src/generated/options.ts` holds the imgproxy option catalogue, taken from `ImgproxyProcessingOptions`, `ImgproxyInfoOptions` and `ImgproxyVideoOptions`. The query dialect builder takes its native keys, imaginary endpoints and parameters from the `getQueryImage` and `getImaginaryImage` operations, and the client takes `PlaygroundMeta` from `components`. The Go test `TestTypeScriptCatalogue` (`internal/apidoc`) fails when the committed tables and the catalogues differ, and `TestQueryKeysMatchParser` keeps the documented query keys in sync with the query parser (WP-133). It has one argument-tuple type per option and form, with trailing arguments optional after `minItems`, `items` as a rest element and `title` as the element label, and the `x-xi-aliases` tables. openapi-typescript alone renders `prefixItems` as fixed-length tuples and drops the extensions. The URL builder is typed by these, so a changed catalogue changes the TypeScript types in the same PR.
+- `clients/typescript/src/generated/openapi.ts` is the `openapi-typescript` output (`paths`, `components`, `operations`). The package's client (`@xtandard/image/client`) takes `InfoResponse`, `ErrorResponse` and the `ErrorBody.kind` enum from it.
+- `clients/typescript/src/generated/options.ts` holds the imgproxy option catalogue, taken from `ImgproxyProcessingOptions`, `ImgproxyInfoOptions` and `ImgproxyVideoOptions`. The query dialect builder takes its native keys, imaginary endpoints and parameters from the `getQueryImage` and `getImaginaryImage` operations, and the client takes `PlaygroundMeta` from `components`. The Go test `TestTypeScriptCatalogue` (`internal/apidoc`) fails when the committed tables and the catalogues differ, and `TestQueryKeysMatchParser` keeps the documented query keys in sync with the query parser (WP-133). It has one argument-tuple type per option and form, with trailing arguments optional after `minItems`, `items` as a rest element and `title` as the element label, and the `x-xi-aliases` tables. openapi-typescript alone renders `prefixItems` as fixed-length tuples and drops the extensions. The URL builder is typed by these, so a changed catalogue changes the TypeScript types in the same PR.
 
 Both files are committed. `bun run generate:check` fails when they are stale, so a Go change to the catalogue or the document has to regenerate them.
 
