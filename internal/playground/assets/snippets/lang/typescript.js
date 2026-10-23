@@ -51,8 +51,9 @@ const rules = {
   'print-request': (e) => N.stmt(N.call(N.member(N.type('console'), 'log'), [requestText(e.req, (f) => N.member(e.req, f))])),
 };
 
-// requestText is req.method + " " + req.url + "\n" + req.body.
-export const requestText = (req, field) => [field('url'), N.str('\n'), field('body')]
+// requestText is req.method + " " + req.url + " " + req.body: one line
+// (neither the URL nor the form content holds a space).
+export const requestText = (req, field) => [field('url'), N.str(' '), field('body')]
   .reduce((acc, x) => N.binary('+', acc, x), N.binary('+', field('method'), N.str(' ')));
 
 export function refine(program) {
