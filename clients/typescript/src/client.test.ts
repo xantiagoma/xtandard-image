@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { createClient, type InfoResponse, toXtandardError, XtandardError } from "./client.ts";
 import { buildImgproxyInfoUrl } from "./builder.ts";
+import { queryMethodRequest } from "./query.ts";
 
 const key = { key: "736563726574", salt: "68656C6C6F" };
 const infoBody: InfoResponse = { format: "jpeg", width: 320, height: 240 };
@@ -87,6 +88,56 @@ describe("client", () => {
     const ac = new AbortController();
     ac.abort();
     await expect(c.healthz({ signal: ac.signal })).rejects.toThrow();
+  });
+});
+
+describe("HTTP QUERY (opt-in)", () => {
+  type Sent = { url: string; method: string; type: string | null; body: string };
+  const recorder = () => {
+    const sent: Sent[] = [];
+    const fetch = async (input: Request | string | URL, init?: RequestInit) => {
+      const h = new Headers(init?.headers);
+      sent.push({ url: String(input), method: init?.method ?? "GET", type: h.get("content-type"), body: String(init?.body ?? "") });
+      return new Response("img");
+    };
+    return { sent, fetch };
+  };
+  const q = "/q/?url=https://e.com/a.jpg&w=300&xi_sig=abc";
+
+  test("off by default: query dialect URLs go out as GET", async () => {
+    const r = recorder();
+    await createClient({ baseUrl: "http://xi.invalid", fetch: r.fetch }).media(q);
+    expect(r.sent).toEqual([{ url: `http://xi.invalid${q}`, method: "GET", type: null, body: "" }]);
+  });
+
+  test("queryMethod sends URLs under the mount as QUERY, others as GET", async () => {
+    const r = recorder();
+    const c = createClient({ baseUrl: "http://xi.invalid", fetch: r.fetch, queryMethod: true });
+    await c.media(q);
+    await c.media("/q/video?url=s3://m/a.mov&vd=5");
+    await c.media("/insecure/rs:fit:300:300/plain/https://e.com/a.jpg");
+    await c.media(q, { method: "HEAD" });
+    expect(r.sent).toEqual([
+      { url: "http://xi.invalid/q/", method: "QUERY", type: "application/x-www-form-urlencoded", body: "url=https://e.com/a.jpg&w=300&xi_sig=abc" },
+      { url: "http://xi.invalid/q/video", method: "QUERY", type: "application/x-www-form-urlencoded", body: "url=s3://m/a.mov&vd=5" },
+      { url: "http://xi.invalid/insecure/rs:fit:300:300/plain/https://e.com/a.jpg", method: "GET", type: null, body: "" },
+      { url: `http://xi.invalid${q}`, method: "HEAD", type: null, body: "" },
+    ]);
+  });
+
+  test("method QUERY on one call, with a custom mount", async () => {
+    const r = recorder();
+    const c = createClient({ baseUrl: "http://xi.invalid", fetch: r.fetch, queryMount: "/img/q/" });
+    await c.media("/img/q/resize?url=x&width=1", { method: "QUERY" });
+    expect(r.sent[0]).toEqual({ url: "http://xi.invalid/img/q/resize", method: "QUERY", type: "application/x-www-form-urlencoded", body: "url=x&width=1" });
+  });
+
+  test("queryMethodRequest refuses a URL without a query", () => {
+    expect(() => queryMethodRequest("/q/")).toThrow(TypeError);
+    expect(() => queryMethodRequest("/q/?")).toThrow(TypeError);
+    expect(queryMethodRequest("https://h/q/?url=x")).toEqual({
+      method: "QUERY", url: "https://h/q/", contentType: "application/x-www-form-urlencoded", body: "url=x",
+    });
   });
 });
 

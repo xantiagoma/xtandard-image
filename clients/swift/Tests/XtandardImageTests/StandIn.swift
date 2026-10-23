@@ -22,6 +22,8 @@ struct Seen: Sendable {
   var target: String
   /// Lower-case header names.
   var headers: [String: String]
+  /// The request content (`Content-Length` bytes), as UTF-8.
+  var body = ""
 }
 
 /// A response of the stand-in server.
@@ -124,7 +126,18 @@ final class StandInServer: @unchecked Sendable {
       headers[line[..<colon].lowercased()] = line[line.index(after: colon)...]
         .trimmingCharacters(in: .whitespaces)
     }
-    let req = Seen(method: String(parts[0]), target: String(parts[1]), headers: headers)
+    var req = Seen(method: String(parts[0]), target: String(parts[1]), headers: headers)
+    if let length = headers["content-length"].flatMap({ Int($0) }), length > 0,
+      let start = (0...(buf.count - 4)).first(where: { Array(buf[$0..<$0 + 4]) == end })
+    {
+      var content = Array(buf[(start + 4)...])
+      while content.count < length {
+        let n = recv(c, &chunk, chunk.count, 0)
+        if n <= 0 { break }
+        content += chunk[0..<n]
+      }
+      req.body = String(decoding: content.prefix(length), as: UTF8.self)
+    }
     lock.withLock { seen.append(req) }
     let reply = handler(req)
     var head =

@@ -349,6 +349,20 @@ func (rt *Router) selectMount(host, path string, query url.Values) (m *Mount, re
 	return rt.def, path, ""
 }
 
+// MountFor returns the mount Route would select for a request to host and
+// the escaped path, without parsing anything: hasURL stands for a query
+// with a "url" key (rule 3). nil when no mount matches. The server uses it
+// to decide which endpoints accept the QUERY method (WP-147), whose query
+// is in the request content rather than the URL.
+func (rt *Router) MountFor(host, escapedPath string, hasURL bool) *Mount {
+	var q url.Values
+	if hasURL {
+		q = url.Values{"url": nil}
+	}
+	m, _, _ := rt.selectMount(host, escapedPath, q)
+	return m
+}
+
 // InfoParser is implemented by dialects with a metadata endpoint under
 // "<mount>/info" (imgproxy's /info, docs/URL-DIALECTS.md §3.3). ParseInfo
 // receives the path after the "/info" segment and returns a request of

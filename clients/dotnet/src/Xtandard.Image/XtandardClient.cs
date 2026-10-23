@@ -30,8 +30,17 @@ public sealed class XtandardClientOptions
     /// <summary>How option names are written.</summary>
     public OptionNameStyle OptionNames { get; set; } = OptionNameStyle.Short;
 
-    /// <summary>The query dialect's mount prefix, for <see cref="XtandardClient.QueryUrls"/>.</summary>
+    /// <summary>The query dialect's mount prefix, for <see cref="XtandardClient.QueryUrls"/> and <see cref="QueryMethod"/>.</summary>
     public string QueryMount { get; set; } = XtandardSpec.QueryMount;
+
+    /// <summary>
+    /// Send query dialect URLs (those under <see cref="QueryMount"/>) passed to <see cref="XtandardClient.MediaAsync"/>
+    /// without an explicit <see cref="MediaRequest.Method"/> with the HTTP QUERY method (RFC 10008): the query moves
+    /// into the request content (<see cref="QueryMethodRequest"/>). Off by default: the server needs
+    /// <c>XI_SERVER_QUERY_METHOD</c> (on by default), and many CDNs and proxies neither cache nor forward QUERY.
+    /// <c>Method = QueryMethodRequest.HttpMethod</c> on one request does the same for that request.
+    /// </summary>
+    public bool QueryMethod { get; set; }
 
     /// <summary>Headers sent with every request.</summary>
     public IDictionary<string, string> Headers { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -75,8 +84,16 @@ public sealed class XtandardClientOptions
 /// <summary>How a media request is sent.</summary>
 public sealed record MediaRequest
 {
-    /// <summary>GET (default) or HEAD.</summary>
-    public HttpMethod Method { get; init; } = HttpMethod.Get;
+    private readonly HttpMethod? method;
+
+    /// <summary>
+    /// GET (default) or HEAD; <see cref="QueryMethodRequest.HttpMethod"/> sends a query dialect URL's query as the
+    /// request content (RFC 10008; see <see cref="XtandardClientOptions.QueryMethod"/>).
+    /// </summary>
+    public HttpMethod Method { get => method ?? HttpMethod.Get; init => method = value; }
+
+    /// <summary>Gets a value indicating whether <see cref="Method"/> was given (else <see cref="XtandardClientOptions.QueryMethod"/> may pick QUERY).</summary>
+    internal bool MethodGiven => method is not null;
 
     /// <summary>A byte range (206 Partial Content).</summary>
     public ByteRange? Range { get; init; }
@@ -124,6 +141,8 @@ public sealed class XtandardClient : IDisposable
     private readonly string baseUrl;
     private readonly KeyValuePair<string, string>[] headers;
     private readonly string playgroundMeta;
+    private readonly bool queryMethod;
+    private readonly string queryMount;
 
     /// <summary>Creates a client with its own <see cref="HttpClient"/>, disposed with the client.</summary>
     /// <param name="options">The settings.</param>
@@ -152,6 +171,8 @@ public sealed class XtandardClient : IDisposable
         headers = [.. options.Headers];
         var origin = (options.PlaygroundBaseUrl ?? baseUrl).TrimEnd('/');
         playgroundMeta = $"{origin}/{options.PlaygroundPath.Trim('/')}/api/meta";
+        queryMethod = options.QueryMethod;
+        queryMount = options.QueryMount.TrimEnd('/');
     }
 
     /// <summary>The imgproxy URL builder with the client's settings.</summary>
@@ -217,15 +238,29 @@ public sealed class XtandardClient : IDisposable
         }
     }
 
-    /// <summary><c>GET</c> (or HEAD) any URL or server path: an image or video URL, a query URL, a stream part.</summary>
+    /// <summary>
+    /// <c>GET</c> (or HEAD) any URL or server path: an image or video URL, a query URL, a stream part. A query
+    /// dialect URL goes out as QUERY with <c>Method = QueryMethodRequest.HttpMethod</c>, or by default with
+    /// <see cref="XtandardClientOptions.QueryMethod"/>.
+    /// </summary>
     /// <param name="url">The URL, or a path on the server.</param>
     /// <param name="request">Method, Range, Accept, headers and streaming.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>The response, which the caller disposes.</returns>
+    /// <exception cref="UrlBuildException"><c>invalid_request</c>: a QUERY request for a URL without a query.</exception>
     public async Task<HttpResponseMessage> MediaAsync(string url, MediaRequest? request = null, CancellationToken cancellationToken = default)
     {
         var r = request ?? new MediaRequest();
-        var res = await SendAsync(r.Method, Absolute(url), r.Accept, r.Range, r.Headers, r.Stream, cancellationToken).ConfigureAwait(false);
+        var abs = Absolute(url);
+        var method = r.Method;
+        QueryMethodRequest? query = null;
+        if (method == QueryMethodRequest.HttpMethod || (!r.MethodGiven && queryMethod && UnderQueryMount(abs)))
+        {
+            query = QueryMethodRequest.FromUrl(abs);
+            (method, abs) = (QueryMethodRequest.HttpMethod, query.Url);
+        }
+
+        var res = await SendAsync(method, abs, r.Accept, r.Range, r.Headers, r.Stream, cancellationToken, query).ConfigureAwait(false);
         try
         {
             await EnsureSuccessAsync(res, cancellationToken).ConfigureAwait(false);
@@ -344,6 +379,18 @@ public sealed class XtandardClient : IDisposable
         return $"{baseUrl}{(url.StartsWith('/') ? string.Empty : "/")}{url}";
     }
 
+    /// <summary>Whether an absolute URL's path is under the query dialect mount (for <see cref="XtandardClientOptions.QueryMethod"/>).</summary>
+    private bool UnderQueryMount(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var u))
+        {
+            return false;
+        }
+
+        var path = u.AbsolutePath;
+        return path == queryMount || path.StartsWith(queryMount + "/", StringComparison.Ordinal);
+    }
+
     private async Task<HttpResponseMessage> SendAsync(
         HttpMethod method,
         string url,
@@ -351,11 +398,17 @@ public sealed class XtandardClient : IDisposable
         ByteRange? range,
         IReadOnlyDictionary<string, string>? extra,
         bool stream,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        QueryMethodRequest? query = null)
     {
         // A URL built here is already escaped; keep it byte for byte (the signature covers it).
         var uri = new Uri(url, new UriCreationOptions { DangerousDisablePathAndQueryCanonicalization = true });
         using var req = new HttpRequestMessage(method, uri);
+        if (query is not null)
+        {
+            req.Content = new ByteArrayContent(System.Text.Encoding.UTF8.GetBytes(query.Body));
+            req.Content.Headers.TryAddWithoutValidation("Content-Type", query.ContentType);
+        }
         foreach (var (k, v) in headers)
         {
             req.Headers.TryAddWithoutValidation(k, v);

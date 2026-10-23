@@ -8557,6 +8557,10 @@
             "description": "XI_SERVER_ADDR (the page derives a default public base URL from its port).",
             "type": "string"
           },
+          "query_method": {
+            "description": "XI_SERVER_QUERY_METHOD: the query dialect's endpoints accept HTTP QUERY (RFC 10008), its parameters in the request content.",
+            "type": "boolean"
+          },
           "recipes": {
             "description": "Ready-made sessions of the Examples tool (internal/playground/recipes.json): source, dialect and options, loaded into the builder with one click.",
             "items": {
@@ -8642,6 +8646,7 @@
           "detection",
           "video",
           "classes",
+          "query_method",
           "pdf_passwords",
           "watermark",
           "recipes"
@@ -9409,6 +9414,76 @@
           "unsigned_policy",
           "codecs",
           "containers"
+        ],
+        "type": "object"
+      },
+      "QueryContent": {
+        "additionalProperties": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            },
+            {
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  }
+                ]
+              },
+              "type": "array"
+            }
+          ]
+        },
+        "description": "HTTP QUERY content of the query dialect as JSON: one member per parameter, in document order (later members override earlier ones, like later keys of a query string). Strings are used as they are, numbers as written, booleans as true/false, arrays joined with \",\"; null skips the member. Objects, nested arrays and duplicate names are 400. The canonical query (signed by xi_sig) writes each member as key=value, keys and values percent-encoded except letters, digits and -._~:/,@!$'()* (UTF-8, upper-case hex), joined with \u0026.",
+        "examples": [
+          {
+            "crop": [
+              10,
+              20,
+              300,
+              200
+            ],
+            "strip_metadata": true,
+            "url": "https://example.com/a.jpg",
+            "w": 300
+          }
+        ],
+        "properties": {
+          "o": {
+            "description": "imgproxy option path.",
+            "type": "string"
+          },
+          "sign": {
+            "description": "imaginary signature.",
+            "type": "string"
+          },
+          "url": {
+            "description": "Source URL or xi://\u003csource\u003e/\u003ckey\u003e.",
+            "type": "string"
+          },
+          "xi_sig": {
+            "description": "xi signature over the path after the mount, ? and the canonical query without xi_sig.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
         ],
         "type": "object"
       }
@@ -11517,7 +11592,7 @@
     },
     "/q": {
       "get": {
-        "description": "Native query dialect, mounted at /q/ when XI_DIALECTS_QUERY_ENABLED=true. Keys apply in query order through the imgproxy option parser, so later keys override earlier ones.",
+        "description": "Native query dialect, mounted at /q/ when XI_DIALECTS_QUERY_ENABLED=true. Keys apply in query order through the imgproxy option parser, so later keys override earlier ones. The same request may be sent with the HTTP QUERY method (RFC 10008; XI_SERVER_QUERY_METHOD, on by default), its parameters in the content instead of the URL: OpenAPI 3.1 has no QUERY operation, so x-xi-query-method describes it.",
         "externalDocs": {
           "url": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#4-query-dialect-native--imaginary"
         },
@@ -11950,12 +12025,44 @@
           "image"
         ],
         "x-xi-dialect": "query",
-        "x-xi-listener": "public"
+        "x-xi-listener": "public",
+        "x-xi-query-method": {
+          "config": "XI_SERVER_QUERY_METHOD",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryContent"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "description": "Exactly the query string of the equivalent GET URL (same keys, order and escaping).",
+                "example": "url=https%3A%2F%2Fexample.com%2Fa.jpg\u0026w=300\u0026f=webp",
+                "type": "string"
+              }
+            }
+          },
+          "description": "The parameters of the GET operation travel in the request content; the URL has no query (a query is 400). Signing (xi_sig or sign as a parameter in the content, over the same message as the GET URL), the unsigned policy, limits, conditional requests and the result cache entry are those of the equivalent GET request.",
+          "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#44-http-query",
+          "errors": {
+            "400": "Malformed content, or a URL with a query.",
+            "405": "XI_SERVER_QUERY_METHOD=false, or an endpoint of another dialect (Allow lists the methods).",
+            "413": "Content over XI_SERVER_QUERY_MAX_BODY_BYTES.",
+            "415": "Missing or unsupported Content-Type, a charset other than UTF-8, or a Content-Encoding."
+          },
+          "method": "QUERY",
+          "response_headers": {
+            "Accept-Query": "The media types above, as a Structured Field list; also on GET, HEAD and 405 responses of these endpoints.",
+            "Location": "On 2xx: the equivalent GET URL when it fits XI_SERVER_QUERY_LOCATION_MAX_LENGTH and carries no pdf_password.",
+            "Vary": "Adds Content-Type."
+          },
+          "rfc": "https://www.rfc-editor.org/rfc/rfc10008"
+        }
       }
     },
     "/q/video": {
       "get": {
-        "description": "The /video options as query keys (aliases too), in query order, mounted at /q/ when XI_DIALECTS_QUERY_ENABLED=true; fit, gravity, crop and flip also take the native spellings.",
+        "description": "The /video options as query keys (aliases too), in query order, mounted at /q/ when XI_DIALECTS_QUERY_ENABLED=true; fit, gravity, crop and flip also take the native spellings. The same request may be sent with the HTTP QUERY method (RFC 10008; XI_SERVER_QUERY_METHOD, on by default), its parameters in the content instead of the URL: OpenAPI 3.1 has no QUERY operation, so x-xi-query-method describes it.",
         "externalDocs": {
           "url": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#4-query-dialect-native--imaginary"
         },
@@ -12396,12 +12503,44 @@
           "video"
         ],
         "x-xi-dialect": "query",
-        "x-xi-listener": "public"
+        "x-xi-listener": "public",
+        "x-xi-query-method": {
+          "config": "XI_SERVER_QUERY_METHOD",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryContent"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "description": "Exactly the query string of the equivalent GET URL (same keys, order and escaping).",
+                "example": "url=https%3A%2F%2Fexample.com%2Fa.jpg\u0026w=300\u0026f=webp",
+                "type": "string"
+              }
+            }
+          },
+          "description": "The parameters of the GET operation travel in the request content; the URL has no query (a query is 400). Signing (xi_sig or sign as a parameter in the content, over the same message as the GET URL), the unsigned policy, limits, conditional requests and the result cache entry are those of the equivalent GET request.",
+          "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#44-http-query",
+          "errors": {
+            "400": "Malformed content, or a URL with a query.",
+            "405": "XI_SERVER_QUERY_METHOD=false, or an endpoint of another dialect (Allow lists the methods).",
+            "413": "Content over XI_SERVER_QUERY_MAX_BODY_BYTES.",
+            "415": "Missing or unsupported Content-Type, a charset other than UTF-8, or a Content-Encoding."
+          },
+          "method": "QUERY",
+          "response_headers": {
+            "Accept-Query": "The media types above, as a Structured Field list; also on GET, HEAD and 405 responses of these endpoints.",
+            "Location": "On 2xx: the equivalent GET URL when it fits XI_SERVER_QUERY_LOCATION_MAX_LENGTH and carries no pdf_password.",
+            "Vary": "Adds Content-Type."
+          },
+          "rfc": "https://www.rfc-editor.org/rfc/rfc10008"
+        }
       }
     },
     "/q/{endpoint}": {
       "get": {
-        "description": "imaginary's GET API under the query dialect mount. POST uploads and the file parameter are not supported.",
+        "description": "imaginary's GET API under the query dialect mount. POST uploads and the file parameter are not supported. The same request may be sent with the HTTP QUERY method (RFC 10008; XI_SERVER_QUERY_METHOD, on by default), its parameters in the content instead of the URL: OpenAPI 3.1 has no QUERY operation, so x-xi-query-method describes it.",
         "externalDocs": {
           "url": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#4-query-dialect-native--imaginary"
         },
@@ -12843,7 +12982,39 @@
           "image"
         ],
         "x-xi-dialect": "query",
-        "x-xi-listener": "public"
+        "x-xi-listener": "public",
+        "x-xi-query-method": {
+          "config": "XI_SERVER_QUERY_METHOD",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryContent"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "description": "Exactly the query string of the equivalent GET URL (same keys, order and escaping).",
+                "example": "url=https%3A%2F%2Fexample.com%2Fa.jpg\u0026w=300\u0026f=webp",
+                "type": "string"
+              }
+            }
+          },
+          "description": "The parameters of the GET operation travel in the request content; the URL has no query (a query is 400). Signing (xi_sig or sign as a parameter in the content, over the same message as the GET URL), the unsigned policy, limits, conditional requests and the result cache entry are those of the equivalent GET request.",
+          "docs": "https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#44-http-query",
+          "errors": {
+            "400": "Malformed content, or a URL with a query.",
+            "405": "XI_SERVER_QUERY_METHOD=false, or an endpoint of another dialect (Allow lists the methods).",
+            "413": "Content over XI_SERVER_QUERY_MAX_BODY_BYTES.",
+            "415": "Missing or unsupported Content-Type, a charset other than UTF-8, or a Content-Encoding."
+          },
+          "method": "QUERY",
+          "response_headers": {
+            "Accept-Query": "The media types above, as a Structured Field list; also on GET, HEAD and 405 responses of these endpoints.",
+            "Location": "On 2xx: the equivalent GET URL when it fits XI_SERVER_QUERY_LOCATION_MAX_LENGTH and carries no pdf_password.",
+            "Vary": "Adds Content-Type."
+          },
+          "rfc": "https://www.rfc-editor.org/rfc/rfc10008"
+        }
       }
     },
     "/readyz": {

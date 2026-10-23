@@ -47,7 +47,14 @@ const rules = {
     return N.await(N.call(N.type('signXiUrl'), [N.str(e.url), e.key, object([['mount', N.str(e.mount)]])]));
   },
   print: (e) => N.stmt(N.call(N.member(N.type('console'), 'log'), [e.expr])),
+  'query-request': (e, ctx) => (ctx.names.add('queryMethodRequest'), N.call(N.type('queryMethodRequest'), [e.url])),
+  'print-request': (e) => N.stmt(N.call(N.member(N.type('console'), 'log'), [requestText(e.req, (f) => N.member(e.req, f))])),
 };
+
+// requestText is req.method + " " + req.url + " " + req.body: one line
+// (neither the URL nor the form content holds a space).
+export const requestText = (req, field) => [field('url'), N.str(' '), field('body')]
+  .reduce((acc, x) => N.binary('+', acc, x), N.binary('+', field('method'), N.str(' ')));
 
 export function refine(program) {
   const ctx = { names: new Set() };

@@ -96,12 +96,61 @@ enum HttpMethod {
   get('GET'),
 
   /// The headers only (type, length, ETag).
-  head('HEAD');
+  head('HEAD'),
+
+  /// A query dialect URL's query as the request content (RFC 10008; see
+  /// [queryMethodRequest] and [XtandardClient.queryMethod]).
+  query('QUERY');
 
   const HttpMethod(this.value);
 
   /// The method as sent.
   final String value;
+}
+
+const String _defaultQueryMount = queryMount;
+
+/// The content type of a QUERY request's content.
+const String queryContentType = 'application/x-www-form-urlencoded';
+
+/// A query dialect request sent with the HTTP QUERY method (RFC 10008,
+/// URL-DIALECTS §4.4).
+final class QueryMethodRequest {
+  const QueryMethodRequest._(this.url, this.body);
+
+  /// Always `QUERY`.
+  String get method => HttpMethod.query.value;
+
+  /// The URL without its query.
+  final String url;
+
+  /// Always `application/x-www-form-urlencoded`.
+  String get contentType => queryContentType;
+
+  /// The URL's query exactly as built, `xi_sig` included: the server signs,
+  /// limits and caches it as the GET URL, since `xi_sig` does not cover the
+  /// method.
+  final String body;
+}
+
+/// Splits a built query dialect URL (`/q/…?url=…`) at its first `?` into
+/// an HTTP QUERY request: the parameters move from the URL to the content,
+/// so long option chains, watermark text or encrypted sources stay out of
+/// URLs.
+///
+/// The server must have `XI_SERVER_QUERY_METHOD` on (the default); many
+/// CDNs and proxies neither cache nor forward QUERY. Throws
+/// [UrlBuildException] (`invalid_request`) for a URL without a query, with
+/// an empty query, or with a fragment.
+QueryMethodRequest queryMethodRequest(String url) {
+  final i = url.indexOf('?');
+  if (i < 0 || i == url.length - 1 || url.contains('#')) {
+    throw const UrlBuildException(
+      ErrorCode.invalidRequest,
+      'a QUERY request needs a query dialect URL with a query and no fragment',
+    );
+  }
+  return QueryMethodRequest._(url.substring(0, i), url.substring(i + 1));
 }
 
 /// A `/readyz` state.
@@ -201,7 +250,8 @@ final class XtandardClient {
   /// The URL settings are those of [ImgproxyUrlBuilder]. [headers] are sent
   /// with every request. [playgroundBaseUrl] (default [baseUrl]) and
   /// [playgroundPath] (`XI_PLAYGROUND_PATH`) locate [playgroundMeta]; the
-  /// playground lives on the admin listener by default.
+  /// playground lives on the admin listener by default. [queryMethod] and
+  /// [queryMount] send query dialect URLs as HTTP QUERY (off by default).
   XtandardClient(
     String baseUrl, {
     http.Client? httpClient,
@@ -216,7 +266,10 @@ final class XtandardClient {
     this.timeout,
     String? playgroundBaseUrl,
     String playgroundPath = '/_playground/',
+    this.queryMethod = false,
+    String queryMount = _defaultQueryMount,
   })  : baseUrl = _trim(baseUrl),
+        queryMount = _trim(queryMount),
         _http = httpClient ?? http.Client(),
         _owned = httpClient == null,
         _headers = Map.unmodifiable(headers),
@@ -241,6 +294,18 @@ final class XtandardClient {
 
   /// A deadline for each request until its headers arrive, or null.
   final Duration? timeout;
+
+  /// Whether [media] and [mediaStreamed] send query dialect URLs (those
+  /// under [queryMount]) with the HTTP QUERY method when no method is given
+  /// (RFC 10008): the query moves into the request content. Off by default:
+  /// the server needs `XI_SERVER_QUERY_METHOD` (on by default), and many
+  /// CDNs and proxies neither cache nor forward QUERY. `method:
+  /// HttpMethod.query` does the same for one call.
+  final bool queryMethod;
+
+  /// The query dialect's mount (`XI_DIALECTS_QUERY_PREFIX`), for
+  /// [queryMethod]; default `/q`.
+  final String queryMount;
 
   final http.Client _http;
   final bool _owned;
@@ -274,6 +339,7 @@ final class XtandardClient {
     ByteRange? range,
     Map<String, String>? headers,
     Future<void>? abortTrigger,
+    QueryMethodRequest? query,
   }) async {
     final req = http.AbortableRequest(
       method.value,
@@ -285,6 +351,12 @@ final class XtandardClient {
       ..addAll(headers ?? const {})
       ..['Accept'] = accept;
     if (range != null) req.headers['Range'] = rangeHeader(range);
+    if (query != null) {
+      // bodyBytes, not body: the body setter would add a charset parameter.
+      req
+        ..bodyBytes = utf8.encode(query.body)
+        ..headers['Content-Type'] = query.contentType;
+    }
     try {
       final sent = _http.send(req);
       final t = timeout;
@@ -427,9 +499,14 @@ final class XtandardClient {
   /// `GET` (or `HEAD`) any URL or server path, buffered: an image or video
   /// URL, a query URL, a stream part. [accept] drives image format
   /// negotiation; [range] asks for part of the body (206).
+  ///
+  /// [method] defaults to GET; a query dialect URL goes out as QUERY with
+  /// `method: HttpMethod.query`, or, when no method is given, with
+  /// [queryMethod]. A QUERY request of a URL without a query throws
+  /// [UrlBuildException] (`invalid_request`).
   Future<http.Response> media(
     String url, {
-    HttpMethod method = HttpMethod.get,
+    HttpMethod? method,
     ByteRange? range,
     String accept = '*/*',
     Map<String, String>? headers,
@@ -453,24 +530,38 @@ final class XtandardClient {
   /// `http.StreamedResponse.stream` (or cancel it) to free the connection.
   Future<http.StreamedResponse> mediaStreamed(
     String url, {
-    HttpMethod method = HttpMethod.get,
+    HttpMethod? method,
     ByteRange? range,
     String accept = '*/*',
     Map<String, String>? headers,
     Future<void>? abortTrigger,
   }) async {
-    final abs = _abs(url);
+    var abs = _abs(url);
+    QueryMethodRequest? query;
+    if (method == HttpMethod.query ||
+        (method == null && queryMethod && _underQueryMount(abs))) {
+      query = queryMethodRequest(abs);
+      abs = query.url;
+    }
     return _checked(
       await _send(
-        method,
+        query != null ? HttpMethod.query : method ?? HttpMethod.get,
         abs,
         accept,
         range: range,
         headers: headers,
         abortTrigger: abortTrigger,
+        query: query,
       ),
       abs,
     );
+  }
+
+  /// Whether an absolute URL's path is under [queryMount].
+  bool _underQueryMount(String url) {
+    final path = Uri.tryParse(url)?.path;
+    return path != null &&
+        (path == queryMount || path.startsWith('$queryMount/'));
   }
 
   /// `GET` (or `HEAD`) a processed image; the URL arguments are those of

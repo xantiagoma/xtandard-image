@@ -195,3 +195,34 @@ function checkExtension(ext: string): string {
   if (!/^[A-Za-z0-9]+$/.test(ext)) throw new TypeError(`invalid extension ${JSON.stringify(ext)}`);
   return ext;
 }
+
+/** The media type of a QUERY request's content: the URL's query string (RFC 10008). */
+export const QUERY_CONTENT_TYPE = "application/x-www-form-urlencoded";
+
+/** A query dialect request sent with the HTTP QUERY method (RFC 10008, URL-DIALECTS §4.4). */
+export interface QueryMethodRequest {
+  readonly method: "QUERY";
+  /** The URL without its query. */
+  readonly url: string;
+  readonly contentType: typeof QUERY_CONTENT_TYPE;
+  /**
+   * The URL's query exactly as built, `xi_sig` included: the server signs,
+   * limits and caches it as the GET URL, since `xi_sig` does not cover the method.
+   */
+  readonly body: string;
+}
+
+/**
+ * Splits a built query dialect URL (`/q/…?url=…`) into an HTTP QUERY
+ * request: the parameters move from the URL to the content, so long
+ * option chains, watermark text or encrypted sources stay out of URLs.
+ * The server must have XI_SERVER_QUERY_METHOD on (the default); many CDNs
+ * and proxies neither cache nor forward QUERY.
+ */
+export function queryMethodRequest(url: string): QueryMethodRequest {
+  const i = url.indexOf("?");
+  if (i < 0 || i === url.length - 1 || url.includes("#")) {
+    throw new TypeError("a QUERY request needs a query dialect URL with a query and no fragment");
+  }
+  return { method: "QUERY", url: url.slice(0, i), contentType: QUERY_CONTENT_TYPE, body: url.slice(i + 1) };
+}

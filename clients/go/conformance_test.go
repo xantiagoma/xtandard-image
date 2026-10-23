@@ -343,6 +343,12 @@ func (r run) viaParams() (string, error) {
 			return "", err
 		}
 		return b.ImaginaryURL(xtandard.ImaginaryEndpoint(r.str(in, "endpoint")), r.str(in, "source"), r.params()...)
+	case "query.query_request":
+		url, err := r.built().viaParams()
+		if err != nil {
+			return "", err
+		}
+		return queryRequest(url)
 	case "sign":
 		k, err := r.signing()
 		if err != nil {
@@ -381,6 +387,23 @@ func (r run) viaParams() (string, error) {
 	return "", fmt.Errorf("unknown op %s", r.c.Op)
 }
 
+// built is a query.query_request case as the op that builds its URL
+// (input.build), with the same config and inputs.
+func (r run) built() run {
+	b := r
+	b.c.Op = r.str(r.c.Input, "build")
+	return b
+}
+
+// queryRequest prints the QUERY request of a built URL as the fixture writes it.
+func queryRequest(url string) (string, error) {
+	q, err := query.MethodRequest(url)
+	if err != nil {
+		return "", err
+	}
+	return q.Method + " " + q.URL + "\nContent-Type: " + q.ContentType + "\n\n" + q.Body, nil
+}
+
 // chain is the common surface of the fluent chains the runner drives.
 type chain interface {
 	Build() (string, error)
@@ -396,6 +419,13 @@ func (r run) viaFluent() (url string, ok bool, err error) {
 	pw := r.password()
 	var c chain
 	switch r.c.Op {
+	case "query.query_request":
+		url, ok, err := r.built().viaFluent()
+		if !ok || err != nil {
+			return "", ok, err
+		}
+		s, err := queryRequest(url)
+		return s, true, err
 	case "imgproxy.url":
 		b, err := r.imgproxy()
 		if err != nil {

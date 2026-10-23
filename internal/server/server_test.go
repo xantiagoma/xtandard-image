@@ -58,6 +58,10 @@ func (f *fakeRouter) Route(*http.Request) (*dialect.Result, *router.Mount, error
 	return &dialect.Result{Request: req, SourceString: req.Source.Raw, Signature: f.sig}, m, nil
 }
 
+func (f *fakeRouter) MountFor(string, string, bool) *router.Mount {
+	return &router.Mount{Dialect: f.dialect, Policy: f.policy}
+}
+
 type fakeResolver struct {
 	err  error
 	deny map[string]bool // source strings refused with KindForbidden

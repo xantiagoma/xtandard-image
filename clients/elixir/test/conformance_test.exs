@@ -7,7 +7,7 @@ defmodule XtandardImage.ConformanceTest do
   use ExUnit.Case, async: true
 
   alias XtandardImage.{Chain, EncryptionKey, Error, Imgproxy, Query, Signing, SigningKey}
-  alias XtandardImage.{Encryption, Fixtures, Range, Sources}
+  alias XtandardImage.{Encryption, Fixtures, QueryMethodRequest, Range, Sources}
 
   @fixture Fixtures.load("clients/spec/conformance.json")
   @external_resource Fixtures.path("clients/spec/conformance.json")
@@ -170,6 +170,12 @@ defmodule XtandardImage.ConformanceTest do
 
   defp mapping!("query.imaginary_url", cfg, inp),
     do: Query.imaginary_url!(query!(cfg), inp["endpoint"], inp["source"], params(inp))
+
+  # input.build names the query op that builds the URL from the other inputs.
+  defp mapping!("query.query_request", cfg, inp) do
+    q = QueryMethodRequest.from_url!(mapping!(inp["build"], cfg, inp))
+    "#{q.method} #{q.url}\nContent-Type: #{q.content_type}\n\n#{q.body}"
+  end
 
   defp mapping!("sign", cfg, inp), do: Signing.sign(inp["message"], signing!(cfg))
 

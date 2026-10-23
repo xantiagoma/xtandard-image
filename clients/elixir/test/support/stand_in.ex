@@ -1,15 +1,16 @@
 defmodule XtandardImage.StandIn do
   @moduledoc false
   # A stand-in HTTP/1.1 server on :gen_tcp for the client tests: it parses
-  # the request line and headers (packet: :http_bin), asks a handler for the
-  # response and closes the connection. The handler returns
+  # the request line and headers (packet: :http_bin) and a Content-Length
+  # body, asks a handler for the response and closes the connection. The handler returns
   # {status, headers, body}, or :close to drop the connection unanswered.
 
   @type request :: %{
           method: String.t(),
           path: String.t(),
           query: String.t(),
-          headers: %{optional(String.t()) => String.t()}
+          headers: %{optional(String.t()) => String.t()},
+          body: binary()
         }
   @type response :: {pos_integer(), [{String.t(), String.t()}], binary()} | :close
 
@@ -48,11 +49,19 @@ defmodule XtandardImage.StandIn do
 
   defp serve(socket, handler) do
     with {:ok, {:http_request, method, {:abs_path, target}, _}} <- :gen_tcp.recv(socket, 0, 5_000),
-         {:ok, headers} <- read_headers(socket, %{}) do
+         {:ok, headers} <- read_headers(socket, %{}),
+         {:ok, body} <- read_body(socket, headers["content-length"]) do
       [path | query] = String.split(target, "?", parts: 2)
       method = to_string(method)
 
-      request = %{method: method, path: path, query: List.first(query, ""), headers: headers}
+      request = %{
+        method: method,
+        path: path,
+        query: List.first(query, ""),
+        headers: headers,
+        body: body
+      }
+
       respond(socket, method, handler.(request))
     end
 
@@ -70,6 +79,14 @@ defmodule XtandardImage.StandIn do
       other ->
         other
     end
+  end
+
+  defp read_body(_socket, nil), do: {:ok, ""}
+  defp read_body(_socket, "0"), do: {:ok, ""}
+
+  defp read_body(socket, length) do
+    :ok = :inet.setopts(socket, packet: :raw)
+    :gen_tcp.recv(socket, String.to_integer(length), 5_000)
   end
 
   defp respond(_socket, _method, :close), do: :ok

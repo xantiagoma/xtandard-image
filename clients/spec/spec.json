@@ -7500,6 +7500,20 @@
         "sign",
         "xi_sig"
       ]
+    },
+    "method": {
+      "name": "QUERY",
+      "media_types": [
+        "application/x-www-form-urlencoded",
+        "application/json"
+      ],
+      "client_default": false,
+      "rules": [
+        "A query dialect URL (/q/, /q/video, /q/<endpoint>) is sent as QUERY to its path without the query, with Content-Type: application/x-www-form-urlencoded and the URL's query string, exactly as the builder wrote it (xi_sig included), as the content.",
+        "The signature is the GET URL's: xi_sig signs the path after the mount and the query, not the method, so the content of a signed QUERY is the query of a signed GET URL and the other way round.",
+        "application/json content is an object of the same parameters in order (strings, numbers as written, true/false, arrays joined with \",\"; null skipped); its canonical query, which xi_sig signs, escapes keys and values like url.query_safe and joins them with &.",
+        "A 2xx response may carry Location (the equivalent GET URL) and Accept-Query; 405 means the server or the endpoint does not accept QUERY (XI_SERVER_QUERY_METHOD), 413 content too large, 415 unsupported media type."
+      ]
     }
   },
   "media": {
@@ -7650,6 +7664,7 @@
       "imgproxy": "path = \"/\" + options + \"/\" + source; URL = base + \"/\" + sig(path) + path.",
       "info": "path as imgproxy; URL = base + \"/info/\" + sig(path) + path (the signature does not cover \"/info\").",
       "mac": "sig(msg) = base64url(HMAC-SHA256(key, salt ‖ msg)[:size]); key and salt are hex (XI_SIGNING_KEYS, XI_SIGNING_SALTS) or raw bytes; a msg without a leading \"/\" is signed as \"/\" + msg.",
+      "query_method": "an HTTP QUERY request signs as its equivalent GET URL: msg = path after the mount + \"?\" + the content's canonical query without xi_sig (form content as written; JSON content per query.method.rules); xi_sig is a parameter of the content.",
       "unsigned": "without a key the signature segment is a placeholder (default \"insecure\") and the query dialect has no xi_sig.",
       "video": "path as imgproxy; URL = base + \"/video/\" + sig(\"/video\" + path) + path: the signature covers \"/video\" + path, so no image signature is valid for a /video URL.",
       "xi_sig": "msg = path after the mount (\"/\", \"/video\", \"/resize\") + \"?\" + the query's non-empty parameters except xi_sig, in order and as written (no \"?\" when none remain); the URL ends in \"&xi_sig=\" + sig(msg). Re-signing drops any earlier xi_sig; two xi_sig parameters are an error."
@@ -8345,6 +8360,7 @@
     "info": "{base}{prefix}/info/{signature}/{options}/{source}",
     "process": "{base}{prefix}/{signature}/{options}/{source}",
     "query": "{base}{mount}/?url={source}&{keys}[&o={options}][&format={ext}][&pdp={token}][&xi_sig={signature}]",
+    "query_method": "QUERY {base}{mount}/ (or /video, /{endpoint}); Content-Type: application/x-www-form-urlencoded; content url={source}&{keys}[&o={options}][&format={ext}][&pdp={token}][&xi_sig={signature}]",
     "readyz": "/readyz",
     "video": "{base}{prefix}/video/{signature}/{options}/{source}"
   }

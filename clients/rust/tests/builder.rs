@@ -2,8 +2,9 @@
 
 use xtandard_image::{
     Arg, ByteRange, ErrorKind, ImageFormat, ImaginaryEndpoint, ImgproxyUrlBuilder, IntoArgs, OptionNames, Options,
-    Params, QueryUrlBuilder, QueryUrlParams, SegmentFormat, SourceEncoding, StreamParams, StreamProtocol, UrlParams,
-    VideoContainer, VideoUrlParams, imgproxy, info, processing, query_urls, range_header, video,
+    Params, QUERY_CONTENT_TYPE, QueryUrlBuilder, QueryUrlParams, SegmentFormat, SourceEncoding, StreamParams,
+    StreamProtocol, UrlParams, VideoContainer, VideoUrlParams, imgproxy, info, processing, query_method_request,
+    query_urls, range_header, video,
 };
 
 const SRC: &str = "https://example.com/a.jpg";
@@ -184,4 +185,16 @@ fn chains_build_repeatedly() {
     let b = imgproxy();
     let chain = b.image(SRC).w(10);
     assert_eq!(chain.build().unwrap(), chain.clone().build().unwrap());
+}
+
+#[test]
+fn query_method_request_splits_at_the_first_question_mark() {
+    let q = query_method_request("https://img.example.com/q/?url=s3://b/a.jpg?x=1&w=3").unwrap();
+    assert_eq!(
+        (q.method, q.url.as_str(), q.content_type, q.body.as_str()),
+        ("QUERY", "https://img.example.com/q/", QUERY_CONTENT_TYPE, "url=s3://b/a.jpg?x=1&w=3")
+    );
+    for bad in ["/q/", "/q/?", "/q/?url=a#f"] {
+        assert_eq!(query_method_request(bad).unwrap_err().code(), "invalid_request", "{bad}");
+    }
 }

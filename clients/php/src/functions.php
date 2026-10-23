@@ -145,6 +145,16 @@ if (!\function_exists(__NAMESPACE__ . '\imgproxy')) {
     }
 
     /**
+     * QueryMethodRequest::fromUrl().
+     *
+     * @throws UrlBuildException
+     */
+    function queryMethodRequest(string $url): QueryMethodRequest
+    {
+        return QueryMethodRequest::fromUrl($url);
+    }
+
+    /**
      * ByteRange::header().
      *
      * @throws UrlBuildException

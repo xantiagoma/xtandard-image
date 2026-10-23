@@ -139,7 +139,44 @@ function sessionSnippet({ signed, encrypt }) {
   return snippetModel({
     m: { ...m, prefix: mountPrefix(m) || '/' }, state, index: indexFor(m), signed, encrypt, pdf,
     base: baseURL() + (meta.path_prefix || '').replace(/\/+$/, ''), url: $('url-out').value, accept: $('accept').value,
+    queryMethod: queryMethodOn(m),
   });
+}
+
+// ---- HTTP QUERY (WP-147) -----------------------------------------------------
+
+const QUERY_PREF = 'xi-playground-query-method';
+
+// queryMethodOn reports whether the session's request is shown as HTTP
+// QUERY: a query dialect mount, the server accepts QUERY, the box ticked.
+const queryMethodOn = (m) => Boolean(m?.grammar === 'query' && meta?.query_method && $('query-method').checked);
+
+// showQueryRequest shows the URL as the HTTP QUERY request a client sends
+// (method, headers, content) under the URL, when the box is ticked. The
+// preview still renders the equivalent GET: same result, same cache entry.
+function showQueryRequest(full, m) {
+  $('query-method-row').hidden = !(m?.grammar === 'query' && meta?.query_method);
+  const out = $('query-request');
+  const i = full.indexOf('?');
+  if (!queryMethodOn(m) || i < 0) {
+    out.hidden = true;
+    out.textContent = '';
+    return;
+  }
+  let target = full.slice(0, i);
+  let host = '';
+  try {
+    const u = new URL(target);
+    target = u.pathname;
+    host = u.host;
+  } catch { /* a relative URL: no Host line */ }
+  const body = full.slice(i + 1);
+  out.textContent = [
+    `QUERY ${target} HTTP/1.1`, ...(host ? [`Host: ${host}`] : []),
+    'Content-Type: application/x-www-form-urlencoded', `Content-Length: ${new TextEncoder().encode(body).length}`,
+    `Accept: ${$('accept').value || '*/*'}`, '', body,
+  ].join('\n');
+  out.hidden = false;
 }
 
 function setStatus(msg, isError = false) {
@@ -505,6 +542,7 @@ async function update({ render = $('auto-render').checked } = {}) {
   if (m && !req.error && mountPrefix(m) !== (m.prefix || '')) req.prefix = mountPrefix(m);
   if (req.error) {
     $('url-out').value = '';
+    showQueryRequest('', m);
     $('url-view').replaceChildren();
     $('signed').textContent = '';
     lastSigned = null;
@@ -519,6 +557,7 @@ async function update({ render = $('auto-render').checked } = {}) {
     const full = publicURL(signed.url);
     $('url-out').value = full;
     urlView(full, m);
+    showQueryRequest(full, m);
     snippets?.refresh();
     const badge = $('signed');
     badge.textContent = signed.signed ? `signed (${signed.scheme})` : 'unsigned';
@@ -881,6 +920,12 @@ async function main() {
   $('accept').addEventListener('change', () => { savePrefs(); preview.clearBefore(); renderPreview(); });
   $('render').addEventListener('click', () => { preview.clearBefore(); renderPreview(); });
   $('copy').addEventListener('click', () => copyText($('url-out').value, 'URL copied'));
+  $('query-method').checked = store.get(QUERY_PREF, false) === true;
+  $('query-method').addEventListener('change', (e) => {
+    store.set(QUERY_PREF, e.target.checked);
+    showQueryRequest($('url-out').value, currentMount());
+    snippets?.refresh();
+  });
   $('share').addEventListener('click', () => copyText(shareURL(sessionHash()), 'Share link copied'));
   $('reset').addEventListener('click', () => {
     tools.close({ writeHash: false });

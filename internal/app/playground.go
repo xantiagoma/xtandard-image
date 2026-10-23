@@ -245,6 +245,7 @@ func playgroundMeta(cfg *config.Config, rt *router.Router, version string) (*pla
 		VideoOptions: apidoc.VideoOptions(),
 		Sources:      []playground.Source{},
 		Formats:      outputFormats(cfg),
+		QueryMethod:  cfg.Server.QueryMethod,
 	}
 	signers := map[string]*sign.Signer{}
 	mounts := rt.Mounts()

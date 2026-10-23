@@ -10,6 +10,7 @@ defmodule XtandardImage.BuilderTest do
   doctest XtandardImage
   doctest XtandardImage.Imgproxy
   doctest XtandardImage.Query
+  doctest XtandardImage.QueryMethodRequest
   doctest XtandardImage.Chain
   doctest XtandardImage.Processing
   doctest XtandardImage.Info

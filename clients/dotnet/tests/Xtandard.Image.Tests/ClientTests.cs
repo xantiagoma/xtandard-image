@@ -293,6 +293,62 @@ public sealed partial class ClientTests
     }
 
     [Fact]
+    public async Task QueryMethodIsOptIn()
+    {
+        var sent = new List<string>();
+        var server = new StandIn(async (req, ct) =>
+        {
+            var type = req.Content?.Headers.ContentType?.ToString() ?? "-";
+            var body = req.Content is null ? string.Empty : await req.Content.ReadAsStringAsync(ct);
+            sent.Add($"{req.Method} {req.RequestUri!.OriginalString} {type} {body}");
+            return Bytes(HttpStatusCode.OK, [1], "image/webp");
+        });
+        const string q = "/q/?url=https://e.com/a.jpg&w=300&xi_sig=abc";
+        var ct = TestContext.Current.CancellationToken;
+
+        // Off by default: query dialect URLs go out as GET.
+        var off = new XtandardClient(new HttpClient(server), new XtandardClientOptions { BaseUrl = Base });
+        (await off.MediaAsync(q, cancellationToken: ct)).Dispose();
+
+        // QueryMethod sends URLs under the mount as QUERY; others, and an explicit method, are unchanged.
+        var on = new XtandardClient(new HttpClient(server), new XtandardClientOptions { BaseUrl = Base, QueryMethod = true });
+        (await on.MediaAsync(q, cancellationToken: ct)).Dispose();
+        (await on.MediaAsync("/q/video?url=s3://m/a.mov&vd=5", cancellationToken: ct)).Dispose();
+        (await on.MediaAsync("/insecure/rs:fit:300:300/plain/https://e.com/a.jpg", cancellationToken: ct)).Dispose();
+        (await on.MediaAsync(q, new() { Method = HttpMethod.Head }, ct)).Dispose();
+        (await on.MediaAsync(q, new() { Method = HttpMethod.Get }, ct)).Dispose();
+
+        // Method QUERY on one request, with a custom mount.
+        var custom = new XtandardClient(new HttpClient(server), new XtandardClientOptions { BaseUrl = Base, QueryMount = "/img/q/" });
+        (await custom.MediaAsync("/img/q/resize?url=x&width=1", new() { Method = QueryMethodRequest.HttpMethod }, ct)).Dispose();
+
+        Assert.Equal(
+            [
+                $"GET {Base}{q} - ",
+                $"QUERY {Base}/q/ application/x-www-form-urlencoded url=https://e.com/a.jpg&w=300&xi_sig=abc",
+                $"QUERY {Base}/q/video application/x-www-form-urlencoded url=s3://m/a.mov&vd=5",
+                $"GET {Base}/insecure/rs:fit:300:300/plain/https://e.com/a.jpg - ",
+                $"HEAD {Base}{q} - ",
+                $"GET {Base}{q} - ",
+                $"QUERY {Base}/img/q/resize application/x-www-form-urlencoded url=x&width=1",
+            ],
+            sent);
+        var ex = await Assert.ThrowsAsync<UrlBuildException>(() => on.MediaAsync("/q/", new() { Method = QueryMethodRequest.HttpMethod }, ct));
+        Assert.Equal("invalid_request", ex.CodeName);
+    }
+
+    [Fact]
+    public void QueryMethodRequestSplitsTheUrl()
+    {
+        var q = QueryMethodRequest.FromUrl("https://h/q/?url=x&w=1");
+        Assert.Equal(("QUERY", "https://h/q/", "application/x-www-form-urlencoded", "url=x&w=1"), (q.Method, q.Url, q.ContentType, q.Body));
+        foreach (var bad in new[] { "/q/", "/q/?", "/q/?url=x#f" })
+        {
+            Assert.Equal(UrlBuildErrorCode.InvalidRequest, Assert.Throws<UrlBuildException>(() => QueryMethodRequest.FromUrl(bad)).Code);
+        }
+    }
+
+    [Fact]
     public void OwnedClientIsDisposed()
     {
         var xi = new XtandardClient(new XtandardClientOptions { BaseUrl = Base });

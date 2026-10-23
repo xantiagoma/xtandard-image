@@ -92,6 +92,9 @@ from swift-crypto.
 - ``MediaResponse``
 - ``ByteRange``
 - ``rangeHeader(_:)``
+- ``QueryMethodRequest``
+- ``queryMethodRequest(_:)``
+- ``HTTPMethod``
 - ``StreamManifest``
 - ``Readiness``
 - ``ClientError``

@@ -25,8 +25,11 @@ use Xtandard\Image\Exception\ServiceUnavailableException;
 use Xtandard\Image\Exception\TooManyRequestsException;
 use Xtandard\Image\Exception\TransportException;
 use Xtandard\Image\Exception\UrlBuildException;
+use Xtandard\Image\QueryMethodRequest;
 use Xtandard\Image\StreamProtocol;
 use Xtandard\Image\Tests\Support\StandInServer;
+
+use function Xtandard\Image\queryMethodRequest;
 
 /**
  * The HTTP client against a stand-in server (PHP's built-in web server running
@@ -192,6 +195,95 @@ final class ClientTest extends TestCase
             self::fail('negative suffix accepted');
         } catch (UrlBuildException $e) {
             self::assertSame(ErrorCode::InvalidRange, $e->errorCode);
+        }
+    }
+
+    /**
+     * A PSR-18 client that records each request (method, URL, content type, body) and answers 200.
+     * PHP's built-in web server answers QUERY with 501, so the QUERY tests do not use the stand-in.
+     */
+    private static function recorder(): ClientInterface
+    {
+        return new class implements ClientInterface {
+            /** @var list<array{string, string, string, string}> */
+            public array $sent = [];
+
+            public function sendRequest(RequestInterface $request): ResponseInterface
+            {
+                $this->sent[] = [$request->getMethod(), (string) $request->getUri(), $request->getHeaderLine('Content-Type'), (string) $request->getBody()];
+
+                return (new HttpFactory())->createResponse(200);
+            }
+        };
+    }
+
+    /** @return list<array{string, string, string, string}> */
+    private static function sent(ClientInterface $recorder): array
+    {
+        self::assertTrue(property_exists($recorder, 'sent'));
+        /** @var list<array{string, string, string, string}> */
+        return $recorder->sent;
+    }
+
+    public function testQueryMethodOffByDefault(): void
+    {
+        $r = self::recorder();
+        (new Client('http://xi.test', $r, new HttpFactory()))->media('/q/?url=https://e.com/a.jpg&w=300&xi_sig=abc');
+        self::assertSame([['GET', 'http://xi.test/q/?url=https://e.com/a.jpg&w=300&xi_sig=abc', '', '']], self::sent($r));
+    }
+
+    public function testQueryMethodOption(): void
+    {
+        $r = self::recorder();
+        $xi = new Client('http://xi.test', $r, new HttpFactory(), queryMethod: true);
+        $xi->media('/q/?url=https://e.com/a.jpg&w=300&xi_sig=abc');
+        $xi->media('http://xi.test/q/video?url=s3://m/a.mov&vd=5');
+        $xi->media('/insecure/rs:fit:300:300/plain/https://e.com/a.jpg');
+        $xi->media('/qq?url=x');
+        $xi->media('/q/?url=x', 'HEAD');
+        $xi->media('/q/?url=x', 'GET');
+        $form = QueryMethodRequest::CONTENT_TYPE;
+        self::assertSame([
+            ['QUERY', 'http://xi.test/q/', $form, 'url=https://e.com/a.jpg&w=300&xi_sig=abc'],
+            ['QUERY', 'http://xi.test/q/video', $form, 'url=s3://m/a.mov&vd=5'],
+            ['GET', 'http://xi.test/insecure/rs:fit:300:300/plain/https://e.com/a.jpg', '', ''],
+            ['GET', 'http://xi.test/qq?url=x', '', ''],
+            ['HEAD', 'http://xi.test/q/?url=x', '', ''],
+            ['GET', 'http://xi.test/q/?url=x', '', ''],
+        ], self::sent($r));
+        // A URL under the mount without a query cannot be a QUERY request.
+        try {
+            $xi->media('/q/');
+            self::fail('no exception');
+        } catch (UrlBuildException $e) {
+            self::assertSame(ErrorCode::InvalidRequest, $e->errorCode);
+        }
+    }
+
+    public function testQueryMethodPerCallWithCustomMount(): void
+    {
+        $r = self::recorder();
+        $xi = new Client('http://xi.test', $r, new HttpFactory(), queryMount: '/img/q/');
+        $xi->media('/img/q/resize?url=x&width=1', 'QUERY');
+        $xi->media('/img/q/resize?url=x');
+        self::assertSame([
+            ['QUERY', 'http://xi.test/img/q/resize', QueryMethodRequest::CONTENT_TYPE, 'url=x&width=1'],
+            ['GET', 'http://xi.test/img/q/resize?url=x', '', ''],
+        ], self::sent($r));
+    }
+
+    public function testQueryMethodRequest(): void
+    {
+        $q = queryMethodRequest('https://xi.test/q/watermark?url=a&text=50%25%20off');
+        self::assertSame(['QUERY', 'https://xi.test/q/watermark', 'application/x-www-form-urlencoded', 'url=a&text=50%25%20off'], [$q->method, $q->url, $q->contentType, $q->body]);
+        self::assertSame('a=1?b', QueryMethodRequest::fromUrl('/q/?a=1?b')->body);
+        foreach (['/q/', '/q/?', '/q/?url=x#frag'] as $bad) {
+            try {
+                QueryMethodRequest::fromUrl($bad);
+                self::fail("{$bad}: no exception");
+            } catch (UrlBuildException $e) {
+                self::assertSame(ErrorCode::InvalidRequest, $e->errorCode, $bad);
+            }
         }
     }
 

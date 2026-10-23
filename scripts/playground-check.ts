@@ -1399,6 +1399,41 @@ await page.selectOption('#theme', 'auto');
 await page.selectOption('#snippet-lang', 'typescript');
 await page.click('#snippet-box summary');
 
+// 13. HTTP QUERY (WP-147): on a query mount, "send as QUERY" shows the
+// request (method, headers, content = the URL's query) and switches the
+// snippets to it (curl -X QUERY --data-binary, queryMethodRequest); the
+// request itself, sent to the public listener, renders; the box is hidden
+// on other mounts.
+const meta13 = await page.evaluate(() => fetch('api/meta').then((r) => r.json()));
+if (meta13.query_method && meta13.mounts.some((m: { grammar: string }) => m.grammar === 'query')) {
+  await page.evaluate((x) => { location.hash = x; }, hash(SRC, [['width', 0, ['300'], 1, 1], ['format', 0, ['webp'], 1, 1]], 'query'));
+  await page.waitForFunction(() => /\/q\/?\?url=/.test((document.getElementById('url-out') as HTMLTextAreaElement).value), undefined, { timeout: 15000 });
+  check(await page.isVisible('#query-method-row'), 'query method: "send as QUERY" shows on a query mount');
+  await page.check('#query-method');
+  const full = await page.inputValue('#url-out');
+  const body = full.slice(full.indexOf('?') + 1);
+  const shown = (await page.textContent('#query-request')) ?? '';
+  check(/^QUERY \/q\/? HTTP\/1\.1\n/.test(shown) && shown.includes('Content-Type: application/x-www-form-urlencoded') && shown.endsWith(`\n\n${body}`),
+    `query method: the request shows method, headers and the URL's query as content (${shown.split('\n')[0]})`);
+  if (!(await page.evaluate(() => (document.getElementById('snippet-box') as HTMLDetailsElement).open))) await page.click('#snippet-box summary');
+  await page.selectOption('#snippet-lang', 'curl');
+  check(await waitSnippet('-X QUERY') && (await snippetText()).includes('--data-binary'), 'query method: the curl snippet sends QUERY with the query as content');
+  await page.selectOption('#snippet-lang', 'typescript');
+  check(await waitSnippet('queryMethodRequest('), 'query method: the TypeScript snippet splits the URL with queryMethodRequest');
+  const target = full.slice(0, full.indexOf('?'));
+  const res = await fetch(target, { method: 'QUERY', headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'image/webp' }, body }).catch((e) => e as Error);
+  const okRes = res instanceof Response && res.ok && (res.headers.get('content-type') ?? '').startsWith('image/');
+  check(okRes, `query method: the shown request renders on the public listener (${res instanceof Response ? `${res.status} ${res.headers.get('content-type')} Location ${res.headers.get('location')}` : res})`);
+  if (shots) await page.locator('section[aria-labelledby="url-title"]').screenshot({ path: `${shots}/query-method.png` });
+  await page.uncheck('#query-method');
+  check(await page.isHidden('#query-request'), 'query method: unticking hides the request');
+  await page.evaluate((x) => { location.hash = x; }, hash(SRC, [['resize', 0, ['fill', '300', '200'], 1, 1]]));
+  await page.waitForFunction(() => (document.getElementById('url-out') as HTMLTextAreaElement).value.includes('resize:fill:300:200'));
+  check(await page.isHidden('#query-method-row'), 'query method: the box is hidden on an imgproxy mount');
+} else {
+  notes.push('query method: skipped (no query mount or XI_SERVER_QUERY_METHOD off)');
+}
+
 check(foreign.length === 0, `every request stays on the playground's origin${foreign.length ? `: ${foreign.slice(0, 3).join(' | ')}` : ''}`);
 const csp = await page.evaluate(() => (window as any).__csp ?? []);
 check(errors.length === 0, `no console errors${errors.length ? `: ${errors.join(' | ')}` : ''}`);

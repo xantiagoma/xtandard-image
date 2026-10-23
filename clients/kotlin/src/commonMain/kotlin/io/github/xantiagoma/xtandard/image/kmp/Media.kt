@@ -95,19 +95,27 @@ public enum class MediaMethod {
 
     /** Headers only: size, type, `Accept-Ranges`. */
     HEAD,
+
+    /**
+     * HTTP QUERY (RFC 10008): a query dialect URL's query goes out as the request content ([queryMethodRequest]).
+     * The server needs `XI_SERVER_QUERY_METHOD` (on by default); many CDNs and proxies neither cache nor forward
+     * QUERY.
+     */
+    QUERY,
 }
 
 /**
  * How a media request is sent.
  *
- * @property method GET (default) or HEAD
+ * @property method GET, HEAD or QUERY; null (default) for the client's default: GET, or QUERY for a URL under the
+ *   query dialect mount when the client's `queryMethod` is on
  * @property range a byte range; null for the whole body
  * @property accept the `Accept` header; any type by default (`image/avif,image/webp` negotiates the format of
  *   format-less URLs)
  * @property headers extra headers
  */
 public data class MediaRequest(
-    val method: MediaMethod = MediaMethod.GET,
+    val method: MediaMethod? = null,
     val range: ByteRange? = null,
     val accept: String = "*/*",
     val headers: Map<String, String> = emptyMap(),

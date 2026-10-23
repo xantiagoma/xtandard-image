@@ -62,7 +62,7 @@ public final class XtandardAsyncClient {
                 .handle(
                     (res, ex) -> {
                       if (ex != null) {
-                        throw transport(m.method() + " " + url, ex);
+                        throw transport(core.method(url, m) + " " + url, ex);
                       }
                       return ClientCore.unwrap(res);
                     }));
@@ -159,7 +159,7 @@ public final class XtandardAsyncClient {
    * @return the response
    */
   public CompletableFuture<MediaResponse<byte[]>> media(String url) {
-    return media(url, MediaRequest.get());
+    return media(url, MediaRequest.of());
   }
 
   /**

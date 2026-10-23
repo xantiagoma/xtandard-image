@@ -73,5 +73,8 @@ module XtandardImage
 
     # See Text.escape_query_value.
     def escape_query_value(value) = Text.escape_query_value(value)
+
+    # See QueryMethodRequest.from_url.
+    def query_method_request(url) = QueryMethodRequest.from_url(url)
   end
 end

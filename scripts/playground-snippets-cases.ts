@@ -7,7 +7,7 @@ import { join, resolve } from "node:path";
 import { build } from "../internal/playground/assets/grammar.js";
 // @ts-expect-error: plain ES module without types
 import { infoModel, snippetModel } from "../internal/playground/assets/snippets/index.js";
-import { imgproxy, queryUrls, signXiUrl } from "../clients/typescript/src/index.ts";
+import { imgproxy, queryMethodRequest, queryUrls, signXiUrl } from "../clients/typescript/src/index.ts";
 
 export const ROOT = resolve(import.meta.dir, "..");
 export const CLIENTS = join(ROOT, "clients");
@@ -121,15 +121,26 @@ export const CASES: Case[] = [
     model: () => session(MOUNTS.query, state({ source: "https://example.com/cat.jpg", raw: true, free: { path: "/resize", query: "url={src}&width=300&height=200&type=webp" } }), queryIndex, { signed: true }),
   },
   {
+    name: "query-method-image", what: "/q native keys sent as HTTP QUERY (WP-147), signed",
+    model: () => session(MOUNTS.query, state({ source: "https://example.com/a b.jpg", pipelines: [[entry("width", "300"), entry("fit", "cover"), entry("format", "webp")]] }), queryIndex, { signed: true, queryMethod: true }),
+  },
+  {
+    name: "query-method-video", what: "/q/video sent as HTTP QUERY, signed",
+    model: () => session(MOUNTS.query, state({
+      source: "xi://local/video/bbb-h264-aac.mp4", video: true,
+      pipelines: [[entry("start", "1"), entry("duration", "2"), entry("format", "webm")]],
+    }), video, { signed: true, queryMethod: true }),
+  },
+  {
     name: "xi-sig", what: "Cloudflare URL signed with signXiUrl",
     model: () => session(MOUNTS.cloudflare, state({ source: "xi://local/jpeg/baseline.jpg", pipelines: [[]] }), processing, { signed: true, url: `${BASE}/cdn-cgi/image/width=300,format=auto/jpeg/baseline.jpg` }),
   },
 ];
 
-function session(m: any, st: any, index: Map<string, Opt>, o: { signed: boolean; encrypt?: boolean; pdf?: boolean; url?: string }) {
+function session(m: any, st: any, index: Map<string, Opt>, o: { signed: boolean; encrypt?: boolean; pdf?: boolean; url?: string; queryMethod?: boolean }) {
   const req = build(m, st, index);
   const url = o.url ?? (req.error ? "" : `${BASE}${m.prefix.replace(/\/+$/, "")}${req.path}${req.query ? `?${req.query}` : ""}`);
-  return { ...snippetModel({ m, state: st, index, base: BASE, signed: o.signed, encrypt: o.encrypt, pdf: o.pdf, url }), _playground: req.error ? null : { m, req } };
+  return { ...snippetModel({ m, state: st, index, base: BASE, signed: o.signed, encrypt: o.encrypt, pdf: o.pdf, url, queryMethod: o.queryMethod }), _playground: req.error ? null : { m, req } };
 }
 
 // ---- the reference: the TypeScript client, written from the model ------------------
@@ -139,6 +150,11 @@ const mapOf = (p: any[]) => Object.fromEntries(p.map((o) => [o.name, o.args.map(
 const paramsOf = (ps: any[]) => ps.map(([k, a]: [string, any]) => [k, lit(a)]);
 
 export async function reference(model: any, optionNames: "short" | "canonical" = "short", placeholderSig = false): Promise<string> {
+  if (model.queryMethod) {
+    // An HTTP QUERY snippet prints the request on one line: "QUERY <url> <content>".
+    const q = queryMethodRequest(await reference({ ...model, queryMethod: false }, optionNames, placeholderSig));
+    return `${q.method} ${q.url} ${q.body}`;
+  }
   const signing = model.signed && !placeholderSig ? { key: KEYS.signing.key, salt: KEYS.signing.salt } : undefined;
   const encryption = model.encryption ? { key: KEYS.encryption.key, iv: KEYS.encryption.iv } : undefined;
   const cfg: any = { baseUrl: model.baseUrl ?? model.base, signing, encryption, optionNames };

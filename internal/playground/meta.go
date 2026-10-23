@@ -112,6 +112,9 @@ type Meta struct {
 	Video bool `json:"video" doc:"Video sources are decoded (FFmpeg, full image)."`
 	// Classes are the object classes gravity, crop and filters accept.
 	Classes []string `json:"classes" doc:"Detection classes: face, the COCO class names and supercategories."`
+	// QueryMethod reports XI_SERVER_QUERY_METHOD: query dialect mounts
+	// accept HTTP QUERY (WP-147).
+	QueryMethod bool `json:"query_method" doc:"XI_SERVER_QUERY_METHOD: the query dialect's endpoints accept HTTP QUERY (RFC 10008), its parameters in the request content."`
 	// PDFPasswords reports whether api/sign can encrypt a pdf_password
 	// (XI_ENCRYPTION_KEYS is set).
 	PDFPasswords bool `json:"pdf_passwords" doc:"api/sign encrypts pdf_password for password-protected PDFs (XI_ENCRYPTION_KEYS is set); signed mounts only."`

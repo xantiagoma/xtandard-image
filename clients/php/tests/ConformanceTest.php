@@ -13,6 +13,7 @@ use Xtandard\Image\EncryptionKey;
 use Xtandard\Image\Exception\UrlBuildException;
 use Xtandard\Image\ImgproxyUrlBuilder;
 use Xtandard\Image\Pipelines;
+use Xtandard\Image\QueryMethodRequest;
 use Xtandard\Image\QueryUrlBuilder;
 use Xtandard\Image\Signing;
 use Xtandard\Image\SigningKey;
@@ -122,6 +123,8 @@ final class ConformanceTest extends TestCase
                 self::one($in),
             ),
             'query.imaginary_url' => self::query($cfg)->imaginaryUrl(Fixture::str($in, 'endpoint'), $source, self::params($in)),
+            // input.build names the query op that builds the URL from the other inputs.
+            'query.query_request' => self::queryRequest(QueryMethodRequest::fromUrl(self::runMapping(['op' => Fixture::str($in, 'build')] + $case))),
             'sign' => Signing::sign(Fixture::str($in, 'message'), self::required(self::signing($cfg))),
             'sign_xi_url' => Signing::signXiUrl(Fixture::str($in, 'url'), self::required(self::signing($cfg)), Fixture::optStr($in, 'mount') ?? ''),
             'encrypt_source' => Encryption::encryptSource($source, self::required(self::encryption($cfg))),
@@ -133,6 +136,11 @@ final class ConformanceTest extends TestCase
             'escape_query_value' => Sources::escapeQueryValue(Fixture::str($in, 'value')),
             default => throw new \RuntimeException("unknown op {$op}"),
         };
+    }
+
+    private static function queryRequest(QueryMethodRequest $q): string
+    {
+        return "{$q->method} {$q->url}\nContent-Type: {$q->contentType}\n\n{$q->body}";
     }
 
     /**

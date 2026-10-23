@@ -5,7 +5,7 @@ require "socket"
 # A minimal HTTP/1.1 server on 127.0.0.1 for the client tests: one thread
 # per connection, Connection: close, the handler returns [status, headers,
 # body] for a request Hash ("method", "path", "query", "headers" with
-# lower-case names). Stdlib only (WEBrick left the default gems).
+# lower-case names, "body"). Stdlib only (WEBrick left the default gems).
 class StandInServer
   REASONS = { 200 => "OK", 206 => "Partial Content", 403 => "Forbidden", 404 => "Not Found", 429 => "Too Many Requests",
               502 => "Bad Gateway", 503 => "Service Unavailable", }.freeze
@@ -66,7 +66,9 @@ class StandInServer
       headers[name.to_s.strip.downcase] = value.to_s.strip
     end
     path, query = target.to_s.split("?", 2)
-    { "method" => method, "path" => path, "query" => query, "target" => target, "headers" => headers }
+    length = headers["content-length"].to_i
+    body = length.positive? ? sock.read(length).to_s : ""
+    { "method" => method, "path" => path, "query" => query, "target" => target, "headers" => headers, "body" => body }
   end
 
   def write_response(sock, req, status, headers, body)

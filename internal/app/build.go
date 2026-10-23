@@ -872,6 +872,11 @@ func serverConfig(cfg *config.Config) server.Config {
 			AllowBypass: cfg.Cache.AllowBypass,
 		},
 		SourcePasswords: sourcePasswords(cfg),
+		Query: server.QueryMethodConfig{
+			Enabled:           cfg.Server.QueryMethod,
+			MaxBodyBytes:      int64(cfg.Server.QueryMaxBodyBytes),
+			LocationMaxLength: cfg.Server.QueryLocationMaxLength,
+		},
 	}
 }
 

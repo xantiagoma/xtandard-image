@@ -433,7 +433,7 @@ export interface paths {
         };
         /**
          * Process an image (query dialect)
-         * @description Native query dialect, mounted at /q/ when XI_DIALECTS_QUERY_ENABLED=true. Keys apply in query order through the imgproxy option parser, so later keys override earlier ones.
+         * @description Native query dialect, mounted at /q/ when XI_DIALECTS_QUERY_ENABLED=true. Keys apply in query order through the imgproxy option parser, so later keys override earlier ones. The same request may be sent with the HTTP QUERY method (RFC 10008; XI_SERVER_QUERY_METHOD, on by default), its parameters in the content instead of the URL: OpenAPI 3.1 has no QUERY operation, so x-xi-query-method describes it.
          */
         get: operations["getQueryImage"];
         put?: never;
@@ -453,7 +453,7 @@ export interface paths {
         };
         /**
          * Transform a video (query dialect)
-         * @description The /video options as query keys (aliases too), in query order, mounted at /q/ when XI_DIALECTS_QUERY_ENABLED=true; fit, gravity, crop and flip also take the native spellings.
+         * @description The /video options as query keys (aliases too), in query order, mounted at /q/ when XI_DIALECTS_QUERY_ENABLED=true; fit, gravity, crop and flip also take the native spellings. The same request may be sent with the HTTP QUERY method (RFC 10008; XI_SERVER_QUERY_METHOD, on by default), its parameters in the content instead of the URL: OpenAPI 3.1 has no QUERY operation, so x-xi-query-method describes it.
          */
         get: operations["getQueryVideo"];
         put?: never;
@@ -473,7 +473,7 @@ export interface paths {
         };
         /**
          * Process an image (imaginary endpoints, query dialect)
-         * @description imaginary's GET API under the query dialect mount. POST uploads and the file parameter are not supported.
+         * @description imaginary's GET API under the query dialect mount. POST uploads and the file parameter are not supported. The same request may be sent with the HTTP QUERY method (RFC 10008; XI_SERVER_QUERY_METHOD, on by default), its parameters in the content instead of the URL: OpenAPI 3.1 has no QUERY operation, so x-xi-query-method describes it.
          */
         get: operations["getImaginaryImage"];
         put?: never;
@@ -2917,6 +2917,8 @@ export interface components {
             public: boolean;
             /** @description XI_SERVER_ADDR (the page derives a default public base URL from its port). */
             public_addr: string;
+            /** @description XI_SERVER_QUERY_METHOD: the query dialect's endpoints accept HTTP QUERY (RFC 10008), its parameters in the request content. */
+            query_method: boolean;
             /** @description Ready-made sessions of the Examples tool (internal/playground/recipes.json): source, dialect and options, loaded into the builder with one click. */
             recipes: components["schemas"]["PlaygroundRecipe"][] | null;
             /** @description Built-in sample images (repository fixtures), served as playground://samples/<name> to the playground only; they work offline. */
@@ -3202,6 +3204,32 @@ export interface components {
              * @enum {string}
              */
             unsigned_policy: "allow" | "restricted" | "deny";
+        };
+        /**
+         * @description HTTP QUERY content of the query dialect as JSON: one member per parameter, in document order (later members override earlier ones, like later keys of a query string). Strings are used as they are, numbers as written, booleans as true/false, arrays joined with ","; null skips the member. Objects, nested arrays and duplicate names are 400. The canonical query (signed by xi_sig) writes each member as key=value, keys and values percent-encoded except letters, digits and -._~:/,@!$'()* (UTF-8, upper-case hex), joined with &.
+         * @example {
+         *       "crop": [
+         *         10,
+         *         20,
+         *         300,
+         *         200
+         *       ],
+         *       "strip_metadata": true,
+         *       "url": "https://example.com/a.jpg",
+         *       "w": 300
+         *     }
+         */
+        QueryContent: {
+            /** @description imgproxy option path. */
+            o?: string;
+            /** @description imaginary signature. */
+            sign?: string;
+            /** @description Source URL or xi://<source>/<key>. */
+            url: string;
+            /** @description xi signature over the path after the mount, ? and the canonical query without xi_sig. */
+            xi_sig?: string;
+        } & {
+            [key: string]: string | number | boolean | null | (string | number | boolean)[];
         };
     };
     responses: {

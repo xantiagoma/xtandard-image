@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/xantiagoma/xtandard-image/internal/dialect/query"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/obs/logging"
 	"github.com/xantiagoma/xtandard-image/internal/source"
@@ -46,7 +47,8 @@ func (s *Server) recoverer(next http.Handler) http.Handler {
 	})
 }
 
-// ingress is stage 1 (request ID, URL length, method) plus dispatch. Fixed
+// ingress is stage 1 (request ID, URL length, method) plus dispatch. A
+// QUERY request becomes the equivalent GET request first (query.go). Fixed
 // routes go through the ServeMux. Image paths embed a source URL
 // ("…/plain/http://host/…"), which the mux would "clean" and redirect, so
 // paths that are not already clean go straight to the image handler; every
@@ -83,16 +85,31 @@ func (s *Server) ingress(mux *http.ServeMux) http.Handler {
 		if s.cors(sw, r) {
 			return // a preflight, answered
 		}
+		dispatch := func(r *http.Request) {
+			if r.URL.Path != "/" && path.Clean(r.URL.Path) != r.URL.Path {
+				s.image(sw, r)
+				return
+			}
+			mux.ServeHTTP(sw, r)
+		}
 		switch {
 		case len(r.RequestURI) > maxURLLength:
 			s.writeError(sw, r, &httpError{status: http.StatusRequestURITooLong, msg: "url too long"})
+		case r.Method == MethodQuery && s.cfg.Query.Enabled:
+			s.serveQuery(sw, r, dispatch) // query.go
 		case r.Method != http.MethodGet && r.Method != http.MethodHead:
-			sw.Header().Set("Allow", "GET, HEAD")
+			allow := allowGetHead
+			if s.queryEndpoint(r, true) {
+				allow = allowGetHeadQuery
+				sw.Header().Set("Accept-Query", query.AcceptQuery)
+			}
+			sw.Header().Set("Allow", allow)
 			s.writeError(sw, r, &httpError{status: http.StatusMethodNotAllowed, msg: "method not allowed"})
-		case r.URL.Path != "/" && path.Clean(r.URL.Path) != r.URL.Path:
-			s.image(sw, r)
 		default:
-			mux.ServeHTTP(sw, r)
+			if s.queryEndpoint(r, r.URL.Query().Has("url")) {
+				sw.Header().Set("Accept-Query", query.AcceptQuery)
+			}
+			dispatch(r)
 		}
 	})
 }
@@ -302,6 +319,10 @@ type statusWriter struct {
 	// varyOrigin adds Vary: Origin when the headers are written (a CORS
 	// response for one origin, cors.go).
 	varyOrigin bool
+	// varyContentType adds Vary: Content-Type, and location the Location
+	// of a 2xx, to a QUERY response (query.go).
+	varyContentType bool
+	location        string
 }
 
 func (w *statusWriter) WriteHeader(code int) {
@@ -320,6 +341,12 @@ func (w *statusWriter) beforeHeaders() {
 	}
 	if w.varyOrigin {
 		w.Header().Add("Vary", "Origin")
+	}
+	if w.varyContentType {
+		w.Header().Add("Vary", "Content-Type")
+	}
+	if w.location != "" && w.status >= 200 && w.status < 300 {
+		w.Header().Set("Location", w.location)
 	}
 }
 

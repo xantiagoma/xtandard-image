@@ -3,6 +3,10 @@
 // manifests, the health endpoints and the playground's metadata. URLs are
 // built (and signed) with an [imgproxy.Builder].
 //
+// Query dialect URLs can go out with the HTTP QUERY method (RFC 10008),
+// their query moved into the request content: per call with [Query], or for
+// every URL under the mount with Config.QueryMethod. It is off by default.
+//
 // Every call takes a context first. Media calls return the *http.Response
 // with its body unread, so it can be streamed: close it. A non-2xx response is
 // an [*HTTPError] (status, the server's error kind, message and request ID);
@@ -19,11 +23,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	neturl "net/url"
 	"regexp"
 	"strings"
 
 	xtandard "github.com/xantiagoma/xtandard-image/clients/go"
 	"github.com/xantiagoma/xtandard-image/clients/go/imgproxy"
+	"github.com/xantiagoma/xtandard-image/clients/go/query"
 )
 
 // Config configures a [Client].
@@ -42,6 +48,16 @@ type Config struct {
 	PlaygroundBaseURL string
 	// PlaygroundPath is XI_PLAYGROUND_PATH; empty means "/_playground/".
 	PlaygroundPath string
+	// QueryMethod sends query dialect URLs (those under QueryMount) passed to
+	// [Client.Media] with the HTTP QUERY method (RFC 10008): the query moves
+	// into the request content. Off by default: the server needs
+	// XI_SERVER_QUERY_METHOD (on by default), and many CDNs and proxies
+	// neither cache nor forward QUERY. [Query] does the same for one call;
+	// [Head] and [Get] keep their method.
+	QueryMethod bool
+	// QueryMount is the query dialect's mount path (XI_DIALECTS_QUERY_PREFIX),
+	// for QueryMethod; empty means "/q".
+	QueryMount string
 }
 
 // Client talks to one xtandard-image server.
@@ -51,6 +67,8 @@ type Client struct {
 	http           *http.Client
 	header         http.Header
 	playgroundMeta string
+	queryMethod    bool
+	queryMount     string
 }
 
 // maxErrorBody bounds how much of an error response is read.
@@ -84,12 +102,18 @@ func New(cfg Config) (*Client, error) {
 	if path == "" {
 		path = "_playground"
 	}
+	mount := cfg.QueryMount
+	if mount == "" {
+		mount = xtandard.QueryMount
+	}
 	return &Client{
 		base:           base,
 		urls:           urls,
 		http:           hc,
 		header:         cfg.Header.Clone(),
 		playgroundMeta: origin + "/" + path + "/api/meta",
+		queryMethod:    cfg.QueryMethod,
+		queryMount:     strings.TrimRight(mount, "/"),
 	}, nil
 }
 
@@ -109,6 +133,15 @@ type request struct {
 // Head sends HEAD instead of GET: the headers (type, length, cache
 // validators) without the body.
 func Head() RequestOption { return func(r *request) { r.method = http.MethodHead } }
+
+// Get sends GET, even for a query dialect URL on a client with QueryMethod.
+func Get() RequestOption { return func(r *request) { r.method = http.MethodGet } }
+
+// Query sends a query dialect URL with the HTTP QUERY method (RFC 10008):
+// the URL without its query, Content-Type application/x-www-form-urlencoded,
+// and the query (xi_sig included) as the content; see [query.MethodRequest].
+// A URL without a query is an [xtandard.ErrInvalidRequest] error.
+func Query() RequestOption { return func(r *request) { r.method = query.MethodQuery } }
 
 // WithRange asks for part of the body (206 Partial Content).
 func WithRange(rng xtandard.Range) RequestOption { return func(r *request) { r.rng = rng } }
@@ -137,12 +170,34 @@ func (c *Client) abs(url string) string {
 	return c.base + url
 }
 
+// underQueryMount reports whether url's path is the query dialect mount or under it.
+func (c *Client) underQueryMount(url string) bool {
+	u, err := neturl.Parse(url)
+	if err != nil {
+		return false
+	}
+	path := u.EscapedPath()
+	return path == c.queryMount || strings.HasPrefix(path, c.queryMount+"/")
+}
+
 func (c *Client) do(ctx context.Context, url string, opts []RequestOption) (*http.Response, error) {
-	r := request{method: http.MethodGet, accept: "*/*"}
+	r := request{accept: "*/*"}
 	for _, o := range opts {
 		o(&r)
 	}
-	req, err := http.NewRequestWithContext(ctx, r.method, url, http.NoBody)
+	var body io.Reader = http.NoBody
+	var contentType string
+	if r.method == query.MethodQuery || (r.method == "" && c.queryMethod && c.underQueryMount(url)) {
+		q, err := query.MethodRequest(url)
+		if err != nil {
+			return nil, err
+		}
+		r.method, url, contentType, body = q.Method, q.URL, q.ContentType, strings.NewReader(q.Body)
+	}
+	if r.method == "" {
+		r.method = http.MethodGet
+	}
+	req, err := http.NewRequestWithContext(ctx, r.method, url, body)
 	if err != nil {
 		return nil, fmt.Errorf("xtandard/client: %w", err)
 	}
@@ -153,6 +208,9 @@ func (c *Client) do(ctx context.Context, url string, opts []RequestOption) (*htt
 		req.Header[k] = append(req.Header[k], v...)
 	}
 	req.Header.Set("Accept", r.accept)
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
 	if r.rng != nil {
 		h, err := r.rng.RangeHeader()
 		if err != nil {
@@ -179,7 +237,9 @@ func checked(res *http.Response) (*http.Response, error) {
 }
 
 // Media sends GET (or HEAD) for any URL or server path: an image or video
-// URL, a query dialect URL, a stream part. The caller closes the body.
+// URL, a query dialect URL, a stream part. A query dialect URL goes out as
+// QUERY with [Query], or by default with Config.QueryMethod. The caller
+// closes the body.
 func (c *Client) Media(ctx context.Context, url string, opts ...RequestOption) (*http.Response, error) {
 	res, err := c.do(ctx, c.abs(url), opts)
 	if err != nil {

@@ -5,13 +5,17 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.request.header
 import io.ktor.client.request.prepareRequest
+import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
+import io.ktor.http.Url
+import io.ktor.http.content.TextContent
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -58,6 +62,11 @@ public val XtandardJson: Json =
  *   client never closes it
  * @param playgroundBaseUrl the origin of the playground (the admin listener); [baseUrl] by default
  * @param playgroundPath the playground's path (XI_PLAYGROUND_PATH)
+ * @param queryMethod sends query dialect URLs (those under [queryMount]) passed to [media] and [mediaStream] with the
+ *   HTTP QUERY method (RFC 10008) when the call names no method: the query moves into the request content. Off by
+ *   default: the server needs XI_SERVER_QUERY_METHOD (on by default), and many CDNs and proxies neither cache nor
+ *   forward QUERY. [MediaMethod.QUERY] does the same for one call.
+ * @param queryMount the query dialect's mount (XI_DIALECTS_QUERY_PREFIX), for [queryMethod]
  */
 public class XtandardClient(
     baseUrl: String,
@@ -73,12 +82,15 @@ public class XtandardClient(
     httpClient: HttpClient? = null,
     playgroundBaseUrl: String? = null,
     playgroundPath: String = "/_playground/",
+    private val queryMethod: Boolean = false,
+    queryMount: String = Constants.QUERY_MOUNT,
 ) : AutoCloseable {
     /** The URL builder of this client's URLs. */
     public val urls: ImgproxyUrlBuilder =
         ImgproxyUrlBuilder(baseUrl, signing, unsignedSignature, encryption, sourceEncoding, splitSource, separator, optionNames)
 
     private val defaultHeaders = headers.toMap()
+    private val queryMount = Signing.stripTrailingSlashes(queryMount)
     private val ownsClient = httpClient == null
     private val http: HttpClient =
         httpClient ?: HttpClient(defaultEngine()) {
@@ -220,7 +232,8 @@ public class XtandardClient(
     }
 
     /**
-     * Any URL (built by a URL builder, or a stream ticket), with the body in memory.
+     * Any URL (built by a URL builder, or a stream ticket), with the body in memory. A query dialect URL goes out as
+     * QUERY with [MediaMethod.QUERY], or by default with the client's `queryMethod`.
      *
      * @param url an absolute URL, or a path under the base URL
      * @param request the method, range, Accept and extra headers
@@ -303,17 +316,42 @@ public class XtandardClient(
             read(res)
         }
 
+    /** The method a request is sent with: the given one, or QUERY under the query mount with [queryMethod], or GET. */
+    private fun methodOf(
+        url: String,
+        m: MediaRequest,
+    ): MediaMethod = m.method ?: if (queryMethod && underQueryMount(url)) MediaMethod.QUERY else MediaMethod.GET
+
+    /** Whether an absolute URL's path is the query mount or under it. */
+    private fun underQueryMount(url: String): Boolean {
+        val path =
+            try {
+                Url(url).encodedPath
+            } catch (_: IllegalArgumentException) {
+                return false
+            }
+        return path == queryMount || path.startsWith("$queryMount/")
+    }
+
     /** Sends the request and hands any answer to [read]; transport failures become [TransportException]. */
     private suspend fun <T> exchange(
         url: String,
         m: MediaRequest,
         read: suspend (HttpResponse) -> T,
     ): T {
+        val verb = methodOf(url, m)
+        val q = if (verb == MediaMethod.QUERY) queryMethodRequest(url) else null
         try {
             val statement =
                 http.prepareRequest {
-                    method = if (m.method == MediaMethod.HEAD) HttpMethod.Head else HttpMethod.Get
-                    url(url)
+                    method =
+                        when (verb) {
+                            MediaMethod.GET -> HttpMethod.Get
+                            MediaMethod.HEAD -> HttpMethod.Head
+                            MediaMethod.QUERY -> QUERY
+                        }
+                    url(q?.url ?: url)
+                    q?.let { setBody(TextContent(it.body, ContentType.parse(it.contentType))) }
                     expectSuccess = false
                     header(HttpHeaders.UserAgent, USER_AGENT)
                     for ((k, v) in defaultHeaders) header(k, v)
@@ -329,7 +367,7 @@ public class XtandardClient(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            throw TransportException("${m.method} $url: ${e.message ?: e::class.simpleName}", e)
+            throw TransportException("$verb $url: ${e.message ?: e::class.simpleName}", e)
         }
     }
 
@@ -341,6 +379,7 @@ public class XtandardClient(
     /** Static helpers. */
     public companion object {
         private const val USER_AGENT = "xtandard-image-kotlin"
+        private val QUERY = HttpMethod("QUERY")
         private val scheme = Regex("^[a-zA-Z][a-zA-Z0-9+.-]*:")
 
         /**
