@@ -274,6 +274,18 @@ tasks:
       - bun run build
       - cd clients/typescript && bun pm pack --dry-run --quiet
 
+  # ---- playground (internal/playground/assets, no build step) ---------------
+
+  playground:test:
+    desc: "Playground JavaScript unit tests (bun test): BlurHash/ThumbHash decoders, the code-snippet generator (Doc layout, printers, every language × case, the TypeScript snippets run)"
+    cmds:
+      - bun test scripts/playground-placeholder.test.ts scripts/playground-snippets.test.ts scripts/playground-snippets-printers.test.ts
+
+  playground:snippets:
+    desc: "Run every language's playground snippet with its official client (scratch projects in $XI_SNIPPETS_DIR, toolchains from each client's mise.toml; ONLY=python,go for some) and compare the printed URL with the TypeScript client's; slow, not part of CI"
+    cmds:
+      - bun scripts/playground-snippets-check.ts
+
   ts:fixtures:
     desc: "Regenerate the cross-language builder fixture: Go derives the cases from the golden tables, the TS builder writes the URLs, Go checks them"
     cmds:
