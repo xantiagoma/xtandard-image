@@ -1,0 +1,70 @@
+# https://taskfile.dev — the Swift client's tasks (ADR 0013). The root
+# Taskfile runs `ci` here from `task clients:test` (or `task -d clients/swift ci`);
+# run them in this directory directly too (`task ci`).
+#
+# The package manifest is the repository root's Package.swift (SwiftPM
+# consumes the repository directly, no mirror), so every command passes
+# --package-path ../.. and keeps its build directory here (.build, ignored).
+# macOS uses the Xcode toolchain (Swift 6.2+); `task linux` runs the same
+# build, tests, docs and licence check in the official swift image (mise.toml
+# pins it). CI sets XI_SWIFT if it needs another swift binary.
+version: "3"
+
+vars:
+  SWIFT: '{{.XI_SWIFT | default "swift"}}'
+  PKG: --package-path ../.. --scratch-path .build
+  # Warnings are errors on Apple platforms, where no dependency is compiled.
+  STRICT: '{{if eq OS "darwin"}}-Xswiftc -warnings-as-errors{{end}}'
+  IMAGE: '{{.XI_SWIFT_IMAGE | default "swift:6.3.3"}}'
+  LINT_FILES: Sources/XtandardImage/*.swift Tests/XtandardImageTests/*.swift ../../Package.swift
+
+tasks:
+  install:
+    desc: Resolve the dependencies (swift-crypto, built on Linux only)
+    cmds: ["{{.SWIFT}} package {{.PKG}} resolve"]
+
+  fmt:
+    desc: "swift-format lint --strict (the toolchain's swift-format, .swift-format; Sources/XtandardImage/Generated is left to the generator)"
+    cmds: ["{{.SWIFT}} format lint --strict --configuration .swift-format {{.LINT_FILES}}"]
+
+  format:
+    desc: Rewrite the hand-written sources with swift-format
+    cmds: ["{{.SWIFT}} format format -i --configuration .swift-format {{.LINT_FILES}}"]
+
+  build:
+    desc: Build the library in the Swift 6 language mode (strict concurrency)
+    cmds: ["{{.SWIFT}} build {{.PKG}} {{.STRICT}}"]
+
+  test:
+    desc: "swift test: conformance fixture, builder fixture, security vectors, unit and stand-in HTTP tests (XI_SMOKE_URL=http://127.0.0.1:8080 adds the smoke test)"
+    cmds: ["{{.SWIFT}} test {{.PKG}} {{.STRICT}} {{.CLI_ARGS}}"]
+
+  docs:
+    desc: DocC documentation with warnings as errors (.build/docs)
+    cmds: ["sh scripts/docs.sh .build"]
+
+  licenses:
+    desc: Licences of the resolved dependency closure (ADR 0006 allowlist)
+    cmds: ["sh scripts/check-licenses.sh .build"]
+
+  ci:
+    desc: Everything CI runs for the Swift client on this machine
+    cmds:
+      - task: fmt
+      - task: build
+      - task: test
+      - task: licenses
+      - task: docs
+
+  linux:
+    desc: "Build, tests, licences and docs on Linux in the official swift image ({{.IMAGE}}; XI_SMOKE_URL is passed through)"
+    vars:
+      ROOT:
+        sh: cd ../.. && pwd
+    cmds:
+      - >-
+        docker run --rm -e XI_SMOKE_URL -v "{{.ROOT}}:/src" -w /src/clients/swift {{.IMAGE}}
+        sh -c 'swift build --package-path ../.. --scratch-path .build-linux
+        && swift test --package-path ../.. --scratch-path .build-linux
+        && sh scripts/check-licenses.sh .build-linux
+        && sh scripts/docs.sh .build-linux'
