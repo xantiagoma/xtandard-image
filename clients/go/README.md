@@ -30,7 +30,7 @@ The module path is `github.com/xantiagoma/xtandard-image/clients/go` and the roo
 |---|---|
 | `xtandard` (the module root) | signing (`Sign`, `SignImgproxyPath`, `XiMessage`, `SignXiQuery`, `SignXiURL`, `SigningKey`), encryption (`EncryptSource`, `EncryptPDFPassword`, `EncryptionKey`), sources (`XiSource`, `SourceURL`, `EscapePlainSource`, `EscapeQueryValue`), byte ranges (`RangeHeader`, `ByteRange`, `ByteRangeFrom`, `ByteSuffix`, `RawRange`), the option model (`Option`, `Opt`, `ProcessingOption`, `InfoOption`, `VideoOption`, `Catalogue`), constants, `InfoResponse`/`ErrorResponse`, errors |
 | `imgproxy` | `New(Config)`, `URL`, `InfoURL`, `VideoURL`, `StreamURL`; fluent `Image`, `Info`, `Video` |
-| `query` | `New(Config)`, `URL`, `VideoURL`, `StreamURL`, `ImaginaryURL`; fluent `Image`, `Video` |
+| `query` | `New(Config)`, `URL`, `VideoURL`, `StreamURL`, `ImaginaryURL`; fluent `Image`, `Video`; `MethodRequest` (HTTP QUERY) |
 | `processing`, `info`, `video` | one struct per option form (generated) |
 | `client` | `New(Config)`: `Healthz`, `Readyz`, `Info`, `InfoAt`, `Image`, `Video`, `Stream`, `Media`, `PlaygroundMeta` |
 
@@ -142,6 +142,23 @@ seg, err := c.Media(ctx, "/_stream/<ticket>/…") // ticket child URLs need no s
 
 Media calls return the `*http.Response` with the body unread; close it. A non-2xx response is a `*client.HTTPError` with `Status`, `Kind` (the server's error kind), `Message` and `RequestID`, read from the JSON envelope or, for a plain-text body, matched by status and message. It unwraps to its `xtandard.ErrorKind`, so `errors.Is(err, xtandard.ErrorKindNotFound)` matches a missing source. A request that got no response is a `*client.TransportError`, which unwraps to the cause (`context.DeadlineExceeded`, a dial error, …). A `Client` and a `Builder` are safe for concurrent use; a fluent chain is for one URL.
 
+### HTTP QUERY (opt-in)
+
+The query dialect also accepts the HTTP QUERY method ([RFC 10008](https://www.rfc-editor.org/rfc/rfc10008), [URL-DIALECTS §4.4](../../docs/URL-DIALECTS.md#44-http-query)): the URL's query goes in the request content, so long option chains, watermark text or encrypted sources stay out of URLs. `xi_sig` does not cover the method, so the content of a signed QUERY is the query of the signed GET URL. URL builders are unchanged.
+
+```go
+r, err := query.MethodRequest(url) // url from q.URL, q.VideoURL, q.StreamURL or q.ImaginaryURL
+// query.Request{Method: "QUERY", URL: "https://img.example.com/q/",
+//               ContentType: "application/x-www-form-urlencoded", Body: "url=s3://photos/cat.jpg&w=300&xi_sig=…"}
+
+c, err := client.New(client.Config{URLs: imgproxy.Config{BaseURL: "http://localhost:8080"}, QueryMethod: true}) // QueryMount "/q" by default
+res, err := c.Media(ctx, url)                 // QUERY for URLs under /q/, GET for everything else
+res, err = c.Media(ctx, url, client.Query())  // one call, whatever QueryMethod says
+res, err = c.Media(ctx, url, client.Get())    // GET even with QueryMethod
+```
+
+It is off by default. The server needs `XI_SERVER_QUERY_METHOD` (on by default), and many CDNs and proxies neither cache nor forward QUERY. `client.Head()` is sent unchanged. A URL without a query, or with a fragment, is an `xtandard.ErrInvalidRequest` error.
+
 ## Coverage
 
 | Server feature | Go |
@@ -153,6 +170,7 @@ Media calls return the `*http.Response` with the body unread; close it. A non-2x
 | Password-protected PDFs (`pdp`) | `PDFPassword` / `WithPDFPassword()`, `EncryptPDFPassword()` |
 | Sources: base64, `plain/`, `enc/`, split; `xi://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://` | `SourceEncoding`, `SplitSource`, `XiSource()`, `SourceURL()` |
 | Query dialect `/q/`, `/q/video`, imaginary; `xi_sig` | package `query` (`QueryKey*` and `ImaginaryParam*` constants), `SignXiURL()` |
+| HTTP QUERY on the query dialect (RFC 10008), off by default | `query.MethodRequest()`, `client.Config{QueryMethod, QueryMount}`, `client.Query()`, `client.Get()` |
 | `/healthz`, `/readyz`, playground `api/meta` | `Healthz()`, `Readyz()`, `PlaygroundMeta()` |
 
 Not covered, on purpose (as in the TypeScript and Python clients):

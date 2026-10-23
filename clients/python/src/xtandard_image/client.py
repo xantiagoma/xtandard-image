@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import re
+import urllib.parse
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal, cast
 
@@ -21,6 +22,7 @@ import httpx
 from ._generated.constants import DEFAULT_SEPARATOR, DEFAULT_UNSIGNED, STREAM_MANIFESTS
 from .builder import ImgproxyURLBuilder
 from .errors import HTTPError, TransportError, URLBuildError, error_class
+from .query import query_method_request
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -45,6 +47,7 @@ __all__ = [
 
 ReadyState = Literal["ready", "starting", "draining"]
 Method = Literal["GET", "HEAD"]
+MediaMethod = Literal["GET", "HEAD", "QUERY"]
 
 
 @dataclass(frozen=True)
@@ -156,6 +159,8 @@ class _Core:
         headers: Mapping[str, str] | None,
         playground_base_url: str | None,
         playground_path: str,
+        query_method: bool,
+        query_mount: str,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.urls = ImgproxyURLBuilder(
@@ -171,6 +176,8 @@ class _Core:
         self._headers = dict(headers or {})
         origin = (playground_base_url or self.base_url).rstrip("/")
         self._playground_meta = f"{origin}/{playground_path.strip('/')}/api/meta"
+        self._query_method = query_method
+        self._query_mount = query_mount.rstrip("/")
 
     def _abs(self, url: str) -> str:
         if _SCHEME.match(url):
@@ -184,6 +191,20 @@ class _Core:
         if range_ is not None:
             h["Range"] = range_header(range_)
         return h
+
+    def _under_query_mount(self, url: str) -> bool:
+        path = urllib.parse.urlsplit(url).path
+        return path == self._query_mount or path.startswith(f"{self._query_mount}/")
+
+    def _media_request(
+        self, method: MediaMethod | None, url: str, headers: dict[str, str]
+    ) -> tuple[MediaMethod, str, str | None]:
+        """The method, URL and content of a media() call; a QUERY call moves the URL's query to the content."""
+        if method == "QUERY" or (method is None and self._query_method and self._under_query_mount(url)):
+            q = query_method_request(url)
+            headers["Content-Type"] = q.content_type
+            return q.method, q.url, q.body
+        return method or "GET", url, None
 
     @staticmethod
     def _readiness(res: httpx.Response) -> Readiness:
@@ -225,6 +246,13 @@ class Client(_Core):
         http_client: An httpx.Client to use (and not close); default: one owned by this client.
         playground_base_url: Origin of the admin listener for ``playground_meta()``; default ``base_url``.
         playground_path: XI_PLAYGROUND_PATH. Default ``/_playground/``.
+        query_method: Send query dialect URLs (those under ``query_mount``) passed to
+            :meth:`media` with the HTTP QUERY method (RFC 10008): the query moves into the
+            request content. Off by default: the server needs XI_SERVER_QUERY_METHOD (on by
+            default), and many CDNs and proxies neither cache nor forward QUERY.
+            ``media(url, method="QUERY")`` does the same for one call.
+        query_mount: The query dialect's mount path (XI_DIALECTS_QUERY_PREFIX), for
+            ``query_method``. Default ``/q``.
     """
 
     def __init__(
@@ -243,6 +271,8 @@ class Client(_Core):
         http_client: httpx.Client | None = None,
         playground_base_url: str | None = None,
         playground_path: str = "/_playground/",
+        query_method: bool = False,
+        query_mount: str = "/q",
     ) -> None:
         super().__init__(
             base_url,
@@ -256,6 +286,8 @@ class Client(_Core):
             headers=headers,
             playground_base_url=playground_base_url,
             playground_path=playground_path,
+            query_method=query_method,
+            query_mount=query_mount,
         )
         self._owned = http_client is None
         self._http = http_client if http_client is not None else httpx.Client(timeout=timeout)
@@ -273,9 +305,18 @@ class Client(_Core):
     ) -> None:
         self.close()
 
-    def _send(self, method: Method, url: str, headers: dict[str, str], *, stream: bool = False) -> httpx.Response:
+    def _send(
+        self,
+        method: MediaMethod,
+        url: str,
+        headers: dict[str, str],
+        *,
+        stream: bool = False,
+        content: str | None = None,
+    ) -> httpx.Response:
         try:
-            return self._http.send(self._http.build_request(method, url, headers=headers), stream=stream)
+            req = self._http.build_request(method, url, headers=headers, content=content)
+            return self._http.send(req, stream=stream)
         except httpx.TransportError as e:
             raise TransportError(f"{method} {url}: {e}") from e
 
@@ -319,7 +360,7 @@ class Client(_Core):
         self,
         url: str,
         *,
-        method: Method = "GET",
+        method: MediaMethod | None = None,
         range: str | ByteRange | ByteSuffix | None = None,  # the HTTP header's name
         accept: str = "*/*",
         headers: Mapping[str, str] | None = None,
@@ -327,11 +368,14 @@ class Client(_Core):
     ) -> httpx.Response:
         """``GET`` (or ``HEAD``) any URL or server path: an image or video URL, a query URL, a stream part.
 
+        ``method`` defaults to GET, or to QUERY for a query dialect URL when the
+        client has ``query_method``; ``method="QUERY"`` sends the URL's query as
+        the request content (see :func:`~xtandard_image.query_method_request`).
         With ``stream=True`` the body is not read: iterate it, then close the response.
         """
-        return self._checked(
-            self._send(method, self._abs(url), self._headers_for(accept, range, headers), stream=stream)
-        )
+        h = self._headers_for(accept, range, headers)
+        m, u, content = self._media_request(method, self._abs(url), h)
+        return self._checked(self._send(m, u, h, stream=stream, content=content))
 
     def image(
         self,
@@ -425,6 +469,8 @@ class AsyncClient(_Core):
         http_client: httpx.AsyncClient | None = None,
         playground_base_url: str | None = None,
         playground_path: str = "/_playground/",
+        query_method: bool = False,
+        query_mount: str = "/q",
     ) -> None:
         super().__init__(
             base_url,
@@ -438,6 +484,8 @@ class AsyncClient(_Core):
             headers=headers,
             playground_base_url=playground_base_url,
             playground_path=playground_path,
+            query_method=query_method,
+            query_mount=query_mount,
         )
         self._owned = http_client is None
         self._http = http_client if http_client is not None else httpx.AsyncClient(timeout=timeout)
@@ -455,9 +503,18 @@ class AsyncClient(_Core):
     ) -> None:
         await self.aclose()
 
-    async def _send(self, method: Method, url: str, headers: dict[str, str], *, stream: bool = False) -> httpx.Response:
+    async def _send(
+        self,
+        method: MediaMethod,
+        url: str,
+        headers: dict[str, str],
+        *,
+        stream: bool = False,
+        content: str | None = None,
+    ) -> httpx.Response:
         try:
-            return await self._http.send(self._http.build_request(method, url, headers=headers), stream=stream)
+            req = self._http.build_request(method, url, headers=headers, content=content)
+            return await self._http.send(req, stream=stream)
         except httpx.TransportError as e:
             raise TransportError(f"{method} {url}: {e}") from e
 
@@ -504,15 +561,19 @@ class AsyncClient(_Core):
         self,
         url: str,
         *,
-        method: Method = "GET",
+        method: MediaMethod | None = None,
         range: str | ByteRange | ByteSuffix | None = None,  # the HTTP header's name
         accept: str = "*/*",
         headers: Mapping[str, str] | None = None,
         stream: bool = False,
     ) -> httpx.Response:
-        """``GET`` (or ``HEAD``) any URL or server path; with ``stream=True`` the body is not read (``aclose()`` it)."""
-        res = await self._send(method, self._abs(url), self._headers_for(accept, range, headers), stream=stream)
-        return await self._checked(res)
+        """``GET`` (or ``HEAD``, or ``QUERY``) any URL or server path, as :meth:`Client.media`.
+
+        With ``stream=True`` the body is not read (``aclose()`` it).
+        """
+        h = self._headers_for(accept, range, headers)
+        m, u, content = self._media_request(method, self._abs(url), h)
+        return await self._checked(await self._send(m, u, h, stream=stream, content=content))
 
     async def image(
         self,
