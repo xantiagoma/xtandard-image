@@ -204,7 +204,10 @@ func TestPageAndAssets(t *testing.T) {
 		t.Error("page has an unfilled placeholder or loads from another origin")
 	}
 	version := string(m[1])
-	for name, ct := range map[string]string{"app.js": "text/javascript; charset=utf-8", "style.css": "text/css; charset=utf-8"} {
+	for name, ct := range map[string]string{
+		"app.js": "text/javascript; charset=utf-8", "style.css": "text/css; charset=utf-8",
+		"snippets/index.js": "text/javascript; charset=utf-8", "snippets/lang/go.js": "text/javascript; charset=utf-8",
+	} {
 		res, body := f.do(t, get(t, "/_playground/assets/"+version+"/"+name))
 		if res.StatusCode != http.StatusOK || len(body) == 0 {
 			t.Errorf("%s: status %d, %d bytes", name, res.StatusCode, len(body))
@@ -219,6 +222,7 @@ func TestPageAndAssets(t *testing.T) {
 	for _, path := range []string{
 		"/_playground/assets/000000000000/app.js", "/_playground/assets/" + version + "/index.html",
 		"/_playground/nope", "/_playground/api/unknown",
+		"/_playground/assets/" + version + "/snippets",
 	} {
 		if res, _ := f.do(t, get(t, path)); res.StatusCode != http.StatusNotFound {
 			t.Errorf("%s: status %d, want 404", path, res.StatusCode)
