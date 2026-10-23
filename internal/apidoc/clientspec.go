@@ -9,8 +9,10 @@ import (
 	"strings"
 
 	"github.com/xantiagoma/xtandard-image/internal/dialect/imgproxy"
+	"github.com/xantiagoma/xtandard-image/internal/dialect/query"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/security/sign"
+	"github.com/xantiagoma/xtandard-image/internal/server"
 	"github.com/xantiagoma/xtandard-image/internal/source"
 	"github.com/xantiagoma/xtandard-image/internal/transform"
 )
@@ -105,6 +107,19 @@ type SpecQuery struct {
 	// key with another syntax, written by the alias instead.
 	NativeVideoKeys map[string]string `json:"native_video_keys"`
 	Imaginary       SpecImaginary     `json:"imaginary"`
+	// Method describes sending a query dialect request with the HTTP
+	// QUERY method (WP-147).
+	Method SpecQueryMethod `json:"method"`
+}
+
+// SpecQueryMethod is the HTTP QUERY form of query dialect requests
+// (RFC 10008, URL-DIALECTS §4.4). Clients offer it as an opt-in of their
+// HTTP layer, off by default; URL builders are unchanged.
+type SpecQueryMethod struct {
+	Name          string   `json:"name"`
+	MediaTypes    []string `json:"media_types"`
+	ClientDefault bool     `json:"client_default"`
+	Rules         []string `json:"rules"`
 }
 
 // SpecQueryKey is one native query key.
@@ -271,6 +286,8 @@ func BuildClientSpec() (*ClientSpec, error) {
 			"query":   "{base}{mount}/?url={source}&{keys}[&o={options}][&format={ext}][&pdp={token}][&xi_sig={signature}]",
 			"healthz": "/healthz",
 			"readyz":  "/readyz",
+			"query_method": "QUERY {base}{mount}/ (or /video, /{endpoint}); Content-Type: " + query.MediaTypeForm +
+				"; content url={source}&{keys}[&o={options}][&format={ext}][&pdp={token}][&xi_sig={signature}]",
 		},
 	}, nil
 }
@@ -348,6 +365,23 @@ func specQuery() SpecQuery {
 		BuilderKeys:     queryBuilderKeys(),
 		NativeVideoKeys: map[string]string{"crop": "c", "flip": "fl"},
 		Imaginary:       SpecImaginary{Endpoints: imaginaryEndpoints(), Params: imaginaryParams()},
+		Method: SpecQueryMethod{
+			Name:          server.MethodQuery,
+			MediaTypes:    []string{query.MediaTypeForm, query.MediaTypeJSON},
+			ClientDefault: false,
+			Rules: []string{
+				"A query dialect URL (/q/, /q/video, /q/<endpoint>) is sent as QUERY to its path without the query, with " +
+					"Content-Type: " + query.MediaTypeForm + " and the URL's query string, exactly as the builder wrote it " +
+					"(xi_sig included), as the content.",
+				"The signature is the GET URL's: xi_sig signs the path after the mount and the query, not the method, so " +
+					"the content of a signed QUERY is the query of a signed GET URL and the other way round.",
+				"application/json content is an object of the same parameters in order (strings, numbers as written, " +
+					"true/false, arrays joined with \",\"; null skipped); its canonical query, which xi_sig signs, escapes keys " +
+					"and values like url.query_safe and joins them with &.",
+				"A 2xx response may carry Location (the equivalent GET URL) and Accept-Query; 405 means the server or the " +
+					"endpoint does not accept QUERY (XI_SERVER_QUERY_METHOD), 413 content too large, 415 unsupported media type.",
+			},
+		},
 	}
 	index := map[string]int{}
 	for _, kv := range queryKeys() {
@@ -508,6 +542,9 @@ func specSigning() SpecSigning {
 				"\"&xi_sig=\" + sig(msg). Re-signing drops any earlier xi_sig; two xi_sig parameters are an error.",
 			"unsigned": "without a key the signature segment is a placeholder (default \"insecure\") and the query " +
 				"dialect has no xi_sig.",
+			"query_method": "an HTTP QUERY request signs as its equivalent GET URL: msg = path after the mount + \"?\" + " +
+				"the content's canonical query without xi_sig (form content as written; JSON content per query.method.rules); " +
+				"xi_sig is a parameter of the content.",
 		},
 	}
 }
@@ -543,7 +580,7 @@ func specURL() SpecURL {
 		ForbiddenQuerySeparators: []string{"/", "-", "%", "&", "="},
 		PipelineSeparator:        "-",
 		PlainSafe:                "-._~!$&'()*+,;=:/",
-		QuerySafe:                "-._~:/,@!$'()*",
+		QuerySafe:                query.QuerySafe,
 		ExtensionPattern:         "^[A-Za-z0-9]+$",
 		Rules: []string{
 			"An option segment is name + sep + args joined by sep; an option needs at least one argument.",
