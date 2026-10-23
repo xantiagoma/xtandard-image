@@ -14,7 +14,7 @@ import (
 
 // The query dialect half of the TypeScript builder fixture
 // (tsbuilder_test.go): the TS builder writes every eligible case a second
-// time as a query dialect URL (packages/image-url src/query.ts), and the
+// time as a query dialect URL (clients/typescript src/query.ts), and the
 // query parser must turn it into the request the imgproxy URL yields.
 
 // queryEligible reports whether the TS builder also writes the case in

@@ -18,7 +18,7 @@ import (
 )
 
 // The cross-language fixture of the TypeScript URL builder
-// (packages/image-url, WP-84). This test is its authority:
+// (clients/typescript, WP-84). This test is its authority:
 //
 //  1. With -update it derives one case per successful golden table case
 //     (WP-21a grammar, options, signing, jscore; WP-21b later; info): the
@@ -26,7 +26,7 @@ import (
 //     source, its encoding and extension, the signature size and the parser
 //     configuration. URLs already in the file are kept while their case is
 //     unchanged.
-//  2. `XI_UPDATE_FIXTURES=1 bun test` (packages/image-url) builds each case
+//  2. `XI_UPDATE_FIXTURES=1 bun test` (clients/typescript) builds each case
 //     with the TS builder and writes "url" (option names as given) and
 //     "url_short" (the builder's default, shortest names). Without the
 //     variable the TS test asserts the builder still produces those URLs.
@@ -332,9 +332,9 @@ func TestBuilderFixture(t *testing.T) {
 			}
 		}
 		writeBuilderFixture(t, &builderFixture{
-			Comment: "Cross-language fixture of the TypeScript URL builder (packages/image-url). Cases: " +
+			Comment: "Cross-language fixture of the TypeScript URL builder (clients/typescript). Cases: " +
 				"`go test ./internal/dialect/imgproxy -run TestBuilderFixture -update`; URLs: " +
-				"`XI_UPDATE_FIXTURES=1 bun test` in packages/image-url; check: go test (tsbuilder_test.go) and bun test.",
+				"`XI_UPDATE_FIXTURES=1 bun test` in clients/typescript; check: go test (tsbuilder_test.go) and bun test.",
 			Signing:    fixtureKey{Key: exampleKey, Salt: exampleSalt},
 			Encryption: fixtureCipher{Key: encKey, IV: hex.EncodeToString([]byte(fixtureIV))},
 			Cases:      derived,
@@ -342,7 +342,7 @@ func TestBuilderFixture(t *testing.T) {
 		return
 	}
 
-	const regen = "regenerate: go test ./internal/dialect/imgproxy -run TestBuilderFixture -update, then XI_UPDATE_FIXTURES=1 bun test in packages/image-url"
+	const regen = "regenerate: go test ./internal/dialect/imgproxy -run TestBuilderFixture -update, then XI_UPDATE_FIXTURES=1 bun test in clients/typescript"
 	if fix.Signing != (fixtureKey{Key: exampleKey, Salt: exampleSalt}) || fix.Encryption.Key != encKey ||
 		fix.Encryption.IV != hex.EncodeToString([]byte(fixtureIV)) {
 		t.Fatalf("fixture keys differ from the test fixture; %s", regen)

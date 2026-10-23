@@ -408,7 +408,7 @@ jobs:
             --notes "$notes" -- *
 
   npm:
-    # @xtandard/image-url (packages/image-url, WP-84, ADR 0009 decision 6):
+    # @xtandard/image (clients/typescript, WP-84, ADR 0009 decision 6):
     # published after the image, at the same version, so the package's
     # generated types always describe a released server. npm trusted
     # publishing (OIDC, no token) with a provenance attestation.
@@ -434,12 +434,12 @@ jobs:
       - name: Check (drift, types, tests, licences)
         run: bun run generate:check && bun run typecheck && bun run test && bun run licenses
       - name: Version from the tag
-        working-directory: packages/image-url
+        working-directory: clients/typescript
         env:
           VERSION: ${{ needs.meta.outputs.version }}
         run: npm pkg set version="$VERSION"
       - name: Pack
-        working-directory: packages/image-url
+        working-directory: clients/typescript
         run: bun pm pack --destination "$RUNNER_TEMP/npm"
       - name: Publish with provenance
         env:
@@ -448,5 +448,5 @@ jobs:
         run: |
           dist_tag=latest
           if [ "$PRERELEASE" = "true" ]; then dist_tag=next; fi
-          npm publish "$RUNNER_TEMP/npm/xtandard-image-url-$VERSION.tgz" \
+          npm publish "$RUNNER_TEMP/npm/xtandard-image-$VERSION.tgz" \
             --provenance --access public --tag "$dist_tag"

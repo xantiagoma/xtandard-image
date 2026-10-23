@@ -1,6 +1,6 @@
 name: ts
 
-# The TypeScript workspace (ADR 0009 decision 5): packages/* on Bun. It runs
+# The TypeScript workspace (ADR 0009 decision 5, ADR 0013): clients/typescript and packages/* on Bun. It runs
 # when the packages, the workspace manifests, the OpenAPI document they are
 # generated from, or the shared cross-language fixtures change, so a Go PR
 # that changes openapi.json or a golden table also fails here on TS drift.
@@ -14,6 +14,7 @@ on:
     branches: [main]
     paths: &paths
       - 'packages/**'
+      - 'clients/typescript/**'
       - 'package.json'
       - 'bun.lock'
       - 'tsconfig.base.json'
@@ -52,4 +53,4 @@ jobs:
       - name: npm licences (ADR 0006 allowlist, no runtime dependencies)
         run: bun run licenses
       - name: the package builds and packs
-        run: bun run build && (cd packages/image-url && bun pm pack --dry-run)
+        run: bun run build && (cd clients/typescript && bun pm pack --dry-run)

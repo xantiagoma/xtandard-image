@@ -78,7 +78,7 @@ The xtandard-image column is the state as of 2026-09-28: **done (M1)** / **done 
 | Built-in result cache (memory, disk, S3, Redis) | done (M2, optional) | no | paid (v4) | yes | no | partial (nginx) |
 | Config file (YAML, JSON, TOML) with a JSON Schema; OpenAPI 3.1 document | done (M2) | — | — | — | — | — |
 | Playground web UI | done (M3) | — | — | — | — | — |
-| TypeScript URL builder and client (`@xtandard/image-url`) | done (M3; npm publish pending the first release) | — | — | — | — | — |
+| TypeScript URL builder and client (`@xtandard/image`) | done (M3; npm publish pending the first release) | — | — | — | — | — |
 
 Sources: https://imgproxy.net/features/, https://docs.imgproxy.net/, https://thumbor.readthedocs.io/, https://github.com/h2non/imaginary, https://wsrv.nl/docs/. Corrections are welcome.
 
@@ -239,10 +239,10 @@ JSON files use a top-level `"$schema"` key with the same URL, and TOML files a f
 
 ## TypeScript client
 
-On `main`, not on npm yet. [`@xtandard/image-url`](packages/image-url) builds typed imgproxy-dialect URLs, signs them, encrypts sources and calls `/info` and the health endpoints. It runs on WebCrypto and has no runtime dependencies. Its option types are generated from the server's OpenAPI document, so an unknown option or a wrong argument does not compile. Package versions will follow the server's release tags; nothing is published until the first release ([RELEASE](docs/RELEASE.md#npm-package)).
+On `main`, not on npm yet. [`@xtandard/image`](clients/typescript) builds typed imgproxy-dialect URLs, signs them, encrypts sources and calls `/info` and the health endpoints. It runs on WebCrypto and has no runtime dependencies. Its option types are generated from the server's OpenAPI document, so an unknown option or a wrong argument does not compile. Package versions will follow the server's release tags; nothing is published until the first release ([RELEASE](docs/RELEASE.md#npm-package)).
 
 ```ts
-import { imgproxy } from "@xtandard/image-url";
+import { imgproxy } from "@xtandard/image";
 
 const img = imgproxy({
   baseUrl: "https://img.example.com",
@@ -295,7 +295,7 @@ What it does (v2, WP-94):
 
 - **Sources:** a sample gallery (built-in fixtures that work offline, plus about 300 curated public files covering every input format and its variants: colour types, bit depths, animation, HDR and gain maps, camera RAW per brand, and the formats not decoded yet; each with its licence, docs/research/format-gap.md), drag-and-drop uploads kept in memory for 10 minutes (`XI_PLAYGROUND_UPLOADS`), a browser for `fs` sources, or any URL / `xi://` reference.
 - **Option builder for every dialect:** imgproxy, the query form, imgix, Cloudinary, ImageKit, Cloudflare, wsrv, thumbor, Bunny and AWS SIH, from each dialect's catalogue, grouped by category (resize, gravity incl. face and object classes, format and quality, colour, effects, watermarks, detection, pages/frames/video, metadata, delivery, presets). Typed inputs (bounded numbers with sliders, enums, colour pickers, booleans, tuples and repeatable groups), inline docs, aliases, a search box (`/`) and chained pipelines (imgproxy `/-/`, ImageKit steps, Cloudinary components, so overlays such as `l_…` + `fl_layer_apply` and `l-image`/`l-text` can be built). "Write the path and query by hand" covers what the builder cannot express (imaginary endpoints such as `/watermark`).
-- **URL panel:** the live, colour-coded URL (signed on the server), copy as URL, as `curl` and as an `@xtandard/image-url` TypeScript call, and **the same transform in every other dialect** (`POST api/translate`): each URL is parsed back by its dialect and what it cannot express is listed; a dialect that cannot address the source at all says why (ImageKit, Bunny and AWS SIH take keys on their mount's source: an http(s) URL under that source's `base_url` is written as a key). A mount with several prefixes (a simple provider's native prefixes and `/simple/<name>/`) is listed once, with a prefix picker.
+- **URL panel:** the live, colour-coded URL (signed on the server), copy as URL, as `curl` and as an `@xtandard/image` TypeScript call, and **the same transform in every other dialect** (`POST api/translate`): each URL is parsed back by its dialect and what it cannot express is listed; a dialect that cannot address the source at all says why (ImageKit, Bunny and AWS SIH take keys on their mount's source: an http(s) URL under that source's `base_url` is written as a key). A mount with several prefixes (a simple provider's native prefixes and `/simple/<name>/`) is listed once, with a prefix picker.
 - **Preview (the result):** before/after slider or side by side in a box with the result's aspect ratio (portrait, panoramas and icons are never cropped; a source of another shape is letterboxed), zoom 1×/2×/fit with pan (drag or arrow keys), a checkerboard for alpha, inline animations and video results, a loading placeholder that never shows a stale result (only the latest request paints), a **Source vs result** table (format and MIME type, dimensions, megapixels, bytes, colour space, alpha, pages, orientation; the source's values from its own `/info`, the change in a third column), the **result response headers** named in words (`X-Xi-*` debug headers too, raw name in the tooltip) and the server's per-stage `Server-Timing` as a bar chart; errors show the server's error kind and message. Multi-page sources get a page picker with thumbnails and "all pages stacked", animations a still-frame scrubber, videos a time scrubber, keyframes, best frame, sprite and animation buttons, all written as the current dialect's own options (disabled with a tooltip where the dialect cannot express them).
 - **Info (the source file):** the source's `/info` as a collapsible tree, detections drawn over the preview (full image), video metadata.
 - **Global tools** (header navigation, `#tools/<name>` routes that keep the session as it is): **Gallery** (every sample as a grid), **History** (the sessions rendered in this browser, with search, thumbnails, open and copy link), **Format matrix** (every sample probed with `/info` and a thumbnail, to check a file of every format works; filters, run all, sortable by format, sample, variant, time and status) and **Examples**.
@@ -318,7 +318,7 @@ URLs are signed on the server (`POST /_playground/api/sign`), so keys never reac
 - [Formats](docs/FORMATS.md): decoders, encoders, and the best-format decision matrix.
 - [Configuration](docs/CONFIG.md): environment variables, the YAML/JSON/TOML config file and its JSON Schema, and Dokploy, Coolify and Kubernetes examples.
 - [Sources](docs/SOURCES.md): several S3-compatible stores, GCS, Azure, directories, FTP/SFTP and http origins at once; how a URL picks one; credentials; provider recipes and deployment examples.
-- [OpenAPI](docs/OPENAPI.md): the OpenAPI 3.1 document of the HTTP API, where it is published, and the [TypeScript package](packages/image-url/README.md) generated from it.
+- [OpenAPI](docs/OPENAPI.md): the OpenAPI 3.1 document of the HTTP API, where it is published, and the [TypeScript package](clients/typescript/README.md) generated from it.
 - [Release](docs/RELEASE.md): how the image and the npm package are built, published and verified.
 - [Benchmarks](docs/BENCHMARKS.md): methodology and how to reproduce [bench/RESULTS.md](bench/RESULTS.md).
 - [Roadmap](docs/ROADMAP.md): the M1, M2 and M3 work packages.

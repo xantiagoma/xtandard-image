@@ -1,5 +1,5 @@
 {
-  "comment": "Cross-language fixture of the TypeScript URL builder (packages/image-url). Cases: `go test ./internal/dialect/imgproxy -run TestBuilderFixture -update`; URLs: `XI_UPDATE_FIXTURES=1 bun test` in packages/image-url; check: go test (tsbuilder_test.go) and bun test.",
+  "comment": "Cross-language fixture of the TypeScript URL builder (clients/typescript). Cases: `go test ./internal/dialect/imgproxy -run TestBuilderFixture -update`; URLs: `XI_UPDATE_FIXTURES=1 bun test` in clients/typescript; check: go test (tsbuilder_test.go) and bun test.",
   "signing": {
     "key": "943b421c9eb07c830af81030552c86009268de4e532ba2ee2eab8247c6da0881",
     "salt": "520f986b998545b4785e0defbc4f3c1203f22de2374a3d53cb7a7fe9fea309c5"

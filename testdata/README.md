@@ -14,9 +14,9 @@ testdata/
   info/pro/<fixture>-<option>.json  expected /info Pro option responses (WP-63) for jpeg/baseline, png/rgba8 and gif/animated
   ssim/                 greyscale reference + distortions validating internal/testutil/ssim
   security/vectors.json signing (imgproxy, xi_sig) and enc/ encryption vectors shared by Go
-                        (internal/security/{sign,crypt}) and TypeScript (packages/image-url)
+                        (internal/security/{sign,crypt}) and TypeScript (clients/typescript)
   urls/imgproxy-builder.json  cross-language fixture of the TypeScript URL builder: cases derived
-                        from the imgproxy golden tables, URLs built by packages/image-url, parsed
+                        from the imgproxy golden tables, URLs built by clients/typescript, parsed
                         back by internal/dialect/imgproxy (task ts:fixtures regenerates it)
   detect/               expected detections on fixtures/detect (expected.json) and the script that made them
   classify/             reference top 5 of the classifier on fixtures/detect and fixtures/classify (expected.json) and its script

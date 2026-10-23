@@ -1,5 +1,8 @@
 # ADR 0008: OpenAPI 3.1 document generated from Go types
 
+> **Amended 2026-10-22 (ADR 0013):** the package moved to `clients/typescript` and is named `@xtandard/image`. The text below keeps the original `packages/image-url` / `@xtandard/image-url` names as decided at the time.
+
+
 - Status: accepted (implementation: WP-82, WP-83; router spike: WP-82b, **rejected**, see "WP-82b outcome"; clients: WP-84; publishing: WP-81b)
 - Date: 2026-09-26
 - Amended: 2026-09-26, with the owner's answers to ROADMAP open questions 10 (TypeScript layout, see [ADR 0009](0009-typescript-monorepo.md)) and 12 (huma as router, decision 5)

@@ -787,7 +787,7 @@ const filtered = await page.evaluate(() => {
   return { before, after };
 });
 check(filtered.before > 1 && filtered.after === 0, `info jpeg: EXIF filter (${filtered.before} rows → ${filtered.after})`);
-// Copy as TypeScript: the @xtandard/image-url info builder.
+// Copy as TypeScript: the @xtandard/image info builder.
 await page.click('#info-copy-ts');
 const ts = await page.evaluate(() => navigator.clipboard.readText());
 check(ts.includes('.info(') && ts.includes('.blurhash(4, 3)') && ts.includes('.calc_hashsums("md5", "sha1", "sha256", "sha512")'), `info: TypeScript snippet (${ts.split('\n').slice(4, 7).join(' ')}…)`);
