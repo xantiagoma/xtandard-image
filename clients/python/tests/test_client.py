@@ -19,11 +19,13 @@ from xtandard_image import (
     HTTPError,
     ImgproxyURLBuilder,
     NotFoundError,
+    QueryMethodRequest,
     ServiceUnavailableError,
     SigningKey,
     TooManyRequestsError,
     TransportError,
     URLBuildError,
+    query_method_request,
     range_header,
 )
 
@@ -206,3 +208,87 @@ def test_error_body_is_json_envelope() -> None:
     err = to_http_error(httpx.Response(400, text=body, request=req))
     assert isinstance(err, BadRequestError)
     assert (err.kind, err.message, err.url) == ("invalid_url", "invalid url", f"{BASE}/x")
+
+
+Q = "/q/?url=https://e.com/a.jpg&w=300&xi_sig=abc"
+FORM = "application/x-www-form-urlencoded"
+
+
+def recorder(seen: list[httpx.Request]) -> httpx.MockTransport:
+    def h(req: httpx.Request) -> httpx.Response:
+        req.read()
+        seen.append(req)
+        return httpx.Response(200, content=b"img")
+
+    return httpx.MockTransport(h)
+
+
+def sent(seen: list[httpx.Request]) -> list[tuple[str, str, str | None, bytes]]:
+    return [(r.method, str(r.url), r.headers.get("content-type"), r.content) for r in seen]
+
+
+def test_query_method_off_by_default(seen: list[httpx.Request]) -> None:
+    with Client(BASE, http_client=httpx.Client(transport=recorder(seen))) as xi:
+        xi.media(Q)
+    assert sent(seen) == [("GET", f"{BASE}{Q}", None, b"")]
+
+
+def test_query_method_sends_query_under_the_mount(seen: list[httpx.Request]) -> None:
+    with Client(BASE, http_client=httpx.Client(transport=recorder(seen)), query_method=True) as xi:
+        xi.media(Q)
+        xi.media("/q/video?url=s3://m/a.mov&vd=5")
+        xi.media("/insecure/rs:fit:300:300/plain/https://e.com/a.jpg")
+        xi.media("/query?url=x")  # not under /q/
+        xi.media(Q, method="HEAD")
+        xi.media(Q, method="GET")
+    assert sent(seen) == [
+        ("QUERY", f"{BASE}/q/", FORM, b"url=https://e.com/a.jpg&w=300&xi_sig=abc"),
+        ("QUERY", f"{BASE}/q/video", FORM, b"url=s3://m/a.mov&vd=5"),
+        ("GET", f"{BASE}/insecure/rs:fit:300:300/plain/https://e.com/a.jpg", None, b""),
+        ("GET", f"{BASE}/query?url=x", None, b""),
+        ("HEAD", f"{BASE}{Q}", None, b""),
+        ("GET", f"{BASE}{Q}", None, b""),
+    ]
+
+
+def test_query_method_on_one_call_with_a_custom_mount(seen: list[httpx.Request]) -> None:
+    with Client(BASE, http_client=httpx.Client(transport=recorder(seen)), query_mount="/img/q/") as xi:
+        xi.media("/img/q/resize?url=x&width=1", method="QUERY")
+        xi.media("/img/q/resize?url=x&width=1")
+    assert sent(seen) == [
+        ("QUERY", f"{BASE}/img/q/resize", FORM, b"url=x&width=1"),
+        ("GET", f"{BASE}/img/q/resize?url=x&width=1", None, b""),
+    ]
+
+
+def test_query_method_without_a_query_raises(seen: list[httpx.Request]) -> None:
+    with Client(BASE, http_client=httpx.Client(transport=recorder(seen))) as xi, pytest.raises(URLBuildError) as e:
+        xi.media("/q/", method="QUERY")
+    assert e.value.code == "invalid_request"
+    assert seen == []
+
+
+@pytest.mark.anyio
+async def test_async_query_method(seen: list[httpx.Request]) -> None:
+    async with AsyncClient(BASE, http_client=httpx.AsyncClient(transport=recorder(seen)), query_method=True) as xi:
+        await xi.media(Q)
+        await xi.media(Q, method="HEAD")
+    assert sent(seen) == [
+        ("QUERY", f"{BASE}/q/", FORM, b"url=https://e.com/a.jpg&w=300&xi_sig=abc"),
+        ("HEAD", f"{BASE}{Q}", None, b""),
+    ]
+
+
+@pytest.mark.parametrize("url", ["/q/", "/q/?", "https://h/q/", "/q/?url=x#frag"])
+def test_query_method_request_errors(url: str) -> None:
+    with pytest.raises(URLBuildError) as e:
+        query_method_request(url)
+    assert e.value.code == "invalid_request"
+
+
+def test_query_method_request_splits_at_the_first_question_mark() -> None:
+    assert query_method_request("https://h/q/?url=https://e.com/a.jpg?x=1") == QueryMethodRequest(
+        url="https://h/q/", body="url=https://e.com/a.jpg?x=1"
+    )
+    q = query_method_request("/q/watermark?url=x&text=a%20b")
+    assert (q.method, q.url, q.content_type, q.body) == ("QUERY", "/q/watermark", FORM, "url=x&text=a%20b")

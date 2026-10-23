@@ -15,7 +15,7 @@ import re
 import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final, Literal
 
 from ._generated.constants import (
     DEFAULT_SEPARATOR,
@@ -58,7 +58,15 @@ if TYPE_CHECKING:
     from ._generated.options import ProcessingOptions, VideoOptions
     from .encryption import EncryptionKey
 
-__all__ = ["QueryURLBuilder", "QueryURLChain", "QueryVideoURLChain", "query_urls"]
+__all__ = [
+    "QUERY_CONTENT_TYPE",
+    "QueryMethodRequest",
+    "QueryURLBuilder",
+    "QueryURLChain",
+    "QueryVideoURLChain",
+    "query_method_request",
+    "query_urls",
+]
 
 ParamList = Mapping[str, object] | Sequence[tuple[str, QueryValue | None]]
 """Native keys: a mapping (key order) or (key, value) pairs (keys may repeat)."""
@@ -292,3 +300,43 @@ class QueryURLBuilder:
 
 query_urls = QueryURLBuilder
 """Alias of :class:`QueryURLBuilder`, named like the TypeScript client's factory."""
+
+QUERY_CONTENT_TYPE: Final = "application/x-www-form-urlencoded"
+"""The Content-Type of an HTTP QUERY request's content (the query dialect URL's query)."""
+
+
+@dataclass(frozen=True, kw_only=True)
+class QueryMethodRequest:
+    """A query dialect request sent with the HTTP QUERY method (RFC 10008, URL-DIALECTS §4.4).
+
+    Attributes:
+        method: Always ``"QUERY"``.
+        url: The URL without its query.
+        content_type: :data:`QUERY_CONTENT_TYPE`.
+        body: The URL's query exactly as built, ``xi_sig`` included: the server
+            signs, limits and caches it as the GET URL, since ``xi_sig`` does
+            not cover the method.
+    """
+
+    method: Literal["QUERY"] = "QUERY"
+    url: str
+    content_type: str = QUERY_CONTENT_TYPE
+    body: str
+
+
+def query_method_request(url: str) -> QueryMethodRequest:
+    """Splits a built query dialect URL (``/q/…?url=…``) into an HTTP QUERY request.
+
+    The parameters move from the URL to the content, so long option chains,
+    watermark text or encrypted sources stay out of URLs. The server must
+    have XI_SERVER_QUERY_METHOD on (the default); many CDNs and proxies
+    neither cache nor forward QUERY.
+
+    Raises:
+        URLBuildError: ``invalid_request`` when the URL has no query, an empty
+            query, or a fragment.
+    """
+    path, sep, query = url.partition("?")
+    if not sep or not query or "#" in url:
+        raise URLBuildError("invalid_request", "a QUERY request needs a query dialect URL with a query and no fragment")
+    return QueryMethodRequest(url=path, body=query)

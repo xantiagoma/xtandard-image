@@ -100,6 +100,26 @@ Non-2xx responses raise an `HTTPError` subclass chosen by status:
 
 Each carries `status`, `kind`, `message` and `request_id` from the server's JSON error envelope. Connection failures raise `TransportError`. Pass `stream=True` to iterate a large body.
 
+### HTTP QUERY (opt-in)
+
+The query dialect also accepts the HTTP QUERY method ([RFC 10008](https://www.rfc-editor.org/rfc/rfc10008), [URL-DIALECTS §4.4](../../docs/URL-DIALECTS.md#44-http-query)): the URL's query goes in the request content, so long option chains, watermark text or encrypted sources stay out of URLs. `xi_sig` does not cover the method, so the content of a signed QUERY is the query of the signed GET URL. URL builders are unchanged.
+
+```python
+from xtandard_image import Client, query_method_request
+
+q = query_method_request("https://img.example.com/q/?url=s3://photos/cat.jpg&w=300&xi_sig=…")
+# QueryMethodRequest(method="QUERY", url="https://img.example.com/q/",
+#                    content_type="application/x-www-form-urlencoded", body="url=s3://photos/cat.jpg&w=300&xi_sig=…")
+
+with Client("http://localhost:8080", query_method=True) as xi:  # query_mount="/q" by default
+    xi.media(url)  # QUERY for URLs under /q/, GET for everything else
+
+with Client("http://localhost:8080") as xi:
+    xi.media(url, method="QUERY")  # one call, whatever query_method says
+```
+
+It is off by default. The server needs `XI_SERVER_QUERY_METHOD` (on by default), and many CDNs and proxies neither cache nor forward QUERY. HEAD and an explicit `method="GET"` are sent unchanged. A URL without a query, or with a fragment, raises `URLBuildError` with code `invalid_request`.
+
 ## Coverage
 
 | Server feature | Python |
@@ -111,6 +131,7 @@ Each carries `status`, `kind`, `message` and `request_id` from the server's JSON
 | Password-protected PDFs (`pdp`) | `pdf_password=` / `with_pdf_password()`, `encrypt_pdf_password()` |
 | Sources: base64, `plain/`, `enc/`, split; `xi://`, `s3://`, `gs://`, `abs://`, `local:///`, `ftp://`, `sftp://` | `source_encoding`, `split_source`, `xi_source()`, `source_url()` |
 | Query dialect `/q/`, `/q/video`, imaginary; `xi_sig` | `QueryURLBuilder` (native keys typed as `QueryImageParams`), `sign_xi_url()` |
+| HTTP QUERY on the query dialect (RFC 10008), off by default | `query_method_request()`, `Client(query_method=True, query_mount=…)`, `media(url, method="QUERY")` |
 | `/healthz`, `/readyz`, playground `api/meta` | `healthz()`, `readyz()`, `playground_meta()` |
 
 Not covered, on purpose (as in the TypeScript client):
