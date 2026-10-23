@@ -10,7 +10,7 @@ import (
 )
 
 // sharedVectors is testdata/security/vectors.json at the repository root:
-// the signing vectors the TypeScript package (packages/image-url) checks
+// the signing vectors the TypeScript package (clients/typescript) checks
 // too, so both implementations agree byte for byte.
 type sharedVectors struct {
 	Imgproxy []struct {

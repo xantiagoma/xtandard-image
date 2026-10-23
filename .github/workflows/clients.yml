@@ -43,6 +43,6 @@ jobs:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
       - run: bun clients/codegen/generate.ts --check
-      - run: packages/image-url/node_modules/.bin/tsc -p clients/codegen/tsconfig.json
+      - run: clients/typescript/node_modules/.bin/tsc -p clients/codegen/tsconfig.json
       - name: every client ships the root LICENSE
         run: for f in clients/*/LICENSE; do cmp LICENSE "$f"; done

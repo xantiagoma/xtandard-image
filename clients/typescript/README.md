@@ -1,4 +1,4 @@
-# @xtandard/image-url
+# @xtandard/image
 
 Typed URL builder and small fetch client for [xtandard-image](https://github.com/xantiagoma/xtandard-image), the self-hosted image proxy. It builds imgproxy-dialect URLs (images, `/info`, `/video` with audio and HLS/DASH streams) and query dialect URLs (`/q/`, `/q/video`, imaginary endpoints). The image and `/info` URLs work with imgproxy too.
 
@@ -6,10 +6,10 @@ Typed URL builder and small fetch client for [xtandard-image](https://github.com
 - Sources can be base64url, `plain/` (escaped for you) or `enc/` (AES-CBC source encryption). An extension suffix is optional.
 - URLs can be signed with the imgproxy scheme (key, salt, signature size), and any URL can take an `xi_sig` query signature.
 - Crypto runs on WebCrypto (`crypto.subtle`), so the package works in Bun, Node 22+, Deno, browsers and workers. It has no runtime dependencies and ships as ESM only.
-- Package versions follow the server's release tags, so `@xtandard/image-url@X.Y.Z` describes `ghcr.io/xantiagoma/xtandard-image:X.Y.Z`.
+- Package versions follow the server's release tags, so `@xtandard/image@X.Y.Z` describes `ghcr.io/xantiagoma/xtandard-image:X.Y.Z`.
 
 ```sh
-bun add @xtandard/image-url   # or npm i / pnpm add / deno add npm:@xtandard/image-url
+bun add @xtandard/image   # or npm i / pnpm add / deno add npm:@xtandard/image
 ```
 
 ## Building URLs
@@ -17,7 +17,7 @@ bun add @xtandard/image-url   # or npm i / pnpm add / deno add npm:@xtandard/ima
 There are two equivalent forms. A plain object:
 
 ```ts
-import { imgproxy } from "@xtandard/image-url";
+import { imgproxy } from "@xtandard/image";
 
 const img = imgproxy({ baseUrl: "https://img.example.com" });
 
@@ -106,7 +106,7 @@ The manifest lists its playlists and segments under `/_stream/<ticket>/…`. The
 `queryUrls()` builds `/q/` URLs ([URL-DIALECTS §4](https://github.com/xantiagoma/xtandard-image/blob/main/docs/URL-DIALECTS.md#4-query-dialect-native--imaginary)). The server needs `XI_DIALECTS_QUERY_ENABLED=true`. With `signing`, each URL ends in an `xi_sig` over the path after the mount and the query.
 
 ```ts
-import { queryUrls } from "@xtandard/image-url";
+import { queryUrls } from "@xtandard/image";
 
 const q = queryUrls({ baseUrl: "https://img.example.com", signing });  // mount: "/q" by default
 
@@ -131,7 +131,7 @@ await q.imaginaryUrl({ endpoint: "smartcrop", source: "s3://photos/cat.jpg", par
 Any source string works. `xi://<name>/<key>` selects a named source (`XI_SOURCES`). The helpers only join strings:
 
 ```ts
-import { sourceUrl, xiSource } from "@xtandard/image-url";
+import { sourceUrl, xiSource } from "@xtandard/image";
 
 xiSource("photos", "2026/cat.jpg");                // xi://photos/2026/cat.jpg
 xiSource("web", "https://cdn.example.com/a.jpg");  // xi://web/https://cdn.example.com/a.jpg (an http source without base_url)
@@ -155,7 +155,7 @@ await img.url({ source: "https://images.unsplash.com/photo-1506744038136-4627383
 `size` is `XI_SIGNING_SIZE` (1–32 bytes before encoding, default 32). The lower-level helpers are exported too:
 
 ```ts
-import { sign, signImgproxyPath, signXiQuery, signXiUrl } from "@xtandard/image-url";
+import { sign, signImgproxyPath, signXiQuery, signXiUrl } from "@xtandard/image";
 
 await signImgproxyPath("/rs:fit:300:300/plain/http://img.example.com/pretty/image.jpg", key);
 // "/<signature>/rs:fit:300:300/plain/…"
@@ -192,10 +192,10 @@ await img.from("s3://docs/contract.pdf").pdfPassword("s3cret").rs("fit", 800, 0)
 
 ## Client
 
-`@xtandard/image-url/client` wraps the JSON and health endpoints. Its types come from the OpenAPI document:
+`@xtandard/image/client` wraps the JSON and health endpoints. Its types come from the OpenAPI document:
 
 ```ts
-import { createClient, XtandardError } from "@xtandard/image-url/client";
+import { createClient, XtandardError } from "@xtandard/image/client";
 
 const xi = createClient({ baseUrl: "http://localhost:8080", imgproxy: { signing: { key, salt } } });
 

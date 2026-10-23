@@ -1,7 +1,7 @@
-// @xtandard/image-url: a typed imgproxy-dialect URL builder for
+// @xtandard/image: a typed imgproxy-dialect URL builder for
 // xtandard-image, with imgproxy and xi_sig signing and `enc/` source
 // encryption on WebCrypto. No runtime dependencies. The fetch client is the
-// "@xtandard/image-url/client" entry point.
+// "@xtandard/image/client" entry point.
 
 export {
   buildImaginaryUrl,

@@ -17,8 +17,8 @@ import (
 )
 
 // tsOptionsFile is the TypeScript option catalogue generated from
-// openapi.json (packages/image-url/scripts/generate.ts).
-const tsOptionsFile = "../../packages/image-url/src/generated/options.ts"
+// openapi.json (clients/typescript/scripts/generate.ts).
+const tsOptionsFile = "../../clients/typescript/src/generated/options.ts"
 
 // tsTable returns the string literals of `export const <name> = [ … ]` or
 // `{ "alias": "name", … }` in the generated TypeScript (the keys of an
@@ -43,10 +43,10 @@ func tsTable(t *testing.T, src, name string) []string {
 }
 
 // TestTypeScriptCatalogue fails when the option catalogues and the
-// committed TypeScript types of @xtandard/image-url drift: every option
+// committed TypeScript types of @xtandard/image drift: every option
 // name and alias of the processing, /info and /video catalogues must be
 // in the generated tables, and nothing else. Fix: go test ./internal/apidoc
-// -run TestGolden -update, then bun run generate in packages/image-url.
+// -run TestGolden -update, then bun run generate in clients/typescript.
 func TestTypeScriptCatalogue(t *testing.T) {
 	t.Parallel()
 	b, err := os.ReadFile(tsOptionsFile)

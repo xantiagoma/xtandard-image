@@ -328,3 +328,7 @@ owner has authorised merging PRs without review.
   Not published to any registry (owner decision pending). Release notes: PHP needs a split repo for
   Packagist; Go client tags `clients/go/vX.Y.Z`; client workflows run only when repo variable
   `XI_CLIENTS_WORKFLOW=enabled`. Nothing in flight.
+- **2026-10-22:** the TypeScript client moved from `packages/image-url` to `clients/typescript` and was
+  renamed `@xtandard/image` (never published, so no npm name was released). Bun workspaces are
+  `clients/typescript` + `packages/*` (kept for future React/middleware packages); ADR 0013 updated, ADRs
+  0008/0009 carry an amendment note. Also fixed the scheduled base-image shellcheck failure (#144).

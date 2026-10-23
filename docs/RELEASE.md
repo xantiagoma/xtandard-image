@@ -1,7 +1,7 @@
 # Release runbook
 
 How the app image `ghcr.io/xantiagoma/xtandard-image` is built, published and verified, and how the
-npm package `@xtandard/image-url` follows it ([npm package](#npm-package)).
+npm package `@xtandard/image` follows it ([npm package](#npm-package)).
 Design context: `docs/ARCHITECTURE.md` §14, `docs/go-standards.md` §9, ADR 0005, ADR 0009.
 
 **Status (2026-09-29):** `v0.1.0-rc.1` is the first prerelease. It was built and pushed **locally**, without Actions, as described in [Local release (no Actions)](#local-release-no-actions): three app flavours, both architectures, and the base images slim r7, full r8 and gpl r9 on GHCR (private packages). The images are not signed. Nothing is on npm yet, and the GitHub Pages site is not deployed. GitHub Actions minutes are exhausted (billing), so the `release` run that the tag push started failed as expected. `ci` and `nightly` are disabled; re-enable them with `gh workflow enable <name>`. Since WP-118, `release.yml` builds, verifies, signs and attests all three flavours, so re-running it for the tag once Actions is back publishes the signed equivalents of what the local release pushed.
@@ -248,7 +248,7 @@ The weekly `base-image` rebuild republishes the same tag with Ubuntu security up
 
 ## npm package
 
-`@xtandard/image-url` (`packages/image-url`, [ADR 0009](adr/0009-typescript-monorepo.md) decision 6) is released from the same tag as the image and at the same version: tag `v0.4.0` publishes `@xtandard/image-url@0.4.0`. Its generated types describe that server version. The committed `package.json` keeps `"version": "0.0.0"`, and the version comes only from the tag.
+`@xtandard/image` (`clients/typescript`, [ADR 0009](adr/0009-typescript-monorepo.md) decision 6) is released from the same tag as the image and at the same version: tag `v0.4.0` publishes `@xtandard/image@0.4.0`. Its generated types describe that server version. The committed `package.json` keeps `"version": "0.0.0"`, and the version comes only from the tag.
 
 The `npm` job of `.github/workflows/release.yml` runs after `merge`, so no package is published unless the image was:
 
@@ -256,13 +256,13 @@ The `npm` job of `.github/workflows/release.yml` runs after `merge`, so no packa
 2. `npm pkg set version=<X.Y.Z>` sets the version, and `bun pm pack` packs the tarball. `prepack` builds `dist/` with `tsc` (JavaScript and `.d.ts`) and copies the root `LICENSE`. The `files` whitelist keeps the tarball to `dist/`, `README.md` and `LICENSE`.
 3. `npm publish <tarball> --provenance --access public` publishes through npm trusted publishing. The GitHub Actions OIDC token (`id-token: write`) authenticates, so there is no npm token secret, and npm attaches a provenance attestation that links the tarball to the workflow run and commit. A stable release takes the `latest` dist-tag; a prerelease (`v0.4.0-rc.1`) takes `next`. `publishConfig` in `package.json` also sets `access: public` and `provenance: true`, so a manual `npm publish` from CI does the same.
 
-**Not enabled yet.** The job only runs when the repository variable `XI_NPM_PUBLISH` is `enabled`. Before setting it, configure `@xtandard/image-url` on npmjs.com with a trusted publisher: repository `xantiagoma/xtandard-image`, workflow `release.yml`. The scope `@xtandard` belongs to the owner. The first publish of a new package name may need one manual `npm publish --access public` from a maintainer account before trusted publishing can be attached. The `ts` workflow (`.github/workflows/ts.yml`) is gated the same way, on `XI_TS_WORKFLOW=enabled`, and runs `task ts:check`'s steps on every change to `packages/**`, the lockfile, `openapi.json` or the shared fixtures.
+**Not enabled yet.** The job only runs when the repository variable `XI_NPM_PUBLISH` is `enabled`. Before setting it, configure `@xtandard/image` on npmjs.com with a trusted publisher: repository `xantiagoma/xtandard-image`, workflow `release.yml`. The scope `@xtandard` belongs to the owner. The first publish of a new package name may need one manual `npm publish --access public` from a maintainer account before trusted publishing can be attached. The `ts` workflow (`.github/workflows/ts.yml`) is gated the same way, on `XI_TS_WORKFLOW=enabled`, and runs `task ts:check`'s steps on every change to `packages/**`, the lockfile, `openapi.json` or the shared fixtures.
 
 Verify a published version:
 
 ```sh
-npm view @xtandard/image-url@0.4.0 dist.attestations   # provenance present
+npm view @xtandard/image@0.4.0 dist.attestations   # provenance present
 npm audit signatures                                     # in a project that installed it
 ```
 
-`bun pm pack --dry-run` in `packages/image-url` lists what would be published.
+`bun pm pack --dry-run` in `clients/typescript` lists what would be published.

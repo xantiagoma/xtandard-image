@@ -4,14 +4,15 @@
   "type": "module",
   "packageManager": "bun@1.4.2",
   "workspaces": [
+    "clients/typescript",
     "packages/*"
   ],
   "scripts": {
-    "generate": "bun run --filter './packages/*' generate",
-    "generate:check": "bun run --filter './packages/*' generate:check",
-    "typecheck": "bun run --filter './packages/*' typecheck",
-    "test": "bun run --filter './packages/*' test",
-    "build": "bun run --filter './packages/*' build",
+    "generate": "bun run --filter '*' generate",
+    "generate:check": "bun run --filter '*' generate:check",
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "bun run --filter '*' test",
+    "build": "bun run --filter '*' build",
     "licenses": "bun scripts/check-ts-licenses.ts"
   }
 }
