@@ -100,7 +100,7 @@ cd xtandard-image
 docker build -t xtandard-image .
 ```
 
-Once the first release is out, use `ghcr.io/xantiagoma/xtandard-image:slim` (linux/amd64 and linux/arm64) instead of building, and replace `xtandard-image` with it in the commands below.
+Prereleases are on GHCR (linux/amd64 and linux/arm64): `ghcr.io/xantiagoma/xtandard-image:0.1.0-rc.2` (slim), `:0.1.0-rc.2-full` and `:0.1.0-rc.2-gpl`, unsigned and in a private package for now ([release notes](https://github.com/xantiagoma/xtandard-image/releases/tag/v0.1.0-rc.2)). Use one instead of building and replace `xtandard-image` with it in the commands below. The moving `slim`, `full` and `gpl` tags arrive with the first stable release.
 
 Image variants (all on the same `ubuntu:noble` + libvips 8.18 base, built from `docker/base`):
 

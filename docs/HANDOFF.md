@@ -386,3 +386,9 @@ owner has authorised merging PRs without review.
   and `XI_FETCH_MAX_CONCURRENT` (found by the Config audit; guard `TestEveryFieldHasAConsumer`).
   `XI_PROCESSING_LINEAR_RESIZE` is a backlog gap. Demo redeployed: GET/HEAD snapshot identical.
   Nothing in flight.
+
+- **2026-10-24: `v0.1.0-rc.2` released locally** (commit `e6ed827d`; GHCR `0.1.0-rc.2[-slim|-full|-gpl]`,
+  amd64 + arm64, unsigned; acceptance 143/155/155 on both arches). GitHub Actions is **disabled** on the
+  repository (owner decision after billing blocked it again); re-enable it in Settings → Actions or with
+  `gh api -X PUT repos/xantiagoma/xtandard-image/actions/permissions -F enabled=true`. Deploy manifests and
+  the Helm chart point at rc.2.

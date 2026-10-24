@@ -87,6 +87,8 @@ Used for `v0.1.0-rc.1` (2026-09-29) while GitHub Actions was unavailable (billin
 
 Total wall time was about 4 h 10 min, most of it the emulated amd64 slim base. To do it again, copy these steps. Building each platform separately and joining the per-arch digests with `imagetools create` is more robust than one two-platform invocation, and a failed step can be retried without redoing the other platform.
 
+**`v0.1.0-rc.2` (2026-10-24)** repeated steps 1, 2 and 5–10 on commit `e6ed827d` without rebuilding the bases: slim r7, full r9 and gpl r10 were already on GHCR, built, verified and attested by `base-image.yml` on 2026-10-23, and the app builds used their index digests (`scripts/base-image-ref.sh --digest`). Acceptance: slim 143/143, full 155/155 and gpl 155/155 on arm64 and on amd64 under Rosetta (WP-118 fixed the gpl sandbox failure under emulation). Total wall time was about 25 minutes. Actions was disabled on the repository the same day (`enabled: false` in the repository's Actions permissions) after billing blocked it again.
+
 ## Schema and API site (GitHub Pages)
 
 `.github/workflows/pages.yml` publishes the config JSON Schema and the OpenAPI document to `https://xantiagoma.github.io/xtandard-image/` (WP-81b, ADR 0007 decision 6). It runs on every push to `main` that changes `internal/config/config.schema.json`, `internal/apidoc/openapi.json`, `docs/pages/**`, `scripts/pages-build.sh` or the workflow, and on demand (*Run workflow*).
