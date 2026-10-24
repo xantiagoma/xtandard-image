@@ -46,8 +46,9 @@ func (l *pipeListener) Close() error {
 
 func (l *pipeListener) Addr() net.Addr { return &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1)} }
 
-// dial offers a connection to Accept without waiting for it to be taken.
-func (l *pipeListener) dial(t *testing.T) net.Conn {
+// dial offers a connection to Accept without waiting for it to be taken;
+// the client end is closed with the test.
+func (l *pipeListener) dial(t *testing.T) {
 	t.Helper()
 	server, client := net.Pipe()
 	go func() {
@@ -58,7 +59,6 @@ func (l *pipeListener) dial(t *testing.T) net.Conn {
 		}
 	}()
 	t.Cleanup(func() { _ = client.Close() })
-	return client
 }
 
 // acceptor runs Accept in a goroutine and reports each result.
@@ -83,7 +83,8 @@ func TestLimitListener(t *testing.T) {
 		run  func(t *testing.T, inner *pipeListener, ln net.Listener)
 	}{
 		{"waits for a slot", func(t *testing.T, inner *pipeListener, ln net.Listener) {
-			var open []net.Conn
+			t.Helper()
+			open := make([]net.Conn, 0, 2)
 			for range 2 {
 				inner.dial(t)
 				r := <-acceptAsync(ln)
@@ -121,6 +122,7 @@ func TestLimitListener(t *testing.T) {
 			}
 		}},
 		{"close unblocks a waiting accept", func(t *testing.T, inner *pipeListener, ln net.Listener) {
+			t.Helper()
 			for range 2 {
 				inner.dial(t)
 				if r := <-acceptAsync(ln); r.err != nil {
@@ -137,6 +139,7 @@ func TestLimitListener(t *testing.T) {
 			}
 		}},
 		{"accept error releases the slot", func(t *testing.T, inner *pipeListener, ln net.Listener) {
+			t.Helper()
 			for range 2 {
 				inner.failNext <- errors.New("accept failed")
 				if r := <-acceptAsync(ln); r.err == nil {
@@ -199,8 +202,9 @@ func TestLimitListenerHTTP(t *testing.T) {
 			serverProtos.SetHTTP1(true)
 			serverProtos.SetUnencryptedHTTP2(true)
 			srv := &http.Server{
-				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					_, _ = io.WriteString(w, r.Proto)
+				Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+					w.Header().Set("Content-Type", "text/plain")
+					_, _ = io.WriteString(w, "ok")
 				}),
 				Protocols:         &serverProtos,
 				ReadHeaderTimeout: 5 * time.Second,

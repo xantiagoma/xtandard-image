@@ -110,8 +110,10 @@ func TestApplyGoMemoryLimit(t *testing.T) {
 		{"operator wins", v2("1073741824"), 0.3, 0, "600MiB", -1, []string{"go memory limit from GOMEMLIMIT"}},
 		{"no limit", v2("max"), 0.3, 0, "", -1, []string{"go memory limit unchanged: no cgroup memory limit"}},
 		{"unreadable", v2("x"), 0.3, 0, "", -1, []string{"go memory limit unchanged: cgroup memory limit unreadable"}},
-		{"budget too large", v2("1073741824"), 0.3, 900 << 20, "", 322122547,
-			[]string{"go memory limit set", "go memory limit and memory budget exceed the cgroup memory limit"}},
+		{
+			"budget too large", v2("1073741824"), 0.3, 900 << 20, "", 322122547,
+			[]string{"go memory limit set", "go memory limit and memory budget exceed the cgroup memory limit"},
+		},
 		{"budget fits", v2("1073741824"), 0.3, 512 << 20, "", 322122547, []string{"go memory limit set"}},
 	}
 	for _, tc := range tests {

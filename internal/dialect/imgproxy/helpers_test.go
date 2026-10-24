@@ -126,7 +126,8 @@ func buildFixture() (*fixture, error) {
 		"enc":      {Cipher: c},
 	}
 	f := &fixture{parsers: make(map[string]*imgproxy.Parser, len(configs)), cipher: c, signer: signer}
-	for name, o := range configs {
+	for name := range configs {
+		o := configs[name]
 		o.Now = clock
 		p, err := imgproxy.New(&o)
 		if err != nil {
