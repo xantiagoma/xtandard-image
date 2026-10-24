@@ -121,10 +121,10 @@ This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS`
 | `XI_SERVER_WRITE_TIMEOUT` | request timeout + `5s` | |
 | `XI_SERVER_IDLE_TIMEOUT` | `90s` | Keep-alive idle |
 | `XI_SERVER_MAX_HEADER_BYTES` | `32KiB` | |
-| `XI_SERVER_MAX_CONNECTIONS` | `4096` | Accepted connections cap |
+| `XI_SERVER_MAX_CONNECTIONS` | `4096` | Open connections on the public listener (the admin listener is not counted). At the cap the server stops accepting: new clients wait in the kernel's accept backlog until a connection closes, they are not refused. Idle keep-alive and HTTP/2 connections hold their slot until `XI_SERVER_IDLE_TIMEOUT`; one HTTP/2 connection carries many requests |
 | `XI_SERVER_SHUTDOWN_DELAY` | `5s` | Readiness goes 503 this long before listener closes |
 | `XI_SERVER_SHUTDOWN_TIMEOUT` | `30s` | Drain limit |
-| `XI_SERVER_READY_QUEUE_THRESHOLD` | `0` (off) | `/readyz` 503 when queue fill % ≥ value |
+| `XI_SERVER_READY_QUEUE_THRESHOLD` | `0` (off) | `/readyz` answers 503 `busy` while the image processing queue is at least this % full: running plus waiting jobs over `XI_PROCESSING_WORKERS` + `XI_PROCESSING_QUEUE_SIZE` places (1–100). Checked on every probe with no hysteresis, so the probe's own thresholds (`failureThreshold`, `successThreshold`) are the only damping. Video transformations have their own pool and do not count. [OPERATIONS.md §3.5](OPERATIONS.md#35-readiness-and-drain) |
 | `XI_SERVER_CORS_ORIGINS` | `` | Origins browsers may read responses from (`*` for any): a request whose `Origin` is listed gets `Access-Control-Allow-Origin` (`*`, or the origin with `Vary: Origin`) and the range and validator headers exposed, so HLS and DASH players in another origin's page can load playlists and segments; a preflight (`OPTIONS` for `GET`/`HEAD`) is answered 204. Empty: no CORS headers |
 | `XI_SERVER_QUERY_METHOD` | `true` | Accept the HTTP `QUERY` method (RFC 10008) on the query dialect's endpoints (`/q/`, `/q/video`, `/q/<imaginary endpoint>`): the parameters travel in the request content (`application/x-www-form-urlencoded` or `application/json`) instead of the URL, with the same signing, unsigned policy, limits and result cache entry as the equivalent `GET` ([URL-DIALECTS §4.4](URL-DIALECTS.md#44-http-query)). `false`: `QUERY` is 405 everywhere, as before |
 | `XI_SERVER_QUERY_MAX_BODY_BYTES` | `64KiB` | Largest `QUERY` content; more is 413 |
@@ -146,8 +146,8 @@ This reference matches the code on `main`, M3 included (`XI_DIALECTS_IMGIX_KEYS`
 | `XI_SECURITY_ALLOWED_QUALITIES` | `5-100/5` | Restricted-policy qualities (5, 10, …, 100) |
 | `XI_SECURITY_ALLOW_SECURITY_OPTIONS` | `false` | Honour per-request limit options |
 | `XI_SECURITY_ALLOW_RAISING_LIMITS` | `false` | Let them exceed config |
-| `XI_SECURITY_SECRET` | `` | Require `Authorization: Bearer <secret>` |
-| `XI_SECURITY_ALLOWED_PROCESSING_OPTIONS` | `` (all) | imgproxy option allowlist |
+| `XI_SECURITY_SECRET` | `` | Require `Authorization: Bearer <secret>` on every public-listener request except `/healthz` and `/readyz` (CORS preflights are answered first); anything else is 403. For a CDN or proxy in front that adds the header. The playground's own renders are exempt |
+| `XI_SECURITY_ALLOWED_PROCESSING_OPTIONS` | `` (all) | imgproxy dialect: the only option names a URL may use, as written (`w` does not allow `width`); others are 403. The options a preset expands to are not checked, `preset`/`pr` itself is |
 
 ### Sources and fetching
 
@@ -175,7 +175,7 @@ Each source is configured by the `XI_SOURCES_<NAME>_*` variables below (`<NAME>`
 | `XI_FETCH_TIMEOUT` | `10s` | Per download attempt |
 | `XI_FETCH_RETRY` | `true` | One retry, after a jittered ~100 ms backoff, of a transient failure (origin 5xx, connection error, attempt timeout); never for 4xx |
 | `XI_FETCH_MAX_REDIRECTS` | `5` | |
-| `XI_FETCH_MAX_CONCURRENT` | `256` | Concurrent origin fetches |
+| `XI_FETCH_MAX_CONCURRENT` | `256` | Origin downloads in progress at once, all sources together. Coalesced requests and cache hits take none; a download waits for a slot within its `XI_FETCH_TIMEOUT` (the wait counts against it) and is 503 when none frees up |
 | `XI_FETCH_ALLOWED_PORTS` | `80,443` | SSRF port allowlist |
 | `XI_FETCH_ALLOW_PRIVATE_NETWORKS` | `false` | Explicit opt-in to every private range |
 | `XI_FETCH_ALLOWED_NETWORKS` | `` | CIDRs exempt from the private-address block without opening every range (e.g. `10.20.0.0/16` for an in-cluster object store) |
@@ -219,13 +219,13 @@ Each source is configured by the `XI_SOURCES_<NAME>_*` variables below (`<NAME>`
 | `XI_PROCESSING_QUEUE_SIZE` | `workers×16` | Waiting jobs; beyond it requests fail fast with 429 (`-1` = workers×16, `0` = no queue) |
 | `XI_PROCESSING_QUEUE_TIMEOUT` | `5s` | Max wait for a worker, then 503 |
 | `XI_PROCESSING_MEMORY_BUDGET` | `` (off) | Optional weighted admission budget in bytes |
-| `XI_PROCESSING_GO_MEMORY_FRACTION` | `0.3` | `GOMEMLIMIT` as fraction of cgroup `memory.max` |
+| `XI_PROCESSING_GO_MEMORY_FRACTION` | `0.3` | Sets the Go memory limit (`GOMEMLIMIT`) at startup to this fraction of the cgroup memory limit (v2 `memory.max`, v1 `memory.limit_in_bytes`; the smallest from the process's cgroup up). A `GOMEMLIMIT` you set wins; without a limit nothing changes. Logged once (`go memory limit set`); [OPERATIONS.md §1.3](OPERATIONS.md#13-memory) |
 | `XI_PROCESSING_AUTO_ROTATE` | `true` | |
 | `XI_PROCESSING_STRIP_METADATA` | `true` | |
 | `XI_PROCESSING_KEEP_COPYRIGHT` | `true` | |
 | `XI_PROCESSING_STRIP_COLOR_PROFILE` | `true` | |
 | `XI_PROCESSING_PRESERVE_HDR` | `false` | |
-| `XI_PROCESSING_LINEAR_RESIZE` | `false` | Resize in linear light |
+| `XI_PROCESSING_LINEAR_RESIZE` | `false` | Resize in linear light. **Not implemented yet**: validated and accepted, but resizing is always in the image's own colour space (ROADMAP backlog) |
 | `XI_PROCESSING_COLOR_PROFILES_DIR` | `` | Custom ICC files |
 | `XI_PROCESSING_WATERMARK_SOURCE` | `` | Default watermark image (source string, resolved against the sources). Fetched and decoded once at startup, never refreshed; a watermark that cannot be loaded stops startup. The playground's `api/meta` reports only whether it is set (`watermark`), for the Examples that need it |
 | `XI_PROCESSING_WATERMARK_OPACITY` | `1` | Multiplies every request's watermark opacity (configured image, per-request image and text) |
@@ -514,7 +514,7 @@ The table is checked against the code by a test in `internal/config`.
 | `IMGPROXY_KEEP_COPYRIGHT` | `XI_PROCESSING_KEEP_COPYRIGHT` | Same |
 | `IMGPROXY_STRIP_COLOR_PROFILE` | `XI_PROCESSING_STRIP_COLOR_PROFILE` | Same |
 | `IMGPROXY_PRESERVE_HDR` | `XI_PROCESSING_PRESERVE_HDR` | Same |
-| `IMGPROXY_USE_LINEAR_COLORSPACE` | `XI_PROCESSING_LINEAR_RESIZE` | Same |
+| `IMGPROXY_USE_LINEAR_COLORSPACE` | `XI_PROCESSING_LINEAR_RESIZE` | Translated, but not implemented yet (see the variable) |
 | `IMGPROXY_WATERMARK_OPACITY` | `XI_PROCESSING_WATERMARK_OPACITY` | Same |
 | `IMGPROXY_WATERMARK_PATH` | `XI_PROCESSING_WATERMARK_SOURCE` | Translated to `local:///<path>` when the path lies under `IMGPROXY_LOCAL_FILESYSTEM_ROOT`; otherwise a startup warning (set a source string yourself). Wins over `IMGPROXY_WATERMARK_URL` |
 | `IMGPROXY_WATERMARK_URL` | `XI_PROCESSING_WATERMARK_SOURCE` | Same URL, resolved against the sources like any source string |
@@ -707,6 +707,6 @@ spec:
     #   pods: { metric: { name: xi_queue_depth }, target: { type: AverageValue, averageValue: "4" } }
 ```
 
-Set CPU and memory limits: the worker count follows the CPU limit (GOMAXPROCS), and `GOMEMLIMIT` should be about 30 % of the memory limit (set it explicitly for now: [OPERATIONS.md §1.3](OPERATIONS.md#13-memory)). A deployment that runs video transformations (`XI_ROLE=video` or `all` with `XI_VIDEO_TRANSFORM_ENABLED`) also needs a disk-backed volume for its spool files (an `emptyDir` without `medium: Memory`, with a `sizeLimit` above `XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES`) at `XI_VIDEO_TRANSFORM_SPOOL_DIR`: [RELEASE.md "Running read-only"](RELEASE.md#running-read-only). A ConfigMap with several sources and a Secret mounted as files (`{file: …}`, `_FILE`, `secretKeyRef`, IRSA): [SOURCES.md §5.4](SOURCES.md#54-kubernetes) and [`docs/examples/k8s/`](examples/k8s/).
+Set CPU and memory limits: the worker count follows the CPU limit (GOMAXPROCS), and the server sets `GOMEMLIMIT` to 30 % of the memory limit itself ([OPERATIONS.md §1.3](OPERATIONS.md#13-memory)). A deployment that runs video transformations (`XI_ROLE=video` or `all` with `XI_VIDEO_TRANSFORM_ENABLED`) also needs a disk-backed volume for its spool files (an `emptyDir` without `medium: Memory`, with a `sizeLimit` above `XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES`) at `XI_VIDEO_TRANSFORM_SPOOL_DIR`: [RELEASE.md "Running read-only"](RELEASE.md#running-read-only). A ConfigMap with several sources and a Secret mounted as files (`{file: …}`, `_FILE`, `secretKeyRef`, IRSA): [SOURCES.md §5.4](SOURCES.md#54-kubernetes) and [`docs/examples/k8s/`](examples/k8s/).
 
 The complete manifests are [`deploy/kubernetes/`](../deploy/kubernetes/) (Kustomize: base and `image`, `video`, `keda`, `monitoring` overlays) and the Helm chart [`deploy/helm/xtandard-image/`](../deploy/helm/xtandard-image/) (image and video fleets, HPA or KEDA, ServiceMonitor, PrometheusRule, Grafana dashboard). Autoscaling on the queue instead of CPU, drain timing and monitoring: [OPERATIONS.md §3](OPERATIONS.md#3-autoscaling) and [§6](OPERATIONS.md#6-observability).
