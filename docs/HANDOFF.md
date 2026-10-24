@@ -392,3 +392,8 @@ owner has authorised merging PRs without review.
   repository (owner decision after billing blocked it again); re-enable it in Settings → Actions or with
   `gh api -X PUT repos/xantiagoma/xtandard-image/actions/permissions -F enabled=true`. Deploy manifests and
   the Helm chart point at rc.2.
+- **Merged 2026-10-24: WP-151** (#158): Modal (modal.com) as a deployment target. `deploy/modal/app.py`
+  defines `ImageFleet` and `VideoFleet`. It is checked by `validate.py modal` (modal 1.6.2, deprecations
+  are errors) and by `deploy/check/modal-run.sh` in `deploy:platforms:run`. Not tested on Modal itself:
+  cgroup limits, the stop signal, how the 150 s cap behaves for web_server, and cold start. Open: DEPLOY.md
+  says shellcheck runs on `deploy/check/*.sh`, but no task runs it.
