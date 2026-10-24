@@ -1,6 +1,6 @@
 # Coolify v4, "Docker Compose" build pack (docs/DEPLOY.md "Coolify").
 #
-# SERVICE_FQDN_XI_8080 is a Coolify magic variable: Coolify generates a domain for this service
+# SERVICE_FQDN_XTANDARD_8080 is a Coolify magic variable: Coolify generates a domain for this service
 # and routes it to port 8080 (edit the domain in the UI). Set XI_SIGNING_KEYS, XI_SIGNING_SALTS
 # and XI_SOURCES_WEB_ALLOW in the Environment Variables tab. Coolify v4 runs one container per
 # service (no replicas, no autoscaling; its Swarm mode is deprecated): scale by running the same
@@ -10,7 +10,7 @@ services:
     image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-slim}
     restart: unless-stopped
     environment:
-      - SERVICE_FQDN_XI_8080
+      - SERVICE_FQDN_XTANDARD_8080
       - XI_SIGNING_KEYS=${XI_SIGNING_KEYS}
       - XI_SIGNING_SALTS=${XI_SIGNING_SALTS}
       - XI_SOURCES=web

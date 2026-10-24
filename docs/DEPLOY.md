@@ -2,8 +2,11 @@
 
 Ready-to-use files for every common platform and infrastructure-as-code tool, each with autoscaling
 set up (minimum and maximum instances, the scaling signal and its target, cooldowns). The files live
-in [`deploy/`](../deploy/). Sizing, the theory behind the scaling signals, CDN recipes and
-observability are in [OPERATIONS.md](OPERATIONS.md); Kubernetes (Kustomize, the Helm chart, HPA and
+in [`deploy/`](../deploy/). Sizing ([OPERATIONS.md §2](OPERATIONS.md#2-sizing)), the theory
+behind the scaling signals and how each platform expresses them
+([§3.7](OPERATIONS.md#37-how-each-platform-expresses-it)), CDN recipes
+([§4](OPERATIONS.md#4-a-cdn-in-front)) and observability ([§6](OPERATIONS.md#6-observability))
+are in [OPERATIONS.md](OPERATIONS.md); Kubernetes (Kustomize, the Helm chart, HPA and
 KEDA) is in `deploy/kubernetes` and `deploy/helm` and is documented there too. Every variable used
 below is in [CONFIG.md](CONFIG.md).
 
@@ -33,9 +36,9 @@ or a copy of the image in its own registry.
 | Filesystem | Read-only root filesystem and a writable `/tmp` (64 MiB is enough for images: fontconfig cache only). [RELEASE.md "Running read-only"](RELEASE.md#running-read-only). |
 | Health | Liveness `/healthz` (no libvips call), readiness and load-balancer health `/readyz` (503 while starting or draining). The image's `HEALTHCHECK` runs `xtandard-image health` (GET `/healthz`; no curl in the image). |
 | Shutdown | SIGTERM → `/readyz` 503 → `XI_SERVER_SHUTDOWN_DELAY` (5 s) for load balancers to notice → drain for up to `XI_SERVER_SHUTDOWN_TIMEOUT` (30 s). Give the platform a grace period above the sum (40 s in these files); on platforms with a shorter fixed grace (Cloud Run: 10 s) shorten both. |
-| CPU and memory | Always set limits. Workers follow the CPU limit (`GOMAXPROCS`, `XI_PROCESSING_WORKERS` defaults to it) and `GOMEMLIMIT` is 30 % of the memory limit. 2 vCPU / 2–4 GiB is a good image instance; video wants 4 vCPU / 8 GiB or more. [OPERATIONS.md](OPERATIONS.md) has the sizing. |
-| Admin listener | `/metrics`, pprof and the docs are on `XI_ADMIN_ADDR` (default `127.0.0.1:9090`, loopback only). Set `:9090` only where the port stays on a private network (compose network, Fly private network, an internal port); never route it publicly. |
-| CDN | Put one in front: results carry long `Cache-Control` and an `ETag`, and the cache key must include `Accept` when the format follows it. Recipes in [OPERATIONS.md](OPERATIONS.md). |
+| CPU and memory | Always set limits. Workers follow the CPU limit (`GOMAXPROCS`, `XI_PROCESSING_WORKERS` defaults to it) and `GOMEMLIMIT` is 30 % of the memory limit. 2 vCPU / 2–4 GiB is a good image instance; video wants 4 vCPU / 8 GiB or more. [OPERATIONS.md §2](OPERATIONS.md#2-sizing) has the sizing. |
+| Admin listener | `/metrics`, pprof and the docs are on `XI_ADMIN_ADDR` (default `127.0.0.1:9090`, loopback only). Set `:9090` only where the port stays on a private network (compose network, Fly private network, an internal port); never route it publicly. Metrics, dashboards and alerts: [OPERATIONS.md §6](OPERATIONS.md#6-observability). |
+| CDN | Put one in front: results carry long `Cache-Control` and an `ETag`, and the cache key must include `Accept` when the format follows it. Recipes (Cloudflare, CloudFront, Fastly, Bunny) in [OPERATIONS.md §4](OPERATIONS.md#4-a-cdn-in-front). |
 
 ### Picking the scaling signal
 
@@ -50,7 +53,7 @@ add instances **before** the queue fills:
   workers are busy CPUs: target 60–70 %.
 - **The server's own metrics** (`xi_workers_busy`, `xi_queue_depth`, `xi_overload_total`) are the
   most precise and need a metrics pipeline: KEDA or a Prometheus adapter on Kubernetes
-  ([OPERATIONS.md](OPERATIONS.md)), the Nomad Autoscaler.
+  ([OPERATIONS.md §3.7](OPERATIONS.md#37-how-each-platform-expresses-it)), the Nomad Autoscaler.
 - Scale in slowly (5 minute cooldowns or stabilization windows here) and out quickly (1 minute).
 
 ## Image and video fleets
@@ -92,7 +95,7 @@ platform" means nobody deployed it.
 | Docker Compose | [`deploy/compose/`](../deploy/compose/) | manual `--scale` | `--scale svc=N` | no | per-replica anonymous volume | `:9090` on the compose network, not published | **run locally** (single, split + nginx routing) |
 | Docker Swarm | [`deploy/swarm/stack.yml`](../deploy/swarm/stack.yml) | manual (no autoscaler) | `replicas`, `docker service scale` | no | volume per node | overlay network `xi` | **run locally** (throwaway swarm: 2/2 replicas, update and rollback config) |
 | Nomad | [`deploy/nomad/`](../deploy/nomad/xtandard-image.nomad.hcl) | Nomad Autoscaler on `xi_workers_busy` | `scaling { min max }` | no | host volume / CSI | `admin` port, service `xtandard-image-metrics` | validated (`nomad job validate`) |
-| Kubernetes | `deploy/kubernetes`, `deploy/helm` (WP-148) | HPA (CPU) or KEDA (server metrics) | chart values | with KEDA | `emptyDir` without `medium` | ClusterIP / pod annotations | see [OPERATIONS.md](OPERATIONS.md) |
+| Kubernetes | `deploy/kubernetes`, `deploy/helm` (WP-148) | HPA (CPU) or KEDA (server metrics) | chart values | with KEDA | `emptyDir` without `medium` | ClusterIP / pod annotations | validated by WP-148 (`task deploy:check`, [OPERATIONS.md §8](OPERATIONS.md#8-verification-of-the-deploy-files)) |
 | Dokploy | [`deploy/dokploy/compose.yml`](../deploy/dokploy/compose.yml) | manual (Swarm replicas) | `deploy.replicas` / Cluster Settings | no | volume | `dokploy-network` | validated (`docker stack config`, `config validate`); not verified on the platform |
 | Coolify | [`deploy/coolify/compose.yml`](../deploy/coolify/compose.yml) | none (one container per service) | — | no | named volume | compose network | validated (`docker compose config`, `config validate`); not verified on the platform |
 | Openship | [`deploy/openship/docker-compose.yml`](../deploy/openship/docker-compose.yml) | unknown (see below) | unknown | unknown | volume | compose network | validated (`docker compose config`); **not verified**: platform behaviour undocumented |
@@ -162,7 +165,7 @@ is fixed. The metrics port is a second Nomad service for Prometheus' Nomad servi
 ### Kubernetes
 
 Owned by WP-148: `deploy/kubernetes` (Kustomize) and `deploy/helm/xtandard-image` (the chart, with
-`role`, HPA or KEDA autoscaling and min/max replicas), documented in [OPERATIONS.md](OPERATIONS.md).
+`role`, HPA or KEDA autoscaling and min/max replicas), documented in [OPERATIONS.md §3](OPERATIONS.md#3-autoscaling).
 [CONFIG.md §6](CONFIG.md#6-kubernetes) has a minimal manifest. The Terraform and Pulumi examples below
 install that chart.
 
@@ -185,7 +188,7 @@ minimal Application setup.
 ### Coolify
 
 [`deploy/coolify/compose.yml`](../deploy/coolify/compose.yml) for the *Docker Compose* build pack:
-`SERVICE_FQDN_XI_8080` makes Coolify generate a domain routed to port 8080, the secrets come from
+`SERVICE_FQDN_XTANDARD_8080` makes Coolify generate a domain routed to port 8080, the secrets come from
 the *Environment Variables* tab, and a named volume holds a disk result cache. Coolify v4 runs one
 container per service: no replicas and no autoscaling (its Swarm mode is deprecated and will be
 removed in v5). Scale by running the same service on several servers behind a load balancer, or
@@ -377,7 +380,7 @@ versions (lock files are not committed: OpenTofu and Terraform use different reg
 | [`cloud-run`](../deploy/terraform/cloud-run/) | `google_cloud_run_v2_service`, Secret Manager secrets, a service account, public invoker | `scaling { min_instance_count, max_instance_count }`, `max_instance_request_concurrency`, `cpu_idle = false` |
 | [`aws-ecs-fargate`](../deploy/terraform/aws-ecs-fargate/) | VPC inputs, ALB + target group (`/readyz`) + listener (HTTP, or HTTPS with a certificate), ECS cluster, task definition, service with circuit breaker, Secrets Manager, IAM, optional CloudFront in front (`cloudfront.tf`, cache key with `Accept`) | `aws_appautoscaling_target` min/max, CPU target tracking and optional `ALBRequestCountPerTarget`, 60 s / 300 s cooldowns |
 | [`azure-container-apps`](../deploy/terraform/azure-container-apps/) | resource group, Log Analytics, environment, `azurerm_container_app` | `min_replicas`, `max_replicas`, `http_scale_rule`, `custom_scale_rule` (cpu) |
-| [`kubernetes-helm`](../deploy/terraform/kubernetes-helm/) | namespace, signing Secret, `helm_release` of `deploy/helm/xtandard-image` | chart values `autoscaling.enabled/minReplicas/maxReplicas`, `role`, `image.tag`, all in `local.values` |
+| [`kubernetes-helm`](../deploy/terraform/kubernetes-helm/) | namespace, the Secret the chart loads through `existingSecret` (signing and stream keys), `helm_release` of `deploy/helm/xtandard-image` with the values of `values.image.json` or `values.video.json` (`var.fleet`): `role`, `image.flavor` (tag empty, so `<appVersion>-<flavor>`; a set `image_tag` must end in `-<flavor>`), `config` with the sources (`var.sources` replaces them), `existingSecret`, resources, video spool and disk cache for the video fleet | `autoscaling.enabled/type/minReplicas/maxReplicas` (hpa by default; `var.autoscaling_type = "keda"`) |
 
 ```sh
 cd deploy/terraform/aws-ecs-fargate
@@ -385,7 +388,7 @@ tofu init && tofu plan -var vpc_id=… -var 'public_subnet_ids=[…]' -var 'priv
 ```
 
 Fly.io has no maintained Terraform provider; Cloudflare in front of any of these is a DNS record
-plus cache rules (see [OPERATIONS.md](OPERATIONS.md)). Providers: hashicorp/google 8.8.1,
+plus cache rules ([OPERATIONS.md §4.2](OPERATIONS.md#42-cloudflare); CloudFront is in the ECS module, [§4.3](OPERATIONS.md#43-amazon-cloudfront)). Providers: hashicorp/google 8.8.1,
 hashicorp/aws 6.70.0, hashicorp/azurerm 5.11.0, hashicorp/helm 3.3.0, hashicorp/kubernetes 3.4.0.
 
 ### Pulumi
@@ -400,7 +403,16 @@ hashicorp/aws 6.70.0, hashicorp/azurerm 5.11.0, hashicorp/helm 3.3.0, hashicorp/
 - `gcp` ([`gcp.ts`](../deploy/pulumi/gcp.ts)): `gcp.cloudrunv2.Service` with min/max instances,
   concurrency 16, CPU always allocated, Secret Manager secrets.
 - `k8s` ([`k8s.ts`](../deploy/pulumi/k8s.ts)): `k8s.helm.v3.Release` of `../helm/xtandard-image`
-  with `role`, `image.tag` and `autoscaling.*` (the only place it sets chart values).
+  with the values of `values.image.json` or `values.video.json` (config `fleet`), read by
+  [`chart-values.ts`](../deploy/pulumi/chart-values.ts) with the overrides `imageFlavor`,
+  `imageTag`, `sources` (an object with `XI_SOURCES` and its keys), `autoscalingType`,
+  `minReplicas`, `maxReplicas`; it creates the Secret named by `existingSecret` (signing keys,
+  `streamKeys`).
+
+Both Kubernetes programs keep their chart values in those JSON files only. `deploy/check/helm.sh`
+checks that each program's values equal its file when nothing is overridden and renders every file
+through `helm lint --strict` and `helm template | kubeconform -strict`, with WP-148's pinned helm
+and kubeconform images.
 
 ```sh
 cd deploy/pulumi && bun install
@@ -460,6 +472,7 @@ task deploy:platforms:run     # compose single + split + Swarm against $XI_IMAGE
 | The server accepts each environment | `xtandard-image config validate` in `$XI_IMAGE` (unknown `XI_*` variables, bad values, roles) | every container of the compose, Swarm, Dokploy, Coolify, Fly, Cloud Run, Container Apps, Render, DigitalOcean, ECS and App Runner files |
 | Terraform | OpenTofu 1.13.2 `fmt -check`, `init -backend=false`, `validate`, tflint 0.65 (aws, google, azurerm rulesets); also passes with `XI_TF_IMAGE=hashicorp/terraform:1.17.0` | `deploy/terraform/*` |
 | TypeScript | `bun install --frozen-lockfile`, `tsc --noEmit`, `sst install`, `cdk synth` without credentials | `deploy/pulumi`, `deploy/sst`, `deploy/cdk` |
+| Helm values of the Kubernetes programs | `tofu console` on `local.values` and `chartValues()` compared with the JSON files; `helm lint --strict`, `helm template` piped to `kubeconform -strict` (WP-148's pins, read from `deploy/scripts/check.sh`) | `deploy/terraform/kubernetes-helm/values.*.json`, `deploy/pulumi/values.*.json` |
 | Node licences | `bun deploy/check/licenses.ts` | the three Node projects |
 | Scripts | shellcheck 0.11 | `deploy/check/*.sh`, `deploy/docker/run.sh` |
 

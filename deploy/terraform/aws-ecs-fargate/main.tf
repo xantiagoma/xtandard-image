@@ -1,5 +1,5 @@
 # AWS ECS on Fargate behind an ALB, with target-tracking autoscaling and an optional CloudFront
-# distribution in front (docs/DEPLOY.md "Terraform: ECS on Fargate").
+# distribution in front (docs/DEPLOY.md "Terraform / OpenTofu").
 
 locals {
   container = "xtandard-image"
