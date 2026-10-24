@@ -380,3 +380,9 @@ owner has authorised merging PRs without review.
   OpenTofu, Pulumi, SST, CDK; `task deploy:check`, `deploy:platforms:check`, `deploy:platforms:run`).
   Workflow `deploy.yml` gated by `XI_DEPLOY_WORKFLOW=enabled`. **In flight:** WP-150 (`m7/wp-150-config-apply`):
   GOMEMLIMIT fraction, ready queue threshold and max connections were validated but never applied.
+
+- **Merged 2026-10-24: WP-150** (#157): GOMEMLIMIT from the cgroup limit, `/readyz` queue threshold,
+  public-listener connection limit, plus `XI_SECURITY_SECRET`, `XI_SECURITY_ALLOWED_PROCESSING_OPTIONS`
+  and `XI_FETCH_MAX_CONCURRENT` (found by the Config audit; guard `TestEveryFieldHasAConsumer`).
+  `XI_PROCESSING_LINEAR_RESIZE` is a backlog gap. Demo redeployed: GET/HEAD snapshot identical.
+  Nothing in flight.
