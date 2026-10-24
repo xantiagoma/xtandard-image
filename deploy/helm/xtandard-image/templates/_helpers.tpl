@@ -88,9 +88,10 @@ app.kubernetes.io/part-of: xtandard-image
 {{- end -}}
 
 {{/*
-GOMEMLIMIT: goMemLimit, or with "auto" 30 % of resources.limits.memory when
-it is written in Mi or Gi (the ratio of XI_PROCESSING_GO_MEMORY_FRACTION;
-the server does not derive it from the cgroup yet, docs/OPERATIONS.md §1).
+GOMEMLIMIT override: goMemLimit, or with "auto" 30 % of
+resources.limits.memory when it is written in Mi or Gi. Empty (the default)
+sets none and the server derives it from the cgroup limit
+(XI_PROCESSING_GO_MEMORY_FRACTION, docs/OPERATIONS.md §1.3).
 */}}
 {{- define "xi.goMemLimit" -}}
 {{- $v := .Values.goMemLimit | toString -}}
