@@ -1,0 +1,12 @@
+# Image fleet scaled by KEDA (components/keda) instead of the CPU HPA.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+components:
+  - ../../components/role-image
+  - ../../components/keda
+
+nameSuffix: -image

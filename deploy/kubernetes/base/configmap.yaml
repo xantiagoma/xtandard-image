@@ -1,0 +1,25 @@
+# Non-secret settings as environment variables (docs/CONFIG.md §2). Secrets
+# (XI_SIGNING_KEYS, source credentials, XI_CACHE_RESULT_REDIS_URL) belong in
+# the xtandard-image-secrets Secret. A config file in a ConfigMap works too:
+# docs/examples/k8s/.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xtandard-image-env
+data:
+  XI_ROLE: all
+  # Admin listener (/metrics, pprof when enabled) on every interface so
+  # Prometheus can scrape the pod; the NetworkPolicy keeps it in-cluster.
+  XI_ADMIN_ADDR: ":9090"
+  XI_OBSERVABILITY_LOG_LEVEL: info
+  # Placeholder origin: replace with your sources (docs/SOURCES.md).
+  XI_SOURCES: origin
+  XI_SOURCES_ORIGIN_TYPE: http
+  XI_SOURCES_ORIGIN_ALLOW: images.example.com
+  # Go heap limit: 30 % of limits.memory (2Gi). The server does not derive
+  # it from the cgroup yet (docs/OPERATIONS.md §1); change it with the limit.
+  GOMEMLIMIT: 600MiB
+  # Drain: readiness 503 for SHUTDOWN_DELAY, then up to SHUTDOWN_TIMEOUT for
+  # in-flight requests. terminationGracePeriodSeconds must exceed the sum.
+  XI_SERVER_SHUTDOWN_DELAY: 5s
+  XI_SERVER_SHUTDOWN_TIMEOUT: 30s

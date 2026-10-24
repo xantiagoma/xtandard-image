@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: xtandard-image
+spec:
+  maxUnavailable: 1
+  # Let evictions proceed for pods that never became ready.
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels: {}
