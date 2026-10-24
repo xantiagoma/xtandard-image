@@ -22,7 +22,7 @@ or a copy of the image in its own registry.
 - [Platform matrix](#platform-matrix)
 - Containers: [docker run](#docker-run) · [Docker Compose](#docker-compose) · [Docker Swarm](#docker-swarm) · [Nomad](#nomad) · [Kubernetes](#kubernetes)
 - Self-hosted PaaS: [Dokploy](#dokploy) · [Coolify](#coolify) · [Openship](#openship)
-- Managed: [Fly.io](#flyio) · [Google Cloud Run](#google-cloud-run) · [AWS ECS on Fargate](#aws-ecs-on-fargate) · [AWS App Runner](#aws-app-runner) · [Azure Container Apps](#azure-container-apps) · [Railway](#railway) · [Render](#render) · [DigitalOcean App Platform](#digitalocean-app-platform)
+- Managed: [Fly.io](#flyio) · [Google Cloud Run](#google-cloud-run) · [AWS ECS on Fargate](#aws-ecs-on-fargate) · [AWS App Runner](#aws-app-runner) · [Azure Container Apps](#azure-container-apps) · [Railway](#railway) · [Render](#render) · [DigitalOcean App Platform](#digitalocean-app-platform) · [Modal](#modal)
 - Infrastructure as code: [Terraform / OpenTofu](#terraform--opentofu) · [Pulumi](#pulumi) · [SST](#sst) · [AWS CDK](#aws-cdk)
 - [Verification](#verification) · [Licences](#licences)
 
@@ -107,6 +107,7 @@ platform" means nobody deployed it.
 | Railway | [`deploy/railway/railway.json`](../deploy/railway/railway.json) | none horizontally (vertical up to plan limits) | `numReplicas` | app sleeping (`sleepApplication`) | one volume, not with replicas | private network `*.railway.internal` | validated (`railway.schema.json`); not verified on the platform |
 | Render | [`deploy/render/render.yaml`](../deploy/render/render.yaml) | CPU and memory targets | `scaling.minInstances` (≥ 1), `maxInstances` | no | a disk blocks scaling | private network | validated (`render.yaml.json`, `config validate`); not verified on the platform |
 | DigitalOcean App Platform | [`deploy/digitalocean/app.yaml`](../deploy/digitalocean/app.yaml) | CPU (dedicated sizes), requests per second, p95 latency | `autoscaling.min/max_instance_count` | no | none | `internal_ports` | validated (DigitalOcean OpenAPI `app_spec`, `config validate`); not verified on the platform |
+| Modal | [`deploy/modal/app.py`](../deploy/modal/app.py) (both fleets) | requests in flight per container (`@modal.concurrent` `target_inputs`) | `min_containers`, `max_containers`, `buffer_containers` | yes (`min_containers=0`) | container ephemeral disk (`ephemeral_disk`, lost when the container stops) | not reachable (only the web server port is exposed); push OTel | validated (loads with modal 1.6.2, `config validate`); server lifecycle run locally in a Modal-like container; not verified on the platform |
 | Terraform / OpenTofu | [`deploy/terraform/`](../deploy/terraform/) | as the platform | variables `min_*`, `max_*` | as the platform | — | — | validated (`tofu`/`terraform validate`, tflint) |
 | Pulumi | [`deploy/pulumi/`](../deploy/pulumi/) | ECS CPU target tracking; Cloud Run; Helm | config `minInstances`, `maxInstances` | — | — | — | validated (`tsc --noEmit`) |
 | SST | [`deploy/sst/`](../deploy/sst/) | CPU, memory, ALB requests | `scaling.min`, `scaling.max` | no | — | — | validated (`sst install` + `tsc --noEmit`) |
@@ -365,6 +366,111 @@ and a video web service.
 - `doctl apps spec validate` needs an API token (without one, `--schema-only` only parses the YAML),
   so the spec is validated against DigitalOcean's published OpenAPI `app_spec` schema instead.
 
+### Modal
+
+[`deploy/modal/app.py`](../deploy/modal/app.py), one Modal App with two classes, each its own web
+endpoint and autoscaling pool: `ImageFleet` (`-slim`, `XI_ROLE=image`) and `VideoFleet` (`-full`,
+`XI_ROLE=video`). Written for the modal client 1.6.2 (the 1.x API: `min_containers`,
+`scaledown_window`, `@modal.concurrent`, not the older `keep_warm`, `container_idle_timeout` or
+`allow_concurrent_inputs`).
+
+```sh
+pip install modal==1.6.2 && modal setup
+modal secret create ghcr-pull REGISTRY_USERNAME=<github-user> REGISTRY_PASSWORD=<token-with-read:packages>
+modal secret create xtandard-image-signing XI_SIGNING_KEYS=<hex> XI_SIGNING_SALTS=<hex>
+modal secret create xtandard-image-stream XI_VIDEO_TRANSFORM_STREAM_KEYS=<hex>
+modal deploy deploy/modal/app.py
+```
+
+- **How the container runs**: Modal is a Python platform. It builds its own image from ours
+  (`modal.Image.from_registry`, which needs `python` and `pip` on `PATH` or `add_python=`; the
+  image must have a `linux/amd64` variant, which ours has), runs its Python entrypoint through the
+  image's `ENTRYPOINT` (which must `exec` its arguments, and ours is the server binary), and
+  always runs as root, ignoring `USER`
+  ([existing images](https://modal.com/docs/guide/existing-images)). So the file adds a
+  standalone CPython (`add_python="3.13"`; the runtime is Ubuntu 24.04 with glibc, which it needs),
+  clears the entrypoint (`.entrypoint([])`), and each container's `@modal.enter` starts
+  `xtandard-image serve` with `subprocess.Popen` as UID 65532 (the image's user; `MODAL_*`
+  variables are not passed on). `@modal.web_server(8080, startup_timeout=…)` proxies HTTP to it
+  once the port accepts connections ([web functions](https://modal.com/docs/guide/webhooks)).
+  There is no read-only root filesystem, `--cap-drop` or tmpfs to set. The server writes `/tmp`
+  (world-writable in the image) and, on video, the spool and disk cache directories, which
+  `start_server()` creates for UID 65532.
+- **How it scales**: every HTTP request is one Modal input. Without `@modal.concurrent` a container
+  takes **one request at a time**; with it, the autoscaler adds containers to keep about
+  `target_inputs` in flight per container and lets one burst to `max_inputs`
+  ([input concurrency](https://modal.com/docs/guide/concurrent-inputs)). Images: target 8, max 32
+  (just under 2 workers + a 32-place queue, so Modal queues or scales out before the server's own
+  429). Video: 4 / 16. Between `min_containers` (1 for images, 0 for video) and `max_containers`
+  (20 / 10), with `buffer_containers=1` idle spare for images while traffic flows and
+  `scaledown_window=300` (idle seconds before a container stops; 2 s to 20 min, default 60)
+  ([scaling](https://modal.com/docs/guide/scale), [cold
+  starts](https://modal.com/docs/guide/cold-start)). `/readyz` is not used by Modal: it routes as
+  soon as the port is open (`XI_SERVER_READY_QUEUE_THRESHOLD` has no effect here), and the server's
+  429 with `Retry-After` stays the backstop.
+- **Cold start**: Modal builds its image once, at `modal deploy`; it says containers boot in about
+  a second, and the server then starts before the port opens. Not measured on Modal.
+  `min_containers=1` keeps one stills container warm.
+- **Size**: `cpu=(2.0, 2.0)` and `memory=(4096, 4096)` are (request, limit): a hard CPU limit and a
+  memory limit that OOM-kills above it; without a limit a container may use more than its request
+  ([resources](https://modal.com/docs/guide/resources)). Modal counts a physical core (2 vCPU) as
+  1.0. Modal does not document a cgroup quota or `memory.max` visible inside the container, so the
+  file sets `GOMAXPROCS` (= workers) and `GOMEMLIMIT` (30 % of the limit) explicitly instead of
+  relying on the server's cgroup detection. Video: 4 cores, 8 GiB, `XI_VIDEO_TRANSFORM_WORKERS=4`.
+- **Request limits**: an HTTP request to a web function may last **150 s**
+  ([timeouts](https://modal.com/docs/guide/webhook-timeouts); Modal then answers itself, with a 303
+  to a result URL on its Python web functions), request bodies up to 4 GiB, responses unlimited.
+  `XI_VIDEO_TRANSFORM_TIMEOUT` stays at 2 minutes and the functions' `timeout=150`. HLS/DASH
+  playlists and segments under `/_stream/` are ordinary short requests.
+- **Rate limit**: new workspaces are limited to **200 web requests per second** in total (429 above
+  it, raised by Modal support) ([web functions](https://modal.com/docs/guide/webhooks)). Behind a
+  CDN that counts only misses, but plan for it.
+- **Shutdown**: when a container stops (scale-in, redeploy, preemption), Modal calls `@modal.exit`
+  with a 30 s grace period ([lifecycle](https://modal.com/docs/guide/lifecycle-functions),
+  [preemption](https://modal.com/docs/guide/preemption)); the file's handler sends SIGTERM and
+  waits. Modal does not probe `/readyz`, so `XI_SERVER_SHUTDOWN_DELAY=0s`, and the drain is 20 s for
+  images and 25 s for video (not the 130 s of other video fleets: a transcode still running then
+  is cut, and its client retries). `nonpreemptible=True` avoids preemption at 3 × the CPU and
+  memory price.
+- **Secrets**: Modal Secrets become environment variables: `xtandard-image-signing` with
+  `XI_SIGNING_KEYS`/`XI_SIGNING_SALTS`, `xtandard-image-stream` with
+  `XI_VIDEO_TRANSFORM_STREAM_KEYS` (the same for every video container), and `ghcr-pull` with
+  `REGISTRY_USERNAME`/`REGISTRY_PASSWORD` for the private GHCR package (`required_keys` makes
+  `modal deploy` fail early when one is missing). The names are placeholders.
+- **Disk and cache**: the container filesystem is ephemeral (`ephemeral_disk=` in MiB raises it, up
+  to 3 TiB, billed as memory at 1/20 of the size); the video spool and a per-container disk result
+  cache live there and vanish with the container. A [Modal
+  Volume](https://modal.com/docs/guide/volumes) is not a shared cache: writes become visible to
+  other containers only after a commit and a reload, the last commit wins, and v1 recommends at
+  most 5 concurrent writers. Use the in-memory result cache, an S3-compatible bucket
+  (`XI_CACHE_RESULT_STORES=s3`) for shared results, and a CDN in front.
+- **Observability**: only the web server port is exposed, so `/metrics` on the admin listener
+  (loopback) cannot be scraped. Logs are the server's JSON on stdout (`modal app logs
+  xtandard-image`); for traces, put `OTEL_EXPORTER_OTLP_ENDPOINT` (and `_HEADERS`) in a Modal
+  Secret and add it to `secrets=[…]` ([OPERATIONS.md §6](OPERATIONS.md#6-observability)). Modal's
+  dashboard shows containers, inputs and CPU/memory per function.
+- **Routing and domains**: `modal deploy` prints `https://<workspace>--xtandard-image.modal.run`
+  and `https://<workspace>--xtandard-video.modal.run` (the `label=` of each `web_server`); route the
+  [video paths](#image-and-video-fleets) to the second at the CDN. `custom_domains=[…]` on
+  `@modal.web_server` serves your own domain with a managed certificate on the Team and Enterprise
+  plans ([URLs](https://modal.com/docs/guide/webhook-urls)); the `modal.run` URLs keep working.
+- **Fit**: Modal bills per second for the higher of request and use (2026-10 list price:
+  $0.0000131 per core-second, $0.00000222 per GiB-second, so one always-warm 2-core / 4 GiB
+  container is about $91 per 30 days; [pricing](https://modal.com/pricing)) and scales to zero,
+  which suits spiky or occasional traffic, a video fleet that is idle most of the day, or staging.
+  It suits steady high-volume stills less: the 200 requests per second workspace limit, the 150 s
+  request cap, a 30 s drain, no Prometheus scrape and no shared disk all work against it, and
+  always-on containers cost more than a VM. GPUs bring nothing: libvips, FFmpeg and the ONNX
+  detection and classification models run on the CPU here.
+
+`modal deploy` needs an account, so `task deploy:platforms:check` loads the app with the pinned
+client instead (any Modal deprecation warning fails it) and runs `config validate` on each fleet's
+environment; `task deploy:platforms:run` builds what `from_registry(…, add_python=…).entrypoint([])`
+builds from `$XI_IMAGE` (root, a standalone CPython, the client) and runs the app's own
+`start_server()`/`stop_server()` for both fleets: `/readyz` 200, UID 65532, no `MODAL_*`
+variables, the `GOMEMLIMIT` log line, a clean SIGTERM exit. Modal's proxy, autoscaler and
+signals are not exercised. Not verified on the platform.
+
 ## Infrastructure as code
 
 Each tool's directory is a self-contained example, not a published module. Settings match the
@@ -457,7 +563,7 @@ from a pinned container or a pinned package):
 
 ```sh
 task deploy:platforms:check   # everything below except the local run
-task deploy:platforms:run     # compose single + split + Swarm against $XI_IMAGE (default xtandard-image:main-gpl)
+task deploy:platforms:run     # compose single + split + Swarm + Modal-like container against $XI_IMAGE (default xtandard-image:main-gpl)
 ```
 
 | Check | Tool | Files |
@@ -469,7 +575,8 @@ task deploy:platforms:run     # compose single + split + Swarm against $XI_IMAGE
 | AWS inputs | botocore 1.43 service models | ECS task definition, service, scalable target and policies; App Runner service and autoscaling |
 | Cloud Run YAML | kubeconform 0.7 with the Knative Serving v1 schema (Cloud Run annotations are not checked) | `deploy/cloud-run/*.yaml` |
 | Nomad | `nomad job validate` (Nomad 2.0.7, no agent) | `deploy/nomad` |
-| The server accepts each environment | `xtandard-image config validate` in `$XI_IMAGE` (unknown `XI_*` variables, bad values, roles) | every container of the compose, Swarm, Dokploy, Coolify, Fly, Cloud Run, Container Apps, Render, DigitalOcean, ECS and App Runner files |
+| Modal app | `deploy/check/validate.py modal`: the app loads with modal 1.6.2 (no credentials; deprecation warnings are errors), one web endpoint per env dict | `deploy/modal/app.py` |
+| The server accepts each environment | `xtandard-image config validate` in `$XI_IMAGE` (unknown `XI_*` variables, bad values, roles) | every container of the compose, Swarm, Dokploy, Coolify, Fly, Cloud Run, Container Apps, Render, DigitalOcean, ECS and App Runner files, and both Modal fleets |
 | Terraform | OpenTofu 1.13.2 `fmt -check`, `init -backend=false`, `validate`, tflint 0.65 (aws, google, azurerm rulesets); also passes with `XI_TF_IMAGE=hashicorp/terraform:1.17.0` | `deploy/terraform/*` |
 | TypeScript | `bun install --frozen-lockfile`, `tsc --noEmit`, `sst install`, `cdk synth` without credentials | `deploy/pulumi`, `deploy/sst`, `deploy/cdk` |
 | Helm values of the Kubernetes programs | `tofu console` on `local.values` and `chartValues()` compared with the JSON files; `helm lint --strict`, `helm template` piped to `kubeconform -strict` (WP-148's pins, read from `deploy/scripts/check.sh`) | `deploy/terraform/kubernetes-helm/values.*.json`, `deploy/pulumi/values.*.json` |
@@ -484,7 +591,8 @@ port 18480 by default) brings up `compose.yml` with the fixtures as a local sour
 image fleet, and that each fleet refuses the other's requests directly. Then, only if the host is
 not already a swarm node, it creates a single-node swarm, deploys `stack.yml`, checks 2/2 replicas
 and the update/rollback settings, removes the stack and leaves the swarm. Everything it creates is
-removed (`down -v`).
+removed (`down -v`). Last, [`deploy/check/modal-run.sh`](../deploy/check/modal-run.sh) runs the
+Modal app's server lifecycle in a Modal-like container ([Modal](#modal)) and removes that image.
 
 No GitHub workflow runs these yet (Actions minutes are exhausted); the tasks are the entry point.
 
@@ -501,4 +609,6 @@ field). Pulumi SDKs, SST and the AWS CDK are Apache-2.0.
 Terraform providers, OpenTofu, Terraform, tflint, Nomad, kubeconform and check-jsonschema are
 external tools that are only run (ADR 0006): the HashiCorp providers are MPL-2.0, OpenTofu is
 MPL-2.0, Terraform and Nomad are BUSL-1.1, tflint is MPL-2.0 (its rulesets MPL-2.0), kubeconform
-Apache-2.0, check-jsonschema Apache-2.0.
+Apache-2.0, check-jsonschema Apache-2.0. The modal client (Apache-2.0) and the standalone CPython
+(PSF-2.0) are only installed by the checks and by your own `modal deploy`; nothing of them ships in
+the published images.
