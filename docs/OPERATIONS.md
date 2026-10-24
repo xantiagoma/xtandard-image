@@ -49,10 +49,13 @@ A replica's memory has three parts:
 - **jemalloc.** The image preloads jemalloc with `MALLOC_CONF=narenas:2`. With its default of 4 arenas per CPU, freed pages stayed resident and peak RSS more than doubled under load (WP-87). Keep the image's `MALLOC_CONF`.
 - **The Go heap.** It is small: buffers are C-allocated and owned by vips.
 
-ARCHITECTURE §11 says `GOMEMLIMIT` is set at startup to `XI_PROCESSING_GO_MEMORY_FRACTION` (30 %) of the cgroup `memory.max`. **This build does not do that yet.** The variable is validated but not applied. The local stack ran with a 2 GiB limit and `go_gc_gomemlimit_bytes` stayed at its maximum (9.2e18). Until it is applied, set `GOMEMLIMIT` yourself to about 30 % of the memory limit:
+At startup the server sets the Go memory limit (`GOMEMLIMIT`) to `XI_PROCESSING_GO_MEMORY_FRACTION` (30 %) of the cgroup memory limit: cgroup v2 `memory.max`, or v1 `memory.limit_in_bytes`, the smallest from the process's own cgroup up to the root (so a pod-level limit counts too). It logs the result once:
 
-- The Helm chart does this by default (`goMemLimit: auto` derives it from `resources.limits.memory` written in `Mi` or `Gi`).
-- The Kustomize base sets `GOMEMLIMIT: 600MiB` for its 2 GiB limit.
+```json
+{"level":"INFO","msg":"go memory limit set","gomemlimit_bytes":322122547,"cgroup_memory_limit_bytes":1073741824,"memory_fraction":0.3,"cgroup":"v2"}
+```
+
+`go_gc_gomemlimit_bytes` shows the same value. Without a memory limit (`max`), the runtime default (no limit) stays and the log says `go memory limit unchanged: no cgroup memory limit`. A `GOMEMLIMIT` you set yourself wins (`go memory limit from GOMEMLIMIT`); set it only to override the fraction. When `XI_PROCESSING_MEMORY_BUDGET` is set and the Go share plus the budget exceed the limit, the server warns at startup (`go memory limit and memory budget exceed the cgroup memory limit`): lower one of them.
 
 Never set it to the whole limit: most of the memory is C memory that the Go GC cannot see.
 
@@ -207,7 +210,14 @@ On SIGTERM the server:
 
 `terminationGracePeriodSeconds` must exceed delay + timeout. The base uses 45 s, and the chart computes delay + timeout + 10 s (165 s for video). Raise the delay to 10–15 s behind cloud load balancers that deregister slowly, such as AWS ALB target groups. No `preStop` sleep is needed: the server's own delay does that job.
 
-`XI_SERVER_READY_QUEUE_THRESHOLD` is meant to make `/readyz` answer 503 while the queue is more than N % full, which takes a saturated pod out of rotation. **This build validates the variable but does not apply it yet.** Leave it off. Even once it works, it removes capacity exactly when the fleet is busiest, and pods that flap in and out of the endpoints confuse load balancers. Autoscaling on the queue is the better remedy.
+`XI_SERVER_READY_QUEUE_THRESHOLD` (off by default) makes `/readyz` answer 503 `busy` while the image processing queue is at least N % full: running plus waiting jobs over the `XI_PROCESSING_WORKERS` + `XI_PROCESSING_QUEUE_SIZE` places, the ones whose exhaustion means 429. It takes a saturated pod out of rotation until the queue drains below N %.
+
+- It is evaluated on every probe, with no hysteresis: under a load that hovers around the threshold the pod flaps exactly as often as the probe sees it cross. Damp it with the probe's `failureThreshold` and `successThreshold`, or a high N (90–100: only a pod that is about to shed load leaves).
+- It removes capacity exactly when the fleet is busiest, and pods that leave and rejoin the endpoints confuse some load balancers. Autoscaling on the queue (§3.1) is the better remedy; use the threshold to stop a load balancer from piling onto one hot pod.
+- Video transformations have their own pool (§1.2) and do not count; a `XI_ROLE=video` pod never turns busy. Scale video on `xi_video_transform_queue_depth`.
+- The admin listener's `/readyz` answers the same.
+
+`XI_SERVER_MAX_CONNECTIONS` (default 4096) caps the open connections on the public listener; the admin listener is not counted, so probes and scrapes there still work. At the cap the server stops accepting and new clients wait in the kernel's accept backlog; they are not refused. Idle keep-alive connections hold their slot until `XI_SERVER_IDLE_TIMEOUT` (90 s), so behind a load balancer that pools connections the cap is about its pool size, not about requests.
 
 ### 3.6 Cold start
 
@@ -543,7 +553,7 @@ Other alerts:
 | `XtandardImageQueueSaturated` | over 1.5 jobs per worker for 10 minutes |
 | `XtandardImagePanics` | a handler panic was recovered |
 | `XtandardImageRestarting` | more than 2 restarts in 30 minutes (OOM kill or native crash) |
-| `XtandardImageMemoryNearLimit` | RSS above 90 % of the limit, derived as `GOMEMLIMIT / 0.3` (set `GOMEMLIMIT` as in §1.3) |
+| `XtandardImageMemoryNearLimit` | RSS above 90 % of the limit, derived as `GOMEMLIMIT / 0.3` (the server sets `GOMEMLIMIT` from the limit, §1.3) |
 | `XtandardImageUpstreamErrors` | more than 5 % 502/504 for 10 minutes |
 | `XtandardImageCacheWritesDropped` | the result cache write queue overflows |
 | `XtandardImageVideoOverloaded`, `XtandardImageVideoFailures`, `XtandardImageVideoSpoolFull` | the video pool rejects jobs, more than 10 % of transforms fail, or the spool is full |
