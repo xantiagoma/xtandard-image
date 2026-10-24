@@ -2039,8 +2039,8 @@
         },
         "max_concurrent": {
           "default": 256,
-          "description": "Concurrent origin fetches\n\nEnv: XI_FETCH_MAX_CONCURRENT",
-          "markdownDescription": "Concurrent origin fetches\n\nEnv: `XI_FETCH_MAX_CONCURRENT`",
+          "description": "Origin downloads in progress at once, all sources together. Coalesced requests and cache hits take none; a download waits for a slot within its XI_FETCH_TIMEOUT (the wait counts against it) and is 503 when none frees up\n\nEnv: XI_FETCH_MAX_CONCURRENT",
+          "markdownDescription": "Origin downloads in progress at once, all sources together. Coalesced requests and cache hits take none; a download waits for a slot within its `XI_FETCH_TIMEOUT` (the wait counts against it) and is 503 when none frees up\n\nEnv: `XI_FETCH_MAX_CONCURRENT`",
           "title": "XI_FETCH_MAX_CONCURRENT",
           "type": "integer"
         },
@@ -2836,8 +2836,8 @@
         },
         "go_memory_fraction": {
           "default": 0.3,
-          "description": "GOMEMLIMIT as fraction of cgroup memory.max\n\nEnv: XI_PROCESSING_GO_MEMORY_FRACTION",
-          "markdownDescription": "`GOMEMLIMIT` as fraction of cgroup `memory.max`\n\nEnv: `XI_PROCESSING_GO_MEMORY_FRACTION`",
+          "description": "Sets the Go memory limit (GOMEMLIMIT) at startup to this fraction of the cgroup memory limit (v2 memory.max, v1 memory.limit_in_bytes; the smallest from the process's cgroup up). A GOMEMLIMIT you set wins; without a limit nothing changes. Logged once (go memory limit set); [OPERATIONS.md §1.3](OPERATIONS.md#13-memory)\n\nEnv: XI_PROCESSING_GO_MEMORY_FRACTION",
+          "markdownDescription": "Sets the Go memory limit (`GOMEMLIMIT`) at startup to this fraction of the cgroup memory limit (v2 `memory.max`, v1 `memory.limit_in_bytes`; the smallest from the process's cgroup up). A `GOMEMLIMIT` you set wins; without a limit nothing changes. Logged once (`go memory limit set`); [OPERATIONS.md §1.3](OPERATIONS.md#13-memory)\n\nEnv: `XI_PROCESSING_GO_MEMORY_FRACTION`",
           "title": "XI_PROCESSING_GO_MEMORY_FRACTION",
           "type": "number"
         },
@@ -2850,8 +2850,8 @@
         },
         "linear_resize": {
           "default": false,
-          "description": "Resize in linear light\n\nEnv: XI_PROCESSING_LINEAR_RESIZE",
-          "markdownDescription": "Resize in linear light\n\nEnv: `XI_PROCESSING_LINEAR_RESIZE`",
+          "description": "Resize in linear light. **Not implemented yet**: validated and accepted, but resizing is always in the image's own colour space (ROADMAP backlog)\n\nEnv: XI_PROCESSING_LINEAR_RESIZE",
+          "markdownDescription": "Resize in linear light. **Not implemented yet**: validated and accepted, but resizing is always in the image's own colour space (ROADMAP backlog)\n\nEnv: `XI_PROCESSING_LINEAR_RESIZE`",
           "title": "XI_PROCESSING_LINEAR_RESIZE",
           "type": "boolean"
         },
@@ -3003,11 +3003,11 @@
           "title": "XI_SECURITY_ALLOWED_HEIGHTS"
         },
         "allowed_processing_options": {
-          "description": "imgproxy option allowlist\n\nEnv: XI_SECURITY_ALLOWED_PROCESSING_OPTIONS",
+          "description": "imgproxy dialect: the only option names a URL may use, as written (w does not allow width); others are 403. The options a preset expands to are not checked, preset/pr itself is\n\nEnv: XI_SECURITY_ALLOWED_PROCESSING_OPTIONS",
           "items": {
             "type": "string"
           },
-          "markdownDescription": "imgproxy option allowlist\n\nEnv: `XI_SECURITY_ALLOWED_PROCESSING_OPTIONS`",
+          "markdownDescription": "imgproxy dialect: the only option names a URL may use, as written (`w` does not allow `width`); others are 403. The options a preset expands to are not checked, `preset`/`pr` itself is\n\nEnv: `XI_SECURITY_ALLOWED_PROCESSING_OPTIONS`",
           "title": "XI_SECURITY_ALLOWED_PROCESSING_OPTIONS",
           "type": "array"
         },
@@ -3065,8 +3065,8 @@
         },
         "secret": {
           "$ref": "#/$defs/secret",
-          "description": "Require Authorization: Bearer <secret>\n\nEnv: XI_SECURITY_SECRET (or XI_SECURITY_SECRET_FILE)",
-          "markdownDescription": "Require `Authorization: Bearer <secret>`\n\nEnv: `XI_SECURITY_SECRET` (or `XI_SECURITY_SECRET_FILE`)",
+          "description": "Require Authorization: Bearer <secret> on every public-listener request except /healthz and /readyz (CORS preflights are answered first); anything else is 403. For a CDN or proxy in front that adds the header. The playground's own renders are exempt\n\nEnv: XI_SECURITY_SECRET (or XI_SECURITY_SECRET_FILE)",
+          "markdownDescription": "Require `Authorization: Bearer <secret>` on every public-listener request except `/healthz` and `/readyz` (CORS preflights are answered first); anything else is 403. For a CDN or proxy in front that adds the header. The playground's own renders are exempt\n\nEnv: `XI_SECURITY_SECRET` (or `XI_SECURITY_SECRET_FILE`)",
           "title": "XI_SECURITY_SECRET"
         },
         "unsigned_policy": {
@@ -3112,8 +3112,8 @@
         },
         "max_connections": {
           "default": 4096,
-          "description": "Accepted connections cap\n\nEnv: XI_SERVER_MAX_CONNECTIONS",
-          "markdownDescription": "Accepted connections cap\n\nEnv: `XI_SERVER_MAX_CONNECTIONS`",
+          "description": "Open connections on the public listener (the admin listener is not counted). At the cap the server stops accepting: new clients wait in the kernel's accept backlog until a connection closes, they are not refused. Idle keep-alive and HTTP/2 connections hold their slot until XI_SERVER_IDLE_TIMEOUT; one HTTP/2 connection carries many requests\n\nEnv: XI_SERVER_MAX_CONNECTIONS",
+          "markdownDescription": "Open connections on the public listener (the admin listener is not counted). At the cap the server stops accepting: new clients wait in the kernel's accept backlog until a connection closes, they are not refused. Idle keep-alive and HTTP/2 connections hold their slot until `XI_SERVER_IDLE_TIMEOUT`; one HTTP/2 connection carries many requests\n\nEnv: `XI_SERVER_MAX_CONNECTIONS`",
           "title": "XI_SERVER_MAX_CONNECTIONS",
           "type": "integer"
         },
@@ -3168,8 +3168,8 @@
         },
         "ready_queue_threshold": {
           "default": 0,
-          "description": "/readyz 503 when queue fill % ≥ value\n\nEnv: XI_SERVER_READY_QUEUE_THRESHOLD",
-          "markdownDescription": "`/readyz` 503 when queue fill % ≥ value\n\nEnv: `XI_SERVER_READY_QUEUE_THRESHOLD`",
+          "description": "/readyz answers 503 busy while the image processing queue is at least this % full: running plus waiting jobs over XI_PROCESSING_WORKERS + XI_PROCESSING_QUEUE_SIZE places (1–100). Checked on every probe with no hysteresis, so the probe's own thresholds (failureThreshold, successThreshold) are the only damping. Video transformations have their own pool and do not count. [OPERATIONS.md §3.5](OPERATIONS.md#35-readiness-and-drain)\n\nEnv: XI_SERVER_READY_QUEUE_THRESHOLD",
+          "markdownDescription": "`/readyz` answers 503 `busy` while the image processing queue is at least this % full: running plus waiting jobs over `XI_PROCESSING_WORKERS` + `XI_PROCESSING_QUEUE_SIZE` places (1–100). Checked on every probe with no hysteresis, so the probe's own thresholds (`failureThreshold`, `successThreshold`) are the only damping. Video transformations have their own pool and do not count. [OPERATIONS.md §3.5](OPERATIONS.md#35-readiness-and-drain)\n\nEnv: `XI_SERVER_READY_QUEUE_THRESHOLD`",
           "title": "XI_SERVER_READY_QUEUE_THRESHOLD",
           "type": "integer"
         },

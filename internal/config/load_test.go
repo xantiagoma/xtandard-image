@@ -539,3 +539,32 @@ func TestRouterAndFetchEnv(t *testing.T) {
 			cfg.Security.AllowedDPRs, cfg.Security.AllowedHeights, cfg.Fetch.Retry, cfg.Cache.Origin.NegativeTTL)
 	}
 }
+
+// TestMetaGOMEMLIMIT: Load reports the operator's GOMEMLIMIT (the first
+// one, as the runtime reads it) so the server leaves it alone.
+func TestMetaGOMEMLIMIT(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		env  []string
+		want string
+	}{
+		{"unset", nil, ""},
+		{"set", []string{"GOMEMLIMIT=600MiB"}, "600MiB"},
+		{"off", []string{"GOMEMLIMIT=off"}, "off"},
+		{"empty", []string{"GOMEMLIMIT= "}, ""},
+		{"first wins", []string{"GOMEMLIMIT=1GiB", "GOMEMLIMIT=2GiB"}, "1GiB"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			_, meta, err := Load(opts(nil, with(tc.env...)...))
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			if meta.GOMEMLIMIT != tc.want {
+				t.Errorf("GOMEMLIMIT = %q, want %q", meta.GOMEMLIMIT, tc.want)
+			}
+		})
+	}
+}

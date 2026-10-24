@@ -13019,7 +13019,7 @@
     },
     "/readyz": {
       "get": {
-        "description": "200 when ready for traffic; 503 while starting or draining (load balancers deregister). Served on both listeners.",
+        "description": "200 when ready for traffic; 503 while starting or draining (load balancers deregister), and busy while the processing queue is at least XI_SERVER_READY_QUEUE_THRESHOLD % full (off by default). Served on both listeners.",
         "operationId": "getReadyz",
         "responses": {
           "200": {
@@ -13040,13 +13040,13 @@
               "text/plain": {
                 "example": "draining\n",
                 "schema": {
-                  "description": "The state name.",
-                  "pattern": "^(starting|draining)\\n$",
+                  "description": "The state name, or busy.",
+                  "pattern": "^(starting|draining|busy)\\n$",
                   "type": "string"
                 }
               }
             },
-            "description": "Starting or draining."
+            "description": "Starting, draining or busy."
           }
         },
         "servers": [

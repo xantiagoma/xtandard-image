@@ -493,7 +493,7 @@ export interface paths {
         };
         /**
          * Readiness
-         * @description 200 when ready for traffic; 503 while starting or draining (load balancers deregister). Served on both listeners.
+         * @description 200 when ready for traffic; 503 while starting or draining (load balancers deregister), and busy while the processing queue is at least XI_SERVER_READY_QUEUE_THRESHOLD % full (off by default). Served on both listeners.
          */
         get: operations["getReadyz"];
         put?: never;
@@ -4909,7 +4909,7 @@ export interface operations {
                     "text/plain": string;
                 };
             };
-            /** @description Starting or draining. */
+            /** @description Starting, draining or busy. */
             503: {
                 headers: {
                     [name: string]: unknown;

@@ -106,6 +106,12 @@ type Options struct {
 	// names in Delivery.Presets unexpanded. In only-presets mode (Presets)
 	// a /video URL may hold video preset references only.
 	VideoPresets *preset.Store
+	// AllowedOptions, when not empty, are the only option names a URL may
+	// use, as written (an alias is its own name: allowing "w" does not
+	// allow "width"); any other is 403 (XI_SECURITY_ALLOWED_PROCESSING_OPTIONS,
+	// imgproxy IMGPROXY_ALLOWED_PROCESSING_OPTIONS). The options a preset
+	// expands to are not checked; "preset" itself is.
+	AllowedOptions []string
 }
 
 // Parser is the imgproxy dialect. It is safe for concurrent use.
@@ -113,6 +119,7 @@ type Parser struct {
 	o        Options
 	sep      string
 	verifier sign.Verifier
+	allowed  map[string]bool // nil: every option
 }
 
 var _ dialect.Dialect = (*Parser)(nil)
@@ -148,6 +155,12 @@ func New(opts *Options) (*Parser, error) {
 		o.Now = time.Now
 	}
 	p := &Parser{o: o, sep: sep, verifier: v}
+	if len(o.AllowedOptions) > 0 {
+		p.allowed = make(map[string]bool, len(o.AllowedOptions))
+		for _, name := range o.AllowedOptions {
+			p.allowed[name] = true
+		}
+	}
 	if err := p.validatePresets(); err != nil {
 		return nil, err
 	}
@@ -375,6 +388,9 @@ func (st *state) parseOptions(rest string) (string, error) {
 		name, argStr, isOption := strings.Cut(seg, st.p.sep)
 		if !isOption {
 			break
+		}
+		if st.p.allowed != nil && !st.p.allowed[name] {
+			return "", dialect.OptionNotAllowed(name)
 		}
 		st.args = splitArgs(st.args[:0], argStr, st.p.sep)
 		apply := st.apply
