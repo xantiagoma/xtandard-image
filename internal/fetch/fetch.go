@@ -17,6 +17,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"golang.org/x/sync/semaphore"
+
 	"github.com/xantiagoma/xtandard-image/internal/cache"
 	"github.com/xantiagoma/xtandard-image/internal/errs"
 	"github.com/xantiagoma/xtandard-image/internal/source"
@@ -53,6 +55,11 @@ type Config struct {
 	// RetryBackoff is the base delay before the retry; the actual delay is
 	// uniformly jittered in [RetryBackoff/2, 3·RetryBackoff/2).
 	RetryBackoff time.Duration
+	// MaxConcurrent bounds the downloads in progress at once, every source
+	// together (XI_FETCH_MAX_CONCURRENT); 0 means unbounded. An attempt
+	// waits for a slot within its timeout, which the wait counts against;
+	// none in time is 503. Coalesced fetches and cache hits take none.
+	MaxConcurrent int
 }
 
 func (c *Config) setDefaults() {
@@ -121,6 +128,9 @@ type Fetcher struct {
 	store    cache.Store // optional shared origin store (WithStore)
 	storeTTL time.Duration
 
+	// slots bounds concurrent downloads (MaxConcurrent); nil: unbounded.
+	slots *semaphore.Weighted
+
 	// FetchLarge (large.go, WithSpool): nil spool fetches like Fetch.
 	spool   Spooler
 	spooled *spoolCache
@@ -136,6 +146,9 @@ func New(sources Sources, alloc Allocator, cfg Config, opts ...Option) (*Fetcher
 	if cfg.CacheBytes < 0 || cfg.CacheTTL < 0 || cfg.NegativeTTL < 0 {
 		return nil, errors.New("fetch: negative cache size or ttl")
 	}
+	if cfg.MaxConcurrent < 0 {
+		return nil, errors.New("fetch: negative max concurrent")
+	}
 	cfg.setDefaults()
 	f := &Fetcher{
 		sources: sources,
@@ -143,6 +156,9 @@ func New(sources Sources, alloc Allocator, cfg Config, opts ...Option) (*Fetcher
 		metrics: NopMetrics{},
 		cache:   newOriginCache(cfg.CacheBytes, cfg.CacheTTL, cfg.NegativeTTL),
 		cfg:     cfg,
+	}
+	if cfg.MaxConcurrent > 0 {
+		f.slots = semaphore.NewWeighted(int64(cfg.MaxConcurrent))
 	}
 	for _, o := range opts {
 		o(f)
@@ -335,6 +351,15 @@ func (f *Fetcher) attempt(ctx context.Context, src source.Source, key source.Key
 	timeout := errs.Newf(errs.KindUpstreamTimeout, "fetch %s: no response within %s", source.RedactKey(key), f.cfg.Timeout)
 	actx, cancel := context.WithTimeoutCause(ctx, f.cfg.Timeout, timeout)
 	defer cancel()
+	if f.slots != nil {
+		if err := f.slots.Acquire(actx, 1); err != nil {
+			if !errors.Is(context.Cause(actx), timeout) {
+				return nil, nil, fmt.Errorf("fetch %s: wait for a fetch slot: %w", source.RedactKey(key), context.Cause(actx))
+			}
+			return nil, nil, errs.Newf(errs.KindUnavailable, "fetch %s: no fetch slot within %s (fetch.max_concurrent)", source.RedactKey(key), f.cfg.Timeout)
+		}
+		defer f.slots.Release(1)
+	}
 
 	start := time.Now()
 	var n int64
