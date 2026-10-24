@@ -16,9 +16,8 @@ data:
   XI_SOURCES: origin
   XI_SOURCES_ORIGIN_TYPE: http
   XI_SOURCES_ORIGIN_ALLOW: images.example.com
-  # Go heap limit: 30 % of limits.memory (2Gi). The server does not derive
-  # it from the cgroup yet (docs/OPERATIONS.md §1); change it with the limit.
-  GOMEMLIMIT: 600MiB
+  # No GOMEMLIMIT: the server sets it to XI_PROCESSING_GO_MEMORY_FRACTION
+  # (30 %) of limits.memory at startup (docs/OPERATIONS.md §1.3).
   # Drain: readiness 503 for SHUTDOWN_DELAY, then up to SHUTDOWN_TIMEOUT for
   # in-flight requests. terminationGracePeriodSeconds must exceed the sum.
   XI_SERVER_SHUTDOWN_DELAY: 5s

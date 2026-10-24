@@ -691,3 +691,54 @@ func TestNilMetricsKeepsNop(t *testing.T) {
 	}
 	release()
 }
+
+// TestQueueFillAtLeast fills a 2-worker, 2-queue limiter one job at a time
+// and checks the fill threshold (/readyz, XI_SERVER_READY_QUEUE_THRESHOLD)
+// at every step, then drains it.
+func TestQueueFillAtLeast(t *testing.T) {
+	t.Parallel()
+	synctest.Test(t, func(t *testing.T) {
+		l, rec := newLimiter(t, Config{Workers: 2, QueueSize: 2, QueueTimeout: time.Minute})
+		check := func(held int) {
+			t.Helper()
+			for _, p := range []int{1, 25, 50, 75, 100} {
+				want := held*100 >= p*4
+				if got := l.QueueFillAtLeast(p); got != want {
+					t.Errorf("held %d/4: QueueFillAtLeast(%d) = %v, want %v", held, p, got, want)
+				}
+			}
+			if !l.QueueFillAtLeast(0) {
+				t.Errorf("QueueFillAtLeast(0) = false, want always true")
+			}
+		}
+		check(0)
+		releases := make([]func(), 0, 2)
+		for range 2 { // admitted
+			r, err := l.Acquire(t.Context(), 0)
+			if err != nil {
+				t.Fatalf("Acquire: %v", err)
+			}
+			releases = append(releases, r)
+			check(len(releases))
+		}
+		done := make(chan struct{}, 2)
+		for i := range 2 { // waiting for a worker
+			go func() {
+				r, err := l.Acquire(t.Context(), 0)
+				if err == nil {
+					r()
+				}
+				done <- struct{}{}
+			}()
+			synctest.Wait()
+			check(3 + i)
+		}
+		for _, r := range releases {
+			r()
+		}
+		<-done
+		<-done
+		check(0)
+		assertIdle(t, l, rec)
+	})
+}
