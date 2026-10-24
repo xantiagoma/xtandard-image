@@ -367,3 +367,10 @@ owner has authorised merging PRs without review.
   QUERY form/JSON 200 with `Location`, `Accept-Query`, `Vary`). Follow-ups: QUERY snippet refiners for
   the 9 other languages; Swift/Dart method enums gained `.query`. Headless check: audio A/B (known) and an
   intermittent `audio-loudnorm-speech` recipe timeout (external archive.org sample). Nothing in flight.
+
+- **In flight 2026-10-23: M7 deployment and operations.** WP-148 (`m7/wp-148-operations`: OPERATIONS.md,
+  Kustomize, Helm chart, KEDA/HPA, Grafana dashboard, alert/SLO rules, OTel stack, local kind autoscale
+  check) and WP-149 (`m7/wp-149-platforms`: DEPLOY.md, compose/Swarm/Dokploy/Coolify/Openship/Fly/
+  Cloud Run/ECS/App Runner/Container Apps/Railway/Render/DO, Terraform/OpenTofu, Pulumi, SST, CDK),
+  parallel; WP-149 consumes the chart at `deploy/helm/xtandard-image` (reconcile value names at merge).
+  Merge WP-148 first. Backlog: standalone Linux tarballs (ROADMAP "Backlog after M4").
