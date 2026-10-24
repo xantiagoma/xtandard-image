@@ -18,7 +18,8 @@ bad() { printf 'FAIL %s\n' "$1"; fail=1; }
 uv_image="ghcr.io/astral-sh/uv:0.9.5-python3.13-bookworm-slim"
 kubeconform_image="ghcr.io/yannh/kubeconform:v0.7.0"
 nomad_image="hashicorp/nomad:2.0.7"
-py_deps=(--with pyyaml==6.0.3 --with botocore==1.43.118 --with check-jsonschema==0.38.2)
+# modal: the client deploy/modal/app.py is written for (loads the app; no credentials needed).
+py_deps=(--with pyyaml==6.0.3 --with botocore==1.43.118 --with check-jsonschema==0.38.2 --with modal==1.6.2)
 
 # py <args...>: python with the pinned packages, in the uv container (or a local uv).
 py() {
@@ -88,6 +89,9 @@ for f in deploy/cloud-run/service.yaml deploy/cloud-run/service.video.yaml; do
     "/$f" && ok "$f (kubeconform, Knative Service v1)" || bad "$f"
 done
 
+# --- Modal app: loads with the pinned client, no deprecated API, one endpoint per env dict -----
+py python -I deploy/check/validate.py modal deploy/modal/app.py || fail=1
+
 # --- Nomad ------------------------------------------------------------------------------------
 docker run --rm -v "$root/deploy/nomad:/job:ro" -e NOMAD_ADDR=http://127.0.0.1:1 "$nomad_image" \
   job validate /job/xtandard-image.nomad.hcl && ok "deploy/nomad (nomad job validate)" || bad "deploy/nomad"
@@ -132,6 +136,7 @@ render deploy/render/render.yaml deploy/render/render.yaml
 do deploy/digitalocean/app.yaml deploy/digitalocean/app.yaml
 ecs deploy/aws-ecs/task-definition.json deploy/aws-ecs/task-definition.json
 apprunner deploy/aws-app-runner/create-service.json deploy/aws-app-runner/create-service.json
+modal deploy/modal/app.py deploy/modal/app.py
 EOF
   rm -rf "$envdir"
 else
