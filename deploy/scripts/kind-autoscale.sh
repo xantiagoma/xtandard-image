@@ -63,7 +63,11 @@ repo_name="${XI_IMAGE%:*}"
 tag="${XI_IMAGE##*:}"
 helm install xi "$repo/deploy/helm/xtandard-image" -n xi \
   -f "$repo/deploy/scripts/kind/values-autoscale.yaml" \
-  --set image.repository="$repo_name" --set image.tag="$tag" --wait --timeout 5m >/dev/null
+  --set image.repository="$repo_name" --set image.tag="$tag" --wait --timeout 5m >/dev/null || {
+  kubectl -n xi get pods
+  kubectl -n xi logs deploy/xi-xtandard-image --tail=20 || true
+  exit 1
+}
 helm test xi -n xi >/dev/null && log "helm test passed"
 kubectl -n xi wait --for=condition=Ready scaledobject/xi-xtandard-image --timeout 120s >/dev/null
 

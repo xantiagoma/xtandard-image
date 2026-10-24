@@ -30,11 +30,13 @@ imagePullSecrets: []
 replicaCount: 2
 
 # Non-secret XI_* settings, rendered into a ConfigMap and loaded with
-# envFrom. Values must be strings. Secrets go in existingSecret.
+# envFrom. Secrets go in existingSecret. Helm merges this map with yours, so
+# the defaults hold no sources (an unused XI_SOURCES_<NAME>_* key stops
+# startup); set a key to null to drop a default. Sources, for example:
+#   XI_SOURCES: origin
+#   XI_SOURCES_ORIGIN_TYPE: http
+#   XI_SOURCES_ORIGIN_ALLOW: images.example.com
 config:
-  XI_SOURCES: origin
-  XI_SOURCES_ORIGIN_TYPE: http
-  XI_SOURCES_ORIGIN_ALLOW: images.example.com
   XI_OBSERVABILITY_LOG_LEVEL: info
 
 # Optional config file (YAML, docs/CONFIG.md §3), mounted at

@@ -9,3 +9,7 @@ networkPolicy:
 terminationGracePeriodSeconds: 60
 image:
   digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+config:
+  XI_SOURCES: origin
+  XI_SOURCES_ORIGIN_TYPE: http
+  XI_SOURCES_ORIGIN_ALLOW: images.example.com

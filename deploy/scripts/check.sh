@@ -4,7 +4,7 @@
 #
 #   sh deploy/scripts/check.sh            # everything
 #   sh deploy/scripts/check.sh rules      # promtool check + unit tests
-#   sh deploy/scripts/check.sh helm       # helm lint + template | kubeconform
+#   sh deploy/scripts/check.sh helm       # helm lint + template (6 value sets) | kubeconform, refusals
 #   sh deploy/scripts/check.sh kustomize  # kustomize build | kubeconform
 #   sh deploy/scripts/check.sh names      # metric and XI_* names exist in the code
 #   sh deploy/scripts/check.sh compose    # docker compose config of the local stack
@@ -46,26 +46,26 @@ check_rules() {
 
 check_helm() {
   chart=/deploy/helm/xtandard-image
-  echo "== helm lint"
-  drun "$HELM_IMAGE" lint --strict "$chart"
-  for v in "" ci/all-features-values.yaml ci/no-autoscaling-values.yaml ../values-image.yaml ../values-video.yaml; do
-    args=""
-    [ -n "$v" ] && args="-f $chart/$v"
-    echo "== helm template ${v:-defaults} | kubeconform"
-    # shellcheck disable=SC2086
-    drun "$HELM_IMAGE" lint --strict "$chart" $args >/dev/null
-    # shellcheck disable=SC2086
-    drun "$HELM_IMAGE" template xi "$chart" --namespace xi $args | kubeconform
+  src="--set config.XI_SOURCES=origin --set config.XI_SOURCES_ORIGIN_TYPE=http --set config.XI_SOURCES_ORIGIN_ALLOW=images.example.com"
+  for v in ci/minimal-values.yaml ci/all-features-values.yaml ci/no-autoscaling-values.yaml \
+    ../values-image.yaml ../values-video.yaml ../../scripts/kind/values-autoscale.yaml; do
+    echo "== helm lint + template $v | kubeconform"
+    drun "$HELM_IMAGE" lint --strict "$chart" -f "$chart/$v" >/dev/null
+    drun "$HELM_IMAGE" template xi "$chart" --namespace xi -f "$chart/$v" | kubeconform
   done
-  echo "== helm template rejects bad values"
-  if drun "$HELM_IMAGE" template xi "$chart" --set role=video >/dev/null 2>&1; then
-    echo "role=video with the slim flavour rendered" >&2
-    exit 1
-  fi
-  if drun "$HELM_IMAGE" template xi "$chart" --set role=nope >/dev/null 2>&1; then
-    echo "role=nope rendered" >&2
-    exit 1
-  fi
+  echo "== helm template refuses bad values"
+  refuse() {
+    # shellcheck disable=SC2086
+    if drun "$HELM_IMAGE" template xi "$chart" "$@" >/dev/null 2>&1; then
+      echo "rendered but should not: $*" >&2
+      exit 1
+    fi
+  }
+  refuse                                   # defaults: no sources
+  refuse $src --set role=video             # video with the slim flavour
+  refuse $src --set role=nope
+  refuse $src --set autoscaling.minReplicas=5 --set autoscaling.maxReplicas=2
+  refuse $src --set image.flavor=tiny      # values.schema.json
   echo "refused as expected"
 }
 

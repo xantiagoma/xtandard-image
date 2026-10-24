@@ -4,6 +4,9 @@
 {{- if and (include "xi.videoEnabled" .) (eq .Values.image.flavor "slim") (not .Values.image.digest) (not .Values.image.tag) }}
 {{- fail "video transformations need image.flavor full or gpl (slim has no FFmpeg)" }}
 {{- end }}
+{{- if not (or (hasKey .Values.config "XI_SOURCES") .Values.configFile .Values.existingSecret (hasKey .Values.config "XI_DEV_MODE")) }}
+{{- fail "no sources: set config.XI_SOURCES and its XI_SOURCES_<NAME>_* keys, a configFile with sources, or an existingSecret that holds them (docs/SOURCES.md)" }}
+{{- end }}
 {{- $video := include "xi.videoEnabled" . }}
 apiVersion: apps/v1
 kind: Deployment
