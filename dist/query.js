@@ -1,0 +1,150 @@
+// Query dialect URLs (docs/URL-DIALECTS.md §4), mounted at /q/:
+//
+//   {baseUrl}{mount}/?url=<source>&<native key>=…&o=<imgproxy option path>[&xi_sig=…]
+//   {baseUrl}{mount}/video?url=<source>&<video option>=<arg,arg>…[&xi_sig=…]
+//   {baseUrl}{mount}/<imaginary endpoint>?url=<source>&<imaginary param>=…[&xi_sig=…]
+//
+// xi_sig covers the escaped path after the mount ("/", "/video",
+// "/resize") plus the query, so it is appended last (sign.ts signXiQuery).
+import { hasControlChar, utf8 } from "./bytes.js";
+import { encryptPdfPassword } from "./encrypt.js";
+import { formatArg, formatEntry, processingCatalogue, videoCatalogue, } from "./options.js";
+import { signXiQuery } from "./sign.js";
+// Characters kept verbatim in a query value: RFC 3986 unreserved plus
+// ":", "/", ",", "@", "!", "$", "'", "(", ")" and "*". "&", "=", "+",
+// ";", "#", "?", "%", spaces and non-ASCII are percent-encoded.
+const keep = /^[A-Za-z0-9\-._~:/,@!$'()*]$/;
+/** Percent-escapes a query value (keeps `:`, `/` and `,` readable). */
+export function escapeQueryValue(v) {
+    let out = "";
+    for (const ch of v) {
+        if (keep.test(ch)) {
+            out += ch;
+            continue;
+        }
+        for (const b of utf8(ch))
+            out += `%${b.toString(16).toUpperCase().padStart(2, "0")}`;
+    }
+    return out;
+}
+function checkSource(source) {
+    if (source === "" || hasControlChar(source)) {
+        throw new TypeError("source must be a non-empty string without control characters");
+    }
+    return source;
+}
+function nativeValue(key, v) {
+    switch (typeof v) {
+        case "boolean":
+            return v ? "true" : "false";
+        case "number":
+            if (!Number.isFinite(v))
+                throw new RangeError(`query key ${key}: ${v} is not a finite number`);
+            return String(v);
+        case "string":
+            return v;
+        default:
+            throw new TypeError(`query key ${key}: unsupported value type ${typeof v}`);
+    }
+}
+function paramPairs(params) {
+    const out = [];
+    const list = Array.isArray(params) ? params : Object.entries(params ?? {});
+    for (const [k, v] of list) {
+        if (v === undefined || v === null)
+            continue;
+        out.push([k, nativeValue(k, v)]);
+    }
+    return out;
+}
+async function finish(cfg, path, pairs) {
+    const base = (cfg.baseUrl ?? "").replace(/\/+$/, "");
+    const mount = (cfg.mount ?? "/q").replace(/\/+$/, "");
+    let query = pairs.map(([k, v]) => `${escapeQueryValue(k)}=${escapeQueryValue(v)}`).join("&");
+    if (cfg.signing)
+        query = await signXiQuery(path, query, cfg.signing);
+    return `${base}${mount}${path}?${query}`;
+}
+async function passwordPair(cfg, password) {
+    if (!cfg.encryption)
+        throw new Error("pdfPassword needs an encryption key");
+    if (!cfg.signing)
+        throw new Error("pdfPassword needs signing: the server refuses pdf_password on unsigned URLs");
+    return [cfg.optionNames === "canonical" ? "pdf_password" : "pdp", await encryptPdfPassword(password, cfg.encryption)];
+}
+function checkSeparator(sep) {
+    if (sep.length !== 1 || sep === "/" || sep === "-" || sep === "%" || sep === "&" || sep === "=") {
+        throw new TypeError(`invalid argument separator ${JSON.stringify(sep)}`);
+    }
+    return sep;
+}
+/** Internal: a native `/q/` image URL; `o=` carries the option pipelines. */
+export async function buildQueryImage(cfg, pipelines, source, params, ext, pdfPassword) {
+    const sep = checkSeparator(cfg.separator ?? ":");
+    const style = cfg.optionNames ?? "short";
+    const pairs = [["url", checkSource(source)], ...paramPairs(params)];
+    const nonEmpty = pipelines.filter((p) => p.length > 0);
+    if (nonEmpty.length > 0) {
+        pairs.push(["o", nonEmpty.map((p) => p.map((e) => formatEntry(processingCatalogue, e, sep, style)).join("/")).join("/-/")]);
+    }
+    if (ext !== undefined && ext !== "")
+        pairs.push(["format", checkExtension(ext)]);
+    if (pdfPassword !== undefined)
+        pairs.push(await passwordPair(cfg, pdfPassword));
+    return finish(cfg, "/", pairs);
+}
+// Video keys whose query spelling is native (URL-DIALECTS §4: crop is
+// w,h[,x,y] and flip h|v|hv), written by their imgproxy alias instead.
+const nativeVideoKeys = { crop: "c", flip: "fl" };
+function videoArg(a, where) {
+    // The server splits a video key's value on "," and ":".
+    const s = formatArg(a, ",", where);
+    if (s.includes(":"))
+        throw new TypeError(`${where}: argument ${JSON.stringify(s)} contains ":"`);
+    return s;
+}
+/** Internal: a `/q/video` URL; every video option is a key, its arguments joined by ",". */
+export async function buildQueryVideo(cfg, entries, source, ext) {
+    const style = cfg.optionNames ?? "short";
+    const pairs = [["url", checkSource(source)]];
+    for (const [name, args] of entries) {
+        const canonical = videoCatalogue.canonical.get(name);
+        if (canonical === undefined)
+            throw new TypeError(`unknown video option ${JSON.stringify(name)}`);
+        if (args.length === 0)
+            throw new TypeError(`option ${name}: at least one argument is required`);
+        let key = style === "given" ? name : style === "canonical" ? canonical : (videoCatalogue.short.get(canonical) ?? canonical);
+        key = nativeVideoKeys[key] ?? key;
+        pairs.push([key, args.map((a, i) => videoArg(a, `option ${name} argument ${i + 1}`)).join(",")]);
+    }
+    if (ext !== undefined && ext !== "")
+        pairs.push(["format", checkExtension(ext)]);
+    return finish(cfg, "/video", pairs);
+}
+/** Internal: an imaginary endpoint URL (`/q/resize?url=…&width=300`). */
+export function buildImaginary(cfg, endpoint, source, params) {
+    if (!/^[a-z]+$/.test(endpoint) || endpoint === "video")
+        throw new TypeError(`invalid imaginary endpoint ${JSON.stringify(endpoint)}`);
+    return finish(cfg, `/${endpoint}`, [["url", checkSource(source)], ...paramPairs(params)]);
+}
+function checkExtension(ext) {
+    if (!/^[A-Za-z0-9]+$/.test(ext))
+        throw new TypeError(`invalid extension ${JSON.stringify(ext)}`);
+    return ext;
+}
+/** The media type of a QUERY request's content: the URL's query string (RFC 10008). */
+export const QUERY_CONTENT_TYPE = "application/x-www-form-urlencoded";
+/**
+ * Splits a built query dialect URL (`/q/…?url=…`) into an HTTP QUERY
+ * request: the parameters move from the URL to the content, so long
+ * option chains, watermark text or encrypted sources stay out of URLs.
+ * The server must have XI_SERVER_QUERY_METHOD on (the default); many CDNs
+ * and proxies neither cache nor forward QUERY.
+ */
+export function queryMethodRequest(url) {
+    const i = url.indexOf("?");
+    if (i < 0 || i === url.length - 1 || url.includes("#")) {
+        throw new TypeError("a QUERY request needs a query dialect URL with a query and no fragment");
+    }
+    return { method: "QUERY", url: url.slice(0, i), contentType: QUERY_CONTENT_TYPE, body: url.slice(i + 1) };
+}
