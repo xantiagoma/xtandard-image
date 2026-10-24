@@ -6,11 +6,16 @@
       platforms' own loose schemas, unknown keys (a typo fails). Remote $refs are fetched.
   python validate.py botocore <service> <Operation> <params.json>
       Checks AWS CLI input JSON against botocore's service model (no credentials, no calls).
-  python validate.py env <compose|fly|knative|aca|render|do|ecs|apprunner> <file> <outdir>
+  python validate.py env <compose|fly|knative|aca|render|do|ecs|apprunner|modal> <file> <outdir>
       Writes the XI_* variables of each container in a platform file to <outdir>/<n>.env
-      (secrets replaced by a dummy hex key) for `xtandard-image config validate`.
+      (secrets replaced by a dummy hex key) for `xtandard-image config validate`. For modal, the
+      file is a Modal app (deploy/modal/app.py) and the containers are its *_ENV dicts.
+  python validate.py modal <app.py>
+      Loads a Modal app with the pinned modal client (no credentials, nothing deployed): a
+      Modal deprecation warning is an error, every *_ENV dict holds strings only, and the app
+      registers one web endpoint per *_ENV dict.
 
-Run by deploy/check/schemas.sh with pinned pyyaml and botocore.
+Run by deploy/check/schemas.sh with pinned pyyaml, botocore and modal.
 """
 
 from __future__ import annotations
@@ -181,6 +186,9 @@ def _pairs(kind: str, doc: Any) -> list[list[tuple[str, str]]]:
     elif kind == "ecs":
         for c in doc["containerDefinitions"]:
             add([(e["name"], e["value"]) for e in c.get("environment", [])] + [(e["name"], "") for e in c.get("secrets", [])])
+    elif kind == "modal":  # {name: env dict} from _modal_envs
+        for v in doc.values():
+            add(list(v.items()))
     elif kind == "apprunner":
         img = doc["SourceConfiguration"]["ImageRepository"]["ImageConfiguration"]
         add(list(img.get("RuntimeEnvironmentVariables", {}).items()) + [(k, "") for k in img.get("RuntimeEnvironmentSecrets", {})])
@@ -189,14 +197,48 @@ def _pairs(kind: str, doc: Any) -> list[list[tuple[str, str]]]:
     return out
 
 
+def _modal_envs(path: str) -> tuple[Any, dict[str, dict[str, Any]]]:
+    """Runs a Modal app file (definitions only; nothing is deployed or contacted) and returns its
+    `app` and its *_ENV dicts. Modal deprecation warnings are errors."""
+    import runpy
+    import warnings
+
+    from modal.exception import DeprecationError
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationError)
+        mod = runpy.run_path(path)
+    return mod["app"], {k: v for k, v in mod.items() if k.endswith("_ENV") and isinstance(v, dict)}
+
+
+def modal_app(path: str) -> int:
+    import warnings
+
+    app, envs = _modal_envs(path)
+    errs = [f"{n}[{k}] is {type(v).__name__}, not str" for n, d in envs.items() for k, v in d.items() if not isinstance(v, str)]
+    with warnings.catch_warnings():  # the only public listing; deprecated, fine with modal pinned
+        warnings.simplefilter("ignore")
+        endpoints = sorted(app.registered_web_endpoints)
+    if not envs:
+        errs.append("no *_ENV dicts")
+    if len(endpoints) != len(envs):
+        errs.append(f"{len(endpoints)} web endpoints ({', '.join(endpoints)}) for {len(envs)} *_ENV dicts")
+    for e in errs:
+        print(f"FAIL {path}: {e}")
+    if not errs:
+        print(f"ok   {path} (modal app {app.name!r} loads: {', '.join(endpoints)}; {', '.join(envs)})")
+    return 1 if errs else 0
+
+
 def env(kind: str, path: str, outdir: str) -> int:
-    text = Path(path).read_text()
-    if kind == "fly":
+    if kind == "modal":
+        doc: Any = _modal_envs(path)[1]
+    elif kind == "fly":
         import tomllib
 
-        doc = tomllib.loads(text)
+        doc = tomllib.loads(Path(path).read_text())
     else:
-        doc = yaml.safe_load(text)
+        doc = yaml.safe_load(Path(path).read_text())
     for i, pairs in enumerate(_pairs(kind, doc)):
         if not pairs:
             continue
@@ -216,6 +258,8 @@ def main(argv: list[str]) -> int:
         return env(argv[2], argv[3], argv[4])
     if len(argv) == 5 and argv[1] == "openapi":
         return openapi(argv[2], argv[3], argv[4])
+    if len(argv) == 3 and argv[1] == "modal":
+        return modal_app(argv[2])
     if len(argv) == 5 and argv[1] == "botocore":
         return boto(argv[2], argv[3], argv[4])
     print(__doc__)

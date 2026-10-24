@@ -1,6 +1,6 @@
 # Operations
 
-This guide is for running xtandard-image in production. It covers how the server uses CPU, memory and disk, how big a replica should be, how to autoscale a fleet, how to put a CDN in front, which result cache tiers to use, and how to observe the whole thing. Platform recipes (Docker Compose, Swarm, Fly.io, Cloud Run, ECS, Azure Container Apps, Terraform, Pulumi and others) are in [DEPLOY.md](DEPLOY.md). Every variable is listed in [CONFIG.md §2](CONFIG.md#2-environment-variable-reference).
+This guide is for running xtandard-image in production. It covers how the server uses CPU, memory and disk, how big a replica should be, how to autoscale a fleet, how to put a CDN in front, which result cache tiers to use, and how to observe the whole thing. Platform recipes (Docker Compose, Swarm, Fly.io, Cloud Run, ECS, Azure Container Apps, Modal, Terraform, Pulumi and others) are in [DEPLOY.md](DEPLOY.md). Every variable is listed in [CONFIG.md §2](CONFIG.md#2-environment-variable-reference).
 
 The deployable files live in [`deploy/`](../deploy/):
 
@@ -238,6 +238,7 @@ The concepts above map onto each platform's scaler. [DEPLOY.md](DEPLOY.md) has t
 | Fly.io | Proxy concurrency (`soft_limit` / `hard_limit`, type `requests`); auto start and stop of existing Machines | `min_machines_running`; max = Machines you created | The proxy starts stopped Machines but does not create new ones. Set `soft_limit` near the per-Machine sustainable rate, or the metrics-based autoscaler for more |
 | AWS ECS / Fargate | Application Auto Scaling target tracking on CPU, ALB requests per target, or a custom CloudWatch metric (queue ratio scraped by the CloudWatch agent or ADOT) | min / max capacity | Scale-in cooldown plays the role of the down window |
 | Azure Container Apps | KEDA scale rules: HTTP concurrent requests, CPU, or custom KEDA scalers such as Prometheus | min / max replicas; 0 allowed | Same rules as KEDA above |
+| Modal | Requests in flight per container (`@modal.concurrent` `target_inputs`, burst to `max_inputs`) | `min_containers` / `max_containers`; 0 allowed | `buffer_containers` keeps idle spares while active; `scaledown_window` is the down window. No `/readyz` probe and no metrics scrape: keep `max_inputs` below workers + queue |
 | Docker Swarm, plain Compose, Dokploy, Coolify | none | fixed replicas | No autoscaler: size for peak by hand, or drive `docker service scale` from an external tool |
 
 ### 3.8 Verified: autoscaling in a local cluster
