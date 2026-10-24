@@ -1,0 +1,80 @@
+# Hardened Deployment (docs/CONFIG.md §6, docs/OPERATIONS.md §1). The worker
+# count follows limits.cpu (GOMAXPROCS) and GOMEMLIMIT is derived from
+# limits.memory, so both limits must be set.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xtandard-image
+spec:
+  # The HPA (or KEDA) owns the replica count; this is the starting size.
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 25%, maxUnavailable: 0 }
+  selector:
+    matchLabels: {}
+  template:
+    metadata:
+      labels: {}
+    spec:
+      serviceAccountName: xtandard-image
+      automountServiceAccountToken: false
+      # Service links inject <SERVICE>_PORT_… variables; a Service named
+      # xi-… would produce XI_* names, which the server refuses at startup.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile: { type: RuntimeDefault }
+      # > XI_SERVER_SHUTDOWN_DELAY + XI_SERVER_SHUTDOWN_TIMEOUT (5s + 30s).
+      terminationGracePeriodSeconds: 45
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: { app.kubernetes.io/name: xtandard-image }
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: { app.kubernetes.io/name: xtandard-image }
+      containers:
+        - name: xtandard-image
+          image: ghcr.io/xantiagoma/xtandard-image
+          ports:
+            - { name: http, containerPort: 8080, protocol: TCP }
+            - { name: admin, containerPort: 9090, protocol: TCP }
+          envFrom:
+            - configMapRef: { name: xtandard-image-env }
+            # Signing keys and source credentials. optional so the base
+            # starts without it (unsigned URLs then follow the default
+            # restricted policy and the server logs a warning).
+            - secretRef: { name: xtandard-image-secrets, optional: true }
+          startupProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+            failureThreshold: 2
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests: { cpu: "2", memory: 1Gi }
+            limits: { cpu: "2", memory: 2Gi }
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: tmp
+          emptyDir: { medium: Memory, sizeLimit: 64Mi }

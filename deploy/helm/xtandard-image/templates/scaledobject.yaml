@@ -1,0 +1,84 @@
+{{- $a := .Values.autoscaling }}
+{{- if and $a.enabled (eq $a.type "keda") }}
+{{- $k := $a.keda }}
+{{- $sel := include "xi.promSelector" . }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "xi.fullname" . }}
+  labels:
+    {{- include "xi.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ include "xi.fullname" . }}
+  minReplicaCount: {{ $a.minReplicas }}
+  maxReplicaCount: {{ $a.maxReplicas }}
+  pollingInterval: {{ $k.pollingInterval }}
+  {{- with $k.fallback }}
+  fallback:
+    failureThreshold: {{ .failureThreshold }}
+    replicas: {{ .replicas }}
+  {{- end }}
+  {{- with $a.behavior }}
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        {{- toYaml . | nindent 8 }}
+  {{- end }}
+  triggers:
+    {{- if ne .Values.role "video" }}
+    # Jobs per worker (queue depth over GOMAXPROCS), averaged over pods.
+    - type: prometheus
+      name: queue
+      metricType: AverageValue
+      metadata:
+        serverAddress: {{ $k.serverAddress | quote }}
+        query: {{ printf "sum(avg_over_time(xi_queue_depth{%s}[1m]) / go_sched_gomaxprocs_threads{%s})" $sel $sel | quote }}
+        threshold: {{ $k.queueUtilisationTarget | quote }}
+      {{- with $k.authenticationRef }}
+      authenticationRef: { name: {{ . }} }
+      {{- end }}
+    - type: prometheus
+      name: overload
+      metricType: AverageValue
+      metadata:
+        serverAddress: {{ $k.serverAddress | quote }}
+        query: {{ printf "sum(rate(xi_overload_total{%s}[1m])) or vector(0)" $sel | quote }}
+        threshold: {{ $k.overloadTarget | quote }}
+      {{- with $k.authenticationRef }}
+      authenticationRef: { name: {{ . }} }
+      {{- end }}
+    {{- end }}
+    {{- if include "xi.videoEnabled" . }}
+    # Video pool: cost of running + waiting transcodes over capacity, per pod.
+    - type: prometheus
+      name: video
+      metricType: AverageValue
+      metadata:
+        serverAddress: {{ $k.serverAddress | quote }}
+        query: {{ printf "sum((xi_video_transform_capacity_used{%s} + xi_video_transform_queued_cost{%s}) / xi_video_transform_capacity{%s})" $sel $sel $sel | quote }}
+        threshold: {{ $k.videoUtilisationTarget | quote }}
+      {{- with $k.authenticationRef }}
+      authenticationRef: { name: {{ . }} }
+      {{- end }}
+    - type: prometheus
+      name: video-overload
+      metricType: AverageValue
+      metadata:
+        serverAddress: {{ $k.serverAddress | quote }}
+        query: {{ printf "sum(rate(xi_video_transform_overload_total{%s}[1m])) or vector(0)" $sel | quote }}
+        threshold: {{ $k.overloadTarget | quote }}
+      {{- with $k.authenticationRef }}
+      authenticationRef: { name: {{ . }} }
+      {{- end }}
+    {{- end }}
+    {{- if $k.cpuTrigger }}
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: {{ $a.targetCPUUtilizationPercentage | quote }}
+    {{- end }}
+    {{- with $k.extraTriggers }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}

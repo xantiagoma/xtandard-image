@@ -1,0 +1,19 @@
+# Scrapes /metrics on the admin port of every xtandard-image Service in the
+# namespace (image and video fleets alike). Series get job=<Service name>,
+# plus namespace, service and pod labels, which the rules and the KEDA
+# queries use. Your Prometheus must select this ServiceMonitor (for
+# kube-prometheus-stack: serviceMonitorSelectorNilUsesHelmValues=false, or
+# add its release label here).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: xtandard-image
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: xtandard-image
+  endpoints:
+    - port: admin
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s

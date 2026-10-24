@@ -1,0 +1,37 @@
+# Kustomize base for xtandard-image (docs/OPERATIONS.md). It runs XI_ROLE=all
+# with the slim image; the overlays add a role, autoscaling and monitoring:
+#
+#   kubectl apply -k deploy/kubernetes/overlays/image       # image fleet, HPA on CPU
+#   kubectl apply -k deploy/kubernetes/overlays/video       # video fleet (gpl image, disk spool)
+#   kubectl apply -k deploy/kubernetes/overlays/keda        # image fleet scaled by KEDA on xi_queue_depth
+#   kubectl apply -k deploy/kubernetes/overlays/monitoring  # image fleet + ServiceMonitor, PrometheusRule, dashboard
+#
+# Create the Secret first (placeholders; never commit real keys):
+#
+#   kubectl create secret generic xtandard-image-secrets \
+#     --from-literal=XI_SIGNING_KEYS="$(openssl rand -hex 32)" \
+#     --from-literal=XI_SIGNING_SALTS="$(openssl rand -hex 32)"
+#
+# A fuller example with several sources and file-mounted secrets is
+# docs/examples/k8s/ (loaded by a test in internal/config).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: xtandard-image
+      app.kubernetes.io/part-of: xtandard-image
+    includeSelectors: true
+
+resources:
+  - serviceaccount.yaml
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+  - pdb.yaml
+  - networkpolicy.yaml
+  - hpa.yaml
+
+images:
+  - name: ghcr.io/xantiagoma/xtandard-image
+    newTag: 0.1.0-rc.1-slim

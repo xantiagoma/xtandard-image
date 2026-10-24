@@ -1,0 +1,22 @@
+# prometheus-operator monitoring for xtandard-image: a ServiceMonitor on the
+# admin port, the alert and SLO rules as a PrometheusRule, and the Grafana
+# dashboard as a ConfigMap labelled for the Grafana sidecar
+# (kube-prometheus-stack: grafana.sidecar.dashboards.label=grafana_dashboard).
+#
+# prometheusrule.yaml and xtandard-image-dashboard.json are generated from
+# deploy/observability by deploy/scripts/gen.sh; edit the sources there.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - servicemonitor.yaml
+  - prometheusrule.yaml
+
+configMapGenerator:
+  - name: xtandard-image-dashboard
+    files:
+      - xtandard-image-dashboard.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"

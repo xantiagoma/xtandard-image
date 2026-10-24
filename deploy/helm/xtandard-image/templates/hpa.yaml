@@ -1,0 +1,34 @@
+{{- $a := .Values.autoscaling }}
+{{- if and $a.enabled (not (has $a.type (list "hpa" "keda"))) }}
+{{- fail "autoscaling.type must be hpa or keda" }}
+{{- end }}
+{{- if and $a.enabled (gt (int $a.minReplicas) (int $a.maxReplicas)) }}
+{{- fail "autoscaling.minReplicas must not exceed autoscaling.maxReplicas" }}
+{{- end }}
+{{- if and $a.enabled (eq $a.type "hpa") }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "xi.fullname" . }}
+  labels:
+    {{- include "xi.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "xi.fullname" . }}
+  minReplicas: {{ $a.minReplicas }}
+  maxReplicas: {{ $a.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: {{ $a.targetCPUUtilizationPercentage }} }
+    {{- with $a.hpa.extraMetrics }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with $a.behavior }}
+  behavior:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

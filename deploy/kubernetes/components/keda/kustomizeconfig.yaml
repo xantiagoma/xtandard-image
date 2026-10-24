@@ -1,0 +1,6 @@
+# Lets nameSuffix/namePrefix rename the ScaledObject's target too.
+nameReference:
+  - kind: Deployment
+    fieldSpecs:
+      - kind: ScaledObject
+        path: spec/scaleTargetRef/name
