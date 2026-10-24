@@ -712,7 +712,7 @@ func TestQueueFillAtLeast(t *testing.T) {
 			}
 		}
 		check(0)
-		var releases []func()
+		releases := make([]func(), 0, 2)
 		for range 2 { // admitted
 			r, err := l.Acquire(t.Context(), 0)
 			if err != nil {
