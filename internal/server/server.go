@@ -257,6 +257,11 @@ type Config struct {
 	// headers.
 	CORSOrigins []string
 
+	// Secret, when set, makes every request but /healthz and /readyz carry
+	// "Authorization: Bearer <Secret>" (XI_SECURITY_SECRET, imgproxy
+	// IMGPROXY_SECRET); others get 403. CORS preflights are answered first.
+	Secret string
+
 	// CompatImgproxyStatus answers invalid URLs (400) and forbidden sources
 	// or options (403 KindForbidden) with 404 like imgproxy
 	// (XI_COMPAT_IMGPROXY_STATUS).
@@ -499,6 +504,9 @@ type Server struct {
 	now func() time.Time
 	// fallbackKey is the resolved XI_FALLBACK_SOURCE; nil when unset.
 	fallbackKey *source.Key
+	// authorization is the required Authorization value ("Bearer " +
+	// Secret); nil when Secret is unset.
+	authorization []byte
 }
 
 // New validates cfg and builds the handler tree.
@@ -514,6 +522,9 @@ func New(cfg *Config, deps *Deps) (*Server, error) {
 		return nil, errors.New("server: router, resolver, fetcher, admitter, prober, processor, sniffer, allocator and logger are required")
 	}
 	s := &Server{cfg: *cfg, deps: *deps, now: time.Now}
+	if cfg.Secret != "" {
+		s.authorization = []byte("Bearer " + cfg.Secret)
+	}
 	if cfg.Fallback.Source != "" {
 		key, err := deps.Resolver.Resolve(transform.SourceSpec{Raw: cfg.Fallback.Source})
 		if err != nil {

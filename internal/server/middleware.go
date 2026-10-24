@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"errors"
 	"log/slog"
@@ -93,6 +94,8 @@ func (s *Server) ingress(mux *http.ServeMux) http.Handler {
 			mux.ServeHTTP(sw, r)
 		}
 		switch {
+		case isImage && !s.authorized(r):
+			s.writeError(sw, r, &httpError{status: http.StatusForbidden, msg: "invalid secret"})
 		case len(r.RequestURI) > maxURLLength:
 			s.writeError(sw, r, &httpError{status: http.StatusRequestURITooLong, msg: "url too long"})
 		case r.Method == MethodQuery && s.cfg.Query.Enabled:
@@ -112,6 +115,17 @@ func (s *Server) ingress(mux *http.ServeMux) http.Handler {
 			dispatch(r)
 		}
 	})
+}
+
+// authorized reports whether r carries the XI_SECURITY_SECRET bearer
+// token (always true when none is set), compared in constant time. The
+// playground's in-process renders (api/render) are already behind the
+// listener that serves the playground and carry none.
+func (s *Server) authorized(r *http.Request) bool {
+	if s.authorization == nil || source.IsPlaygroundRequest(r.Context()) {
+		return true
+	}
+	return subtle.ConstantTimeCompare([]byte(r.Header.Get("Authorization")), s.authorization) == 1
 }
 
 // accessLog writes the one access line per request and the request
