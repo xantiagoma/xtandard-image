@@ -1,0 +1,6 @@
+{
+  "AutoScalingConfigurationName": "xtandard-image",
+  "MaxConcurrency": 16,
+  "MinSize": 1,
+  "MaxSize": 10
+}

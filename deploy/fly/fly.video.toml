@@ -1,0 +1,67 @@
+# Fly.io, video fleet (docs/DEPLOY.md "Image and video fleets"). A separate app; route
+# /video/, /q/video and /_stream/ to it from your CDN or reverse proxy, the rest to the image app.
+#
+#   fly apps create my-xtandard-video
+#   fly secrets set XI_SIGNING_KEYS=<hex> XI_SIGNING_SALTS=<hex> XI_VIDEO_TRANSFORM_STREAM_KEYS=<hex> -a my-xtandard-video
+#   fly deploy -c deploy/fly/fly.video.toml -a my-xtandard-video   # creates the volume per Machine
+#   fly scale count 4 -a my-xtandard-video
+app = "my-xtandard-video"
+primary_region = "iad"
+kill_signal = "SIGTERM"
+# A transcode may run XI_VIDEO_TRANSFORM_TIMEOUT (2m); give the drain that long.
+kill_timeout = 150
+
+[build]
+  image = "ghcr.io/xantiagoma/xtandard-image:0.1.0-full"
+
+[env]
+  XI_ROLE = "video"
+  XI_VIDEO_TRANSFORM_ENABLED = "true"
+  XI_VIDEO_TRANSFORM_UNSIGNED_POLICY = "deny"
+  XI_VIDEO_TRANSFORM_SPOOL_DIR = "/data/spool"
+  XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES = "16GiB"
+  XI_SERVER_SHUTDOWN_TIMEOUT = "130s"
+  XI_SOURCES = "web"
+  XI_SOURCES_WEB_TYPE = "http"
+  XI_SOURCES_WEB_ALLOW = "media.example.com"
+  XI_CACHE_RESULT_STORES = "disk"
+  XI_CACHE_RESULT_DISK_PATH = "/data/cache"
+  XI_CACHE_RESULT_DISK_BYTES = "16GiB"
+  XI_ADMIN_ADDR = ":9090"
+
+# One volume per Machine (Fly maps Machines and volumes one to one); the spool and the disk
+# cache live there, not in RAM. Fly creates the volume root-owned: if the server cannot write
+# it, create /data/spool owned by 65532 once (fly ssh console) or use a release command.
+[mounts]
+  source = "xi_video"
+  destination = "/data"
+  initial_size = "40gb"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    # Transcodes are heavy: a couple per Machine (XI_VIDEO_TRANSFORM_MAX_JOBS defaults to
+    # 2 x video workers), the rest go to another Machine.
+    soft_limit = 4
+    hard_limit = 16
+
+  [[http_service.checks]]
+    grace_period = "15s"
+    interval = "10s"
+    timeout = "3s"
+    method = "GET"
+    path = "/readyz"
+
+[[vm]]
+  size = "performance-4x"
+  memory = "8gb"
+
+[[metrics]]
+  port = 9090
+  path = "/metrics"

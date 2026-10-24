@@ -1,0 +1,8 @@
+# Local smoke-run override for deploy/compose/compose.yml (deploy/check/compose-run.sh).
+services:
+  xtandard-image:
+    volumes: ["../../testdata/fixtures:/fixtures:ro"]
+    environment:
+      XI_SOURCES: web,local
+      XI_SOURCES_LOCAL_TYPE: fs
+      XI_SOURCES_LOCAL_ROOT: /fixtures

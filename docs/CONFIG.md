@@ -619,6 +619,8 @@ XI_PROCESSING_MEMORY_BUDGET=1GiB
 
 Health check path `/healthz` (the image also declares a Docker `HEALTHCHECK`). Scale replicas freely: the service is stateless; put a CDN in front for caching ([OPERATIONS.md §4](OPERATIONS.md#4-a-cdn-in-front)). An environment with several sources (S3, R2, B2, RustFS, SFTP, http) is [`docs/examples/multi-source.env`](examples/multi-source.env) ([SOURCES.md §5.1](SOURCES.md#51-environment-variables-only-dokploy-coolify-docker-run)).
 
+Replicas, rolling updates and a Swarm stack for Dokploy's "Stack" type: [DEPLOY.md "Dokploy"](DEPLOY.md#dokploy).
+
 ## 5. Coolify (docker-compose)
 
 ```yaml
@@ -650,6 +652,8 @@ volumes:
 ```
 
 Several sources with their credentials in Docker secrets (`_FILE` variables or `{file: …}` in a mounted config file): [SOURCES.md §5.2–5.3](SOURCES.md#52-docker-compose-with-secrets-also-dokploy-and-coolify-compose).
+
+Coolify's scaling limits and the other platforms: [DEPLOY.md "Coolify"](DEPLOY.md#coolify).
 
 ## 6. Kubernetes
 
