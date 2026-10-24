@@ -1,0 +1,81 @@
+# Google Cloud Run service, video fleet (docs/DEPLOY.md "Image and video fleets"). Route
+# /video/*, /q/video and /_stream/* to it with a global external Application Load Balancer
+# (serverless NEGs, a URL map path rule) or your CDN; the rest goes to the image service.
+#
+# Cloud Run has no local disk: the spool is an in-memory emptyDir that counts against the
+# memory limit. Keep XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES well below it (or mount a Cloud Storage
+# or NFS volume for the spool, not verified here).
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: xtandard-video
+  labels:
+    cloud.googleapis.com/location: us-central1
+  annotations:
+    run.googleapis.com/ingress: internal-and-cloud-load-balancing
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "10"
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/startup-cpu-boost: "true"
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      # Transcodes are CPU-bound: a few per instance (XI_VIDEO_TRANSFORM_MAX_JOBS defaults to
+      # 2 x video workers); manifests and segments are cheaper but share the limit.
+      containerConcurrency: 4
+      timeoutSeconds: 300
+      serviceAccountName: xtandard-image@PROJECT.iam.gserviceaccount.com
+      containers:
+        - name: xtandard-image
+          image: us-docker.pkg.dev/PROJECT/ghcr/xantiagoma/xtandard-image:0.1.0-full
+          ports:
+            - name: http1
+              containerPort: 8080
+          env:
+            - name: XI_SIGNING_KEYS
+              valueFrom:
+                secretKeyRef: { name: xi-signing-keys, key: latest }
+            - name: XI_SIGNING_SALTS
+              valueFrom:
+                secretKeyRef: { name: xi-signing-salts, key: latest }
+            - name: XI_VIDEO_TRANSFORM_STREAM_KEYS
+              valueFrom:
+                secretKeyRef: { name: xi-stream-keys, key: latest }
+            - { name: XI_ROLE, value: video }
+            - { name: XI_VIDEO_TRANSFORM_ENABLED, value: "true" }
+            - { name: XI_VIDEO_TRANSFORM_UNSIGNED_POLICY, value: deny }
+            - { name: XI_VIDEO_TRANSFORM_TIMEOUT, value: 4m }
+            - { name: XI_VIDEO_TRANSFORM_SPOOL_DIR, value: /spool }
+            - { name: XI_VIDEO_TRANSFORM_SPOOL_MAX_BYTES, value: 2GiB }
+            - { name: XI_SERVER_SHUTDOWN_DELAY, value: 1s }
+            - { name: XI_SERVER_SHUTDOWN_TIMEOUT, value: 8s }
+            - { name: XI_SOURCES, value: web }
+            - { name: XI_SOURCES_WEB_TYPE, value: http }
+            - { name: XI_SOURCES_WEB_ALLOW, value: media.example.com }
+            # Video results belong in a shared tier: an S3-compatible bucket (Cloud Storage
+            # interoperability) through XI_CACHE_RESULT_S3_SOURCE, or none and the CDN.
+          resources:
+            limits: { cpu: "4", memory: 8Gi }
+          startupProbe:
+            httpGet: { path: /readyz, port: 8080 }
+            periodSeconds: 1
+            timeoutSeconds: 1
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            periodSeconds: 10
+            timeoutSeconds: 3
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: spool, mountPath: /spool }
+      volumes:
+        - name: tmp
+          emptyDir: { medium: Memory, sizeLimit: 64Mi }
+        - name: spool
+          emptyDir: { medium: Memory, sizeLimit: 2560Mi }
+  traffic:
+    - latestRevision: true
+      percent: 100

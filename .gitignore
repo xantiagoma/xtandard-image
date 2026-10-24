@@ -45,3 +45,11 @@ clients/*/dist/
 /Package.resolved
 /.build/
 /.swiftpm/
+
+# deploy/ tooling (WP-149): check caches, Terraform/OpenTofu state and lock files, Node tooling
+/deploy/.cache/
+/deploy/terraform/*/.terraform/
+/deploy/terraform/*/.terraform.lock.hcl
+/deploy/terraform/*/terraform.tfstate*
+/deploy/*/cdk.out/
+/deploy/sst/.sst/

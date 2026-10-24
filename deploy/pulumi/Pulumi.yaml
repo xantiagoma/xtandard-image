@@ -1,0 +1,24 @@
+name: xtandard-image
+description: xtandard-image on AWS ECS Fargate, Google Cloud Run or Kubernetes (docs/DEPLOY.md "Pulumi")
+runtime:
+  name: nodejs
+  options:
+    packagemanager: bun
+    typescript: true
+config:
+  target:
+    type: string
+    default: aws
+    description: "aws (ECS Fargate + ALB + autoscaling), gcp (Cloud Run) or k8s (the Helm chart)"
+  image:
+    type: string
+    default: ghcr.io/xantiagoma/xtandard-image:0.1.0-slim
+  allowedHosts:
+    type: string
+    default: images.example.com
+  minInstances:
+    type: integer
+    default: 2
+  maxInstances:
+    type: integer
+    default: 20

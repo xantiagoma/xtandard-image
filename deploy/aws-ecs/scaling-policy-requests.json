@@ -1,0 +1,16 @@
+{
+  "ServiceNamespace": "ecs",
+  "ResourceId": "service/xtandard/xtandard-image",
+  "ScalableDimension": "ecs:service:DesiredCount",
+  "PolicyName": "xtandard-image-requests",
+  "PolicyType": "TargetTrackingScaling",
+  "TargetTrackingScalingPolicyConfiguration": {
+    "TargetValue": 600.0,
+    "PredefinedMetricSpecification": {
+      "PredefinedMetricType": "ALBRequestCountPerTarget",
+      "ResourceLabel": "app/xtandard/0123456789abcdef/targetgroup/xtandard-image/0123456789abcdef"
+    },
+    "ScaleOutCooldown": 60,
+    "ScaleInCooldown": 300
+  }
+}

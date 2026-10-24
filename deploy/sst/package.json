@@ -1,0 +1,17 @@
+{
+  "name": "xtandard-image-deploy-sst",
+  "private": true,
+  "description": "SST app for xtandard-image (deploy tooling only, not part of the root workspace)",
+  "license": "MIT",
+  "scripts": {
+    "install:platform": "sst install",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "sst": "4.17.2"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "typescript": "5.9.3"
+  }
+}

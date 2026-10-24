@@ -1,0 +1,46 @@
+# xtandard-image, one service (docs/DEPLOY.md "Docker Compose").
+#
+#   cp deploy/compose/.env.example deploy/compose/.env   # then edit it
+#   docker compose -f deploy/compose/compose.yml up -d
+#
+# Port 8080 is the public listener. The admin listener (/metrics, pprof, docs) is bound to
+# :9090 inside the compose network only: it is never published, so only containers on the same
+# network (a Prometheus, an OTel Collector) can scrape it.
+#
+# Scaling: `docker compose up -d --scale xtandard-image=3` runs three replicas behind Docker's
+# embedded DNS round robin; publish them through a reverse proxy (compose.split.yml shows one).
+# Compose has no autoscaler: use Swarm (deploy/swarm), a PaaS or Kubernetes for that.
+name: xtandard-image
+
+x-xi-common: &xi-common
+  restart: unless-stopped
+  read_only: true
+  # The image writes only to /tmp (fontconfig cache; docs/RELEASE.md "Running read-only").
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=64m
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  # SIGTERM → /readyz 503 → XI_SERVER_SHUTDOWN_DELAY (5s) → drain up to XI_SERVER_SHUTDOWN_TIMEOUT (30s).
+  stop_grace_period: 40s
+  # Health: the image's own HEALTHCHECK (`xtandard-image health`, GET /healthz every 10s).
+
+services:
+  xtandard-image:
+    <<: *xi-common
+    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-slim}
+    ports:
+      - "${XI_PUBLISH_PORT:-8080}:8080"
+    environment:
+      XI_ADMIN_ADDR: ":9090"
+      XI_SIGNING_KEYS: ${XI_SIGNING_KEYS:?set XI_SIGNING_KEYS (openssl rand -hex 32)}
+      XI_SIGNING_SALTS: ${XI_SIGNING_SALTS:?set XI_SIGNING_SALTS (openssl rand -hex 32)}
+      XI_SOURCES: web
+      XI_SOURCES_WEB_TYPE: http
+      XI_SOURCES_WEB_ALLOW: ${XI_SOURCES_WEB_ALLOW:-images.example.com}
+      XI_CACHE_RESULT_STORES: memory
+      XI_CACHE_RESULT_MEMORY_BYTES: 256MiB
+    # Workers follow the CPU limit (GOMAXPROCS) and GOMEMLIMIT follows the memory limit
+    # (30 %, XI_PROCESSING_GO_MEMORY_FRACTION); always set both.
+    deploy:
+      resources:
+        limits: { cpus: "2", memory: 2g }

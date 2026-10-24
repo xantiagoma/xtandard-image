@@ -1,0 +1,52 @@
+# Dokploy, compose type "Stack" (Docker Swarm), docs/DEPLOY.md "Dokploy".
+#
+# Create a Compose service, choose the "Stack" type, paste this file and set XI_SIGNING_KEYS,
+# XI_SIGNING_SALTS and XI_SOURCES_WEB_ALLOW in the Environment tab. Add the domain in the
+# Domains tab (Dokploy writes the Traefik labels) or keep the labels below and edit the host.
+# For the "Application" type use the image, port 8080 and the same variables instead, and set
+# replicas under Advanced → Cluster Settings (Swarm settings JSON for update/rollback).
+# Dokploy does not autoscale: replicas are fixed; change them and redeploy.
+services:
+  xtandard-image:
+    image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-slim}
+    read_only: true
+    volumes:
+      - type: tmpfs
+        target: /tmp
+        tmpfs: { size: 67108864 }
+    environment:
+      XI_SIGNING_KEYS: ${XI_SIGNING_KEYS:?set XI_SIGNING_KEYS}
+      XI_SIGNING_SALTS: ${XI_SIGNING_SALTS:?set XI_SIGNING_SALTS}
+      XI_SOURCES: web
+      XI_SOURCES_WEB_TYPE: http
+      XI_SOURCES_WEB_ALLOW: ${XI_SOURCES_WEB_ALLOW:-images.example.com}
+      XI_CACHE_RESULT_STORES: memory
+    stop_grace_period: 40s
+    networks: [dokploy-network]
+    deploy:
+      replicas: 2
+      resources:
+        limits: { cpus: "2", memory: 2G }
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+      restart_policy:
+        condition: any
+      # Stack mode reads Traefik labels from deploy.labels.
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.xtandard-image.rule=Host(`img.example.com`)
+        - traefik.http.routers.xtandard-image.entrypoints=websecure
+        - traefik.http.routers.xtandard-image.tls.certresolver=letsencrypt
+        - traefik.http.services.xtandard-image.loadbalancer.server.port=8080
+        - traefik.http.services.xtandard-image.loadbalancer.healthcheck.path=/readyz
+        - traefik.http.services.xtandard-image.loadbalancer.healthcheck.interval=5s
+
+networks:
+  dokploy-network:
+    external: true

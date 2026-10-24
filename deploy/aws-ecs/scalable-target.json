@@ -1,0 +1,7 @@
+{
+  "ServiceNamespace": "ecs",
+  "ResourceId": "service/xtandard/xtandard-image",
+  "ScalableDimension": "ecs:service:DesiredCount",
+  "MinCapacity": 2,
+  "MaxCapacity": 20
+}
