@@ -1,0 +1,13 @@
+# One Service with the public port and the admin port. Route only "http"
+# from your Ingress or Gateway; "admin" (/metrics, pprof, playground) is for
+# Prometheus and is restricted by the NetworkPolicy.
+apiVersion: v1
+kind: Service
+metadata:
+  name: xtandard-image
+spec:
+  type: ClusterIP
+  selector: {}
+  ports:
+    - { name: http, port: 80, targetPort: http, protocol: TCP }
+    - { name: admin, port: 9090, targetPort: admin, protocol: TCP }

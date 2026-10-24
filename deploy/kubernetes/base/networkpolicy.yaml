@@ -1,0 +1,39 @@
+# Ingress: the public port from anywhere in the cluster (your ingress
+# controller), the admin port only from the "monitoring" namespace.
+# Egress: DNS, origins on 80/443 and OTLP on 4317/4318, never the cloud
+# metadata endpoint (defence in depth on top of the server's SSRF rules).
+# Add rules for origins or caches on other ports (an in-cluster S3 on 9000,
+# Redis on 6379).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: xtandard-image
+spec:
+  podSelector:
+    matchLabels: {}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - ports:
+        - { port: http, protocol: TCP }
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: monitoring }
+      ports:
+        - { port: admin, protocol: TCP }
+  egress:
+    - to:
+        # No podSelector here: Kustomize's selector labels would be added to it.
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [169.254.169.254/32]
+      ports:
+        - { port: 80, protocol: TCP }
+        - { port: 443, protocol: TCP }
+        - { port: 4317, protocol: TCP }
+        - { port: 4318, protocol: TCP }

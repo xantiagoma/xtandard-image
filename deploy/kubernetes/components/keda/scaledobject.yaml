@@ -1,0 +1,63 @@
+# KEDA ScaledObject for the image fleet (docs/OPERATIONS.md §3). KEDA creates
+# the HPA from it; this component deletes the base HPA.
+#
+# Selectors: prometheus-operator labels every series scraped through a
+# ServiceMonitor with "service" (the Service name: xtandard-image-image in
+# the keda overlay) and "namespace". Add namespace="<ns>" when several
+# namespaces run the same name, and point serverAddress at your Prometheus.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: xtandard-image
+spec:
+  scaleTargetRef:
+    name: xtandard-image
+  minReplicaCount: 2
+  maxReplicaCount: 10
+  pollingInterval: 15
+  # Only used when scaling to zero (minReplicaCount 0); the HPA behaviour
+  # below governs scale-down otherwise.
+  cooldownPeriod: 300
+  # Prometheus unreachable for three polls in a row: hold 4 replicas.
+  fallback:
+    failureThreshold: 3
+    replicas: 4
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          selectPolicy: Max
+          policies:
+            - { type: Percent, value: 100, periodSeconds: 15 }
+            - { type: Pods, value: 4, periodSeconds: 15 }
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          selectPolicy: Min
+          policies:
+            - { type: Percent, value: 20, periodSeconds: 60 }
+  triggers:
+    # Jobs admitted to processing (running + waiting) per worker, averaged
+    # over pods: each pod's queue depth over its GOMAXPROCS (the default
+    # worker count, = limits.cpu). 0.75 keeps a quarter of the workers free.
+    - type: prometheus
+      name: queue
+      metricType: AverageValue
+      metadata:
+        serverAddress: http://prometheus-operated.monitoring.svc:9090
+        query: sum(avg_over_time(xi_queue_depth{service="xtandard-image-image"}[1m]) / go_sched_gomaxprocs_threads{service="xtandard-image-image"})
+        threshold: "0.75"
+    # Requests shed with 429/503: sustained rejection adds pods even when
+    # the one-minute queue average looks fine.
+    - type: prometheus
+      name: overload
+      metricType: AverageValue
+      metadata:
+        serverAddress: http://prometheus-operated.monitoring.svc:9090
+        query: sum(rate(xi_overload_total{service="xtandard-image-image"}[1m])) or vector(0)
+        threshold: "1"
+    # CPU as a floor for work the queue does not see (fetches, TLS, cache hits).
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "70"

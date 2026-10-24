@@ -1,0 +1,27 @@
+# Adds the per-pod processing queue to the CPU HPA, for clusters that run
+# prometheus-adapter (custom.metrics.k8s.io) instead of KEDA. The HPA scales
+# on whichever metric asks for more replicas. Adapter rule (values.yaml of
+# the prometheus-adapter chart):
+#
+#   rules:
+#     custom:
+#       - seriesQuery: 'xi_queue_depth{namespace!="",pod!=""}'
+#         resources: { overrides: { namespace: { resource: namespace }, pod: { resource: pod } } }
+#         name: { as: xi_queue_depth }
+#         metricsQuery: 'avg_over_time(<<.Series>>{<<.LabelMatchers>>}[1m])'
+#
+# docs/OPERATIONS.md §3.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+  - target: { kind: HorizontalPodAutoscaler }
+    patch: |-
+      - op: add
+        path: /spec/metrics/-
+        value:
+          type: Pods
+          pods:
+            metric: { name: xi_queue_depth }
+            # About 75 % of one pod's workers (limits.cpu = 2).
+            target: { type: AverageValue, averageValue: 1500m }

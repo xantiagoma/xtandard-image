@@ -1,0 +1,48 @@
+# Helm values for the kind autoscaling check (kind-autoscale.sh): small pods
+# (0.5 CPU, so a few dozen AVIF requests per second saturate one), KEDA on
+# the queue and overload triggers, short windows so a run takes minutes.
+role: image
+image:
+  repository: xtandard-image
+  tag: main-gpl
+  pullPolicy: Never
+config:
+  XI_SECURITY_UNSIGNED_POLICY: allow
+  XI_SOURCES: local
+  XI_SOURCES_LOCAL_TYPE: fs
+  XI_SOURCES_LOCAL_ROOT: /fixtures
+  # ConfigMap files are symlinks into ..data/ (inside the root).
+  XI_SOURCES_LOCAL_FOLLOW_SYMLINKS: "true"
+  XI_OBSERVABILITY_LOG_LEVEL: warn
+extraVolumes:
+  - name: fixtures
+    configMap: { name: xi-fixtures }
+extraVolumeMounts:
+  - { name: fixtures, mountPath: /fixtures/jpeg, readOnly: true }
+resources:
+  requests: { cpu: 250m, memory: 256Mi }
+  limits: { cpu: 500m, memory: 1Gi }
+topologySpread:
+  enabled: false
+autoscaling:
+  enabled: true
+  type: keda
+  minReplicas: 1
+  maxReplicas: 5
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      selectPolicy: Max
+      policies:
+        - { type: Percent, value: 100, periodSeconds: 15 }
+        - { type: Pods, value: 4, periodSeconds: 15 }
+    scaleDown:
+      stabilizationWindowSeconds: 60
+      selectPolicy: Min
+      policies:
+        - { type: Percent, value: 50, periodSeconds: 30 }
+  keda:
+    serverAddress: http://prometheus.monitoring.svc:9090
+    pollingInterval: 5
+    cpuTrigger: false
+    fallback: null

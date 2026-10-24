@@ -1,0 +1,33 @@
+# CPU-based autoscaling (works on any cluster with metrics-server). CPU lags
+# a burst by the metrics-server window plus the HPA sync period; the
+# hpa-queue-metric component adds xi_queue_depth through prometheus-adapter,
+# and the keda overlay replaces this HPA with a KEDA ScaledObject.
+# docs/OPERATIONS.md §3.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: xtandard-image
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: xtandard-image }
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 65 }
+  behavior:
+    # Up fast: double, or add 4 pods, every 15 s, whichever is more.
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      selectPolicy: Max
+      policies:
+        - { type: Percent, value: 100, periodSeconds: 15 }
+        - { type: Pods, value: 4, periodSeconds: 15 }
+    # Down slow: wait 5 min of lower recommendations, then remove at most
+    # 20 % per minute.
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      selectPolicy: Min
+      policies:
+        - { type: Percent, value: 20, periodSeconds: 60 }

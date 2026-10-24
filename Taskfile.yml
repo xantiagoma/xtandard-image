@@ -18,6 +18,10 @@
 # pinned in .mise.toml (`mise install`); CI and the docker:* tasks are canonical.
 version: "3"
 
+includes:
+  # Helm chart, Kustomize, observability checks (docs/OPERATIONS.md §8).
+  deploy: ./deploy/Taskfile.yml
+
 vars:
   BIN: bin/xtandard-image
   VERSION:
