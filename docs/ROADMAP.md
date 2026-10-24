@@ -207,7 +207,18 @@ Goal (owner decision 2026-10-15): official URL builders and clients for the main
 
 ## Backlog after M4
 
-Nothing yet.
+Optional, not scheduled. Each item waits for demand or an owner decision.
+
+- **Standalone Linux tarballs** (after v0.1.0, owner note 2026-10-23). Docker stays the primary
+  distribution. The release's `.debug` binaries are not runnable alone, because they need the base's
+  shared libraries. A tarball per flavour (`slim`, `full`; `gpl` only with its source offer) and
+  architecture (linux amd64/arm64) would be extracted from the release image: the stripped binary,
+  `/opt/xtandard/lib` with `rpath=$ORIGIN/../lib`, the licences and the SBOM. That is the same
+  tested set of files as the image, the approach sharp takes for its prebuilt libvips. The glibc
+  baseline is the runtime image's (Ubuntu noble). Then, only if asked: `.deb`/`.rpm` built from the
+  tarball with nfpm plus a systemd unit, and a Homebrew formula against brew's libvips for local
+  development, without the container's guarantees. No Windows build and no static binary: about 40
+  shared C libraries, FFmpeg and glibc make one fragile. imgproxy OSS and imagor ship Docker only.
 
 ## Open questions for the owner
 
