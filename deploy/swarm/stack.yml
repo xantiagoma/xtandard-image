@@ -23,15 +23,15 @@ services:
         tmpfs: { size: 67108864 }
     ports:
       - target: 8080
-        published: ${XI_PUBLISH_PORT:-8080}
+        published: ${PUBLISH_PORT:-8080}
         protocol: tcp
         mode: ingress
     environment:
       XI_ADMIN_ADDR: ":9090"
       XI_SIGNING_KEYS: ${XI_SIGNING_KEYS:?set XI_SIGNING_KEYS}
       XI_SIGNING_SALTS: ${XI_SIGNING_SALTS:?set XI_SIGNING_SALTS}
-      # XI_SIGNING_KEYS_FILE: /run/secrets/xi_signing_keys
-      # XI_SIGNING_SALTS_FILE: /run/secrets/xi_signing_salts
+      # With Docker secrets, replace both lines above by their _FILE forms, e.g.
+      # XI_SIGNING_KEYS_FILE: /run/secrets/xi_signing_keys (and the salts' at /run/secrets/xi_signing_salts)
       XI_SOURCES: web
       XI_SOURCES_WEB_TYPE: http
       XI_SOURCES_WEB_ALLOW: ${XI_SOURCES_WEB_ALLOW:-images.example.com}

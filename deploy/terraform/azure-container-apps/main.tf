@@ -1,5 +1,5 @@
 # Azure Container Apps with KEDA HTTP and CPU scale rules (docs/DEPLOY.md
-# "Terraform: Azure Container Apps"). Same settings as deploy/azure-container-apps/containerapp.yaml.
+# "Terraform / OpenTofu"). Same settings as deploy/azure-container-apps/containerapp.yaml.
 
 resource "azurerm_resource_group" "xi" {
   name     = var.resource_group

@@ -1,4 +1,4 @@
-# Google Cloud Run (v2 API) service for xtandard-image (docs/DEPLOY.md "Terraform: Cloud Run").
+# Google Cloud Run (v2 API) service for xtandard-image (docs/DEPLOY.md "Terraform / OpenTofu").
 # Same settings as deploy/cloud-run/service.yaml.
 
 resource "google_secret_manager_secret" "xi" {

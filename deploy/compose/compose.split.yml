@@ -34,7 +34,7 @@ services:
     image: nginx:1.29-alpine
     restart: unless-stopped
     ports:
-      - "${XI_PUBLISH_PORT:-8080}:8080"
+      - "${PUBLISH_PORT:-8080}:8080"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     read_only: true
@@ -59,7 +59,7 @@ services:
 
   video:
     <<: *xi-common
-    image: ${XI_VIDEO_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-full}
+    image: ${VIDEO_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-full}
     environment:
       <<: *xi-env
       XI_ROLE: video

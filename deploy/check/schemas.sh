@@ -8,7 +8,7 @@ set -euo pipefail
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$root"
-cache="${XI_DEPLOY_CACHE:-$root/deploy/.cache}/schemas"
+cache="${DEPLOY_CHECK_CACHE:-$root/deploy/.cache}/schemas"
 mkdir -p "$cache"
 fail=0
 ok() { printf 'ok   %s\n' "$1"; }
@@ -99,6 +99,7 @@ docker run --rm -v "$root/deploy/nomad:/job:ro" -e NOMAD_ADDR=http://127.0.0.1:1
 image="${XI_IMAGE:-xtandard-image:main-gpl}"
 if docker image inspect "$image" >/dev/null 2>&1; then
   envdir="$(mktemp -d "$cache/env.XXXXXX")"
+  trap 'rm -rf "$envdir"' EXIT
   docker compose -f deploy/compose/compose.split.yml config --format json >"$envdir/split.json"
   docker compose -f deploy/compose/compose.yml config --format json >"$envdir/single.json"
   docker compose -f deploy/coolify/compose.yml config --format json >"$envdir/coolify.json"

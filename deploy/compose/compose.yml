@@ -29,7 +29,7 @@ services:
     <<: *xi-common
     image: ${XI_IMAGE:-ghcr.io/xantiagoma/xtandard-image:0.1.0-slim}
     ports:
-      - "${XI_PUBLISH_PORT:-8080}:8080"
+      - "${PUBLISH_PORT:-8080}:8080"
     environment:
       XI_ADMIN_ADDR: ":9090"
       XI_SIGNING_KEYS: ${XI_SIGNING_KEYS:?set XI_SIGNING_KEYS (openssl rand -hex 32)}

@@ -353,11 +353,12 @@ tasks:
   # Platform deployment files and IaC (WP-149, docs/DEPLOY.md "Verification"). Pinned tools in
   # containers plus host Bun; no cloud account. WP-148's Kubernetes/Helm checks are separate.
   deploy:platforms:check:
-    desc: "Validate deploy/ platform files (schemas, config validate in $XI_IMAGE), Terraform/OpenTofu modules, Pulumi/SST/CDK typechecks and synth, Node licences"
+    desc: "Validate deploy/ platform files (schemas, config validate in $XI_IMAGE), Terraform/OpenTofu modules, Pulumi/SST/CDK typechecks and synth, Helm values of the Terraform and Pulumi programs, Node licences"
     cmds:
       - deploy/check/schemas.sh
       - deploy/check/terraform.sh
       - deploy/check/typescript.sh
+      - deploy/check/helm.sh
       - bun deploy/check/licenses.ts
 
   deploy:platforms:run:

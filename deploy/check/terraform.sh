@@ -9,7 +9,7 @@ root="$(cd "$(dirname "$0")/../.." && pwd)"
 # XI_TF_IMAGE=hashicorp/terraform:1.17.0 runs the same checks with Terraform (BUSL-1.1).
 tofu_image="${XI_TF_IMAGE:-ghcr.io/opentofu/opentofu:1.13.2}"
 tflint_image="ghcr.io/terraform-linters/tflint:v0.65.0"
-cache="${XI_DEPLOY_CACHE:-$root/deploy/.cache}/terraform-plugins"
+cache="${DEPLOY_CHECK_CACHE:-$root/deploy/.cache}/terraform-plugins"
 mkdir -p "$cache"
 
 mods=("$@")

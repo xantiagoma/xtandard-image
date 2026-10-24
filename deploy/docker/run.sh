@@ -19,7 +19,7 @@ exec docker run -d --name "${XI_NAME:-xtandard-image}" \
   --cap-drop ALL --security-opt no-new-privileges \
   --cpus "${XI_CPUS:-2}" --memory "${XI_MEMORY:-2g}" \
   --stop-timeout 40 \
-  -p "${XI_PUBLISH_PORT:-8080}:8080" \
+  -p "${PUBLISH_PORT:-8080}:8080" \
   -e XI_SIGNING_KEYS -e XI_SIGNING_SALTS \
   -e XI_SOURCES=web \
   -e XI_SOURCES_WEB_TYPE=http \
