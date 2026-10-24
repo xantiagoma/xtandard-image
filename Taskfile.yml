@@ -353,7 +353,7 @@ tasks:
   # Platform deployment files and IaC (WP-149, docs/DEPLOY.md "Verification"). Pinned tools in
   # containers plus host Bun; no cloud account. WP-148's Kubernetes/Helm checks are separate.
   deploy:platforms:check:
-    desc: "Validate deploy/ platform files (schemas, config validate in $XI_IMAGE), Terraform/OpenTofu modules, Pulumi/SST/CDK typechecks and synth, Helm values of the Terraform and Pulumi programs, Node licences"
+    desc: "Validate deploy/ platform files (schemas, the Modal app, config validate in $XI_IMAGE), Terraform/OpenTofu modules, Pulumi/SST/CDK typechecks and synth, Helm values of the Terraform and Pulumi programs, Node licences"
     cmds:
       - deploy/check/schemas.sh
       - deploy/check/terraform.sh
@@ -362,6 +362,7 @@ tasks:
       - bun deploy/check/licenses.ts
 
   deploy:platforms:run:
-    desc: "Run the compose single and image/video split setups and a throwaway Swarm stack against $XI_IMAGE (default xtandard-image:main-gpl), then tear down"
+    desc: "Run the compose single and image/video split setups, a throwaway Swarm stack and the Modal app's server lifecycle in a Modal-like container against $XI_IMAGE (default xtandard-image:main-gpl), then tear down"
     cmds:
       - deploy/check/compose-run.sh
+      - deploy/check/modal-run.sh
